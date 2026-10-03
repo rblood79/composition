@@ -1,45 +1,72 @@
 import type {
+  LibraryDefinitionId,
   BreakpointName,
   EditTarget,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { targetExists } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import type { CatalogCommandPlan } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { CatalogRuntime } from "./controller";
 
 /**
  * ADR-248 Phase 4c session state: what the author is looking at and working on — the page, the
- * selected edit targets, the hovered one, the entered editing context, the text being edited and
+ * selected positions, the hovered one, the entered editing context, the text being edited and
  * the breakpoint. It lives outside the document (no history, no save, no revision), and every
- * published step reconciles it: a target that no longer addresses a shown element leaves the
- * selection (undo/redo included); a gone page or context falls back.
+ * published step reconciles it: a position that no longer shows an element leaves the selection
+ * (undo/redo included); a gone page or context falls back.
+ *
+ * A selected position is what an edit addresses (`target`) and which drawn element it is
+ * (`identity`, the Canvas/DOM record id): one node can be drawn at several positions.
  *
  * Snapshots are immutable and replaced on change (`useSyncExternalStore` reads `getSnapshot`).
  */
+export interface CatalogSelectionItem {
+  readonly target: EditTarget;
+  readonly identity: string;
+}
 export interface CatalogSessionState {
   readonly pageId: EntryId<"page"> | undefined;
-  readonly selection: readonly EditTarget[];
-  readonly hover: EditTarget | undefined;
+  readonly selection: readonly CatalogSelectionItem[];
+  readonly hover: CatalogSelectionItem | undefined;
   /** An entered instance or group: clicks select inside it. */
   readonly editingContext: NodeId | undefined;
-  readonly textEditing: EditTarget | undefined;
+  readonly textEditing: CatalogSelectionItem | undefined;
   readonly breakpoint: BreakpointName;
+  /**
+   * The definition edit view (ADR-248 4e): the Canvas and Layers show this project definition's
+   * template instead of the pages. The page stays the open page to return to.
+   */
+  readonly definitionView?: CatalogDefinitionViewId;
 }
+/** A definition the edit view shows: a project definition, or a library component origin. */
+export type CatalogDefinitionViewId =
+  EntryId<"definition"> | LibraryDefinitionId;
 
-const targetKey = (target: EditTarget): string =>
+export const targetKey = (target: EditTarget): string =>
   target.kind === "node"
     ? target.id
     : `${target.ownerId}|${target.address.instances.join("/")}|${target.address.templatePath.join("/")}`;
 export const sameTarget = (a: EditTarget, b: EditTarget) =>
   targetKey(a) === targetKey(b);
+const sameItem = (a: CatalogSelectionItem, b: CatalogSelectionItem) =>
+  a.identity === b.identity && sameTarget(a.target, b.target);
+
+export interface CatalogSessionOptions {
+  /** Whether a record identity is drawn now (the composition root's records). Default: always. */
+  identityExists?: (identity: string) => boolean;
+}
 
 export class CatalogSession {
   private state: CatalogSessionState;
   private readonly listeners = new Set<() => void>();
   private readonly unsubscribeSteps: () => void;
+  private readonly identityExists: (identity: string) => boolean;
 
-  constructor(private readonly runtime: CatalogRuntime) {
+  constructor(
+    private readonly runtime: CatalogRuntime,
+    options: CatalogSessionOptions = {},
+  ) {
+    this.identityExists = options.identityExists ?? (() => true);
     const project = runtime.graph.getEntry(runtime.graph.projectId);
     this.state = {
       pageId: project?.kind === "project" ? project.pageIds[0] : undefined,
@@ -61,6 +88,10 @@ export class CatalogSession {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   };
+
+  private shown = (item: CatalogSelectionItem): boolean =>
+    targetExists(this.runtime.graph, item.target) &&
+    this.identityExists(item.identity);
 
   private set(next: Partial<CatalogSessionState>): void {
     const merged = { ...this.state, ...next };
@@ -89,39 +120,48 @@ export class CatalogSession {
   setBreakpoint(breakpoint: BreakpointName): void {
     this.set({ breakpoint });
   }
+  /** Enter (a definition id) or leave (`undefined`) the definition edit view; clears the selection. */
+  setDefinitionView(definitionId: CatalogDefinitionViewId | undefined): void {
+    if (definitionId === this.state.definitionView) return;
+    this.set({
+      definitionView: definitionId,
+      selection: [],
+      hover: undefined,
+      editingContext: undefined,
+      textEditing: undefined,
+    });
+  }
 
-  /** Replace the selection, or (`additive`) toggle each target in it. */
+  /** Replace the selection, or (`additive`) toggle each item in it. */
   select(
-    targets: readonly EditTarget[],
+    items: readonly CatalogSelectionItem[],
     options?: { additive?: boolean },
   ): void {
-    const shown = targets.filter((target) =>
-      targetExists(this.runtime.graph, target),
-    );
-    let selection: EditTarget[];
+    const shown = items.filter(this.shown);
+    let selection: CatalogSelectionItem[];
     if (options?.additive) {
       selection = [...this.state.selection];
-      for (const target of shown) {
-        const at = selection.findIndex((item) => sameTarget(item, target));
+      for (const item of shown) {
+        const at = selection.findIndex((other) => sameItem(other, item));
         if (at >= 0) selection.splice(at, 1);
-        else selection.push(target);
+        else selection.push(item);
       }
     } else
       selection = shown.filter(
-        (target, index) =>
-          shown.findIndex((item) => sameTarget(item, target)) === index,
+        (item, index) =>
+          shown.findIndex((other) => sameItem(other, item)) === index,
       );
     const unchanged =
       selection.length === this.state.selection.length &&
-      selection.every((target, index) =>
-        sameTarget(target, this.state.selection[index]),
+      selection.every((item, index) =>
+        sameItem(item, this.state.selection[index]),
       );
     if (unchanged) return;
     this.set({
       selection,
       textEditing:
         this.state.textEditing &&
-        selection.some((target) => sameTarget(target, this.state.textEditing!))
+        selection.some((item) => sameItem(item, this.state.textEditing!))
           ? this.state.textEditing
           : undefined,
     });
@@ -129,16 +169,13 @@ export class CatalogSession {
   clearSelection(): void {
     this.select([]);
   }
-  setHover(target: EditTarget | undefined): void {
+  setHover(item: CatalogSelectionItem | undefined): void {
     if (
-      (!target && !this.state.hover) ||
-      (target && this.state.hover && sameTarget(target, this.state.hover))
+      (!item && !this.state.hover) ||
+      (item && this.state.hover && sameItem(item, this.state.hover))
     )
       return;
-    this.set({
-      hover:
-        target && targetExists(this.runtime.graph, target) ? target : undefined,
-    });
+    this.set({ hover: item && this.shown(item) ? item : undefined });
   }
   enterContext(id: NodeId): void {
     if (this.runtime.graph.getEntry(id)?.kind !== "node")
@@ -148,25 +185,21 @@ export class CatalogSession {
   exitContext(): void {
     this.set({ editingContext: undefined });
   }
-  startTextEdit(target: EditTarget): void {
-    if (!targetExists(this.runtime.graph, target))
-      throw new Error(`CATALOG_SESSION_TARGET_NOT_FOUND:${targetKey(target)}`);
-    this.select([target]);
-    this.set({ textEditing: target });
+  startTextEdit(item: CatalogSelectionItem): void {
+    if (!this.shown(item))
+      throw new Error(
+        `CATALOG_SESSION_TARGET_NOT_FOUND:${targetKey(item.target)}`,
+      );
+    this.select([item]);
+    this.set({ textEditing: item });
   }
   endTextEdit(): void {
     this.set({ textEditing: undefined });
   }
-  /** After a command: its `selectAfter` becomes the selection. */
-  applyPlan(plan: CatalogCommandPlan): void {
-    if (plan.selectAfter)
-      this.select(plan.selectAfter.map((id) => ({ kind: "node", id })));
-  }
 
-  /** Drop what no longer addresses a shown element (every published step calls it). */
-  private reconcile(): void {
+  /** Drop what no longer shows an element (every published step and a root switch call it). */
+  reconcile(): void {
     const graph = this.runtime.graph;
-    const exists = (target: EditTarget) => targetExists(graph, target);
     const project = graph.getEntry(graph.projectId);
     const pageId =
       this.state.pageId && graph.getEntry(this.state.pageId)?.kind === "page"
@@ -174,14 +207,14 @@ export class CatalogSession {
         : project?.kind === "project"
           ? project.pageIds[0]
           : undefined;
-    const selection = this.state.selection.filter(exists);
+    const selection = this.state.selection.filter(this.shown);
     this.set({
       pageId,
       ...(selection.length !== this.state.selection.length
         ? { selection }
         : {}),
       hover:
-        this.state.hover && exists(this.state.hover)
+        this.state.hover && this.shown(this.state.hover)
           ? this.state.hover
           : undefined,
       editingContext:
@@ -190,7 +223,7 @@ export class CatalogSession {
           ? this.state.editingContext
           : undefined,
       textEditing:
-        this.state.textEditing && exists(this.state.textEditing)
+        this.state.textEditing && this.shown(this.state.textEditing)
           ? this.state.textEditing
           : undefined,
     });

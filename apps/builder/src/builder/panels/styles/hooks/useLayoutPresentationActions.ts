@@ -1,12 +1,12 @@
+import {
+  presentationRuntime,
+  presentationSelection,
+} from "./presentationBridge";
+import { useStylesHost } from "../stylesHost";
 import { usePresentationLifecycle } from "./usePresentationLifecycle";
 import { useCallback, useRef, useState } from "react";
-import { readImmediateSelectionSnapshot } from "../../../stores";
-import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
-import {
-  parsePresentationLayoutPx,
-  resolveLayoutPresentationPilotTarget,
-  type LayoutPresentationProperty,
-} from "../../../presentation/editorPresentationLayoutPilot";
+import { parsePresentationLayoutPx } from "../../../presentation/editorPresentationLayoutValue";
+import type { LayoutPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
@@ -41,6 +41,7 @@ export interface LayoutPresentationActions {
  * unsupported layout values fall back to the existing canonical action.
  */
 export function useLayoutPresentationActions(): LayoutPresentationActions {
+  const bridge = useStylesHost().presentation;
   const stateRef = useRef<LayoutPresentationState | null>(null);
   const [ownerId] = useState(() => `style-layout-owner-${nextLayoutOwnerId++}`);
 
@@ -48,17 +49,17 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
 
   const isLayoutPresentationOwned = useCallback(
     (property: LayoutPresentationProperty): boolean =>
-      resolveLayoutPresentationPilotTarget(
-        readImmediateSelectionSnapshot().selectedElementId,
+      (bridge?.resolveLayoutTarget(
+        presentationSelection(bridge).selectedElementId,
         property,
-      ) !== null,
+      ) ?? null) !== null,
     [],
   );
 
   const previewLayoutPresentation = useCallback(
     (property: LayoutPresentationProperty, value: string): boolean => {
       const parsed = parsePresentationLayoutPx(value);
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = stateRef.current;
       if (parsed === null || !selectedElementId) {
         if (existing?.phase === "active") existing.handle.cancel("superseded");
@@ -84,13 +85,11 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
         stateRef.current = null;
       }
       if (!active) {
-        const pilot = resolveLayoutPresentationPilotTarget(
-          selectedElementId,
-          property,
-        );
+        const pilot =
+          bridge?.resolveLayoutTarget(selectedElementId, property) ?? null;
         if (!pilot) return false;
         active = {
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: `style-layout-${property}`,
             ownerId,
             projectId: pilot.projectId,
@@ -105,10 +104,8 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
 
       if (!active) return false;
 
-      const pilot = resolveLayoutPresentationPilotTarget(
-        selectedElementId,
-        property,
-      );
+      const pilot =
+        bridge?.resolveLayoutTarget(selectedElementId, property) ?? null;
       if (!pilot) {
         active.handle.cancel("superseded");
         stateRef.current = null;
@@ -129,7 +126,7 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
 
   const commitLayoutPresentation = useCallback(
     (property: LayoutPresentationProperty, value: string): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       if (parsePresentationLayoutPx(value) === null) {
         const active = stateRef.current;
         if (active?.phase === "active") active.handle.cancel("superseded");
@@ -152,10 +149,8 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
         stateRef.current = null;
         return true;
       }
-      const pilot = resolveLayoutPresentationPilotTarget(
-        selectedElementId,
-        property,
-      );
+      const pilot =
+        bridge?.resolveLayoutTarget(selectedElementId, property) ?? null;
       if (!pilot) {
         current.handle.cancel("superseded");
         stateRef.current = null;

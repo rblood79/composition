@@ -4,6 +4,10 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  openLegacyDocuments,
+  type LegacyDocuments,
+} from "../../db/__tests__/support/legacyDocuments";
 import type { CompositionDocument } from "@composition/shared";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, readAllAssetGcRecords } from "../assetDb";
@@ -18,6 +22,7 @@ import {
 } from "../assetStore";
 
 let adapter: IndexedDBAdapter;
+let legacy: LegacyDocuments;
 const SELF = "tab-self";
 const OTHER = "tab-other";
 
@@ -25,9 +30,11 @@ beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
+  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
+  legacy.close();
   await adapter.close();
 });
 
@@ -307,10 +314,10 @@ describe("영속 root 수집 (G0 (b) 보유처)", () => {
         version: "composition-1.0",
         children: [{ id: "n", type: "frame", fills: [{ url }] }],
       }) as unknown as CompositionDocument;
-    await adapter.documents.put("p1", doc(live.ref));
-    await adapter.documents.put("gone", doc(orphan.ref));
-    await adapter.documents.backupNow("gone");
-    await adapter.documents.delete("gone");
+    await legacy.put("p1", doc(live.ref));
+    await legacy.put("gone", doc(orphan.ref));
+    await legacy.backupNow("gone");
+    await legacy.delete("gone");
     // history DB
     await new Promise<void>((resolve) => {
       const req = indexedDB.open("composition-history", 4);

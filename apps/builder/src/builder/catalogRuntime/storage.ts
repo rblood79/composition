@@ -14,6 +14,7 @@ export class CatalogStorageError extends Error {
       | "PROJECT_NOT_FOUND"
       | "REVISION_CONFLICT"
       | "UNSUPPORTED_PROJECT_FORMAT"
+      | "QUOTA_EXCEEDED"
       | "STORAGE_FAILURE",
   ) {
     super(code);
@@ -27,6 +28,9 @@ interface StoredHead {
   libraryContractVersion: CatalogDocument["libraryContractVersion"];
   rootId: CatalogDocument["rootId"];
   revision: number;
+  /** Wall-clock ms of the create and of the last commit (project list order; not document data). */
+  createdAt?: number;
+  updatedAt?: number;
 }
 interface StoredEntry {
   projectId: string;
@@ -47,16 +51,24 @@ export interface CatalogStoredProject {
   name: string | undefined;
   /** False for a head of another format or version: opening it fails with UNSUPPORTED_PROJECT_FORMAT. */
   supported: boolean;
+  createdAt: number | undefined;
+  updatedAt: number | undefined;
 }
 export interface StorageHooks {
   beforeTransaction?: (commit: CatalogCommit) => Promise<void> | void;
   afterWritesBeforeCommit?: (commit: CatalogCommit) => void;
 }
 
-function failure(error: unknown): CatalogStorageError {
-  return error instanceof CatalogStorageError
-    ? error
-    : new CatalogStorageError("STORAGE_FAILURE");
+/** An IndexedDB error as a storage error (exported for the quota mapping test). */
+export function failure(error: unknown): CatalogStorageError {
+  if (error instanceof CatalogStorageError) return error;
+  // The browser's storage quota (the header asks the user to export / free space).
+  const name = (error as { name?: string } | null)?.name;
+  return new CatalogStorageError(
+    name === "QuotaExceededError" || name === "NS_ERROR_DOM_QUOTA_REACHED"
+      ? "QUOTA_EXCEEDED"
+      : "STORAGE_FAILURE",
+  );
 }
 
 function transactionDone(transaction: IDBTransaction): Promise<void> {
@@ -101,6 +113,7 @@ export class CatalogStorage {
       }),
     );
     await Promise.resolve();
+    const now = Date.now();
     const db = await this.open();
     try {
       const transaction = db.transaction(["heads", "entries"], "readwrite");
@@ -120,6 +133,8 @@ export class CatalogStorage {
           libraryContractVersion: document.libraryContractVersion,
           rootId: document.rootId,
           revision: document.revision,
+          createdAt: now,
+          updatedAt: now,
         };
         heads.put(head);
         for (const entry of entries) records.put(entry);
@@ -179,7 +194,11 @@ export class CatalogStorage {
           for (const entry of entries) records.put(entry);
           for (const id of commit.removedIds)
             records.delete([commit.projectId, id]);
-          heads.put({ ...old, revision: commit.revision });
+          heads.put({
+            ...old,
+            revision: commit.revision,
+            updatedAt: Date.now(),
+          });
           this.hooks.afterWritesBeforeCommit?.(commit);
         } catch {
           transaction.abort();
@@ -190,6 +209,70 @@ export class CatalogStorage {
       } catch (error) {
         throw conflict ?? error;
       }
+    } finally {
+      db.close();
+    }
+  }
+
+  /**
+   * Replace a stored project's document (a project file imported into it) in one transaction: every
+   * entry record goes, the document's entries come in, and the head moves one revision past the
+   * stored one — a tab still editing the old document then fails its next save with a conflict.
+   * Returns the stored revision.
+   */
+  async replace(
+    document: CatalogDocument,
+    library: CatalogLibrary,
+  ): Promise<number> {
+    createCatalogGraph(document, library);
+    const entries: StoredEntry[] = Object.values(document.entries).map(
+      (entry) => ({
+        projectId: document.projectId,
+        id: entry.id,
+        json: JSON.stringify(entry),
+      }),
+    );
+    await Promise.resolve();
+    const db = await this.open();
+    try {
+      const transaction = db.transaction(["heads", "entries"], "readwrite");
+      const done = transactionDone(transaction);
+      const heads = transaction.objectStore("heads");
+      const records = transaction.objectStore("entries");
+      let refusal: CatalogStorageError | null = null;
+      let revision = 0;
+      const lookup = heads.get(document.projectId);
+      lookup.onsuccess = () => {
+        const old = lookup.result as StoredHead | undefined;
+        if (!old) {
+          refusal = new CatalogStorageError("PROJECT_NOT_FOUND");
+          transaction.abort();
+          return;
+        }
+        revision = old.revision + 1;
+        records.delete(
+          IDBKeyRange.bound(
+            [document.projectId, ""],
+            [document.projectId, "\uffff"],
+          ),
+        );
+        for (const entry of entries) records.put(entry);
+        heads.put({
+          ...old,
+          format: document.format,
+          schemaVersion: document.schemaVersion,
+          libraryContractVersion: document.libraryContractVersion,
+          rootId: document.rootId,
+          revision,
+          updatedAt: Date.now(),
+        });
+      };
+      try {
+        await done;
+      } catch (error) {
+        throw refusal ?? error;
+      }
+      return revision;
     } finally {
       db.close();
     }
@@ -228,6 +311,8 @@ export class CatalogStorage {
           revision: head.revision,
           name,
           supported,
+          createdAt: head.createdAt,
+          updatedAt: head.updatedAt,
         };
       });
     } finally {

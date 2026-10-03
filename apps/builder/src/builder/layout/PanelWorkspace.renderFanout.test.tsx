@@ -29,7 +29,7 @@ import type { ReactElement } from "react";
 import { I18nProvider } from "../../i18n";
 import type { PanelConfig } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 import {
   PANEL_WORKSPACE_TEST_REGISTRY,
   createPanelWorkspaceLayoutV2,
@@ -282,11 +282,11 @@ describe("PanelWorkspace coordinator flush 당 렌더 fan-out", () => {
     });
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(1600);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(852);
-    useStore.getState().initializePanelWorkspaceLayout(TEST_REGISTRY, {
+    useBuilderUiStore.getState().initializePanelWorkspaceLayout(TEST_REGISTRY, {
       width: 1592,
       height: 844,
     });
-    useStore.setState({
+    useBuilderUiStore.setState({
       panelWorkspaceLayout: migrateFixture(),
       panelWorkspaceHydrationStatus: "memory-fallback",
       panelWorkspaceHydrationError: null,

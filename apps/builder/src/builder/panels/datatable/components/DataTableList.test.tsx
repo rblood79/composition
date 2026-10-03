@@ -57,32 +57,27 @@ const state = {
 vi.mock("../../../stores/data", () => ({
   useDataStore: (selector: (s: typeof state) => unknown) => selector(state),
 }));
-vi.mock("../../../stores", () => ({
-  useStore: (selector: (s: { elements: unknown[] }) => unknown) =>
-    selector({ elements: [] }),
-}));
-vi.mock("../../../../services/ai/tools/canonicalToolReadModel", () => ({
-  getAiToolReadModel: () => ({
-    elements: [
-      {
-        id: "e1",
-        props: { dataBinding: { source: "dataTable", collectionId: "c1" } },
-      },
-      {
-        id: "e2",
-        props: { dataBinding: { source: "dataTable", collectionId: "c1" } },
-      },
-    ],
-  }),
-}));
-
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import { DataTableList } from "./DataTableList";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
+import {
+  DataUsageSourceContext,
+  type DataUsageSource,
+} from "../usage/dataUsageSource";
+
+/** ADR-248 4e-9 C: the document's usage — two nodes bind Users (c1). */
+const USAGE: DataUsageSource = {
+  useCollectionUsage: () => new Map([["c1", 2]]),
+  useFieldUsage: () => [],
+};
 
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <DataUsageSourceContext.Provider value={USAGE}>
+      {node}
+    </DataUsageSourceContext.Provider>
+  </I18nProvider>
 );
 
 afterEach(() => {

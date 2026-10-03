@@ -12,18 +12,15 @@ const TOOL_FILES = [
 ];
 
 describe("AI tools canonical read model contract", () => {
-  it("builds the shared read model from canonical traversal, not snapshot helpers", async () => {
+  it("reads the AI read host only", async () => {
+    // ADR-248 4e-7: the tool read model never reaches the old stores (the open Builder installs
+    // the host); the old store host went with 4e-9 C.
     const source = await readFile(
       resolve(__dirname, "canonicalToolReadModel.ts"),
       "utf-8",
     );
-
-    expect(source).toContain("getProjectableNodeLookups");
-    expect(source).toContain("canonicalNodeToElement");
-    expect(source).toContain("canonicalProjectionCache");
-    expect(source).not.toContain("visitCanonicalDocumentElements");
-    expect(source).not.toContain("getCanonicalDocumentElementsView");
-    expect(source).not.toContain("canonicalElementSnapshot");
+    expect(source).toContain("getAiReadHost");
+    expect(source).not.toMatch(/builder\/stores|getStoreState/);
   });
 
   it.each(TOOL_FILES)(

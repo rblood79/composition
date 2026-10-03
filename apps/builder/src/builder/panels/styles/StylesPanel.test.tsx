@@ -1,57 +1,50 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Element } from "../../../types/core/store.types";
-import { useStore } from "../../stores";
-import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
+import {
+  openStylesFixture,
+  type StylesFixture,
+} from "./__tests__/support/catalogStylesFixture";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
 import { StylesPanel } from "./StylesPanel";
 import { I18nProvider } from "../../../i18n";
+
+let fixture: StylesFixture;
 
 function renderStylesPanel() {
   return render(
     <I18nProvider initialLocale="en-US">
       <StylesPanel />
     </I18nProvider>,
+    { wrapper: fixture.wrapper },
   );
 }
 
-function setTestElements(elements: Element[]): void {
-  useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
-    selectedElementId: "button-1",
-    activeBreakpoint: "desktop",
-  } as never);
+/** A Button (200×100) in a row flex Frame, selected. */
+async function openButtonInFrame() {
+  fixture = await openStylesFixture(
+    [
+      { id: "frame-1", style: { display: "flex", flexDirection: "row" } },
+      {
+        id: "button-1",
+        type: "Button",
+        parent: "frame-1",
+        style: { width: "200px", height: "100px" },
+      },
+    ],
+    { select: "button-1" },
+  );
 }
 
 describe("StylesPanel breakpoint context", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubGlobal("CSS", { escape: (value: string) => value });
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
     useSectionCollapse.setState({
       collapsedSections: new Set(),
       focusMode: false,
       activeFocusSection: null,
     });
-    setTestElements([
-      {
-        id: "button-1",
-        type: "Button",
-        parent_id: "frame-1",
-        props: { style: { width: "200px", height: "100px" } },
-      } as Element,
-      {
-        id: "frame-1",
-        type: "Frame",
-        parent_id: null,
-        props: { style: { display: "flex", flexDirection: "row" } },
-      } as Element,
-    ]);
+    await openButtonInFrame();
   });
 
   afterEach(() => {
@@ -78,32 +71,14 @@ describe("StylesPanel breakpoint context", () => {
 });
 
 describe("StylesPanel view tabs", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubGlobal("CSS", { escape: (value: string) => value });
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
     useSectionCollapse.setState({
       collapsedSections: new Set(),
       focusMode: false,
       activeFocusSection: null,
     });
-    setTestElements([
-      {
-        id: "button-1",
-        type: "Button",
-        parent_id: "frame-1",
-        props: { style: { width: "200px", height: "100px" } },
-      } as Element,
-      {
-        id: "frame-1",
-        type: "Frame",
-        parent_id: null,
-        props: { style: { display: "flex", flexDirection: "row" } },
-      } as Element,
-    ]);
+    await openButtonInFrame();
   });
 
   afterEach(() => {

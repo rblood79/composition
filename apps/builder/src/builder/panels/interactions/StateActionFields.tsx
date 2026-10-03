@@ -5,24 +5,12 @@
  * ActionPicker 아트보드 정본.
  */
 import { memo, useMemo } from "react";
-import {
-  SET_STATE_OPS,
-  type SetStateAction,
-  type SetStateOp,
-  type VisibleVariable,
-} from "@composition/shared";
+import { SET_STATE_OPS, type SetStateOp, type VisibleVariable } from "@composition/shared";
 
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
-import { useVisibleVariables } from "../properties/hooks/useVisibleVariables";
 import { useI18n } from "@/i18n";
 
-interface StateActionFieldsProps {
-  /** 트리거 요소 (가시성 기준) */
-  elementId: string;
-  action: SetStateAction;
-  onChange: (action: SetStateAction) => void;
-}
 
 const OP_LABEL_KEYS: Record<SetStateOp, string> = {
   set: "interactions.stateOpSet",
@@ -31,6 +19,22 @@ const OP_LABEL_KEYS: Record<SetStateOp, string> = {
   reset: "interactions.stateOpReset",
 };
 
+/** 변수 선택지 — 구 store (`VisibleVariable`) 와 catalog 문서가 같은 모양으로 넘긴다 */
+export interface StateVariableOption {
+  id: string;
+  name: string;
+  type: VisibleVariable["def"]["type"];
+  /** 그룹 라벨 카탈로그 키 (프로젝트 / 페이지 / 요소) */
+  groupLabelKey: string;
+}
+
+/** 편집 중인 setState 인자 — 구 `SetStateAction` 과 catalog action 이 공유하는 부분 */
+export interface StateActionValue {
+  variableId: string;
+  op: SetStateOp;
+  value?: unknown;
+}
+
 /** 타입별 허용 op — 런타임 store 의 검증과 같은 표 */
 function opsForType(type: VisibleVariable["def"]["type"] | null): SetStateOp[] {
   if (type === "boolean") return ["toggle", "set", "reset"];
@@ -38,35 +42,40 @@ function opsForType(type: VisibleVariable["def"]["type"] | null): SetStateOp[] {
   return ["set", "reset"];
 }
 
-function groupLabelKey(owner: VisibleVariable["owner"]): string {
-  if (owner.kind === "project") return "interactions.stateVariableGroupProject";
-  if (owner.kind === "page") return "interactions.stateVariableGroupPage";
-  return "interactions.stateVariableGroupElement";
+
+
+interface StateActionFieldsViewProps {
+  /** 가까운 소유자가 앞 (요소 → 조상 → 페이지 → 프로젝트) */
+  variables: readonly StateVariableOption[];
+  action: StateActionValue;
+  onChange: (action: StateActionValue) => void;
+  /** "변수 없음" 선택지 — 완성된 규칙만 저장하는 문서 (catalog) 는 끈다 */
+  allowUnset?: boolean;
 }
 
-export const StateActionFields = memo(function StateActionFields({
-  elementId,
+export const StateActionFieldsView = memo(function StateActionFieldsView({
+  variables,
   action,
   onChange,
-}: StateActionFieldsProps) {
+  allowUnset = true,
+}: StateActionFieldsViewProps) {
   const { t } = useI18n();
-  const visible = useVisibleVariables(elementId);
-  const selected = visible.find((entry) => entry.def.id === action.variableId);
-  const type = selected?.def.type ?? null;
+  const selected = variables.find((entry) => entry.id === action.variableId);
+  const type = selected?.type ?? null;
 
   const variableOptions = useMemo(() => {
-    const options: { value: string; label: string }[] = [
-      { value: "", label: t("interactions.stateVariableUnset") },
-    ];
-    // 가까운 소유자가 앞 (요소 → 조상 → 페이지 → 프로젝트) — 그룹 라벨을 접두로
-    for (const entry of visible) {
+    const options: { value: string; label: string }[] = allowUnset
+      ? [{ value: "", label: t("interactions.stateVariableUnset") }]
+      : [];
+    // 그룹 라벨을 접두로
+    for (const entry of variables) {
       options.push({
-        value: entry.def.id,
-        label: `${t(groupLabelKey(entry.owner))} · ${entry.def.name}`,
+        value: entry.id,
+        label: `${t(entry.groupLabelKey)} · ${entry.name}`,
       });
     }
     return options;
-  }, [visible, t]);
+  }, [variables, allowUnset, t]);
 
   const ops = opsForType(type);
   const opOptions = ops.map((op) => ({ value: op, label: t(OP_LABEL_KEYS[op]) }));
@@ -80,10 +89,9 @@ export const StateActionFields = memo(function StateActionFields({
         label={t("interactions.stateVariable")}
         value={action.variableId}
         onChange={(variableId) => {
-          const next = visible.find((entry) => entry.def.id === variableId);
-          const allowed = opsForType(next?.def.type ?? null);
+          const next = variables.find((entry) => entry.id === variableId);
+          const allowed = opsForType(next?.type ?? null);
           onChange({
-            ...action,
             variableId,
             op: allowed.includes(action.op) ? action.op : allowed[0],
             value: undefined,

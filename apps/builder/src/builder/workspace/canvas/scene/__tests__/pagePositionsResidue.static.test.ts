@@ -75,27 +75,4 @@ describe("ADR-232 G5 — 저장 좌표 참조 허용 목록", () => {
   it("허용 목록 밖에서 문서 `pagePositions` 를 읽거나 쓰지 않는다", () => {
     expect(offenders).toEqual([]);
   });
-
-  it("store 에 저장 좌표 필드가 남아 있지 않다 (파생 미러만)", () => {
-    const store = readFileSync(resolve(SRC, "builder/stores/elements.ts"), "utf-8");
-    expect(store).toContain("derivedPagePositions");
-    expect(store).not.toContain("pagePositionsByBreakpoint");
-    expect(store).not.toMatch(/^\s*pagePositions:/m);
-    for (const gone of [
-      "calculatePagePositions",
-      "calculateNextPagePosition",
-      "placeUserPages",
-      "placeSystemColumn",
-      "placeMissingUserPages",
-      "mirrorSystemPagePositions",
-      "withActivePagePositionSnapshot",
-      "buildPagePositionWriteEntries",
-      "initializePagePositions",
-      "switchPagePositionsBreakpoint",
-      "updatePagePositionsBatch",
-      "applyPageFrameReflow",
-    ]) {
-      expect(store).not.toContain(gone);
-    }
-  });
 });

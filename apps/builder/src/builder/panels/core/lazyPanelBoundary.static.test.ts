@@ -18,11 +18,11 @@ const LAZY_TARGETS = [
   { dir: "datatable", module: "DataTableEditorPanel" },
   { dir: "datatable", module: "DataTableFieldPanel" },
   { dir: "ai", module: "AIPanel" },
-  { dir: "history", module: "HistoryPanel" },
+  { dir: "history", module: "CatalogHistoryPanel" },
   { dir: "datatable", module: "DataTablePanel" },
   { dir: "fonts", module: "FontManagerDialog" },
-  { dir: "themes", module: "ThemesPanel" },
-  { dir: "interactions", module: "InteractionsPanel" },
+  { dir: "themes", module: "CatalogThemesPanel" },
+  { dir: "interactions", module: "CatalogInteractionsPanel" },
   { dir: "settings", module: "SettingsPanel" },
 ];
 

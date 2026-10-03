@@ -2,9 +2,13 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/builder/hooks", () => ({
-  useKeyboardShortcutsRegistry: () => {},
-}));
+vi.mock(
+  "../../../hooks/useKeyboardShortcutsRegistry",
+  async (importOriginal) => ({
+    ...(await importOriginal<object>()),
+    useKeyboardShortcutsRegistry: () => {},
+  }),
+);
 
 import { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { useViewportSyncStore } from "../stores";

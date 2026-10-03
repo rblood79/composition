@@ -4,25 +4,36 @@ import { describe, expect, it } from "vitest";
 
 const STANDARD_PANEL_SOURCES = [
   {
-    component: "NavigatorPanel",
-    source: "../navigator/NavigatorPanel.tsx",
+    component: "CatalogNavigatorPanel",
+    source: "../navigator/catalog/CatalogNavigatorPanel.tsx",
   },
-  { component: "ComponentsPanel", source: "../components/ComponentList.tsx" },
+  {
+    component: "CatalogComponentsPanel",
+    source: "../components/ComponentList.tsx",
+  },
   { component: "DataTablePanel", source: "../datatable/DataTablePanel.tsx" },
   {
     component: "DataTableEditorPanel",
     source: "../datatable/DataTableEditorPanel.tsx",
   },
-  { component: "ThemesPanel", source: "../themes/ThemesPanel.tsx" },
+  // The catalog Themes panel wraps the shared panel (its header lives there).
+  { component: "CatalogThemesPanel", source: "../themes/ThemesPanel.tsx" },
   { component: "SettingsPanel", source: "../settings/SettingsPanel.tsx" },
   { component: "AIPanel", source: "../ai/AIPanel.tsx" },
-  { component: "PropertiesPanel", source: "../properties/PropertiesPanel.tsx" },
-  { component: "StylesPanel", source: "../styles/StylesPanel.tsx" },
   {
-    component: "InteractionsPanel",
-    source: "../interactions/InteractionsPanel.tsx",
+    component: "CatalogPropertiesPanel",
+    source: "../properties/catalog/CatalogPropertiesPanel.tsx",
   },
-  { component: "HistoryPanel", source: "../history/HistoryPanel.tsx" },
+  // The catalog Styles panel wraps the shared panel (its headers live there).
+  { component: "CatalogStylesPanel", source: "../styles/StylesPanel.tsx" },
+  {
+    component: "CatalogInteractionsPanel",
+    source: "../interactions/catalog/CatalogInteractionsPanel.tsx",
+  },
+  {
+    component: "CatalogHistoryPanel",
+    source: "../history/CatalogHistoryPanel.tsx",
+  },
   {
     component: "DataTableFieldPanel",
     source: "../datatable/DataTableFieldPanel.tsx",
@@ -42,7 +53,6 @@ describe("registered panel close action coverage", () => {
     const registeredComponents = configs.match(/^\s*component:\s*\w+,/gm) ?? [];
 
     expect(registeredComponents).toHaveLength(12);
-    expect(configs).toContain("component: NavigatorPanel");
     for (const { component } of STANDARD_PANEL_SOURCES) {
       expect(configs).toContain(`component: ${component}`);
     }

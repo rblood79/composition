@@ -11,8 +11,8 @@
     "templates": 334,
     "typeDefinitions": 110,
     "canonicalFields": 2972,
-    "representedFields": 2145,
-    "gapFields": 827
+    "representedFields": 2139,
+    "gapFields": 833
   },
   "nondeterministicSource": {
     "finding": "catalog origin seed assigns a fresh v4 UUID to collection item keys on every hydration; node IDs are stable. Values below are normalized to UUID_MARKER and never enter typed templates.",
@@ -122,6 +122,7 @@
     "METADATA_NOT_IN_CONTRACT": 517,
     "PROP_CHOICE_REJECTED": 4,
     "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION": 79,
+    "PROP_SEED_CREATION_DATE": 6,
     "PROP_SEED_GENERATED_KEY": 24,
     "PROP_VALUE_NOT_SCALAR": 21,
     "READ_ONLY_SUBPART_STYLE": 76,
@@ -142,7 +143,7 @@
     "component-button--hover": 3,
     "component-button--pressed": 3,
     "component-buttongroup": 4,
-    "component-calendar": 5,
+    "component-calendar": 8,
     "component-card": 43,
     "component-cardview": 13,
     "component-chart": 4,
@@ -217,7 +218,7 @@
     "component-radio--pressed": 3,
     "component-radio--unselected": 3,
     "component-radiogroup": 6,
-    "component-rangecalendar": 5,
+    "component-rangecalendar": 8,
     "component-searchfield": 17,
     "component-select": 24,
     "component-slider": 7,
@@ -5131,6 +5132,30 @@
     },
     {
       "originId": "component-calendar",
+      "nodeId": "component-calendar__2",
+      "path": "props.dayOffset",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 2
+    },
+    {
+      "originId": "component-calendar",
+      "nodeId": "component-calendar__2",
+      "path": "props.totalDays",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 30
+    },
+    {
+      "originId": "component-calendar",
+      "nodeId": "component-calendar__2",
+      "path": "props.todayDate",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 29
+    },
+    {
+      "originId": "component-calendar",
       "nodeId": "component-calendar",
       "path": "metadata.type",
       "reason": "METADATA_NOT_IN_CONTRACT",
@@ -5520,6 +5545,30 @@
       "reason": "PROP_NOT_ACCEPTED_BY_TYPE_DEFINITION",
       "valueKind": "string",
       "value": "default"
+    },
+    {
+      "originId": "component-rangecalendar",
+      "nodeId": "component-rangecalendar__2",
+      "path": "props.dayOffset",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 2
+    },
+    {
+      "originId": "component-rangecalendar",
+      "nodeId": "component-rangecalendar__2",
+      "path": "props.totalDays",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 30
+    },
+    {
+      "originId": "component-rangecalendar",
+      "nodeId": "component-rangecalendar__2",
+      "path": "props.todayDate",
+      "reason": "PROP_SEED_CREATION_DATE",
+      "valueKind": "number",
+      "value": 29
     },
     {
       "originId": "component-rangecalendar",

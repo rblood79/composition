@@ -103,22 +103,4 @@ describe("EDITOR_MUTATION_EFFECT_REGISTRY", () => {
       invalidation: "structure",
     });
   });
-
-  it("guards the five consumers against independent key literals", () => {
-    const consumers = [
-      "apps/builder/src/builder/stores/utils/layoutInvalidation.ts",
-      "apps/builder/src/builder/stores/utils/elementUpdate.ts",
-      "apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts",
-    ];
-
-    for (const file of consumers) {
-      const source = readFileSync(resolve(repositoryRoot, file), "utf8");
-      expect(source, `${file} registry import`).toContain(
-        "editorMutationEffectRegistry",
-      );
-      expect(source, `${file} independent five-symbol literal`).not.toMatch(
-        /(?:LAYOUT_AFFECTING_PROP_KEYS|NON_LAYOUT_PROPS_UPDATE|INHERITED_LAYOUT_PROPS_UPDATE|LAYOUT_STYLE_KEYS|LAYOUT_PROP_KEYS)\s*=\s*(?:new Set\s*\(\s*)?\[/,
-      );
-    }
-  });
 });

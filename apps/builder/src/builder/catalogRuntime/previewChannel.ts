@@ -6,6 +6,7 @@ import {
   CATALOG_PREVIEW_PAYLOAD_VERSION,
   isCatalogPreviewSnapshotRequest,
   type CatalogPreviewMessage,
+  type CatalogPreviewViewMessage,
 } from "../../../../../packages/shared/src/catalog/preview/protocol";
 import type { CatalogRuntime } from "./controller";
 
@@ -18,7 +19,7 @@ import type { CatalogRuntime } from "./controller";
  */
 export interface CatalogPreviewChannelOptions {
   /** Deliver a message to the Preview (e.g. `iframe.contentWindow.postMessage(m, origin)`). */
-  post: (message: CatalogPreviewMessage) => void;
+  post: (message: CatalogPreviewMessage | CatalogPreviewViewMessage) => void;
   /** Run the flush later (coalescing the steps in between); default: at once. */
   schedule?: (flush: () => void) => void;
 }
@@ -29,6 +30,8 @@ export class CatalogPreviewChannel {
   private sentRevision: number | null = null;
   private sentProject: EntryId<"project"> | null = null;
   private readonly pendingIds = new Set<string>();
+  /** The editor's page, sent after each snapshot and when it changes. */
+  private pageId: EntryId<"page"> | undefined;
   private flushScheduled = false;
   private unsubscribe: () => void;
   private readonly schedule: (flush: () => void) => void;
@@ -76,6 +79,22 @@ export class CatalogPreviewChannel {
     if (this.ready) this.sendSnapshot();
   }
 
+  /** The editor shows another page: the Preview follows (after its current document). */
+  setPage(pageId: EntryId<"page"> | undefined): void {
+    if (pageId === this.pageId) return;
+    this.pageId = pageId;
+    if (this.ready && this.sentRevision !== null) this.sendView();
+  }
+
+  private sendView(): void {
+    if (!this.pageId) return;
+    this.options.post({
+      type: "CATALOG_VIEW",
+      version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+      pageId: this.pageId,
+    });
+  }
+
   /** Send the pending delta now (the scheduled flush calls it). */
   flush(): void {
     this.flushScheduled = false;
@@ -117,5 +136,6 @@ export class CatalogPreviewChannel {
       revision: graph.revision,
       document: graph.exportDocument(),
     });
+    this.sendView();
   }
 }

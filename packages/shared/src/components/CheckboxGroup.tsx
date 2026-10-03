@@ -116,6 +116,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
           isDisabled
         >
@@ -142,6 +143,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
           isDisabled
         >
@@ -173,6 +175,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -198,6 +201,7 @@ export function CheckboxGroup({
         className={checkboxGroupClassName}
         data-orientation={orientation}
         data-checkbox-size={size}
+        data-size={size}
         data-label-position={labelPosition}
       >
         {label && (
@@ -226,6 +230,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
           isDisabled
         >
@@ -252,6 +257,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
           isDisabled
         >
@@ -292,6 +298,7 @@ export function CheckboxGroup({
           className={checkboxGroupClassName}
           data-orientation={orientation}
           data-checkbox-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -342,6 +349,7 @@ export function CheckboxGroup({
       className={checkboxGroupClassName}
       data-orientation={orientation}
       data-checkbox-size={size}
+      data-size={size}
       data-label-position={labelPosition}
     >
       {label && (

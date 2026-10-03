@@ -7,39 +7,23 @@
  * - DatabaseAdapter 인터페이스 구현
  */
 
-import type {
-  DatabaseAdapter,
-  Project,
-  CanonicalDocumentBackupRecord,
-  SerializedActionRecord,
-  SerializedEventRecord,
-} from "../types";
-import type {
-  CompositionDocument,
-  CollectionRuntimeRow,
-} from "@composition/shared";
+import type { DatabaseAdapter, Project } from "../types";
+import type { CollectionRuntimeRow } from "@composition/shared";
 import type {
   DataTable,
   ApiEndpoint,
   Variable,
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
-import {
-  IncrementalDocuments,
-  DOCUMENT_HEADS,
-  DOCUMENT_PARTS,
-} from "./incrementalDocuments";
-import type { DocumentPersistOptions } from "./documentPersistGuard";
+import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "./documentStoreNames";
 import { ASSETS_STORE, ASSET_GC_STORE } from "../../assets/assetSchema";
 import {
   CACHE_BYTES_LIMIT,
   openCacheDatabase,
-  requestPersistenceOnce,
-  withQuotaRetry,
 } from "../../storage/storageProtection";
 
 const DB_NAME = "composition";
-const DB_VERSION = 23; // 2026-09-26 (ADR-235): assets · asset_gc store — 해시 자산 저장소.
+const DB_VERSION = 24; // 2026-10-03 (ADR-248 G4): events · actions mirror store 삭제.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -154,10 +138,6 @@ function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
-
-  private incrementalDocuments = new IncrementalDocuments(() =>
-    this.ensureDB(),
-  );
 
   // LRU Caches for frequently accessed data
   private projectCache = new LRUCache<Project>(10);
@@ -376,27 +356,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           );
         }
 
-        // ADR-131 Phase 7 — events / actions root collection stores
-        // (design §4 D1=(b) — design_themes / variables / collections /
-        //  api_endpoints 패턴 정합)
-        //
-        // **data store 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing 정정으로
-        // `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념으로
-        // 판정 → 본 upgrade path 에서 제거. `CompositionDocument.data` root field 와
-        // `SerializedData` type 은 schema 영역에서 별도 framing 정리 (현 commit
-        // scope 외). DB_VERSION 16 의 (단명 land) `data` store 는 17 에서 drop.
-        if (!db.objectStoreNames.contains("events")) {
-          const eventsStore = db.createObjectStore("events", {
-            keyPath: "id",
-          });
-          eventsStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          eventsStore.createIndex("target", "target", { unique: false });
-          eventsStore.createIndex("kind", "kind", { unique: false });
-          console.log("[IndexedDB] Created store: events");
-        }
-
         // DB_VERSION 16 에서 단명 생성된 `data` store 를 17 에서 drop.
         // 사용자 framing — `collections` / `api_endpoints` 와 중복 개념.
         if (db.objectStoreNames.contains("data")) {
@@ -406,15 +365,14 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           );
         }
 
-        if (!db.objectStoreNames.contains("actions")) {
-          const actionsStore = db.createObjectStore("actions", {
-            keyPath: "id",
-          });
-          actionsStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          actionsStore.createIndex("kind", "kind", { unique: false });
-          console.log("[IndexedDB] Created store: actions");
+        // ADR-248 (DB_VERSION 24): `events` / `actions` 는 구 문서 root 의 fan-out mirror 였다
+        // (ADR-131 Phase 7). 새 모델의 interaction 은 graph entry 하나에만 기록하므로 두 store 를
+        // 만들지 않고, 있던 것은 지운다 — 구 문서 store 안의 원본은 그대로 남는다.
+        for (const mirror of ["events", "actions"]) {
+          if (db.objectStoreNames.contains(mirror)) {
+            db.deleteObjectStore(mirror);
+            console.log(`[IndexedDB] Deleted store: ${mirror} (ADR-248)`);
+          }
         }
 
         if (oldVersion < 13 && oldVersion > 0) {
@@ -571,52 +529,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
     getAll: async (): Promise<Project[]> => {
       return this.getAllFromStore<Project>("projects");
     },
-  };
-
-  // === Canonical Documents (ADR-116 primary storage) ===
-
-  documents = {
-    /**
-     * 급감 가드 + 백업 ring 경유 write (2026-07-14 요소 소실 사건 대응).
-     *
-     * - node 수 급감 write 는 기본 거부 (throw 하지 않고 skip + 경고 —
-     *   실패 모드가 "새로고침 시 DB 상태로 복원" 이 되도록).
-     * - 덮어쓰기 전 기존 row 를 documents_backup ring 에 보존 (프로젝트당
-     *   BACKUP_GENERATIONS 세대, BACKUP_MIN_INTERVAL_MS 시간 버킷).
-     */
-    put: async (
-      projectId: string,
-      document: CompositionDocument,
-      options?: DocumentPersistOptions,
-    ): Promise<CompositionDocument> => {
-      // ADR-235 Phase 5 — quota 초과면 캐시를 비우고 1회 재시도, 그래도 실패하면 알림 이벤트.
-      //   첫 성공 저장에서 persist() 를 한 번 요청한다.
-      const saved = await withQuotaRetry(
-        () => this.incrementalDocuments.put(projectId, document, options),
-        () => this.clearCaches(),
-      );
-      void requestPersistenceOnce();
-      return saved;
-    },
-
-    /** 백업 ring 조회 (최신순) — 사고 시 콘솔 복구용 진입점 */
-    getBackups: async (
-      projectId: string,
-    ): Promise<CanonicalDocumentBackupRecord[]> => {
-      const backups = await this.getAllByIndex<CanonicalDocumentBackupRecord>(
-        "documents_backup",
-        "project_id",
-        projectId,
-      );
-      return backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-    },
-
-    backupNow: (projectId: string) =>
-      this.incrementalDocuments.backupNow(projectId),
-
-    get: (projectId: string) => this.incrementalDocuments.get(projectId),
-    delete: (projectId: string) => this.incrementalDocuments.delete(projectId),
-    getAll: () => this.incrementalDocuments.getAll(),
   };
 
   // === Data Tables (Data Panel System) ===
@@ -928,114 +840,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<Variable[]> => {
       return this.getAllFromStore<Variable>("variables");
-    },
-  };
-
-  // === ADR-131 Phase 7 — Root collection stores ===
-
-  events = {
-    insert: async (
-      record: SerializedEventRecord,
-    ): Promise<SerializedEventRecord> => {
-      await this.putToStore("events", record);
-      return record;
-    },
-
-    update: async (
-      id: string,
-      patch: Partial<SerializedEventRecord>,
-    ): Promise<SerializedEventRecord> => {
-      const existing = await this.events.getById(id);
-      if (!existing) throw new Error(`Event ${id} not found`);
-      const updated: SerializedEventRecord = {
-        ...existing,
-        ...patch,
-        id: existing.id,
-        // ADR-158 Phase 1 — discriminator 가 "event" → "interaction" 으로 교체됨
-        type: "interaction",
-      };
-      await this.putToStore("events", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("events", id);
-    },
-
-    getById: async (id: string): Promise<SerializedEventRecord | null> => {
-      return this.getFromStore<SerializedEventRecord>("events", id);
-    },
-
-    getByProject: async (
-      projectId: string,
-    ): Promise<SerializedEventRecord[]> => {
-      return this.getAllByIndex<SerializedEventRecord>(
-        "events",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getByTarget: async (target: string): Promise<SerializedEventRecord[]> => {
-      return this.getAllByIndex<SerializedEventRecord>(
-        "events",
-        "target",
-        target,
-      );
-    },
-
-    getAll: async (): Promise<SerializedEventRecord[]> => {
-      return this.getAllFromStore<SerializedEventRecord>("events");
-    },
-  };
-
-  // ADR-131 Phase 7-revert (2026-05-13): `data` store 제거 — 기존 `collections`
-  // / `api_endpoints` 와 중복 개념. DB_VERSION 17 에서 deleteObjectStore.
-
-  actions = {
-    insert: async (
-      record: SerializedActionRecord,
-    ): Promise<SerializedActionRecord> => {
-      await this.putToStore("actions", record);
-      return record;
-    },
-
-    update: async (
-      id: string,
-      patch: Partial<SerializedActionRecord>,
-    ): Promise<SerializedActionRecord> => {
-      const existing = await this.actions.getById(id);
-      if (!existing) throw new Error(`Action ${id} not found`);
-      const updated: SerializedActionRecord = {
-        ...existing,
-        ...patch,
-        id: existing.id,
-        type: "action",
-      };
-      await this.putToStore("actions", updated);
-      return updated;
-    },
-
-    delete: async (id: string): Promise<void> => {
-      await this.deleteFromStore("actions", id);
-    },
-
-    getById: async (id: string): Promise<SerializedActionRecord | null> => {
-      return this.getFromStore<SerializedActionRecord>("actions", id);
-    },
-
-    getByProject: async (
-      projectId: string,
-    ): Promise<SerializedActionRecord[]> => {
-      return this.getAllByIndex<SerializedActionRecord>(
-        "actions",
-        "project_id",
-        projectId,
-      );
-    },
-
-    getAll: async (): Promise<SerializedActionRecord[]> => {
-      return this.getAllFromStore<SerializedActionRecord>("actions");
     },
   };
 

@@ -31,7 +31,8 @@ export function TreeBaseItem<TNode extends BaseTreeNode>({
   const textValue = getTextValue(node);
 
   return (
-    <TreeItem id={key} textValue={textValue}>
+    // `hasChildItems`: a collapsed row may leave its children unread (the catalog Layers tree).
+    <TreeItem id={key} textValue={textValue} hasChildItems={node.hasChildren}>
       <TreeItemContent>
         {({ isSelected, isExpanded, isDisabled, isFocusVisible }) =>
           renderContent(node, {

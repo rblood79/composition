@@ -60,25 +60,17 @@ describe("div onClick → button", () => {
     );
   });
 
-  it("ColumnSelector 행은 aria-pressed 토글 버튼", () => {
-    const src = read("datatable/components/ColumnSelector.tsx");
-    expect(src).not.toMatch(/<div[^>]*className=\{`column-item/);
-    expect(src).toMatch(
-      /<button[\s\S]*?className=\{`column-item[\s\S]*?aria-pressed=\{column\.selected\}/,
-    );
-  });
 });
 
 describe("아이콘 전용 버튼 — aria-label", () => {
   it.each([
-    ["properties/generic/ChildItemManager.tsx", /aria-label=\{deleteLabel\}/],
     ["datatable/DataTablePanel.tsx", /aria-label=\{localize\("refresh"/],
     ["datatable/components/VariableList.tsx", /aria-label=\{localize\("edit"/],
     [
       "datatable/components/VariableList.tsx",
       /aria-label=\{localize\("delete"/,
     ],
-    ["history/HistoryPanel.tsx", /history-snapshot-rename"\s+aria-label=/],
+    ["history/useCatalogSnapshotUi.tsx", /history-snapshot-rename"\s+aria-label=/],
     [
       "datatable/editors/VariableEditor.tsx",
       /aria-labelledby=\{defaultValueHeadingId\}/,

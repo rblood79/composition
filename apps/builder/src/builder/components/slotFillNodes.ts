@@ -12,7 +12,7 @@ import type { CanonicalNode } from "@composition/shared";
 
 import { getDefaultProps } from "../../types/builder/unified.types";
 import { composeCreationProps } from "../factories/creationStyleDefaults";
-import { getReusableCompositeOriginId } from "./reusableCompositeOrigins";
+import { getReusableOriginId as getCatalogReusableOriginId } from "@composition/shared";
 
 /** 영역에 넣을 수 있는 자유 내용 type (팔레트 항목 중 reusable origin 이 없는 leaf · frame). */
 export const SLOT_FILL_PRIMITIVE_TYPES: readonly string[] = [
@@ -83,7 +83,7 @@ export function buildSlotFillNodeForType(
   siblings: readonly unknown[],
   initialProps?: Record<string, unknown>,
 ): CanonicalNode | null {
-  const originId = getReusableCompositeOriginId(type);
+  const originId = getCatalogReusableOriginId(type);
   if (originId) {
     const node = buildSlotFillRefNode({ id: originId }, siblings);
     return initialProps && Object.keys(initialProps).length > 0

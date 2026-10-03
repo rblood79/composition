@@ -5,6 +5,10 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  openLegacyDocuments,
+  type LegacyDocuments,
+} from "../../db/__tests__/support/legacyDocuments";
 import type { CompositionDocument } from "@composition/shared";
 import {
   buildV2Generation,
@@ -20,6 +24,7 @@ import {
 } from "../projectLocalEviction";
 
 let adapter: IndexedDBAdapter;
+let legacy: LegacyDocuments;
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-12-01T00:00:00Z");
 const OLD = new Date(NOW - 40 * DAY).toISOString();
@@ -28,9 +33,11 @@ beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
+  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
+  legacy.close();
   await adapter.close();
   vi.unstubAllGlobals();
 });
@@ -48,9 +55,8 @@ async function seedProject(id: string, data = true) {
     created_at: "",
     updated_at: "",
   } as never);
-  await adapter.documents.put(id, doc(`${id}-page`));
-  await adapter.documents.backupNow(id);
-  await adapter.events.insert({ id: `${id}-e`, project_id: id } as never);
+  await legacy.put(id, doc(`${id}-page`));
+  await legacy.backupNow(id);
   if (!data) return;
   await adapter.collections.insert({
     id: `${id}-c`,
@@ -128,13 +134,12 @@ describe("clearProjectLocalContent", () => {
 
     expect(await clearProjectLocalContent("a", stamp)).toBe("cleared");
 
-    expect(await adapter.documents.get("a")).toBeNull();
+    expect(await legacy.get("a")).toBeNull();
     expect(await adapter.collections.getByProject("a")).toEqual([]);
     expect(await adapter.variables.getByProject("a")).toEqual([]);
-    expect(await adapter.events.getByProject("a")).toEqual([]);
     expect(await adapter.projects.getById("a")).toMatchObject({ id: "a" });
     // 다른 프로젝트는 그대로
-    expect(await adapter.documents.get("b")).not.toBeNull();
+    expect(await legacy.get("b")).not.toBeNull();
     expect(await adapter.collections.getByProject("b")).toHaveLength(1);
     expect(await historyCounts()).toEqual({
       "history-entries": 1,
@@ -149,9 +154,9 @@ describe("clearProjectLocalContent", () => {
   it("도장 뒤 DB 가 바뀌었으면 (문서 · collection) 아무것도 지우지 않는다", async () => {
     await seedProject("a");
     const stamp = (await readProjectLocalStamp("a"))!;
-    await adapter.documents.put("a", doc("a-page-2"));
+    await legacy.put("a", doc("a-page-2"));
     expect(await clearProjectLocalContent("a", stamp)).toBe("changed");
-    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect(await legacy.get("a")).not.toBeNull();
 
     const stamp2 = (await readProjectLocalStamp("a"))!;
     await adapter.collections.insert({
@@ -265,7 +270,7 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "cleared" },
     ]);
-    expect(await adapter.documents.get("a")).toBeNull();
+    expect(await legacy.get("a")).toBeNull();
     expect((await getLink("a"))?.clearedAt).toBe(new Date(NOW).toISOString());
     // 이미 비운 프로젝트는 다시 보지 않는다
     expect(await sweep(await folderAt(3))).toEqual([]);
@@ -284,7 +289,7 @@ describe("evictStaleDirectoryProjects", () => {
       expect(await sweep(await folderAt(folderRevision), extra)).toEqual([
         { projectId: "a", result: expected },
       ]);
-      expect(await adapter.documents.get("a")).not.toBeNull();
+      expect(await legacy.get("a")).not.toBeNull();
       expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
     },
   );
@@ -294,7 +299,7 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "has-data" },
     ]);
-    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect(await legacy.get("a")).not.toBeNull();
   });
 
   it("open — 확인하는 동안 누가 열었으면 (기록 변경) 표식하지 않는다", async () => {
@@ -310,7 +315,7 @@ describe("evictStaleDirectoryProjects", () => {
       },
     });
     expect(result).toEqual([{ projectId: "a", result: "open" }]);
-    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect(await legacy.get("a")).not.toBeNull();
     expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
   });
 
@@ -322,16 +327,16 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(dir)).toEqual([
       { projectId: "a", result: "folder-unreadable" },
     ]);
-    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect(await legacy.get("a")).not.toBeNull();
   });
 
   it("changed — 마지막 폴더 저장 뒤 DB 가 바뀌었으면 지우지 않고 표식도 되돌린다", async () => {
     await linkedStaleProject();
-    await adapter.documents.put("a", doc("a-page-edited"));
+    await legacy.put("a", doc("a-page-edited"));
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "changed" },
     ]);
-    expect(await adapter.documents.get("a")).not.toBeNull();
+    expect(await legacy.get("a")).not.toBeNull();
     expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
   });
 });

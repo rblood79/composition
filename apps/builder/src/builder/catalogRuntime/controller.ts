@@ -16,10 +16,29 @@ import {
 } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 import { CatalogStorage, type CatalogCommit } from "./storage";
 
+/**
+ * A change outside the document (the data store, H1) that history undoes and redoes with the
+ * document (one stack, user 2026-09-30). It has already happened when recorded; undo and redo run
+ * it after the entry's document part, one effect after another in history order.
+ */
+export interface CatalogExternalEffect {
+  undo(): void | Promise<unknown>;
+  redo(): void | Promise<unknown>;
+}
+/** A history entry as the History panel reads it (its operations name its subject). */
+export interface CatalogHistoryEntryView {
+  readonly label: string;
+  readonly at: number;
+  readonly forward: readonly CatalogOperation[];
+  readonly inverse: readonly CatalogOperation[];
+}
 interface HistoryEntry {
   label: string;
+  /** When the action ran (epoch ms) — the History panel's time column. */
+  at: number;
   forward: readonly CatalogOperation[];
   inverse: readonly CatalogOperation[];
+  external?: CatalogExternalEffect;
 }
 interface Subscription {
   id: string;
@@ -39,6 +58,10 @@ interface ProjectSession {
   subscriptions: Map<string, Set<Subscription>>;
   /** Called once per published step (after field subscribers), e.g. session reconciliation. */
   stepListeners: Set<CatalogStepListener>;
+  /** Called after every history change (a step, undo, redo, an outside entry, clear). */
+  historyListeners: Set<() => void>;
+  /** Outside effects of undo/redo, run in order. */
+  externalTail: Promise<void>;
   resolved: Map<string, Map<string, ResolvedCatalogNode>>;
   invalidatedIds: readonly string[];
 }
@@ -143,6 +166,8 @@ export class CatalogRuntime {
       redo: [],
       subscriptions: new Map(),
       stepListeners: new Set(),
+      historyListeners: new Set(),
+      externalTail: Promise.resolve(),
       resolved: new Map(),
       invalidatedIds: [],
     });
@@ -186,6 +211,148 @@ export class CatalogRuntime {
   get historyDepth(): { undo: number; redo: number } {
     const session = this.current();
     return { undo: session.undo.length, redo: session.redo.length };
+  }
+  /** History entry labels of the active project: undo (oldest first) and redo (next first). */
+  get historyLabels(): { undo: readonly string[]; redo: readonly string[] } {
+    const session = this.current();
+    return {
+      undo: session.undo.map((entry) => entry.label),
+      redo: [...session.redo].reverse().map((entry) => entry.label),
+    };
+  }
+  /** History entries of the active project with their times: undo (oldest first), redo (next first). */
+  get historyEntries(): {
+    undo: readonly CatalogHistoryEntryView[];
+    redo: readonly CatalogHistoryEntryView[];
+  } {
+    const session = this.current();
+    const view = ({
+      label,
+      at,
+      forward,
+      inverse,
+    }: HistoryEntry): CatalogHistoryEntryView => ({
+      label,
+      at,
+      forward,
+      inverse,
+    });
+    return {
+      undo: session.undo.map(view),
+      redo: [...session.redo].reverse().map(view),
+    };
+  }
+  /**
+   * What the open projects can still show (asset GC memory roots, ADR-235): each document, its
+   * unsaved commits and every operation undo or redo can apply — an image removed by an edit stays
+   * referenced while the edit can be undone. The document also covers a save that completes
+   * between the GC's durable read and this read (the commit leaves `pending` then).
+   */
+  assetRootPayloads(): unknown[] {
+    const roots: unknown[] = [];
+    for (const session of this.projects.values()) {
+      roots.push(session.graph.exportDocument(), session.pending);
+      for (const entry of [...session.undo, ...session.redo])
+        roots.push(entry.forward, entry.inverse);
+    }
+    return roots;
+  }
+  /** Drop the active project's undo and redo entries (the document and saves stay). */
+  clearHistory(): void {
+    const session = this.current();
+    session.undo = [];
+    session.redo = [];
+    this.notifyHistory(session);
+  }
+  /**
+   * Join the last `count` undo entries into one (`label`): forward ops in order, inverse ops in
+   * reverse entry order, so one undo takes back all of them. Refused (false) when an entry holds an
+   * outside change or when fewer entries exist — a document-only batch (an AI batch) only.
+   */
+  mergeHistory(count: number, label: string): boolean {
+    const session = this.current();
+    if (count < 2 || count > session.undo.length) return false;
+    const entries = session.undo.slice(-count);
+    if (entries.some((entry) => entry.external)) return false;
+    session.undo.splice(-count, count, {
+      label,
+      at: entries.at(-1)!.at,
+      forward: entries.flatMap((entry) => entry.forward),
+      inverse: [...entries].reverse().flatMap((entry) => entry.inverse),
+    });
+    this.notifyHistory(session);
+    return true;
+  }
+  /** Listen to every history change of the active project. */
+  subscribeHistory(listener: () => void): () => void {
+    const session = this.current();
+    session.historyListeners.add(listener);
+    return () => session.historyListeners.delete(listener);
+  }
+  /** Resolves once every queued outside effect (undo/redo of an outside change) has run. */
+  settled(): Promise<void> {
+    return this.current().externalTail;
+  }
+  private notifyHistory(session: ProjectSession): void {
+    for (const listener of [...session.historyListeners]) listener();
+  }
+  private runExternal(
+    session: ProjectSession,
+    entry: HistoryEntry,
+    direction: "undo" | "redo",
+  ): void {
+    const effect = entry.external;
+    if (!effect) return;
+    session.externalTail = session.externalTail.then(async () => {
+      try {
+        await effect[direction]();
+      } catch (error) {
+        console.error(`[CatalogRuntime] ${direction} ${entry.label}:`, error);
+      }
+    });
+  }
+  /**
+   * Record a change outside the document as one history entry. `ops` (optional) are its document
+   * part, applied now as one step; without them the entry holds the outside change only.
+   */
+  recordExternal(
+    label: string,
+    effect: CatalogExternalEffect,
+    ops: readonly CatalogOperation[] = [],
+    consumer?: CatalogStepConsumer,
+  ): CatalogTransactionResult | undefined {
+    const session = this.current();
+    if (!ops.length) {
+      session.undo.push({
+        label,
+        at: Date.now(),
+        forward: [],
+        inverse: [],
+        external: effect,
+      });
+      session.redo.length = 0;
+      this.notifyHistory(session);
+      return undefined;
+    }
+    const result = this.step(
+      session,
+      label,
+      ops,
+      session.graph.revision,
+      consumer,
+      (step) => {
+        session.undo.push({
+          label,
+          at: Date.now(),
+          forward: step.forward,
+          inverse: step.inverse,
+          external: effect,
+        });
+        session.redo.length = 0;
+      },
+    );
+    this.notifyHistory(session);
+    return result;
   }
   get lastInvalidatedIds(): readonly string[] {
     return this.current().invalidatedIds;
@@ -273,21 +440,24 @@ export class CatalogRuntime {
     consumer?: CatalogStepConsumer,
   ): CatalogTransactionResult {
     const session = this.current();
-    return this.step(
+    const result = this.step(
       session,
       label,
       ops,
       expectedRevision,
       consumer,
-      (result) => {
+      (step) => {
         session.undo.push({
           label,
-          forward: result.forward,
-          inverse: result.inverse,
+          at: Date.now(),
+          forward: step.forward,
+          inverse: step.inverse,
         });
         session.redo.length = 0;
       },
     );
+    this.notifyHistory(session);
+    return result;
   }
   /**
    * A step another runtime already recorded (a Preview replica taking the editor's delta): the
@@ -313,33 +483,45 @@ export class CatalogRuntime {
     const session = this.current();
     const entry = session.undo.at(-1);
     if (!entry) return undefined;
-    return this.step(
-      session,
-      `Undo ${entry.label}`,
-      entry.inverse,
-      session.graph.revision,
-      consumer,
-      () => {
-        session.undo.pop();
-        session.redo.push(entry);
-      },
-    );
+    const move = () => {
+      session.undo.pop();
+      session.redo.push(entry);
+    };
+    const result = entry.inverse.length
+      ? this.step(
+          session,
+          `Undo ${entry.label}`,
+          entry.inverse,
+          session.graph.revision,
+          consumer,
+          move,
+        )
+      : (move(), undefined);
+    this.runExternal(session, entry, "undo");
+    this.notifyHistory(session);
+    return result;
   }
   redo(consumer?: CatalogStepConsumer): CatalogTransactionResult | undefined {
     const session = this.current();
     const entry = session.redo.at(-1);
     if (!entry) return undefined;
-    return this.step(
-      session,
-      `Redo ${entry.label}`,
-      entry.forward,
-      session.graph.revision,
-      consumer,
-      () => {
-        session.redo.pop();
-        session.undo.push(entry);
-      },
-    );
+    const move = () => {
+      session.redo.pop();
+      session.undo.push(entry);
+    };
+    const result = entry.forward.length
+      ? this.step(
+          session,
+          `Redo ${entry.label}`,
+          entry.forward,
+          session.graph.revision,
+          consumer,
+          move,
+        )
+      : (move(), undefined);
+    this.runExternal(session, entry, "redo");
+    this.notifyHistory(session);
+    return result;
   }
   /**
    * One step as a unit. The transaction is staged into the graph, then the consumer takes it; if

@@ -1,9 +1,5 @@
-import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { canonicalNodeToElement } from "../../../builder/stores/canonical/canonicalElementsView";
-import { getProjectableNodeLookups } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
-import { getStoreState } from "../../../builder/stores";
-import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
+import { getAiReadHost } from "../aiReadHost";
 
 interface AiToolElementProjection {
   readonly childrenByParent: Map<string, Element[]>;
@@ -11,11 +7,11 @@ interface AiToolElementProjection {
   readonly elementsById: Map<string, Element>;
 }
 
-const canonicalProjectionCache = new WeakMap<
-  CompositionDocument,
+const projectionCache = new WeakMap<
+  readonly Element[],
   AiToolElementProjection
 >();
-const legacyProjectionCache = new WeakMap<Element[], AiToolElementProjection>();
+const NO_ELEMENTS: readonly Element[] = [];
 
 function buildAiToolElementProjection(
   elements: Element[],
@@ -37,42 +33,27 @@ function buildAiToolElementProjection(
   return { childrenByParent, elements, elementsById };
 }
 
-function getActiveCanonicalProjectionForAiTools(): AiToolElementProjection | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const cached = canonicalProjectionCache.get(doc);
-  if (cached) return cached;
-
-  const elements: Element[] = [];
-  for (const lookup of getProjectableNodeLookups()) {
-    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
-      pageId: lookup.pageId,
-      layoutId: lookup.layoutId,
-    });
-    if (element) elements.push(element);
-  }
-  const projection = buildAiToolElementProjection(elements);
-  canonicalProjectionCache.set(doc, projection);
-  return projection;
-}
-
+/**
+ * The AI tools' read of the open document and selection: the AI read host's (ADR-248 4e-5). 4e-7:
+ * only the host — without one the document reads empty (the old store host is
+ * `aiHosts.store.ts`, old-store tests only).
+ */
 export function getAiToolReadModel() {
-  const state = getStoreState();
-  const canonicalProjection = getActiveCanonicalProjectionForAiTools();
-  if (canonicalProjection) {
-    return { ...canonicalProjection, state };
+  const host = getAiReadHost();
+  const elements = host?.elements() ?? NO_ELEMENTS;
+  let projection = projectionCache.get(elements);
+  if (!projection) {
+    projection = buildAiToolElementProjection(elements as Element[]);
+    projectionCache.set(elements, projection);
   }
-
-  const cachedLegacyProjection = legacyProjectionCache.get(state.elements);
-  const projection =
-    cachedLegacyProjection ?? buildAiToolElementProjection(state.elements);
-  if (!cachedLegacyProjection) {
-    legacyProjectionCache.set(state.elements, projection);
-  }
-  return { ...projection, state };
+  const selectedElementIds = host ? [...host.selectedIds()] : [];
+  return {
+    ...projection,
+    state: {
+      currentPageId: host?.currentPageId() ?? null,
+      pages: host?.pages() ?? [],
+      selectedElementId: selectedElementIds[0] ?? null,
+      selectedElementIds,
+    },
+  };
 }

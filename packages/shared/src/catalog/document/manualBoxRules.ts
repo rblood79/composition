@@ -266,16 +266,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         layout: { justifyContent: "flex-start" },
         visual: {},
       },
-      // `GridList.css` `.react-aria-GridListItem .react-aria-Text:not([slot=description])` is 600
-      // (GridListItem part): a description the Preview marks inside a GridList keeps the item's
-      // weight.
-      {
-        childType: "Text",
-        via: "GridListItem",
-        childProps: { slot: "description" },
-        layout: {},
-        visual: { fontWeight: 400 },
-      },
       // A GridList section's Header is RAC `GridListHeader` (`div.react-aria-GridListHeader`):
       // no Header sheet reaches it — a block box with the GridList's font (line-height inherited
       // from the Preview body, 1.5).
@@ -369,39 +359,30 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     return { parts };
   },
   // `TagGroup.css` `.react-aria-TagList { display: contents }`: the visible box is
-  // `.tag-list-wrapper` (flex wrap, centered, catalog `TagList` size gap/min-height). Its
-  // `height: 100%` resolves against the RAC TagGroup, which `TagGroup.tsx` renders at auto height
-  // inside the `div` carrying the element style, so the percentage never applies.
+  // `.tag-list-wrapper` (flex wrap, centered, catalog `TagList` size gap/min-height) with the
+  // catalog `height: 100%` — the RAC TagGroup fills the styled outer div (4e-11), so the wrapper
+  // fills what the label leaves (a flex item shrinking to the column, floored by min-height).
   // The wrapper's size values follow the group's `data-tag-size` (TagGroup parts below), not the
   // TagList's own size prop.
   TagList: () => ({
     replace: true,
     layout: { display: "flex", flexWrap: "wrap", alignItems: "center" },
-    // `TagGroup.css` `.react-aria-Tag > .react-aria-Icon[slot=icon]` (14px, 4px after) and
-    // `> .react-aria-Avatar[slot=avatar]` (16px, 4px after, no shrink): slots the Preview marks
-    // inside a TagGroup, reached through the Tag.
+    visual: { height: "100%" },
+  }),
+  // `.react-aria-GridListItem .react-aria-Text:not([slot="description"])`: weight 600 for an item's
+  // Text children; a description keeps the item's weight and is muted. The Preview marks the slot in a GridList
+  // and in a standalone item's GridList host (4e-11).
+  GridListItem: () => ({
     parts: <CompiledPartRule[]>[
+      { childType: "Text", layout: {}, visual: { fontWeight: 600 } },
+      // `GridList.css` `[slot="description"] { color: var(--fg-muted) }`.
       {
-        childType: "Icon",
-        via: "Tag",
-        childProps: { slot: "icon" },
-        layout: { marginRight: "4px" },
-        visual: { width: 14, height: 14, iconSize: 14 },
-      },
-      {
-        childType: "Avatar",
-        via: "Tag",
-        childProps: { slot: "avatar" },
-        layout: { marginRight: "4px", flexShrink: "0" },
-        visual: { width: 16, height: 16 },
+        childType: "Text",
+        childProps: { slot: "description" },
+        layout: {},
+        visual: { fontWeight: 400, color: "{color.neutral-subdued}" },
       },
     ],
-  }),
-  // `GridList.css` `.react-aria-GridListItem .react-aria-Text:not([slot="description"])`: weight
-  // 600 for an item's Text children (no collection needed; the description reset is a GridList
-  // part, where the Preview marks the slot).
-  GridListItem: () => ({
-    parts: [{ childType: "Text", layout: {}, visual: { fontWeight: 600 } }],
   }),
   // `generated/Input.css` is not loaded (`UNLOADED_GENERATED_CSS` B): the box is the manual
   // `base.css` `.react-aria-Input` — `width: 100%`, 1px border, `padding: var(--input-padding,
@@ -539,15 +520,34 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     }),
   }),
   Tab: () => ({ parts: itemLabelFontParts("Tab") }),
-  Tag: () => ({ parts: itemLabelFontParts("Tag") }),
+  // `TagGroup.css` `.react-aria-Tag > .react-aria-Icon[slot=icon]` (14px) and
+  // `> .react-aria-Avatar[slot=avatar]` (16px, no shrink); the label gap is the Tag's flex gap
+  // (catalog leading gap 4). The Preview marks the slots in a TagGroup and in a standalone Tag's
+  // TagGroup host (4e-11).
+  Tag: () => ({
+    parts: [
+      ...itemLabelFontParts("Tag"),
+      {
+        childType: "Icon",
+        childProps: { slot: "icon" },
+        layout: {},
+        visual: { width: 14, height: 14, iconSize: 14 },
+      },
+      {
+        childType: "Avatar",
+        childProps: { slot: "avatar" },
+        layout: { flexShrink: "0" },
+        visual: { width: 16, height: 16 },
+      },
+    ],
+  }),
   // `Radio.css` `.react-aria-Radio { width: fit-content }` (the generated sheet sets no width): a
   // radio keeps its content width inside the group's stretching `.radio-items` column.
   Radio: () => ({ visual: { width: "fit-content" } }),
-  // `RadioGroup.tsx` / `CheckboxGroup.tsx` / `TagGroup.tsx` put the size on `data-radio-size` /
-  // `data-checkbox-size` / `data-tag-size`: the generated `[data-size]` blocks never match. The
-  // manual sheets (`Radio.css` / `Checkbox.css` / `TagGroup.css`) set the group Label font.
+  // `RadioGroup.tsx` / `CheckboxGroup.tsx` also carry `data-size` (4e-11 — the generated
+  // `[data-size]` blocks apply); `TagGroup.tsx` puts the size on `data-tag-size` only. The manual
+  // sheets (`Radio.css` / `Checkbox.css` / `TagGroup.css`) set the group Label font.
   RadioGroup: () => ({
-    rootSizeAttribute: "data-radio-size",
     parts: [
       ...groupLabelFontParts({
         sm: "text-xs",
@@ -564,7 +564,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     ],
   }),
   CheckboxGroup: () => ({
-    rootSizeAttribute: "data-checkbox-size",
     parts: [
       ...groupLabelFontParts({
         sm: "text-xs",
@@ -610,8 +609,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `Form.tsx` renders RAC Form with label/necessity data attributes only (no size): the generated
   // `.react-aria-Form[data-size]` gap blocks never match.
   Form: () => ({ rootSizeAttribute: null }),
-  // `Table.css` `.react-aria-Pagination { flex-wrap: wrap }` (same layer, after the generated sheet).
-  Pagination: () => ({ layout: { flexWrap: "wrap" } }),
 };
 
 /**

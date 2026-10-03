@@ -6,7 +6,8 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
 import type { ChartDataMode } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyRowMenu, PropertySelect } from "../../components";
+import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 

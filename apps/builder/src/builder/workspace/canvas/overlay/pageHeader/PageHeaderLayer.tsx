@@ -24,7 +24,6 @@ import {
 } from "react";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
-import { useStore } from "../../../../stores";
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 import { useViewportSyncStore } from "../../stores";
 import {
@@ -147,6 +146,9 @@ export interface PageHeaderLayerProps {
   /** 편집기 열림 직전 (페이지 전환). */
   onBeginRename?: (pageId: string) => void;
   onRenamePage?: (pageId: string, title: string) => void;
+  /** The active page and whether anything is selected (the catalog session, ADR-248 4e). */
+  activePageId: string | null;
+  hasSelection: boolean;
 }
 
 export function PageHeaderLayer({
@@ -155,9 +157,10 @@ export function PageHeaderLayer({
   canRenamePage,
   onBeginRename,
   onRenamePage,
+  activePageId,
+  hasSelection,
 }: PageHeaderLayerProps) {
-  const currentPageId = useStore((state) => state.currentPageId);
-  const hasSelection = useStore((state) => state.selectedElementIds.length > 0);
+  const currentPageId = activePageId;
   const [layerNode, setLayerNode] = useState<HTMLDivElement | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
   const settled = useSettledHeaderInput(frames);

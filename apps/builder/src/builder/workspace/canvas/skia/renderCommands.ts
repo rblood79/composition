@@ -22,7 +22,7 @@ import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { BoundingBox } from "../selection/types";
 import { intersectBoxes } from "../selection/types";
 import type { AIEffectNodeBounds } from "./types";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import {
   buildMaskGradientShader,
   determineMaskMode,

@@ -7,7 +7,8 @@
  */
 
 import { memo } from "react";
-import { PropertySection, PropertyUnitInput } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,
@@ -38,12 +39,8 @@ import {
   useLayoutAlignmentDisabled,
 } from "../hooks/useLayoutAuxiliary";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
-import {
-  readStyleTargetNode,
-  resolveStyleSpecType,
-} from "../hooks/useElementStyleContext";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
 import { resolveGapAxisProperty } from "../utils/gapAxis";
@@ -51,6 +48,7 @@ import {
   readSessionSpacingValue,
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
+import { useStylesSelectedId } from "../stylesHost";
 
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const localize = useSemanticLabel();
@@ -69,20 +67,16 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
     useLayoutPresentationActions();
 
   // ADR-067 Phase 2: Zustand 직접 구독 + Spec 직접 lookup
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   // 그룹 축 prop derive 컨테이너(ToggleButtonGroup/Toolbar=orientation,
   // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
   // 별도 prop(row/column 만, block 없음)이라 Direction 토글의 block 버튼을 disable
   // — 매핑 불가능한 block 선택을 원천 차단(2026-06-30). 대상 정본:
   // orientationDrivenTags (element.type PascalCase → 헬퍼가 toLowerCase 정규화).
   // ref instance (팔레트가 만드는 요소) 는 origin 타입, instance 안 자식 (synthetic) 은 해소 노드로 판정한다.
-  const isDirectionDriven = useStore((s) =>
-    isDirectionDrivenTag(
-      resolveStyleSpecType(
-        readStyleTargetNode(selectedId, s.elementsMap),
-        s.elementsMap,
-      ),
-    ),
+  // The host's style context names the component type (an instance: its origin's type).
+  const isDirectionDriven = isDirectionDrivenTag(
+    useElementStyleContext(selectedId).type,
   );
   const styleValues = useLayoutValues(selectedId);
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);

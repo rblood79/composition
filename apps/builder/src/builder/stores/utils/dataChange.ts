@@ -16,7 +16,6 @@
  */
 import type { StateCreator } from "zustand";
 import {
-  collectDocumentVariableNames,
   resolveField,
   type ApiEndpointDraft,
   type DataChange,
@@ -25,7 +24,6 @@ import {
   type VariableDefinition,
 } from "@composition/shared";
 import { getDB } from "../../../lib/db";
-import { getActiveCanonicalDocument } from "../canonical/canonicalElementsBridge";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import type {
@@ -37,7 +35,6 @@ import type {
   DataTableUpdate,
   Variable,
 } from "../../../types/builder/data.types";
-import { historyManager } from "../history";
 import {
   isCanvasCompareMode,
   isWebGLCanvas,
@@ -996,20 +993,60 @@ function partitionDataOps(ops: readonly DataOp[]): {
   return { collectionOps, bindingOps };
 }
 
+/**
+ * ADR-248 Phase 4e-5: the catalog document the bindings go to while a catalog project is open. Set
+ * = `bind_element` ops are checked against it (`has`, `read` for `expectBindings`) and `commit`
+ * records the change as **one** history entry of the document — the data part (collections ·
+ * variables · endpoints, already saved) its outside effect, the bindings its document part — so
+ * undo takes both back. Unset = the old elements store consumer and the data history entry.
+ */
+export interface DocumentBindingCommitter {
+  has: (elementId: string) => boolean;
+  read: (elementId: string) => DataBindingSnapshot | null;
+  /** Throws when the bindings cannot be written (the data part is then rolled back). */
+  commit: (input: {
+    /** The whole change (its label names the entry). */
+    payload: DataChangeHistoryPayload;
+    /** The data part without the bindings; `null` = bindings only. */
+    data: DataChangeHistoryPayload | null;
+    bindings: readonly {
+      elementId: string;
+      binding: DataTableBindingValue | null;
+    }[];
+  }) => void;
+}
+
+let documentBindingCommitter: DocumentBindingCommitter | null = null;
+
+export function setDocumentBindingCommitter(
+  committer: DocumentBindingCommitter | null,
+): void {
+  documentBindingCommitter = committer;
+}
+
 /** 검증 (순수) — 요소 존재 · collection 존재 (같은 change 의 create 결과 포함). */
 function preflightBindingOps(
   ops: readonly BindElementOp[],
   collections: Map<string, DataTable>,
+  committer: DocumentBindingCommitter | null,
 ): DataBindingConsumer {
   if (ops.length === 0) return bindingConsumer as DataBindingConsumer;
-  if (!bindingConsumer) {
+  const target = committer ?? bindingConsumer;
+  if (!target) {
     throw new DataChangeError(
       "bind_element consumer 가 등록되지 않았습니다 (elements store 미초기화)",
       ops[0],
     );
   }
   for (const op of ops) {
-    if (!bindingConsumer.has(op.elementId)) {
+    // The document's history takes a committed binding back; it is never re-applied as an op.
+    if (committer && op.restore) {
+      throw new DataChangeError(
+        "bind_element restore 는 문서 기록이 되돌립니다",
+        op,
+      );
+    }
+    if (!target.has(op.elementId)) {
       throw new DataChangeError(`요소를 찾을 수 없습니다: ${op.elementId}`, op);
     }
     if (op.restore || op.collectionId === null) continue;
@@ -1020,7 +1057,7 @@ function preflightBindingOps(
       );
     }
   }
-  return bindingConsumer;
+  return bindingConsumer as DataBindingConsumer;
 }
 
 function toBindingWrite(
@@ -1099,6 +1136,31 @@ export interface DataChangeHistoryPayload {
   inverse: DataOp[];
 }
 
+/**
+ * ADR-248 Phase 4e-4e: where a recorded data change goes. The catalog app sets it (the data
+ * change joins the document's single history, user 2026-09-30); unset = the old history manager.
+ */
+let dataHistoryRecorder:
+  ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null =
+  null;
+/**
+ * ADR-248 Phase 4e-4e: where the page/element variable names project variables may not take are
+ * read from (the catalog document); unset = none (the old store's reader: `dataChange.store.ts`).
+ */
+let documentVariableNamesReader: (() => ReadonlySet<string>) | null = null;
+export function setDocumentVariableNamesReader(
+  reader: (() => ReadonlySet<string>) | null,
+): void {
+  documentVariableNamesReader = reader;
+}
+/** Where a data change's history entry goes (the catalog runtime history; unset = none). */
+export function setDataHistoryRecorder(
+  recorder:
+    ((payload: DataChangeHistoryPayload, affectedIds: string[]) => void) | null,
+): void {
+  dataHistoryRecorder = recorder;
+}
+
 type CollectionsDB = {
   collections?: {
     insert: (dt: DataTable) => Promise<DataTable>;
@@ -1161,13 +1223,24 @@ export const createApplyDataChangeAction =
       // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
       ...(touchesVariables
         ? {
-            documentVariableNames: collectDocumentVariableNames(
-              getActiveCanonicalDocument(),
-            ),
+            documentVariableNames: documentVariableNamesReader
+              ? documentVariableNamesReader()
+              : new Set<string>(),
           }
         : {}),
     });
-    const consumer = preflightBindingOps(bindingOps, result.collections);
+    const committer = bindingOps.length ? documentBindingCommitter : null;
+    if (committer && options.record === false) {
+      throw new DataChangeError(
+        "bind_element 는 문서 기록 없이 적용하지 않습니다",
+        bindingOps[0],
+      );
+    }
+    const consumer = preflightBindingOps(
+      bindingOps,
+      result.collections,
+      committer,
+    );
     const variablesChanged =
       result.variablesUpserted.size > 0 || result.variablesDeleted.size > 0;
     const endpointsChanged =
@@ -1254,7 +1327,41 @@ export const createApplyDataChangeAction =
     const appliedBindings: BindElementOp[] = [];
     const bindingInverse: BindElementOp[] = [];
     try {
-      for (const op of bindingOps) {
+      if (committer) {
+        for (const op of bindingOps) {
+          const expected = options.expectBindings?.[op.elementId];
+          if (!expected) continue;
+          const current = committer.read(op.elementId);
+          if (!current || !isSameBindingSnapshot(current, expected)) {
+            throw new DataChangeError(
+              `대상 요소의 바인딩이 캡처 시점과 다릅니다: ${op.elementId}`,
+              op,
+            );
+          }
+        }
+        const stamp = {
+          origin: change.origin,
+          ...(change.label !== undefined ? { label: change.label } : {}),
+        };
+        committer.commit({
+          payload: {
+            change: { ops: [...result.applied, ...bindingOps], ...stamp },
+            inverse: result.inverse,
+          },
+          data: result.applied.length
+            ? {
+                change: { ops: result.applied, ...stamp },
+                inverse: result.inverse,
+              }
+            : null,
+          bindings: bindingOps.map((op) => ({
+            elementId: op.elementId,
+            binding: toBindingWrite(op, result.collections).binding,
+          })),
+        });
+        appliedBindings.push(...bindingOps);
+      }
+      for (const op of committer ? [] : bindingOps) {
         const expected = options.expectBindings?.[op.elementId];
         if (expected) {
           const current = consumer.read(op.elementId);
@@ -1325,8 +1432,9 @@ export const createApplyDataChangeAction =
       ...appliedBindings.map((op) => op.elementId),
     ];
 
-    // 4. History 1 entry — 승인 묶음 = entry 1 (⌘Z 1회로 전체 원상, HC4)
-    if (options.record !== false) {
+    // 4. History 1 entry — 승인 묶음 = entry 1 (⌘Z 1회로 전체 원상, HC4). A committed binding
+    //    change is already the document's entry (the inverse then holds the data part only).
+    if (options.record !== false && !committer) {
       const payload: DataChangeHistoryPayload = {
         change: {
           ops: applied,
@@ -1335,12 +1443,7 @@ export const createApplyDataChangeAction =
         },
         inverse,
       };
-      historyManager.addEntry({
-        type: "data",
-        elementId: affectedIds[0] ?? "",
-        elementIds: affectedIds,
-        data: { dataChangeEvent: payload },
-      });
+      dataHistoryRecorder?.(payload, affectedIds);
     }
 
     // 변수만 바뀐 change 는 collections postMessage 를 보내지 않는다 — 변수 전송은

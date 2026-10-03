@@ -17,7 +17,8 @@ import type {
 } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyInput, PropertySelect } from "../../components";
+import { PropertyInput } from "../../components/property/PropertyInput";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
 
 import { useLayoutValue } from "../styles/hooks/useLayoutValue";

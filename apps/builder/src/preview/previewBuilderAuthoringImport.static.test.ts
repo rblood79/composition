@@ -10,7 +10,11 @@ import { describe, expect, it } from "vitest";
 
 const BUILDER_SRC = join(__dirname, "..");
 const SHARED_SRC = join(__dirname, "../../../../packages/shared/src");
-const ENTRY = join(__dirname, "index.tsx");
+// ADR-248 4e-7: the entry loads the catalog Preview app lazily — trace it as part of the runtime.
+const ENTRIES = [
+  join(__dirname, "index.tsx"),
+  join(__dirname, "catalog/catalogPreviewApp.tsx"),
+];
 
 const IMPORT_RE =
   /^\s*(?:import|export)\s+(?!type\b)(?:[^"';]*?\sfrom\s+)?["']([^"']+)["']/gm;
@@ -33,9 +37,11 @@ function resolveSpecifier(from: string, spec: string): string | null {
 }
 
 /** entry 에서 정적 값 import 로 닿는 파일 → 처음 닿은 부모 (경로 복원용). */
-function reachableFrom(entry: string): Map<string, string | null> {
-  const parent = new Map<string, string | null>([[entry, null]]);
-  const queue = [entry];
+function reachableFrom(entries: readonly string[]): Map<string, string | null> {
+  const parent = new Map<string, string | null>(
+    entries.map((entry) => [entry, null]),
+  );
+  const queue = [...entries];
   while (queue.length > 0) {
     const file = queue.shift()!;
     const source = readFileSync(file, "utf8").replace(TYPE_ONLY_BLOCK_RE, "");
@@ -73,16 +79,35 @@ const FORBIDDEN: ReadonlyArray<{ label: string; test: RegExp }> = [
     label: "builder 요소 기본값 표",
     test: /\/types\/builder\/unified\.types\.ts$/,
   },
+  // ADR-248 G5 (2026-10-03): the Preview's replica root draws DOM through `NullLayoutEngine`; Canvas
+  // paint and layout-input code reached its boot set through shared helpers (`authoredStyle` →
+  // `buildBoxNodeData`, `compositionRoot` → `ruleShapes` …) — 699 KB gzip at boot, over the
+  // ADR-201 Preview ceiling 623,000 B. The DOM path reads its own leaf modules.
+  { label: "Skia 렌더 코드", test: /\/workspace\/canvas\/skia\// },
+  {
+    label: "Canvas style 변환기",
+    test: /\/workspace\/canvas\/styleConversion\//,
+  },
+  {
+    label: "Canvas layout 입력 utils · implicit style",
+    test: /\/workspace\/canvas\/layout\/engines\/(utils|implicitStyles|cssResolver)\.ts$/,
+  },
+  { label: "Styles 패널 변환기", test: /\/panels\/styles\/utils\// },
+  {
+    label: "catalog 저작 명령",
+    test: /\/catalog\/commands\/(?!context\.ts$|compose\.ts$)[^/]+\.ts$/,
+  },
 ];
 
 describe("Preview builder 저작 코드 import 경계", () => {
-  const reachable = reachableFrom(ENTRY);
+  const reachable = reachableFrom(ENTRIES);
 
-  it("추적이 실제로 돈다 (resolver · 렌더러까지 닿는다)", () => {
+  it("추적이 실제로 돈다 (catalog DOM binding · 렌더러까지 닿는다)", () => {
     const files = [...reachable.keys()].map((f) => relative(BUILDER_SRC, f));
-    expect(files).toContain("resolvers/canonical/index.ts");
-    expect(files).toContain("builder/components/slotHostPolicy.ts");
-    expect(files).toContain("builder/components/templateItemOriginIds.ts");
+    expect(files).toContain("builder/catalogRuntime/domBinding.tsx");
+    // The old element-store Preview app (and its canonical resolver) left the entry (4e-7).
+    expect(files).not.toContain("preview/App.tsx");
+    expect(files).not.toContain("resolvers/canonical/index.ts");
   });
 
   for (const { label, test } of FORBIDDEN) {

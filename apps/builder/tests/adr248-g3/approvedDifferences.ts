@@ -6,11 +6,12 @@
  *   - `previewFollow`: the Preview departs from the declaration and the Phase 3 new side follows the
  *     Preview (②); Phase 4 fixes the product and the new side together.
  *   - `bothDeviate`: neither side draws the catalog value; the new side follows the Preview (②).
+ *   ADR-248 4e-11 (2026-10-03) repaired every previewFollow / bothDeviate pair in the product or
+ *   reclassified it (old Canvas value, or a recorded decision): no rule of those classes remains.
  * A rule approves an over-1px pair only when the pair's owner (the case's type) and node type match
  * and every axis that differs by more than 1 CSS px is listed in `axes`. The pair must also hold the
  * Canvas ↔ isolated DOM contract (the row's DOM leg), unless `noDomBox` names a node the DOM leg
- * has no box for. Unlisted pairs (FileUpload — Phase 4, new-side defects, unexplained cases) keep
- * the geometry leg failing.
+ * has no box for. Unlisted pairs (new-side defects, unexplained cases) keep the geometry leg failing.
  */
 export type ApprovedDifferenceClass =
   "decided" | "oldDefect" | "previewFollow" | "bothDeviate";
@@ -24,6 +25,11 @@ export interface ApprovedDifference {
   axes: readonly GeometryAxis[];
   /** The node has no isolated DOM box (the DOM leg cannot arbitrate it). */
   noDomBox?: boolean;
+  /**
+   * The node's own drawing follows the approved size (a sized control's indicator): L3 attributes
+   * its whole old ∪ new box, not only the swept edges.
+   */
+  paint?: true;
   reason: string;
 }
 
@@ -102,7 +108,44 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["width"],
     reason: "⑦ separator = editable Icon (16 + gap 2)",
   },
+  {
+    id: "dropzone-content",
+    class: "decided",
+    owners: ["FileUpload"],
+    nodes: ["DropZone"],
+    axes: ["height"],
+    reason:
+      "user decision A 2026-10-02: the DropZone content follows the catalog delegation and the FileUpload drop zone fits it (old empty box 52 → 165)",
+  },
+  {
+    id: "fileupload-rows-below-input",
+    class: "decided",
+    owners: ["FileUpload"],
+    nodes: ["ProgressBar", "Label", "ProgressBarValue", "ProgressBarTrack"],
+    axes: ["x", "y", "width"],
+    reason:
+      "the sample rows move below the content-sized drop zone and the trigger box; value text weight 400 (①)",
+  },
+  {
+    id: "section-generated-css-unloaded",
+    class: "decided",
+    owners: ["ListBoxSection", "GridListSection"],
+    nodes: ["Header"],
+    axes: ALL,
+    reason:
+      "ADR-238 Phase 2: the section layer's generated CSS stays unloaded (`UNLOADED_GENERATED_CSS` F, G5 `adr238SectionDom`) — the DOM section is a UA block; old draws the generated values (section text-base → the inline-flex header's baseline shift 2 · catalog header 24 at full width)",
+  },
   // ── B. old Canvas defects (catalog = new) ───────────────────────────────
+  {
+    id: "filetrigger-box",
+    class: "oldDefect",
+    owners: ["FileUpload"],
+    nodes: ["FileTrigger"],
+    axes: ["y", "width", "height"],
+    noDomBox: true,
+    reason:
+      "old draws no FileTrigger box (0×0); the catalog size box (height 40 · paddingX 24) is the button's — 4e-10-2",
+  },
   {
     id: "field-label-line-height",
     class: "oldDefect",
@@ -118,6 +161,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     owners: [...FIELD_OWNERS, "Form"],
     nodes: [
       "SelectTrigger",
+      "SelectValue",
       "Input",
       "DateInput",
       "SelectIcon",
@@ -147,6 +191,81 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["y", "height"],
     reason:
       "old keeps the md Input box (30) at every size; the owner's per-size `--cf-input-*` delegation sizes it",
+  },
+  {
+    id: "calendar-header",
+    class: "oldDefect",
+    owners: ["Calendar", "RangeCalendar"],
+    nodes: ["CalendarHeader", "CalendarGrid"],
+    axes: ALL,
+    noDomBox: true,
+    reason:
+      "old draws the header row 0 tall at the grid width (238); the DOM header row = the nav buttons (height + spacing-xs, 4e-11 min-width reset) · gaps · heading, as tall as the catalog 30",
+  },
+  {
+    id: "group-items-old-size",
+    class: "oldDefect",
+    owners: ["RadioGroup", "CheckboxGroup"],
+    nodes: ["Radio", "Checkbox"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "old paints the items at md (indicator · label) inside the group size's box, keeps the items gap 12 (catalog `--radio-items-gap` sm 8 · lg 16) and the xl item box at its label line 28 (indicator text-3xl 30) — 4e-11 group size reaches the items",
+  },
+  {
+    id: "group-item-label-old-font",
+    class: "oldDefect",
+    owners: ["RadioGroup", "CheckboxGroup"],
+    nodes: ["Label"],
+    axes: ALL,
+    reason:
+      "old keeps the item Label at the md font (lg/xl: catalog text-base · text-lg) and moves it with the items gap",
+  },
+  {
+    id: "togglebuttongroup-xl-shrink",
+    class: "oldDefect",
+    owners: ["ToggleButtonGroup"],
+    nodes: ["ToggleButton"],
+    axes: ALL,
+    reason:
+      "xl items wider than the 220 group: old keeps max-content and overflows; flex items shrink to min-content and the label wraps (no nowrap declared) — the DOM box",
+  },
+  {
+    id: "slider-track-row-center",
+    class: "oldDefect",
+    owners: ["Slider"],
+    nodes: ["SliderTrack", "SliderThumb"],
+    axes: ["y"],
+    reason:
+      "old pins the track top where the md 8 track sits (103) at every size; the DOM centers the size's track (sm 4 · xl 16, 4e-11 size reaches the track) in its grid row",
+  },
+  {
+    id: "tree-collapsed-row-label",
+    class: "oldDefect",
+    owners: ["Tree"],
+    nodes: ["Text"],
+    axes: ["x", "width"],
+    reason:
+      "the old row paired with the second item is the collapsed first item's child, a level deeper (+16); the DOM's second row is level 1 (chevron 20 kept — 4e-11)",
+  },
+  {
+    id: "taglist-line-distribution",
+    class: "oldDefect",
+    owners: ["TagGroup"],
+    nodes: ["TagList", "Tag", "Text"],
+    axes: ["x", "y", "height"],
+    noDomBox: true,
+    reason:
+      "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.lg.gap` 6); the wrapper height follows the label line box",
+  },
+  {
+    id: "field-button-size",
+    class: "oldDefect",
+    owners: ["ComboBox", "NumberField"],
+    nodes: ["SelectIcon", "SelectValue"],
+    axes: ALL,
+    reason:
+      "old draws the trigger buttons at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` / `--nf-btn-size` xs 10 · sm 14",
   },
   {
     id: "searchfield-icon-clear",
@@ -250,144 +369,14 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ALL,
     reason: "old flows an empty `{icon}` as a 24 box",
   },
-  // ── C. Preview defects the new side follows (Phase 4 fixes) ─────────────
   {
-    id: "button-min-width-68",
-    class: "previewFollow",
-    owners: ["ComboBox", "DatePicker", "DateRangePicker"],
-    nodes: ["SelectIcon", "SelectValue"],
-    axes: ALL,
-    reason: "generic Button `min-width` 68 beats the catalog trigger button 18",
-  },
-  {
-    id: "breadcrumb-css-unloaded",
-    class: "previewFollow",
-    owners: ["Breadcrumbs"],
-    nodes: ["Breadcrumb"],
-    axes: ["height"],
-    reason: "generated Breadcrumb.css not loaded (22.9)",
-  },
-  {
-    id: "pagination-wrap",
-    class: "previewFollow",
-    owners: ["Pagination"],
-    nodes: ["Button"],
-    axes: ["x", "y"],
-    reason: "Table hand CSS wraps the Pagination",
-  },
-  {
-    id: "taglist-wrapper",
-    class: "previewFollow",
-    owners: ["TagGroup"],
-    nodes: ["TagList", "Tag", "Text"],
-    axes: ALL,
-    noDomBox: true,
-    reason:
-      "product wrapper outside the RAC structure: TagList 100% unresolved",
-  },
-  {
-    id: "standalone-tag-slot",
-    class: "previewFollow",
-    owners: ["Tag"],
-    nodes: ["Avatar", "Tag", "Text"],
-    axes: ALL,
-    reason: "a standalone Tag gets no slot (avatar 32)",
-  },
-  {
-    id: "standalone-gridlistitem-slot",
-    class: "previewFollow",
-    owners: ["GridListItem"],
-    nodes: ["GridListItem", "Text"],
-    axes: ALL,
-    reason: "a standalone item gets no slot",
-  },
-  {
-    id: "tree-chevron-shrink",
-    class: "previewFollow",
-    owners: ["Tree"],
-    nodes: ["Text"],
-    axes: ["x", "width"],
-    reason: "hand CSS chevron width shrinks",
-  },
-  {
-    id: "orphan-tree-host",
-    class: "previewFollow",
-    owners: ["TreeItem"],
-    nodes: ["TreeItem", "Text"],
-    axes: ALL,
-    reason:
-      "standalone host lacks `data-composition-tree` (hand Tree.css not applied)",
-  },
-  {
-    id: "listbox-section-header",
-    class: "previewFollow",
-    owners: ["ListBoxSection"],
-    nodes: ["Header"],
-    axes: ["y"],
-    reason: "generated CSS not loaded",
-  },
-  {
-    id: "group-size-not-propagated",
-    class: "previewFollow",
-    owners: ["ToggleButtonGroup", "RadioGroup", "CheckboxGroup"],
-    nodes: ["ToggleButton", "Radio", "Checkbox", "Label"],
-    axes: ALL,
-    reason:
-      "group `[data-size]` never reaches the items (generated blocks dead) — RSP propagates (user 2026-09-30)",
-  },
-  {
-    id: "slider-track-size-not-propagated",
-    class: "previewFollow",
-    owners: ["Slider"],
-    nodes: ["SliderTrack", "SliderThumb"],
-    axes: ["height", "y"],
-    reason:
-      "the product `<SliderTrack>` carries no `data-size`: its box stays the base 8 while `.slider-track-bg` draws the Slider size (sm 4) — size reaches the bar, not the box",
-  },
-  {
-    id: "numberfield-trigger-content-height",
-    class: "previewFollow",
-    owners: ["NumberField"],
-    nodes: ["SelectTrigger", "SelectValue", "SelectIcon"],
-    axes: ALL,
-    reason:
-      "no stylesheet reads the catalog trigger `sizes.height` (20/22/42/54): the product group is content-sized, the steppers are `--icon-size`",
-  },
-  {
-    id: "checkbox-label-size-not-propagated",
-    class: "previewFollow",
-    owners: ["Checkbox"],
-    nodes: ["Label"],
-    axes: ALL,
-    reason:
-      "the product label span (`.react-aria-Label`) keeps `--label-font-size` text-sm: the Checkbox size does not reach it",
-  },
-  // ── D. neither side draws the catalog value (new follows the Preview) ───
-  {
-    id: "calendar-header",
-    class: "bothDeviate",
-    owners: ["Calendar", "RangeCalendar"],
-    nodes: ["CalendarHeader", "CalendarGrid"],
-    axes: ALL,
-    noDomBox: true,
-    reason:
-      "old header 0 · Preview 68px nav buttons wrap the heading (42); catalog 30",
-  },
-  {
-    id: "datepicker-dateinput",
-    class: "bothDeviate",
+    id: "datepicker-trigger-padding-right",
+    class: "oldDefect",
     owners: ["DatePicker", "DateRangePicker"],
-    nodes: ["DateInput"],
+    nodes: ["DateInput", "SelectIcon"],
     axes: ["width", "x"],
-    reason: "old-only paddingX 12 · Preview 68px button",
-  },
-  {
-    id: "gridlist-section-header",
-    class: "bothDeviate",
-    owners: ["GridListSection"],
-    nodes: ["Header"],
-    axes: ALL,
-    reason: "both sides depart from the catalog header",
+    reason:
+      "old trigger right padding = size paddingX 12; catalog `--dp-group-padding` / `--drp-group-padding` right = spacing-xs 4 (md)",
   },
 ];
 

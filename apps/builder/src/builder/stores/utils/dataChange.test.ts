@@ -31,8 +31,12 @@ import {
   createApplyDataChangeAction,
   reduceDataOps,
   registerDataBindingConsumer,
+  setDataHistoryRecorder,
   type DataBindingConsumer,
 } from "./dataChange";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const users = (): DataTable => ({
   id: "c1",
@@ -374,6 +378,52 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => vi.restoreAllMocks());
+
+  it("ADR-248 4e-4e — a set recorder takes the entry instead of the old history manager", async () => {
+    const { apply } = makeStore();
+    const recorded: unknown[] = [];
+    setDataHistoryRecorder((payload) => recorded.push(payload));
+    try {
+      await apply({
+        ops: [
+          {
+            op: "set_cell",
+            collectionId: "c1",
+            rowIndex: 0,
+            fieldId: "f_name",
+            value: "A",
+          },
+        ],
+        origin: "user",
+        label: "Edit cell",
+      });
+      // record:false stays unrecorded.
+      await apply(
+        {
+          ops: [
+            {
+              op: "set_cell",
+              collectionId: "c1",
+              rowIndex: 0,
+              fieldId: "f_name",
+              value: "a",
+            },
+          ],
+          origin: "user",
+        },
+        { record: false },
+      );
+    } finally {
+      installTestDataChangeRecorder((entry) => addEntry(entry));
+    }
+    expect(addEntry).not.toHaveBeenCalled();
+    expect(recorded).toEqual([
+      expect.objectContaining({
+        change: expect.objectContaining({ label: "Edit cell" }),
+        inverse: [expect.objectContaining({ op: "set_cell", value: "a" })],
+      }),
+    ]);
+  });
 
   it("셀 편집 → DB update 1 · 메모리 갱신 · History data entry (inverse 동봉)", async () => {
     const { apply, collections } = makeStore();

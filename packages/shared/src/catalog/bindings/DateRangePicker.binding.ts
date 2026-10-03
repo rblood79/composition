@@ -200,6 +200,8 @@ export const dateRangePickerBinding: PrimitiveBinding = {
     // size 는 DateRangePicker.tsx 가 React prop 으로 직접 소비 + 자기 `data-size` 를 다시 emit
     //   → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size 를 덮어씀
     //   (DatePicker.binding 과 동일 근거, ProgressCircle/Avatar/StatusLight 선례).
-    propPassthrough: ["size"],
+    //   labelPosition · labelAlign 도 같다: wrapper 가 `data-label-position={labelPosition}` ·
+    //   `data-label-align` 를 다시 써서 side 가 항상 top 으로 덮였다 (ADR-248 4e-12, 2026-10-03).
+    propPassthrough: ["size", "labelPosition", "labelAlign"],
   },
 };

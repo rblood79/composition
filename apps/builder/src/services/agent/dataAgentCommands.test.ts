@@ -25,7 +25,10 @@ vi.mock("../ai/data/dataProposalDispatcher", async (importOriginal) => {
 
 import { useDataStore } from "../../builder/stores/data";
 import { useDataTableEditorStore } from "../../builder/panels/datatable/stores/dataTableEditorStore";
-import { DATA_AGENT_COMMANDS, type DataAgentCommandInput } from "./dataAgentCommands";
+import {
+  DATA_AGENT_COMMANDS,
+  type DataAgentCommandInput,
+} from "./dataAgentCommands";
 
 const t: ToolTranslate = (key, params) =>
   params ? `${key}:${JSON.stringify(params)}` : key;
@@ -71,7 +74,10 @@ describe("DATA_AGENT_COMMANDS — 호출 심볼 · 인자", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    useDataTableEditorStore.setState({ openTableEditor, openApiEditor } as never);
+    useDataTableEditorStore.setState({
+      openTableEditor,
+      openApiEditor,
+    } as never);
     useDataStore.setState({ executeApiEndpoint } as never);
   });
 

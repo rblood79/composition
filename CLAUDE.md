@@ -12,7 +12,7 @@ pnpm wasm:build:engine                              # Rust 엔진 → wasm (산�
 pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
 pnpm -F @composition/builder exec vitest run <path> # 단일 테스트 (실패 count 는 per-package 만 정확)
-pnpm -F @composition/builder test:parity            # browser vitest · visual smoke 는 pnpm gate:visual-parity
+pnpm -F @composition/builder test:parity            # browser vitest · 시각 비교는 vitest.adr248-g3.browser.config.ts (G3 하니스)
 pnpm codex:preflight                                # guard + format + typecheck + registration gate
 pnpm gate:perf-ratchet                              # 결정적 카운트 ratchet (ADR-246) — pre-push 가 성능 경로 push 에서 자동 실행 · 탈출구 SKIP_PERF_RATCHET=1
 pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 · frame 은 --fixed-inputs [--call-counts] 로 결정적 카운트 (ratchet 후보, 문서 §8) · apps/builder/scripts 하니스는 BUILDER_URL=http://localhost:5174 로 대상 서버 지정 (기본 5173) (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
@@ -24,7 +24,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 **핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
-**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 parity 는 `apps/builder/scripts/visual-parity-gate.mjs` (smoke/full). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
+**테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 비교는 ADR-248 G3 하니스 (`apps/builder/tests/adr248-g3/`, `vitest.adr248-g3.browser.config.ts`). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
 ## SSOT 체인 정본 — 3-Domain 분할
 

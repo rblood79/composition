@@ -14,18 +14,17 @@ import { Table2, SquarePen } from "lucide-react";
 import { Button } from "react-aria-components/Button";
 import { GridList, GridListItem } from "react-aria-components/GridList";
 import { useDataStore } from "../../../stores/data";
-import { useStore } from "../../../stores";
-import { EmptyState, Section } from "../../../components";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { Section } from "../../../components/panel/Section";
 import { ConfirmDialog } from "../../../components/overlay";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
-import { resolveCollectionUsage } from "../../../../services/ai/data/collectionReadModel";
 import {
   findLinkedApi,
   resolveCollectionBadgeStatus,
 } from "../utils/collectionBadgeStatus";
-import { getAiToolReadModel } from "../../../../services/ai/tools/canonicalToolReadModel";
+import { useDataUsageSource } from "../usage/dataUsageSource";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import type {
   ApiEndpoint,
@@ -67,8 +66,8 @@ export function DataTableList({
   const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
   const apiRuns = useDataStore((state) => state.apiRuns);
   const deleteCollection = useDataStore((state) => state.deleteCollection);
-  // 사용처 N (152 역참조) — 요소가 바뀌면 다시 센다
-  const elements = useStore((state) => state.elements);
+  // 사용처 N (152 역참조) — 문서 쪽 읽기는 usage source (구 store · catalog 색인)
+  const usageSource = useDataUsageSource();
 
   // useMemo로 배열 변환 캐싱 (Map 참조가 변경될 때만 재계산)
   const collections = useMemo(
@@ -79,10 +78,7 @@ export function DataTableList({
     () => Array.from(apiEndpointsMap.values()),
     [apiEndpointsMap],
   );
-  const usage = useMemo(() => {
-    void elements;
-    return resolveCollectionUsage(getAiToolReadModel().elements, collections);
-  }, [collections, elements]);
+  const usage = usageSource.useCollectionUsage(collections);
 
   // Silence unused variable warning
   void projectId;

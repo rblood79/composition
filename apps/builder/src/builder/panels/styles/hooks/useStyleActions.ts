@@ -10,8 +10,8 @@
  */
 
 import { useCallback } from "react";
-import { useStore } from "../../../stores";
-import { useCopyPaste } from "@/builder/hooks";
+import { useStylesHost, type StylesHost } from "../stylesHost";
+import { useCopyPaste } from "../../../hooks/useCopyPaste";
 import {
   isFillDerivedStyleProp,
   sanitizeFillDerivedStylePatch,
@@ -20,12 +20,6 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
-import {
-  readResolvedStyleTarget,
-  readStyleTargetNode,
-  resolveStyleSpecType,
-} from "./useElementStyleContext";
-import { isSyntheticDescendantId } from "../../../stores/canonical/syntheticDescendantLookup";
 import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
@@ -35,31 +29,17 @@ const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
 const DIRECTION_VALUES = new Set(["block", "row", "column"]);
 
 /**
- * 그룹 축 prop 컨테이너의 인라인에 Direction 토글이 남긴 `flexDirection` · `display` 가 있으면
- * 그 둘을 뺀 style 을, 없으면 null 을 준다.
+ * 방향 토글이 prop 번역 전에 남긴 인라인 방향 키 — `flexDirection`, 그리고 토글이 쓰는 `display`
+ * (flex · block). 없으면 빈 배열.
  */
-function withoutStaleDirectionStyle(
-  style: unknown,
-  asPatch: boolean,
-): Record<string, unknown> | null {
-  if (!style || typeof style !== "object") return null;
-  const current = style as Record<string, unknown>;
+function staleDirectionKeys(style: Record<string, unknown>): string[] {
   const staleDisplay =
-    typeof current.display === "string" &&
-    DIRECTION_TOGGLE_DISPLAYS.has(current.display);
-  if (current.flexDirection === undefined && !staleDisplay) return null;
-  // instance 안 자식은 바깥 instance 의 descendants patch 에 병합된다 — 병합은 빠진 키를 지우지
-  //   못하므로 ADR-234 삭제 표식 `null` 을 싣는다.
-  if (asPatch) {
-    return {
-      ...(staleDisplay ? { display: null } : {}),
-      flexDirection: null,
-    };
-  }
-  const next = { ...current };
-  delete next.flexDirection;
-  if (staleDisplay) delete next.display;
-  return next;
+    typeof style.display === "string" &&
+    DIRECTION_TOGGLE_DISPLAYS.has(style.display);
+  return [
+    ...(staleDisplay ? ["display"] : []),
+    ...(style.flexDirection !== undefined ? ["flexDirection"] : []),
+  ];
 }
 
 /**
@@ -67,15 +47,9 @@ function withoutStaleDirectionStyle(
  * 그러면 정렬 계열 토글은 `display` · `flexDirection` 을 쓰지 않는다 — 인라인 방향은 DOM 에서
  * variant 를 이겨 Canvas 와 갈린다.
  */
-function isSelectedDirectionDriven(): boolean {
-  const { selectedElementId, elementsMap } = useStore.getState();
+function isSelectedDirectionDriven(host: StylesHost): boolean {
   return (
-    resolveDirectionDrivenProp(
-      resolveStyleSpecType(
-        readStyleTargetNode(selectedElementId, elementsMap),
-        elementsMap,
-      ),
-    ) !== undefined
+    resolveDirectionDrivenProp(host.readSelectedTarget().type) !== undefined
   );
 }
 
@@ -84,15 +58,9 @@ function isSelectedDirectionDriven(): boolean {
  * Button 등) 면 쓰지 않는다. `flex` 로 바꾸면 outer 가 inline → block 이 돼 block 부모 안에서 한 줄에
  * 서던 요소가 다른 줄로 떨어진다. inner 는 둘 다 flex 라 토글 의미는 같다.
  */
-function selectedFlexDisplayPatch(): Record<string, string> {
-  const { selectedElementId, elementsMap, activeBreakpoint } =
-    useStore.getState();
+function selectedFlexDisplayPatch(host: StylesHost): Record<string, string> {
   // 패널 표시와 같은 해석값 — ref instance 의 origin 인라인 · 활성 breakpoint 값을 포함한다.
-  const { type, style, props } = readResolvedStyleTarget(
-    selectedElementId,
-    elementsMap,
-    activeBreakpoint,
-  );
+  const { type, style, props } = host.readSelectedTarget();
   const inline = style.display;
   const display =
     typeof inline === "string" && inline
@@ -106,23 +74,25 @@ function selectedFlexDisplayPatch(): Record<string, string> {
 }
 
 export function useStyleActions() {
+  const host = useStylesHost();
   // onPaste 는 getState() 만 쓰므로 안정 참조로 고정한다. 렌더마다 새 클로저를
   // 넘기면 useCopyPaste 의 `paste` 가 렌더마다 바뀌고, 그 소비자
   // (CanvasSelectionShortcutsHost) 의 useCallback 이 이전 렌더 클로저를 memo 로
   // 붙잡는 V8 shared-context 사슬의 한 링크가 된다 (2026-09-02 leak 실측 —
   // scripts/perf-baseline.mjs `edit` 시리즈, mutation 당 elements view 1개 영구 보유).
-  const onPasteStyles = useCallback((data: Record<string, unknown>) => {
-    // Convert all values to strings
-    const stylesObj: Record<string, string> = {};
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        stylesObj[key] = String(value);
-      }
-    });
-    useStore
-      .getState()
-      .updateSelectedStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
-  }, []);
+  const onPasteStyles = useCallback(
+    (data: Record<string, unknown>) => {
+      // Convert all values to strings
+      const stylesObj: Record<string, string> = {};
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          stylesObj[key] = String(value);
+        }
+      });
+      host.updateStyles(sanitizeFillDerivedStylePatch(stylesObj, true));
+    },
+    [host],
+  );
 
   // 🔥 최적화: useCopyPaste hook 사용
   const { copy: copyStylesInternal, paste: pasteStylesInternal } = useCopyPaste(
@@ -135,53 +105,63 @@ export function useStyleActions() {
   /**
    * 단일 스타일 속성 업데이트
    */
-  const updateStyle = useCallback((property: string, value: string) => {
-    if (isFillDerivedStyleProp(property)) {
-      return;
-    }
-    useStore.getState().updateSelectedStyle(property, value);
-  }, []);
+  const updateStyle = useCallback(
+    (property: string, value: string) => {
+      if (isFillDerivedStyleProp(property)) {
+        return;
+      }
+      host.updateStyle(property, value);
+    },
+    [host],
+  );
 
   /**
    * 여러 스타일 속성 일괄 업데이트
    */
-  const updateStyles = useCallback((styles: Record<string, string>) => {
-    useStore
-      .getState()
-      .updateSelectedStyles(sanitizeFillDerivedStylePatch(styles, true));
-  }, []);
+  const updateStyles = useCallback(
+    (styles: Record<string, string>) => {
+      host.updateStyles(sanitizeFillDerivedStylePatch(styles, true));
+    },
+    [host],
+  );
 
   /**
    * Vertical alignment 버튼 선택 핸들러
    */
-  const handleVerticalAlignment = useCallback((value: string) => {
-    const alignItemsMap: Record<string, string> = {
-      "align-vertical-start": "flex-start",
-      "align-vertical-center": "center",
-      "align-vertical-end": "flex-end",
-    };
+  const handleVerticalAlignment = useCallback(
+    (value: string) => {
+      const alignItemsMap: Record<string, string> = {
+        "align-vertical-start": "flex-start",
+        "align-vertical-center": "center",
+        "align-vertical-end": "flex-end",
+      };
 
-    useStore.getState().updateSelectedStyles({
-      ...selectedFlexDisplayPatch(),
-      alignItems: alignItemsMap[value] || "flex-start",
-    });
-  }, []);
+      host.updateStyles({
+        ...selectedFlexDisplayPatch(host),
+        alignItems: alignItemsMap[value] || "flex-start",
+      });
+    },
+    [host],
+  );
 
   /**
    * Horizontal alignment 버튼 선택 핸들러
    */
-  const handleHorizontalAlignment = useCallback((value: string) => {
-    const justifyContentMap: Record<string, string> = {
-      "align-horizontal-start": "flex-start",
-      "align-horizontal-center": "center",
-      "align-horizontal-end": "flex-end",
-    };
+  const handleHorizontalAlignment = useCallback(
+    (value: string) => {
+      const justifyContentMap: Record<string, string> = {
+        "align-horizontal-start": "flex-start",
+        "align-horizontal-center": "center",
+        "align-horizontal-end": "flex-end",
+      };
 
-    useStore.getState().updateSelectedStyles({
-      ...selectedFlexDisplayPatch(),
-      justifyContent: justifyContentMap[value] || "flex-start",
-    });
-  }, []);
+      host.updateStyles({
+        ...selectedFlexDisplayPatch(host),
+        justifyContent: justifyContentMap[value] || "flex-start",
+      });
+    },
+    [host],
+  );
 
   /**
    * Flex direction 버튼 선택 핸들러
@@ -198,52 +178,47 @@ export function useStyleActions() {
    * column→top/row→side. block 은 모델에 없어 패널에서 disable 되므로 여기로
    * 도달하지 않지만, 방어적으로 row 쪽 흡수. 대상 정본: orientationDrivenTags.
    */
-  const handleFlexDirection = useCallback((value: string) => {
-    // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
-    //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
-    if (!DIRECTION_VALUES.has(value)) return;
-    const { selectedElementId, elementsMap } = useStore.getState();
-    const selected = readStyleTargetNode(selectedElementId, elementsMap);
-    const drivenProp = resolveDirectionDrivenProp(
-      resolveStyleSpecType(selected, elementsMap),
-    );
-    if (drivenProp) {
-      const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
-      const staleStyle = withoutStaleDirectionStyle(
-        selected?.props?.style,
-        selectedElementId !== null && isSyntheticDescendantId(selectedElementId),
-      );
-      if (staleStyle) {
-        // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
-        // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기에서 지운다.
-        useStore
-          .getState()
-          .updateSelectedProperties({
-            [drivenProp]: drivenValue,
-            style: staleStyle,
-          });
+  const handleFlexDirection = useCallback(
+    (value: string) => {
+      // 선택된 버튼을 다시 누르면 토글 그룹이 빈 선택 (undefined) 을 준다 — prop 번역은 column 외를
+      //   side / horizontal 로 흡수하므로 여기서 걸러야 top 이 side 로 뒤집히지 않는다.
+      if (!DIRECTION_VALUES.has(value)) return;
+      const selected = host.readSelectedTarget();
+      const drivenProp = resolveDirectionDrivenProp(selected.type);
+      if (drivenProp) {
+        const drivenValue = flexDirectionToDrivenValue(drivenProp, value);
+        const stale = staleDirectionKeys(selected.style);
+        if (stale.length) {
+          // 이 토글이 prop 번역 전에 (ref instance 판정 누락 · 멤버십 밖) 쓴 인라인이 남아 있으면
+          // DOM 에서 인라인이 variant 를 이긴다 — prop 과 같은 쓰기 (한 단계) 에서 지운다.
+          host.updatePropertiesWithStyles(
+            { [drivenProp]: drivenValue },
+            Object.fromEntries(stale.map((key) => [key, ""])),
+          );
+          return;
+        }
+        host.updateProperty(drivenProp, drivenValue);
         return;
       }
-      useStore.getState().updateSelectedProperty(drivenProp, drivenValue);
-      return;
-    }
-    if (value === "block") {
-      // display: block으로 전환, flex 관련 속성 제거
-      useStore.getState().updateSelectedStyles({
-        display: "block",
-        flexDirection: "",
-        justifyContent: "",
-        alignItems: "",
-        flexWrap: "",
-        gap: "",
-      });
-    } else if (value === "row" || value === "column") {
-      useStore.getState().updateSelectedStyles({
-        ...selectedFlexDisplayPatch(),
-        flexDirection: value,
-      });
-    }
-  }, []);
+      if (value === "block") {
+        // display: block으로 전환, flex 관련 속성 제거
+        host.updateStyles({
+          display: "block",
+          flexDirection: "",
+          justifyContent: "",
+          alignItems: "",
+          flexWrap: "",
+          gap: "",
+        });
+      } else if (value === "row" || value === "column") {
+        host.updateStyles({
+          ...selectedFlexDisplayPatch(host),
+          flexDirection: value,
+        });
+      }
+    },
+    [host],
+  );
 
   /**
    * Flex alignment (3x3 grid) 버튼 선택 핸들러
@@ -275,9 +250,11 @@ export function useStyleActions() {
         const flexDirection =
           currentFlexDirection === "column" ? "column" : "row";
         // 라벨 위치 컨테이너는 축만 매핑한다 (방향은 호출측이 prop 에서 읽어 넘긴다).
-        const layoutMode: Record<string, string> = isSelectedDirectionDriven()
+        const layoutMode: Record<string, string> = isSelectedDirectionDriven(
+          host,
+        )
           ? {}
-          : { ...selectedFlexDisplayPatch(), flexDirection };
+          : { ...selectedFlexDisplayPatch(host), flexDirection };
 
         // For row: horizontal = justifyContent, vertical = alignItems
         // For column: horizontal = alignItems, vertical = justifyContent
@@ -285,14 +262,14 @@ export function useStyleActions() {
         //   space-* 그대로 둔다 (panel-ui 01).
         const preserveMainAxis = options?.preserveMainAxis === true;
         if (flexDirection === "column") {
-          useStore.getState().updateSelectedStyles({
+          host.updateStyles({
             ...layoutMode,
             ...(preserveMainAxis ? {} : { justifyContent: position.vertical }),
             alignItems: position.horizontal,
           });
         } else {
           // row or default
-          useStore.getState().updateSelectedStyles({
+          host.updateStyles({
             ...layoutMode,
             ...(preserveMainAxis
               ? {}
@@ -302,39 +279,50 @@ export function useStyleActions() {
         }
       }
     },
-    [],
+    [host],
   );
 
   /**
    * Justify content spacing 버튼 선택 핸들러
    */
-  const handleJustifyContentSpacing = useCallback((value: string) => {
-    useStore.getState().updateSelectedStyles({
-      ...(isSelectedDirectionDriven() ? {} : selectedFlexDisplayPatch()),
-      justifyContent: value, // space-around, space-between, space-evenly
-    });
-  }, []);
+  const handleJustifyContentSpacing = useCallback(
+    (value: string) => {
+      host.updateStyles({
+        ...(isSelectedDirectionDriven(host)
+          ? {}
+          : selectedFlexDisplayPatch(host)),
+        justifyContent: value, // space-around, space-between, space-evenly
+      });
+    },
+    [host],
+  );
 
   /**
    * Flex wrap 버튼 선택 핸들러
    */
-  const handleFlexWrap = useCallback((value: string) => {
-    useStore.getState().updateSelectedStyles({
-      ...(isSelectedDirectionDriven() ? {} : selectedFlexDisplayPatch()),
-      flexWrap: value, // wrap, wrap-reverse, nowrap
-    });
-  }, []);
+  const handleFlexWrap = useCallback(
+    (value: string) => {
+      host.updateStyles({
+        ...(isSelectedDirectionDriven(host)
+          ? {}
+          : selectedFlexDisplayPatch(host)),
+        flexWrap: value, // wrap, wrap-reverse, nowrap
+      });
+    },
+    [host],
+  );
 
   /**
    * Reset styles (inline style 제거)
    */
-  const resetStyles = useCallback((properties: string[]) => {
-    const resetObj: Record<string, string> = {};
-    properties.forEach((prop) => (resetObj[prop] = ""));
-    useStore
-      .getState()
-      .updateSelectedStyles(sanitizeFillDerivedStylePatch(resetObj, true));
-  }, []);
+  const resetStyles = useCallback(
+    (properties: string[]) => {
+      const resetObj: Record<string, string> = {};
+      properties.forEach((prop) => (resetObj[prop] = ""));
+      host.updateStyles(sanitizeFillDerivedStylePatch(resetObj, true));
+    },
+    [host],
+  );
 
   /**
    * Copy styles to clipboard (wrapper around useCopyPaste)

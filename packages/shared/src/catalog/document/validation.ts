@@ -77,6 +77,8 @@ const visualFields = new Set<VisualField>([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
   "boxShadow",
   "filter",
   "transform",
@@ -108,6 +110,8 @@ const visualChoices: Readonly<Record<string, readonly string[]>> = {
     "break-spaces",
   ],
   wordBreak: ["normal", "break-all", "keep-all", "break-word"],
+  overflowWrap: ["normal", "break-word", "anywhere"],
+  textOverflow: ["clip", "ellipsis"],
 };
 /** Phase 4a keys whose value is CSS text (no finite typed form). */
 const visualCssTextKeys = new Set([
@@ -206,6 +210,7 @@ const layoutValueChoices: Readonly<
   gridTemplateColumns: gridTracks,
   gridTemplateRows: gridTracks,
   gridTemplateAreas: (value) => /^("[\w. ]+"\s*)+$/.test(value.trim()),
+  order: (value) => /^-?\d+$/.test(value),
   maxWidth: (value) =>
     value === "none" ||
     cssLength(value) ||
@@ -352,6 +357,13 @@ function authoredValue(
   )
     invalid("TOKEN_ID_REQUIRED", at);
 }
+/** `50%`, `10vw`, `2rem` … — a non-negative CSS length the layout resolves (not px). */
+const relativeMinLength = (value: unknown): boolean =>
+  typeof value === "string" &&
+  /^\d+(?:\.\d+)?(?:%|vw|vh|vmin|vmax|dvw|dvh|svw|svh|lvw|lvh|em|rem|ch)$/.test(
+    value,
+  );
+
 function visualLiteral(key: string, value: unknown, at: string): void {
   if (value && typeof value === "object") return; // typed token reference is checked separately
   if (
@@ -397,7 +409,10 @@ function visualLiteral(key: string, value: unknown, at: string): void {
     invalid("INVALID_BORDER_STYLE", at);
   if (
     [
-      ...(value === "auto" ? [] : ["minHeight", "minWidth"]),
+      // A node's minimum also takes a relative or viewport CSS length (the Styles Min W/H input).
+      ...(value === "auto" || relativeMinLength(value)
+        ? []
+        : ["minHeight", "minWidth"]),
       "paddingX",
       "paddingY",
       "paddingTop",
@@ -1084,7 +1099,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
       );
       if (item.metadata !== undefined) {
         const metadata = object(item.metadata, "entry.metadata");
-        exact(metadata, ["htmlId"], "entry.metadata");
+        exact(metadata, ["htmlId", "className", "ariaLabel"], "entry.metadata");
+        for (const key of ["className", "ariaLabel"] as const)
+          if (
+            metadata[key] !== undefined &&
+            (typeof metadata[key] !== "string" || !String(metadata[key]).trim())
+          )
+            invalid("INVALID_METADATA", `entry.metadata.${key}`);
         if (
           metadata.htmlId !== undefined &&
           (typeof metadata.htmlId !== "string" ||
@@ -1580,7 +1601,7 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
 }
 export function validateLibraryToken(value: unknown): LibraryToken {
   const item = object(value, "library.token");
-  exact(item, ["id", "tokenType", "value", "source"], "library.token");
+  exact(item, ["id", "tokenType", "value", "source", "ref"], "library.token");
   id(item.id, "lib:token:", "library.token.id");
   if (!tokenTypes.has(item.tokenType as TokenType))
     invalid("INVALID_TOKEN_TYPE", "library.token.tokenType");
@@ -1599,5 +1620,10 @@ export function validateLibraryToken(value: unknown): LibraryToken {
     invalid("TOKEN_VALUE_TYPE", "library.token.value");
   if (item.source !== "spec-token")
     invalid("INVALID_TOKEN_SOURCE", "library.token.source");
+  if (
+    item.ref !== undefined &&
+    (typeof item.ref !== "string" || !/^\{[\w]+\.[^{}]+\}$/.test(item.ref))
+  )
+    invalid("INVALID_TOKEN_REF", "library.token.ref");
   return value as LibraryToken;
 }

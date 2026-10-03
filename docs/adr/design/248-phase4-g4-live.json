@@ -1,0 +1,211 @@
+{
+ "results": [
+  {
+   "id": "R1 undo/redo by keyboard",
+   "pass": true,
+   "detail": {
+    "seen": [
+     "G4 라벨",
+     "undo me",
+     "G4 라벨"
+    ]
+   }
+  },
+  {
+   "id": "R1 saved → refresh: same document",
+   "pass": true,
+   "detail": {
+    "before": {
+     "revision": 6,
+     "durable": 6,
+     "state": "saved"
+    },
+    "after": {
+     "revision": 6,
+     "durable": 6,
+     "state": "saved"
+    },
+    "label": "G4 라벨",
+    "width": [
+     420,
+     420
+    ],
+    "bytes": 1167
+   }
+  },
+  {
+   "id": "R2 dashboard lists and reopens",
+   "pass": true,
+   "detail": {
+    "route": "0de3d521-deb8-4301-96aa-1385a6a6a1ba"
+   }
+  },
+  {
+   "id": "R3 data table → composition.collections",
+   "pass": true,
+   "detail": {
+    "projectId": "0de3d521-deb8-4301-96aa-1385a6a6a1ba",
+    "created": "G4 표",
+    "rows": [
+     "G4 표"
+    ]
+   }
+  },
+  {
+   "id": "R4 import zip → same entries + data",
+   "pass": true,
+   "detail": {
+    "route": "5dcc99a6-ac7e-44c4-bd3b-518a494e70c9",
+    "label": "G4 라벨",
+    "names": [
+     "G4 표"
+    ]
+   }
+  },
+  {
+   "id": "R4 import json → same entries + data",
+   "pass": true,
+   "detail": {
+    "route": "5dcc99a6-ac7e-44c4-bd3b-518a494e70c9",
+    "label": "G4 라벨",
+    "names": [
+     "G4 표"
+    ]
+   }
+  },
+  {
+   "id": "R5 old project file · old JSON refused, document unchanged",
+   "pass": true,
+   "detail": {
+    "zipToast": true,
+    "jsonToast": true
+   }
+  },
+  {
+   "id": "R5 old IDB head listed · open refused with the reason",
+   "pass": true,
+   "detail": {
+    "oldRoute": "project:project:g4-old-head",
+    "listed": 1,
+    "alert": true
+   }
+  },
+  {
+   "id": "R6 failed revision never shown saved · retry saves · refresh keeps it",
+   "pass": true,
+   "detail": {
+    "states": [
+     "unsaved",
+     "saving",
+     "failed"
+    ],
+    "failed": {
+     "revision": 7,
+     "durable": 6,
+     "state": "failed"
+    },
+    "label": "Save failed — click to retry",
+    "retriedLabel": "after failure"
+   }
+  },
+  {
+   "id": "R7 conflict stops autosave · the other tab's edit is stored",
+   "pass": true,
+   "detail": {
+    "conflict": true,
+    "shown": 1,
+    "label": "from tab 2"
+   }
+  },
+  {
+   "id": "R8 edit before a project switch is stored for its project",
+   "pass": true,
+   "detail": {
+    "there": "5dcc99a6-ac7e-44c4-bd3b-518a494e70c9",
+    "label": "before switch"
+   }
+  },
+  {
+   "id": "R9 header Preview fails explicitly",
+   "pass": true,
+   "detail": {
+    "shown": true,
+    "url": true,
+    "newPages": 0
+   }
+  },
+  {
+   "id": "R10 no events/actions stores · data three stores present",
+   "pass": true,
+   "detail": {
+    "databases": [
+     "composition",
+     "composition-catalog-projects-v1",
+     "composition-fonts"
+    ],
+    "composition": [
+     "api_endpoints",
+     "asset_gc",
+     "assets",
+     "collection_runtime",
+     "collections",
+     "document_heads",
+     "document_parts",
+     "documents",
+     "documents_backup",
+     "projects",
+     "variables"
+    ],
+    "catalog": [
+     "entries",
+     "heads"
+    ]
+   }
+  },
+  {
+   "id": "R11 folder link writes the v2 container after a durable save",
+   "pass": true,
+   "detail": {
+    "status": "synced",
+    "first": [
+     "manifest.json",
+     "manifests",
+     "parts"
+    ],
+    "after": [
+     "manifest.json",
+     "manifests",
+     "parts"
+    ],
+    "revision": {
+     "revision": 10,
+     "durable": 10,
+     "state": "saved"
+    },
+    "manifest": {
+     "formatVersion": "2.0.0",
+     "keys": [
+      "assets",
+      "editor",
+      "formatVersion",
+      "parts",
+      "previousRevision",
+      "project",
+      "revision",
+      "savedAt"
+     ]
+    }
+   }
+  },
+  {
+   "id": "R12 apps/publish diff 0",
+   "pass": true,
+   "detail": {
+    "diff": ""
+   }
+  }
+ ],
+ "errors": [
+  "p1 console: [CatalogBuilder] open failed: CatalogStorageError: UNSUPPORTED_PROJECT_FORMAT\n    at CatalogStorage.load (http://localhost:5175/src/builder/catalogRuntime/storage.ts?t=1790958136261:267:118)\n    at async http://localhost:5175/src/builder/ma"
+ ]
+}

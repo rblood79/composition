@@ -316,7 +316,8 @@
   }
 
   /* ========== Pagination Styles ========== */
-  .react-aria-Pagination {
+  /* The Table's own page bar (`table-pagination`) — not the standalone Pagination component. */
+  .react-aria-Pagination.table-pagination {
     display: flex;
     align-items: center;
     justify-content: space-between;

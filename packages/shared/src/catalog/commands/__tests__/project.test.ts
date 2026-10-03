@@ -3,7 +3,9 @@ import type {
   EntryId,
   InteractionEntry,
   NodeEntry,
+  NodeId,
   PageEntry,
+  TemplateId,
   ProjectEntry,
   ThemeEntry,
   TokenEntry,
@@ -241,6 +243,147 @@ describe("ADR-248 Phase 4b project commands", () => {
         })(graph),
       ),
     ).toBe("LAYOUT_SLOT_REQUIRED");
+  });
+
+  it("a body page and a body layout: the page body becomes the instance, its content fills the content slot", () => {
+    const body = "project:node:body";
+    const graph = graphOf(
+      [
+        node("body", "lib:definition:type-body", {
+          children: ["project:node:a", "project:node:b"],
+        }),
+        text("a", "A"),
+        text("b", "B"),
+      ],
+      ["body"],
+    );
+    const newId = allocator();
+    const slot = (id: string, name: string, required = false) =>
+      node(id, "lib:definition:section", { slot: { name, required } });
+    run(
+      graph,
+      createLayout({
+        name: "Grail",
+        rootId: "project:node:lbody",
+        entries: [
+          node("lbody", "lib:definition:type-body", {
+            children: ["project:node:header", "project:node:main"],
+          }),
+          // A required header first: the content role still wins.
+          slot("header", "header", true),
+          slot("main", "content"),
+        ],
+        newId,
+      }),
+    );
+    const layoutId = project(graph).definitionIds[0];
+    const initial = snapshot(graph);
+    const applied = run(
+      graph,
+      applyLayout({ pageId: PAGE, definitionId: layoutId, newId }),
+    );
+    // The same body node is the page's root and the layout's instance.
+    expect(children(graph, PAGE)).toEqual([body]);
+    const instance = graph.getEntry(body) as NodeEntry;
+    expect(instance.definitionId).toBe(layoutId);
+    expect(instance.children).toEqual([]);
+    // The content fills the slot named content (not the first slot).
+    expect(instance.descendantOverrides).toEqual([
+      {
+        kind: "fillSlot",
+        address: {
+          instances: [body],
+          templatePath: ["project:node:lbody", "project:node:main"],
+        },
+        childIds: ["project:node:a", "project:node:b"],
+      },
+    ]);
+    // The slots sit right under the layout body; A and B in the content slot.
+    const [root] = resolveCatalogNode(graph, body as NodeId).children;
+    expect(root.definitionId).toBe("lib:definition:type-body");
+    expect(root.children.map((child) => child.children.length)).toEqual([0, 2]);
+    undo(graph, applied.result.inverse);
+    expect(snapshot(graph)).toBe(initial);
+    // Removing gives the body its content back (the same node, a body again).
+    run(graph, applyLayout({ pageId: PAGE, definitionId: layoutId, newId }));
+    run(graph, applyLayout({ pageId: PAGE, definitionId: undefined, newId }));
+    expect(graph.getEntry(body)).toMatchObject({
+      definitionId: "lib:definition:type-body",
+      children: ["project:node:a", "project:node:b"],
+      descendantOverrides: [],
+    });
+    run(graph, applyLayout({ pageId: PAGE, definitionId: layoutId, newId }));
+    run(graph, deleteLayout({ definitionId: layoutId }));
+    expect(children(graph, PAGE)).toEqual([body]);
+    expect((graph.getEntry(body) as NodeEntry).children).toEqual([
+      "project:node:a",
+      "project:node:b",
+    ]);
+  });
+
+  it("a page whose whole body sat in a slot (the earlier shape) gets that body back", () => {
+    const graph = graphOf(
+      [
+        node("body", "lib:definition:type-body", {
+          children: ["project:node:a"],
+        }),
+        text("a", "A"),
+      ],
+      ["body"],
+    );
+    const newId = allocator();
+    run(
+      graph,
+      createLayout({
+        name: "Grail",
+        rootId: "project:node:lbody",
+        entries: [
+          node("lbody", "lib:definition:type-body", {
+            children: ["project:node:main"],
+          }),
+          node("main", "lib:definition:section", {
+            slot: { name: "content", required: false },
+          }),
+        ],
+        newId,
+      }),
+    );
+    const layoutId = project(graph).definitionIds[0];
+    // The earlier applyLayout: a new instance as the page root, the body in its slot.
+    run(graph, (reader) => ({
+      label: "Earlier layout",
+      ops: [
+        {
+          kind: "put",
+          entry: {
+            ...node("inst", layoutId),
+            descendantOverrides: [
+              {
+                kind: "fillSlot",
+                address: {
+                  instances: ["project:node:inst" as NodeId],
+                  templatePath: [
+                    "project:node:lbody" as TemplateId,
+                    "project:node:main" as TemplateId,
+                  ],
+                },
+                childIds: ["project:node:body" as NodeId],
+              },
+            ],
+          },
+        },
+        {
+          kind: "put",
+          entry: {
+            ...(reader.getEntry(PAGE) as PageEntry),
+            children: ["project:node:inst" as NodeId],
+          },
+        },
+      ],
+    }));
+    run(graph, applyLayout({ pageId: PAGE, definitionId: undefined, newId }));
+    expect(children(graph, PAGE)).toEqual(["project:node:body"]);
+    expect(graph.getEntry("project:node:inst")).toBeUndefined();
   });
 
   it("themes: create, token set/update/remove, duplicate, activate, remove", () => {

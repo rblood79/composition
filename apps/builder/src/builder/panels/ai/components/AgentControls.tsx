@@ -3,7 +3,7 @@
  */
 
 import { Square } from "lucide-react";
-import { ActionIconButton } from "../../../components";
+import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { useI18n } from "@/i18n";
 
 interface AgentControlsProps {

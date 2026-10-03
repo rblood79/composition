@@ -28,8 +28,8 @@ vi.mock("./panelWorkspaceLayoutV2", () => ({
 vi.mock("./panelWorkspacePolicyV4", () => ({
   activatePanelWorkspacePanelV4: mocks.activatePolicy,
 }));
-vi.mock("../stores", () => ({
-  useStore: {
+vi.mock("../stores/builderUiStore", () => ({
+  useBuilderUiStore: {
     getState: () => ({
       ...mocks.storeState,
       initializePanelWorkspaceLayout: mocks.initializeLayout,

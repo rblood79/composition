@@ -26,15 +26,18 @@ import {
 } from "react";
 import { useNavigate } from "react-router";
 import { iconProps, APP_ICON_URL } from "../../utils/ui/uiConstants";
-import { usePanelLayout } from "../layout";
+import { usePanelLayout } from "../hooks/usePanelLayout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
 import { StorageStatusButton } from "./StorageStatusButton";
 import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
 import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,
-} from "../hooks";
-import { ZoomControls } from "../workspace/ZoomControls";
+} from "../hooks/useKeyboardShortcutsRegistry";
+import {
+  ZoomControls,
+  type ZoomControlsViewportActions,
+} from "../workspace/ZoomControls";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import { ConfirmDialog } from "../components/overlay/ConfirmDialog";
 import type { HeaderMenuHost } from "./headerMenu/headerMenuActions";
@@ -77,8 +80,14 @@ export interface BuilderHeaderProps {
   onExportProjectJson: () => void | Promise<void>;
   /** ADR-235 Phase 6 — 프로젝트를 폴더에 연결 (Chromium File System Access) */
   onConnectFolder: () => void | Promise<void>;
+  /** ADR-248 4e-6-32 — 열린 catalog 프로젝트의 스냅샷 만들기 (없으면 옛 store) */
+  snapshotActions: HeaderMenuHost["snapshotActions"];
   /** 연결된 프로젝트면 폴더 상태 버튼 (lazy) — 없으면 null */
   directoryLink: ReactNode;
+  /** ADR-248 — 열린 프로젝트의 저장 상태 표시 */
+  saveStatus?: ReactNode;
+  /** ADR-248 — 줌 메뉴의 맞춤 · 채우기 · 페이지 정렬 (열린 Builder 의 page frame 기준) */
+  viewportActions: ZoomControlsViewportActions;
 }
 
 export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
@@ -92,7 +101,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   onExportProject,
   onExportProjectJson,
   onConnectFolder,
+  snapshotActions,
   directoryLink,
+  saveStatus,
+  viewportActions,
 }) => {
   const { t } = useI18n();
   const { resetWorkspaceLayout } = usePanelLayout();
@@ -135,6 +147,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       onExportProject: () => void onExportProject(),
       onExportProjectJson: () => void onExportProjectJson(),
       onConnectFolder: () => void onConnectFolder(),
+      snapshotActions,
       onDeleteProject: () => setIsDeleteConfirmOpen(true),
       onResetPanelLayout: resetWorkspaceLayout,
       runtime: HEADER_MENU_RUNTIME,
@@ -144,6 +157,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       onExportProject,
       onExportProjectJson,
       onConnectFolder,
+      snapshotActions,
       resetWorkspaceLayout,
     ],
   );
@@ -277,7 +291,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
         </ToggleButtonGroup>
 
         {/* Zoom Controls */}
-        <ZoomControls />
+        <ZoomControls viewportActions={viewportActions} />
       </Group>
 
       <div className="header_contents header_right">
@@ -334,6 +348,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
             )}
           </ToggleButtonGroup>
           {directoryLink}
+          {saveStatus}
           <StorageStatusButton onExport={() => void onExportProject()} />
           <ActionIconButton
             aria-label={t("header.preview")}

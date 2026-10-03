@@ -122,6 +122,7 @@ export function RadioGroup({
           isDisabled
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -148,6 +149,7 @@ export function RadioGroup({
           isDisabled
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -176,6 +178,7 @@ export function RadioGroup({
           className={radioGroupClassName}
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -201,6 +204,7 @@ export function RadioGroup({
         className={radioGroupClassName}
         data-radio-variant={variant}
         data-radio-size={size}
+        data-size={size}
         data-label-position={labelPosition}
       >
         {label && (
@@ -230,6 +234,7 @@ export function RadioGroup({
           isDisabled
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -256,6 +261,7 @@ export function RadioGroup({
           isDisabled
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -292,6 +298,7 @@ export function RadioGroup({
           className={radioGroupClassName}
           data-radio-variant={variant}
           data-radio-size={size}
+          data-size={size}
           data-label-position={labelPosition}
         >
           {label && (
@@ -331,6 +338,7 @@ export function RadioGroup({
       className={radioGroupClassName}
       data-radio-variant={variant}
       data-radio-size={size}
+      data-size={size}
       data-label-position={labelPosition}
     >
       {label && (

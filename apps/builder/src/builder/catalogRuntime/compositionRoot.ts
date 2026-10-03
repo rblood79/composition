@@ -1,3 +1,5 @@
+import { tableBinding } from "../../../../../packages/shared/src/catalog/bindings/Table.binding";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type {
   DefinitionId,
   EntryId,
@@ -6,7 +8,10 @@ import type {
   PagePlacementDeclaration,
   StateName,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import type { ResolvedCatalogNode } from "../../../../../packages/shared/src/catalog/resolution/resolver";
+import type {
+  CatalogRowSource,
+  ResolvedCatalogNode,
+} from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type {
   CatalogCommand,
   CatalogCommandPlan,
@@ -21,7 +26,9 @@ import {
   resolveCatalogNode,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import { catalogAuthoredVisual } from "./libraryVisual";
-import { catalogRuleTextColor } from "./ruleShapes";
+import { catalogRuleTextColor } from "./rulePaint";
+import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originViewNode";
+import type { CatalogDefinitionViewId } from "./session";
 import {
   PersistentLayoutTree,
   type PersistentBatchNode,
@@ -36,7 +43,7 @@ import {
   catalogCalendarHeaderParts,
 } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { resolveTextSourceText } from "@composition/specs";
-import { applyTextTransform } from "../workspace/canvas/styleConversion/styleConverter";
+import { applyTextTransform } from "../utils/textTransform";
 import {
   catalogAspectRatio,
   catalogFillDependents,
@@ -57,9 +64,14 @@ import {
   racDateSegmentParts,
   type DateSegmentPart,
 } from "../../../../../packages/shared/src/catalog/document/dateSegments";
-import { catalogDateSegmentPaddingX } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
+import {
+  catalogDateRangeEndGrow,
+  catalogDateSegmentPaddingX,
+} from "../../../../../packages/shared/src/catalog/document/rulePartRules";
+import { catalogDropZoneContent } from "./dropZoneContent";
 import {
   catalogBoxModel,
+  catalogTextBreaksWords,
   catalogTextTypography,
   catalogGlyphSize,
   type CatalogLength,
@@ -82,7 +94,15 @@ import {
   catalogSliderThumbs,
 } from "./presence";
 import {
+  catalogRecordVariables,
+  catalogStateEnv,
+  catalogStateNames,
+  catalogStateProps,
+  type CatalogStateSource,
+} from "./stateTemplate";
+import {
   CatalogRuntime,
+  type CatalogExternalEffect,
   type CatalogStepConsumer,
   type CatalogStepContext,
 } from "./controller";
@@ -92,6 +112,21 @@ import {
   type SlotChromeContext,
   type SlotChromeInput,
 } from "./slotChrome";
+
+/**
+ * Values a Canvas gesture or a Styles drag shows on one record before it commits
+ * (`previewRecord`): resolved values at the current breakpoint, merged over the record's own.
+ */
+export interface CatalogRecordPreview {
+  readonly visual?: Readonly<Record<string, string | number | boolean>>;
+  readonly sizing?: Readonly<Record<string, number>>;
+  readonly layout?: Readonly<Record<string, string>>;
+  readonly placement?: CatalogConsumerNode["placement"];
+  /** The paint layers shown instead of the record's (a Fill drag). */
+  readonly fills?: CatalogConsumerNode["fills"];
+  /** Visual keys the commit removes (a Fill replaces fill-derived background CSS). */
+  readonly omitVisual?: readonly string[];
+}
 
 export interface CatalogConsumerNode {
   readonly id: string;
@@ -104,6 +139,11 @@ export interface CatalogConsumerNode {
   readonly parentId: string;
   readonly children: readonly string[];
   readonly props: ResolvedCatalogNode["props"];
+  /**
+   * The props as written when they hold `{{ name }}` templates (`props` has the values): the
+   * text editor edits these, and a variable change re-resolves them (`refreshState`).
+   */
+  readonly templateProps?: ResolvedCatalogNode["props"];
   readonly visual: ResolvedCatalogNode["visual"];
   readonly layout: ResolvedCatalogNode["layout"];
   /** Author-written layout keys (`ResolvedCatalogNode.authoredLayout`): the DOM inlines these. */
@@ -116,6 +156,9 @@ export interface CatalogConsumerNode {
   readonly themeOverride?: ResolvedCatalogNode["themeOverride"];
   /** The author's DOM `id` (`metadata.htmlId`). */
   readonly htmlId?: string;
+  /** The author's class names and accessible name (`metadata.className` · `ariaLabel`). */
+  readonly className?: string;
+  readonly ariaLabel?: string;
   readonly slot: ResolvedCatalogNode["slot"];
   readonly name: ResolvedCatalogNode["name"];
   readonly regions: ResolvedCatalogNode["regions"];
@@ -146,6 +189,10 @@ export interface CatalogConsumerNode {
   readonly inheritedText?: Readonly<Record<string, string | number | boolean>>;
   /** Fill intent projected against the parent box (`fillLayout.ts`); Rust and DOM apply it. */
   readonly fillLayout?: Readonly<Record<string, string | number>>;
+  /** A data row's index on the row's record (`ResolvedCatalogNode.rowIndex`). */
+  readonly rowIndex?: number;
+  /** A row owner that grows with its rows: the collection's row count (`ResolvedCatalogNode.rowCount`). */
+  readonly rowCount?: number;
 }
 /** Text keys a text leaf takes from its nearest declaring ancestor (CSS inherited properties). */
 export const CATALOG_INHERITED_TEXT_KEYS = [
@@ -156,6 +203,7 @@ export const CATALOG_INHERITED_TEXT_KEYS = [
   "textTransform",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
 ] as const;
 function inheritedTextOf(
   node: CatalogConsumerNode,
@@ -215,12 +263,36 @@ const textKeysChanged = (
   CATALOG_INHERITED_TEXT_KEYS.some(
     (key) => left?.visual[key] !== right.visual[key],
   );
+/**
+ * The author's DOM attributes of a collapsed composite instance: the instance node's (the element
+ * the author edits), else its template root's.
+ */
+function domAttributes(
+  top: ResolvedCatalogNode,
+  target: ResolvedCatalogNode,
+): Pick<CatalogConsumerNode, "htmlId" | "className" | "ariaLabel"> {
+  const htmlId = top.htmlId ?? target.htmlId;
+  const className = top.className ?? target.className;
+  const ariaLabel = top.ariaLabel ?? target.ariaLabel;
+  return {
+    ...(htmlId ? { htmlId } : {}),
+    ...(className ? { className } : {}),
+    ...(ariaLabel ? { ariaLabel } : {}),
+  };
+}
+
 /** The optional authored fields a record carries only when the resolved node declares them. */
 function authoredFields(
   node: ResolvedCatalogNode,
 ): Pick<
   CatalogConsumerNode,
-  "fills" | "fillSizing" | "themeOverride" | "authoredLayout" | "htmlId"
+  | "fills"
+  | "fillSizing"
+  | "themeOverride"
+  | "authoredLayout"
+  | "htmlId"
+  | "className"
+  | "ariaLabel"
 > {
   return {
     ...(node.fills ? { fills: node.fills } : {}),
@@ -228,6 +300,8 @@ function authoredFields(
     ...(node.themeOverride ? { themeOverride: node.themeOverride } : {}),
     ...(node.authoredLayout ? { authoredLayout: node.authoredLayout } : {}),
     ...(node.htmlId ? { htmlId: node.htmlId } : {}),
+    ...(node.className ? { className: node.className } : {}),
+    ...(node.ariaLabel ? { ariaLabel: node.ariaLabel } : {}),
   };
 }
 export interface CatalogRootMetrics {
@@ -253,9 +327,17 @@ function layoutChildrenOf(
   children: readonly string[],
   parts: readonly CatalogComposedPart[],
   chromeId: string | undefined,
+  orderOf?: (id: string) => number,
 ): string[] {
   const out = parts.filter((part) => !part.wraps).map((part) => part.id);
-  for (const child of children) {
+  // CSS `order` places a flex / grid item by its order, then source order (a stable sort).
+  const ordered = orderOf
+    ? children
+        .map((child, index) => ({ child, index, order: orderOf(child) }))
+        .sort((a, b) => a.order - b.order || a.index - b.index)
+        .map((entry) => entry.child)
+    : children;
+  for (const child of ordered) {
     const wrapper = parts.find((part) => part.wraps?.includes(child));
     if (!wrapper) out.push(child);
     else if (!out.includes(wrapper.id)) out.push(wrapper.id);
@@ -265,7 +347,17 @@ function layoutChildrenOf(
 }
 
 function identity(node: ResolvedCatalogNode): string {
-  return `${node.instancePath.join("/")}::${node.sourceId}`;
+  const base = `${node.instancePath.join("/")}::${node.sourceId}`;
+  return node.rowKey === undefined
+    ? base
+    : `${base}${CATALOG_ROW_SEPARATOR}${encodeURIComponent(node.rowKey)}`;
+}
+/** A data row record's identity: the row template position's, then this and the row key. */
+export const CATALOG_ROW_SEPARATOR = "#row:";
+/** The row template position's identity of a (data row) record identity. */
+export function catalogRowTemplateIdentity(recordId: string): string {
+  const at = recordId.indexOf(CATALOG_ROW_SEPARATOR);
+  return at < 0 ? recordId : recordId.slice(0, at);
 }
 /**
  * Children of a collapsed record: the innermost root's children, then each composite layer's own
@@ -296,11 +388,17 @@ interface RecordPlan {
   readonly rootId: NodeId;
   readonly style: Record<string, unknown>;
   readonly styleChanged: boolean;
+  /**
+   * A page root's frame on the page grid (size and placement): it reads the page entry, which the
+   * record does not carry — compared with the frame applied last, not with `styleFor(old)`.
+   */
+  readonly frame: Record<string, unknown> | undefined;
   readonly chrome: SlotChromeInput | undefined;
   readonly parts: readonly CatalogComposedPart[];
 }
 interface ConsumePlan {
-  readonly result: CatalogTransactionResult;
+  /** Absent for a data-row refresh (no document step). */
+  readonly result?: CatalogTransactionResult;
   /** Per affected root: removed ids, then updates — applied in this order. */
   readonly roots: readonly {
     readonly rootId: NodeId;
@@ -320,7 +418,13 @@ interface ConsumePlan {
 type Notice = { readonly id: string; readonly record?: CatalogConsumerNode };
 
 /** Bindings whose label never wraps (button): min-content = max-content. */
-const noWrapTextBindings: ReadonlySet<string> = new Set(["button", "label"]);
+const noWrapTextBindings: ReadonlySet<string> = new Set([
+  "button",
+  "label",
+  // Table.css `.react-aria-Cell, .react-aria-Column`: one line cut with an ellipsis.
+  "cell",
+  "column",
+]);
 /**
  * Text bindings that paint one line (`white-space: nowrap`: the button label, `Label.css`, the
  * field value); every other text wraps at its box width (CSS `normal`), as the layout measures.
@@ -360,9 +464,28 @@ export interface CatalogRootOptions {
   autoColumns?: number;
   /** Theme color mode the Canvas resolves theme variables in (the DOM's `data-theme` scope). */
   colorMode?: "light" | "dark";
+  /** Data rows of bound collections (the data store); absent = template items only. */
+  rows?: CatalogRowSource;
+  /**
+   * The Builder's sample policy (ADR-157): a row owner that grows with its rows shows its first
+   * `rowSample` rows; the later rows keep their layout box (the owner's height stays the DOM's)
+   * but the Canvas does not draw or pick them and marks their area "+N more". Absent = every row.
+   */
+  rowSample?: number;
+  /**
+   * `{{ name }}` values: project variables and runtime values (the Preview). Absent = the
+   * document's variables at their defaults (the Canvas's designed asymmetry, ADR-214 R2).
+   */
+  state?: CatalogStateSource;
+  /**
+   * The definition edit view (ADR-248 4e): the Canvas draws one project definition's template
+   * instead of the pages — its template nodes are ordinary owned nodes, so every edit is the same
+   * command as on a page. A layout keeps the breakpoint's page size; a component its own size.
+   */
+  definitionView?: CatalogDefinitionViewId;
 }
 /** The graph's page container declaration in the old placement derivation's input shape. */
-function catalogPageLayoutSettings(
+export function catalogPageLayoutSettings(
   layout: PageLayoutDeclaration | undefined,
 ): PageLayoutSettingsDocument | undefined {
   if (!layout) return undefined;
@@ -382,7 +505,7 @@ function catalogPageLayoutSettings(
   };
 }
 /** A page placement (base + breakpoint layers) in the old per-key cascade shape. */
-function catalogPagePlacement(
+export function catalogPagePlacement(
   placement: PagePlacementDeclaration,
 ): PagePlacement {
   const responsive: Record<
@@ -404,6 +527,7 @@ export interface CatalogTextFont {
   fontStyle?: string;
   letterSpacing?: number;
   wordBreak?: string;
+  overflowWrap?: string;
 }
 
 /** Rust intrinsic content box of a calendar header row (`calendarHeaderBox`). */
@@ -473,6 +597,9 @@ function textLeaf(
       ...(typography.wordBreak !== undefined
         ? { wordBreak: typography.wordBreak }
         : {}),
+      ...(typography.overflowWrap !== undefined
+        ? { overflowWrap: typography.overflowWrap }
+        : {}),
     },
     singleLine:
       typography.whiteSpace === "nowrap" || typography.whiteSpace === "pre",
@@ -533,11 +660,34 @@ interface CatalogDateSegments {
   parts: readonly DateSegmentPart[];
   paddingX: number;
   /** DateRangePicker: start/end rows around the separator span, spaced by the trigger gap. */
-  range?: { gap: number; separator: string };
+  /** A range's pair row: trigger gap, separator and the end input's catalog grow. */
+  range?: { gap: number; separator: string; grow: number };
   lineHeight?: number;
 }
 
 /** Rust `NodeStyle` input. It has no `padding`/`gap` shorthand (serde drops unknown keys). */
+/**
+ * A Table's own height when the author set none (the old layout's Table rule): `heightMode`
+ * "fixed" (the binding default) is the DOM virtualizer's `height` (default 400) inside the outer
+ * box's border; the other modes follow the content.
+ */
+function catalogTableHeight(
+  node: CatalogConsumerNode,
+  borderWidth: CatalogLength | undefined,
+): { height?: string } {
+  const accepts = tableBinding.props.accepts;
+  const mode = node.props.heightMode ?? accepts.heightMode?.default;
+  if (mode !== "fixed") return {};
+  const height =
+    typeof node.props.height === "number"
+      ? node.props.height
+      : accepts.height?.default;
+  if (typeof height !== "number") return {};
+  // Table.css `border: 1px solid` when the rule writes none.
+  const border = typeof borderWidth === "number" ? borderWidth : 1;
+  return { height: `${height + border * 2}px` };
+}
+
 function styleOf(
   node: CatalogConsumerNode,
   measure: CatalogTextMeasure | undefined,
@@ -597,9 +747,19 @@ function styleOf(
             contentMinWidth: width,
             contentMaxWidth: width,
             contentHeight: height,
+            // The DOM end input grows into the trigger's free space (basis 0, min-content
+            // floor): the pair box grows by the same free space from its content width. An
+            // authored grow (item layout / fill intent) stays the author's.
+            ...(segmentText.range?.grow &&
+            node.layout.flexGrow === undefined &&
+            node.fillLayout?.flexGrow === undefined
+              ? { flexGrow: segmentText.range.grow }
+              : {}),
           };
         })()
       : undefined;
+  // A DropZone's content box is its composed icon · label · description column.
+  const dropZone = measure ? catalogDropZoneContent(node, measure) : undefined;
   // A glyph leaf's content box is its icon square (the DOM svg at `--icon-size`).
   const glyph =
     glyphBindings.has(node.bindingId ?? "") && node.children.length === 0
@@ -642,7 +802,11 @@ function styleOf(
         }
       : {}),
     ...(box.width !== undefined ? { width: px(box.width) } : {}),
-    ...(box.height !== undefined ? { height: px(box.height) } : {}),
+    ...(box.height !== undefined
+      ? { height: px(box.height) }
+      : node.bindingId === "table"
+        ? catalogTableHeight(node, box.borderWidth)
+        : {}),
     ...(box.minHeight !== undefined ? { minHeight: px(box.minHeight) } : {}),
     ...(box.minWidth !== undefined ? { minWidth: px(box.minWidth) } : {}),
     ...(box.gap !== undefined
@@ -692,6 +856,13 @@ function styleOf(
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
       : {}),
     ...(segments ?? {}),
+    ...(dropZone
+      ? {
+          contentMinWidth: dropZone.minWidth,
+          contentMaxWidth: dropZone.width,
+          contentHeight: wrappedHeight ?? dropZone.height,
+        }
+      : {}),
     ...(headerRow ?? {}),
     // A table never lays out narrower than its columns (CSS table width ≥ min-content), and an
     // auto-width table is not stretched by its flex column (it keeps its columns' width).
@@ -822,6 +993,7 @@ function sameRecord(
     left.parentId === right.parentId &&
     sameList(left.children, right.children) &&
     sameFields(left.props, right.props) &&
+    sameFields(left.templateProps ?? {}, right.templateProps ?? {}) &&
     sameFields(left.visual, right.visual) &&
     sameFields(left.layout, right.layout) &&
     sameFields(left.sizing, right.sizing) &&
@@ -832,11 +1004,15 @@ function sameRecord(
     left.name === right.name &&
     left.placeholder === right.placeholder &&
     left.hidden === right.hidden &&
+    left.rowIndex === right.rowIndex &&
+    left.rowCount === right.rowCount &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
     left.htmlId === right.htmlId &&
+    left.className === right.className &&
+    left.ariaLabel === right.ariaLabel &&
     JSON.stringify(left.fills ?? null) ===
       JSON.stringify(right.fills ?? null) &&
     JSON.stringify(left.fillSizing ?? null) ===
@@ -860,22 +1036,68 @@ export class CatalogCompositionRoot {
   private autoColumns: number | undefined;
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
+  private readonly rows?: CatalogRowSource;
+  /** `CatalogRootOptions.rowSample`. */
+  readonly rowSample?: number;
+  private readonly stateSource?: CatalogStateSource;
+  /** The definition drawn instead of the pages (`CatalogRootOptions.definitionView`). */
+  readonly definitionView?: CatalogDefinitionViewId;
   /** Page of each page root node (`pageRoots`). */
   private readonly rootPage = new Map<NodeId, EntryId<"page">>();
   private readonly records = new Map<string, CatalogConsumerNode>();
   private readonly rootMembers = new Map<NodeId, Set<string>>();
   private readonly sourceRoots = new Map<string, Set<NodeId>>();
   private readonly sourceInstances = new Map<string, Set<string>>();
+  /** The page frame style applied last per page root record (see `RecordPlan.frame`). */
+  private readonly appliedFrames = new Map<string, Record<string, unknown>>();
   private readonly recordRoots = new Map<string, NodeId>();
   private readonly rootIds = new Set<NodeId>();
   private readonly slotChrome = new Map<string, SlotChromeInput>();
   /** Owner-composed layout leaves per record (`catalogComposedParts`), before its children. */
+  /** Records whose engine children need CSS `order` sorting after an apply (`applyOrders`). */
+  private readonly orderDirty = new Set<string>();
+  /**
+   * A flex / grid record's child order (`layout.order`, 0 by default) when any child sets one;
+   * undefined for any other record (source order).
+   */
+  private childOrder(
+    record: CatalogConsumerNode | undefined,
+  ): ((id: string) => number) | undefined {
+    if (!record || !/^(inline-)?(flex|grid)$/.test(record.layout.display ?? ""))
+      return undefined;
+    const orderOf = (id: string) =>
+      Number(this.records.get(id)?.layout.order ?? 0) || 0;
+    return record.children.some((id) => orderOf(id) !== 0) ? orderOf : undefined;
+  }
+  /** The engine children of every record an apply left out of CSS `order` (both maps final). */
+  private applyOrders(): void {
+    for (const id of this.orderDirty) {
+      const record = this.records.get(id);
+      if (!record) continue;
+      this.layout.updateChildren(id, [
+        ...layoutChildrenOf(
+          record.children,
+          this.composedParts.get(id) ?? [],
+          this.slotChrome.get(id)?.id,
+          this.childOrder(record),
+        ),
+      ]);
+    }
+    this.orderDirty.clear();
+  }
   private readonly composedParts = new Map<
     string,
     readonly CatalogComposedPart[]
   >();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
+  /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
+  private readonly previewListeners = new Set<() => void>();
+  /** Records a gesture previews (`previewRecord`): the record it replaced and the one shown. */
+  private readonly previews = new Map<
+    string,
+    { base: CatalogConsumerNode; shown: CatalogConsumerNode }
+  >();
   private readonly canvasListeners = new Map<
     string,
     Set<(node: CatalogConsumerNode | undefined) => void>
@@ -907,6 +1129,10 @@ export class CatalogCompositionRoot {
     this.pageFrames = options.pageFrames === true;
     this.autoColumns = options.autoColumns;
     this.colorMode = options.colorMode ?? "light";
+    this.rows = options.rows;
+    this.rowSample = options.rowSample;
+    this.stateSource = options.state;
+    this.definitionView = options.definitionView;
     // Definite-zero heights shrink their column children (CSS-FLEXBOX-1 §9.8). The engine keeps
     // this off by default so the current Builder's output is unchanged until the Phase 4 cutover.
     engine.setDefiniteZeroHeight?.(true);
@@ -936,6 +1162,18 @@ export class CatalogCompositionRoot {
   }
   get slotChromeInputs(): ReadonlyMap<string, SlotChromeInput> {
     return this.slotChrome;
+  }
+  /** The records (drawn positions) of one node or template: one source can be drawn many times. */
+  recordsOfSource(sourceId: string): readonly string[] {
+    return [...(this.sourceInstances.get(sourceId) ?? [])];
+  }
+  /** The top record of every page root, in page-grid order (the Canvas scene roots). */
+  pageRootRecords(): string[] {
+    return [...this.rootIds].flatMap((rootId) =>
+      this.recordsOfSource(rootId).filter(
+        (id) => this.records.get(id)?.parentId === "catalog:root",
+      ),
+    );
   }
   /** The Rust style input of one record (diagnostic; same function the layout tree receives). */
   getLayoutInput(id: string): Record<string, unknown> | undefined {
@@ -1046,11 +1284,182 @@ export class CatalogCompositionRoot {
       }
     }
   }
+  /**
+   * A change outside the document as one history entry (ADR-248 4e-4e, one stack): `command`
+   * (optional) is its document part, planned and committed now like `execute`. The entry is named
+   * `label` (the outside change names it — e.g. "Add collection — Users", not its "Bind data" part).
+   */
+  recordExternal(
+    label: string,
+    effect: CatalogExternalEffect,
+    command?: CatalogCommand,
+  ): { plan?: CatalogCommandPlan; result?: CatalogTransactionResult } {
+    const plan = command?.(this.runtime.graph);
+    const result = this.runtime.recordExternal(
+      label,
+      effect,
+      plan?.ops ?? [],
+      this.consume,
+    );
+    return { ...(plan ? { plan } : {}), ...(result ? { result } : {}) };
+  }
   undo(): CatalogTransactionResult | undefined {
     return this.runtime.undo(this.consume);
   }
   redo(): CatalogTransactionResult | undefined {
     return this.runtime.redo(this.consume);
+  }
+
+  /**
+   * Data rows changed outside the document (the data store): re-resolve the page roots that show
+   * a binding to one of these collections (catalog `data:collection:` ids; absent = every bound
+   * root). Journaled and delivered like a step; the document revision does not move. Returns the
+   * subscriber errors.
+   */
+  refreshRows(collectionIds?: ReadonlySet<string>): unknown[] {
+    const affected = new Set<NodeId>();
+    for (const [sourceId, recordIds] of this.sourceInstances) {
+      const entry = this.runtime.graph.getEntry(sourceId);
+      if (entry?.kind !== "node" || !entry.binding) continue;
+      if (collectionIds && !collectionIds.has(entry.binding.collectionId))
+        continue;
+      for (const recordId of recordIds) {
+        const rootId = this.recordRoots.get(recordId);
+        if (rootId) affected.add(rootId);
+      }
+    }
+    if (!affected.size) return [];
+    let visits = 0;
+    const roots = [...affected].map((rootId) => {
+      const previous = this.rootMembers.get(rootId) ?? new Set<string>();
+      const next = this.flatten(rootId);
+      visits += next.size;
+      return {
+        rootId,
+        removed: [...previous].filter((id) => !next.has(id)),
+        updates: [...next].map(([id, record]) =>
+          this.planRecord(id, record, rootId, (key) => next.get(key)),
+        ),
+        members: new Set(next.keys()),
+      };
+    });
+    const plan: ConsumePlan = {
+      roots,
+      computeLayout: true,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [...affected],
+        layoutInputVisits: visits,
+        resolverVisits: visits,
+        affectedInstanceCount: visits,
+      },
+    };
+    this.undoLog = [];
+    this.layoutTouched = false;
+    let notices: Notice[];
+    try {
+      notices = this.apply(plan);
+    } catch (cause) {
+      this.restore(cause);
+      throw cause;
+    } finally {
+      this.undoLog = undefined;
+    }
+    return this.deliver(plan, notices);
+  }
+
+  /**
+   * A record with its `{{ name }}` templates resolved against the variables it sees (its record
+   * chain, its page, the project): `props` = values, `templateProps` = as written. The same
+   * record when it has no template.
+   */
+  private withState(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+    pageId: EntryId<"page"> | undefined,
+  ): CatalogConsumerNode {
+    const { templateProps, ...rest } = record;
+    const authored = templateProps ?? record.props;
+    const props = catalogStateProps(authored, () =>
+      catalogStateEnv(
+        catalogRecordVariables(
+          this.runtime.graph,
+          record,
+          get,
+          pageId,
+          this.stateSource?.projectVariables() ?? [],
+        ),
+        this.stateSource?.read?.bind(this.stateSource),
+      ),
+    );
+    if (!props) return templateProps ? { ...rest, props: authored } : record;
+    return { ...rest, props, templateProps: authored };
+  }
+  /** Records whose written props hold a template (`names`: only those reading one of them). */
+  private stateReaders(names?: ReadonlySet<string>): string[] {
+    const ids: string[] = [];
+    for (const [id, record] of this.records)
+      if (
+        record.templateProps &&
+        (!names ||
+          catalogStateNames(record.templateProps).some((name) =>
+            names.has(name),
+          ))
+      )
+        ids.push(id);
+    return ids;
+  }
+
+  /**
+   * Variable values changed outside the document (a runtime write, the data store's project
+   * variables): re-resolve the records whose templates read them (`names`; absent = every
+   * template). Journaled and delivered like a step; the document revision does not move. Returns
+   * the subscriber errors.
+   */
+  refreshState(names?: ReadonlySet<string>): unknown[] {
+    const byRoot = new Map<NodeId, RecordPlan[]>();
+    const get = (key: string) => this.records.get(key);
+    for (const id of this.stateReaders(names)) {
+      const record = this.records.get(id)!;
+      const rootId = this.recordRoots.get(id)!;
+      const next = this.withState(record, get, this.rootPage.get(rootId));
+      if (sameFields(next.props, record.props)) continue;
+      let list = byRoot.get(rootId);
+      if (!list) byRoot.set(rootId, (list = []));
+      list.push(this.planRecord(id, next, rootId));
+    }
+    if (!byRoot.size) return [];
+    const count = [...byRoot.values()].reduce(
+      (sum, list) => sum + list.length,
+      0,
+    );
+    const plan: ConsumePlan = {
+      roots: [...byRoot].map(([rootId, updates]) => ({
+        rootId,
+        removed: [],
+        updates,
+      })),
+      computeLayout: true,
+      metrics: {
+        ...this.emptyMetrics(this.currentMetrics.revision),
+        affectedRootIds: [...byRoot.keys()],
+        layoutInputVisits: count,
+        resolverVisits: 0,
+        affectedInstanceCount: count,
+      },
+    };
+    this.undoLog = [];
+    this.layoutTouched = false;
+    let notices: Notice[];
+    try {
+      notices = this.apply(plan);
+    } catch (cause) {
+      this.restore(cause);
+      throw cause;
+    } finally {
+      this.undoLog = undefined;
+    }
+    return this.deliver(plan, notices);
   }
 
   /**
@@ -1123,6 +1532,17 @@ export class CatalogCompositionRoot {
   }
 
   private pageRoots(): NodeId[] {
+    if (this.definitionView) {
+      // A library origin: the derived sample instance the workspace put in the graph's view.
+      if (isLibraryOrigin(this.definitionView))
+        return this.runtime.graph.isViewEntry(ORIGIN_VIEW_NODE)
+          ? [ORIGIN_VIEW_NODE]
+          : [];
+      const definition = this.runtime.graph.getEntry(this.definitionView);
+      return definition?.kind === "definition" && definition.templateRootId
+        ? [definition.templateRootId]
+        : [];
+    }
     const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
     if (project?.kind !== "project") throw new Error("PROJECT_ROOT_REQUIRED");
     const ids: NodeId[] = [];
@@ -1157,10 +1577,17 @@ export class CatalogCompositionRoot {
         this.state,
         undefined,
         this.breakpoint,
+        this.colorMode,
+        this.rows,
       ),
       "catalog:root",
     );
     const get = (key: string) => output.get(key);
+    const pageId = this.rootPage.get(rootId);
+    for (const [id, record] of output) {
+      const templated = this.withState(record, get, pageId);
+      if (templated !== record) output.set(id, templated);
+    }
     for (const [id, record] of output)
       if (catalogHiddenAtRest(record, get, this.typeOf))
         output.set(id, { ...record, hidden: true });
@@ -1232,7 +1659,7 @@ export class CatalogCompositionRoot {
       this.textMeasure,
       this.typeOf(record),
       this.wrapHeights.get(record.id),
-      this.segmentText(record),
+      this.segmentText(record, get),
       catalogLabelSuffix(record, get, this.typeOf),
       inheritedLineHeight(record, get),
       calendarPartSize(record, get),
@@ -1344,6 +1771,51 @@ export class CatalogCompositionRoot {
     return this.wrapHeights.has(id);
   }
   /**
+   * Whether the layout sized this text leaf to its one-line max-content (measured, width-driven,
+   * not re-wrapped): its box is the exact fractional advance, so a paint that wraps at the box
+   * width would break a line CSS keeps. A rule-backed leaf's painter reads this.
+   */
+  /**
+   * A DropZone's composed content at its laid-out content box (`dropZoneContent.ts`), for the
+   * Canvas paint; undefined without a text measure or for any other record.
+   */
+  dropZoneContent(id: string, borderBoxWidth: number) {
+    const record = this.records.get(id);
+    if (!record || !this.textMeasure) return undefined;
+    return catalogDropZoneContent(
+      record,
+      this.textMeasure,
+      this.dropZoneContentWidth(record, borderBoxWidth),
+    );
+  }
+  private dropZoneContentWidth(
+    record: CatalogConsumerNode,
+    borderBoxWidth: number,
+  ): number {
+    const box = catalogBoxModel(record);
+    const num = (value: CatalogLength | undefined) =>
+      typeof value === "number" ? value : 0;
+    return (
+      borderBoxWidth -
+      num(box.padding?.left) -
+      num(box.padding?.right) -
+      2 * num(box.borderWidth)
+    );
+  }
+  textKeptOnOneLine(id: string): boolean {
+    const record = this.records.get(id);
+    if (!this.textMeasure || !record || this.wrapHeights.has(id)) return false;
+    if (heightOnlyTextTypes.has(this.typeOf(record))) return false;
+    return (
+      textLeaf(
+        record,
+        this.typeOf(record),
+        "",
+        inheritedLineHeight(record, (key) => this.records.get(key)),
+      ) !== undefined
+    );
+  }
+  /**
    * A DateInput's DOM content is its RAC date segments (`racDateSegmentParts` in the rendering
    * locale, padded by the owning field's `.react-aria-DateSegment` delegation, past the
    * SelectTrigger wrapper): the typed node has no text of its own. A DateRangePicker's one typed
@@ -1351,12 +1823,15 @@ export class CatalogCompositionRoot {
    */
   private segmentText(
     record: CatalogConsumerNode,
+    // The records being assembled (an insert's new owner is not committed yet).
+    get: (id: string) => CatalogConsumerNode | undefined = (id) =>
+      this.records.get(id),
   ): CatalogDateSegments | undefined {
     if (record.bindingId !== "dateinput") return undefined;
-    const wrapper = this.records.get(record.parentId);
+    const wrapper = get(record.parentId);
     let owner = wrapper;
     while (owner && this.typeOf(owner) === "SelectTrigger")
-      owner = this.records.get(owner.parentId);
+      owner = get(owner.parentId);
     const ownerType = owner ? this.typeOf(owner) : undefined;
     // RAC-owned segments inherit the line height of their nearest declaring ancestor (CSS
     // inheritance of the unitless ratio).
@@ -1364,7 +1839,7 @@ export class CatalogCompositionRoot {
     for (
       let cursor: CatalogConsumerNode | undefined = record;
       cursor && lineHeight === undefined;
-      cursor = this.records.get(cursor.parentId)
+      cursor = get(cursor.parentId)
     )
       if (Number(cursor.visual.lineHeight) > 0)
         lineHeight = Number(cursor.visual.lineHeight);
@@ -1398,6 +1873,7 @@ export class CatalogCompositionRoot {
             range: {
               gap: Number(wrapper?.visual.gap ?? 0),
               separator: "\u2013",
+              grow: catalogDateRangeEndGrow(ownerType),
             },
           }
         : {}),
@@ -1415,6 +1891,27 @@ export class CatalogCompositionRoot {
     for (const id of candidates) {
       const record = this.records.get(id);
       if (!record || record.hidden) continue;
+      // A DropZone's composed texts break at its content box (the column's stacked height).
+      if (record.bindingId === "dropzone") {
+        const content = catalogDropZoneContent(record, this.textMeasure);
+        let next: number | undefined;
+        if (content) {
+          const rect = this.layout.getLayoutsForIds([id]).get(id);
+          if (!rect) continue;
+          const width = this.dropZoneContentWidth(record, rect.width);
+          next =
+            width > 0 && width + 0.5 < content.width
+              ? catalogDropZoneContent(record, this.textMeasure, width)!.height
+              : undefined;
+        }
+        if (next === this.wrapHeights.get(id)) continue;
+        this.keep(this.wrapHeights, id);
+        if (next === undefined) this.wrapHeights.delete(id);
+        else this.wrapHeights.set(id, next);
+        this.layout.updateNodeStyle(id, this.styleFor(record));
+        changed = true;
+        continue;
+      }
       // A calendar header wraps its heading in the width its nav buttons leave.
       const heading = this.calendarHeading(record);
       const leaf =
@@ -1429,35 +1926,43 @@ export class CatalogCompositionRoot {
           ),
           inheritedLineHeight(record, (key) => this.records.get(key)),
         );
+      // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
+      let next: number | undefined;
       if (
-        !leaf?.text ||
-        (!heading &&
-          (noWrapTextBindings.has(record.bindingId ?? "") ||
+        leaf?.text &&
+        (heading ||
+          !(
+            noWrapTextBindings.has(record.bindingId ?? "") ||
             ("singleLine" in leaf && leaf.singleLine) ||
-            heightOnlyTextTypes.has(this.typeOf(record))))
-      )
-        continue;
-      const rect = this.layout.getLayoutsForIds([id]).get(id);
-      if (!rect) continue;
-      const box = catalogBoxModel(record);
-      const num = (value: CatalogLength | undefined) =>
-        typeof value === "number" ? value : 0;
-      const contentWidth =
-        rect.width -
-        num(box.padding?.left) -
-        num(box.padding?.right) -
-        2 * num(box.borderWidth) -
-        (heading?.beside ?? 0);
-      const single = this.textMeasure(leaf.text, leaf.font);
-      // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
-      // overflows on its own line instead of splitting. Lines are broken at no less than the
-      // min-content width (the longest word), so a lone overflowing word stays one line.
-      const breakWidth = Math.max(contentWidth, single.minWidth ?? 0);
-      const next =
-        (heading ? rect.width > 0 : contentWidth > 0) &&
-        breakWidth + 0.5 < (single.exactWidth ?? single.width)
-          ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
-          : undefined;
+            heightOnlyTextTypes.has(this.typeOf(record))
+          ))
+      ) {
+        const rect = this.layout.getLayoutsForIds([id]).get(id);
+        if (!rect) continue;
+        const box = catalogBoxModel(record);
+        const num = (value: CatalogLength | undefined) =>
+          typeof value === "number" ? value : 0;
+        const contentWidth =
+          rect.width -
+          num(box.padding?.left) -
+          num(box.padding?.right) -
+          2 * num(box.borderWidth) -
+          (heading?.beside ?? 0);
+        const single = this.textMeasure(leaf.text, leaf.font);
+        // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
+        // overflows on its own line instead of splitting. Lines are broken at no less than the
+        // min-content width (the longest word), so a lone overflowing word stays one line — unless
+        // the text may break inside a word (`catalogTextBreaksWords`).
+        const breakWidth =
+          !heading && catalogTextBreaksWords(leaf.font as CatalogTextFont)
+            ? contentWidth
+            : Math.max(contentWidth, single.minWidth ?? 0);
+        next =
+          (heading ? rect.width > 0 : contentWidth > 0) &&
+          breakWidth + 0.5 < (single.exactWidth ?? single.width)
+            ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
+            : undefined;
+      }
       if (next === this.wrapHeights.get(id)) continue;
       this.keep(this.wrapHeights, id);
       if (next === undefined) this.wrapHeights.delete(id);
@@ -1468,19 +1973,69 @@ export class CatalogCompositionRoot {
     if (changed)
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
   }
-  /** Records in the subtrees of the given records' parents (siblings can change their width). */
-  private rewrapScope(ids: Iterable<string>): Set<string> {
+  /**
+   * Text leaves whose width an edit of `ids` can change: each record's subtree, and its parent's
+   * subtree when siblings can change their width. With `parentRects` (the parents' rects before
+   * this layout pass) a parent keeps its siblings out when its rect is unchanged and the edited
+   * box cannot move them: an absolutely placed box is out of flow, and in block flow a block-level
+   * box's width comes from the container's content width alone (the Canvas geometry region's
+   * rule, `canvasBinding`). Otherwise — a flex/grid parent, an inline-level box, a parent that
+   * resized or was not laid out before — the whole parent subtree is re-checked.
+   */
+  private rewrapScope(
+    ids: Iterable<string>,
+    parentRects?: ReadonlyMap<string, LayoutResult>,
+  ): Set<string> {
     const scope = new Set<string>();
     const visit = (id: string) => {
       if (scope.has(id)) return;
       scope.add(id);
       for (const child of this.records.get(id)?.children ?? []) visit(child);
     };
-    for (const id of ids) {
-      const parentId = this.records.get(id)?.parentId;
-      visit(parentId && this.records.has(parentId) ? parentId : id);
+    const list = [...ids];
+    const parentsAfter = parentRects
+      ? this.layout.getLayoutsForIds(
+          list.flatMap((id) => {
+            const parentId = this.records.get(id)?.parentId;
+            return parentId && parentRects.has(parentId) ? [parentId] : [];
+          }),
+        )
+      : undefined;
+    for (const id of list) {
+      const record = this.records.get(id);
+      const parentId = record?.parentId;
+      const parent = parentId ? this.records.get(parentId) : undefined;
+      if (!record || !parent) {
+        visit(id);
+        continue;
+      }
+      const before = parentRects?.get(parentId!);
+      const after = parentsAfter?.get(parentId!);
+      const parentFixed =
+        !!before &&
+        !!after &&
+        before.width === after.width &&
+        before.height === after.height;
+      const box = catalogBoxModel(record);
+      const siblingsFixed =
+        parentFixed &&
+        (!!box.position ||
+          (catalogBoxModel(parent).display === "block" &&
+            !box.display.startsWith("inline")));
+      visit(siblingsFixed ? id : parentId!);
     }
     return scope;
+  }
+  /** Rects of the parents of `ids` from the last layout pass (before the next one runs). */
+  private parentRectsOf(ids: readonly string[]): Map<string, LayoutResult> {
+    return this.layout.getLayoutsForIds(
+      new Set(
+        ids.flatMap((id) => {
+          const parentId = this.records.get(id)?.parentId;
+          return parentId && this.records.has(parentId) ? [parentId] : [];
+        }),
+      ),
+    );
   }
   /**
    * `node` and the template roots it collapses into (a composite instance is its root). The
@@ -1537,11 +2092,16 @@ export class CatalogCompositionRoot {
       sizing: target.sizing,
       placement: top.placement ?? target.placement,
       ...authoredFields(target),
+      ...domAttributes(top, target),
       slot: top.slot ?? target.slot,
       name: top.name ?? target.name,
       regions: top.regions ?? target.regions,
       placeholder: top.placeholder ?? target.placeholder,
       ...(target.displayState ? { displayState: target.displayState } : {}),
+      ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
+      ...((target.rowCount ?? top.rowCount) !== undefined
+        ? { rowCount: target.rowCount ?? top.rowCount }
+        : {}),
       instancePath: top.instancePath,
       ...(layers.length > 1
         ? {
@@ -1613,8 +2173,11 @@ export class CatalogCompositionRoot {
         record.children,
         parts,
         chrome?.id,
+        this.childOrder(record),
       );
       indexes.set(id, batch.length);
+      const frame = this.pageFrameStyle(record);
+      if (frame) this.appliedFrames.set(id, frame);
       batch.push({
         elementId: id,
         style: this.styleFor(record),
@@ -1645,20 +2208,25 @@ export class CatalogCompositionRoot {
    * placement derivation, now in the same layout tree as the pages).
    */
   private rootStyle(): Record<string, unknown> {
+    // The definition view: its one frame at its own size (no page grid track stretches it).
+    if (this.definitionView)
+      return { display: "flex", alignItems: "flex-start" };
     if (!this.pageFrames)
       return {
         display: "flex",
         width: `${this.viewport.width}px`,
         height: `${this.viewport.height}px`,
       };
+    return buildContainerStyle(this.pageLayout());
+  }
+  /** The page container grid at this breakpoint (its tracks, gap and columns: the page drag's cells). */
+  pageLayout(): ReturnType<typeof resolvePageLayout> {
     const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
     const layout = project?.kind === "project" ? project.pageLayout : undefined;
-    return buildContainerStyle(
-      resolvePageLayout(
-        catalogPageLayoutSettings(layout),
-        this.breakpoint,
-        this.autoColumns,
-      ),
+    return resolvePageLayout(
+      catalogPageLayoutSettings(layout),
+      this.breakpoint,
+      this.autoColumns,
     );
   }
   /**
@@ -1670,6 +2238,21 @@ export class CatalogCompositionRoot {
   ): Record<string, unknown> | undefined {
     if (!this.pageFrames || record.parentId !== "catalog:root")
       return undefined;
+    if (this.definitionView) {
+      // A layout is drawn at the page size it frames; a component at its own size.
+      const definition = this.runtime.graph.getEntry(this.definitionView);
+      if (definition?.kind !== "definition" || definition.usage !== "layout")
+        return undefined;
+      const tier = CANVAS_VIEWPORT[this.breakpoint];
+      return {
+        ...(record.sizing.width == null && record.visual.width == null
+          ? { width: `${tier.width}px` }
+          : {}),
+        ...(record.sizing.height == null && record.visual.height == null
+          ? { height: `${tier.height}px` }
+          : {}),
+      };
+    }
     const pageId = this.rootPage.get(record.sourceId as NodeId);
     const page = pageId ? this.runtime.graph.getEntry(pageId) : undefined;
     const tier = CANVAS_VIEWPORT[this.breakpoint];
@@ -1714,6 +2297,70 @@ export class CatalogCompositionRoot {
     }
     return false;
   }
+  /**
+   * Live reflow (ADR-248 Phase 4e — the old resize / spacing presentation sessions): show `patch`
+   * on one record and lay out (re-wrap included) as if it were committed, while the document,
+   * history, save and DOM consumers do not change — only the record's Canvas listeners hear it
+   * and patch like an edit. No `patch` puts the record's own values back; the gesture then
+   * commits the same values as one command. A step that replaced the record meanwhile wins (its
+   * record is kept). Returns the subscriber errors.
+   */
+  previewRecord(id: string, patch?: CatalogRecordPreview): unknown[] {
+    const held = this.previews.get(id);
+    const current = this.records.get(id);
+    const ours = !!held && current === held.shown;
+    if (held && !ours) this.previews.delete(id);
+    if (!current || (!patch && !ours)) return [];
+    const base = ours ? held!.base : current;
+    const shown: CatalogConsumerNode = patch
+      ? {
+          ...base,
+          visual:
+            patch.visual || patch.omitVisual
+              ? Object.fromEntries(
+                  Object.entries({ ...base.visual, ...patch.visual }).filter(
+                    ([key]) => !patch.omitVisual?.includes(key),
+                  ),
+                )
+              : base.visual,
+          sizing: patch.sizing
+            ? { ...base.sizing, ...patch.sizing }
+            : base.sizing,
+          layout: patch.layout
+            ? { ...base.layout, ...patch.layout }
+            : base.layout,
+          placement: patch.placement ?? base.placement,
+          ...(patch.fills ? { fills: patch.fills } : {}),
+        }
+      : base;
+    if (patch) this.previews.set(id, { base, shown });
+    else this.previews.delete(id);
+    this.records.set(id, shown);
+    this.layout.updateNodeStyle(id, this.styleFor(shown));
+    this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    this.rewrap(this.rewrapScope([id]));
+    const errors: unknown[] = [];
+    for (const callback of [...(this.canvasListeners.get(id) ?? [])]) {
+      try {
+        callback(shown);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    for (const listener of [...this.previewListeners]) {
+      try {
+        listener();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    return errors;
+  }
+  /** Hear every `previewRecord` (a preview from any surface: a Canvas gesture, a Styles drag). */
+  subscribePreviews(listener: () => void): () => void {
+    this.previewListeners.add(listener);
+    return () => this.previewListeners.delete(listener);
+  }
   /** Laid-out frame of every page (its root node's box on the page grid). */
   pageFrameRects(): Map<
     string,
@@ -1729,7 +2376,9 @@ export class CatalogCompositionRoot {
         (id) => this.records.get(id)?.parentId === "catalog:root",
       );
       const rect = member ? this.getGeometry([member]).get(member) : undefined;
-      if (pageId && rect) rects.set(pageId, rect);
+      // The definition view's one frame is keyed by the definition.
+      const frameId = pageId ?? this.definitionView;
+      if (frameId && rect) rects.set(frameId, rect);
     }
     return rects;
   }
@@ -1760,12 +2409,17 @@ export class CatalogCompositionRoot {
   ): RecordPlan {
     const old = this.records.get(id);
     const style = this.styleFor(record, get);
+    const frame = this.pageFrameStyle(record);
+    const frameChanged =
+      !!frame && !sameFields(this.appliedFrames.get(id) ?? {}, frame);
     return {
       id,
       record,
       rootId,
       style,
-      styleChanged: !old || !sameFields(this.styleFor(old), style),
+      frame,
+      styleChanged:
+        !old || frameChanged || !sameFields(this.styleFor(old), style),
       chrome: deriveSlotChromeInput(record, this.slotChromeContext),
       parts: catalogComposedParts(
         record,
@@ -1812,6 +2466,13 @@ export class CatalogCompositionRoot {
       }
     if (!old) this.layout.addNode(id, plan.style);
     else if (plan.styleChanged) this.layout.updateNodeStyle(id, plan.style);
+    const frameMoved =
+      !!old &&
+      !!plan.frame &&
+      !sameFields(this.appliedFrames.get(id) ?? {}, plan.frame);
+    this.keep(this.appliedFrames, id);
+    if (plan.frame) this.appliedFrames.set(id, plan.frame);
+    else this.appliedFrames.delete(id);
     if (chrome) {
       this.slotChrome.set(id, chrome);
       const entries = slotChromeLayoutNodes(chrome);
@@ -1843,6 +2504,12 @@ export class CatalogCompositionRoot {
     }
     if (!old || !sameList(beforeChildren, nextChildren))
       this.layout.updateChildren(id, [...nextChildren]);
+    // CSS `order`: sorted once every record of the apply is in place (a child's order can change
+    // before or after its parent's record).
+    if (this.childOrder(record) || (old && this.childOrder(old)))
+      this.orderDirty.add(id);
+    if ((old?.layout.order ?? "") !== (record.layout.order ?? ""))
+      this.orderDirty.add(record.parentId);
     for (const part of parts) {
       const before = oldParts.find((item) => item.id === part.id);
       if (!before || !sameList(before.wraps ?? [], part.wraps ?? []))
@@ -1858,7 +2525,8 @@ export class CatalogCompositionRoot {
         this.layout.updateChildren(entry.id, []);
         this.layout.removeNode(entry.id);
       }
-    if (!old || !sameRecord(old, record)) notices.push({ id, record });
+    if (!old || frameMoved || !sameRecord(old, record))
+      notices.push({ id, record });
   }
 
   private applyRemoval(id: string, rootId: NodeId, notices: Notice[]): void {
@@ -1867,6 +2535,8 @@ export class CatalogCompositionRoot {
     this.keep(this.recordRoots, id);
     this.keep(this.slotChrome, id);
     this.keep(this.composedParts, id);
+    this.keep(this.appliedFrames, id);
+    this.appliedFrames.delete(id);
     this.layoutTouched = true;
     if (old) {
       for (const sourceId of recordSources(old)) {
@@ -1988,7 +2658,48 @@ export class CatalogCompositionRoot {
     return [...targets(after.children, undefined), ...wrapped];
   }
 
-  private planInstances(sourceIds: ReadonlySet<string>): {
+  /**
+   * Template records that read a changed instance prop through a template binding: an instance
+   * whose composite definition accepts the changed key binds it into its template (`{label}`), so
+   * its template descendants re-resolve with it. Other prop changes keep the fast path.
+   */
+  private bindingDependents(result: CatalogTransactionResult): string[] {
+    const changedKeys = new Map<string, Set<string>>();
+    for (const op of result.forward)
+      if (op.kind === "patchNodeProp") {
+        let keys = changedKeys.get(op.id);
+        if (!keys) changedKeys.set(op.id, (keys = new Set()));
+        keys.add(op.key);
+      }
+    const dependents: string[] = [];
+    for (const [nodeId, keys] of changedKeys) {
+      const node = this.runtime.graph.getEntry(nodeId);
+      if (node?.kind !== "node") continue;
+      const definition = this.runtime.graph.getDefinition(node.definitionId);
+      if (definition?.mode !== "composite") continue;
+      if (![...keys].some((key) => Object.hasOwn(definition.accepts, key)))
+        continue;
+      for (const recordId of this.sourceInstances.get(nodeId) ?? []) {
+        const stack = [...(this.records.get(recordId)?.children ?? [])];
+        while (stack.length) {
+          const record = this.records.get(stack.pop()!);
+          if (
+            !record ||
+            !(record.instancePath as readonly string[]).includes(nodeId)
+          )
+            continue;
+          dependents.push(record.id);
+          stack.push(...record.children);
+        }
+      }
+    }
+    return dependents;
+  }
+
+  private planInstances(
+    sourceIds: ReadonlySet<string>,
+    extraRecords: readonly string[] = [],
+  ): {
     resolverVisits: number;
     includeChecks: number;
     updates: RecordPlan[];
@@ -2001,6 +2712,7 @@ export class CatalogCompositionRoot {
     const queue: string[] = [];
     for (const sourceId of sourceIds)
       queue.push(...(this.sourceInstances.get(sourceId) ?? []));
+    for (const id of extraRecords) if (!queue.includes(id)) queue.push(id);
     const queued = new Set(queue);
     for (let index = 0; index < queue.length; index++) {
       const id = queue[index];
@@ -2061,6 +2773,8 @@ export class CatalogCompositionRoot {
           onVisit: () => resolverVisits++,
         },
         this.breakpoint,
+        this.colorMode,
+        this.rows,
       );
       const find = (
         node: ResolvedCatalogNode,
@@ -2085,9 +2799,12 @@ export class CatalogCompositionRoot {
         themeOverride: _themeOverride,
         authoredLayout: _authoredLayout,
         htmlId: _htmlId,
+        className: _className,
+        ariaLabel: _ariaLabel,
+        templateProps: _templateProps,
         ...kept
       } = before;
-      const record: CatalogConsumerNode = {
+      const resolvedRecord: CatalogConsumerNode = {
         ...kept,
         props: resolved.props,
         visual: resolved.visual,
@@ -2095,11 +2812,17 @@ export class CatalogCompositionRoot {
         sizing: resolved.sizing,
         placement: top.placement ?? resolved.placement,
         ...authoredFields(resolved),
+        ...domAttributes(top, resolved),
         slot: top.slot ?? resolved.slot,
         name: top.name ?? resolved.name,
         regions: top.regions ?? resolved.regions,
         placeholder: top.placeholder ?? resolved.placeholder,
       };
+      const record = this.withState(
+        resolvedRecord,
+        (key) => this.records.get(key),
+        this.rootPage.get(rootId),
+      );
       // A parent prop change reaches the direct children its partRules target.
       for (const childId of this.partRuleChildren(before, record))
         if (!queued.has(childId)) {
@@ -2214,24 +2937,61 @@ export class CatalogCompositionRoot {
    * Compute the root's next inputs for a committed transaction without changing root state. Uses
    * transaction IDs/revision and the runtime's pre/post influence closure. May throw.
    */
+  /**
+   * A value edit a bound Table's projected rows read (`projectTableRows`): the Table's own props
+   * (height mode · height decide how many rows show) or a node it owns (a header Column's key
+   * decides each cell). Those take the structure path — the row records come and go. So does a
+   * bound node's own height (a bound list samples its rows only while it grows with them).
+   */
+  private touchesTableRows(result: CatalogTransactionResult): boolean {
+    const graph = this.runtime.graph;
+    const boundTable = (id: string | undefined): boolean => {
+      const entry = id ? graph.getEntry(id) : undefined;
+      if (entry?.kind !== "node" || !entry.binding) return false;
+      try {
+        return definitionTypeName(graph, entry.definitionId) === "Table";
+      } catch {
+        return false;
+      }
+    };
+    for (const id of result.changedIds)
+      if (boundTable(id) || boundTable(graph.ownerOf(id))) return true;
+    // A bound list's own height decides whether it samples its rows (`rowCount`).
+    const HEIGHT_KEYS = new Set(["height", "maxHeight"]);
+    for (const op of result.forward)
+      if (
+        (op.kind === "patchNodeVisual" || op.kind === "patchNodeSizing") &&
+        HEIGHT_KEYS.has(op.key)
+      ) {
+        const entry = graph.getEntry(op.id);
+        if (entry?.kind === "node" && entry.binding) return true;
+      }
+    return false;
+  }
+
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
     const valueOnly = result.forward.every(
       (op) =>
+        // Per-breakpoint display decides which records exist (a presence change).
+        (op.kind === "setNodeField" && op.field !== "visibility") ||
         [
           "patchNodeProp",
           "patchNodeVisual",
           "patchNodeSizing",
           "patchNodeLayout",
-          "setNodeField",
           "setNodePlacement",
-          "setNodeBinding",
           "patchDefinitionOverride",
         ].includes(op.kind) ||
         (op.kind === "put" &&
           (op.entry.kind === "token" ||
             op.entry.kind === "definitionOverride")),
     );
-    if (valueOnly) {
+    // The library origin view redraws its one sample root on every step (below).
+    if (
+      valueOnly &&
+      !isLibraryOrigin(this.definitionView) &&
+      !this.touchesTableRows(result)
+    ) {
       const indirect = result.forward.some(
         (op) =>
           op.kind === "patchDefinitionOverride" ||
@@ -2240,7 +3000,10 @@ export class CatalogCompositionRoot {
               op.entry.kind === "definitionOverride")),
       );
       const sources = new Set(indirect ? invalidatedIds : result.changedIds);
-      const planned = this.planInstances(sources);
+      const planned = this.planInstances(
+        sources,
+        this.bindingDependents(result),
+      );
       const byRoot = new Map<NodeId, RecordPlan[]>();
       for (const update of planned.updates) {
         let list = byRoot.get(update.rootId);
@@ -2270,12 +3033,18 @@ export class CatalogCompositionRoot {
         },
       };
     }
-    const structureChanged = [...result.changedIds, ...result.removedIds].some(
-      (id) => {
-        const entry = this.runtime.graph.getEntry(id);
-        return entry?.kind === "page" || entry?.kind === "project";
-      },
-    );
+    const structureChanged =
+      [...result.changedIds, ...result.removedIds].some(
+        (id) => {
+          const entry = this.runtime.graph.getEntry(id);
+          return (
+            entry?.kind === "page" ||
+            entry?.kind === "project" ||
+            id === this.definitionView
+          );
+        },
+        // The library origin view's sample follows the project override: redraw its one root.
+      ) || isLibraryOrigin(this.definitionView);
     const currentRoots = structureChanged
       ? new Set(this.pageRoots())
       : this.rootIds;
@@ -2288,6 +3057,16 @@ export class CatalogCompositionRoot {
         for (const root of this.sourceRoots.get(id) ?? [])
           affectedRoots.add(root);
         if (this.rootIds.has(id as NodeId)) affectedRoots.add(id as NodeId);
+      }
+    // A variable added, renamed, retyped or removed: every `{{ }}` reads by name.
+    if (
+      [...result.changedIds, ...result.removedIds].some((id) =>
+        id.startsWith("project:stateVariable:"),
+      )
+    )
+      for (const id of this.stateReaders()) {
+        const root = this.recordRoots.get(id);
+        if (root && currentRoots.has(root)) affectedRoots.add(root);
       }
     let visits = 0;
     const roots: ConsumePlan["roots"][number][] = [];
@@ -2320,6 +3099,8 @@ export class CatalogCompositionRoot {
             this.state,
             undefined,
             this.breakpoint,
+            this.colorMode,
+            this.rows,
           ),
         ),
       ),
@@ -2351,6 +3132,7 @@ export class CatalogCompositionRoot {
         else this.rootMembers.delete(rootId);
       }
     }
+    this.applyOrders();
     if (plan.nextRootIds) {
       const previous = [...this.rootIds];
       this.undoLog?.push(() => {
@@ -2366,15 +3148,13 @@ export class CatalogCompositionRoot {
         this.layout.updateNodeStyle("catalog:root", this.rootStyle());
     }
     if (plan.computeLayout) {
+      const updated = plan.roots.flatMap(({ updates }) =>
+        updates.map((update) => update.id),
+      );
+      const parentRects = this.parentRectsOf(updated);
       this.layoutTouched = true;
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
-      this.rewrap(
-        this.rewrapScope(
-          plan.roots.flatMap(({ updates }) =>
-            updates.map((update) => update.id),
-          ),
-        ),
-      );
+      this.rewrap(this.rewrapScope(updated, parentRects));
     }
     this.currentMetrics = {
       ...plan.metrics,

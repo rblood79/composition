@@ -12,35 +12,21 @@ import { ToggleButton as RAToggleButton } from "react-aria-components/ToggleButt
 import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import {
-  useThemeConfigStore,
-  useThemeConfigTint,
-  useThemeConfigDarkMode,
-  useThemeConfigNeutral,
-  useThemeConfigRadiusScale,
-  useThemeConfigBaseTypography,
-} from "../../../stores/themeConfigStore";
 import type { TintPreset } from "../../../utils/theme/tintToSkiaColors";
 import { TINT_PRESETS } from "../../../utils/theme/tintToSkiaColors";
 import type { NeutralPreset } from "../../../utils/theme/neutralToSkiaColors";
 import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
-import type { RadiusScale } from "../../../stores/themeConfigStore";
 import { oklchToHex } from "../../../utils/theme/oklchToHex";
-import {
-  PanelHeader,
-  PropertySection,
-  PropertySelect,
-  PanelContents,
-} from "../../components";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertySelect } from "../../components/property/PropertySelect";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { MiniThemePreview } from "./MiniThemePreview";
 import { ThemeListSection } from "./ThemeListSection";
 import { ThemeTokensSection } from "./ThemeTokensSection";
 import { useI18n } from "../../../i18n";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
-import {
-  setActiveThemeBaseTypography,
-  setActiveThemePreset,
-} from "./themeActions";
+import { useThemesHost } from "./themesHost";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
 import "./ThemesPanel.css";
 
@@ -240,61 +226,54 @@ const LINE_HEIGHT_OPTIONS = [
 
 function ThemesContent() {
   const { t } = useI18n();
-  const currentTint = useThemeConfigTint();
-  const darkMode = useThemeConfigDarkMode();
-  const neutral = useThemeConfigNeutral();
-  const radiusScale = useThemeConfigRadiusScale();
-  const baseTypography = useThemeConfigBaseTypography();
-  const setTint = useThemeConfigStore((s) => s.setTint);
-  const setDarkMode = useThemeConfigStore((s) => s.setDarkMode);
-  const setNeutral = useThemeConfigStore((s) => s.setNeutral);
-  const setRadiusScale = useThemeConfigStore((s) => s.setRadiusScale);
-  const setBaseTypography = useThemeConfigStore((s) => s.setBaseTypography);
+  const host = useThemesHost();
+  const preset = host.useActivePreset();
+  const currentTint = preset.tint as TintPreset;
+  const darkMode = preset.darkMode;
+  const neutral = preset.neutral as NeutralPreset;
+  const radiusScale = preset.radiusScale;
+  const baseTypography = host.useBaseTypography();
   const { sendBaseTypography } = useThemeMessenger();
 
   const isDark = darkMode === "dark";
 
-  // ADR-227 Phase 1 — 쓰기는 문서 우선: canonical themes 컬렉션 (활성 테마 preset/델타) + history +
-  //   persist 를 `themeActions` 가 한 묶음으로 내고, 런타임 store 는 거기서 파생된다. migration 전
-  //   (컬렉션 부재) 이면 종전대로 store 만 (false 반환) — 로드 직후 잠깐의 창.
+  // ADR-227 Phase 1 · ADR-248 4e-4d-4 — 쓰기는 host 하나: 구 앱은 문서 우선 (`themeActions`, 컬렉션
+  //   부재면 store), catalog 는 command 1개 (history 1 · theme 설치 · root 재생성은 workspace).
   const handleDarkModeToggle = useCallback(
     (isSelected: boolean) => {
-      const darkMode = isSelected ? "dark" : "light";
-      if (!setActiveThemePreset({ darkMode })) setDarkMode(darkMode);
+      host.setActiveThemePreset({ darkMode: isSelected ? "dark" : "light" });
     },
-    [setDarkMode],
+    [host],
   );
 
   const handleTintSelect = useCallback(
     (tint: TintPreset) => {
-      if (!setActiveThemePreset({ tint })) setTint(tint);
+      host.setActiveThemePreset({ tint });
     },
-    [setTint],
+    [host],
   );
 
   const handleNeutralSelect = useCallback(
     (preset: NeutralPreset) => {
-      if (!setActiveThemePreset({ neutral: preset })) setNeutral(preset);
+      host.setActiveThemePreset({ neutral: preset });
     },
-    [setNeutral],
+    [host],
   );
 
   const handleRadiusChange = useCallback(
     (value: string) => {
-      if (!setActiveThemePreset({ radiusScale: value })) {
-        setRadiusScale(value as RadiusScale);
-      }
+      host.setActiveThemePreset({ radiusScale: value });
     },
-    [setRadiusScale],
+    [host],
   );
 
   // ADR-056 Phase 3+4: Typography 핸들러 — 문서 (테마 델타) + Preview postMessage 동시
   const applyTypography = useCallback(
     (patch: Partial<typeof baseTypography>) => {
-      if (!setActiveThemeBaseTypography(patch)) setBaseTypography(patch);
+      host.setActiveThemeBaseTypography(patch);
       sendBaseTypography({ ...baseTypography, ...patch });
     },
-    [setBaseTypography, sendBaseTypography, baseTypography],
+    [host, sendBaseTypography, baseTypography],
   );
   const handleFontFamilyChange = useCallback(
     (value: string) => applyTypography({ fontFamily: value }),

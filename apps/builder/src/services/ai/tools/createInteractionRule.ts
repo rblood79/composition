@@ -21,9 +21,8 @@ import type {
   ToolExecutor,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { runCanonicalMutation } from "../../../adapters/canonical/canonicalMutationRunner";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
 
 type ActionArgs = {
@@ -170,29 +169,15 @@ export const createInteractionRuleTool: ToolExecutor = {
         };
       }
 
-      // 러너 경유 (ADR-184) — events root collection 은 legacy mirror 가 없지만
-      // (ADR-158 에서 중단) persist 는 필요하다. Preview 는 canonical 구독으로 받는다.
-      runCanonicalMutation({
-        canonical: () => {
-          useCanonicalDocumentStore.getState().addEvent(rule);
-          const store = useCanonicalDocumentStore.getState();
-          return {
-            changed: true,
-            document: store.currentProjectId
-              ? (store.documents.get(store.currentProjectId) ?? null)
-              : null,
-          };
-        },
-        history: {
-          skip:
-            "이벤트 규칙은 Events 패널과 같은 canonical-only 경로 — 패널도 history 를 " +
-            "남기지 않는다 (inspectorActions.updateEventsRootCollection)",
-        },
-      });
-
+      // ADR-248 4e-5: the open Builder adds the rule to its document (one step) — 4e-7: only the
+      // host (the old canonical `events` write is the old store host's).
+      const writeHost = getAiWriteHost();
+      if (!writeHost) return { success: false, error: AI_WRITE_HOST_MISSING };
+      const written = await writeHost.addInteraction(targetId, trigger, action);
+      if (!written.ok) return { success: false, error: written.error };
       return {
         success: true,
-        data: { ruleId: rule.id, elementId: targetId, trigger, action },
+        data: { ruleId: written.ruleId, elementId: targetId, trigger, action },
         affectedElementIds: [targetId],
       };
     } catch (error) {

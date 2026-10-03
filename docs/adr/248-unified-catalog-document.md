@@ -160,6 +160,8 @@ Frame/Group/Slot의 시각 정의를 옮기고 기존 문서 모델을 유지한
 
 R1→G0/G1/G3, R2→G2/G4, R3→G3, R4→G1/G5, R5→G0/G1/G4/G6, R7→G1/G4, R8→G4로 대응한다. **Phase 0 G0는 [구 앱 기준선](design/248-baseline/g0-gate.json)에서 PASS, Phase 1 G1은 [독립 모델 근거](design/248-phase1-g1-evidence.md)에서 PASS, Phase 2 G2는 [독립 runtime 근거](design/248-phase2-g2-g4-evidence.md)에서 PASS다. Phase 3은 2026-09-30 독립 소비자 검증과 전환 준비를 마치고 커밋·push했다(사용자 완료 판정; [근거와 남은 사례](design/248-phase3-g3-g5-evidence.md)). 독립 G3 장면은 base 62/64, axis 372/386, state 75/75이며 FileUpload는 Phase 4 수리 대상, Icon 입력 불일치와 child 기준선 부재는 UNVERIFIED로 기록했다. 이는 제품 Builder의 live G3 또는 통합 G4/G5/G6 PASS 판정이 아니다.** 제품 연결 후 같은 cutover 변경 안에서 최종 판정한다. Phase 3 근거와 Phase 4 판정 항목, 5k leaf 계약 중 아직 재지 않은 항목(page layout signature · WASM 갱신 node · 전역 ref 검색 0 단언 · 제품 저장/Preview 송신 직렬화)은 [breakdown §7](design/248-unified-catalog-document-breakdown.md)에 대조했다.
 
+**Phase 4 제품 판정 (2026-10-03, 단일 cutover — worktree `adr248-4e` 에 누적 후 main 1회 병합)**: G3 실제 Builder live — base 63/64 · axis 374/386 · state 75/75 PASS, FAIL 0 · Preview 결함 추종 0 ([base](design/248-phase4-g3-live-base.json) · [axis](design/248-phase4-g3-live-axis.json) · [state](design/248-phase4-g3-live-state.json) · [child](design/248-phase4-g3-live-child.json)). 남은 칸은 판정 불가 사유로 기록한다: Icon 7 UNVERIFIED (구 시나리오의 아이콘 이름 미기록), axis NOT_RUN 6 (Popover · TagGroup 의 axis prop 이 계약에 없고 구 앱만 소비), child UNVERIFIED 33 · NOT_RUN 1 (구 child 캡처 부재, geometry · Canvas↔DOM 은 33 통과). G4 live 15/15 ([근거](design/248-phase4-g4-live.json) — 생성·편집·undo/redo·저장·새로고침, v2 zip·JSON 교환, 구 포맷 명시 거부, 강제 실패·탭 충돌·전환, events/actions mirror store 미생성·data 세 store 보존, publish 진입점 명시 실패, `apps/publish` diff 0; 구 경로 삭제 뒤 재실행 15/15). G5 PASS ([근거](design/248-phase4-g5-evidence.md) — 5k 제품 경로 카운트, 저장 byte 5/5, 구 `2a5c97099` production 대조 paired p95 36/36, heap 9/9, WebKit 4/4, initial bundle Builder 1,228,752 · Preview 394,104; Preview 부팅 JS 645,249 B 는 사용자 판정 (a) 2026-10-03 으로 ADR-201 정의 (정적 initial) 기준 PASS, 상한 변경 없음). G6 Builder import graph 의 구 모듈 진입 0 (breakdown 4e-13-3 — 삭제 1~3차 승인분). Builder 전환은 이로써 완료이며 Status 는 아래 전이 규칙대로 Accepted 에 머문다.
+
 **범위 정정 (사용자 2026-09-29)**: 외부 `.pen` 교환은 G4 필수 조건과 Phase 3 차단 항목에서 제외한다. G0의 `.pen` 표본 5개·해시·구 앱 교환 결과([pen-interchange.json](design/248-baseline/pen-interchange.json))는 역사적 기준선으로 보존하고 수정하지 않는다. Phase 3에서 수행한 Pencil 시험(표본 3개 직접 의미 왕복, `sample-descendants.pen`·`sample-imports.pen`의 명시 오류, 유효 descendants·imports fixture 왕복)은 수행 기록으로만 남기며 G4 PASS 근거로 계산하지 않는다. G4는 새 catalog 포맷의 IDB·JSON·폴더 저장, refresh, export/import, 실패·충돌 검증으로 판정한다.
 
 **Gate 판정 시점 (사용자 2026-09-29)**: Phase 3은 새 runtime의 독립 소비자 검증과 전환 준비까지다. Phase 3의 resolver·Canvas·DOM binding은 Phase 4에서 그대로 쓰는 제품 경로 코드이며 시험 전용 binding을 두지 않는다. 제품 Builder save/refresh·publish 진입점·production paired G5·실제 Builder live G3처럼 전환 후에만 측정 가능한 항목은 Phase 4의 단일 cutover 변경 안에서 검증하고, gate 통과 전 배포·완료 판정은 하지 않는다. G3의 범위와 HC6 수치는 완화하지 않으며, 전환 전 근거(Phase 3)와 제품 연결 후 최종 판정(Phase 4)을 구분해 기록한다.
@@ -168,7 +170,14 @@ Status 전이: G0~G6 통과(Builder 전환 완료) 뒤에도 Status는 Accepted�
 
 ### Live Exercise
 
-미실시. 실제 Builder에서 새 프로젝트 생성·library definition override·사용자 definition 편집·중첩 인스턴스·slot 채우기·Undo/Redo·저장/재로딩을 exercise하고 build hash·환경·결과를 남긴다. Preview는 사용자 확인, Publish는 후속 범위다.
+Builder 전환 범위 (2026-10-01 ~ 10-03, dev 서버 5175 · 저장된 인증 세션 · headless/headed Chrome, WebKit 1회). 무엇을 실제로 exercise 했는지:
+
+- 대시보드에서 새 프로젝트 생성 → 팔레트 삽입 · Properties/Styles 편집 · 키보드 undo/redo → 자동 저장 → 새로고침 후 같은 문서 (G4 R1, `80a9b8ac2` · 삭제 뒤 `5d9b9f485`).
+- 기본 원본 편집 (origin 편집 확인 대화상자 · 인스턴스 fan-out) · 컴포넌트 만들기 · detach · 해체 · slot 선언·채우기 · layout 적용 (page body = 인스턴스) — 4e-4c-2c · 4e-4c-2g · 4e-6-43 · 4e-6-52 · 4e-6-53 행의 live 기록 (breakdown §5.1).
+- 전 등록 type 의 G0 시나리오를 공개 명령 API 로 저작해 실제 Canvas 캡처 (live G3 559 장면) · 5k 시드에서 leaf 편집 · 원본 편집 · page 전환 · 저장 카운트 (G5) · WebKit 생성·undo/redo·새로고침 (G5 4/4).
+- 구 포맷 프로젝트 열기 거부 · 헤더 Preview 의 publish 진입점 명시 실패 toast (G4 R5 · R9).
+
+Preview iframe 은 사용자 지시로 열지 않았다 (unit + 사용자 확인 범위). Publish 는 후속 범위다.
 
 ### 리뷰 수리 이력
 
@@ -206,4 +215,4 @@ Status 전이: G0~G6 통과(Builder 전환 완료) 뒤에도 Status는 Accepted�
 
 ADR-116/122의 canonical storage/runtime 형식, ADR-142/912의 canonical reusable 결합 및 잔존 spec 결정은 Builder 전환 완료 시 해당 범위가 대체된다. ADR-131의 data store 경계, ADR-184의 쓰기 순서·history 의무, ADR-198의 시각 검증, ADR-235의 저장 안전성, ADR-246의 측정 원칙은 새 모델에 맞춰 유지한다. 기존 ADR 전체의 다른 결정을 일괄 폐기하지 않는다.
 
-현재는 Accepted·Phase 4 제품 전환 전이므로 과거 ADR 상태와 현행 runtime 규칙을 바꾸지 않는다. 완료 시 부분 대체 범위를 명시하고 `ssot-hierarchy`(잔존 spec 예외 제거)·`state-management`·runtime 계약·README·CHANGELOG를 실제 코드와 맞춘다. 이 문서의 존재만으로 현행 canonical 쓰기 계약의 우회를 허용하지 않는다.
+Phase 4 로 Builder 전환은 완료됐다 (2026-10-03). Publish 가 아직 canonical 을 읽으므로 과거 ADR 상태와 저장소 공통 runtime 규칙은 Implemented 판정 때 함께 바꾼다 — Builder 범위의 규칙 문서 (`state-management` · `ssot-hierarchy` 의 Builder 서술) 정리는 후속 항목으로 둔다. 완료 시 부분 대체 범위를 명시하고 `ssot-hierarchy`(잔존 spec 예외 제거)·`state-management`·runtime 계약·README·CHANGELOG를 실제 코드와 맞춘다. 이 문서의 존재만으로 현행 canonical 쓰기 계약의 우회를 허용하지 않는다.

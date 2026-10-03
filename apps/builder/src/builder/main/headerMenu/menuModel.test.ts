@@ -30,6 +30,7 @@ function context(overrides: Partial<MenuModelContext> = {}): MenuModelContext {
       onConnectFolder: vi.fn(),
       onDeleteProject: vi.fn(),
       onResetPanelLayout: vi.fn(),
+      snapshotActions: { canCreate: () => true, create: vi.fn() },
       runtime: {
         useThemeMode: () => "auto",
         getThemeMode: () => "auto",
@@ -46,19 +47,10 @@ function context(overrides: Partial<MenuModelContext> = {}): MenuModelContext {
         setThemeMode: vi.fn(),
         panelLabel: (config) => config.id,
         panelIdForScope,
-        contextLabelKey: () => null,
       },
     },
     enablement: {
       readModel: {
-        currentPageId: "page",
-        selectedElementId: null,
-        selectedElementIds: [],
-        multiSelectMode: false,
-        elementsMap: new Map(),
-        guideSelected: false,
-        canUndo: true,
-        canRedo: false,
         viewport: { containerSize: { width: 800, height: 600 } },
       },
       resolve: () => entry,
@@ -75,7 +67,11 @@ function context(overrides: Partial<MenuModelContext> = {}): MenuModelContext {
       {
         side: "left",
         panels: [
-          { id: "navigator", shortcutId: "toggleNavigator", icon: NavigatorIcon },
+          {
+            id: "navigator",
+            shortcutId: "toggleNavigator",
+            icon: NavigatorIcon,
+          },
           { id: "datatableEditor" },
         ] as PanelConfig[],
       },
@@ -140,9 +136,7 @@ describe("buildMenuModel", () => {
       "root:panels:left",
       "root:panels:bottom",
     ]);
-    expect(panelBlocks.every((block) => block.header === undefined)).toBe(
-      true,
-    );
+    expect(panelBlocks.every((block) => block.header === undefined)).toBe(true);
     expect((panelBlocks[0].entries[0] as MenuLeaf).icon).toBe(NavigatorIcon);
     const navigator = panelBlocks[0].entries[0] as MenuLeaf;
     expect(navigator).toMatchObject({ checked: true, shortcut: "1" });
@@ -218,6 +212,8 @@ describe("searchMenuModel", () => {
   });
 
   it("빈 결과는 빈 배열", () => {
-    expect(searchMenuModel(model, "zzzz-없음", matchesCommandSearch)).toEqual([]);
+    expect(searchMenuModel(model, "zzzz-없음", matchesCommandSearch)).toEqual(
+      [],
+    );
   });
 });

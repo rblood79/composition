@@ -6,6 +6,7 @@
  * 도구가 이를 구분하지 않고 항상 `success: true` 를 돌려주면, 아무것도 바뀌지 않은
  * 요청이 "수정함" 으로 보고돼 모델이 잘못된 전제 위에서 다음 단계를 진행한다.
  * `bind_collection` 은 이미 `applied` 를 확인한다 — 같은 계약을 나머지에 맞춘다.
+ * ADR-248 4e-7: the writes go through the AI write host (a fake here that drops writes silently).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../types/core/store.types";
@@ -26,13 +27,13 @@ vi.mock("./canonicalToolReadModel", () => ({
 
 vi.mock("./canonicalNodeFields", () => ({
   parseCanonicalFields: () => ({ patch: canonicalStub.patch, rejected: [] }),
-  applyCanonicalFields: () => canonicalStub.applied,
 }));
 
 vi.mock("../../../builder/stores/aiVisualFeedback", () => ({
   useAIVisualFeedbackStore: { getState: () => ({ addFlashForNode: vi.fn() }) },
 }));
 
+import { setAiWriteHost, type AiWriteHost } from "../aiWriteHost";
 import { updateElementTool } from "./updateElement";
 import { deleteElementTool } from "./deleteElement";
 import { forgetCreatedElements } from "./elementRef";
@@ -40,31 +41,42 @@ import { localizedStrings } from "@/i18n/translations";
 import type { ToolTranslate } from "@/types/integrations/ai.types";
 
 const ID = "el-1";
+let disposeHost: (() => void) | undefined;
 
 function harness(props: Record<string, unknown>, apply: boolean) {
   const element = { id: ID, type: "Button", props } as unknown as Element;
   const elementsById = new Map<string, Element>([[ID, element]]);
 
-  const updateElementProps = vi.fn(
-    async (id: string, patch: Record<string, unknown>) => {
-      if (!apply) return; // 조용한 조기 return 재현
+  const update = vi.fn((id: string, input: { props?: object }) => {
+    if (apply) {
+      // 조용한 무시 (apply=false) 재현 — 성공을 돌려주되 아무것도 바꾸지 않는다
       const prev = elementsById.get(id)!;
-      elementsById.set(id, { ...prev, props: { ...prev.props, ...patch } });
-    },
-  );
-  const removeElement = vi.fn(async (id: string) => {
-    if (!apply) return;
-    elementsById.delete(id);
+      elementsById.set(id, {
+        ...prev,
+        props: { ...prev.props, ...input.props },
+      });
+    }
+    return {
+      ok: true as const,
+      elementId: id,
+      canonicalApplied: canonicalStub.applied,
+    };
   });
+  const remove = vi.fn((id: string) => {
+    if (apply) elementsById.delete(id);
+    return { ok: true as const };
+  });
+  disposeHost?.();
+  disposeHost = setAiWriteHost({ update, remove } as unknown as AiWriteHost);
 
   model.current = {
     elements: [element],
     elementsById,
     childrenByParent: new Map(),
-    state: { selectedElementId: null, updateElementProps, removeElement },
+    state: { selectedElementId: null },
   } as never;
 
-  return { updateElementProps, removeElement, elementsById };
+  return { update, remove, elementsById };
 }
 
 /** ko-KR 카탈로그에 묶은 도구 오류 해소기 (ADR-200 후속). */
@@ -168,4 +180,32 @@ it("ADR-202: 무시된 opacity는 실패이며 fill 파생 배경은 style과 �
       { opacity: 0.42, backgroundColor: "#0000FF" },
     ),
   ).toEqual([]);
+});
+
+it("padding · margin shorthand 는 longhand 로 저장돼도 반영으로 본다 (catalog 읽기 = paddingTop …)", async () => {
+  const { findUnappliedStyles } = await import("./mutationVerification");
+  const longhands = {
+    paddingTop: "8px",
+    paddingRight: "16px",
+    paddingBottom: "8px",
+    paddingLeft: "16px",
+    marginTop: "4px",
+    marginRight: "4px",
+    marginBottom: "4px",
+    marginLeft: "4px",
+  };
+  expect(
+    findUnappliedStyles(longhands, { padding: "8px 16px", margin: "4px" }),
+  ).toEqual([]);
+  // 한 변이라도 다르면 shorthand 이름으로 보고한다.
+  expect(
+    findUnappliedStyles(
+      { ...longhands, paddingLeft: "0px" },
+      { padding: "8px 16px" },
+    ),
+  ).toEqual(["style.padding"]);
+  // 옛 store 처럼 shorthand 그대로 저장한 쪽도 같다.
+  expect(findUnappliedStyles({ padding: "8px" }, { padding: "8px" })).toEqual(
+    [],
+  );
 });

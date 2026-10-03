@@ -13,7 +13,6 @@
  */
 
 import { useRef, useEffect } from "react";
-import { useStore } from "../../stores";
 import { useViewportSyncStore } from "../canvas/stores";
 import { getViewportController } from "../canvas/viewport/ViewportController";
 import type { ViewportInteractionSession } from "../canvas/viewport/ViewportInteractionSession";
@@ -25,21 +24,32 @@ import {
   getScrollbarAxisMetrics,
   getScrollbarViewportMetrics,
 } from "./viewportMetrics";
+import type { ContentRect } from "./calculateWorldBounds";
 import "./CanvasScrollbar.css";
 
 // ============================================
 // Types
 // ============================================
 
+/** The artboards the scroll range covers, from a Canvas that owns them (catalog page frames). */
+export interface CanvasScrollbarContent {
+  /** World rects of the artboards. */
+  rects(): readonly ContentRect[];
+  /** Calls `notify` when the artboards may have moved; returns the unsubscribe. */
+  subscribe(notify: () => void): () => void;
+}
+
 interface CanvasScrollbarProps {
   direction: "horizontal" | "vertical";
+  /** The artboards (the Canvas's page frames). Keep it stable (it re-binds on change). */
+  content: CanvasScrollbarContent;
 }
 
 // ============================================
 // Component
 // ============================================
 
-export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
+export function CanvasScrollbar({ direction, content }: CanvasScrollbarProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef(0);
@@ -62,7 +72,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
 
     const updateThumb = () => {
       const trackLength = isHorizontal ? track.clientWidth : track.clientHeight;
-      const metrics = getScrollbarViewportMetrics();
+      const metrics = getScrollbarViewportMetrics(undefined, content.rects());
       if (!metrics) return;
 
       const axis = getScrollbarAxisMetrics(metrics, direction, trackLength);
@@ -144,15 +154,8 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
     // 소스 4: 페이지 위치 (world 범위의 content 입력)
     //
     // 페이지 추가/삭제/재배치는 뷰포트를 건드리지 않으므로 위 소스에 걸리지 않는다.
-    // 전체 store 구독이지만 비교는 카운터 하나이고 갱신은 rAF 로 합쳐진다.
-    let lastPagePositionsVersion =
-      useStore.getState().derivedPagePositionsVersion;
-    const unsubPagePositions = useStore.subscribe((state) => {
-      if (state.derivedPagePositionsVersion === lastPagePositionsVersion)
-        return;
-      lastPagePositionsVersion = state.derivedPagePositionsVersion;
-      scheduleUpdate();
-    });
+    // 갱신은 rAF 로 합쳐진다.
+    const unsubPagePositions = content.subscribe(scheduleUpdate);
 
     // ========================================
     // Thumb 드래그 (Pointer Capture)
@@ -174,7 +177,10 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       scrollbarSession = session;
       const startState = vc.getState();
       let queuedViewport = startState;
-      const startMetrics = getScrollbarViewportMetrics(startState);
+      const startMetrics = getScrollbarViewportMetrics(
+        startState,
+        content.rects(),
+      );
       if (!startMetrics) {
         session.finish("interrupted");
         scrollbarSession = null;
@@ -262,7 +268,10 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
       const trackLength = isHorizontal ? track.clientWidth : track.clientHeight;
 
       const vc = getViewportController();
-      const metrics = getScrollbarViewportMetrics(vc.getState());
+      const metrics = getScrollbarViewportMetrics(
+        vc.getState(),
+        content.rects(),
+      );
       if (!metrics) return;
 
       const axis = getScrollbarAxisMetrics(metrics, direction, trackLength);
@@ -318,7 +327,7 @@ export function CanvasScrollbar({ direction }: CanvasScrollbarProps) {
         scrollbarSession.finish("interrupted");
       }
     };
-  }, [direction]);
+  }, [direction, content]);
 
   return (
     <div

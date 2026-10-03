@@ -59,10 +59,11 @@ const PANEL_CONFIG_REL = "builder/panels/core/panelConfigs.ts";
 /**
  * 등록 배열 리터럴 — `bindHandlersToDefinitions([...], {...})` 의 첫 인자와,
  * `const shortcutIds: ShortcutId[] = [...]` 로 변수에 담아 넘기는 형태 둘 다
- * 소스에서 읽는다 (지난 세션 파서 오류 2건 반영).
+ * 소스에서 읽는다 (지난 세션 파서 오류 2건 반영). 변수 형태는 `readonly XShortcutId[]`
+ * 도 읽는다 — catalog Builder 의 전역 단축키 목록 (ADR-248 4e).
  */
 const REGISTRATION_ID_PATTERN =
-  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
+  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*(?:readonly\s+)?\w*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
 
 /** 팔레트에서 실행 불가로 두는 것이 맞는 정의 (ADR-195 breakdown §3-4). */
 const PALETTE_FALSE_ALLOWLIST = new Set([
@@ -77,6 +78,22 @@ const PALETTE_FALSE_ALLOWLIST = new Set([
   "treeSelectSpace",
 ]);
 
+/**
+ * Object-literal registrations — the catalog Builder's global shortcuts bind handlers keyed by id
+ * (`const handlers: ShortcutHandlers = { zoomIn: … }`, `Partial<Record<ShortcutId, PanelId>>`) and
+ * register `Object.keys(handlers)` (ADR-248 4e-13: the old hook's array literal went with it).
+ */
+const OBJECT_REGISTRATION_PATTERN =
+  /:\s*(?:ShortcutHandlers|Partial<Record<ShortcutId,\s*\w+>>)\s*=\s*\{([\s\S]*?)^\s*\};/gm;
+
+/** Exposed definitions the registry does not bind — each with where it runs (or the gap). */
+const NOT_IN_REGISTRY: Record<string, string> = {
+  escape:
+    "the catalog Canvas's own keydown (CatalogCanvas — cancels a gesture, clears the pick)",
+  toggleWorkflowOverlay:
+    "gap — the catalog Canvas has no page-flow overlay yet (ADR-248 4e-13 follow-up)",
+};
+
 function registeredShortcutIds(): Set<string> {
   const ids = new Set<string>();
   for (const file of collectSourceFiles(SRC_ROOT)) {
@@ -85,6 +102,11 @@ function registeredShortcutIds(): Set<string> {
       const body = match[1] ?? match[2] ?? "";
       for (const quoted of body.matchAll(/"([a-zA-Z][a-zA-Z0-9]*)"/g)) {
         ids.add(quoted[1]);
+      }
+    }
+    for (const block of source.matchAll(OBJECT_REGISTRATION_PATTERN)) {
+      for (const key of block[1].matchAll(/^\s*([a-zA-Z][a-zA-Z0-9]*):/gm)) {
+        ids.add(key[1]);
       }
     }
   }
@@ -189,7 +211,9 @@ describe("단축키 표기 SSOT", () => {
       .map(([id]) => id);
     expect(exposedIds).toHaveLength(62);
 
-    const unregistered = exposedIds.filter((id) => !registered.has(id));
+    const unregistered = exposedIds.filter(
+      (id) => !registered.has(id) && !(id in NOT_IN_REGISTRY),
+    );
     expect(unregistered).toEqual([]);
   });
 

@@ -1,0 +1,36 @@
+/* ADR-248 4e — 정의 편집 view 표시줄: 무엇을 편집 중인지와 page 로 돌아가는 완료 버튼.
+   Canvas 위 · 헤더 아래 가운데에 떠 있고, 줄 자체만 입력을 받는다. */
+.catalog-definition-bar {
+  position: absolute;
+  /* the floating header's bottom (44px) plus a gap */
+  top: calc(var(--spacing-md) * 4 + var(--spacing-sm));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs)
+    var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.catalog-definition-bar__done {
+  padding: 2px var(--spacing-sm);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / 0.2);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.catalog-definition-bar__done[data-hovered] {
+  background: rgb(255 255 255 / 0.3);
+}

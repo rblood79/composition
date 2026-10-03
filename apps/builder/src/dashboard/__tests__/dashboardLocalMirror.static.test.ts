@@ -2,19 +2,28 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("ADR-120 Phase 1 dashboard local lifecycle contract", () => {
-  it("does not seed or delete local pages/elements/layouts mirror stores", async () => {
+/**
+ * ADR-248 Phase 4e-2 dashboard lifecycle contract: the project list, create and delete go to the
+ * catalog storage only. No old document/project store is read or written, and no old document is
+ * seeded. (Replaces the ADR-120 local mirror contract, whose `db.documents` store the Builder no
+ * longer opens.)
+ */
+describe("ADR-248 dashboard catalog lifecycle contract", () => {
+  it("lists, creates and deletes through the catalog storage only", async () => {
     const source = await readFile(resolve(__dirname, "../index.tsx"), "utf-8");
 
-    expect(source).toContain("db.documents.put(");
-    expect(source).toContain("db.documents.delete(");
-    expect(source).not.toContain("db.pages.insert(");
-    expect(source).not.toContain("db.elements.insert(bodyElement)");
-    expect(source).not.toContain("db.pages.getByProject(");
-    expect(source).not.toContain("db.elements.getByPage(");
-    expect(source).not.toContain("db.layouts.getByProject(");
-    expect(source).not.toContain("db.layouts.delete(");
-    expect(source).not.toContain("db." + "history.clear(");
-    expect(source).toContain("historyIndexedDB.clearPageHistory(");
+    expect(source).toContain("new CatalogStorage().list()");
+    expect(source).toContain("createCatalogProject(");
+    expect(source).toContain("new CatalogStorage().remove(projectId)");
+    for (const old of [
+      "db.documents.",
+      "db.projects.",
+      "db.pages.",
+      "db.elements.",
+      "db.layouts.",
+      "createInitialProjectDocument",
+      "historyIndexedDB",
+    ])
+      expect(source).not.toContain(old);
   });
 });

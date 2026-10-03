@@ -20,7 +20,7 @@ import type {
   CatalogEntry,
   NodeEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import type { CanvasSceneNode } from "../../workspace/canvas/scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../../workspace/canvas/scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../../workspace/canvas/layout/engines/LayoutEngine";
 import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import { buildBoxNodeData } from "../../workspace/canvas/skia/buildBoxNodeData";

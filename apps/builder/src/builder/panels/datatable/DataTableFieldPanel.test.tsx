@@ -35,28 +35,35 @@ vi.mock("../../stores/data", () => ({
       collections: new Map([["c1", collection]]),
     }),
 }));
-vi.mock("../../stores", () => ({
-  useStore: (selector: (s: Record<string, unknown>) => unknown) =>
-    selector({ elements: [] }),
-}));
 vi.mock("../../stores/toast", () => ({
   globalToast: { warning: toastWarn, error: vi.fn(), success: vi.fn() },
-}));
-vi.mock("../../../services/ai/tools/canonicalToolReadModel", () => ({
-  getAiToolReadModel: () => ({ elements: [] }),
 }));
 
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import { DataTableFieldPanel } from "./DataTableFieldPanel";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
+import {
+  DataUsageSourceContext,
+  type DataUsageSource,
+} from "./usage/dataUsageSource";
+
+/** ADR-248 4e-9 C: no node uses the collection. */
+const USAGE: DataUsageSource = {
+  useCollectionUsage: () => new Map(),
+  useFieldUsage: () => [],
+};
 
 vi.mock("../../layout/panelWorkspaceVisibility", () => ({
   setPanelWorkspacePanelVisibility: vi.fn(),
 }));
 
 const wrap = (node: ReactNode) => (
-  <I18nProvider initialLocale="en-US">{node}</I18nProvider>
+  <I18nProvider initialLocale="en-US">
+    <DataUsageSourceContext.Provider value={USAGE}>
+      {node}
+    </DataUsageSourceContext.Provider>
+  </I18nProvider>
 );
 
 function keyInput(c: HTMLElement) {

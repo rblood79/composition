@@ -53,8 +53,9 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
     );
     const renderedFlexDirection = isFlexDisplay(resolvedDisplay)
       ? toFlexAxis(
-          (drivenProp === "labelPosition" ? asString(s.flexDirection) : undefined) ??
-            asString(specPreset.flexDirection),
+          (drivenProp === "labelPosition"
+            ? asString(s.flexDirection)
+            : undefined) ?? asString(specPreset.flexDirection),
         )
       : undefined;
     const drivenFlexDirection =

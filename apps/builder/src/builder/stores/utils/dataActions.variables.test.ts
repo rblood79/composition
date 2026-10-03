@@ -39,6 +39,9 @@ import {
   createUpdateVariableAction,
 } from "./dataActions";
 import { registerVariableOwnerPageSource } from "./variableOwnerMigration";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const base = (patch: Partial<Variable>): Variable => ({
   id: "v",

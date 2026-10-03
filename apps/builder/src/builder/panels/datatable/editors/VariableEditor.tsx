@@ -13,17 +13,15 @@
 import { useCallback, useId } from "react";
 import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
-import { useStore } from "../../../stores";
+import { useDataVariablesHost } from "../usage/dataVariablesHost";
 import type {
   Variable as VariableType,
   VariableType as VarType,
   VariableScope,
 } from "../../../../types/builder/data.types";
-import {
-  PropertyInput,
-  PropertySelect,
-  PropertySwitch,
-} from "../../../components";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import "./VariableEditor.css";
 import {
   semanticLabelKeys,
@@ -92,12 +90,11 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   const defaultValueHeadingId = useId();
-  const currentPageId = useStore((state) => state.currentPageId);
-  const ownerPageTitle = useStore((state) =>
-    variable.scope === "page"
-      ? state.pages.find((page) => page.id === variable.page_id)?.title
-      : undefined,
-  );
+  // The open Builder's pages (catalog: the session page and the document's page names).
+  const { currentPageId, ownerTitle: ownerPageTitle } =
+    useDataVariablesHost().usePageContext(
+      variable.scope === "page" ? variable.page_id : undefined,
+    );
   const scopeOptions =
     variable.scope === "component"
       ? [...VARIABLE_SCOPES, LEGACY_COMPONENT_SCOPE]

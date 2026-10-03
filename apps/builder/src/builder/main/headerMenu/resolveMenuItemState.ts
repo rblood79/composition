@@ -19,11 +19,9 @@ import {
   type CommandMeta,
 } from "../../config/commandMeta";
 import type { CommandEntry } from "../../stores/commandRegistry";
+import { hostPrecondition } from "../../../services/agent/agentCommandHost";
 import type { PanelConfig, PanelId, PanelSide } from "../../panels/core/types";
-import type {
-  ShortcutDefinition,
-  ShortcutScope,
-} from "../../types/keyboard";
+import type { ShortcutDefinition, ShortcutScope } from "../../types/keyboard";
 
 export type MenuDisabledReason =
   "unregistered" | "precondition" | "cannot-run" | "panel-hidden";
@@ -64,9 +62,11 @@ export function resolveCommandEnablement(
   if (!entry || entry.disabled)
     return { enabled: false, reason: "unregistered" };
 
+  // The open Builder's host answers first (ADR-248 4e-5), else the `COMMAND_META` precondition.
   const precondition = (input.meta ?? COMMAND_META)[id].precondition;
-  if (precondition) {
-    const verdict = precondition(input.readModel);
+  const hosted = hostPrecondition(id);
+  if (hosted || precondition) {
+    const verdict = hosted ?? precondition!(input.readModel);
     if (!verdict.ok) {
       return { enabled: false, reason: "precondition", detail: verdict.reason };
     }

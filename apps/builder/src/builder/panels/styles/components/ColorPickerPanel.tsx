@@ -34,6 +34,12 @@ interface ColorPickerPanelProps {
   resetKey?: string;
   /** ADR-187 runtime이 유일한 frame scheduler인 migrated control. */
   presentationOwnsFrameScheduling?: boolean;
+  /**
+   * `onChange` previews on the Canvas through the Styles host (catalog): Escape / pointer cancel
+   * report `onPresentationCancel` so the preview goes back. The release still commits only a
+   * changed value.
+   */
+  livePreview?: boolean;
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onChange: (color: string) => void;
   onChangeEnd: (color: string) => void;
@@ -47,6 +53,7 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
   value: initialValue,
   resetKey,
   presentationOwnsFrameScheduling = false,
+  livePreview = false,
   onPresentationCancel,
   onChange,
   onChangeEnd,
@@ -55,6 +62,13 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     parseRacColorOrBlack(initialValue),
   );
   const lastSavedRef = useRef<string>(initialValue);
+  /**
+   * `livePreview`: a drag is under way, and whether Escape / pointer cancel ended it — the rest of
+   * that gesture (moves and its release) neither previews nor commits, as a presentation session
+   * cancels.
+   */
+  const draggingRef = useRef(false);
+  const cancelledRef = useRef(false);
 
   const lastResetKeyRef = useRef(resetKey);
 
@@ -89,6 +103,8 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
   const handleChange = useCallback(
     (raw: Color | null) => {
       if (!raw) return;
+      if (cancelledRef.current) return;
+      draggingRef.current = true;
       const color = reconcileAlpha(raw);
       recordEditorPresentationRawInput();
       setLocalColor(color);
@@ -101,6 +117,11 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
   const handleChangeEnd = useCallback(
     (color: Color) => {
       recordEditorPresentationTerminalEvent();
+      draggingRef.current = false;
+      if (cancelledRef.current) {
+        cancelledRef.current = false;
+        return;
+      }
       // 최종 색상으로 로컬 상태 동기화
       setLocalColor(color);
 
@@ -128,19 +149,37 @@ export const ColorPickerPanel = memo(function ColorPickerPanel({
     [onChangeEnd],
   );
 
+  /** A live drag in progress ends: the picker shows the committed color again. */
+  const cancelLiveDrag = () => {
+    if (!livePreview || !draggingRef.current) return;
+    cancelledRef.current = true;
+    setLocalColor(parseRacColorOrBlack(lastSavedRef.current));
+  };
+
   const hexValue = localColor.toString("hexa");
 
   return (
     <AriaColorPicker value={localColor} onChange={handleChange}>
       <div
         className="color-picker-panel"
+        // A new gesture starts afresh (a cancelled one may never report its release).
+        onPointerDownCapture={() => {
+          cancelledRef.current = false;
+        }}
         onKeyDownCapture={(event) => {
-          if (presentationOwnsFrameScheduling && event.key === "Escape") {
+          if (event.key !== "Escape" && !draggingRef.current)
+            cancelledRef.current = false;
+          if (
+            (presentationOwnsFrameScheduling || livePreview) &&
+            event.key === "Escape"
+          ) {
+            cancelLiveDrag();
             onPresentationCancel?.("escape");
           }
         }}
         onPointerCancelCapture={() => {
-          if (presentationOwnsFrameScheduling) {
+          if (presentationOwnsFrameScheduling || livePreview) {
+            cancelLiveDrag();
             onPresentationCancel?.("pointer-cancel");
           }
         }}

@@ -36,8 +36,8 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).toContain("PropertyUnitInput");
     expect(source).toContain('t("settings.pageGap")');
     // 「80 PX」 — 단위 suffix, preset · 아이콘 · stepper 없음 (panel-ui 20 — 대조 B11).
-    //   ADR-232: 파생 모드에서는 문서 `pageLayout.gap` 이 공급원이라 값 표현이 `effectiveGap` 이다.
-    expect(source).toContain("value={`${effectiveGap}px`}");
+    //   ADR-248 4e-7: the gap is the catalog page layout's (`layoutView.gap`).
+    expect(source).toContain("value={`${layoutView?.gap ?? 0}px`}");
     expect(source).toContain('units={["px"]}');
     expect(source).toContain("unitSuffix");
     expect(source).toContain("allowKeywords={false}");
@@ -45,7 +45,8 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).not.toContain("icon={UnfoldHorizontal}");
     expect(source).toContain("onChange={handlePageLayoutChange}");
     expect(source).toContain("onChange={handlePageGapChange}");
-    expect(source).toContain("alignPagesToScreen();");
+    // The catalog page grid places the pages itself — no realign call after a change (4e-7).
+    expect(source).not.toContain("alignPagesToScreen();");
     expect(source).not.toContain('value: "zigzag"');
     expect(source).not.toContain("pageLayoutZigzag");
   });

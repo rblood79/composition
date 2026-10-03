@@ -35,6 +35,7 @@
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { CATALOG_STORE_FACADE_SCRIPT } from "./perfCatalogFacade.mjs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
@@ -363,6 +364,9 @@ export async function createInstrumentedContext(
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor,
   });
+  // ADR-248: the catalog Builder has no element store — the facade maps the harness's store calls
+  // onto catalog commands (inert when the old app assigns its real store).
+  await context.addInitScript({ content: CATALOG_STORE_FACADE_SCRIPT });
   if (initScript) await context.addInitScript(initScript);
   if (frameCapture)
     await context.addInitScript(() => {

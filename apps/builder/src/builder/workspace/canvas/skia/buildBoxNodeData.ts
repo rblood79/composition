@@ -9,7 +9,7 @@ import { resolveBorderPaint } from "../styleConversion/borderGeometry";
 import type { BorderStyleValue, TokenRef } from "@composition/specs";
 import { resolveColor, hexStringToNumber } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import type { EffectStyle, FillStyle } from "./types";

@@ -30,14 +30,12 @@ const HEADS = "document_heads";
 const LEGACY_DOCUMENTS = "documents";
 const PARTS = "document_parts";
 const DATA_STAMP_STORES = ["collections", "api_endpoints", "variables"];
-/** project_id 인덱스로 지우는 store — events · actions 는 문서 root 의 mirror, runtime 은 캐시 */
+/** project_id 인덱스로 지우는 store — runtime 은 캐시 */
 const INDEXED_STORES = [
   PARTS,
   "documents_backup",
   ...DATA_STAMP_STORES,
   "collection_runtime",
-  "events",
-  "actions",
 ];
 
 const HISTORY_DB = "composition-history";

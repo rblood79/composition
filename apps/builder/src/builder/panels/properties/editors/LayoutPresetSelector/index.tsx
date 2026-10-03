@@ -23,25 +23,17 @@ import {
 import { Button } from "@composition/shared/components";
 import { PresetPreview } from "./PresetPreview";
 import { ExistingSlotDialog } from "./ExistingSlotDialog";
-import { usePresetApply } from "./usePresetApply";
 import { derivePreviewAreas } from "./derivePreviewAreas";
 import {
   LAYOUT_PRESETS,
   PRESET_CATEGORIES,
   PRESET_ORDER,
 } from "./presetDefinitions";
-import type { PresetApplyMode, PreviewArea } from "./types";
-import { useStore } from "../../../../stores";
+import type { ExistingSlotInfo, PresetApplyMode, PreviewArea } from "./types";
+import type { BreakpointName } from "@composition/shared";
 import "./styles.css";
 import { iconEditProps } from "../../../../../utils/ui/uiConstants";
 import { useI18n } from "@/i18n";
-
-interface LayoutPresetSelectorProps {
-  /** Layout ID */
-  layoutId: string;
-  /** Body Element ID */
-  bodyElementId: string;
-}
 
 /**
  * 아이콘 이름 → 컴포넌트 조회 (ADR-168 P-5).
@@ -63,10 +55,25 @@ const ICON_BY_NAME: Record<string, typeof Layout> = {
   Rows3,
 };
 
-export const LayoutPresetSelector = memo(function LayoutPresetSelector({
-  layoutId,
-  bodyElementId,
-}: LayoutPresetSelectorProps) {
+/**
+ * The preset grid and the existing-slot dialog, over any document (ADR-248 4e-6-37): the old store
+ * (`LayoutPresetSelector`) and the catalog layout (`CatalogLayoutBodySection`) pass their slots and
+ * apply function.
+ */
+export const LayoutPresetGrid = memo(function LayoutPresetGrid({
+  breakpoint: activeBreakpoint,
+  existingSlots,
+  currentPresetKey,
+  applyPreset,
+  isApplying,
+}: {
+  /** The thumbnails' breakpoint (the header's Canvas breakpoint). */
+  breakpoint: BreakpointName;
+  existingSlots: readonly ExistingSlotInfo[];
+  currentPresetKey: string | null;
+  applyPreset: (presetKey: string, mode: PresetApplyMode) => unknown;
+  isApplying: boolean;
+}) {
   const { t } = useI18n();
   // 선택된 프리셋 상태
   const [selectedPresetKey, setSelectedPresetKey] = useState<string | null>(
@@ -74,20 +81,6 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
   );
   // 다이얼로그 열림 상태
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  // 썸네일 기준 breakpoint — 헤더의 캔버스 breakpoint 토글을 그대로 따른다 (ADR-168 P-7 정정).
-  //
-  // 패널 안에 별도 세그먼트를 뒀다가 제거했다: 헤더에 이미 같은 개념의 컨트롤이 있어 중복이고,
-  // 두 컨트롤이 어긋나면 "썸네일은 mobile, 캔버스는 desktop" 같은 상태가 만들어진다.
-  // 컨트롤은 하나, 의미도 하나다.
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-
-  // 프리셋 적용 훅
-  const { existingSlots, currentPresetKey, applyPreset, isApplying } =
-    usePresetApply({
-      layoutId,
-      bodyElementId,
-    });
 
   // 카테고리별 프리셋 그룹화.
   //
@@ -237,5 +230,3 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
     </>
   );
 });
-
-export default LayoutPresetSelector;

@@ -27,9 +27,9 @@ import {
   normalizeHexInputToHex8,
 } from "../utils/colorUtils";
 import { ScrubInput } from "./ScrubInput";
-import { useStore } from "../../../stores";
 
 import "./ColorInputFields.css";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 interface ColorInputFieldsProps {
   value: string; // "#RRGGBBAA" or hexa format
@@ -80,7 +80,8 @@ function TextField({
   suffix?: string;
   onChange: (v: string) => void;
 }) {
-  const selectedElementId = useStore((state) => state.selectedElementId);
+  const stylesHost = useStylesHost();
+  const selectedElementId = useStylesSelectedId();
   const [localValue, setLocalValue] = useState(value);
   const [isFocused, setIsFocused] = useState(false);
   const focusedElementIdRef = useRef<string | null>(null);
@@ -94,7 +95,7 @@ function TextField({
   }, [value, isFocused, selectedElementId]);
 
   const handleBlur = useCallback(() => {
-    const currentElementId = useStore.getState().selectedElementId ?? null;
+    const currentElementId = stylesHost.readSelectedId();
     setIsFocused(false);
     if (
       focusedElementIdRef.current !== null &&
@@ -103,7 +104,7 @@ function TextField({
       return;
     }
     onChange(localValue);
-  }, [localValue, onChange]);
+  }, [localValue, onChange, stylesHost]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -24,7 +24,9 @@ export {
   renameNode,
   resetDescendant,
   setFields,
+  setFillSizing,
   setHtmlId,
+  setNodeAttribute,
   setSlotDeclaration,
   setWholeField,
 } from "./fields";
@@ -43,6 +45,7 @@ export {
   deleteLayout,
   duplicatePage,
   duplicateTheme,
+  layoutContentSlotPath,
   removePage,
   removeRecords,
   removeTheme,
@@ -69,5 +72,7 @@ export {
   insertGroupItem,
   insertTableColumns,
   insertTableRow,
+  tableHeaderColumns,
+  tableHeaderPosition,
   type TableColumnSpec,
 } from "./collections";

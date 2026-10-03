@@ -29,12 +29,8 @@ describe("layout root key", () => {
     );
   });
 
-  it("is the only root-key derivation used by cache, hook, and engine", async () => {
-    const paths = [
-      "../scene/layoutCache.ts",
-      "../hooks/useLayoutPublisher.ts",
-      "./engines/fullTreeLayout.ts",
-    ];
+  it("is the only root-key derivation used by the engine", async () => {
+    const paths = ["./engines/fullTreeLayout.ts"];
     for (const path of paths) {
       const source = await readFile(resolve(__dirname, path), "utf8");
       expect(source).toContain("getLayoutRootKey");

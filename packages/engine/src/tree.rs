@@ -3022,8 +3022,13 @@ impl LayoutTree {
                     }
                 }
                 if extent > 0.0 {
-                    // off 19 는 content_main 과 같은 공간 (pad_border_main 가산 — 2-b 와 동일).
-                    data[off + 19] = extent + data[off + 7];
+                    // off 19 는 content-box (off 1 · off 9 와 같은 `spec_to_content` 공간 — 커널이
+                    // pad_border 를 더한다). 자식 bottom 은 border-box 원점 기준이라 시작 쪽
+                    // padding + border 를 빼면 content 높이다. (ADR-248 4e-10: 종전 `extent +
+                    // pad_border` 는 floor 를 시작 edge + pad_border 만큼 부풀렸다 — padding 10 ·
+                    // 자식 30 의 definite 120 column 이 CSS 50 대신 80.)
+                    let start = pad_border_start(&n.style, &ctx, false);
+                    data[off + 19] = (extent - start).max(0.0);
                 }
             }
         }
@@ -6118,19 +6123,18 @@ fn write_flex_item(
     // §4.5 floor 의 정확 min-content (ADR-165) — 스칼라는 폭 축 측정값이므로 row 에서만
     // 존재 (column 의 main=height 는 height-for-width 재줄바꿈 영역 → 2-pass 잔존 계약).
     // content_main 과 같은 공간이어야 한다. 0 = absent → flex.rs 가 content_main(상한 근사) fallback.
-    // ADR-204 Phase 2 — column 은 `content_min_height` (가상화 collection owner 의 행 수 × stride
-    // 등, 자식 없이 내용 크기를 아는 노드의 TS 공급). block 축은 재줄바꿈이 없어 폭 스칼라의
-    // 2-pass 계약과 충돌하지 않는다. column 의 content_main(=ch) 은 leaf 명시 높이 (border-box) 라
-    // 스칼라에 pad_border_main 을 더해 같은 공간으로 맞춘다.
+    // ADR-204 Phase 2 — column 은 `content_min_height` (자식 없이 내용 크기를 아는 노드의 TS
+    // 공급 — 측정 leaf 의 CSS `min-height: auto`). block 축은 재줄바꿈이 없어 폭 스칼라의 2-pass
+    // 계약과 충돌하지 않는다. 두 축 모두 **content-box** — floor 는 off 9 (min) · off 1 (main) 과
+    // 같이 `spec_to_content` 공간에서 집행되고 커널이 pad_border 를 한 번 더한다. (ADR-248 4e-10:
+    // column 이 pad_border 를 미리 더해 floor 가 padding + border 만큼 부풀었다 — FileTrigger
+    // content 17 · border 1 → 21, CSS 19.)
     data[off + 19] = if is_row {
         // row: content_main(=cw) 은 leaf 가 **content-box** 로 보고하므로 (⑨ 수리) 스칼라도
         // 같은 공간 — pad_border 를 더하지 않는다 (더하면 §4.5 floor 가 padding 만큼 부푼다).
         cstyle.content_min_width.map(|v| v.max(0.0)).unwrap_or(0.0)
     } else {
-        cstyle
-            .content_min_height
-            .map(|v| v.max(0.0) + pad_border_main)
-            .unwrap_or(0.0)
+        cstyle.content_min_height.map(|v| v.max(0.0)).unwrap_or(0.0)
     };
     // §8.1 auto margin 마스크 — 값 자체는 `resolve_signed` 가 0 으로 주므로, "0 인가"
     // 로는 `margin: 0` 과 구분되지 않는다. 흡수/정렬 무효화 판정을 위해 별도 채널.

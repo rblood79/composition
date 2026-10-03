@@ -13,7 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useAiComposerDraftStore } from "./aiComposerDraft";
 import type { KeyboardEvent } from "react";
-import { ActionIconButton, PanelHeader, PanelContents } from "../../components";
+import { ActionIconButton } from "../../components/ui/ActionIconButton";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { Button } from "@composition/shared/components";
 import {
   ArrowRight,

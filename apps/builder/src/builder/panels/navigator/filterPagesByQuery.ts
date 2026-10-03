@@ -1,8 +1,9 @@
 import type { Page } from "../../../types/builder/unified.types";
+import type { PageTreePage } from "./tree/PageTree/types";
 
-export interface PageQueryResult {
+export interface PageQueryResult<P extends PageTreePage = Page> {
   /** 트리에 넘길 페이지 — 일치 페이지 + 그 조상 (계층 유지), 원래 순서 보존 */
-  pages: Page[];
+  pages: P[];
   /** 일치 페이지를 드러내려고 펼쳐야 하는 조상 id */
   expandIds: Set<string>;
   /** 실제 일치한 페이지 수 (조상 제외) */
@@ -20,14 +21,14 @@ export function normalizePageQuery(query: string): string {
  * 일치한 페이지의 조상은 함께 남겨 PageTree 가 계층을 그대로 그릴 수 있게 하고,
  * 그 조상 id 를 `expandIds` 로 돌려줘 일치 항목이 접힌 채 숨지 않게 한다.
  */
-export function filterPagesByQuery(
-  pages: readonly Page[],
+export function filterPagesByQuery<P extends PageTreePage = Page>(
+  pages: readonly P[],
   rawQuery: string,
-): PageQueryResult {
+): PageQueryResult<P> {
   const query = normalizePageQuery(rawQuery);
   if (!query) {
     return {
-      pages: pages as Page[],
+      pages: pages as P[],
       expandIds: new Set(),
       matchCount: pages.length,
       query,

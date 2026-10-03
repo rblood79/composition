@@ -29,6 +29,8 @@ export interface ViewportControlBridgeProps {
   initialPanOffsetX?: number;
   /** Canvas pointer session 제스처 소유권 */
   gestureSession: CanvasGestureSession;
+  /** 일반 휠의 요소 스크롤 라우팅 (`UseViewportControlOptions.routeWheel`) */
+  routeWheel?: (deltaX: number, deltaY: number) => boolean;
 }
 
 /**
@@ -45,6 +47,7 @@ export function ViewportControlBridge({
   onInteractionEnd,
   initialPanOffsetX,
   gestureSession,
+  routeWheel,
 }: ViewportControlBridgeProps): null {
   // ViewportController 연결 및 이벤트 핸들링
   useViewportControl({
@@ -56,6 +59,7 @@ export function ViewportControlBridge({
     onInteractionEnd,
     initialPanOffsetX,
     gestureSession,
+    routeWheel,
   });
 
   // 렌더링 출력 없음

@@ -32,6 +32,11 @@ export interface CatalogPosition {
   identity: string;
   /** An owned node switched off (`enabled: false`): listed so it can be switched on again. */
   disabled?: boolean;
+  /**
+   * A template position listed with `includeDisabled`: whether it shows without the owner's own
+   * `enabled` write (the template's, else the library patch's value).
+   */
+  inheritedEnabled?: boolean;
   /** Context of a template position (its owner instance, template path, library patch scope). */
   scope?: PositionScope;
 }
@@ -114,14 +119,21 @@ function overrideAt(
   );
 }
 
+/** Options of a child listing. */
+export interface ChildPositionOptions {
+  /** List switched-off template positions too (`disabled: true`), so they can be switched on. */
+  includeDisabled?: boolean;
+}
+
 /**
  * A template position as the resolver projects it: its replacement, `undefined` when switched
- * off, else the position.
+ * off (unless listed with `includeDisabled`), else the position.
  */
 function templatePosition(
   reader: CatalogReader,
   scope: PositionScope,
   instancePath: readonly (NodeId | TemplateId)[],
+  options: ChildPositionOptions = {},
 ): CatalogPosition | undefined {
   const owner = readNode(reader, scope.owner);
   const instances = instancePath.slice(instancePath.lastIndexOf(owner.id));
@@ -139,12 +151,10 @@ function templatePosition(
           sameIds(item.templatePath, scope.path),
         )
       : undefined;
+  const inheritedEnabled = libraryPatch?.enabled ?? template.enabled ?? true;
   const enabled =
-    (change?.kind === "patch" ? change.enabled : undefined) ??
-    libraryPatch?.enabled ??
-    template.enabled ??
-    true;
-  if (!enabled) return undefined;
+    (change?.kind === "patch" ? change.enabled : undefined) ?? inheritedEnabled;
+  if (!enabled && !options.includeDisabled) return undefined;
   return {
     target: {
       kind: "descendant",
@@ -156,6 +166,8 @@ function templatePosition(
     definitionId: template.definitionId,
     identity: identityOf(instancePath, templateId),
     scope,
+    ...(options.includeDisabled ? { inheritedEnabled } : {}),
+    ...(enabled ? {} : { disabled: true }),
   };
 }
 
@@ -164,12 +176,13 @@ function collapsedRootChildren(
   reader: CatalogReader,
   scope: PositionScope,
   instancePath: readonly (NodeId | TemplateId)[],
+  options: ChildPositionOptions,
 ): CatalogPosition[] {
   const root = templatePosition(reader, scope, instancePath);
   if (!root) return [];
   // A replaced root is an element of its own.
   if (root.target.kind === "node") return [root];
-  return childPositions(reader, root);
+  return childPositions(reader, root, options);
 }
 
 /** The positions a page shows at its top level. */
@@ -183,10 +196,34 @@ export function pagePositions(
   return page.children.map((id) => ownedPosition(readNode(reader, id), [id]));
 }
 
+/**
+ * The top position of a project definition's template (the definition edit view): its template
+ * root, an ordinary owned node. None when the definition has no template.
+ */
+export function definitionPositions(
+  reader: CatalogReader,
+  definitionId: EntryId<"definition">,
+): CatalogPosition[] {
+  const definition = reader.getEntry(definitionId);
+  if (definition?.kind !== "definition")
+    throw new CatalogValidationError("DEFINITION_REQUIRED", definitionId);
+  const rootId = definition.templateRootId;
+  return rootId ? [ownedPosition(readNode(reader, rootId), [rootId])] : [];
+}
+
+/** The top position of one owned node (a derived view's root). */
+export function nodePosition(
+  reader: CatalogReader,
+  id: NodeId,
+): CatalogPosition {
+  return ownedPosition(readNode(reader, id), [id]);
+}
+
 /** The positions one position shows as its children (one level). */
 export function childPositions(
   reader: CatalogReader,
   position: CatalogPosition,
+  options: ChildPositionOptions = {},
 ): CatalogPosition[] {
   const { instancePath } = position;
   if (!position.scope) {
@@ -198,6 +235,7 @@ export function childPositions(
             reader,
             { owner: node.id, path: [rootId] },
             instancePath,
+            options,
           )
         : []),
       ...node.children.map((id) =>
@@ -237,6 +275,7 @@ export function childPositions(
               : {}),
           },
           nestedPath,
+          options,
         )
       : []),
     ...template.children.flatMap((childId) => {
@@ -244,6 +283,7 @@ export function childPositions(
         reader,
         { ...scope, path: [...scope.path, childId] },
         instancePath,
+        options,
       );
       return child ? [child] : [];
     }),

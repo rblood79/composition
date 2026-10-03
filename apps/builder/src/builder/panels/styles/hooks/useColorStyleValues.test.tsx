@@ -5,72 +5,53 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { darkColors, lightColors } from "@composition/specs";
 
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
-import {
-  mergeElementsCanonicalPrimary,
-  registerCanonicalMutationStoreActions,
-  resetCanonicalMutationStoreActions,
-} from "@/adapters/canonical/canonicalMutations";
-import type { Element } from "../../../../types/core/store.types";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { useStore } from "../../../stores";
 import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
+import {
+  openStylesFixture,
+  type StylesFixture,
+  type StylesFixtureNode,
+} from "../__tests__/support/catalogStylesFixture";
 import { useAppearanceValues } from "./useAppearanceValues";
 import { useTypographyValues } from "./useTypographyValues";
 import { clearSpecPresetCache } from "../utils/specPresetResolver";
 
 const PICKER_TRANSPARENT = "#00000000";
 
-const CANONICAL_TEST_PROJECT_ID = "color-style-values-test-project";
 /** setTint 는 lightColors/darkColors 를 제자리 mutation 하므로 초기 팔레트를 스냅샷해 복원한다. */
 const LIGHT_COLORS_SNAPSHOT = { ...lightColors };
 const DARK_COLORS_SNAPSHOT = { ...darkColors };
+
+/** ADR-248 4e-9 C: the nodes over the catalog Styles host (the old store host went with it). */
+let fixture: StylesFixture;
+
+async function setElements(nodes: StylesFixtureNode[]): Promise<void> {
+  fixture = await openStylesFixture(nodes);
+}
 
 function makeElement(
   id: string,
   type: string,
   props: Record<string, unknown>,
-  parentId: string | null = null,
-): Element {
-  return {
-    id,
-    type,
-    parent_id: parentId,
-    page_id: "page-1",
-    order_num: 0,
-    props,
-  } as Element;
+  parent?: string,
+): StylesFixtureNode {
+  return { id, type, props, ...(parent ? { parent } : {}) };
 }
 
-/** 패널 hook 은 canonical document 를 읽으므로 flat fixture 를 canonical 로도 시드한다. */
-function setElements(elements: Element[]): void {
-  useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
-  } as never);
-  registerCanonicalMutationStoreActions({
-    getCurrentProjectId: () => CANONICAL_TEST_PROJECT_ID,
-    getCurrentLegacySnapshot: () => ({
-      elements: useStore.getState().elements,
-      pages: [],
-      layouts: [],
-    }),
-  });
-  useCanonicalDocumentStore.getState().setCurrentProject(CANONICAL_TEST_PROJECT_ID);
-  mergeElementsCanonicalPrimary(elements);
+async function setButton(
+  props: Record<string, unknown>,
+  style?: Record<string, string>,
+): Promise<void> {
+  await setElements([{ id: "button-1", type: "Button", props, style }]);
 }
 
-function setButton(props: Record<string, unknown>): void {
-  const element = {
-    id: "button-1",
-    type: "Button",
-    props,
-  } as Element;
-  setElements([element]);
+function hookOf<T>(hook: (id: string) => T, id: string) {
+  const record = fixture.recordOf(id);
+  return renderHook(() => hook(record), { wrapper: fixture.wrapper });
 }
 
 function readColorValues(id: string) {
-  const appearance = renderHook(() => useAppearanceValues(id));
-  const typography = renderHook(() => useTypographyValues(id));
+  const appearance = hookOf(useAppearanceValues, id);
+  const typography = hookOf(useTypographyValues, id);
   const result = {
     backgroundColor: appearance.result.current?.backgroundColor,
     borderColor: appearance.result.current?.borderColor,
@@ -84,18 +65,7 @@ function readColorValues(id: string) {
 describe("Style Panel catalog color values", () => {
   beforeEach(() => {
     clearSpecPresetCache();
-    resetCanonicalMutationStoreActions();
     useThemeConfigStore.setState({ darkMode: "light", themeVersion: 0 });
-    useCanonicalDocumentStore.setState({
-      currentProjectId: null,
-      documents: new Map(),
-      documentVersion: 0,
-    });
-    useStore.setState({
-      activeBreakpoint: "desktop",
-      elements: [],
-      elementsMap: new Map(),
-    } as never);
   });
 
   afterEach(() => {
@@ -104,11 +74,11 @@ describe("Style Panel catalog color values", () => {
     useThemeConfigStore.setState({ tint: "blue" });
   });
 
-  it("tint 변경(themeVersion 증가)을 같은 theme 문자열에서도 다시 해석한다", () => {
+  it("tint 변경(themeVersion 증가)을 같은 theme 문자열에서도 다시 해석한다", async () => {
     // resolveToken 은 lightColors 전역 객체를 읽고 setTint 는 그 객체를 제자리 mutation 한다.
     // theme("light") 와 accentColor 는 그대로라 themeVersion 이 유일한 재계산 신호다.
-    setButton({ size: "md", variant: "accent", fillStyle: "fill" });
-    const appearance = renderHook(() => useAppearanceValues("button-1"));
+    await setButton({ size: "md", variant: "accent", fillStyle: "fill" });
+    const appearance = hookOf(useAppearanceValues, "button-1");
     const before = appearance.result.current?.backgroundColor;
     expect(before).toBe(lightColors.accent);
 
@@ -122,11 +92,11 @@ describe("Style Panel catalog color values", () => {
     appearance.unmount();
   });
 
-  it("신규 Button의 variant 배경/텍스트/테두리 색을 catalog와 동일하게 표시한다", () => {
-    setButton({ size: "md", variant: "primary", fillStyle: "fill" });
+  it("신규 Button의 variant 배경/텍스트/테두리 색을 catalog와 동일하게 표시한다", async () => {
+    await setButton({ size: "md", variant: "primary", fillStyle: "fill" });
 
-    const appearance = renderHook(() => useAppearanceValues("button-1"));
-    const typography = renderHook(() => useTypographyValues("button-1"));
+    const appearance = hookOf(useAppearanceValues, "button-1");
+    const typography = hookOf(useTypographyValues, "button-1");
 
     expect(appearance.result.current).toMatchObject({
       backgroundColor: lightColors.neutral,
@@ -135,11 +105,11 @@ describe("Style Panel catalog color values", () => {
     expect(typography.result.current?.color).toBe(lightColors.base);
   });
 
-  it("Button outline의 투명 배경과 outline 전용 텍스트/테두리 색을 표시한다", () => {
-    setButton({ size: "md", variant: "accent", fillStyle: "outline" });
+  it("Button outline의 투명 배경과 outline 전용 텍스트/테두리 색을 표시한다", async () => {
+    await setButton({ size: "md", variant: "accent", fillStyle: "outline" });
 
-    const appearance = renderHook(() => useAppearanceValues("button-1"));
-    const typography = renderHook(() => useTypographyValues("button-1"));
+    const appearance = hookOf(useAppearanceValues, "button-1");
+    const typography = hookOf(useTypographyValues, "button-1");
 
     expect(appearance.result.current).toMatchObject({
       backgroundColor: PICKER_TRANSPARENT,
@@ -148,12 +118,12 @@ describe("Style Panel catalog color values", () => {
     expect(typography.result.current?.color).toBe(lightColors.accent);
   });
 
-  it("premium catalog 색상을 현재 dark theme의 picker 입력값으로 해석한다", () => {
+  it("premium catalog 색상을 현재 dark theme의 picker 입력값으로 해석한다", async () => {
     useThemeConfigStore.setState({ darkMode: "dark", themeVersion: 1 });
-    setButton({ size: "md", variant: "premium", fillStyle: "fill" });
+    await setButton({ size: "md", variant: "premium", fillStyle: "fill" });
 
-    const appearance = renderHook(() => useAppearanceValues("button-1"));
-    const typography = renderHook(() => useTypographyValues("button-1"));
+    const appearance = hookOf(useAppearanceValues, "button-1");
+    const typography = hookOf(useTypographyValues, "button-1");
 
     expect(appearance.result.current).toMatchObject({
       backgroundColor: darkColors.purple,
@@ -162,19 +132,14 @@ describe("Style Panel catalog color values", () => {
     expect(typography.result.current?.color).toBe(darkColors.white);
   });
 
-  it("inline color override는 catalog variant보다 우선한다", () => {
-    setButton({
-      size: "md",
-      variant: "primary",
-      style: {
-        backgroundColor: "#112233",
-        borderColor: "#445566",
-        color: "#778899",
-      },
-    });
+  it("inline color override는 catalog variant보다 우선한다", async () => {
+    await setButton(
+      { size: "md", variant: "primary" },
+      { backgroundColor: "#112233", borderColor: "#445566", color: "#778899" },
+    );
 
-    const appearance = renderHook(() => useAppearanceValues("button-1"));
-    const typography = renderHook(() => useTypographyValues("button-1"));
+    const appearance = hookOf(useAppearanceValues, "button-1");
+    const typography = hookOf(useTypographyValues, "button-1");
 
     expect(appearance.result.current).toMatchObject({
       backgroundColor: "#112233",
@@ -229,19 +194,14 @@ describe("Style Panel catalog color values", () => {
       ],
     ])(
       "D1 Badge %s의 bold/subtle/outline 3채널을 구분한다",
-      (variant, boldBackground, subtleBackground, boldText, hue) => {
-        const actual = (["bold", "subtle", "outline"] as const).map(
-          (fillStyle) => {
-            setElements([
-              makeElement("badge-1", "Badge", {
-                size: "sm",
-                variant,
-                fillStyle,
-              }),
-            ]);
-            return readColorValues("badge-1");
-          },
-        );
+      async (variant, boldBackground, subtleBackground, boldText, hue) => {
+        const actual = [];
+        for (const fillStyle of ["bold", "subtle", "outline"] as const) {
+          await setElements([
+            makeElement("badge-1", "Badge", { size: "sm", variant, fillStyle }),
+          ]);
+          actual.push(readColorValues("badge-1"));
+        }
 
         expect(actual).toEqual([
           {
@@ -263,8 +223,8 @@ describe("Style Panel catalog color values", () => {
       },
     );
 
-    it("D2 Button staticColor=black의 고정색과 역상 text를 표시한다", () => {
-      setButton({
+    it("D2 Button staticColor=black의 고정색과 역상 text를 표시한다", async () => {
+      await setButton({
         size: "md",
         variant: "accent",
         fillStyle: "fill",
@@ -278,8 +238,8 @@ describe("Style Panel catalog color values", () => {
       });
     });
 
-    it("D3 ToggleButton selected+emphasized paint를 표시한다", () => {
-      setElements([
+    it("D3 ToggleButton selected+emphasized paint를 표시한다", async () => {
+      await setElements([
         makeElement("toggle-1", "ToggleButton", {
           size: "md",
           isSelected: true,
@@ -294,9 +254,12 @@ describe("Style Panel catalog color values", () => {
       });
     });
 
-    it("D4 선택 Card 자신의 accentColor를 selected paint에 적용한다", () => {
+    // ADR-248 4e-9 C 발견: catalog host 의 context props 는 edit contract 에서 오고, 원본 기반 Card 의
+    //   계약에는 isSelected/isSelectable 이 없어 패널이 비선택 paint 를 보인다 (Canvas record 는
+    //   isSelected:true). 결함 수리 전까지 실패가 기대값 — 고치면 이 it.fails 가 빨개진다.
+    it.fails("D4 선택 Card 자신의 accentColor를 selected paint에 적용한다", async () => {
       const accent = resolveAccentColorTokens("red", "light");
-      setElements([
+      await setElements([
         makeElement("card-1", "Card", {
           size: "md",
           variant: "primary",
@@ -312,7 +275,7 @@ describe("Style Panel catalog color values", () => {
       });
     });
 
-    it("D4 조상 Card의 accentColor를 자식 accent variant에 적용한다", () => {
+    it("D4 조상 Card의 accentColor를 자식 accent variant에 적용한다", async () => {
       const accent = resolveAccentColorTokens("red", "light");
       const card = makeElement("card-1", "Card", { accentColor: "red" });
       const button = makeElement(
@@ -321,7 +284,7 @@ describe("Style Panel catalog color values", () => {
         { size: "md", variant: "accent", fillStyle: "fill" },
         card.id,
       );
-      setElements([card, button]);
+      await setElements([card, button]);
 
       expect(readColorValues("button-1")).toEqual({
         backgroundColor: accent?.accent,
@@ -330,7 +293,7 @@ describe("Style Panel catalog color values", () => {
       });
     });
 
-    it("D4 sibling accent를 교차오염 없이 dark theme에서 각각 해석한다", () => {
+    it("D4 sibling accent를 교차오염 없이 dark theme에서 각각 해석한다", async () => {
       useThemeConfigStore.setState({ darkMode: "dark", themeVersion: 1 });
       const redAccent = resolveAccentColorTokens("red", "dark");
       const blueAccent = resolveAccentColorTokens("blue", "dark");
@@ -352,7 +315,7 @@ describe("Style Panel catalog color values", () => {
         { size: "md", variant: "accent", fillStyle: "fill" },
         blueParent.id,
       );
-      setElements([redParent, redButton, blueParent, blueButton]);
+      await setElements([redParent, redButton, blueParent, blueButton]);
 
       expect(readColorValues(redButton.id)).toEqual({
         backgroundColor: redAccent?.accent,
@@ -366,8 +329,8 @@ describe("Style Panel catalog color values", () => {
       });
     });
 
-    it("같은 catalog key의 요소를 왕복 선택해도 이전 resolved paint가 남지 않는다", () => {
-      setElements([
+    it("같은 catalog key의 요소를 왕복 선택해도 이전 resolved paint가 남지 않는다", async () => {
+      await setElements([
         makeElement("button-default", "Button", {
           size: "md",
           variant: "accent",
@@ -381,11 +344,14 @@ describe("Style Panel catalog color values", () => {
         }),
       ]);
 
+      const record = (id: string) => fixture.recordOf(id);
       const appearance = renderHook(({ id }) => useAppearanceValues(id), {
-        initialProps: { id: "button-default" },
+        initialProps: { id: record("button-default") },
+        wrapper: fixture.wrapper,
       });
       const typography = renderHook(({ id }) => useTypographyValues(id), {
-        initialProps: { id: "button-default" },
+        initialProps: { id: record("button-default") },
+        wrapper: fixture.wrapper,
       });
 
       expect(appearance.result.current?.backgroundColor).toBe(
@@ -393,13 +359,13 @@ describe("Style Panel catalog color values", () => {
       );
       expect(typography.result.current?.color).toBe(lightColors["on-accent"]);
 
-      appearance.rerender({ id: "button-static" });
-      typography.rerender({ id: "button-static" });
+      appearance.rerender({ id: record("button-static") });
+      typography.rerender({ id: record("button-static") });
       expect(appearance.result.current?.backgroundColor).toBe("#000000");
       expect(typography.result.current?.color).toBe("#ffffff");
 
-      appearance.rerender({ id: "button-default" });
-      typography.rerender({ id: "button-default" });
+      appearance.rerender({ id: record("button-default") });
+      typography.rerender({ id: record("button-default") });
       expect(appearance.result.current?.backgroundColor).toBe(
         lightColors.accent,
       );

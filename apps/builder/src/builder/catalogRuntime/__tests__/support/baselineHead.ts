@@ -22,7 +22,8 @@ const TEST_FILE = /(\.test\.[cm]?[tj]sx?$)|(\/__tests__\/)/;
  * them while no product file outside these roots imports into them (then nothing outside reaches
  * them transitively either). `assertNewModelUnreachable` checks that at the compared HEAD, so the
  * new model can change during Phase 4a–4d without an old-app re-measure. The Phase 4e cutover
- * connects them and retires the old app — that commit fails this check by design.
+ * connects them and retires the old app — that commit fails this check by design, so the oracle
+ * is checked at `OLD_APP_FINAL_HEAD` from then on.
  */
 const NEW_MODEL_ROOTS = [
   "packages/shared/src/catalog/document/",
@@ -466,13 +467,30 @@ function stripComments(source: string, css: boolean): string {
   return output.replace(/[ \t]+$/gm, "").replace(/\n{2,}/g, "\n");
 }
 
+/**
+ * The last commit whose Builder entry is the old app (the parent of the Phase 4e-2 cutover
+ * `07a486880`, which opens catalog projects). After it the old app is not the product any more:
+ * the frozen G0 outputs are its final record, and later product changes are new-app changes that
+ * the G3 pairs judge against them — not oracle changes. A HEAD that contains it is checked there.
+ */
+const OLD_APP_FINAL_HEAD = "edf1ff224731a8ec77a612a56cbb73fef54bfd92";
+
+/** The commit the frozen oracle is valid at: HEAD, or `OLD_APP_FINAL_HEAD` once HEAD contains it. */
 export function baselineCompatibleHead(
   repo: string,
   baselineHead: string,
 ): string {
   const git = (...args: string[]) =>
     execFileSync("git", args, { cwd: repo, encoding: "utf8" });
-  const head = git("rev-parse", "HEAD").trim();
+  const current = git("rev-parse", "HEAD").trim();
+  let head = current;
+  if (current !== OLD_APP_FINAL_HEAD)
+    try {
+      git("merge-base", "--is-ancestor", OLD_APP_FINAL_HEAD, current);
+      head = OLD_APP_FINAL_HEAD;
+    } catch {
+      // Before the cutover (or another line of history): check HEAD itself.
+    }
   if (head === baselineHead) return head;
   try {
     git("merge-base", "--is-ancestor", baselineHead, head);

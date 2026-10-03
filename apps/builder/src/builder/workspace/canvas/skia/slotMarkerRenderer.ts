@@ -1,5 +1,5 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
-import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
+import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 import type { BoundingBox } from "../selection/types";
 import { SkiaDisposable } from "./disposable";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";

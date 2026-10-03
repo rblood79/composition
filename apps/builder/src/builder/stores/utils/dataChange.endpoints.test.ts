@@ -49,6 +49,9 @@ import {
   reduceDataOps,
   registerDataBindingConsumer,
 } from "./dataChange";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const endpoint = (patch: Partial<ApiEndpoint>): ApiEndpoint => ({
   id: "ep_users",

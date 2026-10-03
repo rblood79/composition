@@ -3242,7 +3242,15 @@ const statusLight: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
  *   가 렌더(fit "cover"). DOM(Avatar.tsx) 인라인 style 과 시각 대칭.
  */
 const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
-  const diameter = typeof size.height === "number" ? size.height : 32;
+  // The laid-out box when the consumer passes it (a slot chip resizes the avatar), else the size.
+  const box = props as { _containerWidth?: unknown; _containerHeight?: unknown };
+  const diameter =
+    typeof box._containerWidth === "number" &&
+    typeof box._containerHeight === "number"
+      ? Math.min(box._containerWidth, box._containerHeight)
+      : typeof size.height === "number"
+        ? size.height
+        : 32;
   const radius = diameter / 2;
 
   const bgColor =

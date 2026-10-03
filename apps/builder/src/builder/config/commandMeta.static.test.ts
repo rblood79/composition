@@ -7,7 +7,7 @@
  */
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { SHORTCUT_DEFINITIONS, type ShortcutId } from "./keyboardShortcuts";
 import type { ShortcutDefinition } from "../types/keyboard";
 import {
@@ -16,11 +16,33 @@ import {
   validateCommandMeta,
   type CommandMeta,
 } from "./commandMeta";
-import { AGENT_COMMANDS } from "../../services/agent/agentCommands";
+import { AGENT_VIEW_COMMANDS } from "../../services/agent/agentViewCommands";
+import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
+import { openStylesFixture } from "../panels/styles/__tests__/support/catalogStylesFixture";
 
 const IDS = Object.keys(SHORTCUT_DEFINITIONS) as ShortcutId[];
 const DEFS = SHORTCUT_DEFINITIONS as Record<ShortcutId, ShortcutDefinition>;
-const adapterIds = () => new Set(Object.keys(AGENT_COMMANDS) as ShortcutId[]);
+/**
+ * The commands an agent can run in the open Builder (ADR-248 4e-5): the view adapter table, and
+ * what the catalog agent host plans for an agent-callable id (the executor asks the host only for
+ * those — the host also plans keyboard-only commands). A refusal for the moment still counts;
+ * "not-supported" does not.
+ */
+let adapters: ReadonlySet<ShortcutId>;
+beforeAll(async () => {
+  const host = createCatalogAgentCommandHost(
+    (await openStylesFixture([])).workspace,
+  );
+  adapters = new Set(
+    IDS.filter((id) => {
+      if (id in AGENT_VIEW_COMMANDS) return true;
+      if (!COMMAND_META[id].agentCallable) return false;
+      const plan = host.plan(id);
+      return plan !== undefined && !("reason" in plan && plan.reason === "not-supported");
+    }),
+  );
+});
+const adapterIds = () => new Set(adapters);
 
 /** Phase 0 확정 allowlist 40 (breakdown §2 Phase 0 실측 결과). */
 const ALLOWLIST: ShortcutId[] = [
@@ -148,18 +170,19 @@ describe("COMMAND_META 정적 게이트 (ADR-196 §3-2)", () => {
     expect(external.every((id) => !COMMAND_META[id].agentCallable)).toBe(true);
   });
 
-  it("조항 5 — adapter 파일은 AGENT_COMMANDS 만 값으로 export 한다 (executor 밖 우회 경로 0)", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../../services/agent/agentCommands.ts"),
+  it("조항 5 — view adapter 파일은 AGENT_VIEW_COMMANDS 만 값으로 export 한다 (executor 밖 우회 경로 0)", async () => {
+    const valueExports = (text: string) =>
+      [
+        ...text.matchAll(
+          /^export (?:const|function|let|class|async function) (\w+)/gm,
+        ),
+      ].map((m) => m[1]);
+    const viewSource = await readFile(
+      resolve(__dirname, "../../services/agent/agentViewCommands.ts"),
       "utf-8",
     );
-    const valueExports = [
-      ...source.matchAll(
-        /^export (?:const|function|let|class|async function) (\w+)/gm,
-      ),
-    ].map((m) => m[1]);
-    expect(valueExports).toEqual(["AGENT_COMMANDS"]);
-    expect(source).not.toMatch(/^export \{/m);
-    expect(source).not.toMatch(/^export default/m);
+    expect(valueExports(viewSource)).toEqual(["AGENT_VIEW_COMMANDS"]);
+    expect(viewSource).not.toMatch(/^export \{/m);
+    expect(viewSource).not.toMatch(/^export default/m);
   });
 });

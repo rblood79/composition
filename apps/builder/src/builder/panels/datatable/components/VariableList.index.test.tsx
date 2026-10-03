@@ -1,93 +1,116 @@
 // @vitest-environment jsdom
 /**
  * ADR-214 Phase 5 — Data 탭 Variables: 프로젝트 변수 (편집 가능, 사용처 배지) + 페이지 · 컴포넌트
- * 인덱스 (소유자 열 · 클릭 → 페이지 활성화 + 요소 선택 + Properties 상태 절 포커스 요청).
+ * 인덱스 (소유자 열 · 클릭 → 소유자 선택 + Properties 상태 절 포커스 요청).
+ * ADR-248 4e-9 C: catalog workspace 의 변수 host 위에서 (옛 store host 는 옛 store 와 함께 제거).
  */
-import type { ReactElement } from "react";
+import type { ReactNode } from "react";
 import { cleanup, fireEvent, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
-
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type {
+  EntryId,
+  NodeId,
+} from "../../../../../../../packages/shared/src/catalog/document/types";
+import {
+  renameNode,
+  setFields,
+} from "../../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "@/i18n";
-import { useStore } from "../../../stores";
 import { useDataStore } from "../../../stores/data";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
+import { catalogVariableCommands } from "../../../catalogRuntime/stateVariables";
+import {
+  nodeIdOf,
+  openStylesFixture,
+} from "../../styles/__tests__/support/catalogStylesFixture";
 import { VariableList } from "./VariableList";
 
 vi.mock("../../../layout/panelWorkspaceVisibility", () => ({
   setPanelWorkspacePanelVisibility: vi.fn(),
 }));
 
+const HOME = "project:page:home" as EntryId<"page">;
+const BODY = "project:node:home-body" as NodeId;
 const PROJECT_ID = "p-vars";
 
-const doc: CompositionDocument = {
-  version: "composition-1.0",
-  children: [
-    {
-      id: "home",
-      type: "frame",
-      name: "Home",
-      metadata: { type: "page" },
-      state: [{ id: "v-filter", name: "filter", type: "string", defaultValue: "" }],
-      children: [
-        {
-          id: "list",
-          type: "ListBox",
-          name: "users-list",
-          state: [
-            { id: "v-sel", name: "selectedKey", type: "string", source: { prop: "selectedKeys" } },
-          ],
-          children: [],
-        },
-        { id: "t1", type: "Text", props: { children: "{{ count }} {{ filter }}" } },
-      ],
-    },
-  ],
-} as unknown as CompositionDocument;
-
-const renderWithI18n = (ui: ReactElement) => render(ui, { wrapper: I18nProvider });
+afterEach(() => cleanup());
 
 describe("VariableList — 인덱스 (ADR-214 Phase 5)", () => {
-  beforeEach(() => {
-    useCanonicalDocumentStore.setState({ documents: new Map(), currentProjectId: null, documentVersion: 0 });
-    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, doc);
-    useCanonicalDocumentStore.getState().setCurrentProject(PROJECT_ID);
-    useStore.setState({
-      pages: [{ id: "home", title: "Home", slug: "/", project_id: PROJECT_ID, parent_id: null }],
-      currentPageId: "home",
-      lazyLoadingEnabled: false,
-      pageElementsSnapshot: { home: [{ id: "body-1", type: "body" }] },
-      activatePage: vi.fn(),
-    } as never);
+  it("프로젝트 행에 사용처 1 · 인덱스에 페이지 변수 + 요소 변수 행 · 행 클릭 → 소유자 선택 + 포커스 요청", async () => {
+    const fixture = await openStylesFixture([
+      { id: "list", type: "ListBox" },
+      { id: "t1", type: "Text" },
+    ]);
+    const { workspace } = fixture;
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: nodeIdOf("t1") }],
+        props: {
+          children: { kind: "set", value: "{{ count }} {{ filter }}" },
+        },
+      } as Parameters<typeof setFields>[0]),
+    );
+    workspace.execute(renameNode({ id: nodeIdOf("list"), name: "users-list" }));
+    workspace.execute(
+      catalogVariableCommands.add(HOME, "filter", workspace.newId),
+    );
+    workspace.execute(
+      catalogVariableCommands.add(
+        nodeIdOf("list"),
+        "selectedKey",
+        workspace.newId,
+      ),
+    );
     useDataStore.setState({
       variables: new Map([
-        ["count", { id: "v-count", name: "count", type: "number", scope: "global", project_id: PROJECT_ID, persist: false, owner: { kind: "project" } }],
+        [
+          "count",
+          {
+            id: "v-count",
+            name: "count",
+            type: "number",
+            scope: "global",
+            project_id: PROJECT_ID,
+            persist: false,
+            owner: { kind: "project" },
+          },
+        ],
       ]),
     } as never);
-  });
-  afterEach(() => cleanup());
 
-  it("프로젝트 행에 사용처 1 · 인덱스에 페이지 변수 + 요소 변수 (암묵) 행 · 요소 행 클릭 → activatePage(home, list) + 포커스 요청", () => {
-    const { container } = renderWithI18n(<VariableList projectId={PROJECT_ID} />);
-    const projectRow = container.querySelector('[data-variable-group="project"] .list-item');
+    const { container } = render(<VariableList projectId={PROJECT_ID} />, {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <I18nProvider>{fixture.wrapper({ children })}</I18nProvider>
+      ),
+    });
+    const projectRow = container.querySelector(
+      '[data-variable-group="project"] .list-item',
+    );
     expect(projectRow?.textContent).toContain("count");
     expect(projectRow?.textContent).toContain("Used in 1");
 
     const indexRows = [...container.querySelectorAll(".variable-index-item")];
-    expect(indexRows.map((row) => row.getAttribute("data-owner-kind"))).toEqual(["page", "element"]);
-    expect(indexRows[0].textContent).toContain("filter");
-    expect(indexRows[0].textContent).toContain("Used in 1");
-    expect(indexRows[1].textContent).toContain("selectedKey");
-    expect(indexRows[1].textContent).toContain("implicit selectedKeys");
-    expect(indexRows[1].querySelector(".list-item-badge")?.textContent).toBe("users-list");
+    expect(indexRows.map((row) => row.getAttribute("data-owner-kind"))).toEqual(
+      ["page", "element"],
+    );
+    expect(indexRows[0]!.textContent).toContain("filter");
+    expect(indexRows[0]!.textContent).toContain("Used in 1");
+    expect(indexRows[1]!.textContent).toContain("selectedKey");
 
-    fireEvent.click(indexRows[1]);
-    expect(useStore.getState().activatePage).toHaveBeenCalledWith("home", "list");
-    expect(useStateSectionFocus.getState().request).toMatchObject({ ownerNodeId: "list", variableId: "v-sel" });
+    fireEvent.click(indexRows[1]!);
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.target),
+    ).toEqual([{ kind: "node", id: nodeIdOf("list") }]);
+    expect(useStateSectionFocus.getState().request).toMatchObject({
+      ownerNodeId: nodeIdOf("list"),
+    });
 
-    fireEvent.click(indexRows[0]);
-    expect(useStore.getState().activatePage).toHaveBeenCalledWith("home", "body-1");
-    expect(useStateSectionFocus.getState().request).toMatchObject({ ownerNodeId: "home", variableId: "v-filter" });
+    fireEvent.click(indexRows[0]!);
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.target),
+    ).toEqual([{ kind: "node", id: BODY }]);
+    expect(useStateSectionFocus.getState().request).toMatchObject({
+      ownerNodeId: HOME,
+    });
   });
 });

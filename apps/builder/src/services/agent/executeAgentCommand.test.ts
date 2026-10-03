@@ -2,16 +2,16 @@
  * ADR-196 Phase 2 — executor 분기 (G2): denied / precondition-failed / declined / ok /
  * error · 배치 원소별 승인 · 기록 1:1 (5 status 전부) · 승인 전 store 변경 0.
  *
- * adapter 는 spy — 게이트가 adapter 를 부르는지 / 안 부르는지만 본다. adapter 자체의
- * 심볼 대조는 `agentCommands.test.ts`, history entry 수는 `agentCommands.history.test.ts`.
+ * adapter 는 spy — 게이트가 adapter 를 부르는지 / 안 부르는지만 본다. ADR-248 4e-7: 문서 · 선택
+ * 명령은 열린 Builder 의 host (`agentCommandHost`) 가 계획한다 — 여기서는 가짜 host 의 계획 spy 와
+ * 거부 사유로 게이트만 본다 (catalog host 자체는 `phase4eAgentCommands.test.ts`).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useStore } from "../../builder/stores";
-import { historyManager } from "../../builder/stores/history";
 import { useViewportSyncStore } from "../../builder/workspace/canvas/stores";
 import { useAgentCommandLogStore } from "../../builder/stores/agentCommandLog";
 import { useDataStore } from "../../builder/stores/data";
-import { AGENT_COMMANDS } from "./agentCommands";
+import { AGENT_VIEW_COMMANDS } from "./agentViewCommands";
+import { setAgentCommandHost, type AgentCommandPlan } from "./agentCommandHost";
 import { DATA_AGENT_COMMANDS } from "./dataAgentCommands";
 import {
   executeAgentCommand,
@@ -29,50 +29,44 @@ vi.mock("./dataAgentCommands", () => ({
   },
 }));
 
-vi.mock("./agentCommands", () => ({
-  AGENT_COMMANDS: {
+vi.mock("./agentViewCommands", () => ({
+  AGENT_VIEW_COMMANDS: {
     zoomIn: vi.fn(),
     toggleNavigator: vi.fn(),
-    undo: vi.fn(async () => undefined),
-    alignLeft: vi.fn(async () => undefined),
-    delete: vi.fn(async () => undefined),
-    cut: vi.fn(async () => undefined),
-    duplicate: vi.fn(async () => {
-      throw new Error("boom");
-    }),
   },
 }));
 
-const spies = AGENT_COMMANDS as unknown as Record<
+const viewSpies = AGENT_VIEW_COMMANDS as unknown as Record<
   string,
   ReturnType<typeof vi.fn>
 >;
+/** The host's plans (document commands) and its refusals (their precondition). */
+const plans: Record<string, ReturnType<typeof vi.fn>> = {};
+let refusals: Record<string, string> = {};
+const spies = new Proxy({} as Record<string, ReturnType<typeof vi.fn>>, {
+  get: (_target, id: string) => viewSpies[id] ?? plans[id],
+});
+let uninstall: (() => void) | undefined;
 
-function seed(selected: string[], multi = selected.length > 1) {
-  const elementsMap = new Map(
-    ["body", "a", "b"].map((id) => [
-      id,
-      {
-        id,
-        type: id === "body" ? "body" : "Button",
-        props: {},
-        parent_id: id === "body" ? null : "body",
-        page_id: "page-1",
-      },
-    ]),
-  );
-  useStore.setState({
-    currentPageId: "page-1",
-    selectedElementId: selected[0] ?? null,
-    selectedElementIds: selected,
-    multiSelectMode: multi,
-    elementsMap,
-  } as never);
+function seed(refuse: Record<string, string> = {}) {
+  for (const id of ["undo", "alignLeft", "delete", "cut"])
+    plans[id] = vi.fn(async () => undefined);
+  plans.duplicate = vi.fn(async () => {
+    throw new Error("boom");
+  });
+  refusals = refuse;
+  uninstall?.();
+  uninstall = setAgentCommandHost({
+    plan: (id): AgentCommandPlan | { reason: string } | undefined => {
+      if (refusals[id]) return { reason: refusals[id] };
+      const run = plans[id];
+      return run ? { run: () => (run as () => Promise<void>)() } : undefined;
+    },
+    historyIndex: () => 7,
+  });
   useViewportSyncStore.setState({
     containerSize: { width: 800, height: 600 },
   } as never);
-  historyManager.clearAllHistory();
-  historyManager.setCurrentPage("page-1");
 }
 
 function ctx(approve = true): AgentExecutionContext & {
@@ -90,7 +84,7 @@ describe("executeAgentCommand — 게이트 분기", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAgentCommandLogStore.getState().clear();
-    seed(["a"]);
+    seed();
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -122,8 +116,8 @@ describe("executeAgentCommand — 게이트 분기", () => {
 
   // ADR-236 Phase 3 (E9) — 판정은 개수만 본다. `multiSelectMode` 를 따로 요구하면 메뉴 (개수 판정) 에
   //   선 항목이 no-op 이 된다.
-  it("precondition-failed — alignLeft 는 이동 가능한 선택이 2 개 미만이면 adapter 를 부르지 않는다", async () => {
-    seed(["a"], false);
+  it("precondition-failed — the host's refusal (alignLeft: fewer than 2 movable) runs nothing", async () => {
+    seed({ alignLeft: "selection-lt-2" });
     const r = await executeAgentCommand("alignLeft", undefined, ctx());
     expect(r).toMatchObject({
       status: "precondition-failed",
@@ -136,8 +130,8 @@ describe("executeAgentCommand — 게이트 분기", () => {
     });
   });
 
-  it("precondition-failed — delete 는 body 만 선택되면 selection-empty", async () => {
-    seed(["body"]);
+  it("precondition-failed — delete refused (selection-empty) asks no confirm", async () => {
+    seed({ delete: "selection-empty" });
     const r = await executeAgentCommand("delete", undefined, ctx());
     expect(r).toMatchObject({
       status: "precondition-failed",
@@ -166,11 +160,12 @@ describe("executeAgentCommand — 게이트 분기", () => {
     const c = ctx(true);
     const r = await executeAgentCommand("delete", undefined, c);
     expect(spies.delete).toHaveBeenCalledTimes(1);
-    expect(spies.delete).toHaveBeenCalledWith(
-      expect.objectContaining({ elementsMap: useStore.getState().elementsMap }),
-    );
-    expect(r).toMatchObject({ status: "ok", id: "delete", undoable: true });
-    expect(r).toHaveProperty("historyIndex");
+    expect(r).toMatchObject({
+      status: "ok",
+      id: "delete",
+      undoable: true,
+      historyIndex: 7,
+    });
     expect(log()[0]).toMatchObject({ status: "ok", undoable: true });
   });
 
@@ -195,7 +190,8 @@ describe("executeAgentCommand — 게이트 분기", () => {
     expect(log()[0]).toMatchObject({ status: "ok", id: "toggleNavigator" });
   });
 
-  it("precondition — undo 는 canUndo 가 false 면 nothing-to-undo", async () => {
+  it("precondition — undo with nothing to undo (the host's reason)", async () => {
+    seed({ undo: "nothing-to-undo" });
     const r = await executeAgentCommand("undo", undefined, ctx());
     expect(r).toMatchObject({
       status: "precondition-failed",
@@ -211,7 +207,7 @@ describe("executeAgentCommand — 게이트 분기", () => {
   });
 
   it("기록 1:1 — 호출 5건 (5 status) = 기록 5건, seq 단조 증가, host 기록", async () => {
-    seed(["a"], false);
+    seed({ alignLeft: "selection-lt-2" });
     await executeAgentCommand("nope", undefined, ctx()); // denied
     await executeAgentCommand("alignLeft", undefined, ctx()); // precondition-failed
     await executeAgentCommand("delete", undefined, ctx(false)); // declined
@@ -236,7 +232,7 @@ describe("executeAgentCommands — 배치", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAgentCommandLogStore.getState().clear();
-    seed(["a", "b"]);
+    seed();
   });
 
   it("원소별 승인 — confirm:true 원소마다 requestConfirm 이 따로 온다", async () => {
@@ -254,6 +250,7 @@ describe("executeAgentCommands — 배치", () => {
   });
 
   it("첫 non-ok 에서 중단 — 거부된 delete 뒤의 alignLeft 는 실행되지 않는다", async () => {
+    seed();
     const c = ctx(false);
     const results = await executeAgentCommands(
       [{ id: "zoomIn" }, { id: "delete" }, { id: "alignLeft" }],
@@ -286,7 +283,7 @@ describe("executeAgentCommand — data.* (ADR-213 Phase 5) 같은 게이트", ()
   beforeEach(() => {
     vi.clearAllMocks();
     useAgentCommandLogStore.getState().clear();
-    seed(["a"]);
+    seed();
     seedData();
   });
 
@@ -480,5 +477,20 @@ describe("listAgentCommands — descriptor", () => {
     expect(list.some((d) => d.id === "toggleNavigator")).toBe(true);
     expect(list.some((d) => d.id === ("toggleNodes" as never))).toBe(false);
     expect(list.every((d) => d.description.length > 0)).toBe(true);
+  });
+});
+
+describe("executeAgentCommand — without a host (ADR-248 4e-7)", () => {
+  it("a document command does not reach the old store: adapter-missing; a view command runs", async () => {
+    uninstall?.();
+    uninstall = undefined;
+    vi.clearAllMocks();
+    expect(await executeAgentCommand("delete", undefined, ctx())).toMatchObject(
+      { status: "denied", reason: "adapter-missing" },
+    );
+    expect(await executeAgentCommand("zoomIn", undefined, ctx())).toMatchObject(
+      { status: "ok" },
+    );
+    expect(viewSpies.zoomIn).toHaveBeenCalledTimes(1);
   });
 });

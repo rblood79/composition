@@ -18,11 +18,9 @@
 import { memo, useRef } from "react";
 import { Button } from "react-aria-components/Button";
 import { Minus } from "lucide-react";
-import {
-  PropertyRowMenu,
-  PropertySection,
-  PropertySlider,
-} from "../../../components";
+import { PropertyRowMenu } from "../../../components/property/PropertyRowMenu";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySlider } from "../../../components/property/PropertySlider";
 import { SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
@@ -34,7 +32,6 @@ import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { useStore } from "../../../stores";
 import {
   BoxShadowLayerRow,
   type BoxShadowLayerAction,
@@ -52,6 +49,7 @@ import { parseFilterBlurPx, setFilterBlurPx } from "../utils/filterValue";
 import { useSemanticLabel } from "../../../../i18n";
 
 import "./EffectSection.css";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
 const AddIcon = ACTION_ICONS.add;
 
@@ -97,8 +95,11 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     isOpacityPresentationOwned,
     previewOpacityPresentation,
   } = useStylePresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
+  // catalog Builder: 색 드래그도 Styles host 미리보기 (presentation 채널 없음)
+  const host = useStylesHost();
+  const livePreview = !host.presentation;
   // 레이어 topology 가 바뀐 뒤 (추가·제거) 행 목록은 index key 라 그대로, 편집기만 remount.
   const editorMountRef = useRef(0);
 
@@ -265,8 +266,11 @@ const EffectSectionContent = memo(function EffectSectionContent() {
             editor={{
               onPreview: handleBoxShadowModelPreview,
               onCommit: handleBoxShadowModelCommit,
-              onCancel: cancelBoxShadowPresentation,
+              onCancel: (reason) => {
+                if (!cancelBoxShadowPresentation(reason)) host.cancelPreview?.();
+              },
               presentationOwnsFrameScheduling: presentationOwnsBoxShadow,
+              livePreview,
             }}
           />
         ))}

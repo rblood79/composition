@@ -1,386 +1,165 @@
 // @vitest-environment jsdom
 import { renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
-import type { Element } from "../../../../types/core/store.types";
-import { useStore } from "../../../stores";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { seedPanelElements } from "../../../__tests__/panelFixture";
+import { describe, expect, it } from "vitest";
+import { createDefaultColorFill } from "../../../../types/builder/fill.types";
+import {
+  openStylesFixture,
+  type StylesFixture,
+} from "../__tests__/support/catalogStylesFixture";
 import { useElementStyleContext } from "./useElementStyleContext";
 
-function makeElement(id: string, overrides: Partial<Element> = {}): Element {
-  return {
-    id,
-    type: "Button",
-    parent_id: null,
-    page_id: "page-1",
-    order_num: 0,
-    props: {},
-    ...overrides,
-  } as Element;
-}
-
-/** Form origin (Components 페이지) 안 TextField 자식 · page-1 에 Form instance — 자식은 synthetic `form-1/field-1`. */
-function makeSyntheticFormDocument(
-  descendants?: Record<string, Record<string, unknown>>,
-): CompositionDocument {
-  return {
-    version: "composition-1.0",
-    children: [
-      {
-        id: "page-components",
-        type: "frame",
-        metadata: { type: "legacy-page", pageId: "page-components" },
-        children: [
-          {
-            id: "page-components-body",
-            type: "body",
-            props: {},
-            children: [
-              {
-                id: "component-form",
-                type: "Form",
-                reusable: true,
-                props: {},
-                children: [
-                  {
-                    id: "field-1",
-                    type: "TextField",
-                    props: { label: "Name", labelPosition: "top" },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "page-1",
-        type: "frame",
-        metadata: { type: "legacy-page", pageId: "page-1" },
-        children: [
-          {
-            id: "body",
-            type: "body",
-            props: {},
-            children: [
-              {
-                id: "form-1",
-                type: "ref",
-                ref: "component-form",
-                props: {},
-                ...(descendants ? { descendants } : {}),
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  } as unknown as CompositionDocument;
+/**
+ * ADR-248 4e-9 C: the Styles read seam over the catalog workspace. An instance reads its
+ * component's values under its own (the old origin baseline tier, 2026-07-25 — the render lays the
+ * component under the instance, so the panel must too); a position inside an instance reads the
+ * resolved node.
+ */
+function contextOf(fixture: StylesFixture, record: string) {
+  return renderHook(() => useElementStyleContext(record), {
+    wrapper: fixture.wrapper,
+  });
 }
 
 describe("useElementStyleContext", () => {
-  beforeEach(() => {
-    useStore.setState({
-      elements: [],
-      elementsMap: new Map(),
-      selectedElementId: null,
-      selectedElementProps: {},
-      activeBreakpoint: "desktop",
-    } as never);
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
-  });
+  it("instance 안 자식도 해소된 노드로 읽는다 — component 의 타입 · instance 의 덮어쓰기", async () => {
+    const fixture = await openStylesFixture([
+      { id: "form" },
+      {
+        id: "field-1",
+        type: "TextField",
+        parent: "form",
+        props: { label: "Name", labelPosition: "top" },
+      },
+    ]);
+    const instance = fixture.componentize("form", "Form");
+    const child = fixture.workspace.root.domInputs.get(instance)!.children[0]!;
+    fixture.workspace.selectRecords([child]);
+    fixture.host.updateProperty("labelPosition", "side");
+    fixture.host.updateStyle("width", "200px");
 
-  it("instance 안 자식 (synthetic `<instance>/<path>`) 도 해소된 노드로 읽는다 — origin 타입 · descendants patch", () => {
-    useCanonicalDocumentStore.setState({
-      currentProjectId: "project-1",
-      documents: new Map([
-        [
-          "project-1",
-          makeSyntheticFormDocument({
-            "field-1": { labelPosition: "side", style: { width: "200px" } },
-          }),
-        ],
-      ]),
-      documentVersion: 1,
-    });
-
-    const { result } = renderHook(() => useElementStyleContext("form-1/field-1"));
+    const { result } = contextOf(fixture, child);
 
     expect(result.current.type).toBe("TextField");
     expect(result.current.props?.labelPosition).toBe("side");
     expect(result.current.style?.width).toBe("200px");
   });
 
-  it("resolves a canonical ref instance style type from its reusable origin", () => {
-    const doc: CompositionDocument = {
-      version: "composition-1.0",
-      children: [
-        {
-          id: "button-origin",
-          type: "Button",
-          name: "PrimaryAction",
-          reusable: true,
-          props: {
-            size: "md",
-            style: { width: "120px" },
-          },
-        },
-        {
-          id: "button-instance",
-          type: "ref",
-          ref: "button-origin",
-          name: "PrimaryAction",
-          props: {
-            size: "md",
-            style: { width: "240px" },
-          },
-        },
-      ],
-    } as never;
+  it("resolves an instance's type from its component (its own width wins)", async () => {
+    const fixture = await openStylesFixture([
+      { id: "button", type: "Button", style: { width: "120px" } },
+    ]);
+    const instance = fixture.componentize("button", "PrimaryAction");
+    fixture.workspace.selectRecords([instance]);
+    fixture.host.updateStyle("width", "240px");
 
-    useCanonicalDocumentStore.setState({
-      currentProjectId: "project-1",
-      documents: new Map([["project-1", doc]]),
-      documentVersion: 1,
-    });
-
-    const { result } = renderHook(() =>
-      useElementStyleContext("button-instance"),
-    );
+    const { result } = contextOf(fixture, instance);
 
     expect(result.current.type).toBe("Button");
     expect(result.current.style?.width).toBe("240px");
   });
 
-  it("uses a registered componentName as fallback for a ref instance without a hydrated origin", () => {
-    const listBoxRef = makeElement("listbox-instance", {
-      type: "ref",
-      ref: "component-listbox",
-      componentName: "ListBox",
-      props: {
-        orientation: "vertical",
-        style: { width: "100%" },
-      },
-    } as never);
-
-    seedPanelElements([listBoxRef]);
-
-    const { result } = renderHook(() =>
-      useElementStyleContext("listbox-instance"),
-    );
-
-    expect(result.current.type).toBe("ListBox");
-    expect(result.current.style?.width).toBe("100%");
-  });
-
-  // ── origin(master) style baseline tier (2026-07-25) ─────────────────────
-  //   렌더 SSOT(resolveCanonicalRefProps → mergePropsWithStyleDeep)는 origin props 를
-  //   깔고 instance override 를 얹는다. 패널이 instance own 만 읽으면 origin 이 공급한
-  //   boxShadow/padding/size 가 사라져 catalog preset 또는 하드코딩 fallback 으로 표시된다
-  //   (실측: ListBox origin boxShadow=inset lg / padding=10 → 패널 none / 4).
-  describe("reusable instance origin baseline", () => {
-    function setDoc(children: unknown[]) {
-      useCanonicalDocumentStore.setState({
-        currentProjectId: "project-1",
-        documents: new Map([
-          [
-            "project-1",
-            { version: "composition-1.0", children } as CompositionDocument,
-          ],
-        ]),
-        documentVersion: 1,
-      });
-    }
-
-    it("inherits origin style keys the instance does not override", () => {
-      setDoc([
+  describe("instance component baseline", () => {
+    it("inherits component style keys the instance does not override", async () => {
+      const fixture = await openStylesFixture([
         {
-          id: "listbox-origin",
-          type: "ListBox",
-          reusable: true,
-          props: {
-            size: "lg",
-            style: { paddingTop: 10, boxShadow: "inset 0 10px 15px -3px #000" },
+          id: "button",
+          type: "Button",
+          props: { size: "lg" },
+          style: {
+            paddingTop: "10px",
+            boxShadow: "inset 0 10px 15px -3px #000",
           },
         },
-        {
-          id: "listbox-ref",
-          type: "ref",
-          ref: "listbox-origin",
-          props: { style: { width: "100%", overflow: "auto" } },
-        },
       ]);
+      const instance = fixture.componentize("button", "Action");
+      fixture.workspace.selectRecords([instance]);
+      fixture.host.updateStyles({ width: "100%", overflow: "auto" });
 
-      const { result } = renderHook(() =>
-        useElementStyleContext("listbox-ref"),
-      );
+      const { result } = contextOf(fixture, instance);
 
       expect(result.current.style?.boxShadow).toBe(
         "inset 0 10px 15px -3px #000",
       );
-      expect(result.current.style?.paddingTop).toBe(10);
+      expect(result.current.style?.paddingTop).toBe("10px");
       // instance 고유 키는 그대로
       expect(result.current.style?.width).toBe("100%");
-      // props 축도 동일 병합 — size 는 catalog preset tier 선택에 쓰인다
+      // props 축도 같은 병합 — size 는 catalog preset tier 선택에 쓰인다
       expect(result.current.size).toBe("lg");
     });
 
-    it("keeps the instance override winning over the origin value", () => {
-      setDoc([
+    it("keeps the instance override winning over the component value", async () => {
+      const fixture = await openStylesFixture([
         {
-          id: "listbox-origin",
-          type: "ListBox",
-          reusable: true,
-          props: { size: "lg", style: { boxShadow: "none", paddingTop: 10 } },
-        },
-        {
-          id: "listbox-ref",
-          type: "ref",
-          ref: "listbox-origin",
-          props: { size: "sm", style: { boxShadow: "0 1px 2px 0 #000" } },
+          id: "button",
+          type: "Button",
+          props: { size: "lg" },
+          style: { boxShadow: "none", paddingTop: "10px" },
         },
       ]);
+      const instance = fixture.componentize("button", "Action");
+      fixture.workspace.selectRecords([instance]);
+      fixture.host.updateProperty("size", "sm");
+      fixture.host.updateStyle("boxShadow", "0 1px 2px 0 #000");
 
-      const { result } = renderHook(() =>
-        useElementStyleContext("listbox-ref"),
-      );
+      const { result } = contextOf(fixture, instance);
 
       expect(result.current.style?.boxShadow).toBe("0 1px 2px 0 #000");
-      expect(result.current.style?.paddingTop).toBe(10);
+      expect(result.current.style?.paddingTop).toBe("10px");
       expect(result.current.size).toBe("sm");
     });
 
-    it("resolves each tier's responsive override before merging", () => {
-      useStore.setState({ activeBreakpoint: "mobile" } as never);
-      setDoc([
+    it("resolves each tier's breakpoint layer before merging", async () => {
+      const fixture = await openStylesFixture([
         {
-          id: "listbox-origin",
+          id: "listbox",
           type: "ListBox",
-          reusable: true,
-          props: { style: { paddingTop: 10, rowGap: 4 } },
-          responsive: { styles: { paddingTop: { mobile: 2 } } },
-        },
-        {
-          id: "listbox-ref",
-          type: "ref",
-          ref: "listbox-origin",
-          props: { style: { width: "100%" } },
-          responsive: { styles: { width: { mobile: "50%" } } },
+          style: { paddingTop: "10px", rowGap: "4px" },
         },
       ]);
+      fixture.select("listbox");
+      fixture.setBreakpoint("mobile");
+      fixture.host.updateStyle("paddingTop", "2px");
+      fixture.setBreakpoint("desktop");
+      const instance = fixture.componentize("listbox", "List");
+      fixture.workspace.selectRecords([instance]);
+      fixture.host.updateStyle("width", "100%");
+      fixture.setBreakpoint("mobile");
+      fixture.host.updateStyle("width", "50%");
 
-      const { result } = renderHook(() =>
-        useElementStyleContext("listbox-ref"),
-      );
+      const { result } = contextOf(fixture, instance);
 
-      // origin 의 breakpoint override 가 instance responsive 해석에 덮이지 않는다
-      expect(result.current.style?.paddingTop).toBe(2);
-      expect(result.current.style?.rowGap).toBe(4);
+      // component 의 breakpoint 값이 instance 의 breakpoint 해석에 덮이지 않는다
+      expect(result.current.style?.paddingTop).toBe("2px");
+      expect(result.current.style?.rowGap).toBe("4px");
       expect(result.current.style?.width).toBe("50%");
     });
 
-    it("ref origin responsive 뒤에 instance inline/responsive override를 적용한다", () => {
-      useStore.setState({ activeBreakpoint: "mobile" } as never);
-      setDoc([
-        {
-          id: "button-origin",
-          type: "Button",
-          reusable: true,
-          props: {
-            style: {
-              paddingTop: 10,
-              width: "100%",
-            },
-          },
-          responsive: {
-            styles: {
-              paddingTop: { mobile: 2 },
-              width: { mobile: "50%" },
-            },
-          },
-        },
-        {
-          id: "button-ref",
-          type: "ref",
-          ref: "button-origin",
-          props: { style: { width: "75%" } },
-          responsive: {
-            styles: { height: { mobile: 80 } },
-          },
-        },
+    it("falls back to the component fills when the instance has none", async () => {
+      const fill = createDefaultColorFill("#123456FF");
+      const fixture = await openStylesFixture([
+        { id: "listbox", type: "ListBox", fills: [fill] },
       ]);
+      const instance = fixture.componentize("listbox", "List");
 
-      const { result } = renderHook(() => useElementStyleContext("button-ref"));
+      const { result } = contextOf(fixture, instance);
 
-      expect(result.current.style).toMatchObject({
-        paddingTop: 2,
-        width: "75%",
-        height: 80,
-      });
+      expect(result.current.fills).toEqual([fill]);
     });
 
-    it("falls back to the origin fills when the instance has none", () => {
-      setDoc([
-        {
-          id: "listbox-origin",
-          type: "ListBox",
-          reusable: true,
-          fills: [{ type: "solid", color: "#123456" }],
-          props: { style: {} },
-        },
-        {
-          id: "listbox-ref",
-          type: "ref",
-          ref: "listbox-origin",
-          props: { style: {} },
-        },
-      ]);
-
-      const { result } = renderHook(() =>
-        useElementStyleContext("listbox-ref"),
-      );
-
-      expect(result.current.fills).toEqual([
-        { type: "solid", color: "#123456" },
-      ]);
-    });
-
-    it("leaves a plain (non-ref) element untouched", () => {
-      setDoc([
+    it("leaves a plain (non-instance) element untouched", async () => {
+      const fixture = await openStylesFixture([
         {
           id: "badge-1",
           type: "Badge",
-          props: { style: { boxShadow: "0 4px 6px -1px #000" } },
+          style: { boxShadow: "0 4px 6px -1px #000" },
         },
       ]);
 
-      const { result } = renderHook(() => useElementStyleContext("badge-1"));
+      const { result } = contextOf(fixture, fixture.recordOf("badge-1"));
 
       expect(result.current.style).toEqual({
         boxShadow: "0 4px 6px -1px #000",
       });
     });
-  });
-
-  it("does not treat arbitrary instance names as component spec types", () => {
-    const ref = makeElement("missing-origin-instance", {
-      type: "ref",
-      ref: "missing-origin",
-      componentName: "PrimaryAction",
-      props: { style: {} },
-    } as never);
-
-    seedPanelElements([ref]);
-
-    const { result } = renderHook(() =>
-      useElementStyleContext("missing-origin-instance"),
-    );
-
-    expect(result.current.type).toBe("ref");
   });
 });

@@ -57,8 +57,23 @@ import {
  * cutover uses it as is). D1 stays with RAC: bindings pick the component and pass ARIA-relevant
  * props only; visual values come from the resolved node, never from a per-type stylesheet here.
  */
+/**
+ * A running Preview's per-record behavior (ADR-248 4e-6): the interaction rules' event handlers
+ * and the prop overrides capabilities write (runtime state, never the document).
+ */
+export interface CatalogDomRuntime {
+  /** Moves when the record's handlers or override change (the node renders again). */
+  revisionOf(id: string): number;
+  handlersOf(id: string): Readonly<Record<string, (...args: unknown[]) => void>>;
+  /** Prop patch of a record (`style` merges into its computed style). */
+  overrideOf(id: string): Readonly<Record<string, unknown>> | undefined;
+  subscribe(id: string, notify: () => void): () => void;
+}
+
 export interface CatalogDomContext {
   slotMode?: "edit" | "page";
+  /** The Preview's runtime (rules and capability overrides); absent = a static render. */
+  runtime?: CatalogDomRuntime;
   /** Observation hook: called once per node binding render (initial mount and each delta). */
   onNodeRender?: (id: string) => void;
   /** Current date/time for date fields (deterministic renders in tests). */
@@ -280,6 +295,14 @@ export function catalogDomStyle(
       ...(metrics.wordBreak !== undefined
         ? { wordBreak: metrics.wordBreak as CSSProperties["wordBreak"] }
         : {}),
+      ...(metrics.overflowWrap !== undefined
+        ? {
+            overflowWrap: metrics.overflowWrap as CSSProperties["overflowWrap"],
+          }
+        : {}),
+      ...(metrics.textOverflow !== undefined
+        ? { textOverflow: metrics.textOverflow }
+        : {}),
       color: cssColor(metrics.color),
       ...(metrics.fontWeight !== undefined
         ? { fontWeight: metrics.fontWeight }
@@ -306,6 +329,18 @@ const element =
       ...children,
     );
 
+/**
+ * The side label layout the shared field wrappers read (`labelPosition` → `data-label-position`,
+ * `labelAlign` → `data-label-align`); absent values keep the wrapper defaults.
+ */
+const labelLayout = (node: CatalogConsumerNode) => ({
+  ...(typeof node.props.labelPosition === "string"
+    ? { labelPosition: node.props.labelPosition }
+    : {}),
+  ...(typeof node.props.labelAlign === "string"
+    ? { labelAlign: node.props.labelAlign }
+    : {}),
+});
 const glyph =
   (fallbackName: string, fallbackSize: number): DomBinding =>
   (node, style) =>
@@ -467,6 +502,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           ? node.props.placeholder
           : undefined,
       size: typeof node.props.size === "string" ? node.props.size : "md",
+      ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
       isInvalid: node.props.isInvalid === true,
       isRequired: node.props.isRequired === true,
@@ -483,6 +519,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           ? node.props.placeholder
           : undefined,
       size: typeof node.props.size === "string" ? node.props.size : "md",
+      ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
       isInvalid: node.props.isInvalid === true,
       isReadOnly: node.props.isReadOnly === true,
@@ -596,6 +633,8 @@ const TYPOGRAPHY_KEYS: ReadonlySet<string> = new Set([
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
 ]);
 const AUTHORED_CSS: Readonly<
   Record<string, (value: unknown) => CSSProperties>
@@ -865,8 +904,27 @@ function itemSlotRole(
 ): string | undefined {
   const role = node.props.slot;
   if (typeof role !== "string" || !ITEM_SLOT_ROLES.has(role)) return undefined;
-  const collection = collectionAncestor(root, node);
+  const collection =
+    collectionAncestor(root, node) ?? orphanItemHost(root, node);
   return collection && ITEM_SLOT_COLLECTIONS.has(collection) ? role : undefined;
+}
+/**
+ * The RAC host (lower-case) a standalone collection item above `node` renders in
+ * (`ORPHAN_ITEM_HOST`): its children are items' children like inside the collection (4e-11).
+ */
+function orphanItemHost(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string | undefined {
+  for (
+    let cursor = root.domInputs.get(node.parentId);
+    cursor;
+    cursor = root.domInputs.get(cursor.parentId)
+  ) {
+    const host = ORPHAN_ITEM_HOST[catalogTypeName(root, cursor).toLowerCase()];
+    if (host) return host.toLowerCase();
+  }
+  return undefined;
 }
 const STATIC_ITEM_TYPES: ReadonlySet<string> = componentTypeSet(
   "staticCollectionItem",
@@ -977,6 +1035,20 @@ const CatalogDomNode = memo(function CatalogDomNode({
     read,
     read,
   );
+  const runtime = context.runtime;
+  const readRevision = useCallback(
+    () => runtime?.revisionOf(id) ?? 0,
+    [runtime, id],
+  );
+  useSyncExternalStore(
+    useCallback(
+      (notify: () => void) =>
+        runtime ? runtime.subscribe(id, notify) : () => {},
+      [runtime, id],
+    ),
+    readRevision,
+    readRevision,
+  );
   const parentInput = node ? root.domInputs.get(node.parentId) : undefined;
   const watchedParentId =
     node &&
@@ -1000,6 +1072,66 @@ const CatalogDomNode = memo(function CatalogDomNode({
   // A removed node disappears through its parent's children delta; until then it renders nothing.
   if (!node) return null;
   context.onNodeRender?.(id);
+  const { rendered: shown, styleOverride } = withOverride(
+    node,
+    runtime?.overrideOf(id),
+  );
+  return withRuntime(
+    renderNode(root, shown, context, parentInput, watchedParent, styleOverride),
+    runtime?.handlersOf(id),
+  );
+});
+
+/** A capability's prop patch over the record (its `style` goes over the computed style). */
+function withOverride(
+  node: CatalogConsumerNode,
+  override: Readonly<Record<string, unknown>> | undefined,
+): { rendered: CatalogConsumerNode; styleOverride?: CSSProperties } {
+  if (!override) return { rendered: node };
+  const { style, ...props } = override;
+  return {
+    rendered: Object.keys(props).length
+      ? ({
+          ...node,
+          props: { ...node.props, ...props } as CatalogConsumerNode["props"],
+        } as CatalogConsumerNode)
+      : node,
+    ...(style && typeof style === "object"
+      ? { styleOverride: style as CSSProperties }
+      : {}),
+  };
+}
+
+/** The rules' handlers on the node's element, after any handler the binding set itself. */
+function withRuntime(
+  element: ReactElement | null,
+  handlers: Readonly<Record<string, (...args: unknown[]) => void>> | undefined,
+): ReactElement | null {
+  if (!element || !handlers || !Object.keys(handlers).length) return element;
+  const own = element.props as Record<string, unknown>;
+  const patch: Record<string, (...args: unknown[]) => void> = {};
+  for (const [name, handler] of Object.entries(handlers)) {
+    const existing = own[name];
+    patch[name] =
+      typeof existing === "function"
+        ? (...args: unknown[]) => {
+            (existing as (...a: unknown[]) => void)(...args);
+            handler(...args);
+          }
+        : handler;
+  }
+  return cloneElement(element, patch);
+}
+
+function renderNode(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  context: CatalogDomContext,
+  parentInput: CatalogConsumerNode | undefined,
+  watchedParent: CatalogConsumerNode | undefined,
+  styleOverride: CSSProperties | undefined,
+): ReactElement | null {
+  const id = node.id;
   const children = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
     ? []
     : node.children.map((childId) =>
@@ -1013,11 +1145,14 @@ const CatalogDomNode = memo(function CatalogDomNode({
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
     return withHtmlId(
+      root,
       node,
       delegated.render({
         root,
         node,
-        style: authoredStyle(root, node),
+        style: styleOverride
+          ? { ...authoredStyle(root, node), ...styleOverride }
+          : authoredStyle(root, node),
         renderChild: (childId) =>
           createElement(CatalogDomNode, {
             key: childId,
@@ -1032,30 +1167,59 @@ const CatalogDomNode = memo(function CatalogDomNode({
   const rendered = binding
     ? binding(
         node,
-        catalogDomStyle(node, watchedParent ?? parentInput),
+        styleOverride
+          ? {
+              ...catalogDomStyle(node, watchedParent ?? parentInput),
+              ...styleOverride,
+            }
+          : catalogDomStyle(node, watchedParent ?? parentInput),
         children,
         context,
       )
     : ruleDom(root, node, children);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
+    root,
     node,
     slot
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
       : rendered,
   );
-});
+}
 
-/** The author's DOM `id` (`metadata.htmlId`) on the node's own element, for every binding. */
+type ClassNameValue =
+  | string
+  | ((values: { defaultClassName?: string }) => string | undefined)
+  | undefined;
+
+/**
+ * The author's DOM attributes (`metadata` — every element) on the node's own element, for every
+ * binding: `id`, `aria-label`, and class names after the element's own. An element without a
+ * class of its own takes `react-aria-{Type}` first — a class passed to a RAC component replaces
+ * its default (the old Preview's root class + author class rule); a DOM tag takes the author's.
+ */
 function withHtmlId(
+  root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   element: ReactElement,
 ): ReactElement {
-  return node.htmlId
-    ? cloneElement(element as ReactElement<{ id?: string }>, {
-        id: node.htmlId,
-      })
-    : element;
+  if (!node.htmlId && !node.className && !node.ariaLabel) return element;
+  const patch: Record<string, unknown> = {};
+  if (node.htmlId) patch.id = node.htmlId;
+  if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
+  const authored = node.className;
+  if (authored) {
+    const own = (element.props as { className?: ClassNameValue }).className;
+    const join = (...names: (string | undefined)[]) =>
+      names.filter(Boolean).join(" ");
+    patch.className =
+      typeof own === "function"
+        ? (values: { defaultClassName?: string }) => join(own(values), authored)
+        : own !== undefined || typeof element.type === "string"
+          ? join(own, authored)
+          : join(`react-aria-${catalogTypeName(root, node)}`, authored);
+  }
+  return cloneElement(element, patch);
 }
 
 /**

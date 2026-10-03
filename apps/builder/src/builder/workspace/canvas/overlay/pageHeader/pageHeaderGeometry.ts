@@ -13,7 +13,7 @@
  */
 
 import type { CameraState } from "../../skia/types";
-import type { PageFrame } from "../../skia/workflowRenderer";
+import type { PageFrame } from "../../skia/overlayTypes";
 
 export const PAGE_HEADER_HEIGHT = 28;
 export const PAGE_HEADER_GAP = 8;

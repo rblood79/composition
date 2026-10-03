@@ -23,11 +23,7 @@ import {
   useViewportSyncStore,
 } from "../stores";
 import { offsetViewportStateX } from "./viewportActions";
-import { useKeyboardShortcutsRegistry } from "@/builder/hooks";
-import { useScrollState, isScrollable } from "../../../stores/scrollState";
-import { useStore } from "../../../stores";
-import { getCanonicalNode } from "../../../stores/canonical/canonicalElementsBridge";
-import { resolveEffectiveOverflow } from "../layout/engines/implicitStyles";
+import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import {
@@ -57,6 +53,11 @@ export interface UseViewportControlOptions {
   initialPanOffsetX?: number;
   /** Canvas pointer session 제스처 소유권 */
   gestureSession: CanvasGestureSession;
+  /**
+   * 일반 휠을 캔버스 팬 대신 요소 스크롤로 보낼지 정한다 (deltaX, deltaY — Shift 는 가로로 바꾼 값).
+   * true 면 휠을 소비한다. 없으면 휠은 늘 팬 (구 store 경로는 `storeWheelRoute.legacy.ts`).
+   */
+  routeWheel?: (deltaX: number, deltaY: number) => boolean;
 }
 
 export interface UseViewportControlReturn {
@@ -82,7 +83,12 @@ export function useViewportControl(
     onInteractionEnd,
     initialPanOffsetX,
     gestureSession,
+    routeWheel,
   } = options;
+  const routeWheelRef = useRef(routeWheel);
+  useEffect(() => {
+    routeWheelRef.current = routeWheel;
+  });
   const isPanningRef = useRef(false);
   const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
   // pan 을 소유한 pointerId — interrupt (blur · visibility · unmount) 에서 gesture session 의
@@ -369,23 +375,12 @@ export function useViewportControl(
           e.stopPropagation();
 
           // Phase E: 선택된 스크롤 가능 요소에 wheel 라우팅
-          const selectedIds = useStore.getState().selectedElementIds;
-          if (selectedIds.length === 1) {
-            const selectedId = selectedIds[0];
-            const node = getCanonicalNode(selectedId);
-            const overflow = resolveEffectiveOverflow(
-              node?.type,
-              node?.props?.style as Record<string, unknown> | undefined,
-            );
+          const route = routeWheelRef.current;
+          if (route) {
             if (
-              (overflow === "scroll" || overflow === "auto") &&
-              isScrollable(selectedId)
-            ) {
-              const deltaX = e.shiftKey ? e.deltaY : e.deltaX;
-              const deltaY = e.shiftKey ? 0 : e.deltaY;
-              useScrollState.getState().scrollBy(selectedId, deltaX, deltaY);
+              route(e.shiftKey ? e.deltaY : e.deltaX, e.shiftKey ? 0 : e.deltaY)
+            )
               return;
-            }
           }
 
           recordViewportInteractionRawInput();

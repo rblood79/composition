@@ -21,7 +21,7 @@ import type { CatalogCommand } from "../compose";
 
 /**
  * Shared fixture of the ADR-248 Phase 4b command tests: a library with a structural container
- * (Section), a collection (ListBox → ListBoxItem), a text leaf, and composites (Badge; Panel with
+ * (Section, and Body — the page body), a collection (ListBox → ListBoxItem), a text leaf, and composites (Badge; Panel with
  * a nested Badge; Picker with a `{label}` title, a ListBox of two items and a nested Badge).
  */
 export const library = () =>
@@ -36,6 +36,17 @@ export const library = () =>
       {
         id: "lib:definition:section",
         name: "Section",
+        mode: "native",
+        bindingId: "section",
+        accepts: {},
+        defaults: {},
+        visual: {},
+        stateRules: {},
+      },
+      {
+        // The page body (a layout applied to a body page makes the body its instance).
+        id: "lib:definition:type-body",
+        name: "Body",
         mode: "native",
         bindingId: "section",
         accepts: {},

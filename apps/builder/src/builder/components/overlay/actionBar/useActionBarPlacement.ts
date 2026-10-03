@@ -16,13 +16,9 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { useStore } from "../../../stores";
+import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
-import {
-  getPagePositionPresentationSnapshot,
-  readPagePositionForInteraction,
-  type PagePositionPresentationSnapshot,
-} from "../../../workspace/canvas/interaction/pagePositionPresentation";
+import type { PagePositionPresentationSnapshot } from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { getViewportPresentationSnapshot } from "../../../workspace/canvas/viewport/viewportPresentation";
 import {
@@ -60,7 +56,7 @@ function measureBar(bar: HTMLElement): { overlay: Size; bar: Size } | null {
  * 렌더 값을 닫아 두면 commit 마다 구독을 다시 세워야 한다.
  */
 function clampStoredOffset(bar: HTMLElement): void {
-  const { actionBar, setActionBarOffset } = useStore.getState();
+  const { actionBar, setActionBarOffset } = useBuilderUiStore.getState();
   const offset = actionBar.offset;
   if (!offset) return;
   const sizes = measureBar(bar);
@@ -69,23 +65,26 @@ function clampStoredOffset(bar: HTMLElement): void {
   if (!offsetsEqual(clamped, offset)) setActionBarOffset(clamped);
 }
 
+/** A page frame in scene px (the catalog Builder's page frames; absent = the old stores). */
+export type ActionBarPageRectOf = (
+  pageId: string,
+) => { x: number; y: number; width: number; height: number } | undefined;
+
 function resolveAutomaticPageAnchor(
   pageId: string,
   frame: CanvasFramePresentationSnapshot | null,
+  pageRectOf: ActionBarPageRectOf,
 ): Point {
   const viewportPresentation = getViewportPresentationSnapshot();
-  const pagePositionPresentation: PagePositionPresentationSnapshot =
-    frame?.pagePositionSnapshot ?? getPagePositionPresentationSnapshot();
-  const pagePosition = readPagePositionForInteraction(
-    pageId,
-    useStore.getState().derivedPagePositions,
-    pagePositionPresentation,
-  ) ?? { x: 0, y: 0 };
+  const rect = pageRectOf(pageId);
+  const pagePosition = rect ? { x: rect.x, y: rect.y } : { x: 0, y: 0 };
   const cameraState = frame?.cameraState;
 
   return pageActionBarAnchor({
     pagePosition,
-    pageSize: useViewportSyncStore.getState().canvasSize,
+    pageSize: rect
+      ? { width: rect.width, height: rect.height }
+      : useViewportSyncStore.getState().canvasSize,
     panOffset: {
       x: cameraState?.panX ?? viewportPresentation.x,
       y: cameraState?.panY ?? viewportPresentation.y,
@@ -98,8 +97,9 @@ function applyAutomaticPageAnchor(
   bar: HTMLElement,
   pageId: string,
   frame: CanvasFramePresentationSnapshot | null,
+  pageRectOf: ActionBarPageRectOf,
 ): Point {
-  const anchor = resolveAutomaticPageAnchor(pageId, frame);
+  const anchor = resolveAutomaticPageAnchor(pageId, frame, pageRectOf);
   const transform = actionBarPageTransform(anchor);
   if (bar.style.transform !== transform) {
     bar.style.transform = transform;
@@ -125,6 +125,7 @@ type ActionBarPlacementInteractions = {
   settings: { offset: ActionBarOffset | null; pinned: boolean };
   setDragOffset: Dispatch<SetStateAction<ActionBarOffset | null>>;
   setActionBarOffset: (offset: ActionBarOffset | null) => void;
+  pageRectOf: ActionBarPageRectOf;
 };
 
 /**
@@ -140,8 +141,13 @@ function useActionBarPlacementInteractions({
   settings,
   setDragOffset,
   setActionBarOffset,
+  pageRectOf,
 }: ActionBarPlacementInteractions): void {
   const barRef = useRef<HTMLDivElement | null>(null);
+  const pageRectOfRef = useRef(pageRectOf);
+  useEffect(() => {
+    pageRectOfRef.current = pageRectOf;
+  });
   const observerRef = useRef<ResizeObserver | null>(null);
   const latestAutomaticAnchorRef = useRef<Point | null>(null);
   const dragRef = useRef<DragSession | null>(null);
@@ -162,6 +168,7 @@ function useActionBarPlacementInteractions({
         barNode,
         pageId,
         getCanvasFramePresentationSnapshot(),
+        pageRectOfRef.current,
       );
     }
 
@@ -199,10 +206,12 @@ function useActionBarPlacementInteractions({
     ): void => {
       const bar = barRef.current;
       if (!bar || dragRef.current) return;
-      latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(bar, pageId, {
-        cameraState,
-        pagePositionSnapshot,
-      });
+      latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(
+        bar,
+        pageId,
+        { cameraState, pagePositionSnapshot },
+        pageRectOfRef.current,
+      );
     };
 
     const latest = getCanvasFramePresentationSnapshot();
@@ -225,6 +234,7 @@ function useActionBarPlacementInteractions({
             resolveAutomaticPageAnchor(
               pageId,
               getCanvasFramePresentationSnapshot(),
+              pageRectOfRef.current,
             ))
           : null;
       const base =
@@ -306,16 +316,23 @@ function useActionBarPlacementInteractions({
 export interface ActionBarPlacementNodes {
   barNode: HTMLDivElement | null;
   handleNode: HTMLElement | null;
+  pageRectOf: ActionBarPageRectOf;
 }
 
 export function useActionBarPlacement(
   pageId: string | null = null,
-  { barNode, handleNode }: ActionBarPlacementNodes,
+  { barNode, handleNode, pageRectOf }: ActionBarPlacementNodes,
 ) {
-  const settings = useStore((state) => state.actionBar);
-  const setActionBarOffset = useStore((state) => state.setActionBarOffset);
-  const setActionBarPinned = useStore((state) => state.setActionBarPinned);
-  const setActionBarHidden = useStore((state) => state.setActionBarHidden);
+  const settings = useBuilderUiStore((state) => state.actionBar);
+  const setActionBarOffset = useBuilderUiStore(
+    (state) => state.setActionBarOffset,
+  );
+  const setActionBarPinned = useBuilderUiStore(
+    (state) => state.setActionBarPinned,
+  );
+  const setActionBarHidden = useBuilderUiStore(
+    (state) => state.setActionBarHidden,
+  );
   const tracksAutomaticPagePosition =
     pageId !== null && settings.offset === null;
   const [dragOffset, setDragOffset] = useState<ActionBarOffset | null>(null);
@@ -328,6 +345,7 @@ export function useActionBarPlacement(
     settings,
     setDragOffset,
     setActionBarOffset,
+    pageRectOf,
   });
 
   const togglePinned = useCallback(

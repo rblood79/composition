@@ -8,23 +8,43 @@ type TestStoreState = {
   derivedPagePositions: Record<string, { x: number; y: number }>;
 };
 
-vi.mock("../../../../stores", async () => {
-  const { create } = await import("zustand");
-  const useStore = create<TestStoreState>(() => ({
-    currentPageId: "p2",
-    selectedElementIds: [],
-    derivedPagePositions: {},
-  }));
-  return { useStore };
-});
+import type { ComponentProps } from "react";
+import { create } from "zustand";
 
-import { useStore as testStore } from "../../../../stores";
+// The host's active page and selection (the catalog session in the Builder, ADR-248 4e-7).
+const testStore = create<TestStoreState>(() => ({
+  currentPageId: "p2",
+  selectedElementIds: [],
+  derivedPagePositions: {},
+}));
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { resetCanvasFramePresentation } from "../../canvasFramePresentation";
 import { useViewportSyncStore } from "../../stores";
-import { PageHeaderLayer, isPageHeaderEventTarget } from "./PageHeaderLayer";
+import {
+  PageHeaderLayer as HeaderLayer,
+  isPageHeaderEventTarget,
+} from "./PageHeaderLayer";
+
+function PageHeaderLayer(
+  props: Omit<
+    ComponentProps<typeof HeaderLayer>,
+    "activePageId" | "hasSelection"
+  >,
+) {
+  const activePageId = testStore((state) => state.currentPageId);
+  const hasSelection = testStore(
+    (state) => state.selectedElementIds.length > 0,
+  );
+  return (
+    <HeaderLayer
+      {...props}
+      activePageId={activePageId}
+      hasSelection={hasSelection}
+    />
+  );
+}
 
 const frames = [
   { id: "p1", title: "One", x: 0, y: 0, width: 400, height: 800 },

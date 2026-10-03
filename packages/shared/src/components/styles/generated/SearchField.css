@@ -217,6 +217,7 @@
   position: static;
   flex: 0 0 auto;
   width: var(--sf-btn-size);
+  min-width: unset;
   height: var(--sf-btn-size);
   padding: 0;
   border: none;

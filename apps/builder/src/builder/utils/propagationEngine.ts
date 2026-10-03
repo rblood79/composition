@@ -8,7 +8,7 @@
  * - resolvePropagatedProps (Skia/Layout fallback): 직접 자식 1단계만, Store에 값 없을 때 보완
  */
 import type { PropagationRule } from "@composition/specs";
-import type { BatchPropsUpdate } from "../stores/utils/elementUpdate";
+import type { BatchPropsUpdate } from "./batchPropsUpdate";
 import { getPropagationRules } from "./propagationRegistry";
 
 // ─── Types ──────────────────────────────────────────────────────────────────

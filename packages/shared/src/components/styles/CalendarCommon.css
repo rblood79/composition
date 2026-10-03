@@ -50,6 +50,8 @@
     justify-content: center;
     width: var(--text-3xl);
     height: var(--text-3xl);
+    /* The generic Button sheet's default min-width (68) reaches these unsized buttons */
+    min-width: unset;
     background: transparent;
     color: var(--fg);
     border: none;

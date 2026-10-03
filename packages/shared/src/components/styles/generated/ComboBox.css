@@ -242,6 +242,7 @@
   padding: 0;
   border-width: 0;
   width: var(--combo-btn-size);
+  min-width: unset;
   height: var(--combo-btn-size);
   background: var(--bg-overlay);
   color: var(--fg);

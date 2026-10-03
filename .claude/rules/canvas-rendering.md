@@ -4,8 +4,6 @@ paths:
   - "apps/builder/src/builder/workspace/canvas/**"
   - "packages/specs/**"
   - "**/nodeRenderers*"
-  - "**/useCentralCanvasPointerHandlers*"
-  - "**/useDragInteraction*"
 ---
 
 # Canvas 렌더링 규칙

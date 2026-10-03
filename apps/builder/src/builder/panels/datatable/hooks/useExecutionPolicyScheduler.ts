@@ -25,6 +25,27 @@ function findLinkedEndpoint(
   );
 }
 
+/**
+ * ADR-218 auto policy: run once the endpoint linked to each `executionPolicy.mode === "auto"`
+ * collection (Preview opening — the host is the Builder). Failures are the endpoint's own state.
+ */
+export async function runAutoPolicyEndpoints(): Promise<void> {
+  const dataState = useDataStore.getState();
+  const endpoints = Array.from(dataState.apiEndpoints.values());
+  const runs: Promise<unknown>[] = [];
+  for (const collection of dataState.collections.values()) {
+    if (collection.executionPolicy?.mode !== "auto") continue;
+    const endpoint = findLinkedEndpoint(
+      endpoints,
+      collection.id,
+      collection.name,
+    );
+    if (endpoint)
+      runs.push(dataState.executeApiEndpoint(endpoint.id).catch(() => {}));
+  }
+  if (runs.length > 0) await Promise.all(runs);
+}
+
 export function useExecutionPolicyScheduler(): void {
   const collections = useDataStore((s) => s.collections);
   const apiEndpoints = useDataStore((s) => s.apiEndpoints);

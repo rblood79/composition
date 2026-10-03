@@ -22,8 +22,8 @@ import {
   type AgentHost,
 } from "../../../builder/stores/agentCommandLog";
 import { useDataStore } from "../../../builder/stores/data";
-import { historyManager } from "../../../builder/stores/history";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
+import { getAgentCommandHost } from "../../agent/agentCommandHost";
 import { requestAgentCommandConfirmation } from "../../agent/agentCommandConfirmation";
 
 /** 승인 채널 · provenance 로그에 쓰는 데이터 proposal 의 id (agent 명령 id 축과 구분). */
@@ -142,7 +142,9 @@ export async function dispatchDataProposal(
       },
       { projectId: currentProjectId ?? undefined },
     );
-    const historyId = historyManager.getCurrentPageHistory().currentIndex;
+    // ADR-248 4e-5: the open Builder's single history (the change is its entry) — 4e-7: only the
+    // agent command host's.
+    const historyId = getAgentCommandHost()?.historyIndex();
     record({
       host: proposal.host,
       id: DATA_PROPOSAL_COMMAND_ID,

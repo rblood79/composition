@@ -19,7 +19,7 @@ import {
   withFixedScreenScale,
 } from "./selectionRenderer";
 import { getBindingBadgeColor } from "./semanticOverlayColors";
-import type { BindingBadgeTarget } from "./skiaOverlayHelpers";
+import type { BindingBadgeTarget } from "./overlayTypes";
 import type { BoundingBox } from "../selection/types";
 
 const BADGE_FONT_SIZE = 11; // 화면 px

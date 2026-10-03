@@ -6,7 +6,7 @@ import {
   getChartPresetId,
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertySelect } from "../../components";
+import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";
 
 /** ADR-210 — columns 모드가 지원하지 않는 종류 (breakdown §2.3 3). */

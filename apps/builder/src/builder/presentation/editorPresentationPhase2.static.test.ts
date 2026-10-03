@@ -7,32 +7,9 @@ async function source(path: string): Promise<string> {
 }
 
 describe("ADR-187 Phase 2 migration guards", () => {
-  it("Phase 3 pilot은 production default-on이며 query=0만 rollback이다", async () => {
-    const pilot = await source("editorPresentationFillPilot.ts");
-    expect(pilot).toContain('FILL_PILOT_QUERY_PARAM = "adr187FillPilot"');
-    expect(pilot).toContain("new URLSearchParams(window.location.search).get(");
-    expect(pilot).toContain('!==\n    "0"');
-  });
-
-  it("migrated owner는 runtime 외 RAF와 legacy preview write를 호출하지 않는다", async () => {
-    const pilot = await source("editorPresentationFillPilot.ts");
-    const bridge = await source("skiaEditorPresentationBridge.ts");
-    const action = await source("../panels/styles/hooks/useFillActions.ts");
-    const gradientBar = await source(
-      "../panels/styles/components/GradientBar.tsx",
-    );
-
-    expect(pilot).not.toContain("requestAnimationFrame");
-    expect(bridge).not.toContain("requestAnimationFrame");
-    expect(gradientBar).not.toContain("requestAnimationFrame");
-    expect(gradientBar).not.toContain("cancelAnimationFrame");
-    expect(pilot).not.toMatch(/updateSelected.*Preview/);
-    expect(bridge).not.toMatch(/updateSelected.*Preview/);
-    expect(action).toContain("previewFirstFillColorPresentation");
-    expect(action).toContain("presentation.handle.publish(descriptor)");
-  });
 
   it("capability/initial fills resolve는 session acquire에서만 수행하고 active input은 캡처값을 쓴다", async () => {
+    // ADR-248 4e-7: the pilot target resolves through the Styles host's presentation bridge.
     const action = await source("../panels/styles/hooks/useFillActions.ts");
     const previewStart = action.indexOf(
       "const previewFirstFillColorPresentation",
@@ -42,7 +19,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     );
     const acquireGuard = action.indexOf("if (!presentation) {", previewStart);
     const resolvePilot = action.indexOf(
-      "resolveFillPresentationPilotTarget(",
+      "bridge?.resolveFillTarget(",
       acquireGuard,
     );
     const publish = action.indexOf("presentation.handle.publish", resolvePilot);
@@ -55,9 +32,9 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(resolvePilot).toBeGreaterThan(acquireGuard);
     expect(publish).toBeGreaterThan(resolvePilot);
     expect(action.slice(previewStart, acquireGuard)).not.toContain(
-      "resolveFillPresentationPilotTarget(",
+      "bridge?.resolveFillTarget(",
     );
-    expect(commitBody).not.toContain("resolveFillPresentationPilotTarget(");
+    expect(commitBody).not.toContain("bridge?.resolveFillTarget(");
     expect(action).toContain("baseFills: pilot.fills");
     expect(action).toContain("presentation.baseFills.map");
   });
@@ -81,91 +58,9 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(commitGuard).toBeGreaterThan(-1);
     expect(legacyCommit).toBeGreaterThan(commitGuard);
     expect(section).not.toContain("updateFillPreviewThrottled");
-    expect(picker).toContain("if (presentationOwnsFrameScheduling)");
+    expect(picker).toContain("if (presentationOwnsFrameScheduling || livePreview)");
     expect(picker).not.toContain("requestAnimationFrame");
     expect(picker).not.toContain("cancelAnimationFrame");
-  });
-
-  it("borderColor picker는 style presentation owner를 사용하고 fallback은 단일 경로다", async () => {
-    const appearance = await source(
-      "../panels/styles/sections/BorderSection.tsx",
-    );
-    const propertyColor = await source(
-      "../components/property/PropertyColor.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    expect(appearance).toContain("previewBorderColorPresentation");
-    expect(appearance).toContain("commitBorderColorPresentation");
-    expect(appearance).toContain("presentationOwnsFrameScheduling");
-    expect(propertyColor).toContain("onPresentationCancel");
-    expect(stylePilot).toContain('"style-border-color"');
-    expect(stylePilot).toContain('"borderColor" in styleRecord');
-    expect(stylePilot).toContain('"borderWidth" in styleRecord');
-  });
-
-  it("boxShadow 레이어 편집은 topology가 유지되는 paint presentation owner, topology 변경은 canonical", async () => {
-    const appearance = await source(
-      "../panels/styles/sections/EffectSection.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    const storeBridge = await source(
-      "../workspace/canvas/skia/StoreRenderBridge.ts",
-    );
-    const shadowEditor = await source(
-      "../panels/styles/components/BoxShadowEditor.tsx",
-    );
-    // 레이어 추가 · 제거 · inset · 프리셋은 presentation 세션을 닫고 canonical commit
-    expect(appearance).toContain('cancelBoxShadowPresentation("superseded")');
-    expect(appearance).toContain("previewBoxShadowModelPresentation");
-    expect(appearance).toContain("commitBoxShadowModelPresentation");
-    expect(appearance).toContain("isBoxShadowPresentationOwned");
-    expect(shadowEditor).toContain("presentationOwnsFrameScheduling");
-    expect(shadowEditor).toContain("patchBoxShadowPresentation");
-    expect(stylePilot).toContain("resolveBoxShadowPresentationPilotTarget");
-    expect(stylePilot).toContain('"style-box-shadow"');
-    expect(storeBridge).toContain("presentationShadowTargets");
-    expect(storeBridge).toContain("parseBoxShadowEffects");
-  });
-
-  it("Typography Text/Button color는 text-bearing root presentation owner로 fail-closed한다", async () => {
-    const typography = await source(
-      "../panels/styles/sections/TypographySection.tsx",
-    );
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    const nodeTypes = await source(
-      "../workspace/canvas/skia/nodeRendererTypes.ts",
-    );
-    const renderer = await source(
-      "../workspace/canvas/skia/nodeRendererText.ts",
-    );
-    const textColorTypes = await source("editorPresentationTextColor.ts");
-    expect(typography).toContain("previewTextColorPresentation");
-    expect(typography).toContain("commitTextColorPresentation");
-    expect(typography).toContain("presentationOwnsFrameScheduling");
-    expect(stylePilot).toContain("resolveTextColorPresentationPilotTarget");
-    expect(stylePilot).toContain("isTextColorPresentationType");
-    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
-    expect(nodeTypes).toContain("presentationTextTargets");
-    expect(renderer).toContain("drawTextWithPresentationColor");
-  });
-
-  it("explicit opacity:1은 state effect와 ref descendant를 fail-closed한다", async () => {
-    const stylePilot = await source("editorPresentationStylePilot.ts");
-    expect(stylePilot).toContain('target.kind !== "canonical-node"');
-    expect(stylePilot).toContain("Boolean(props.isDisabled)");
-    expect(stylePilot).toContain("Boolean(props.disabled)");
-    expect(stylePilot).toContain('effect.type === "opacity"');
-    expect(stylePilot).toContain("getSkiaNode(target.nodeId)");
-  });
-
-  it("multi-child/component text color는 검증된 root와 projection consumer가 없으면 닫힌다", async () => {
-    const textColorTypes = await source("editorPresentationTextColor.ts");
-    const projectionIndex = await source("skiaPresentationProjectionIndex.ts");
-    expect(textColorTypes).toContain('new Set(["Button", "Text"])');
-    expect(textColorTypes).not.toContain("Card");
-    expect(projectionIndex).toContain("#renderIdsByCanonicalNodeId");
-    expect(projectionIndex).toContain("#renderIdsByRefDescendant");
-    expect(projectionIndex).not.toContain("getSubtreeElementIds");
   });
 
   it("Modified Styles 는 read-only 목록 — 편집 경로 (legacy preview 포함) 가 없다", async () => {
@@ -179,54 +74,5 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(modified).not.toContain("PropertyColor");
     expect(modified).not.toContain("PropertyUnitInput");
     expect(modified).toContain("useResetStyles");
-  });
-
-  it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {
-    const bridge = await source("skiaEditorPresentationBridge.ts");
-    for (const forbidden of [
-      "runCanonicalMutation",
-      "historyManager",
-      "layoutVersion",
-      "registerSkiaNode",
-      "forceFullRebuild",
-      "invalidateCommandStreamCache",
-      "updateSelectedFills",
-    ]) {
-      expect(bridge).not.toContain(forbidden);
-    }
-    expect(bridge).toContain("projectionIndex.resolve(descriptor.target)");
-    expect(bridge).toContain("subscribeSessionEvents");
-    expect(bridge).toContain("applyPresentationFillPatch");
-    expect(bridge).toContain("restorePresentationFillPatch");
-  });
-
-  it("store resync와 visible projection 경계가 presentation bridge에 연결된다", async () => {
-    const canvas = await source("../workspace/canvas/skia/SkiaCanvas.tsx");
-    const storeBridge = await source(
-      "../workspace/canvas/skia/StoreRenderBridge.ts",
-    );
-    const rendererInput = await source(
-      "../workspace/canvas/renderers/rendererInput.ts",
-    );
-
-    expect(storeBridge).toContain("onDidSync?.(");
-    expect(canvas).toContain("onDidSync:");
-    expect(canvas).toContain("handleStoreSync(");
-    expect(rendererInput).toContain("if (!pageSnapshot.isVisible) continue;");
-    expect(rendererInput).toContain(
-      "addPresentationProjection(\n          builder,\n          pageSnapshot.bodyElement,\n          input.sceneNodesMap,\n        )",
-    );
-    expect(rendererInput).toContain(
-      "addPresentationProjection(builder, element, input.sceneNodesMap)",
-    );
-    expect(rendererInput).toContain("visibleRenderIds.has(node.id)");
-  });
-
-  it("ref-descendant는 Phase 3 projection과 owner에서 semantic 처리한다", async () => {
-    const projection = await source("skiaPresentationProjectionIndex.ts");
-    const pilot = await source("editorPresentationFillPilot.ts");
-    expect(projection).toContain("addRefDescendantProjection");
-    expect(pilot).toContain("resolveEditorPresentationTarget");
-    expect(pilot).toContain("getEditorPresentationTargetNode");
   });
 });

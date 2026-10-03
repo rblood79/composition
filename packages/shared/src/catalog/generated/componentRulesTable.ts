@@ -3259,6 +3259,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               padding: "0",
               "border-width": "0",
               width: "var(--combo-btn-size)",
+              "min-width": "unset",
               height: "var(--combo-btn-size)",
               background: "var(--bg-overlay)",
               color: "var(--fg)",
@@ -4218,6 +4219,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "forced-color-adjust": "none",
               border: "none",
               width: "var(--dp-btn-width)",
+              "min-width": "unset",
               height: "var(--dp-btn-height)",
               padding: "0",
               cursor: "default",
@@ -4742,6 +4744,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "forced-color-adjust": "none",
               border: "none",
               width: "var(--drp-btn-width)",
+              "min-width": "unset",
               height: "var(--drp-btn-height)",
               padding: "0",
               cursor: "default",
@@ -5458,7 +5461,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [],
+        // ADR-248 4e-10 (사용자 결정 A 2026-10-02): the composed content (DropZone.tsx — upload
+        //   icon, label and description) are the DropZone column's own flex items. The Canvas reads
+        //   the same entries (`catalogDropZoneContentStyle`): icon = `sizes.iconSize`, label = the
+        //   DropZone font, description = text-xs, both centered at line-height 1.5 in the variant
+        //   text color (the generic `.react-aria-Text` rule otherwise paints them 16 px dark).
+        delegation: [
+          {
+            childSelector: ".dropzone-icon",
+            bridges: {
+              width: "var(--icon-size)",
+              height: "var(--icon-size)",
+              "flex-shrink": "0",
+            },
+          },
+          {
+            childSelector: '[slot="label"]',
+            bridges: {
+              "font-size": "inherit",
+              "font-weight": "inherit",
+              "line-height": "1.5",
+              color: "inherit",
+              "text-align": "center",
+            },
+          },
+          {
+            childSelector: '[slot="description"]',
+            bridges: {
+              "font-size": "var(--text-xs)",
+              "font-weight": "inherit",
+              "line-height": "1.5",
+              color: "inherit",
+              "text-align": "center",
+            },
+          },
+        ],
       },
     },
   },
@@ -5631,8 +5668,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
-      //   재생성용 (FileTrigger.spec.sizes 미러). padding 은 composition.containerStyles inline-block
-      //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). iconSize 는 이미 존재.
+      //   재생성용 (FileTrigger.spec.sizes 미러). iconSize 는 이미 존재. height · paddingX 는 트리거
+      //   button 의 상자 (ADR-248 4e-10 — composition.containerStyles 제거로 두 소비자가 emit).
       sm: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
@@ -5681,10 +5718,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
+      // ADR-248 4e-10 (2026-10-02): no `composition.containerStyles` — the root is the
+      //   self-composed `.react-aria-FileTrigger` button (renderFileTrigger, 2026-09-10), not a
+      //   wrapper around one, so the size box (height · paddingX) and the variant paint belong to it
+      //   in both consumers (an owned container box drops them from generated CSS and the Canvas).
       composition: {
-        containerStyles: {
-          display: "inline-block",
-        },
         staticSelectors: {
           "input[type='file']": {
             position: "absolute",
@@ -5941,6 +5979,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   지금은 L1 게이트(composition 부재)에 막혀 무효 — Phase 3 에서 전달되며
         //   그 시점의 시각 변화는 Phase 5 fixture 가 감시한다.
         justifyContent: "center",
+      },
+      // ADR-248 4e-11: `GridList.css` `[data-disabled]` (opacity 0.38) — the same disabled state as
+      //   ListBoxItem, read by both consumers.
+      states: {
+        disabled: {
+          opacity: 0.38,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        },
       },
     },
     // ADR-912 collection sub-part cutover (2026-06-14, TreeItem escape 선례 동형):
@@ -8208,6 +8255,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Group",
             prefix: "nf-group",
+            // 4e-11: per-size padding like ComboBox's `.combobox-container` (the SelectTrigger
+            //   scale — height = padding + the input line + border: 20/22/30/42/54).
+            variables: {
+              xs: {
+                "--nf-group-padding":
+                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+              },
+              sm: {
+                "--nf-group-padding":
+                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+              },
+              md: {
+                "--nf-group-padding":
+                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              },
+              lg: {
+                "--nf-group-padding":
+                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+              },
+              xl: {
+                "--nf-group-padding":
+                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+              },
+            },
             bridges: {
               display: "flex",
               "align-items": "center",
@@ -8219,8 +8290,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               overflow: "hidden",
               transition:
                 "border-color 200ms ease, background-color 200ms ease",
-              padding:
-                "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+              padding: "var(--nf-group-padding)",
             },
             states: {
               ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
@@ -9890,6 +9960,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               position: "static",
               flex: "0 0 auto",
               width: "var(--sf-btn-size)",
+              "min-width": "unset",
               height: "var(--sf-btn-size)",
               padding: "0",
               border: "none",

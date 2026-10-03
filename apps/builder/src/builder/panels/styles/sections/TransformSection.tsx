@@ -5,23 +5,10 @@
  * Alignment는 Layout 섹션의 3x3 Flex alignment로 통합됨.
  */
 
-import {
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import {
-  PropertySection,
-  PropertyUnitInput,
-  PropertySelect,
-} from "../../../components";
-import { type BreakpointName } from "@composition/shared";
-import { parsePadding4Way } from "@composition/specs";
-import { resolveBorderGeometry } from "../../../workspace/canvas/styleConversion/borderGeometry";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -40,23 +27,12 @@ import {
   useParentDisplay,
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
-import {
-  commitPagePlacementFromPoint,
-  isPagePlacementEditable,
-} from "../../../stores/utils/pagePlacementCommit";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import { historyManager } from "../../../stores/history";
-import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
-import {
-  getPagePositionPresentationSnapshot,
-  subscribePagePositionPresentation,
-} from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { hasEnabledAspectRatio } from "../../../utils/aspectRatio";
-import type { RatioEditError } from "../../../stores/inspectorActions";
+import type { RatioEditError } from "../../../utils/ratioEditError";
 
 /** Ratio 복합 명령 오류 코드 → semantic label (labels.ts 가 키로, translations 가 ko/en 으로). */
 const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
@@ -68,14 +44,8 @@ const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
     "Open each screen size (Desktop, Tablet, Mobile) once, then try again",
   "document-changed": "Document changed. Try again",
 };
-import { getSceneBounds } from "../../../workspace/canvas/skia/renderCommands";
-import type { BoundingBox } from "../../../workspace/canvas/selection/types";
-import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
-import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
-import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
 import {
   hasSizeConstraintConflict,
-  resolveAbsolutePositionActivationStyles,
   type SizeConstraintProperty,
 } from "./transformUtils";
 import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
@@ -84,39 +54,14 @@ import {
   useSectionCollapse,
 } from "../hooks/useSectionCollapse";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+import {
+  useStylesActiveBreakpoint,
+  useStylesHost,
+  useStylesSelectedId,
+} from "../stylesHost";
+import type { StylesHost } from "../stylesHostContext";
 
 const POSITION_SECTION_ID = "position";
-
-function resolveAbsoluteContainingBlockBounds(
-  parent: CanvasLayoutNode,
-  parentBounds: BoundingBox,
-  activeBreakpoint: BreakpointName,
-): BoundingBox {
-  const rawStyle = (parent.props?.style ?? {}) as Record<string, unknown>;
-  const responsiveStyle = resolveResponsiveStyleMap(
-    rawStyle,
-    parent.responsive,
-    activeBreakpoint,
-  );
-  const type = parent.type.toLowerCase();
-  const style = {
-    ...resolveContainerStylesFallback(type, responsiveStyle),
-    ...responsiveStyle,
-  };
-  const padding = parsePadding4Way(style);
-  // ADR-219 — 변별 폭은 helper 하나로 (longhand ?? shorthand ?? border 단축)
-  const { widths } = resolveBorderGeometry(style as Record<string, unknown>);
-  const borderTop = widths[0];
-  const borderLeft = widths[3];
-
-  // Skia absolute layout은 부모 border-box가 아닌 border+padding 이후의 콘텐츠
-  // 원점을 left/top 0으로 사용한다. 토글 전환도 동일 원점을 써야 시각 좌표가 보존된다.
-  return {
-    ...parentBounds,
-    x: parentBounds.x + borderLeft + padding.left,
-    y: parentBounds.y + borderTop + padding.top,
-  };
-}
 
 const ASPECT_RATIO_OPTIONS = [
   { value: "reset", label: "Auto" },
@@ -130,77 +75,36 @@ const ASPECT_RATIO_OPTIONS = [
 ];
 
 /**
- * 페이지 X/Y row (ADR-177 적응형 통합) — 드래그 중 실시간 표시.
- *
- * 커밋 값은 store pagePositions 를 구독하고, 드래그 중에는 ADR-176/178 의
- * transient 채널(pagePositionPresentation.activeOverrides)을 직접 구독한다 —
- * Zustand set 무경유라 드래그 프레임이 전역 셀렉터 sweep 을 유발하지 않고,
- * 스냅샷을 반올림 정수 문자열로 잘라 표시값이 실제 바뀐 프레임에만 이 row
- * 하나가 재렌더된다 (드래그 중이 아닐 땐 notify 자체가 없음 — 비용 0).
+ * ADR-248 Phase 4e: the page body's X / Y from a host that owns the page canvas (the catalog
+ * Styles panel) — the same row; Home stays where it is (inputs off).
  */
-const PagePositionRow = memo(function PagePositionRow({
-  pageId,
+const HostPagePositionRow = memo(function HostPagePositionRow({
+  pagePosition,
+  selectedId,
 }: {
-  pageId: string;
+  pagePosition: StylesHost["pagePosition"];
+  selectedId: string | null;
 }) {
-  const pagePosition = useStore((s) => s.derivedPagePositions[pageId]);
-  const liveKey = useSyncExternalStore(
-    subscribePagePositionPresentation,
-    () => {
-      const snap = getPagePositionPresentationSnapshot();
-      const override = snap.isActive
-        ? snap.activeOverrides?.get(pageId)
-        : undefined;
-      return override
-        ? `${Math.round(override.x)}:${Math.round(override.y)}`
-        : null;
-    },
-  );
-
-  const handleCommit = useCallback(
-    (axis: "x" | "y", value: string) => {
-      const parsed = Number.parseFloat(value);
-      if (!Number.isFinite(parsed)) return;
-      const state = useStore.getState();
-      const current = state.derivedPagePositions[pageId];
-      if (!current) return;
-      const next = {
-        x: axis === "x" ? parsed : current.x,
-        y: axis === "y" ? parsed : current.y,
-      };
-      // ADR-232 — X/Y 입력도 placement 로 쓴다 (Home 은 거부 — 아래 입력 비활성과 같은 판정).
-      commitPagePlacementFromPoint(pageId, next);
-    },
-    [pageId],
-  );
-  const handleXCommit = useCallback(
-    (value: string) => handleCommit("x", value),
-    [handleCommit],
-  );
-  const handleYCommit = useCallback(
-    (value: string) => handleCommit("y", value),
-    [handleCommit],
-  );
-
-  if (!pagePosition) return null;
-
-  // ADR-232 — Home 은 흐름 원점이라 이동할 수 없다 (파생 모드 한정).
-  const isEditable = isPagePlacementEditable(pageId);
-  const live = liveKey ? liveKey.split(":") : null;
-  const displayX = live ? live[0] : String(Math.round(pagePosition.x));
-  const displayY = live ? live[1] : String(Math.round(pagePosition.y));
-
+  const position = pagePosition.usePosition(selectedId);
+  if (!position) return null;
+  const commit = (axis: "x" | "y", value: string) => {
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed)) return;
+    pagePosition.commit(position.pageId, {
+      x: axis === "x" ? parsed : position.x,
+      y: axis === "y" ? parsed : position.y,
+    });
+  };
   return (
     <div className="transform-row">
-      {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
       <PropertyUnitInput
         label="X"
         unitSuffix
         className="left"
-        value={`${displayX}px`}
+        value={`${position.x}px`}
         units={["px"]}
-        onChange={handleXCommit}
-        isDisabled={!isEditable}
+        onChange={(value) => commit("x", value)}
+        isDisabled={!position.editable}
         min={-99999}
         max={99999}
       />
@@ -208,10 +112,10 @@ const PagePositionRow = memo(function PagePositionRow({
         label="Y"
         unitSuffix
         className="top"
-        value={`${displayY}px`}
+        value={`${position.y}px`}
         units={["px"]}
-        onChange={handleYCommit}
-        isDisabled={!isEditable}
+        onChange={(value) => commit("y", value)}
+        isDisabled={!position.editable}
         min={-99999}
         max={99999}
       />
@@ -236,10 +140,10 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const { previewLayoutPresentation } = useLayoutPresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const bundle = useTransformValues(selectedId, part);
   const sizeContext = useElementStyleContext(selectedId);
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
+  const activeBreakpoint = useStylesActiveBreakpoint();
 
   // 기존 styleValues 인터페이스 어댑터 (문자열 값)
   //   ADR-082 A2: inline 없으면 Spec specDefault (containerStyles/composition 의 "100%",
@@ -302,23 +206,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
 
   const canvasSize = useViewportSyncStore((state) => state.canvasSize);
 
-  // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라
-  // 페이지 캔버스 위치(pagePositions)를 편집한다 (Pen/Figma 단일 Position 어법).
-  // 실제 page body (page_id 보유 + stale mismatch 아님) 한정 — projection/frame
-  // body 는 페이지 이동 대상이 아니므로 position row 자체를 숨긴다.
-  const selectedElement = useCanonicalPropertyElement(selectedId ?? "");
-  const currentPageId = useStore((s) => s.currentPageId);
-  const selectedElementPageId = selectedElement?.page_id ?? null;
-  const hasStalePageMismatch =
-    selectedElementPageId != null &&
-    currentPageId != null &&
-    selectedElementPageId !== currentPageId;
-  const pagePositionPageId =
-    styleValues?.isBody &&
-    !hasStalePageMismatch &&
-    selectedElementPageId != null
-      ? selectedElementPageId
-      : null;
+  // ADR-177 적응형 통합 — body 선택 시 position row 는 CSS left/top 이 아니라 페이지 캔버스
+  // 위치를 편집한다 (Pen/Figma 단일 Position 어법) — the host's page position (ADR-248 4e-7).
 
   // ADR-026: Size Mode (Zustand hooks)
   const widthMode = useWidthSizeMode(selectedId);
@@ -328,27 +217,22 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const parentDisplay = useParentDisplay(selectedId);
   const parentFlexDirection = useParentFlexDirection(selectedId);
 
+  const host = useStylesHost();
   const commitAxisValue = useCallback(
     (axis: "width" | "height", value: string) => {
-      const state = useStore.getState();
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
       const factor = value.match(/^(\d+(?:\.\d+)?)fill$/);
-      if (factor || value === "fill") {
-        state.applySizingFromSelection(snapshot, {
-          axis,
-          mode: "fill",
-          ...(factor ? { factor: Number(factor[1]) } : {}),
-        });
-        return;
-      }
-      state.applySizingFromSelection(snapshot, {
-        axis,
-        mode: value === "" ? "reset" : "css",
-        value,
-      });
+      host.applySizing(
+        selectedId,
+        factor || value === "fill"
+          ? {
+              axis,
+              mode: "fill",
+              ...(factor ? { factor: Number(factor[1]) } : {}),
+            }
+          : { axis, mode: value === "" ? "reset" : "css", value },
+      );
     },
-    [selectedId],
+    [host, selectedId],
   );
 
   const selectSizeUnit = useCallback(
@@ -373,13 +257,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const [constraintError, setConstraintError] = useState(false);
   const commitRatio = useCallback(
     (value: string | null) => {
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
-      setSizingError(
-        useStore.getState().applyRatioFromSelection(snapshot, value),
-      );
+      setSizingError(host.applyRatio(selectedId, value));
     },
-    [selectedId],
+    [host, selectedId],
   );
   useEffect(() => {
     setSizingError(null);
@@ -398,24 +278,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
               ? "maxHeight"
               : "minHeight";
       // 같은 편집 세션에서 직전에 저장한 반대 제약은 React selector 재렌더보다 먼저
-      // 다음 Enter가 들어올 수 있다. 비교 기준은 렌더 시점 styleValues가 아니라 현재
-      // canonical store의 active breakpoint effective style이어야 한다.
-      const state = useStore.getState();
-      const snapshot = readImmediateSelectionSnapshot();
-      const element = snapshot.selectedElementId
-        ? state.elementsMap.get(snapshot.selectedElementId)
-        : undefined;
-      const baseStyle = (element?.props?.style ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const effectiveStyle = element
-        ? resolveResponsiveStyleMap(
-            baseStyle,
-            element.responsive,
-            state.activeBreakpoint,
-          )
-        : baseStyle;
+      // 다음 Enter가 들어올 수 있다. 비교 기준은 렌더 시점 styleValues가 아니라 지금
+      // 문서의 active breakpoint effective style이어야 한다.
+      const effectiveStyle = host.readSelectedTarget().style;
       const renderedFallback = styleValues[oppositeProperty];
       const opposite = String(
         effectiveStyle[oppositeProperty] ?? renderedFallback ?? "",
@@ -424,7 +289,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
       setConstraintError(conflict);
       return !conflict;
     },
-    [styleValues],
+    [host, styleValues],
   );
 
   const commitConstraint = useCallback(
@@ -448,66 +313,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
     commitRatio(hasEnabledAspectRatio(styleValues?.aspectRatio) ? "" : null);
   }, [commitRatio, styleValues?.aspectRatio]);
 
-  // ADR-224 §6.1 — Flow→Absolute 는 store 복합 명령 (position/inset + 무효 Fill 의 used px
-  // Fixed + 형제 맨 앞, 한 transaction). 오류 코드는 Ratio 와 같은 표로 표시한다.
-  const commitAbsoluteActivation = useCallback(
-    (stylesFor: (elementId: string) => Record<string, string>) => {
-      const snapshot = readImmediateSelectionSnapshot();
-      if (snapshot.selectedElementId !== selectedId) return;
-      setSizingError(
-        useStore.getState().applyAbsoluteFromSelection(snapshot, stylesFor),
-      );
-    },
-    [selectedId],
-  );
-
+  // ADR-224 §6.1 — Flow→Absolute 는 host 복합 명령 (위치 보존 + 무효 Fill 의 used px Fixed +
+  // 형제 맨 앞, 한 step). 오류 코드는 Ratio 와 같은 표로 표시한다.
   const handleAbsolutePositionChange = useCallback(
     (isSelected: boolean) => {
-      if (!isSelected) {
-        updateStyleImmediate("position", "");
-        return;
-      }
-      // 다중 선택은 요소마다 자기 부모·자기 scene bounds 로 inset 을 계산한다 — 리더의 left/top 을
-      // 전부에 쓰면 형제가 리더 위로 겹친다 (live 2026-09-18). 부모가 flex 가 아니거나 bounds 가
-      // 없으면 position 만.
-      commitAbsoluteActivation((elementId) => {
-        const state = useStore.getState();
-        const element = state.elementsMap.get(elementId);
-        const parentId = element?.parent_id;
-        const parent = parentId ? state.elementsMap.get(parentId) : undefined;
-        if (!parent || !parentId) return { position: "absolute" };
-        const parentStyle = resolveResponsiveStyleMap(
-          (parent.props?.style ?? {}) as Record<string, unknown>,
-          parent.responsive,
-          state.activeBreakpoint,
-        );
-        const display = String(
-          parentStyle.display ??
-            resolveContainerStylesFallback(
-              parent.type.toLowerCase(),
-              parentStyle,
-            ).display ??
-            "",
-        );
-        if (display !== "flex" && display !== "inline-flex") {
-          return { position: "absolute" };
-        }
-        const parentBounds = getSceneBounds(parentId);
-        return (
-          resolveAbsolutePositionActivationStyles(
-            getSceneBounds(elementId),
-            parentBounds
-              ? resolveAbsoluteContainingBlockBounds(
-                  parent,
-                  parentBounds,
-                  state.activeBreakpoint,
-                )
-              : parentBounds,
-          ) ?? { position: "absolute" }
-        );
-      });
+      setSizingError(host.applyAbsolute(selectedId, isSelected));
     },
-    [commitAbsoluteActivation, updateStyleImmediate],
+    [host, selectedId],
   );
 
   // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,
@@ -569,9 +381,14 @@ const TransformSectionContent = memo(function TransformSectionContent({
   };
 
   if (part === "position") {
-    return pagePositionPageId ? (
-      <PagePositionRow pageId={pagePositionPageId} />
-    ) : styleValues.isBody ? null : (
+    if (styleValues.isBody)
+      return (
+        <HostPagePositionRow
+          pagePosition={host.pagePosition}
+          selectedId={selectedId}
+        />
+      );
+    return (
       <div className="transform-row">
         <PropertyUnitInput
           label="Left"
@@ -838,7 +655,7 @@ export const SizeSection = memo(function SizeSection() {
 export const PositionSection = memo(function PositionSection() {
   const resetStyles = useResetStyles();
   const hasPositionDirty = useHasDirtyStyles(POSITION_PROPS);
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   // 접힘 판정은 inline position 만 — layout 실측 구독 0
   const bundle = useTransformValues(selectedId, "none");
   const isAbsolute = bundle?.position.inline === "absolute";

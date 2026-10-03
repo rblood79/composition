@@ -20,22 +20,21 @@ import { memo, useCallback, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
-import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
+import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {
-  PropertyChipGroup,
   PropertyDataBinding,
   PropertyDataBindingCreateAction,
-  PropertyFieldTemplateInput,
-  PropertyIconPicker,
-  PropertyInput,
-  PropertyNumberInput,
-  PropertyPlacementPicker,
-  PropertySection,
-  PropertySegment,
-  PropertySelect,
-  PropertySlider,
-} from "../../../components";
+} from "../../../components/property/PropertyDataBinding";
+import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
+import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
+import { PropertyInput } from "../../../components/property/PropertyInput";
+import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
+import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
+import { Section as PropertySection } from "../../../components/panel/Section";
+import { PropertySegment } from "../../../components/property/PropertySegment";
+import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertySlider } from "../../../components/property/PropertySlider";
 import type { PropertyChip } from "../../../components/property/PropertyChipGroup";
 import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -55,13 +54,14 @@ import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
-  useOwnerCollectionFields,
   type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
 import {
-  useCanonicalPropertyValue,
-  useCanonicalPropertyValuesSnapshot,
-} from "../hooks/useCanonicalPropertyRead";
+  useFieldOwnerFields,
+  useFieldVariableNames,
+  useFieldValue,
+  useFieldValuesSnapshot,
+} from "./fieldValueSource";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -418,13 +418,8 @@ function FieldRowResetAction({
   const { t } = useI18n();
   const first = row[0]!;
   const second = row[1] ?? first;
-  const v0 = useCanonicalPropertyValue(
-    elementId,
-    first.origin,
-    first.key,
-    first.baseValue,
-  );
-  const v1 = useCanonicalPropertyValue(
+  const v0 = useFieldValue(elementId, first.origin, first.key, first.baseValue);
+  const v1 = useFieldValue(
     elementId,
     second.origin,
     second.key,
@@ -481,19 +476,19 @@ function BoundValueSlider({
   numeric: number | undefined;
   onChange: (value: unknown) => void;
 }) {
-  const boundMin = useCanonicalPropertyValue(
+  const boundMin = useFieldValue(
     elementId,
     field.origin,
     editor.minKey,
     undefined,
   );
-  const boundMax = useCanonicalPropertyValue(
+  const boundMax = useFieldValue(
     elementId,
     field.origin,
     editor.maxKey,
     undefined,
   );
-  const boundStep = useCanonicalPropertyValue(
+  const boundStep = useFieldValue(
     elementId,
     field.origin,
     editor.stepKey,
@@ -541,7 +536,7 @@ const GenericField = memo(function GenericField({
   optionValueMode,
   stateNames,
 }: GenericFieldProps) {
-  const value = useCanonicalPropertyValue(
+  const value = useFieldValue(
     elementId,
     field.origin,
     field.key,
@@ -830,12 +825,7 @@ const ChipGroupField = memo(function ChipGroupField({
   const bases = useMemo(() => fields.map((f) => f.baseValue), [fields]);
   // 묶음의 origin 은 같다 (semantic) — 첫 필드 기준
   const origin = fields[0]?.origin ?? "semantic";
-  const snapshot = useCanonicalPropertyValuesSnapshot(
-    elementId,
-    origin,
-    keys,
-    bases,
-  );
+  const snapshot = useFieldValuesSnapshot(elementId, origin, keys, bases);
   const chips = useMemo<PropertyChip[]>(() => {
     const values = JSON.parse(snapshot) as unknown[];
     return fields.map((field, index) => {
@@ -990,13 +980,13 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
-  const ownerFields = useOwnerCollectionFields(elementId);
+  const ownerFields = useFieldOwnerFields(elementId);
   const ownerColumns = useMemo(
     () => ownerFields?.map((f) => f.key) ?? null,
     [ownerFields],
   );
   // ADR-214 Phase 3 — `{{` 자동완성 후보. 필드가 아니라 렌더러가 한 번 구독한다.
-  const stateNames = useVisibleVariableNames(elementId);
+  const stateNames = useFieldVariableNames(elementId);
 
   const extraSections = Object.entries(sectionExtras ?? {}).filter(
     (entry): entry is [string, ReactNode] => entry[1] != null,

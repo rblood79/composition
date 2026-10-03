@@ -8,13 +8,13 @@
  */
 
 import { pointInBox, type BoundingBox } from "../selection/types";
-import type {
-  SpacingBoxMetrics,
-  SpacingPaddingGrowth,
-  SpacingProperty,
-  SpacingSide,
-} from "../../../presentation/editorPresentationSpacingCapability";
-import { PADDING_PROPERTY_BY_SIDE } from "../../../presentation/editorPresentationSpacingCapability";
+import {
+  PADDING_PROPERTY_BY_SIDE,
+  type SpacingBoxMetrics,
+  type SpacingPaddingGrowth,
+  type SpacingProperty,
+  type SpacingSide,
+} from "./spacingTypes";
 
 export type SpacingBandKind = "padding" | "gap";
 
@@ -315,4 +315,28 @@ export function spacingDeltaFromPointer(
 /** 조절 축에 맞는 커서 */
 export function resolveSpacingCursor(band: SpacingBand): string {
   return band.axis === "y" ? "ns-resize" : "ew-resize";
+}
+
+/** Shift 드래그의 단위 (px) */
+const SPACING_SHIFT_STEP = 10;
+
+/** Option/Alt 양쪽 · Option/Alt+Shift 4변 (Figma 문서 정합, breakdown §1.1) */
+export function resolveSpacingSidesForModifiers(
+  side: SpacingSide,
+  altKey: boolean,
+  shiftKey: boolean,
+): readonly SpacingSide[] {
+  if (altKey && shiftKey) return ["top", "right", "bottom", "left"];
+  if (altKey) {
+    return side === "top" || side === "bottom"
+      ? ["top", "bottom"]
+      : ["left", "right"];
+  }
+  return [side];
+}
+
+/** 시작값 기준 delta 에 step 을 적용 — Shift 는 10px 단위, 아니면 1px (fractional 시작값은 무이동이면 보존) */
+export function applySpacingStep(delta: number, shift: boolean): number {
+  const step = shift ? SPACING_SHIFT_STEP : 1;
+  return Math.round(delta / step) * step;
 }

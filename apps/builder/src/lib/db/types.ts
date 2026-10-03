@@ -10,11 +10,6 @@ import type {
   ApiEndpoint,
   Variable,
 } from "../../types/builder/data.types";
-import type {
-  CompositionDocument,
-  InteractionRule,
-  SerializedAction,
-} from "@composition/shared";
 
 // === Project Types ===
 
@@ -29,61 +24,8 @@ export interface Project {
 
 // === Canonical Document Storage (ADR-116 direct cutover) ===
 
-export interface CanonicalDocumentRecord {
-  project_id: string;
-  document: CompositionDocument;
-  updated_at: string;
-}
 
-/**
- * documents_backup ring row (2026-07-14 요소 소실 사건 대응).
- * `backup_id` = `${project_id}::${원본 row 의 updated_at}`.
- */
-export interface CanonicalDocumentBackupRecord {
-  backup_id: string;
-  project_id: string;
-  document: CompositionDocument;
-  updated_at: string;
-}
 
-/**
- * documents.put 급감 가드 옵션 — adapter 구현은
- * `indexedDB/documentPersistGuard.ts` 판정 경유.
- */
-export interface DocumentPersistOptions {
-  /** 대량 삭제가 의도된 흐름 (요소 삭제 / 페이지 삭제) 에서만 true */
-  allowShrink?: boolean;
-  /**
-   * 설명 가능한 감소량 (history undo/redo 전용, 2026-07-15 사용자 승인) —
-   * entry 의 canonical event deleteIds 로 산출한 예상 제거 node 수.
-   * 가드는 `nextCount ≥ prevCount − expectedShrinkNodeCount` 일 때만 통과
-   * (delta 불일치 시 기존과 동일하게 차단 — fail-closed).
-   */
-  expectedShrinkNodeCount?: number;
-  /** 진단 로그용 호출 출처 */
-  reason?: string;
-}
-
-// === ADR-131 — Root collection store records ===
-//
-// 각 store row 는 SerializedEvent/Action 본체 + `project_id` 필드.
-// IndexedDB index = `project_id` (cross-project 분리), `target` (events 전용),
-// `kind` (events / actions 공통).
-//
-// **`SerializedDataRecord` 부재 (Phase 7-revert, 2026-05-13)**: 사용자 framing
-// 정정 — `data` store 는 기존 `collections` / `api_endpoints` 와 중복 개념.
-// DB_VERSION 17 에서 data store deleteObjectStore + 본 type 제거.
-// `SerializedData` schema 와 `CompositionDocument.data` root field 는 schema
-// 영역에서 별도 framing 정리 (현 commit scope 외).
-
-/** ADR-158 Phase 1 — entry 타입이 `SerializedEvent` → `InteractionRule` 로 교체됨 */
-export interface SerializedEventRecord extends InteractionRule {
-  project_id: string;
-}
-
-export interface SerializedActionRecord extends SerializedAction {
-  project_id: string;
-}
 
 // === Database Adapter Interface ===
 
@@ -108,19 +50,7 @@ export interface DatabaseAdapter {
 
   // Canonical document primary storage (ADR-116)
   // put 은 급감 가드 + 백업 ring 경유 (2026-07-14 — documentPersistGuard.ts).
-  documents: {
-    put(
-      projectId: string,
-      document: CompositionDocument,
-      options?: DocumentPersistOptions,
-    ): Promise<CompositionDocument>;
-    get(projectId: string): Promise<CompositionDocument | null>;
-    delete(projectId: string): Promise<void>;
-    getAll(): Promise<CanonicalDocumentRecord[]>;
-    getBackups(projectId: string): Promise<CanonicalDocumentBackupRecord[]>;
-    /** 저장된 현재 문서를 백업 ring 에 즉시 기록 (ADR-235 이관 전 백업) */
-    backupNow(projectId: string): Promise<boolean>;
-  };
+
 
   // Data Tables (Data Panel System)
   collections: {
@@ -155,36 +85,6 @@ export interface DatabaseAdapter {
     getByScope(scope: string): Promise<Variable[]>;
     getByPage(pageId: string): Promise<Variable[]>;
     getAll(): Promise<Variable[]>;
-  };
-
-  // ADR-131 Phase 7 — Events root collection store
-  events: {
-    insert(record: SerializedEventRecord): Promise<SerializedEventRecord>;
-    update(
-      id: string,
-      patch: Partial<SerializedEventRecord>,
-    ): Promise<SerializedEventRecord>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<SerializedEventRecord | null>;
-    getByProject(projectId: string): Promise<SerializedEventRecord[]>;
-    getByTarget(target: string): Promise<SerializedEventRecord[]>;
-    getAll(): Promise<SerializedEventRecord[]>;
-  };
-
-  // ADR-131 Phase 7-revert (2026-05-13): `data` store 부재 — 기존 `collections`
-  // / `api_endpoints` 와 중복 개념.
-
-  // ADR-131 Phase 7 — Actions root collection store
-  actions: {
-    insert(record: SerializedActionRecord): Promise<SerializedActionRecord>;
-    update(
-      id: string,
-      patch: Partial<SerializedActionRecord>,
-    ): Promise<SerializedActionRecord>;
-    delete(id: string): Promise<void>;
-    getById(id: string): Promise<SerializedActionRecord | null>;
-    getByProject(projectId: string): Promise<SerializedActionRecord[]>;
-    getAll(): Promise<SerializedActionRecord[]>;
   };
 }
 

@@ -17,7 +17,7 @@ import {
   subscribeSpacingPresentation,
   type SpacingActiveTarget,
 } from "../workspace/canvas/interaction/spacingPresentation";
-import type { SpacingProperty } from "./editorPresentationSpacingCapability";
+import type { SpacingProperty } from "../workspace/canvas/interaction/spacingTypes";
 
 export interface SpacingSessionView {
   /** 세션이 소유한 노드 */

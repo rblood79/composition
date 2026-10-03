@@ -10,7 +10,7 @@ import {
 import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { useStore } from "../../stores";
+import { usePropertySelection } from "./propertySelection";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
 import type { PropertyUnitPreset } from "./propertyUnitPresets";
 import {
@@ -280,7 +280,8 @@ export const PropertyUnitInput = memo(
       label && i18n
         ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
         : label;
-    const selectedElementId = useStore((state) => state.selectedElementId);
+    const selection = usePropertySelection();
+    const selectedElementId = selection.useSelectedId();
     const isPreservedEmptyValue =
       preserveEmptyValueOnUnitChange && value.trim() === "";
     // useMemo로 value prop에서 파생값 계산 (useLayoutEffect + setState 대체)
@@ -416,7 +417,7 @@ export const PropertyUnitInput = memo(
 
       // ⭐ 요소 전환 감지: focus 시점과 blur 시점의 selectedElementId가 다르면
       // 이전 요소의 값이 새 요소에 적용되는 것을 방지
-      const currentElementId = useStore.getState().selectedElementId ?? null;
+      const currentElementId = selection.readSelectedId();
       if (
         focusedElementIdRef.current !== null &&
         currentElementId !== focusedElementIdRef.current
@@ -568,8 +569,7 @@ export const PropertyUnitInput = memo(
       // Reset flag on focus (new editing session)
       justSavedViaEnterRef.current = false;
       // ⭐ focus 시점의 selectedElementId 캡처 — blur 시 요소 전환 감지
-      focusedElementIdRef.current =
-        useStore.getState().selectedElementId ?? null;
+      focusedElementIdRef.current = selection.readSelectedId();
     };
 
     /** ▲▼ — 화살표 키 (repeat 라 onDrag 스로틀) 와 stepper 클릭 (commit) 이 같은 계산 */
@@ -584,9 +584,14 @@ export const PropertyUnitInput = memo(
       )
         return;
       const step = coarse ? 10 : 1;
-      const base = sizeControl
-        ? parseFloat(inputValue) || 0
-        : numericValue || 0;
+      // The shown edit value: a host whose preview does not write the document (catalog) keeps
+      // the `value` prop at the committed value, so successive arrows step from what is shown.
+      const typed = parseFloat(inputValue);
+      const base = Number.isFinite(typed)
+        ? typed
+        : sizeControl
+          ? 0
+          : numericValue || 0;
       const next =
         direction > 0 ? Math.min(base + step, max) : Math.max(base - step, min);
       setInputValue(String(next));

@@ -2,6 +2,7 @@ import type {
   DefinitionId,
   TokenId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogTokenValue } from "../../../../../packages/shared/src/catalog/document/themedToken";
 import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
@@ -20,11 +21,16 @@ export function catalogLibraryVisual(
   const definition = graph.getDefinition(node.definitionId as DefinitionId);
   const values: Record<string, unknown> = {};
   if (!definition) return values;
+  // The resolver's token read (the root's color mode), so a definition value is never "authored".
+  const tokenValue = (id: TokenId) => {
+    const token = graph.getToken(id);
+    return token && catalogTokenValue(token, root.colorMode);
+  };
   const apply = (source: Readonly<Record<string, unknown>> | undefined) => {
     for (const [key, value] of Object.entries(source ?? {}))
       values[key] =
         value && typeof value === "object" && "tokenId" in value
-          ? graph.getToken((value as { tokenId: TokenId }).tokenId)?.value
+          ? tokenValue((value as { tokenId: TokenId }).tokenId)
           : value;
   };
   apply(definition.visual);

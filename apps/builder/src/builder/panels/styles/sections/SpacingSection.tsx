@@ -9,11 +9,10 @@
  */
 
 import { memo } from "react";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { useStore } from "../../../stores";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { BoxModelEditor, type BoxSide } from "../components/BoxModelEditor";
 import { SPACING_PROPS } from "./styleSectionProps";
@@ -21,6 +20,7 @@ import {
   readSessionSpacingValue,
   useSpacingSession,
 } from "../../../presentation/useSpacingSession";
+import { useStylesSelectedId } from "../stylesHost";
 
 /**
  * LayoutSection 내부 컨텐츠 — 섹션이 열릴 때만 마운트
@@ -28,7 +28,7 @@ import {
 const SpacingSectionContent = memo(function SpacingSectionContent() {
   const { updateStyleImmediate } = useOptimizedStyleActions();
   const { commitLayoutPresentation } = useLayoutPresentationActions();
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useLayoutValues(selectedId);
   // ADR-222: 캔버스 spacing 세션이 이 노드의 padding 을 편집 중이면 확정값을 덮어 읽고 그 변을 강조
   const spacingSession = useSpacingSession();

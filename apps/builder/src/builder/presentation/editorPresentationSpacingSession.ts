@@ -24,12 +24,12 @@ import {
   subscribeLayoutReceipts,
   type PresentationLayoutReceipt,
 } from "./editorPresentationLayoutReceipt";
+import type { SpacingCapability } from "../workspace/canvas/interaction/spacingTypes";
 import {
   PADDING_PROPERTY_BY_SIDE,
-  type SpacingCapability,
   type SpacingProperty,
   type SpacingSide,
-} from "./editorPresentationSpacingCapability";
+} from "../workspace/canvas/interaction/spacingTypes";
 
 export type SpacingSessionKind = "padding" | "gap";
 
@@ -240,7 +240,10 @@ export class SpacingPresentationSession {
     if (this.#phase !== "active") return false;
     if (this.#uniformFrom) {
       // link: 잡은 변의 시작값 + delta 를 모든 변에 (0 에서 멈춤)
-      const value = Math.max(0, (this.#startValues[this.#uniformFrom] ?? 0) + delta);
+      const value = Math.max(
+        0,
+        (this.#startValues[this.#uniformFrom] ?? 0) + delta,
+      );
       const next: Partial<Record<SpacingProperty, number>> = {};
       for (const property of this.properties) next[property] = value;
       return this.setValues(next);

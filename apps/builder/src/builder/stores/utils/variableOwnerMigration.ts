@@ -207,10 +207,15 @@ export function selectUserPageIds(
   return pages.filter((page) => !isComponentsPage(page)).map((page) => page.id);
 }
 
+/** Returns a restore of the source it replaced (the catalog Builder puts the store's back). */
 export function registerVariableOwnerPageSource(
   source: (() => readonly string[]) | null,
-): void {
+): () => void {
+  const previous = pageIdsSource;
   pageIdsSource = source;
+  return () => {
+    if (pageIdsSource === source) pageIdsSource = previous;
+  };
 }
 
 /** 등록된 공급자가 없으면 `undefined` (C 자동 귀속 없음 — 모르면 지어내지 않는다). */

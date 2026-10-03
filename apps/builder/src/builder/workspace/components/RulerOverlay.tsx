@@ -21,7 +21,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentation,
@@ -119,7 +119,7 @@ export interface RulerOverlayProps {
 }
 
 export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
-  const showRulers = useStore((state) => state.showRulers);
+  const showRulers = useBuilderUiStore((state) => state.showRulers);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const hStripRef = useRef<HTMLDivElement>(null);

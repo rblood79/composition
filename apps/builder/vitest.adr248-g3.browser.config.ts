@@ -16,6 +16,8 @@ export default defineConfig({
     __ADR248_DUMP_DIR__: JSON.stringify(process.env.ADR248_DUMP_DIR ?? ""),
     // `ADR248_SCENARIO=axis`: the frozen palette-variant-size scenario (386 single axes).
     __ADR248_SCENARIO__: JSON.stringify(process.env.ADR248_SCENARIO ?? "base"),
+    // `ADR248_LIVE_DIR=<abs dir>`: Phase 4 live leg — the real Builder's captures of each case.
+    __ADR248_LIVE_DIR__: JSON.stringify(process.env.ADR248_LIVE_DIR ?? ""),
   },
   test: {
     ...base.test,

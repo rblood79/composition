@@ -3,7 +3,7 @@ import { NumberField } from "react-aria-components/NumberField";
 import { Input } from "react-aria-components/Input";
 import { Group } from "react-aria-components/Group";
 import { PropertyFieldset } from "./PropertyFieldset";
-import { useStore } from "../../stores";
+import { usePropertySelection } from "./propertySelection";
 import {
   semanticLabelKeys,
   translateKey,
@@ -46,7 +46,8 @@ export const PropertyNumberInput = memo(
       label && i18n
         ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
         : label;
-    const selectedElementId = useStore((state) => state.selectedElementId);
+    const selection = usePropertySelection();
+    const selectedElementId = selection.useSelectedId();
     const [localValue, setLocalValue] = useState<number | undefined>(value);
     const committedRef = useRef(false);
     const focusedElementIdRef = useRef<string | null>(null);
@@ -110,15 +111,14 @@ export const PropertyNumberInput = memo(
               onFocus={(e) => {
                 e.target.select();
                 committedRef.current = false;
-                focusedElementIdRef.current =
-                  useStore.getState().selectedElementId ?? null;
+                focusedElementIdRef.current = selection.readSelectedId();
               }}
               onBlur={() => {
                 if (committedRef.current) {
                   committedRef.current = false;
                   return;
                 }
-                const currentId = useStore.getState().selectedElementId ?? null;
+                const currentId = selection.readSelectedId();
                 if (
                   focusedElementIdRef.current !== null &&
                   currentId !== focusedElementIdRef.current

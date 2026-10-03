@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { SkiaNodeData } from "../../workspace/canvas/skia/nodeRendererTypes";
 import {
-  applyCatalogAuthoredPaint,
   catalogAuthoredDomStyle,
-  catalogCssColorRgba,
   hasCatalogAuthoredPaint,
 } from "../authoredStyle";
+import {
+  applyCatalogAuthoredPaint,
+  catalogCssColorRgba,
+} from "../authoredPaintCanvas";
 import { catalogDomStyle } from "../domBinding";
 import type { CatalogConsumerNode } from "../compositionRoot";
 

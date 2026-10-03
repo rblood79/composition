@@ -1,4 +1,4 @@
-import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { getIconData } from "@composition/specs";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {
@@ -13,7 +13,8 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import { catalogRuleNodeData, cssVarColor } from "./ruleShapes";
+import { catalogRuleNodeData } from "./ruleShapes";
+import { catalogRuleTextColor, cssVarColor } from "./rulePaint";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -21,15 +22,25 @@ import {
 } from "./compositionRoot";
 import type { SlotChromeInput } from "./slotChrome";
 import {
+  catalogOverflowClips,
+  catalogOverflowScrolls,
+  catalogScrollbar,
+  catalogScrollRange,
+  type CatalogOverflowTree,
+} from "./canvasOverflow";
+import {
   applyTextTransform,
   parseTextDecoration,
 } from "../workspace/canvas/styleConversion/styleConverter";
 import {
-  applyCatalogAuthoredPaint,
-  catalogCssColorRgba,
+  catalogVisualWithBackground,
   hasCatalogAuthoredPaint,
   isTypedCatalogColor,
 } from "./authoredStyle";
+import {
+  applyCatalogAuthoredPaint,
+  catalogCssColorRgba,
+} from "./authoredPaintCanvas";
 import {
   CATALOG_BINDING_VISUAL_KEYS,
   catalogFontFamilies,
@@ -37,6 +48,7 @@ import {
   catalogGlyphSize,
   catalogTextMetrics,
 } from "./boxModel";
+import { catalogRowSampleHidden } from "./rowSample";
 
 /**
  * ADR-248 Canvas binding: resolved catalog inputs → existing CanvasKit render commands.
@@ -119,8 +131,8 @@ function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     elementId: node.id,
     ...rect,
     visible: true,
-    clipChildren: node.visual.overflow === "hidden",
-    ...(node.visual.overflow === "hidden" && strokeWidth > 0
+    clipChildren: catalogOverflowClips(node.visual.overflow),
+    ...(catalogOverflowClips(node.visual.overflow) && strokeWidth > 0
       ? { clipBorderInset: strokeWidth }
       : {}),
     box: {
@@ -144,7 +156,7 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
     elementId: node.id,
     ...rect,
     visible: true,
-    clipChildren: node.visual.overflow === "hidden",
+    clipChildren: catalogOverflowClips(node.visual.overflow),
   };
 }
 
@@ -265,9 +277,24 @@ const bindings: Readonly<Record<string, Binding>> = {
         ...(metrics.wordBreak === "break-all" ||
         metrics.wordBreak === "keep-all"
           ? { wordBreak: metrics.wordBreak }
-          : metrics.wordBreak === "break-word"
+          : {}),
+        // CSS `word-break: break-word` (legacy) breaks a long word as `overflow-wrap` does; an
+        // authored `overflow-wrap` wins over it.
+        ...(metrics.overflowWrap === "break-word" ||
+        metrics.overflowWrap === "anywhere"
+          ? { overflowWrap: metrics.overflowWrap }
+          : metrics.overflowWrap === undefined &&
+              metrics.wordBreak === "break-word"
             ? { overflowWrap: "break-word" as const }
             : {}),
+        // `text-overflow: ellipsis` shows on a box that clips its one line (CSS: overflow other
+        // than visible + nowrap); the paragraph paints the ellipsis at the box width.
+        ...(metrics.textOverflow === "ellipsis"
+          ? {
+              textOverflow: "ellipsis" as const,
+              clipText: catalogOverflowClips(node.visual.overflow),
+            }
+          : {}),
         ...(metrics.fontWeight !== undefined
           ? { fontWeight: metrics.fontWeight }
           : {}),
@@ -333,6 +360,8 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "textDecoration",
   "whiteSpace",
   "wordBreak",
+  "overflowWrap",
+  "textOverflow",
 ];
 function ruleNodeData(
   root: CatalogCompositionRoot,
@@ -344,21 +373,111 @@ function ruleNodeData(
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
+  const input = {
+    node: node.derivedProps
+      ? { ...node, props: { ...node.props, ...node.derivedProps } }
+      : node,
+    rect,
+    rule,
+    type: node.ruleId!,
+    authoredVisual: catalogAuthoredVisual(root, node),
+    state: catalogNodeState(node.displayState, root.state),
+    theme: root.colorMode,
+    singleLine: root.textKeptOnOneLine(node.id),
+  };
+  const data = catalogRuleNodeData(input);
+  const content = dropZoneContentData(
+    root,
+    node,
+    rect,
+    catalogRuleTextColor(input),
+  );
   return {
-    ...catalogRuleNodeData({
-      node: node.derivedProps
-        ? { ...node, props: { ...node.props, ...node.derivedProps } }
-        : node,
-      rect,
-      rule,
-      type: node.ruleId!,
-      authoredVisual: catalogAuthoredVisual(root, node),
-      state: catalogNodeState(node.displayState, root.state),
-      theme: root.colorMode,
-    }),
+    ...data,
+    ...(content.length
+      ? { children: [...(data.children ?? []), ...content] }
+      : {}),
     x: rect.x,
     y: rect.y,
   };
+}
+
+/**
+ * The DropZone's composed icon · label · description (`dropZoneContent.ts`) as internal children
+ * of its rule data: a centered column in the content box (`justify-content` / `align-items`
+ * center — overflowing both sides alike, like the DOM), in the variant text color.
+ */
+function dropZoneContentData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+  color: string | undefined,
+): SkiaNodeData[] {
+  if (node.bindingId !== "dropzone") return [];
+  const content = root.dropZoneContent(node.id, rect.width);
+  if (!content) return [];
+  const box = catalogBoxModel(node);
+  const num = (value: unknown) => (typeof value === "number" ? value : 0);
+  const border = num(box.borderWidth);
+  const left = border + num(box.padding?.left);
+  const top = border + num(box.padding?.top);
+  const width = rect.width - left - border - num(box.padding?.right);
+  const height = rect.height - top - border - num(box.padding?.bottom);
+  const paint = rgba(color ?? "#000000");
+  let y = top + (height - content.height) / 2;
+  const out: SkiaNodeData[] = [];
+  for (const part of content.parts) {
+    const x = left + (width - part.width) / 2;
+    const frame = { x, y, width: part.width, height: part.height };
+    if (part.kind === "icon") {
+      const icon = getIconData("upload");
+      if (!icon) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${node.id}:upload`);
+      out.push({
+        type: "icon_path",
+        ...frame,
+        visible: true,
+        iconPath: {
+          paths: icon.paths,
+          circles: icon.circles,
+          cx: part.width / 2,
+          cy: part.height / 2,
+          size: part.width,
+          strokeColor: paint,
+          strokeWidth: 2,
+        },
+      });
+    } else {
+      // A rule node's text child spans the node box and is placed by its padding (the executor's
+      // convention, `specShapesToSkia`): the paragraph is laid out in the part's band, and
+      // `autoCenter: false` keeps the command stream from re-centering it in the node.
+      const font = part.font!;
+      out.push({
+        type: "text",
+        x: 0,
+        y: 0,
+        width: rect.width,
+        height: rect.height,
+        visible: true,
+        box: { fillColor: rgba(undefined), borderRadius: 0 },
+        text: {
+          content: part.text!,
+          fontFamilies: catalogFontFamilies(undefined),
+          fontSize: font.fontSize,
+          fontWeight: font.fontWeight,
+          lineHeight: font.fontSize * font.lineHeight,
+          color: paint,
+          align: "center",
+          autoCenter: false,
+          paddingLeft: frame.x,
+          paddingTop: frame.y,
+          maxWidth: part.width,
+          whiteSpace: part.wraps ? "normal" : "nowrap",
+        },
+      });
+    }
+    y += part.height + content.gap;
+  }
+  return out;
 }
 
 /**
@@ -367,28 +486,66 @@ function ruleNodeData(
  */
 function paintedNodeData(
   root: CatalogCompositionRoot,
-  node: CatalogConsumerNode,
+  input: CatalogConsumerNode,
   rect: Rect,
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
-  return withOpacity(
+  const node = catalogVisualWithBackground(input);
+  return withOverflowClip(
     node,
-    applyCatalogAuthoredPaint(
+    withOpacity(
       node,
-      binding
-        ? binding(
-            node,
-            rect,
-            parent,
-            root.textWraps(node.id),
-            root.labelSuffix(node.id),
-          )
-        : ruleNodeData(root, node, rect),
-      rect,
-      root.colorMode,
+      applyCatalogAuthoredPaint(
+        node,
+        binding
+          ? binding(
+              node,
+              rect,
+              parent,
+              root.textWraps(node.id),
+              root.labelSuffix(node.id),
+            )
+          : ruleNodeData(root, node, rect),
+        rect,
+        root.colorMode,
+      ),
     ),
   );
+}
+
+/**
+ * Every overflow but `visible` clips the children (CSS) — a rule-backed node too (its definition
+ * carries the rule box's overflow: ListBox, Menu …), inside its border as the box binding does.
+ */
+function withOverflowClip(
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  if (!data.visible || !catalogOverflowClips(node.visual.overflow)) return data;
+  const stroke = data.box?.strokeWidth ?? 0;
+  return {
+    ...data,
+    clipChildren: true,
+    ...(stroke > 0 && data.clipBorderInset === undefined
+      ? { clipBorderInset: stroke }
+      : {}),
+  };
+}
+
+/** The scroll/auto box's end padding and border: the scroll range reaches past them. */
+function scrollEnd(node: CatalogConsumerNode): {
+  right: number;
+  bottom: number;
+} {
+  const model = catalogBoxModel(node);
+  const px = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? value : 0;
+  const border = px(model.borderWidth);
+  return {
+    right: px(model.padding?.right) + border,
+    bottom: px(model.padding?.bottom) + border,
+  };
 }
 
 function bindingKey(node: CatalogConsumerNode): string | undefined {
@@ -475,7 +632,7 @@ export function bindCatalogCanvas(
   root: CatalogCompositionRoot,
   rootIds: readonly string[],
   pageShell?: { id: string; rect: Rect; fill: string },
-  context: { slotMode?: "edit" | "page" } = {},
+  context: CatalogCanvasBindContext = {},
 ) {
   const bound = withColorMode(root.colorMode, () =>
     bindInColorMode(root, rootIds, pageShell, context),
@@ -486,11 +643,22 @@ export function bindCatalogCanvas(
   };
 }
 
+/** A scroll/auto box's scroll position (record id → px), kept by the owner across rebinds. */
+export type CatalogScrollOffsets = Map<
+  string,
+  { scrollTop: number; scrollLeft: number }
+>;
+
+export interface CatalogCanvasBindContext {
+  slotMode?: "edit" | "page";
+  scrollOffsets?: CatalogScrollOffsets;
+}
+
 function bindInColorMode(
   root: CatalogCompositionRoot,
   rootIds: readonly string[],
   pageShell?: { id: string; rect: Rect; fill: string },
-  context: { slotMode?: "edit" | "page" } = {},
+  context: CatalogCanvasBindContext = {},
 ) {
   const sceneNodes = new Map<string, CanvasSceneNode>();
   const childrenMap = new Map<string, CanvasSceneNode[]>();
@@ -498,6 +666,69 @@ function bindInColorMode(
   const registeredIds: string[] = [];
   const unpainted: Array<{ id: string; reason: string }> = [];
   const resolvedBindingIds = new Set<string>();
+  const tree: CatalogOverflowTree = {
+    overflowOf: (id) => root.canvasInputs.get(id)?.visual.overflow,
+    childrenOf: (id) => root.canvasInputs.get(id)?.children ?? [],
+    parentOf: (id) => root.canvasInputs.get(id)?.parentId,
+  };
+  /** The scrollbar each scroll/auto box was registered with (an update compares against it). */
+  const scrollbars = new Map<string, string>();
+  const offsets: CatalogScrollOffsets = context.scrollOffsets ?? new Map();
+  const ranges = new Map<
+    string,
+    { maxScrollTop: number; maxScrollLeft: number }
+  >();
+  /** Range, the position clamped into it, and the scrollbar of a scroll/auto box. */
+  const scrollStateOf = (
+    node: CatalogConsumerNode,
+    rect: Rect,
+    rectOf: (id: string) => Rect | undefined,
+  ) => {
+    const range = catalogScrollRange(node.id, tree, rectOf, scrollEnd(node));
+    const current = offsets.get(node.id);
+    const offset = {
+      scrollTop: Math.min(
+        Math.max(current?.scrollTop ?? 0, 0),
+        range.maxScrollTop,
+      ),
+      scrollLeft: Math.min(
+        Math.max(current?.scrollLeft ?? 0, 0),
+        range.maxScrollLeft,
+      ),
+    };
+    return {
+      range,
+      offset,
+      bar: catalogScrollbar(rect.width, rect.height, range, offset),
+    };
+  };
+  const withScrollbar = (
+    node: CatalogConsumerNode,
+    data: SkiaNodeData,
+    rectOf: (id: string) => Rect | undefined,
+  ): SkiaNodeData => {
+    if (
+      node.hidden ||
+      !data.visible ||
+      !catalogOverflowScrolls(node.visual.overflow)
+    ) {
+      scrollbars.delete(node.id);
+      ranges.delete(node.id);
+      return data;
+    }
+    const { range, offset, bar } = scrollStateOf(node, data, rectOf);
+    ranges.set(node.id, range);
+    scrollbars.set(node.id, JSON.stringify(bar ?? null));
+    const scrolled = offset.scrollTop !== 0 || offset.scrollLeft !== 0;
+    if (scrolled) offsets.set(node.id, offset);
+    else offsets.delete(node.id);
+    return {
+      ...data,
+      ...(bar ? { scrollbar: bar } : {}),
+      // The children move by the position (renderCommands translates them and their boxes).
+      ...(scrolled ? { scrollOffset: offset } : {}),
+    };
+  };
   try {
     const geometry = root.getGeometry(root.canvasInputs.keys());
     for (const node of root.canvasInputs.values()) {
@@ -533,11 +764,15 @@ function bindInColorMode(
       layoutMap.set(node.id, { ...rect, elementId: node.id });
       registerSkiaNode(
         node.id,
-        node.hidden
+        node.hidden || catalogRowSampleHidden(root, node)
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
-            : paintedNodeData(root, node, rect, binding, parent),
+            : withScrollbar(
+                node,
+                paintedNodeData(root, node, rect, binding, parent),
+                (id) => geometry.get(id),
+              ),
       );
       registeredIds.push(node.id);
     }
@@ -771,10 +1006,12 @@ function bindInColorMode(
         parent: CatalogConsumerNode,
       ): boolean => {
         const child = catalogBoxModel(input(id)!);
+        // An absolutely placed box is out of flow: with the parent's rect unchanged (checked by
+        // the caller) no sibling reads its size, in any parent display.
+        if (child.position) return true;
         return (
           catalogBoxModel(parent).display === "block" &&
           !child.display.startsWith("inline") &&
-          !child.position &&
           changedRects.get(id)!.height === layoutMap.get(id)!.height
         );
       };
@@ -840,15 +1077,51 @@ function bindInColorMode(
         layoutMap.set(id, { ...rect, elementId: id });
         reRegister.add(id);
       }
+      // A moved or resized box changes the scroll range of its nearest clipping ancestor: a
+      // scroll/auto box draws again when its scrollbar changes (only then — a page body that
+      // scrolls is not rebuilt for every edit inside it; a paint edit moves no range).
+      const rectOf = (id: string) => layoutMap.get(id);
+      for (const id of changedRects.keys()) {
+        let cursor = input(id)?.parentId;
+        for (let depth = 0; cursor && depth <= 32; depth += 1) {
+          const owner = input(cursor);
+          if (!owner) break;
+          if (catalogOverflowClips(owner.visual.overflow)) {
+            if (
+              !reRegister.has(cursor) &&
+              catalogOverflowScrolls(owner.visual.overflow) &&
+              JSON.stringify(
+                scrollStateOf(owner, layoutMap.get(cursor)!, rectOf).bar ??
+                  null,
+              ) !== scrollbars.get(cursor)
+            ) {
+              reRegister.add(cursor);
+              patchRoots.add(cursor);
+            }
+            break;
+          }
+          cursor = owner.parentId;
+        }
+      }
       for (const id of reRegister) {
         const node = input(id)!;
         const binding = bindings[bindingKey(node)!];
         const rect = layoutMap.get(id)!;
         registerSkiaNode(
           id,
-          node.hidden
+          node.hidden || catalogRowSampleHidden(root, node)
             ? hiddenNode(node, rect)
-            : paintedNodeData(root, node, rect, binding, input(node.parentId)),
+            : withScrollbar(
+                node,
+                paintedNodeData(
+                  root,
+                  node,
+                  rect,
+                  binding,
+                  input(node.parentId),
+                ),
+                rectOf,
+              ),
         );
       }
       // Patch only the top-most roots: a root inside another root's subtree is rebuilt with it.
@@ -900,11 +1173,45 @@ function bindInColorMode(
         commandWrites,
       };
     };
+    /** Whether a record is a scroll/auto box with somewhere to scroll. */
+    const scrollable = (id: string) => {
+      const range = ranges.get(id);
+      return !!range && (range.maxScrollTop > 0 || range.maxScrollLeft > 0);
+    };
+    /**
+     * Scroll a box by a wheel delta (clamped to its range). A change redraws the box at the next
+     * `update` (the patch path: its subtree, with the moved children's boxes); false = no change.
+     */
+    const scrollBy = (id: string, deltaX: number, deltaY: number) => {
+      const range = ranges.get(id);
+      if (!range) return false;
+      const current = offsets.get(id) ?? { scrollTop: 0, scrollLeft: 0 };
+      const next = {
+        scrollTop: Math.min(
+          Math.max(current.scrollTop + deltaY, 0),
+          range.maxScrollTop,
+        ),
+        scrollLeft: Math.min(
+          Math.max(current.scrollLeft + deltaX, 0),
+          range.maxScrollLeft,
+        ),
+      };
+      if (
+        next.scrollTop === current.scrollTop &&
+        next.scrollLeft === current.scrollLeft
+      )
+        return false;
+      offsets.set(id, next);
+      dirty.add(id);
+      return true;
+    };
     return {
       stream,
       bindingIds: [...resolvedBindingIds],
       unpainted,
       update,
+      scrollable,
+      scrollBy,
       dispose: () => {
         unsubscribe.forEach((off) => off());
         registeredIds.forEach(unregisterSkiaNode);

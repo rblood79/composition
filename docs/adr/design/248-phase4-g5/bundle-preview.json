@@ -1,0 +1,80 @@
+{
+  "label": "preview",
+  "measuredAt": "2026-10-02T21:48:25.467Z",
+  "repo": "/Users/admin/work/composition/.claude/worktrees/adr248-4e",
+  "dist": "../../../../../.claude/jobs/02a6247e/tmp/g5/final-dist",
+  "entry": "preview.html",
+  "revision": {
+    "sha": "8f057996a51640241c5c4418e135173bd12dcfec",
+    "dirtyFiles": [
+      "M apps/builder/perf/ratchet.json",
+      " M apps/builder/scripts/perf-baseline.mjs",
+      " M apps/builder/src/builder/main/CatalogBuilderCore.tsx",
+      " M apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx",
+      " M apps/builder/src/vite-env.d.ts",
+      "?? apps/builder/scripts/adr248-g5-boot-bundle.mjs",
+      "?? apps/builder/scripts/adr248-g5-live.mjs",
+      "?? apps/builder/scripts/adr248-g5-paired.mjs",
+      "?? apps/builder/scripts/adr248-g5-webkit.mjs",
+      "?? apps/builder/scripts/perfCatalogFacade.mjs",
+      "?? apps/builder/vite.graph.tmp.config.ts",
+      "?? docs/adr/design/248-phase4-g5-evidence.md",
+      "?? docs/adr/design/248-phase4-g5/"
+    ],
+    "dirtyPatchSha256": "80eb0c2656a4db9fe2ed227c9ba379276be732f75ec2bf806643b48add59e286",
+    "lockfileSha256": "681621ec7878eadb24696f49f1d3bc328aa55fd9ad60fcfe3a65b8d7dac1822f",
+    "node": "v24.15.0",
+    "pnpm": "10.26.2"
+  },
+  "gzip": "node:zlib gzipSync level 9 (header mtime 0), per-file sum",
+  "initial": {
+    "seeds": [
+      "assets/preview-CtmgHW1O.js"
+    ],
+    "js": {
+      "files": [
+        "assets/aria-runtime-CqPzZazV.js",
+        "assets/componentTraits-ErT-3-Bx.js",
+        "assets/dist-fnTAN79C.js",
+        "assets/fontRegistry-ChSjt7Gx.js",
+        "assets/jsx-runtime-DREnUpxT.js",
+        "assets/preload-helper-D_-c9_WX.js",
+        "assets/pretendard-BV89QC0O.js",
+        "assets/preview-CtmgHW1O.js",
+        "assets/rolldown-runtime-Dd_uD5pT.js",
+        "assets/schemas-B0ZjHQjF.js",
+        "assets/src-DrwhVB2u.js"
+      ],
+      "rawBytes": 1588667,
+      "gzipBytes": 394104
+    },
+    "css": {
+      "files": [
+        "assets/pretendard-Bot_D36I.css",
+        "assets/preview-D1eBLa4x.css"
+      ],
+      "rawBytes": 403855,
+      "gzipBytes": 47388
+    }
+  },
+  "dynamicTargets": [
+    "assets/assetUrlResolver-BwNSPRfp.js",
+    "assets/catalogPreviewApp-B-S1irX0.js"
+  ],
+  "lazy": {
+    "marker": "RechartsChart",
+    "entries": [
+      "assets/RechartsChart-Bjmra1_0.js"
+    ],
+    "entryInInitial": false,
+    "entryReachableDynamically": false,
+    "js": {
+      "files": [
+        "assets/RechartsChart-Bjmra1_0.js",
+        "assets/svgDecorations-PYr6xir2.js"
+      ],
+      "rawBytes": 443054,
+      "gzipBytes": 122307
+    }
+  }
+}

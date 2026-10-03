@@ -29,7 +29,7 @@ import {
   renderCatalogDom,
 } from "../domBinding";
 import { CatalogStorage } from "../storage";
-import { CATALOG_RULE_EXECUTOR_PAINT_STATES } from "../ruleShapes";
+import { CATALOG_RULE_EXECUTOR_PAINT_STATES } from "../rulePaint";
 import { writeEvidence } from "./support/evidence";
 
 /**

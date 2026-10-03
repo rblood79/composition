@@ -3,11 +3,17 @@
  * 패널 열림의 AND. 포커스 scope 는 보지 않는다.
  */
 import { describe, expect, it, vi } from "vitest";
-import type { AgentReadModel } from "../../config/commandMeta";
+import {
+  COMMAND_META,
+  type AgentReadModel,
+} from "../../config/commandMeta";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
 import type { CommandEntry } from "../../stores/commandRegistry";
 import type { PanelConfig, PanelId } from "../../panels/core/types";
 import { panelIdForScope } from "../../hooks/useActiveScope";
+import { setAgentCommandHost } from "../../../services/agent/agentCommandHost";
+import { createCatalogAgentCommandHost } from "../../catalogRuntime/agentHost";
+import { openStylesFixture } from "../../panels/styles/__tests__/support/catalogStylesFixture";
 import {
   deriveWorkspacePanelGroups,
   ownerPanelForCommand,
@@ -15,17 +21,11 @@ import {
   type MenuCommandStateInput,
 } from "./resolveMenuItemState";
 
+// The view commands' preconditions (`COMMAND_META`); document · selection commands are the catalog
+// agent command host's (ADR-248 4e-5 — installed in the cases that read them).
 const readModel = (
   overrides: Partial<AgentReadModel> = {},
 ): AgentReadModel => ({
-  currentPageId: "page-1",
-  selectedElementId: null,
-  selectedElementIds: [],
-  multiSelectMode: false,
-  elementsMap: new Map(),
-  guideSelected: false,
-  canUndo: false,
-  canRedo: false,
   viewport: { containerSize: { width: 800, height: 600 } },
   ...overrides,
 });
@@ -50,6 +50,7 @@ function input(
 ): MenuCommandStateInput {
   return {
     readModel: readModel(),
+    meta: COMMAND_META,
     resolve: (id) => entries[id],
     isPanelVisible: () => true,
     panelIdForScope,
@@ -65,35 +66,45 @@ describe("resolveCommandEnablement", () => {
     });
   });
 
-  it("precondition 실패면 비활성 — undo 는 되돌릴 것이 없을 때", () => {
-    const state = input({ undo: entry("undo") });
-    expect(resolveCommandEnablement("undo", state)).toMatchObject({
-      enabled: false,
-      reason: "precondition",
-    });
-    expect(
-      resolveCommandEnablement("undo", {
-        ...state,
-        readModel: readModel({ canUndo: true }),
-      }),
-    ).toEqual({ enabled: true });
+  it("precondition 실패면 비활성 — undo 는 되돌릴 것이 없을 때 (catalog host 가 답한다)", async () => {
+    const fixture = await openStylesFixture([{ id: "box" }], { select: "box" });
+    const off = setAgentCommandHost(
+      createCatalogAgentCommandHost(fixture.workspace),
+    );
+    try {
+      fixture.workspace.runtime.clearHistory();
+      const state = input({ undo: entry("undo") });
+      expect(resolveCommandEnablement("undo", state)).toMatchObject({
+        enabled: false,
+        reason: "precondition",
+      });
+      fixture.host.updateStyle("width", "10px");
+      expect(resolveCommandEnablement("undo", state)).toEqual({
+        enabled: true,
+      });
+    } finally {
+      off();
+    }
   });
 
-  it("스타일 복사는 선택이 없으면 비활성 (precondition 추가, R1)", () => {
-    const state = input({ copyStyles: entry("copyStyles") });
-    expect(resolveCommandEnablement("copyStyles", state)).toMatchObject({
-      enabled: false,
-      reason: "precondition",
-    });
-    expect(
-      resolveCommandEnablement("copyStyles", {
-        ...state,
-        readModel: readModel({
-          selectedElementId: "el-1",
-          selectedElementIds: ["el-1"],
-        }),
-      }),
-    ).toEqual({ enabled: true });
+  it("스타일 복사는 선택이 없으면 비활성 (precondition 추가, R1)", async () => {
+    const fixture = await openStylesFixture([{ id: "box" }]);
+    const off = setAgentCommandHost(
+      createCatalogAgentCommandHost(fixture.workspace),
+    );
+    try {
+      const state = input({ copyStyles: entry("copyStyles") });
+      expect(resolveCommandEnablement("copyStyles", state)).toMatchObject({
+        enabled: false,
+        reason: "precondition",
+      });
+      fixture.select("box");
+      expect(resolveCommandEnablement("copyStyles", state)).toEqual({
+        enabled: true,
+      });
+    } finally {
+      off();
+    }
   });
 
   it("등록자 실행 조건 false 면 비활성 — 선택에 맞춤", () => {
@@ -119,7 +130,7 @@ describe("resolveCommandEnablement", () => {
         copyProperties: entry("copyProperties"),
       },
       {
-        readModel: readModel({ selectedElementId: "el-1" }),
+        readModel: readModel(),
         isPanelVisible: (panelId) => visible.has(panelId),
       },
     );
@@ -146,8 +157,12 @@ describe("resolveCommandEnablement", () => {
 describe("ownerPanelForCommand", () => {
   it("단일 panel:* scope 만 소속을 갖는다", () => {
     expect(ownerPanelForCommand("copyStyles", panelIdForScope)).toBe("styles");
-    expect(ownerPanelForCommand("toggleFocusMode", panelIdForScope)).toBe("styles");
-    expect(ownerPanelForCommand("copyProperties", panelIdForScope)).toBe("properties");
+    expect(ownerPanelForCommand("toggleFocusMode", panelIdForScope)).toBe(
+      "styles",
+    );
+    expect(ownerPanelForCommand("copyProperties", panelIdForScope)).toBe(
+      "properties",
+    );
     // ["canvas-focused", "panel:properties"] — 캔버스에서도 쓴다
     expect(ownerPanelForCommand("detachInstance", panelIdForScope)).toBeNull();
     expect(ownerPanelForCommand("copy", panelIdForScope)).toBeNull();
@@ -155,8 +170,11 @@ describe("ownerPanelForCommand", () => {
 });
 
 describe("deriveWorkspacePanelGroups", () => {
-  const config = (id: PanelId, hiddenFromMenu = false, hiddenFromRail = false) =>
-    ({ id, hiddenFromMenu, hiddenFromRail }) as PanelConfig;
+  const config = (
+    id: PanelId,
+    hiddenFromMenu = false,
+    hiddenFromRail = false,
+  ) => ({ id, hiddenFromMenu, hiddenFromRail }) as PanelConfig;
   const configs = new Map<PanelId, PanelConfig>([
     ["navigator", config("navigator")],
     ["settings", config("settings", true, true)],

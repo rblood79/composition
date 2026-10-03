@@ -5,14 +5,7 @@ import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
 import { Button } from "react-aria-components/Button";
 import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
-import { useViewportSyncStore } from "./canvas/stores";
-import {
-  applyViewportState,
-  computeFillViewport,
-  computeFitViewport,
-  zoomViewportAtContainerCenter,
-} from "./canvas/viewport/viewportActions";
-import { alignPagesToScreen } from "./canvas/viewport/pageLayoutActions";
+import { zoomViewportAtContainerCenter } from "./canvas/viewport/viewportActions";
 import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentationZoom,
@@ -22,7 +15,7 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../config/keyboardShortcuts";
-import { formatShortcut } from "../hooks";
+import { formatShortcut } from "../hooks/useKeyboardShortcutsRegistry";
 import { useI18n } from "../../i18n";
 
 // ============================================
@@ -51,9 +44,18 @@ function shortcutLabel(id: ShortcutId): string {
 // Types
 // ============================================
 
+/** Fit / Fill / Align pages of the open Builder's page frames (the old Builder's: `storeViewportActions.legacy.ts`). */
+export interface ZoomControlsViewportActions {
+  fit(): void;
+  fill(): void;
+  alignPages(): void;
+}
+
 export interface ZoomControlsProps {
   /** 클래스명 */
   className?: string;
+  /** ADR-248 — 열린 Builder 의 page frame 기준 맞춤 · 정렬 */
+  viewportActions: ZoomControlsViewportActions;
 }
 
 // ============================================
@@ -62,6 +64,7 @@ export interface ZoomControlsProps {
 
 export const ZoomControls = memo(function ZoomControls({
   className,
+  viewportActions,
 }: ZoomControlsProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,24 +103,6 @@ export const ZoomControls = memo(function ZoomControls({
     zoomTo(currentZoom - ZOOM_STEP);
   }, [zoomTo]);
 
-  const zoomToFit = useCallback(() => {
-    const state = useViewportSyncStore.getState();
-    const { containerSize, canvasSize } = state;
-
-    if (containerSize.width === 0 || containerSize.height === 0) return;
-
-    applyViewportState(computeFitViewport({ canvasSize, containerSize }));
-  }, []);
-
-  const zoomToFill = useCallback(() => {
-    const state = useViewportSyncStore.getState();
-    const { containerSize, canvasSize } = state;
-
-    if (containerSize.width === 0 || containerSize.height === 0) return;
-
-    applyViewportState(computeFillViewport({ canvasSize, containerSize }));
-  }, []);
-
   // ============================================
   // Menu Action Handler
   // ============================================
@@ -138,17 +123,17 @@ export const ZoomControls = memo(function ZoomControls({
           zoomTo(2);
           break;
         case "fit-to-screen":
-          zoomToFit();
+          viewportActions.fit();
           break;
         case "fill-screen":
-          zoomToFill();
+          viewportActions.fill();
           break;
         case "align-pages":
-          alignPagesToScreen();
+          viewportActions.alignPages();
           break;
       }
     },
-    [zoomIn, zoomOut, zoomTo, zoomToFit, zoomToFill],
+    [zoomIn, zoomOut, zoomTo, viewportActions],
   );
 
   // ============================================

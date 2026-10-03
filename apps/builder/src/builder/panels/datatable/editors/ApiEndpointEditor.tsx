@@ -35,7 +35,7 @@ import type {
 } from "../../../../types/builder/data.types";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { panelContents } from "../../../components/panel/panelContentsUtils";
-import { PropertySelect } from "../../../components";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import { CompactSelect } from "./CompactSelect";
 import { useDataStore } from "../../../stores/data";
 import type { ApiRunRecord } from "../../../../types/builder/data.types";
@@ -56,7 +56,7 @@ import {
   isUploadEndpointProbe,
   tusResumableVersion,
 } from "../../../stores/utils/uploadEndpointProbe";
-import { PropertySwitch } from "../../../components";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { authToEntries, detectAuthPreset, type AuthPreset } from "./authPreset";
 import { buildSaveApiAsTableOps } from "./saveApiAsTable";

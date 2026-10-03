@@ -1,6 +1,7 @@
 import { resolveToken, type TokenRef } from "@composition/specs";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { codeExecutionVocabulary } from "./executionVocabulary";
 import { buildCatalogLibrary } from "./library";
 import {
   applyManualBox,
@@ -73,7 +74,13 @@ function sourceToken(
   const current = tokens.get(id);
   if (current && current.value !== normalized)
     throw new Error(`CODE_CATALOG_TOKEN_COLLISION:${id}`);
-  tokens.set(id, { id, tokenType, value: normalized, source: "spec-token" });
+  tokens.set(id, {
+    id,
+    tokenType,
+    value: normalized,
+    source: "spec-token",
+    ref: value as `{${string}}`,
+  });
   return { kind: "token" as const, tokenId: id };
 }
 
@@ -195,10 +202,29 @@ function buttonDefinition(
   const conditionalRules: NonNullable<
     LibraryDefinition["conditionalRules"]
   >[number][] = [];
+  const childPartRules: PartRule[] = [];
+  // An icon Button's children take its scale (the old read-time Button → Icon / Text propagation,
+  // `buttonIconPx` / `buttonTextMetrics`): the Icon draws at the size's `iconSize`, the label Text
+  // at the Button's font size and line height — so an icon Button keeps the plain Button's height.
+  for (const [size, values] of Object.entries(rule.sizes)) {
+    if (typeof values.iconSize === "number")
+      childPartRules.push({
+        child: { definitionId: catalogTypeDefinitionId("Icon") },
+        when: { size },
+        visual: { iconSize: values.iconSize },
+      });
+    childPartRules.push({
+      child: { definitionId: catalogTypeDefinitionId("Text") },
+      when: { size },
+      visual: {
+        fontSize: sizes[size].fontSize,
+        lineHeight: sizes[size].lineHeight,
+      },
+    });
+  }
   // `utilities.css` `.button-base > :is(.react-aria-Icon, .react-aria-Text, .react-aria-Label)
   // { color: inherit }`: the Button's direct Icon / Text / Label children take its text color in
   // every variant, fill style and state (their own rule color is the dark `--fg`).
-  const childPartRules: PartRule[] = [];
   const childColor = (
     color: VisualValues[keyof VisualValues],
     when: Record<string, string>,
@@ -727,6 +753,7 @@ export async function buildCodeCatalogLibrary(
       rules[definition.ruleId] = (
         COMPONENT_RULES_TABLE as Record<string, ComponentRule>
       )[definition.ruleId];
+  const execution = codeExecutionVocabulary();
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(
@@ -737,6 +764,7 @@ export async function buildCodeCatalogLibrary(
         templates: REUSABLE_ORIGIN_TEMPLATES,
         tokens: [...tokens.values()],
         bindingIds,
+        execution,
         rules,
       }),
     ),
@@ -748,7 +776,7 @@ export async function buildCodeCatalogLibrary(
     contractVersion: 1,
     revision,
     bindingIds,
-    actionOpCodes: [],
+    ...execution,
     definitions: sourceDefinitions,
     templates: REUSABLE_ORIGIN_TEMPLATES,
     tokens: [...tokens.values()],

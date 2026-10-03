@@ -1,53 +1,69 @@
 import type { Key } from "react-stately";
 import { describe, expect, it } from "vitest";
-import type { Page } from "../../../../../types/builder/unified.types";
-import { buildPageTree } from "./usePageTreeData";
+import type { PageTreeNode, PageTreePage } from "./types";
 import { isValidPageDrop } from "./validation";
 
-function makePage(
+/** ADR-248 4e-9 C: the drop rule over a page tree's nodes (the old store's tree builder went with it). */
+function node(
   id: string,
-  title: string,
-  slug: string,
-  parentId: string | null = null,
-): Page {
+  flags: { isRoot?: boolean; isSystemPage?: boolean; parentId?: string } = {},
+): PageTreeNode<PageTreePage> {
   return {
     id,
-    title,
-    slug,
-    project_id: "project-1",
-    parent_id: parentId,
-  } as Page;
+    name: id,
+    slug: null,
+    parentId: flags.parentId ?? null,
+    depth: flags.parentId ? 1 : 0,
+    hasChildren: false,
+    isLeaf: true,
+    page: { id } as PageTreePage,
+    ...(flags.isRoot ? { isRoot: true } : {}),
+    ...(flags.isSystemPage ? { isSystemPage: true } : {}),
+  } as PageTreeNode<PageTreePage>;
 }
 
-function buildTree(pages: Page[]) {
-  const { nodeMap } = buildPageTree(pages);
+function treeOf(nodes: PageTreeNode<PageTreePage>[]) {
+  const map = new Map(nodes.map((item) => [item.id, item]));
   return {
     getItem: (key: Key | string) => {
-      const node = nodeMap.get(String(key));
-      return node ? { value: node } : undefined;
+      const value = map.get(String(key));
+      return value ? { value } : undefined;
     },
   };
 }
 
 describe("isValidPageDrop", () => {
-  it("blocks drag/drop mutations that would move the Components system page", () => {
-    const tree = buildTree([
-      makePage("page-components", "Components", "/__components"),
-      makePage("page-home", "Home", "/"),
-      makePage("page-one", "Page 1", "/page-1"),
-    ]);
+  const tree = treeOf([
+    node("page-components", { isSystemPage: true }),
+    node("page-home", { isRoot: true }),
+    node("page-one"),
+    node("page-child", { parentId: "page-one" }),
+  ]);
 
+  it("blocks drag/drop mutations that would move the Components system page", () => {
     expect(
       isValidPageDrop("page-components", "page-one", "after", tree),
-    ).toEqual({
-      valid: false,
-      reason: "system-page-immutable",
-    });
+    ).toEqual({ valid: false, reason: "system-page-immutable" });
     expect(
       isValidPageDrop("page-one", "page-components", "after", tree),
-    ).toEqual({
+    ).toEqual({ valid: false, reason: "system-page-immutable" });
+  });
+
+  it("keeps Home first and refuses dropping a page into its own descendant", () => {
+    expect(isValidPageDrop("page-home", "page-one", "after", tree)).toEqual({
       valid: false,
-      reason: "system-page-immutable",
+      reason: "home-immutable",
+    });
+    expect(isValidPageDrop("page-one", "page-home", "before", tree)).toEqual({
+      valid: false,
+      reason: "before-home-denied",
+    });
+    expect(isValidPageDrop("page-one", "page-child", "on", tree)).toEqual({
+      valid: false,
+      reason: "descendant-drop",
+    });
+    expect(isValidPageDrop("page-child", "page-home", "after", tree)).toEqual({
+      valid: true,
     });
   });
 });

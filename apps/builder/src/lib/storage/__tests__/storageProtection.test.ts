@@ -4,7 +4,6 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CompositionDocument } from "@composition/shared";
 
 describe("withQuotaRetry", () => {
   it("quota 초과면 캐시를 비우고 1회 재시도해 성공한다", async () => {
@@ -95,42 +94,9 @@ describe("requestPersistenceOnce", () => {
   });
 });
 
-describe("adapter — 원본 저장 quota 재시도 · 캐시 상한", () => {
+describe("adapter — 캐시 상한", () => {
   beforeEach(() => {
     (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
-  });
-
-  it("documents.put 이 quota 로 실패하면 캐시를 비우고 재시도해 저장한다", async () => {
-    const { IndexedDBAdapter } = await import("../../db/indexedDB/adapter");
-    const adapter = new IndexedDBAdapter();
-    await adapter.init();
-    await adapter.collection_runtime.put({
-      collectionId: "c1",
-      project_id: "p1",
-      runtimeData: [{ a: 1 }],
-    } as never);
-    const inner = (
-      adapter as unknown as {
-        incrementalDocuments: { put: (...a: unknown[]) => Promise<unknown> };
-      }
-    ).incrementalDocuments;
-    const original = inner.put.bind(inner);
-    let first = true;
-    inner.put = async (...args: unknown[]) => {
-      if (first) {
-        first = false;
-        throw new DOMException("full", "QuotaExceededError");
-      }
-      return original(...args);
-    };
-    const doc = {
-      version: "composition-1.0",
-      children: [],
-    } as unknown as CompositionDocument;
-    await adapter.documents.put("p1", doc);
-    expect(await adapter.documents.get("p1")).toEqual(doc);
-    expect(await adapter.collection_runtime.get("c1")).toBeNull(); // 캐시가 비워졌다
-    await adapter.close();
   });
 
   it("캐시 용량 상한을 넘으면 오래된 행부터 지운다", async () => {

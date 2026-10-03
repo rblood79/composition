@@ -1,13 +1,14 @@
-/** ADR-202 — canonical read model과 기존 tool/command를 연결하는 Builder 전용 경계. */
-import { resolveEditContract, type CanonicalNode } from "@composition/shared";
+/** ADR-202 — the AI read host 와 기존 tool/command를 연결하는 Builder 전용 경계. */
+import {
+  resolveEditContract,
+  type CanonicalNode,
+  type ResolvedField,
+} from "@composition/shared";
+import { getAiReadHost } from "../aiReadHost";
 import { withPanelStyleFields } from "./styleManifest";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
-import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
-import { resolveCompositeMode } from "../tools/compositeCreation";
-import { getReusableCompositeOriginId } from "../../../builder/components/reusableCompositeOrigins";
-import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { resolveCreationParentId } from "../../../builder/hooks/useElementCreator";
-import { getNodeMap } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
+import { resolveCompositeMode } from "../tools/compositeMode";
+import { getReusableOriginId as getCatalogReusableOriginId } from "@composition/shared";
 import { listAgentCommands } from "../../agent/executeAgentCommand";
 import type {
   CommandContext,
@@ -15,26 +16,25 @@ import type {
   ManifestField,
 } from "./manifest";
 
+const manifestField = (f: ResolvedField): ManifestField => ({
+  name: f.key,
+  origin: f.origin,
+  kind: f.kind,
+  ...(f.options?.length ? { values: f.options.map((o) => o.value) } : {}),
+  ...(f.min !== undefined ? { min: f.min } : {}),
+  ...(f.max !== undefined ? { max: f.max } : {}),
+});
+
 export function readCompilerState(): {
   manifest: CommandManifest;
   context: CommandContext;
   identity: string;
 } {
-  const canonical = useCanonicalDocumentStore.getState();
-  const doc = canonical.currentProjectId
-    ? canonical.documents.get(canonical.currentProjectId)
-    : null;
-  const model = getAiToolReadModel();
+  // ADR-248 4e-7: a palette type's contract is its own (no document — the open Builder's elements
+  // come with theirs from the read host).
   const fields = (node: CanonicalNode): ManifestField[] =>
     withPanelStyleFields(
-      resolveEditContract(node, doc).fields.map((f) => ({
-        name: f.key,
-        origin: f.origin,
-        kind: f.kind,
-        ...(f.options?.length ? { values: f.options.map((o) => o.value) } : {}),
-        ...(f.min !== undefined ? { min: f.min } : {}),
-        ...(f.max !== undefined ? { max: f.max } : {}),
-      })),
+      resolveEditContract(node, null).fields.map(manifestField),
     );
   const components = getAiComponentCatalog().map((entry) => {
     const mode = resolveCompositeMode(entry.type);
@@ -43,67 +43,57 @@ export function readCompilerState(): {
         ? {
             id: "__compiler_contract__",
             type: "ref",
-            ref: getReusableCompositeOriginId(entry.type),
+            ref: getCatalogReusableOriginId(entry.type),
             props: {},
           }
         : { id: "__compiler_contract__", type: entry.type, props: {} };
     return {
       ...entry,
       creationMode: mode,
-      reusableId: getReusableCompositeOriginId(entry.type) ?? undefined,
+      reusableId: getCatalogReusableOriginId(entry.type) ?? undefined,
       props: fields(node as CanonicalNode),
     };
   });
-  const currentPageId = model.state.currentPageId;
-  const nodes = model.elements
-    .filter((n) => n.page_id === currentPageId)
-    .map((n) => ({
-      id: n.id,
-      type: n.type,
-      componentType: components.find(
-        (component) =>
-          component.reusableId &&
-          component.reusableId ===
-            (getNodeMap().get(n.id) as { ref?: string } | undefined)?.ref,
-      )?.type,
-      props: fields(
-        getNodeMap().get(n.id) ??
-          ({
+  const manifest: CommandManifest = {
+    components,
+    commands: listAgentCommands().map((c) => ({
+      ...c,
+      args: c.args ? { ...c.args } : undefined,
+    })),
+  };
+  // ADR-248 4e-5: the open Builder's elements (their edit contracts), creation parent and selection
+  // — 4e-7: only the read host (none = an empty context).
+  const host = getAiReadHost();
+  if (!host)
+    return {
+      manifest,
+      context: { parentId: null, selectedId: null, nodes: [] },
+      identity: JSON.stringify([null, null, []]),
+    };
+  const pageId = host.currentPageId();
+  const selected = host.selectedIds();
+  return {
+    manifest,
+    context: {
+      parentId: host.creationParentId(),
+      selectedId: selected[0] ?? null,
+      nodes: host
+        .elements()
+        .filter((n) => n.page_id === pageId)
+        .map((n) => {
+          // A component instance (`ref` = its origin) suggests as its component's type.
+          const ref = (n as { ref?: string }).ref;
+          const componentType = ref
+            ? components.find((component) => component.reusableId === ref)?.type
+            : undefined;
+          return {
             id: n.id,
             type: n.type,
-            componentType: components.find(
-              (component) =>
-                component.reusableId &&
-                component.reusableId ===
-                  (getNodeMap().get(n.id) as { ref?: string } | undefined)?.ref,
-            )?.type,
-            props: n.props,
-          } as CanonicalNode),
-      ),
-    }));
-  const parentId = doc
-    ? resolveCreationParentId({
-        selectedElementId: model.state.selectedElementId,
-        elements: model.elements,
-        currentPageId,
-        layoutId: null,
-        doc,
-      })
-    : null;
-  return {
-    manifest: {
-      components,
-      commands: listAgentCommands().map((c) => ({
-        ...c,
-        args: c.args ? { ...c.args } : undefined,
-      })),
+            ...(componentType ? { componentType } : {}),
+            props: withPanelStyleFields(host.fields(n.id).map(manifestField)),
+          };
+        }),
     },
-    context: { parentId, selectedId: model.state.selectedElementId, nodes },
-    identity: JSON.stringify([
-      canonical.currentProjectId,
-      currentPageId,
-      model.state.selectedElementId,
-      model.state.selectedElementIds,
-    ]),
+    identity: JSON.stringify([host.projectId(), pageId, selected]),
   };
 }

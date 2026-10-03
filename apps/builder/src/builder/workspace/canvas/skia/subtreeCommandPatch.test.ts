@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";

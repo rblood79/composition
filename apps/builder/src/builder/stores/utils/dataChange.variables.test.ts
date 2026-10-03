@@ -32,16 +32,16 @@ vi.mock("../history", () => ({
   historyManager: { addEntry: (...args: unknown[]) => addEntry(...args) },
 }));
 
-const activeDocument = { current: null as unknown };
-vi.mock("../canonical/canonicalElementsBridge", () => ({
-  getActiveCanonicalDocument: () => activeDocument.current,
-}));
 
 import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
+  setDocumentVariableNamesReader,
 } from "./dataChange";
+import { installTestDataChangeRecorder } from "./__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder((entry) => addEntry(entry));
 
 const variable = (patch: Partial<Variable>): Variable => ({
   id: "v_user",
@@ -275,7 +275,6 @@ describe("applyDataChange — define_variable", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    activeDocument.current = null;
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -350,7 +349,11 @@ describe("applyDataChange — define_variable", () => {
       ops: [
         {
           op: "define_variable",
-          definition: { name: "userName", type: "string", defaultValue: "guest" },
+          definition: {
+            name: "userName",
+            type: "string",
+            defaultValue: "guest",
+          },
         },
       ],
       origin: "user",
@@ -365,33 +368,25 @@ describe("applyDataChange — define_variable", () => {
     expect(variables().get("userName")?.project_id).toBe("p-current");
   });
 
-  it("문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다 (활성 canonical 문서 조회)", async () => {
-    activeDocument.current = {
-      version: "composition-1.0",
-      children: [
-        {
-          id: "page",
-          type: "frame",
-          metadata: { type: "page" },
-          state: [{ id: "v_pg", name: "pageVar", type: "string" }],
-        },
-      ],
-    };
-    const { apply, variables } = makeStore();
-    await expect(
-      apply({
-        ops: [
-          {
-            op: "define_variable",
-            definition: { name: "pageVar", type: "string" },
-          },
-        ],
-        origin: "user",
-      }),
-    ).rejects.toThrow(DataChangeError);
-    expect(variables().has("pageVar")).toBe(false);
-    expect(dbMock.variables.insert).not.toHaveBeenCalled();
-    expect(addEntry).not.toHaveBeenCalled();
+  it("ADR-248 4e-4e — a set names reader (the catalog document) replaces the canonical lookup", async () => {
+    setDocumentVariableNamesReader(() => new Set(["catalogVar"]));
+    try {
+      const { apply, variables } = makeStore();
+      await expect(
+        apply({
+          ops: [
+            {
+              op: "define_variable",
+              definition: { name: "catalogVar", type: "string" },
+            },
+          ],
+          origin: "user",
+        }),
+      ).rejects.toThrow(DataChangeError);
+      expect(variables().has("catalogVar")).toBe(false);
+    } finally {
+      setDocumentVariableNamesReader(null);
+    }
   });
 
   it("DB 실패 → 메모리 0 · History 0 · errors 기록", async () => {

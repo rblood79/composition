@@ -18,14 +18,6 @@ describe("ADR-027 D0 — text edit entry must not scroll the workspace", () => {
     expect(block).not.toContain("overflow: hidden;");
   });
 
-  it("Quill focus opts out of caret scrollIntoView", async () => {
-    const source = await readFile(
-      resolve(__dirname, "TextEditOverlay.tsx"),
-      "utf8",
-    );
-    expect(source).toContain("quill.focus({ preventScroll: true })");
-    expect(source).not.toMatch(/quill\.focus\(\)/);
-  });
 });
 
 /**
@@ -34,15 +26,3 @@ describe("ADR-027 D0 — text edit entry must not scroll the workspace", () => {
  * `endPan` 에서만 동기화되므로 프레임 채널 (`subscribeCanvasFramePresentation`) 을 구독하고
  * 배치는 setState 없이 DOM style 로 쓴다. live 게이트: `scripts/text-edit-camera-follow-live.mjs`.
  */
-describe("text edit overlay follows the Skia frame camera during gestures", () => {
-  it("subscribes to the canvas frame presentation and writes placement imperatively", async () => {
-    const source = await readFile(
-      resolve(__dirname, "TextEditOverlay.tsx"),
-      "utf8",
-    );
-    expect(source).toContain("subscribeCanvasFramePresentation(");
-    expect(source).toContain("el.style.transform = `scale(${p.zoom})`");
-    // 프레임마다 재렌더하지 않는다 — 배치용 React state 없음.
-    expect(source).not.toMatch(/useState/);
-  });
-});

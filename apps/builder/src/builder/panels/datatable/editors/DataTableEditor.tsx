@@ -10,7 +10,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { useDataStore } from "../../../stores/data";
 import type { DataTable } from "../../../../types/builder/data.types";
-import { PropertySwitch, PropertySelect } from "../../../components";
+import { PropertySwitch } from "../../../components/property/PropertySwitch";
+import { PropertySelect } from "../../../components/property/PropertySelect";
 import type {
   ApiEndpoint,
   ExecutionPolicy,

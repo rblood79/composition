@@ -208,7 +208,10 @@
 /* 상태 pill 28 (panel-ui 10 · 21) — 종전 8/16 padding · 14px · r8 (30) */
 .workspace-status-indicator {
   position: absolute;
+  /* top 은 WorkspaceStatusIndicator 가 떠 있는 헤더 · 눈금자 아래로 덮어쓴다 (16 은 측정 전 값) */
   top: 16px;
+  /* page 헤더 층 (3) · 눈금자 (3) · spacing 입력 (4) 위, 액션 바 (20) 아래 */
+  z-index: 10;
   left: 50%;
   transform: translateX(-50%);
   box-sizing: border-box;

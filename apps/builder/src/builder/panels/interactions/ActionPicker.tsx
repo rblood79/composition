@@ -16,14 +16,17 @@ const CHOICES = Object.keys(ACTION_CHOICE_LABEL_KEYS) as ActionChoice[];
 interface ActionPickerProps {
   value: ActionChoice;
   onChange: (choice: ActionChoice) => void;
+  /** 고를 수 있는 갈래 (기본 전부) — 가리킬 대상이 없는 갈래를 뺄 때 */
+  choices?: readonly ActionChoice[];
 }
 
 export const ActionPicker = memo(function ActionPicker({
   value,
   onChange,
+  choices = CHOICES,
 }: ActionPickerProps) {
   const { t } = useI18n();
-  const options = CHOICES.map((choice) => ({
+  const options = choices.map((choice) => ({
     value: choice,
     label: t(ACTION_CHOICE_LABEL_KEYS[choice]),
   }));

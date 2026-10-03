@@ -25,12 +25,10 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
-import {
-  PanelHeader,
-  EmptyState,
-  LoadingSpinner,
-  panelContents,
-} from "../../components";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { EmptyState } from "../../components/feedback/EmptyState";
+import { LoadingSpinner } from "../../components/feedback/LoadingSpinner";
+import { panelContents } from "../../components/panel/panelContentsUtils";
 import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
 import { VariableList } from "./components/VariableList";

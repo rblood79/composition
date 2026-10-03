@@ -20,10 +20,9 @@ vi.mock("../../../builder/stores/agentCommandLog", () => ({
   useAgentCommandLogStore: { getState: () => ({ append }) },
 }));
 
-vi.mock("../../../builder/stores/history", () => ({
-  historyManager: {
-    getCurrentPageHistory: () => ({ currentIndex: 7 }),
-  },
+// ADR-248 4e-7: the history position is the agent command host's (the open Builder's history).
+vi.mock("../../agent/agentCommandHost", () => ({
+  getAgentCommandHost: () => ({ historyIndex: () => 7 }),
 }));
 
 import {
@@ -33,6 +32,9 @@ import {
   type AgentCommandConfirmationRequest,
 } from "../../agent/agentCommandConfirmation";
 import { dispatchDataProposal } from "./dataProposalDispatcher";
+import { installTestDataChangeRecorder } from "../../../builder/stores/utils/__tests__/support/dataChangeRecorder";
+
+installTestDataChangeRecorder(() => undefined);
 
 const t = (key: string) => key;
 
@@ -168,7 +170,8 @@ describe("dispatchDataProposal", () => {
         t,
       );
       expect(result.status).toBe("invalid");
-      if (result.status === "invalid") expect(result.errors.length).toBeGreaterThan(0);
+      if (result.status === "invalid")
+        expect(result.errors.length).toBeGreaterThan(0);
     }
     expect(lastRequest).toBeNull();
     expect(applyDataChange).not.toHaveBeenCalled();

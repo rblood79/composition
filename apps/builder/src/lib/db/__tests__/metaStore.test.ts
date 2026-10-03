@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { stripLegacyOrderPayload } from "../indexedDB/adapter";
 
 describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 23 으로 갱신된다 (2026-09-26 ADR-235: assets · asset_gc store)", async () => {
+  it("DB_VERSION 이 24 로 갱신된다 (2026-10-03 ADR-248: events · actions mirror store 삭제)", async () => {
     // pin 은 버전 상향을 의도적으로 만들기 위한 ratchet 이다. 19(ADR-143)·20(backup ring)
     // 시점에 미갱신으로 stale 였고 21(2026-09-07 canonical 변경 노드 저장) 에서 다시 맞췄다.
     // 22(ADR-218 collection_runtime) 는 P1 커밋이 이 ratchet 을 못 올렸다 — 후속에서 정합.
@@ -10,26 +10,29 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*23\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*24\b/);
     expect(source).toMatch(/createObjectStore\(\s*["']documents_backup["']/);
     expect(source).toMatch(/createObjectStore\(\s*["']collection_runtime["']/);
     expect(source).toMatch(/createObjectStore\(ASSETS_STORE/);
     expect(source).toMatch(/createObjectStore\(ASSET_GC_STORE/);
   });
 
-  it("documents primary store 와 메서드 그룹이 추가된다", async () => {
+  it("old projects' documents store stays in the schema; the adapter has no document API", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
-    const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
-    const typesPath = path.resolve(__dirname, "../types.ts");
-    const adapterSource = await fs.readFile(adapterPath, "utf-8");
-    const typesSource = await fs.readFile(typesPath, "utf-8");
-
+    const adapterSource = await fs.readFile(
+      path.resolve(__dirname, "../indexedDB/adapter.ts"),
+      "utf-8",
+    );
+    const typesSource = await fs.readFile(
+      path.resolve(__dirname, "../types.ts"),
+      "utf-8",
+    );
+    // ADR-248 4e-13: the old Builder's document writer went with it — old projects' rows are kept
+    // (asset GC roots · project eviction read them), nothing in the Builder writes them.
     expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
-    expect(adapterSource).toMatch(/documents\s*=\s*\{[\s\S]*?put\s*:/);
-    expect(adapterSource).toMatch(/documents\s*=\s*\{[\s\S]*?get\s*:/);
-    expect(typesSource).toMatch(/interface\s+CanonicalDocumentRecord\b/);
-    expect(typesSource).toMatch(/documents\s*:\s*\{/);
+    expect(adapterSource).not.toMatch(/get documents\(\)/);
+    expect(typesSource).not.toMatch(/documents\s*:\s*\{/);
   });
 
   it("runtime migration _meta store/API 와 getByLayout compatibility path 가 없다", async () => {

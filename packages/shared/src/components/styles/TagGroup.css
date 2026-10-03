@@ -15,6 +15,12 @@
 
   /* ADR-234 Phase 3c — Tag instance 의 label Text 는 Tag 글자 (크기 · 굵기 · 줄 높이 · 상태별 색) 를 상속한다
      (TabsIndicator.css 의 Tab 규칙과 같은 이유 · Canvas 는 `itemLabelInheritance.ts`). */
+  /* The RAC TagGroup fills the styled outer div (`TagGroup.tsx`), so the chip wrapper's catalog
+     `height: 100%` resolves (4e-11). A Table cell's tag group keeps its content height. */
+  .react-aria-TagGroup:not(.table-cell-tag-group) {
+    height: 100%;
+  }
+
   .react-aria-Tag .react-aria-Text.react-aria-Text {
     font-size: inherit;
     font-weight: inherit;
@@ -129,13 +135,13 @@
      * 지름 16px 는 chip size 와 무관한 고정값 — Skia 는 Tag rule `leadingAvatar.size`(16),
      * layout 은 TAG_LEADING_AVATAR_SIZE 로 같은 값을 쓴다(3지점 동기). 간격 4px 도 동일. */
     /* ADR-234 — 정적 항목 (Tag instance) 의 leading slot 자식 (canonical Icon · Avatar) 도 같은 chip 규칙. */
+    /* The label gap is the Tag's own flex gap (catalog leading gap 4) — no margin (4e-11). */
     > .react-aria-Icon[slot="icon"] {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       width: 14px;
       height: 14px;
-      margin-right: 4px;
       flex-shrink: 0;
       color: inherit;
 
@@ -148,7 +154,6 @@
     > .react-aria-Avatar[slot="avatar"] {
       width: 16px;
       height: 16px;
-      margin-right: 4px;
       flex-shrink: 0;
     }
 

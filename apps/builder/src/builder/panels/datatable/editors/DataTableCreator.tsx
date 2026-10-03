@@ -61,11 +61,9 @@ import {
 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
-import {
-  PropertyCheckbox,
-  PropertyFieldset,
-  Section,
-} from "../../../components";
+import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
+import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
+import { Section } from "../../../components/panel/Section";
 import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
@@ -76,13 +74,10 @@ import { columnsToSchema, detectColumns } from "../utils/columnDetector";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import type { QuickConnectTarget } from "../types/editorTypes";
 import {
-  executeQuickConnect,
-  planTableColumns,
-  precheckQuickConnectTarget,
-  readBackQuickConnect,
   unmatchedColumnKeys,
   type QuickConnectPrecheck,
-} from "../utils/quickConnect";
+} from "../utils/quickConnectPlan";
+import { useQuickConnectHost } from "../usage/quickConnectHost";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { setAiComposerDraft } from "../../ai/aiComposerDraft";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
@@ -258,9 +253,10 @@ export function DataTableCreator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // ADR-013 §4 — Table 재연결: 기존 컬럼은 보존이 기본, 전면 교체는 명시적 선택
   const [replaceColumns, setReplaceColumns] = useState(false);
+  const quickConnect = useQuickConnectHost();
   const columnPlan = useMemo(
-    () => (connect ? planTableColumns(connect) : null),
-    [connect],
+    () => (connect ? quickConnect.planColumns(connect) : null),
+    [connect, quickConnect],
   );
   // 요청 수명 — 닫기/모드 교체로 언마운트된 뒤 도착한 완료 응답이 패널 상태를 덮지 않게
   const mountedRef = useRef(true);
@@ -407,7 +403,7 @@ export function DataTableCreator({
       if (connect) {
         // 실행 직전 — 대상 존재 · 페이지/프로젝트 문맥 · 바인딩 무변경. 하나라도 어긋나면
         // 아무것도 만들지 않는다. 저장 뒤 commit 경계의 같은 검사는 적용기 (`expectBindings`).
-        const precheck = precheckQuickConnectTarget(connect, projectId);
+        const precheck = quickConnect.precheck(connect, projectId);
         if (!precheck.ok) {
           globalToast.error(
             localize(PRECHECK_MESSAGE_KEY[precheck.reason], ""),
@@ -415,14 +411,14 @@ export function DataTableCreator({
           return;
         }
         setIsSubmitting(true);
-        created = await executeQuickConnect({
+        created = await quickConnect.execute({
           input,
           target: connect,
           projectId,
           replaceColumns,
         });
         if (!mountedRef.current) return;
-        if (!readBackQuickConnect(connect.elementId, created.id)) {
+        if (!quickConnect.readBack(connect.elementId, created.id)) {
           // 적용기는 성공했는데 대상이 새 collection 을 가리키지 않는다 — 성공으로 알리지 않는다
           globalToast.error(localize("connectReadBackFailed", ""));
           return;
@@ -467,6 +463,7 @@ export function DataTableCreator({
     projectId,
     connect,
     replaceColumns,
+    quickConnect,
     createDataTable,
     openApiCreator,
     openTableEditor,

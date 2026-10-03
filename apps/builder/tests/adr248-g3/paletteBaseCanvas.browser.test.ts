@@ -104,6 +104,14 @@ import type {
 declare const __ADR248_DUMP_DOM__: string;
 declare const __ADR248_DUMP_DIR__: string;
 declare const __ADR248_SCENARIO__: string;
+/**
+ * Phase 4 live leg (`ADR248_LIVE_DIR=<abs dir>`): the cases the real Builder authored and captured
+ * (`<caseKey>.json` subject entry · `<caseKey>.png` clip, written by the live driver). The new leg's
+ * document is the live subject entry and the compared pixels are the live capture; the harness's
+ * own render stays the glyph-ink source and is recorded against the live capture (`liveIdentity`).
+ */
+declare const __ADR248_LIVE_DIR__: string;
+const LIVE = __ADR248_LIVE_DIR__;
 const AXIS = __ADR248_SCENARIO__ === "axis";
 const STATE = __ADR248_SCENARIO__ === "state";
 const CHILD = __ADR248_SCENARIO__ === "child";
@@ -120,14 +128,18 @@ const FROZEN = STATE
   : AXIS
     ? `${DESIGN}/248-baseline/palette-variant-size`
     : `${DESIGN}/248-baseline/palette-production-base`;
-const OUTPUT = CHILD
+const OUTPUT = LIVE
+  ? `${DESIGN}/248-phase4-g3-live-${__ADR248_SCENARIO__}.json`
+  : CHILD
   ? `${DESIGN}/248-phase3-system-child-canvas.json`
   : STATE
     ? `${DESIGN}/248-phase3-state-origin-canvas.json`
     : AXIS
       ? `${DESIGN}/248-phase3-palette-axis-canvas.json`
       : `${DESIGN}/248-phase3-palette-base-canvas.json`;
-const PNG_DIR = STATE
+const PNG_DIR = LIVE
+  ? `${LIVE}/harness`
+  : STATE
   ? `${DESIGN}/248-phase3-state-origin-canvas`
   : AXIS
     ? `${DESIGN}/248-phase3-palette-axis-canvas`
@@ -140,7 +152,9 @@ const PAGE = { width: 1920, height: 1080 };
  * (`buildDateInputDisplayText`) and RAC would otherwise follow the browser locale. The product
  * Preview's locale asymmetry is recorded separately, not measured by this contract leg.
  */
-const FIXTURE_LOCALE = "en-US";
+// Live leg: the Builder's locale (the G0 capture's — its calendar header reads "2026년 9월"), so
+// date text measures the same in the harness root as in the captured Builder.
+const FIXTURE_LOCALE = LIVE ? "ko-KR" : "en-US";
 const NON_TEXT = { maxDiffRatio: 0.001, maxByte: 2 } as const;
 /**
  * Types whose old capture drew an input the G0 scenario did not record, so L3 compares two
@@ -393,7 +407,7 @@ afterAll(async () => {
     `${JSON.stringify(
       {
         adr: 248,
-        phase: 3,
+        phase: LIVE ? 4 : 3,
         check: AXIS
           ? "G3 pre-cutover old/new Canvas — palette-variant-size (single axes)"
           : CHILD
@@ -408,8 +422,10 @@ afterAll(async () => {
           scenarioId: replay?.scenarioId,
           scenarioHash: replay?.scenarioHash,
         },
-        newLeg:
-          "code library → CatalogCompositionRoot (Rust layout, catalogTextMeasure) → bindCatalogCanvas → renderCommands → CanvasKit WebGL, headless Chrome",
+        newLeg: LIVE
+          ? "real Builder (dev server, catalog workspace) authors each case through the public command API and its Canvas is captured with the replay camera (headless Chrome); the harness renders the same live subject entry (code library → CatalogCompositionRoot → bindCatalogCanvas → renderCommands) for glyph ink and records it against the capture (liveIdentity)"
+          : "code library → CatalogCompositionRoot (Rust layout, catalogTextMeasure) → bindCatalogCanvas → renderCommands → CanvasKit WebGL, headless Chrome",
+        ...(LIVE ? { liveCaptures: LIVE } : {}),
         camera: STATE
           ? "replay zoom; new root top-left at the old root's screen position (zoom-to-selection centers the old root in the canvas rect) − capture clip origin"
           : "replay camera (zoom, pan) − capture clip origin",
@@ -428,7 +444,7 @@ afterAll(async () => {
           L3: NON_TEXT,
           L3e: `${EDGE_BAND}px band — recorded only, not a completion condition (user decision 2026-09-29)`,
           approvedDifferences:
-            "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image) or one-sided node owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
+            "old/new pairs approved per owner × node type × differing axes (user decision 2026-09-30, approvedDifferences.ts); the Canvas↔DOM leg still arbitrates; L3 differences an approved box change sweeps are attributed to it — old ∪ new outside the other box plus an edge band (tolerance + 0.3 × radius); a glyph leaf (icon · avatar · image), a one-sided node or a rule marked `paint` (a sized control drawing its own indicator, 4e-11) owns its whole box; a text leaf owns the pixels that are ink in either leg (off its box's most frequent colour); a moved box is compared shifted; the interior both boxes cover still blocks paint changes (2026-09-30)",
           text: "recorded only (HC6 names no text budget)",
         },
         summary: {
@@ -531,10 +547,14 @@ function documentFor(
   definitionId: DefinitionId,
   props?: NodeEntry["props"],
   host?: string,
+  live?: NodeEntry,
 ): CatalogDocument {
   const projectId = "project:project:g3" as const;
   const pageId = "project:page:main" as const;
-  const subject = nodeEntry(definitionId, props);
+  // The live subject keeps its authored fields under the fixture's node ID.
+  const subject: NodeEntry = live
+    ? { ...live, id: "project:node:subject" as NodeEntry["id"] }
+    : nodeEntry(definitionId, props);
   const hostNode: NodeEntry | undefined = host
     ? {
         ...nodeEntry(`lib:definition:type-${host}` as DefinitionId),
@@ -852,6 +872,41 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           continue;
         }
       }
+      // Live leg: the subject entry the real Builder authored for this case.
+      let live:
+        | {
+            entry?: NodeEntry;
+            definitionId: string;
+            surface?: string;
+            subtree?: Array<{ type: string; rect: Rect | null }>;
+          }
+        | undefined;
+      if (LIVE) {
+        try {
+          live = JSON.parse(
+            await commands.readFile(`${LIVE}/${caseKey(row)}.json`),
+          ) as {
+            entry?: NodeEntry;
+            definitionId: string;
+            surface?: string;
+            subtree?: Array<{ type: string; rect: Rect | null }>;
+          };
+        } catch {
+          Object.assign(entry, {
+            verdict: "NOT_RUN",
+            reason: "LIVE_NOT_CAPTURED",
+          });
+          continue;
+        }
+        entry.live = {
+          definitionId: live.definitionId,
+          routeMatches: live.definitionId === target.definitionId,
+          // An item origin cannot stand in a page body (RAC content model): the live surface is
+          // the origin view, whose surroundings are the workspace, not a page.
+          surface: live.surface ?? "page",
+          ...(live.entry ? { props: live.entry.props } : {}),
+        };
+      }
       let root: CatalogCompositionRoot;
       try {
         const runtime = new CatalogRuntime(
@@ -860,6 +915,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
               target.definitionId,
               axisProps,
               CHILD ? SECTION_HOSTS[row.id ?? ""] : undefined,
+              live?.entry,
             ),
             target.library,
           ),
@@ -898,6 +954,44 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           place(child, x, y);
       };
       place(rootInput.id, 0, 0);
+      // Live leg: the real Builder's geometry of the same subject (depth-first from the subject
+      // record) against this harness root — both are the product composition root.
+      const liveSubtree = live?.subtree;
+      if (liveSubtree) {
+        const subjectId = CHILD && SECTION_HOSTS[row.id ?? ""]
+          ? (root.canvasInputs.get(rootInput.id)?.children[0] ?? rootInput.id)
+          : rootInput.id;
+        const order: string[] = [];
+        const walk = (id: string) => {
+          order.push(id);
+          for (const child of root.canvasInputs.get(id)?.children ?? []) walk(child);
+        };
+        walk(subjectId);
+        let maxDelta = 0;
+        const typeMismatch: string[] = [];
+        order.forEach((id, index) => {
+          const other = liveSubtree[index];
+          const mine = absolute.get(id);
+          if (!other || root.typeOf(root.canvasInputs.get(id)!) !== other.type) {
+            typeMismatch.push(id);
+            return;
+          }
+          if (mine && other.rect)
+            maxDelta = Math.max(
+              maxDelta,
+              Math.abs(mine.x - other.rect.x),
+              Math.abs(mine.y - other.rect.y),
+              Math.abs(mine.width - other.rect.width),
+              Math.abs(mine.height - other.rect.height),
+            );
+        });
+        entry.liveGeometry = {
+          harnessNodes: order.length,
+          liveNodes: liveSubtree.length,
+          typeMismatch: typeMismatch.slice(0, 8),
+          maxDelta,
+        };
+      }
       const oldByPath = new Map(row.nodes.map((node) => [node.path, node]));
       // State origins sit in the Components page flow: old rects are compared with the old root
       // moved onto the new root's page position (relative geometry is what the fixture fixes).
@@ -1366,6 +1460,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             old: item.oldPath,
             rule: rule.id,
             class: rule.class,
+            ...(rule.paint ? { whole: true as const } : {}),
           });
         else unapproved.push(item.newId);
       }
@@ -1513,6 +1608,77 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       }
       const boxes = paintedBoxes(bound.stream);
       bound.dispose();
+      // Live leg: the compared pixels are the real Builder's capture; glyph ink stays the harness
+      // render's (the same document), and the two renders are recorded against each other.
+      const harnessPixels = pixels;
+      if (LIVE) {
+        const capture = decodePng(
+          await commands.readFile(`${LIVE}/${caseKey(row)}.png`, "base64"),
+        );
+        expect([capture.width, capture.height]).toEqual([
+          clip.width,
+          clip.height,
+        ]);
+        const livePixels = capture.pixels;
+        for (let index = 3; index < livePixels.length; index += 4)
+          livePixels[index] = 255;
+        const opaque = new Uint8Array(harnessPixels);
+        for (let index = 3; index < opaque.length; index += 4)
+          opaque[index] = 255;
+        // Origin view: only the component's own box is the same surface in both renders; its
+        // surroundings are the workspace, so the verdict keeps the harness render (as Phase 3).
+        const definitionView = live?.surface === "definition-view";
+        // State: only the fixture region is compared, so the identity reads the root box too.
+        const box =
+          (definitionView || STATE) && newRootRect
+            ? {
+                x0: Math.max(0, Math.floor(offset.x + newRootRect.x * zoom)),
+                y0: Math.max(0, Math.floor(offset.y + newRootRect.y * zoom)),
+                x1: Math.min(
+                  clip.width,
+                  Math.ceil(offset.x + (newRootRect.x + newRootRect.width) * zoom),
+                ),
+                y1: Math.min(
+                  clip.height,
+                  Math.ceil(offset.y + (newRootRect.y + newRootRect.height) * zoom),
+                ),
+              }
+            : { x0: 0, y0: 0, x1: clip.width, y1: clip.height };
+        const width = box.x1 - box.x0;
+        const height = box.y1 - box.y0;
+        const crop = (source: Uint8Array) => {
+          const out = new Uint8Array(width * height * 4);
+          for (let y = 0; y < height; y++)
+            out.set(
+              source.subarray(
+                ((box.y0 + y) * clip.width + box.x0) * 4,
+                ((box.y0 + y) * clip.width + box.x1) * 4,
+              ),
+              y * width * 4,
+            );
+          return out;
+        };
+        const a = crop(opaque);
+        const b = crop(livePixels);
+        let identityMaxByte = 0;
+        for (let index = 0; index < a.length; index++)
+          if ((index & 3) !== 3)
+            identityMaxByte = Math.max(
+              identityMaxByte,
+              Math.abs(a[index] - b[index]),
+            );
+        const identityDifferent = width && height
+          ? pixelmatch(a, b, undefined, width, height, { threshold: 0.1 })
+          : 0;
+        entry.liveIdentity = {
+          region: definitionView || STATE ? "root box" : "capture clip",
+          pixels: width * height,
+          different: identityDifferent,
+          ratio: width * height ? identityDifferent / (width * height) : 0,
+          maxByte: identityMaxByte,
+        };
+        if (!definitionView) pixels = livePixels;
+      }
       await commands.writeFile(
         `${PNG_DIR}/${caseKey(row)}.png`,
         toBase64(png),
@@ -1543,9 +1709,9 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       const ink: number[] = [];
       for (let index = 0; index < clip.width * clip.height; index++)
         if (
-          pixels[index * 4] !== glyphless[index * 4] ||
-          pixels[index * 4 + 1] !== glyphless[index * 4 + 1] ||
-          pixels[index * 4 + 2] !== glyphless[index * 4 + 2]
+          harnessPixels[index * 4] !== glyphless[index * 4] ||
+          harnessPixels[index * 4 + 1] !== glyphless[index * 4 + 1] ||
+          harnessPixels[index * 4 + 2] !== glyphless[index * 4 + 2]
         )
           ink.push(index);
       for (const index of ink) {

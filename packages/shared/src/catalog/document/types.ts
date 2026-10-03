@@ -109,6 +109,10 @@ export type VisualField =
   | "textDecoration"
   | "whiteSpace"
   | "wordBreak"
+  // ADR-248 Phase 4e-6-31 (사용자 승인 2026-10-01): the Text behavior presets' wrap and
+  // truncation keys (`overflow-wrap` is inherited; `text-overflow` is the box's own).
+  | "overflowWrap"
+  | "textOverflow"
   | "boxShadow"
   | "filter"
   | "transform"
@@ -162,7 +166,9 @@ export type LayoutField =
   | "gridTemplateRows"
   | "gridTemplateAreas"
   | "maxWidth"
-  | "maxHeight";
+  | "maxHeight"
+  /** CSS `order` of a flex / grid item (the composition root reorders the engine children). */
+  | "order";
 export type LayoutValues = Readonly<Partial<Record<LayoutField, string>>>;
 /** Node-authored box layout writes (CSS text values, validated per field). */
 export type LayoutWrites = Readonly<
@@ -497,6 +503,10 @@ export interface NodeEntry {
 }
 export interface NodeMetadata {
   htmlId?: string;
+  /** The author's DOM class names, after the element's own classes (every element — old `className`). */
+  className?: string;
+  /** The author's accessible name (`aria-label`, every element — old `aria-label` prop). */
+  ariaLabel?: string;
 }
 export interface ThemeEntry {
   kind: "theme";
@@ -668,6 +678,11 @@ export interface LibraryToken {
   tokenType: TokenType;
   value: Scalar;
   source: "spec-token";
+  /**
+   * The theme token the value was read from (`{color.accent}`): a rendering environment reads it
+   * again in its color mode and installed theme (`catalogTokenValue`); `value` is the build-time read.
+   */
+  ref?: `{${string}}`;
 }
 export interface CatalogLibrary {
   contractVersion: typeof LIBRARY_CONTRACT_VERSION;

@@ -3,11 +3,12 @@
 import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { useCallback, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useStore } from "../../../stores";
+import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import {
   beginPagePositionPresentation,
   getPagePositionPresentationSnapshot,
   publishPagePositionPresentation,
+  readPagePositionForInteraction,
   resetPagePositionPresentation,
 } from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
@@ -34,6 +35,19 @@ type Rect = { width: number; height: number };
 // 요소 identity 가 아니라 data-testid 로 잰다 — 바 DOM 은 렌더 뒤에야 생기는데
 // 크기는 그 전에 정해 둬야 "마운트 시점 clamp" 를 볼 수 있다
 const rects = new Map<string, Rect>();
+// The page positions the Canvas would report (its page frame rects); a page drag's transient
+// position follows the page position presentation.
+let pagePositions: Record<string, { x: number; y: number }> = {};
+const pageRectOf = (pageId: string) => {
+  const position = readPagePositionForInteraction(
+    pageId,
+    pagePositions,
+    getPagePositionPresentationSnapshot(),
+  );
+  return (
+    position && { ...position, ...useViewportSyncStore.getState().canvasSize }
+  );
+};
 let observers: Array<{ targets: Element[]; cb: () => void }> = [];
 
 function setRect(testId: string, rect: Rect) {
@@ -44,15 +58,16 @@ function fireResize() {
   observers.forEach((o) => o.cb());
 }
 
-// `useStore.setState` 는 새 state 객체를 만들면서 mock 함수까지 복사한다 —
+// `useBuilderUiStore.setState` 는 새 state 객체를 만들면서 mock 함수까지 복사한다 —
 // `vi.restoreAllMocks()` 가 복원한 것은 버려진 옛 객체라, 원본 참조를 잡아 두고
 // 매 테스트 앞에서 명시적으로 되돌린다 (canvasActions.test.ts 와 같은 이유).
-const originalSetActionBarOffset = useStore.getState().setActionBarOffset;
+const originalSetActionBarOffset =
+  useBuilderUiStore.getState().setActionBarOffset;
 
 beforeEach(() => {
   observers = [];
   rects.clear();
-  useStore.setState({
+  useBuilderUiStore.setState({
     setActionBarOffset: originalSetActionBarOffset,
   } as never);
 
@@ -91,10 +106,10 @@ beforeEach(() => {
     },
   );
 
-  useStore.setState({
+  useBuilderUiStore.setState({
     actionBar: { hidden: false, pinned: false, offset: { dx: 9999, dy: 0 } },
-    derivedPagePositions: { "page-1": { x: 100, y: 50 } },
   } as never);
+  pagePositions = { "page-1": { x: 100, y: 50 } };
   useViewportSyncStore.getState().reset();
   useViewportSyncStore.getState().setCanvasSize({ width: 400, height: 300 });
   resetPagePositionPresentation();
@@ -142,6 +157,7 @@ function Harness({
   const placement = useActionBarPlacement(pageId, {
     barNode,
     handleNode: barNode,
+    pageRectOf,
   });
   useEffect(() => onCommittedRender?.());
   if (!visible) return null;
@@ -156,12 +172,18 @@ describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
   it("page/offset 변경에는 액션 참조를 유지하고 최신 pin/reset/hide 상태를 반영한다", () => {
     const { result, rerender } = renderHook(
       ({ pageId }) =>
-        useActionBarPlacement(pageId, { barNode: null, handleNode: null }),
+        useActionBarPlacement(pageId, {
+          barNode: null,
+          handleNode: null,
+          pageRectOf,
+        }),
       { initialProps: { pageId: "page-1" } },
     );
     const initial = result.current;
     rerender({ pageId: "page-2" });
-    act(() => useStore.getState().setActionBarOffset({ dx: 10, dy: 20 }));
+    act(() =>
+      useBuilderUiStore.getState().setActionBarOffset({ dx: 10, dy: 20 }),
+    );
     expect(result.current.togglePinned).toBe(initial.togglePinned);
     expect(result.current.resetPosition).toBe(initial.resetPosition);
     expect(result.current.hide).toBe(initial.hide);
@@ -171,14 +193,14 @@ describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
     act(() => result.current.togglePinned());
     expect(result.current.pinned).toBe(false);
     act(() => result.current.resetPosition());
-    expect(useStore.getState().actionBar.offset).toBeNull();
+    expect(useBuilderUiStore.getState().actionBar.offset).toBeNull();
     act(() => result.current.hide());
     expect(result.current.hidden).toBe(true);
   });
 
   it("바가 나타난 뒤에 clamp 가 실행된다 (마운트 시점에는 잴 것이 없다)", () => {
     const setActionBarOffset = vi.spyOn(
-      useStore.getState(),
+      useBuilderUiStore.getState(),
       "setActionBarOffset",
     );
 
@@ -202,7 +224,7 @@ describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
     // store 를 실제로 바꾸지 않아야 effect 가 재실행되지 않고 — 즉 "바 크기
     // 변화만으로" 다시 clamp 되는지를 본다
     const setActionBarOffset = vi
-      .spyOn(useStore.getState(), "setActionBarOffset")
+      .spyOn(useBuilderUiStore.getState(), "setActionBarOffset")
       .mockImplementation(() => {});
 
     setRect("overlay", { width: 1000, height: 600 });
@@ -226,7 +248,7 @@ describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
 
 describe("useActionBarPlacement — 드래그 commit (#11)", () => {
   it("commit 은 setState updater 밖(핸들러 본문)에서 일어난다", () => {
-    useStore.setState({
+    useBuilderUiStore.setState({
       actionBar: { hidden: false, pinned: false, offset: null },
     } as never);
     setRect("bar", { width: 200, height: 40 });
@@ -235,7 +257,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
     const bar = view.getByTestId("bar");
 
     const setActionBarOffset = vi.spyOn(
-      useStore.getState(),
+      useBuilderUiStore.getState(),
       "setActionBarOffset",
     );
     // updater 안에서 store 를 쓰면 React 가 render phase 갱신으로 경고한다
@@ -271,7 +293,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
   });
 
   it("드래그 중 pointermove 는 React rerender 없이 DOM transform 만 갱신하고, 크기는 한 번만 잰다", () => {
-    useStore.setState({
+    useBuilderUiStore.setState({
       actionBar: { hidden: false, pinned: false, offset: null },
     } as never);
     setRect("bar", { width: 200, height: 40 });
@@ -282,7 +304,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
     );
     const bar = view.getByTestId("bar");
     const setActionBarOffset = vi.spyOn(
-      useStore.getState(),
+      useBuilderUiStore.getState(),
       "setActionBarOffset",
     );
 
@@ -323,7 +345,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
   });
 
   it("page anchor에서 첫 드래그를 시작해도 위치가 점프하지 않는다", () => {
-    useStore.setState({
+    useBuilderUiStore.setState({
       actionBar: { hidden: false, pinned: false, offset: null },
     } as never);
     setRect("bar", { width: 200, height: 40 });
@@ -331,7 +353,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
     const setActionBarOffset = vi.spyOn(
-      useStore.getState(),
+      useBuilderUiStore.getState(),
       "setActionBarOffset",
     );
 
@@ -362,7 +384,7 @@ describe("useActionBarPlacement — 드래그 commit (#11)", () => {
 
 describe("useActionBarPlacement — page 자동 고정", () => {
   beforeEach(() => {
-    useStore.setState({
+    useBuilderUiStore.setState({
       actionBar: { hidden: false, pinned: false, offset: null },
     } as never);
     setRect("bar", { width: 200, height: 40 });
@@ -382,7 +404,7 @@ describe("useActionBarPlacement — page 자동 고정", () => {
   });
 
   it("저장된 page position이 없으면 Skia page frame과 같이 (0, 0)을 쓴다", () => {
-    useStore.setState({ derivedPagePositions: {} } as never);
+    pagePositions = {};
     const view = render(<Harness visible pageId="page-1" />);
     const bar = view.getByTestId("bar");
 
@@ -399,11 +421,7 @@ describe("useActionBarPlacement — page 자동 고정", () => {
     );
 
     act(() => {
-      beginPagePositionPresentation(
-        useStore.getState().derivedPagePositions,
-        ["page-1"],
-        "desktop",
-      );
+      beginPagePositionPresentation(pagePositions, ["page-1"], "desktop");
       publishPagePositionPresentation([
         { pageId: "page-1", position: { x: 180, y: 90 } },
       ]);
@@ -458,7 +476,7 @@ describe("useActionBarPlacement — page 자동 고정", () => {
   });
 
   it("수동 offset이 있으면 기존 overlay 하단 중앙 위치를 유지한다", () => {
-    useStore.setState({
+    useBuilderUiStore.setState({
       actionBar: { hidden: false, pinned: false, offset: { dx: 20, dy: -8 } },
     } as never);
     const view = render(<Harness visible pageId="page-1" />);

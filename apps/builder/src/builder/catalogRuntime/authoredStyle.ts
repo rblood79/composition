@@ -1,22 +1,15 @@
 import type { CSSProperties } from "react";
 import { fillsToCssBackgroundStyle } from "@composition/shared";
 import type { CatalogFillLayer } from "../../../../../packages/shared/src/catalog/document/types";
-import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNode";
-import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
-import { buildBoxNodeData } from "../workspace/canvas/skia/buildBoxNodeData";
-import {
-  colorIntToFloat32,
-  cssColorToAlpha,
-  cssColorToHex,
-} from "../workspace/canvas/styleConversion/styleConverter";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /**
  * ADR-248 Phase 4a-3: the node paint surface the Style and Fill panels author (effects, per-corner
  * radius, per-side border width, stacking, CSS background image, fill layers). One mapping —
  * resolved node → CSS longhands — feeds both consumers: the DOM applies it inline, the Canvas
- * converts the same record with the old app's pure style/fill converters (`buildBoxNodeData`),
- * so an authored value cannot mean one thing in Preview and another on the Canvas.
+ * converts the same record with the old app's pure style/fill converters (`authoredPaintCanvas`),
+ * so an authored value cannot mean one thing in Preview and another on the Canvas. This module is
+ * the DOM-safe half (the Preview loads it; no Skia or layout code — G5 bundle gate).
  */
 export const CATALOG_AUTHORED_PAINT_KEYS: ReadonlySet<string> = new Set([
   "boxShadow",
@@ -35,13 +28,13 @@ export const CATALOG_AUTHORED_PAINT_KEYS: ReadonlySet<string> = new Set([
   "borderLeftWidth",
 ]);
 
-const RADIUS_CSS: Readonly<Record<string, string>> = {
+export const CATALOG_RADIUS_CSS: Readonly<Record<string, string>> = {
   radiusTopLeft: "borderTopLeftRadius",
   radiusTopRight: "borderTopRightRadius",
   radiusBottomRight: "borderBottomRightRadius",
   radiusBottomLeft: "borderBottomLeftRadius",
 };
-const SIDE_WIDTH_KEYS = [
+export const CATALOG_SIDE_WIDTH_KEYS = [
   "borderTopWidth",
   "borderRightWidth",
   "borderBottomWidth",
@@ -65,9 +58,9 @@ export function catalogAuthoredPaintCss(
   ])
     if (visual[key] !== undefined) css[key] = String(visual[key]);
   if (visual.zIndex !== undefined) css.zIndex = Number(visual.zIndex);
-  for (const [key, cssKey] of Object.entries(RADIUS_CSS))
+  for (const [key, cssKey] of Object.entries(CATALOG_RADIUS_CSS))
     if (visual[key] !== undefined) css[cssKey] = px(visual[key]);
-  for (const key of SIDE_WIDTH_KEYS)
+  for (const key of CATALOG_SIDE_WIDTH_KEYS)
     if (visual[key] !== undefined) css[key] = px(visual[key]);
   return css;
 }
@@ -78,6 +71,15 @@ export function catalogFillItems(
 ): unknown[] | undefined {
   if (!fills?.length) return undefined;
   return fills.map(({ kind, ...rest }) => ({ ...rest, type: kind }));
+}
+
+/** The Fill panel's items (`type`) as document paint layers (`kind`) — the inverse of the above. */
+export function catalogFillLayers(
+  items: readonly { type: string }[],
+): CatalogFillLayer[] {
+  return items.map(
+    ({ type, ...rest }) => ({ ...rest, kind: type }) as CatalogFillLayer,
+  );
 }
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
@@ -94,6 +96,25 @@ export function isTypedCatalogColor(value: unknown): boolean {
   );
 }
 
+/**
+ * `backgroundColor` (a Styles or AI style write — a valid visual field) is the box's background:
+ * the DOM inlines it and `fill` to the same CSS property, the later key winning. The Canvas paints
+ * the background from `fill`, so the node it paints carries the winner as `fill`.
+ */
+export function catalogVisualWithBackground<
+  N extends Pick<CatalogConsumerNode, "visual">,
+>(node: N): N {
+  const visual = node.visual;
+  if (!("backgroundColor" in visual)) return node;
+  const { backgroundColor, ...rest } = visual;
+  const keys = Object.keys(visual);
+  const fillWins = keys.lastIndexOf("fill") > keys.indexOf("backgroundColor");
+  return {
+    ...node,
+    visual: fillWins ? rest : { ...rest, fill: backgroundColor },
+  };
+}
+
 /** True when the node's paint needs the authored path on either consumer. */
 export function hasCatalogAuthoredPaint(
   node: Pick<CatalogConsumerNode, "visual" | "fills">,
@@ -107,11 +128,6 @@ export function hasCatalogAuthoredPaint(
   );
 }
 
-/** Any CSS color (hex3/4/6/8, rgb(a), hsl(a), keyword) as Skia RGBA floats. */
-export function catalogCssColorRgba(value: string): Float32Array {
-  return colorIntToFloat32(cssColorToHex(value), cssColorToAlpha(value));
-}
-
 /** DOM inline additions: authored paint CSS and fill layers as CSS backgrounds. */
 export function catalogAuthoredDomStyle(
   node: Pick<CatalogConsumerNode, "visual" | "fills">,
@@ -120,86 +136,4 @@ export function catalogAuthoredDomStyle(
   const fills = catalogFillItems(node.fills);
   if (fills) Object.assign(style, fillsToCssBackgroundStyle(fills));
   return style;
-}
-
-/**
- * Canvas: overlay the authored paint on a binding's node data. The same CSS record (plus the
- * resolved fill/border that the old builder needs to place fills and per-side strokes) runs through
- * the old `buildBoxNodeData`; fill channels, radii, side widths, effects, transform and stacking
- * are taken from its result.
- */
-export function applyCatalogAuthoredPaint(
-  node: Pick<CatalogConsumerNode, "id" | "visual" | "fills">,
-  data: SkiaNodeData,
-  rect: { x: number; y: number; width: number; height: number },
-  theme: "light" | "dark" = "light",
-): SkiaNodeData {
-  if (!hasCatalogAuthoredPaint(node)) return data;
-  const visual = node.visual;
-  const style: Record<string, string | number> = {
-    ...catalogAuthoredPaintCss(node),
-    ...(visual.borderColor !== undefined &&
-    typeof visual.borderColor === "string"
-      ? { borderColor: visual.borderColor }
-      : {}),
-    ...(visual.borderWidth !== undefined
-      ? { borderWidth: px(visual.borderWidth) }
-      : {}),
-    ...(visual.borderStyle !== undefined
-      ? { borderStyle: String(visual.borderStyle) }
-      : SIDE_WIDTH_KEYS.some((key) => visual[key] !== undefined) ||
-          visual.borderWidth !== undefined
-        ? { borderStyle: "solid" }
-        : {}),
-    ...(visual.radius !== undefined ? { borderRadius: px(visual.radius) } : {}),
-  };
-  // Per-corner radius longhands must follow the shorthand they refine.
-  for (const cssKey of Object.values(RADIUS_CSS))
-    if (cssKey in style) {
-      const value = style[cssKey];
-      delete style[cssKey];
-      style[cssKey] = value;
-    }
-  const fills = catalogFillItems(node.fills);
-  const built = buildBoxNodeData({
-    element: {
-      id: node.id,
-      type: "div",
-      props: { style },
-      ...(fills ? { fills } : {}),
-    } as unknown as CanvasSceneNode,
-    layout: { ...rect, elementId: node.id } as never,
-    theme,
-  });
-  if (!built) return data;
-  const next: SkiaNodeData = { ...data };
-  if (built.effects?.length)
-    next.effects = [...(data.effects ?? []), ...built.effects];
-  if (built.presentationShadowTargets?.length)
-    next.presentationShadowTargets = built.presentationShadowTargets;
-  if (built.transform) next.transform = built.transform;
-  if (built.blendMode) next.blendMode = built.blendMode;
-  if (built.zIndex !== undefined) next.zIndex = built.zIndex;
-  if (built.isStackingContext) next.isStackingContext = true;
-  if (data.box && built.box) {
-    const box = { ...data.box };
-    if (fills || visual.backgroundImage !== undefined) {
-      box.fillColor = built.box.fillColor;
-      if (built.box.fill) box.fill = built.box.fill;
-      if (built.box.fillUnderlays) box.fillUnderlays = built.box.fillUnderlays;
-      next.presentationFillTargets = built.presentationFillTargets;
-    }
-    if (Object.values(RADIUS_CSS).some((cssKey) => cssKey in style))
-      box.borderRadius = built.box.borderRadius;
-    if (built.box.strokeWidths) box.strokeWidths = built.box.strokeWidths;
-    if (
-      SIDE_WIDTH_KEYS.some((key) => visual[key] !== undefined) &&
-      built.box.strokeColor
-    ) {
-      box.strokeColor ??= built.box.strokeColor;
-      box.strokeWidth ??= built.box.strokeWidth;
-    }
-    next.box = box;
-  }
-  return next;
 }

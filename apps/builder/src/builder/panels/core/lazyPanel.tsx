@@ -25,7 +25,8 @@ import {
   type ReactNode,
 } from "react";
 import { Button } from "react-aria-components/Button";
-import { LoadingSpinner, PanelContents } from "../../components";
+import { LoadingSpinner } from "../../components/feedback/LoadingSpinner";
+import { PanelContents } from "../../components/panel/PanelContents";
 import { useI18n } from "../../../i18n";
 import type { PanelProps } from "./types";
 

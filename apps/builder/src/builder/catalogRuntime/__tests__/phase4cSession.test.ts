@@ -5,7 +5,6 @@ import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/c
 import type {
   EditTarget,
   EntryId,
-  EntryKind,
   NodeEntry,
   NodeId,
   TemplateId,
@@ -13,7 +12,6 @@ import type {
 import type { CatalogCommand } from "../../../../../../packages/shared/src/catalog/commands/compose";
 import {
   createPage,
-  insertNodes,
   removePage,
   removeTargets,
   setFields,
@@ -50,12 +48,14 @@ const text = (name: string, value: string) =>
   node(name, "lib:definition:text", {
     props: { children: { kind: "set", value } },
   });
-const allocator = () => {
-  let next = 0;
-  return <K extends EntryKind>(kind: K) =>
-    `project:${kind}:s${++next}` as EntryId<K>;
-};
-const DESCRIPTION: EditTarget = {
+const item = (target: EditTarget) => ({
+  target,
+  identity:
+    target.kind === "node"
+      ? `::${target.id}`
+      : `${target.address.instances.join("/")}::${target.address.templatePath.at(-1)}`,
+});
+const DESCRIPTION_TARGET: EditTarget = {
   kind: "descendant",
   ownerId: id("list"),
   address: {
@@ -69,6 +69,7 @@ const DESCRIPTION: EditTarget = {
     ],
   },
 };
+const DESCRIPTION = item(DESCRIPTION_TARGET);
 
 async function open() {
   const graph = new CatalogGraph(
@@ -100,11 +101,11 @@ async function open() {
 describe("ADR-248 Phase 4c session state", () => {
   it("drops a removed node and a switched-off template position from the selection; undo does not bring them back", async () => {
     const { runtime, session, run } = await open();
-    session.select([{ kind: "node", id: id("a") }, DESCRIPTION]);
+    session.select([item({ kind: "node", id: id("a") }), DESCRIPTION]);
     expect(session.getSnapshot().selection).toHaveLength(2);
     run(removeTargets({ targets: [{ kind: "node", id: id("a") }] }));
     expect(session.getSnapshot().selection).toEqual([DESCRIPTION]);
-    run(removeTargets({ targets: [DESCRIPTION] }));
+    run(removeTargets({ targets: [DESCRIPTION_TARGET] }));
     expect(session.getSnapshot().selection).toEqual([]);
     runtime.undo();
     runtime.undo();
@@ -117,41 +118,33 @@ describe("ADR-248 Phase 4c session state", () => {
     expect(session.getSnapshot().selection).toEqual([]);
   });
 
-  it("toggles additively, drops duplicates and missing targets, and selects a command's result", async () => {
-    const { session, run } = await open();
-    const a: EditTarget = { kind: "node", id: id("a") };
-    const b: EditTarget = { kind: "node", id: id("b") };
-    session.select([a, a, { kind: "node", id: id("missing") }]);
+  it("toggles additively and drops duplicates and missing targets", async () => {
+    const { session } = await open();
+    const a = item({ kind: "node", id: id("a") });
+    const b = item({ kind: "node", id: id("b") });
+    session.select([a, a, item({ kind: "node", id: id("missing") })]);
     expect(session.getSnapshot().selection).toEqual([a]);
     session.select([b], { additive: true });
     session.select([a], { additive: true });
     expect(session.getSnapshot().selection).toEqual([b]);
-    const plan = run(
-      insertNodes({
-        parent: { kind: "page", id: PAGE },
-        entries: [text("c", "C")],
-        rootIds: [id("c")],
-        newId: allocator(),
-      }),
-    );
-    session.applyPlan(plan);
-    expect(session.getSnapshot().selection).toEqual([
-      { kind: "node", id: id("c") },
-    ]);
   });
 
   it("ends text editing, hover and context with their element; a gone page falls back to the first", async () => {
-    const { runtime, session, run } = await open();
-    const a: EditTarget = { kind: "node", id: id("a") };
+    const { session, run } = await open();
+    const a = item({ kind: "node", id: id("a") });
     session.startTextEdit(a);
-    session.setHover({ kind: "node", id: id("b") });
+    session.setHover(item({ kind: "node", id: id("b") }));
     session.enterContext(id("list"));
     expect(session.getSnapshot()).toMatchObject({
       selection: [a],
       textEditing: a,
       editingContext: id("list"),
     });
-    run(removeTargets({ targets: [a, { kind: "node", id: id("b") }] }));
+    run(
+      removeTargets({
+        targets: [a.target, { kind: "node", id: id("b") }],
+      }),
+    );
     expect(session.getSnapshot()).toMatchObject({
       selection: [],
       textEditing: undefined,
@@ -171,7 +164,7 @@ describe("ADR-248 Phase 4c session state", () => {
       }),
     );
     session.setPage(second);
-    session.select([{ kind: "node", id: id("list") }]);
+    session.select([item({ kind: "node", id: id("list") })]);
     expect(session.getSnapshot().pageId).toBe(second);
     run(removePage({ id: second }));
     expect(session.getSnapshot().pageId).toBe(PAGE);
@@ -179,7 +172,7 @@ describe("ADR-248 Phase 4c session state", () => {
 
   it("publishes a new snapshot only when something changed", async () => {
     const { session, run, notices } = await open();
-    const a: EditTarget = { kind: "node", id: id("a") };
+    const a = item({ kind: "node", id: id("a") });
     session.select([a]);
     const snapshot = session.getSnapshot();
     const before = notices();

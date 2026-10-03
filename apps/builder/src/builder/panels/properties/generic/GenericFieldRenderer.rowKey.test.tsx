@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
 import { act, cleanup, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ResolvedField } from "@composition/shared";
 import { I18nProvider } from "@/i18n";
-import {
-  resetPanelFixture,
-  seedPanelElements,
-} from "../../../__tests__/panelFixture";
-import { useStore } from "../../../stores";
+import type { ReactNode } from "react";
+import { openStylesFixture } from "../../styles/__tests__/support/catalogStylesFixture";
 import { GenericFieldRenderer } from "./GenericFieldRenderer";
 
 vi.mock("../hooks/useOwnerCollectionColumns", async (importActual) => {
@@ -69,24 +66,26 @@ const necessity: ResolvedField = {
 // 2026-09-16 사용자 지적 — Styles 와 같은 ToggleButtonGroup 인데 Properties 만 인디케이터가
 // 점프했다. 원인은 행 key: 게이트가 종속 필드를 드러내면 행 구성이 바뀌어 행이 remount 됐다.
 describe("GenericFieldRenderer — 게이트 seg 는 종속 필드가 합류해도 같은 DOM 노드", () => {
-  beforeEach(resetPanelFixture);
-  afterEach(() => {
-    cleanup();
-    resetPanelFixture();
-  });
+  afterEach(cleanup);
 
-  it("labelPosition top → side: Label Align 이 옆 칸에 나타나도 seg 그룹은 remount 되지 않는다", () => {
-    seedPanelElements([
-      { id: "tf", type: "TextField", props: { labelPosition: "top" }, page_id: "page-1", parent_id: null },
-    ]);
+  it("labelPosition top → side: Label Align 이 옆 칸에 나타나도 seg 그룹은 remount 되지 않는다", async () => {
+    // ADR-248 4e-9 C: catalog Properties 의 field value source (옛 store source 는 옛 store 와 함께 제거).
+    const fixture = await openStylesFixture(
+      [{ id: "tf", type: "TextField", props: { labelPosition: "top" } }],
+      { select: "tf" },
+    );
+    const elementId = fixture.recordOf("tf");
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <I18nProvider>{fixture.wrapper({ children })}</I18nProvider>
+    );
     const { container, rerender } = render(
       <GenericFieldRenderer
         fields={[labelPosition, labelAlign, necessity]}
         onSemanticUpdate={vi.fn()}
         onStyleUpdate={vi.fn()}
-        elementId="tf"
+        elementId={elementId}
       />,
-      { wrapper: I18nProvider },
+      { wrapper },
     );
     const before = container.querySelector(".react-aria-ToggleButtonGroup");
     expect(before).not.toBeNull();
@@ -95,7 +94,7 @@ describe("GenericFieldRenderer — 게이트 seg 는 종속 필드가 합류해�
     expect(container.querySelectorAll(".react-aria-ToggleButtonGroup")).toHaveLength(2);
 
     act(() => {
-      useStore.getState().updateElementProps("tf", { labelPosition: "side" });
+      fixture.host.updateProperty("labelPosition", "side");
     });
     // 실제 패널은 계약을 다시 풀어 currentValue 가 갱신된 새 필드 객체를 넘긴다
     rerender(
@@ -107,7 +106,7 @@ describe("GenericFieldRenderer — 게이트 seg 는 종속 필드가 합류해�
         ]}
         onSemanticUpdate={vi.fn()}
         onStyleUpdate={vi.fn()}
-        elementId="tf"
+        elementId={elementId}
       />,
     );
     const groups = container.querySelectorAll(".react-aria-ToggleButtonGroup");

@@ -17,7 +17,6 @@
     user-select: none;
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
-    display: inline-block;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: fit-content;
@@ -25,11 +24,46 @@
   align-items: center;
   justify-content: center;
 
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
   /* Default size */
+  height: 40px;
+  padding: 0px 24px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 8px;
   --icon-size: 16px;
+}
+
+.react-aria-FileTrigger[data-variant="default"] {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-FileTrigger[data-variant="accent"] {
+  background: var(--accent);
+  color: var(--fg-on-accent);
+  border-color: var(--accent);
+
+  &[data-hovered] {
+    background: var(--accent-hover, color-mix(in srgb, var(--accent) 85%, black));
+  }
+
+  &[data-pressed] {
+    background: var(--accent-pressed, color-mix(in srgb, var(--accent) 75%, black));
+  }
 }
 
 .react-aria-FileTrigger[data-icon-only] {
@@ -38,6 +72,8 @@
 }
 
 .react-aria-FileTrigger[data-size="sm"] {
+  height: 32px;
+  padding: 0px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   gap: 6px;
@@ -45,6 +81,8 @@
 }
 
 .react-aria-FileTrigger[data-size="md"] {
+  height: 40px;
+  padding: 0px 24px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 8px;
@@ -52,6 +90,8 @@
 }
 
 .react-aria-FileTrigger[data-size="lg"] {
+  height: 48px;
+  padding: 0px 32px;
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   gap: 10px;

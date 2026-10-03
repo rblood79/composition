@@ -23,7 +23,9 @@ vi.mock("./FillTypeSelector", () => ({ FillTypeSelector: () => <div /> }));
 vi.mock("./GradientEditor", () => ({ GradientEditor: () => <div /> }));
 vi.mock("./MeshGradientEditor", () => ({ MeshGradientEditor: () => <div /> }));
 vi.mock("./ImageFillEditor", () => ({ ImageFillEditor: () => <div /> }));
-vi.mock("../../../components", () => ({ PropertySelect: () => <div /> }));
+vi.mock("../../../components/property/PropertySelect", () => ({
+  PropertySelect: () => <div />,
+}));
 
 import { FillDetailPopover } from "./FillDetailPopover";
 

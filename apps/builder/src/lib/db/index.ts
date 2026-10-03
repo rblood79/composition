@@ -19,7 +19,7 @@ let initPromise: Promise<DatabaseAdapter> | null = null;
  * @example
  * ```typescript
  * const db = await getDB();
- * const document = await db.documents.get(projectId);
+ * const tables = await db.collections.getByProject(projectId);
  * ```
  */
 export async function getDB(): Promise<DatabaseAdapter> {

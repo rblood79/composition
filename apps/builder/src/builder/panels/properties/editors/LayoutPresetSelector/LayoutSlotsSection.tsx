@@ -6,30 +6,24 @@
  * 없으므로 (preset areas 는 정의 파일에만) 여기서도 이름 · 수만 보여준다 (panel-ui 18, 2026-09-14).
  */
 
-import { memo, useCallback } from "react";
+import { memo } from "react";
 import { Button } from "react-aria-components/Button";
-import { PropertySection } from "../../../../components";
-import { useStore } from "../../../../stores";
-import { useExistingFrameSlots } from "./usePresetApply";
+import { Section as PropertySection } from "../../../../components/panel/Section";
 import { useOptionalI18n } from "@/i18n";
 
-interface LayoutSlotsSectionProps {
-  readonly layoutId: string;
-}
-
-export const LayoutSlotsSection = memo(function LayoutSlotsSection({
-  layoutId,
-}: LayoutSlotsSectionProps) {
+/**
+ * The Slots rows over any document (ADR-248 4e-6-37): the old store and the catalog layout pass
+ * their slots (`elementId` = what `onSelect` selects).
+ */
+export const LayoutSlotsList = memo(function LayoutSlotsList({
+  slots,
+  onSelect,
+}: {
+  slots: readonly { slotName: string; elementId: string; childCount: number }[];
+  onSelect: (elementId: string) => void;
+}) {
   // 편집기 테스트가 provider 없이 마운트한다 — 접근 이름은 provider 없으면 영문 기본.
   const i18n = useOptionalI18n();
-  const slots = useExistingFrameSlots(layoutId);
-
-  const handleSelect = useCallback((elementId: string) => {
-    const state = useStore.getState();
-    const element = state.elementsMap.get(elementId);
-    state.setSelectedElement(elementId, element?.props);
-  }, []);
-
   if (slots.length === 0) return null;
 
   return (
@@ -43,7 +37,7 @@ export const LayoutSlotsSection = memo(function LayoutSlotsSection({
           <Button
             key={slot.elementId}
             className="frame-slot-row"
-            onPress={() => handleSelect(slot.elementId)}
+            onPress={() => onSelect(slot.elementId)}
             aria-label={
               i18n
                 ? i18n.t("propertiesPanel.slotSelectOnCanvas", {

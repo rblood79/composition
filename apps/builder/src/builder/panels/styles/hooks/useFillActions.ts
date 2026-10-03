@@ -2,7 +2,7 @@
  * Fill Actions Hook
  *
  * Gradient Phase 2: Fill 배열 CRUD 액션 + 타입 변경
- * - fills 배열을 복사 → 변경 → store.updateSelectedFills() 호출
+ * - fills 배열을 복사 → 변경 → Styles host `updateFills` 호출 (구 store 또는 catalog 문서)
  * - 연속 프리뷰는 presentation runtime owner가 담당하며 미지원 대상은 commit-only
  * - changeFillType: Color ↔ Gradient 타입 전환
  *
@@ -10,8 +10,12 @@
  * @updated 2026-02-10 Gradient Phase 2
  */
 
+import {
+  presentationRuntime,
+  presentationSelection,
+  subscribePresentationSelection,
+} from "./presentationBridge";
 import { useCallback, useRef, useEffect, useState } from "react";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
 import type {
   FillItem,
   ColorFillItem,
@@ -22,18 +26,7 @@ import {
   createDefaultColorFill,
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
-import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
-import { getNodeMap } from "../../../stores/canonical/canonicalTraversalHelpers";
-import { getSyntheticDescendantLookup } from "../../../stores/canonical/syntheticDescendantLookup";
-import { readCanonicalNodeFillPayload } from "../../../../adapters/canonical/canonicalFillPayload";
-import {
-  resolveElementFills,
-  type FillReadSource,
-} from "../utils/fillMigration";
-import {
-  editorPresentationFillPilotRuntime,
-  resolveFillPresentationPilotTarget,
-} from "../../../presentation/editorPresentationFillPilot";
+import { useStylesHost } from "../stylesHost";
 import type {
   EditorPresentationCancelReason,
   EditorMutationDescriptor,
@@ -80,38 +73,19 @@ export interface FillActions {
   cancelFirstFillColorPresentation: (
     reason: EditorPresentationCancelReason,
   ) => boolean;
+  /**
+   * A Fill drag (color, opacity, gradient stops) on any layer through the host's `previewFills`
+   * (the catalog Builder, where no presentation channel exists); false = the host has none.
+   * Successive previews of one gesture add up; the release commits through `updateFill`.
+   */
+  previewFill: (
+    fillId: string,
+    updates: Partial<FillItem>,
+    fallbackFill?: ColorFillItem,
+  ) => boolean;
+  /** Put the selection's own layers back after a cancelled drag. */
+  cancelFillPreview: () => void;
   changeFillType: (fillId: string, newType: FillType) => void;
-}
-
-/**
- * fills 배열의 현재 값을 가져오는 헬퍼.
- *
- * 표시(useFillValues → useElementStyleContext → canonical 파생)와 **동일 소스**:
- * canonical 문서 우선, canonical 미가동(legacy 프로젝트)일 때만 elementsMap.
- * 과거 legacy elementsMap 단독 읽기는 canonical 파생과 어긋나는 순간
- * (표시 0건 ↔ 액션 실값) 소스 분열로 드래그마다 addFill 중복 누적을 만들었다
- * (2026-07-15 fills 파이프라인 복원).
- */
-function getCurrentFills(): FillItem[] {
-  const state = useStore.getState();
-  const { selectedElementId, elementsMap } = state;
-  if (!selectedElementId) return [];
-
-  const doc = getActiveCanonicalDocument();
-  if (doc) {
-    // instance 안 자식 (synthetic) 은 canonical 맵에 없다 — 표시 (readStyleTargetNode) 와 같은 해석 노드.
-    const node =
-      getNodeMap().get(selectedElementId) ??
-      getSyntheticDescendantLookup(selectedElementId)?.node;
-    const source: FillReadSource | undefined = node
-      ? {
-          fills: readCanonicalNodeFillPayload(node) as FillItem[] | undefined,
-          props: node.props as FillReadSource["props"],
-        }
-      : undefined;
-    return resolveElementFills(source);
-  }
-  return resolveElementFills(elementsMap.get(selectedElementId));
 }
 
 function applyFillUpdates(
@@ -135,13 +109,32 @@ export function useFillActions(): FillActions {
     target: EditorPresentationTargetRef;
   } | null>(null);
   const [ownerId] = useState(() => `fill-color-owner-${nextFillOwnerId++}`);
+  const host = useStylesHost();
+  const bridge = host.presentation;
+  const getCurrentFills = host.readFills;
+  /** The layers a host preview shows during one gesture. */
+  const draftRef = useRef<{
+    id: string | null;
+    base: string;
+    fills: FillItem[];
+  } | null>(null);
+  const dropDraft = useCallback(() => {
+    draftRef.current = null;
+  }, []);
+  const writeFills = useCallback(
+    (fills: FillItem[]) => {
+      dropDraft();
+      host.updateFills(fills);
+    },
+    [dropDraft, host],
+  );
 
   // cleanup on unmount
   useEffect(() => {
-    const unsubscribeSelection = useStore.subscribe(() => {
+    const unsubscribeSelection = subscribePresentationSelection(bridge, () => {
       const presentation = presentationRef.current;
       if (!presentation) return;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       if (selectedElementId === presentation.selectedElementId) return;
       presentation.handle.cancel("selection-change");
       presentation.phase = "cancelled";
@@ -165,13 +158,10 @@ export function useFillActions(): FillActions {
 
   const isFirstFillColorPresentationOwned = useCallback(
     (fillId: string, fallbackFill?: ColorFillItem) => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       return (
-        resolveFillPresentationPilotTarget(
-          selectedElementId,
-          fillId,
-          fallbackFill,
-        ) !== null
+        (bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
+          null) !== null
       );
     },
     [],
@@ -181,7 +171,7 @@ export function useFillActions(): FillActions {
 
   const previewFirstFillColorPresentation = useCallback(
     (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = presentationRef.current;
       if (existing?.phase === "cancelled") {
         if (
@@ -207,11 +197,9 @@ export function useFillActions(): FillActions {
         presentationRef.current = null;
       }
       if (!presentation) {
-        const pilot = resolveFillPresentationPilotTarget(
-          selectedElementId,
-          fillId,
-          fallbackFill,
-        );
+        const pilot =
+          bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
+          null;
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseFills: pilot.fills,
@@ -219,7 +207,7 @@ export function useFillActions(): FillActions {
             ? createDefaultColorFill().id
             : fillId,
           fillId,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: "fill-color",
             ownerId,
             projectId: pilot.projectId,
@@ -249,7 +237,7 @@ export function useFillActions(): FillActions {
 
   const commitFirstFillColorPresentation = useCallback(
     (fillId: string, color: string, fallbackFill?: ColorFillItem): boolean => {
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = presentationRef.current;
       if (active?.phase === "cancelled") {
         presentationRef.current = null;
@@ -304,7 +292,7 @@ export function useFillActions(): FillActions {
       if (!hasStopsUpdate && !hasOpacityUpdate) {
         return false;
       }
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const existing = presentationRef.current;
       if (existing?.phase === "cancelled") {
         if (
@@ -333,11 +321,9 @@ export function useFillActions(): FillActions {
         // legacy backgroundColor read-through (canonical fills 0) 는 color 경로처럼 가상 fill 을
         //   base 로 materialize 한다 — 없으면 pilot null → opacity scrub 이 commit-only 로 새서
         //   드래그 중 캔버스가 안 움직였다 (2026-09-14 live).
-        const pilot = resolveFillPresentationPilotTarget(
-          selectedElementId,
-          fillId,
-          fallbackFill,
-        );
+        const pilot =
+          bridge?.resolveFillTarget(selectedElementId, fillId, fallbackFill) ??
+          null;
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseFills: pilot.fills,
@@ -345,7 +331,7 @@ export function useFillActions(): FillActions {
             ? createDefaultColorFill().id
             : fillId,
           fillId,
-          handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
+          handle: presentationRuntime(bridge).beginEditorPresentation({
             commitIntent: hasStopsUpdate
               ? "fill-gradient-stop"
               : "fill-opacity",
@@ -387,7 +373,7 @@ export function useFillActions(): FillActions {
       if (!hasStopsUpdate && !hasOpacityUpdate) {
         return false;
       }
-      const { selectedElementId } = readImmediateSelectionSnapshot();
+      const { selectedElementId } = presentationSelection(bridge);
       const active = presentationRef.current;
       if (active?.phase === "cancelled") {
         presentationRef.current = null;
@@ -439,6 +425,44 @@ export function useFillActions(): FillActions {
     [],
   );
 
+  const previewFill = useCallback(
+    (
+      fillId: string,
+      updates: Partial<FillItem>,
+      fallbackFill?: ColorFillItem,
+    ): boolean => {
+      if (!host.previewFills) return false;
+      const id = host.readSelectedId();
+      const current = getCurrentFills();
+      // A gesture continues on the same element over the same committed layers (a release that
+      // committed nothing — the same color — or an undo starts the next one afresh).
+      const base = JSON.stringify(current);
+      let draft = draftRef.current;
+      if (!draft || draft.id !== id || draft.base !== base)
+        draft = {
+          id,
+          base,
+          fills:
+            !current.some((fill) => fill.id === fillId) && fallbackFill
+              ? [...current, fallbackFill]
+              : current,
+        };
+      draft = {
+        ...draft,
+        fills: applyFillUpdates(draft.fills, fillId, updates),
+      };
+      draftRef.current = draft;
+      host.previewFills(draft.fills);
+      return true;
+    },
+    [getCurrentFills, host],
+  );
+
+  const cancelFillPreview = useCallback(() => {
+    dropDraft();
+    host.cancelPreview?.();
+  }, [dropDraft, host]);
+
   const addFill = useCallback(
     (type: FillType = FillType.Color, initialColor?: string) => {
       const fills = getCurrentFills();
@@ -447,53 +471,63 @@ export function useFillActions(): FillActions {
           ? createDefaultColorFill(initialColor)
           : createDefaultFill(type);
       const newFills = [...fills, newFill];
-      useStore.getState().updateSelectedFills(newFills);
+      writeFills(newFills);
     },
-    [],
+    [getCurrentFills, writeFills],
   );
 
   // 가상 fill terminal 승격 전용. create-or-update라 재렌더 지연이 있어도
   // 중복 append가 구조적으로 불가능하다.
-  const ensureColorFill = useCallback((color: string) => {
-    const fills = getCurrentFills();
-    const colorIndex = fills.findIndex((f) => f.type === FillType.Color);
-    if (colorIndex === -1) {
-      useStore
-        .getState()
-        .updateSelectedFills([...fills, createDefaultColorFill(color)]);
-      return;
-    }
-    const newFills = fills.map((f, index) =>
-      index === colorIndex ? ({ ...f, color } as FillItem) : f,
-    );
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+  const ensureColorFill = useCallback(
+    (color: string) => {
+      const fills = getCurrentFills();
+      const colorIndex = fills.findIndex((f) => f.type === FillType.Color);
+      if (colorIndex === -1) {
+        writeFills([...fills, createDefaultColorFill(color)]);
+        return;
+      }
+      const newFills = fills.map((f, index) =>
+        index === colorIndex ? ({ ...f, color } as FillItem) : f,
+      );
+      writeFills(newFills);
+    },
+    [getCurrentFills, writeFills],
+  );
 
-  const removeFill = useCallback((fillId: string) => {
-    const fills = getCurrentFills();
-    const newFills = fills.filter((f) => f.id !== fillId);
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+  const removeFill = useCallback(
+    (fillId: string) => {
+      const fills = getCurrentFills();
+      const newFills = fills.filter((f) => f.id !== fillId);
+      writeFills(newFills);
+    },
+    [getCurrentFills, writeFills],
+  );
 
-  const reorderFill = useCallback((fromIndex: number, toIndex: number) => {
-    const fills = getCurrentFills();
-    if (fromIndex < 0 || fromIndex >= fills.length) return;
-    if (toIndex < 0 || toIndex >= fills.length) return;
-    if (fromIndex === toIndex) return;
+  const reorderFill = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const fills = getCurrentFills();
+      if (fromIndex < 0 || fromIndex >= fills.length) return;
+      if (toIndex < 0 || toIndex >= fills.length) return;
+      if (fromIndex === toIndex) return;
 
-    const newFills = [...fills];
-    const [moved] = newFills.splice(fromIndex, 1);
-    newFills.splice(toIndex, 0, moved);
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+      const newFills = [...fills];
+      const [moved] = newFills.splice(fromIndex, 1);
+      newFills.splice(toIndex, 0, moved);
+      writeFills(newFills);
+    },
+    [getCurrentFills, writeFills],
+  );
 
-  const toggleFill = useCallback((fillId: string) => {
-    const fills = getCurrentFills();
-    const newFills = fills.map((f) =>
-      f.id === fillId ? { ...f, enabled: !f.enabled } : f,
-    );
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+  const toggleFill = useCallback(
+    (fillId: string) => {
+      const fills = getCurrentFills();
+      const newFills = fills.map((f) =>
+        f.id === fillId ? { ...f, enabled: !f.enabled } : f,
+      );
+      writeFills(newFills);
+    },
+    [getCurrentFills, writeFills],
+  );
 
   const updateFill = useCallback(
     (fillId: string, updates: Partial<FillItem>) => {
@@ -502,78 +536,81 @@ export function useFillActions(): FillActions {
         if (f.id !== fillId) return f;
         return { ...f, ...updates } as FillItem;
       });
-      useStore.getState().updateSelectedFills(newFills);
+      writeFills(newFills);
     },
-    [],
+    [getCurrentFills, writeFills],
   );
 
-  const changeFillType = useCallback((fillId: string, newType: FillType) => {
-    const fills = getCurrentFills();
-    const newFills = fills.map((f) => {
-      if (f.id !== fillId) return f;
+  const changeFillType = useCallback(
+    (fillId: string, newType: FillType) => {
+      const fills = getCurrentFills();
+      const newFills = fills.map((f) => {
+        if (f.id !== fillId) return f;
 
-      const isCurrentColor = f.type === FillType.Color;
-      const isCurrentGradient =
-        f.type === FillType.LinearGradient ||
-        f.type === FillType.RadialGradient ||
-        f.type === FillType.AngularGradient;
-      const isNewGradient =
-        newType === FillType.LinearGradient ||
-        newType === FillType.RadialGradient ||
-        newType === FillType.AngularGradient;
+        const isCurrentColor = f.type === FillType.Color;
+        const isCurrentGradient =
+          f.type === FillType.LinearGradient ||
+          f.type === FillType.RadialGradient ||
+          f.type === FillType.AngularGradient;
+        const isNewGradient =
+          newType === FillType.LinearGradient ||
+          newType === FillType.RadialGradient ||
+          newType === FillType.AngularGradient;
 
-      // Color → Gradient
-      if (isCurrentColor && isNewGradient) {
-        const colorFill = f as ColorFillItem;
+        // Color → Gradient
+        if (isCurrentColor && isNewGradient) {
+          const colorFill = f as ColorFillItem;
+          const base = createDefaultFill(newType);
+          return {
+            ...base,
+            id: f.id,
+            enabled: f.enabled,
+            opacity: f.opacity,
+            stops: [
+              { color: colorFill.color, position: 0 },
+              { color: "#FFFFFFFF", position: 1 },
+            ],
+          } as FillItem;
+        }
+
+        // Gradient → Color
+        if (isCurrentGradient && newType === FillType.Color) {
+          const gradFill = f as { stops?: GradientStop[] };
+          const color = gradFill.stops?.[0]?.color ?? "#000000FF";
+          return {
+            ...createDefaultColorFill(color),
+            id: f.id,
+            enabled: f.enabled,
+            opacity: f.opacity,
+          };
+        }
+
+        // Gradient → Gradient (타입만 변경, stops 유지)
+        if (isCurrentGradient && isNewGradient) {
+          const base = createDefaultFill(newType);
+          const currentStops = (f as { stops?: GradientStop[] }).stops;
+          return {
+            ...base,
+            id: f.id,
+            enabled: f.enabled,
+            opacity: f.opacity,
+            ...(currentStops ? { stops: currentStops } : {}),
+          } as FillItem;
+        }
+
+        // Any → Image / Image → Any (기본값으로 전환)
         const base = createDefaultFill(newType);
         return {
           ...base,
           id: f.id,
           enabled: f.enabled,
           opacity: f.opacity,
-          stops: [
-            { color: colorFill.color, position: 0 },
-            { color: "#FFFFFFFF", position: 1 },
-          ],
         } as FillItem;
-      }
-
-      // Gradient → Color
-      if (isCurrentGradient && newType === FillType.Color) {
-        const gradFill = f as { stops?: GradientStop[] };
-        const color = gradFill.stops?.[0]?.color ?? "#000000FF";
-        return {
-          ...createDefaultColorFill(color),
-          id: f.id,
-          enabled: f.enabled,
-          opacity: f.opacity,
-        };
-      }
-
-      // Gradient → Gradient (타입만 변경, stops 유지)
-      if (isCurrentGradient && isNewGradient) {
-        const base = createDefaultFill(newType);
-        const currentStops = (f as { stops?: GradientStop[] }).stops;
-        return {
-          ...base,
-          id: f.id,
-          enabled: f.enabled,
-          opacity: f.opacity,
-          ...(currentStops ? { stops: currentStops } : {}),
-        } as FillItem;
-      }
-
-      // Any → Image / Image → Any (기본값으로 전환)
-      const base = createDefaultFill(newType);
-      return {
-        ...base,
-        id: f.id,
-        enabled: f.enabled,
-        opacity: f.opacity,
-      } as FillItem;
-    });
-    useStore.getState().updateSelectedFills(newFills);
-  }, []);
+      });
+      writeFills(newFills);
+    },
+    [getCurrentFills, writeFills],
+  );
 
   return {
     addFill,
@@ -589,6 +626,8 @@ export function useFillActions(): FillActions {
     previewFirstFillPaintPresentation,
     commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
+    previewFill,
+    cancelFillPreview,
     changeFillType,
   };
 }

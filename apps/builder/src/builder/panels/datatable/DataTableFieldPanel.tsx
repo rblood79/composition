@@ -13,7 +13,6 @@ import { Columns3 } from "lucide-react";
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
 import { useI18n } from "../../../i18n";
 import type {
   DataField,
@@ -23,8 +22,8 @@ import type { DataTableFieldPanelTarget } from "./types/editorTypes";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ConfirmDialog } from "../../components/overlay/ConfirmDialog";
-import { PanelContents, PanelHeader } from "../../components";
-import { useStore } from "../../stores";
+import { PanelContents } from "../../components/panel/PanelContents";
+import { PanelHeader } from "../../components/panel/PanelHeader";
 import { useDataStore } from "../../stores/data";
 import { globalToast } from "../../stores/toast";
 import { announceDataPanelStatus } from "./stores/dataPanelStatusStore";
@@ -34,7 +33,8 @@ import {
 } from "./stores/dataTableEditorStore";
 import { planFieldRename } from "./utils/fieldRename";
 import { FIELD_TYPES } from "./utils/fieldTypes";
-import { resolveFieldUsage } from "./utils/fieldUsage";
+import { useDataUsageSource } from "./usage/dataUsageSource";
+import type { FieldUsageRef } from "./utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "./utils/typeChangePreview";
 import type { PanelProps } from "../core/types";
 import "./DataTableFieldPanel.css";
@@ -61,7 +61,7 @@ export function DataTableFieldPanel(_props: PanelProps) {
   const collection = useDataStore((state) =>
     target ? state.collections.get(target.collectionId) : undefined,
   );
-  const elements = useStore((state) => state.elements);
+  const usageSource = useDataUsageSource();
 
   const field = useMemo<DataField | null>(() => {
     if (!target?.fieldId || !collection) return null;
@@ -72,11 +72,7 @@ export function DataTableFieldPanel(_props: PanelProps) {
     );
   }, [target, collection]);
 
-  const usage = useMemo(() => {
-    void elements; // 요소가 바뀌면 다시 센다 (읽기는 getAiToolReadModel 경유)
-    if (!collection || !field) return [];
-    return resolveFieldUsage(getAiToolReadModel().elements, collection, field);
-  }, [collection, field, elements]);
+  const usage = usageSource.useFieldUsage(collection, field);
 
   const write = useCallback(
     async (ops: DataOp[], label?: string) => {
@@ -135,7 +131,7 @@ interface FieldFormProps {
   existingKeys: string[];
   rows: readonly Record<string, unknown>[];
   field: DataField;
-  usage: ReturnType<typeof resolveFieldUsage>;
+  usage: readonly FieldUsageRef[];
   dt: (
     key: string,
     params?: Record<string, string | number | boolean>,

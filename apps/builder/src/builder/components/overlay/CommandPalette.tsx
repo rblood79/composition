@@ -33,10 +33,10 @@ import {
 import {
   bindHandlersToDefinitions,
   formatShortcut,
-  useActiveScope,
   useKeyboardShortcutsRegistry,
   type ShortcutCategory,
-} from "@/builder/hooks";
+} from "../../hooks/useKeyboardShortcutsRegistry";
+import { useActiveScope } from "../../hooks/useActiveScope";
 import { matchesScope } from "../../hooks/useActiveScope";
 import { useI18n } from "@/i18n";
 import {

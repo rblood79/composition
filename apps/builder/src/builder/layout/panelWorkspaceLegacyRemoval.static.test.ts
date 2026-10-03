@@ -28,10 +28,9 @@ describe("ADR-922 G6 legacy panel removal", () => {
   });
 
   it("keeps only the v3 Zustand state/actions in production", async () => {
-    const [store, storeIndex, hook, hookType, runtime, coordinator, workspace] =
+    const [store, hook, hookType, runtime, coordinator, workspace] =
       await Promise.all([
         readBuilderFile("stores/panelLayout.ts"),
-        readBuilderFile("stores/index.ts"),
         readBuilderFile("hooks/usePanelLayout.ts"),
         readBuilderFile("layout/types.ts"),
         readBuilderFile("layout/panelWorkspaceRuntime.ts"),
@@ -39,7 +38,7 @@ describe("ADR-922 G6 legacy panel removal", () => {
         readBuilderFile("layout/PanelWorkspace.tsx"),
       ]);
 
-    for (const source of [store, storeIndex, hook, hookType]) {
+    for (const source of [store, hook, hookType]) {
       expect(source).not.toContain("state.panelLayout");
       expect(source).not.toContain("setPanelLayout");
       expect(source).not.toContain("resetPanelLayout");
@@ -85,18 +84,13 @@ describe("ADR-922 G6 legacy panel removal", () => {
   });
 
   it("removes legacy exports/CSS imports while retaining bottom Monitor placement", async () => {
-    const [layoutIndex, styleIndex, workspace, panelConfigs] =
-      await Promise.all([
-        readBuilderFile("layout/index.ts"),
-        readBuilderFile("styles/index.css"),
-        readBuilderFile("layout/PanelWorkspace.tsx"),
-        readBuilderFile("panels/core/panelConfigs.ts"),
-      ]);
+    // (`layout/index.ts` barrel itself retired with the old app — ADR-248 4e.)
+    const [styleIndex, workspace, panelConfigs] = await Promise.all([
+      readBuilderFile("styles/index.css"),
+      readBuilderFile("layout/PanelWorkspace.tsx"),
+      readBuilderFile("panels/core/panelConfigs.ts"),
+    ]);
 
-    expect(layoutIndex).not.toContain("PanelArea");
-    expect(layoutIndex).not.toContain("BottomPanelArea");
-    expect(layoutIndex).not.toContain("PanelContainer");
-    expect(layoutIndex).not.toContain("ModalPanelContainer");
     expect(styleIndex).not.toContain("footer.css");
     expect(styleIndex).not.toContain("panel-container.css");
     expect(workspace).toContain('["left", "right", "bottom"] as const');

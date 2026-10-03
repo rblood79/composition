@@ -1,7 +1,16 @@
 import type { Key } from "react-stately";
 import type { Page } from "../../../../../types/builder/unified.types";
 
-export interface PageTreeNode {
+/** What the page tree reads of a page (the old `Page` and the catalog page adapter both fit). */
+export interface PageTreePage {
+  id: string;
+  title: string;
+  slug?: string | null;
+  parent_id?: string | null;
+  pageRole?: string | null;
+}
+
+export interface PageTreeNode<P extends PageTreePage = Page> {
   id: string;
   name: string; // title || "Untitled"
   slug: string | null;
@@ -9,8 +18,8 @@ export interface PageTreeNode {
   depth: number;
   hasChildren: boolean;
   isLeaf: boolean;
-  children?: PageTreeNode[];
-  page: Page; // 원본 Page 참조
+  children?: PageTreeNode<P>[];
+  page: P; // 원본 Page 참조
 
   // 제약 조건
   isRoot: boolean; // Home 페이지 여부

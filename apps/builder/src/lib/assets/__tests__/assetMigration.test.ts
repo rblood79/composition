@@ -5,6 +5,10 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  openLegacyDocuments,
+  type LegacyDocuments,
+} from "../../db/__tests__/support/legacyDocuments";
 import type { CompositionDocument } from "@composition/shared";
 import { encodeDataUrl } from "@composition/shared/assets";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
@@ -41,13 +45,16 @@ function doc(): CompositionDocument {
 }
 
 let adapter: IndexedDBAdapter;
+let legacy: LegacyDocuments;
 beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
+  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
+  legacy.close();
   await adapter.close();
 });
 
@@ -182,15 +189,15 @@ describe("프로젝트 이관 (G2 원복 RED)", () => {
 
   it("(c) adapter backupNow — 저장된 이관 전 문서가 백업 ring 에 남는다", async () => {
     const original = doc();
-    await adapter.documents.put("p1", original);
-    expect(await adapter.documents.backupNow("p1")).toBe(true);
-    const backups = await adapter.documents.getBackups("p1");
+    await legacy.put("p1", original);
+    expect(await legacy.backupNow("p1")).toBe(true);
+    const backups = await legacy.getBackups("p1");
     expect(backups).toHaveLength(1);
     expect(findInlineAssetDataUrls(backups[0].document).size).toBe(2);
     // 같은 세대면 다시 쓰지 않는다
-    expect(await adapter.documents.backupNow("p1")).toBe(true);
-    expect(await adapter.documents.getBackups("p1")).toHaveLength(1);
-    expect(await adapter.documents.backupNow("missing")).toBe(false);
+    expect(await legacy.backupNow("p1")).toBe(true);
+    expect(await legacy.getBackups("p1")).toHaveLength(1);
+    expect(await legacy.backupNow("missing")).toBe(false);
   });
 });
 

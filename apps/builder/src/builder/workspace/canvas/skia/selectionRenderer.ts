@@ -26,7 +26,7 @@ import { acquireScopedPaint } from "./paints";
 import { strokeBoundsRect } from "./hoverRenderer";
 import type { BoundingBox } from "../selection/types";
 import { HANDLE_SIZE, HANDLE_CONFIGS } from "../selection/types";
-import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
+import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 import { TAILWIND_PALETTE } from "@composition/specs";
 import {
   getSemanticOverlayColor,

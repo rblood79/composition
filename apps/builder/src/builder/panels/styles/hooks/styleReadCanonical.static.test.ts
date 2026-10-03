@@ -3,26 +3,6 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("style hooks canonical read contract", () => {
-  it("uses canonical property read hook for shared style context", async () => {
-    const source = await readFile(
-      resolve(__dirname, "useElementStyleContext.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain("useCanonicalPropertyElementsMap");
-    expect(source).toContain("elementsMap.get(id)");
-    // activeBreakpoint(스칼라 UI 세션 상태)는 canonical 문서에 없어 store 가 SSOT —
-    // useStore 로 읽는다 (ADR-154 responsive 표시, StylesPanel/BuilderCanvas 와 동일).
-    // 계약의 금지 대상은 "요소(elements)를 store 로 읽어 canonical read hook 을 우회"
-    // 하는 것이므로, blanket useStore ban 대신 element-read 경로만 정밀 차단한다.
-    expect(source).toContain("state.activeBreakpoint");
-    expect(source).not.toContain("state.elements");
-    expect(source).not.toContain("useCanonicalElements");
-    expect(source).not.toContain("canonicalElements?.find(");
-    expect(source).not.toContain("s.elementsMap.get(id)?.props");
-    expect(source).not.toContain("s.elementsMap.get(id)?.type");
-  });
-
   it("reuses style context for fill and transform reads", async () => {
     const fillSource = await readFile(
       resolve(__dirname, "useFillValues.ts"),
@@ -40,44 +20,23 @@ describe("style hooks canonical read contract", () => {
   });
 
   it("reads fill action state from the canonical node index", async () => {
-    const source = await readFile(
+    // The Fill actions read through the Styles host (the old store host went with 4e-9 C).
+    const actions = await readFile(
       resolve(__dirname, "useFillActions.ts"),
       "utf-8",
     );
-
-    expect(source).toContain("getNodeMap().get(selectedElementId)");
-    expect(source).toContain("readCanonicalNodeFillPayload(node)");
-    expect(source).not.toContain("getCanonicalDocumentElementsView");
-    expect(source).not.toContain("visitCanonicalDocumentElements");
-    expect(source).not.toContain("legacyProps");
-  });
-
-  it("uses canonical property element for reset dirty-state reads", async () => {
-    const source = await readFile(
-      resolve(__dirname, "useResetStyles.ts"),
-      "utf-8",
-    );
-
-    expect(source).toContain('useCanonicalPropertyElement(selectedId ?? "")');
-    expect(source).toContain("getNodeMap");
-    expect(source).toContain("getParent");
-    expect(source).toContain("getActiveCanonicalResetElement(selectedId)");
-    expect(source).not.toContain("getCanonicalDocumentElementsView");
-    expect(source).not.toContain("visitCanonicalDocumentElements");
-    expect(source).not.toContain("canonicalElementSnapshot");
-    expect(source).not.toContain("state.elements.find");
-    expect(source).toContain("state.elementsMap.get(selectedId)");
-    expect(source).not.toContain("legacyElements");
+    expect(actions).toContain("host.readFills");
   });
 
   it("uses canonical property element for transform parent and size reads", async () => {
-    const source = await readFile(
+    // The size-mode hooks read the parent through the Styles host.
+    const hooks = await readFile(
       resolve(__dirname, "useTransformAuxiliary.ts"),
       "utf-8",
     );
 
-    expect(source).toContain("useCanonicalPropertyElement");
-    expect(source).not.toContain("s.elementsMap.get");
-    expect(source).not.toContain("state.elementsMap.get(parentId)");
+    expect(hooks).toContain("useStylesHost().useParentLayout");
+    expect(hooks).not.toContain("s.elementsMap.get");
+    expect(hooks).not.toContain("state.elementsMap.get(parentId)");
   });
 });

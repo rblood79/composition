@@ -6,10 +6,8 @@
  * `style?.X != null` 재판정 금지 — feedback-merged-style-map-kills-override-detection).
  */
 
-import { useMemo } from "react";
 import type { BreakpointName, ResponsiveVisibility } from "@composition/shared";
-import { useStore } from "../../../stores";
-import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
+import { useStylesHost } from "../stylesHost";
 
 export interface ResponsiveOverridesInfo {
   /** 현재 활성 breakpoint (canvasSettings SSOT) */
@@ -30,63 +28,6 @@ export interface ResponsiveOverridesInfo {
   baseHidden: boolean;
 }
 
-const EMPTY_PROPS: string[] = [];
-const EMPTY_VALUES: Record<string, unknown> = {};
-
 export function useResponsiveOverrides(): ResponsiveOverridesInfo {
-  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
-  const selectedElementId = useStore((s) => s.selectedElementId);
-  const element = useCanonicalPropertyElement(selectedElementId ?? "");
-
-  return useMemo(() => {
-    const responsive = element?.responsive;
-    const styles = (responsive?.styles ?? {}) as Record<
-      string,
-      Record<string, unknown>
-    >;
-    const visibility = (responsive?.visibility ?? {}) as ResponsiveVisibility;
-
-    // 활성 breakpoint override prop 목록
-    const activeOverriddenProps =
-      activeBreakpoint === "desktop"
-        ? EMPTY_PROPS
-        : Object.keys(styles)
-            .filter((key) => styles[key]?.[activeBreakpoint] !== undefined)
-            .sort();
-    const activeOverrideValues =
-      activeBreakpoint === "desktop"
-        ? EMPTY_VALUES
-        : Object.fromEntries(
-            activeOverriddenProps.map((key) => [
-              key,
-              styles[key]?.[activeBreakpoint],
-            ]),
-          );
-
-    // tablet+mobile 전체 override 항목 수 (style prop×bp + visibility)
-    let totalOverrideCount = 0;
-    for (const key of Object.keys(styles)) {
-      for (const bp of ["tablet", "mobile"] as const) {
-        if (styles[key]?.[bp] !== undefined) totalOverrideCount++;
-      }
-    }
-    for (const bp of ["tablet", "mobile"] as const) {
-      if (visibility[bp] !== undefined) totalOverrideCount++;
-    }
-
-    const baseHidden =
-      (element?.props?.style as Record<string, unknown> | undefined)
-        ?.display === "none";
-
-    return {
-      activeBreakpoint,
-      isBase: activeBreakpoint === "desktop",
-      activeOverriddenProps,
-      activeOverrideValues,
-      activeOverrideCount: activeOverriddenProps.length,
-      totalOverrideCount,
-      visibility,
-      baseHidden,
-    };
-  }, [element, activeBreakpoint]);
+  return useStylesHost().useResponsiveOverrides();
 }

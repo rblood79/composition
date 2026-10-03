@@ -128,6 +128,8 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
               textDecoration: set("underline"),
               whiteSpace: set("nowrap"),
               wordBreak: set("break-all"),
+              overflowWrap: set("break-word"),
+              textOverflow: set("ellipsis"),
               boxShadow: set("0 1px 2px rgba(0,0,0,0.2)"),
               filter: set("blur(2px)"),
               transform: set("rotate(10deg)"),
@@ -166,6 +168,15 @@ describe("ADR-248 Phase 4a node authoring schema", () => {
         validateCatalogEntry(
           node("b", {
             visual: { textAlign: set("middle") } as NodeEntry["visual"],
+          }),
+        ),
+      ),
+    ).toBe("VISUAL_VALUE_CHOICE");
+    expect(
+      code(() =>
+        validateCatalogEntry(
+          node("b2", {
+            visual: { textOverflow: set("fade") } as NodeEntry["visual"],
           }),
         ),
       ),

@@ -3,7 +3,6 @@ description: 레이아웃 엔진 관련 파일 작업 시 적용 — layoutVersi
 paths:
   - "packages/engine/**"
   - "apps/builder/src/builder/workspace/canvas/layout/**"
-  - "apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts"
   - "apps/builder/src/builder/stores/utils/layoutInvalidation.ts"
   - "apps/builder/src/builder/stores/utils/elementUpdate.ts"
   - "apps/builder/tests/parity/**"

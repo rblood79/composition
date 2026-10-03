@@ -25,7 +25,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { PropertySection } from "../../../components";
+import { Section as PropertySection } from "../../../components/panel/Section";
 import { ActionIconButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { useFillValues } from "../hooks/useFillValues";
@@ -44,11 +44,7 @@ import {
   resolveFillSeedColor,
 } from "../utils/fillPresentation";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
-import { useStore as useComposedStore } from "../../../stores";
-import {
-  getSyntheticDescendantLookup,
-  isSyntheticDescendantId,
-} from "../../../stores/canonical/syntheticDescendantLookup";
+import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { FILL_PROPS } from "./styleSectionProps";
 
@@ -104,7 +100,7 @@ function SortableFillRow({
  */
 const FillSectionContent = memo(function FillSectionContent() {
   const { fills } = useFillValues();
-  const selectedId = useComposedStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
   const {
     addFill,
@@ -119,8 +115,12 @@ const FillSectionContent = memo(function FillSectionContent() {
     previewFirstFillPaintPresentation,
     commitFirstFillPaintPresentation,
     cancelFirstFillColorPresentation,
+    previewFill,
+    cancelFillPreview,
     changeFillType,
   } = useFillActions();
+  // The catalog Builder previews every layer's drag through the Styles host (no presentation).
+  const livePreview = !useStylesHost().presentation;
 
   const firstFill = fills[0] ?? null;
 
@@ -178,15 +178,21 @@ const FillSectionContent = memo(function FillSectionContent() {
           return;
         }
         // Unsupported fill targets remain commit-only by design.
+        previewFill(firstFill.id, { color } as Partial<ColorFillItem>);
       } else if (!firstFill) {
         if (
           previewFirstFillColorPresentation(virtualFill.id, color, virtualFill)
         ) {
           return;
         }
+        previewFill(
+          virtualFill.id,
+          { color } as Partial<ColorFillItem>,
+          virtualFill,
+        );
       }
     },
-    [firstFill, virtualFill, previewFirstFillColorPresentation],
+    [firstFill, virtualFill, previewFirstFillColorPresentation, previewFill],
   );
 
   const handleColorChangeEnd = useCallback(
@@ -217,9 +223,9 @@ const FillSectionContent = memo(function FillSectionContent() {
 
   const handleColorPresentationCancel = useCallback(
     (reason: "pointer-cancel" | "escape") => {
-      cancelFirstFillColorPresentation(reason);
+      if (!cancelFirstFillColorPresentation(reason)) cancelFillPreview();
     },
-    [cancelFirstFillColorPresentation],
+    [cancelFirstFillColorPresentation, cancelFillPreview],
   );
 
   const handleFillUpdate = useCallback(
@@ -232,11 +238,13 @@ const FillSectionContent = memo(function FillSectionContent() {
         return;
       }
       // Unsupported gradient/mesh targets remain commit-only by design.
+      if (firstFill) previewFill(firstFill.id, updates);
     },
     [
       firstFill,
       presentationOwnsGradientStops,
       previewFirstFillPaintPresentation,
+      previewFill,
     ],
   );
 
@@ -273,12 +281,16 @@ const FillSectionContent = memo(function FillSectionContent() {
         return;
       }
       // Unsupported paint targets remain commit-only by design.
+      if (firstFill) previewFill(firstFill.id, { opacity });
+      else previewFill(virtualFill.id, { opacity }, virtualFill);
     },
     [
       firstFill,
+      virtualFill,
       paintFallbackFill,
       presentationOwnsPaint,
       previewFirstFillPaintPresentation,
+      previewFill,
     ],
   );
 
@@ -322,6 +334,7 @@ const FillSectionContent = memo(function FillSectionContent() {
     () => ({
       presentationOwnsColorFrameScheduling:
         presentationOwnsColor || presentationOwnsGradientStops,
+      livePreview,
       onColorPresentationCancel: handleColorPresentationCancel,
       onColorChange: handleColorChange,
       onColorChangeEnd: handleColorChangeEnd,
@@ -334,6 +347,7 @@ const FillSectionContent = memo(function FillSectionContent() {
     [
       presentationOwnsColor,
       presentationOwnsGradientStops,
+      livePreview,
       handleColorPresentationCancel,
       handleColorChange,
       handleColorChangeEnd,
@@ -343,6 +357,27 @@ const FillSectionContent = memo(function FillSectionContent() {
       handleFillUpdateEnd,
       handleTypeChange,
     ],
+  );
+
+  /** The other layers: commit-only on the old store; live through the host in the catalog. */
+  const layerPopovers = useMemo(
+    () =>
+      new Map<string, FillLayerRowPopoverOverrides>(
+        livePreview
+          ? fills.map((fill) => [
+              fill.id,
+              {
+                livePreview,
+                onColorPresentationCancel: () => cancelFillPreview(),
+                onColorChange: (color) =>
+                  previewFill(fill.id, { color } as Partial<ColorFillItem>),
+                onOpacityChange: (opacity) => previewFill(fill.id, { opacity }),
+                onUpdate: (updates) => previewFill(fill.id, updates),
+              },
+            ])
+          : [],
+      ),
+    [fills, livePreview, previewFill, cancelFillPreview],
   );
 
   const fillIds = fills.map((f) => f.id);
@@ -379,7 +414,9 @@ const FillSectionContent = memo(function FillSectionContent() {
               onUpdate={updateFill}
               onRemove={removeFill}
               onTypeChange={changeFillType}
-              popover={index === 0 ? firstRowPopover : undefined}
+              popover={
+                index === 0 ? firstRowPopover : layerPopovers.get(fill.id)
+              }
             />
           ))}
         </SortableContext>
@@ -395,8 +432,9 @@ export const FillSection = memo(function FillSection() {
   const localize = useSemanticLabel();
   const { fills } = useFillValues();
   const { addFill } = useFillActions();
-  const selectedId = useComposedStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const styleValues = useAppearanceValues(selectedId);
+  const host = useStylesHost();
   const resetStyles = useResetStyles();
   const hasDirtyStyle = useHasDirtyStyles(FILL_PROPS);
   const hasDirty = hasDirtyStyle || fills.length > 0;
@@ -416,22 +454,10 @@ export const FillSection = memo(function FillSection() {
 
   const handleReset = useCallback(() => {
     resetStyles(FILL_PROPS);
-    // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 별도로 비운다. 단, 비어있으면
-    //   호출 자체가 스퍼리어스 history entry/mutation 을 만들므로 non-empty 일 때만 실행(M2a).
-    //   instance 안 synthetic 자식은 맵에 없어 해석 노드로 읽고, `null` 로 patch override 를 지운다
-    //   (origin fills 복귀 — 빈 배열이면 "fill 없음" 을 override 로 굳힌다).
-    const state = useComposedStore.getState();
-    const el = selectedId
-      ? (state.elementsMap.get(selectedId) ??
-        getSyntheticDescendantLookup(selectedId)?.node)
-      : undefined;
-    const currentFills = (el as { fills?: unknown[] } | undefined)?.fills;
-    if (Array.isArray(currentFills) && currentFills.length > 0) {
-      state.updateSelectedFills(
-        selectedId && isSyntheticDescendantId(selectedId) ? null : [],
-      );
-    }
-  }, [resetStyles, selectedId]);
+    // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 host 가 따로 비운다 (빈 목록은
+    //   쓰지 않는다 — 스퍼리어스 history entry 방지, M2a · instance 자식은 patch override 제거).
+    host.resetFills();
+  }, [host, resetStyles]);
 
   const actions = useMemo(
     () => (

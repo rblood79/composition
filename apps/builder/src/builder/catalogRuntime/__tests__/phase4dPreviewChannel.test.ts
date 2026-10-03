@@ -80,6 +80,7 @@ async function open(
   // Both ends call each other only after construction (onReady, a request).
   const channel: CatalogPreviewChannel = new CatalogPreviewChannel(runtime, {
     post: (message) => {
+      if (message.type === "CATALOG_VIEW") return;
       sent.push(message);
       if (options.drop?.(message)) return;
       receipts.push(receiver.receive(structuredClone(message)).kind);

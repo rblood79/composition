@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildBoxNodeData } from "../buildBoxNodeData";
-import type { CanvasSceneNode } from "../../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../../scene/canvasSceneNodeTypes";
 import type { ComputedLayout } from "../../layout/engines/LayoutEngine";
 
 /**

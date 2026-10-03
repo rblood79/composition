@@ -1,0 +1,146 @@
+import { updatePage } from "../../../../../packages/shared/src/catalog/commands";
+import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import type {
+  BreakpointName,
+  EntryId,
+  PagePlacementDeclaration,
+} from "../../../../../packages/shared/src/catalog/document/types";
+import type { PagePlacement } from "@composition/shared";
+import { resolvePlacementForDrop } from "../workspace/canvas/scene/pagePlacementEdit";
+import {
+  catalogPagePlacement,
+  type CatalogCompositionRoot,
+} from "./compositionRoot";
+
+/** The old per-key cascade shape back to the catalog page placement (base + breakpoint layers). */
+function placementDeclaration(
+  placement: PagePlacement | null,
+): PagePlacementDeclaration | undefined {
+  if (!placement) return undefined;
+  const breakpoints: PagePlacementDeclaration["breakpoints"] = {};
+  for (const [key, values] of Object.entries(placement.responsive ?? {}))
+    for (const [name, value] of Object.entries(values ?? {}))
+      if (value !== undefined)
+        (breakpoints[name as BreakpointName] ??= {})[
+          key as keyof PagePlacementDeclaration["base"]
+        ] = value as string | number;
+  const base = {
+    ...(placement.style ?? {}),
+  } as PagePlacementDeclaration["base"];
+  return Object.keys(base).length || Object.keys(breakpoints).length
+    ? { base, breakpoints }
+    : undefined;
+}
+
+/**
+ * ADR-248 Phase 4e-3b: the command a page frame drop commits — the old Builder's placement rule
+ * (`resolvePlacementForDrop`: pin to the grid cell under the frame, swap with a page pinned there,
+ * or place it freely off the grid; the home page and the first cell stay) over the catalog pages.
+ * `undefined` = refused or unchanged. Off desktop the placement is that breakpoint's layer.
+ */
+/**
+ * Align pages (ADR-232): every page but Home drops its placement and returns to the page grid's
+ * flow — one step (undefined = no page is placed).
+ */
+export function catalogPageAlignCommand(
+  root: CatalogCompositionRoot,
+): CatalogCommand | undefined {
+  const graph = root.runtime.graph;
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind !== "project") return undefined;
+  const placed = project.pageIds.slice(1).filter((id) => {
+    const page = graph.getEntry(id);
+    return page?.kind === "page" && page.placement !== undefined;
+  });
+  if (!placed.length) return undefined;
+  return (reader) => ({
+    label: "Align pages",
+    ops: placed.flatMap(
+      (id) =>
+        updatePage({
+          id: id as EntryId<"page">,
+          fields: { placement: undefined },
+        })(reader).ops,
+    ),
+  });
+}
+
+export function catalogPageDropCommand(
+  root: CatalogCompositionRoot,
+  pageId: EntryId<"page">,
+  dropped: { x: number; y: number },
+  /** Other selected pages dragged with it (each resolved after the earlier ones, one step). */
+  followers: readonly {
+    pageId: EntryId<"page">;
+    dropped: { x: number; y: number };
+  }[] = [],
+): CatalogCommand | undefined {
+  const graph = root.runtime.graph;
+  const project = graph.getEntry(graph.projectId);
+  if (project?.kind !== "project") return undefined;
+  const rects = root.pageFrameRects();
+  let placements: Record<string, PagePlacement | undefined> = {};
+  for (const id of project.pageIds) {
+    const page = graph.getEntry(id);
+    if (page?.kind === "page" && page.placement)
+      placements[id] = catalogPagePlacement(page.placement);
+  }
+  const context = {
+    pages: project.pageIds.map((id) => ({ id })),
+    homePageId: project.pageIds[0] ?? null,
+    positions: Object.fromEntries(
+      [...rects].map(([id, rect]) => [id, { x: rect.x, y: rect.y }]),
+    ),
+    pageSizes: Object.fromEntries(
+      [...rects].map(([id, rect]) => [
+        id,
+        { width: rect.width, height: rect.height },
+      ]),
+    ),
+    layout: root.pageLayout(),
+    activeBreakpoint: root.breakpoint,
+    writeAsOverride: root.breakpoint !== "desktop",
+  };
+  // The old multi page drop (`commitPagePlacementsFromPoints`): each page resolves against the
+  // placements the earlier ones left; the last entry per page wins.
+  const resolved = new Map<
+    string,
+    ReturnType<typeof resolvePlacementForDrop>["entries"][number]
+  >();
+  for (const item of [{ pageId, dropped }, ...followers]) {
+    const result = resolvePlacementForDrop(
+      { ...context, placements },
+      item.pageId,
+      item.dropped,
+    );
+    if (!result.entries.length) continue;
+    const next = { ...placements };
+    for (const entry of result.entries) {
+      if (entry.placement === null) delete next[entry.pageId];
+      else next[entry.pageId] = entry.placement;
+      resolved.set(entry.pageId, entry);
+    }
+    placements = next;
+  }
+  const result = { entries: [...resolved.values()] };
+  // A page that lands where it is (a grid page nudged within its cell) is no change.
+  const entries = result.entries.filter((entry) => {
+    const page = graph.getEntry(entry.pageId);
+    return (
+      page?.kind !== "page" ||
+      JSON.stringify(placementDeclaration(entry.placement) ?? null) !==
+        JSON.stringify(page.placement ?? null)
+    );
+  });
+  if (!entries.length) return undefined;
+  return (reader) => ({
+    label: "Move page",
+    ops: entries.flatMap(
+      (entry) =>
+        updatePage({
+          id: entry.pageId as EntryId<"page">,
+          fields: { placement: placementDeclaration(entry.placement) },
+        })(reader).ops,
+    ),
+  });
+}

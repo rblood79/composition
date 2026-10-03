@@ -7,6 +7,7 @@ import type {
   InteractionEntry,
   NodeId,
   PageEntry,
+  PageLayoutDeclaration,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
   readCommonProp,
@@ -17,10 +18,16 @@ import {
 } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   childPositions,
+  definitionPositions,
+  nodePosition,
   pagePositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
+import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originView";
+import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogRuntime, CatalogStepContext } from "./controller";
+import type { DataBindingValue } from "@composition/shared";
+import { catalogBindingValue, catalogTargetBinding } from "./dataBinding";
 
 /**
  * ADR-248 Phase 4c read model: the panels' reads (Layers rows, prop sources, pages, components,
@@ -80,6 +87,12 @@ const targetKey = (target: EditTarget) =>
     : `${target.ownerId}|${target.address.instances.join("/")}|${target.address.templatePath.join("/")}`;
 const same = (a: unknown, b: unknown) =>
   Object.is(a, b) || JSON.stringify(a) === JSON.stringify(b);
+
+/** Whose rows: a page's top level, the definition edit view's, or one row's children. */
+export type CatalogRowsParent =
+  | { pageId: EntryId<"page"> }
+  | { definitionId: CatalogDefinitionViewId }
+  | { position: CatalogPosition };
 
 export class CatalogReadModel {
   private readonly reads = new Map<string, CachedRead<unknown>>();
@@ -148,7 +161,7 @@ export class CatalogReadModel {
   }
 
   private rowsCompute(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
+    parent: CatalogRowsParent,
   ): CachedRead<readonly CatalogPosition[]>["compute"] {
     return () => {
       this.stats.rows += 1;
@@ -157,7 +170,14 @@ export class CatalogReadModel {
       const value =
         "pageId" in parent
           ? pagePositions(reader, parent.pageId)
-          : childPositions(reader, parent.position);
+          : "definitionId" in parent
+            ? isLibraryOrigin(parent.definitionId)
+              ? // A library origin: the derived sample the view draws.
+                reader.getEntry(ORIGIN_VIEW_NODE)
+                ? [nodePosition(reader, ORIGIN_VIEW_NODE)]
+                : []
+              : definitionPositions(reader, parent.definitionId)
+            : childPositions(reader, parent.position);
       // A listed owned node matters only through its row fields (not its props or children).
       const rowDeps = new Map<string, string>();
       for (const row of value)
@@ -171,12 +191,12 @@ export class CatalogReadModel {
       return { value, deps, rowDeps };
     };
   }
-  private rowsKey(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
-  ) {
+  private rowsKey(parent: CatalogRowsParent) {
     return "pageId" in parent
       ? `rows:page:${parent.pageId}`
-      : `rows:${parent.position.identity}`;
+      : "definitionId" in parent
+        ? `rows:definition:${parent.definitionId}`
+        : `rows:${parent.position.identity}`;
   }
 
   /** The Layers rows of a page (top level). */
@@ -184,13 +204,22 @@ export class CatalogReadModel {
     return this.read(this.rowsKey({ pageId }), this.rowsCompute({ pageId }))
       .value;
   }
+  /** The Layers rows of the definition edit view (its template root). */
+  definitionRows(
+    definitionId: CatalogDefinitionViewId,
+  ): readonly CatalogPosition[] {
+    return this.read(
+      this.rowsKey({ definitionId }),
+      this.rowsCompute({ definitionId }),
+    ).value;
+  }
   /** The Layers rows under a row (one level). */
   childRows(position: CatalogPosition): readonly CatalogPosition[] {
     return this.read(this.rowsKey({ position }), this.rowsCompute({ position }))
       .value;
   }
   subscribeRows(
-    parent: { pageId: EntryId<"page"> } | { position: CatalogPosition },
+    parent: CatalogRowsParent,
     listener: Listener<readonly CatalogPosition[]>,
   ): () => void {
     return this.subscribeRead(
@@ -232,6 +261,34 @@ export class CatalogReadModel {
       this.propCompute(target, key),
       listener,
     );
+  }
+  /** The target's data binding in the picker shape (an owned node's typed `binding`). */
+  bindingValue(target: EditTarget): DataBindingValue | undefined {
+    return this.read(
+      `binding:${targetKey(target)}`,
+      this.bindingCompute(target),
+    ).value;
+  }
+  subscribeBinding(
+    target: EditTarget,
+    listener: Listener<DataBindingValue | undefined>,
+  ): () => void {
+    return this.subscribeRead(
+      `binding:${targetKey(target)}`,
+      this.bindingCompute(target),
+      listener,
+    );
+  }
+  private bindingCompute(
+    target: EditTarget,
+  ): CachedRead<DataBindingValue | undefined>["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const value = catalogBindingValue(
+        catalogTargetBinding(recording(this.runtime.graph, deps), target),
+      );
+      return { value, deps };
+    };
   }
   /** A prop over a multi-selection (mixed or one value); reads each target's cached source. */
   commonProp(targets: readonly EditTarget[], key: string) {
@@ -278,15 +335,50 @@ export class CatalogReadModel {
     return [...this.runtime.graph.bindingsOf(collectionId)] as NodeId[];
   }
 
+  private pagesCompute(): CachedRead<readonly PageEntry[]>["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const reader = recording(this.runtime.graph, deps);
+      const project = reader.getEntry(reader.projectId);
+      const value =
+        project?.kind === "project"
+          ? project.pageIds.flatMap((id) => {
+              const page = reader.getEntry(id);
+              return page?.kind === "page" ? [page] : [];
+            })
+          : [];
+      return { value, deps };
+    };
+  }
   /** The project's pages in order. */
   pages(): readonly PageEntry[] {
-    const project = this.runtime.graph.getEntry(this.runtime.graph.projectId);
-    return project?.kind === "project"
-      ? project.pageIds.flatMap((id) => {
-          const page = this.runtime.graph.getEntry(id);
-          return page?.kind === "page" ? [page] : [];
-        })
-      : [];
+    return this.read("pages", this.pagesCompute()).value;
+  }
+  subscribePages(listener: Listener<readonly PageEntry[]>): () => void {
+    return this.subscribeRead("pages", this.pagesCompute(), listener);
+  }
+
+  private pageLayoutCompute(): CachedRead<
+    PageLayoutDeclaration | undefined
+  >["compute"] {
+    return () => {
+      const deps = new Set<string>();
+      const reader = recording(this.runtime.graph, deps);
+      const project = reader.getEntry(reader.projectId);
+      return {
+        value: project?.kind === "project" ? project.pageLayout : undefined,
+        deps,
+      };
+    };
+  }
+  /** The project's page grid declaration (ADR-232; `undefined` = defaults). */
+  pageLayout(): PageLayoutDeclaration | undefined {
+    return this.read("pageLayout", this.pageLayoutCompute()).value;
+  }
+  subscribePageLayout(
+    listener: Listener<PageLayoutDeclaration | undefined>,
+  ): () => void {
+    return this.subscribeRead("pageLayout", this.pageLayoutCompute(), listener);
   }
 
   private componentsCompute(): CachedRead<
@@ -359,6 +451,10 @@ export class CatalogReadModel {
           stale.add(key);
       }
     }
+    // A derived view entry (the library origin sample) follows any change it may derive from.
+    if (changed.size)
+      for (const id of this.runtime.graph.viewEntryIds())
+        for (const key of this.byDep.get(id) ?? []) stale.add(key);
     // Index reads (instances, referrers) follow any change (their records are few).
     if (changed.size) for (const key of this.byIndex) stale.add(key);
     for (const key of stale) {

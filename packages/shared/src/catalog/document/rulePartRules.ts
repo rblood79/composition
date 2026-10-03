@@ -248,8 +248,24 @@ const CSS_SPACING_PX: Readonly<Record<string, number>> = {
 };
 
 /** px number of a resolved length (`0`, `Npx`, a spacing/typography token var). */
+/** Root font size of the Preview document (`rem`): the UA default, which the Preview reset keeps. */
+const ROOT_FONT_PX = 16;
+
 function lengthPx(value: string): number | undefined {
   const text = value.trim();
+  // `calc(a + b)` / `calc(a - b)` of resolvable lengths (side label indent: label width + gap).
+  const calc = /^calc\((.+)\)$/.exec(text)?.[1];
+  if (calc) {
+    const terms = calc.split(/\s+([+-])\s+/);
+    let total = lengthPx(terms[0]);
+    for (let index = 1; total !== undefined && index < terms.length; index += 2) {
+      const term = lengthPx(terms[index + 1]);
+      total = term === undefined ? undefined : total + (terms[index] === "-" ? -term : term);
+    }
+    return total;
+  }
+  const rem = /^(-?\d+(?:\.\d+)?)rem$/.exec(text);
+  if (rem) return Number(rem[1]) * ROOT_FONT_PX;
   const spacingVar = /^var\((--spacing(?:-[\w]+)?)\)$/.exec(text)?.[1];
   if (spacingVar && CSS_SPACING_PX[spacingVar] !== undefined)
     return CSS_SPACING_PX[spacingVar];
@@ -402,6 +418,14 @@ function compileDeclarations(
         layout.marginBottom = `${b}px`;
         layout.marginLeft = `${l}px`;
       }
+    } else if (key === "order") {
+      if (/^-?\d+$/.test(value)) layout.order = value;
+    } else if (key === "margin-inline-start" || key === "margin-inline-end") {
+      // Left-to-right documents (the Builder and Preview direction).
+      const px = lengthPx(value);
+      if (px !== undefined)
+        layout[key === "margin-inline-start" ? "marginLeft" : "marginRight"] =
+          `${px}px`;
     } else if (/^margin-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
       if (px !== undefined)
@@ -589,6 +613,65 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
   if (typeof padding !== "string") return 0;
   const values = padding.trim().split(/\s+/);
   return lengthPx(values[1] ?? values[0]) ?? 0;
+}
+
+/**
+ * Flex grow the owner's delegation gives its RAC range end input (`[slot="end"] { flex: N }` —
+ * DateRangePicker): the DOM end DateInput takes the trigger's free space past its min-content.
+ * 0 when the owner declares none.
+ */
+export function catalogDateRangeEndGrow(ownerType: string): number {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[ownerType];
+  const delegation = (
+    rule?.structure?.composition as
+      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | undefined
+  )?.delegation;
+  const flex = delegation?.find(
+    (entry) => entry.childSelector === '[slot="end"]',
+  )?.bridges?.flex;
+  const grow = typeof flex === "string" ? Number(flex.trim().split(/\s+/)[0]) : 0;
+  return Number.isFinite(grow) && grow > 0 ? grow : 0;
+}
+
+/** One composed text of the DropZone content: its own px font size (absent = the DropZone's). */
+export interface CatalogDropZoneTextStyle {
+  readonly fontSize?: number;
+  /** Ratio to the font size. */
+  readonly lineHeight: number;
+}
+
+/**
+ * The DropZone's composed content (DropZone.tsx: upload icon, label, description) as its rule
+ * delegation declares it — the generated CSS emits the same entries. The icon box is the size's
+ * `iconSize` (`var(--icon-size)`); a text's `font-size: inherit` is the DropZone font.
+ */
+export function catalogDropZoneContentStyle(): {
+  readonly label: CatalogDropZoneTextStyle;
+  readonly description: CatalogDropZoneTextStyle;
+} {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).DropZone;
+  const delegation = (
+    rule?.structure?.composition as
+      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | undefined
+  )?.delegation;
+  const text = (selector: string): CatalogDropZoneTextStyle => {
+    const bridges =
+      delegation?.find((entry) => entry.childSelector === selector)?.bridges ?? {};
+    const size = bridges["font-size"];
+    const fontSize =
+      typeof size === "string" && size.trim() !== "inherit" ? lengthPx(size) : undefined;
+    const ratio = Number(bridges["line-height"]);
+    return {
+      ...(fontSize !== undefined ? { fontSize } : {}),
+      lineHeight: Number.isFinite(ratio) && ratio > 0 ? ratio : 1.5,
+    };
+  };
+  return {
+    label: text('[slot="label"]'),
+    description: text('[slot="description"]'),
+  };
 }
 
 /**
@@ -857,6 +940,155 @@ function archetypeChildBlocks(
   }));
 }
 
+type ContainerVariantBlock = {
+  styles?: Record<string, string>;
+  nested?: Array<{ selector: string; styles?: Record<string, string> }>;
+};
+type ContainerVariants = Record<string, Record<string, ContainerVariantBlock>>;
+
+/**
+ * Container variant axes a field-family root renders as its own `data-*` attribute, with the
+ * typed prop that drives it (`Select.tsx` `data-label-position={labelPosition}` …). The generated
+ * CSS emits `.X[data-label-position="side"]` and its nested child selectors from
+ * `structure.composition.containerVariants` (the top-level mirror carries the root styles only).
+ */
+const CONTAINER_VARIANT_AXES: Readonly<Record<string, string>> = {
+  "label-position": "labelPosition",
+};
+/** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
+const LABEL_ALIGN_AXIS = { attribute: "label-align", prop: "labelAlign" } as const;
+/**
+ * Typed direct children a side `> :not(.react-aria-Label, …)` selector reaches: the field's control
+ * box (TextField `Input`, DateField `DateInput`, the picker / NumberField / SearchField trigger).
+ */
+const FIELD_CONTROL_TYPES = ["Input", "SelectTrigger", "DateInput"] as const;
+
+function containerVariantsOf(rule: ComponentRule): ContainerVariants | undefined {
+  return ((rule.structure?.composition as { containerVariants?: unknown } | undefined)
+    ?.containerVariants ?? rule.containerVariants) as ContainerVariants | undefined;
+}
+
+/** Custom properties a variant block declares on the root (inherited by every descendant). */
+function blockVariables(block: ContainerVariantBlock | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(block?.styles ?? {}))
+    if (key.startsWith("--")) out[key] = value;
+  return out;
+}
+
+/**
+ * Root values of rule `type`'s prop-driven container variants (`[data-label-position="side"]`):
+ * one rule per axis value, applied when the owner's resolved prop has that value.
+ */
+export function catalogContainerVariantRootRules(type: string): Array<{
+  when: Readonly<Record<string, string>>;
+  layout: Record<string, string>;
+  visual: Record<string, Scalar>;
+}> {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    domStyleRuleType(type)
+  ];
+  const variants = rule ? containerVariantsOf(rule) : undefined;
+  if (!variants) return [];
+  const out: ReturnType<typeof catalogContainerVariantRootRules> = [];
+  for (const [attribute, prop] of Object.entries(CONTAINER_VARIANT_AXES))
+    for (const [value, block] of Object.entries(variants[attribute] ?? {})) {
+      const compiled = compileDeclarations(type, block.styles ?? {}, {}, undefined);
+      if (Object.keys(compiled.layout).length || Object.keys(compiled.visual).length)
+        out.push({ when: { [prop]: value }, ...compiled });
+    }
+  return out;
+}
+
+/**
+ * Child values of the prop-driven container variants (`[data-label-position="side"] > .react-aria-Label`
+ * …), per owner size (the blocks read per-size gap variables) and label alignment. Emitted after
+ * every other part rule: the attribute selector is the more specific one in the sheet.
+ */
+function containerVariantPartRules(
+  parentType: string,
+  rule: ComponentRule,
+  rootVariables: Readonly<Record<string, Record<string, string>>>,
+): CompiledPartRule[] {
+  const variants = containerVariantsOf(rule);
+  if (!variants) return [];
+  const aligns = variants[LABEL_ALIGN_AXIS.attribute] ?? {};
+  const sizes = sizeNames(rule).length ? sizeNames(rule) : [undefined];
+  const out: CompiledPartRule[] = [];
+  for (const [attribute, prop] of Object.entries(CONTAINER_VARIANT_AXES))
+    for (const [value, block] of Object.entries(variants[attribute] ?? {}))
+      for (const entry of block.nested ?? []) {
+        const selector = entry.selector.trim().replace(/^>\s*/, "");
+        const excluded = /^:not\((.*)\)$/.exec(selector)?.[1];
+        const targets: Array<{ childType: string; via?: string }> = excluded
+          ? FIELD_CONTROL_TYPES.filter((childType) => {
+              const tokens = SUBPART_TOKENS[parentType]?.[childType] ?? [
+                `.react-aria-${childType}`,
+              ];
+              const skip = excluded.split(",").map((token) => token.trim());
+              return !tokens.some((token) => skip.includes(token));
+            }).map((childType) => ({ childType }))
+          : selectorList(selector).flatMap((part) => {
+              const simple = parseSimple(part);
+              const target =
+                simple && !simple.conditions.length
+                  ? childTypeOf(parentType, simple.token)
+                  : undefined;
+              return target ? [target] : [];
+            });
+        for (const target of targets) {
+          const compile = (size: string | undefined, align: string | undefined) => {
+            const variables = {
+              ...((size && rootVariables[size]) || {}),
+              ...blockVariables(block),
+              ...(align ? blockVariables(aligns[align]) : {}),
+            };
+            const compiled = compileDeclarations(
+              target.childType,
+              entry.styles ?? {},
+              variables,
+              undefined,
+            );
+            // The side label column's text alignment (`text-align: var(--form-label-align, start)`):
+            // read here only — the label is a text leaf, which paints its alignment.
+            const textAlign = entry.styles?.["text-align"];
+            const aligned = textAlign ? substitute(textAlign, variables) : undefined;
+            if (aligned && /^(left|center|right|start|end)$/.test(aligned))
+              compiled.visual.textAlign = aligned;
+            return compiled;
+          };
+          const key = (compiled: ReturnType<typeof compile>) =>
+            JSON.stringify([compiled.layout, compiled.visual]);
+          const base = sizes.map((size) => ({ size, ...compile(size, undefined) }));
+          const uniform = base.every((item) => key(item) === key(base[0]));
+          const push = (
+            size: string | undefined,
+            align: string | undefined,
+            compiled: ReturnType<typeof compile>,
+          ) => {
+            if (!Object.keys(compiled.layout).length && !Object.keys(compiled.visual).length)
+              return;
+            out.push({
+              childType: target.childType,
+              ...(target.via ? { via: target.via } : {}),
+              ...(size ? { size } : {}),
+              ownerProps: { [prop]: value, ...(align ? { [LABEL_ALIGN_AXIS.prop]: align } : {}) },
+              layout: compiled.layout,
+              visual: compiled.visual,
+            });
+          };
+          for (const item of uniform ? [{ ...base[0], size: undefined }] : base)
+            push(item.size, undefined, item);
+          for (const align of Object.keys(aligns))
+            for (const item of uniform ? [{ ...base[0], size: undefined }] : base) {
+              const aligned = compile(item.size ?? sizes[0], align);
+              if (key(aligned) !== key(item)) push(item.size, align, aligned);
+            }
+        }
+      }
+  return out;
+}
+
 /**
  * Part rules of rule `parentType` in declaration order (later wins, as in the stylesheet).
  * `choicesOf(childType, prop)` gives a child's declared choices for a `:not([attr])` complement.
@@ -1013,6 +1245,7 @@ export function compileRulePartRules(
       }
     }
   }
+  out.push(...containerVariantPartRules(parentType, rule, rootVariables));
   // Generated `[data-size]` selectors never match a root without that attribute: only the default
   // size's values apply, for every size (manual parts keep their real size keys).
   if (manual?.rootSizeAttribute !== undefined)

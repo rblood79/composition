@@ -33,23 +33,8 @@ describe("useViewportControl wheel routing contract", () => {
     expect(source).not.toContain("if (e.defaultPrevented) return;");
   });
 
-  it("gates scroll on selection and resolves every overflow source", async () => {
-    const source = await readFile(
-      resolve(__dirname, "useViewportControl.ts"),
-      "utf-8",
-    );
-
-    // 선택 기반 게이트
-    expect(source).toContain("selectedElementIds");
-    expect(source).toContain("isScrollable(selectedId)");
-    // longhand(overflowX/Y) + catalog containerStyles 까지 해석 — raw shorthand 금지
-    expect(source).toContain("resolveEffectiveOverflow");
-    expect(source).toContain("node?.type");
-    expect(source).not.toMatch(
-      /\)\?\.overflow;\s*\n\s*if \(\s*\n?\s*\(overflow === "scroll"/,
-    );
-  });
-
+  // ADR-248 4e-7: the selection gate is the route the Canvas passes (`routeWheel` — the catalog
+  // Canvas's own; the old store's in `storeWheelRoute.legacy.ts`).
   it("휠 pan 도 zoom 과 같은 시작/종료 신호를 낸다 (ADR-221 게이트)", async () => {
     const source = await readFile(
       resolve(__dirname, "useViewportControl.ts"),
@@ -65,6 +50,8 @@ describe("useViewportControl wheel routing contract", () => {
     // pan 분기가 zoom 세션을 끝내던 종료 호출은 없어야 한다 (게이트가 pan 중 꺼진다)
     expect(panBranch?.[0]).not.toContain("onInteractionEndRef");
     // 종료는 150ms 디바운스 finishWheelInteraction 하나
-    expect(source).toMatch(/finishWheelInteraction\("idle"\);\s*\n\s*\}, 150\);/);
+    expect(source).toMatch(
+      /finishWheelInteraction\("idle"\);\s*\n\s*\}, 150\);/,
+    );
   });
 });

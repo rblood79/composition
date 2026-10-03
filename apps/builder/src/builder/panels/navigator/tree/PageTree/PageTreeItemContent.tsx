@@ -8,21 +8,20 @@ import {
   GripVertical,
 } from "lucide-react";
 import { ICON_EDIT_PROPS } from "../helpers";
-import type { Page } from "../../../../../types/builder/unified.types";
 import type { TreeItemState } from "../TreeBase/types";
-import type { PageTreeNode } from "./types";
+import type { PageTreeNode, PageTreePage } from "./types";
 import { ACTION_ICONS } from "../../../../config/actionIcons";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
 
-interface PageTreeItemContentProps {
-  node: PageTreeNode;
+interface PageTreeItemContentProps<P extends PageTreePage> {
+  node: PageTreeNode<P>;
   state: TreeItemState;
-  onDelete: (page: Page) => Promise<void>;
-  onSettings?: (page: Page) => void;
-  onReselect?: (page: Page) => void;
-  onRename?: (page: Page, title: string) => void;
+  onDelete: (page: P) => Promise<void> | void;
+  onSettings?: (page: P) => void;
+  onReselect?: (page: P) => void;
+  onRename?: (page: P, title: string) => void;
 }
 
 /**
@@ -30,14 +29,14 @@ interface PageTreeItemContentProps {
  * - 일반 페이지: 드래그/삭제 가능
  * - Home 페이지: 드래그/삭제 불가
  */
-export function PageTreeItemContent({
+export function PageTreeItemContent<P extends PageTreePage>({
   node,
   state,
   onDelete,
   onSettings,
   onReselect,
   onRename,
-}: PageTreeItemContentProps) {
+}: PageTreeItemContentProps<P>) {
   const { depth, hasChildren, isRoot, isSystemPage, page, name } = node;
   const { isSelected, isExpanded, isFocusVisible } = state;
   const isImmutablePage = isRoot || isSystemPage;

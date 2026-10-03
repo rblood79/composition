@@ -13,13 +13,13 @@
 
 import { useMemo } from "react";
 import { create } from "zustand";
-import { useStore } from "../../../stores";
 import { useElementStyleContext } from "./useElementStyleContext";
 import type {
   FillItem,
   ColorInputMode,
 } from "../../../../types/builder/fill.types";
 import { resolveElementFills } from "../utils/fillMigration";
+import { useStylesSelectedId } from "../stylesHost";
 
 interface FillUIState {
   activeFillIndex: number;
@@ -45,7 +45,7 @@ export interface FillValues {
 }
 
 export function useFillValues(): FillValues {
-  const selectedId = useStore((s) => s.selectedElementId);
+  const selectedId = useStylesSelectedId();
   const { fills, style } = useElementStyleContext(selectedId);
   const activeFillIndex = useFillUIStore((s) => s.activeFillIndex);
   const colorInputMode = useFillUIStore((s) => s.colorInputMode);

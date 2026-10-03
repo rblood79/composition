@@ -435,6 +435,49 @@ fn tree_golden_n12_grid_area_percent_child() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N13 · N14 — §4.5 automatic minimum 이 column 에서 content-box 로 집행된다 (ADR-248 4e-10).
+// Chrome 실측이 아니라 CSS 산술 손계산 (N6 와 같은 방식): flex item 의 `min-height: auto` =
+// min(content 크기, specified 크기) + padding + border. 종전 엔진은 floor 에 pad_border 를 미리
+// 더해 커널이 한 번 더 더했다 (N13 leaf 39 · N14 container 80).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// N13 measured leaf (contentMinHeight 17 · padding 5/5 · border 1/1 · height 40) in a 10px column:
+/// floor = 17 + 10 + 2 = 29.
+const N13_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 50., 29.],  // [0] n13-leaf
+    [0., 0., 200., 10.], // [1] n13-root
+];
+const N13_BATCH: &str = r#"[
+  {"style":{"display":"flex","width":"50px","height":"40px","paddingTop":"5px","paddingBottom":"5px","borderTop":"1px","borderBottom":"1px","contentHeight":17,"contentMinHeight":17},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","width":"200px","height":"10px"},"children":[0]}
+]"#;
+
+#[test]
+fn tree_golden_n13_column_leaf_auto_min_content_box() {
+    let rel = layout_relative(N13_BATCH);
+    assert_tree_bounds("N13 column leaf auto min (content-box)", &rel, N13_EXPECTED);
+}
+
+/// N14 definite column container (height 120 · padding 10/10, one 30px child) in a 10px column:
+/// floor = 30 + 20 = 50.
+const N14_EXPECTED: &[[f32; 4]] = &[
+    [0., 10., 50., 30.], // [0] n14-child
+    [0., 0., 200., 50.], // [1] n14-mid
+    [0., 0., 200., 10.], // [2] n14-root
+];
+const N14_BATCH: &str = r#"[
+  {"style":{"width":"50px","height":"30px"},"children":[]},
+  {"style":{"display":"flex","flexDirection":"column","height":"120px","paddingTop":"10px","paddingBottom":"10px"},"children":[0]},
+  {"style":{"display":"flex","flexDirection":"column","width":"200px","height":"10px"},"children":[1]}
+]"#;
+
+#[test]
+fn tree_golden_n14_column_container_auto_min_content_box() {
+    let rel = layout_relative(N14_BATCH);
+    assert_tree_bounds("N14 column container auto min (content-box)", &rel, N14_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -452,4 +495,6 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N10_EXPECTED.len(), 3, "N10 노드 3");
     assert_eq!(N11_EXPECTED.len(), 3, "N11 노드 3");
     assert_eq!(N12_EXPECTED.len(), 3, "N12 노드 3");
+    assert_eq!(N13_EXPECTED.len(), 2, "N13 노드 2");
+    assert_eq!(N14_EXPECTED.len(), 3, "N14 노드 3");
 }

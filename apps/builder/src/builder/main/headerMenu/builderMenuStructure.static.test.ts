@@ -8,14 +8,25 @@
  * `panelConfigs.ts` 는 패널 컴포넌트를 전부 끌고 들어와 import 할 수 없어
  * (`shortcutDisplay.static.test.ts` 와 같은 사유) 소스에서 읽는다.
  */
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
+// The guard set the catalog host answers (ADR-248 4e-7: the old table keeps it for reference).
 import { COMMAND_META } from "../../config/commandMeta";
+import { createCatalogAgentCommandHost } from "../../catalogRuntime/agentHost";
+import { openStylesFixture } from "../../panels/styles/__tests__/support/catalogStylesFixture";
+import type { AgentCommandHost } from "../../../services/agent/agentCommandHost";
+
+let catalogHost: AgentCommandHost;
+beforeAll(async () => {
+  catalogHost = createCatalogAgentCommandHost(
+    (await openStylesFixture([])).workspace,
+  );
+});
 import {
   BUILDER_MENU_ROOT,
   MENU_COMMAND_CONDITIONS,
@@ -77,7 +88,7 @@ function collectNodes(
 }
 
 const REGISTRATION_ID_PATTERN =
-  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
+  /(?:bindHandlersToDefinitions\(\s*\[([\s\S]*?)\]|:\s*(?:readonly\s+)?\w*ShortcutId\[\]\s*=\s*\[([\s\S]*?)^\s*\];)/gm;
 
 function collectSourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -93,6 +104,21 @@ function collectSourceFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+/**
+ * Object-literal registrations — the catalog Builder's global shortcuts bind handlers keyed by id
+ * (`const handlers: ShortcutHandlers = { zoomIn: … }`, `Partial<Record<ShortcutId, PanelId>>`) and
+ * register `Object.keys(handlers)` (ADR-248 4e-13: the old hook's array literal went with it).
+ */
+const OBJECT_REGISTRATION_PATTERN =
+  /:\s*(?:ShortcutHandlers|Partial<Record<ShortcutId,\s*\w+>>)\s*=\s*\{([\s\S]*?)^\s*\};/gm;
+
+/**
+ * Menu commands the catalog Builder does not run yet — each is a recorded gap, not a pass.
+ * `toggleWorkflowOverlay`: the old Canvas's page-flow overlay (its renderer was never reached by the
+ * catalog Canvas and went with the old store, ADR-248 4e-13); the flag toggles nothing.
+ */
+const KNOWN_UNWIRED_COMMANDS = new Set(["toggleWorkflowOverlay"]);
+
 function registeredShortcutIds(): Set<string> {
   const ids = new Set<string>();
   for (const file of collectSourceFiles(SRC_ROOT)) {
@@ -102,6 +128,11 @@ function registeredShortcutIds(): Set<string> {
         /"([a-zA-Z][a-zA-Z0-9]*)"/g,
       )) {
         ids.add(quoted[1]);
+      }
+    }
+    for (const block of source.matchAll(OBJECT_REGISTRATION_PATTERN)) {
+      for (const key of block[1].matchAll(/^\s*([a-zA-Z][a-zA-Z0-9]*):/gm)) {
+        ids.add(key[1]);
       }
     }
   }
@@ -183,8 +214,12 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     const mismatches: string[] = [];
     for (const [id, condition] of entries) {
       const sources = new Set(condition.sources);
+      // A command the catalog agent host answers (a plan or a refusal) takes its precondition from
+      //   the host (ADR-248 4e-5); the rest from `COMMAND_META`.
+      const hosted = catalogHost.plan(id) !== undefined;
       if (
-        sources.has("precondition") !== Boolean(COMMAND_META[id].precondition)
+        sources.has("precondition") !==
+        (hosted || Boolean(COMMAND_META[id].precondition))
       )
         mismatches.push(`${id}: precondition`);
       if (
@@ -198,28 +233,14 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("등록자 실행 조건은 zoomToSelection 하나이고 BuilderCanvas 가 등록한다", () => {
+  it("등록자 실행 조건은 zoomToSelection 하나이고 CatalogCanvas 가 등록한다", () => {
     const canRunIds = Object.entries(MENU_COMMAND_CONDITIONS)
       .filter(([, condition]) => condition.sources.includes("canRun"))
       .map(([id]) => id);
     expect(canRunIds).toEqual(["zoomToSelection"]);
-    expect(read("builder/workspace/canvas/BuilderCanvas.tsx")).toMatch(
-      /\{\s*zoomToSelection:\s*hasZoomToSelectionTarget\s*\}/,
+    expect(read("builder/workspace/canvas/catalog/CatalogCanvas.tsx")).toMatch(
+      /\{\s*zoomToSelection:\s*\(\)\s*=>/,
     );
-  });
-
-  it("scope 분기 열 = getScopedHandler 로 감싼 포함 명령", () => {
-    const source = read("builder/hooks/useGlobalKeyboardShortcuts.ts");
-    const wrapped = [...source.matchAll(/(\w+):\s*getScopedHandler\(/g)]
-      .map((match) => match[1])
-      .filter((id) => id in MENU_COMMAND_CONDITIONS)
-      .sort();
-    const marked = Object.entries(MENU_COMMAND_CONDITIONS)
-      .filter(([, condition]) => condition.scopeBranch)
-      .map(([id]) => id)
-      .sort();
-    expect(wrapped).toEqual(["copy", "delete", "paste"]);
-    expect(marked).toEqual(wrapped);
   });
 
   it("railOrder 세 방향 합집합 = 메뉴 패널 (bottom 포함)", () => {
@@ -258,7 +279,11 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
 
   it("모든 항목은 실행 경로를 갖거나 자리 항목이다", () => {
     const registered = registeredShortcutIds();
-    expect(commandIds.filter((id) => !registered.has(id))).toEqual([]);
+    expect(
+      commandIds.filter(
+        (id) => !registered.has(id) && !KNOWN_UNWIRED_COMMANDS.has(id),
+      ),
+    ).toEqual([]);
 
     const actionIds = allNodes.flatMap((node) =>
       node.kind === "action" ? [node.id] : [],

@@ -26,7 +26,7 @@ import {
   MoveVertical,
   RotateCw,
 } from "lucide-react";
-import { PropertyUnitInput } from "../../../components";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 
 import "./GradientControls.css";
 

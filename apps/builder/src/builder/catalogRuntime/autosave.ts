@@ -41,10 +41,12 @@ export class CatalogAutosave {
     this.unsubscribe = this.listen();
   }
 
+  /** Stable until the status changes (a `useSyncExternalStore` snapshot). */
   getSnapshot = (): CatalogSaveStatus => {
     const projectId = this.runtime.projectId;
-    return (
-      this.statuses.get(projectId) ?? {
+    let status = this.statuses.get(projectId);
+    if (!status) {
+      status = {
         projectId,
         state:
           this.runtime.durableRevision === this.runtime.graph.revision
@@ -52,8 +54,10 @@ export class CatalogAutosave {
             : "unsaved",
         revision: this.runtime.graph.revision,
         durableRevision: this.runtime.durableRevision,
-      }
-    );
+      };
+      this.statuses.set(projectId, status);
+    }
+    return status;
   };
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);

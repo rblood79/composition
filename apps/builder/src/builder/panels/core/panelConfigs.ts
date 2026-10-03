@@ -21,15 +21,15 @@ import type { PanelConfig } from "./types";
 import { PanelRegistry } from "./PanelRegistry";
 
 // Navigation panels
-import { NavigatorPanel } from "../navigator/NavigatorPanel";
+import { CatalogNavigatorPanel } from "../navigator/catalog/CatalogNavigatorPanel";
 import { ACTION_ICONS } from "../../config/actionIcons";
-import { ComponentsPanel } from "../components/ComponentsPanel";
+import { CatalogComponentsPanel } from "../components/CatalogComponentsPanel";
 import { AIPanel } from "../ai/lazyAIPanel";
 import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
 // Editor panels
-import { PropertiesPanel } from "../properties/PropertiesPanel";
-import { StylesPanel } from "../styles/StylesPanel";
+import { CatalogPropertiesPanel } from "../properties/catalog/CatalogPropertiesPanel";
+import { CatalogStylesPanel } from "../styles/catalog/CatalogStylesPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
@@ -45,8 +45,10 @@ const DataTableFieldPanel = lazyPanel(
 
 // ADR-242 — 초기 화면 밖 패널은 첫 열림에 chunk 를 받는다 (패널 밖이 값으로 쓰는 store · utils 는
 //   그대로 initial). 상수 이름은 등록 인벤토리 검사 (`panelCloseActions.static`) 가 읽는다.
-const HistoryPanel = lazyPanel(() =>
-  import("../history/HistoryPanel").then((m) => ({ default: m.HistoryPanel })),
+const CatalogHistoryPanel = lazyPanel(() =>
+  import("../history/CatalogHistoryPanel").then((m) => ({
+    default: m.CatalogHistoryPanel,
+  })),
 );
 
 const SettingsPanel = lazyPanel(() =>
@@ -55,14 +57,16 @@ const SettingsPanel = lazyPanel(() =>
   })),
 );
 
-const InteractionsPanel = lazyPanel(() =>
-  import("../interactions/InteractionsPanel").then((m) => ({
-    default: m.InteractionsPanel,
+const CatalogInteractionsPanel = lazyPanel(() =>
+  import("../interactions/catalog/CatalogInteractionsPanel").then((m) => ({
+    default: m.CatalogInteractionsPanel,
   })),
 );
 
-const ThemesPanel = lazyPanel(() =>
-  import("../themes/ThemesPanel").then((m) => ({ default: m.ThemesPanel })),
+const CatalogThemesPanel = lazyPanel(() =>
+  import("../themes/catalog/CatalogThemesPanel").then((m) => ({
+    default: m.CatalogThemesPanel,
+  })),
 );
 
 const DataTablePanel = lazyPanel(() =>
@@ -83,7 +87,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "탐색기",
     nameEn: "Navigator",
     icon: ListTree,
-    component: NavigatorPanel,
+    component: CatalogNavigatorPanel,
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,
@@ -97,7 +101,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "컴포넌트",
     nameEn: "Components",
     icon: ACTION_ICONS.component,
-    component: ComponentsPanel,
+    component: CatalogComponentsPanel,
     category: "navigation",
     defaultPosition: "left",
     minWidth: 233,
@@ -161,7 +165,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "테마",
     nameEn: "Theme",
     icon: SwatchBook,
-    component: ThemesPanel,
+    component: CatalogThemesPanel,
     category: "tool",
     defaultPosition: "left",
     minWidth: 233,
@@ -218,7 +222,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "속성",
     nameEn: "Properties",
     icon: Settings2,
-    component: PropertiesPanel,
+    component: CatalogPropertiesPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -232,7 +236,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "스타일",
     nameEn: "Styles",
     icon: PaintRoller,
-    component: StylesPanel,
+    component: CatalogStylesPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -248,7 +252,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "인터랙션",
     nameEn: "Interactions",
     icon: SquareMousePointer,
-    component: InteractionsPanel,
+    component: CatalogInteractionsPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -264,7 +268,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     name: "히스토리",
     nameEn: "History",
     icon: History,
-    component: HistoryPanel,
+    component: CatalogHistoryPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
@@ -288,10 +292,10 @@ export const PANEL_CONFIGS: PanelConfig[] = [
  */
 export function preloadOffscreenPanels(): void {
   preloadLazyPanels([
-    HistoryPanel,
+    CatalogHistoryPanel,
     SettingsPanel,
-    InteractionsPanel,
-    ThemesPanel,
+    CatalogInteractionsPanel,
+    CatalogThemesPanel,
     DataTablePanel,
   ]);
 }

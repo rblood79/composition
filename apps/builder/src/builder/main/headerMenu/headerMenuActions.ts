@@ -6,13 +6,15 @@
  * 콜백은 `HeaderMenuHost` 로 받고, store 로 끝나는 동작 (스냅 · 모양 · 스냅샷) 은
  * 여기서 직접 부른다.
  */
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import type { ThemeMode } from "../../../stores/uiStore";
-import {
-  createUserSnapshot,
-  resolveUserSnapshotTarget,
-} from "../../panels/history/userSnapshotActions";
 import type { HeaderMenuRuntime } from "./headerMenuRuntime";
+
+export interface HeaderSnapshotActions {
+  canCreate: () => boolean;
+  create: () => void;
+  subscribe?: (listener: () => void) => () => void;
+}
 
 /** 헤더 (`BuilderHeader`) 가 넘기는 콜백 — 메뉴 chunk 는 이것만 안다. */
 export interface HeaderMenuHost {
@@ -21,6 +23,11 @@ export interface HeaderMenuHost {
   onExportProject: () => void;
   onExportProjectJson: () => void;
   onConnectFolder: () => void;
+  /**
+   * ADR-248 4e-6-32 — 열린 프로젝트의 스냅샷. `subscribe` = 만들 수 있는지가 바뀔 때 (목록 갱신).
+   * 4e-7: 필수 — 옛 store 의 스냅샷은 `storeSnapshotActions.legacy.ts` (옛 `BuilderCore` 가 넘김).
+   */
+  snapshotActions: HeaderSnapshotActions;
   /** 확인 대화상자를 연다 — 삭제 자체는 대시보드가 한다. */
   onDeleteProject: () => void;
   onResetPanelLayout: () => void;
@@ -92,11 +99,8 @@ export const HEADER_MENU_ACTIONS: Readonly<
   },
   createSnapshot: {
     labelKey: "history.createSnapshot",
-    isEnabled: () => resolveUserSnapshotTarget() !== null,
-    run: () => {
-      const projectId = resolveUserSnapshotTarget();
-      if (projectId) void createUserSnapshot(projectId);
-    },
+    isEnabled: (host) => host.snapshotActions.canCreate(),
+    run: (host) => host.snapshotActions.create(),
   },
   deleteProject: {
     labelKey: "header.deleteProject",
@@ -110,9 +114,9 @@ export const HEADER_MENU_ACTIONS: Readonly<
   },
   snapToObjects: {
     labelKey: "contextMenu.snapToObjects",
-    isChecked: () => useStore.getState().snapToObjects,
+    isChecked: () => useBuilderUiStore.getState().snapToObjects,
     run: () => {
-      const { snapToObjects, setSnapToObjects } = useStore.getState();
+      const { snapToObjects, setSnapToObjects } = useBuilderUiStore.getState();
       setSnapToObjects(!snapToObjects);
     },
   },

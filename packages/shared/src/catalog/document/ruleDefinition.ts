@@ -7,6 +7,7 @@ import { componentTypeSet } from "../../domain/componentTraits";
 import { componentCatalog } from "../componentCatalog";
 import { resolveCatalogRuleCanvasBox } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { manualBoxRule } from "./manualBoxRules";
+import { catalogContainerVariantRootRules } from "./rulePartRules";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { InspectorFieldKind } from "../types";
 import type {
@@ -109,6 +110,7 @@ function lengthValue(
     tokenType: "number",
     value: resolved,
     source: "spec-token",
+    ref: value as `{${string}}`,
   });
   return { kind: "token", tokenId: id };
 }
@@ -522,6 +524,25 @@ export function ruleTypeDefinition(
     definition.conditionalRules = [
       ...(definition.conditionalRules ?? []),
       ...disabled,
+    ];
+  // Prop-driven container variants (`[data-label-position="side"]`): the root's own values.
+  const variantRules: ConditionalRule[] = catalogContainerVariantRootRules(type)
+    .filter((variant) =>
+      Object.keys(variant.when).every((prop) => accepts[prop] === "string"),
+    )
+    .map((variant) => ({
+      when: variant.when,
+      ...(Object.keys(variant.layout).length
+        ? { layout: variant.layout as LayoutValues }
+        : {}),
+      ...(Object.keys(variant.visual).length
+        ? { visual: variant.visual as VisualValues }
+        : {}),
+    }));
+  if (variantRules.length)
+    definition.conditionalRules = [
+      ...(definition.conditionalRules ?? []),
+      ...variantRules,
     ];
   if (Object.keys(layout).length) definition.layout = layout as LayoutValues;
   definition.visual = visual as VisualValues;

@@ -243,6 +243,150 @@ export const setWholeField =
     return { label: input.label ?? "Edit", ops };
   };
 
+export interface SetFillSizingInput {
+  targets: readonly EditTarget[];
+  /** Absent or `desktop` = the base value; tablet/mobile write that layer's value. */
+  breakpoint?: BreakpointName;
+  axis: "width" | "height";
+  /** A weight, `null` to release an inherited fill, `undefined` to drop the layer's own value. */
+  value: { factor: number } | null | undefined;
+  label?: string;
+}
+function withFillAxis(
+  current: FillSizing | undefined,
+  axis: "width" | "height",
+  value: SetFillSizingInput["value"],
+): FillSizing | undefined {
+  const next: Partial<Record<"width" | "height", { factor: number } | null>> = {
+    ...current,
+  };
+  if (value === undefined) delete next[axis];
+  else next[axis] = value;
+  return Object.keys(next).length ? next : undefined;
+}
+/** A breakpoint layer set with its fill intent replaced (empty layers are dropped). */
+function withLayerFill(
+  responsive: NodeEntry["responsive"],
+  breakpoint: ResponsiveBreakpointName,
+  axis: "width" | "height",
+  value: SetFillSizingInput["value"],
+): NodeEntry["responsive"] {
+  const next = { ...responsive };
+  const { fillSizing, ...layer } = { ...next[breakpoint] };
+  const fill = withFillAxis(fillSizing, axis, value);
+  const merged: NodeResponsiveLayer = fill
+    ? { ...layer, fillSizing: fill }
+    : layer;
+  if (Object.keys(merged).length) next[breakpoint] = merged;
+  else delete next[breakpoint];
+  return Object.keys(next).length ? next : undefined;
+}
+
+/**
+ * One axis of the fill intent (ADR-224 `fillSizing`) at a breakpoint: the Size panel's fill, fixed
+ * and reset edits. The base value is a whole-field edit; a tablet/mobile value lives in that
+ * responsive layer (`resolver` cascades it over the base).
+ */
+export const setFillSizing =
+  (input: SetFillSizingInput): CatalogCommand =>
+  (reader) => {
+    const breakpoint =
+      input.breakpoint && input.breakpoint !== "desktop"
+        ? (input.breakpoint as ResponsiveBreakpointName)
+        : undefined;
+    const ops: CatalogOperation[] = [];
+    for (const target of input.targets) {
+      if (target.kind === "node") {
+        const node = reader.getEntry(target.id);
+        if (node?.kind !== "node") return fail("NODE_REQUIRED", target.id);
+        if (!breakpoint) {
+          ops.push({
+            kind: "setNodeField",
+            id: target.id,
+            field: "fillSizing",
+            value: withFillAxis(node.fillSizing, input.axis, input.value),
+          });
+          continue;
+        }
+        const { responsive: _responsive, ...rest } = node;
+        const responsive = withLayerFill(
+          node.responsive,
+          breakpoint,
+          input.axis,
+          input.value,
+        );
+        ops.push({
+          kind: "put",
+          entry: responsive ? { ...rest, responsive } : rest,
+        });
+        continue;
+      }
+      const owner = reader.getEntry(target.ownerId);
+      if (owner?.kind !== "node") return fail("NODE_REQUIRED", target.ownerId);
+      const current = overrideAt(owner, target.address);
+      const patch = current?.kind === "patch" ? current : undefined;
+      if (!breakpoint) {
+        const fill = withFillAxis(patch?.fillSizing, input.axis, input.value);
+        ops.push({
+          kind: "upsertDescendant",
+          id: target.ownerId,
+          override: {
+            kind: "patch",
+            address: target.address,
+            ...(fill ? { fillSizing: fill } : {}),
+          },
+          ...(fill ? {} : { clear: ["fillSizing"] }),
+        });
+        continue;
+      }
+      const responsive = withLayerFill(
+        patch?.responsive,
+        breakpoint,
+        input.axis,
+        input.value,
+      );
+      ops.push({
+        kind: "upsertDescendant",
+        id: target.ownerId,
+        override: {
+          kind: "patch",
+          address: target.address,
+          ...(responsive ? { responsive } : {}),
+        },
+        ...(responsive ? {} : { clear: ["responsive"] }),
+      });
+    }
+    return { label: input.label ?? "Edit size", ops };
+  };
+
+/** The author's class names or accessible name (`metadata`); empty clears it. */
+export const setNodeAttribute =
+  (input: {
+    id: NodeEntry["id"];
+    field: "className" | "ariaLabel";
+    value: string;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const node = reader.getEntry(input.id);
+    if (node?.kind !== "node") return fail("NODE_REQUIRED", input.id);
+    const metadata = { ...node.metadata };
+    const value = input.value.trim();
+    if (value) metadata[input.field] = value;
+    else delete metadata[input.field];
+    return {
+      label: input.label ?? "Edit properties",
+      ops: [
+        {
+          kind: "setNodeField",
+          id: input.id,
+          field: "metadata",
+          value: Object.keys(metadata).length ? metadata : undefined,
+        },
+      ],
+    };
+  };
+
 /** The author's DOM id (`metadata.htmlId`); empty clears it. */
 export const setHtmlId =
   (input: {

@@ -16,10 +16,10 @@ import type { CompilerProposal } from "../../../../services/ai/compiler/contract
 import { runCompilerRequest } from "../../../../services/ai/compiler/runtime";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
-import { useStore } from "../../../stores";
 import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
 import type { BuilderContext } from "../../../../types/integrations/chat.types";
 import { buildBuilderContext } from "../../../../services/ai/builderContext";
+import { getAiReadHost } from "../../../../services/ai/aiReadHost";
 import type { ToolExecutionResult } from "../../../../types/integrations/ai.types";
 import { useI18n } from "@/i18n";
 import {
@@ -35,6 +35,18 @@ const PROGRESS_EVENTS = new Set([
   "plan-ready",
   "repair-attempt",
 ]);
+
+/**
+ * The page and primary selection a turn was asked about: the open Builder's AI read host (the drawn
+ * record ids; ADR-248 4e-7: only it). A turn whose selection changed before it runs is dropped.
+ */
+function readSelection(): { pageId: string | null; selectedId: string | null } {
+  const host = getAiReadHost();
+  return {
+    pageId: host?.currentPageId() ?? null,
+    selectedId: host?.selectedIds()[0] ?? null,
+  };
+}
 
 export function useAgentLoop() {
   const { t } = useI18n();
@@ -94,9 +106,9 @@ export function useAgentLoop() {
       if (requestRef.current) return;
       const request = new AbortController();
       requestRef.current = request;
-      const initialSelection = useStore.getState();
-      const requestPageId = initialSelection.currentPageId;
-      const requestSelectedId = initialSelection.selectedElementId;
+      const initialSelection = readSelection();
+      const requestPageId = initialSelection.pageId;
+      const requestSelectedId = initialSelection.selectedId;
       try {
         // 턴 시작 시점에 스토어에서 조립한다 — 패널 effect 의 실행 여부에 걸리지 않는다
         // (`services/ai/builderContext.ts` 주석: 감춰진 패널에서 제출이 조용히 무시되던 원인).
@@ -115,11 +127,11 @@ export function useAgentLoop() {
         }
         if (!disabled) {
           setStreamingStatus(true);
-          const currentSelection = useStore.getState();
+          const currentSelection = readSelection();
           if (
             request.signal.aborted ||
-            currentSelection.currentPageId !== requestPageId ||
-            currentSelection.selectedElementId !== requestSelectedId
+            currentSelection.pageId !== requestPageId ||
+            currentSelection.selectedId !== requestSelectedId
           )
             return;
           const compiled = await runCompilerRequest(
@@ -164,8 +176,9 @@ export function useAgentLoop() {
             setProgress(initialProgress());
             setRunningTool(null);
 
-            // G.3: 선택된 요소에 generating 이펙트
-            const currentSelectedId = useStore.getState().selectedElementId;
+            // G.3: 선택된 요소에 generating 이펙트 — AI read host 의 선택 (그리는 Canvas 와 같은
+            // 레코드 id).
+            const currentSelectedId = getAiReadHost()?.selectedIds()[0];
             if (currentSelectedId) {
               useAIVisualFeedbackStore
                 .getState()
@@ -186,16 +199,12 @@ export function useAgentLoop() {
              */
             let assistantOpen = false;
 
-            for await (const event of agent.runAgentLoop(
-              allMessages,
-              context,
-              {
-                onTurnContext: (turnContext) =>
-                  useConversationStore
-                    .getState()
-                    .setLastUserTurnContext(turnContext),
-              },
-            )) {
+            for await (const event of agent.runAgentLoop(allMessages, context, {
+              onTurnContext: (turnContext) =>
+                useConversationStore
+                  .getState()
+                  .setLastUserTurnContext(turnContext),
+            })) {
               if (request.signal.aborted) break;
               if (PROGRESS_EVENTS.has(event.type)) {
                 setProgress((prev) => reduceProgress(prev, event));

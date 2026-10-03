@@ -3,10 +3,7 @@ description: 캔버스 인터랙션 (히트 바운드 · hover 하이라이트 �
 paths:
   - "apps/builder/src/builder/workspace/canvas/interaction/**"
   - "apps/builder/src/builder/workspace/canvas/selection/**"
-  - "**/skiaOverlayBuilder*"
   - "**/pagePaintOrder*"
-  - "**/useCentralCanvasPointerHandlers*"
-  - "**/useDragInteraction*"
 ---
 
 # 캔버스 인터랙션 규칙 (canvas-rendering.md §8.5–8.8 분리)

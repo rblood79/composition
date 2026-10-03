@@ -7,7 +7,7 @@
  */
 
 import type { Canvas } from "canvaskit-wasm";
-import type { CanvasSceneNode } from "../scene/canvasSceneNode";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 
 // ============================================
 // Core Interfaces
@@ -335,15 +335,15 @@ export interface SelectionOverlayBuildResult {
   semanticTargets: Array<{
     bounds: import("../selection/types").BoundingBox;
     semanticRole:
-      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+      import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
     slotMarkerRole:
-      import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+      import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
   }>;
   semanticRole:
-    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+    import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
   showHandles: boolean;
   slotMarkerRole:
-    import("../../../utils/editingSemantics").EditingSemanticsRole | null;
+    import("../../../utils/editingSemanticsRole").EditingSemanticsRole | null;
 }
 
 /**
@@ -351,12 +351,12 @@ export interface SelectionOverlayBuildResult {
  * 페이지 프레임, 워크플로우 바운드, 엣지 캐시를 함께 전달한다.
  */
 export interface WorkflowOverlayBuildResult {
-  pageFrameMap: Map<string, import("./workflowRenderer").PageFrame>;
+  pageFrameMap: Map<string, import("./overlayTypes").PageFrame>;
   workflowElementBoundsMap: Map<
     string,
-    import("./workflowRenderer").ElementBounds
+    import("../elementRegistry").ElementBounds
   > | null;
-  edgeGeometryCache: import("./workflowHitTest").CachedEdgeGeometry[];
+  edgeGeometryCache: import("./overlayTypes").CachedEdgeGeometry[];
   edgeGeometryCacheKey: string;
 }
 
@@ -393,7 +393,7 @@ export interface SharedSceneDerivedData {
   /** overflow 컨테이너 → 자식 bounds 정보 (ADR-050 Phase 3) */
   overflowInfoMap: Map<
     string,
-    import("./skiaFrameHelpers").OverflowContentInfo
+    import("./overlayTypes").OverflowContentInfo
   >;
   /** 카메라 상태 */
   cameraX: number;
@@ -412,7 +412,7 @@ export interface ContentBuildResult {
   /** 워크플로우용 요소 바운드 */
   workflowElementBoundsMap: Map<
     string,
-    import("./workflowRenderer").ElementBounds
+    import("../elementRegistry").ElementBounds
   > | null;
   /** 렌더러에 설정할 content node */
   contentNode: SkiaRenderable;

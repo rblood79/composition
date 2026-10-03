@@ -26,7 +26,7 @@ import {
 import { Popover } from "react-aria-components/Popover";
 import { Separator } from "react-aria-components/Separator";
 import { Text } from "react-aria-components/Text";
-import { useStore } from "../../stores";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
 import { PanelRegistry } from "../../panels/core/PanelRegistry";
 import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
@@ -34,10 +34,10 @@ import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
-import { snapshotManager } from "../../stores/history/snapshots";
 // 읽기 모델은 agent executor 경유 — executor 청크가 이미 싣고 있는 모듈 묶음을 그대로 가리켜야
 // Rolldown 이 initial 공유 청크 (canvasActions) 를 쪼개지 않는다 (G2, headerMenuRuntime.ts).
 import { buildAgentReadModel } from "../../../services/agent/executeAgentCommand";
+import { hostCommandLabelKey } from "../../../services/agent/agentCommandHost";
 import { BUILDER_MENU_ROOT } from "./builderMenuStructure";
 import "./HeaderMainMenu.css";
 import type { HeaderMenuHost } from "./headerMenuActions";
@@ -77,24 +77,25 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
     runtime.subscribeCommandRegistry,
     runtime.getCommandRegistrySnapshot,
   );
-  const workspaceLayout = useStore((state) => state.panelWorkspaceLayout);
-  const showRulers = useStore((state) => state.showRulers);
-  const showWorkflowOverlay = useStore((state) => state.showWorkflowOverlay);
-  const snapToObjects = useStore((state) => state.snapToObjects);
-  const selectedElementId = useStore((state) => state.selectedElementId);
-  const selectedElementIds = useStore((state) => state.selectedElementIds);
+  const workspaceLayout = useBuilderUiStore(
+    (state) => state.panelWorkspaceLayout,
+  );
+  const showRulers = useBuilderUiStore((state) => state.showRulers);
+  const showWorkflowOverlay = useBuilderUiStore(
+    (state) => state.showWorkflowOverlay,
+  );
+  const snapToObjects = useBuilderUiStore((state) => state.snapToObjects);
   const focusMode = useSectionCollapse((state) => state.focusMode);
   const themeMode = host.runtime.useThemeMode();
 
-  // 스냅샷 상한 판정은 IndexedDB 목록 hydrate 뒤에 맞다 — 열 때 받아 두고 갱신을 구독한다.
+  // 스냅샷 상한 판정은 목록 갱신 뒤에 맞다 — 열린 프로젝트의 스냅샷 동작이 알린다.
   const [snapshotVersion, setSnapshotVersion] = useState(0);
-  useEffect(() => {
-    const unsubscribe = snapshotManager.subscribe(() =>
-      setSnapshotVersion((version) => version + 1),
-    );
-    if (host.projectId) void snapshotManager.loadProject(host.projectId);
-    return unsubscribe;
-  }, [host.projectId]);
+  const subscribeSnapshots = host.snapshotActions.subscribe;
+  useEffect(
+    () =>
+      subscribeSnapshots?.(() => setSnapshotVersion((version) => version + 1)),
+    [subscribeSnapshots],
+  );
 
   const isPanelVisible = useCallback(
     (panelId: Parameters<typeof togglePanelWorkspace>[0]) =>
@@ -104,9 +105,6 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
 
   const blocks = useMemo(() => {
     const readModel = buildAgentReadModel();
-    const selected = selectedElementId
-      ? readModel.elementsMap.get(selectedElementId)
-      : undefined;
 
     return buildMenuModel(BUILDER_MENU_ROOT, {
       t,
@@ -126,8 +124,9 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
       panelLabel: (config) => runtime.panelLabel(config, t),
       // 선택에 따라 바뀌는 라벨 (컴포넌트 만들기/해제) 은 시맨틱 액션 표가 정본
       commandLabel: (id) => {
-        const label = runtime.contextLabelKey(id, selected);
-        return label ? t(label.key, label.params) : t(`command.${id}`);
+        // A label that follows the selection (create / detach component) is the host's.
+        const hosted = hostCommandLabelKey(id);
+        return hosted ? t(hosted) : t(`command.${id}`);
       },
       commandShortcut: (id) => {
         const def = SHORTCUT_DEFINITIONS[id];
@@ -138,7 +137,7 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
         runMenuCommand(id, runtime.resolveCommand),
       togglePanel: togglePanelWorkspace,
     });
-    // registry · 체크 · 선택 · 스냅샷 · 모양이 바뀌면 다시 만든다
+    // registry · 체크 · 스냅샷 · 모양이 바뀌면 다시 만든다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     t,
@@ -151,13 +150,14 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
     snapToObjects,
     focusMode,
     themeMode,
-    selectedElementId,
-    selectedElementIds,
     snapshotVersion,
   ]);
 
   const visibleBlocks = useMemo(
-    () => (query.trim() ? searchMenuModel(blocks, query, host.runtime.matchesCommandSearch) : blocks),
+    () =>
+      query.trim()
+        ? searchMenuModel(blocks, query, host.runtime.matchesCommandSearch)
+        : blocks,
     [blocks, query],
   );
 

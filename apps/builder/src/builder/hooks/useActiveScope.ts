@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
-import { useStore } from "../stores";
+import { useBuilderUiStore } from "../stores/builderUiStore";
 import type { ShortcutScope } from "../types/keyboard";
 import type { PanelId } from "../panels/core/types";
 
@@ -210,7 +210,9 @@ export function useActiveScope(): ShortcutScope {
  */
 export function useActiveScopeState(): ActiveScopeState {
   // 패널 레이아웃에서 활성 패널 가져오기
-  const panelWorkspaceLayout = useStore((state) => state.panelWorkspaceLayout);
+  const panelWorkspaceLayout = useBuilderUiStore(
+    (state) => state.panelWorkspaceLayout,
+  );
 
   const [state, setState] = useState<ActiveScopeState>({
     scope: "global",
