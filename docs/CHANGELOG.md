@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈) — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
+- **여러 개를 선택한 뒤 그 사이 빈 공간을 잡아 끌면 선택이 풀리고 marquee 가 시작되던 것.** 구 앱처럼 선택 상자 안의 빈 공간 (page 바탕 포함) 을 누르면 선택 전체가 끌린다. 상자 밖은 그대로 marquee.
 - **텍스트 편집 중 Enter 로 넣은 줄바꿈이 저장은 되지만 Canvas 에서 접혀 보이던 것.** 구 앱처럼 줄바꿈이 있는 텍스트를 저장할 때 white-space 를 `pre-wrap` (`nowrap` 이면 `pre`) 으로 같이 올린다. Canvas 의 글자 상자 측정도 CSS white-space 를 따른다 — `normal` 은 줄바꿈을 공백으로 접고, `pre` 계열은 줄마다 상자가 커진다 (그림은 이미 그렇게 그리고 있었다).
 - **Canvas 의 padding 핸들이 Styles 의 「변 연결」 토글을 무시하던 것.** 연결이 켜져 있으면 어느 변을 끌어도 4변이 같이 바뀐다 (인라인 입력도 같음). Styles 패널이 drag 중 값을 따라 보여 주고 편집 중인 변을 강조하던 것도 돌아왔다.
 - **삭제 · 잘라내기 · 복제 · 그룹 · 그룹 해제가 거부될 때 아무 안내가 없던 것.** 구 앱처럼 이유를 toast 로 알린다 (page body · 부모가 다른 그룹 · 인스턴스 그룹 해제 · 중첩 규칙). 팔레트 삽입이 선택한 요소 대신 상위로 들어가면 「…에 놓였습니다」 안내와 되돌리기 버튼이 뜨고, 어디에도 못 들어가면 원문 코드 대신 중첩 규칙 안내가 뜬다.

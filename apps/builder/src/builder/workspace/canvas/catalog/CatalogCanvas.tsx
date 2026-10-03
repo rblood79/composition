@@ -814,6 +814,37 @@ export function CatalogCanvas({
     // together); a release without a drag then selects that element alone.
     let deferredSelect: string | undefined;
     let pressPointer: number | undefined;
+    /**
+     * The first element of a multi-selection whose union box holds the point, else undefined
+     * (a single element's box is the element itself; page bodies are not dragged this way).
+     */
+    const selectionBoxLeader = (
+      items: readonly { identity: string }[],
+      px: number,
+      py: number,
+    ): string | undefined => {
+      const elements = items.filter(
+        (item) =>
+          workspace.root.domInputs.get(item.identity)?.parentId !==
+          "catalog:root",
+      );
+      if (elements.length < 2) return undefined;
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+      for (const item of elements) {
+        const box = boundsRef.current(item.identity);
+        if (!box) return undefined;
+        left = Math.min(left, box.x);
+        top = Math.min(top, box.y);
+        right = Math.max(right, box.x + box.width);
+        bottom = Math.max(bottom, box.y + box.height);
+      }
+      return px >= left && px <= right && py >= top && py <= bottom
+        ? elements[0]!.identity
+        : undefined;
+    };
     const onPointerDown = (event: PointerEvent) => {
       // Only the primary button selects and drags (the secondary opens the context menu).
       if (event.button !== 0) return;
@@ -859,12 +890,24 @@ export function CatalogCanvas({
       const additive = event.shiftKey;
       const deep = event.metaKey || event.ctrlKey;
       const target = picking.target(x, y, deep);
-      const selected = workspace.session
-        .getSnapshot()
-        .selection.some((item) => item.identity === target?.id);
+      const selectionItems = workspace.session.getSnapshot().selection;
+      const selected = selectionItems.some(
+        (item) => item.identity === target?.id,
+      );
       const pageRoot =
         !!target &&
         workspace.root.domInputs.get(target.id)?.parentId === "catalog:root";
+      // A multi-selection's bounding box is its drag handle: a press on empty space (or the page)
+      // inside it drags the selection instead of starting a marquee (the old selection model).
+      const inSelectionBox =
+        !additive &&
+        (!target || pageRoot) &&
+        selectionBoxLeader(selectionItems, x, y);
+      if (inSelectionBox) {
+        gestures.beginMove(x, y, inSelectionBox, { copy: event.altKey });
+        rehover();
+        return;
+      }
       if (target && selected && !additive && !target.leaveContext) {
         // A selected page body moves its page frame; a selected element drags.
         // (The home page stays: a press on it starts a marquee.)
