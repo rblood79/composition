@@ -96,3 +96,6 @@ apps/builder/scripts/.auth-session*.json
 # Builder harness run outputs
 apps/builder/scripts/.out/
 apps/builder/scripts/.tmp-panel-cap/
+
+# 라이선스 인증 코드 (로컬 전용 — 커밋 금지)
+verification_code.txt
