@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Pages 트리에서 page 선택 시 카메라 부드러운 이동 복원 — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
