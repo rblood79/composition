@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트 · DPI · Layers drag 라벨 · Tab 순환 · Preview 라우팅 · Preview 클릭 선택) — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트 · DPI · Layers drag 라벨 · Tab 순환 · Preview 라우팅 · Preview 클릭 선택 · Preview FileUpload endpoint) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
+- **Compare Mode 의 Preview 에서 FileUpload 가 endpoint 를 찾지 못하던 것.** 구 Preview 는 Data 패널의 API endpoint 를 받아 FileUpload · API 바인딩이 읽게 했는데, 새 Preview 채널은 collection 과 변수만 보내 실제 전송 (`uploadDryRun` 끔) 이 늘 `E_NO_ENDPOINT` 였다. endpoint 를 runtime 투영 (`toRuntimeApiEndpoint` — 서버 비밀 매핑 없음, 비밀이 필요한 헤더는 `{{secret.NAME}}` 참조뿐이라 Preview 는 그 헤더를 보내지 않고 `E_UNAUTHORIZED`) 으로 같이 보내고 Preview 가 `CollectionDataContext` 로 넘긴다 (사용자 결정 2026-10-03).
 - **Compare Mode 에서 Preview 의 요소를 클릭하면 Canvas 에서 선택되던 것** (⌘ · Ctrl 클릭은 선택에 넣고 빼기) 이 돌아왔다.
 - **Preview 라우팅.** `/users/:id` 같은 `:param` 경로가 다시 맞고 (고정 경로 우선 · `?query` 무시), 맞는 page 가 없는 링크 · navigate 는 프로젝트의 `/404` page 로, 없으면 내장 「404 Page not found」 화면으로 간다 (전에는 조용히 무시). 새 모델의 Route 는 전체 경로라 상위 page 접두어 합성은 없다.
 - Layers 를 끌 때 레이어 이름 · 「레이어 N개」 미리보기, 여러 개 선택에서 Tab · ⇧Tab 으로 주 요소 순환.

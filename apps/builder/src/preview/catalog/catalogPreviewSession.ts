@@ -22,6 +22,8 @@ import type { CatalogThemeState } from "../../builder/catalogRuntime/theme";
 import { catalogBoundRows } from "../../builder/catalogRuntime/dataBinding";
 import {
   createRuntimeState,
+  type ApiEndpointDefinition,
+  type CollectionDataServices,
   type CollectionDataSource,
   type DispatchDeps,
   type RuntimeKeyValueStorage,
@@ -35,6 +37,22 @@ import {
   resolveCatalogRoute,
 } from "./catalogPreviewRoute";
 import type { LayoutEngineAPI } from "../../builder/workspace/canvas/wasm-bindings/layoutBridge";
+import { createCollectionEndpointExecutor } from "../../../../../packages/shared/src/collections/executeCollectionEndpoint";
+
+/**
+ * The Preview's data services: the API endpoints only (bound collections draw their rows through
+ * the root, not this context) — the old Preview's `createCollectionSnapshotServices` endpoint half.
+ */
+export function catalogPreviewDataServices(
+  endpoints: ApiEndpointDefinition[],
+): CollectionDataServices {
+  return {
+    apiEndpointService: {
+      getApiEndpoints: () => endpoints,
+      executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
+    },
+  };
+}
 
 export interface CatalogPreviewSessionOptions {
   /** Ask the Builder for a snapshot (`window.parent.postMessage(request, origin)`). */
@@ -75,6 +93,11 @@ export class CatalogPreviewSession {
   private collections: readonly CollectionDataSource[] = [];
   /** The Builder's project variables (the data store's, H1). */
   private variables: readonly VariableDef[] = [];
+  /**
+   * The Builder's API endpoints as the shared components read them (`CollectionDataContext`):
+   * FileUpload resolves its endpoint id here, an API-bound collection runs its endpoint.
+   */
+  private services: CollectionDataServices = catalogPreviewDataServices([]);
   private state: RuntimeStateHandle | undefined;
   private version = 0;
   private readonly listeners = new Set<() => void>();
@@ -109,6 +132,10 @@ export class CatalogPreviewSession {
   get graph(): CatalogGraph | undefined {
     return this.receiver.graph;
   }
+  /** The data services the Preview's components read (a new object when the Builder sends data). */
+  get dataServices(): CollectionDataServices {
+    return this.services;
+  }
   /** Changes whenever what the view shows may change (a `useSyncExternalStore` snapshot). */
   getVersion = (): number => this.version;
   subscribe = (listener: () => void): (() => void) => {
@@ -139,6 +166,9 @@ export class CatalogPreviewSession {
       this.collections = data.collections as readonly CollectionDataSource[];
       this.variables = (data.variables ??
         []) as unknown as readonly VariableDef[];
+      this.services = catalogPreviewDataServices(
+        (data.apiEndpoints ?? []) as unknown as ApiEndpointDefinition[],
+      );
       this.syncDefinitions();
       if (this.currentRoot) {
         const errors = [

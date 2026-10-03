@@ -1,4 +1,10 @@
-import { Fragment, useEffect, useSyncExternalStore } from "react";
+import {
+  Fragment,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
+import { CollectionDataContext } from "@composition/shared";
 import { ToastProvider, useToast } from "@composition/shared/components";
 import { createRoot } from "react-dom/client";
 import { buildCodeCatalogLibrary } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -76,6 +82,22 @@ export function CatalogPreviewView({
     <Fragment key={`${rootKey(root)}:${record}`}>
       {renderCatalogDom(root, record, { slotMode: "page", runtime })}
     </Fragment>
+  );
+}
+
+/** The Builder's data services (API endpoints) for the Preview's components (FileUpload …). */
+export function CatalogPreviewDataProvider({
+  session,
+  children,
+}: {
+  session: CatalogPreviewSession;
+  children: ReactNode;
+}) {
+  useSyncExternalStore(session.subscribe, session.getVersion);
+  return (
+    <CollectionDataContext.Provider value={session.dataServices}>
+      {children}
+    </CollectionDataContext.Provider>
   );
 }
 
@@ -195,7 +217,9 @@ export async function startCatalogPreview(): Promise<void> {
     <PreviewLocale>
       <ToastProvider position="bottom-right">
         <CatalogPreviewToasts toast={toast} />
-        <CatalogPreviewView session={session} runtime={runtime} />
+        <CatalogPreviewDataProvider session={session}>
+          <CatalogPreviewView session={session} runtime={runtime} />
+        </CatalogPreviewDataProvider>
       </ToastProvider>
     </PreviewLocale>,
   );

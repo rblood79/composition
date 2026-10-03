@@ -7,6 +7,7 @@ import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
 import { toProjectVariableDefs, useDataStore } from "../../../stores/data";
 import { runAutoPolicyEndpoints } from "../../../panels/datatable/hooks/useExecutionPolicyScheduler";
+import { toRuntimeApiEndpoint } from "@composition/shared";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../../packages/shared/src/catalog/preview/protocol";
 
 /** The collections as the Preview reads them (the old Preview channel's projection). */
@@ -28,8 +29,9 @@ const PREVIEW_PANE_ID = "workspace-compare-panel-css";
  * Builder side of the payload is the workspace's Preview channel (`attachPreview`): the iframe's `PREVIEW_READY` (this
  * frame's window, this origin — the old bootstrap check) sends a snapshot and the editor's page,
  * then each step's delta goes once per frame. A snapshot request is taken only from this frame.
- * The data store's collections and project variables go with the snapshot and on each change
- * (bound rows, `{{ }}` values — H1).
+ * The data store's collections, project variables and API endpoints (runtime projection, secret
+ * references only) go with the snapshot and on each change (bound rows, `{{ }}` values, FileUpload
+ * endpoints — H1).
  */
 export function CatalogPreviewFrame({
   workspace,
@@ -58,17 +60,21 @@ export function CatalogPreviewFrame({
           version: CATALOG_PREVIEW_PAYLOAD_VERSION,
           collections: previewCollections(),
           variables: toProjectVariableDefs(useDataStore.getState().variables),
+          apiEndpoints: [...useDataStore.getState().apiEndpoints.values()].map(
+            toRuntimeApiEndpoint,
+          ),
         },
         origin,
       );
     const offData = useDataStore.subscribe(
-      (store) => [store.collections, store.variables] as const,
+      (store) =>
+        [store.collections, store.variables, store.apiEndpoints] as const,
       () => {
         if (ready) sendData();
       },
       {
         equalityFn: (left, right) =>
-          left[0] === right[0] && left[1] === right[1],
+          left[0] === right[0] && left[1] === right[1] && left[2] === right[2],
       },
     );
     const onMessage = (event: MessageEvent) => {

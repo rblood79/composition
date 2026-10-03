@@ -127,7 +127,10 @@ export function parseCatalogPreviewView(
  * Builder → Preview: the data store's collections (H1 — rows never enter the document), sent when
  * the Preview is ready and whenever they change. Bound collections draw their rows from these.
  * Each item is the old Preview channel's collection projection (definition, mock rows, runtime
- * rows); endpoint secrets never travel.
+ * rows). The API endpoints go as their runtime projection (`toRuntimeApiEndpoint` — no server
+ * secret mapping; a header that needs a secret holds only its `{{secret.NAME}}` reference), so a
+ * FileUpload or an API-bound collection in the Preview reaches its endpoint as in the old Preview
+ * (user decision 2026-10-03).
  */
 export interface CatalogPreviewDataMessage {
   readonly type: "CATALOG_DATA";
@@ -135,6 +138,8 @@ export interface CatalogPreviewDataMessage {
   readonly collections: readonly Readonly<Record<string, unknown>>[];
   /** Project variables (the data store's, H1 — `VariableDef` shape); absent = none. */
   readonly variables?: readonly Readonly<Record<string, unknown>>[];
+  /** The API endpoints (`ApiEndpointDefinition` runtime projection); absent = none. */
+  readonly apiEndpoints?: readonly Readonly<Record<string, unknown>>[];
 }
 
 export function parseCatalogPreviewData(
@@ -146,7 +151,9 @@ export function parseCatalogPreviewData(
     Array.isArray(value.collections) &&
     value.collections.every(isRecord) &&
     (value.variables === undefined ||
-      (Array.isArray(value.variables) && value.variables.every(isRecord)))
+      (Array.isArray(value.variables) && value.variables.every(isRecord))) &&
+    (value.apiEndpoints === undefined ||
+      (Array.isArray(value.apiEndpoints) && value.apiEndpoints.every(isRecord)))
     ? (value as unknown as CatalogPreviewDataMessage)
     : null;
 }

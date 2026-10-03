@@ -34,6 +34,7 @@ import {
   catalogPreviewLinkClick,
   catalogPreviewSelectClick,
   catalogPreviewRuntime,
+  CatalogPreviewDataProvider,
   CatalogPreviewView,
 } from "../catalogPreviewApp";
 import {
@@ -45,7 +46,10 @@ import {
   catalogCollectionId,
 } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
-import type { CollectionDataSource } from "@composition/shared";
+import {
+  useCollectionDataServices,
+  type CollectionDataSource,
+} from "@composition/shared";
 import { matchCatalogRoute, resolveCatalogRoute } from "../catalogPreviewRoute";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
@@ -950,6 +954,61 @@ describe("ADR-248 4e-6 Preview entry", () => {
     ).toEqual([message.identity]);
     workspace.selectRecords([message.identity], { additive: true });
     expect(workspace.session.getSnapshot().selection).toEqual([]);
+    view.unmount();
+  });
+
+  it("the Builder's API endpoints reach the Preview's components (FileUpload resolves its endpoint)", async () => {
+    const { session, channel } = await open();
+    channel.setView(HOME);
+    channel.onReady();
+    const endpoint = {
+      id: "api_upload",
+      name: "Upload",
+      baseUrl: "https://files.example.test",
+      path: "/tus",
+      method: "POST",
+      headers: [{ key: "Authorization", value: "{{secret.UPLOAD}}", enabled: true }],
+      uploadDryRun: false,
+    };
+    session.receive({
+      type: "CATALOG_DATA",
+      version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+      collections: [],
+      apiEndpoints: [endpoint],
+    });
+    expect(
+      session.dataServices.apiEndpointService?.getApiEndpoints(),
+    ).toEqual([endpoint]);
+    // A malformed endpoint list is not data (the services stay as they were).
+    session.receive({
+      type: "CATALOG_DATA",
+      version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+      collections: [],
+      apiEndpoints: ["api_upload"],
+    });
+    expect(
+      session.dataServices.apiEndpointService?.getApiEndpoints(),
+    ).toEqual([endpoint]);
+    let seen: readonly unknown[] | undefined;
+    function Probe() {
+      seen = useCollectionDataServices().apiEndpointService?.getApiEndpoints();
+      return null;
+    }
+    const view = render(
+      <CatalogPreviewDataProvider session={session}>
+        <Probe />
+      </CatalogPreviewDataProvider>,
+    );
+    expect(seen).toEqual([endpoint]);
+    // A later message without endpoints clears them (the Builder deleted the last one).
+    act(() => {
+      session.receive({
+        type: "CATALOG_DATA",
+        version: CATALOG_PREVIEW_PAYLOAD_VERSION,
+        collections: [],
+      });
+    });
+    expect(seen).toEqual([]);
     view.unmount();
   });
 });
