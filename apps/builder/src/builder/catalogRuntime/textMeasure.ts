@@ -14,6 +14,10 @@ import {
 } from "../workspace/canvas/skia/initCanvasKit";
 import type { CatalogTextMeasure } from "./compositionRoot";
 import { catalogFontFamilies, catalogTextBreaksWords } from "./boxModel";
+import {
+  collapsesSegmentBreaks,
+  transformSegmentBreaks,
+} from "../workspace/canvas/utils/textWhiteSpace";
 
 type Font = Parameters<CatalogTextMeasure>[1];
 
@@ -109,11 +113,38 @@ function paragraphMetrics(
  * (ceil, the engine's content-box scalars; `exactWidth` unrounded for single-line labels) and one
  * line box; with `maxWidth` the `white-space: normal` wrapped height.
  */
-export const catalogTextMeasure: CatalogTextMeasure = (
-  text,
-  font,
-  maxWidth,
-) => {
+export const catalogTextMeasure: CatalogTextMeasure = (raw, font, maxWidth) => {
+  // CSS white-space processing (the paint's paragraph follows the same rule, ADR-027): under
+  // `normal` / `nowrap` a line break is one space; under the `pre` family it is a hard break, so
+  // each line is measured on its own (`pre` never wraps) — the box grows with the lines.
+  if (collapsesSegmentBreaks(font.whiteSpace)) {
+    return measureOneBlock(transformSegmentBreaks(raw), font, maxWidth);
+  }
+  if (!raw.includes("\n")) return measureOneBlock(raw, font, maxWidth);
+  const lineHeight =
+    font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
+  const lines = raw.split("\n");
+  const lineWidth = font.whiteSpace === "pre" ? undefined : maxWidth;
+  let height = 0;
+  let width = 0;
+  let minWidth = 0;
+  for (const line of lines) {
+    const metrics = measureOneBlock(line || " ", font, lineWidth);
+    height += line ? metrics.height : (lineHeight ?? metrics.height);
+    width = Math.max(width, metrics.width);
+    minWidth = Math.max(minWidth, metrics.minWidth ?? metrics.width);
+  }
+  return maxWidth === undefined
+    ? { width, exactWidth: width, minWidth, height }
+    : { width: maxWidth, height };
+};
+
+/** One block of text with no hard breaks (the measure before white-space was read). */
+const measureOneBlock = (
+  text: string,
+  font: Parameters<CatalogTextMeasure>[1],
+  maxWidth: number | undefined,
+): ReturnType<CatalogTextMeasure> => {
   const lineHeight =
     font.lineHeight > 0 ? font.fontSize * font.lineHeight : undefined;
   const paragraph = paragraphMetrics(text, font, maxWidth);

@@ -90,6 +90,7 @@ function TextField({
           start.key,
           start.text,
           fieldRef.current?.value ?? start.text,
+          start.record?.visual.whiteSpace,
         );
       if (command) workspace.execute(command);
     } finally {

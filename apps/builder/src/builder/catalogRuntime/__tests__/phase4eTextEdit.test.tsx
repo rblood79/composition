@@ -10,7 +10,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogTextEditor } from "../../workspace/canvas/catalog/CatalogTextEditor";
-import { catalogTextKey } from "../canvasText";
+import { catalogTextKey, committedWhiteSpace } from "../canvasText";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -106,7 +106,32 @@ describe("ADR-248 Phase 4e-3b inline text editing", () => {
     expect(text()).toEqual({ kind: "set", value: "Hello\nworld" });
     expect(workspace.runtime.graph.revision).toBe(revision + 1);
     expect(field()).toBeNull();
+    // The line break would collapse under `normal`: the same step lifts white-space (the old
+    // editor's rule), so it shows; undo takes both back.
+    const visual = () => {
+      const entry = workspace.runtime.graph.getEntry(HEADING);
+      return entry?.kind === "node" ? entry.visual : {};
+    };
+    expect(visual()).toMatchObject({
+      whiteSpace: { kind: "set", value: "pre-wrap" },
+    });
     workspace.undo();
     expect(text()).toEqual({ kind: "set", value: "Hello" });
+    expect(visual()).not.toHaveProperty("whiteSpace");
+  });
+
+  it("a committed text without a line break, or one already pre-formatted, leaves white-space alone", async () => {
+    const { workspace, record, field } = await open();
+    const visual = () => {
+      const entry = workspace.runtime.graph.getEntry(HEADING);
+      return entry?.kind === "node" ? entry.visual : {};
+    };
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    fireEvent.change(field()!, { target: { value: "Hello there" } });
+    act(() => void fireEvent.blur(field()!));
+    expect(visual()).not.toHaveProperty("whiteSpace");
+    expect(committedWhiteSpace("pre-line", "a\nb")).toBeNull();
+    expect(committedWhiteSpace("nowrap", "a\nb")).toBe("pre");
+    expect(committedWhiteSpace(undefined, "a\nb")).toBe("pre-wrap");
   });
 });

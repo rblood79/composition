@@ -528,6 +528,8 @@ export interface CatalogTextFont {
   letterSpacing?: number;
   wordBreak?: string;
   overflowWrap?: string;
+  /** CSS `white-space`: whether line breaks in the text collapse (normal · nowrap) or hold. */
+  whiteSpace?: string;
 }
 
 /** Rust intrinsic content box of a calendar header row (`calendarHeaderBox`). */
@@ -599,6 +601,9 @@ function textLeaf(
         : {}),
       ...(typography.overflowWrap !== undefined
         ? { overflowWrap: typography.overflowWrap }
+        : {}),
+      ...(typography.whiteSpace !== undefined
+        ? { whiteSpace: typography.whiteSpace }
         : {}),
     },
     singleLine:
@@ -1067,7 +1072,9 @@ export class CatalogCompositionRoot {
       return undefined;
     const orderOf = (id: string) =>
       Number(this.records.get(id)?.layout.order ?? 0) || 0;
-    return record.children.some((id) => orderOf(id) !== 0) ? orderOf : undefined;
+    return record.children.some((id) => orderOf(id) !== 0)
+      ? orderOf
+      : undefined;
   }
   /** The engine children of every record an apply left out of CSS `order` (both maps final). */
   private applyOrders(): void {

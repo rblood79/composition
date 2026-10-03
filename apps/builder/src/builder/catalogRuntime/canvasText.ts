@@ -2,6 +2,7 @@ import { setFields } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
+import { collapsesSegmentBreaks } from "../workspace/canvas/utils/textWhiteSpace";
 
 /** Props that hold an element's own text, in the order the inline editor looks for one. */
 const TEXT_KEYS = ["children", "label", "value"] as const;
@@ -30,17 +31,38 @@ export function catalogTextOf(
   return typeof value === "string" ? value : "";
 }
 
-/** The command that commits an inline text edit (`undefined` = the text did not change). */
+/**
+ * The command that commits an inline text edit (`undefined` = the text did not change). A line
+ * break typed into a `normal` / `nowrap` text would be saved but collapsed by CSS and the Canvas
+ * alike, so the commit lifts `white-space` to `pre-wrap` (`nowrap` → `pre`) when the new text has
+ * one — the old editor's `resolveCommittedWhiteSpace` (user live 2026-09-20: "shift+enter 로
+ * 줄바꿈이 동작하지 않음"). `whiteSpace` is the record's resolved value.
+ */
 export function catalogTextCommand(
   item: CatalogSelectionItem,
   key: string,
   before: string,
   after: string,
+  whiteSpace?: unknown,
 ): CatalogCommand | undefined {
   if (after === before) return undefined;
+  const lifted = committedWhiteSpace(whiteSpace, after);
   return setFields({
     targets: [item.target],
     props: { [key]: { kind: "set", value: after } },
+    ...(lifted
+      ? { visual: { whiteSpace: { kind: "set", value: lifted } } }
+      : {}),
     label: "Edit text",
   });
+}
+
+/** `pre-wrap` / `pre` when the committed text's line breaks would otherwise collapse, else null. */
+export function committedWhiteSpace(
+  whiteSpace: unknown,
+  committedText: string,
+): "pre-wrap" | "pre" | null {
+  if (!committedText.includes("\n")) return null;
+  if (!collapsesSegmentBreaks(whiteSpace as string | undefined)) return null;
+  return whiteSpace === "nowrap" ? "pre" : "pre-wrap";
 }
