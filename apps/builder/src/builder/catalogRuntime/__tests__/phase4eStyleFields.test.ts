@@ -13,6 +13,7 @@ import {
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { newCatalogProjectDocument } from "../project";
 import {
+  BORDER_COMPANION_COLOR,
   catalogAuthoredValues,
   CatalogStyleValueError,
   catalogStyleView,
@@ -222,5 +223,60 @@ describe("ADR-248 Phase 4e-4d style fields", () => {
         sizing: catalogAuthoredValues(entry.sizing),
       }),
     ).toEqual({ height: "40px" });
+  });
+
+  // The old store's border companion (2026-07-15): CSS draws no border until style, width and
+  // color are all set, and the Canvas stroke refuses a width without a color. Live 2026-10-03: a
+  // width-only edit on a Frame blanked the page (`CATALOG_CANVAS_STROKE_COLOR_REQUIRED`).
+  it("a border edit fills in the border axes the node still lacks", () => {
+    expect(
+      catalogStyleWritesOf({ borderWidth: "3px" }, { visual: {} }),
+    ).toEqual({
+      visual: {
+        borderStyle: set("solid"),
+        borderColor: set(BORDER_COMPANION_COLOR),
+        borderWidth: set(3),
+      },
+      layout: {},
+      sizing: {},
+    });
+    expect(
+      catalogStyleWritesOf({ borderColor: "#ff0000" }, { visual: {} }).visual,
+    ).toEqual({
+      borderStyle: set("solid"),
+      borderWidth: set(1),
+      borderColor: set("#ff0000"),
+    });
+    // Axes the node already has (resolved visual) are left alone.
+    expect(
+      catalogStyleWritesOf(
+        { borderColor: "#ff0000" },
+        { visual: { borderWidth: 2, borderStyle: "dashed" } },
+      ).visual,
+    ).toEqual({ borderColor: set("#ff0000") });
+    // Side longhands count as a width; the shorthand is not added over them.
+    expect(
+      catalogStyleWritesOf(
+        { borderTopWidth: "2px", borderRightWidth: "0px" },
+        { visual: { borderColor: "#000000" } },
+      ).visual,
+    ).toEqual({
+      borderStyle: set("solid"),
+      borderTopWidth: set(2),
+      borderRightWidth: set(0),
+    });
+    // `none` hides the border: nothing is added. A removal adds nothing either.
+    expect(
+      catalogStyleWritesOf({ borderStyle: "none" }, { visual: {} }).visual,
+    ).toEqual({ borderStyle: set("none") });
+    expect(
+      catalogStyleWritesOf({ borderColor: "" }, { visual: {} }).visual,
+    ).toEqual({ borderColor: REMOVE });
+    // A non-border edit is untouched.
+    expect(catalogStyleWritesOf({ opacity: "0.5" }, { visual: {} })).toEqual({
+      visual: { opacity: set(0.5) },
+      layout: {},
+      sizing: {},
+    });
   });
 });

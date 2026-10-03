@@ -332,6 +332,7 @@ function writeCommands(
   input: AiElementWrite,
   accepted: ReadonlySet<string>,
   fontSize: number | undefined,
+  visual?: Readonly<Record<string, unknown>>,
 ): CatalogCommand[] {
   const commands: CatalogCommand[] = [];
   const props = input.props ?? {};
@@ -358,7 +359,7 @@ function writeCommands(
       setFields({
         targets,
         ...(breakpoint === "desktop" ? {} : { breakpoint }),
-        ...catalogStyleWritesOf(styles, { fontSize }),
+        ...catalogStyleWritesOf(styles, { fontSize, visual }),
         label: "AI: style",
       } as Parameters<typeof setFields>[0]),
     );
@@ -591,6 +592,7 @@ export function createCatalogAiWriteHost(
             input,
             acceptedKeys(workspace, target),
             typeof fontSize === "number" ? fontSize : undefined,
+            workspace.root.domInputs.get(id)?.visual,
           ),
           ...canonical.commands,
         ]);

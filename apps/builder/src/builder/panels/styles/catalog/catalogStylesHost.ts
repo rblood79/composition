@@ -283,6 +283,7 @@ export function createCatalogStylesHost(
             ...(breakpoint === "desktop" ? {} : { breakpoint }),
             ...catalogStyleWritesOf(fields, {
               fontSize: fontSizeOf(workspace, items[0].identity),
+              visual: workspace.root.domInputs.get(items[0].identity)?.visual,
             }),
             label: "Edit style",
           } as Parameters<typeof setFields>[0]),

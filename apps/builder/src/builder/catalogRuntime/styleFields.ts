@@ -340,16 +340,74 @@ export function catalogStylePreviewPatch(writes: CatalogStyleFieldWrites): {
   };
 }
 
-/** Several CSS keys' edits merged (later keys win on the same field). */
+/**
+ * Several CSS keys' edits merged (later keys win on the same field). `visual` is the node's current
+ * resolved visual: a border edit fills in the border axes it leaves unset (below).
+ */
 export function catalogStyleWritesOf(
   styles: Readonly<Record<string, string | number>>,
-  context: { fontSize?: number } = {},
+  context: {
+    fontSize?: number;
+    visual?: Readonly<Record<string, unknown>>;
+  } = {},
 ): CatalogStyleFieldWrites {
   // A font size edited in the same batch is the one a px line height relates to.
   const fontSize = cssPx(styles.fontSize ?? "") ?? context.fontSize;
-  return Object.entries(styles)
+  const writes = Object.entries(styles)
     .map(([key, value]) => catalogStyleWrites(key, value, { fontSize }))
     .reduce(merge, {});
+  return catalogBorderCompanionWrites(writes, context.visual ?? {});
+}
+
+const BORDER_WIDTH_FIELDS = [
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+] as const;
+const BORDER_FIELDS = new Set<string>([
+  ...BORDER_WIDTH_FIELDS,
+  "borderColor",
+  "borderStyle",
+]);
+/** The old store's companion defaults — `lightColors.border` (neutral-300), 1 px, solid. */
+export const BORDER_COMPANION_COLOR = "#d4d4d4";
+const BORDER_COMPANION_WIDTH = 1;
+
+/**
+ * A border edit opens the border: CSS draws nothing until `border-style`, a width and a color are
+ * all set, and the Canvas stroke needs a color for a width. The old store wrote the other axes'
+ * defaults with the first one (`borderCompanionDefaults`, 2026-07-15); the catalog write does the
+ * same against the node's resolved visual — only what is still unset after this edit is added, a
+ * `none` style (hide the border) and removals add nothing, and a width edit by sides (longhands)
+ * never adds the shorthand width.
+ */
+export function catalogBorderCompanionWrites(
+  writes: CatalogStyleFieldWrites,
+  visual: Readonly<Record<string, unknown>>,
+): CatalogStyleFieldWrites {
+  const edits = Object.entries(writes.visual ?? {}).filter(
+    ([key, write]) => BORDER_FIELDS.has(key) && write?.kind === "set",
+  );
+  if (!edits.length) return writes;
+  const after = (key: string): unknown => {
+    const write = writes.visual?.[key as VisualField];
+    if (write?.kind === "set") return write.value;
+    if (write?.kind === "remove") return undefined;
+    return visual[key];
+  };
+  if (after("borderStyle") === "none") return writes;
+  const companions: Partial<Record<VisualField, WriteValue<AuthoredValue>>> =
+    {};
+  if (after("borderStyle") == null) companions.borderStyle = set("solid");
+  if (BORDER_WIDTH_FIELDS.every((key) => after(key) == null))
+    companions.borderWidth = set(BORDER_COMPANION_WIDTH);
+  if (after("borderColor") == null)
+    companions.borderColor = set(BORDER_COMPANION_COLOR);
+  return Object.keys(companions).length
+    ? { ...writes, visual: { ...companions, ...writes.visual } }
+    : writes;
 }
 
 /** Authored write maps (`{kind:"set", value}` per key) → the set values (removes and masks drop). */

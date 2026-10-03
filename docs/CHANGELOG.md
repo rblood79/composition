@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Styles Border 에서 폭이나 색 하나만 바꾸면 테두리가 안 보이거나 Canvas 가 page 를 못 그리던 것.** 구 앱은 테두리 축 하나를 처음 쓸 때 나머지 (폭 1 · solid · 색 #d4d4d4) 를 같이 기록했는데, 전환 때 빠졌다 — 색만 고르면 아무것도 안 보이고, 폭만 올리면 Canvas 가 「could not draw this edit」 와 함께 page 를 비웠다. Styles 패널 · AI 도구의 스타일 쓰기가 노드의 현재 값에 없는 테두리 축을 같이 쓴다 (`none` 과 제거는 제외, 변별 폭은 shorthand 를 더하지 않음). 위치: `apps/builder/src/builder/catalogRuntime/styleFields.ts`.
 - **Navigator Pages 트리에서 page 를 고르면 카메라가 그 page 로 한 번에 건너뛰던 것.** 구 앱은 현재 배율 그대로 page frame 을 화면 가운데로 300 ms ease-out 으로 옮겼는데, Phase 4e 전환 때 목표 위치 계산만 옮기고 애니메이션이 빠졌다. 애니메이션을 복원했다 — "programmatic" viewport session 으로 돌아 wheel · drag 를 시작하면 그 자리에서 멈춘다. 위치: `apps/builder/src/builder/workspace/canvas/viewport/animatePan.ts`. live (dev, 새 프로젝트 2 page): 수정 전 y −697 → 86 한 프레임, 수정 후 34 프레임에 걸쳐 감속 이동.
 
 ## [Catch-up 2026-09-30 ~ 2026-10-03] - 2026-10-03
