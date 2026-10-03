@@ -2,7 +2,6 @@
 description: Zustand 상태 관리 관련 파일 작업 시 적용
 paths:
   - "**/stores/**"
-  - "apps/builder/src/adapters/canonical/**"
 ---
 
 # 상태 관리 규칙
