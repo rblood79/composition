@@ -6,6 +6,10 @@ import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogBoxModel } from "./boxModel";
 import { notifyBodyLocked, notifyOperationRefused } from "./operationNotice";
+import {
+  readCatalogClipboardFromSystem,
+  writeCatalogClipboardToSystem,
+} from "./clipboardText";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import {
   alignElements,
@@ -57,8 +61,10 @@ export function catalogMenuHost(
     newId: workspace.newId,
     clipboard: {
       get: () => workspace.clipboard,
+      // The copy also goes to the system clipboard (paste in another tab · project · after a reload).
       set: (value) => {
         workspace.clipboard = value;
+        writeCatalogClipboardToSystem(value);
       },
     },
   };
@@ -343,14 +349,27 @@ export function planCatalogShortcut(
         : refusedPlan("delete");
     }
     case "paste": {
-      const paste = planMenu("paste");
-      if (paste) return paste;
-      if (!workspace.clipboard) return undefined;
-      const body = pageBodyRecord(workspace);
-      const item = catalogCanvasMenuItems(host, "canvas-empty", body).find(
-        (entry) => entry.kind === "action" && entry.id === "paste",
-      );
-      return item?.kind === "action" ? () => void item.run() : undefined;
+      // The in-app copy's paste: after the selection, else into the page body.
+      const pasteNow = (): CatalogShortcutPlan | undefined => {
+        const paste = planMenu("paste");
+        if (paste) return paste;
+        if (!workspace.clipboard) return undefined;
+        const body = pageBodyRecord(workspace);
+        const item = catalogCanvasMenuItems(host, "canvas-empty", body).find(
+          (entry) => entry.kind === "action" && entry.id === "paste",
+        );
+        return item?.kind === "action" ? () => void item.run() : undefined;
+      };
+      // The system clipboard first (another tab · project · after a reload — the old paste): a
+      // readable copy of ours replaces the in-app one; other text pastes nothing; no API or a
+      // denied read falls back to the in-app copy.
+      if (!globalThis.navigator?.clipboard?.readText) return pasteNow();
+      return () =>
+        void readCatalogClipboardFromSystem().then((external) => {
+          if (external === null) return;
+          if (external) workspace.clipboard = external;
+          pasteNow()?.();
+        });
     }
     case "duplicate":
       return planEdit("duplicate");

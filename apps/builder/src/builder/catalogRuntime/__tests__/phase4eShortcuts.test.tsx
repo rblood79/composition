@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -11,6 +11,11 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { useCatalogGlobalShortcuts } from "../../main/useCatalogGlobalShortcuts";
+import {
+  CATALOG_CLIPBOARD_PREFIX,
+  parseCatalogClipboard,
+  serializeCatalogClipboard,
+} from "../clipboardText";
 import { notifyInsertRelocated } from "../operationNotice";
 import {
   catalogPaletteDefinitionId,
@@ -212,6 +217,56 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     });
     relocated!.action!.onClick();
     expect(children("list")).toHaveLength(3);
+  });
+
+  // The old paste went through the system clipboard: another tab or project, and after a reload.
+  it("copy writes the system clipboard; paste reads it first (ours pastes, other text pastes nothing, no API = in-app copy)", async () => {
+    const { workspace, record, children } = await open();
+    let system: string | null = null;
+    vi.stubGlobal("navigator", {
+      ...globalThis.navigator,
+      clipboard: {
+        writeText: async (text: string) => {
+          system = text;
+        },
+        readText: async () => system ?? "",
+      },
+    });
+    try {
+      workspace.selectRecords([record("c")]);
+      expect(runCatalogShortcut(workspace, "copy")).toBe(true);
+      await settle();
+      expect(system).not.toBeNull();
+      const external = parseCatalogClipboard(system);
+      expect(external?.rootIds).toEqual([id("c")]);
+      expect(serializeCatalogClipboard(external!)).toBe(system);
+      expect(parseCatalogClipboard("hello")).toBeUndefined();
+      expect(
+        parseCatalogClipboard(CATALOG_CLIPBOARD_PREFIX + "{"),
+      ).toBeUndefined();
+
+      // Another "tab": a fresh workspace with nothing copied in-app pastes the system copy.
+      const other = await open();
+      other.workspace.session.clearSelection();
+      expect(other.children(BODY)).toHaveLength(1);
+      expect(runCatalogShortcut(other.workspace, "paste")).toBe(true);
+      await settle();
+      await settle();
+      expect(other.children(BODY)).toHaveLength(2);
+
+      // Other text on the system clipboard since: nothing pastes (the old rule).
+      system = "some other text";
+      runCatalogShortcut(other.workspace, "paste");
+      await settle();
+      await settle();
+      expect(other.children(BODY)).toHaveLength(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    // No clipboard API: the in-app copy pastes at once.
+    workspace.session.clearSelection();
+    expect(runCatalogShortcut(workspace, "paste")).toBe(true);
+    expect(children(BODY)).toHaveLength(2);
   });
 
   it("group · ungroup · z-order", async () => {
