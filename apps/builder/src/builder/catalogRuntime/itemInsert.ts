@@ -1,6 +1,7 @@
 import {
   COLLECTION_FAMILIES,
   GROUP_ITEM_TYPES,
+  GROUP_ITEMS_WRAPPER,
   insertCollectionItem,
   insertGroupItem,
   insertTableColumns,
@@ -65,8 +66,36 @@ const parentOf = (position: CatalogPosition): NodeParent =>
         address: position.target.address,
       };
 
+/** ADR-251: items wrapper type → its group type (RadioItems → RadioGroup). */
+const WRAPPER_GROUP: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(GROUP_ITEMS_WRAPPER).map(([group, wrapper]) => [
+    wrapper,
+    group,
+  ]),
+);
+
+/**
+ * The group node an items wrapper position belongs to (`insertGroupItem` takes a node): the
+ * wrapper of a group instance's template, or an owned group's own wrapper node.
+ */
+function wrapperGroupHost(
+  graph: CatalogGraph,
+  position: CatalogPosition,
+): NodeId | undefined {
+  const { target } = position;
+  if (target.kind === "descendant")
+    return target.address.instances.length === 1 &&
+      target.address.templatePath.length === 2
+      ? target.ownerId
+      : undefined;
+  const owner = graph.ownerOf(target.id);
+  const node = owner ? graph.getEntry(owner) : undefined;
+  return node?.kind === "node" ? node.id : undefined;
+}
+
 /** The item types a position takes with "+" (the old slot host rules over the catalog families). */
 function itemTypesOf(
+  graph: CatalogGraph,
   type: string,
   position: CatalogPosition,
 ): readonly string[] {
@@ -75,6 +104,10 @@ function itemTypesOf(
   const group = GROUP_ITEM_TYPES[type];
   // A group's items go to an owned group or a group instance (`insertGroupItem` takes a node).
   if (group) return position.target.kind === "node" ? group : [];
+  // ADR-251: the items wrapper adds its group's items too (TagList adds Tags).
+  const wrapped = WRAPPER_GROUP[type];
+  if (wrapped)
+    return wrapperGroupHost(graph, position) ? GROUP_ITEM_TYPES[wrapped] : [];
   const types = new Set<string>();
   for (const family of COLLECTION_FAMILIES) {
     if ((family.list ?? family.owner) === type) {
@@ -93,9 +126,16 @@ export function catalogItemInsertChoices(
 ): CatalogItemInsertChoice[] {
   const { graph, readModel, newId } = host;
   const type = typeOf(graph, position.definitionId);
-  const types = itemTypesOf(type, position);
+  const types = itemTypesOf(graph, type, position);
   if (!types.length) return [];
-  const rows = readModel.childRows(position);
+  const own = readModel.childRows(position);
+  // ADR-251: a group's items are its wrapper's children.
+  const wrapperRow = GROUP_ITEMS_WRAPPER[type]
+    ? own.find(
+        (row) => typeOf(graph, row.definitionId) === GROUP_ITEMS_WRAPPER[type],
+      )
+    : undefined;
+  const rows = wrapperRow ? readModel.childRows(wrapperRow) : own;
   /** A sibling's definition for an item type (the shape the host shows), else the palette's. */
   const definitionFor = (
     itemType: string,
@@ -244,10 +284,16 @@ export function catalogItemInsertChoices(
         newId,
       });
     }
-    if (GROUP_ITEM_TYPES[type] && position.target.kind === "node") {
+    const groupHost =
+      GROUP_ITEM_TYPES[type] && position.target.kind === "node"
+        ? position.target.id
+        : WRAPPER_GROUP[type]
+          ? wrapperGroupHost(graph, position)
+          : undefined;
+    if (groupHost) {
       const item = entry(definitionFor(itemType), itemType);
       return insertGroupItem({
-        hostId: position.target.id,
+        hostId: groupHost,
         entries: [item],
         rootId: item.id,
         newId,

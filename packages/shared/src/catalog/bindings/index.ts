@@ -79,6 +79,8 @@ import { progressBarValueBinding } from "./ProgressBarValue.binding";
 import { progressCircleBinding } from "./ProgressCircle.binding";
 import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
+import { radioItemsBinding } from "./RadioItems.binding";
+import { checkboxItemsBinding } from "./CheckboxItems.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
@@ -197,6 +199,8 @@ export * from "./ProgressBarTrack.binding";
 export * from "./ProgressCircle.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
+export * from "./RadioItems.binding";
+export * from "./CheckboxItems.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Section.binding";
@@ -383,8 +387,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ③ selection
   Checkbox: checkboxBinding,
   CheckboxGroup: checkboxGroupBinding,
+  // ADR-251: 그룹의 항목 묶음 (TagList 동형 — 그룹 DOM 이 self-compose, 자기 rule 없음).
+  CheckboxItems: checkboxItemsBinding,
   Radio: radioBinding,
   RadioGroup: radioGroupBinding,
+  RadioItems: radioItemsBinding,
   Switch: switchBinding,
   Slider: sliderBinding,
   // ADR-912 SliderTrack: Slider compound 의 트랙 (배경 + value 막대 + thumb, Skia-전용 sub-part,

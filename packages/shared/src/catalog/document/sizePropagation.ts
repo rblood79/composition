@@ -10,8 +10,11 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
 > = {
   ToggleButtonGroup: ["ToggleButton"],
-  RadioGroup: ["Radio"],
-  CheckboxGroup: ["Checkbox"],
+  // ADR-251: group → items wrapper (internal `size`, never edited) → item.
+  RadioGroup: ["RadioItems"],
+  RadioItems: ["Radio"],
+  CheckboxGroup: ["CheckboxItems"],
+  CheckboxItems: ["Checkbox"],
   Radio: ["Label"],
   Checkbox: ["Label"],
   Slider: ["SliderTrack"],

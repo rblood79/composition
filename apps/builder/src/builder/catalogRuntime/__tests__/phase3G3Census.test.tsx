@@ -159,7 +159,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: 2,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -535,6 +535,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
       )}\n`,
     );
     console.info("[adr248-g3-census]", JSON.stringify(summary));
-    expect(types.length).toBe(130);
+    // ADR-251: + RadioItems · CheckboxItems (the group items wrappers).
+    expect(types.length).toBe(132);
   }, 120_000);
 });

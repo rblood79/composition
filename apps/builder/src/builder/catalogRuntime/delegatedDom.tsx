@@ -986,11 +986,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   checkboxgroup: {
     // The group label is read from the Label child; Checkbox children are composed by the group.
+    // ADR-251: the items sit in the CheckboxItems node — the shared `CheckboxGroup` renders its
+    // one `div.checkbox-items` around them, so the node itself is absorbed (TagGroup's TagList).
     ownsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) !== "Checkbox",
+      !["CheckboxItems", "Checkbox"].includes(catalogTypeName(root, child)),
+    absorbsChild: (child, _parent, root) =>
+      catalogTypeName(root, child) === "CheckboxItems",
     render: (input) => {
       const props = input.node.props;
-      const boxes = children(input).filter(
+      const items = childOf(input, "CheckboxItems");
+      const boxes = (items ? childrenOf(input.root, items) : []).filter(
         (child) => catalogTypeName(input.root, child) === "Checkbox",
       );
       const selected = boxes
@@ -1017,41 +1022,42 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           name: opt(props.name),
           errorMessage: opt(props.errorMessage),
         },
-        createElement(
-          "div",
-          { className: "checkbox-items" },
-          ...boxes.map((box) => {
-            const labels = childrenOf(input.root, box).filter(
-              (child) => catalogTypeName(input.root, child) === "Label",
-            );
-            return createElement(
-              Checkbox as ElementType,
-              {
-                key: box.id,
-                "data-catalog-id": box.id,
-                value: box.id,
-                isIndeterminate: bool(box.props.isIndeterminate),
-                isDisabled: bool(box.props.isDisabled),
-                // The item's resolved size: the group's (`CATALOG_SIZE_PROPAGATION`).
-                size: box.props.size || "md",
-              },
-              ...(labels.length
-                ? labels.map((label) => input.renderChild(label.id))
-                : typeof box.props.children === "string"
-                  ? [box.props.children]
-                  : []),
-            );
-          }),
-        ),
+        ...boxes.map((box) => {
+          const labels = childrenOf(input.root, box).filter(
+            (child) => catalogTypeName(input.root, child) === "Label",
+          );
+          return createElement(
+            Checkbox as ElementType,
+            {
+              key: box.id,
+              "data-catalog-id": box.id,
+              value: box.id,
+              isIndeterminate: bool(box.props.isIndeterminate),
+              isDisabled: bool(box.props.isDisabled),
+              // The item's resolved size: the group's (`CATALOG_SIZE_PROPAGATION`).
+              size: box.props.size || "md",
+            },
+            ...(labels.length
+              ? labels.map((label) => input.renderChild(label.id))
+              : typeof box.props.children === "string"
+                ? [box.props.children]
+                : []),
+          );
+        }),
       );
     },
   },
   radiogroup: {
+    // ADR-251: the items sit in the RadioItems node — the shared `RadioGroup` renders its one
+    // `div.radio-items` around them, so the node itself is absorbed.
     ownsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) !== "Radio",
+      !["RadioItems", "Radio"].includes(catalogTypeName(root, child)),
+    absorbsChild: (child, _parent, root) =>
+      catalogTypeName(root, child) === "RadioItems",
     render: (input) => {
       const props = input.node.props;
-      const radios = children(input).filter(
+      const items = childOf(input, "RadioItems");
+      const radios = (items ? childrenOf(input.root, items) : []).filter(
         (child) => catalogTypeName(input.root, child) === "Radio",
       );
       const selected = radios.find((radio) => radio.props.isSelected === true);
@@ -1080,11 +1086,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           name: opt(props.name),
           errorMessage: opt(props.errorMessage),
         },
-        createElement(
-          "div",
-          { className: "radio-items" },
-          ...radios.map((radio) => input.renderChild(radio.id)),
-        ),
+        ...radios.map((radio) => input.renderChild(radio.id)),
       );
     },
   },

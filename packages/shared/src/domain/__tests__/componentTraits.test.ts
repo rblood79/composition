@@ -234,6 +234,9 @@ describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () =>
         "ToggleButtonGroup",
         "TabList",
         "TabPanels",
+        // ADR-251: the group items wrappers.
+        "RadioItems",
+        "CheckboxItems",
       ]),
     );
   });
@@ -254,14 +257,11 @@ describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () =>
       TagList: ["Tag"],
       Breadcrumbs: ["Breadcrumb"],
       ToggleButtonGroup: ["ToggleButton"],
-      RadioGroup: ["Label", "Radio", "RadioItems", "Description", "FieldError"],
-      CheckboxGroup: [
-        "Label",
-        "Checkbox",
-        "CheckboxItems",
-        "Description",
-        "FieldError",
-      ],
+      // ADR-251: the items sit in the wrapper node (TagGroup > TagList).
+      RadioGroup: ["Label", "RadioItems", "Description", "FieldError"],
+      RadioItems: ["Radio"],
+      CheckboxGroup: ["Label", "CheckboxItems", "Description", "FieldError"],
+      CheckboxItems: ["Checkbox"],
       DisclosureGroup: ["Disclosure"],
       Slider: ["Label", "SliderOutput", "SliderTrack"],
       SliderTrack: ["SliderThumb"],

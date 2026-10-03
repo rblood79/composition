@@ -53,6 +53,7 @@ const NAMES = [
   ["Tree", { expandedKeys: "string[]" }],
   ["TreeItem", { children: "string" }],
   ["RadioGroup", { value: "string" }],
+  ["RadioItems", {}],
   ["Radio", { value: "string", isSelected: "boolean" }],
   ["ColorSwatchPicker", {}],
   ["ColorSwatch", { color: "string" }],
@@ -65,7 +66,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 1,
+    contractVersion: 2,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -100,9 +101,11 @@ const library = () =>
       tpl("tab1", "Tab", [], { id: "a", children: "Tab A" }),
       tpl("panels", "TabPanels", ["lib:template:panel1"]),
       tpl("panel1", "TabPanel", [], { itemId: "a" }),
-      tpl("group", "RadioGroup", ["lib:template:r1", "lib:template:r2"], {
+      // ADR-251: the Radios sit in the RadioItems wrapper.
+      tpl("group", "RadioGroup", ["lib:template:items"], {
         value: "option1",
       }),
+      tpl("items", "RadioItems", ["lib:template:r1", "lib:template:r2"]),
       tpl("r1", "Radio", [], { value: "option1", isSelected: true }),
       tpl("r2", "Radio", [], { value: "option2" }),
     ],
@@ -147,7 +150,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: 2,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -342,7 +345,8 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
   it("adds a selected Radio: unique value, siblings cleared, group value moves (owned and instance)", () => {
     const graph = graphOf(
       [
-        node("group", "RadioGroup", ["r1", "r2"], { value: "option1" }),
+        node("group", "RadioGroup", ["items"], { value: "option1" }),
+        node("items", "RadioItems", ["r1", "r2"]),
         node("r1", "Radio", [], { value: "option1", isSelected: true }),
         node("r2", "Radio", [], { value: "option2" }),
         node("choice", "Choice"),
@@ -360,18 +364,19 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
         newId: allocator(),
       }),
     );
-    expect(childProps(graph, "project:node:group", "value")).toEqual([
+    expect(childProps(graph, "project:node:items", "value")).toEqual([
       "option1",
       "option2",
       "option3",
     ]);
-    expect(childProps(graph, "project:node:group", "isSelected")).toEqual([
+    expect(childProps(graph, "project:node:items", "isSelected")).toEqual([
       false,
       undefined,
       true,
     ]);
     expect(props(graph, "project:node:group").value).toBe("option3");
-    // Instance host: the inherited selected Radio is cleared by a path patch.
+    // Instance host: the new Radio goes into the template wrapper (its items become the
+    // instance's own nodes) and the inherited selected Radio is cleared.
     run(
       graph,
       insertGroupItem({
@@ -382,10 +387,10 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
       }),
     );
     const choice = resolveCatalogNode(graph, "project:node:choice");
-    const radios = [
-      ...choice.children[0].children,
-      ...choice.children.slice(1),
-    ];
+    // Choice > RadioGroup root > RadioItems (filled) > the three Radios.
+    const wrapper = choice.children[0].children;
+    expect(wrapper.length).toBe(1);
+    const radios = wrapper[0].children;
     expect(radios.map((radio) => radio.props.isSelected)).toEqual([
       false,
       undefined,

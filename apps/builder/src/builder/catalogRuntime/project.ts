@@ -1,3 +1,4 @@
+import { LIBRARY_CONTRACT_VERSION } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
   CatalogDocument,
   CatalogLibrary,
@@ -74,7 +75,7 @@ export function newCatalogProjectDocument(options: {
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: LIBRARY_CONTRACT_VERSION,
     revision: 0,
     projectId: options.projectId,
     rootId: options.projectId,

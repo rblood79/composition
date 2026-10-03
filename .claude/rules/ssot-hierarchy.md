@@ -64,6 +64,8 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 - **축이 갈리는 사례 (2026-09-04 판정 A)**: `SelectValue` (Select·ComboBox·SearchField) 는 **style 축만** parent 소유다 — DOM 렌더러가 자식 `children`/`placeholder` 는 읽고 (텍스트 정본 = 자식) style 은 읽지 않는다. 술어는 `resolveSubpartStyleOwnerType` (style 축 · Canvas read 경로 · Styles 패널) 와 `resolveDelegatedSubpartOwnerType` (전체 · Properties 패널) 로 나뉜다.
 - 금지: 자식 style 을 RAC 내부 sub-part 로 운반하는 custom prop 신설 (RSP 미규정 — D2 위반).
 
+**그룹 항목 묶음 노드 — RadioItems · CheckboxItems (ADR-251, 2026-10-03)**: RAC `RadioGroup` · `CheckboxGroup` 의 children 안에 composition 이 두는 항목 상자 (`div.radio-items`, RAC 구조 밖 · role 없음 — D1 무변경) 를 문서 노드로 둔다. 값 (방향 · gap) 은 그룹 rule `orientation` 블록이 정본 (D3), 묶음 노드는 사용자 prop 이 없고 `size` 만 내부 운반 값 (D2 신규 prop 0). DOM 은 그룹이 묶음을 흡수하고 shared 컴포넌트의 상자 하나가 그린다 — 묶음에 작성한 style 은 DOM 에 닿지 않는다 (TagList 와 같은 편집 범위).
+
 **D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
 
 - RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — `Group.spec.ts` 보존 (변경 0)

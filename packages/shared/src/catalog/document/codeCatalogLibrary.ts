@@ -1,3 +1,4 @@
+import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { resolveToken, type TokenRef } from "@composition/specs";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -758,7 +759,7 @@ export async function buildCodeCatalogLibrary(
     "SHA-256",
     new TextEncoder().encode(
       JSON.stringify({
-        contractVersion: 1,
+        contractVersion: LIBRARY_CONTRACT_VERSION,
         theme,
         definitions: sourceDefinitions,
         templates: REUSABLE_ORIGIN_TEMPLATES,
@@ -773,7 +774,7 @@ export async function buildCodeCatalogLibrary(
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
   return buildCatalogLibrary({
-    contractVersion: 1,
+    contractVersion: LIBRARY_CONTRACT_VERSION,
     revision,
     bindingIds,
     ...execution,

@@ -100,6 +100,21 @@ export const LABEL_POSITION_DRIVEN_TAGS: ReadonlySet<string> =
     LABEL_POSITION_NOT_DRIVEN,
   );
 
+/**
+ * ADR-251 — 그룹의 항목 묶음 (RadioItems · CheckboxItems). 묶음의 Direction 은 owner 그룹의
+ * `orientation` 이다 (그룹 자신의 Direction = `labelPosition`). 표시는 owner 의 값을 읽고 쓰기는
+ * owner target 에 간다 — 묶음 노드에는 prop 이 없다 (catalog Styles host 가 owner 로 옮긴다).
+ */
+export const OWNER_ORIENTATION_TAGS: ReadonlySet<string> = new Set([
+  "radioitems",
+  "checkboxitems",
+]);
+
+/** 선택 요소의 Direction 이 owner 그룹의 `orientation` 인가 (PascalCase 입력 허용). */
+export function isOwnerOrientationTag(type: string | undefined): boolean {
+  return OWNER_ORIENTATION_TAGS.has((type ?? "").toLowerCase());
+}
+
 /** Direction 토글이 그룹 축 prop 으로 derive 되는 prop key (없으면 일반 style 경로). */
 export type DirectionDrivenProp = "orientation" | "labelPosition";
 
@@ -111,6 +126,7 @@ export function resolveDirectionDrivenProp(
   type: string | undefined,
 ): DirectionDrivenProp | undefined {
   const normalized = (type ?? "").toLowerCase();
+  if (OWNER_ORIENTATION_TAGS.has(normalized)) return "orientation";
   if (ORIENTATION_DRIVEN_TAGS.has(normalized)) return "orientation";
   if (LABEL_POSITION_DRIVEN_TAGS.has(normalized)) return "labelPosition";
   return undefined;

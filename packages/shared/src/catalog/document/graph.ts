@@ -1,3 +1,4 @@
+import { LIBRARY_CONTRACT_VERSION } from "./types";
 import type {
   CatalogDocument,
   CatalogEntry,
@@ -1156,7 +1157,7 @@ export class CatalogGraph {
     return {
       format: "composition-catalog",
       schemaVersion: 1,
-      libraryContractVersion: 1,
+      libraryContractVersion: LIBRARY_CONTRACT_VERSION,
       revision: this.currentRevision,
       projectId: this.projectId,
       rootId: this.projectId,

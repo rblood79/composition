@@ -1,10 +1,11 @@
+import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { buildCatalogLibrary } from "./library";
 import type { CatalogDocument, NodeEntry } from "./types";
 
 /** Semantic G1 driver for the frozen old-app ref, patch and slot scenarios. */
 export function createG1Fixture() {
   const library = buildCatalogLibrary({
-    contractVersion: 1,
+    contractVersion: LIBRARY_CONTRACT_VERSION,
     revision: "g1-fixture-v1",
     bindingIds: ["box", "text", "slot"],
     actionOpCodes: [
@@ -144,7 +145,7 @@ export function createG1Fixture() {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: LIBRARY_CONTRACT_VERSION,
     projectId: "project:project:g1",
     rootId: "project:project:g1",
     revision: 0,

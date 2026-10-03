@@ -2,7 +2,12 @@ import type { ComponentRule } from "../../types/composition-document.types";
 /** ADR-248 Phase 1. This module has no Builder or persistence dependency. */
 export const CATALOG_FORMAT = "composition-catalog" as const;
 export const CATALOG_SCHEMA_VERSION = 1 as const;
-export const LIBRARY_CONTRACT_VERSION = 1 as const;
+/**
+ * Library contract the document's template IDs refer to. 2 — ADR-251: RadioGroup · CheckboxGroup
+ * templates hold their items in a RadioItems / CheckboxItems node (`component-radiogroup__2` is
+ * the wrapper, no longer the first Radio). A contract 1 document is refused, never re-mapped.
+ */
+export const LIBRARY_CONTRACT_VERSION = 2 as const;
 
 export type EntryKind =
   | "project"

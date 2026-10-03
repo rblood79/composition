@@ -1,3 +1,4 @@
+import { LIBRARY_CONTRACT_VERSION } from "./types";
 import type {
   CatalogLibrary,
   InteractionEntry,
@@ -114,7 +115,7 @@ function uniqueMap<K, V>(
   return result;
 }
 export interface CatalogLibraryInput {
-  contractVersion: 1;
+  contractVersion: typeof LIBRARY_CONTRACT_VERSION;
   revision: string;
   definitions: readonly LibraryDefinition[];
   templates: readonly LibraryTemplateNode[];
@@ -177,7 +178,7 @@ export function instanceContract<
 export function buildCatalogLibrary(
   input: CatalogLibraryInput,
 ): CatalogLibrary {
-  if (input.contractVersion !== 1)
+  if (input.contractVersion !== LIBRARY_CONTRACT_VERSION)
     throw new CatalogValidationError(
       "UNSUPPORTED_LIBRARY_CONTRACT",
       "library.contractVersion",
@@ -477,7 +478,7 @@ export function buildCatalogLibrary(
   };
   for (const id of definitions.keys()) visitDefinition(id);
   const library = Object.freeze({
-    contractVersion: 1,
+    contractVersion: LIBRARY_CONTRACT_VERSION,
     revision: input.revision,
     definitions: new ImmutableLookup<
       LibraryDefinitionId,

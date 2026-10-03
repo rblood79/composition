@@ -1,5 +1,11 @@
 import "fake-indexeddb/auto";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -89,4 +95,100 @@ describe("ADR-248 Phase 4e Styles Direction", () => {
     select(frame);
     expect(blockDisabled()).toBe(false);
   });
+
+  /**
+   * ADR-251 G3: the RadioGroup's two axes have two nodes — the group's Direction is its
+   * `labelPosition`, its RadioItems wrapper's Direction is the group's `orientation` (one history
+   * step on the group, undone as one).
+   */
+  it.each(["RadioGroup", "CheckboxGroup"])(
+    "%s: the items wrapper's Direction writes the group orientation",
+    async (type) => {
+      const workspace = new CatalogWorkspace(
+        new CatalogGraph(
+          newCatalogProjectDocument({
+            projectId: "project:project:direction" as EntryId<"project">,
+            name: "Direction",
+          }),
+          await buildCodeCatalogLibrary(),
+        ),
+        new CatalogStorage(indexedDB, `adr251-direction-${Math.random()}`),
+        {
+          engine: await nodeLayoutEngine(),
+          viewport: { width: 1440, height: 900 },
+          autosaveSchedule: () => {},
+        },
+      );
+      const command = catalogPaletteInsertCommand(
+        {
+          graph: workspace.runtime.graph,
+          get records() {
+            return workspace.root.domInputs;
+          },
+          selection: () => workspace.session.getSnapshot().selection,
+          itemOfRecord: (identity: string) => workspace.itemOfRecord(identity),
+          pageContent: () => ({ kind: "node", id: BODY }),
+          newId: workspace.newId,
+        },
+        type,
+      )!;
+      const group = workspace.execute(command).plan.selectAfter![0];
+      const host = createCatalogStylesHost(workspace);
+      render(
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <StylesHostContext.Provider value={host}>
+            <LayoutSection />
+          </StylesHostContext.Provider>
+        </CatalogWorkspaceProvider>,
+      );
+      const groupRecord = () => workspace.root.recordsOfSource(group)[0];
+      const wrapperRecord = () =>
+        workspace.root.domInputs
+          .get(groupRecord())!
+          .children.find(
+            (id) =>
+              workspace.root.domInputs.get(id)?.bindingId ===
+              `${type.toLowerCase().replace("group", "")}items`,
+          )!;
+      const prop = (key: string) =>
+        workspace.readModel.propSource({ kind: "node", id: group }, key).value;
+      const selected = (name: string) =>
+        screen.getByRole("radio", { name }).hasAttribute("data-selected");
+      const blockDisabled = () =>
+        screen
+          .getByRole("radio", { name: "Block" })
+          .hasAttribute("data-disabled");
+
+      act(() => workspace.selectRecords([wrapperRecord()]));
+      expect(blockDisabled()).toBe(true);
+      expect(selected("Column")).toBe(true);
+      const steps = workspace.history.getSnapshot().labels.length;
+      act(() => {
+        fireEvent.click(screen.getByRole("radio", { name: "Row" }));
+      });
+      expect(prop("orientation")).toBe("horizontal");
+      expect(prop("labelPosition")).toBe("top");
+      expect(workspace.history.getSnapshot().labels.length).toBe(steps + 1);
+      expect(selected("Row")).toBe(true);
+      // The wrapper record now lays its items out in a row (the group rule's horizontal block).
+      expect(
+        workspace.root.layoutInputs.get(wrapperRecord())?.layout.flexDirection,
+      ).toBe("row");
+
+      // The group's own Direction stays its label position.
+      act(() => workspace.selectRecords([groupRecord()]));
+      expect(selected("Column")).toBe(true);
+      act(() => {
+        fireEvent.click(screen.getByRole("radio", { name: "Row" }));
+      });
+      expect(prop("labelPosition")).toBe("side");
+      expect(prop("orientation")).toBe("horizontal");
+
+      act(() => workspace.undo());
+      act(() => workspace.undo());
+      expect(prop("orientation")).toBe("vertical");
+      expect(prop("labelPosition")).toBe("top");
+      workspace.dispose();
+    },
+  );
 });

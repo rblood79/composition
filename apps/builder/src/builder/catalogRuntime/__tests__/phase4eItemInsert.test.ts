@@ -169,13 +169,40 @@ describe("ADR-248 4e item insert ('+')", () => {
     expect(choicesOf(workspace, "RadioGroup").map((item) => item.type)).toEqual(
       ["Radio"],
     );
+    // ADR-251: the items sit in the RadioItems node, which offers the same "+".
+    expect(choicesOf(workspace, "RadioItems").map((item) => item.type)).toEqual(
+      ["Radio"],
+    );
+    const values = () =>
+      recordOf(workspace, "RadioItems")
+        .children.map((id) => workspace.root.domInputs.get(id)!)
+        .filter((record) => typeOf(workspace, record) === "Radio")
+        .map((record) => record.props.value);
+    expect(values()).toEqual(["option1", "option2"]);
+    // Two adds in a row (the first materializes the template items into the instance's own
+    // nodes): each new Radio takes a value its siblings do not use, inside the wrapper.
     add(workspace, "RadioGroup", "Radio");
-    const values = recordOf(workspace, "RadioGroup")
-      .children.map((id) => workspace.root.domInputs.get(id)!)
-      .filter((record) => typeOf(workspace, record) === "Radio")
-      .map((record) => record.props.value);
-    expect(values.length).toBeGreaterThan(1);
-    expect(new Set(values).size).toBe(values.length);
+    add(workspace, "RadioItems", "Radio");
+    expect(values()).toEqual(["option1", "option2", "option3", "option4"]);
+    expect(childTypes(workspace, "RadioGroup")).toEqual([
+      "Label",
+      "RadioItems",
+    ]);
+    workspace.dispose();
+  });
+
+  it("a CheckboxGroup adds a Checkbox inside its CheckboxItems (ADR-251)", async () => {
+    const workspace = await open("CheckboxGroup");
+    const before = childTypes(workspace, "CheckboxItems").length;
+    add(workspace, "CheckboxItems", "Checkbox");
+    add(workspace, "CheckboxGroup", "Checkbox");
+    expect(childTypes(workspace, "CheckboxItems")).toEqual(
+      Array.from({ length: before + 2 }, () => "Checkbox"),
+    );
+    expect(childTypes(workspace, "CheckboxGroup")).toEqual([
+      "Label",
+      "CheckboxItems",
+    ]);
     workspace.dispose();
   });
 

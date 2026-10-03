@@ -1,9 +1,10 @@
+import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { buildCatalogLibrary } from "./library";
 
 /** Read-only execution contract for the local Pencil direct-mapping fixtures. */
 export function createPencilFixtureLibrary() {
   return buildCatalogLibrary({
-    contractVersion: 1,
+    contractVersion: LIBRARY_CONTRACT_VERSION,
     revision: "adr248-pencil-fixture-v3-slot-typed",
     bindingIds: ["frame", "rectangle", "text", "group", "slot"],
     actionOpCodes: [

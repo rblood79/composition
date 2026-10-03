@@ -567,7 +567,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: 2,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -1019,13 +1019,15 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       // children pair with the new parent's children directly (the wrapper's effect stays in the
       // rects). Only that key is synthetic — an origin's own children (`${id}__label`) also
       // relativize to a `_`-prefixed path.
+      // ADR-251: RadioGroup · CheckboxGroup now hold their items in a typed wrapper node
+      // (RadioItems · CheckboxItems) — the old `_items` wrapper pairs with it instead.
       const oldSynthetic: string[] = [];
-      const oldChildren = (path: string): string[] =>
+      const oldChildren = (path: string, keepItems = false): string[] =>
         row.nodes
           .filter((node) => node.parent === path)
           .flatMap((node) => {
             const segment = path ? node.path.slice(path.length + 1) : node.path;
-            if (segment !== "_items") return [node.path];
+            if (segment !== "_items" || keepItems) return [node.path];
             oldSynthetic.push(node.path);
             return oldChildren(node.path);
           });
@@ -1049,7 +1051,14 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         const newKids = (root.canvasInputs.get(newId)?.children ?? []).filter(
           (child) => !root.canvasInputs.get(child)?.hidden,
         );
-        const oldKids = oldChildren(oldPath);
+        const oldKids = oldChildren(
+          oldPath,
+          newKids.some((child) =>
+            ["RadioItems", "CheckboxItems"].includes(
+              root.typeOf(root.canvasInputs.get(child)!),
+            ),
+          ),
+        );
         // State origins: the typed template node keeps the old origin node ID
         // (`lib:template:<id>`), so children pair by that identity — a child the new consumers
         // hide (an unfilled `{icon}`) leaves its old box unpaired instead of shifting the order.

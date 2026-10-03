@@ -592,6 +592,20 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "checkbox group",
     icon: "GroupIcon",
   }),
+  // CheckboxItems · RadioItems — ADR-251: 그룹의 항목 묶음 상자 (TagList 동형). 그룹 template 이
+  //   만들고 DOM 은 그룹이 self-compose 하는 `div.*-items` 하나. palette 비노출 sub-part.
+  primitiveEntry("CheckboxItems", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "checkbox items",
+    icon: "GroupIcon",
+    placeable: false,
+  }),
+  primitiveEntry("RadioItems", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "radio items",
+    icon: "GroupIcon",
+    placeable: false,
+  }),
   primitiveEntry("Radio", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "radio",

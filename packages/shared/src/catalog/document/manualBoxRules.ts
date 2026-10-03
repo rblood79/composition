@@ -154,43 +154,37 @@ const itemLabelFontParts = (itemType: string): CompiledPartRule[] => {
  * [data-checkbox-size] .react-aria-Checkbox .checkbox`), while the gap after it stays the item's own
  * generated `[data-size]` gap (higher specificity than the manual `var(--radio-gap)`). The item row
  * is at least as tall as the indicator; its Label starts after indicator + gap.
+ *
+ * ADR-251: the items sit in the group's items wrapper (RadioItems / CheckboxItems); the group
+ * reaches them through it (`via`). The item's Label offset needs no group rule: the group size
+ * reaches the item (`CATALOG_SIZE_PROPAGATION`), so the item's own rule gives the same offset.
  */
+const GROUP_ITEM_INDICATORS: Readonly<Record<string, string>> = {
+  sm: "text-base",
+  md: "text-xl",
+  lg: "text-2xl",
+  xl: "text-3xl",
+};
 const groupItemIndicatorParts = (
   itemType: string,
-  indicators: Readonly<Record<string, string>>,
-): CompiledPartRule[] => {
-  const itemSizes = sizesOf(itemType);
-  return Object.entries(indicators).flatMap(
+  wrapperType: string,
+): CompiledPartRule[] =>
+  Object.entries(GROUP_ITEM_INDICATORS).flatMap(
     ([size, name]): CompiledPartRule[] => {
       const indicator = textPx(name);
-      if (!indicator) return [];
-      return [
-        {
-          childType: itemType,
-          size,
-          layout: {},
-          visual: { minHeight: indicator },
-        },
-        ...Object.entries(itemSizes).flatMap(
-          ([itemSize, values]): CompiledPartRule[] =>
-            typeof values.gap === "number"
-              ? [
-                  {
-                    childType: "Label",
-                    via: itemType,
-                    viaProps: { size: itemSize },
-                    size,
-                    layout: { marginLeft: `${indicator + values.gap}px` },
-                    visual: {},
-                  },
-                ]
-              : [],
-        ),
-      ];
+      return indicator
+        ? [
+            {
+              childType: itemType,
+              via: wrapperType,
+              size,
+              layout: {},
+              visual: { minHeight: indicator },
+            },
+          ]
+        : [];
     },
   );
-};
-
 /** The Link sheet's default-size unitless `line-height` (a Breadcrumb crumb's text line box). */
 const linkLineHeightRatio = (): number | undefined => {
   const link = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Link;
@@ -555,12 +549,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         lg: "text-base",
         xl: "text-lg",
       }),
-      ...groupItemIndicatorParts("Radio", {
-        sm: "text-base",
-        md: "text-xl",
-        lg: "text-2xl",
-        xl: "text-3xl",
-      }),
+      ...groupItemIndicatorParts("Radio", "RadioItems"),
     ],
   }),
   CheckboxGroup: () => ({
@@ -571,12 +560,7 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         lg: "text-base",
         xl: "text-lg",
       }),
-      ...groupItemIndicatorParts("Checkbox", {
-        sm: "text-base",
-        md: "text-xl",
-        lg: "text-2xl",
-        xl: "text-3xl",
-      }),
+      ...groupItemIndicatorParts("Checkbox", "CheckboxItems"),
     ],
   }),
   // The chip wrapper (`.tag-list-wrapper`, typed TagList) takes the catalog `TagList` size gap and

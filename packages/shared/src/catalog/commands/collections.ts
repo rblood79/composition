@@ -23,7 +23,7 @@ import {
 } from "./context";
 import { setFields } from "./fields";
 import { readTargetProp } from "./items";
-import { ensureChildList, type NewId } from "./materialize";
+import { ensureChildList, readTemplate, type NewId } from "./materialize";
 import { removeWithReferrers, subtree } from "./structure";
 
 /**
@@ -99,6 +99,15 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   AvatarGroup: ["Avatar"],
   Nav: ["Link"],
   ColorSwatchPicker: ["ColorSwatch"],
+};
+
+/**
+ * ADR-251 — groups whose items sit in an items wrapper node (TagGroup > TagList shape): the "+"
+ * of the group (or the wrapper) adds the item inside the wrapper.
+ */
+export const GROUP_ITEMS_WRAPPER: Readonly<Record<string, string>> = {
+  CheckboxGroup: "CheckboxItems",
+  RadioGroup: "RadioItems",
 };
 
 // ── Positions ─────────────────────────────────────────────────────────────
@@ -441,8 +450,8 @@ export const insertGroupItem =
       hostDefinition.templateRootId
         ? hostDefinition.templateRootId
         : undefined;
-    // Siblings: the instance's template items, then the host's own children.
-    const siblings: NodeParent[] = [
+    // The host's children: the instance's template positions, then its own children.
+    const hostChildren: NodeParent[] = [
       ...(rootTemplate
         ? childPositions(draft, {
             kind: "descendant",
@@ -451,7 +460,21 @@ export const insertGroupItem =
           })
         : []),
       ...host.children.map((id): NodeParent => ({ kind: "node", id })),
-    ].filter((sibling) => itemTypes.includes(positionType(draft, sibling)));
+    ];
+    // ADR-251: the items live in the wrapper node (a template position of an instance, or an
+    // owned node); the item goes there and its siblings are the wrapper's children.
+    const wrapperType = GROUP_ITEMS_WRAPPER[groupType];
+    const container: NodeParent = wrapperType
+      ? (hostChildren.find(
+          (child) => positionType(draft, child) === wrapperType,
+        ) ?? fail("NO_ITEMS_WRAPPER", groupType))
+      : { kind: "node", id: host.id };
+    const containerChildren = wrapperType
+      ? childPositions(draft, container)
+      : hostChildren;
+    const siblings = containerChildren.filter((sibling) =>
+      itemTypes.includes(positionType(draft, sibling)),
+    );
     const typed = (type: string) =>
       siblings.filter((sibling) => positionType(draft, sibling) === type);
     const own = (key: string) => {
@@ -497,14 +520,6 @@ export const insertGroupItem =
     const entries = input.entries.map((entry) =>
       entry.id === item.id ? item : entry,
     );
-    place(
-      draft,
-      { kind: "node", id: host.id },
-      entries,
-      input.rootId,
-      input.newId,
-    );
-    const extra: CatalogOperation[] = [];
     const single =
       own("isSelected") === true &&
       (groupType === "RadioGroup" ||
@@ -514,22 +529,68 @@ export const insertGroupItem =
             { kind: "node", id: host.id },
             "selectionMode",
           ) === "single"));
+    // The shown selection is read before the insert: a template wrapper materializes its items
+    // into the instance's own nodes (same order) when the item is placed.
+    const cleared = single
+      ? containerChildren.map(
+          (sibling) =>
+            positionType(draft, sibling) === itemType &&
+            shownSelected(draft, sibling),
+        )
+      : [];
+    place(draft, container, entries, input.rootId, input.newId);
+    const placed =
+      container.kind === "page" ? [] : (childList(draft, container) ?? []);
+    const extra: CatalogOperation[] = [];
+    const ownWrite = (id: NodeId, props: Record<string, AuthoredValue>) => {
+      const node = draft.node(id);
+      draft.write({
+        ...node,
+        props: {
+          ...node.props,
+          ...Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value } as WriteValue<AuthoredValue>,
+            ]),
+          ),
+        },
+      });
+    };
     if (single) {
-      for (const sibling of typed(itemType))
-        if (shownSelected(draft, sibling))
+      cleared.forEach((selected, index) => {
+        if (!selected) return;
+        const sibling = containerChildren[index];
+        // A materialized template item is the wrapper's own node at its template child index.
+        const id =
+          sibling.kind === "descendant" && container.kind === "descendant"
+            ? placed[
+                readTemplate(
+                  draft,
+                  container.address.templatePath[
+                    container.address.templatePath.length - 1
+                  ],
+                ).children.findIndex(
+                  (child) =>
+                    child ===
+                    sibling.address.templatePath[
+                      sibling.address.templatePath.length - 1
+                    ],
+                )
+              ]
+            : sibling.kind === "node"
+              ? sibling.id
+              : undefined;
+        if (id) ownWrite(id, { isSelected: false });
+        else
           extra.push(
             ...setProps(reader, targetOf(sibling)!, { isSelected: false }),
           );
+      });
       if (groupType === "RadioGroup")
-        extra.push(
-          ...setProps(
-            reader,
-            { kind: "node", id: host.id },
-            {
-              value: (item.props.value as { value: Scalar }).value,
-            },
-          ),
-        );
+        ownWrite(host.id, {
+          value: (item.props.value as { value: Scalar }).value,
+        });
     }
     return {
       label: input.label ?? "Add item",

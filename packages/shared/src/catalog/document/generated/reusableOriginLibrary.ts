@@ -3701,8 +3701,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CheckboxGroup",
     "children": [
       "lib:template:component-checkboxgroup__1",
-      "lib:template:component-checkboxgroup__2",
-      "lib:template:component-checkboxgroup__3"
+      "lib:template:component-checkboxgroup__2"
     ],
     "props": {
       "label": "Checkbox Group",
@@ -3727,6 +3726,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-checkboxgroup__2",
+    "definitionId": "lib:definition:type-CheckboxItems",
+    "children": [
+      "lib:template:component-checkboxgroup__2__checkbox-1",
+      "lib:template:component-checkboxgroup__2__checkbox-2"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__2__checkbox-1",
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
     "props": {
@@ -3750,7 +3759,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
-    "id": "lib:template:component-checkboxgroup__3",
+    "id": "lib:template:component-checkboxgroup__2__checkbox-2",
     "definitionId": "lib:definition:origin-component-checkbox",
     "children": [],
     "props": {
@@ -3778,8 +3787,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-RadioGroup",
     "children": [
       "lib:template:component-radiogroup__1",
-      "lib:template:component-radiogroup__2",
-      "lib:template:component-radiogroup__3"
+      "lib:template:component-radiogroup__2"
     ],
     "props": {
       "label": "Radio Group",
@@ -3804,6 +3812,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-radiogroup__2",
+    "definitionId": "lib:definition:type-RadioItems",
+    "children": [
+      "lib:template:component-radiogroup__2__radio-1",
+      "lib:template:component-radiogroup__2__radio-2"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__2__radio-1",
     "definitionId": "lib:definition:origin-component-radio",
     "children": [],
     "props": {
@@ -3827,7 +3845,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
-    "id": "lib:template:component-radiogroup__3",
+    "id": "lib:template:component-radiogroup__2__radio-2",
     "definitionId": "lib:definition:origin-component-radio",
     "children": [],
     "props": {

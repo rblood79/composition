@@ -257,23 +257,27 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TableBody: { families: ["tableItemHost"] },
   Row: { families: ["tableItemHost"] },
   Tab: { families: ["staticCollectionItem"], owners: ["TabList"] },
+  // ADR-251: 항목은 묶음 (RadioItems · CheckboxItems) 안에 — 그룹의 직계는 Label · 묶음 (TagGroup >
+  //   TagList 동형). 그룹 DOM 은 묶음의 자식만 항목으로 모은다.
   RadioGroup: {
     families: ["disablingGroup"],
-    children: ["Label", "Radio", "RadioItems", "Description", "FieldError"],
+    children: ["Label", "RadioItems", "Description", "FieldError"],
   },
   Radio: { owners: ["RadioGroup"] },
-  RadioItems: { owners: ["RadioGroup"] },
+  RadioItems: {
+    container: "collection",
+    children: ["Radio"],
+    owners: ["RadioGroup"],
+  },
   CheckboxGroup: {
     families: ["disablingGroup"],
-    children: [
-      "Label",
-      "Checkbox",
-      "CheckboxItems",
-      "Description",
-      "FieldError",
-    ],
+    children: ["Label", "CheckboxItems", "Description", "FieldError"],
   },
-  CheckboxItems: { owners: ["CheckboxGroup"] },
+  CheckboxItems: {
+    container: "collection",
+    children: ["Checkbox"],
+    owners: ["CheckboxGroup"],
+  },
   DisclosureGroup: { children: ["Disclosure"] },
   DisclosureHeader: { owners: ["Disclosure"] },
   Slider: { children: ["Label", "SliderOutput", "SliderTrack"] },

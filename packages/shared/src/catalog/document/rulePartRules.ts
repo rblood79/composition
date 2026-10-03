@@ -82,6 +82,10 @@ const SUBPART_TOKENS: Readonly<
   },
   ProgressBar: { ProgressBarValue: [".value"], ProgressBarTrack: [".bar"] },
   Meter: { MeterValue: [".value"], MeterTrack: [".bar"] },
+  // ADR-251: the group's items wrapper (`RadioGroup.tsx` `div.radio-items`) is the typed
+  // RadioItems / CheckboxItems node — the rule's `orientation` nested block lays it out.
+  RadioGroup: { RadioItems: [".radio-items"] },
+  CheckboxGroup: { CheckboxItems: [".checkbox-items"] },
   TextField: { Input: [".react-aria-Input"] },
   TextArea: { Input: [".react-aria-TextArea", ".react-aria-Input"] },
   ColorField: { Input: [".react-aria-Input"] },
@@ -1162,6 +1166,7 @@ export function compileRulePartRules(
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
     ...childFontPartRules(parentType),
+    ...itemsWrapperPartRules(parentType),
     ...manualParts,
   ];
   for (const block of blocks) {
@@ -1259,69 +1264,72 @@ export function compileRulePartRules(
 }
 
 /**
- * Item wrappers a group's DOM renderer composes around its items (`CheckboxGroup.tsx`
- * `<div className="checkbox-items">`, `RadioGroup.tsx` `radio-items`): the wrapper's class token
- * and the item types it holds.
+ * ADR-251 — the items wrapper node of a group (`RadioGroup.tsx` `<div className="radio-items">`,
+ * typed RadioItems / CheckboxItems): its wrapper token's blocks in the group rule.
  */
 const ITEMS_WRAPPERS: Readonly<
-  Record<string, { token: string; itemTypes: readonly string[] }>
+  Record<string, { token: string; childType: string }>
 > = {
-  CheckboxGroup: { token: ".checkbox-items", itemTypes: ["Checkbox"] },
-  RadioGroup: { token: ".radio-items", itemTypes: ["Radio"] },
+  CheckboxGroup: { token: ".checkbox-items", childType: "CheckboxItems" },
+  RadioGroup: { token: ".radio-items", childType: "RadioItems" },
 };
 
 /**
- * The items wrapper of group `type` at the resolved `props` (orientation / size), from the rule's
- * `containerVariants.orientation[…].nested` block for the wrapper token and the size's custom
- * properties (`--cb-items-gap`): a flex box whose items stretch across it (the widest item sets
- * every item's width in a column). Undefined for a type without one.
+ * The items wrapper's box per group `orientation` × `size` (ADR-251 — was the Canvas-only composed
+ * part `catalogItemsWrapper`): the rule's `containerVariants.orientation[…].nested` block for the
+ * wrapper token, its gap read through the size's custom properties (`--radio-items-gap`). A root
+ * without `data-size` never matches the generated size variables (the default size's value).
  */
-export function catalogItemsWrapper(
-  type: string,
-  props: Readonly<Record<string, unknown>>,
-):
-  | {
-      itemTypes: readonly string[];
-      layout: { display: string; flexDirection: string; alignItems?: string };
-      gap: number;
-    }
-  | undefined {
-  const wrapper = ITEMS_WRAPPERS[type];
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type];
-  if (!wrapper || !rule) return undefined;
+function itemsWrapperPartRules(parentType: string): CompiledPartRule[] {
+  const wrapper = ITEMS_WRAPPERS[parentType];
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    parentType
+  ];
+  if (!wrapper || !rule) return [];
   type Styles = Record<string, string>;
   type Variants = Record<
     string,
-    Record<string, { styles?: Styles; nested?: Array<{ selector: string; styles: Styles }> }>
+    Record<
+      string,
+      { styles?: Styles; nested?: Array<{ selector: string; styles: Styles }> }
+    >
   >;
   const composition = rule.structure?.composition as
-    | { containerStyles?: Styles; containerVariants?: Variants }
-    | undefined;
+    { containerStyles?: Styles; containerVariants?: Variants } | undefined;
   const variants = composition?.containerVariants ?? {};
-  const orientation =
-    typeof props.orientation === "string" ? props.orientation : "vertical";
-  const block = variants.orientation?.[orientation]?.nested?.find(
-    (entry) => entry.selector === wrapper.token,
-  )?.styles;
-  if (!block) return undefined;
-  // A root without `data-size` never matches the generated size variables.
-  const size =
-    typeof props.size === "string" &&
-    manualBoxRule(type)?.rootSizeAttribute === undefined
-      ? props.size
-      : (rule.defaultSize ?? "");
-  const variables: Record<string, string> = {};
-  for (const source of [composition?.containerStyles, variants.size?.[size]?.styles])
-    for (const [key, value] of Object.entries(source ?? {}))
-      if (key.startsWith("--")) variables[key] = value;
-  const gapText = block.gap ? substitute(block.gap, variables) : undefined;
-  return {
-    itemTypes: wrapper.itemTypes,
-    layout: {
-      display: block.display ?? "flex",
-      flexDirection: block["flex-direction"] ?? "row",
-      ...(block["align-items"] ? { alignItems: block["align-items"] } : {}),
-    },
-    gap: (gapText !== undefined ? lengthPx(gapText) : undefined) ?? 0,
-  };
+  const sized = manualBoxRule(parentType)?.rootSizeAttribute === undefined;
+  const out: CompiledPartRule[] = [];
+  for (const [orientation, entry] of Object.entries(
+    variants.orientation ?? {},
+  )) {
+    const block = entry.nested?.find(
+      (nested) => nested.selector === wrapper.token,
+    )?.styles;
+    if (!block) continue;
+    for (const size of Object.keys(rule.sizes)) {
+      const variables: Record<string, string> = {};
+      for (const source of [
+        composition?.containerStyles,
+        sized ? variants.size?.[size]?.styles : undefined,
+      ])
+        for (const [key, value] of Object.entries(source ?? {}))
+          if (key.startsWith("--")) variables[key] = value;
+      const gapText = block.gap ? substitute(block.gap, variables) : undefined;
+      const gap = (gapText !== undefined ? lengthPx(gapText) : undefined) ?? 0;
+      out.push({
+        childType: wrapper.childType,
+        size,
+        ownerProps: { orientation },
+        layout: {
+          display: block.display ?? "flex",
+          flexDirection: block["flex-direction"] ?? "row",
+          ...(block["align-items"] ? { alignItems: block["align-items"] } : {}),
+          rowGap: `${gap}px`,
+          columnGap: `${gap}px`,
+        },
+        visual: {},
+      });
+    }
+  }
+  return out;
 }

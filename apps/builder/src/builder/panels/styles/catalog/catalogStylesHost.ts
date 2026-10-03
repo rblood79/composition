@@ -5,6 +5,7 @@ import {
 } from "../../../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type {
+  DefinitionId,
   EditTarget,
   EntryId,
   NodeId,
@@ -70,6 +71,7 @@ import {
 } from "../../../../utils/theme/tintToSkiaColors";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
 import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
+import { isOwnerOrientationTag } from "../utils/orientationDrivenTags";
 
 const noSubscription = () => () => {};
 
@@ -184,6 +186,25 @@ function accentOf(
 function parentRecordOf(workspace: CatalogWorkspace, id: string | null) {
   const parentId = id ? workspace.root.domInputs.get(id)?.parentId : undefined;
   return parentId ? workspace.root.domInputs.get(parentId) : undefined;
+}
+
+/**
+ * ADR-251 — an items wrapper's (RadioItems · CheckboxItems) Direction is its owner group's
+ * `orientation`: the owner's target, else undefined (not a wrapper).
+ */
+function orientationOwnerTargetOf(
+  workspace: CatalogWorkspace,
+  id: string | null,
+): EditTarget | undefined {
+  const record = id ? workspace.root.domInputs.get(id) : undefined;
+  if (!record) return undefined;
+  const type =
+    record.ruleId ??
+    workspace.runtime.graph.getDefinition(record.definitionId as DefinitionId)
+      ?.name;
+  if (!isOwnerOrientationTag(type)) return undefined;
+  const parent = parentRecordOf(workspace, id);
+  return parent ? workspace.positionOfRecord(parent.id)?.target : undefined;
 }
 
 function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
@@ -304,13 +325,20 @@ export function createCatalogStylesHost(
     patch: Record<string, unknown>,
   ): CatalogCommand | undefined => {
     const items = selection();
-    const first = items[0];
-    if (!first) return undefined;
+    if (!items[0]) return undefined;
+    // ADR-251: an items wrapper's prop write (its Direction = `orientation`) goes to its group.
+    const targets = new Map<string, EditTarget>();
+    for (const item of items) {
+      const target =
+        orientationOwnerTargetOf(workspace, item.identity) ?? item.target;
+      targets.set(JSON.stringify(target), target);
+    }
+    const first = [...targets.values()][0];
     return (
       catalogSemanticPatchCommand(
-        items.map((item) => item.target),
+        [...targets.values()],
         patch,
-        (key) => workspace.readModel.propSource(first.target, key).value,
+        (key) => workspace.readModel.propSource(first, key).value,
       ) ?? undefined
     );
   };
@@ -327,10 +355,20 @@ export function createCatalogStylesHost(
       const master = useMasterFieldsOf(workspace, target);
       const breakpoint = useCatalogSession((state) => state.breakpoint);
       const contract = useCatalogEditContract(target);
+      // ADR-251: an items wrapper shows its group's `orientation` as its Direction.
+      const ownerTarget = useMemo(
+        () => orientationOwnerTargetOf(workspace, id),
+        [id, contract],
+      );
+      const ownerContract = useCatalogEditContract(ownerTarget);
       return useMemo(() => {
         const props = Object.fromEntries(
           contract.fields.map((field) => [field.key, field.currentValue]),
         ) as Record<string, unknown>;
+        if (ownerTarget)
+          props.orientation = ownerContract.fields.find(
+            (field) => field.key === "orientation",
+          )?.currentValue;
         const fontSize = fontSizeOf(workspace, id ?? undefined);
         // An instance shows its component's values under its own (the render merges them so).
         const view = (fields: typeof own) =>
@@ -361,7 +399,7 @@ export function createCatalogStylesHost(
           // The accent the token swatches resolve with: the node's, else an ancestor's.
           accentColor: accentOf(workspace, id),
         };
-      }, [breakpoint, contract, id, own, master]);
+      }, [breakpoint, contract, id, own, master, ownerTarget, ownerContract]);
     },
     readSelectedTarget(): StylesTargetSnapshot {
       const first = selection()[0];
@@ -373,9 +411,17 @@ export function createCatalogStylesHost(
       const master = masterTargetOf(workspace, first.target);
       const view = (fields: typeof own) =>
         catalogStyleView(catalogFieldsAt(fields, breakpoint), { fontSize });
+      const owned = propsOf(workspace, first.target);
+      const ownerTarget = orientationOwnerTargetOf(workspace, first.identity);
       return {
         id: first.identity,
-        ...propsOf(workspace, first.target),
+        type: owned.type,
+        props: ownerTarget
+          ? {
+              ...owned.props,
+              orientation: propsOf(workspace, ownerTarget).props.orientation,
+            }
+          : owned.props,
         style: {
           ...(master ? view(workspace.readModel.ownFields(master)) : {}),
           ...view(own),

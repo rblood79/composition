@@ -93,7 +93,10 @@ type TemplateView = Pick<
   displayState?: LibraryTemplateNode["displayState"];
 };
 
-function readTemplate(draft: CommandDraft, id: TemplateId): TemplateView {
+export function readTemplate(
+  draft: CommandDraft,
+  id: TemplateId,
+): TemplateView {
   if (id.startsWith("lib:")) {
     const node = draft.reader.library.templates.get(
       id as `lib:template:${string}`,

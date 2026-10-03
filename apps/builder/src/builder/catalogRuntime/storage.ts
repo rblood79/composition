@@ -1,3 +1,4 @@
+import { LIBRARY_CONTRACT_VERSION } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
   CatalogDocument,
   CatalogEntry,
@@ -173,7 +174,7 @@ export class CatalogStorage {
           old &&
           (old.format !== "composition-catalog" ||
             old.schemaVersion !== 1 ||
-            old.libraryContractVersion !== 1)
+            old.libraryContractVersion !== LIBRARY_CONTRACT_VERSION)
         ) {
           conflict = new CatalogStorageError("UNSUPPORTED_PROJECT_FORMAT");
           transaction.abort();
@@ -296,7 +297,7 @@ export class CatalogStorage {
         const supported =
           head.format === "composition-catalog" &&
           head.schemaVersion === 1 &&
-          head.libraryContractVersion === 1;
+          head.libraryContractVersion === LIBRARY_CONTRACT_VERSION;
         const record = names.get(head.projectId)?.result as
           StoredEntry | undefined;
         let name: string | undefined;
@@ -368,7 +369,7 @@ export class CatalogStorage {
       if (
         head.format !== "composition-catalog" ||
         head.schemaVersion !== 1 ||
-        head.libraryContractVersion !== 1
+        head.libraryContractVersion !== LIBRARY_CONTRACT_VERSION
       )
         throw new CatalogStorageError("UNSUPPORTED_PROJECT_FORMAT");
       const entries: Record<string, CatalogEntry> = {};

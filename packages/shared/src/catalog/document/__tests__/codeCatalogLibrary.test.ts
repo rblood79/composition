@@ -206,7 +206,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(1);
+    expect(library.contractVersion).toBe(2);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",
@@ -505,9 +505,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
                 kind: "patch",
                 address: {
                   instances: [groupId],
+                  // ADR-251 contract 2: the first Radio sits in the RadioItems node.
                   templatePath: [
                     "lib:template:component-radiogroup",
                     "lib:template:component-radiogroup__2",
+                    "lib:template:component-radiogroup__2__radio-1",
                   ],
                 },
                 props: { isSelected: { kind: "set", value: false } },

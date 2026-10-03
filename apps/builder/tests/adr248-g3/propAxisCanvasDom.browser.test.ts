@@ -85,10 +85,24 @@ const CASES: Array<{
   key: string;
   type: string;
   props: Record<string, string>;
-}> = SIDE_LABEL_TYPES.flatMap((type): typeof CASES => [
-  { key: `${type}-top`, type, props: {} },
-  { key: `${type}-side`, type, props: { labelPosition: "side" } },
-]);
+}> = [
+  ...SIDE_LABEL_TYPES.flatMap((type): typeof CASES => [
+    { key: `${type}-top`, type, props: {} },
+    { key: `${type}-side`, type, props: { labelPosition: "side" } },
+  ]),
+  // ADR-251 G2: the group items wrapper node (RadioItems · CheckboxItems) takes the group rule's
+  // `orientation` block — horizontal × label position × a non-default size (xl: the size without
+  // its own `--radio-items-gap`, falling back to the root's).
+  ...(["RadioGroup", "CheckboxGroup"] as const).flatMap((type): typeof CASES =>
+    ["sm", "xl"].flatMap((size) =>
+      ["top", "side"].map((labelPosition) => ({
+        key: `${type}-horizontal-${labelPosition}-${size}`,
+        type,
+        props: { orientation: "horizontal", labelPosition, size },
+      })),
+    ),
+  ),
+];
 
 let code: CatalogLibrary;
 const report: unknown[] = [];
@@ -118,7 +132,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 1,
+    libraryContractVersion: 2,
     revision: 0,
     projectId,
     rootId: projectId,

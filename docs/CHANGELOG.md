@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — ADR-251] - 2026-10-03
+
+### Changed
+
+- **RadioGroup · CheckboxGroup 의 항목이 묶음 노드 (RadioItems · CheckboxItems) 안에 들어간다** (사용자 결정 2026-09-29 · 10-03, TagGroup > TagList 와 같은 모양). Layers 가 화면의 상자 구조와 같아져 `Label · RadioItems > Radio ×N` 으로 보이고, 묶음 행을 선택할 수 있다. 묶음의 방향 · gap 은 그룹 rule 의 `orientation` 블록 하나가 정본이다 (값 변경 0 — size 4 × orientation 2 × label position 2 의 배치가 옛 구조와 같다).
+- **Styles 의 Direction 이 두 축으로 갈린다.** 그룹을 선택하면 Label 배치 (`labelPosition`), 묶음을 선택하면 항목 배치 (그룹의 `orientation`) 를 쓴다 — 쓰기는 그룹에 한 단계로 들어간다.
+- **「+」 는 그룹 · 묶음 어느 쪽에서도 묶음 안에 항목을 넣는다.** Radio 는 겹치지 않는 `value` 를 받고, 선택된 항목을 넣으면 형제 선택이 풀리고 그룹 `value` 가 따라온다 (instance 의 template 항목은 instance 의 노드로 옮겨진다).
+- **Breaking — library contract version 2.** 묶음 노드가 생기면서 template 위치 id 가 바뀌어 (`component-radiogroup__2` 가 첫 Radio → 묶음) contract 1 로 저장된 개발용 프로젝트는 열리지 않는다 (`UNSUPPORTED_LIBRARY_CONTRACT` / `UNSUPPORTED_PROJECT_FORMAT`, 변환 없음 — 보존 대상 0).
+
+### Fixed
+
+- **그룹 DOM 이 항목을 `div.radio-items` 로 두 번 감싸던 것.** Builder 렌더러와 shared 컴포넌트가 각자 감쌌다. 이제 shared `RadioGroup` · `CheckboxGroup` 의 상자 하나만 남는다 (생성 CSS · `apps/publish` 변경 0).
+
+위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (template) · `packages/shared/src/catalog/bindings/{RadioItems,CheckboxItems}.binding.ts` · `packages/shared/src/catalog/document/{rulePartRules.ts,manualBoxRules.ts,sizePropagation.ts,types.ts}` · `packages/shared/src/catalog/commands/collections.ts` (`insertGroupItem`) · `apps/builder/src/builder/catalogRuntime/{delegatedDom.tsx,presence.ts,itemInsert.ts,canvasBinding.ts}` · `apps/builder/src/builder/panels/styles/{catalog/catalogStylesHost.ts,utils/orientationDrivenTags.ts}`.
+
 ## [Preview 의 펼침 조작은 Preview 실행 상태 (Tree 펼침 복원) — ADR-250 Accepted · Phase 0 · 1] - 2026-10-03
 
 ### Fixed

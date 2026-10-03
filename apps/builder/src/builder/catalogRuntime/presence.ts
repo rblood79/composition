@@ -2,7 +2,6 @@ import { getIconData } from "@composition/specs";
 import { isDisclosureExpandedInContext } from "../../../../../packages/shared/src/utils/disclosureGroupExpansion";
 import { resolveStaticItemKey } from "../../../../../packages/shared/src/catalog/slotRoles";
 import { getNecessityIndicatorSuffix } from "../../../../../packages/shared/src/components/FieldNecessityIndicator";
-import { catalogItemsWrapper } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import { COLLECTION_ITEM_OWNERS } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { MANUAL_ITEM_LABEL_COLORS } from "../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import { catalogCalendarTitle } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
@@ -425,26 +424,6 @@ export function catalogComposedParts(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): readonly CatalogComposedPart[] {
-  // CheckboxGroup / RadioGroup render their items inside one wrapper `div` (`catalogItemsWrapper`).
-  const wrapper = catalogItemsWrapper(typeOf(node), node.props);
-  if (wrapper) {
-    const wraps = childrenOf(node, get)
-      .filter((child) => wrapper.itemTypes.includes(typeOf(child)))
-      .map((child) => child.id);
-    return wraps.length
-      ? [
-          {
-            id: `${node.id}::part:items`,
-            style: {
-              ...wrapper.layout,
-              rowGap: `${wrapper.gap}px`,
-              columnGap: `${wrapper.gap}px`,
-            },
-            wraps,
-          },
-        ]
-      : [];
-  }
   const level = catalogTreeLevel(node, get, typeOf);
   if (level === undefined) return [];
   const padding = (level - 1) * TREE_LEVEL_PADDING;

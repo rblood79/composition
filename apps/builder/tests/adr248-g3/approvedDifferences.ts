@@ -206,7 +206,9 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     id: "group-items-old-size",
     class: "oldDefect",
     owners: ["RadioGroup", "CheckboxGroup"],
-    nodes: ["Radio", "Checkbox"],
+    // ADR-251: the items wrapper is a typed node now (paired with the old `_items`), so the old
+    // items gap / md items show on its box too.
+    nodes: ["Radio", "Checkbox", "RadioItems", "CheckboxItems"],
     axes: ALL,
     paint: true,
     reason:

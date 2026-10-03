@@ -235,6 +235,10 @@ const bindings: Readonly<Record<string, Binding>> = {
   rectangle: box,
   group: containerWithAuthoredPaint,
   slot: containerWithAuthoredPaint,
+  // ADR-251: a group's items wrapper — its DOM box is the group's own `div.*-items`, which takes
+  // no authored paint, so the Canvas paints none either (layout box only).
+  radioitems: container,
+  checkboxitems: container,
   box,
   icon: glyph,
   selecticon: glyph,
