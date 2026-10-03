@@ -424,6 +424,17 @@ export function planCatalogShortcut(
     }
     case "nextElement":
     case "prevElement": {
+      // A multi-selection: Tab cycles its primary element (the one the panels edit) — the old
+      // selection shortcuts; the set stays, its order rotates.
+      const selection = workspace.session.getSnapshot().selection;
+      if (selection.length > 1) {
+        const ids = selection.map((item) => item.identity);
+        const rotated =
+          id === "nextElement"
+            ? [...ids.slice(1), ids[0]!]
+            : [ids[ids.length - 1]!, ...ids.slice(0, -1)];
+        return () => workspace.selectRecords(rotated);
+      }
       const record = singleElement(workspace);
       const parent = record && workspace.root.domInputs.get(record.parentId);
       if (!record || !parent || parent.children.length < 2) return undefined;

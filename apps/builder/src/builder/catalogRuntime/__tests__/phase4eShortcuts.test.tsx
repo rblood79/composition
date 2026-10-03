@@ -309,6 +309,11 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     workspace.session.enterContext(id("list"));
     expect(runCatalogShortcut(workspace, "selectAll")).toBe(true);
     expect(selected()).toEqual([id("b"), id("a"), id("c")]);
+    // A multi-selection: Tab / ⇧Tab cycle the primary element (the old selection shortcuts).
+    expect(runCatalogShortcut(workspace, "nextElement")).toBe(true);
+    expect(selected()).toEqual([id("a"), id("c"), id("b")]);
+    expect(runCatalogShortcut(workspace, "prevElement")).toBe(true);
+    expect(selected()).toEqual([id("b"), id("a"), id("c")]);
   });
 
   it("detach: a library instance becomes owned nodes (one step); a plain node is refused without an error", async () => {
