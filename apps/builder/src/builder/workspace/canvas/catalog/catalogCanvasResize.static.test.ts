@@ -18,10 +18,12 @@ const source = readFileSync(
 
 describe("catalog Canvas resize", () => {
   it("draws inside the resize callback, after the surface is resized", () => {
+    // The observer's callback is `refit` (shared with the pixel-ratio change): read its body.
     const callback = source.match(
-      /new ResizeObserver\(\(\) => \{([\s\S]*?)\n {4}\}\);/,
+      /const refit = \(\) => \{([\s\S]*?)\n {4}\};/,
     )?.[1];
     expect(callback).toBeDefined();
+    expect(source).toMatch(/new ResizeObserver\(refit\)/);
     const resized = callback!.indexOf("renderer.resize(canvas)");
     const drawn = callback!.indexOf("renderFrame()");
     expect(resized).toBeGreaterThanOrEqual(0);
