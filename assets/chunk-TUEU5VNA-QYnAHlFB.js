@@ -1,0 +1,1 @@
+var e=(e,t,n=!0)=>({transport:!0,code:e,message:t,retryable:n});export{e as t};

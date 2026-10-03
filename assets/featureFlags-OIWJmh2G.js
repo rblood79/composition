@@ -1,0 +1,1 @@
+var e={SPATIAL_INDEX:!0,CANVASKIT_RENDERER:!0};function t(){return typeof window<`u`&&window.__composition_FRAME_CAPTURE_REQUESTED__===!0}function n(){return typeof window<`u`&&window.__composition_GPU_TIMER_REQUESTED__===!0}var r={USE_RUST_LAYOUT_ENGINE:!0};function i(e){return r[e]}export{i as a,n as i,e as n,t as r,r as t};
