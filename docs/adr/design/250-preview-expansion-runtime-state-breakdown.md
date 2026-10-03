@@ -1,6 +1,6 @@
 # ADR-250 breakdown — Preview 의 펼침 조작을 Preview 실행 상태로
 
-> 본문: [ADR-250](../250-preview-expansion-runtime-state.md). 대안 B 기준 (2026-10-03 사용자 판정). §5 는 기각된 대안 A 의 참고 기록.
+> 본문: [ADR-250](../completed/250-preview-expansion-runtime-state.md). 대안 B 기준 (2026-10-03 사용자 판정). §5 는 기각된 대안 A 의 참고 기록.
 
 ## 1. 분리 점검 (fork 4 질문)
 
@@ -58,4 +58,4 @@
 | DisclosureGroup           | 자식 Disclosure 의 실행 값 ⊕ 선언값으로 `expandedKeys` 를 제어, 변경은 자식마다 실행 `isExpanded`. 자식의 record · 실행 값이 바뀌면 그룹이 다시 그려진다 (`watchesChildren` — 전에는 자식 선언 변경을 아예 못 따름)                              |
 | Canvas · Builder 메시지   | 변경 0 (`presence.ts` · `CatalogPreviewFrame.tsx` 무변경)                                                                                                                                                                                        |
 
-검사: builder unit 4537 pass · ADR-248 browser parity 14/14 · `pnpm type-check` PASS. 남은 것: G3 사용자 확인 (Compare Mode — 모델은 Preview 를 열지 않음).
+검사: builder unit 4537 pass · ADR-248 browser parity 14/14 · `pnpm type-check` PASS. **G3 PASS** — 2026-10-03 사용자 Compare Mode 확인 「확인했다」 → Implemented.

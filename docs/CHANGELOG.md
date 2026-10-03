@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (template) · `packages/shared/src/catalog/bindings/{RadioItems,CheckboxItems}.binding.ts` · `packages/shared/src/catalog/document/{rulePartRules.ts,manualBoxRules.ts,sizePropagation.ts,types.ts}` · `packages/shared/src/catalog/commands/collections.ts` (`insertGroupItem`) · `apps/builder/src/builder/catalogRuntime/{delegatedDom.tsx,presence.ts,itemInsert.ts,canvasBinding.ts}` · `apps/builder/src/builder/panels/styles/{catalog/catalogStylesHost.ts,utils/orientationDrivenTags.ts}`.
 
-## [Preview 의 펼침 조작은 Preview 실행 상태 (Tree 펼침 복원) — ADR-250 Accepted · Phase 0 · 1] - 2026-10-03
+## [Preview 의 펼침 조작은 Preview 실행 상태 (Tree 펼침 복원) — ADR-250 Implemented] - 2026-10-03
 
 ### Fixed
 
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Preview 에서 펼치고 접은 상태는 문서에 남지 않는다** (사용자 판정 2026-10-03, ADR-250 대안 B). 구 앱은 Preview 클릭을 문서에 다시 써 undo 기록 · 저장이 생겼는데, 새 Preview 는 그 값을 Preview 실행 상태로 둔다 — 인터랙션 규칙의 펼치기 · 접기와 같은 값이다. Canvas 는 문서에 선언된 값을 그리며, 문서에 남기려면 Properties 의 「Expanded」 를 쓴다. Builder 가 선언값을 바꾸면 Preview 가 그 값으로 돌아간다. 위치: `apps/builder/src/preview/catalog/catalogPreviewInteractions.ts` (`setRuntimeProps`) · `apps/builder/src/builder/catalogRuntime/delegatedDom.tsx` (Tree · Disclosure · DisclosureGroup).
+- **Preview 에서 펼치고 접은 상태는 문서에 남지 않는다** (사용자 판정 2026-10-03, ADR-250 대안 B). 구 앱은 Preview 클릭을 문서에 다시 써 undo 기록 · 저장이 생겼는데, 새 Preview 는 그 값을 Preview 실행 상태로 둔다 — 인터랙션 규칙의 펼치기 · 접기와 같은 값이다. Canvas 는 문서에 선언된 값을 그리며, 문서에 남기려면 Properties 의 「Expanded」 를 쓴다. Builder 가 선언값을 바꾸면 Preview 가 그 값으로 돌아간다. 사용자 Compare Mode 확인 (2026-10-03). 위치: `apps/builder/src/preview/catalog/catalogPreviewInteractions.ts` (`setRuntimeProps`) · `apps/builder/src/builder/catalogRuntime/delegatedDom.tsx` (Tree · Disclosure · DisclosureGroup).
 
 ## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트 · DPI · Layers drag 라벨 · Tab 순환 · Preview 라우팅 · Preview 클릭 선택 · Preview FileUpload endpoint) — ADR-248 Phase 4e 후속] - 2026-10-03
 
