@@ -63,6 +63,15 @@ export function CatalogPreviewView({
   const record = session.pageRecord;
   if (!root || !record)
     return <div className="preview-loading">Initializing Preview...</div>;
+  // No page answers to the path the user followed (the old router's default 404 view).
+  if (session.notFound !== undefined)
+    return (
+      <div className="preview-not-found" role="alert">
+        <h1>404</h1>
+        <p>Page not found</p>
+        <p className="preview-not-found__path">{session.notFound}</p>
+      </div>
+    );
   return (
     <Fragment key={`${rootKey(root)}:${record}`}>
       {renderCatalogDom(root, record, { slotMode: "page", runtime })}
@@ -93,6 +102,7 @@ export function catalogPreviewRuntime(
     root: () => session.root,
     subscribe: session.subscribe,
     navigate: (pageId) => session.navigate(pageId),
+    navigateTo: (path) => session.navigateTo(path),
     showToast: (message) => toast.show(message),
     writeState: session.writeState,
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
@@ -118,14 +128,7 @@ export function catalogPreviewLinkClick(
         window.open(href, "_blank", "noopener,noreferrer");
       return;
     }
-    const graph = session.graph;
-    const project = graph?.getEntry(graph.projectId);
-    if (project?.kind !== "project") return;
-    const pageId = project.pageIds.find((id) => {
-      const page = graph!.getEntry(id);
-      return page?.kind === "page" && page.route === href;
-    });
-    if (pageId) session.navigate(pageId);
+    session.navigateTo(href);
   };
 }
 

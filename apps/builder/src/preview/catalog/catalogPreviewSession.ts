@@ -30,6 +30,10 @@ import {
   type VariableDef,
 } from "@composition/shared";
 import { catalogRuntimeVariables } from "../../builder/catalogRuntime/stateTemplate";
+import {
+  catalogNotFoundPage,
+  resolveCatalogRoute,
+} from "./catalogPreviewRoute";
 import type { LayoutEngineAPI } from "../../builder/workspace/canvas/wasm-bindings/layoutBridge";
 
 export interface CatalogPreviewSessionOptions {
@@ -164,11 +168,41 @@ export class CatalogPreviewSession {
     return project?.kind === "project" ? project.pageIds[0] : undefined;
   }
   navigate(pageId: EntryId<"page">): void {
-    if (pageId === this.shownPage) return;
+    if (pageId === this.shownPage && !this.notFoundPath) return;
     this.shownPage = pageId;
+    this.notFoundPath = undefined;
     // Entering a page starts its variables over (ADR-214 page scope).
     this.state?.enterPage(pageId);
     this.changed();
+  }
+  /** The path an internal link or a navigate action asked for and no page answers to. */
+  private notFoundPath: string | undefined;
+  get notFound(): string | undefined {
+    return this.notFoundPath;
+  }
+  /**
+   * Go to a path (an internal link, a `navigate` action — the old router): the page whose route
+   * is the path or fits it with `:param` segments; none = the project's `/404` page, else the
+   * built-in not-found view (`notFound`). Returns whether a page answered.
+   */
+  navigateTo(path: string): boolean {
+    const graph = this.graph;
+    if (!graph) return false;
+    const match = resolveCatalogRoute(graph, path);
+    if (match) {
+      this.navigate(match.pageId);
+      return true;
+    }
+    const fallback = catalogNotFoundPage(graph);
+    if (fallback) {
+      this.navigate(fallback);
+      return false;
+    }
+    if (this.notFoundPath !== path) {
+      this.notFoundPath = path;
+      this.changed();
+    }
+    return false;
   }
 
   /** A variable's runtime value (`undefined` before a snapshot). */

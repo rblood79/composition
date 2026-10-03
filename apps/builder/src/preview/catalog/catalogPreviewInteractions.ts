@@ -134,6 +134,8 @@ export interface CatalogPreviewInteractionsOptions {
   /** The session's updates: the rules are rebuilt after each. */
   subscribe: (listener: () => void) => () => void;
   navigate: (pageId: EntryId<"page">) => void;
+  /** Go to a path (routes with `:param`, the 404 fallback); absent = exact routes via `navigate`. */
+  navigateTo?: (path: string) => void;
   showToast: (message: string) => void;
   /** Variable writes (`setState`); absent = the rule reports that it cannot run. */
   writeState?: DispatchDeps["writeState"];
@@ -182,10 +184,19 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         };
       },
       updateElementProps: (id, patch) => {
-        this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
+        this.propOverrides.set(
+          id,
+          mergePatch(this.propOverrides.get(id), patch),
+        );
         this.touch(id);
       },
       navigate: (path) => {
+        // By route, with `:param` routes and the 404 fallback (the session's router) when the
+        // host has one; else the exact route only.
+        if (options.navigateTo) {
+          options.navigateTo(path);
+          return;
+        }
         const graph = options.graph();
         const project = graph?.getEntry(graph.projectId);
         if (project?.kind !== "project") return;

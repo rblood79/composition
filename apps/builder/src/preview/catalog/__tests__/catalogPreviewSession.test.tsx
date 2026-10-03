@@ -45,6 +45,7 @@ import {
 } from "../../../builder/catalogRuntime/dataBinding";
 import { catalogPaletteDefinitionId } from "../../../builder/catalogRuntime/paletteInsert";
 import type { CollectionDataSource } from "@composition/shared";
+import { matchCatalogRoute, resolveCatalogRoute } from "../catalogPreviewRoute";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../packages/shared/src/catalog/preview/protocol";
@@ -845,5 +846,67 @@ describe("ADR-248 4e-6 Preview entry", () => {
     ).toBe("Tablet");
     channel.setView(HOME, "desktop");
     expect(fontSize()).toBe(atDesktop);
+  });
+
+  // The old router: `:param` routes (static first) and a 404 view / page for anything else.
+  it("navigateTo: exact route, then a :param route; no match = the 404 page or the built-in view", async () => {
+    const { workspace, session, channel, flush } = await open();
+    channel.setView(HOME);
+    channel.onReady();
+    const page = (id: EntryId<"page">, route: string, name: string) => {
+      const bodyId = `project:node:${name}-body` as NodeId;
+      workspace.execute(
+        createPage({
+          page: { kind: "page", id, route, name, children: [bodyId] },
+          entries: [
+            {
+              kind: "node",
+              id: bodyId,
+              definitionId: "lib:definition:type-body",
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+        }),
+      );
+    };
+    const USERS = "project:page:users" as EntryId<"page">;
+    const USER = "project:page:user" as EntryId<"page">;
+    const USERS_NEW = "project:page:users-new" as EntryId<"page">;
+    page(USERS, "/users", "users");
+    page(USER, "/users/:id", "user");
+    page(USERS_NEW, "/users/new", "users-new");
+    flush();
+    expect(resolveCatalogRoute(session.graph!, "/users")).toEqual({
+      pageId: USERS,
+      params: {},
+    });
+    // A static route wins over the :param one; the param route takes the rest (query ignored).
+    expect(resolveCatalogRoute(session.graph!, "/users/new")?.pageId).toBe(
+      USERS_NEW,
+    );
+    expect(resolveCatalogRoute(session.graph!, "/users/42?tab=1")).toEqual({
+      pageId: USER,
+      params: { id: "42" },
+    });
+    expect(matchCatalogRoute("/a/:x/b", "/a/1/c")).toBeUndefined();
+
+    expect(session.navigateTo("/users/42")).toBe(true);
+    expect(session.pageId).toBe(USER);
+    // Nothing answers: the built-in view until the next navigation.
+    expect(session.navigateTo("/nowhere")).toBe(false);
+    expect(session.notFound).toBe("/nowhere");
+    expect(session.navigateTo("/users")).toBe(true);
+    expect(session.notFound).toBeUndefined();
+    // A project `/404` page takes the miss instead.
+    const NOT_FOUND = "project:page:nf" as EntryId<"page">;
+    page(NOT_FOUND, "/404", "nf");
+    flush();
+    expect(session.navigateTo("/nowhere")).toBe(false);
+    expect(session.pageId).toBe(NOT_FOUND);
+    expect(session.notFound).toBeUndefined();
   });
 });

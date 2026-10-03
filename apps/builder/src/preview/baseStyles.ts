@@ -36,6 +36,13 @@ export const PREVIEW_BASE_STYLES = `
       display: flex; align-items: center; justify-content: center;
       height: 100%; color: #666; font-size: 14px;
     }
+    .preview-not-found {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; gap: 4px; color: #666; font-size: 14px;
+    }
+    .preview-not-found h1 { font-size: 2rem; margin: 0 0 8px; color: #333; }
+    .preview-not-found p { margin: 0; }
+    .preview-not-found__path { font-family: ui-monospace, monospace; color: #999; }
     .lasso-selection-box {
       position: fixed;
       border: 2px dashed var(--action-primary-bg, #3b82f6);
