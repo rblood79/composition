@@ -1173,7 +1173,7 @@ export function CatalogCanvas({
         updatePaused();
       },
     );
-    const resize = new ResizeObserver(() => {
+    const refit = () => {
       dpr = window.devicePixelRatio || 1;
       fit();
       railInset = undefined;
@@ -1184,14 +1184,26 @@ export function CatalogCanvas({
       // animation frame: draw now, or the browser paints the cleared canvas (a blank flash on
       // every step of a window resize).
       renderFrame();
-    });
+    };
+    const resize = new ResizeObserver(refit);
     resize.observe(containerEl);
+    // The pixel ratio changes without a resize (the window moves to another display): the
+    // backing store follows, so the drawing stays sharp (the old SkiaCanvas's dppx query).
+    let dprQuery = matchMedia(`(resolution: ${dpr}dppx)`);
+    const onDprChange = () => {
+      dprQuery.removeEventListener("change", onDprChange);
+      refit();
+      dprQuery = matchMedia(`(resolution: ${dpr}dppx)`);
+      dprQuery.addEventListener("change", onDprChange);
+    };
+    dprQuery.addEventListener("change", onDprChange);
     renderer.invalidateContent();
     updatePaused();
 
     return () => {
       running = false;
       resize.disconnect();
+      dprQuery.removeEventListener("change", onDprChange);
       unwatchContext();
       setSurfaceLost(false);
       document.removeEventListener("visibilitychange", updatePaused);

@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트) — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트 · DPI) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
+- 창을 픽셀 밀도가 다른 모니터로 옮기면 창 크기를 바꾸기 전까지 Canvas 가 흐리던 것 — 밀도 변화에 backing store 를 다시 맞춘다.
 - **세션 중 올리거나 지운 커스텀 폰트가 새로고침 전까지 Canvas 에 반영되지 않던 것.** 폰트 목록이 바뀌면 Skia 폰트를 맞추고 글자를 다시 재서 그린다.
 - **요소 복사 · 붙여넣기가 같은 창 안에서만 되던 것.** 구 앱처럼 복사가 시스템 clipboard 에도 실려 다른 탭 · 다른 프로젝트 · 새로고침 뒤에도 붙여넣을 수 있다. 그 사이 다른 글을 복사했으면 아무것도 붙지 않고 (구 규칙), clipboard 권한이 없으면 창 안의 복사본을 쓴다.
 - **여러 개를 선택한 뒤 그 사이 빈 공간을 잡아 끌면 선택이 풀리고 marquee 가 시작되던 것.** 구 앱처럼 선택 상자 안의 빈 공간 (page 바탕 포함) 을 누르면 선택 전체가 끌린다. 상자 밖은 그대로 marquee.
