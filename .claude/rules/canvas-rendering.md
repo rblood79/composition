@@ -30,7 +30,7 @@ paths:
 - `_hasChildren` 체크: 배경 shapes 직후, standalone shapes 직전 배치. **Why**: 자식 유무에 따라 shapes 분기
 - Child Spec 추가 → `packages/specs/src/index.ts` + `components/index.ts` export + `pnpm build:specs` + `TAG_SPEC_MAP` 등록 (신규 child spec 은 D1 예외 컴포넌트만 — 일반 컴포넌트는 catalog)
 - Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
-- Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (buildSpecNodeData → specProps). `CONTAINER_DIMENSION_TAGS` Set 등록 필수. **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
+- Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (`catalogRuntime/ruleShapes.ts`). `BOX_SIZE_TYPES` Set 등록 필수 (옛 `buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` — Phase 4e-9-8 삭제). **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
 ## 2.5.5. Fill Spec Schema SSOT (ADR-908 Implemented 2026-04-24)
 
@@ -87,15 +87,15 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 
-컨테이너 spec은 `buildSpecNodeData.ts`의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다. 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
+컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem` 은 Plain 에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
 
 ### 3분류 정의
 
-| 분류                | Set                               | `_hasChildren=true` 주입 | 예시                                                                                                                                                                                    |
-| ------------------- | --------------------------------- | :----------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Shell-only**      | `SHELL_ONLY_CONTAINER_TAGS`       |  **자식 수 무관 항상**   | Calendar/RangeCalendar, Card, Dialog, Section, DisclosureGroup, Button/Checkbox/Radio/ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker/ColorSwatchPicker, body (17개) |
-| **Synthetic-merge** | `SYNTHETIC_CHILD_PROP_MERGE_TAGS` |         **차단**         | Breadcrumbs, ComboBox, GridList, Select, Table, Tabs, TagGroup, Toolbar, Tree (9개)                                                                                                     |
-| **Plain**           | (양쪽 다 미포함)                  |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너                                                                                 |
+| 분류                | Set                      | `_hasChildren=true` 주입 | 예시                                                                                                                                                                                    |
+| ------------------- | ------------------------ | :----------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Shell-only**      | `SHELL_ONLY_TYPES`       |  **자식 수 무관 항상**   | Calendar/RangeCalendar, Card, Dialog, Section, DisclosureGroup, Button/Checkbox/Radio/ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker/ColorSwatchPicker, body (17개) |
+| **Synthetic-merge** | `CHILD_PROP_MERGE_TYPES` |         **차단**         | Breadcrumbs, ComboBox, GridList, Select, Table, Tabs, TagGroup, Toolbar, Tree (9개)                                                                                                     |
+| **Plain**           | (양쪽 다 미포함)         |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너                                                                                 |
 
 ### 판정 알고리즘 (신규 컨테이너 추가 시)
 
@@ -113,7 +113,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ## 3. 텍스트 측정 동기화
 
-production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTextMeasurer` — ADR-051 → ADR-900 하이브리드, CSS 정합이 정본). CanvasKit Paragraph 는 `nodeRendererText.ts` 의 `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 에서만 만든다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스. (`CanvasKitTextMeasurer` 클래스는 2026-04-07 배선이 끊긴 채 남아 있다가 2026-09-20 삭제)
+측정은 두 곳이다 (2026-10-04 개정). **레이아웃 측정** (엔진에 주는 텍스트 크기) 은 `catalogRuntime/textMeasure.ts` `catalogTextMeasure` — CanvasKit 이 준비되면 페인트와 같은 paragraph 로 재고 (기본 font feature 가 advance 를 바꾸므로), 준비 전에만 Canvas 2D (`utils/textMeasure.ts`) 로 잰다. **페인트 줄바꿈 hint** 는 `nodeRendererText.ts` 가 Canvas 2D 로 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 렌더에 강제한다 (ADR-051) — `needsFallback` 분기 (letterSpacing · wordSpacing · white-space≠normal · break-all) 는 hint 없이 CanvasKit paragraph 그대로. 두 기준이 다르므로 줄 수 발산은 둘을 나란히 대조한다. ParagraphStyle 변경 시 **동시 업데이트**: nodeRendererText.ts · specShapeConverter.ts · TextMeasureStyle 인터페이스. (`CanvasKitTextMeasurer` 클래스는 2026-04-07 배선이 끊긴 채 남아 있다가 2026-09-20 삭제)
 
 - fontFamilies: 측정기와 렌더러가 **동일한 배열** 사용. CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑. **Why**: font 설정 불일치 → 텍스트 줄바꿈 위치 어긋남
 - strutStyle: `heightMultiplier > 0` 시 `forceStrutHeight: true` — 측정기/렌더러 양쪽 동일 적용
@@ -130,7 +130,7 @@ production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTex
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
-- Label size delegation: `LABEL_SIZE_STYLE` 단일 소스 (fullTreeLayout.ts — catalog `COMPONENT_RULES_TABLE.Label` 정합). DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
+- Label size delegation: `LABEL_SIZE_STYLE` 단일 소스 (fullTreeLayout.ts — **parity 하니스 전용**, layout-engine.md 참조 · catalog `COMPONENT_RULES_TABLE.Label` 정합). DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
 
 ## 5. 토큰/테마 정합성
 
@@ -142,16 +142,16 @@ production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTex
 
 ## 6. 레이아웃 통합
 
-- Size Delegation: 부모 size → 자식 직접 참조 (`resolveParentDelegatedSize`, buildSpecNodeData.ts). **Why**: Store가 자식 size 미저장
-- Calendar 계열 (CalendarGrid/CalendarHeader): catalog 경로 렌더 — CalendarHeader 는 `CONTAINER_DIMENSION_TAGS`, Calendar/RangeCalendar 는 Shell-only. 상세: canvas-details.md
+- Size Delegation: 부모 size → 자식 투영은 `utils/propagationRegistry.ts` 하나가 정본 (옛 `buildSpecNodeData.ts` `resolveParentDelegatedSize` 는 Phase 4e-9-8 에서 삭제). catalog Canvas 대응: `rulePaint.ts` `SHELL_ONLY_TYPES` · `CHILD_PROP_MERGE_TYPES`, `ruleShapes.ts` `BOX_SIZE_TYPES`
+- Calendar 계열 (CalendarGrid/CalendarHeader): catalog 경로 렌더 — CalendarHeader 는 `BOX_SIZE_TYPES`, Calendar/RangeCalendar 는 Shell-only. 상세: canvas-details.md
 - Popover 자식(Calendar/RangeCalendar): 레이아웃 엔진 계산에서 제외. **Why**: Preview Popover 표시
 - Collection Item Font: layout 경로 `injectCollectionItemFontStyles` (implicitStyles.ts) + Skia 는 catalog rule (GridListItem/ListBoxItem) — 상세: layout-details.md
 - Arc Shape: `type: "box"` + `arc` 데이터로 변환. 트랙도 arc(360°)로 렌더링. **Why**: renderSolidBorder inset 차이
-- Pointer → Move: store의 `selectedElementIds`에서 읽기. `hitElementId` 직접 전달 금지. **Why**: 내부 자식 의도치 않은 이동
+- Pointer → Move: 이동 대상은 `CatalogSession` 의 selection (`canvasGesture.ts` `beginMove`) — 판정은 현재 맥락 깊이로 정규화된 `picking.target` (`CatalogCanvas.tsx`). 히트한 원시 id 를 직접 넘기지 않는다. **Why**: 내부 자식 의도치 않은 이동
 
 ## 6.5 Drag-and-Drop 원칙
 
-- 시각적 offset 변경 금지 → **데이터 모델(store) mutation** 필수. **Why**: visual hack은 drop 시 원위치 + Skia 미동기화
+- 시각적 offset 변경 금지 → **문서 명령** (`moveNodes` → `host.execute` → `workspace.execute`, `canvasGesture.ts`) 필수. **Why**: visual hack은 drop 시 원위치 + Skia 미동기화
 - 좌표 변환: DOM clientX/Y → canvas 좌표 시 viewport offset + zoom 반영 필수. **Why**: pan/zoom 적용된 canvas와 DOM은 1:1 아님
 - 이벤트 리스너: `useRef`로 핸들러 참조 유지. **Why**: 드래그 중 리렌더 → addEventListener 소실
 - 드래그 상태 변수에 `eslint-disable` 주석. **Why**: 이벤트 핸들러 내에서만 참조되어 linter가 미사용으로 오판
@@ -173,7 +173,7 @@ production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTex
 - ❌ `size.height/2`로 세로 중앙 (`containerHeight/2` 사용)
 - ❌ publishLayoutMap 타이밍 해킹, notifyLayoutChange() 강제 호출
 - ❌ parentElement를 useMemo 내 직접 참조 (stale closure)
-- ❌ hitElementId를 startMove에 직접 전달 (selectedElementIds 사용)
+- ❌ 히트한 원시 id 를 이동 대상으로 직접 전달 (session selection · 정규화된 `picking.target` 사용)
 - ❌ `calculateContentWidth`에 측정기 종류별 `+N` 보정 추가 (CSS 정합 파괴 → nodeRendererText `+1` 마진 사용)
 - ❌ 텍스트 leaf 에 width/minWidth 주입 재도입 (ADR-165 스칼라 계약과 이중 적용 — `contentMinWidth`/`contentMaxWidth` 공급이 정본. 비텍스트 leaf 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지)
 - ❌ overflow 기준 flexShrink 주입 보정 (구 Step 5.7) TS 재도입 (automatic minimum size 는 엔진 소속 — `flex.rs` §4.5, ADR-164. layout-engine.md §"TS 잔존 계약" 참조)
@@ -189,37 +189,25 @@ production 측정기는 Canvas 2D 하나다 (`utils/textMeasure.ts` `Canvas2DTex
 
 히트 바운드(§8.5) · hover 그룹 하이라이트(§8.6) · 선택 박스 좌표계(§8.7) · 드래그 의도 판정(§8.8) 은 2026-08-31 분리 — `canvas/{interaction,selection}/**` · overlay/paint-order/pointer/drag 파일 작업 시 자동 로드.
 
-## 9. Render-Space Interaction Boundary (ADR-135/136 Implemented 2026-05-14/15)
+## 9. 렌더 identity ↔ 편집 대상 분리 (ADR-248 catalog runtime — 2026-10-04 개정)
 
-> Page Frame projection 도입 후, hit-test/그리기 ID 공간과 canonical document ID 공간을 분리. 위반 시 데이터 corruption 또는 split-brain 인터랙션 발생.
+> 옛 Page Frame projection 경로 (ADR-135/136 — `::page-frame::` projected ID · `renderNodesMap` / `sceneNodesMap` · `resolveCanonicalMoveTarget` · `sceneVersion` signature · `canonicalDocumentToElements`) 는 ADR-248 Phase 4 에서 store 와 함께 삭제됐다. 원칙 (렌더 공간 id 를 문서에 쓰지 않는다) 은 아래 형태로 남는다.
 
-- **ID 공간 분리**: hit-test/그리기 authoritative source 는 `renderNodesMap` / `interactionNodesMap`. `sceneNodesMap` 은 diagnostic/inspection 전용 — `renderNodesMap.get(x) ?? sceneNodesMap.get(x)` 류 render fallback **금지** (static gate 0건)
-- **projected ID 비영속**: `::page-frame::` projected ID 는 canonical document / IndexedDB / history payload 에 저장 금지. refresh 후 `elementsMap` 에 synthetic projected ID 0건이어야 함
-- **canonical move target**: projected Slot 으로의 drag/drop 은 `resolveCanonicalMoveTarget` → `moveElementToCanonicalTarget` 단일 mutation entry. **금지**: projected render ID 를 canonical mutation 의 `containerId`/target 으로 직접 전달
-- **Slot roundtrip 무손실**: Frame apply/remove/apply 반복 후 header/content/footer/custom Slot 의 `RefNode.descendants[path].children` 순서 보존. unapply 시 Slot mirror metadata 보존 → reapply 시 path 복원
-- **bootstrap canonical-only**: store mirror hydrate 는 canonical traversal 만 (`canonicalDocumentToElements()` 등). `deriveProjectRenderModelFromDocument()` elements 는 Skia 그리기 전용 — mirror hydrate source 로 사용 금지
-- **sceneVersion signature (ADR-136)**: `sceneVersion` = layoutVersion + pagePositionsVersion + **projection content signature** (node id/type/parent/page/layout id, ref·reusable·deleted state, stable props, ADR-135 projection metadata). signature 계산은 `buildSceneStructureSnapshot()` 시점만 (pointer hot path 금지)
-- **projection-relevant field 추가 규칙**: frame metadata / projection prop / ref state / 신규 canonical schema field 추가 시 signature input 목록 **동시 갱신** — `layoutVersion` 5-심볼 2계층 체인 (layout-engine.md) 과 동급 보수 의무. 누락 시 same-count phantom change 미감지 (signature false negative)
+- **identity 는 렌더 키, 문서 키가 아니다**: 해석된 노드의 `identity` = `instancePath` + `sourceId` (`packages/shared/src/catalog/resolution/positions.ts` `CatalogPosition`). composition root 레코드 · Canvas 명령 · overlay 가 이 키를 쓴다. 문서 · IndexedDB · 히스토리에는 저장하지 않는다.
+- **편집은 `EditTarget` 으로**: 같은 position 의 `target` (소유 노드 또는 instance address 가 붙은 template position) 이 명령의 대상이다. identity 문자열을 쪼개 문서 id 로 쓰지 않는다. 이동 · 삽입은 `moveNodes` 등 catalog 명령 하나로 간다.
+- **Canvas 무효화**: 전역 `sceneVersion` 카운터는 없다. `canvasBinding.ts` 가 `root.subscribeCanvas` dirty → rect diff 로 바뀐 subtree 만 다시 만든다 ([layout-engine.md](layout-engine.md) 「레이아웃 재계산 경로」 6단계).
 
-## 9.5 Page↔Frame 합성은 **두 축 모두** 배선해야 한다 (2026-07-27)
+## 9.5 페이지 레이아웃 적용 — 해석은 한 곳, consumer 는 둘 (2026-10-04 개정)
 
-프레임을 페이지에 적용하는 합성은 **resolver 가 해주지 않는다**. `resolveCanonicalDocument` 는 ref 를 열 때 master 자식과 instance 자식을 단순히 이어 붙이고(`[...origin, ...instance]`), ADR-903 의 `slot` 계약은 추천 목록 **검증**(비차단 warn)일 뿐 배치 기제가 아니다. 그래서 소비자 축마다 합성 층이 따로 있다:
-
-| 축                   | 합성 진입점                                              | 표현                                 |
-| -------------------- | -------------------------------------------------------- | ------------------------------------ |
-| Skia (canvas)        | `resolvePageWithFrame` (`buildPageDataMap` 에서 호출)    | flat `CanvasSceneNode` + `parent_id` |
-| Preview/Publish(DOM) | `projectPageFrameNode` (`preview/App.tsx` 캐노니컬 분기) | canonical resolved 트리              |
-
-- **정책은 한 곳** — `adapters/canonical/pageFrameProjection.ts` (body style/responsive 병합, 슬롯 style 보완). 두 축은 **순회만** 각자 한다. 정책을 축에 복제하면 그 순간 시각 발산이 시작된다 (D3 symmetric consumer).
-- 한 축만 배선하면 증상이 **비대칭**으로 나온다: 캔버스는 정상인데 preview 만 깨진다(또는 반대). 실측 — 캔버스 `page body 390×844 > 슬롯 60/784 > 콘텐츠` vs preview `page 390×**1688** > [프레임 body 844(빈 슬롯), page body 844]` → 빈 슬롯이 뷰포트를 채우고 콘텐츠는 화면 밖. 사용자에게는 "프레임 적용 후 preview 가 안 나온다" 로 보인다.
-- 합성 결과의 슬롯 id 는 두 축 모두 `toPageFrameElementId(pageId, slotId)` (= `{pageId}::page-frame::{slotId}`). 한쪽만 원본 id 를 쓰면 선택 동기화가 어긋난다.
-- **preview 의 legacy element 분기에도 슬롯 치환이 있다** (`renderLayoutElement`). canonical 분기가 먼저 return 하므로 프레임 페이지에서는 죽은 코드다 — 프레임 동작을 고칠 때 그쪽을 고치고 있지 않은지 확인할 것.
+- 페이지는 레이아웃을 **body 를 레이아웃 정의 (`DefinitionEntry.usage: "layout"`) 의 instance 로 만들고 template slot 을 `fillSlot` override 로 채워** 적용한다 (`packages/shared/src/catalog/document/types.ts`, 생성 명령 `createLayout`).
+- 펼침은 shared resolver (`catalog/resolution/resolver.ts` `resolveCatalogNode` · `positions.ts`) 한 곳이 한다. Canvas (`compositionRoot.ts`) 와 DOM (`domBinding.tsx`, Preview 는 `preview/catalog/catalogPreviewSession.ts`) 는 같은 해석 결과 (`CatalogConsumerNode`) 를 소비한다 — 옛 경로처럼 축마다 합성 층 (`resolvePageWithFrame` · `projectPageFrameNode` · `pageFrameProjection.ts`) 을 두지 않는다.
+- `workspace.root.pageFrameRects()` 의 "page frame" 은 Canvas 위 페이지 사각형이며 레이아웃 투영과 무관하다.
 
 ### 금지 패턴
 
-- ❌ 한 축만 고치고 종결 — 프레임 합성 변경은 `resolvePageWithFrame` + `projectPageFrameNode` **양쪽** 확인
-- ❌ 병합/슬롯 style 규칙을 축 안에 인라인 재구현 → `pageFrameProjection.ts` 경유
-- ❌ `resolveCanonicalDocument` 에 페이지 전용 슬롯 배치 주입 → Skia 축은 이미 자기 합성을 하므로 이중 적용
+- ❌ identity (`instancePath` + `sourceId`) 를 문서 · 히스토리 payload 에 저장하거나 명령 대상 id 로 직접 사용
+- ❌ 레이아웃 · slot 펼침을 Canvas 또는 DOM 한쪽에 따로 구현 (D3 symmetric consumer — 해석은 resolver 하나)
+- ❌ 레이아웃 적용 변경을 한 consumer 에서만 확인하고 종결 — Canvas · Preview 양쪽 확인 (`/cross-check`)
 
 ## 10. 게이트/플래그 단일 registry (2026-08-15)
 

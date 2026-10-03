@@ -4,11 +4,33 @@ paths:
   - "apps/builder/src/builder/workspace/canvas/interaction/**"
   - "apps/builder/src/builder/workspace/canvas/selection/**"
   - "**/pagePaintOrder*"
+  - "apps/builder/src/builder/workspace/canvas/catalog/**"
+  - "apps/builder/src/builder/catalogRuntime/canvasPick.ts"
+  - "apps/builder/src/builder/catalogRuntime/canvasGesture.ts"
 ---
 
 # 캔버스 인터랙션 규칙 (canvas-rendering.md §8.5–8.8 분리)
 
 > 렌더링 일반 규칙은 [canvas-rendering.md](canvas-rendering.md). 본 파일은 2026-07-24 실측 4절만 담는다.
+
+## ADR-248 이후 심볼 대응 (2026-10-04)
+
+아래 4절의 **원칙과 Why 는 그대로 유효**하다. 다만 기록 당시 함수 · 파일은 ADR-248 Phase 4 (2026-10-03) 에서 `BuilderCanvas` 와 함께 삭제됐고, catalog Canvas 가 같은 원칙을 아래 위치에서 구현한다. 본문의 옛 이름은 기록 당시 거처로 읽는다.
+
+| 절  | 기록 당시                                                                                      | 지금                                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8.5 | `renderCommands.buildRenderCommandStream` · `boundsMap` / `hitBoundsMap` · `EMPTY_CLIP`        | **같음** — `canvasBinding.ts` 가 `buildRenderCommandStream` 을 부르고 `CatalogCanvas` 가 `scene.stream.hitBoundsMap` 을 쓴다. `intersectBoxes` (`selection/types.ts`) 도 같음 |
+| 8.5 | `buildSlotMarkerTargets` · `buildCollectionRemainderTargets`                                   | `catalogSlotMarks` · `catalogRowRemainders` (`workspace/canvas/catalog/catalogChrome.ts` · `CatalogCanvas.tsx`)                                                               |
+| 8.5 | `withPageOcclusionClip` (`skiaOverlayBuilder.ts`) · `renderFrameAreaBorder`                    | 파일 삭제 — catalog overlay 에 페이지 간 occlusion clip 대응이 있는지 **재확인 필요** (겹친 페이지에서 아래 페이지 chrome 이 위 페이지를 가로지르면 여기부터 본다)            |
+| 8.5 | 페이지 헤더 — `BuilderCanvas` pointerdown capture                                              | `PageHeaderLayer` 는 `CatalogCanvas.tsx` 가 마운트, 헤더 press 는 `headerPressRef`                                                                                            |
+| 8.6 | `useElementHoverInteraction` · `resolveHoverGroupState()` · `resolvePage/FrameBodyHoverTarget` | `CatalogCanvas.tsx` `hoverLeaves` — page body (`parentId === "catalog:root"`) 는 `[]` (확장 금지 규칙 유지)                                                                   |
+| 8.6 | hover state 를 childrenMap 으로 산출 · `collectLeafDescendants`                                | `catalogLeafRecords(workspace.root.canvasInputs, identity)` (`catalogChrome.ts`) — memo 키는 identity + root + `graph.revision` (구조만, bounds 로 거르지 않음)               |
+| 8.6 | `buildHoverHighlightTargets` (가시성 판정)                                                     | `catalogOverlayNode` 의 `hitBounds` 입력 (`catalogOverlay.ts`) — 프레임마다 판정                                                                                              |
+| 8.7 | `computeSelectionBounds`                                                                       | `selectionBoxLeader` (`CatalogCanvas.tsx`) — scene 좌표 단일계 유지                                                                                                           |
+| 8.8 | `resolveSelectionDragIntent()` (`interaction/selectionModel.ts`)                               | `CatalogCanvas.tsx` pointerdown — `picking.target(x, y, deep)` (현재 맥락 깊이로 정규화) 이 선택돼 있으면 `beginMove`, 아니면 `picking.click`                                 |
+| 8.8 | `resolveClickTarget` · `handleElementDoubleClick` · `editingContext`                           | `canvasPick.ts` `doubleClick` → `session.enterContext`                                                                                                                        |
+
+- 각 절 「금지 패턴」 의 "단일 진입점" 은 위 표의 현재 위치로 읽는다. 새 단일 진입점을 따로 만들지 않는다.
 
 ## 8.5 Clip-Aware Hit Bounds — 원본 박스 ↔ 히트 영역 분리 (2026-07-24)
 

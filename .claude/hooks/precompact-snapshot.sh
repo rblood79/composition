@@ -8,8 +8,8 @@ RULES_DIR="$PROJECT_DIR/rules"
 echo "=== PreCompact Context Snapshot ==="
 echo ""
 echo "## Project: composition NoCode Builder"
-echo "## Pipeline: Memory→Index→History→DB→Preview→Rebalance"
-echo "## Engines: Taffy WASM (Flex/Grid/Block), CanvasKit/Skia (단일 렌더러 ADR-100)"
+echo "## Pipeline: 명령→workspace.execute→commit→consumer→save queue→History→listeners→Autosave→Preview delta (ADR-248)"
+echo "## Engines: 자체 Rust WASM 레이아웃 (Flex/Grid/Block, ADR-916), CanvasKit/Skia (단일 렌더러 ADR-900)"
 echo ""
 
 # 변경된 파일 목록 수집
@@ -34,7 +34,7 @@ if [ -n "$CHANGED" ]; then
   fi
 
   # Store/State 변경 → state-management 규칙 주입
-  if echo "$CHANGED" | grep -qiE "store|slice|zustand|elementsMap|childrenMap"; then
+  if echo "$CHANGED" | grep -qiE "stores/|catalogRuntime|catalog/transactions|catalog/commands"; then
     echo "## State Rules (auto-injected from state-management.md)"
     head -25 "$RULES_DIR/state-management.md" 2>/dev/null || true
     echo ""
@@ -52,11 +52,9 @@ else
   echo "- No inline Tailwind → tv() + CSS files"
   echo "- No any type → explicit types"
   echo "- DirectContainer → engine result x/y"
-  echo "- ADR-116/122: canonical document = primary SSOT (elementsMap/childrenMap = transitional read-only)
-- No array traversal in hot path (canonical selectors / read-only elementsMap fallback)"
-  echo "- History before state change"
-  echo "- layoutVersion + 1 on layout props"
-  echo "- batchUpdateElementOrders() single set()"
+  echo "- ADR-248: CatalogGraph = 문서 SSOT, 변경은 catalog 명령 → workspace.execute 만"
+  echo "- History 의도 필수 (record / skip 사유) — 데이터 store 변경도 recordExternal 로 같은 스택"
+  echo "- 레이아웃 재계산 = transaction impact.layout (PAINT_ONLY_VISUAL_KEYS 제외 방식) + styleOf diff"
   echo "- resolveToken() for TokenRef numeric ops"
   echo ""
 fi

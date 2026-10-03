@@ -5,93 +5,69 @@ impactDescription: 잘못된 계층 구조 = 렌더링 오류, 데이터 손실
 tags: [domain, element, hierarchy]
 ---
 
-Element 계층 구조 규칙을 정의합니다.
+catalog 문서의 계층 구조와 주소 체계를 정의합니다. 문서 정본은 `CatalogGraph` (`packages/shared/src/catalog/document/graph.ts`), 타입은 `packages/shared/src/catalog/document/types.ts` 입니다.
 
 ## 계층 구조
 
 ```
-Page (canonical document)
-└── body (자동 생성, 루트 컨테이너 — type: "body")
-    └── Frame/Container
-        └── Component (Button, TextField, etc.)
-            └── Leaf (Text, Image - 자식 불가)
+ProjectEntry
+├── pageIds[] → PageEntry          (route · name · children)
+│   └── children[0] = body 노드    (definitionId "lib:definition:type-body")
+│       └── NodeEntry.children[]   (사용자 요소 트리)
+├── definitionIds[] → DefinitionEntry
+│   ├── usage: "component"          재사용 컴포넌트 — templateRootId 아래 템플릿 트리
+│   └── usage: "layout"             페이지 레이아웃 — body 가 이 정의의 instance 가 된다
+├── stateVariableIds[] → StateVariableEntry
+└── interactionIds[] → InteractionEntry
 ```
 
-- Element 식별자 필드는 `type` (ADR-113 — `tag` 아님)
-- 형제 간 순서는 canonical document `children` 배열 위치가 SSOT (ADR-118) — `order_num` 필드/재정렬 파이프라인 소멸
-- 구 Layout/Slot 이원화(`layout_id` / `slot_name` 필드)는 canonical `FrameNode` + `reusable: true` + ref 참조로 흡수됨 (ADR-903/ADR-111 — `types/builder/layout.types.ts` 헤더 참조)
+- **식별자**: 노드는 `definitionId` 를 갖고, 타입명은 `definitionTypeName` (`commands/context.ts`) 이 정의에서 유도합니다. 옛 `type` · `parent_id` · `page_id` 필드는 문서 노드에 없습니다.
+- **순서**: `NodeEntry.children` · `PageEntry.children` · `ProjectEntry.pageIds` 배열이 정본입니다. `order_num` 은 옛 레코드를 로드할 때 지웁니다 (`lib/db/indexedDB/adapter.ts` `deleteLegacyOrderFields`).
+- **소유**: 부모는 필드가 아니라 graph 인덱스로 찾습니다 — `graph.ownerOf(id)`.
+- **생성 위치**: 새 페이지 (`catalogRuntime/pageTree.ts`) · 새 프로젝트 (`catalogRuntime/project.ts`) 는 body 노드 하나를 함께 만듭니다. 레이아웃이 적용된 페이지의 내용 slot 은 `layoutContentSlotPath` (`commands/project.ts`) 가 고릅니다.
+
+## 주소 체계 — 소유 노드 ↔ 인스턴스 안 위치
+
+| 타입                                                | 뜻                                                                                                          |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `EditTarget {kind: "node", id}`                     | 문서가 소유한 노드                                                                                          |
+| `EditTarget {kind: "descendant", ownerId, address}` | 인스턴스 `ownerId` 안 template position (`InstanceAddress`) — 쓰기는 owner 의 `descendantOverrides` 로 간다 |
+| `NodeParent`                                        | 삽입 · 이동의 부모 — 같은 두 갈래                                                                           |
+| record identity (`instancePath` + `sourceId`)       | Canvas · overlay · 선택의 **렌더 키** — 문서 · 명령 대상에 쓰지 않는다                                      |
+
+- 패널 · Canvas 의 행은 `CatalogPosition` (`catalog/resolution/positions.ts`) 하나가 `target` 과 `identity` 를 같이 줍니다. 명령에는 `target` 을 넘깁니다.
+
+## 중첩 판정
+
+- 판정은 명령 안의 `assertNestable` (`commands/context.ts`) → `resolveNestingViolation` (`catalog/nesting/nestingRules.ts`) 입니다. 위반이면 `NESTING_NOT_ALLOWED` 로 명령이 실패합니다.
+- 층 순서: Pen 구조 (`PEN_LEAF_TYPES` = Text · Icon) → RAC 합성 (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES`) → HTML 의미 (`DOM_LEAF_TYPES` 등).
+- 호출자가 leaf 목록을 하드코딩해 따로 막지 않습니다 — 판정이 갈립니다.
 
 ## Incorrect
 
 ```typescript
-// ❌ Page에 직접 컴포넌트 배치 (body 무시)
-const element: Element = {
-  id: "button-1",
-  type: "Button",
-  parent_id: null, // 루트에 직접 배치
-  page_id: "page-1",
-};
+// ❌ record identity 를 쪼개 문서 id 로 사용
+const nodeId = identity.split("::").pop();
+workspace.execute(moveNodes({ ids: [nodeId], ... }));
 
-// ❌ Leaf 요소에 자식 추가
-const textElement: Element = {
-  id: "text-1",
-  type: "Text",
-  parent_id: "some-parent",
-};
-const childOfText: Element = {
-  id: "child-1",
-  parent_id: "text-1", // Text는 자식을 가질 수 없음
-};
-
-// ❌ projected render ID 를 부모로 사용 (ADR-135)
-const element: Element = {
-  parent_id: "page1::page-frame::slot1", // "::page-frame::" projected ID 영속 금지
-};
+// ❌ 호출자 쪽 leaf 하드코딩
+const LEAF_TYPES = ["Text", "Image", "Icon", "Separator"];
+if (LEAF_TYPES.includes(parentType)) return;
 ```
 
 ## Correct
 
 ```typescript
-// ✅ body를 통한 올바른 계층 구조
-import { ElementUtils } from '@/utils/element/elementUtils';
-
-// layout 모드에서는 canonical document 로 frame node id 매칭 (4번째 인자 doc)
-const bodyId = ElementUtils.findBodyByContext(elements, pageId, layoutId, doc);
-
-const element: Element = {
-  id: ElementUtils.generateId(),
-  type: 'Button',
-  parent_id: bodyId ?? null,  // body 아래에 배치
-  page_id: pageId,
-};
-
-// ✅ 이동/재배치 — canonical mutation 단일 진입점 (순서 = children 배열 위치)
-import { moveElementToCanonicalTarget } from '@/adapters/canonical/canonicalMutations';
-
-const canonicalTarget = resolveCanonicalMoveTarget({ ... });
-// → workspace/canvas/interaction/resolveCanonicalMutationTarget.ts
-if (canonicalTarget) {
-  moveElementToCanonicalTarget(elementId, canonicalTarget);
-}
-
-// ✅ Leaf 요소는 항상 말단
-const LEAF_TYPES = ['Text', 'Image', 'Icon', 'Separator'];
-
-function canHaveChildren(type: string): boolean {
-  return !LEAF_TYPES.includes(type);
-}
+// ✅ position 의 target 을 명령에 넘긴다 — 중첩 판정은 명령이 한다
+workspace.execute(
+  removeTargets({ targets: selection.map((item) => item.target) }),
+);
 ```
-
-## Layout 합성 컨텍스트 (ADR-111/135)
-
-- Layout(재사용 셸)은 별도 `layout_id` 필드가 아니라 canonical `FrameNode` (`reusable: true`) 로 표현
-- Page 는 layout shell 을 `type: "ref"` 로 참조, slot 내용은 `descendants[path].children` 으로 보존
-- 화면 합성/hit-test 경계 규칙: `.claude/rules/canvas-rendering.md` §9 + `domain-layout-resolution.md` 참조
 
 ## 참조 파일
 
-- `apps/builder/src/types/builder/unified.types.ts` - Element 타입 정의 (`type` 필드, ADR-126 legacy projection)
-- `apps/builder/src/utils/element/elementUtils.ts` - `ElementUtils.findBodyByContext` (`type === "body"` 매칭)
-- `apps/builder/src/adapters/canonical/canonicalMutations.ts` - `moveElementToCanonicalTarget` (이동/재배치)
-- `apps/builder/src/builder/workspace/canvas/interaction/resolveCanonicalMutationTarget.ts` - `resolveCanonicalMoveTarget`
-- `packages/shared/src/types/composition-document.types.ts` - canonical schema (`FrameNode`)
+- `packages/shared/src/catalog/document/types.ts` — `ProjectEntry` · `PageEntry` · `NodeEntry` · `DefinitionEntry` · `EditTarget` · `NodeParent`
+- `packages/shared/src/catalog/document/graph.ts` — `ownerOf` · `getEntry`
+- `packages/shared/src/catalog/resolution/positions.ts` — `CatalogPosition`
+- `packages/shared/src/catalog/nesting/nestingRules.ts` — 중첩 3층
+- 레이아웃 적용: [domain-layout-resolution.md](domain-layout-resolution.md)

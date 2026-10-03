@@ -1,6 +1,8 @@
-# Layout Engine — 구현 상세
+# Layout Engine — 구현 상세 (parity 하니스)
 
 > 규칙 요약은 [layout-engine.md](../../../rules/layout-engine.md) 참조
+>
+> **parity 하니스 전용 (2026-10-04)**: 이 문서의 내용은 전부 `fullTreeLayout.ts` · `implicitStyles.ts` · `engines/utils.ts` 파이프라인의 상세다. ADR-248 Phase 4 (2026-10-03) 뒤 production 레이아웃은 `catalogRuntime/compositionRoot.ts` 가 `PersistentLayoutTree` 를 직접 몰고, 엔진 입력은 `styleOf` 하나가 만든다 — `calculateFullTreeLayout` 의 production 호출자는 0 이다 (호출자는 `apps/builder/tests/parity/**` 와 일부 테스트). 여기를 고쳐도 Builder 화면은 바뀌지 않는다. production 대응: Label size → `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`) · 부모 delegation 변수 (`document/rulePartRules.ts`), 줄바꿈 뒤 높이 → composition root `rewrap`, indicator 여백 → `catalogIndicatorInset`.
 
 ## Label size delegation 상세
 
@@ -17,11 +19,11 @@
 최초 발견된 DELEGATION 부모를 기억하고, 상위에 size 소유자가 있으면 갱신:
 
 - standalone Checkbox(size 없음) → `lastDelegationAncestor = Checkbox` → 기본값 "md"
-- CheckboxGroup 내 → Checkbox(래퍼) → CheckboxItems(래퍼) → CheckboxGroup(size 소유) → 해당 size 사용
+- CheckboxGroup 내 → Checkbox(래퍼) → … → CheckboxGroup(size 소유) → 해당 size 사용
 
 ### LABEL_WRAPPER_TAGS
 
-`Checkbox, Radio, CheckboxItems, RadioItems` — size 없이 상위로 통과.
+`Checkbox, Radio` — size 없이 상위로 통과 (`fullTreeLayout.ts`). CheckboxItems/RadioItems 는 ADR-912 (2026-06-14) 에서 래퍼 멤버에서 빠졌다. ADR-251 (2026-10-03) 이 문서 노드로 복원했지만 parity 하니스의 이 Set 은 갱신하지 않았다 — production 은 `CATALOG_SIZE_PROPAGATION` 이 RadioGroup → RadioItems → Radio → Label 을 잇는다.
 
 ### LABEL_DELEGATION_PARENT_TAGS
 
@@ -43,7 +45,7 @@
 
 ## Select/ComboBox 부모 높이 추정 상세
 
-`utils.ts`의 `effectiveHeight` 계산:
+`utils.ts` 의 높이 추정 (`resolvedLH = parseLineHeight(style, fontSize) ?? fontSize * 1.5` 패턴):
 
 1. `parseLineHeight(lineHeight, fontSize)` 값이 있으면 우선 적용
 2. lineHeight가 null이면 `Math.ceil(fontSize * 1.5)` fallback (기존 동작 유지)
@@ -56,8 +58,8 @@
 
 Step 4.5 (2-pass height 교정)에서 element를 조회할 때 processedElementsMap을 우선 사용해야 하는 이유:
 
-- **Label**: DFS injection으로 `fontSize: 14, lineHeight: "20px"` 주입 → store 원본에는 없음 → fallback fontSize=16, lineHeight=24 → 텍스트 줄바꿈 → height 48px (기대 20px)
-- **ComboBoxTrigger**: implicit styles로 `width: 18, height: 18` 주입 → store 원본 style=`{}` → fallback height=24
+- **Label**: DFS injection으로 `fontSize: 14, lineHeight: "20px"` 주입 → 원본 노드에는 없음 → fallback fontSize=16, lineHeight=24 → 텍스트 줄바꿈 → height 48px (기대 20px)
+- **ComboBoxTrigger**: implicit styles로 `width: 18, height: 18` 주입 → 원본 style=`{}` → fallback height=24
 
 조회 패턴: `processedElementsMap.get(id) ?? elementsMap.get(id)`
 
@@ -67,7 +69,7 @@ merge 규칙: Step 3.6에서 부모 implicit styles를 자식에 적용할 때, 
 
 ## PersistentLayoutTree display/grid 전환 감지 상세
 
-증분 갱신 주체는 자체 Rust 레이아웃 엔진 (`packages/engine`, ADR-916 — Taffy 완전 제거). `persistentLayoutTree.ts`/`flexStyleAdapter.ts` 등 JS 어댑터는 값 변환만 하며, 남아 있던 `Taffy*` 식별자는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명됐다. full rebuild 규칙 정본: `.claude/rules/layout-engine.md`.
+증분 갱신 주체는 자체 Rust 레이아웃 엔진 (`packages/engine`, ADR-916 — Taffy 완전 제거). 아래 full rebuild 가드는 parity 파이프라인에만 있다 — catalog 경로는 모든 편집이 증분이며, 증상이 재현되면 엔진 `update_style` · `add_node` 부터 본다 (rules/layout-engine.md 「재확인 필요」). `persistentLayoutTree.ts`/`flexStyleAdapter.ts` 등 JS 어댑터는 값 변환만 하며, 남아 있던 `Taffy*` 식별자는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명됐다. full rebuild 규칙 정본: `.claude/rules/layout-engine.md`.
 
 ### display 전환
 
@@ -89,7 +91,7 @@ merge 규칙: Step 3.6에서 부모 implicit styles를 자식에 적용할 때, 
 
 ## Grid 트랙 폭 사전 계산 + 2-Pass 안전망 상세
 
-CSS 브라우저는 폭 결정 → 텍스트 줄바꿈 → auto height를 한 번에 처리하지만, Taffy는 enrichment에서 `availableWidth` 기준으로 height 계산.
+CSS 브라우저는 폭 결정 → 텍스트 줄바꿈 → auto height를 한 번에 처리하지만, parity 파이프라인은 enrichment 에서 `availableWidth` 기준으로 height 를 미리 계산해 엔진 입력에 싣는다.
 
 ### 1차 사전 계산
 
@@ -109,30 +111,22 @@ CSS 브라우저는 폭 결정 → 텍스트 줄바꿈 → auto height를 한 �
 
 ---
 
-## Block-child normalization guard 상세
-
-fullTreeLayout의 block-child 정규화(`width: 100%` 주입)에서 `enrichWithIntrinsicSize`가 이미 계산한 numeric/px 폭이 있으면 덮어쓰지 않음.
-
-가드 조건: `typeof existingW === "number"` 또는 `existingW !== "auto" && existingW !== "100%"` 시 skip.
-
----
-
 ## Checkbox/Radio → CheckboxGroup/RadioGroup size 주입 상세
 
-Checkbox/Radio DFS 진입 시 부모 탐색 경로: Checkbox → CheckboxItems → CheckboxGroup.
+Checkbox/Radio DFS 진입 시 부모 탐색으로 그룹 size 를 찾는다.
 
-`implicitStyles.ts`가 `containerProps.size`로 indicator marginLeft를 계산하므로 size 주입이 필수. Store에 size가 없는 자식에만 적용 (이미 size가 있으면 스킵).
+`implicitStyles.ts` 가 `containerProps.size` 로 indicator marginLeft 를 계산하므로 size 주입이 필수. 원본에 size 가 없는 자식에만 적용 (이미 size 가 있으면 스킵). production 은 `CATALOG_SIZE_PROPAGATION` + `catalogIndicatorInset` (`document/rulePartRules.ts`).
 
 ---
 
 ## Collection Item font 주입 상세 (ListBoxItem/GridListItem)
 
-구 TextSprite/ElementSprite selector 경로는 폐기됨 (심볼 소멸). 현행 3경로:
+구 TextSprite/ElementSprite selector 경로는 폐기됨 (심볼 소멸). 3경로 (아래 implicitStyles 경로는 parity 전용 — production 레이아웃은 catalog rule 의 typography 를 `styleOf` 가 읽는다):
 
 - **CSS**: 부모에 font-size/weight 설정 → 자식 상속 + description override
-- **implicitStyles (Taffy 높이 계산)**: `injectCollectionItemFontStyles()` (`implicitStyles.ts`) — GridListItem/ListBoxItem 컨테이너 분기에서 자식 Text(fontSize 14 / fontWeight 600 / width 100%), Description(fontSize 12 / width 100%) 주입
+- **implicitStyles (parity 높이 계산)**: `injectCollectionItemFontStyles()` (`implicitStyles.ts`) — GridListItem/ListBoxItem 컨테이너 분기에서 자식 Text(fontSize 14 / fontWeight 600 / width 100%), Description(fontSize 12 / width 100%) 주입
 - **Skia**: catalog 기반 — item 시각은 `COMPONENT_RULES_TABLE` 의 GridListItem/ListBoxItem rule 로 렌더 (ADR-912 catalog cutover), 별도 selector 주입 없음
 
 item 컨테이너 base-axis(display/flexDirection/minWidth 등)는 catalog `structure.containerStyles` 단일 source — `resolveCatalogCollectionBase()` (`implicitStyles.ts`) 경유. GridListItem `minWidth: 0` 도 이 경로 (CSS `minmax(0, 1fr)` 동기화).
 
-새 collection 컴포넌트 추가 시 `implicitStyles.ts` 의 해당 containerTag 분기에 `injectCollectionItemFontStyles()` 적용 추가 필수.
+parity 하니스가 새 collection 컴포넌트를 재야 하면 `implicitStyles.ts` 의 해당 containerTag 분기에 `injectCollectionItemFontStyles()` 를 추가한다 (production 등록 절차가 아니다).

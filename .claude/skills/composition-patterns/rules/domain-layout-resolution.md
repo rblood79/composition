@@ -5,75 +5,71 @@ impactDescription: 잘못된 레이아웃 합성 = 페이지 렌더링 오류, I
 tags: [domain, layout, page, projection]
 ---
 
-Page 와 재사용 레이아웃(Frame) 의 합성 규칙을 정의합니다.
+Page 와 재사용 레이아웃의 합성 규칙을 정의합니다.
 
-> **정본**: `.claude/rules/canvas-rendering.md` §9 Render-Space Interaction Boundary (ADR-135/136). 본 문서는 구현 위치 지도.
+> **정본**: [canvas-rendering.md §9 · §9.5](../../../rules/canvas-rendering.md) (렌더 identity ↔ 편집 대상 분리 · 해석은 한 곳). 본 문서는 구현 위치 지도입니다. 옛 Frame (`FrameNode reusable:true` + `type:"ref"` + `descendants[path].children`) · page-frame projection (`::page-frame::` projected id · `renderNodesMap` / `interactionNodesMap` / `sceneNodesMap` · `resolveCanonicalMoveTarget`) 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
 
-## 체계 개요 (구 시스템과의 차이)
+## 체계
 
-구 `resolveLayoutForPage` / `preview/utils/layoutResolver.ts` 기반 Layout-vs-Page 이원화 체계는 **소멸**했습니다. 현행 합성은 두 층으로 나뉩니다:
+| 층      | 지금                                                                                                                                                                                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 데이터  | 레이아웃 = `DefinitionEntry { usage: "layout", templateRootId }`. 페이지에 적용하면 **body 가 그 정의의 instance** 가 되고, 페이지 내용은 template slot 의 `fillSlot` override (`childIds`) 에 들어간다 |
+| 해석    | shared resolver (`catalog/resolution/resolver.ts` `resolveCatalogNode` · `positions.ts`) 한 곳이 instance 를 펼친다. Canvas · DOM 은 같은 결과를 소비한다                                               |
+| 렌더 키 | record identity = `instancePath` + `sourceId`. Canvas · overlay · 선택의 키이고 문서에는 쓰지 않는다                                                                                                    |
+| 편집    | 명령에는 `EditTarget` / `NodeParent` (`{kind: "descendant", ownerId, address}` 포함) 만 넘긴다                                                                                                          |
 
-1. **데이터 층 (ADR-111 frameset)** — Layout 은 별도 테이블/필드(`layout_id`, `slot_name`)가 아니라 canonical `FrameNode` (`reusable: true`) 로 표현. Page 는 layout shell 을 `type: "ref"` 노드로 참조하고, slot 별 내용은 `descendants[path].children` 으로 보존 (`types/builder/layout.types.ts` 헤더의 흡수 매핑 참조)
-2. **렌더 층 (ADR-135 page-frame projection)** — canonical document 로부터 render model 을 파생(projection)하며, projected ID 공간과 canonical ID 공간을 분리
+## 명령과 구현 위치
 
-## 구현 위치 지도
+| 역할                 | 위치                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 레이아웃 생성        | `createLayout` (`commands/project.ts`) — slot 선언 필수 (`LAYOUT_SLOT_REQUIRED`). Builder: `catalogNewLayoutCommand` (`catalogRuntime/layouts.ts`) |
+| 적용 · 해제          | `applyLayout` (`definitionId` 없으면 해제) — 내부 `releaseLayout` 이 모든 slot 내용을 페이지로 되돌린 뒤 새로 적용                                 |
+| 기본 내용 slot       | `layoutContentSlotPath` — `slotPath` → 이름 `content` → 첫 required → 첫 slot                                                                      |
+| 삭제                 | `deleteLayout` — 쓰던 페이지는 `releaseLayout`                                                                                                     |
+| slot 선언            | `NodeEntry.slot { name, required }` · `setSlotDeclaration` (`commands/fields.ts`), Builder `catalogSlotCommands` (`catalogRuntime/slots.ts`)       |
+| 페이지 레이아웃 설정 | `catalogRuntime/pageLayoutSettings.ts` (`setPageLayoutSettings`)                                                                                   |
+| Navigator 목록       | `catalogDefinitionList` (`catalogRuntime/layouts.ts`, Layouts 탭)                                                                                  |
+| hit-test             | `CatalogCanvasPicking` · `pickTopmostRecord` (`catalogRuntime/canvasPick.ts`)                                                                      |
+| 드롭 · 이동          | `canvasGesture.ts` · Layers `catalogLayerDropCommand` (`layerTree.ts`) → `moveNodes` (`NodeParent` descendant 포함)                                |
 
-| 역할                               | 파일 / 심볼                                                                                                                                  |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| canonical schema (`FrameNode`)     | `packages/shared/src/types/composition-document.types.ts`                                                                                    |
-| projection 파생 (Skia 그리기 전용) | `packages/shared/src/utils/export.utils.ts` — `deriveProjectRenderModelFromDocument()`                                                       |
-| projected ID 규약                  | `apps/builder/src/builder/projection/renderProjectionIds.ts` — `PAGE_FRAME_PROJECTION_INFIX` (`"::page-frame::"`)                            |
-| mirror hydrate (canonical-only)    | `apps/builder/src/builder/stores/canonical/canonicalElementsView.ts` — `canonicalDocumentToElements()`                                       |
-| drag/drop → canonical move 대상    | `apps/builder/src/builder/workspace/canvas/interaction/resolveCanonicalMutationTarget.ts` — `resolveCanonicalMoveTarget()`                   |
-| canonical move mutation            | `apps/builder/src/adapters/canonical/canonicalMutations.ts` — `moveElementToCanonicalTarget()`                                               |
-| drag bridge (소비자)               | `apps/builder/src/builder/workspace/canvas/hooks/useDragBridge.ts`                                                                           |
-| page-frame binding (선택 계약)     | `apps/builder/src/adapters/canonical/pageFrameBinding.ts` — `applyPageFrameBindingFromSelection` / `applyPageFrameBindingExplicit` (ADR-137) |
-| frame 삭제/cascade                 | `apps/builder/src/adapters/canonical/frameLayoutCascade.ts`                                                                                  |
-| legacy Layout/Slot 변환 adapter    | `apps/builder/src/adapters/canonical/slotAndLayoutAdapter.ts` (`type="Slot"` element → slot 메타, `layout_id` → ref)                         |
-| Body 해석 (page/layout 컨텍스트)   | `apps/builder/src/utils/element/elementUtils.ts` — `ElementUtils.findBodyByContext(elements, pageId, layoutId, doc)`                         |
+- 옛 `deriveProjectRenderModelFromDocument` · `::page-frame::` (`packages/shared/src/utils/export.utils.ts`) 는 publish · export 경로에만 남았습니다. Builder 경로가 아닙니다.
 
-## 핵심 규칙 (정본 §9 요약)
+## 규칙
 
-- **ID 공간 분리**: hit-test/그리기 authoritative source 는 `renderNodesMap` / `interactionNodesMap`. `sceneNodesMap` 은 diagnostic 전용 — render fallback 금지
-- **projected ID 비영속**: `"::page-frame::"` projected ID 는 canonical document / IndexedDB / history payload 에 저장 금지
-- **canonical move target 단일 진입점**: projected Slot 으로의 drag/drop 은 `resolveCanonicalMoveTarget` → `moveElementToCanonicalTarget`. projected render ID 를 mutation 의 `containerId`/target 으로 직접 전달 금지
-- **bootstrap canonical-only**: store mirror hydrate 는 canonical traversal 만 (`canonicalDocumentToElements()` 등). `deriveProjectRenderModelFromDocument()` elements 는 Skia 그리기 전용 — mirror hydrate source 로 사용 금지
-- **Slot roundtrip 무손실**: Frame apply/remove/apply 반복 후 `descendants[path].children` 순서 보존
+- **identity 비영속**: record identity · 선택 `identity` 를 문서 · IndexedDB · 히스토리 payload 에 쓰지 않습니다.
+- **이동 대상은 `NodeParent`**: slot 안으로 옮길 때는 `{kind: "descendant", ownerId, address}` 를 `moveNodes` 에 넘깁니다. identity 문자열을 쪼개 대상 id 로 쓰지 않습니다.
+- **해제 · 재적용 무손실**: `applyLayout` 의 해제 → 재적용에서 slot 내용 (`fillSlot.childIds`) 순서가 보존돼야 합니다. 레이아웃 적용 로직을 고치면 이 왕복을 테스트로 고정합니다.
+- **해석은 resolver 하나**: slot 펼침을 Canvas 또는 DOM 한쪽에 따로 구현하지 않습니다 (D3 symmetric consumer). 변경 뒤 Canvas · Preview 양쪽을 `/cross-check` 로 확인합니다.
 
 ## Incorrect
 
 ```typescript
-// ❌ 구 심볼 참조 — resolveLayoutForPage / layoutResolver.ts 는 소멸
-import { resolveLayoutForPage } from "@/preview/utils/layoutResolver";
+// ❌ record identity 를 이동 대상으로
+workspace.execute(
+  moveNodes({ ids, parent: { kind: "node", id: slotIdentity }, newId }),
+);
 
-// ❌ projected ID 를 canonical mutation target 으로 전달
-moveElementToCanonicalTarget(elementId, {
-  containerId: "page1::page-frame::header", // projected ID — 금지
-});
-
-// ❌ projection 결과를 mirror hydrate source 로 사용
-const elements = deriveProjectRenderModelFromDocument(doc, projectId).elements;
-hydrateStoreMirror(elements); // Skia 그리기 전용 — 금지
+// ❌ Canvas 쪽에서만 slot 내용을 합성
+const children = [...layoutChildren, ...pageChildren];
 ```
 
 ## Correct
 
 ```typescript
-// ✅ drag/drop → canonical 대상 해석 → canonical mutation (실코드: useDragBridge.ts)
-const canonicalTarget = resolveCanonicalMoveTarget({ ... });
-const moved = canonicalTarget
-  ? moveElementToCanonicalTarget(elementId, canonicalTarget)
-  : false;
+// ✅ position 의 target 으로 NodeParent 를 만든다
+const parent: NodeParent =
+  target.kind === "node"
+    ? { kind: "node", id: target.id }
+    : { kind: "descendant", ownerId: target.ownerId, address: target.address };
+workspace.execute(moveNodes({ ids, parent, newId }));
 
-// ✅ mirror hydrate 는 canonical traversal
-const elements = canonicalDocumentToElements(doc);
-
-// ✅ Body 해석 — layout 모드는 canonical doc 으로 frame node id 매칭
-const bodyId = ElementUtils.findBodyByContext(elements, pageId, layoutId, doc);
+// ✅ 레이아웃 적용 · 해제는 명령 하나
+workspace.execute(applyLayout({ pageId, definitionId, newId }));
 ```
 
-## 참조 ADR
+## 참조 파일
 
-- `docs/adr/completed/111-layout-frameset-pencil-redesign.md` - frameset 데이터 층
-- `docs/adr/completed/135-page-frame-projection-interaction-boundary.md` - projection/interaction 경계
-- `docs/adr/completed/903-ref-descendants-slot-composition-format-migration-plan.md` - Layout/Slot → canonical 흡수
+- `packages/shared/src/catalog/commands/project.ts` — `createLayout` · `applyLayout` · `deleteLayout` · `layoutContentSlotPath`
+- `packages/shared/src/catalog/document/types.ts` — `DefinitionEntry.usage` · `fillSlot` · `EditTarget` · `NodeParent`
+- `packages/shared/src/catalog/resolution/resolver.ts` · `positions.ts`
+- `apps/builder/src/builder/catalogRuntime/layouts.ts` · `slots.ts` · `pageLayoutSettings.ts` · `canvasPick.ts` · `layerTree.ts`

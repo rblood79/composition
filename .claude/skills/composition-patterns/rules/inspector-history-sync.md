@@ -5,68 +5,56 @@ impactDescription: Undo/Redo 지원, 상태 일관성, 사용자 경험
 tags: [inspector, history, state]
 ---
 
-Inspector에서 속성 변경 시 히스토리 시스템과 동기화합니다.
+Design 패널 (Properties · Styles) 의 편집은 catalog 명령 하나로 실행되고, 히스토리는 runtime step 이 기록합니다. 공통 히스토리 계약: [domain-history-integration.md](domain-history-integration.md).
 
-> **실패턴**: composition 은 Command 클래스 패턴(`UpdatePropertyCommand` / `executeCommand`)을 사용하지 않습니다. 히스토리 기록은 `historyManager.addEntry()` / `addDiffEntry()` 직접 호출이며, Inspector 는 `inspectorActions.ts` 의 store 액션을 경유합니다. 공통 히스토리 계약: [domain-history-integration.md](domain-history-integration.md).
+> **실패턴**: composition 은 Command **클래스** 패턴 (`UpdatePropertyCommand` / `executeCommand`) 을 쓰지 않습니다. 명령은 함수형 `CatalogCommand = (reader) => CatalogCommandPlan` (`packages/shared/src/catalog/commands/compose.ts`) 입니다. 옛 `inspectorActions.ts` store 액션 · `historyManager.addEntry()` 직접 호출 · `updateSelectedPropertiesWithChildren` 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
+
+## 경로
+
+| 편집            | 명령                                                                                                                                                        | 실행                                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Properties      | `catalogPropertiesPatchCommand` (`catalogRuntime/editContract.ts`) — 바뀐 키만 `setFields`, binding 키는 `catalogBindingCommand`, 둘 다면 `composeCommands` | `CatalogPropertiesPanel` → `useCatalogCommandRunner` (`panels/navigator/catalog/`) → `workspace.execute` — 거절은 toast |
+| Styles          | `catalogStylesHost` (`panels/styles/catalog/catalogStylesHost.ts`) `styleCommandOf` → `catalogStyleWritesOf` + `setFields` (활성 breakpoint)                | `workspace.execute`                                                                                                     |
+| Styles 미리보기 | 명령 없음 — `workspace.root.previewRecord` (문서 · 히스토리 쓰기 0), 손을 놓을 때 commit 한 번                                                              |                                                                                                                         |
 
 ## Incorrect
 
 ```tsx
-// ❌ 직접 상태 변경 (히스토리 미기록)
-function PropertyInput({ elementId, propName, value }) {
-  const updateElement = useStore((s) => s.updateElement);
+// ❌ graph 를 직접 고치거나 runtime 에 op 를 손으로 넣음 — inverse · 검증 · 히스토리 우회
+workspace.runtime.dispatch({ ops: [...], history: { kind: "record", label } });
 
-  const handleChange = (newValue) => {
-    updateElement(elementId, { [propName]: newValue });
-  };
-
-  return <input value={value} onChange={(e) => handleChange(e.target.value)} />;
-}
-
-// ❌ Command 클래스 신규 도입 (execute/undo 메서드 패턴) — 현행 아키텍처에 없음
-executeCommand(
-  new UpdatePropertyCommand(elementId, propName, oldValue, newValue),
-);
+// ❌ 드래그 중 매 프레임 execute — 히스토리 entry 수십 개
+onDrag={(value) => workspace.execute(setFields({ targets, visual: { width: value } }))}
 ```
 
 ## Correct
 
 ```tsx
-// ✅ inspectorActions 경유 — 히스토리 기록이 액션 내부에 통합됨
-function PropertyInput({ propName, value }: PropertyInputProps) {
-  const updateSelectedProperties = useStore((s) => s.updateSelectedProperties);
+// ✅ Properties — 바뀐 키만 명령으로, 거절은 runner 가 toast
+const command = catalogPropertiesPatchCommand(
+  graph,
+  targets,
+  patch,
+  current,
+  bindingKeys,
+);
+if (command) run(command);
 
-  const handleChange = (newValue: string) => {
-    updateSelectedProperties({ [propName]: newValue });
-  };
-
-  return <input value={value} onChange={(e) => handleChange(e.target.value)} />;
-}
+// ✅ Styles 드래그 — 미리보기는 previewRecord, 손을 놓을 때 한 번 commit
+host.previewStyle(property, value);
+// release:
+host.updateStyle(property, value);
 ```
 
-```typescript
-// inspectorActions.ts 내부 (요약) — 액션이 히스토리를 직접 기록
-// 1. 이전 상태 캡처 (prevElementOverride 지원 — preview 전 원본으로 정확한 undo)
-const prevProps = structuredClone(getInspectorWritableProps(historyBase));
-const prevElement = structuredClone(historyBase);
+## 관련 규칙
 
-// 2. props 변경 시 히스토리 엔트리 추가
-historyManager.addEntry({
-  type: "update",
-  elementId,
-  data: { prevProps, props: structuredClone(newProps), prevElement },
-});
-
-// 3. 상태 변경 (elementsMap/elements 갱신) → 이후 persist
-```
-
-## Inspector 특화 규칙
-
-- **부모+자식 동시 변경**: `updateSelectedPropertiesWithChildren(properties, childUpdates)` 사용 — `_cancelHydrateSelectedProps()` 로 hydration race 차단 후 `batchUpdateElementProps()` 가 단일 batch 히스토리로 기록. 상세: [domain-history-integration.md](domain-history-integration.md) §Child Composition Pattern
-- **PropertyUnitInput commit 판정**: `lastSavedValueRef` 기준 단독 (value prop diff 금지). 정본: `.claude/rules/style-ssot.md` §PropertyUnitInput commit 조건
-- **shorthand → longhand 분배**: gap/padding/margin 편집은 `inspectorActions` 가 longhand 로 분배해 저장. 정본: `.claude/rules/style-ssot.md`
+- 부모와 자식을 같이 바꿀 때: 여러 명령을 `composeCommands` 하나로 묶습니다 (entry 하나).
+- PropertyUnitInput 의 commit 조건은 `lastSavedValueRef` 기준 단독이고, value 동기화 `useEffect` 는 같은 요소에 focus 중이면 건너뜁니다 — [state-management.md §7](../../../rules/state-management.md) · [style-ssot.md §5](../../../rules/style-ssot.md).
+- CSS 키 → typed field 매핑 (padding · margin 분해, `gap` 은 `visual.gap` 단일 field) 은 `catalogStyleWrites` (`catalogRuntime/styleFields.ts`) — [style-ssot.md §1](../../../rules/style-ssot.md).
 
 ## 참조 파일
 
-- `apps/builder/src/builder/stores/inspectorActions.ts` - Inspector 액션 + 히스토리 기록 경로
-- `apps/builder/src/builder/stores/history.ts` - HistoryManager (`addEntry` / `addDiffEntry`)
+- `apps/builder/src/builder/catalogRuntime/editContract.ts`
+- `apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.tsx`
+- `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts`
+- `apps/builder/src/builder/panels/navigator/catalog/useCatalogCommandRunner.ts`

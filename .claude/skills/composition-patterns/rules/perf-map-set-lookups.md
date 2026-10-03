@@ -33,31 +33,27 @@ elements.forEach(el => {
 
 ```tsx
 // ✅ Map으로 O(1) 검색
-const elementsMap = new Map<string, Element>(
-  elements.map(el => [el.id, el])
-);
+const byId = new Map<string, Element>(elements.map((el) => [el.id, el]));
 
 function getElementById(id: string) {
-  return elementsMap.get(id);  // O(1)
+  return byId.get(id); // O(1)
 }
 
 // ✅ Set으로 O(1) 존재 확인
 const selectedSet = new Set(selectedIds);
 
 function isSelected(id: string) {
-  return selectedSet.has(id);  // O(1)
+  return selectedSet.has(id); // O(1)
 }
 
 // O(n) 으로 개선
-elements.forEach(el => {
-  if (selectedSet.has(el.id)) {  // O(1)
+elements.forEach((el) => {
+  if (selectedSet.has(el.id)) {
+    // O(1)
     highlight(el);
   }
 });
 
 // ✅ React에서 메모이제이션과 함께
-const selectedSet = useMemo(
-  () => new Set(selectedIds),
-  [selectedIds]
-);
+const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 ```

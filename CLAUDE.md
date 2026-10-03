@@ -22,7 +22,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 **구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
 
-**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
+**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/catalogRuntime/` (편집 runtime — `workspace.ts` · `controller.ts` · `compositionRoot.ts`) · `packages/shared/src/catalog/{transactions,commands}/` (문서 변경 명령) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (Canvas) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
 **테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 비교는 ADR-248 G3 하니스 (`apps/builder/tests/adr248-g3/`, `vitest.adr248-g3.browser.config.ts`). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
@@ -79,7 +79,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 상태 변경 파이프라인
 
-`Memory → Index → History (즉시) → DB → Preview (백그라운드)` — 순서 필수 보존. 요소 순서는 canonical `children[]` 배열이 SSOT (ADR-118), `order_num` 은 export mirror 파생. 상세: `.claude/rules/state-management.md`
+`명령 → workspace.execute → 검증·commit → Canvas·DOM consumer → 저장 대기열 → History → 구독자 → Autosave (microtask) → Preview delta` — 순서 필수 보존 (ADR-248 catalog runtime). 요소 순서는 `NodeEntry.children` · `PageEntry.children` 이 SSOT 이고 `order_num` 은 옛 레코드 로드 때 지운다. 상세: `.claude/rules/state-management.md`
 
 ## CHANGELOG 관리
 

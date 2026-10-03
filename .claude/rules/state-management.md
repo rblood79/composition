@@ -11,7 +11,7 @@ paths:
 
 > **2026-10-04 전면 개정**: ADR-248 Phase 4 (2026-10-03 main 병합) 로 Builder 의 문서 · 선택 · 히스토리 · 저장이 Zustand canonical store (`elements` / `elementsMap` / `childrenMap` · `_rebuildIndexes` · `runCanonicalMutation` · `historyActions` · `instanceActions`) 에서 **catalog runtime** (`apps/builder/src/builder/catalogRuntime/**` + `packages/shared/src/catalog/**`) 으로 옮겨졌고, 옛 store 와 그 규칙의 대상 파일은 `0b0eaea28` (Phase 4e-13-3) 에서 삭제됐다. 옛 규칙 본문은 git 이력에 있다.
 >
-> 공식 결정: [ADR-248](../../docs/adr/248-unified-catalog-document.md). `composition-patterns` skill 의 `zustand-*` · `domain-o1-lookup` · `domain-async-pipeline` · `domain-history-integration` · `reference/state-details.md` 는 아직 옛 store 를 설명한다 — 이 문서와 충돌하면 이 문서가 우선.
+> 공식 결정: [ADR-248](../../docs/adr/248-unified-catalog-document.md). `composition-patterns` skill 의 규칙 · reference 는 2026-10-04 catalog runtime 기준으로 개정했다 (`zustand-*` 는 남은 UI store 한정). 옛 store 만 다루던 문서 4개 (`zustand-childrenmap-staleness` · `inspector-inline-styles` · `reference/state-details` · `reference/runtime-contracts`) 는 같은 날 삭제했다. skill 문서가 이 문서와 충돌하면 이 문서가 우선.
 
 ## 1. 무엇이 어디에 있나
 
@@ -49,7 +49,7 @@ paths:
 - **문서 밖 상태의 히스토리 = `recordExternal`**: `useDataStore.applyDataChange` 는 `setDataHistoryRecorder` (`CatalogBuilderCore.tsx` 가 `catalogDataHistoryRecorder` 로 연결 — `dataHistory.ts`) 를 지나 같은 스택에 `CatalogExternalEffect` 로 들어간다. 데이터 + 노드 바인딩을 한 번에 바꾸는 경우 (AI `bind_element`) 는 `catalogDocumentBindingCommitter` 하나의 entry.
 - **바뀐 데이터를 Canvas 에 알리기**: 행 변경 → `workspace.refreshRows`, 프로젝트 변수 변경 → `workspace.refreshState` (둘 다 `CatalogBuilderCore.tsx` 가 `useDataStore` 구독으로 부른다).
 - **구독은 field 단위**: 패널 · 오버레이는 `runtime.subscribeEntryField` / `subscribeResolvedField` 나 `useCatalog*` hook 으로 읽는다. step 전체를 구독해 매번 다시 계산하지 않는다 (`subscribeSteps` 는 read model 처럼 집계가 필요한 곳만).
-- **Zustand 규칙은 남은 store 에만**: StateCreator 팩토리 · 슬라이스 파일 분리, selector 가 배열 / 객체를 돌려줄 때 `useShallow` 나 ref 캐싱 (Zustand v5 는 `equalityFn` 을 무시), `setTimeout` / `queueMicrotask` 안에서는 `get()` 으로 최신 값.
+- **Zustand 규칙은 남은 store 에만**: StateCreator 팩토리 · 슬라이스 파일 분리, selector 는 개별 값 단위로 쓰고 배열 / 객체가 필요하면 ref 캐싱 (Zustand v5 는 `equalityFn` 을 무시 · 그룹 selector 와 `useShallow` 는 로컬 ESLint 금지 — `apps/builder/eslint-local-rules/index.js`), `setTimeout` / `queueMicrotask` 안에서는 `get()` 으로 최신 값.
 
 ## 4. 데이터 — Collections (ADR-132 · ADR-152 v2)
 

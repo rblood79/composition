@@ -29,61 +29,61 @@ tags: [architecture, reference, patterns]
 
 ## 컴포넌트 패턴
 
-| 패턴                 | 참조 파일                                       | 설명                                                             |
-| -------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| React-Aria 컴포넌트  | `builder/components/dialog/AddPageDialog.tsx`   | Modal + Form 조합                                                |
-| 복합 컴포넌트        | `builder/panels/properties/PropertiesPanel.tsx` | 다중 섹션 구성                                                   |
-| Builder 아이콘 버튼  | `builder/components/ui/ActionIconButton.tsx`    | 공유 Button의 `.button-base` 우회, tooltip/shortcut 내장         |
-| 사이드바 Nav tooltip | `builder/layout/PanelNav.tsx`                   | React Aria Button + TooltipTrigger, `.action-tooltip` CSS 재사용 |
+| 패턴                | 참조 파일                                                                       | 설명                                                                 |
+| ------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| React-Aria Dialog   | `builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx` | Modal + 확인 흐름                                                    |
+| 복합 패널           | `builder/panels/design/DesignPanel.tsx`                                         | 탭 (Property · Layout · Style · Text · Screen) + host 주입 (ADR-252) |
+| Builder 아이콘 버튼 | `builder/components/ui/ActionIconButton.tsx`                                    | 공유 Button의 `.button-base` 우회, tooltip/shortcut 내장             |
+| 패널 토글 tooltip   | `builder/layout/PanelToggleGroup.tsx`                                           | `ActionTooltipTrigger`, `.action-tooltip` CSS 재사용                 |
 
 ## Property Editor 패턴
 
-| 패턴                    | 참조 파일                            | 설명                                                                       |
-| ----------------------- | ------------------------------------ | -------------------------------------------------------------------------- |
-| 부모+자식 동시 업데이트 | `builder/stores/inspectorActions.ts` | `updateSelectedPropertiesWithChildren()` — 부모+자식 단일 batch 히스토리   |
-| Batch History 통합      | `builder/stores/inspectorActions.ts` | `batchUpdateElementProps()` — 단일 set() + batch 히스토리 + IndexedDB 저장 |
+| 패턴                 | 참조 파일                                                     | 설명                                                                                                  |
+| -------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Properties 편집 명령 | `builder/catalogRuntime/editContract.ts`                      | `catalogPropertiesPatchCommand` — 바뀐 키만, binding 키 분리, 여럿이면 `composeCommands` (entry 하나) |
+| 패널 명령 실행       | `builder/panels/navigator/catalog/useCatalogCommandRunner.ts` | `workspace.execute` + 거절 toast                                                                      |
+| Styles host          | `builder/panels/styles/catalog/catalogStylesHost.ts`          | CSS 키 → typed field 명령, 미리보기 `previewRecord`                                                   |
 
 ## Canvas/Skia 패턴
 
-| 패턴               | 참조 파일                                                  | 설명                                         |
-| ------------------ | ---------------------------------------------------------- | -------------------------------------------- |
-| Selection hit-test | `builder/workspace/canvas/selection/selectionHitTest.ts`   | render-space hit-test (ADR-135 ID 공간)      |
-| Drop target 해석   | `builder/workspace/canvas/selection/dropTargetResolver.ts` | drag/drop 대상 해석                          |
-| Viewport Control   | `builder/workspace/canvas/viewport/ViewportController.ts`  | 줌/팬 처리                                   |
-| Spec → Skia 변환   | `builder/workspace/canvas/skia/specShapeConverter.ts`      | Shape[] → SkiaNodeData                       |
-| Skia 노드 렌더링   | `builder/workspace/canvas/skia/nodeRenderers.ts`           | box/text/image/line/container 렌더           |
-| Spec 태그 매핑     | `builder/workspace/canvas/sprites/tagSpecMap.ts`           | `getSpecForTag()` + `TAG_SPEC_MAP` (ADR-108) |
+| 패턴               | 참조 파일                                                                         | 설명                                                    |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Canvas 바인딩      | `builder/catalogRuntime/canvasBinding.ts`                                         | record → Skia 명령, rect diff 무효화                    |
+| Selection hit-test | `builder/catalogRuntime/canvasPick.ts`                                            | `CatalogCanvasPicking` — 맥락 깊이로 정규화한 대상      |
+| 드래그 · 드롭      | `builder/catalogRuntime/canvasGesture.ts` · `dropZoneContent.ts` · `layerTree.ts` | `moveNodes` 명령으로 이동                               |
+| Viewport Control   | `builder/workspace/canvas/viewport/ViewportController.ts`                         | 줌/팬 처리                                              |
+| Spec → Skia 변환   | `builder/workspace/canvas/skia/specShapeConverter.ts`                             | Shape[] → SkiaNodeData                                  |
+| Skia 노드 렌더링   | `builder/workspace/canvas/skia/nodeRenderers.ts`                                  | box/text/image/line/container 렌더                      |
+| rule 실행기        | `builder/catalogRuntime/ruleShapes.ts` · `rulePaint.ts`                           | catalog rule → shapes · paint (`_hasChildren` 3-branch) |
 
-## Store 패턴
+## 상태 패턴 (catalog runtime — ADR-248)
 
-| 패턴                        | 참조 파일                                  | 설명                                                                                             |
-| --------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Zustand 스토어              | `builder/stores/elements.ts`               | Elements 상태 + 인덱싱 (canonical 우선 derive)                                                   |
-| 인덱스 관리                 | `builder/stores/utils/elementIndexer.ts`   | O(1) 페이지 인덱싱                                                                               |
-| 요소 생성 (canonical-first) | `builder/stores/utils/elementCreation.ts`  | canonical merge → history → set → `_rebuildIndexes` → persist                                    |
-| canonical mutation wrapper  | `adapters/canonical/canonicalMutations.ts` | `mergeElementsCanonicalPrimary` / `setElementsCanonicalPrimary` / `moveElementToCanonicalTarget` |
-| 히스토리                    | `builder/stores/history.ts`                | HistoryManager 싱글톤 (`addEntry` / `addDiffEntry`)                                              |
+| 패턴            | 참조 파일                                           | 설명                                                                            |
+| --------------- | --------------------------------------------------- | ------------------------------------------------------------------------------- |
+| 문서 graph      | `packages/shared/src/catalog/document/graph.ts`     | `CatalogGraph` — entry table + 증분 인덱스                                      |
+| 명령            | `packages/shared/src/catalog/commands/`             | `insertNodes` · `setFields` · `moveNodes` · `removeTargets` · `composeCommands` |
+| 편집 진입       | `builder/catalogRuntime/workspace.ts`               | `CatalogWorkspace.execute`                                                      |
+| step · 히스토리 | `builder/catalogRuntime/controller.ts`              | `CatalogRuntime.step` · undo/redo · `recordExternal`                            |
+| 저장            | `builder/catalogRuntime/autosave.ts` · `storage.ts` | microtask autosave → IndexedDB                                                  |
+| 남은 UI store   | `builder/stores/builderUiStore.ts`                  | 패널 배치 · 캔버스 설정 (Zustand)                                               |
 
 ## 서비스 패턴
 
-> ADR-128 이후 cloud 백엔드는 없다 (인증도 2026-09-12 로컬 라이선스로 대체, 외부 서비스 의존 0) — DB CRUD 서비스 래퍼(구 ProjectsApiService/BaseApiService)는 제거되었습니다. 문서/요소 영속은 IndexedDB canonical document 경로가 담당합니다.
+> ADR-128 이후 cloud 백엔드는 없다 (인증도 2026-09-12 로컬 라이선스로 대체, 외부 서비스 의존 0) — DB CRUD 서비스 래퍼(구 ProjectsApiService/BaseApiService)와 `services/api/` 는 제거되었습니다. 문서 영속은 `catalogRuntime/storage.ts` (IndexedDB) 가 담당합니다.
 
-| 패턴        | 참조 파일                      | 설명           |
-| ----------- | ------------------------------ | -------------- |
-| 에러 핸들러 | `services/api/ErrorHandler.ts` | 에러 처리 유틸 |
+## 생성 패턴
 
-## Factory 패턴
-
-| 패턴           | 참조 파일                                    | 설명               |
-| -------------- | -------------------------------------------- | ------------------ |
-| 컴포넌트 생성  | `builder/factories/ComponentFactory.ts`      | 복합 컴포넌트 생성 |
-| 요소 생성 유틸 | `builder/factories/utils/elementCreation.ts` | 생성 파이프라인    |
+| 패턴          | 참조 파일                                                                 | 설명                                                    |
+| ------------- | ------------------------------------------------------------------------- | ------------------------------------------------------- |
+| 팔레트 삽입   | `builder/catalogRuntime/paletteInsert.ts`                                 | `catalogPaletteInsertPlan` — 노드 하나 + 위치 후보 판정 |
+| origin 템플릿 | `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` | `REUSABLE_ORIGIN_DEFINITIONS` — composite 자식 트리     |
+| instance 분리 | `packages/shared/src/catalog/commands/materialize.ts`                     | `createMaterializer`                                    |
 
 ## 메시징 패턴
 
-| 패턴            | 참조 파일                             | 설명                                              |
-| --------------- | ------------------------------------- | ------------------------------------------------- |
-| Message Handler | `preview/messaging/messageHandler.ts` | 메시지 타입 정의 (`UPDATE_CANONICAL_DOCUMENT` 등) |
+| 패턴         | 참조 파일                                                                               | 설명                                 |
+| ------------ | --------------------------------------------------------------------------------------- | ------------------------------------ |
+| Preview 채널 | `builder/catalogRuntime/previewChannel.ts` · `preview/catalog/catalogPreviewSession.ts` | `CATALOG_DELTA` · `CATALOG_SNAPSHOT` |
 
 ## 사용법
 
@@ -94,7 +94,7 @@ tags: [architecture, reference, patterns]
 // 3. 관련 규칙 준수
 
 // 예: 새 Dialog 컴포넌트
-// 참조: builder/components/dialog/AddPageDialog.tsx
+// 참조: builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx
 // 규칙: react-aria-hooks-required, style-tv-variants
 ```
 
@@ -102,7 +102,7 @@ tags: [architecture, reference, patterns]
 
 아키텍처 결정 배경은 다음 문서 참조:
 
-- `docs/adr/completed/001-state-management.md` - Zustand 선택 이유
+- `docs/adr/completed/001-state-management.md` - Zustand 선택 이유 — 문서 상태는 [ADR-248](../../../../docs/adr/248-unified-catalog-document.md) catalog runtime 으로 옮겨졌고, Zustand 는 UI · 데이터 store 에만 남음
 - `docs/adr/completed/002-styling-approach.md` - ITCSS + tv() 선택 이유
 - `docs/adr/completed/003-canvas-rendering.md` - PixiJS 선택 이유 — **ADR-900 (`completed/900-unified-skia-rendering-engine.md`) 으로 Superseded**. PixiJS 는 완전 제거됨, 현행 렌더러는 Skia 단일
 - `docs/adr/completed/004-preview-isolation.md` - iframe 격리 이유

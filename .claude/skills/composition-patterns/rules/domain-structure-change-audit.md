@@ -5,7 +5,9 @@ impactDescription: Element 트리 구조 변경 시 소비자 전수 조사 누�
 tags: [domain, element, structure, audit]
 ---
 
-Element 트리의 parent-child 관계를 변경할 때(래퍼 추가/제거, 중간 노드 삽입, parent 재배치 등) 반드시 수행해야 하는 **소비자 영향도 감사(Consumer Audit)** 절차를 정의합니다.
+컴포넌트 구조 (정의 템플릿의 parent-child 관계) 를 바꿀 때 (래퍼 추가 / 제거, 중간 노드 삽입, 자식 재배치 등) 반드시 수행해야 하는 **소비자 영향도 감사 (Consumer Audit)** 절차를 정의합니다.
+
+> 2026-10-04 개정: 사고 당시의 소비자 (factory · `treeUtils` · `preview/App.tsx` · `BuilderCanvas`) 는 ADR-248 Phase 4 에서 삭제됐습니다. **원칙 (작업량 = 소비자 수 × 수정 복잡도) 은 그대로**이고, 체크리스트를 catalog runtime 소비자로 바꿨습니다.
 
 ## 배경: Tabs 구조 변경 사고 (2026-02-25)
 
@@ -17,96 +19,66 @@ Element 트리의 parent-child 관계를 변경할 때(래퍼 추가/제거, 중
 
 ### Step 1: 소비자 식별 (grep 필수)
 
+문서 노드에는 `type` · `parent_id` 가 없습니다. 구조는 정의 템플릿 (`templateRootId` 아래 children) 이고, 타입은 `definitionId` 에서 유도합니다. 타입명 문자열로 소비자를 찾습니다.
+
 ```bash
-# 변경되는 타입의 parent_id 참조 검색 (Element 식별자 필드는 type — ADR-113)
-grep -rn "parent_id.*{ParentType}\|type === '{ChildType}'" --include="*.tsx" --include="*.ts" apps/ packages/
-
-# 예: Tabs 구조 변경 시
-grep -rn "parent_id.*elementId.*Tab\|type === 'Tab'\|type === 'Panel'" --include="*.tsx" --include="*.ts" apps/ packages/
+# 변경되는 타입명이 등장하는 표 · 분기 전수 (catalog · builder · specs)
+grep -rn '"Tab"\|"TabList"\|"TabPanels"' --include="*.ts" --include="*.tsx" packages/shared/src packages/specs/src apps/builder/src
 ```
 
-### Step 2: 7개 서브시스템 체크리스트
+### Step 2: 서브시스템 체크리스트
 
-| #   | 서브시스템           | 확인 파일                                      | 확인 사항                       |
-| --- | -------------------- | ---------------------------------------------- | ------------------------------- |
-| 1   | **Factory**          | `factories/definitions/*.ts`                   | 구조 정의 변경                  |
-| 2   | **Layer Tree**       | `treeUtils.ts`, `useLayerTreeData.ts`          | 정렬/필터 로직, 표시명          |
-| 3   | **Preview Renderer** | `renderers/*.tsx`, `renderers/index.ts`        | 자식 조회, 렌더러 등록          |
-| 4   | **Preview HTML**     | `preview/App.tsx`                              | `resolveHtmlTag` 매핑           |
-| 5   | **Type System**      | `unified.types.ts`                             | `defaultPropsMap` 등록          |
-| 6   | **Property Editor**  | `editors/*Editor.tsx`                          | 자식 카운트, 추가/삭제 로직     |
-| 7   | **Canvas**           | `BuilderCanvas.tsx`, `layout/engines/utils.ts` | 컨테이너 자식 렌더링, 높이 계산 |
+| #   | 서브시스템         | 확인 위치                                                                                                                                                                                  | 확인 사항                                                                                           |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| 1   | **구조 정의**      | `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (origin 템플릿) · `document/codeCatalogLibrary.ts` (`catalogTypeDefinitionId`) · `catalog/bindings/*.binding.ts` | 템플릿 children · binding 선언                                                                      |
+| 2   | **중첩 규칙**      | `catalog/nesting/nestingRules.ts` (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES` …)                                                                                             | 새 부모-자식 쌍이 허용되는지                                                                        |
+| 3   | **명령**           | `catalog/commands/collections.ts` (`GROUP_ITEM_TYPES` · `insertGroupItem` · `insertTableRow`) · `commands/items.ts`                                                                        | 항목 추가 / 삭제가 새 래퍼 안으로 가는지                                                            |
+| 4   | **Layers**         | `catalogRuntime/layerTree.ts` · `readModel.ts` · `catalog/resolution/positions.ts`                                                                                                         | 행 순서 · 펼침 · 표시명                                                                             |
+| 5   | **Canvas**         | `catalogRuntime/compositionRoot.ts` (의존 재계획) · `rulePaint.ts` (`CHILD_PROP_MERGE_TYPES` · `SHELL_ONLY_TYPES`) · `ruleShapes.ts` (`BOX_SIZE_TYPES`) · `subpart.ts` · `itemRoles.ts`    | 부모가 자식 props 를 합치는지 · 자식 그리기 · 상자 크기                                             |
+| 6   | **DOM / Preview**  | `catalogRuntime/domBinding.tsx` (`CATALOG_DOM_CHILD_OWNING_BINDINGS`) · `delegatedDom.tsx` · `packages/shared/src/renderers/`                                                              | 자식 조회 · RAC 구조 (D1)                                                                           |
+| 7   | **Properties**     | `catalogRuntime/editContract.ts` · `panels/properties/catalog/*`                                                                                                                           | 자식 카운트 · 항목 추가 / 삭제 UI                                                                   |
+| 8   | **기존 문서 주소** | `catalog/resolution/address.ts` (`validateInstanceAddress`)                                                                                                                                | 기존 instance 의 `descendantOverrides` address 가 새 템플릿에서 끊기지 않는지 (`DANGLING_TEMPLATE`) |
 
-### Step 3: 호환 레이어 설계 (Dual Lookup)
+### Step 3: 기존 문서 호환
 
-기존 데이터와의 하위 호환이 필요한 경우, 변경 전에 Dual Lookup 패턴을 설계합니다:
+Builder 는 옛 프로젝트 문서를 변환하지 않습니다 (`catalogRuntime/project.ts` — "no old document is converted"). 템플릿 구조를 바꾸면 이미 만든 instance 의 override address 가 옛 template id 를 가리킬 수 있습니다. 템플릿 id 를 유지할 수 있으면 유지하고, 못 하면 address 검증이 실패하는 경우를 테스트로 먼저 보입니다.
 
-```typescript
-// ✅ Dual Lookup: 기존 flat 구조와 새 nested 구조 모두 지원
-function findChildrenByType(
-  parentId: string,
-  childType: string,
-  wrapperType: string,
-  getChildren: (id: string) => Element[],
-): Element[] {
-  const directChildren = getChildren(parentId).filter(
-    (c) => c.type === childType,
-  );
-  if (directChildren.length > 0) return directChildren;
+### Step 4: 실제 확인
 
-  // 래퍼 내부 검색
-  const wrapper = getChildren(parentId).find((c) => c.type === wrapperType);
-  if (wrapper) {
-    return getChildren(wrapper.id).filter((c) => c.type === childType);
-  }
-  return [];
-}
-```
+구현 뒤 반드시 실행:
 
-### Step 4: E2E 검증
-
-구현 완료 후 반드시 실행:
-
-1. **새 컴포넌트 생성** → 구조가 올바른지 Layer Tree에서 확인
-2. **Canvas(Skia)** → 모든 자식이 렌더링되는지 확인
-3. **Preview(iframe)** → React Aria가 올바르게 작동하는지 확인
-4. **Property Editor** → 자식 카운트, 추가/삭제 기능 확인
+1. **팔레트로 새로 생성** → Layers 에서 구조 확인
+2. **Canvas (Skia)** → 모든 자식이 그려지는지
+3. **Preview (DOM)** → React Aria 동작 확인 — Canvas 와의 대칭은 `/cross-check`
+4. **Properties** → 자식 카운트 · 항목 추가 / 삭제
+5. **기존 instance** → 구조 변경 전 만든 instance 의 override 가 유지되는지
 
 ## Incorrect
 
 ```typescript
-// ❌ Factory만 수정하고 소비자를 확인하지 않음
-// LayoutComponents.ts만 변경
-children: [
-  { type: "TabList", children: [{ type: "Tab" }, { type: "Tab" }] },
-  { type: "TabPanels", children: [{ type: "Panel" }, { type: "Panel" }] },
-];
-// → 9개 소비자가 깨짐
+// ❌ origin 템플릿만 고치고 소비자를 확인하지 않음
+// reusableOriginLibrary.ts 의 Tabs 템플릿만 TabList / TabPanels 래퍼로 변경
+// → GROUP_ITEM_TYPES · nestingRules · CHILD_PROP_MERGE_TYPES · DOM binding 이 옛 구조를 가정해 깨진다
 
-// ❌ 작업량을 "Factory 파일 1개 = 소" 로 판단
-// Gap D: Tabs TabList 래퍼 추가 — 작업량: 소 ← 잘못된 평가
+// ❌ 작업량을 "템플릿 1개 = 소" 로 판단
 ```
 
 ## Correct
 
 ```typescript
 // ✅ 구조 변경 전 소비자 전수 조사
-// 1. grep으로 parent_id + type 패턴 검색
-// 2. 7개 서브시스템 체크리스트 순회
-// 3. 각 소비자에 Dual Lookup 적용
-// 4. E2E 검증 (Layer Tree → Canvas → Preview → Editor)
+// 1. 타입명 grep
+// 2. 8개 서브시스템 체크리스트 순회
+// 3. 기존 instance address 호환 확인
+// 4. 실제 확인 (Layers → Canvas → Preview → Properties → 기존 instance)
 
 // ✅ 작업량은 소비자 수 × 수정 복잡도로 산정
-// Tabs 구조 변경: 10개 파일 × 7개 서브시스템 = 작업량: 대
 ```
 
 ## 참조 파일
 
-- `apps/builder/src/builder/factories/definitions/` — Factory 정의
-- `apps/builder/src/builder/utils/treeUtils.ts` — Layer Tree 정렬
-- `packages/shared/src/renderers/` — Preview 렌더러
-- `apps/builder/src/preview/App.tsx` — Preview HTML 태그 매핑
-- `apps/builder/src/types/builder/unified.types.ts` — 타입/기본값
-- `apps/builder/src/builder/panels/properties/editors/` — Property Editor
-- `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` — Canvas 렌더러
-- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` — 레이아웃 높이 계산
+- `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` — origin 템플릿
+- `packages/shared/src/catalog/nesting/nestingRules.ts` — 중첩 규칙
+- `packages/shared/src/catalog/commands/collections.ts` — 항목 명령
+- `apps/builder/src/builder/catalogRuntime/` — `layerTree.ts` · `compositionRoot.ts` · `rulePaint.ts` · `ruleShapes.ts` · `domBinding.tsx` · `editContract.ts`
+- `packages/shared/src/catalog/resolution/address.ts` — instance address 검증

@@ -20,8 +20,9 @@ Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진
 
 ## 프로젝트 고유 계약
 
-- `CompositionDocument`와 canonical mutation/selector가 runtime SSOT입니다.
-  기존 Zustand action·factory를 재사용하며 derived mirror를 쓰기 원본으로 삼지 않습니다.
+- 문서 runtime SSOT는 `CatalogGraph`(`packages/shared/src/catalog/document/graph.ts`)입니다.
+  변경은 catalog 명령 → `workspace.execute` 로만 하고 (ADR-248), derived view를 쓰기 원본으로
+  삼지 않습니다. `CompositionDocument`는 export·옛 입력 형식으로만 남았습니다.
 - DOM·접근성은 React Aria, Props는 Spectrum 참조와 custom 계약,
   시각은 catalog + theme/tokens가 담당합니다. Canvas와 Preview는 대등한 소비자입니다.
 - Builder와 Preview iframe은 격리합니다. 동기화는 origin을 검증하는
@@ -30,8 +31,9 @@ Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진
   Zustand 그룹 selector와 `useShallow`는 로컬 ESLint 금지 패턴입니다.
 - Builder chrome 스타일은 `apps/builder/src/builder/styles`의 ITCSS/Tailwind 4
   레이어와 token을 사용합니다. 캔버스 스타일의 scope를 좁힙니다.
-- 상태 무결성 문제는 생성 → store → canonical document → DB → refresh hydration →
-  UI 소비 경로에서 원인을 찾습니다. 해당 회귀 조건을 인접 테스트로 고정합니다.
+- 상태 무결성 문제는 명령 → transaction commit → Canvas·DOM consumer → 저장 대기열 →
+  `CatalogAutosave` (IndexedDB) → 로드 → session read model → UI 소비 경로에서 원인을 찾습니다
+  (`.claude/rules/state-management.md`). 해당 회귀 조건을 인접 테스트로 고정합니다.
 
 ## 필요한 지침과 검증
 

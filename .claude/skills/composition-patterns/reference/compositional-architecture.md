@@ -1,156 +1,102 @@
 # Compositional Architecture — 합성 컴포넌트 구성 (현행)
 
-> **정본 분리**: 원칙은 `.claude/rules/` 가 정본이다 — 3-Domain 분할은 [ssot-hierarchy.md](../../../rules/ssot-hierarchy.md), `_hasChildren` 3-branch / container pipeline 은 [canvas-rendering.md](../../../rules/canvas-rendering.md) §2.5/§2.6, canonical mutation 순서는 [state-management.md](../../../rules/state-management.md). 본 문서는 **구현 상세와 파일 경로**만 다룬다.
+> **정본 분리**: 원칙은 `.claude/rules/` 가 정본이다 — 3-Domain 분할은 [ssot-hierarchy.md](../../../rules/ssot-hierarchy.md), `_hasChildren` 3-branch / container pipeline 은 [canvas-rendering.md](../../../rules/canvas-rendering.md) §2.5/§2.6, 문서 · 명령 · 편집 파이프라인은 [state-management.md](../../../rules/state-management.md). 본 문서는 **구현 상세와 파일 경로**만 다룬다.
 >
-> **역사적 맥락 (1구획)**: 과거 이 문서는 컴포넌트별 `*.spec.ts` (100+ 파일) + ElementSprite/PixiJS 시대의 작성 지침이었다. ADR-100 (Unified Skia Engine, PixiJS 제거) 과 ADR-912 (catalog cutover, spec ~40종 물리 삭제) 이후 그 체계는 소멸했다. `ElementSprite.tsx` / `SPEC_RENDERS_ALL_TAGS` / `UI_SELECT_CHILD_TAGS` / 컴포넌트별 spec 등록은 현행 코드에 존재하지 않는다.
+> **역사적 맥락**: 컴포넌트별 `*.spec.ts` + ElementSprite/PixiJS 체계는 ADR-100 · ADR-912 로 소멸했다. ADR-248 Phase 4 (2026-10-03) 에서 factory 계층 (`factories/definitions/*.ts` · `ComponentFactory.ts` · `useElementCreator` · `entryUniverse.ts`) 과 Skia 진입점 `buildSpecNodeData.ts` 도 삭제됐다. `factories/` 에는 `constants.ts` · `creationStyleDefaults.ts` 만 남았다.
 
 ## 1. 3층 구조 — 합성 컴포넌트가 구성되는 방식
 
-합성 컴포넌트(Select, Card, Checkbox 등 자식 트리를 갖는 컴포넌트)는 세 층이 분담한다:
+| 층                        | 담당                                                                                        | 위치                                                                                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **문서 (CatalogGraph)**   | 노드 트리 — `NodeEntry.children` 배열 순서가 SSOT, 노드는 `definitionId` 로 정의를 가리킨다 | `packages/shared/src/catalog/document/graph.ts` · `types.ts`                                                                                                                                       |
+| **library (정의·템플릿)** | 타입 정의 + 합성 컴포넌트의 템플릿 트리 (palette 가 만드는 origin)                          | `ruleTypeDefinition` (`document/ruleDefinition.ts`) · `catalogTypeDefinitionId` (`document/codeCatalogLibrary.ts`) · `REUSABLE_ORIGIN_DEFINITIONS` (`document/generated/reusableOriginLibrary.ts`) |
+| **시각 (D3 rule)**        | 색상/크기/변형/구조 CSS                                                                     | `packages/shared/src/catalog/generated/componentRulesTable.ts` (`COMPONENT_RULES_TABLE`) + `catalog/bindings/*.binding.ts`                                                                         |
 
-| 층                            | 담당                                        | 위치                                                                                                                                           |
-| ----------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **구조 (canonical document)** | 부모-자식 트리, `children` 배열 순서가 SSOT | `packages/shared/src/types/composition-document.types.ts` (`CanonicalNode`)                                                                    |
-| **초기 생성 (factory)**       | palette drop 시 자식 Element 자동 생성      | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                          |
-| **시각 (catalog)**            | 색상/크기/변형/구조 CSS — D3 SSOT           | `packages/shared/src/catalog/generated/componentRulesTable.ts` (`COMPONENT_RULES_TABLE`) + `packages/shared/src/catalog/bindings/*.binding.ts` |
-
-Element 의 태그 필드는 **`type`** 이다 (`tag` 아님 — `CanvasSceneNode.type`, `element.type`).
+- 노드의 타입명은 `definitionTypeName` (`commands/context.ts`) 이 `definitionId` 에서 유도한다. 문서 노드에 `type` · `parent_id` 필드는 없다.
+- 합성 노드 하나를 만들면 **노드 1개**가 생기고, 자식은 정의의 템플릿 (`DefinitionEntry.templateRootId`) 을 resolver 가 펼쳐 보여 준다 — 자식 레코드를 복제하지 않는다. 템플릿 위치 편집은 instance 의 `DescendantOverride` 로 남는다.
 
 ### 시각 SSOT = catalog
 
-- `COMPONENT_RULES_TABLE` 은 **직접 편집 정본** (ADR-912 1A-(a)). generate-rules 생성기는 삭제됐고, 컴포넌트 시각 규칙(variants/sizes/fill) 변경은 이 파일을 직접 편집한다.
-- 소비자 3곳이 단일 source 파생: DOM generated CSS (`packages/specs/scripts/generate-css.ts` 가 table 을 읽어 `packages/shared/src/components/styles/generated/` 로 출력), Skia runtime (`resolveComponentRule`), Properties/Style Panel (`specPresetResolver.ts`).
-- cutover 게이트: `packages/shared/src/catalog/cutover.ts` 의 `isCatalogCutover(type)` — `componentCatalog.ts` 의 `cutover === "catalog"` entry 에서 파생된 단일 게이트 (구 `isCatalogSkiaCutover` 는 삭제됨).
-- binding: `catalog/bindings/{Component}.binding.ts` 의 `PrimitiveBinding` (`packages/shared/src/catalog/types.ts:69`) — `source.kind`(internal renderer 등), `props.accepts`(D2 편집 계약 — Property Panel 필드 정의), `skiaPrimitive`(비-box 시각의 escape 키), `toRacProps`.
+- `COMPONENT_RULES_TABLE` 은 **직접 편집 정본** (ADR-912). 생성기는 삭제됐다.
+- 소비자: DOM generated CSS (`packages/specs/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/`), Canvas rule 실행기 (`catalogRuntime/ruleShapes.ts` · `rulePaint.ts`), Styles 패널 preset (`specPresetResolver.ts`).
+- 타입 정의에 rule 이 있으면 `ruleTypeDefinition` 이 `definition.ruleId = type` 을 붙인다 — Canvas 는 이 `ruleId` 로 rule 실행기를 고른다.
+- binding: `catalog/bindings/{Component}.binding.ts` 의 `PrimitiveBinding` (`catalog/types.ts`) — `source.kind`, `props.accepts` (D2 편집 계약 — Properties 필드 정의), `skiaPrimitive` (비-box 시각의 escape 키), `toRacProps`.
+- `isCatalogCutover` (`catalog/cutover.ts`) 는 남아 있지만 catalog Canvas 의 분기 게이트가 아니다 (catalogRuntime 호출 0).
 
-### Skia 렌더 경로 (builder)
+### Canvas 렌더 경로
 
-`apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts` 가 단일 진입점 (ADR-900 Phase 8, 구 ElementSprite 대체):
+`catalogRuntime/canvasBinding.ts` 가 레코드마다 하나를 고른다:
 
 ```
-진입 게이트: if (!spec && !isCatalogCutover(type)) return null
-  ├─ catalog cutover type → buildCatalogShapesOrPrimitive()
-  │    ├─ binding.skiaPrimitive "replace" → 전용 draw module 이 shape 생성
-  │    └─ 없으면 buildCatalogShapes() — 보편 box+text (variant 색상은
-  │       resolveSkiaVisualRule = COMPONENT_RULES_TABLE 파생, size 는
-  │       resolveSkiaRule(type).sizes[size] → ruleSizeToSizeSpec)
-  └─ 비-cutover (Group/frame/Slot 3종만) → spec.render.shapes() fallback
+bindingKey(node) 가 bindings 표에 있음 → 전용 binding
+  (composite · frame · group · slot = containerWithAuthoredPaint, radioitems · checkboxitems = container,
+   box · icon · selecttrigger · 텍스트 등)
+binding 없고 node.ruleId 있음 → ruleNodeData → catalogRuleNodeData / catalogRuleShapes (ruleShapes.ts)
+  ├─ binding.skiaPrimitive "replace" → 전용 draw module
+  └─ 없으면 buildCatalogShapes — 보편 box+text
+둘 다 없음 → throw CATALOG_CANVAS_BINDING_REQUIRED:<definitionId>
+rule 이 table 에 없음 → throw CATALOG_CANVAS_RULE_REQUIRED:<ruleId>
 ```
 
-DOM(Preview) 경로와 Skia 경로는 catalog 의 **대등한 symmetric consumer** — 어느 쪽도 기준이 아니다 (정본: ssot-hierarchy.md D3).
+DOM (Preview) 은 `catalogRuntime/domBinding.tsx` 가 같은 해석 결과 (`CatalogConsumerNode`) 를 렌더한다 — 두 경로는 catalog 의 **대등한 symmetric consumer** (ssot-hierarchy.md D3).
 
-## 2. 대표 사례 — Select (factory 자식 자동 생성)
+## 2. 대표 사례 — Select (템플릿 자식)
 
-`apps/builder/src/builder/factories/definitions/SelectionComponents.ts:18` `createSelectDefinition`:
+`lib:definition:origin-component-select` (`mode: "composite"`, `accepts: { label }`, `defaults: { label: "Select" }`) 의 템플릿 `lib:template:component-select`:
 
-```typescript
-return {
-  type: "Select",
-  parent: {
-    type: "Select",
-    props: {
-      label: "Select",
-      placeholder: "Choose an option...",
-      items, // StoredSelectItem[] — 옵션은 자식 Element 가 아닌 데이터 prop
-      style: { width: "100%", gap: 6 },
-    },
-    parent_id: parentId,
-  },
-  children: [
-    {
-      type: "Label",
-      props: {
-        children: "Select",
-        style: { width: "fit-content", fontWeight: 600 },
-      },
-    },
-    {
-      type: "SelectTrigger",
-      props: {
-        style: {
-          width: "100%",
-          display: "flex",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-        },
-      },
-      children: [
-        {
-          type: "SelectValue",
-          props: {
-            placeholder: "Choose an option...",
-            style: { flex: 1, textAlign: "left" },
-          },
-        },
-        {
-          type: "SelectIcon",
-          props: {
-            children: "",
-            style: { width: 18, height: 18, flexShrink: 0 },
-          },
-        },
-      ],
-    },
-  ],
-};
+```
+Select (props: label, placeholder, labelPosition, isInvalid …)
+├─ Label            props.children = "{label}"   ← template binding
+├─ SelectTrigger    layout.display = "flex"
+│  ├─ SelectValue   props.children = "Choose an option..."
+│  └─ SelectIcon
+└─ ListBoxItem origin instance × 4  (lib:definition:origin-component-listbox-item-default)
 ```
 
-- **옵션(SelectItem)은 자식 Element 로 생성하지 않는다** — `items: StoredSelectItem[]` prop 으로 직렬화 (ADR-073 P6). 시각 sub-element(Label / SelectTrigger / SelectValue / SelectIcon)만 자식 트리.
-- ComboBox 는 동일 자식 구조를 공유한다 — 구 `ComboBoxWrapper/Input/Trigger` synthetic type 은 Select family 공용 type 으로 retype 됨 (ADR-912 R1, `BUILDER_ALIAS_MAP` 해체 대상이었음).
-- 타입 계약: `factories/types/index.ts` — `ComponentDefinition { type, parent, children: ChildDefinition[] }`, `ChildDefinition` 은 재귀적 (`children?: ChildDefinition[]`).
-- 등록: `factories/ComponentFactory.ts` 가 definitions/{Data,DateColor,Display,Form,Group,Layout,Navigation,Overlay,Selection,Table}Components.ts 의 creator 를 조립.
-- 생성 진입 분기: `factories/constants.ts:28` `COMPLEX_COMPONENT_TAGS` — palette drop 시 `useElementCreator` 의 complex creator 경로 게이트. ADR-914 entry universe (`factories/entryUniverse.ts`) 의 `creation.mode === "complex"` facet 과 양방향 1:1 (`entryUniverseContract.test.ts` 검증).
-- 생성 시 canonical 반영 순서(canonical 1차 → set → rebuild → persist)는 [state-management.md](../../../rules/state-management.md) §Canonical sync 호출 순서 정본.
+- 옵션은 **ListBoxItem origin instance 자식**이다 (옛 factory 의 `items: StoredSelectItem[]` 데이터 prop 이 아니다).
+- `{label}` 은 resolver 의 template binding (`resolution/resolver.ts` `bindTemplateValue`, ADR-148 계약) 이 instance 의 `label` 값으로 채운다.
+- 템플릿에는 인라인 `style` 이 없다 — 시각값은 rule 이 준다.
 
-## 3. D1/D3 경계 — 잔존 spec 3종이 남는 이유
+### 생성 경로
 
-`packages/specs/src/components/` 에 남은 spec 은 **Frame / Group / Slot 3개뿐** (`BASE_TAG_SPEC_MAP` = `{ Group: GroupSpec, frame: FrameSpec, Slot: SlotSpec }`, `packages/specs/src/runtime/tagToElement.ts`). catalog 미등록 native 3종으로, `buildSpecNodeData` 에서 유일하게 `spec.render.shapes` fallback 에 도달한다.
+- 팔레트 목록: `PALETTE_REUSABLE_ORIGIN_TYPES` (`catalog/componentCatalog.ts`, ADR-228).
+- 정의 선택: `catalogPaletteDefinitionId` (`catalogRuntime/paletteInsert.ts`) — origin 이 library 에 있으면 그 origin, 아니면 타입 정의.
+- 삽입: `catalogPaletteInsertPlan` → `insertNodes` 명령 (`commands/structure.ts`). 수용 판정은 명령 안의 `assertNestable` (nestingRules).
+- `COMPLEX_COMPONENT_TAGS` (`factories/constants.ts`) 의 남은 소비처는 AI 도구 (`services/ai/tools/compositeMode.ts`) 뿐이다.
 
-| Spec            | Domain | 잔존 이유                                                                                                                |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `Group.spec.ts` | **D1** | RAC ARIA semantic (`role="group"`) — catalog 로 흡수 시 D1 침범                                                          |
-| `Frame.spec.ts` | **D3** | ADR-130 canonical layout container (lowercase `frame`) — ARIA role 없음, skipCSSGeneration, RAC Group 과 의도적으로 분리 |
-| `Slot.spec.ts`  | —      | 플레이스홀더 컨테이너 (frame projection 의 metadata-only native)                                                         |
+## 3. D1/D3 경계 — 잔존 spec 3종
 
-builder 측 `TAG_SPEC_MAP` (`apps/builder/src/builder/workspace/canvas/sprites/tagSpecMap.ts`) = `BUILDER_ALIAS_MAP` + `BASE_TAG_SPEC_MAP` 병합, `getSpecForTag(type)` 로 조회. 경계 원칙(D1 RAC 절대 권위 / D3 catalog SSOT)은 [ssot-hierarchy.md](../../../rules/ssot-hierarchy.md) 정본.
+`packages/specs/src/components/` 의 spec 은 **Frame / Group / Slot 3개뿐** (`BASE_TAG_SPEC_MAP`, `packages/specs/src/runtime/tagToElement.ts`).
 
-## 4. 생존 주입 메커니즘 (레이아웃/렌더 보조)
+| Spec            | Domain | 잔존 이유                                                                        |
+| --------------- | ------ | -------------------------------------------------------------------------------- |
+| `Group.spec.ts` | **D1** | RAC ARIA semantic (`role="group"`) — catalog 로 흡수 시 D1 침범                  |
+| `Frame.spec.ts` | **D3** | ADR-130 layout container (lowercase `frame`) — ARIA role 없음, RAC Group 과 분리 |
+| `Slot.spec.ts`  | —      | 플레이스홀더 컨테이너                                                            |
 
-catalog 는 시각값만 담으므로, 트리 밖 시각 요소·부모→자식 값 전달은 다음 메커니즘이 담당한다:
+- catalog Canvas 는 이 3종을 spec shapes 로 그리지 않는다 — `frame` · `group` · `slot` 은 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 그린다.
+- builder 측 `TAG_SPEC_MAP` (`workspace/canvas/styleConversion/tagSpecMap.ts`) 은 catalog Canvas 가 쓰지 않는다.
 
-### implicitStyles — indicator 공간 확보 (Checkbox/Radio/Switch)
+## 4. 부모 → 자식 값 전달 — 4채널
 
-`apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts:2204-2235`:
+catalog 는 시각값만 담으므로, 트리 밖 시각 요소와 부모→자식 값 전달은 아래 채널이 담당한다. 모두 resolver 또는 composition root 에서 한 번 계산해 Canvas · DOM 이 같이 읽는다.
 
-- indicator 는 catalog skiaPrimitive 로 그려지며 Taffy 트리 밖 → Label 자식에 `marginLeft = indicatorWidth + userGap` 주입 (사용자 `marginLeft` 있으면 보존).
-- `indicatorWidth` = `PHANTOM_INDICATOR_CONFIGS[containerTag].widths[size]` (`engines/utils.ts:196` — checkbox/radio 16/20/24, switch 32/36/44), gap 은 `phantomIndicatorGap()` = catalog `sizes.*.gap` read-through (부재 시 switch 10, 그 외 8).
-- `parentStyle.gap` 은 `parseFloat(String(...))` 로 파싱 — 스타일 패널이 string 저장하므로 숫자 체크 금지.
+| 채널             | 위치                                                                                                  | 예                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| template binding | `{prop}` — `resolution/resolver.ts` `bindTemplateValue`                                               | Select Label 텍스트 = `{label}`                                                              |
+| size propagation | `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`, resolver 가 읽음)                          | RadioGroup → RadioItems → Radio → Label, TagGroup → TagList → Tag                            |
+| owner 파생 값    | `catalogDerivedProps` (`catalogRuntime/presence.ts`)                                                  | ProgressBar/Meter 의 value → Track fill, collection item `_isSelected`                       |
+| part rules       | `document/rulePartRules.ts` (`catalogIndicatorInset` 등) + composition root `partRuleChildren` 재계획 | Checkbox/Radio/Switch indicator 폭 + gap 만큼 Label 인라인 여백 (트리에 indicator 노드 없음) |
 
-### Synthetic Label (하위 호환)
-
-같은 파일 `:2238-2279` — `SYNTHETIC_LABEL_TAGS` (radio/checkbox/switch/toggle/progressbar/... — `:471`) 의 자식이 0개이고 `props.children`/`label` 텍스트가 있으면 합성 Label 노드를 생성해 레이아웃에 투입 (indicator 태그면 위와 동일한 marginLeft 계산).
-
-### buildSpecNodeData 의 부모→자식 전파 resolver 군
-
-Skia 렌더 시점에 부모 props 를 자식 specProps 로 투영한다 (Store 는 갱신하지 않음 — Inspector 편집 경로와 상보, [child-composition.md](child-composition.md) §3 참조):
-
-- `applyParentPropagationProps` — propagationRegistry 규칙 일괄 적용
-- `resolveParentDelegatedSize` — size delegation (0-3 level 조상 탐색)
-- `resolveProgressProps` / `resolveSliderProps` — value → Track/Value 전파
-- `resolveIconDelegation` — SelectIcon iconName (기본 `chevron-down`, DOM 과 정합)
-- `resolveButtonChildColor` — `.button-base > * { color: inherit }` 의 Skia 대칭
-- Tab `_isSelected` / Radio `isSelected` / TreeItem `_treeLevel` 등 상태 투영
-
-### Container dimension 주입
-
-`CONTAINER_DIMENSION_TAGS` (buildSpecNodeData.ts:96) 등록 태그에 `_containerWidth`/`_containerHeight` 주입 — spec-free escape (DateInput, CalendarHeader, TagList 등)가 Taffy 결과 폭 기준으로 우측/중앙 좌표를 잡기 위함. 원칙은 canvas-rendering.md §2 정본.
+- 컨테이너 치수 주입: `BOX_SIZE_TYPES` (`catalogRuntime/ruleShapes.ts`) 등록 타입에 `_containerWidth` / `_containerHeight` — 원칙은 canvas-rendering.md §2.
+- 옛 메커니즘 (`implicitStyles.ts` indicator marginLeft · `SYNTHETIC_LABEL_TAGS` · `applyParentPropagationProps` · `resolveParentDelegatedSize`) 은 `fullTreeLayout.ts` parity 하니스와 `utils/propagationRegistry.ts` 에만 남았다 — production 경로 아님 ([layout-engine.md](../../../rules/layout-engine.md)).
 
 ## 5. 신규 합성 컴포넌트 추가 시 개요 체크리스트
 
-1. **catalog**: `COMPONENT_RULES_TABLE` 에 entry (variants/sizes/structure) + `bindings/{Name}.binding.ts` (accepts D2 계약) + `componentCatalog.ts` 등록 (`cutover: "catalog"`)
-2. **factory**: `definitions/*.ts` 에 `create{Name}Definition` (자식 트리) + `ComponentFactory.ts` 등록 + 자식 자동 생성 컴포넌트면 `COMPLEX_COMPONENT_TAGS` 추가
-3. **3-branch 판정**: shell-only / synthetic-merge / plain — 판정 알고리즘은 canvas-rendering.md §2.5 정본, 구현 상세는 [child-composition.md](child-composition.md)
-4. **prop 전파**: 부모 편집 → 자식 반영 필요 시 `propagationRegistry.ts` 에 규칙 등록 (Inspector + Skia 양 경로가 같은 registry 소비)
-5. **container style pipeline**: collection/self-render 컨테이너면 canvas-rendering.md §2.6 체크리스트 준수
-6. 검증: `pnpm type-check` + `/cross-check` (CSS↔Skia 시각 대칭)
+1. **catalog**: `COMPONENT_RULES_TABLE` entry (variants/sizes/structure) + `bindings/{Name}.binding.ts` (accepts D2 계약) + `componentCatalog.ts` 등록.
+2. **템플릿**: reusable origin 정의 · 템플릿 (`reusableOriginLibrary.ts` — 생성 절차는 파일 헤더) + 팔레트 노출이면 `PALETTE_REUSABLE_ORIGIN_TYPES`.
+3. **중첩 규칙**: `catalog/nesting/nestingRules.ts` (RAC 조합 · HTML content model).
+4. **3-branch 판정**: shell-only / child-prop-merge / plain — 판정 알고리즘은 canvas-rendering.md §2.5, 구현 상세는 [child-composition.md](child-composition.md).
+5. **값 전달**: §4 의 채널 중 하나로 (템플릿 binding 우선). 새 채널을 만들지 않는다.
+6. **등록 계약**: `pnpm test:registration-contract` (루트) (`phase4ePalette.test.ts` + `phase3G3Census.test.tsx`).
+7. 검증: `pnpm type-check` + `/cross-check` (Canvas↔Preview 시각 대칭).

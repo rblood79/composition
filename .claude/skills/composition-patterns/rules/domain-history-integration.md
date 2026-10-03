@@ -5,232 +5,54 @@ impactDescription: 히스토리 미기록 = Undo/Redo 불가, 사용자 데이�
 tags: [domain, history, undo-redo]
 ---
 
-상태 변경 전 반드시 히스토리를 기록합니다.
+사용자 편집은 모두 히스토리에 남습니다. 기록은 호출자가 아니라 runtime step 이 합니다 — 호출자는 명령을 올바른 단위로 만들기만 합니다.
 
-## 히스토리 아키텍처 (ADR-124 canonical-only history schema)
+> **정본**: [state-management.md §3 핵심 규칙](../../../rules/state-management.md) (히스토리 의도 필수 · 프로젝트당 한 스택 · `recordExternal`). 옛 `historyManager` (`addEntry` / `addDiffEntry` / `addBatchDiffEntry`) · hot/cold IndexedDB 히스토리 · `historyActions.ts` canonical events + legacy fallback 은 ADR-248 Phase 4 (2026-10-03) 에서 삭제됐습니다.
 
-```typescript
-// apps/builder/src/builder/stores/history.ts (요약)
-// Hot Cache (메모리) + Cold Storage (IndexedDB, 세션 복구)
+## 구조
 
-export interface HistoryEntry {
-  id: string;
-  type: "add" | "update" | "remove" | "move" | "batch" | "group" | "ungroup";
-  elementId: string;
-  elementIds?: string[]; // 다중 요소 작업용
-  data: {
-    /** ADR-124 primary — canonical event sequence (undo/redo apply 우선 경로) */
-    canonicalEvents?: CanonicalHistoryNodeEvent[];
-    /** diff 기반 저장 — size 추정용 유지, undo/redo 는 canonicalEvents 우선 */
-    diff?: SerializableElementDiff;
-    // element / prevElement / prevProps / elements / batchUpdates 등
-    // legacy snapshot 필드는 @deprecated (ADR-124 Phase 4) — fallback 경로만 사용
-  };
-  timestamp: number;
-}
-```
+- entry = `{ label, at, forward, inverse, external? }` (`catalogRuntime/controller.ts`). inverse 는 `applyCatalogTransaction` 이 계산합니다 — 호출자가 이전 값을 structuredClone 해 두지 않습니다.
+- 스택은 프로젝트당 메모리 하나이고 IndexedDB 에 저장하지 않습니다. History 패널은 `CatalogHistoryStore` (`catalogRuntime/history.ts`).
+- 기록 시점은 step 안 graph commit → consumer → 저장 대기열 **뒤**입니다. 순서는 runtime 이 소유합니다.
+- undo / redo 는 entry 의 `inverse` / `forward` 를 기록된 step 으로 다시 돌리고 `external` 효과를 뒤따라 실행합니다 — consumer · 저장 · Preview 를 일반 편집과 똑같이 지납니다. fallback 경로는 없습니다.
 
-- 기록 API: `historyManager.addEntry()` / `addDiffEntry()` / `addBatchDiffEntry()` — Command 클래스 패턴 아님
-- 신규 mutation 은 `data.canonicalEvents` (예: `buildCanonicalInsertEvents` / `buildCanonicalRemoveEvents`, `stores/history/canonicalHistoryEvents.ts`) 를 payload 로 기록
+## 규칙
+
+1. **히스토리 의도 필수**: `HistoryIntent` (`packages/shared/src/catalog/transactions/transaction.ts`) — `{kind: "record", label}` 또는 `{kind: "skip", reason}`. skip 사유는 `project-create` · `load` · `fixture` · `sync` 넷뿐이고, 없으면 `HISTORY_INTENT_REQUIRED`.
+2. **사용자 동작 1회 = 명령 1개 = entry 1개**: 다중 선택 · 부모와 자식 동시 편집은 `composeCommands` 로 묶습니다 (예: `editContract.ts` "Edit properties", `layoutPreset.ts`). `setFields` 에 target 여러 개를 넘겨도 됩니다. 배치 삭제는 `removeTargets` 한 명령.
+3. **AI 묶음**: 여러 step 을 낸 AI 작업은 `workspace.mergeHistory(count, label)` 로 한 entry 로 합칩니다 (`aiHost.ts`). 바깥 효과가 섞인 entry 는 합치지 않습니다.
+4. **문서 밖 상태 = `recordExternal`**: 데이터 store 변경은 `setDataHistoryRecorder` → `catalogDataHistoryRecorder` (`catalogRuntime/dataHistory.ts`) 를 지나 같은 스택에 `CatalogExternalEffect` 로 들어갑니다.
+5. **값이 같으면 기록하지 않는다**: Properties 는 `catalogSemanticPatchCommand` 가 바뀐 키만 남깁니다.
 
 ## Incorrect
 
 ```typescript
-// ❌ 히스토리 없이 상태 변경
-const updateElement = (elementId: string, props: Props) => {
-  set({
-    elements: state.elements.map((el) =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
-    ),
-  });
-  // 히스토리 기록 누락!
-};
+// ❌ 사용자 편집을 skip 으로 실행 — undo 불가
+runtime.dispatch({ ..., history: { kind: "skip", reason: "fixture" } });
 
-// ❌ 상태 변경 후 히스토리 기록 (순서 오류)
-set({ elements: newElements });
-historyManager.addEntry({ ... }); // 이미 변경된 후 기록
+// ❌ 다중 선택을 명령 N 번으로 — undo 한 번에 하나씩만 되돌아간다
+for (const target of targets) workspace.execute(setFields({ targets: [target], ... }));
+
+// ❌ 데이터 store 를 recordExternal 없이 직접 변경
+useDataStore.setState({ collections: next });
 ```
 
 ## Correct
 
 ```typescript
-import { historyManager } from "@/builder/stores/history";
+// ✅ 명령 하나 — record 의도와 label 은 명령 plan 에서 온다
+workspace.execute(setFields({ targets, ... }));
 
-// ✅ 히스토리 기록 → 상태 변경 순서 (diff 기반)
-const updateElementProps = (elementId: string, props: Props) => {
-  const element = getElementById(get().elementsMap, elementId);
-  if (!element) return;
+// ✅ 서로 다른 명령을 한 entry 로
+workspace.execute(() => composeCommands(graph, "Edit properties", commands));
 
-  // 1. 변경 전 히스토리 기록
-  historyManager.addDiffEntry(
-    "update",
-    structuredClone(element), // 이전 상태
-    { ...element, props: { ...element.props, ...props } }, // 새 상태
-  );
-
-  // 2. 상태 변경
-  set({
-    elements: state.elements.map((el) =>
-      el.id === elementId ? { ...el, props: { ...el.props, ...props } } : el,
-    ),
-  });
-
-  // 3. 인덱스 재구성
-  get()._rebuildIndexes();
-};
-
-// ✅ 요소 추가 시 — canonical event payload (실코드: stores/utils/elementCreation.ts)
-const addElement = (element: Element) => {
-  mergeCreatedElementsIntoCanonicalDocument([element]); // canonical 1차 갱신
-
-  historyManager.addEntry({
-    type: "add",
-    elementId: element.id,
-    data: { canonicalEvents: buildCanonicalInsertEvents([element]) },
-  });
-
-  set((prev) => ({ elements: [...prev.elements, element] }));
-  get()._rebuildIndexes();
-};
-
-// ✅ 배치 작업 시
-historyManager.addBatchDiffEntry(prevElements, nextElements);
-```
-
-## Child Composition Pattern batch 히스토리
-
-Property Editor에서 부모 Element와 자식 Element를 동시에 업데이트할 때, 두 변경사항을 **단일 batch 히스토리 엔트리**로 기록해야 합니다. 별도 엔트리로 기록하면 Undo 시 부모와 자식이 따로 원복되어 불일치 상태가 발생합니다.
-
-### `updateSelectedPropertiesWithChildren` 동작 원리
-
-`inspectorActions.ts`의 `updateSelectedPropertiesWithChildren`은 `batchUpdateElementProps`를 통해 부모+자식을 단일 `set()` 호출로 처리합니다.
-
-```typescript
-// inspectorActions.ts (요약)
-updateSelectedPropertiesWithChildren: (properties, childUpdates) => {
-  // 1. 진행 중인 hydration 취소 (race condition 방지)
-  get()._cancelHydrateSelectedProps();
-
-  // 2. 부모 + 자식 업데이트를 단일 batch로 구성
-  const batch: BatchPropsUpdate[] = [
-    { elementId: element.id, props: sanitizeInspectorProps(properties) },
-    ...childUpdates, // BatchPropsUpdate[]
-  ];
-
-  // 3. 단일 set() + batch 히스토리 엔트리 + IndexedDB 저장
-  get().batchUpdateElementProps(batch);
-},
-```
-
-### `_cancelHydrateSelectedProps` 호출이 필수인 이유
-
-Properties Panel은 선택된 Element의 props를 비동기로 로드(`_hydrateSelectedProps`)합니다.
-`updateSelectedPropertiesWithChildren` 호출 시점에 hydration이 진행 중이면, 완료 후 로드된 구 데이터가 방금 업데이트한 값을 덮어씁니다.
-`_cancelHydrateSelectedProps()`를 먼저 호출하여 이 race condition을 방지합니다.
-
-```typescript
-// ✅ hydration 취소 → 업데이트 → 히스토리 기록 순서 보장
-get()._cancelHydrateSelectedProps();
-get().batchUpdateElementProps(batch);
-
-// ❌ hydration 미취소 — 비동기 hydration 완료 시 업데이트 값 덮어쓰기
-get().batchUpdateElementProps(batch);
-// → 수백 ms 후 hydration 완료 → batch 업데이트 결과 손실
-```
-
-### Incorrect
-
-```typescript
-// ❌ 부모와 자식을 별도 호출로 업데이트
-// 히스토리 엔트리 2개 생성 → Undo 2회 필요
-onUpdate({ label: value }); // 히스토리 엔트리 1
-updateChildProp("Label", "children", value); // 히스토리 엔트리 2
-```
-
-### Correct
-
-```typescript
-// ✅ childUpdates 를 직접 구성해 updateSelectedPropertiesWithChildren 호출
-// (구 useSyncChildProp / useSyncGrandchildProp 훅은 소멸 — 직접 사용)
-// 단일 batch 히스토리 엔트리 → Undo 1회로 전체 원복
-const handleLabelChange = useCallback(
-  (value: string) => {
-    const updatedProps = { ...currentProps, label: value };
-    const childUpdates: BatchPropsUpdate[] = [
-      { elementId: labelChildId, props: { children: value } },
-    ];
-    useStore
-      .getState()
-      .updateSelectedPropertiesWithChildren(updatedProps, childUpdates);
-  },
-  [currentProps, labelChildId],
-);
-```
-
-## Undo/Redo 구현 (ADR-124 — canonical events 우선)
-
-`historyActions.ts` 의 Undo/Redo 는 2-단 구조입니다:
-
-```typescript
-// historyActions.ts (요약)
-// 1. canonical event 경로 (primary): entry.data.canonicalEvents 가 있으면
-//    canonical document 에 직접 적용하고 elements 를 derive
-const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-  entry.data.canonicalEvents,
-  "undo", // 또는 "redo"
-);
-const appliedCanonicalEvents = canonicalEventElements !== null;
-
-if (canonicalEventElements) {
-  updatedElements = canonicalEventElements;
-  // 선택 상태 재해석 (resolveSelectionAfterCanonicalEvents)
-} else {
-  // 2. legacy snapshot fallback: entry.type 별 switch
-  switch (entry.type) {
-    case "add":
-      /* 추가된 요소 제거 (역작업) */ break;
-    case "update":
-      /* diff 또는 prevElement 로 복원 */ break;
-    case "remove":
-      /* 제거된 요소 복원 */ break;
-    case "batch":
-      /* batch 포함 요소 일괄 복원 */ break;
-  }
-}
-
-// legacy fallback 경로만 canonical 후행 동기화 필요
-if (!appliedCanonicalEvents) {
-  syncHistoryElementsToCanonical(updatedElements);
-  // ⚠️ set 1차 → canonical 2차 잔존 패턴 — ADR-122 §Residual.
-  //    정본: .claude/rules/state-management.md §잔존 영역 (신규 코드에서 모방 금지)
-}
-```
-
-## 배치 삭제 히스토리 패턴
-
-`removeElements(ids[])` 배치 삭제 시 **단일 히스토리 entry**로 기록합니다.
-payload 는 canonical remove event sequence — canonical mutation **전에** 구성해 삭제 전 node 위치를 보존합니다 (실코드: `elementRemoval.ts` `executeRemoval`).
-
-```typescript
-// ✅ 배치 삭제 히스토리 — 단일 entry (canonicalEvents)
-historyManager.addEntry({
-  type: "remove",
-  elementId: rootElements[0].id,
-  data: {
-    canonicalEvents: buildCanonicalRemoveEvents(/* 삭제 대상 전체 */),
-  },
-});
-// → Undo 1회로 모든 요소 동시 복원
-
-// ❌ 순차 삭제 히스토리 — N개 entry
-// → Undo N회 필요 (하나씩 복원)
+// ✅ 데이터 편집은 DataChange 하나 (recordExternal 경유)
+useDataStore.getState().applyDataChange(change);
 ```
 
 ## 참조 파일
 
-- `apps/builder/src/builder/stores/history.ts` - HistoryManager (`addEntry` / `addDiffEntry` / `addBatchDiffEntry`)
-- `apps/builder/src/builder/stores/history/historyActions.ts` - Undo/Redo 액션 (canonical events 우선 + legacy fallback)
-- `apps/builder/src/builder/stores/history/canonicalHistoryEvents.ts` - `buildCanonicalInsertEvents` / `buildCanonicalRemoveEvents` / `applyCanonicalHistoryEventsToActiveDocument`
-- `apps/builder/src/builder/stores/utils/elementUpdate.ts` - 히스토리 통합 예시
-- `apps/builder/src/builder/stores/utils/elementRemoval.ts` - 삭제 히스토리 (단일/배치)
-- `apps/builder/src/builder/stores/inspectorActions.ts` - `updateSelectedPropertiesWithChildren`
+- `apps/builder/src/builder/catalogRuntime/controller.ts` — step · undo / redo · `recordExternal` · `mergeHistory`
+- `apps/builder/src/builder/catalogRuntime/history.ts` — History 패널 store
+- `apps/builder/src/builder/catalogRuntime/dataHistory.ts` — 데이터 store 히스토리 연결
+- `packages/shared/src/catalog/transactions/transaction.ts` — `HistoryIntent` · inverse

@@ -40,7 +40,7 @@ Skia 렌더러는 **플랫폼 독립적 도형(`Shape[]`)** 을 그립니다 (AD
 
 ## 2. Catalog 경로 — buildCatalogShapes + skiaPrimitives
 
-dispatch: `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts` (`usesGeneric = isCatalogCutover(type)`)
+dispatch: `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` — binding 표에 있으면 binding (frame · group · slot · text 등), 없고 `node.ruleId` 가 있으면 rule 경로 `ruleShapes.ts` `catalogRuleShapes` (둘 다 없으면 `CATALOG_CANVAS_BINDING_REQUIRED`). 옛 `buildSpecNodeData.ts` 는 ADR-248 Phase 4e-9-8 에서 삭제
 
 ```
 COMPONENT_RULES_TABLE      packages/shared/src/catalog/generated/componentRulesTable.ts
@@ -54,7 +54,7 @@ COMPONENT_RULES_TABLE      packages/shared/src/catalog/generated/componentRulesT
   → SkiaNodeData → nodeRenderers
 ```
 
-- **buildCatalogShapes** 는 모든 frame 이 공유하는 **보편 box+text** (bg roundRect + border + text)만 그립니다. 색/크기는 `visual.fill`(ADR-908 `FillTokenSpec`) + `sizes[size]` + `props.style` 우선 오버라이드에서 읽습니다. 패키지 경계(`specs ← shared`)상 rule 테이블은 builder(`buildSpecNodeData`)가 해소하여 `visual` 인자로 주입합니다.
+- **buildCatalogShapes** 는 모든 frame 이 공유하는 **보편 box+text** (bg roundRect + border + text)만 그립니다. 색/크기는 `visual.fill`(ADR-908 `FillTokenSpec`) + `sizes[size]` + `props.style` 우선 오버라이드에서 읽습니다. 패키지 경계(`specs ← shared`)상 rule 테이블은 builder(`catalogRuntime/ruleShapes.ts` → `ruleVariantToVisual`)가 해소하여 `visual` 인자로 주입합니다.
 - **비-DOM-trivial primitive**(원/선/아이콘/arc 등)는 `PrimitiveBinding.skiaPrimitive` 키(`packages/shared/src/catalog/types.ts:111`) → `packages/specs/src/renderers/skiaPrimitives.ts` 의 `SKIA_PRIMITIVES` draw module 이 담당. 합성 모드: `replace` / `prepend`(base 아래 레이어) / `append`(base 위 레이어). draw fn 이 `null` 반환 = "이 props 에는 미적용" → generic box+text fallback.
 
 ### 금지 — 컴포넌트 식별 분기 인라인
@@ -76,7 +76,7 @@ const dot: SkiaPrimitiveDrawFn = ({ props }) =>
 
 ## 3. 잔존 spec (Frame/Group/Slot) shapes 규약
 
-`packages/specs/src/components/{Frame,Group,Slot}.spec.ts` 3개만 `spec.render.shapes()` 경로에 도달합니다 (buildSpecNodeData 게이트 — catalog 미등록 type 전용).
+`packages/specs/src/components/{Frame,Group,Slot}.spec.ts` 3개가 잔존 spec 이다. **production Canvas 는 이 spec 의 `render.shapes()` 를 부르지 않는다** — frame · group · slot 은 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 authored paint 로 그린다. `render.shapes()` 소비처는 parity 하니스 (`layout/engines/*`) 와 specs 내부뿐이다. 아래 규약은 spec 파일을 고칠 때의 계약이다.
 
 - `_hasChildren` 주입 시 실렌더 shape 반환 금지 — Frame 은 빈 배열 반환, Group 은 투명 처리 (Child Composition). 3-branch 주입 규칙: `.claude/rules/canvas-rendering.md` §2.5
 - Frame = D3 layout container (`skipCSSGeneration: true`, ARIA role 없음) / Group = RAC ARIA semantic (D1) — Group 에 시각 책임 추가 금지 (ADR-130)
@@ -119,8 +119,8 @@ buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비
 
 ## 6. Column layout / dimension 주입
 
-- `rearrangeShapesForColumn()` (`apps/builder/src/builder/workspace/canvas/skia/specBuildHelpers.ts:25`) — Checkbox/Radio/Switch 류 indicator↔label 수직 재배치. shapes 는 항상 row 좌표로 생성하고 column 방향은 이 변환으로 처리 (호출: buildSpecNodeData.ts:1499)
-- 레이아웃 결과 폭/높이가 필요한 shape(우측 역산 배치 등)는 `_containerWidth`/`_containerHeight` props 주입 — `CONTAINER_DIMENSION_TAGS` (buildSpecNodeData.ts:96). 상세: [spec-container-dimension-injection](spec-container-dimension-injection.md)
+- `rearrangeShapesForColumn()` (`apps/builder/src/builder/workspace/canvas/skia/specBuildHelpers.ts`) — Checkbox/Radio/Switch 류 indicator↔label 수직 재배치 helper. 유일한 호출처였던 `buildSpecNodeData.ts` 삭제 뒤 production 호출자 0 — catalog 경로의 column 배치는 rule `orientation` · part rule 이 정한다
+- 레이아웃 결과 폭/높이가 필요한 shape(우측 역산 배치 등)는 `_containerWidth`/`_containerHeight` props 주입 — `BOX_SIZE_TYPES` (`apps/builder/src/builder/catalogRuntime/ruleShapes.ts`). 상세: [spec-container-dimension-injection](spec-container-dimension-injection.md)
 
 ## 삭제된 지침 — 참조/부활 금지
 
@@ -132,7 +132,7 @@ buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비
 
 - `packages/specs/src/types/shape.types.ts` — Shape 타입 정의
 - `packages/specs/src/renderers/buildCatalogShapes.ts` / `skiaPrimitives.ts` / `composeCatalogShapes.ts`
-- `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts` — dispatch + props 주입
+- `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` — dispatch (binding / rule) · `ruleShapes.ts` · `rulePaint.ts` — rule 경로 shapes · props 주입
 - `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts` — Shape[] → SkiaNodeData
 - `.claude/rules/canvas-rendering.md` — `_hasChildren` 3-branch / Fill Spec Schema SSOT
 - `docs/adr/completed/900-unified-skia-rendering-engine.md` — Unified Skia Engine
