@@ -19,6 +19,8 @@ import { CatalogCanvasScene } from "../canvasScene";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
+import type { CatalogSpacingLive } from "../spacingLive";
+import { readSessionSpacingValue } from "../../presentation/useSpacingSession";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
@@ -57,7 +59,8 @@ const allocator = () => {
     `project:${kind}:g${++next}` as EntryId<K>;
 };
 
-async function open() {
+async function open(options: { paddingLinked?: () => boolean } = {}) {
+  const live: (CatalogSpacingLive | null)[] = [];
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({ projectId: PROJECT, name: "Gesture" }),
@@ -121,6 +124,8 @@ async function open() {
       workspace.root.previewRecord(target, patch);
       sync();
     },
+    ...(options.paddingLinked ? { paddingLinked: options.paddingLinked } : {}),
+    spacingLive: (next) => live.push(next),
   });
   const record = (name: string) => workspace.root.recordsOfSource(id(name))[0];
   const box = (name: string) => scene.stream.boundsMap.get(record(name))!;
@@ -132,8 +137,25 @@ async function open() {
     const entry = workspace.runtime.graph.getEntry(id(name));
     return entry?.kind === "node" ? entry.children : [];
   };
-  return { workspace, scene, gestures, record, box, center, children, guides };
+  return {
+    workspace,
+    scene,
+    gestures,
+    record,
+    box,
+    center,
+    children,
+    guides,
+    live,
+  };
 }
+
+/** The panel's view of a published drag (what `useSpacingSession` returns for it). */
+const useSpacingSessionView = (live: CatalogSpacingLive) => ({
+  nodeId: live.identity,
+  properties: live.properties,
+  values: live.values,
+});
 
 describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
   it("reorders among siblings on release (one history step); undo restores; below the threshold nothing", async () => {
@@ -485,6 +507,53 @@ describe("ADR-248 Phase 4e-3b Canvas gestures", () => {
     gestures.update(gx, gy + 13, 1, { axisLock: true });
     gestures.finish();
     expect(visual()).toMatchObject({ gap: { kind: "set", value: 14 } });
+  });
+
+  // The old spacing interaction read the Styles box model's padding link (any side → all four)
+  // and published the drag to the panel (`setActiveSpacingSession`); the catalog Canvas does both.
+  it("padding link ON: one handle drags all four sides; the Styles panel follows the drag's value and sides", async () => {
+    const { workspace, gestures, record, live } = await open({
+      paddingLinked: () => true,
+    });
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("list") }],
+        visual: { padding: { kind: "set", value: 8 } },
+      }),
+    );
+    workspace.selectRecords([record("list")]);
+    const top = gestures
+      .spacingBands()
+      .find((band) => band.kind === "padding" && band.side === "top")!;
+    const [tx, ty] = [
+      top.rect.x + top.rect.width / 2,
+      top.rect.y + top.rect.height / 2,
+    ];
+    expect(gestures.beginSpacing(tx, ty, 1)).toBe(true);
+    gestures.update(tx, ty + 10, 1);
+    // The panel's view while dragging: 18 on all four sides of this record.
+    const view = useSpacingSessionView(live.at(-1)!);
+    expect(view.properties).toEqual([
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ]);
+    expect(readSessionSpacingValue(view, record("list"), "paddingLeft")).toBe(
+      18,
+    );
+    expect(
+      readSessionSpacingValue(view, record("a"), "paddingLeft"),
+    ).toBeNull();
+    gestures.finish();
+    expect(live.at(-1)).toBeNull();
+    const entry = workspace.runtime.graph.getEntry(id("list"));
+    expect(entry?.kind === "node" ? entry.visual : {}).toMatchObject({
+      paddingTop: { kind: "set", value: 18 },
+      paddingRight: { kind: "set", value: 18 },
+      paddingBottom: { kind: "set", value: 18 },
+      paddingLeft: { kind: "set", value: 18 },
+    });
   });
 
   it("a spacing handle clicked without a drag opens the inline input; its value commits as one step", async () => {

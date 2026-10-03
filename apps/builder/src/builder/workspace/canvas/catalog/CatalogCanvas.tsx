@@ -51,6 +51,8 @@ import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
 import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
+import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
+import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
@@ -489,6 +491,9 @@ export function CatalogCanvas({
           callbacks.current.onError?.(error);
         reflowScene();
       },
+      // The Styles box model's padding link and the drag the panel follows (ADR-222).
+      paddingLinked: getPaddingLinked,
+      spacingLive: setCatalogSpacingLive,
       // A drop the nesting rules refused: moved to the nearest accepting ancestor (undo = that
       // one step), or cancelled.
       notifyNesting: (notice) =>

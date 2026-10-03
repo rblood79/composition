@@ -37,7 +37,12 @@ import {
   spacingDeltaFromPointer,
   type SpacingBand,
 } from "../workspace/canvas/interaction/spacingGeometry";
-import type { SpacingActiveTarget } from "../workspace/canvas/interaction/spacingTypes";
+import {
+  SPACING_SIDES,
+  type SpacingActiveTarget,
+  type SpacingProperty,
+} from "../workspace/canvas/interaction/spacingTypes";
+import type { CatalogSpacingLive } from "./spacingLive";
 import {
   boxesIntersect,
   hitTestHandle,
@@ -110,6 +115,10 @@ export interface CatalogGestureHost {
    * ancestor that accepts it (`relocated`, after the step), or cancelled (`rejected`).
    */
   notifyNesting?(notice: CatalogNestingNotice): void;
+  /** The Styles box model's padding link: ON = any padding handle edits all four sides. */
+  paddingLinked?(): boolean;
+  /** The spacing drag the Styles panel follows (its value and sides); `null` when it ends. */
+  spacingLive?(live: CatalogSpacingLive | null): void;
 }
 
 export type CatalogNestingNotice =
@@ -122,6 +131,22 @@ const PADDING_KEY = {
   bottom: "paddingBottom",
   left: "paddingLeft",
 } as const;
+
+/** The Styles panel's view of a spacing drag: the properties it edits and their current value. */
+function spacingLiveOf(
+  gesture: Extract<Gesture, { kind: "spacing" }>,
+): CatalogSpacingLive {
+  const properties: SpacingProperty[] = gesture.band.side
+    ? gesture.sides.map((side) => PADDING_KEY[side])
+    : [gesture.band.property];
+  return {
+    identity: gesture.item.identity,
+    properties,
+    values: Object.fromEntries(
+      properties.map((property) => [property, gesture.value]),
+    ),
+  };
+}
 
 /** What a drag snaps to, gathered once when it starts moving. */
 interface SnapContext {
@@ -430,14 +455,18 @@ export class CatalogCanvasGestures {
     const item = this.singleElement();
     if (!hit?.onHandle || !item) return false;
     const bands = this.spacingBands();
+    // The panel's padding link ON: any side edits all four (over the modifiers), as the old
+    // spacing interaction did.
     const sides = hit.band.side
-      ? [
-          ...resolveSpacingSidesForModifiers(
-            hit.band.side,
-            !!modifiers.alt,
-            !!modifiers.shift,
-          ),
-        ]
+      ? this.host.paddingLinked?.()
+        ? [...SPACING_SIDES]
+        : [
+            ...resolveSpacingSidesForModifiers(
+              hit.band.side,
+              !!modifiers.alt,
+              !!modifiers.shift,
+            ),
+          ]
       : [];
     this.gesture = {
       kind: "spacing",
@@ -749,6 +778,7 @@ export class CatalogCanvasGestures {
     const gesture = this.gesture;
     this.gesture = undefined;
     this.endReflow();
+    if (gesture?.kind === "spacing") this.host.spacingLive?.(null);
     // A spacing handle pressed and released without a drag opens the inline number input.
     this.spacingClick =
       gesture?.kind === "spacing" && !gesture.active ? gesture : undefined;
@@ -785,6 +815,7 @@ export class CatalogCanvasGestures {
     return true;
   }
   cancel(): void {
+    if (this.gesture?.kind === "spacing") this.host.spacingLive?.(null);
     this.gesture = undefined;
     this.spacingClick = undefined;
     this.endReflow();
@@ -809,6 +840,7 @@ export class CatalogCanvasGestures {
             )
           : { gap: gesture.value },
       });
+      this.host.spacingLive?.(spacingLiveOf(gesture));
       return;
     }
     const { width, height, left, top } = gesture.request;

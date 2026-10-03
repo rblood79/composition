@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내) — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
+- **Canvas 의 padding 핸들이 Styles 의 「변 연결」 토글을 무시하던 것.** 연결이 켜져 있으면 어느 변을 끌어도 4변이 같이 바뀐다 (인라인 입력도 같음). Styles 패널이 drag 중 값을 따라 보여 주고 편집 중인 변을 강조하던 것도 돌아왔다.
 - **삭제 · 잘라내기 · 복제 · 그룹 · 그룹 해제가 거부될 때 아무 안내가 없던 것.** 구 앱처럼 이유를 toast 로 알린다 (page body · 부모가 다른 그룹 · 인스턴스 그룹 해제 · 중첩 규칙). 팔레트 삽입이 선택한 요소 대신 상위로 들어가면 「…에 놓였습니다」 안내와 되돌리기 버튼이 뜨고, 어디에도 못 들어가면 원문 코드 대신 중첩 규칙 안내가 뜬다.
 - **복제 (⌘D) · 붙여넣기한 absolute 요소가 원본 바로 위에 겹쳐 놓이던 것.** 구 앱처럼 +10 px 어긋나게 놓고, 우클릭 「여기에 붙여넣기」 는 포인터 위치에 놓는다 (여러 개면 첫 요소가 포인터, 나머지는 간격 유지). 흐름 안 요소는 그대로.
 - **Compare Mode 의 Preview 가 breakpoint 를 따르지 않던 것.** 구 앱은 Preview 창을 tablet 768 · mobile 390 폭으로 두고 반응형 재정의를 `@media` 로 적용했는데, 새 Preview 는 늘 desktop 으로 풀어 tablet · mobile 층이 보이지 않았다. 편집기의 breakpoint 가 Preview 에 전달되어 그 층으로 다시 풀고, Preview 창도 그 폭이 된다 (가운데 정렬 · pane 이 좁으면 스크롤).

@@ -1,93 +1,58 @@
 /**
- * ADR-222 — 활성 spacing 세션·조작 상태의 React 구독 (패널·인라인 입력 공용).
+ * ADR-222 — the Canvas spacing drag the Styles panel follows (padding sides · gap).
  *
- * 패널은 활성 target 의 spacing 필드에만 세션 **확정값** 을 덮어 읽고 (breakdown §4.1 —
- * dirty/reset 판정은 raw canonical 경로 그대로), 같은 필드를 강조한다. 표시값을 저장
- * 원본으로 쓰지 않는다. 세션이 없으면 null — 패널은 기존 canonical 읽기로 돌아간다.
+ * The panel overlays the drag's value on the active target's spacing fields and highlights them;
+ * the shown value is never the stored one (dirty / reset read the document as before). No drag =
+ * null — the panel reads the document. The ADR-248 Canvas publishes the drag through
+ * `catalogRuntime/spacingLive` (the old presentation spacing session is gone with the old Canvas).
  */
 
 import { useSyncExternalStore } from "react";
 import {
-  getActiveSpacingSession,
-  subscribeActiveSpacingSession,
-  type SpacingSessionSnapshot,
-} from "./editorPresentationSpacingSession";
-import {
-  getSpacingPresentationSnapshot,
-  subscribeSpacingPresentation,
-  type SpacingActiveTarget,
-} from "../workspace/canvas/interaction/spacingPresentation";
+  getCatalogSpacingLive,
+  subscribeCatalogSpacingLive,
+} from "../catalogRuntime/spacingLive";
 import type { SpacingProperty } from "../workspace/canvas/interaction/spacingTypes";
 
 export interface SpacingSessionView {
-  /** 세션이 소유한 노드 */
+  /** The record being edited (the panel's selected identity). */
   readonly nodeId: string;
-  readonly snapshot: SpacingSessionSnapshot;
-  /** 조작 중인 띠 (press/drag/input) — 없으면 finalizing 중 */
-  readonly active: SpacingActiveTarget | null;
-  /** 세션이 편집 중인 property (패널 강조·read-only 대상) */
+  /** The properties the drag edits (the panel highlights these). */
   readonly properties: readonly SpacingProperty[];
+  /** The drag's current px value per property. */
+  readonly values: Readonly<Partial<Record<SpacingProperty, number>>>;
 }
 
 let cachedView: SpacingSessionView | null = null;
-let cachedSession: ReturnType<typeof getActiveSpacingSession> = null;
-let cachedSnapshot: SpacingSessionSnapshot | null = null;
-let cachedActive: SpacingActiveTarget | null = null;
+let cachedLive: ReturnType<typeof getCatalogSpacingLive> = null;
 
 function readView(): SpacingSessionView | null {
-  const session = getActiveSpacingSession();
-  if (!session || session.phase === "closed") {
+  const live = getCatalogSpacingLive();
+  if (!live) {
     cachedView = null;
-    cachedSession = null;
+    cachedLive = null;
     return null;
   }
-  const snapshot = session.getSnapshot();
-  const active = getSpacingPresentationSnapshot().active;
-  if (
-    cachedView &&
-    cachedSession === session &&
-    cachedSnapshot === snapshot &&
-    cachedActive === active
-  ) {
-    return cachedView;
-  }
-  cachedSession = session;
-  cachedSnapshot = snapshot;
-  cachedActive = active;
+  if (cachedView && cachedLive === live) return cachedView;
+  cachedLive = live;
   cachedView = {
-    nodeId: session.capability.target.nodeId,
-    snapshot,
-    active,
-    properties: session.properties,
+    nodeId: live.identity,
+    properties: live.properties,
+    values: live.values,
   };
   return cachedView;
 }
 
-function subscribe(listener: () => void): () => void {
-  let unsubscribeSession: (() => void) | null = null;
-  const attach = (): void => {
-    unsubscribeSession?.();
-    unsubscribeSession = getActiveSpacingSession()?.subscribe(listener) ?? null;
-  };
-  attach();
-  const unsubscribeActive = subscribeActiveSpacingSession(() => {
-    attach();
-    listener();
-  });
-  const unsubscribePresentation = subscribeSpacingPresentation(listener);
-  return () => {
-    unsubscribeActive();
-    unsubscribePresentation();
-    unsubscribeSession?.();
-  };
-}
-
-/** 활성 spacing 세션 view — 없으면 null. `getSnapshot` 은 참조 안정 (같은 세션·snapshot·active 면 같은 객체). */
+/** The active spacing drag's view — null when none. `getSnapshot` is reference-stable per drag state. */
 export function useSpacingSession(): SpacingSessionView | null {
-  return useSyncExternalStore(subscribe, readView, () => null);
+  return useSyncExternalStore(
+    subscribeCatalogSpacingLive,
+    readView,
+    () => null,
+  );
 }
 
-/** 이 노드의 property 가 세션 소유 중이면 확정값 (px 숫자), 아니면 null. */
+/** The drag's px value for this node's property while the drag owns it, else null. */
 export function readSessionSpacingValue(
   view: SpacingSessionView | null,
   nodeId: string | null,
@@ -95,5 +60,5 @@ export function readSessionSpacingValue(
 ): number | null {
   if (!view || !nodeId || view.nodeId !== nodeId) return null;
   if (!view.properties.includes(property)) return null;
-  return view.snapshot.confirmedValues[property] ?? null;
+  return view.values[property] ?? null;
 }
