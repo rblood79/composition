@@ -10,6 +10,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
   CatalogRowSource,
+  CatalogResolutionSelection,
   ResolvedCatalogNode,
 } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type {
@@ -1566,8 +1567,47 @@ export class CatalogCompositionRoot {
     }
     return ids;
   }
-  private flatten(rootId: NodeId): Map<string, CatalogConsumerNode> {
+  private flatten(
+    rootId: NodeId,
+    regionId?: string,
+    onVisit?: () => void,
+  ): Map<string, CatalogConsumerNode> {
     const output = new Map<string, CatalogConsumerNode>();
+    const region = regionId ? this.records.get(regionId) : undefined;
+    let selection: CatalogResolutionSelection | undefined;
+    if (region) {
+      const allowed = new Set<string>();
+      const ownedNext = new Map<string, NodeId>();
+      const scanAll = new Set<string>();
+      for (
+        let cursor: CatalogConsumerNode | undefined = region;
+        cursor;
+        cursor = this.records.get(cursor.parentId)
+      ) {
+        allowed.add(cursor.id);
+        for (const id of cursor.collapsedIds ?? []) allowed.add(id);
+        const parent = this.records.get(cursor.parentId);
+        if (parent) {
+          const hop = this.ownedHop(parent, cursor);
+          if (hop === "scan") scanAll.add(parent.id);
+          else if (hop) ownedNext.set(parent.id, hop);
+        }
+      }
+      const inside = (path: readonly string[]) =>
+        path.length >= region.instancePath.length &&
+        region.instancePath.every((id, index) => path[index] === id);
+      selection = {
+        include: (id, path) =>
+          inside(path) || allowed.has(`${path.join("/")}::${id}`),
+        ownedChildren: (id, path) => {
+          const key = `${path.join("/")}::${id}`;
+          if (inside(path) || scanAll.has(key)) return undefined;
+          const next = ownedNext.get(key);
+          return next ? [next] : [];
+        },
+        onVisit,
+      };
+    }
     const visit = (node: ResolvedCatalogNode, parentId: string): string => {
       const id = identity(node);
       const layers = this.collapseLayers(node);
@@ -1577,19 +1617,30 @@ export class CatalogCompositionRoot {
       output.set(id, this.consumerRecord(id, parentId, children, node, layers));
       return id;
     };
-    visit(
-      resolveCatalogNode(
-        this.runtime.graph,
-        rootId,
-        this.state,
-        undefined,
-        this.breakpoint,
-        this.colorMode,
-        this.rows,
-      ),
-      "catalog:root",
+    const resolved = resolveCatalogNode(
+      this.runtime.graph,
+      rootId,
+      this.state,
+      selection,
+      this.breakpoint,
+      this.colorMode,
+      this.rows,
     );
-    const get = (key: string) => output.get(key);
+    const find = (
+      node: ResolvedCatalogNode,
+    ): ResolvedCatalogNode | undefined => {
+      if (identity(node) === regionId) return node;
+      for (const child of node.children) {
+        const found = find(child);
+        if (found) return found;
+      }
+      return undefined;
+    };
+    const top = region ? find(resolved) : resolved;
+    if (!top) throw new Error(`RESOLVED_REGION_MISSING:${regionId}`);
+    visit(top, region?.parentId ?? "catalog:root");
+    const get = (key: string) =>
+      output.get(key) ?? (region ? this.records.get(key) : undefined);
     const pageId = this.rootPage.get(rootId);
     for (const [id, record] of output) {
       const templated = this.withState(record, get, pageId);
@@ -2456,9 +2507,14 @@ export class CatalogCompositionRoot {
       if (!nextSources.includes(sourceId)) {
         this.keep(this.sourceRoots, sourceId);
         const roots = this.sourceRoots.get(sourceId);
-        roots?.delete(rootId);
-        if (roots?.size === 0) this.sourceRoots.delete(sourceId);
         this.removeSourceInstance(sourceId, id);
+        if (
+          ![...(this.sourceInstances.get(sourceId) ?? [])].some(
+            (recordId) => this.recordRoots.get(recordId) === rootId,
+          )
+        )
+          roots?.delete(rootId);
+        if (roots?.size === 0) this.sourceRoots.delete(sourceId);
       }
     for (const sourceId of nextSources)
       if (!oldSources.includes(sourceId)) {
@@ -2483,11 +2539,15 @@ export class CatalogCompositionRoot {
     if (chrome) {
       this.slotChrome.set(id, chrome);
       const entries = slotChromeLayoutNodes(chrome);
-      for (const entry of entries)
-        if (oldChrome) this.layout.updateNodeStyle(entry.id, entry.style);
-        else this.layout.addNode(entry.id, entry.style);
-      for (const entry of entries)
-        this.layout.updateChildren(entry.id, [...entry.children]);
+      const previous = oldChrome ? slotChromeLayoutNodes(oldChrome) : [];
+      for (const entry of entries) {
+        const before = previous.find((node) => node.id === entry.id);
+        if (!before) this.layout.addNode(entry.id, entry.style);
+        else if (!sameFields(before.style, entry.style))
+          this.layout.updateNodeStyle(entry.id, entry.style);
+        if (!before || !sameList(before.children, entry.children))
+          this.layout.updateChildren(entry.id, [...entry.children]);
+      }
     } else if (oldChrome) this.slotChrome.delete(id);
     for (const part of parts) {
       const before = oldParts.find((item) => item.id === part.id);
@@ -2549,9 +2609,14 @@ export class CatalogCompositionRoot {
       for (const sourceId of recordSources(old)) {
         this.keep(this.sourceRoots, sourceId);
         const roots = this.sourceRoots.get(sourceId);
-        roots?.delete(rootId);
-        if (roots?.size === 0) this.sourceRoots.delete(sourceId);
         this.removeSourceInstance(sourceId, id);
+        if (
+          ![...(this.sourceInstances.get(sourceId) ?? [])].some(
+            (recordId) => this.recordRoots.get(recordId) === rootId,
+          )
+        )
+          roots?.delete(rootId);
+        if (roots?.size === 0) this.sourceRoots.delete(sourceId);
       }
     }
     this.records.delete(id);
@@ -2706,6 +2771,7 @@ export class CatalogCompositionRoot {
   private planInstances(
     sourceIds: ReadonlySet<string>,
     extraRecords: readonly string[] = [],
+    ownedStructure = false,
   ): {
     resolverVisits: number;
     includeChecks: number;
@@ -2813,6 +2879,18 @@ export class CatalogCompositionRoot {
       } = before;
       const resolvedRecord: CatalogConsumerNode = {
         ...kept,
+        ...(ownedStructure
+          ? {
+              children: (() => {
+                const entry = this.runtime.graph.getEntry(before.sourceId);
+                if (entry?.kind !== "node") return before.children;
+                return entry.children.map(
+                  (child) =>
+                    `${[...before.instancePath, child].join("/")}::${child}`,
+                );
+              })(),
+            }
+          : {}),
         props: resolved.props,
         visual: resolved.visual,
         layout: resolved.layout,
@@ -2976,7 +3054,129 @@ export class CatalogCompositionRoot {
     return false;
   }
 
+  /** Physical layout inputs, including synthetic parts: a paint flag never hides a box change. */
+  private layoutPlanChanged(plan: RecordPlan): boolean {
+    const beforeParts = this.composedParts.get(plan.id) ?? [];
+    const beforeChrome = this.slotChrome.get(plan.id);
+    const oldChromeNodes = beforeChrome
+      ? slotChromeLayoutNodes(beforeChrome)
+      : [];
+    const newChromeNodes = plan.chrome
+      ? slotChromeLayoutNodes(plan.chrome)
+      : [];
+    return (
+      plan.styleChanged ||
+      oldChromeNodes.length !== newChromeNodes.length ||
+      oldChromeNodes.some((node, index) => {
+        const next = newChromeNodes[index];
+        return (
+          node.id !== next.id ||
+          !sameFields(node.style, next.style) ||
+          !sameList(node.children, next.children)
+        );
+      }) ||
+      beforeParts.length !== plan.parts.length ||
+      beforeParts.some((part, index) => {
+        const next = plan.parts[index];
+        return (
+          part.id !== next.id ||
+          !sameFields(part.style, next.style) ||
+          !sameList(part.wraps ?? [], next.wraps ?? [])
+        );
+      })
+    );
+  }
+
+  /**
+   * Reorder/deletion of ordinary owned children changes the parent's list, not the surviving
+   * siblings' resolution. Composite/template/row projections and reparenting need the general
+   * structural resolver, since their identities or inherited context can change.
+   */
+  private planOwnedRemovalOrOrder(
+    result: CatalogTransactionResult,
+  ): ConsumePlan | undefined {
+    if (!result.impact.structural || this.definitionView) return undefined;
+    const sources = new Set<string>();
+    for (const op of result.forward) {
+      if (op.kind === "remove") {
+        if (
+          !result.inverse.some(
+            (inverse) =>
+              inverse.kind === "put" &&
+              inverse.entry.id === op.id &&
+              inverse.entry.kind === "node",
+          )
+        )
+          return undefined;
+        continue;
+      }
+      if (op.kind !== "put" || op.entry.kind !== "node") return undefined;
+      const previous = result.inverse.find(
+        (inverse) => inverse.kind === "put" && inverse.entry.id === op.entry.id,
+      );
+      if (previous?.kind !== "put" || previous.entry.kind !== "node")
+        return undefined;
+      const { children: _beforeChildren, ...before } = previous.entry;
+      const { children: _afterChildren, ...after } = op.entry;
+      if (JSON.stringify(before) !== JSON.stringify(after)) return undefined;
+      for (const id of this.sourceInstances.get(op.entry.id) ?? []) {
+        const record = this.records.get(id)!;
+        if (
+          record.definitionMode === "composite" ||
+          !["box", "frame", "body", "group", "container"].includes(
+            record.bindingId ?? "",
+          ) ||
+          record.collapsedIds?.length ||
+          record.id.includes(CATALOG_ROW_SEPARATOR) ||
+          previous.entry.binding ||
+          previous.entry.descendantOverrides.length
+        )
+          return undefined;
+        for (const child of op.entry.children) {
+          const childId = `${[...record.instancePath, child].join("/")}::${child}`;
+          if (this.records.get(childId)?.parentId !== id) return undefined;
+        }
+      }
+      sources.add(op.entry.id);
+    }
+    if (!sources.size) return undefined;
+    const planned = this.planInstances(sources, [], true);
+    const byRoot = new Map<
+      NodeId,
+      { rootId: NodeId; updates: RecordPlan[]; removed: string[] }
+    >();
+    const rootPlan = (rootId: NodeId) => {
+      let value = byRoot.get(rootId);
+      if (!value)
+        byRoot.set(rootId, (value = { rootId, updates: [], removed: [] }));
+      return value;
+    };
+    for (const update of planned.updates)
+      rootPlan(update.rootId).updates.push(update);
+    for (const sourceId of result.removedIds)
+      for (const id of this.sourceInstances.get(sourceId) ?? [])
+        rootPlan(this.recordRoots.get(id)!).removed.push(id);
+    return {
+      result,
+      roots: [...byRoot.values()],
+      computeLayout: true,
+      metrics: {
+        revision: result.revision,
+        changedIds: [...result.changedIds],
+        removedIds: [...result.removedIds],
+        affectedRootIds: [...byRoot.keys()],
+        layoutInputVisits: planned.updates.length,
+        resolverVisits: planned.resolverVisits,
+        resolverIncludeChecks: planned.includeChecks,
+        affectedInstanceCount: planned.updates.length,
+        traversedWholeInputGraph: false,
+      },
+    };
+  }
+
   private plan({ result, invalidatedIds }: CatalogStepContext): ConsumePlan {
+    const ownedStructure = this.planOwnedRemovalOrOrder(result);
+    if (ownedStructure) return ownedStructure;
     const valueOnly = result.forward.every(
       (op) =>
         // Per-breakpoint display decides which records exist (a presence change).
@@ -3024,7 +3224,12 @@ export class CatalogCompositionRoot {
           removed: [],
           updates,
         })),
-        computeLayout: planned.roots.size > 0,
+        // A transaction's paint-only flag can skip compute, but actual derived box changes
+        // still win (presence, owner-composed parts and catalog rules can affect layout).
+        computeLayout:
+          planned.roots.size > 0 &&
+          (result.impact.layout ||
+            planned.updates.some((update) => this.layoutPlanChanged(update))),
         metrics: {
           revision: result.revision,
           changedIds: [...result.changedIds],
@@ -3076,13 +3281,86 @@ export class CatalogCompositionRoot {
         if (root && currentRoots.has(root)) affectedRoots.add(root);
       }
     let visits = 0;
+    let resolverVisits = 0;
     const roots: ConsumePlan["roots"][number][] = [];
     for (const rootId of affectedRoots) {
       const previous = this.rootMembers.get(rootId) ?? new Set<string>();
+      // A node structure edit stays within its affected parents' subtrees. Definitions,
+      // variables, row projections and page/root changes keep their wider resolver scope.
+      const nodeStructure =
+        !structureChanged &&
+        result.impact.structural &&
+        [...result.changedIds].every(
+          (id) => this.runtime.graph.getEntry(id)?.kind === "node",
+        ) &&
+        result.forward.every(
+          (op) => op.kind === "put" || op.kind === "remove",
+        ) &&
+        [...result.removedIds].every((id) =>
+          result.inverse.some(
+            (op) =>
+              op.kind === "put" &&
+              op.entry.id === id &&
+              op.entry.kind === "node",
+          ),
+        );
+      const candidates = new Set<string>();
+      if (nodeStructure)
+        for (const sourceId of result.impact.affectedParents)
+          for (const id of this.sourceInstances.get(sourceId) ?? [])
+            if (this.recordRoots.get(id) === rootId) candidates.add(id);
+      const regions = [...candidates].filter((id) => {
+        for (
+          let parent = this.records.get(id)?.parentId;
+          parent;
+          parent = this.records.get(parent)?.parentId
+        )
+          if (candidates.has(parent)) return false;
+        return true;
+      });
+      if (regions.length) {
+        const before = new Set<string>();
+        const next = new Map<string, CatalogConsumerNode>();
+        const collect = (id: string) => {
+          before.add(id);
+          for (const child of this.records.get(id)?.children ?? [])
+            collect(child);
+        };
+        for (const id of regions) {
+          collect(id);
+          for (const [key, record] of this.flatten(
+            rootId,
+            id,
+            () => resolverVisits++,
+          ))
+            next.set(key, record);
+        }
+        const updates = [...next]
+          .filter(([id, record]) => {
+            const old = this.records.get(id);
+            return !old || !sameRecord(old, record);
+          })
+          .map(([id, record]) =>
+            this.planRecord(
+              id,
+              record,
+              rootId,
+              (key) => next.get(key) ?? this.records.get(key),
+            ),
+          );
+        visits += updates.length;
+        roots.push({
+          rootId,
+          removed: [...before].filter((id) => !next.has(id)),
+          updates,
+        });
+        continue;
+      }
       const next = currentRoots.has(rootId)
         ? this.flatten(rootId)
         : new Map<string, CatalogConsumerNode>();
       visits += next.size;
+      resolverVisits += next.size;
       roots.push({
         rootId,
         removed: [...previous].filter((id) => !next.has(id)),
@@ -3118,11 +3396,12 @@ export class CatalogCompositionRoot {
         removedIds: [...result.removedIds],
         affectedRootIds: [...affectedRoots],
         layoutInputVisits: visits,
-        resolverVisits: visits,
+        resolverVisits,
         resolverIncludeChecks: 0,
         affectedInstanceCount: visits,
         traversedWholeInputGraph:
-          this.records.size > 0 && visits >= this.records.size,
+          this.records.size > 0 &&
+          (visits >= this.records.size || resolverVisits >= this.records.size),
       },
     };
   }
@@ -3137,6 +3416,19 @@ export class CatalogCompositionRoot {
         this.keep(this.rootMembers, rootId);
         if (members.size) this.rootMembers.set(rootId, new Set(members));
         else this.rootMembers.delete(rootId);
+      } else {
+        const current = this.rootMembers.get(rootId);
+        if (current) {
+          for (const id of removed) {
+            const had = current.delete(id);
+            if (had) this.undoLog?.push(() => current.add(id));
+          }
+          for (const { id } of updates) {
+            if (current.has(id)) continue;
+            current.add(id);
+            this.undoLog?.push(() => current.delete(id));
+          }
+        }
       }
     }
     this.applyOrders();

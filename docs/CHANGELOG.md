@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [편집 영향 범위의 증분 소비 보완 — ADR-248 paint/structure delta] - 2026-10-03
+
+### Performance
+
+- 색 등 paint-only transaction은 실제 box·합성 layout part가 바뀌지 않으면 layout compute·text rewrap을 생략한다. 크기·presence·flex 영향 전파는 유지한다.
+- 일반 컨테이너의 같은 부모 안 순서 변경·삭제는 살아 있는 형제들을 다시 resolve/materialize하지 않고 부모 record만 재계획한다. 삽입·재부모화는 영향 부모 subtree를 resolve하고 달라진 record만 갱신한다. Canvas는 추가·삭제·순서 변경을 commit subtree splice로 반영하고 무관한 scene의 등록·구독·command span을 보존한다. Slot 구조·page root/외곽 geometry 변화의 fallback은 유지한다.
+- 실제 Builder 5k 확인: 텍스트 색 편집의 WASM compute 0회, 순서 변경·삭제의 resolver/layout 입력 방문 각각 1개, Canvas 신규 구독 0개 (삭제 복구는 신규 1개). 저장·새로고침 후 5,001개 입력 복원, Preview 색 반영, console/page 오류 0. 구조 변경에는 형제 ID 목록·geometry·영향 subtree command 처리 비용이 남으므로 전체 O(k)를 주장하지 않는다.
+
+### Tests
+
+- paint-only Undo/Redo, 5k 순서 변경·삭제·복구, 무관한 1k branch 보존, 재부모화의 fresh resolution/command 동등성, 구조 layout 실패 원자성, 고정 inner box 안의 삭제 후 scroll ancestor 갱신 회귀를 고정했다.
+
 ## [RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — ADR-251 Implemented] - 2026-10-03
 
 ### Changed

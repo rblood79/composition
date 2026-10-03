@@ -25,8 +25,8 @@ const sameIds = (left: readonly string[], right: readonly string[]) =>
  * ADR-248 Phase 4e-2: the Builder Canvas scene of one open project — every page root bound through
  * `bindCatalogCanvas` into one command stream. Once a step is delivered (after `execute` / `undo`
  * / `redo` returns — a step listener runs before the root's subscribers) `sync()` applies the
- * subscribed per-node deltas (subtree splice); what the patch path does not own (structure,
- * geometry reaching a page frame, the page root set) binds the scene again.
+ * subscribed per-node and parent-structure deltas (subtree splice). Unsupported Slot structure,
+ * geometry reaching a page frame, or a changed page-root set binds the scene again.
  */
 export class CatalogCanvasScene {
   private binding: ReturnType<typeof bindCatalogCanvas>;
@@ -46,7 +46,6 @@ export class CatalogCanvasScene {
   private drawnRoots(): string[] {
     return this.rootFilter(this.root.pageRootRecords());
   }
-
 
   private bind() {
     return bindCatalogCanvas(this.root, this.rootIds, undefined, {

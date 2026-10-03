@@ -65,7 +65,7 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-2 Canvas scene", () => {
-  it("draws the page body, patches a leaf edit, rebinds structure and page roots, follows undo", async () => {
+  it("draws the page body, patches a leaf edit, patches structure and rebinds page roots, follows undo", async () => {
     const { workspace, scene } = await open();
     expect(scene.pageRootIds).toEqual(workspace.root.recordsOfSource(BODY));
     const bodyRecord = scene.pageRootIds[0];
@@ -75,7 +75,7 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
       height: 1080,
     });
 
-    // Insert under the body: the body's children change → the scene binds again.
+    // Insert under the body: the changed parent is a commit-lane subtree patch.
     workspace.execute(
       insertNodes({
         parent: { kind: "node", id: BODY },
@@ -84,7 +84,7 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
         newId: allocator(),
       }),
     );
-    expect(scene.sync()).toEqual({ kind: "rebound", reason: "structure" });
+    expect(scene.sync().kind).toBe("patched");
     const [record] = workspace.root.recordsOfSource(text("a", "").id);
     expect(getSkiaNode(record)?.text?.content).toBe("Hello");
 
@@ -193,7 +193,7 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
     // Inside the listener the binding has no dirty node yet (CatalogCanvas marks the scene stale
     // there and syncs at the next frame or pick).
     expect(inListener).toEqual(["unchanged"]);
-    expect(scene.sync()).toEqual({ kind: "rebound", reason: "structure" });
+    expect(scene.sync().kind).toBe("patched");
     scene.dispose();
   });
 });

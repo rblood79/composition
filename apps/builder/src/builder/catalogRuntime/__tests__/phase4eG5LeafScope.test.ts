@@ -2,6 +2,8 @@ import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
   insertNodes,
+  moveNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -9,6 +11,7 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
 import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import { bindCatalogCanvas } from "../canvasBinding";
+import { CatalogCanvasScene } from "../canvasScene";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
@@ -165,6 +168,102 @@ async function freshSnapshot(workspace: CatalogWorkspace) {
 }
 
 describe("ADR-248 G5 leaf edit scope on a large page", () => {
+  it("paint-only edits skip layout and sibling rewrap, while width edits still compute", async () => {
+    const { measure, calls } = countingMeasure();
+    const engine = await nodeLayoutEngine();
+    let computes = 0;
+    const compute = engine.computeLayout.bind(engine);
+    engine.computeLayout = (...args) => {
+      computes++;
+      return compute(...args);
+    };
+    const workspace = await workspaceWith(
+      [
+        frame("row", {
+          children: ["project:node:a", "project:node:b"],
+          layout: { display: set("flex") },
+          sizing: { width: set(400) },
+        }),
+        text("a"),
+        text("b"),
+      ],
+      ["row"],
+      measure,
+      engine,
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    computes = 0;
+    calls.count = 0;
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: "project:node:a" }],
+        visual: { color: set("#ff0000") },
+      }),
+    );
+    expect(computes).toBe(0);
+    expect(scene.sync().kind).toBe("patched");
+    expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
+    workspace.undo();
+    expect(computes).toBe(0);
+    scene.sync();
+    workspace.redo();
+    expect(computes).toBe(0);
+    scene.sync();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: "project:node:a" }],
+        sizing: { width: set(180) },
+      }),
+    );
+    expect(computes).toBeGreaterThan(0);
+    expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
+    scene.dispose();
+  });
+
+  it("reorder/delete among 5k siblings plan only the parent and patch its subtree, including undo", async () => {
+    const ids = Array.from({ length: 5000 }, (_, i) => `leaf${i}`);
+    const workspace = await workspaceWith(
+      ids.map((id) =>
+        frame(id, {
+          sizing: { width: set(20), height: set(20) },
+          placement: { kind: "absolute", x: 20, y: 20 },
+        }),
+      ),
+      ids,
+      countingMeasure().measure,
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    const target = "project:node:leaf0" as NodeEntry["id"];
+    workspace.execute(
+      moveNodes({
+        ids: [target],
+        parent: { kind: "node", id: BODY },
+        newId: workspace.newId,
+      }),
+    );
+    expect(workspace.root.metrics.layoutInputVisits).toBe(1);
+    expect(scene.sync().kind).toBe("patched");
+    workspace.execute(
+      removeTargets({ targets: [{ kind: "node", id: target }] }),
+    );
+    expect(workspace.root.metrics.layoutInputVisits).toBe(1);
+    expect(scene.sync().kind).toBe("patched");
+    workspace.undo();
+    expect(scene.sync().kind).toBe("patched");
+    workspace.undo();
+    expect(scene.sync().kind).toBe("patched");
+    expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
+    const fresh = bindCatalogCanvas(
+      workspace.root,
+      workspace.root.pageRootRecords(),
+    );
+    expect(Array.from(scene.stream.commands)).toEqual(
+      Array.from(fresh.stream.commands),
+    );
+    expect(scene.stream.boundsMap).toEqual(fresh.stream.boundsMap);
+    fresh.dispose();
+    scene.dispose();
+  });
   it("re-wraps and re-reads only the edited box among 300 absolutely placed leaves", async () => {
     const { measure, calls } = countingMeasure();
     const { engine, reads } = countingEngine(await nodeLayoutEngine());
@@ -274,6 +373,111 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
     // The growing siblings lost width and wrap to more lines.
     expect(after["project:node:b"]).not.toEqual(before["project:node:b"]);
     expect(after).toEqual(await freshSnapshot(workspace));
+  });
+
+  it("insert and reparent resolve only the affected branch, preserving unrelated records and Canvas spans", async () => {
+    const unrelated = Array.from({ length: 1000 }, (_, i) => `untouched${i}`);
+    const workspace = await workspaceWith(
+      [
+        frame("left", {
+          children: ["project:node:a"],
+          sizing: { width: set(200), height: set(200) },
+        }),
+        frame("right", { sizing: { width: set(200), height: set(200) } }),
+        text("a"),
+        frame("unrelated", {
+          children: unrelated.map(
+            (id) => `project:node:${id}` as NodeEntry["id"],
+          ),
+        }),
+        ...unrelated.map((id) => text(id)),
+      ],
+      ["left", "right", "unrelated"],
+      countingMeasure().measure,
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    const untouchedId = workspace.root.recordsOfSource(
+      "project:node:untouched0",
+    )[0];
+    const untouchedRecord = workspace.root.canvasInputs.get(untouchedId);
+    let notified = 0;
+    workspace.root.subscribeCanvas(untouchedId, () => notified++);
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: "project:node:right" },
+        entries: [
+          text("b", {
+            definitionId: catalogPaletteDefinitionId(
+              workspace.runtime.graph.library,
+              "Text",
+            ),
+          }),
+        ],
+        rootIds: ["project:node:b"],
+        newId: workspace.newId,
+      }),
+    );
+    expect(workspace.root.metrics.resolverVisits).toBeLessThan(10);
+    expect(scene.sync().kind).toBe("patched");
+    workspace.execute(
+      moveNodes({
+        ids: ["project:node:a"],
+        parent: { kind: "node", id: "project:node:right" },
+        newId: workspace.newId,
+      }),
+    );
+    expect(workspace.root.metrics.resolverVisits).toBeLessThan(15);
+    expect(scene.sync().kind).toBe("patched");
+    expect(notified).toBe(0);
+    expect(workspace.root.canvasInputs.get(untouchedId)).toBe(untouchedRecord);
+    expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
+    const fresh = bindCatalogCanvas(
+      workspace.root,
+      workspace.root.pageRootRecords(),
+    );
+    expect(Array.from(scene.stream.commands)).toEqual(
+      Array.from(fresh.stream.commands),
+    );
+    expect(scene.stream.boundsMap).toEqual(fresh.stream.boundsMap);
+    fresh.dispose();
+    scene.dispose();
+  });
+
+  it("a failed structural layout restores graph, consumer indexes and the existing scene before retry", async () => {
+    const engine = await nodeLayoutEngine();
+    const compute = engine.computeLayout.bind(engine);
+    let fail = false;
+    engine.computeLayout = (...args) => {
+      if (fail) {
+        fail = false;
+        throw new Error("structural layout failure");
+      }
+      return compute(...args);
+    };
+    const workspace = await workspaceWith(
+      [text("a"), text("b")],
+      ["a", "b"],
+      countingMeasure().measure,
+      engine,
+    );
+    const scene = new CatalogCanvasScene(workspace.root);
+    const document = workspace.runtime.graph.exportDocument();
+    const before = snapshot(workspace);
+    const remove = () =>
+      workspace.execute(
+        removeTargets({ targets: [{ kind: "node", id: "project:node:a" }] }),
+      );
+    fail = true;
+    expect(remove).toThrow();
+    expect(workspace.runtime.graph.exportDocument()).toEqual(document);
+    expect(snapshot(workspace)).toEqual(before);
+    expect(scene.sync().kind).toBe("unchanged");
+    remove();
+    expect(scene.sync().kind).toBe("patched");
+    workspace.undo();
+    expect(scene.sync().kind).toBe("patched");
+    expect(snapshot(workspace)).toEqual(before);
+    scene.dispose();
   });
 
   it("keeps in-flow block siblings exact when one leaf's text changes", async () => {

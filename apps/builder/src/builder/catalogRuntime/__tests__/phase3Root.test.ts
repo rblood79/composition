@@ -245,7 +245,7 @@ describe("ADR-248 Phase 3 isolated composition root delta seam", () => {
     expect(
       engine.styles.some((style) => style.includes('"width":"120px"')),
     ).toBe(true);
-    expect(engine.computed).toBe(3); // cold + two targeted edits
+    expect(engine.computed).toBe(2); // cold + layout edit; paint-only edit skips compute
   });
 
   it("updates one input in a multi-node single root on a leaf edit", () => {

@@ -10,6 +10,8 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
   insertNodes,
+  moveNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
@@ -100,6 +102,34 @@ const childrenEnd = (
   ).find((cmd) => cmd.scrollbarNode?.elementId === record);
 
 describe("ADR-248 Phase 4e catalog Canvas overflow binding", () => {
+  it("removing overflowing content inside a fixed inner box refreshes the scroll ancestor without a scene rebind", async () => {
+    const { workspace, scene, record } = await open("auto");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: id("box") },
+        entries: [sized("inner", "lib:definition:type-frame", 150, 50)],
+        rootIds: [id("inner")],
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    workspace.execute(
+      moveNodes({
+        ids: [id("tall")],
+        parent: { kind: "node", id: id("inner") },
+        newId: allocator(),
+      }),
+    );
+    scene.sync();
+    expect(getSkiaNode(record("box"))?.scrollbar).toBeDefined();
+    workspace.execute(
+      removeTargets({ targets: [{ kind: "node", id: id("tall") }] }),
+    );
+    expect(scene.sync().kind).toBe("patched");
+    expect(getSkiaNode(record("box"))?.scrollbar).toBeUndefined();
+    expect(childrenEnd(scene, record("box"))).toBeUndefined();
+    scene.dispose();
+  });
   it("clips for clip / scroll / auto as for hidden, and not for visible", async () => {
     for (const overflow of ["hidden", "clip", "scroll", "auto", "visible"]) {
       const { record } = await open(overflow);

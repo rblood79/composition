@@ -435,7 +435,8 @@ function dropZoneContentData(
     const frame = { x, y, width: part.width, height: part.height };
     if (part.kind === "icon") {
       const icon = getIconData("upload");
-      if (!icon) throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${node.id}:upload`);
+      if (!icon)
+        throw new Error(`CATALOG_CANVAS_GLYPH_REQUIRED:${node.id}:upload`);
       out.push({
         type: "icon_path",
         ...frame,
@@ -667,7 +668,7 @@ function bindInColorMode(
   const sceneNodes = new Map<string, CanvasSceneNode>();
   const childrenMap = new Map<string, CanvasSceneNode[]>();
   const layoutMap = new Map<string, ComputedLayout>();
-  const registeredIds: string[] = [];
+  const registeredIds = new Set<string>();
   const unpainted: Array<{ id: string; reason: string }> = [];
   const resolvedBindingIds = new Set<string>();
   const tree: CatalogOverflowTree = {
@@ -778,7 +779,7 @@ function bindInColorMode(
                 (id) => geometry.get(id),
               ),
       );
-      registeredIds.push(node.id);
+      registeredIds.add(node.id);
     }
     if (context.slotMode !== "page")
       for (const chrome of root.slotChromeInputs.values()) {
@@ -796,7 +797,7 @@ function bindInColorMode(
           } as CanvasSceneNode);
           layoutMap.set(id, { ...local, elementId: id });
           registerSkiaNode(id, data);
-          registeredIds.push(id);
+          registeredIds.add(id);
           childrenMap.set(id, []);
           children.push(id);
         };
@@ -893,7 +894,7 @@ function bindInColorMode(
           ...rect,
           visible: true,
         });
-        registeredIds.push(chrome.id);
+        registeredIds.add(chrome.id);
         childrenMap.set(
           chrome.id,
           children.map((id) => sceneNodes.get(id)!),
@@ -930,7 +931,7 @@ function bindInColorMode(
         visible: true,
         box: { fillColor: rgba(pageShell.fill), borderRadius: 0 },
       });
-      registeredIds.push(pageShell.id);
+      registeredIds.add(pageShell.id);
       childrenMap.set(
         pageShell.id,
         rootIds.map((id) => {
@@ -952,10 +953,13 @@ function bindInColorMode(
     );
     const bound = new Map<string, CatalogConsumerNode>();
     const dirty = new Set<string>();
-    const unsubscribe: Array<() => void> = [];
+    const unsubscribe = new Map<string, () => void>();
     for (const node of root.canvasInputs.values()) {
       bound.set(node.id, node);
-      unsubscribe.push(root.subscribeCanvas(node.id, () => dirty.add(node.id)));
+      unsubscribe.set(
+        node.id,
+        root.subscribeCanvas(node.id, () => dirty.add(node.id)),
+      );
     }
     let revision = stream.presentationRevision;
     const update = (): CatalogCanvasUpdate => {
@@ -988,7 +992,9 @@ function bindInColorMode(
         const after = changedRects.get(id);
         return (
           !!after &&
-          (after.width !== before.width || after.height !== before.height)
+          (!before ||
+            after.width !== before.width ||
+            after.height !== before.height)
         );
       };
       /** A resized box can move or resize its children; a moved box cannot (rects are local). */
@@ -1049,7 +1055,111 @@ function bindInColorMode(
       };
       const reRegister = new Set<string>();
       const patchRoots = new Set<string>();
+      // Structure is a commit-lane subtree splice. Reconcile only the changed parents' trees;
+      // unrelated pages keep their registrations, subscriptions, geometry and command spans.
+      const structural = new Set<string>();
       for (const id of dirty) {
+        const before = bound.get(id);
+        const node = input(id);
+        if (!before) continue;
+        if (!node || node.parentId !== before.parentId) {
+          let parentId = before.parentId;
+          while (!input(parentId) && bound.has(parentId))
+            parentId = bound.get(parentId)!.parentId;
+          if (!input(parentId))
+            return rebind(id, "structure-reaches-scene-root");
+          structural.add(parentId);
+        }
+        if (node && !sameIds(node.children, before.children))
+          structural.add(id);
+      }
+      const regions = [...structural].filter((id) => {
+        for (
+          let parent = input(id)?.parentId;
+          parent;
+          parent = input(parent)?.parentId
+        )
+          if (structural.has(parent)) return false;
+        return true;
+      });
+      const reconciled = new Set<string>();
+      for (const region of regions) {
+        const previous = new Set<string>();
+        const collectPrevious = (id: string) => {
+          if (previous.has(id)) return;
+          previous.add(id);
+          for (const child of childrenMap.get(id) ?? [])
+            collectPrevious(child.id);
+        };
+        collectPrevious(region);
+        const next = new Set<string>();
+        const collectNext = (id: string) => {
+          if (next.has(id)) return;
+          const node = input(id);
+          if (
+            !node ||
+            node.bindingId === "slot" ||
+            root.slotChromeInputs.has(id)
+          )
+            return false;
+          next.add(id);
+          for (const child of node.children)
+            if (collectNext(child) === false) return false;
+          return true;
+        };
+        if (collectNext(region) === false)
+          return rebind(region, "slot-structure");
+        // Materialize new scene positions before wiring the new child lists.
+        for (const id of next) {
+          const node = input(id)!;
+          const before = bound.get(id);
+          if (before && bindingKey(node) !== bindingKey(before))
+            return rebind(id, "binding");
+          if (!before) {
+            sceneNodes.set(id, {
+              id,
+              type: bindingKey(node),
+              props: {},
+              parentId: node.parentId,
+              pageId: pageShell?.id ?? null,
+              layoutId: id,
+            } as CanvasSceneNode);
+            unsubscribe.set(
+              id,
+              root.subscribeCanvas(id, () => dirty.add(id)),
+            );
+            registeredIds.add(id);
+            reRegister.add(id);
+          } else if (dirty.has(id)) reRegister.add(id);
+          bound.set(id, node);
+          reconciled.add(id);
+        }
+        compare([...next]);
+        for (const id of next)
+          childrenMap.set(
+            id,
+            input(id)!.children.map((child) => sceneNodes.get(child)!),
+          );
+        for (const id of previous) {
+          if (next.has(id)) continue;
+          unsubscribe.get(id)?.();
+          unsubscribe.delete(id);
+          unregisterSkiaNode(id);
+          registeredIds.delete(id);
+          sceneNodes.delete(id);
+          childrenMap.delete(id);
+          layoutMap.delete(id);
+          bound.delete(id);
+          ranges.delete(id);
+          scrollbars.delete(id);
+          reconciled.add(id);
+        }
+        const regionRoot = geometryRegion(region);
+        if (typeof regionRoot !== "string") return regionRoot;
+        patchRoots.add(regionRoot);
+      }
+      for (const id of dirty) {
+        if (reconciled.has(id)) continue;
         const before = bound.get(id)!;
         const node = input(id);
         if (!node) return rebind(id, "removed");
@@ -1085,7 +1195,9 @@ function bindInColorMode(
       // scroll/auto box draws again when its scrollbar changes (only then — a page body that
       // scrolls is not rebuilt for every edit inside it; a paint edit moves no range).
       const rectOf = (id: string) => layoutMap.get(id);
-      for (const id of changedRects.keys()) {
+      // Removing/reordering a descendant can change the scroll extent even if every surviving
+      // box kept its rect (a fixed-size inner container may have overflowed its scroll owner).
+      for (const id of new Set([...changedRects.keys(), ...regions])) {
         let cursor = input(id)?.parentId;
         for (let depth = 0; cursor && depth <= 32; depth += 1) {
           const owner = input(cursor);
