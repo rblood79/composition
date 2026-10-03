@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-03 ADR-251 Implemented**: RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — 사용자 Preview 확인 「Preview 확인했어」. 그룹 Direction = label 위치, 묶음 Direction = 항목 방향 · library contract 2. 구현 `3648a262f`. 열림 −1, 완료 +1.
+>
 > **2026-10-03 ADR-250 Implemented**: Preview 의 펼침 조작은 Preview 실행 상태 — 사용자 Compare Mode 확인 「확인했다」 (G3). Disclosure · Tree · DisclosureGroup 펼침은 문서에 쓰지 않고 규칙 capability 와 같은 실행 값, Builder 선언 변경은 Preview 가 따름. 구현 `db76cc301`. 열림 −1, 완료 +1.
 >
 > **2026-10-03 ADR-251 Accepted + 구현 · main 병합**: RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems — 사용자 `/create-adr RadioItems 노드 복원 (a)로 진행` · `/execute-adr 251`). 두 축 (`labelPosition` · `orientation`) 이 각자의 노드를 갖는다 — 그룹 Direction = label 위치, 묶음 Direction = 항목 방향. `LIBRARY_CONTRACT_VERSION` 2 (기존 개발용 프로젝트 거부, 변환 없음). G0 ~ G4 · live 12/12 통과, Preview 사용자 확인 뒤 Implemented. 열림 8 (Proposed 5 · Accepted 3), 합계 278.
@@ -147,15 +149,15 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     271 |
-| ├ Implemented / Complete(d)   |     228 |
+| 완료 (`completed/`)           |     272 |
+| ├ Implemented / Complete(d)   |     229 |
 | ├ Accepted                    |      15 |
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
+| 열려 있는 것 (`adr/*.md`)     |       6 |
 | ├ Proposed                    |       5 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **278** |
 
@@ -176,12 +178,6 @@
 
 - **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS · Phase 3 독립 소비자 검증 완료. **2026-10-03 Phase 4 Builder 전환 완료** (worktree 누적 후 main 1회 병합): live G3 base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0, live G4 15/15, [G5 PASS](design/248-phase4-g5-evidence.md) (Preview 부팅 JS 는 사용자 판정 (a) — ADR-201 정의 정적 initial 기준), G6 구 모듈 진입 0. Status 는 Publish 후속 전환까지 Accepted.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
-
-#### [251](251-radio-checkbox-items-node-restore.md) — RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems)
-
-- **상태**: Accepted — 2026-10-03 (사용자 `/execute-adr 251`, 리뷰 round 2 이슈 0) · P0 ~ P5 구현 · G0 ~ G4 통과 · live 12/12 · main 병합 — Implemented 는 Preview 사용자 확인 뒤
-- **규모**: 대안 A — `component-radiogroup` · `component-checkboxgroup` template 을 `Label + Items > 항목` 으로 (TagGroup > TagList 동형). 묶음의 방향 · gap 은 부모 rule 의 기존 블록이 정본이고 partRule 로 전달, Canvas 합성 part (`catalogItemsWrapper`) 삭제, DOM 은 그룹이 묶음을 흡수하고 shared 컴포넌트의 `div.radio-items` 1개 (생성 CSS diff 0), Styles Direction 은 묶음 선택 시 owner `orientation`. `LIBRARY_CONTRACT_VERSION` 2 (contract 1 문서 거부 · 변환 없음). `apps/publish` 0. Gate G0 (직계 자식 가정 인벤토리) ~ G4. breakdown: [design/251](design/251-radio-checkbox-items-node-restore-breakdown.md)
-- **선후**: ADR-248 의 응용 · Design 패널 통합 ADR (미작성) 의 선행
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
@@ -272,7 +268,7 @@
 
 ---
 
-## 완료 ADR (271)
+## 완료 ADR (272)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -551,6 +547,7 @@
 | [002](completed/002-styling-approach.md) | ITCSS + tailwind-variants for Styling | Accepted | 2024-01 |
 | [001](completed/001-state-management.md) | Zustand for State Management | Accepted | 2024-01 |
 | [250](completed/250-preview-expansion-runtime-state.md) | Preview 의 펼침 조작 — 문서 역기록 대신 Preview 실행 상태 (대안 B · 사용자 판정). Disclosure · Tree · DisclosureGroup 펼침 = record 실행 prop (규칙 capability 와 같은 값 · 문서 값이 바뀌면 버림) · Preview Tree 펼침 복원 · 그룹 선언 추종 · Canvas · Builder 메시지 변경 0 | Implemented | 2026-10-03 |
+| [251](completed/251-radio-checkbox-items-node-restore.md) | RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems — TagGroup > TagList 동형). 그룹 rule 의 orientation 블록이 묶음 partRule · DOM 은 shared `div.*-items` 1개 · 「+」 는 묶음 안 · 묶음 Direction = 그룹 orientation · library contract 2 (ADR-912 Items 폐기를 뒤집음) | Implemented | 2026-10-03 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

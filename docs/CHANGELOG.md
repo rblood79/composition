@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — ADR-251] - 2026-10-03
+## [RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — ADR-251 Implemented] - 2026-10-03
 
 ### Changed
 
@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **그룹 DOM 이 항목을 `div.radio-items` 로 두 번 감싸던 것.** Builder 렌더러와 shared 컴포넌트가 각자 감쌌다. 이제 shared `RadioGroup` · `CheckboxGroup` 의 상자 하나만 남는다 (생성 CSS · `apps/publish` 변경 0).
 
-위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (template) · `packages/shared/src/catalog/bindings/{RadioItems,CheckboxItems}.binding.ts` · `packages/shared/src/catalog/document/{rulePartRules.ts,manualBoxRules.ts,sizePropagation.ts,types.ts}` · `packages/shared/src/catalog/commands/collections.ts` (`insertGroupItem`) · `apps/builder/src/builder/catalogRuntime/{delegatedDom.tsx,presence.ts,itemInsert.ts,canvasBinding.ts}` · `apps/builder/src/builder/panels/styles/{catalog/catalogStylesHost.ts,utils/orientationDrivenTags.ts}`.
+사용자 Preview 확인 (2026-10-03). 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (template) · `packages/shared/src/catalog/bindings/{RadioItems,CheckboxItems}.binding.ts` · `packages/shared/src/catalog/document/{rulePartRules.ts,manualBoxRules.ts,sizePropagation.ts,types.ts}` · `packages/shared/src/catalog/commands/collections.ts` (`insertGroupItem`) · `apps/builder/src/builder/catalogRuntime/{delegatedDom.tsx,presence.ts,itemInsert.ts,canvasBinding.ts}` · `apps/builder/src/builder/panels/styles/{catalog/catalogStylesHost.ts,utils/orientationDrivenTags.ts}`.
 
 ## [Preview 의 펼침 조작은 Preview 실행 상태 (Tree 펼침 복원) — ADR-250 Implemented] - 2026-10-03
 

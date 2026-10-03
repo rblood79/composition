@@ -1,6 +1,6 @@
 # ADR-251 breakdown — RadioItems · CheckboxItems 노드 복원
 
-> 본문: [ADR-251](../251-radio-checkbox-items-node-restore.md). 대안 A 기준 (사용자 2026-10-03 「(a)로 진행」). 줄 번호는 main `db76cc301` 기준이며 G0 에서 다시 확인한다.
+> 본문: [ADR-251](../completed/251-radio-checkbox-items-node-restore.md) (Implemented 2026-10-03). 대안 A 기준 (사용자 2026-10-03 「(a)로 진행」). 줄 번호는 main `db76cc301` 기준이며 G0 에서 다시 확인한다.
 
 경로 약어: `S/` = `packages/shared/src/` · `D/` = `packages/shared/src/catalog/document/` · `R/` = `apps/builder/src/builder/catalogRuntime/` · `P/` = `apps/builder/src/builder/panels/`
 
@@ -140,6 +140,6 @@ pnpm -F @composition/builder exec vitest run --config vitest.adr248-g3.browser.c
 
 ### 남은 것
 
-- Preview (Compare Mode) 사용자 확인 → Implemented.
+- ~~Preview (Compare Mode) 사용자 확인 → Implemented.~~ 2026-10-03 사용자 「Preview 확인했어」 → Implemented.
 - 묶음에 작성한 layout · paint 는 DOM 의 shared `div` 에 닿지 않아 Canvas 에만 반영된다 (TagList 와 같은 편집 범위 — R7 대로 둠). 묶음의 Styles 를 Direction 만 남기는 정리는 Design 패널 통합 (ADR-252) 때 판단.
 - compositionRoot `wraps` 장치 정리.

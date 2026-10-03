@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-03 (사용자 `/execute-adr 251` — 리뷰 round 2 이슈 0 · [reviews/251.md](reviews/251.md), 대안 A · contract 2 는 사용자 결정 기록). **P0 ~ P5 구현 · G0 ~ G4 통과 · main 1회 병합 (2026-10-03, Decision 7 — 사용자 「커밋 + main 병합」)**. Implemented 승격은 Preview 사용자 확인 뒤. 실행 기록: [breakdown §6](design/251-radio-checkbox-items-node-restore-breakdown.md).
+Implemented — 2026-10-03 (사용자 Preview 확인 「Preview 확인했어」 · 구현 `3648a262f` · 문서 `93b5d4256`) · Accepted — 2026-10-03 (사용자 `/execute-adr 251` — 리뷰 round 2 이슈 0 · [reviews/251.md](../reviews/251.md), 대안 A · contract 2 는 사용자 결정 기록). P0 ~ P5 구현 · G0 ~ G4 통과 · main 1회 병합 (Decision 7 — 사용자 「커밋 + main 병합」). 실행 기록: [breakdown §6](../design/251-radio-checkbox-items-node-restore-breakdown.md).
 
 <details><summary>이전 상태</summary>
 
@@ -12,9 +12,9 @@ Proposed — 2026-10-03
 
 사용자 요청: `/create-adr RadioItems 노드 복원 (a)로 진행` (2026-10-03). 방향은 2026-09-29 에 사용자가 정했다 — 「보기에도 직관적인 것은 A」 (항목 묶음을 TagGroup > TagList 처럼 트리의 실제 노드로 둔다). 저장 포맷은 같은 요청의 (a) — library contract version 을 올리고 기존 개발용 프로젝트는 거부한다.
 
-이 ADR 은 ADR-912 가 커밋 `9c0e15446` (2026-06-14) 으로 실행한 「CheckboxItems / RadioItems 중간 컨테이너 폐기」 를 뒤집고, [ADR-103](completed/103-checkbox-radio-items-justification.md) 이 정당화했던 3단 구조 (`Group > Items > 항목`) 로 돌아간다. 뒤따르는 Design 패널 통합 ADR 의 선행이다.
+이 ADR 은 ADR-912 가 커밋 `9c0e15446` (2026-06-14) 으로 실행한 「CheckboxItems / RadioItems 중간 컨테이너 폐기」 를 뒤집고, [ADR-103](103-checkbox-radio-items-justification.md) 이 정당화했던 3단 구조 (`Group > Items > 항목`) 로 돌아간다. 뒤따르는 Design 패널 통합 ADR 의 선행이다.
 
-> **2026-10-03 리뷰 round 1 반영** ([reviews/251.md](reviews/251.md), Codex — HIGH 3): ① template 만 main 에 올리면 DOM 항목이 사라진다 → 구조 전환 전체를 main 1회 병합으로 (Decision 7) ② 일반 collection 삽입은 Radio · Checkbox 계약과 맞지 않는다 → 그룹 전용 삽입을 유지하고 위치만 묶음으로 (R3 HIGH · G3) ③ prop 없는 묶음은 size 전달을 끊는다 → size 를 내부 운반 값으로 선언 (Decision 2 · R1). 세 건 모두 코드에서 확인했다. 대안 A 와 contract 2 는 그대로다.
+> **2026-10-03 리뷰 round 1 반영** ([reviews/251.md](../reviews/251.md), Codex — HIGH 3): ① template 만 main 에 올리면 DOM 항목이 사라진다 → 구조 전환 전체를 main 1회 병합으로 (Decision 7) ② 일반 collection 삽입은 Radio · Checkbox 계약과 맞지 않는다 → 그룹 전용 삽입을 유지하고 위치만 묶음으로 (R3 HIGH · G3) ③ prop 없는 묶음은 size 전달을 끊는다 → size 를 내부 운반 값으로 선언 (Decision 2 · R1). 세 건 모두 코드에서 확인했다. 대안 A 와 contract 2 는 그대로다.
 
 ## Context
 
@@ -29,13 +29,13 @@ DOM 은 이 두 축을 두 상자에 나눠 싣는다. 그룹 root 가 `labelPos
 
 | 층                  | 현재                                                                                                                                                  | 코드                                                                                                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| library template    | `component-radiogroup` 의 자식 = Label · Radio · Radio (직속). CheckboxGroup 도 같다                                                                  | [reusableOriginLibrary.ts:3777](../../packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts) · `:3700`                                            |
+| library template    | `component-radiogroup` 의 자식 = Label · Radio · Radio (직속). CheckboxGroup 도 같다                                                                  | [reusableOriginLibrary.ts:3777](../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts) · `:3700`                                            |
 | 비교 — TagGroup     | 자식 = Label · **TagList** (실제 template 노드) > Tag ×4                                                                                              | 같은 파일 `:5731` · `:5762`                                                                                                                                         |
-| Canvas              | 묶음 상자를 합성 part `${node.id}::part:items` 로 투영한다. record 가 아니라서 그려지지도, 선택되지도 않는다                                          | [presence.ts:423-447](../../apps/builder/src/builder/catalogRuntime/presence.ts) `catalogComposedParts`                                                             |
-| Canvas 값의 출처    | 부모 rule 의 `containerVariants.orientation[…].nested` 중 `.radio-items` 블록 + size 별 `--radio-items-gap`                                           | [rulePartRules.ts:1261-1330](../../packages/shared/src/catalog/document/rulePartRules.ts) `catalogItemsWrapper` · `componentRulesTable.ts:9374-9500`                |
-| DOM                 | `delegatedDom` 이 `div.radio-items` 를 만들어 children 으로 넘기고, shared `RadioGroup` 이 children 을 한 번 더 감싼다 (코드상 이중 — live 확인은 G0) | [delegatedDom.tsx:1085](../../apps/builder/src/builder/catalogRuntime/delegatedDom.tsx) · [RadioGroup.tsx:350](../../packages/shared/src/components/RadioGroup.tsx) |
+| Canvas              | 묶음 상자를 합성 part `${node.id}::part:items` 로 투영한다. record 가 아니라서 그려지지도, 선택되지도 않는다                                          | [presence.ts:423-447](../../../apps/builder/src/builder/catalogRuntime/presence.ts) `catalogComposedParts`                                                             |
+| Canvas 값의 출처    | 부모 rule 의 `containerVariants.orientation[…].nested` 중 `.radio-items` 블록 + size 별 `--radio-items-gap`                                           | [rulePartRules.ts:1261-1330](../../../packages/shared/src/catalog/document/rulePartRules.ts) `catalogItemsWrapper` · `componentRulesTable.ts:9374-9500`                |
+| DOM                 | `delegatedDom` 이 `div.radio-items` 를 만들어 children 으로 넘기고, shared `RadioGroup` 이 children 을 한 번 더 감싼다 (코드상 이중 — live 확인은 G0) | [delegatedDom.tsx:1085](../../../apps/builder/src/builder/catalogRuntime/delegatedDom.tsx) · [RadioGroup.tsx:350](../../../packages/shared/src/components/RadioGroup.tsx) |
 | Layers              | Label · Radio 행만 보인다. 묶음 행은 없다                                                                                                             | `positions.ts:223` `childPositions`                                                                                                                                 |
-| Styles 의 Direction | RadioGroup 을 선택하면 `labelPosition` 만 쓴다. `orientation` 은 Properties 로만 닿는다                                                               | [orientationDrivenTags.ts](../../apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts) · `useStyleActions.ts:183-200`                              |
+| Styles 의 Direction | RadioGroup 을 선택하면 `labelPosition` 만 쓴다. `orientation` 은 Properties 로만 닿는다                                                               | [orientationDrivenTags.ts](../../../apps/builder/src/builder/panels/styles/utils/orientationDrivenTags.ts) · `useStyleActions.ts:183-200`                              |
 
 결과: 사용자는 Layers 에서 Label 과 Radio 가 형제로 놓인 것을 보는데, 화면에서는 Radio 들만 따로 가로로 늘어선다. Direction 토글 하나가 두 축 중 하나만 가리키고, 나머지 축은 다른 패널에 있다. 이 경계에서 난 결함 커밋이 4건이다 (`b8f6788e8` · `84a7a8d12` · `805db0d1b` · `3b281b211`).
 
@@ -133,7 +133,7 @@ HIGH 가 없는 대안은 D 하나다. D 는 위험이 낮지만 문제 (트리 
 - **C**: 설치된 RAC 구조와는 가장 가깝지만, Preview · Publish 출력이 바뀌고 한 상자에 두 축이 남아 Direction 모호함을 풀지 못한다.
 - **D**: 가장 싸지만 사용자가 요구한 것 (DOM 과 같은 구조가 Layers 에 보임) 을 주지 않는다.
 
-> 구현 상세: [251-radio-checkbox-items-node-restore-breakdown.md](design/251-radio-checkbox-items-node-restore-breakdown.md)
+> 구현 상세: [251-radio-checkbox-items-node-restore-breakdown.md](../design/251-radio-checkbox-items-node-restore-breakdown.md)
 
 ## Risks
 
@@ -171,7 +171,9 @@ HIGH 가 없는 대안은 D 하나다. D 는 위험이 낮지만 문제 (트리 
 - L5 그룹 선택 시 Direction 「Row」 → `labelPosition` side (orientation 불변) · ⌘Z
 - L6 Properties 「Insert Radio」 를 묶음 · 그룹에서 한 번씩 → 묶음 안 4개, value `option1 ~ option4`
 
-모델 판정은 graph · layout record · geometry 로 했다 (이 환경의 Playwright 스크린샷은 Canvas 를 비운 채 찍힌다 — main 5173 대조군도 같음). Preview (Compare Mode) 는 열지 않았다 — 사용자 확인 항목.
+모델 판정은 graph · layout record · geometry 로 했다 (이 환경의 Playwright 스크린샷은 Canvas 를 비운 채 찍힌다 — main 5173 대조군도 같음). Preview (Compare Mode) 는 모델이 열지 않았다 — 사용자 확인 항목.
+
+2026-10-03 · **사용자 확인 (Preview)**: 「Preview 확인했어」 — main 병합 뒤 Builder 의 Preview 에서 사용자가 직접 확인. DOM 쪽 근거: 그룹당 `.radio-items` / `.checkbox-items` 1개 (unit `adr251ItemsNode.test.ts`) · Canvas ↔ DOM ≤ 1 px (G3 하니스 propAxis 42/42).
 
 ## Consequences
 
@@ -184,6 +186,6 @@ HIGH 가 없는 대안은 D 하나다. D 는 위험이 낮지만 문제 (트리 
 ### Negative
 
 - contract 1 로 저장된 개발용 프로젝트는 열리지 않는다 (의도).
-- ADR-912 의 Items 폐기 결정 (`9c0e15446`) 을 뒤집는다. `completed/912` 본문의 해당 대목에 이 ADR 을 가리키는 표기는 Implemented 승격 때 넣는다.
+- ADR-912 의 Items 폐기 결정 (`9c0e15446`) 을 뒤집는다. [completed/912](912-rac-pencil-rebuild-cutover.md) 의 R4 대목에 이 ADR 을 가리키는 표기를 넣었다 (Implemented 승격 때).
 - 영향 파일 (대표): `packages/shared/src/catalog/document/{generated/reusableOriginLibrary.ts, rulePartRules.ts, manualBoxRules.ts, sizePropagation.ts, types.ts, commands/collections.ts}` · `packages/shared/src/domain/componentTraits.ts` · `apps/builder/src/builder/catalogRuntime/{presence.ts, delegatedDom.tsx}` · `apps/builder/src/builder/panels/styles/{utils/orientationDrivenTags.ts, hooks/useStyleActions.ts, catalog/catalogStylesHost.ts}` · `apps/builder/tests/adr248-g3/`.
 - ADR-248 Phase 4 의 G3 승인 기록 중 두 그룹의 항목은 다시 승인해야 한다.
