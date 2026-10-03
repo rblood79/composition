@@ -229,6 +229,9 @@ export interface TranslationKeys {
     systemOriginLocked: string;
     templateAnchorLocked: string;
     instanceChildLocked: string;
+    notAllowed: string;
+    groupParentsDiffer: string;
+    ungroupInstance: string;
   };
   history: {
     title: string;

@@ -1,13 +1,17 @@
 import { useCallback } from "react";
+import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
 import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
 import { catalogPageContentTarget } from "../../catalogRuntime/pageSettings";
-import { catalogPaletteInsertCommand } from "../../catalogRuntime/paletteInsert";
+import {
+  notifyInsertRelocated,
+  notifyOperationRefused,
+} from "../../catalogRuntime/operationNotice";
+import { catalogPaletteInsertPlan } from "../../catalogRuntime/paletteInsert";
 import {
   CatalogWorkspaceGate,
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../catalogRuntime/react";
-import { useToastStore } from "../../stores/toast";
 import { useCatalogCommandRunner } from "../navigator/catalog/useCatalogCommandRunner";
 import ComponentList from "./ComponentList";
 
@@ -39,7 +43,7 @@ function CatalogComponentsContent() {
       const page = workspace.runtime.graph.getEntry(
         definitionView ?? pageId ?? "",
       );
-      const command = catalogPaletteInsertCommand(
+      const plan = catalogPaletteInsertPlan(
         {
           graph: workspace.runtime.graph,
           records: workspace.root.domInputs,
@@ -61,11 +65,26 @@ function CatalogComponentsContent() {
         type,
         initialProps,
       );
-      if (command) run(command);
-      else
-        useToastStore
-          .getState()
-          .showToast("error", `${type}: NESTING_NOT_ALLOWED`);
+      if (!plan.command) {
+        notifyOperationRefused(plan.refusal);
+        return;
+      }
+      if (!run(plan.command)) return;
+      // Not where the user aimed (the selection): the old creation notice, with undo (one step).
+      if (plan.relocated) {
+        const { target } = plan.relocated;
+        const node =
+          target.kind === "node"
+            ? workspace.runtime.graph.getEntry(target.id)
+            : undefined;
+        notifyInsertRelocated(
+          plan.relocated.refusal,
+          node?.kind === "node"
+            ? definitionTypeName(workspace.runtime.graph, node.definitionId)
+            : "",
+          () => workspace.undo(),
+        );
+      }
     },
     [run, workspace],
   );

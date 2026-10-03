@@ -390,6 +390,9 @@ const koKR: TranslationKeys = {
       "Components 페이지의 기본 컴포넌트는 삭제 · 풀기 · 분리할 수 없습니다",
     templateAnchorLocked: "목록의 항목 템플릿은 삭제할 수 없습니다",
     instanceChildLocked: "인스턴스 안 요소는 원본에서 편집합니다",
+    notAllowed: "이 선택에는 할 수 없는 작업입니다",
+    groupParentsDiffer: "같은 부모 아래의 요소만 그룹으로 묶을 수 있습니다",
+    ungroupInstance: "인스턴스는 그룹 해제할 수 없습니다 — 먼저 분리하세요",
   },
   history: {
     title: "작업 내역",
@@ -1503,7 +1506,8 @@ const koKR: TranslationKeys = {
     components: "컴포넌트",
     deleteLayout: "레이아웃 삭제",
     layoutDefaultName: "레이아웃",
-    noComponents: "컴포넌트가 없습니다. 요소를 선택해 「컴포넌트 만들기」로 만드세요",
+    noComponents:
+      "컴포넌트가 없습니다. 요소를 선택해 「컴포넌트 만들기」로 만드세요",
     layouts: "레이아웃",
     panelTabs: "탐색기 탭",
     addPage: "페이지 추가",
@@ -2518,6 +2522,9 @@ const enUS: TranslationKeys = {
       "Built-in components on the Components page can't be deleted, ungrouped, or detached",
     templateAnchorLocked: "A list's item template can't be deleted",
     instanceChildLocked: "Edit elements inside an instance on its component",
+    notAllowed: "This can't be done to the selection",
+    groupParentsDiffer: "Only elements under the same parent can be grouped",
+    ungroupInstance: "An instance can't be ungrouped — detach it first",
   },
   history: {
     title: "History",
@@ -3634,7 +3641,8 @@ const enUS: TranslationKeys = {
     components: "Components",
     deleteLayout: "Delete Layout",
     layoutDefaultName: "Layout",
-    noComponents: "No components yet. Select an element and choose Create component",
+    noComponents:
+      "No components yet. Select an element and choose Create component",
     layouts: "Layouts",
     panelTabs: "Navigator tabs",
     addPage: "Add Page",

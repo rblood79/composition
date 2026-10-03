@@ -66,6 +66,11 @@ export interface CatalogMenuHost {
   };
   /** Align / distribute the selection (`undefined` = nothing would move). */
   arrange?(id: CatalogArrangeItem): CatalogCommand | undefined;
+  /**
+   * An item left out because its command would be refused: the refusal (a shortcut tells the
+   * user why nothing happened, as the old `notifyOperationRejected` did).
+   */
+  noteRefusal?(itemId: string, error: unknown): void;
   /** A scene point as a placement inside a record (its padding-box origin) — "Paste here". */
   pointIn?(
     identity: string,
@@ -124,11 +129,12 @@ export function catalogCanvasMenuItems(
   /** The pointer's scene point (a context menu): "Paste here" puts absolute copies there. */
   point?: { x: number; y: number },
 ): ContextMenuItem[] {
-  const allowed = (command: CatalogCommand) => {
+  const allowed = (id: string, command: CatalogCommand) => {
     try {
       command(host.graph);
       return true;
-    } catch {
+    } catch (error) {
+      host.noteRefusal?.(id, error);
       return false;
     }
   };
@@ -142,7 +148,7 @@ export function catalogCanvasMenuItems(
     /** Runs the step after a confirmation (detach · dissolve); absent = at once. */
     confirmThen?: (execute: () => void) => void,
   ): ContextMenuItem[] =>
-    allowed(command)
+    allowed(id, command)
       ? [
           {
             kind: "action",

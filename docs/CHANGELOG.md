@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋) — ADR-248 Phase 4e 후속] - 2026-10-03
+## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed
 
+- **삭제 · 잘라내기 · 복제 · 그룹 · 그룹 해제가 거부될 때 아무 안내가 없던 것.** 구 앱처럼 이유를 toast 로 알린다 (page body · 부모가 다른 그룹 · 인스턴스 그룹 해제 · 중첩 규칙). 팔레트 삽입이 선택한 요소 대신 상위로 들어가면 「…에 놓였습니다」 안내와 되돌리기 버튼이 뜨고, 어디에도 못 들어가면 원문 코드 대신 중첩 규칙 안내가 뜬다.
 - **복제 (⌘D) · 붙여넣기한 absolute 요소가 원본 바로 위에 겹쳐 놓이던 것.** 구 앱처럼 +10 px 어긋나게 놓고, 우클릭 「여기에 붙여넣기」 는 포인터 위치에 놓는다 (여러 개면 첫 요소가 포인터, 나머지는 간격 유지). 흐름 안 요소는 그대로.
 - **Compare Mode 의 Preview 가 breakpoint 를 따르지 않던 것.** 구 앱은 Preview 창을 tablet 768 · mobile 390 폭으로 두고 반응형 재정의를 `@media` 로 적용했는데, 새 Preview 는 늘 desktop 으로 풀어 tablet · mobile 층이 보이지 않았다. 편집기의 breakpoint 가 Preview 에 전달되어 그 층으로 다시 풀고, Preview 창도 그 폭이 된다 (가운데 정렬 · pane 이 좁으면 스크롤).
 - **Styles Border 에서 폭이나 색 하나만 바꾸면 테두리가 안 보이거나 Canvas 가 page 를 못 그리던 것.** 구 앱은 테두리 축 하나를 처음 쓸 때 나머지 (폭 1 · solid · 색 #d4d4d4) 를 같이 기록했는데, 전환 때 빠졌다 — 색만 고르면 아무것도 안 보이고, 폭만 올리면 Canvas 가 「could not draw this edit」 와 함께 page 를 비웠다. Styles 패널 · AI 도구의 스타일 쓰기가 노드의 현재 값에 없는 테두리 축을 같이 쓴다 (`none` 과 제거는 제외, 변별 폭은 shorthand 를 더하지 않음). 위치: `apps/builder/src/builder/catalogRuntime/styleFields.ts`.

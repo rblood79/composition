@@ -5,6 +5,7 @@ import {
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import { catalogBoxModel } from "./boxModel";
+import { notifyBodyLocked, notifyOperationRefused } from "./operationNotice";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import {
   alignElements,
@@ -284,7 +285,14 @@ export function planCatalogShortcut(
    */
   options: { confirmed?: boolean } = {},
 ): CatalogShortcutPlan | undefined {
-  const host = catalogMenuHost(workspace, onError);
+  // A command the menu left out: the shortcut reports the refusal instead of doing nothing (the
+  // old `notifyOperationRejected`); a selection of page bodies only is the old body-locked notice.
+  const refusals = new Map<string, unknown>();
+  const host = {
+    ...catalogMenuHost(workspace, onError),
+    noteRefusal: (itemId: string, error: unknown) =>
+      refusals.set(itemId, error),
+  };
   const menuItem = (itemId: string) => {
     const items = catalogCanvasMenuItems(host, "canvas-element", undefined);
     const found = items.find(
@@ -292,10 +300,26 @@ export function planCatalogShortcut(
     );
     return found?.kind === "action" ? found : undefined;
   };
+  const refusedPlan = (itemId: string): CatalogShortcutPlan | undefined => {
+    const selection = workspace.session.getSnapshot().selection;
+    if (!selection.length) return undefined;
+    if (refusals.has(itemId)) {
+      const error = refusals.get(itemId);
+      return () => notifyOperationRefused(error);
+    }
+    const bodiesOnly = selection.every(
+      (item) =>
+        workspace.root.domInputs.get(item.identity)?.parentId === PAGE_GRID,
+    );
+    return bodiesOnly && itemId !== "copy" ? notifyBodyLocked : undefined;
+  };
   const planMenu = (itemId: string): CatalogShortcutPlan | undefined => {
     const item = menuItem(itemId);
     return item && (() => void item.run());
   };
+  /** A structural edit: the menu's plan, else the refusal notice. */
+  const planEdit = (itemId: string): CatalogShortcutPlan | undefined =>
+    planMenu(itemId) ?? refusedPlan(itemId);
 
   switch (id) {
     case "undo":
@@ -316,7 +340,7 @@ export function planCatalogShortcut(
             void copy.run();
             void remove.run();
           }
-        : undefined;
+        : refusedPlan("delete");
     }
     case "paste": {
       const paste = planMenu("paste");
@@ -329,14 +353,14 @@ export function planCatalogShortcut(
       return item?.kind === "action" ? () => void item.run() : undefined;
     }
     case "duplicate":
-      return planMenu("duplicate");
+      return planEdit("duplicate");
     case "delete":
     case "deleteAlt":
-      return planMenu("delete");
+      return planEdit("delete");
     case "group":
-      return planMenu("group");
+      return planEdit("group");
     case "ungroup":
-      return planMenu("ungroup");
+      return planEdit("ungroup");
     case "bringToFront":
       return planMenu("bring-to-front");
     case "bringForward":

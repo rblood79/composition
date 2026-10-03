@@ -102,6 +102,25 @@ export function catalogPaletteInsertCommand(
   type: string,
   initialProps?: Readonly<Record<string, unknown>>,
 ): CatalogCommand | undefined {
+  return catalogPaletteInsertPlan(host, type, initialProps)?.command;
+}
+
+/** The insert's placement outcome: where it went, and what refused the aimed target (if any). */
+export interface CatalogPaletteInsertPlan {
+  command: CatalogCommand;
+  /** The first candidate (the selection) refused it; the insert went to `target` instead. */
+  relocated?: { refusal: unknown; target: EditTarget };
+}
+
+/**
+ * `catalogPaletteInsertCommand` with the outcome: the caller tells the user when the element did
+ * not go where they aimed (the old creation notice), and why nothing accepted it (`refusal`).
+ */
+export function catalogPaletteInsertPlan(
+  host: CatalogPaletteHost,
+  type: string,
+  initialProps?: Readonly<Record<string, unknown>>,
+): CatalogPaletteInsertPlan | { command?: undefined; refusal: unknown } {
   const definitionId = catalogPaletteDefinitionId(host.graph.library, type);
   const props = catalogCreationProps(
     host.graph.library,
@@ -137,6 +156,7 @@ export function catalogPaletteInsertCommand(
   }
   const content = host.pageContent();
   if (content) candidates.push(content);
+  let refusal: unknown;
   for (const target of candidates) {
     const command = insertNodes({
       parent: parentOf(target),
@@ -148,10 +168,13 @@ export function catalogPaletteInsertCommand(
     try {
       // The command's own checks (nesting, a composite's template) decide where it can go.
       command(host.graph);
-      return command;
-    } catch {
+      return refusal === undefined
+        ? { command }
+        : { command, relocated: { refusal, target } };
+    } catch (error) {
+      refusal ??= error;
       continue;
     }
   }
-  return undefined;
+  return { refusal };
 }

@@ -11,7 +11,12 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { useCatalogGlobalShortcuts } from "../../main/useCatalogGlobalShortcuts";
-import { catalogPaletteDefinitionId } from "../paletteInsert";
+import { notifyInsertRelocated } from "../operationNotice";
+import {
+  catalogPaletteDefinitionId,
+  catalogPaletteInsertPlan,
+} from "../paletteInsert";
+import { useToastStore } from "../../stores/toast";
 import { newCatalogProjectDocument } from "../project";
 import { catalogShortcutLabelKey, runCatalogShortcut } from "../shortcuts";
 import { CatalogStorage } from "../storage";
@@ -94,7 +99,6 @@ async function open() {
   return { workspace, record, children, selected, steps };
 }
 
-
 /** Answer the component confirmation dialog (detach · dissolve ask first); returns the asked kinds. */
 function answerComponentConfirm(answer: boolean) {
   const asked: string[] = [];
@@ -152,6 +156,62 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     workspace.session.clearSelection();
     expect(runCatalogShortcut(workspace, "paste")).toBe(true);
     expect(children(BODY)).toHaveLength(2);
+  });
+
+  // The old `notifyOperationRejected`: a refused structural shortcut says why instead of nothing.
+  it("a refused delete · group says why (toast); a palette insert that landed elsewhere says where", async () => {
+    const { workspace, record, children } = await open();
+    const toasts = () =>
+      useToastStore.getState().toasts.map((t) => t.messageKey);
+    // The page body: locked.
+    workspace.selectRecords([workspace.root.recordsOfSource(BODY)[0]!]);
+    expect(runCatalogShortcut(workspace, "delete")).toBe(true);
+    expect(toasts()).toContain("operation.bodyLocked");
+    expect(children(BODY)).toHaveLength(1);
+    // Elements under different parents cannot be grouped.
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("d", "lib:definition:text")],
+        rootIds: [id("d")],
+        newId: allocator(),
+      }),
+    );
+    workspace.selectRecords([record("a"), record("d")]);
+    expect(runCatalogShortcut(workspace, "group")).toBe(true);
+    expect(toasts()).toContain("operation.groupParentsDiffer");
+    expect(children("list")).toEqual([id("a"), id("b"), id("c")]);
+
+    // Palette: a Text cannot hold a Button, so it goes to the Text's parent (the frame) — with
+    // the relocation notice; the undo it offers takes the insert back.
+    workspace.selectRecords([record("a")]);
+    const plan = catalogPaletteInsertPlan(
+      {
+        graph: workspace.runtime.graph,
+        records: workspace.root.domInputs,
+        selection: () => workspace.session.getSnapshot().selection,
+        itemOfRecord: (identity) => workspace.itemOfRecord(identity),
+        pageContent: () => ({ kind: "node", id: BODY }),
+        newId: workspace.newId,
+      },
+      "Button",
+    );
+    if (!plan.command) throw new Error("the insert was refused everywhere");
+    expect(plan.relocated?.target).toEqual({ kind: "node", id: id("list") });
+    workspace.execute(plan.command);
+    expect(children("list")).toHaveLength(4);
+    notifyInsertRelocated(plan.relocated!.refusal, "frame", () =>
+      workspace.undo(),
+    );
+    const relocated = useToastStore
+      .getState()
+      .toasts.find((t) => t.messageKey?.includes("Relocated"));
+    expect(relocated?.messageParams).toMatchObject({
+      child: "Button",
+      target: "frame",
+    });
+    relocated!.action!.onClick();
+    expect(children("list")).toHaveLength(3);
   });
 
   it("group · ungroup · z-order", async () => {
@@ -262,7 +322,9 @@ describe("ADR-248 Phase 4e-5 shortcuts", () => {
     expect(definitions()).toBe(count + 1);
 
     // The element is now the component's origin instance: the same key dissolves it.
-    workspace.selectRecords([workspace.session.getSnapshot().selection[0]!.identity]);
+    workspace.selectRecords([
+      workspace.session.getSnapshot().selection[0]!.identity,
+    ]);
     expect(catalogShortcutLabelKey(workspace, "toggleComponentOrigin")).toBe(
       "componentAction.detachComponent",
     );
