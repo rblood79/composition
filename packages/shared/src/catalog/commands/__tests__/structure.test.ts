@@ -307,6 +307,72 @@ describe("ADR-248 Phase 4b structure commands", () => {
     ).toHaveLength(4);
   });
 
+  // The old paste put absolutely placed copies 10 px from their source, and "Paste here" at the
+  // pointer; in-flow copies keep their position.
+  it("places absolute copies by offset or at a point; in-flow copies are unmoved", () => {
+    const graph = graphOf(
+      [
+        node("a", "lib:definition:section", {
+          placement: { kind: "absolute", x: 100, y: 50 },
+        }),
+        node("b", "lib:definition:section", {
+          placement: { kind: "absolute", x: 140, y: 90 },
+        }),
+        node("flow", "lib:definition:section"),
+        node("target", "lib:definition:section"),
+      ],
+      ["a", "b", "flow", "target"],
+    );
+    const newId = allocator();
+    const placementOf = (id: string) =>
+      (graph.getEntry(id) as NodeEntry).placement;
+    const duplicate = run(
+      graph,
+      duplicateNodes({
+        ids: ["project:node:a", "project:node:flow"],
+        newId,
+        placement: { offset: { x: 10, y: 10 } },
+      }),
+    );
+    const [aCopy, flowCopy] = duplicate.plan.selectAfter!;
+    expect(placementOf(aCopy)).toEqual({ kind: "absolute", x: 110, y: 60 });
+    expect(placementOf(flowCopy)).toBeUndefined();
+    expect(placementOf("project:node:a")).toEqual({
+      kind: "absolute",
+      x: 100,
+      y: 50,
+    });
+
+    const clipboard = copyNodes(graph, ["project:node:a", "project:node:b"]);
+    run(
+      graph,
+      pasteNodes({
+        clipboard,
+        parent: { kind: "node", id: "project:node:target" },
+        newId,
+        placement: { at: { x: 20, y: 30 } },
+      }),
+    );
+    const [first, second] = children(graph, "project:node:target");
+    // The first root lands at the point; the second keeps its distance (+40, +40).
+    expect(placementOf(first)).toEqual({ kind: "absolute", x: 20, y: 30 });
+    expect(placementOf(second)).toEqual({ kind: "absolute", x: 60, y: 70 });
+    // Without a placement option a paste is a verbatim copy (other callers).
+    run(
+      graph,
+      pasteNodes({
+        clipboard,
+        parent: { kind: "node", id: "project:node:target" },
+        newId,
+      }),
+    );
+    expect(placementOf(children(graph, "project:node:target")[2])).toEqual({
+      kind: "absolute",
+      x: 100,
+      y: 50,
+    });
+  });
+
   it("materializes an instance's container position and keeps what it showed", () => {
     const listAddress: InstanceAddress = {
       instances: ["project:node:pick"],

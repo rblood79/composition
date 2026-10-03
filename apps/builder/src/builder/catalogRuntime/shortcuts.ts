@@ -4,6 +4,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
+import { catalogBoxModel } from "./boxModel";
 import type { ShortcutId } from "../config/keyboardShortcuts";
 import {
   alignElements,
@@ -31,6 +32,16 @@ export function catalogMenuHost(
   return {
     arrange: (id) => catalogArrangeCommand(workspace, id),
     showDefinition: (id) => workspace.showDefinition(id),
+    pointIn: (identity, point) => {
+      const record = workspace.root.domInputs.get(identity);
+      const rect = workspace.root.getGeometry([identity]).get(identity);
+      if (!record || !rect) return undefined;
+      const border = Number(catalogBoxModel(record).borderWidth ?? 0) || 0;
+      return {
+        x: Math.round(point.x - rect.x - border),
+        y: Math.round(point.y - rect.y - border),
+      };
+    },
     ...(view ? { view } : {}),
     graph: workspace.runtime.graph,
     records: workspace.root.domInputs,

@@ -66,6 +66,11 @@ export interface CatalogMenuHost {
   };
   /** Align / distribute the selection (`undefined` = nothing would move). */
   arrange?(id: CatalogArrangeItem): CatalogCommand | undefined;
+  /** A scene point as a placement inside a record (its padding-box origin) — "Paste here". */
+  pointIn?(
+    identity: string,
+    point: { x: number; y: number },
+  ): { x: number; y: number } | undefined;
   /** Open a project component's definition edit view (go to origin). */
   showDefinition?(id: CatalogDefinitionViewId): void;
   /** The empty-area view items: fit, 100 %, rulers and snapping (Builder view settings). */
@@ -97,6 +102,9 @@ const ALIGN_ITEMS: readonly [AlignmentType, CatalogArrangeItem][] = [
   ["middle", "alignVCenter"],
   ["bottom", "alignBottom"],
 ];
+/** The old duplicate / paste offset for absolutely placed copies. */
+const COPY_OFFSET = { offset: { x: 10, y: 10 } } as const;
+
 const DISTRIBUTE_ITEMS: readonly [DistributionType, CatalogArrangeItem][] = [
   ["horizontal", "distributeH"],
   ["vertical", "distributeV"],
@@ -113,6 +121,8 @@ export function catalogCanvasMenuItems(
   surface: "canvas-element" | "canvas-empty",
   /** The record under the pointer (the page body on the page background, if any). */
   pickedRecord: string | undefined,
+  /** The pointer's scene point (a context menu): "Paste here" puts absolute copies there. */
+  point?: { x: number; y: number },
 ): ContextMenuItem[] {
   const allowed = (command: CatalogCommand) => {
     try {
@@ -149,6 +159,7 @@ export function catalogCanvasMenuItems(
         ]
       : [];
   const clipboard = host.clipboard.get();
+  // Absolute copies land 10 px from their source (the old paste), so they are not hidden under it.
   const pasteInto = (parent: NodeId, index?: number) =>
     clipboard &&
     pasteNodes({
@@ -156,6 +167,7 @@ export function catalogCanvasMenuItems(
       parent: { kind: "node", id: parent },
       ...(index !== undefined ? { index } : {}),
       newId: host.newId,
+      placement: COPY_OFFSET,
     });
 
   if (surface === "canvas-empty") {
@@ -164,6 +176,11 @@ export function catalogCanvasMenuItems(
     const content =
       page && isNodeSource(page.sourceId)
         ? catalogPageContentTarget(host.graph, page.sourceId as NodeId)
+        : undefined;
+    // "Paste here": absolute copies go to the pointer (the page body's padding-box point).
+    const at =
+      point && pickedRecord && content?.kind === "node"
+        ? host.pointIn?.(pickedRecord, point)
         : undefined;
     const paste =
       clipboard && content
@@ -178,6 +195,7 @@ export function catalogCanvasMenuItems(
                     address: content.address,
                   },
             newId: host.newId,
+            placement: at ? { at } : COPY_OFFSET,
           })
         : undefined;
     const items: ContextMenuItem[] = paste
@@ -274,7 +292,7 @@ export function catalogCanvasMenuItems(
     ...action(
       "duplicate",
       "contextMenu.duplicate",
-      duplicateNodes({ ids, newId: host.newId }),
+      duplicateNodes({ ids, newId: host.newId, placement: COPY_OFFSET }),
       "duplicate",
       ACTION_ICONS.duplicate,
     ),

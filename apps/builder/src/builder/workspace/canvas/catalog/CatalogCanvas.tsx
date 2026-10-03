@@ -1061,6 +1061,7 @@ export function CatalogCanvas({
         menuHost(),
         surface,
         onElement ? target!.id : record?.id,
+        { x, y },
       );
       if (!items.length) return;
       setMenu({

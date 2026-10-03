@@ -7,6 +7,7 @@ import type {
   InteractionEntry,
   NodeEntry,
   NodeId,
+  NodePlacement,
   StateVariableEntry,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
@@ -285,9 +286,41 @@ const relatedId =
       ? newId("stateVariable")
       : newId("interaction");
 
+/**
+ * Where absolutely placed copies land (nodes with a `placement`; in-flow nodes are unaffected):
+ * `offset` moves each copy from its source (the old paste's +10 px, so a copy is not hidden under
+ * its source), `at` puts the first root at that parent-relative point and keeps the others'
+ * distances to it ("Paste here" at the pointer).
+ */
+export type CopyPlacement =
+  { offset: { x: number; y: number } } | { at: { x: number; y: number } };
+
+function placeCopies(
+  roots: readonly NodeEntry[],
+  placement: CopyPlacement | undefined,
+): void {
+  if (!placement) return;
+  const placed = roots.filter((root) => root.placement?.kind === "absolute");
+  const first = placed[0]?.placement;
+  if (!first) return;
+  const offset =
+    "offset" in placement
+      ? placement.offset
+      : { x: placement.at.x - first.x, y: placement.at.y - first.y };
+  for (const root of placed) {
+    const current = root.placement!;
+    (root as { placement: NodePlacement }).placement = {
+      ...current,
+      x: current.x + offset.x,
+      y: current.y + offset.y,
+    };
+  }
+}
+
 export interface DuplicateNodesInput {
   ids: readonly NodeId[];
   newId: NewId;
+  placement?: CopyPlacement;
   label?: string;
 }
 /** Duplicate each top-level node right after itself, with its owned records. */
@@ -296,6 +329,12 @@ export const duplicateNodes =
   (reader) => {
     const draft = new CommandDraft(reader);
     const copies: NodeId[] = [];
+    const roots: NodeEntry[] = [];
+    const clones: {
+      clone: ReturnType<typeof cloneNodeSubgraph>;
+      parent: NodeParent;
+      index: number;
+    }[] = [];
     for (const id of topLevel(reader, input.ids)) {
       const { parent, index } = locate(draft, id);
       const clone = cloneNodeSubgraph(
@@ -307,6 +346,11 @@ export const duplicateNodes =
         () => input.newId("node"),
         relatedId(input.newId),
       );
+      clones.push({ clone, parent, index });
+      roots.push(clone.entries.find((entry) => entry.id === clone.rootId)!);
+    }
+    placeCopies(roots, input.placement);
+    for (const { clone, parent, index } of clones) {
       for (const entry of clone.entries) draft.create(entry);
       addRelated(draft, clone.relatedEntries);
       placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
@@ -356,6 +400,7 @@ export interface PasteNodesInput {
   parent: NodeParent;
   index?: number;
   newId: NewId;
+  placement?: CopyPlacement;
   label?: string;
 }
 /** Paste a clipboard with new IDs (the source may be gone or in another project). */
@@ -389,6 +434,10 @@ export const pasteNodes =
       related.push(...clone.relatedEntries);
       rootIds.push(clone.rootId);
     }
+    placeCopies(
+      rootIds.map((id) => entries.find((entry) => entry.id === id)!),
+      input.placement,
+    );
     return insertNodes({
       parent: input.parent,
       index: input.index,
