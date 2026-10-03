@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Pages 트리에서 page 선택 시 카메라 부드러운 이동 복원 — ADR-248 Phase 4e 후속] - 2026-10-03
+
+### Fixed
+
+- **Navigator Pages 트리에서 page 를 고르면 카메라가 그 page 로 한 번에 건너뛰던 것.** 구 앱은 현재 배율 그대로 page frame 을 화면 가운데로 300 ms ease-out 으로 옮겼는데, Phase 4e 전환 때 목표 위치 계산만 옮기고 애니메이션이 빠졌다. 애니메이션을 복원했다 — "programmatic" viewport session 으로 돌아 wheel · drag 를 시작하면 그 자리에서 멈춘다. 위치: `apps/builder/src/builder/workspace/canvas/viewport/animatePan.ts`. live (dev, 새 프로젝트 2 page): 수정 전 y −697 → 86 한 프레임, 수정 후 34 프레임에 걸쳐 감속 이동.
+
 ## [Catch-up 2026-09-30 ~ 2026-10-03] - 2026-10-03
 
 ADR-248 Phase 4 (4a~~4e) — Builder 를 통합 catalog 문서 모델로 전환. 4a~~4d 는 제품에 연결하지 않은 새 runtime 보강이고, 사용자-가시 변경은 4e 병합 하나에 모인다. 근거: [ADR-248](adr/248-unified-catalog-document.md) · [breakdown §5.1](adr/design/248-unified-catalog-document-breakdown.md) · [G5 근거](adr/design/248-phase4-g5-evidence.md).

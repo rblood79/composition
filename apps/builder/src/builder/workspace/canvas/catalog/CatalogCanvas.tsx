@@ -50,6 +50,7 @@ import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
+import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
@@ -746,16 +747,16 @@ export function CatalogCanvas({
       publishHeaders();
     });
 
-    // Pages tree select: center that page frame at the current zoom (the old `panToPage`).
+    // Pages tree select: glide that page frame to the center at the current zoom (the old
+    // `panToPage` — 300 ms ease-out; a wheel or drag stops it where it is).
     const unsubscribeReveal = workspace.subscribeReveal((pageId) => {
       const frame = workspace.root.pageFrameRects().get(pageId);
       if (!frame) return;
       const { width, height } = containerEl.getBoundingClientRect();
       const zoom = Math.max(viewportState.zoom, 0.001);
-      getViewportController().setPosition(
+      animatePanTo(
         width / 2 - (frame.x + frame.width / 2) * zoom,
         height / 2 - (frame.y + frame.height / 2) * zoom,
-        zoom,
       );
     });
 
@@ -1171,6 +1172,7 @@ export function CatalogCanvas({
       window.removeEventListener("pagehide", camera.flush);
       camera.flush();
       unsubscribeReveal();
+      cancelPanAnimation();
       setEditingElementId(null);
       sceneRef.current = undefined;
       unsubscribeSession();
