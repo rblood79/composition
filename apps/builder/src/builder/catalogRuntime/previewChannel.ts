@@ -1,4 +1,5 @@
 import type {
+  BreakpointName,
   CatalogEntry,
   EntryId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -30,8 +31,9 @@ export class CatalogPreviewChannel {
   private sentRevision: number | null = null;
   private sentProject: EntryId<"project"> | null = null;
   private readonly pendingIds = new Set<string>();
-  /** The editor's page, sent after each snapshot and when it changes. */
+  /** The editor's page and breakpoint, sent after each snapshot and when they change. */
   private pageId: EntryId<"page"> | undefined;
+  private breakpoint: BreakpointName = "desktop";
   private flushScheduled = false;
   private unsubscribe: () => void;
   private readonly schedule: (flush: () => void) => void;
@@ -79,10 +81,19 @@ export class CatalogPreviewChannel {
     if (this.ready) this.sendSnapshot();
   }
 
-  /** The editor shows another page: the Preview follows (after its current document). */
-  setPage(pageId: EntryId<"page"> | undefined): void {
-    if (pageId === this.pageId) return;
+  /**
+   * The editor shows another page or breakpoint: the Preview follows (after its current
+   * document). The old compare-mode iframe took the breakpoint's width and the old Preview applied
+   * the responsive overrides through `@media`; the catalog Preview resolves the layers at the
+   * editor's breakpoint instead.
+   */
+  setView(
+    pageId: EntryId<"page"> | undefined,
+    breakpoint: BreakpointName = "desktop",
+  ): void {
+    if (pageId === this.pageId && breakpoint === this.breakpoint) return;
     this.pageId = pageId;
+    this.breakpoint = breakpoint;
     if (this.ready && this.sentRevision !== null) this.sendView();
   }
 
@@ -92,6 +103,7 @@ export class CatalogPreviewChannel {
       type: "CATALOG_VIEW",
       version: CATALOG_PREVIEW_PAYLOAD_VERSION,
       pageId: this.pageId,
+      breakpoint: this.breakpoint,
     });
   }
 

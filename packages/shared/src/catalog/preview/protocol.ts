@@ -1,4 +1,9 @@
-import type { CatalogDocument, CatalogEntry, EntryId } from "../document/types";
+import type {
+  BreakpointName,
+  CatalogDocument,
+  CatalogEntry,
+  EntryId,
+} from "../document/types";
 
 /**
  * ADR-248 §4.3 Builder ↔ Preview catalog payload. The Builder sends one snapshot when the Preview
@@ -98,6 +103,8 @@ export interface CatalogPreviewViewMessage {
   readonly type: "CATALOG_VIEW";
   readonly version: typeof CATALOG_PREVIEW_PAYLOAD_VERSION;
   readonly pageId: EntryId<"page">;
+  /** The editor's breakpoint: the Preview resolves the document's tablet/mobile layers at it. */
+  readonly breakpoint?: BreakpointName;
 }
 
 export function parseCatalogPreviewView(
@@ -107,7 +114,11 @@ export function parseCatalogPreviewView(
     value.type === "CATALOG_VIEW" &&
     value.version === CATALOG_PREVIEW_PAYLOAD_VERSION &&
     typeof value.pageId === "string" &&
-    value.pageId.startsWith("project:page:")
+    value.pageId.startsWith("project:page:") &&
+    (value.breakpoint === undefined ||
+      value.breakpoint === "desktop" ||
+      value.breakpoint === "tablet" ||
+      value.breakpoint === "mobile")
     ? (value as unknown as CatalogPreviewViewMessage)
     : null;
 }

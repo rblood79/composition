@@ -1,5 +1,6 @@
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
+  BreakpointName,
   CatalogLibrary,
   EntryId,
 } from "../../../../../packages/shared/src/catalog/document/types";
@@ -63,6 +64,8 @@ export class CatalogPreviewSession {
   private currentRoot: CatalogCompositionRoot | undefined;
   private themeKey: string | undefined;
   private colorMode: "light" | "dark" | undefined;
+  /** The editor's breakpoint (`CATALOG_VIEW`): the root resolves the responsive layers at it. */
+  private breakpoint: BreakpointName = "desktop";
   private shownPage: EntryId<"page"> | undefined;
   /** The Builder's collections: bound collections draw their rows from them. */
   private collections: readonly CollectionDataSource[] = [];
@@ -116,6 +119,14 @@ export class CatalogPreviewSession {
   receive(value: unknown): CatalogPreviewReceipt {
     const view = parseCatalogPreviewView(value);
     if (view) {
+      const breakpoint = view.breakpoint ?? "desktop";
+      if (breakpoint !== this.breakpoint) {
+        this.breakpoint = breakpoint;
+        if (this.runtime) {
+          this.currentRoot = this.createRoot();
+          this.changed();
+        }
+      }
       this.navigate(view.pageId);
       return { kind: "ignored" };
     }
@@ -277,6 +288,7 @@ export class CatalogPreviewSession {
       this.options.locale,
       {
         ...this.options.root,
+        breakpoint: this.breakpoint,
         rows: (binding, kind) =>
           catalogBoundRows(binding, this.collections, kind),
         state: {

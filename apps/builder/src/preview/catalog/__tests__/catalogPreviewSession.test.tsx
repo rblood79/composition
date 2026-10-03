@@ -131,7 +131,7 @@ async function open() {
 describe("ADR-248 4e-6 Preview entry", () => {
   it("the replica draws the editor's page and follows its steps; the page follows the editor until the Preview navigates", async () => {
     const { workspace, session, channel, flush, views, textIn } = await open();
-    channel.setPage(HOME);
+    channel.setView(HOME);
     expect(session.root).toBeUndefined();
     expect(views).toEqual([]);
     channel.onReady();
@@ -172,7 +172,7 @@ describe("ADR-248 4e-6 Preview entry", () => {
     };
     workspace.execute(createPage({ page, entries: [body] }));
     flush();
-    channel.setPage(ABOUT);
+    channel.setView(ABOUT);
     expect(session.pageId).toBe(ABOUT);
     expect(session.pageRecord).toBe(
       workspace.root.recordsOfSource(ABOUT_BODY)[0],
@@ -187,10 +187,10 @@ describe("ADR-248 4e-6 Preview entry", () => {
     );
     flush();
     expect(session.pageId).toBe(HOME);
-    channel.setPage(ABOUT);
+    channel.setView(ABOUT);
     expect(session.pageId).toBe(HOME);
-    channel.setPage(HOME);
-    channel.setPage(ABOUT);
+    channel.setView(HOME);
+    channel.setView(ABOUT);
     expect(session.pageId).toBe(ABOUT);
   });
 
@@ -805,5 +805,45 @@ describe("ADR-248 4e-6 Preview entry", () => {
     expect(text()).toContain("late=yes");
     runtime.dispose();
     view.unmount();
+  });
+
+  // The old compare-mode Preview took the breakpoint's width and applied the responsive overrides
+  // through `@media`; the catalog Preview resolves the layers at the editor's breakpoint (view).
+  it("follows the editor's breakpoint: the tablet layer shows only at tablet", async () => {
+    const { workspace, session, channel, flush, views } = await open();
+    channel.setView(HOME);
+    channel.onReady();
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: TEXT }],
+        breakpoint: "tablet",
+        visual: { fontSize: { kind: "set", value: 40 } },
+      }),
+    );
+    flush();
+    const fontSize = () =>
+      session.root!.domInputs.get(session.root!.recordsOfSource(TEXT)[0]!)
+        ?.visual.fontSize;
+    const atDesktop = fontSize();
+    expect(atDesktop).not.toBe(40);
+    const version = session.getVersion();
+    channel.setView(HOME, "tablet");
+    expect(views.at(-1)).toMatchObject({ pageId: HOME, breakpoint: "tablet" });
+    expect(session.getVersion()).toBeGreaterThan(version);
+    expect(fontSize()).toBe(40);
+    // A later step at tablet still applies to the tablet root.
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: TEXT }],
+        props: { children: { kind: "set", value: "Tablet" } },
+      }),
+    );
+    flush();
+    expect(
+      session.root!.domInputs.get(session.root!.recordsOfSource(TEXT)[0]!)
+        ?.props.children,
+    ).toBe("Tablet");
+    channel.setView(HOME, "desktop");
+    expect(fontSize()).toBe(atDesktop);
   });
 });

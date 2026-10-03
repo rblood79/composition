@@ -463,6 +463,21 @@
   border: none;
 }
 
+/* catalog Preview 의 breakpoint 상자 (옛 `.workSpace > .canvas` 와 같은 규칙): tablet 768 ·
+   mobile 390 은 가운데 두고 pane 이 더 작으면 스크롤, desktop 은 pane 을 채운다. */
+.workspace-compare-content:has(> .catalog-preview-frame) {
+  display: flex;
+  overflow: auto;
+}
+.catalog-preview-frame {
+  flex: 0 0 auto;
+  height: 100%;
+  margin: auto;
+}
+.catalog-preview-frame:not([data-breakpoint="desktop"]) {
+  outline: 1px solid var(--border);
+}
+
 /* Builder Canvas 컨테이너 조정 */
 .workspace-compare-content .builder-canvas-container {
   width: 100%;

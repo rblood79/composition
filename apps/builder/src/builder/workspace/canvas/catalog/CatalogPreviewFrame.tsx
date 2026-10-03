@@ -1,5 +1,7 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
+import { useCatalogSession } from "../../../catalogRuntime/react";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
 import { PanelSplitter } from "../../../layout/PanelSplitter";
 import { useWorkspaceCompareSplit } from "../../hooks/useWorkspaceCompareSplit";
 import { useOptionalI18n } from "../../../../i18n";
@@ -42,10 +44,12 @@ export function CatalogPreviewFrame({
         frameRef.current?.contentWindow?.postMessage(message, origin),
       schedule: (flush) => requestAnimationFrame(flush),
     });
-    const followPage = () =>
-      channel.setPage(workspace.session.getSnapshot().pageId);
-    followPage();
-    const offSession = workspace.session.subscribe(followPage);
+    const followView = () => {
+      const { pageId, breakpoint } = workspace.session.getSnapshot();
+      channel.setView(pageId, breakpoint);
+    };
+    followView();
+    const offSession = workspace.session.subscribe(followView);
     let ready = false;
     const sendData = () =>
       frameRef.current?.contentWindow?.postMessage(
@@ -87,13 +91,26 @@ export function CatalogPreviewFrame({
       workspace.detachPreview();
     };
   }, [workspace]);
+  // The old compare-mode iframe took the breakpoint's frame width (tablet 768 · mobile 390); the
+  // desktop Preview fills the pane as before.
+  const breakpoint = useCatalogSession((state) => state.breakpoint);
+  const width =
+    breakpoint === "desktop"
+      ? "100%"
+      : `${CANVAS_VIEWPORT[breakpoint].width}px`;
   return (
-    <iframe
-      ref={frameRef}
-      id="previewFrame"
-      src="/preview.html?catalog=1"
-      title="composition Preview"
-    />
+    <div
+      className="catalog-preview-frame"
+      data-breakpoint={breakpoint}
+      style={{ width }}
+    >
+      <iframe
+        ref={frameRef}
+        id="previewFrame"
+        src="/preview.html?catalog=1"
+        title="composition Preview"
+      />
+    </div>
   );
 }
 
