@@ -1,0 +1,1 @@
+var e=[`backgroundColor`,`backgroundImage`,`backgroundSize`];function t(t){return e.includes(t)}function n(e,n){return n?Object.fromEntries(Object.entries(e).filter(([e])=>!t(e))):e}export{t as n,n as r,e as t};
