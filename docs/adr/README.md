@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-03 ADR-251 Accepted + 구현 · main 병합**: RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems — 사용자 `/create-adr RadioItems 노드 복원 (a)로 진행` · `/execute-adr 251`). 두 축 (`labelPosition` · `orientation`) 이 각자의 노드를 갖는다 — 그룹 Direction = label 위치, 묶음 Direction = 항목 방향. `LIBRARY_CONTRACT_VERSION` 2 (기존 개발용 프로젝트 거부, 변환 없음). G0 ~ G4 · live 12/12 통과, Preview 사용자 확인 뒤 Implemented. 열림 8 (Proposed 5 · Accepted 3), 합계 278.
+>
 > **2026-10-03 ADR-250 Accepted + Phase 0 · 1 구현** (사용자 「B 로 진행해」): Preview 의 Tree · Disclosure · DisclosureGroup 펼침은 Preview 실행 값 (문서 쓰기 0 · 규칙 capability 와 같은 값), Builder 선언 변경은 Preview 가 따름. unit 5 (원복 RED 4) · parity 14/14. G3 사용자 확인 대기. 열림 7 (Proposed 5 · Accepted 2).
 >
 > **2026-10-03 ADR-250 Proposed**: Preview 의 펼침 조작 (Disclosure `isExpanded` · Tree `expandedKeys`) 을 문서에 다시 쓸지 — ADR-248 후속 점검에서 분리 (사용자 「별도로 열어」). 실측: Disclosure 는 Preview 안에서만 접혀 Compare Mode 발산 재현 · Tree 는 제어 `expandedKeys` 에 변경 처리기가 없어 Preview 에서 펼침 자체가 안 됨. 대안 B 권고 — Preview 실행 상태로 두고 Canvas 는 선언값 (07-20 「Skia 는 정의하는 빌더」 원칙 · 쓰기는 Builder 하나), Tree 펼침 복원. A (구 앱 역기록) · C (Builder 세션 표시 상태) 기각 사유 기록. 사용자 판정: Compare Mode 에서 Preview 조작이 Canvas 에 남아야 하는가. 스키마 변경 0. 열림 7 (Proposed 6 · Accepted 1), 합계 277.
@@ -149,11 +151,11 @@
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
 | ├ Proposed                    |       5 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       3 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **277** |
+| **합계**                      | **278** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -177,6 +179,12 @@
 
 - **상태**: Accepted — 2026-10-03 (사용자 「B 로 진행해」) · Phase 0 · 1 구현 (G0 · G1 · G2 PASS) · G3 사용자 확인 대기
 - **규모**: 대안 B 채택 — Preview 안의 Disclosure · Tree 펼침은 Preview 세션 상태 (문서 쓰기 0 · Builder 메시지 0), Canvas 는 선언값 (`isExpanded` · `expandedKeys`). Preview Tree 펼침 복원 (현재 제어 `expandedKeys` 에 변경 처리기 없음). 스키마 변경 0 · `apps/publish` 0. DisclosureGroup 이 자식 선언 변경을 따르지 않던 것 · 규칙 Tree `expand` 무시도 같이 수리. breakdown: [design/250](design/250-preview-expansion-runtime-state-breakdown.md)
+
+#### [251](251-radio-checkbox-items-node-restore.md) — RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems)
+
+- **상태**: Accepted — 2026-10-03 (사용자 `/execute-adr 251`, 리뷰 round 2 이슈 0) · P0 ~ P5 구현 · G0 ~ G4 통과 · live 12/12 · main 병합 — Implemented 는 Preview 사용자 확인 뒤
+- **규모**: 대안 A — `component-radiogroup` · `component-checkboxgroup` template 을 `Label + Items > 항목` 으로 (TagGroup > TagList 동형). 묶음의 방향 · gap 은 부모 rule 의 기존 블록이 정본이고 partRule 로 전달, Canvas 합성 part (`catalogItemsWrapper`) 삭제, DOM 은 그룹이 묶음을 흡수하고 shared 컴포넌트의 `div.radio-items` 1개 (생성 CSS diff 0), Styles Direction 은 묶음 선택 시 owner `orientation`. `LIBRARY_CONTRACT_VERSION` 2 (contract 1 문서 거부 · 변환 없음). `apps/publish` 0. Gate G0 (직계 자식 가정 인벤토리) ~ G4. breakdown: [design/251](design/251-radio-checkbox-items-node-restore-breakdown.md)
+- **선후**: ADR-248 의 응용 · Design 패널 통합 ADR (미작성) 의 선행
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
