@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview 의 펼침 조작은 Preview 실행 상태 (Tree 펼침 복원) — ADR-250 Accepted · Phase 0 · 1] - 2026-10-03
+
+### Fixed
+
+- **Compare Mode 의 Preview 에서 Tree 항목이 펼쳐지지 않던 것.** 펼침 값을 문서 값에 묶어 두고 변경 처리기를 두지 않아 chevron 을 눌러도 아무것도 바뀌지 않았다. 이제 Preview 안에서 펼치고 접힌다.
+- **DisclosureGroup 안 Disclosure 가 Properties 의 Expanded 변경을 Preview 에 반영하지 않던 것.** 그룹이 자식의 변경에 다시 그려지지 않았다.
+- **인터랙션 규칙의 Tree 「펼치기」 가 Preview 에서 동작하지 않던 것.** 규칙이 넘기는 항목 key 하나를 Tree 가 읽지 못했다.
+
+### Changed
+
+- **Preview 에서 펼치고 접은 상태는 문서에 남지 않는다** (사용자 판정 2026-10-03, ADR-250 대안 B). 구 앱은 Preview 클릭을 문서에 다시 써 undo 기록 · 저장이 생겼는데, 새 Preview 는 그 값을 Preview 실행 상태로 둔다 — 인터랙션 규칙의 펼치기 · 접기와 같은 값이다. Canvas 는 문서에 선언된 값을 그리며, 문서에 남기려면 Properties 의 「Expanded」 를 쓴다. Builder 가 선언값을 바꾸면 Preview 가 그 값으로 돌아간다. 위치: `apps/builder/src/preview/catalog/catalogPreviewInteractions.ts` (`setRuntimeProps`) · `apps/builder/src/builder/catalogRuntime/delegatedDom.tsx` (Tree · Disclosure · DisclosureGroup).
+
 ## [구 앱 대비 누락 동작 복원 (Pages 카메라 이동 · Border companion · Preview breakpoint · 복제 오프셋 · 거부 안내 · padding 연결 · 텍스트 줄바꿈 · 선택 상자 끌기 · 시스템 clipboard · 커스텀 폰트 · DPI · Layers drag 라벨 · Tab 순환 · Preview 라우팅 · Preview 클릭 선택 · Preview FileUpload endpoint) — ADR-248 Phase 4e 후속] - 2026-10-03
 
 ### Fixed

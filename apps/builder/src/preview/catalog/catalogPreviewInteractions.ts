@@ -157,6 +157,11 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
   /** Record → its rules' signature (which rules, which triggers): a change re-renders it. */
   private signatures = new Map<string, string>();
   private readonly propOverrides = new Map<string, Record<string, unknown>>();
+  /**
+   * Each runtime prop's declared value when it was written (JSON): a Builder change of that
+   * declaration drops the runtime value, so the Preview follows the new declaration (ADR-250 R2).
+   */
+  private readonly declaredAt = new Map<string, Record<string, string>>();
   private readonly revisions = new Map<string, number>();
   private readonly listeners = new Map<string, Set<() => void>>();
   private readonly deps: DispatchDeps;
@@ -174,7 +179,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         } catch {
           type = "";
         }
-        const override = this.propOverrides.get(id);
+        const override = this.overrideOf(id);
         return {
           type,
           props: {
@@ -183,13 +188,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
           },
         };
       },
-      updateElementProps: (id, patch) => {
-        this.propOverrides.set(
-          id,
-          mergePatch(this.propOverrides.get(id), patch),
-        );
-        this.touch(id);
-      },
+      updateElementProps: (id, patch) => this.setRuntimeProps(id, patch),
       navigate: (path) => {
         // By route, with `:param` routes and the 404 fallback (the session's router) when the
         // host has one; else the exact route only.
@@ -265,8 +264,38 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       },
     );
   }
+  /**
+   * A record's runtime props: a capability's patch and the component's own state (a Disclosure or
+   * Tree expanded by the user) — one value per prop, never the document (ADR-250).
+   */
+  setRuntimeProps(id: string, patch: Readonly<Record<string, unknown>>): void {
+    const props = this.options.root()?.domInputs.get(id)?.props as
+      | Readonly<Record<string, unknown>>
+      | undefined;
+    const declared = { ...this.declaredAt.get(id) };
+    for (const key of Object.keys(patch)) declared[key] = declaredKey(props?.[key]);
+    this.declaredAt.set(id, declared);
+    this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
+    this.touch(id);
+  }
+  /** The record's runtime props still standing over their declarations. */
   overrideOf(id: string) {
-    return this.propOverrides.get(id);
+    const override = this.propOverrides.get(id);
+    if (!override) return undefined;
+    const props = this.options.root()?.domInputs.get(id)?.props as
+      | Readonly<Record<string, unknown>>
+      | undefined;
+    const declared = this.declaredAt.get(id) ?? {};
+    let current: Record<string, unknown> | undefined;
+    for (const key of Object.keys(override)) {
+      if (key === "style" || declared[key] === declaredKey(props?.[key])) continue;
+      current ??= { ...override };
+      delete current[key];
+    }
+    if (!current) return override;
+    if (Object.keys(current).length) this.propOverrides.set(id, current);
+    else this.propOverrides.delete(id);
+    return Object.keys(current).length ? current : undefined;
   }
   subscribe(id: string, notify: () => void) {
     let set = this.listeners.get(id);
@@ -276,6 +305,11 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       set.delete(notify);
     };
   }
+}
+
+/** A declared prop value as a comparable key (absent = its own key). */
+function declaredKey(value: unknown): string {
+  return value === undefined ? "\u0000absent" : JSON.stringify(value);
 }
 
 function warn(rule: InteractionRule, reason: string): void {

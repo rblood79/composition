@@ -85,9 +85,23 @@ export interface DelegatedDomInput {
   readonly renderChild: (id: string) => ReactElement;
   /** Current date/time source for date fields (deterministic in tests). */
   readonly today?: () => unknown;
+  /**
+   * A running Preview's runtime props (ADR-250): the component's own state (expansion) goes here
+   * and comes back as the node's props; absent = a static render of the declared state.
+   */
+  readonly setRuntimeProps?: (
+    recordId: string,
+    patch: Readonly<Record<string, unknown>>,
+  ) => void;
+  /** A record's runtime props (another record's — a group reads its children's). */
+  readonly runtimeProps?: (
+    recordId: string,
+  ) => Readonly<Record<string, unknown>> | undefined;
 }
 export interface DelegatedDomBinding {
   render(input: DelegatedDomInput): ReactElement;
+  /** Renders from its children's values: it renders again when a child changes. */
+  watchesChildren?: boolean;
   ownsChild?(
     child: CatalogConsumerNode,
     parent: CatalogConsumerNode,
@@ -200,6 +214,15 @@ const renderAll = (input: DelegatedDomInput, list = children(input)) =>
  * RAC TreeItems of resolved TreeItem records (shared `TreeItem`: title/childItems); their other
  * children render as the item's content.
  */
+/**
+ * A Tree's expansion keys: the declared list, or one key (an interaction's `expand` capability
+ * carries the item key it names).
+ */
+function treeKeys(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  return typeof value === "string" && value ? [value] : [];
+}
+
 function treeItemElements(
   input: DelegatedDomInput,
   list: readonly CatalogConsumerNode[],
@@ -525,7 +548,17 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode ?? "single",
           disallowEmptySelection: bool(props.disallowEmptySelection),
           selectionBehavior: props.selectionBehavior || "replace",
-          expandedKeys: Array.isArray(props.expandedKeys) ? props.expandedKeys : [],
+          expandedKeys: treeKeys(props.expandedKeys),
+          // In the Preview the user's expansion is a runtime prop of the record (ADR-250); the
+          // declared keys stay in the document.
+          ...(input.setRuntimeProps
+            ? {
+                onExpandedChange: (keys: Iterable<unknown>) =>
+                  input.setRuntimeProps!(input.node.id, {
+                    expandedKeys: [...keys].map(String),
+                  }),
+              }
+            : {}),
           defaultExpandedKeys: Array.isArray(props.defaultExpandedKeys)
             ? props.defaultExpandedKeys
             : [],
@@ -1328,17 +1361,29 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const inGroup =
         !!parent && catalogTypeName(input.root, parent) === "DisclosureGroup";
       const expanded = Boolean(props.isExpanded ?? true);
+      // In the Preview the user's expansion is a runtime prop of the record (ADR-250); a static
+      // render shows the declared state.
+      const runtime = !inGroup ? input.setRuntimeProps : undefined;
       return createElement(
         Disclosure as ElementType,
         {
           ...marker(input),
-          key: inGroup ? input.node.id : `${input.node.id}:${expanded}`,
+          key:
+            inGroup || runtime ? input.node.id : `${input.node.id}:${expanded}`,
           id: input.node.id,
           style: input.style,
           title,
           size: props.size || "md",
           isDisabled: bool(props.isDisabled),
-          ...(inGroup ? {} : { defaultExpanded: expanded }),
+          ...(inGroup
+            ? {}
+            : runtime
+              ? {
+                  isExpanded: expanded,
+                  onExpandedChange: (next: boolean) =>
+                    runtime(input.node.id, { isExpanded: next }),
+                }
+              : { defaultExpanded: expanded }),
         },
         ...renderAll(
           input,
@@ -1353,6 +1398,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   },
   disclosuregroup: {
+    // Its expansion is its Disclosures' `isExpanded` (declared, or the Preview's runtime value).
+    watchesChildren: true,
     render: (input) => {
       const props = input.node.props;
       const list = children(input);
@@ -1361,9 +1408,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         list.map((child) => ({
           id: child.id,
           type: catalogTypeName(input.root, child),
-          props: child.props as Record<string, unknown>,
+          props: {
+            ...(child.props as Record<string, unknown>),
+            ...input.runtimeProps?.(child.id),
+          },
         })),
       );
+      const disclosures = list.filter(
+        (child) => catalogTypeName(input.root, child) === "Disclosure",
+      );
+      const keys = disclosures
+        .filter((child) => expanded.has(child.id))
+        .map((child) => child.id);
+      // In the Preview the user's expansion is each Disclosure's runtime `isExpanded` (ADR-250); a
+      // static render shows the declared state.
+      const setRuntime = input.setRuntimeProps;
       const multiple = allowsMultipleExpanded(props as Record<string, unknown>);
       return createElement(
         DisclosureGroup as ElementType,
@@ -1375,13 +1434,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-size": str(props.size || "md"),
           allowsMultipleExpanded: multiple,
           isDisabled: bool(props.isDisabled),
-          defaultExpandedKeys: list
-            .filter(
-              (child) =>
-                catalogTypeName(input.root, child) === "Disclosure" &&
-                expanded.has(child.id),
-            )
-            .map((child) => child.id),
+          ...(setRuntime
+            ? {
+                expandedKeys: keys,
+                onExpandedChange: (next: Set<unknown>) => {
+                  for (const child of disclosures)
+                    if (next.has(child.id) !== expanded.has(child.id))
+                      setRuntime(child.id, { isExpanded: next.has(child.id) });
+                },
+              }
+            : { defaultExpandedKeys: keys }),
         },
         ...renderAll(input, list),
       );

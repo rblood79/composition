@@ -11,6 +11,10 @@
 
 ---
 
+> **2026-10-03 ADR-250 Accepted + Phase 0 · 1 구현** (사용자 「B 로 진행해」): Preview 의 Tree · Disclosure · DisclosureGroup 펼침은 Preview 실행 값 (문서 쓰기 0 · 규칙 capability 와 같은 값), Builder 선언 변경은 Preview 가 따름. unit 5 (원복 RED 4) · parity 14/14. G3 사용자 확인 대기. 열림 7 (Proposed 5 · Accepted 2).
+>
+> **2026-10-03 ADR-250 Proposed**: Preview 의 펼침 조작 (Disclosure `isExpanded` · Tree `expandedKeys`) 을 문서에 다시 쓸지 — ADR-248 후속 점검에서 분리 (사용자 「별도로 열어」). 실측: Disclosure 는 Preview 안에서만 접혀 Compare Mode 발산 재현 · Tree 는 제어 `expandedKeys` 에 변경 처리기가 없어 Preview 에서 펼침 자체가 안 됨. 대안 B 권고 — Preview 실행 상태로 두고 Canvas 는 선언값 (07-20 「Skia 는 정의하는 빌더」 원칙 · 쓰기는 Builder 하나), Tree 펼침 복원. A (구 앱 역기록) · C (Builder 세션 표시 상태) 기각 사유 기록. 사용자 판정: Compare Mode 에서 Preview 조작이 Canvas 에 남아야 하는가. 스키마 변경 0. 열림 7 (Proposed 6 · Accepted 1), 합계 277.
+
 > **2026-09-28 ADR-243 Implemented — 측정 기록으로 종결 (분기 ②)**: 사용자 `/execute-adr 243` → 기준 확정 (4x · 600 p95 > 100 ms / 5k > 200 ms · G2 ratio ≤ 0.8) → Phase 0 production · headed · 실제 입력 하니스 (`adr243-interaction.mjs`, Chrome 4x/1x · WebKit, 600/5k, Event Timing + LoAF 귀속). 기준 초과 (4x · 5k props/style commit p95 872 / 896 · undo 864 · page-switch 664 ms) 이나 long task 92 ~ 94% 가 입력 이벤트 task (러너 · React 동기 커밋 — 캔버스 scene/layout 재구성) · rAF 5 ~ 8% 이고 다음 paint 에 불필요한 작업은 1 ~ 3% → 분할 Phase 1 ~ 3 skip, 작업 감소 후속 ADR 없음 (사용자 결정 "측정 기록으로 종결"). 측정은 사용자 지시로 일부 중단. 남긴 것: 저장 호출 추적 `persistState()` (동작 변경 0). 열림 −1, 완료 +1.
 >
 > **2026-09-27 ADR-247 Implemented (Phase 0 ~ 3 / G0 ~ G3, 같은 날)**: 사용자 `/execute-adr 247` → G3 사용자 confirm "확인했어" · HC5 +267 B 수용. 빌더 URL 직접 진입에 `index.html` 인라인 셸 (앱과 같은 class 로 그려 값 복제 0) — 첫 paint Chromium 4x 72 ~ 80 ms (셸 없는 빌드 496 ~ 500 ms) · 다크 흰 프레임 0/40 (대조군 23/40) · 10 Mbps 380 vs 2,244 ms. presented 순간 chrome 을 스냅샷으로 남겨 다음 진입이 같은 조건이면 헤더 섬 · 패널 · 레일 골격을 그리고 presented 프레임에 교체 — 288 진입 (Chromium · WebKit × viewport 4 × 배율 3 × 테마 2 × 배치 3) 골격 ↔ 실제 최대 0.02 px · 빈틈 · 겹침 · 부팅 layout-shift 0, 불리 케이스 3 (viewport · 빌드 · 배치) 은 최소 셸. 원복 RED (교체 늦춤 → 겹침 2 · 앞당김 → 빈틈 33). W0 · presented 는 대조군과 같음. initial JS +267 B (HC5 Δ ≤ 0 미달, ADR-201 상한 안 — 사용자 수용). 열림 6 (Proposed 6), 완료 268, 합계 274.
@@ -145,11 +149,11 @@
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
 | ├ Proposed                    |       5 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **276** |
+| **합계**                      | **277** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -168,6 +172,11 @@
 
 - **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS · Phase 3 독립 소비자 검증 완료. **2026-10-03 Phase 4 Builder 전환 완료** (worktree 누적 후 main 1회 병합): live G3 base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0, live G4 15/15, [G5 PASS](design/248-phase4-g5-evidence.md) (Preview 부팅 JS 는 사용자 판정 (a) — ADR-201 정의 정적 initial 기준), G6 구 모듈 진입 0. Status 는 Publish 후속 전환까지 Accepted.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
+
+#### [250](250-preview-expansion-runtime-state.md) — Preview 의 펼침 조작: 문서 역기록 대신 Preview 실행 상태로
+
+- **상태**: Accepted — 2026-10-03 (사용자 「B 로 진행해」) · Phase 0 · 1 구현 (G0 · G1 · G2 PASS) · G3 사용자 확인 대기
+- **규모**: 대안 B 채택 — Preview 안의 Disclosure · Tree 펼침은 Preview 세션 상태 (문서 쓰기 0 · Builder 메시지 0), Canvas 는 선언값 (`isExpanded` · `expandedKeys`). Preview Tree 펼침 복원 (현재 제어 `expandedKeys` 에 변경 처리기 없음). 스키마 변경 0 · `apps/publish` 0. DisclosureGroup 이 자식 선언 변경을 따르지 않던 것 · 규칙 Tree `expand` 무시도 같이 수리. breakdown: [design/250](design/250-preview-expansion-runtime-state-breakdown.md)
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 

@@ -11,6 +11,7 @@ import {
   createElement,
   memo,
   useCallback,
+  useRef,
   useSyncExternalStore,
   type CSSProperties,
   type ElementType,
@@ -67,6 +68,11 @@ export interface CatalogDomRuntime {
   handlersOf(id: string): Readonly<Record<string, (...args: unknown[]) => void>>;
   /** Prop patch of a record (`style` merges into its computed style). */
   overrideOf(id: string): Readonly<Record<string, unknown>> | undefined;
+  /**
+   * A component's own state change (a Disclosure or Tree expanded by the user) as a runtime prop
+   * of the record — the same values a capability writes, never the document (ADR-250).
+   */
+  setRuntimeProps?(id: string, patch: Readonly<Record<string, unknown>>): void;
   subscribe(id: string, notify: () => void): () => void;
 }
 
@@ -1069,6 +1075,13 @@ const CatalogDomNode = memo(function CatalogDomNode({
     readParent,
     readParent,
   );
+  useWatchedChildren(
+    root,
+    runtime,
+    node && CATALOG_DELEGATED_DOM[node.bindingId ?? ""]?.watchesChildren
+      ? node.children
+      : NO_CHILDREN,
+  );
   // A removed node disappears through its parent's children delta; until then it renders nothing.
   if (!node) return null;
   context.onNodeRender?.(id);
@@ -1081,6 +1094,37 @@ const CatalogDomNode = memo(function CatalogDomNode({
     runtime?.handlersOf(id),
   );
 });
+
+const NO_CHILDREN: readonly string[] = [];
+
+/**
+ * A component that renders from its children's values (a DisclosureGroup's expansion) renders
+ * again when a child's record or runtime props change.
+ */
+function useWatchedChildren(
+  root: CatalogCompositionRoot,
+  runtime: CatalogDomRuntime | undefined,
+  ids: readonly string[],
+): void {
+  const key = ids.join("\n");
+  const version = useRef(0);
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const changed = () => {
+        version.current += 1;
+        notify();
+      };
+      const offs = (key ? key.split("\n") : []).flatMap((childId) => [
+        root.subscribeDom(childId, changed),
+        ...(runtime ? [runtime.subscribe(childId, changed)] : []),
+      ]);
+      return () => offs.forEach((off) => off());
+    },
+    [root, runtime, key],
+  );
+  const read = useCallback(() => version.current, []);
+  useSyncExternalStore(subscribe, read, read);
+}
 
 /** A capability's prop patch over the record (its `style` goes over the computed style). */
 function withOverride(
@@ -1161,6 +1205,20 @@ function renderNode(
             context,
           }),
         today: context.today,
+        ...(context.runtime
+          ? {
+              runtimeProps: (recordId: string) =>
+                context.runtime!.overrideOf(recordId),
+            }
+          : {}),
+        ...(context.runtime?.setRuntimeProps
+          ? {
+              setRuntimeProps: (
+                recordId: string,
+                patch: Readonly<Record<string, unknown>>,
+              ) => context.runtime!.setRuntimeProps!(recordId, patch),
+            }
+          : {}),
       }),
     );
   const binding = bindingOf(node);
