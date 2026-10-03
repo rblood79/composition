@@ -40,9 +40,9 @@ export class CatalogCanvasScene {
     /** Which page roots are drawn (default: all — Compare Mode's current-page filter narrows it). */
     private rootFilter: (roots: string[]) => string[] = (roots) => roots,
     /**
-     * The active page's root: drawn last, so it paints on top of an overlapping page and takes
-     * the overlap's pointer (picking follows the stream order). The document order stays — page
-     * z-order is a workspace display axis (`scene/pagePaintOrder.ts`, the header DOM layer too).
+     * The active page's root: drawn last when it overlaps another page, so it paints on top and
+     * takes the overlap's pointer (picking follows the stream order). The document order stays —
+     * page z-order is a workspace display axis (`scene/pagePaintOrder.ts`, the header DOM layer).
      */
     private activeRoot: () => string | undefined = () => undefined,
   ) {
@@ -51,10 +51,31 @@ export class CatalogCanvasScene {
   }
 
   private drawnRoots(): string[] {
-    return orderPagesForPaint(
-      this.rootFilter(this.root.pageRootRecords()).map((id) => ({ id })),
-      this.activeRoot(),
-    ).map((root) => root.id);
+    const roots = this.rootFilter(this.root.pageRootRecords());
+    const active = this.activeRoot();
+    if (!active || roots.length < 2 || !roots.includes(active)) return roots;
+    // The order only shows where the active page overlaps another: elsewhere the document order
+    // stays, so switching pages on the page grid binds nothing (no picture is drawn again).
+    const boxes = this.root.getGeometry(roots);
+    const own = boxes.get(active);
+    const overlaps =
+      !!own &&
+      roots.some((id) => {
+        const other = id === active ? undefined : boxes.get(id);
+        return (
+          !!other &&
+          own.x < other.x + other.width &&
+          other.x < own.x + own.width &&
+          own.y < other.y + other.height &&
+          other.y < own.y + own.height
+        );
+      });
+    return overlaps
+      ? orderPagesForPaint(
+          roots.map((id) => ({ id })),
+          active,
+        ).map((root) => root.id)
+      : roots;
   }
 
   private bind() {
@@ -87,6 +108,16 @@ export class CatalogCanvasScene {
     return update.rebound.length || update.patchRoots.length
       ? { kind: "patched", update }
       : { kind: "unchanged" };
+  }
+
+  /**
+   * Another active page: bind again only when the drawn order changes (the active page overlaps
+   * another). No record diff — a page switch changes no record, and the scene's records stay.
+   */
+  reorder(): CatalogCanvasSceneSync {
+    return sameIds(this.drawnRoots(), this.rootIds)
+      ? { kind: "unchanged" }
+      : this.rebind("page-roots");
   }
 
   /** Page frames moved outside a step (the page grid's auto column count): bind again. */

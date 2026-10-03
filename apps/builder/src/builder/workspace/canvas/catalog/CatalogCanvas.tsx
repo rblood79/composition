@@ -599,7 +599,20 @@ export function CatalogCanvas({
       setHeaderFrames(frames);
       return moved;
     };
+    let orderStale = false;
     const syncScene = () => {
+      if (orderStale) {
+        orderStale = false;
+        try {
+          // A page switch changes no record: only the drawn order (no record diff).
+          if (!sceneStale && scene.reorder().kind !== "unchanged") {
+            renderer.invalidateContent();
+            overlayVersion += 1;
+          }
+        } catch (error) {
+          callbacks.current.onError?.(error);
+        }
+      }
       if (!sceneStale) return;
       sceneStale = false;
       try {
@@ -721,13 +734,14 @@ export function CatalogCanvas({
       publishHeaders();
       scheduler.invalidate();
     };
-    // Another active page paints on top: the scene binds its roots again in the new order.
-    let paintedActiveRoot = activePageRoot();
-    const followActivePage = () => {
-      const next = activePageRoot();
-      if (next === paintedActiveRoot) return;
-      paintedActiveRoot = next;
-      sceneStale = true;
+    // Another active page may paint on top (where pages overlap): the scene checks its roots.
+    // Only a page switch counts — a selection or hover change leaves the order alone.
+    let paintedPage = workspace.session.getSnapshot().pageId;
+    // The order is checked in the next frame, with the scene sync (one redraw for both).
+    const followActivePage = (pageId: typeof paintedPage) => {
+      if (pageId === paintedPage) return;
+      paintedPage = pageId;
+      orderStale = true;
       scheduler.invalidate();
     };
     const unsubscribeCompare =
@@ -755,17 +769,18 @@ export function CatalogCanvas({
     };
     const unsubscribeSession = workspace.session.subscribe(() => {
       followCompareFilter();
-      followActivePage();
+      const snapshot = workspace.session.getSnapshot();
+      followActivePage(snapshot.pageId);
       // Another selection closes the inline spacing input (its blur no longer applies).
       const input = spacingInputRef.current;
-      const selection = workspace.session.getSnapshot().selection;
+      const selection = snapshot.selection;
       if (
         input &&
         (selection.length !== 1 ||
           selection[0].identity !== input.item.identity)
       )
         closeSpacingInput();
-      const editing = workspace.session.getSnapshot().textEditing?.identity;
+      const editing = snapshot.textEditing?.identity;
       if (editing !== editingText) {
         editingText = editing;
         setEditingElementId(editing ?? null);

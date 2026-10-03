@@ -247,9 +247,44 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
     expect(pick()).toBe(homeRoot);
 
     active = secondRoot;
-    expect(scene.sync()).toEqual({ kind: "rebound", reason: "page-roots" });
+    // A page switch checks the order only (no record diff): the overlap rebinds in the new order.
+    expect(scene.reorder()).toEqual({ kind: "rebound", reason: "page-roots" });
     expect(scene.pageRootIds).toEqual([homeRoot, secondRoot]);
     expect(pick()).toBe(secondRoot);
+    scene.dispose();
+  });
+
+  it("keeps the document order while the active page overlaps no other: a page switch binds nothing", async () => {
+    // Order only matters where pages overlap; a grid of pages switching the active one must not
+    // rebind the scene (every node picture would be drawn again — ADR-246 page-switch counts).
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const project = graph.getEntry(graph.projectId);
+    const { command, pageId } = catalogNewPageCommand(
+      project?.kind === "project"
+        ? project.pageIds.map((id) => graph.getEntry(id) as never)
+        : [],
+      allocator(),
+    );
+    workspace.execute(command);
+    const bodyOf = (id: EntryId<"page">) => {
+      const page = graph.getEntry(id);
+      return workspace.root.recordsOfSource(
+        page?.kind === "page" ? page.children[0] : "",
+      )[0];
+    };
+    const homeRoot = bodyOf(HOME);
+    const secondRoot = bodyOf(pageId);
+    let active: string | undefined = secondRoot;
+    const scene = new CatalogCanvasScene(
+      workspace.root,
+      undefined,
+      () => active,
+    );
+    expect(scene.pageRootIds).toEqual([homeRoot, secondRoot]);
+    active = homeRoot;
+    expect(scene.reorder()).toEqual({ kind: "unchanged" });
+    expect(scene.pageRootIds).toEqual([homeRoot, secondRoot]);
     scene.dispose();
   });
 });

@@ -282,6 +282,33 @@
       "on": "2026-10-03",
       "reason": "ADR-252 Design 패널 탭 — RAC useTabPanel 이 탭 가능한 자식 없는 tabpanel 에 tabIndex=0 을 붙였다 뗌 (빈 선택 안내 ↔ 선택 본문, D1 접근성 동작 · react-aria/dist/private/tabs/useTabPanel.mjs:24)",
       "expires": "2027-04-04"
+    },
+    {
+      "path": "seeds.60.page-switch.A.v8.fn.src/builder/catalogRuntime/controller.ts#current",
+      "from": 168,
+      "to": 178,
+      "approvedBy": "user",
+      "on": "2026-10-03",
+      "reason": "겹친 페이지에서 활성 페이지를 위에 그리는 판정 (29f0424cc · 2026-08-11 규칙 복구) — 페이지 전환 1회당 활성 페이지 조회 1 + 엔진 상자 읽기 2",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.page-switch.A.v8.fn.src/builder/workspace/canvas/wasm-bindings/engine-pkg/engine_bg.js#getDataViewMemory0",
+      "from": 160,
+      "to": 180,
+      "approvedBy": "user",
+      "on": "2026-10-03",
+      "reason": "겹친 페이지에서 활성 페이지를 위에 그리는 판정 (29f0424cc · 2026-08-11 규칙 복구) — 페이지 전환 1회당 활성 페이지 조회 1 + 엔진 상자 읽기 2",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.page-switch.A.v8.fn.src/catalog/document/graph.ts#getEntry",
+      "from": 695,
+      "to": 705,
+      "approvedBy": "user",
+      "on": "2026-10-03",
+      "reason": "겹친 페이지에서 활성 페이지를 위에 그리는 판정 (29f0424cc · 2026-08-11 규칙 복구) — 페이지 전환 1회당 활성 페이지 조회 1 + 엔진 상자 읽기 2",
+      "expires": "2027-04-05"
     }
   ]
 }
