@@ -174,7 +174,15 @@ test("flattenCounts — v8 상위 함수는 file#fn 키, 합계·게이지는 �
       total: 1e6,
       app: 500,
       deps: 10,
-      topApp: [{ fn: "f", file: "src/a.ts", n: 40 }],
+      topApp: [
+        { fn: "f", file: "src/a.ts", n: 40 },
+        // The profiler's per-frame rAF tick counts frames, not work — left out.
+        {
+          fn: "(anonymous)",
+          file: "src/builder/workspace/canvas/utils/gpuProfilerCore.ts",
+          n: 1442,
+        },
+      ],
     },
   });
   assert.deepEqual(flat, {

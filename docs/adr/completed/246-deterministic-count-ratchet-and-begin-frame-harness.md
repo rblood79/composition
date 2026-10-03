@@ -4,6 +4,8 @@
 
 Implemented — 2026-09-27 (Phase 0 · 1 · 2 · 4 / G0 · G1 · G2 · G4 · `ba7fb9828` · `cfa012e55` · `15ae18924` + 승격) · **Phase 3 (begin-frame) Deferred** — CDP `enableBeginFrameControl` macOS 미지원 · Docker 없음, 사용자 결정 4 기본안 (재개 조건 = Linux 실행 환경, README 보류 항목) · G2: select `selectCanonicalNode` id 인덱스 — `findNodeByIdInSubtree` 62,910 → 0 · 원복 RED · taskMs 방향만 · G4: 설치된 hook 으로 실제 push 차단 1회 (92초) · 스코프 밖 push 통과 (3초) — 결과 breakdown §8. Phase 1 실행 중 개정 2 (dirty 워킹트리 차단 → push 대상 sha worktree 측정 · dev define → dev endpoint `/__composition_dev_root`) · Phase 2 중 게이트 수리 1 (상위 20 밖 `v8.fn.*` 키를 0 으로 읽던 판정). Accepted — 2026-09-27 (사용자 `/execute-adr 246` — round 2 수리 뒤 판독 종결, `reviews/246.md` pending 0). Proposed — 2026-09-27 (사용자 `/create-adr 2단계 ratchet 게이트 + 120Hz begin-frame`. 출처: claude.dev "How we made claude.ai faster" 의 측정 원칙 1단계 적용 — [BUILDER_PERF_BASELINE_2026-09.md §8](../../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 2026-09-27)
 
+> **2026-10-03 판정 제외 1건 (사용자 결정 「빼는 방법으로」)**: `v8.fn.src/builder/workspace/canvas/utils/gpuProfilerCore.ts#(anonymous)` 는 GPU 프로파일러의 rAF `tick` 이라 호출 수 = 측정 구간의 프레임 수다 (시간, 일이 아님). 같은 커밋 5회에서 edit 995 ~ 1442 로 흔들려 push 때 「측정 불가」 를 냈다 (`db76cc301` · 대조 `4d1093d82` 도 같음). `EXCLUDED` 에 추가하고 (v8 상위 함수 키에도 적용) `ratchet.json` 의 한도 2개 (seed 60 edit · page-switch) 를 지웠다. `perf-ratchet-gate.test.mjs` flattenCounts 행이 고정 (판정 스크립트 원복 시 RED).
+
 ## Context
 
 ### 문제

@@ -45,6 +45,9 @@ const EXCLUDED = [
   /^v8\.topApp/,
   /^v8\.total$/,
   /^v8\.deps$/,
+  // The GPU profiler's rAF `tick` runs once per frame: its call count is the frames the run
+  // lasted (995 ~ 1442 on one commit, 2026-10-03) — time, not work.
+  /^v8\.fn\.src\/builder\/workspace\/canvas\/utils\/gpuProfilerCore\.ts#\(anonymous\)$/,
 ];
 
 export function recorderSha256(recorderScript) {
@@ -71,11 +74,11 @@ export function flattenCounts(counts) {
     }
   };
   walk(counts, "");
-  for (const f of counts?.v8?.topApp ?? [])
-    out[`v8.fn.${f.file}#${f.fn}`] = Math.max(
-      out[`v8.fn.${f.file}#${f.fn}`] ?? 0,
-      f.n,
-    );
+  for (const f of counts?.v8?.topApp ?? []) {
+    const key = `v8.fn.${f.file}#${f.fn}`;
+    if (EXCLUDED.some((re) => re.test(key))) continue;
+    out[key] = Math.max(out[key] ?? 0, f.n);
+  }
   return out;
 }
 

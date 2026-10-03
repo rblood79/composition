@@ -131,7 +131,6 @@
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 2265,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex": 2205,
           "v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode": 945,
-          "v8.fn.src/builder/workspace/canvas/utils/gpuProfilerCore.ts#(anonymous)": 1028,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 1636
         }
       },
@@ -174,8 +173,7 @@
           "cdp.RecalcStyleCount": 186,
           "domMutations.childList": 70,
           "reactRenderMeasures": 1745,
-          "v8.app": 19124,
-          "v8.fn.src/builder/workspace/canvas/utils/gpuProfilerCore.ts#(anonymous)": 1529
+          "v8.app": 19124
         }
       },
       "panel-toggle": {
