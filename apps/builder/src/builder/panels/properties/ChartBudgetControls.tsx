@@ -73,7 +73,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
   sourceRowCount = 0,
   onPatch,
 }: {
-  /** 선택 요소 — Canvas 가 그린 크기 (layout map) 로 예산 상태를 푼다 */
+  /** 선택 요소의 record identity — Canvas 가 그린 크기 (composition root 기하) 로 예산 상태를 푼다 */
   elementId?: string;
   fields: ResolvedField[];
   /** Canvas 와 같은 입력 행 (예산 상태용) */
@@ -86,7 +86,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
     fields.map((field) => [field.key, field.currentValue]),
   ) as Record<string, unknown>;
   // ADR-211 — 예산 상태는 **Canvas 와 같은 모델** (`resolveChartModel`, 창 0) 을 Canvas 가 그린
-  //   크기 (엔진 layout map — `buildSpecNodeData` 의 `_containerWidth/Height` 와 같은 값) 와 같은
+  //   크기 (composition root 기하 — `ruleShapes.ts` 의 `_containerWidth/Height` 와 같은 값) 와 같은
   //   rule 채널 metrics 로 푼다. 행 상한 `R` 도 같은 metrics 다. props 는 직렬화 키로 memo —
   //   fields 는 contract 마다 새 배열이라 20,000 행 모델을 op 마다 다시 풀지 않는다.
   //   크기는 리사이즈 드래그 동안 layout publish 마다 바뀌므로 갱신은 뒤로 미룬다 (deferred).

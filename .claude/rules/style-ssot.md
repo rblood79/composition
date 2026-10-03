@@ -62,7 +62,7 @@ Styles 패널의 CSS 키는 `NodeEntry` 의 **typed field** (`visual` · `layout
 | 패널 표시                     | `styleFields.ts` `catalogStyleView` → `panels/styles/hooks/useLayoutValues.ts` | view 는 `visual.gap` 을 `gap`, `layout.rowGap`/`columnGap` 을 longhand 로 낸다. Gap 표시는 `axisGap ?? rowGap ?? columnGap ?? gap` (longhand 우선 — 엔진 입력과 같은 순서) |
 
 - 새 consumer 는 typed field 를 직접 읽지 말고 위 함수 (`catalogBoxModel` · `catalogStyleView`) 를 거친다 — 우선순위가 한 곳에서만 정해지도록.
-- **재확인 필요 (미재현)**: rule-backed 노드의 DOM 인라인 스타일에서 authored `gap` (`domBinding.tsx` `AUTHORED_CSS.gap`, shorthand) 과 `catalogLayoutCss` 의 `rowGap` / `columnGap` 이 함께 실리면 ADR-909 가 막으려던 React shorthand + longhand 공존 경고 조건이 다시 생길 수 있다. 증상이 보이면 여기부터 본다.
+- **DOM 은 shorthand 를 longhand 로 낸다** (2026-10-04): `domBinding.tsx` `AUTHORED_CSS` 가 `gap` → `rowGap` · `columnGap`, `padding` → 4변으로 펼치고, `AUTHORED_PRECEDENCE` 가 상자 모델과 같은 순서 (전체 → 축 → 변) 로 쓴다. 그전에는 authored `gap` 과 `layout.rowGap` 이 함께 인라인에 실렸고, `paddingTop` 이 키 순서상 `padding` 보다 먼저 오면 DOM 은 `padding` 이 이겨 Canvas (변 우선) 와 갈렸다 — 회귀 테스트 `catalogRuntime/__tests__/domGapLonghand.test.tsx`.
 
 ## 4. Dirty 판정 배열
 

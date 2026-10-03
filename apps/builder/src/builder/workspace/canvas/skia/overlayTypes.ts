@@ -16,6 +16,8 @@ export interface BindingBadgeTarget extends BindingBadgeInfo {
   /** 요소 원본 박스 (clip·page delta 반영) — 배지는 좌상단에 앵커 */
   bounds: BoundingBox;
   pageId: string | null;
+  /** The bound record (its page decides whether a later-painted page covers the badge). */
+  recordId?: string;
 }
 
 /** ADR-181 — 한 페이지의 수동 가이드 렌더 입력 (scene 좌표) */

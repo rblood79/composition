@@ -87,6 +87,7 @@ export function createCatalogBadges(inputs: CatalogBadgeInputs) {
                 ...infoOf(data, table),
                 bounds: clipped,
                 pageId: null,
+                recordId: record,
               });
           }
       }

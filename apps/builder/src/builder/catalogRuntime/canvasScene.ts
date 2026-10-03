@@ -1,4 +1,5 @@
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
+import { orderPagesForPaint } from "../workspace/canvas/scene/pagePaintOrder";
 import { executeRenderCommands } from "../workspace/canvas/skia/renderCommands";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
@@ -38,13 +39,22 @@ export class CatalogCanvasScene {
     private root: CatalogCompositionRoot,
     /** Which page roots are drawn (default: all — Compare Mode's current-page filter narrows it). */
     private rootFilter: (roots: string[]) => string[] = (roots) => roots,
+    /**
+     * The active page's root: drawn last, so it paints on top of an overlapping page and takes
+     * the overlap's pointer (picking follows the stream order). The document order stays — page
+     * z-order is a workspace display axis (`scene/pagePaintOrder.ts`, the header DOM layer too).
+     */
+    private activeRoot: () => string | undefined = () => undefined,
   ) {
     this.rootIds = this.drawnRoots();
     this.binding = this.bind();
   }
 
   private drawnRoots(): string[] {
-    return this.rootFilter(this.root.pageRootRecords());
+    return orderPagesForPaint(
+      this.rootFilter(this.root.pageRootRecords()).map((id) => ({ id })),
+      this.activeRoot(),
+    ).map((root) => root.id);
   }
 
   private bind() {

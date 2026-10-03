@@ -11,9 +11,12 @@ import type {
 import {
   insertNodes,
   setFields,
+  updatePage,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { pickTopmostRecord } from "../canvasPick";
 import { CatalogCanvasScene } from "../canvasScene";
+import { catalogNewPageCommand } from "../pageTree";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -194,6 +197,59 @@ describe("ADR-248 Phase 4e-2 Canvas scene", () => {
     // there and syncs at the next frame or pick).
     expect(inListener).toEqual(["unchanged"]);
     expect(scene.sync().kind).toBe("patched");
+    scene.dispose();
+  });
+
+  it("draws the active page last (on top) — overlapping pages paint and pick the active one", async () => {
+    // The old Canvas's rule (pagePaintOrder.ts, 2026-08-11): page z-order is a workspace display
+    // axis — the document order stays, the active page paints on top and takes the overlap's
+    // pointer (the page header DOM layer orders the same way).
+    const { workspace } = await open();
+    const graph = workspace.runtime.graph;
+    const pages = () => {
+      const project = graph.getEntry(graph.projectId);
+      return project?.kind === "project"
+        ? project.pageIds.map((id) => graph.getEntry(id) as never)
+        : [];
+    };
+    const { command, pageId } = catalogNewPageCommand(pages(), allocator());
+    workspace.execute(command);
+    // The second page over the home page's right half.
+    workspace.execute(
+      updatePage({
+        id: pageId,
+        fields: {
+          placement: {
+            base: { position: "absolute", left: 960, top: 120 },
+            breakpoints: {},
+          },
+        },
+      }),
+    );
+    const bodyOf = (id: EntryId<"page">) => {
+      const page = graph.getEntry(id);
+      return workspace.root.recordsOfSource(
+        page?.kind === "page" ? page.children[0] : "",
+      )[0];
+    };
+    const homeRoot = bodyOf(HOME);
+    const secondRoot = bodyOf(pageId);
+    let active: string | undefined = homeRoot;
+    const scene = new CatalogCanvasScene(
+      workspace.root,
+      undefined,
+      () => active,
+    );
+    const pick = () =>
+      pickTopmostRecord(scene.stream, 1200, 400, [homeRoot, secondRoot]);
+
+    expect(scene.pageRootIds).toEqual([secondRoot, homeRoot]);
+    expect(pick()).toBe(homeRoot);
+
+    active = secondRoot;
+    expect(scene.sync()).toEqual({ kind: "rebound", reason: "page-roots" });
+    expect(scene.pageRootIds).toEqual([homeRoot, secondRoot]);
+    expect(pick()).toBe(secondRoot);
     scene.dispose();
   });
 });

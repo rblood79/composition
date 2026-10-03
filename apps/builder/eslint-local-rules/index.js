@@ -1,3 +1,7 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/panels/ai/AIPanel.tsx",
   // ADR-155 Phase 2: PropertiesPanel 에서 이전된 legacy elementsMap 변환 (동일 계약)
@@ -55,6 +59,78 @@ function importTypeQualifierName(node) {
 }
 
 /**
+ * Zustand store hook names: `use*` bound to `create(...)` / `create<T>()(...)` anywhere in `src`
+ * (scanned once per lint process) or in the linted file itself. The store hooks are not all named
+ * `use*Store` (`useDesignPanelView`, `useScrollState`, `useSectionCollapse`), so the rules match by
+ * the binding, not by a name pattern. `useStore` stays for zustand's own two-argument form.
+ */
+const STORE_DECLARATION =
+  /(?:^|\n)\s*(?:export\s+)?const\s+(use[A-Za-z0-9_]*)\s*(?::[^=\n]+)?=\s*create\s*(?:<[^>]*>)?\s*(?:\(\s*\)\s*)?\(/g;
+
+function storeNamesIn(text) {
+  const names = new Set();
+  for (const match of text.matchAll(STORE_DECLARATION)) names.add(match[1]);
+  return names;
+}
+
+/** `apps/builder/src` — from the linted file's path, else this module's location, else the cwd. */
+function builderSourceRoot(filename) {
+  const normalized = (filename ?? "").replaceAll("\\", "/");
+  const markerIndex = normalized.indexOf("/apps/builder/");
+  if (markerIndex >= 0)
+    return `${normalized.slice(0, markerIndex)}/apps/builder/src`;
+  try {
+    return fileURLToPath(new URL("../src", import.meta.url));
+  } catch {
+    return join(process.cwd(), "src");
+  }
+}
+
+let projectStoreNames;
+function projectZustandStoreNames(filename) {
+  if (projectStoreNames) return projectStoreNames;
+  projectStoreNames = new Set();
+  const root = builderSourceRoot(filename);
+  const visit = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== "node_modules" && entry.name !== "__tests__")
+          visit(full);
+      } else if (/\.tsx?$/.test(entry.name) && !entry.name.includes(".test.")) {
+        const text = readFileSync(full, "utf8");
+        if (!text.includes("create")) continue;
+        for (const name of storeNamesIn(text)) projectStoreNames.add(name);
+      }
+    }
+  };
+  visit(root);
+  return projectStoreNames;
+}
+
+/** The selector argument of a Zustand store hook call, or undefined. */
+function zustandSelectorOf(node, fileStoreNames, filename) {
+  if (node.callee.type !== "Identifier") return undefined;
+  const name = node.callee.name;
+  // zustand's `useStore(store, selector)`; the old single-store `useStore(selector)`.
+  if (name === "useStore") return node.arguments[node.arguments.length - 1];
+  if (fileStoreNames.has(name) || projectZustandStoreNames(filename).has(name))
+    return node.arguments[0];
+  return undefined;
+}
+
+function fileZustandStoreNames(context) {
+  const sourceCode = context.sourceCode ?? context.getSourceCode();
+  return storeNamesIn(sourceCode.text);
+}
+
+/**
  * Local ESLint Rules for composition
  *
  * Custom rules to prevent anti-patterns discovered during refactoring.
@@ -68,7 +144,7 @@ export default {
       type: "problem",
       docs: {
         description:
-          "Disallow Zustand grouped selectors with object returns (causes infinite loops)",
+          "Disallow Zustand grouped selectors with object / array returns (causes infinite loops)",
         category: "Best Practices",
         recommended: true,
       },
@@ -79,24 +155,27 @@ export default {
       schema: [],
     },
     create(context) {
+      const fileStoreNames = fileZustandStoreNames(context);
       return {
         CallExpression(node) {
-          // Detect: useStore((state) => ({ field1: state.field1, ... }))
+          // Detect: useAnyStore((state) => ({ field1: state.field1, ... })) — a new object (or
+          // array) per call never equals the last snapshot (Zustand v5 ignores equalityFn).
+          const selector = zustandSelectorOf(
+            node,
+            fileStoreNames,
+            context.filename,
+          );
           if (
-            node.callee.name === "useStore" &&
-            node.arguments.length === 1 &&
-            node.arguments[0].type === "ArrowFunctionExpression"
+            selector &&
+            (selector.type === "ArrowFunctionExpression" ||
+              selector.type === "FunctionExpression") &&
+            (selector.body.type === "ObjectExpression" ||
+              selector.body.type === "ArrayExpression")
           ) {
-            const selectorFn = node.arguments[0];
-            const body = selectorFn.body;
-
-            // Check if returning an object expression directly
-            if (body.type === "ObjectExpression") {
-              context.report({
-                node,
-                messageId: "groupedSelector",
-              });
-            }
+            context.report({
+              node,
+              messageId: "groupedSelector",
+            });
           }
         },
       };
@@ -119,14 +198,20 @@ export default {
       schema: [],
     },
     create(context) {
+      const fileStoreNames = fileZustandStoreNames(context);
       return {
         CallExpression(node) {
-          // Detect: useStore(useShallow(...))
+          // Detect: useAnyStore(useShallow(...))
+          const selector = zustandSelectorOf(
+            node,
+            fileStoreNames,
+            context.filename,
+          );
           if (
-            node.callee.name === "useStore" &&
-            node.arguments.length === 1 &&
-            node.arguments[0].type === "CallExpression" &&
-            node.arguments[0].callee.name === "useShallow"
+            selector &&
+            selector.type === "CallExpression" &&
+            selector.callee.type === "Identifier" &&
+            selector.callee.name === "useShallow"
           ) {
             context.report({
               node,

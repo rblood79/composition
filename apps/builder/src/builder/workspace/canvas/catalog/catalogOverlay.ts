@@ -71,12 +71,24 @@ export interface CatalogOverlayInputs {
     box: BoundingBox;
     empty: boolean;
     role: EditingSemanticsRole;
+    /** The slot's record: its chrome is cut where a later-painted page covers its page. */
+    identity?: string;
   }[];
   /**
    * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with
    * "+N more" (editor chrome — the DOM draws every row).
    */
-  remainders?: () => readonly { box: BoundingBox; hiddenRows: number }[];
+  remainders?: () => readonly {
+    box: BoundingBox;
+    hiddenRows: number;
+    ownerId?: string;
+  }[];
+  /**
+   * The page boxes painted over a record's page (`catalogOccludingPages`): content chrome of the
+   * record — slot hatch, row remainder, hover outlines — is cut there (canvas-interaction §8.5).
+   * Pointing marks (selection box, handles) are not.
+   */
+  occluders?: (identity: string) => readonly BoundingBox[];
   /**
    * Data binding badges (ADR-212 Phase 6) and the map their drawn scene rects go to (the press
    * that opens the table editor reads it).
@@ -167,6 +179,28 @@ export function catalogMeasureGuides(
  * and size label. It reads the session and the bound stream's boxes per frame (scene coordinates;
  * the renderer draws it inside the camera transform) and reuses the existing overlay painters.
  */
+/** Draw with the given page boxes cut out (Difference clips); none = draw as is. */
+function withOccluders(
+  ck: CanvasKit,
+  canvas: Canvas,
+  rects: readonly BoundingBox[] | undefined,
+  draw: () => void,
+): void {
+  if (!rects?.length) {
+    draw();
+    return;
+  }
+  canvas.save();
+  for (const rect of rects)
+    canvas.clipRect(
+      ck.XYWHRect(rect.x, rect.y, rect.width, rect.height),
+      ck.ClipOp.Difference,
+      true,
+    );
+  draw();
+  canvas.restore();
+}
+
 export function catalogOverlayNode(
   ck: CanvasKit,
   inputs: CatalogOverlayInputs,
@@ -188,26 +222,32 @@ export function catalogOverlayNode(
         renderFlashes(ck, canvas, now, ai.flashAnimations, targets);
         if (ai.flashAnimations.size) ai.cleanupExpiredFlashes(now);
       }
+      const occludersOf = (identity: string | undefined) =>
+        identity ? inputs.occluders?.(identity) : undefined;
       for (const slot of inputs.slots?.() ?? []) {
         // An empty slot has no height of its own: show a band the author can see and pick.
         const band = Math.max(slot.box.height, 48 / zoom);
-        renderSlotHatchPattern(
-          ck,
-          canvas,
-          { ...slot.box, height: band },
-          zoom,
-          slot.role,
-          slot.empty,
+        withOccluders(ck, canvas, occludersOf(slot.identity), () =>
+          renderSlotHatchPattern(
+            ck,
+            canvas,
+            { ...slot.box, height: band },
+            zoom,
+            slot.role,
+            slot.empty,
+          ),
         );
       }
       for (const remainder of inputs.remainders?.() ?? [])
-        renderCollectionRemainderMarker(
-          ck,
-          canvas,
-          remainder.box,
-          remainder.hiddenRows,
-          zoom,
-          inputs.fontMgr(),
+        withOccluders(ck, canvas, occludersOf(remainder.ownerId), () =>
+          renderCollectionRemainderMarker(
+            ck,
+            canvas,
+            remainder.box,
+            remainder.hiddenRows,
+            zoom,
+            inputs.fontMgr(),
+          ),
         );
       inputs.badgeHits?.clear();
       for (const badge of inputs.badges?.() ?? [])
@@ -229,31 +269,36 @@ export function catalogOverlayNode(
       const roleOf = (id: string) => inputs.roleOf?.(id) ?? null;
       const hit = inputs.hitBounds?.();
       const hoverId = state.hover?.identity;
-      if (hoverId && !selected.has(hoverId)) {
-        // The visible part (a page body is in neither map's clip: its own box).
-        const hovered = hit?.get(hoverId) ?? bounds.get(hoverId);
-        if (hovered)
-          renderHoverHighlight(
-            ck,
-            canvas,
-            hovered,
-            zoom,
-            false,
-            roleOf(hoverId),
-          );
-        // Group hover: the container's leaves, dashed, where they show.
-        for (const leaf of inputs.hoverLeaves?.(hoverId) ?? []) {
-          const box = (hit ?? bounds).get(leaf);
-          if (box)
-            renderHoverHighlight(ck, canvas, box, zoom, true, roleOf(leaf));
-        }
-      }
+      if (hoverId && !selected.has(hoverId))
+        // The hovered record's page decides the cut (its leaves are on the same page).
+        withOccluders(ck, canvas, occludersOf(hoverId), () => {
+          // The visible part (a page body is in neither map's clip: its own box).
+          const hovered = hit?.get(hoverId) ?? bounds.get(hoverId);
+          if (hovered)
+            renderHoverHighlight(
+              ck,
+              canvas,
+              hovered,
+              zoom,
+              false,
+              roleOf(hoverId),
+            );
+          // Group hover: the container's leaves, dashed, where they show.
+          for (const leaf of inputs.hoverLeaves?.(hoverId) ?? []) {
+            const box = (hit ?? bounds).get(leaf);
+            if (box)
+              renderHoverHighlight(ck, canvas, box, zoom, true, roleOf(leaf));
+          }
+        });
       const tree = inputs.overflow?.();
       const overflowing =
         tree && state.hover
           ? catalogOverflowContent(state.hover.identity, tree, bounds)
           : null;
-      if (overflowing) renderOverflowContent(ck, canvas, overflowing, zoom);
+      if (overflowing)
+        withOccluders(ck, canvas, occludersOf(state.hover?.identity), () =>
+          renderOverflowContent(ck, canvas, overflowing, zoom),
+        );
       for (const item of state.selection) {
         const box = bounds.get(item.identity);
         if (box)

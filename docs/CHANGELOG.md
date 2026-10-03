@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [겹친 페이지의 활성 페이지 최상단 복구 · Chart 예산 안내 · DOM 간격 shorthand 정리 — ADR-248 이후 잔여] - 2026-10-04
+
+### Fixed
+
+- **겹친 페이지에서 활성 페이지가 다시 맨 위에 그려진다.** catalog Canvas 는 페이지를 문서 순서로만 그려, 페이지 헤더는 활성 페이지가 위인데 본문은 뒤 페이지에 가려졌다 (Home 이 활성이어도 Home 내용이 겹친 Page 2 아래로 숨음). 이제 활성 페이지 root 를 마지막에 그리고, 클릭 판정도 같은 순서를 따른다. 아래 페이지의 슬롯 해치 · 행 생략 표시 · hover 외곽선은 위 페이지가 덮는 부분에서 잘리고, 가려진 데이터 바인딩 배지는 그리지도 누르지도 않는다 (2026-08-11 · 08-12 규칙 복구).
+- **Chart 속성 패널의 표시 예산 안내 (「Showing 34 / 40 — window」 · 「all shown (n)」) 가 다시 나온다.** 크기를 옛 layout map 에서 읽어 catalog 경로에서는 늘 비어 있었다 — 이제 composition root 기하를 읽는다.
+- **Preview DOM 이 간격 · 여백 shorthand 를 longhand 로 낸다.** authored `gap` 과 행 · 열 간격이 함께 있으면 인라인에 `gap` 과 `row-gap` 이 같이 실렸고, `paddingTop` 과 `padding` 이 함께 있으면 키 순서에 따라 DOM 은 `padding` 이, Canvas 는 변 값이 이겨 두 화면이 갈렸다. 이제 상자 모델과 같은 우선순위 (전체 → 축 → 변) 로 longhand 만 쓴다.
+- Components 패널 검색 결과 없음 화면이 섹션 흉내 마크업 대신 빈 상태 하나로 나온다.
+
+### Internal
+
+- `local/no-zustand-grouped-selectors` · `no-zustand-use-shallow` 가 ADR-248 로 사라진 `useStore` 이름만 잡아 지금 store 에 동작하지 않았다 — `create(...)` 로 만든 hook 이름을 모아 판정한다. 넓힌 규칙이 잡은 미사용 그룹 selector `useDataTableEditorActions` 를 지웠다.
+- `.section` 직접 마크업 금지 정적 가드 (`sectionMarkup.static.test.ts`) 추가.
+
+위치: `catalogRuntime/{canvasScene.ts,domBinding.tsx}` · `workspace/canvas/catalog/{CatalogCanvas.tsx,catalogOverlay.ts,catalogChrome.ts,catalogBadges.ts}` · `panels/styles/hooks/useLayoutValue.ts` · `panels/properties/ChartBudgetControls.tsx` · `panels/components/ComponentList.tsx` · `apps/builder/eslint-local-rules/index.js`. live: `apps/builder/scripts/stale-findings-live.mjs` (겹친 페이지 · hover 가림 · Chart 예산 — occluder 를 끈 RED 대조 포함).
+
 ## [Properties · Styles 패널을 Design 패널 하나로 통합 — ADR-252 Implemented] - 2026-10-04
 
 ### Changed

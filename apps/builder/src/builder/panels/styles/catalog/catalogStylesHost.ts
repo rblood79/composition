@@ -71,28 +71,13 @@ import {
 } from "../../../../utils/theme/tintToSkiaColors";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
 import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
+import {
+  useCatalogLayoutValue,
+  useCatalogLayoutVersion,
+} from "../hooks/useLayoutValue";
 import { isOwnerOrientationTag } from "../utils/orientationDrivenTags";
 
 const noSubscription = () => () => {};
-
-/** Re-read after every published step and breakpoint switch (layout and records follow them). */
-function useLayoutVersion(workspace: CatalogWorkspace): string {
-  const subscribe = useCallback(
-    (notify: () => void) => {
-      const offSteps = workspace.runtime.subscribeSteps(notify);
-      const offRoot = workspace.subscribeRoot(notify);
-      return () => {
-        offSteps();
-        offRoot();
-      };
-    },
-    [workspace],
-  );
-  return useSyncExternalStore(
-    subscribe,
-    () => `${workspace.runtime.graph.revision}:${workspace.root.breakpoint}`,
-  );
-}
 
 /** A record's own authored fields, following edits (the record's document target). */
 function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
@@ -489,7 +474,7 @@ export function createCatalogStylesHost(
         })) satisfies CatalogCommand;
       }),
     useParentId(id) {
-      const version = useLayoutVersion(workspace);
+      const version = useCatalogLayoutVersion(workspace);
       return useMemo(
         () => parentRecordOf(workspace, id)?.id ?? null,
         // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
@@ -497,7 +482,7 @@ export function createCatalogStylesHost(
       );
     },
     useParentLayout(id) {
-      const version = useLayoutVersion(workspace);
+      const version = useCatalogLayoutVersion(workspace);
       return useMemo(() => {
         const parent = parentRecordOf(workspace, id);
         if (!parent) return { display: "block", flexDirection: "row" };
@@ -510,12 +495,7 @@ export function createCatalogStylesHost(
       }, [id, version]);
     },
     useLayoutValue(id, key) {
-      const version = useLayoutVersion(workspace);
-      return useMemo(
-        () => (id ? measured(id)?.[key] : undefined),
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
-        [id, key, version],
-      );
+      return useCatalogLayoutValue(workspace, id, key);
     },
     applySizing(selectedId, edit) {
       run(() => {

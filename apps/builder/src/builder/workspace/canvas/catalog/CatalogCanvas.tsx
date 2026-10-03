@@ -20,7 +20,11 @@ import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
 import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
-import { catalogLeafRecords, catalogSlotMarks } from "./catalogChrome";
+import {
+  catalogLeafRecords,
+  catalogOccludingPages,
+  catalogSlotMarks,
+} from "./catalogChrome";
 import {
   notifyNestingRejected,
   showNestingRelocatedToast,
@@ -300,12 +304,26 @@ export function CatalogCanvas({
       const body = page?.kind === "page" ? page.children[0] : undefined;
       return body ? workspace.root.recordsOfSource(body)[0] : undefined;
     };
+    /** The active page's body record: drawn on top of an overlapping page (pagePaintOrder.ts). */
+    const activePageRoot = (): string | undefined => {
+      if (workspace.root.definitionView) return undefined;
+      const pageId = workspace.session.getSnapshot().pageId;
+      const page = pageId
+        ? workspace.runtime.graph.getEntry(pageId)
+        : undefined;
+      const body = page?.kind === "page" ? page.children[0] : undefined;
+      return body ? workspace.root.recordsOfSource(body)[0] : undefined;
+    };
     let scene: CatalogCanvasScene;
     try {
-      scene = new CatalogCanvasScene(workspace.root, (roots) => {
-        const only = compareOnlyRoot();
-        return only && roots.includes(only) ? [only] : roots;
-      });
+      scene = new CatalogCanvasScene(
+        workspace.root,
+        (roots) => {
+          const only = compareOnlyRoot();
+          return only && roots.includes(only) ? [only] : roots;
+        },
+        activePageRoot,
+      );
     } catch (error) {
       renderer.dispose();
       callbacks.current.onError?.(error);
@@ -319,6 +337,14 @@ export function CatalogCanvas({
         ? skiaFontManager.getFontMgr()
         : undefined;
     renderer.setContentNode(scene.contentNode(ck, fontMgr));
+    /** Page boxes painted over a record's page (content chrome is cut there — §8.5). */
+    const occludersOf = (identity: string) =>
+      catalogOccludingPages(
+        identity,
+        (id) => workspace.root.canvasInputs.get(id)?.parentId,
+        scene.pageRootIds,
+        (id) => scene.stream.boundsMap.get(id),
+      );
     const badges = createCatalogBadges({
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
@@ -391,10 +417,32 @@ export function CatalogCanvas({
               (id) => scene.stream.boundsMap.get(id),
               scene.stream.hitBoundsMap.get(remainder.ownerId),
             );
-            return box ? [{ box, hiddenRows: remainder.hiddenRows }] : [];
+            return box
+              ? [
+                  {
+                    box,
+                    hiddenRows: remainder.hiddenRows,
+                    ownerId: remainder.ownerId,
+                  },
+                ]
+              : [];
           }),
+        // A badge whose anchor a later-painted page covers is neither drawn nor pressed.
         badges: () =>
-          badges.targets(scene.stream.boundsMap, scene.stream.hitBoundsMap),
+          badges
+            .targets(scene.stream.boundsMap, scene.stream.hitBoundsMap)
+            .filter(
+              (badge) =>
+                !badge.recordId ||
+                !occludersOf(badge.recordId).some(
+                  (rect) =>
+                    badge.bounds.x >= rect.x &&
+                    badge.bounds.y >= rect.y &&
+                    badge.bounds.x <= rect.x + rect.width &&
+                    badge.bounds.y <= rect.y + rect.height,
+                ),
+            ),
+        occluders: (identity) => occludersOf(identity),
         badgeHits,
         overflow: () => overflowTree,
         ai: () => useAIVisualFeedbackStore.getState(),
@@ -673,6 +721,15 @@ export function CatalogCanvas({
       publishHeaders();
       scheduler.invalidate();
     };
+    // Another active page paints on top: the scene binds its roots again in the new order.
+    let paintedActiveRoot = activePageRoot();
+    const followActivePage = () => {
+      const next = activePageRoot();
+      if (next === paintedActiveRoot) return;
+      paintedActiveRoot = next;
+      sceneStale = true;
+      scheduler.invalidate();
+    };
     const unsubscribeCompare =
       useCompareModeStore.subscribe(followCompareFilter);
     // The badges show each collection's state (rows, the linked API's last run).
@@ -698,6 +755,7 @@ export function CatalogCanvas({
     };
     const unsubscribeSession = workspace.session.subscribe(() => {
       followCompareFilter();
+      followActivePage();
       // Another selection closes the inline spacing input (its blur no longer applies).
       const input = spacingInputRef.current;
       const selection = workspace.session.getSnapshot().selection;

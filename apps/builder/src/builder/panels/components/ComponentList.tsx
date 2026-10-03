@@ -457,14 +457,12 @@ const ComponentList = memo(
               );
             })
           ) : (
-            // 검색 결과 없음
-            <div className="section">
-              <EmptyState
-                icon={<SearchX size={32} />}
-                message="No components found"
-                description="Try 'button', 'input', or 'table'"
-              />
-            </div>
+            // 검색 결과 없음 — 섹션이 아니라 빈 상태 하나 (다른 패널과 같이 스크롤 영역에 직접)
+            <EmptyState
+              icon={<SearchX size={32} />}
+              message="No components found"
+              description="Try 'button', 'input', or 'table'"
+            />
           )}
         </PanelContents>
       </div>

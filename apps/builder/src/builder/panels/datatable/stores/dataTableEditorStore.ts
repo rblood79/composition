@@ -87,14 +87,3 @@ export const useDataTableEditorMode = () =>
 
 export const useDataTableFieldPanel = () =>
   useDataTableEditorStore((state) => state.fieldPanel);
-
-export const useDataTableEditorActions = () =>
-  useDataTableEditorStore((state) => ({
-    openTableCreator: state.openTableCreator,
-    openTableEditor: state.openTableEditor,
-    openApiCreator: state.openApiCreator,
-    openApiEditor: state.openApiEditor,
-    openVariableCreator: state.openVariableCreator,
-    openVariableEditor: state.openVariableEditor,
-    close: state.close,
-  }));

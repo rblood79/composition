@@ -65,7 +65,9 @@ import {
 export interface CatalogDomRuntime {
   /** Moves when the record's handlers or override change (the node renders again). */
   revisionOf(id: string): number;
-  handlersOf(id: string): Readonly<Record<string, (...args: unknown[]) => void>>;
+  handlersOf(
+    id: string,
+  ): Readonly<Record<string, (...args: unknown[]) => void>>;
   /** Prop patch of a record (`style` merges into its computed style). */
   overrideOf(id: string): Readonly<Record<string, unknown>> | undefined;
   /**
@@ -657,8 +659,19 @@ const AUTHORED_CSS: Readonly<
   height: (value) => ({ height: cssLength(value as CatalogLength) }),
   minWidth: (value) => ({ minWidth: cssLength(value as CatalogLength) }),
   minHeight: (value) => ({ minHeight: cssLength(value as CatalogLength) }),
-  gap: (value) => ({ gap: cssLength(value as CatalogLength) }),
-  padding: (value) => ({ padding: cssLength(value as CatalogLength) }),
+  // ADR-909: shorthands go out as their longhands — React writes inline styles key by key, so a
+  // shorthand next to its longhands lets a later shorthand change overwrite the longhand the
+  // Canvas keeps (`AUTHORED_PRECEDENCE` orders them like `catalogBoxModel`).
+  gap: (value) => ({
+    rowGap: cssLength(value as CatalogLength),
+    columnGap: cssLength(value as CatalogLength),
+  }),
+  padding: (value) => ({
+    paddingTop: cssLength(value as CatalogLength),
+    paddingRight: cssLength(value as CatalogLength),
+    paddingBottom: cssLength(value as CatalogLength),
+    paddingLeft: cssLength(value as CatalogLength),
+  }),
   paddingX: (value) => ({
     paddingLeft: cssLength(value as CatalogLength),
     paddingRight: cssLength(value as CatalogLength),
@@ -961,6 +974,19 @@ function bindingOf(node: CatalogConsumerNode): DomBinding | undefined {
   return binding;
 }
 
+/**
+ * Write order of authored keys whose CSS overlaps: the whole box, then an axis, then a side — the
+ * box model's precedence (`paddingTop` > `paddingY` > `padding`), not the document's key order.
+ */
+const AUTHORED_PRECEDENCE: Readonly<Record<string, number>> = {
+  gap: 0,
+  padding: 0,
+  paddingX: 1,
+  paddingY: 1,
+};
+const authoredRank = ([key]: [string, unknown]) =>
+  AUTHORED_PRECEDENCE[key] ?? 2;
+
 /** Authored visual writes of a node as inline CSS (library visuals are class CSS). */
 function authoredStyle(
   root: CatalogCompositionRoot,
@@ -975,7 +1001,7 @@ function authoredStyle(
   const noSheet = !!rule && !rule.structure;
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
-  )) {
+  ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     const css = AUTHORED_CSS[key];
     if (!css) {
       // Typography on a rule executor is not painted by the Canvas yet: fail on both sides.
