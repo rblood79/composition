@@ -1,138 +1,92 @@
 ---
-description: Zustand 상태 관리 관련 파일 작업 시 적용
+description: 편집 상태 (catalog runtime 문서 · 명령 · 히스토리 · 저장 · 선택) 와 남은 Zustand store 작업 시 적용
 paths:
   - "**/stores/**"
+  - "apps/builder/src/builder/catalogRuntime/**"
+  - "packages/shared/src/catalog/transactions/**"
+  - "packages/shared/src/catalog/commands/**"
 ---
 
 # 상태 관리 규칙
 
-> **상세 패턴 인덱스** (composition-patterns skill reference):
+> **2026-10-04 전면 개정**: ADR-248 Phase 4 (2026-10-03 main 병합) 로 Builder 의 문서 · 선택 · 히스토리 · 저장이 Zustand canonical store (`elements` / `elementsMap` / `childrenMap` · `_rebuildIndexes` · `runCanonicalMutation` · `historyActions` · `instanceActions`) 에서 **catalog runtime** (`apps/builder/src/builder/catalogRuntime/**` + `packages/shared/src/catalog/**`) 으로 옮겨졌고, 옛 store 와 그 규칙의 대상 파일은 `0b0eaea28` (Phase 4e-13-3) 에서 삭제됐다. 옛 규칙 본문은 git 이력에 있다.
 >
-> - [zustand-childrenmap-staleness](../skills/composition-patterns/rules/zustand-childrenmap-staleness.md) — props stale 회피 (CRITICAL)
-> - [zustand-factory-pattern](../skills/composition-patterns/rules/zustand-factory-pattern.md) — StateCreator 팩토리 (HIGH)
-> - [zustand-modular-files](../skills/composition-patterns/rules/zustand-modular-files.md) — 슬라이스 분리
-> - [domain-o1-lookup](../skills/composition-patterns/rules/domain-o1-lookup.md) — elementsMap/childrenMap O(1)
-> - [domain-async-pipeline](../skills/composition-patterns/rules/domain-async-pipeline.md) — Memory→Index→History→DB→Preview→Rebalance 순서
-> - [domain-history-integration](../skills/composition-patterns/rules/domain-history-integration.md) — Undo/Redo 통합
-> - 구현 상세: [state-details.md](../skills/composition-patterns/reference/state-details.md)
+> 공식 결정: [ADR-248](../../docs/adr/248-unified-catalog-document.md). `composition-patterns` skill 의 `zustand-*` · `domain-o1-lookup` · `domain-async-pipeline` · `domain-history-integration` · `reference/state-details.md` 는 아직 옛 store 를 설명한다 — 이 문서와 충돌하면 이 문서가 우선.
 
-## Zustand 패턴
+## 1. 무엇이 어디에 있나
 
-> **ADR-116/122 Implemented (2026-05-02 / 2026-05-09)**: `CompositionDocument` canonical schema 가 primary SSOT 로 전환 완료. Builder runtime hot path 의 legacy `elementsMap`/`childrenMap` mutable subscription / mutation 은 0건 — canonical store + read-only derived snapshot 으로 갈음. 잔존 boundary helper (`frameMirror` / `slotMirror` / `componentSemanticsMirror` / `compositionExtensionFields`) 는 runtime에 필요한 격리 영역이다. 프로젝트 JSON 가져오기/내보내기는 canonical document를 직접 사용하며 legacy `Element[]` 역변환 helper는 2026-09-03 제거됐다. canonical 흐름 상세는 [docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md) 참조
+| 상태                                                  | 정본                                                                                                     | 읽기                                                                                                  |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 문서 (페이지 · 노드 · 정의 · interaction · 상태 변수) | `CatalogGraph` (`packages/shared/src/catalog/document/graph.ts`) — `CatalogRuntime` (`controller.ts`) 안 | `graph.getEntry` · `ownerOf` · `CatalogReadModel` (`readModel.ts`) · `useCatalog*` hook (`react.tsx`) |
+| 요소 순서                                             | `NodeEntry.children` · `PageEntry.children` 배열 (ADR-118), 페이지 순서는 `ProjectEntry.pageIds`         | 같은 배열. `order_num` 은 없다 (옛 프로젝트 로드 때 걷어냄)                                           |
+| 선택 · hover · 편집 맥락 · breakpoint                 | `CatalogSession` (`session.ts`) — step 마다 `reconcile()` 로 사라진 대상을 뺀다                          | `useCatalogSession`                                                                                   |
+| 히스토리                                              | 프로젝트당 스택 하나 (`ProjectSession.undo/redo` — `controller.ts`)                                      | `CatalogHistoryStore` (`history.ts`, History 패널)                                                    |
+| 저장                                                  | IndexedDB `composition-catalog-projects-v1` (`storage.ts`) — `CatalogAutosave` (`autosave.ts`)           | —                                                                                                     |
+| 데이터 (collections · 프로젝트 변수 · API endpoint)   | `useDataStore` (`stores/data.ts`) — 문서 밖 (H1: 행은 문서에 들어가지 않는다)                            | `useDataStore` · Canvas 는 `catalogBoundRows` (`dataBinding.ts`)                                      |
+| UI (패널 배치 · 캔버스 설정)                          | `builderUiStore` (`stores/builderUiStore.ts`) 외 작은 store (toast · conversation · commandRegistry …)   | Zustand selector                                                                                      |
 
-- StateCreator factory 패턴 + 슬라이스 개별 파일 분리
-- O(1) 인덱스: elementsMap(요소), childrenMap(자식), pageIndex(페이지). 배열 순회 금지. **ADR-122 Implemented (2026-05-09)** — Builder hot path 에서 `useStore.elementsMap`/`childrenMap` mutable subscription 0건. canonical selectors / `useStore.elements[]` 기반 read-only derived 사용
-- childrenMap은 구조 변경 시에만 갱신 → props는 elementsMap에서 최신 조회 필수. **Why**: childrenMap이 props stale
-- selector에서 배열/객체 반환 시 `useRef` + `shallow` 캐싱. Zustand v5 `equalityFn` 무시됨 주의
+요소 · 문서 Zustand store 는 없다. `useStore` · `elementsMap` · `childrenMap` 를 새로 만들지 않는다.
 
-## 파이프라인 순서 (필수 보존)
+## 2. 편집 파이프라인 (순서 필수 보존)
 
-1. Memory Update (즉시) → 2. Index Rebuild → 3. History Record
-2. DB Persist (백그라운드) → 5. Preview Sync — 요소 순서는 canonical `children[]` 배열 순서가 SSOT (ADR-118), `order_num` 은 export mirror 로만 파생 (legacy `batchUpdateElementOrders()` 심볼 소멸)
+문서를 바꾸는 길은 **명령 하나**다 — `CatalogCommand` (`packages/shared/src/catalog/commands/**`: `setFields` · `insertNodes` · `moveNodes` · `pasteNodes` …) 를 `workspace.execute(command)` 에 넘긴다. 패널은 `useCatalogCommandRunner` (`panels/navigator/catalog/`) 가 실패를 toast 로 바꿔 준다. graph 를 직접 고치거나 op 를 손으로 만들어 `runtime` 에 넣지 않는다.
 
-## 핵심 규칙
+1. `CatalogWorkspace.execute` (`workspace.ts`) — 자동 HTML id · origin view 재작성 → `root.execute` → 정의 view 후처리 · 선택 (`plan.selectAfter`)
+2. `CatalogCompositionRoot.execute` (`compositionRoot.ts`) — 현재 revision 에 대해 명령을 계획하고 `runtime.dispatch`. `REVISION_CONFLICT` 면 한 번 다시 계획한다
+3. `CatalogRuntime.step` (`controller.ts`):
+   1. `applyCatalogTransaction` (`transaction.ts`) — project id · `expectedRevision` · history 의도 · 빈 op 검사 → staging → entry · 구조 검증 → inverse → `graph.commit` (revision + 1)
+   2. **consumer** (compositionRoot 의 Canvas · DOM record 갱신 · 레이아웃) — 던지면 `graph.revertCommit` 후 `CatalogStepAbortedError`. 문서와 화면은 같이 바뀌거나 같이 안 바뀐다
+   3. 저장 대기열에 변경 entry **전체 JSON** 추가 (`expectedDurableRevision = revision − 1`)
+   4. 히스토리 기록 → resolved 캐시 무효화 → field 구독자 → step listener (session reconcile · read model · autosave · preview) → consumer 의 deliver
+   5. 구독자 · listener 오류는 모아서 `CatalogSubscriberError` — 이때 step 은 이미 커밋돼 있다 (되돌리지 않는다)
+4. `CatalogAutosave` — 기본 `queueMicrotask` 로 `runtime.save` → `CatalogStorage.commit` 이 저장된 revision 이 `expectedDurableRevision` 이고 새 revision 이 +1 일 때만 쓴다 (아니면 `REVISION_CONFLICT` / `UNSUPPORTED_PROJECT_FORMAT`)
+5. Preview — `workspace.attachPreview` 의 `CatalogPreviewChannel` (`previewChannel.ts`) 이 step 의 바뀐 · 지운 id 를 모아 `CATALOG_DELTA`, 준비 · 프로젝트 전환 때 `CATALOG_SNAPSHOT`. Preview 는 복제본에 `runtime.sync` (history skip `"sync"`, 저장 없음). 데이터는 따로 `CATALOG_DATA` (`CatalogPreviewFrame.tsx`)
 
-- 상태 변경 전 히스토리 기록 필수 (Undo/Redo). **Why**: 기록 없이 변경 시 되돌리기 불가
-- Stale closure 방지: setTimeout/queueMicrotask 안에서 `get()`으로 최신 상태 참조. **Why**: 외부 캡처 변수 stale
-- Selection Consumer Contract (ADR-137): page-bound mutation은 deferred
-  `SelectedElement`/inspector display data에서 pageId를 캡처하지 않는다.
-  selection 경로는 commit 시점 `readImmediateSelectionSnapshot()`으로 만든
-  `ImmediateSelectionSnapshot`을 `apply*FromSelection(snapshot, ...)`에 전달하고,
-  projection body/frame editing context는 `apply*Explicit({ pageId, contextReason,
-... })`만 사용한다. stale deferred page mismatch 상태에서는 page-bound controls를
-  hide/disable한다.
-- DB 저장 시 merged 전체 props 저장 (delta만 저장 금지). **Why**: 새로고침 후 미포함 props 소실
-- 요소 삭제 후 `pageElementsSnapshot` 갱신 필수. **Why**: 미갱신 시 레이어 패널에 유령 항목
+## 3. 핵심 규칙
 
-## Canonical sync 호출 순서 (CRITICAL)
+- **히스토리 의도는 필수**: `applyCatalogTransaction` 은 `history: { kind: "record", label }` 또는 `{ kind: "skip", reason }` 없이는 `HISTORY_INTENT_REQUIRED` 로 거부한다. skip 사유는 `project-create` · `load` · `fixture` · `sync` 넷뿐 — 사용자 편집은 늘 기록된다 (ADR-185 의 「조용한 생략 금지」 가 타입 · 검증으로 옮겨 왔다).
+- **히스토리는 프로젝트당 한 스택**: undo / redo 는 entry 의 `inverse` / `forward` 를 기록된 step 으로 다시 돌리고 바깥 효과 (`external`) 를 뒤따라 실행한다. 페이지별 스택 · `migrateEntryToPage` 는 없다. AI 묶음은 `mergeHistory` 로 한 entry.
+- **문서 밖 상태의 히스토리 = `recordExternal`**: `useDataStore.applyDataChange` 는 `setDataHistoryRecorder` (`CatalogBuilderCore.tsx` 가 `catalogDataHistoryRecorder` 로 연결 — `dataHistory.ts`) 를 지나 같은 스택에 `CatalogExternalEffect` 로 들어간다. 데이터 + 노드 바인딩을 한 번에 바꾸는 경우 (AI `bind_element`) 는 `catalogDocumentBindingCommitter` 하나의 entry.
+- **바뀐 데이터를 Canvas 에 알리기**: 행 변경 → `workspace.refreshRows`, 프로젝트 변수 변경 → `workspace.refreshState` (둘 다 `CatalogBuilderCore.tsx` 가 `useDataStore` 구독으로 부른다).
+- **구독은 field 단위**: 패널 · 오버레이는 `runtime.subscribeEntryField` / `subscribeResolvedField` 나 `useCatalog*` hook 으로 읽는다. step 전체를 구독해 매번 다시 계산하지 않는다 (`subscribeSteps` 는 read model 처럼 집계가 필요한 곳만).
+- **Zustand 규칙은 남은 store 에만**: StateCreator 팩토리 · 슬라이스 파일 분리, selector 가 배열 / 객체를 돌려줄 때 `useShallow` 나 ref 캐싱 (Zustand v5 는 `equalityFn` 을 무시), `setTimeout` / `queueMicrotask` 안에서는 `get()` 으로 최신 값.
 
-ADR-116/122 canonical-only-runtime 후 `_rebuildIndexes` 는 `getCanonicalOrStoreElements()` → canonical 우선 derive (elements.ts:430). ADR-122 HC #2 ("runtime mutation 은 canonical document 를 먼저 갱신") 정합 패턴 (`createAddElementAction` 기준, `elementCreation.ts:186-244`):
+## 4. 데이터 — Collections (ADR-132 · ADR-152 v2)
 
-```ts
-mergeXxxIntoCanonicalDocument([...]);              // 1. canonical document 1차 갱신
-set((prev) => ({ elements: [...prev.elements, ...newItems] })); // 2. legacy array derive 갱신
-get()._rebuildIndexes();                             // 3. canonical 기반 index 재구축
-await persistActiveCanonicalDocument(db);            // 4. IndexedDB persist (백그라운드)
-```
+- **문서의 바인딩**: `NodeEntry.binding: DataBindingRef { collectionId, fieldMap? }` (`catalog/document/types.ts`). 변환 `catalogBindingRef` (`dataBinding.ts`), 편집 명령 `catalogBindingCommand` (`dataBindingCommand.ts`, Properties 의 binding 키는 `catalogPropertiesPatchCommand` 가 이쪽으로 가른다).
+- **DOM · Preview · publish 의 읽기**: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` 하나 (`packages/shared/src/hooks/`). resolve 는 `resolveBoundCollection` (id 우선, `name` 은 옛 값 폴백), 옛 `{ type:"collection", config }` 는 `normalizeDataBinding` 이 읽기 경계에서 v2 로. `fieldMap` 값과 `{#<fieldId>}` 토큰은 `DataField.id` (key 아님).
+- **Canvas 의 읽기**: `catalogBoundRows` (`dataBinding.ts`) 가 바인딩된 행으로 record 를 만든다 (행 템플릿 편집은 `rowTemplate.ts`). 행 템플릿 해석 (`resolveFieldRoles` · `interpolateCollectionRowTemplate`) 은 shared DOM 쪽 함수다 — Canvas 와 DOM 의 결과가 같은지는 `/cross-check` 로 본다.
+- **데이터 편집 = `DataChange`**: collection 생성 · 삭제 · schema · 행 · source 는 `useDataStore.applyDataChange(change)` (`stores/utils/dataChange.ts` — `reduceDataOps` 순수 적용기, all-or-nothing, inverse 동시 산출) 하나. `create/update/deleteCollection` 은 `collectionUpdateToOps` diff 의 얇은 wrapper. **금지**: `set()` 으로 `collections` 직접 변경 · 히스토리 없는 데이터 편집 · `remove_field` / `remove_rows` 를 AI 에 노출 (`HUMAN_ONLY_DATA_OPS`).
+- source = `"api"` 는 `useAsyncList.load` 안에서 `executeApiEndpoint` → `collections.runtimeData` → `list.items`. useEffect + 로컬 state 로 결과를 들고 있지 않는다.
+- publish snapshot 은 `toRuntimeCollection(table)` (`{ id, name, schema, mockData, useMockData }`). `ExportedProjectSchema` 는 schema 필드 `id` 를 통과시킨다.
+- 이름: 저장 · 내부 타입은 `collections` (`CollectionState` · `targetCollection`), 사용자에게 보이는 UI 심볼 `DataTable*` (`panels/datatable/`) 은 유지.
 
-### 신규 mutation 은 러너 경유가 유일 경로 (ADR-184 Implemented 2026-08-15)
+## 5. 상태 변수 (ADR-214)
 
-**신규 mutation 경로는 위 순서를 수동으로 쓰지 않는다** — `runCanonicalMutation` (`adapters/canonical/canonicalMutationRunner.ts`) 이 canonical → set → `_rebuildIndexes` → history → persist(백그라운드) 순서를 소유하고, 호출자는 스테이지 함수만 제공한다 (canonical required — set-1차 위반이 시그니처상 표현 불가):
+- **모델**: `VariableDef` (`packages/shared/src/state/`). 소유자별 저장 —
+  - 프로젝트 = `useDataStore.variables` (IndexedDB, `define_variable` op, `createVariable` / `updateVariable` / `deleteVariable`)
+  - 페이지 · 요소 = 문서의 `StateVariableEntry { kind:"stateVariable", ownerId, name, valueType, defaultValue }` (`ProjectEntry.stateVariableIds`). 노드에 `state` 필드는 없다. 편집은 `stateVariables.ts` 의 record 명령 (UI: `CatalogStateSection.tsx`)
+- **가시성 · 이름 충돌 · 사용처** (Builder): `catalogVisibleVariableEntries` · `catalogVariableNameConflict` · `catalogVariableUsageCount` (`stateVariables.ts`, `dataVariables.ts`). 사슬은 요소 → 조상 → 페이지 → 프로젝트, 이름은 사슬 안에서 고유. 소유자 이동은 `catalogLegacyVariableMove` (`dataVariables.ts`).
+- **읽기 `{{ name }}`**: `resolveStateTemplate` (string prop 만, 깊이 6). **Canvas 는 기본값 env · Preview / publish 는 런타임 env** — 설계된 비대칭이라 `/cross-check` 에서 결함으로 판정하지 않는다. collection 행 템플릿은 `{{ }}` 먼저 → `{field}` 나중. 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax`).
+- **런타임 값**: `createRuntimeState` (shared) — Preview (`catalogPreviewSession.ts`) 와 publish 에만 있다. 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}`. persist 는 project 만 (`composition:runtime-state:v1:${projectId}`). 구독은 `subscribeVariable` (의존 인덱스) — 전체 revision 구독 금지.
+- **쓰기 액션**: 문서에는 `InteractionEntry.action { opcode:"setState" }`, 실행은 shared `dispatcher` → `DispatchDeps.writeState`.
 
-```ts
-runCanonicalMutation({
-  canonical: () => mergeElementsCanonicalPrimary(newItems), // wrapper 는 이 스테이지 안에서만
-  store: () => set((prev) => ({ elements: [...prev.elements, ...newItems] })),
-  history: () => {
-    /* prev 캡처 필요 시 러너 호출 전 closure 로 */
-  },
-  // 기록하지 않는 mutation 은 history: { skip: "<사유>" } 로 생략을 명시 (ADR-185)
-  // rebuild / persist 는 러너 소유 — 삭제 계열만 persistOptions: { allowShrink, reason }
-});
-```
+## 6. Interaction (ADR-131 의 events / actions 를 대체)
 
-**history 스테이지는 필수 (ADR-185 — history coverage 계약, Implemented 2026-08-15)**: 사용자-가시 mutation 이 history entry 없이 출시되는 계열이 4회 재발 (move 사후 수리 / 복합 생성 dead saveSnapshot / ADR-181 가이드 사후 편입 / 페이지 생성·삭제 — G-1, 2026-08-15 수리 `7a45f82d8`) 하여, `history` 는 기록 함수 또는 `{ skip: 사유 }` 명시적 생략만 허용한다 — 조용한 생략 (필드 자체를 빼는 형태) 은 타입 에러, 빈 skip 사유는 진입 시점 throw. 정당한 생략 사례: preview transient (commit 이 별도 기록) / silent live edit (useTextEdit 형) / preview 런타임 ingress. 기존 경로의 기록 여부 전수 감사와 **gap 목록 (수리 백로그 정본)** 은 [ADR-185 breakdown §4](../../docs/adr/design/185-history-coverage-contract-breakdown.md) — G-1 (페이지 생성/삭제) 은 별도 작업으로 수리 완료 (`page-lifecycle` entry + 페이지 간 스택 이관 `migrateEntryToPage` — history 는 페이지별 스택이라 활성 전환 entry 는 이관 없이 반대 방향 도달 불가).
+- 문서 정본은 `InteractionEntry { kind:"interaction", ownerId, trigger, action }` (`ProjectEntry.interactionIds`) — interaction 이 자기 소유 노드를 가리킨다 (노드가 `props.onPress: "ev1"` 로 가리키지 않는다). 편집은 `catalogRuntime/interactions.ts` 의 명령.
+- `CompositionDocument.events` / `actions` 타입은 export · 옛 입력 형식으로만 남는다 — Builder 정본이 아니다.
 
-- wrapper (`mergeElementsCanonicalPrimary` 등 6종) **직호출은 기존 경로 allowlist (15파일, ADR-184 breakdown §4-3 freeze) 한정** — `canonicalMutationRunner.static.test.ts` 가 기계 집행 (allowlist **추가 금지**, 추가 시도 자체가 리뷰 대상)
-- 기존 경로 이관은 비스코프 ("회귀 위험 대비 이득 작음" 선행 판정 유지) — 재개 조건: 해당 경로에서 stale-canonical race **재발** 시 그 경로 1건만 이관
-- hydration / bridge / undo 재생 (LayoutsTab 로드, BuilderCore page shell bridge, historyActions 재생 등) 은 mutation 이 아니라 러너 대상 아님 — 기존 파일 allowlist 로 고정
+## 7. Styles · Properties 패널 입력
 
-**금지 패턴**:
-
-- ❌ `set` → `_rebuildIndexes` → canonical update — `_rebuildIndexes` 가 **stale canonical** 로 elementsMap mirror 빌드하여 `reusable` / `componentRole` / mirror field 누락 race 발생. 사용자 가시 영향: 신규 프로젝트 생성 직후 origin → copy → paste 시 instance 가 일반 element 로 생성. 새로고침 후 IndexedDB → canonical hydrate 정합화로 영구 회복.
-- ❌ `set` 1차 → `syncXxxToCanonical` 2차 — ADR-122 HC #2 위반. wrapper 호출 시점이 set 뒤로 밀리면 canonical document 가 set 의 mutation 보다 1 tick 늦게 갱신되어 동기 read consumer (Skia bridge / canonical selector) 가 stale canonical 노출. 잔존 영역 (아래) 에서 회귀 패턴 반복.
-
-**잔존 영역 (ADR-122 post-Implemented residual, 2026-05-23 amend / 2026-07-15 부분 해소)**:
-
-ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이 되었음을 검증했지만 **wrapper 호출 순서 (canonical 1차 vs set 1차) 일관성** 은 검증하지 않았다. 2026-07-15 history 정비에서 2곳 해소, 다음 1곳이 `set` 1차 패턴 잔존:
-
-| 경로                                                  | 위치                                                                                                     | 상태                                                                                                                                                                                                  |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `createInstance` / `resetInstanceOverrideField`       | `apps/builder/src/builder/stores/utils/instanceActions.ts` (createInstance / resetInstanceOverrideField) | **잔존** — `set` 1차 → `syncInstanceElementsToCanonical` 2차. 단 history entry 는 canonical insert/replace event 로 전환됨 (2026-07-15) 이라 undo 경로의 full-replace 노출은 소멸                     |
-| instance snapshot batch (`applyElementSnapshotBatch`) | `apps/builder/src/builder/stores/utils/instanceActions.ts` (`applyElementSnapshotBatch`)                 | **해소 (2026-07-15)** — ① prev 캡처 → ② canonical sync 1차 → ③ replace event entry → ④ set → ⑤ \_rebuildIndexes 로 재배열                                                                             |
-| history Undo / Redo / goToHistoryIndex                | `apps/builder/src/builder/stores/history/historyActions.ts` (`!appliedCanonicalEvents` 분기 3곳)         | **해소 (2026-07-15)** — sync 가 `set()` 선행 + canonical 재파생 결과로 set. `historyActions.static.test.ts` 의 source-order 정적 가드가 재발 차단. 이 분기 자체는 구 IndexedDB v1 entry 전용으로 격하 |
-
-본 잔존은 ADR-122 본문 § Residual 에 추가됐다 ([docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md](../../docs/adr/completed/122-canonical-only-runtime-legacy-mirror-removal.md)). createInstance/resetInstanceOverrideField 의 호출 순서 reverse 는 여전히 후속 분리 (회귀 위험 대비 이득이 작음 — history 경로는 이미 canonical event 로 격리). **위반 누적 차단은 ADR-184** (신규 경로 러너 경유 + 우회 차단 정적 가드 — 잔존 경로는 allowlist 고정, §신규 mutation 은 러너 경유 참조).
-
-**회귀 이력**: `instanceActions.ts` 3곳 fix — commits `a859f8b97` (applyElementSnapshotBatch) + `ee91020c4` (createInstance / resetInstanceOverrideField). 위 잔존 패턴 자체 정정 대신 그로 인한 stale derive race 만 우회 해소.
-
-## Root Collection SSOT (ADR-131 Implemented 2026-05-13)
-
-- `CompositionDocument.events` / `actions` 가 일급 root collection. 각 entry 는 flat node 구조 (ADR-110 `themes`/`variables` 패턴과 동일) → 향후 behavior 카테고리 확장 시 동일 패턴 적용
-- mutation 은 `syncXxxToCanonical()` 경유 (root collection 전용 sync). UI node 는 `props.onPress: "ev1"` 같은 **string id** 로 root collection entry 를 참조 — static type guard 필수
-- ADR-116 §3 `x-composition.events|actions` extension field 는 본 root field 로 partial supersede 됨
-- **data 영역 제외**: ADR-131 Phase 8 사용자 관점 revert — `data_tables` (→ `collections`) 가 데이터 SSOT 유지, `CompositionDocument.data` root field 미도입
-
-## Collections read 진입점 (ADR-132 Implemented 2026-05-13 · ADR-152 v2 계약 Implemented 2026-09-11)
-
-- RAC collection 컴포넌트 (Table/ListBox/GridList/ComboBox/Select/Tree/Breadcrumbs/Tabs/TagGroup/Menu) 의 items read 는 `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` **단일 경유** (`datatableId` · `elementId` 옵션은 ADR-152 Phase 5 에서 제거)
-- **바인딩 계약 v2 (ADR-152)**: `props.dataBinding = { source:"dataTable", collectionId, name?, fieldMap?: { value?, icon? } }` — resolve 는 `resolveBoundCollection` (id 우선 · `name` 은 legacy fallback, `useDataStore.collections` Map 은 **id 키**) 하나. `fieldMap` 값과 `{#<fieldId>}` 템플릿 토큰은 **`DataField.id`** (key 아님) — key rename 이 바인딩·템플릿·차트 참조를 파손하지 않는다. legacy `{ type:"collection", config:{ collectionId | datatableId | name } }` 는 `normalizeDataBinding` 이 읽기 경계에서 v2 로 정규화 (재직렬화 0). **금지**: `collections` 를 name 으로 직접 find · `fieldMap` 에 key 저장 · `datatableId` 분기 재도입
-- **역할 소비**: `resolveFieldRoles(dataBinding, schema?)` → `{ value?, icon? }` (행 key) 를 `resolveCollectionItems` 계열 getter 와 `interpolateCollectionRowTemplate` 이 받는다 — Skia projection (`canvasSceneNode`) 과 DOM wrapper 가 같은 shared 함수를 지나야 한다 (대칭). `DataField.id` 는 store 진입 경계 `normalizeCollection` 이 부여하고 hydrate 직후 id 없는 collection 만 1회 write-back
-- **데이터 편집 = `DataChange`**: collection 생성·삭제·schema·행·source 변경은 `useDataStore.applyDataChange(change)` (`stores/utils/dataChange.ts` — `reduceDataOps` 순수 적용기, all-or-nothing, inverse 동시 산출) 하나로 들어가며 History `type:"data"` entry (`elementId = collectionId`, `dataChangeEvent { change, inverse }`) 를 남긴다 — undo/redo dispatcher 는 `data` 를 element 경로 앞에서 분기 (`historyActions.ts`). `create/update/deleteCollection` 은 이 적용기의 얇은 wrapper (`collectionUpdateToOps` diff). **금지**: `set()` 으로 `collections` 직접 mutation · History 없는 데이터 편집 · `remove_field` / `remove_rows` 를 AI 경로에 노출 (`HUMAN_ONLY_DATA_OPS`)
-- **publish snapshot**: `toRuntimeCollection(table)` → `{ id, name, schema (id 포함), mockData, useMockData }` 만 (runtimeData · 저장소 메타 제외) — 헤더 Preview payload 와 export JSON 공통, `ExportedProjectSchema` 는 schema 필드 `id` 를 통과시켜야 한다
-- source="api" 는 `useAsyncList.load` callback 안에서 `executeApiEndpoint` 호출 → `collections.runtimeData` sink → `list.items` read. **금지**: useEffect + local useState 로 endpoint 결과 보관 (legacy 우회 패턴)
-- rename: `data_tables` (snake/DB) / `dataTables` (camel/store) → `collections` (canonical). internal type 도 `CollectionsMap` / `CollectionState` / `targetCollection`
-- **UI surface 심볼은 유지**: `DataTable*` (DataTableEditor / DataTablePanel / panels/datatable/ 등) 은 사용자 노출이라 rename 제외
-
-## 상태 스코프 — Variables 소유자 모델 (ADR-214 Implemented 2026-09-14)
-
-- **모델 하나** `VariableDef { id, name, type, defaultValue?, persist?, source?: { prop } }` (`packages/shared/src/state/`) + 소유자 `project | page(pageId) | element(elementId)`. 저장은 소유자별 — 프로젝트 = `useDataStore.variables` (IndexedDB, `define_variable` op · History `data`) · 페이지 · 요소 = canonical 노드 `state?` 필드 (`Element.state` mirror, mirror 에 필드가 없으면 이전 노드 state 보존 — `canonicalMutations.canonicalStateField`). 복제·붙여넣기는 canonical clone 에서 id 재발급 (`remapClonedState`). **금지**: legacy Element 값에서 state 읽기 · `state` 없는 재구성으로 정의 소실.
-- **쓰기 경로**: 요소 `updateElement(id, { state })` (History `update` full-node — `NON_PROPS_CANONICAL_HISTORY_FIELDS` 에 `state`) · 페이지 `useStore.setPageState(pageId, defs, { skipHistory? })` (History `page-state`, 비-element 축 early-branch) · 프로젝트 `createVariable/updateVariable/deleteVariable`. UI (Properties 상태 절 · Navigator 페이지 설정 · Data 탭) 가 canonical 을 직접 만지지 않는다.
-- **가시성 = 사슬** 요소 → 조상 → 페이지 → 프로젝트 (`resolveVisibleVariables`), 이름은 사슬 안 고유 (`findVariableNameConflict` — 편집기 · Properties · 적용기 전부 이 검증기). 사용처 집계는 `collectVariableUsages` (템플릿은 그 노드에서 보일 때만 · setState 규칙은 id 축) 하나 — 삭제 확인 · 인덱스 배지가 같이 읽는다.
-- **읽기 `{{ name }}`** (`resolveStateTemplate`, string prop 만, 깊이 6, 같은 참조 유지): **Canvas (Skia) 는 기본값 env · preview/publish 는 런타임 env** — 설계된 비대칭, `/cross-check` 오판 금지. collection 행 템플릿은 **`{{ }}` 먼저 → `{field}` 나중** (field 문법에서 `{{`/`}}` 는 escape). 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax` 가 실행 판정).
-- **런타임 값** `createRuntimeState` (shared) — 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}` (preview: ref root = refId · 자손 `${scope}/${id}`; publish: origin id). persist 는 project 만 (`composition:runtime-state:v1:${projectId}`), 프로젝트 전환은 clear + hydrate. 구독은 의존 인덱스 (`subscribeVariable`) — 전체 revision 구독 금지 (600/소비 10 p95 9 ms 기준).
-- **쓰기 액션** `SetStateAction { kind:"setState", variableId, op: set|toggle|increment|reset, value? }` → shared `dispatcher` → `DispatchDeps.writeState` (소비처가 소유자 scope 결정, element 는 `instanceKeyFor`). 암묵 상태는 `IMPLICIT_STATE_SOURCES` 관찰 이벤트 미러 (`source.prop` 붙은 정의만, prop 주입 0 — D1 무변경). 위임 렌더러는 `invokeCustomEventHandler` 로 규칙 핸들러를 부른다.
-- 알려진 범위: Canvas 인스턴스 자손 (synthetic id) 은 master 요소 변수를 못 본다 · `PropertyFieldTemplateInput` 에 `{{` 자동완성 없음.
-
-## 스타일 패널 (Zustand → Jotai Bridge)
-
-- PropertyUnitInput: focus 시 selectedElementId ref 캡처 → blur 시 비교 → 다르면 onChange 스킵. **Why**: mousedown→blur 이벤트 순서로 blur 시점에 이미 새 요소 선택됨
-- buildSelectedElement에 `properties` 전달 필수. **Why**: 미전달 시 size를 모름 → md fallback → 잘못된 fontSize 표시
-- SyntheticComputedStyle: Spec preset 속성 추가 시 인터페이스도 동기화. 우선순위: inline → computed → synthetic → 기본값
+- `PropertyUnitInput`: focus 때 선택 id 를 ref 로 잡고 blur 때 비교 — 다르면 onChange 를 건너뛴다. **Why**: mousedown → blur 순서라 blur 시점에 이미 새 요소가 선택돼 있다.
+- Styles 값은 `catalogStylesHost.ts` 가 선택 record 의 typed field 를 읽어 `SelectedElement` 로 만든다 (옛 `buildSelectedElement` · `SyntheticComputedStyle` 은 없다). 편집은 `catalogSemanticPatchCommand` → `setFields` 한 step.
 
 ## 금지 패턴
 
-- ❌ 배열 순회로 요소 검색 (elementsMap O(1) 사용)
-- ❌ DB 저장 시 delta props만 저장 (merged 전체 필수)
-- ❌ 히스토리 기록 없이 상태 변경
-- ❌ setTimeout 내에서 외부 캡처 변수 사용 (get() 필수)
+- ❌ graph 를 직접 고치거나 op 를 손으로 만들어 runtime 에 넣기 — 명령 → `workspace.execute` 가 유일한 길
+- ❌ `history` 의도 없이 transaction 실행 · 사용자 편집을 skip 사유로 기록 생략
+- ❌ consumer (Canvas · DOM 갱신) 안의 실패를 삼키기 — 던져야 `revertCommit` 으로 문서와 화면이 같이 되돌아간다
+- ❌ 문서 밖 상태 (data store) 를 바꾸면서 `recordExternal` 없이 끝내기 — undo 에서 문서와 데이터가 갈린다
+- ❌ 요소 · 문서 Zustand store 를 다시 만들기 (`useStore` · `elementsMap` · `childrenMap`)
+- ❌ `set()` 으로 `collections` 직접 변경 · step 전체 구독으로 field 하나를 다시 계산
+- ❌ `setTimeout` 안에서 바깥에서 잡은 store 값 사용 (남은 Zustand store — `get()` 필수)

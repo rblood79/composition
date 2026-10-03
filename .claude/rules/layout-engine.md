@@ -1,8 +1,11 @@
 ---
-description: 레이아웃 엔진 관련 파일 작업 시 적용 — layoutVersion 5-심볼 체인 · 엔진↔TS 경계 · 배치 직렬화 계약. 엔진 CSS 정합 실측 전문은 skill reference 로 분리
+description: 레이아웃 엔진 관련 파일 작업 시 적용 — catalog runtime 의 레이아웃 재계산 경로 · 엔진↔TS 경계 · 배치 직렬화 계약. 엔진 CSS 정합 실측 전문은 skill reference 로 분리
 paths:
   - "packages/engine/**"
   - "apps/builder/src/builder/workspace/canvas/layout/**"
+  - "apps/builder/src/builder/catalogRuntime/compositionRoot.ts"
+  - "apps/builder/src/builder/catalogRuntime/canvasBinding.ts"
+  - "packages/shared/src/catalog/transactions/transaction.ts"
   - "apps/builder/tests/parity/**"
 ---
 
@@ -10,56 +13,64 @@ paths:
 
 > 구현 상세: [layout-details.md](../skills/composition-patterns/reference/layout-details.md) · 아키텍처/WASM 경계: [layout-engine.md](../skills/composition-patterns/reference/layout-engine.md) · **엔진 CSS 정합 실측 기록 23절 전문**: [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md)
 
-## layoutVersion 계약
+## 레이아웃 재계산 경로 (catalog runtime — 2026-10-04 개정)
 
-- `fullTreeLayoutMap` useMemo는 `layoutVersion` 카운터에 의존
-- 레이아웃 영향 **모든 코드 경로**에서 `layoutVersion + 1` 필수
+> ADR-248 Phase 4 (2026-10-03) 뒤 production 레이아웃은 **`catalogRuntime/compositionRoot.ts`** 가 `PersistentLayoutTree` 를 직접 몬다. 옛 `layoutVersion` 카운터 · `fullTreeLayoutMap` useMemo · 5-심볼 2계층 체인 (`LAYOUT_AFFECTING_PROP_KEYS` · `NON_LAYOUT_PROPS_UPDATE` · `INHERITED_LAYOUT_PROPS_UPDATE` · `LAYOUT_STYLE_KEYS` · `LAYOUT_PROP_KEYS`) 은 대상 파일 (`stores/utils/layoutInvalidation.ts` · `elementUpdate.ts` · `scene/layoutCache.ts` · `BuilderCanvas.tsx`) 과 함께 삭제됐다. 같은 이름의 상수는 `presentation/invalidation/editorMutationEffectRegistry.ts` 에 테스트용 파생 view 로만 남아 production 판정에 쓰이지 않는다 — 여기에 키를 넣어도 화면은 바뀌지 않는다.
 
-### 5-심볼 2계층 체인 (신규 layout prop / style 키 추가 시 점검)
+편집 한 번이 레이아웃까지 가는 길 (순서대로):
 
-두 계층은 **AND 조건**이다 — 계층 A 가 재계산을 트리거하고, 계층 B 가 그 재계산에서 캐시를 무효화한다. **한쪽만 등재하면 무반영**이다. 그리고 **props 축과 style 축은 배열이 서로 다르다** — 추가하려는 키가 `element.props.foo` 인지 `element.props.style.foo` 인지 먼저 판정할 것.
+| #   | 단계                       | 위치                                                                                                            | 판정                                                                                                                                                                                                                                                                                                                                                                                     |
+| --- | -------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | transaction 의 layout 영향 | `operationAffectsLayout` · `PAINT_ONLY_VISUAL_KEYS` (`packages/shared/src/catalog/transactions/transaction.ts`) | **제외 방식** — 구조 변경과 모든 op 가 layout 영향이고, `patchNodeVisual` (· visual scope 의 `patchDefinitionOverride`) 중 키가 paint-only 목록 (color · backgroundColor · borderColor · fill · opacity · radius* · boxShadow · filter · transform · zIndex · backgroundImage · backgroundSize · textDecoration …) 에 있을 때만 아니다. `setNodeField` 는 `fillSizing` · `visibility` 만 |
+| 2   | 재계산 여부                | `CatalogCompositionRoot.plan` (`compositionRoot.ts`)                                                            | 값 변경 step: `computeLayout = 대상 root 있음 && (impact.layout \|\| layoutPlanChanged)` — paint-only 표시가 실제 상자 변화를 가리지 못한다. 구조 변경: 영향 root 가 있으면. 소유 노드 삭제 · 순서 변경: 항상                                                                                                                                                                            |
+| 3   | 노드 style 변경 판정       | `planRecord` → `styleChanged = !old \|\| frameChanged \|\| !sameFields(styleFor(old), style)`                   | **키 목록이 없다** — `styleOf` 가 만든 엔진 입력 (`NodeStyle`) 전체를 비교한다                                                                                                                                                                                                                                                                                                           |
+| 4   | 엔진에 반영                | `applyRecord` → `PersistentLayoutTree.addNode` / `updateNodeStyle`                                              | `updateNodeStyle` 은 직렬화 JSON 이 같으면 WASM 호출을 건너뛰고 (`_lastJsonMap`), 다르면 `updateStyleRaw` → 엔진 `update_style` 이 조상까지 dirty 전파                                                                                                                                                                                                                                   |
+| 5   | 계산 · 줄바꿈 재측정       | `apply()` → `layout.computeLayout` → `rewrap`                                                                   | `rewrap` = height-for-width 1회 재측정 (텍스트 leaf 를 확정 폭으로 다시 재 `wrapHeights` → `updateNodeStyle` → `computeLayout` 한 번 더). 옛 Step 4.5 와 같은 축소 계약                                                                                                                                                                                                                  |
+| 6   | Canvas 반영                | `canvasBinding.ts` — `root.subscribeCanvas` dirty → `root.getGeometry` rect diff                                | 바뀐 rect 의 subtree 명령만 다시 만들어 끼운다 (`presentationRevision` 로컬 증가). 전역 카운터 없음                                                                                                                                                                                                                                                                                      |
 
-| 계층                        | 심볼                            | 위치                                    | 축    | 방식                                 |
-| --------------------------- | ------------------------------- | --------------------------------------- | ----- | ------------------------------------ |
-| **A. layoutVersion 트리거** | `LAYOUT_AFFECTING_PROP_KEYS`    | `stores/utils/layoutInvalidation.ts`    | props | **allowlist** (`has(key)`)           |
-| A                           | `NON_LAYOUT_PROPS_UPDATE`       | `stores/utils/elementUpdate.ts`         | style | **blacklist** (`!set.has(k)`)        |
-| A                           | `INHERITED_LAYOUT_PROPS_UPDATE` | `stores/utils/elementUpdate.ts`         | 상속  | allowlist (fontSize/lineHeight 류만) |
-| **B. 페이지 캐시 시그니처** | **`LAYOUT_STYLE_KEYS`**         | `workspace/canvas/scene/layoutCache.ts` | style | allowlist                            |
-| B                           | `LAYOUT_PROP_KEYS`              | `workspace/canvas/scene/layoutCache.ts` | props | allowlist                            |
+- `buildFull` 은 bind 때 (`buildLayout`) 와 실패 롤백 (`restore`) 에서만 쓴다. 편집은 전부 증분 (`addNode` · `updateStyleRaw`) 이다.
+- **엔진 입력의 유일한 직렬화기는 `styleOf`** (`compositionRoot.ts`). 길이는 `px()` 로 `"Npx"` 문자열, grid track 은 `containerTracks` 가 `parseGridTemplate` 로 배열, 텍스트 측정 스칼라 (`contentMinWidth` · `contentMaxWidth` · `contentHeight`) 는 TS 측정값, 상속 줄 높이는 `inheritedLineHeight`.
 
-- **계층 A 진입점 2개**: Inspector top-level props 편집은 `inspectorActions.ts` 가 `LAYOUT_AFFECTING_PROP_KEYS.has(key)` 로 판정(`"style"` 키 통째 포함) / style 필드 변경은 `isLayoutAffectingUpdate()` 가 `NON_LAYOUT_PROPS_UPDATE` **제외 방식**으로 판정. **layout 영향 style 키를 `NON_LAYOUT_PROPS_UPDATE` 에 넣지 말 것** (넣으면 layoutVersion 증가 skip).
-- **계층 B 는 축이 갈린다**: `createElementLayoutSignature()` 가 `LAYOUT_STYLE_KEYS` → `style[key]`, `LAYOUT_PROP_KEYS` → `props[key]` 를 각각 읽어 시그니처를 만든다. **`LAYOUT_PROP_KEYS` 에는 `style.*` 키가 하나도 없다** (`children`/`text`/`size`/`iconName`/`isExpanded` 등 props 전용. `height`/`heightMode` 는 Table 의 **props**.height 이지 style.height 아님).
-- **Why**: 계층 B 누락 → 캐시 히트로 변경 미반영(재계산은 돌지만 같은 시그니처라 이전 결과 재사용). 계층 A 누락 → 재계산 자체를 안 함. **실증**: `isExpanded`/`allowsMultipleExpanded` 가 `LAYOUT_AFFECTING_PROP_KEYS`(A) 와 `LAYOUT_PROP_KEYS`(B) **양쪽에 누락**되어 Disclosure collapse 가 Skia 에 무반영 (CHANGELOG 2026-05-09/07-14). **ADR-156 R6**: `justifySelf`/`justifyItems`/`gridAutoColumns`/`gridAutoRows`/`gridColumnStart`/`gridRowStart`/`overflowX`/`overflowY`/`order` 가 `LAYOUT_STYLE_KEYS`(B) 미등재 — 엔진을 고쳐도 해당 키만 바뀌는 편집은 캐시 히트로 흡수된다.
-- **grep 함정**: `gridColumn`/`gridRow` shorthand 는 `LAYOUT_STYLE_KEYS` 에 있으나 `gridColumnStart`/`gridRowStart` 는 **없다** — 본 문서 §"Grid area 이름 해석" 이 factory 에 요구하는 **숫자 line 병기** 형태로 쓰면 캐시 키에 걸리지 않는다. `overflow` 는 등재됐으나 파이프라인은 `overflowX`/`overflowY` 를 송신한다.
-- 심볼명 주의: **`LAYOUT_AFFECTING_PROPS`**(뒤에 `_KEYS` 없음)는 과거 심볼로 코드에 **0건**이다. 현행은 **`LAYOUT_AFFECTING_PROP_KEYS`** — 두 이름을 혼동해 "과거 심볼" 로 넘기지 말 것.
+### 새 레이아웃 키를 추가할 때 (체크리스트)
+
+1. **`styleOf` 가 그 키를 엔진 입력으로 내보내는가** — 내보내지 않으면 엔진에 닿지 않는다 (3단계의 비교 대상에도 없다). 엔진 `NodeStyle` 에 필드가 없으면 엔진부터.
+2. **paint-only 목록에 넣지 않는다** — 상자 크기 · 위치를 바꿀 수 있는 키를 `PAINT_ONLY_VISUAL_KEYS` 에 넣으면 1단계가 재계산을 건너뛴다 (2단계의 `layoutPlanChanged` 가 `styleFor` 변화로 다시 잡지만, 그 판정에 의지하지 않는다). 반대로 정말 칠만 바꾸는 키는 넣어야 불필요한 재계산이 없다.
+3. 길이는 문자열, track 은 배열, 스칼라는 숫자 — 아래 §배치 직렬화 계약.
+4. live 로 확인 — 값을 바꾼 직후 (새로고침 없이) Canvas 상자가 따라오는가. 새로고침 뒤에만 맞으면 증분 경로 (4단계) 를 의심한다.
+
+### 재확인 필요 — 옛 경로가 full rebuild 로 피하던 증상
+
+옛 `fullTreeLayout` 은 엔진 `updateStyleRaw` 가 grid track · placement 캐시를 못 무효화한다는 실측 (2026-06-16: 기존 grid 컨테이너의 padding · gap · gridTemplate · width/height/min·max 변경 → 1줄로 무너짐, 새로고침 뒤 정상) 과, 새 grid 컨테이너 · 자식을 가진 새 컨테이너를 `addNode` 로 넣으면 자식 배치가 비는 실측 때문에 그 경우들을 full rebuild 했다 (아래 parity 절 §PersistentLayoutTree). **catalog 경로에는 이 가드가 없다** — 위 증상이 재현되면 엔진 `update_style` 의 grid 캐시 무효화 · `add_node` 증분부터 본다 (TS 에 rebuild 가드를 되살리는 것은 엔진 수정이 막혔을 때만).
 
 ## 엔진 선택
 
-- flex → `flexStyleAdapter.ts`, grid → `gridStyleAdapter.ts`, block/undefined → `blockStyleAdapter.ts` — 셋 다 **style 어댑터** (값 변환·정규화만) 이고 계산은 단일 자체 Rust WASM (`packages/engine`, ADR-916 Implemented 2026-07-06) 이 한다. JS 심볼의 `Taffy*` 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명 (`EngineStyle` · `EngineDisplay` · `toEngineDisplay` · `applyCommonEngineStyle` · `engineStyleToRecord` · `PersistentLayoutTree`; 파일 `displayAdapter` · `flexStyleAdapter` · `blockStyleAdapter` · `gridStyleAdapter` · `persistentLayoutTree`) — 옛 이름은 ADR·evidence 이력 문서에만 남는다
+- production 은 `PersistentLayoutTree` 와 `gridStyleAdapter.parseGridTemplate` 만 쓴다 (`compositionRoot.ts`). 아래 어댑터 셋은 parity 하니스의 `fullTreeLayout` 경로다. flex → `flexStyleAdapter.ts`, grid → `gridStyleAdapter.ts`, block/undefined → `blockStyleAdapter.ts` — 셋 다 **style 어댑터** (값 변환·정규화만) 이고 계산은 단일 자체 Rust WASM (`packages/engine`, ADR-916 Implemented 2026-07-06) 이 한다. JS 심볼의 `Taffy*` 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명 (`EngineStyle` · `EngineDisplay` · `toEngineDisplay` · `applyCommonEngineStyle` · `engineStyleToRecord` · `PersistentLayoutTree`; 파일 `displayAdapter` · `flexStyleAdapter` · `blockStyleAdapter` · `gridStyleAdapter` · `persistentLayoutTree`) — 옛 이름은 ADR·evidence 이력 문서에만 남는다
 
 ## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
 
 - out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.
 - **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3):
   - containing block **조상 체인** 탐색 (nearest positioned ancestor) — 직계 부모 고정. 재개 조건 = positioned ancestor 2단 이상 실사용 등장
-  - `position:fixed` viewport 기준 — absolute 근사. TS 도 fixed→absolute 로 강제 변환해 송신 (`fullTreeLayout.ts` patch 경로). 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
+  - `position:fixed` viewport 기준 — absolute 근사. catalog 경로는 위치를 가진 상자를 `position:absolute` + `insetLeft/Top` px 로만 보낸다 (`styleOf`) — fixed 를 엔진에 보내는 경로가 없다 (parity 의 `fullTreeLayout.ts` 는 fixed→absolute 변환). 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
 - 재개 시 절차: 위 재개 조건 발생 → ADR-164 §4 조건부 규칙에 따라 해당 축만 엔진 구현 + fixture (새 ADR 불요)
 
-## CONTAINER_TAGS
+## `fullTreeLayout.ts` 파이프라인 — parity 하니스 전용 (production 아님)
+
+> `calculateFullTreeLayout` (`workspace/canvas/layout/engines/fullTreeLayout.ts`) 를 production 이 부르지 않는다 — 호출자는 `apps/builder/tests/parity/**` 하니스뿐이다 (`publishLayoutMap` 도 `null` 만 받아 `getSharedLayoutMap` 은 비어 있다). 그래서 이 절부터 §2-Pass · §Grid 트랙 폭 까지의 계약 (DFS enrichment · implicitStyles · Label delegation · 2-pass · grid full rebuild · propagation) 은 **parity 하니스가 재는 옛 경로**의 계약이다. production 경로를 고칠 때 이 절을 근거로 쓰지 않는다 — §레이아웃 재계산 경로 가 정본. 이 파이프라인을 지울지 (parity 하니스를 catalog 경로로 옮길지) 는 별도 판정이다.
+
+### CONTAINER_TAGS
 
 - children 렌더링 컴포넌트는 height: `'auto'` + `minHeight`. **Why**: 고정 height → children 겹침
 
-## Parent-delegated props 상속
+### Parent-delegated props 상속
 
 - Canvas 엔진은 CSS와 달리 명시적 전파 필요 → `effectiveGetChildElements` 래퍼 사용
 - `enrichWithIntrinsicSize` 재귀 호출과 DFS `filteredChildren` 양쪽에 적용 필수
-- Skia 경로도 동기화: buildSpecNodeData `resolveParentDelegatedSize`. **Why**: Store가 자식 size 미저장
-- **propagationRegistry read-time 전파는 자식 visit 에서 적용** (`traversePostOrder` 진입 직후 `resolvePropagatedProps`, 2026-09-03): 부모 단계의 `effectiveGetChildElements` 래퍼는 부모 **측정** 에만 쓰이고, 자식 자신의 batch style 은 post-order 로 먼저 오른 자식 visit 값이다 — 부모 래퍼에만 두면 엔진이 patch 를 못 본다 (FieldError `display` 투영 실측). `asStyle` patch 는 자식 style 위에 덮는다 (얕은 spread 는 fontSize 를 잃는다). Skia 는 `applyParentPropagationProps` 가 같은 registry 를 읽는다
+- **propagationRegistry read-time 전파는 자식 visit 에서 적용** (`traversePostOrder` 진입 직후 `resolvePropagatedProps`, 2026-09-03): 부모 단계의 `effectiveGetChildElements` 래퍼는 부모 **측정** 에만 쓰이고, 자식 자신의 batch style 은 post-order 로 먼저 오른 자식 visit 값이다 — 부모 래퍼에만 두면 엔진이 patch 를 못 본다 (FieldError `display` 투영 실측). `asStyle` patch 는 자식 style 위에 덮는다 (얕은 spread 는 fontSize 를 잃는다).
 - **자식 텍스트 leaf 의 글자 크기는 parent rule delegation 이 정본이고 자식의 인라인 `style.fontSize` 를 이긴다** (`resolveDelegatedChildFontSize`, `@composition/shared`, 2026-09-03 정정): Preview/publish 는 canonical FieldError 자식이 아니라 **RAC 자체 FieldError** 를 그려 (`data-element-id` 없음) 자식의 인라인 style 이 DOM 에 도달할 채널이 없다 — 인라인을 이기게 두지 않으면 옛 문서가 Canvas 만 갈린다 (실측 12/18 vs DOM 14/21). DOM 은 childSelector 의 size 별 hint 변수를 읽는다 (TextField·TextArea md = text-sm 14, Number/Date/TimeField md = text-xs 12); 자식 자체 rule (FieldError md 12) 만 읽으면 갈린다. **줄 높이도 같은 소유권** — catalog rule 의 lineHeight 토큰 (FieldError md 16) 은 활성 bundle 이 소비하지 않고 (`generated/FieldError.css` 가 `styles/index.css` 에 미import) DOM 은 root `line-height: 1.5` (`styles/theme/shared-tokens.css`) 를 상속한다. Skia 는 sizeSpec 을 `resolveInheritedLineHeight` 로 덮고 **raw style 의 lineHeight 도 걷어낸다** ("Text style overrides" Phase A 가 raw style 을 다시 읽어 spec 값을 덮는다 — 숫자는 배율 해석이라 10 → fs×10). layout 은 값을 주입하지 않고 인라인만 걷어낸다 — 빈 FieldError 는 DOM 에 줄 상자가 없어 높이 0 이고 측정 기본 (내용 있을 때만 fs×1.5) 이 그 계약과 같다
-- **field 가족의 FieldError · Label · Input · DateInput 자식, SelectTrigger 래퍼 (6 parent), 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label, picker 의 `SelectTrigger > DateInput` 은 read-only sub-part** (판정 A × 4, 2026-09-03): `projectReadOnlySubpart` (`layout/engines/readOnlySubpart.ts`, 술어는 shared `resolveDelegatedSubpartOwnerType` — 직계가 래퍼면 조부모) 하나를 **세 곳이 같이 읽는다** — (a) 자식 visit (인라인 통째 무시 → 투영 `display` + FieldError delegation fontSize + field 직계 Input/DateInput `width:100%`; 줄 높이 명시 주입 금지 — 빈 FieldError 높이 0) · (b) **implicitStyles 입력 자식** (`rawChildren.map`) · (c) 3.6 implicit 패치의 delta 기준. Why (b): implicit 은 `cs.X ?? 기본값` 으로 주입하므로 raw junk 를 보면 기본값 주입 (래퍼 width 100% · padding, Label gridArea) 이 막히고 delta 는 그 키를 못 건진다. Why (c): 3.6 의 fit-content 재측정은 raw `children` 텍스트로 폭을 다시 재 propagation 된 텍스트로 잰 visit 값을 덮는다 (Meter Label "Storage" 54 vs "Name" 40 = DOM 39, 실측) — sub-part 는 투영 기준이라 건너뛴다. 한 곳에서 걷어낸 인라인이 다른 곳에서 되살아나는 것 (3.6 전체 재패치, Label/Input 실측) 이 이 셋을 한 함수로 묶는 이유다. 래퍼·그룹 Label 의 구조값은 implicitStyles read-through 주입 (`fieldTriggerRowStyle` — field 분기와 picker 분기 공용, Δ11 grep gate ≤ 3 · progressbar/meter Label 숫자 grid line) 이 유일 채널이다. overlay margin 보고도 batch 를 읽는다. **TextArea 의 Input 높이는 parent `rows`** (implicit `catalogTextAreaInputHeight` — catalog `Input.sizes[size]` 한 줄 상자에서 줄 높이 = height − paddingY×2 − border×2, md 3줄 = 70 = DOM `<textarea rows>`; Skia 는 placeholder `verticalAlign: "top"` 투영, catalog `TextArea.sizes.height` 는 dead). **layout 모드 Slot placeholder 높이** 는 잔존 spec `Slot.spec` sizes.height 를 implicit 이 `minHeight` 로 주입 (`_slotChrome hidden` = page 모드 제외; 템플릿 인라인 `minHeight 60 · flex 1` 계약과 동형 — Preview 는 layout 모드를 안 그린다). 게이트: bridge `read-only sub-part` 3 · browser FieldError 옛 문서 케이스 · `adr923FieldSubpartProjection.browser.test.ts` · `adr923WrapperSubpartProjection.browser.test.ts` (junk == clean · baseline DOM 대조 · 래퍼 폭 = root 폭).
-- **`asStyle` propagation patch 는 바꾸는 키만 담고 병합은 소비처가 한다**: store 쓰기 (`batchUpdateElementProps`) 는 props 최상위 얕은 병합이라 부분 style 을 그대로 보내면 자식의 fontSize/color/width 가 사라진다 — `PropagationUpdate.mergeStyle` → `BatchPropsUpdate.mergeStyle` → `applyBatchStylePatch` 로 그 자리에서만 병합한다 (factory 는 `applyFactoryPropagation` 안에서). **생산자가 현재 style 전체를 복사해 보존하면 안 된다** — 그 복사본은 `sanitizePropsPatch` 를 다시 지나 fill 파생 키 (`backgroundColor`/`backgroundImage`/`backgroundSize`) 가 지워진다. 기본 (플래그 없음) 통째 교체 의미는 Inspector 의 style 키 삭제가 의존하므로 유지. **패널의 store 호출 흐름은 `semanticUpdateDispatch.dispatchSemanticUpdateWithPropagation` 한 벌** — `PropertiesPanel` 은 `actions: state` 로 넘기기만 하고 store 액션을 직접 부르지 않는다. 화면 콜백 안에 흐름이 인라인으로 있으면 어떤 테스트도 그 콜백을 실행하지 못한다 (helper 호출 후 반환값을 버려도 단위 테스트 전부 통과). seam 게이트는 `adr923PropagationTransport.test.ts` (dispatch 함수를 실제 slice 위에서 실행 + `typescript` AST 로 패널 호출 형태 고정 + `toBatchPropsUpdates` 단일 호출자)
+- **field 가족의 FieldError · Label · Input · DateInput 자식, SelectTrigger 래퍼 (6 parent), 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label, picker 의 `SelectTrigger > DateInput` 은 read-only sub-part** (판정 A × 4, 2026-09-03): `projectReadOnlySubpart` (`layout/engines/readOnlySubpart.ts`, 술어는 shared `resolveDelegatedSubpartOwnerType` — 직계가 래퍼면 조부모) 하나를 **세 곳이 같이 읽는다** — (a) 자식 visit (인라인 통째 무시 → 투영 `display` + FieldError delegation fontSize + field 직계 Input/DateInput `width:100%`; 줄 높이 명시 주입 금지 — 빈 FieldError 높이 0) · (b) **implicitStyles 입력 자식** (`rawChildren.map`) · (c) 3.6 implicit 패치의 delta 기준. Why (b): implicit 은 `cs.X ?? 기본값` 으로 주입하므로 raw junk 를 보면 기본값 주입 (래퍼 width 100% · padding, Label gridArea) 이 막히고 delta 는 그 키를 못 건진다. Why (c): 3.6 의 fit-content 재측정은 raw `children` 텍스트로 폭을 다시 재 propagation 된 텍스트로 잰 visit 값을 덮는다 (Meter Label "Storage" 54 vs "Name" 40 = DOM 39, 실측) — sub-part 는 투영 기준이라 건너뛴다. 한 곳에서 걷어낸 인라인이 다른 곳에서 되살아나는 것 (3.6 전체 재패치, Label/Input 실측) 이 이 셋을 한 함수로 묶는 이유다. 래퍼·그룹 Label 의 구조값은 implicitStyles read-through 주입 (`fieldTriggerRowStyle` — field 분기와 picker 분기 공용, Δ11 grep gate ≤ 3 · progressbar/meter Label 숫자 grid line) 이 유일 채널이다. overlay margin 보고도 batch 를 읽는다. **TextArea 의 Input 높이는 parent `rows`** (implicit `catalogTextAreaInputHeight` — catalog `Input.sizes[size]` 한 줄 상자에서 줄 높이 = height − paddingY×2 − border×2, md 3줄 = 70 = DOM `<textarea rows>`; Skia 는 placeholder `verticalAlign: "top"` 투영, catalog `TextArea.sizes.height` 는 dead). **layout 모드 Slot placeholder 높이** 는 잔존 spec `Slot.spec` sizes.height 를 implicit 이 `minHeight` 로 주입 (`_slotChrome hidden` = page 모드 제외; 템플릿 인라인 `minHeight 60 · flex 1` 계약과 동형 — Preview 는 layout 모드를 안 그린다). 게이트였던 `adr923FieldSubpartProjection` · `adr923WrapperSubpartProjection` browser 테스트는 `d58bb8b61` 에서 삭제됐다. catalog 경로의 sub-part 판정은 `catalogRuntime/subpart.ts` (술어는 같은 shared `resolveDelegatedSubpartOwnerType`).
 
-## Label size delegation
+### Label size delegation
 
 - DFS 진입 시 조상 탐색으로 `fontSize`/`lineHeight` 인라인 주입
 - 주입 조건: `labelStyle.lineHeight == null` 기준. **Why**: fontSize 조건 → factory 기본값과 충돌 → lineHeight 미주입 → 1.5배 fallback
@@ -67,7 +78,7 @@ paths:
 - LABEL_DELEGATION_PARENT_TAGS: DatePicker/DateRangePicker 포함 필수. **Why**: 누락 → Label 24px 오계산
 - batch height override: `Math.ceil(fontSize * 1.5)` 대신 LABEL_SIZE_STYLE lineHeight 역참조
 
-## PersistentLayoutTree display/grid 전환 감지
+### PersistentLayoutTree display/grid 전환 감지
 
 - display 변경 및 gridTemplateColumns 변경 → **full rebuild 필수**. **Why**: 엔진(engine) 증분 갱신이 처리 불가
 - `affectedNodeIds` 필터 시 `undefined` 조건 누락 금지. **Why**: 캐시 미스 시 undefined 전달 가능
@@ -75,7 +86,7 @@ paths:
 - **신규 컨테이너(자식 서브트리 보유) → full rebuild 필수** (grid 아니어도). **Why**: `addComplexElement`(부모+자식 트리 일괄 등록, 예 Select/ComboBox) 시 한 batch 에 부모+자식 다수 신규 노드가 들어오면 `addNode` 증분이 자식 layout 을 produce 못 함(layout=undefined) → 자식이 (0,0) 겹침 + 부모 height 가 자식 합산 미만으로 degrade(Select 등록 직후 34, 새로고침 full rebuild 후 54). `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 에서 needsFullRebuild=true 강제 (grid 조건과 동일 게이트). ADR-912 R1 후속 (2026-06-12)
 - **기존 grid container 의 layout-영향 20-key 변경 → full rebuild 필수**: gridTemplateColumns/Rows/Areas/AutoColumns/AutoRows/AutoFlow + padding/padding{Top,Right,Bottom,Left} + gap/rowGap/columnGap + **width/height/min{Width,Height}/max{Width,Height}**. **Why**: `updateStyleRaw`(=set_style) 는 grid track/placement 캐시 invalidation 실패 → padding 변경 시 1줄 degrade / gap 변경 미반영 / **width 변경 시 1fr·auto track 이 변경 전 컨테이너 폭 기준으로 stale degrade (1줄로 무너짐) → 새로고침(buildFull) 후에만 정상 2행**. 비-grid 는 증분 유지 (Flex/Block `updateStyleRaw` 정상 동작 — dimension 변경 시 full rebuild 는 `isGridDisplay(curDisplay)` 분기 안에서만). `GRID_REBUILD_TRIGGER_KEYS` (`fullTreeLayout.ts`) 비교 키는 `engineStyleToRecord` 출력 = camelCase 단일 키 (`width`/`minWidth` 등). `fullTreeLayout.static.test.ts` 가 dimension 6키 누락을 정적 가드. 2026-06-16 추가
 
-## gridTemplate 직렬화 경로
+### gridTemplate 직렬화 경로
 
 - engine WASM binary_protocol 은 `gridTemplateColumns`/`Rows`/`AutoColumns`/`AutoRows` 를 **track array** (`["1fr", "auto"]`) 로 기대. CSS 표준 string (`"1fr auto"`) 통과 시 `invalid type: string, expected a sequence` parse error → persistent tree 리셋 + 재빌드 루프. **3 직렬화 경로 모두 정규화 필수**:
   - `fullTreeLayout.engineStyleToRecord` (flex via elementToEngineStyle)
@@ -84,46 +95,30 @@ paths:
 - 정규화 헬퍼: `parseGridTemplate(template: string)` (`gridStyleAdapter.ts` export). 괄호 depth 기반 토큰화 → `repeat(auto-fill, minmax(...))` 복합 표현 정확 분해
 - 이미 array 면 그대로 통과: `Array.isArray(val) ? val : parseGridTemplate(val)`
 
-## Grid area 이름 해석
+### Grid area 이름 해석
 
 - `buildNodeStyle` grid branch 는 **gridArea 이름 해석 미지원** (`gridStyleAdapter.ts` 는 `parseGridTemplate` 트랙 토큰화만 export — gridArea 이름 → line 해석기는 파이프라인에 없다)
 - 자식에 `gridArea: "label"` 같은 이름만 주입하면 엔진이 string 그대로 받아 auto-placement 로 degrade → 자식이 container 밖으로 흘러나감
 - **Factory 패턴**: gridArea 이름과 **gridColumnStart/End + gridRowStart/End 숫자 line 병기**. CSS 경로는 spec `composition.staticSelectors` 의 `grid-area` 이름, Skia 경로는 숫자 line — 시각 대칭 유지 + 배치 정확성
 
-## CSS shorthand ↔ longhand store 정책
+### CSS shorthand ↔ longhand store 정책
 
-store 는 **longhand 만** 저장하고 consumer 는 longhand 우선 + shorthand fallback 으로 읽는다. 정본: [style-ssot.md](style-ssot.md) §정책 (분배 진입점 · Why · 읽기 패턴).
+옛 store 의 longhand 저장 정책 (`inspectorActions` 분배) 은 store 와 함께 삭제됐다. 읽기 쪽 longhand 우선 + shorthand fallback 은 [style-ssot.md](style-ssot.md) §정책. catalog 문서는 typed field (`NodeEntry.visual` · `sizing` · `layout`) 로 저장한다.
 
-## 2-Pass re-enrichment
+### 2-Pass re-enrichment
 
 - Step 4.5에서 **`processedElementsMap` 우선 사용**. **Why**: store 원본은 DFS injection/implicit styles 없음 → 잘못된 height 계산
 - merge 시 DFS injection 값을 base로 implicit styles merge (덮어쓰기 금지)
 
-## Grid 트랙 폭 + 2-Pass 안전망
+### Grid 트랙 폭 + 2-Pass 안전망
 
 - DFS에서 grid 컨테이너 자식 width를 `(contentWidth - totalGap) / numCols`로 사전 조정
 - Step 4.5: 실제 width vs enrichment width 비교 → 차이 시 re-enrich + dirty + recompute
 - 2-pass에서 `buildFull()` 호출 금지 — `updateNodeStyle` + `markDirty` + `computeLayout`만 사용
 
-## Layout Prop 변경 → Canvas 반영 (체크리스트)
-
-**0단계 — 축 판정**: 추가하려는 키가 `element.props.foo`(props 축)인가 `element.props.style.foo`(style 축)인가? 축에 따라 봐야 할 배열이 다르다 (§"5-심볼 2계층 체인").
-
-| #   | 항목                              | props 축                                                                | style 축                                                                                 |
-| --- | --------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| 1   | **계층 A — layoutVersion 트리거** | `LAYOUT_AFFECTING_PROP_KEYS` (`layoutInvalidation.ts`) 에 **추가 필수** | `NON_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`) 에 **추가 금지** (blacklist 제외 방식)    |
-| 2   | **계층 B — 캐시 시그니처**        | `LAYOUT_PROP_KEYS` (`layoutCache.ts`) 에 **추가 필수**                  | **`LAYOUT_STYLE_KEYS`** (`layoutCache.ts`) 에 **추가 필수**                              |
-| 3   | 상속 전파 (해당 시)               | —                                                                       | `INHERITED_LAYOUT_PROPS_UPDATE` (`elementUpdate.ts`, fontSize/lineHeight/textAlign 류만) |
-
-4. `pageLayoutSignature` deps — elementById 포함
-5. `patchBatchStyleFromImplicit` — 배열 타입 지원
-6. display/grid 전환 감지 — full rebuild 조건 (§"PersistentLayoutTree display/grid 전환 감지")
-
-**계층 A·B 는 AND** — 하나만 등재하면 무반영이며, 증상이 서로 다르다: A 누락 = 재계산 자체를 안 함 / B 누락 = 재계산은 돌지만 시그니처 동일 → 캐시 히트로 이전 결과 재사용. 새로고침 후에만 반영되면 B 를 의심할 것.
-
 ## 엔진 CSS 정합 규칙 색인 (2026-07-25 ~ 07-28 실측 — 전문은 reference)
 
-엔진(`packages/engine/**`)·`fullTreeLayout.ts` 의 배치 알고리즘을 바꾸기 전에 [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md) 의 해당 절 — 규칙 · 거처 · Chrome 실측 표 · fixture 민감도 · **금지 패턴** — 을 읽는다. 아래는 절당 한 줄, 규칙과 fixture 만이다.
+엔진(`packages/engine/**`)의 배치 알고리즘을 바꾸기 전에 (거처 열의 `fullTreeLayout` · Step N · `layoutCache` 는 기록 당시의 TS 거처다 — 지금 production TS 쪽 거처는 `compositionRoot.ts` 의 `styleOf` · `rewrap`) [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md) 의 해당 절 — 규칙 · 거처 · Chrome 실측 표 · fixture 민감도 · **금지 패턴** — 을 읽는다. 아래는 절당 한 줄, 규칙과 fixture 만이다.
 
 | §   | 규칙 (한 줄)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | 거처                                                                                                                                                                                               | Chrome 실측 fixture                                                                 |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
@@ -156,7 +151,7 @@ store 는 **longhand 만** 저장하고 consumer 는 longhand 우선 + shorthand
 | 27  | 텍스트 leaf 측정 스칼라는 **부모 display 와 무관하게** 공급 — shrink-to-fit block 부모 (키워드 폭 · Container Align) 에서 0 붕괴 방지, `isFlexChild` 자체는 확장 금지 · pipeline fixture 의 root 는 body 폭 주입 (shrink-to-fit 컨테이너는 root 자리 금지)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | `utils.ts` `needsWidth` TEXT_LEAF_TAGS 절                                                                                                                                                          | textLeafScalarBlockParent                                                           |
 | 28  | BFC 원인 넷 — scroll container · flex/grid item · **flow-root/inline-block** · **abs-pos** (`display_creates_bfc`) — 자식 margin 이 안에 남는다 · block `align-content` (Chrome 123+) 는 in-flow 묶음 (margin box) 을 여유에 정렬하고 normal 이 아니면 (`start` 포함) 첫/마지막 자식 margin 을 가둔다, 음수 여유는 safe 기본 · `unsafe` 만 음수, 분배 키워드는 폴백 (upstream 대조 ⑧)                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `display_creates_bfc` · `node_establishes_bfc` · `solve_block` `align_offset` · `parse_block_align_content` · TS `normalizeCssDisplay` (flow-root 보존) · `elementToEngineBlockStyle` alignContent | blockFlowRootAlignContent                                                           |
 | 29  | grid `[name]` 은 트랙이 아니다 (`tokenize_template_with_line_names` → 이름은 tree.rs 가 번호로) · auto-repeat 반복 수 = 트랙당 "definite 한 쪽" (max definite 면 max, 아니면 min) 으로 세고 **반복 밖 트랙 + gutter 를 먼저 뺀다**, 미결정 컨테이너는 1 · auto-fit 빈 트랙은 토큰 삭제 (gutter 포함) + 배치 인덱스 당김 + `placement_spec` 숫자 재작성 (upstream 대조 ⑥)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `tokenize_template_with_line_names` · `resolve_line_name` · `auto_repeat_count` · `expand_auto_repeat_tokens` · `solve_grid` collapse 블록 · `build_grid_placement_spec`                           | gridLineNamesAutoRepeat                                                             |
-| 30  | flex `align-items/self: baseline` 은 **그룹** (참여 = baseline 해소 ∧ cross auto margin 없음, column 은 start) — item 거리 `margin_start + (baseline ∨ border-box 아래)`, 그룹 `max b` 에 맞추고 라인 cross = `max(outer, extent)`, 슬롯 21 `baseline_plus_one` (`FLEX_FIELD_COUNT` 22) · `safe` 접두는 넘칠 때만 start (별도 코드), 접두 없음은 unsafe · `self-start`/`self-end` = start/end (upstream 대조 ⑦)                                                                                                                                                                                                                                                                                                                                                                                                                                           | `flex::baseline_group` · `item_baseline_metrics` · `place_line_cross_axis` · `parse_align_items/self/content` · `parse_justify_content` · `write_flex_item` 슬롯 21                                | flexBaselineSafeAlign                                                               |
+| 30  | flex `align-items/self: baseline` 은 **그룹** (참여 = baseline 해소 ∧ cross auto margin 없음, column 은 start) — item 거리 `margin_start + (baseline ∨ border-box 아래)`, 그룹 `max b` 에 맞추고 라인 cross = `max(outer, extent)`, 슬롯 21 `baseline_plus_one` (`FLEX_FIELD_COUNT` 당시 22 — §32 뒤 23) · `safe` 접두는 넘칠 때만 start (별도 코드), 접두 없음은 unsafe · `self-start`/`self-end` = start/end (upstream 대조 ⑦)                                                                                                                                                                                                                                                                                                                                                                                                                          | `flex::baseline_group` · `item_baseline_metrics` · `place_line_cross_axis` · `parse_align_items/self/content` · `parse_justify_content` · `write_flex_item` 슬롯 21                                | flexBaselineSafeAlign                                                               |
 | 31  | intrinsic 키워드 폭 (`min/max/fit-content`) 의 보고는 auto 와 같은 **content-box** — 컨테이너 (`solve_node` 키워드 블록 `explicit_w = resolved + pad`, 보고 `cw − pad`) · leaf (`bb` = `(content, content+pad)`) · grid 기여/배치 (`child_auto_inline_pad_border` · `cw_box`/`ch_box` 가 키워드에도 pad 가산) · flex 3.5 (키워드 main 은 used px 로 덮되 반환에서 `pad_border_main` 감산) · 2-b base 는 키워드별 (2026-09-18)                                                                                                                                                                                                                                                                                                                                                                                                                             | `solve_node` · `resolve_leaf_intrinsic_width` · `child_auto_inline_pad_border` · `place_grid_axis` 호출부 · `solve_flex` 2-b/3.5                                                                   | catalogComponentBox Tooltip · Rust `padded_keyword_container_as_flex_and_grid_item` |
 | 32  | flex item 의 preferred aspect ratio 는 슬롯 22 `aspect_main_per_cross` (`FLEX_FIELD_COUNT` 23, 논리 main/cross — column 은 역수) 로 커널이 받는다 (ADR-224 Ratio, 2026-09-18): used main → cross 전송 (`transfer_aspect_cross` — auto·fit-content cross, stretch 는 이김, §5.2.2 내용 하한, border-box 전송 = box-sizing border-box) · definite cross → basis (§9.2.3 B) · stretch 로 definite 한 cross → basis (`transfer_aspect_basis_from_stretch`, nowrap 한정, §4.5 floor 동반 — shrink 가 전송값 아래로 못 내린다) · column 양축 auto 는 inline 축 fit-content 폭 먼저 (§9.2.3 E). leaf 는 전송·승격으로 굳힌 축 (`derived_w/h`) 을 **content-box** 로 보고 — border-box 그대로 보고하면 padding 이중 (`w200 + ratio 2` Button 110 / Chrome 100). oracle = Chrome 이 그린 실제 Button CSS rect (`fillIntrinsicSizing.browser.test.ts` ratio 6 모드) |
 | 33  | absolute 자식의 auto 축 — 컨테이너는 반환 content-box + pad/border, **leaf 는 자기 layout (border-box)** 을 읽는다 (`place_absolute_children`, ADR-224 §6.1 live 2026-09-18): leaf 가 auto 축을 content-box 로 보고하는 박스 계약 (`contentHeight` 스칼라 · `resolve_leaf_intrinsic_width` · aspect 전송값) 이라 "leaf 반환은 이미 border-box" 가정은 absolute Button 높이를 20 (Chrome 30) 으로 낸다. 명시 축은 스타일 값 그대로 · **auto 폭 컨테이너는 shrink-to-fit** (§10.3.7, 2026-09-24 — left · right 동시 지정이 아니면 `absolute_shrink_to_fit_width` 가 `measure_intrinsic_width` 로 fit 을 구해 그 폭으로 solve · 종전 containing block 폭 solve 는 absolute Disclosure 1920 / Chrome 168)                                                                                                                                                     |
@@ -176,6 +171,8 @@ store 는 **longhand 만** 저장하고 consumer 는 longhand 우선 + shorthand
 - 감시: `flexItemDimContract.browser.test.ts` (정규화를 빼면 pipeline leg 가 좌표 비교 전에 throw).
 
 ### 금지 패턴
+
+> `fullTreeLayout` 관련 항목 (Step 4.5 · 2-pass · grid rebuild · Label · DFS) 은 parity 하니스 경로의 금지 패턴이다 (§`fullTreeLayout.ts` 파이프라인).
 
 - ❌ `engineStyleToRecord` 뒤에 style 을 덧쓰고 정규화 생략 → 절대 길이에서 배치 파싱 실패
 - ❌ 새 dim 성 필드를 `DIM_FIELDS` 미등재로 추가 → 같은 크래시가 새 축으로 재발
@@ -208,14 +205,14 @@ store 는 **longhand 만** 저장하고 consumer 는 longhand 우선 + shorthand
 
 다음은 **의도적으로 TS 에 남는** 것들이다. 엔진 gap 처럼 보여도 아래 사유가 유효한 한 엔진 이관·중복 구현 양쪽 모두 금지 — 변경은 해당 사유를 뒤집는 ADR 로만:
 
-| 잔존                                                                            | 사유                                                                                                                                                                                                                                                                                                 |
-| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 측정 스칼라 공급 (`contentMinWidth`/`contentMaxWidth` — **텍스트 leaf 한정**)   | CanvasKit/Canvas 2D = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지. **경계 = 폰트 측정은 TS / 구조 집계는 엔진** (ADR-169) — 컨테이너 intrinsic 은 자식 값의 집계·재실행이라 TS 가 공급하면 레이아웃 재구현이 된다. TS 에서 컨테이너 intrinsic 을 계산해 주입 금지 |
-| 비텍스트 leaf 폭·height 주입 (INTRINSIC_MEASURE/CIRCLE/IMAGE/SPEC_SHAPES_INPUT) | 합성 leaf content 측정 (display 의미론 에뮬레이션은 ADR-923 Phase 5 로 소멸 — `INLINE_BLOCK_TAGS` 삭제, 측정 목록만 `INTRINSIC_MEASURE_TAGS`) — 스칼라 채널 확대는 후속 판정 (구 텍스트 leaf width/minWidth 주입은 ADR-165 로 스칼라 계약에 흡수 — 재도입 금지)                                      |
-| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등)              | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님. CSS base width 채널 (B22 100% / label fit-content) 포함                                                                                                                                                                                   |
-| Step 4.5 — **height-for-width 1회 재측정** (축소 계약, ADR-165 Phase 2)         | 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 재도입 금지 (폭 축은 엔진 소유). measure callback 이관은 별도 ADR (재개 조건: 2-pass 비용의 프레임 예산 압박)                                                                                                                                |
-| f32 `Math.ceil` 보정                                                            | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님 (스칼라 2종도 ceil 대상)                                                                                                                                                                                                                              |
-| layoutCache 시그니처/무효화 (5-심볼 2계층)                                      | store 결합 — 마샬링 비용 > 계산 비용. 측정 스칼라는 store 키가 아닌 enrichment 파생값 — 체인 등재 불요 (`children`/`text`/`fontSize` 가 이미 등재)                                                                                                                                                   |
+| 잔존                                                                             | 사유                                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 측정 스칼라 공급 (`contentMinWidth`/`contentMaxWidth` — **텍스트 leaf 한정**)    | CanvasKit/Canvas 2D = 측정 oracle ("Layout = Canvas 2D = CSS 정합"). 엔진 자체 텍스트 측정 도입 금지. **경계 = 폰트 측정은 TS / 구조 집계는 엔진** (ADR-169) — 컨테이너 intrinsic 은 자식 값의 집계·재실행이라 TS 가 공급하면 레이아웃 재구현이 된다. TS 에서 컨테이너 intrinsic 을 계산해 주입 금지 |
+| 비텍스트 leaf 폭·height 주입 (INTRINSIC_MEASURE/CIRCLE/IMAGE/SPEC_SHAPES_INPUT)  | 합성 leaf content 측정 (display 의미론 에뮬레이션은 ADR-923 Phase 5 로 소멸 — `INLINE_BLOCK_TAGS` 삭제, 측정 목록만 `INTRINSIC_MEASURE_TAGS`) — 스칼라 채널 확대는 후속 판정 (구 텍스트 leaf width/minWidth 주입은 ADR-165 로 스칼라 계약에 흡수 — 재도입 금지)                                      |
+| `implicitStyles.ts` 컴포넌트별 주입 (indicator/collection font 등)               | catalog/spec 의미론 (D3 SSOT 파생) — CSS 표준 의미론 아님. CSS base width 채널 (B22 100% / label fit-content) 포함                                                                                                                                                                                   |
+| Step 4.5 — **height-for-width 1회 재측정** (축소 계약, ADR-165 Phase 2)          | 폭 확정 후 높이 재줄바꿈 재측정만 담당 — 폭 재보정 확장 재도입 금지 (폭 축은 엔진 소유). measure callback 이관은 별도 ADR (재개 조건: 2-pass 비용의 프레임 예산 압박)                                                                                                                                |
+| f32 `Math.ceil` 보정                                                             | 엔진 f32 ↔ JS f64 정밀도 경계 — 흡수 대상 아님 (스칼라 2종도 ceil 대상)                                                                                                                                                                                                                              |
+| 레이아웃 재계산 판정 (transaction `impact.layout` + `planRecord` 엔진 입력 diff) | 문서 transaction 이 판정 정본 — 마샬링 비용 > 계산 비용. 측정 스칼라는 문서 키가 아닌 `styleOf` 파생값이라 diff 가 그대로 잡는다 (§레이아웃 재계산 경로)                                                                                                                                             |
 
 역방향(재침식)도 같은 강도로 금지: **CSS 표준 의미론의 새 gap 을 발견하면 TS 보정이 아니라 엔진 구현이 기본 경로** (ADR-164 Decision — Step 5.7 형 coarse 근사 재생산 금지).
 
@@ -232,12 +229,13 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 `ren
 - 엔진 f32 보정: enrichWithIntrinsicSize에서 `Math.ceil` 적용. **Why**: f32/f64 정밀도 차이 → 불필요한 wrap
 - Checkbox/Radio DFS: 부모 탐색으로 size 주입 (implicitStyles indicator 계산용)
 - Collection Item font: CSS + implicitStyles(`injectCollectionItemFontStyles`) + Skia catalog rule 3경로 동기화
-- 요소 순서: canonical `children[]` 배열 순서가 order SSOT (ADR-118) — `order_num` 은 export mirror 로만 파생 (legacy `batchUpdateElementOrders()` 심볼 소멸)
+- 요소 순서: `NodeEntry.children` · `PageEntry.children` 배열 순서가 정본 (ADR-118) — `order_num` 은 없다
 
 ## 금지 패턴
 
-- **style 키를 `LAYOUT_PROP_KEYS` 에 추가 금지** → `LAYOUT_STYLE_KEYS` 가 style 축이다 (`LAYOUT_PROP_KEYS` 는 `props[key]` 만 읽으므로 `style.foo` 를 넣어도 항상 `undefined` = 시그니처 불변 = 무반영)
-- **계층 A(layoutVersion 트리거) 단독 등재 금지** → 계층 B(캐시 시그니처) 동반 필수. 역도 같음 (§"5-심볼 2계층 체인")
+- **상자를 바꿀 수 있는 키를 `PAINT_ONLY_VISUAL_KEYS` 에 넣기 금지** → transaction 이 재계산을 건너뛴다 (§레이아웃 재계산 경로 1단계)
+- **`styleOf` 를 거치지 않고 엔진 입력을 만들거나 덧쓰기 금지** → 직렬화 계약 (문자열 길이 · track 배열) 이 한 곳에 있어야 한다
+- **`editorMutationEffectRegistry.ts` 의 `LAYOUT_*` 상수에 키를 넣어 레이아웃 반영을 고치려 하기 금지** → 테스트용 파생 view 라 production 판정에 쓰이지 않는다
 - **TS IFC 시뮬레이션 재도입 금지** (ADR-923 Phase 5, 2026-09-02) → block 부모 + inline-level 자식을 flex row wrap 으로 합성 / inline-block 을 크기 고정 block leaf 로 / block 형제 width:100% 보정 / TS blockify / vertical-align→alignItems 근사 — 전부 삭제됐고 엔진 `display.rs` (outer/inner) + `block.rs` (line box) + `tree.rs` (blockify) 가 맡는다. 기본 display 는 `resolveDefaultDisplay` (catalog 파생 → `INLINE_BLOCK_TAG_CLASSIFICATION` hand → block) 단일 원천
 - 텍스트 leaf 에 width/minWidth 주입 재도입 금지 → 측정 스칼라 계약 (`contentMinWidth`/`contentMaxWidth`) 이 대체 (ADR-165 — 재도입 시 스칼라와 이중 적용). 비텍스트 leaf (INTRINSIC_MEASURE/CIRCLE) 의 width 주입 시 minWidth 동시 주입은 잔존 계약 유지
 - 자식 보유 컨테이너의 intrinsic 키워드(`min/max/fit-content`) 를 TS 에서 선해석해 주입 금지 → 엔진 소유 (ADR-170 — `measure_intrinsic_width` + `solve_node` 키워드 해소). 자식 없는 합성 leaf 만 예외
@@ -256,10 +254,10 @@ collection/self-render 컨테이너의 `calculateContentHeight()` 분기는 `ren
 - `gridTemplateColumns: "1fr auto"` string 을 WASM 에 그대로 전달 금지 → `parseGridTemplate` 로 track array 정규화 (3 직렬화 경로 전부)
 - `display` 는 **CSS 값 그대로** 엔진 경계로 운반 (`normalizeCssDisplay` — 손실 없는 정규화, 미인식만 `block`) — inline-flex/inline-grid/inline-block 의 outer 를 TS 에서 지우는 정규화 (구 `toBatchDisplay` · `flexStyleAdapter` inline-flex→flex · `toEngineDisplay` inner-only) 재도입 금지. outer(line item)/inner(solver)/flex·grid 자식 blockify 는 엔진 `display.rs`·`tree.rs` 소유 (ADR-923 Phase 5, 2026-09-02)
 - `buildNodeStyle` grid branch 에서 자식 gridArea 이름만 주입 금지 → gridColumnStart/End + gridRowStart/End 숫자 line 병기 필수
-- element.props.style 에 shorthand (`gap`/`padding`/`margin`) + longhand 동시 저장 금지 → `inspectorActions` 에서 shorthand → longhand 분배, store 는 longhand only
 - `firstDefined(inline, specPx, fallback)` 에 4+ 인자 전달 금지 → 3-arg 고정 시그니처. 우선순위 체인은 nullish coalescing (`??`) 으로 inline 자리에 압축
 - Select/ComboBox 높이에 `Math.ceil(fontSize * 1.5)` 금지 → parseLineHeight 우선
 
 ## paths 관리
 
+- 2026-10-04: production 레이아웃 경로 (`compositionRoot.ts` · `canvasBinding.ts` · `transaction.ts`) 를 추가했다.
 - `paths` 는 2026-08-31 협소화 — 구 `**/layout/**` 가 `builder/layout`(패널)·`styles/layout` 까지 매칭해 패널 작업에 본 규칙 전량(116KB)이 주입됐다. 새 레이아웃 파이프라인 경로가 생기면 여기 등재.
