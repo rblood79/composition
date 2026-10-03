@@ -74,10 +74,30 @@ export function CatalogPreviewFrame({
     const onMessage = (event: MessageEvent) => {
       const frame = frameRef.current?.contentWindow;
       if (!frame || event.source !== frame || event.origin !== origin) return;
-      if ((event.data as { type?: unknown } | null)?.type === "PREVIEW_READY") {
+      const data = event.data as {
+        type?: unknown;
+        identity?: unknown;
+        sourceId?: unknown;
+        additive?: unknown;
+      } | null;
+      if (data?.type === "PREVIEW_READY") {
         ready = true;
         sendData();
         channel.onReady();
+      } else if (data?.type === "CATALOG_SELECT") {
+        // A click in the Preview selects the element on the Canvas (⌘ toggles) — the record by
+        // identity when the two roots agree, else the first record of its source.
+        const identity =
+          typeof data.identity === "string" &&
+          workspace.root.domInputs.has(data.identity)
+            ? data.identity
+            : typeof data.sourceId === "string"
+              ? workspace.root.recordsOfSource(data.sourceId)[0]
+              : undefined;
+        if (identity)
+          workspace.selectRecords([identity], {
+            additive: data.additive === true,
+          });
       } else channel.onPreviewMessage(event.data);
     };
     window.addEventListener("message", onMessage);

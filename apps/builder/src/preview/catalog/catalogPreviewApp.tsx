@@ -110,6 +110,32 @@ export function catalogPreviewRuntime(
 }
 
 /**
+ * Compare Mode: a click on an element in the Preview selects it on the Canvas (⌘ / Ctrl toggles
+ * it in a multi-selection) — the old Preview's `ELEMENT_SELECTED`. The record's identity and
+ * source go to the parent Builder, which maps them onto its own root.
+ */
+export function catalogPreviewSelectClick(
+  session: CatalogPreviewSession,
+  post: (message: unknown) => void,
+): (event: MouseEvent) => void {
+  return (event) => {
+    const element = (event.target as Element | null)?.closest?.(
+      "[data-catalog-id]",
+    );
+    const identity = element?.getAttribute("data-catalog-id");
+    if (!identity) return;
+    const record = session.root?.domInputs.get(identity);
+    if (!record) return;
+    post({
+      type: "CATALOG_SELECT",
+      identity,
+      sourceId: record.sourceId,
+      additive: event.metaKey || event.ctrlKey,
+    });
+  };
+}
+
+/**
  * An internal link (`/route`) moves the Preview to that page; an external one opens a new tab;
  * `#anchor` and `target="_blank"` keep the browser's behavior (the old Preview's rule).
  */
@@ -158,6 +184,13 @@ export async function startCatalogPreview(): Promise<void> {
   const toast = { show: (_message: string) => {} };
   const runtime = catalogPreviewRuntime(session, toast);
   document.addEventListener("click", catalogPreviewLinkClick(session), true);
+  document.addEventListener(
+    "click",
+    catalogPreviewSelectClick(session, (message) =>
+      window.parent.postMessage(message, origin),
+    ),
+    true,
+  );
   createRoot(document.body).render(
     <PreviewLocale>
       <ToastProvider position="bottom-right">

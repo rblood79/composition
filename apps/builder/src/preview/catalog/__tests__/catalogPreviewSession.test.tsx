@@ -32,6 +32,7 @@ import { nodeLayoutEngine } from "../../../builder/catalogRuntime/__tests__/supp
 import { installThemeMaps } from "../../../utils/theme/themeMaps";
 import {
   catalogPreviewLinkClick,
+  catalogPreviewSelectClick,
   catalogPreviewRuntime,
   CatalogPreviewView,
 } from "../catalogPreviewApp";
@@ -908,5 +909,47 @@ describe("ADR-248 4e-6 Preview entry", () => {
     expect(session.navigateTo("/nowhere")).toBe(false);
     expect(session.pageId).toBe(NOT_FOUND);
     expect(session.notFound).toBeUndefined();
+  });
+
+  // Compare Mode: a click in the Preview selects the element on the Canvas (the old
+  // `ELEMENT_SELECTED`); ⌘ toggles it in the selection. The Builder maps the record by identity.
+  it("a click on a Preview element posts its record; the Builder selects that record (⌘ toggles)", async () => {
+    const { workspace, session, channel } = await open();
+    channel.setView(HOME);
+    channel.onReady();
+    const posted: unknown[] = [];
+    const click = catalogPreviewSelectClick(session, (message) =>
+      posted.push(message),
+    );
+    const view = render(<CatalogPreviewView session={session} />);
+    const text = view.container.querySelector(
+      `[data-catalog-id$="${TEXT}"]`,
+    ) as HTMLElement;
+    expect(text).not.toBeNull();
+    const event = new MouseEvent("click", { bubbles: true, metaKey: true });
+    Object.defineProperty(event, "target", { value: text });
+    click(event);
+    const message = posted[0] as {
+      type: string;
+      identity: string;
+      sourceId: string;
+      additive: boolean;
+    };
+    expect(message).toMatchObject({
+      type: "CATALOG_SELECT",
+      sourceId: TEXT,
+      additive: true,
+    });
+    // The Preview's record identity is the Builder's (same graph, same root rules).
+    expect(workspace.root.domInputs.has(message.identity)).toBe(true);
+    // (The insert selected the Text; start from nothing selected.)
+    workspace.session.clearSelection();
+    workspace.selectRecords([message.identity], { additive: true });
+    expect(
+      workspace.session.getSnapshot().selection.map((item) => item.identity),
+    ).toEqual([message.identity]);
+    workspace.selectRecords([message.identity], { additive: true });
+    expect(workspace.session.getSnapshot().selection).toEqual([]);
+    view.unmount();
   });
 });
