@@ -15,6 +15,7 @@ import { releaseStaticShell } from "../../staticShell/staticShellRelease";
 import {
   loadAllCustomFontsToSkia,
   loadBuiltinFontsToSkia,
+  syncCustomFontsWithSkia,
 } from "../fonts/loadCustomFontsToSkia";
 import { useI18n } from "../../i18n";
 import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
@@ -385,6 +386,31 @@ export function CatalogBuilderCore() {
       workspace && subscribeSystemColorScheme(() => workspace.refreshTheme()),
     [workspace],
   );
+  // A custom font uploaded or removed mid-session reaches the Canvas at once (the old SkiaCanvas's
+  // `composition:custom-fonts-updated` → `syncCustomFontsWithSkia` + relayout).
+  useEffect(() => {
+    if (!workspace) return;
+    let cancelled = false;
+    const onFontsUpdated = () => {
+      void syncCustomFontsWithSkia()
+        .then(() => {
+          if (cancelled) return;
+          workspace.refreshFonts();
+          window.dispatchEvent(new CustomEvent("composition:fonts-ready"));
+        })
+        .catch((error) =>
+          console.warn("[CatalogBuilder] custom font sync failed:", error),
+        );
+    };
+    window.addEventListener("composition:custom-fonts-updated", onFontsUpdated);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(
+        "composition:custom-fonts-updated",
+        onFontsUpdated,
+      );
+    };
+  }, [workspace]);
   // ADR-235 Phase 5 on the catalog storage: a save over the quota clears the caches and retries
   // once, then tells the user; the first save asks the browser to keep the site's storage.
   useEffect(() => {

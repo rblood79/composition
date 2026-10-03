@@ -231,6 +231,14 @@ export class CatalogWorkspace {
     this.replaceRoot(breakpoint);
   }
   /**
+   * The font set changed (a custom font uploaded or removed mid-session): every text is measured
+   * and drawn again — a new root over the same runtime, like a theme change (the old Canvas's
+   * `syncCustomFontsWithSkia` + relayout).
+   */
+  refreshFonts(): void {
+    this.replaceRoot(this.currentRoot.breakpoint);
+  }
+  /**
    * The page grid's `columns: "auto"` count (the Canvas computes it from its visible width and
    * zoom — `catalogAutoColumns`). True = page frames moved (the Canvas binds its scene again).
    */
