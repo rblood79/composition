@@ -2,13 +2,23 @@
 
 ## Status
 
+Implemented — 2026-10-04 (사용자 G5 확인 「확인했어」 — 탭 5 구성 · 최소 폭 233 · 동시 표시 손실 수용). G0 ~ G5 통과. G4 는 사용자 판정 — perf ratchet `select.domMutations.attributes` 상한 245 (RAC tabpanel 접근성 `tabIndex`, 만료 2027-04-04), initial JS gzip −59 B. 같은 날 Modified 탭 제거 · `ModifiedStylesSection` 삭제 (사용자 판정, 개정 노트). 실행 기록: [breakdown §6](../design/252-design-panel-merge-breakdown.md).
+
+<details><summary>이전 상태</summary>
+
+Accepted — 2026-10-04 (사용자 `/execute-adr 252`). P0 ~ P3 구현 · G0 · G1 · G2 · G3 통과. **G4 통과 (사용자 판정 2026-10-04)** — perf ratchet A등급 `select.domMutations.attributes` 243 → 245 (RAC tabpanel 의 접근성 `tabIndex`) 는 상한 245 로 올림 (`--raise`, 만료 2027-04-04). initial JS gzip 은 +346 B 를 수용했으나 Modified 제거 뒤 **−59 B** 로 예외가 필요 없어졌다 (CSS +9). 탭 5개 (Modified 제거) · 최소 폭 233 px 유지 — 개정 노트 참조. G5 사용자 확인 전. 실행 기록: [breakdown §6](../design/252-design-panel-merge-breakdown.md).
+
 Proposed — 2026-10-03
+
+</details>
 
 사용자 요청: `/create-adr Design 패널 통합 권장안으로` (2026-10-03). 방향은 2026-09-29 에 사용자가 정했다 — 두 패널을 한 패널의 탭 `Property | Layout | Style | Text | Screen | Modified` 로 합치고 이름은 Design, 겹치는 prop (`labelPosition` · `orientation`) 은 양쪽 탭에 그대로 둔다. 이번 요청의 「권장안」 은 같은 날 제시한 네 항목이다 — ① 패널 id `properties` 유지 (라벨만 Design) ② ⌥6 = Design 을 Layout 탭으로 열기 ③ Modified 는 1차에 style 만 ④ 탭 폭은 live 로 재고 부족하면 최소 폭을 올린다.
 
 선행: [ADR-251](251-radio-checkbox-items-node-restore.md) (RadioItems 노드 복원). 문서는 지금 쓰고, 구현은 251 뒤에 한다.
 
-> **2026-10-03 리뷰 round 1 반영** ([reviews/252.md](reviews/252.md), Codex — HIGH 0 · MEDIUM 1 · LOW 1): m1 — 같은 scope 의 두 복사 정의를 `canRun` · 탭 검사로 가를 수 없다 (dispatcher 가 첫 매치에서 멈춤) → 활성 탭의 쌍만 등록하는 배타적 등록으로 확정 (Decision 6 · R3 · G2). l2 (LOW deferred) — G3 「위치 보존」 을 배치 키 보존으로 좁히고 화면 좌표 재배치는 정상으로 명시. 대안 A 는 그대로다.
+> **2026-10-04 개정 — Modified 탭 제거 (사용자 「진행해」)**: 탭을 `Property | Layout | Style | Text | Screen` 다섯으로 줄였다. Modified 는 수정된 style 의 읽기 전용 목록 + 전체 되돌리기였고, 그룹 탭 dot · 섹션 reset 이 같은 dirty 판정으로 같은 역할을 한다. Design 패널 안에서는 Property 수정이 빠진 「Modified」 라 이름도 어긋났다. 탭 5개라 최소 폭은 233 px 그대로다 (6탭일 때 경계 262 px — Decision 8 의 264 는 철회). prop 까지 포함하는 「수정됨」 보기는 후속 (Decision 7). `ModifiedStylesSection` (+ CSS · 테스트 2 · 전용 라벨 3) 은 쓰는 곳이 없어져 삭제했다 (사용자 「삭제해도 돼」 2026-10-04).
+
+> **2026-10-03 리뷰 round 1 반영** ([reviews/252.md](../reviews/252.md), Codex — HIGH 0 · MEDIUM 1 · LOW 1): m1 — 같은 scope 의 두 복사 정의를 `canRun` · 탭 검사로 가를 수 없다 (dispatcher 가 첫 매치에서 멈춤) → 활성 탭의 쌍만 등록하는 배타적 등록으로 확정 (Decision 6 · R3 · G2). l2 (LOW deferred) — G3 「위치 보존」 을 배치 키 보존으로 좁히고 화면 좌표 재배치는 정상으로 명시. 대안 A 는 그대로다.
 
 ## Context
 
@@ -18,28 +28,28 @@ Properties 는 컴포넌트의 설정 (D2 prop) 을, Styles 는 시각 값 (D3 s
 
 ADR-248 뒤 두 패널은 이미 같은 토대 위에 있다.
 
-| 항목            | Properties                                     | Styles                                                                                          | 코드                                                                                                                                                                                                                            |
-| --------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 등록            | id `properties` · ⌥5 · 최소 폭 233             | id `styles` · ⌥6 · 최소 폭 233                                                                  | [panelConfigs.ts:220-247](../../apps/builder/src/builder/panels/core/panelConfigs.ts)                                                                                                                                           |
-| 선택 읽기       | 같은 `CatalogWorkspace` 의 `session.selection` | 같음                                                                                            | [CatalogPropertiesPanel.tsx:63-68](../../apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.tsx) · [catalogStylesHost.ts:227](../../apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts) |
-| prop 쓰기       | `catalogSemanticPatchCommand` → `setFields`    | 같은 명령 (Direction 토글이 `labelPosition` 을 쓸 때)                                           | `editContract.ts:146-193` · `catalogStylesHost.ts:303-316`                                                                                                                                                                      |
-| 본문 구조       | 섹션 11개를 세로로 쌓음. 탭 없음               | 탭 5개 (Layout · Style · Text · Screen · Modified). 구 `StylesPanel` UI 에 `StylesHost` 를 주입 | `CatalogPropertiesPanel.tsx:163-224` · [StylesPanel.tsx:290-311](../../apps/builder/src/builder/panels/styles/StylesPanel.tsx)                                                                                                  |
-| 다중 선택 대상  | 첫 요소와 같은 definition 인 것만              | 선택 전체                                                                                       | `CatalogPropertiesPanel.tsx:72-88` · `catalogStylesHost.ts:227`                                                                                                                                                                 |
-| sub-part 안내   | 전체 owner 기준 (`"all"`)                      | style owner 기준 (`"style"`)                                                                    | `CatalogPropertiesPanel.tsx:121-126` · `catalogStylesHost.ts:740-746`                                                                                                                                                           |
-| 복사 · 붙여넣기 | ⌘⌥C / ⌘⌥V — own prop                           | **같은 키** — 활성 breakpoint 의 style 전체. 포커스된 패널로 구분                               | [keyboardShortcuts.ts:584-623](../../apps/builder/src/builder/config/keyboardShortcuts.ts)                                                                                                                                      |
-| 탭 상태         | —                                              | 컴포넌트 로컬 `useState` (기본 `layout`)                                                        | `StylesPanel.tsx:151`                                                                                                                                                                                                           |
-| Modified        | —                                              | 활성 breakpoint 층에 노드가 직접 쓴 style 키. prop 은 대상 아님                                 | [styleDirty.ts:40-80](../../apps/builder/src/builder/catalogRuntime/styleDirty.ts)                                                                                                                                              |
+| 항목            | Properties                                     | Styles                                                                                          | 코드                                                                                                                                                                                                                                  |
+| --------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 등록            | id `properties` · ⌥5 · 최소 폭 233             | id `styles` · ⌥6 · 최소 폭 233                                                                  | [panelConfigs.ts:220-247](../../../apps/builder/src/builder/panels/core/panelConfigs.ts)                                                                                                                                              |
+| 선택 읽기       | 같은 `CatalogWorkspace` 의 `session.selection` | 같음                                                                                            | [CatalogPropertiesPanel.tsx:63-68](../../../apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.tsx) · [catalogStylesHost.ts:227](../../../apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts) |
+| prop 쓰기       | `catalogSemanticPatchCommand` → `setFields`    | 같은 명령 (Direction 토글이 `labelPosition` 을 쓸 때)                                           | `editContract.ts:146-193` · `catalogStylesHost.ts:303-316`                                                                                                                                                                            |
+| 본문 구조       | 섹션 11개를 세로로 쌓음. 탭 없음               | 탭 5개 (Layout · Style · Text · Screen · Modified). 구 `StylesPanel` UI 에 `StylesHost` 를 주입 | `CatalogPropertiesPanel.tsx:163-224` · [StylesPanel.tsx:290-311](../../../apps/builder/src/builder/panels/styles/StylesPanel.tsx)                                                                                                     |
+| 다중 선택 대상  | 첫 요소와 같은 definition 인 것만              | 선택 전체                                                                                       | `CatalogPropertiesPanel.tsx:72-88` · `catalogStylesHost.ts:227`                                                                                                                                                                       |
+| sub-part 안내   | 전체 owner 기준 (`"all"`)                      | style owner 기준 (`"style"`)                                                                    | `CatalogPropertiesPanel.tsx:121-126` · `catalogStylesHost.ts:740-746`                                                                                                                                                                 |
+| 복사 · 붙여넣기 | ⌘⌥C / ⌘⌥V — own prop                           | **같은 키** — 활성 breakpoint 의 style 전체. 포커스된 패널로 구분                               | [keyboardShortcuts.ts:584-623](../../../apps/builder/src/builder/config/keyboardShortcuts.ts)                                                                                                                                         |
+| 탭 상태         | —                                              | 컴포넌트 로컬 `useState` (기본 `layout`)                                                        | `StylesPanel.tsx:151`                                                                                                                                                                                                                 |
+| Modified        | —                                              | 활성 breakpoint 층에 노드가 직접 쓴 style 키. prop 은 대상 아님                                 | [styleDirty.ts:40-80](../../../apps/builder/src/builder/catalogRuntime/styleDirty.ts)                                                                                                                                                 |
 
 ### Domain
 
-빌더 시스템 UI (builder-system layer) 다 — 사용자 캔버스 컴포넌트의 D1/D2/D3 체인 밖이고 catalog · rule · 문서 schema 를 바꾸지 않는다 ([panel-structure.md](../../.claude/rules/panel-structure.md)). 탭은 편집 surface 의 구분과 맞는다: Property 탭 = D2, Layout · Style · Text · Screen · Modified = D3. SSOT 경계는 움직이지 않는다.
+빌더 시스템 UI (builder-system layer) 다 — 사용자 캔버스 컴포넌트의 D1/D2/D3 체인 밖이고 catalog · rule · 문서 schema 를 바꾸지 않는다 ([panel-structure.md](../../../.claude/rules/panel-structure.md)). 탭은 편집 surface 의 구분과 맞는다: Property 탭 = D2, Layout · Style · Text · Screen · Modified = D3. SSOT 경계는 움직이지 않는다.
 
 ### 제약
 
-- **hard — 패널 id 는 레이아웃 저장 키**: 저장된 레이아웃에서 registry 에 없는 id 는 조용히 버려지고, 새 id 는 닫힌 상태로 기본 위치에 추가된다. V4 에는 id 를 옮기는 migration 이 없다 ([panelWorkspaceLayoutV4.ts:562-577](../../apps/builder/src/builder/layout/panelWorkspaceLayoutV4.ts) · `:634-644`). 규칙도 「기존 id 는 persist key 라 rename 안 함」 이다 (panel-structure.md §2).
+- **hard — 패널 id 는 레이아웃 저장 키**: 저장된 레이아웃에서 registry 에 없는 id 는 조용히 버려지고, 새 id 는 닫힌 상태로 기본 위치에 추가된다. V4 에는 id 를 옮기는 migration 이 없다 ([panelWorkspaceLayoutV4.ts:562-577](../../../apps/builder/src/builder/layout/panelWorkspaceLayoutV4.ts) · `:634-644`). 규칙도 「기존 id 는 persist key 라 rename 안 함」 이다 (panel-structure.md §2).
 - **hard — 패널 프레임은 id 당 하나**: 같은 패널을 두 곳에 띄울 수 없다 (`PanelWorkspace.tsx` `SnapshotPanelFrame` 을 config 당 하나 렌더 · 정규화가 같은 id 의 두 번째 row 를 버림). 합치면 속성과 스타일의 동시 표시가 구조적으로 없어진다.
 - **hard — 패널 탭 표준**: `Tabs.panel-tabs` > `.panel-header.panel-tabrow` > `TabList` · `TabPanel` = `.panel-contents` (`panelTabs.static.test.ts`). 패널 탭 슬롯은 패널 전체 뷰를 가르는 축 하나만 쓴다.
-- **hard — 수치**: Builder initial 번들 증가 0 (두 패널 모두 이미 initial chunk — ADR-201 상한) · `pnpm gate:perf-ratchet` 카운트 증가 0 (ADR-246) · `apps/publish` 수정 0 · 문서 schema 변경 0.
+- **hard — 수치**: Builder initial 번들 증가 0 (두 패널 모두 이미 initial chunk — ADR-201 상한) · `pnpm gate:perf-ratchet` 카운트 증가 0 (ADR-246) · `apps/publish` 수정 0 · 문서 schema 변경 0. — **2026-10-04 사용자 판정으로 예외 하나**: ratchet `select.domMutations.attributes` +2 상한 올림 (RAC tabpanel 접근성 동작, [breakdown §6 P3](../design/252-design-panel-merge-breakdown.md)). initial 번들은 Modified 제거 뒤 JS gzip −59 B 라 예외 불필요.
 - **hard (BC 수식)**: 문서 재직렬화 0 파일. 영향은 브라우저 localStorage 의 패널 레이아웃뿐 — `styles` row 의 위치 · 높이 · 열림 상태가 사라진다 (`properties` row 는 보존).
 - **soft**: 최소 폭 233 px 에서 탭 6개. 지금 Styles 탭은 선택된 탭만 글자를 보이는 형태이고, CSS 값으로 계산하면 탭 6개일 때 선택 탭의 글자 자리가 약 19 px 다 (실측 아님 — G0).
 
@@ -90,13 +100,13 @@ HIGH 이상인 대안이 없어 추가 루프는 없다. 선택은 위험 크기
 결정 내용:
 
 1. **패널**: id `properties` 를 유지하고 라벨 · 아이콘 · 설명을 Design 으로 바꾼다. `styles` 는 registry 에서 뺀다. 저장된 레이아웃의 `styles` 는 정규화가 버린다 — 변환 코드를 만들지 않는다.
-2. **탭**: `Property | Layout | Style | Text | Screen | Modified`. 기본 탭은 Property. 탭 상태는 세션 store 하나에 두고 (저장 안 함 — 지금과 같다), 단축키와 「패널 열기」 호출이 같이 읽고 쓴다.
+2. **탭**: `Property | Layout | Style | Text | Screen` (2026-10-04 개정 — Modified 제거, 사용자 판정). 기본 탭은 Property. 탭 상태는 세션 store 하나에 두고 (저장 안 함 — 지금과 같다), 단축키와 「패널 열기」 호출이 같이 읽고 쓴다.
 3. **본문은 옮기기만 한다**: Property 탭 = 지금의 Properties 본문, 나머지 = 지금의 Styles 뷰. 탭마다 지금의 규칙을 그대로 둔다 — 다중 선택 대상 (Property = 같은 definition, style 탭 = 선택 전체), sub-part 안내 (Property = 전체 owner, style 탭 = style owner), 빈 선택 · page 설정 표시.
 4. **겹치는 prop**: `labelPosition` · `orientation` 은 Property 탭의 필드와 Layout 탭의 Direction 양쪽에 남는다 (사용자 결정). 두 곳은 같은 명령으로 같은 prop 을 쓴다. 축이 갈리는 문제는 ADR-251 이 묶음 노드로 푼다.
 5. **단축키**: ⌥5 = 패널 토글. ⌥6 = Design 을 Layout 탭으로 연다 (이미 Layout 탭으로 열려 있으면 닫는다). 단축키 id (`toggleProperties` · `toggleStyles`) 와 scope (`panel:properties`) 는 유지하고 라벨만 바꾼다. `panel:styles` scope 는 없앤다.
 6. **복사 · 붙여넣기 (⌘⌥C / ⌘⌥V)**: 활성 탭으로 구분한다 — Property 탭 = 속성, 나머지 = 스타일. 구현은 **배타적 등록**이다: 정의 4개 (`copyProperties` · `pasteProperties` · `copyStyles` · `pasteStyles`) 는 그대로 두고, 활성 탭에 맞는 쌍만 shortcut registry 와 command registry 에 등록한다. 키보드 dispatcher 는 같은 scope 의 첫 매치를 실행하고 멈추므로 (`useKeyboardShortcutsRegistry.ts:371-379` — `canRun` 을 보지 않음) 둘 다 등록한 채 `canRun` 이나 handler 안의 탭 검사로 가를 수 없다. 메뉴 · 명령 팔레트는 「등록 = 실행 가능」 (ADR-249 · `CommandPalette.tsx:266-270`) 이라 비활성 탭의 명령은 자동으로 실행 불가로 보인다. 헤더의 복사 · 붙여넣기 버튼도 같은 쌍을 쓴다.
-7. **Modified**: 1차는 지금처럼 style 만. prop override 를 포함하는 것은 이 ADR 범위 밖 (후속).
-8. **탭 폭**: G0 에서 233 px · 387 px 에 탭 6개를 실제로 재고, 선택 탭의 글자가 잘리면 패널 최소 폭을 올린다 (상한 약 270 px). 올릴 값은 G0 실측으로 정한다.
+7. **Modified**: ~~1차는 지금처럼 style 만~~ → 2026-10-04 탭에서 뺐다 (사용자 판정). prop · style 을 함께 보는 「수정됨」 보기는 이 ADR 범위 밖 (후속).
+8. **탭 폭**: G0 에서 233 px · 387 px 에 탭 6개를 실제로 재고, 선택 탭의 글자가 잘리면 패널 최소 폭을 올린다 (상한 약 270 px). 올릴 값은 G0 실측으로 정한다. → G0 실측 6탭 경계 262 px (264 로 올렸다가) · **2026-10-04 탭 5개로 줄어 233 px 유지** (en · ko 5탭 × 233 · 387 px 라벨 잘림 0).
 
 위험 수용 근거: A 에 HIGH 는 없다. 가장 큰 잔존 위험은 동시 표시가 없어지는 제품 위험이고, 이것은 사용자가 탭 구성을 정할 때 이미 감수한 것이다 — ⌥5 · ⌥6 과 탭 전환으로 완화하고, 완료 직전 사용자 확인 (G5) 으로 다시 판정받는다. id 를 유지하는 선택은 이름과 id 가 어긋나는 부채를 남기지만 (`events` 에 이어 두 번째), 저장된 배치를 지키고 scope · 선택자 · 하니스의 변경 범위를 절반으로 줄인다.
 
@@ -106,14 +116,14 @@ HIGH 이상인 대안이 없어 추가 루프는 없다. 선택은 위험 크기
 - **B**: Screen · Modified 가 뷰라서 탭을 완전히 없앨 수 없고, 선택 변경마다 다시 그리는 양이 늘어난다. 사용자가 정한 구성은 탭이다.
 - **C**: 어법이 갈리는 원인 (두 벌의 헤더 · 단축키 · 안내) 을 그대로 둔다.
 
-> 구현 상세: [252-design-panel-merge-breakdown.md](design/252-design-panel-merge-breakdown.md)
+> 구현 상세: [252-design-panel-merge-breakdown.md](../design/252-design-panel-merge-breakdown.md)
 
 ## Risks
 
 | ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                                    | 심각도 | 대응                                                                                                                    |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------- |
 | R1  | 동시 표시 손실 — 지금은 두 패널을 위아래로 같이 켤 수 있다 (`PanelToggleGroup.tsx:63-66` multiple). 통합 뒤에는 `size` 를 바꾸며 스타일 값을 함께 볼 수 없다                                                                                                                                                                                                                                            |  MED   | ⌥5 · ⌥6 · 탭 전환. G5 사용자 확인에서 받아들일 수 없으면 재판정                                                         |
-| R2  | 패널 id 에 묶인 CSS 가 Styles 섹션을 덮음 — `.panel-wrapper[data-panel="properties"] .section .section-content { display: flex; flex-direction: column }` ([panel-system.css:27-30](../../apps/builder/src/builder/components/styles/panel-system.css)) 가 Styles 섹션의 grid (`inspector-layout.css` `.section[data-section-id="…"] .section-content`) 보다 구체적이다                                 |  MED   | 규칙의 적용 범위를 Property 탭 본문으로 좁힌다. G1 — 탭별 화면이 통합 전과 같음 (스크린샷 대조)                         |
+| R2  | 패널 id 에 묶인 CSS 가 Styles 섹션을 덮음 — `.panel-wrapper[data-panel="properties"] .section .section-content { display: flex; flex-direction: column }` ([panel-system.css:27-30](../../../apps/builder/src/builder/components/styles/panel-system.css)) 가 Styles 섹션의 grid (`inspector-layout.css` `.section[data-section-id="…"] .section-content`) 보다 구체적이다                              |  MED   | 규칙의 적용 범위를 Property 탭 본문으로 좁힌다. G1 — 탭별 화면이 통합 전과 같음 (스크린샷 대조)                         |
 | R3  | 같은 키의 두 뜻 — ⌘⌥C / ⌘⌥V 가 포커스된 패널 대신 활성 탭으로 갈린다. 탭 상태가 로컬 `useState` 라 단축키 등록부가 읽을 수 없고 (`StylesPanel.tsx:151`), dispatcher 는 같은 scope 의 첫 매치만 실행한다 (`useKeyboardShortcutsRegistry.ts:371-379`) — 두 정의를 함께 등록하면 Style 복사가 실행되지 않는다 (리뷰 round 1 m1 격리 반증). 두 클립보드는 종류 표시 없는 평문 JSON 이다 (`useCopyPaste.ts`) |  MED   | 탭 상태를 세션 store 로 올리고 활성 탭의 쌍만 등록 (Decision 6). G2 — 탭별 복사 대상 · 비활성 쌍 미등록 unit (원복 RED) |
 | R4  | scope 병합 — `panel:styles` 의 ⌥⇧S / ⌥⇧E (focus mode · 섹션 토글) 가 `panel:properties` 로 온다. `panel:properties` 에는 ⌘C / ⌘V = 요소 복사가 따로 등록돼 있다 (`useCatalogGlobalShortcuts.ts:150-161`) — style 탭에서도 동작하게 된다                                                                                                                                                                 |  MED   | 병합 뒤 키 충돌 0 을 `keyboardShortcuts.test.ts` 로 확인. style 탭에서의 ⌘C 동작은 의도된 확장으로 기록                 |
 | R5  | 탭 6개가 최소 폭에서 읽히지 않음                                                                                                                                                                                                                                                                                                                                                                        |  MED   | G0 실측 → 최소 폭 조정. 최소 폭을 올리면 저장된 column 폭이 새 최소값으로 올라간다                                      |
@@ -139,7 +149,17 @@ HIGH 이상인 대안이 없어 추가 루프는 없다. 선택은 위험 크기
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서: 요소 선택 → ⌥5 → 탭 6개 전환 → Property 에서 size 변경 → Layout 탭 Direction → ⌘⌥C/V 탭별 → ⌥6 → page 설정 열기 → 새로고침 뒤 배치 유지.)
+2026-10-04 · 실제 Builder (main checkout dev 서버 5173, headless Chrome Playwright, 빈 프로필 + 저장된 인증 세션으로 `/dashboard` 진입, 새 프로젝트에 팔레트로 Button 1개) — `apps/builder/scripts/adr252-live.mjs`, 22/22 PASS · 페이지 오류 0:
+
+- 레일: Design 버튼 하나 (Properties · Styles 없음) · 탭 5 `Property | Layout | Style | Text | Screen`
+- G1 화면: 통합 전 빌드 (`381d205fa` worktree, 패널 코드 동일) 의 Properties · Styles 본문과 픽셀 대조 — 스타일 탭 4 × 폭 264 · 387 차이 0, Property 탭은 하단 스크롤 페이드 24 px 띠 밖 차이 0
+- ⌥5 로 Design 닫힘 · 열림 → ⌥6 = Layout 탭으로 열림, 다시 ⌥6 = 닫힘
+- Layers 에서 Button 선택 → Property 탭 Text 「Save」 · Layout 탭 Width 120 → ⌘⌥C: Property 탭 `{"children":"Save"}`, Layout 탭 `{"width":"120px"}`
+- ⌥⇧S focus mode 는 스타일 탭에서만 · 명령 팔레트 (Property 탭) 에서 Copy Properties = 실행 가능, Copy Styles = 미등록
+- Navigator 페이지 설정 → Design 의 Property 탭 · 새로고침 뒤 Design 열림 유지
+- 폭 (`adr252-live.mjs widths`): en · ko 5탭 × 233 · 387 px 선택 탭 라벨 잘림 0 (10/10 × 2)
+
+2026-10-04 · **사용자 확인 (G5)**: 「확인했어」 — 탭 5 구성 · 최소 폭 233 · 속성과 스타일 동시 표시 손실 수용.
 
 ## Consequences
 
