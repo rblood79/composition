@@ -7,6 +7,7 @@ import {
 } from "../../builder/workspace/canvas/viewport/viewportActions";
 import { togglePanelWorkspace } from "../../builder/hooks/usePanelLayout";
 import { useSectionCollapse } from "../../builder/panels/styles/hooks/useSectionCollapse";
+import { resolveCommand } from "../../builder/stores/commandRegistry";
 import type { ShortcutId } from "../../builder/config/keyboardShortcuts";
 import type { PanelId } from "../../builder/panels/core/types";
 
@@ -47,7 +48,10 @@ export const AGENT_VIEW_COMMANDS: Readonly<
   toggleDatatable: panel("datatable"),
   toggleTheme: panel("theme"),
   toggleProperties: panel("properties"),
-  toggleStyles: panel("styles"),
+  // ADR-252 — Design 을 Layout 탭으로: 열린 Builder 가 등록한 ⌥6 명령을 그대로 부른다
+  // (`useCatalogGlobalShortcuts`). 직접 import 하면 lazy agent 와 initial 이 공유 chunk 를
+  // 하나 더 만들어 initial 번들이 는다 (G4).
+  toggleStyles: () => resolveCommand("toggleStyles")?.handler(),
   toggleEvents: panel("events"),
   toggleHistory: panel("history"),
   openSettings: panel("settings"),

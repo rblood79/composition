@@ -368,17 +368,6 @@ async function skiaCapture() {
   });
 }
 
-const RAIL_ORDER = [
-  "pages",
-  "navigator",
-  "components",
-  "dataset",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function closeRailPanels() {
   const buttons = page.locator(".panel-toggle-rail button[aria-pressed]");
   const n = await buttons.count();
@@ -389,7 +378,7 @@ async function closeRailPanels() {
       await page.waitForTimeout(500);
     }
   }
-  log(`rail panels closed (${n} of ${RAIL_ORDER.length})`);
+  log(`rail panels closed (${n})`);
 }
 
 /** Skia leg — layout map 의 root 와 자손 rect 열 (id 접두로 모은다, DFS 순서 = id 정렬). */

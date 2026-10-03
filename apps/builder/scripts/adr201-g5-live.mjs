@@ -33,6 +33,7 @@ import {
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const arg = (name, fallback) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
@@ -49,18 +50,6 @@ const OUT_DIR = process.env.ADR201_OUT ?? "/private/tmp/adr201-g5-live";
 const headed = process.argv.includes("--headed");
 const CHUNK = 8 * 1024 * 1024;
 const log = (...a) => console.log("[ADR-201 G5]", ...a);
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 
 const results = [];
 const check = (name, ok, detail) => {
@@ -69,9 +58,7 @@ const check = (name, ok, detail) => {
 };
 
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

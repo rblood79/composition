@@ -23,7 +23,7 @@ describe("StylesPanel canonical selected data contract", () => {
 
     // The selected element comes from the Styles host (the catalog host's selection record).
     expect(source).toContain(
-      "const selectedElement = useStylesHost().useSelectedElement();",
+      "const selectedElement = host.useSelectedElement();",
     );
     expect(source).toContain("selectedElement?.style");
     // 계약의 핵심은 "panel 이 element map 을 직접 읽지 않는다" 다. 과거엔

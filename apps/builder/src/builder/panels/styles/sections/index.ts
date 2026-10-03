@@ -13,5 +13,4 @@ export { FillSection } from "./FillSection";
 export { BorderSection } from "./BorderSection";
 export { EffectSection } from "./EffectSection";
 export { TypographySection } from "./TypographySection";
-export { ModifiedStylesSection } from "./ModifiedStylesSection";
 export { ResponsiveSection } from "./ResponsiveSection";

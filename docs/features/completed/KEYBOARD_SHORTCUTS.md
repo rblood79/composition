@@ -1,5 +1,7 @@
 # composition Keyboard Shortcuts System
 
+> **2026-10-04 ADR-252 (Design 패널 통합)**: Properties · Styles 패널이 Design 패널 하나 (id `properties`) 의 탭이 됐다. scope `panel:styles` 는 없어지고 스타일 탭 명령 (`copyStyles` · `pasteStyles` · `toggleFocusMode` · `toggleSections`) 도 `panel:properties` 다. ⌥5 (`toggleProperties`) = Design 토글, ⌥6 (`toggleStyles`) = Design 을 Layout 탭으로 열기 (이미 Layout 탭이면 닫기). ⌘⌥C / ⌘⌥V 는 활성 탭으로 갈린다 — 활성 탭의 쌍만 등록한다 (같은 scope 의 첫 매치에서 dispatcher 가 멈추므로). 아래 본문의 Properties / Styles 패널 서술은 통합 전 기록이다. 정본: `apps/builder/src/builder/config/keyboardShortcuts.ts` · `panels/design/DesignPanel.tsx`.
+>
 > **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 11개는 현재 저장소에 없다.
 > 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
 > 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
@@ -19,7 +21,6 @@
 > - `src/builder/workspace/useZoomShortcuts.ts`
 >
 > </details>
-
 
 > **Version:** 3.1
 > **Last Updated:** 2026-02-06

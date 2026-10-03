@@ -76,8 +76,7 @@ export type PanelId =
   | "user"
   | "settings"
   // Editor panels
-  | "properties"
-  | "styles"
+  | "properties" // Design 패널 (ADR-252 — Properties · Styles 통합, id 는 저장 키라 유지)
   | "events"
   | "history";
 
@@ -284,7 +283,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
     "theme",
     "settings",
   ],
-  rightPanels: ["properties", "styles", "events", "ai", "history"],
+  rightPanels: ["properties", "events", "ai", "history"],
   activeLeftPanels: ["navigator"], // Multi toggle 지원: 배열
   activeRightPanels: ["properties"], // Multi toggle 지원: 배열
   showLeft: true,

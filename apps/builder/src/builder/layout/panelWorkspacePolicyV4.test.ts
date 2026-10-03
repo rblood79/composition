@@ -45,7 +45,7 @@ const REGISTRY: PanelWorkspaceRegistryEntry[] = [
   registryEntry("components", "left"),
   registryEntry("settings", "left"),
   registryEntry("properties", "right"),
-  registryEntry("styles", "right"),
+  registryEntry("events", "right"),
   registryEntry("history", "right"),
   registryEntry("theme", "bottom"),
 ];
@@ -132,7 +132,7 @@ function singleZoneLayout(
     visibility: { properties: true },
     railOrder: {
       left: ["navigator", "components", "settings"],
-      right: ["properties", "styles", "history"],
+      right: ["properties", "events", "history"],
       bottom: ["theme"],
     },
     clusters: [
@@ -158,12 +158,12 @@ describe("ADR-186 G4 v4 panel policy", () => {
       createDefaultPanelWorkspaceLayoutV4(REGISTRY, SURFACE_RECT),
     );
     layout = activate(layout, "properties");
-    layout = activate(layout, "styles");
+    layout = activate(layout, "events");
     layout = activate(layout, "history");
 
     expect(rowsByColumn(layout, "top-right")).toEqual([
       ["history"],
-      ["properties", "styles"],
+      ["properties", "events"],
     ]);
   });
 
@@ -173,7 +173,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
         ? { ...entry, minWidth: 233, defaultWidth: 233 }
         : entry.id === "history"
           ? { ...entry, minWidth: 233, defaultWidth: 320 }
-          : entry.id === "styles"
+          : entry.id === "events"
             ? { ...entry, minWidth: 233, defaultWidth: 360 }
             : entry,
     );
@@ -455,7 +455,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
     const moved = singleZoneLayout("center");
     moved.railOrder = {
       left: ["properties"],
-      right: ["navigator", "components", "settings", "styles", "history"],
+      right: ["navigator", "components", "settings", "events", "history"],
       bottom: ["theme"],
     };
     moved.clusters[0]!.columns[0]!.width = 333;
@@ -470,7 +470,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
     expect(reset.value.layout.visibility.properties).toBe(true);
     expect(reset.value.layout.railOrder.right).toEqual([
       "properties",
-      "styles",
+      "events",
       "history",
     ]);
     const placement = reset.value.layout.clusters.find(
@@ -672,9 +672,9 @@ describe("ADR-186 G4 v4 panel policy", () => {
     (zone) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout(zone);
-      base.visibility.styles = true;
+      base.visibility.events = true;
       base.clusters[0]!.columns[0]!.rows.push({
-        panelId: "styles",
+        panelId: "events",
         height: 100,
       });
       const before = solvePanelWorkspaceLayoutV4(base, REGISTRY, surfaceRect);
@@ -695,7 +695,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
       );
       expect(rows).toEqual([
         { panelId: "properties", height: 130 },
-        { panelId: "styles", height: 70 },
+        { panelId: "events", height: 70 },
       ]);
       expect(rows.reduce((sum, row) => sum + row.height, 0)).toBe(200);
       const after = solvePanelWorkspaceLayoutV4(
@@ -721,9 +721,9 @@ describe("ADR-186 G4 v4 panel policy", () => {
     (zone) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout(zone);
-      base.visibility.styles = true;
+      base.visibility.events = true;
       base.clusters[0]!.columns[0]!.rows.push({
-        panelId: "styles",
+        panelId: "events",
         height: 100,
       });
 
@@ -755,7 +755,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
         ),
       ).toEqual([
         { panelId: "properties", height: 736 },
-        { panelId: "styles", height: 60 },
+        { panelId: "events", height: 60 },
       ]);
       const solved = solvePanelWorkspaceLayoutV4(
         resized.value.layout,
@@ -764,7 +764,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
       );
       expect(solved.ok).toBe(true);
       if (!solved.ok) return;
-      const lastFrame = solved.value.frameGeometries.get("styles");
+      const lastFrame = solved.value.frameGeometries.get("events");
       expect(lastFrame).toBeDefined();
       if (!lastFrame) return;
       expect(lastFrame.y + lastFrame.height).toBe(surfaceRect.height);
@@ -775,7 +775,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
         ),
       ).toEqual([
         { panelId: "properties", height: 400 },
-        { panelId: "styles", height: 60 },
+        { panelId: "events", height: 60 },
       ]);
     },
   );
@@ -785,11 +785,11 @@ describe("ADR-186 G4 v4 panel policy", () => {
     (zone) => {
       const surfaceRect = { width: 1200, height: 800 } as const;
       const base = singleZoneLayout(zone);
-      base.visibility.styles = true;
+      base.visibility.events = true;
       base.clusters[0]!.columns.push({
         id: `zone:${zone}:column:1`,
         width: 200,
-        rows: [{ panelId: "styles", height: 100 }],
+        rows: [{ panelId: "events", height: 100 }],
       });
       const before = solvePanelWorkspaceLayoutV4(base, REGISTRY, surfaceRect);
       const resized = resizePanelWorkspaceBoundaryV4(
@@ -832,9 +832,9 @@ describe("ADR-186 G4 v4 panel policy", () => {
   it("reference-frame resize는 clamp를 넘겼다가 돌아와도 drift가 없다", () => {
     const surfaceRect = { width: 1200, height: 800 } as const;
     const base = singleZoneLayout("top-right");
-    base.visibility.styles = true;
+    base.visibility.events = true;
     base.clusters[0]!.columns[0]!.rows.push({
-      panelId: "styles",
+      panelId: "events",
       height: 100,
     });
     const over = resizePanelWorkspaceBoundaryV4(
@@ -874,7 +874,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
       ),
     ).toEqual([
       { panelId: "properties", height: 120 },
-      { panelId: "styles", height: 80 },
+      { panelId: "events", height: 80 },
     ]);
     expect(
       zero.value.layout.clusters[0]!.columns[0]!.rows.filter(
@@ -882,7 +882,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
       ),
     ).toEqual([
       { panelId: "properties", height: 100 },
-      { panelId: "styles", height: 100 },
+      { panelId: "events", height: 100 },
     ]);
   });
 

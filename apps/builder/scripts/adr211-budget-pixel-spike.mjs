@@ -14,6 +14,7 @@ import { chromium } from "playwright";
 import { createRequire } from "node:module";
 import { readdirSync } from "node:fs";
 import { waitReady } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 // pngjs 는 transitive 의존 (직접 의존 아님) — pnpm store 에서 찾는다.
 const REPO = process.cwd();
 const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) => d.startsWith("pngjs@"));
@@ -38,9 +39,8 @@ async function createProject(page) {
   await waitReady(page);
   return page.url();
 }
-const RAIL_ORDER = ["navigator", "components", "datatable", "datatableEditor", "theme", "ai", "properties", "styles", "interactions", "history"];
 async function setPanel(page, panelId, open) {
-  const button = page.locator(".panel-toggle-rail button").nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

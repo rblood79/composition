@@ -149,7 +149,7 @@ const railPanels = panelConfigsFromSource().filter(
 );
 
 describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
-  it("레일 버튼은 8 개 — 테마 · 작업 내역은 메뉴 전용 (사용자 2026-09-29)", () => {
+  it("레일 버튼은 7 개 — 테마 · 작업 내역은 메뉴 전용 (사용자 2026-09-29) · Styles 는 Design 의 탭 (ADR-252)", () => {
     expect(
       panelConfigsFromSource()
         .filter((panel) => !panel.hiddenFromRail)
@@ -161,12 +161,11 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
       "datatableEditor",
       "ai",
       "properties",
-      "styles",
       "events",
     ]);
   });
 
-  it("panelConfigs 소스 파서가 메뉴 패널 10 개를 읽는다", () => {
+  it("panelConfigs 소스 파서가 메뉴 패널 9 개를 읽는다", () => {
     expect(railPanels.map((panel) => panel.id)).toEqual([
       "navigator",
       "components",
@@ -175,7 +174,6 @@ describe("ADR-249 G0 — 전체 메뉴 인벤토리", () => {
       "theme",
       "ai",
       "properties",
-      "styles",
       "events",
       "history",
     ]);

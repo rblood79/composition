@@ -201,9 +201,11 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
-    description: "Toggle Properties Panel",
+    description: "Toggle Design Panel",
   },
 
+  // ADR-252 — id 는 유지 (명령 · 메뉴 · agent 의 키). Design 을 Layout 탭으로 열고, 이미 Layout
+  // 탭으로 열려 있으면 닫는다.
   toggleStyles: {
     key: "6",
     code: "Digit6",
@@ -212,7 +214,7 @@ export const SHORTCUT_DEFINITIONS = {
     scope: "global",
     priority: SHORTCUT_PRIORITY.PANELS,
     allowInInput: true,
-    description: "Toggle Styles Panel",
+    description: "Open Design Layout Tab",
   },
 
   toggleEvents: {
@@ -580,8 +582,10 @@ export const SHORTCUT_DEFINITIONS = {
   // Properties Panel (priority: 50)
   // ==========================================
 
-  // ⌘⌥C / ⌘⌥V — Figma 의 「속성 복사·붙여넣기」와 같은 자리. 어느 패널에
-  // 포커스가 있느냐로 대상이 갈린다 (properties=D2 props / styles=D3 시각 스타일).
+  // ⌘⌥C / ⌘⌥V — Figma 의 「속성 복사·붙여넣기」와 같은 자리. Design 패널의 활성
+  // 탭으로 대상이 갈린다 (Property 탭=D2 props / 스타일 탭=D3 시각 스타일 — ADR-252).
+  // 같은 scope 의 같은 키라 활성 탭의 쌍만 등록한다 (배타적 등록 — dispatcher 가 첫
+  // 매치에서 멈춰 `canRun` 으로는 가를 수 없다). `DesignPanel.tsx` 참조.
   // 종전 ⌘⇧C 는 Chrome DevTools 요소 검사라 페이지가 막을 수 없는 자리였다.
   copyProperties: {
     key: "c",
@@ -602,14 +606,14 @@ export const SHORTCUT_DEFINITIONS = {
   },
 
   // ==========================================
-  // Styles Panel (priority: 50)
+  // Design 패널 스타일 탭 (priority: 50) — ADR-252 로 scope 가 panel:properties
   // ==========================================
 
   copyStyles: {
     key: "c",
     modifier: "cmdAlt",
     category: "properties",
-    scope: "panel:styles",
+    scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Copy Styles",
   },
@@ -618,7 +622,7 @@ export const SHORTCUT_DEFINITIONS = {
     key: "v",
     modifier: "cmdAlt",
     category: "properties",
-    scope: "panel:styles",
+    scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Paste Styles",
   },
@@ -628,7 +632,7 @@ export const SHORTCUT_DEFINITIONS = {
     code: "KeyS",
     modifier: "altShift",
     category: "properties",
-    scope: "panel:styles",
+    scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Toggle Focus Mode",
   },
@@ -640,7 +644,7 @@ export const SHORTCUT_DEFINITIONS = {
     code: "KeyE",
     modifier: "altShift",
     category: "properties",
-    scope: "panel:styles",
+    scope: "panel:properties",
     priority: SHORTCUT_PRIORITY.PROPERTIES,
     description: "Toggle All Sections",
   },

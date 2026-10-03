@@ -61,7 +61,8 @@ const DEFAULTS = {
   retainerProps: ["parent_id", "page_id"],
   retainerSamples: 40,
   durationMs: 3000,
-  openPanels: ["navigator", "properties"],
+  // 레일 버튼 aria-label 로 연다 — Properties · Styles 는 ADR-252 로 Design 하나 (id properties).
+  openPanels: ["navigator", "design"],
   profile: false,
   instrumentation: "on",
   frameCapture: false,
@@ -444,7 +445,7 @@ async function openExistingProject(page, projectUrl) {
 }
 
 // 새 컨텍스트는 패널이 전부 닫힌 채 부팅된다 (toggle 전부 aria-pressed=false, splitter 0).
-// 실사용 형태 (Navigator·Properties 열림) 로 맞춘다 — 리사이즈 드라이버도 splitter 가 필요.
+// 실사용 형태 (Navigator·Design 열림 — ADR-252) 로 맞춘다 — 리사이즈 드라이버도 splitter 가 필요.
 export async function openPanels(page, names) {
   for (const name of names) {
     const button = page

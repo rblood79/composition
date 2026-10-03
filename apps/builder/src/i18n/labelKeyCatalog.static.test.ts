@@ -29,7 +29,8 @@ const FROZEN_KEY_COUNTS: Partial<
 > = {
   contextMenu: 25,
   command: 71,
-  commandPalette: 26,
+  // ADR-252 — scopePanelStyles 제거 (scope panel:styles 가 Design 패널의 panel:properties 로)
+  commandPalette: 25,
 };
 
 const SRC_ROOT = path.resolve(__dirname, "..");

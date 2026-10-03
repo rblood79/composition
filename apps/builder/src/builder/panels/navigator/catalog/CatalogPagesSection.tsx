@@ -25,7 +25,7 @@ import { Section } from "../../../components/panel/Section";
 import { ActionIconToggleButton } from "../../../components/ui/ActionIconButton";
 import { SearchField } from "../../../components/ui/SearchField";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
+import { openDesignPanel } from "../../design/designPanelView";
 import { filterPagesByQuery } from "../filterPagesByQuery";
 import { NAVIGATOR_SECTION_IDS } from "../navigatorSectionIds";
 import { TreeBase } from "../tree/TreeBase";
@@ -122,8 +122,8 @@ export const CatalogPagesSection = memo(function CatalogPagesSection() {
       selectPage(page);
       const body = entries.find((entry) => entry.id === page.id)?.children[0];
       if (body) workspace.session.select(workspace.itemsOfNode(body, 1));
-      setPanelWorkspacePanelVisibility("properties", true);
-      // Properties' State section (the page's variables) opens and comes into view.
+      openDesignPanel("property");
+      // The Design panel's Property tab: its State section (the page's variables) opens and comes into view.
       useStateSectionFocus.getState().requestFocus(page.id);
     },
     [entries, selectPage, workspace],

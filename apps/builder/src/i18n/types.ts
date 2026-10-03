@@ -200,7 +200,6 @@ export interface TranslationKeys {
     scopeGlobal: string;
     scopeCanvasFocused: string;
     scopePanelProperties: string;
-    scopePanelStyles: string;
     scopePanelEvents: string;
     scopePanelNavigator: string;
     scopeModal: string;
@@ -1398,7 +1397,6 @@ export interface TranslationKeys {
     settings: string;
     ai: string;
     properties: string;
-    styles: string;
     interactions: string;
     history: string;
   };
@@ -1462,6 +1460,8 @@ export interface TranslationKeys {
     view: string;
     delegatedSubpartMessage: string;
     delegatedSubpartDescription: string;
+    property: string;
+    propertyHint: string;
     layout: string;
     layoutHint: string;
     style: string;
@@ -1470,9 +1470,6 @@ export interface TranslationKeys {
     textHint: string;
     screen: string;
     screenHint: string;
-    modified: string;
-    modifiedHint: string;
-    modifiedCount: string;
     copyStyles: string;
     pasteStyles: string;
     focus: string;

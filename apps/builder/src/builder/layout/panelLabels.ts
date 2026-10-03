@@ -10,7 +10,6 @@ export const PANEL_TRANSLATION_KEYS: Partial<Record<PanelId, string>> = {
   settings: "panels.settings",
   ai: "panels.ai",
   properties: "panels.properties",
-  styles: "panels.styles",
   events: "panels.interactions",
   history: "panels.history",
 };

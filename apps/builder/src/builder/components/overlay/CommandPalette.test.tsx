@@ -206,7 +206,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "copyStyles",
       handler: vi.fn(),
-      scope: "panel:styles",
+      scope: "panel:properties",
       priority: 50,
       allowInInput: false,
       disabled: false,
@@ -218,11 +218,11 @@ describe("CommandPalette — registry 소비", () => {
     const styles = itemFor("Copy Styles");
     expect(styles.dataset.executable).toBe("false");
     expect(styles.dataset.availability).toBe("scope-mismatch");
-    expect(styles.textContent).toContain("Available in the Styles panel");
+    expect(styles.textContent).toContain("Available in the Design panel");
   });
 
-  it("panel:styles 로 열면 반대로 갈린다", () => {
-    mockScope.current = "panel:styles";
+  it("panel:properties (Design) 로 열면 반대로 갈린다", () => {
+    mockScope.current = "panel:properties";
     registerCommand({
       id: "duplicate",
       handler: vi.fn(),
@@ -234,7 +234,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "copyStyles",
       handler: vi.fn(),
-      scope: "panel:styles",
+      scope: "panel:properties",
       priority: 50,
       allowInInput: false,
       disabled: false,
@@ -261,7 +261,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "copyStyles",
       handler: vi.fn(),
-      scope: "panel:styles",
+      scope: "panel:properties",
       priority: 50,
       allowInInput: false,
       disabled: false,
@@ -286,7 +286,7 @@ describe("CommandPalette — registry 소비", () => {
     expect(itemFor("Duplicate").dataset.executable).toBe("true");
     expect(itemFor("Copy Styles").dataset.executable).toBe("false");
 
-    mockScope.current = "panel:styles";
+    mockScope.current = "panel:properties";
     rerender(fixture(true));
 
     expect(itemFor("Duplicate").dataset.executable).toBe("true");
@@ -294,7 +294,7 @@ describe("CommandPalette — registry 소비", () => {
   });
 
   it("global 명령은 어느 scope 에서 열어도 executable", () => {
-    mockScope.current = "panel:styles";
+    mockScope.current = "panel:properties";
     registerCommand({
       id: "undo",
       handler: vi.fn(),
@@ -346,7 +346,7 @@ describe("CommandPalette — registry 소비", () => {
     registerCommand({
       id: "copyStyles",
       handler,
-      scope: "panel:styles",
+      scope: "panel:properties",
       priority: 50,
       allowInInput: false,
       disabled: false,

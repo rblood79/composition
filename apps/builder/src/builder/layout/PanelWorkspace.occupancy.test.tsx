@@ -41,9 +41,9 @@ const TEST_CONFIGS: PanelConfig[] = PANEL_WORKSPACE_TEST_REGISTRY.map(
   }),
 );
 
-const STYLES_TEST_CONFIG: PanelConfig = {
-  id: "styles",
-  name: "styles",
+const EVENTS_TEST_CONFIG: PanelConfig = {
+  id: "events",
+  name: "events",
   icon: PanelLeft,
   component: () => null,
   category: "editor",
@@ -56,7 +56,7 @@ const STYLES_TEST_CONFIG: PanelConfig = {
   maxHeight: 800,
 };
 
-const TEST_REGISTRY = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
+const TEST_REGISTRY = [...TEST_CONFIGS, EVENTS_TEST_CONFIG].map((config) =>
   createPanelWorkspaceRegistryEntry(config),
 );
 
@@ -95,10 +95,10 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     });
     vi.spyOn(PanelRegistry, "getAllPanels").mockReturnValue([
       ...TEST_CONFIGS,
-      STYLES_TEST_CONFIG,
+      EVENTS_TEST_CONFIG,
     ]);
     vi.spyOn(PanelRegistry, "getPanel").mockImplementation((panelId) =>
-      [...TEST_CONFIGS, STYLES_TEST_CONFIG].find(
+      [...TEST_CONFIGS, EVENTS_TEST_CONFIG].find(
         (config) => config.id === panelId,
       ),
     );
@@ -270,7 +270,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
         </div>
       );
     });
-    const configs = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
+    const configs = [...TEST_CONFIGS, EVENTS_TEST_CONFIG].map((config) =>
       config.id === "datatableEditor"
         ? { ...config, component: DeferredPanel }
         : config,
@@ -401,15 +401,15 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     right.columns[0]!.rows = [
       { panelId: "properties", height: 350 },
       { panelId: "history", height: 300 },
-      { panelId: "styles", height: 300 },
+      { panelId: "events", height: 300 },
     ];
-    layout.railOrder.right.push("styles");
+    layout.railOrder.right.push("events");
     layout.visibility = {
       ...layout.visibility,
       datatableEditor: false,
       history: false,
       settings: false,
-      styles: false,
+      events: false,
     };
     useBuilderUiStore.setState({
       panelWorkspaceLayout: migrateFixture(layout),
@@ -426,7 +426,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
         datatableEditor: "Data Editor",
         history: "History",
         settings: "Settings",
-        styles: "Styles",
+        events: "Interactions",
       };
       const button = container.querySelector<HTMLButtonElement>(
         `.panel-toggle-rail[data-side="${side}"] button[aria-label="${panelLabels[panelId] ?? panelId}"]`,
@@ -436,7 +436,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     };
 
     clickRailButton("right", "history");
-    clickRailButton("right", "styles");
+    clickRailButton("right", "events");
     clickRailButton("left", "datatableEditor");
     clickRailButton("left", "settings");
 
@@ -452,7 +452,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
       updatedRight?.columns.map((column) =>
         column.rows.map((row) => row.panelId),
       ),
-    ).toEqual([["styles"], ["properties", "history"]]);
+    ).toEqual([["events"], ["properties", "history"]]);
     expect(
       updatedLeft?.columns.map((column) =>
         column.rows.map((row) => row.panelId),

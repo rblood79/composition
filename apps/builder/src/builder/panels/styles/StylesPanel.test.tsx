@@ -6,15 +6,18 @@ import {
   type StylesFixture,
 } from "./__tests__/support/catalogStylesFixture";
 import { useSectionCollapse } from "./hooks/useSectionCollapse";
-import { StylesPanel } from "./StylesPanel";
+import { DesignPanelView } from "../design/DesignPanel";
+import { useDesignPanelView } from "../design/designPanelView";
 import { I18nProvider } from "../../../i18n";
 
 let fixture: StylesFixture;
 
+/** The Design panel on its Layout tab (ADR-252 — the Styles view is the panel's style tabs). */
 function renderStylesPanel() {
+  useDesignPanelView.setState({ view: "layout" });
   return render(
     <I18nProvider initialLocale="en-US">
-      <StylesPanel />
+      <DesignPanelView />
     </I18nProvider>,
     { wrapper: fixture.wrapper },
   );
@@ -89,8 +92,9 @@ describe("StylesPanel view tabs", () => {
   it("renders 5 view tabs and shows only the selected view", () => {
     renderStylesPanel();
 
-    // 그룹 4개 + Modified. "수정된 속성만" 도 같은 영역을 차지하는 뷰라 탭 줄에 함께 있다.
+    // Property + 그룹 4개 (ADR-252 — Modified 뷰는 사용자 2026-10-04 판정으로 뺐다).
     expect(screen.getAllByRole("tab")).toHaveLength(5);
+    expect(screen.queryByRole("tab", { name: /^Modified/ })).toBeNull();
     // 기본 탭 = Layout(Size + Position + Layout). 다른 뷰의 섹션은 렌더되지 않는다.
     expect(screen.getByText("Size")).toBeTruthy();
     expect(screen.queryByText("Typography")).toBeNull();
@@ -99,17 +103,6 @@ describe("StylesPanel view tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Text" }));
 
     expect(screen.getByText("Typography")).toBeTruthy();
-    expect(screen.queryByText("Size")).toBeNull();
-  });
-
-  it("switches to the modified-only view from the tab strip", () => {
-    renderStylesPanel();
-
-    // 수정이 있으면 접근 이름에 개수가 붙는다 ("Modified (2)").
-    fireEvent.click(screen.getByRole("tab", { name: /^Modified/ }));
-
-    // 탭 라벨 + 절 제목 둘 다 "Modified" — 절은 read-only key·value 목록 (panel-ui 04)
-    expect(screen.getAllByText("Modified").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("Size")).toBeNull();
   });
 });

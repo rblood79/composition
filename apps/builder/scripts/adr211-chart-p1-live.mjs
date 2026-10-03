@@ -10,6 +10,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const REPO = process.cwd();
 const pngjsDir = readdirSync(`${REPO}/node_modules/.pnpm`).find((d) =>
@@ -24,22 +25,8 @@ const OUT_DIR = process.env.ADR211_OUT ?? "/private/tmp/adr211-p1";
 const SPECS = `/@fs${REPO}/packages/specs/src/chart/index.ts`;
 const log = (...a) => console.log("[ADR-211 p1 live]", ...a);
 
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

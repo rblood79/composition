@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const PUBLISH_URL = "http://localhost:3001";
@@ -107,23 +108,6 @@ async function chartProps(page, id) {
   }, id);
 }
 
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
-function railButton(page, panelId) {
-  return page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
-}
 async function setPanel(page, panelId, open) {
   const button = railButton(page, panelId);
   const pressed = (await button.getAttribute("aria-pressed")) === "true";

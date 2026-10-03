@@ -16,6 +16,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const opt = (name, fallback) => {
   const index = process.argv.indexOf(`--${name}`);
@@ -77,10 +78,6 @@ async function analyzeCanvas(page) {
  * 패널 레일 버튼 — `aria-label` 은 locale 로 번역되므로 **순서**로 잡는다.
  * 순서는 `PanelToggleGroup` 의 패널 목록 그대로다 (DOM 에 id/data-key 없음).
  */
-const RAIL_ORDER = ["navigator", "components", "datatable", "datatableEditor", "theme", "ai", "properties", "styles", "interactions", "history"];
-function railButton(page, panelId) {
-  return page.locator(".panel-toggle-rail button").nth(RAIL_ORDER.indexOf(panelId));
-}
 
 /** 패널을 원하는 상태로 만든다 — 레일 버튼은 토글이라 무조건 누르면 닫힌다. */
 async function setPanel(page, panelId, open) {

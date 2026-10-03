@@ -258,10 +258,10 @@ async function behavior(browser) {
       return s2.elements.some((e) => e.id === id);
     });
     await page.keyboard.press("Alt+6");
-    await page.waitForSelector('[data-panel="styles"]', { timeout: 15_000 });
+    await page.waitForSelector('[data-panel="properties"]', { timeout: 15_000 });
     // 탭은 아이콘 모드 (aria-label) — styles.text
     const typoTab = page
-      .locator('[data-panel="styles"]')
+      .locator('[data-panel="properties"]')
       .getByRole("tab", { name: /^(Text|텍스트|Typography|타이포그래피)$/ })
       .first();
     await typoTab.waitFor({ state: "visible", timeout: 10_000 });

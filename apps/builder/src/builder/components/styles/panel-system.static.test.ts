@@ -60,7 +60,7 @@ describe("panel-system.css 표준 정본 가드 (ADR-163)", () => {
       /\.panel-wrapper\[data-panel="components"\]\s+\.section\s+\.section-content/,
     );
     expect(css).toMatch(
-      /\.panel-wrapper\[data-panel="properties"\]\s+\.section\s+\.section-content/,
+      /\.panel-wrapper\[data-panel="properties"\]\s+\.design-property-contents\s+\.section\s+\.section-content/,
     );
   });
 

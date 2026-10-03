@@ -7,12 +7,7 @@
   "minSlack": 2,
   "runs": {
     "60": {
-      "classes": [
-        "select",
-        "edit",
-        "page-switch",
-        "panel-toggle"
-      ],
+      "classes": ["select", "edit", "page-switch", "panel-toggle"],
       "args": [
         "--lane",
         "frame",
@@ -25,10 +20,7 @@
       ]
     },
     "600": {
-      "classes": [
-        "select",
-        "edit"
-      ],
+      "classes": ["select", "edit"],
       "args": [
         "--lane",
         "frame",
@@ -272,5 +264,24 @@
       }
     }
   },
-  "raises": []
+  "raises": [
+    {
+      "path": "seeds.60.select.A.domMutations.attributes",
+      "from": 243,
+      "to": 245,
+      "approvedBy": "사용자 (2026-10-04 ADR-252 G4 판정)",
+      "on": "2026-10-03",
+      "reason": "ADR-252 Design 패널 탭 — RAC useTabPanel 이 탭 가능한 자식 없는 tabpanel 에 tabIndex=0 을 붙였다 뗌 (빈 선택 안내 ↔ 선택 본문, D1 접근성 동작 · react-aria/dist/private/tabs/useTabPanel.mjs:24)",
+      "expires": "2027-04-04"
+    },
+    {
+      "path": "seeds.600.select.A.domMutations.attributes",
+      "from": 243,
+      "to": 245,
+      "approvedBy": "사용자 (2026-10-04 ADR-252 G4 판정)",
+      "on": "2026-10-03",
+      "reason": "ADR-252 Design 패널 탭 — RAC useTabPanel 이 탭 가능한 자식 없는 tabpanel 에 tabIndex=0 을 붙였다 뗌 (빈 선택 안내 ↔ 선택 본문, D1 접근성 동작 · react-aria/dist/private/tabs/useTabPanel.mjs:24)",
+      "expires": "2027-04-04"
+    }
+  ]
 }

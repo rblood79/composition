@@ -57,7 +57,7 @@ describe("useActiveScope — data-shortcut-scope 선언", () => {
 
   // 2026-08-27 code-review #13 — `data-panel-id` emitter 가 없어 이 단계가 늘
   // 건너뛰어졌고, 좌측 레이어 트리에 포커스를 둬도 "보이는 첫 우측 패널"
-  // 폴백(panel:styles 등)이 잡혔다.
+  // 폴백(당시 panel:styles 등)이 잡혔다.
   it("포커스가 있는 패널이 폴백보다 우선한다", () => {
     const { hook } = mount(
       `<div data-panel-id="navigator"><div role="treeitem" tabindex="0" id="t">x</div></div>`,

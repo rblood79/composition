@@ -22,6 +22,7 @@ import {
   summarizeRecording,
   RECORDER_SCRIPT,
 } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -44,22 +45,8 @@ const WARMUP = 18,
   INTERVAL_MS = 120;
 const log = (...a) => console.log("[ADR-209 frame A/B]", ...a);
 
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   const pressed = (await button.getAttribute("aria-pressed")) === "true";
   if (pressed !== open) {
     await button.click();

@@ -56,7 +56,23 @@ describe("패널 탭 구조 가드", () => {
           (await readFile(s, "utf-8")).includes("panel-header panel-tabrow"),
         ),
       );
-      if (!wrapped.some(Boolean)) offenders.push(relative(BUILDER_ROOT, file));
+      if (wrapped.some(Boolean)) continue;
+      // 다른 패널 디렉터리가 마운트하는 탭 컴포넌트 (Design 패널이 Styles 의 탭 줄을 쓴다 —
+      // ADR-252) 는 그 마운트 파일이 래퍼를 갖는다.
+      const base = file
+        .split("/")
+        .pop()!
+        .replace(/\.tsx$/, "");
+      const mounters = await Promise.all(
+        files.map(async (f) => {
+          const text = await readFile(f, "utf-8");
+          return (
+            new RegExp(`from "[^"]*/${base}"`).test(text) &&
+            text.includes("panel-header panel-tabrow")
+          );
+        }),
+      );
+      if (!mounters.some(Boolean)) offenders.push(relative(BUILDER_ROOT, file));
     }
     expect(offenders, offenders.join("\n")).toEqual([]);
   });

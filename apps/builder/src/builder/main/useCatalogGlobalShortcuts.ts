@@ -21,6 +21,7 @@ import {
   fitCatalogPageFrame,
 } from "../workspace/canvas/catalog/catalogViewport";
 import { catalogPageAlignCommand } from "../catalogRuntime/canvasPage";
+import { toggleDesignPanelView } from "../panels/design/designPanelView";
 import type { ZoomControlsViewportActions } from "../workspace/ZoomControls";
 
 /** The open page's frame (the first page when none is open). */
@@ -99,7 +100,6 @@ const PANEL_SHORTCUTS: Partial<Record<ShortcutId, PanelId>> = {
   toggleDatatable: "datatable",
   toggleTheme: "theme",
   toggleProperties: "properties",
-  toggleStyles: "styles",
   toggleEvents: "events",
   toggleHistory: "history",
   toggleAI: "ai",
@@ -131,6 +131,8 @@ export function useCatalogGlobalShortcuts(
       zoomToFit: () => {
         if (workspace) catalogViewportActions(workspace, onError).fit();
       },
+      // ⌥6 — Design 을 Layout 탭으로 (ADR-252: Styles 패널이 Design 의 탭이 됐다).
+      toggleStyles: () => toggleDesignPanelView("layout"),
     };
     for (const [id, panelId] of Object.entries(PANEL_SHORTCUTS))
       handlers[id as ShortcutId] = () => togglePanelWorkspace(panelId!);

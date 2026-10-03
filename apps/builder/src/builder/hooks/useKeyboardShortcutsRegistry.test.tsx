@@ -212,7 +212,7 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });
     renderHook(() =>
       useKeyboardShortcutsRegistry(shortcuts, [shortcuts], {
-        activeScope: "panel:styles",
+        activeScope: "panel:events",
       }),
     );
 

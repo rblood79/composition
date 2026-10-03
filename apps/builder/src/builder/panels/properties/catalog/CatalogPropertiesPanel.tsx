@@ -8,7 +8,6 @@ import {
 } from "../../../catalogRuntime/editContract";
 import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import {
-  CatalogWorkspaceGate,
   useCatalogEditContract,
   useCatalogSession,
   useCatalogWorkspace,
@@ -20,8 +19,6 @@ import {
 import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 import { targetKey } from "../../../catalogRuntime/session";
 import { EmptyState } from "../../../components/feedback/EmptyState";
-import { PanelContents } from "../../../components/panel/PanelContents";
-import { PanelHeader } from "../../../components/panel/PanelHeader";
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 import { FieldValueSourceContext } from "../generic/fieldValueSource";
@@ -51,17 +48,11 @@ import { CATALOG_FIELD_VALUE_SOURCE } from "./catalogFieldValueSource";
  * (catalog accepts / reusable contract, value sources from the read model) in the shared generic
  * field renderer. An edit is one `setFields` over every selected target of the same definition
  * (one history step); a value back to the inherited one removes the own write.
+ *
+ * ADR-252: the Design panel's Property tab — the panel (header · tabs) is `DesignPanel`; this file
+ * gives the selection read (`useCatalogPropertiesSelection`), the tab body and the header actions.
  */
-export function CatalogPropertiesPanel() {
-  return (
-    <CatalogWorkspaceGate>
-      <CatalogPropertiesContent />
-    </CatalogWorkspaceGate>
-  );
-}
-
-function CatalogPropertiesContent() {
-  const { t } = useI18n();
+export function useCatalogPropertiesSelection() {
   const workspace = useCatalogWorkspace();
   const selection = useCatalogSession((state) => state.selection);
   const first = selection[0];
@@ -94,138 +85,132 @@ function CatalogPropertiesContent() {
         : undefined;
     return (entry?.kind === "node" && entry.name) || contract.type;
   }, [contract.type, first, graph]);
-  const settingsPage =
-    first?.target.kind === "node"
-      ? catalogSettingsPage(graph, first.target.id)
-      : undefined;
-
-  if (!first || !contract.type) {
-    return (
-      <div className="panel">
-        <PanelHeader
-          icon={<Settings2 size={iconProps.size} />}
-          title={t("panels.properties")}
-          panelId="properties"
-        />
-        <PanelContents>
-          <EmptyState
-            icon={<Settings2 size={32} />}
-            message={t("propertiesPanel.selectElement")}
-          />
-        </PanelContents>
-      </div>
-    );
-  }
   // A delegated sub-part (a field's Label · Input · FieldError …): its parent composes it, so its
   // own fields reach nothing — the owner notice instead (ADR-923, the old panel's).
-  const subpartOwner = catalogSubpartOwnerType(
-    graph,
-    workspace.root.domInputs,
-    first.identity,
-    "all",
+  const subpartOwner =
+    first && contract.type
+      ? catalogSubpartOwnerType(
+          graph,
+          workspace.root.domInputs,
+          first.identity,
+          "all",
+        )
+      : undefined;
+  return { first, contract, targets, title, subpartOwner, graph };
+}
+
+export type CatalogPropertiesSelection = ReturnType<
+  typeof useCatalogPropertiesSelection
+>;
+
+/** The Property tab's header actions — copy / paste (⌘⌥C / ⌘⌥V registered while mounted). */
+export function CatalogPropertiesHeaderActions({
+  selection: { first, contract, targets, subpartOwner },
+}: {
+  selection: CatalogPropertiesSelection;
+}) {
+  if (!first || !contract.type || subpartOwner) return null;
+  return (
+    <CatalogPropertyClipboardActions contract={contract} targets={targets} />
   );
+}
+
+/** The Property tab's body (inside the tab's `.panel-contents`). */
+export function CatalogPropertiesBody({
+  selection: { first, contract, targets, subpartOwner, graph },
+}: {
+  selection: CatalogPropertiesSelection;
+}) {
+  const { t } = useI18n();
+  if (!first || !contract.type)
+    return (
+      <EmptyState
+        icon={<Settings2 size={32} />}
+        message={t("propertiesPanel.selectElement")}
+      />
+    );
   if (subpartOwner)
     return (
-      <div className="panel">
-        <PanelHeader
-          icon={<Settings2 size={iconProps.size} />}
-          title={title ?? contract.type}
-          panelId="properties"
-        />
-        <PanelContents>
-          <EmptyState
-            icon={<Settings2 size={32} />}
-            message={t("propertiesPanel.delegatedSubpartMessage")}
-            description={t("propertiesPanel.delegatedSubpartDescription", {
-              type: contract.type,
-              parent: subpartOwner,
-            })}
-          />
-        </PanelContents>
-      </div>
+      <EmptyState
+        icon={<Settings2 size={32} />}
+        message={t("propertiesPanel.delegatedSubpartMessage")}
+        description={t("propertiesPanel.delegatedSubpartDescription", {
+          type: contract.type,
+          parent: subpartOwner,
+        })}
+      />
     );
+  const settingsPage =
+    first.target.kind === "node"
+      ? catalogSettingsPage(graph, first.target.id)
+      : undefined;
   const originSample =
     first.target.kind === "node" && first.target.id === ORIGIN_VIEW_NODE;
   return (
-    <div className="panel">
-      <PanelHeader
-        icon={<Settings2 size={iconProps.size} />}
-        title={title ?? contract.type}
-        panelId="properties"
-        actions={
-          <CatalogPropertyClipboardActions
-            contract={contract}
-            targets={targets}
+    <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
+      <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
+        {first.target.kind === "node" && (
+          <CatalogComponentSection
+            key={`component:${first.target.id}`}
+            nodeId={first.target.id}
           />
-        }
-      />
-      <PanelContents>
-        <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
-          <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
-            {first.target.kind === "node" && (
-              <CatalogComponentSection
-                key={`component:${first.target.id}`}
-                nodeId={first.target.id}
-              />
-            )}
-            {/* A built-in origin's sample: only its root props and styles are its project
-                defaults (user decision: root only) — no node attributes, state or slot. */}
-            {!originSample && (
-              <CatalogAttributesSection
-                key={`attributes:${targetKey(first.target)}`}
-                target={first.target}
-                identity={first.identity}
-              />
-            )}
-            {settingsPage && (
-              <CatalogPageSection
-                key={`page:${settingsPage}`}
-                pageId={settingsPage}
-              />
-            )}
-            {first.target.kind === "node" && (
-              <CatalogLayoutBodySection
-                key={`layout-body:${first.target.id}`}
-                nodeId={first.target.id}
-              />
-            )}
-            {first.target.kind === "node" && !originSample && (
-              <CatalogStateSection
-                key={`state:${first.target.id}`}
-                nodeId={first.target.id}
-              />
-            )}
-            {!originSample && (
-              <CatalogSlotSection
-                key={`slot:${targetKey(first.target)}`}
-                target={first.target}
-              />
-            )}
-            <CatalogItemInsertSection
-              key={`items:${first.identity}`}
-              identity={first.identity}
-            />
-            <CatalogItemRolesSection
-              key={`roles:${first.identity}`}
-              identity={first.identity}
-            />
-            <CatalogItemOriginNotice
-              key={`origin:${targetKey(first.target)}`}
-              target={first.target}
-            />
-            <CatalogCardFieldsSection
-              key={`cards:${first.identity}`}
-              identity={first.identity}
-            />
-            <CatalogFields
-              key={targetKey(first.target)}
-              elementId={first.identity}
-              targets={targets}
-            />
-          </ItemsSourceContext.Provider>
-        </FieldValueSourceContext.Provider>
-      </PanelContents>
-    </div>
+        )}
+        {/* A built-in origin's sample: only its root props and styles are its project
+            defaults (user decision: root only) — no node attributes, state or slot. */}
+        {!originSample && (
+          <CatalogAttributesSection
+            key={`attributes:${targetKey(first.target)}`}
+            target={first.target}
+            identity={first.identity}
+          />
+        )}
+        {settingsPage && (
+          <CatalogPageSection
+            key={`page:${settingsPage}`}
+            pageId={settingsPage}
+          />
+        )}
+        {first.target.kind === "node" && (
+          <CatalogLayoutBodySection
+            key={`layout-body:${first.target.id}`}
+            nodeId={first.target.id}
+          />
+        )}
+        {first.target.kind === "node" && !originSample && (
+          <CatalogStateSection
+            key={`state:${first.target.id}`}
+            nodeId={first.target.id}
+          />
+        )}
+        {!originSample && (
+          <CatalogSlotSection
+            key={`slot:${targetKey(first.target)}`}
+            target={first.target}
+          />
+        )}
+        <CatalogItemInsertSection
+          key={`items:${first.identity}`}
+          identity={first.identity}
+        />
+        <CatalogItemRolesSection
+          key={`roles:${first.identity}`}
+          identity={first.identity}
+        />
+        <CatalogItemOriginNotice
+          key={`origin:${targetKey(first.target)}`}
+          target={first.target}
+        />
+        <CatalogCardFieldsSection
+          key={`cards:${first.identity}`}
+          identity={first.identity}
+        />
+        <CatalogFields
+          key={targetKey(first.target)}
+          elementId={first.identity}
+          targets={targets}
+        />
+      </ItemsSourceContext.Provider>
+    </FieldValueSourceContext.Provider>
   );
 }
 

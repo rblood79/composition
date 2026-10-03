@@ -28,7 +28,6 @@ export type ShortcutScope =
   | "global"
   | "canvas-focused"
   | "panel:properties"
-  | "panel:styles"
   | "panel:events"
   | "panel:navigator"
   | "modal"

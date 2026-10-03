@@ -234,7 +234,7 @@ describe("ADR-248 Phase 4e-5 agent commands", () => {
     const off = registerCommand({
       id: "pasteStyles",
       handler: () => calls.push("pasteStyles"),
-      scope: "panel:styles",
+      scope: "panel:properties",
       priority: 50,
       allowInInput: false,
       disabled: false,

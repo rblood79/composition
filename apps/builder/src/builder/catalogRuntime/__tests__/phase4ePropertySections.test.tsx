@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -20,7 +20,8 @@ import { GenericFieldRenderer } from "../../panels/properties/generic/GenericFie
 import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource";
 import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
 import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
-import { CatalogPropertiesPanel } from "../../panels/properties/catalog/CatalogPropertiesPanel";
+import { DesignPanel } from "../../panels/design/DesignPanel";
+import { useDesignPanelView } from "../../panels/design/designPanelView";
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
 import { CatalogSlotSection } from "../../panels/properties/catalog/CatalogSlotSection";
 import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStateSection";
@@ -90,6 +91,9 @@ async function open() {
   );
   return { workspace };
 }
+
+// The Design panel opens on its Property tab (ADR-252 — the tab state is a session store).
+beforeEach(() => useDesignPanelView.setState({ view: "property" }));
 
 describe("ADR-248 Phase 4e-4 Properties sections", () => {
   it("an author DOM id stays unique; the check assigns the next free base_N", async () => {
@@ -189,7 +193,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
                 (name) => name,
               )}
             >
-              <CatalogPropertiesPanel />
+              <DesignPanel />
             </QuickConnectHostContext.Provider>
           </DataUsageSourceContext.Provider>
         </CatalogWorkspaceProvider>
@@ -311,7 +315,7 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     const { container } = render(
       <I18nProvider initialLocale="en-US">
         <CatalogWorkspaceProvider workspace={workspace}>
-          <CatalogPropertiesPanel />
+          <DesignPanel />
         </CatalogWorkspaceProvider>
       </I18nProvider>,
     );

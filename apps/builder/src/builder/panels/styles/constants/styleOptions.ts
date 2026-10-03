@@ -63,7 +63,7 @@ export const UNIT_OPTIONS = {
   lineHeight: ["auto", "px", ""],
 } as const;
 
-// Layout options for ModifiedStylesSection
+// Layout display options
 export const DISPLAY_OPTIONS: { value: string; label: string }[] = [
   { value: "block", label: "block" },
   { value: "flex", label: "flex" },

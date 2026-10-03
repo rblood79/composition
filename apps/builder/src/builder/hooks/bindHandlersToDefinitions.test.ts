@@ -32,7 +32,7 @@ describe("bindHandlersToDefinitions", () => {
     const [duplicate, selectAll, detach, copyStyles] = bound;
     expect(duplicate.scope).toEqual(["canvas-focused", "panel:navigator"]);
     expect(selectAll.scope).toBe("canvas-focused");
-    expect(copyStyles.scope).toBe("panel:styles");
+    expect(copyStyles.scope).toBe("panel:properties");
     expect(detach.stopPropagation).toBe(true); // capture: true
     expect(duplicate.priority).toBe(SHORTCUT_DEFINITIONS.duplicate.priority);
     expect(duplicate.key).toBe("d");

@@ -5,25 +5,12 @@ import { chromium } from "playwright";
 import { resolve } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { waitReady } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const OUT = "output/playwright/layout-panel-followups";
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

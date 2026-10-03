@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const baseIdx = process.argv.indexOf("--base");
 const BASE_URL =
@@ -30,22 +31,8 @@ const record = (name, pass, detail) => {
   log(`${pass ? "PASS" : "FAIL"} — ${name} :: ${detail}`);
 };
 
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   const pressed = (await button.getAttribute("aria-pressed")) === "true";
   if (pressed !== open) {
     await button.click();

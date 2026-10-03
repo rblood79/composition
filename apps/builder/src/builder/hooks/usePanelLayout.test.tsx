@@ -36,7 +36,7 @@ const TEST_PANELS: PanelConfig[] = [
     defaultHeight: 520,
   },
   {
-    id: "styles",
+    id: "events",
     name: "스타일",
     icon: PaintRoller,
     component: () => null,
@@ -65,7 +65,7 @@ function createV1Layout(): PanelLayoutState {
   return {
     ...DEFAULT_PANEL_LAYOUT,
     leftPanels: [],
-    rightPanels: ["properties", "styles"],
+    rightPanels: ["properties", "events"],
     activeLeftPanels: [],
     activeRightPanels: ["properties"],
     bottomPanels: ["theme"],

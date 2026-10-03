@@ -11,7 +11,7 @@ paths:
 
 > **위상**: 빌더 시스템 UI (builder-system layer) 규칙. 사용자 캔버스 컴포넌트의 SSOT 3-domain (D1/D2/D3) 체인과 무관 — catalog/spec/Generator 확장 없음.
 >
-> **레퍼런스**: Properties/Styles 패널이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Navigator/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
+> **레퍼런스**: Design 패널 (id `properties` — Properties · Styles 를 한 패널의 탭 `Property | Layout | Style | Text | Screen` 으로 통합, ADR-252) 이 표준 정본. Components/DataTable/DataTableEditor 는 추종, **Navigator/Events 는 예외**(§예외), 나머지 미완 패널은 레퍼런스를 따라간다.
 >
 > **공식 결정**: [ADR-163](../../docs/adr/completed/163-builder-panel-structure-standardization.md) · 구현 상세: [design breakdown](../../docs/adr/design/163-builder-panel-structure-standardization-breakdown.md)
 
@@ -46,6 +46,7 @@ paths:
   - **왜 "빼는" 통일인가 (실측 2026-08-30)**: 아이콘 사용 섹션은 54개 중 9개(17%)뿐이었고, 나머지 45개의 큰 몫이 catalog 파생 섹션(`GenericFieldRenderer`/`CatalogInspectorFields` 가 `field.section` 문자열로 생성)이라 **아이콘을 넘길 채널이 없다** — 채우는 통일은 catalog 계약에 icon 축 신설(D2/D3 확장)이 전제다. 같은 Properties 패널 한 화면에 아이콘 섹션(Component/Attributes)과 무아이콘 섹션(Content/Appearance/State)이 함께 뜨던 것이 제거 동기.
 - 라벨 있는 필드 그룹은 `fieldset.properties-aria.{고유클래스}` + `legend.fieldset-legend` (memory: feedback-panel-field-group-fieldset-legend-pattern).
 - 컨트롤 묶음 시각(inset 배경)은 `.react-aria-Group` 조합.
+- **패널 id 는 저장 키다 — 패널을 합쳐도 id 는 남긴다** (Events → Interactions · Properties + Styles → Design, ADR-252). 합친 패널의 id 에 묶인 CSS 는 그 패널이 원래 그리던 본문 (탭) 으로 범위를 좁힌다 (`.panel-wrapper[data-panel="properties"] .design-property-contents …`) — 그대로 두면 새로 들어온 탭의 섹션 배치를 덮는다.
 - **패널 탭은 단일 패턴** — 마크업·클래스 조합이 하나다:
   `Tabs.panel-tabs` > `div.panel-header.panel-tabrow` > `TabList.panel-tablist` > `Tab.panel-tab` > `span.panel-tab-label`, 구현은 RAC `Tabs`/`TabList`/`Tab`.
   바 크롬(32px·`--bg-raised`·하단 구분선)은 **`.panel-header` 가 이미 준다** — `.panel-tabrow` 는 헤더 패딩만 0 으로 되돌리는 modifier다. 래퍼를 빼고 같은 값을 tablist 에 다시 쓰면 크롬 정의가 두 곳이 되고 패널 골격도 갈린다.
@@ -64,7 +65,6 @@ paths:
 - **목록 행의 보조 액션 2개 이상은 `PropertyRowMenu`** (`components/property/`) — `.fieldset-row` 의 `.fieldset-actions` 칸에 `⋮` 트리거 하나 + RAC Menu (Move Up / Move Down / Reset / Remove …). 인스펙터 행 템플릿의 아이콘 칸은 `--control-size` 하나라 버튼을 나란히 두면 필드가 폭을 잃는다 (233px 패널: 필드 2 + 아이콘 3 = 필드당 49px). 유니코드 화살표·`×` 를 버튼 라벨로 쓰지 않는다 (Chart 시리즈·값 필드 행, 2026-09-11).
 - **필드 상태 문구는 필드 안 `slot="description"`** (`PropertySelect.afterControl`) — 값·데이터에 반응하는 메시지 (disabled 사유 · 초과 · 누락) 만. 정적 설명 문단 (`<p class="…-hint">`) 은 섹션에 두지 않는다 — legend 뒤 help 어포던스는 후속 (i18n 키는 유지).
 - **catalog 파생 섹션에 비-catalog 컨트롤을 넣는 채널은 `GenericFieldRenderer` 의 `contentExtras` (content 선두) · `sectionExtras` (section 별 말미)** 둘뿐. 섹션 순서는 `editorHidden` 필드를 포함한 계약의 `section` 첫 등장 순서라 catalog 가 배치를 소유한다 — 패널 코드에서 `PropertySection` 을 직접 쌓아 순서를 만들지 않는다.
-
 
 ## 2. 클래스 네이밍 규칙
 

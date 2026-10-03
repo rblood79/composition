@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
@@ -86,11 +87,6 @@ async function inkBox(page, { minRow = 0 } = {}) {
   };
 }
 
-/** 패널 레일 버튼 — `aria-label` 은 locale 로 번역되므로 **순서**로 잡는다. */
-const RAIL_ORDER = ["navigator", "components", "datatable", "datatableEditor", "theme", "ai", "properties", "styles", "interactions", "history"];
-function railButton(page, panelId) {
-  return page.locator(".panel-toggle-rail button").nth(RAIL_ORDER.indexOf(panelId));
-}
 async function setPanel(page, panelId, open) {
   const button = railButton(page, panelId);
   const pressed = (await button.getAttribute("aria-pressed")) === "true";

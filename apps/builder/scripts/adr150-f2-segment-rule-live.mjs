@@ -15,6 +15,7 @@ import {
   createIsolatedProject,
   loadStorageState,
 } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) =>
@@ -32,18 +33,6 @@ const record = (name, pass, detail) => {
 
 const ORIGIN = "component-gridlist-item-default";
 const CUSTOM_ID = "text_f2";
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 
 const browser = await chromium.launch({ headless: false });
 const { page } = await createInstrumentedContext(browser, {
@@ -56,9 +45,7 @@ page.on("pageerror", (e) => errors.push(String(e.stack ?? e).slice(0, 1200)));
 page.on("dialog", (d) => d.dismiss().catch(() => {}));
 
 async function setPanel(panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

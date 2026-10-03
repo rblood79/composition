@@ -86,14 +86,14 @@ describe("PanelToggleGroup", () => {
       getByRole("button", { name: "Navigator" }).getAttribute("aria-pressed"),
     ).toBe("true");
     expect(
-      getByRole("button", { name: "Properties" }).getAttribute("aria-pressed"),
+      getByRole("button", { name: "Design" }).getAttribute("aria-pressed"),
     ).toBe("false");
   });
 
   it("RAC의 다음 Set에서 달라진 panelId 하나만 workspace 명령으로 전달한다", () => {
     const { getByRole, onPanelToggle } = renderGroup(["navigator"]);
 
-    fireEvent.click(getByRole("button", { name: "Properties" }));
+    fireEvent.click(getByRole("button", { name: "Design" }));
 
     expect(onPanelToggle).toHaveBeenCalledTimes(1);
     expect(onPanelToggle).toHaveBeenCalledWith("properties");

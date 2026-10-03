@@ -28,6 +28,7 @@ import {
   createInstrumentedContext,
   loadStorageState,
 } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const headed = process.argv.includes("--headed");
 const opt = (name, fallback) => {
@@ -102,22 +103,8 @@ function storageStateFor(origin) {
     });
   return state;
 }
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   const pressed = (await button.getAttribute("aria-pressed")) === "true";
   if (pressed !== open) {
     await button.click();

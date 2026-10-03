@@ -12,6 +12,7 @@ import {
   createIsolatedProject,
   loadStorageState,
 } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) =>
@@ -28,22 +29,8 @@ const record = (name, pass, detail) => {
   );
 };
 
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);

@@ -110,7 +110,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
   const blurPx = parseFilterBlurPx(styleValues.filter);
 
-  // 요소 opacity — ModifiedStylesSection 과 같은 presentation 경로 (pilot 이 소유하면
+  // 요소 opacity — presentation 경로 (pilot 이 소유하면
   //   Skia 가 OpacityEffect 만 갈아끼우고, 아니면 canonical preview/commit).
   const handleOpacityPreview = (percent: number): void => {
     const value = String(percent / 100);
@@ -267,7 +267,8 @@ const EffectSectionContent = memo(function EffectSectionContent() {
               onPreview: handleBoxShadowModelPreview,
               onCommit: handleBoxShadowModelCommit,
               onCancel: (reason) => {
-                if (!cancelBoxShadowPresentation(reason)) host.cancelPreview?.();
+                if (!cancelBoxShadowPresentation(reason))
+                  host.cancelPreview?.();
               },
               presentationOwnsFrameScheduling: presentationOwnsBoxShadow,
               livePreview,

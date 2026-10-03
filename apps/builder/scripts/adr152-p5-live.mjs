@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady } from "./perf-baseline.mjs";
+import { railButton } from "./railButton.mjs";
 
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
@@ -15,8 +16,7 @@ const headed = process.argv.includes("--headed");
 const log = (...a) => console.log("[ADR-152 p5 live]", ...a);
 const findings = [];
 const record = (name, pass, detail) => { findings.push({ name, pass, detail }); log(`${pass ? "PASS" : "FAIL"} — ${name} :: ${detail}`); };
-const RAIL_ORDER = ["navigator", "components", "datatable", "datatableEditor", "theme", "ai", "properties", "styles", "interactions", "history"];
-async function setPanel(page, panelId, open) { const b = page.locator(".panel-toggle-rail button").nth(RAIL_ORDER.indexOf(panelId)); if (((await b.getAttribute("aria-pressed")) === "true") !== open) { await b.click(); await page.waitForTimeout(900); } }
+async function setPanel(page, panelId, open) { const b = railButton(page, panelId); if (((await b.getAttribute("aria-pressed")) === "true") !== open) { await b.click(); await page.waitForTimeout(900); } }
 const idbPut = (page, row) => page.evaluate(async (row) => { const db = await new Promise((res, rej) => { const r = indexedDB.open("composition"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); await new Promise((res, rej) => { const tx = db.transaction("collections", "readwrite"); tx.objectStore("collections").put(row); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); db.close(); }, row);
 async function pollUntil(read, ok, maxMs = 12_000, stepMs = 400) { const s = Date.now(); let last; do { last = await read(); if (ok(last)) return last; await new Promise((r) => setTimeout(r, stepMs)); } while (Date.now() - s < maxMs); return last; }
 const skiaKeys = (page, ownerId) => page.evaluate((ownerId) => { const map = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.(); if (!map) return null; const prefix = `projection:listbox-row:${ownerId}:`; return [...map.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length)).sort(); }, ownerId);

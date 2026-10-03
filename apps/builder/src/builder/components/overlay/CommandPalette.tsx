@@ -98,7 +98,6 @@ const SCOPE_HINT_KEYS: Record<ShortcutScope, string> = {
   global: "commandPalette.scopeGlobal",
   "canvas-focused": "commandPalette.scopeCanvasFocused",
   "panel:properties": "commandPalette.scopePanelProperties",
-  "panel:styles": "commandPalette.scopePanelStyles",
   "panel:events": "commandPalette.scopePanelEvents",
   "panel:navigator": "commandPalette.scopePanelNavigator",
   modal: "commandPalette.scopeModal",

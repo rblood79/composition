@@ -65,7 +65,7 @@ const FLOATING_PANEL_IDS = [
   "datatableEditor",
   "settings",
   "history",
-  "styles",
+  "datatableField",
   "events",
   "ai",
 ] as const satisfies readonly PanelId[];
@@ -83,7 +83,7 @@ const RAIL_BY_PANEL: Record<
   datatableEditor: "left",
   settings: "left",
   history: "right",
-  styles: "right",
+  datatableField: "right",
   events: "right",
   ai: "right",
 };
@@ -151,7 +151,7 @@ export function createAdr186TenPlusFloatingFixture(): Adr186TenPlusFloatingFixtu
           "datatableEditor",
           "settings",
         ],
-        right: ["properties", "history", "styles", "events", "ai"],
+        right: ["properties", "history", "datatableField", "events", "ai"],
         bottom: ["theme"],
       },
       clusters: [

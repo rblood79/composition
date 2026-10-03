@@ -51,7 +51,6 @@ const DECLARABLE_SCOPES = new Set<ShortcutScope>([
   "global",
   "canvas-focused",
   "panel:properties",
-  "panel:styles",
   "panel:events",
   "panel:navigator",
 ]);
@@ -59,7 +58,6 @@ const DECLARABLE_SCOPES = new Set<ShortcutScope>([
 /** 패널 ID → 스코프 매핑 */
 const PANEL_SCOPE_MAP: Partial<Record<PanelId, ShortcutScope>> = {
   properties: "panel:properties",
-  styles: "panel:styles",
   events: "panel:events",
   navigator: "panel:navigator",
 };

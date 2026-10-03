@@ -7,7 +7,6 @@ async function source(path: string): Promise<string> {
 }
 
 describe("ADR-187 Phase 2 migration guards", () => {
-
   it("capability/initial fills resolve는 session acquire에서만 수행하고 active input은 캡처값을 쓴다", async () => {
     // ADR-248 4e-7: the pilot target resolves through the Styles host's presentation bridge.
     const action = await source("../panels/styles/hooks/useFillActions.ts");
@@ -58,21 +57,10 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(commitGuard).toBeGreaterThan(-1);
     expect(legacyCommit).toBeGreaterThan(commitGuard);
     expect(section).not.toContain("updateFillPreviewThrottled");
-    expect(picker).toContain("if (presentationOwnsFrameScheduling || livePreview)");
+    expect(picker).toContain(
+      "if (presentationOwnsFrameScheduling || livePreview)",
+    );
     expect(picker).not.toContain("requestAnimationFrame");
     expect(picker).not.toContain("cancelAnimationFrame");
-  });
-
-  it("Modified Styles 는 read-only 목록 — 편집 경로 (legacy preview 포함) 가 없다", async () => {
-    // panel-ui 04 (2026-09-14): 항목마다 편집기를 다시 그리던 뷰를 key·value 목록으로. 편집은
-    // 해당 탭의 typed owner 경로가 유일하므로 여기서 legacy preview 가 되살아나면 안 된다.
-    const modified = await source(
-      "../panels/styles/sections/ModifiedStylesSection.tsx",
-    );
-    expect(modified).not.toContain("updateStylePreview");
-    expect(modified).not.toContain("updateStyle(");
-    expect(modified).not.toContain("PropertyColor");
-    expect(modified).not.toContain("PropertyUnitInput");
-    expect(modified).toContain("useResetStyles");
   });
 });

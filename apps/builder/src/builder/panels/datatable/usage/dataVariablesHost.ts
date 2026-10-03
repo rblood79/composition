@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { VariableDef, VisibleVariable } from "@composition/shared";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
+import { openDesignPanel } from "../../design/designPanelView";
 import { useStateSectionFocus } from "../../properties/state/stateSectionFocus";
 
 export interface VariableIndexGroup {
@@ -44,9 +44,9 @@ export interface DataVariablesHost {
   };
 }
 
-/** Open Properties on the owner with its State section on the variable. */
+/** Open Design (Property tab) on the owner with its State section on the variable. */
 export function focusVariableOwner(ownerNodeId: string, variableId: string) {
-  setPanelWorkspacePanelVisibility("properties", true);
+  openDesignPanel("property");
   useStateSectionFocus.getState().requestFocus(ownerNodeId, variableId);
 }
 

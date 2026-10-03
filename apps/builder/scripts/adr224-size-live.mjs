@@ -2,22 +2,9 @@ import { chromium } from "playwright";
 import { resolve } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { waitReady } from "./perf-baseline.mjs";
-const RAIL_ORDER = [
-  "navigator",
-  "components",
-  "datatable",
-  "datatableEditor",
-  "theme",
-  "ai",
-  "properties",
-  "styles",
-  "interactions",
-  "history",
-];
+import { railButton } from "./railButton.mjs";
 async function setPanel(page, panelId, open) {
-  const button = page
-    .locator(".panel-toggle-rail button")
-    .nth(RAIL_ORDER.indexOf(panelId));
+  const button = railButton(page, panelId);
   if (((await button.getAttribute("aria-pressed")) === "true") !== open) {
     await button.click();
     await page.waitForTimeout(900);
@@ -186,9 +173,9 @@ try {
   console.log("fixture", JSON.stringify({ parent, a, b, url: page.url() }));
   console.log(
     "panel",
-    await page.locator('[data-panel-id="styles"]').innerText(),
+    await page.locator('[data-panel-id="properties"]').innerText(),
   );
-  const width = page.locator('[data-panel-id="styles"] fieldset.width');
+  const width = page.locator('[data-panel-id="properties"] fieldset.width');
   await width.locator("button").click();
   console.log("options", await page.getByRole("listbox").innerText());
   await page.getByRole("option", { name: /^(채우기|Fill)$/ }).click();
@@ -524,7 +511,7 @@ try {
       st.setSelectedElement(id);
     }, a);
     await page.waitForTimeout(800);
-    const styles = page.locator('[data-panel-id="styles"]');
+    const styles = page.locator('[data-panel-id="properties"]');
     const constraintsButton = styles.getByRole("button", {
       name: /Size constraints|최소·최대 크기/,
     });
@@ -604,7 +591,7 @@ try {
     await page.waitForTimeout(1000);
     await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
     await page.waitForTimeout(600);
-    const styles = page.locator('[data-panel-id="styles"]');
+    const styles = page.locator('[data-panel-id="properties"]');
     const lock = styles.locator(".actions-ratio button");
     const readNode = (id) => page.evaluate((elementId) => {
       const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
@@ -679,7 +666,7 @@ try {
     await page.waitForTimeout(1000);
     await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
     await page.waitForTimeout(600);
-    const styles = page.locator('[data-panel-id="styles"]');
+    const styles = page.locator('[data-panel-id="properties"]');
     const positionSection = styles.locator('[data-section-id="position"]');
     const header = positionSection.locator(".section-header button[aria-expanded]").first();
     if ((await header.getAttribute("aria-expanded")) !== "true") {
@@ -750,7 +737,7 @@ try {
     await page.waitForTimeout(1000);
     await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
     await page.waitForTimeout(600);
-    const styles = page.locator('[data-panel-id="styles"]');
+    const styles = page.locator('[data-panel-id="properties"]');
     const readNode = (id) => page.evaluate((elementId) => {
       const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
       return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };
@@ -948,7 +935,7 @@ try {
     await page.waitForTimeout(1000);
     await page.evaluate((ids) => window.__composition_STORE__.getState().setSelectedElements(ids), [a, b]);
     await page.waitForTimeout(800);
-    const styles = page.locator('[data-panel-id="styles"]');
+    const styles = page.locator('[data-panel-id="properties"]');
     const readNode = (id) => page.evaluate((elementId) => {
       const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
       return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };

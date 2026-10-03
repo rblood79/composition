@@ -24,7 +24,12 @@
     grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   }
 
-  .panel-wrapper[data-panel="properties"] .section .section-content {
+  /* Design 패널 (id properties) 의 Property 탭 본문만 — 스타일 탭 섹션의 grid 를 덮지 않는다
+     (ADR-252 R2). */
+  .panel-wrapper[data-panel="properties"]
+    .design-property-contents
+    .section
+    .section-content {
     display: flex;
     flex-direction: column;
   }

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties · Styles 패널을 Design 패널 하나로 통합 — ADR-252 Implemented] - 2026-10-04
+
+### Changed
+
+- **오른쪽 레일의 Properties · Styles 버튼이 Design 하나가 된다.** Design 패널은 탭 `Property | Layout | Style | Text | Screen` 을 갖는다 — Property 탭이 종전 Properties 본문, 나머지 넷이 종전 Styles 그룹이다. 본문은 옮기기만 했다 (탭별 다중 선택 대상 · sub-part 안내 · 빈 선택 안내 그대로). 탭 줄은 선택이 없어도 남고, 안내는 탭 본문만 바꾼다. 속성과 스타일을 동시에 볼 수는 없다 (사용자 결정 2026-09-29).
+- **⌥5 = Design 토글, ⌥6 = Design 을 Layout 탭으로 열기** (이미 Layout 탭으로 열려 있으면 닫는다). 페이지 설정 · 변수 owner 이동은 Design 을 Property 탭으로 연다.
+- **⌘⌥C / ⌘⌥V 는 보이는 탭을 따른다** — Property 탭은 속성, 나머지 탭은 스타일. 종전에는 포커스된 패널로 갈렸다. 메뉴 · 명령 팔레트에서 지금 탭의 반대쪽 복사 명령은 실행 불가로 보인다. ⌥⇧S (focus mode) · ⌥⇧E (전체 섹션) 는 스타일 탭에서만 동작한다.
+- **Styles 의 Modified 탭 (수정된 스타일 목록 · 전체 되돌리기) 을 뺐다** (사용자 판정 2026-10-04). 수정된 그룹은 탭의 점으로, 되돌리기는 섹션마다의 reset 으로 한다. 패널 최소 폭은 233 px 그대로 (탭 5개 — ko · en 라벨 잘림 없음).
+- **저장된 Styles 패널 배치는 사라진다.** 패널 id 는 `properties` 그대로라 Design 은 종전 Properties 자리 · 크기 · 열림을 이어받고, `styles` row 는 레이아웃을 열 때 빠진다 (오류 없음).
+
+사용자 확인 (2026-10-04). 위치: `apps/builder/src/builder/panels/design/{DesignPanel.tsx,designPanelView.ts}` · `panels/properties/catalog/CatalogPropertiesPanel.tsx` · `panels/styles/{StylesPanel.tsx,components/StylesPanelTabs.tsx,catalog/CatalogStylesPanel.tsx}` · `panels/core/panelConfigs.ts` · `config/keyboardShortcuts.ts` · `components/styles/panel-system.css` · 하니스 `apps/builder/scripts/railButton.mjs` (레일 버튼을 순서 대신 이름으로 — 65 스크립트).
+
 ## [편집 영향 범위의 증분 소비 보완 — ADR-248 paint/structure delta] - 2026-10-03
 
 ### Performance

@@ -3,10 +3,7 @@
  * 패널 열림의 AND. 포커스 scope 는 보지 않는다.
  */
 import { describe, expect, it, vi } from "vitest";
-import {
-  COMMAND_META,
-  type AgentReadModel,
-} from "../../config/commandMeta";
+import { COMMAND_META, type AgentReadModel } from "../../config/commandMeta";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
 import type { CommandEntry } from "../../stores/commandRegistry";
 import type { PanelConfig, PanelId } from "../../panels/core/types";
@@ -123,25 +120,27 @@ describe("resolveCommandEnablement", () => {
   });
 
   it("소속 패널이 닫혀 있으면 비활성 — 상시 host 등록이 남아 있어도 (R4)", () => {
-    const visible = new Set<PanelId>(["properties"]);
-    const state = input(
-      {
-        copyStyles: entry("copyStyles"),
-        copyProperties: entry("copyProperties"),
-      },
-      {
-        readModel: readModel(),
-        isPanelVisible: (panelId) => visible.has(panelId),
-      },
-    );
-    expect(resolveCommandEnablement("copyStyles", state)).toEqual({
+    const visible = new Set<PanelId>(["events"]);
+    const state = (shown: Set<PanelId>) =>
+      input(
+        { copyStyles: entry("copyStyles") },
+        {
+          readModel: readModel(),
+          isPanelVisible: (panelId) => shown.has(panelId),
+        },
+      );
+    // ADR-252 — 스타일 복사의 소속은 Design 패널 (id properties).
+    expect(resolveCommandEnablement("copyStyles", state(visible))).toEqual({
       enabled: false,
       reason: "panel-hidden",
-      detail: "styles",
+      detail: "properties",
     });
-    expect(resolveCommandEnablement("copyProperties", state)).toEqual({
-      enabled: true,
-    });
+    expect(
+      resolveCommandEnablement(
+        "copyStyles",
+        state(new Set<PanelId>(["properties"])),
+      ),
+    ).toEqual({ enabled: true });
   });
 
   it("포커스 scope 는 보지 않는다 — 캔버스 명령은 scope 불일치여도 활성", () => {
@@ -156,9 +155,12 @@ describe("resolveCommandEnablement", () => {
 
 describe("ownerPanelForCommand", () => {
   it("단일 panel:* scope 만 소속을 갖는다", () => {
-    expect(ownerPanelForCommand("copyStyles", panelIdForScope)).toBe("styles");
+    // ADR-252 — 스타일 탭 명령도 Design 패널 (id properties) 소속.
+    expect(ownerPanelForCommand("copyStyles", panelIdForScope)).toBe(
+      "properties",
+    );
     expect(ownerPanelForCommand("toggleFocusMode", panelIdForScope)).toBe(
-      "styles",
+      "properties",
     );
     expect(ownerPanelForCommand("copyProperties", panelIdForScope)).toBe(
       "properties",
@@ -178,7 +180,7 @@ describe("deriveWorkspacePanelGroups", () => {
   const configs = new Map<PanelId, PanelConfig>([
     ["navigator", config("navigator")],
     ["settings", config("settings", true, true)],
-    ["styles", config("styles")],
+    ["events", config("events")],
     // 레일에서 뺀 패널도 메뉴에는 선다 (사용자 2026-09-29)
     ["history", config("history", false, true)],
   ]);
@@ -187,20 +189,20 @@ describe("deriveWorkspacePanelGroups", () => {
     const groups = deriveWorkspacePanelGroups(
       {
         left: ["navigator", "settings"],
-        right: ["styles", "history"],
+        right: ["events", "history"],
         bottom: [],
       },
       (id) => configs.get(id),
     );
     expect(groups.map((g) => [g.side, g.panels.map((p) => p.id)])).toEqual([
       ["left", ["navigator"]],
-      ["right", ["styles", "history"]],
+      ["right", ["events", "history"]],
     ]);
   });
 
   it("bottom 으로 옮긴 패널은 아래 구역에 선다", () => {
     const groups = deriveWorkspacePanelGroups(
-      { left: ["navigator"], right: ["styles"], bottom: ["history"] },
+      { left: ["navigator"], right: ["events"], bottom: ["history"] },
       (id) => configs.get(id),
     );
     expect(groups.at(-1)).toMatchObject({

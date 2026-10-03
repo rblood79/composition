@@ -11,9 +11,8 @@ import {
   FileEdit,
   History,
   ListTree,
-  PaintRoller,
   Settings,
-  Settings2,
+  PaintRoller,
   SquareMousePointer,
   SwatchBook,
 } from "lucide-react";
@@ -28,8 +27,7 @@ import { AIPanel } from "../ai/lazyAIPanel";
 import { lazyPanel, preloadLazyPanels } from "./lazyPanel";
 
 // Editor panels
-import { CatalogPropertiesPanel } from "../properties/catalog/CatalogPropertiesPanel";
-import { CatalogStylesPanel } from "../styles/catalog/CatalogStylesPanel";
+import { DesignPanel } from "../design/DesignPanel";
 
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
@@ -218,32 +216,24 @@ export const PANEL_CONFIGS: PanelConfig[] = [
 
   // Editor panels
   {
+    // ADR-252 — Properties · Styles 를 한 패널의 탭으로 합친 Design 패널. `id` 는 패널
+    // 위치/크기 persist 키라 `properties` 그대로 둔다 (Events → Interactions 와 같은 선례).
+    // 저장된 레이아웃의 `styles` row 는 registry 에 없어 정규화가 버린다 (변환 없음).
+    // 최소 폭 233 그대로 — 탭 5개 (Modified 를 뺀 뒤, 사용자 2026-10-04) 는 233 에서도 선택 탭
+    // 라벨이 잘리지 않는다 (탭 6개일 때는 262 가 경계였다). 아이콘은 구 Styles 의 PaintRoller —
+    // 새 아이콘은 initial 번들을 늘린다 (G4), 탭 아이콘과 겹치지 않는다.
     id: "properties",
-    name: "속성",
-    nameEn: "Properties",
-    icon: Settings2,
-    component: CatalogPropertiesPanel,
-    category: "editor",
-    defaultPosition: "right",
-    minWidth: 233,
-    maxWidth: 640,
-    defaultHeight: 520,
-    description: "요소 속성 편집",
-    shortcutId: "toggleProperties",
-  },
-  {
-    id: "styles",
-    name: "스타일",
-    nameEn: "Styles",
+    name: "디자인",
+    nameEn: "Design",
     icon: PaintRoller,
-    component: CatalogStylesPanel,
+    component: DesignPanel,
     category: "editor",
     defaultPosition: "right",
     minWidth: 233,
     maxWidth: 640,
     defaultHeight: 520,
-    description: "CSS 스타일 편집",
-    shortcutId: "toggleStyles",
+    description: "요소 속성 · 스타일 편집",
+    shortcutId: "toggleProperties",
   },
   {
     // ADR-158 Phase 2 — EventsPanel → InteractionsPanel 교체.

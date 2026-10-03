@@ -31,8 +31,8 @@ describe("I18nProvider", () => {
     expect(
       result.current.t("workspace.movePanel", { panel: "Navigator" }),
     ).toBe("Move Navigator panel");
-    expect(result.current.t("styles.modifiedCount", { count: 2 })).toBe(
-      "2 modified",
+    expect(result.current.t("navigator.layersDragCount", { count: 2 })).toBe(
+      "2 layers",
     );
     expect(result.current.t("validation.minLength", { min: 3 })).toBe(
       "Must be at least 3 characters",
@@ -57,7 +57,9 @@ describe("I18nProvider", () => {
     expect(result.current.t("workspace.movePanel", { panel: "탐색기" })).toBe(
       "탐색기 패널 이동",
     );
-    expect(result.current.t("styles.modifiedCount", { count: 2 })).toBe("2개");
+    expect(result.current.t("navigator.layersDragCount", { count: 2 })).toBe(
+      "레이어 2개",
+    );
     expect(result.current.t("validation.minLength", { min: 3 })).toBe(
       "최소 3자 이상이어야 합니다",
     );

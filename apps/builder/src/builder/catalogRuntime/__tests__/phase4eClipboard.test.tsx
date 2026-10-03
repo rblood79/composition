@@ -168,7 +168,7 @@ describe("ADR-248 Phase 4e-5 property / style clipboard", () => {
     expect(host.readSelectedTarget().style).toEqual(copied);
   });
 
-  it("⌘⌥C / ⌘⌥V: Properties buttons and keys with the Properties panel active; Styles keys with the Styles panel active", async () => {
+  it("⌘⌥C / ⌘⌥V: Properties buttons and keys, then Styles keys — both in the Design panel (id properties, ADR-252)", async () => {
     const { workspace, contract, value, select } = await open();
     function Harness({ target }: { target: EditTarget }) {
       return (
@@ -214,13 +214,13 @@ describe("ADR-248 Phase 4e-5 property / style clipboard", () => {
     expect(value(on("other"), "label")).toBe("Save");
     view.unmount();
 
-    // Styles: copy a's view, paste it on b.
+    // Styles: copy a's view, paste it on b (the Design panel's style tabs mount these keys).
     const host = createCatalogStylesHost(workspace);
     select("a");
     host.updateStyles({ color: "#00ff00", paddingTop: "8px" });
     const styles = render(
       <StylesHostContext.Provider value={host}>
-        <div data-panel-id="styles" tabIndex={-1} data-testid="styles" />
+        <div data-panel-id="properties" tabIndex={-1} data-testid="styles" />
         <CatalogStyleClipboardShortcuts />
       </StylesHostContext.Provider>,
     );

@@ -117,6 +117,9 @@ export const BUILDER_MENU_ROOT: readonly BuilderMenuNode[] = [
     command("toggleFocusMode"),
     action("snapToObjects"),
     separator,
+    // ⌥6 — 레일 패널 묶음에서 빠졌다 (Styles 가 Design 의 탭이 됨, ADR-252). 체크 없는
+    // 항목이라 체크 블록 (눈금자 · focus · snap) 과 섞지 않는다.
+    command("toggleStyles"),
     submenu(
       "appearance",
       [action("themeAuto"), action("themeLight"), action("themeDark")],
@@ -244,7 +247,7 @@ export const MENU_COMMAND_CONDITIONS: Readonly<
   toggleDatatable: always("패널 토글"),
   toggleTheme: always("패널 토글"),
   toggleProperties: always("패널 토글"),
-  toggleStyles: always("패널 토글"),
+  toggleStyles: always("Design 을 Layout 탭으로 열기 · 닫기"),
   toggleEvents: always("패널 토글"),
   toggleHistory: always("패널 토글"),
   toggleAI: always("패널 토글"),

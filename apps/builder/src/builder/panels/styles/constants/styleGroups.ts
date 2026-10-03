@@ -16,6 +16,9 @@
  * **그대로 재사용** 한다 — 탭의 수정 표시(dot)와 섹션 reset 버튼이 같은 dirty 판정을 공유해야
  * "탭엔 점이 없는데 안에 들어가면 reset 이 활성" 같은 비대칭이 안 생긴다.
  * screen 그룹은 style prop 이 아니라 breakpoint override / visibility 라 목록이 비어 있다.
+ *
+ * 종전의 5번째 뷰 「Modified」 (수정된 style 만 훑어보기) 는 ADR-252 에서 뺐다 (사용자 2026-10-04) —
+ * 그룹 탭의 dot 과 섹션 reset 이 같은 dirty 판정으로 그 역할을 한다.
  */
 
 import {
@@ -33,25 +36,6 @@ export const STYLE_GROUP_IDS: readonly StyleGroupId[] = [
   "text",
   "screen",
 ];
-
-/**
- * 콘텐츠 영역이 보여줄 수 있는 뷰 전체 = 그룹 4개 + "수정된 속성만".
- *
- * Modified 는 그룹을 가로지르는 필터지 5번째 그룹이 아니다. 그래도 **같은 영역을 배타적으로
- * 차지하는 뷰**라 탭 줄에 함께 둔다 — 별도 토글로 두면 "탭을 누르면 modify 가 풀린다" 는
- * 숨은 결합이 생기고, 한 영역을 두 컨트롤이 나눠 쥐게 된다.
- */
-export type StyleViewId = StyleGroupId | "modified";
-
-export const STYLE_VIEW_IDS: readonly StyleViewId[] = [
-  ...STYLE_GROUP_IDS,
-  "modified",
-];
-
-/** 뷰 id 가 실제 그룹(=섹션을 가진 뷰)인지. */
-export function isStyleGroupId(view: StyleViewId): view is StyleGroupId {
-  return view !== "modified";
-}
 
 export const STYLE_GROUP_PROPS: Record<StyleGroupId, readonly string[]> = {
   layout: [...TRANSFORM_PROPS, ...LAYOUT_PROPS],
