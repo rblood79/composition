@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-10-03 ADR-252 Proposed**: Properties · Styles 패널을 Design 패널 하나로 통합 (사용자 `/create-adr Design 패널 통합 권장안으로`). 탭 `Property | Layout | Style | Text | Screen | Modified`, 패널 id `properties` 유지 (라벨만 Design — id 가 레이아웃 저장 키), `styles` 등록 해제, ⌥6 = Layout 탭으로 열기, ⌘⌥C/V 는 활성 탭으로 구분, Modified 는 style 만. 두 본문은 옮기기만 한다 (계약 통합 아님). ADR-251 이 선행 (10-03 Implemented). 리뷰 round 1 (HIGH 0 · MEDIUM 1 fixed · LOW 1 deferred) 반영 — ⌘⌥C/V 는 활성 탭의 쌍만 등록. 열림 7 (Proposed 6 · Accepted 1), 합계 279.
+>
 > **2026-10-03 ADR-251 Implemented**: RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems) — 사용자 Preview 확인 「Preview 확인했어」. 그룹 Direction = label 위치, 묶음 Direction = 항목 방향 · library contract 2. 구현 `3648a262f`. 열림 −1, 완료 +1.
 >
 > **2026-10-03 ADR-250 Implemented**: Preview 의 펼침 조작은 Preview 실행 상태 — 사용자 Compare Mode 확인 「확인했다」 (G3). Disclosure · Tree · DisclosureGroup 펼침은 문서에 쓰지 않고 규칙 capability 와 같은 실행 값, Builder 선언 변경은 Preview 가 따름. 구현 `db76cc301`. 열림 −1, 완료 +1.
@@ -155,11 +157,11 @@
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       6 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **278** |
+| **합계**                      | **279** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -178,6 +180,12 @@
 
 - **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS · Phase 3 독립 소비자 검증 완료. **2026-10-03 Phase 4 Builder 전환 완료** (worktree 누적 후 main 1회 병합): live G3 base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0, live G4 15/15, [G5 PASS](design/248-phase4-g5-evidence.md) (Preview 부팅 JS 는 사용자 판정 (a) — ADR-201 정의 정적 initial 기준), G6 구 모듈 진입 0. Status 는 Publish 후속 전환까지 Accepted.
 - **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
+
+#### [252](252-design-panel-merge.md) — Properties · Styles 패널을 Design 패널 하나로 통합
+
+- **상태**: Proposed — 2026-10-03 (사용자 `/create-adr Design 패널 통합 권장안으로`)
+- **규모**: 대안 A — 한 패널 + 탭 6 (`Property | Layout | Style | Text | Screen | Modified`). id `properties` 유지 · `styles` 등록 해제 (저장된 `styles` 배치는 정규화가 버림, 변환 없음). 본문은 옮기기만 하고 탭별 규칙 (다중 선택 대상 · sub-part 안내) 은 현행 유지. ⌥6 = Layout 탭으로 열기 · ⌘⌥C/V 는 활성 탭으로 구분 · scope `panel:styles` 제거. 문서 schema 0 · initial 번들 0 · `apps/publish` 0. Gate G0 (소비처 인벤토리 · 탭 폭 실측) ~ G5 (사용자 확인). breakdown: [design/252](design/252-design-panel-merge-breakdown.md)
+- **선후**: ADR-251 이 선행 (구현 순서). 문서는 독립
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
