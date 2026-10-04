@@ -117,13 +117,12 @@ export function CatalogPreviewFrame({
       workspace.detachPreview();
     };
   }, [workspace]);
-  // The old compare-mode iframe took the breakpoint's frame width (tablet 768 · mobile 390); the
-  // desktop Preview fills the pane as before.
+  // The Preview renders at the width the Canvas draws the page at (`CANVAS_VIEWPORT` — desktop
+  // 1920 · tablet 768 · mobile 390), so the CSS side lays out at the editor's breakpoint as the
+  // Canvas does. Desktop too: filling the pane laid it out at the pane's width beside a 1920 page
+  // (2026-10-04 user report). A pane narrower than the frame scrolls.
   const breakpoint = useCatalogSession((state) => state.breakpoint);
-  const width =
-    breakpoint === "desktop"
-      ? "100%"
-      : `${CANVAS_VIEWPORT[breakpoint].width}px`;
+  const width = `${CANVAS_VIEWPORT[breakpoint].width}px`;
   return (
     <div
       className="catalog-preview-frame"

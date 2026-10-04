@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Compare Mode CSS 쪽 desktop breakpoint 폭 — Canvas 페이지 폭과 같게] - 2026-10-04
+
+### Fixed
+
+- **Compare Mode 의 CSS (Preview) 쪽이 desktop 에서도 breakpoint 폭 (1920) 으로 렌더된다.** tablet 768 ·
+  mobile 390 은 이미 breakpoint 폭이었지만 desktop 만 pane 폭 (실측 834) 을 채워, Canvas 의 1920 페이지와 다른
+  폭에서 레이아웃됐다 (필드 폭 834 vs 1920). 이제 세 breakpoint 모두 `CANVAS_VIEWPORT` 폭이고, pane 이 더 좁으면
+  스크롤한다.
+  - **Why**: 옛 compare iframe 의 「desktop 은 pane 을 채운다」 규칙을 그대로 옮겼다 — Canvas 는 desktop 을 1920
+    프레임으로 그리므로 두 쪽의 breakpoint 기준이 갈렸다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx` · `workspace/Workspace.css`
+
+검증: 새 unit (`catalogPreviewFrame.test.tsx` — 수정 전 RED `100%`), builder 3988 · type-check PASS. live: 사용자
+프로젝트를 Compare Mode 로 열어 desktop · tablet · mobile 전환 — CSS 프레임 · 필드 폭 1920 · 768 · 390 = Canvas
+필드 폭 (수정 전 desktop 834 vs 1920). breakpoint 별 저작 값 (Width override · tablet 숨김 · 배경 · 글자 크기) 은
+수정 전에도 CSS 쪽에 반영됨을 같이 확인했다.
+
 ## [TreeItem chevron 을 문서 노드로 — Layers 가 DOM 행 구조와 같게] - 2026-10-04
 
 ### Changed
