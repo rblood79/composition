@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [날짜 입력 placeholder 를 RAC segment 로 — Canvas DateInput segment run] - 2026-10-04
+
+### Fixed
+
+- **Canvas 의 DateField · TimeField · DatePicker · DateRangePicker placeholder 가 RAC 와 같은 segment 로
+  보인다.** 종전 Canvas 는 근사 문자열 (`MM / DD / YYYY`, ko 는 `YYYY / MM / DD`) 하나를 한 색으로 그렸고,
+  DOM (RAC) 은 locale 의 segment (`mm/dd/yyyy` · `연도. 월. 일.`) 를 칸마다 그린다 — 이제 Canvas 도
+  레이아웃이 재던 RAC segment 행을 칸 위치 그대로 그린다: 편집 칸은 좌우 segment padding 만큼 들여 owner
+  rule 의 `.react-aria-DateSegment[data-placeholder]` 색 · 투명도 (`var(--fg-muted)` · 0.6) 로, literal 은
+  field 색으로. Range 는 시작 · `–` · 끝 행, TimeField 는 `––:––`.
+  - **Why**: 레이아웃은 이미 `racDateSegmentParts` 로 상자 폭을 쟀는데 그리는 쪽만 옛 근사 placeholder 를
+    써서 글자 · 순서 · 색이 DOM 과 달랐다 (D3 대칭).
+  - 위치: `apps/builder/src/builder/catalogRuntime/compositionRoot.ts` (`segmentRuns` · `dateSegmentPaint`) ·
+    `packages/shared/src/catalog/document/rulePartRules.ts` (`catalogDateSegmentPlaceholderPaint`) ·
+    `packages/rendering/src/renderers/skiaPrimitives.ts` (`datefield_segments`)
+
+검증: builder 3961 · rendering 1281 · shared 1605 테스트 · type-check PASS · 회귀 테스트 primitive 원복 시 RED.
+headless Chrome 에서 ko-KR 새 프로젝트에 DatePicker · DateRangePicker · DateField · TimeField 를 추가해
+segment 글자 · 색 · 위치 확인. Preview 대조는 하지 않았다 (사용자 확인 대상).
+
 ## [DatePicker · DateRangePicker Canvas 렌더 복구 — 이중 상자 · 아이콘 · 기간 표시] - 2026-10-04
 
 ### Fixed

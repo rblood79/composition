@@ -640,6 +640,40 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
 }
 
 /**
+ * Paint of an owner's empty RAC date segments (`.react-aria-DateSegment[data-placeholder]`
+ * delegation state — the editable segments; literals keep the field color): the CSS color as
+ * written and its opacity. Empty when the owner declares none.
+ */
+export function catalogDateSegmentPlaceholderPaint(ownerType: string): {
+  color?: string;
+  opacity?: number;
+} {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    ownerType
+  ];
+  const delegation = (
+    rule?.structure?.composition as
+      | {
+          delegation?: Array<{
+            childSelector?: string;
+            states?: Record<string, Record<string, string>>;
+          }>;
+        }
+      | undefined
+  )?.delegation;
+  const state = delegation?.find(
+    (entry) => entry.childSelector === ".react-aria-DateSegment",
+  )?.states?.["[data-placeholder]"];
+  const opacity = Number(state?.opacity);
+  return {
+    ...(typeof state?.color === "string" ? { color: state.color } : {}),
+    ...(state?.opacity !== undefined && Number.isFinite(opacity)
+      ? { opacity }
+      : {}),
+  };
+}
+
+/**
  * Flex grow the owner's delegation gives its RAC range end input (`[slot="end"] { flex: N }` —
  * DateRangePicker): the DOM end DateInput takes the trigger's free space past its min-content.
  * 0 when the owner declares none.

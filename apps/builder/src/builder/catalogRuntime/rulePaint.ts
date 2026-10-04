@@ -109,6 +109,8 @@ export interface CatalogRuleShapeInput {
   readonly theme?: "light" | "dark";
   /** The layout kept this text leaf on one line (`textKeptOnOneLine`): its text paints unwrapped. */
   readonly singleLine?: boolean;
+  /** Paint data the executor measured for the shape generators (a DateInput's segment runs). */
+  readonly paintProps?: Readonly<Record<string, unknown>>;
 }
 
 /**
@@ -133,7 +135,10 @@ export function catalogRulePaint(
         ? cssVarColor(value, theme)
         : value;
   }
-  const props: Record<string, unknown> = { ...node.props };
+  const props: Record<string, unknown> = {
+    ...node.props,
+    ...input.paintProps,
+  };
   // RAC `data-selected`: the rule's selected paint (and the `_isSelected` data branch the
   // selection primitives read — the Tab indicator). A collection owner's selection
   // (`derivedProps._isSelected`, Tabs' selected key) decides for its items — an item instance of a

@@ -39,7 +39,13 @@ import {
   buildDatePlaceholder,
   DATE_PICKER_SIZES,
 } from "./datePickerShapes";
-import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
+import type {
+  BorderStyleValue,
+  ColorValue,
+  Shape,
+  SizeSpec,
+  TokenRef,
+} from "../types";
 import {
   CHART_DEFAULT_PROPS,
   CHART_OTHERS_COLOR_INDEX,
@@ -2052,29 +2058,39 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const isPickerInput =
     parentTag === "DatePicker" || parentTag === "DateRangePicker";
 
+  // RAC 세그먼트 run (Canvas executor 가 레이아웃과 같은 측정으로 준 `_segmentRuns`): 세그먼트마다
+  //   자기 위치에 그린다 — 편집 세그먼트는 owner `[data-placeholder]` 색, literal 은 field 색.
+  //   run 이 없으면 (측정기 없는 소비자) 근사 placeholder 문자열 하나로 그린다.
+  const runs = Array.isArray(p._segmentRuns)
+    ? (p._segmentRuns as Array<{ text: string; x: number; editable: boolean }>)
+    : undefined;
+  const placeholderFill =
+    (p._segmentPlaceholderFill as ColorValue | undefined) ?? textColor;
+  const segmentTexts = (x: number): Shape[] =>
+    (runs?.length
+      ? runs
+      : [{ text: displayText, x, editable: false }]
+    ).map((run) => ({
+      type: "text" as const,
+      x: run.x,
+      y: 0,
+      text: run.text,
+      fontSize,
+      fontFamily: ff,
+      fontWeight: 400,
+      fill: run.editable ? placeholderFill : textColor,
+      align: "left" as const,
+      baseline: "middle" as const,
+      verticalAlign: textVerticalAlign,
+      whiteSpace: "nowrap" as const,
+    }));
+
   // 그룹 A↔B 통일 (factory canonical 자식): picker(DatePicker/DateRangePicker) 의 DateInput 은
   //   이제 SelectTrigger 래퍼 안의 flex 자식으로, box/border 는 SelectTrigger 가, calendar icon 은
   //   별도 SelectIcon 이 그린다. 따라서 picker DateInput 은 **segment text 만** 렌더한다(box/border/
   //   icon 그리면 SelectTrigger box + SelectIcon 과 이중 렌더). x=0 + baseline:middle → 노드
   //   containerHeight 중앙. DateField/TimeField(picker 아님)는 자신이 box 라 box+border+text 유지.
-  if (isPickerInput) {
-    return [
-      {
-        type: "text" as const,
-        x: 0,
-        y: 0,
-        text: displayText,
-        fontSize,
-        fontFamily: ff,
-        fontWeight: 400,
-        fill: textColor,
-        align: "left" as const,
-        baseline: "middle" as const,
-        verticalAlign: textVerticalAlign,
-        whiteSpace: "nowrap" as const,
-      },
-    ];
-  }
+  if (isPickerInput) return segmentTexts(0);
 
   return [
     {
@@ -2095,20 +2111,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
       color: borderColor,
       radius: borderRadius,
     },
-    {
-      type: "text" as const,
-      x: paddingX,
-      y: 0,
-      text: displayText,
-      fontSize,
-      fontFamily: ff,
-      fontWeight: 400,
-      fill: textColor,
-      align: "left" as const,
-      baseline: "middle" as const,
-      verticalAlign: textVerticalAlign,
-      whiteSpace: "nowrap" as const,
-    },
+    ...segmentTexts(paddingX),
   ];
 };
 

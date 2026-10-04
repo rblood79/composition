@@ -22,6 +22,13 @@ import { catalogRuleShapes } from "../ruleShapes";
 import { catalogNodeState } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
+import { racDateSegmentParts } from "../../../../../../packages/shared/src/catalog/document/dateSegments";
+
+/** RAC's empty ko-KR date row (`연도. 월. 일.` placeholders around the locale's literals). */
+const racKoreanRow = () =>
+  racDateSegmentParts({ locale: "ko-KR" })
+    .map((part) => part.text)
+    .join("");
 
 /**
  * ADR-248 Phase 3 resting-state presence: nodes a component keeps closed/unselected get no
@@ -820,6 +827,87 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "lib:definition:origin-component-datefield",
     );
     expect(boxes(field.shapes).length).toBeGreaterThan(0);
+  });
+
+  it("paints a DateInput's RAC segments where the layout measured them, empty segments in the owner's placeholder paint", async () => {
+    const measure = (text: string) => ({ width: text.length * 10, height: 20 });
+    const paintOf = async (definition: string, locale: string) => {
+      const scene = await open(
+        definition as DefinitionId,
+        `segment-paint-${definition}-${locale}`,
+      );
+      const root = new CatalogCompositionRoot(
+        scene.runtime,
+        new StyleLayoutEngine(),
+        { width: 1440, height: 900 },
+        undefined,
+        undefined,
+        measure,
+        locale,
+      );
+      const input = [...root.canvasInputs.values()].find(
+        (node) => node.bindingId === "dateinput",
+      )!;
+      const paint = root.dateSegmentPaint(input.id)!;
+      const shapes = catalogRuleShapes({
+        node: input.derivedProps
+          ? { ...input, props: { ...input.props, ...input.derivedProps } }
+          : input,
+        rect: { width: 300, height: 20 },
+        rule: scene.runtime.graph.library.rules.get("DateInput" as never)!,
+        type: "DateInput",
+        authoredVisual: {},
+        paintProps: {
+          _segmentRuns: paint.runs,
+          _segmentPlaceholderFill: "#11223399",
+        },
+      });
+      const texts = shapes.flatMap((shape) =>
+        shape.type === "text"
+          ? [shape as { text: string; x: number; fill?: unknown }]
+          : [],
+      );
+      return { paint, texts };
+    };
+    // en-US `mm/dd/yyyy`: editable spans inset by the segment padding (2px each side).
+    const picker = await paintOf(
+      "lib:definition:origin-component-datepicker",
+      "en-US",
+    );
+    expect(picker.paint.placeholder).toEqual({
+      color: "var(--fg-muted)",
+      opacity: 0.6,
+    });
+    expect(picker.texts.map(({ text, x }) => [text, x])).toEqual([
+      ["mm", 2],
+      ["/", 24],
+      ["dd", 36],
+      ["/", 58],
+      ["yyyy", 70],
+    ]);
+    expect(picker.texts.map(({ fill }) => fill === "#11223399")).toEqual([
+      true,
+      false,
+      true,
+      false,
+      true,
+    ]);
+    // Range: start row, `–` after the trigger gap, end row after the next gap.
+    const range = await paintOf(
+      "lib:definition:origin-component-daterangepicker",
+      "en-US",
+    );
+    expect(range.texts.map(({ text }) => text)).toEqual([
+      ...["mm", "/", "dd", "/", "yyyy"],
+      "–",
+      ...["mm", "/", "dd", "/", "yyyy"],
+    ]);
+    // ko-KR: the locale's own order and placeholders, not the en order.
+    const korean = await paintOf(
+      "lib:definition:origin-component-datepicker",
+      "ko-KR",
+    );
+    expect(korean.texts.map(({ text }) => text).join("")).toBe(racKoreanRow());
   });
 
   it("sizes a glyph by its authored fontSize over the size scale's iconSize (Preview renderIcon)", async () => {

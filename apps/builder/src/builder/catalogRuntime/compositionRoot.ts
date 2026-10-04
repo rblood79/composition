@@ -68,6 +68,7 @@ import {
 import {
   catalogDateRangeEndGrow,
   catalogDateSegmentPaddingX,
+  catalogDateSegmentPlaceholderPaint,
 } from "../../../../../packages/shared/src/catalog/document/rulePartRules";
 import { catalogDropZoneContent } from "./dropZoneContent";
 import {
@@ -663,12 +664,61 @@ function calendarPartSize(
 
 /** A DateInput's RAC segment row (`segmentText`). */
 interface CatalogDateSegments {
+  /** The date field whose RAC DateInput this is (past the SelectTrigger wrapper). */
+  ownerType?: string;
   parts: readonly DateSegmentPart[];
   paddingX: number;
   /** DateRangePicker: start/end rows around the separator span, spaced by the trigger gap. */
   /** A range's pair row: trigger gap, separator and the end input's catalog grow. */
   range?: { gap: number; separator: string; grow: number };
   lineHeight?: number;
+}
+
+/** One RAC date segment's text in its DateInput's content box. */
+export interface CatalogDateSegmentRun {
+  readonly text: string;
+  /** Text start (an editable segment's span is inset by its inline padding). */
+  readonly x: number;
+  readonly editable: boolean;
+}
+
+/** The font a DateInput's segments inherit (its own size and weight, the nearest line height). */
+function segmentFont(
+  node: CatalogConsumerNode,
+  segmentText: CatalogDateSegments,
+) {
+  return {
+    fontSize: Number(node.visual.fontSize),
+    fontWeight: Number(node.visual.fontWeight ?? 400),
+    lineHeight: segmentText.lineHeight ?? 0,
+  };
+}
+
+/**
+ * The RAC segment row: each part is its own inline span (editable parts padded), a range repeats
+ * the row around its separator with the trigger gap. `width` is the row's extent.
+ */
+function segmentRuns(
+  segmentText: CatalogDateSegments,
+  widthOf: (text: string) => number,
+): { runs: CatalogDateSegmentRun[]; width: number } {
+  const runs: CatalogDateSegmentRun[] = [];
+  let x = 0;
+  const row = () => {
+    for (const part of segmentText.parts) {
+      const pad = part.editable ? segmentText.paddingX : 0;
+      runs.push({ text: part.text, x: x + pad, editable: part.editable });
+      x += widthOf(part.text) + 2 * pad;
+    }
+  };
+  row();
+  if (segmentText.range) {
+    x += segmentText.range.gap;
+    runs.push({ text: segmentText.range.separator, x, editable: false });
+    x += widthOf(segmentText.range.separator) + segmentText.range.gap;
+    row();
+  }
+  return { runs, width: x };
 }
 
 /** Rust `NodeStyle` input. It has no `padding`/`gap` shorthand (serde drops unknown keys). */
@@ -726,29 +776,13 @@ function styleOf(
   const segments =
     measure && segmentText && Number(node.visual.fontSize) > 0
       ? (() => {
-          const font = {
-            fontSize: Number(node.visual.fontSize),
-            fontWeight: Number(node.visual.fontWeight ?? 400),
-            lineHeight: segmentText.lineHeight ?? 0,
-          };
+          const font = segmentFont(node, segmentText);
           let height = 0;
-          const widthOf = (text: string) => {
+          const { width } = segmentRuns(segmentText, (text) => {
             const size = measure(text, font);
             height = Math.max(height, size.height);
             return size.exactWidth ?? size.width;
-          };
-          const row = segmentText.parts.reduce(
-            (sum, part) =>
-              sum +
-              widthOf(part.text) +
-              (part.editable ? 2 * segmentText.paddingX : 0),
-            0,
-          );
-          const width = segmentText.range
-            ? 2 * row +
-              2 * segmentText.range.gap +
-              widthOf(segmentText.range.separator)
-            : row;
+          });
           return {
             contentMinWidth: width,
             contentMaxWidth: width,
@@ -1846,6 +1880,38 @@ export class CatalogCompositionRoot {
       this.dropZoneContentWidth(record, borderBoxWidth),
     );
   }
+  /**
+   * A DateInput's RAC segments for the Canvas paint — the runs the layout measured, from the node's
+   * content-box left — and the owner's empty-segment paint (`[data-placeholder]`, CSS values as
+   * written). Undefined without a text measure or for any other record.
+   */
+  dateSegmentPaint(id: string):
+    | {
+        runs: readonly CatalogDateSegmentRun[];
+        placeholder: { color?: string; opacity?: number };
+      }
+    | undefined {
+    const record = this.records.get(id);
+    if (!record || !this.textMeasure) return undefined;
+    const segmentText = this.segmentText(record);
+    if (!segmentText || !(Number(record.visual.fontSize) > 0)) return undefined;
+    const measure = this.textMeasure;
+    const font = segmentFont(record, segmentText);
+    const { runs } = segmentRuns(segmentText, (text) => {
+      const size = measure(text, font);
+      return size.exactWidth ?? size.width;
+    });
+    const box = catalogBoxModel(record);
+    const num = (value: CatalogLength | undefined) =>
+      typeof value === "number" ? value : 0;
+    const left = num(box.padding?.left) + num(box.borderWidth);
+    return {
+      runs: runs.map((run) => ({ ...run, x: run.x + left })),
+      placeholder: segmentText.ownerType
+        ? catalogDateSegmentPlaceholderPaint(segmentText.ownerType)
+        : {},
+    };
+  }
   private dropZoneContentWidth(
     record: CatalogConsumerNode,
     borderBoxWidth: number,
@@ -1924,6 +1990,7 @@ export class CatalogCompositionRoot {
         ? parts.slice(firstTime)
         : parts;
     return {
+      ...(ownerType ? { ownerType } : {}),
       parts: shown,
       paddingX: ownerType ? catalogDateSegmentPaddingX(ownerType) : 0,
       ...(ownerType === "DateRangePicker"
