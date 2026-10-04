@@ -310,6 +310,150 @@
       "on": "2026-10-03",
       "reason": "겹친 페이지에서 활성 페이지를 위에 그리는 판정 (29f0424cc · 2026-08-11 규칙 복구) — 페이지 전환 1회당 활성 페이지 조회 1 + 엔진 상자 읽기 2",
       "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/catalogRuntime/canvasOverflow.ts#catalogOverflowClips",
+      "from": 896,
+      "to": 960,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/catalogRuntime/compositionRoot.ts#(anonymous)",
+      "from": 4712,
+      "to": 4960,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/catalogRuntime/compositionRoot.ts#get canvasInputs",
+      "from": 1905,
+      "to": 2026,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#getCacheMetrics",
+      "from": 953,
+      "to": 1021,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/cacheMetrics.ts#recordHit",
+      "from": 869,
+      "to": 931,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/drawStats.ts#incrementDrawCall",
+      "from": 882,
+      "to": 945,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/nodePictureCache.ts#getCachedNodePicture",
+      "from": 868,
+      "to": 930,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/nodePictureCache.ts#isVolatileNode",
+      "from": 868,
+      "to": 930,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#_get",
+      "from": 882,
+      "to": 945,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/nodeRendererTree.ts#getDragVisualOffset",
+      "from": 882,
+      "to": 945,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandAt",
+      "from": 2058,
+      "to": 2205,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#commandCursorIndex",
+      "from": 1876,
+      "to": 2010,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#drawSelfSpanViaPicture",
+      "from": 868,
+      "to": 930,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get",
+      "from": 2114,
+      "to": 2265,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex",
+      "from": 2058,
+      "to": 2205,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode",
+      "from": 882,
+      "to": 945,
+      "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
+      "on": "2026-10-04",
+      "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
     }
   ]
 }
