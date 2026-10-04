@@ -4,7 +4,7 @@
 > [.claude/rules/canvas-rendering.md](../../../rules/canvas-rendering.md). 본 문서는 그 정본이 다루지 않는
 > **구현 위치·계약·디버깅 진입점**만 담는다. 규칙이 충돌하면 정본 우선.
 >
-> **공식 결정**: [ADR-916](../../../../docs/adr/completed/916-unified-rust-engine.md) — 자체 단일 Rust 엔진 (Implemented 2026-07-06, Taffy 완전 제거). [ADR-248](../../../../docs/adr/248-unified-catalog-document.md) Phase 4 (2026-10-03) — production 레이아웃을 catalog composition root 가 직접 몬다. 본 문서 기준일: 2026-10-04.
+> **공식 결정**: [ADR-916](../../../../docs/adr/completed/916-unified-rust-engine.md) — 자체 단일 Rust 엔진 (Implemented 2026-07-06, Taffy 완전 제거). [ADR-248](../../../../docs/adr/completed/248-unified-catalog-document.md) Phase 4 (2026-10-03) — production 레이아웃을 catalog composition root 가 직접 몬다. 본 문서 기준일: 2026-10-04.
 
 ## 목차
 

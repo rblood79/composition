@@ -111,4 +111,4 @@ const LAYOUT_PROPS = [
 - [ADR-907](../../docs/adr/completed/907-collection-container-style-pipeline.md) — Collection container style pipeline (Layer B/C/D)
 - [ADR-909](../../docs/adr/completed/909-style-ssot-contract.md) — shorthand / longhand 계약 원칙
 - [ADR-222](../../docs/adr/completed/222-canvas-padding-gap-direct-manipulation.md) — Canvas 간격 직접 조작 · Gap 필드 주축 longhand
-- [ADR-248](../../docs/adr/248-unified-catalog-document.md) — catalog 문서 · typed field 저장 모델
+- [ADR-248](../../docs/adr/completed/248-unified-catalog-document.md) — catalog 문서 · typed field 저장 모델

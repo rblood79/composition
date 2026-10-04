@@ -149,21 +149,23 @@
 
 ## 현황
 
+> **2026-10-05 ADR-248 Implemented**: Publish 전환·canonical/spec 제거·Switch 색상 수리와 최종 검증 종결. G3 state 75/75·child 보충 33/33·Icon 보충 7/7, 기존 G4/G5 및 현재 bundle/G6 PASS. 원본 미검증 이력은 보충 검증과 연결해 보존. [종합 근거](design/248-final-closure.md).
+
 > **2026-09-29 ADR-249 Proposed**: 빌더 전체 메뉴 개편 (Framer 메뉴 어법 — 검색 · 작업 공간 구역 · 계층 · 비활성 표시). 열림 7 (Proposed 6 · Accepted 1), 합계 276. **같은 날 Accepted + P0~P4 구현** (`/execute-adr 249`): G0 인벤토리 7/7 (변이 RED 4) · G1/G3 live 23/23 (headed Playwright, scope 인자 원복 RED) · G2 Builder initial JS gzip −50 B (lazy chunk 가 initial 공유 청크를 쪼개던 것을 `headerMenuRuntime` 주입으로 해소 · 새 번역 키 5). 실행 중 사용자 지시: 작업 공간 방향 머리글 제거 · 패널 항목에 레일 아이콘 · 도움 구역 (명령 팔레트 · 설정 · 도움말) · 명령 이름 축약 (대시보드 · Workflow · 명령 팔레트 · 설정) · 레일에서 테마 · 작업 내역 버튼 제거 · 켜짐 표시 = 아이콘 칸 채움 · 메뉴 아이콘 16. **같은 날 Implemented** (사용자 커밋 지시).
 
 > **2026-09-28 ADR-248 Accepted · G0 착수 및 파일 집계 대조**: 통합 catalog graph로 정의·인스턴스·저장 모델을 통합하고 canonical·잔존 spec을 제거하는 설계. 보존할 프로젝트 0 전제로 구 데이터 migration·호환 adapter·dual-write 제외. 현재 열림 6 (Proposed 5 · Accepted 1), 완료 디렉터리 ADR/설계 269 (번호 있는 파일 274 − baseline/참조 5), 합계 275. 아래 Implemented 집계에는 과거 `Complete`/`Completed` 표기 3건을 포함하고, 기타 2건은 Proposed 보관 문서 1건과 Status 없는 export 설계 1건이다. 과거 문서의 Status는 변경하지 않았다.
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     273 |
-| ├ Implemented / Complete(d)   |     230 |
+| 완료 (`completed/`)           |     274 |
+| ├ Implemented / Complete(d)   |     231 |
 | ├ Accepted                    |      15 |
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       5 |
 | ├ Proposed                    |       5 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **279** |
 
@@ -179,13 +181,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [248](248-unified-catalog-document.md) — 통합 catalog 문서 모델과 canonical·잔존 spec 제거
-
-- **최신 검증 (2026-10-05)**: Switch track 이동의 G3 paint 대응 관계 수리로 state 75/75 PASS, child 보충 33/33 PASS. 과거 Switch 6 FAIL은 해소했다. [수리·검증 한계](design/248-switch-l3-repair.md) · [원본 미검증 처분](design/248-g3-section-closure.md). Status는 이번 수리에서 승격하지 않았다.
-
-- **상태**: Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해") · 리뷰 round 1 (HIGH 6) → round 2 수리 검증 HIGH 0 · 사용자 판정 H1/H2/H4 확정. G0·G1·독립 G2 PASS · Phase 3 독립 소비자 검증 완료. **2026-10-03 Phase 4 Builder 전환 완료** (worktree 누적 후 main 1회 병합): live G3 base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0, live G4 15/15, [G5 PASS](design/248-phase4-g5-evidence.md) (Preview 부팅 JS 는 사용자 판정 (a) — ADR-201 정의 정적 initial 기준), G6 구 모듈 진입 0. Status 는 Publish 후속 전환까지 Accepted.
-- **규모**: 대안 E — 코드 catalog 라이브러리 read-only 참조 + 프로젝트 override/사용자 definition 을 하나의 typed graph·transaction 으로 관리하고 Builder 의 canonical·잔존 spec (Frame/Group/Slot) 을 제거. collections·api_endpoints·project variables 는 ADR-131 별도 data SSOT 유지 (ID 참조만). `apps/publish` 는 후속 — Implemented 는 Publish 전환 뒤. 구 데이터 migration·호환 adapter·dual-write 제외. main 미연결 새 모듈 → 단일 entry 전환. [리뷰](reviews/248.md) · [design/248](design/248-unified-catalog-document-breakdown.md)
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
@@ -276,7 +271,7 @@
 
 ---
 
-## 완료 ADR (273)
+## 완료 ADR (274)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -303,6 +298,7 @@
 | [246](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) | 결정적 카운트 ratchet 게이트 — 경로 스코프 pre-push 가 고정 입력 하니스 카운트 (파이프라인 label · 캐시 · React measure · Layout/RecalcStyle · 함수별 V8 호출 수) 를 `apps/builder/perf/ratchet.json` 과 비교 (등급 A 정확 · 초과는 재실행 같을 때만 차단 · B 밴드 1.05 경고 · 하향만 자동 · 올리기는 승인 + 만료일) · 빠른 경로 / 전용 worktree 경로 · `SKIP_PERF_RATCHET=1` · 첫 하향 `selectCanonicalNode` id 인덱스 · Phase 3 begin-frame Deferred (macOS) | Implemented | 2026-09-27 |
 | [162](completed/162-gridlist-template-subtree-projection.md) | 데이터 바인딩 GridList 카드 = 항목 origin instance — 행 노드가 origin 을 ref 로 가리키고 행별 `{field}` 보간 (허용표 한 곳, Canvas · Preview · 패널 공용) · 접기/펼침 판정 하나 · 소유자별 origin 해석 한 곳 · Properties "카드 필드" 절 · 펼친 카드 행 높이 실측 캐시 + 추정 → ADR-150 행 offset 함수, scroll anchoring · 팔레트 GridList 상태 변형 origin 해석 | Implemented | 2026-09-27 |
 | [247](completed/247-cold-entry-static-shell.md) | cold entry 정적 셸 — 빌더 URL 직접 진입에 `index.html` 셸 (앱과 같은 class · 인라인 boot 가 테마 · UI 배율 해석 · builder 경로 한정) 을 CSS 도착 즉시 그리고 React 첫 commit 이 같은 자리에서 이어받음 · presented 순간 chrome (헤더 섬 · 패널 · 레일) 스냅샷 → 다음 진입 조건 (빌드 · viewport · 배율 · 테마 · 배치) 일치 시 골격을 그려 presented 프레임에 교체 · 부팅 mark 2 · 하니스 `cold-entry-shell.mjs` · 첫 paint 4x 72 ~ 80 ms (종전 496 ~ 500) · 다크 흰 프레임 0/40 · 288 진입 골격 0.02 px · layout-shift 0 | Implemented | 2026-09-27 |
+| [248](completed/248-unified-catalog-document.md) | 통합 catalog 문서 모델·Builder/Preview/Publish 공용 runtime·canonical 및 잔존 spec 제거. G3 state 75/75·child 보충 33/33·Icon 보충 7/7, G4/G5/G6 종결. [최종 근거](design/248-final-closure.md) | Implemented | 2026-10-05 |
 | [249](completed/249-builder-main-menu.md) | 빌더 전체 메뉴 개편 (Framer 메뉴 어법) — 선언적 구조 표 (순서 · 구역만) + 원본 재사용 (라벨 ADR-200 · 실행 ADR-195 · 활성 = 등록 · ADR-196 precondition · 등록자 `canRun` · 소속 패널 열림) · 실행 인자 scope (`createScopedHandler` — 인터랙션 패널만 열린 상태의 복사가 Events placeholder 로 가던 경로 차단) · 작업 공간 구역 (`PanelRegistry` × `railOrder` 파생, 레일 아이콘 · 열림 = 아이콘 칸 채움 · `hiddenFromMenu`) · RAC `MenuSection selectionMode` 체크 · `Autocomplete` 검색 평면화 · lazy 본문 + `headerMenuRuntime` 주입 (Rolldown 공유 청크 분할 회피). G0 7/7 · G1/G3 live 26/26 · G2 Builder initial JS gzip −50 B. 레일에서 테마 · 작업 내역 버튼 제거 · 명령 이름 축약 | Implemented | 2026-09-29 |
 | [243](completed/243-interaction-responsiveness-long-task-yield.md) | 상호작용 응답성 기준선 — 실제 입력 · production · Chrome 4x/1x · WebKit · 600/5k 의 Event Timing 지연 · 완료 시간 · LoAF 귀속. 기준 초과이나 지배 구간이 다음 paint 에 필요한 작업 (분기 ②) → 분할 구현 없이 측정 기록으로 종결 · 저장 호출 추적 `persistState()` | Implemented | 2026-09-28 |
 | [236](completed/236-builder-domain-rules-consolidation.md) | 빌더 도메인 규칙 정리 — body · synthetic id · Components 페이지 술어 shared 하나 (ratchet) · shared 타입 특성 표 `componentTraits.ts` (집합 17 + nestingRules 층 2 표 3 파생 · D2 Direction 토글 2) · 구조 변경 판정 `canOperate` · 대상 판정 `resolveMoveTarget` 를 표면 + store 진입부 13 액션 · 우회 쓰기 2 가 같이 부름 (AST ratchet) · origin 안 구조 변경 영향 확인 (표면 선행) · AI reusable 은 store 경유 | Implemented | 2026-09-25 |

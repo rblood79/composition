@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Switch Canvas·Preview 색상 정합 수리 — ADR-248] - 2026-10-05
+
+### Fixed
+
+- Switch 비활성 색 덮어쓰기를 제거해 catalog opacity를 양쪽에서 한 번 적용한다. 공용 테마가 계산한 accent-subtle과 dark border-hover를 Preview/Publish CSS에도 전달해 같은 토큰의 색이 달라지던 문제를 수리했다. 명시 테마 토큰의 우선순위는 유지한다.
+
+### Tests
+
+- DOM 색상 16/16, 실제 Builder track L3 6/6, G3 state 75/75·child 보충 33/33·Icon 보충 7/7 PASS, 원본 base/axis FAIL 0. 기존 G4/G5와 현재 번들·G6를 종합해 기술 완료로 판정했다. 사용자 커밋·push 지시에 따라 최종 수리와 함께 ADR-248을 Implemented로 승격하고 completed 보관·인덱스 집계를 동기화했다. [종합 근거](adr/design/248-final-closure.md).
+
 ## [Switch indicator 이동의 G3 비교 수리 — ADR-248] - 2026-10-05
 
 ### Fixed
@@ -379,7 +389,7 @@ Publish 후속과 기존 G3 미검증은 유지하며 ADR Implemented 승격은 
 
 ## [Catch-up 2026-09-30 ~ 2026-10-03] - 2026-10-03
 
-ADR-248 Phase 4 (4a~~4e) — Builder 를 통합 catalog 문서 모델로 전환. 4a~~4d 는 제품에 연결하지 않은 새 runtime 보강이고, 사용자-가시 변경은 4e 병합 하나에 모인다. 근거: [ADR-248](adr/248-unified-catalog-document.md) · [breakdown §5.1](adr/design/248-unified-catalog-document-breakdown.md) · [G5 근거](adr/design/248-phase4-g5-evidence.md).
+ADR-248 Phase 4 (4a~~4e) — Builder 를 통합 catalog 문서 모델로 전환. 4a~~4d 는 제품에 연결하지 않은 새 runtime 보강이고, 사용자-가시 변경은 4e 병합 하나에 모인다. 근거: [ADR-248](adr/completed/248-unified-catalog-document.md) · [breakdown §5.1](adr/design/248-unified-catalog-document-breakdown.md) · [G5 근거](adr/design/248-phase4-g5-evidence.md).
 
 ### Breaking Changes
 

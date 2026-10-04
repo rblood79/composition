@@ -102,7 +102,7 @@ tags: [architecture, reference, patterns]
 
 아키텍처 결정 배경은 다음 문서 참조:
 
-- `docs/adr/completed/001-state-management.md` - Zustand 선택 이유 — 문서 상태는 [ADR-248](../../../../docs/adr/248-unified-catalog-document.md) catalog runtime 으로 옮겨졌고, Zustand 는 UI · 데이터 store 에만 남음
+- `docs/adr/completed/001-state-management.md` - Zustand 선택 이유 — 문서 상태는 [ADR-248](../../../../docs/adr/completed/248-unified-catalog-document.md) catalog runtime 으로 옮겨졌고, Zustand 는 UI · 데이터 store 에만 남음
 - `docs/adr/completed/002-styling-approach.md` - ITCSS + tv() 선택 이유
 - `docs/adr/completed/003-canvas-rendering.md` - PixiJS 선택 이유 — **ADR-900 (`completed/900-unified-skia-rendering-engine.md`) 으로 Superseded**. PixiJS 는 완전 제거됨, 현행 렌더러는 Skia 단일
 - `docs/adr/completed/004-preview-isolation.md` - iframe 격리 이유

@@ -75,6 +75,37 @@ describe("resolveThemeSnapshot — seed (preset 파생) 는 종전 setter 결과
     expect(s.warnings).toEqual([]);
   });
 
+  it("accent-subtle 파생 색은 DOM과 Canvas에 동일하게 전달하고 명시 토큰을 우선한다", () => {
+    const seed = resolve(theme());
+    for (const dark of [false, true]) {
+      for (const key of ["accent-subtle", "border-hover"]) {
+        expect(varOf(seed, `--${key}`, dark)).toBe(
+          seed.colors[dark ? "dark" : "light"][key],
+        );
+      }
+    }
+    const explicit = resolve(
+      theme({
+        "color.accent-subtle": {
+          type: "color",
+          value: "#123456",
+          source: "spec-token",
+        },
+      }),
+    );
+    for (const dark of [false, true]) {
+      expect(varOf(explicit, "--accent-subtle", dark)).toBe("#123456");
+      expect(explicit.colors[dark ? "dark" : "light"]["accent-subtle"]).toBe(
+        "#123456",
+      );
+      expect(
+        explicit.cssVars.filter(
+          (v) => v.name === "--accent-subtle" && v.isDark === dark,
+        ),
+      ).toHaveLength(1);
+    }
+  });
+
   it("radiusScale lg → 1.5 배 (xs/2xl 도 스케일 — 종전 Skia 는 안 했다, DOM 과 맞춤)", () => {
     const s = resolve(
       theme({}, { ...DEFAULT_THEME_PRESET, radiusScale: "lg" }),

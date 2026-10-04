@@ -1,6 +1,6 @@
 # ADR-248 구현 설계: 통합 catalog 문서와 canonical 제거
 
-> 상위 결정: [ADR-248](../248-unified-catalog-document.md). **Accepted, Phase 3 독립 경로 완료·Phase 4 제품 전환 전** — 2026-09-30. 대안 E · 별도 data SSOT 유지 · Publish 후속 (사용자 판정 2026-09-28).
+> 상위 결정: [ADR-248](../completed/248-unified-catalog-document.md). **Implemented — 2026-10-05**. 최종 상태는 [종합 판정](248-final-closure.md)을 따른다. 아래 Phase 기록은 실행 당시 이력이다. 대안 E · 별도 data SSOT 유지 · Publish 후속 (사용자 판정 2026-09-28).
 > 모든 새 타입·경로·명령은 아래에서 목표로 표시한다. 존재하는 코드에 대한 근거와 구분한다.
 
 ## 1. 사용자 전제와 경계
@@ -1059,7 +1059,8 @@ Phase 3(독립 소비자 검증과 전환 준비)은 2026-09-30 사용자 완료
 - [x] [Phase 3 독립 소비자 검증과 전환 준비](248-phase3-g3-g5-evidence.md) — 2026-09-30 사용자 완료 판정, 커밋 `cb36b6a95` · `601e992b3` · `03fd65dcb` (push 완료). test entry root의 transaction delta→resolver·layout·Canvas·DOM 제품 경로 binding, 60/600/5k leaf 결정적 카운트 3/3, 문서 byte 5/5. 독립 G3 장면 base 62/64 · axis 372/386 · state 75/75 · child 0/34 (위 2026-09-30 절). 이전 미완료 판정의 `IconButton` placeholder는 template binding 일반화로, `SelectTrigger`는 owner가 칠하는 read-only sub-part 계약으로 처리했다. typed state rule 0/468은 type 자신의 `stateRules`만 센 값이며 상태 칠은 rule 실행기·state 조건 규칙 채널이 맡는다(근거 문서 census 재집계). 이 항목은 **전환 전 근거**이며 G3/G4/G5 PASS가 아니다.
 - [x] Phase 4 단일 전환·제거 (2026-10-03, worktree `adr248-4e` → main 1회 병합; §5.1) — Builder entry 를 catalog workspace · compositionRoot · canvasBinding 으로 교체하고 구 경로를 삭제 1~3차 (승인 목록) 로 제거했다. G3 live base 63/64 · axis 374/386 · state 75/75 PASS · FAIL 0 · Preview 결함 추종 0 (Icon 7 · child 33 UNVERIFIED, axis NOT_RUN 6 — 사유는 ADR 본문) · G4 live 15/15 (삭제 뒤 재실행 15/15) · G5 PASS ([근거](248-phase4-g5-evidence.md), Preview 부팅은 사용자 판정 (a)) · G6 구 모듈 진입 0. 후속 후보: 구조 이동·삭제 O(N) (~200 ms@5k) · 큰 다중 선택의 액션 바 재계산 · Workflow 오버레이 미연결 · Builder 범위 규칙 문서 정리.
 - [x] Publish 후속 구현 (2026-10-04 착수 지시) — 공용 catalog DOM/runtime 추출, catalog JSON/v2 로딩, Builder Publish 연결, 구 `CompositionDocument`·canonical resolver/export 및 잔존 spec 소스 제거. [검증](../evidence/248-publish-followup.md).
-- [ ] 전체 Implemented 판정 — 기존 G3 미검증 범위를 보존하며 최종 gate 종결은 별도. Publish 브라우저 smoke는 전수 Canvas/DOM pixel 검증을 대체하지 않는다.
+- [x] 전체 기술 완료 판정 — 2026-10-05 Switch DOM 색상 수리, 최신 G3와 기존 G4/G5·현재 G6 종합. [최종 근거](248-final-closure.md). 기존 UNVERIFIED 이력과 보충 검증 관계 보존.
+- [x] 최종 색상 수리와 함께 Implemented 승격·completed 이동·인덱스 집계 동기화 — 2026-10-05 사용자 커밋·push 지시.
 
 구 프로젝트 변환과 compatibility adapter는 미완료 항목이 아니라 명시적으로 제외한 작업이다.
 

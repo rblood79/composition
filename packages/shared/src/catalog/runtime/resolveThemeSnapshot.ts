@@ -198,6 +198,12 @@ export function resolveThemeSnapshot(
     put(name, value, true);
   };
   both("--tint", tintVar);
+  // theme/tokens에서 해석한 색을 양 소비자에 전달한다. Preview의 독립
+  // 15% overlay 및 dark border 단계는 같은 토큰을 다른 색으로 해석했다.
+  for (const key of ["accent-subtle", "border-hover"]) {
+    put(`--${key}`, light[key]!, false);
+    put(`--${key}`, dark[key]!, true);
+  }
   const steps = resolveNeutralSteps(neutral);
   for (const step of NEUTRAL_STEPS)
     both(`--color-neutral-${step}`, steps[step]!);

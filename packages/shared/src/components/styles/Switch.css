@@ -80,17 +80,8 @@
       outline-offset: 2px;
     }
 
-    &[data-disabled] {
-      color: var(--fg-disabled);
-
-      .indicator {
-        border-color: var(--border-disabled);
-
-        &:before {
-          background: var(--bg-muted);
-        }
-      }
-    }
+    /* 비활성 시각은 catalog structure.states.disabled의 opacity로만 적용한다.
+       별도 text/border/thumb 색을 추가하면 Canvas와 이중 감쇠 차이가 생긴다. */
   }
 
   /* ===== Size Variants ===== */

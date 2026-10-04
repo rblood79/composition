@@ -13,7 +13,7 @@ paths:
 
 > **2026-10-04 전면 개정**: ADR-248 Phase 4 (2026-10-03 main 병합) 로 Builder 의 문서 · 선택 · 히스토리 · 저장이 Zustand canonical store (`elements` / `elementsMap` / `childrenMap` · `_rebuildIndexes` · `runCanonicalMutation` · `historyActions` · `instanceActions`) 에서 **catalog runtime** (`apps/builder/src/builder/catalogRuntime/**` + `packages/shared/src/catalog/**`) 으로 옮겨졌고, 옛 store 와 그 규칙의 대상 파일은 `0b0eaea28` (Phase 4e-13-3) 에서 삭제됐다. 옛 규칙 본문은 git 이력에 있다.
 >
-> 공식 결정: [ADR-248](../../docs/adr/248-unified-catalog-document.md). `composition-patterns` skill 의 규칙 · reference 는 2026-10-04 catalog runtime 기준으로 개정했다 (`zustand-*` 는 남은 UI store 한정). 옛 store 만 다루던 문서 4개 (`zustand-childrenmap-staleness` · `inspector-inline-styles` · `reference/state-details` · `reference/runtime-contracts`) 는 같은 날 삭제했다. skill 문서가 이 문서와 충돌하면 이 문서가 우선.
+> 공식 결정: [ADR-248](../../docs/adr/completed/248-unified-catalog-document.md). `composition-patterns` skill 의 규칙 · reference 는 2026-10-04 catalog runtime 기준으로 개정했다 (`zustand-*` 는 남은 UI store 한정). 옛 store 만 다루던 문서 4개 (`zustand-childrenmap-staleness` · `inspector-inline-styles` · `reference/state-details` · `reference/runtime-contracts`) 는 같은 날 삭제했다. skill 문서가 이 문서와 충돌하면 이 문서가 우선.
 
 ## 1. 무엇이 어디에 있나
 
