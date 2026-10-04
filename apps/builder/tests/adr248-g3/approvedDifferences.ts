@@ -633,3 +633,55 @@ export function approvedSectionDifference(
         : "ADR-238 unloaded section CSS: Header baseline difference propagates to section height and following rows",
   };
 }
+
+/** The frozen md Switch painted its track at the owner's y=0; the typed indicator now
+ * occupies the catalog padding box y=4, as the current DOM does. Only this frozen state
+ * fixture is recognized. Returning a paint pair requests a translated pixel comparison,
+ * never a whole-box paint waiver. The old track's dimensions come from the frozen primitive
+ * (`2a5c97099` packages/specs/src/renderers/skiaPrimitives.ts, switchToggle).
+ */
+export function switchIndicatorPaintPair(
+  scenarioHash: string,
+  state: string,
+  oldRoot: SectionRect | null,
+  newRoot: SectionRect | undefined,
+  indicator: SectionRect | undefined,
+  dom: SectionRect | undefined,
+): { oldRect: SectionRect; newRect: SectionRect } | undefined {
+  if (
+    scenarioHash !==
+      "d931e8b953058c38cf568b774261cf0a0977961cc5c075a673fa1eaf633ce46c" ||
+    ![
+      "selected",
+      "unselected",
+      "disabled",
+      "hover",
+      "pressed",
+      "focus-visible",
+    ].includes(state) ||
+    !oldRoot ||
+    !newRoot ||
+    !indicator ||
+    !dom
+  )
+    return;
+  const near = (a: number, b: number) => Math.abs(a - b) < 0.02;
+  if (
+    !near(oldRoot.width, 91) ||
+    !near(oldRoot.height, 28) ||
+    !near(newRoot.width, 88.4) ||
+    !near(newRoot.height, 28) ||
+    !near(oldRoot.x, newRoot.x) ||
+    !near(oldRoot.y, newRoot.y) ||
+    !near(indicator.x, newRoot.x) ||
+    !near(indicator.y, newRoot.y + 4) ||
+    !near(indicator.width, 36) ||
+    !near(indicator.height, 20) ||
+    !ALL.every((axis) => Math.abs(indicator[axis] - dom[axis]) <= 1)
+  )
+    return;
+  return {
+    oldRect: { x: oldRoot.x, y: oldRoot.y, width: 36, height: 20 },
+    newRect: indicator,
+  };
+}

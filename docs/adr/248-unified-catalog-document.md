@@ -46,6 +46,15 @@ state **69 PASS/6 FAIL**이다. Switch 6건은 시작 HEAD에서도 같은 L3 �
 기존 state 75/75 PASS는 당시 이력으로 보존하며 현재 gate를 대신하지 않는다.
 Icon 원본 7·child 원본 33의 미검증 행은 소급 변경하지 않고 별도 보충 검증으로 연결한다.
 
+### 2026-10-05 Switch L3 후속 수리
+
+[원인·검증](design/248-switch-l3-repair.md): 별도 indicator 노드의 y=4와 구 부모 원점 y=0의
+paint 대응 관계를 G3에서 복원했다. 제품 위치는 현재 DOM과 일치하므로 바꾸지 않았다.
+Switch 6/6 및 state **75/75 PASS**, base/axis/child 보충 FAIL 0.
+Track 색상을 고의 변경한 probe는 6/6 FAIL로 paint gate 보존을 확인했다.
+이전 69 PASS/6 FAIL은 수리 전 이력이며 현재 차단 사유에서 해제한다.
+원본 미검증 처분은 유지하고, 현재 DOM paint의 색조 차이는 별도 관찰로 기록했다.
+
 ### Live Exercise
 
 2026-10-05 headed Chrome/Playwright로 실제 Builder Desktop Compare Mode에서 세 section을

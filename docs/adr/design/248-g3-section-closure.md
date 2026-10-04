@@ -1,5 +1,7 @@
 # ADR-248 G3 section 종결과 승격 판정 — 2026-10-05
 
+> **후속 수리 완료:** 아래는 수리 전 판정 이력이다. [Switch L3 대응 관계 수리](248-switch-l3-repair.md) 후 state 75/75 PASS이며, 아래 Switch 6 FAIL은 현재 결과가 아니다. 원본 미검증/보충 검증 대응표는 유지한다.
+
 시작 HEAD: `ddc5fc60350bc267a07ac726e5c5a7af3f3da4b9`.
 사용자 요청: 세 건 처리 → G3 재검증 → 기존 미검증/보충 검증 관계 정리 → Accepted → Implemented 판정.
 
@@ -39,7 +41,7 @@
 | 원본 state |   69 | **6** |          0 |       0 |
 | child 보충 |   33 |     0 |          0 |       0 |
 
-새 FAIL은 Switch의 selected, unselected, disabled, hover, pressed, focus-visible 6건이다. geometry와 현재 Canvas↔DOM은 PASS이지만 L3 귀속 밖 ratio는 0.008415~~0.014786, maxByte는 36~~232로 한도를 넘었다. 선택 실행에서도 FAIL exit 1을 확인했다.
+새 FAIL은 Switch의 selected, unselected, disabled, hover, pressed, focus-visible 6건이다. geometry와 현재 Canvas↔DOM은 PASS이지만 L3 귀속 밖 ratio는 0.008415–0.014786, maxByte는 36–232로 한도를 넘었다. 선택 실행에서도 FAIL exit 1을 확인했다.
 
 원인 범위를 분리하기 위해 이번에 바뀐 제품 파일 3개(Menu binding, delegatedDom, domBinding)를 Vite pre-load에서 시작 HEAD 내용으로 치환하고 같은 6건을 재실행했다. 나머지 제품 파일은 시작 HEAD와 동일하다. **시작 HEAD도 6 FAIL이며 각 행의 L3 객체가 수정본과 완전히 동일**했다. 따라서 이번 Menu/section 수정의 회귀는 아니지만, 현재 gate를 막는 기존 제품/하니스 문제다. 이 실행은 원인 확정이나 면제 근거가 아니다. 다음 작업은 Switch indicator·text 영역과 동결 픽셀의 차이 원인을 구분해 수리하고 state 75건을 재검증하는 것이다.
 

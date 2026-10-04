@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Switch indicator 이동의 G3 비교 수리 — ADR-248] - 2026-10-05
+
+### Fixed
+
+- G3에서 구 Switch track과 새 indicator 노드의 paint 대응 관계를 복원했다. 부모 원점에서 padding 안쪽으로 이동한 4px를 색상 결함으로 오판하던 6건을 해결했다. 없는 구 노드와 실제 root path도 구분한다.
+
+### Tests
+
+- State 75/75 및 child 보충 33/33 PASS. 이동 보정 paint 차이 0, 색상 결함 주입 시 6/6 FAIL. 실제 Builder의 indicator 상자 6/6 delta 0. 제품 renderer·CSS·예산 변경 없이 하니스를 수리했다. [근거·DOM paint 검증 한계](adr/design/248-switch-l3-repair.md).
+
 ## [Menu section 렌더 수리와 G3 재검증 — ADR-248] - 2026-10-05
 
 ### Fixed

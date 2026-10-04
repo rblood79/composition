@@ -87,6 +87,7 @@ import { buildCodeCatalogLibrary } from "../../../../packages/shared/src/catalog
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
 import {
   approvedDifference,
+  switchIndicatorPaintPair,
   approvedSectionDifference,
   SECTION_SUPPLEMENT_HASH,
   approvedStatePaint,
@@ -1543,10 +1544,13 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
 
       // Approved old/new differences (user 2026-09-30, `approvedDifferences.ts`): every over-1px
       // pair must match a rule of its owner and node type on the axes that differ; the Canvas ↔ DOM
-      // leg still arbitrates the new side. Unpaired nodes are never approved.
+      // leg still arbitrates the new side. One-sided nodes need their own structural rule.
       const approved: Array<{
         new: string;
-        old: string;
+        /** undefined means absent; the empty string is the real old root path. */
+        old?: string;
+        /** A primitive painted by the old owner before it became a child node. */
+        oldPaintRect?: Rect;
         rule: string;
         class: string;
         /** Only the moved vertical edges changed (sub-pixel intrinsic width). */
@@ -1609,6 +1613,40 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         else unapproved.push(item.newId);
       }
       for (const item of unpaired) {
+        const newId = item.startsWith("new:") ? item.slice(4) : undefined;
+        const paintPair =
+          STATE &&
+          row.type === "Switch" &&
+          newId &&
+          root.canvasInputs.get(newId)?.bindingId === "switchindicator"
+            ? switchIndicatorPaintPair(
+                replay.scenarioHash,
+                String(row.state ?? ""),
+                oldRectOf(""),
+                newRootRect,
+                absolute.get(newId),
+                domBoxes.get(newId),
+              )
+            : undefined;
+        if (paintPair) {
+          approved.push({
+            new: newId!,
+            oldPaintRect: paintPair.oldRect,
+            rule: "switch-indicator-padding-translation",
+            class: "oldDefect",
+          });
+          entry.switchIndicatorPaintPair = paintPair;
+          continue;
+        }
+        if (
+          STATE &&
+          row.type === "Switch" &&
+          newId &&
+          root.canvasInputs.get(newId)?.bindingId === "switchindicator"
+        ) {
+          unapproved.push("switch-indicator-paint-pair");
+          continue;
+        }
         const rule = approvedUnpaired(
           row.type,
           item,
@@ -1617,7 +1655,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         if (rule)
           approved.push({
             new: item.startsWith("new:") ? item.slice(4) : "",
-            old: item.startsWith("old:") ? item.slice(4) : "",
+            old: item.startsWith("old:") ? item.slice(4) : undefined,
             rule: rule.id,
             class: rule.class,
           });
@@ -2077,12 +2115,26 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         };
         for (const item of approved) {
           const rects = [
-            oldRectOf(item.old),
+            item.oldPaintRect ??
+              (item.old === undefined ? undefined : oldRectOf(item.old)),
             item.new ? absolute.get(item.new) : undefined,
           ]
             .filter((rect): rect is Rect => !!rect)
             .map(toClip);
           const node = item.new ? root.canvasInputs.get(item.new) : undefined;
+          if (item.oldPaintRect) {
+            // A translated primitive changes the overlap too (e.g. the Switch thumb).
+            // Attribute the footprint, but do NOT add it to wholeBoxes: the translated
+            // old/new paint below must still match and can fail this row.
+            for (const r of rects)
+              fill(
+                r.x - grow,
+                r.y - grow,
+                r.x + r.width + grow,
+                r.y + r.height + grow,
+              );
+            continue;
+          }
           if (item.whole) {
             for (const r of rects) {
               fill(
@@ -2251,8 +2303,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       let movedDifferent = 0;
       let movedMaxByte = 0;
       for (const item of approved) {
-        if (item.edges || item.whole || !item.new || !item.old) continue;
-        const oldCss = oldRectOf(item.old);
+        if (item.edges || item.whole || !item.new) continue;
+        const oldCss =
+          item.oldPaintRect ??
+          (item.old === undefined ? undefined : oldRectOf(item.old));
         const newCss = absolute.get(item.new);
         if (!oldCss || !newCss) continue;
         if (
