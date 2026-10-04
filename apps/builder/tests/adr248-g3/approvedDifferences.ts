@@ -499,6 +499,15 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "toggle = [indicator node, Label] (2026-10-04 user 「1안」 — old: the toggle painted its indicator in its own box)",
   },
   {
+    id: "tree-item-chevron-node",
+    class: "decided",
+    owners: ["Tree", "TreeItem"],
+    side: "new",
+    nodes: ["TreeItemChevron"],
+    reason:
+      "TreeItem = [chevron node, label, child items] (2026-10-04 user 「1안」 — old: the item painted its chevron in its own box)",
+  },
+  {
     id: "breadcrumb-separator-icon-children",
     class: "decided",
     owners: ["Breadcrumbs", "Breadcrumb"],

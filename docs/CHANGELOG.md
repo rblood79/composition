@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TreeItem chevron 을 문서 노드로 — Layers 가 DOM 행 구조와 같게] - 2026-10-04
+
+### Changed
+
+- **TreeItem 의 펼침 chevron 버튼이 Layers 에 노드로 보인다.** template 의 첫 자식 `TreeItemChevron`
+  (사용자 지시 「1안」 — 바로 아래 toggle indicator 노드와 같은 방식). 트리 = `TreeItem > TreeItemChevron · Text ·
+(자식 TreeItem)`, DOM 의 행 (`Button[slot="chevron"]` · 내용) 과 같다.
+  - 값은 그대로다: 상자 = `Tree.css` 버튼 (20px + 깊이 들여쓰기, 종전 노드 없는 레이아웃 part 와 같은 값),
+    아이콘 = TreeItem rule 의 `leadingIcon` (이름 · 색 · 펼침 회전) 과 `size.iconSize` 를 chevron 노드 상자에서
+    실행. 노드에 사용자 prop 없음, 자기 rule · 생성 CSS 0. DOM 출력 변경 0 (Tree 가 흡수).
+  - Design 패널은 chevron 을 선택하면 부모 TreeItem 에서 편집하라고 안내하고, chevron 위치는 지울 수 없다.
+  - 부모가 그리는 part 노드 판정을 하나로 합쳤다: `TOGGLE_INDICATOR_OWNERS` → `OWNER_DRAWN_PART_OWNERS`,
+    삭제 거부 코드 `TOGGLE_INDICATOR_NOT_REMOVABLE` → `OWNER_DRAWN_PART_NOT_REMOVABLE`.
+  - 이번 변경 전에 detach 된 (owned) TreeItem 과 type 정의로 만든 TreeItem 은 chevron 자식이 없다 — 종전처럼
+    노드 없는 레이아웃 part 와 TreeItem 자신의 `leading_icon` 으로 그린다 (겹침 없음).
+
+### Fixed
+
+- **Canvas 의 Tree chevron 아이콘이 DOM 버튼 가운데에 놓인다.** 종전 Canvas 는 행의 `paddingX + iconSize / 2`
+  (x 16) 에 그렸고 DOM 버튼은 svg 를 가운데 정렬한다 (x 18). 이제 chevron 노드 상자 가운데에 그린다.
+  - **Why**: 아이콘 위치를 버튼 상자가 아니라 행 padding 에서 셈했다.
+- **높이를 정한 Tree 에서 chevron 버튼 상자가 DOM 과 같다.** `Tree.css` 버튼의 `height: 100%` 는 행 높이가
+  정해지면 내용 상자 (24) 를 채운다 — 종전 16 고정. 높이 미지정이면 그대로 svg 높이 16.
+  - **Why**: 버튼 상자가 노드가 아니라 비교 대상이 아니었고, 노드가 되며 G3 Canvas ↔ DOM 다리가 처음 쟀다.
+  - 위치: `packages/shared/src/catalog/bindings/TreeItemChevron.binding.ts` · `reusableOriginLibrary.ts` ·
+    `apps/builder/src/builder/catalogRuntime/` `presence.ts` (`catalogTreeChevronLayout`) · `canvasBinding.ts`
+    (`ownerDrawnPartNodeData`) · `ruleShapes.ts` (`catalogLeadingIconPartNodeData`) · `delegatedDom.tsx`
+
+검증: builder 3987 · shared 1605 · parity 803 테스트 · type-check PASS · 새 회귀 테스트
+(`treeItemChevronNode.test.ts`, 6) 가 상자 · 레이아웃 part 대체 · TreeItem 아이콘 억제 · DOM 흡수 · 펼침 다시 그리기 ·
+가운데 정렬 · 삭제 차단 각각의 원복에 RED. G3 하니스 52 (propAxis 에 Tree 추가 — Canvas ↔ 실제 DOM 0 px; palette
+하니스의 Tree 높이 130 에서 버튼 높이 24 를 잡아 `height: 100%` 로 수정), 64 타입 판정 main 과 같음.
+live (headed Chrome, 실제 Builder): 팔레트 Tree → Layers 의 chevron 행 선택 → rect · owner 안내 · Canvas 그림
+(자식 있는 행만 chevron) 확인, 페이지 오류 0. Preview 는 사용자 확인 항목.
+
 ## [Checkbox · Radio · Switch indicator 를 문서 노드로 — Layers 가 DOM 행 구조와 같게] - 2026-10-04
 
 ### Changed

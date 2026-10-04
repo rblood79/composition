@@ -537,6 +537,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     console.info("[adr248-g3-census]", JSON.stringify(summary));
     // ADR-251: + RadioItems · CheckboxItems (the group items wrappers).
     // + CheckboxIndicator · RadioIndicator · SwitchIndicator (toggle indicator nodes, 2026-10-04).
-    expect(types.length).toBe(135);
+    // + TreeItemChevron (the TreeItem chevron node, 2026-10-04).
+    expect(types.length).toBe(136);
   }, 120_000);
 });

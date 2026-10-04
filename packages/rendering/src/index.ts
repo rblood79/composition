@@ -201,6 +201,7 @@ export {
   hexStringToNumber,
   resolveSpecFontSize,
   buildCatalogShapes,
+  resolveLeadingSlot,
   resolveTextSourceKey,
   resolveTextSourceText,
   textFromValue,

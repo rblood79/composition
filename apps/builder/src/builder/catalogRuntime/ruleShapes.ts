@@ -4,6 +4,8 @@ import {
   cssVarToTokenRef,
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
+  resolveLeadingSlot,
+  resolveSpecFontSize,
   resolveToken,
   type Shape,
   type SizeSpec,
@@ -105,7 +107,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const keys = binding ? (Array.isArray(binding) ? binding : [binding]) : [];
   for (const key of keys) {
     if (getSkiaPrimitiveMode(key) !== "replace") continue;
-    if (input.indicatorChild) return [];
+    if (key === input.childPrimitive) return [];
     const replaced = getSkiaPrimitive(key)?.(ctx);
     if (replaced) return replaced;
   }
@@ -130,13 +132,65 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const append: Shape[] = [];
   for (const key of keys) {
     const mode = getSkiaPrimitiveMode(key);
-    if (mode === "replace") continue;
+    if (mode === "replace" || key === input.childPrimitive) continue;
     const shapes = getSkiaPrimitive(key)?.(ctx);
     if (!shapes) continue;
     if (mode === "prepend") prepend.push(...shapes);
     else append.push(...shapes);
   }
   return composeCatalogShapes(base, prepend, append);
+}
+
+/**
+ * A part node that holds its owner's leading icon (a TreeItem's `TreeItemChevron`): the owner's
+ * `leading_icon` primitive — glyph, expanded turn, color — in the part's box, centered in its
+ * content box right of `inset` (the DOM chevron button centers its svg). `input` is the owner's.
+ */
+export function catalogLeadingIconPartNodeData(
+  input: CatalogRuleShapeInput,
+  inset: number,
+): SkiaNodeData {
+  const { rect } = input;
+  const { props, style, variant, size, paint, theme } = catalogRulePaint(
+    input,
+    rect,
+  );
+  const visual = variant ? ruleVariantToVisual(variant) : undefined;
+  const sizeSpec = size as unknown as SizeSpec;
+  const mergedStyle: Record<string, unknown> = {
+    ...resolveSize(size as Record<string, unknown>, theme),
+    ...style,
+  };
+  const fontSize = resolveSpecFontSize(
+    (mergedStyle.fontSize as string | number | undefined) ?? sizeSpec.fontSize,
+    14,
+  );
+  // The part is the slot alone: no row indent or selection checkbox ahead of it.
+  const partProps: Record<string, unknown> = {
+    ...props,
+    _treeLevel: undefined,
+    _showSelectionCheckbox: undefined,
+  };
+  const slot = resolveLeadingSlot(visual, partProps, sizeSpec, fontSize);
+  const iconSize = slot?.kind === "icon" ? slot.size : 0;
+  const shapes =
+    getSkiaPrimitive("leading_icon")?.({
+      props: partProps,
+      size: { ...sizeSpec, height: rect.height },
+      visual,
+      paint,
+      style: {
+        ...mergedStyle,
+        paddingLeft: inset + (rect.width - inset - iconSize) / 2,
+      },
+    }) ?? [];
+  return specShapesToSkia(
+    shapes,
+    theme,
+    rect.width,
+    rect.height,
+    input.node.id,
+  );
 }
 
 /** Every text of `data` paints an ellipsis at its box and clips there. */

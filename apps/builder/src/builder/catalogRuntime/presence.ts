@@ -391,9 +391,10 @@ export function catalogSliderThumbLayout(
 }
 
 /**
- * A box the owner's DOM renderer composes with no catalog node of its own (the Tree item's chevron
- * button): a layout leaf before the record's children. It paints nothing itself — the owner's D3
- * rule draws what the box holds (TreeItem `visual.leadingIcon` over `catalogDerivedProps`).
+ * A box the owner's DOM renderer composes with no catalog node of its own (the chevron button of a
+ * Tree item that has no `TreeItemChevron` child — an item detached or made before the node): a
+ * layout leaf before the record's children. It paints nothing itself — the owner's D3 rule draws
+ * what the box holds (TreeItem `visual.leadingIcon` over `catalogDerivedProps`).
  */
 export interface CatalogComposedPart {
   readonly id: string;
@@ -432,9 +433,53 @@ function catalogTreeLevel(
 }
 
 /**
- * Parts a record's DOM owner composes before its children. A TreeItem row renders `TreeItemContent`
- * (`Tree.tsx`): its chevron `Button` — a 20px flex item (`flex-shrink: 0`) indented by level — precedes the
- * item's content.
+ * A TreeItem row's chevron `Button` (`Tree.tsx` `TreeItemContent`, `Tree.css`): a 20px flex item
+ * (`flex-shrink: 0`) indented by the item's level, before the item's content. Its `height: 100%`
+ * fills the row's content box when the row's height is definite (a Tree of set height), else it is
+ * its svg's height (the minimum).
+ */
+function treeChevronStyle(level: number): Record<string, string | number> {
+  const padding = (level - 1) * TREE_LEVEL_PADDING;
+  return {
+    display: "flex",
+    width: `${TREE_CHEVRON_WIDTH + padding}px`,
+    height: "100%",
+    minHeight: `${TREE_CHEVRON_ICON}px`,
+    paddingLeft: `${padding}px`,
+    flexShrink: 0,
+  };
+}
+
+/** A TreeItem's `TreeItemChevron` child (the chevron button as a document node, 2026-10-04). */
+export function catalogTreeChevron(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "TreeItem") return undefined;
+  return childrenOf(node, get).find(
+    (child) => typeOf(child) === "TreeItemChevron",
+  );
+}
+
+/**
+ * A `TreeItemChevron` record's layout: its TreeItem's chevron button at the item's level.
+ * Undefined for any other node.
+ */
+export function catalogTreeChevronLayout(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string | number> | undefined {
+  if (typeOf(node) !== "TreeItemChevron") return undefined;
+  const item = get(node.parentId);
+  const level = item ? catalogTreeLevel(item, get, typeOf) : undefined;
+  return level === undefined ? undefined : treeChevronStyle(level);
+}
+
+/**
+ * Parts a record's DOM owner composes before its children: a TreeItem row's chevron button when
+ * the item has no `TreeItemChevron` child to hold it.
  */
 export function catalogComposedParts(
   node: CatalogConsumerNode,
@@ -442,20 +487,8 @@ export function catalogComposedParts(
   typeOf: CatalogTypeOf,
 ): readonly CatalogComposedPart[] {
   const level = catalogTreeLevel(node, get, typeOf);
-  if (level === undefined) return [];
-  const padding = (level - 1) * TREE_LEVEL_PADDING;
-  return [
-    {
-      id: `${node.id}::part:chevron`,
-      style: {
-        display: "flex",
-        width: `${TREE_CHEVRON_WIDTH + padding}px`,
-        height: `${TREE_CHEVRON_ICON}px`,
-        paddingLeft: `${padding}px`,
-        flexShrink: 0,
-      },
-    },
-  ];
+  if (level === undefined || catalogTreeChevron(node, get, typeOf)) return [];
+  return [{ id: `${node.id}::part:chevron`, style: treeChevronStyle(level) }];
 }
 
 /** RAC Calendar owners (their header child's heading is the owner's visible-range title). */

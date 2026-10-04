@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { TOGGLE_INDICATOR_OWNERS } from "@composition/shared";
+import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { Box, ChevronRight, GripVertical, Settings2 } from "lucide-react";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
@@ -111,10 +111,10 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
             />
           </Button>
         )}
-        {/* A toggle's indicator is the RAC toggle's own element — not removable (`removeTargets`). */}
+        {/* A part the owner draws (toggle indicator, TreeItem chevron) is the owner's own RAC element — not removable (`removeTargets`). */}
         {!body &&
           !node.projection &&
-          !TOGGLE_INDICATOR_OWNERS[node.typeName] && (
+          !OWNER_DRAWN_PART_OWNERS[node.typeName] && (
             <Button
               className="iconButton"
               aria-label={`Delete ${node.typeName}`}

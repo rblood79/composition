@@ -154,14 +154,16 @@ export const SELF_COMPOSED_LABEL_PARENTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * toggle 의 indicator 노드 → 그것을 그리는 toggle (2026-10-04). DOM 은 RAC toggle 이 indicator 요소를 직접
- * 만들고 (`div.checkbox` · `::before` · `div.indicator`) 노드를 읽지 않는다 — 크기 · 색은 toggle rule 과
- * toggle 의 prop · style 이 정한다. 그래서 편집 surface 는 toggle 로 귀속한다 (FieldError 와 같은 판정).
+ * 부모가 그리는 part 노드 → 그것을 그리는 부모 (2026-10-04). DOM 은 부모 RAC 컴포넌트가 그 요소를 직접
+ * 만들고 노드를 읽지 않는다 — toggle 의 indicator (`div.checkbox` · `::before` · `div.indicator`), TreeItem
+ * 의 chevron 버튼 (`Button[slot="chevron"]`). 크기 · 색은 부모 rule 과 부모의 prop · style 이 정한다. 그래서
+ * 편집 surface 는 부모로 귀속하고 (FieldError 와 같은 판정) 위치는 지울 수 없다.
  */
-export const TOGGLE_INDICATOR_OWNERS: Readonly<Record<string, string>> = {
+export const OWNER_DRAWN_PART_OWNERS: Readonly<Record<string, string>> = {
   CheckboxIndicator: "Checkbox",
   RadioIndicator: "Radio",
   SwitchIndicator: "Switch",
+  TreeItemChevron: "TreeItem",
 };
 
 /**
@@ -212,7 +214,7 @@ function selectorHasToken(selector: string, token: string): boolean {
 }
 
 function ownsSubpartDirect(childType: string, parentType: string): boolean {
-  if (TOGGLE_INDICATOR_OWNERS[childType] === parentType) return true;
+  if (OWNER_DRAWN_PART_OWNERS[childType] === parentType) return true;
   if (childType === "Label" && SELF_COMPOSED_LABEL_PARENTS.has(parentType))
     return true;
   const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];

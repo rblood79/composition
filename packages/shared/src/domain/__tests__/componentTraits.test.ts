@@ -293,6 +293,7 @@ describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () =>
       CheckboxIndicator: ["Checkbox"],
       RadioIndicator: ["Radio"],
       SwitchIndicator: ["Switch"],
+      TreeItemChevron: ["TreeItem"],
       SliderOutput: ["Slider"],
       SliderTrack: ["Slider"],
       SliderThumb: ["SliderTrack"],

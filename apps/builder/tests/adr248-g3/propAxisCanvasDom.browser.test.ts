@@ -112,6 +112,9 @@ const CASES: Array<{
       props: { size },
     })),
   ),
+  // TreeItem chevron node (2026-10-04): the shared Tree's `Button[slot="chevron"]` box and the
+  // label after it, per row.
+  { key: "Tree-chevron", type: "Tree", props: {} },
 ];
 
 let code: CatalogLibrary;

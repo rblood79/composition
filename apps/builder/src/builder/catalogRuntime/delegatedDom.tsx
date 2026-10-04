@@ -147,14 +147,17 @@ export function catalogTypeName(
   );
 }
 /**
- * A toggle's indicator node (`CheckboxIndicator` · `RadioIndicator` · `SwitchIndicator`, 2026-10-04):
- * the RAC toggle draws the indicator element itself (`div.checkbox` · `::before` · `div.indicator`),
- * so the record renders no element — the toggle absorbs it.
+ * A part node its owner draws (2026-10-04): a toggle's indicator (`CheckboxIndicator` ·
+ * `RadioIndicator` · `SwitchIndicator` — the RAC toggle draws `div.checkbox` · `::before` ·
+ * `div.indicator`) and a TreeItem's chevron (`TreeItemChevron` — the shared Tree's
+ * `TreeItemContent` draws `Button[slot="chevron"]`). The record renders no element — the owner
+ * absorbs it.
  */
-export const CATALOG_TOGGLE_INDICATOR_BINDINGS: ReadonlySet<string> = new Set([
+export const CATALOG_OWNER_DRAWN_PART_BINDINGS: ReadonlySet<string> = new Set([
   "checkboxindicator",
   "radioindicator",
   "switchindicator",
+  "treeitemchevron",
 ]);
 const children = (input: DelegatedDomInput): CatalogConsumerNode[] =>
   input.node.children
@@ -249,8 +252,11 @@ function treeItemElements(
     const childItems = kids.filter(
       (kid) => catalogTypeName(input.root, kid) === "TreeItem",
     );
+    // The chevron node is the item's own chevron button (`TreeItemContent` draws it).
     const others = kids.filter(
-      (kid) => catalogTypeName(input.root, kid) !== "TreeItem",
+      (kid) =>
+        catalogTypeName(input.root, kid) !== "TreeItem" &&
+        !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(kid.bindingId ?? ""),
     );
     const title = others.length
       ? ""
@@ -1025,7 +1031,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input,
           children(input).filter(
             (child) =>
-              !CATALOG_TOGGLE_INDICATOR_BINDINGS.has(child.bindingId ?? ""),
+              !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(child.bindingId ?? ""),
           ),
         ),
       );

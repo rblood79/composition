@@ -33,7 +33,7 @@ import {
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_DELEGATED_DOM,
-  CATALOG_TOGGLE_INDICATOR_BINDINGS,
+  CATALOG_OWNER_DRAWN_PART_BINDINGS,
   catalogTypeName,
 } from "./delegatedDom";
 import { Heading, Label, Text } from "react-aria-components";
@@ -588,7 +588,7 @@ export function catalogDomRendersNode(
 ): boolean {
   const self = root.domInputs.get(id);
   if (self && isClosedOverlay(root, self)) return false;
-  if (self && CATALOG_TOGGLE_INDICATOR_BINDINGS.has(self.bindingId ?? ""))
+  if (self && CATALOG_OWNER_DRAWN_PART_BINDINGS.has(self.bindingId ?? ""))
     return false;
   const selfParent = self ? root.domInputs.get(self.parentId) : undefined;
   if (
@@ -1213,7 +1213,7 @@ function renderNode(
     : node.children
         .filter(
           (childId) =>
-            !CATALOG_TOGGLE_INDICATOR_BINDINGS.has(
+            !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(
               root.domInputs.get(childId)?.bindingId ?? "",
             ),
         )

@@ -11,7 +11,7 @@ import type {
   StateVariableEntry,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
-import { TOGGLE_INDICATOR_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
+import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
   assertNestable,
   childList,
@@ -262,19 +262,20 @@ export const removeTargets =
     for (const target of input.targets) {
       if (target.kind !== "descendant") continue;
       if (removed.includes(target.ownerId)) continue;
-      // A toggle's indicator node is the RAC toggle's own indicator element (the DOM always draws
-      // it): hiding the position would change the Canvas alone.
+      // A part the owner draws (a toggle's indicator, a TreeItem's chevron) is the owner RAC
+      // component's own element (the DOM always draws it): hiding the position would change the
+      // Canvas alone.
       const templateId = target.address.templatePath.at(-1);
       const template = templateId
         ? reader.library.templates.get(templateId as `lib:template:${string}`)
         : undefined;
       if (
         template &&
-        TOGGLE_INDICATOR_OWNERS[
+        OWNER_DRAWN_PART_OWNERS[
           definitionTypeName(reader, template.definitionId)
         ]
       )
-        fail("TOGGLE_INDICATOR_NOT_REMOVABLE", templateId!);
+        fail("OWNER_DRAWN_PART_NOT_REMOVABLE", templateId!);
       const owner = draft.node(target.ownerId);
       const current = overrideAt(owner, target.address);
       const overrides = owner.descendantOverrides.filter(

@@ -13,8 +13,17 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
-import { catalogRuleTextColor, cssVarColor } from "./rulePaint";
+import {
+  catalogDateInputPaintProps,
+  catalogLeadingIconPartNodeData,
+  catalogRuleNodeData,
+} from "./ruleShapes";
+import { catalogTreeChevronLayout } from "./presence";
+import {
+  catalogRuleTextColor,
+  cssVarColor,
+  type CatalogRuleShapeInput,
+} from "./rulePaint";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
@@ -241,11 +250,12 @@ const bindings: Readonly<Record<string, Binding>> = {
   // no authored paint, so the Canvas paints none either (layout box only).
   radioitems: container,
   checkboxitems: container,
-  // A toggle's indicator node: painted from its owner's rule (`toggleIndicatorNodeData` — the
-  // binding stands for the record in the registration loop only).
+  // A part its owner draws (toggle indicator, TreeItem chevron): painted from its owner's rule
+  // (`ownerDrawnPartNodeData` — the binding stands for the record in the registration loop only).
   checkboxindicator: container,
   radioindicator: container,
   switchindicator: container,
+  treeitemchevron: container,
   box,
   icon: glyph,
   selecticon: glyph,
@@ -374,63 +384,89 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "overflowWrap",
   "textOverflow",
 ];
-/** Toggle control binding → its indicator child's binding (`*Indicator` nodes, 2026-10-04). */
-const TOGGLE_INDICATOR_BINDINGS: Readonly<Record<string, string>> = {
-  checkbox: "checkboxindicator",
-  radio: "radioindicator",
-  switch: "switchindicator",
+/**
+ * Owner binding → the part child its rule paints in the child's box (2026-10-04): the child's
+ * binding and the owner rule primitive it paints — a toggle's `*Indicator` (the toggle's replace
+ * primitive), a TreeItem's `TreeItemChevron` (its `leading_icon`).
+ */
+const OWNER_DRAWN_PARTS: Readonly<
+  Record<string, { readonly child: string; readonly primitive: string }>
+> = {
+  checkbox: { child: "checkboxindicator", primitive: "checkbox" },
+  radio: { child: "radioindicator", primitive: "radio" },
+  switch: { child: "switchindicator", primitive: "switch_toggle" },
+  treeitem: { child: "treeitemchevron", primitive: "leading_icon" },
 };
-const TOGGLE_INDICATOR_CHILDREN: ReadonlySet<string> = new Set(
-  Object.values(TOGGLE_INDICATOR_BINDINGS),
+const OWNER_DRAWN_PART_CHILDREN: ReadonlySet<string> = new Set(
+  Object.values(OWNER_DRAWN_PARTS).map((part) => part.child),
 );
 
-/** The control has its indicator as a child node (an owned node saved before it has none). */
-function hasIndicatorChild(
+/**
+ * The owner's rule primitive its part child paints (an owned node saved before the part node
+ * has none: the owner paints it itself).
+ */
+function partChildPrimitive(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-): boolean {
-  const indicator = TOGGLE_INDICATOR_BINDINGS[node.bindingId ?? ""];
-  return (
-    indicator !== undefined &&
+): string | undefined {
+  const part = OWNER_DRAWN_PARTS[node.bindingId ?? ""];
+  return part &&
     node.children.some(
-      (id) => root.canvasInputs.get(id)?.bindingId === indicator,
+      (id) => root.canvasInputs.get(id)?.bindingId === part.child,
     )
-  );
+    ? part.primitive
+    : undefined;
 }
 
 /**
- * A toggle's indicator node: the owner control's rule primitive (checkbox box · radio circle ·
- * switch track, `size.indicator`) in the indicator's own box — the owner's props, display state,
- * variant and authored paint decide it, as they decide the DOM's indicator element.
+ * A part node its owner draws: the owner's rule primitive in the part's own box — the owner's
+ * props, display state, variant and authored paint decide it, as they decide the DOM element. A
+ * toggle's indicator runs the toggle's replace primitive (checkbox box · radio circle · switch
+ * track, `size.indicator`); a TreeItem's chevron its `leading_icon`, centered in the button.
  */
-function toggleIndicatorNodeData(
+function ownerDrawnPartNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
   const owner = root.canvasInputs.get(node.parentId);
   if (!owner?.ruleId)
-    throw new Error(`CATALOG_CANVAS_INDICATOR_OWNER_REQUIRED:${node.id}`);
-  return { ...ruleNodeData(root, owner, rect, true), elementId: node.id };
+    throw new Error(`CATALOG_CANVAS_PART_OWNER_REQUIRED:${node.id}`);
+  if (node.bindingId !== "treeitemchevron")
+    return { ...ruleNodeData(root, owner, rect, true), elementId: node.id };
+  const get = (id: string) => root.canvasInputs.get(id);
+  const inset = Number.parseFloat(
+    String(catalogTreeChevronLayout(node, get, root.typeOf)?.paddingLeft ?? 0),
+  );
+  return {
+    ...catalogLeadingIconPartNodeData(
+      ruleShapeInput(root, owner, rect, true),
+      inset,
+    ),
+    elementId: node.id,
+    x: rect.x,
+    y: rect.y,
+  };
 }
 
-function ruleNodeData(
+/** The rule executor's input for a rule-backed node. */
+function ruleShapeInput(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
-  /** Paint the toggle's indicator (its indicator child calls with the owner). */
-  asIndicator = false,
-): SkiaNodeData {
-  for (const key of RULE_UNPAINTED_TEXT_KEYS)
-    if (node.visual[key] !== undefined)
-      throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
+  /** The node's part child calls with its owner: the owner paints every primitive. */
+  asPartOwner = false,
+): CatalogRuleShapeInput {
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
   const segments =
     node.bindingId === "dateinput"
       ? catalogDateInputPaintProps(root, node)
       : undefined;
-  const input = {
+  const childPrimitive = asPartOwner
+    ? undefined
+    : partChildPrimitive(root, node);
+  return {
     node: node.derivedProps
       ? { ...node, props: { ...node.props, ...node.derivedProps } }
       : node,
@@ -442,10 +478,21 @@ function ruleNodeData(
     state: catalogNodeState(node.displayState, root.state),
     theme: root.colorMode,
     singleLine: root.textKeptOnOneLine(node.id),
-    ...(!asIndicator && hasIndicatorChild(root, node)
-      ? { indicatorChild: true }
-      : {}),
+    ...(childPrimitive ? { childPrimitive } : {}),
   };
+}
+
+function ruleNodeData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+  /** Paint the part a part child holds (the child calls with its owner — a toggle's indicator). */
+  asPartOwner = false,
+): SkiaNodeData {
+  for (const key of RULE_UNPAINTED_TEXT_KEYS)
+    if (node.visual[key] !== undefined)
+      throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
+  const input = ruleShapeInput(root, node, rect, asPartOwner);
   const data = catalogRuleNodeData(input);
   const content = dropZoneContentData(
     root,
@@ -560,8 +607,8 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        TOGGLE_INDICATOR_CHILDREN.has(node.bindingId ?? "")
-          ? toggleIndicatorNodeData(root, node, rect)
+        OWNER_DRAWN_PART_CHILDREN.has(node.bindingId ?? "")
+          ? ownerDrawnPartNodeData(root, node, rect)
           : binding
             ? binding(
                 node,
@@ -1029,13 +1076,13 @@ function bindInColorMode(
         reason,
       });
       const input = (id: string) => root.canvasInputs.get(id);
-      // A toggle's indicator node paints from the toggle (`toggleIndicatorNodeData`): it repaints
-      // with it, though its own record is unchanged.
+      // A part node paints from its owner (`ownerDrawnPartNodeData`): it repaints with it, though
+      // its own record is unchanged.
       for (const id of [...dirty]) {
-        const indicator = TOGGLE_INDICATOR_BINDINGS[input(id)?.bindingId ?? ""];
-        if (indicator)
+        const part = OWNER_DRAWN_PARTS[input(id)?.bindingId ?? ""];
+        if (part)
           for (const child of input(id)!.children)
-            if (input(child)?.bindingId === indicator) dirty.add(child);
+            if (input(child)?.bindingId === part.child) dirty.add(child);
       }
       /** Changed engine results (parent-relative rects) against the bound layout map. */
       const changedRects = new Map<string, Rect>();

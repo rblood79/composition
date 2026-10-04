@@ -983,6 +983,14 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "tree item",
     icon: "ListTree",
   }),
+  // TreeItemChevron — TreeItem 의 chevron 버튼 (2026-10-04, toggle indicator 노드 동형). TreeItem
+  //   template 의 첫 자식, DOM 은 부모 Tree (RAC TreeItemContent) 가 그린다. palette 비노출.
+  primitiveEntry("TreeItemChevron", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "tree item chevron",
+    icon: "ChevronRight",
+    placeable: false,
+  }),
   // ADR-912 단계 4 C1 (2026-06-03): Table Skia generic 발효 (skiaLegacy 제거). 2D grid
   //   (header/row/cell)는 Table projected tree(appendTableRowProjection → TableRow/TableCell.
   //   spec.render.shapes)가 렌더, 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} +

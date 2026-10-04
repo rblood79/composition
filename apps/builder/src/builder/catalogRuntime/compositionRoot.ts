@@ -95,6 +95,8 @@ import {
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogSliderThumbs,
+  catalogTreeChevron,
+  catalogTreeChevronLayout,
 } from "./presence";
 import {
   catalogRecordVariables,
@@ -1772,6 +1774,9 @@ export class CatalogCompositionRoot {
     const thumb = record.hidden
       ? undefined
       : catalogSliderThumbLayout(record, get, this.typeOf);
+    const chevron = record.hidden
+      ? undefined
+      : catalogTreeChevronLayout(record, get, this.typeOf);
     const separator = record.hidden
       ? undefined
       : this.crumbSeparator(record, get);
@@ -1782,6 +1787,7 @@ export class CatalogCompositionRoot {
       ...style,
       ...frame,
       ...thumb,
+      ...chevron,
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(separator !== undefined
         ? {
@@ -3030,6 +3036,10 @@ export class CatalogCompositionRoot {
     for (const update of [...updates])
       for (const thumb of [
         ...catalogSliderThumbs(update.record, get, this.typeOf),
+        // A TreeItem's chevron button is indented by the item's level.
+        ...[catalogTreeChevron(update.record, get, this.typeOf)].filter(
+          (chevron): chevron is CatalogConsumerNode => chevron !== undefined,
+        ),
         ...catalogLabelSuffixDependents(update.record, get, this.typeOf),
         ...catalogBreadcrumbItems(update.record, get, this.typeOf),
         // An icon slot child's presence decides its ListBox item's inset.

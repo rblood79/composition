@@ -5946,11 +5946,19 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tree-item-default",
     "definitionId": "lib:definition:type-TreeItem",
     "children": [
+      "lib:template:component-tree-item-default__chevron",
       "lib:template:component-tree-item-default__label"
     ],
     "props": {},
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-tree-item-default__chevron",
+    "definitionId": "lib:definition:type-TreeItemChevron",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-tree-item-default__label",

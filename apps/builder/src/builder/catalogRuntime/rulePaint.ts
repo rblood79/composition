@@ -112,11 +112,11 @@ export interface CatalogRuleShapeInput {
   /** Paint data the executor measured for the shape generators (a DateInput's segment runs). */
   readonly paintProps?: Readonly<Record<string, unknown>>;
   /**
-   * A toggle control whose indicator is its `*Indicator` child node: the child paints the
-   * control's indicator primitive in its own box (`canvasBinding` toggle indicator), so the
-   * control paints none of it.
+   * A primitive of the rule a child node paints in its own box (`canvasBinding` owner-drawn parts —
+   * a toggle's `*Indicator`, a TreeItem's `TreeItemChevron`): the node skips it, and a `replace`
+   * primitive leaves the node unpainted.
    */
-  readonly indicatorChild?: boolean;
+  readonly childPrimitive?: string;
 }
 
 /**

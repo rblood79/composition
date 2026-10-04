@@ -232,7 +232,7 @@ describe("toggle indicator node", () => {
     } catch (error) {
       code = (error as { code?: unknown }).code;
     }
-    expect(code).toBe("TOGGLE_INDICATOR_NOT_REMOVABLE");
+    expect(code).toBe("OWNER_DRAWN_PART_NOT_REMOVABLE");
     expect(root.layoutInputs.has(indicator.id)).toBe(true);
     workspace.execute(removeTargets({ targets: [targetOf(label.id)] }));
     expect(root.layoutInputs.has(label.id)).toBe(false);
