@@ -87,6 +87,8 @@ import { buildCodeCatalogLibrary } from "../../../../packages/shared/src/catalog
 import { CatalogGraph } from "../../../../packages/shared/src/catalog/document/graph";
 import {
   approvedDifference,
+  approvedSectionDifference,
+  SECTION_SUPPLEMENT_HASH,
   approvedStatePaint,
   approvedUnpaired,
   SUBPIXEL_INTRINSIC_WIDTH_CEIL,
@@ -1365,6 +1367,8 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
               getComputedStyle(element.parentElement).display !== "contents"
             )
               element = element.parentElement;
+          if (id === rootInput.id && rootInput.bindingId === "menu")
+            element = host.querySelector("button[aria-haspopup]");
           if (!element) {
             if (marked) domMissing.push(id);
             continue;
@@ -1453,6 +1457,56 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             };
           }
         }
+        if (
+          replay.scenarioHash === SECTION_SUPPLEMENT_HASH &&
+          row.type === "MenuSection" &&
+          row.host === "Menu"
+        ) {
+          const trigger = host.querySelector<HTMLButtonElement>(
+            "button[aria-haspopup]",
+          );
+          const hiddenSections = [...root.canvasInputs.values()].filter(
+            (node) => root.typeOf(node) === "MenuSection",
+          );
+          const closed =
+            !document.querySelector('[role="menu"]') &&
+            hiddenSections.length === 1 &&
+            hiddenSections.every((node) => node.hidden);
+          trigger?.click();
+          const deadline = performance.now() + 2000;
+          while (
+            document.querySelectorAll('[role="menuitem"]').length !== 2 &&
+            performance.now() < deadline
+          )
+            await new Promise(requestAnimationFrame);
+          const menu = document.querySelector('[role="menu"]');
+          const labels = [
+            ...document.querySelectorAll('[role="menuitem"]'),
+          ].map((item) => item.textContent);
+          const opened =
+            labels.join("|") === "Item 1|Item 2" &&
+            !!menu?.textContent?.includes("Section");
+          menu?.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "Escape",
+              code: "Escape",
+              bubbles: true,
+            }),
+          );
+          const closeDeadline = performance.now() + 2000;
+          while (
+            document.querySelector('[role="menu"]') &&
+            performance.now() < closeDeadline
+          )
+            await new Promise(requestAnimationFrame);
+          entry.menuPresence = {
+            closed,
+            opened,
+            labels,
+            closedAgain: !document.querySelector('[role="menu"]'),
+            triggerPaired: domBoxIds.has(rootInput.id),
+          };
+        }
         reactRoot.unmount();
         host.remove();
         entry.canvasDom = {
@@ -1528,13 +1582,21 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         const node = inputSummary(root, item.newId).self?.type ?? "";
         const rule =
           newRect && oldRect
-            ? approvedDifference(
+            ? (approvedDifference(
                 row.type,
                 node,
                 oldRect,
                 newRect,
                 domBoxIds.has(item.newId),
-              )
+              ) ??
+              approvedSectionDifference(
+                replay.scenarioHash,
+                row.type,
+                node,
+                oldRect,
+                newRect,
+                domBoxIds.has(item.newId),
+              ))
             : undefined;
         if (rule)
           approved.push({
@@ -1574,6 +1636,25 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           class: statePaint.class,
           whole: true,
         });
+      const menuPresence = entry.menuPresence as
+        | {
+            closed?: boolean;
+            opened?: boolean;
+            closedAgain?: boolean;
+            triggerPaired?: boolean;
+          }
+        | undefined;
+      if (
+        replay.scenarioHash === SECTION_SUPPLEMENT_HASH &&
+        row.type === "MenuSection" &&
+        !(
+          menuPresence?.closed &&
+          menuPresence.opened &&
+          menuPresence.closedAgain &&
+          menuPresence.triggerPaired
+        )
+      )
+        unapproved.push("menu-presence-probe");
       const geometryPass = unapproved.length === 0;
       if (approved.length) {
         entry.approvedDifferences = approved;

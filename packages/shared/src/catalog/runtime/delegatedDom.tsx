@@ -536,21 +536,32 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       return markerWrap(
         input,
-        createElement(MenuButton as ElementType, {
-          key: input.node.id,
-          style: input.style,
-          label: resolveTextSourceText(
-            "Menu",
-            props as Record<string, unknown>,
+        createElement(
+          MenuButton as ElementType,
+          {
+            key: input.node.id,
+            style: input.style,
+            label: resolveTextSourceText(
+              "Menu",
+              props as Record<string, unknown>,
+            ),
+            "aria-label":
+              typeof props["aria-label"] === "string"
+                ? props["aria-label"]
+                : undefined,
+            variant: props.variant || "primary",
+            size: props.size || "md",
+            selectionMode: props.selectionMode,
+          },
+          ...renderAll(
+            input,
+            children(input).filter((child) =>
+              ["MenuItem", "MenuSection", "Separator"].includes(
+                catalogTypeName(input.root, child),
+              ),
+            ),
           ),
-          "aria-label":
-            typeof props["aria-label"] === "string"
-              ? props["aria-label"]
-              : undefined,
-          variant: props.variant || "primary",
-          size: props.size || "md",
-          selectionMode: props.selectionMode,
-        }),
+        ),
       );
     },
   },

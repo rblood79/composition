@@ -1068,5 +1068,6 @@ Phase 3(독립 소비자 검증과 전환 준비)은 2026-09-30 사용자 완료
 - [x] 동결 HEAD 구 앱 복원·고정 Icon 보충 7/7·현재 기본 64종 FAIL 0 및 실제 Icon pixel 일치.
 - [x] child 33장면 구 PNG 복구·독립 반복 33/33 hash 일치, 보충 비교 30/33 PASS.
 - [x] G3 false-green 방지와 Icon 내부 glyph 정렬 수리, 계약 밖 입력 7건의 원자적 거부 검증.
-- [ ] GridListSection·ListBoxSection·MenuSection 3건 판정 및 후속 gate 종결. [자료](../evidence/248-g3-remaining.md).
+- [x] GridListSection·ListBoxSection·MenuSection 3건 처리 — 2026-10-05 child 보충 33/33 PASS, Menu 제품 회귀 수리·실제 열림/닫힘 검증. [최종 기록](248-g3-section-closure.md).
+- [ ] G3 전체 종결 — 최신 state 69 PASS/6 FAIL. 시작 HEAD에서도 같은 Switch L3 실패 6건 재현. 이 문제가 해결될 때까지 Accepted 유지. 원본 미검증과 보충 검증은 최종 기록의 대응표를 따른다.
 - [x] 2026-10-05 현재 제품 G5 재측정 — 정규 paired p95 36/36, retained heap 9/9, 저장 byte 5/5, 정적 initial bundle 2/2 PASS. [근거·부팅 JS·구조 비용 한계](../evidence/248-g5-followup.md).

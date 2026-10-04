@@ -778,17 +778,21 @@ function ruleDom(
     binding?.source.kind === "internal" &&
     COLLECTION_ONLY_RENDERERS[binding.source.renderer] !== undefined &&
     COLLECTION_ONLY_RENDERERS[binding.source.renderer] !== collection;
-  const Component: ElementType | undefined = !binding
-    ? undefined
-    : type === "Header" && collection === "gridlist"
-      ? (RAC.GridListHeader as ElementType)
-      : binding.source.kind === "rac"
-        ? (RAC as unknown as Record<string, ElementType | undefined>)[
-            binding.source.component
-          ]
-        : outsideCollection && lower === "tab"
-          ? undefined
-          : INTERNAL_RENDERERS[binding.source.renderer];
+  // MenuItem has no standalone primitive binding: inside a Menu it is a RAC collection item.
+  const Component: ElementType | undefined =
+    lower === "menuitem"
+      ? (RAC.MenuItem as ElementType)
+      : !binding
+        ? undefined
+        : type === "Header" && collection === "gridlist"
+          ? (RAC.GridListHeader as ElementType)
+          : binding.source.kind === "rac"
+            ? (RAC as unknown as Record<string, ElementType | undefined>)[
+                binding.source.component
+              ]
+            : outsideCollection && lower === "tab"
+              ? undefined
+              : INTERNAL_RENDERERS[binding.source.renderer];
   if (!Component) {
     // No registered component: the generated class CSS still owns the box (Preview fallback).
     const dataAttrs: Record<string, string> = {};
@@ -824,6 +828,23 @@ function ruleDom(
       key: node.id,
       "data-catalog-id": node.id,
       ...rest,
+      ...(lower === "menuitem"
+        ? {
+            id: resolveStaticItemKey(
+              node.props as Record<string, unknown>,
+              node.id,
+            ),
+            textValue: node.children
+              .map((id) => root.domInputs.get(id))
+              .filter((child) => child?.props.slot === "label")
+              .map((child) => String(child?.props.children ?? ""))
+              .join(""),
+            isDisabled: node.props.isDisabled === true,
+            ...(typeof node.props.href === "string" && node.props.href
+              ? { href: node.props.href }
+              : {}),
+          }
+        : {}),
       ...(STATIC_ITEM_TYPES.has(type)
         ? {
             id: resolveStaticItemKey(

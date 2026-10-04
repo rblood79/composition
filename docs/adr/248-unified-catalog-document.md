@@ -34,6 +34,25 @@ child 3건은 구/신 차이 판정 대기이며, 원래 무작위 Icon의 입�
 저장 656.67→45.08ms. Preview 실제 부팅 JS 636,473B는 별도 기록하며 기존 정적 initial
 승인 기준과 예산을 유지한다. G3의 3건 판정 대기는 이 결과로 닫히지 않는다.
 
+### 2026-10-05 section 종결·G3 재검증 판정
+
+**Accepted 유지.** [최종 판정과 이력/보충 검증 관계](design/248-g3-section-closure.md).
+GridListSection·ListBoxSection은 확인된 보충 fixture의 geometry 차이만 분류했다.
+MenuSection은 구 결함 면제 대신 현재 제품의 variant 기본값·자식 전달·RAC item 연결을
+수리해 L3 different 0, 실제 열림/닫힘을 확인했다. child 보충 **33/33 PASS**.
+
+원본 base 63 PASS/1 UNVERIFIED, axis 374 PASS/6 UNVERIFIED/6 NOT_RUN,
+state **69 PASS/6 FAIL**이다. Switch 6건은 시작 HEAD에서도 같은 L3 수치로 실패한다.
+기존 state 75/75 PASS는 당시 이력으로 보존하며 현재 gate를 대신하지 않는다.
+Icon 원본 7·child 원본 33의 미검증 행은 소급 변경하지 않고 별도 보충 검증으로 연결한다.
+
+### Live Exercise
+
+2026-10-05 headed Chrome/Playwright로 실제 Builder Desktop Compare Mode에서 세 section을
+생성하고, Preview Menu의 Section·Item 1/2 열림·Escape 닫힘·focus 복귀·항목 클릭 닫힘·reload
+후 재실행을 확인했다. Canvas의 검은 primary 트리거도 확인했다.
+[상세·범위·잔여 경고](design/248-g3-section-closure.md#live-exercise). 사용자 직접 confirm은 아니다.
+
 ## Context
 
 현재 Builder에는 서로 다른 책임의 정본이 있다. `CompositionDocument`는 저작 문서·runtime mutation·저장의 정본이고, `componentCatalog`는 컴포넌트 등록, `COMPONENT_RULES_TABLE`은 기본 시각 규칙, `PrimitiveBinding`은 실행 연결을 담당한다. 이는 당초 의도된 분리다. 다만 reusable definition이 canonical 원본 ID를 참조하고 native frame/Slot이 metadata-only로 남아, 새 정의를 추가하거나 편집 경로를 바꿀 때 여러 표현·해석기를 따라가야 한다.

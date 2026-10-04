@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Menu section 렌더 수리와 G3 재검증 — ADR-248] - 2026-10-05
+
+### Fixed
+
+- Menu primitive 기본 variant를 catalog의 `primary`와 맞춰 Canvas 트리거가 투명해지던 문제를 수정했다. Menu에 static section/item 자식을 전달하고 MenuItem을 RAC 항목으로 연결해 열린 메뉴에 항목이 나타나도록 했다.
+
+### Tests
+
+- GridListSection·ListBoxSection 차이를 보충 fixture에 한정해 분류하고 Menu 트리거 상자·열림/닫힘 검사를 추가했다. child 보충 33/33 PASS, Menu 구/신 L3 different 0. 기존 미검증·보충 검증 대응과 실제 Builder 확인을 [종결 기록](adr/design/248-g3-section-closure.md)에 정리했다.
+- 전체 state 재검증에서 시작 HEAD에도 존재하는 Switch L3 실패 6건을 확인해 ADR은 Accepted 유지한다. 과거 PASS·UNVERIFIED·NOT_RUN 기록을 소급 변경하지 않았다.
+
 ## [Icon 내부 정렬 회귀 수리와 G3 보충 검증 — ADR-248] - 2026-10-04
 
 ### Fixed

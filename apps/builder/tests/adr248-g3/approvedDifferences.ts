@@ -560,3 +560,76 @@ export function approvedUnpaired(
         : (rule.oldPath?.test(key) ?? false)),
   );
 }
+
+/** 2026-10-05 section closure: only the independently repeated child supplement.
+ * These signatures describe the old defect / ADR-238 baseline propagation; they do not
+ * relax the <=1px current Canvas/DOM leg or accept another fixture's geometry.
+ */
+export const SECTION_SUPPLEMENT_HASH =
+  "62debe8d5c1e89649b4297e7520fb41e2142ab001e2818ea02e917ea4a922e11";
+type SectionRect = { x: number; y: number; width: number; height: number };
+export function approvedSectionDifference(
+  hash: string,
+  owner: string,
+  node: string,
+  oldRect: SectionRect,
+  newRect: SectionRect,
+  hasDomBox: boolean,
+): ApprovedDifference | undefined {
+  if (hash !== SECTION_SUPPLEMENT_HASH || !hasDomBox) return;
+  const signatures: Array<[string, string, number[], number[]]> = [
+    [
+      "GridListSection",
+      "GridListSection",
+      [30, 30, 220, 124],
+      [30, 30, 104, 130],
+    ],
+    ["GridListSection", "GridListItem", [30, 54, 220, 50], [30, 51, 104, 50]],
+    ["GridListSection", "GridListItem", [30, 104, 220, 50], [30, 101, 104, 50]],
+    ["GridListSection", "Text", [47, 67, 186, 24], [47, 64, 70, 24]],
+    ["GridListSection", "Text", [47, 117, 186, 24], [47, 114, 70, 24]],
+    [
+      "ListBoxSection",
+      "ListBoxSection",
+      [35, 35, 210, 90.9824],
+      [35, 35, 210, 89],
+    ],
+    [
+      "ListBoxSection",
+      "ListBoxItem",
+      [35, 61.9824, 210, 32],
+      [35, 60, 210, 32],
+    ],
+    [
+      "ListBoxSection",
+      "ListBoxItem",
+      [35, 93.9824, 210, 32],
+      [35, 92, 210, 32],
+    ],
+    ["ListBoxSection", "Text", [47, 65.9824, 186, 24], [47, 64, 186, 24]],
+    ["ListBoxSection", "Text", [47, 97.9824, 186, 24], [47, 96, 186, 24]],
+  ];
+  const matches = (rect: SectionRect, values: number[]) =>
+    ALL.every((axis, i) => Math.abs(rect[axis] - values[i]) < 0.02);
+  if (
+    !signatures.some(
+      ([o, n, a, b]) =>
+        o === owner && n === node && matches(oldRect, a) && matches(newRect, b),
+    )
+  )
+    return;
+  return {
+    id:
+      owner === "GridListSection"
+        ? "section-grid-two-column-host"
+        : "section-header-baseline-cascade",
+    class: owner === "GridListSection" ? "oldDefect" : "decided",
+    owners: [owner],
+    nodes: [node],
+    axes: ALL,
+    reason:
+      owner === "GridListSection"
+        ? "catalog GridList two columns / gap 12: old flex host used full width; current Canvas equals DOM"
+        : "ADR-238 unloaded section CSS: Header baseline difference propagates to section height and following rows",
+  };
+}

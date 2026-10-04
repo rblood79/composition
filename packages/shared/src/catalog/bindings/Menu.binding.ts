@@ -45,7 +45,7 @@ export const menuBinding: PrimitiveBinding = {
         kind: "variant",
         label: "Variant",
         section: "appearance",
-        default: "default",
+        default: "primary",
       },
       size: {
         kind: "size",
