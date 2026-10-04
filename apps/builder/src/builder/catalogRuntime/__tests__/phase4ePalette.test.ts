@@ -120,10 +120,37 @@ describe("ADR-248 Phase 4e-4 Components palette", () => {
         continue;
       }
       workspace.session.clearSelection();
-      if (!catalogPaletteInsertCommand(host, type, item.initialProps))
+      const command = catalogPaletteInsertCommand(
+        host,
+        type,
+        item.initialProps,
+      );
+      if (!command) {
         refused.push(`${type}: refused`);
+        continue;
+      }
+      // The commit's document validation is the gate the palette click meets (a dry-run alone
+      // let Chart's old `style: { width }` initial prop through).
+      try {
+        workspace.execute(command);
+      } catch (error) {
+        refused.push(`${item.type}: ${(error as Error).message}`);
+      }
     }
     expect(refused).toEqual([]);
+  });
+
+  it("a Chart palette item's old style width becomes the node's sizing", async () => {
+    const { workspace, add } = await open();
+    const item = getPaletteItems().find((entry) => entry.type === "chart-bar")!;
+    const id = add("Chart", item.initialProps);
+    const entry = workspace.runtime.graph.getEntry(id) as {
+      props: Record<string, unknown>;
+      sizing: Record<string, unknown>;
+    };
+    expect(entry.props).not.toHaveProperty("style");
+    expect(entry.props.chartType).toEqual({ kind: "set", value: "bar" });
+    expect(entry.sizing.width).toEqual({ kind: "set", value: 320 });
   });
 });
 

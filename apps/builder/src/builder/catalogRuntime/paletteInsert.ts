@@ -16,6 +16,7 @@ import type {
 import { getDefaultProps } from "../../types/builder/unified.types";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
+import { catalogStyleWrites, type CatalogStyleFieldWrites } from "./styleFields";
 
 /** What a palette insert reads from the open project (`CatalogWorkspace`). */
 export interface CatalogPaletteHost {
@@ -72,7 +73,9 @@ export function catalogCreationProps(
   for (const [key, value] of Object.entries(initialProps ?? {}))
     given[key] = value;
   for (const [key, value] of Object.entries(given)) {
-    if (value === undefined) continue;
+    // `style` is the old element model's CSS bag — a catalog node keeps it in typed fields
+    // (`catalogCreationStyle`), never as a prop (the document rejects an object prop value).
+    if (value === undefined || key === "style") continue;
     const initial = initialProps !== undefined && key in initialProps;
     if (key !== "chartType" && !(key in accepts) && !initial) continue;
     if (
@@ -82,6 +85,34 @@ export function catalogCreationProps(
       props[key] = { kind: "set", value } as PropWrites[string];
   }
   return props;
+}
+
+/**
+ * The typed fields (`visual` · `layout` · `sizing`) of a palette item's initial `style` — the old
+ * element model's creation size (Chart's `style: { width: 320 }`). Only set writes: a new node
+ * has nothing to remove.
+ */
+export function catalogCreationStyle(
+  initialProps?: Readonly<Record<string, unknown>>,
+): Required<Pick<NodeEntry, "visual" | "sizing">> & Pick<NodeEntry, "layout"> {
+  const style = initialProps?.style;
+  const fields: CatalogStyleFieldWrites = { visual: {}, layout: {}, sizing: {} };
+  if (style && typeof style === "object" && !Array.isArray(style))
+    for (const [key, raw] of Object.entries(style)) {
+      if (typeof raw !== "string" && typeof raw !== "number") continue;
+      const writes = catalogStyleWrites(key, raw);
+      for (const group of ["visual", "layout", "sizing"] as const)
+        for (const [field, write] of Object.entries(writes[group] ?? {}))
+          if (write?.kind === "set")
+            (fields[group] as Record<string, unknown>)[field] = write;
+    }
+  return {
+    visual: fields.visual as NodeEntry["visual"],
+    sizing: fields.sizing as NodeEntry["sizing"],
+    ...(Object.keys(fields.layout!).length
+      ? { layout: fields.layout as NodeEntry["layout"] }
+      : {}),
+  };
 }
 
 const parentOf = (target: EditTarget): NodeParent =>
@@ -134,8 +165,7 @@ export function catalogPaletteInsertPlan(
     definitionId,
     children: [],
     props,
-    visual: {},
-    sizing: {},
+    ...catalogCreationStyle(initialProps),
     descendantOverrides: [],
   };
   const candidates: EditTarget[] = [];

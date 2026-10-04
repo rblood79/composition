@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 팔레트 추가 거부 수정 — 초기 너비를 sizing 으로] - 2026-10-04
+
+### Fixed
+
+- **Components 패널의 Chart 7종 (Area · Bar · Line · Pie · Radar · Radial · Scatter) 이 추가되지 않던
+  문제를 고쳤다.** 팔레트 항목의 초기 props 에 옛 요소 모델의 `style: { width: 320 }` 이 남아 있었고,
+  `catalogCreationProps` 가 초기 props 키를 accepts 확인 없이 통과시켜 객체 값 `props.style` 이 문서
+  검증 (`entry.props.style.value.width`) 에 걸렸다 — ADR-248 catalog 문서 전환 뒤 클릭마다 오류
+  toast 만 뜨고 Canvas 에 아무것도 생기지 않았다. 초기 `style` 은 이제 props 가 아니라
+  `catalogStyleWrites` 로 노드의 typed field 에 들어간다 (Chart 는 `sizing.width = 320`).
+  - **Why**: catalog 문서의 prop 값은 scalar · 배열 · token 참조만 허용한다 — CSS 묶음 `style` 은
+    Styles 패널과 같은 typed field (`visual` · `layout` · `sizing`) 가 정본이다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/paletteInsert.ts` (`catalogCreationStyle`)
+- 팔레트 전 항목 테스트가 명령을 만들기만 하고 commit 검증을 거치지 않아 이 거부를 놓쳤다 — 이제 각 항목을
+  실제로 실행한다 (`phase4ePalette.test.ts`, 수정 전 코드에서 Chart 7종 RED).
+
+검증: catalogRuntime · palette 506 테스트 · type-check PASS. headed Chrome 에서 새 프로젝트에 Bar ·
+Line · Pie Chart 를 팔레트 클릭으로 추가 → 오류 0, 각 320×240, Canvas 에 막대 · 선 · 원 그래프와 범례
+표시 확인.
+
 ## [ADR-248 review round 3 — Builder specs 의존 제거 · AI 생성 계약 전환] - 2026-10-04
 
 ### Fixed
