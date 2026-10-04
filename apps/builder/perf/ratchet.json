@@ -454,6 +454,69 @@
       "on": "2026-10-04",
       "reason": "측정마다 두 값을 오가는 지표 (edit 시나리오 렌더 1회분 — 약 7% 차, 같은 코드에서 868 ↔ 930 등). 529718981 의 하향이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
       "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.select.B.cdp.LayoutCount",
+      "from": 107,
+      "to": 137,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.select.B.cdp.RecalcStyleCount",
+      "from": 155,
+      "to": 185,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.select.B.reactRenderMeasures",
+      "from": 4487,
+      "to": 5233,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.page-switch.B.reactRenderMeasures",
+      "from": 1745,
+      "to": 1991,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.600.select.B.cdp.LayoutCount",
+      "from": 107,
+      "to": 137,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.600.select.B.cdp.RecalcStyleCount",
+      "from": 155,
+      "to": 185,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.600.select.B.reactRenderMeasures",
+      "from": 4373,
+      "to": 5049,
+      "approvedBy": "사용자 (2026-10-05 판정 — ADR-252 B 경고 상한 반영)",
+      "on": "2026-10-04",
+      "reason": "ADR-252 (c9fc0b2c0) Design 패널의 RAC TabPanel — useTabPanel → useHasTabbableChild 의 의존성 없는 layout effect 가 렌더마다 TreeWalker + checkVisibility 로 style recalc · layout 을 강제 (선택 1회당 Layout · Recalc +1, React measure +25). D1 RAC 동작. ADR-252 G4 기준 (두 패널 열림 139/212 · 12,847) 이하. 커밋별 실측: c9fc0b2c0^ 107/154/4,497 → c9fc0b2c0 137/185/5,233",
+      "expires": "2027-04-05"
     }
   ]
 }
