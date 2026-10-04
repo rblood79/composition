@@ -1,15 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
-import { enrichWithIntrinsicSize } from "@/builder/workspace/canvas/layout/engines/utils";
-import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import {
   type Bounds,
   type CaseNode,
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
 } from "./harness";
 
 interface ProbeCase {
@@ -22,9 +19,7 @@ interface ProbeCase {
 interface ProbeResult {
   dom: Bounds[];
   engine: Bounds[];
-  pipeline: Bounds[] | string;
   engineDiff: string[];
-  pipelineDiff: string[] | string;
 }
 
 const RESULTS: Record<string, unknown> = {};
@@ -75,7 +70,6 @@ const textZero = (
     },
     {
       label: "t",
-      elementType: "Text",
       text,
       style: {
         height: "0px",
@@ -183,7 +177,6 @@ const CASES: ProbeCase[] = [
     nodes: [
       {
         label: "t",
-        elementType: "Text",
         text: " ",
         style: { display: "block", height: "10px", fontSize: "16px" },
       },
@@ -312,21 +305,11 @@ function runCase(c: ProbeCase): ProbeResult {
   const availH = c.availH ?? -1;
   const dom = domLeg(c.nodes, availW);
   const engine = engineLeg(c.nodes, availW, availH);
-  let pipeline: Bounds[] | string;
-  let pipelineDiff: string[] | string;
-  try {
-    pipeline = pipelineLeg(c.nodes, availW, availH);
-    pipelineDiff = diffCase(c.nodes, dom, pipeline);
-  } catch (error) {
-    pipeline = String(error);
-    pipelineDiff = String(error);
-  }
+  // (옛 pipeline leg — `calculateFullTreeLayout` — 은 2026-10-05 fullTreeLayout 삭제와 함께 제거)
   return {
     dom,
     engine,
-    pipeline,
     engineDiff: diffCase(c.nodes, dom, engine),
-    pipelineDiff,
   };
 }
 
@@ -343,7 +326,7 @@ describe("ADR-923 round 12 diagnostic probes", () => {
     );
   });
 
-  it("records Chrome, engine, and pipeline boundaries", () => {
+  it("records Chrome and engine boundaries", () => {
     const spy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
     for (const c of CASES) RESULTS[c.name] = runCase(c);
     RESULTS.buildTreeBatchCalls = spy.mock.calls.map(([json]) =>
@@ -351,37 +334,5 @@ describe("ADR-923 round 12 diagnostic probes", () => {
     );
     spy.mockRestore();
     expect(Object.keys(RESULTS).length).toBeGreaterThan(CASES.length);
-  });
-
-  it("records String(children) line-box signals", () => {
-    const samples: Record<string, unknown> = {
-      numberZero: 0,
-      twoSpacesArray: [" ", " "],
-      emptyArray: [],
-      objectChild: { type: "span", props: { children: "" } },
-    };
-    const output: Record<string, unknown> = {};
-    for (const [name, children] of Object.entries(samples)) {
-      const element = {
-        id: name,
-        type: "Text",
-        page_id: null,
-        props: {
-          children,
-          style: {
-            display: "block",
-            width: "100px",
-            height: "0px",
-            fontSize: "16px",
-          },
-        },
-      } as unknown as CanvasLayoutNode;
-      const enriched = enrichWithIntrinsicSize(element, 300, -1);
-      output[name] = (
-        enriched.props?.style as Record<string, unknown> | undefined
-      )?.leafBaseline;
-    }
-    RESULTS.stringChildrenSignals = output;
-    expect(Object.keys(output)).toHaveLength(4);
   });
 });

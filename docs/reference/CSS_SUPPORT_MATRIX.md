@@ -1,5 +1,7 @@
 # CSS Level 3 엔진 정합성 체크리스트
 
+> **2026-10-05 현황 안내 — 「구현 위치」 열은 옛 TS 경로 기준이다.** 표에 인용된 `fullTreeLayout.ts` (`buildNodeStyle` · `coerceGridTrack` · Step N) · `utils.ts` 의 `applyCommonEngineStyle` / `applyFlexItemProperties` / `enrichWithIntrinsicSize` · `implicitStyles.ts` 주입 · `flexStyleAdapter` / `blockStyleAdapter` / `displayAdapter` 는 2026-10-05 production 미도달로 삭제됐다 (§0 의 생성원 `layoutCapabilityMatrix.ts` 와 `generate-engine-matrix.mjs` 는 ADR-248 Phase 4e-9-3 에서 먼저 삭제). 지금 엔진 입력의 유일한 직렬화기는 `catalogRuntime/compositionRoot.ts` 의 `styleOf` 이고 (`.claude/rules/layout-engine.md` §레이아웃 재계산 경로), 표의 ✅ 는 옛 경로에서 잰 값이다 — catalog 경로가 각 속성을 엔진까지 싣는지는 다시 확인하지 않았다. 엔진 (`packages/engine`) 쪽 근거는 그대로 유효하다.
+
 > **목적**: composition 레이아웃/렌더링 엔진의 CSS Level 3 속성 지원 현황 추적
 > **엔진**: `packages/engine` (자체 Rust 엔진, wasm). 엔진 경계로 값을 넘기는 TS 층은
 > `layout/engines/` — `fullTreeLayout.ts` (경계 record 조립) · `utils.ts`

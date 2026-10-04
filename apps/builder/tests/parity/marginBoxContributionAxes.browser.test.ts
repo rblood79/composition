@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -236,14 +235,6 @@ describe("margin-box 기여 — 양축 sweep", () => {
       k.nodes,
       domLeg(k.nodes, k.availW),
       engineLeg(k.nodes, k.availW, k.availH),
-    );
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
-  it.each(CASES.map((k) => [k.name, k] as const))("pipeline — %s", (_n, k) => {
-    const bad = diffCase(
-      k.nodes,
-      domLeg(k.nodes, k.availW),
-      pipelineLeg(k.nodes, k.availW, k.availH),
     );
     expect(bad, bad.join("\n")).toEqual([]);
   });

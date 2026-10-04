@@ -5,7 +5,6 @@ import {
   type ParityCase,
   type StyleRecord,
   runParityCase,
-  runPipelineParityCase,
 } from "./harness";
 
 /**
@@ -149,13 +148,6 @@ describe("ADR-156 옵션 3-a 세로축 — E2 grid align(세로) 엔진↔CSS �
   // Layer 1 — 엔진 직접.
   it.each(E2_ALIGN_CASES)("engine: $name", (c) => {
     const bad = runParityCase(c);
-    expect(bad, bad.join("; ")).toEqual([]);
-  });
-
-  // Layer 2 — 빌더 파이프라인(calculateFullTreeLayout). JS DFS 가 explicit height 를
-  //   마스킹하지 않음을 확증.
-  it.each(E2_ALIGN_CASES)("pipeline: $name", (c) => {
-    const bad = runPipelineParityCase(c);
     expect(bad, bad.join("; ")).toEqual([]);
   });
 });

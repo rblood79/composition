@@ -40,7 +40,7 @@ generated CSS 출력 위치: `packages/shared/src/components/styles/generated/` 
 
 ## 역사적 사례 (압축)
 
-> 아래는 PixiJS/Yoga + 49~124개 spec 시절(v1.11~v1.14, 2026-02)의 버그 기록입니다. 해당 코드(PixiButton, ElementSprite, 컴포넌트별 spec)는 삭제됐지만, **"소스 수정 → dist 미빌드 → 소비자 구 값 참조"** 라는 실패 형태 자체는 현행 구조에서도 동일하게 재현됩니다.
+> 아래는 PixiJS/Yoga + 49~~124개 spec 시절(v1.11~~v1.14, 2026-02)의 버그 기록입니다. 해당 코드(PixiButton, ElementSprite, 컴포넌트별 spec)는 삭제됐지만, **"소스 수정 → dist 미빌드 → 소비자 구 값 참조"** 라는 실패 형태 자체는 현행 구조에서도 동일하게 재현됩니다.
 
 - **padding/borderWidth 불일치** (v1.11/v1.12): spec 수정 후 dist 미빌드 → layout engine(새 값) vs 렌더러(구 값) 불일치 → 버튼 간 공백/테두리 미표시
 - **props.style 오버라이드 미반영** (v1.13): 49개 spec 일괄 수정 후 dist 미빌드 → Inspector 변경이 캔버스에 미반영
@@ -51,4 +51,4 @@ generated CSS 출력 위치: `packages/shared/src/components/styles/generated/` 
 - `packages/specs/package.json` — `"main": "./dist/index.js"`, `"build": "tsup ... && pnpm generate:css"`
 - `package.json:12` — `"build:specs": "pnpm -F @composition/specs build"`
 - `packages/specs/scripts/generate-css.ts` — rule 테이블 기반 CSS 생성
-- [spec-value-sync](spec-value-sync.md) — catalog ↔ layout engine ↔ CSS 값 동기화
+- [spec-value-sync](spec-value-sync.md) — catalog ↔ Canvas ↔ CSS 값 동기화

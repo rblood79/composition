@@ -8,8 +8,8 @@
 //!
 //! ## 2-B 이관 경계 (2026-07-04 실사, 사용자 "실측 하단만 착수" 승인)
 //!
-//! DFS 상단 3-step(resolveStyle+applyImplicitStyles+enrichWithIntrinsicSize)은
-//! tag/spec/store 도메인 의존이라 **JS 잔류**. 본 모듈은 상단이 이미 순수화한
+//! 입력 생성(당시 DFS 상단 3-step resolveStyle+applyImplicitStyles+enrichWithIntrinsicSize,
+//! 지금은 catalog `compositionRoot.ts` `styleOf`)은 도메인 의존이라 **JS 잔류**. 본 모듈은 상단이 이미 순수화한
 //! EngineStyle 레코드(= `build_tree_batch` 의 nodesJson payload)를 입력받아 트리
 //! 레이아웃만 계산한다. (Phase 1 flat f32 센티넬 철학과 동일 — 도메인 해석은 JS,
 //! 순수 계산만 Rust.)
@@ -387,12 +387,11 @@ pub const BATCH_NODE_FIELD_NAMES: [&str; 2] = ["style", "children"];
 /// 결과가 맞다" 는 주장이고, 근거는 TS 쪽 소유 경로다. 새 무음 드롭은 strict 실패로
 /// 남아야 하므로 이 목록은 자라지 않는 것이 정상이다.
 ///
-/// - `whiteSpace` — 텍스트 줄바꿈은 TS 측정이 소유한다. `resolve_text_leaf_white_space`
-///   (utils.ts) 가 해석해 `contentMinWidth`/`contentMaxWidth` 스칼라로 환원해 보내므로
+/// - `whiteSpace` — 텍스트 줄바꿈은 TS 측정이 소유한다. TS 측정
+///   (`compositionRoot.ts` `textLeaf` · `catalogTextMeasure`) 이 해석해 `contentMinWidth`/`contentMaxWidth` 스칼라로 환원해 보내므로
 ///   엔진은 원값이 필요 없다 (ADR-165 스칼라 계약).
-/// - `order` — flex/grid item 순서는 `fullTreeLayout.ts` 가 TS 에서 미리 정렬해 batch
-///   배열 순서로 넘긴다 (`applyCommonEngineStyle` 이 값을 같이 싣지만 엔진은 배열 순서만
-///   본다). 엔진이 읽으면 이중 정렬이다.
+/// - `order` — flex/grid item 순서는 TS (`compositionRoot.ts` 의 CSS `order` 안정 정렬) 가
+///   미리 정렬해 batch 배열 순서로 넘긴다 — 엔진은 배열 순서만 본다. 엔진이 읽으면 이중 정렬이다.
 pub const TS_OWNED_INPUT_KEYS: [&str; 2] = ["style.whiteSpace", "style.order"];
 
 /// batch payload 에서 엔진이 읽지 않는 키를 모은다 — 노드 인덱스별 (키는 정렬).
@@ -1269,7 +1268,7 @@ impl LayoutTree {
     /// **전**에 같은 clamp 를 걸어 자식도 used 폭 기준 — 여기서는 idempotent 재적용). 높이: auto 는
     /// content + pad_border, min/max clamp 는 **명시 높이에도** 적용 (r12 과제 5 · §10.7). 라이브
     /// root(body) 는 Builder 가 authored height 를 걷어내고 viewport `minHeight` 를 주입한다
-    /// (`fullTreeLayout.ts` Step 1.5 — Preview 도 `minHeight:100vh`) → 처음부터 `!has_h` + min-height
+    /// (당시 `fullTreeLayout.ts` Step 1.5, 2026-10-05 삭제 — Preview 도 `minHeight:100vh`) → 처음부터 `!has_h` + min-height
     /// clamp 경로였고, 수리 26 (clamp 를 has_h 밖으로) 으로 body 동작은 바뀌지 않는다 (r13l1).
     fn fixup_root_self_size(&mut self, root: usize, avail_w: f32, avail_h: f32) {
         let style = self.get(root).map(|n| n.style.clone()).unwrap_or_default();
@@ -1299,7 +1298,7 @@ impl LayoutTree {
         //    적용 (§10.7 은 computed height 가 무엇이든 min/max 를 건다 — r12 과제 5: root
         //    `height:0 + min-height:10` Chrome 10 / 종전 has_h 분기가 clamp 를 건너뛰어 0.
         //    명시 높이 > 0 인 비-root 는 solve_node :1512~ 가 같은 clamp 를 이미 한다). 라이브
-        //    root(body) 는 height 미명시 + viewport minHeight 주입 (`fullTreeLayout.ts`) 이라 종전부터
+        //    root(body) 는 height 미명시 + viewport minHeight 주입 (당시 `fullTreeLayout.ts`) 이라 종전부터
         //    `!has_h` clamp 경로 — 이 이동으로 동작 불변 (r13l1).
         if !has_h {
             layout.height += own_pb_v;
@@ -2416,7 +2415,7 @@ impl LayoutTree {
     ///   고정. factory absolute/fixed 기본값 0건 + Inspector position 편집 UI 미노출.
     ///   재개 조건 = positioned ancestor 2단 이상 실사용 등장.
     /// - **`fixed` 의 viewport 기준**: absolute 로 근사 — 상류 TS 도 fixed→absolute
-    ///   로 강제 변환해 송신한다 (fullTreeLayout.ts patch 경로. 렌더 층의 sticky/fixed
+    ///   로 보낸다 (catalog `styleOf` 는 위치 상자를 absolute + inset 로만 싣는다. 렌더 층의 sticky/fixed
     ///   좌표 보정은 별도 경로 — renderCommands.ts). 재개 조건 = 캔버스 viewport
     ///   (=page frame) 기준 fixed 실사용 등장.
     fn place_absolute_children(
@@ -3085,7 +3084,7 @@ impl LayoutTree {
 
         // 3.5 ↔ 3.6 순환 (2026-09-17): 3.6 이 컨테이너 auto main 을 min/max 로 clamp 해 **used main
         //   이 바뀌면** 3.5 를 한 번 더 돈다. 종전엔 3.5 → 3.6 한 방향이라, `column + minHeight`
-        //   (production body 가 정확히 이 형태 — `fullTreeLayout.ts` Step 1.5 viewport minHeight 주입)
+        //   (당시 production body 가 정확히 이 형태 — `fullTreeLayout.ts` Step 1.5 viewport minHeight 주입)
         //   안의 `flex:1` 자식 컨테이너는 3.6 커널 재실행으로 **상자만** min 까지 늘고, 그 안 손자는
         //   indefinite cross 로 굳은 1차 solve 그대로였다 → 손자 `align-self:stretch` 가 높이 0
         //   (Chrome: body(column, minHeight 844) > section(flex:1, row) > frame(stretch) = 844 /
@@ -4630,7 +4629,7 @@ impl LayoutTree {
         // E2 (ADR-156 Phase 3, 옵션 3-b): align-items/align-self **세로 배치**. 자식 height 가
         //   확정(explicit)이거나 align≠stretch 면 자식을 셀 안에서 start/center/end 로 배치하고
         //   자식 실제 height 를 쓴다(stretch 기본은 셀 채움 유지). **width(justify)는 stretch 유지**
-        //   — JS DFS(fullTreeLayout) 가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를
+        //   — 당시 JS DFS(fullTreeLayout, 2026-10-05 삭제) 가 grid 자식 폭을 트랙 폭으로 강제했으므로 엔진이 justify 를
         //   더해도 live 에서 이중 적용/무효가 되어 §Residual (옵션 3-b 계약).
         let grid_align_items = grid_align_items_code(style.align_items.as_deref());
         let grid_justify_items = parse_justify_items(style.justify_items.as_deref());

@@ -1,7 +1,7 @@
 /**
  * Phase 3: Flat Render Command Stream
  *
- * elementsMap + childrenMap + fullTreeLayoutMap + skiaNodeRegistry에서 직접
+ * scene node + layout map (`ComputedLayout`) + skiaNodeRegistry에서 직접
  * 렌더 커맨드 스트림(플랫 배열)을 구성하여 선형 렌더링한다.
  *
  * @see ADR-005 Phase 3

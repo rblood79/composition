@@ -6,7 +6,7 @@ import type { PrimitiveBinding } from "../types";
  * **ADR-912 R1 (Select family rebuild, 2026-06-12)**: 기존 ComboBoxInput/SearchInput
  *   synthetic alias 를 factory retype 으로 본 type 에 합류. 텍스트 시각(색/fontSize/height)은
  *   rule(COMPONENT_RULES_TABLE.SelectValue) + buildCatalogShapes generic text 가 단일 source.
- *   측정도 specTextStyle catalogType="SelectValue" 로 동일 source (측정·그리기 SSOT 일치).
+ *   측정도 같은 rule 에서 읽는다 (당시 specTextStyle 경로는 2026-10-05 삭제).
  *
  * **DOM 부모 흡수**: 부모 renderer 가 RAC `<SelectValue>`/`<Input>` self-compose — 자식은
  *   placeholder data 로만 소비. renderer="selectvalue" 는 INTERNAL_RENDERERS 미등록 →

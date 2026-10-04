@@ -117,11 +117,11 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 - fontFamilies: 측정기와 렌더러가 **동일한 배열** 사용. CSS 체인 전체를 `split(",")` → `resolveFamily()` 매핑. **Why**: font 설정 불일치 → 텍스트 줄바꿈 위치 어긋남
 - strutStyle: `heightMultiplier > 0` 시 `forceStrutHeight: true` — 측정기/렌더러 양쪽 동일 적용
-- Spec-Driven Text Style: `extractSpecTextStyle(tag, props)` 사용. **텍스트 props(children/text/label) 없이 호출 금지** → null 반환 → fallback 측정 불일치
+- 측정 font: 텍스트 leaf 의 text · font 는 `textLeaf` (`compositionRoot.ts`) 가 catalog resolved record (`node.visual` · `catalogTextTypography`) 에서 읽는다 — 렌더와 같은 값. 옛 `extractSpecTextStyle` 은 2026-10-05 삭제
 - Paragraph API: 콘텐츠 폭=`getLongestLine()`, max-content=`getMaxIntrinsicWidth()`. `getMaxWidth()` 사용 금지
 - WASM Paragraph 객체 캐싱 금지는 **측정 경로 한정** (Canvas 2D 세그먼트 캐시는 결과값 폭만 보관). 렌더 측 paragraph 는 **텍스트 노드 소유 retained + deferred 폐기** (ADR-174 — 전역 content-키 LRU/상한 재도입 금지: 상한→퇴거→프레임 중 폐기가 텍스트 소실의 병인. paragraph 생성은 `MakeFromFontCollection` + 공유 FontCollection 경유만 — per-call `ParagraphBuilder.Make` 는 paragraph 마다 ~5.78MB variable font 인스턴스를 복제 보유시킨다, 정적 가드 `nodeRendererText.static.test.ts`)
-- **Layout 보정 금지**: `calculateContentWidth`, `enrichWithIntrinsicSize` 등 layout 경로에서 `+2/+4px` Canvas 2D→CanvasKit 보정 사용 금지. **Why**: Layout = Canvas 2D = CSS 정합이 원칙. Canvas 2D↔CanvasKit sub-pixel 차이는 **렌더링 단**(nodeRendererText.ts)에서 post-layout `getMaxIntrinsicWidth()` 교정으로 처리. layout에 보정 적용 시 CSS와 불일치.
-- **min/max-content 스칼라 경로 (ADR-165)**: 텍스트 leaf 폭 intrinsic 은 `enrichWithIntrinsicSize` 가 `contentMinWidth`(최장 단어 — `calculateMinContentWidth`)/`contentMaxWidth`(단일줄 — `calculateContentWidth`) 스칼라 2종을 측정해 엔진 NodeStyle 로 공급 — 엔진이 fit/min/max-content 공식과 §4.5 floor 를 소유. min-content 측정은 max-content 와 **동일 font 체인** (inline style 우선 fontFamily/fontWeight/fontSize) 필수 — 불일치 시 floor 가 다른 폰트 기준으로 어긋남. Paragraph `getMinIntrinsicWidth()` 는 canvaskit-wasm 타입 존재·현행 미사용 (Canvas 2D 지배 경로 — CanvasKit 동일-Paragraph 2-getter 추출은 후속 최적화 여지).
+- **Layout 보정 금지**: 측정 경로 (`catalogTextMeasure` · `utils.ts` 측정 함수) 에 `+2/+4px` 경험 보정 사용 금지. **Why**: 측정은 CanvasKit paragraph (준비 전 Canvas 2D) 의 값 그대로 엔진에 넘긴다. 남는 sub-pixel 차이는 **렌더링 단**(nodeRendererText.ts)에서 post-layout `getMaxIntrinsicWidth()` 교정으로 처리.
+- **min/max-content 스칼라 경로 (ADR-165)**: 텍스트 leaf 폭 intrinsic 은 `styleOf` (`compositionRoot.ts`) 가 `catalogTextMeasure` (`catalogRuntime/textMeasure.ts`) 로 `contentMinWidth`(최장 단어)/`contentMaxWidth`(단일줄) 스칼라 2종을 측정해 엔진 NodeStyle 로 공급 — 엔진이 fit/min/max-content 공식과 §4.5 floor 를 소유. min-content 측정은 max-content 와 **동일 font 체인** (inline style 우선 fontFamily/fontWeight/fontSize) 필수 — 불일치 시 floor 가 다른 폰트 기준으로 어긋남. CanvasKit 준비 뒤에는 렌더와 같은 paragraph 로 재고, 준비 전에는 Canvas 2D (`utils.ts` `calculateMinContentWidth` · `calculateMaxContentWidth`) 로 잰다.
 - **CanvasKit 오발 줄바꿈 교정**: nodeRendererText.ts에서 `paragraph.layout()` 후 `\n` 없는 단일줄 텍스트가 줄바꿈되면 `getMaxIntrinsicWidth() + 1`로 재layout. **Why**: Canvas 2D↔CanvasKit 엔진 차이로 같은 텍스트가 다른 폭으로 측정됨. CanvasKit 자체 측정 기반 교정이므로 경험적 tolerance 불필요.
 
 ## 4. Spec-CSS 경계
@@ -130,7 +130,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
-- Label size delegation: `LABEL_SIZE_STYLE` 단일 소스 (fullTreeLayout.ts — **parity 하니스 전용**, layout-engine.md 참조 · catalog `COMPONENT_RULES_TABLE.Label` 정합). DFS 주입 조건은 `lineHeight == null` 기준. **Why**: fontSize 조건 사용 시 factory 기본값과 충돌
+- Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제 (`packages/specs` `typography.ts` 의 같은 이름 상수는 specs 내부 계산용)
 
 ## 5. 토큰/테마 정합성
 
@@ -138,14 +138,14 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 - Select/ComboBox/SearchField gap: 모든 경로에서 고정 4px
 - Dark Mode Token: adaptive 배경(`{color.neutral}`) → 텍스트에 `{color.base}` (not `{color.white}`). **Why**: dark mode에서 반전
 - Skia color-mix: `mixWithBlackSrgb()` 사용 (oklch 근사 금지). **Why**: srgb 혼합과 수학적으로 다른 결과
-- Necessity Indicator: 3경로 동기화 (CSS renderNecessityIndicator / 레이아웃 엔진 Label DFS / Skia specProps)
+- Necessity Indicator: CSS `renderNecessityIndicator` 와 catalog Canvas (`styleOf` 측정 `labelSuffix` · Skia 렌더) 가 같은 표시를 그린다
 
 ## 6. 레이아웃 통합
 
-- Size Delegation: 부모 size → 자식 투영은 `utils/propagationRegistry.ts` 하나가 정본 (옛 `buildSpecNodeData.ts` `resolveParentDelegatedSize` 는 Phase 4e-9-8 에서 삭제). catalog Canvas 대응: `rulePaint.ts` `SHELL_ONLY_TYPES` · `CHILD_PROP_MERGE_TYPES`, `ruleShapes.ts` `BOX_SIZE_TYPES`
+- Size Delegation: 부모 size → 자식 투영은 `CATALOG_SIZE_PROPAGATION` (`packages/shared/src/catalog/document/sizePropagation.ts`, catalog resolver 가 읽는다) 하나가 정본 — 옛 `propagationRegistry` 는 2026-10-05 삭제. catalog Canvas 대응: `rulePaint.ts` `SHELL_ONLY_TYPES` · `CHILD_PROP_MERGE_TYPES`, `ruleShapes.ts` `BOX_SIZE_TYPES`
 - Calendar 계열 (CalendarGrid/CalendarHeader): catalog 경로 렌더 — CalendarHeader 는 `BOX_SIZE_TYPES`, Calendar/RangeCalendar 는 Shell-only. 상세: canvas-details.md
 - Popover 자식(Calendar/RangeCalendar): 레이아웃 엔진 계산에서 제외. **Why**: Preview Popover 표시
-- Collection Item Font: layout 경로 `injectCollectionItemFontStyles` (implicitStyles.ts) + Skia 는 catalog rule (GridListItem/ListBoxItem) — 상세: layout-details.md
+- Collection Item Font: catalog rule (GridListItem/ListBoxItem) 하나가 레이아웃 측정과 Skia 렌더에 같이 쓰인다 (옛 `injectCollectionItemFontStyles` 는 2026-10-05 삭제)
 - Arc Shape: `type: "box"` + `arc` 데이터로 변환. 트랙도 arc(360°)로 렌더링. **Why**: renderSolidBorder inset 차이
 - Pointer → Move: 이동 대상은 `CatalogSession` 의 selection (`canvasGesture.ts` `beginMove`) — 판정은 현재 맥락 깊이로 정규화된 `picking.target` (`CatalogCanvas.tsx`). 히트한 원시 id 를 직접 넘기지 않는다. **Why**: 내부 자식 의도치 않은 이동
 
@@ -163,8 +163,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 - ❌ Label generated CSS 부활 (부모 CSS 변수 상속 깨짐)
 - ❌ CSS `var(--text-md)` 사용 (미정의 → `var(--text-base)` 사용)
 - ❌ Label lineHeight를 숫자로 전달 (parseLineHeight가 배율로 해석 → `"20px"` 문자열 필수)
-- ❌ DFS injection 조건에 `fontSize == null` 사용 (`lineHeight == null` 필수)
-- ❌ Label height에 `Math.ceil(fontSize * 1.5)` 사용 (LABEL_SIZE_STYLE 역참조 필수)
+- ❌ Label height에 `Math.ceil(fontSize * 1.5)` 같은 추정값 사용 (catalog `Label` size 블록 역참조 필수)
 - ❌ PARENT_VARIANT_TO_LABEL_TOKEN 방식 부활 (catalog `COMPONENT_RULES_TABLE.Label` variants 사용)
 - ❌ fontFamily 문자열을 단일 배열 요소로 전달 (`split(",")` 필수)
 - ❌ `getMaxWidth()`로 콘텐츠 폭 계산 (`getLongestLine()` 사용)

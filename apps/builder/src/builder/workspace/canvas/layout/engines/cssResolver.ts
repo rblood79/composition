@@ -1,23 +1,3 @@
-/**
- * CSS Cascade Resolver
- *
- * CSS `inherit` 키워드와 상속 가능 속성(inheritable properties)을 처리한다.
- * 부모의 computed style에서 자식으로 값을 전파하며,
- * 명시적 `inherit` 키워드는 부모 값을 그대로 유지한다.
- *
- * Phase 5 (2026-02-19):
- * - currentColor 키워드: color 속성 값을 색상 속성에 전파
- * - initial 키워드: CSS 사양 초기값으로 되돌림
- * - unset 키워드: 상속 가능 → inherit, 비상속 → initial
- * - revert 키워드: 노코드 빌더에서는 initial과 동일하게 처리
- * - font shorthand: parseFontShorthand()로 개별 속성 분리
- * - logical properties: LTR horizontal-tb 기준으로 물리 속성으로 변환
- *
- * @since 2026-02-16 S4 - CSS Cascade (inherit + var())
- * @updated 2026-02-19 Phase 5 - currentColor + initial/unset/revert
- */
-
-import { parseFontShorthand } from "./cssValueParser";
 import { FONT_STRETCH_KEYWORD_MAP } from "@composition/specs";
 import { useThemeConfigStore } from "../../../../../stores/themeConfigStore";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../fonts/customFonts";
@@ -31,7 +11,7 @@ import { DEFAULT_BASE_TYPOGRAPHY } from "../../../../fonts/customFonts";
  *
  * 참고: https://developer.mozilla.org/en-US/docs/Web/CSS/inheritance
  */
-export const INHERITABLE_PROPERTIES = new Set([
+const INHERITABLE_PROPERTIES = new Set([
   "color",
   "fontSize",
   "fontFamily",
@@ -63,7 +43,7 @@ export const INHERITABLE_PROPERTIES = new Set([
  *
  * 참고: https://developer.mozilla.org/en-US/docs/Web/CSS/initial_value
  */
-export const CSS_INITIAL_VALUES: Record<string, string | number> = {
+const CSS_INITIAL_VALUES: Record<string, string | number> = {
   // 상속 속성
   color: "#000000",
   fontSize: 16,
@@ -133,7 +113,7 @@ const COLOR_PROPERTIES = new Set([
 // font-variant → OpenType feature type 매핑
 // ============================================
 
-export interface FontFeatureTag {
+interface FontFeatureTag {
   name: string;
   value: number;
 }
@@ -262,7 +242,7 @@ export interface ComputedStyle {
  *
  * @deprecated getRootComputedStyle() 사용 권장 (ADR-056: themeConfigStore 동적 반영)
  */
-export const ROOT_COMPUTED_STYLE: ComputedStyle = {
+const ROOT_COMPUTED_STYLE: ComputedStyle = {
   color: "#000000",
   fontSize: 16,
   fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
@@ -331,360 +311,6 @@ export function resolveCurrentColor(
 
   // box-shadow 등 복합 속성에서 currentColor 토큰을 교체
   return value.replace(/\bcurrentColor\b/gi, resolvedColor);
-}
-
-// ============================================
-// cascade 키워드 해석
-// ============================================
-
-/**
- * CSS cascade 키워드를 해석하여 실제 적용할 값을 반환한다.
- *
- * - `inherit`: 부모 값 유지 (null 반환 → 호출자가 부모 값 유지)
- * - `initial`: CSS 사양 초기값
- * - `unset`: 상속 속성이면 inherit, 비상속 속성이면 initial
- * - `revert`: 노코드 빌더에서는 initial과 동일하게 처리
- *
- * @param prop - CSS 속성명 (camelCase)
- * @param value - 선언된 값
- * @param parentValue - 부모 computed 값
- * @returns 해석된 값, 또는 'INHERIT' 센티넬(부모 값 그대로 사용 의미)
- */
-const INHERIT_SENTINEL = Symbol("inherit");
-
-function resolveCascadeKeyword(
-  prop: string,
-  value: unknown,
-  _parentValue: unknown,
-): unknown | typeof INHERIT_SENTINEL {
-  if (typeof value !== "string") return value;
-
-  // ADR-923 r14m1 — CSS 키워드는 ASCII 대소문자 무시 + 앞뒤 공백 무시 (`" INHERIT "` 도 inherit).
-  //   trim 없이 소문자화만 하면 키워드로 못 읽어 computed 에 raw 가 남는다 (Chrome 부모 pre 상속 60 / 40).
-  const lower = value.trim().toLowerCase();
-
-  switch (lower) {
-    case "inherit":
-      return INHERIT_SENTINEL;
-
-    case "initial":
-    case "revert": {
-      // CSS 초기값 맵에서 조회, 없으면 값 그대로 유지
-      const initial = CSS_INITIAL_VALUES[prop];
-      return initial !== undefined ? initial : value;
-    }
-
-    case "unset":
-      // 상속 속성: inherit처럼 동작
-      if (INHERITABLE_PROPERTIES.has(prop)) {
-        return INHERIT_SENTINEL;
-      }
-      // 비상속 속성: initial처럼 동작
-      {
-        const initial = CSS_INITIAL_VALUES[prop];
-        return initial !== undefined ? initial : value;
-      }
-
-    default:
-      return value;
-  }
-}
-
-// ============================================
-// CSS Logical Properties → Physical Properties 변환
-// ============================================
-
-/**
- * camelCase 논리 속성명 → 물리 속성명 직접 매핑 테이블 (LTR horizontal-tb 기준)
- *
- * shorthand(`insetInline` 등)는 포함하지 않으며 별도 처리한다.
- */
-const LOGICAL_TO_PHYSICAL: Record<string, string> = {
-  // margin
-  marginInlineStart: "marginLeft",
-  marginInlineEnd: "marginRight",
-  marginBlockStart: "marginTop",
-  marginBlockEnd: "marginBottom",
-  // padding
-  paddingInlineStart: "paddingLeft",
-  paddingInlineEnd: "paddingRight",
-  paddingBlockStart: "paddingTop",
-  paddingBlockEnd: "paddingBottom",
-  // border-width
-  borderInlineStartWidth: "borderLeftWidth",
-  borderInlineEndWidth: "borderRightWidth",
-  borderBlockStartWidth: "borderTopWidth",
-  borderBlockEndWidth: "borderBottomWidth",
-  // border-color
-  borderInlineStartColor: "borderLeftColor",
-  borderInlineEndColor: "borderRightColor",
-  borderBlockStartColor: "borderTopColor",
-  borderBlockEndColor: "borderBottomColor",
-  // border-style
-  borderInlineStartStyle: "borderLeftStyle",
-  borderInlineEndStyle: "borderRightStyle",
-  borderBlockStartStyle: "borderTopStyle",
-  borderBlockEndStyle: "borderBottomStyle",
-  // inset (단일)
-  insetInlineStart: "left",
-  insetInlineEnd: "right",
-  insetBlockStart: "top",
-  insetBlockEnd: "bottom",
-  // size
-  inlineSize: "width",
-  blockSize: "height",
-  minInlineSize: "minWidth",
-  maxInlineSize: "maxWidth",
-  minBlockSize: "minHeight",
-  maxBlockSize: "maxHeight",
-};
-
-/**
- * camelCase shorthand 논리 속성 → [물리 속성 시작, 물리 속성 끝] 매핑
- *
- * shorthand는 단일 값이면 양쪽 모두, 공백 구분 두 값이면 start/end 각각 적용한다.
- */
-const LOGICAL_SHORTHAND_TO_PHYSICAL: Record<string, [string, string]> = {
-  insetInline: ["left", "right"],
-  insetBlock: ["top", "bottom"],
-  marginInline: ["marginLeft", "marginRight"],
-  marginBlock: ["marginTop", "marginBottom"],
-  paddingInline: ["paddingLeft", "paddingRight"],
-  paddingBlock: ["paddingTop", "paddingBottom"],
-};
-
-/**
- * CSS Logical Properties를 물리 속성으로 변환한다 (LTR horizontal-tb 기준).
- *
- * - 물리 속성이 이미 있으면 논리 속성을 무시한다 (물리 속성 우선).
- * - shorthand는 start/end 두 물리 속성으로 분리한다.
- * - 원본 객체는 수정하지 않는다.
- *
- * @param style - 요소의 원본 스타일
- * @returns 논리 속성이 물리 속성으로 대체된 새 객체
- */
-export function resolveLogicalProperties(
-  style: Record<string, unknown>,
-): Record<string, unknown> {
-  const hasLogical = Object.keys(style).some(
-    (k) => k in LOGICAL_TO_PHYSICAL || k in LOGICAL_SHORTHAND_TO_PHYSICAL,
-  );
-  if (!hasLogical) return style;
-
-  const result: Record<string, unknown> = { ...style };
-
-  // shorthand 처리
-  for (const [logicalKey, [physStart, physEnd]] of Object.entries(
-    LOGICAL_SHORTHAND_TO_PHYSICAL,
-  )) {
-    if (!(logicalKey in result)) continue;
-
-    const raw = result[logicalKey];
-    delete result[logicalKey];
-
-    if (typeof raw === "string" && raw.trim().includes(" ")) {
-      const parts = raw.trim().split(/\s+/);
-      const startVal = parts[0];
-      const endVal = parts[1];
-      if (result[physStart] === undefined) result[physStart] = startVal;
-      if (result[physEnd] === undefined) result[physEnd] = endVal;
-    } else {
-      if (result[physStart] === undefined) result[physStart] = raw;
-      if (result[physEnd] === undefined) result[physEnd] = raw;
-    }
-  }
-
-  // 단일 논리 속성 처리
-  for (const [logicalKey, physKey] of Object.entries(LOGICAL_TO_PHYSICAL)) {
-    if (!(logicalKey in result)) continue;
-
-    const raw = result[logicalKey];
-    delete result[logicalKey];
-
-    if (result[physKey] === undefined) {
-      result[physKey] = raw;
-    }
-  }
-
-  return result;
-}
-
-// ============================================
-// !important 전처리
-// ============================================
-
-/**
- * !important 전처리 결과
- */
-export interface ImportantSplit {
-  normal: Record<string, unknown>;
-  important: Record<string, unknown>;
-}
-
-/**
- * 스타일 객체에서 !important 선언을 분리한다.
- *
- * 각 속성값을 검사하여 "!important"로 끝나는 값을 important 객체로 분리하고,
- * 값에서 " !important"를 제거한 실제 값을 저장한다.
- *
- * @param style - 원본 스타일 객체
- * @returns normal (일반 속성), important (!important 속성) 분리 결과
- *
- * @example
- * preprocessImportant({ color: 'red !important', fontSize: '14px' })
- * // { normal: { fontSize: '14px' }, important: { color: 'red' } }
- */
-export function preprocessImportant(
-  style: Record<string, unknown>,
-): ImportantSplit {
-  const normal: Record<string, unknown> = {};
-  const important: Record<string, unknown> = {};
-
-  for (const prop of Object.keys(style)) {
-    const value = style[prop];
-    if (typeof value === "string" && value.endsWith("!important")) {
-      important[prop] = value
-        .slice(0, value.length - "!important".length)
-        .trimEnd();
-    } else {
-      normal[prop] = value;
-    }
-  }
-
-  return { normal, important };
-}
-
-// ============================================
-// 스타일 해석
-// ============================================
-
-/**
- * 요소의 스타일을 부모 computed style 기반으로 해석
- *
- * - style이 없으면 부모 값을 전부 상속
- * - `inherit` 키워드는 부모 값 유지
- * - `initial` 키워드는 CSS 사양 초기값으로 되돌림
- * - `unset` 키워드는 상속 속성이면 inherit, 비상속이면 initial
- * - `revert` 키워드는 노코드 빌더에서 initial과 동일하게 처리
- * - 명시적 값은 부모 값을 덮어씀
- * - fontSize의 em/rem 단위는 부모 fontSize 기준으로 해석
- * - 색상 속성의 `currentColor`는 현재 요소의 color 값으로 대체
- * - 논리 속성은 LTR horizontal-tb 기준 물리 속성으로 변환
- * - `!important` 속성은 normal 속성 적용 후 덮어씀
- *
- * 처리 순서: inline !important > inline normal > inherited
- *
- * @param style - 요소의 선언된 스타일 (props.style)
- * @param parentComputed - 부모의 computed style
- * @returns 요소의 computed style
- */
-export function resolveStyle(
-  style: Record<string, unknown> | undefined,
-  parentComputed: ComputedStyle,
-): ComputedStyle {
-  // 스타일 미선언 시 부모 값 전체 상속
-  if (!style) return { ...parentComputed };
-
-  // !important 분리
-  const { normal: normalStyle, important: importantStyle } =
-    preprocessImportant(style);
-
-  // 논리 속성을 물리 속성으로 전환 (물리 속성 우선)
-  const afterLogicalNormal = resolveLogicalProperties(normalStyle);
-  const afterLogicalImportant = resolveLogicalProperties(importantStyle);
-
-  function expandFontShorthand(
-    src: Record<string, unknown>,
-  ): Record<string, unknown> {
-    if (src["font"] === undefined) return src;
-    const parsed = parseFontShorthand(src["font"]);
-    if (!parsed) return src;
-    const expanded: Record<string, unknown> = { ...src };
-    delete expanded["font"];
-    if (parsed.fontStyle !== undefined && expanded["fontStyle"] === undefined) {
-      expanded["fontStyle"] = parsed.fontStyle;
-    }
-    if (
-      parsed.fontWeight !== undefined &&
-      expanded["fontWeight"] === undefined
-    ) {
-      expanded["fontWeight"] = parsed.fontWeight;
-    }
-    if (parsed.fontSize !== undefined && expanded["fontSize"] === undefined) {
-      expanded["fontSize"] = parsed.fontSize;
-    }
-    if (
-      parsed.lineHeight !== undefined &&
-      expanded["lineHeight"] === undefined
-    ) {
-      expanded["lineHeight"] = parsed.lineHeight;
-    }
-    if (
-      parsed.fontFamily !== undefined &&
-      expanded["fontFamily"] === undefined
-    ) {
-      expanded["fontFamily"] = parsed.fontFamily;
-    }
-    return expanded;
-  }
-
-  const effectiveNormal = expandFontShorthand(afterLogicalNormal);
-  const effectiveImportant = expandFontShorthand(afterLogicalImportant);
-
-  // 부모 computed 기반으로 시작 (상속 가능 속성 기본값)
-  const computed = { ...parentComputed };
-
-  // 1단계: normal 속성 적용
-  for (const prop of INHERITABLE_PROPERTIES) {
-    const rawValue = effectiveNormal[prop];
-    if (rawValue === undefined || rawValue === null || rawValue === "")
-      continue;
-
-    const resolved = resolveCascadeKeyword(
-      prop,
-      rawValue,
-      computed[prop as keyof ComputedStyle],
-    );
-
-    if (resolved === INHERIT_SENTINEL) continue;
-
-    (computed as Record<string, unknown>)[prop] = resolved;
-  }
-
-  // 2단계: !important 속성 적용 (normal 값을 덮어씀)
-  for (const prop of INHERITABLE_PROPERTIES) {
-    const rawValue = effectiveImportant[prop];
-    if (rawValue === undefined || rawValue === null || rawValue === "")
-      continue;
-
-    const resolved = resolveCascadeKeyword(
-      prop,
-      rawValue,
-      computed[prop as keyof ComputedStyle],
-    );
-
-    if (resolved === INHERIT_SENTINEL) continue;
-
-    (computed as Record<string, unknown>)[prop] = resolved;
-  }
-
-  // fontSize 상대 단위 해석 (em, rem, px)
-  if (typeof computed.fontSize === "string") {
-    const fs = String(computed.fontSize);
-    if (fs.endsWith("em") && !fs.endsWith("rem")) {
-      // em: 부모 fontSize 기준
-      computed.fontSize = parseFloat(fs) * parentComputed.fontSize;
-    } else if (fs.endsWith("rem")) {
-      // rem: 루트 fontSize 기준 (16px 고정)
-      computed.fontSize = parseFloat(fs) * 16;
-    } else if (fs.endsWith("px")) {
-      computed.fontSize = parseFloat(fs);
-    } else {
-      computed.fontSize = parseFloat(fs) || parentComputed.fontSize;
-    }
-  }
-
-  return computed;
 }
 
 // ============================================

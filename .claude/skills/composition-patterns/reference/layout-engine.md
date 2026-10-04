@@ -10,7 +10,7 @@
 
 1. 아키텍처 개요 — 계층과 호출 체인 (production)
 2. WASM 경계 계약 — LayoutEngineAPI / batch 직렬화 / grid track 정규화
-3. `calculateFullTreeLayout` — parity 하니스 전용 파이프라인
+3. 옛 `calculateFullTreeLayout` 파이프라인 — 삭제됨
 4. JS 측 측정 · 정규화 모듈
 5. Rust 측 구조 — engine 모듈과 테스트
 6. WASM 로드/플래그
@@ -51,9 +51,9 @@ CatalogBuilderCore (apps/builder/src/builder/main/CatalogBuilderCore.tsx)
 
 ### 어댑터 명명 (ADR-923 Phase 6 개명, 2026-09-03)
 
-`flexStyleAdapter.ts` / `blockStyleAdapter.ts` / `gridStyleAdapter.ts` / `persistentLayoutTree.ts` / `EngineStyle` (layoutTypes.ts) 는 값 변환·정규화만 하는 TypeScript 코드다 — 계산은 Rust 엔진이 한다. 남아 있던 `Taffy*` 식별자는 ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 ("Taffy 가 계산한다" 로 읽혀 분석을 잘못 이끌었기 때문, ADR-923 R10). 개명 지도: `docs/adr/evidence/923-phase6-naming-capability-seed.md` §1.
+`gridStyleAdapter.ts` / `persistentLayoutTree.ts` / `EngineStyle` (layoutTypes.ts) 는 값 변환·정규화만 하는 TypeScript 코드다 — 계산은 Rust 엔진이 한다. 남아 있던 `Taffy*` 식별자는 ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 ("Taffy 가 계산한다" 로 읽혀 분석을 잘못 이끌었기 때문, ADR-923 R10). 개명 지도: `docs/adr/evidence/923-phase6-naming-capability-seed.md` §1.
 
-production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (compositionRoot `containerTracks`) 와 `persistentLayoutTree.ts` 뿐이다. `flexStyleAdapter.ts` `elementToEngineStyle` · `blockStyleAdapter.ts` `elementToEngineBlockStyle` 는 `fullTreeLayout.ts` (parity) 소비.
+production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (compositionRoot `containerTracks`) 와 `persistentLayoutTree.ts` 뿐이다. 옛 `displayAdapter.ts` · `flexStyleAdapter.ts` · `blockStyleAdapter.ts` 는 2026-10-05 `fullTreeLayout.ts` 와 함께 삭제됐다.
 
 ---
 
@@ -74,7 +74,7 @@ production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (co
 
 - **post-order 배열** (리프 먼저, 루트 마지막). `children` 은 같은 배열 내 **인덱스** (forward-reference 는 Rust 측 Err).
 - 루트 handle = `handles[handles.length - 1]` (persistentLayoutTree.ts:213).
-- style 은 **이미 정규화된 Record** — 숫자 dimension → `"Npx"` 문자열. production 은 `styleOf` 의 `px()`, parity 는 `engineStyleToRecord()`. `updateStyleRaw` / `createNodeRaw` 는 이중 변환을 피하려 raw 경로.
+- style 은 **이미 정규화된 Record** — 숫자 dimension → `"Npx"` 문자열. 직렬화기는 `styleOf` 의 `px()` 하나다. `updateStyleRaw` / `createNodeRaw` 는 이중 변환을 피하려 raw 경로.
 - Rust 측 스키마 = `NodeStyle` (tree.rs:185) — serde `camelCase` rename 으로 JS record 와 1:1. `gridTemplateAreas` 필드는 **없음** — grid area 이름은 숫자 line 으로 병기 (정본 rules/layout-engine.md §Grid area 이름 해석).
 
 ### PersistentLayoutTree 변경 감지 2중 구조 (persistentLayoutTree.ts)
@@ -92,42 +92,27 @@ production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (co
 ### grid track / dimension 정규화
 
 - production: `compositionRoot.ts` `containerTracks` 가 `gridTemplateColumns/Rows` 문자열을 `parseGridTemplate` (gridStyleAdapter.ts:33, 괄호 depth 토큰화) 로 배열화. 길이는 `px()` 가 `"Npx"` 로.
-- parity: `fullTreeLayout.ts` 의 `coerceGridTrack` (:806) · `normalizeGridDimFields` + `GRID_DIM_FIELDS`. **Why (2026-07-06)**: 숫자 값 (`rowGap: 4`) 이 문자열화되지 않으면 `build_tree_batch: invalid type integer 4, expected string` parse error → layout null.
+- **Why (2026-07-06)**: 숫자 값 (`rowGap: 4`) 이 문자열화되지 않으면 `build_tree_batch: invalid type integer 4, expected string` parse error → 페이지 레이아웃 전체가 사라진다 (rules/layout-engine.md §배치 직렬화 계약).
 
 ---
 
-## 3. `calculateFullTreeLayout` — parity 하니스 전용 파이프라인
+## 3. 옛 `calculateFullTreeLayout` 파이프라인 — 삭제됨 (2026-10-05)
 
-> production 호출자 0 — `apps/builder/tests/parity/**` 와 일부 테스트만 부른다 (rules/layout-engine.md §`fullTreeLayout.ts` 파이프라인). 여기를 고쳐도 Builder 화면은 바뀌지 않는다. 진입점 `calculateFullTreeLayout` (fullTreeLayout.ts:2951) · `calculateFullTreeLayoutFromSceneModel` (:3893).
+`fullTreeLayout.ts` (DFS enrichment · implicit style 주입 · Label DFS 주입 · 2-pass 폭 교정 · grid full rebuild 판정) 는 ADR-248 Phase 4 뒤 parity 하니스만 부르다가 2026-10-05 삭제됐다. 단계별 설명은 git 이력 (`a4641ac32` 까지) 에 있다.
 
-| Step   | 내용                                                                                                                                               |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1      | `traversePostOrder` DFS — implicit style / enrichment / CSS resolve 를 수행하며 `batch[]` + `indexMap` 구성. 최대 깊이 `MAX_TREE_DEPTH=100` (:140) |
-| 1.5    | body 루트에 breakpoint 페이지 크기 명시 주입 (자식 `100%` 기준 보장)                                                                               |
-| 2      | `filteredChildIdsMap` 구성 · `publishFilteredChildrenMap`                                                                                          |
-| 3      | full rebuild vs 증분 판정 → `buildFull` / `incrementalUpdate`                                                                                      |
-| 4      | `computeLayout(availableWidth, availableHeight)`                                                                                                   |
-| 4.5    | 2-pass width 교정 — 실제 할당 width 가 1차와 다르면 re-enrich → 재계산 (`WIDTH_TOLERANCE=2`)                                                       |
-| 4.5b/c | TagGroup maxRows chip 접힘 · RowsGroup 실측 height → TagList                                                                                       |
-| 5      | `getLayoutsBatch()` → `Map<elementId, ComputedLayout>` + `sanitizeLayoutValue`                                                                     |
-
-- persistent tree 는 `rootKey` 별로 분리 (`persistentTrees` Map, :318).
-- Step 3 full rebuild 조건: 최초 · 신규 grid container · 자식 서브트리를 가진 신규 노드 · display 전환 · grid container 의 `GRID_REBUILD_TRIGGER_KEYS` (:876) 변경. **production (catalog) 경로에는 이 가드가 없다** — 증상이 재현되면 엔진 `update_style` · `add_node` 부터 본다 (rules/layout-engine.md 「재확인 필요」).
-- DFS post-order 와 implicit style 순서 문제: 부모의 `applyImplicitStyles` 가 자식 style 을 고쳐도 자식 batch entry 는 이미 생성됨 → `patchBatchStyleFromImplicit()` (:932) 가 변경 속성만 패치 (`IMPLICIT_DIM_PROPS` :906).
-- Label DFS 주입: `LABEL_SIZE_STYLE` · `LABEL_DELEGATION_PARENT_TAGS` · `LABEL_WRAPPER_TAGS` (Checkbox/Radio).
+- 옛 경로의 grid full rebuild 가드 (신규 grid container · 자식 서브트리를 가진 신규 노드 · grid track 변경) 는 **catalog 경로에 없다** — 증상이 재현되면 엔진 `update_style` · `add_node` 부터 본다 (rules/layout-engine.md 「재확인 필요」).
 - 옛 store 레벨 `layoutVersion` · 5-심볼 2계층 체인은 삭제됐다. 같은 이름 상수는 `presentation/invalidation/editorMutationEffectRegistry.ts` 에 테스트용 파생 view 로만 남는다. production 판정은 `PAINT_ONLY_VISUAL_KEYS` / `operationAffectsLayout` (`packages/shared/src/catalog/transactions/transaction.ts`) + `styleOf` diff.
 
 ---
 
 ## 4. JS 측 측정 · 정규화 모듈
 
-| 모듈                        | production 사용                                                                                                                         | 내용                                                                                                                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `engines/utils.ts`          | 측정 함수만 (`calculateMaxContentWidth` · `calculateMinContentWidth` · `measureTextWidth` — `catalogTextMeasure` 의 Canvas 2D fallback) | intrinsic 측정·box model·태그별 크기. `enrichWithIntrinsicSize` · `calculateContentWidth/Height` · `parseBoxModel` · `applyCommonEngineStyle` · `readGapValue` 는 parity 경로 |
-| `engines/cssResolver.ts`    | `DEFAULT_FONT_FEATURES` (textMeasure)                                                                                                   | inherit/initial/unset/revert + currentColor cascade (`resolveStyle` 은 parity)                                                                                                |
-| `engines/implicitStyles.ts` | 없음 (parity)                                                                                                                           | 태그별 implicit style — `POPOVER_CHILDREN_TAGS` · `FIELD_VISIBLE_CHILD_TAGS` · `injectCollectionItemFontStyles`                                                               |
-| `engines/cssValueParser.ts` | —                                                                                                                                       | px/%/vw/em/calc()/clamp()/var() 해석. `packages/specs/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                                        |
-| `engines/displayAdapter.ts` | —                                                                                                                                       | CSS display 값을 그대로 엔진 경계로 운반 (ADR-923 Phase 5) — outer/inner 해석·blockify·line box 는 엔진 `display.rs` · `tree.rs` · `block.rs`                                 |
+| 모듈                        | production 사용                                                                                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `engines/utils.ts`          | 텍스트 측정 (`measureTextWidth` · `measureTextWithWhiteSpace` · `calculateMin/MaxContentWidth`) — `catalogTextMeasure` 의 Canvas 2D fallback · `INLINE_BLOCK_TAG_CLASSIFICATION` (`defaultDisplay.ts`) |
+| `engines/cssResolver.ts`    | font feature · font stretch · `currentColor` · `preprocessStyle` (Skia 렌더 · textMeasure · styleConverter)                                                                                            |
+| `engines/implicitStyles.ts` | `resolveContainerStylesFallback` · `resolveEffectiveOverflow` · `resolveEffectiveBoxShadow` (Skia · tier seed)                                                                                         |
+| `engines/cssValueParser.ts` | `resolveCSSSizeValue` · `parseBorderShorthand` (styleConverter · borderGeometry). `packages/specs/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                     |
 
 production 에서 이 계층이 하던 일 (상속 텍스트 키, box model, 컨테이너 기본값, indicator 여백) 은 `compositionRoot.ts` (`CATALOG_INHERITED_TEXT_KEYS` · `styleOf`) · `catalogRuntime/boxModel.ts` · `document/rulePartRules.ts` 로 옮겨졌다.
 
@@ -184,7 +169,7 @@ Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금
 | 증상/신호                                                     | 보는 곳                                                                                                                                                   |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `engine WASM initialized` 로그 부재                           | `engineWasm.ts` — WASM 로드 실패. init.ts 경로/flag 확인                                                                                                  |
-| `build_tree_batch: invalid type ... expected string/sequence` | 엔진 입력 미정규화 — production 은 `styleOf` 의 `px()` / `containerTracks`, parity 는 `coerceGridTrack` / `GRID_DIM_FIELDS`                               |
+| `build_tree_batch: invalid type ... expected string/sequence` | 엔진 입력 미정규화 — `styleOf` 의 `px()` / `containerTracks` 를 거치지 않은 입력                                                                          |
 | 특정 노드 엔진 입력 확인                                      | `root.getLayoutInput(id)` (compositionRoot) — `styleOf` 가 엔진에 넘긴 값                                                                                 |
 | 특정 노드 계산 결과 확인                                      | `root.getGeometry(ids)` — Canvas 가 읽는 rect                                                                                                             |
 | 편집이 Canvas 상자에 미반영                                   | ① 새 키가 `styleOf` 엔진 입력에 없음 ② `PAINT_ONLY_VISUAL_KEYS` 에 잘못 등재 (transaction 이 layout 영향 0 으로 판정) — rules/layout-engine.md 체크리스트 |
@@ -203,5 +188,6 @@ Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금
 | 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Taffy 단일 엔진                                               | ADR-005 / ADR-009                |
 | 2026-07-03~06 | 자체 Rust 엔진 `engine` — dual-run diff 0 → live 전환 → Taffy 물리 삭제 (tree_golden 이 독립 oracle 승계)                                  | ADR-916 (Implemented 2026-07-06) |
 | 2026-10-03    | production 레이아웃을 catalog composition root 가 직접 구동 — `fullTreeLayout.ts` · store `layoutVersion` 체인 은퇴 (parity 하니스만 잔존) | ADR-248 Phase 4                  |
+| 2026-10-05    | `fullTreeLayout.ts` · 옛 TS 전처리 · parity pipeline leg 삭제 — 엔진 입력은 `styleOf` 하나                                                 | 사용자 판정                      |
 
 과거 결정 경위는 ADR-916 Status log 와 `docs/adr/design/916-unified-rust-engine-breakdown.md` 참조.

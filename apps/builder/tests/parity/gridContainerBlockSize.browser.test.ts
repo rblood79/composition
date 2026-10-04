@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -425,26 +424,6 @@ describe("그리드 컨테이너 블록 크기 = 행 트랙 extent", () => {
         c.nodes,
         domLeg(c.nodes, c.availW),
         engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    });
-  });
-
-  // 빌더 실 진입점(`calculateFullTreeLayout`)에서도 같은 값이 나오는지 — 엔진만 고치고
-  // TS 선계산이 되돌리는 상태를 막는다.
-  describe("pipeline leg — 빌더 실 진입점", () => {
-    it.each(
-      [
-        ...EXTENT_CASES.slice(0, 6),
-        ...INDEFINITE_ROW_CASES.slice(0, 4),
-        ...IMPLICIT_ROW_CASES,
-        ...PLACEMENT_CASES,
-      ].map((c) => [c.name, c] as const),
-    )("%s", (_n, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
       );
       expect(bad, bad.join("\n")).toEqual([]);
     });

@@ -6,7 +6,6 @@ import {
   domLeg,
   engineLeg,
   runParityCase,
-  runPipelineParityCase,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -261,50 +260,4 @@ describe("그리드 컨테이너 intrinsic — CSS 대조 (engine leg)", () => {
       expect(r.eng, `${kw} ${cols.join(" ")}`).toBeCloseTo(r.dom, 0);
     }
   });
-});
-
-describe("그리드 컨테이너 intrinsic — end-to-end (pipeline leg)", () => {
-  beforeAll(async () => {
-    await initEngineWasm();
-  });
-
-  // 원자는 pipeline elementsMap 에 없으므로 **명시 폭 자식**으로 같은 구조를 돌린다 —
-  // 기여 공급 경로가 아니라 트랙 산출이 Skia 좌표까지 도달하는지가 목적.
-  const fixedKid = (i: number, w: number) =>
-    box(`f${i}`, { width: `${w}px`, height: "20px" });
-
-  const pipeCase = (cols: string[], gridWidth: string): ParityCase => ({
-    name: `pipeline: width:${gridWidth} / ${cols.join(" ")}`,
-    availW: 600,
-    availH: 600,
-    nodes: [
-      fixedKid(0, 120),
-      fixedKid(1, 60),
-      box(
-        "g",
-        {
-          display: "grid",
-          width: gridWidth,
-          gridTemplateColumns: cols,
-          alignItems: "start",
-        },
-        [0, 1],
-      ),
-      box("root", { display: "block", width: "600px", height: "600px" }, [2]),
-    ],
-  });
-
-  for (const c of [
-    pipeCase(["auto", "auto"], "max-content"),
-    pipeCase(["1fr", "1fr"], "max-content"),
-    pipeCase(["2fr", "1fr"], "max-content"),
-    pipeCase(["100px", "100px"], "max-content"),
-    pipeCase(["auto", "auto"], "min-content"),
-    pipeCase(["1fr", "1fr"], "min-content"),
-  ]) {
-    it(c.name, () => {
-      const bad = runPipelineParityCase(c);
-      expect(bad, bad.join("\n")).toEqual([]);
-    });
-  }
 });

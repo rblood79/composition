@@ -2,12 +2,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
-import { KNOWN_CHILD_SIZE, KNOWN_CHILD_PIPELINE } from "./basicAxis.known";
+import { KNOWN_CHILD_SIZE } from "./basicAxis.known";
 import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -163,17 +162,6 @@ function childSizeCases(): ParityCase[] {
   return cases;
 }
 
-// ── pipeline leg 대표 부분집합 (부모 display × 자식 width = 20) ──
-function pipelineSubsetCases(): ParityCase[] {
-  const cases: ParityCase[] = [];
-  for (const [pn, p] of Object.entries(PARENT_DISPLAYS)) {
-    for (const [wn, w] of Object.entries(CHILD_WIDTHS)) {
-      cases.push(makeCase(`pipe|${pn}|w=${wn}`, w, p));
-    }
-  }
-  return cases;
-}
-
 describe("ADR-170 부분 격자 2 — 자식 크기", () => {
   beforeAll(async () => {
     await initEngineWasm();
@@ -185,17 +173,6 @@ describe("ADR-170 부분 격자 2 — 자식 크기", () => {
     const failures = sweep(cases);
     expect(keysOf(failures), detail(failures, cases.length)).toEqual(
       KNOWN_CHILD_SIZE,
-    );
-  });
-
-  it("파이프라인 leg 20 조합 — TS 공급층 마스킹 감시", () => {
-    const cases = pipelineSubsetCases();
-    expect(cases.length).toBe(20);
-    const failures = sweep(cases, (c) =>
-      pipelineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(keysOf(failures), detail(failures, cases.length)).toEqual(
-      KNOWN_CHILD_PIPELINE,
     );
   });
 });

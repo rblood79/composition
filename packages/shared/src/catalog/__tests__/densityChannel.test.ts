@@ -58,7 +58,7 @@ describe("density 채널 — catalog SSOT", () => {
  * Spectrum 은 행 높이를 size 축이 정하고(`table-row-height-*` 은 density 무관 — 구
  * `-regular` 접미사 토큰은 deprecated) density 는 **item 내부 여백**만 바꾼다. 그래서
  * 채널이 TableView 가 아니라 소비 주체인 Column/Cell 에 산다 — TableView 는 density
- * **값**만 자손에 위임한다 (Skia: applyImplicitStyles / DOM: renderTableViewSubtree).
+ * **값**만 자손에 위임한다 (DOM: renderTableViewSubtree — Skia 쪽 옛 applyImplicitStyles 는 2026-10-05 삭제).
  */
 describe("density 채널 — TableView(Column/Cell)", () => {
   it("Column/Cell 이 같은 축·같은 값을 갖는다 — 한 행 안에서 header/body 여백이 갈리면 안 된다", () => {
@@ -143,8 +143,7 @@ describe("density 채널 — ToggleButtonGroup(segmented ↔ 분리)", () => {
 
   it("연결 규칙(nested)은 density.compact 에만 있고 orientation 에는 없다", () => {
     const cv = rule()?.structure?.composition?.containerVariants as
-      | Record<string, Record<string, { nested?: unknown[] }>>
-      | undefined;
+      Record<string, Record<string, { nested?: unknown[] }>> | undefined;
     // orientation 은 flex-direction 만 — 연결 규칙을 여기 두면 regular 에서도 붙는다.
     expect(cv?.orientation?.horizontal?.nested).toBeUndefined();
     expect(cv?.orientation?.vertical?.nested).toBeUndefined();

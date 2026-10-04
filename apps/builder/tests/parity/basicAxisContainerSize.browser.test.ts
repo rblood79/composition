@@ -6,16 +6,11 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
 } from "./harness";
-import {
-  KNOWN_ASPECT,
-  KNOWN_CONTAINER_PIPELINE,
-  KNOWN_CONTAINER_SIZE,
-} from "./basicAxis.known";
+import { KNOWN_ASPECT, KNOWN_CONTAINER_SIZE } from "./basicAxis.known";
 
 /**
  * **ADR-170 부분 격자 1 — 컨테이너 자기 크기**
@@ -225,28 +220,6 @@ function aspectCases(): ParityCase[] {
   return cases;
 }
 
-// ── pipeline leg 대표 부분집합 (leaf × display × width = 60) ──
-// TS 공급층(enrichWithIntrinsicSize / Step 4.5)이 엔진 결과를 마스킹하는지 감시.
-// min/max·height 는 대표 1값 고정 — 전 조합은 engine leg 이 담당한다.
-function pipelineSubsetCases(): ParityCase[] {
-  const cases: ParityCase[] = [];
-  for (const [ln, kids] of Object.entries(LEAVES)) {
-    for (const [dn, d] of Object.entries(DISPLAYS)) {
-      for (const [wn, w] of Object.entries(WIDTHS)) {
-        cases.push(
-          makeCase(
-            `pipe|${ln}|${dn}|w=${wn}`,
-            { ...d, ...w },
-            PARENTS.definite,
-            kids,
-          ),
-        );
-      }
-    }
-  }
-  return cases;
-}
-
 describe("ADR-170 부분 격자 1 — 컨테이너 자기 크기", () => {
   beforeAll(async () => {
     await initEngineWasm();
@@ -267,17 +240,6 @@ describe("ADR-170 부분 격자 1 — 컨테이너 자기 크기", () => {
     const failures = sweep(cases);
     expect(keysOf(failures), detail(failures, cases.length)).toEqual(
       KNOWN_ASPECT,
-    );
-  });
-
-  it("파이프라인 leg 60 조합 — TS 공급층 마스킹 감시", () => {
-    const cases = pipelineSubsetCases();
-    expect(cases.length).toBe(60);
-    const failures = sweep(cases, (c) =>
-      pipelineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(keysOf(failures), detail(failures, cases.length)).toEqual(
-      KNOWN_CONTAINER_PIPELINE,
     );
   });
 });

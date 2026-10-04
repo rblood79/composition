@@ -63,7 +63,7 @@ Properties 편집은 `catalogSemanticPatchCommand` / `catalogPropertiesPatchComm
 
 부모와 자식을 실제로 함께 바꿔야 하는 편집은 `composeCommands` 로 한 entry 에 묶는다 (state-management.md).
 
-`utils/propagationRegistry.ts` · `propagationEngine.ts` 의 importer 는 `fullTreeLayout.ts` · `implicitStyles.ts` 뿐이다 — parity 하니스 전용 ([layout-engine.md](../../../rules/layout-engine.md)).
+옛 `utils/propagationRegistry.ts` · `propagationEngine.ts` 는 2026-10-05 삭제됐다 ([layout-engine.md](../../../rules/layout-engine.md)).
 
 ## 4. 텍스트 측정 정합 — 생존 심볼
 
@@ -75,7 +75,6 @@ Properties 편집은 `catalogSemanticPatchCommand` / `catalogPropertiesPatchComm
 | 페인트 줄바꿈 hint         | `skia/nodeRendererText.ts` — Canvas 2D 가 정한 줄바꿈을 `\n` 으로 넣어 CanvasKit 에 강제 (ADR-051, `needsFallback` 이면 생략)                                                                                                                          |
 | 스타일 계약 인터페이스     | `canvas/utils/textMeasure.ts` `TextMeasureStyle`                                                                                                                                                                                                       |
 | 렌더러 ParagraphStyle      | `skia/nodeRendererText.ts` `renderText()` — `halfLeading: true`                                                                                                                                                                                        |
-| `extractSpecTextStyle`     | `canvas/utils/specTextStyle.ts` — importer 는 `engines/utils.ts` · `fullTreeLayout.ts` 뿐 (parity 전용)                                                                                                                                                |
 
 - 측정용 / 렌더용 ParagraphStyle 은 폭·높이에 영향을 주는 속성 (fontSize, fontFamilies, fontWeight, fontStyle, fontStretch, letterSpacing, wordSpacing, fontVariant→fontFeatures, heightMultiplier+halfLeading) 을 같게 유지한다.
 - **주의**: 레이아웃 측정 (CanvasKit paragraph) 과 페인트 줄바꿈 hint (Canvas 2D) 의 기준이 다르다. 줄 수가 갈리면 두 측정기의 차이부터 본다.

@@ -8,10 +8,10 @@
  */
 import { describe, expect, it } from "vitest";
 import { resolveBorderWidthPx } from "@composition/specs";
-import { resolveSkiaRule } from "../../../skia/resolveSkiaVisualRule";
+import { resolveComponentRule } from "@composition/shared";
 
 describe("Tag rule sizes — border-box 높이 · borderWidth · textWeight 가 DOM chip 과 같다", () => {
-  const rule = resolveSkiaRule("Tag")!;
+  const rule = resolveComponentRule("Tag")!;
 
   it("모든 size: height = lineHeight + paddingY×2 + borderWidth×2", () => {
     for (const [name, size] of Object.entries(rule.sizes)) {

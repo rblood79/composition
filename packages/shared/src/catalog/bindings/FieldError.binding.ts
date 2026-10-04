@@ -18,7 +18,8 @@ import type { PrimitiveBinding } from "../types";
  *     선례. "standalone 불가"·"display:none 기본(평시 숨김, validation 시 RAC 표시)" 은 모두 부모 흡수/
  *     projector 의 trigger 가 아님 (render.shapes 부모 데이터 의존이 trigger 인데 미해당).
  *
- * **measure 비대칭 = catalog 와 직교 (선행-6 추가 실측 2026-06-04, 사용자 confirm "measure 까지 실측")**:
+ * **measure 비대칭 = catalog 와 직교 (선행-6 추가 실측 2026-06-04, 사용자 confirm "measure 까지 실측")**
+ * (기록 — 아래 `utils.ts` · `enrichWithIntrinsicSize` · `buildSpecNodeData` 경로는 2026-10-05 까지 전부 삭제됨):
  *   FieldError 는 Description 과 달리 `TEXT_LEAF_TAGS`(utils.ts:3202) **비멤버**라 자기 자신의
  *   enrichWithIntrinsicSize 경로(intrinsic width L3289-3299 / content height L3372-3376 — 둘 다
  *   `TEXT_LEAF_TAGS.has(type)` 게이트)에 미진입한다. 대신 **부모(Field 컨테이너)의 자식 height 분기**

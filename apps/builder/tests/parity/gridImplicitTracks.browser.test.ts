@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -320,18 +319,6 @@ describe("ADR-206 Phase 2 — grid 암묵 트랙", () => {
         c.nodes,
         domLeg(c.nodes, c.availW),
         engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
-
-  it.each([...CASES, ...CONTROLS].map((c) => [c.name, c] as const))(
-    "pipeline leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
       );
       expect(bad, bad.join("\n")).toEqual([]);
     },

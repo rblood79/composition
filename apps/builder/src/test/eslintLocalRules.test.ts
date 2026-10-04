@@ -14,7 +14,7 @@ const tester = new RuleTester({
 /**
  * The two Zustand rules must reach the stores the builder actually has. They matched only the old
  * single store `useStore`, which ADR-248 deleted, so they checked nothing — a store hook is any
- * `use*` bound to `create(...)`, not a name pattern (`useDesignPanelView`, `useScrollState`).
+ * `use*` bound to `create(...)`, not a name pattern (`useDesignPanelView`, `useSectionCollapse`).
  */
 describe("no-zustand-grouped-selectors", () => {
   tester.run(
@@ -59,7 +59,7 @@ describe("no-zustand-use-shallow", () => {
         errors: [{ messageId: "useShallowDetected" }],
       },
       {
-        code: "const v = useScrollState(useShallow((s) => [s.x, s.y]));",
+        code: "const v = useSectionCollapse(useShallow((s) => [s.x, s.y]));",
         errors: [{ messageId: "useShallowDetected" }],
       },
     ],

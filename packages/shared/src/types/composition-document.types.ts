@@ -421,7 +421,7 @@ export interface ComponentRuleSize {
    * generate-css virtual 이 size 별 `.alert-heading { font-weight: ... }` 자식 CSS 를 emit
    * (CSSGenerator.generateChildFontStyles 가 `size.headingFontWeight` 소비). InlineAlert heading 은
    * 700(bold) 고정 — IllustratedMessage(headingFontSize 만)와 달리 weight 까지 D3 SSOT(rule)에 귀속.
-   * layout consumer(implicitStyles/StoreRenderBridge/fullTreeLayout)도 resolveSkiaRule read-through 로 소비.
+   * (당시 layout consumer implicitStyles/StoreRenderBridge/fullTreeLayout 는 삭제됨.)
    */
   headingFontWeight?: number | string;
   /**

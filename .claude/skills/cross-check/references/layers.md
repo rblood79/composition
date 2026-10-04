@@ -2,13 +2,13 @@
 
 **Step 0 — catalog 등록 선판정**: 컴포넌트 키가 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 에 존재하면 **catalog 경로** (variants/sizes/containerStyles 해당 키), 미존재 시에만 잔존 spec 경로 (Frame/Group/Slot 3개). 판정 후 아래 테이블 작성:
 
-| 레이어               | 파일                                                                                                                                         | 검증 항목                                                                                                                 | 상태 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ---- |
-| **Catalog/Spec**     | catalog: `componentRulesTable.ts` 해당 키 + `catalog/bindings/{Name}.binding.ts` / 잔존 spec: `packages/specs/src/components/{Name}.spec.ts` | catalog: variants, sizes, containerStyles / 잔존 spec: render.shapes(), properties                                        |
-| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                        | 기본 props, style, 자식 구조                                                                                              |
-| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css`                                                           | data-variant/data-size 선택자, 토큰                                                                                       |
-| **Skia Renderer**    | `tagSpecMap.ts` + `StoreRenderBridge.ts` + `buildBoxNodeData.ts` + `specTextStyle.ts` + `utils.ts`                                           | TAG_SPEC_MAP / isCatalogCutover, TEXT_BEARING_SPECS, INTRINSIC_MEASURE_TAGS (측정) · resolveDefaultDisplay (기본 display) |
-| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                                                                                                        | variant/size props 전달, data-\* 속성                                                                                     |
+| 레이어               | 파일                                                                                                                                               | 검증 항목                                                                                                                            | 상태 |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| **Catalog/Spec**     | catalog: `componentRulesTable.ts` 해당 키 + `catalog/bindings/{Name}.binding.ts` / 잔존 spec: `packages/specs/src/components/{Name}.spec.ts`       | catalog: variants, sizes, containerStyles / 잔존 spec: render.shapes(), properties                                                   |
+| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                              | 기본 props, style, 자식 구조                                                                                                         |
+| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css`                                                                 | data-variant/data-size 선택자, 토큰                                                                                                  |
+| **Skia Renderer**    | `catalogRuntime/canvasBinding.ts` + `ruleShapes.ts` / `rulePaint.ts` + `compositionRoot.ts` (`styleOf` 레이아웃 입력) + `skia/buildBoxNodeData.ts` | rule 실행기 등록 (`BOX_SIZE_TYPES` 등), 텍스트 leaf 측정 (`textLeaf` → `catalogTextMeasure`), 기본 display (`resolveDefaultDisplay`) |      |
+| **Preview Renderer** | `packages/shared/src/renderers/*.tsx`                                                                                                              | variant/size props 전달, data-\* 속성                                                                                                |
 
 ## Phase 3: 정합성 검증 항목
 
@@ -30,10 +30,8 @@
 ### 3.3 Skia 레이아웃 정합성
 
 - [ ] `INTRINSIC_MEASURE_TAGS` (분류표 `INLINE_BLOCK_TAG_CLASSIFICATION`, utils.ts) 등록 여부 (fit-content 측정 필요 시 — 기본 display 는 catalog `containerStyles.display` 가 정본, ADR-923 Phase 5)
-- [ ] `TEXT_BEARING_SPECS` 등록 여부 (텍스트 폭 측정 필요 시)
 - [ ] `DEFAULT_SIZE_BY_TAG` 등록 여부
-- [ ] `calculateContentWidth`의 `isFormElement` 경로 포함 여부
-- [ ] `calculateContentHeight`의 `isButtonLike` 경로 포함 여부
+- [ ] 텍스트를 가진 노드가 `styleOf` 의 측정 스칼라 (`contentMinWidth` · `contentMaxWidth` · `contentHeight`) 를 받는지 (rules/layout-engine.md §TS 잔존 계약)
 
 ### 3.4 토큰 정합성
 

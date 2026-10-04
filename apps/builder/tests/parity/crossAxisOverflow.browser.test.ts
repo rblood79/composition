@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
 } from "./harness";
@@ -305,18 +304,6 @@ describe("flex 교차축 overflow — CSS 대조", () => {
         c.nodes,
         domLeg(c.nodes, c.availW),
         engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
-
-  it.each(ALL_CASES.map((c) => [c.name, c] as const))(
-    "pipeline leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
       );
       expect(bad, bad.join("\n")).toEqual([]);
     },

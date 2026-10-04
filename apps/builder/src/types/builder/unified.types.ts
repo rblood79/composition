@@ -1804,8 +1804,7 @@ export function createDefaultDisclosureGroupProps(): DisclosureGroupElementProps
 
 export function createDefaultInlineAlertProps(): BaseElementProps {
   // ADR-083 Phase 1 (R5): width:"100%" 는 InlineAlertSpec.containerStyles SSOT 로 이관.
-  //   Phase 0 공통 선주입 layer(implicitStyles.ts applyImplicitStyles 진입부)가
-  //   parentStyle 에 자동 주입하므로 factory inline 중복은 불필요.
+  //   catalog containerStyles 가 두 consumer 에 공급하므로 factory inline 중복은 불필요.
   return {};
 }
 
@@ -2076,9 +2075,8 @@ export function createDefaultAvatarProps(): BaseElementProps {
     isDisabled: false,
     // width/height inline 금지 (2026-07-14): factory(createAvatarDefinition) 와 동형.
     //   정원형 leaf 의 크기는 catalog `COMPONENT_RULES_TABLE.Avatar.sizes.{xs..xl}.height`
-    //   가 SSOT 다. inline 숫자를 박으면 enrichWithIntrinsicSize 가 needsWidth/needsHeight=
-    //   false 로 early return 하여 size→diameter 분기가 안 돌고, size 를 바꿔도 layout bounds
-    //   (=selection 박스)가 32 로 고정된다. palette-add(getDefaultProps) 경로도 factory 와
+    //   가 SSOT 다. inline 숫자를 박으면 size 를 바꿔도 layout bounds (=selection 박스)가
+    //   inline 값으로 고정된다 (옛 레이아웃 경로 실측 — 32). palette-add(getDefaultProps) 경로도 factory 와
     //   byte-identical 이어야 함 (entryUniverseContract Gate G4).
     //   [[feedback-layout-default-belongs-in-catalog-not-factory-overlay]]
   };

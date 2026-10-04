@@ -63,14 +63,9 @@ const fontFamilies = shape.fontFamily
   : [...CANVAS_FONT_FALLBACK_FAMILIES];
 ```
 
-### Spec-Driven Text Style — `specTextStyle.ts`
+### 측정 font — resolved record
 
-**parity 하니스 전용** (importer 는 `engines/utils.ts` · `fullTreeLayout.ts`). Spec 기반 컴포넌트의 텍스트 폭 측정 시 `extractSpecTextStyle(tag, props)`로 Spec shapes에서 실제 fontSize/fontWeight/fontFamily를 추출. `BUTTON_SIZE_CONFIG` 등 하드코딩 의존 제거.
-
-```typescript
-const specStyle = extractSpecTextStyle("button", props);
-// specStyle.fontSize = 14 (Spec 정의), specStyle.fontWeight = 500, specStyle.fontFamily = "Pretendard, Inter, ..."
-```
+텍스트 leaf 의 측정 font (fontSize · fontWeight · fontFamily · lineHeight) 는 `textLeaf` (`compositionRoot.ts`) 가 catalog resolved record 에서 읽는다 — Skia 렌더와 같은 record. 옛 `specTextStyle.ts` `extractSpecTextStyle` 은 2026-10-05 삭제.
 
 ### 금지 패턴
 

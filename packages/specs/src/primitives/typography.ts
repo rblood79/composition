@@ -82,7 +82,7 @@ export function getTypographyToken(name: keyof TypographyTokens): number {
 
 /**
  * fontSize에 대응하는 CSS line-height (px)를 반환.
- * fullTreeLayout.ts의 LABEL_SIZE_STYLE과 동일 소스.
+ * (옛 builder `fullTreeLayout.ts` 의 LABEL_SIZE_STYLE 과 같은 소스였다 — 2026-10-05 삭제.)
  */
 const FONT_SIZE_TO_LINE_HEIGHT: Record<number, number> = {
   10: typography["text-2xs--line-height"],

@@ -61,7 +61,7 @@ function importTypeQualifierName(node) {
 /**
  * Zustand store hook names: `use*` bound to `create(...)` / `create<T>()(...)` anywhere in `src`
  * (scanned once per lint process) or in the linted file itself. The store hooks are not all named
- * `use*Store` (`useDesignPanelView`, `useScrollState`, `useSectionCollapse`), so the rules match by
+ * `use*Store` (`useDesignPanelView`, `useSectionCollapse`), so the rules match by
  * the binding, not by a name pattern. `useStore` stays for zustand's own two-argument form.
  */
 const STORE_DECLARATION =

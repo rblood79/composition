@@ -74,7 +74,7 @@ class FakeLayoutEngine implements LayoutEngineAPI {
   }
 }
 
-describe("PersistentLayoutTree targeted layout result collection", () => {
+describe("PersistentLayoutTree result collection by id", () => {
   it("requests only registered, unique handles and maps results by element id", () => {
     const engine = new FakeLayoutEngine();
     const tree = new PersistentLayoutTree(engine);
@@ -106,71 +106,5 @@ describe("PersistentLayoutTree targeted layout result collection", () => {
 
     expect(tree.getLayoutsForIds(["missing"])).toEqual(new Map());
     expect(engine.requestedBatches).toEqual([]);
-  });
-
-  it("marks promoted dirty roots, computes the persistent root, and collects only affected results", () => {
-    const engine = new FakeLayoutEngine();
-    const tree = new PersistentLayoutTree(engine);
-    tree.buildFull(
-      "root",
-      [
-        { elementId: "child", style: {}, children: [] },
-        { elementId: "root", style: {}, children: [0] },
-      ],
-      new Map([
-        ["child", []],
-        ["root", ["child"]],
-      ]),
-    );
-
-    const result = tree.computeDirtyLayoutForIds(
-      ["root", "missing", "root"],
-      ["child"],
-      320,
-      180,
-    );
-
-    expect(engine.dirtyHandles).toEqual([2]);
-    expect(engine.computedRoots).toEqual([
-      { availableHeight: 180, availableWidth: 320, root: 2 },
-    ]);
-    expect(engine.requestedBatches).toEqual([[1]]);
-    expect(result.has("child")).toBe(true);
-    expect(result.has("root")).toBe(false);
-  });
-
-  it("keeps targeted input and result counters separate from engine compute", () => {
-    const engine = new FakeLayoutEngine();
-    const tree = new PersistentLayoutTree(engine);
-    tree.buildFull(
-      "root",
-      [
-        { elementId: "child", style: {}, children: [] },
-        { elementId: "root", style: {}, children: [0] },
-      ],
-      new Map([
-        ["child", []],
-        ["root", ["child"]],
-      ]),
-    );
-
-    const targeted = tree.computeTargetedLayout(
-      {
-        affectedNodeIds: ["child", "child"],
-        parentChain: ["parent", "parent"],
-        roots: ["root", "missing", "root"],
-      },
-      320,
-      180,
-    );
-
-    expect(targeted.metrics).toEqual({
-      engineComputeCalls: 1,
-      inputNodeVisits: 3,
-      resultNodeVisits: 1,
-    });
-    expect(targeted.layoutMap).toEqual(
-      new Map([["child", { x: 1, y: 0, width: 100, height: 20 }]]),
-    );
   });
 });

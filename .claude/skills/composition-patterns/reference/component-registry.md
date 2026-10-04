@@ -70,9 +70,9 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 부모 · 자식 의존 재계획 (옛 `StoreRenderBridge` incrementalSync 확장의 현행 형태): `compositionRoot.ts` `planInstances` — `partRuleChildren` · presence dependents · breadcrumb items 를 같은 step 에 다시 계획한다.
 
-### 레이아웃 측정 분기 — parity 하니스 전용
+### 레이아웃 측정 분기
 
-`layout/engines/utils.ts` (`INTRINSIC_MEASURE_TAGS` · `TEXT_LEAF_TAGS` · `SPEC_SHAPES_INPUT_TAGS` · `IMAGE_INTRINSIC_TAGS`), `implicitStyles.ts` (`POPOVER_CHILDREN_TAGS` · `FIELD_VISIBLE_CHILD_TAGS`), `fullTreeLayout.ts` (`LABEL_DELEGATION_PARENT_TAGS` · `LABEL_WRAPPER_TAGS`) 는 `fullTreeLayout.ts` parity 경로만 읽는다. production 레이아웃 입력은 `compositionRoot.ts` `styleOf` 하나 — [layout-engine.md](../../../rules/layout-engine.md) 「레이아웃 재계산 경로」.
+옛 태그별 분기 (`engines/utils.ts` 의 `TEXT_LEAF_TAGS` · `SPEC_SHAPES_INPUT_TAGS` · `IMAGE_INTRINSIC_TAGS`, `implicitStyles.ts` 의 `POPOVER_CHILDREN_TAGS` · `FIELD_VISIBLE_CHILD_TAGS`, `fullTreeLayout.ts` 의 `LABEL_DELEGATION_PARENT_TAGS` · `LABEL_WRAPPER_TAGS`) 는 2026-10-05 삭제됐다. 남은 태그 표는 기본 display 분류 `INLINE_BLOCK_TAG_CLASSIFICATION` (`engines/utils.ts`, `defaultDisplay.ts` 가 읽는다) 하나다. production 레이아웃 입력은 `compositionRoot.ts` `styleOf` 하나 — [layout-engine.md](../../../rules/layout-engine.md) 「레이아웃 재계산 경로」.
 
 ### Spec/렌더 매핑
 

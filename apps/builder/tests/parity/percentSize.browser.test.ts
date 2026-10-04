@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -149,18 +148,6 @@ describe("백분율 크기 containing block — CSS 대조", () => {
         c.nodes,
         domLeg(c.nodes, c.availW),
         engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
-
-  it.each(ALL.map((c) => [c.name, c] as const))(
-    "pipeline leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
       );
       expect(bad, bad.join("\n")).toEqual([]);
     },
@@ -490,17 +477,6 @@ describe("ADR-206 Phase 1 — 늘어난 크기 definite 전파", () => {
       c.nodes,
       domLeg(c.nodes, c.availW),
       engineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
-
-  it.each(
-    [...ADR206_CASES, ...ADR206_CONTROLS].map((c) => [c.name, c] as const),
-  )("pipeline leg — %s", (_name, c) => {
-    const bad = diffCase(
-      c.nodes,
-      domLeg(c.nodes, c.availW),
-      pipelineLeg(c.nodes, c.availW, c.availH),
     );
     expect(bad, bad.join("\n")).toEqual([]);
   });

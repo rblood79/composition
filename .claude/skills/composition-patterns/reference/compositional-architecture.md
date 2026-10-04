@@ -89,7 +89,7 @@ catalog 는 시각값만 담으므로, 트리 밖 시각 요소와 부모→자�
 | part rules       | `document/rulePartRules.ts` (`catalogIndicatorInset` 등) + composition root `partRuleChildren` 재계획 | Checkbox/Radio/Switch indicator 폭 + gap 만큼 Label 인라인 여백 (트리에 indicator 노드 없음) |
 
 - 컨테이너 치수 주입: `BOX_SIZE_TYPES` (`catalogRuntime/ruleShapes.ts`) 등록 타입에 `_containerWidth` / `_containerHeight` — 원칙은 canvas-rendering.md §2.
-- 옛 메커니즘 (`implicitStyles.ts` indicator marginLeft · `SYNTHETIC_LABEL_TAGS` · `applyParentPropagationProps` · `resolveParentDelegatedSize`) 은 `fullTreeLayout.ts` parity 하니스와 `utils/propagationRegistry.ts` 에만 남았다 — production 경로 아님 ([layout-engine.md](../../../rules/layout-engine.md)).
+- 옛 메커니즘 (`implicitStyles.ts` indicator marginLeft · `SYNTHETIC_LABEL_TAGS` · `applyParentPropagationProps` · `resolveParentDelegatedSize`) 은 2026-10-05 옛 TS 레이아웃 파이프라인 (`fullTreeLayout.ts` · `propagationRegistry.ts`) 과 함께 삭제됐다 ([layout-engine.md](../../../rules/layout-engine.md)).
 
 ## 5. 신규 합성 컴포넌트 추가 시 개요 체크리스트
 

@@ -53,7 +53,7 @@ export type LayoutNodeHandle = number;
  * `tests/layout_trace.rs` 의 JSON 계약이 감시). 트레이스는 **엔진의 자기
  * 보고**이지 정합 oracle 이 아니다 — oracle 은 Chrome parity fixture (R4).
  */
-export type EngineTraceEvent = { measure_pass: boolean } & (
+type EngineTraceEvent = { measure_pass: boolean } & (
   | {
       type: "IncrementalSkip";
       reason: "Hit" | "NoPrev" | "Dirty" | "AvailChanged";

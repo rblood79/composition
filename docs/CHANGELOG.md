@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [옛 TS 레이아웃 파이프라인 삭제 — fullTreeLayout · parity pipeline leg] - 2026-10-05
+
+### Removed
+
+- **production 에서 닿지 않던 옛 TS 레이아웃 파이프라인을 지웠다** (사용자 판정 2026-10-05). ADR-248 Phase 4 뒤 Canvas 레이아웃은 `catalogRuntime/compositionRoot.ts` 의 `styleOf` → `PersistentLayoutTree` 하나로 돌고, `fullTreeLayout.ts` (`calculateFullTreeLayout`) 와 그것만 쓰던 전처리 — DFS enrichment (`enrichWithIntrinsicSize` · `calculateContentWidth/Height`) · `applyImplicitStyles` 컴포넌트 주입 · `propagationRegistry` / `propagationEngine` · display/flex/block style 어댑터 · 2-pass 폭 교정 · grid full rebuild 판정 · `readOnlySubpart` · `specTextStyle` · `textRenderStyle` · 상태 변형 레이어 · `systemComponentsPage` · `editorPresentationLayoutLane` 등 — 은 parity 하니스와 테스트만 부르고 있었다. 소스 25 · 테스트 95 파일, 약 37,500줄.
+- 살아 있는 모듈 안에서 이 경로만 쓰던 export 도 지웠다: `engines/utils.ts` 6,537 → 약 470줄 (텍스트 측정만), `implicitStyles.ts` 3,963 → 약 220줄 (container fallback · overflow · box-shadow 해석), `cssValueParser.ts` 의 레이아웃 viewport 변수, `PersistentLayoutTree` 의 targeted compute · 조회 메서드, `layoutTypes.ts` 의 측정 스칼라 키 표, builder 래퍼 `resolveSkiaRule` · `resolveSkiaCatalogRenderInput` · `ruleSizeToSizeSpec`.
+- parity 하니스의 pipeline leg (`pipelineLeg` · `runPipelineParityCase`) 와 그 케이스를 지웠다. 남은 parity 는 DOM ↔ 엔진 (엔진 CSS 정합) 과 `adr248Catalog*` (catalog root ↔ catalog DOM) 다.
+
+### Internal
+
+- 규칙 문서를 지금 경로로 고쳤다: `.claude/rules/layout-engine.md` (옛 파이프라인 절 → 삭제 기록, 배치 직렬화 계약을 `styleOf` / `px()` 기준으로, 금지 패턴 정리) · `canvas-rendering.md` (Size Delegation = `CATALOG_SIZE_PROPAGATION`, 측정 font = `textLeaf`) · `ssot-hierarchy.md` (sub-part 판정 = `catalogSubpartOwnerType`) · `style-ssot.md`, skill `spec-value-sync` (레이아웃 파생 상수 `BUTTON_SIZE_CONFIG` 삭제 반영) 과 reference 6개 · cross-check 체크리스트. 삭제된 코드만 설명하던 skill reference `layout-details.md` 는 지웠다. `docs/reference/CSS_SUPPORT_MATRIX.md` 는 「구현 위치」 열이 옛 경로 기준임을 머리말에 적었다.
+- 코드 주석 중 삭제된 모듈에 지금도 의존한다고 적힌 곳을 고쳤다 (builder · shared · specs · 엔진 `tree.rs`).
+
+동작 변경 없음 — 삭제한 코드는 production 진입점 (`main.tsx` · `preview/index.tsx`) 에서 import 로 닿지 않았다.
+
 ## [겹친 페이지의 활성 페이지 최상단 복구 · Chart 예산 안내 · DOM 간격 shorthand 정리 — ADR-248 이후 잔여] - 2026-10-04
 
 ### Fixed

@@ -14,7 +14,7 @@
 
 /**
  * 바이너리 인코딩을 위한 노드 입력.
- * fullTreeLayout.ts의 engineStyleToRecord() 출력을 직접 수신한다.
+ * 정규화된 style Record (`styleOf` 출력 형식) 를 직접 수신한다.
  */
 export interface BinaryBatchInput {
   style: Record<string, unknown>;
@@ -300,7 +300,7 @@ function getEnumMap(bit: number): Record<string, number> | null {
 /**
  * Dimension 값 파싱.
  *
- * engineStyleToRecord() 출력 포맷:
+ * 정규화된 style Record 의 길이 포맷:
  * - "100px" → type=1 (length),  value=100.0
  * - "50%"   → type=2 (percent), value=0.5   (100으로 나눔)
  * - "auto"  → type=0 (auto),    value=0.0
@@ -338,8 +338,7 @@ function parseDimensionValue(value: unknown): { type: number; value: number } {
 /**
  * Grid placement 값 파싱.
  *
- * 입력은 항상 문자열 (`engineStyleToRecord` · `fullTreeLayout` grid 분기 · `utils.ts` 가 `String()` 으로
- * 변환해 싣는다).
+ * 입력은 문자열 (직렬화기가 `String()` 으로 변환해 싣는다).
  * - "auto"   → type=0, value=0
  * - "span N" → type=2, value=N
  * - "N"      → type=1, value=N  (line number)
@@ -584,7 +583,7 @@ const BIT_TO_KEY: Record<number, string> = Object.fromEntries(
  * - Pass 1: 각 노드의 비트맵·필드 계획 + 총 바이트 크기 산출
  * - Pass 2: ArrayBuffer 단일 할당 후 DataView로 순차 기록
  *
- * @param batch - engineStyleToRecord() 출력 배열
+ * @param batch - 정규화된 style Record 배열
  * @returns 헤더 + 노드 직렬화 바이트
  */
 export function encodeBatchBinary(batch: BinaryBatchInput[]): Uint8Array {

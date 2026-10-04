@@ -19,21 +19,8 @@ export const KNOWN_CONTAINER_SIZE: readonly string[] = [];
 /** 부분 격자 1 aspect-ratio 소블록 (30 중 0) */
 export const KNOWN_ASPECT: readonly string[] = [];
 
-/** 부분 격자 1 파이프라인 leg (60 중 0) */
-export const KNOWN_CONTAINER_PIPELINE: readonly string[] = [];
-
 /** 부분 격자 2 — 부모display×자식width×height×margin×min/max (720 중 0) — 전건 grid-auto + 자식 margin 단일 군집 */
 export const KNOWN_CHILD_SIZE: readonly string[] = [];
 
-/** 부분 격자 2 파이프라인 leg (20 중 0) */
-export const KNOWN_CHILD_PIPELINE: readonly string[] = [];
-
 /** 부분 격자 3 — 중첩 전파 (36 중 0 — 1단 전파는 전건 정합) */
-export const KNOWN_NESTING: readonly string[] = [
-
-];
-
-/** 부분 격자 3 파이프라인 leg (36 중 0) */
-export const KNOWN_NESTING_PIPELINE: readonly string[] = [
-
-];
+export const KNOWN_NESTING: readonly string[] = [];

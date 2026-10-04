@@ -5,10 +5,8 @@
  * 판독이 흩어지면 우선순위 (longhand ?? shorthand 다중값 ?? shorthand ?? base) 가 파일마다
  * 갈려 Skia · 패널 · 레이아웃이 같은 문서를 다르게 본다.
  *
- * 허용 예외 (명시 — 침묵 허용 금지):
- * - `layout/engines/utils.ts` — 레이아웃 `parseBorder` 는 helper 와 같은 우선순위이며
- *   `borderGeometry.test.ts` 의 동치 테스트 8 이 그것을 고정한다 (엔진 입력 경계라 helper
- *   의 rem 해석 · `border` 단축 폴백을 그대로 쓰지 않고 px/number 만 읽는다).
+ * 허용 예외: 없음 — 레이아웃 `parseBorder` (`layout/engines/utils.ts`) 는 fullTreeLayout 과 함께
+ * 삭제됐다 (2026-10-05). production 엔진 입력은 catalog typed field 를 `styleOf` 가 직렬화한다.
  *
  * 문자열 상수 (`"borderTopWidth"` 키 목록 · i18n 라벨 · 배치 연산의 키 표) 는 판독이 아니라
  * 허용한다 — 잡는 것은 `x.borderTopWidth` / `x?.borderTopWidth` / `x["borderTopWidth"]`.
@@ -36,7 +34,6 @@ const READ_PATTERN = new RegExp(
 
 const ALLOWLIST = new Set([
   "builder/workspace/canvas/styleConversion/borderGeometry.ts",
-  "builder/workspace/canvas/layout/engines/utils.ts",
 ]);
 
 function walk(dir: string, out: string[]): void {
@@ -79,14 +76,9 @@ describe("ADR-219 — longhand 직접 판독은 helper 하나", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("허용 예외 파일이 실제로 존재하고 동치 테스트가 있다", () => {
+  it("허용 예외 파일이 실제로 존재한다", () => {
     for (const rel of ALLOWLIST) {
       expect(() => statSync(join(BUILDER_SRC, rel))).not.toThrow();
     }
-    const equivalence = readFileSync(
-      join(__dirname, "borderGeometry.test.ts"),
-      "utf-8",
-    );
-    expect(equivalence).toContain("parseBorder 동치");
   });
 });

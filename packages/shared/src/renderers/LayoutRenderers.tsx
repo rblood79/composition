@@ -2421,9 +2421,8 @@ function renderTableViewSubtree(
   }
 
   // density (2026-08-21): catalog `Column/Cell.densities` 의 paddingY 로 위 인라인 상수
-  //   `padding: 8` 의 세로 성분만 교체 (Spectrum 규칙 — 폰트·가로 여백 불변). Skia 는
-  //   같은 catalog 값을 applyImplicitStyles 가 paddingTop/Bottom 으로 주입해 읽으므로 두
-  //   consumer 가 동일 SSOT 를 본다. `densities` 미정의면 undefined → 인라인 상수 유지.
+  //   `padding: 8` 의 세로 성분만 교체 (Spectrum 규칙 — 폰트·가로 여백 불변). Skia 도
+  //   같은 catalog 값을 읽는다 (당시 주입 경로 applyImplicitStyles 는 2026-10-05 삭제). `densities` 미정의면 undefined → 인라인 상수 유지.
   const densityPaddingY =
     element.type === "Column" || element.type === "Cell"
       ? resolveCatalogDensityField(element.type, density, "paddingY")

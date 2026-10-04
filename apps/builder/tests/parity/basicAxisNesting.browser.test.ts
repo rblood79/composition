@@ -2,12 +2,11 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
-import { KNOWN_NESTING, KNOWN_NESTING_PIPELINE } from "./basicAxis.known";
+import { KNOWN_NESTING } from "./basicAxis.known";
 import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -144,16 +143,6 @@ describe("ADR-170 부분 격자 3 — 중첩 전파", () => {
     const failures = sweep(cases);
     expect(keysOf(failures), detail(failures, cases.length)).toEqual(
       KNOWN_NESTING,
-    );
-  });
-
-  it("파이프라인 leg 36 조합 — TS 공급층 마스킹 감시", () => {
-    const cases = nestingCases();
-    const failures = sweep(cases, (c) =>
-      pipelineLeg(c.nodes, c.availW, c.availH),
-    );
-    expect(keysOf(failures), detail(failures, cases.length)).toEqual(
-      KNOWN_NESTING_PIPELINE,
     );
   });
 });

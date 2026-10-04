@@ -1075,7 +1075,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // fontWeight 500 (사용자 결정 2026-09-29 — 버튼 500 · 링크 400): 생성 CSS 는 sizes.fontWeight 만
     //   `font-weight` 로 내보내고 (variant.textWeight 는 Canvas 전용 채널), Canvas 는 textWeight 미선언 시
-    //   500 이라 두 소비자가 같은 값이 된다. 안의 Text/Label 자식은 Button 척도를 받는다 (propagationRegistry).
+    //   500 이라 두 소비자가 같은 값이 된다. 안의 Text/Label 자식은 Button 척도를 받았다 (옛 propagationRegistry — 2026-10-05 삭제).
     // minWidth (Spectrum 식별성 하한 채택 2026-08-20): ceil(2.25 × border-box height),
     //   height = lineHeight + 2·paddingY + 2·borderWidth (xs 20 / sm 22 / md 30 / lg 42 / xl 54).
     //   짧은 라벨("OK" 등) 버튼의 식별 가능 형태 보장 — Spectrum Button "min-width = 2.25× height".
@@ -6247,7 +6247,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   Heading factory inline 이 fontWeight 600 으로 일관(4곳) — Skia(style.fontWeight 600 우선)
         //   ·CSS(inline 600) 둘 다 600 렌더라 catalog 700 은 dead 였고, dirty baseline 만 700 으로
         //   잡혀 false dirty. 600 흡수로 baseline=시각 정본. InlineAlert Heading 은 InlineAlert.sizes
-        //   .headingFontWeight=700 별도 경로(StoreRenderBridge/fullTreeLayout)라 무영향.
+        //   .headingFontWeight=700 별도 경로(당시 StoreRenderBridge/fullTreeLayout — 삭제됨)라 무영향.
         //   (이전: buildCatalogShapes fallback 500 drift 차단용 700 명시 — 정본 재판정으로 600)
         textWeight: 600,
       },
@@ -6553,8 +6553,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-912 단계5 step4 (2026-06-17): InlineAlert spec 삭제 대비 sizes 보충.
-      //   paddingY/gap = generated CSS base block(`padding`/`gap`) emit + layout consumer
-      //   (implicitStyles/StoreRenderBridge/fullTreeLayout) resolveSkiaRule read-through.
+      //   paddingY/gap = generated CSS base block(`padding`/`gap`) emit + Canvas 의 catalog 해석이
+      //   같이 읽는다 (당시 consumer implicitStyles/StoreRenderBridge/fullTreeLayout 는 삭제됨).
       //   headingFontSize/headingFontWeight/descFontSize/descFontWeight = `.alert-heading` +
       //   `.react-aria-Description` 자식 CSS emit (CSSGenerator.generateChildFontStyles).
       //   accentWidth(3/4/4)는 generated CSS/Skia 미emit dead 필드 → 미이관.
@@ -12174,7 +12174,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   모델. Spectrum 은 행 높이를 size 축이 정하고 density 는 **item 내부 여백**만 바꾼다
     //   (`table-row-height-*` 은 density 무관, 구 `-regular` 접미사는 deprecated). 폰트는
     //   불변이므로 sizes 와 직교한 densities 축에 둔다. 소비 주체가 Column/Cell 이라 채널도
-    //   여기 산다 — TableView 는 density **값**만 넘긴다(applyImplicitStyles 위임).
+    //   여기 산다 — TableView 는 density **값**만 넘긴다(당시 Skia 위임 경로 applyImplicitStyles 는 2026-10-05 삭제).
     //   행 높이 = lineHeight 24 + paddingY×2 → compact 32 / regular 40 / spacious 48.
     //   Column/Cell 은 `structure` 미보유라 virtual spec 이 안 생기고, 따라서 generated CSS
     //   emit 도 없다(DOM 은 renderTableViewSubtree 인라인이 정본) → CSS diff 0.
@@ -14151,8 +14151,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   LOWERCASE_COMPONENT_RULE_CONTAINER) 이 본 필드를 읽어 display:flex 주입. ADR-912 cutover 가
     //   STRUCTURE_META(generate-css 전용) 에만 containerStyles 를 넣고 rule entry 에는 누락시켜,
     //   spec 삭제 후 Skia 가 display 미주입 → 자식 세로 배치 회귀(starter ToggleButtonGroup.css line 4
-    //   `display:flex` 정본 미반영). flexDirection 은 implicitStyles togglebuttongroup 분기가
-    //   orientation(row/column)으로 처리 → base 는 display/alignItems 만(STRUCTURE_META 와 동일).
+    //   `display:flex` 정본 미반영). flexDirection 은 orientation(row/column)이 따로 정한다
+    //   (당시 implicitStyles 분기 — 2026-10-05 삭제) → base 는 display/alignItems 만(STRUCTURE_META 와 동일).
     containerStyles: {
       display: "flex",
       alignItems: "center",

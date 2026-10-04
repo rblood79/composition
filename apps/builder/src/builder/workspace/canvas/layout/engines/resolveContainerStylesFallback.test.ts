@@ -502,7 +502,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     it("togglebuttongroup → display:flex/alignItems/width (flexDirection 의도적 생략 — orientation 분기 담당)", () => {
       // CRITICAL byte-lock: top-level containerStyles 가 flexDirection 을 생략하므로 wrapper 출력에도
       //   flexDirection 이 없어야 함. structure.composition.layout='flex-row' leak 시 이 test FAIL.
-      //   flexDirection 은 applyImplicitStyles togglebuttongroup 분기(:982)가 orientation 으로 결정.
+      //   flexDirection 은 이 fallback 이 아니라 orientation prop 에서 따로 결정된다.
       const fb = resolveContainerStylesFallback("togglebuttongroup", {});
       expect(fb).toEqual({
         display: "flex",

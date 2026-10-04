@@ -1,10 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
-import {
-  type ParityCase,
-  runParityCase,
-  runPipelineParityCase,
-} from "./harness";
+import { type ParityCase, runParityCase } from "./harness";
 
 /**
  * ADR-169 Phase 0 — 컨테이너 flex item 의 intrinsic(min/max-content) 부재 fixture.
@@ -41,7 +37,7 @@ import {
  * G 만 sidebar 폭이 살아 있다 — `flexShrink:0` 이라 붕괴 대신 **컨테이너를 정확히 250 초과**한다.
  * 나머지 발산 3형태는 형제가 0 으로 붕괴한다. 두 증상은 같은 원인의 두 얼굴이다.
  *
- * ## R8 판정 (2026-07-27) — masking 실재 확인
+ * ## R8 판정 (2026-07-27) — masking 실재 확인 (기록 — 판정에 쓴 pipeline leg 는 2026-10-05 fullTreeLayout 삭제와 함께 제거, 아래는 engine leg 만 남는다)
  *
  * `width:fit-content` 컨테이너(R8-a)에서 **engine leg 와 pipeline leg 의 결과가 다르다**
  * (0/1920 vs 236.7/1683.3). TS 선계산이 이 형태에 도달해 배치를 바꾼다는 뜻이고,
@@ -290,109 +286,6 @@ const R8_CASES: ParityCase[] = [
 ];
 
 /**
- * R8-d — **결정적 masking 판별** (pipeline 전용).
- *
- * R8-a/b/c 는 컨테이너 자식이 stretch 이거나 고정폭이라, TS 의 `baseContentWidth` 가
- * 0 이거나 참 min-content 와 같아져 주입이 과대해질 수 없다. 주입이 참 하한보다
- * **커지려면** 컨테이너 콘텐츠가 "펼치면 넓지만 접으면 좁은" 것이어야 한다 — 실텍스트다.
- * TS 는 단일줄 폭을, CSS 는 최장 단어를 하한으로 본다.
- *
- * 형태: 접히지 않으면 안 되는 압박(sidebar 300 `flexShrink:0`, root 340)에 텍스트를
- * 품은 `width:fit-content` 컨테이너. 주입된 minWidth 가 하한이 되면 컨테이너가 단일줄
- * 폭에서 멈춰 DOM(최장 단어까지 접힘)과 갈린다.
- *
- * engine leg 는 태우지 않는다 — 실텍스트 스칼라를 손으로 넣으면 Chrome font metric 과
- * 어긋나 판별이 아니라 측정 오차를 재게 된다 (`intrinsicSizing` PIPELINE_CASES 와 동일 이유).
- */
-const R8D_TEXT_STYLE = {
-  width: "auto",
-  fontSize: 16,
-  fontFamily: "Arial",
-  fontWeight: 400,
-  lineHeight: "20px",
-} as const;
-
-const R8D_FLOOR_BINDING_TEXT: ParityCase = {
-  name: "R8-d. 실텍스트 + fit-content 컨테이너, floor 구속",
-  availW: 340,
-  availH: -1,
-  nodes: [
-    {
-      label: "r8d-text",
-      elementType: "Text",
-      text: "Hello World Wide",
-      style: { ...R8D_TEXT_STYLE },
-    },
-    {
-      label: "r8d-content",
-      style: { width: "fit-content", flexGrow: 1, overflowX: "hidden" },
-      children: [0],
-    },
-    {
-      label: "r8d-sidebar",
-      style: { width: "300px", flexShrink: 0, height: "40px" },
-    },
-    {
-      label: "r8d-root",
-      style: {
-        display: "flex",
-        flexDirection: "row",
-        width: "340px",
-        height: "80px",
-        alignItems: "flex-start",
-      },
-      children: [1, 2],
-    },
-  ],
-};
-
-/**
- * H — **§4.5 floor 채널(off 19) 전용 판별** (pipeline, 실텍스트).
- *
- * R8-d 는 `overflow:hidden` 이라 §4.5 가 애초에 적용되지 않아 floor 채널을 태우지 않는다.
- * 이 케이스는 컨테이너를 overflow visible / width auto 로 두어 §4.5 조건을 만족시키고,
- * leftover(40)가 min-content 보다 작아 **하한이 결과를 정하게** 한다.
- *
- * off 13 만 고치고 off 19 을 두면 `0 = absent` 계약 때문에 floor 가 `content_main`
- * = **max-content(단일줄 폭)** 으로 잡힌다 — 컨테이너가 최장 단어까지 접히지 못하고
- * 단일줄 폭에서 멈춘다. 이것이 "부분 반영 금지"(G3)의 실증 형태다.
- */
-const H_FLOOR_CHANNEL_TEXT: ParityCase = {
-  name: "H. §4.5 floor 채널 — 실텍스트 컨테이너가 최장 단어까지 접힌다",
-  availW: 340,
-  availH: -1,
-  nodes: [
-    {
-      label: "h-text",
-      elementType: "Text",
-      text: "Hello World Wide",
-      style: { ...R8D_TEXT_STYLE },
-    },
-    {
-      // overflow 미선언(visible) + width auto → §4.5 auto-min 적용 조건 성립.
-      label: "h-content",
-      style: { flexGrow: 1 },
-      children: [0],
-    },
-    {
-      label: "h-sidebar",
-      style: { width: "300px", flexShrink: 0, height: "40px" },
-    },
-    {
-      label: "h-root",
-      style: {
-        display: "flex",
-        flexDirection: "row",
-        width: "340px",
-        height: "80px",
-        alignItems: "flex-start",
-      },
-      children: [1, 2],
-    },
-  ],
-};
-
-/**
  * I/J — **grid 축 이연의 실측 근거** (ADR-169 Phase 3 / G5).
  *
  * `solve_grid` 는 available 이 음수(측정 센티넬 / indefinite)면 fr·auto 트랙을 0 으로
@@ -522,55 +415,18 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     }
   });
 
-  // 구 잔존 발산 1.5px (Phase 2 기록) 의 원인이 2026-09-07 에 지목·수리됐다: **파이프라인 층**이
-  // block 자식 (`h-content` 는 block) 의 텍스트 leaf 에 측정 스칼라를 안 줬다 (`isFlexChild ||
-  // isGridChild` 게이트) — 그래서 컨테이너 하한이 폭 주입값 40 에서 멈췄다. 게이트 제거 후
-  // 정확 min-content 41.5 (ledger §27, `textLeafScalarBlockParent.browser.test.ts`). 엔진 측은
-  // 종전부터 정확 — Rust `container_item_floors_at_exact_min_content`.
-  describe("§4.5 floor 채널 — 중첩 block 텍스트도 정확 min-content", () => {
-    it(H_FLOOR_CHANNEL_TEXT.name, () => {
-      expect(runPipelineParityCase(H_FLOOR_CHANNEL_TEXT)).toEqual([]);
-    });
-  });
-
-  // 프리셋 실형태(G)는 빌더 실 진입점으로도 건다 — 엔진만 고치고 TS 선계산이 되돌리는
-  // 상태를 막는다. Phase 2 후 이 단언이 통과하면 red 가 되어 `.fails` 제거를 강제한다.
-  describe("파이프라인 leg — TS 선계산 상쇄 없음 확인", () => {
-    it("G. 프리셋 실형태 (calculateFullTreeLayout 경유)", () => {
-      expect(runPipelineParityCase(DIVERGENT[3])).toEqual([]);
-    });
-  });
-
   // 인라인 스냅샷은 **호출 지점당 1개**라 루프로 묶으면 기록에 실패한다 — 펼쳐 둔다.
   describe("R8 — TS minWidth 주입의 masking 판정", () => {
     it("R8-a 판별 — engine leg (TS 선계산 미경유)", () => {
       expect(runParityCase(R8_CASES[0])).toMatchInlineSnapshot(`[]`);
     });
 
-    it("R8-a 판별 — pipeline leg (TS minWidth 주입 경유)", () => {
-      expect(runPipelineParityCase(R8_CASES[0])).toMatchInlineSnapshot(`[]`);
-    });
-
     it("R8-c floor 구속 — engine leg", () => {
       expect(runParityCase(R8_CASES[1])).toMatchInlineSnapshot(`[]`);
     });
 
-    it("R8-c floor 구속 — pipeline leg (masking 여부가 여기서 드러난다)", () => {
-      expect(runPipelineParityCase(R8_CASES[1])).toMatchInlineSnapshot(`[]`);
-    });
-
-    it("R8-d 결정적 판별 — pipeline leg (실텍스트, floor 구속)", () => {
-      expect(
-        runPipelineParityCase(R8D_FLOOR_BINDING_TEXT),
-      ).toMatchInlineSnapshot(`[]`);
-    });
-
     it("R8-b 대조군 — engine leg", () => {
       expect(runParityCase(R8_CASES[2])).toMatchInlineSnapshot(`[]`);
-    });
-
-    it("R8-b 대조군 — pipeline leg", () => {
-      expect(runPipelineParityCase(R8_CASES[2])).toMatchInlineSnapshot(`[]`);
     });
   });
 
@@ -586,12 +442,6 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
       expect(runParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`[]`);
     });
 
-    it("I. grid 직접 flex item — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(
-        `[]`,
-      );
-    });
-
     it("J. grid 중첩 — engine leg", () => {
       expect(runParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`[]`);
     });
@@ -600,16 +450,6 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
       // ADR-206 Phase 1 (2026-09-07): definite 컨테이너의 post-flexing main 은 definite (§9.8 2항)
       // — grow 로 40 이 된 k-content 안의 `height:100%` 가 40 으로 해소된다 (종전 잔존 Δ40 → 0).
       expect(runParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`[]`);
-    });
-
-    it("K. height 축(column main) — pipeline leg", () => {
-      expect(runPipelineParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`[]`);
-    });
-
-    it("J. grid 중첩 — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(
-        `[]`,
-      );
     });
   });
 });

@@ -2,7 +2,7 @@
 
 > `.claude/rules/canvas-rendering.md` 의 구현 세부사항. 규칙 원칙은 canvas-rendering.md 를 참조한다.
 >
-> **2026-10-04 개정**: ADR-248 Phase 4 (2026-10-03) 뒤 production Canvas 는 `catalogRuntime/canvasBinding.ts` (binding 실행기) · `ruleShapes.ts` / `rulePaint.ts` (rule 실행기) · `presence.ts` (owner 파생 값) 이다. 옛 `buildSpecNodeData.ts` · factory Label 정의 · `useCentralCanvasPointerHandlers.ts` 를 근거로 한 절은 지웠다. `fullTreeLayout.ts` · `implicitStyles.ts` · `engines/utils.ts` 의 대응 로직은 parity 하니스 전용이다 ([layout-engine.md](../../../rules/layout-engine.md)).
+> **2026-10-04 개정**: ADR-248 Phase 4 (2026-10-03) 뒤 production Canvas 는 `catalogRuntime/canvasBinding.ts` (binding 실행기) · `ruleShapes.ts` / `rulePaint.ts` (rule 실행기) · `presence.ts` (owner 파생 값) 이다. 옛 `buildSpecNodeData.ts` · factory Label 정의 · `useCentralCanvasPointerHandlers.ts` 를 근거로 한 절은 지웠다. 옛 레이아웃 경로 (`fullTreeLayout.ts` · `implicitStyles.ts` 의 주입 · `engines/utils.ts` 의 태그별 크기) 는 2026-10-05 삭제됐다 ([layout-engine.md](../../../rules/layout-engine.md)).
 
 ## Label — 크기 · 줄바꿈 · 접미사
 
@@ -30,7 +30,7 @@
 
 ## Overlay 자식 제외 (Popover 류)
 
-`TRIGGER_OVERLAY_CHILDREN` (`catalogRuntime/presence.ts`) — 트리거 컴포넌트가 닫힌 overlay 에 두는 자식 (DatePicker → Calendar/Popover, Select/ComboBox → ListBox 계열/Popover, DialogTrigger, Menu …). 레이아웃은 상자를 주지 않고 Canvas 는 그리지 않는다 — Preview 에서 overlay 로 열리는 것과 같은 결과. (옛 `implicitStyles.ts` `POPOVER_CHILDREN_TAGS` 는 parity 전용.)
+`TRIGGER_OVERLAY_CHILDREN` (`catalogRuntime/presence.ts`) — 트리거 컴포넌트가 닫힌 overlay 에 두는 자식 (DatePicker → Calendar/Popover, Select/ComboBox → ListBox 계열/Popover, DialogTrigger, Menu …). 레이아웃은 상자를 주지 않고 Canvas 는 그리지 않는다 — Preview 에서 overlay 로 열리는 것과 같은 결과.
 
 ## Pointer → Move
 
@@ -57,7 +57,7 @@ shape 생성기가 상자 크기를 필요로 할 때:
 
 ## Collection Item Font (ListBoxItem/GridListItem)
 
-시각은 catalog `COMPONENT_RULES_TABLE` rule. 옛 `implicitStyles.ts` `injectCollectionItemFontStyles()` 높이 경로는 parity 전용 — [layout-details.md](layout-details.md) "Collection Item font 주입 상세".
+시각 · 측정 font 모두 catalog `COMPONENT_RULES_TABLE` rule 이다 (레이아웃 측정은 resolved record 를 읽는 `styleOf`). 옛 `injectCollectionItemFontStyles()` 높이 경로는 2026-10-05 삭제.
 
 ## fontFamilies — 측정기 ↔ 렌더러 동일 배열
 

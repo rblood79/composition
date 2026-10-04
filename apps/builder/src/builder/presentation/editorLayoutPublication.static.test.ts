@@ -9,7 +9,7 @@ describe("ADR-188 G2 publication boundary", () => {
       "utf8",
     );
 
-    expect(source).toContain('kind: "canonical-full"');
+    // canonical-full publication 과 그 publisher 는 2026-10-05 옛 layout lane 과 함께 삭제됐다.
     expect(source).toContain('kind: "presentation-targeted"');
     expect(source).toContain("baseCanonicalRevision");
     expect(source).toContain("presentationRevision");

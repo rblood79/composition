@@ -25,7 +25,7 @@
  * var() 함수 해석에 필요한 변수 이름→값 매핑.
  * 요소의 조상 체인에서 수집된 CSS custom properties.
  */
-export interface CSSVariableScope {
+interface CSSVariableScope {
   /** 변수 이름(--로 시작) → 값 매핑 */
   variables: Record<string, string>;
   /**
@@ -71,30 +71,9 @@ export const MIN_CONTENT = -3;
 export const MAX_CONTENT = -4;
 
 /**
- * W3-7: DOM fallback이 활성화된 CSSVariableScope 생성
- *
- * 요소의 커스텀 프로퍼티(인라인 변수)와 함께
- * document.documentElement의 CSS 변수(디자인 토큰)를 fallback으로 조회한다.
- *
- * @param inlineVariables - 요소 조상 체인에서 수집된 인라인 CSS 변수
- * @param domResolver - 테스트용 DOM 조회 함수 오버라이드
- * @returns DOM fallback이 활성화된 CSSVariableScope
- */
-export function createVariableScopeWithDOMFallback(
-  inlineVariables: Record<string, string> = {},
-  domResolver?: (varName: string) => string,
-): CSSVariableScope {
-  return {
-    variables: { ...inlineVariables },
-    domFallback: true,
-    ...(domResolver ? { domResolver } : {}),
-  };
-}
-
-/**
  * border shorthand 파싱 결과
  */
-export interface ParsedBorder {
+interface ParsedBorder {
   width: number;
   style: string;
   color: string;
@@ -109,32 +88,6 @@ const DEFAULT_VIEWPORT_WIDTH = 1920;
 /** 기본 뷰포트 높이 */
 const DEFAULT_VIEWPORT_HEIGHT = 1080;
 
-/**
- * 레이아웃 run 의 vw/vh 기준 viewport (border-box page 크기 = breakpoint).
- *
- * ctx 에 viewportWidth/Height 가 없을 때의 폴백. `calculateFullTreeLayout` 이 run 시작 시
- * `setLayoutViewport` 로 page 크기를 넣고, 엔진에도 같은 값을 `setViewport` 로 넘긴다.
- * **Why**: Preview iframe 은 breakpoint 폭 안에 있어 `50vw` 가 breakpoint 기준으로 풀리는데,
- * Canvas 쪽 TS 선해석 (applyCommonEngineStyle → parseCSSPropWithContext) 과 엔진 모두
- * 상수 1920×1080 을 써 390 breakpoint 에서 195 vs 960 으로 갈렸다 (2026-09-19). parse 호출처
- * 14곳이 viewport 인자를 안 넘기므로 run 단위 폴백 하나로 채운다.
- */
-let layoutViewportWidth: number | undefined;
-let layoutViewportHeight: number | undefined;
-
-export function setLayoutViewport(
-  viewport: { width: number; height: number } | null,
-): void {
-  layoutViewportWidth = viewport?.width;
-  layoutViewportHeight = viewport?.height;
-}
-
-export function getLayoutViewport(): { width: number; height: number } {
-  return {
-    width: layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH,
-    height: layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT,
-  };
-}
 /** 기본 루트 폰트 크기 */
 const DEFAULT_ROOT_FONT_SIZE = 16;
 
@@ -163,7 +116,7 @@ const VAR_MAX_DEPTH = 10;
  * resolveVar('var(--missing, 8px)', { variables: {} })
  * // '8px'
  */
-export function resolveVar(
+function resolveVar(
   value: string,
   scope: CSSVariableScope,
   depth: number = 0,
@@ -172,14 +125,14 @@ export function resolveVar(
   if (depth >= VAR_MAX_DEPTH) return value;
 
   // var() 패턴이 없으면 그대로 반환
-  if (!value.includes('var(')) return value;
+  if (!value.includes("var(")) return value;
 
   // 가장 안쪽 var()부터 해석 (중첩 처리)
   return value.replace(
     /var\(([^()]*)\)/g,
     (_match: string, content: string): string => {
       // content: "--name" 또는 "--name, fallback"
-      const commaIdx = content.indexOf(',');
+      const commaIdx = content.indexOf(",");
 
       let varName: string;
       let fallbackValue: string | undefined;
@@ -230,11 +183,13 @@ export function resolveVar(
  * 브라우저 환경이 아니면 빈 문자열을 반환한다.
  */
 function resolveVariableFromDOMDefault(varName: string): string {
-  if (typeof document === 'undefined') return '';
+  if (typeof document === "undefined") return "";
   try {
-    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(varName)
+      .trim();
   } catch {
-    return '';
+    return "";
   }
 }
 
@@ -252,10 +207,10 @@ function resolveVariableFromDOMDefault(varName: string): string {
  * 캔버스 환경에서는 safe area가 없으므로 모두 0으로 처리한다.
  */
 const KNOWN_ENV_VARS = new Set([
-  'safe-area-inset-top',
-  'safe-area-inset-bottom',
-  'safe-area-inset-left',
-  'safe-area-inset-right',
+  "safe-area-inset-top",
+  "safe-area-inset-bottom",
+  "safe-area-inset-left",
+  "safe-area-inset-right",
 ]);
 
 /**
@@ -272,7 +227,7 @@ const KNOWN_ENV_VARS = new Set([
 function resolveEnv(envExpr: string, ctx: CSSValueContext): number | undefined {
   // "env(" (4글자) ~ ")" (마지막 1글자) 제거
   const inner = envExpr.slice(4, -1);
-  const commaIdx = inner.indexOf(',');
+  const commaIdx = inner.indexOf(",");
 
   let varName: string;
   let fallbackExpr: string | undefined;
@@ -325,58 +280,67 @@ export function resolveCSSSizeValue(
   fallback?: number,
 ): number | undefined {
   // var() 치환: variableScope가 있고 값에 var()가 포함된 경우
-  if (typeof value === 'string' && value.includes('var(') && ctx.variableScope) {
+  if (
+    typeof value === "string" &&
+    value.includes("var(") &&
+    ctx.variableScope
+  ) {
     const resolved = resolveVar(value, ctx.variableScope);
     return resolveCSSSizeValue(resolved, ctx, fallback);
   }
 
-  if (value === undefined || value === null || value === '' || value === 'auto') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === "" ||
+    value === "auto"
+  ) {
     return fallback;
   }
 
   // 숫자는 그대로 반환
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return value;
   }
 
-  if (typeof value !== 'string') {
+  if (typeof value !== "string") {
     return fallback;
   }
 
   const trimmed = value.trim();
 
   // intrinsic sizing 키워드
-  if (trimmed === 'fit-content') return FIT_CONTENT;
-  if (trimmed === 'min-content') return MIN_CONTENT;
-  if (trimmed === 'max-content') return MAX_CONTENT;
+  if (trimmed === "fit-content") return FIT_CONTENT;
+  if (trimmed === "min-content") return MIN_CONTENT;
+  if (trimmed === "max-content") return MAX_CONTENT;
 
   // env() 함수
-  if (trimmed.startsWith('env(') && trimmed.endsWith(')')) {
+  if (trimmed.startsWith("env(") && trimmed.endsWith(")")) {
     const result = resolveEnv(trimmed, ctx);
     return result ?? fallback;
   }
 
   // calc() 표현식
-  if (trimmed.startsWith('calc(') && trimmed.endsWith(')')) {
+  if (trimmed.startsWith("calc(") && trimmed.endsWith(")")) {
     const expr = trimmed.slice(5, -1);
     const result = resolveCalc(expr, ctx);
     return result ?? fallback;
   }
 
   // clamp(min, val, max) 함수
-  if (trimmed.startsWith('clamp(') && trimmed.endsWith(')')) {
+  if (trimmed.startsWith("clamp(") && trimmed.endsWith(")")) {
     const result = resolveClamp(trimmed, ctx);
     return result ?? fallback;
   }
 
   // min(a, b, ...) 함수
-  if (trimmed.startsWith('min(') && trimmed.endsWith(')')) {
+  if (trimmed.startsWith("min(") && trimmed.endsWith(")")) {
     const result = resolveCSSMin(trimmed, ctx);
     return result ?? fallback;
   }
 
   // max(a, b, ...) 함수
-  if (trimmed.startsWith('max(') && trimmed.endsWith(')')) {
+  if (trimmed.startsWith("max(") && trimmed.endsWith(")")) {
     const result = resolveCSSMax(trimmed, ctx);
     return result ?? fallback;
   }
@@ -395,13 +359,13 @@ function resolveUnitValue(
   ctx: CSSValueContext,
 ): number | undefined {
   // px 단위
-  if (trimmed.endsWith('px')) {
+  if (trimmed.endsWith("px")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num;
   }
 
   // rem 단위 (em보다 먼저 검사)
-  if (trimmed.endsWith('rem')) {
+  if (trimmed.endsWith("rem")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
     const rootFs = ctx.rootFontSize ?? DEFAULT_ROOT_FONT_SIZE;
@@ -409,7 +373,7 @@ function resolveUnitValue(
   }
 
   // em 단위
-  if (trimmed.endsWith('em')) {
+  if (trimmed.endsWith("em")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
     const parentFs = ctx.parentSize ?? DEFAULT_ROOT_FONT_SIZE;
@@ -417,71 +381,71 @@ function resolveUnitValue(
   }
 
   // vh 단위
-  if (trimmed.endsWith('vh')) {
+  if (trimmed.endsWith("vh")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * vh;
   }
 
   // vw 단위
-  if (trimmed.endsWith('vw')) {
+  if (trimmed.endsWith("vw")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
     return (num / 100) * vw;
   }
 
   // vmin 단위 (vw, vh보다 먼저 검사해야 함 — 'vmin'이 'min'으로 끝나지 않으므로 순서 무관하지만 명시적으로 배치)
-  if (trimmed.endsWith('vmin')) {
+  if (trimmed.endsWith("vmin")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
-    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * Math.min(vw, vh);
   }
 
   // vmax 단위
-  if (trimmed.endsWith('vmax')) {
+  if (trimmed.endsWith("vmax")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
-    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * Math.max(vw, vh);
   }
 
   // in 단위 (1in = 96px)
-  if (trimmed.endsWith('in')) {
+  if (trimmed.endsWith("in")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num * 96;
   }
 
   // cm 단위 (1cm = 96/2.54px)
-  if (trimmed.endsWith('cm')) {
+  if (trimmed.endsWith("cm")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num * (96 / 2.54);
   }
 
   // mm 단위 (1mm = 96/25.4px)
-  if (trimmed.endsWith('mm')) {
+  if (trimmed.endsWith("mm")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num * (96 / 25.4);
   }
 
   // pc 단위 (1pc = 16px) — pt보다 먼저 검사 ('pc'가 'c'로 끝나므로 순서 무관하지만 명시적 배치)
-  if (trimmed.endsWith('pc')) {
+  if (trimmed.endsWith("pc")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num * 16;
   }
 
   // pt 단위 (1pt = 96/72px)
-  if (trimmed.endsWith('pt')) {
+  if (trimmed.endsWith("pt")) {
     const num = parseFloat(trimmed);
     return isNaN(num) ? undefined : num * (96 / 72);
   }
 
   // ch 단위 ('0' 문자 advance width 근사: fontSize * 0.5)
-  if (trimmed.endsWith('ch')) {
+  if (trimmed.endsWith("ch")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
     const fontSize = ctx.parentSize ?? DEFAULT_ROOT_FONT_SIZE;
@@ -489,7 +453,7 @@ function resolveUnitValue(
   }
 
   // ex 단위 (x-height 근사: fontSize * 0.5)
-  if (trimmed.endsWith('ex')) {
+  if (trimmed.endsWith("ex")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
     const fontSize = ctx.parentSize ?? DEFAULT_ROOT_FONT_SIZE;
@@ -497,7 +461,7 @@ function resolveUnitValue(
   }
 
   // % 단위
-  if (trimmed.endsWith('%')) {
+  if (trimmed.endsWith("%")) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
     if (ctx.containerSize !== undefined) {
@@ -534,20 +498,20 @@ function resolveUnitValue(
 function splitCSSFunctionArgs(argsStr: string): string[] {
   const args: string[] = [];
   let depth = 0;
-  let current = '';
+  let current = "";
 
   for (let i = 0; i < argsStr.length; i++) {
     const ch = argsStr[i];
 
-    if (ch === '(') {
+    if (ch === "(") {
       depth++;
       current += ch;
-    } else if (ch === ')') {
+    } else if (ch === ")") {
       depth--;
       current += ch;
-    } else if (ch === ',' && depth === 0) {
+    } else if (ch === "," && depth === 0) {
       args.push(current.trim());
-      current = '';
+      current = "";
     } else {
       current += ch;
     }
@@ -576,10 +540,7 @@ function splitCSSFunctionArgs(argsStr: string): string[] {
  * @param ctx - 단위 해석 컨텍스트
  * @returns 계산된 px 값 또는 undefined
  */
-function resolveClamp(
-  expr: string,
-  ctx: CSSValueContext,
-): number | undefined {
+function resolveClamp(expr: string, ctx: CSSValueContext): number | undefined {
   // "clamp(" (6글자) ~ ")" (마지막 1글자) 제거
   const inner = expr.slice(6, -1);
   const args = splitCSSFunctionArgs(inner);
@@ -607,10 +568,7 @@ function resolveClamp(
  * @param ctx - 단위 해석 컨텍스트
  * @returns 계산된 px 값 또는 undefined
  */
-function resolveCSSMin(
-  expr: string,
-  ctx: CSSValueContext,
-): number | undefined {
+function resolveCSSMin(expr: string, ctx: CSSValueContext): number | undefined {
   // "min(" (4글자) ~ ")" (마지막 1글자) 제거
   const inner = expr.slice(4, -1);
   const args = splitCSSFunctionArgs(inner);
@@ -637,10 +595,7 @@ function resolveCSSMin(
  * @param ctx - 단위 해석 컨텍스트
  * @returns 계산된 px 값 또는 undefined
  */
-function resolveCSSMax(
-  expr: string,
-  ctx: CSSValueContext,
-): number | undefined {
+function resolveCSSMax(expr: string, ctx: CSSValueContext): number | undefined {
   // "max(" (4글자) ~ ")" (마지막 1글자) 제거
   const inner = expr.slice(4, -1);
   const args = splitCSSFunctionArgs(inner);
@@ -662,7 +617,7 @@ function resolveCSSMax(
 // ============================================
 
 /** calc 토큰 타입 */
-type CalcTokenType = 'number' | 'operator' | 'lparen' | 'rparen';
+type CalcTokenType = "number" | "operator" | "lparen" | "rparen";
 
 interface CalcToken {
   type: CalcTokenType;
@@ -684,7 +639,7 @@ const CALC_MAX_DEPTH = 10;
  * @param ctx - 단위 해석 컨텍스트
  * @returns 계산된 px 값 또는 undefined
  */
-export function resolveCalc(
+function resolveCalc(
   expr: string,
   ctx: CSSValueContext = {},
 ): number | undefined {
@@ -708,11 +663,14 @@ export function resolveCalc(
     let result = parseTerm(depth);
     if (result === undefined) return undefined;
 
-    while (peek()?.type === 'operator' && (peek()?.value === '+' || peek()?.value === '-')) {
+    while (
+      peek()?.type === "operator" &&
+      (peek()?.value === "+" || peek()?.value === "-")
+    ) {
       const op = consume()!.value;
       const right = parseTerm(depth);
       if (right === undefined) return undefined;
-      result = op === '+' ? result + right : result - right;
+      result = op === "+" ? result + right : result - right;
     }
 
     return result;
@@ -723,11 +681,14 @@ export function resolveCalc(
     let result = parseFactor(depth);
     if (result === undefined) return undefined;
 
-    while (peek()?.type === 'operator' && (peek()?.value === '*' || peek()?.value === '/')) {
+    while (
+      peek()?.type === "operator" &&
+      (peek()?.value === "*" || peek()?.value === "/")
+    ) {
       const op = consume()!.value;
       const right = parseFactor(depth);
       if (right === undefined) return undefined;
-      if (op === '/') {
+      if (op === "/") {
         if (right === 0) return undefined; // 0으로 나누기 방지
         result = result / right;
       } else {
@@ -744,17 +705,17 @@ export function resolveCalc(
     if (!token) return undefined;
 
     // 괄호
-    if (token.type === 'lparen') {
+    if (token.type === "lparen") {
       consume();
       const result = parseCalcExpr(depth + 1);
       if (result === undefined) return undefined;
-      if (peek()?.type !== 'rparen') return undefined;
+      if (peek()?.type !== "rparen") return undefined;
       consume();
       return result;
     }
 
     // 숫자 (단위 포함, 이미 px로 변환됨)
-    if (token.type === 'number') {
+    if (token.type === "number") {
       consume();
       return token.numericValue;
     }
@@ -783,35 +744,35 @@ function tokenizeCalc(expr: string, ctx: CSSValueContext): CalcToken[] {
     const ch = expr[i];
 
     // 공백 건너뛰기
-    if (ch === ' ' || ch === '\t' || ch === '\n') {
+    if (ch === " " || ch === "\t" || ch === "\n") {
       i++;
       continue;
     }
 
     // 괄호
-    if (ch === '(') {
-      tokens.push({ type: 'lparen', value: '(' });
+    if (ch === "(") {
+      tokens.push({ type: "lparen", value: "(" });
       i++;
       continue;
     }
-    if (ch === ')') {
-      tokens.push({ type: 'rparen', value: ')' });
+    if (ch === ")") {
+      tokens.push({ type: "rparen", value: ")" });
       i++;
       continue;
     }
 
     // 연산자 (+, *, /)
-    if (ch === '+' || ch === '*' || ch === '/') {
-      tokens.push({ type: 'operator', value: ch });
+    if (ch === "+" || ch === "*" || ch === "/") {
+      tokens.push({ type: "operator", value: ch });
       i++;
       continue;
     }
 
     // '-'는 연산자 또는 음수 부호
-    if (ch === '-') {
+    if (ch === "-") {
       const prev = tokens[tokens.length - 1];
-      if (prev && (prev.type === 'number' || prev.type === 'rparen')) {
-        tokens.push({ type: 'operator', value: '-' });
+      if (prev && (prev.type === "number" || prev.type === "rparen")) {
+        tokens.push({ type: "operator", value: "-" });
         i++;
         continue;
       }
@@ -819,34 +780,41 @@ function tokenizeCalc(expr: string, ctx: CSSValueContext): CalcToken[] {
     }
 
     // 숫자 + 단위 파싱
-    if (ch === '-' || ch === '.' || (ch >= '0' && ch <= '9')) {
-      let numStr = '';
+    if (ch === "-" || ch === "." || (ch >= "0" && ch <= "9")) {
+      let numStr = "";
       // 부호
-      if (expr[i] === '-') {
-        numStr += '-';
+      if (expr[i] === "-") {
+        numStr += "-";
         i++;
       }
       // 정수/소수부
-      while (i < expr.length && ((expr[i] >= '0' && expr[i] <= '9') || expr[i] === '.')) {
+      while (
+        i < expr.length &&
+        ((expr[i] >= "0" && expr[i] <= "9") || expr[i] === ".")
+      ) {
         numStr += expr[i];
         i++;
       }
       // 단위부 (알파벳)
-      let unit = '';
-      while (i < expr.length && expr[i] >= 'a' && expr[i] <= 'z') {
+      let unit = "";
+      while (i < expr.length && expr[i] >= "a" && expr[i] <= "z") {
         unit += expr[i];
         i++;
       }
       // % 단위
-      if (i < expr.length && expr[i] === '%') {
-        unit = '%';
+      if (i < expr.length && expr[i] === "%") {
+        unit = "%";
         i++;
       }
 
       const fullValue = numStr + unit;
       const resolved = resolveUnitValue(fullValue, ctx);
       if (resolved !== undefined) {
-        tokens.push({ type: 'number', value: fullValue, numericValue: resolved });
+        tokens.push({
+          type: "number",
+          value: fullValue,
+          numericValue: resolved,
+        });
       } else {
         // 해석 실패 시 빈 배열 반환으로 파싱 중단
         return [];
@@ -862,121 +830,21 @@ function tokenizeCalc(expr: string, ctx: CSSValueContext): CalcToken[] {
 }
 
 // ============================================
-// font shorthand 파서
-// ============================================
-
-export interface ParsedFont {
-  fontStyle?: string;
-  fontWeight?: string;
-  fontSize?: string;
-  lineHeight?: string;
-  fontFamily?: string;
-}
-
-const FONT_STYLES = new Set(['italic', 'oblique', 'normal']);
-const FONT_WEIGHTS = new Set(['bold', 'bolder', 'lighter', 'normal']);
-const FONT_VARIANTS = new Set(['small-caps', 'normal']);
-
-function isFontWeightNumber(token: string): boolean {
-  return /^\d+$/.test(token) && !token.endsWith('px') && !token.endsWith('em');
-}
-
-function isFontSizeToken(token: string): boolean {
-  if (isFontWeightNumber(token)) return false;
-  return (
-    /^[\d.]/.test(token) ||
-    token.endsWith('px') ||
-    token.endsWith('em') ||
-    token.endsWith('rem') ||
-    token.endsWith('%') ||
-    token.endsWith('vw') ||
-    token.endsWith('vh') ||
-    ['xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large', 'smaller', 'larger'].includes(token)
-  );
-}
-
-export function parseFontShorthand(value: unknown): ParsedFont | undefined {
-  if (typeof value !== 'string' || !value.trim()) {
-    return undefined;
-  }
-
-  const trimmed = value.trim();
-
-  const firstCommaIdx = trimmed.indexOf(',');
-
-  let preFamilyStr: string;
-  let remainingFamilyStr: string;
-
-  if (firstCommaIdx === -1) {
-    preFamilyStr = trimmed;
-    remainingFamilyStr = '';
-  } else {
-    preFamilyStr = trimmed.slice(0, firstCommaIdx);
-    remainingFamilyStr = trimmed.slice(firstCommaIdx);
-  }
-
-  const preTokens = preFamilyStr.trim().split(/\s+/);
-
-  const result: ParsedFont = {};
-
-  let sizeTokenIdx = -1;
-  for (let i = 0; i < preTokens.length; i++) {
-    const token = preTokens[i];
-    const slashIdx = token.indexOf('/');
-
-    if (slashIdx !== -1) {
-      const sizePart = token.slice(0, slashIdx);
-      const lineHeightPart = token.slice(slashIdx + 1);
-      if (isFontSizeToken(sizePart)) {
-        result.fontSize = sizePart;
-        if (lineHeightPart) result.lineHeight = lineHeightPart;
-        sizeTokenIdx = i;
-        break;
-      }
-    } else if (
-      isFontSizeToken(token) &&
-      !FONT_STYLES.has(token) &&
-      !FONT_WEIGHTS.has(token) &&
-      !FONT_VARIANTS.has(token)
-    ) {
-      result.fontSize = token;
-      sizeTokenIdx = i;
-      break;
-    }
-  }
-
-  const prePreTokens = sizeTokenIdx >= 0 ? preTokens.slice(0, sizeTokenIdx) : preTokens;
-  for (const token of prePreTokens) {
-    const lower = token.toLowerCase();
-    if (FONT_STYLES.has(lower) && lower !== 'normal' && result.fontStyle === undefined) {
-      result.fontStyle = lower;
-    } else if (FONT_WEIGHTS.has(lower) && lower !== 'normal' && result.fontWeight === undefined) {
-      result.fontWeight = lower;
-    } else if (isFontWeightNumber(lower) && result.fontWeight === undefined) {
-      result.fontWeight = lower;
-    }
-  }
-
-  if (sizeTokenIdx >= 0 && sizeTokenIdx + 1 < preTokens.length) {
-    const familyFirstWord = preTokens.slice(sizeTokenIdx + 1).join(' ');
-    result.fontFamily = remainingFamilyStr
-      ? familyFirstWord + remainingFamilyStr
-      : familyFirstWord;
-  } else if (remainingFamilyStr && sizeTokenIdx >= 0) {
-    result.fontFamily = remainingFamilyStr.slice(1).trim();
-  }
-
-  return result;
-}
-
-// ============================================
 // border shorthand 파서
 // ============================================
 
 /** border-style 키워드 목록 */
 const BORDER_STYLES = new Set([
-  'none', 'hidden', 'dotted', 'dashed', 'solid',
-  'double', 'groove', 'ridge', 'inset', 'outset',
+  "none",
+  "hidden",
+  "dotted",
+  "dashed",
+  "solid",
+  "double",
+  "groove",
+  "ridge",
+  "inset",
+  "outset",
 ]);
 
 /**
@@ -995,7 +863,7 @@ const BORDER_STYLES = new Set([
  * // { width: 2, style: 'solid', color: 'red' }
  */
 export function parseBorderShorthand(value: unknown): ParsedBorder | undefined {
-  if (typeof value !== 'string' || !value.trim()) {
+  if (typeof value !== "string" || !value.trim()) {
     return undefined;
   }
 
@@ -1027,7 +895,7 @@ export function parseBorderShorthand(value: unknown): ParsedBorder | undefined {
 
   return {
     width: width ?? 0,
-    style: style ?? 'none',
-    color: color ?? '#000000',
+    style: style ?? "none",
+    color: color ?? "#000000",
   };
 }

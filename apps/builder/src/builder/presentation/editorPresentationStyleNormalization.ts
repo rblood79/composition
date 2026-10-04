@@ -81,12 +81,3 @@ export function normalizePresentationSpacingPatch(
 ): Record<string, unknown> {
   return normalizePresentationSpacingStyle(patch);
 }
-
-export function hasPresentationSpacingPatch(patch: StyleRecord): boolean {
-  return ["gap", ...GAP_LONGHANDS, "padding", ...PADDING_LONGHANDS].some(
-    (key) => Object.prototype.hasOwnProperty.call(patch, key),
-  );
-}
-
-export const presentationGapLonghands = GAP_LONGHANDS;
-export const presentationPaddingLonghands = PADDING_LONGHANDS;

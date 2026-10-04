@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -33,7 +32,7 @@ import {
  *
  * ## leg 구성
  * - `engineLeg` — 엔진 직접. 측정 스칼라를 fixture 가 직접 주므로 TS 층과 격리된다.
- * - `pipelineLeg` — `calculateFullTreeLayout` 전체. 스칼라 공급 게이트까지 포함.
+ *   (옛 pipeline leg — `calculateFullTreeLayout` — 는 2026-10-05 fullTreeLayout 삭제와 함께 제거)
  *
  * DOM leg 은 실제 Preview 와 같게 텍스트에 `width:100%` 를 준다 — catalog `Text`
  * containerStyles 가 그 값이고(ADR-151 B22) generated CSS 도 동일하다. 빼면 오라클이
@@ -137,54 +136,6 @@ describe("Container Align — 교차축 shrink-to-fit", () => {
         ).toEqual([]);
       });
     }
-  });
-
-  describe("파이프라인 — 텍스트 leaf 스칼라 공급", () => {
-    // B22 가 텍스트 leaf 에 `width:100%` 를 선주입한다. 그 값은 키워드도 `auto` 도 아니라
-    // 스칼라 공급 게이트에서 탈락했는데, 순환 백분율이라 해소되지 않는 상황에서는 엔진이
-    // fallback 할 content 크기를 잃는다 → 폭 0.
-    const TXT: CaseNode = {
-      label: "t",
-      style: { fontSize: "16px", lineHeight: "20px", width: "100%" },
-      text: "Inbox unread messages",
-      elementType: "Text",
-    };
-    const ICON: CaseNode = {
-      label: "icon",
-      style: { width: "24px", height: "24px" },
-    };
-
-    it("텍스트 leaf + center: 접히지 않는다", () => {
-      const c = wrap("t", "center", ROW, [TXT]);
-      expect(
-        diffCase(
-          c.nodes,
-          domLeg(c.nodes, c.availW),
-          pipelineLeg(c.nodes, c.availW, c.availH),
-        ),
-      ).toEqual([]);
-    });
-
-    it("아이콘+텍스트 + center: 행 폭이 아이콘 폭으로 접히지 않는다", () => {
-      const c = wrap("t", "center", ROW, [ICON, TXT]);
-      const dom = domLeg(c.nodes, c.availW);
-      const pipe = pipelineLeg(c.nodes, c.availW, c.availH);
-      const boxIdx = c.nodes.findIndex((n) => n.label === "box");
-      // 라이브 증상: 행이 아이콘 폭(24)만 남았다. 지금은 아이콘+텍스트 합.
-      expect(pipe[boxIdx].w).toBeGreaterThan(150);
-      expect(Math.abs(pipe[boxIdx].w - dom[boxIdx].w)).toBeLessThanOrEqual(2);
-    });
-
-    it("텍스트 leaf + stretch: 종전대로 컨테이너 폭 (대조군)", () => {
-      const c = wrap("t", "stretch", ROW, [TXT]);
-      expect(
-        diffCase(
-          c.nodes,
-          domLeg(c.nodes, c.availW),
-          pipelineLeg(c.nodes, c.availW, c.availH),
-        ),
-      ).toEqual([]);
-    });
   });
 
   describe("`%` 는 확정된 컨테이너 크기로 재해소된다 (2026-07-28 해소)", () => {

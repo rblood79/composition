@@ -37,4 +37,3 @@ paths:
 - **ADR-062 (Field variant 제거)**: D2 정리. RSP 미규정 prop 제거 + RSP 규정 prop(isQuiet) 보강
 - **ADR-063 (본 charter)**: 본 규칙의 ADR 형식 정식화
 - **ADR-142 (Starter/Spec Component System Cutover, Implemented 2026-06-02)**: D3 SSOT를 컴포넌트당 spec 파일에서 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection으로 재정의. ADR-036/907/908의 spec 스키마 메커니즘을 폐기(907/908은 잔존 spec 3개 한정 존속)
-

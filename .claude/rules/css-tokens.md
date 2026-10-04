@@ -111,14 +111,14 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 좌/우 panel toggle rail · header viewport controls · header action group · contextual action bar · workspace panel frame 은 **하나의 디자인 요소**다. 정본: `builder-system.css` §Chrome island.
 
-| 토큰                       | 용도                                              |
-| -------------------------- | ------------------------------------------------- |
-| `--chrome-surface`         | 표면색 (지면 `--bg-overlay` 위의 raised)          |
-| `--chrome-border`          | `0` — **테두리 없음**. 분리는 그림자 단계로만     |
-| `--chrome-radius`          | 모서리                                            |
-| `--chrome-padding` / `-gap`| 안쪽 여백 · 항목 간격                             |
-| `--chrome-shadow`          | 고도 1 — 컨트롤 island                            |
-| `--chrome-shadow-floating` | 고도 2 — 자유 배치되는 panel frame                |
+| 토큰                        | 용도                                          |
+| --------------------------- | --------------------------------------------- |
+| `--chrome-surface`          | 표면색 (지면 `--bg-overlay` 위의 raised)      |
+| `--chrome-border`           | `0` — **테두리 없음**. 분리는 그림자 단계로만 |
+| `--chrome-radius`           | 모서리                                        |
+| `--chrome-padding` / `-gap` | 안쪽 여백 · 항목 간격                         |
+| `--chrome-shadow`           | 고도 1 — 컨트롤 island                        |
+| `--chrome-shadow-floating`  | 고도 2 — 자유 배치되는 panel frame            |
 
 - ❌ chrome 표면에 `--bg-raised` / `--shadow-sm` **직접 사용** — 다시 갈린다
 - ❌ chrome 에 `border` / `outline` 링 추가 (구 `--border-pressed` + placed outline = 링 2겹)
@@ -127,10 +127,10 @@ Dark: `bg(zinc-900) → raised(zinc-850) → overlay(zinc-800) → muted(zinc-70
 
 ### 컨트롤 크기 — 2티어뿐
 
-| 토큰                | 값   | 대상                                                                          |
-| ------------------- | ---- | ----------------------------------------------------------------------------- |
+| 토큰                | 값   | 대상                                                                                           |
+| ------------------- | ---- | ---------------------------------------------------------------------------------------------- |
 | `--control-size`    | 28px | 필드 · 탭 · 라벨 액션(`.control-button`) · 목록/트리 행 · 인라인 아이콘 버튼 · action bar 항목 |
-| `--control-size-lg` | 32px | chrome island 버튼 · `panel-header` · `section-header` 행 · SearchField        |
+| `--control-size-lg` | 32px | chrome island 버튼 · `panel-header` · `section-header` 행 · SearchField                        |
 
 **아이콘 전용 정사각 컨트롤의 기하 정본은 `styles/modules/builder-control-size.css` 한 파일**이다. 자리마다 크기를 바꿀 때는 `--icon-control-size` 만 다시 준다.
 

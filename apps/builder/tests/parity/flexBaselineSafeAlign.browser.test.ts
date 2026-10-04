@@ -6,7 +6,6 @@ import {
   diffCase,
   domLeg,
   engineLeg,
-  pipelineLeg,
   type CaseNode,
   type ParityCase,
   type StyleRecord,
@@ -336,18 +335,6 @@ describe("⑦ flex baseline · safe/unsafe · self-start/self-end", () => {
         c.nodes,
         domLeg(c.nodes, c.availW),
         engineLeg(c.nodes, c.availW, c.availH),
-      );
-      expect(bad, bad.join("\n")).toEqual([]);
-    },
-  );
-
-  it.each(ALL.map((c) => [c.name, c] as const))(
-    "pipeline leg — %s",
-    (_name, c) => {
-      const bad = diffCase(
-        c.nodes,
-        domLeg(c.nodes, c.availW),
-        pipelineLeg(c.nodes, c.availW, c.availH),
       );
       expect(bad, bad.join("\n")).toEqual([]);
     },

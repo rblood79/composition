@@ -98,11 +98,10 @@ const LAYOUT_PROPS = [
 - ❌ 미리보기에서 `workspace.execute` 호출 (드래그 한 번에 히스토리 수십 개) — `previewRecord` 를 쓴다
 - ❌ PropertyUnitInput commit 판정을 `value` prop 기반 diff 로 처리
 
-## 8. parity 하니스 전용 helper (production 아님)
+## 8. specs 내부 helper (production Canvas 판정 아님)
 
-아래는 `fullTreeLayout.ts` parity 경로와 specs 내부 계산이 쓴다. production Canvas · 레이아웃은 위 §3 의 함수를 쓴다 — 여기에 고쳐도 화면은 바뀌지 않는다.
+아래는 specs 내부 계산이 쓴다. production Canvas · 레이아웃은 위 §3 의 함수를 쓴다 — 여기에 고쳐도 레이아웃은 바뀌지 않는다. (옛 `fullTreeLayout.ts` 경로의 `utils.ts::readGapValue` 는 2026-10-05 삭제.)
 
-- `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts::readGapValue` · `resolveContainerSpacing` 호출부
 - `packages/specs/src/primitives/containerSpacing.ts::resolveContainerSpacing` (Layer B) · `cssValueParser.ts::parsePxValue / parseGapValue / parsePadding4Way` (Layer A)
 - `packages/specs/src/renderers/utils/collectionItemMetrics.ts::resolveListBoxSpacingMetric / resolveGridListSpacingMetric` (Layer D)
 

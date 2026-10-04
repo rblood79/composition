@@ -3,12 +3,12 @@
  *
  * 엔진 WASM 트리를 clear() 없이 유지하는 클래스 (구 `persistentTaffyTree.ts` — ADR-923 Phase 6 개명).
  *
- * fullTreeLayout.ts의 매 프레임 clear() + buildTreeBatch() 패턴과 달리,
+ * 매번 clear() + buildTreeBatch() 로 다시 짓지 않고,
  * 변경된 노드만 updateStyleRaw() / setChildren()으로 갱신하여
  * 엔진 내부 dirty cache 를 최대한 활용한다.
  *
  * 변경 감지 전략:
- * - _lastJsonMap: JSON 문자열 비교로 간접 의존성 변경까지 포착 (부모/형제 변경 → enrichment/display adapter 결과)
+ * - _lastJsonMap: style JSON 문자열 비교 — 같으면 WASM 호출 스킵
  * - childrenHashMap: childIds.join(',') 비교 → 동일하면 setChildren 스킵
  * 엔진은 dirty 플래그가 있는 서브트리만 재계산하므로 변경 없는 노드는 O(1) 스킵된다.
  *
@@ -20,7 +20,7 @@
  * 5. getLayoutsBatch() — 전체 결과 수집
  * 6. reset() — 페이지 전환 시 전체 초기화
  *
- * @see fullTreeLayout.ts — BatchNode 타입, engineStyleToRecord() 결과 형식
+ * @see compositionRoot.ts — `styleOf` (style 직렬화기, 유일한 호출자)
  * @see engine.ts — EngineLayout.updateStyleRaw() / createNodeRaw()
  */
 
@@ -36,51 +36,15 @@ import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
 /**
  * buildFull()에 전달되는 배치 노드 항목.
  *
- * fullTreeLayout.ts의 BatchNode 인터페이스와 동일한 형태이며,
- * elementId 필드가 추가되어 handleMap 구성에 사용된다.
+ * `{style, children}` 에 elementId 가 추가되어 handleMap 구성에 사용된다.
  */
 export interface PersistentBatchNode {
-  /** engineStyleToRecord() 결과 — 이미 정규화된 Record (JSON 직렬화 가능) */
+  /** `styleOf` 결과 — 이미 정규화된 Record (길이는 "Npx" 문자열, JSON 직렬화 가능) */
   style: Record<string, unknown>;
   /** batch 배열 내 자식 인덱스 참조 (post-order DFS 순서 보장) */
   children: number[];
   /** handleMap 구성 및 레이아웃 결과 역매핑에 사용 */
   elementId: string;
-  /**
-   * 이 노드를 `enrichWithIntrinsicSize` 에 넘길 때 쓴 available width.
-   *
-   * Step 4.5(height-for-width 재측정)는 "enrichment 가 어떤 폭을 가정했는가" 와 실배치
-   * 폭을 비교해 재측정 여부를 정한다. 그 가정 폭을 style 로부터 **역추정**하면 grid
-   * 자식에서 어긋난다 — grid 는 부모 폭이 아니라 **트랙 추정폭**을 넘기기 때문이다.
-   * 어긋나면 "어느 폭에서도 단일줄" skip 이 잘못 발동해, 좁은 추정폭에서 계산된 2줄
-   * 높이가 그대로 굳는다 (실측 `1fr auto`/400: DOM 20 / 엔진 40).
-   *
-   * WASM payload 는 `{style, children}` 만 뽑아 보내므로 이 필드는 직렬화되지 않는다.
-   */
-  enrichAvailWidth?: number;
-}
-
-/**
- * Presentation layout lane이 계산한 immutable targeted input snapshot.
- * `roots`는 used-size promotion 이후 dirty 처리할 root이고, `affectedNodeIds`는
- * publication으로 반환할 결과 집합이다. `parentChain`은 promotion 비용을 별도
- * 계측하기 위한 호출부 경계이며, 엔진 내부에서 다시 전체 트리를 추정하지 않는다.
- */
-export interface PersistentLayoutTargetSet {
-  readonly affectedNodeIds: readonly string[];
-  readonly parentChain: readonly string[];
-  readonly roots: readonly string[];
-}
-
-export interface PersistentTargetedLayoutMetrics {
-  readonly engineComputeCalls: number;
-  readonly inputNodeVisits: number;
-  readonly resultNodeVisits: number;
-}
-
-export interface PersistentTargetedLayoutResult {
-  readonly layoutMap: Map<string, LayoutResult>;
-  readonly metrics: PersistentTargetedLayoutMetrics;
 }
 
 // ─── 클래스 ───────────────────────────────────────────────────────────
@@ -110,7 +74,6 @@ export class PersistentLayoutTree {
 
   /**
    * elementId → 마지막으로 WASM에 전달한 JSON.
-   * 간접 의존성 변경 감지(부모/형제 변경 → enrichment/display adapter 결과 변경)를 위해
    * JSON 문자열 비교를 수행하며, 동일하면 WASM 호출을 스킵한다.
    */
   private _lastJsonMap = new Map<string, string>();
@@ -150,7 +113,7 @@ export class PersistentLayoutTree {
   /**
    * 전체 트리 초기 구축.
    *
-   * fullTreeLayout.ts의 DFS post-order 순회 결과(batch)를 받아서
+   * post-order 순회 결과(batch)를 받아서
    * buildTreeBatch() 1회 WASM 호출로 전체 트리를 구축하고
    * handleMap / childrenHashMap / _lastJsonMap을 초기화한다.
    *
@@ -233,16 +196,16 @@ export class PersistentLayoutTree {
    * JSON 문자열 비교로 실제 변경 여부를 판단한다.
    * DFS 순회 중 계산되는 스타일은 부모/형제/자식 컨텍스트에 의존하므로,
    * Store 레벨 dirty tracking만으로는 모든 변경을 포착할 수 없다.
-   * JSON 비교는 DFS 계산 결과를 직접 비교하여 의존 경로와 무관하게 정확하다.
+   * JSON 비교는 직렬화된 입력 전체를 비교하므로 의존 경로와 무관하게 정확하다.
    *
    * 엔진은 내부적으로 mark_dirty()를 호출하므로 다음 computeLayout()에서
    * 해당 노드와 조상 노드만 재계산된다.
    *
-   * styleRecord는 engineStyleToRecord()로 이미 정규화된 상태여야 한다.
+   * styleRecord는 `styleOf` 로 이미 정규화된 상태여야 한다.
    * (숫자 dimension이 "Npx" 문자열로 변환된 상태)
    *
    * @param elementId   - 업데이트할 요소 ID
-   * @param styleRecord - engineStyleToRecord() 결과 (이미 정규화된 Record)
+   * @param styleRecord - `styleOf` 결과 (이미 정규화된 Record)
    * @returns true if 실제로 스타일이 변경되어 WASM 호출이 발생한 경우
    */
   updateNodeStyle(
@@ -252,9 +215,7 @@ export class PersistentLayoutTree {
     const handle = this.handleMap.get(elementId);
     if (handle === undefined) return false;
 
-    // JSON 직렬화 + 비교 — 간접 의존성 변경까지 포착
-    // (부모/형제 변경 → enrichment/display adapter/implicit style 변경 →
-    //  dirty 마킹 없이도 스타일이 달라질 수 있음)
+    // JSON 직렬화 + 비교 — 같으면 WASM 호출 스킵
     const json = JSON.stringify(styleRecord);
     const existingJson = this._lastJsonMap.get(elementId);
 
@@ -262,7 +223,7 @@ export class PersistentLayoutTree {
       return false;
     }
 
-    // engineStyleToRecord() 결과는 이미 "Npx" 형식으로 정규화되어 있으므로
+    // `styleOf` 결과는 이미 "Npx" 형식으로 정규화되어 있으므로
     // normalizeStyle() 이중 변환을 방지하기 위해 updateStyleRaw() 사용
     this.engine.updateStyleRaw(handle, json);
     this._lastJsonMap.set(elementId, json);
@@ -278,13 +239,6 @@ export class PersistentLayoutTree {
     if (handle === undefined) return false;
     this.engine.markDirty(handle);
     return true;
-  }
-
-  /**
-   * 노드의 마지막 스타일 JSON 문자열 반환 (display 전환 감지용).
-   */
-  getLastJson(elementId: string): string | undefined {
-    return this._lastJsonMap.get(elementId);
   }
 
   /**
@@ -325,10 +279,10 @@ export class PersistentLayoutTree {
    * addNode() 후 반드시 부모의 updateChildren()을 호출하여
    * 트리 구조에 연결해야 한다.
    *
-   * styleRecord는 engineStyleToRecord()로 이미 정규화된 상태여야 한다.
+   * styleRecord는 `styleOf` 로 이미 정규화된 상태여야 한다.
    *
    * @param elementId   - 새 요소 ID
-   * @param styleRecord - engineStyleToRecord() 결과 (이미 정규화된 Record)
+   * @param styleRecord - `styleOf` 결과 (이미 정규화된 Record)
    * @returns 생성된 엔진 node handle
    */
   addNode(
@@ -444,125 +398,7 @@ export class PersistentLayoutTree {
     return result;
   }
 
-  /**
-   * presentation layout lane용 dirty compute 진입점.
-   *
-   * `dirtyElementIds`는 used-size 전파가 끝난 layout root 집합이어야 한다. 엔진은
-   * persistent root에서 `computeLayout()`을 수행하지만, dirty cache가 해당 root와
-   * 조상만 재계산하고 결과 수집은 `resultElementIds`로 제한한다. 따라서 이 메서드는
-   * page-root 전체 계산이 없다고 주장하지 않으며, 호출부가 parent promotion을 먼저
-   * 완료했는지 검증할 수 있는 명시적 경계를 제공한다.
-   *
-   * @param dirtyElementIds - style/children 변경으로 dirty 처리할 root ID 집합
-   * @param resultElementIds - layout 결과가 필요한 affected subtree ID 집합
-   * @returns elementId → LayoutResult 매핑
-   */
-  computeDirtyLayoutForIds(
-    dirtyElementIds: Iterable<string>,
-    resultElementIds: Iterable<string>,
-    availableWidth: number,
-    availableHeight: number,
-  ): Map<string, LayoutResult> {
-    return this.computeTargetedLayout(
-      {
-        affectedNodeIds: [...new Set(resultElementIds)],
-        parentChain: [],
-        roots: [...new Set(dirtyElementIds)],
-      },
-      availableWidth,
-      availableHeight,
-    ).layoutMap;
-  }
-
-  /**
-   * typed targeted input/result 경계.
-   *
-   * 입력 집합 정규화·dirty root 마킹·persistent root 계산·affected 결과 수집을 한
-   * 호출로 묶되, 결과는 `affectedNodeIds` 밖으로 확장하지 않는다. `metrics`는 JS
-   * 호출부 방문 항과 엔진 compute 호출을 분리해 G1에서 전체 tree 수집을 위장하지
-   * 않도록 한다.
-   */
-  computeTargetedLayout(
-    targetSet: PersistentLayoutTargetSet,
-    availableWidth: number,
-    availableHeight: number,
-  ): PersistentTargetedLayoutResult {
-    const roots = [...new Set(targetSet.roots)].filter((id) =>
-      this.handleMap.has(id),
-    );
-    const affectedNodeIds = [...new Set(targetSet.affectedNodeIds)].filter(
-      (id) => this.handleMap.has(id),
-    );
-    const parentChain = [...new Set(targetSet.parentChain)];
-    const inputNodeVisits =
-      roots.length + parentChain.length + affectedNodeIds.length;
-
-    if (roots.length === 0) {
-      return {
-        layoutMap: new Map(),
-        metrics: {
-          engineComputeCalls: 0,
-          inputNodeVisits,
-          resultNodeVisits: 0,
-        },
-      };
-    }
-
-    for (const elementId of roots) {
-      this.markDirty(elementId);
-    }
-    this.computeLayout(availableWidth, availableHeight);
-    const layoutMap = this.getLayoutsForIds(affectedNodeIds);
-    return {
-      layoutMap,
-      metrics: {
-        engineComputeCalls: 1,
-        inputNodeVisits,
-        resultNodeVisits: layoutMap.size,
-      },
-    };
-  }
-
   // ─── 조회 유틸리티 ──────────────────────────────────────────────────
-
-  /**
-   * elementId에 대응하는 엔진 node handle 반환.
-   * 존재하지 않으면 undefined.
-   */
-  getHandle(elementId: string): EngineNodeHandle | undefined {
-    return this.handleMap.get(elementId);
-  }
-
-  /**
-   * handle에 대응하는 elementId 역매핑 반환.
-   *
-   * getLayoutsBatch() 결과를 elementId 기반 Map으로 변환할 때 사용한다.
-   * handleMap을 순회하므로 O(N) — 빈번한 호출 시 역방향 Map 캐시를 고려할 것.
-   *
-   * @param handle - 조회할 엔진 node handle
-   * @returns 해당 elementId, 없으면 undefined
-   */
-  getElementId(handle: EngineNodeHandle): string | undefined {
-    for (const [id, h] of this.handleMap) {
-      if (h === handle) return id;
-    }
-    return undefined;
-  }
-
-  /**
-   * 전체 elementId → handle 매핑 반환.
-   * 읽기 전용 접근에 사용 (Map 자체를 외부에서 수정하지 말 것).
-   */
-  getAllHandles(): Map<string, EngineNodeHandle> {
-    return this.handleMap;
-  }
-
-  /**
-   * 해당 elementId의 노드가 트리에 존재하는지 확인.
-   */
-  hasNode(elementId: string): boolean {
-    return this.handleMap.has(elementId);
-  }
 
   /**
    * WASM 엔진에서 관리 중인 활성 노드 수.

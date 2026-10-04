@@ -6,8 +6,8 @@
  *   `.react-aria-{Parent}[data-size="md"] .react-aria-FieldError { --tf-hint-size: var(--text-sm); }`
  *   `.react-aria-{Parent} .react-aria-FieldError { --error-font-size: var(--tf-hint-size); }`
  * 를 emit 하고 base.css 의 `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`
- * 가 그것을 읽는다 — DOM 의 computed font-size 원천이 이 delegation 이다. Skia (buildSpecNodeData) 와
- * layout (fullTreeLayout) 이 같은 항목을 읽어야 FieldError 글자 크기·줄 높이가 세 표면에서 같다
+ * 가 그것을 읽는다 — DOM 의 computed font-size 원천이 이 delegation 이다. Canvas 도 같은 항목을
+ * 읽어야 (당시 consumer buildSpecNodeData · fullTreeLayout 는 삭제됨) FieldError 글자 크기·줄 높이가 세 표면에서 같다
  * (실측: TextField md = 14 · NumberField/DateField/TimeField md = 12, FieldError 자체 rule md 는 12 라
  * 자체 rule 만 읽으면 TextField 가 갈린다).
  *

@@ -9,7 +9,7 @@
  *     "Ensure only one item is expanded if allowsMultipleExpanded is false" 로직이 있어
  *     (react-stately useDisclosureGroupState.mjs:24-30) 키가 2개 이상이면 **첫 번째만** 남긴다.
  *     즉 개별 Disclosure 의 `isExpanded` 는 그룹이 override 한다.
- *   - **Skia**: `applyImplicitStyles`(disclosure 분기) / `resolveDisclosureHeaderParent`(chevron)가
+ *   - **Skia** (당시): `applyImplicitStyles`(disclosure 분기 — 2026-10-05 삭제) / `resolveDisclosureHeaderParent`(chevron)가
  *     오직 `disclosure.props.isExpanded === false` 만 봤다. **부모 그룹의 제약을 전혀 모른다** →
  *     `allowsMultipleExpanded=false` 인데도 자식 Disclosure 를 전부 펼쳐 그림.
  *

@@ -72,8 +72,7 @@ describe("ADR-151 후속 — TableView catalog CSS 채널", () => {
   it("element.props.style 을 root 에 전달한다 (사용자 값이 잔여 inline 을 이긴다)", () => {
     const el = makeElement({ style: { padding: 99, overflow: "visible" } });
     const style = rootProps(renderTableView(el, makeContext(el))).style as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(style?.padding).toBe(99);
     expect(style?.overflow).toBe("visible");
   });
@@ -81,8 +80,7 @@ describe("ADR-151 후속 — TableView catalog CSS 채널", () => {
   it("구 inline 상수(display/border/borderRadius)를 root style 에 하드코딩하지 않는다", () => {
     const el = makeElement();
     const style = rootProps(renderTableView(el, makeContext(el))).style as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(style?.display).toBeUndefined();
     expect(style?.border).toBeUndefined();
     expect(style?.borderRadius).toBeUndefined();
@@ -104,7 +102,7 @@ describe("ADR-151 후속 — TableView catalog CSS 채널", () => {
  * 내부 여백만 바꾼다. DOM 축은 `renderTableViewSubtree` 인라인이 정본이므로(자식은
  * className 비부여 — Table.css 의 `position:absolute` 누수 방어), 여기서 catalog
  * `Column/Cell.densities` 를 읽어 인라인 `padding: 8` 의 **세로 성분만** 교체한다.
- * Skia 는 같은 catalog 값을 applyImplicitStyles 가 주입해 읽는다(D3 symmetric).
+ * (Skia 쪽 당시 주입 경로 applyImplicitStyles 는 2026-10-05 삭제.)
  */
 describe("TableView density — 자손 Column/Cell 인라인 padding", () => {
   /** 렌더 트리에서 특정 data-tableview-part 의 props 를 찾는다. */

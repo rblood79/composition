@@ -4,8 +4,7 @@
  * 1. `resolveCssCornerRadii` — CSS Backgrounds 3 §4.5 예제 6 + 균일 반경이 종전
  *    `clampCornerRadii` (여기 복사한 옛 규칙) 와 같은 값 (HC1 경계: 균일 문서 무변경).
  * 2. `resolveBorderGeometry` — 우선순위 longhand ?? shorthand 다중값 ?? shorthand ?? base.
- * 3. 레이아웃 `parseBorder` 와 폭 판독 동치 (px/number 입력).
- * 4. `resolveInnerCornerRadii` — 변 폭 0 코너의 테이퍼 (P0 spike 발견).
+ * 3. `resolveInnerCornerRadii` — 변 폭 0 코너의 테이퍼 (P0 spike 발견).
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -25,7 +24,6 @@ function clampCornerRadii(
   const clamp = (r: number) => Math.min(Math.max(0, r), maxRadius);
   return [clamp(radii[0]), clamp(radii[1]), clamp(radii[2]), clamp(radii[3])];
 }
-import { parseBorder } from "../../layout/engines/utils";
 
 describe("resolveCssCornerRadii — CSS §4.5 비례 축소", () => {
   it("한 코너만 큰 반경은 축소되지 않는다 (100×100 [80,0,0,0] → 80, clamp 는 50)", () => {
@@ -189,26 +187,6 @@ describe("resolveBorderGeometry — 우선순위", () => {
   it("축 키 집합은 10개 (shorthand 2 + longhand 8)", () => {
     expect(BORDER_GEOMETRY_KEYS.size).toBe(10);
   });
-});
-
-describe("resolveBorderGeometry ↔ layout parseBorder 동치 (폭)", () => {
-  const cases: Array<Record<string, unknown>> = [
-    {},
-    { borderWidth: 2 },
-    { borderWidth: "1px 2px 3px 4px" },
-    { borderWidth: "1px 2px" },
-    { border: "3px solid #ccc" },
-    { border: "solid 2px red", borderTopWidth: 5 },
-    { borderTopWidth: "1px", borderLeftWidth: 0 },
-    { borderWidth: 1, borderBottomWidth: "4px" },
-  ];
-  for (const style of cases) {
-    it(JSON.stringify(style), () => {
-      const g = resolveBorderGeometry(style);
-      const p = parseBorder(style);
-      expect(g.widths).toEqual([p.top, p.right, p.bottom, p.left]);
-    });
-  }
 });
 
 describe("resolveInnerCornerRadii — 안쪽 타원 반경", () => {

@@ -25,9 +25,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * **propagation 보존**: 구 Card.spec 의 5 규칙(title → CardHeader.Heading.children / description →
  *   CardContent.Description.children / size → CardHeader·CardContent·CardFooter)은 spec 삭제 대비
- *   `propagationRegistry.ts` 인라인 propagation-only spec(cardPropagationSpec)으로 보존 — catalog 는
- *   propagation 표현 수단이 없으므로(ComponentRule/PrimitiveBinding 에 parentProp 필드 없음) builder
- *   runtime 의 propagationRegistry 가 유일 경로(자식 CardHeader/CardContent propagation-only spec 동형).
+ *   당시 `propagationRegistry.ts` 인라인 propagation-only spec(cardPropagationSpec)으로 보존했다
+ *   (2026-10-05 삭제 — catalog 의 부모→자식 전달은 `CATALOG_SIZE_PROPAGATION` · template binding).
  *
  * **DOM parity**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
  *   isSpecOrCatalogBacked(spec || isCatalogCutover) 가 catalog 등록 후 true → `react-aria-Card`

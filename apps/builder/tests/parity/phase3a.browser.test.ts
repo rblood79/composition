@@ -5,7 +5,6 @@ import {
   type ParityCase,
   type StyleRecord,
   runParityCase,
-  runPipelineParityCase,
 } from "./harness";
 
 /**
@@ -15,7 +14,7 @@ import {
  * "JS DFS 가 grid 자식 폭을 트랙 폭으로 강제 → 엔진이 justify 를 더해도 live 이중 적용/무효,
  * 옵션 3-a(엔진 크기 respect + JS DFS 제거)로만 해소" 라고 서술했으나, **2-layer 측정으로 반증**:
  * explicit-width 자식은 enrich 가 width 를 주입하지 않아(rawWidth 명시) JS DFS 가 무해 —
- * pipelineLeg(Layer 2) === engineLeg(Layer 1). 즉 **엔진 grid 커널만 고치면 양 레이어가 함께
+ * (당시) pipeline leg(Layer 2 — 2026-10-05 제거) === engineLeg(Layer 1). 즉 **엔진 grid 커널만 고치면 양 레이어가 함께
  * 정합**하며 JS DFS 제거는 불필요.
  *
  * 구현: `tree.rs::solve_grid` 에 `grid_inline_justify`(= `grid_block_align` 가로 대칭) 추가 —
@@ -112,12 +111,6 @@ describe("ADR-156 옵션 3-a — E2 grid justify(가로) 엔진↔CSS 정합 (2-
   // Layer 1 — 엔진 직접.
   it.each(E2_JUSTIFY_CASES)("engine: $name", (c) => {
     const bad = runParityCase(c);
-    expect(bad, bad.join("; ")).toEqual([]);
-  });
-
-  // Layer 2 — 빌더 파이프라인(calculateFullTreeLayout). JS DFS 무해 확증.
-  it.each(E2_JUSTIFY_CASES)("pipeline: $name", (c) => {
-    const bad = runPipelineParityCase(c);
     expect(bad, bad.join("; ")).toEqual([]);
   });
 });

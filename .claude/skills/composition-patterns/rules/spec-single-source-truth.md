@@ -55,9 +55,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    sizes: {
-      /* fontSize/lineHeight/paddingX... TokenRef + number */
-    },
+    sizes: {/* fontSize/lineHeight/paddingX... TokenRef + number */},
   },
 };
 ```
@@ -91,7 +89,7 @@ catalog 미등록 native 3종만 spec 파일이 남아 있습니다 (`packages/s
 
 ## Self-Rendering 레이아웃 연계
 
-layout engine 내부 상수(`BUTTON_SIZE_CONFIG` 등)도 catalog rule 에서 파생됩니다 — `deriveSizeConfig(ruleSizesToSizeSpecMap("Button"))` (`apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts:900`). 수치 동기화 상세: [spec-value-sync](spec-value-sync.md).
+레이아웃은 rule 값을 따로 복사해 두지 않는다 — catalog resolver 가 푼 record 를 `catalogBoxModel` → `styleOf` (`catalogRuntime/compositionRoot.ts`) 가 그대로 읽는다 (옛 `BUTTON_SIZE_CONFIG` 파생 상수는 2026-10-05 삭제). 수치 동기화 상세: [spec-value-sync](spec-value-sync.md).
 
 ## 참조
 

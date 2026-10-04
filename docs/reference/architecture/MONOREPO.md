@@ -47,7 +47,7 @@ composition/
 │   │   │   ├── panels/       # navigator · properties · styles · datatable ·
 │   │   │   │                 #   interactions · history · themes · settings · ai · fonts
 │   │   │   ├── stores/       # Zustand
-│   │   │   ├── layout/       # 엔진 경계 (engines/fullTreeLayout.ts 등)
+│   │   │   ├── layout/       # 엔진 경계 (engines/persistentLayoutTree.ts · 텍스트 측정 utils.ts 등)
 │   │   │   ├── overlay/ · projection/ · factories/ · templates/ · performance/
 │   │   ├── adapters/ · resolvers/   # canonical 문서 변환
 │   │   ├── preview/          # COMPARE_MODE 프리뷰

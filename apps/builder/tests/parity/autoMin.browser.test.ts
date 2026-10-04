@@ -1,21 +1,14 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
-import {
-  type ParityCase,
-  runParityCase,
-  runPipelineParityCase,
-} from "./harness";
+import { type ParityCase, runParityCase } from "./harness";
 
 /**
  * ADR-164 G1 — §4.5 automatic minimum size 차등 fixture (raw style 직행)
  *
  * Step 5.7 (부모-overflow 기준 flexShrink:0 전면 주입) 제거 + 엔진 content-based
  * minimum floor (flex.rs §4.5, width-auto item 한정 + item overflow 조건) 의
- * Chrome 실측 대조. 두 leg 모두 돌린다:
- *   - runParityCase       — 엔진 직접 (프로토콜 off 18 overflow_main 소비 확증)
- *   - runPipelineParityCase — 빌더 실 파이프라인 (`calculateFullTreeLayout`) —
- *     Step 5.7 제거 후 보정 없는 입력이 엔진에 그대로 도달하는지 확증.
- *     노드 type 은 generic `box` 라 enrichWithIntrinsicSize 주입 0 (raw 직행).
+ * Chrome 실측 대조 — runParityCase (엔진 직접, 프로토콜 off 18 overflow_main 소비 확증).
+ * (옛 pipeline leg — `calculateFullTreeLayout` — 는 2026-10-05 fullTreeLayout 삭제와 함께 제거)
  *
  * 케이스 (breakdown §3-3): (a) scroll 컨테이너 자식 shrink / (b) `flex:1 minWidth:0`
  * / (c) flexShrink 명시 상호작용 / (d) column 대칭 + content floor / (e) grid no-op.
@@ -221,18 +214,6 @@ describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {
   for (const c of CASES) {
     it(c.name, () => {
       expect(runParityCase(c)).toEqual([]);
-    });
-  }
-});
-
-describe("ADR-164 G1 — automatic minimum size (builder pipeline leg)", () => {
-  beforeAll(async () => {
-    await initEngineWasm();
-  });
-
-  for (const c of CASES) {
-    it(`pipeline: ${c.name}`, () => {
-      expect(runPipelineParityCase(c)).toEqual([]);
     });
   }
 });

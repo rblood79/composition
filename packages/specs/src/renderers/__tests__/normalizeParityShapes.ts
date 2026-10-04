@@ -28,7 +28,7 @@ export function normalizeFillAlpha(shapes: Shape[]): Shape[] {
 /**
  * text shape 의 lineHeight 키 제거(box leaf 시각 동등). buildCatalogShapes 의 lineHeight push 와
  * spec.render.shapes 의 lineHeight 생략을 동일선상으로 비교. (height=0 TEXT_LEAF 의 lineHeight 는
- * 측정 본질이라 별도 drift 0 테스트(specTextStyle.test)가 검증 — 여기선 box leaf parity 만 정규화.)
+ * 측정 본질이라 여기선 box leaf parity 만 정규화 — 옛 drift 테스트 specTextStyle.test 는 2026-10-05 삭제.)
  */
 export function stripTextLineHeight(shapes: Shape[]): Shape[] {
   return shapes.map((s) => {

@@ -12,19 +12,10 @@
  */
 
 import {
-  resolveCatalogPaint,
-  resolveCatalogVariantName,
   resolveComponentRule,
-  type ComponentRule,
   type ComponentRuleVariant,
-  type ComponentRuleSize,
 } from "@composition/shared";
-import type {
-  CatalogResolvedPaint,
-  ComponentState,
-  ComponentVisualRule,
-  SizeSpec,
-} from "@composition/specs";
+import type { ComponentVisualRule } from "@composition/specs";
 
 /** shared ComponentRuleVariant(string) → specs ComponentVisualRule(TokenRef). 런타임 동형 캐스팅. */
 export function ruleVariantToVisual(
@@ -86,69 +77,4 @@ export function resolveSkiaVisualRule(
   const variant = rule.variants[vName];
   if (!variant) return undefined;
   return ruleVariantToVisual(variant);
-}
-
-/** rule 그대로 노출(size/defaultVariant 등 caller 가 추가로 읽을 때). 미존재 시 undefined. */
-export function resolveSkiaRule(type: string): ComponentRule | undefined {
-  return resolveComponentRule(type);
-}
-
-export interface SkiaCatalogRenderInput {
-  rule: ComponentRule | undefined;
-  visual: ComponentVisualRule | undefined;
-  paint: CatalogResolvedPaint;
-}
-
-function readStyle(
-  props: Readonly<Record<string, unknown>>,
-): Readonly<Record<string, unknown>> | undefined {
-  const style = props.style;
-  return style && typeof style === "object" && !Array.isArray(style)
-    ? (style as Readonly<Record<string, unknown>>)
-    : undefined;
-}
-
-function toCatalogInteractionState(
-  state: ComponentState,
-): "default" | "hover" | "pressed" {
-  return state === "hover" || state === "pressed" ? state : "default";
-}
-
-/**
- * Catalog type 1개의 rule/visual/root paint를 한 번에 해소하는 Builder 경계.
- * `resolveCatalogPaint` 호출은 이 함수의 1회가 전부이며 renderer는 결과를 재계산하지 않는다.
- */
-export function resolveSkiaCatalogRenderInput(
-  type: string,
-  props: Readonly<Record<string, unknown>>,
-  state: ComponentState,
-): SkiaCatalogRenderInput {
-  const rule = resolveComponentRule(type);
-  const variantName = resolveCatalogVariantName(rule, props);
-  const variant = variantName ? rule?.variants[variantName] : undefined;
-  // rule 이 선택을 변형으로 표현하면 (Tag) 선택 모양은 그 변형 자체 — 변형 안의 선택 상태
-  //   (`fill.default.selected` · `colors.selectedText`) 로 다시 고르면 없는 키라 색이 비어 투명해진다.
-  const paintProps =
-    variantName === "selected" && props.isSelected === true
-      ? { ...props, isSelected: false }
-      : props;
-  const sizeName = (props.size as string | undefined) ?? rule?.defaultSize;
-  const size = sizeName ? rule?.sizes[sizeName] : undefined;
-
-  return {
-    rule,
-    visual: variant ? ruleVariantToVisual(variant) : undefined,
-    paint: resolveCatalogPaint({
-      variant,
-      size,
-      props: paintProps,
-      style: readStyle(paintProps),
-      interactionState: toCatalogInteractionState(state),
-    }),
-  };
-}
-
-/** ComponentRuleSize(number|string) → SizeSpec 시각 필드 부분 투영. */
-export function ruleSizeToSizeSpec(s: ComponentRuleSize): Partial<SizeSpec> {
-  return s as unknown as Partial<SizeSpec>;
 }

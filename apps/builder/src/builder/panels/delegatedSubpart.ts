@@ -12,7 +12,8 @@
  *   - 직계가 SelectTrigger 래퍼면 조부모 (field) 로 판정 — DatePicker·DateRangePicker 의 DateInput.
  * 자식은 canonical 에 남되 (Canvas 구조 정본 — DatePicker 선례, Skia projection 우회 금지) 편집 surface 는
  * **owner** (직계 parent 또는 조부모 field) 로 귀속한다: Properties · Styles 패널은 owner 가 있으면 안내만 띄우고,
- * Canvas read 경로 (fullTreeLayout · buildSpecNodeData) 는 같은 shared 술어로 인라인을 무시한다.
+ * catalog runtime 판정은 `catalogRuntime/subpart.ts` `catalogSubpartOwnerType` 이 같은 shared 술어로 한다
+ * (옛 Canvas read 경로 — fullTreeLayout · buildSpecNodeData — 는 삭제됨).
  */
 
 /** 정본은 shared 의 토큰 표 + 그룹 목록 (`resolveDelegatedSubpartOwnerType`). */

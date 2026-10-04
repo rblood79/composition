@@ -20,7 +20,7 @@
 import { resolveContainerStylesFallback } from "./implicitStyles";
 import { INLINE_BLOCK_TAG_CLASSIFICATION } from "./utils";
 
-export const CANVAS_DEFAULT_DISPLAY = "block";
+const CANVAS_DEFAULT_DISPLAY = "block";
 
 export function resolveDefaultDisplay(type: string | undefined): string {
   const lower = (type ?? "").toLowerCase();

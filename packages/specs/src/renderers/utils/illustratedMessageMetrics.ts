@@ -60,8 +60,8 @@ export interface IllustratedMessageMetric {
   descLine: number;
   /**
    * content-box 높이 (padding 제외 — box + gap·2 + headingLine + descLine).
-   * layout 분기 계약: calculateContentHeight caller(fullTreeLayout:1936)가 element
-   * style padding 을 별도 가산하므로 padding 포함 반환 시 이중 계상 (240+48=288 실측).
+   * layout 분기 계약: 호출자가 element style padding 을 별도 가산하므로 padding 포함 반환 시
+   * 이중 계상 (240+48=288 실측 — 당시 호출자 builder fullTreeLayout, 2026-10-05 삭제).
    */
   contentHeight: number;
   /** 전체 박스 높이 (metric padding 포함) — style padding 부재 시의 DOM 총높이. */

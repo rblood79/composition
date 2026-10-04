@@ -99,5 +99,5 @@ workspace.execute(childPatch);
 ## 참조
 
 - [spec-shape-rendering](spec-shape-rendering.md) — Shape 생성 경로 (catalog + 잔존 spec)
-- [spec-value-sync](spec-value-sync.md) — catalog ↔ layout engine 값 동기화
+- [spec-value-sync](spec-value-sync.md) — catalog ↔ Canvas ↔ CSS 값 동기화
 - `.claude/rules/layout-engine.md` — 레이아웃 재계산 경로 (catalog runtime)

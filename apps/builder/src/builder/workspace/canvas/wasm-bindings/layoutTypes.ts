@@ -2,8 +2,8 @@
  * Layout 스타일/핸들 타입 정의 (구 taffyLayout.ts 에서 이전)
  *
  * ADR-916 Taffy 완전 제거 (2026-07-06): TaffyLayout wrapper 삭제 후에도
- * element→style 변환기(flexStyleAdapter/blockStyleAdapter)와 fullTreeLayout /
- * persistentLayoutTree 가 소비하는 순수 TypeScript 타입만 본 파일에 보존한다.
+ * 엔진 입력 스키마의 순수 TypeScript 타입만 본 파일에 보존한다 (parity 하니스 engine leg ·
+ * `gridStyleAdapter` · `persistentLayoutTree` 가 소비 — 옛 style 어댑터와 `fullTreeLayout` 은 2026-10-05 삭제).
  * 타입 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Taffy*` → `Engine*` 로 개명 — 스키마 자체는
  * 자체 엔진 (engine) 의 Rust `StyleInput` (Taffy 0.9 계보) 과 1:1 대응한다.
  */
@@ -195,29 +195,6 @@ export interface EngineStyle {
   /** 텍스트 leaf 첫 줄 baseline (content-box 상단 기준 px — 측정 공급 채널) */
   leafBaseline?: number;
 }
-
-/**
- * TS 측정이 공급하는 엔진 NodeStyle 숫자 스칼라 키 — CSS 속성이 아니라 px 변환 없이 그대로 싣는다.
- * enrich 주입 · `applyCommonEngineStyle` 통과 · `engineStyleToRecord` · 2-pass 재측정 patch 가
- * 전부 이 하나를 순회한다 (키를 더할 때 한 곳만 놓쳐도 무음 drop — `contentHeight` 09-19 사고).
- */
-export const ENGINE_MEASURE_SCALAR_KEYS = [
-  "contentMinWidth",
-  "contentMaxWidth",
-  "contentMinHeight",
-  "contentHeight",
-  "leafBaseline",
-] as const satisfies readonly (keyof EngineStyle)[];
-export type EngineMeasureScalarKey = (typeof ENGINE_MEASURE_SCALAR_KEYS)[number];
-
-/** 각 측정 스칼라가 속한 축 — 한 축만 재측정하는 patch (2-pass 높이) 가 이 표로 키를 거른다. */
-export const ENGINE_MEASURE_SCALAR_AXIS = {
-  contentMinWidth: "width",
-  contentMaxWidth: "width",
-  contentMinHeight: "height",
-  contentHeight: "height",
-  leafBaseline: "height",
-} as const satisfies Record<EngineMeasureScalarKey, "width" | "height">;
 
 /** Opaque handle to a layout node. (구 EngineNodeHandle — 자체 엔진 handle 과 동일 규약) */
 export type EngineNodeHandle = number;
