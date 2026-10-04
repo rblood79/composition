@@ -667,6 +667,8 @@ function calendarPartSize(
 interface CatalogDateSegments {
   /** The date field whose RAC DateInput this is (past the SelectTrigger wrapper). */
   ownerType?: string;
+  /** The owner's empty-segment font style (`[data-placeholder]` — DateField italic). */
+  placeholderFontStyle?: string;
   parts: readonly DateSegmentPart[];
   paddingX: number;
   /** DateRangePicker: start/end rows around the separator span, spaced by the trigger gap. */
@@ -701,25 +703,36 @@ function segmentFont(
  */
 function segmentRuns(
   segmentText: CatalogDateSegments,
-  widthOf: (text: string) => number,
-): { runs: CatalogDateSegmentRun[]; width: number } {
+  measure: CatalogTextMeasure,
+  font: CatalogTextFont,
+): { runs: CatalogDateSegmentRun[]; width: number; height: number } {
+  // The empty editable segments take the owner's placeholder font style (DateField italic).
+  const placeholderFont = segmentText.placeholderFontStyle
+    ? { ...font, fontStyle: segmentText.placeholderFontStyle }
+    : font;
+  let height = 0;
+  const widthOf = (text: string, editable: boolean) => {
+    const size = measure(text, editable ? placeholderFont : font);
+    height = Math.max(height, size.height);
+    return size.exactWidth ?? size.width;
+  };
   const runs: CatalogDateSegmentRun[] = [];
   let x = 0;
   const row = () => {
     for (const part of segmentText.parts) {
       const pad = part.editable ? segmentText.paddingX : 0;
       runs.push({ text: part.text, x: x + pad, editable: part.editable });
-      x += widthOf(part.text) + 2 * pad;
+      x += widthOf(part.text, part.editable) + 2 * pad;
     }
   };
   row();
   if (segmentText.range) {
     x += segmentText.range.gap;
     runs.push({ text: segmentText.range.separator, x, editable: false });
-    x += widthOf(segmentText.range.separator) + segmentText.range.gap;
+    x += widthOf(segmentText.range.separator, false) + segmentText.range.gap;
     row();
   }
-  return { runs, width: x };
+  return { runs, width: x, height };
 }
 
 /** Rust `NodeStyle` input. It has no `padding`/`gap` shorthand (serde drops unknown keys). */
@@ -777,13 +790,11 @@ function styleOf(
   const segments =
     measure && segmentText && Number(node.visual.fontSize) > 0
       ? (() => {
-          const font = segmentFont(node, segmentText);
-          let height = 0;
-          const { width } = segmentRuns(segmentText, (text) => {
-            const size = measure(text, font);
-            height = Math.max(height, size.height);
-            return size.exactWidth ?? size.width;
-          });
+          const { width, height } = segmentRuns(
+            segmentText,
+            measure,
+            segmentFont(node, segmentText),
+          );
           return {
             contentMinWidth: width,
             contentMaxWidth: width,
@@ -1889,19 +1900,18 @@ export class CatalogCompositionRoot {
   dateSegmentPaint(id: string):
     | {
         runs: readonly CatalogDateSegmentRun[];
-        placeholder: { color?: string; opacity?: number };
+        placeholder: { color?: string; opacity?: number; fontStyle?: string };
       }
     | undefined {
     const record = this.records.get(id);
     if (!record || !this.textMeasure) return undefined;
     const segmentText = this.segmentText(record);
     if (!segmentText || !(Number(record.visual.fontSize) > 0)) return undefined;
-    const measure = this.textMeasure;
-    const font = segmentFont(record, segmentText);
-    const { runs } = segmentRuns(segmentText, (text) => {
-      const size = measure(text, font);
-      return size.exactWidth ?? size.width;
-    });
+    const { runs } = segmentRuns(
+      segmentText,
+      this.textMeasure,
+      segmentFont(record, segmentText),
+    );
     const box = catalogBoxModel(record);
     const num = (value: CatalogLength | undefined) =>
       typeof value === "number" ? value : 0;
@@ -1986,8 +1996,12 @@ export class CatalogCompositionRoot {
       // A TimeField formats the time fields only (RAC `useTimeFieldState`).
       ...(ownerType === "TimeField" ? { maxGranularity: "hour" as const } : {}),
     });
+    const placeholderFontStyle = ownerType
+      ? catalogDateSegmentPlaceholderPaint(ownerType).fontStyle
+      : undefined;
     return {
       ...(ownerType ? { ownerType } : {}),
+      ...(placeholderFontStyle ? { placeholderFontStyle } : {}),
       parts,
       paddingX: ownerType ? catalogDateSegmentPaddingX(ownerType) : 0,
       ...(ownerType === "DateRangePicker"

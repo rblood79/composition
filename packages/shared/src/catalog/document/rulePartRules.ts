@@ -642,11 +642,12 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
 /**
  * Paint of an owner's empty RAC date segments (`.react-aria-DateSegment[data-placeholder]`
  * delegation state — the editable segments; literals keep the field color): the CSS color as
- * written and its opacity. Empty when the owner declares none.
+ * written, its opacity and font style (DateField's italic). Empty when the owner declares none.
  */
 export function catalogDateSegmentPlaceholderPaint(ownerType: string): {
   color?: string;
   opacity?: number;
+  fontStyle?: string;
 } {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     ownerType
@@ -669,6 +670,9 @@ export function catalogDateSegmentPlaceholderPaint(ownerType: string): {
     ...(typeof state?.color === "string" ? { color: state.color } : {}),
     ...(state?.opacity !== undefined && Number.isFinite(opacity)
       ? { opacity }
+      : {}),
+    ...(typeof state?.["font-style"] === "string"
+      ? { fontStyle: state["font-style"] }
       : {}),
   };
 }

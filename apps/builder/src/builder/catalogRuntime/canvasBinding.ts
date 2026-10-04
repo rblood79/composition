@@ -1,9 +1,5 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
-import {
-  cssVarToTokenRef,
-  getIconData,
-  resolveToken,
-} from "@composition/rendering";
+import { getIconData } from "@composition/rendering";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {
   buildRenderCommandStream,
@@ -17,7 +13,7 @@ import {
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import { catalogRuleNodeData } from "./ruleShapes";
+import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
 import { catalogRuleTextColor, cssVarColor } from "./rulePaint";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import {
@@ -373,33 +369,6 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "overflowWrap",
   "textOverflow",
 ];
-/**
- * A DateInput's RAC segment runs (`dateSegmentPaint` — the row the layout measured) and the empty
- * segments' fill: the owner's `[data-placeholder]` color at its opacity, in the canvas theme.
- */
-function dateSegmentProps(
-  root: CatalogCompositionRoot,
-  node: CatalogConsumerNode,
-): Record<string, unknown> | undefined {
-  const paint = root.dateSegmentPaint(node.id);
-  if (!paint) return undefined;
-  const { color, opacity } = paint.placeholder;
-  const token = color ? cssVarToTokenRef(color) : null;
-  const resolved = token ? resolveToken(token, root.colorMode) : color;
-  const fill =
-    typeof resolved === "string" && /^#[0-9a-f]{6}$/i.test(resolved)
-      ? opacity !== undefined && opacity < 1
-        ? `${resolved}${Math.round(Math.max(0, opacity) * 255)
-            .toString(16)
-            .padStart(2, "0")}`
-        : resolved
-      : undefined;
-  return {
-    _segmentRuns: paint.runs,
-    ...(fill ? { _segmentPlaceholderFill: fill } : {}),
-  };
-}
-
 function ruleNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -411,7 +380,9 @@ function ruleNodeData(
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
   const segments =
-    node.bindingId === "dateinput" ? dateSegmentProps(root, node) : undefined;
+    node.bindingId === "dateinput"
+      ? catalogDateInputPaintProps(root, node)
+      : undefined;
   const input = {
     node: node.derivedProps
       ? { ...node, props: { ...node.props, ...node.derivedProps } }

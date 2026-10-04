@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [DateField Canvas 입력 상자 · placeholder 기울임 — 레이아웃 높이 · catalog 모서리] - 2026-10-04
+
+### Fixed
+
+- **Canvas 의 DateField 입력 상자가 레이아웃 높이와 catalog 모서리로 그려진다.** 단독 DateInput 의 상자를
+  크기별 고정 표 (높이 md 30 · lg 42 …, 모서리 8 · 10 · 12) 로 그리고 글자는 레이아웃 rect 기준 세로
+  중앙이라, lg · xl 에서 글자가 상자 아래로 넘쳤고 모서리도 DOM (`var(--border-radius)` = 6px, 모든
+  크기) 과 달랐다. 이제 상자 = 노드 rect 높이 + 노드의 해석된 radius · borderWidth.
+- **DateField 의 빈 날짜 칸이 DOM 처럼 기울임체다.** DateField 만 `.react-aria-DateSegment[data-placeholder]`
+  에 `font-style: italic` 을 둔다 — Canvas 는 이 값을 읽지 않았고, 텍스트 shape 의 `fontStyle` 도 Skia 변환에서
+  버려졌다. 이제 owner placeholder paint 의 font style 을 칸 폭 측정과 그리기 둘 다 읽는다.
+  - **Why**: 단독 field 의 상자 · 칸 글꼴이 레이아웃 · catalog 가 아닌 primitive 고정값에서 왔다 (D3 대칭).
+  - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts` (`datefield_segments`) ·
+    `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` (`catalogDateInputPaintProps`) ·
+    `compositionRoot.ts` (`segmentRuns`) · `rulePartRules.ts` · `skia/specShapeConverter.ts` (fontStyle)
+
+검증: builder 3962 · rendering 1281 · shared 1605 테스트 · type-check PASS · 회귀 테스트 primitive 원복 시 RED.
+headless Chrome ko-KR 에서 DateField sm · md · lg · xl 상자 · 모서리 · 기울임 확인.
+알려진 공백 (field 가족 공통, 이번 범위 밖): Canvas catalog 경로에 quiet · invalid 처리가 없다.
+
 ## [TimeField Canvas 시간 segment 를 RAC 와 같게 — hourCycle · 오전/오후] - 2026-10-04
 
 ### Fixed

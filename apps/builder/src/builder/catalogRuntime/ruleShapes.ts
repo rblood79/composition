@@ -1,6 +1,7 @@
 import {
   buildCatalogShapes,
   composeCatalogShapes,
+  cssVarToTokenRef,
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
   resolveToken,
@@ -13,6 +14,10 @@ import { ruleVariantToVisual } from "../workspace/canvas/skia/resolveSkiaVisualR
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
 import { normalizeMiddleBaselineTextLineHeight } from "../workspace/canvas/skia/specBuildHelpers";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
+import type {
+  CatalogCompositionRoot,
+  CatalogConsumerNode,
+} from "./compositionRoot";
 import {
   CHILD_PROP_MERGE_TYPES,
   catalogRulePaint,
@@ -175,4 +180,37 @@ export function catalogRuleNodeData(
   );
   if (tableText) ellipsize(data);
   return data;
+}
+
+/**
+ * A DateInput's paint inputs beyond its props: its RAC segment runs (`dateSegmentPaint` — the row
+ * the layout measured), the empty segments' paint (the owner's `[data-placeholder]` color at its
+ * opacity in the canvas theme, its italic) and the node's resolved corner and border width (a
+ * standalone field draws its own box — DateField `var(--border-radius)` at every size).
+ */
+export function catalogDateInputPaintProps(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): Record<string, unknown> | undefined {
+  const paint = root.dateSegmentPaint(node.id);
+  if (!paint) return undefined;
+  const { color, opacity, fontStyle } = paint.placeholder;
+  const token = color ? cssVarToTokenRef(color) : null;
+  const resolved = token ? resolveToken(token, root.colorMode) : color;
+  const fill =
+    typeof resolved === "string" && /^#[0-9a-f]{6}$/i.test(resolved)
+      ? opacity !== undefined && opacity < 1
+        ? `${resolved}${Math.round(Math.max(0, opacity) * 255)
+            .toString(16)
+            .padStart(2, "0")}`
+        : resolved
+      : undefined;
+  const { radius, borderWidth } = node.visual;
+  return {
+    ...(typeof radius === "number" ? { _boxRadius: radius } : {}),
+    ...(typeof borderWidth === "number" ? { _boxBorderWidth: borderWidth } : {}),
+    _segmentRuns: paint.runs,
+    ...(fill ? { _segmentPlaceholderFill: fill } : {}),
+    ...(fontStyle === "italic" ? { _segmentPlaceholderItalic: true } : {}),
+  };
 }

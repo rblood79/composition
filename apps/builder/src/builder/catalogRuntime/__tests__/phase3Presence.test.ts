@@ -18,7 +18,7 @@ import {
 } from "../compositionRoot";
 import { TAILWIND_PALETTE } from "@composition/rendering";
 import { catalogTextMetrics } from "../boxModel";
-import { catalogRuleShapes } from "../ruleShapes";
+import { catalogDateInputPaintProps, catalogRuleShapes } from "../ruleShapes";
 import { catalogNodeState } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
 import { CatalogRuntime } from "../controller";
 import { CatalogStorage } from "../storage";
@@ -953,6 +953,69 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "––",
       ":",
       "––",
+    ]);
+  });
+
+  it("draws a DateField's input box at its laid-out height and catalog corner, its empty segments italic (DateField `[data-placeholder]`)", async () => {
+    const measure = (text: string, font: { fontStyle?: string }) => ({
+      width: text.length * (font.fontStyle === "italic" ? 11 : 10),
+      height: 20,
+    });
+    const scene = await open(
+      "lib:definition:origin-component-datefield" as DefinitionId,
+      "datefield-box",
+    );
+    scene.root.dispatch("size", [
+      {
+        kind: "patchNodeProp",
+        id: scene.nodeId,
+        key: "size",
+        write: { kind: "set", value: "lg" },
+      },
+    ]);
+    const root = new CatalogCompositionRoot(
+      scene.runtime,
+      new StyleLayoutEngine(),
+      { width: 1440, height: 900 },
+      undefined,
+      undefined,
+      measure as never,
+      "en-US",
+    );
+    const input = [...root.canvasInputs.values()].find(
+      (node) => node.bindingId === "dateinput",
+    )!;
+    const paint = root.dateSegmentPaint(input.id)!;
+    expect(paint.placeholder.fontStyle).toBe("italic");
+    // Editable runs are measured italic (11/char): `mm` 22 + 2×2 padding, then `/`.
+    expect(paint.runs.slice(0, 2).map(({ text, x }) => [text, x])).toEqual([
+      ["mm", 16 + 1 + 2],
+      ["/", 16 + 1 + 26],
+    ]);
+    const shapes = catalogRuleShapes({
+      node: input.derivedProps
+        ? { ...input, props: { ...input.props, ...input.derivedProps } }
+        : input,
+      rect: { width: 300, height: 42 },
+      rule: scene.runtime.graph.library.rules.get("DateInput" as never)!,
+      type: "DateInput",
+      authoredVisual: {},
+      paintProps: catalogDateInputPaintProps(root, input),
+    });
+    expect(shapes.find((shape) => shape.type === "roundRect")).toEqual(
+      expect.objectContaining({ height: 42, radius: input.visual.radius }),
+    );
+    expect(input.visual.radius).toBe(6);
+    const texts = shapes.filter((shape) => shape.type === "text") as Array<{
+      text: string;
+      fontStyle?: string;
+    }>;
+    expect(texts.map(({ text, fontStyle }) => [text, fontStyle])).toEqual([
+      ["mm", "italic"],
+      ["/", undefined],
+      ["dd", "italic"],
+      ["/", undefined],
+      ["yyyy", "italic"],
     ]);
   });
 

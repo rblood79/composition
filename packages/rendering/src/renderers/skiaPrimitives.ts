@@ -2066,6 +2066,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     : undefined;
   const placeholderFill =
     (p._segmentPlaceholderFill as ColorValue | undefined) ?? textColor;
+  const placeholderItalic = p._segmentPlaceholderItalic === true;
   const segmentTexts = (x: number): Shape[] =>
     (runs?.length
       ? runs
@@ -2079,6 +2080,9 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
       fontFamily: ff,
       fontWeight: 400,
       fill: run.editable ? placeholderFill : textColor,
+      ...(run.editable && placeholderItalic
+        ? { fontStyle: "italic" as const }
+        : {}),
       align: "left" as const,
       baseline: "middle" as const,
       verticalAlign: textVerticalAlign,
@@ -2092,6 +2096,18 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   //   containerHeight 중앙. DateField/TimeField(picker 아님)는 자신이 box 라 box+border+text 유지.
   if (isPickerInput) return segmentTexts(0);
 
+  // 단독 field 의 상자 = 노드 자신의 상자: 레이아웃 높이와 catalog 모서리 · 테두리 두께 (DOM DateInput 의
+  //   padding + line-height · `var(--border-radius)`). 측정기 없는 소비자만 크기 표 폴백.
+  const boxHeight =
+    (typeof p._containerHeight === "number" &&
+      (p._containerHeight as number) > 0 &&
+      (p._containerHeight as number)) ||
+    inputHeight;
+  const boxRadius =
+    typeof p._boxRadius === "number" ? (p._boxRadius as number) : borderRadius;
+  const boxBorderWidth =
+    typeof p._boxBorderWidth === "number" ? (p._boxBorderWidth as number) : 1;
+
   return [
     {
       id: "input-bg",
@@ -2100,16 +2116,16 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
       x: 0,
       y: 0,
       width: containerWidth,
-      height: inputHeight,
-      radius: borderRadius,
+      height: boxHeight,
+      radius: boxRadius,
       fill: bgColor,
     },
     {
       type: "border" as const,
       target: "input-bg",
-      borderWidth: 1,
+      borderWidth: boxBorderWidth,
       color: borderColor,
-      radius: borderRadius,
+      radius: boxRadius,
     },
     ...segmentTexts(paddingX),
   ];
