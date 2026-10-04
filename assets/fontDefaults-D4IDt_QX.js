@@ -1,0 +1,1 @@
+var e=`Pretendard`,t=[e,`system-ui`,`sans-serif`],n={fontFamily:`Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', sans-serif`,fontSize:16,lineHeight:1.5};export{n,e as r,t};
