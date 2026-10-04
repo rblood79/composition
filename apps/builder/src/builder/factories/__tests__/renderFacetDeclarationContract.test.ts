@@ -2,14 +2,14 @@
  * ADR-914 Phase 3-A — Render Facet Declaration parity contract
  *
  * render facet 의 SSOT 를 `renderFacetDeclaration.ts` (declarative source) 로 역전한
- * 뒤에도, 파생 set 이 `CanonicalNodeRenderer.tsx` 의 DELEGATING_INTERNAL/DELEGATING_RAC export
+ * 뒤에도, 파생 set 이 `domRegistry.tsx` 의 DELEGATING_INTERNAL/DELEGATING_RAC export
  * 와 **byte-identical** 한지 검증한다 (현 30종 = DELEGATING_INTERNAL 18 + DELEGATING_RAC 12).
  *
  * Phase 3-A 원형은 deletion 0 — set membership 값을 불변 유지하며 SSOT 만 declaration 으로
  * 이전했다(rac 10 freeze). 2026-06-22 ToggleButtonGroup/ToggleButton 2종이 delegating-rac 에
  * 추가됨(cutover 누락 toggle 미동작 버그 정정, rac 10→12). parity 는 declaration↔export 동등성을
  * 검증하므로 멤버 추가 후에도 유효 — INVENTORY 카운트만 동반 갱신. 검증 항목:
- *   - parity A: 파생 set == CanonicalNodeRenderer export set (멤버 + insertion order).
+ *   - parity A: 파생 set == domRegistry export set (멤버 + insertion order).
  *   - parity B: declaration 전수가 inventory 카운트(INVENTORY 상수)와 일치.
  *   - parity C: 30종 모두 위임 사유(reason) 가 비어있지 않음 (무손실 audit — 사유 1:1 이전).
  *   - parity D: key 중복 없음 (internal/rac 각 namespace 내).
@@ -25,7 +25,7 @@ import { describe, it, expect } from "vitest";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
-} from "@/preview/components/canonicalRendererRegistry";
+} from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 import {
   RENDER_FACET_DELEGATIONS,
   deriveDelegatingInternalRenderers,
@@ -75,14 +75,14 @@ import {
 const INVENTORY = { delegatingInternal: 32, delegatingRac: 15 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
-  it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {
+  it("parity A — 파생 internal set == domRegistry DELEGATING_INTERNAL (멤버 + 순서)", () => {
     const derived = [...deriveDelegatingInternalRenderers()];
     const actual = [...DELEGATING_INTERNAL_RENDERERS];
     // insertion order 까지 동일해야 byte-identical (Set spread 는 insertion order).
     expect(derived).toEqual(actual);
   });
 
-  it("parity A — 파생 rac set == CanonicalNodeRenderer DELEGATING_RAC (멤버 + 순서)", () => {
+  it("parity A — 파생 rac set == domRegistry DELEGATING_RAC (멤버 + 순서)", () => {
     const derived = [...deriveDelegatingRacRenderers()];
     const actual = [...DELEGATING_RAC_RENDERERS];
     expect(derived).toEqual(actual);

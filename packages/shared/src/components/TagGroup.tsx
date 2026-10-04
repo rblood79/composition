@@ -85,7 +85,7 @@ export interface TagGroupProps<T>
   itemTemplate?: TagItemTemplate | null;
   /**
    * ADR-234 Phase 3 — 작성자가 채운 목록: TagList 의 Tag instance 자식을 **이미 RAC Tag 인** 노드로 받는다
-   * (canonical 경로는 CanonicalNodeRenderer 가 상태 층 render props 를 실은 RAC Tag). `text` 는 maxRows
+   * (catalog 경로는 renderCatalogDom 가 상태 층 render props 를 실은 RAC Tag). `text` 는 maxRows
    * 미러 측정용 글자. 있으면 `items` · `children` 보다 우선.
    */
   staticItems?: ReadonlyArray<{ node: React.ReactNode; text: string }>;
@@ -575,7 +575,7 @@ export function TagGroup<T extends object>({
   }
 
   // ADR-912 영역 B Task 2-B: 정적 items 전용 분기(`9e84c2707`)는 source 단일화로 제거됨.
-  //   catalog cutover DOM 경로(CanonicalNodeRenderer → INTERNAL_RENDERERS["taggroup"])가 넘기는
+  //   catalog cutover DOM 경로(renderCatalogDom → INTERNAL_RENDERERS["taggroup"])가 넘기는
   //   canonical props.items 는 useResolvedCollectionItems 가 dataBinding 과 동일 normalizer 로 흡수
   //   → 아래 default 경로가 filteredRows(정규화 row) 를 RAC render function 으로 그린다.
   //   RAC <TagList> 는 static children 이 있으면 items 를 무시하므로, rows 가 있으면 children 대신

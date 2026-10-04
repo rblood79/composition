@@ -3,7 +3,7 @@ import { isFillDerivedStyleProp } from "../../../builder/panels/styles/utils/fil
 import { elementToolContracts, type ElementToolName } from "./contracts";
 import { validateProgram } from "./manifest";
 import { readCompilerState } from "./builderHost";
-import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
+import { getAiToolReadModel } from "../tools/aiToolReadModel";
 import { resolveElementRef } from "../tools/elementRef";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
 

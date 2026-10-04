@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **DOM = renderDisclosureGroup 위임 (DELEGATING_INTERNAL_RENDERERS 등록 필수)**: renderDisclosureGroup
  *   (LayoutRenderers.tsx)은 자식을 `context.childrenByParent.get(id)` 에서 받아 `<DisclosureGroup>`
- *   안에 renderElement 재귀한다. canonical 렌더 경로(CanonicalNodeRenderer)의 renderContext.childrenByParent
+ *   안에 renderElement 재귀한다. catalog 렌더 경로(renderCatalogDom)의 renderContext.childrenByParent
  *   는 preview elements state 기반이라 **비어 있어**, generic 일반 rendererMap 위임으로는 DisclosureGroup
  *   이 자식 0개 빈 컨테이너로 렌더된다(CSS preview 미표시). 따라서 `disclosuregroup` 을
  *   DELEGATING_INTERNAL_RENDERERS 에 등록해 flattenNodeChildrenByParent 보강 위임을 받아야 자식

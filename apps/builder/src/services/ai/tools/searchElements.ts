@@ -8,7 +8,7 @@ import type {
   ToolExecutor,
   ToolExecutionResult,
 } from "../../../types/integrations/ai.types";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 import { readCanonicalFields } from "./canonicalNodeFields";
 
 export const searchElementsTool: ToolExecutor = {

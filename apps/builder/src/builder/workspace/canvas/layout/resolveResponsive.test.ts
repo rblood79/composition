@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveResponsiveLayoutNode } from "./resolveResponsive";
+import { resolveResponsiveLayoutNode } from "../../../../../../../packages/shared/src/catalog/runtime/resolveResponsive";
 import type { CanvasLayoutNode } from "./layoutNode";
 
 function node(

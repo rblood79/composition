@@ -4,7 +4,7 @@
  * **ADR-912 진로 1번 IllustratedMessage proof slice (internal leaf catalog 발효, 2026-06-06)**:
  *   IllustratedMessage 은 catalog 미등록 상태에서 spec.render.shapes(IllustratedMessage.spec.ts:104-187)
  *   가 Skia 시각 source 였고, DOM 은 rendererMap.renderIllustratedMessage(LayoutRenderers.tsx:1890)
- *   가 담당했다. catalog 등록 시 DOM cutover 경로(CanonicalNodeRenderer:241)가
+ *   가 담당했다. catalog 등록 시 DOM cutover 경로(domBinding.tsx)가
  *   `INTERNAL_RENDERERS["illustrated"]` 를 React 컴포넌트로 렌더 — `(element, context)` 계약의
  *   renderIllustratedMessage 는 그 계약에 안 맞으므로(Tabs 선례), props 직접 소비 React 컴포넌트로 신설.
  *   heading/description 은 자식 Element 가 아닌 props(factory `children: []`) → generic fallback 으로는
@@ -47,7 +47,7 @@ export interface IllustratedMessageProps {
   /** 추가 className */
   className?: string;
   /**
-   * ADR-151 후속 (2026-07-17): cutover 경로(CanonicalNodeRenderer)가 marker
+   * ADR-151 후속 (2026-07-17): cutover 경로(renderCatalogDom)가 marker
    * (data-element-id/data-canonical-id) 및 data-* 를 props 로 주입한다 — root `<div>`
    * 에 passthrough 하지 않으면 preview 측정/클릭 선택(closest("[data-element-id]"))이
    * 이 요소를 못 찾는다 (StatusLight 동형 패턴).
@@ -58,7 +58,7 @@ export interface IllustratedMessageProps {
 /**
  * IllustratedMessage — 빈 상태(empty state) 표시 컴포넌트.
  *
- * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로,
+ * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로,
  * 본 컴포넌트는 heading/description/size + style/className 만 소비한다.
  */
 export function IllustratedMessage({

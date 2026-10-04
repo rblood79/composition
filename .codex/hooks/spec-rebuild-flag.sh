@@ -1,6 +1,6 @@
 #!/bin/bash
 # PostToolUse Hook: spec 소스 편집 감지 시 rebuild flag 생성
-# packages/specs/src/** 또는 packages/specs/scripts/** 변경 시 .codex/.spec-rebuild-pending touch
+# packages/rendering/src/** 또는 packages/rendering/scripts/** 변경 시 .codex/.spec-rebuild-pending touch
 # 실제 build:specs 실행은 type-check-gate.sh (Stop hook) 에서 수행 — 다중 편집 debounce
 #
 # Why: build:specs ~3.3s. 매 Edit 마다 즉시 실행하면 다중 spec 편집 시 누적 대기 폭증.
@@ -22,7 +22,7 @@ fi
 
 while IFS= read -r FILE_PATH; do
   case "$FILE_PATH" in
-    packages/specs/src/*|packages/specs/scripts/*|*/packages/specs/src/*|*/packages/specs/scripts/*)
+    packages/rendering/src/*|packages/rendering/scripts/*|*/packages/rendering/src/*|*/packages/rendering/scripts/*)
       FLAG_FILE="$PROJECT_DIR/.codex/.spec-rebuild-pending"
       touch "$FLAG_FILE" 2>/dev/null || true
       ;;

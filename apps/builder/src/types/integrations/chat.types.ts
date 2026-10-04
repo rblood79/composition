@@ -66,7 +66,7 @@ export interface BuilderContext {
    * props 를 싣지 않는 이유는 출처 때문이다: 이 목록은 `pageElementsSnapshot`
    * (레이어 트리용 **구조 전용** 캐시)에서 오고, props-only 변경(`updateElementProps`)
    * 에는 갱신되지 않는다. 실어 두면 낡은 props 가 조용히 읽힌다. 요소 props 가 필요한
-   * 쪽은 canonical 을 읽는다 (`services/ai/tools/canonicalToolReadModel.ts`).
+   * 쪽은 AI 읽기 모델을 쓴다 (`services/ai/tools/aiToolReadModel.ts`).
    */
   elements: Array<{ id: string; type: string }>;
   /**

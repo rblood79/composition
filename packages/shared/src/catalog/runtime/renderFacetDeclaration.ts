@@ -5,24 +5,24 @@
  * **declarative source-of-truth** 로 모은 파일. Phase 1 은 `entryUniverse.ts` 가
  * 이 두 set 을 *읽어서* mirror 했지만(read-only spine), Phase 3-A 는 방향을 역전한다:
  *
- *   [Phase 1] CanonicalNodeRenderer (set 정의 SSOT) ──→ entryUniverse (mirror)
- *   [Phase 3-A] renderFacetDeclaration (SSOT) ──→ CanonicalNodeRenderer set (파생)
+ *   [Phase 1] 구 CanonicalNodeRenderer (set 정의 SSOT) ──→ entryUniverse (mirror)
+ *   [Phase 3-A] renderFacetDeclaration (SSOT) ──→ DOM 렌더러 set (파생, 현 `domRegistry.tsx`)
  *                                              └──→ entryUniverse render facet (파생)
  *
- * 두 소비처(`CanonicalNodeRenderer.tsx` 의 hot-path 분기 / `entryUniverse.ts` 의 render
+ * 두 소비처(`domRegistry.tsx` · `domBinding.tsx` 의 hot-path 분기 / `entryUniverse.ts` 의 render
  * facet mode 판정)가 **동일 declaration 을 source 로 공유**한다. 한쪽이 다른 쪽을 import
  * 하지 않으므로 circular import 가 없다 (defaultPropsDerivation 의 `ENTRY_DERIVED_DEFAULT_TYPES`
  * Option A 패턴과 동형 — entry-derived 술어를 중립 파일에 두어 두 소비처가 congruent).
  *
  * **Hard Constraint**: 본 파일은 어떤 builder/shared 모듈도 import 하지 않는 순수 데이터다.
- * 순수성이 깨지면 (entryUniverse → declaration → CanonicalNodeRenderer → entryUniverse)
+ * 순수성이 깨지면 (entryUniverse → declaration → domRegistry → entryUniverse)
  * 순환이 재발한다.
  *
  * **삭제 0 (Phase 3-A scope)**: 본 phase 는 set membership 값을 byte-identical 유지하며
  * SSOT 만 declaration 으로 이전한다. rendererMap dead/generic row 삭제는 dead 확증이 끝난
  * 별도 slice (breakdown §6: "generic 으로 보인다는 grep 만으로 삭제 금지").
  *
- * 각 항목의 위임 사유(reason)는 `CanonicalNodeRenderer.tsx` 의 기존 멤버 주석에서 1:1 이전한
+ * 각 항목의 위임 사유(reason)는 구 `CanonicalNodeRenderer.tsx` 의 멤버 주석에서 1:1 이전한
  * 것이며, contract(`renderFacetDeclarationContract.test.ts`)가 (a) 파생 set == 현 위임 종수
  * byte-identical (b) 위임 사유 1:1 보존을 matrix 로 검증한다.
  *
@@ -42,7 +42,7 @@ export interface RenderFacetDelegation {
   /**
    * lookup key. `delegating-internal` 은 `binding.source.renderer`(lowercase internal
    * renderer id), `delegating-rac` 은 element `type`(PascalCase) 으로 매칭한다 —
-   * 기존 `CanonicalNodeRenderer.tsx:467-471` 소비 규약 그대로.
+   * 구 `CanonicalNodeRenderer.tsx` 소비 규약 그대로.
    */
   key: string;
   kind: DelegatingRenderKind;
@@ -62,7 +62,7 @@ export interface RenderFacetDelegation {
  *   2026-06-27: toast 추가 — 21후보 정밀 감사로 ButtonGroup 동형 잔여 1건 적발(renderToast 가 자식
  *     Heading/Description self-compose). palette 미노출 imperative 알림이나 선제 등록(6종 동형 일관).
  *
- * 순서는 기존 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
+ * 순서는 구 `CanonicalNodeRenderer.tsx` set 정의 순서를 그대로 보존한다 (Set 은
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
@@ -378,7 +378,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
 /**
  * delegating-internal set 파생 — `binding.source.renderer`(lowercase) 로 매칭.
  *
- * `CanonicalNodeRenderer.tsx` 의 `DELEGATING_INTERNAL_RENDERERS` 가 이 헬퍼로 생성된다.
+ * `domRegistry.tsx` 의 `DELEGATING_INTERNAL_RENDERERS` 가 이 헬퍼로 생성된다.
  * insertion order 보존(declaration 순서 == 기존 set 순서).
  */
 export function deriveDelegatingInternalRenderers(): ReadonlySet<string> {
@@ -392,7 +392,7 @@ export function deriveDelegatingInternalRenderers(): ReadonlySet<string> {
 /**
  * delegating-rac set 파생 — element `type`(PascalCase) 로 매칭.
  *
- * `CanonicalNodeRenderer.tsx` 의 `DELEGATING_RAC_RENDERERS` 가 이 헬퍼로 생성된다.
+ * `domRegistry.tsx` 의 `DELEGATING_RAC_RENDERERS` 가 이 헬퍼로 생성된다.
  */
 export function deriveDelegatingRacRenderers(): ReadonlySet<string> {
   return new Set(

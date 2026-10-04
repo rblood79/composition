@@ -11,7 +11,7 @@ import {
   updateTheme,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { useThemeConfigStore } from "../../../stores/themeConfigStore";
-import { installThemeMaps } from "../../../utils/theme/themeMaps";
+import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/runtime/themeMaps";
 import { createCatalogThemesHost } from "../../panels/themes/catalog/catalogThemesHost";
 import { catalogTextTypography } from "../boxModel";
 import {

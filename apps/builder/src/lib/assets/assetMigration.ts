@@ -3,9 +3,8 @@
  *
  * 규칙 (R1):
  * - 자산 저장이 **성공한 dataURL 만** 참조로 바꾼다. 저장이 실패한 것은 인라인 그대로 둔다.
- * - 문서는 치환 **전에** 백업 ring 에 현재 저장본을 강제로 남긴다. 백업을 못 남기면 치환하지 않는다.
- * - 멱등 — 이관된 문서에는 인라인 dataURL 이 없어 두 번째 실행은 아무것도 바꾸지 않는다.
- * - 치환은 비동기 저장이 끝난 뒤 **그 시점의 최신 문서**에 적용한다 (저장 중 편집을 덮지 않는다).
+ * - 멱등 — 이관된 값에는 인라인 dataURL 이 없어 두 번째 실행은 아무것도 바꾸지 않는다.
+ * - 대상: 가져온 파일 envelope (`migrateValueInlineAssets`) · 폰트 레지스트리 (`migrateFontRegistry`).
  *
  * lazy 전용 모듈 — builder store · DB 는 호출부가 주입한다 (이 chunk 가 builder/shared 공용
  * 모듈을 값으로 import 하면 initial chunk 가 쪼개진다, HC2).
@@ -138,49 +137,6 @@ export async function migrateValueInlineAssets<T>(
     migrated: map.size,
     failed: failed.length,
   };
-}
-
-export interface ProjectMigrationDeps<Doc> {
-  getDocument(): Doc | null | undefined;
-  /** 저장된 현재 문서를 백업 ring 에 강제 기록 — 백업이 존재하면 true */
-  backupNow(): Promise<boolean>;
-  /** 치환된 문서 적용 (canonical 1차 → 파생 · 영속은 기존 파이프라인) */
-  apply(next: Doc, previous: Doc): void;
-  store?: StoreBytes;
-}
-
-export interface ProjectMigrationResult {
-  status: "none" | "migrated" | "backup-failed" | "store-failed" | "stale";
-  migrated: number;
-  failed: number;
-}
-
-/** 프로젝트 문서의 인라인 dataURL → 자산 (로드 뒤 백그라운드). */
-export async function migrateProjectInlineAssets<Doc>(
-  deps: ProjectMigrationDeps<Doc>,
-): Promise<ProjectMigrationResult> {
-  const initial = deps.getDocument();
-  if (!initial) return { status: "stale", migrated: 0, failed: 0 };
-  const urls = findInlineAssetDataUrls(initial);
-  if (urls.size === 0) return { status: "none", migrated: 0, failed: 0 };
-
-  const { map, failed } = await storeInlineAssets(urls, deps.store);
-  if (map.size === 0) {
-    return { status: "store-failed", migrated: 0, failed: failed.length };
-  }
-  // 치환 전 백업 강제 — 못 남기면 치환하지 않는다 (자산은 남아도 참조가 없어 GC 대상).
-  const backedUp = await deps.backupNow().catch(() => false);
-  if (!backedUp) {
-    return { status: "backup-failed", migrated: 0, failed: failed.length };
-  }
-  const latest = deps.getDocument();
-  if (!latest) return { status: "stale", migrated: 0, failed: failed.length };
-  const next = replaceInlineAssetDataUrls(latest, map);
-  if (next === latest) {
-    return { status: "none", migrated: 0, failed: failed.length };
-  }
-  deps.apply(next, latest);
-  return { status: "migrated", migrated: map.size, failed: failed.length };
 }
 
 interface FontFaceLike {

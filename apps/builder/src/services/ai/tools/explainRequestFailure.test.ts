@@ -21,7 +21,7 @@ import {
   explainRequestFailureTool,
 } from "./explainRequestFailure";
 
-vi.mock("./canonicalToolReadModel", () => ({
+vi.mock("./aiToolReadModel", () => ({
   getAiToolReadModel: () => ({
     elements: [],
     elementsById: new Map(),

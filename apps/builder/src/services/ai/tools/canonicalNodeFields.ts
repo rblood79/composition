@@ -1,10 +1,10 @@
 /**
- * canonical 1차 필드 어휘 — AI 도구용 (ADR-134 Phase 3, D2/R4).
+ * AI 도구 `canonical` 인자의 1차 필드 어휘 (ADR-134 Phase 3, D2/R4 — 인자 이름은 도구 계약이라 유지).
  *
- * 도구가 다룰 수 있는 것은 **canonical schema 의 1차 필드** 뿐이다:
- * `clip` / `placeholder` (FrameNode 전용) · `slot` / `reusable` (CanonicalNode 공통).
- * 값은 `useCanonicalDocumentStore.updateNode` 로 patch 한다 — `elementsMap` /
- * `childrenMap` 직접 접근은 하지 않는다 (R4 회귀 gate).
+ * 도구가 다룰 수 있는 것은 이 1차 필드 뿐이다:
+ * `clip` / `placeholder` (frame 전용) · `slot` / `reusable` (모든 노드).
+ * 쓰기는 AI write host 가 catalog 명령으로 바꾼다 (`catalogRuntime/aiHost.ts`
+ * `catalogCanonicalCommands`) — 도구가 store 를 직접 만지지 않는다 (R4 회귀 gate).
  *
  * **`componentSemantics` 는 어휘에 넣지 않는다** (Phase 3 실측): 그 이름의 1차 필드는
  * schema 에 없다 (legacy component-instance mirror metadata 는 ADR-248 4e-13-3 에서
@@ -27,9 +27,7 @@ export interface CanonicalFieldPatch {
   /**
    * 이 노드를 재사용 가능한 원본 (컴포넌트) 으로 표시.
    *
-   * 페이지 안의 reusable frame 은 페이지 scope 를 유지한다 — 레이아웃 scope 는 문서 최상위
-   * reusable frame 만이다 (`getCanonicalProjectionScope`). ADR-134 Phase 3 이 실측한 "page
-   * scope 를 벗어나 사라진다" 는 이 규칙이 깊이를 가리지 않던 결함이었다 (2026-09-25 수리).
+   * 쓰기 host 는 노드를 컴포넌트로 만들고 그 자리에 인스턴스를 둔다 (`reusable: false` 는 거부).
    */
   reusable?: boolean;
 }

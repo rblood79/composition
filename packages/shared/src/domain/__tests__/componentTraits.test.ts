@@ -189,25 +189,25 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
     );
   });
 
-  it("selectionItem (canonicalRefResolution SELECTION_FLAG_ITEM_TYPES)", () => {
+  it("selectionItem (구 canonicalRefResolution SELECTION_FLAG_ITEM_TYPES)", () => {
     expect(sorted(componentTypeSet("selectionItem"))).toEqual(
       literal(["ListBoxItem", "GridListItem"]),
     );
   });
 
-  it("staticCollectionItem (CanonicalNodeRenderer STATIC_ITEM_TYPES)", () => {
+  it("staticCollectionItem (구 CanonicalNodeRenderer STATIC_ITEM_TYPES)", () => {
     expect(sorted(componentTypeSet("staticCollectionItem"))).toEqual(
       literal(["Tab", "Tag", "ListBoxItem", "GridListItem", "Breadcrumb"]),
     );
   });
 
-  it("itemSlotCollection (CanonicalNodeRenderer ITEM_SLOT_COLLECTIONS, 소문자)", () => {
+  it("itemSlotCollection (구 CanonicalNodeRenderer ITEM_SLOT_COLLECTIONS, 소문자)", () => {
     expect(
       sorted(componentTypeSet("itemSlotCollection", { lowercase: true })),
     ).toEqual(literal(["listbox", "gridlist", "menu", "taggroup"]));
   });
 
-  it("disablingGroup (canonicalRefResolution DISABLING_GROUP_TYPES)", () => {
+  it("disablingGroup (구 canonicalRefResolution DISABLING_GROUP_TYPES)", () => {
     expect(sorted(componentTypeSet("disablingGroup"))).toEqual(
       literal([
         "RadioGroup",

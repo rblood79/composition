@@ -11,7 +11,7 @@ import type { PrimitiveBinding } from "../types";
  *   없음, 측정값은 항상 확정).
  *
  *   **DOM = internal wrapper 위임(ProgressBar/Tabs 선례 동형)**: source.renderer="meter" →
- *   CanonicalNodeRenderer 의 DELEGATING_INTERNAL_RENDERERS 위임 분기가
+ *   domRegistry DELEGATING_INTERNAL_RENDERERS 위임 분기가
  *   rendererMap.renderMeter(LayoutRenderers)로 위임한다. renderMeter 는 childrenByParent 에서
  *   자식 Label 의 children 문자열만 추출해 자기완결 RAC `<Meter label value min max variant
  *   size>` 를 렌더한다(render-prop 내부 self-compose — bar/fill 을 RAC 가 자체 생성). 자식

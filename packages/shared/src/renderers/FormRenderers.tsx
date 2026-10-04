@@ -759,7 +759,7 @@ export const renderCheckboxGroup = (
       //   controlled `value={selectedValues}` 는 selectedValues 가 preview canonical
       //   ResolvedNode 트리(flattenNodeChildrenByParent)에서 추출한 props.isSelected 기반인데,
       //   onChange 는 runtime store 의 elements 배열만 갱신(batchUpdateElementProps)한다. canonical
-      //   렌더 경로(CanonicalNodeRenderer)는 canonicalDocument 만 감시 → elements 변화가 resolve
+      //   렌더 경로(구 CanonicalNodeRenderer)는 canonicalDocument 만 감시 → elements 변화가 resolve
       //   재계산을 트리거하지 않아 selectedValues 가 영원히 stale → 체크 토글이 화면에 반영 안 됨
       //   (ADR-116/122 canonical 전환 잔존 결함). renderRadioGroup(아래)은 `defaultValue` uncontrolled
       //   라 RAC 자체 상태로 토글이 즉시 보이며 정상 동작 — 그 작동 참조에 맞춰 `defaultValue` 로 전환.

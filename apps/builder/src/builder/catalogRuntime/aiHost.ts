@@ -21,13 +21,12 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { InteractionAction } from "@composition/shared";
 import type { CatalogPosition } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import type { AiReadHost } from "../../services/ai/aiReadHost";
+import type { AiElementRow, AiReadHost } from "../../services/ai/aiReadHost";
 import { catalogPageContentTarget } from "./pageSettings";
 import type {
   AiElementWrite,
   AiWriteHost,
 } from "../../services/ai/aiWriteHost";
-import type { Element } from "../../types/builder/unified.types";
 import { FILL_DERIVED_STYLE_PROPS } from "../panels/styles/utils/fillDerivedStyleProps";
 import { catalogFillItems, catalogFillLayers } from "./authoredStyle";
 import {
@@ -85,14 +84,14 @@ function fontSizeOf(workspace: CatalogWorkspace, identity: string) {
   return typeof size === "number" ? size : undefined;
 }
 
-/** The project's element rows as the AI's Element shape (ids = record identities). */
-function projectElements(workspace: CatalogWorkspace): Element[] {
+/** The project's element rows for the AI (ids = record identities). */
+function projectElements(workspace: CatalogWorkspace): AiElementRow[] {
   const graph = workspace.runtime.graph;
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return [];
   const records = workspace.root.domInputs;
   const { breakpoint } = workspace.session.getSnapshot();
-  const out: Element[] = [];
+  const out: AiElementRow[] = [];
   const visit = (
     position: CatalogPosition,
     parentId: string | null,
@@ -131,7 +130,7 @@ function projectElements(workspace: CatalogWorkspace): Element[] {
         ...props,
         ...(Object.keys(style).length ? { style } : {}),
       },
-      ...(fills ? { fills: fills as Element["fills"] } : {}),
+      ...(fills ? { fills: fills as AiElementRow["fills"] } : {}),
       parent_id: parentId,
       page_id: pageId,
       ...(node?.kind === "node" && node.name ? { customId: node.name } : {}),
@@ -215,7 +214,7 @@ export function createCatalogAiReadHost(
   // One projection per document revision and composition root (a breakpoint switch makes a new
   // root).
   let cache:
-    { revision: number; root: object; elements: Element[] } | undefined;
+    { revision: number; root: object; elements: AiElementRow[] } | undefined;
   const documentKey = () =>
     `${workspace.runtime.graph.revision}:${workspace.session.getSnapshot().breakpoint}`;
   const selection = () => workspace.session.getSnapshot().selection;

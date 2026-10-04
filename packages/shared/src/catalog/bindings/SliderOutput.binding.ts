@@ -5,7 +5,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **DOM 부모 흡수 (ADR-912 value-label, 2026-06-11)**: DOM 에서 Slider 는 RAC `<Slider>` 가
  *   `<SliderOutput>` 을 self-compose 한다(rac compound self-render, 자식 element 는 generic
- *   재귀 skip — CanonicalNodeRenderer DELEGATING_RAC). source.kind="internal" +
+ *   재귀 skip — domRegistry DELEGATING_RAC). source.kind="internal" +
  *   renderer="slideroutput" 는 INTERNAL_RENDERERS 미등록 → cutover generic skip.
  *
  * **Skia = buildCatalogShapes text**: children(factory 명시 자식, Slider.spec child 위임) 을

@@ -18,7 +18,7 @@ import {
  * layout·scene·Skia 쪽에서만 잠갔다. 그런데 그 계약의 **근거**(= `toRacProps` 가 default 를
  * 채운다)는 generic cutover 경로에서만 성립한다 — `DELEGATING_INTERNAL_RENDERERS` /
  * `DELEGATING_RAC_RENDERERS` 에 속한 타입(Tree·GridList·ListBox·TagGroup 등)은
- * `CanonicalNodeRenderer` 가 `toRacProps` 를 건너뛰고 `rendererMap[type](element, ctx)` 에
+ * `renderCatalogDom` 가 `toRacProps` 를 건너뛰고 `rendererMap[type](element, ctx)` 에
  * 위임하므로, Preview 가 실제로 쓰는 값은 **렌더러가 들고 있는 리터럴**이었다.
  *
  * 그래서 선언(binding)과 렌더(renderer)가 조용히 갈릴 수 있었다 — 실측:
@@ -140,7 +140,7 @@ const FIXTURES: ReadonlyArray<{
 const FIXTURE_NAMES = FIXTURES.map((f) => f.name);
 
 /**
- * 대상은 **delegating 타입만**이다. `CanonicalNodeRenderer` 는 cutover 타입을 generic
+ * 대상은 **delegating 타입만**이다. `renderCatalogDom` 는 cutover 타입을 generic
  * (`toRacProps` → primitive) 으로 그리고, delegating 집합에 속한 타입만 `rendererMap` 에
  * 위임한다 — 그 밖의 타입에서 `rendererMap[type]` 은 live 경로가 아니라 legacy 잔재라
  * 여기서 재면 "정의는 있는데 소비 경로가 아닌" 코드를 재는 셈이 된다.

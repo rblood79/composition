@@ -1,7 +1,7 @@
 /**
  * @fileoverview ADR-158 Phase 1 — `InteractionRule` canonical entry 스키마.
  *
- * `CompositionDocument.events` root collection (ADR-131) 의 entry 형태.
+ * interaction entry 형태 (ADR-131 root collection 에서 시작, ADR-248 부터 catalog graph entry).
  * 메커니즘(root collection) 은 유지하고 entry 스키마만 교체한다 — 구
  * `SerializedEvent` + `SerializedAction` chain (actionRef/fallbackActionRef/
  * condition/next DAG) 은 은퇴.

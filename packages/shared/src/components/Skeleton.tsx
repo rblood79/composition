@@ -114,7 +114,7 @@ export interface SkeletonProps {
   "data-testid"?: string;
 
   /**
-   * ADR-151 후속 (2026-07-17): cutover 경로(CanonicalNodeRenderer)가 marker
+   * ADR-151 후속 (2026-07-17): cutover 경로(renderCatalogDom)가 marker
    * (data-element-id/data-canonical-id) 및 data-* 를 props 로 주입한다 — root 에
    * passthrough 하지 않으면 preview 측정/클릭 선택이 이 요소를 못 찾는다
    * (IllustratedMessage 동형 결함, StatusLight 패턴).

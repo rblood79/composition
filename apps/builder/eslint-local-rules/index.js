@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/panels/ai/AIPanel.tsx",
   // ADR-155 Phase 2: PropertiesPanel 에서 이전된 legacy elementsMap 변환 (동일 계약)
-  "src/services/ai/tools/canonicalToolReadModel.ts",
   "src/services/ai/tools/createElement.ts",
   "src/types/builder/unified.types.ts",
   "src/types/core/store.types.ts",
@@ -349,7 +348,7 @@ export default {
       },
       messages: {
         deprecatedElement:
-          "ADR-126: Element is deprecated for new production code. Use CompositionDocument/CanonicalNode or a structural contract instead.",
+          "ADR-126: Element is deprecated for new production code. Use the catalog document model (`@composition/shared` catalog) or a structural contract instead.",
       },
       schema: [],
     },

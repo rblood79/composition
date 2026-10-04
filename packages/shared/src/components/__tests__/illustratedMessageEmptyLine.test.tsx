@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { IllustratedMessage } from "../IllustratedMessage";
 
 /**
- * ADR-923 r19m1 — canonical Preview 경로 (CanonicalNodeRenderer → 본 컴포넌트) 의 IllustratedMessage
+ * ADR-923 r19m1 — catalog Preview 경로 (renderCatalogDom → 본 컴포넌트) 의 IllustratedMessage
  * 기본 글자. 종전 `heading || "No content"` 는 사용자가 비운 "" 를 기본 글자로 되살려 Skia
  * (`illustrated_message`, "" 는 줄 없음) 와 갈렸다. 세 표면 동일: 부재 → 기본 글자, "" → 줄 자체
  * 없음 (빈 div 도 flex gap 을 차지하므로 미렌더 — layout 높이 차감 · Skia y 접힘과 정합).

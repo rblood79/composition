@@ -15,7 +15,7 @@
  * 여기서 잠그는 것은 클래스 이름 하나가 아니라 **생성 CSS 와 렌더러가 같은 selector 를 본다**는
  * 계약이다. 클래스 규약 자체는 레퍼런스에서 오지 않는다 — S2 Card 는 `style()` 매크로라 클래스가
  * 없고 SWC 는 `<sp-card>` 커스텀 엘리먼트다. `react-aria-{Type}` 은 RAC 에서 온 composition
- * house convention 이고, CSS 생성기·`Card.tsx`·`CanonicalNodeRenderer` generic fallback 이
+ * house convention 이고, CSS 생성기·`Card.tsx`·`renderCatalogDom` generic fallback 이
  * 모두 그것을 쓴다.
  */
 

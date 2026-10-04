@@ -13,7 +13,7 @@ import type { Element } from "../../../types/core/store.types";
 
 const model = vi.hoisted(() => ({
   current: null as unknown as ReturnType<
-    typeof import("./canonicalToolReadModel").getAiToolReadModel
+    typeof import("./aiToolReadModel").getAiToolReadModel
   >,
 }));
 const canonicalStub = vi.hoisted(() => ({
@@ -21,7 +21,7 @@ const canonicalStub = vi.hoisted(() => ({
   applied: false,
 }));
 
-vi.mock("./canonicalToolReadModel", () => ({
+vi.mock("./aiToolReadModel", () => ({
   getAiToolReadModel: () => model.current,
 }));
 

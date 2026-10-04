@@ -34,7 +34,7 @@ export function renderDataTable(_element: PreviewElement): ReactNode {
 /**
  * Chart 렌더러 (ADR-194) — legacy `rendererMap` 경로.
  *
- * cutover 경로(CanonicalNodeRenderer → `INTERNAL_RENDERERS["chart"]`)와 **같은 shared
+ * cutover 경로(renderCatalogDom → `INTERNAL_RENDERERS["chart"]`)와 **같은 shared
  * `Chart` 컴포넌트** 를 렌더한다. 두 경로가 다른 컴포넌트를 그리면 진입로마다 차트가
  * 달라지는데, 그 차이는 팔레트 드롭이 아니라 문서 로드 경로에서만 드러난다.
  */

@@ -1,14 +1,10 @@
 // @vitest-environment node
 /**
  * ADR-235 Phase 2 — 인라인 dataURL → 자산 이관 (G2).
- * (a) 자산 저장 강제 실패 시 인라인 유지 (b) 2회 실행 결과 동일 (c) 이관 전 백업 존재.
+ * 가져온 파일 envelope · 폰트 레지스트리의 인라인 자산 이관.
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  openLegacyDocuments,
-  type LegacyDocuments,
-} from "../../db/__tests__/support/legacyDocuments";
 import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { encodeDataUrl } from "@composition/shared/assets";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
@@ -16,7 +12,6 @@ import { closeAssetDb, readAssetRecords } from "../assetDb";
 import {
   findInlineAssetDataUrls,
   migrateFontRegistry,
-  migrateProjectInlineAssets,
   migrateValueInlineAssets,
   replaceInlineAssetDataUrls,
 } from "../assetMigration";
@@ -45,16 +40,13 @@ function doc(): LegacyDocumentFixture {
 }
 
 let adapter: IndexedDBAdapter;
-let legacy: LegacyDocuments;
 beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
-  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
-  legacy.close();
   await adapter.close();
 });
 
@@ -82,122 +74,6 @@ describe("인라인 자산 탐지 · 치환", () => {
     ).toBe(`url("asset:sha256-${"b".repeat(64)}")`);
     expect(findInlineAssetDataUrls(source).size).toBe(2);
     expect(replaceInlineAssetDataUrls(source, new Map())).toBe(source);
-  });
-});
-
-describe("프로젝트 이관 (G2 원복 RED)", () => {
-  async function run(
-    current: { value: LegacyDocumentFixture },
-    options: {
-      backup?: () => Promise<boolean>;
-      store?: Parameters<typeof migrateProjectInlineAssets>[0]["store"];
-    } = {},
-  ) {
-    const applied: LegacyDocumentFixture[] = [];
-    const result = await migrateProjectInlineAssets<LegacyDocumentFixture>({
-      getDocument: () => current.value,
-      backupNow: options.backup ?? (async () => true),
-      apply: (next) => {
-        applied.push(next);
-        current.value = next;
-      },
-      store: options.store,
-    });
-    return { result, applied };
-  }
-
-  it("(a) 자산 저장이 실패하면 문서를 바꾸지 않는다 (인라인 유지)", async () => {
-    const current = { value: doc() };
-    const failing = vi.fn(async () => {
-      throw new Error("quota");
-    });
-    const { result, applied } = await run(current, { store: failing });
-    expect(result.status).toBe("store-failed");
-    expect(applied).toHaveLength(0);
-    expect(findInlineAssetDataUrls(current.value).size).toBe(2);
-  });
-
-  it("(a') 일부만 실패하면 성공분만 치환하고 실패분은 인라인으로 남긴다", async () => {
-    const { storeAssetBytes } = await import("../assetStore");
-    const current = { value: doc() };
-    const partial: typeof storeAssetBytes = async (input, session) => {
-      if (input.mime === "image/jpeg") throw new Error("quota");
-      return storeAssetBytes(input, session);
-    };
-    const { result } = await run(current, { store: partial });
-    expect(result).toMatchObject({
-      status: "migrated",
-      migrated: 1,
-      failed: 1,
-    });
-    expect([...findInlineAssetDataUrls(current.value)]).toEqual([JPG]);
-  });
-
-  it("(c) 백업을 남기지 못하면 치환하지 않는다", async () => {
-    const current = { value: doc() };
-    const { result, applied } = await run(current, {
-      backup: async () => false,
-    });
-    expect(result.status).toBe("backup-failed");
-    expect(applied).toHaveLength(0);
-  });
-
-  it("(b) 두 번 실행해도 결과가 같다 (멱등) · 바이트는 원본 그대로", async () => {
-    const current = { value: doc() };
-    const first = await run(current);
-    expect(first.result).toMatchObject({ status: "migrated", migrated: 2 });
-    const afterFirst = JSON.stringify(current.value);
-    const second = await run(current);
-    expect(second.result.status).toBe("none");
-    expect(JSON.stringify(current.value)).toBe(afterFirst);
-    const refs = [...afterFirst.matchAll(/asset:sha256-([0-9a-f]{64})/g)].map(
-      (m) => m[1],
-    );
-    const records = await readAssetRecords(refs);
-    expect(records.size).toBe(2);
-    const bytes = await Promise.all(
-      [...records.values()].map(async (r) => [
-        ...new Uint8Array(await r.blob.arrayBuffer()),
-      ]),
-    );
-    expect(bytes).toContainEqual([137, 80, 78, 71, 1, 2, 3]);
-  });
-
-  it("치환은 저장이 끝난 시점의 최신 문서에 적용한다 (저장 중 편집 보존)", async () => {
-    const current = { value: doc() };
-    const { storeAssetBytes } = await import("../assetStore");
-    const slow: typeof storeAssetBytes = async (input, session) => {
-      const stored = await storeAssetBytes(input, session);
-      // 저장 중 사용자가 텍스트를 바꿨다
-      current.value = {
-        ...current.value,
-        children: current.value.children.map((node) =>
-          node.id === "c" ? { ...node, props: { children: "edited" } } : node,
-        ),
-      } as LegacyDocumentFixture;
-      return stored;
-    };
-    await run(current, { store: slow });
-    const text = current.value.children.find(
-      (n) => n.id === "c",
-    ) as unknown as {
-      props: { children: string };
-    };
-    expect(text.props.children).toBe("edited");
-    expect(findInlineAssetDataUrls(current.value).size).toBe(0);
-  });
-
-  it("(c) adapter backupNow — 저장된 이관 전 문서가 백업 ring 에 남는다", async () => {
-    const original = doc();
-    await legacy.put("p1", original);
-    expect(await legacy.backupNow("p1")).toBe(true);
-    const backups = await legacy.getBackups("p1");
-    expect(backups).toHaveLength(1);
-    expect(findInlineAssetDataUrls(backups[0].document).size).toBe(2);
-    // 같은 세대면 다시 쓰지 않는다
-    expect(await legacy.backupNow("p1")).toBe(true);
-    expect(await legacy.getBackups("p1")).toHaveLength(1);
-    expect(await legacy.backupNow("missing")).toBe(false);
   });
 });
 

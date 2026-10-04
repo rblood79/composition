@@ -151,7 +151,7 @@ export interface RenderContext {
   renderElement: (el: PreviewElement, key?: string) => ReactNode;
   /**
    * ADR-234 Phase 3 — 정적 목록 항목 (TabList 의 Tab instance) 을 RAC collection item 그대로 그리는 함수.
-   * canonical 경로 (CanonicalNodeRenderer) 만 공급한다 — 상태 층 render props (style · children 함수) 를
+   * catalog 경로 (renderCatalogDom) 만 공급한다 — 상태 층 render props (style · children 함수) 를
    * 싣는다. 없으면 목록 렌더러가 직접 RAC item 을 합성한다 (legacy 경로).
    */
   renderCollectionItem?: (el: PreviewElement, key?: string) => ReactNode;
@@ -229,7 +229,7 @@ export interface RenderContext {
   /**
    * ADR-233 round 3 m2 — Tabs 마다 자기 slot 의 template 을 고른다 (builder `resolveTabTemplateOriginIds`
    * 와 같은 규칙: ref instance 는 master (`_resolvedFrom`) 의 slot, 문서 Tabs 는 자기 slot, 없으면 표준
-   * origin 상수). 렌더러 (`CanonicalNodeRenderer`) 가 Tabs 노드마다 불러 `tabTemplate` 을 바꿔 넘긴다.
+   * origin 상수). 렌더러 (`renderCatalogDom`) 가 Tabs 노드마다 불러 `tabTemplate` 을 바꿔 넘긴다.
    */
   resolveTabTemplate?: (owner: {
     slot?: unknown;
@@ -237,7 +237,7 @@ export interface RenderContext {
   }) => TagItemTemplate | null;
   /**
    * ADR-162 Phase 1 — GridList 마다 자기 slot 의 항목 origin 구성을 고른다 (builder
-   * `resolveGridListTemplateOriginId` 와 같은 규칙). 렌더러 (`CanonicalNodeRenderer`) 가 GridList 노드마다 불러
+   * `resolveGridListTemplateOriginId` 와 같은 규칙). 렌더러 (`renderCatalogDom`) 가 GridList 노드마다 불러
    * `gridListTemplateSlotComposition` 을 바꿔 넘긴다.
    */
   resolveGridListTemplate?: (owner: {
@@ -246,7 +246,7 @@ export interface RenderContext {
   }) => SlotComposition | null;
   /**
    * ADR-162 Phase 3 — GridList 의 항목 origin 에 역할 없는 자식이 있으면 그 자식 (해석된 노드) 을 돌려준다
-   * (전부 slot 이면 null). `CanonicalNodeRenderer` 가 이것으로 `renderGridListRowTemplate` 을 만든다.
+   * (전부 slot 이면 null). `renderCatalogDom` 가 이것으로 `renderGridListRowTemplate` 을 만든다.
    */
   resolveGridListRowTemplateChildren?: (owner: {
     slot?: unknown;

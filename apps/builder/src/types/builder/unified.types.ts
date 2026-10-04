@@ -52,11 +52,10 @@ export type {
 import type { FieldType, ColumnMapping } from "@composition/shared";
 
 /**
- * @deprecated ADR-126 Phase 6.
- * Builder runtime 신규 코드는 canonical `CompositionDocument` / `CanonicalNode`
- * 또는 도메인별 structural contract 를 사용한다. `Element` 는 legacy
- * compatibility projection, export/import/cloud boundary, history compatibility,
- * and transitional store cache surfaces 에서만 허용한다.
+ * @deprecated ADR-126 Phase 6 · ADR-248.
+ * Builder runtime 코드는 catalog 문서 모델 (`@composition/shared` catalog) 또는 도메인별
+ * structural contract 를 사용한다. `Element` 는 남은 panel · navigator 타입의 호환 표면에서만
+ * 허용한다.
  */
 export interface Element {
   id: string;
@@ -122,8 +121,7 @@ export interface Element {
   // --- ADR-214: 노드 소유 상태 정의 (페이지 · 요소 변수) ---
   /**
    * canonical `CanonicalNode.state` mirror (ADR-214 Phase 1). `responsive` 와 같은
-   * 1차 필드 규약 — projection (`canonicalNodeToElement`) 이 싣고 역변환
-   * (`legacyElementToCanonicalNode`) 이 되돌린다. 빈 배열은 필드 생략과 같다.
+   * 1차 필드 규약. 빈 배열은 필드 생략과 같다.
    * 복제 · 붙여넣기의 id 재발급은 `remapClonedState` (`@composition/shared`) 하나.
    */
   state?: import("@composition/shared").VariableDef[];

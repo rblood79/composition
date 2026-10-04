@@ -38,7 +38,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **source = internal**: RAC standalone `FieldError` controller 없음(field 자식 slot,
  *   `<Text slot="errorMessage">` 위임) → internal. DOM tag 는 `resolveGenericHtmlTag` KNOWN_HTML
- *   FieldError→`<span>`(CanonicalNodeRenderer.tsx:314, role="alert"/aria-live RAC 위임).
+ *   FieldError→`<span>`(domBinding.tsx, role="alert"/aria-live RAC 위임).
  *   Skia = box+text generic(buildCatalogShapes, transparent bg + text).
  *
  * D1: composition `<span>` (internal source, generic DOM via KNOWN_HTML).

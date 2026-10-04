@@ -1,27 +1,26 @@
-import type { Element } from "../../../types/builder/unified.types";
-import { getAiReadHost } from "../aiReadHost";
+import { getAiReadHost, type AiElementRow } from "../aiReadHost";
 
 interface AiToolElementProjection {
-  readonly childrenByParent: Map<string, Element[]>;
-  readonly elements: Element[];
-  readonly elementsById: Map<string, Element>;
+  readonly childrenByParent: Map<string, AiElementRow[]>;
+  readonly elements: AiElementRow[];
+  readonly elementsById: Map<string, AiElementRow>;
 }
 
 const projectionCache = new WeakMap<
-  readonly Element[],
+  readonly AiElementRow[],
   AiToolElementProjection
 >();
-const NO_ELEMENTS: readonly Element[] = [];
+const NO_ELEMENTS: readonly AiElementRow[] = [];
 
 function buildAiToolElementProjection(
-  elements: Element[],
+  elements: AiElementRow[],
 ): AiToolElementProjection {
-  const elementsById = new Map<string, Element>();
-  const childrenByParent = new Map<string, Element[]>();
+  const elementsById = new Map<string, AiElementRow>();
+  const childrenByParent = new Map<string, AiElementRow[]>();
 
   for (const element of elements) {
     elementsById.set(element.id, element);
-    if (element.deleted || !element.parent_id) continue;
+    if (!element.parent_id) continue;
     const siblings = childrenByParent.get(element.parent_id);
     if (siblings) {
       siblings.push(element);
@@ -43,7 +42,7 @@ export function getAiToolReadModel() {
   const elements = host?.elements() ?? NO_ELEMENTS;
   let projection = projectionCache.get(elements);
   if (!projection) {
-    projection = buildAiToolElementProjection(elements as Element[]);
+    projection = buildAiToolElementProjection(elements as AiElementRow[]);
     projectionCache.set(elements, projection);
   }
   const selectedElementIds = host ? [...host.selectedIds()] : [];

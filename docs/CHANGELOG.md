@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [canonical·잔존 spec 레거시 정리 — ADR-248 후속] - 2026-10-05
+
+### Changed
+
+- IndexedDB `composition` DB 를 v25 로 올렸다. 구 canonical 문서 store 4개 (`documents` · `document_heads` · `document_parts` · `documents_backup`) 는 더 만들지 않고 기존 DB 의 것은 업그레이드 때 지운다 (구 포맷은 이미 열지 않는다). `order_num` 정리 이관 코드도 제거했다.
+- 자산 GC root 와 폴더 연결 eviction 이 구 문서 store · 구 history DB 를 읽지 않는다. eviction 은 catalog 문서를 아직 담지 않아 비우기가 일어나지 않는 기존 동작을 유지한다 (사용자 선택).
+- AI 읽기 모델이 구 `Element` 대신 전용 `AiElementRow` 를 쓰고 `aiToolReadModel.ts` 로 이름을 바꿨다. AI 도구의 `canonical` 인자 이름은 도구 계약이라 유지한다.
+
+### Removed
+
+- production import 0 인 catalog runtime 재수출 shim 12 · `SortIcon` · `creationStyleDefaults` · `migrateSelectComboBoxItems` 래퍼 · `migrateProjectInlineAssets` · phase0 계측의 canonical/legacy write 카운터 · 구 store 를 흉내 내던 테스트 helper.
+- 지워진 canonical 모듈이나 `packages/specs/src` 를 import 해 실행할 수 없던 스크립트 13개와 깨진 `test:coverage` 스크립트. agent·hook 스크립트의 `packages/specs` 경로는 `packages/rendering` 으로 옮겼다.
+
+### Tests
+
+- v24 → v25 업그레이드 (구 store 삭제 · 다른 store 보존) unit 을 추가했다. type-check 6/6, shared 1492 · rendering 1379 · builder 3991 PASS (기존 실패 1 — `adr923DefaultContractRenderers` 의 Menu 3행, HEAD 동일), `gate:catalog-runtime` PASS. 실제 Builder 에서 v24 DB → v25 업그레이드, AI 읽기 · `get_editor_state`, GC root 수집, reload 를 확인했다.
+
 ## [큰 문서 구조 변경·다중 선택 액션 바 비용 축소 — ADR-248 후속] - 2026-10-05
 
 ### Performance

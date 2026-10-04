@@ -39,7 +39,7 @@ vi.mock("../data/dataToolReadModel", async (importOriginal) => {
   };
 });
 
-vi.mock("./canonicalToolReadModel", () => ({
+vi.mock("./aiToolReadModel", () => ({
   getAiToolReadModel: () => ({
     elements: [],
     elementsById: new Map([["lb1", { id: "lb1", type: "ListBox" }]]),

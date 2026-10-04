@@ -13,11 +13,9 @@ type DurationMetric =
 interface EditorPresentationPhase0Counters {
   actionRafCallbackCount: number;
   bridgeFullRebuildCount: number;
-  canonicalWriteCount: number;
   controlRafCallbackCount: number;
   frameApplyCount: number;
   layoutPublishCount: number;
-  legacyWriteCount: number;
   previewDeltaBytes: number;
   previewDeltaMessageCount: number;
   previewFullDocumentBytes: number;
@@ -39,10 +37,6 @@ export interface EditorPresentationPhase0DurationSnapshot {
 }
 
 export interface EditorPresentationPhase0Snapshot {
-  beforeFirstCanonicalWrite: {
-    counters: EditorPresentationPhase0Counters;
-    durations: Record<DurationMetric, EditorPresentationPhase0DurationSnapshot>;
-  } | null;
   beforeLastTerminal: {
     counters: EditorPresentationPhase0Counters;
     durations: Record<DurationMetric, EditorPresentationPhase0DurationSnapshot>;
@@ -62,11 +56,9 @@ let enabled = queryEnabled;
 const createCounters = (): EditorPresentationPhase0Counters => ({
   actionRafCallbackCount: 0,
   bridgeFullRebuildCount: 0,
-  canonicalWriteCount: 0,
   controlRafCallbackCount: 0,
   frameApplyCount: 0,
   layoutPublishCount: 0,
-  legacyWriteCount: 0,
   previewDeltaBytes: 0,
   previewDeltaMessageCount: 0,
   previewFullDocumentBytes: 0,
@@ -79,8 +71,6 @@ const createCounters = (): EditorPresentationPhase0Counters => ({
 });
 
 let counters = createCounters();
-let beforeFirstCanonicalWrite: EditorPresentationPhase0Snapshot["beforeFirstCanonicalWrite"] =
-  null;
 let beforeLastTerminal: EditorPresentationPhase0Snapshot["beforeLastTerminal"] =
   null;
 let terminalSeen = false;
@@ -171,22 +161,8 @@ export function recordEditorPresentationFrameApply(durationMs: number): void {
   recordDuration("frameApply", durationMs);
 }
 
-export function recordEditorPresentationCanonicalWrite(): void {
-  if (enabled && beforeFirstCanonicalWrite === null) {
-    beforeFirstCanonicalWrite = {
-      counters: { ...counters },
-      durations: snapshotCurrentDurations(),
-    };
-  }
-  increment("canonicalWriteCount");
-}
-
 export function isEditorPresentationPhase0MetricsEnabled(): boolean {
   return enabled;
-}
-
-export function recordEditorPresentationLegacyWrite(): void {
-  increment("legacyWriteCount");
 }
 
 export function recordEditorPresentationLayoutPublish(): void {
@@ -256,7 +232,6 @@ function snapshotCurrentDurations(): Record<
 
 export function getEditorPresentationPhase0Snapshot(): EditorPresentationPhase0Snapshot {
   return {
-    beforeFirstCanonicalWrite,
     beforeLastTerminal,
     counters: { ...counters },
     durations: snapshotCurrentDurations(),
@@ -266,7 +241,6 @@ export function getEditorPresentationPhase0Snapshot(): EditorPresentationPhase0S
 
 export function resetEditorPresentationPhase0Metrics(): void {
   counters = createCounters();
-  beforeFirstCanonicalWrite = null;
   beforeLastTerminal = null;
   terminalSeen = false;
   previewFullDocumentRepresentativeBytes = 0;
@@ -295,7 +269,6 @@ declare global {
       disable: typeof disableEditorPresentationPhase0Metrics;
       enable: typeof enableEditorPresentationPhase0Metrics;
       recordFrameApply: typeof recordEditorPresentationFrameApply;
-      recordLegacyWrite: typeof recordEditorPresentationLegacyWrite;
       reset: typeof resetEditorPresentationPhase0Metrics;
       snapshot: typeof getEditorPresentationPhase0Snapshot;
     };
@@ -307,7 +280,6 @@ if (exposed) {
     disable: disableEditorPresentationPhase0Metrics,
     enable: enableEditorPresentationPhase0Metrics,
     recordFrameApply: recordEditorPresentationFrameApply,
-    recordLegacyWrite: recordEditorPresentationLegacyWrite,
     reset: resetEditorPresentationPhase0Metrics,
     snapshot: getEditorPresentationPhase0Snapshot,
   };

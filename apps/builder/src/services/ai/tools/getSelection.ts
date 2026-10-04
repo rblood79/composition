@@ -9,7 +9,7 @@ import type {
   ToolExecutor,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 
 export const getSelectionTool: ToolExecutor = {
   name: "get_selection",

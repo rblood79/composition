@@ -1,8 +1,10 @@
+// @vitest-environment node
+import { IDBFactory } from "fake-indexeddb";
 import { describe, it, expect } from "vitest";
-import { stripLegacyOrderPayload } from "../indexedDB/adapter";
+import { IndexedDBAdapter } from "../indexedDB/adapter";
 
-describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 24 로 갱신된다 (2026-10-03 ADR-248: events · actions mirror store 삭제)", async () => {
+describe("IndexedDB adapter schema (data store · 자산)", () => {
+  it("DB_VERSION 이 25 로 갱신된다 (2026-10-05 ADR-248 후속: 구 canonical 문서 store 삭제)", async () => {
     // pin 은 버전 상향을 의도적으로 만들기 위한 ratchet 이다. 19(ADR-143)·20(backup ring)
     // 시점에 미갱신으로 stale 였고 21(2026-09-07 canonical 변경 노드 저장) 에서 다시 맞췄다.
     // 22(ADR-218 collection_runtime) 는 P1 커밋이 이 ratchet 을 못 올렸다 — 후속에서 정합.
@@ -10,14 +12,54 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*24\b/);
-    expect(source).toMatch(/createObjectStore\(\s*["']documents_backup["']/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*25\b/);
     expect(source).toMatch(/createObjectStore\(\s*["']collection_runtime["']/);
     expect(source).toMatch(/createObjectStore\(ASSETS_STORE/);
     expect(source).toMatch(/createObjectStore\(ASSET_GC_STORE/);
   });
 
-  it("old projects' documents store stays in the schema; the adapter has no document API", async () => {
+  it("구 canonical 문서 store 를 만들지 않고 v24 DB 의 것은 지운다 (다른 store 는 보존)", async () => {
+    const factory = new IDBFactory();
+    (globalThis as { indexedDB?: IDBFactory }).indexedDB = factory;
+    const OLD = [
+      "documents",
+      "document_heads",
+      "document_parts",
+      "documents_backup",
+    ];
+    await new Promise<void>((resolve, reject) => {
+      const request = factory.open("composition", 24);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        db.createObjectStore("projects", { keyPath: "id" });
+        for (const name of OLD) db.createObjectStore(name);
+      };
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const tx = request.result.transaction("projects", "readwrite");
+        tx.objectStore("projects").put({ id: "p1", name: "p1" });
+        tx.oncomplete = () => {
+          request.result.close();
+          resolve();
+        };
+      };
+    });
+    const adapter = new IndexedDBAdapter();
+    await adapter.init();
+    expect(await adapter.projects.getById("p1")).toMatchObject({ id: "p1" });
+    await adapter.close();
+    const names = await new Promise<string[]>((resolve) => {
+      const request = factory.open("composition");
+      request.onsuccess = () => {
+        resolve([...request.result.objectStoreNames]);
+        request.result.close();
+      };
+    });
+    for (const name of OLD) expect(names).not.toContain(name);
+    expect(names).toContain("collections");
+  });
+
+  it("the adapter has no document API", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const adapterSource = await fs.readFile(
@@ -28,9 +70,7 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
       path.resolve(__dirname, "../types.ts"),
       "utf-8",
     );
-    // ADR-248 4e-13: the old Builder's document writer went with it — old projects' rows are kept
-    // (asset GC roots · project eviction read them), nothing in the Builder writes them.
-    expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
+    expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']documents/);
     expect(adapterSource).not.toMatch(/get documents\(\)/);
     expect(typesSource).not.toMatch(/documents\s*:\s*\{/);
   });
@@ -71,7 +111,7 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
     expect(adapterSource).toContain("db.deleteObjectStore(legacyStore)");
   });
 
-  it("pages/layouts store 를 생성하지 않고 documents store 만 primary 로 유지한다", async () => {
+  it("pages/layouts store 를 생성하지 않는다", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const adapterPath = path.resolve(__dirname, "../indexedDB/adapter.ts");
@@ -79,81 +119,6 @@ describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
 
     expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']pages["']/);
     expect(adapterSource).not.toMatch(/createObjectStore\(\s*["']layouts["']/);
-    expect(adapterSource).toMatch(/createObjectStore\(\s*["']documents["']/);
-    expect(adapterSource).toContain("stripLegacyOrderPayloads(");
-  });
-
-  it("legacy page/layout row 와 canonical metadata 의 order_num payload 를 제거한다", () => {
-    const pageRow = {
-      id: "page-1",
-      project_id: "project-1",
-      order_num: 3,
-      title: "Home",
-    };
-    const layoutRow = {
-      id: "layout-1",
-      project_id: "project-1",
-      orderNum: 1,
-      name: "Frame 1",
-    };
-    const documentRecord = {
-      project_id: "project-1",
-      document: {
-        version: "composition-1.0",
-        children: [
-          {
-            id: "page-1",
-            type: "frame",
-            ["metadata"]: {
-              type: "legacy-page",
-              pageId: "page-1",
-              order_num: 0,
-            },
-            children: [
-              {
-                id: "button-1",
-                type: "button",
-                ["metadata"]: {
-                  type: "button",
-                  orderNum: 4,
-                },
-              },
-            ],
-          },
-          {
-            id: "layout-1",
-            type: "frame",
-            reusable: true,
-            ["metadata"]: {
-              type: "layout",
-              layoutId: "layout-1",
-              order_num: 1,
-            },
-          },
-        ],
-      },
-      updated_at: "2026-05-08T00:00:00.000Z",
-    };
-
-    expect(stripLegacyOrderPayload(pageRow)).toBe(true);
-    expect(stripLegacyOrderPayload(layoutRow)).toBe(true);
-    expect(stripLegacyOrderPayload(documentRecord)).toBe(true);
-
-    expect(pageRow).not.toHaveProperty("order_num");
-    expect(layoutRow).not.toHaveProperty("orderNum");
-    expect(documentRecord.document.children[0].metadata).toEqual({
-      type: "legacy-page",
-      pageId: "page-1",
-    });
-    expect(documentRecord.document.children[0].children?.[0]?.metadata).toEqual(
-      {
-        type: "button",
-      },
-    );
-    expect(documentRecord.document.children[1].metadata).toEqual({
-      type: "layout",
-      layoutId: "layout-1",
-    });
   });
 
   it("ADR-121 dormant DB adapter surface 를 제거한다", async () => {

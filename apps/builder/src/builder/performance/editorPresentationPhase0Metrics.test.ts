@@ -17,14 +17,13 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
   it("exposes an inactive dev controller on an exact Builder URL", async () => {
     const metrics = await import("./editorPresentationPhase0Metrics");
     metrics.recordEditorPresentationRawInput();
-    metrics.recordEditorPresentationCanonicalWrite();
 
     expect(
       window.__composition_EDITOR_PRESENTATION_PHASE0_METRICS__,
     ).toBeDefined();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: false,
-      counters: { canonicalWriteCount: 0, rawInputCount: 0 },
+      counters: { rawInputCount: 0 },
     });
 
     document
@@ -33,10 +32,9 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       )
       ?.click();
     metrics.recordEditorPresentationRawInput();
-    metrics.recordEditorPresentationCanonicalWrite();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: true,
-      counters: { canonicalWriteCount: 1, rawInputCount: 1 },
+      counters: { rawInputCount: 1 },
     });
     document
       .querySelector<HTMLButtonElement>(
@@ -49,7 +47,7 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       ),
     ).toMatchObject({
       enabled: true,
-      counters: { canonicalWriteCount: 1, rawInputCount: 1 },
+      counters: { rawInputCount: 1 },
     });
 
     document
@@ -59,7 +57,7 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
       ?.click();
     expect(metrics.getEditorPresentationPhase0Snapshot()).toMatchObject({
       enabled: false,
-      counters: { canonicalWriteCount: 0, rawInputCount: 0 },
+      counters: { rawInputCount: 0 },
     });
   });
 
@@ -72,15 +70,13 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
     metrics.recordEditorPresentationControlRaf(2);
     metrics.recordEditorPresentationActionRaf(3);
     metrics.recordEditorPresentationFrameApply(4);
-    metrics.recordEditorPresentationCanonicalWrite();
-    metrics.recordEditorPresentationLegacyWrite();
     metrics.recordEditorPresentationLayoutPublish();
     metrics.recordEditorPresentationProjectionSignature(5);
     metrics.recordEditorPresentationBridgeFullRebuild();
     metrics.recordEditorPresentationTargetIncrementalPatches(3);
     metrics.recordEditorPresentationPreviewFullDocumentMessage({
-      type: "UPDATE_CANONICAL_DOCUMENT",
-      document: { version: "composition-1.0" },
+      type: "UPDATE_CATALOG_DOCUMENT",
+      document: { version: 1 },
     });
     metrics.recordEditorPresentationTerminalEvent();
     metrics.recordEditorPresentationActionRaf(1);
@@ -90,11 +86,9 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
     expect(snapshot.counters).toMatchObject({
       actionRafCallbackCount: 2,
       bridgeFullRebuildCount: 1,
-      canonicalWriteCount: 1,
       controlRafCallbackCount: 1,
       frameApplyCount: 1,
       layoutPublishCount: 1,
-      legacyWriteCount: 1,
       previewDeltaBytes: 0,
       previewDeltaMessageCount: 0,
       previewFullDocumentMessageCount: 1,
@@ -106,15 +100,10 @@ describe("ADR-187 Phase 0 presentation metrics", () => {
     });
     expect(snapshot.counters.previewFullDocumentBytes).toBeGreaterThan(0);
     expect(snapshot.beforeLastTerminal?.counters).toMatchObject({
-      canonicalWriteCount: 1,
+      frameApplyCount: 1,
       rawInputCount: 1,
       staleCallbackAfterTerminalCount: 0,
       terminalEventCount: 0,
-    });
-    expect(snapshot.beforeFirstCanonicalWrite?.counters).toMatchObject({
-      canonicalWriteCount: 0,
-      frameApplyCount: 1,
-      rawInputCount: 1,
     });
     expect(snapshot.durations.frameApply).toEqual({
       count: 1,

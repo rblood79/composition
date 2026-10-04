@@ -80,7 +80,7 @@ printf '\n== 수동 spec flag adapter 호환 ==\n'
 FAKE_PROJECT="$TMP_ROOT/project"
 mkdir -p "$FAKE_PROJECT/.codex"
 SPEC_COMMAND="bash \"$HOOKS_DIR/spec-rebuild-flag.sh\""
-SPEC_INPUT=$(jq -nc --arg cwd "$FAKE_PROJECT" --arg command $'*** Begin Patch\n*** Update File: packages/specs/src/example.ts\n*** End Patch' '{cwd:$cwd,tool_name:"apply_patch",tool_input:{command:$command}}')
+SPEC_INPUT=$(jq -nc --arg cwd "$FAKE_PROJECT" --arg command $'*** Begin Patch\n*** Update File: packages/rendering/src/example.ts\n*** End Patch' '{cwd:$cwd,tool_name:"apply_patch",tool_input:{command:$command}}')
 printf '%s' "$SPEC_INPUT" | (cd "$ROOT_DIR" && /bin/bash -c "$SPEC_COMMAND")
 if [ -f "$FAKE_PROJECT/.codex/.spec-rebuild-pending" ]; then pass "spec patch가 rebuild flag 생성"; else fail "spec rebuild flag 미생성"; fi
 

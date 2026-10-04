@@ -36,7 +36,6 @@
     "agent:dashboard": "bash scripts/agent/dashboard.sh",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "test:coverage": "pnpm -F @composition/specs test:coverage",
     "clean": "turbo run clean && rm -rf node_modules",
     "playwright:install": "pnpm -F @composition/builder exec playwright install",
     "wasm:build:engine": "wasm-pack build packages/engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg",

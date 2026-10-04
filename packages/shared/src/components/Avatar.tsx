@@ -69,7 +69,7 @@ const FONT_SIZE: Record<string, number> = {
 /**
  * Avatar — circle bg + image | initials.
  *
- * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로,
+ * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로,
  * 본 컴포넌트는 src/alt/initials/size/isDisabled + style/className 만 소비한다.
  * circle bg/이니셜 색은 theme rule(resolveComponentRule)의 variant fill base / text.
  */

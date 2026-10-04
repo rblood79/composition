@@ -21,7 +21,7 @@ import type {
   ToolExecutor,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
 

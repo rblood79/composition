@@ -5,15 +5,29 @@
  * host they read an empty document; the old store host is `aiHosts.store.ts`, old-store tests only).
  */
 import type { ResolvedField } from "@composition/shared";
-import type { Element } from "../../types/builder/unified.types";
+import type { FillItem } from "../../types/builder/fill.types";
 import type { VariableSummary } from "./tools/listVariables";
+
+/** An element row the AI reads: a drawn record of the open catalog workspace (Layers rows). */
+export interface AiElementRow {
+  /** The drawn record identity. */
+  id: string;
+  type: string;
+  /** The resolved record props with the Properties fields; `style` = the authored style view. */
+  props: Record<string, unknown>;
+  parent_id: string | null;
+  page_id: string;
+  /** The node name. */
+  customId?: string;
+  fills?: FillItem[];
+}
 
 export interface AiReadHost {
   /** Changes whenever what the host reads changes (document, rows, breakpoint, selection). */
   version(): string;
   subscribe(listener: () => void): () => void;
   /** Every element of the project, parents before children (ids = drawn record identities). */
-  elements(): readonly Element[];
+  elements(): readonly AiElementRow[];
   currentPageId(): string | null;
   /** The selected element ids (first = the primary selection). */
   selectedIds(): readonly string[];

@@ -29,7 +29,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **source = internal**: RAC standalone `Description` controller 없음(field/compound 자식 slot,
  *   `<Text slot="description">` 기반) → internal. DOM tag 는 `resolveGenericHtmlTag` KNOWN_HTML
- *   Description→`<p>`(CanonicalNodeRenderer.tsx:310). Skia = box+text generic(buildCatalogShapes,
+ *   Description→`<p>`(domBinding.tsx). Skia = box+text generic(buildCatalogShapes,
  *   transparent bg + text).
  *
  * D1: composition `<p>` (internal source, generic DOM via KNOWN_HTML).

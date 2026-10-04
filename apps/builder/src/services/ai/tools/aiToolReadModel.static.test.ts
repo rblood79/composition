@@ -11,12 +11,12 @@ const TOOL_FILES = [
   "updateElement.ts",
 ];
 
-describe("AI tools canonical read model contract", () => {
+describe("AI tools read model contract", () => {
   it("reads the AI read host only", async () => {
     // ADR-248 4e-7: the tool read model never reaches the old stores (the open Builder installs
     // the host); the old store host went with 4e-9 C.
     const source = await readFile(
-      resolve(__dirname, "canonicalToolReadModel.ts"),
+      resolve(__dirname, "aiToolReadModel.ts"),
       "utf-8",
     );
     expect(source).toContain("getAiReadHost");

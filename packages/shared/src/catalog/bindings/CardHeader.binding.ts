@@ -20,7 +20,7 @@ import type { PrimitiveBinding } from "../types";
  *   는 shell-only(render.shapes []와 시각 동일 — 헤더 시각은 자식 Heading Element 가 그림).
  *
  * **DOM parity = 변화 0 (FormField/DialogFooter 동형)**: INTERNAL_RENDERERS 미등록 →
- *   CanonicalNodeRenderer generic fallback 유지. isSpecOrCatalogBacked(spec || isCatalogCutover) 가
+ *   renderCatalogDom generic fallback 유지. isSpecOrCatalogBacked(spec || isCatalogCutover) 가
  *   catalog 등록 후에도 true → `react-aria-CardHeader` className + data-size 보존.
  *
  * D1: composition `<div>` (internal source, generic DOM).

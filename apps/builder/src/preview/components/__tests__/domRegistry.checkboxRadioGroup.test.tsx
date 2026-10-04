@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "@composition/shared";
 
-import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
+import { DELEGATING_RAC_RENDERERS } from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * ADR-912 CheckboxItems/RadioItems 폐기 후속 (2026-06-15) — CheckboxGroup/RadioGroup
@@ -23,7 +23,7 @@ import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
  * (CheckboxGroup.tsx 명시 data-orientation / RadioGroup 은 RAC 자동 emit)으로 자기완결
  * 처리 → vertical 보존 + horizontal 대칭.
  */
-describe("CanonicalNodeRenderer — ADR-912 CheckboxGroup/RadioGroup DELEGATING 위임", () => {
+describe("domRegistry — ADR-912 CheckboxGroup/RadioGroup DELEGATING 위임", () => {
   it("rac source(CheckboxGroup/RadioGroup)는 DELEGATING_RAC_RENDERERS 에 등록", () => {
     for (const type of ["CheckboxGroup", "RadioGroup"]) {
       const binding = getPrimitiveBinding(type);

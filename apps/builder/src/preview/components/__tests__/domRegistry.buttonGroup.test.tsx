@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { getPrimitiveBinding } from "@composition/shared";
 import { rendererMap } from "@composition/shared/renderers";
 
-import { DELEGATING_INTERNAL_RENDERERS } from "../canonicalRendererRegistry";
+import { DELEGATING_INTERNAL_RENDERERS } from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * ButtonGroup self-compose 위임 회귀 가드 (2026-06-27 live 적발 → 수정).
@@ -22,7 +22,7 @@ import { DELEGATING_INTERNAL_RENDERERS } from "../canonicalRendererRegistry";
  * TableView(2026-06-25) / Card 패밀리(2026-06-24) 가 같은 버그를 `renderer:"div"→고유 id` +
  * renderFacetDeclaration delegating-internal 등록으로 해소한 선례와 동형. ButtonGroup 만 누락됐다.
  */
-describe("CanonicalNodeRenderer — ButtonGroup self-compose DELEGATING 위임", () => {
+describe("domRegistry — ButtonGroup self-compose DELEGATING 위임", () => {
   it("ButtonGroup binding 은 internal source + 고유 renderer id ('div' 금지)", () => {
     const binding = getPrimitiveBinding("ButtonGroup");
     expect(binding?.source.kind, "ButtonGroup binding source.kind").toBe(
@@ -69,7 +69,7 @@ describe("CanonicalNodeRenderer — ButtonGroup self-compose DELEGATING 위임",
  * 렌더 → 비대칭). "type별로 골라 합성"이 아니라 generic map 이어도 childrenByParent 가 비면 자식 0개
  * (ButtonGroup 도 generic map 이었음). TableView/Card/ButtonGroup 선례와 동형.
  */
-describe("CanonicalNodeRenderer — self-compose 컨테이너 DELEGATING 위임 (ButtonGroup 동형)", () => {
+describe("domRegistry — self-compose 컨테이너 DELEGATING 위임 (ButtonGroup 동형)", () => {
   // Toast: palette 미노출(imperative 알림)이라 사용자가 캔버스에 직접 배치하진 않지만,
   //   factory(createToastDefinition)가 자식 Heading/Description 을 생성하고 renderToast 가
   //   childrenByParent 로 그 자식을 <div role="alert"> 안에 렌더하는 self-compose 컨테이너다

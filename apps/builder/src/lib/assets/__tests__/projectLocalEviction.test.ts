@@ -2,14 +2,11 @@
 /**
  * ADR-235 Decision 4 후속 — 오래 닫힌 폴더 연결 프로젝트의 IndexedDB 내용 비우기.
  * 조건 (기간 · 도장 · 열림 · 폴더 세대) 각각이 하나라도 어긋나면 지우지 않는다.
+ * ADR-248 이후 도장은 catalog 문서를 담지 않는다 (`documentRevision` 늘 null) — 아래 sweep 은 기록에
+ * 도장을 직접 넣어 조건 순서만 확인한다. 제품에서는 저장 확인이 성립하지 않아 도장이 남지 않는다.
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  openLegacyDocuments,
-  type LegacyDocuments,
-} from "../../db/__tests__/support/legacyDocuments";
-import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import {
   buildV2Generation,
   memoryV2Directory,
@@ -24,7 +21,6 @@ import {
 } from "../projectLocalEviction";
 
 let adapter: IndexedDBAdapter;
-let legacy: LegacyDocuments;
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-12-01T00:00:00Z");
 const OLD = new Date(NOW - 40 * DAY).toISOString();
@@ -33,20 +29,15 @@ beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
-  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
-  legacy.close();
   await adapter.close();
   vi.unstubAllGlobals();
 });
 
-const doc = (pageId: string) =>
-  ({
-    version: "composition-1.0",
-    children: [{ id: pageId, type: "page", children: [] }],
-  }) as unknown as LegacyDocumentFixture;
+/** 폴더 세대의 문서 part — 비우기 판정은 내용을 보지 않는다 */
+const folderDocument = { format: "composition-catalog", entries: {} };
 
 async function seedProject(id: string, data = true) {
   await adapter.projects.insert({
@@ -55,8 +46,6 @@ async function seedProject(id: string, data = true) {
     created_at: "",
     updated_at: "",
   } as never);
-  await legacy.put(id, doc(`${id}-page`));
-  await legacy.backupNow(id);
   if (!data) return;
   await adapter.collections.insert({
     id: `${id}-c`,
@@ -70,101 +59,36 @@ async function seedProject(id: string, data = true) {
   } as never);
 }
 
-async function seedHistory(projectId: string, pageId: string) {
-  await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.open("composition-history", 4);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      db.createObjectStore("history-entries", {
-        keyPath: "id",
-      }).createIndex("pageId", "pageId");
-      db.createObjectStore("page-meta", { keyPath: "pageId" });
-      db.createObjectStore("snapshots", { keyPath: "id" }).createIndex(
-        "projectId",
-        "projectId",
-      );
-    };
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => {
-      const tx = req.result.transaction(
-        ["history-entries", "page-meta", "snapshots"],
-        "readwrite",
-      );
-      tx.objectStore("history-entries").put({ id: `${pageId}-h`, pageId });
-      tx.objectStore("page-meta").put({ pageId });
-      tx.objectStore("snapshots").put({ id: `${projectId}-s`, projectId });
-      tx.oncomplete = () => {
-        req.result.close();
-        resolve();
-      };
-    };
-  });
-}
-
-async function historyCounts() {
-  return new Promise<Record<string, number>>((resolve) => {
-    const req = indexedDB.open("composition-history");
-    req.onsuccess = () => {
-      const db = req.result;
-      const tx = db.transaction(
-        ["history-entries", "page-meta", "snapshots"],
-        "readonly",
-      );
-      const out: Record<string, number> = {};
-      for (const name of ["history-entries", "page-meta", "snapshots"]) {
-        const r = tx.objectStore(name).count();
-        r.onsuccess = () => (out[name] = r.result);
-      }
-      tx.oncomplete = () => {
-        db.close();
-        resolve(out);
-      };
-    };
-  });
-}
-
 describe("clearProjectLocalContent", () => {
-  it("도장이 같으면 그 프로젝트 내용만 지우고 projects 행 (요약) 은 남긴다", async () => {
+  it("도장은 catalog 문서를 담지 않는다 (documentRevision null)", async () => {
+    await seedProject("a");
+    expect((await readProjectLocalStamp("a"))?.documentRevision).toBeNull();
+  });
+
+  it("도장이 같으면 그 프로젝트 data 행만 지우고 projects 행 (요약) 은 남긴다", async () => {
     await seedProject("a");
     await seedProject("b");
-    await seedHistory("a", "a-page");
-    await seedHistory("b", "b-page");
     const stamp = (await readProjectLocalStamp("a"))!;
-    expect(stamp.documentRevision).toBeTruthy();
 
     expect(await clearProjectLocalContent("a", stamp)).toBe("cleared");
 
-    expect(await legacy.get("a")).toBeNull();
     expect(await adapter.collections.getByProject("a")).toEqual([]);
     expect(await adapter.variables.getByProject("a")).toEqual([]);
     expect(await adapter.projects.getById("a")).toMatchObject({ id: "a" });
     // 다른 프로젝트는 그대로
-    expect(await legacy.get("b")).not.toBeNull();
     expect(await adapter.collections.getByProject("b")).toHaveLength(1);
-    expect(await historyCounts()).toEqual({
-      "history-entries": 1,
-      "page-meta": 1,
-      snapshots: 1,
-    });
-    // 백업 ring 도 비었다 — 다시 비우면 도장 (문서 없음) 이 달라 아무것도 안 지운다
-    const after = (await readProjectLocalStamp("a"))!;
-    expect(after.documentRevision).toBeNull();
+    expect(await adapter.variables.getByProject("b")).toHaveLength(1);
   });
 
-  it("도장 뒤 DB 가 바뀌었으면 (문서 · collection) 아무것도 지우지 않는다", async () => {
+  it("도장 뒤 DB 가 바뀌었으면 (collection) 아무것도 지우지 않는다", async () => {
     await seedProject("a");
     const stamp = (await readProjectLocalStamp("a"))!;
-    await legacy.put("a", doc("a-page-2"));
-    expect(await clearProjectLocalContent("a", stamp)).toBe("changed");
-    expect(await legacy.get("a")).not.toBeNull();
-
-    const stamp2 = (await readProjectLocalStamp("a"))!;
     await adapter.collections.insert({
       id: "a-c2",
       project_id: "a",
       name: "c2",
     } as never);
-    expect(await clearProjectLocalContent("a", stamp2)).toBe("changed");
+    expect(await clearProjectLocalContent("a", stamp)).toBe("changed");
     expect(await adapter.collections.getByProject("a")).toHaveLength(2);
   });
 });
@@ -221,7 +145,7 @@ async function getLink(projectId: string): Promise<TestRecord | undefined> {
 async function folderAt(revision: number) {
   const dir = memoryV2Directory();
   const generation = await buildV2Generation(
-    { project: { id: "a", name: "a" }, document: doc("a-page") },
+    { project: { id: "a", name: "a" }, document: folderDocument },
     async () => null,
     { revision, previousRevision: null },
   );
@@ -270,7 +194,6 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "cleared" },
     ]);
-    expect(await legacy.get("a")).toBeNull();
     expect((await getLink("a"))?.clearedAt).toBe(new Date(NOW).toISOString());
     // 이미 비운 프로젝트는 다시 보지 않는다
     expect(await sweep(await folderAt(3))).toEqual([]);
@@ -289,7 +212,6 @@ describe("evictStaleDirectoryProjects", () => {
       expect(await sweep(await folderAt(folderRevision), extra)).toEqual([
         { projectId: "a", result: expected },
       ]);
-      expect(await legacy.get("a")).not.toBeNull();
       expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
     },
   );
@@ -299,7 +221,7 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "has-data" },
     ]);
-    expect(await legacy.get("a")).not.toBeNull();
+    expect(await adapter.collections.getByProject("a")).toHaveLength(1);
   });
 
   it("open — 확인하는 동안 누가 열었으면 (기록 변경) 표식하지 않는다", async () => {
@@ -315,7 +237,6 @@ describe("evictStaleDirectoryProjects", () => {
       },
     });
     expect(result).toEqual([{ projectId: "a", result: "open" }]);
-    expect(await legacy.get("a")).not.toBeNull();
     expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
   });
 
@@ -327,17 +248,19 @@ describe("evictStaleDirectoryProjects", () => {
     expect(await sweep(dir)).toEqual([
       { projectId: "a", result: "folder-unreadable" },
     ]);
-    expect(await legacy.get("a")).not.toBeNull();
   });
 
   it("changed — 마지막 폴더 저장 뒤 DB 가 바뀌었으면 지우지 않고 표식도 되돌린다", async () => {
     await linkedStaleProject();
-    await legacy.put("a", doc("a-page-edited"));
+    await adapter.collections.insert({
+      id: "a-c2",
+      project_id: "a",
+      name: "c2",
+    } as never);
     expect(await sweep(await folderAt(3))).toEqual([
       { projectId: "a", result: "changed" },
     ]);
-    expect(await legacy.get("a")).not.toBeNull();
-    expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
+    expect(await adapter.collections.getByProject("a")).toHaveLength(1);
   });
 });
 
@@ -386,7 +309,7 @@ describe("비운 프로젝트 열기", () => {
     getDirectoryLink("a")!.dispose();
   });
 
-  it("표식만 남고 삭제가 없었으면 (표식 직후 중단) resume 이 표식을 푼다", async () => {
+  it("문서 revision 이 없는 도장으로는 표식을 풀지 않는다 (폴더에서 불러오기 전까지 쓰지 않음)", async () => {
     stubWindow();
     await linkedStaleProject({ clearedAt: OLD });
     const { resumeProjectDirectoryLink, getDirectoryLink } =
@@ -394,8 +317,8 @@ describe("비운 프로젝트 열기", () => {
     const state = await resumeProjectDirectoryLink("a", {
       collectContent: () => null,
     });
-    expect(state?.status).not.toBe("cleared");
-    expect((await getLink("a"))?.clearedAt ?? null).toBeNull();
+    expect(state?.status).toBe("cleared");
+    expect((await getLink("a"))?.clearedAt).toBe(OLD);
     getDirectoryLink("a")!.dispose();
   });
 });

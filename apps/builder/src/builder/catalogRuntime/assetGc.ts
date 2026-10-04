@@ -5,11 +5,11 @@ import { CATALOG_DB_NAME } from "./storage";
  * ADR-248 4e: the asset GC (ADR-235 Phase 3) over the catalog storage. The old scheduler ran from
  * the old page manager only and its roots did not know the catalog databases, so with the catalog
  * Builder no GC ran: images a catalog project dropped stayed in the asset store. Here the GC runs
- * the same way (idle, once a day — the same last-run key) with the old durable roots (the old
- * projects' documents, data store, history, fonts) plus the catalog ones: the stored entries of
- * every live catalog project and the snapshot documents of live projects. Memory roots are the
+ * the same way (idle, once a day — the same last-run key) with the durable roots outside the
+ * catalog databases (data store, fonts) plus the catalog ones: the stored entries of every live
+ * catalog project and the snapshot documents of live projects. Memory roots are the
  * open workspace's (documents, unsaved commits, undo/redo operations, the clipboard).
- * The GC module and the old root collector stay lazy.
+ * The GC module and the other root collector stay lazy.
  */
 const LAST_RUN_KEY = "composition.asset-gc.last-run";
 const RUN_INTERVAL_MS = 24 * 60 * 60 * 1000;

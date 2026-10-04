@@ -29,7 +29,7 @@ import {
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
-} from "../../../../preview/components/canonicalRendererRegistry";
+} from "../../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 interface Unreachable {
   type: string;

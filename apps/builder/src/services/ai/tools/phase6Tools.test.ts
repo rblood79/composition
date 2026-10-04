@@ -24,7 +24,7 @@ vi.mock("../data/dataProposalDispatcher", async (importOriginal) => {
     dispatchDataProposal: (...args: unknown[]) => dispatch(...args),
   };
 });
-vi.mock("./canonicalToolReadModel", () => ({
+vi.mock("./aiToolReadModel", () => ({
   getAiToolReadModel: () => ({
     elements: [
       {

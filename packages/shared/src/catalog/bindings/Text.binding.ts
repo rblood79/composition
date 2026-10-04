@@ -9,7 +9,7 @@ import type { PrimitiveBinding } from "../types";
  *   fontSize+lineHeight 완비) + buildCatalogShapes generic 으로 이전하여 spec 의존을 끊는다.
  *
  * **source = internal**: RAC 에 standalone `Text` controller 없음(slot 컴포넌트) → internal.
- *   단 DOM 은 INTERNAL_RENDERERS 미등록이라 CanonicalNodeRenderer 의 generic fallthrough
+ *   단 DOM 은 INTERNAL_RENDERERS 미등록이라 renderCatalogDom 의 generic fallthrough
  *   (`react-aria-Text` className + data-size + getElementForTag→`<p>` + generated CSS)로 렌더된다.
  *   별도 DOM 렌더러 신설 불요(generic 경로가 size 시각 커버).
  *

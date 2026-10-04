@@ -13,7 +13,7 @@ import type {
   ApiRunRecord,
   DataTable,
 } from "../../../types/builder/data.types";
-import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
+import { getAiToolReadModel } from "../tools/aiToolReadModel";
 import { resolveCollectionUsage } from "./collectionReadModel";
 import { redactUrl } from "../security/redactEndpointAuth";
 import { joinEndpointUrl } from "../tools/listApiEndpoints";

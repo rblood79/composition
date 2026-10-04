@@ -134,9 +134,9 @@ run_hook protect-commit-vocabulary.sh "$(tool_json Bash '{"command":"git log --g
 # ---------- spec-rebuild-flag.sh (PostToolUse Edit|Write) ----------
 printf '\n== spec-rebuild-flag.sh ==\n'
 SPEC_FLAG="$TMP/proj/.claude/.spec-rebuild-pending"; CSS_FLAG="$TMP/proj/.claude/.css-regen-pending"
-case_start "packages/specs/src 편집 → .spec-rebuild-pending 생성"
+case_start "packages/rendering/src 편집 → .spec-rebuild-pending 생성"
 rm -f "$SPEC_FLAG" "$CSS_FLAG"
-run_hook spec-rebuild-flag.sh "$(tool_json Edit '{"file_path":"/r/packages/specs/src/components/Frame.spec.ts"}')"
+run_hook spec-rebuild-flag.sh "$(tool_json Edit '{"file_path":"/r/packages/rendering/src/renderers/CSSGenerator.ts"}')"
 if [ -f "$SPEC_FLAG" ] && [ ! -f "$CSS_FLAG" ]; then pass; else fail "spec flag=$([ -f "$SPEC_FLAG" ] && echo 1 || echo 0) css flag=$([ -f "$CSS_FLAG" ] && echo 1 || echo 0)"; fi
 case_start "packages/shared/src/catalog 편집 → .css-regen-pending 생성"
 rm -f "$SPEC_FLAG" "$CSS_FLAG"

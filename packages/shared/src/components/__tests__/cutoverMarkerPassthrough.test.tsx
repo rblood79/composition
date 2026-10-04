@@ -1,7 +1,7 @@
 /**
  * Cutover internal leaf — marker props passthrough contract (ADR-151 후속, 2026-07-17)
  *
- * 배경: CanonicalNodeRenderer 의 cutover 경로는 비위임 internal leaf 를
+ * 배경: renderCatalogDom 의 cutover 경로는 비위임 internal leaf 를
  * `<PrimitiveComponent {...markerProps} ...>` 로 렌더한다 — marker
  * (data-element-id/data-canonical-id)가 **컴포넌트 props** 로 전달되므로, 컴포넌트가
  * rest 를 root 에 전개하지 않으면 marker 가 DOM 에서 소실된다. 소실 시 preview 의
@@ -9,7 +9,7 @@
  * 찾는다. IllustratedMessage("preview 미렌더" 로 관측됐던 실체)·Skeleton 2종이
  * 이 결함이었고, 본 테스트는 비위임 internal leaf 전수를 lock 한다.
  *
- * 대상 = INTERNAL_RENDERERS(CanonicalNodeRenderer.tsx) 중 DELEGATING 집합
+ * 대상 = INTERNAL_RENDERERS(domRegistry.tsx) 중 DELEGATING 집합
  * (renderFacetDeclaration.ts)에 없는 leaf 7종. delegating renderer 는 wrapper div 가
  * marker 를 보유하므로 대상 아님.
  */

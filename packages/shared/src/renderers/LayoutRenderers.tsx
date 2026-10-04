@@ -231,7 +231,7 @@ export const renderTabs = (
         {...(isStaticList ? {} : { items })}
       >
         {isStaticList
-          ? // 항목 instance: canonical 경로는 CanonicalNodeRenderer 로 되돌아가 RAC Tab (상태 층 render
+          ? // 항목 instance: catalog 경로는 renderCatalogDom 로 되돌아가 RAC Tab (상태 층 render
             //   props) 이 되고, legacy 경로는 여기서 RAC Tab 을 합성한다 (자식은 재귀 렌더).
             staticTabs.map((tab) =>
               context.renderCollectionItem ? (
@@ -464,7 +464,7 @@ export const renderCard = (
  *
  * 클래스 규약은 레퍼런스에서 오지 않는다 — S2 Card 는 `style()` 매크로라 클래스가 없고
  * SWC 는 `<sp-card>` 커스텀 엘리먼트다. `react-aria-{Type}` 은 RAC 에서 온 composition
- * house convention 이고, 생성기(`.react-aria-{Type}`)·`Card.tsx`·`CanonicalNodeRenderer`
+ * house convention 이고, 생성기(`.react-aria-{Type}`)·`Card.tsx`·`renderCatalogDom`
  * generic fallback 이 모두 그것을 쓴다. 그 규약에 되돌린다.
  */
 function catalogChrome(
@@ -1728,7 +1728,7 @@ export const renderDisclosureGroup = (
   //   defaultExpandedKeys 에 전달한다. uncontrolled 라 header 클릭 토글은 그룹 상태머신이 양방향
   //   관리(toggleKey) → 열고 닫기 모두 동작. (controlled expandedKeys 는 canonical 노드 prop 을
   //   header 클릭이 못 바꿔 lock 되므로 미사용 — Disclosure 단독 수정과 동일 사유.)
-  //   key 는 customId ?? id — canonical 렌더 경로(CanonicalNodeRenderer flatten)의
+  //   key 는 customId ?? id — catalog 렌더 경로(renderCatalogDom flatten)의
   //   PreviewElement 는 customId 미보유라, customId 단독 의존 시 keys 가 빈 배열로
   //   떨어져 그룹 전체가 접힌 채 시작 (intent: isExpanded ?? true = 펼침 — Skia 와
   //   비대칭이던 근본, 2026-07-14 sweep). renderDisclosure 의 id fallback 과 동일 규칙.
@@ -2401,10 +2401,10 @@ export const TABLEVIEW_CHILD_STYLE: Record<
 
 /**
  * TableView 자식 서브트리를 generic div 로 직접 렌더 (renderTabs 패턴 — 부모가 자식 트리를
- * 직접 그림, 자식은 CanonicalNodeRenderer 위임 경유 안 함).
+ * 직접 그림, 자식은 renderCatalogDom 위임 경유 안 함).
  *
  * **Why**: TableHeader/TableBody/Column/Row/Cell 은 CATALOG_CUTOVER_TYPES 미등록이라
- * CanonicalNodeRenderer 가 generic 빈 div 로만 그린다(자식 렌더러 미위임). renderTabs 가
+ * renderCatalogDom 가 generic 빈 div 로만 그린다(자식 렌더러 미위임). renderTabs 가
  * TabList/Tab/TabPanel 을 부모 렌더러에서 직접 그리는 선례와 동형으로, renderTableView 가
  * 자식 트리 전체를 직접 재귀 렌더한다. 알려진 5 type 은 catalog 시각 div, 그 외(leaf 일반
  * element)는 renderElement 위임.
@@ -2505,7 +2505,7 @@ export const renderTableView = (
       }
     >
       {/* renderTabs 패턴: 자식 트리(TableHeader/TableBody/Column/Row/Cell)를 부모가 직접
-          generic div 로 그린다. 자식 type 은 CATALOG_CUTOVER_TYPES 미등록 → CanonicalNodeRenderer
+          generic div 로 그린다. 자식 type 은 CATALOG_CUTOVER_TYPES 미등록 → renderCatalogDom
           위임 경유 시 빈 div 가 되므로 직접 렌더. */}
       {children.map((child) => renderTableViewSubtree(child, context, density))}
     </div>

@@ -4,11 +4,6 @@
  */
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-  openLegacyDocuments,
-  type LegacyDocuments,
-} from "../../db/__tests__/support/legacyDocuments";
-import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, readAllAssetGcRecords } from "../assetDb";
 import { releaseAssetPins, runAssetGc, type AssetGcRoots } from "../assetGc";
@@ -22,7 +17,6 @@ import {
 } from "../assetStore";
 
 let adapter: IndexedDBAdapter;
-let legacy: LegacyDocuments;
 const SELF = "tab-self";
 const OTHER = "tab-other";
 
@@ -30,11 +24,9 @@ beforeEach(async () => {
   (globalThis as { indexedDB?: IDBFactory }).indexedDB = new IDBFactory();
   adapter = new IndexedDBAdapter();
   await adapter.init();
-  legacy = await openLegacyDocuments();
 });
 afterEach(async () => {
   await closeAssetDb();
-  legacy.close();
   await adapter.close();
 });
 
@@ -299,48 +291,26 @@ describe("§3.1 참조 공개 · 삭제 경쟁 (G3 고정 반례)", () => {
 });
 
 describe("영속 root 수집 (G0 (b) 보유처)", () => {
-  it("살아 있는 프로젝트의 문서 · 백업 · collections 와 전체 history entry 를 모으고 지운 프로젝트 백업은 뺀다", async () => {
-    const live = await asset(11);
-    const orphan = await asset(12);
-    const hist = await asset(13);
-    await adapter.projects.insert({
-      id: "p1",
-      name: "p1",
-      created_at: "",
-      updated_at: "",
+  it("catalog DB 밖의 data store (collections · variables) 를 모으고 구 문서 store 는 읽지 않는다", async () => {
+    const inCollection = await asset(11);
+    const inVariable = await asset(12);
+    await adapter.collections.insert({
+      id: "c1",
+      project_id: "p1",
+      name: "c",
+      rows: [{ image: inCollection.ref }],
     } as never);
-    const doc = (url: string) =>
-      ({
-        version: "composition-1.0",
-        children: [{ id: "n", type: "frame", fills: [{ url }] }],
-      }) as unknown as LegacyDocumentFixture;
-    await legacy.put("p1", doc(live.ref));
-    await legacy.put("gone", doc(orphan.ref));
-    await legacy.backupNow("gone");
-    await legacy.delete("gone");
-    // history DB
-    await new Promise<void>((resolve) => {
-      const req = indexedDB.open("composition-history", 4);
-      req.onupgradeneeded = () => {
-        req.result.createObjectStore("history-entries", { keyPath: "id" });
-        req.result.createObjectStore("snapshots", { keyPath: "id" });
-      };
-      req.onsuccess = () => {
-        const tx = req.result.transaction("history-entries", "readwrite");
-        tx.objectStore("history-entries").put({
-          id: "e1",
-          pageId: "x",
-          entry: { props: { src: hist.ref } },
-        });
-        tx.oncomplete = () => {
-          req.result.close();
-          resolve();
-        };
-      };
-    });
+    await adapter.variables.insert({
+      id: "v1",
+      project_id: "p1",
+      name: "v",
+      defaultValue: inVariable.ref,
+    } as never);
+    const db = (await openAssetDb())!;
+    expect(db.objectStoreNames.contains("documents")).toBe(false);
+    expect(db.objectStoreNames.contains("document_parts")).toBe(false);
     const text = JSON.stringify(await collectDurableAssetRoots());
-    expect(text).toContain(live.hash);
-    expect(text).toContain(hist.hash);
-    expect(text).not.toContain(orphan.hash);
+    expect(text).toContain(inCollection.hash);
+    expect(text).toContain(inVariable.hash);
   });
 });

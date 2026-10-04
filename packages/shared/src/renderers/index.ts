@@ -89,7 +89,7 @@ export const rendererMap: Record<
   StatusLight: LayoutRenderers.renderStatusLight,
   // ADR-912 internal 4 slice (2026-06-04): InlineAlert 은 catalog 등록 → generic fallback 경로
   //   (react-aria-InlineAlert + data-variant/data-size + generated CSS + staticAttrs role="alert").
-  //   rendererMap 위임을 제거해야 CanonicalNodeRenderer L234 가 가로채지 않고 L248 generic 으로 떨어진다.
+  //   rendererMap 위임을 제거해야 catalog DOM 렌더러 (`renderCatalogDom`) 가 가로채지 않고 generic 으로 떨어진다.
   //   renderInlineAlert 함수는 LayoutRenderers 에 보존(다른 호출처 없으면 step 4 에서 정리).
   // Phase 2: Action/Group (ADR-030)
   ButtonGroup: LayoutRenderers.renderButtonGroup,

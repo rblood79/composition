@@ -664,8 +664,8 @@ export interface ComponentRuleStates {
  * (ADR-912 ②-6-A 1A-(a) — 과거 spec→table 생성기 `generate-rules.ts` 가 1회 생성한 결과를 freeze
  * 후 손 편집 정본으로 승격, 생성기는 단계 5 step 3 에서 삭제됨).
  * generic 렌더러(buildCatalogShapes / CSSGenerator)는 spec 참조 0 으로 본 테이블만 소비한다.
- * 문서별 커스텀 규칙(향후 Phase 2)은 `CompositionDocument.componentRules` 로 build-time 기본을
- * override 한다.
+ * 문서별 커스텀 규칙은 catalog 프로젝트 graph 의 library definition override 가 담당한다
+ * (ADR-248 대안 E).
  */
 export type ComponentRulesTable = Record<string, ComponentRule>;
 

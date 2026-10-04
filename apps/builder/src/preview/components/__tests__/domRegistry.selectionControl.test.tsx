@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DELEGATING_RAC_RENDERERS,
   DELEGATING_INTERNAL_RENDERERS,
-} from "../canonicalRendererRegistry";
+} from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * 회귀 방지 — Switch/Checkbox 위임 등록 (ADR-913 slice 3, 2026-06-18).
@@ -22,7 +22,7 @@ import {
  * Radio 는 제외 — `.react-aria-Radio::before` pseudo-element ring 모델이라 DOM 자식 불요, RAC
  * `<Radio>` 직접 렌더로도 indicator 정상(live 확인). 등록하면 불필요한 위임(surface 증가)이라 제외.
  */
-describe("CanonicalNodeRenderer — Switch/Checkbox 위임 등록 (ADR-913 slice 3 회귀 방지)", () => {
+describe("domRegistry — Switch/Checkbox 위임 등록 (ADR-913 slice 3 회귀 방지)", () => {
   it("Switch 는 DELEGATING_RAC_RENDERERS 에 등록 (.indicator div self-compose)", () => {
     expect(DELEGATING_RAC_RENDERERS.has("Switch")).toBe(true);
   });

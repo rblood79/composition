@@ -51,7 +51,7 @@ const FONT_SIZE: Record<string, number> = { sm: 12, md: 14, lg: 16, xl: 18 };
 /**
  * StatusLight — 상태 dot + 라벨.
  *
- * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로,
+ * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로,
  * 본 컴포넌트는 variant/size/children + style/className 만 소비한다.
  * dot 색은 theme rule(resolveComponentRule)의 variant fill base — 하드코딩 맵 아님(20 variant 대칭).
  */

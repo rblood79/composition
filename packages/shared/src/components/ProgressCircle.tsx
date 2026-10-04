@@ -85,7 +85,7 @@ const STROKE_WIDTH = 3;
 /**
  * ProgressCircle — SVG circle track + value 비례 indicator.
  *
- * cutover DOM 경로(CanonicalNodeRenderer)가 marker props/style 을 주입하므로, 본 컴포넌트는
+ * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로, 본 컴포넌트는
  * value/size/isIndeterminate/isDisabled + style/className 만 소비한다. track 색은 theme rule,
  * indicator 색은 {color.accent}(Skia escape value_fill_arc 와 동일 source).
  */

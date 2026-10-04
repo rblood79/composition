@@ -741,7 +741,7 @@ function ruleDom(
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
-  // Preview `CanonicalNodeRenderer`: a crumb's separator Icon child renders after its Link (shared
+  // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
   // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
   // catalog default Icon.
   const separatorIds =

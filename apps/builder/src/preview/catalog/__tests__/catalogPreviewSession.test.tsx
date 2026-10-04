@@ -29,7 +29,7 @@ import {
 } from "../../../builder/catalogRuntime/theme";
 import { CatalogWorkspace } from "../../../builder/catalogRuntime/workspace";
 import { nodeLayoutEngine } from "../../../builder/catalogRuntime/__tests__/support/nodeLayoutEngine";
-import { installThemeMaps } from "../../../utils/theme/themeMaps";
+import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/runtime/themeMaps";
 import {
   catalogPreviewLinkClick,
   catalogPreviewSelectClick,
@@ -50,7 +50,7 @@ import {
   useCollectionDataServices,
   type CollectionDataSource,
 } from "@composition/shared";
-import { matchCatalogRoute, resolveCatalogRoute } from "../catalogPreviewRoute";
+import { matchCatalogRoute, resolveCatalogRoute } from "../../../../../../packages/shared/src/catalog/runtime/catalogPreviewRoute";
 import { CatalogPreviewSession } from "../catalogPreviewSession";
 import { catalogVariableCommands } from "../../../builder/catalogRuntime/stateVariables";
 import { CATALOG_PREVIEW_PAYLOAD_VERSION } from "../../../../../../packages/shared/src/catalog/preview/protocol";

@@ -15,7 +15,7 @@ const SIDES = ["Top", "Right", "Bottom", "Left"] as const;
  * 보고되고, 모델은 반영됐다는 전제로 다음 단계를 쌓는다. 사용자에게는 "AI 는 했다는데
  * 화면은 그대로" 로 보인다.
  *
- * `bind_collection` 은 이미 `applyCanonicalExtensionPatch` 의 반환값을 확인한다 —
+ * `bind_collection` 은 이미 proposal dispatcher (`dispatchDataProposal`) 의 결과를 확인한다 —
  * 같은 계약을 반환값 없는 액션에도 세운다: **쓰고 나서 다시 읽어 대조**.
  */
 

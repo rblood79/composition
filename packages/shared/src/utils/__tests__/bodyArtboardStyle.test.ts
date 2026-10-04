@@ -7,7 +7,7 @@ import {
 } from "../bodyArtboardStyle";
 
 /**
- * D3 대칭 정합의 단일 소스 — builder Preview `CanonicalNodeRenderer` 와 publish
+ * D3 대칭 정합의 단일 소스 — builder Preview `renderCatalogDom` 와 publish
  * `ElementRenderer` 두 DOM consumer 가 공통 호출하는 로직. 페이지 프레임 높이는 generated
  * Body CSS base `min-height: 100%` 가 담당하고 (2026-09-18 사용자 결정 — 조건부 data attribute
  * 와 inline 없음), 본 테스트는 legacy 기본값 제거/저작값 보존 규칙을 렌더러 독립적으로 검증한다.

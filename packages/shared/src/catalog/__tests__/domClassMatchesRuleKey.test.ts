@@ -3,7 +3,7 @@
  *
  * **Why**: canonical `TextArea` 는 DOM 에서 `.react-aria-TextArea` 가 아니라
  * **`.react-aria-TextField`** 로 렌더된다 — binding 의 `source.component` 가 `TextField` 이고
- * (RAC 에 TextArea **컨테이너** primitive 가 없다) `CanonicalNodeRenderer` 의 catalog cutover
+ * (RAC 에 TextArea **컨테이너** primitive 가 없다) `renderCatalogDom` 의 catalog cutover
  * 경로가 `RAC[source.component]` 를 그대로 렌더하기 때문이다. RAC 는 자기 이름으로 기본
  * className 을 붙이므로, 생성 CSS 가 노리는 `.react-aria-{ruleKey}` 는 **구조적으로 영원히
  * 미매칭**이었다(라이브 실측: 생성 `TextArea.css` 전량 dead, 실제 시각은 TextField.css 가 담당).

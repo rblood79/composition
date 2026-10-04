@@ -19,7 +19,7 @@ import type { PrimitiveBinding } from "../types";
  *   size-indexed gap 은 fallback. buildCatalogShapes 는 shell-only(render.shapes []와 시각 동일 —
  *   필드 그룹 시각은 자식 Label/입력 Element 가 그림).
  *
- * **DOM parity = 변화 0 (Body/DialogFooter 동형)**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer
+ * **DOM parity = 변화 0 (Body/DialogFooter 동형)**: INTERNAL_RENDERERS 미등록 → renderCatalogDom
  *   generic fallback 유지. isSpecOrCatalogBacked(spec || isCatalogCutover) 가 catalog 등록 후에도
  *   true → `react-aria-FormField` className + data-size 보존. KNOWN_HTML FormField→div(선재 등록,
  *   불변)로 generic tag 도 `<div>` 유지. builder 메인 Preview(App.tsx)는 resolveHtmlTag switch 가

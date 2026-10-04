@@ -7,7 +7,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 ## 명령 · 환경
 
 ```bash
-pnpm install                                        # postinstall: canvaskit wasm 복사 + specs 빌드
+pnpm install                                        # postinstall: canvaskit wasm 복사 + 아이콘·팔레트·CSS 생성 (build:specs)
 pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
 pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행
@@ -20,7 +20,7 @@ pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준�
 
 env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
 
-**구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
+**구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/rendering` (CSS 생성기·Skia primitive·아이콘) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
 
 **핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/catalogRuntime/` (편집 runtime — `workspace.ts` · `controller.ts` · `compositionRoot.ts`) · `packages/shared/src/catalog/{transactions,commands}/` (문서 변경 명령) · `apps/builder/src/builder/workspace/canvas/catalog/CatalogCanvas.tsx` (Canvas) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
@@ -28,7 +28,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 
 ## SSOT 체인 정본 — 3-Domain 분할
 
-**D1 DOM/접근성** (설치된 `react-aria-components` 패키지 절대 권위 — catalog 버전 고정) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
+**D1 DOM/접근성** (설치된 `react-aria-components` 패키지 절대 권위 — catalog 버전 고정) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — Frame/Group/Slot 포함, ADR-248). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
 
 정본 규칙 (상시 로드): [.claude/rules/ssot-hierarchy.md](.claude/rules/ssot-hierarchy.md). 공식 결정: [ADR-063](docs/adr/completed/063-ssot-chain-charter.md) (charter), [ADR-142](docs/adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의).
 

@@ -20,7 +20,7 @@ export interface BodyDomPresentation {
 /**
  * canonical `body` 노드의 DOM 투영을 정규화한다.
  *
- * D3 대칭(2026-07-15): canonical DOM 렌더 경로(builder Preview `CanonicalNodeRenderer`,
+ * D3 대칭(2026-07-15): catalog DOM 렌더 경로(builder Preview `renderCatalogDom`,
  * publish `ElementRenderer`)는 body 노드를 중첩 `<div>` 로 렌더하며 `element.props.style`
  * (height 無)만 얹어 content-fit 로 collapse 한다. 반면 Skia(builder canvas)는 layout map 의
  * body 높이(페이지 프레임/아트보드 높이)를 그대로 그린다 → body 박스가 비대칭.

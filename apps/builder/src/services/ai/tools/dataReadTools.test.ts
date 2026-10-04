@@ -14,7 +14,7 @@ import { getCollectionTool } from "./getCollection";
 import { listApiEndpointsTool } from "./listApiEndpoints";
 import { listCollectionsTool } from "./listCollections";
 
-vi.mock("./canonicalToolReadModel", () => ({
+vi.mock("./aiToolReadModel", () => ({
   getAiToolReadModel: () => ({
     elements: [
       {

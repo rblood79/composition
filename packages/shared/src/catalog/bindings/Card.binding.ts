@@ -28,7 +28,7 @@ import type { PrimitiveBinding } from "../types";
  *   당시 `propagationRegistry.ts` 인라인 propagation-only spec(cardPropagationSpec)으로 보존했다
  *   (2026-10-05 삭제 — catalog 의 부모→자식 전달은 `CATALOG_SIZE_PROPAGATION` · template binding).
  *
- * **DOM parity**: INTERNAL_RENDERERS 미등록 → CanonicalNodeRenderer generic fallback.
+ * **DOM parity**: INTERNAL_RENDERERS 미등록 → renderCatalogDom generic fallback.
  *   isSpecOrCatalogBacked(spec || isCatalogCutover) 가 catalog 등록 후 true → `react-aria-Card`
  *   className + `data-variant` / `data-size` 보존. generated/Card.css 는 rule virtual input 으로
  *   재생성(generate-css TEXT_LEAF_META).

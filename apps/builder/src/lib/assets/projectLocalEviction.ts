@@ -6,11 +6,15 @@
  * 때만 한다 — 판정은 호출부 (`projectDirectoryLink.evictStaleDirectoryProjects`) 가 하고, 이 모듈은
  * 두 가지만 맡는다:
  *
- * - `readProjectLocalStamp` — 이 프로젝트의 IndexedDB 내용 도장 (문서 head revision + collections ·
- *   API · 변수 행 해시). 폴더 세대를 쓰기 직전에 읽어 연결 기록에 남긴다.
+ * - `readProjectLocalStamp` — 이 프로젝트의 IndexedDB 내용 도장 (collections · API · 변수 행 해시).
+ *   폴더 세대를 쓰기 직전에 읽어 연결 기록에 남긴다.
  * - `clearProjectLocalContent` — 같은 readwrite 트랜잭션 안에서 도장을 다시 읽어 기록과 같을 때만
  *   프로젝트 행을 지운다 (마지막 폴더 저장 뒤 DB 가 바뀌었으면 아무것도 지우지 않는다). `projects`
  *   행 (이름 · 목록 표시용 요약) 은 남긴다. 자산 바이트는 root 가 사라진 뒤 GC 가 회수한다.
+ *
+ * ADR-248 이후 문서는 catalog DB (`CATALOG_DB_NAME`) 에 있고 이 도장은 그 문서를 담지 않는다 —
+ * `documentRevision` 은 늘 null 이라 연결 모듈의 저장 확인이 성립하지 않아 비우기는 일어나지 않는다
+ * (구 문서 store 를 읽던 때와 같은 동작). catalog 문서 대응은 별도 작업이다.
  *
  * lazy 전용 · barrel 값 import 금지 (HC2 — `lazyBarrelImport.static.test.ts`).
  */
@@ -20,28 +24,15 @@ import { openAssetDb, requestResult, transactionDone } from "./assetDb";
 export const PROJECT_EVICT_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface ProjectLocalStamp {
-  /** `document_heads.revision` (구버전 단일 row 면 그 `updated_at`), 문서 없음 = null */
+  /** 문서 revision — catalog 문서를 아직 담지 않아 늘 null (모듈 머리말) */
   documentRevision: string | null;
   /** collections · api_endpoints · variables 행 해시 (id 순) */
   dataStamp: string;
 }
 
-const HEADS = "document_heads";
-const LEGACY_DOCUMENTS = "documents";
-const PARTS = "document_parts";
 const DATA_STAMP_STORES = ["collections", "api_endpoints", "variables"];
 /** project_id 인덱스로 지우는 store — runtime 은 캐시 */
-const INDEXED_STORES = [
-  PARTS,
-  "documents_backup",
-  ...DATA_STAMP_STORES,
-  "collection_runtime",
-];
-
-const HISTORY_DB = "composition-history";
-const HISTORY_ENTRIES = "history-entries";
-const HISTORY_META = "page-meta";
-const HISTORY_SNAPSHOTS = "snapshots";
+const INDEXED_STORES = [...DATA_STAMP_STORES, "collection_runtime"];
 
 /** 동기 문자열 해시 (cyrb53) — 트랜잭션 안에서 await 없이 도장을 다시 계산한다 */
 function hashString(text: string): string {
@@ -93,22 +84,6 @@ async function readStampIn(
   db: IDBDatabase,
   projectId: string,
 ): Promise<ProjectLocalStamp> {
-  const head = db.objectStoreNames.contains(HEADS)
-    ? await requestResult(
-        tx.objectStore(HEADS).get(projectId) as IDBRequest<
-          { revision?: string } | undefined
-        >,
-      )
-    : undefined;
-  let documentRevision = head?.revision ?? null;
-  if (!documentRevision && db.objectStoreNames.contains(LEGACY_DOCUMENTS)) {
-    const legacy = await requestResult(
-      tx.objectStore(LEGACY_DOCUMENTS).get(projectId) as IDBRequest<
-        { updated_at?: string } | undefined
-      >,
-    );
-    documentRevision = legacy ? `legacy:${legacy.updated_at ?? ""}` : null;
-  }
   const groups: Record<string, unknown>[][] = [];
   for (const store of DATA_STAMP_STORES) {
     groups.push(
@@ -117,7 +92,7 @@ async function readStampIn(
         : [],
     );
   }
-  return { documentRevision, dataStamp: stampRows(groups) };
+  return { documentRevision: null, dataStamp: stampRows(groups) };
 }
 
 export function sameProjectLocalStamp(
@@ -145,20 +120,11 @@ export async function readProjectLocalStamp(
 ): Promise<ProjectLocalStamp | null> {
   const db = await openAssetDb();
   if (!db) return null;
-  const stores = existing(db, [HEADS, LEGACY_DOCUMENTS, ...DATA_STAMP_STORES]);
+  const stores = existing(db, DATA_STAMP_STORES);
   const tx = db.transaction(stores, "readonly");
   const stamp = await readStampIn(tx, db, projectId);
   await transactionDone(tx);
   return stamp;
-}
-
-/** 문서 node id (history entry 는 pageId 로만 찾을 수 있다 — node id 전체가 page id 를 포함) */
-function collectNodeIds(value: unknown, into: Set<string>): void {
-  if (!value || typeof value !== "object") return;
-  const node = value as { id?: unknown; children?: unknown };
-  if (typeof node.id === "string") into.add(node.id);
-  if (Array.isArray(node.children))
-    for (const child of node.children) collectNodeIds(child, into);
 }
 
 export type ProjectLocalClearResult = "cleared" | "changed" | "unavailable";
@@ -173,7 +139,7 @@ export async function clearProjectLocalContent(
 ): Promise<ProjectLocalClearResult> {
   const db = await openAssetDb();
   if (!db) return "unavailable";
-  const stores = existing(db, [HEADS, LEGACY_DOCUMENTS, ...INDEXED_STORES]);
+  const stores = existing(db, INDEXED_STORES);
   const tx = db.transaction(stores, "readwrite");
   const done = transactionDone(tx);
   const current = await readStampIn(tx, db, projectId);
@@ -182,23 +148,6 @@ export async function clearProjectLocalContent(
     await done.catch(() => {});
     return "changed";
   }
-  const nodeIds = new Set<string>();
-  if (stores.includes(PARTS)) {
-    for (const row of await projectRows(tx, PARTS, projectId)) {
-      const key = String(row.key ?? "");
-      if (key.startsWith("node:")) nodeIds.add(key.slice(5));
-    }
-  }
-  if (stores.includes(LEGACY_DOCUMENTS)) {
-    const legacy = await requestResult(
-      tx.objectStore(LEGACY_DOCUMENTS).get(projectId) as IDBRequest<
-        { document?: unknown } | undefined
-      >,
-    );
-    collectNodeIds(legacy?.document, nodeIds);
-    tx.objectStore(LEGACY_DOCUMENTS).delete(projectId);
-  }
-  if (stores.includes(HEADS)) tx.objectStore(HEADS).delete(projectId);
   for (const store of INDEXED_STORES) {
     if (!stores.includes(store)) continue;
     const os = tx.objectStore(store);
@@ -209,55 +158,5 @@ export async function clearProjectLocalContent(
     for (const key of keys) os.delete(key);
   }
   await done;
-  await clearProjectHistory(projectId, nodeIds).catch(() => {});
   return "cleared";
-}
-
-function openExistingDb(name: string): Promise<IDBDatabase | null> {
-  return new Promise((resolve) => {
-    const request = indexedDB.open(name);
-    request.onupgradeneeded = () => request.transaction?.abort();
-    request.onerror = () => resolve(null);
-    request.onsuccess = () => resolve(request.result);
-  });
-}
-
-/** history (별도 DB) — 스냅샷은 projectId, entry · page meta 는 pageId 로. 실패해도 root 로 남을 뿐 */
-async function clearProjectHistory(
-  projectId: string,
-  pageIds: Set<string>,
-): Promise<void> {
-  const db = await openExistingDb(HISTORY_DB);
-  if (!db) return;
-  try {
-    const stores = existing(db, [
-      HISTORY_ENTRIES,
-      HISTORY_META,
-      HISTORY_SNAPSHOTS,
-    ]);
-    if (stores.length === 0) return;
-    const tx = db.transaction(stores, "readwrite");
-    const done = transactionDone(tx);
-    if (stores.includes(HISTORY_SNAPSHOTS)) {
-      const os = tx.objectStore(HISTORY_SNAPSHOTS);
-      if (os.indexNames.contains("projectId")) {
-        const keys = await requestResult(
-          os.index("projectId").getAllKeys(projectId),
-        );
-        for (const key of keys) os.delete(key);
-      }
-    }
-    for (const pageId of pageIds) {
-      if (stores.includes(HISTORY_META))
-        tx.objectStore(HISTORY_META).delete(pageId);
-      if (!stores.includes(HISTORY_ENTRIES)) continue;
-      const os = tx.objectStore(HISTORY_ENTRIES);
-      if (!os.indexNames.contains("pageId")) continue;
-      const keys = await requestResult(os.index("pageId").getAllKeys(pageId));
-      for (const key of keys) os.delete(key);
-    }
-    await done;
-  } finally {
-    db.close();
-  }
 }

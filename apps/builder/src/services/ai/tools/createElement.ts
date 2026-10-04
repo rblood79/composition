@@ -10,7 +10,7 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { parseCanonicalFields } from "./canonicalNodeFields";
 import {

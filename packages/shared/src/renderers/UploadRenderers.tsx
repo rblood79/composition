@@ -1,7 +1,7 @@
 /**
  * FileUpload 렌더러 (ADR-201 Phase 3) — legacy `rendererMap` 경로 (preview · publish 공용 shell).
  *
- * cutover 경로 (CanonicalNodeRenderer → delegating-internal "fileupload") 가 이 함수로 위임한다.
+ * cutover 경로 (renderCatalogDom → delegating-internal "fileupload") 가 이 함수로 위임한다.
  * canonical 자식을 type 으로 분류해 shared `FileUpload` 에 넘긴다 — 입력 표면 (DropZone ·
  * FileTrigger) 과 샘플 행 (그 외). 런타임 큐 상태는 `FileUpload` 내부 React 상태 — 문서 write 0.
  *

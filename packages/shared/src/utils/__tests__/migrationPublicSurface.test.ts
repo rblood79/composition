@@ -9,7 +9,6 @@ describe("test-only collection migration public surface", () => {
     const source = await readFile(resolve(__dirname, "../index.ts"), "utf-8");
 
     expect(source).not.toContain('export * from "./migrateCollectionItems"');
-    expect(source).not.toContain('from "./migrateSelectComboBoxItems"');
     expect("applyCollectionItemsMigration" in publicUtils).toBe(false);
     expect("applyCollectionItemsMigration" in sharedPublic).toBe(false);
     expect("applySelectComboBoxMigration" in publicUtils).toBe(false);

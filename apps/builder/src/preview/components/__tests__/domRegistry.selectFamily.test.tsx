@@ -5,7 +5,7 @@ import { getPrimitiveBinding } from "@composition/shared";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
-} from "../canonicalRendererRegistry";
+} from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * ADR-912 R1 Select family rebuild (2026-06-12) — DELEGATING 위임 멤버십 회귀 가드.
@@ -20,7 +20,7 @@ import {
  * 본 가드는 4종이 올바른 DELEGATING Set 에 binding.source.kind 에 맞게 등록돼 있는지 검증한다.
  * Slider/SliderTrack 선례와 동형 — sub-part 자식의 DOM 미도달이 설계 의도.
  */
-describe("CanonicalNodeRenderer — ADR-912 R1 Select family DELEGATING 위임", () => {
+describe("domRegistry — ADR-912 R1 Select family DELEGATING 위임", () => {
   it("internal source(select/combobox)는 DELEGATING_INTERNAL_RENDERERS 에 등록", () => {
     for (const type of ["Select", "ComboBox"]) {
       const binding = getPrimitiveBinding(type);

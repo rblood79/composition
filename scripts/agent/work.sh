@@ -69,25 +69,24 @@ changed_files() {
 # scope 분류 (ERE) — CLAUDE.md §완료 기준 (registration / resolved-tree wiring / schema / 렌더) 을 경로로 옮긴 것
 RE_TS='\.(ts|tsx)$'
 RE_TEST='\.(test|spec)\.(ts|tsx)$'
-RE_RENDER='^(apps/builder/src/builder/workspace/canvas/|packages/specs/src/|packages/rendering/src/|packages/shared/src/catalog/|apps/builder/src/preview/|packages/engine/src/)|\.css$'
-RE_LIVE='^(apps/builder/src/builder/(factories|panels|components|stores|hooks)/|apps/builder/src/adapters/canonical/|packages/shared/src/schemas/)'
+RE_RENDER='^(apps/builder/src/builder/workspace/canvas/|packages/rendering/src/|packages/shared/src/catalog/|apps/builder/src/preview/|packages/engine/src/)|\.css$'
+RE_LIVE='^(apps/builder/src/builder/(factories|panels|components|stores|hooks)/|apps/builder/src/builder/catalogRuntime/|packages/shared/src/schemas/)'
 RE_ENGINE='^packages/engine/src/'
 RE_DOCS='^(docs/|\.claude/|\.agents/|\.agent/|scripts/|AGENTS\.md$|CLAUDE\.md$|README\.md$)|\.md$'
 
-pkg_of() {  # pkg_of <path> → builder|publish|shared|specs|rendering|engine|other
+pkg_of() {  # pkg_of <path> → builder|publish|shared|rendering|engine|other
   case "$1" in
     apps/builder/*) echo builder ;;
     apps/publish/*) echo publish ;;
     packages/shared/*) echo shared ;;
-    packages/specs/*) echo rendering ;;
     packages/rendering/*) echo rendering ;;
     packages/engine/*) echo engine ;;
     *) echo other ;;
   esac
 }
-pkg_filter() { case "$1" in builder) echo @composition/builder ;; publish) echo @composition/publish ;; shared) echo @composition/shared ;; specs) echo @composition/specs ;; rendering) echo @composition/rendering ;; esac; }
-pkg_dir() { case "$1" in builder) echo apps/builder ;; publish) echo apps/publish ;; shared) echo packages/shared ;; specs) echo packages/specs ;; rendering) echo packages/rendering ;; engine) echo packages/engine ;; esac; }
-pkg_has_vitest() { case "$1" in builder|shared|specs|rendering) return 0 ;; *) return 1 ;; esac; }
+pkg_filter() { case "$1" in builder) echo @composition/builder ;; publish) echo @composition/publish ;; shared) echo @composition/shared ;; rendering) echo @composition/rendering ;; esac; }
+pkg_dir() { case "$1" in builder) echo apps/builder ;; publish) echo apps/publish ;; shared) echo packages/shared ;; rendering) echo packages/rendering ;; engine) echo packages/engine ;; esac; }
+pkg_has_vitest() { case "$1" in builder|shared|rendering) return 0 ;; *) return 1 ;; esac; }
 pkg_has_typecheck() { case "$1" in builder|publish|shared|rendering) return 0 ;; *) return 1 ;; esac; }
 
 # ---------- scope 계산 → 전역 ----------

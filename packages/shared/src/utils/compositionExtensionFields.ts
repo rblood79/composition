@@ -9,9 +9,8 @@
  *   dataBinding 은 Pencil format 에 없는 composition 만의 확장이므로 canonical
  *   core 에 흡수 금지.
  *
- * **별 helper 분리 이유**: monorepo dependency 정합 — packages/shared 가
- * apps/builder import 불가하므로, apps/builder 영역의 동명 helper
- * (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts`) 와 분리.
+ * **shared 에 두는 이유**: renderers 가 packages/shared 안에 있어 apps/builder 를 import 할 수
+ * 없다 (구 builder 쪽 동명 helper 는 ADR-248 에서 구 adapter 와 함께 제거).
  *
  * **priority 차이 framing note** (design §10.2.4 후속 결정):
  * - apps/builder 영역 (workflowEdges 등): default `'props-first'`
@@ -53,8 +52,8 @@ interface LegacyElementWithExtension {
 /**
  * canonical 노드의 `x-composition.dataBinding` — **세 번째 저장 위치**.
  *
- * `canonicalDocumentStore` 의 `PROPS_FORBIDDEN_KEYS` 가 `dataBinding` 을 props 에
- * 넣지 못하게 막으므로, 유일한 쓰기 경로인 `updateNodeExtension` 이 여기에 쓴다.
+ * 구 canonical store 가 `dataBinding` 을 props 에 넣지 못하게 막아 (`PROPS_FORBIDDEN_KEYS`)
+ * 쓰기 경로 `updateNodeExtension` 이 여기에 썼다.
  * legacy mirror 요소는 그 값을 top-level `dataBinding` 으로 복제해 갖지만
  * **canonical 노드 자체를 읽는 소비처** (Skia scene 의 `sourceNode`) 에는 복제본이
  * 없어 binding 을 통째로 보지 못한다.

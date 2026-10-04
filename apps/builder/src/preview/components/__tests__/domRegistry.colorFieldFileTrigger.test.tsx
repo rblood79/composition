@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
+import { DELEGATING_RAC_RENDERERS } from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * 회귀 방지 — ColorField/FileTrigger 위임 등록 (2026-09-10, Properties 패널 D2 대조).
@@ -14,7 +14,7 @@ import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
  *   class 도, `isDisabled` 도 실릴 요소가 없었다 — Skia(catalog rule box) 와 비대칭.
  *   renderFileTrigger 가 `.react-aria-FileTrigger` Button 을 self-compose 한다.
  */
-describe("CanonicalNodeRenderer — ColorField/FileTrigger 위임 등록 (회귀 방지)", () => {
+describe("domRegistry — ColorField/FileTrigger 위임 등록 (회귀 방지)", () => {
   it("ColorField 는 DELEGATING_RAC_RENDERERS 에 등록 (field 가족 동형)", () => {
     expect(DELEGATING_RAC_RENDERERS.has("ColorField")).toBe(true);
   });

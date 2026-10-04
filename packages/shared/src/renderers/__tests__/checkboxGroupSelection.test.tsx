@@ -10,7 +10,7 @@ import {
 /**
  * 회귀 방지 — CheckboxGroup 선택 uncontrolled 패턴 (2026-06-18).
  *
- * **버그**: preview(CanonicalNodeRenderer)에서 CheckboxGroup 의 체크 선택이 전혀 작동하지 않았다.
+ * **버그**: preview(구 CanonicalNodeRenderer)에서 CheckboxGroup 의 체크 선택이 전혀 작동하지 않았다.
  * RadioGroup 은 정상 작동(라이브 확인). root cause = CheckboxGroup 이 controlled `value={selectedValues}`
  * 였고, selectedValues 는 canonical ResolvedNode 트리(flattenNodeChildrenByParent)에서 추출한
  * props.isSelected 기반인데, onChange 는 runtime store 의 elements 배열만 갱신한다. canonical 렌더

@@ -15,7 +15,6 @@ import type {
   Variable,
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
-import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "./documentStoreNames";
 import { ASSETS_STORE, ASSET_GC_STORE } from "../../assets/assetSchema";
 import {
   CACHE_BYTES_LIMIT,
@@ -23,118 +22,7 @@ import {
 } from "../../storage/storageProtection";
 
 const DB_NAME = "composition";
-const DB_VERSION = 24; // 2026-10-03 (ADR-248 G4): events · actions mirror store 삭제.
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function deleteLegacyOrderFields(record: Record<string, unknown>): boolean {
-  let changed = false;
-
-  if (Object.prototype.hasOwnProperty.call(record, "order_num")) {
-    delete record.order_num;
-    changed = true;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(record, "orderNum")) {
-    delete record.orderNum;
-    changed = true;
-  }
-
-  return changed;
-}
-
-function stripCanonicalNodeOrderMetadata(value: unknown): boolean {
-  if (!isRecord(value)) return false;
-
-  let changed = false;
-  const metadata = value.metadata;
-
-  if (isRecord(metadata)) {
-    changed = deleteLegacyOrderFields(metadata) || changed;
-    if (Object.keys(metadata).length === 0) {
-      delete value.metadata;
-      changed = true;
-    }
-  }
-
-  const children = value.children;
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      changed = stripCanonicalNodeOrderMetadata(child) || changed;
-    }
-  }
-
-  const descendants = value.descendants;
-  if (isRecord(descendants)) {
-    for (const descendant of Object.values(descendants)) {
-      changed = stripCanonicalNodeOrderMetadata(descendant) || changed;
-    }
-  }
-
-  return changed;
-}
-
-export function stripLegacyOrderPayload(value: unknown): boolean {
-  if (!isRecord(value)) return false;
-
-  let changed = deleteLegacyOrderFields(value);
-  const document = isRecord(value.document) ? value.document : value;
-  const children = document.children;
-
-  if (Array.isArray(children)) {
-    for (const child of children) {
-      changed = stripCanonicalNodeOrderMetadata(child) || changed;
-    }
-  }
-
-  return changed;
-}
-
-function stripLegacyOrderPayloadsFromStore(
-  transaction: IDBTransaction,
-  storeName: string,
-): void {
-  const store = transaction.objectStore(storeName);
-  const request = store.openCursor();
-  let cleaned = 0;
-
-  request.onsuccess = () => {
-    const cursor = request.result;
-    if (!cursor) {
-      if (cleaned > 0) {
-        console.log(
-          `[IndexedDB] Removed legacy order payloads from ${storeName}: ${cleaned}`,
-        );
-      }
-      return;
-    }
-
-    const value = cursor.value;
-    if (stripLegacyOrderPayload(value)) {
-      cleaned += 1;
-      cursor.update(value);
-    }
-    cursor.continue();
-  };
-
-  request.onerror = () => {
-    console.warn(
-      `[IndexedDB] Failed to clean legacy order payloads from ${storeName}`,
-      request.error,
-    );
-  };
-}
-
-function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
-  if (!transaction) return;
-
-  for (const storeName of ["documents"]) {
-    if (!transaction.objectStoreNames.contains(storeName)) continue;
-    stripLegacyOrderPayloadsFromStore(transaction, storeName);
-  }
-}
+const DB_VERSION = 25; // 2026-10-05 (ADR-248 후속): 구 canonical 문서 store 4개 삭제.
 
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
@@ -173,68 +61,11 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        const oldVersion = event.oldVersion;
-
-        // ADR-116 direct cutover: 개발 단계에서는 기존 row 보존 migration 을
-        // 지원하지 않는다. DB schema bump 는 canonical document primary marker.
-        if (oldVersion < 10 && oldVersion > 0) {
-          console.log(
-            `[IndexedDB] ADR-116 direct cutover: oldVersion=${oldVersion} → 10`,
-          );
-        }
-        if (oldVersion < 11 && oldVersion > 0) {
-          console.log(
-            `[IndexedDB] Element order cleanup: oldVersion=${oldVersion} → 11`,
-          );
-        }
-        if (oldVersion < 12 && oldVersion > 0) {
-          console.log(
-            `[IndexedDB] Page/layout order cleanup: oldVersion=${oldVersion} → 12`,
-          );
-        }
-        if (oldVersion < 13 && oldVersion > 0) {
-          console.log(
-            `[IndexedDB] Legacy order payload cleanup: oldVersion=${oldVersion} → 13`,
-          );
-        }
-        if (oldVersion < 15 && oldVersion > 0) {
-          console.log(
-            `[IndexedDB] Legacy dormant surface cleanup: oldVersion=${oldVersion} → 15`,
-          );
-        }
 
         // Projects store
         if (!db.objectStoreNames.contains("projects")) {
           db.createObjectStore("projects", { keyPath: "id" });
           console.log("[IndexedDB] Created store: projects");
-        }
-
-        // Canonical documents store (ADR-116 primary storage)
-        if (!db.objectStoreNames.contains("documents")) {
-          db.createObjectStore("documents", { keyPath: "project_id" });
-          console.log("[IndexedDB] Created store: documents");
-        }
-
-        if (!db.objectStoreNames.contains(DOCUMENT_HEADS))
-          db.createObjectStore(DOCUMENT_HEADS, { keyPath: "project_id" });
-        if (!db.objectStoreNames.contains(DOCUMENT_PARTS)) {
-          const parts = db.createObjectStore(DOCUMENT_PARTS, {
-            keyPath: ["project_id", "key"],
-          });
-          parts.createIndex("project_id", "project_id");
-        }
-
-        // Canonical documents backup ring (DB_VERSION 20 — 2026-07-14)
-        // 덮어쓰기 전 세대 보존: 프로젝트당 BACKUP_GENERATIONS 세대,
-        // 시간 버킷 (documentPersistGuard.shouldWriteBackup) 로 회전 소모 방지.
-        if (!db.objectStoreNames.contains("documents_backup")) {
-          const backupStore = db.createObjectStore("documents_backup", {
-            keyPath: "backup_id",
-          });
-          backupStore.createIndex("project_id", "project_id", {
-            unique: false,
-          });
-          console.log("[IndexedDB] Created store: documents_backup");
         }
 
         for (const legacyStore of [
@@ -244,6 +75,12 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           "metadata",
           "history",
           "design_" + "variables",
+          // ADR-248: 구 canonical 문서 (단일 row · head/parts · 백업 ring). 문서는 catalog DB
+          // (`CATALOG_DB_NAME`) 에 저장되고 구 포맷은 열지 않는다 — 개발 단계라 이전 없음.
+          "documents",
+          "document_heads",
+          "document_parts",
+          "documents_backup",
         ] as const) {
           if (db.objectStoreNames.contains(legacyStore)) {
             db.deleteObjectStore(legacyStore);
@@ -373,12 +210,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
             db.deleteObjectStore(mirror);
             console.log(`[IndexedDB] Deleted store: ${mirror} (ADR-248)`);
           }
-        }
-
-        if (oldVersion < 13 && oldVersion > 0) {
-          stripLegacyOrderPayloads(
-            (event.target as IDBOpenDBRequest).transaction,
-          );
         }
 
         console.log("[IndexedDB] Schema upgrade completed");

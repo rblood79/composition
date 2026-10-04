@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DELEGATING_RAC_RENDERERS,
   DELEGATING_INTERNAL_RENDERERS,
-} from "../canonicalRendererRegistry";
+} from "../../../../../../packages/shared/src/catalog/runtime/domRegistry";
 
 /**
  * 회귀 방지 — DateField/TimeField 위임 등록 (2026-06-18).
@@ -17,7 +17,7 @@ import {
  * 미등록 시 generic rac 경로로 떨어져 DateInput 안 segment 0개 = "입력부 내에 아무것도 없음"
  * (사용자 보고 2026-06-18 버그). NumberField/SearchField 와 정확히 동형의 self-compose 패턴.
  */
-describe("CanonicalNodeRenderer — DateField/TimeField 위임 등록 (회귀 방지)", () => {
+describe("domRegistry — DateField/TimeField 위임 등록 (회귀 방지)", () => {
   it("DateField 는 DELEGATING_RAC_RENDERERS 에 등록 (rac source self-compose)", () => {
     expect(DELEGATING_RAC_RENDERERS.has("DateField")).toBe(true);
   });

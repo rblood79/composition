@@ -360,7 +360,7 @@ export const renderTagGroup = (
     ? (element.props.removedItemIds as unknown as string[])
     : [];
 
-  // ADR-234 Phase 3 — 작성자가 채운 목록 = TagList 의 Tag instance 자식. canonical 경로는 CanonicalNodeRenderer
+  // ADR-234 Phase 3 — 작성자가 채운 목록 = TagList 의 Tag instance 자식. catalog 경로는 renderCatalogDom
   //   재귀 (RAC Tag + 상태 층 render props), legacy 경로는 여기서 RAC Tag 를 합성한다.
   const staticTagItems =
     !hasValidTemplate &&

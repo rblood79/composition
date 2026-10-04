@@ -20,7 +20,7 @@ import {
   getDataToolReadModel,
   readOpenDataEditor,
 } from "./data/dataToolReadModel";
-import { getAiToolReadModel } from "./tools/canonicalToolReadModel";
+import { getAiToolReadModel } from "./tools/aiToolReadModel";
 
 /** 조립에 필요한 노드 모양만 — ADR-126: 신규 코드는 `Element` 대신 구조 계약을 쓴다. */
 export interface BuilderContextNode {

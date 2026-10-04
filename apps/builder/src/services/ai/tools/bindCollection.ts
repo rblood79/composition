@@ -32,7 +32,7 @@ import {
   findCollection,
   getDataToolReadModel,
 } from "../data/dataToolReadModel";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 import { resolveElementRef } from "./elementRef";
 
 type FieldMap = { value?: string; icon?: string };

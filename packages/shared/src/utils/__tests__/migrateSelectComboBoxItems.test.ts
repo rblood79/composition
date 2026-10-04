@@ -3,7 +3,7 @@ import {
   selectItemChildrenToItemsArray,
   comboBoxItemChildrenToItemsArray,
   applySelectComboBoxMigration,
-} from "../migrateSelectComboBoxItems";
+} from "../migrateCollectionItems";
 
 // ADR-073 P5: migration util 단위 테스트
 

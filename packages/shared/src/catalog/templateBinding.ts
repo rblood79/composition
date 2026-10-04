@@ -129,7 +129,7 @@ export function substituteTemplateBindingsInProps(
  *
  * resolve 는 두 소비 형태를 모두 커버해야 한다: flat synthetic 자식(builder Skia —
  * `resolveCanonicalRefTree` materialization)과 **resolved root 가 `{...master}` 로
- * 물려받는 nested `children`** (Preview `CanonicalNodeRenderer` 가 이를 직접 렌더).
+ * 물려받는 nested `children`** (Preview `renderCatalogDom` 가 이를 직접 렌더).
  * 한쪽만 치환하면 CSS↔Skia 발산. 변경이 없으면 동일 참조 반환.
  */
 export function substituteTemplateBindingsInChildren(

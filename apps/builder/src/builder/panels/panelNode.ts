@@ -18,8 +18,8 @@ export interface PanelNode {
   masterId?: unknown;
   overrides?: unknown;
   /**
-   * ADR-154: breakpoint 반응형 override (tablet/mobile). canonicalElementsView
-   * 가 이미 방출하는 런타임 필드 — Inspector 배지/편집이 raw override 존재를
+   * ADR-154: breakpoint 반응형 override (tablet/mobile). 패널 노드가
+   * 싣는 런타임 필드 — Inspector 배지/편집이 raw override 존재를
    * 판정하려면 타입에 노출돼야 한다 (desktop = base, props.style).
    */
   responsive?: ElementResponsiveConfig;

@@ -17,7 +17,7 @@ import {
   updateTheme,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { renderHook } from "@testing-library/react";
-import { installThemeMaps } from "../../../utils/theme/themeMaps";
+import { installThemeMaps } from "../../../../../../packages/shared/src/catalog/runtime/themeMaps";
 import { createCatalogThemesHost } from "../../panels/themes/catalog/catalogThemesHost";
 import { catalogAuthoredVisual, catalogLibraryVisual } from "../libraryVisual";
 import { newCatalogProjectDocument } from "../project";

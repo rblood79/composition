@@ -9,7 +9,7 @@ import type {
   ToolExecutor,
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
-import { getAiToolReadModel } from "./canonicalToolReadModel";
+import { getAiToolReadModel } from "./aiToolReadModel";
 import { AI_WRITE_HOST_MISSING, getAiWriteHost } from "../aiWriteHost";
 import { resolveElementRef } from "./elementRef";
 
@@ -54,7 +54,7 @@ export const deleteElementTool: ToolExecutor = {
 
       // 반영 확인 — 지우기도 조용히 빠지는 경로가 있다 (`mutationVerification.ts` 주석).
       const remaining = getAiToolReadModel().elementsById.get(targetId);
-      if (remaining && !remaining.deleted) {
+      if (remaining) {
         return {
           success: false,
           error: t("aiToolError.notDeleted", { id: targetId }),

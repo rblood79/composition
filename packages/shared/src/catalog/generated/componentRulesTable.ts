@@ -13222,7 +13222,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           // quiet: **여기 두지 않는다** (2026-08-21 라이브 실측). TextArea 는 DOM 에서
           //   `.react-aria-TextArea` 가 아니라 **`.react-aria-TextField` 클래스로 렌더된다** —
           //   binding 의 `source.component` 가 `TextField` 라(RAC 에 TextArea **컨테이너**
-          //   primitive 가 없다) CanonicalNodeRenderer 의 cutover 경로가 `RAC.TextField` 를
+          //   primitive 가 없다) renderCatalogDom 의 cutover 경로가 `RAC.TextField` 를
           //   그대로 렌더하고 RAC 가 자기 이름으로 클래스를 붙이기 때문이다. 실제 시각은
           //   TextField 의 generated CSS 가 담당한다(quiet 포함 — `data-quiet` 은 toRacProps 가
           //   emit 하므로 그 규칙이 그대로 걸린다. 라이브 확인: 배경 투명 + 아래 테두리 1px +
@@ -13323,7 +13323,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
     //   TimeField/NumberField/SearchField 동형). TextField 는 별도 결함(DELEGATING 미등록 → generic
     //   경로 → data-label-position DOM 미emit → side selector 영원히 미매칭)도 함께 수정됨
-    //   (CanonicalNodeRenderer DELEGATING_RAC_RENDERERS 등록). flex-row 통일로 emit 복원 후 generated
+    //   (domRegistry DELEGATING_RAC_RENDERERS 등록). flex-row 통일로 emit 복원 후 generated
     //   CSS = Skia(getSideLabelParentStyle) 대칭. Skia sideMode 트리거 styles 만(nested DOM 제외).
     containerVariants: {
       "label-position": {
@@ -14353,7 +14353,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           density: {
             compact: {
               // selector 가 `> * >` 로 marker div(display:contents) 를 경유하는 이유:
-              //   빌더 preview(CanonicalNodeRenderer)는 delegating 컴포넌트의 각 자식을
+              //   빌더 preview(renderCatalogDom)는 delegating 컴포넌트의 각 자식을
               //   `<div style="display:contents">`(data-element-id marker, 보편 패턴) 로 감싼다.
               //   따라서 ToggleButton 은 group 의 직접 자식이 아니라 marker div 의 자식이라
               //   reference 의 `> .react-aria-ToggleButton` direct-child 결합이 깨진다.
@@ -14364,7 +14364,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   구조 적응(2026-06-22, Skia 는 marker 없어 _groupPosition 으로 직접 판정).
               //
               // **직접-자식 형태도 함께 emit 한다 (2026-08-21)**: marker div 는 빌더 preview
-              //   (CanonicalNodeRenderer)의 구조이고, publish 앱은 ToggleButton 을 그룹의
+              //   (renderCatalogDom)의 구조이고, publish 앱은 ToggleButton 을 그룹의
               //   **직접 자식**으로 렌더한다(registry 가 shared 컴포넌트를 그대로 씀). 그래서
               //   marker 경유 selector 만 두면 publish 에서 매칭 0 → compact 인데 버튼이 각자
               //   radius 6px 를 유지해 연결이 안 보인다(2026-08-21 라이브 실측, 구 orientation

@@ -12,7 +12,7 @@ import type { PrimitiveBinding } from "../types";
  *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.md.fontWeight 600)
  *   + `buildCatalogShapes` 의 text 분기(`props.children` → text shape)로 헤더 텍스트 렌더.
  *
- * **DOM = 부모 renderTableView self-compose (CanonicalNodeRenderer 위임 경유 안 함)**: TableView
+ * **DOM = 부모 renderTableView self-compose (renderCatalogDom 위임 경유 안 함)**: TableView
  *   Preview 는 `renderTableView`(LayoutRenderers.tsx)가 자식 트리를 `renderTableViewSubtree` 로
  *   직접 generic div 렌더한다(renderTabs 패턴). canonical Column element 는 존재하지만 DOM 재귀는
  *   부모가 직접 그리므로 Column 독립 cutover 렌더 경로는 타지 않는다 → DOM 변화 0, Skia 대칭만 추가.
