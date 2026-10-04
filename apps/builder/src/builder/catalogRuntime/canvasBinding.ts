@@ -241,6 +241,11 @@ const bindings: Readonly<Record<string, Binding>> = {
   // no authored paint, so the Canvas paints none either (layout box only).
   radioitems: container,
   checkboxitems: container,
+  // A toggle's indicator node: painted from its owner's rule (`toggleIndicatorNodeData` — the
+  // binding stands for the record in the registration loop only).
+  checkboxindicator: container,
+  radioindicator: container,
+  switchindicator: container,
   box,
   icon: glyph,
   selecticon: glyph,
@@ -369,10 +374,52 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "overflowWrap",
   "textOverflow",
 ];
+/** Toggle control binding → its indicator child's binding (`*Indicator` nodes, 2026-10-04). */
+const TOGGLE_INDICATOR_BINDINGS: Readonly<Record<string, string>> = {
+  checkbox: "checkboxindicator",
+  radio: "radioindicator",
+  switch: "switchindicator",
+};
+const TOGGLE_INDICATOR_CHILDREN: ReadonlySet<string> = new Set(
+  Object.values(TOGGLE_INDICATOR_BINDINGS),
+);
+
+/** The control has its indicator as a child node (an owned node saved before it has none). */
+function hasIndicatorChild(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  const indicator = TOGGLE_INDICATOR_BINDINGS[node.bindingId ?? ""];
+  return (
+    indicator !== undefined &&
+    node.children.some(
+      (id) => root.canvasInputs.get(id)?.bindingId === indicator,
+    )
+  );
+}
+
+/**
+ * A toggle's indicator node: the owner control's rule primitive (checkbox box · radio circle ·
+ * switch track, `size.indicator`) in the indicator's own box — the owner's props, display state,
+ * variant and authored paint decide it, as they decide the DOM's indicator element.
+ */
+function toggleIndicatorNodeData(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+): SkiaNodeData {
+  const owner = root.canvasInputs.get(node.parentId);
+  if (!owner?.ruleId)
+    throw new Error(`CATALOG_CANVAS_INDICATOR_OWNER_REQUIRED:${node.id}`);
+  return { ...ruleNodeData(root, owner, rect, true), elementId: node.id };
+}
+
 function ruleNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
+  /** Paint the toggle's indicator (its indicator child calls with the owner). */
+  asIndicator = false,
 ): SkiaNodeData {
   for (const key of RULE_UNPAINTED_TEXT_KEYS)
     if (node.visual[key] !== undefined)
@@ -395,6 +442,9 @@ function ruleNodeData(
     state: catalogNodeState(node.displayState, root.state),
     theme: root.colorMode,
     singleLine: root.textKeptOnOneLine(node.id),
+    ...(!asIndicator && hasIndicatorChild(root, node)
+      ? { indicatorChild: true }
+      : {}),
   };
   const data = catalogRuleNodeData(input);
   const content = dropZoneContentData(
@@ -510,15 +560,17 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        binding
-          ? binding(
-              node,
-              rect,
-              parent,
-              root.textWraps(node.id),
-              root.labelSuffix(node.id),
-            )
-          : ruleNodeData(root, node, rect),
+        TOGGLE_INDICATOR_CHILDREN.has(node.bindingId ?? "")
+          ? toggleIndicatorNodeData(root, node, rect)
+          : binding
+            ? binding(
+                node,
+                rect,
+                parent,
+                root.textWraps(node.id),
+                root.labelSuffix(node.id),
+              )
+            : ruleNodeData(root, node, rect),
         rect,
         root.colorMode,
       ),
@@ -977,6 +1029,14 @@ function bindInColorMode(
         reason,
       });
       const input = (id: string) => root.canvasInputs.get(id);
+      // A toggle's indicator node paints from the toggle (`toggleIndicatorNodeData`): it repaints
+      // with it, though its own record is unchanged.
+      for (const id of [...dirty]) {
+        const indicator = TOGGLE_INDICATOR_BINDINGS[input(id)?.bindingId ?? ""];
+        if (indicator)
+          for (const child of input(id)!.children)
+            if (input(child)?.bindingId === indicator) dirty.add(child);
+      }
       /** Changed engine results (parent-relative rects) against the bound layout map. */
       const changedRects = new Map<string, Rect>();
       const compare = (ids: readonly string[]): string[] => {

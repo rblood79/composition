@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Checkbox · Radio · Switch indicator 를 문서 노드로 — Layers 가 DOM 행 구조와 같게] - 2026-10-04
+
+### Changed
+
+- **Checkbox · Radio · Switch 의 indicator 상자 (체크 상자 · 원 · track) 가 Layers 에 노드로 보인다.**
+  template 의 첫 자식 `CheckboxIndicator` · `RadioIndicator` · `SwitchIndicator` (사용자 지시 「1안」 —
+  RadioItems · CheckboxItems 선례). 트리 = `Checkbox > CheckboxIndicator · Label`, DOM 의 행 (indicator 요소 ·
+  label) 과 같다.
+  - 값은 그대로 부모 toggle rule 이 정본이다: 크기 = `size.indicator` partRule, 칠 = 부모 rule primitive 를
+    indicator 노드의 상자에서 실행 (부모의 선택 · 표시 상태 · variant · 작성 칠). 노드에 사용자 prop 없음,
+    자기 rule · 생성 CSS 0.
+  - DOM 출력 변경 0 — RAC toggle 이 indicator 요소를 직접 그리고 노드는 흡수된다. Properties · Styles 는
+    indicator 를 선택하면 부모 toggle 에서 편집하라고 안내한다 (sub-part owner 판정). indicator 위치는
+    지울 (숨길) 수 없다 — Layers 휴지통 없음, `removeTargets` 가 `TOGGLE_INDICATOR_NOT_REMOVABLE` 로 거부
+    (DOM 은 항상 그리므로 숨기면 Canvas 만 바뀐다).
+  - 저장 포맷 호환: 새 template id 를 더했을 뿐이라 library contract 는 그대로다 (instance 는 template 에서
+    indicator 를 받는다). 이번 변경 전에 detach 된 (owned) toggle 노드는 indicator 자식이 없다 — Canvas 는
+    indicator 를 예전처럼 toggle 이 그리지만 Label 들여쓰기가 없어 둘이 겹친다 (DOM 은 그대로). 다시 넣으면 된다.
+
+### Fixed
+
+- **Canvas 의 toggle 행 높이가 DOM 과 같다.** indicator 가 label 보다 큰 크기 (단독 Checkbox xl, Switch sm ·
+  xl) 에서 Canvas 는 indicator 를 부모 왼쪽 위에 겹쳐 그려 행이 낮았고 (Checkbox xl 28 vs DOM 30, Switch sm
+  24 vs 26 · xl 36 vs 38), Switch track 은 padding 위 (y 0) 에 그려졌다 (DOM y 4). 이제 indicator 가 flex 행의
+  노드라 `align-items: center` 로 DOM 과 같은 자리에 놓인다.
+  - 위치: `packages/shared/src/catalog/bindings/*Indicator.binding.ts` · `rulePartRules.ts`
+    (`toggleIndicatorPartRules`) · `reusableOriginLibrary.ts` · `apps/builder/src/builder/catalogRuntime/`
+    `canvasBinding.ts` (`toggleIndicatorNodeData`) · `domBinding.tsx` · `delegatedDom.tsx`
+
+검증: builder 3981 · shared 1605 · parity 803 테스트 · type-check PASS · 새 회귀 테스트
+(`toggleIndicatorNode.test.ts`) 가 partRule · 부모 primitive 억제 · DOM 흡수 판정 · 삭제 차단 각각의 원복에 RED. G3 하니스
+43 → 50 (propAxis 에 Checkbox · Switch size 4 종 추가 — Canvas ↔ 실제 DOM 0 px), 64 타입 판정 변화 0.
+live (headed Chrome, 실제 Builder): 팔레트 Checkbox · Switch · RadioGroup → Layers 의 indicator 행 선택 →
+rect · owner 안내 확인, Canvas 그림 확인, 페이지 오류 0. Preview 는 사용자 확인 항목.
+
 ## [DateField Canvas 입력 상자 · placeholder 기울임 — 레이아웃 높이 · catalog 모서리] - 2026-10-04
 
 ### Fixed

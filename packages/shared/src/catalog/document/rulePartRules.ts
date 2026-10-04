@@ -90,6 +90,10 @@ const SUBPART_TOKENS: Readonly<
   // RadioItems / CheckboxItems node — the rule's `orientation` nested block lays it out.
   RadioGroup: { RadioItems: [".radio-items"] },
   CheckboxGroup: { CheckboxItems: [".checkbox-items"] },
+  // A toggle's indicator node (2026-10-04): the shared component's indicator element. Radio's
+  // indicator is `.react-aria-Radio::before` — no element to name.
+  Checkbox: { CheckboxIndicator: [".checkbox"] },
+  Switch: { SwitchIndicator: [".indicator"] },
   TextField: { Input: [".react-aria-Input"] },
   TextArea: { Input: [".react-aria-TextArea", ".react-aria-Input"] },
   ColorField: { Input: [".react-aria-Input"] },
@@ -754,40 +758,46 @@ export function catalogDropZoneContentStyle(): {
 }
 
 /**
- * Inline inset of a toggle-indicator control's content: the RAC indicator element (checkbox box,
- * radio circle, switch track — `sizes[size].indicator`) and the control's `gap` sit before the
- * label in the DOM row. The typed tree has no indicator node (the Canvas executor paints it in the
- * control box), so the label carries that inset.
+ * A toggle-indicator control's indicator box (checkbox box, radio circle, switch track —
+ * `sizes[size].indicator`): the `CheckboxIndicator` / `RadioIndicator` / `SwitchIndicator` child
+ * node (2026-10-04), sized like the RAC indicator element that sits before the label in the DOM
+ * row. The control's `gap` then separates it from the label (flex row), as in the DOM.
  */
-export function catalogIndicatorInset(
+export function catalogToggleIndicatorBox(
   type: string,
   sizeName: string | undefined,
-): number | undefined {
+): { width: number; height: number } | undefined {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type];
   if (rule?.structure?.archetype !== "toggle-indicator") return undefined;
   const size =
     rule.sizes?.[sizeName ?? ""] ??
     (rule.defaultSize ? rule.sizes?.[rule.defaultSize] : undefined);
-  const indicator = size?.indicator?.boxSize ?? size?.indicator?.trackWidth;
-  if (typeof indicator !== "number") return undefined;
-  return indicator + (typeof size?.gap === "number" ? size.gap : 0);
+  const indicator = size?.indicator;
+  if (typeof indicator?.boxSize === "number")
+    return { width: indicator.boxSize, height: indicator.boxSize };
+  if (
+    typeof indicator?.trackWidth === "number" &&
+    typeof indicator?.trackHeight === "number"
+  )
+    return { width: indicator.trackWidth, height: indicator.trackHeight };
+  return undefined;
 }
 
-function indicatorPartRules(parentType: string): CompiledPartRule[] {
+function toggleIndicatorPartRules(parentType: string): CompiledPartRule[] {
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     parentType
   ];
   if (rule?.structure?.archetype !== "toggle-indicator") return [];
   return sizeNames(rule).flatMap((size) => {
-    const inset = catalogIndicatorInset(parentType, size);
-    return inset === undefined
+    const box = catalogToggleIndicatorBox(parentType, size);
+    return box === undefined
       ? []
       : [
           {
-            childType: "Label",
+            childType: `${parentType}Indicator`,
             size,
-            layout: { marginLeft: `${inset}px` },
-            visual: {},
+            layout: { flexShrink: "0" },
+            visual: { width: box.width, height: box.height },
           },
         ];
   });
@@ -1278,7 +1288,7 @@ export function compileRulePartRules(
     ...tokenRuleBasePartRules(parentType),
     ...sliderThumbPartRules(parentType),
     ...disclosureChevronPartRules(parentType),
-    ...indicatorPartRules(parentType),
+    ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
     ...childFontPartRules(parentType),

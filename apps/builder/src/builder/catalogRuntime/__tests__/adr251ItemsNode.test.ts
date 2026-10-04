@@ -135,18 +135,23 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
       ]);
       const wrapper = kids[1];
       const items = wrapper.children.map((id) => root.layoutInputs.get(id)!);
+      // An item's Label (the item's indicator node sits before it — 2026-10-04).
+      const labelOf = (record: (typeof items)[number]) =>
+        record.children
+          .map((id) => root.layoutInputs.get(id)!)
+          .find((child) => child.bindingId === "label")!;
       expect(items.map((record) => record.bindingId)).toEqual([item, item]);
       // The group size reaches the wrapper and, through it, the items and their labels.
       expect(wrapper.props.size).toBe(size);
       for (const record of items) {
         expect(record.props.size).toBe(size);
-        const label = root.layoutInputs.get(record.children[0])!;
+        const label = labelOf(record);
         expect(label.props.size).toBe(size);
       }
       const geometry = root.getGeometry([
         wrapper.id,
         ...items.map((record) => record.id),
-        ...items.map((record) => record.children[0]),
+        ...items.map((record) => labelOf(record).id),
       ]);
       const box = geometry.get(wrapper.id)!;
       const [first, second] = items.map((record) => geometry.get(record.id)!);
@@ -156,7 +161,7 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
         expect(second.y - (first.y + first.height)).toBeCloseTo(g0.gap, 3);
       else expect(second.x - (first.x + first.width)).toBeCloseTo(g0.gap, 3);
       expect(first.height).toBeCloseTo(g0.height, 3);
-      expect(geometry.get(items[0].children[0])!.x).toBeCloseTo(g0.labelX, 3);
+      expect(geometry.get(labelOf(items[0]).id)!.x).toBeCloseTo(g0.labelX, 3);
       // The wrapper under the label (top) or beside it (side), as the composed part was.
       if (labelPosition === "top") {
         expect(box.x + first.x).toBeCloseTo(0, 3);

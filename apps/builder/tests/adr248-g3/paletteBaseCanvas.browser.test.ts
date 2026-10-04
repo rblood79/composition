@@ -248,6 +248,12 @@ let basePngSha: Map<string, string> = new Map();
 let axisPngSha: Map<string, string> = new Map();
 const results: unknown[] = [];
 
+const TOGGLE_INDICATOR_TYPES = [
+  "CheckboxIndicator",
+  "RadioIndicator",
+  "SwitchIndicator",
+];
+
 /** Set when the local G0 baseline is absent (a fresh clone). */
 let baselineAbsent = false;
 beforeAll(async () => {
@@ -1053,9 +1059,19 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             : Number.POSITIVE_INFINITY;
         pairs.push({ newId, oldPath, delta });
         // Nodes hidden at rest have no box, as in the old filtered layout tree.
-        const newKids = (root.canvasInputs.get(newId)?.children ?? []).filter(
+        const shownKids = (root.canvasInputs.get(newId)?.children ?? []).filter(
           (child) => !root.canvasInputs.get(child)?.hidden,
         );
+        // A toggle's indicator node (2026-10-04) has no old node — the old toggle painted the
+        // indicator in its own box. It stays out of the order pairing (APPROVED_UNPAIRED).
+        const newKids = shownKids.filter(
+          (child) =>
+            !TOGGLE_INDICATOR_TYPES.includes(
+              root.typeOf(root.canvasInputs.get(child)!),
+            ),
+        );
+        for (const child of shownKids)
+          if (!newKids.includes(child)) unpaired.push(`new:${child}`);
         const oldKids = oldChildren(
           oldPath,
           newKids.some((child) =>

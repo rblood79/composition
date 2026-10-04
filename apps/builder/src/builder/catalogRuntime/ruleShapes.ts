@@ -105,6 +105,7 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const keys = binding ? (Array.isArray(binding) ? binding : [binding]) : [];
   for (const key of keys) {
     if (getSkiaPrimitiveMode(key) !== "replace") continue;
+    if (input.indicatorChild) return [];
     const replaced = getSkiaPrimitive(key)?.(ctx);
     if (replaced) return replaced;
   }
@@ -208,7 +209,9 @@ export function catalogDateInputPaintProps(
   const { radius, borderWidth } = node.visual;
   return {
     ...(typeof radius === "number" ? { _boxRadius: radius } : {}),
-    ...(typeof borderWidth === "number" ? { _boxBorderWidth: borderWidth } : {}),
+    ...(typeof borderWidth === "number"
+      ? { _boxBorderWidth: borderWidth }
+      : {}),
     _segmentRuns: paint.runs,
     ...(fill ? { _segmentPlaceholderFill: fill } : {}),
     ...(fontStyle === "italic" ? { _segmentPlaceholderItalic: true } : {}),

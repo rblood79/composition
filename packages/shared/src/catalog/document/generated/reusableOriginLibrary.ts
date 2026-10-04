@@ -3631,6 +3631,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-checkbox",
     "definitionId": "lib:definition:type-Checkbox",
     "children": [
+      "lib:template:component-checkbox__indicator",
       "lib:template:component-checkbox__1"
     ],
     "props": {
@@ -3646,6 +3647,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-checkbox__indicator",
+    "definitionId": "lib:definition:type-CheckboxIndicator",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-checkbox__1",
@@ -4252,6 +4260,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-switch",
     "definitionId": "lib:definition:type-Switch",
     "children": [
+      "lib:template:component-switch__indicator",
       "lib:template:component-switch__1"
     ],
     "props": {
@@ -4263,6 +4272,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-switch__indicator",
+    "definitionId": "lib:definition:type-SwitchIndicator",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-switch__1",
@@ -5334,6 +5350,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-radio",
     "definitionId": "lib:definition:type-Radio",
     "children": [
+      "lib:template:component-radio__indicator",
       "lib:template:component-radio__1"
     ],
     "props": {
@@ -5344,6 +5361,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-radio__indicator",
+    "definitionId": "lib:definition:type-RadioIndicator",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-radio__1",

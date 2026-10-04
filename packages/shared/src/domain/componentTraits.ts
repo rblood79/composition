@@ -278,6 +278,10 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     children: ["Checkbox"],
     owners: ["CheckboxGroup"],
   },
+  // 2026-10-04: toggle 의 indicator 상자 노드 — 자기 부모 toggle 안에만 (부모 DOM 이 흡수).
+  CheckboxIndicator: { owners: ["Checkbox"] },
+  RadioIndicator: { owners: ["Radio"] },
+  SwitchIndicator: { owners: ["Switch"] },
   DisclosureGroup: { children: ["Disclosure"] },
   DisclosureHeader: { owners: ["Disclosure"] },
   Slider: { children: ["Label", "SliderOutput", "SliderTrack"] },

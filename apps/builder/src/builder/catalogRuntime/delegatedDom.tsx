@@ -146,6 +146,16 @@ export function catalogTypeName(
     ""
   );
 }
+/**
+ * A toggle's indicator node (`CheckboxIndicator` · `RadioIndicator` · `SwitchIndicator`, 2026-10-04):
+ * the RAC toggle draws the indicator element itself (`div.checkbox` · `::before` · `div.indicator`),
+ * so the record renders no element — the toggle absorbs it.
+ */
+export const CATALOG_TOGGLE_INDICATOR_BINDINGS: ReadonlySet<string> = new Set([
+  "checkboxindicator",
+  "radioindicator",
+  "switchindicator",
+]);
 const children = (input: DelegatedDomInput): CatalogConsumerNode[] =>
   input.node.children
     .map((id) => input.root.domInputs.get(id)!)
@@ -1011,7 +1021,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           size: props.size || "md",
         },
         typeof props.children === "string" && !hasLabel ? props.children : null,
-        ...renderAll(input),
+        ...renderAll(
+          input,
+          children(input).filter(
+            (child) =>
+              !CATALOG_TOGGLE_INDICATOR_BINDINGS.has(child.bindingId ?? ""),
+          ),
+        ),
       );
     },
   },

@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { TOGGLE_INDICATOR_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { Box, ChevronRight, GripVertical, Settings2 } from "lucide-react";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
@@ -110,19 +111,22 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
             />
           </Button>
         )}
-        {!body && !node.projection && (
-          <Button
-            className="iconButton"
-            aria-label={`Delete ${node.typeName}`}
-            onPress={() => onDelete(node)}
-          >
-            <DeleteIcon
-              color={ICON_EDIT_PROPS.color}
-              strokeWidth={ICON_EDIT_PROPS.stroke}
-              size={ICON_EDIT_PROPS.size}
-            />
-          </Button>
-        )}
+        {/* A toggle's indicator is the RAC toggle's own element — not removable (`removeTargets`). */}
+        {!body &&
+          !node.projection &&
+          !TOGGLE_INDICATOR_OWNERS[node.typeName] && (
+            <Button
+              className="iconButton"
+              aria-label={`Delete ${node.typeName}`}
+              onPress={() => onDelete(node)}
+            >
+              <DeleteIcon
+                color={ICON_EDIT_PROPS.color}
+                strokeWidth={ICON_EDIT_PROPS.stroke}
+                size={ICON_EDIT_PROPS.size}
+              />
+            </Button>
+          )}
       </div>
     </div>
   );

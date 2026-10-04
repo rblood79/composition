@@ -490,6 +490,15 @@ export interface ApprovedUnpaired {
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
   {
+    id: "toggle-indicator-node",
+    class: "decided",
+    owners: ["Checkbox", "Radio", "Switch", "CheckboxGroup", "RadioGroup"],
+    side: "new",
+    nodes: ["CheckboxIndicator", "RadioIndicator", "SwitchIndicator"],
+    reason:
+      "toggle = [indicator node, Label] (2026-10-04 user 「1안」 — old: the toggle painted its indicator in its own box)",
+  },
+  {
     id: "breadcrumb-separator-icon-children",
     class: "decided",
     owners: ["Breadcrumbs", "Breadcrumb"],

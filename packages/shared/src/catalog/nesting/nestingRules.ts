@@ -161,9 +161,9 @@ export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
   ],
   SelectTrigger: ["DateInput", "SelectIcon", "SelectValue", "Input"],
   // 단일 control 의 label 슬롯 — RSP `children` 은 label 텍스트다
-  Checkbox: ["Label", "Text", "Icon"],
-  Radio: ["Label", "Text", "Icon"],
-  Switch: ["Label", "Text", "Icon"],
+  Checkbox: ["CheckboxIndicator", "Label", "Text", "Icon"],
+  Radio: ["RadioIndicator", "Label", "Text", "Icon"],
+  Switch: ["SwitchIndicator", "Label", "Text", "Icon"],
   // 자식 묶음 컨테이너 — RSP 계약 + renderX(childrenByParent) self-compose
   ButtonGroup: ["Button"],
   AvatarGroup: ["Avatar"],

@@ -66,6 +66,8 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 **그룹 항목 묶음 노드 — RadioItems · CheckboxItems (ADR-251, 2026-10-03)**: RAC `RadioGroup` · `CheckboxGroup` 의 children 안에 composition 이 두는 항목 상자 (`div.radio-items`, RAC 구조 밖 · role 없음 — D1 무변경) 를 문서 노드로 둔다. 값 (방향 · gap) 은 그룹 rule `orientation` 블록이 정본 (D3), 묶음 노드는 사용자 prop 이 없고 `size` 만 내부 운반 값 (D2 신규 prop 0). DOM 은 그룹이 묶음을 흡수하고 shared 컴포넌트의 상자 하나가 그린다 — 묶음에 작성한 style 은 DOM 에 닿지 않는다 (TagList 와 같은 편집 범위).
 
+**toggle indicator 노드 — CheckboxIndicator · RadioIndicator · SwitchIndicator (2026-10-04 사용자 지시 「1안」)**: Checkbox · Radio · Switch 의 indicator 상자 (RAC toggle 이 직접 그리는 `div.checkbox` · `.react-aria-Radio::before` · `div.indicator`) 를 template 첫 자식 노드로 둔다. 크기는 toggle rule `size.indicator` 가 partRule 로, 칠은 toggle rule primitive 를 노드 상자에서 실행한다 (D3 정본 = toggle rule). 노드는 사용자 prop 0 (D2 신규 prop 0) · DOM 출력 0 (D1 무변경 — 부모가 흡수) · 편집 surface 는 toggle 로 귀속 (`TOGGLE_INDICATOR_OWNERS` — sub-part owner 판정).
+
 **D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
 
 - RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — `Group.spec.ts` 보존 (변경 0)

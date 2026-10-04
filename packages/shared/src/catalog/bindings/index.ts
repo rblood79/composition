@@ -81,6 +81,9 @@ import { radioBinding } from "./Radio.binding";
 import { radioGroupBinding } from "./RadioGroup.binding";
 import { radioItemsBinding } from "./RadioItems.binding";
 import { checkboxItemsBinding } from "./CheckboxItems.binding";
+import { checkboxIndicatorBinding } from "./CheckboxIndicator.binding";
+import { radioIndicatorBinding } from "./RadioIndicator.binding";
+import { switchIndicatorBinding } from "./SwitchIndicator.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
@@ -201,6 +204,9 @@ export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./RadioItems.binding";
 export * from "./CheckboxItems.binding";
+export * from "./CheckboxIndicator.binding";
+export * from "./RadioIndicator.binding";
+export * from "./SwitchIndicator.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Section.binding";
@@ -393,6 +399,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RadioGroup: radioGroupBinding,
   RadioItems: radioItemsBinding,
   Switch: switchBinding,
+  // 2026-10-04: toggle 의 indicator 상자 노드 (부모 DOM 이 흡수, 자기 rule 없음 — 값은 부모 rule).
+  CheckboxIndicator: checkboxIndicatorBinding,
+  RadioIndicator: radioIndicatorBinding,
+  SwitchIndicator: switchIndicatorBinding,
   Slider: sliderBinding,
   // ADR-912 SliderTrack: Slider compound 의 트랙 (배경 + value 막대 + thumb, Skia-전용 sub-part,
   //   slider_fill_bar escape, replace — thumb 컨테이너 box). DOM=RAC Slider self-compose (DOM no-op).

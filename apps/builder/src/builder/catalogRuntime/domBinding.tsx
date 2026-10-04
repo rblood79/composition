@@ -31,7 +31,11 @@ import {
   INTERNAL_RENDERERS,
 } from "../../preview/components/canonicalRendererRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
-import { CATALOG_DELEGATED_DOM, catalogTypeName } from "./delegatedDom";
+import {
+  CATALOG_DELEGATED_DOM,
+  CATALOG_TOGGLE_INDICATOR_BINDINGS,
+  catalogTypeName,
+} from "./delegatedDom";
 import { Heading, Label, Text } from "react-aria-components";
 import { Button } from "../../../../../packages/shared/src/components/Button";
 import { Icon } from "../../../../../packages/shared/src/components/Icon";
@@ -584,6 +588,8 @@ export function catalogDomRendersNode(
 ): boolean {
   const self = root.domInputs.get(id);
   if (self && isClosedOverlay(root, self)) return false;
+  if (self && CATALOG_TOGGLE_INDICATOR_BINDINGS.has(self.bindingId ?? ""))
+    return false;
   const selfParent = self ? root.domInputs.get(self.parentId) : undefined;
   if (
     self &&
@@ -1204,14 +1210,21 @@ function renderNode(
   const id = node.id;
   const children = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
     ? []
-    : node.children.map((childId) =>
-        createElement(CatalogDomNode, {
-          key: childId,
-          root,
-          id: childId,
-          context,
-        }),
-      );
+    : node.children
+        .filter(
+          (childId) =>
+            !CATALOG_TOGGLE_INDICATOR_BINDINGS.has(
+              root.domInputs.get(childId)?.bindingId ?? "",
+            ),
+        )
+        .map((childId) =>
+          createElement(CatalogDomNode, {
+            key: childId,
+            root,
+            id: childId,
+            context,
+          }),
+        );
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
     return withHtmlId(

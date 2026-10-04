@@ -1,0 +1,241 @@
+// @vitest-environment jsdom
+/**
+ * Toggle indicator nodes (2026-10-04, user「1안」): Checkbox · Radio · Switch hold their indicator
+ * box as a `CheckboxIndicator` / `RadioIndicator` / `SwitchIndicator` child before the Label, so the
+ * Layers tree shows the DOM row (indicator element · label). Values stay in the toggle rule: the
+ * node is sized from `size.indicator`, painted with the toggle's primitive and absorbed by the DOM.
+ *
+ * Oracle: the geometry before the node (main `6840c789c`, the Label carried the indicator inset as
+ * `marginLeft` and the toggle painted its primitive at its own top-left) — every size. Three cases
+ * change on purpose: an indicator taller than the label now sets the row height and the label is
+ * centered against it (`align-items: center`, as the DOM's inline-flex row) — standalone Checkbox xl,
+ * Switch sm · xl.
+ */
+import "fake-indexeddb/auto";
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import {
+  insertNodes,
+  removeTargets,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import type {
+  NodeEntry,
+  NodeId,
+} from "../../../../../../packages/shared/src/catalog/document/types";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { bindCatalogCanvas } from "../canvasBinding";
+import type { CatalogTextMeasure } from "../compositionRoot";
+import { catalogDomRendersNode, renderCatalogDom } from "../domBinding";
+import { catalogPaletteDefinitionId } from "../paletteInsert";
+import { newCatalogProjectDocument } from "../project";
+import { CatalogStorage } from "../storage";
+import { CatalogWorkspace } from "../workspace";
+import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
+
+const measure: CatalogTextMeasure = (text, font) => ({
+  width: text.length * font.fontSize * 0.5,
+  exactWidth: text.length * font.fontSize * 0.5,
+  minWidth: text.length * font.fontSize * 0.5,
+  height: font.fontSize * (font.lineHeight || 1.2),
+});
+
+/** Inserted palette type → the toggle under test (a Radio lives in a RadioGroup). */
+const TOGGLES = {
+  Checkbox: "checkbox",
+  RadioGroup: "radio",
+  Switch: "switch",
+} as const;
+
+/**
+ * Per size: indicator box (rule `size.indicator`), toggle height, Label x / y. The Label x is the
+ * old `marginLeft` inset (indicator + gap); `height` · `labelY` differ from it only where marked.
+ */
+const EXPECTED: Record<
+  keyof typeof TOGGLES,
+  Record<
+    string,
+    {
+      box: [number, number];
+      height: number;
+      labelX: number;
+      labelY: number;
+      indicatorY: number;
+    }
+  >
+> = {
+  Checkbox: {
+    sm: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
+    md: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
+    lg: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
+    // was height 28 · label y 0 (the 30px box overflowed the row)
+    xl: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+  },
+  RadioGroup: {
+    sm: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
+    md: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
+    lg: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
+    xl: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+  },
+  Switch: {
+    // was height 24 · label y 4 (the track painted at y 0, above the padding)
+    sm: { box: [32, 18], height: 26, labelX: 40, labelY: 5, indicatorY: 4 },
+    md: { box: [36, 20], height: 28, labelX: 46, labelY: 4, indicatorY: 4 },
+    lg: { box: [44, 24], height: 32, labelX: 56, labelY: 4, indicatorY: 4 },
+    // was height 36 · label y 4
+    xl: { box: [52, 30], height: 38, labelX: 66, labelY: 5, indicatorY: 4 },
+  },
+};
+
+async function openToggle(owner: keyof typeof TOGGLES, size: string) {
+  const library = await buildCodeCatalogLibrary();
+  const workspace = new CatalogWorkspace(
+    new CatalogGraph(
+      newCatalogProjectDocument({
+        projectId: "project:project:toggle-indicator" as const,
+        name: "Toggle indicator",
+      }),
+      library,
+    ),
+    new CatalogStorage(indexedDB, `toggle-indicator-${Math.random()}`),
+    {
+      engine: await nodeLayoutEngine(),
+      viewport: { width: 1000, height: 800 },
+      autosaveSchedule: () => {},
+      textMeasure: measure,
+    },
+  );
+  workspace.execute(
+    insertNodes({
+      parent: { kind: "node", id: "project:node:home-body" },
+      entries: [
+        {
+          kind: "node",
+          id: "project:node:owner",
+          definitionId: catalogPaletteDefinitionId(library, owner),
+          children: [],
+          props: { size: { kind: "set", value: size } },
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        } as NodeEntry,
+      ],
+      rootIds: ["project:node:owner"],
+      newId: workspace.newId,
+    }),
+  );
+  const root = workspace.root;
+  const binding = TOGGLES[owner];
+  const toggle = [...root.layoutInputs.values()].find(
+    (record) => record.bindingId === binding,
+  )!;
+  const kids = toggle.children.map((id) => root.layoutInputs.get(id)!);
+  return { workspace, root, binding, toggle, kids };
+}
+
+const CASES = (Object.keys(TOGGLES) as (keyof typeof TOGGLES)[]).flatMap(
+  (owner) => ["sm", "md", "lg", "xl"].map((size) => ({ owner, size })),
+);
+
+describe("toggle indicator node", () => {
+  it.each(CASES)(
+    "$owner $size: the indicator node holds the indicator box before the Label",
+    async ({ owner, size }) => {
+      const { workspace, root, binding, toggle, kids } = await openToggle(
+        owner,
+        size,
+      );
+      expect(kids.map((record) => record.bindingId)).toEqual([
+        `${binding}indicator`,
+        "label",
+      ]);
+      const [indicator, label] = kids;
+      const geometry = root.getGeometry([toggle.id, indicator.id, label.id]);
+      const expected = EXPECTED[owner][size];
+      const box = geometry.get(indicator.id)!;
+      expect([box.width, box.height]).toEqual(expected.box);
+      expect(box.x).toBeCloseTo(0, 3);
+      expect(box.y).toBeCloseTo(expected.indicatorY, 3);
+      expect(geometry.get(toggle.id)!.height).toBeCloseTo(expected.height, 3);
+      expect(geometry.get(label.id)!.x).toBeCloseTo(expected.labelX, 3);
+      expect(geometry.get(label.id)!.y).toBeCloseTo(expected.labelY, 3);
+      workspace.dispose();
+    },
+  );
+
+  it.each(Object.keys(TOGGLES) as (keyof typeof TOGGLES)[])(
+    "%s: the DOM absorbs the indicator node (one RAC indicator element, no record element)",
+    async (owner) => {
+      const { workspace, root, kids } = await openToggle(owner, "md");
+      const dom = [...root.domInputs.values()].find(
+        (record) => record.sourceId === "project:node:owner",
+      )!;
+      const html = renderToStaticMarkup(renderCatalogDom(root, dom.id));
+      expect(html).not.toContain(`data-catalog-id="${kids[0].id}"`);
+      // The DOM-presence judgment (overlays · census) agrees with the render.
+      expect(catalogDomRendersNode(root, kids[0].id)).toBe(false);
+      // A Switch renders its `children` text (the Label child is bound to it), the others the Label.
+      if (owner !== "Switch")
+        expect(html).toContain(`data-catalog-id="${kids[1].id}"`);
+      if (owner === "Checkbox")
+        expect(html.match(/class="checkbox"/g)).toHaveLength(1);
+      if (owner === "Switch")
+        expect(html.match(/class="indicator"/g)).toHaveLength(1);
+      workspace.dispose();
+    },
+  );
+
+  it.each(Object.keys(TOGGLES) as (keyof typeof TOGGLES)[])(
+    "%s: the indicator node paints the toggle's primitive; the toggle paints none",
+    async (owner) => {
+      const { workspace, root, toggle, kids } = await openToggle(owner, "md");
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      const indicator = kids[0];
+      const painted = getSkiaNode(indicator.id)!;
+      expect(painted.children?.length ?? 0).toBeGreaterThan(0);
+      expect(painted.elementId).toBe(indicator.id);
+      const rect = root.getGeometry([indicator.id]).get(indicator.id)!;
+      expect([painted.x, painted.y]).toEqual([rect.x, rect.y]);
+      expect(getSkiaNode(toggle.id)!.children ?? []).toHaveLength(0);
+      // The toggle's variant (its selected fill — the origin shows the selected display state)
+      // reaches the indicator on a delta update: the indicator repaints with its owner
+      // (`canvasBinding` update).
+      if (owner !== "RadioGroup") {
+        const paintOf = () => {
+          const data = getSkiaNode(indicator.id)!;
+          return JSON.stringify({ box: data.box, children: data.children });
+        };
+        const before = paintOf();
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
+            props: { variant: { kind: "set", value: "emphasized" } },
+          }),
+        );
+        canvas.update();
+        expect(paintOf()).not.toBe(before);
+      }
+      canvas.dispose();
+      workspace.dispose();
+    },
+  );
+
+  it("the indicator position is not removable; the Label still is (hidden)", async () => {
+    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const [indicator, label] = kids;
+    const targetOf = (id: string) => workspace.positionOfRecord(id)!.target;
+    let code: unknown;
+    try {
+      workspace.execute(removeTargets({ targets: [targetOf(indicator.id)] }));
+    } catch (error) {
+      code = (error as { code?: unknown }).code;
+    }
+    expect(code).toBe("TOGGLE_INDICATOR_NOT_REMOVABLE");
+    expect(root.layoutInputs.has(indicator.id)).toBe(true);
+    workspace.execute(removeTargets({ targets: [targetOf(label.id)] }));
+    expect(root.layoutInputs.has(label.id)).toBe(false);
+    workspace.dispose();
+  });
+});

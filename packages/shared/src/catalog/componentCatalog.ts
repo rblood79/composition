@@ -609,6 +609,26 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     icon: "GroupIcon",
     placeable: false,
   }),
+  // CheckboxIndicator · RadioIndicator · SwitchIndicator — toggle 의 indicator 상자 (2026-10-04, RadioItems
+  //   동형). Checkbox · Radio · Switch template 의 첫 자식, DOM 은 부모 RAC 가 그린다. palette 비노출.
+  primitiveEntry("CheckboxIndicator", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "checkbox indicator",
+    icon: "SquareCheck",
+    placeable: false,
+  }),
+  primitiveEntry("RadioIndicator", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "radio indicator",
+    icon: "Circle",
+    placeable: false,
+  }),
+  primitiveEntry("SwitchIndicator", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "switch indicator",
+    icon: "ToggleRight",
+    placeable: false,
+  }),
   primitiveEntry("Radio", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "radio",

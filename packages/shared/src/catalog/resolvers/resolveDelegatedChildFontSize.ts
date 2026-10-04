@@ -154,6 +154,17 @@ export const SELF_COMPOSED_LABEL_PARENTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * toggle 의 indicator 노드 → 그것을 그리는 toggle (2026-10-04). DOM 은 RAC toggle 이 indicator 요소를 직접
+ * 만들고 (`div.checkbox` · `::before` · `div.indicator`) 노드를 읽지 않는다 — 크기 · 색은 toggle rule 과
+ * toggle 의 prop · style 이 정한다. 그래서 편집 surface 는 toggle 로 귀속한다 (FieldError 와 같은 판정).
+ */
+export const TOGGLE_INDICATOR_OWNERS: Readonly<Record<string, string>> = {
+  CheckboxIndicator: "Checkbox",
+  RadioIndicator: "Radio",
+  SwitchIndicator: "Switch",
+};
+
+/**
  * sub-part 래퍼 — 이 type 이 직계 parent 면 자식의 판정은 **조부모** (field) 에 대해 한다. DatePicker ·
  * DateRangePicker 의 canonical 은 `field > SelectTrigger > DateInput` 이라 DateInput 의 직계는 SelectTrigger 인데,
  * DOM 은 field rule delegation `.react-aria-DateInput` 으로 그린다 (DateField · TimeField 와 같은 판정).
@@ -201,6 +212,7 @@ function selectorHasToken(selector: string, token: string): boolean {
 }
 
 function ownsSubpartDirect(childType: string, parentType: string): boolean {
+  if (TOGGLE_INDICATOR_OWNERS[childType] === parentType) return true;
   if (childType === "Label" && SELF_COMPOSED_LABEL_PARENTS.has(parentType))
     return true;
   const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];

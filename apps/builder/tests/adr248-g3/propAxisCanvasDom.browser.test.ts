@@ -102,6 +102,16 @@ const CASES: Array<{
       })),
     ),
   ),
+  // Toggle indicator nodes (2026-10-04): the indicator box (the shared component's `.checkbox` /
+  // `.indicator`) and the label beside it, at every size — sm · xl are the sizes whose indicator is
+  // taller than the label (the row centers the label against it, as the DOM's inline-flex row).
+  ...(["Checkbox", "Switch"] as const).flatMap((type): typeof CASES =>
+    ["sm", "md", "lg", "xl"].map((size) => ({
+      key: `${type}-${size}`,
+      type,
+      props: { size },
+    })),
+  ),
 ];
 
 let code: CatalogLibrary;
