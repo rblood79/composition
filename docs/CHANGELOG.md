@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [큰 문서 구조 변경·다중 선택 액션 바 비용 축소 — ADR-248 후속] - 2026-10-05
+
+### Performance
+
+- Canvas 구조 갱신 내 geometry 중복 조회를 제거하고, 액션 바 정렬·분배 명령의 geometry 준비를 공유하며 선택별 선형 검색을 Map 조회로 바꿨다. 5k에서 구조 이동/삭제 조회는 약 절반, 액션 바 조회는 8회→1회다.
+- 교대 3쌍에서 5k 액션 바 taskMs 중앙값 528.19→291.92ms. 구조 조작은 호출 감소만 확인했으며 전체 시간의 체감 개선은 미확인이다. [측정 조건·근거·한계](adr/design/248-performance-followup.md).
+
+### Tests
+
+- 수정 전 실패하는 geometry 상한, 이동·삭제·Undo 및 flex/grid fresh layout/Canvas 비교, 정렬 명령 동등성·resize 갱신을 검증했다. 실제 Builder 5k 액션 바 정렬·Undo·저장·reload 성공. 전용 `pnpm perf:adr248-followup` ratchet을 추가했다.
+
 ## [Switch Canvas·Preview 색상 정합 수리 — ADR-248] - 2026-10-05
 
 ### Fixed

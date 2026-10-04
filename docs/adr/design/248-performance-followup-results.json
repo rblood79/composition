@@ -1,0 +1,509 @@
+{
+  "protocol": "Headed Chrome 1440x900 DPR1, isolated A/B/A/B/A/B, no precise coverage or concurrent tests. Synthetic absolute frame siblings. A serves pre-edit Vite modules captured at 09da2e17c. taskMs includes command, 2 rAF and durable save settle via CDP TaskDuration.",
+  "pairs": [
+    {
+      "before": {
+        "baseline": "/private/tmp/adr248-followup-original-modules",
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 4.099999904632568,
+                "settledMs": 42.39999985694885,
+                "taskMs": 47.04899999999998,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 1211
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 3.1999998092651367,
+                "settledMs": 15.899999856948853,
+                "taskMs": 17.32400000000007,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 1206
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 18.700000047683716,
+                "settledMs": 18.90000009536743,
+                "taskMs": 19.825000000000045,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 4800
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 18.799999952316284,
+                "settledMs": 49.5,
+                "taskMs": 52.315000000000055,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 10011
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 19.199999809265137,
+                "settledMs": 43.39999985694885,
+                "taskMs": 46.590000000000146,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 10006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 559.7000000476837,
+                "settledMs": 560.1000001430511,
+                "taskMs": 560.1750000000002,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 40000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      },
+      "after": {
+        "baseline": null,
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 4,
+                "settledMs": 42.89999985694885,
+                "taskMs": 44.587999999999965,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 610
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 2.9000000953674316,
+                "settledMs": 19.299999952316284,
+                "taskMs": 13.751999999999953,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 606
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 11.200000047683716,
+                "settledMs": 27.59999990463257,
+                "taskMs": 11.798000000000002,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 600
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 17.199999809265137,
+                "settledMs": 48,
+                "taskMs": 49.524999999999864,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 5010
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 17.59999990463257,
+                "settledMs": 43,
+                "taskMs": 44.218000000000075,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 5006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 289.7000000476837,
+                "settledMs": 289.90000009536743,
+                "taskMs": 290.07099999999946,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 5000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      }
+    },
+    {
+      "before": {
+        "baseline": "/private/tmp/adr248-followup-original-modules",
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 4.299999952316284,
+                "settledMs": 43.89999985694885,
+                "taskMs": 49.62600000000009,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 1211
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 2.9000000953674316,
+                "settledMs": 13.299999952316284,
+                "taskMs": 14.38799999999992,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 1206
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 19.899999856948853,
+                "settledMs": 20.09999990463257,
+                "taskMs": 20.232999999999947,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 4800
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 19.600000143051147,
+                "settledMs": 52.30000019073486,
+                "taskMs": 53.975999999999885,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 10011
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 17.600000143051147,
+                "settledMs": 42.90000009536743,
+                "taskMs": 44.189000000000306,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 10006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 524.2999999523163,
+                "settledMs": 524.5999999046326,
+                "taskMs": 524.8019999999997,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 40000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      },
+      "after": {
+        "baseline": null,
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 3.9000000953674316,
+                "settledMs": 43.10000014305115,
+                "taskMs": 45.00400000000013,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 610
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 2.8000001907348633,
+                "settledMs": 13.300000190734863,
+                "taskMs": 14.730999999999995,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 606
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 11.300000190734863,
+                "settledMs": 15.900000095367432,
+                "taskMs": 11.801000000000045,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 600
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 18.600000143051147,
+                "settledMs": 50.5,
+                "taskMs": 52.503999999999905,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 5010
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 17.899999856948853,
+                "settledMs": 46,
+                "taskMs": 43.289999999999736,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 5006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 291.5,
+                "settledMs": 291.7999999523163,
+                "taskMs": 291.9169999999999,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 5000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      }
+    },
+    {
+      "before": {
+        "baseline": "/private/tmp/adr248-followup-original-modules",
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 4.5,
+                "settledMs": 45.80000019073486,
+                "taskMs": 47.72900000000004,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 1211
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 2.9000000953674316,
+                "settledMs": 13.5,
+                "taskMs": 14.646000000000072,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 1206
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 19.59999990463257,
+                "settledMs": 19.799999952316284,
+                "taskMs": 20.032000000000153,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 4800
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 16.899999856948853,
+                "settledMs": 48.39999985694885,
+                "taskMs": 49.6579999999999,
+                "counts": {
+                  "geometryCalls": 12,
+                  "geometryIds": 10011
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 17.299999952316284,
+                "settledMs": 42,
+                "taskMs": 43.12400000000025,
+                "counts": {
+                  "geometryCalls": 9,
+                  "geometryIds": 10006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 527.9000000953674,
+                "settledMs": 528.0999999046326,
+                "taskMs": 528.1880000000001,
+                "counts": {
+                  "geometryCalls": 8,
+                  "geometryIds": 40000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      },
+      "after": {
+        "baseline": null,
+        "head": "09da2e17c0f8d9044a2b50ee2a89f18054e9ab43",
+        "base": "http://localhost:5173",
+        "errors": [],
+        "samples": [
+          {
+            "count": 600,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 3.9000000953674316,
+                "settledMs": 43.5,
+                "taskMs": 45.49800000000005,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 610
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 2.8999998569488525,
+                "settledMs": 13.599999904632568,
+                "taskMs": 14.768000000000029,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 606
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 11.299999952316284,
+                "settledMs": 13.700000047683716,
+                "taskMs": 11.74299999999971,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 600
+                }
+              }
+            ],
+            "undoRestored": true
+          },
+          {
+            "count": 5000,
+            "visibility": "visible",
+            "values": [
+              {
+                "name": "reorder",
+                "commandMs": 17.299999952316284,
+                "settledMs": 49.299999952316284,
+                "taskMs": 50.79099999999994,
+                "counts": {
+                  "geometryCalls": 10,
+                  "geometryIds": 5010
+                }
+              },
+              {
+                "name": "delete",
+                "commandMs": 17.799999952316284,
+                "settledMs": 42.39999985694885,
+                "taskMs": 43.70900000000006,
+                "counts": {
+                  "geometryCalls": 7,
+                  "geometryIds": 5006
+                }
+              },
+              {
+                "name": "actionBar",
+                "commandMs": 298.10000014305115,
+                "settledMs": 298.2000000476837,
+                "taskMs": 298.50199999999995,
+                "counts": {
+                  "geometryCalls": 1,
+                  "geometryIds": 5000
+                }
+              }
+            ],
+            "undoRestored": true
+          }
+        ]
+      }
+    }
+  ],
+  "live": {
+    "aligned": 5000,
+    "undo": true,
+    "reload": 5000,
+    "pageErrors": []
+  }
+}

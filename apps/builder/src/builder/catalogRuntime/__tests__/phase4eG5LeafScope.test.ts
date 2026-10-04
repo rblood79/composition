@@ -233,6 +233,12 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
       countingMeasure().measure,
     );
     const scene = new CatalogCanvasScene(workspace.root);
+    const sync = () => {
+      const result = scene.sync();
+      expect(result.kind).toBe("patched");
+      if (result.kind === "patched")
+        expect(result.update.geometryQueries).toBeLessThanOrEqual(5003);
+    };
     const target = "project:node:leaf0" as NodeEntry["id"];
     workspace.execute(
       moveNodes({
@@ -242,16 +248,16 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
       }),
     );
     expect(workspace.root.metrics.layoutInputVisits).toBe(1);
-    expect(scene.sync().kind).toBe("patched");
+    sync();
     workspace.execute(
       removeTargets({ targets: [{ kind: "node", id: target }] }),
     );
     expect(workspace.root.metrics.layoutInputVisits).toBe(1);
-    expect(scene.sync().kind).toBe("patched");
+    sync();
     workspace.undo();
-    expect(scene.sync().kind).toBe("patched");
+    sync();
     workspace.undo();
-    expect(scene.sync().kind).toBe("patched");
+    sync();
     expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
     const fresh = bindCatalogCanvas(
       workspace.root,
@@ -331,6 +337,63 @@ describe("ADR-248 G5 leaf edit scope on a large page", () => {
     fresh.dispose();
     canvas.dispose();
   });
+
+  it.each(["flex", "grid"] as const)(
+    "preserves %s flow geometry after reorder/delete and undo",
+    async (display) => {
+      const ids = Array.from({ length: 80 }, (_, i) => `flow${i}`);
+      const workspace = await workspaceWith(
+        [
+          frame("container", {
+            children: ids.map((id) => `project:node:${id}` as NodeEntry["id"]),
+            layout: { display: set(display) },
+            sizing: { width: set(400) },
+          }),
+          ...ids.map((id, i) =>
+            frame(id, {
+              sizing: { width: set(20 + (i % 7)), height: set(20 + (i % 9)) },
+            }),
+          ),
+        ],
+        ["container"],
+        countingMeasure().measure,
+      );
+      const scene = new CatalogCanvasScene(workspace.root);
+      const check = async () => {
+        scene.sync();
+        expect(snapshot(workspace)).toEqual(await freshSnapshot(workspace));
+        const fresh = bindCatalogCanvas(
+          workspace.root,
+          workspace.root.pageRootRecords(),
+        );
+        expect(Array.from(scene.stream.commands)).toEqual(
+          Array.from(fresh.stream.commands),
+        );
+        expect(scene.stream.boundsMap).toEqual(fresh.stream.boundsMap);
+        fresh.dispose();
+      };
+      workspace.execute(
+        moveNodes({
+          ids: ["project:node:flow0"],
+          parent: { kind: "node", id: "project:node:container" },
+          newId: workspace.newId,
+        }),
+      );
+      await check();
+      workspace.execute(
+        removeTargets({
+          targets: [{ kind: "node", id: "project:node:flow1" }],
+        }),
+      );
+      await check();
+      workspace.undo();
+      await check();
+      workspace.undo();
+      await check();
+      scene.dispose();
+      workspace.dispose();
+    },
+  );
 
   it("keeps re-reading flex siblings: a resized item re-wraps the growing items", async () => {
     const { measure } = countingMeasure();

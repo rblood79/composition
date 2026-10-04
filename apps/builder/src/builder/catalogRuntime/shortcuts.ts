@@ -36,6 +36,12 @@ export function catalogMenuHost(
 ): CatalogMenuHost {
   return {
     arrange: (id) => catalogArrangeCommand(workspace, id),
+    arrangeItems: () => {
+      const prepare = prepareCatalogArrange(workspace);
+      return Object.fromEntries(
+        CATALOG_ARRANGE_SHORTCUTS.map((id) => [id, prepare(id)]),
+      );
+    },
     showDefinition: (id) => workspace.showDefinition(id),
     pointIn: (identity, point) => {
       const record = workspace.root.domInputs.get(identity);
@@ -149,7 +155,11 @@ export function catalogArrangeCommand(
   workspace: CatalogWorkspace,
   id: CatalogArrangeShortcutId,
 ): CatalogCommand | undefined {
-  const rule = ARRANGE[id];
+  return prepareCatalogArrange(workspace, "align" in ARRANGE[id] ? 2 : 3)(id);
+}
+
+/** One menu snapshot: share geometry and id lookup across all eight arrange actions. */
+function prepareCatalogArrange(workspace: CatalogWorkspace, minimum = 2) {
   const placed = workspace.session.getSnapshot().selection.flatMap((item) => {
     if (item.target.kind !== "node") return [];
     const placement = workspace.readModel.ownFields(item.target).placement;
@@ -157,7 +167,7 @@ export function catalogArrangeCommand(
       ? [{ id: item.target.id, identity: item.identity, placement }]
       : [];
   });
-  if (placed.length < ("align" in rule ? 2 : 3)) return undefined;
+  if (placed.length < minimum) return () => undefined;
   const geometry = workspace.root.getGeometry(placed.map((p) => p.identity));
   const nodes = new Map(
     placed.flatMap(({ id, identity, placement }) => {
@@ -183,32 +193,37 @@ export function catalogArrangeCommand(
     }),
   );
   const ids = [...nodes.keys()];
-  const updates =
-    "align" in rule
-      ? alignElements(ids, nodes, rule.align)
-      : distributeElements(ids, nodes, rule.distribute);
-  const px = (value: string | undefined, fallback: number) =>
-    value === undefined ? fallback : Math.round(parseFloat(value));
-  const commands = updates.flatMap((update) => {
-    const from = placed.find((p) => p.id === update.id)!.placement;
-    const x = px(update.style.left, from.x);
-    const y = px(update.style.top, from.y);
-    return x === from.x && y === from.y
-      ? []
-      : [
-          setWholeField({
-            targets: [{ kind: "node", id: update.id as NodeId }],
-            field: "placement",
-            value: { ...from, x, y },
-          }),
-        ];
-  });
-  if (!commands.length) return undefined;
-  const label = "align" in rule ? "Align" : "Distribute";
-  return (reader) => ({
-    label,
-    ops: commands.flatMap((command) => command(reader).ops),
-  });
+  const placements = new Map(placed.map((p) => [p.id, p.placement]));
+  return (id: CatalogArrangeShortcutId): CatalogCommand | undefined => {
+    const rule = ARRANGE[id];
+    if (placed.length < ("align" in rule ? 2 : 3)) return undefined;
+    const updates =
+      "align" in rule
+        ? alignElements(ids, nodes, rule.align)
+        : distributeElements(ids, nodes, rule.distribute);
+    const px = (value: string | undefined, fallback: number) =>
+      value === undefined ? fallback : Math.round(parseFloat(value));
+    const commands = updates.flatMap((update) => {
+      const from = placements.get(update.id as NodeId)!;
+      const x = px(update.style.left, from.x);
+      const y = px(update.style.top, from.y);
+      return x === from.x && y === from.y
+        ? []
+        : [
+            setWholeField({
+              targets: [{ kind: "node", id: update.id as NodeId }],
+              field: "placement",
+              value: { ...from, x, y },
+            }),
+          ];
+    });
+    if (!commands.length) return undefined;
+    const label = "align" in rule ? "Align" : "Distribute";
+    return (reader) => ({
+      label,
+      ops: commands.flatMap((command) => command(reader).ops),
+    });
+  };
 }
 
 /** The page body record of the open page (where a paste without a selection goes). */

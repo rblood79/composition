@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
+  "runner": "pnpm perf:adr248-followup",
+  "note": "Dedicated geometry counters; shared frame report/ratchet format. Run the runner above, not perf-ratchet --run.",
+  "head": "09da2e17c",
+  "band": 1.05,
+  "minSlack": 2,
+  "seeds": {
+    "600": {
+      "reorder": {
+        "A": {
+          "geometryCalls": 10,
+          "geometryIds": 610
+        },
+        "B": {}
+      },
+      "delete": {
+        "A": {
+          "geometryCalls": 7,
+          "geometryIds": 606
+        },
+        "B": {}
+      },
+      "actionBar": {
+        "A": {
+          "geometryCalls": 1,
+          "geometryIds": 600
+        },
+        "B": {}
+      }
+    },
+    "5000": {
+      "reorder": {
+        "A": {
+          "geometryCalls": 10,
+          "geometryIds": 5010
+        },
+        "B": {}
+      },
+      "delete": {
+        "A": {
+          "geometryCalls": 7,
+          "geometryIds": 5006
+        },
+        "B": {}
+      },
+      "actionBar": {
+        "A": {
+          "geometryCalls": 1,
+          "geometryIds": 5000
+        },
+        "B": {}
+      }
+    }
+  },
+  "generatedAt": "2026-10-04"
+}

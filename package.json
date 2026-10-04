@@ -47,6 +47,7 @@
     "codex:session-start": "bash scripts/codex/session-start.sh",
     "gate:install": "bash scripts/install-git-hooks.sh",
     "gate:perf-ratchet": "node apps/builder/scripts/perf-ratchet-gate.mjs --run",
+    "perf:adr248-followup": "node apps/builder/scripts/adr248-structural-actionbar-perf.mjs",
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs",
     "gate:catalog-runtime": "pnpm -F @composition/builder exec node scripts/adr248-runtime-boundary.mjs"
   },

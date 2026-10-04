@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -8,9 +8,16 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogActionBarModel, catalogActionBarState } from "../actionBar";
-import { catalogMenuHost } from "../shortcuts";
+import {
+  catalogMenuHost,
+  catalogArrangeCommand,
+  CATALOG_ARRANGE_SHORTCUTS,
+} from "../shortcuts";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -80,6 +87,69 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e catalog action bar", () => {
+  it("reads large selection geometry once per menu and skips an empty selection", async () => {
+    const { workspace, bar } = await open();
+    const entries = Array.from({ length: 300 }, (_, i) =>
+      placed(`many${i}`, i * 2, i * 3),
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries,
+        rootIds: entries.map((e) => e.id),
+        newId: workspace.newId,
+      }),
+    );
+    workspace.selectRecords(
+      entries.map((e) => workspace.root.recordsOfSource(e.id)[0]),
+    );
+    const geometry = vi.spyOn(workspace.root, "getGeometry");
+    expect(bar().model?.items[0].id).toBe("align");
+    expect(geometry).toHaveBeenCalledTimes(1);
+    expect(geometry.mock.calls[0][0]).toHaveLength(300);
+    geometry.mockClear();
+    workspace.selectRecords([]);
+    expect(bar().model).toBeNull();
+    expect(geometry).not.toHaveBeenCalled();
+    geometry.mockRestore();
+    workspace.dispose();
+  });
+
+  it("refreshes all prepared arrange actions after resize, selection changes and undo", async () => {
+    const { workspace, record } = await open();
+    const check = () => {
+      const prepared = catalogMenuHost(workspace).arrangeItems!();
+      for (const id of CATALOG_ARRANGE_SHORTCUTS) {
+        const single = catalogArrangeCommand(workspace, id);
+        expect(prepared[id]?.(workspace.runtime.graph)).toEqual(
+          single?.(workspace.runtime.graph),
+        );
+      }
+      return prepared;
+    };
+    workspace.selectRecords([record("p"), record("q")]);
+    const geometry = vi.spyOn(workspace.root, "getGeometry");
+    expect(catalogArrangeCommand(workspace, "distributeH")).toBeUndefined();
+    expect(geometry).not.toHaveBeenCalled();
+    geometry.mockRestore();
+    const original = check().alignRight!(workspace.runtime.graph);
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: id("q") }],
+        sizing: {
+          width: { kind: "set", value: 120 },
+          height: { kind: "set", value: 20 },
+        },
+      }),
+    );
+    expect(check().alignRight!(workspace.runtime.graph)).not.toEqual(original);
+    workspace.undo();
+    expect(check().alignRight!(workspace.runtime.graph)).toEqual(original);
+    workspace.selectRecords([record("p")]);
+    expect(check().alignRight).toBeUndefined();
+    workspace.dispose();
+  });
+
   it("anchors below the selection's page; one element shows the single context", async () => {
     const { workspace, record, bar } = await open();
     workspace.selectRecords([record("p")]);

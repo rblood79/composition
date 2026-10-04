@@ -20,6 +20,13 @@ Switch의 disabled 이중 감쇠와 theme accent-subtle/dark border 해석 차�
 Implemented 승격·completed 이동·인덱스 동기화를 수행한다.
 아래의 Publish 미완료·section 대기·Switch 실패 기록은 해당 시점 이력이다.
 
+### 2026-10-05 성능 후속
+
+큰 문서 구조 이동·삭제의 geometry 중복 조회와 다중 선택 액션 바의 반복 준비를 축소했다.
+[검증 근거와 남은 비용](../design/248-performance-followup.md): 5k 구조 geometry 약 절반,
+액션 바 geometry 8회→1회, 교대 taskMs 중앙값 528.19→291.92ms.
+구조 작업의 전체 시간 개선은 미확인이며 일반 O(1)·기존 G5 전체 재판정으로 확대하지 않는다.
+
 ### 2026-10-04 Publish 후속 실행
 
 사용자 “adr 248 남은 작업 착수 시작해” 지시로 H4의 착수 승인 대기를 해제했다.

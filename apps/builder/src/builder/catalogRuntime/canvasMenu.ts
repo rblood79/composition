@@ -66,6 +66,10 @@ export interface CatalogMenuHost {
   };
   /** Align / distribute the selection (`undefined` = nothing would move). */
   arrange?(id: CatalogArrangeItem): CatalogCommand | undefined;
+  /** Prepare the menu from one geometry snapshot; refreshed on every menu build. */
+  arrangeItems?(): Partial<
+    Record<CatalogArrangeItem, CatalogCommand | undefined>
+  >;
   /**
    * An item left out because its command would be refused: the refusal (a shortcut tells the
    * user why nothing happened, as the old `notifyOperationRejected` did).
@@ -401,13 +405,14 @@ export function catalogCanvasMenuItems(
   // Align / distribute (the old menu's submenu): each item only when it would move something.
   const arrange = host.arrange;
   if (arrange) {
+    const prepared = host.arrangeItems?.();
     const arrangeItem = (
       id: string,
       labelKey: string,
       shortcut: CatalogArrangeItem,
       icon: ContextMenuIcon,
     ): ContextMenuItem[] => {
-      const command = arrange(shortcut);
+      const command = prepared ? prepared[shortcut] : arrange(shortcut);
       return command ? action(id, labelKey, command, undefined, icon) : [];
     };
     const align = ALIGN_ITEMS.flatMap(([type, shortcut]) =>

@@ -1126,12 +1126,20 @@ function bindInColorMode(
       }
       /** Changed engine results (parent-relative rects) against the bound layout map. */
       const changedRects = new Map<string, Rect>();
+      // The layout is settled throughout this update. Structural regions and propagation may
+      // overlap; each rect needs one engine read, including rects that did not change.
+      const compared = new Set<string>();
       const compare = (ids: readonly string[]): string[] => {
-        if (!ids.length) return [];
-        geometryQueries += ids.length;
-        const next = root.getGeometry(ids);
+        const pending = ids.filter((id) => {
+          if (compared.has(id)) return false;
+          compared.add(id);
+          return true;
+        });
+        if (!pending.length) return [];
+        geometryQueries += pending.length;
+        const next = root.getGeometry(pending);
         const changed: string[] = [];
-        for (const id of ids) {
+        for (const id of pending) {
           const rect = next.get(id);
           if (!rect) throw new Error(`CATALOG_CANVAS_LAYOUT_REQUIRED:${id}`);
           if (sameRect(rect, changedRects.get(id) ?? layoutMap.get(id)))
