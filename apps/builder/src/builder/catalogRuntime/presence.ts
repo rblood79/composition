@@ -466,6 +466,64 @@ const PROGRESS_TRACKS: Readonly<Record<string, string>> = {
   Meter: "MeterTrack",
 };
 
+/** RAC date fields that compose their DateInput's segments from their own props. */
+const DATE_INPUT_OWNERS = new Set([
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+]);
+
+/** The field owning a trigger sub-part, past the SelectTrigger wrapper. */
+function triggerOwner(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  let owner = get(node.parentId);
+  while (owner && typeOf(owner) === "SelectTrigger")
+    owner = get(owner.parentId);
+  return owner;
+}
+
+/**
+ * The owner's DOM renders a field sub-part from the owner's props, not the typed child's: a date
+ * field's DateInput segments (`_parentTag` — a picker's trigger draws the box, a range shows the
+ * start/end pair — granularity, hour cycle and locale, the locale as the layout measures it), and
+ * a trigger icon the owner names (`DatePicker.tsx` `<Icon iconName={iconName}>`).
+ */
+function fieldSubpartProps(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  locale?: string,
+): Record<string, string | number | boolean> | undefined {
+  const type = typeOf(node);
+  if (type !== "DateInput" && type !== "SelectIcon") return undefined;
+  const wrapper = get(node.parentId);
+  const owner = triggerOwner(node, get, typeOf);
+  if (!wrapper || !owner) return undefined;
+  if (type === "SelectIcon")
+    return typeOf(wrapper) === "SelectTrigger" &&
+      typeof owner.props.iconName === "string"
+      ? { iconName: owner.props.iconName }
+      : undefined;
+  const ownerType = typeOf(owner);
+  if (!DATE_INPUT_OWNERS.has(ownerType)) return undefined;
+  const prop = (key: string) => node.props[key] ?? owner.props[key];
+  const out: Record<string, string | number | boolean> = {
+    _parentTag: ownerType,
+  };
+  const granularity = prop("granularity");
+  if (typeof granularity === "string") out._granularity = granularity;
+  const hourCycle = prop("hourCycle");
+  if (typeof hourCycle === "number") out._hourCycle = hourCycle;
+  const ownLocale = prop("locale");
+  const resolvedLocale = typeof ownLocale === "string" ? ownLocale : locale;
+  if (resolvedLocale) out._locale = resolvedLocale;
+  return out;
+}
+
 /**
  * Owner-derived values of a RAC progress track (D1 behavior): RAC ProgressBar/Meter computes the
  * fill percentage from its own `value`/`minValue`/`maxValue` (`.fill` `width: pct%`) and the
@@ -488,6 +546,8 @@ function ownDerivedProps(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  const subpart = fieldSubpartProps(node, get, typeOf, locale);
+  if (subpart) return subpart;
   const level = catalogTreeLevel(node, get, typeOf);
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
@@ -556,13 +616,29 @@ export function catalogDerivedPropsDependents(
 ): CatalogConsumerNode[] {
   // An item's label Text takes the item's color (`catalogItemLabels`): it follows the item's own
   // values and every item whose selection this record decides.
-  const items = derivedDependents(owner, get, typeOf);
+  const items = [
+    ...derivedDependents(owner, get, typeOf),
+    ...fieldSubparts(owner, get, typeOf),
+  ];
   return [
     ...items,
     ...[owner, ...items].flatMap((item) =>
       catalogItemLabels(item, get, typeOf),
     ),
   ];
+}
+
+/** A field's DateInput / trigger icons (`fieldSubpartProps`), direct or inside its SelectTrigger. */
+function fieldSubparts(
+  owner: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(owner, get)
+    .flatMap((child) =>
+      typeOf(child) === "SelectTrigger" ? childrenOf(child, get) : [child],
+    )
+    .filter((child) => fieldSubpartProps(child, get, typeOf) !== undefined);
 }
 
 function derivedDependents(

@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [DatePicker · DateRangePicker Canvas 렌더 복구 — 이중 상자 · 아이콘 · 기간 표시] - 2026-10-04
+
+### Fixed
+
+- **Canvas 에서 DatePicker · DateRangePicker 가 상자를 두 겹으로 그리고, 아이콘이 calendar 대신
+  chevron 으로, DateRangePicker 가 기간 대신 날짜 하나만 보이던 문제를 고쳤다.** ADR-248 옛 Skia
+  빌더 삭제 (`5382d1da0`) 때 부모 → 자식 주입 둘 (`resolveDateInputParent` · `resolveIconDelegation`)
+  이 catalog 경로로 옮겨지지 않았다 — DateInput 은 부모 종류를 몰라 단독 DateField 처럼 자기 상자를
+  그렸고 (Range 쌍 · TimeField 시간 segment · granularity · locale 도 빠짐), SelectIcon 은 부모
+  `iconName` 대신 자기 기본값 `chevron-down` 을 그렸다.
+  - 이제 owner 파생 값 (`catalogDerivedProps`) 이 DateInput 에 `_parentTag` · granularity · hourCycle ·
+    locale (레이아웃 측정과 같은 해석) 을, SelectTrigger 안 SelectIcon 에 owner `iconName` 을 준다.
+    owner prop 을 바꾸면 증분 경로로 같이 갱신된다.
+  - **Why**: DOM 은 picker 가 DateInput segment 와 아이콘을 자기 props 로 그린다 (self-compose) —
+    Canvas 도 같은 owner 값을 읽어야 시각이 같다 (D3 대칭).
+  - 위치: `apps/builder/src/builder/catalogRuntime/presence.ts` (`fieldSubpartProps`) ·
+    `canvasBinding.ts` (glyph)
+
+검증: builder unit 561 파일 · type-check PASS · 회귀 테스트 (`phase3Presence.test.ts`) 수정 전 RED.
+headless Chrome 에서 새 프로젝트에 DatePicker · DateRangePicker · DateField · TimeField · ComboBox ·
+Select 를 팔레트로 추가 → picker 상자 하나 + calendar 아이콘, Range `… – …` 쌍, TimeField `HH : MM`,
+ComboBox · Select 무변화 확인. Preview 대조는 하지 않았다 (사용자 확인 대상).
+
 ## [Chart 팔레트 추가 거부 수정 — 초기 너비를 sizing 으로] - 2026-10-04
 
 ### Fixed

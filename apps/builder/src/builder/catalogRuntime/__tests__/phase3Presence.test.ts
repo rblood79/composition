@@ -757,6 +757,71 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     ).toBe(true);
   });
 
+  it("paints a picker's DateInput as segment text inside the trigger box and its icon from the picker's `iconName` (DOM self-compose)", async () => {
+    const pickerScene = async (definition: string) => {
+      const scene = await open(
+        definition as DefinitionId,
+        `paint-${definition}`,
+      );
+      const input = scene.byType("DateInput")[0]!;
+      const shapes = catalogRuleShapes({
+        node: input.derivedProps
+          ? { ...input, props: { ...input.props, ...input.derivedProps } }
+          : input,
+        rect: { width: 200, height: 20 },
+        rule: scene.runtime.graph.library.rules.get("DateInput" as never)!,
+        type: "DateInput",
+        authoredVisual: {},
+      });
+      return { scene, shapes, icon: () => scene.byType("SelectIcon")[0]! };
+    };
+    const texts = (shapes: ReturnType<typeof catalogRuleShapes>) =>
+      shapes.flatMap((shape) =>
+        shape.type === "text" ? [(shape as { text: string }).text] : [],
+      );
+    const boxes = (shapes: ReturnType<typeof catalogRuleShapes>) =>
+      shapes.filter(
+        (shape) => shape.type === "roundRect" || shape.type === "border",
+      );
+    const iconName = (node: CatalogConsumerNode) =>
+      node.derivedProps?.iconName ?? node.props.iconName;
+
+    // DatePicker: the SelectTrigger draws the box; the DateInput only its segments.
+    const picker = await pickerScene(
+      "lib:definition:origin-component-datepicker",
+    );
+    expect(boxes(picker.shapes)).toEqual([]);
+    expect(texts(picker.shapes)).toHaveLength(1);
+    expect(iconName(picker.icon())).toBe("calendar");
+    // The owner's icon edit reaches the trigger icon (incremental = fresh).
+    picker.scene.root.dispatch("picker icon", [
+      {
+        kind: "patchNodeProp",
+        id: picker.scene.nodeId,
+        key: "iconName",
+        write: { kind: "set", value: "clock" },
+      },
+    ]);
+    expect(iconName(picker.icon())).toBe("clock");
+    expect(new Map(picker.scene.root.canvasInputs)).toEqual(
+      picker.scene.fresh(),
+    );
+
+    // DateRangePicker: one typed DateInput is RAC's start/end pair.
+    const range = await pickerScene(
+      "lib:definition:origin-component-daterangepicker",
+    );
+    expect(boxes(range.shapes)).toEqual([]);
+    expect(texts(range.shapes)[0]).toContain("–");
+    expect(iconName(range.icon())).toBe("calendar");
+
+    // A standalone DateField's DateInput stays its own field box.
+    const field = await pickerScene(
+      "lib:definition:origin-component-datefield",
+    );
+    expect(boxes(field.shapes).length).toBeGreaterThan(0);
+  });
+
   it("sizes a glyph by its authored fontSize over the size scale's iconSize (Preview renderIcon)", async () => {
     const scene = await open(
       "lib:definition:type-Icon" as DefinitionId,

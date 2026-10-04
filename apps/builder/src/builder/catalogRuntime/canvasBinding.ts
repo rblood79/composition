@@ -202,8 +202,10 @@ function containerWithAuthoredPaint(
 
 const glyph: Binding = (node, rect) => {
   assertSupportedVisual(node);
+  // A trigger icon the owning field names (`catalogDerivedProps`) over its own value.
   const name = String(
-    node.props.iconName ??
+    node.derivedProps?.iconName ??
+      node.props.iconName ??
       (node.bindingId === "selecticon" ? "chevron-down" : "circle"),
   );
   const data = getIconData(name);
