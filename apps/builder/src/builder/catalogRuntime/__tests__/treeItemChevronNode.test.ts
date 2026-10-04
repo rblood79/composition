@@ -24,6 +24,7 @@ import {
   catalogTypeDefinitionId,
 } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
+  CatalogLibrary,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -47,7 +48,33 @@ const measure: CatalogTextMeasure = (text, font) => ({
 
 const OWNER = "project:node:owner" as NodeId;
 
-async function openTree(props: Record<string, unknown> = {}) {
+/** A node entry of `definitionId` with set props. */
+const nodeEntry = (
+  id: string,
+  definitionId: string,
+  children: string[] = [],
+  props: Record<string, unknown> = {},
+) =>
+  ({
+    kind: "node",
+    id,
+    definitionId,
+    children,
+    props: Object.fromEntries(
+      Object.entries(props).map(([key, value]) => [
+        key,
+        { kind: "set", value },
+      ]),
+    ),
+    visual: {},
+    sizing: {},
+    descendantOverrides: [],
+  }) as NodeEntry;
+
+/** A workspace whose home body holds `entries` (roots: the first). */
+async function openWorkspace(
+  entries: (library: CatalogLibrary) => NodeEntry[],
+) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -68,27 +95,18 @@ async function openTree(props: Record<string, unknown> = {}) {
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" },
-      entries: [
-        {
-          kind: "node",
-          id: OWNER,
-          definitionId: catalogPaletteDefinitionId(library, "Tree"),
-          children: [],
-          props: Object.fromEntries(
-            Object.entries(props).map(([key, value]) => [
-              key,
-              { kind: "set", value },
-            ]),
-          ),
-          visual: {},
-          sizing: {},
-          descendantOverrides: [],
-        } as NodeEntry,
-      ],
+      entries: entries(library),
       rootIds: [OWNER],
       newId: workspace.newId,
     }),
   );
+  return workspace;
+}
+
+async function openTree(props: Record<string, unknown> = {}) {
+  const workspace = await openWorkspace((library) => [
+    nodeEntry(OWNER, catalogPaletteDefinitionId(library, "Tree"), [], props),
+  ]);
   const root = workspace.root;
   const record = (id: string) => root.layoutInputs.get(id)!;
   const tree = [...root.layoutInputs.values()].find(
@@ -193,60 +211,21 @@ describe("TreeItem chevron node", () => {
   });
 
   it("an item with no chevron node (made before it, or detached) keeps the composed part and paints its own chevron", async () => {
-    const library = await buildCodeCatalogLibrary();
-    const workspace = new CatalogWorkspace(
-      new CatalogGraph(
-        newCatalogProjectDocument({
-          projectId: "project:project:tree-chevron-owned" as const,
-          name: "Owned tree",
-        }),
-        library,
-      ),
-      new CatalogStorage(indexedDB, `tree-chevron-owned-${Math.random()}`),
-      {
-        engine: await nodeLayoutEngine(),
-        viewport: { width: 1000, height: 800 },
-        autosaveSchedule: () => {},
-        textMeasure: measure,
-      },
-    );
     const node = (
       id: string,
       type: string,
       children: string[],
       props: Record<string, unknown> = {},
-    ) =>
-      ({
-        kind: "node",
-        id,
-        definitionId: catalogTypeDefinitionId(type),
-        children,
-        props: Object.fromEntries(
-          Object.entries(props).map(([key, value]) => [
-            key,
-            { kind: "set", value },
-          ]),
-        ),
-        visual: {},
-        sizing: {},
-        descendantOverrides: [],
-      }) as NodeEntry;
-    workspace.execute(
-      insertNodes({
-        parent: { kind: "node", id: "project:node:home-body" },
-        entries: [
-          node(OWNER, "Tree", ["project:node:a", "project:node:b"]),
-          node("project:node:a", "TreeItem", ["project:node:a-label", "project:node:a-1"], { id: "a" }),
-          node("project:node:a-label", "Text", [], { children: "A" }),
-          node("project:node:a-1", "TreeItem", ["project:node:a-1-label"], { id: "a-1" }),
-          node("project:node:a-1-label", "Text", [], { children: "A1" }),
-          node("project:node:b", "TreeItem", ["project:node:b-label"], { id: "b" }),
-          node("project:node:b-label", "Text", [], { children: "B" }),
-        ],
-        rootIds: [OWNER],
-        newId: workspace.newId,
-      }),
-    );
+    ) => nodeEntry(id, catalogTypeDefinitionId(type), children, props);
+    const workspace = await openWorkspace(() => [
+      node(OWNER, "Tree", ["project:node:a", "project:node:b"]),
+      node("project:node:a", "TreeItem", ["project:node:a-label", "project:node:a-1"], { id: "a" }),
+      node("project:node:a-label", "Text", [], { children: "A" }),
+      node("project:node:a-1", "TreeItem", ["project:node:a-1-label"], { id: "a-1" }),
+      node("project:node:a-1-label", "Text", [], { children: "A1" }),
+      node("project:node:b", "TreeItem", ["project:node:b-label"], { id: "b" }),
+      node("project:node:b-label", "Text", [], { children: "B" }),
+    ]);
     const root = workspace.root;
     const recordOf = (source: string) =>
       [...root.layoutInputs.values()].find(

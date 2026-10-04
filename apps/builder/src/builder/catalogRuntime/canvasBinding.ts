@@ -1,5 +1,6 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
-import { getIconData } from "@composition/rendering";
+import { getIconData, getSkiaPrimitiveMode } from "@composition/rendering";
+import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {
   buildRenderCommandStream,
@@ -18,7 +19,7 @@ import {
   catalogLeadingIconPartNodeData,
   catalogRuleNodeData,
 } from "./ruleShapes";
-import { catalogTreeChevronLayout } from "./presence";
+import { catalogTreeChevronInset } from "./presence";
 import {
   catalogRuleTextColor,
   cssVarColor,
@@ -385,44 +386,45 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "textOverflow",
 ];
 /**
- * Owner binding → the part child its rule paints in the child's box (2026-10-04): the child's
- * binding and the owner rule primitive it paints — a toggle's `*Indicator` (the toggle's replace
- * primitive), a TreeItem's `TreeItemChevron` (its `leading_icon`).
+ * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation
+ * itself is `OWNER_DRAWN_PART_OWNERS`): a toggle's `*Indicator` runs the toggle's replace
+ * primitive, a TreeItem's `TreeItemChevron` its `leading_icon`.
  */
-const OWNER_DRAWN_PARTS: Readonly<
-  Record<string, { readonly child: string; readonly primitive: string }>
-> = {
-  checkbox: { child: "checkboxindicator", primitive: "checkbox" },
-  radio: { child: "radioindicator", primitive: "radio" },
-  switch: { child: "switchindicator", primitive: "switch_toggle" },
-  treeitem: { child: "treeitemchevron", primitive: "leading_icon" },
+const OWNER_DRAWN_PART_PRIMITIVES: Readonly<Record<string, string>> = {
+  CheckboxIndicator: "checkbox",
+  RadioIndicator: "radio",
+  SwitchIndicator: "switch_toggle",
+  TreeItemChevron: "leading_icon",
 };
-const OWNER_DRAWN_PART_CHILDREN: ReadonlySet<string> = new Set(
-  Object.values(OWNER_DRAWN_PARTS).map((part) => part.child),
+const OWNER_DRAWN_PART_OWNER_TYPES: ReadonlySet<string> = new Set(
+  Object.values(OWNER_DRAWN_PART_OWNERS),
 );
 
 /**
- * The owner's rule primitive its part child paints (an owned node saved before the part node
- * has none: the owner paints it itself).
+ * The part child a node's rule paints in (an owned node saved before the part node has none:
+ * the owner paints it itself) and the primitive it paints.
  */
-function partChildPrimitive(
+function ownerDrawnPart(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
-): string | undefined {
-  const part = OWNER_DRAWN_PARTS[node.bindingId ?? ""];
-  return part &&
-    node.children.some(
-      (id) => root.canvasInputs.get(id)?.bindingId === part.child,
-    )
-    ? part.primitive
-    : undefined;
+): { readonly id: string; readonly primitive: string } | undefined {
+  const type = root.typeOf(node);
+  if (!OWNER_DRAWN_PART_OWNER_TYPES.has(type)) return undefined;
+  for (const id of node.children) {
+    const child = root.canvasInputs.get(id);
+    const childType = child ? root.typeOf(child) : "";
+    if (OWNER_DRAWN_PART_OWNERS[childType] === type)
+      return { id, primitive: OWNER_DRAWN_PART_PRIMITIVES[childType] };
+  }
+  return undefined;
 }
 
 /**
  * A part node its owner draws: the owner's rule primitive in the part's own box — the owner's
  * props, display state, variant and authored paint decide it, as they decide the DOM element. A
- * toggle's indicator runs the toggle's replace primitive (checkbox box · radio circle · switch
- * track, `size.indicator`); a TreeItem's chevron its `leading_icon`, centered in the button.
+ * replace primitive (checkbox box · radio circle · switch track, `size.indicator`) is the owner's
+ * whole rule paint; the `leading_icon` (TreeItem chevron) is the glyph alone, centered right of the
+ * part's level indent.
  */
 function ownerDrawnPartNodeData(
   root: CatalogCompositionRoot,
@@ -432,21 +434,24 @@ function ownerDrawnPartNodeData(
   const owner = root.canvasInputs.get(node.parentId);
   if (!owner?.ruleId)
     throw new Error(`CATALOG_CANVAS_PART_OWNER_REQUIRED:${node.id}`);
-  if (node.bindingId !== "treeitemchevron")
-    return { ...ruleNodeData(root, owner, rect, true), elementId: node.id };
-  const get = (id: string) => root.canvasInputs.get(id);
-  const inset = Number.parseFloat(
-    String(catalogTreeChevronLayout(node, get, root.typeOf)?.paddingLeft ?? 0),
-  );
-  return {
-    ...catalogLeadingIconPartNodeData(
-      ruleShapeInput(root, owner, rect, true),
-      inset,
-    ),
-    elementId: node.id,
-    x: rect.x,
-    y: rect.y,
-  };
+  const primitive = OWNER_DRAWN_PART_PRIMITIVES[root.typeOf(node)];
+  // The owner's input with every primitive (its part child is this node).
+  const input = { ...ruleShapeInput(root, owner, rect), childPrimitive: undefined };
+  let data: SkiaNodeData;
+  if (getSkiaPrimitiveMode(primitive) === "replace")
+    data = catalogRuleNodeData(input);
+  else if (primitive === "leading_icon")
+    data = catalogLeadingIconPartNodeData(
+      input,
+      catalogTreeChevronInset(
+        node,
+        (id) => root.canvasInputs.get(id),
+        root.typeOf,
+      ),
+    );
+  else
+    throw new Error(`CATALOG_CANVAS_PART_PRIMITIVE_UNSUPPORTED:${primitive}`);
+  return { ...data, elementId: node.id, x: rect.x, y: rect.y };
 }
 
 /** The rule executor's input for a rule-backed node. */
@@ -454,8 +459,6 @@ function ruleShapeInput(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
-  /** The node's part child calls with its owner: the owner paints every primitive. */
-  asPartOwner = false,
 ): CatalogRuleShapeInput {
   const rule = root.runtime.graph.library.rules.get(node.ruleId!);
   if (!rule) throw new Error(`CATALOG_CANVAS_RULE_REQUIRED:${node.ruleId}`);
@@ -463,9 +466,7 @@ function ruleShapeInput(
     node.bindingId === "dateinput"
       ? catalogDateInputPaintProps(root, node)
       : undefined;
-  const childPrimitive = asPartOwner
-    ? undefined
-    : partChildPrimitive(root, node);
+  const childPrimitive = ownerDrawnPart(root, node)?.primitive;
   return {
     node: node.derivedProps
       ? { ...node, props: { ...node.props, ...node.derivedProps } }
@@ -486,13 +487,11 @@ function ruleNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   rect: Rect,
-  /** Paint the part a part child holds (the child calls with its owner — a toggle's indicator). */
-  asPartOwner = false,
 ): SkiaNodeData {
   for (const key of RULE_UNPAINTED_TEXT_KEYS)
     if (node.visual[key] !== undefined)
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
-  const input = ruleShapeInput(root, node, rect, asPartOwner);
+  const input = ruleShapeInput(root, node, rect);
   const data = catalogRuleNodeData(input);
   const content = dropZoneContentData(
     root,
@@ -607,7 +606,7 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        OWNER_DRAWN_PART_CHILDREN.has(node.bindingId ?? "")
+        OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
           ? ownerDrawnPartNodeData(root, node, rect)
           : binding
             ? binding(
@@ -1079,10 +1078,9 @@ function bindInColorMode(
       // A part node paints from its owner (`ownerDrawnPartNodeData`): it repaints with it, though
       // its own record is unchanged.
       for (const id of [...dirty]) {
-        const part = OWNER_DRAWN_PARTS[input(id)?.bindingId ?? ""];
-        if (part)
-          for (const child of input(id)!.children)
-            if (input(child)?.bindingId === part.child) dirty.add(child);
+        const owner = input(id);
+        const part = owner && ownerDrawnPart(root, owner);
+        if (part) dirty.add(part.id);
       }
       /** Changed engine results (parent-relative rects) against the bound layout map. */
       const changedRects = new Map<string, Rect>();

@@ -64,7 +64,11 @@ import {
   radius,
   typography,
 } from "@composition/rendering";
-import { createThemesCollection, getActiveTheme } from "@composition/shared";
+import {
+  createThemesCollection,
+  getActiveTheme,
+  OWNER_DRAWN_PART_OWNERS,
+} from "@composition/shared";
 import { DEFAULT_BASE_TYPOGRAPHY } from "@/builder/fonts/customFonts";
 import { resolveThemeSnapshot } from "@/utils/theme/resolveThemeSnapshot";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
@@ -249,12 +253,7 @@ let axisPngSha: Map<string, string> = new Map();
 const results: unknown[] = [];
 
 /** Part nodes the owner draws (2026-10-04): no old node held them. */
-const OWNER_DRAWN_PART_TYPES = [
-  "CheckboxIndicator",
-  "RadioIndicator",
-  "SwitchIndicator",
-  "TreeItemChevron",
-];
+const OWNER_DRAWN_PART_TYPES = Object.keys(OWNER_DRAWN_PART_OWNERS);
 
 /** Set when the local G0 baseline is absent (a fresh clone). */
 let baselineAbsent = false;

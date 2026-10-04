@@ -124,11 +124,7 @@ export function CatalogPreviewFrame({
   const breakpoint = useCatalogSession((state) => state.breakpoint);
   const width = `${CANVAS_VIEWPORT[breakpoint].width}px`;
   return (
-    <div
-      className="catalog-preview-frame"
-      data-breakpoint={breakpoint}
-      style={{ width }}
-    >
+    <div className="catalog-preview-frame" style={{ width }}>
       <iframe
         ref={frameRef}
         id="previewFrame"

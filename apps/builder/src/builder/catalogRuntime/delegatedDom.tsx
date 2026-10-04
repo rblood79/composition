@@ -18,6 +18,7 @@ import {
 } from "../../../../../packages/shared/src/components/FileUpload";
 import { FileTriggerIntake } from "../../../../../packages/shared/src/upload/intakeAdapters";
 import { resolveTextSourceText, textFromValue } from "@composition/rendering";
+import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import {
   Tabs,
   TabList,
@@ -147,22 +148,26 @@ export function catalogTypeName(
   );
 }
 /**
- * A part node its owner draws (2026-10-04): a toggle's indicator (`CheckboxIndicator` ·
- * `RadioIndicator` · `SwitchIndicator` — the RAC toggle draws `div.checkbox` · `::before` ·
- * `div.indicator`) and a TreeItem's chevron (`TreeItemChevron` — the shared Tree's
- * `TreeItemContent` draws `Button[slot="chevron"]`). The record renders no element — the owner
- * absorbs it.
+ * A part node its owner draws (`OWNER_DRAWN_PART_OWNERS`, 2026-10-04): a toggle's indicator (the
+ * RAC toggle draws `div.checkbox` · `::before` · `div.indicator`) and a TreeItem's chevron (the
+ * shared Tree's `TreeItemContent` draws `Button[slot="chevron"]`). The record renders no element —
+ * the owner absorbs it, so the delegated renderers never see it as a child.
  */
-export const CATALOG_OWNER_DRAWN_PART_BINDINGS: ReadonlySet<string> = new Set([
-  "checkboxindicator",
-  "radioindicator",
-  "switchindicator",
-  "treeitemchevron",
-]);
+export function catalogOwnerDrawnPart(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  return OWNER_DRAWN_PART_OWNERS[catalogTypeName(root, node)] !== undefined;
+}
+const childrenOf = (
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CatalogConsumerNode[] =>
+  node.children
+    .map((id) => root.domInputs.get(id)!)
+    .filter((child) => child && !catalogOwnerDrawnPart(root, child));
 const children = (input: DelegatedDomInput): CatalogConsumerNode[] =>
-  input.node.children
-    .map((id) => input.root.domInputs.get(id)!)
-    .filter(Boolean);
+  childrenOf(input.root, input.node);
 const childOf = (
   input: DelegatedDomInput,
   ...types: string[]
@@ -170,11 +175,6 @@ const childOf = (
   children(input).find((child) =>
     types.includes(catalogTypeName(input.root, child)),
   );
-const childrenOf = (
-  root: CatalogCompositionRoot,
-  node: CatalogConsumerNode,
-): CatalogConsumerNode[] =>
-  node.children.map((id) => root.domInputs.get(id)!).filter(Boolean);
 /** Parent value when defined (`""` included), else the child's text, else the fallback. */
 function propagatedText(
   root: CatalogCompositionRoot,
@@ -252,11 +252,8 @@ function treeItemElements(
     const childItems = kids.filter(
       (kid) => catalogTypeName(input.root, kid) === "TreeItem",
     );
-    // The chevron node is the item's own chevron button (`TreeItemContent` draws it).
     const others = kids.filter(
-      (kid) =>
-        catalogTypeName(input.root, kid) !== "TreeItem" &&
-        !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(kid.bindingId ?? ""),
+      (kid) => catalogTypeName(input.root, kid) !== "TreeItem",
     );
     const title = others.length
       ? ""
@@ -1027,13 +1024,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           size: props.size || "md",
         },
         typeof props.children === "string" && !hasLabel ? props.children : null,
-        ...renderAll(
-          input,
-          children(input).filter(
-            (child) =>
-              !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(child.bindingId ?? ""),
-          ),
-        ),
+        ...renderAll(input),
       );
     },
   },

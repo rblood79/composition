@@ -33,7 +33,7 @@ import {
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_DELEGATED_DOM,
-  CATALOG_OWNER_DRAWN_PART_BINDINGS,
+  catalogOwnerDrawnPart,
   catalogTypeName,
 } from "./delegatedDom";
 import { Heading, Label, Text } from "react-aria-components";
@@ -588,8 +588,7 @@ export function catalogDomRendersNode(
 ): boolean {
   const self = root.domInputs.get(id);
   if (self && isClosedOverlay(root, self)) return false;
-  if (self && CATALOG_OWNER_DRAWN_PART_BINDINGS.has(self.bindingId ?? ""))
-    return false;
+  if (self && catalogOwnerDrawnPart(root, self)) return false;
   const selfParent = self ? root.domInputs.get(self.parentId) : undefined;
   if (
     self &&
@@ -1211,12 +1210,10 @@ function renderNode(
   const children = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
     ? []
     : node.children
-        .filter(
-          (childId) =>
-            !CATALOG_OWNER_DRAWN_PART_BINDINGS.has(
-              root.domInputs.get(childId)?.bindingId ?? "",
-            ),
-        )
+        .filter((childId) => {
+          const child = root.domInputs.get(childId);
+          return !child || !catalogOwnerDrawnPart(root, child);
+        })
         .map((childId) =>
           createElement(CatalogDomNode, {
             key: childId,

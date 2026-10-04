@@ -438,8 +438,9 @@ function catalogTreeLevel(
  * fills the row's content box when the row's height is definite (a Tree of set height), else it is
  * its svg's height (the minimum).
  */
+const treeChevronIndent = (level: number) => (level - 1) * TREE_LEVEL_PADDING;
 function treeChevronStyle(level: number): Record<string, string | number> {
-  const padding = (level - 1) * TREE_LEVEL_PADDING;
+  const padding = treeChevronIndent(level);
   return {
     display: "flex",
     width: `${TREE_CHEVRON_WIDTH + padding}px`,
@@ -450,16 +451,32 @@ function treeChevronStyle(level: number): Record<string, string | number> {
   };
 }
 
-/** A TreeItem's `TreeItemChevron` child (the chevron button as a document node, 2026-10-04). */
-export function catalogTreeChevron(
+/**
+ * A TreeItem's `TreeItemChevron` child (the chevron button as a document node, 2026-10-04): at
+ * most one, as a list like the other re-plan dependents.
+ */
+export function catalogTreeChevrons(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
-): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "TreeItem") return undefined;
-  return childrenOf(node, get).find(
-    (child) => typeOf(child) === "TreeItemChevron",
-  );
+): CatalogConsumerNode[] {
+  if (typeOf(node) !== "TreeItem") return [];
+  for (const id of node.children) {
+    const child = get(id);
+    if (child && typeOf(child) === "TreeItemChevron") return [child];
+  }
+  return [];
+}
+
+/** A `TreeItemChevron` record's TreeItem level; undefined for any other node. */
+function treeChevronLevel(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): number | undefined {
+  if (typeOf(node) !== "TreeItemChevron") return undefined;
+  const item = get(node.parentId);
+  return item ? catalogTreeLevel(item, get, typeOf) : undefined;
 }
 
 /**
@@ -471,10 +488,18 @@ export function catalogTreeChevronLayout(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): Record<string, string | number> | undefined {
-  if (typeOf(node) !== "TreeItemChevron") return undefined;
-  const item = get(node.parentId);
-  const level = item ? catalogTreeLevel(item, get, typeOf) : undefined;
+  const level = treeChevronLevel(node, get, typeOf);
   return level === undefined ? undefined : treeChevronStyle(level);
+}
+
+/** A `TreeItemChevron` record's left padding (its level indent) — what its glyph centers right of. */
+export function catalogTreeChevronInset(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): number {
+  const level = treeChevronLevel(node, get, typeOf);
+  return level === undefined ? 0 : treeChevronIndent(level);
 }
 
 /**
@@ -486,8 +511,9 @@ export function catalogComposedParts(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): readonly CatalogComposedPart[] {
+  if (catalogTreeChevrons(node, get, typeOf).length) return [];
   const level = catalogTreeLevel(node, get, typeOf);
-  if (level === undefined || catalogTreeChevron(node, get, typeOf)) return [];
+  if (level === undefined) return [];
   return [{ id: `${node.id}::part:chevron`, style: treeChevronStyle(level) }];
 }
 

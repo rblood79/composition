@@ -84,25 +84,39 @@ function resolveSize(
   return resolved;
 }
 
+/**
+ * The primitive context of a rule-backed node at its box (`ctx` — what a primitive draws from): its
+ * rule paint (`catalogRulePaint`), the variant's visual meta, the size spec and the resolved size
+ * values under the authored style.
+ */
+function ruleShapeContext(input: CatalogRuleShapeInput) {
+  const { props, style, variant, size, paint, theme } = catalogRulePaint(
+    input,
+    input.rect,
+  );
+  const ctx = {
+    props,
+    size: size as unknown as SizeSpec,
+    visual: variant ? ruleVariantToVisual(variant) : undefined,
+    paint,
+    style: {
+      ...resolveSize(size as Record<string, unknown>, theme),
+      ...style,
+    } as Record<string, unknown>,
+  };
+  return { ctx, theme };
+}
+
 /** Shapes for one rule-backed node (before conversion; exposed for shape-level checks). */
 export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const { rect, rule, type } = input;
-  const { props, style, variant, size, paint, theme } = catalogRulePaint(
-    input,
-    rect,
-  );
+  const { ctx } = ruleShapeContext(input);
+  const { props, visual, paint, size: sizeSpec } = ctx;
   if (BOX_SIZE_TYPES.has(type)) {
     props._containerWidth = rect.width;
     props._containerHeight = rect.height;
   }
   if (type === "Chart" && rule.chart) props._chartRule = rule.chart;
-  const visual = variant ? ruleVariantToVisual(variant) : undefined;
-  const sizeSpec = size as unknown as SizeSpec;
-  const mergedStyle = {
-    ...resolveSize(size as Record<string, unknown>, theme),
-    ...style,
-  };
-  const ctx = { props, size: sizeSpec, visual, paint, style: mergedStyle };
   const binding = getPrimitiveBinding(type)?.skiaPrimitive;
   const keys = binding ? (Array.isArray(binding) ? binding : [binding]) : [];
   for (const key of keys) {
@@ -151,16 +165,10 @@ export function catalogLeadingIconPartNodeData(
   inset: number,
 ): SkiaNodeData {
   const { rect } = input;
-  const { props, style, variant, size, paint, theme } = catalogRulePaint(
-    input,
-    rect,
-  );
-  const visual = variant ? ruleVariantToVisual(variant) : undefined;
-  const sizeSpec = size as unknown as SizeSpec;
-  const mergedStyle: Record<string, unknown> = {
-    ...resolveSize(size as Record<string, unknown>, theme),
-    ...style,
-  };
+  const {
+    ctx: { props, visual, paint, size: sizeSpec, style: mergedStyle },
+    theme,
+  } = ruleShapeContext(input);
   const fontSize = resolveSpecFontSize(
     (mergedStyle.fontSize as string | number | undefined) ?? sizeSpec.fontSize,
     14,

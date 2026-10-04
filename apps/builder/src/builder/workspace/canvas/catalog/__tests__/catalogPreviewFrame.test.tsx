@@ -50,7 +50,6 @@ describe("Compare Mode Preview frame", () => {
       "desktop",
     ] as const) {
       act(() => workspace.setBreakpoint(breakpoint));
-      expect(frame().dataset.breakpoint).toBe(breakpoint);
       expect(frame().style.width).toBe(
         `${CANVAS_VIEWPORT[breakpoint].width}px`,
       );
