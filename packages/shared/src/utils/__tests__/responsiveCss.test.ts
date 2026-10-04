@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { CanonicalNode } from "../../types/composition-document.types";
 import type { ElementResponsiveConfig } from "../../types/responsive.types";
 import {
   buildResponsiveElementCss,
-  collectResponsiveCss,
   collectResponsiveCssFromElements,
 } from "../responsiveCss";
 
@@ -175,44 +173,6 @@ describe("buildResponsiveElementCss", () => {
     expect(css).toBe(
       `${MQ_TABLET}{[data-element-id="nb"]{flex-direction:column !important}}\n${MQ_MOBILE}{[data-element-id="nb"]{flex-direction:column !important}}`,
     );
-  });
-});
-
-describe("collectResponsiveCss", () => {
-  it("트리 순회 — responsive 보유 노드만 수집", () => {
-    const tree: CanonicalNode[] = [
-      {
-        id: "root",
-        type: "frame",
-        props: { style: { flexDirection: "row" } },
-        responsive: { styles: { flexDirection: { tablet: "column" } } },
-        children: [
-          {
-            id: "child-plain",
-            type: "Text",
-            props: { style: {} },
-          },
-          {
-            id: "child-resp",
-            type: "frame",
-            props: { style: { rowGap: 16 } },
-            responsive: { styles: { rowGap: { mobile: 4 } } },
-          },
-        ],
-      },
-    ];
-    const css = collectResponsiveCss(tree);
-    expect(css).toContain(`[data-element-id="root"]{flex-direction:column`);
-    expect(css).toContain(`[data-element-id="child-resp"]{row-gap:4px`);
-    // plain 노드는 규칙 없음
-    expect(css).not.toContain("child-plain");
-  });
-
-  it("responsive 노드 0 → 빈 문자열", () => {
-    const tree: CanonicalNode[] = [
-      { id: "a", type: "Text", props: { style: {} } },
-    ];
-    expect(collectResponsiveCss(tree)).toBe("");
   });
 });
 

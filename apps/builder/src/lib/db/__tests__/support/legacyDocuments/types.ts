@@ -1,9 +1,9 @@
 /** The old Builder's canonical document rows (legacy IndexedDB layout, read by asset GC · eviction). */
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../legacyPayload";
 
 export interface CanonicalDocumentRecord {
   project_id: string;
-  document: CompositionDocument;
+  document: LegacyDocumentFixture;
   updated_at: string;
 }
 
@@ -14,7 +14,7 @@ export interface CanonicalDocumentRecord {
 export interface CanonicalDocumentBackupRecord {
   backup_id: string;
   project_id: string;
-  document: CompositionDocument;
+  document: LegacyDocumentFixture;
   updated_at: string;
 }
 

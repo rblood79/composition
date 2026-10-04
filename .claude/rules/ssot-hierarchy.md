@@ -8,13 +8,13 @@
 
 composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 domain은 고유 권위를 가지며 경계 교차 금지.
 
-> **2026-07-08 갱신 (ADR-142 Implemented)**: D3 SSOT는 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됐다. 아래 표와 "D3 (시각 스타일)" 절은 이 전환을 반영한다. 잔존 spec 3개(Frame/Group/Slot)는 D1 ARIA 예외(Group) 및 canonical layout container(Frame) 한정 존속이며, 일반 컴포넌트는 전부 catalog 경로다. 상세: [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md), [ADR-036 Superseded 안내](../../docs/adr/completed/036-spec-first-single-source.md).
+> **2026-07-08 갱신 (ADR-142 Implemented)**: D3 SSOT는 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됐다. 아래 표와 "D3 (시각 스타일)" 절은 이 전환을 반영한다. 2026-10-04 ADR-248 Publish 후속으로 Frame/Group/Slot도 catalog 입력으로 통합하고 specs 패키지를 제거했다. 상세: [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md), [ADR-036 Superseded 안내](../../docs/adr/completed/036-spec-first-single-source.md).
 
-| Domain              | 권위                                                       | 내용                                                      | Spec 개입                                               |
-| ------------------- | ---------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------- |
-| **D1. DOM/접근성**  | **설치된 `react-aria-components` (절대)**                  | HTML 구조, ARIA 속성, 키보드 동작, 포커스 관리, 접근성    | **금지 — 관찰·소비만**                                  |
-| **D2. Props/API**   | **RSP 참조 + custom 확장**                                 | 사용자 편의 props (isQuiet, contextualHelp 등)            | 타입 선언만, 구현은 RAC + custom                        |
-| **D3. 시각 스타일** | **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens (SSOT)** | 화면에 보여지는 style 전부 — 색상/크기/폰트/레이아웃/형태 | **잔존 spec 3개(Frame/Group/Slot) 한정, 그 외 catalog** |
+| Domain              | 권위                                                       | 내용                                                      | Spec 개입                         |
+| ------------------- | ---------------------------------------------------------- | --------------------------------------------------------- | --------------------------------- |
+| **D1. DOM/접근성**  | **설치된 `react-aria-components` (절대)**                  | HTML 구조, ARIA 속성, 키보드 동작, 포커스 관리, 접근성    | **금지 — 관찰·소비만**            |
+| **D2. Props/API**   | **RSP 참조 + custom 확장**                                 | 사용자 편의 props (isQuiet, contextualHelp 등)            | 타입 선언만, 구현은 RAC + custom  |
+| **D3. 시각 스타일** | **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens (SSOT)** | 화면에 보여지는 style 전부 — 색상/크기/폰트/레이아웃/형태 | **Frame/Group/Slot 포함 catalog** |
 
 ### D1 (DOM/접근성)
 
@@ -40,21 +40,20 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 ### D3 (시각 스타일)
 
-> 일반 컴포넌트의 SSOT 는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. 아래의 spec 규칙은 잔존 spec 3개(Frame/Group/Slot)에만 적용한다.
+> 일반 컴포넌트의 SSOT 는 catalog(`COMPONENT_RULES_TABLE`, `packages/shared/src/catalog/`) + theme/tokens root collection(ADR-110)이다. Frame/Group/Slot에도 같은 원칙을 적용한다.
 
 - **SSOT (일반 컴포넌트)**: catalog `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts`) + theme/tokens root collection. `PrimitiveBinding`(leaf RAC primitive ~35개)이 코드 정의를 담당
-- **SSOT (잔존 spec 3개 한정)**: `packages/specs/src/components/{Frame,Group,Slot}.spec.ts` + `packages/specs/src/primitives/*`
+- **CSS 생성**: `packages/rendering/scripts/generate-css.ts`가 catalog의 structure·size·variant를 읽는다. 별도 native spec 입력은 없다.
 - **목적**: **Builder(Skia)와 Preview/Publish(DOM/CSS)의 시각 정합성 유지**
 - **consumer (대등, symmetric)**:
   - **Builder** = Skia 렌더 (`apps/builder/src/builder/workspace/canvas/skia/*`)
-  - **Preview/Publish** = DOM + CSS 렌더 (일반 컴포넌트는 catalog binding 경유, 잔존 spec 3개는 `packages/specs/src/renderers/CSSGenerator.ts`가 Spec → CSS 변환)
-- **대칭 원칙**: "CSS가 기준, Skia가 따라간다"가 아니며, 역도 아님. **두 경로가 동일 SSOT(catalog 또는 잔존 spec)로부터 동일 시각 결과를 산출**하는지 검증
+  - **Preview/Publish** = DOM + CSS 렌더 (shared catalog runtime + catalog에서 생성한 CSS)
+- **대칭 원칙**: "CSS가 기준, Skia가 따라간다"가 아니며, 역도 아님. **두 경로가 동일 SSOT(catalog)로부터 동일 시각 결과를 산출**하는지 검증
 - **대칭 정의 재확인**: 대칭은 "구현 방법"이 아니라 **"시각 결과"의 동일성**. Skia가 arc 그리든 DOM이 border-radius 쓰든 **보여지는 결과가 같으면 통과**
 - **금지 사항**:
-  - 수동 CSS가 SSOT(catalog 또는 잔존 spec)에서 파생이 아니라 독립 정의
+  - 수동 CSS가 SSOT(catalog)에서 파생이 아니라 독립 정의
   - `@sync` 주석으로 CSS 파일 간 참조 (SSOT 거치지 않은 consumer-to-consumer)
   - Skia 전용 시각 표현 (DOM/CSS로 재현 불가능한 효과를 도입)
-  - (잔존 spec 3개 한정) legacy 개별 background 필드 신규 도입 — fill 은 `FillTokenSpec` / `FillStateTokens` 단일 소스 (ADR-908). 구조 · consumer 규약 · 금지 패턴 정본: [canvas-rendering.md §2.5.5](canvas-rendering.md)
 
 **D3 read-only sub-part — field 가족의 FieldError · Label · Input · DateInput 자식 (ADR-923 Phase 5 후속 잔여 1 + Label/Input 판정, 2026-09-03 사용자 판정 A × 2)**:
 
@@ -70,15 +69,15 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 
 **D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
 
-- RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — `Group.spec.ts` 보존 (변경 0)
-- canonical `frame` = D3 layout container — `Frame.spec.ts` 신규 (skipCSSGeneration:true, ARIA role 없음)
+- RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — catalog Group definition/primitive binding
+- canonical `frame` = D3 layout container — catalog frame definition (skipCSSGeneration:true, ARIA role 없음)
 - 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
 - canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 Frame.spec 1:1 정합. alias (`BASE_TAG_SPEC_MAP["frame"] = GroupSpec`) 패턴 금지 — ARIA role emit 으로 D1 침범
 - legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
 
 ## 3. 경계 판정 기준
 
-D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 판정:
+D3 SSOT(catalog)가 어디까지 관여하는지의 판정:
 
 | 요소                                           | 어느 domain? | SSOT 관여                        |
 | ---------------------------------------------- | ------------ | -------------------------------- |
@@ -94,7 +93,7 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 | 애니메이션/transition                          | D3           | ✅ (catalog SSOT)                |
 | layout flow (flex-direction 등)                | D3           | ✅ (catalog SSOT)                |
 
-**회색지대 판정 원칙**: 의심스러우면 **"Builder와 Preview가 시각적으로 달라질 수 있는 요소인가?"** 질문. 그렇다면 D3 → catalog SSOT (잔존 spec 3개는 spec SSOT).
+**회색지대 판정 원칙**: 의심스러우면 **"Builder와 Preview가 시각적으로 달라질 수 있는 요소인가?"** 질문. 그렇다면 D3 → catalog SSOT.
 
 **생성 CSS archetype 미지정 = 중립 상자 (ADR-223 Implemented 2026-09-18)**: catalog `structure.archetype: "default"` (와 잔존 spec 의 archetype 미선언) 의 생성 CSS base 는 `container` 와 같은 block · box-sizing · font-family 뿐이다 — Skia 가 읽지 않는 버튼 어법 (inline-flex · align/justify center · cursor · user-select · transition) 을 기본값으로 싣지 않는다. 정렬·크기 (geometry) 는 `structure.containerStyles` 로 두 consumer 가 같이 읽고, Canvas 저작 surface 에 대응이 없는 DOM interaction (cursor · user-select · transition) 은 `composition.rootSelectors["&"]` 가 catalog 정본이되 Canvas 는 소비하지 않는다 (Card · Tab). 신규 entry 는 archetype 또는 `composition.layout` 을 명시한다 (`archetypeDefaultCohort.static.test.ts` ratchet).
 
@@ -122,9 +121,9 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 
 ## 6. 금지 패턴 요약
 
-- ❌ catalog 또는 잔존 spec이 DOM 구조 지정 (D1 침범)
-- ❌ catalog 또는 잔존 spec에 RSP 미규정 prop 도입 (D2 위반) — ADR-062
-- ❌ 수동 CSS가 SSOT(catalog 또는 잔존 spec)에서 파생 아님 (D3 위반) — ADR-059
+- ❌ catalog이 DOM 구조 지정 (D1 침범)
+- ❌ catalog에 RSP 미규정 prop 도입 (D2 위반) — ADR-062
+- ❌ 수동 CSS가 SSOT(catalog)에서 파생 아님 (D3 위반) — ADR-059
 - ❌ `@sync` 주석으로 CSS↔CSS 참조 (D3 symmetric 위반)
 - ❌ "CSS가 기준, Skia 따라가" 언어 사용 (대칭 위반)
 - ❌ Skia 전용 시각 효과를 도입 (대칭 결과 불가능)
@@ -134,7 +133,7 @@ D3 SSOT(catalog, 잔존 spec 3개는 예외)가 어디까지 관여하는지의 
 ## 7. 허용 패턴
 
 - ✅ catalog(`COMPONENT_RULES_TABLE`) + theme/tokens가 색상 토큰/사이즈/레이아웃 정의 (일반 컴포넌트)
-- ✅ 잔존 spec 3개(Frame/Group/Slot)가 색상 토큰/사이즈/레이아웃 정의 (예외)
+- ✅ Frame/Group/Slot도 catalog가 색상 토큰/사이즈/레이아웃을 정의
 - ✅ catalog binding 또는 CSS Generator(잔존 spec 한정)가 SSOT를 CSS로 자동 변환
 - ✅ Skia 렌더가 catalog(또는 잔존 spec)를 shape로 변환
 - ✅ RAC 컴포넌트를 그대로 사용 + CSS로 스타일 적용

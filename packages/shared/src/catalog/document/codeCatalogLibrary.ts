@@ -18,7 +18,7 @@ import {
   REUSABLE_ORIGIN_DEFINITIONS,
   REUSABLE_ORIGIN_TEMPLATES,
 } from "./generated/reusableOriginLibrary";
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import type {
   CatalogLibrary,
   LibraryDefinition,

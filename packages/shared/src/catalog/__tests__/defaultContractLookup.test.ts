@@ -9,7 +9,7 @@ import {
   resolveComponentRuleByTag,
 } from "../index";
 import { toRacProps } from "../outputs/toRacProps";
-import type { CanonicalNode } from "../../types/composition-document.types";
+type PropsNode = { id: string; type: string; props?: Record<string, unknown> };
 
 /**
  * ADR-923 Phase 3 r22m1 — prop 부재 기본값 조회의 단일 원천.
@@ -33,7 +33,7 @@ describe("resolveBindingPropDefault — binding accepts default 조회", () => {
       id: "t1",
       type: "Table",
       props: {},
-    } as unknown as CanonicalNode;
+    } as unknown as PropsNode;
     const racProps = toRacProps(node, binding);
     expect(racProps.height).toBe(resolveBindingPropDefault("Table", "height"));
     expect(racProps.heightMode).toBe(

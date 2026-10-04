@@ -43,7 +43,7 @@ function countMatches(text: string, pattern: RegExp): number {
 }
 
 const FILES = {
-  generateCss: "packages/specs/scripts/generate-css.ts",
+  generateCss: "packages/rendering/scripts/generate-css.ts",
   cssGenerator: "packages/rendering/src/renderers/CSSGenerator.ts",
   implicitStyles:
     "apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts",

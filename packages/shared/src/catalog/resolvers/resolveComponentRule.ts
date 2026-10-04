@@ -12,8 +12,7 @@
 import type {
   ComponentRule,
   ComponentRulesTable,
-  CompositionDocument,
-} from "../../types/composition-document.types";
+} from "../../types/catalog-style.types";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 
 /**
@@ -22,7 +21,7 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  */
 export function resolveComponentRule(
   type: string,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ComponentRule | undefined {
   return doc?.componentRules?.[type] ?? COMPONENT_RULES_TABLE[type];
 }
@@ -44,7 +43,7 @@ const LOWERCASE_RULE_KEY: ReadonlyMap<string, string> = (() => {
  */
 export function resolveComponentRuleByTag(
   typeOrTag: string,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ComponentRule | undefined {
   const direct = resolveComponentRule(typeOrTag, doc);
   if (direct !== undefined) return direct;

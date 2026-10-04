@@ -31,5 +31,5 @@ ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면
 형식으로 기록합니다. `report`와 `close`는 기록된 근거를 사용합니다.
 단순 편집에 별도 run을 만들 필요는 없습니다.
 
-Spec 변경 후에는 `pnpm run build:specs`가 필요한지 확인합니다. hook 등록과
+catalog palette/CSS 생성 입력 변경 후에는 `pnpm run build:specs`가 필요한지 확인합니다. hook 등록과
 새 세션의 trust 확인 방법은 `.codex/README.md`에 있습니다.

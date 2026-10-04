@@ -9,10 +9,9 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ListBox } from "@composition/shared/components";
-import type { SerializedDataBinding } from "@composition/shared";
 
 /** `bind_collection` 이 static source 에 대해 만드는 값과 동일한 형태. */
-const AI_BINDING: SerializedDataBinding = {
+const AI_BINDING = {
   type: "collection",
   source: "static",
   config: {

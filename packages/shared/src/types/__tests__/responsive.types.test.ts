@@ -18,7 +18,6 @@ import {
   hasBreakpointValue,
   hasResponsiveValue,
 } from "../responsive.types";
-import { CanonicalNodeSchema } from "../../schemas/project.schema";
 
 describe("ADR-154 breakpoint 정의", () => {
   it("경계값 invariant — tablet/desktop 767/768, 1279/1280 연속", () => {
@@ -87,31 +86,5 @@ describe("ADR-154 cascade resolve (desktop-first)", () => {
     expect(hasResponsiveValue({ mobile: false })).toBe(true);
     expect(hasBreakpointValue({ mobile: false }, "mobile")).toBe(true);
     expect(hasBreakpointValue({ mobile: false }, "tablet")).toBe(false);
-  });
-});
-
-describe("ADR-154 canonical schema BC (G4)", () => {
-  it("responsive 없는 기존 노드 파싱 무영향", () => {
-    const node = { id: "n1", type: "frame", children: [] };
-    const result = CanonicalNodeSchema.safeParse(node);
-    expect(result.success).toBe(true);
-  });
-
-  it("responsive 보유 노드는 catchall 로 무손실 보존", () => {
-    const responsive = {
-      visibility: { mobile: false },
-      styles: { flexDirection: { tablet: "column" } },
-    };
-    const result = CanonicalNodeSchema.safeParse({
-      id: "n2",
-      type: "frame",
-      responsive,
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect((result.data as { responsive?: unknown }).responsive).toEqual(
-        responsive,
-      );
-    }
   });
 });

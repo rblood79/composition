@@ -1,6 +1,9 @@
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../legacyPayload";
 import { IncrementalDocuments } from "./incrementalDocuments";
-import type { CanonicalDocumentBackupRecord, DocumentPersistOptions } from "./types";
+import type {
+  CanonicalDocumentBackupRecord,
+  DocumentPersistOptions,
+} from "./types";
 
 export type { CanonicalDocumentBackupRecord, DocumentPersistOptions };
 
@@ -8,10 +11,10 @@ export type { CanonicalDocumentBackupRecord, DocumentPersistOptions };
 export interface LegacyDocuments {
   put(
     projectId: string,
-    document: CompositionDocument,
+    document: LegacyDocumentFixture,
     options?: DocumentPersistOptions,
-  ): Promise<CompositionDocument>;
-  get(projectId: string): Promise<CompositionDocument | null>;
+  ): Promise<LegacyDocumentFixture>;
+  get(projectId: string): Promise<LegacyDocumentFixture | null>;
   delete(projectId: string): Promise<void>;
   backupNow(projectId: string): Promise<boolean>;
   getBackups(projectId: string): Promise<CanonicalDocumentBackupRecord[]>;

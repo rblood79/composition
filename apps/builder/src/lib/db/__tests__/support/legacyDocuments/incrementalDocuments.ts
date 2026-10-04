@@ -3,7 +3,7 @@
  * guard · backup ring), kept as a test fixture — the live asset GC and project eviction still read
  * this legacy layout from old projects, and their tests write it with the old writer.
  */
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../legacyPayload";
 import type {
   CanonicalDocumentRecord,
   CanonicalDocumentBackupRecord,
@@ -17,7 +17,10 @@ import {
 } from "./documentPersistGuard";
 import { trackPersistCall } from "../../../../../builder/utils/persistActivity";
 
-import { DOCUMENT_HEADS, DOCUMENT_PARTS } from "../../../indexedDB/documentStoreNames";
+import {
+  DOCUMENT_HEADS,
+  DOCUMENT_PARTS,
+} from "../../../indexedDB/documentStoreNames";
 
 export { DOCUMENT_HEADS, DOCUMENT_PARTS };
 
@@ -57,7 +60,7 @@ function completion(tx: IDBTransaction): Promise<void> {
 
 /** 노드를 독립 레코드로 직렬화한다. 양보는 DB transaction을 열기 전에만 한다. */
 export async function splitDocument(
-  document: CompositionDocument,
+  document: LegacyDocumentFixture,
 ): Promise<Map<string, string>> {
   const parts = new Map<string, string>();
   const { children, ...header } = document;
@@ -91,7 +94,9 @@ export async function splitDocument(
   return parts;
 }
 
-export function joinDocument(parts: Map<string, string>): CompositionDocument {
+export function joinDocument(
+  parts: Map<string, string>,
+): LegacyDocumentFixture {
   const read = (key: string): Record<string, unknown> => {
     const value = parts.get(key);
     if (value === undefined)
@@ -101,7 +106,7 @@ export function joinDocument(parts: Map<string, string>): CompositionDocument {
       result.children = result.children.map((id: string) => read(`node:${id}`));
     return result;
   };
-  return read("document") as unknown as CompositionDocument;
+  return read("document") as unknown as LegacyDocumentFixture;
 }
 
 /** 같은 adapter의 호출 순서를 보존하고, 다른 탭의 쓰기는 IDB transaction으로 직렬화한다. */
@@ -128,9 +133,9 @@ export class IncrementalDocuments {
 
   put(
     projectId: string,
-    document: CompositionDocument,
+    document: LegacyDocumentFixture,
     options?: DocumentPersistOptions,
-  ): Promise<CompositionDocument> {
+  ): Promise<LegacyDocumentFixture> {
     const work = this.tail.then(async () => {
       const parts = await splitDocument(document);
       const tx = this.database().transaction(STORES, "readwrite");
@@ -293,7 +298,7 @@ export class IncrementalDocuments {
     return work;
   }
 
-  async get(projectId: string): Promise<CompositionDocument | null> {
+  async get(projectId: string): Promise<LegacyDocumentFixture | null> {
     await this.tail;
     const tx = this.database().transaction(STORES, "readonly");
     const head = (await request(

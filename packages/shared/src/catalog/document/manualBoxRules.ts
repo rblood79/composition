@@ -14,7 +14,7 @@
  */
 import { resolveToken, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CompiledPartRule } from "./rulePartRules";
 import type { Scalar } from "./types";
 

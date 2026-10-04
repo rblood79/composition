@@ -21,7 +21,7 @@ import {
 } from "node:fs";
 import { resolve, dirname, join, relative, basename } from "node:path";
 import { gzipSync } from "node:zlib";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
 const args = process.argv.slice(2);
@@ -96,8 +96,11 @@ const revision = {
   sha: git("rev-parse HEAD"),
   dirtyFiles: git("status --porcelain").split("\n").filter(Boolean),
   dirtyPatchSha256: (() => {
-    const patch = execSync(`git -C "${repo}" diff`, { encoding: "utf8" });
-    return patch ? sha256(patch) : null;
+    // Large source removals can exceed Node's 1 MiB default stdout buffer.
+    const patch = execFileSync("git", ["-C", repo, "diff"], {
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    return patch.length ? sha256(patch) : null;
   })(),
   lockfileSha256: sha256(readFileSync(join(repo, "pnpm-lock.yaml"))),
   node: process.version,

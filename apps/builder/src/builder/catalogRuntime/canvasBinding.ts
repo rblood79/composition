@@ -224,6 +224,45 @@ const glyph: Binding = (node, rect) => {
   const size = catalogGlyphSize(node) ?? Math.min(rect.width, rect.height);
   if (!Number.isFinite(size) || size <= 0)
     throw new Error(`CATALOG_CANVAS_GLYPH_SIZE_UNSUPPORTED:${node.id}`);
+  // A glyph is the flex box's single SVG child, not always a centered mark.
+  // Read the same resolved alignment as DOM (Icon defaults to row/start/center).
+  const box = catalogBoxModel(node);
+  const column = box.flexDirection?.startsWith("column") ?? false;
+  const reverse = box.flexDirection?.endsWith("reverse") ?? false;
+  const length = (value: unknown) => Number.parseFloat(String(value ?? 0)) || 0;
+  const border = length(box.borderWidth);
+  const left = length(box.padding?.left) + border;
+  const right = length(box.padding?.right) + border;
+  const top = length(box.padding?.top) + border;
+  const bottom = length(box.padding?.bottom) + border;
+  const offset = (
+    space: number,
+    align: string | undefined,
+    reversed = false,
+  ) => {
+    if (["center", "space-around", "space-evenly"].includes(align ?? ""))
+      return space / 2;
+    const end = align === "end" || align === "flex-end";
+    return end !== reversed ? space : 0;
+  };
+  const xSpace = rect.width - left - right - size;
+  const ySpace = rect.height - top - bottom - size;
+  const cx =
+    left +
+    size / 2 +
+    offset(
+      xSpace,
+      column ? box.alignItems : box.justifyContent,
+      !column && reverse,
+    );
+  const cy =
+    top +
+    size / 2 +
+    offset(
+      ySpace,
+      column ? box.justifyContent : box.alignItems,
+      column && reverse,
+    );
   return {
     type: "icon_path",
     elementId: node.id,
@@ -232,8 +271,8 @@ const glyph: Binding = (node, rect) => {
     iconPath: {
       paths: data.paths,
       circles: data.circles,
-      cx: rect.width / 2,
-      cy: rect.height / 2,
+      cx,
+      cy,
       size,
       strokeColor: rgba(node.visual.color ?? "#000000"),
       strokeWidth: Number(node.props.strokeWidth ?? 2),
@@ -436,7 +475,10 @@ function ownerDrawnPartNodeData(
     throw new Error(`CATALOG_CANVAS_PART_OWNER_REQUIRED:${node.id}`);
   const primitive = OWNER_DRAWN_PART_PRIMITIVES[root.typeOf(node)];
   // The owner's input with every primitive (its part child is this node).
-  const input = { ...ruleShapeInput(root, owner, rect), childPrimitive: undefined };
+  const input = {
+    ...ruleShapeInput(root, owner, rect),
+    childPrimitive: undefined,
+  };
   let data: SkiaNodeData;
   if (getSkiaPrimitiveMode(primitive) === "replace")
     data = catalogRuleNodeData(input);

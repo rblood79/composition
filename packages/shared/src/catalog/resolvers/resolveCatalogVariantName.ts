@@ -1,4 +1,4 @@
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 
 /** 선택 상태 — 목록 owner 선택 (`_isSelected`) 또는 상태 변형 origin 의 강제 상태 (`isSelected`). */
 function isSelectedProps(props: Readonly<Record<string, unknown>>): boolean {

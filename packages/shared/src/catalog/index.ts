@@ -11,9 +11,7 @@ export * from "./outputs/toRacProps";
 export * from "./outputs/domIdentity";
 export * from "./outputs/inspectorFields";
 // ADR-912 1A-(b) — DOM 시각 override 어댑터 (override 전용)
-export * from "./outputs/toReactStyle";
 // ADR-912 1A-(c) — Skia 시각 어댑터 (base⊕override ⊕ token 해소, 같은 resolveMergedStyle 코어)
-export * from "./outputs/toSkiaStyle";
 export * from "./bindings";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary + slot 구성 resolver (설계도 §2-1)
 export * from "./slotRoles";
@@ -36,6 +34,6 @@ export * from "./resolvers/resolveDelegatedChildFontSize";
 export * from "./resolvers/resolveCatalogContainer";
 export * from "./resolvers/resolveCatalogRuleCanvasBox";
 // ADR-912 1A-(b) — base/override 2층 분리 코어 (HC#3)
-export * from "./resolvers/resolveMergedStyle";
 // ADR-912 1A-(4) — 편집 계약 단일 진입점 (semantic ∪ universal style, origin 태그, HC#1/#2)
-export * from "./resolvers/resolveEditContract";
+
+export * from "./outputs/editFields";

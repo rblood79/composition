@@ -21,7 +21,7 @@ import {
 import type {
   ComponentRuleSize,
   ComponentRuleStructure,
-} from "../../types/composition-document.types";
+} from "../../types/catalog-style.types";
 import { resolveCatalogContainerBase } from "./resolveCatalogContainer";
 import { resolveComponentRule } from "./resolveComponentRule";
 

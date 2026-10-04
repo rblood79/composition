@@ -8,7 +8,7 @@ import {
   openLegacyDocuments,
   type LegacyDocuments,
 } from "../../db/__tests__/support/legacyDocuments";
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, readAllAssetGcRecords } from "../assetDb";
 import { releaseAssetPins, runAssetGc, type AssetGcRoots } from "../assetGc";
@@ -313,7 +313,7 @@ describe("영속 root 수집 (G0 (b) 보유처)", () => {
       ({
         version: "composition-1.0",
         children: [{ id: "n", type: "frame", fills: [{ url }] }],
-      }) as unknown as CompositionDocument;
+      }) as unknown as LegacyDocumentFixture;
     await legacy.put("p1", doc(live.ref));
     await legacy.put("gone", doc(orphan.ref));
     await legacy.backupNow("gone");

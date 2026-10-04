@@ -1,22 +1,19 @@
 /**
  * ADR-227 — 문서 소유 토큰 세트 컬렉션 (pure).
  *
- * `CompositionDocument.themes` 의 모양 (`ThemesCollection`) 과 그 위의 순수 연산만 둔다 —
- * 기본 컬렉션 · 구조 검사/보정 · 최초 migration (ADR-110 단일 `ThemeSnapshot` + legacy
- * localStorage 실효값 → 컬렉션) · 항목 연산 (추가/삭제/이름/활성/preset/토큰). store · history ·
- * persist 는 builder 가 (`canonicalDocumentStore` themes action + `themeActions.ts`).
+ * `ThemesCollection`의 구조 검사·보정과 항목 연산을 제공한다.
+ * 쓰기·history·persist는 Builder catalog 명령이 담당한다.
  *
  * 저장 규칙 (ADR-143 델타): 테마의 `tokens` 는 preset seed 와 **다른 명시 값만**. 미편집 테마는
  * `tokens = {}`. root `document.tokens` 는 테마 무관 `user-defined` 만 남는다.
  */
 import type {
-  CompositionDocument,
   ThemeDefinition,
   ThemePreset,
   ThemesCollection,
   TokensSnapshot,
   TokensSnapshotEntry,
-} from "../types/composition-document.types";
+} from "../types/catalog-style.types";
 
 export const DEFAULT_THEME_ID = "theme-default";
 export const DEFAULT_THEME_NAME = "Default";
@@ -194,68 +191,15 @@ export function createThemesCollection(
   return { active: item.id, items: { [item.id]: item }, order: [item.id] };
 }
 
-export function getActiveTheme(
-  document: Pick<CompositionDocument, "themes">,
-): ThemeDefinition | null {
+export function getActiveTheme(document: {
+  themes?: ThemesCollection;
+}): ThemeDefinition | null {
   const themes = document.themes;
   if (!isThemesCollection(themes)) return null;
   return themes.items[themes.active] ?? themes.items[themes.order[0]!] ?? null;
 }
 
 // ───────────────────────────── 최초 migration (§3.2) ─────────────────────────────
-
-/** builder 가 읽어 넘기는 legacy localStorage 실효값 (`composition-theme-config-<projectId>`). */
-export interface LegacyThemeConfigInput {
-  tint?: string;
-  darkMode?: string;
-  neutral?: string;
-  radiusScale?: string;
-  baseTypography?: Partial<BaseTypographyValue>;
-}
-
-export interface MigrateThemesOptions {
-  /** 같은 projectId 의 legacy 설정 — import 문서에는 넘기지 않는다. */
-  legacyConfig: LegacyThemeConfigInput | null;
-  /** 제거 전 부팅 정책 (`VITE_ADR110_P2_THEMES_WRITE_THROUGH`) — 실전은 항상 false (Phase 0 F5). */
-  legacyWriteThrough: boolean;
-  source: "local-project" | "import";
-  /** legacy `baseTypography` 의 seed (builder `DEFAULT_BASE_TYPOGRAPHY`) — 같으면 델타 0. */
-  baseTypographySeed: BaseTypographyValue;
-}
-
-export type MigrateThemesPath =
-  | "collection" // 이미 컬렉션 — 무결성 보정만
-  | "legacy-doc" // 구 document.themes (write-through on 또는 import) 우선
-  | "legacy-config" // localStorage 실효값
-  | "default";
-
-export interface MigrateThemesReport {
-  path: MigrateThemesPath;
-  warnings: string[];
-  /** 컬렉션 무결성 보정 (path=collection) */
-  issues: ThemesCollectionIssue[];
-}
-
-export interface MigrateThemesResult {
-  document: CompositionDocument;
-  changed: boolean;
-  report: MigrateThemesReport;
-}
-
-function readLegacyPreset(
-  legacy: LegacyThemeConfigInput | null,
-  warnings: string[],
-): Partial<ThemePreset> {
-  if (!legacy) return {};
-  const out: Partial<ThemePreset> = {};
-  for (const key of PRESET_KEYS) {
-    const value = legacy[key];
-    if (value === undefined) continue;
-    if (typeof value === "string" && value.length > 0) out[key] = value;
-    else warnings.push(`legacy ${key} 무효 (${String(value)}) — 기본값`);
-  }
-  return out;
-}
 
 /** legacy baseTypography → seed 와 다른 키만 델타 (spec-token). */
 export function baseTypographyToTokensDelta(
@@ -299,130 +243,7 @@ export function baseTypographyToTokensDelta(
   return delta;
 }
 
-/** 구 `customTokens: Record<string,string>` → 델타 (알려진 카테고리만, 나머지는 경고). */
-function customTokensToDelta(
-  customTokens: unknown,
-  warnings: string[],
-): TokensSnapshot {
-  const delta: TokensSnapshot = {};
-  if (!isRecord(customTokens)) return delta;
-  for (const [key, value] of Object.entries(customTokens)) {
-    if (typeof value !== "string") {
-      warnings.push(`customTokens.${key} 무효 (문자열 아님) — 버림`);
-      continue;
-    }
-    const category = key.split(".")[0];
-    if (category === "color") {
-      delta[key] = { type: "color", value, source: "spec-token" };
-    } else if (
-      category === "typography" ||
-      category === "radius" ||
-      category === "shadow" ||
-      category === "focus" ||
-      category === "border"
-    ) {
-      const asNumber = Number(value);
-      delta[key] =
-        value.trim() !== "" && Number.isFinite(asNumber)
-          ? { type: "number", value: asNumber, source: "spec-token" }
-          : { type: "string", value, source: "spec-token" };
-    } else {
-      warnings.push(`customTokens.${key} 미지원 카테고리 — 보존 안 함`);
-    }
-  }
-  return delta;
-}
-
-/**
- * 최초 migration — 순수. 행렬 (breakdown §3.2):
- *   1. 유효한 컬렉션 → 무결성 보정만 (legacy · flag 무시)
- *   2. 구 문서 + off → legacy 필드 → 기본값 (구 document.themes 는 현행에서 적용되지 않았으므로 stale)
- *   3. 구 문서 + on + 유효 snapshot → 구 document.themes 우선 · baseTypography 는 legacy
- *   4. 구 문서 + on + 부재/무효 → legacy → 기본값
- *   5. import (legacy 없음) → 유효 구 snapshot → 기본값
- * 기존 `document.tokens` 의 spec-token 은 Default 테마 델타로, user-defined 는 root 에 남는다.
- */
-export function migrateThemesField(
-  document: CompositionDocument,
-  options: MigrateThemesOptions,
-): MigrateThemesResult {
-  const warnings: string[] = [];
-  const rawThemes = document.themes as unknown;
-
-  if (isThemesCollection(rawThemes)) {
-    const { collection, issues } = normalizeThemesCollection(rawThemes);
-    if (collection === rawThemes) {
-      return {
-        document,
-        changed: false,
-        report: { path: "collection", warnings, issues },
-      };
-    }
-    return {
-      document: { ...document, themes: collection },
-      changed: true,
-      report: { path: "collection", warnings, issues },
-    };
-  }
-
-  const legacy = options.source === "import" ? null : options.legacyConfig;
-  const legacySnapshot = readLegacyThemeSnapshot(rawThemes);
-  if (rawThemes !== undefined && !legacySnapshot) {
-    warnings.push("구 document.themes 가 ThemeSnapshot 모양이 아님 — 무시");
-  }
-  const legacyPreset = readLegacyPreset(legacy, warnings);
-
-  let preset: ThemePreset;
-  let path: MigrateThemesPath;
-  if (options.source === "import") {
-    preset = legacySnapshot ?? DEFAULT_THEME_PRESET;
-    path = legacySnapshot ? "legacy-doc" : "default";
-  } else if (options.legacyWriteThrough && legacySnapshot) {
-    preset = legacySnapshot;
-    path = "legacy-doc";
-  } else {
-    const hasLegacy = Object.keys(legacyPreset).length > 0;
-    preset = { ...DEFAULT_THEME_PRESET, ...legacyPreset };
-    path = hasLegacy ? "legacy-config" : "default";
-  }
-
-  // 델타: legacy baseTypography (seed 와 다른 키) + 구 customTokens + 기존 root spec-token
-  const tokens: TokensSnapshot = {
-    ...baseTypographyToTokensDelta(
-      legacy?.baseTypography,
-      options.baseTypographySeed,
-    ),
-  };
-  if (legacySnapshot && isRecord(rawThemes)) {
-    Object.assign(
-      tokens,
-      customTokensToDelta(rawThemes.customTokens, warnings),
-    );
-  }
-  const rootTokens = document.tokens ?? {};
-  const userDefined: TokensSnapshot = {};
-  for (const [key, entry] of Object.entries(rootTokens)) {
-    if (!isTokensSnapshotEntry(entry)) {
-      warnings.push(`tokens.${key} 무효 entry — 버림`);
-      continue;
-    }
-    if (entry.source === "user-defined") userDefined[key] = entry;
-    else if (!(key in tokens)) tokens[key] = entry; // 같은 키의 구 명시 델타는 보존 (legacy 가 먼저)
-  }
-
-  const collection = createThemesCollection(preset, tokens);
-  const next: CompositionDocument = { ...document, themes: collection };
-  if (Object.keys(userDefined).length > 0) next.tokens = userDefined;
-  else delete next.tokens;
-  return {
-    document: next,
-    changed: true,
-    report: { path, warnings, issues: [] },
-  };
-}
-
-// ───────────────────────────── 항목 연산 (pure) ─────────────────────────────
-
+/** 테마를 지정 순서에 추가한다. 중복 ID는 유지한다. */
 export function addTheme(
   collection: ThemesCollection,
   definition: ThemeDefinition,

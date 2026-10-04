@@ -1,14 +1,10 @@
+import { resolveTestEditContract as resolveEditContract } from "../../../catalogRuntime/__tests__/support/editContractFixture";
 /**
  * 필드 → 에디터 매핑 정적 가드 — catalog 전수 (`componentCatalog` × `resolveEditContract`) 에 대해
  * 사용자 판정 (2026-09-15) 대로 컨트롤이 정해지는지. 스위치 0 · 같은 키 = 같은 컨트롤.
  */
 import { describe, expect, it } from "vitest";
-import {
-  componentCatalog,
-  getCatalogDefaultProps,
-  resolveEditContract,
-  type ResolvedField,
-} from "@composition/shared";
+import { componentCatalog, type ResolvedField } from "@composition/shared";
 
 import {
   resolveFieldEditor,
@@ -21,8 +17,8 @@ function allSemanticFields(): Array<{ type: string; field: ResolvedField }> {
   for (const entry of componentCatalog) {
     // ADR-228: 동명 reusable entry (Button · Badge …) 는 primitive 와 같은 accepts 를 같은 type
     //   으로 다시 세게 한다 — type 당 한 번 (primitive 쪽) 만.
-    if (entry.kind === "reusable") continue;
-    const props = getCatalogDefaultProps(entry.type) ?? {};
+    if (entry.kind !== "primitive") continue;
+    const props = {};
     const contract = resolveEditContract(
       { id: "x", type: entry.type, props } as never,
       null,

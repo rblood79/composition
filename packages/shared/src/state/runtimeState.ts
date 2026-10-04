@@ -20,14 +20,8 @@
  * 구 키 `composition-runtime-values` (이름 기반 · namespace 없음) 는 이관 불가라 읽지 않는다
  * (Phase 0 evidence §2).
  */
-import type { CompositionDocument } from "../types/composition-document.types";
 import type { VariableDef, VariableDefType } from "./variable.types";
-import {
-  collectDocumentVariables,
-  resolveVisibleVariables,
-  resolveVisibleVariablesForElement,
-  type VisibleVariable,
-} from "./visibility";
+import type { VisibleVariable } from "./visibility";
 
 export type RuntimeScope =
   | { kind: "project" }
@@ -53,7 +47,6 @@ export interface RuntimeWriteResult {
 
 export interface RuntimeStateDefinitions {
   projectVariables: readonly VariableDef[];
-  document: CompositionDocument | null;
   /**
    * Page and element variables defined outside the canonical document (ADR-248: the catalog
    * document's `stateVariable` records) — the same value model, keyed by their ids.
@@ -81,6 +74,7 @@ export interface RuntimeEnvTarget {
   pageId: string | null;
   /** 읽는 노드 (origin id). 없으면 페이지/프로젝트 변수만 보인다 */
   elementId?: string | null;
+  ancestorIds?: readonly string[];
   /**
    * 요소 변수 소유자 (origin id) → 이 렌더 문맥의 instanceKey. 기본은 항등 (origin 렌더).
    * 인스턴스 자손 렌더는 `${refId}/${idPath}` 를 만들어 넘긴다 (Phase 3 렌더러).
@@ -231,7 +225,6 @@ export function createRuntimeState(
   let projectId = options.projectId;
   let definitions = new Map<string, VisibleVariable>();
   let projectVariables: readonly VariableDef[] = [];
-  let document: CompositionDocument | null = null;
   let extraVariables: readonly VisibleVariable[] = [];
   const values = new Map<string, Map<string, unknown>>();
   const listeners = new Set<RuntimeChangeListener>();
@@ -308,8 +301,6 @@ export function createRuntimeState(
     const next = new Map<string, VisibleVariable>();
     for (const def of projectVariables)
       next.set(def.id, { def, owner: { kind: "project" } });
-    for (const entry of collectDocumentVariables(document))
-      next.set(entry.def.id, entry);
     for (const entry of extraVariables) next.set(entry.def.id, entry);
     // 사라진 정의의 값은 버린다 (고아 0)
     const changed = new Set<string>();
@@ -341,7 +332,6 @@ export function createRuntimeState(
     },
     setDefinitions(defs) {
       projectVariables = defs.projectVariables;
-      document = defs.document;
       extraVariables = defs.variables ?? [];
       rebuildDefinitions();
     },
@@ -431,19 +421,14 @@ export function createRuntimeState(
       return { ok: true, changed, value: next };
     },
     createEnv(target) {
-      // 요소 사슬이 페이지에 닿지 않는 경우의 페이지 보강은 visibility 한 곳이 소유한다.
-      const visible = target.elementId
-        ? resolveVisibleVariablesForElement(
-            document,
-            target.elementId,
-            target.pageId,
-            projectVariables,
-          )
-        : resolveVisibleVariables(
-            document,
-            target.pageId ? { kind: "page", pageId: target.pageId } : null,
-            projectVariables,
-          );
+      const visible = [...definitions.values()].filter(
+        ({ owner }) =>
+          owner.kind === "project" ||
+          (owner.kind === "page" && owner.pageId === target.pageId) ||
+          (owner.kind === "element" &&
+            (owner.elementId === target.elementId ||
+              target.ancestorIds?.includes(owner.elementId))),
+      );
       const byName = new Map<string, VisibleVariable>();
       for (const entry of visible)
         if (!byName.has(entry.def.name)) byName.set(entry.def.name, entry);

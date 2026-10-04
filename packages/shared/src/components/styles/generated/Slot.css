@@ -1,13 +1,13 @@
 /* ============================================================
- * AUTO-GENERATED from SlotSpec — DO NOT EDIT MANUALLY
- * Source: packages/specs/src/components/Slot.spec.ts
- * Archetype: default
+ * AUTO-GENERATED from catalog Slot — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
  * ============================================================ */
 
 @layer components {
 
 .react-aria-Slot {
-  /* Base styles — archetype: default */
+  /* Base styles — archetype: container */
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);

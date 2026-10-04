@@ -1,3 +1,4 @@
+import { CatalogGraph } from "../../catalog/document/graph";
 import { Chart } from "../Chart";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,9 +7,11 @@ import { useCollectionData } from "../../hooks/useCollectionData";
 import { useResolvedCollectionItems } from "../../hooks/useResolvedCollectionItems";
 import { createCollectionSnapshotServices } from "../../collections/collectionSnapshot";
 import {
-  parseProjectData,
-  serializeProjectData,
-} from "../../utils/export.utils";
+  buildCatalogProjectJson,
+  readCatalogProjectJson,
+  catalogProjectContent,
+} from "../../catalog/runtime/exchange";
+import { createG1Fixture } from "../../catalog/document/fixture";
 import type { DataBinding, DataTableDefinition } from "../../types";
 import {
   CHART_DEFAULT_PROPS,
@@ -100,20 +103,15 @@ describe("ADR-209 공통 collection runtime 공급", () => {
         useMockData: false,
       };
       // Builder 메모리 없이 publish JSON만으로 공급할 수 있는지 같은 envelope를 왕복한다.
-      const decoded = parseProjectData(
-        serializeProjectData(
-          "00000000-0000-0000-0000-000000000209",
-          "Chart",
-          { version: "composition-1.0", children: [] },
-          undefined,
-          undefined,
-          undefined,
-          [table],
+      const fixture = createG1Fixture();
+      const graph = new CatalogGraph(fixture.document, fixture.library);
+      const decoded = await readCatalogProjectJson(
+        await buildCatalogProjectJson(
+          catalogProjectContent(graph, { collections: [table] }),
+          async () => null,
         ),
       );
-      expect(decoded.success).toBe(true);
-      if (!decoded.success) return;
-      renderTable(decoded.data.collections![0]);
+      renderTable(decoded.content.collections![0] as typeof table);
       await vi.waitFor(() => expect(result("chart").count).toBe(count));
       expect(result("list").count).toBe(count);
       expect(result("list").first).toEqual(result("chart").first);

@@ -25,8 +25,8 @@ import type {
   ComponentRuleDensity,
   ComponentRuleSize,
   ComponentRuleStructure,
-  CompositionDocument,
-} from "../../types/composition-document.types";
+  ComponentRulesTable,
+} from "../../types/catalog-style.types";
 import { resolveComponentRule } from "./resolveComponentRule";
 
 /**
@@ -58,7 +58,7 @@ function attrValueKey(value: unknown): string {
 /** 컴포넌트 type → `rule.structure` (없으면 undefined). */
 export function resolveCatalogStructure(
   type: string,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ComponentRuleStructure | undefined {
   return resolveComponentRule(type, doc)?.structure;
 }
@@ -76,7 +76,7 @@ export function resolveCatalogStructure(
  */
 export function resolveCatalogContainerBase(
   type: string,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): Record<string, string | number> {
   const rule = resolveComponentRule(type, doc);
   if (!rule) return {};
@@ -131,7 +131,7 @@ export function resolveCatalogContainerBase(
 export function resolveCatalogContainerVariants(
   type: string,
   props: Record<string, unknown>,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ResolvedCatalogContainerVariants {
   const rule = resolveComponentRule(type, doc);
   const variants =
@@ -176,7 +176,7 @@ export function resolveCatalogSizeField(
   type: string,
   size: string,
   field: keyof ComponentRuleSize,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ComponentRuleSize[keyof ComponentRuleSize] | undefined {
   const rule: ComponentRule | undefined = resolveComponentRule(type, doc);
   return rule?.sizes?.[size]?.[field];
@@ -197,7 +197,7 @@ export function resolveCatalogDensityField(
   type: string,
   density: string | undefined,
   field: keyof ComponentRuleDensity,
-  doc?: CompositionDocument | null,
+  doc?: { componentRules?: ComponentRulesTable } | null,
 ): ComponentRuleDensity[keyof ComponentRuleDensity] | undefined {
   const rule: ComponentRule | undefined = resolveComponentRule(type, doc);
   const densities = rule?.densities;

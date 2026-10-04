@@ -13,7 +13,7 @@ const LAZY_FILES = [
   ...readdirSync(ASSETS_DIR)
     .filter((name) => name.endsWith(".ts") && name !== "useResolvedAssetUrl.ts")
     .map((name) => join(ASSETS_DIR, name)),
-  resolve(__dirname, "../../../../../publish/src/loadProjectV2.ts"),
+  resolve(__dirname, "../../../../../publish/src/catalogProject.ts"),
 ];
 const BARREL =
   /^import\s+(?!type\b)[^;]*?from\s+"@composition\/shared(?:\/utils)?";/gms;

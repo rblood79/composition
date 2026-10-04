@@ -1,7 +1,4 @@
-import type {
-  DescendantOverride,
-  ElementResponsiveConfig,
-} from "@composition/shared";
+import type { ElementResponsiveConfig } from "@composition/shared";
 
 export interface PanelNode {
   id: string;
@@ -16,7 +13,6 @@ export interface PanelNode {
   reusable?: boolean;
   slot?: false | string[];
   ref?: string;
-  descendants?: Record<string, DescendantOverride>;
   metadata?: Record<string, unknown>;
   componentRole?: unknown;
   masterId?: unknown;

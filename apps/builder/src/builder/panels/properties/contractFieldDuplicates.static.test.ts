@@ -1,3 +1,4 @@
+import { resolveTestEditContract as resolveEditContract } from "../../catalogRuntime/__tests__/support/editContractFixture";
 /**
  * Properties 패널 — 같은 prop 이 두 곳에 뜨지 않는다 (2026-09-15 사용자 지적: Nav 의
  * `aria-label` 이 Content 와 Attributes 둘 다에 있었다).
@@ -6,7 +7,7 @@
  * 편집한다. 어떤 계약도 같은 key 를 보이는 필드로 열면 안 된다 — 열어야 하면 `editorHidden`.
  * 같은 계약 안에서 key 나 표시 라벨이 두 번 나오는 것도 같은 문제다.
  */
-import { componentCatalog, resolveEditContract } from "@composition/shared";
+import { componentCatalog } from "@composition/shared";
 import { describe, expect, it } from "vitest";
 
 const ATTRIBUTE_AXIS_KEYS: ReadonlySet<string> = new Set([

@@ -23,7 +23,7 @@ import {
   resolveCatalogRuleCanvasBox,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { isDelegatedSubpartChild } from "../resolvers/resolveDelegatedChildFontSize";
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import { manualBoxRule } from "./manualBoxRules";
 import type { LayoutField, Scalar, VisualField } from "./types";
 

@@ -3,7 +3,7 @@ import type {
   PropContract,
   VisibilityCondition,
 } from "../types";
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 
 /** 필드 옵션 계산에 필요한 값만 받는다. 문서·저장 모델에 의존하지 않는다. */
 export interface EditOptionNode {

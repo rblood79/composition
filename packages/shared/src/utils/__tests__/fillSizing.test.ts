@@ -6,7 +6,6 @@ import {
   resolveFillProjection,
 } from "../fillSizing";
 import { collectResponsiveCssFromElements } from "../responsiveCss";
-import { CanonicalNodeSchema } from "../../schemas/project.schema";
 
 describe("ADR-224 Fill 의도와 문맥", () => {
   it("방향 왕복에서 두 축 가중치를 보존한다", () => {
@@ -94,24 +93,6 @@ describe("ADR-224 Fill 의도와 문맥", () => {
     expect(css).toContain("flex-grow:2 !important");
     expect(css).toContain("flex-grow:0 !important");
     expect(css).toContain("align-self:stretch !important");
-  });
-  it("영역 밖 factor와 알 수 없는 mode 저장을 거부한다", () => {
-    for (const factor of [0, 0.5, 1001, NaN, Infinity])
-      expect(
-        CanonicalNodeSchema.safeParse({
-          id: "a",
-          type: "frame",
-          sizing: { width: { factor } },
-        }).success,
-      ).toBe(false);
-    expect(
-      CanonicalNodeSchema.safeParse({
-        id: "a",
-        type: "frame",
-        sizing: { width: { factor: 2 } },
-        responsive: { sizing: { tablet: { width: null } } },
-      }).success,
-    ).toBe(true);
   });
 
   it("hug 부모 (그 축 크기 없음) 의 fraction Fill 은 basis auto — 항목이 pad/border 만 남기고 무너지지 않는다", () => {

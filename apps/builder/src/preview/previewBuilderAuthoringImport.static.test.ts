@@ -104,7 +104,9 @@ describe("Preview builder 저작 코드 import 경계", () => {
 
   it("추적이 실제로 돈다 (catalog DOM binding · 렌더러까지 닿는다)", () => {
     const files = [...reachable.keys()].map((f) => relative(BUILDER_SRC, f));
-    expect(files).toContain("builder/catalogRuntime/domBinding.tsx");
+    expect([...reachable.keys()]).toContain(
+      join(SHARED_SRC, "catalog/runtime/domBinding.tsx"),
+    );
     // The old element-store Preview app (and its canonical resolver) left the entry (4e-7).
     expect(files).not.toContain("preview/App.tsx");
     expect(files).not.toContain("resolvers/canonical/index.ts");

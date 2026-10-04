@@ -44,6 +44,8 @@
     "type-check": "tsc --noEmit",
     "generate:palette": "tsx scripts/generate-palette.ts",
     "validate:palette": "tsx scripts/generate-palette.ts --check",
-    "generate:icons": "node scripts/extract-lucide-icons.mjs"
+    "generate:icons": "node scripts/extract-lucide-icons.mjs",
+    "generate:css": "tsx scripts/generate-css.ts",
+    "validate:sync": "tsx scripts/generate-css.ts --check"
   }
 }

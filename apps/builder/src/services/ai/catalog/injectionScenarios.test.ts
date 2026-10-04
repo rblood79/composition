@@ -13,7 +13,7 @@
  * 필요해 G6 (Phase 7 폐쇄망 실측) 에서 함께 측정한다.
  */
 import { describe, expect, it } from "vitest";
-import { resolveEditContract, type ComponentTag } from "@composition/shared";
+import { editContractFixture } from "../../../builder/catalogRuntime/__tests__/support/editContractFixture";
 import { buildCatalogSection } from "./dynamicInjection";
 
 interface Need {
@@ -44,7 +44,9 @@ const SCENARIOS: readonly Scenario[] = [
     id: "s2",
     request: "이 버튼 secondary 로 바꿔줘",
     selectedType: "Button",
-    needs: [{ type: "Button", props: ["variant"], values: { variant: "secondary" } }],
+    needs: [
+      { type: "Button", props: ["variant"], values: { variant: "secondary" } },
+    ],
   },
   {
     id: "s3",
@@ -90,7 +92,11 @@ const SCENARIOS: readonly Scenario[] = [
     request: "버튼을 outline 스타일로",
     selectedType: "Button",
     needs: [
-      { type: "Button", props: ["fillStyle"], values: { fillStyle: "outline" } },
+      {
+        type: "Button",
+        props: ["fillStyle"],
+        values: { fillStyle: "outline" },
+      },
     ],
   },
   {
@@ -131,10 +137,7 @@ const SCENARIOS: readonly Scenario[] = [
 
 /** 기대값이 실제 편집 계약에 존재하는지 — 데이터셋 자체의 무결성. */
 function assertNeedIsReal(need: Need) {
-  const contract = resolveEditContract(
-    { id: `__scenario__${need.type}`, type: need.type as ComponentTag, props: {} },
-    null,
-  );
+  const contract = editContractFixture(need.type);
   const fields = new Map(contract.fields.map((f) => [f.key, f]));
 
   for (const prop of need.props ?? []) {
@@ -189,7 +192,8 @@ describe("G5 — 동적 주입 정확도 ≥ 90%", () => {
             .split("\n")
             .find((l) => l.startsWith(`- ${prop}:`));
           if (line?.includes(value)) hit++;
-          else misses.push(`${scenario.id}: ${need.type}.${prop}=${value} 미주입`);
+          else
+            misses.push(`${scenario.id}: ${need.type}.${prop}=${value} 미주입`);
         }
       }
     }

@@ -15,7 +15,7 @@
 // lockfile install and engine wasm build, dirty 0 (gitignored .env/license copied only).
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import {
@@ -30,6 +30,13 @@ const argValue = (flag) => {
   const index = process.argv.indexOf(flag);
   return index >= 0 ? process.argv[index + 1] : undefined;
 };
+const fixedIcon = argValue("--fixed-icon");
+const captureDir = argValue("--capture-dir");
+if (fixedIcon && (!captureDir || !argValue("--out")))
+  throw new Error(
+    "Fixed input supplements require --capture-dir and --out (preserve G0)",
+  );
+if (captureDir) mkdirSync(resolve(captureDir), { recursive: true });
 const axisMode = argValue("--scenario") === "axis";
 const baseDir = resolve(
   root,
@@ -103,6 +110,10 @@ const OBSERVE = (id) => {
   const canvas = document.querySelector('[data-testid="skia-canvas-unified"]');
   const canvasRect = canvas.getBoundingClientRect();
   return {
+    recordedInput:
+      element.type === "Icon"
+        ? { iconName: element.props?.iconName }
+        : undefined,
     elementType: element.type,
     componentName: element.componentName ?? null,
     ref: element.ref ?? null,
@@ -175,10 +186,13 @@ try {
       )
       .then((handle) => handle.jsonValue());
     const baseProps = await page.evaluate(
-      async ({ id, style }) => {
+      async ({ id, style, fixedIcon }) => {
         const state = window.__composition_STORE__.getState();
         const element = state.elements.find((entry) => entry.id === id);
         await state.updateElementProps(id, {
+          ...(fixedIcon && element.type === "Icon"
+            ? { iconName: fixedIcon }
+            : {}),
           style: {
             ...(element.props?.style ?? {}),
             position: "absolute",
@@ -194,7 +208,7 @@ try {
           .elements.find((entry) => entry.id === id);
         return JSON.parse(JSON.stringify(updated?.props ?? {}));
       },
-      { id, style: operation.style },
+      { id, style: operation.style, fixedIcon },
     );
     await page.waitForTimeout(400);
     await page
@@ -203,11 +217,12 @@ try {
       )
       .click();
     await page.waitForTimeout(250);
-    const captureOnce = async () => {
+    const captureOnce = async (key) => {
       const png = await page.screenshot({
         animations: "disabled",
         clip: frozen.captureClip,
       });
+      if (captureDir) writeFileSync(resolve(captureDir, `${key}.png`), png);
       const observed = await page.evaluate(OBSERVE, id);
       return {
         pngSha256: createHash("sha256").update(png).digest("hex"),
@@ -229,7 +244,9 @@ try {
           { id, baseProps, axis },
         );
         await page.waitForTimeout(300);
-        const { pngSha256, observed } = await captureOnce();
+        const { pngSha256, observed } = await captureOnce(
+          `${type}-${axis.axis.replace(":", "-")}`,
+        );
         const frozenCapture = frozenRow.captures.find(
           (entry) => entry.axis === axis.axis,
         );
@@ -246,7 +263,7 @@ try {
         `${type}: frozen PNG match ${axes.filter((a) => a.frozenPngMatch).length}/${axes.length}\n`,
       );
     } else {
-      const { pngSha256, observed } = await captureOnce();
+      const { pngSha256, observed } = await captureOnce(type);
       const frozenRow = frozen.rows.find((row) => row.type === type);
       rows.push({
         type,
@@ -290,8 +307,25 @@ writeFileSync(
       worktreeDirty: 0,
       serve:
         "vite dev server of the baseline worktree (DEV hooks expose viewport/layout)",
-      scenarioId: frozen.scenario.id,
-      scenarioHash,
+      ...(fixedIcon
+        ? {
+            supplementalInput: { iconName: fixedIcon },
+            originalScenarioHash: scenarioHash,
+          }
+        : {}),
+      scenarioId: fixedIcon
+        ? `${frozen.scenario.id}-fixed-icon-supplement`
+        : frozen.scenario.id,
+      scenarioHash: fixedIcon
+        ? createHash("sha256")
+            .update(
+              JSON.stringify({
+                scenario: frozen.scenario,
+                iconName: fixedIcon,
+              }),
+            )
+            .digest("hex")
+        : scenarioHash,
       captureClip: frozen.captureClip,
       summary: (() => {
         const captures = axisMode ? rows.flatMap((row) => row.axes) : rows;

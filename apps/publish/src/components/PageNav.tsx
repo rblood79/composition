@@ -7,7 +7,11 @@
  */
 
 import { useCallback, useMemo, useRef, type KeyboardEvent } from "react";
-import type { Page } from "@composition/shared";
+interface Page {
+  id: string;
+  title: string;
+  parent_id?: string | null;
+}
 import { usePublishStrings } from "../i18n";
 import "./PageNav.css";
 

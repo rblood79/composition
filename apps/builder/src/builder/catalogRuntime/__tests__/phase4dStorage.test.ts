@@ -16,7 +16,7 @@ import { insertNodes } from "../../../../../../packages/shared/src/catalog/comma
 import { CatalogAutosave } from "../autosave";
 import { CatalogRuntime } from "../controller";
 import { importCatalogFolder, importCatalogJson } from "../exchange";
-import { createCatalogProject, publishCatalogProject } from "../project";
+import { createCatalogProject } from "../project";
 import { CatalogStorage, type CatalogCommit } from "../storage";
 
 /**
@@ -277,7 +277,6 @@ describe("ADR-248 Phase 4d storage connection", () => {
     await expect(
       storage.load("project:project:old" as EntryId<"project">, library!),
     ).rejects.toThrow("UNSUPPORTED_PROJECT_FORMAT");
-    expect(() => publishCatalogProject()).toThrow("UNSUPPORTED_PROJECT_FORMAT");
   });
 
   const OLD_EXPORT = join(

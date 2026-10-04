@@ -15,15 +15,21 @@ function racLocalesPlugin() {
 export default defineConfig({
   plugins: [racLocalesPlugin(), react()],
   resolve: {
-    alias: {
-      "@composition/shared/components": `${dir}/../../packages/shared/src/components/index.ts`,
-      "@composition/shared/renderers": `${dir}/../../packages/shared/src/renderers/index.ts`,
-      "@composition/shared/types": `${dir}/../../packages/shared/src/types/index.ts`,
-      "@composition/shared/hooks": `${dir}/../../packages/shared/src/hooks/index.ts`,
-      "@composition/shared/utils": `${dir}/../../packages/shared/src/utils/index.ts`,
-      "@composition/shared/assets": `${dir}/../../packages/shared/src/assets/index.ts`,
-      "@composition/shared": `${dir}/../../packages/shared/src/index.ts`,
-    },
+    alias: [
+      {
+        find: /^@composition\/shared\/components\/(.+)$/,
+        replacement: `${dir}/../../packages/shared/src/components/$1`,
+      },
+      ...Object.entries({
+        "@composition/shared/components": `${dir}/../../packages/shared/src/components/index.ts`,
+        "@composition/shared/renderers": `${dir}/../../packages/shared/src/renderers/index.ts`,
+        "@composition/shared/types": `${dir}/../../packages/shared/src/types/index.ts`,
+        "@composition/shared/hooks": `${dir}/../../packages/shared/src/hooks/index.ts`,
+        "@composition/shared/utils": `${dir}/../../packages/shared/src/utils/index.ts`,
+        "@composition/shared/assets": `${dir}/../../packages/shared/src/assets/index.ts`,
+        "@composition/shared": `${dir}/../../packages/shared/src/index.ts`,
+      }).map(([find, replacement]) => ({ find, replacement })),
+    ],
   },
   build: {
     outDir: "dist",

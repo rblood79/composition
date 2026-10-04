@@ -1,7 +1,7 @@
 import type {
   ComponentRuleSize,
   ComponentRuleVariant,
-} from "../../types/composition-document.types";
+} from "../../types/catalog-style.types";
 
 export type CatalogInteractionState = "default" | "hover" | "pressed";
 

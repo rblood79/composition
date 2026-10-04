@@ -115,39 +115,52 @@ declare const __ADR248_SCENARIO__: string;
  * own render stays the glyph-ink source and is recorded against the live capture (`liveIdentity`).
  */
 declare const __ADR248_LIVE_DIR__: string;
+declare const __ADR248_CASES__: string;
+declare const __ADR248_REPORT__: string;
+declare const __ADR248_REPLAY__: string;
+declare const __ADR248_OLD_PNG_DIR__: string;
+const ONLY = new Set(__ADR248_CASES__.split(",").filter(Boolean));
 const LIVE = __ADR248_LIVE_DIR__;
 const AXIS = __ADR248_SCENARIO__ === "axis";
 const STATE = __ADR248_SCENARIO__ === "state";
 const CHILD = __ADR248_SCENARIO__ === "child";
 const DESIGN = "../../docs/adr/design"; // Vitest root = apps/builder
-const REPLAY = CHILD
-  ? `${DESIGN}/248-baseline/system-child-scene.json`
-  : STATE
-    ? `${DESIGN}/248-phase3-state-origin-old-replay.json`
-    : AXIS
-      ? `${DESIGN}/248-phase3-palette-axis-old-replay.json`
-      : `${DESIGN}/248-phase3-palette-old-replay.json`;
+const REPLAY =
+  __ADR248_REPLAY__ ||
+  (CHILD
+    ? `${DESIGN}/248-baseline/system-child-scene.json`
+    : STATE
+      ? `${DESIGN}/248-phase3-state-origin-old-replay.json`
+      : AXIS
+        ? `${DESIGN}/248-phase3-palette-axis-old-replay.json`
+        : `${DESIGN}/248-phase3-palette-old-replay.json`);
 const FROZEN = STATE
   ? `${DESIGN}/248-baseline/state-origins-production`
   : AXIS
     ? `${DESIGN}/248-baseline/palette-variant-size`
     : `${DESIGN}/248-baseline/palette-production-base`;
-const OUTPUT = LIVE
-  ? `${DESIGN}/248-phase4-g3-live-${__ADR248_SCENARIO__}.json`
-  : CHILD
-    ? `${DESIGN}/248-phase3-system-child-canvas.json`
+const OUTPUT =
+  __ADR248_REPORT__ ||
+  (ONLY.size || __ADR248_REPLAY__
+    ? `test-results/adr248-g3-selected-${__ADR248_SCENARIO__}.json`
+    : LIVE
+      ? `${DESIGN}/248-phase4-g3-live-${__ADR248_SCENARIO__}.json`
+      : CHILD
+        ? `${DESIGN}/248-phase3-system-child-canvas.json`
+        : STATE
+          ? `${DESIGN}/248-phase3-state-origin-canvas.json`
+          : AXIS
+            ? `${DESIGN}/248-phase3-palette-axis-canvas.json`
+            : `${DESIGN}/248-phase3-palette-base-canvas.json`);
+const PNG_DIR = __ADR248_REPLAY__
+  ? `test-results/adr248-g3-supplement/${__ADR248_SCENARIO__}`
+  : LIVE
+    ? `${LIVE}/harness`
     : STATE
-      ? `${DESIGN}/248-phase3-state-origin-canvas.json`
+      ? `${DESIGN}/248-phase3-state-origin-canvas`
       : AXIS
-        ? `${DESIGN}/248-phase3-palette-axis-canvas.json`
-        : `${DESIGN}/248-phase3-palette-base-canvas.json`;
-const PNG_DIR = LIVE
-  ? `${LIVE}/harness`
-  : STATE
-    ? `${DESIGN}/248-phase3-state-origin-canvas`
-    : AXIS
-      ? `${DESIGN}/248-phase3-palette-axis-canvas`
-      : `${DESIGN}/248-phase3-palette-base-canvas`;
+        ? `${DESIGN}/248-phase3-palette-axis-canvas`
+        : `${DESIGN}/248-phase3-palette-base-canvas`;
 /** State scenario: compared pixels are the old ∪ new root box grown by this many CSS px. */
 const STATE_REGION_MARGIN = 6;
 const PAGE = { width: 1920, height: 1080 };
@@ -199,6 +212,9 @@ const CAPTURE_DATE = new Date(2026, 8, 28, 12, 0, 0);
 type Rect = { x: number; y: number; width: number; height: number };
 type ReplayRow = {
   type: string;
+  recordedInput?: { iconName?: string };
+  host?: string;
+  pngSha256?: string;
   /** State scenario: the Components-page origin ID and its `metadata.variant`. */
   id?: string;
   state?: string;
@@ -266,6 +282,10 @@ beforeAll(async () => {
     baselineAbsent = true;
     return;
   }
+  if (Boolean(__ADR248_REPLAY__) !== Boolean(__ADR248_OLD_PNG_DIR__))
+    throw new Error(
+      "Supplemental oracle requires both replay and old PNG directory",
+    );
   vi.useFakeTimers({ toFake: ["Date"], now: CAPTURE_DATE });
   // Font environment fixed for both legs (G3 §6.1): the DOM reads the same Pretendard file the
   // Canvas (`loadBuiltinFontsToSkia`) draws with. The product Preview loads the static Pretendard
@@ -316,6 +336,10 @@ beforeAll(async () => {
   code = await buildCodeCatalogLibrary();
   fixture = createPencilFixtureLibrary();
   const source = JSON.parse(await commands.readFile(REPLAY)) as Replay;
+  if (__ADR248_REPLAY__)
+    expect(source.head, "supplement must use the frozen G0 commit").toBe(
+      "2a5c970994cb9de2f824a729b29c08cdcd647d7b",
+    );
   replay = CHILD
     ? (() => {
         const scene = source as unknown as {
@@ -405,7 +429,7 @@ beforeAll(async () => {
 afterAll(async () => {
   vi.useRealTimers();
   // A skipped run (no local baseline) keeps the recorded verdicts.
-  if (baselineAbsent) return;
+  if (baselineAbsent || !replay) return;
   const rows = results as Array<{ verdict: string }>;
   const count = (verdict: string) =>
     rows.filter((row) => row.verdict === verdict).length;
@@ -414,6 +438,11 @@ afterAll(async () => {
     `${JSON.stringify(
       {
         adr: 248,
+        scope: {
+          selected: [...ONLY],
+          totalCases: replay.rows.length,
+          measuredCases: rows.length,
+        },
         phase: LIVE ? 4 : 3,
         check: AXIS
           ? "G3 pre-cutover old/new Canvas — palette-variant-size (single axes)"
@@ -423,7 +452,7 @@ afterAll(async () => {
               ? "G3 pre-cutover old/new Canvas — state-origins-production (Components page, ⇧2 camera)"
               : "G3 pre-cutover old/new Canvas — palette-production-base",
         oldOracle: {
-          frozenPngs: `${FROZEN}/canvas`,
+          frozenPngs: __ADR248_OLD_PNG_DIR__ || `${FROZEN}/canvas`,
           replay: REPLAY,
           replayHead: replay?.head,
           scenarioId: replay?.scenarioId,
@@ -824,6 +853,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
     element.height = clip.height;
     document.body.append(element);
     for (const row of replay.rows) {
+      if (ONLY.size && !ONLY.has(caseKey(row))) continue;
       const entry: Record<string, unknown> = {
         ...(row.id ? { id: row.id, state: row.state } : {}),
         type: row.type,
@@ -852,7 +882,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       // axis list is the rule's D3 axes; a type whose contract has no such prop is run unedited
       // only when the old authoring was a no-op (frozen axis PNG = frozen base PNG) — otherwise
       // the old app consumed a prop the new contract lacks, and the case is not run.
-      let axisProps: NodeEntry["props"] | undefined;
+      let axisProps: NodeEntry["props"] | undefined =
+        __ADR248_REPLAY__ && row.type === "Icon" && row.recordedInput?.iconName
+          ? { iconName: { kind: "set", value: row.recordedInput.iconName } }
+          : undefined;
       if (row.axis) {
         const [prop, value] = row.axis.split(":");
         const definition = target.library.definitions.get(
@@ -866,7 +899,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             )
           : undefined;
         if (contract && prop in contract.accepts) {
-          axisProps = { [prop]: { kind: "set", value } };
+          axisProps = { ...axisProps, [prop]: { kind: "set", value } };
           entry.axisAuthoring = "authored";
         } else if (axisPngSha.get(caseKey(row)) === basePngSha.get(row.type)) {
           entry.axisAuthoring =
@@ -921,7 +954,7 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             documentFor(
               target.definitionId,
               axisProps,
-              CHILD ? SECTION_HOSTS[row.id ?? ""] : undefined,
+              row.host ?? (CHILD ? SECTION_HOSTS[row.id ?? ""] : undefined),
               live?.entry,
             ),
             target.library,
@@ -1403,6 +1436,23 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             ),
           );
         }
+        if (row.type === "Icon") {
+          const icon = host.querySelector(".react-aria-Icon");
+          const svg = icon?.querySelector("svg");
+          if (icon && svg) {
+            const box = icon.getBoundingClientRect();
+            const glyph = svg.getBoundingClientRect();
+            entry.iconDomGlyph = {
+              x: glyph.x - box.x,
+              y: glyph.y - box.y,
+              width: glyph.width,
+              height: glyph.height,
+              box: { width: box.width, height: box.height },
+              alignItems: getComputedStyle(icon).alignItems,
+              justifyContent: getComputedStyle(icon).justifyContent,
+            };
+          }
+        }
         reactRoot.unmount();
         host.remove();
         entry.canvasDom = {
@@ -1571,6 +1621,42 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         });
         continue;
       }
+      if (row.type === "Icon") {
+        const dom = entry.iconDomGlyph as
+          { x: number; y: number; width: number; height: number } | undefined;
+        const icon = bound.stream.commands
+          .map(
+            (command) =>
+              (
+                command as unknown as {
+                  skiaData?: {
+                    iconPath?: { cx: number; cy: number; size: number };
+                  };
+                }
+              ).skiaData?.iconPath,
+          )
+          .find(Boolean);
+        if (dom && icon) {
+          const canvas = {
+            x: icon.cx - icon.size / 2,
+            y: icon.cy - icon.size / 2,
+            width: icon.size,
+            height: icon.size,
+          };
+          const delta = Math.max(
+            ...(["x", "y", "width", "height"] as const).map((key) =>
+              Math.abs(dom[key] - canvas[key]),
+            ),
+          );
+          entry.iconGlyphParity = {
+            dom,
+            canvas,
+            maxDelta: delta,
+            pass: delta <= 1,
+          };
+        } else
+          entry.iconGlyphParity = { pass: false, reason: "MISSING_GLYPH_BOX" };
+      }
       const surface = ck.MakeWebGLCanvasSurface(element);
       if (!surface) throw new Error("G3_WEBGL_SURFACE_UNAVAILABLE");
       let pixels: Uint8Array;
@@ -1723,12 +1809,23 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       );
 
       // ── regions: text boxes (L4) > L3e band > L3 non-text ─────────────────
-      const old = decodePng(
-        await commands.readFile(
-          `${FROZEN}/canvas/${caseKey(row)}.png`,
-          "base64",
-        ),
+      const oldBase64 = await commands.readFile(
+        `${__ADR248_OLD_PNG_DIR__ || `${FROZEN}/canvas`}/${caseKey(row)}.png`,
+        "base64",
       );
+      if (__ADR248_REPLAY__) {
+        const bytes = Uint8Array.from(atob(oldBase64), (char) =>
+          char.charCodeAt(0),
+        );
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        const sha = [...new Uint8Array(digest)]
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+        expect(sha, "supplement PNG must match its recorded observation").toBe(
+          row.pngSha256,
+        );
+      }
+      const old = decodePng(oldBase64);
       expect([old.width, old.height]).toEqual([clip.width, clip.height]);
       for (let index = 3; index < old.pixels.length; index += 4)
         old.pixels[index] = 255;
@@ -2183,7 +2280,11 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       // G3: old/new geometry, the new Canvas ↔ isolated DOM contract and non-text L3 each block;
       // with all three clear the type is PASS (L3e is recorded, not a completion condition).
       // An old input the G0 capture did not record makes L3 compare two different drawings.
-      const l3InputMismatch = OLD_UNRECORDED_INPUT[row.type];
+      const l3InputMismatch =
+        __ADR248_REPLAY__ && row.type === "Icon" && row.recordedInput?.iconName
+          ? undefined
+          : OLD_UNRECORDED_INPUT[row.type];
+      if (row.recordedInput) entry.recordedInput = row.recordedInput;
       if (l3InputMismatch)
         entry.L3 = {
           ...(entry.L3 as object),
@@ -2196,6 +2297,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           ? []
           : ["canvasDom"]),
         ...(l3Blocked && !l3InputMismatch ? ["L3"] : []),
+        ...(row.type === "Icon" &&
+        !(entry.iconGlyphParity as { pass?: boolean })?.pass
+          ? ["iconGlyph"]
+          : []),
       ];
       entry.failedLegs = failedLegs;
       entry.verdict = failedLegs.length
@@ -2208,6 +2313,17 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           "replay PNG differs from the frozen PNG (old nondeterminism); geometry oracle is the replay state";
     }
     element.remove();
-    expect(results.length).toBe(replay.rows.length);
+    const requested = replay.rows.filter(
+      (row) => !ONLY.size || ONLY.has(caseKey(row)),
+    );
+    expect(results.length).toBe(requested.length);
+    if (ONLY.size)
+      expect(requested.length, "unknown G3 case key").toBe(ONLY.size);
+    expect(
+      (results as Array<{ verdict: string }>).filter(
+        (row) => row.verdict === "FAIL",
+      ),
+      "G3 failed legs",
+    ).toEqual([]);
   }, 600_000);
 });

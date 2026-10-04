@@ -13,7 +13,7 @@
 // ============================================
 //
 // 본 Element 타입의 여러 필드는 pencil.dev 정합 canonical format으로 전환 중이다.
-// canonical 타입: packages/shared/src/types/composition-document.types.ts
+// canonical 타입: packages/shared/src/types/catalog-style.types.ts
 // 전환 계획: docs/adr/903-ref-descendants-slot-composition-format-migration-plan.md
 //
 // Phase 0 (현재): 타입/계약 고정. 기존 Element 구조 변경 없음
@@ -87,7 +87,7 @@ export interface Element {
   customId?: string;
   /**
    * ADR-113 P1+P2 (2026-04-27): canonical `type` 필드로 rename 완료. 값 공간은
-   * pencil 정합 ComponentTag literal union 으로 수렴 (composition-document.types.ts
+   * pencil 정합 ComponentTag literal union 으로 수렴 (catalog-style.types.ts
    * 참조). DB 컬럼 rename 은 Phase 4 (DB_VERSION 8→9).
    */
   type: string;

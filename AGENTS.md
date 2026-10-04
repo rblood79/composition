@@ -1,8 +1,7 @@
 # Composition
 
 Builder는 `apps/builder`, publish runtime은 `apps/publish`, 시각 정본은
-`packages/shared/src/catalog`와 theme/tokens, 공용 렌더링은 `packages/rendering`,
-Publish 후속용 잔존 spec은 `packages/specs`,
+`packages/shared/src/catalog`와 theme/tokens, catalog CSS 생성·공용 렌더링은 `packages/rendering`,
 Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진 (`@composition/upload`, ADR-201)
 은 `packages/upload-engine`에 있습니다.
 

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { racSuggestionFeatures } from "./racSuggestionFeatures";
 import { describe, expect, it } from "vitest";
-import { resolveEditContract, type CanonicalNode } from "@composition/shared";
+import { editContractFixture } from "../../catalogRuntime/__tests__/support/editContractFixture";
 import { getLocalSuggestions } from "./localSuggestions";
 import { withPanelStyleFields } from "../../../services/ai/compiler/styleManifest";
 import type {
@@ -11,11 +11,7 @@ import type {
 } from "../../../services/ai/compiler/manifest";
 
 function fixture(type: string, props: Record<string, unknown> = {}) {
-  const fields = resolveEditContract({
-    id: "selected",
-    type,
-    props,
-  } as CanonicalNode).fields;
+  const fields = editContractFixture(type, props).fields;
   const manifest: CommandManifest = {
     commands: [],
     components: ["Button", "Select", "Card"].map((type) => ({
@@ -115,9 +111,9 @@ describe("RAC 주요 기능과 공통 편집을 함께 제공", () => {
   it.each([
     ["Button", "set isPending to true"],
     ["Checkbox", "set isIndeterminate to true"],
-    ["ToggleButton", "set isSelected to true"],
+    ["ToggleButton", "set isSelected to false"],
     ["Select", "set selectionMode to multiple"],
-    ["ComboBox", "set allowsCustomValue to true"],
+    ["ComboBox", "set allowsCustomValue to false"],
     ["NumberField", "set step to 5"],
     ["ProgressBar", "set isIndeterminate to true"],
     ["ListBox", "set selectionMode to multiple"],

@@ -13,7 +13,7 @@ import type { InspectorFieldKind } from "../types";
 import type {
   ComponentRule,
   ComponentRuleSize,
-} from "../../types/composition-document.types";
+} from "../../types/catalog-style.types";
 import type {
   ConditionalRule,
   LayoutField,

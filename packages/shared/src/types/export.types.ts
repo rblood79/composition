@@ -4,9 +4,6 @@
  * @since 2026-01-02 Phase 1
  */
 
-import type { CompositionDocument } from "./composition-document.types";
-import type { FontRegistryV2 } from "./font.types";
-
 // ============================================
 // Error Codes
 // ============================================
@@ -82,42 +79,6 @@ export interface ProjectMetadata {
 /**
  * 내보내기용 프로젝트 데이터
  */
-export interface ExportedProjectData {
-  version: string;
-  exportedAt: string;
-  project: {
-    id: string;
-    name: string;
-  };
-  document: CompositionDocument;
-  currentPageId?: string | null;
-  fontRegistry?: FontRegistryV2;
-  metadata?: ProjectMetadata;
-}
-
-/**
- * Import 결과 (성공)
- */
-export interface ImportResultSuccess {
-  success: true;
-  data: ExportedProjectData;
-  warnings?: ExportError[];
-}
-
-/**
- * Import 결과 (실패)
- */
-export interface ImportResultFailure {
-  success: false;
-  error: ExportError;
-  errors?: ExportError[];
-}
-
-/**
- * Import 결과
- */
-export type ImportResult = ImportResultSuccess | ImportResultFailure;
-
 // ============================================
 // Validation Limits
 // ============================================

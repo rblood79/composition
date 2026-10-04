@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type {
-  CompositionDocument,
-  ThemesCollection,
-} from "../../types/composition-document.types";
+import type { ThemesCollection } from "../../types/catalog-style.types";
 import {
   BASE_TYPOGRAPHY_TOKEN_KEYS,
   DEFAULT_THEME_ID,
@@ -13,7 +10,6 @@ import {
   duplicateTheme,
   getActiveTheme,
   isThemesCollection,
-  migrateThemesField,
   normalizeThemesCollection,
   removeTheme,
   renameTheme,
@@ -21,27 +17,6 @@ import {
   setThemePreset,
   setThemeToken,
 } from "../themesCollection";
-
-const SEED = {
-  fontFamily: "Pretendard, sans-serif",
-  fontSize: 16,
-  lineHeight: 1.5,
-};
-const base = (extra: Partial<CompositionDocument> = {}): CompositionDocument =>
-  ({
-    version: "composition-1.0",
-    children: [],
-    ...extra,
-  }) as CompositionDocument;
-const opts = (
-  patch: Partial<Parameters<typeof migrateThemesField>[1]> = {},
-): Parameters<typeof migrateThemesField>[1] => ({
-  legacyConfig: null,
-  legacyWriteThrough: false,
-  source: "local-project",
-  baseTypographySeed: SEED,
-  ...patch,
-});
 
 describe("ADR-227 themesCollection — 모양 · 기본 · 무결성", () => {
   it("기본 컬렉션 = Default 하나 · active/order 정합 · tokens 델타 {}", () => {
@@ -84,217 +59,6 @@ describe("ADR-227 themesCollection — 모양 · 기본 · 무결성", () => {
     );
     const ok = createThemesCollection();
     expect(normalizeThemesCollection(ok).collection).toBe(ok);
-  });
-});
-
-describe("ADR-227 migrateThemesField — §3.2 행렬", () => {
-  it("행 1: 이미 컬렉션 → legacy/flag 무시 · 무결성 보정만 · 무변경이면 같은 문서", () => {
-    const doc = base({
-      themes: createThemesCollection({ ...DEFAULT_THEME_PRESET, tint: "red" }),
-    });
-    const r = migrateThemesField(
-      doc,
-      opts({ legacyConfig: { tint: "green" }, legacyWriteThrough: true }),
-    );
-    expect(r.changed).toBe(false);
-    expect(r.document).toBe(doc);
-    expect(r.report.path).toBe("collection");
-    expect(getActiveTheme(r.document)!.preset.tint).toBe("red");
-  });
-
-  it("행 2 (실전 유일 경로): 구 문서 (themes 부재) + off → legacy localStorage 실효값 · baseTypography 는 seed 와 다른 키만 델타", () => {
-    const r = migrateThemesField(
-      base(),
-      opts({
-        legacyConfig: {
-          tint: "purple",
-          darkMode: "dark",
-          neutral: "zinc",
-          radiusScale: "lg",
-          baseTypography: {
-            fontFamily: SEED.fontFamily,
-            fontSize: 18,
-            lineHeight: 1.5,
-          },
-        },
-      }),
-    );
-    expect(r.changed).toBe(true);
-    expect(r.report.path).toBe("legacy-config");
-    const active = getActiveTheme(r.document)!;
-    expect(active.preset).toEqual({
-      tint: "purple",
-      darkMode: "dark",
-      neutral: "zinc",
-      radiusScale: "lg",
-    });
-    expect(active.tokens).toEqual({
-      [BASE_TYPOGRAPHY_TOKEN_KEYS.fontSize]: {
-        type: "number",
-        value: 18,
-        source: "spec-token",
-      },
-    });
-    expect(r.document.tokens).toBeUndefined();
-  });
-
-  it("행 2′: 구 문서 + off + 구 document.themes 있어도 stale — legacy 필드 우선 · legacy 없으면 기본값", () => {
-    const stale = base({
-      themes: {
-        tint: "red",
-        darkMode: "light",
-        neutral: "neutral",
-        radiusScale: "sm",
-      } as never,
-    });
-    const withLegacy = migrateThemesField(
-      stale,
-      opts({ legacyConfig: { tint: "green" } }),
-    );
-    expect(withLegacy.report.path).toBe("legacy-config");
-    expect(getActiveTheme(withLegacy.document)!.preset).toEqual({
-      ...DEFAULT_THEME_PRESET,
-      tint: "green",
-    });
-    const noLegacy = migrateThemesField(stale, opts());
-    expect(noLegacy.report.path).toBe("default");
-    expect(getActiveTheme(noLegacy.document)!.preset).toEqual(
-      DEFAULT_THEME_PRESET,
-    );
-    expect(getActiveTheme(noLegacy.document)!.tokens).toEqual({});
-  });
-
-  it("행 3: on + 유효 구 snapshot → 구 document.themes 우선 · baseTypography 는 legacy · customTokens 는 알려진 키만 델타", () => {
-    const doc = base({
-      themes: {
-        tint: "red",
-        darkMode: "system",
-        neutral: "slate",
-        radiusScale: "xl",
-        customTokens: {
-          "color.accent": "#123456",
-          "radius.md": "10",
-          "weird.key": "x",
-          "typography.text-sm": "13",
-        },
-      } as never,
-    });
-    const r = migrateThemesField(
-      doc,
-      opts({
-        legacyWriteThrough: true,
-        legacyConfig: {
-          tint: "green",
-          baseTypography: {
-            fontFamily: "Inter",
-            fontSize: 16,
-            lineHeight: 1.5,
-          },
-        },
-      }),
-    );
-    expect(r.report.path).toBe("legacy-doc");
-    const active = getActiveTheme(r.document)!;
-    expect(active.preset).toEqual({
-      tint: "red",
-      darkMode: "system",
-      neutral: "slate",
-      radiusScale: "xl",
-    });
-    expect(active.tokens).toEqual({
-      [BASE_TYPOGRAPHY_TOKEN_KEYS.fontFamily]: {
-        type: "string",
-        value: "Inter",
-        source: "spec-token",
-      },
-      "color.accent": { type: "color", value: "#123456", source: "spec-token" },
-      "radius.md": { type: "number", value: 10, source: "spec-token" },
-      "typography.text-sm": { type: "number", value: 13, source: "spec-token" },
-    });
-    expect(r.report.warnings.some((w) => w.includes("weird.key"))).toBe(true);
-  });
-
-  it("행 4: on + 부재/무효 snapshot → legacy → 기본값 (무효 snapshot 은 경고)", () => {
-    const r = migrateThemesField(
-      base({ themes: { tint: 3 } as never }),
-      opts({ legacyWriteThrough: true, legacyConfig: { neutral: "gray" } }),
-    );
-    expect(r.report.path).toBe("legacy-config");
-    expect(getActiveTheme(r.document)!.preset.neutral).toBe("gray");
-    expect(r.report.warnings.some((w) => w.includes("ThemeSnapshot"))).toBe(
-      true,
-    );
-  });
-
-  it("행 5: import — 이 기기의 legacy 는 섞지 않는다 · 유효 구 snapshot → 기본값", () => {
-    const withSnap = migrateThemesField(
-      base({
-        themes: {
-          tint: "pink",
-          darkMode: "light",
-          neutral: "neutral",
-          radiusScale: "none",
-        } as never,
-      }),
-      opts({
-        source: "import",
-        legacyConfig: { tint: "green", baseTypography: { fontSize: 20 } },
-      }),
-    );
-    expect(withSnap.report.path).toBe("legacy-doc");
-    expect(getActiveTheme(withSnap.document)!.preset.tint).toBe("pink");
-    expect(getActiveTheme(withSnap.document)!.tokens).toEqual({});
-    const plain = migrateThemesField(
-      base(),
-      opts({ source: "import", legacyConfig: { tint: "green" } }),
-    );
-    expect(plain.report.path).toBe("default");
-  });
-
-  it("기존 root tokens — spec-token 은 Default 델타로 (legacy 키가 먼저) · user-defined 는 root 에 남는다 · 무효 entry 는 버림", () => {
-    const r = migrateThemesField(
-      base({
-        tokens: {
-          "color.accent": {
-            type: "color",
-            value: "#ff0000",
-            source: "spec-token",
-          },
-          [BASE_TYPOGRAPHY_TOKEN_KEYS.fontSize]: {
-            type: "number",
-            value: 99,
-            source: "spec-token",
-          },
-          brand: { type: "color", value: "#00ff00", source: "user-defined" },
-          bad: { nope: true } as never,
-        },
-      }),
-      opts({ legacyConfig: { baseTypography: { fontSize: 18 } } }),
-    );
-    const active = getActiveTheme(r.document)!;
-    expect(active.tokens["color.accent"]).toEqual({
-      type: "color",
-      value: "#ff0000",
-      source: "spec-token",
-    });
-    expect(active.tokens[BASE_TYPOGRAPHY_TOKEN_KEYS.fontSize]!.value).toBe(18);
-    expect(r.document.tokens).toEqual({
-      brand: { type: "color", value: "#00ff00", source: "user-defined" },
-    });
-    expect(r.report.warnings.some((w) => w.includes("tokens.bad"))).toBe(true);
-  });
-
-  it("재실행 멱등 — 두 번째는 changed=false · 같은 문서 객체", () => {
-    const once = migrateThemesField(
-      base(),
-      opts({ legacyConfig: { tint: "cyan" } }),
-    ).document;
-    const twice = migrateThemesField(
-      once,
-      opts({ legacyConfig: { tint: "red" } }),
-    );
-    expect(twice.changed).toBe(false);
-    expect(twice.document).toBe(once);
   });
 });
 

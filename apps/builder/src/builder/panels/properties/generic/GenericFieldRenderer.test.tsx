@@ -1,3 +1,4 @@
+import { resolveTestEditContract as resolveEditContract } from "../../../catalogRuntime/__tests__/support/editContractFixture";
 /**
  * ADR-159 P4a — Properties view(live 경로) 필드 피커 게이트.
  *
@@ -9,7 +10,7 @@
 import { render } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-import { resolveEditContract, type ResolvedField } from "@composition/shared";
+import { type ResolvedField } from "@composition/shared";
 
 // 렌더러 게이트만 단위 검증한다 — 소유 collection 컬럼은 field value source 의 `useOwnerFields` 가
 // 공급한다 (ADR-248 4e-9 C: 옛 store source 대신 아래 stub source, 나머지 host 는 catalog).

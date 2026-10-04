@@ -284,9 +284,11 @@ export function generateCSS<Props>(
       `/* ============================================================`,
     );
     lines.push(
-      ` * AUTO-GENERATED from ${spec.name}Spec — DO NOT EDIT MANUALLY`,
+      ` * AUTO-GENERATED from catalog ${spec.name} — DO NOT EDIT MANUALLY`,
     );
-    lines.push(` * Source: packages/specs/src/components/${spec.name}.spec.ts`);
+    lines.push(
+      ` * Source: packages/shared/src/catalog/generated/componentRulesTable.ts`,
+    );
     lines.push(` * Archetype: ${archetype ?? "default"}`);
     lines.push(
       ` * ============================================================ */`,

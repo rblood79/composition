@@ -9,7 +9,7 @@ import type {
   ProjectEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
-import { CatalogStorage, CatalogStorageError } from "./storage";
+import { CatalogStorage } from "./storage";
 
 const PROJECT_PREFIX = "project:project:";
 
@@ -92,21 +92,4 @@ export async function createCatalogProject(
   const document = newCatalogProjectDocument(options);
   await storage.create(document, library);
   return new CatalogGraph(document, library);
-}
-
-/**
- * ADR-248 §4.3: until Publish follows (H4), the Builder's publish entry has nowhere to send a
- * catalog project. It fails with a visible reason — never a blank page, a silent no-op or a
- * catalog→canonical export.
- */
-export class CatalogPublishUnavailableError extends CatalogStorageError {
-  constructor() {
-    super("UNSUPPORTED_PROJECT_FORMAT");
-    this.message =
-      "UNSUPPORTED_PROJECT_FORMAT: publish does not open the catalog project format yet";
-    this.name = "CatalogPublishUnavailableError";
-  }
-}
-export function publishCatalogProject(): never {
-  throw new CatalogPublishUnavailableError();
 }

@@ -1,4 +1,4 @@
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 /** ADR-248 Phase 1. This module has no Builder or persistence dependency. */
 export const CATALOG_FORMAT = "composition-catalog" as const;
 export const CATALOG_SCHEMA_VERSION = 1 as const;

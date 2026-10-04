@@ -8,6 +8,32 @@ Accepted — 2026-09-28 (사용자 "ADR-248 완료까지 착수 시작해")
 
 > **리뷰 round 1·2 종결**: [리뷰 기록](reviews/248.md) round 1 HIGH 6 · MEDIUM 2 · LOW 1 → round 2 수리 검증 HIGH 0. H1/H2/H4는 2026-09-28 사용자 판정으로 확정했고 (아래 표), 본문·breakdown은 그 판정으로 정리했다. 같은 날 사용자 구현 지시로 Accepted 승격했다.
 
+### 2026-10-04 Publish 후속 실행
+
+사용자 “adr 248 남은 작업 착수 시작해” 지시로 H4의 착수 승인 대기를 해제했다.
+Publish는 catalog JSON/v2 파일을 읽고 Preview와 같은 shared catalog DOM/runtime을 사용한다.
+Builder의 Publish 진입점도 새 파일을 전달한다. `CompositionDocument` 및 canonical resolver·export
+adapter와 `packages/specs` 소스는 제거했고 native Frame/Group/Slot의 CSS 입력은 catalog로 통합했다.
+아래 Context·초기 H4 제약·2026-10-03 기록은 결정 당시의 상태다.
+
+[후속 검증 기록](evidence/248-publish-followup.md)에 코드 제거와 실제 브라우저 결과를 기록했다.
+기존 G3의 Icon 7·child 33 UNVERIFIED, axis 6·child 1 NOT_RUN은 이번 Publish 검증으로 닫히지 않는다.
+Status는 **Accepted**를 유지하며 전체 Implemented 판정은 남긴다. 기존 G5 승인 기준은 변경하지 않았다.
+
+### 2026-10-04 G3 잔여 실행
+
+[보충 검증](evidence/248-g3-remaining.md): 동결 HEAD의 구 앱을 복원하고 입력을 고정해 Icon 7/7,
+child 장면 30/33을 확인했다. 새 검사에서 발견한 Canvas Icon 내부 정렬을 수리했다.
+child 3건은 구/신 차이 판정 대기이며, 원래 무작위 Icon의 입력 누락과 계약 밖 입력의 NOT_RUN을
+소급 PASS 처리하지 않았다. Accepted 유지.
+
+### 2026-10-05 G5 후속 재측정
+
+[현재 제품 재측정](evidence/248-g5-followup.md): paired p95 **36/36**, retained heap **9/9**,
+저장 byte **5/5**, 정적 initial bundle **2/2 PASS**. 5k·CPU 4배속 편집 540.39→42.74ms,
+저장 656.67→45.08ms. Preview 실제 부팅 JS 636,473B는 별도 기록하며 기존 정적 initial
+승인 기준과 예산을 유지한다. G3의 3건 판정 대기는 이 결과로 닫히지 않는다.
+
 ## Context
 
 현재 Builder에는 서로 다른 책임의 정본이 있다. `CompositionDocument`는 저작 문서·runtime mutation·저장의 정본이고, `componentCatalog`는 컴포넌트 등록, `COMPONENT_RULES_TABLE`은 기본 시각 규칙, `PrimitiveBinding`은 실행 연결을 담당한다. 이는 당초 의도된 분리다. 다만 reusable definition이 canonical 원본 ID를 참조하고 native frame/Slot이 metadata-only로 남아, 새 정의를 추가하거나 편집 경로를 바꿀 때 여러 표현·해석기를 따라가야 한다.

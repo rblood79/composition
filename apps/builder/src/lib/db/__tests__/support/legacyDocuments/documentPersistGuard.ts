@@ -14,7 +14,7 @@
  *    간격) 판정. 편집 burst 마다 백업이 회전 소모되는 것을 방지.
  */
 
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../legacyPayload";
 import type { DocumentPersistOptions } from "./types";
 
 export type { DocumentPersistOptions };
@@ -53,7 +53,9 @@ function countNodes(nodes: readonly CountableNode[] | undefined): number {
 }
 
 /** canonical document 의 UI node 총 개수 (children 트리 재귀, root collection 제외) */
-export function countCanonicalDocumentNodes(doc: CompositionDocument): number {
+export function countCanonicalDocumentNodes(
+  doc: LegacyDocumentFixture,
+): number {
   return countNodes(doc.children as unknown as CountableNode[]);
 }
 

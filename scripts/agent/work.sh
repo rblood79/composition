@@ -79,7 +79,7 @@ pkg_of() {  # pkg_of <path> → builder|publish|shared|specs|rendering|engine|ot
     apps/builder/*) echo builder ;;
     apps/publish/*) echo publish ;;
     packages/shared/*) echo shared ;;
-    packages/specs/*) echo specs ;;
+    packages/specs/*) echo rendering ;;
     packages/rendering/*) echo rendering ;;
     packages/engine/*) echo engine ;;
     *) echo other ;;

@@ -15,8 +15,6 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3
  */
 
-import type { ResolvedNode } from "../../types/canonical-resolver.types";
-import type { CanonicalNode } from "../../types/composition-document.types";
 import type { PrimitiveBinding } from "../types";
 
 /** `data-{kebab(key)}` 속성으로 라우팅되는 visual-enum prop kind (RAC props 아님). */
@@ -77,12 +75,15 @@ function toDataAttrName(key: string): string {
   return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
-export function toRacProps(
+export function toRacProps<
+  T extends {
+    readonly id?: string;
+    readonly type?: string;
+    readonly props?: Readonly<Record<string, unknown>>;
+  },
+>(
   // Only `props` is read (ADR-248: the catalog runtime passes resolved typed props).
-  node:
-    | CanonicalNode
-    | ResolvedNode
-    | { readonly props?: Readonly<Record<string, unknown>> },
+  node: T,
   binding: PrimitiveBinding,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};

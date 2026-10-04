@@ -25,7 +25,6 @@ import { createFillTreeResolver, type FillTreeNode } from "./fillSizingTree";
  * 하여 그 breakpoint 의 @media 에 직접 넣는다 — CSS 결과 == layout resolve 결과.
  */
 
-import type { CanonicalNode } from "../types/composition-document.types";
 import {
   BREAKPOINTS,
   generateMediaQueryString,
@@ -158,20 +157,6 @@ export function buildResponsiveElementCss(
  * canonical 노드 트리를 순회하며 모든 요소의 responsive @media CSS 를 수집.
  * Preview `<style>` 주입 / Publish `generateStaticHtml` `<style>` 블록 공용.
  */
-export function collectResponsiveCss(nodes: readonly CanonicalNode[]): string {
-  const flat: FillTreeNode[] = [];
-  const walk = (
-    list: readonly CanonicalNode[],
-    parent: string | null,
-  ): void => {
-    for (const node of list) {
-      flat.push({ ...node, parent_id: parent });
-      if (node.children) walk(node.children, node.id);
-    }
-  };
-  walk(nodes, null);
-  return collectResponsiveCssFromElements(flat);
-}
 
 const FILL_CSS_DEFAULTS: Record<string, string | number> = {
   width: "auto",

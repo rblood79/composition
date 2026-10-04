@@ -1,3 +1,4 @@
+import { CatalogGraph } from "../../catalog/document/graph";
 /**
  * ADR-152 Phase 6 — publish/export data snapshot: `toRuntimeCollection` 은 정의 (schema + id) 와
  * mockData · useMockData 만 싣고 runtimeData (빌더 세션의 API 응답, 메모리 전용) · 저장소 메타를 뺀다.
@@ -9,7 +10,6 @@ import {
   toExportCollection,
   resolveCollectionSnapshot,
 } from "../collectionSnapshot";
-import { ExportedProjectSchema } from "../../schemas/project.schema";
 
 const table = {
   id: "c1",
@@ -74,18 +74,24 @@ describe("toExportCollection (ADR-218 — export 채널)", () => {
   // ExportedProjectSchema 의 executionPolicy 통과(import 보존)는 G3 live(export→import)로 검증.
 });
 
-describe("ExportedProjectSchema — schema[].id 통과", () => {
-  it("검증 결과 (strip) 에 필드 id 가 남는다", () => {
-    const result = ExportedProjectSchema.safeParse({
-      version: "1.0.0",
-      exportedAt: new Date().toISOString(),
-      project: { id: "0f494e47-da0a-41da-8b6f-f680386badcf", name: "P" },
-      document: { version: "composition-1.0", children: [] },
-      collections: [toRuntimeCollection(table as never)],
-      metadata: { builderVersion: "1.0.0" },
-    });
-    expect(result.success, JSON.stringify(result.error?.issues)).toBe(true);
-    expect(result.data?.collections?.[0].schema?.[0]).toMatchObject({
+describe("catalog JSON collection 필드 보존", () => {
+  it("schema 필드 id를 왕복 보존한다", async () => {
+    const { createG1Fixture } = await import("../../catalog/document/fixture");
+    const {
+      buildCatalogProjectJson,
+      readCatalogProjectJson,
+      catalogProjectContent,
+    } = await import("../../catalog/runtime/exchange");
+    const fixture = createG1Fixture();
+    const graph = new CatalogGraph(fixture.document, fixture.library);
+    const text = await buildCatalogProjectJson(
+      catalogProjectContent(graph, {
+        collections: [toRuntimeCollection(table as never)],
+      }),
+      async () => null,
+    );
+    const result = await readCatalogProjectJson(text);
+    expect((result.content.collections as any[])[0].schema[0]).toMatchObject({
       id: "f-name",
       key: "name",
     });

@@ -9,7 +9,7 @@ import {
   openLegacyDocuments,
   type LegacyDocuments,
 } from "../../db/__tests__/support/legacyDocuments";
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import {
   buildV2Generation,
   memoryV2Directory,
@@ -46,7 +46,7 @@ const doc = (pageId: string) =>
   ({
     version: "composition-1.0",
     children: [{ id: pageId, type: "page", children: [] }],
-  }) as unknown as CompositionDocument;
+  }) as unknown as LegacyDocumentFixture;
 
 async function seedProject(id: string, data = true) {
   await adapter.projects.insert({

@@ -4,7 +4,7 @@ import {
   isResponsiveEligibleStyleProp,
 } from "../types/responsive.types";
 import type { BreakpointName } from "../types/responsive.types";
-import type { CompositionDocument } from "../types/composition-document.types";
+import type { ComponentRulesTable } from "../types/catalog-style.types";
 import {
   hasDefiniteAxisSize,
   resolveEffectiveFill,
@@ -23,7 +23,7 @@ export interface FillTreeNode extends FillSizingSource {
 export function getSizingEffectiveStyle(
   node: FillTreeNode,
   breakpoint: BreakpointName,
-  document?: CompositionDocument,
+  document?: { componentRules?: ComponentRulesTable },
 ): Record<string, unknown> {
   const rule = node.type
     ? resolveComponentRule(node.type, document)
@@ -56,7 +56,7 @@ export function getSizingEffectiveStyle(
 /** 1회 수집의 부모 스타일 캐시. display:contents는 실제 layout parent까지 건너뛴다. */
 export function createFillTreeResolver(
   nodes: ReadonlyMap<string, FillTreeNode>,
-  document?: CompositionDocument,
+  document?: { componentRules?: ComponentRulesTable },
 ) {
   const cache = new Map<string, Record<string, unknown>>();
   const styleOf = (node: FillTreeNode, breakpoint: BreakpointName) => {

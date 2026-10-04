@@ -5,7 +5,7 @@
 ## Quick Start
 
 ```bash
-# 의존성 설치 (자동으로 specs 빌드 포함)
+# 의존성 설치 (자동으로 catalog palette/CSS 생성 포함)
 pnpm install
 
 # 개발 서버 실행
@@ -31,7 +31,7 @@ pnpm dev       # 재시작
 git pull
 
 # 의존성 및 빌드 산출물 동기화
-pnpm install  # specs 자동 빌드됨
+pnpm install  # catalog palette/CSS 자동 생성
 
 # WASM 바인딩이 변경된 경우 (선택사항)
 pnpm wasm:build:engine
@@ -46,7 +46,7 @@ composition/
 │   └── publish/     # 배포 런타임 (@composition/publish)
 ├── packages/
 │   ├── shared/      # catalog·공용 타입/유틸 (@composition/shared)
-│   ├── specs/       # 잔존 spec 3개·CSS 생성 (@composition/specs)
+│   ├── rendering/   # catalog CSS 생성·렌더링 공용 코드 (@composition/rendering)
 │   ├── engine/  # Rust 레이아웃 엔진 (wasm)
 │   └── config/      # 공유 설정 (@composition/config)
 └── docs/            # 문서
@@ -58,7 +58,7 @@ composition/
 | ------------------------ | --------------------------------------------------------------------------------- |
 | `pnpm dev`               | Builder 개발 서버 실행; 필요한 upstream build만 준비하고 dev task는 캐시하지 않음 |
 | `pnpm dev:lean`          | 로컬 Turbo 캐시를 read-only로 사용하는 개발 서버                                  |
-| `pnpm dev:specs`         | `@composition/specs` watch 실행 (Builder와 별도 터미널)                           |
+| `pnpm dev:specs`         | `@composition/rendering` typecheck watch 실행 (Builder와 별도 터미널)             |
 | `pnpm cache:clean`       | `.turbo/cache`만 명시적으로 삭제                                                  |
 | `pnpm build`             | 프로덕션 빌드                                                                     |
 | `pnpm type-check`        | 타입 검사                                                                         |
@@ -74,7 +74,7 @@ upstream package의 `build`만 먼저 실행합니다. 이전 명령의
 `build --filter=...^@composition/builder`는 Turbo filter 문법상 dependents-only라
 Builder 의존성을 준비하지 못하므로 사용하지 않습니다.
 
-`packages/specs` 소스를 수정하면서 watch하려면 두 터미널을 사용합니다.
+`packages/rendering` 소스를 수정하면서 watch하려면 두 터미널을 사용합니다.
 
 ```bash
 # 터미널 1
@@ -84,7 +84,7 @@ pnpm dev:specs
 pnpm -F @composition/builder dev
 ```
 
-Spec의 palette/CSS 생성 입력을 바꾼 경우에는 watch만으로 생성 단계가
+catalog의 palette/CSS 생성 입력을 바꾼 경우에는 watch만으로 생성 단계가
 실행되지 않으므로 다음을 먼저 실행한 뒤 Builder를 재시작합니다.
 
 ```bash

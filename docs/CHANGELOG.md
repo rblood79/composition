@@ -11,6 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Icon 내부 정렬 회귀 수리와 G3 보충 검증 — ADR-248] - 2026-10-04
+
+### Fixed
+
+- 크기를 늘린 Icon에서 Canvas만 glyph를 가로 중앙에 그리던 오류를 수정했다. catalog box model의 정렬·방향·padding·border를 사용하며 DOM의 SVG와 위치를 맞춘다. 220×130 상자에서 98px 차이 → 0px, 실제 Builder 캡처와 하니스 픽셀 차이 0.
+
+### Tests
+
+- G3에 내부 glyph 위치·FAIL exit·선택 case 범위·보충 oracle hash 검사를 추가했다. 구 앱을 동결 HEAD에서 복원해 고정 Icon 7건과 child 33장면을 재측정했다. Icon 7/7, child 30/33 PASS; 남은 3건과 계약 밖 입력 7건은 [근거](adr/evidence/248-g3-remaining.md)에 분리했다. 원래 G0 집계와 승인 예외 목록은 유지한다.
+- 10월 5일 완료한 [G5 후속 재측정](adr/evidence/248-g5-followup.md): production A/B p95 36/36, retained heap 9/9, 저장 byte 5/5, 정적 initial bundle 2/2 PASS. 기존 상한을 유지하며 Preview 실제 부팅 JS 636,473B와 구조 편집의 잔여 비용은 별도 기록했다.
+
+## [Publish catalog 전환과 구 문서·native spec 제거 — ADR-248 후속] - 2026-10-04
+
+### Breaking Changes
+
+- **Publish 입력을 catalog JSON/v2 ZIP·디렉터리로 전환했다.** 구 canonical 파일은 명시적으로 거부하며 변환 adapter는 제공하지 않는다. `CompositionDocument` 관련 구 public 타입·resolver·export와 `@composition/specs` 소스를 제거했다.
+
+### Changed
+
+- Preview와 Publish의 DOM·상태·테마·파일 실행 코드를 shared catalog runtime으로 추출했다. Builder Publish 버튼이 자산을 포함한 새 파일을 독립 Publish 탭에 전달한다.
+- Frame/Group/Slot CSS 입력을 catalog로 통합하고 CSS 생성기를 rendering으로 옮겼다. `build:specs`·`dev:specs`는 기존 명령 호환용 이름으로 유지한다.
+- 파일 교체는 검증 완료 후 적용하고 이전 자산·interaction runtime을 해제한다. hash 경로·브라우저 뒤로 가기와 responsive breakpoint를 연결했다.
+
+### Fixed
+
+- Publish/Preview에서 Body의 잘못된 CSS class와 Frame `backgroundColor` 처리 오류로 발생하던 스타일 누락·렌더 실패를 수정했다.
+
+### Tests
+
+- 파일·자산 hash 검증, shared runtime, CSS 생성, Builder 인접/전체 테스트와 production module 경계를 검증했다. 실제 Builder→Publish 및 Compare Mode, 독립 Publish 업로드·이동·390px 화면 확인은 [근거](adr/evidence/248-publish-followup.md)에 기록했다. 기존 G3 공백은 유지한다.
+
 ## [Compare Mode CSS 쪽 desktop breakpoint 폭 — Canvas 페이지 폭과 같게] - 2026-10-04
 
 ### Fixed

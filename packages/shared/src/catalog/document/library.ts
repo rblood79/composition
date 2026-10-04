@@ -9,7 +9,7 @@ import type {
   LibraryToken,
   LibraryTokenId,
 } from "./types";
-import type { ComponentRule } from "../../types/composition-document.types";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import {
   CatalogValidationError,
   validateLibraryDefinition,
@@ -143,7 +143,10 @@ export function instanceContract<
   lookupDefinition: (
     id: string,
   ) =>
-    | Pick<LibraryDefinition, "mode" | "accepts" | "propChoices" | "templateRootId">
+    | Pick<
+        LibraryDefinition,
+        "mode" | "accepts" | "propChoices" | "templateRootId"
+      >
     | undefined,
   lookupTemplate: (id: string) => { definitionId: string } | undefined,
   visiting: ReadonlySet<string> = new Set(),
@@ -307,7 +310,9 @@ export function buildCatalogLibrary(
     for (const child of node.children)
       if (!templates.has(child))
         throw new CatalogValidationError("DANGLING_TEMPLATE", child);
-    const composite = definitions.get(node.definitionId as LibraryDefinitionId)!;
+    const composite = definitions.get(
+      node.definitionId as LibraryDefinitionId,
+    )!;
     for (const [index, patch] of (node.descendantPatches ?? []).entries()) {
       const at = `${node.id}.descendantPatches[${index}]`;
       if (
@@ -330,10 +335,16 @@ export function buildCatalogLibrary(
         if (!expected)
           throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
         if (typeof value !== "object" && typeof value !== expected)
-          throw new CatalogValidationError("PROP_TYPE_MISMATCH", `${at}.${key}`);
+          throw new CatalogValidationError(
+            "PROP_TYPE_MISMATCH",
+            `${at}.${key}`,
+          );
         const choices = targetContract.propChoices?.[key];
         if (choices && !choices.includes(literal(value) as never))
-          throw new CatalogValidationError("PROP_CHOICE_MISMATCH", `${at}.${key}`);
+          throw new CatalogValidationError(
+            "PROP_CHOICE_MISMATCH",
+            `${at}.${key}`,
+          );
       }
     }
   }

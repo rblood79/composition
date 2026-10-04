@@ -1,3 +1,4 @@
+import { openCatalogPublish } from "./openCatalogPublish";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toExportCollection, toRuntimeApiEndpoint } from "@composition/shared";
 import type { ProjectContentV2 } from "@composition/shared/assets";
@@ -107,6 +108,19 @@ export function useCatalogProjectFiles(options: {
       ),
     [t, toast],
   );
+
+  const openPublish = useCallback(async () => {
+    const content = collectContent();
+    if (!content) {
+      toast("error", t("header.projectFileUnavailable"));
+      return;
+    }
+    try {
+      await openCatalogPublish(content, readStoredAsset);
+    } catch (error) {
+      exportFailed(error);
+    }
+  }, [collectContent, exportFailed, t, toast]);
 
   const exportZip = useCallback(async () => {
     const content = collectContent();
@@ -327,6 +341,7 @@ export function useCatalogProjectFiles(options: {
     ) : null;
 
   return {
+    openPublish,
     exportZip,
     exportJson,
     importFile,

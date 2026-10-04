@@ -9,7 +9,7 @@ import {
   openLegacyDocuments,
   type LegacyDocuments,
 } from "../../db/__tests__/support/legacyDocuments";
-import type { CompositionDocument } from "@composition/shared";
+import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { encodeDataUrl } from "@composition/shared/assets";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, readAssetRecords } from "../assetDb";
@@ -27,7 +27,7 @@ const PNG = encodeDataUrl(
 );
 const JPG = encodeDataUrl("image/jpeg", new Uint8Array([255, 216, 255, 9]));
 
-function doc(): CompositionDocument {
+function doc(): LegacyDocumentFixture {
   return {
     version: "composition-1.0",
     children: [
@@ -41,7 +41,7 @@ function doc(): CompositionDocument {
       { id: "b", type: "Image", props: { src: JPG, alt: "x" } },
       { id: "c", type: "Text", props: { children: "data: 는 텍스트" } },
     ],
-  } as unknown as CompositionDocument;
+  } as unknown as LegacyDocumentFixture;
 }
 
 let adapter: IndexedDBAdapter;
@@ -87,14 +87,14 @@ describe("인라인 자산 탐지 · 치환", () => {
 
 describe("프로젝트 이관 (G2 원복 RED)", () => {
   async function run(
-    current: { value: CompositionDocument },
+    current: { value: LegacyDocumentFixture },
     options: {
       backup?: () => Promise<boolean>;
       store?: Parameters<typeof migrateProjectInlineAssets>[0]["store"];
     } = {},
   ) {
-    const applied: CompositionDocument[] = [];
-    const result = await migrateProjectInlineAssets<CompositionDocument>({
+    const applied: LegacyDocumentFixture[] = [];
+    const result = await migrateProjectInlineAssets<LegacyDocumentFixture>({
       getDocument: () => current.value,
       backupNow: options.backup ?? (async () => true),
       apply: (next) => {
@@ -174,7 +174,7 @@ describe("프로젝트 이관 (G2 원복 RED)", () => {
         children: current.value.children.map((node) =>
           node.id === "c" ? { ...node, props: { children: "edited" } } : node,
         ),
-      } as CompositionDocument;
+      } as LegacyDocumentFixture;
       return stored;
     };
     await run(current, { store: slow });

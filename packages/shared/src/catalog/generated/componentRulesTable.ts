@@ -12,7 +12,7 @@
  * `resolveComponentRule`) / Properties·Style Panel — 모두 본 테이블 단일 source 파생(DOM/Skia 시각 대칭).
  * TokenRef(`{color.X}`)는 string 그대로 — runtime resolveCanonicalToken/resolveToken 이 변환.
  */
-import type { ComponentRulesTable } from "../../types/composition-document.types";
+import type { ComponentRulesTable } from "../../types/catalog-style.types";
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Avatar: {
@@ -5896,6 +5896,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
       },
     },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+    },
   },
   GridList: {
     // 2026-07-29 사용자 보고("components page 에서 Container Align 을 주면 GridList 자식이
@@ -6122,6 +6127,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 0,
       },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
     },
   },
   // ADR-912 단계5 step4 (2026-06-16): Header.spec.ts 삭제 — Section Header 시각 SSOT.
@@ -11367,20 +11377,67 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     sizes: {
       sm: {
+        minHeight: 40,
+        paddingX: 8,
+        paddingY: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
-        height: 0,
+        gap: 4,
       },
       md: {
+        minHeight: 60,
+        paddingX: 12,
+        paddingY: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
-        height: 0,
+        gap: 8,
       },
       lg: {
+        minHeight: 80,
+        paddingX: 16,
+        paddingY: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
-        height: 0,
+        gap: 12,
       },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "block",
+      },
+      composition: {
+        delegation: [],
+        externalStyles: [
+          {
+            selector: ".react-aria-Slot > .react-aria-Slot-placeholder",
+            styles: {
+              display: "flex",
+              "align-items": "center",
+              gap: "8px",
+              "min-width": "0",
+            },
+          },
+          {
+            selector: ".react-aria-Slot .react-aria-Slot-icon",
+            styles: {
+              display: "flex",
+              flex: "none",
+              "align-items": "center",
+            },
+          },
+          {
+            selector: ".react-aria-Slot .react-aria-Slot-info",
+            styles: {
+              display: "flex",
+              "flex-direction": "column",
+              "min-width": "0",
+            },
+          },
+        ],
+      },
+      states: {},
     },
   },
   StatusLight: {

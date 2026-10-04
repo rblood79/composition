@@ -24,11 +24,7 @@ import type {
   EntryId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { loadCatalogProductLibrary } from "../catalogRuntime/library";
-import {
-  catalogProjectIdOf,
-  CatalogPublishUnavailableError,
-  publishCatalogProject,
-} from "../catalogRuntime/project";
+import { catalogProjectIdOf } from "../catalogRuntime/project";
 import {
   CatalogWorkspaceProvider,
   useCatalogSaveStatus,
@@ -283,15 +279,6 @@ export function CatalogBuilderCore() {
   const toastError = useCallback((message: string) => {
     useToastStore.getState().showToast("error", message);
   }, []);
-  // Preview · publish: no path opens a catalog project yet (ADR-248 §4.3) — an explicit failure.
-  const handlePreview = useCallback(() => {
-    try {
-      publishCatalogProject();
-    } catch (error) {
-      if (!(error instanceof CatalogPublishUnavailableError)) throw error;
-      toastError(t("catalogProject.publishUnavailable"));
-    }
-  }, [t, toastError]);
   const handleSceneError = useCallback(
     (error: unknown) => {
       console.error("[CatalogBuilder] canvas scene:", error);
@@ -602,7 +589,7 @@ export function CatalogBuilderCore() {
       breakpoint={selectedBreakpoint}
       breakpoints={OPEN_BREAKPOINTS}
       onBreakpointChange={handleBreakpointChange}
-      onPreview={handlePreview}
+      onPreview={files.openPublish}
       onPlay={() => {}}
       onImportProject={files.importFile}
       onExportProject={files.exportZip}

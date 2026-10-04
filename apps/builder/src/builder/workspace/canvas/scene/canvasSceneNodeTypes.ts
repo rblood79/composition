@@ -4,9 +4,9 @@
  * fills it from composition root records.
  */
 import type {
-  CanonicalNode,
-  DescendantOverride,
   StateDependency,
+  ElementResponsiveConfig,
+  FillAxes,
 } from "@composition/shared";
 import type { FillItem } from "../../../../types/builder/fill.types";
 import type { CanvasProjectionMetadata } from "../canvasProjection";
@@ -37,7 +37,7 @@ export interface CanvasSceneNode {
    */
   componentName?: string;
   name?: string;
-  metadata?: CanonicalNode["metadata"];
+  metadata?: Record<string, unknown>;
   /**
    * Background fill 스택 — canonical 1차 필드 `CanonicalNode.fills` 운반.
    * Skia 소비: buildBoxNodeData(전체 fill 모델) / buildSpecNodeData catalog
@@ -56,15 +56,14 @@ export interface CanvasSceneNode {
   collectionShellTag?: string;
   projection?: CanvasProjectionMetadata;
   ref?: string;
-  descendants?: Record<string, DescendantOverride>;
   slot?: false | string[];
   /**
    * ADR-154 반응형 override. layout/render resolve 경로(useLayoutPublisher /
    * renderCommands)가 activeBreakpoint 기준 base⊕override merge 에 사용.
    * canonical `CanonicalNode.responsive` 에서 복사.
    */
-  responsive?: CanonicalNode["responsive"];
-  sizing?: CanonicalNode["sizing"];
+  responsive?: ElementResponsiveConfig;
+  sizing?: FillAxes;
   /** ADR-234 — 숨김 필드 (부재 = 상속 · false = 숨김 · true = 표시). */
   enabled?: boolean;
   /**
@@ -79,5 +78,4 @@ export interface CanvasSceneNode {
    * 표시 (`hasVisibleSlotContent`) 가 "내용 있음" 으로 읽는다.
    */
   hasPopoverContent?: true;
-  sourceNode: CanonicalNode;
 }

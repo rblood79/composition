@@ -4,7 +4,7 @@ import type { ComponentVisualRule } from "@composition/rendering";
 import type {
   ComponentRuleSize,
   ComponentRuleVariant,
-} from "../../types/composition-document.types";
+} from "../../types/catalog-style.types";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import {
   resolveCatalogPaint,
