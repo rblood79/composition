@@ -2170,6 +2170,16 @@ async function runFrameLane(page, cdp, seed, options) {
     // 휠 부류는 gate-off + 2 rAF 까지 기록 (ADR-226 G2 settle 창)
     const settle =
       cls === "pan" || cls === "zoom" ? await waitForCameraSettle(page) : null;
+    // 그 밖의 부류도 2 rAF 까지 기록한다 — 드라이버의 마지막 갱신 (edit 의 원래 스타일 복귀 등) 은
+    // Canvas 프레임과 DOM 커밋이 다음 rAF 에 온다. 바로 멈추면 둘이 창 경계에 걸려 같은 코드에서
+    // 렌더 수가 14 ↔ 15 로 갈리고 게이트가 「측정 불가」 를 낸다 (2026-10-05 edit 6회 중 2회).
+    if (!settle)
+      await page.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+          ),
+      );
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
     if (settle) rec.settleWait = settle;
     let coverage = null;

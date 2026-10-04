@@ -2,7 +2,7 @@
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
   "generatedAt": "2026-10-04",
-  "head": "78469745da008fb986f40d1dcc856e5d888d9e80",
+  "head": "ffd0f52ae249fcdf6d9383697285e4ac172c9be6",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -150,7 +150,7 @@
           "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 577,
           "v8.fn.src/builder/components/overlay/CommandPalette.tsx#(anonymous)": 213,
           "v8.fn.src/builder/components/overlay/CommandPalette.tsx#hintKeyFor": 186,
-          "v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)": 861,
+          "v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)": 840,
           "v8.fn.src/builder/hooks/useActiveScope.ts#matchesScope": 162,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcut": 187,
           "v8.fn.src/builder/hooks/useKeyboardShortcutsRegistry.ts#formatShortcutKey": 187,
@@ -534,6 +534,114 @@
       "approvedBy": "사용자 (2026-10-05 판정 — 흔들리는 지표 원래 값 복구)",
       "on": "2026-10-04",
       "reason": "측정마다 0 ~ 8 로 흔들리는 지표 (같은 코드 7회 실측 3,5,0,0,1,8,0). 529718981 의 하향 (4 → 0, 한도 2) 이 낮은 쪽 회차 기준이라 하향 전 값으로 되돌린다",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.contentSurface.missReasons.invalidate",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.contentSurface.misses",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.nodePicture.hits",
+      "from": 854,
+      "to": 915,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.nodePicture.missReasons.cold",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.nodePicture.misses",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.caches.paintPool.hits",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.perfLabels.render.skia.flush.content",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.perfLabels.render.skia.flush.main",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.perfLabels.render.skia.overlay",
+      "from": 15,
+      "to": 16,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.A.perfLabels.render.skia.record.content",
+      "from": 14,
+      "to": 15,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.cdp.LayoutCount",
+      "from": 20,
+      "to": 24,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
+      "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.edit.B.cdp.RecalcStyleCount",
+      "from": 0,
+      "to": 10,
+      "approvedBy": "사용자 (2026-10-05 판정 — 측정 불가 원인 수정 1번)",
+      "on": "2026-10-04",
+      "reason": "perf-baseline 하니스 수정 — 휠이 아닌 부류도 stop 전 2 rAF 를 기록한다. edit 의 마지막 갱신 (원래 스타일 복귀) 프레임이 이제 항상 창 안에 들어와 렌더 14 ↔ 15 경주가 15 로 고정된다 (3회 동일). 앱 동작 변경 없음 — 측정 창 보정",
       "expires": "2027-04-05"
     }
   ]
