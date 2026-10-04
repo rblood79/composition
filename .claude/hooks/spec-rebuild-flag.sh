@@ -24,7 +24,7 @@ if [ -z "$FILE_PATH" ]; then
 fi
 
 case "$FILE_PATH" in
-  */packages/rendering/src/*|*/packages/rendering/scripts/*|*/packages/shared/src/catalog/generated/componentRulesTable.ts)
+  */packages/rendering/src/*|*/packages/rendering/scripts/*)
     FLAG_FILE="${CLAUDE_PROJECT_DIR:-.}/.claude/.spec-rebuild-pending"
     touch "$FLAG_FILE" 2>/dev/null || true
     ;;

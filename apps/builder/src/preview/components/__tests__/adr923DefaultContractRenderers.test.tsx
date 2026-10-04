@@ -156,9 +156,8 @@ const FIXTURE_NAMES = FIXTURES.map((f) => f.name);
  * - ListBox `data-variant`: 부재 `primary`(컴포넌트 기본값 `ListBox.tsx:116`) vs binding
  *   `default`. catalog ListBox variants 는 `default|accent` 뿐이라 **`primary` 는 존재하지 않는
  *   variant** — 이쪽은 렌더 경로가 틀렸다.
- * - Menu `data-variant`: 부재 `primary` vs binding `default`. catalog Menu 는
- *   `defaultVariant: "primary"` 이고 variants 에 `default` 가 없다 — 이쪽은 **binding 이 틀렸다**
- *   (ListBox 와 방향이 반대라 한 규칙으로 못 고친다).
+ * - Menu `data-variant`: binding 이 `default` 를 선언해 같은 축이 갈렸으나, 2026-10-05
+ *   `8064dfb3f` 가 binding 기본값을 catalog `defaultVariant: "primary"` 로 고쳐 목록에서 빠졌다.
  * - ProgressBar/Meter `value`: binding 이 50/75 를 선언하는데 렌더러 기본은 0 — 시각(막대 채움)
  *   + 값 문구(`<span class="value">0%</span>` ↔ `50%`/`75%`) 차이. `value` 는 시각 기본값이
  *   아니라 **내용**이라 "내용 부재의 의미" 를 먼저 정해야 방향이 나온다 (round 25 판독 판정,
@@ -171,7 +170,7 @@ const KNOWN_DIFFS: readonly string[] = [
       (f) => `${t} [${f}] — 부재에만 [] / 명시에만 [data-variant="default"]`,
     ),
   ),
-  ...["ListBox", "Menu"].flatMap((t) =>
+  ...["ListBox"].flatMap((t) =>
     FIXTURE_NAMES.map(
       (f) =>
         `${t} [${f}] — 부재에만 [data-variant="primary"] / 명시에만 [data-variant="default"]`,
