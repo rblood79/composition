@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TimeField Canvas 시간 segment 를 RAC 와 같게 — hourCycle · 오전/오후] - 2026-10-04
+
+### Fixed
+
+- **Canvas 의 TimeField 가 DOM 과 같은 시간 segment 를 그린다.** 세 가지가 달랐다:
+  - Hour Cycle (typed enum 문자열 `"24"`) 을 숫자만 읽어 버렸다 — DOM 렌더러는 `Number()` 로 RAC 에
+    넘겨 24시간제 (`––:––`) 인데 Canvas 는 locale 기본 (ko-KR 12시간제) 로 `오전 ––:––` 을 그렸다. 이제
+    `racFieldHourCycle` 하나로 같은 값을 읽는다 (미지정 TimeField 는 컴포넌트 기본 24).
+  - 날짜+시간을 포맷한 뒤 첫 시간 칸부터 잘라 ko-KR 처럼 오전/오후가 앞에 오는 locale 에서 그 칸이 빠졌다
+    — RAC 처럼 시간 필드만 포맷한다 (`maxGranularity: "hour"`).
+  - placeholder 시각이 정오라 `PM` · `오후` 였다 — RAC placeholder 는 자정이라 `AM` · `오전`
+    (시간 granularity 의 DateField · DatePicker 도 같이).
+  - **Why**: Canvas segment 행이 RAC `useTimeFieldState` · `createPlaceholderDate` · DOM 렌더러의
+    hourCycle 해석과 다른 입력으로 만들어졌다 (D3 대칭).
+  - 위치: `packages/shared/src/catalog/document/dateSegments.ts` (`racDateSegmentParts` ·
+    `racFieldHourCycle`) · `apps/builder/src/builder/catalogRuntime/compositionRoot.ts` · `presence.ts`
+
+검증: builder 3961 · shared 1605 · rendering 1281 테스트 · type-check PASS · 회귀 테스트가 세 결함 각각의
+원복에 RED. headless Chrome ko-KR 에서 TimeField `––:––` · DateField `연도. 월. 일.` 확인 (12시간제는 unit).
+
 ## [날짜 입력 placeholder 를 RAC segment 로 — Canvas DateInput segment run] - 2026-10-04
 
 ### Fixed

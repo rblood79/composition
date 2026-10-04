@@ -831,11 +831,24 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
 
   it("paints a DateInput's RAC segments where the layout measured them, empty segments in the owner's placeholder paint", async () => {
     const measure = (text: string) => ({ width: text.length * 10, height: 20 });
-    const paintOf = async (definition: string, locale: string) => {
+    const paintOf = async (
+      definition: string,
+      locale: string,
+      hourCycle?: string,
+    ) => {
       const scene = await open(
         definition as DefinitionId,
-        `segment-paint-${definition}-${locale}`,
+        `segment-paint-${definition}-${locale}-${hourCycle ?? ""}`,
       );
+      if (hourCycle)
+        scene.root.dispatch("hour cycle", [
+          {
+            kind: "patchNodeProp",
+            id: scene.nodeId,
+            key: "hourCycle",
+            write: { kind: "set", value: hourCycle },
+          },
+        ]);
       const root = new CatalogCompositionRoot(
         scene.runtime,
         new StyleLayoutEngine(),
@@ -908,6 +921,39 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "ko-KR",
     );
     expect(korean.texts.map(({ text }) => text).join("")).toBe(racKoreanRow());
+    // TimeField: RAC formats the time fields only (`maxGranularity: "hour"`). The typed
+    // `hourCycle` enum ("24" default) is what the DOM renderer gives RAC as a number: 24 → no day
+    // period; 12 → the placeholder midnight's day period, in the locale's position.
+    const time = await paintOf(
+      "lib:definition:origin-component-timefield",
+      "en-US",
+    );
+    expect(time.texts.map(({ text }) => text)).toEqual(["––", ":", "––"]);
+    const dayPeriod = (locale: string) =>
+      new Intl.DateTimeFormat(locale, { hour: "numeric", hour12: true })
+        .formatToParts(new Date(2000, 0, 1, 0))
+        .find((part) => part.type === "dayPeriod")!.value;
+    const time12 = await paintOf(
+      "lib:definition:origin-component-timefield",
+      "en-US",
+      "12",
+    );
+    expect(time12.texts.at(-1)).toEqual(
+      expect.objectContaining({ text: dayPeriod("en-US"), fill: "#11223399" }),
+    );
+    const koreanTime = await paintOf(
+      "lib:definition:origin-component-timefield",
+      "ko-KR",
+      "12",
+    );
+    expect(koreanTime.texts[0]).toEqual(
+      expect.objectContaining({ text: dayPeriod("ko-KR") }),
+    );
+    expect(koreanTime.texts.map(({ text }) => text).slice(-3)).toEqual([
+      "––",
+      ":",
+      "––",
+    ]);
   });
 
   it("sizes a glyph by its authored fontSize over the size scale's iconSize (Preview renderIcon)", async () => {

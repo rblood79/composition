@@ -5,6 +5,7 @@ import { getNecessityIndicatorSuffix } from "../../../../../packages/shared/src/
 import { COLLECTION_ITEM_OWNERS } from "../../../../../packages/shared/src/catalog/document/collectionItems";
 import { MANUAL_ITEM_LABEL_COLORS } from "../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import { catalogCalendarTitle } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { racFieldHourCycle } from "../../../../../packages/shared/src/catalog/document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /**
@@ -516,8 +517,8 @@ function fieldSubpartProps(
   };
   const granularity = prop("granularity");
   if (typeof granularity === "string") out._granularity = granularity;
-  const hourCycle = prop("hourCycle");
-  if (typeof hourCycle === "number") out._hourCycle = hourCycle;
+  const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
+  if (hourCycle !== undefined) out._hourCycle = hourCycle;
   const ownLocale = prop("locale");
   const resolvedLocale = typeof ownLocale === "string" ? ownLocale : locale;
   if (resolvedLocale) out._locale = resolvedLocale;

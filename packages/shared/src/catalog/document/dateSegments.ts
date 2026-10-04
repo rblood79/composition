@@ -29,21 +29,35 @@ export interface DateSegmentPart {
   editable: boolean;
 }
 
+/**
+ * The hour cycle a date field's DOM renderer gives RAC: the typed enum value as a number
+ * (`DateRenderers` `Number(props.hourCycle)`), a TimeField's component default 24 when unset.
+ */
+export function racFieldHourCycle(
+  ownerType: string | undefined,
+  value: unknown,
+): 12 | 24 | undefined {
+  const cycle = value === undefined || value === "" ? NaN : Number(value);
+  if (cycle === 12 || cycle === 24) return cycle;
+  return ownerType === "TimeField" ? 24 : undefined;
+}
+
 export function racDateSegmentParts(options: {
   locale?: string;
   granularity?: string;
   hourCycle?: number;
+  /** RAC `maxGranularity`: `"hour"` formats the time fields only (`useTimeFieldState`). */
+  maxGranularity?: "hour";
 }): DateSegmentPart[] {
   const locale = options.locale || "en-US";
-  const granularity = options.granularity || "day";
+  const timeOnly = options.maxGranularity === "hour";
+  const granularity = options.granularity || (timeOnly ? "minute" : "day");
   const hasTime =
     granularity === "hour" ||
     granularity === "minute" ||
     granularity === "second";
   const format = new Intl.DateTimeFormat(locale, {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
+    ...(timeOnly ? {} : { year: "numeric", month: "numeric", day: "numeric" }),
     ...(hasTime
       ? {
           hour: "numeric",
@@ -59,7 +73,8 @@ export function racDateSegmentParts(options: {
   });
   const language = locale.split("-")[0];
   const placeholder = PLACEHOLDERS[locale] ?? PLACEHOLDERS[language] ?? PLACEHOLDERS.en;
-  return format.formatToParts(new Date(2000, 0, 1, 12)).map((part) => {
+  // RAC's placeholder value is midnight (`createPlaceholderDate`): the day period shows its value.
+  return format.formatToParts(new Date(2000, 0, 1, 0)).map((part) => {
     if (part.type === "literal") return { text: part.value, editable: false };
     if (part.type === "year" || part.type === "month" || part.type === "day")
       return { text: placeholder[part.type], editable: true };

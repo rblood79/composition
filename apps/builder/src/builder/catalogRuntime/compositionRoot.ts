@@ -63,6 +63,7 @@ import {
 import { CANVAS_VIEWPORT } from "../workspace/canvasBreakpoints";
 import {
   racDateSegmentParts,
+  racFieldHourCycle,
   type DateSegmentPart,
 } from "../../../../../packages/shared/src/catalog/document/dateSegments";
 import {
@@ -1969,7 +1970,7 @@ export class CatalogCompositionRoot {
         lineHeight = Number(cursor.visual.lineHeight);
     const prop = (key: string) => record.props[key] ?? owner?.props[key];
     const granularity = prop("granularity");
-    const hourCycle = prop("hourCycle");
+    const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
     const parts = racDateSegmentParts({
       locale:
         typeof prop("locale") === "string"
@@ -1981,17 +1982,13 @@ export class CatalogCompositionRoot {
           : ownerType === "TimeField"
             ? "minute"
             : undefined,
-      hourCycle: typeof hourCycle === "number" ? hourCycle : undefined,
+      hourCycle,
+      // A TimeField formats the time fields only (RAC `useTimeFieldState`).
+      ...(ownerType === "TimeField" ? { maxGranularity: "hour" as const } : {}),
     });
-    // A TimeField shows the time fields only (RAC `TimeField` omits the date).
-    const firstTime = parts.findIndex((part) => part.text === "\u2013\u2013");
-    const shown =
-      ownerType === "TimeField" && firstTime >= 0
-        ? parts.slice(firstTime)
-        : parts;
     return {
       ...(ownerType ? { ownerType } : {}),
-      parts: shown,
+      parts,
       paddingX: ownerType ? catalogDateSegmentPaddingX(ownerType) : 0,
       ...(ownerType === "DateRangePicker"
         ? {
