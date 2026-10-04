@@ -2,7 +2,10 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Chart } from "../Chart";
-import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/specs";
+import {
+  CHART_DESCRIPTORS,
+  createChartInitialProps,
+} from "@composition/rendering";
 let root: Root;
 let host: HTMLDivElement;
 afterEach(() => {

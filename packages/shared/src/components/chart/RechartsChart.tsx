@@ -53,7 +53,7 @@ import {
   type ChartMetrics,
   type ChartSize,
   type AxisScene,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   legacyMonotoneHorizontal,
   legacyMonotoneVertical,

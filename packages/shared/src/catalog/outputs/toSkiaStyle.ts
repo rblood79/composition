@@ -11,7 +11,7 @@
  *   해소해야 한다 → 본 어댑터가 token 해소 단일 진입점.
  *
  * **패키지 위치 (의존 그래프 실측 2026-06-03)**: 의존 방향은 `shared → specs` (shared 가
- *   `@composition/specs` 의존, specs 는 shared 의존 0 — specs 가 하위 레이어). 분리 코어
+ *   `@composition/rendering` 의존, specs 는 shared 의존 0 — specs 가 하위 레이어). 분리 코어
  *   `resolveMergedStyle`(shared)과 token 해소기 `resolveToken`(specs)을 **둘 다 접근 가능한
  *   곳은 shared** 다 — specs 에 두면 resolveMergedStyle 재사용 불가(역방향). 따라서 본 어댑터는
  *   `toReactStyle` 과 같은 `shared/catalog/outputs/` 에 두고 specs 의 `resolveToken` 을 import 한다.
@@ -28,8 +28,8 @@
  *   dispatch wiring 은 1B 범위 — 본 단계(1A-(c))는 어댑터 신설 + 단위 G-adapter 증명까지.
  */
 
-import { resolveToken } from "@composition/specs";
-import type { TokenRef } from "@composition/specs";
+import { resolveToken } from "@composition/rendering";
+import type { TokenRef } from "@composition/rendering";
 
 import type { CanonicalNode } from "../../types/composition-document.types";
 import type { ResolvedNode } from "../../types/canonical-resolver.types";

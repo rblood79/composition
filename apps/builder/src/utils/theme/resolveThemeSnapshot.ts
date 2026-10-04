@@ -30,7 +30,7 @@ import {
   lightShadows,
   radius as radiusSeed,
   typography as typographySeed,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { BaseTypography } from "../../builder/fonts/customFonts";
 import { hexToOklch } from "./oklchToHex";
 import {

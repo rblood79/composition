@@ -21,7 +21,7 @@ import {
   borderWidth,
   resolveToken,
   resolveBorderWidthPx,
-} from "@composition/specs";
+} from "@composition/rendering";
 
 vi.mock("../../../builder/workspace/canvas/skia/useSkiaNode", () => ({
   notifyLayoutChange: vi.fn(),
@@ -311,4 +311,3 @@ describe("resolveThemeSnapshot — 명시 델타 (축별 비기본값 · reset �
     expect(hexToOklch("not-a-color")).toBeNull();
   });
 });
-

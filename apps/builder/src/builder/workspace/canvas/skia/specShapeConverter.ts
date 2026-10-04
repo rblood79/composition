@@ -6,8 +6,8 @@
  */
 
 import { cssDashPattern } from "./nodeRendererShapes";
-import type { Shape, ColorValue } from "@composition/specs";
-import { getIconData } from "@composition/specs";
+import type { Shape, ColorValue } from "@composition/rendering";
+import { getIconData } from "@composition/rendering";
 import type {
   SkiaNodeData,
   SkiaPresentationFillTarget,
@@ -19,14 +19,14 @@ import {
   resolveColor,
   resolveToken,
   hexStringToNumber,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { getSkImage, loadSkImage } from "./imageCache";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import {
   DEFAULT_FONT_FAMILY,
   CANVAS_FONT_FALLBACK_FAMILIES,
 } from "../../../fonts/customFonts";
-import { getLabelLineHeight } from "@composition/specs";
+import { getLabelLineHeight } from "@composition/rendering";
 import { hexToColor4fChannels } from "./themeWatcher";
 import {
   parseTextDecoration,

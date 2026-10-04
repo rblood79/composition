@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { borderWidth, lightColors, radius, typography } from "@composition/specs";
+import {
+  borderWidth,
+  lightColors,
+  radius,
+  typography,
+} from "@composition/rendering";
 import {
   THEME_TOKEN_CATEGORIES,
   joinThemeTokenKey,
@@ -55,14 +60,28 @@ describe("themeTokenEditor — 카테고리 · 키 · 값 검증 (ADR-227 Phase 
     expect(parseThemeTokenInput("color", "accent", "#00A000")).toEqual({
       entry: { type: "color", value: "#00a000", source: "spec-token" },
     });
-    expect(parseThemeTokenInput("color", "accent", "red")).toEqual({ error: "invalid" });
+    expect(parseThemeTokenInput("color", "accent", "red")).toEqual({
+      error: "invalid",
+    });
     expect(parseThemeTokenInput("border", "width.thin", "3px")).toEqual({
       entry: { type: "number", value: 3, source: "spec-token" },
     });
-    expect(parseThemeTokenInput("border", "width.thin", "1")).toEqual({ entry: null });
-    expect(parseThemeTokenInput("radius", "md", "-2")).toEqual({ error: "invalid" });
-    expect(parseThemeTokenInput("radius", "md", "")).toEqual({ error: "invalid" });
-    expect(parseThemeTokenInput("radius", "md", String(themeTokenSeedValue("radius", "md")))).toEqual({ entry: null });
+    expect(parseThemeTokenInput("border", "width.thin", "1")).toEqual({
+      entry: null,
+    });
+    expect(parseThemeTokenInput("radius", "md", "-2")).toEqual({
+      error: "invalid",
+    });
+    expect(parseThemeTokenInput("radius", "md", "")).toEqual({
+      error: "invalid",
+    });
+    expect(
+      parseThemeTokenInput(
+        "radius",
+        "md",
+        String(themeTokenSeedValue("radius", "md")),
+      ),
+    ).toEqual({ entry: null });
     expect(parseThemeTokenInput("shadow", "md", "0 0 4px red")).toEqual({
       entry: { type: "string", value: "0 0 4px red", source: "spec-token" },
     });

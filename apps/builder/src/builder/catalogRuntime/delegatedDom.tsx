@@ -17,12 +17,19 @@ import {
   FileUpload,
 } from "../../../../../packages/shared/src/components/FileUpload";
 import { FileTriggerIntake } from "../../../../../packages/shared/src/upload/intakeAdapters";
-import { resolveTextSourceText, textFromValue } from "@composition/specs";
-import { Tabs, TabList, TabPanel } from "../../../../../packages/shared/src/components/Tabs";
+import { resolveTextSourceText, textFromValue } from "@composition/rendering";
+import {
+  Tabs,
+  TabList,
+  TabPanel,
+} from "../../../../../packages/shared/src/components/Tabs";
 import { TagGroup } from "../../../../../packages/shared/src/components/TagGroup";
 import { ListBox } from "../../../../../packages/shared/src/components/ListBox";
 import { GridList } from "../../../../../packages/shared/src/components/GridList";
-import { Tree, TreeItem } from "../../../../../packages/shared/src/components/Tree";
+import {
+  Tree,
+  TreeItem,
+} from "../../../../../packages/shared/src/components/Tree";
 import { Breadcrumbs } from "../../../../../packages/shared/src/components/Breadcrumbs";
 import { MenuButton } from "../../../../../packages/shared/src/components/Menu";
 import { TABLEVIEW_CHILD_STYLE } from "../../../../../packages/shared/src/renderers/LayoutRenderers";
@@ -237,7 +244,10 @@ function treeItemElements(
     );
     const title = others.length
       ? ""
-      : resolveTextSourceText("TreeItem", item.props as Record<string, unknown>);
+      : resolveTextSourceText(
+          "TreeItem",
+          item.props as Record<string, unknown>,
+        );
     const label = others.find(
       (kid) => catalogTypeName(input.root, kid) === "Text",
     );
@@ -307,7 +317,11 @@ function withI18n(
   if (!locale && !calendar) return element;
   const base = String(locale || "en-US");
   const tag = calendar ? `${base}-u-ca-${String(calendar)}` : base;
-  return createElement(I18nProvider as ElementType, { key: element.key, locale: tag }, element);
+  return createElement(
+    I18nProvider as ElementType,
+    { key: element.key, locale: tag },
+    element,
+  );
 }
 
 /**
@@ -452,7 +466,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   },
   gridlist: {
     ownsChild: (child, _parent, root) =>
-      !["GridListItem", "GridListSection"].includes(catalogTypeName(root, child)),
+      !["GridListItem", "GridListSection"].includes(
+        catalogTypeName(root, child),
+      ),
     render: (input) => {
       const props = input.node.props;
       return createElement(
@@ -492,7 +508,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-size": str(props.size || "M"),
           "data-variant": str(props.variant || "default"),
           "aria-label":
-            typeof props["aria-label"] === "string" ? props["aria-label"] : undefined,
+            typeof props["aria-label"] === "string"
+              ? props["aria-label"]
+              : undefined,
           size: props.size,
           isDisabled: bool(props.isDisabled),
         },
@@ -510,16 +528,24 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return markerWrap(input, createElement(MenuButton as ElementType, {
-        key: input.node.id,
-        style: input.style,
-        label: resolveTextSourceText("Menu", props as Record<string, unknown>),
-        "aria-label":
-          typeof props["aria-label"] === "string" ? props["aria-label"] : undefined,
-        variant: props.variant || "primary",
-        size: props.size || "md",
-        selectionMode: props.selectionMode,
-      }));
+      return markerWrap(
+        input,
+        createElement(MenuButton as ElementType, {
+          key: input.node.id,
+          style: input.style,
+          label: resolveTextSourceText(
+            "Menu",
+            props as Record<string, unknown>,
+          ),
+          "aria-label":
+            typeof props["aria-label"] === "string"
+              ? props["aria-label"]
+              : undefined,
+          variant: props.variant || "primary",
+          size: props.size || "md",
+          selectionMode: props.selectionMode,
+        }),
+      );
     },
   },
   tree: {
@@ -528,7 +554,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsDescendant: (node, _ancestor, root) => {
       const parent = root.domInputs.get(node.parentId);
       const get = (id: string) => root.domInputs.get(id);
-      const typeOf = (entry: CatalogConsumerNode) => catalogTypeName(root, entry);
+      const typeOf = (entry: CatalogConsumerNode) =>
+        catalogTypeName(root, entry);
       return (
         !!parent &&
         typeOf(node) === "TreeItem" &&
@@ -538,7 +565,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
     render: (input) => {
       const props = input.node.props;
-      const items = (list: CatalogConsumerNode[]) => treeItemElements(input, list);
+      const items = (list: CatalogConsumerNode[]) =>
+        treeItemElements(input, list);
       return createElement(
         Tree as ElementType,
         {
@@ -629,7 +657,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...marker(input),
           className: "react-aria-TableView",
-          "data-variant": str(props.variant ?? (props.isQuiet === true ? "quiet" : "default")),
+          "data-variant": str(
+            props.variant ?? (props.isQuiet === true ? "quiet" : "default"),
+          ),
           "data-density": opt(density),
           role: "grid",
           style: { overflow: "hidden", ...input.style },
@@ -813,7 +843,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           minValue: props.minValue,
           maxValue: props.maxValue,
           placeholderValue: props.placeholderValue,
-          defaultValue: input.today?.() ?? dateFieldDefaultValue(String(granularity)),
+          defaultValue:
+            input.today?.() ?? dateFieldDefaultValue(String(granularity)),
           granularity,
           hourCycle: num(props.hourCycle),
         }),
@@ -1504,20 +1535,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   field: {
     render: (input) => {
       const props = input.node.props;
-      return markerWrap(input, createElement(
-        DataField as ElementType,
-        {
-          key: input.node.id,
-          style: input.style,
-          fieldKey: props.key,
-          label: props.label,
-          type: props.type,
-          value: props.value,
-          showLabel: props.showLabel !== false,
-          visible: props.visible !== false,
-        },
-        ...renderAll(input),
-      ));
+      return markerWrap(
+        input,
+        createElement(
+          DataField as ElementType,
+          {
+            key: input.node.id,
+            style: input.style,
+            fieldKey: props.key,
+            label: props.label,
+            type: props.type,
+            value: props.value,
+            showLabel: props.showLabel !== false,
+            visible: props.visible !== false,
+          },
+          ...renderAll(input),
+        ),
+      );
     },
   },
   form: {
@@ -1625,7 +1659,10 @@ function calendarHeaderStyle(
   return Object.keys(out).length ? (out as CSSProperties) : undefined;
 }
 
-function tabsModel(root: CatalogCompositionRoot, tabsNode: CatalogConsumerNode) {
+function tabsModel(
+  root: CatalogCompositionRoot,
+  tabsNode: CatalogConsumerNode,
+) {
   return catalogTabsSelection(
     tabsNode,
     (id) => root.domInputs.get(id),

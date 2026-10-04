@@ -5,7 +5,7 @@
  * DOM 은 생성 CSS `border-width: var(--border-width-thick)` 로 같은 값을 읽는다.
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { borderWidth } from "@composition/specs";
+import { borderWidth } from "@composition/rendering";
 import { resolveContainerStylesFallback } from "../implicitStyles";
 import { createDefaultDropZoneProps } from "../../../../../../types/builder/unified.types";
 

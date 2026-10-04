@@ -7,7 +7,7 @@
  * - interpolateCollectionRowTemplate (DOM) 의 `{value}` · `{icon}` 가 같은 roles 를 본다
  */
 import { afterEach, describe, expect, it } from "vitest";
-import { clearFieldIdIndex, registerFieldIds } from "@composition/specs";
+import { clearFieldIdIndex, registerFieldIds } from "@composition/rendering";
 import {
   compileFieldTemplate,
   getFlatProjectionRows,
@@ -28,25 +28,52 @@ const schema = [
   { id: "f-glyph", key: "glyph", type: "string" },
 ];
 const rows = [
-  { id: "auto-1", uid: "U-1", name: "Ann", photo: "https://x/a.png", glyph: "star", icon: "heart" },
-  { id: "auto-2", uid: "U-2", name: "Bob", photo: "https://x/b.png", glyph: "moon", icon: "heart" },
+  {
+    id: "auto-1",
+    uid: "U-1",
+    name: "Ann",
+    photo: "https://x/a.png",
+    glyph: "star",
+    icon: "heart",
+  },
+  {
+    id: "auto-2",
+    uid: "U-2",
+    name: "Bob",
+    photo: "https://x/b.png",
+    glyph: "moon",
+    icon: "heart",
+  },
 ];
-const collections = [{ id: "c1", name: "Users", schema, mockData: rows, useMockData: true }];
+const collections = [
+  { id: "c1", name: "Users", schema, mockData: rows, useMockData: true },
+];
 
 afterEach(() => clearFieldIdIndex());
 
 describe("resolveFieldRoles", () => {
   it("fieldId → key (schema) · v1 key 통과 · 미지정 undefined", () => {
-    expect(resolveFieldRoles({ fieldMap: { value: "f-uid", icon: "photo" } }, schema)).toEqual({ value: "uid", icon: "photo" });
+    expect(
+      resolveFieldRoles(
+        { fieldMap: { value: "f-uid", icon: "photo" } },
+        schema,
+      ),
+    ).toEqual({ value: "uid", icon: "photo" });
     expect(resolveFieldRoles({ fieldMap: {} }, schema)).toBeUndefined();
-    expect(resolveFieldRoles({ source: "dataTable", name: "Users" }, schema)).toBeUndefined();
+    expect(
+      resolveFieldRoles({ source: "dataTable", name: "Users" }, schema),
+    ).toBeUndefined();
     expect(resolveFieldRoles(null, schema)).toBeUndefined();
   });
 
   it("schema 없이도 색인 (렌더 resolve 지점이 등록) 으로 id → key, 미등록은 key 로 간주", () => {
     registerFieldIds(schema);
-    expect(resolveFieldRoles({ fieldMap: { value: "f-name" } })).toEqual({ value: "name" });
-    expect(resolveFieldRoles({ fieldMap: { icon: "glyph" } })).toEqual({ icon: "glyph" });
+    expect(resolveFieldRoles({ fieldMap: { value: "f-name" } })).toEqual({
+      value: "name",
+    });
+    expect(resolveFieldRoles({ fieldMap: { icon: "glyph" } })).toEqual({
+      icon: "glyph",
+    });
   });
 });
 
@@ -69,8 +96,17 @@ describe("getItem* — roles 우선, 없으면 휴리스틱 (BC)", () => {
   });
 
   it("toItemProjectionRow 가 roles 를 실어 나른다", () => {
-    const row = toItemProjectionRow(rows[1], 1, { value: "uid", icon: "photo" });
-    expect(row).toMatchObject({ itemKey: "U-2", value: "U-2", icon: null, avatar: "https://x/b.png", label: "Bob" });
+    const row = toItemProjectionRow(rows[1], 1, {
+      value: "uid",
+      icon: "photo",
+    });
+    expect(row).toMatchObject({
+      itemKey: "U-2",
+      value: "U-2",
+      icon: null,
+      avatar: "https://x/b.png",
+      label: "Bob",
+    });
   });
 });
 
@@ -78,19 +114,39 @@ describe("Skia · DOM 진입점", () => {
   it("getFlatProjectionRows — binding.fieldMap (id) 을 collections schema 로 풀어 적용", () => {
     const out = getFlatProjectionRows({
       props: {},
-      dataBinding: { source: "dataTable", collectionId: "c1", name: "Users", fieldMap: { value: "f-uid", icon: "f-glyph" } },
+      dataBinding: {
+        source: "dataTable",
+        collectionId: "c1",
+        name: "Users",
+        fieldMap: { value: "f-uid", icon: "f-glyph" },
+      },
       collections,
     });
-    expect(out.map((r) => [r.itemKey, r.icon, r.avatar])).toEqual([["U-1", "star", null], ["U-2", "moon", null]]);
+    expect(out.map((r) => [r.itemKey, r.icon, r.avatar])).toEqual([
+      ["U-1", "star", null],
+      ["U-2", "moon", null],
+    ]);
     // fieldMap 없음 → 휴리스틱 (BC)
-    const plain = getFlatProjectionRows({ props: {}, dataBinding: { source: "dataTable", collectionId: "c1", name: "Users" }, collections });
-    expect(plain.map((r) => [r.itemKey, r.icon])).toEqual([["auto-1", "heart"], ["auto-2", "heart"]]);
+    const plain = getFlatProjectionRows({
+      props: {},
+      dataBinding: { source: "dataTable", collectionId: "c1", name: "Users" },
+      collections,
+    });
+    expect(plain.map((r) => [r.itemKey, r.icon])).toEqual([
+      ["auto-1", "heart"],
+      ["auto-2", "heart"],
+    ]);
   });
 
   it("getTableProjectionRows — value 역할이 rowKey", () => {
     const out = getTableProjectionRows({
       props: { columns: [{ id: "name", label: "Name" }] },
-      dataBinding: { source: "dataTable", collectionId: "c1", name: "Users", fieldMap: { value: "f-uid" } },
+      dataBinding: {
+        source: "dataTable",
+        collectionId: "c1",
+        name: "Users",
+        fieldMap: { value: "f-uid" },
+      },
       collections,
     });
     expect(out.rows.slice(1).map((r) => r.rowKey)).toEqual(["U-1", "U-2"]);
@@ -98,7 +154,14 @@ describe("Skia · DOM 진입점", () => {
 
   it("interpolateCollectionRowTemplate — {value} · {icon} 가 roles 를 본다 (DOM = Skia)", () => {
     const compiled = compileFieldTemplate("{value}/{icon}")!;
-    expect(interpolateCollectionRowTemplate(compiled, rows[0])).toBe("auto-1/heart");
-    expect(interpolateCollectionRowTemplate(compiled, rows[0], { value: "uid", icon: "glyph" })).toBe("U-1/star");
+    expect(interpolateCollectionRowTemplate(compiled, rows[0])).toBe(
+      "auto-1/heart",
+    );
+    expect(
+      interpolateCollectionRowTemplate(compiled, rows[0], {
+        value: "uid",
+        icon: "glyph",
+      }),
+    ).toBe("U-1/star");
   });
 });

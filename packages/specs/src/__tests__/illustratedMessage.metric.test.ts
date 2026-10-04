@@ -15,8 +15,8 @@ import { describe, expect, it } from "vitest";
 import {
   ILLUSTRATED_MESSAGE_BOX,
   resolveIllustratedMessageMetric,
-} from "../renderers/utils/illustratedMessageMetrics";
-import { getSkiaPrimitive } from "../renderers/__tests__/catalogPaintFixture";
+} from "@composition/rendering/renderers/utils/illustratedMessageMetrics";
+import { getSkiaPrimitive } from "@composition/rendering/renderers/__tests__/catalogPaintFixture";
 import type { SizeSpec } from "../types/component.types";
 
 // catalog COMPONENT_RULES_TABLE.IllustratedMessage.sizes 미러 (read-through 입력 형태).

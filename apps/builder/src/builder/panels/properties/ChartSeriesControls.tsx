@@ -11,7 +11,7 @@ import {
   type ChartProps,
   type ChartRow,
   type ChartSeriesConfig,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";

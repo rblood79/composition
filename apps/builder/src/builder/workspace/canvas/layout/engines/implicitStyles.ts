@@ -1,15 +1,13 @@
 import {
-  resolveContainerStylesFallback as _resolveContainerStylesFallback,
   getShadowToken,
   normalizeShadowForTheme,
-} from "@composition/specs";
-import type { ShadowTokens } from "@composition/specs";
+} from "@composition/rendering";
+import type { ShadowTokens } from "@composition/rendering";
 import {
   getComponentRulesTable,
   resolveCatalogRuleCanvasBox,
   resolveComponentRule,
 } from "@composition/shared";
-import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 
 // ADR-912 Phase 3-A-3c (2026-06-20): builder-local catalog container 조회 map 삭제.
 //   2개 소비처(resolveContainerStylesFallback containerStyles 보강 / resolveActiveContainerVariants
@@ -32,64 +30,20 @@ const LOWERCASE_TO_PASCAL_RULE_KEY: ReadonlyMap<string, string> = (() => {
   return m;
 })();
 
-/**
- * ADR-108 P0: packages/specs `resolveContainerStylesFallback` wrapper.
- *
- * builder 측 `LOWERCASE_TAG_SPEC_MAP` (packages/specs 102 정본 + 8 alias 병합) 을
- * 주입하여 ComboBoxWrapper 등 alias type 도 정본 spec 의 containerStyles 로 fallback.
- * 테스트 (`resolveContainerStylesFallback.test.ts` / `tokenConsumerDrift.test.ts`) 는
- * 본 파일에서 export 된 wrapper 를 import — ADR-080 G1 계약 유지.
- */
+/** Catalog의 기본 레이아웃. 명시한 스타일은 기본값보다 우선한다. */
 export function resolveContainerStylesFallback(
   type: string,
   parentStyle: Record<string, unknown>,
-  /**
-   * ADR-171 Phase 3 L3 (2026-07-29): catalog `sizes[size]` 축 조회용 size 이름.
-   * 미전달 시 `rule.defaultSize` fallback (`ruleSizeRecord` 내부) — 기존 2-arg
-   * 호출부는 default size 기준으로 동작한다.
-   */
   sizeName?: string,
 ): Record<string, unknown> {
-  const specOut = _resolveContainerStylesFallback(
-    type,
-    parentStyle,
-    LOWERCASE_TAG_SPEC_MAP,
-  );
-  // ADR-912 단계5 step4 (2026-06-17): spec 삭제된 cutover 컨테이너(TagGroup 등)는 catalog
-  //   rule.containerStyles 를 fallback 으로 읽는다(display/flexDirection/gap base layout). spec
-  //   존재 시 specOut 이 이미 채워지므로 본 보강은 spec 부재 시에만 효과(spec ← shared boundary
-  //   로 specs 측 resolveContainerStylesFallback 은 rule 접근 불가 → builder 에서 합성).
-  // ADR-912 Phase 3-A-3c (2026-06-20): builder-local catalog container 조회 map 제거.
-  //   top-level rule.containerStyles 조회를 LOWERCASE_TO_PASCAL_RULE_KEY 역매핑 + resolveComponentRule
-  //   직접 조회로 대체(map 은 lowercase→top-level containerStyles 조회 캐시일 뿐이라 byte 불변 대체
-  //   가능). 경로 B(resolveCatalogContainerBase) 흡수는 structure.composition base 가 leaf 44 type 에
-  //   신규 진입(surface-minimization 위반)이라 채택 불가 — 경로 A 로직 보존 + map 조회만 교체.
-  // ADR-171 Phase 3 (2026-07-29): 경로 A/B 2분기를 **단일 판정**으로 통합했다.
-  //
-  //   구 구조는 top-level `rule.containerStyles` 보유 여부로 갈라져(A) 먼저 return 하고,
-  //   나머지는 `structure.composition` 게이트(B) 뒤에서만 `resolveCatalogContainerBase` 를
-  //   읽었다. 그 결과 `structure.containerStyles` 만 가진 48 type(MenuItem/Card/Checkbox…)이
-  //   통째로 막혔고(L1), A 로 들어온 type 은 layout token base 와 structure 층을 못 봤다.
-  //   precedence 는 이미 `resolveCatalogContainerBase` 가 단일 거처로 소유한다
-  //   (layout token → structure.containerStyles → composition.containerStyles → top-level).
-  //   여기서 다시 갈래를 두면 그 precedence 가 두 벌이 된다.
-  //
-  //   ADR-912 3-A-3c 가 게이트를 남긴 사유("leaf 44 type 신규 진입 = surface-minimization
-  //   위반")는 **값이 옳다는 보장이 없어서**였다. ADR-171 Phase 1 이 실효값↔catalog 정합을
-  //   먼저 세워(G1) 그 전제를 채웠다.
-  const pascalKey = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
-  if (!pascalKey) return specOut;
-  // The rule part (box axis replace-vs-merge, size axis generator mirror) is the shared pure
-  //   `resolveCatalogRuleCanvasBox` — the ADR-248 typed definition reads the same function.
-  //   User/factory style and the spec fallback win per key.
-  return {
-    ...specOut,
-    ...resolveCatalogRuleCanvasBox(
-      pascalKey,
-      sizeName,
-      (key) => parentStyle[key] !== undefined || specOut[key] !== undefined,
-    ),
-  };
+  const key = LOWERCASE_TO_PASCAL_RULE_KEY.get(type);
+  return key
+    ? resolveCatalogRuleCanvasBox(
+        key,
+        sizeName,
+        (name) => parentStyle[name] !== undefined,
+      )
+    : {};
 }
 
 /**

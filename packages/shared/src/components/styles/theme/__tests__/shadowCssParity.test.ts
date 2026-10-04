@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { darkShadows, lightShadows } from "@composition/specs";
+import { darkShadows, lightShadows } from "@composition/rendering";
 
 /**
  * ADR-166 Phase 5 — CSS `--shadow-*` ↔ TS `lightShadows`/`darkShadows` 값 대칭 가드.
  *
  * D3 그림자는 **손으로 유지되는 두 벌**로 존재한다:
  *   - DOM(CSS) consumer → `preview-system.css` 의 `--shadow-{sm,md,lg}`
- *   - Skia consumer     → `packages/specs/src/primitives/shadows.ts`
+ *   - Skia consumer     → `packages/rendering/src/primitives/shadows.ts`
  *
  * 둘은 같은 Spectrum 2 출처에서 왔지만 서로를 참조하지 않는다. 한쪽만 손대면 Preview 와
  * 캔버스가 조용히 벌어지는데, **양쪽 다 "그림자가 보인다"** 라서 시각 점검으로는 안 잡힌다

@@ -26,8 +26,8 @@ import {
   type SizeSpec,
   type TextMark,
   type TokenRef,
-} from "@composition/specs";
-import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
+} from "@composition/rendering";
+import { SKIA_PRIMITIVES } from "@composition/rendering/renderers";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
 import { Chart } from "../Chart";
 import { RechartsChart } from "./RechartsChart";

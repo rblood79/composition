@@ -6,10 +6,10 @@
  * Usage: pnpm validate
  */
 
-import type { ComponentSpec, TokenRef } from "../src/types";
-import { isValidTokenRef } from "../src/types/token.types";
+import type { ComponentSpec, TokenRef } from "../../rendering/src/types";
+import { isValidTokenRef } from "../../rendering/src/types/token.types";
 // ADR-908 Phase 3-A: Fill token dual-read seam
-import { resolveFillTokens } from "../src/utils/fillTokens";
+import { resolveFillTokens } from "../../rendering/src/utils/fillTokens";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";

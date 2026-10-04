@@ -7,7 +7,7 @@
  * 이런 leaf 의 DOM 컴포넌트가 rule 색(`resolveComponentRule(type).variants[v].fill.default.base`,
  * TokenRef)을 dot/sub-element 에 직접 인라인 적용할 때 본 헬퍼로 CSS 값을 얻는다.
  *
- * **SSOT 정합 (drift 주의)**: 본 매핑은 `packages/specs/src/renderers/utils/tokenResolver.ts` 의
+ * **SSOT 정합 (drift 주의)**: 본 매핑은 `packages/rendering/src/renderers/utils/tokenResolver.ts` 의
  * COLOR_TOKEN_TO_CSS + NAMED_COLOR_TO_CSS(build-time CSS 생성 source)의 shared 대응이다. specs ←
  * shared 의존 방향 때문에 tokenResolver 를 직접 import 할 수 없어 복제한다. **정답 검증**:
  * `packages/shared/src/components/styles/generated/{Type}.css` 의 `[data-variant] { background }` 값과
@@ -15,7 +15,7 @@
  * 토큰/매핑 추가 시 generated CSS 와 대조.
  */
 
-import { SEMANTIC_PALETTE_MAP } from "@composition/specs";
+import { SEMANTIC_PALETTE_MAP } from "@composition/rendering";
 
 /** S2 시맨틱 + named color 토큰 → CSS 값 (tokenResolver 매핑 shared 대응, css-tokens.md SSOT). */
 const COLOR_TOKEN_CSS: Record<string, string> = {

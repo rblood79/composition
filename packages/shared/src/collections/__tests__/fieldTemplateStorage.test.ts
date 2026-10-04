@@ -2,7 +2,7 @@
  * ADR-152 Phase 1b — `{#id}` 저장형: 변환기 왕복 + 보간이 색인으로 행을 읽는다.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clearFieldIdIndex, registerFieldIds } from "@composition/specs";
+import { clearFieldIdIndex, registerFieldIds } from "@composition/rendering";
 import {
   compileFieldTemplate,
   interpolateFieldTemplate,
@@ -26,9 +26,7 @@ describe("templateToStored / storedToTemplate", () => {
       "Hi {name}, {address.city|date} {{raw}} {label}",
       schema,
     );
-    expect(stored).toBe(
-      "Hi {#f-name}, {#f-addr.city|date} {{raw}} {label}",
-    );
+    expect(stored).toBe("Hi {#f-name}, {#f-addr.city|date} {{raw}} {label}");
     expect(storedToTemplate(stored, schema)).toBe(
       "Hi {name}, {address.city|date} {{raw}} {label}",
     );

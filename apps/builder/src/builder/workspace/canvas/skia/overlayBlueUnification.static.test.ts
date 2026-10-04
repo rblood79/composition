@@ -13,7 +13,7 @@
 import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 import { OVERLAY_BLUE_RGB, hexToRgb01 } from "./semanticOverlayColors";
 
 const read = (file: string) => readFile(resolve(__dirname, file), "utf-8");

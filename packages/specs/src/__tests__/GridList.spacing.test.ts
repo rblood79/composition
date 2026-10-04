@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 // ADR-912 단계5 step4 경량 이관 (2026-06-17): GridList.spec 물리 삭제 → resolveGridListSpacingMetric
 //   은 collectionItemMetrics 로 이관됨.
-import { resolveGridListSpacingMetric } from "../renderers/utils/collectionItemMetrics";
+import { resolveGridListSpacingMetric } from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 describe("resolveGridListSpacingMetric — defaults", () => {
   it("style 미지정 + layout 미지정 → defaults (gap 12, fontSize 14, numCols 1 stack)", () => {

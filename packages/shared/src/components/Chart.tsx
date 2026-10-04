@@ -8,7 +8,7 @@ import {
   CHART_DEFAULT_PROPS,
   getChartDescriptor,
   resolveChartMetrics,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartAnimationEasing,
   ChartColorBy,
@@ -21,7 +21,7 @@ import type {
   ChartLabelKey,
   ChartProps as SpecChartProps,
   PolarGridType,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { renderChartWindowTrack } from "./chart/windowTrack";
 import {

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import type { CSSProperties } from "react";
 
-import { darkShadows, lightShadows } from "@composition/specs";
+import { darkShadows, lightShadows } from "@composition/rendering";
 
 import { adaptElementStyle, fillsToCssBackgroundStyle } from "../fillAdapter";
 import { setAssetUrlResolver, type AssetUrlResolver } from "../assetRef";

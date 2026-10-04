@@ -5,7 +5,7 @@
  * Skia·layout(`implicitStyles`) / Style Panel(`specPresetResolver`) 세 consumer 가 컴포넌트
  * 구조·base-layout·size-value 를 `componentRulesTable` 한 entry 에서만 파생하게 하는 단일 진입점.
  *
- * **패키지 경계 (Δ7 — 의존 방향)**: 본 파일은 layout token table 을 `@composition/specs` 의
+ * **패키지 경계 (Δ7 — 의존 방향)**: 본 파일은 layout token table 을 `@composition/rendering` 의
  * `LAYOUT_TOKEN_STYLES` 단일 source 에서 import 한다 — `shared → specs` **정상 방향**(shared
  * package.json 이 specs 를 workspace 의존으로 선언, specs→shared 역의존은 0). layout token 은
  * CSS vocabulary(D3 시각 어휘)라 framework-free 하위 레이어 specs 에 살고, generator(specs)·
@@ -17,7 +17,7 @@
  * 기존 normalization helper 가 담당한다(breakdown §2-2 — 변환 책임을 resolver 에 넣지 않음).
  */
 
-import { LAYOUT_TOKEN_STYLES } from "@composition/specs";
+import { LAYOUT_TOKEN_STYLES } from "@composition/rendering";
 import type {
   ComponentRule,
   ComponentRuleComposition,

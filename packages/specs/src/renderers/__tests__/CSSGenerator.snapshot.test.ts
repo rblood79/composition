@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { generateCSS } from "../CSSGenerator";
-import { variantToVisual } from "../utils/resolveComponentVisual";
-import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
-import type { VariantSpec } from "../../types";
+import { generateCSS } from "@composition/rendering/renderers/CSSGenerator";
+import { variantToVisual } from "@composition/rendering/renderers/utils/resolveComponentVisual";
+import type { ComponentVisualRule } from "@composition/rendering/renderers/utils/resolveComponentVisual";
+import type { VariantSpec } from "@composition/rendering/types";
 import * as specs from "../../components";
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ComponentVisualRule } from "@composition/specs";
+import type { ComponentVisualRule } from "@composition/rendering";
 import type {
   ComponentRuleSize,
   ComponentRuleVariant,

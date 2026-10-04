@@ -6,18 +6,21 @@
  * Usage: pnpm generate:css
  */
 
-import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
-import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
+import {
+  generateCSS,
+  isArchetypeId,
+} from "../../rendering/src/renderers/CSSGenerator";
+import type { ComponentVisualRule } from "../../rendering/src/renderers/utils/resolveComponentVisual";
 import type {
   ArchetypeId,
   ComponentSpec,
   SizeSpec,
   VariantSpec,
-} from "../src/types";
+} from "../../rendering/src/types";
 import {
   validateDelegationPrefixes,
   formatViolations,
-} from "../src/runtime/validateDelegationPrefixes";
+} from "../../rendering/src/runtime/validateDelegationPrefixes";
 // ADR-912 ②-6-A (1A-(a)): DOM variant 색상 base source = 정본 table (Skia 와 same-source).
 //   build script 는 패키지 경계 밖이라 shared 의 정본 table 을 직접 import 할 수 있다(과거 generate-rules.ts
 //   도 같은 경계 외 직접 import 패턴이었고 단계 5 step 3 에서 삭제됨 — 본 generate-css 가 그 직접 import 패턴 유지).

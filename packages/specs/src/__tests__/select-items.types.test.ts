@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { StoredSelectItem } from "../types/select-items";
+import type { StoredSelectItem } from "@composition/rendering/types/select-items";
 
 /**
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId` / `RuntimeSelectItem` /

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { SlotSpec } from "../Slot.spec";
-import { generateCSS } from "../../renderers/CSSGenerator";
+import { generateCSS } from "@composition/rendering/renderers/CSSGenerator";
 
 /**
  * ADR-923 Phase 5 후속 착수 8 (2026-09-04, 사용자 판단) — Slot 상자 높이 축은 **최소 높이**다.

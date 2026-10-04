@@ -17,7 +17,7 @@ import {
   resolveBorderWidthPx,
   resolveToken,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ComponentRuleSize,
   ComponentRuleStructure,
@@ -201,11 +201,11 @@ export function catalogTextAreaInputHeight(
   rawRows: unknown,
 ): number | undefined {
   const sizes = resolveComponentRule("Input")?.sizes as
-    | Record<string, ComponentRuleSize>
-    | undefined;
+    Record<string, ComponentRuleSize> | undefined;
   const rule = resolveComponentRule("Input");
   const size =
-    sizes?.[sizeName] ?? (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
+    sizes?.[sizeName] ??
+    (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
   const oneRow = size?.height;
   if (typeof oneRow !== "number") return undefined;
   const padY = typeof size?.paddingY === "number" ? size.paddingY : 0;

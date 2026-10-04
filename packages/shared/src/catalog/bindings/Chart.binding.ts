@@ -18,7 +18,7 @@ import type { PrimitiveBinding } from "../types";
  *   평탄화 근거 (ADR-194 R5): 팔레트에서 끌어다 놓는 노코드 사용자에게 "Chart 를 놓고
  *   그 안에 Bar 를 놓고 Axis 를 놓는다" 는 조합은 3단계 조작이고, 조합 트리를 canonical
  *   에 실으면 자식 순서가 시각 의미를 갖는 새 계약이 생긴다. chartType 추가 비용은 마크
- *   파일 1개(`packages/specs/src/chart/marks/*`)이므로 평탄화가 확장을 막지 않는다.
+ *   파일 1개(`packages/rendering/src/chart/marks/*`)이므로 평탄화가 확장을 막지 않는다.
  *   scatter/이중 축처럼 조합이 정말 필요해지면 reusable(조합) 경로로 승격 판정.
  *
  * **D3 = catalog rule**: `COMPONENT_RULES_TABLE.Chart` (variants default/quiet · sizes

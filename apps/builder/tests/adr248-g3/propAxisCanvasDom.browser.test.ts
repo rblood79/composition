@@ -29,7 +29,7 @@ import {
   lightShadows,
   radius,
   typography,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { createThemesCollection, getActiveTheme } from "@composition/shared";
 import { DEFAULT_BASE_TYPOGRAPHY } from "@/builder/fonts/customFonts";
 import { resolveThemeSnapshot } from "@/utils/theme/resolveThemeSnapshot";
@@ -326,9 +326,14 @@ async function compare(
         element = element.parentElement;
     if (!element || getComputedStyle(element).display === "contents") continue;
     if (id === rootInput.id)
-      rootData = [...host.querySelectorAll("[data-label-position], [data-catalog-id]")]
+      rootData = [
+        ...host.querySelectorAll("[data-label-position], [data-catalog-id]"),
+      ]
         .slice(0, 3)
-        .map((el) => `${el.className} lp=${el.getAttribute("data-label-position")}`)
+        .map(
+          (el) =>
+            `${el.className} lp=${el.getAttribute("data-label-position")}`,
+        )
         .join(" | ");
     const box = boxOf(id, element);
     const dom = {
@@ -345,7 +350,11 @@ async function compare(
       Math.abs(dom.height - rect.height),
     );
     worst = Math.max(worst, delta);
-    nodes.push({ node: `${root.typeOf(root.canvasInputs.get(id)!)}`, canvas: rect, dom });
+    nodes.push({
+      node: `${root.typeOf(root.canvasInputs.get(id)!)}`,
+      canvas: rect,
+      dom,
+    });
     if (delta > 1)
       over.push({
         node: `${root.typeOf(root.canvasInputs.get(id)!)} ${id.split("::").pop()}`,

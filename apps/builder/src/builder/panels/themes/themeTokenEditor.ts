@@ -13,15 +13,10 @@ import {
   lightShadows,
   radius as radiusSeed,
   typography as typographySeed,
-} from "@composition/specs";
+} from "@composition/rendering";
 
 export type ThemeTokenCategory =
-  | "color"
-  | "typography"
-  | "radius"
-  | "border"
-  | "shadow"
-  | "focus";
+  "color" | "typography" | "radius" | "border" | "shadow" | "focus";
 
 export const THEME_TOKEN_CATEGORIES: readonly ThemeTokenCategory[] = [
   "color",
@@ -46,7 +41,9 @@ function isDerivedColorKey(key: string): boolean {
 }
 
 /** 카테고리별 편집 가능한 키 (seed 맵 키 순서). `border` 는 `width.<k>` 형태. */
-export function themeTokenKeys(category: ThemeTokenCategory): readonly string[] {
+export function themeTokenKeys(
+  category: ThemeTokenCategory,
+): readonly string[] {
   switch (category) {
     case "color":
       return Object.keys(lightColors).filter((k) => !isDerivedColorKey(k));
@@ -112,7 +109,9 @@ export function themeTokenSeedValue(
     case "color":
       return (lightColors as unknown as Record<string, string>)[key];
     case "typography":
-      return (typographySeed as unknown as Record<string, string | number>)[key];
+      return (typographySeed as unknown as Record<string, string | number>)[
+        key
+      ];
     case "radius":
       return (radiusSeed as unknown as Record<string, number>)[key];
     case "border":

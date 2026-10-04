@@ -1,4 +1,4 @@
-import { resolveToken, type TokenRef } from "@composition/specs";
+import { resolveToken, type TokenRef } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 import { COMPONENT_RULES_TABLE } from "../../generated/componentRulesTable";
 import { componentCatalog } from "../../componentCatalog";

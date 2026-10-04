@@ -6,7 +6,7 @@ import {
   cssVarToTokenRef,
   resolveToken,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   resolveAccentColorTokens,
   type AccentColorTokens,

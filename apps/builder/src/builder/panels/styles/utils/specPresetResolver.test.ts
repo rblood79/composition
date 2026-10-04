@@ -8,7 +8,7 @@ import {
   resolveTypographySpecPreset,
   clearSpecPresetCache,
 } from "./specPresetResolver";
-import { lightShadows } from "@composition/specs";
+import { lightShadows } from "@composition/rendering";
 
 describe("resolveSpecPreset", () => {
   beforeEach(() => clearSpecPresetCache());

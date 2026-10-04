@@ -9,7 +9,7 @@
  * 자식 (없으면 항목 `children`). 검색어 `textValue` = 항목의 **명시** 값 (origin 템플릿 `{label}` 은 명시 아님), 없으면 글자.
  */
 import { getSlotRole, resolveSectionItemKey } from "../catalog/slotRoles";
-import { resolveTextSourceText } from "@composition/specs";
+import { resolveTextSourceText } from "@composition/rendering";
 
 export interface StaticPickerNode {
   id: string;

@@ -17,7 +17,7 @@ import {
   createChartInitialProps,
   resolveChartData,
   resolveChartMetrics,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
 
 let root: Root;
@@ -161,9 +161,7 @@ describe("ADR-211 P3 — Preview 창 Slider", () => {
     await new Promise((r) => requestAnimationFrame(r));
     expect(slider()!.dataset.chartWindowEnd).toBe("1000");
     mount(rowsOf(800));
-    await vi.waitFor(() =>
-      expect(slider()!.dataset.chartWindowN).toBe("800"),
-    );
+    await vi.waitFor(() => expect(slider()!.dataset.chartWindowN).toBe("800"));
     expect(slider()!.dataset.chartWindowStart).toBe("0");
     expect(slider()!.dataset.chartWindowEnd).toBe(String(fitEff));
   });
@@ -198,20 +196,20 @@ describe("ADR-211 P3 — Preview 창 Slider", () => {
       );
     const up = (x: number) =>
       track.dispatchEvent(
-        new PointerEvent("pointerup", { bubbles: true, pointerId: 7, clientX: x }),
+        new PointerEvent("pointerup", {
+          bubbles: true,
+          pointerId: 7,
+          clientX: x,
+        }),
       );
     const x0 = rect.left + rect.width / 2;
     down(x0);
     move(x0 + slot * 300);
-    await vi.waitFor(() =>
-      expect(track.dataset.chartWindowStart).toBe("300"),
-    );
+    await vi.waitFor(() => expect(track.dataset.chartWindowStart).toBe("300"));
     expect(track.dataset.chartWindowEnd).toBe(String(300 + fitEff));
     // n − end 를 넘는 dx 는 마지막 창에서 멈춘다.
     move(x0 + slot * 5000);
-    await vi.waitFor(() =>
-      expect(track.dataset.chartWindowEnd).toBe("1000"),
-    );
+    await vi.waitFor(() => expect(track.dataset.chartWindowEnd).toBe("1000"));
     expect(track.dataset.chartWindowStart).toBe(String(1000 - fitEff));
     up(x0 + slot * 5000);
     expect(barCount()).toBe(fitEff);

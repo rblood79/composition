@@ -16,7 +16,7 @@ import {
   CatalogCompositionRoot,
   type CatalogConsumerNode,
 } from "../compositionRoot";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 import { catalogTextMetrics } from "../boxModel";
 import { catalogRuleShapes } from "../ruleShapes";
 import { catalogNodeState } from "../../../../../../packages/shared/src/catalog/resolution/resolver";

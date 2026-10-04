@@ -1,5 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
-import { resolveToken, type TokenRef } from "@composition/specs";
+import { resolveToken, type TokenRef } from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import { codeExecutionVocabulary } from "./executionVocabulary";

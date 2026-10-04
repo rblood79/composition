@@ -1,9 +1,6 @@
+import { catalogCreationEditFields } from "../../../builder/catalogRuntime/creationContract";
 /** ADR-202 — the AI read host 와 기존 tool/command를 연결하는 Builder 전용 경계. */
-import {
-  resolveEditContract,
-  type CanonicalNode,
-  type ResolvedField,
-} from "@composition/shared";
+import { type ResolvedField } from "@composition/shared";
 import { getAiReadHost } from "../aiReadHost";
 import { withPanelStyleFields } from "./styleManifest";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
@@ -30,30 +27,14 @@ export function readCompilerState(): {
   context: CommandContext;
   identity: string;
 } {
-  // ADR-248 4e-7: a palette type's contract is its own (no document — the open Builder's elements
-  // come with theirs from the read host).
-  const fields = (node: CanonicalNode): ManifestField[] =>
-    withPanelStyleFields(
-      resolveEditContract(node, null).fields.map(manifestField),
-    );
-  const components = getAiComponentCatalog().map((entry) => {
-    const mode = resolveCompositeMode(entry.type);
-    const node =
-      mode === "reusable"
-        ? {
-            id: "__compiler_contract__",
-            type: "ref",
-            ref: getCatalogReusableOriginId(entry.type),
-            props: {},
-          }
-        : { id: "__compiler_contract__", type: entry.type, props: {} };
-    return {
-      ...entry,
-      creationMode: mode,
-      reusableId: getCatalogReusableOriginId(entry.type) ?? undefined,
-      props: fields(node as CanonicalNode),
-    };
-  });
+  const components = getAiComponentCatalog().map((entry) => ({
+    ...entry,
+    creationMode: resolveCompositeMode(entry.type),
+    reusableId: getCatalogReusableOriginId(entry.type) ?? undefined,
+    props: withPanelStyleFields(
+      catalogCreationEditFields(entry.type).map(manifestField),
+    ),
+  }));
   const manifest: CommandManifest = {
     components,
     commands: listAgentCommands().map((c) => ({

@@ -10,7 +10,7 @@
  * 컬럼 타입은 schema (`DataField.type`) 만 믿는다 — 첫 행 추론으로 수치형을 확정하지
  * 않는다 (§4.1). schema 가 없으면 `unknown` 으로 표시하고 선택은 허용한다.
  */
-import type { ChartSeriesConfig } from "@composition/specs";
+import type { ChartSeriesConfig } from "@composition/rendering";
 import { resolveBoundCollection } from "@composition/shared";
 
 import type { DataTable } from "../../../types/builder/data.types";

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import type { StoredListBoxItem } from "@composition/specs";
-import { toRuntimeListBoxItem } from "@composition/specs";
+import type { StoredListBoxItem } from "@composition/rendering";
+import { toRuntimeListBoxItem } from "@composition/rendering";
 
 /**
  * ADR-076 Phase 3 — ListBox canonical contract

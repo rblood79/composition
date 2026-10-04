@@ -14,7 +14,7 @@
  * 값은 `var(--text-*)` CSS 변수 참조만 해석한다 (typography 토큰 → px). 항목·size·변수가 없으면
  * undefined — 호출자가 자기 기본 (FieldError 자체 rule size) 으로 돌아간다.
  */
-import { typography } from "@composition/specs";
+import { typography } from "@composition/rendering";
 
 import { resolveComponentRuleByTag } from "./resolveComponentRule";
 

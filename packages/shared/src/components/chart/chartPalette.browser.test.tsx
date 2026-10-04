@@ -13,8 +13,8 @@ import {
   type ChartPalette,
   type TokenRef,
   type SizeSpec,
-} from "@composition/specs";
-import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
+} from "@composition/rendering";
+import { SKIA_PRIMITIVES } from "@composition/rendering/renderers";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
 import { Chart } from "../Chart";
 import "../styles/theme/preview-system.css";
@@ -49,8 +49,12 @@ it("rule: palettes.* 길이 == series 길이 (순번 계약) · 기본 팔레트
     expect(tokens.length, id).toBe(rule.chart!.series.length);
   }
   expect(resolveChartPalette(rule.chart, undefined)).toBe(rule.chart!.series);
-  expect(resolveChartPalette(rule.chart, "categorical")).toBe(rule.chart!.series);
-  expect(resolveChartPalette(rule.chart, "mono")).toBe(rule.chart!.palettes!.mono);
+  expect(resolveChartPalette(rule.chart, "categorical")).toBe(
+    rule.chart!.series,
+  );
+  expect(resolveChartPalette(rule.chart, "mono")).toBe(
+    rule.chart!.palettes!.mono,
+  );
   expect(resolveChartPalette(rule.chart, "nope")).toBe(rule.chart!.series);
 });
 
@@ -82,7 +86,8 @@ for (const theme of ["light", "dark"] as const)
       });
       const serialized = JSON.stringify(shapes);
       expect(serialized).toContain(tokens[0]);
-      if (palette === "mono") expect(serialized).not.toContain("chart-categorical");
+      if (palette === "mono")
+        expect(serialized).not.toContain("chart-categorical");
 
       host = document.createElement("div");
       document.body.append(host);
@@ -107,7 +112,9 @@ for (const theme of ["light", "dark"] as const)
       for (let i = 0; i < tokens.length; i++) {
         probe.style.color = `var(--chart-series-${i + 1})`;
         const actual = rgba(getComputedStyle(probe).color);
-        const expected = rgba(String(resolveToken(tokens[i] as TokenRef, theme)));
+        const expected = rgba(
+          String(resolveToken(tokens[i] as TokenRef, theme)),
+        );
         actual.forEach((channel, index) =>
           expect(
             Math.abs(channel - expected[index]),

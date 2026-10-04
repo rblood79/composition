@@ -22,7 +22,7 @@ const { PNG } = createRequire(import.meta.url)(
 const BASE_URL = process.env.BUILDER_URL ?? "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR211_OUT ?? "/private/tmp/adr211-p1";
-const SPECS = `/@fs${REPO}/packages/specs/src/chart/index.ts`;
+const SPECS = `/@fs${REPO}/packages/rendering/src/chart/index.ts`;
 const log = (...a) => console.log("[ADR-211 p1 live]", ...a);
 
 async function setPanel(page, panelId, open) {

@@ -13,7 +13,7 @@
  * 키가 있으면 P1 과 동일하게 그 값을 쓰고, 없을 때만 경로 traversal (신규 가산).
  */
 
-import { resolveFieldRef } from "@composition/specs";
+import { resolveFieldRef } from "@composition/rendering";
 import {
   getItemDescription,
   getItemIcon,
@@ -219,9 +219,7 @@ export type RowTemplateRole = "label" | "description";
  */
 export function resolveRowTemplateSource(
   slotComposition:
-    | { slots?: Partial<Record<string, { text?: string }>> }
-    | null
-    | undefined,
+    { slots?: Partial<Record<string, { text?: string }>> } | null | undefined,
   role: RowTemplateRole,
   itemProps: Record<string, unknown> | null | undefined,
 ): string | null {

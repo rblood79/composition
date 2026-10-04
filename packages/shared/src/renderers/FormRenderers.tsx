@@ -1,5 +1,8 @@
 import React from "react";
-import { resolveTextSourceText, TAILWIND_PALETTE } from "@composition/specs";
+import {
+  resolveTextSourceText,
+  TAILWIND_PALETTE,
+} from "@composition/rendering";
 
 import { resolvePropagatedText } from "./utils/propagatedLabel";
 import {
@@ -1112,8 +1115,7 @@ export const renderFileTrigger = (
       }
       onSelect={
         eventHandlers.onSelect as unknown as
-          | ((files: FileList | null) => void)
-          | undefined
+          ((files: FileList | null) => void) | undefined
       }
     >
       {children.length > 0

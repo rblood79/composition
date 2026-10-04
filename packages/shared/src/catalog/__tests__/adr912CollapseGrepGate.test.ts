@@ -5,7 +5,7 @@
  * collapse 가 닫으려는 dispersion source 8종의 현재 occurrence 를 baseline 으로 고정한다.
  *
  * **두 가지 가드**:
- *   1. 의존 방향 (Δ1/Δ7): 새 shared resolver 가 `@composition/specs` 를 import 하는 것은
+ *   1. 의존 방향 (Δ1/Δ7): 새 shared resolver 가 `@composition/rendering` 를 import 하는 것은
  *      `shared → specs` **정상 방향**이라 허용된다. 단 Δ7 으로 layout token table 을 specs 단일
  *      source 로 이전하면서 추가된 `LAYOUT_TOKEN_STYLES` import **1건으로만 한정**한다(다른 specs
  *      심볼을 끌어와 의존 표면을 늘리지 않게). 금지되는 방향은 `specs → shared` 이며, 그 방향은
@@ -19,7 +19,7 @@
  *
  * 정밀화 메모: §5 kill 의 dispersion 패턴은 코드 정의뿐 아니라 주석 내 문자열도 매칭한다. kill
  * 대상 심볼(COMPOSITION_LAYOUT_STYLES 등)을 0 으로 만들 때 주석에서도 해당 심볼명을 직접 쓰지
- * 않는다(주석 false positive 가 가드 자기-위반). import 가드는 `from ['"]@composition/specs`
+ * 않는다(주석 false positive 가 가드 자기-위반). import 가드는 `from ['"]@composition/rendering`
  * import 문만 검사한다.
  */
 
@@ -44,7 +44,7 @@ function countMatches(text: string, pattern: RegExp): number {
 
 const FILES = {
   generateCss: "packages/specs/scripts/generate-css.ts",
-  cssGenerator: "packages/specs/src/renderers/CSSGenerator.ts",
+  cssGenerator: "packages/rendering/src/renderers/CSSGenerator.ts",
   implicitStyles:
     "apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts",
   specPresetResolver:
@@ -60,13 +60,13 @@ const FILES = {
 } as const;
 
 describe("ADR-912 collapse grep gate — 의존 방향 (Δ1/Δ7)", () => {
-  it("새 resolver 의 @composition/specs import 는 Δ7 layout token 1건으로 한정 (정상 방향)", () => {
+  it("새 resolver 의 @composition/rendering import 는 Δ7 layout token 1건으로 한정 (정상 방향)", () => {
     const text = read(FILES.newResolver);
     // shared → specs 는 정상 방향. Δ7 으로 LAYOUT_TOKEN_STYLES 단일 source 를 import 하므로 1건.
     // 다른 specs 심볼을 끌어와 의존 표면을 늘리면 regression.
     const importLines = text
       .split("\n")
-      .filter((l) => /from\s+['"]@composition\/specs/.test(l));
+      .filter((l) => /from\s+['"]@composition\/rendering/.test(l));
     expect(importLines.length).toBe(1);
     expect(importLines[0]).toContain("LAYOUT_TOKEN_STYLES");
   });
@@ -74,7 +74,9 @@ describe("ADR-912 collapse grep gate — 의존 방향 (Δ1/Δ7)", () => {
   it("금지 방향 specs → shared 는 0 (specs 가 shared 를 import 하지 않음)", () => {
     // specs renderers/layoutTokens 가 shared 를 import 하면 순환. 단일 source 가 framework-free
     // 하위 레이어에 사는지 검증.
-    const layoutTokens = read("packages/specs/src/renderers/layoutTokens.ts");
+    const layoutTokens = read(
+      "packages/rendering/src/renderers/layoutTokens.ts",
+    );
     const cssGen = read(FILES.cssGenerator);
     expect(countMatches(layoutTokens, /from\s+['"]@composition\/shared/)).toBe(
       0,

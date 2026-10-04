@@ -115,15 +115,15 @@ importers:
       '@composition/publish':
         specifier: workspace:*
         version: link:../publish
+      '@composition/rendering':
+        specifier: workspace:*
+        version: link:../../packages/rendering
       '@composition/sample-data':
         specifier: workspace:*
         version: link:../../packages/sample-data
       '@composition/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@composition/specs':
-        specifier: workspace:*
-        version: link:../../packages/specs
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
@@ -340,6 +340,55 @@ importers:
         specifier: ^8.67.0
         version: 8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
 
+  packages/rendering:
+    dependencies:
+      react:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.2.8
+    devDependencies:
+      '@composition/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/d3-time':
+        specifier: ^3.0.4
+        version: 3.0.4
+      '@types/d3-time-format':
+        specifier: ^4.0.3
+        version: 4.0.3
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.18
+      '@vitest/coverage-v8':
+        specifier: ^4.1.11
+        version: 4.1.11(@vitest/browser@4.1.11)(vitest@4.1.11)
+      d3-time:
+        specifier: ^3.1.0
+        version: 3.1.0
+      d3-time-format:
+        specifier: ^4.1.0
+        version: 4.1.0
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      lucide-react:
+        specifier: 'catalog:'
+        version: 1.46.0(react@19.2.8)
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(@swc/core@1.16.1(@swc/helpers@0.5.23))(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.23.12
+        version: 4.23.12
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@24.13.3)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(jsdom@30.0.1)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
+
   packages/sample-data:
     devDependencies:
       '@composition/config':
@@ -360,9 +409,9 @@ importers:
 
   packages/shared:
     dependencies:
-      '@composition/specs':
+      '@composition/rendering':
         specifier: workspace:*
-        version: link:../specs
+        version: link:../rendering
       '@composition/upload':
         specifier: workspace:*
         version: link:../upload-engine
@@ -439,6 +488,9 @@ importers:
 
   packages/specs:
     dependencies:
+      '@composition/rendering':
+        specifier: workspace:*
+        version: link:../rendering
       react:
         specifier: ^18.0.0 || ^19.0.0
         version: 19.2.8

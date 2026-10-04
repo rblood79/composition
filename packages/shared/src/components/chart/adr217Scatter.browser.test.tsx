@@ -13,7 +13,7 @@ import {
   resolveChartMetrics,
   type ChartProps,
   type PathMark,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
 
 let root: Root;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { normalizeMiddleBaselineTextLineHeight } from "./specBuildHelpers";
-import type { Shape } from "@composition/specs";
+import type { Shape } from "@composition/rendering";
 
 describe("normalizeMiddleBaselineTextLineHeight", () => {
   it("injects sizeSpec lineHeight into middle-baseline text shapes", () => {

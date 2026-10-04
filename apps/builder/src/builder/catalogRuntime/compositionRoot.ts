@@ -43,7 +43,7 @@ import {
   catalogCalendarGridSize,
   catalogCalendarHeaderParts,
 } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
-import { resolveTextSourceText } from "@composition/specs";
+import { resolveTextSourceText } from "@composition/rendering";
 import { applyTextTransform } from "../utils/textTransform";
 import {
   catalogAspectRatio,

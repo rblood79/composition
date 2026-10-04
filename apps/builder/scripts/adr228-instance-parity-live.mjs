@@ -16,7 +16,7 @@ import { resolve } from "node:path";
 import { chromium } from "playwright";
 import pixelmatch from "pixelmatch";
 import { waitReady } from "./perf-baseline.mjs";
-import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/specs";
+import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/rendering";
 
 const require = createRequire(import.meta.url);
 const { PNG } = require(

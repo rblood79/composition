@@ -1,5 +1,5 @@
+import { deriveOptions } from "../../../../../packages/shared/src/catalog/outputs/editFields";
 import {
-  deriveOptions,
   getCatalogEntry,
   resolveComponentRule,
   type EditContract,
@@ -26,7 +26,11 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
-import { catalogBindingRef, catalogBindingValue, catalogTargetBinding } from "./dataBinding";
+import {
+  catalogBindingRef,
+  catalogBindingValue,
+  catalogTargetBinding,
+} from "./dataBinding";
 import { catalogBindingCommand } from "./dataBindingCommand";
 import type { CatalogReadModel } from "./readModel";
 
@@ -48,7 +52,7 @@ export function catalogTargetDefinitionId(
 
 /** The semantic props an edited definition offers: a reusable origin's own contract, else the
  * catalog accepts of the type it shows (the old contract's (A′) / (A) / (A″) paths). */
-function semanticContracts(
+export function catalogSemanticContracts(
   definitionId: DefinitionId,
   type: string,
 ): Readonly<Record<string, PropContract>> {
@@ -66,7 +70,7 @@ export function catalogDefinitionPropKeys(
   graph: CatalogReader,
   definitionId: DefinitionId,
 ): Set<string> {
-  const contracts = semanticContracts(
+  const contracts = catalogSemanticContracts(
     definitionId,
     definitionTypeName(graph, definitionId),
   );
@@ -91,11 +95,9 @@ export function catalogEditContract(
   const definitionId = catalogTargetDefinitionId(graph, target);
   const type = definitionTypeName(graph, definitionId);
   const rule = resolveComponentRule(type);
-  const node = { id: "", type, props: {} } as Parameters<
-    typeof deriveOptions
-  >[2];
+  const node = { type };
   const fields: ResolvedField[] = Object.entries(
-    semanticContracts(definitionId, type),
+    catalogSemanticContracts(definitionId, type),
   ).map(([key, contract]) => {
     if (contract.kind === "binding") {
       // The data binding is the node's typed `binding`, not a prop (a template position has none

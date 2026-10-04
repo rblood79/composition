@@ -1,4 +1,4 @@
-import { fontFamily as specFontFamily } from "@composition/specs";
+import { fontFamily as specFontFamily } from "@composition/rendering";
 import {
   measureWrappedTextHeight,
   measureFontMetrics,

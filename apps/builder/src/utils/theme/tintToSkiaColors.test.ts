@@ -7,7 +7,7 @@ import {
   CHART_ACCENT_DEFAULT_HEX,
   CHART_ACCENT_TOKENS,
   lightColors,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveAccentColorTokens, TINT_PRESETS } from "./tintToSkiaColors";
 import { oklchToHex } from "./oklchToHex";
 
@@ -28,9 +28,9 @@ describe("tintToSkiaColors — chart-accent 사다리", () => {
       expect(tokens["chart-accent-1"]).toBe(oklchToHex(0.4, c, h));
       expect(tokens["chart-accent-4"]).toBe(oklchToHex(0.85, c * 0.5, h));
     }
-    expect(resolveAccentColorTokens("pink", "light")!["chart-accent-1"]).not.toBe(
-      resolveAccentColorTokens("blue", "light")!["chart-accent-1"],
-    );
+    expect(
+      resolveAccentColorTokens("pink", "light")!["chart-accent-1"],
+    ).not.toBe(resolveAccentColorTokens("blue", "light")!["chart-accent-1"]);
   });
 
   it("light / dark 같은 값 (accent 가 테마 불변인 규칙과 같다)", () => {

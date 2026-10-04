@@ -7,7 +7,7 @@ import {
   type ChartPercentUnit,
   type ChartValueFormat,
   type ChartValueLocale,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyNumberInput } from "../../components/property/PropertyNumberInput";
 import { PropertySelect } from "../../components/property/PropertySelect";

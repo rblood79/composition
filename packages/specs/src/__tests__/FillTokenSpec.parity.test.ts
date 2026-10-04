@@ -12,7 +12,7 @@ import type {
   FillStateTokens,
   FillTokenSpec,
   TokenRef,
-} from "../types/spec.types";
+} from "@composition/rendering/types/spec.types";
 
 describe("FillStateTokens — 구조 계약", () => {
   it("base 는 required TokenRef", () => {

@@ -1,5 +1,5 @@
 import type { CanvasKit } from "canvaskit-wasm";
-import { TAILWIND_PALETTE, hexStringToNumber } from "@composition/specs";
+import { TAILWIND_PALETTE, hexStringToNumber } from "@composition/rendering";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
 
 /** `#rrggbb` → CanvasKit Color4f 채널 (0~1). 팔레트 hex 를 오버레이 상수로 내릴 때 공용 (ADR-191 R8). */

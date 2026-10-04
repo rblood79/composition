@@ -1,4 +1,4 @@
-import { resolveToken, type TokenRef } from "@composition/specs";
+import { resolveToken, type TokenRef } from "@composition/rendering";
 import type { Scalar, TokenType } from "./types";
 
 /**

@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useState, useDeferredValue } from "react";
-import { LUCIDE_ICON_NAMES } from "@composition/specs";
+import { LUCIDE_ICON_NAMES } from "@composition/rendering";
 
 export function useIconSearch() {
   const [query, setQuery] = useState("");

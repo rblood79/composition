@@ -15,11 +15,11 @@
  * 흘리거나 재계산하는 것**. 실제로 두 파일 모두 offset/bbox/순서를 각자 다루므로
  * 여기서 갈릴 수 있다.
  *
- * **측정 조건 (중요)**: shared 는 `@composition/specs` 를 **dist** 로 해석한다. 그래서 이
+ * **측정 조건 (중요)**: shared 는 `@composition/rendering` 를 **dist** 로 해석한다. 그래서 이
  * 테스트는 src 가 아니라 **빌드된 specs** 를 잰다 — production 이 쓰는 것과 같은 산출물이라
  * 옳은 대상이지만, dist 가 stale 하면 이 테스트는 조용히 vacuous 해진다. 실제로 falsify
  * 시도(Skia leg 좌표 +1)를 rebuild 없이 돌렸을 때 28건이 그대로 통과했고, rebuild 후에야
- * 4건이 RED 로 반응했다(2026-09-08). specs 를 고쳤으면 `pnpm -F @composition/specs build`
+ * 4건이 RED 로 반응했다(2026-09-08). specs 를 고쳤으면 `pnpm -F @composition/rendering build`
  * 를 먼저 돌린다 (cross-check skill §5.0 dist 신선도 게이트와 같은 규율).
  */
 import { describe, expect, it } from "vitest";
@@ -29,9 +29,9 @@ import {
   computeChartScene,
   resolveChartMetrics,
   skiaTextAnchorX,
-} from "@composition/specs";
-import type { ChartProps, ChartRow, Shape } from "@composition/specs";
-import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
+} from "@composition/rendering";
+import type { ChartProps, ChartRow, Shape } from "@composition/rendering";
+import { SKIA_PRIMITIVES } from "@composition/rendering/renderers";
 import { renderChartScene } from "../Chart";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
 

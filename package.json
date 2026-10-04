@@ -15,7 +15,7 @@
     "gate:catalog-errors": "node apps/builder/scripts/catalog-error-sweep.mjs",
     "cache:clean": "rm -rf .turbo/cache",
     "generate:css": "pnpm -F @composition/specs generate:css",
-    "generate:palette": "pnpm -F @composition/specs generate:palette",
+    "generate:palette": "pnpm -F @composition/rendering generate:palette",
     "validate:sync": "pnpm -F @composition/specs validate:sync",
     "type-check": "turbo run type-check",
     "test:registration-contract": "pnpm -F @composition/builder exec vitest run src/builder/catalogRuntime/__tests__/phase4ePalette.test.ts src/builder/catalogRuntime/__tests__/phase3G3Census.test.tsx",
@@ -41,13 +41,14 @@
     "playwright:install": "pnpm -F @composition/builder exec playwright install",
     "wasm:build:engine": "wasm-pack build packages/engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg",
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
-    "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
+    "prepare:specs": "pnpm -F @composition/rendering generate:icons && pnpm run build:specs",
     "prepare:upload": "pnpm -F @composition/upload build",
     "postinstall": "pnpm run prepare:wasm && pnpm run prepare:specs && pnpm run prepare:upload",
     "codex:session-start": "bash scripts/codex/session-start.sh",
     "gate:install": "bash scripts/install-git-hooks.sh",
     "gate:perf-ratchet": "node apps/builder/scripts/perf-ratchet-gate.mjs --run",
-    "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs"
+    "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs",
+    "gate:catalog-runtime": "pnpm -F @composition/builder exec node scripts/adr248-runtime-boundary.mjs"
   },
   "devDependencies": {
     "gray-matter": "^4.0.3",

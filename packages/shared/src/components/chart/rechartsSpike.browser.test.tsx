@@ -27,13 +27,13 @@ import {
   niceTicks,
   valueExtent,
   stackRangesBySeries,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartProps,
   ChartRow,
   PathMark,
   RectMark,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   legacyMonotoneVertical,
   legacyMonotoneHorizontal,
@@ -66,7 +66,6 @@ function mount(element: ReactElement): void {
 function sceneProps(patch: Partial<ChartProps>): ChartProps {
   return { ...CHART_DEFAULT_PROPS, showAxis: false, color: "series", ...patch };
 }
-
 
 async function check(
   selector: string,

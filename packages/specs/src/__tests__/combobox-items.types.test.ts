@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { StoredComboBoxItem } from "../types/combobox-items";
+import type { StoredComboBoxItem } from "@composition/rendering/types/combobox-items";
 
 /**
  * ADR-158 Phase 4 후속 (2026-08-17): `onActionId` / `RuntimeComboBoxItem` /

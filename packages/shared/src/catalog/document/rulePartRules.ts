@@ -15,7 +15,7 @@ import {
   cssVarToTokenRef,
   resolveToken,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import {
@@ -68,7 +68,11 @@ const SUBPART_TOKENS: Readonly<
   SearchField: {
     SelectTrigger: [".searchfield-container"],
     SelectValue: [".react-aria-Input"],
-    SelectIcon: [".search-icon svg", ".react-aria-Button", ".react-aria-Button svg"],
+    SelectIcon: [
+      ".search-icon svg",
+      ".react-aria-Button",
+      ".react-aria-Button svg",
+    ],
   },
   DatePicker: {
     SelectTrigger: [".react-aria-Group"],
@@ -262,9 +266,16 @@ function lengthPx(value: string): number | undefined {
   if (calc) {
     const terms = calc.split(/\s+([+-])\s+/);
     let total = lengthPx(terms[0]);
-    for (let index = 1; total !== undefined && index < terms.length; index += 2) {
+    for (
+      let index = 1;
+      total !== undefined && index < terms.length;
+      index += 2
+    ) {
       const term = lengthPx(terms[index + 1]);
-      total = term === undefined ? undefined : total + (terms[index] === "-" ? -term : term);
+      total =
+        term === undefined
+          ? undefined
+          : total + (terms[index] === "-" ? -term : term);
     }
     return total;
   }
@@ -303,7 +314,10 @@ function substitute(
         if (next === undefined) unresolved = true;
         return next ?? whole;
       }
-      if (CSS_SPACING_PX[name] !== undefined || cssVarToTokenRef(`var(${name})`))
+      if (
+        CSS_SPACING_PX[name] !== undefined ||
+        cssVarToTokenRef(`var(${name})`)
+      )
         return `var(${name})`;
       if (fallback !== undefined) return fallback.trim();
       unresolved = true;
@@ -472,9 +486,8 @@ function compileDeclarations(
     } else if (/^padding-(top|right|bottom|left)$/.test(key)) {
       const px = lengthPx(value);
       if (px !== undefined)
-        visual[
-          `padding${key[8].toUpperCase()}${key.slice(9)}` as VisualField
-        ] = px;
+        visual[`padding${key[8].toUpperCase()}${key.slice(9)}` as VisualField] =
+          px;
     } else if (key === "gap") {
       const px = lengthPx(value);
       if (px !== undefined) visual.gap = px;
@@ -605,10 +618,17 @@ function sizeNames(rule: ComponentRule): string[] {
  * (`[data-type="literal"] { padding: 0 }`). 0 when the owner declares none.
  */
 export function catalogDateSegmentPaddingX(ownerType: string): number {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[ownerType];
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    ownerType
+  ];
   const delegation = (
     rule?.structure?.composition as
-      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | {
+          delegation?: Array<{
+            childSelector?: string;
+            bridges?: Record<string, string>;
+          }>;
+        }
       | undefined
   )?.delegation;
   const padding = delegation?.find(
@@ -625,16 +645,24 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
  * 0 when the owner declares none.
  */
 export function catalogDateRangeEndGrow(ownerType: string): number {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[ownerType];
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    ownerType
+  ];
   const delegation = (
     rule?.structure?.composition as
-      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | {
+          delegation?: Array<{
+            childSelector?: string;
+            bridges?: Record<string, string>;
+          }>;
+        }
       | undefined
   )?.delegation;
   const flex = delegation?.find(
     (entry) => entry.childSelector === '[slot="end"]',
   )?.bridges?.flex;
-  const grow = typeof flex === "string" ? Number(flex.trim().split(/\s+/)[0]) : 0;
+  const grow =
+    typeof flex === "string" ? Number(flex.trim().split(/\s+/)[0]) : 0;
   return Number.isFinite(grow) && grow > 0 ? grow : 0;
 }
 
@@ -654,18 +682,27 @@ export function catalogDropZoneContentStyle(): {
   readonly label: CatalogDropZoneTextStyle;
   readonly description: CatalogDropZoneTextStyle;
 } {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).DropZone;
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .DropZone;
   const delegation = (
     rule?.structure?.composition as
-      | { delegation?: Array<{ childSelector?: string; bridges?: Record<string, string> }> }
+      | {
+          delegation?: Array<{
+            childSelector?: string;
+            bridges?: Record<string, string>;
+          }>;
+        }
       | undefined
   )?.delegation;
   const text = (selector: string): CatalogDropZoneTextStyle => {
     const bridges =
-      delegation?.find((entry) => entry.childSelector === selector)?.bridges ?? {};
+      delegation?.find((entry) => entry.childSelector === selector)?.bridges ??
+      {};
     const size = bridges["font-size"];
     const fontSize =
-      typeof size === "string" && size.trim() !== "inherit" ? lengthPx(size) : undefined;
+      typeof size === "string" && size.trim() !== "inherit"
+        ? lengthPx(size)
+        : undefined;
     const ratio = Number(bridges["line-height"]);
     return {
       ...(fontSize !== undefined ? { fontSize } : {}),
@@ -773,7 +810,9 @@ function tokenRuleBasePartRules(parentType: string): CompiledPartRule[] {
           other
         ];
         if (!rule?.structure) return [];
-        const size = rule.defaultSize ? rule.sizes[rule.defaultSize] : undefined;
+        const size = rule.defaultSize
+          ? rule.sizes[rule.defaultSize]
+          : undefined;
         const visual: Record<string, Scalar> = {};
         if (typeof size?.gap === "number") visual.gap = size.gap;
         if (typeof size?.minWidth === "number") visual.minWidth = size.minWidth;
@@ -807,16 +846,18 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   ];
   const trigger = (
     rule.structure?.composition as
-      | { staticSelectors?: Record<string, Record<string, string>> }
-      | undefined
+      { staticSelectors?: Record<string, Record<string, string>> } | undefined
   )?.staticSelectors?.[".react-aria-Button[slot='trigger']"];
-  const padding = trigger ? spacing(substitute(trigger.padding ?? "", {}) ?? "") : undefined;
+  const padding = trigger
+    ? spacing(substitute(trigger.padding ?? "", {}) ?? "")
+    : undefined;
   const gap = trigger ? lengthPx(trigger.gap ?? "") : undefined;
   if (!padding || gap === undefined) return [];
   const left = padding[3] ?? padding[1] ?? padding[0];
   // The chevron reads the nearest `--icon-size`: the trigger's own `.react-aria-Button` sheet at
   // its default size (the element carries no `data-size`).
-  const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Button;
+  const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .Button;
   const buttonIcon = button?.defaultSize
     ? button.sizes[button.defaultSize]?.iconSize
     : undefined;
@@ -827,7 +868,9 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   };
   // The trigger is a `.react-aria-Button`: its generated base `line-height` (default size, a
   // unitless ratio) stays while `font-size: inherit` takes the Disclosure's size font.
-  const buttonSize = button?.defaultSize ? button.sizes[button.defaultSize] : undefined;
+  const buttonSize = button?.defaultSize
+    ? button.sizes[button.defaultSize]
+    : undefined;
   const buttonFont = px(buttonSize?.fontSize);
   const buttonLine = px(buttonSize?.lineHeight);
   const lineHeight =
@@ -837,7 +880,9 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
     const icon = buttonIcon ?? rule.sizes[size]?.iconSize;
     const fontSize =
-      trigger?.["font-size"] === "inherit" ? px(rule.sizes[size]?.fontSize) : undefined;
+      trigger?.["font-size"] === "inherit"
+        ? px(rule.sizes[size]?.fontSize)
+        : undefined;
     return typeof icon === "number"
       ? [
           {
@@ -960,20 +1005,29 @@ const CONTAINER_VARIANT_AXES: Readonly<Record<string, string>> = {
   "label-position": "labelPosition",
 };
 /** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
-const LABEL_ALIGN_AXIS = { attribute: "label-align", prop: "labelAlign" } as const;
+const LABEL_ALIGN_AXIS = {
+  attribute: "label-align",
+  prop: "labelAlign",
+} as const;
 /**
  * Typed direct children a side `> :not(.react-aria-Label, …)` selector reaches: the field's control
  * box (TextField `Input`, DateField `DateInput`, the picker / NumberField / SearchField trigger).
  */
 const FIELD_CONTROL_TYPES = ["Input", "SelectTrigger", "DateInput"] as const;
 
-function containerVariantsOf(rule: ComponentRule): ContainerVariants | undefined {
-  return ((rule.structure?.composition as { containerVariants?: unknown } | undefined)
-    ?.containerVariants ?? rule.containerVariants) as ContainerVariants | undefined;
+function containerVariantsOf(
+  rule: ComponentRule,
+): ContainerVariants | undefined {
+  return ((
+    rule.structure?.composition as { containerVariants?: unknown } | undefined
+  )?.containerVariants ?? rule.containerVariants) as
+    ContainerVariants | undefined;
 }
 
 /** Custom properties a variant block declares on the root (inherited by every descendant). */
-function blockVariables(block: ContainerVariantBlock | undefined): Record<string, string> {
+function blockVariables(
+  block: ContainerVariantBlock | undefined,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [key, value] of Object.entries(block?.styles ?? {}))
     if (key.startsWith("--")) out[key] = value;
@@ -997,8 +1051,16 @@ export function catalogContainerVariantRootRules(type: string): Array<{
   const out: ReturnType<typeof catalogContainerVariantRootRules> = [];
   for (const [attribute, prop] of Object.entries(CONTAINER_VARIANT_AXES))
     for (const [value, block] of Object.entries(variants[attribute] ?? {})) {
-      const compiled = compileDeclarations(type, block.styles ?? {}, {}, undefined);
-      if (Object.keys(compiled.layout).length || Object.keys(compiled.visual).length)
+      const compiled = compileDeclarations(
+        type,
+        block.styles ?? {},
+        {},
+        undefined,
+      );
+      if (
+        Object.keys(compiled.layout).length ||
+        Object.keys(compiled.visual).length
+      )
         out.push({ when: { [prop]: value }, ...compiled });
     }
   return out;
@@ -1041,7 +1103,10 @@ function containerVariantPartRules(
               return target ? [target] : [];
             });
         for (const target of targets) {
-          const compile = (size: string | undefined, align: string | undefined) => {
+          const compile = (
+            size: string | undefined,
+            align: string | undefined,
+          ) => {
             const variables = {
               ...((size && rootVariables[size]) || {}),
               ...blockVariables(block),
@@ -1056,27 +1121,38 @@ function containerVariantPartRules(
             // The side label column's text alignment (`text-align: var(--form-label-align, start)`):
             // read here only — the label is a text leaf, which paints its alignment.
             const textAlign = entry.styles?.["text-align"];
-            const aligned = textAlign ? substitute(textAlign, variables) : undefined;
+            const aligned = textAlign
+              ? substitute(textAlign, variables)
+              : undefined;
             if (aligned && /^(left|center|right|start|end)$/.test(aligned))
               compiled.visual.textAlign = aligned;
             return compiled;
           };
           const key = (compiled: ReturnType<typeof compile>) =>
             JSON.stringify([compiled.layout, compiled.visual]);
-          const base = sizes.map((size) => ({ size, ...compile(size, undefined) }));
+          const base = sizes.map((size) => ({
+            size,
+            ...compile(size, undefined),
+          }));
           const uniform = base.every((item) => key(item) === key(base[0]));
           const push = (
             size: string | undefined,
             align: string | undefined,
             compiled: ReturnType<typeof compile>,
           ) => {
-            if (!Object.keys(compiled.layout).length && !Object.keys(compiled.visual).length)
+            if (
+              !Object.keys(compiled.layout).length &&
+              !Object.keys(compiled.visual).length
+            )
               return;
             out.push({
               childType: target.childType,
               ...(target.via ? { via: target.via } : {}),
               ...(size ? { size } : {}),
-              ownerProps: { [prop]: value, ...(align ? { [LABEL_ALIGN_AXIS.prop]: align } : {}) },
+              ownerProps: {
+                [prop]: value,
+                ...(align ? { [LABEL_ALIGN_AXIS.prop]: align } : {}),
+              },
               layout: compiled.layout,
               visual: compiled.visual,
             });
@@ -1084,7 +1160,9 @@ function containerVariantPartRules(
           for (const item of uniform ? [{ ...base[0], size: undefined }] : base)
             push(item.size, undefined, item);
           for (const align of Object.keys(aligns))
-            for (const item of uniform ? [{ ...base[0], size: undefined }] : base) {
+            for (const item of uniform
+              ? [{ ...base[0], size: undefined }]
+              : base) {
               const aligned = compile(item.size ?? sizes[0], align);
               if (key(aligned) !== key(item)) push(item.size, align, aligned);
             }
@@ -1174,7 +1252,9 @@ export function compileRulePartRules(
       const whole = Object.values(SUBPART_TOKENS[parentType] ?? {}).some(
         (tokens) => tokens.includes(part),
       );
-      const simple = whole ? { token: part, conditions: [] } : parseSimple(part);
+      const simple = whole
+        ? { token: part, conditions: [] }
+        : parseSimple(part);
       if (!simple) continue;
       const target = childTypeOf(parentType, simple.token);
       if (!target) continue;
@@ -1226,11 +1306,13 @@ export function compileRulePartRules(
         }
         return { size, ...compiledBlock };
       });
-      const same = !block.size && compiled.every(
-        (entry) =>
-          JSON.stringify([entry.layout, entry.visual]) ===
-          JSON.stringify([compiled[0].layout, compiled[0].visual]),
-      );
+      const same =
+        !block.size &&
+        compiled.every(
+          (entry) =>
+            JSON.stringify([entry.layout, entry.visual]) ===
+            JSON.stringify([compiled[0].layout, compiled[0].visual]),
+        );
       for (const entry of same
         ? [{ ...compiled[0], size: undefined }]
         : compiled) {

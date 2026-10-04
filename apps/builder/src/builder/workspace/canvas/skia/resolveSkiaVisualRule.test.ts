@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { isCatalogCutover, resolveComponentRule } from "@composition/shared";
-import { getSpecForTag } from "../styleConversion/tagSpecMap";
 import { resolveSkiaVisualRule } from "./resolveSkiaVisualRule";
 
 /**
@@ -38,22 +37,6 @@ describe("resolveComponentRule — Button size source = theme rule table (ADR-91
     };
     for (const [size, px] of Object.entries(expected)) {
       expect(rule?.sizes[size]?.paddingX).toBe(px);
-    }
-  });
-
-  it("table Button size 가 spec.sizes(추종)와 시각 일치 — drift 0 (단계 5 전 guardrail)", () => {
-    const rule = resolveComponentRule("Button");
-    const spec = getSpecForTag("Button");
-    if (!spec?.sizes) return;
-    for (const size of ["xs", "sm", "md", "lg", "xl"]) {
-      const t = rule?.sizes[size];
-      const s = spec.sizes[size] as unknown as
-        Record<string, unknown> | undefined;
-      if (!t || !s) continue;
-      // 정본(table) 기준 — spec 이 따라오는지. fontSize/borderRadius/paddingX 핵심 시각값.
-      expect(t.fontSize).toBe(s.fontSize);
-      expect(t.borderRadius).toBe(s.borderRadius);
-      expect(t.paddingX).toBe(s.paddingX);
     }
   });
 });

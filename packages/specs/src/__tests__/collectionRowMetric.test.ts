@@ -8,8 +8,8 @@
 //  - wrap 은 주입 측정기, 미주입 시 단일 줄 fallback(BC)
 import { describe, it, expect, afterEach } from "vitest";
 
-import { resolveCollectionRowMetric } from "../renderers/utils/collectionItemMetrics";
-import { setSpecWrappedTextHeightMeasurer } from "../renderers/utils/measureText";
+import { resolveCollectionRowMetric } from "@composition/rendering/renderers/utils/collectionItemMetrics";
+import { setSpecWrappedTextHeightMeasurer } from "@composition/rendering/renderers/utils/measureText";
 
 // ListBox 기본 metric 정합 상수 (라이브 실측): label 16→lh 24, description 12→lh 16.
 const LABEL_LH = 24;

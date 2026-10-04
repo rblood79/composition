@@ -7,13 +7,13 @@ import {
   CHART_DEFAULT_PROPS,
   CHART_REFERENCE_LINES_MAX,
   CHART_REFERENCE_LINE_TYPES_SUPPORTED,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartLineType,
   ChartReferenceLayer,
   ChartReferenceLine,
   ChartType,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertyNumberInput } from "../../components/property/PropertyNumberInput";

@@ -18,7 +18,7 @@ import type {
   ColumnMapping,
   DataBindingValue,
 } from "../types";
-import type { RuntimeMenuItem } from "@composition/specs";
+import type { RuntimeMenuItem } from "@composition/rendering";
 
 import { useResolvedCollectionItems } from "../hooks";
 // ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).
@@ -490,7 +490,9 @@ export function MenuSubmenu({
       {trigger}
       <Popover data-size={size}>
         <Menu
-          className={className ? `react-aria-Menu ${className}` : "react-aria-Menu"}
+          className={
+            className ? `react-aria-Menu ${className}` : "react-aria-Menu"
+          }
           data-size={size}
         >
           {children}

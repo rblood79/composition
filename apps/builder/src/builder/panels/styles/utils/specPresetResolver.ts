@@ -3,7 +3,7 @@ import {
   resolveToken,
   tokenToCSSVar,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   resolveCatalogContainerBase,
   resolveCatalogContainerVariants,

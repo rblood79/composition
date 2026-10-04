@@ -7,7 +7,11 @@
  * @packageDocumentation
  */
 
-import type { ComponentSpec, Shape, TokenRef } from "../types";
+import type {
+  ComponentSpec,
+  Shape,
+  TokenRef,
+} from "@composition/rendering/types";
 import { Tag, Shield, PointerOff, AlertTriangle, PenOff } from "lucide-react";
 
 /**

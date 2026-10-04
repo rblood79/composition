@@ -20,9 +20,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { resolveToken, tokenToCSSVar } from "@composition/specs";
-import { spacing, radius, typography } from "@composition/specs";
-import type { TokenRef } from "@composition/specs";
+import { resolveToken, tokenToCSSVar } from "@composition/rendering";
+import { spacing, radius, typography } from "@composition/rendering";
+import type { TokenRef } from "@composition/rendering";
 import { resolveContainerStylesFallback } from "./implicitStyles";
 
 describe("ADR-081 G2 — token consumer drift cross-reference", () => {

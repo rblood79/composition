@@ -4,8 +4,8 @@
  * spec shape builder에서 추출한 공통 helper.
  */
 
-import type { Shape, TokenRef } from "@composition/specs";
-import { resolveToken } from "@composition/specs";
+import type { Shape, TokenRef } from "@composition/rendering";
+import { resolveToken } from "@composition/rendering";
 import { measureWrappedTextHeight } from "../utils/textMeasure";
 import { DEFAULT_FONT_FAMILY } from "../../../fonts/customFonts";
 

@@ -16,7 +16,7 @@ import {
   darkColors,
   CHART_ACCENT_STEPS,
   CHART_ACCENT_TOKENS,
-} from "@composition/specs";
+} from "@composition/rendering";
 
 import { oklchToHex } from "./oklchToHex";
 

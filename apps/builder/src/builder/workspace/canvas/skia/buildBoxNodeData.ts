@@ -6,8 +6,8 @@
  */
 
 import { resolveBorderPaint } from "../styleConversion/borderGeometry";
-import type { BorderStyleValue, TokenRef } from "@composition/specs";
-import { resolveColor, hexStringToNumber } from "@composition/specs";
+import type { BorderStyleValue, TokenRef } from "@composition/rendering";
+import { resolveColor, hexStringToNumber } from "@composition/rendering";
 import { resolveComponentRule } from "@composition/shared";
 import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
 import type { SkiaNodeData } from "./nodeRendererTypes";

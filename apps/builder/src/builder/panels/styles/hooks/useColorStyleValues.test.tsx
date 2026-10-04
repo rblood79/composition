@@ -2,7 +2,7 @@
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { darkColors, lightColors } from "@composition/specs";
+import { darkColors, lightColors } from "@composition/rendering";
 
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
@@ -257,23 +257,26 @@ describe("Style Panel catalog color values", () => {
     // ADR-248 4e-9 C 발견: catalog host 의 context props 는 edit contract 에서 오고, 원본 기반 Card 의
     //   계약에는 isSelected/isSelectable 이 없어 패널이 비선택 paint 를 보인다 (Canvas record 는
     //   isSelected:true). 결함 수리 전까지 실패가 기대값 — 고치면 이 it.fails 가 빨개진다.
-    it.fails("D4 선택 Card 자신의 accentColor를 selected paint에 적용한다", async () => {
-      const accent = resolveAccentColorTokens("red", "light");
-      await setElements([
-        makeElement("card-1", "Card", {
-          size: "md",
-          variant: "primary",
-          accentColor: "red",
-          isSelectable: true,
-          isSelected: true,
-        }),
-      ]);
+    it.fails(
+      "D4 선택 Card 자신의 accentColor를 selected paint에 적용한다",
+      async () => {
+        const accent = resolveAccentColorTokens("red", "light");
+        await setElements([
+          makeElement("card-1", "Card", {
+            size: "md",
+            variant: "primary",
+            accentColor: "red",
+            isSelectable: true,
+            isSelected: true,
+          }),
+        ]);
 
-      expect(readColorValues("card-1")).toMatchObject({
-        backgroundColor: accent?.["accent-subtle"],
-        borderColor: accent?.accent,
-      });
-    });
+        expect(readColorValues("card-1")).toMatchObject({
+          backgroundColor: accent?.["accent-subtle"],
+          borderColor: accent?.accent,
+        });
+      },
+    );
 
     it("D4 조상 Card의 accentColor를 자식 accent variant에 적용한다", async () => {
       const accent = resolveAccentColorTokens("red", "light");

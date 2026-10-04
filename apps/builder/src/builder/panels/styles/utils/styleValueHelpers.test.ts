@@ -1,4 +1,4 @@
-import { darkColors, lightColors } from "@composition/specs";
+import { darkColors, lightColors } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 
 import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";

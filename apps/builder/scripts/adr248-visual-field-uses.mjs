@@ -86,7 +86,7 @@ if (JSON.stringify(declaredKeys.sort()) !== JSON.stringify(expectedKeys.sort()))
 const allowedRoots = [
   "apps/builder/src/",
   "packages/shared/src/",
-  "packages/specs/src/",
+  "packages/rendering/src/",
   "packages/specs/scripts/",
 ];
 const pathFor = (fileName) => relative(root, fileName).replaceAll("\\", "/");

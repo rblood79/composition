@@ -11,7 +11,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { specShapesToSkia } from "./specShapeConverter";
-import type { Shape } from "@composition/specs";
+import type { Shape } from "@composition/rendering";
 
 const TRIANGLE = "M 0 0 L 10 0 L 5 8 Z";
 

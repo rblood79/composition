@@ -7,7 +7,7 @@ import {
   type Shape,
   type SizeSpec,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { getPrimitiveBinding } from "@composition/shared";
 import { ruleVariantToVisual } from "../workspace/canvas/skia/resolveSkiaVisualRule";
 import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
@@ -22,7 +22,7 @@ import {
 /**
  * ADR-248 Canvas executor for rule-backed definitions (`LibraryDefinition.ruleId`): the node's
  * D3 rule (variant/state paint, sub-part structure) plus its resolved props and authored visual
- * writes → the catalog shape generators (`@composition/specs`) → CanvasKit node data.
+ * writes → the catalog shape generators (`@composition/rendering`) → CanvasKit node data.
  *
  * Execution capability tables below are binding-level data (which types own their children,
  * merge child props, or need their box size); they are not visual values.

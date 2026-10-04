@@ -1,4 +1,4 @@
-import { resolveTextSourceText, textFromValue } from "@composition/specs";
+import { resolveTextSourceText, textFromValue } from "@composition/rendering";
 
 /**
  * ADR-923 r17m1 — composite parent 의 propagation 대상 텍스트 (`label` 등) 를 Preview 가 읽는 단일 규칙.

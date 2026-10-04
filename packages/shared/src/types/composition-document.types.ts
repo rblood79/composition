@@ -113,7 +113,7 @@ export interface ThemesCollection {
  * `TokensSnapshot` 내 개별 design token 항목.
  *
  * ADR-110 R3 대응: `source` 구분자로 Spec TokenRef vs 사용자 정의 토큰을 구분.
- * - `spec-token`: `packages/specs/src/primitives/tokenResolver.ts` 에서 resolve 된 값
+ * - `spec-token`: `packages/rendering/src/primitives/tokenResolver.ts` 에서 resolve 된 값
  * - `user-defined`: 사용자가 직접 정의한 변수 (향후 UI에서 편집 가능)
  */
 export interface TokensSnapshotEntry {
@@ -629,7 +629,7 @@ export interface ComponentRule {
    * emit 안 됨" 상태 방지). `structure.layout` 이 field 류 root layout 의 정본.
    *
    * 패키지 경계: 모든 필드는 specs `ComponentSpec[...]` 참조 없이 shared 자체 타입으로 선언
-   * (`specs ← shared` 의존 방향 — 새 resolver 의 `@composition/specs` import 0 유지).
+   * (`specs ← shared` 의존 방향 — 새 resolver 의 `@composition/rendering` import 0 유지).
    */
   structure?: ComponentRuleStructure;
   /**

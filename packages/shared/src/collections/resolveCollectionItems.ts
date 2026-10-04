@@ -2,7 +2,7 @@ import {
   registerFieldIds,
   resolveFieldRef,
   resolveTextSourceText,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
 import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 import { normalizeDataBinding } from "./normalizeDataBinding";

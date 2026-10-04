@@ -31,7 +31,7 @@ import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 
 const TAILWIND_NEUTRAL_600 = TAILWIND_PALETTE.neutral[600];
 
@@ -80,7 +80,8 @@ async function openOwner(
         {
           kind: "node",
           id: "project:node:owner",
-          definitionId: definitionId ?? catalogPaletteDefinitionId(library, type),
+          definitionId:
+            definitionId ?? catalogPaletteDefinitionId(library, type),
           children: [],
           props: Object.fromEntries(
             Object.entries(props).map(([key, value]) => [
@@ -275,14 +276,18 @@ describe("group size reaches the items", () => {
       )!;
       const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
       const itemClass = `react-aria-${item === "radio" ? "Radio" : "Checkbox"}`;
-      const tags = html.match(new RegExp(`<label[^>]*class="${itemClass}"[^>]*>`, "g")) ?? [];
+      const tags =
+        html.match(new RegExp(`<label[^>]*class="${itemClass}"[^>]*>`, "g")) ??
+        [];
       expect(tags.length).toBe(items.length);
       if (item === "checkbox")
         for (const tag of tags) expect(tag).toContain('data-size="lg"');
       // The group root carries `data-size` (the generated per-size blocks apply), and the Canvas
       // reads the same catalog size: lg items gap 16.
       expect(html).toMatch(
-        new RegExp(`class="react-aria-${owner}"[^>]*data-size="lg"|data-size="lg"[^>]*class="react-aria-${owner}"`),
+        new RegExp(
+          `class="react-aria-${owner}"[^>]*data-size="lg"|data-size="lg"[^>]*class="react-aria-${owner}"`,
+        ),
       );
       const boxes = [...root.layoutInputs.values()].filter(
         (record) => record.bindingId === item,
@@ -317,7 +322,9 @@ describe("Slider size reaches the track", () => {
     )!;
     const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
     expect(html).toMatch(
-      new RegExp(`class="react-aria-SliderTrack"[^>]*data-size="${size}"|data-size="${size}"[^>]*class="react-aria-SliderTrack"`),
+      new RegExp(
+        `class="react-aria-SliderTrack"[^>]*data-size="${size}"|data-size="${size}"[^>]*class="react-aria-SliderTrack"`,
+      ),
     );
     workspace.dispose();
   });
@@ -505,7 +512,9 @@ describe("standalone collection items — item slot roles", () => {
     )!;
     expect(item.visual.opacity).toBe(0.38);
     const css = readFileSync(`${GENERATED}/GridListItem.css`, "utf8");
-    expect(css).toMatch(/\.react-aria-GridListItem\[data-disabled\] \{[^}]*opacity: 0\.38/);
+    expect(css).toMatch(
+      /\.react-aria-GridListItem\[data-disabled\] \{[^}]*opacity: 0\.38/,
+    );
   });
 
   it("a standalone GridListItem's description keeps weight 400 and its slot", async () => {
@@ -525,7 +534,6 @@ describe("standalone collection items — item slot roles", () => {
     expect(html).toContain('slot="description"');
   });
 });
-
 
 /**
  * taglist-wrapper: the catalog TagList is `height: 100%` (사용자 지시 2026-09-24) — the chip

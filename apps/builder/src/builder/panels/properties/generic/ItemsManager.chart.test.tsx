@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createChartInitialProps,
   type ItemsManagerField,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { I18nProvider } from "@/i18n";
 import {
   openStylesFixture,

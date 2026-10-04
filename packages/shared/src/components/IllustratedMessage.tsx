@@ -30,8 +30,8 @@ import React from "react";
 import {
   resolveIllustratedMessageMetric,
   resolveIllustratedMessageText,
-} from "@composition/specs";
-import type { IllustratedMessageSizeLike } from "@composition/specs";
+} from "@composition/rendering";
+import type { IllustratedMessageSizeLike } from "@composition/rendering";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { resolveCatalogContainerBase } from "../catalog/resolvers/resolveCatalogContainer";
 

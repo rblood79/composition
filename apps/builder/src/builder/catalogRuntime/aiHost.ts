@@ -110,11 +110,25 @@ function projectElements(workspace: CatalogWorkspace): Element[] {
       ...catalogPlacementStyle(own.placement),
     };
     const fills = catalogFillItems(own.fills);
+    const props: Record<string, unknown> = {
+      ...(records.get(position.identity)?.props ?? {}),
+    };
+    // 원본의 label/icon 같은 저작 필드는 렌더된 Button props에서 소비·변환된다.
+    // AI 반영 검증은 이 필드를 잃지 않도록 Properties와 같은 읽기 계약으로 보완한다.
+    for (const field of catalogEditContract(
+      graph,
+      workspace.readModel,
+      position.target,
+    ).fields) {
+      if (field.origin === "semantic" && !(field.key in props)) {
+        props[field.key] = field.currentValue;
+      }
+    }
     out.push({
       id: position.identity,
       type: typeOf(workspace, position),
       props: {
-        ...(records.get(position.identity)?.props ?? {}),
+        ...props,
         ...(Object.keys(style).length ? { style } : {}),
       },
       ...(fills ? { fills: fills as Element["fills"] } : {}),

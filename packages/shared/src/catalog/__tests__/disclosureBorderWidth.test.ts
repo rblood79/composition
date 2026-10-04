@@ -1,4 +1,4 @@
-import { resolveBorderWidthPx } from "@composition/specs";
+import { resolveBorderWidthPx } from "@composition/rendering";
 import { describe, expect, it } from "vitest";
 
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";

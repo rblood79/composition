@@ -36,8 +36,8 @@
     "test": "vitest",
     "test:coverage": "vitest --coverage",
     "generate:css": "tsx scripts/generate-css.ts",
-    "generate:palette": "tsx scripts/generate-palette.ts",
-    "validate:palette": "tsx scripts/generate-palette.ts --check",
+    "generate:palette": "pnpm -F @composition/rendering generate:palette",
+    "validate:palette": "pnpm -F @composition/rendering validate:palette",
     "validate": "tsx scripts/validate-specs.ts",
     "validate:tokens": "tsx scripts/validate-tokens.ts",
     "validate:phase0": "tsx scripts/validate-phase0.ts",
@@ -72,5 +72,8 @@
     "lucide-react": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "@composition/rendering": "workspace:*"
   }
 }

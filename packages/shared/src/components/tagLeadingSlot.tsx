@@ -3,7 +3,7 @@
  *
  * chip 좌측에는 슬롯이 하나뿐이고 두 표현이 경쟁한다 — avatar(원형 이미지)와 icon(lucide
  * glyph). 우선순위는 **avatar > icon**이며, 이는 Skia 의 `resolveLeadingSlot`
- * (packages/specs/src/renderers/buildCatalogShapes.ts) 판정과 같은 결론이어야 한다.
+ * (packages/rendering/src/renderers/buildCatalogShapes.ts) 판정과 같은 결론이어야 한다.
  *
  * 마크업이 세 곳(chip 본체 / maxRows 미러 span / `renderTagGroup` items 경로)에 필요해서
  * 헬퍼로 모은다 — 과거 Tag icon 슬라이스에서 렌더러 경로 하나를 빠뜨려 "패널에선 편집되는데
@@ -36,7 +36,8 @@ export function resolveTagLeadingSlotSource(
 ): { avatar: string | null; icon: string | null; size: number | undefined } {
   const avatar =
     item.avatar && isSlotEnabled(composition, "avatar") ? item.avatar : null;
-  const icon = item.icon && isSlotEnabled(composition, "icon") ? item.icon : null;
+  const icon =
+    item.icon && isSlotEnabled(composition, "icon") ? item.icon : null;
   const size = avatar
     ? readLeadingSlotSize(composition?.slots.avatar?.style, "avatar")
     : icon

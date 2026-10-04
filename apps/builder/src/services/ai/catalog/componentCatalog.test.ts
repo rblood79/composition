@@ -61,25 +61,36 @@ describe("AI 카탈로그 커버리지", () => {
       const entry = getAiCatalogEntry(type);
       expect(entry?.kind, type).toBe("reusable");
       expect(entry?.placeable, type).toBe(true);
-      // ADR-228: 동명 primitive 가 origin root 라 편집 계약 = primitive accepts —
-      //   `resolveEditContract` (A″) 가 ref instance 에 주는 것과 같은 필드를 광고한다.
-      const primitive = componentCatalog.find(
-        (e) => e.type === type && e.kind === "primitive",
-      );
-      const expected =
-        primitive?.kind === "primitive"
-          ? Object.keys(primitive.binding.props.accepts ?? {})
-          : [];
+      // 생성 manifest는 원본의 노출 필드를 사용한다. 대표 이름은 아래 fixture로 고정한다.
       expect(
-        entry?.props.filter((p) => p.origin === "semantic").map((p) => p.name),
+        entry?.props.some((prop) => prop.origin === "style"),
         type,
-      ).toEqual(expected);
+      ).toBe(true);
     }
   });
 
-  it("동명 primitive 가 없는 손 seed reusable (IconButton) 만 props 를 비운다", () => {
-    expect(getAiCatalogEntry("IconButton")?.props).toEqual([]);
+  it("IconButton은 catalog 원본의 생성 필드를 광고한다", () => {
+    expect(
+      getAiCatalogEntry("IconButton")
+        ?.props.filter((p) => p.origin === "semantic")
+        .map((p) => p.name),
+    ).toEqual([
+      "label",
+      "icon",
+      "variant",
+      "size",
+      "staticColor",
+      "isDisabled",
+    ]);
     expect(getAiCatalogEntry("Button")?.racPrimitive).toBe("Button");
+  });
+
+  it("InlineAlert은 primitive heading/children 대신 원본 title/description을 광고한다", () => {
+    expect(
+      getAiCatalogEntry("InlineAlert")
+        ?.props.filter((p) => p.origin === "semantic")
+        .map((p) => p.name),
+    ).toEqual(["title", "description", "variant"]);
   });
 
   it("카테고리 인덱스가 팔레트 노출 항목을 전부 담는다", () => {

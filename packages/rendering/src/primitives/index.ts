@@ -1,0 +1,134 @@
+/**
+ * Primitives - Public API
+ *
+ * 디자인 토큰 (색상, 간격, 타이포그래피, radius, 그림자)
+ *
+ * @packageDocumentation
+ */
+
+// Colors
+export {
+  lightColors,
+  darkColors,
+  getColorToken,
+  getColorTokens,
+} from "./colors";
+export { TAILWIND_PALETTE } from "./generated/tailwindPalette";
+// Semantic·named hue → 팔레트 단계 매핑 정본 (ADR-193)
+export {
+  SEMANTIC_PALETTE_MAP,
+  resolveSemanticHex,
+  resolveSemanticColors,
+} from "./semanticPaletteMap";
+export type {
+  SemanticPaletteToken,
+  SemanticPaletteEntry,
+  PaletteRef,
+} from "./semanticPaletteMap";
+// Chart 시리즈 팔레트 표 (categorical 리터럴 · accent 명도 사다리)
+export {
+  CHART_CATEGORICAL_HEX,
+  CHART_CATEGORICAL_COUNT,
+  CHART_CATEGORICAL_TOKENS,
+  CHART_ACCENT_STEPS,
+  CHART_ACCENT_TOKENS,
+  CHART_ACCENT_DEFAULT_HEX,
+  chartCategoricalCssVar,
+  resolveChartPaletteColors,
+} from "./chartPaletteMap";
+export type {
+  ChartCategoricalToken,
+  ChartAccentToken,
+} from "./chartPaletteMap";
+export type {
+  TailwindPaletteFamily,
+  TailwindPaletteStep,
+} from "./generated/tailwindPalette";
+
+// Spacing
+export {
+  spacing,
+  getSpacingToken,
+  normalizeBreadcrumbRspSizeKey,
+} from "./spacing";
+
+// Typography
+export {
+  typography,
+  fontFamily,
+  fontWeight,
+  lineHeight,
+  getTypographyToken,
+  getLabelLineHeight,
+  getTextLineHeight,
+  getDescriptionLineHeight,
+} from "./typography";
+
+// Radius
+export { radius, getRadiusToken } from "./radius";
+
+// Border width (ADR-227 Phase 3)
+export {
+  borderWidth,
+  DEFAULT_BORDER_WIDTH_TOKEN,
+  getBorderWidthToken,
+} from "./border";
+
+// Shadows
+export {
+  lightShadows,
+  darkShadows,
+  getShadowToken,
+  parseShadow,
+} from "./shadows";
+
+export type { ParsedShadow } from "./shadows";
+
+// Shadow 리터럴 ↔ 프리셋 역매핑 (ADR-166 후속) — 패널이 기록한 inline 리터럴을
+//   Skia 는 theme 리터럴로, DOM 은 CSS 변수로 되돌린다.
+export {
+  mapShadowLayers,
+  stripShadowInset,
+  applyShadowInset,
+  matchShadowPreset,
+  normalizeShadowForTheme,
+  shadowLiteralToCssVar,
+} from "./shadowNormalize";
+
+export type { ShadowPresetKey } from "./shadowNormalize";
+
+// Font (CSS 표준 상수 — ADR-091 Phase 1)
+export { FONT_STRETCH_KEYWORD_MAP } from "./font";
+
+// HTML primitive defaults (ADR-096 Phase 2)
+export {
+  HTML_PRIMITIVE_DEFAULT_WIDTHS,
+  HTML_PRIMITIVE_DEFAULT_HEIGHTS,
+} from "./elementDefaults";
+
+// Button-family height metric (ADR-105-a)
+export { BUTTON_FAMILY_HEIGHTS } from "./buttonSizes";
+
+// Field-family size metric (ADR-105-b)
+export { FIELD_FAMILY_SIZES } from "./fieldSizes";
+
+// Tab-family size metric (ADR-105-b)
+export { TABS_SIZE_CONFIG } from "./tabSizes";
+
+// CSS value parser SSOT (ADR-907 Phase 1 Layer A)
+export {
+  parsePxValue,
+  parsePxOnlyValue,
+  parsePadding4Way,
+  parseBorderWidth,
+  parseGapValue,
+} from "./cssValueParser";
+
+// Container spacing primitive (ADR-907 Phase 2 Layer B)
+export { resolveContainerSpacing } from "./containerSpacing";
+
+export type {
+  ContainerSpacing,
+  ContainerSpacingDefaults,
+  ContainerSpacingInput,
+} from "./containerSpacing";

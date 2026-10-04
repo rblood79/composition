@@ -15,7 +15,7 @@ import {
   type ChartProps,
   type LineMark,
   type TextMark,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
 
 let root: Root;

@@ -33,6 +33,8 @@ import {
 } from "../dataHistory";
 import { catalogInteractionsOf } from "../interactions";
 import { createElementTool } from "../../../services/ai/tools/createElement";
+import { readCompilerState } from "../../../services/ai/compiler/builderHost";
+import { validateCompilerToolCall } from "../../../services/ai/compiler/toolValidation";
 import { deleteElementTool } from "../../../services/ai/tools/deleteElement";
 import { updateElementTool } from "../../../services/ai/tools/updateElement";
 import type { ToolTranslate } from "../../../types/integrations/ai.types";
@@ -138,6 +140,48 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e-5 AI writes", () => {
+  it("생성 manifest의 원본 props가 검증·생성·Undo/Redo까지 같은 catalog 계약을 사용한다", async () => {
+    const { workspace, steps } = await open();
+    const components = readCompilerState().manifest.components;
+    const button = components.find((entry) => entry.type === "Button")!;
+    expect(
+      button.props.find((field) => field.name === "variant")?.values,
+    ).toContain("primary");
+    const before = steps();
+    for (const args of [
+      { type: "IconButton", props: { label: "등록", icon: "star" } },
+      {
+        type: "InlineAlert",
+        props: { title: "저장됨", description: "catalog 원본" },
+      },
+    ]) {
+      expect(validateCompilerToolCall("create_element", args, t)).toBeNull();
+      const result = await createElementTool.execute(args, t);
+      expect(result.success, result.error).toBe(true);
+      const created = (result.data as { elementId: string }).elementId;
+      const element = createCatalogAiReadHost(workspace)
+        .elements()
+        .find((entry) => entry.id === created)!;
+      const target = workspace.positionOfRecord(created)!.target;
+      for (const [key, value] of Object.entries(args.props)) {
+        expect(element.props[key]).toBe(value);
+        expect(workspace.readModel.propSource(target, key).value).toBe(value);
+      }
+    }
+    expect(steps()).toBe(before + 2);
+    await workspace.undo();
+    expect(steps()).toBe(before + 1);
+    await workspace.redo();
+    expect(steps()).toBe(before + 2);
+    expect(
+      validateCompilerToolCall(
+        "create_element",
+        { type: "Button", props: { variant: "invalid" } },
+        t,
+      ),
+    ).not.toBeNull();
+    expect(steps()).toBe(before + 2);
+  });
   it("create_element: one step under the given element with props and CSS; the selection stays", async () => {
     const { workspace, record, children, steps, selected } = await open();
     workspace.selectRecords([record("a")]);

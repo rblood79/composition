@@ -1,5 +1,5 @@
 import React from "react";
-import { resolveTextSourceText } from "@composition/specs";
+import { resolveTextSourceText } from "@composition/rendering";
 import Table, { type ColumnDefinition } from "../components/Table";
 import type {
   PreviewElement,

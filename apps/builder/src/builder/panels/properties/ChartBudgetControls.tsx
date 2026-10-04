@@ -6,7 +6,7 @@ import {
   resolveChartMetrics,
   resolveChartModel,
   supportsBudgetMode,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartBudgetAggregate,
   ChartBudgetAxis,
@@ -14,7 +14,7 @@ import type {
   ChartProps,
   ChartRow,
   ChartType,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "@composition/shared";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput } from "../../components/property/PropertyInput";

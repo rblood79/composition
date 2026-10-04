@@ -11,7 +11,7 @@
  */
 
 import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
-import { registerFieldIds } from "@composition/specs";
+import { registerFieldIds } from "@composition/rendering";
 import { resolveBoundCollection } from "../collections/resolveBoundCollection";
 import { normalizeDataBinding } from "../collections/normalizeDataBinding";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
@@ -552,8 +552,8 @@ export function useCollectionData({
           ? `DataTable을 찾을 수 없습니다`
           : null
     : list.loadingState === "error" && list.error
-        ? list.error.message
-        : null;
+      ? list.error.message
+      : null;
 
   // 캐시 삭제 함수
   const clearCache = useCallback(() => {

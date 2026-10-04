@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { StoredSelectItem } from "@composition/specs";
+import type { StoredSelectItem } from "@composition/rendering";
 
 describe("Select canonical contract", () => {
   const items: StoredSelectItem[] = [

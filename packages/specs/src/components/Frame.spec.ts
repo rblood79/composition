@@ -30,7 +30,11 @@
  * @see docs/adr/completed/198-d3-renderer-pixel-parity-gate.md
  */
 
-import type { ComponentSpec, Shape, TokenRef } from "../types";
+import type {
+  ComponentSpec,
+  Shape,
+  TokenRef,
+} from "@composition/rendering/types";
 
 export interface FrameProps {
   clip?: boolean;
@@ -78,9 +82,7 @@ function toPx(value: string | number | undefined): number {
  * 그리는 건 overlay 채널 (ADR-219) 이고, 여기서는 "테두리가 있는가" 만 필요하다 —
  * 배경이 없어도 테두리가 붙을 bg box 를 내야 하기 때문이다.
  */
-function resolveBorder(
-  style: Record<string, string | number | undefined>,
-): {
+function resolveBorder(style: Record<string, string | number | undefined>): {
   width: number;
   color: string;
   style: string;

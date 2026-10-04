@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // adr211-budget-model-spike.mjs — ADR-211 P0 (G0) spike, 모델·계약 축.
 //
-// 제품 코드는 건드리지 않는다. 하니스 페이지가 `packages/specs/src/chart` 를 **src** 로 import 하고
+// 제품 코드는 건드리지 않는다. 하니스 페이지가 `packages/rendering/src/chart` 를 **src** 로 import 하고
 // (adr210-runtime-perf.mjs 와 같은 방법), 예산 계약의 **시험용 구현** (`budgetSpike.ts` — P1 의
 // `budget.ts` 초안, 제품 아님) 을 함께 묶어 아래를 잰다:
 //   A) 모델 계산 비용 — resolveChartData + computeChartScene (폭 2,000 × 400, fit 최대) 를
@@ -40,7 +40,7 @@ writeFileSync(
 // ── 예산 계약 시험 구현 (breakdown §2.1~2.5 의 규칙을 그대로 코드로) ─────────────────────────
 writeFileSync(
   join(root, "budgetSpike.ts"),
-  `import type { SeriesGrid, SeriesData } from "${repo}/packages/specs/src/chart/series";
+  `import type { SeriesGrid, SeriesData } from "${repo}/packages/rendering/src/chart/series";
 export interface MinUnits { minSlot: number; minPointGap: number; minArc: number; minAxisGap: number; minRing: number }
 export const UNITS: MinUnits = { minSlot: 8, minPointGap: 2, minArc: 6, minAxisGap: 12, minRing: 4 };
 export type Kind = "bar" | "line" | "area" | "pie" | "radar" | "radial";
@@ -169,7 +169,7 @@ writeFileSync(
   join(root, "harness.tsx"),
   `import React from "react";
 import { createRoot } from "react-dom/client";
-import { resolveChartData, computeChartScene, createChartInitialProps, CHART_DEFAULT_METRICS, buildSeriesGrid } from "${repo}/packages/specs/src/chart";
+import { resolveChartData, computeChartScene, createChartInitialProps, CHART_DEFAULT_METRICS, buildSeriesGrid } from "${repo}/packages/rendering/src/chart";
 import { Slider } from "${repo}/packages/shared/src/components/Slider";
 import { slotFit, fitEff, aggregate, selectExtrema, others, extent, OTHERS_KEY, UNITS } from "./budgetSpike";
 const output = document.querySelector("#results")!;

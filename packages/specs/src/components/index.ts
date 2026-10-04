@@ -76,11 +76,11 @@
 
 // ListBox — ADR-912 단계5 step4 (2026-06-17): ListBox.spec 물리 삭제(catalog cutover).
 //   resolveListBoxSpacingMetric + 2 타입은 collectionItemMetrics 로 이관. ListBoxSpec/Props 제거.
-export { resolveListBoxSpacingMetric } from "../renderers/utils/collectionItemMetrics";
+export { resolveListBoxSpacingMetric } from "@composition/rendering/renderers/utils/collectionItemMetrics";
 export type {
   ListBoxSpacingInput,
   ListBoxSpacingMetric,
-} from "../renderers/utils/collectionItemMetrics";
+} from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 // Slider — ADR-912 단계5 step4 (2026-06-17): Slider.spec.ts 물리 삭제(catalog cutover). export 제거.
 //   시각 SSOT = componentRulesTable.Slider + STRUCTURE_META virtual(slider archetype).
@@ -117,8 +117,8 @@ export {
   DATE_PICKER_ICON_SIZE,
   DATE_PICKER_SIZES,
   DATE_PICKER_STATES,
-} from "../renderers/datePickerShapes";
-export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
+} from "@composition/rendering/renderers/datePickerShapes";
+export type { DatePickerShapesInput } from "@composition/rendering/renderers/datePickerShapes";
 
 // DateField — ADR-912 단계5 step4 (2026-06-17): catalog cutover → spec 물리 삭제 (export 제거).
 //   Skia = 투명 컨테이너(빈 shapes). layout intrinsicHeight = utils.ts rule 인라인 미러. TimeField 동형.
@@ -168,7 +168,7 @@ export type { DatePickerShapesInput } from "../renderers/datePickerShapes";
 export {
   resolveListBoxItemMetric,
   resolveListBoxItemRowHeight,
-} from "../renderers/utils/collectionItemMetrics";
+} from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 // Breadcrumbs — ADR-912 단계5 step4 (2026-06-16): catalog cutover, spec 삭제.
 //   시각 SSOT = componentRulesTable + STRUCTURE_META. BreadcrumbSpec 도 동일 삭제(이전 cutover).
@@ -191,11 +191,11 @@ export {
   resolveGridListItemMetric,
   resolveGridListSpacingMetric,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
-} from "../renderers/utils/collectionItemMetrics";
+} from "@composition/rendering/renderers/utils/collectionItemMetrics";
 export type {
   GridListSpacingMetric,
   GridListSpacingInput,
-} from "../renderers/utils/collectionItemMetrics";
+} from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 // Disclosure / DisclosureGroup — ADR-912 Disclosure 군 일괄 cutover (2026-06-10) spec 삭제.
 //   시각 SSOT = componentRulesTable catalog rule.

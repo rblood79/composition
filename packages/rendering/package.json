@@ -1,0 +1,49 @@
+{
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@composition/config": "workspace:*",
+    "@types/d3-time": "^3.0.4",
+    "@types/d3-time-format": "^4.0.3",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@vitest/coverage-v8": "^4.1.11",
+    "d3-time": "^3.1.0",
+    "d3-time-format": "^4.1.0",
+    "eslint": "catalog:",
+    "lucide-react": "catalog:",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.12",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "lucide-react": "catalog:",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    }
+  },
+  "name": "@composition/rendering",
+  "private": true,
+  "description": "Catalog rendering primitives, tokens, shapes and CSS generator",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./primitives": "./src/primitives/index.ts",
+    "./renderers": "./src/renderers/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "type-check": "tsc --noEmit",
+    "generate:palette": "tsx scripts/generate-palette.ts",
+    "validate:palette": "tsx scripts/generate-palette.ts --check",
+    "generate:icons": "node scripts/extract-lucide-icons.mjs"
+  }
+}

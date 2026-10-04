@@ -370,7 +370,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 factory props.style.
   CardView: cardViewBinding,
   // ADR-194 (2026-09-08): 데이터 시각화 leaf. internal source(RAC 에 chart primitive 없음) +
-  //   skiaPrimitive "chart_scene". 기하는 packages/specs/src/chart 의 computeChartScene 단일
+  //   skiaPrimitive "chart_scene". 기하는 packages/rendering/src/chart 의 computeChartScene 단일
   //   source 이고 DOM(Chart.tsx SVG)/Skia 는 좌표를 복사만 한다.
   Chart: chartBinding,
   // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터

@@ -4,7 +4,7 @@ import { Checkbox } from "@composition/shared/components/list";
 import { memo } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
-import type { ChartDataMode } from "@composition/specs";
+import type { ChartDataMode } from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyRowMenu } from "../../components/property/PropertyRowMenu";
 import { PropertySelect } from "../../components/property/PropertySelect";

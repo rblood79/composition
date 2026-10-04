@@ -17,13 +17,12 @@ import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
-
 
 export interface SearchFieldProps extends AriaSearchFieldProps {
   label?: string;

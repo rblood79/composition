@@ -54,9 +54,9 @@ done
 
 [ -z "${CHANGED// /}" ] && exit 0
 
-# ADR-246 성능 경로 — builder 런타임 · shared · engine · specs · 의존성 · 하니스와 기준 자체.
+# ADR-246 성능 경로 — builder 런타임 · shared · engine · rendering/specs · 의존성 · 하니스와 기준 자체.
 # 테스트 파일만 바뀐 push 는 제외한다 (런타임 비용이 바뀌지 않는다).
-PERF_PATHS='^(apps/builder/src/|packages/shared/src/|packages/engine/(src/|Cargo\.toml$)|packages/specs/src/|apps/builder/vite\.config\.ts$|apps/builder/package\.json$|package\.json$|pnpm-lock\.yaml$|patches/|apps/builder/scripts/perf-(baseline|ratchet-gate|ratchet-run)\.mjs$|apps/builder/perf/ratchet\.json$)'
+PERF_PATHS='^(apps/builder/src/|packages/shared/src/|packages/engine/(src/|Cargo\.toml$)|packages/(specs|rendering)/src/|apps/builder/vite\.config\.ts$|apps/builder/package\.json$|package\.json$|pnpm-lock\.yaml$|patches/|apps/builder/scripts/perf-(baseline|ratchet-gate|ratchet-run)\.mjs$|apps/builder/perf/ratchet\.json$)'
 TEST_PATHS='(\.test\.(ts|tsx|mjs)$|/__tests__/)'
 
 PERF_MATCHED=""

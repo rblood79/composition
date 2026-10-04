@@ -30,7 +30,7 @@ const BASE_URL = process.env.ADR211_BASE_URL ?? process.env.BUILDER_URL ?? "http
 const PUBLISH_URL = "http://localhost:3001";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.ADR211_OUT ?? "/private/tmp/adr211-p3";
-const SPECS = `/@fs${REPO}/packages/specs/src/chart/index.ts`;
+const SPECS = `/@fs${REPO}/packages/rendering/src/chart/index.ts`;
 const log = (...a) => console.log("[ADR-211 p3 live]", ...a);
 const day = (i) =>
   new Date(Date.UTC(2024, 0, 1) + i * 86_400_000).toISOString().slice(0, 10);

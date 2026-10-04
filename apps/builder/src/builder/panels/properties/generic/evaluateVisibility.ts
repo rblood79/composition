@@ -1,4 +1,4 @@
-import type { VisibilityCondition } from "@composition/specs";
+import type { VisibilityCondition } from "@composition/rendering";
 
 export function evaluateVisibility(
   condition: VisibilityCondition | undefined,
@@ -6,7 +6,13 @@ export function evaluateVisibility(
   parentTag?: string,
 ): boolean {
   if (!condition) return true;
-  if (condition.all && !condition.all.every((part) => evaluateVisibility(part, currentProps, parentTag))) return false;
+  if (
+    condition.all &&
+    !condition.all.every((part) =>
+      evaluateVisibility(part, currentProps, parentTag),
+    )
+  )
+    return false;
 
   const value = condition.key
     ? condition.key.includes(".")

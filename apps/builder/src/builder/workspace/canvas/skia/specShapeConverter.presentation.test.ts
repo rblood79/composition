@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { getSkiaPrimitive, type Shape } from "@composition/specs";
+import { getSkiaPrimitive, type Shape } from "@composition/rendering";
 import { specShapesToSkia } from "./specShapeConverter";
 
 describe("specShapesToSkia presentation fill materialization", () => {

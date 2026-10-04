@@ -7,7 +7,7 @@
  * @see ADR-021 Phase B
  */
 
-import { radius } from "@composition/specs";
+import { radius } from "@composition/rendering";
 import type { RadiusScale } from "../../stores/themeConfigStore";
 
 // ============================================================================

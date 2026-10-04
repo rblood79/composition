@@ -1,6 +1,6 @@
 import React from "react";
-import { CHART_OTHERS_COLOR_INDEX } from "@composition/specs";
-import type { Mark, TextMark, ChartScene } from "@composition/specs";
+import { CHART_OTHERS_COLOR_INDEX } from "@composition/rendering";
+import type { Mark, TextMark, ChartScene } from "@composition/rendering";
 /** scene 의 series 인덱스 → CSS 변수. 1-based (shadcn `--chart-1..N` 관례). */
 export function seriesVar(index: number): string {
   // ADR-211 others 범주 (`CHART_OTHERS_COLOR_INDEX` −1) — 팔레트가 아니라 `--chart-others`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createChartInitialProps } from "@composition/specs";
+import { createChartInitialProps } from "@composition/rendering";
 import type {
   CompositionDocument,
   RefNode,

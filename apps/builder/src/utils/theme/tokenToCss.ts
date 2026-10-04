@@ -3,7 +3,7 @@
  * 타입별 디자인 토큰을 CSS 변수로 변환
  */
 
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 import { hslToString, rgbToString } from "../color/colorUtils";
 import type { DesignToken } from "../../types/theme";
 import {

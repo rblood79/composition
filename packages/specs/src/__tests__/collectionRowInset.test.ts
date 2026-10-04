@@ -5,7 +5,7 @@
 // 일치한다(§2.1 발견 1 입력 산출 봉쇄). 본 테스트는 그 공식을 고정한다.
 import { describe, it, expect } from "vitest";
 
-import { resolveListBoxItemInset } from "../renderers/utils/collectionItemMetrics";
+import { resolveListBoxItemInset } from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 const base = {
   paddingLeft: 12,

@@ -7,7 +7,7 @@ import {
   CHART_DEFAULT_SERIES_COUNT,
   resolveChartPalette,
   type ChartRow,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   useCallback,
   useLayoutEffect,

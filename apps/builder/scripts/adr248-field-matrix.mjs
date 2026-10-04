@@ -100,7 +100,7 @@ const surfaceOf = (path) =>
         path.startsWith("packages/shared/src/components/")
       ? "DOM/Preview"
       : path.startsWith("packages/specs/scripts/") ||
-          path.startsWith("packages/specs/src/renderers/")
+          path.startsWith("packages/rendering/src/renderers/")
         ? "specs generator/renderer"
         : path.startsWith("apps/builder/src/builder/")
           ? "Builder state/UI"

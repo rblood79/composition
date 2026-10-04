@@ -36,13 +36,13 @@ import {
   computeChartScene,
   niceTicks,
   valueExtent,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartProps,
   ChartRow,
   PathMark,
   RectMark,
-} from "@composition/specs";
+} from "@composition/rendering";
 
 const size = { width: 320, height: 240 };
 const margin = { top: 12, right: 12, bottom: 12, left: 12 };

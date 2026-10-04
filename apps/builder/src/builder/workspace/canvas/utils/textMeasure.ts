@@ -71,7 +71,7 @@ import {
   collapseTextWhiteSpace,
   collapsesSegmentBreaks,
 } from "./textWhiteSpace";
-import { setSpecWrappedTextHeightMeasurer } from "@composition/specs";
+import { setSpecWrappedTextHeightMeasurer } from "@composition/rendering";
 import { applyFontVariantCaps } from "./smallCapsSynthesis";
 
 // ============================================

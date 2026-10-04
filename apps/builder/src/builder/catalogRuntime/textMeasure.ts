@@ -1,4 +1,4 @@
-import { fontFamily } from "@composition/specs";
+import { fontFamily } from "@composition/rendering";
 import type { EmbindEnumEntity } from "canvaskit-wasm";
 import { DEFAULT_FONT_FEATURES } from "../workspace/canvas/layout/engines/cssResolver";
 import {

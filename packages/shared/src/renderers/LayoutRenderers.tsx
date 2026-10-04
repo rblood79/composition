@@ -34,7 +34,7 @@ import {
   getIconData,
   TAILWIND_PALETTE,
   resolveIllustratedMessageText,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolvePropagatedText } from "./utils/propagatedLabel";
 
 /** ColorSwatch/ColorPicker 기본값 — 팔레트 단일 원천 (ADR-191 R8). */

@@ -12,7 +12,7 @@
  * 읽는 별도 청크로 떼어내 gzip 순증 ~2.5 KiB 가 붙는다 (P4 실측). RechartsChart 는 render prop
  * 으로 받는다.
  */
-import type { Rect } from "@composition/specs";
+import type { Rect } from "@composition/rendering";
 import {
   useRef,
   type PointerEvent as ReactPointerEvent,

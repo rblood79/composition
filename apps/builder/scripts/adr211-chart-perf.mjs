@@ -37,7 +37,7 @@ const OUT = opt("out", "/private/tmp/adr211-p4/perf");
 const root = join(OUT, `${label}-src`);
 const dist = join(OUT, `${label}-dist`);
 const log = (...a) => console.log("[ADR-211 perf]", ...a);
-const hasModel = existsSync(join(repo, "packages/specs/src/chart/model.ts"));
+const hasModel = existsSync(join(repo, "packages/rendering/src/chart/model.ts"));
 const MOVES = 20;
 
 mkdirSync(root, { recursive: true });
@@ -50,7 +50,7 @@ writeFileSync(
   `import React from "react";
 import { createRoot } from "react-dom/client";
 import { Chart } from "${repo}/packages/shared/src/components/Chart";
-import { createChartInitialProps${hasModel ? ", resolveChartModel, CHART_DEFAULT_METRICS, CHART_DEFAULT_PROPS" : ""} } from "${repo}/packages/specs/src/chart";
+import { createChartInitialProps${hasModel ? ", resolveChartModel, CHART_DEFAULT_METRICS, CHART_DEFAULT_PROPS" : ""} } from "${repo}/packages/rendering/src/chart";
 const HAS_MODEL = ${hasModel};
 const host = document.querySelector<HTMLDivElement>("#host")!;
 const root = createRoot(host);

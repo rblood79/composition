@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest";
 import {
   resolveListBoxSpacingMetric,
   resolveListBoxItemRowHeight,
-} from "../renderers/utils/collectionItemMetrics";
+} from "@composition/rendering/renderers/utils/collectionItemMetrics";
 
 describe("resolveListBoxSpacingMetric — defaults", () => {
   it("style 미지정 → defaults (padding 4, gap 2, fontSize 14, borderWidth 1)", () => {

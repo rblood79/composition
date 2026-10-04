@@ -11,9 +11,9 @@
  * Usage: pnpm validate:sync
  */
 
-import { generateCSS } from "../src/renderers/CSSGenerator";
-import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
-import type { ComponentSpec } from "../src/types";
+import { generateCSS } from "../../rendering/src/renderers/CSSGenerator";
+import type { ComponentVisualRule } from "../../rendering/src/renderers/utils/resolveComponentVisual";
+import type { ComponentSpec } from "../../rendering/src/types";
 // ADR-912 ②-6-A (1A-(a)): drift 검증을 정본 table 기준으로 — generate-css 와 동일 source 주입.
 import {
   getComponentRulesTable,

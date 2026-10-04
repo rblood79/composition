@@ -4,11 +4,15 @@
  * Tailwind v4 5종 gray 팔레트에서 S2 neutral 13개 토큰을
  * lightColors/darkColors에 직접 mutation하여 Skia 렌더링에 반영.
  *
- * @see packages/specs/src/primitives/generated/tailwindPalette.ts (ADR-191 — tailwindcss/theme.css 파생, 손 복사 금지)
+ * @see packages/rendering/src/primitives/generated/tailwindPalette.ts (ADR-191 — tailwindcss/theme.css 파생, 손 복사 금지)
  * @see ADR-021 Phase B
  */
 
-import { lightColors, darkColors, TAILWIND_PALETTE } from "@composition/specs";
+import {
+  lightColors,
+  darkColors,
+  TAILWIND_PALETTE,
+} from "@composition/rendering";
 
 // ============================================================================
 // Types
@@ -111,7 +115,9 @@ export function resolveNeutralColorTokens(
 }
 
 /** neutral 11 단계 hex (DOM `--color-neutral-N`). */
-export function resolveNeutralSteps(preset: NeutralPreset): Record<number, string> {
+export function resolveNeutralSteps(
+  preset: NeutralPreset,
+): Record<number, string> {
   return NEUTRAL_PALETTES[preset] ?? NEUTRAL_PALETTES.neutral;
 }
 
@@ -121,7 +127,8 @@ function neutralColorTokens(
 ): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [token, stepOrHex] of Object.entries(map)) {
-    out[token] = typeof stepOrHex === "string" ? stepOrHex : palette[stepOrHex]!;
+    out[token] =
+      typeof stepOrHex === "string" ? stepOrHex : palette[stepOrHex]!;
   }
   return out;
 }

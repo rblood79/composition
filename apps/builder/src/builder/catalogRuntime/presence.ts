@@ -1,4 +1,4 @@
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import { isDisclosureExpandedInContext } from "../../../../../packages/shared/src/utils/disclosureGroupExpansion";
 import { resolveStaticItemKey } from "../../../../../packages/shared/src/catalog/slotRoles";
 import { getNecessityIndicatorSuffix } from "../../../../../packages/shared/src/components/FieldNecessityIndicator";
@@ -135,8 +135,12 @@ function catalogCollectionItemSelected(
   }
   const owner = catalogCollectionOfItem(node, get, typeOf);
   if (!owner) return undefined;
-  const key = resolveStaticItemKey(node.props as Record<string, unknown>, node.id);
-  return typeOf(owner) === "ListBox" && typeof owner.props.selectedKey === "string"
+  const key = resolveStaticItemKey(
+    node.props as Record<string, unknown>,
+    node.id,
+  );
+  return typeOf(owner) === "ListBox" &&
+    typeof owner.props.selectedKey === "string"
     ? owner.props.selectedKey === key
     : false;
 }
@@ -149,7 +153,8 @@ function catalogCollectionOfItem(
   const item = COLLECTION_ITEM_OWNERS[typeOf(node)];
   if (!item) return undefined;
   let cursor = get(node.parentId);
-  while (cursor && item.through.includes(typeOf(cursor))) cursor = get(cursor.parentId);
+  while (cursor && item.through.includes(typeOf(cursor)))
+    cursor = get(cursor.parentId);
   return cursor && typeOf(cursor) === item.owner ? cursor : undefined;
 }
 
@@ -160,7 +165,10 @@ function catalogCollectionItems(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
-  if (!Object.values(COLLECTION_ITEM_OWNERS).some((item) => item.owner === type)) return [];
+  if (
+    !Object.values(COLLECTION_ITEM_OWNERS).some((item) => item.owner === type)
+  )
+    return [];
   const items: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get)) {
@@ -259,10 +267,14 @@ export function catalogTreeItemExpanded(
 ): boolean {
   let cursor = get(item.parentId);
   while (cursor && typeOf(cursor) === "TreeItem") cursor = get(cursor.parentId);
-  if (!cursor || typeOf(cursor) !== "Tree") return item.props.isExpanded !== false;
+  if (!cursor || typeOf(cursor) !== "Tree")
+    return item.props.isExpanded !== false;
   const keys = cursor.props.expandedKeys;
   if (!Array.isArray(keys)) return false;
-  const key = resolveStaticItemKey(item.props as Record<string, unknown>, item.id);
+  const key = resolveStaticItemKey(
+    item.props as Record<string, unknown>,
+    item.id,
+  );
   return keys.some((entry) => String(entry) === key);
 }
 
@@ -309,13 +321,17 @@ export function catalogPresenceDependents(
     return catalogTabsSelection(scope, get, typeOf).panels;
   if (typeOf(scope) === "Breadcrumbs")
     return catalogBreadcrumbItems(scope, get, typeOf).flatMap((crumb) =>
-      childrenOf(crumb, get).filter((child) => child.props.slot === "separator"),
+      childrenOf(crumb, get).filter(
+        (child) => child.props.slot === "separator",
+      ),
     );
   if (typeOf(scope) === "Disclosure" || typeOf(scope) === "DisclosureGroup")
     return (
       typeOf(scope) === "Disclosure"
         ? [scope]
-        : childrenOf(scope, get).filter((child) => typeOf(child) === "Disclosure")
+        : childrenOf(scope, get).filter(
+            (child) => typeOf(child) === "Disclosure",
+          )
     ).flatMap((disclosure) =>
       childrenOf(disclosure, get).filter(
         (child) => !DISCLOSURE_TRIGGER_TYPES.has(typeOf(child)),
@@ -507,7 +523,8 @@ function ownDerivedProps(
       isExpanded: catalogTreeItemExpanded(node, get, typeOf),
     };
   const owner = get(node.parentId);
-  if (!owner || PROGRESS_TRACKS[typeOf(owner)] !== typeOf(node)) return undefined;
+  if (!owner || PROGRESS_TRACKS[typeOf(owner)] !== typeOf(node))
+    return undefined;
   const number = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const min = number(owner.props.minValue, 0);
@@ -515,11 +532,14 @@ function ownDerivedProps(
   const value = number(owner.props.value, 0);
   const out: Record<string, string | number | boolean> = {
     value:
-      max > min ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100)) : 0,
+      max > min
+        ? Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+        : 0,
     isIndeterminate: owner.props.isIndeterminate === true,
   };
   for (const key of ["variant", "size"])
-    if (typeof owner.props[key] === "string") out[key] = owner.props[key] as string;
+    if (typeof owner.props[key] === "string")
+      out[key] = owner.props[key] as string;
   return out;
 }
 
@@ -539,7 +559,9 @@ export function catalogDerivedPropsDependents(
   const items = derivedDependents(owner, get, typeOf);
   return [
     ...items,
-    ...[owner, ...items].flatMap((item) => catalogItemLabels(item, get, typeOf)),
+    ...[owner, ...items].flatMap((item) =>
+      catalogItemLabels(item, get, typeOf),
+    ),
   ];
 }
 
@@ -705,7 +727,8 @@ export function catalogItemSlotInset(
 ): number | undefined {
   if (typeOf(node) !== "ListBoxItem") return undefined;
   let owner = get(node.parentId);
-  while (owner && typeOf(owner) === "ListBoxSection") owner = get(owner.parentId);
+  while (owner && typeOf(owner) === "ListBoxSection")
+    owner = get(owner.parentId);
   if (!owner || typeOf(owner) !== "ListBox") return undefined;
   return childrenOf(node, get).some(
     (child) => child.props.slot === "icon" && !child.hidden,

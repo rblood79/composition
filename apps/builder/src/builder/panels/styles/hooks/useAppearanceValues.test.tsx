@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { lightColors } from "@composition/specs";
+import { lightColors } from "@composition/rendering";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import {
   openStylesFixture,
@@ -115,9 +115,7 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
       { id: "el-opacity-absent", type: "ListBox" },
     ];
     expect((await appearanceOf(nodes, "el-opacity"))?.opacity).toBe("0.35");
-    expect((await appearanceOf(nodes, "el-opacity-absent"))?.opacity).toBe(
-      "1",
-    );
+    expect((await appearanceOf(nodes, "el-opacity-absent"))?.opacity).toBe("1");
   });
 
   it("returns null when id is null", async () => {

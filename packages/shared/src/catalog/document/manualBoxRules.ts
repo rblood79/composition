@@ -12,7 +12,7 @@
  * generated `[data-size="…"]` blocks never match — every size resolves the generated values of the
  * default size. Size facts keyed on the real attribute are declared in `parts` with `size`.
  */
-import { resolveToken, type TokenRef } from "@composition/specs";
+import { resolveToken, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/composition-document.types";
 import type { CompiledPartRule } from "./rulePartRules";

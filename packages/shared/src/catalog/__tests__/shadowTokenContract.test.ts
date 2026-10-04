@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { darkShadows, lightShadows } from "@composition/specs";
+import { darkShadows, lightShadows } from "@composition/rendering";
 
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 

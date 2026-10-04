@@ -64,7 +64,7 @@
     "react-dom": "catalog:"
   },
   "dependencies": {
-    "@composition/specs": "workspace:*",
+    "@composition/rendering": "workspace:*",
     "@composition/upload": "workspace:*",
     "@internationalized/date": "catalog:",
     "@internationalized/number": "catalog:",

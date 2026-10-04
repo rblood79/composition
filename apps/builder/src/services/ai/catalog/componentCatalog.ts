@@ -1,24 +1,23 @@
+import { catalogCreationEditFields } from "../../../builder/catalogRuntime/creationContract";
 /**
  * AI 컴포넌트 카탈로그 (ADR-134 Phase 5, D6) — **파생 카탈로그**.
  *
  * 모델은 composition 의 컴포넌트 vocabulary 를 주입 없이 알 수 없다 (ADR-011 §1.3.1
  * "컴포넌트 지식 격차"). 그 지식을 **손으로 다시 적지 않는다** — D3 SSOT 인 catalog
- * (`componentCatalog` + `COMPONENT_RULES_TABLE`) 와 D2 편집 계약 (`resolveEditContract`)
+ * (`componentCatalog` + `COMPONENT_RULES_TABLE`) 와 D2 편집 계약 (`catalogCreationEditFields`)
  * 에서 그대로 파생한다.
  *
  * 왜 파생인가: 카탈로그를 손으로 적으면 SSOT 와 갈라진다 — 수동 CSS 가 spec 파생이 아닐 때와
  * 같은 위반이다 (`.claude/rules/ssot-hierarchy.md` §6). 모델에게 "Button 의 variant 는 6종"
  * 이라고 알려 주는 근거는 언제나 `COMPONENT_RULES_TABLE.Button.variants` 하나여야 한다.
  *
- * 옵션 파생을 직접 구현하지 않고 `resolveEditContract` 를 부르는 이유도 같다 — Inspector 가
+ * 옵션 파생을 직접 구현하지 않고 `catalogCreationEditFields` 를 부르는 이유도 같다 — Inspector 가
  * 사용자에게 보여 주는 선택지와 AI 에게 알려 주는 선택지가 같은 함수에서 나온다.
  */
 import {
   componentCatalog,
   getCatalogEntry,
-  resolveEditContract,
   type ComponentCatalogEntry,
-  type ComponentTag,
   type InspectorFieldKind,
   type ResolvedField,
 } from "@composition/shared";
@@ -93,33 +92,7 @@ function deriveEntry(entry: ComponentCatalogEntry): AiCatalogEntry {
     binding?.source.kind === "rac" ? binding.source.component : undefined;
   const states = binding?.rac?.states;
 
-  // reusable(조합) entry 는 편집 계약이 코드가 아니라 **origin 문서**의 propsSchema 에 있다
-  // (ADR-148 Decision 4). 활성 문서 없이는 알 수 없으므로 props 를 지어내지 않고 비운다 —
-  // 모델은 인스턴스를 만든 뒤 `get_editor_state` 로 확인한다.
-  // ADR-228 (2026-09-21): catalog 파생 generic origin (동명 primitive 가 있는 reusable — Button ·
-  //   TextField …) 은 origin root 가 그 primitive 자체라 편집 계약 = primitive accepts 다
-  //   (`resolveEditContract` A″ 와 같은 source). 문서 없이도 확정이므로 primitive 계약으로 채운다 —
-  //   57 종이 reusable 이 되면서 system prompt 의 prop 정보가 통째로 비는 것을 막는다.
-  //   동명 primitive 가 없는 손 seed (IconButton) 만 종전대로 비운다.
-  const contractEntry =
-    entry.kind === "reusable"
-      ? primitiveTwin?.kind === "primitive"
-        ? primitiveTwin
-        : null
-      : entry;
-  const contract =
-    contractEntry === null
-      ? null
-      : resolveEditContract(
-          // 빈 props 의 합성 노드 — Inspector 가 신규 요소에 보여 주는 계약과 동일하다.
-          // catalog entry 의 type 은 정의상 ComponentTag 이지만 entry 타입은 string 이다.
-          {
-            id: `__ai_catalog__${entry.type}`,
-            type: contractEntry.type as ComponentTag,
-            props: {},
-          },
-          null,
-        );
+  const fields = catalogCreationEditFields(entry.type);
 
   return {
     type: entry.type,
@@ -128,7 +101,7 @@ function deriveEntry(entry: ComponentCatalogEntry): AiCatalogEntry {
     kind: entry.kind,
     ...(racPrimitive ? { racPrimitive } : {}),
     ...(states && states.length > 0 ? { states } : {}),
-    props: contract ? contract.fields.map(toProp) : [],
+    props: fields.map(toProp),
     placeable: entry.panel.placeable,
   };
 }

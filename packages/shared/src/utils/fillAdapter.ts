@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { shadowLiteralToCssVar } from "@composition/specs";
+import { shadowLiteralToCssVar } from "@composition/rendering";
 import { resolveAssetUrl } from "./assetRef";
 
 interface FillGradientStopLike {

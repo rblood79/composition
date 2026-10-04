@@ -63,7 +63,7 @@ import {
   lightShadows,
   radius,
   typography,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { createThemesCollection, getActiveTheme } from "@composition/shared";
 import { DEFAULT_BASE_TYPOGRAPHY } from "@/builder/fonts/customFonts";
 import { resolveThemeSnapshot } from "@/utils/theme/resolveThemeSnapshot";
@@ -131,19 +131,19 @@ const FROZEN = STATE
 const OUTPUT = LIVE
   ? `${DESIGN}/248-phase4-g3-live-${__ADR248_SCENARIO__}.json`
   : CHILD
-  ? `${DESIGN}/248-phase3-system-child-canvas.json`
-  : STATE
-    ? `${DESIGN}/248-phase3-state-origin-canvas.json`
-    : AXIS
-      ? `${DESIGN}/248-phase3-palette-axis-canvas.json`
-      : `${DESIGN}/248-phase3-palette-base-canvas.json`;
+    ? `${DESIGN}/248-phase3-system-child-canvas.json`
+    : STATE
+      ? `${DESIGN}/248-phase3-state-origin-canvas.json`
+      : AXIS
+        ? `${DESIGN}/248-phase3-palette-axis-canvas.json`
+        : `${DESIGN}/248-phase3-palette-base-canvas.json`;
 const PNG_DIR = LIVE
   ? `${LIVE}/harness`
   : STATE
-  ? `${DESIGN}/248-phase3-state-origin-canvas`
-  : AXIS
-    ? `${DESIGN}/248-phase3-palette-axis-canvas`
-    : `${DESIGN}/248-phase3-palette-base-canvas`;
+    ? `${DESIGN}/248-phase3-state-origin-canvas`
+    : AXIS
+      ? `${DESIGN}/248-phase3-palette-axis-canvas`
+      : `${DESIGN}/248-phase3-palette-base-canvas`;
 /** State scenario: compared pixels are the old ∪ new root box grown by this many CSS px. */
 const STATE_REGION_MARGIN = 6;
 const PAGE = { width: 1920, height: 1080 };
@@ -958,13 +958,15 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
       // record) against this harness root — both are the product composition root.
       const liveSubtree = live?.subtree;
       if (liveSubtree) {
-        const subjectId = CHILD && SECTION_HOSTS[row.id ?? ""]
-          ? (root.canvasInputs.get(rootInput.id)?.children[0] ?? rootInput.id)
-          : rootInput.id;
+        const subjectId =
+          CHILD && SECTION_HOSTS[row.id ?? ""]
+            ? (root.canvasInputs.get(rootInput.id)?.children[0] ?? rootInput.id)
+            : rootInput.id;
         const order: string[] = [];
         const walk = (id: string) => {
           order.push(id);
-          for (const child of root.canvasInputs.get(id)?.children ?? []) walk(child);
+          for (const child of root.canvasInputs.get(id)?.children ?? [])
+            walk(child);
         };
         walk(subjectId);
         let maxDelta = 0;
@@ -972,7 +974,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         order.forEach((id, index) => {
           const other = liveSubtree[index];
           const mine = absolute.get(id);
-          if (!other || root.typeOf(root.canvasInputs.get(id)!) !== other.type) {
+          if (
+            !other ||
+            root.typeOf(root.canvasInputs.get(id)!) !== other.type
+          ) {
             typeMismatch.push(id);
             return;
           }
@@ -1645,11 +1650,15 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
                 y0: Math.max(0, Math.floor(offset.y + newRootRect.y * zoom)),
                 x1: Math.min(
                   clip.width,
-                  Math.ceil(offset.x + (newRootRect.x + newRootRect.width) * zoom),
+                  Math.ceil(
+                    offset.x + (newRootRect.x + newRootRect.width) * zoom,
+                  ),
                 ),
                 y1: Math.min(
                   clip.height,
-                  Math.ceil(offset.y + (newRootRect.y + newRootRect.height) * zoom),
+                  Math.ceil(
+                    offset.y + (newRootRect.y + newRootRect.height) * zoom,
+                  ),
                 ),
               }
             : { x0: 0, y0: 0, x1: clip.width, y1: clip.height };
@@ -1676,9 +1685,10 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
               identityMaxByte,
               Math.abs(a[index] - b[index]),
             );
-        const identityDifferent = width && height
-          ? pixelmatch(a, b, undefined, width, height, { threshold: 0.1 })
-          : 0;
+        const identityDifferent =
+          width && height
+            ? pixelmatch(a, b, undefined, width, height, { threshold: 0.1 })
+            : 0;
         entry.liveIdentity = {
           region: definitionView || STATE ? "root box" : "capture clip",
           pixels: width * height,

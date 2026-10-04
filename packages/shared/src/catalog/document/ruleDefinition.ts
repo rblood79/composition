@@ -2,7 +2,7 @@ import {
   resolveToken,
   type LayoutToken,
   type TokenRef,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { componentTypeSet } from "../../domain/componentTraits";
 import { componentCatalog } from "../componentCatalog";
 import { resolveCatalogRuleCanvasBox } from "../resolvers/resolveCatalogRuleCanvasBox";

@@ -8,8 +8,8 @@ import {
   type PathMark,
   type RectMark,
   type SizeSpec,
-} from "@composition/specs";
-import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
+} from "@composition/rendering";
+import { SKIA_PRIMITIVES } from "@composition/rendering/renderers";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
 import { Chart } from "../Chart";
 import { compareBoundaries } from "./chartBoundaryOracle";

@@ -5,12 +5,12 @@ import {
   buildSeriesGrid,
   resolveAxisKind,
   resolveChartPresentation,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type {
   ChartDimensionScale,
   ChartProps,
   ChartRow,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";

@@ -35,12 +35,12 @@ import type {
   StoredMenuEntry,
   RuntimeMenuItem,
   StoredTagItem,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   resolveTextSourceText,
   isMenuSectionEntry,
   isMenuSeparatorEntry,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { getSelectedChildIds } from "./selection";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 4 — MenuItem slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 overlay).

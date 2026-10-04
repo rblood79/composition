@@ -15,7 +15,7 @@ import {
   resolveComponentRule,
   type ComponentRuleVariant,
 } from "@composition/shared";
-import type { ComponentVisualRule } from "@composition/specs";
+import type { ComponentVisualRule } from "@composition/rendering";
 
 /** shared ComponentRuleVariant(string) → specs ComponentVisualRule(TokenRef). 런타임 동형 캐스팅. */
 export function ruleVariantToVisual(

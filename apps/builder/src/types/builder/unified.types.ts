@@ -1,7 +1,7 @@
 // 통합된 타입 정의 파일
 import React from "react";
-import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
-import { createChartInitialProps } from "@composition/specs";
+import type { StoredMenuItem, StoredTagItem } from "@composition/rendering";
+import { createChartInitialProps } from "@composition/rendering";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 // ADR-912 6 registry collapse #3 — createDefault*Props 파생 SSOT.
 // defaultPropsDerivation 의 ComponentElementProps import 는 type-only → 런타임 순환 없음.

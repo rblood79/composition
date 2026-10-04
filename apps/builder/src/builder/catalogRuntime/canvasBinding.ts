@@ -1,5 +1,5 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {
   buildRenderCommandStream,

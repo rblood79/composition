@@ -39,12 +39,12 @@ import type {
   StoredListBoxEntry,
   StoredGridListItem,
   StoredGridListEntry,
-} from "@composition/specs";
+} from "@composition/rendering";
 import {
   resolveTextSourceText,
   isListBoxSectionEntry,
   isGridListSectionEntry,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolvePropagatedText } from "./utils/propagatedLabel";
 import { getElementDataBinding } from "../utils/compositionExtensionFields";
 // ADR-148 Phase 0 — slot 구성 소비 (origin slot 자식의 존재 gating / 스타일 / 순서).

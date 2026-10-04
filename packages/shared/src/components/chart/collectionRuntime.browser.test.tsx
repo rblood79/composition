@@ -14,7 +14,7 @@ import {
   CHART_DEFAULT_PROPS,
   resolveChartData,
   resolveChartMetrics,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
 
 let root: Root;

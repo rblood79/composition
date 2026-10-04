@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { lightColors, resolveToken } from "@composition/specs";
+import { lightColors, resolveToken } from "@composition/rendering";
 import { afterEach, describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";

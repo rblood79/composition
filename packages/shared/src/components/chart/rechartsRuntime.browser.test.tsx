@@ -9,7 +9,7 @@ import {
   type ChartProps,
   type PathMark,
   type RectMark,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { RechartsChart } from "./RechartsChart";
 import { renderChartWindowTrack } from "./windowTrack";
 import { compareBoundaries } from "./chartBoundaryOracle";

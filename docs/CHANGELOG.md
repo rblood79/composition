@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-248 review round 3 — Builder specs 의존 제거 · AI 생성 계약 전환] - 2026-10-04
+
+### Fixed
+
+- AI 생성 manifest와 component catalog가 catalog library/definition의 실제 생성 계약을 읽는다.
+  합성 CanonicalNode와 구 edit/style resolver 호출을 제거했고, IconButton·InlineAlert의 원본
+  속성을 안내·검증한다. template에서 소비되는 label/icon도 AI 읽기 검증에 보존해 정상 생성·수정을
+  실패로 보고하던 문제를 고쳤다.
+
+### Changed
+
+- 공용 텍스트·token·shape·chart·아이콘·CSS generator 구현을 `@composition/rendering`으로
+  이전했다. Builder/shared의 specs 패키지 의존과 native spec registry 진입점을 제거했다.
+  legacy specs는 Publish 후속 및 기존 생성 스크립트의 호환 경계로 남는다.
+- `gate:catalog-runtime`은 Builder/shared의 specs 의존과 production chunk의 구 spec·편집
+  resolver 잔존을 검사한다. 공용 패키지 테스트와 생성 경로, harness 범위 판정도 이전했다.
+
+검증: rendering 1,281 · legacy specs 112 · shared 1,605 · Builder 3,958 테스트 PASS,
+production 경계·build:specs·preflight PASS. 실제 Builder에서 AI 생성·속성 수정·Undo/Redo·저장 후
+새로고침 복원과 Canvas 표시 확인. 상세와 미검증 범위는 [ADR-248 수리 기록](adr/reviews/248.md).
+Publish 후속과 기존 G3 미검증은 유지하며 ADR Implemented 승격은 하지 않았다.
+
 ## [옛 TS 레이아웃 파이프라인 삭제 — fullTreeLayout · parity pipeline leg] - 2026-10-05
 
 ### Removed

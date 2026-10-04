@@ -14,7 +14,10 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3
  */
 
-import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/specs";
+import {
+  CHART_DESCRIPTORS,
+  createChartInitialProps,
+} from "@composition/rendering";
 import { getPrimitiveBinding } from "./bindings";
 import type {
   ComponentCatalogEntry,

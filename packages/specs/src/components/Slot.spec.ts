@@ -7,8 +7,11 @@
  * @packageDocumentation
  */
 
-import type { ComponentSpec, TokenRef } from "../types";
-import { parsePxValue, parseBorderWidth } from "../primitives";
+import type { ComponentSpec, TokenRef } from "@composition/rendering/types";
+import {
+  parsePxValue,
+  parseBorderWidth,
+} from "@composition/rendering/primitives";
 import { FileText, Type, CircleAlert } from "lucide-react";
 
 /**

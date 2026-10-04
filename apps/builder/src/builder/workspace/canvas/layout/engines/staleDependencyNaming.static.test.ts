@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 /** 이 표식이 줄에 있으면 역사 서술 — 허용 */
@@ -37,12 +37,12 @@ const BUILDER_SRC = resolve(__dirname, "../../../../..");
 function nonTestSourceFiles(): string[] {
   const out = execFileSync(
     "git",
-    ["ls-files", "*.ts", "*.tsx"],
+    ["ls-files", "--cached", "--others", "--exclude-standard", "*.ts", "*.tsx"],
     { cwd: BUILDER_SRC, encoding: "utf-8" },
   );
   return out
     .split("\n")
-    .filter((f) => f.length > 0)
+    .filter((f) => f.length > 0 && existsSync(resolve(BUILDER_SRC, f)))
     .filter((f) => !f.includes(".test.") && !f.includes("/__tests__/"));
 }
 

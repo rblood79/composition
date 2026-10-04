@@ -161,10 +161,10 @@ const sourceFiles = [
   "packages/shared/src/catalog/componentCatalog.ts",
   "packages/shared/src/catalog/generated/componentRulesTable.ts",
   "packages/shared/src/catalog/slotRoles.ts",
-  "packages/specs/src/renderers/utils/tokenResolver.ts",
-  "packages/specs/src/primitives/colors.ts",
-  "packages/specs/src/primitives/typography.ts",
-  "packages/specs/src/primitives/radius.ts",
+  "packages/rendering/src/renderers/utils/tokenResolver.ts",
+  "packages/rendering/src/primitives/colors.ts",
+  "packages/rendering/src/primitives/typography.ts",
+  "packages/rendering/src/primitives/radius.ts",
 ].map((path) => ({
   path,
   sha256: createHash("sha256")

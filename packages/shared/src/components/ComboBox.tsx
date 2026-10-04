@@ -22,7 +22,7 @@ import {
 import { Popover } from "react-aria-components/Popover";
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 

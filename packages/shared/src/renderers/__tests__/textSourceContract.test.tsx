@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import React, { isValidElement } from "react";
-import { resolveTextSourceText } from "@composition/specs";
+import { resolveTextSourceText } from "@composition/rendering";
 
 import type { PreviewElement, RenderContext } from "../../types/renderer.types";
 import { renderMenu, renderTreeItem } from "../CollectionRenderers";

@@ -11,7 +11,7 @@ import {
   MyColorSwatchPickerItem,
 } from "./ColorSwatchPicker";
 import { composeTailwindRenderProps } from "./utils";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE } from "@composition/rendering";
 
 export type MyColorAreaProps = ColorAreaProps;
 

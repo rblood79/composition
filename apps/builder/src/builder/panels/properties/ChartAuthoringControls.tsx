@@ -4,7 +4,7 @@ import {
   CHART_DESCRIPTORS,
   getChartDescriptor,
   getChartPresetId,
-} from "@composition/specs";
+} from "@composition/rendering";
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components/property/PropertySelect";
 import { useI18n } from "@/i18n";

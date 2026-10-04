@@ -15,7 +15,7 @@ import {
   lightShadows,
   radius,
   typography,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../builder/fonts/customFonts";
 import type { ResolvedThemeSnapshot } from "./resolveThemeSnapshot";
 

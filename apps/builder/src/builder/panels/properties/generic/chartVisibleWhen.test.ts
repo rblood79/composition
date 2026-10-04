@@ -19,7 +19,7 @@ import {
   type ChartProps,
   type ChartRow,
   type ChartType,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { getCatalogEntry } from "@composition/shared";
 
 import { evaluateVisibility } from "./evaluateVisibility";

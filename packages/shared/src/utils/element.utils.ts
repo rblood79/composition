@@ -7,7 +7,7 @@
  */
 
 import type { Element } from "../types/element.types";
-import { resolveTextSourceText } from "@composition/specs";
+import { resolveTextSourceText } from "@composition/rendering";
 
 // ============================================
 // ID Generation

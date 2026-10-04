@@ -1,5 +1,5 @@
 import React from "react";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import type { PreviewElement, RenderContext } from "../types";
 
 /**

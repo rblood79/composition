@@ -10,14 +10,17 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { resolveFillTokens, resolveIndicatorFill } from "../utils/fillTokens";
+import {
+  resolveFillTokens,
+  resolveIndicatorFill,
+} from "@composition/rendering/utils/fillTokens";
 import type {
   FillStateTokens,
   FillTokenSpec,
   IndicatorModeSpec,
   TokenRef,
   VariantSpec,
-} from "../types/spec.types";
+} from "@composition/rendering/types/spec.types";
 
 const T = (s: string): TokenRef => s as TokenRef;
 

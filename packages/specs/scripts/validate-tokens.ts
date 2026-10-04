@@ -6,16 +6,23 @@
  * Usage: pnpm validate:tokens
  */
 
-import { lightColors, darkColors } from "../src/primitives/colors";
-import { spacing } from "../src/primitives/spacing";
-import { typography } from "../src/primitives/typography";
-import { radius } from "../src/primitives/radius";
-import { lightShadows } from "../src/primitives/shadows";
-import { resolveToken } from "../src/renderers/utils/tokenResolver";
-import { isValidTokenRef, type TokenRef } from "../src/types/token.types";
-import type { ComponentSpec, VariantSpec, SizeSpec } from "../src/types";
+import { lightColors, darkColors } from "../../rendering/src/primitives/colors";
+import { spacing } from "../../rendering/src/primitives/spacing";
+import { typography } from "../../rendering/src/primitives/typography";
+import { radius } from "../../rendering/src/primitives/radius";
+import { lightShadows } from "../../rendering/src/primitives/shadows";
+import { resolveToken } from "../../rendering/src/renderers/utils/tokenResolver";
+import {
+  isValidTokenRef,
+  type TokenRef,
+} from "../../rendering/src/types/token.types";
+import type {
+  ComponentSpec,
+  VariantSpec,
+  SizeSpec,
+} from "../../rendering/src/types";
 // ADR-908 Phase 4: Fill token SSOT accessor
-import { resolveFillTokens } from "../src/utils/fillTokens";
+import { resolveFillTokens } from "../../rendering/src/utils/fillTokens";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";

@@ -9,7 +9,7 @@ import type {
   PageEntry,
   ProjectEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { darkColors, lightColors } from "@composition/specs";
+import { darkColors, lightColors } from "@composition/rendering";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { bindCatalogCanvas } from "../canvasBinding";
 import { CatalogCompositionRoot } from "../compositionRoot";

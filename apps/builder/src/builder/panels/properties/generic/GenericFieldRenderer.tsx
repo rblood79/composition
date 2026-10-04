@@ -19,7 +19,7 @@
 import { memo, useCallback, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
-import type { ItemsManagerField } from "@composition/specs";
+import type { ItemsManagerField } from "@composition/rendering";
 
 import { PropertyChipGroup } from "../../../components/property/PropertyChipGroup";
 import {

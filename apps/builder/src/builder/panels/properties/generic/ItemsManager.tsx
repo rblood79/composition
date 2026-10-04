@@ -11,7 +11,7 @@ import {
 import type {
   ItemsManagerField,
   ItemsManagerFieldItemSchema,
-} from "@composition/specs";
+} from "@composition/rendering";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -408,7 +408,6 @@ const SectionRow = memo(function SectionRow({
 });
 
 // ─── ItemsManager ─────────────────────────────────────────────────────────────
-
 
 export const ItemsManager = memo(function ItemsManager({
   elementId,

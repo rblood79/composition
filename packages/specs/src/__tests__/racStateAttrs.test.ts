@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { racStateAttrs } from "../utils/racStateAttrs";
+import { racStateAttrs } from "@composition/rendering/utils/racStateAttrs";
 
 /**
  * ADR-912 단계 3 — racStateAttrs (RAC data-* → ComponentState) 계약.

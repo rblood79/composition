@@ -51,7 +51,7 @@ writeFileSync(
   `import React from "react";
 import { createRoot } from "react-dom/client";
 import { Chart } from "${repo}/packages/shared/src/components/Chart";
-import { createChartInitialProps, resolveChartModel, CHART_DEFAULT_METRICS, CHART_DEFAULT_PROPS } from "${repo}/packages/specs/src/chart";
+import { createChartInitialProps, resolveChartModel, CHART_DEFAULT_METRICS, CHART_DEFAULT_PROPS } from "${repo}/packages/rendering/src/chart";
 const host = document.querySelector<HTMLDivElement>("#host")!;
 const root = createRoot(host);
 const output = document.querySelector("#results")!;

@@ -8,7 +8,7 @@
  * 6개 레지스트리(spec / TAG_SPEC_MAP / specRegistry / factory / panel / renderer)는
  * 단일 `ComponentCatalogEntry` 등록으로 대체된다.
  *
- * 본 파일은 self-contained — legacy `packages/specs/src/types/spec.types.ts`(FieldDef 등)를
+ * 본 파일은 self-contained — legacy `packages/rendering/src/types/spec.types.ts`(FieldDef 등)를
  * import 하지 않는다. canonical/resolver 타입은 같은 패키지(`shared`)에서 직접 소비한다.
  *
  * 설계 상세: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3

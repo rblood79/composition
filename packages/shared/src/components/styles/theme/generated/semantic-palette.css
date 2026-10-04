@@ -1,4 +1,4 @@
-/* GENERATED — 편집 금지. 원천: packages/specs/src/primitives/semanticPaletteMap.ts
+/* GENERATED — 편집 금지. 원천: packages/rendering/src/primitives/semanticPaletteMap.ts
  * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)
  * ADR-193: semantic·named hue → 팔레트 단계 매핑 (light / dark). Skia colors.ts 와 같은 표에서 파생 —
  * 이 파일은 파생물이며 SSOT 가 아니다. 팔레트 var 참조만 (hex 금지 — ThemeStudio override 훅 보존).

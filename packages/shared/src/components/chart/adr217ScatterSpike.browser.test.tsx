@@ -12,7 +12,7 @@ import React, { type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Customized, Scatter, ScatterChart, XAxis, YAxis } from "recharts";
-import { linearScale, r2 } from "@composition/specs";
+import { linearScale, r2 } from "@composition/rendering";
 
 const size = { width: 320, height: 240 };
 const margin = { top: 12, right: 12, bottom: 12, left: 12 };

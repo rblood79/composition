@@ -10,7 +10,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { resolveToken, lightShadows, darkShadows } from "@composition/specs";
+import {
+  resolveToken,
+  lightShadows,
+  darkShadows,
+} from "@composition/rendering";
 import {
   resolveContainerStylesFallback,
   resolveEffectiveOverflow,

@@ -7,7 +7,7 @@
  * DOM 보다 2px 낮고 · 2px 좁고 · 글자가 굵었다 (Chocolate DOM 90.6 ↔ layout 90 · 500).
  */
 import { describe, expect, it } from "vitest";
-import { resolveBorderWidthPx } from "@composition/specs";
+import { resolveBorderWidthPx } from "@composition/rendering";
 import { resolveComponentRule } from "@composition/shared";
 
 describe("Tag rule sizes — border-box 높이 · borderWidth · textWeight 가 DOM chip 과 같다", () => {

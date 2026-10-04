@@ -12,7 +12,7 @@
  * 등록되지 않은 태그는 `type.toLowerCase()` fallback (기존 `resolveHtmlTag` default 동작과 동일).
  */
 
-import type { ComponentSpec } from "../types/spec.types";
+import type { ComponentSpec } from "@composition/rendering/types/spec.types";
 
 // 모든 spec을 import하여 태그 → spec registry 구축.
 // apps/builder의 TAG_SPEC_MAP과 유사하나, packages/specs의 내부 concern이며

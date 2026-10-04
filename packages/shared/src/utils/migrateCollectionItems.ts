@@ -38,7 +38,7 @@ import type {
   StoredComboBoxItem,
   StoredListBoxItem,
   StoredTagItem,
-} from "@composition/specs";
+} from "@composition/rendering";
 
 interface ElementLike {
   id: string;

@@ -6,7 +6,7 @@
  */
 
 import { memo } from "react";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 
 export interface IconPreviewProps {
   /** 아이콘 이름 (lucide 레지스트리 키) */

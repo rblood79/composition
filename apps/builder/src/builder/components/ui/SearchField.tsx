@@ -13,7 +13,7 @@ import {
   SearchField as AriaSearchField,
   type SearchFieldProps as AriaSearchFieldProps,
 } from "react-aria-components/SearchField";
-import { getIconData } from "@composition/specs";
+import { getIconData } from "@composition/rendering";
 import "./SearchField.css";
 
 const SEARCH_ICON = getIconData("search");

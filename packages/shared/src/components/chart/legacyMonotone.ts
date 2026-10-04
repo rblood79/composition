@@ -1,5 +1,5 @@
-import { monotoneTangents } from "@composition/specs";
-import type { ChartOrientation } from "@composition/specs";
+import { monotoneTangents } from "@composition/rendering";
+import type { ChartOrientation } from "@composition/rendering";
 import type { CurveProps } from "recharts";
 
 type CurveFactory = Exclude<NonNullable<CurveProps["type"]>, string>;
@@ -79,7 +79,16 @@ export const legacyMonotoneVertical: CurveFactory =
 export const legacyMonotoneHorizontal: CurveFactory =
   createLegacyMonotone("horizontal");
 
-export const legacyStepHorizontal: CurveFactory = createLegacyMonotone("horizontal", "step");
+export const legacyStepHorizontal: CurveFactory = createLegacyMonotone(
+  "horizontal",
+  "step",
+);
 
-export const legacyLinear: CurveFactory = createLegacyMonotone("vertical", "linear");
-export const legacyStepVertical: CurveFactory = createLegacyMonotone("vertical", "step");
+export const legacyLinear: CurveFactory = createLegacyMonotone(
+  "vertical",
+  "linear",
+);
+export const legacyStepVertical: CurveFactory = createLegacyMonotone(
+  "vertical",
+  "step",
+);

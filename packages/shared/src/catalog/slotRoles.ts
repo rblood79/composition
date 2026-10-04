@@ -18,7 +18,7 @@
  * canonical 문서에 저장하지 않는다.
  */
 
-import { resolveToken } from "@composition/specs";
+import { resolveToken } from "@composition/rendering";
 
 import { COMPONENT_RULES_TABLE } from "./generated/componentRulesTable";
 

@@ -10,9 +10,9 @@
  * packages/specs 정본 `LOWERCASE_TAG_SPEC_MAP` 사용.
  */
 
-import type { ComponentSpec, TokenRef } from "../types";
-import { isValidTokenRef } from "../types";
-import { resolveToken } from "../renderers/utils/tokenResolver";
+import type { ComponentSpec, TokenRef } from "@composition/rendering/types";
+import { isValidTokenRef } from "@composition/rendering/types";
+import { resolveToken } from "@composition/rendering/renderers/utils/tokenResolver";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagToElement";
 
 /**
