@@ -56,7 +56,9 @@ paths:
 
 ## `fullTreeLayout.ts` 파이프라인 — parity 하니스 전용 (production 아님)
 
-> `calculateFullTreeLayout` (`workspace/canvas/layout/engines/fullTreeLayout.ts`) 를 production 이 부르지 않는다 — 호출자는 `apps/builder/tests/parity/**` 하니스뿐이다 (`publishLayoutMap` 도 `null` 만 받아 `getSharedLayoutMap` 은 비어 있다). 그래서 이 절부터 §2-Pass · §Grid 트랙 폭 까지의 계약 (DFS enrichment · implicitStyles · Label delegation · 2-pass · grid full rebuild · propagation) 은 **parity 하니스가 재는 옛 경로**의 계약이다. production 경로를 고칠 때 이 절을 근거로 쓰지 않는다 — §레이아웃 재계산 경로 가 정본. 이 파이프라인을 지울지 (parity 하니스를 catalog 경로로 옮길지) 는 별도 판정이다.
+> `calculateFullTreeLayout` (`workspace/canvas/layout/engines/fullTreeLayout.ts`) 를 production 이 부르지 않는다 — 호출자는 `apps/builder/tests/parity/**` 하니스뿐이다 (`publishLayoutMap` 도 `null` 만 받아 `getSharedLayoutMap` 은 비어 있다). 그래서 이 절부터 §2-Pass · §Grid 트랙 폭 까지의 계약 (DFS enrichment · implicitStyles · Label delegation · 2-pass · grid full rebuild · propagation) 은 **parity 하니스가 재는 옛 경로**의 계약이다. production 경로를 고칠 때 이 절을 근거로 쓰지 않는다 — §레이아웃 재계산 경로 가 정본. 이 파이프라인을 지울지는 별도 판정이다.
+>
+> **parity 하니스 전면 이관은 하지 않는다** (2026-10-05 사용자 판정 — 오버엔지니어링): parity 53개 중 43개가 이 파이프라인 leg 를 쓰지만, 엔진 CSS 정합은 engine leg (production 과 같은 엔진) 가, production 입력 직렬화 (`styleOf`) 는 ADR-248 G3 하니스 · `adr248Catalog*` parity · catalogRuntime 단위 테스트가 잰다. 판독 루프 종결 §2 대로 가설 1 + 반증 1건으로 닫았다 — `tests/parity/adr248CatalogTextLeafScalar.browser.test.ts`: 옛 파이프라인이 무너뜨리던 텍스트 leaf 스칼라 케이스 (shrink-to-fit block 부모 · Container Align) 를 catalog root 기하 vs catalog DOM 실측으로 대조, 8/8 GREEN. 스칼라 공급을 끊는 변이에서 본 케이스 5 RED · 대조군 3 GREEN 으로 판별력 확인. **LOW deferred** — production 재현이 생기면 그 케이스만 catalog leg 로 추가한다.
 
 ### CONTAINER_TAGS
 
