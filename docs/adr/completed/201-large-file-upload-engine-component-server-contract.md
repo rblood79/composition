@@ -208,6 +208,8 @@ Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 
 
 **선행 기록 (통합 시점, 2026-09-17)** — 엔진 G0 100MB 진행률 15회 · 단절 2회 재개 재전송 8MB · G1 4GB×3 힙 Δ 중앙값 2.22MB · 재개 3경로 4.06MB/0/0 · core+tus 5,852 B / IIFE 8,068 B gz · **tusd v2.10.1 대조군 8/8 (G2a)** · G2b `mvn -q test` 53/53 (JDK 17) + cargo 기동 curl 흐름 · 웹루트 저장 기동 거부 실물 · FileUpload 실배선 live 20/20 (engine=loaded) · initial 번들 상한 재승인 (사용자).
 
+**ADR-244 Phase 1 · 2 뒤 (2026-10-06, 사용자 판정 "수용")** — CanvasKit wasm 해시 경로 · 옛 배포 복구 (+231) 와 dashboard 미리 받기 registry · 계기 (+1,068) 로 Builder initial **1,227,057** (ADR-244 전 `2b3b3efbc` 1,225,758 대비 +1,299) · Preview 290,095 (−6). 별도 worktree clean 빌드 · `adr209-bundle-closure.mjs`. ADR-244 HC1 (Δ ≤ 0) 은 넘지만 절대 상한 (1,421,000 / 623,000, 만료 2026-10-25) 안 — 상한 값 변경 없음. 근거: [ADR-244](../244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) Status.
+
 **ADR-242 뒤 (2026-09-26)** — 초기 화면 밖 패널 lazy 분리로 Builder initial **1,403,816** (상한 1,421,000 까지 여유 17,184) · Preview 622,496 (여유 504). 상한 값 조정은 사용자 판정 — 만료 2026-10-25 그대로.
 
 **initial 상한 재승인 (2026-09-26, ADR-235 — 사용자 판정 "상한 재승인")** — Builder ≤ **1,421,000** / Preview ≤ **623,000** B gzip, 만료 **2026-10-25** 유지 (09-25 값 1,415,000 / 622,000 대체). 근거: ADR-235 Phase 1 (자산 참조 해석 · 자립 내보내기 · Canvas image fill 수리) 실측 Δ Builder +1,517 · Preview +661 (기준 `54acac192` 1,413,248 / 621,691 → `e9342df40` 1,414,765 / 622,352, 별도 worktree clean 빌드 · `adr209-bundle-closure.mjs`). 해석기 구현 lazy loader · 바이트 유틸 서브경로 · 비동기 함수 분리로 첫 측정 +2,425 / +1,842 에서 줄인 값이며, 09-25 기준선의 Preview 여유가 309 B 라 남은 핵심 (동기 해석 · 이미지 기하 대칭 · 폰트 재주입) 만으로 넘었다. ADR-235 의 이후 phase (pin 배선 · 저장소 상태 표시 · 디렉토리 연결) 몫을 함께 잡았다 — 각 phase 는 lazy 우선 · Δ 기록, 넘으면 다시 판정. 판정기 상수 갱신.
