@@ -14,9 +14,12 @@ export const FONT_REGISTRY_BACKUP_REF_KEY =
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   injectRegistryFontStyle();
 
+  // Another tab changed the registry: the same notice as a change here (the listener below
+  // re-injects the CSS, the Builder syncs Skia) — CSS alone left the Canvas without the font
+  // while Preview had it (2026-10-05 audit L4).
   window.addEventListener("storage", (event) => {
     if (event.key !== FONT_REGISTRY_STORAGE_KEY) return;
-    injectRegistryFontStyle();
+    window.dispatchEvent(new CustomEvent("composition:custom-fonts-updated"));
   });
 
   window.addEventListener("composition:custom-fonts-updated", () => {

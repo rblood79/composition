@@ -1367,7 +1367,8 @@ export class SkiaRenderer {
     this.unregisterFrameCapture();
     this.gpuTimer = null;
     this.disposeContentSurface();
-    this.mainSurface.delete();
+    // resize 가 옛 surface 를 지운 뒤 새 surface 생성에 실패했으면 이미 지워져 있다 (감사 L12).
+    if (!this.mainSurface.isDeleted()) this.mainSurface.delete();
     // 마지막 프레임이 미뤄 둔 폐기가 남아 있을 수 있다 — 프레임 밖이므로 즉시 배수
     drainPendingWasmDisposals();
   }

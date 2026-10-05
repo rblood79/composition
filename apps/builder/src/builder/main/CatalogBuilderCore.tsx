@@ -191,6 +191,9 @@ export function CatalogBuilderCore() {
         library,
       );
       stage(75);
+      // A route change meanwhile: register nothing for this run — the cleanup already ran and would
+      // never unregister it (audit L2).
+      if (cancelled) return;
       // ADR-214 owner rule C (one page → it owns a page variable without `page_id`): the
       // document's pages, not the old store's (empty here).
       restorePageSource = registerVariableOwnerPageSource(() => {
@@ -245,6 +248,8 @@ export function CatalogBuilderCore() {
               await import("../../../../../packages/shared/src/catalog/commands"),
             palette: await import("../catalogRuntime/paletteInsert"),
           };
+      // The cleanup may have disposed `opened` during the awaits above.
+      if (cancelled) return;
       const openPage = openPageRef.current;
       openPageRef.current = undefined;
       if (openPage && graph.getEntry(openPage)?.kind === "page")

@@ -158,8 +158,14 @@ export function watchCatalogComponentEdits(
         confirmed.add(key);
         return;
       }
-      while (workspace.runtime.historyDepth.undo > depth)
-        if (!workspace.undo()) break;
+      // Progress is the history depth, not undo's result: an outside-only entry (a data edit made
+      // while the dialog was open) returns none and stopped the loop above the template edit
+      // (2026-10-05 audit L10).
+      while (workspace.runtime.historyDepth.undo > depth) {
+        const before = workspace.runtime.historyDepth.undo;
+        workspace.undo();
+        if (workspace.runtime.historyDepth.undo >= before) break;
+      }
     });
   });
 }

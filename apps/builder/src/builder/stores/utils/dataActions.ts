@@ -114,10 +114,17 @@ export async function writeBackAssignedFieldIds(
 // ============================================
 
 /**
+ * Whether a project's fetch result still belongs on screen — a fetch started for project A must
+ * not overwrite project B's data after the user moved on (2026-10-05 audit L2). Default: always.
+ */
+export type IsCurrentProject = (projectId: string) => boolean;
+const ALWAYS_CURRENT: IsCurrentProject = () => true;
+
+/**
  * 프로젝트의 모든 DataTable을 가져오는 액션
  */
 export const createFetchDataTablesAction =
-  (set: SetState) =>
+  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
   async (projectId: string): Promise<void> => {
     set({ isLoading: true });
 
@@ -136,6 +143,7 @@ export const createFetchDataTablesAction =
       const { collections: dataTablesMap, assigned } = normalizeCollectionMap(
         data || [],
       );
+      if (!isCurrent(projectId)) return;
 
       set((state) => ({
         collections: dataTablesMap,
@@ -221,6 +229,10 @@ export const createHydrateRuntimeCacheAction =
         changed = true;
       }
       if (changed) {
+        // The user moved to another project while the cache loaded (audit L2).
+        const current = (get() as { currentProjectId?: string | null })
+          .currentProjectId;
+        if (current != null && current !== projectId) return;
         set({ collections: next });
         syncCollectionsToCanvas(next);
       }
@@ -403,7 +415,7 @@ export const createSetRuntimeDataAction =
  * 프로젝트의 모든 ApiEndpoint을 가져오는 액션
  */
 export const createFetchApiEndpointsAction =
-  (set: SetState) =>
+  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
   async (projectId: string): Promise<void> => {
     set({ isLoading: true });
 
@@ -422,6 +434,7 @@ export const createFetchApiEndpointsAction =
       (data || []).forEach((ep) => {
         apiEndpointsMap.set(ep.name, ep);
       });
+      if (!isCurrent(projectId)) return;
 
       set((state) => ({
         apiEndpoints: apiEndpointsMap,
@@ -870,10 +883,14 @@ export const createExecuteApiEndpointAction =
           // 이미 있으면(늦은 A ← 빠른 B) 이 응답은 버린다 (single-flight 수용).
           const isLatest =
             (runSeqByCollection.get(targetTable.id) ?? startSeq) === startSeq;
-          if (endRev === startRev && isLatest) {
-            const newDataTables = new Map(collections);
+          // 지금의 collections 에 붙인다 — 위 await 동안 끝난 편집 (다른 collection 추가 ·
+          // 행 · schema) 을 실행 시작 때 읽은 Map 으로 되돌리지 않는다 (감사 L9).
+          const latest = get().collections;
+          const latestTable = latest.get(targetTable.id);
+          if (endRev === startRev && isLatest && latestTable) {
+            const newDataTables = new Map(latest);
             newDataTables.set(targetTable.id, {
-              ...targetTable,
+              ...latestTable,
               runtimeData,
             });
             set({ collections: newDataTables });
@@ -951,7 +968,7 @@ export const createExecuteApiEndpointAction =
  * 프로젝트의 모든 Variable을 가져오는 액션
  */
 export const createFetchVariablesAction =
-  (set: SetState) =>
+  (set: SetState, isCurrent: IsCurrentProject = ALWAYS_CURRENT) =>
   async (projectId: string): Promise<void> => {
     set({ isLoading: true });
 
@@ -987,6 +1004,8 @@ export const createFetchVariablesAction =
         const pageId = assignedPageIds.get(v.id);
         variablesMap.set(v.name, pageId ? { ...v, page_id: pageId } : v);
       });
+      // A stale project's variables neither show nor write back (its page source is gone).
+      if (!isCurrent(projectId)) return;
       if (assignedPageIds.size > 0) {
         const store = (
           db as unknown as {

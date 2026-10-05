@@ -55,6 +55,7 @@ vi.mock("./disposable", () => ({
 }));
 
 const {
+  beginImageEpoch,
   getImageCacheMemory,
   clearImageCache,
   getImageCacheSize,
@@ -154,6 +155,35 @@ describe("imageCache LRU 퇴거", () => {
     );
     expect(getImageCacheSize()).toBe(MAX_CACHE_SIZE + 1);
     expect(getSkImage("https://example.test/0.png")).not.toBeNull();
+  });
+
+  // 2026-10-05 감사 L1 — releaseSkImage 호출처가 0 이라 refCount 만으로는 아무것도 퇴거되지
+  // 않았다. full rebind (epoch) 두 번 동안 한 번도 조회되지 않은 이미지는 퇴거 후보가 된다.
+  it("두 epoch 동안 조회되지 않은 이미지는 상한에서 퇴거하고, 조회된 이미지는 남긴다", async () => {
+    await loadUrls(MAX_CACHE_SIZE + 10);
+    expect(getImageCacheSize()).toBe(MAX_CACHE_SIZE + 10);
+    const used = Array.from(
+      { length: 5 },
+      (_, i) => `https://example.test/${i}.png`,
+    );
+    for (let round = 0; round < 2; round++) {
+      beginImageEpoch();
+      for (const url of used) getSkImage(url);
+    }
+    beginImageEpoch();
+    drainPendingWasmDisposals();
+    expect(getImageCacheSize()).toBeLessThanOrEqual(MAX_CACHE_SIZE);
+    for (const url of used) expect(getSkImage(url)).not.toBeNull();
+    expect(createdImages.slice(0, 5).every((img) => !img.isDeleted())).toBe(
+      true,
+    );
+  });
+
+  it("방금 bind 한 epoch 의 이미지는 조회되지 않아도 바로 퇴거하지 않는다", async () => {
+    await loadUrls(MAX_CACHE_SIZE + 1);
+    beginImageEpoch();
+    drainPendingWasmDisposals();
+    expect(getImageCacheSize()).toBe(MAX_CACHE_SIZE + 1);
   });
 
   it("CanvasKit 초기화 전 요청도 준비 완료 후 최초 decode를 이어간다", async () => {

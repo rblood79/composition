@@ -46,8 +46,10 @@ Object.defineProperty(navigator, "clipboard", {
     readText: async () => clipboardText,
   },
 });
+// A real key event carries the physical `code` — ⌥ shortcuts match it (macOS ⌥ changes `key`).
 const cmdAlt = (key: string) => ({
   key,
+  code: `Key${key.toUpperCase()}`,
   altKey: true,
   ...(navigator.platform.includes("Mac")
     ? { metaKey: true }

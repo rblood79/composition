@@ -113,8 +113,10 @@ async function open() {
     );
   return { workspace, contract, value, select, paste };
 }
+// A real key event carries the physical `code` — ⌥ shortcuts match it (macOS ⌥ changes `key`).
 const cmdAlt = (key: string) => ({
   key,
+  code: `Key${key.toUpperCase()}`,
   altKey: true,
   ...(navigator.platform.includes("Mac")
     ? { metaKey: true }

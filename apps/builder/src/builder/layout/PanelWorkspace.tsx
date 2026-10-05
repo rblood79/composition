@@ -1639,7 +1639,10 @@ function PanelWorkspaceContent({
         : [],
     [configs, stageRect],
   );
-  const isHydrated = workspaceLayout !== null;
+  // Which tree is mounted (fallback or hydrated): each has its own stage element, so the observer
+  // follows the switch — with only `workspaceLayout` it kept the detached fallback stage when the
+  // layout was already in the store (a second project entry, audit L8).
+  const hydratedTree = workspaceLayout !== null && stageRect !== null;
 
   useLayoutEffect(() => {
     const stage = stageRef.current;
@@ -1660,7 +1663,7 @@ function PanelWorkspaceContent({
     const observer = new ResizeObserver(updateRect);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [isHydrated]);
+  }, [hydratedTree]);
 
   useLayoutEffect(() => {
     if (!workspaceLayout && stageRect) {

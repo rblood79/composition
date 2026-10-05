@@ -154,6 +154,38 @@ describe("ADR-248 4e component confirmations", () => {
     workspace.dispose();
   });
 
+  // 2026-10-05 감사 L10 — 대화상자가 열린 동안 바깥 효과만 있는 항목 (데이터 편집) 이 끼어도
+  // Cancel 은 그 아래의 템플릿 편집까지 되돌린다 (undo 반환값이 없다고 멈추지 않는다).
+  it("Cancel undoes past an outside-only entry recorded while the dialog was open", async () => {
+    const { workspace, definitionId, text, edit } = await open();
+    let answer: (ok: boolean) => void = () => {};
+    const confirm: CatalogComponentConfirm = {
+      detach: () => Promise.resolve(false),
+      impact: () =>
+        new Promise<boolean>((resolve) => {
+          answer = resolve;
+        }),
+    };
+    const stop = watchCatalogComponentEdits(workspace, confirm);
+    workspace.showDefinition(definitionId);
+    const depth = workspace.runtime.historyDepth.undo;
+    edit("Cancelled");
+    let undone = 0;
+    workspace.recordExternal("Edit data", {
+      undo: () => {
+        undone += 1;
+      },
+      redo: () => {},
+    });
+    answer(false);
+    await flush();
+    expect(undone).toBe(1);
+    expect(text()).toBe("Hello");
+    expect(workspace.runtime.historyDepth.undo).toBe(depth);
+    stop();
+    workspace.dispose();
+  });
+
   it("a component without instances and a layout view do not ask", async () => {
     const { workspace, definitionId, instance, edit } = await open();
     const { confirm, requests } = stub(true);

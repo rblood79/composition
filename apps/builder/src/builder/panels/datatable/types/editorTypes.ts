@@ -37,7 +37,15 @@ export interface QuickConnectTarget {
 /**
  * 에디터 탭 타입들
  */
-export type ApiEditorTab = "params" | "headers" | "body" | "auth" | "response";
+/** API 편집기 탭 — 탭 UI · AI `data.openEndpoint` 의 tab 값 집합이 함께 읽는다. */
+export const API_EDITOR_TABS = [
+  "params",
+  "headers",
+  "body",
+  "auth",
+  "response",
+] as const;
+export type ApiEditorTab = (typeof API_EDITOR_TABS)[number];
 
 /**
  * 에디터 상태 인터페이스

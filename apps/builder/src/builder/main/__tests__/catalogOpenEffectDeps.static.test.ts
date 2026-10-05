@@ -20,4 +20,24 @@ describe("CatalogBuilderCore open effect", () => {
     expect(effect).toContain("}, [routeId, openCount]);");
     expect(effect).toContain("const t = tRef.current;");
   });
+
+  // 2026-10-05 감사 L2 — 취소된 실행은 page source 를 등록하지 않고, dispose 된 workspace 를
+  // 열지 않는다 (cleanup 이 await 도중 돌면 등록 해제가 영영 일어나지 않았다).
+  it("page source 등록 · open 확정 전에 취소를 확인한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../CatalogBuilderCore.tsx"),
+      "utf8",
+    );
+    const register = source.indexOf(
+      "restorePageSource = registerVariableOwnerPageSource(",
+    );
+    const beforeRegister = source.slice(source.indexOf("stage(75);"), register);
+    expect(beforeRegister).toContain("if (cancelled) return;");
+    const setOpen = source.indexOf('kind: "open",');
+    const beforeOpen = source.slice(
+      source.indexOf("__COMPOSITION_CATALOG__ ="),
+      setOpen,
+    );
+    expect(beforeOpen).toContain("if (cancelled) return;");
+  });
 });

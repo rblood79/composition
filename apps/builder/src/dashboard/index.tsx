@@ -479,6 +479,21 @@ function Dashboard() {
         await db.api_endpoints.delete(endpoint.id);
       for (const variable of await db.variables.getByProject(routeId))
         await db.variables.delete(variable.id);
+      // The API response cache and the folder link record key by the route id too — left behind
+      // they stayed as orphans (2026-10-05 audit L6).
+      const runtime = (
+        db as unknown as {
+          collection_runtime?: {
+            getByProject(id: string): Promise<{ collectionId: string }[]>;
+            delete(collectionId: string): Promise<void>;
+          };
+        }
+      ).collection_runtime;
+      for (const row of (await runtime?.getByProject(routeId)) ?? [])
+        await runtime!.delete(row.collectionId);
+      const { disconnectProjectDirectory } =
+        await import("../lib/assets/projectDirectoryLink");
+      await disconnectProjectDirectory(routeId);
       await new CatalogStorage().remove(projectId);
       const { removeCatalogProjectSnapshots } =
         await import("../builder/catalogRuntime/snapshots");

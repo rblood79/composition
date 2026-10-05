@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   removeProject: vi.fn(async () => {}),
   deleteCollection: vi.fn(async () => {}),
+  deleteRuntime: vi.fn(async () => {}),
+  disconnectDirectory: vi.fn(async () => {}),
 }));
 
 vi.mock("react-router", () => ({
@@ -27,7 +29,17 @@ vi.mock("../../lib/db", () => ({
     },
     api_endpoints: { getByProject: vi.fn(async () => []), delete: vi.fn() },
     variables: { getByProject: vi.fn(async () => []), delete: vi.fn() },
+    collection_runtime: {
+      getByProject: vi.fn(async (id: string) =>
+        id === "p-1" ? [{ collectionId: "c-1" }] : [],
+      ),
+      delete: mocks.deleteRuntime,
+    },
   })),
+}));
+
+vi.mock("../../lib/assets/projectDirectoryLink", () => ({
+  disconnectProjectDirectory: mocks.disconnectDirectory,
 }));
 
 // ADR-248: the project document lives in the catalog storage.
@@ -79,6 +91,9 @@ describe("Dashboard — 빌더가 넘긴 삭제 요청", () => {
       expect(mocks.removeProject).toHaveBeenCalledWith("project:project:p-1"),
     );
     expect(mocks.deleteCollection).toHaveBeenCalledWith("c-1");
+    // 2026-10-05 감사 L6 — runtime 캐시 행과 폴더 연결 기록도 함께 지운다 (고아 방지).
+    expect(mocks.deleteRuntime).toHaveBeenCalledWith("c-1");
+    expect(mocks.disconnectDirectory).toHaveBeenCalledWith("p-1");
     expect(mocks.removeProject).toHaveBeenCalledTimes(1);
     expect(mocks.navigate).toHaveBeenCalledWith("/dashboard", {
       replace: true,

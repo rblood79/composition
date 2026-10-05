@@ -19,7 +19,7 @@
  */
 import { useDataStore } from "../../builder/stores/data";
 import { useDataTableEditorStore } from "../../builder/panels/datatable/stores/dataTableEditorStore";
-import type { ApiEditorTab } from "../../builder/panels/datatable/types/editorTypes";
+import { API_EDITOR_TABS } from "../../builder/panels/datatable/types/editorTypes";
 import { buildPasteProposal } from "../ai/data/pasteProposal";
 import {
   resolveDataRef,
@@ -55,13 +55,6 @@ const error = (reason: string): DataAgentCommandOutcome => ({
   reason,
 });
 
-const API_EDITOR_TABS: readonly ApiEditorTab[] = [
-  "params",
-  "headers",
-  "body",
-  "auth",
-  "response",
-];
 
 function collectionOf(args: DataCommandArgs, read: DataAgentReadModel) {
   return resolveDataRef(read.collections, args, "collectionId");

@@ -291,33 +291,34 @@ export function renderText(
       const sg = shadow.color[1];
       const sb = shadow.color[2];
       const sa = shadow.color[3];
+      const shadowFilter = ck.ColorFilter.MakeMatrix([
+        0,
+        0,
+        0,
+        0,
+        sr,
+        0,
+        0,
+        0,
+        0,
+        sg,
+        0,
+        0,
+        0,
+        0,
+        sb,
+        0,
+        0,
+        0,
+        sa,
+        0,
+      ]);
       const shadowPaint = acquirePooledPaint(ck);
-      shadowPaint.setColorFilter(
-        ck.ColorFilter.MakeMatrix([
-          0,
-          0,
-          0,
-          0,
-          sr,
-          0,
-          0,
-          0,
-          0,
-          sg,
-          0,
-          0,
-          0,
-          0,
-          sb,
-          0,
-          0,
-          0,
-          sa,
-          0,
-        ]),
-      );
+      shadowPaint.setColorFilter(shadowFilter);
       canvas.saveLayer(shadowPaint);
       releasePooledPaint(shadowPaint);
+      // The layer holds the filter (sk_sp): drop the handle like the blur's (audit L11).
+      shadowFilter.delete();
 
       canvas.drawParagraph(paragraph, drawX, drawY);
 
@@ -348,33 +349,33 @@ export function renderText(
 
     // Keep paragraph metrics and the retained paragraph cache canonical. The
     // presentation slot only changes the paint color for this draw pass.
+    const colorFilter = ck.ColorFilter.MakeMatrix([
+      0,
+      0,
+      0,
+      0,
+      presentationColor[0],
+      0,
+      0,
+      0,
+      0,
+      presentationColor[1],
+      0,
+      0,
+      0,
+      0,
+      presentationColor[2],
+      0,
+      0,
+      0,
+      presentationColor[3],
+      0,
+    ]);
     const colorPaint = acquirePooledPaint(ck);
-    colorPaint.setColorFilter(
-      ck.ColorFilter.MakeMatrix([
-        0,
-        0,
-        0,
-        0,
-        presentationColor[0],
-        0,
-        0,
-        0,
-        0,
-        presentationColor[1],
-        0,
-        0,
-        0,
-        0,
-        presentationColor[2],
-        0,
-        0,
-        0,
-        presentationColor[3],
-        0,
-      ]),
-    );
+    colorPaint.setColorFilter(colorFilter);
     canvas.saveLayer(colorPaint);
     releasePooledPaint(colorPaint);
+    colorFilter.delete();
     canvas.drawParagraph(paragraph, drawX, drawY);
     canvas.restore();
   };

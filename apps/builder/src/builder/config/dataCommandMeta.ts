@@ -16,6 +16,7 @@
  *   (breakdown 의 "importPaste 만 confirm" 에서 한 칸 보수적으로).
  */
 import { looksLikeCurl } from "../../utils/data/curlCommand";
+import { API_EDITOR_TABS } from "../panels/datatable/types/editorTypes";
 import type {
   JsonSchema,
   MutationScope,
@@ -151,7 +152,7 @@ export const DATA_COMMAND_META: Readonly<
         ...endpointRefArgs.properties,
         tab: {
           type: "string",
-          enum: ["basic", "headers", "body", "response", "run"],
+          enum: API_EDITOR_TABS,
           description: "editor tab to open (default basic)",
         },
       },

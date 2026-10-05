@@ -1,5 +1,6 @@
 import type { CanvasKit, FontMgr } from "canvaskit-wasm";
 import { orderPagesForPaint } from "../workspace/canvas/scene/pagePaintOrder";
+import { beginImageEpoch } from "../workspace/canvas/skia/imageCache";
 import { executeRenderCommands } from "../workspace/canvas/skia/renderCommands";
 import type { SkiaRenderable } from "../workspace/canvas/skia/types";
 import {
@@ -79,6 +80,8 @@ export class CatalogCanvasScene {
   }
 
   private bind() {
+    // A full bind reads every drawn image again: images unseen for two binds may be evicted.
+    beginImageEpoch();
     return bindCatalogCanvas(this.root, this.rootIds, undefined, {
       scrollOffsets: this.scrollOffsets,
     });

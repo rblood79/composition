@@ -41,7 +41,14 @@ export async function getDB(): Promise<DatabaseAdapter> {
     //   : new IndexedDBAdapter();
 
     const adapter: DatabaseAdapter = new IndexedDBAdapter();
-    await adapter.init();
+    try {
+      await adapter.init();
+    } catch (error) {
+      // 실패한 promise 를 남기지 않는다 — 다음 호출이 다시 연다 (감사 L3: 그대로 두면
+      // VersionError 한 번으로 그 세션의 데이터 저장 · 삭제가 전부 실패했다).
+      initPromise = null;
+      throw error;
+    }
 
     dbInstance = adapter;
     initPromise = null;

@@ -41,3 +41,15 @@ describe("keyboardShortcuts ADR-112 editing semantics", () => {
     );
   });
 });
+
+// 2026-10-05 감사 L5 — macOS 에서 ⌥ 는 event.key 를 옵션 문자 ("˚" · "≈") 로 바꾼다. ⌥ 가 들어간
+// 정의는 물리 키 `code` 로 비교해야 한다 (없으면 ⌘⌥K · ⌘⌥X 가 키보드로 실행되지 않았다).
+describe("⌥ 조합은 code 로 매칭한다", () => {
+  it("modifier 에 alt 가 있는 정의는 전부 code 를 가진다", () => {
+    const missing = Object.entries(SHORTCUT_DEFINITIONS)
+      .filter(([, def]) => /alt/i.test(String(def.modifier)))
+      .filter(([, def]) => !("code" in def) || !def.code)
+      .map(([id]) => id);
+    expect(missing).toEqual([]);
+  });
+});

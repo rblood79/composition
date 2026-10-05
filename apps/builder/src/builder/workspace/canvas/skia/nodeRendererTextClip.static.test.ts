@@ -33,3 +33,18 @@ describe("renderText — hit · miss 경로의 clip 대칭", () => {
     expect(body).toContain("canvas.clipRect(");
   });
 });
+
+// 2026-10-05 감사 L11 — text-shadow · presentation 색 경로의 ColorFilter 핸들을 draw 마다 남기지
+// 않는다. blur 필터처럼 saveLayer 뒤 (paint 가 sk_sp 로 쥔 뒤) delete 한다.
+describe("renderText — ColorFilter 핸들 해제", () => {
+  it("MakeMatrix 를 setColorFilter 에 바로 넘기지 않고, 만든 수만큼 delete 한다", () => {
+    expect(source).not.toMatch(
+      /setColorFilter\(\s*ck\.ColorFilter\.MakeMatrix/,
+    );
+    const made = source.match(/= ck\.ColorFilter\.MakeMatrix\(/g) ?? [];
+    const deleted = source.match(/\b\w*[Ff]ilter\.delete\(\)/g) ?? [];
+    expect(made.length).toBe(2);
+    // blur 1 + color 2
+    expect(deleted.length).toBeGreaterThanOrEqual(made.length + 1);
+  });
+});

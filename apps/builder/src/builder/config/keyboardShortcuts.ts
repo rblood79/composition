@@ -402,6 +402,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   toggleComponentOrigin: {
     key: "k",
+    code: "KeyK",
     modifier: "cmdAlt",
     category: "canvas",
     scope: ["canvas-focused", "panel:properties"],
@@ -411,6 +412,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   detachInstance: {
     key: "x",
+    code: "KeyX",
     modifier: "cmdAlt",
     category: "canvas",
     scope: ["canvas-focused", "panel:properties"],
@@ -589,6 +591,7 @@ export const SHORTCUT_DEFINITIONS = {
   // 종전 ⌘⇧C 는 Chrome DevTools 요소 검사라 페이지가 막을 수 없는 자리였다.
   copyProperties: {
     key: "c",
+    code: "KeyC",
     modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",
@@ -598,6 +601,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   pasteProperties: {
     key: "v",
+    code: "KeyV",
     modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",
@@ -611,6 +615,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   copyStyles: {
     key: "c",
+    code: "KeyC",
     modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",
@@ -620,6 +625,7 @@ export const SHORTCUT_DEFINITIONS = {
 
   pasteStyles: {
     key: "v",
+    code: "KeyV",
     modifier: "cmdAlt",
     category: "properties",
     scope: "panel:properties",

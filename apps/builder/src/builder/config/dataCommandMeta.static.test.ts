@@ -146,3 +146,17 @@ describe("DATA_COMMAND_META — 정적 게이트", () => {
     });
   });
 });
+
+// 2026-10-05 감사 L7 — 모델에 보이는 tab 값은 API 편집기의 실제 탭과 같다 (없는 탭을 고르면 조용히
+// 기본 탭이 열렸고, params · auth 는 고를 수 없었다).
+describe("data.openEndpoint tab enum", () => {
+  it("API 편집기 탭 목록과 같다", async () => {
+    const { API_EDITOR_TABS } = await import(
+      "../panels/datatable/types/editorTypes"
+    );
+    const args = DATA_COMMAND_META["data.openEndpoint"].args as unknown as {
+      properties: { tab: { enum: readonly string[] } };
+    };
+    expect([...args.properties.tab.enum]).toEqual([...API_EDITOR_TABS]);
+  });
+});

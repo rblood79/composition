@@ -127,9 +127,14 @@ function savePersistedRuntimeValues(
 
 export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   // Factory 함수로 액션 생성
+  // A fetch for an earlier project lands only while that project is still the store's (audit L2).
+  const isCurrentProject = (projectId: string) => {
+    const current = get().currentProjectId;
+    return current == null || current === projectId;
+  };
 
   // DataTable Actions
-  const fetchCollections = createFetchDataTablesAction(set);
+  const fetchCollections = createFetchDataTablesAction(set, isCurrentProject);
   const createDataTable = createCreateDataTableAction(set, get);
   const updateCollection = createUpdateDataTableAction(set, get);
   const deleteCollection = createDeleteDataTableAction(set, get);
@@ -139,14 +144,17 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   const applyDataChange = createApplyDataChangeAction(set, get);
 
   // ApiEndpoint Actions
-  const fetchApiEndpoints = createFetchApiEndpointsAction(set);
+  const fetchApiEndpoints = createFetchApiEndpointsAction(
+    set,
+    isCurrentProject,
+  );
   const createApiEndpoint = createCreateApiEndpointAction(set, get);
   const updateApiEndpoint = createUpdateApiEndpointAction(set, get);
   const deleteApiEndpoint = createDeleteApiEndpointAction(set, get);
   const executeApiEndpoint = createExecuteApiEndpointAction(set, get);
 
   // Variable Actions
-  const fetchVariables = createFetchVariablesAction(set);
+  const fetchVariables = createFetchVariablesAction(set, isCurrentProject);
   const createVariable = createCreateVariableAction(set, get);
   const updateVariable = createUpdateVariableAction(set, get);
   const deleteVariable = createDeleteVariableAction(set, get);
@@ -211,6 +219,9 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
       // ADR-218 — collections·apiEndpoints 로드 후 runtimeData 캐시 hydration
       // (지문 유효한 마지막 성공 응답 복원, 무효/고아 폐기). 실패는 로드를 막지 않는다.
       await hydrateRuntimeCache(projectId);
+
+      // Another project started meanwhile: its own initialization owns the store now.
+      if (get().currentProjectId !== projectId) return;
 
       // persist:true인 Variable들의 런타임 값 복원
       const persistedValues = loadPersistedRuntimeValues();

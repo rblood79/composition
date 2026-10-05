@@ -11,6 +11,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [이미지 캐시 성장·프로젝트 전환 경합 등 12건 수리 — 감사 LOW] - 2026-10-05
+
+### Fixed
+
+- **이미지 메모리 무한 증가**: 이미지 캐시가 상한 없이 커졌다.
+  - **Why**: `releaseSkImage` 호출처가 0 이라 refCount 퇴거가 일어나지 않았다.
+  - 수정: full rebind 마다 epoch 를 올리고, 두 번의 bind 동안 조회되지 않은 이미지를 퇴거 후보로 둔다 (`imageCache.ts` `beginImageEpoch`).
+- **프로젝트 전환 경합**: A 를 여는 중 B 로 옮기면 늦게 끝난 A 의 collections · variables 가 B 의 data store 를 덮을 수 있었다.
+  - 취소된 실행이 page source 를 등록한 채 남거나, dispose 된 workspace 를 열기도 했다.
+  - 수정: fetch · hydrate 를 현재 프로젝트일 때만 반영하고, open effect 가 등록 · 확정 전에 취소를 확인한다.
+- **DB 초기화 실패 고착**: DB open 이 한 번 실패하면 새로고침 전까지 데이터 저장 · 삭제가 전부 실패했다.
+  - 수정: 실패한 초기화 promise 를 버리고 다음 호출이 다시 연다.
+- **다른 탭 폰트 미반영**: 다른 탭이 폰트를 바꾸면 Preview 에만 반영되고 Canvas 에는 빠졌다.
+  - 수정: 같은 탭 변경과 같은 `composition:custom-fonts-updated` 를 낸다.
+- **⌘⌥ 단축키 미동작**: ⌘⌥K · ⌘⌥X · ⌘⌥C · ⌘⌥V (속성 · 스타일 복사 / 붙여넣기) 가 macOS 키보드에서 실행되지 않았다.
+  - **Why**: ⌥ 가 `key` 를 옵션 문자로 바꾼다.
+  - 수정: 물리 키 `code` 로 비교한다.
+- **프로젝트 삭제 고아 기록**: 프로젝트를 지워도 API 응답 캐시 행과 폴더 연결 기록이 남았다.
+- **AI 탭 값 불일치**: AI 의 `data.openEndpoint` 탭 값이 실제 API 편집기 탭과 달랐다 (없는 `basic` · `run`, 고를 수 없던 `params` · `auth`).
+  - 수정: 탭 목록 하나를 둘이 같이 읽는다.
+- **패널 최대 폭 고정**: 같은 세션의 두 번째 프로젝트 진입에서 stage 크기 관찰이 떨어진 노드에 붙어, 패널 최대 폭이 창 크기를 따라가지 않았다.
+- **API 결과 반영 시 편집 되돌림**: API 실행 결과를 붙일 때 실행 중 끝난 데이터 편집을 옛 Map 으로 되돌렸다.
+- **컴포넌트 편집 Cancel 미완료**: 확인 대화상자가 열린 동안 데이터 편집이 끼면 Cancel 이 그 아래 템플릿 편집을 되돌리지 못했다.
+- **Skia 정리 결함**: text-shadow · presentation 색 경로의 ColorFilter 핸들이 draw 마다 남았고, resize 실패 뒤 dispose 가 이미 지운 surface 를 다시 delete 할 수 있었다.
+
+### Tests
+
+- 수정 전 RED 12건을 추가했다. ⌥ 키 이벤트를 흉내 내던 테스트 헬퍼 2곳에 실제 이벤트처럼 `code` 를 넣었다.
+- 검증: type-check 6/6, builder 4031 PASS.
+- 실제 Builder 에서 확인:
+  - 이미지 Avatar 가 breakpoint 전환 4회 (full rebind) 뒤에도 그대로 그려짐 (빨강 792 → 792 px)
+  - A → B → A 빠른 전환 뒤 data store 가 A 의 collection 만 가짐
+- 나머지는 unit · 정적 게이트로만 확인했다.
+
 ## [데이터 쓰기 유실·언어 전환 재오픈 등 9건 수리 — 감사 MEDIUM] - 2026-10-05
 
 ### Fixed

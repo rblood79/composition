@@ -54,3 +54,14 @@ describe("Skia surface presentation acknowledgment", () => {
     expect(source).toContain("return this.renderDualSurface(");
   });
 });
+
+// 2026-10-05 감사 L12 — resize 가 옛 main surface 를 지운 뒤 새 surface 생성이 실패하면 (context
+// lost 상태의 refit) 필드가 지워진 객체를 가리킨다. dispose 는 그것을 다시 delete 하지 않는다.
+describe("SkiaRenderer dispose — 지워진 main surface", () => {
+  it("main surface delete 는 isDeleted 를 먼저 확인한다", async () => {
+    const source = await rendererSource();
+    const start = source.indexOf("  dispose(): void {");
+    const body = source.slice(start, source.indexOf("\n  }\n", start));
+    expect(body).toContain("if (!this.mainSurface.isDeleted()) this.mainSurface.delete();");
+  });
+});

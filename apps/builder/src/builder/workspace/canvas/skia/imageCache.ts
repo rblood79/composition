@@ -114,6 +114,27 @@ interface CacheEntry {
   refCount: number;
   /** 마지막 접근 시각 (LRU 퇴거용) */
   lastAccess: number;
+  /** 마지막으로 조회된 bind epoch (`beginImageEpoch`). */
+  epoch: number;
+}
+
+/**
+ * full rebind 마다 오르는 epoch. 노드 데이터는 bind 때 이미지를 조회하므로 (`getSkImage`), full
+ * rebind 를 두 번 지나도록 조회되지 않은 이미지는 어떤 노드 데이터도 쥐고 있지 않다 — refCount 와
+ * 무관하게 퇴거 후보다. releaseSkImage 호출처가 없어 refCount 만으로는 아무것도 퇴거되지 않고
+ * 캐시가 상한 없이 컸다 (2026-10-05 감사 L1). 직전 epoch 까지 남기는 것은 bind 밖에서 매 프레임
+ * 조회하는 mask 이미지를 위해서다.
+ */
+let imageEpoch = 0;
+
+/** A full scene bind starts: images unseen for two binds become eviction candidates. */
+export function beginImageEpoch(): void {
+  imageEpoch += 1;
+  trimImageCache();
+}
+
+function isPinned(entry: CacheEntry): boolean {
+  return entry.refCount > 0 && entry.epoch >= imageEpoch - 1;
 }
 
 // ============================================
@@ -208,6 +229,7 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
   if (entry) {
     entry.refCount++;
     entry.lastAccess = performance.now();
+    entry.epoch = imageEpoch;
     return entry.image;
   }
 
@@ -225,6 +247,7 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
       if (cachedEntry) {
         cachedEntry.refCount++;
         cachedEntry.lastAccess = performance.now();
+        cachedEntry.epoch = imageEpoch;
       }
     }
     return image;
@@ -251,6 +274,7 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
         estimatedBytes: bytes,
         refCount: 1,
         lastAccess: performance.now(),
+        epoch: imageEpoch,
       });
       estimatedBytes += bytes;
       trimImageCache();
@@ -277,6 +301,7 @@ export function getSkImage(url: string): SkImage | null {
   const entry = cache.get(url);
   if (entry) {
     entry.lastAccess = performance.now();
+    entry.epoch = imageEpoch;
   }
   return entry?.image ?? null;
 }
@@ -328,9 +353,10 @@ registerSkiaCacheDestroy("imageCache", clearImageCache);
 let lastOverflowWarnSize = 0;
 
 /**
- * refCount 0 인 엔트리 중 가장 오래된 것을 퇴거한다.
+ * 퇴거 후보 (`isPinned` 아님 — refCount 0, 또는 두 epoch 동안 조회 없음) 중 가장 오래된 것을
+ * 퇴거한다.
  *
- * **참조 중(refCount > 0)인 엔트리는 퇴거하지 않는다.** 캐시 상한은 미참조
+ * **참조 중인 엔트리는 퇴거하지 않는다.** 캐시 상한은 미참조
  * 풀에 대한 정책이지 살아 있는 작업 집합에 대한 것이 아니다. 구 구현은
  * 후보가 없으면 가장 오래된 엔트리를 강제 퇴거했는데, SkImage 는
  * `SkiaNodeData.image.skImage` 에 **핸들로 저장**돼 다음 프레임에도 그려진다
@@ -355,7 +381,7 @@ function evictLRU(): boolean {
   let oldestUnref: { url: string; entry: CacheEntry } | null = null;
 
   for (const [url, entry] of cache) {
-    if (entry.refCount > 0) continue;
+    if (isPinned(entry)) continue;
     if (!oldestUnref || entry.lastAccess < oldestUnref.entry.lastAccess) {
       oldestUnref = { url, entry };
     }
