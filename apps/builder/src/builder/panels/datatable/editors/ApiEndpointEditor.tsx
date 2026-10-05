@@ -108,26 +108,45 @@ export function ApiEndpointEditor({
     `${endpoint.baseUrl}${endpoint.path}`,
   );
   const autoRan = useRef(false);
+  /**
+   * The last save: the store applies a change only after its IndexedDB write, so a Send must
+   * wait for it (`applyDataChange` runs changes one at a time — the last one settles last).
+   */
+  const pendingSave = useRef<Promise<void> | null>(null);
+  /** The URL last committed: a blur already saved it, so the Send right after does not save it again. */
+  const committedUrl = useRef(`${endpoint.baseUrl}${endpoint.path}`);
+  useEffect(() => {
+    committedUrl.current = `${endpoint.baseUrl}${endpoint.path}`;
+  }, [endpoint.baseUrl, endpoint.path]);
   void onClose;
 
   const save = useCallback(
-    async (patch: Partial<ApiEndpoint>) => {
-      try {
-        await applyDataChange({
-          ops: [draftWith(endpoint, patch)],
-          origin: "user",
-        });
-      } catch (error) {
-        globalToast.error(
-          error instanceof Error ? error.message : String(error),
-        );
-      }
+    (patch: Partial<ApiEndpoint>) => {
+      const run = (async () => {
+        try {
+          await applyDataChange({
+            ops: [draftWith(endpoint, patch)],
+            origin: "user",
+          });
+        } catch (error) {
+          globalToast.error(
+            error instanceof Error ? error.message : String(error),
+          );
+        }
+      })();
+      pendingSave.current = run;
+      void run.then(() => {
+        if (pendingSave.current === run) pendingSave.current = null;
+      });
+      return run;
     },
     [applyDataChange, endpoint],
   );
 
   const send = useCallback(async () => {
     try {
+      const pending = pendingSave.current;
+      if (pending) await pending;
       await executeApiEndpoint(endpoint.id);
       setTab("response");
     } catch {
@@ -150,6 +169,7 @@ export function ApiEndpointEditor({
         if (parsed) {
           const draft = curlToEndpointDraft(parsed);
           setUrlDraft(`${draft.baseUrl}${draft.path}`);
+          committedUrl.current = `${draft.baseUrl}${draft.path}`;
           void save({
             method: draft.method,
             baseUrl: draft.baseUrl,
@@ -164,11 +184,12 @@ export function ApiEndpointEditor({
         }
       }
       const { baseUrl, path } = splitApiUrl(raw);
-      if (baseUrl !== endpoint.baseUrl || path !== endpoint.path) {
+      if (`${baseUrl}${path}` !== committedUrl.current) {
+        committedUrl.current = `${baseUrl}${path}`;
         void save({ baseUrl, path });
       }
     },
-    [endpoint.baseUrl, endpoint.path, save, dt],
+    [save, dt],
   );
 
   const handleUrlPaste = (e: ClipboardEvent<HTMLInputElement>) => {

@@ -72,7 +72,10 @@ function linearGradientFillItemToSkia(
   const rad = ((item.rotation - 90) * Math.PI) / 180;
   const cx = width / 2;
   const cy = height / 2;
-  const len = Math.max(width, height) / 2;
+  // CSS gradient line: 길이 = |W·sinθ| + |H·cosθ| (θ = CSS 각도) — 모서리가 0%/100% 에 닿는다.
+  const css = (item.rotation * Math.PI) / 180;
+  const len =
+    (Math.abs(width * Math.sin(css)) + Math.abs(height * Math.cos(css))) / 2;
   const start: [number, number] = [
     cx - Math.cos(rad) * len,
     cy - Math.sin(rad) * len,

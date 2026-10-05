@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { fillItemToFillStyle } from "../fillToSkia";
 import type {
   AngularGradientFillItem,
+  LinearGradientFillItem,
   RadialGradientFillItem,
 } from "../../../../../types/builder/fill.types";
 import { FillType } from "../../../../../types/builder/fill.types";
 import type {
   AngularGradientFill,
+  LinearGradientFill,
   RadialGradientFill,
 } from "../../../../workspace/canvas/skia/types";
 
@@ -122,5 +124,44 @@ describe("radial gradient ellipse (radius 반영)", () => {
     ) as RadialGradientFill;
     expect(fill.endRadius).toBeGreaterThan(0);
     expect(fill.matrix).toBeUndefined();
+  });
+});
+
+// 2026-10-05 감사 — linear gradient 선 길이는 CSS 규칙 (|W·sinθ| + |H·cosθ|) 을 따른다.
+// 긴 변 고정이면 200×40 의 세로 gradient 가 가운데 20% 구간만 보여 Preview 와 갈린다.
+describe("linear gradient line length (CSS gradient line)", () => {
+  const makeLinear = (rotation: number): LinearGradientFillItem => ({
+    id: "lg1",
+    type: FillType.LinearGradient,
+    enabled: true,
+    opacity: 1,
+    blendMode: "normal",
+    rotation,
+    stops: STOPS,
+  });
+  const ends = (rotation: number) => {
+    const fill = fillItemToFillStyle(
+      makeLinear(rotation),
+      200,
+      40,
+    ) as LinearGradientFill;
+    return [...fill.start, ...fill.end];
+  };
+  const expectEnds = (actual: number[], expected: number[]) =>
+    expected.forEach((value, i) => expect(actual[i]).toBeCloseTo(value, 4));
+
+  it("0deg (bottom → top) spans the box height", () => {
+    expectEnds(ends(0), [100, 40, 100, 0]);
+  });
+  it("90deg (left → right) spans the box width", () => {
+    expectEnds(ends(90), [0, 20, 200, 20]);
+  });
+  it("180deg (top → bottom) spans the box height", () => {
+    expectEnds(ends(180), [100, 0, 100, 40]);
+  });
+  it("45deg reaches the corners' perpendiculars", () => {
+    const half = (200 * Math.SQRT1_2 + 40 * Math.SQRT1_2) / 2;
+    const d = half * Math.SQRT1_2;
+    expectEnds(ends(45), [100 - d, 20 + d, 100 + d, 20 - d]);
   });
 });

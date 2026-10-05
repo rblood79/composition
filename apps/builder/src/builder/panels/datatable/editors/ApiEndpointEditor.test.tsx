@@ -70,6 +70,44 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     await waitFor(() => expect(execute).toHaveBeenCalledWith("ep1"));
   });
 
+  // 2026-10-05 감사 — 저장은 IDB 쓰기 뒤에 store 에 반영된다. Send/Enter 는 URL 저장이 끝난 뒤에
+  // 실행해야 고친 URL 로 나간다. blur 가 이미 저장한 URL 을 Send 가 한 번 더 쓰지도 않는다.
+  it("URL 을 고치고 Enter → 저장이 끝난 뒤에 실행", async () => {
+    let finish: () => void = () => {};
+    applyDataChange.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve({ endpointIds: ["ep1"] });
+        }),
+    );
+    const { getByLabelText } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),
+    );
+    const url = getByLabelText("URL") as HTMLInputElement;
+    fireEvent.change(url, { target: { value: "https://api.test/users" } });
+    fireEvent.keyDown(url, { key: "Enter" });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(applyDataChange).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+    finish();
+    await waitFor(() => expect(execute).toHaveBeenCalledWith("ep1"));
+  });
+
+  it("blur 로 저장한 URL 을 Send 가 다시 저장하지 않는다", async () => {
+    const { getByLabelText, getByRole } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),
+    );
+    const url = getByLabelText("URL") as HTMLInputElement;
+    fireEvent.change(url, { target: { value: "https://api.test/users" } });
+    fireEvent.blur(url);
+    const send = getByRole("button", { name: /Send/ });
+    fireEvent.pointerDown(send, { button: 0 });
+    fireEvent.pointerUp(send, { button: 0 });
+    fireEvent.click(send);
+    await waitFor(() => expect(execute).toHaveBeenCalledWith("ep1"));
+    expect(applyDataChange).toHaveBeenCalledTimes(1);
+  });
+
   it("URL 편집 → define_endpoint (baseUrl/path 분해)", async () => {
     const { getByLabelText } = render(
       wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} />),

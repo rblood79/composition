@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [linear gradient 길이·API 고치기 전 URL 요청 수리 — 미열람 범위 감사 HIGH 2건] - 2026-10-05
+
+### Fixed
+
+- **Canvas linear gradient 가 Preview 와 다름**: 정사각형이 아닌 상자에서 Canvas 의 linear gradient 가 Preview 보다 길게 펼쳐져 일부 구간만 보였다. 예: 200×40 의 세로 gradient 는 거의 단색 회색 띠였다.
+  - **Why**: gradient 선 길이를 상자의 긴 변으로 고정했다. CSS 는 `|W·sinθ| + |H·cosθ|` 다.
+  - 수정: CSS gradient line 공식으로 끝점을 정한다 (`fillToSkia.ts`).
+- **API 편집기가 고치기 전 URL 로 요청**: URL 을 고치고 바로 Send 나 Enter 를 누르면 요청이 고치기 전 URL 로 나갔다.
+  - **Why**: 데이터 변경은 IndexedDB 쓰기가 끝난 뒤에 store 에 반영되는데, 실행이 저장을 기다리지 않았다.
+  - 수정: 대기 중인 저장이 끝난 뒤 실행한다. blur 로 이미 저장한 URL 을 Send 가 한 번 더 저장하던 중복도 없앴다.
+
+### Tests
+
+- 수정 전 RED 5건 (gradient 끝점 3 · Enter 순서 1 · 중복 저장 1) 을 추가했다.
+- 검증: type-check 6/6, builder 4037 PASS.
+- 실제 Builder 에서 대조군과 함께 확인했다:
+  - 200×40 frame 의 0deg 검정 → 흰색 gradient: 진한 픽셀이 수정 전 0 → 수정 후 501 이다. Compare Mode 에서 CSS · Canvas 둘 다 높이 전체에 걸친다.
+  - endpoint URL 을 `/old-path` 에서 `/new-path` 로 고치고 Enter: 수정 전에는 `/old-path` 로 요청, 수정 후에는 `/new-path` 로 요청.
+
 ## [이미지 캐시 성장·프로젝트 전환 경합 등 12건 수리 — 감사 LOW] - 2026-10-05
 
 ### Fixed
