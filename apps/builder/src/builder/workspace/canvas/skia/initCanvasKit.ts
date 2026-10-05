@@ -4,10 +4,13 @@
  * canvaskit-wasm npm 패키지를 로드하고 싱글톤 인스턴스를 관리한다.
  * initYoga.ts의 HMR 안전 패턴(window 전역 캐시)을 적용한다.
  *
- * @see docs/RENDERING_ARCHITECTURE.md §5.2 CanvasKit WASM 로드 및 Surface 생성
+ * ADR-244 D: .wasm 은 빌드 산출물 (`assets/canvaskit-<hash>.wasm`) 이다 — glue chunk 와 같은 빌드의
+ * 쌍으로만 쓰인다. 재배포 뒤 옛 탭은 옛 해시가 404 로 실패하고 (조용한 불일치 대신), 부팅 실패
+ * 처리 (`staleDeployRecovery.ts`) 가 새로고침으로 새 쌍을 받는다.
  */
 
 import type { CanvasKit } from "canvaskit-wasm";
+import canvaskitWasmUrl from "canvaskit-wasm/bin/canvaskit.wasm?url";
 
 const CK_GLOBAL_KEY = "__composition_CANVASKIT_INSTANCE__";
 const CK_PROMISE_KEY = "__composition_CANVASKIT_PROMISE__";
@@ -25,8 +28,7 @@ let canvasKit: CanvasKit | null = null;
  * CanvasKit WASM을 비동기 초기화한다.
  *
  * - HMR 시 기존 인스턴스를 재사용하여 중복 초기화를 방지한다.
- * - .wasm 파일은 apps/builder/public/wasm/canvaskit.wasm에서 로드된다.
- *   (scripts/prepare-wasm.mjs가 pnpm install 시 자동 복사)
+ * - .wasm 은 `canvaskit-wasm/bin/canvaskit.wasm?url` — Vite 가 해시 경로로 내보낸다.
  */
 export async function initCanvasKit(): Promise<CanvasKit> {
   // 1. 모듈 레벨 캐시 확인
@@ -50,10 +52,14 @@ export async function initCanvasKit(): Promise<CanvasKit> {
   const promise = (async () => {
     const CanvasKitInit = (await import("canvaskit-wasm")).default;
 
-    // .wasm 파일 경로: apps/builder/public/wasm/canvaskit.wasm
-    // Vite의 BASE_URL이 배포 환경에 맞는 prefix를 제공한다.
     const ck = await CanvasKitInit({
-      locateFile: (file: string) => `${import.meta.env.BASE_URL}wasm/${file}`,
+      locateFile: (file: string) => {
+        // glue 가 다른 파일을 찾으면 (canvaskit-wasm 갱신으로 이름이 바뀜) 조용히 엉뚱한 경로를
+        // 주지 않고 실패한다.
+        if (file !== "canvaskit.wasm")
+          throw new Error(`CanvasKit 이 예상 밖 파일을 요청했다: ${file}`);
+        return canvaskitWasmUrl;
+      },
     });
 
     return ck;
@@ -70,9 +76,7 @@ export async function initCanvasKit(): Promise<CanvasKit> {
     // Promise 캐시 제거하여 재시도 가능하게 함
     delete window[CK_PROMISE_KEY];
     throw new Error(
-      `CanvasKit 초기화 실패. canvaskit.wasm 파일이 존재하는지 확인하세요.\n` +
-        `pnpm run prepare:wasm 또는 pnpm install을 실행하세요.\n` +
-        `원인: ${error instanceof Error ? error.message : String(error)}`,
+      `CanvasKit 초기화 실패: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
     );
   }

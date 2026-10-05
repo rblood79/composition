@@ -53,6 +53,9 @@ export async function initAllWasm(): Promise<void> {
     wasmReady = true;
   } catch (error) {
     console.error("[WASM] 초기화 실패:", error);
+    // ADR-244: 원래 오류를 부팅 실패 처리까지 전달한다 — 삼키면 뒤따르는 `getCanvasKit()`
+    // 오류만 보이고, 옛 배포 판정 (`staleDeployRecovery.ts`) 도 열리지 않는다.
+    throw error;
   }
 }
 

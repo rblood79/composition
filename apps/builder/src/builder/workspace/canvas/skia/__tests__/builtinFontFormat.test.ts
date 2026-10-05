@@ -1,13 +1,16 @@
 // @vitest-environment node
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import CanvasKitInit, { type CanvasKit } from "canvaskit-wasm";
 import { beforeAll, describe, expect, it } from "vitest";
 
+const require = createRequire(import.meta.url);
 let ck: CanvasKit;
 beforeAll(async () => {
   ck = await CanvasKitInit({
-    locateFile: () => resolve("public/wasm/canvaskit.wasm"),
+    // ADR-244: public/wasm 복사본이 아니라 패키지의 wasm (빌드도 같은 파일을 해시 경로로 낸다).
+    locateFile: () => require.resolve("canvaskit-wasm/bin/canvaskit.wasm"),
   });
 });
 

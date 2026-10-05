@@ -22,6 +22,9 @@ interface ImportMetaEnv {
   readonly VITE_CANVAS_COMPARE_MODE?: string;
 }
 
+/** 이 빌드의 식별자 — dist 루트 `version.json` 과 같은 값 (ADR-244 옛 배포 판정). dev 는 "dev". */
+declare const __BUILD_ID__: string;
+
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }

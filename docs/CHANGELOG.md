@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-244 Phase 1 — CanvasKit wasm 해시 경로 · 재배포 뒤 옛 탭 자동 복구] - 2026-10-06
+
+### Fixed
+
+- **재배포 뒤 열려 있던 탭이 프로젝트를 열지 못함**: GitHub Pages 배포는 이전 파일을 지운다. 재배포 전에 dashboard 를 열어 둔 탭이 프로젝트를 누르면 옛 부팅 chunk 가 404 로 실패하고 "CanvasKit 이 초기화되지 않았습니다" 화면에서 멈췄다. 이제 부팅이 workspace 를 열기 전에 실패하면 서버의 `version.json` buildId 를 읽어 이 번들과 다를 때 **새로고침 한 번**으로 새 빌드를 받는다 (편집 전이라 잃는 것이 없다). 같은 buildId 로는 다시 새로고침하지 않는다 — 새 빌드 자체가 깨져 있으면 한 번 뒤 실패 화면 (`staleDeployRecovery.ts`).
+- **재배포 뒤 새 탭이 옛 CanvasKit wasm 과 섞임**: CanvasKit glue 는 해시 chunk 인데 wasm 은 고정 경로 (`wasm/canvaskit.wasm`) 라, canvaskit-wasm 을 올린 배포 뒤 10 분 (Pages `max-age=600`) 안에 연 탭은 새 glue + HTTP 캐시의 옛 wasm 으로 부팅이 실패할 수 있었다. wasm 을 빌드 산출물 (`assets/canvaskit-<hash>.wasm`, `?url` import) 로 옮겨 glue 와 같은 빌드의 쌍으로만 쓰인다.
+- **부팅 실패 화면이 원인을 숨김**: `initAllWasm` 이 오류를 삼켜 실패 화면에는 뒤따르는 "초기화되지 않았습니다" 만 보였다. 원래 오류 (예: wasm 404) 를 전달한다.
+
+### Changed
+
+- `pnpm install` 의 postinstall 이 `canvaskit.wasm` 을 `apps/builder/public/wasm/` 로 복사하지 않는다 (`scripts/prepare-wasm.mjs` · `prepare:wasm` 스크립트 · `.gitignore` 의 `apps/builder/public/wasm/` 삭제 — 사용자 승인 2026-10-06). 빌드는 dist 루트에 `version.json` 을 낸다.
+
+### Tests
+
+- `staleDeployRecovery.test.ts` (buildId 다름 → 1 회 · 같음 · 반복 · probe 실패 · dev · storage 불가) · `initAllWasmRethrow.test.ts` (원복 RED 확인).
+- 재배포 모사 `apps/builder/scripts/adr244-redeploy-sim.mjs` — Chromium · WebKit 에서 새 탭 N+1 쌍만 요청 · 옛 탭 새로고침 1 회 뒤 부팅 · 깨진 배포 1 회 뒤 실패 화면. D 이전 빌드는 새 탭 · 옛 탭 모두 실패 (원복 RED).
+
 ## [Navigator Components 탭 — 기본 컴포넌트를 Components page 하나로] - 2026-10-05
 
 ### Changed

@@ -7,7 +7,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 ## 명령 · 환경
 
 ```bash
-pnpm install                                        # postinstall: canvaskit wasm 복사 + 아이콘·팔레트·CSS 생성 (build:specs)
+pnpm install                                        # postinstall: 아이콘·팔레트·CSS 생성 (build:specs) — CanvasKit wasm 은 빌드 산출물 (ADR-244)
 pnpm wasm:build:engine                              # Rust 엔진 → wasm (산출물 gitignored, Rust+wasm-pack 필요 — fresh clone·엔진 변경 후 필수)
 pnpm dev                                            # builder dev 서버 (5173) · 포트 충돌 시 pnpm dev:kill (기본 5173 만 — 병렬 worktree 서버는 DEV_PORTS="5174" 로 지정)
 pnpm type-check                                     # Stop hook 이 같은 명령 실행

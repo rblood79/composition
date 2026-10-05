@@ -8,6 +8,8 @@ Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계
 
 **Phase 0 종료 — G0 판정 2026-10-05: 대안 A 진행.** 제한 프로파일 (10 Mbps / 100 ms) 첫 방문의 네트워크 대기 몫이 press → presented p50 의 81 ~ 87 % (기준 30 %) — Chromium 1x · 4x · WebKit, 새 프로젝트 · 합성 5,000 요소 모두. 폰트 구간 42 ~ 52 % (기준 20 %) → 미리 받기에 폰트 포함. wasm 컴파일 구간은 9 ~ 46 ms 라 `compileStreaming` 예열 변형은 제외. 실제 GitHub Pages 에서도 몫 47 % 로 방향 일치. 근거: [evidence/244-phase0-baseline.md](evidence/244-phase0-baseline.md). 다음은 Phase 1 (D).
 
+**Phase 1 (D) 구현 2026-10-06 — G1 통과.** CanvasKit wasm 이 `assets/canvaskit-<hash>.wasm` 1 개로 나가고 고정 경로 참조 0. 재배포 모사 (빌드 N = bin · N+1 = full, `adr244-redeploy-sim.mjs`) Chromium · WebKit: 새 탭은 N+1 glue · wasm 만 요청해 부팅 · 재배포 전에 연 탭은 옛 부팅 chunk 404 → buildId 판정 → 새로고침 1 회 → N+1 로 부팅 · N+1 wasm 이 없으면 새로고침 1 회 뒤 실패 화면 (반복 없음). 원복 RED: D 이전 빌드는 새 탭 (wasm 요청 0 — 캐시의 옛 wasm) · 옛 탭 모두 실패. dev 부팅 · browser 테스트 (`paletteBaseCanvas`) PASS. Builder initial **+230 B** (Preview 0) — 복구 코드는 initial 에 있어야 한다 (옛 탭에서는 lazy chunk 자체가 404). HC1 판정은 G3 (Phase 2 종료) 에서. `scripts/prepare-wasm.mjs` · `prepare:wasm` 스크립트 · `.gitignore` 줄 삭제 (사용자 승인 2026-10-06).
+
 ## Context
 
 ### 문제

@@ -67,7 +67,7 @@ composition/
 │   │   ├── primitives/ · renderers/ (CSSGenerator) · chart/ · icons/ · runtime/
 │   ├── engine/   # Rust — src/ · benches/ · tests/ · pkg(생성물)
 │   └── config/               # tsconfig/ · eslint/
-└── scripts/                  # generate-engine-matrix.mjs · prepare-wasm.mjs · agent/ · codex/ 등
+└── scripts/                  # generate-engine-matrix.mjs · agent/ · codex/ 등
 ```
 
 앱별 스크립트는 각 워크스페이스 안에 있다 — 예: `apps/builder/scripts/visual-parity-gate.mjs`.
@@ -80,7 +80,7 @@ composition/
 `lint` · `test` · `clean`.
 
 ```bash
-pnpm install          # postinstall: canvaskit wasm 복사 + specs 빌드
+pnpm install          # postinstall: specs 빌드 (CanvasKit wasm 은 Vite 빌드 산출물 — ADR-244)
 pnpm dev              # builder dev 서버 (포트 충돌 시 pnpm dev:kill)
 pnpm type-check       # Stop hook 이 같은 명령을 실행
 pnpm codex:preflight  # guard + format + typecheck + registration gate

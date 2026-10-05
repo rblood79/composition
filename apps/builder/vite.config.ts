@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { copyFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig } from "vite";
@@ -191,6 +192,32 @@ function spaFallbackPlugin() {
 }
 
 /**
+ * ADR-244 — 빌드 식별자. 번들에는 `__BUILD_ID__` 로, dist 루트에는 `version.json` 으로 같은 값을
+ * 남긴다. 부팅이 실패한 탭은 서버의 `version.json` 과 자기 값을 비교해 옛 배포인지 판정한다
+ * (`src/builder/main/staleDeployRecovery.ts`). 빌드마다 새 값 — 같은 커밋을 다시 빌드해도 다르다
+ * (해시 자산 이름이 같다는 보장이 없으므로 커밋이 아니라 빌드가 단위다).
+ */
+function buildIdentityPlugin(buildId: string) {
+  return {
+    name: "build-identity",
+    apply: "build" as const,
+    generateBundle(this: {
+      emitFile: (file: {
+        type: "asset";
+        fileName: string;
+        source: string;
+      }) => string;
+    }) {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: `${JSON.stringify({ buildId })}\n`,
+      });
+    },
+  };
+}
+
+/**
  * ADR-247 — cold entry 정적 셸. 빌더 `index.html` (빌드는 `404.html` 복사본도) 의 body 맨 앞에
  * 셸 노드와 인라인 script 를 넣는다. 셸은 앱과 같은 class 로 그려 색 · 크기를 main CSS 가 준다
  * (`src/staticShell/staticShell.ts`). preview.html 에는 넣지 않는다.
@@ -228,7 +255,12 @@ function staticShellPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => {
+  const buildId =
+    command === "build"
+      ? `${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`
+      : "dev";
   return {
+    define: { __BUILD_ID__: JSON.stringify(buildId) },
     logLevel: "warn", // HMR 로그 및 불필요한 콘솔 로그 최소화
     clearScreen: false, // 화면 클리어 비활성화
     plugins: [
@@ -239,6 +271,7 @@ export default defineConfig(({ command }) => {
       react(),
       staticShellPlugin(),
       spaFallbackPlugin(),
+      buildIdentityPlugin(buildId),
     ],
     worker: {
       format: "es",

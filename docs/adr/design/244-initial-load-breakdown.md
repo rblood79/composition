@@ -45,6 +45,8 @@
 
 ## §3 Phase 1 — 대안 D: CanvasKit wasm 해시 경로
 
+> **구현 2026-10-06** — 아래 표대로. 정리: `scripts/prepare-wasm.mjs` · `package.json` 의 `prepare:wasm` · `.gitignore` 의 `apps/builder/public/wasm/` 삭제 (사용자 승인 2026-10-06). `builtinFontFormat.test.ts` 가 `public/wasm/canvaskit.wasm` 을 읽고 있어 패키지 경로 (`require.resolve("canvaskit-wasm/bin/canvaskit.wasm")`) 로 바꿨다 — fresh clone 에는 복사본이 없다. 복구 판정은 `src/builder/main/staleDeployRecovery.ts` (`reloadIfStaleDeploy`), 실패 처리에서 `!code && !opened` 일 때만 부른다. buildId 는 빌드마다 새 값 (`<시각>-<난수>` — 같은 커밋을 다시 빌드해도 해시 자산 이름이 같다는 보장이 없어 빌드가 단위). 재배포 모사 하니스 `apps/builder/scripts/adr244-redeploy-sim.mjs`. 결과는 본문 Status.
+
 | 파일                                                              | 변경                                                                                                                                                    |
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/builder/src/builder/workspace/canvas/skia/initCanvasKit.ts` | `import canvaskitWasmUrl from "canvaskit-wasm/bin/canvaskit.wasm?url"` · `locateFile` (`:56`) 이 이 URL 반환 (파일명 검사 후) · `:28` · `:53` 주석 갱신 |

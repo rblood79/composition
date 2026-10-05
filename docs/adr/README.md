@@ -184,7 +184,7 @@
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
-- **상태**: Proposed — 2026-09-27 (개정 2026-10-05 — ADR-248 뒤 코드 사실 재대조, 결정 무변경). **Phase 0 종료 · G0 = 대안 A 진행** (2026-10-05, 첫 방문 네트워크 대기 몫 81 ~ 87 % · 폰트 포함 — [evidence](evidence/244-phase0-baseline.md))
+- **상태**: Proposed — 2026-09-27 (개정 2026-10-05 — ADR-248 뒤 코드 사실 재대조, 결정 무변경). **Phase 0 종료 · G0 = 대안 A 진행** (2026-10-05, 첫 방문 네트워크 대기 몫 81 ~ 87 % · 폰트 포함 — [evidence](evidence/244-phase0-baseline.md)) · **Phase 1 (D) 구현 · G1 통과** (2026-10-06 — wasm 해시 경로 · 재배포 뒤 옛 탭 새로고침 1 회 복구, Builder initial +230 B)
 - **규모**: Phase 0 (GitHub Pages 헤더 모사 서버 + 실제 Pages 1 회 · Chromium/WebKit · 카드 press → `composition:builder.presented` 구간 분해 — 문서 열기 구간 포함) · 대안 D (wasm `?url` 해시 경로 — glue 와 쌍) 무조건 · 대안 A (의도/idle 미리 받기) 조건부 · SW 보류. 사용자 결정: SW 보류로의 scope 변경 · 미리 받기 트리거 · `scripts/prepare-wasm.mjs` 삭제 · initial Δ. breakdown: [design/244](design/244-initial-load-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)

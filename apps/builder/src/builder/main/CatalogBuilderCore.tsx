@@ -89,6 +89,7 @@ import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
 import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
 import { useCompareModeStore } from "../workspace/canvas/stores/compareMode";
 import { initAllWasm } from "../workspace/canvas/wasm-bindings/init";
+import { reloadIfStaleDeploy } from "./staleDeployRecovery";
 import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
 import { BuilderHeader } from "./BuilderHeader";
@@ -264,10 +265,14 @@ export function CatalogBuilderCore() {
         workspace: opened,
         name: project?.kind === "project" ? project.name : routeId,
       });
-    })().catch((error: unknown) => {
+    })().catch(async (error: unknown) => {
       if (cancelled) return;
       console.error("[CatalogBuilder] open failed:", error);
       const code = error instanceof CatalogStorageError ? error.code : null;
+      // ADR-244: workspace 를 열기 전 실패 (wasm · 부팅 chunk 404) 가 옛 배포 탭이면 새로고침 한 번으로
+      // 새 빌드를 받는다 — 편집 전이라 잃는 것이 없다. 저장소 오류는 배포와 무관하다.
+      if (!code && !opened && (await reloadIfStaleDeploy())) return;
+      if (cancelled) return;
       const t = tRef.current;
       setState({
         kind: "failed",
