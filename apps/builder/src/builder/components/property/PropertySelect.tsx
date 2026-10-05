@@ -1,4 +1,5 @@
 import React, { memo, useState, useCallback } from "react";
+import { withLatestCallbacks } from "./latestCallbacks";
 import {
   Select as AriaSelect,
   SelectValue,
@@ -100,7 +101,7 @@ function literalKey(value: string): string {
 }
 
 // 🚀 Phase 21: memo + 커스텀 비교 함수 적용
-export const PropertySelect = memo(
+const PropertySelectControl = memo(
   function PropertySelect({
     label,
     value,
@@ -325,49 +326,49 @@ export const PropertySelect = memo(
                   ))}
                 </ListBox>
               ) : (
-              <ListBox className="react-aria-ListBox">
-                {options.map((option) => (
-                  <ListBoxItem
-                    key={
-                      optionValueMode === "literal"
-                        ? literalKey(option.value)
-                        : option.value
-                    }
-                    id={
-                      optionValueMode === "literal"
-                        ? literalKey(option.value)
-                        : option.value
-                    }
-                    className="react-aria-ListBoxItem"
-                    textValue={
-                      i18n && translateOptions
+                <ListBox className="react-aria-ListBox">
+                  {options.map((option) => (
+                    <ListBoxItem
+                      key={
+                        optionValueMode === "literal"
+                          ? literalKey(option.value)
+                          : option.value
+                      }
+                      id={
+                        optionValueMode === "literal"
+                          ? literalKey(option.value)
+                          : option.value
+                      }
+                      className="react-aria-ListBoxItem"
+                      textValue={
+                        i18n && translateOptions
+                          ? translateKey(
+                              i18n.t,
+                              semanticLabelKeys[option.label] ?? option.label,
+                              option.label,
+                            )
+                          : option.label
+                      }
+                    >
+                      {swatches && swatches[option.value] != null && (
+                        <span
+                          aria-hidden="true"
+                          className="property-swatch property-select__swatch"
+                          // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
+                          //   변하는 색만 인라인
+                          style={{ background: swatches[option.value] }}
+                        />
+                      )}
+                      {i18n && translateOptions
                         ? translateKey(
                             i18n.t,
                             semanticLabelKeys[option.label] ?? option.label,
                             option.label,
                           )
-                        : option.label
-                    }
-                  >
-                    {swatches && swatches[option.value] != null && (
-                      <span
-                        aria-hidden="true"
-                        className="property-swatch property-select__swatch"
-                        // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
-                        //   변하는 색만 인라인
-                        style={{ background: swatches[option.value] }}
-                      />
-                    )}
-                    {i18n && translateOptions
-                      ? translateKey(
-                          i18n.t,
-                          semanticLabelKeys[option.label] ?? option.label,
-                          option.label,
-                        )
-                      : option.label}
-                  </ListBoxItem>
-                ))}
-              </ListBox>
+                        : option.label}
+                    </ListBoxItem>
+                  ))}
+                </ListBox>
               )}
             </Popover>
           </AriaSelect>
@@ -395,3 +396,8 @@ export const PropertySelect = memo(
     );
   },
 );
+
+/** 값 비교 memo 는 그대로, 호출은 최신 콜백으로 (`withLatestCallbacks`). */
+export const PropertySelect = withLatestCallbacks(PropertySelectControl, [
+  "onChange",
+]);

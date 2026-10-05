@@ -1,4 +1,5 @@
 import React, { memo, useCallback } from "react";
+import { withLatestCallbacks } from "./latestCallbacks";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
@@ -65,7 +66,7 @@ function normalizeHexForStyle(hexa: string): string {
  * 오염되지 않는다 (구 isPreviewSessionRef 수동 가드 대체 — style-ssot.md
  * commit-skip 함정의 설계 차단).
  */
-export const PropertyColor = memo(
+const PropertyColorControl = memo(
   function PropertyColor({
     label,
     value,
@@ -159,3 +160,10 @@ export const PropertyColor = memo(
     );
   },
 );
+
+/** 값 비교 memo 는 그대로, 호출은 최신 콜백으로 (`withLatestCallbacks`). */
+export const PropertyColor = withLatestCallbacks(PropertyColorControl, [
+  "onChange",
+  "onPreview",
+  "onPresentationCancel",
+]);

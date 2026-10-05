@@ -43,6 +43,7 @@ import { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import { watchContextLoss } from "../skia/createSurface";
 import { destroyAllSkiaCaches } from "../skia/disposable";
 import { skiaFontManager } from "../skia/fontManager";
+import { registerImageLoadCallback } from "../skia/imageCache";
 import { setEditingElementId } from "../skia/nodeRendererState";
 import {
   createFrameScheduler,
@@ -587,6 +588,8 @@ export function CatalogCanvas({
     let presented = false;
     let contextLost = false;
     let sceneStale = false;
+    // An image a record draws finished loading: its node data was built with the placeholder.
+    let imagesStale = false;
     /** Publish the page header frames; true = a frame moved or resized. */
     const publishHeaders = (): boolean => {
       const frames = catalogHeaderFrames(workspace, compareOnlyPage());
@@ -601,6 +604,17 @@ export function CatalogCanvas({
     };
     let orderStale = false;
     const syncScene = () => {
+      if (imagesStale) {
+        imagesStale = false;
+        try {
+          scene.imageLoaded();
+          sceneStale = false;
+          renderer.invalidateContent();
+          overlayVersion += 1;
+        } catch (error) {
+          callbacks.current.onError?.(error);
+        }
+      }
       if (orderStale) {
         orderStale = false;
         try {
@@ -724,6 +738,12 @@ export function CatalogCanvas({
       scheduler.invalidate();
     });
     const unsubscribeAi = useAIVisualFeedbackStore.subscribe(invalidateOverlay);
+    // Several loads in one frame bind once (2026-10-05 audit H3 — the old Canvas's subscriber went
+    // with it in ADR-248 Phase 4e-9-1 and nothing drew a loaded image until another edit).
+    const unsubscribeImages = registerImageLoadCallback(() => {
+      imagesStale = true;
+      scheduler.invalidate();
+    });
     // The compare filter (or the page it shows) changed: the drawn page roots follow next frame.
     let compareRoot = compareOnlyRoot();
     const followCompareFilter = () => {
@@ -1296,6 +1316,7 @@ export function CatalogCanvas({
       unsubscribeRoot();
       unsubscribeData();
       unsubscribeAi();
+      unsubscribeImages();
       unsubscribeCompare();
       invalidateOverlayRef.current = undefined;
       spacingCommitRef.current = undefined;

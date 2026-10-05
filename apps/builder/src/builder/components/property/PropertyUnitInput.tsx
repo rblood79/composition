@@ -1,4 +1,5 @@
 import React, { useRef, memo, useState, useMemo, useEffect } from "react";
+import { withLatestCallbacks } from "./latestCallbacks";
 import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
 import { Button } from "react-aria-components/Button";
 import { Input } from "react-aria-components/Input";
@@ -250,7 +251,7 @@ function getInputDisplayValue(
     : (INPUT_DISPLAY_LABELS[parsed.unit] ?? parsed.unit);
 }
 
-export const PropertyUnitInput = memo(
+const PropertyUnitInputControl = memo(
   function PropertyUnitInput({
     label,
     value,
@@ -1025,3 +1026,9 @@ export const PropertyUnitInput = memo(
     );
   },
 );
+
+/** 값 비교 memo 는 그대로, 호출은 최신 콜백으로 (`withLatestCallbacks`). */
+export const PropertyUnitInput = withLatestCallbacks(PropertyUnitInputControl, [
+  "onChange",
+  "onDrag",
+]);

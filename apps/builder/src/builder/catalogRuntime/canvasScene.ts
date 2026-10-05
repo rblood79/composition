@@ -125,6 +125,14 @@ export class CatalogCanvasScene {
     return this.rebind("page-grid");
   }
 
+  /**
+   * An image a record draws finished loading: the node data read the image cache at bind time
+   * (a miss draws the placeholder) and the records did not change, so bind again.
+   */
+  imageLoaded(): CatalogCanvasSceneSync {
+    return this.rebind("image-loaded");
+  }
+
   /** Draw another root of the same runtime (a breakpoint switch). */
   replaceRoot(root: CatalogCompositionRoot): CatalogCanvasSceneSync {
     this.root = root;

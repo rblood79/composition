@@ -19,7 +19,10 @@ import type {
   PagePlacement,
   PagePositionPoint,
 } from "@composition/shared";
-import type { ResolvedPageLayout } from "./pagePlacement";
+import {
+  resolvePagePlacementStyle,
+  type ResolvedPageLayout,
+} from "./pagePlacement";
 
 export interface PagePlacementEditEntry {
   pageId: string;
@@ -82,6 +85,22 @@ export function isPlacementEditable(
   return pageId !== homePageId;
 }
 
+/**
+ * 활성 tier 에서 그 페이지가 보이는 placement (base + override 해석).
+ *
+ * 칸 점유 · 격자 · 교환은 이 값으로 판정한다 — base `style` 만 보면 tier override 로 고정된
+ * 칸을 비어 있다고 보고 두 페이지를 같은 칸에 겹친다 (2026-10-05 감사 H2).
+ */
+function activePlacementStyle(
+  ctx: Pick<PlacementEditContext, "placements" | "activeBreakpoint">,
+  pageId: string,
+): Record<string, string | number> {
+  return resolvePagePlacementStyle(
+    ctx.placements[pageId],
+    ctx.activeBreakpoint,
+  );
+}
+
 /** placement 가 absolute 인가 (활성 tier 해석 결과 기준). */
 export function isAbsolutePlacementStyle(
   style: Record<string, string | number> | undefined,
@@ -107,9 +126,8 @@ export function buildGridCells(ctx: PlacementEditContext): GridCell[] {
   for (const page of ctx.pages) {
     const point = ctx.positions[page.id];
     if (!point) continue;
-    const style = ctx.placements[page.id];
     // absolute 페이지는 격자 밖 — 행 경계 후보가 아니다.
-    if (style?.style?.position === "absolute") continue;
+    if (isAbsolutePlacementStyle(activePlacementStyle(ctx, page.id))) continue;
     if (point.x < 0) continue;
     flowYs.add(point.y);
   }
@@ -184,8 +202,8 @@ export function findPinnedOccupant(
 ): string | null {
   for (const page of ctx.pages) {
     if (page.id === exceptPageId) continue;
-    const style = ctx.placements[page.id]?.style;
-    if (!style || style.position === "absolute") continue;
+    const style = activePlacementStyle(ctx, page.id);
+    if (style.position === "absolute") continue;
     if (
       Number(style.gridColumnStart) === cell.column &&
       Number(style.gridRowStart) === cell.row
@@ -248,6 +266,30 @@ function asOverride(
   return { ...base, responsive };
 }
 
+/** 해석된 placement → 같은 자리를 만드는 base placement (흐름이면 null). */
+function placementOfStyle(
+  style: Record<string, string | number>,
+): PagePlacement | null {
+  if (isAbsolutePlacementStyle(style)) {
+    return {
+      style: {
+        position: "absolute",
+        left: style.left ?? 0,
+        top: style.top ?? 0,
+      },
+    };
+  }
+  const column = style.gridColumnStart;
+  const row = style.gridRowStart;
+  if (column === undefined || column === "auto") return null;
+  return {
+    style: {
+      gridColumnStart: column,
+      ...(row !== undefined && row !== "auto" ? { gridRowStart: row } : {}),
+    },
+  };
+}
+
 export interface PlacementDropResult {
   entries: PagePlacementEditEntry[];
   /** 판정 사유 — 하니스·로그용. */
@@ -274,13 +316,23 @@ export function resolvePlacementForDrop(
   };
   const cells = buildGridCells(ctx);
   const cell = findCellForDrop(cells, dropped, size);
-  const write = (target: string, placement: PagePlacement | null) => ({
-    pageId: target,
-    placement:
-      placement && ctx.writeAsOverride
-        ? asOverride(ctx.placements[target], placement, ctx.activeBreakpoint)
-        : placement,
-  });
+  // 쓰기는 활성 tier 만 바꾼다 — override 면 이 tier 에 (흐름 복귀도 이 tier 의 reset 으로),
+  // base 면 다른 tier override 를 그대로 둔다 (ADR-154 개정 1).
+  const write = (target: string, placement: PagePlacement | null) => {
+    const base = ctx.placements[target];
+    if (ctx.writeAsOverride) {
+      return {
+        pageId: target,
+        placement: asOverride(base, placement ?? {}, ctx.activeBreakpoint),
+      };
+    }
+    const responsive = base?.responsive;
+    if (!responsive) return { pageId: target, placement };
+    return {
+      pageId: target,
+      placement: placement ? { ...placement, responsive } : { responsive },
+    };
+  };
 
   if (!cell) {
     return {
@@ -297,10 +349,9 @@ export function resolvePlacementForDrop(
     if (!isPlacementEditable(occupant, ctx.homePageId)) {
       return { entries: [], kind: "rejected", reason: "home-immovable" };
     }
-    const movingFrom = ctx.placements[pageId];
-    const occupantPlacement = movingFrom?.style
-      ? { style: { ...movingFrom.style } }
-      : null;
+    const occupantPlacement = placementOfStyle(
+      activePlacementStyle(ctx, pageId),
+    );
     return {
       entries: [
         write(pageId, pinnedPlacement(cell)),

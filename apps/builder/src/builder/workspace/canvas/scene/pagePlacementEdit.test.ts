@@ -224,6 +224,68 @@ describe("tier override 쓰기", () => {
     expect(placement.responsive?.left).toEqual({ mobile: "auto" });
   });
 
+  // 2026-10-05 감사 H2 — 칸 점유·교환은 활성 tier 해석값으로 판정하고, 다른 tier 를 지우지 않는다.
+  it("tablet override 로 고정된 칸에 놓으면 겹치지 않고 교환한다", () => {
+    const placements: Record<string, PagePlacement> = {
+      p1: {
+        responsive: {
+          position: { tablet: "static" },
+          gridColumnStart: { tablet: 3 },
+          gridRowStart: { tablet: 1 },
+        },
+      },
+    };
+    const ctx = ctxOf(4, placements, {
+      writeAsOverride: true,
+      activeBreakpoint: "tablet",
+    });
+    const result = resolvePlacementForDrop(ctx, "p2", {
+      x: 2 * STRIDE + 10,
+      y: 10,
+    });
+    expect(result.kind).toBe("swapped");
+    expect(result.entries.map((e) => e.pageId)).toEqual(["p2", "p1"]);
+  });
+
+  it("tablet 교환으로 흐름이 되는 상대는 tablet 만 흐름으로 되돌리고 desktop 고정은 남긴다", () => {
+    const placements: Record<string, PagePlacement> = {
+      p1: { style: { gridColumnStart: 3, gridRowStart: 1 } },
+    };
+    const ctx = ctxOf(4, placements, {
+      writeAsOverride: true,
+      activeBreakpoint: "tablet",
+    });
+    const result = resolvePlacementForDrop(ctx, "p2", {
+      x: 2 * STRIDE + 10,
+      y: 10,
+    });
+    expect(result.kind).toBe("swapped");
+    const occupant = result.entries.find((e) => e.pageId === "p1")!.placement;
+    expect(occupant?.style).toEqual({ gridColumnStart: 3, gridRowStart: 1 });
+    expect(occupant?.responsive?.gridColumnStart).toEqual({ tablet: "auto" });
+    expect(occupant?.responsive?.position).toEqual({ tablet: "static" });
+  });
+
+  it("desktop 고정은 다른 tier override 를 지우지 않는다", () => {
+    const tabletPin = {
+      position: { tablet: "absolute" },
+      left: { tablet: 40 },
+      top: { tablet: 40 },
+    };
+    const placements: Record<string, PagePlacement> = {
+      p2: { responsive: tabletPin },
+    };
+    const ctx = ctxOf(4, placements);
+    const result = resolvePlacementForDrop(ctx, "p2", {
+      x: 2 * STRIDE + 10,
+      y: 10,
+    });
+    expect(result.entries[0].placement).toEqual({
+      style: { gridColumnStart: 3, gridRowStart: 1 },
+      responsive: tabletPin,
+    });
+  });
+
   it("absolute override 는 line 을 auto 로 눌러 둔다", () => {
     const ctx = ctxOf(
       3,

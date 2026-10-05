@@ -1,4 +1,5 @@
 import React, { memo } from "react";
+import { withLatestCallbacks } from "./latestCallbacks";
 
 import { Switch as AriaSwitch } from "react-aria-components/Switch";
 import { PropertyFieldset } from "./PropertyFieldset";
@@ -26,7 +27,7 @@ interface PropertySwitchProps {
   labelMode?: "legend" | "inline";
 }
 
-export const PropertySwitch = memo(
+const PropertySwitchControl = memo(
   function PropertySwitch({
     label,
     isSelected,
@@ -85,3 +86,8 @@ export const PropertySwitch = memo(
     );
   },
 );
+
+/** 값 비교 memo 는 그대로, 호출은 최신 콜백으로 (`withLatestCallbacks`). */
+export const PropertySwitch = withLatestCallbacks(PropertySwitchControl, [
+  "onChange",
+]);

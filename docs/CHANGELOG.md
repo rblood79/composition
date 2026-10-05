@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [편집값 되돌림·페이지 배치 겹침·이미지 미표시 수리 — 감사 HIGH 3건] - 2026-10-05
+
+### Fixed
+
+- Property 입력 (`PropertyInput` · `PropertySelect` · `PropertySwitch` · `PropertyUnitInput` · `PropertyColor`) 이 값이 같은 렌더에서 첫 렌더의 콜백을 계속 불러, 인터랙션 규칙·Chart 시리즈 이름·기준선 라벨 편집이 직전 편집을 되돌리고 다중 선택 Properties 가 옛 선택에 쓰던 문제. memo 비교는 그대로 두고 바깥 래퍼 (`withLatestCallbacks`) 가 최신 콜백을 잇는다.
+- desktop 이 아닌 breakpoint 에서 페이지를 드롭하면 tier override 로 고정된 칸을 비어 있다고 보고 두 페이지를 같은 칸에 겹치거나, 교환 상대의 desktop 배치까지 지우던 문제. 칸 점유·격자·교환을 활성 tier 해석값으로 판정하고, 흐름 복귀는 그 tier 에만 쓴다. desktop 쓰기도 다른 tier override 를 남긴다.
+- 캐시에 없는 이미지 (Avatar `src` · 이미지 fill · 이미지 mask) 가 로드된 뒤에도 Canvas 에 placeholder 로 남던 문제. 로드 완료 구독이 ADR-248 Phase 4e-9-1 에서 옛 Canvas 와 함께 사라져 있었다 — CatalogCanvas 가 구독해 다음 프레임에 scene 을 다시 bind 한다.
+
+### Tests
+
+- 수정 전 RED: 컨트롤 4종 최신 콜백 · tablet override 칸 교환 · desktop 고정 보존 · 이미지 구독 정적 게이트. type-check 6/6, builder 4002 PASS. 실제 Builder 에서 다중 선택 Variant 변경 (두 Button 모두 반영), tablet 같은 칸 두 번 드롭 (교환 · desktop 배치 무변경), 새 이미지 Avatar 표시 (수정본 빨강 792 px · rebind 를 끈 대조군 0 px) 를 확인했다.
+
 ## [canonical·잔존 spec 레거시 정리 — ADR-248 후속] - 2026-10-05
 
 ### Changed

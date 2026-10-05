@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from "react";
+import { withLatestCallbacks } from "./latestCallbacks";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { usePropertySelection } from "./propertySelection";
 import "./PropertyInput.css";
@@ -32,7 +33,7 @@ interface PropertyInputProps {
 
 const STATE_TRIGGER = /\{\{\s*([A-Za-z_$][\w$]*)?$/;
 
-export const PropertyInput = memo(
+const PropertyInputControl = memo(
   function PropertyInput({
     label,
     value,
@@ -293,3 +294,8 @@ export const PropertyInput = memo(
     );
   },
 );
+
+/** 값 비교 memo 는 그대로, 호출은 최신 콜백으로 (`withLatestCallbacks`). */
+export const PropertyInput = withLatestCallbacks(PropertyInputControl, [
+  "onChange",
+]);
