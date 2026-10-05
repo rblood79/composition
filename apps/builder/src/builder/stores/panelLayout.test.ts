@@ -19,7 +19,11 @@ import {
   PANEL_WORKSPACE_LAYOUT_V3_BACKUP_KEY,
   parsePanelLayoutV3BackupEnvelope,
 } from "../layout/panelWorkspaceLayoutV4Persistence";
-import { createPanelLayoutSlice, type PanelLayoutSlice } from "./panelLayout";
+import {
+  createPanelLayoutSlice,
+  updatePanelWorkspaceSurface,
+  type PanelLayoutSlice,
+} from "./panelLayout";
 
 const SURFACE_RECT = { width: 1200, height: 800 } as const;
 
@@ -173,6 +177,28 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
     expect(JSON.stringify(store.getState().panelWorkspaceLayout)).toBe(raw);
     expect(localStorage.getItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)).toBe(raw);
     expect(setItem).not.toHaveBeenCalled();
+  });
+
+  // 2026-10-05 감사 M6 — 저장 정규화는 진입 때가 아니라 지금의 surface 기준이다.
+  it("surface 가 커진 뒤 늘린 패널 높이를 진입 때 surface 로 줄이지 않는다", () => {
+    const store = createPanelLayoutStore();
+    expect(initialize(store)).toBe(true);
+    updatePanelWorkspaceSurface({ width: 1600, height: 1400 });
+    const next = structuredClone(store.getState().panelWorkspaceLayout!);
+    const column = next.clusters.flatMap((cluster) => cluster.columns)[0]!;
+    column.rows.forEach((r, index) => {
+      next.visibility[r.panelId] = index === 0;
+    });
+    const row = column.rows[0]!;
+    row.height = 1100;
+
+    expect(store.getState().setPanelWorkspaceLayout(next)).toBe(true);
+    const saved = store
+      .getState()
+      .panelWorkspaceLayout!.clusters.flatMap((cluster) => cluster.columns)
+      .flatMap((col) => col.rows)
+      .find((r) => r.panelId === row.panelId)!;
+    expect(saved.height).toBe(1100);
   });
 
   it("interaction end는 migrationSource와 persisted XY 없이 v4를 debounce 1회 저장한다", () => {

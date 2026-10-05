@@ -10,6 +10,7 @@
  */
 import {
   LLM_DEFAULTS,
+  LLMProviderError,
   parseSSEStream,
   requestStream,
   type LLMCompletionOptions,
@@ -142,6 +143,23 @@ export class OpenAICompatibleProvider implements LLMProvider {
     let stopReason: LLMStopReason = "end";
 
     for await (const chunk of parseSSEStream(response)) {
+      // vLLM · llama.cpp · Ollama send a failure mid-stream as `data: {"error": …}` (no choices):
+      // an error, not an empty completion (audit M8).
+      const streamError = chunk.error as
+        { message?: string; code?: unknown } | string | undefined;
+      if (streamError) {
+        const message =
+          typeof streamError === "string"
+            ? streamError
+            : (streamError.message ?? JSON.stringify(streamError));
+        const code =
+          typeof streamError === "object" ? streamError.code : undefined;
+        throw new LLMProviderError(
+          `${PROVIDER_ID} stream error: ${message}`,
+          typeof code === "number" ? code : undefined,
+          PROVIDER_ID,
+        );
+      }
       const choice = (
         chunk.choices as
           | Array<{

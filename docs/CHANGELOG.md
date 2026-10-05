@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 쓰기 유실·언어 전환 재오픈 등 9건 수리 — 감사 MEDIUM] - 2026-10-05
+
+### Fixed
+
+- **데이터 편집 유실**: 겹친 데이터 쓰기 (DataGrid 연속 셀 커밋 · AI 제안 · 데이터 undo) 에서 뒤 쓰기가 앞 편집을 메모리와 IndexedDB 에서 지웠다.
+  - **Why**: `applyDataChange` 가 await 전에 읽은 값으로 await 뒤에 Map 전체를 덮어썼다.
+  - 수정: 호출을 한 줄로 세운다 (`stores/utils/dataChange.ts`).
+- **언어 전환 시 프로젝트 재오픈**: 언어를 바꾸면 프로젝트를 다시 열어 undo 기록 · 현재 페이지 · 선택이 사라졌다.
+  - **Why**: open effect 가 `t` 에 의존했다.
+  - 수정: 실패 문구는 최신 `t` 를 ref 로 읽는다 (`main/CatalogBuilderCore.tsx`).
+- **Interactions 패널 Backspace 삭제**: 패널에 포커스가 있을 때 Backspace · Delete · ⌘C · ⌘V 가 캔버스 선택 요소를 지우거나 붙여 넣었다.
+  - **Why**: 옛 `createScopedHandler` 분기를 catalog 전환에서 잃었다.
+  - 수정: 같은 분기를 되살렸다. 메뉴는 넘긴 scope 로 실행한다.
+- **휠 직후 pan 드래그 멈춤**: 휠 직후 시작한 pan 드래그가 약 150ms 뒤 pointermove 마다 오류를 내며 멈췄다.
+  - **Why**: 휠 종료 타이머가 드래그 세션을 끝냈다.
+  - 수정: 휠 종료는 휠 세션만 끝내고, 드래그는 시작할 때 휠 타이머를 정리한다.
+- **줌 입력 되돌림**: 줌 입력란에서 ↑/↓ 로 바꾼 값이 Enter · blur 때 원래 값으로 돌아갔다.
+- **패널 크기 줄어듦**: 창을 키운 뒤 늘린 패널이 저장 때 첫 진입 때의 창 크기로 줄었다.
+  - 수정: store 의 정규화 기준 surface · registry 를 runtime 과 함께 갱신한다.
+- **원격 도메인의 로컬 판정**: `10.example.com` 같은 원격 도메인을 사설망으로 판정해, 브라우저 직접 호출 차단 (HC13) 이 풀리고 API 키가 함께 나갔다.
+  - 수정: 사설 대역은 IPv4 리터럴만 허용한다.
+- **AI 스트림 오류 무시**: 스트림 중간 provider 오류 (Anthropic `error` 이벤트 · OpenAI 호환 `data: {error}`) 가 빈 정상 완료로 보고됐다.
+  - 수정: 오류로 던지고, 이벤트를 이미 낸 뒤의 429 는 재시도하지 않는다 (중복 delta 방지).
+- **텍스트 clip 누락**: retained paragraph 를 다시 쓰는 경로에서 `clipText` clip 이 빠져, 고정 높이 텍스트가 Canvas 에서 상자 밖으로 넘쳤다.
+
+### Tests
+
+- 수정 전 RED 9건 + 재시도 1건을 추가했다.
+- 검증: type-check 6/6, builder 4018 PASS.
+- 실제 Builder 에서 확인:
+  - 줌 ↑×5 → Enter (68 → 73% 유지)
+  - Interactions 패널 포커스에서 Backspace · Delete (Button 유지)
+  - en-US → ko-KR 전환 (같은 workspace)
+  - 휠 직후 중클릭 드래그 (오류 0 · 카메라 150px 이동)
+  - 겹친 셀 편집 둘 (메모리 · IndexedDB 모두 `A`, `B`)
+- 패널 크기 · 텍스트 clip · AI 2건은 unit · 정적 게이트로만 확인했다.
+
 ## [편집값 되돌림·페이지 배치 겹침·이미지 미표시 수리 — 감사 HIGH 3건] - 2026-10-05
 
 ### Fixed

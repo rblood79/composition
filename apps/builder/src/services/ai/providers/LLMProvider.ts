@@ -201,9 +201,11 @@ export function isLocalEndpoint(baseUrl: string): boolean {
     return true;
   }
   if (host.endsWith(".local") || host.endsWith(".localhost")) return true;
-  if (host.startsWith("10.") || host.startsWith("192.168.")) return true;
-  const match = /^172\.(\d{1,2})\./.exec(host);
-  return Boolean(match && Number(match[1]) >= 16 && Number(match[1]) <= 31);
+  // 사설 대역은 IPv4 리터럴일 때만 — `10.example.com` 같은 도메인은 접두가 같아도 원격이다 (감사 M7).
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!ipv4) return false;
+  const [a, b] = [Number(ipv4[1]), Number(ipv4[2])];
+  return a === 10 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
 }
 
 /**

@@ -239,20 +239,24 @@ export class AgentService {
     let lastError: unknown;
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // 이벤트를 하나라도 내보냈으면 재시도하지 않는다 — 처음부터 다시 부르면 delta · 도구
+      // 호출이 중복된다. 스트림 중간 429 (rate_limit_error, 감사 M8) 는 그대로 오류다.
+      let yielded = false;
       try {
         const stream = this.provider.completeWithTools(messages, {
           tools,
           toolChoice: "auto",
           signal: this.abortController?.signal,
         });
-        // 첫 이벤트를 받아 봐야 요청 성공 여부가 확정된다
-        const first = await stream.next();
-        if (!first.done) yield first.value;
-        yield* stream;
+        for await (const event of stream) {
+          yielded = true;
+          yield event;
+        }
         return;
       } catch (error) {
         lastError = error;
-        if (!isRateLimitError(error) || attempt >= MAX_RETRIES) throw error;
+        if (yielded || !isRateLimitError(error) || attempt >= MAX_RETRIES)
+          throw error;
         if (this.abortController?.signal.aborted) throw error;
 
         const delay = INITIAL_RETRY_DELAY_MS * Math.pow(2, attempt);

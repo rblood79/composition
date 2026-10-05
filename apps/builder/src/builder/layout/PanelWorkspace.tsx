@@ -13,6 +13,10 @@ import {
 } from "react";
 import { useMove } from "react-aria";
 import { usePanelLayout } from "../hooks/usePanelLayout";
+import {
+  updatePanelWorkspaceRegistry,
+  updatePanelWorkspaceSurface,
+} from "../stores/panelLayout";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type {
   PanelConfig,
@@ -1429,10 +1433,10 @@ const PanelWorkspaceOverlay = memo(function PanelWorkspaceOverlay({
     ) {
       return;
     }
-    runtime.updateWorkspaceRect({
-      width: surfaceWidth,
-      height: surfaceHeight,
-    });
+    const surfaceRect = { width: surfaceWidth, height: surfaceHeight };
+    runtime.updateWorkspaceRect(surfaceRect);
+    // The store normalizes saved layouts against the same surface (audit M6).
+    updatePanelWorkspaceSurface(surfaceRect);
   }, [
     runtime,
     workspaceRectHeight,
@@ -1558,6 +1562,7 @@ function HydratedPanelWorkspace({
 
   useEffect(() => {
     runtime.updateRegistry(registry);
+    updatePanelWorkspaceRegistry(registry);
   }, [registry, runtime]);
 
   useEffect(

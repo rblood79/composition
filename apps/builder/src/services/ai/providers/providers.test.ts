@@ -884,3 +884,50 @@ describe("Anthropic 어댑터 — caching · usage · fallback · structured out
     expect(capture.body().response_format).toBeUndefined();
   });
 });
+
+// 2026-10-05 감사 M8 — 200 응답 뒤 스트림 중간에 온 provider 오류는 빈 정상 완료가 아니라 오류다.
+describe("스트림 중간 오류 이벤트", () => {
+  it("Anthropic `type: error` 는 LLMProviderError 로 던진다 (overloaded = 529)", async () => {
+    const capture = captureFetch(() =>
+      sseResponse([
+        { type: "message_start", message: {} },
+        {
+          type: "error",
+          error: { type: "overloaded_error", message: "Overloaded" },
+        },
+      ]),
+    );
+    const provider = new AnthropicProvider({
+      baseUrl: "https://api.anthropic.com",
+      model: "claude-sonnet-5",
+      allowRemoteDirect: true,
+      apiKey: "sk-ant-test",
+      fetchImpl: capture.impl,
+    });
+    const error = await collect(
+      provider.completeWithTools(MESSAGES, { tools: [TOOL] }),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(LLMProviderError);
+    expect((error as LLMProviderError).status).toBe(529);
+    expect((error as Error).message).toContain("Overloaded");
+  });
+
+  it("OpenAI 호환 `data: {error}` 조각은 LLMProviderError 로 던진다", async () => {
+    const { impl } = captureFetch(() =>
+      sseResponse([
+        { choices: [{ delta: { content: "부분" } }] },
+        { error: { message: "CUDA out of memory", code: 500 } },
+      ]),
+    );
+    const provider = new OpenAICompatibleProvider({
+      baseUrl: "http://localhost:11434/v1",
+      model: "qwen3:14b",
+      fetchImpl: impl,
+    });
+    const error = await collect(
+      provider.completeWithTools(MESSAGES, { tools: [TOOL] }),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(LLMProviderError);
+    expect((error as Error).message).toContain("CUDA out of memory");
+  });
+});

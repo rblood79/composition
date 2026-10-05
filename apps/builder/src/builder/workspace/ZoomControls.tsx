@@ -177,15 +177,17 @@ export const ZoomControls = memo(function ZoomControls({
         getViewportPresentationSnapshot().scale * 100,
       );
       const step = e.shiftKey ? 10 : 1;
-      if (e.key === "ArrowUp") {
-        e.preventDefault();
-        const newZoom = Math.min(zoomPercent + step, MAX_ZOOM * 100);
-        zoomTo(newZoom / 100);
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const newZoom = Math.max(zoomPercent - step, MIN_ZOOM * 100);
-        zoomTo(newZoom / 100);
-      }
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      e.preventDefault();
+      const newZoom =
+        e.key === "ArrowUp"
+          ? Math.min(zoomPercent + step, MAX_ZOOM * 100)
+          : Math.max(zoomPercent - step, MIN_ZOOM * 100);
+      zoomTo(newZoom / 100);
+      // 편집 중 값도 새 줌으로 — 아니면 Enter · blur 가 focus 때 값을 다시 적용한다 (감사 M5).
+      const text = `${newZoom}%`;
+      setEditingValue(text);
+      if (inputRef.current) inputRef.current.value = text;
     },
     [zoomTo],
   );

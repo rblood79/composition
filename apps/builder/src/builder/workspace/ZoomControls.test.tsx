@@ -81,3 +81,18 @@ it("commits Enter once through blur", () => {
   fireEvent.keyDown(input, { key: "Enter" });
   expect(zoomViewportAtContainerCenter).toHaveBeenCalledExactlyOnceWith(1.75);
 });
+
+// 2026-10-05 감사 M5 — 화살표로 바꾼 줌은 입력란에 보이고, Enter · blur 가 되돌리지 않는다.
+it("keeps the arrow-key zoom on Enter instead of restoring the focus-time value", () => {
+  vi.mocked(zoomViewportAtContainerCenter).mockImplementation((level) =>
+    publishViewportPresentation({ x: 0, y: 0, scale: level }),
+  );
+  render(<ZoomControls viewportActions={VIEWPORT_ACTIONS} />);
+  const input = screen.getByRole("textbox") as HTMLInputElement;
+  act(() => input.focus());
+  for (let i = 0; i < 5; i++) fireEvent.keyDown(input, { key: "ArrowUp" });
+  expect(input.value).toBe("105%");
+  fireEvent.keyDown(input, { key: "Enter" });
+  expect(zoomViewportAtContainerCenter).toHaveBeenLastCalledWith(1.05);
+  expect(input.value).toBe("105%");
+});

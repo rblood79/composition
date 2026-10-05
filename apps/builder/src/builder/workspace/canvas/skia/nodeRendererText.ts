@@ -379,6 +379,28 @@ export function renderText(
     canvas.restore();
   };
 
+  // The retained hit and the fresh miss draw the same: shadows and text inside the `clipText` box
+  // (ellipsis lays out one line). The hit path drew unclipped — a re-recorded fixed-height text
+  // overflowed its box where the DOM clips it (audit M9).
+  const drawParagraphBox = (
+    paragraph: Paragraph,
+    drawX: number,
+    drawY: number,
+  ): void => {
+    const shouldClip = node.text?.clipText === true && !isEllipsis;
+    if (shouldClip) {
+      canvas.save();
+      canvas.clipRect(
+        ck.XYWHRect(0, 0, node.width, node.height),
+        ck.ClipOp.Intersect,
+        true,
+      );
+    }
+    renderTextShadows(paragraph, drawX, drawY);
+    drawTextWithPresentationColor(paragraph, drawX, drawY);
+    if (shouldClip) canvas.restore();
+  };
+
   observeParagraphDraw(key, node.elementId);
 
   // 소유자는 이 텍스트 노드 객체다. 노드 identity 는 내용이 실제로 바뀔 때만
@@ -389,8 +411,7 @@ export function renderText(
     if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordHit();
     const drawY = computeDrawY(retained.paragraph);
     const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
-    renderTextShadows(retained.paragraph, drawX, drawY);
-    drawTextWithPresentationColor(retained.paragraph, drawX, drawY);
+    drawParagraphBox(retained.paragraph, drawX, drawY);
     return { drawX, drawY };
   }
   if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
@@ -763,23 +784,8 @@ export function renderText(
     syncParagraphMetricsSize();
     const drawY = computeDrawY(paragraph);
 
-    const shouldClip = node.text.clipText && !isEllipsis;
-    if (shouldClip) {
-      canvas.save();
-      canvas.clipRect(
-        ck.XYWHRect(0, 0, node.width, node.height),
-        ck.ClipOp.Intersect,
-        true,
-      );
-    }
-
     const drawX = node.text.paddingLeft + textIndent + alignOffset;
-    renderTextShadows(paragraph, drawX, drawY);
-    drawTextWithPresentationColor(paragraph, drawX, drawY);
-
-    if (shouldClip) {
-      canvas.restore();
-    }
+    drawParagraphBox(paragraph, drawX, drawY);
     return { drawX, drawY };
   } finally {
     scope.dispose();

@@ -283,3 +283,23 @@ export const createPanelLayoutSlice: StateCreator<
     return writeV4Now(layout);
   },
 });
+
+/**
+ * The measured surface (and its registry) the runtime follows now. `setPanelWorkspaceLayout`
+ * normalizes against these — with only the first entry's rect it shrank a panel the user resized
+ * after the window grew back to that first size (2026-10-05 audit M6). No-op before initialize.
+ */
+export function updatePanelWorkspaceSurface(
+  surfaceRect: PanelWorkspaceRect,
+): void {
+  if (!activeSurfaceRect) return;
+  activeSurfaceRect = { ...surfaceRect };
+}
+
+/** The registry the runtime follows now (its `maxWidth: "100%"` resolves against the stage). */
+export function updatePanelWorkspaceRegistry(
+  registry: readonly PanelWorkspaceRegistryEntry[],
+): void {
+  if (!activeRegistry) return;
+  activeRegistry = registry;
+}

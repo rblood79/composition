@@ -94,6 +94,11 @@ describe("원격 provider 직접 호출 차단 (HC13 / R12)", () => {
       "https://api.openai.com/v1",
       "not-a-url",
       "http://172.15.0.1/v1",
+      // 2026-10-05 감사 M7 — 사설 대역은 IPv4 리터럴만. 접두가 같은 원격 도메인은 원격이다.
+      "https://10.example.com/v1",
+      "https://192.168.attacker.net/v1",
+      "https://172.16.evil.com/v1",
+      "http://10.1.2.3.example.com/v1",
     ]) {
       expect(isLocalEndpoint(url), url).toBe(false);
     }

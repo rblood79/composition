@@ -25,6 +25,7 @@
  * Phase 2 (D10 secret isolation) 의 결정이고, 필요한 배포에서는 `config.headers` 로 명시한다.
  */
 import {
+  LLMProviderError,
   parseSSEStream,
   requestStream,
   type LLMAssistantTurn,
@@ -39,6 +40,12 @@ import {
 } from "./LLMProvider";
 
 const PROVIDER_ID = "anthropic" as const;
+/** SSE `error` event type → the HTTP status the same error carries (retry rules read it). */
+const STREAM_ERROR_STATUS: Record<string, number | undefined> = {
+  overloaded_error: 529,
+  rate_limit_error: 429,
+  api_error: 500,
+};
 const ANTHROPIC_VERSION = "2023-06-01";
 
 /** `fallbacks: "default"` (scalar 형) 를 여는 beta — 배열 형의 `-2026-06-01` 과 다르다. */
@@ -323,6 +330,18 @@ export class AnthropicProvider implements LLMProvider {
 
     for await (const event of parseSSEStream(response)) {
       const type = event.type as string | undefined;
+
+      // A provider error inside a 200 stream (overloaded · rate limit · api) is an error, not an
+      // empty completion (audit M8). Status follows the HTTP code of the same error type.
+      if (type === "error") {
+        const error = event.error as
+          { type?: string; message?: string } | undefined;
+        throw new LLMProviderError(
+          `${PROVIDER_ID} stream error: ${error?.type ?? "error"} — ${error?.message ?? ""}`,
+          STREAM_ERROR_STATUS[error?.type ?? ""],
+          PROVIDER_ID,
+        );
+      }
 
       if (type === "message_start") {
         const message = event.message as { usage?: WireUsage } | undefined;

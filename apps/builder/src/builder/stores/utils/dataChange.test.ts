@@ -425,6 +425,33 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
     ]);
   });
 
+  // 2026-10-05 감사 M1 — 겹친 두 쓰기는 차례로 적용된다 (앞 편집이 뒤 편집의 before 에 들어간다).
+  it("동시에 보낸 셀 편집 둘은 둘 다 남는다 — 메모리 · 마지막 DB 쓰기 모두", async () => {
+    const { apply, collections } = makeStore();
+    const cell = (rowIndex: number, value: string) =>
+      apply({
+        ops: [
+          {
+            op: "set_cell",
+            collectionId: "c1",
+            rowIndex,
+            fieldId: "f_name",
+            value,
+          },
+        ],
+        origin: "user",
+      });
+    await Promise.all([cell(0, "A"), cell(1, "B")]);
+    const rows = collections()
+      .get("c1")!
+      .mockData.map((row) => row.name);
+    expect(rows).toEqual(["A", "B", "c"]);
+    const lastWrite = dbMock.collections.update.mock.calls.at(-1)![1] as {
+      mockData: { name: string }[];
+    };
+    expect(lastWrite.mockData.map((row) => row.name)).toEqual(["A", "B", "c"]);
+  });
+
   it("셀 편집 → DB update 1 · 메모리 갱신 · History data entry (inverse 동봉)", async () => {
     const { apply, collections } = makeStore();
     const result = await apply({

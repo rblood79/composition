@@ -237,6 +237,13 @@ export function useViewportControl(
         e.preventDefault();
         // 🚀 Phase 6.1: 인터랙션 시작 알림 (ref 사용)
         onInteractionStartRef.current?.();
+        // A wheel gesture still settling hands the camera to the drag: its idle timer would
+        // otherwise end the drag's session (and the gesture gate) mid-drag (audit M4).
+        if (wheelEndTimeoutRef.current) {
+          clearTimeout(wheelEndTimeoutRef.current);
+          wheelEndTimeoutRef.current = null;
+        }
+        isWheelInteractingRef.current = false;
         viewportSession.begin("drag");
         lastPanPointRef.current = { x: e.clientX, y: e.clientY };
         panPointerIdRef.current = e.pointerId;
@@ -255,6 +262,9 @@ export function useViewportControl(
         };
         lastPanPointRef.current = { x: e.clientX, y: e.clientY };
         recordViewportInteractionRawInput();
+        // Another kind (trackpad inertia wheel) took the shared session: the drag takes it back.
+        if (!viewportSession.isActiveKind("drag"))
+          viewportSession.begin("drag");
         viewportSession.queuePan(delta);
       });
     };
@@ -315,10 +325,16 @@ export function useViewportControl(
         clearTimeout(wheelEndTimeoutRef.current);
         wheelEndTimeoutRef.current = null;
       }
-      viewportSession.finish(reason);
+      // Only the wheel's own session — a drag that began meanwhile owns it now (audit M4).
+      if (
+        viewportSession.isActiveKind("wheel-pan") ||
+        viewportSession.isActiveKind("wheel-zoom")
+      )
+        viewportSession.finish(reason);
       if (isWheelInteractingRef.current) {
         isWheelInteractingRef.current = false;
-        onInteractionEndRef.current?.();
+        // A drag still in progress keeps the gesture gate; its pointerup ends it.
+        if (!isPanningRef.current) onInteractionEndRef.current?.();
       }
     };
 

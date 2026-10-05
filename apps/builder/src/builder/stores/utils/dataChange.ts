@@ -1194,10 +1194,17 @@ function persistablePatch(dt: DataTable): DataTableUpdate {
   };
 }
 
-/** 적용 순서: 검증·파급 (순수) → IndexedDB → 메모리 → History → Canvas. */
-export const createApplyDataChangeAction =
-  (set: SetState, get: GetState) =>
-  async (
+/**
+ * 적용 순서: 검증·파급 (순수) → IndexedDB → 메모리 → History → Canvas.
+ *
+ * 호출은 **한 줄로 세운다** — 한 번의 적용은 시작할 때 `before` 를 읽고 IndexedDB 를 await 한
+ * 뒤 그 `before` 에서 만든 Map 으로 덮어쓴다. 두 쓰기가 겹치면 (DataGrid 연속 셀 커밋 · AI 제안
+ * 적용 · 데이터 undo) 뒤 쓰기가 앞 편집을 메모리와 IndexedDB 에서 지웠다 (2026-10-05 감사 M1).
+ * 적용 도중 다시 `applyDataChange` 를 await 하는 경로는 없다 (recorder · committer 는 기록만).
+ */
+export const createApplyDataChangeAction = (set: SetState, get: GetState) => {
+  let tail: Promise<unknown> = Promise.resolve();
+  const applyOne = async (
     change: DataChange,
     options: ApplyDataChangeOptions = {},
   ): Promise<ApplyDataChangeResult> => {
@@ -1452,3 +1459,12 @@ export const createApplyDataChangeAction =
 
     return { applied, inverse, collectionIds, variableIds, endpointIds };
   };
+  return (
+    change: DataChange,
+    options: ApplyDataChangeOptions = {},
+  ): Promise<ApplyDataChangeResult> => {
+    const next = tail.then(() => applyOne(change, options));
+    tail = next.catch(() => undefined);
+    return next;
+  };
+};

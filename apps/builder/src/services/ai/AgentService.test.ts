@@ -372,3 +372,32 @@ describe("AgentService — 도구 전수 통과 (G2)", () => {
     ]);
   });
 });
+
+// 2026-10-05 감사 M8 후속 — 이벤트를 이미 내보낸 뒤의 429 는 재시도하지 않는다 (중복 delta 금지).
+describe("AgentService — 429 재시도는 스트림 시작 실패에만", () => {
+  it("text-delta 를 낸 뒤 429 가 오면 다시 부르지 않고 오류를 낸다", async () => {
+    const { LLMProviderError } = await import("./providers/LLMProvider");
+    let calls = 0;
+    const provider: LLMProvider = {
+      id: "openai-compatible",
+      model: "stub",
+      async *completeWithTools(): AsyncGenerator<LLMStreamEvent> {
+        calls += 1;
+        yield { type: "text-delta", delta: "부분" };
+        throw new LLMProviderError("rate limited", 429, "openai-compatible");
+      },
+    };
+    const service = new AgentService(provider, t);
+    (service as unknown as { sleep: () => Promise<void> }).sleep = async () => {};
+    const events: AgentEvent[] = [];
+    const error = await (async () => {
+      for await (const event of service.runAgentLoop(USER, CONTEXT))
+        events.push(event);
+    })().catch((e: unknown) => e);
+    expect(calls).toBe(1);
+    expect(
+      events.filter((event) => event.type === "text-delta"),
+    ).toHaveLength(1);
+    expect(error ?? events.at(-1)).toBeTruthy();
+  });
+});

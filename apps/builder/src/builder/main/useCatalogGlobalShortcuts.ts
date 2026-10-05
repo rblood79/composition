@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import type { ShortcutId } from "../config/keyboardShortcuts";
+import type { ShortcutScope } from "../types/keyboard";
+import type { CommandHandler } from "../stores/commandRegistry";
 import { useActiveScope } from "../hooks/useActiveScope";
 import { togglePanelWorkspace } from "../hooks/usePanelLayout";
 import {
@@ -93,6 +95,29 @@ const DOCUMENT_SHORTCUTS: readonly CatalogShortcutId[] = [
   ...CATALOG_ARRANGE_SHORTCUTS,
 ];
 
+/**
+ * The old `createScopedHandler`: with focus in the Interactions panel (`panel:events`) the keyboard
+ * copy · paste · delete do not touch the canvas selection (the panel has no own action for them).
+ * The header menu passes its scope (`canvas-focused`) and runs them (2026-10-05 audit M3).
+ */
+const EVENTS_SCOPED: ReadonlySet<CatalogShortcutId> = new Set([
+  "copy",
+  "paste",
+  "delete",
+  "deleteAlt",
+]);
+export function catalogDocumentShortcutHandler(
+  id: CatalogShortcutId,
+  activeScope: ShortcutScope,
+  run: () => void,
+): CommandHandler {
+  if (!EVENTS_SCOPED.has(id)) return () => run();
+  return (context) => {
+    if ((context?.scope ?? activeScope) === "panel:events") return;
+    run();
+  };
+}
+
 /** The rail order ⌥1–⌥8 (+ ⌥9 AI, settings) — the old global shortcuts' panel ids. */
 const PANEL_SHORTCUTS: Partial<Record<ShortcutId, PanelId>> = {
   toggleNavigator: "navigator",
@@ -138,9 +163,9 @@ export function useCatalogGlobalShortcuts(
       handlers[id as ShortcutId] = () => togglePanelWorkspace(panelId!);
     if (workspace)
       for (const id of DOCUMENT_SHORTCUTS)
-        handlers[id] = () => {
-          runCatalogShortcut(workspace, id, onError);
-        };
+        handlers[id] = catalogDocumentShortcutHandler(id, activeScope, () =>
+          runCatalogShortcut(workspace, id, onError),
+        );
     const bound = bindHandlersToDefinitions(
       Object.keys(handlers) as ShortcutId[],
       handlers,
@@ -161,7 +186,7 @@ export function useCatalogGlobalShortcuts(
         scope: "panel:properties" as const,
       })),
     ];
-  }, [workspace, onError]);
+  }, [workspace, onError, activeScope]);
   useKeyboardShortcutsRegistry(shortcuts, [shortcuts, activeScope], {
     capture: true,
     target: "document",

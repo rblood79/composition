@@ -149,3 +149,67 @@ describe("useViewportControl — interrupt (blur · visibility · unmount) 는 g
     expect(gestureSession.ownerFor(3)).toBe("idle");
   });
 });
+
+// 2026-10-05 감사 M4 — 휠 직후 pan 드래그: 휠의 idle 종료 타이머가 drag session 을 끝내지 않는다.
+describe("useViewportControl — 휠 직후 pan 드래그", () => {
+  let container: HTMLDivElement;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useViewportSyncStore.getState().reset();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+  });
+  afterEach(() => {
+    cleanup();
+    container.remove();
+    vi.useRealTimers();
+  });
+
+  it("150ms 안에 시작한 드래그는 휠 타이머 뒤에도 throw 없이 계속되고 게이트가 열린 채다", () => {
+    const store = useViewportSyncStore.getState();
+    const onInteractionEnd = vi.fn(() => store.setCameraGestureActive(false));
+    render(
+      <Harness
+        containerEl={container}
+        gestureSession={new CanvasGestureSession()}
+        onInteractionStart={() => store.setCameraGestureActive(true)}
+        onInteractionEnd={onInteractionEnd}
+      />,
+    );
+    const errors: unknown[] = [];
+    const onError = (event: ErrorEvent) => {
+      errors.push(event.error);
+      event.preventDefault();
+    };
+    window.addEventListener("error", onError);
+    try {
+      fireEvent.wheel(container, { deltaY: 40 });
+      fireEvent.pointerDown(container, {
+        button: 1,
+        pointerId: 3,
+        clientX: 100,
+        clientY: 100,
+      });
+      vi.advanceTimersByTime(200);
+      fireEvent(
+        window,
+        new PointerEvent("pointermove", {
+          pointerId: 3,
+          clientX: 140,
+          clientY: 120,
+          bubbles: true,
+        }),
+      );
+      expect(errors).toEqual([]);
+      expect(onInteractionEnd).not.toHaveBeenCalled();
+      expect(useViewportSyncStore.getState().cameraGestureActive).toBe(true);
+      fireEvent(
+        window,
+        new PointerEvent("pointerup", { pointerId: 3, bubbles: true }),
+      );
+      expect(onInteractionEnd).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener("error", onError);
+    }
+  });
+});

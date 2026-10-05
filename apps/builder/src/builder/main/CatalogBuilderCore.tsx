@@ -152,6 +152,13 @@ export function CatalogBuilderCore() {
   const openPageRef = useRef<string | undefined>(undefined);
   const [presented, setPresented] = useState(false);
 
+  // The open effect reads the latest `t` here: with `t` in its deps a language switch disposed the
+  // workspace and opened the project again (undo stack, page and selection lost — audit M2).
+  const tRef = useRef(t);
+  useLayoutEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   useLayoutEffect(() => {
     performance.mark("composition:builder.first-commit");
     releaseStaticShell();
@@ -252,6 +259,7 @@ export function CatalogBuilderCore() {
       if (cancelled) return;
       console.error("[CatalogBuilder] open failed:", error);
       const code = error instanceof CatalogStorageError ? error.code : null;
+      const t = tRef.current;
       setState({
         kind: "failed",
         message:
@@ -270,7 +278,7 @@ export function CatalogBuilderCore() {
       opened?.dispose();
       restorePageSource?.();
     };
-  }, [routeId, openCount, t]);
+  }, [routeId, openCount]);
 
   useLayoutEffect(() => {
     if (presented) performance.mark("composition:builder.presented");
