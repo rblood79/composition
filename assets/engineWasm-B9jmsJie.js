@@ -1,1 +1,0 @@
-import{t as e}from"./preload-helper-D_-c9_WX.js";var t=null,n=null;async function r(){if(!t)return n||(n=(async()=>{try{let n=await e(()=>import(`./engine-_T2Kr_6_.js`),[]);if(!n?.LayoutEngine||typeof n.LayoutEngine!=`function`){t=null;return}t=n}catch{t=null}})(),n)}function i(){return t}function a(){return t!==null}export{r as n,a as r,i as t};
