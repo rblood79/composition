@@ -225,6 +225,26 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     expect(headerOf(layer, "p1").querySelector("input")).toBeNull();
   });
 
+  // 2026-10-05 감사 LOW — 편집 중 헤더가 목록에서 빠져도 (뷰포트 밖) 입력한 이름은 저장한다.
+  it("편집 중 헤더가 목록에서 빠지면 입력한 이름을 onRenamePage 로 보낸다", () => {
+    const onRenamePage = vi.fn();
+    const { container, rerender } = render(
+      <PageHeaderLayer frames={frames} onRenamePage={onRenamePage} />,
+    );
+    const layer = container.firstElementChild as HTMLElement;
+    fireEvent.dblClick(headerOf(layer, "p1"), { button: 0 });
+    const input = headerOf(layer, "p1").querySelector("input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "Kept" } });
+    rerender(
+      <PageHeaderLayer
+        frames={frames.filter((frame) => frame.id !== "p1")}
+        onRenamePage={onRenamePage}
+      />,
+    );
+    expect(onRenamePage).toHaveBeenCalledWith("p1", "Kept");
+    expect(onRenamePage).toHaveBeenCalledTimes(1);
+  });
+
   it("편집기 안 pointerdown 은 헤더 핸들러로 가지 않는다 (drag 시작 금지)", () => {
     const onHeaderPointerDown = vi.fn();
     const { container } = render(

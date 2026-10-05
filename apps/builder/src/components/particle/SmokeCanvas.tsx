@@ -10,7 +10,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import {
   MORPH_IN_SPEED,
   MORPH_OUT_SPEED,
@@ -245,10 +245,12 @@ export function SmokeCanvas({
 
     // 레이어 생성
     const materials: THREE.ShaderMaterial[] = [];
+    const geometries: THREE.PlaneGeometry[] = [];
     const planeSize = 450;
 
     for (let i = 0; i < layerCount; i++) {
       const geometry = new THREE.PlaneGeometry(planeSize, planeSize, 1, 1);
+      geometries.push(geometry);
 
       const material = new THREE.ShaderMaterial({
         uniforms: {
@@ -340,7 +342,8 @@ export function SmokeCanvas({
       noiseTexture.dispose();
       morphTexture.dispose();
       materials.forEach((mat) => mat.dispose());
-      renderer.dispose();
+      geometries.forEach((geometry) => geometry.dispose());
+      releaseWebGL(renderer);
     };
   }, [targetMorphRef, contentRef, color, opacity, layerCount]);
 

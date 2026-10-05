@@ -84,20 +84,31 @@ export function useActionBarClearance(
     update();
     window.addEventListener("resize", update);
 
-    const bar = document.querySelector(ACTION_BAR_SELECTOR);
-    const observer = new MutationObserver(update);
-    if (bar) {
-      // 바의 위치는 인라인 style 로 바뀐다 (드래그 · page anchor 갱신 둘 다).
-      observer.observe(bar, { attributes: true, attributeFilter: ["style"] });
-    } else {
-      // 아직 없으면 (선택 없음) 나타나는 시점에 다시 잰다.
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
+    // 바의 위치는 인라인 style 로 바뀐다 (드래그 · page anchor 갱신 둘 다). 바는 선택에 따라
+    // 생겼다 사라지고 다시 생긴다 — 지금 있는 바에 style 관찰을 다시 붙인다.
+    let observed: Element | null = null;
+    const styleObserver = new MutationObserver(update);
+    const attach = (): void => {
+      const bar = document.querySelector(ACTION_BAR_SELECTOR);
+      if (bar === observed) return;
+      styleObserver.disconnect();
+      observed = bar;
+      if (bar)
+        styleObserver.observe(bar, {
+          attributes: true,
+          attributeFilter: ["style"],
+        });
+      update();
+    };
+    attach();
+    const treeObserver = new MutationObserver(attach);
+    treeObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", update);
-      observer.disconnect();
+      styleObserver.disconnect();
+      treeObserver.disconnect();
     };
   }, [active, containerRef]);
 

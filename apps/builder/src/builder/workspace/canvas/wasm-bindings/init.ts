@@ -18,6 +18,7 @@ export async function initAllWasm(): Promise<void> {
   try {
     const { WASM_FLAGS } = await import("./featureFlags");
     const tasks: Promise<void>[] = [];
+    let engineRequested = false;
 
     // engine(자체 taffy-free 엔진) WASM.
     // createLayoutEngine()(동기)이 전역 캐시를 읽으려면 startup 에서 먼저
@@ -26,6 +27,7 @@ export async function initAllWasm(): Promise<void> {
     {
       const { isUnifiedFlag } = await import("./featureFlags");
       if (isUnifiedFlag("USE_RUST_LAYOUT_ENGINE")) {
+        engineRequested = true;
         const { initEngineWasm, isEngineReady } = await import("./engineWasm");
         tasks.push(
           initEngineWasm().then(async () => {
@@ -45,6 +47,9 @@ export async function initAllWasm(): Promise<void> {
     }
 
     await Promise.all(tasks);
+    // 엔진 로드 실패는 initEngineWasm 이 삼킨다 — 준비되지 않았으면 다음 진입에서 다시 시도한다.
+    if (engineRequested && !(await import("./engineWasm")).isEngineReady())
+      return;
     wasmReady = true;
   } catch (error) {
     console.error("[WASM] 초기화 실패:", error);

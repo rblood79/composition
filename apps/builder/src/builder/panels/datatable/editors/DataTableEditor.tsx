@@ -188,7 +188,7 @@ interface SettingsEditorProps {
   ) => void;
 }
 
-function SettingsEditor({
+export function SettingsEditor({
   name,
   useMockData,
   executionPolicy,
@@ -208,6 +208,14 @@ function SettingsEditor({
   const [localInterval, setLocalInterval] = useState(
     executionPolicy?.intervalSec ?? 30,
   );
+  // 밖에서 바뀐 값 (undo · 목록 rename) 을 따른다 — 아니면 blur 가 옛 값을 다시 쓴다.
+  const storedInterval = executionPolicy?.intervalSec ?? 30;
+  const [synced, setSynced] = useState({ name, interval: storedInterval });
+  if (synced.name !== name || synced.interval !== storedInterval) {
+    setSynced({ name, interval: storedInterval });
+    if (synced.name !== name) setLocalName(name);
+    if (synced.interval !== storedInterval) setLocalInterval(storedInterval);
+  }
 
   const endpointOptions = [
     { value: "", label: localize("endpointNone", "Not connected") },

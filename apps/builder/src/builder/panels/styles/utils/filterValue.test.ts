@@ -24,3 +24,17 @@ describe("filterValue — blur 한 종, 나머지 함수 보존", () => {
     expect(setFilterBlurPx("none", 3)).toBe("blur(3px)");
   });
 });
+
+// 2026-10-05 감사 LOW — 함수 인자 안의 괄호 (drop-shadow(… rgb(…))) 를 끊지 않는다.
+describe("filterValue — 중첩 괄호", () => {
+  it("drop-shadow 의 rgb() 를 보존한 채 blur 만 바꾼다", () => {
+    const filter = "drop-shadow(0 0 4px rgb(0 0 0 / 0.5)) blur(2px)";
+    expect(parseFilterBlurPx(filter)).toBe(2);
+    expect(setFilterBlurPx(filter, 6)).toBe(
+      "blur(6px) drop-shadow(0 0 4px rgb(0 0 0 / 0.5))",
+    );
+    expect(setFilterBlurPx(filter, null)).toBe(
+      "drop-shadow(0 0 4px rgb(0 0 0 / 0.5))",
+    );
+  });
+});

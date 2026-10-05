@@ -403,6 +403,30 @@ describe("useActionBarPlacement — page 자동 고정", () => {
     );
   });
 
+  // 2026-10-05 감사 LOW — 손잡이를 눌렀다 떼기만 해도 (이동 0) 바가 (0, 0) 으로 가지 않는다.
+  it("이동 없는 클릭 뒤에도 page anchor 위치에 남는다", () => {
+    const view = render(<Harness visible pageId="page-1" />);
+    const bar = view.getByTestId("bar");
+    const before = bar.style.transform;
+    const pointer = (type: string) =>
+      act(() => {
+        const event = new MouseEvent(type, {
+          bubbles: true,
+          clientX: 500,
+          clientY: 0,
+          button: 0,
+        }) as MouseEvent & { pointerId?: number };
+        event.pointerId = 1;
+        bar.setPointerCapture = () => {};
+        bar.hasPointerCapture = () => false;
+        bar.dispatchEvent(event);
+      });
+    pointer("pointerdown");
+    pointer("pointerup");
+    expect(bar.style.top).toBe("0px");
+    expect(bar.style.transform).toBe(before);
+  });
+
   it("저장된 page position이 없으면 Skia page frame과 같이 (0, 0)을 쓴다", () => {
     pagePositions = {};
     const view = render(<Harness visible pageId="page-1" />);

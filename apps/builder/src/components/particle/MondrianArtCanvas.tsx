@@ -14,7 +14,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import { MORPH_IN_SPEED, MORPH_OUT_SPEED, PARTICLE_COUNT } from "./constants";
 
 // ==================== 상수 ====================
@@ -813,8 +813,7 @@ export function MondrianArtCanvas({
       geometry.dispose();
       material.dispose();
       charAtlas.dispose();
-      renderer.dispose();
-      composer.dispose();
+      releaseWebGL(renderer, composer);
 
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);

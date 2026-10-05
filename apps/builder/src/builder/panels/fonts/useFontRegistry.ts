@@ -94,12 +94,17 @@ export function useFontRegistry(): FontRegistryController {
           console.warn("[FontManager] 최대 폰트 수 초과");
           break;
         }
-        const face = await createFontFaceFromFile(
-          file,
-          undefined,
-          t("errors.fontFileUnreadable"),
-        );
-        currentRegistry = addFontFace(currentRegistry, face);
+        // 한 파일의 읽기 실패가 나머지 파일의 등록을 버리지 않는다 (호출부는 promise 를 받지 않는다).
+        try {
+          const face = await createFontFaceFromFile(
+            file,
+            undefined,
+            t("errors.fontFileUnreadable"),
+          );
+          currentRegistry = addFontFace(currentRegistry, face);
+        } catch (error) {
+          console.warn("[FontManager]", file.name, error);
+        }
       }
 
       saveRegistryAndNotify(currentRegistry);

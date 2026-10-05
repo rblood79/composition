@@ -15,7 +15,7 @@ import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import {
   PARTICLE_COUNT,
   MORPH_IN_SPEED,
@@ -797,8 +797,7 @@ export function CodeParticleCanvas({
       geometry.dispose();
       material.dispose();
       charAtlas.dispose();
-      composer.dispose();
-      renderer.dispose();
+      releaseWebGL(renderer, composer);
     };
   }, [
     targetMorphRef,

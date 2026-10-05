@@ -267,6 +267,57 @@ export function PageHeaderLayer({
   );
 }
 
+/**
+ * 이름 편집기 — Enter · blur 는 저장, Escape 는 취소. 헤더가 목록에서 빠져 (뷰포트 밖) blur 없이
+ * 사라져도 입력한 이름은 저장한다 (삭제된 페이지는 onRenamePage 가 무시한다).
+ */
+function PageTitleInput({
+  id,
+  title,
+  onRenameCommit,
+}: Pick<PageHeaderItemProps, "id" | "title" | "onRenameCommit">) {
+  const renameCancelRef = useRef(false);
+  const draftRef = useRef(title);
+  const doneRef = useRef(false);
+  const finish = (value: string | null) => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    onRenameCommit(id, value);
+  };
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+  useEffect(() => () => finishRef.current(draftRef.current), []);
+  return (
+    <input
+      className="page-title-edit-input"
+      data-text-editing="true"
+      aria-label={`Rename page ${title}`}
+      defaultValue={title}
+      autoFocus
+      onFocus={(event) => event.currentTarget.select()}
+      onChange={(event) => {
+        draftRef.current = event.currentTarget.value;
+      }}
+      onBlur={(event) => {
+        const cancelled = renameCancelRef.current;
+        renameCancelRef.current = false;
+        finish(cancelled ? null : event.currentTarget.value);
+      }}
+      onKeyDown={(event) => {
+        event.stopPropagation();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          renameCancelRef.current = true;
+          event.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
 interface PageHeaderItemProps {
   id: string;
   title: string;
@@ -291,7 +342,6 @@ const PageHeaderItem = memo(function PageHeaderItem({
   lod,
   onRenameCommit,
 }: PageHeaderItemProps) {
-  const renameCancelRef = useRef(false);
   const compact = lod === "compact";
   return (
     <div
@@ -304,30 +354,7 @@ const PageHeaderItem = memo(function PageHeaderItem({
       data-lod={lod}
     >
       {editing ? (
-        <input
-          className="page-title-edit-input"
-          data-text-editing="true"
-          aria-label={`Rename page ${title}`}
-          defaultValue={title}
-          autoFocus
-          onFocus={(event) => event.currentTarget.select()}
-          onBlur={(event) => {
-            const cancelled = renameCancelRef.current;
-            renameCancelRef.current = false;
-            onRenameCommit(id, cancelled ? null : event.currentTarget.value);
-          }}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === "Enter") {
-              event.preventDefault();
-              event.currentTarget.blur();
-            } else if (event.key === "Escape") {
-              event.preventDefault();
-              renameCancelRef.current = true;
-              event.currentTarget.blur();
-            }
-          }}
-        />
+        <PageTitleInput id={id} title={title} onRenameCommit={onRenameCommit} />
       ) : (
         <>
           {/* 타이틀 앞 액션 — 뒤의 close 와 같은 어법·같은 20 상자.

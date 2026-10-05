@@ -190,11 +190,23 @@ function useActionBarPlacementInteractions({
   // 프레임당 수백 KB 를 할당했다 (2026-09-02 실측: 드래그 중 +16 MB/s). 드래그 중
   // 다른 이유로 렌더가 돌면 React 가 style.transform 을 base 값으로 되돌리므로,
   // 렌더 뒤마다 마지막 위치를 다시 얹는다.
+  // 수동 style (transform 있음) 에서 자동 style (transform 없음) 로 돌아오면 React 가 transform 을
+  // 지운다 — 이동 없는 클릭 (pointerdown → up) 이 그렇다. 그때 page anchor 를 다시 얹는다.
   useLayoutEffect(() => {
     const drag = dragRef.current;
     const bar = barRef.current;
-    if (!drag?.latest || !bar) return;
-    bar.style.transform = actionBarTransform(drag.latest);
+    if (!bar) return;
+    if (drag?.latest) {
+      bar.style.transform = actionBarTransform(drag.latest);
+      return;
+    }
+    if (!drag && tracksAutomaticPagePosition && pageId && !bar.style.transform)
+      latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(
+        bar,
+        pageId,
+        getCanvasFramePresentationSnapshot(),
+        pageRectOfRef.current,
+      );
   });
 
   useEffect(() => {

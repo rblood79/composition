@@ -214,3 +214,35 @@ describe("bounded repair", () => {
     expect(seen.some((s) => s.includes("Heading 이 빠졌습니다"))).toBe(true);
   });
 });
+
+// 2026-10-05 감사 LOW — 계획 중 stop() 은 planner 요청을 끊고 실행 단계로 넘어가지 않는다.
+describe("Orchestrator.stop — 계획·검증 중단", () => {
+  it("계획 중 stop 은 planner signal 을 abort 하고 executor 를 부르지 않는다", async () => {
+    let plannerSignal: AbortSignal | undefined;
+    const planner: LLMProvider = {
+      id: "openai-compatible",
+      model: "planner",
+      async *completeWithTools(_messages, options) {
+        plannerSignal = options?.signal;
+        await new Promise<void>((resolve) => {
+          if (options?.signal?.aborted) resolve();
+          options?.signal?.addEventListener("abort", () => resolve());
+          setTimeout(resolve, 50);
+        });
+        yield { type: "text-delta", delta: TWO_STEP_PLAN };
+        yield { type: "stop", reason: "end" };
+      },
+    } as LLMProvider;
+    const { orchestrator, executor } = build({ planner });
+    const events: string[] = [];
+    const running = (async () => {
+      for await (const event of orchestrator.run("대시보드", CONTEXT))
+        events.push(event.type);
+    })();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    orchestrator.stop();
+    await running;
+    expect(plannerSignal?.aborted).toBe(true);
+    expect(executor.calls).toBe(0);
+  });
+});

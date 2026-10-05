@@ -73,6 +73,8 @@ function openDb(factory: IDBFactory, name: string): Promise<IDBDatabase> {
 export class CatalogSnapshots {
   private list: readonly CatalogSnapshot[] = [];
   private loading: Promise<void> | undefined;
+  /** Creates run one at a time — each checks the limits and builds its list from the one before. */
+  private creating: Promise<unknown> = Promise.resolve();
   private readonly listeners = new Set<() => void>();
   /** The snapshot the open document was restored from, until the next edit (the panel's "active"). */
   private restored: string | null = null;
@@ -96,7 +98,7 @@ export class CatalogSnapshots {
     for (const listener of this.listeners) listener();
   }
 
-  /** Reads the stored list once (later calls wait for the same read). */
+  /** Reads the stored list once (later calls wait for the same read; a failed read is retried). */
   load(): Promise<void> {
     this.loading ??= (async () => {
       const db = await openDb(this.factory, this.dbName);
@@ -118,7 +120,10 @@ export class CatalogSnapshots {
       } finally {
         db.close();
       }
-    })();
+    })().catch((error: unknown) => {
+      this.loading = undefined;
+      throw error;
+    });
     return this.loading;
   }
 
@@ -133,7 +138,16 @@ export class CatalogSnapshots {
    * Saves `document` as a snapshot (durable before it resolves). A user snapshot past the limits
    * throws `CatalogSnapshotLimitError`; a system snapshot rolls the oldest system ones out.
    */
-  async create(
+  create(
+    document: CatalogDocument,
+    options: { kind: CatalogSnapshot["kind"]; restoredFrom?: string },
+  ): Promise<CatalogSnapshot> {
+    const run = this.creating.then(() => this.createNow(document, options));
+    this.creating = run.catch(() => undefined);
+    return run;
+  }
+
+  private async createNow(
     document: CatalogDocument,
     options: { kind: CatalogSnapshot["kind"]; restoredFrom?: string },
   ): Promise<CatalogSnapshot> {
@@ -163,7 +177,7 @@ export class CatalogSnapshots {
         ? { restoredFrom: options.restoredFrom }
         : {}),
     };
-    let next = [snapshot, ...this.list];
+    const next = [snapshot, ...this.list];
     const dropped: string[] = [];
     if (options.kind === "system") {
       // Newest first: system snapshots past the count, then the oldest past the bytes limit.
@@ -178,7 +192,6 @@ export class CatalogSnapshots {
         if (used(kept) <= CATALOG_SNAPSHOT_BYTES_LIMIT) break;
         dropped.push(item.id);
       }
-      next = next.filter((item) => !dropped.includes(item.id));
     }
     const db = await openDb(this.factory, this.dbName);
     try {
@@ -197,7 +210,8 @@ export class CatalogSnapshots {
     } finally {
       db.close();
     }
-    this.set(next);
+    // From the list as it is now — a rename / remove may have finished during the write.
+    this.set([snapshot, ...this.list.filter((item) => !dropped.includes(item.id))]);
     return snapshot;
   }
 

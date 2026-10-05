@@ -96,7 +96,8 @@ function App() {
         height: 0,
       };
 
-      // 누르는 동안 점점 강해짐
+      // 누르는 동안 점점 강해짐 — mouseup 을 놓친 채 다시 눌러도 interval 은 하나만
+      if (vortexIntervalRef.current) clearInterval(vortexIntervalRef.current);
       vortexIntervalRef.current = setInterval(() => {
         if (vortexRef.current.active) {
           vortexRef.current.strength = Math.min(
@@ -123,6 +124,14 @@ function App() {
       vortexRef.current.y = y;
     },
     [vortexRef, screenToWorld],
+  );
+
+  // 누른 채 화면을 떠나면 (라우트 전환) interval 을 멈춘다.
+  useEffect(
+    () => () => {
+      if (vortexIntervalRef.current) clearInterval(vortexIntervalRef.current);
+    },
+    [],
   );
 
   // 회오리 종료 (마우스 업) - 천천히 흩어지도록

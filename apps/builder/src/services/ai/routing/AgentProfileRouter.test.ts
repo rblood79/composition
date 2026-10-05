@@ -123,6 +123,10 @@ describe("폐쇄망 판정", () => {
     ["http://gpu.local:11434/v1", true],
     ["https://api.openai.com/v1", false],
     ["https://api.anthropic.com", false],
+    // 2026-10-05 감사 LOW — 사설 대역은 IPv4 리터럴만 (접두가 같은 도메인은 원격) · IPv6 루프백
+    ["https://10.example.com/v1", false],
+    ["https://192.168.evil.dev/v1", false],
+    ["http://[::1]:11434/v1", true],
     ["not a url", false],
   ])("%s → %s", (baseUrl, expected) => {
     expect(

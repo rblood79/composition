@@ -259,3 +259,52 @@ describe("ADR-248 Phase 4e-6-32 snapshot names", () => {
     );
   });
 });
+
+// 2026-10-05 감사 LOW — 동시에 만든 snapshot 은 서로를 지우지 않고 상한을 지킨다 · 읽기 실패 뒤
+// 다음 load 는 다시 읽는다.
+describe("CatalogSnapshots — 동시 create · load 재시도", () => {
+  it("동시에 만든 user snapshot 은 목록에 둘 다 남고 상한을 넘지 않는다", async () => {
+    const { db, snapshots } = open();
+    for (let i = 0; i < CATALOG_USER_SNAPSHOT_LIMIT - 1; i++)
+      await snapshots.create(doc(`n${i}`), { kind: "user" });
+    const results = await Promise.allSettled([
+      snapshots.create(doc("a"), { kind: "user" }),
+      snapshots.create(doc("b"), { kind: "user" }),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(["fulfilled", "rejected"]);
+    expect(snapshots.userCount()).toBe(CATALOG_USER_SNAPSHOT_LIMIT);
+    const reread = new CatalogSnapshots(PROJECT, indexedDB, db);
+    await reread.load();
+    expect(reread.userCount()).toBe(CATALOG_USER_SNAPSHOT_LIMIT);
+  });
+
+  it("동시에 만든 두 snapshot 이 목록에서 사라지지 않는다", async () => {
+    const { snapshots } = open();
+    await snapshots.load();
+    const [a, b] = await Promise.all([
+      snapshots.create(doc("a"), { kind: "user" }),
+      snapshots.create(doc("b"), { kind: "system" }),
+    ]);
+    expect(snapshots.getSnapshot().map((item) => item.id).sort()).toEqual(
+      [a.id, b.id].sort(),
+    );
+  });
+
+  it("load 가 실패하면 다음 load 는 다시 읽는다", async () => {
+    let fail = true;
+    const factory = {
+      open: (...args: Parameters<IDBFactory["open"]>) => {
+        if (fail) throw new Error("IDB_BLOCKED");
+        return indexedDB.open(...args);
+      },
+    } as unknown as IDBFactory;
+    const snapshots = new CatalogSnapshots(
+      PROJECT,
+      factory,
+      `adr248-phase4e-snapshots-${Math.random()}`,
+    );
+    await expect(snapshots.load()).rejects.toThrow("IDB_BLOCKED");
+    fail = false;
+    await expect(snapshots.load()).resolves.toBeUndefined();
+  });
+});

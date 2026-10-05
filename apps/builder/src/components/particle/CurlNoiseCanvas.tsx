@@ -15,7 +15,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import {
   PARTICLE_COUNT,
   MORPH_IN_SPEED,
@@ -497,8 +497,7 @@ export function CurlNoiseCanvas({
       mountElement.removeChild(renderer.domElement);
       geometry.dispose();
       material.dispose();
-      composer.dispose();
-      renderer.dispose();
+      releaseWebGL(renderer, composer);
     };
   }, [targetMorphRef, contentRef, vortexRef, colors, particleCount, afterImageDamp]);
 

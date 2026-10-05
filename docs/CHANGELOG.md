@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [입력 유실·경합·자원 정리 등 16건 수리 — 미열람 범위 감사 LOW] - 2026-10-05
+
+### Fixed
+
+- **편집이 밖에서 끝나면 입력이 사라짐**:
+  - Canvas 텍스트 편집이 blur 없이 끝나면 (선택 전환 · reconcile) 입력한 글이 저장되지 않았다. 편집기가 사라질 때 바뀐 글을 한 단계로 저장한다. 카메라를 따라가는 구독도 프레임마다 다시 붙이지 않는다 (`CatalogTextEditor.tsx`).
+  - 페이지 이름을 고치던 헤더가 화면 밖으로 나가 목록에서 빠지면 입력한 이름이 버려졌다 (`PageHeaderLayer.tsx`).
+  - 테이블 설정이 열린 채 이름 · 간격이 밖에서 바뀌면 (undo · 목록 rename) 칸이 옛 값을 보이고, blur 가 그 옛 값을 다시 썼다 (`DataTableEditor.tsx`).
+  - **Why**: 입력값을 blur 이벤트에서만 읽었다. 요소가 DOM 에서 빠지면 blur 가 오지 않는다.
+- **액션 바**:
+  - page 에 붙은 바의 손잡이를 눌렀다 떼기만 해도 바가 화면 좌상단 (0, 0) 으로 갔다. 수동 style 에서 자동 style 로 돌아올 때 React 가 지운 transform 을 page anchor 로 다시 얹는다 (`useActionBarPlacement.ts`).
+  - 토스트가 뜬 뒤 나타나거나 다시 생긴 바의 위치 변화를 재지 않아 토스트가 바를 덮었다 (`useActionBarClearance.ts`).
+- **경합 · 재시도**:
+  - snapshot 을 동시에 만들면 하나가 목록에서 사라지고 user 상한 (10) 을 넘었다. 만들기를 직렬화하고, 목록 읽기가 한 번 실패하면 다음 호출이 다시 읽는다 (`snapshots.ts`).
+  - 엔진 WASM 로드가 한 번 실패하면 프로젝트를 다시 열어도 다시 로드하지 않았다 (`engineWasm.ts` · `init.ts`).
+  - AI 계획 중 멈춤을 눌러도 계획 요청이 계속됐고, 끝나면 실행 단계가 캔버스를 바꿨다. stop 이 planner · verifier 요청도 끊는다 (`orchestrator.ts`).
+- **값 해석**:
+  - cURL 붙여넣기: `-u` 에 한글 계정이 있으면 예외가 났다 (UTF-8 base64). `--data-urlencode` 는 curl 처럼 값을 퍼센트 인코딩한다 (`curlCommand.ts`).
+  - Effect 의 filter 에 `drop-shadow(… rgb(…))` 가 있으면 blur 를 바꿀 때 괄호가 하나 사라졌다 (`filterValue.ts`).
+  - border shorthand 에서 색이 width 앞에 오면 (`rgb(0 0 0) 2px solid`) width 를 0 으로 읽었다 (`cssValueParser.ts`).
+  - AI 폐쇄망 배지가 `10.example.com` 같은 도메인도 사설망으로 표시했다. HC13 판정 (`isLocalEndpoint`) 을 그대로 쓴다.
+- **기타**:
+  - 폰트 여러 개를 올릴 때 하나가 읽기 실패하면 나머지도 등록되지 않았다.
+  - Chart 예산 문구 · 행 상한이 size 와 상관없이 md 기준이었다.
+  - 컴포넌트 override 목록에서 이름이 같은 위치 둘의 행 key 가 겹쳤다.
+  - 첫 화면 particle 이펙트를 바꿀 때마다 WebGL context 와 bloom pass 의 render target 이 남았다 (`canvasUtils.releaseWebGL`). 누른 채 떠나거나 다시 누르면 회오리 interval 이 남았다 (`App.tsx`).
+
+### Tests
+
+- 원복 대조군: 수정한 소스 24개를 HEAD 로 되돌리면 새 테스트 30건과, 기대값을 curl 의 실제 결과 (`a%20b`) 로 바꾼 기존 테스트 1건이 RED 였다.
+- 검증: type-check 6/6, builder 593 파일 4098 PASS.
+- 실제 Builder 에서 대조군과 함께 확인했다:
+  - 액션 바 손잡이 무이동 클릭: 수정 전 `(634, 855)` → `(0, 0)` · 수정 후 `(634, 855)` 유지
+  - 텍스트 입력 뒤 편집을 밖에서 종료: 수정 전 "Before" (입력 유실) · 수정 후 입력한 글 저장
+- 범위 밖으로 둔 것:
+  - assetGc memory root: 탭 두 개를 7일 넘게 함께 열어 둘 때만 생긴다. LOW deferred 로 둔다.
+  - PanelHeader Escape: 반증된 건이라 수정하지 않았다.
+
 ## [편집 덮어쓰기·입력 중 저장·secret 노출 등 22건 수리 — 미열람 범위 감사 MEDIUM] - 2026-10-05
 
 ### Fixed

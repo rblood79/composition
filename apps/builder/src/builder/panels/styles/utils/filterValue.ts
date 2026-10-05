@@ -6,10 +6,26 @@
  * 함수가 저장돼 있으면 (import/paste) 순서·원문 그대로 보존하고 blur 만 갈아끼운다.
  */
 
-const FILTER_FN_RE = /([a-z-]+)\(([^)]*)\)/gi;
-
+/** `name(...)` 함수 단위로 나눈다 — 인자 안의 괄호 (`drop-shadow(… rgb(…))`) 는 깊이로 넘긴다. */
 function splitFilterFunctions(filter: string): string[] {
-  return Array.from(filter.matchAll(FILTER_FN_RE), (m) => m[0]);
+  const fns: string[] = [];
+  const nameRe = /[a-z-]+\(/gi;
+  let match: RegExpExecArray | null;
+  while ((match = nameRe.exec(filter))) {
+    let depth = 0;
+    let end = -1;
+    for (let i = match.index + match[0].length - 1; i < filter.length; i++) {
+      if (filter[i] === "(") depth++;
+      else if (filter[i] === ")" && --depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    if (end < 0) break;
+    fns.push(filter.slice(match.index, end + 1));
+    nameRe.lastIndex = end + 1;
+  }
+  return fns;
 }
 
 /** `blur(4px)` → 4. blur 가 없거나 "none" 이면 null. */

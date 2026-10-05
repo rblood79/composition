@@ -198,3 +198,22 @@ export function generatePointsFromContent(content: MorphContent): Float32Array {
 
   return new Float32Array(points.slice(0, PARTICLE_COUNT * 3));
 }
+
+// ==================== WebGL 정리 ====================
+
+/**
+ * 캔버스 언마운트 때 GPU 자원을 놓는다 — pass 마다 dispose (bloom · afterimage 의 render
+ * target 은 composer.dispose 가 놓지 않는다), 그다음 renderer 와 WebGL context 자체.
+ * 이펙트 전환마다 새 context 를 만들므로 context 를 잃게 하지 않으면 브라우저 상한에 닿는다.
+ */
+export function releaseWebGL(
+  renderer: { dispose(): void; forceContextLoss(): void },
+  composer?: { passes: readonly { dispose?(): void }[]; dispose(): void },
+): void {
+  if (composer) {
+    for (const pass of composer.passes) pass.dispose?.();
+    composer.dispose();
+  }
+  renderer.dispose();
+  renderer.forceContextLoss();
+}

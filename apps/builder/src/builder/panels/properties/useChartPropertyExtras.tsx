@@ -57,6 +57,8 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "budgetAggregate",
   "budgetAxis",
   "budgetOthersLabel",
+  // 예산 metrics (행 상한 · 문구) 는 size 별이다 — 없으면 sm · lg 에서도 md 로 풀었다.
+  "size",
   // ADR-216 — 시간축 3 키 (ChartTimeAxisControls).
   "dimensionScale",
   "dimensionFormat",

@@ -15,7 +15,7 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import { PARTICLE_COUNT, MORPH_IN_SPEED, MORPH_OUT_SPEED } from "./constants";
 
 // ==================== Constants ====================
@@ -873,8 +873,7 @@ export function MatrixRainCanvas({
       material.dispose();
       charAtlas.dispose();
       targetTexture.dispose();
-      composer.dispose();
-      renderer.dispose();
+      releaseWebGL(renderer, composer);
     };
   }, [
     targetMorphRef,

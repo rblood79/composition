@@ -39,6 +39,8 @@ const ComponentIcon = ACTION_ICONS.component;
 /** The fields an instance's template-position patch writes (each key a resettable row). */
 const PATCH_FIELDS = ["props", "visual", "sizing", "layout"] as const;
 interface OverrideRow {
+  /** The row's React key — a template position's path, since two positions can share a label. */
+  id: string;
   key: string;
   field: (typeof PATCH_FIELDS)[number];
   /** The field key; at a template position, `position.key` (its node's name, else its type). */
@@ -109,6 +111,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
         const at = templateLabel(graph, item.address.templatePath.at(-1));
         return PATCH_FIELDS.flatMap((field) =>
           Object.keys(item[field] ?? {}).map((key) => ({
+            id: `${field}:${item.address.instances.join("/")}|${item.address.templatePath.join("/")}:${key}`,
             key,
             field,
             label: `${at}.${key}`,
@@ -121,12 +124,14 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
   const rows: OverrideRow[] = listsOwn
     ? [
         ...Object.keys(own.props).map((key) => ({
+          id: `props:${key}`,
           key,
           field: "props" as const,
           label: key,
           target: rootTarget,
         })),
         ...Object.keys(own.visual).map((key) => ({
+          id: `visual:${key}`,
           key,
           field: "visual" as const,
           label: key,
@@ -319,7 +324,7 @@ export const CatalogComponentSection = memo(function CatalogComponentSection({
                   label: row.label,
                 })}
                 className="component-semantics-field"
-                key={`${row.field}:${row.label}`}
+                key={row.id}
                 onClick={() => reset(row)}
                 type="button"
               >

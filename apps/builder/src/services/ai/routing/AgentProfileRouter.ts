@@ -15,6 +15,7 @@ import {
   type AgentProfileConfig,
   type AgentProfileId,
 } from "../providers/AgentProfileRegistry";
+import { isLocalEndpoint } from "../providers/LLMProvider";
 
 /** 라우팅이 다루는 작업 유형. */
 export type AgentTask = "plan" | "execute" | "verify" | "classify";
@@ -131,23 +132,9 @@ export function describeRouting(lookup: ProfileLookup): RoutingReport {
   };
 }
 
-/** 로컬·사설망 endpoint 인가 — 폐쇄망 구성 여부를 상태 표시에 쓴다 (HC13 판정과 동형). */
+/** 로컬·사설망 endpoint 인가 — 폐쇄망 구성 여부를 상태 표시에 쓴다 (HC13 판정 `isLocalEndpoint` 그대로). */
 export function isClosedNetworkProfile(
   config: AgentProfileConfig | undefined,
 ): boolean {
-  if (!config?.baseUrl) return false;
-  try {
-    const host = new URL(config.baseUrl).hostname;
-    return (
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host === "::1" ||
-      host.endsWith(".local") ||
-      /^10\./.test(host) ||
-      /^192\.168\./.test(host) ||
-      /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-    );
-  } catch {
-    return false;
-  }
+  return config?.baseUrl ? isLocalEndpoint(config.baseUrl) : false;
 }

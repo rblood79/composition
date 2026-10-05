@@ -50,10 +50,13 @@ function builderSummary(context: BuilderContext, t: PromptTranslate): string {
 
 export class Orchestrator {
   private executor: ExecutorAgent | null = null;
+  /** 이번 run 의 계획·검증 요청 — stop() 이 끊는다 (실행 단계는 executor.stop). */
+  private abort: AbortController | null = null;
 
   constructor(private readonly options: OrchestratorOptions) {}
 
   stop(): void {
+    this.abort?.abort();
     this.executor?.stop();
   }
 
@@ -70,6 +73,9 @@ export class Orchestrator {
     context: BuilderContext,
     history: readonly string[] = [],
   ): AsyncGenerator<OrchestratedEvent> {
+    const abort = new AbortController();
+    this.abort = abort;
+    const { signal } = abort;
     const plannerProvider = this.provider("planner");
     const executorProvider = this.provider("executor");
     if (!executorProvider) {
@@ -88,11 +94,19 @@ export class Orchestrator {
         agent: "planner",
         labelKey: "ai.rolePlanner",
       };
-      plan = await new PlannerAgent(plannerProvider, this.options.t).plan(
-        request,
-        builderSummary(context, this.options.t),
-        history,
-      );
+      try {
+        plan = await new PlannerAgent(plannerProvider, this.options.t).plan(
+          request,
+          builderSummary(context, this.options.t),
+          history,
+          signal,
+        );
+      } catch (error) {
+        if (signal.aborted) return;
+        throw error;
+      }
+      // 계획 중 멈췄으면 실행하지 않는다 — 캔버스를 바꾸는 단계다.
+      if (signal.aborted) return;
       yield {
         type: "agent-end",
         agent: "planner",
@@ -152,7 +166,15 @@ export class Orchestrator {
         agent: "verifier",
         labelKey: "ai.roleVerifier",
       };
-      const outcome = await verifier.verify(plan, record.log);
+      if (signal.aborted) return;
+      let outcome: Awaited<ReturnType<VerifierAgent["verify"]>>;
+      try {
+        outcome = await verifier.verify(plan, record.log, signal);
+      } catch (error) {
+        if (signal.aborted) return;
+        throw error;
+      }
+      if (signal.aborted) return;
       yield {
         type: "agent-end",
         agent: "verifier",

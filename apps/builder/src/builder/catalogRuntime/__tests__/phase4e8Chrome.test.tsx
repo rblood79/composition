@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { fireEvent, render } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -299,5 +299,59 @@ describe("ADR-248 4e-8 instance override rows", () => {
       origin.getByRole("button", { name: "Select instances (1)" }),
     ).toBeTruthy();
     origin.unmount();
+  });
+
+  // 2026-10-05 감사 LOW — 이름이 같은 template 위치 둘 (Text · Text) 의 write 는 행 key 가 갈린다.
+  it("two template positions with the same label list as distinct rows (no key collision)", async () => {
+    const workspace = await open();
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          node("project:node:pair", "lib:definition:type-frame", [
+            "project:node:first",
+            "project:node:second",
+          ]),
+          node("project:node:first", "lib:definition:text"),
+          node("project:node:second", "lib:definition:text"),
+        ],
+        rootIds: ["project:node:pair"] as NodeId[],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.execute(
+      catalogComponentCommands.create(
+        "project:node:pair" as NodeId,
+        "Pair",
+        workspace.newId,
+      ),
+    );
+    const graph = workspace.runtime.graph;
+    const instance = (graph.getEntry(BODY) as NodeEntry).children[0]!;
+    const record = workspace.root.recordsOfSource(instance)[0]!;
+    const targets = workspace.root.domInputs
+      .get(record)!
+      .children.map((child) => workspace.itemOfRecord(child)!.target);
+    expect(targets).toHaveLength(2);
+    workspace.execute(
+      setFields({
+        targets,
+        visual: { color: { kind: "set", value: "#ff0000" } },
+      }),
+    );
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const view = render(
+      <I18nProvider initialLocale="en-US">
+        <CatalogWorkspaceProvider workspace={workspace}>
+          <CatalogComponentSection nodeId={instance as NodeId} />
+        </CatalogWorkspaceProvider>
+      </I18nProvider>,
+    );
+    expect(view.getAllByRole("button", { name: /Text\.color/ })).toHaveLength(2);
+    expect(
+      error.mock.calls.some((call) => String(call[0]).includes("same key")),
+    ).toBe(false);
+    error.mockRestore();
+    view.unmount();
   });
 });

@@ -113,6 +113,7 @@ export async function initEngineWasm(): Promise<void> {
 
       if (!mod?.LayoutEngine || typeof mod.LayoutEngine !== "function") {
         engineModule = null;
+        initPromise = null; // 다음 initEngineWasm 이 다시 로드한다
         if (import.meta.env.DEV) {
           console.warn(
             "[engine] WASM 모듈 불완전 — LayoutEngine 미포함 (폴백 없음, 부트스트랩 재시도 대기)",
@@ -128,6 +129,7 @@ export async function initEngineWasm(): Promise<void> {
       }
     } catch (err) {
       engineModule = null; // HMR 잔류 방지
+      initPromise = null; // 다음 initEngineWasm (프로젝트 재진입) 이 다시 로드한다
       if (import.meta.env.DEV) {
         console.warn(
           "[ADR-916] engine WASM 초기화 실패 (폴백 없음, 부트스트랩 재시도 대기):",

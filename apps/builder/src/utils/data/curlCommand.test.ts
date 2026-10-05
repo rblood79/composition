@@ -43,7 +43,7 @@ describe("parseCurlCommand", () => {
       "curl -sL -X DELETE -u admin:secret -G -d q=1 --data-urlencode 'x=a b' httpbin.org/anything",
     )!;
     expect(parsed.method).toBe("DELETE");
-    expect(parsed.url).toBe("https://httpbin.org/anything?q=1&x=a b");
+    expect(parsed.url).toBe("https://httpbin.org/anything?q=1&x=a%20b");
     expect(parsed.headers).toEqual([
       { key: "Authorization", value: `Basic ${btoa("admin:secret")}` },
     ]);
@@ -64,5 +64,23 @@ describe("parseCurlCommand", () => {
       "f",
       "g",
     ]);
+  });
+});
+
+// 2026-10-05 감사 LOW — 비 Latin-1 계정 · --data-urlencode 는 curl 처럼 값을 인코딩한다.
+describe("parseCurlCommand — 인코딩", () => {
+  it("-u 의 비 Latin-1 문자는 UTF-8 base64 로 (btoa 예외 없음)", () => {
+    const parsed = parseCurlCommand("curl -u 사용자:비번 https://a.dev");
+    const auth = parsed?.headers.find((h) => h.key === "Authorization")?.value;
+    expect(auth).toBe(
+      `Basic ${Buffer.from("사용자:비번", "utf-8").toString("base64")}`,
+    );
+  });
+
+  it("--data-urlencode 는 name=content 의 content 만 인코딩한다", () => {
+    const parsed = parseCurlCommand(
+      `curl -G https://a.dev/s --data-urlencode "q=a b&c" --data-urlencode "=x y" --data-urlencode "한"`,
+    );
+    expect(parsed?.url).toBe("https://a.dev/s?q=a%20b%26c&x%20y&%ED%95%9C");
   });
 });

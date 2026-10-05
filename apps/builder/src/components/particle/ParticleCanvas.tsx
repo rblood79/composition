@@ -6,7 +6,7 @@ import { AfterimagePass } from "three/examples/jsm/postprocessing/AfterimagePass
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { useParticleBackground } from "./useParticleBackground";
-import { generatePointsFromContent } from "./canvasUtils";
+import { generatePointsFromContent, releaseWebGL } from "./canvasUtils";
 import { PARTICLE_VERTEX_SHADER, PARTICLE_FRAGMENT_SHADER } from "./shaders";
 import {
   PARTICLE_COUNT,
@@ -322,8 +322,7 @@ export function ParticleCanvas({
       mountElement.removeChild(renderer.domElement);
       geometry.dispose();
       material.dispose();
-      composer.dispose();
-      renderer.dispose();
+      releaseWebGL(renderer, composer);
     };
   }, [targetMorphRef, contentRef, vortexRef, preset, afterImageDamp, bloomStrength, bloomRadius, bloomThreshold]);
 

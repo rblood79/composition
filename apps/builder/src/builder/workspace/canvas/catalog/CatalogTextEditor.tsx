@@ -64,6 +64,8 @@ function TextField({
   });
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   const committed = useRef(false);
+  /** The typed text — still readable when the field unmounts (the edit ended elsewhere). */
+  const draft = useRef(start.text);
   const place = () => {
     const box = boundsOf(item.identity);
     return box
@@ -76,27 +78,69 @@ function TextField({
       : undefined;
   };
   const [placement, setPlacement] = useState(place);
-  // The camera moves while editing (wheel pan/zoom): follow it.
-  useEffect(() => subscribeCanvasFrames(() => setPlacement(place())));
+  const placeRef = useRef(place);
+  placeRef.current = place;
+  // The camera moves while editing (wheel pan/zoom): follow it — one subscription, and a frame
+  // that moved nothing renders nothing.
+  useEffect(
+    () =>
+      subscribeCanvasFrames(() =>
+        setPlacement((current) => {
+          const next = placeRef.current();
+          return current &&
+            next &&
+            current.x === next.x &&
+            current.y === next.y &&
+            current.zoom === next.zoom &&
+            current.box.x === next.box.x &&
+            current.box.y === next.box.y &&
+            current.box.width === next.box.width &&
+            current.box.height === next.box.height
+            ? current
+            : next;
+        }),
+      ),
+    [],
+  );
 
-  const commit = () => {
+  /** One command when the text changed. */
+  const save = () => {
     if (committed.current) return;
+    const command =
+      start.key &&
+      catalogTextCommand(
+        item,
+        start.key,
+        start.text,
+        draft.current,
+        start.record?.visual.whiteSpace,
+      );
+    if (!command) return;
     committed.current = true;
+    workspace.execute(command);
+  };
+  const commit = () => {
     try {
-      const command =
-        start.key &&
-        catalogTextCommand(
-          item,
-          start.key,
-          start.text,
-          fieldRef.current?.value ?? start.text,
-          start.record?.visual.whiteSpace,
-        );
-      if (command) workspace.execute(command);
+      save();
     } finally {
       workspace.session.endTextEdit();
     }
   };
+  // The edit ended elsewhere (another selection, a reconcile): keep what was typed. The session's
+  // edit is no longer this one, so it is not ended again here.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(
+    () => () => {
+      try {
+        saveRef.current();
+      } catch (error) {
+        // The element is gone (an undo removed it) — nothing to write to.
+        console.warn("[CatalogTextEditor] text not saved:", error);
+      }
+    },
+    [],
+  );
   useLayoutEffect(() => {
     const field = fieldRef.current;
     if (!field) return;
@@ -156,6 +200,9 @@ function TextField({
       defaultValue={start.text}
       style={style}
       spellCheck={false}
+      onChange={(event) => {
+        draft.current = event.target.value;
+      }}
       onBlur={commit}
       onKeyDown={(event) => {
         if (

@@ -847,6 +847,25 @@ const BORDER_STYLES = new Set([
   "outset",
 ]);
 
+/** 공백으로 나누되 괄호 안 (`rgb(0 0 0 / 0.5)` · `var(--a, …)`) 은 한 토큰으로 둔다. */
+function splitTopLevelSpaces(value: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of value) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth = Math.max(0, depth - 1);
+    if (depth === 0 && /\s/.test(ch)) {
+      if (current) parts.push(current);
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current) parts.push(current);
+  return parts;
+}
+
 /**
  * CSS border shorthand 파싱
  *
@@ -867,7 +886,7 @@ export function parseBorderShorthand(value: unknown): ParsedBorder | undefined {
     return undefined;
   }
 
-  const parts = value.trim().split(/\s+/);
+  const parts = splitTopLevelSpaces(value.trim());
 
   let width: number | undefined;
   let style: string | undefined;

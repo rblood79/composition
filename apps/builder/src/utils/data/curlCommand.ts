@@ -64,6 +64,33 @@ export function tokenizeShell(text: string): string[] {
 
 const METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"] as const;
 
+/** curl 의 `--data-urlencode` — 문자만 남기고 퍼센트 인코딩 (curl_easy_escape 와 같은 집합). */
+const escapeData = (text: string) =>
+  encodeURIComponent(text).replace(
+    /[!'()*]/g,
+    (ch) => `%${ch.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+/**
+ * `--data-urlencode` 의 값 형태 — `name=content` 는 content 만, `=content` 는 content (앞의 `=`
+ * 제외), 그 밖은 전체를 인코딩한다. 파일을 읽는 `@file` · `name@file` 은 그대로 둔다.
+ */
+function urlencodeData(arg: string): string {
+  const eq = arg.indexOf("=");
+  if (eq === 0) return escapeData(arg.slice(1));
+  if (eq > 0) return `${arg.slice(0, eq)}=${escapeData(arg.slice(eq + 1))}`;
+  if (/^[^=]*@/.test(arg)) return arg;
+  return escapeData(arg);
+}
+
+/** `-u user:pass` 의 Basic 값 — UTF-8 바이트를 base64 로 (btoa 는 Latin-1 밖 문자에서 throw). */
+function base64Utf8(text: string): string {
+  let binary = "";
+  for (const byte of new TextEncoder().encode(text))
+    binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
 export function parseCurlCommand(text: string): ParsedCurl | null {
   const tokens = tokenizeShell(text.trim());
   if (tokens[0] !== "curl") return null;
@@ -101,11 +128,13 @@ export function parseCurlCommand(text: string): ParsedCurl | null {
       tok === "--data" ||
       tok === "--data-raw" ||
       tok === "--data-binary" ||
-      tok === "--data-urlencode" ||
       tok === "--json"
     ) {
       data.push(next(i) ?? "");
       if (tok === "--json") headers.push({ key: "Content-Type", value: "application/json" });
+      i++;
+    } else if (tok === "--data-urlencode") {
+      data.push(urlencodeData(next(i) ?? ""));
       i++;
     } else if (tok === "-u" || tok === "--user") {
       user = next(i) ?? null;
@@ -133,11 +162,7 @@ export function parseCurlCommand(text: string): ParsedCurl | null {
   if (!url) return null;
   if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
   if (user) {
-    const encoded =
-      typeof btoa === "function"
-        ? btoa(user)
-        : Buffer.from(user, "utf-8").toString("base64");
-    headers.push({ key: "Authorization", value: `Basic ${encoded}` });
+    headers.push({ key: "Authorization", value: `Basic ${base64Utf8(user)}` });
   }
   let body: string | null = null;
   if (data.length > 0) {
