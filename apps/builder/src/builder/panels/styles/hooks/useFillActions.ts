@@ -38,6 +38,11 @@ export interface FillActions {
   addFill: (type?: FillType, initialColor?: string) => void;
   /** 가상(placeholder) fill 승격 — color fill 이 없으면 생성, 있으면 그 색만 갱신 */
   ensureColorFill: (color: string) => void;
+  /**
+   * 가상 fill 의 opacity commit — color fill 이 없으면 `color` 로 생성, 있으면 그 opacity 만 갱신
+   * (팝오버가 색 · 알파를 연달아 commit 할 때 방금 승격된 색을 덮지 않는다).
+   */
+  ensureColorFillOpacity: (opacity: number, color: string) => void;
   removeFill: (fillId: string) => void;
   reorderFill: (fromIndex: number, toIndex: number) => void;
   toggleFill: (fillId: string) => void;
@@ -494,6 +499,21 @@ export function useFillActions(): FillActions {
     [getCurrentFills, writeFills],
   );
 
+  const ensureColorFillOpacity = useCallback(
+    (opacity: number, color: string) => {
+      const fills = getCurrentFills();
+      const colorIndex = fills.findIndex((f) => f.type === FillType.Color);
+      if (colorIndex === -1) {
+        writeFills([...fills, { ...createDefaultColorFill(color), opacity }]);
+        return;
+      }
+      writeFills(
+        fills.map((f, index) => (index === colorIndex ? { ...f, opacity } : f)),
+      );
+    },
+    [getCurrentFills, writeFills],
+  );
+
   const removeFill = useCallback(
     (fillId: string) => {
       const fills = getCurrentFills();
@@ -615,6 +635,7 @@ export function useFillActions(): FillActions {
   return {
     addFill,
     ensureColorFill,
+    ensureColorFillOpacity,
     removeFill,
     reorderFill,
     toggleFill,

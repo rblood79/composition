@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Slider as AriaSlider,
   SliderTrack,
@@ -88,6 +88,11 @@ export function PropertySlider({
 
   // 값 칸 직접 입력 — local draft, 커밋은 Enter/blur 한 번 (연속 preview 없음).
   const [draft, setDraft] = useState<string | null>(null);
+  /**
+   * Enter / Escape already settled the draft: the blur they cause runs the previous render's
+   * `commitDraft` (its draft still set) and must not commit again.
+   */
+  const settledRef = useRef(false);
   useEffect(() => {
     setDraft(null);
   }, [value]);
@@ -164,16 +169,31 @@ export function PropertySlider({
                 aria-label={displayLabel}
                 value={draft ?? outputText}
                 size={Math.max(2, (draft ?? outputText).length)}
-                onChange={(event) => setDraft(event.target.value)}
-                onBlur={commitDraft}
+                onChange={(event) => {
+                  // A new edit: the next blur commits it.
+                  settledRef.current = false;
+                  setDraft(event.target.value);
+                }}
+                onFocus={() => {
+                  settledRef.current = false;
+                }}
+                onBlur={() => {
+                  if (settledRef.current) {
+                    settledRef.current = false;
+                    return;
+                  }
+                  commitDraft();
+                }}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
                     commitDraft();
+                    settledRef.current = true;
                     event.currentTarget.blur();
                   } else if (event.key === "Escape") {
                     event.preventDefault();
                     setDraft(null);
+                    settledRef.current = true;
                     event.currentTarget.blur();
                   }
                 }}

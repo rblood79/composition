@@ -1837,6 +1837,7 @@ const koKR: TranslationKeys = {
     apiSaveAsTable: "테이블로 저장",
     apiSaveTableName: "테이블 이름",
     apiAttachExisting: "기존 테이블에 잇기",
+    apiAttachTarget: "이을 테이블",
     apiSaved: '"{name}" 테이블에 저장했습니다.',
     apiSaveFailed: "저장 실패: {message}",
     apiCorsWarning:
@@ -3974,6 +3975,7 @@ const enUS: TranslationKeys = {
     apiSaveAsTable: "Save as table",
     apiSaveTableName: "Table name",
     apiAttachExisting: "Attach to existing table",
+    apiAttachTarget: "Table to attach",
     apiSaved: 'Saved to table "{name}".',
     apiSaveFailed: "Save failed: {message}",
     apiCorsWarning:

@@ -4,7 +4,7 @@
  * 역판정한다.
  */
 import { describe, expect, it } from "vitest";
-import { authToEntries, detectAuthPreset } from "./authPreset";
+import { authToEntries, detectAuthPreset, withAuthPreset } from "./authPreset";
 
 describe("authToEntries", () => {
   it("none → 항목 없음", () => {
@@ -69,5 +69,38 @@ describe("detectAuthPreset", () => {
     expect(detectAuthPreset([{ key: "Accept", value: "application/json", enabled: true }], [])).toEqual({
       type: "none",
     });
+  });
+});
+
+// 2026-10-05 감사 — 사용자가 이름을 정한 API Key 항목도 프리셋이 소유한다 (판정 · 교체 · 해제),
+// 기존 vault 참조 이름을 읽어 온다.
+describe("custom API Key names and secret names", () => {
+  const custom = [{ key: "X-Custom", value: "{{secret.K}}", enabled: true }];
+  const other = { key: "Accept", value: "application/json", enabled: true };
+  it("detects a custom-named header key and the vault name", () => {
+    expect(detectAuthPreset([other, ...custom], [])).toEqual({
+      type: "apiKey",
+      in: "header",
+      name: "X-Custom",
+      secretName: "K",
+    });
+    expect(
+      detectAuthPreset(
+        [{ key: "Authorization", value: "Bearer {{secret.MY_TOKEN}}", enabled: true }],
+        [],
+      ),
+    ).toEqual({ type: "bearer", secretName: "MY_TOKEN" });
+  });
+  it("replacing or clearing the preset removes the custom-named entry", () => {
+    const renamed = withAuthPreset([other, ...custom], [], {
+      type: "apiKey",
+      in: "header",
+      name: "X-Other",
+      secretName: "K",
+    });
+    expect(renamed.headers.map((h) => h.key)).toEqual(["Accept", "X-Other"]);
+    expect(withAuthPreset([other, ...custom], [], { type: "none" }).headers).toEqual([
+      other,
+    ]);
   });
 });

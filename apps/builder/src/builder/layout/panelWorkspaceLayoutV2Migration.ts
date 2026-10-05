@@ -229,7 +229,13 @@ export function parsePanelLayoutV1(
   defaults: PanelLayoutState,
 ): PanelWorkspaceResult<PanelLayoutState> {
   input = canonicalizePersistedPanelIds(input);
-  if (!isRecord(input) || input.version === PANEL_WORKSPACE_LAYOUT_VERSION) {
+  // v1 records carry no version: any numbered record (v2, and a later v3 / v4 primary a fallback
+  // may hand over) is not one.
+  if (
+    !isRecord(input) ||
+    input.version === PANEL_WORKSPACE_LAYOUT_VERSION ||
+    (typeof input.version === "number" && input.version >= 2)
+  ) {
     return { ok: false, error: "Panel layout is not a v1 record" };
   }
   const registryById = new Map(registry.map((entry) => [entry.id, entry]));

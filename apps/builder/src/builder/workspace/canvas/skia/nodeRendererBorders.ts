@@ -444,16 +444,17 @@ function renderBoxShadows(
     paint.setAntiAlias(true);
     paint.setColor(shadow.color);
 
-    if (shadow.sigmaX > 0 || shadow.sigmaY > 0) {
-      paint.setImageFilter(
-        ck.ImageFilter.MakeBlur(
-          shadow.sigmaX,
-          shadow.sigmaY,
-          ck.TileMode.Decal,
-          null,
-        ),
-      );
-    }
+    // The paint holds its own reference: the JS handle is deleted after the draw.
+    const blur =
+      shadow.sigmaX > 0 || shadow.sigmaY > 0
+        ? ck.ImageFilter.MakeBlur(
+            shadow.sigmaX,
+            shadow.sigmaY,
+            ck.TileMode.Decal,
+            null,
+          )
+        : null;
+    if (blur) paint.setImageFilter(blur);
 
     canvas.save();
     canvas.translate(shadow.dx, shadow.dy);
@@ -490,6 +491,7 @@ function renderBoxShadows(
     }
 
     releasePooledPaint(paint);
+    blur?.delete();
     canvas.restore();
   }
 }
@@ -577,16 +579,17 @@ function renderInnerBoxShadows(
     const paint = acquirePooledPaint(ck);
     paint.setAntiAlias(true);
     paint.setColor(shadow.color);
-    if (shadow.sigmaX > 0 || shadow.sigmaY > 0) {
-      paint.setImageFilter(
-        ck.ImageFilter.MakeBlur(
-          shadow.sigmaX,
-          shadow.sigmaY,
-          ck.TileMode.Decal,
-          null,
-        ),
-      );
-    }
+    // The paint holds its own reference: the JS handle is deleted after the draw.
+    const blur =
+      shadow.sigmaX > 0 || shadow.sigmaY > 0
+        ? ck.ImageFilter.MakeBlur(
+            shadow.sigmaX,
+            shadow.sigmaY,
+            ck.TileMode.Decal,
+            null,
+          )
+        : null;
+    if (blur) paint.setImageFilter(blur);
 
     canvas.save();
     // box 내부로 clip → 오프셋 donut 의 침입부(=inner edge shadow)만 남는다.
@@ -610,6 +613,7 @@ function renderInnerBoxShadows(
 
     path.delete();
     releasePooledPaint(paint);
+    blur?.delete();
   }
 }
 

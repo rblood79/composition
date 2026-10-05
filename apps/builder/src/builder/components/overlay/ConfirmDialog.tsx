@@ -24,6 +24,11 @@ export interface ConfirmDialogProps {
   tone?: "danger" | "default";
   onConfirm: () => void;
   onCancel: () => void;
+  /**
+   * Escape / a press outside (default `onCancel`). Give it when the cancel button is another
+   * choice (keep the rows, paste without the columns): closing must not pick it.
+   */
+  onDismiss?: () => void;
 }
 
 export function ConfirmDialog({
@@ -35,6 +40,7 @@ export function ConfirmDialog({
   tone = "danger",
   onConfirm,
   onCancel,
+  onDismiss,
 }: ConfirmDialogProps) {
   const { t } = useI18n();
   return (
@@ -43,7 +49,7 @@ export function ConfirmDialog({
       isOpen={isOpen}
       isDismissable
       onOpenChange={(open) => {
-        if (!open) onCancel();
+        if (!open) (onDismiss ?? onCancel)();
       }}
     >
       <Modal className="confirm-dialog-modal">

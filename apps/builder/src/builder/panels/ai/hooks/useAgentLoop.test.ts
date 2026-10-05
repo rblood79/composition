@@ -13,6 +13,8 @@ const scripted = vi.hoisted(() => ({
   /** Agent 루프를 매달아 둔다 — `release` 로 푼다 (Stop 뒤 재전송 검사). */
   hang: false,
   release: null as null | (() => void),
+  /** Every hung loop's release, in call order. */
+  releases: [] as (() => void)[],
   generating: [] as string[][],
 }));
 
@@ -38,6 +40,7 @@ vi.mock("../../../../services/ai/createAgentRunner", () => ({
         if (scripted.hang)
           await new Promise<void>((resolve) => {
             scripted.release = resolve;
+            scripted.releases.push(resolve);
           });
         for (const event of scripted.events) yield event;
       },
@@ -105,8 +108,10 @@ afterEach(() => {
   scripted.runnerCreations = 0;
   scripted.direct = false;
   scripted.release?.();
+  for (const release of scripted.releases) release();
   scripted.hang = false;
   scripted.release = null;
+  scripted.releases = [];
   scripted.generating = [];
 });
 
@@ -283,6 +288,38 @@ describe("Stop 뒤 재전송", () => {
     });
     // 먼저 매달렸던 요청의 finally 가 새 요청 상태를 덮지 않는다
     expect(useConversationStore.getState().isStreaming).toBe(false);
+  });
+});
+
+// 2026-10-05 감사 — 중단한 턴이 늦게 끝나도 그 뒤에 시작한 턴의 실행 상태를 끄지 않는다 (finally
+// 만 막혀 있고 루프 뒤 정리가 막혀 있지 않아, 새 턴의 Stop 버튼이 사라지고 다음 제출이 버려졌다).
+describe("Stop 뒤 새 턴이 도는 동안 이전 턴이 끝날 때", () => {
+  it("이전 턴의 정리가 새 턴의 실행 상태를 덮지 않는다", async () => {
+    scripted.hang = true;
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
+    let first: Promise<void> | undefined;
+    await act(async () => {
+      first = result.current.runAgent("첫 요청");
+      await Promise.resolve();
+    });
+    act(() => result.current.stopAgent());
+    let second: Promise<void> | undefined;
+    await act(async () => {
+      second = result.current.runAgent("둘째 요청");
+      await Promise.resolve();
+    });
+    expect(useConversationStore.getState().isAgentRunning).toBe(true);
+    scripted.releases[0]?.();
+    await act(async () => {
+      await first;
+    });
+    expect(useConversationStore.getState().isAgentRunning).toBe(true);
+    expect(useConversationStore.getState().isStreaming).toBe(true);
+    scripted.releases[1]?.();
+    await act(async () => {
+      await second;
+    });
+    expect(useConversationStore.getState().isAgentRunning).toBe(false);
   });
 });
 

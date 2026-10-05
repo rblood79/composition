@@ -28,10 +28,17 @@ export interface GridPasteInput {
   schema: readonly DataField[];
   rowCount: number;
   anchor: { rowIndex: number; colIndex: number };
+  /**
+   * The rows the grid shows, in order (a filter hides some): line r goes to the r-th visible row
+   * from the anchor, never to a hidden one. Absent = every row in order.
+   */
+  rowOrder?: readonly number[];
 }
 
 export interface PastedCell {
   rowIndex: number;
+  /** The clipboard line the cell came from (an extra column's value index). */
+  line: number;
   key: string;
   value: unknown;
   invalid: boolean;
@@ -84,6 +91,7 @@ export function planGridPaste({
   schema,
   rowCount,
   anchor,
+  rowOrder,
 }: GridPasteInput): GridPastePlan {
   const cells: PastedCell[] = [];
   const newRows: Record<string, unknown>[] = [];
@@ -105,8 +113,17 @@ export function planGridPaste({
   const extraRaw = new Map<number, string[]>();
   const takenKeys = new Set<string>();
 
+  const anchorPosition = rowOrder?.indexOf(anchor.rowIndex) ?? -1;
+  const rowOf = (r: number) => {
+    if (!rowOrder || anchorPosition < 0) return anchor.rowIndex + r;
+    const position = anchorPosition + r;
+    // Past the last visible row: new rows at the end.
+    return position < rowOrder.length
+      ? rowOrder[position]!
+      : rowCount + (position - rowOrder.length);
+  };
   grid.forEach((line, r) => {
-    const rowIndex = anchor.rowIndex + r;
+    const rowIndex = rowOf(r);
     const isNewRow = rowIndex >= rowCount;
     const newRow: Record<string, unknown> | null = isNewRow
       ? Object.fromEntries(schema.map((f) => [f.key, null]))
@@ -128,6 +145,7 @@ export function planGridPaste({
       else
         cells.push({
           rowIndex,
+          line: r,
           key: field.key,
           value: coerced.value,
           invalid: !coerced.ok,
@@ -201,8 +219,10 @@ export function gridPasteToOps(
         value: cell.value,
       });
     }
+    const line =
+      byRow.get(rowIndex)?.[0]?.line ?? rowIndex - plan.anchorRowIndex;
     for (const column of extras) {
-      const value = column.values[rowIndex - plan.anchorRowIndex];
+      const value = column.values[line];
       if (value === undefined) continue;
       ops.push({
         op: "set_cell",

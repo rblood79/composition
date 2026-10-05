@@ -274,6 +274,10 @@ export function useAgentLoop() {
               }
             }
 
+            // A stopped turn that ends late (its stream settles after a new turn began) leaves
+            // the new turn's state and feedback alone — Stop already cleaned up after it.
+            if (requestRef.current !== request) return;
+
             // G.3: generating 완료
             if (currentSelectedId) {
               useAIVisualFeedbackStore
@@ -292,6 +296,8 @@ export function useAgentLoop() {
             if (import.meta.env.DEV) {
               console.error("[useAgentLoop] Agent error:", error);
             }
+            if (requestRef.current !== request || request.signal.aborted)
+              return;
 
             // G.3: generating 취소
             useAIVisualFeedbackStore.getState().cancelGenerating();

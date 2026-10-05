@@ -39,6 +39,7 @@ function deriveTextBehaviorPreset(
   wb: string,
   ow: string,
   to: string,
+  /** Only Truncate reads it: overflow is the Size section's control. */
   of: string,
 ): string {
   if (ws === "nowrap" && to === "ellipsis" && of === "hidden")
@@ -53,8 +54,7 @@ function deriveTextBehaviorPreset(
     (!ws || ws === "normal") &&
     (!wb || wb === "normal") &&
     (!ow || ow === "normal") &&
-    (!to || to === "clip") &&
-    (!of || of === "visible")
+    (!to || to === "clip")
   )
     return "normal";
   return "custom";

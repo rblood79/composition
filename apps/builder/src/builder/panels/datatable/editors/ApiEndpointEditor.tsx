@@ -58,7 +58,11 @@ import {
 } from "../../../stores/utils/uploadEndpointProbe";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
-import { authToEntries, detectAuthPreset, type AuthPreset } from "./authPreset";
+import {
+  detectAuthPreset,
+  withAuthPreset,
+  type AuthPreset,
+} from "./authPreset";
 import { buildSaveApiAsTableOps } from "./saveApiAsTable";
 import { recommendArrayPaths } from "../utils/responseSchema";
 import { listSecretNames, setSecret } from "../utils/secretVault";
@@ -581,8 +585,10 @@ function AuthTab({
   const [where, setWhere] = useState<"header" | "query">(
     detected.type === "apiKey" ? detected.in : "header",
   );
+  // The vault name the request already references, else one made from the endpoint name.
   const [secretName, setSecretName] = useState(
-    `${endpoint.name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}_KEY`,
+    ("secretName" in detected && detected.secretName) ||
+      `${endpoint.name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}_KEY`,
   );
   const [secretValue, setSecretValue] = useState("");
   const [savedNames, setSavedNames] = useState<string[]>([]);
@@ -591,20 +597,15 @@ function AuthTab({
     void listSecretNames(endpoint.project_id).then(setSavedNames);
   }, [endpoint.project_id]);
 
-  // 프리셋을 헤더/쿼리 항목으로 반영 (auth 계열만 교체, 나머지 헤더는 보존)
+  // 프리셋을 헤더/쿼리 항목으로 반영 (현재 프리셋의 항목만 교체 — 이름을 정한 API Key 포함, 나머지는 보존)
   const applyPreset = (auth: AuthPreset) => {
-    const entries = authToEntries(auth);
-    const nonAuthHeaders = (endpoint.headers ?? []).filter(
-      (h) => !/^authorization$/i.test(h.key) && !isApiKeyHeader(h.key),
+    void save(
+      withAuthPreset(endpoint.headers ?? [], endpoint.queryParams ?? [], auth),
     );
-    const nonAuthQuery = (endpoint.queryParams ?? []).filter(
-      (q) => !isApiKeyQuery(q.key),
-    );
-    void save({
-      headers: [...nonAuthHeaders, ...entries.headers],
-      queryParams: [...nonAuthQuery, ...entries.queryParams],
-    });
   };
+  /** A blur writes only a changed field (the shown value may be what the request already has). */
+  const appliedSecret = "secretName" in detected ? detected.secretName : "";
+  const appliedName = detected.type === "apiKey" ? detected.name : "";
 
   const buildAuth = (type: AuthPreset["type"]): AuthPreset => {
     switch (type) {
@@ -669,9 +670,10 @@ function AuthTab({
               value={name}
               spellCheck={false}
               onChange={(e) => setName(e.target.value)}
-              onBlur={() =>
-                applyPreset({ type: "apiKey", in: where, name, secretName })
-              }
+              onBlur={() => {
+                if (name !== appliedName)
+                  applyPreset({ type: "apiKey", in: where, name, secretName });
+              }}
             />
           </fieldset>
         </>
@@ -690,7 +692,10 @@ function AuthTab({
               value={secretName}
               spellCheck={false}
               onChange={(e) => setSecretName(e.target.value)}
-              onBlur={() => applyPreset(buildAuth(preset))}
+              onBlur={() => {
+                if (secretName !== appliedSecret)
+                  applyPreset(buildAuth(preset));
+              }}
             />
           </fieldset>
           <fieldset className="properties-aria">
@@ -725,25 +730,6 @@ function AuthTab({
     </div>
   );
 }
-
-const API_KEY_HEADERS = new Set([
-  "x-api-key",
-  "api-key",
-  "apikey",
-  "x-auth-token",
-]);
-const API_KEY_QUERIES = new Set([
-  "api_key",
-  "apikey",
-  "api-key",
-  "key",
-  "token",
-  "access_token",
-]);
-const isApiKeyHeader = (key: string) =>
-  API_KEY_HEADERS.has(key.trim().toLowerCase());
-const isApiKeyQuery = (key: string) =>
-  API_KEY_QUERIES.has(key.trim().toLowerCase());
 
 // ============================================
 // Response 탭 — status/time/size + Pretty/Raw/Schema + 테이블로 저장
@@ -892,6 +878,21 @@ function SchemaView({
   const [tableName, setTableName] = useState(endpoint.name || "table");
   const [attach, setAttach] = useState(false);
   const [saving, setSaving] = useState(false);
+  // 「기존 테이블에 잇기」 — 이 프로젝트의 collection 중 하나 (기본: 이미 이어진 테이블).
+  const collections = useDataStore((state) => state.collections);
+  const tables = useMemo(
+    () =>
+      [...collections.values()].filter(
+        (table) => table.project_id === endpoint.project_id,
+      ),
+    [collections, endpoint.project_id],
+  );
+  const [attachTarget, setAttachTarget] = useState(
+    endpoint.targetCollectionId ?? "",
+  );
+  const attachId = tables.some((table) => table.id === attachTarget)
+    ? attachTarget
+    : tables[0]?.id;
 
   const rows = useMemo(() => {
     const resolved = resolveResponseData(readPath(parsed, path), "");
@@ -904,9 +905,10 @@ function SchemaView({
   }
 
   const doSave = async () => {
+    if (attach && !attachId) return;
     setSaving(true);
     try {
-      const collectionId = crypto.randomUUID();
+      const collectionId = attach ? attachId! : crypto.randomUUID();
       const schema = columns
         .filter((c) => c.selected !== false)
         .map((c) => ({ key: c.key, type: c.type }));
@@ -927,7 +929,10 @@ function SchemaView({
         mode: attach ? "attach" : "create",
       });
       await applyDataChange({ ops, origin: "user" });
-      announceDataPanelStatus(dt("apiSaved", { name: tableName }), {
+      const savedName = attach
+        ? (tables.find((table) => table.id === collectionId)?.name ?? tableName)
+        : tableName;
+      announceDataPanelStatus(dt("apiSaved", { name: savedName }), {
         tone: "success",
       });
     } catch (error) {
@@ -969,21 +974,34 @@ function SchemaView({
         <input
           type="checkbox"
           checked={attach}
+          disabled={tables.length === 0}
           onChange={(e) => setAttach(e.target.checked)}
         />
         {dt("apiAttachExisting")}
       </label>
-      <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt("apiSaveTableName")}</legend>
-        <input
-          type="text"
-          className="datatable-api-input"
-          aria-label={dt("apiSaveTableName")}
-          value={tableName}
-          spellCheck={false}
-          onChange={(e) => setTableName(e.target.value)}
+      {attach && attachId ? (
+        <PropertySelect
+          label={dt("apiAttachTarget")}
+          value={attachId}
+          onChange={setAttachTarget}
+          options={tables.map((table) => ({
+            value: table.id,
+            label: table.name,
+          }))}
         />
-      </fieldset>
+      ) : (
+        <fieldset className="properties-aria">
+          <legend className="fieldset-legend">{dt("apiSaveTableName")}</legend>
+          <input
+            type="text"
+            className="datatable-api-input"
+            aria-label={dt("apiSaveTableName")}
+            value={tableName}
+            spellCheck={false}
+            onChange={(e) => setTableName(e.target.value)}
+          />
+        </fieldset>
+      )}
       <Button
         className="control-button"
         data-variant="primary"

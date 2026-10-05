@@ -219,6 +219,25 @@ describe("ADR-248 Phase 4e-4d-3 Size", () => {
     expect(host.applyRatio("other", "1 / 1")).toBe("selection-changed");
   });
 
+  // 2026-10-05 감사 — 잠금이 breakpoint 레이어의 fill 을 지우는 쓰기 (노드 전체 put) 는 앞선 base
+  // 쓰기를 덮지 않는다: 각 쓰기가 앞 쓰기의 결과 위에서 계획된다.
+  it("Ratio lock with tablet and mobile height fills keeps the base ratio and drops both fills", async () => {
+    const { workspace, node, host } = await open();
+    for (const bp of ["tablet", "mobile"] as const) {
+      workspace.setBreakpoint(bp);
+      const id = workspace.session.getSnapshot().selection[0].identity;
+      host.applySizing(id, { axis: "height", mode: "fill" });
+    }
+    expect(node().responsive?.tablet?.fillSizing?.height).toBeDefined();
+    expect(node().responsive?.mobile?.fillSizing?.height).toBeDefined();
+    workspace.setBreakpoint("desktop");
+    const record = workspace.session.getSnapshot().selection[0].identity;
+    expect(host.applyRatio(record, "1 / 1")).toBe(null);
+    expect(node().visual.aspectRatio).toEqual({ kind: "set", value: "1 / 1" });
+    expect(node().responsive?.tablet?.fillSizing?.height).toBeUndefined();
+    expect(node().responsive?.mobile?.fillSizing?.height).toBeUndefined();
+  });
+
   it("size-mode reads: the fill intent, the parent's layout and the measured box", async () => {
     const { workspace, host, record } = await open();
     const wrapper = ({ children }: { children: ReactNode }) => (

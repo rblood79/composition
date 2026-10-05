@@ -14,39 +14,9 @@ import "@composition/shared/components/styles/index.css";
 import "pretendard/dist/web/static/pretendard.css";
 
 // 폰트 유틸리티
-import {
-  loadFontRegistry,
-  buildRegistryFontFaceCss,
-  resolveAssetUrl,
-  setAssetUrlResolverLoader,
-  subscribeAssetUrls,
-} from "@composition/shared";
+import { setAssetUrlResolverLoader } from "@composition/shared";
 import { injectBuiltinFontStyle } from "../fonts/builtinFonts";
-
-// ============================================
-// Styles
-// ============================================
-
-/**
- * 커스텀 폰트 @font-face CSS를 DOM에 주입합니다.
- * localStorage의 FontRegistry에서 읽어옵니다.
- */
-const injectCustomFonts = () => {
-  try {
-    const registry = loadFontRegistry();
-    const style = document.createElement("style");
-    style.id = "preview-custom-fonts";
-    document.head.appendChild(style);
-    const apply = () => {
-      style.textContent = buildRegistryFontFaceCss(registry, resolveAssetUrl);
-    };
-    apply();
-    // ADR-235 — `asset:` 폰트는 준비되면 다시 주입 (준비 전 face 는 건너뛴다)
-    subscribeAssetUrls(apply);
-  } catch {
-    // FontRegistry 없으면 무시
-  }
-};
+import { injectPreviewCustomFonts } from "./customFontStyle";
 
 // ============================================
 // Initialize Preview Runtime
@@ -62,7 +32,7 @@ function initPreviewRuntime() {
   );
   injectBuiltinFontStyle();
   injectPreviewBaseStyles();
-  injectCustomFonts();
+  injectPreviewCustomFonts();
 
   // Canvas 마커 설정
   document.body.setAttribute("data-canvas", "true");

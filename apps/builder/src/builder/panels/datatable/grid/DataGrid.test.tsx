@@ -536,3 +536,14 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     });
   });
 });
+
+// 2026-10-05 감사 — 문자열 id 테이블의 새 행 id 는 기존 행과 겹치지 않는다 (row_${n+1} 은 행을
+// 지운 뒤 기존 id 와 겹쳤다).
+describe("nextRowId", () => {
+  it("a string id skips the ids in use", async () => {
+    const { nextRowId } = await import("./DataGrid");
+    expect(nextRowId([{ id: "row_1" }, { id: "row_3" }], "string")).toBe("row_4");
+    expect(nextRowId([{ id: "row_2" }, { id: "a" }], "string")).toBe("row_3");
+    expect(nextRowId([{ id: 4 }, { id: 9 }], "number")).toBe(10);
+  });
+});

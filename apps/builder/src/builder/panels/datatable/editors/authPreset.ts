@@ -102,23 +102,82 @@ const API_KEY_QUERIES = new Set([
   "access_token",
 ]);
 
+/** The vault name in a `{{secret.NAME}}` reference ("" when the value holds none). */
+const secretNameIn = (value: string) =>
+  /\{\{secret\.([^}]+)\}\}/.exec(value)?.[1] ?? "";
+/** A value that is only a vault reference — what an API Key preset writes. */
+const isSecretRef = (value: string) =>
+  /^\s*\{\{secret\.[^}]+\}\}\s*$/.test(value);
+
 export function detectAuthPreset(
   headers: readonly ApiHeaderEntry[],
   queryParams: readonly ApiQueryEntry[],
 ): AuthPreset {
   for (const h of headers) {
-    const key = h.key.trim().toLowerCase();
-    if (key === AUTH_HEADER) {
-      if (/^\s*basic\s+/i.test(h.value))
-        return { type: "basic", secretName: "" };
-      return { type: "bearer", secretName: "" };
-    }
-    if (API_KEY_HEADERS.has(key))
-      return { type: "apiKey", in: "header", name: h.key, secretName: "" };
+    if (h.key.trim().toLowerCase() !== AUTH_HEADER) continue;
+    const secretName = secretNameIn(h.value);
+    return /^\s*basic\s+/i.test(h.value)
+      ? { type: "basic", secretName }
+      : { type: "bearer", secretName };
   }
-  for (const q of queryParams) {
-    if (API_KEY_QUERIES.has(q.key.trim().toLowerCase()))
-      return { type: "apiKey", in: "query", name: q.key, secretName: "" };
-  }
+  // An API Key header / query: a vault reference under any name (the user names the key), else a
+  // well-known key name.
+  const header =
+    headers.find((h) => isSecretRef(h.value)) ??
+    headers.find((h) => API_KEY_HEADERS.has(h.key.trim().toLowerCase()));
+  if (header)
+    return {
+      type: "apiKey",
+      in: "header",
+      name: header.key,
+      secretName: secretNameIn(header.value),
+    };
+  const query =
+    queryParams.find((q) => isSecretRef(q.value)) ??
+    queryParams.find((q) => API_KEY_QUERIES.has(q.key.trim().toLowerCase()));
+  if (query)
+    return {
+      type: "apiKey",
+      in: "query",
+      name: query.key,
+      secretName: secretNameIn(query.value),
+    };
   return { type: "none" };
+}
+
+/**
+ * The request's headers and query with `auth` applied: the current preset's entries (the
+ * Authorization header, the detected API Key entry — a user-named key too) give way to the new
+ * ones; every other entry stays.
+ */
+export function withAuthPreset(
+  headers: readonly ApiHeaderEntry[],
+  queryParams: readonly ApiQueryEntry[],
+  auth: AuthPreset,
+): { headers: ApiHeaderEntry[]; queryParams: ApiQueryEntry[] } {
+  const current = detectAuthPreset(headers, queryParams);
+  const owned = (key: string, where: "header" | "query") => {
+    const lower = key.trim().toLowerCase();
+    if (where === "header" && lower === AUTH_HEADER) return true;
+    if (
+      current.type === "apiKey" &&
+      current.in === where &&
+      current.name.trim().toLowerCase() === lower
+    )
+      return true;
+    return where === "header"
+      ? API_KEY_HEADERS.has(lower)
+      : API_KEY_QUERIES.has(lower);
+  };
+  const entries = authToEntries(auth);
+  return {
+    headers: [
+      ...headers.filter((h) => !owned(h.key, "header")),
+      ...entries.headers,
+    ],
+    queryParams: [
+      ...queryParams.filter((q) => !owned(q.key, "query")),
+      ...entries.queryParams,
+    ],
+  };
 }

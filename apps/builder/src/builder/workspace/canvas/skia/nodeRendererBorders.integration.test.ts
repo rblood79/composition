@@ -135,6 +135,38 @@ describe("nodeRendererBorders 실제 CanvasKit 통합", () => {
     expect(outset.clipPaths.every(({ path }) => path.isDeleted())).toBe(true);
   });
 
+  // 2026-10-05 감사 — blur 가 있는 inset shadow 의 ImageFilter 는 그린 뒤 해제한다 (pooled paint 의
+  // setImageFilter(null) 은 paint 쪽 참조만 놓는다 — JS 핸들은 delete 해야 WASM heap 에서 빠진다).
+  it("inner shadow 의 blur ImageFilter 를 해제한다", () => {
+    const made: { isDeleted(): boolean }[] = [];
+    const original = ck.ImageFilter.MakeBlur;
+    ck.ImageFilter.MakeBlur = ((...args: Parameters<typeof original>) => {
+      const filter = original(...args);
+      made.push(filter);
+      return filter;
+    }) as typeof original;
+    try {
+      const node = createNode();
+      node.effects = [
+        {
+          type: "drop-shadow",
+          dx: 0,
+          dy: 2,
+          sigmaX: 2,
+          sigmaY: 2,
+          color: Float32Array.of(0, 0, 0, 0.5),
+          inner: true,
+          spread: 0,
+        },
+      ];
+      renderBox(ck, createCanvasRecorder().canvas, node);
+    } finally {
+      ck.ImageFilter.MakeBlur = original;
+    }
+    expect(made).toHaveLength(1);
+    expect(made.every((filter) => filter.isDeleted())).toBe(true);
+  });
+
   it("inner shadow EvenOdd donut과 arc geometry를 보존하고 Path를 해제한다", () => {
     const shadowRecorder = createCanvasRecorder();
     const shadowNode = createNode();

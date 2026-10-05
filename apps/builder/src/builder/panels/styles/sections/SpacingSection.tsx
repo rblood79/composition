@@ -26,7 +26,8 @@ import { useStylesSelectedId } from "../stylesHost";
  * LayoutSection 내부 컨텐츠 — 섹션이 열릴 때만 마운트
  */
 const SpacingSectionContent = memo(function SpacingSectionContent() {
-  const { updateStyleImmediate } = useOptimizedStyleActions();
+  const { updateStyleImmediate, updateStylesImmediate } =
+    useOptimizedStyleActions();
   const { commitLayoutPresentation } = useLayoutPresentationActions();
   const selectedId = useStylesSelectedId();
   const styleValues = useLayoutValues(selectedId);
@@ -48,6 +49,15 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
     value: string,
   ) => {
     updateStyleImmediate(`margin${direction}`, value);
+  };
+
+  const handleRingChange = (ring: "padding" | "margin", value: string) => {
+    updateStylesImmediate({
+      [`${ring}Top`]: value,
+      [`${ring}Right`]: value,
+      [`${ring}Bottom`]: value,
+      [`${ring}Left`]: value,
+    });
   };
 
   if (!styleValues) return null;
@@ -107,6 +117,7 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
       margin={marginValues}
       onPaddingChange={handlePaddingChange}
       onMarginChange={handleMarginChange}
+      onRingChange={handleRingChange}
       activePaddingSides={activePaddingSides}
     />
   );

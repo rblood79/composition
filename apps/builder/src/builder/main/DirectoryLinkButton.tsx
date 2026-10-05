@@ -8,36 +8,24 @@ import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { Button } from "react-aria-components/Button";
 import type { Key } from "react-aria-components/Collection";
-import { useEffect, useState } from "react";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
 import { useI18n } from "../../i18n";
 // 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
 import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
 
-/** `projectDirectoryLink.DIRECTORY_LINK_EVENT` 와 같은 값 */
-const DIRECTORY_LINK_EVENT = "composition:directory-link";
-
 export type DirectoryLinkAction =
   "permission" | "open" | "overwrite" | "restore" | "disconnect";
 
 export default function DirectoryLinkButton({
-  projectId,
+  state,
   onAction,
 }: {
-  projectId: string;
+  /** The project's last link state (`useCatalogProjectFiles` keeps it — it outlives this button). */
+  state: DirectoryLinkState | null;
   onAction: (action: DirectoryLinkAction) => void;
 }) {
   const { t } = useI18n();
-  const [state, setState] = useState<DirectoryLinkState | null>(null);
-  useEffect(() => {
-    const onState = (event: Event) => {
-      const detail = (event as CustomEvent<DirectoryLinkState>).detail;
-      if (detail.projectId === projectId) setState(detail);
-    };
-    window.addEventListener(DIRECTORY_LINK_EVENT, onState);
-    return () => window.removeEventListener(DIRECTORY_LINK_EVENT, onState);
-  }, [projectId]);
 
   const status = state?.status ?? "idle";
   const problem =

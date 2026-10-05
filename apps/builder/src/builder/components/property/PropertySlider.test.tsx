@@ -123,3 +123,41 @@ describe("PropertySlider 드래그 중 thumb", () => {
     expect((slider as HTMLInputElement).value).toBe("50");
   });
 });
+
+// 2026-10-05 감사 — 포커스된 값 칸 (실제 사용) 에서도 Escape 는 커밋하지 않고 Enter 는 한 번만
+// 커밋한다 (keydown 안의 blur() 가 이전 렌더의 commitDraft 를 실행했다).
+describe("PropertySlider 값 칸 — 포커스된 상태", () => {
+  const open = () => {
+    const onChange = vi.fn();
+    const onChangeEnd = vi.fn();
+    render(
+      <PropertySlider
+        label="Width"
+        labelMode="inline"
+        editable
+        value={1}
+        min={0}
+        max={20}
+        onChange={onChange}
+        onChangeEnd={onChangeEnd}
+      />,
+    );
+    const input = screen.getByRole("textbox", { name: "Width" }) as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: "12" } });
+    return { input, onChange, onChangeEnd };
+  };
+
+  it("Escape 는 커밋하지 않는다", () => {
+    const { input, onChangeEnd } = open();
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onChangeEnd).not.toHaveBeenCalled();
+  });
+
+  it("Enter 는 한 번만 커밋한다", () => {
+    const { input, onChangeEnd } = open();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChangeEnd).toHaveBeenCalledTimes(1);
+    expect(onChangeEnd).toHaveBeenCalledWith(12);
+  });
+});

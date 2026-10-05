@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { replayFillEdit } from "./fillEdit";
 import {
   setFields,
   setWholeField,
@@ -231,6 +232,27 @@ export function createCatalogStylesHost(
   workspace: CatalogWorkspace,
 ): StylesHost {
   const selection = () => workspace.session.getSnapshot().selection;
+  /**
+   * The layers the panel shows for a target (`useElementStyleContext`): an instance's own, else
+   * its component's — an edit builds on them, so adding a layer keeps the component's.
+   */
+  const fillsOf = (target: EditTarget): FillItem[] => {
+    const own = workspace.readModel.ownFields(target);
+    const background = catalogAuthoredValues(own.visual).backgroundColor;
+    const master = masterTargetOf(workspace, target);
+    return resolveElementFills({
+      fills: (catalogFillItems(own.fills) ??
+        (master
+          ? catalogFillItems(workspace.readModel.ownFields(master).fills)
+          : undefined)) as FillItem[] | undefined,
+      props: {
+        style: {
+          backgroundColor:
+            typeof background === "string" ? background : undefined,
+        },
+      },
+    });
+  };
   /**
    * What a drag previews per record (keys of successive previews add up); an edit or another
    * selection puts the records' own values back.
@@ -517,6 +539,7 @@ export function createCatalogStylesHost(
         items.map((item) => [targetKey(item.target), item.identity]),
       );
       const command = catalogRatioCommand({
+        graph: workspace.runtime.graph,
         targets: items.map((item) => item.target),
         own: (target) => workspace.readModel.ownFields(target),
         breakpoint: workspace.session.getSnapshot().breakpoint,
@@ -548,61 +571,59 @@ export function createCatalogStylesHost(
     },
     readFills() {
       const first = selection()[0];
-      if (!first) return [];
-      const own = workspace.readModel.ownFields(first.target);
-      const background = catalogAuthoredValues(own.visual).backgroundColor;
-      // The layers the panel shows (`useElementStyleContext`): an instance's own, else its
-      // component's — an edit builds on them, so adding a layer keeps the component's.
-      const master = masterTargetOf(workspace, first.target);
-      return resolveElementFills({
-        fills: (catalogFillItems(own.fills) ??
-          (master
-            ? catalogFillItems(workspace.readModel.ownFields(master).fills)
-            : undefined)) as FillItem[] | undefined,
-        props: {
-          style: {
-            backgroundColor:
-              typeof background === "string" ? background : undefined,
-          },
-        },
-      });
+      return first ? fillsOf(first.target) : [];
     },
     updateFills(fills) {
       run(() => {
-        const targets = selection().map((item) => item.target);
-        if (!targets.length) return undefined;
-        const paint = setWholeField({
-          targets,
-          field: "fills",
-          value: fills.length ? catalogFillLayers(fills) : [],
-          label: "Fill",
+        const items = selection();
+        if (!items.length) return undefined;
+        // The panel built `fills` on the first element's layers: the others replay the change.
+        const before = fillsOf(items[0].target);
+        const commands = items.map((item, index) => {
+          const next =
+            index === 0
+              ? fills
+              : replayFillEdit(before, fills, fillsOf(item.target));
+          return setWholeField({
+            targets: [item.target],
+            field: "fills",
+            value: next.length ? catalogFillLayers(next) : [],
+            label: "Fill",
+          });
         });
         const derived = setFields({
-          targets,
+          targets: items.map((item) => item.target),
           visual: Object.fromEntries(
             FILL_DERIVED_STYLE_PROPS.map((key) => [key, { kind: "remove" }]),
           ),
         });
         return (reader) => ({
           label: "Fill",
-          ops: [...paint(reader).ops, ...derived(reader).ops],
+          ops: [
+            ...commands.flatMap((command) => command(reader).ops),
+            ...derived(reader).ops,
+          ],
         });
       });
     },
     previewFills(fills) {
       const items = selection();
       endPreviews(new Set(items.map((item) => item.identity)));
-      const layers = fills.length ? catalogFillLayers(fills) : [];
-      for (const item of items) {
-        if (!workspace.root.domInputs.has(item.identity)) continue;
-        const next: CatalogRecordPreview = {
+      const before = items[0] ? fillsOf(items[0].target) : [];
+      items.forEach((item, index) => {
+        if (!workspace.root.domInputs.has(item.identity)) return;
+        const next =
+          index === 0
+            ? fills
+            : replayFillEdit(before, fills, fillsOf(item.target));
+        const preview: CatalogRecordPreview = {
           ...previewed.get(item.identity),
-          fills: layers,
+          fills: next.length ? catalogFillLayers(next) : [],
           omitVisual: FILL_DERIVED_STYLE_PROPS,
         };
-        previewed.set(item.identity, next);
-        workspace.root.previewRecord(item.identity, next);
-      }
+        previewed.set(item.identity, preview);
+        workspace.root.previewRecord(item.identity, preview);
+      });
     },
     cancelPreview: () => endPreviews(),
     resetFills() {

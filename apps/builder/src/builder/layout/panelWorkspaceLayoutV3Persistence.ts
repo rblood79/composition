@@ -209,18 +209,25 @@ function recoverV3Commit(
   if (!migrationId) {
     return { status: "already-v3", layout, migrationId: null };
   }
-  if (
-    !backup.ok ||
-    backup.value.migrationId !== migrationId ||
-    !verifyMigratedPrimary(layout, backup.value, registry, surfaceRect)
-  ) {
+  if (!backup.ok || backup.value.migrationId !== migrationId) {
     return failure(
       "backup-mismatch",
       "V3 primary does not match its exact v2 backup",
     );
   }
+  // A committed migration is done: the primary is trusted as written. Migrating the backup again
+  // to compare would depend on today's surface (normalizing only shrinks tracks), so a larger
+  // window would fail the check and fall back to the old layout.
   if (backup.value.state === "committed") {
     return { status: "already-v3", layout, migrationId };
+  }
+  // A prepared marker: the write may have stopped half way — the primary must be the backup's
+  // exact migration.
+  if (!verifyMigratedPrimary(layout, backup.value, registry, surfaceRect)) {
+    return failure(
+      "backup-mismatch",
+      "V3 primary does not match its exact v2 backup",
+    );
   }
   try {
     storage.setItem(

@@ -47,21 +47,22 @@ import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import { useSemanticLabel } from "../../../../i18n";
 import { useStylesHost, useStylesSelectedId } from "../stylesHost";
 
-/** ADR-008 Text Behavior 프리셋 — 5개 속성 묶음 (빈 문자열 = 해제). */
+/**
+ * ADR-008 Text Behavior 프리셋 (빈 문자열 = 해제). `overflow` 는 Size 절의 컨트롤이라 Truncate
+ * 만 쓴다 — 다른 프리셋이 지우면 Size 절에서 정한 overflow (모서리 clip 등) 가 사라진다.
+ */
 const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
   normal: {
     whiteSpace: "",
     wordBreak: "",
     overflowWrap: "",
     textOverflow: "",
-    overflow: "",
   },
   nowrap: {
     whiteSpace: "nowrap",
     wordBreak: "",
     overflowWrap: "",
     textOverflow: "",
-    overflow: "",
   },
   truncate: {
     whiteSpace: "nowrap",
@@ -75,21 +76,18 @@ const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
     wordBreak: "",
     overflowWrap: "break-word",
     textOverflow: "",
-    overflow: "",
   },
   "break-all": {
     whiteSpace: "",
     wordBreak: "break-all",
     overflowWrap: "",
     textOverflow: "",
-    overflow: "",
   },
   "keep-all": {
     whiteSpace: "",
     wordBreak: "keep-all",
     overflowWrap: "break-word",
     textOverflow: "",
-    overflow: "",
   },
   // "Auto" = pre-wrap — 새 Text 의 기본 (줄바꿈 보존 · 폭에서 접힘, Figma 규약). 종전 이름 "Preserve".
   auto: {
@@ -97,7 +95,6 @@ const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
     wordBreak: "",
     overflowWrap: "",
     textOverflow: "",
-    overflow: "",
   },
 };
 
@@ -130,9 +127,15 @@ const TypographySectionContent = memo(function TypographySectionContent() {
     (preset: string) => {
       const values = TEXT_BEHAVIOR_PRESETS[preset];
       if (!values) return; // 'custom' → no-op
-      updateStyles(values);
+      // Leaving Truncate takes back the overflow: hidden it set.
+      updateStyles(
+        preset !== "truncate" &&
+          styleValues?.textBehaviorPreset === "truncate"
+          ? { ...values, overflow: "" }
+          : values,
+      );
     },
-    [updateStyles],
+    [updateStyles, styleValues?.textBehaviorPreset],
   );
 
   const fontWeightOptions = useMemo(

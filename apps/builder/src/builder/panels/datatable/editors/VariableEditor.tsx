@@ -10,7 +10,7 @@
  * legacy 데이터 호환으로 타입에만 남아 있다 (`data.types.ts`).
  */
 
-import { useCallback, useId } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
 import { useDataVariablesHost } from "../usage/dataVariablesHost";
@@ -182,16 +182,13 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
           onChange={(checked) => onUpdate({ defaultValue: checked })}
         />
       ) : variable.type === "object" || variable.type === "array" ? (
-        <div className="json-editor-wrapper">
-          <textarea
-            className="json-textarea"
-            aria-labelledby={defaultValueHeadingId}
-            value={defaultValueStr}
-            onChange={(e) => handleDefaultValueChange(e.target.value)}
-            placeholder={variable.type === "array" ? "[]" : "{}"}
-            rows={6}
-          />
-        </div>
+        <JsonDefaultValue
+          key={variable.id}
+          defaultValueHeadingId={defaultValueHeadingId}
+          value={defaultValueStr}
+          type={variable.type}
+          onCommit={(parsed) => onUpdate({ defaultValue: parsed })}
+        />
       ) : (
         <PropertyInput
           label="Default Value"
@@ -214,6 +211,76 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
           "The value persists after refreshing the page.",
         )}
       </p>
+    </div>
+  );
+}
+
+/**
+ * An object / array default value: typed into a local draft and written on blur, only when it
+ * is valid JSON of the type (a half-typed value is marked invalid, never saved as `[]` / `{}`).
+ */
+function JsonDefaultValue({
+  defaultValueHeadingId,
+  value,
+  type,
+  onCommit,
+}: {
+  defaultValueHeadingId: string;
+  value: string;
+  type: VarType;
+  onCommit: (parsed: unknown) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [invalid, setInvalid] = useState(false);
+  const focused = useRef(false);
+  // Another edit (undo, AI) shows unless the field is being typed in.
+  useEffect(() => {
+    if (!focused.current) setDraft(value);
+  }, [value]);
+  const commit = () => {
+    focused.current = false;
+    if (draft.trim() === "") {
+      setInvalid(false);
+      if (value !== "") onCommit(undefined);
+      return;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(draft);
+    } catch {
+      setInvalid(true);
+      return;
+    }
+    if (
+      Array.isArray(parsed) !== (type === "array") ||
+      typeof parsed !== "object" ||
+      parsed === null
+    ) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    if (
+      JSON.stringify(parsed) !==
+      JSON.stringify(value ? JSON.parse(value) : undefined)
+    )
+      onCommit(parsed);
+  };
+  return (
+    <div className="json-editor-wrapper">
+      <textarea
+        className="json-textarea"
+        aria-labelledby={defaultValueHeadingId}
+        aria-invalid={invalid || undefined}
+        value={draft}
+        onFocus={() => {
+          focused.current = true;
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        placeholder={type === "array" ? "[]" : "{}"}
+        rows={6}
+      />
     </div>
   );
 }

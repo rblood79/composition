@@ -39,10 +39,10 @@ describe("planGridPaste", () => {
       anchor: { rowIndex: 1, colIndex: 1 },
     });
     expect(plan.cells).toEqual([
-      { rowIndex: 1, key: "name", value: "Ann", invalid: false },
-      { rowIndex: 1, key: "age", value: 30, invalid: false },
-      { rowIndex: 2, key: "name", value: "Bob", invalid: false },
-      { rowIndex: 2, key: "age", value: null, invalid: true },
+      { rowIndex: 1, line: 0, key: "name", value: "Ann", invalid: false },
+      { rowIndex: 1, line: 0, key: "age", value: 30, invalid: false },
+      { rowIndex: 2, line: 1, key: "name", value: "Bob", invalid: false },
+      { rowIndex: 2, line: 1, key: "age", value: null, invalid: true },
     ]);
     expect(plan.newRows).toEqual([]);
     expect(plan.extraColumns).toEqual([]);
@@ -69,7 +69,7 @@ describe("planGridPaste", () => {
       anchor: { rowIndex: 0, colIndex: 2 },
     });
     expect(plan.cells).toEqual([
-      { rowIndex: 0, key: "age", value: 40, invalid: false },
+      { rowIndex: 0, line: 0, key: "age", value: 40, invalid: false },
     ]);
     expect(plan.newRows).toEqual([{ id: null, name: null, age: 41 }]);
     expect(plan.extraColumns).toEqual([
@@ -160,5 +160,33 @@ describe("gridPasteToOps", () => {
         addExtraColumns: false,
       }),
     ).toEqual([]);
+  });
+});
+
+// 2026-10-05 감사 — 필터가 켜져 있으면 붙여넣기는 보이는 행 순서를 따른다 (숨은 행을 덮지 않는다).
+describe("planGridPaste with a filtered row order", () => {
+  it("lines go to the visible rows; past the last visible row they are new rows", () => {
+    const plan = planGridPaste({
+      grid: [["a"], ["b"], ["c"], ["d"]],
+      schema,
+      rowCount: 100,
+      anchor: { rowIndex: 5, colIndex: 1 },
+      rowOrder: [5, 40, 77],
+    });
+    expect(plan.cells.map((cell) => cell.rowIndex)).toEqual([5, 40, 77]);
+    expect(plan.newRows).toHaveLength(1);
+    expect(plan.newRows[0]).toMatchObject({ name: "d" });
+    const ops = gridPasteToOps(
+      { ...plan, extraColumns: [{ key: "x", type: "string", values: ["1", "2", "3", "4"] }] },
+      { collectionId: "c", schema, addExtraColumns: true },
+    );
+    const extraCells = ops.filter(
+      (op) => op.op === "set_cell" && (op as { fieldId: string }).fieldId === "x",
+    ) as { rowIndex: number; value: unknown }[];
+    expect(extraCells.map((op) => [op.rowIndex, op.value])).toEqual([
+      [5, "1"],
+      [40, "2"],
+      [77, "3"],
+    ]);
   });
 });

@@ -398,6 +398,7 @@ function FieldForm({
         cancelLabel={dt("fieldTypeChangeKeep")}
         onConfirm={() => void applyTypeChange("clear")}
         onCancel={() => void applyTypeChange("keep")}
+        onDismiss={() => setPendingType(null)}
       />
     </div>
   );

@@ -297,3 +297,45 @@ describe("explain_request_failure tool", () => {
     });
   });
 });
+
+// 2026-10-05 감사 — 본문을 2KB 로 자르기 전에 가리고, 잘려 닫는 따옴표가 없는 값도 가린다.
+describe("response body redaction at the clamp boundary", () => {
+  it("a token cut by the 2KB clamp does not leak its head", () => {
+    const token = `tk-CANARY-${"x".repeat(60)}`;
+    const padding = "a".repeat(REQUEST_FAILURE_BODY_MAX_BYTES - 60);
+    const body = `{"pad":"${padding}","access_token":"${token}"}`;
+    const context = buildRequestFailureContext(
+      endpoint(),
+      failedRun({
+        response: {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: {},
+          bodyPreview: body,
+          bodyTruncated: false,
+          bodyBytes: body.length,
+        },
+      }),
+      [users()],
+    );
+    expect(context.response?.body).not.toContain("tk-CANARY");
+  });
+
+  it("a snapshot already cut inside a value is redacted to the end", () => {
+    const context = buildRequestFailureContext(
+      endpoint(),
+      failedRun({
+        response: {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: {},
+          bodyPreview: `{"error":"x","token":"${RESP_CANARY}`,
+          bodyTruncated: true,
+          bodyBytes: 4096,
+        },
+      }),
+      [users()],
+    );
+    expect(context.response?.body).not.toContain(RESP_CANARY);
+  });
+});

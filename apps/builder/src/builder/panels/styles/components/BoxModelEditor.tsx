@@ -33,6 +33,8 @@ interface BoxModelEditorProps {
   readonly margin: BoxSideValues;
   readonly onPaddingChange: (side: BoxSide, value: string) => void;
   readonly onMarginChange: (side: BoxSide, value: string) => void;
+  /** A linked commit: the ring's four sides as one edit (one history step). */
+  readonly onRingChange?: (ring: BoxRing, value: string) => void;
   /**
    * ADR-222: 캔버스 spacing 세션이 소유 중인 padding 변 — 강조 표시 + 잠시 read-only
    * (외부 드래그 중 local draft 가 이전 값을 다시 덮지 않도록, breakdown §4.1).
@@ -76,6 +78,7 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   margin,
   onPaddingChange,
   onMarginChange,
+  onRingChange,
   activePaddingSides,
 }: BoxModelEditorProps) {
   const localize = useSemanticLabel();
@@ -102,11 +105,20 @@ export const BoxModelEditor = memo(function BoxModelEditor({
       ) {
         return;
       }
-      const css = toCss(draft[ring][side], ring === "margin");
+      const typed = draft[ring][side];
+      // A blur without a change writes nothing: the shown value may be the catalog default.
+      if (
+        linked
+          ? SIDES.every((target) => derived[ring][target] === typed)
+          : derived[ring][side] === typed
+      )
+        return;
+      const css = toCss(typed, ring === "margin");
       const write = ring === "padding" ? onPaddingChange : onMarginChange;
       if (linked) {
-        // link 는 같은 고리 4값 연동
-        for (const target of SIDES) write(target, css);
+        // link 는 같은 고리 4값 연동 — 한 편집 (한 step)
+        if (onRingChange) onRingChange(ring, css);
+        else for (const target of SIDES) write(target, css);
         setDraft((prev) => ({
           ...prev,
           [ring]: {
@@ -120,7 +132,15 @@ export const BoxModelEditor = memo(function BoxModelEditor({
       }
       write(side, css);
     },
-    [draft, linked, onMarginChange, onPaddingChange, selectedElementId],
+    [
+      derived,
+      draft,
+      linked,
+      onMarginChange,
+      onPaddingChange,
+      onRingChange,
+      selectedElementId,
+    ],
   );
 
   const renderInput = (ring: BoxRing, side: BoxSide) => (

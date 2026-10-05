@@ -307,3 +307,28 @@ describe("ADR-186 prepared/committed v3 -> v4 migration protocol", () => {
     ).toBe(3);
   });
 });
+
+// 2026-10-05 감사 — committed backup 의 v4 primary 는 다음 부팅의 화면 크기와 무관하게 그대로 쓴다
+// (committed 에도 재마이그레이션 비교를 해, 작은 창에서 옮긴 뒤 큰 창으로 열면 backup-mismatch →
+// 폴백이 v4 를 v1 으로 잘못 읽어 레이아웃을 지웠다).
+describe("committed v4 primary on a larger surface", () => {
+  it("stays v4 without a write when the next boot has a larger surface", () => {
+    const storage = new FaultStorage();
+    storage.values.set(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, v3Raw());
+    const small = migratePanelWorkspaceStorageToV4({
+      ...migrationOptions(storage),
+      surfaceRect: { width: 700, height: 300 },
+    });
+    expect(small).toMatchObject({ status: "migrated" });
+    const primary = storage.values.get(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY);
+    const writes = storage.writes.length;
+
+    const large = migratePanelWorkspaceStorageToV4({
+      ...migrationOptions(storage),
+      surfaceRect: { width: 1600, height: 1200 },
+    });
+    expect(large).toMatchObject({ status: "already-v4" });
+    expect(storage.writes.length).toBe(writes);
+    expect(storage.values.get(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY)).toBe(primary);
+  });
+});

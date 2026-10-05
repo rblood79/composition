@@ -143,10 +143,11 @@ export function redactHeaderRecord(
 
 /**
  * JSON 본문 텍스트 안의 auth 키 (`"apiKey": "…"`) 값을 가린다 — 파싱하지 않고 텍스트
- * 치환이라 JSON 이 깨져 있어도 (실패 응답 본문) 동작한다.
+ * 치환이라 JSON 이 깨져 있어도 (실패 응답 본문) 동작한다. 잘린 본문 끝에서 닫는 따옴표 없이
+ * 끝나는 값도 끝까지 가린다.
  */
 const JSON_AUTH_KEY = new RegExp(
-  `("(?:${[...AUTH_QUERY_KEYS, "apikey", "apiKey", "accessToken", "authToken", "clientSecret", "authorization"].join("|")})"\\s*:\\s*")([^"]*)(")`,
+  `("(?:${[...AUTH_QUERY_KEYS, "apikey", "apiKey", "accessToken", "authToken", "clientSecret", "authorization"].join("|")})"\\s*:\\s*")([^"]*)("|$)`,
   "gi",
 );
 

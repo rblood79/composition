@@ -11,6 +11,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [편집 덮어쓰기·입력 중 저장·secret 노출 등 22건 수리 — 미열람 범위 감사 MEDIUM] - 2026-10-05
+
+### Fixed
+
+- **여러 쓰기를 한 step 으로 묶을 때 앞 쓰기가 사라짐**:
+  - 형제 둘 이상을 함께 Absolute 로 바꾸면 순서가 틀어졌다 (`[A,B,C]` → `[A,C,B]`).
+  - tablet 에서 높이가 Fill 인 요소에 Ratio 잠금을 걸면 비율이 저장되지 않았다.
+  - **Why**: 명령들을 모두 편집 전 상태로 계획했다. 노드 전체를 다시 쓰는 쓰기 (부모 children · breakpoint fill) 가 앞 쓰기를 덮었다.
+  - 수정: `composeCommands` 로 각 명령이 앞 명령의 결과 위에서 계획된다 (`position.ts` · `sizing.ts`).
+- **Canvas**:
+  - inset box-shadow 의 blur ImageFilter 를 그릴 때마다 해제하지 않아 WASM 메모리가 늘었다 (`nodeRendererBorders.ts`).
+  - 간격 인라인 입력에서 화살표를 한 번 누르면 바로 저장되고 입력창이 닫혔다 (RAC NumberField 는 화살표 증감에도 onChange 를 부른다). 이제 화살표로 올리는 동안 열려 있고 Enter · blur 에서 한 번 저장한다.
+- **Styles 패널**:
+  - fill 이 없는 요소에서 opacity 를 바꾸면 Canvas 미리보기만 남고 저장되지 않았다. 색처럼 실제 fill 로 승격한다.
+  - Spacing 입력칸에 포커스했다 나가기만 해도 catalog 기본값이 사용자 값으로 저장됐다. 바뀐 값만 쓴다.
+  - padding 을 link 상태로 고치면 되돌리기가 4단계로 쌓였다. 한 step 으로 쓴다.
+  - 여러 요소를 선택하고 fill 을 고치면 첫 요소의 fill 이 나머지를 통째로 덮었다. 각 요소의 layer 에 같은 변경 (같은 위치의 필드 · 추가 · 삭제 · 순서) 을 옮긴다 (`fillEdit.ts`).
+  - Text 탭 Wrap 프리셋이 Size 절에서 정한 overflow 를 지웠다. Truncate 만 overflow 를 쓰고, Truncate 를 풀 때만 그 overflow 를 푼다.
+- **Data 패널**:
+  - 「기존 테이블에 잇기」 로 저장하면 매번 새 id 로 보내 항상 실패했다. 이을 테이블을 고르게 했다.
+  - Auth 탭이 API Key 이름을 바꾸거나 해제해도 이전 헤더 · 쿼리를 남겨 함께 전송했다. 사용자가 정한 이름도 프리셋 항목으로 판정 · 교체한다.
+  - Auth 탭을 다시 열고 Secret name 칸에 포커스했다 나가기만 해도 헤더가 다른 secret 을 가리켰다. 저장된 vault 이름을 읽어 오고 바뀐 값만 쓴다.
+  - object · array 변수의 기본값을 입력하는 도중에 값이 `[]` 로 바뀌었다. blur 에서 JSON 이 맞을 때만 저장한다.
+  - 필드 타입 변경 확인창을 Esc · 바깥 클릭으로 닫아도 타입이 바뀌었다 (붙여넣기 열 추가 확인창도 같았다). `ConfirmDialog` 에 `onDismiss` 를 두었다.
+  - 필터를 켠 채 여러 줄을 붙여넣으면 숨겨진 행을 덮어썼다. 보이는 행 순서를 따른다.
+  - 문자열 id 테이블에서 행을 지운 뒤 추가하면 새 행 id 가 기존 행과 겹쳤다.
+- **AI**:
+  - API 실패 응답 본문을 2KB 로 자른 뒤 secret 을 가려, 경계에 걸린 토큰 앞부분이 provider 로 나갔다. 가린 뒤 자르고, 닫는 따옴표 없이 끝나는 값도 가린다.
+  - 중단한 턴이 늦게 끝나면서 그 뒤에 시작한 턴의 실행 상태를 꺼, 새 턴을 멈출 수 없고 다음 제출이 버려졌다.
+- **기타**:
+  - 패널 레이아웃을 작은 창에서 v4 로 옮긴 뒤 큰 창으로 열면 저장된 레이아웃이 지워질 수 있었다. committed 상태는 다시 마이그레이션해 비교하지 않고, v1 파서가 번호 있는 레코드를 받지 않는다.
+  - 폴더를 처음 연결할 때 충돌 · 오류가 나도 헤더에 「동기화됨」 이 보였다. 연결 상태를 항상 mount 된 hook 이 들고 있다가 버튼에 넘긴다.
+  - 열린 Preview 가 새로 올리거나 지운 폰트를 반영하지 않았다. storage 이벤트로 레지스트리를 다시 읽는다 (`preview/customFontStyle.ts`).
+  - 슬라이더 값 칸에서 Escape 를 눌러도 값이 저장됐고 Enter 는 두 번 저장됐다.
+
+### Tests
+
+- 수정 전 RED 를 22건 모두 확인했다. 대부분은 단위 테스트이고, Preview 폰트 · 레이아웃 복구 · 폴더 연결은 가설을 반증 테스트로 확인했다.
+- 검증: type-check 6/6, builder 4068 PASS.
+- 실제 Builder 에서 대조군과 함께 확인했다:
+  - 형제 둘 동시 Absolute 의 children 순서: 수정 전 `a,c,b` → 수정 후 `c,a,b`
+  - Compare Mode Preview iframe 의 `@font-face`: 수정 전 폰트 등록 뒤에도 빈 문자열 → 수정 후 새 family 가 들어감
+- 감사 MEDIUM 23건 중 PanelHeader 이름 바꾸기 Escape 는 실제 Chrome 에서 반증됐다 (Escape 뒤 이름 그대로). 그래서 수정하지 않고 LOW deferred 로 둔다.
+
 ## [linear gradient 길이·API 고치기 전 URL 요청 수리 — 미열람 범위 감사 HIGH 2건] - 2026-10-05
 
 ### Fixed

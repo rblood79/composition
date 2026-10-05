@@ -109,15 +109,16 @@ export function buildRequestFailureContext(
 
   let response: RequestFailureContext["response"] = null;
   if (run.response) {
+    // Redact before the clamp: a value cut at the boundary keeps no closing quote.
     const clamped = clampBytes(
-      run.response.bodyPreview,
+      redactBodyText(run.response.bodyPreview),
       REQUEST_FAILURE_BODY_MAX_BYTES,
     );
     response = {
       status: run.response.status,
       statusText: run.response.statusText,
       headers: redactHeaderRecord(run.response.headers),
-      body: redactBodyText(clamped.text),
+      body: clamped.text,
       bodyTruncated: run.response.bodyTruncated || clamped.truncated,
       bodyBytes: run.response.bodyBytes,
     };

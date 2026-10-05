@@ -7,10 +7,11 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { applyDataChange, execute, apiRuns } = vi.hoisted(() => ({
+const { applyDataChange, execute, apiRuns, collections } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({ endpointIds: ["ep1"] })),
   execute: vi.fn(async () => ({})),
   apiRuns: new Map<string, unknown>(),
+  collections: new Map<string, unknown>(),
 }));
 
 vi.mock("../../../stores/data", () => ({
@@ -20,6 +21,7 @@ vi.mock("../../../stores/data", () => ({
       executeApiEndpoint: execute,
       loadingApis: new Set(),
       apiRuns,
+      collections,
     }),
 }));
 
@@ -58,6 +60,7 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   apiRuns.clear();
+  collections.clear();
 });
 
 describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
@@ -178,5 +181,64 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     // 실패 상태 줄 (status 405) 은 그리지 않는다 — 오류가 아니다
     expect(container.querySelector(".datatable-api-status")).toBeNull();
     expect(execute).toHaveBeenCalledWith("ep1");
+  });
+
+  // 2026-10-05 감사 — 「기존 테이블에 잇기」 는 고른 기존 collection 에 잇는다 (매번 새 uuid 로
+  // set_source 를 보내 없는 collection 이라 항상 실패하던 결함).
+  it("Schema — 기존 테이블에 잇기는 고른 collection 으로 set_source·define_endpoint", async () => {
+    collections.set("c-orders", {
+      id: "c-orders",
+      name: "orders table",
+      project_id: "p",
+      schema: [],
+    });
+    apiRuns.set("ep1", {
+      runId: "r1",
+      endpointId: "ep1",
+      startedAt: "2026-10-05T00:00:00.000Z",
+      durationMs: 5,
+      ok: true,
+      request: { method: "GET", url: "https://api.test/orders", headers: {}, bodyType: "none" },
+      response: {
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        bodyPreview: JSON.stringify([{ id: 1, name: "a" }]),
+        bodyTruncated: false,
+        bodyBytes: 20,
+      },
+    });
+    const { getByRole, getByLabelText } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} initialTab="params" />),
+    );
+    fireEvent.click(getByRole("tab", { name: "Response" }));
+    fireEvent.click(getByRole("tab", { name: /Schema/ }));
+    fireEvent.click(getByLabelText("Attach to existing table"));
+    const save = getByRole("button", { name: /Save/ });
+    fireEvent.pointerDown(save, { button: 0 });
+    fireEvent.pointerUp(save, { button: 0 });
+    fireEvent.click(save);
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalled());
+    const ops = lastOps() as { op: string; collectionId?: string; endpoint?: { targetCollectionId?: string } }[];
+    expect(ops.map((op) => op.op)).toEqual(["set_source", "define_endpoint"]);
+    expect(ops[0]!.collectionId).toBe("c-orders");
+    expect(ops[1]!.endpoint?.targetCollectionId).toBe("c-orders");
+  });
+
+  // 2026-10-05 감사 — Auth 탭은 저장된 vault 이름을 읽어 오고, 값을 바꾸지 않은 blur 는 쓰지 않는다.
+  it("Auth 탭 — 저장된 secret 이름을 보이고 바꾸지 않은 blur 는 쓰지 않는다", async () => {
+    const withAuth = {
+      ...endpoint,
+      headers: [{ key: "Authorization", value: "Bearer {{secret.MY_TOKEN}}", enabled: true }],
+    } as unknown as ApiEndpoint;
+    const { getByLabelText } = render(
+      wrap(<ApiEndpointEditor endpoint={withAuth} onClose={() => {}} initialTab="auth" />),
+    );
+    const secret = getByLabelText("Secret name") as HTMLInputElement;
+    expect(secret.value).toBe("MY_TOKEN");
+    fireEvent.focus(secret);
+    fireEvent.blur(secret);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(applyDataChange).not.toHaveBeenCalled();
   });
 });

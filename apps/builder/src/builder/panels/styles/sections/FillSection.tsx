@@ -105,6 +105,7 @@ const FillSectionContent = memo(function FillSectionContent() {
   const {
     addFill,
     ensureColorFill,
+    ensureColorFillOpacity,
     removeFill,
     reorderFill,
     toggleFill,
@@ -308,13 +309,17 @@ const FillSectionContent = memo(function FillSectionContent() {
         return;
       }
       if (firstFill) updateFill(firstFill.id, { opacity });
+      // The virtual row previewed the opacity: its commit makes the fill real, like a color does.
+      else ensureColorFillOpacity(opacity, virtualFill.color);
     },
     [
       firstFill,
+      virtualFill.color,
       paintFallbackFill,
       presentationOwnsPaint,
       commitFirstFillPaintPresentation,
       updateFill,
+      ensureColorFillOpacity,
     ],
   );
 

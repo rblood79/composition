@@ -148,6 +148,29 @@ describe("ADR-248 Phase 4e-4d-3 Position", () => {
     expect(host.applyAbsolute("other", true)).toBe("selection-changed");
   });
 
+  // 2026-10-05 감사 — 여러 노드를 한 번에 absolute 로: 각 move 가 앞 move 의 결과 위에서 계획된다
+  // (같은 reader 로 계획하면 부모 children 을 통째로 쓰는 마지막 move 가 앞 move 를 덮는다).
+  it("absolute on for two siblings fronts both, keeping their order", async () => {
+    const { workspace, graph } = await open();
+    const THIRD = "project:node:third" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: ROW },
+        entries: [frame(THIRD, { sizing: { height: { kind: "set", value: 30 } } })],
+        rootIds: [THIRD],
+        newId: workspace.newId,
+      }),
+    );
+    expect((graph.getEntry(ROW) as NodeEntry).children).toEqual([BOX, NEXT, THIRD]);
+    const records = [BOX, NEXT].map((id) => workspace.root.recordsOfSource(id)[0]);
+    workspace.selectRecords(records);
+    const host = createCatalogStylesHost(workspace);
+    expect(host.applyAbsolute(records[0], true)).toBe(null);
+    expect((graph.getEntry(ROW) as NodeEntry).children).toEqual([THIRD, BOX, NEXT]);
+    expect((graph.getEntry(BOX) as NodeEntry).placement?.kind).toBe("absolute");
+    expect((graph.getEntry(NEXT) as NodeEntry).placement?.kind).toBe("absolute");
+  });
+
   it("a section reads the placement as position / left / top and follows placement-only edits", async () => {
     const { workspace, host, record } = await open();
     const wrapper = ({ children }: { children: ReactNode }) => (

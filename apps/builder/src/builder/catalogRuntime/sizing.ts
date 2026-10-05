@@ -7,7 +7,11 @@ import {
   setFields,
   setFillSizing,
 } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
+import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
 import type { OwnFields } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import type { RatioEditError } from "../utils/ratioEditError";
@@ -140,6 +144,8 @@ export function catalogSizingCommand(input: {
  * measured px on the base and needs the Desktop geometry (other breakpoints measure other boxes).
  */
 export function catalogRatioCommand(input: {
+  /** The commands plan in order on each other's staged records (a layer's fill write is a put). */
+  graph: CatalogGraph;
   targets: readonly EditTarget[];
   own: (target: EditTarget) => OwnFields;
   breakpoint: BreakpointName;
@@ -222,5 +228,8 @@ export function catalogRatioCommand(input: {
       );
     } else commands.push(setFields(writes));
   }
-  return together("Ratio", commands);
+  return () => {
+    const plan = composeCommands(input.graph, "Ratio", commands);
+    return { label: plan.label, ops: plan.ops };
+  };
 }

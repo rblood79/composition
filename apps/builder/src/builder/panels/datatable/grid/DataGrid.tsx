@@ -148,7 +148,10 @@ function coordOf(el: Element | null): CellCoord | null {
   return Number.isInteger(rowIndex) && key !== "" ? { rowIndex, key } : null;
 }
 
-function nextRowId(rows: readonly Record<string, unknown>[], type: string) {
+export function nextRowId(
+  rows: readonly Record<string, unknown>[],
+  type: string,
+) {
   if (type === "number") {
     let max = 0;
     for (const row of rows) {
@@ -157,7 +160,16 @@ function nextRowId(rows: readonly Record<string, unknown>[], type: string) {
     }
     return max + 1;
   }
-  return `row_${rows.length + 1}`;
+  // Past the row count and every `row_N` in use: deleting a row must not hand out an id again.
+  const ids = new Set(rows.map((row) => String(row.id)));
+  let n = rows.length;
+  for (const id of ids) {
+    const match = /^row_(\d+)$/.exec(id);
+    if (match) n = Math.max(n, Number(match[1]));
+  }
+  do n += 1;
+  while (ids.has(`row_${n}`));
+  return `row_${n}`;
 }
 
 export function DataGrid({ table, virtualized = true }: DataGridProps) {
@@ -616,11 +628,16 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         schema,
         rowCount: rows.length,
         anchor: { rowIndex: anchor.rowIndex, colIndex },
+        // A filter hides rows: paste into the visible ones only.
+        rowOrder:
+          items.length === rows.length
+            ? undefined
+            : items.map((item) => item.index),
       });
       if (plan.extraColumns.length > 0) setPendingPaste(plan);
       else void applyPaste(plan, false);
     },
-    [applyPaste, editing, rows.length, schema, t],
+    [applyPaste, editing, items, rows.length, schema, t],
   );
 
   // 비편집 키 — 편집 중엔 셀 안 편집기가 자기 keydown 에서 처리한다 (R1 매트릭스의 editing 축).
@@ -995,6 +1012,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           setPendingPaste(null);
           if (plan) void applyPaste(plan, false);
         }}
+        onDismiss={() => setPendingPaste(null)}
       />
     </div>
   );

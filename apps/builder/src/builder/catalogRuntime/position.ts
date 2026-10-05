@@ -4,7 +4,10 @@ import {
   setFillSizing,
   setWholeField,
 } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   EditTarget,
@@ -109,10 +112,16 @@ export function catalogAbsoluteCommand(input: {
         }),
       );
   }
-  return (reader) => ({
-    label: input.on ? "Absolute position" : "Flow position",
-    ops: commands.flatMap((command) => command(reader).ops),
-  });
+  // Each command plans on the records the earlier ones staged: a move writes its parent's whole
+  // child list, so planning every move on the same reader would keep only the last one.
+  return () => {
+    const plan = composeCommands(
+      input.graph,
+      input.on ? "Absolute position" : "Flow position",
+      commands,
+    );
+    return { label: plan.label, ops: plan.ops };
+  };
 }
 
 /**

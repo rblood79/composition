@@ -36,8 +36,8 @@ function accessibleName(
 /**
  * ADR-248 Phase 4e: the inline number input a click on a spacing handle opens (the old Canvas's
  * `SpacingInlineInput`, without its presentation session) — RAC NumberField at the handle, kept
- * there through pan and zoom by the frame camera channel. Enter or a blur with a new value
- * commits; Escape or an unchanged blur cancels.
+ * there through pan and zoom by the frame camera channel. Arrow keys step the value; Enter or a
+ * blur with a new value commits; Escape or an unchanged blur cancels.
  */
 export const CatalogSpacingInput = memo(function CatalogSpacingInput({
   band,
@@ -47,6 +47,8 @@ export const CatalogSpacingInput = memo(function CatalogSpacingInput({
 }: CatalogSpacingInputProps) {
   const localize = useSemanticLabel();
   const closedRef = useRef(false);
+  /** The value RAC committed last (typed text on Enter / blur, or an arrow / wheel step). */
+  const valueRef = useRef(startValue);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -98,9 +100,10 @@ export const CatalogSpacingInput = memo(function CatalogSpacingInput({
         minValue={0}
         step={1}
         formatOptions={{ maximumFractionDigits: 2 }}
-        // RAC NumberField calls onChange on commit (Enter / blur) only.
+        // RAC NumberField calls onChange on commit (Enter / blur) and on each arrow / wheel step:
+        // the value is kept, and Enter or a blur closes the input with it.
         onChange={(next) => {
-          if (!Number.isNaN(next)) commit(next);
+          if (!Number.isNaN(next)) valueRef.current = next;
         }}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
@@ -108,8 +111,11 @@ export const CatalogSpacingInput = memo(function CatalogSpacingInput({
             event.stopPropagation();
             cancel();
           }
-          if (event.key === "Enter" && event.nativeEvent.isComposing)
-            event.preventDefault();
+          if (event.key === "Enter") {
+            if (event.nativeEvent.isComposing) event.preventDefault();
+            // After RAC's own Enter commit (it parses the typed text into onChange).
+            else queueMicrotask(() => commit(valueRef.current));
+          }
         }}
       >
         <Input
@@ -117,9 +123,9 @@ export const CatalogSpacingInput = memo(function CatalogSpacingInput({
           className="spacing-inline-input__field"
           inputMode="decimal"
           onBlur={() => {
-            // Enter commits through onChange first; a blur with the value unchanged cancels.
+            // After RAC's blur commit; a blur with the value unchanged cancels.
             if (closedRef.current) return;
-            commit(Number(inputRef.current?.value ?? Number.NaN));
+            queueMicrotask(() => commit(valueRef.current));
           }}
         />
       </NumberField>

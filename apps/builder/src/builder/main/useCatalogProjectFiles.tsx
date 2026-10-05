@@ -11,6 +11,8 @@ import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
 import { importDataParts } from "../utils/importCollectionEnvelope";
 import DirectoryLinkButton from "./DirectoryLinkButton";
+// 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
+import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
 
 // Cold paths: the file formats and the folder link load on first use (ADR-235 HC2).
 const exchangeModule = () => import("../catalogRuntime/exchange");
@@ -254,6 +256,19 @@ export function useCatalogProjectFiles(options: {
 
   // Folder link (Chromium File System Access): the v2 container written after durable saves.
   const [folderLinked, setFolderLinked] = useState(false);
+  // The last link state, kept here (always mounted): connecting sends its first state (a conflict,
+  // a failed write) before the header button mounts.
+  const [linkState, setLinkState] = useState<DirectoryLinkState | null>(null);
+  useEffect(() => {
+    setLinkState(null);
+    if (!routeId) return;
+    const onState = (event: Event) => {
+      const detail = (event as CustomEvent<DirectoryLinkState>).detail;
+      if (detail?.projectId === routeId) setLinkState(detail);
+    };
+    window.addEventListener(DIRECTORY_LINK_EVENT, onState);
+    return () => window.removeEventListener(DIRECTORY_LINK_EVENT, onState);
+  }, [routeId]);
   useEffect(() => {
     if (!routeId) return;
     const linked = localStorage.getItem(linkFlagKey(routeId)) === "1";
@@ -335,7 +350,7 @@ export function useCatalogProjectFiles(options: {
   const directoryLink =
     folderLinked && routeId ? (
       <DirectoryLinkButton
-        projectId={routeId}
+        state={linkState}
         onAction={(action) => void onLinkAction(action)}
       />
     ) : null;
