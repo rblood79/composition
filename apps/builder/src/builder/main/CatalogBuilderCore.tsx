@@ -168,7 +168,10 @@ export function CatalogBuilderCore() {
     let cancelled = false;
     let opened: CatalogWorkspace | undefined;
     let restorePageSource: (() => void) | undefined;
-    const stage = (progress: number) => {
+    // `mark`: a boot segment's end as User Timing (`composition:builder.boot.<mark>`), read by the
+    // boot latency harness (ADR-244 Phase 0) together with `first-commit` and `presented`.
+    const stage = (progress: number, mark?: string) => {
+      if (mark) performance.mark(`composition:builder.boot.${mark}`);
       if (!cancelled) setBootProgress(progress);
     };
     (async () => {
@@ -177,12 +180,12 @@ export function CatalogBuilderCore() {
       if (!projectId) throw new CatalogStorageError("PROJECT_NOT_FOUND");
       // Layout engine, CanvasKit and fonts first: the root measures text with CanvasKit paragraphs.
       await initAllWasm();
-      stage(30);
+      stage(30, "wasm");
       getCanvasKit();
       await loadBuiltinFontsToSkia();
       stage(45);
       await loadAllCustomFontsToSkia();
-      stage(55);
+      stage(55, "fonts");
       const library = await loadCatalogProductLibrary();
       stage(65);
       const storage = new CatalogStorage();
@@ -208,7 +211,7 @@ export function CatalogBuilderCore() {
       }
       if (cancelled) return;
       // The rest is the Canvas's first frame (the overlay goes when it is drawn).
-      stage(90);
+      stage(90, "document");
       opened = new CatalogWorkspace(graph, storage, {
         engine: createLayoutEngine(),
         viewport: CANVAS_VIEWPORT.desktop,
@@ -235,6 +238,7 @@ export function CatalogBuilderCore() {
           },
         },
       });
+      performance.mark("composition:builder.boot.workspace");
       // Live harness handle (Playwright): dev, or a production build made for the G5 paired
       // measurement (`VITE_COMPOSITION_HARNESS=1`; a normal build drops this branch).
       if (
