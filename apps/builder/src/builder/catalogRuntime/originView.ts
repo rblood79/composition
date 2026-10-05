@@ -27,10 +27,16 @@ import {
   ORIGIN_VIEW_NODE,
   isComponentsView,
   isLibraryOrigin,
+  isPageCard,
+  isPagePart,
+  isThemeSample,
   originInstanceId,
+  originCardId,
   originOfPageInstance,
+  originPartId,
   originOfSample,
   originSampleId,
+  themeSampleId,
 } from "./originViewNode";
 
 export {
@@ -38,9 +44,15 @@ export {
   ORIGIN_VIEW_NODE,
   isComponentsView,
   isLibraryOrigin,
+  isPageCard,
+  isPagePart,
+  isThemeSample,
   originInstanceId,
+  originCardId,
   originOfPageInstance,
+  originPartId,
   originSampleId,
+  themeSampleId,
 };
 
 /** The origin a Components page node is the editable sample of. */

@@ -18,10 +18,6 @@ import type {
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { resolveCatalogTreeContext } from "../../../catalogRuntime/canvasPick";
-import {
-  originOfPageInstance,
-  originSampleId,
-} from "../../../catalogRuntime/originView";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import {
   catalogLayerDropCommand,
@@ -111,18 +107,8 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         record = records.get(record.parentId)
       )
         parents.add(record.id);
-    // A Components page instance is listed under its origin's row (not under its drawn frames).
-    for (const item of selection) {
-      const origin =
-        item.target.kind === "node"
-          ? originOfPageInstance(item.target.id)
-          : undefined;
-      const row =
-        origin && workspace.itemsOfNode(originSampleId(origin), 1)[0];
-      if (row) parents.add(row.identity);
-    }
     return parents;
-  }, [selectedIds, selection, workspace]);
+  }, [selectedIds, workspace]);
   const expandedKeys = useMemo(() => {
     const merged = new Set(userExpanded);
     for (const key of autoExpanded)

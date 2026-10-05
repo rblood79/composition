@@ -28,6 +28,7 @@ import {
   CatalogOriginEditError,
   COMPONENTS_VIEW,
   ORIGIN_VIEW_NODE,
+  originCardId,
   originInstanceId,
   originSampleId,
 } from "../originView";
@@ -126,8 +127,9 @@ describe("ADR-248 4e library origin view", () => {
       (record) => record.parentId === "catalog:root",
     );
     expect(roots.map((record) => record.sourceId)).toEqual([ORIGIN_VIEW_NODE]);
-    // Layers: the page lists its origins (palette order), an origin its instances — the card,
-    // line and cell frames are not rows.
+    // Layers: the page lists a group per card (theme, then components in palette order); a
+    // component's group holds its origin, the origin's parts and its instances side by side —
+    // the column, line and cell frames are not rows.
     const store = new CatalogLayerTreeStore(
       {
         readModel: workspace.readModel,
@@ -140,44 +142,46 @@ describe("ADR-248 4e library origin view", () => {
     const [root] = store.getSnapshot();
     expect(root!.role).toBe(undefined);
     expect(root!.hasChildren).toBe(true);
-    const [sampleItem] = workspace.itemsOfNode(sampleId, 1);
-    store.setExpanded(new Set([root!.id, sampleItem!.identity]));
-    const pageRows = store.getSnapshot()[0]!.children!;
-    expect(pageRows.slice(0, 4).map((row) => row.name)).toEqual([
+    const cardRow = (id: string) => workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
+    const buttonCard = cardRow(originCardId(button.id));
+    const fieldCard = cardRow(
+      originCardId("lib:definition:origin-component-textfield" as typeof button.id),
+    );
+    store.setExpanded(new Set([root!.id, buttonCard, fieldCard]));
+    const groups = store.getSnapshot()[0]!.children!;
+    expect(groups.map((row) => row.name)).toEqual([
       "Colors",
       "Typography",
       "Icons",
       "Spacing",
+      ...catalogBuiltinOrigins(library).map((origin) => origin.name),
     ]);
-    const originRows = pageRows.slice(4);
-    expect(originRows.map((row) => row.name)).toEqual(
-      catalogBuiltinOrigins(library).map((origin) => origin.name),
-    );
-    expect(originRows.every((row) => row.role === "origin")).toBe(true);
-    const buttonRow = originRows.find((row) => row.id === sampleItem!.identity)!;
-    // IconButton: its parts (template positions), then 6 variants × (rest + 4 states) + 5 sizes.
-    const [icon, label, ...instances] = buttonRow.children!;
+    expect(groups.every((row) => row.role === undefined)).toBe(true);
+    // A theme group lists its values.
+    store.setExpanded(new Set([root!.id, buttonCard, fieldCard, groups[3]!.id]));
+    const groupOf = (id: string) =>
+      store.getSnapshot()[0]!.children!.find((row) => row.id === id)!;
+    expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
+      "md", "2xs", "xs", "sm", "lg", "xl", "2xl",
+    ]);
+    // IconButton: the origin, its 2 parts, then 6 variants × (rest + 4 states) + 5 sizes.
+    const [originRow, icon, label, ...instances] = groupOf(buttonCard).children!;
+    expect(originRow!.role).toBe("origin");
+    expect(originRow!.name).toBe("IconButton");
     expect([icon!.typeName, label!.typeName]).toEqual(["Icon", "Text"]);
-    expect([icon!.role, label!.role]).toEqual([undefined, undefined]);
     expect(instances.every((row) => row.role === "instance")).toBe(true);
     expect(instances.map((row) => row.name).slice(0, 2)).toEqual([
       "IconButton / Accent / Default",
       "IconButton / Accent / Disabled",
     ]);
     expect(instances.length).toBe(35);
-    const [fieldItem] = workspace.itemsOfNode(
-      originSampleId("lib:definition:origin-component-textfield" as typeof button.id),
-      1,
-    );
-    store.setExpanded(new Set([root!.id, fieldItem!.identity]));
-    const fieldRow = store
-      .getSnapshot()[0]!
-      .children!.find((row) => row.id === fieldItem!.identity)!;
-    expect(fieldRow.children!.slice(0, 3).map((row) => row.typeName)).toEqual([
-      "Label",
-      "Input",
-      "FieldError",
-    ]);
+    // The origin's own row holds only its template (not the instances again).
+    expect(originRow!.hasChildren).toBe(true);
+    expect(
+      groupOf(fieldCard)
+        .children!.slice(0, 4)
+        .map((row) => row.typeName),
+    ).toEqual(["TextField", "Label", "Input", "FieldError"]);
     expect(catalogComponentRole(graphOf(workspace), sampleId)).toBe("origin");
     const hover = originInstanceId(button.id, "primary/Hover");
     expect(catalogComponentRole(graphOf(workspace), hover)).toBe("instance");
@@ -186,14 +190,14 @@ describe("ADR-248 4e library origin view", () => {
       const [item] = workspace.itemsOfNode(id, 1);
       expect(workspace.positionOfRecord(item!.identity)).toBeDefined();
     }
-    // A Canvas click picks the sample or instance under it; the page's own frames pick the page.
+    // A Canvas click picks the sample or instance under it; a card's own frames pick the card.
     const records = workspace.root.domInputs;
     const recordOf = (id: string) => workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
     const caption = [...records.values()].find((record) =>
-      record.sourceId.endsWith("/cell/primary/Hover/caption"),
+      record.sourceId.endsWith(`${button.id}/cell/primary/Hover/caption`),
     )!;
     expect(resolveCatalogClickRecord(records, caption.id, undefined)).toBe(
-      recordOf(ORIGIN_VIEW_NODE),
+      recordOf(originCardId(button.id)),
     );
     for (const id of [sampleId, hover])
       expect(resolveCatalogClickRecord(records, recordOf(id), undefined)).toBe(
@@ -242,7 +246,7 @@ describe("ADR-248 4e library origin view", () => {
     expect(titleOf(catalogBuiltinOrigins(library)[0]!.name)).toMatch(/^05\. /);
     const themeNode = (path: string) =>
       nodeOf(`${ORIGIN_VIEW_NODE}/theme/${path}`);
-    expect(themeNode("colors/accent/swatch").visual).toMatchObject({
+    expect(themeNode("colors/accent/sample").visual).toMatchObject({
       backgroundColor: {
         kind: "set",
         value: resolveToken("{color.accent}", "light"),
@@ -251,10 +255,30 @@ describe("ADR-248 4e library origin view", () => {
     expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
       fontSize: { kind: "set", value: 20 },
     });
-    expect(themeNode("icons/search/icon").props).toEqual({
+    expect(themeNode("icons/search/sample").props).toEqual({
       iconName: { kind: "set", value: "search" },
     });
-    expect(themeNode("spacing/md/box").sizing).toMatchObject({
+    // A theme card reads as a component card: its base value as the origin, the rest as instances.
+    const themeCells = (row: NodeEntry) =>
+      nodeOf(row.children[1]!).children.map(nodeOf);
+    const spacingRows = cards
+      .find((candidate) => candidate.name === "Spacing")!
+      .children.slice(1)
+      .map(nodeOf);
+    expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
+    expect(themeCells(spacingRows[0]!).map((cell) => cell.name)).toEqual(["◆ md"]);
+    expect(themeCells(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
+    const colorRows = cards
+      .find((candidate) => candidate.name === "Colors")!
+      .children.slice(1)
+      .map(nodeOf);
+    expect(themeCells(colorRows[0]!).map((cell) => cell.name)).toEqual(
+      expect.arrayContaining(["◆ accent", "◆ neutral", "◆ base"]),
+    );
+    expect(themeCells(colorRows[1]!).map((cell) => cell.name)).toEqual(
+      expect.arrayContaining(["◇ hover", "◇ on-accent"]),
+    );
+    expect(themeNode("spacing/md/sample").sizing).toMatchObject({
       width: { kind: "set", value: 16 },
     });
     const card = cards.find((candidate) => candidate.name === "Button")!;
@@ -307,6 +331,40 @@ describe("ADR-248 4e library origin view", () => {
         toolbar.children.map(nodeOf).find((row) => row.name === "Parts")!,
       ).map((cell) => cell.name),
     ).toEqual(["◇ Button ×3", "Separator"]);
+    // A collection shows its item origin's states (not its own variants — they only tint its
+    // hover): the item drawn on its own, its label filled in and its placeholders off.
+    const grid = cards.find((candidate) => candidate.name === "GridList")!;
+    const gridRows = grid.children.slice(1).map(nodeOf);
+    expect(gridRows.map((row) => row.name)).toEqual([
+      "Origin",
+      "Parts",
+      "Item states",
+    ]);
+    const itemCells = cellsOf(gridRows[2]!);
+    expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
+      ["", "--unselected", "--disabled", "--hover", "--pressed", "--focus-visible"].map(
+        (state) => `lib:definition:origin-component-gridlist-item-default${state}`,
+      ),
+    );
+    const hoverItem = sampleOf(itemCells[3]!);
+    expect(catalogComponentRole(graph, hoverItem.id)).toBe("instance");
+    expect(
+      hoverItem.descendantOverrides.find(
+        (item) => item.kind === "patch" && item.props,
+      ),
+    ).toMatchObject({
+      address: {
+        instances: [
+          hoverItem.id,
+          "lib:template:component-gridlist-item-default--hover",
+        ],
+        templatePath: [
+          "lib:template:component-gridlist-item-default",
+          "lib:template:component-gridlist-item-default__label",
+        ],
+      },
+      props: { children: { kind: "set", value: "Item" } },
+    });
     const accentHover = sampleOf(cellsOf(rows[1]!)[2]!);
     expect(accentHover.definitionId).toBe(`${origin}--hover`);
     expect(accentHover.props).toEqual({

@@ -23,11 +23,16 @@ import {
   catalogDefinitionTitle,
   catalogOriginOverride,
   isLibraryOrigin,
+  isPageCard,
+  isPagePart,
+  isThemeSample,
   ORIGIN_VIEW_NODE,
+  originCardId,
   originInstanceId,
   originOfEditableSample,
   originOfPageInstance,
   originSampleId,
+  themeSampleId,
 } from "./originView";
 import {
   catalogCreationProps,
@@ -44,7 +49,7 @@ import {
  * (its template's children), then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
  * by side) and sizes. All of it is graph view entries (never saved, exported or indexed). The
- * Layers tree lists the page as origin → parts and instances (`catalogComponentsPageRows`).
+ * Layers tree lists the page as card → origin, parts and instances (`catalogComponentsPageRows`).
  */
 const COLUMNS = 6;
 const COLUMN_WIDTH = 560;
@@ -62,6 +67,8 @@ const SAMPLE_ICONS = [
   "triangle-alert", "lock", "upload", "download", "star", "heart", "trash-2",
 ];
 const ICON = "lib:definition:type-Icon";
+const TYPE_BASE = "text-base";
+const SELECT_TRIGGER = "lib:definition:type-SelectTrigger";
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
   "base", "raised", "layer-1", "layer-2", "elevated", "disabled",
@@ -141,6 +148,68 @@ function originFacets(
 }
 
 /**
+ * A collection origin's item origin: the origin with state variants its template holds — under
+ * the root or one container down (a TabList's tabs) — and that item's parts to fill in when it
+ * is drawn alone (`label`: its text; the others hold a `{placeholder}` and are switched off).
+ * `undefined` = not a collection (or a picker: its items are drawn in a popup).
+ */
+function originItems(
+  graph: CatalogGraph,
+  originId: LibraryDefinitionId,
+  stateIds: ReadonlyMap<string, readonly LibraryDefinitionId[]>,
+) {
+  const library = graph.library;
+  const templateOf = (definitionId: string | undefined) => {
+    const definition = definitionId
+      ? library.definitions.get(definitionId as LibraryDefinitionId)
+      : undefined;
+    const rootId =
+      definition && "templateRootId" in definition
+        ? definition.templateRootId
+        : undefined;
+    const root = rootId ? library.templates.get(rootId) : undefined;
+    return rootId && root ? { rootId, root } : undefined;
+  };
+  const own = templateOf(originId);
+  if (!own) return undefined;
+  const children = own.root.children.map((id) =>
+    library.templates.get(id as LibraryTemplateId),
+  );
+  if (children.some((child) => child?.definitionId === SELECT_TRIGGER))
+    return undefined;
+  const origin = [
+    ...children,
+    ...children.flatMap((child) =>
+      (child?.children ?? []).map((id) =>
+        library.templates.get(id as LibraryTemplateId),
+      ),
+    ),
+  ].find((child) => child && stateIds.has(child.definitionId))?.definitionId as
+    | LibraryDefinitionId
+    | undefined;
+  const item = templateOf(origin);
+  if (!origin || !item) return undefined;
+  const placeholder = (props: Readonly<Record<string, unknown>> | undefined) =>
+    Object.values(props ?? {}).some(
+      (value) => typeof value === "string" && /^\{.+\}$/.test(value),
+    );
+  let labelled = false;
+  const parts = item.root.children.flatMap((id) => {
+    const child = library.templates.get(id as LibraryTemplateId);
+    if (!child || !placeholder(child.props)) return [];
+    const label =
+      !labelled &&
+      child.definitionId === "lib:definition:text" &&
+      (child.props?.slot === undefined || child.props.slot === "label");
+    labelled ||= label;
+    return [
+      { path: [item.rootId, id as LibraryTemplateId], label },
+    ];
+  });
+  return { origin, parts };
+}
+
+/**
  * An origin taken apart: its template's direct children, one of each kind in template order
  * (`count` of them; `instance` = the part is another origin's instance — a Toolbar's Button).
  */
@@ -186,13 +255,13 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
   return [...parts.values()];
 }
 
-const THEME_CARD = /\/theme\/[a-z]+\/card$/;
 /** The Layers rows read so far, by the page's root entry (a new one each time the page is laid out). */
 const pageRows = new WeakMap<object, Map<string, CatalogPosition[]>>();
 /**
  * The Layers rows of a Components page node, where they differ from its drawn children: the page
- * lists its origins (palette order) and an origin its parts, then the instances on its card —
- * the card, line and cell frames are layout only. `undefined` = the node's own children.
+ * lists its cards (a group per component, numbered order) and a card what it holds — the origin,
+ * the origin's parts and its instances, side by side; the column, line and cell frames are
+ * layout only. `undefined` = the node's own children (an origin's own template).
  */
 export function catalogComponentsPageRows(
   reader: CatalogReader,
@@ -217,8 +286,7 @@ function readPageRows(
   if (position.target.kind !== "node") return undefined;
   const id = position.target.id;
   const isPageRoot = id === ORIGIN_VIEW_NODE;
-  const origin = originOfEditableSample(id);
-  if (!isPageRoot && !origin) return undefined;
+  if (!isPageRoot && !isPageCard(id)) return undefined;
   // A row's identity carries its drawn ancestry: rows are found by walking the page's frames.
   const found: CatalogPosition[] = [];
   const walk = (from: CatalogPosition, wanted: (id: string) => boolean) => {
@@ -228,26 +296,32 @@ function readPageRows(
     }
   };
   if (isPageRoot) {
-    walk(position, (nodeId) => originOfEditableSample(nodeId) !== undefined);
-    const order = new Map(
+    // The cards in their numbered order (the columns hold them in drawn order).
+    walk(position, isPageCard);
+    const order = new Map<string, number>(
       catalogBuiltinOrigins(reader.library).map((item, index) => [
-        originSampleId(item.id) as string,
+        originCardId(item.id),
         index,
       ]),
     );
-    found.sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!);
-    // The theme cards first (their swatches and samples are their rows).
-    const origins = found.splice(0);
-    walk(position, (nodeId) => THEME_CARD.test(nodeId));
-    return [...found, ...origins];
+    const theme = found.filter((card) => !order.has(card.sourceId));
+    return [
+      ...theme,
+      ...found
+        .filter((card) => order.has(card.sourceId))
+        .sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!),
+    ];
   }
-  // The card is the sample's ancestor four frames up (card › line › cells › cell › sample).
-  const cardPath = position.instancePath.slice(0, -4);
-  let card: CatalogPosition | undefined = nodePosition(reader, ORIGIN_VIEW_NODE);
-  for (const step of cardPath.slice(1))
-    card = card && childPositions(reader, card).find((row) => row.sourceId === step);
-  if (card) walk(card, (nodeId) => originOfPageInstance(nodeId) === origin);
-  return [...childPositions(reader, position), ...found];
+  // A card: the origin, its parts and its instances (a theme card: its values), side by side.
+  walk(
+    position,
+    (nodeId) =>
+      originOfEditableSample(nodeId) !== undefined ||
+      isPagePart(nodeId) ||
+      originOfPageInstance(nodeId) !== undefined ||
+      isThemeSample(nodeId),
+  );
+  return found;
 }
 
 /**
@@ -270,10 +344,15 @@ export function catalogComponentsPageEntries(
     return entry.id;
   };
   const textId = catalogPaletteDefinitionId(library, "Text");
-  const text = (id: NodeId, value: string, style: Record<string, unknown>) =>
+  const text = (
+    id: NodeId,
+    value: string,
+    style: Record<string, unknown>,
+    name = value,
+  ) =>
     fixed(
       node(id, textId, {
-        name: value,
+        name,
         props: catalogCreationProps(library, textId, "Text", {
           children: value,
         }),
@@ -385,53 +464,77 @@ export function catalogComponentsPageEntries(
       ],
       { flexDirection: "column", gap: 4, alignItems: "flex-start" },
     );
+  // Each theme card follows the component cards: the base value as its origin (◆), the values
+  // derived from it as instances (◇) — a grouping for reading, not a document relation.
+  const origins = (key: string, cells: NodeId[]) =>
+    row(theme(key, "row", "origin"), "Origin", cells);
   {
-    // The semantic colors by family (`accent-hover` and `on-accent` with `accent`), the
-    // surfaces, then the palette the theme's tint and neutral are picked from.
+    // A family's head (`accent`) is the origin; `accent-hover`, `on-accent` derive from it.
+    // Surfaces derive from `base`; the palette is the raw colors the tint and neutral pick from.
+    const names = Object.keys(lightColors);
     const groups = new Map<string, string[]>(
       [...COLOR_FAMILIES, "surface", "palette"].map((key) => [key, []]),
     );
-    for (const name of Object.keys(lightColors)) {
+    const heads: string[] = [];
+    for (const name of names) {
       const family = name.replace(/^on-/, "").split("-")[0]!;
-      groups
-        .get(
-          COLOR_FAMILIES.includes(family)
-            ? family
-            : COLOR_SURFACES.includes(name)
-              ? "surface"
-              : "palette",
-        )!
-        .push(name);
+      const semantic = COLOR_FAMILIES.includes(family);
+      if ((semantic && name === family) || name === "base") heads.push(name);
+      else
+        groups
+          .get(
+            semantic
+              ? family
+              : COLOR_SURFACES.includes(name)
+                ? "surface"
+                : "palette",
+          )!
+          .push(name);
     }
-    for (const [key, names] of groups) if (!names.length) groups.delete(key);
+    for (const [key, list] of groups) if (!list.length) groups.delete(key);
+    const swatch = (name: string, mark: string, caption = name) =>
+      captioned(
+        theme("colors", name),
+        frame(themeSampleId("colors", name), name, [], {
+          width: 44,
+          height: 44,
+          flexShrink: 0,
+          backgroundColor: color(name),
+          borderRadius: 8,
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: color("border"),
+        }),
+        `${mark} ${caption}`,
+        color(name),
+      );
     card(
       theme("colors", "card"),
       theme("colors", "title"),
       "Colors",
-      [...groups].map(([group, names]) =>
-        row(
-          theme("colors", "row", group),
-          titleCase(group),
-          names.map((name) =>
-            captioned(
-              theme("colors", name),
-              frame(theme("colors", name, "swatch"), name, [], {
-                width: 44,
-                height: 44,
-                flexShrink: 0,
-                backgroundColor: color(name),
-                borderRadius: 8,
-                borderWidth: 1,
-                borderStyle: "solid",
-                borderColor: color("border"),
-              }),
-              name,
-              color(name),
+      [
+        origins(
+          "colors",
+          heads.map((name) => swatch(name, ORIGIN_MARK)),
+        ),
+        ...[...groups].map(([group, list]) =>
+          row(
+            theme("colors", "row", group),
+            titleCase(group),
+            list.map((name) =>
+              swatch(
+                name,
+                INSTANCE_MARK,
+                // `accent-hover` under Accent reads `hover`; `on-accent` keeps its name.
+                name.startsWith(`${group}-`)
+                  ? name.slice(group.length + 1)
+                  : name,
+              ),
             ),
           ),
         ),
-      ),
-      60 + groups.size * 110,
+      ],
+      60 + (groups.size + 1) * 110,
     );
   }
   {
@@ -439,86 +542,104 @@ export function catalogComponentsPageEntries(
       .filter(([name]) => !name.includes("--"))
       .sort((a, b) => Number(b[1]) - Number(a[1]));
     const lineHeights = typography as unknown as Record<string, number>;
+    const sample = ([name, size]: [string, unknown], mark: string) =>
+      captioned(
+        theme("typography", name),
+        text(
+          themeSampleId("typography", name),
+          "Aa 가나다 123",
+          { fontSize: Number(size) },
+          name,
+        ),
+        `${mark} ${name} · ${size}px / ${lineHeights[`${name}--line-height`] ?? "-"}px`,
+      );
+    const base = sizes.find(([name]) => name === TYPE_BASE) ?? sizes[0]!;
     card(
       theme("typography", "card"),
       theme("typography", "title"),
       "Typography",
       [
+        origins("typography", [sample(base, ORIGIN_MARK)]),
         frame(
-          theme("typography", "scale"),
-          "Scale",
-          sizes.map(([name, size]) =>
-            captioned(
-              theme("typography", name),
-              text(theme("typography", name, "sample"), "Aa 가나다 123", {
-                fontSize: Number(size),
-              }),
-              `${name} · ${size}px / ${lineHeights[`${name}--line-height`] ?? "-"}px`,
-            ),
-          ),
+          theme("typography", "row", "sizes"),
+          "Sizes",
+          [
+            text(theme("typography", "row", "sizes", "label"), "Sizes", {
+              fontSize: 12,
+              fontWeight: 600,
+            }),
+            ...sizes
+              .filter((entry) => entry !== base)
+              .map((entry) => sample(entry, INSTANCE_MARK)),
+          ],
           { flexDirection: "column", gap: 14 },
         ),
       ],
-      60 + sizes.reduce((sum, [, size]) => sum + Number(size) * 1.4 + 34, 0),
+      120 + sizes.reduce((sum, [, size]) => sum + Number(size) * 1.4 + 34, 0),
     );
   }
   {
+    const icon = (name: string, mark: string, iconName = name) =>
+      captioned(
+        theme("icons", name),
+        fixed(
+          node(themeSampleId("icons", name), ICON, {
+            name,
+            props: { iconName: set(iconName) },
+          }),
+        ),
+        `${mark} ${name}`,
+      );
     const icons = SAMPLE_ICONS.filter((name) => getIconData(name));
     card(
       theme("icons", "card"),
       theme("icons", "title"),
       "Icons",
       [
+        origins("icons", [icon("Icon", ORIGIN_MARK, "star")]),
         row(
-          theme("icons", "row"),
-          "Lucide",
-          icons.map((name) =>
-            captioned(
-              theme("icons", name),
-              fixed(
-                node(theme("icons", name, "icon"), ICON, {
-                  name,
-                  props: { iconName: set(name) },
-                }),
-              ),
-              name,
-            ),
-          ),
+          theme("icons", "row", "instances"),
+          "Instances",
+          icons.map((name) => icon(name, INSTANCE_MARK)),
         ),
       ],
-      60 + Math.ceil(icons.length / 7) * 60,
+      150 + Math.ceil(icons.length / 7) * 60,
     );
   }
   {
+    const box = ([name, size]: [string, unknown], mark: string) =>
+      captioned(
+        theme("spacing", name),
+        frame(themeSampleId("spacing", name), name, [], {
+          width: Number(size),
+          height: Number(size),
+          flexShrink: 0,
+          backgroundColor: color("accent-subtle"),
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: color("accent"),
+        }),
+        `${mark} ${name}`,
+        `${size}px`,
+      );
+    const steps = Object.entries(spacing);
+    const base = steps.find(([name]) => name === "md") ?? steps[0]!;
     card(
       theme("spacing", "card"),
       theme("spacing", "title"),
       "Spacing",
       [
+        origins("spacing", [box(base, ORIGIN_MARK)]),
         row(
-          theme("spacing", "row"),
-          "Scale",
-          Object.entries(spacing).map(([name, size]) =>
-            captioned(
-              theme("spacing", name),
-              frame(theme("spacing", name, "box"), name, [], {
-                width: Number(size),
-                height: Number(size),
-                flexShrink: 0,
-                backgroundColor: color("accent-subtle"),
-                borderWidth: 1,
-                borderStyle: "solid",
-                borderColor: color("accent"),
-              }),
-              name,
-              `${size}px`,
-            ),
-          ),
+          theme("spacing", "row", "sizes"),
+          "Sizes",
+          steps.filter((step) => step !== base).map((step) => box(step, INSTANCE_MARK)),
         ),
       ],
-      160,
+      250,
     );
   }
+
   catalogBuiltinOrigins(library).forEach((origin) => {
     const facets = originFacets(graph, origin.id, stateIds.get(origin.id) ?? []);
     const base = (...path: string[]) => part("origin", origin.id, ...path);
@@ -596,7 +717,7 @@ export function catalogComponentsPageEntries(
           "Parts",
           parts.map((item, at) =>
             cell(
-              base("cell", "part", String(at)),
+              base("cell", `part-${at}`),
               `${item.instance ? `${INSTANCE_MARK} ` : ""}${item.name}${
                 item.count > 1 ? ` ×${item.count}` : ""
               }`,
@@ -612,7 +733,52 @@ export function catalogComponentsPageEntries(
       );
       weight += 94;
     }
-    if (facets.states.length > 0 && facets.variants.length > 1) {
+    const items = originItems(graph, origin.id, stateIds);
+    if (items) {
+      // A collection: the states are its item origin's (the collection's own variant only tints
+      // its hover) — the item at rest and in each state, drawn on its own so its display state
+      // shows (inside the collection the collection's selection decides).
+      const states = [items.origin, ...(stateIds.get(items.origin) ?? [])];
+      rows.push(
+        row(
+          base("row", "items"),
+          "Item states",
+          states.map((stateId) => {
+            const title = catalogDefinitionTitle(graph, stateId);
+            const caption = title.slice(title.indexOf("/") + 1).replace(/\//g, " / ");
+            const id = originInstanceId(origin.id, `item/${caption}`);
+            const stateRoot = library.definitions.get(stateId);
+            // A state variant's template root is the nested instance the patch goes through.
+            const instances = [
+              id,
+              ...(stateId !== items.origin &&
+              stateRoot &&
+              "templateRootId" in stateRoot &&
+              stateRoot.templateRootId
+                ? [stateRoot.templateRootId]
+                : []),
+            ];
+            return cell(
+              base("cell", "item", caption),
+              `${INSTANCE_MARK} ${caption}`,
+              fixed(
+                node(id, stateId, {
+                  name: `${origin.name} / Item / ${caption}`,
+                  descendantOverrides: items.parts.map((item) => ({
+                    kind: "patch" as const,
+                    address: { instances, templatePath: item.path },
+                    ...(item.label
+                      ? { props: { children: set("Item") } }
+                      : { enabled: false }),
+                  })),
+                }),
+              ),
+            );
+          }),
+        ),
+      );
+      weight += lineHeight(states.length);
+    } else if (facets.states.length > 0 && facets.variants.length > 1) {
       // Variants × states: a line per variant.
       for (const variant of facets.variants)
         rows.push(

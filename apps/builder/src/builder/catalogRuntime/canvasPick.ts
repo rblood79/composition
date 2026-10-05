@@ -2,6 +2,9 @@ import type { NodeId } from "../../../../../packages/shared/src/catalog/document
 import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommands";
 import {
   ORIGIN_VIEW_NODE,
+  isPageCard,
+  isPagePart,
+  isThemeSample,
   originOfPageInstance,
   originOfSample,
 } from "./originViewNode";
@@ -72,11 +75,15 @@ export function resolveCatalogClickRecord(
   ) {
     const parent = records.get(record.parentId);
     if (editingContext === undefined) {
-      // The Components page: an origin's sample or an instance beside it, else the page (its
+      // The Components page: what a card holds (an origin's sample, a part, an instance, a theme value), else the
+      // card, else the page (its
       // card, line and cell frames are layout only).
       if (
         originOfSample(record.sourceId) ||
-        originOfPageInstance(record.sourceId)
+        originOfPageInstance(record.sourceId) ||
+        isPagePart(record.sourceId) ||
+        isThemeSample(record.sourceId) ||
+        isPageCard(record.sourceId)
       )
         return record.id;
       if (record.parentId === PAGE_GRID) return record.id;
