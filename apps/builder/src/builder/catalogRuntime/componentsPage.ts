@@ -206,7 +206,12 @@ function originItems(
       { path: [item.rootId, id as LibraryTemplateId], label },
     ];
   });
-  return { origin, parts };
+  return {
+    origin,
+    parts,
+    /** The collection draws a trigger button, not its list (Menu). */
+    trigger: own.root.definitionId === "lib:definition:type-Menu",
+  };
 }
 
 /**
@@ -806,6 +811,22 @@ export function catalogComponentsPageEntries(
         ),
       );
       weight += lineHeight(states.length);
+      // A Menu's own variant paints its trigger button (the one collection whose box is not
+      // its list): its variants show, as a Button's do.
+      if (items.trigger && facets.variants.length > 1) {
+        rows.push(
+          row(
+            base("row", "variants"),
+            "Variants",
+            facets.variants.map((variant) =>
+              instance(variant, titleCase(variant), origin.id, {
+                variant: set(variant),
+              }),
+            ),
+          ),
+        );
+        weight += lineHeight(facets.variants.length);
+      }
     } else if (facets.states.length > 0 && facets.variants.length > 1) {
       // Variants × states: a line per variant.
       for (const variant of facets.variants)

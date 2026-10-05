@@ -560,7 +560,9 @@ function textLeaf(
       singleLine: boolean;
     }
   | undefined {
-  if (node.children.length > 0) return undefined;
+  // A Menu's children are its popover's items (never on the Canvas — `TRIGGER_OVERLAY_CHILDREN`):
+  // its box is its trigger label's.
+  if (node.children.length > 0 && typeName !== "Menu") return undefined;
   const own = resolveTextSourceText(
     typeName,
     node.props as Record<string, unknown>,

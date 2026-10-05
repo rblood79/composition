@@ -162,7 +162,10 @@ export function resolveCatalogRuleCanvasBox(
     sizeRecord.height > 0
   )
     assign("height", sizeRecord.height);
-  if (!sizeAxisSkip?.padding && !has("padding")) {
+  // A top-level box is the Canvas box itself (Menu's trigger): `structure.containerStyles`
+  // describes another element (the popover list), so its padding does not stand in for the size
+  // axis here — the generated CSS skips it for that other element only.
+  if ((topLevelBox || !sizeAxisSkip?.padding) && !has("padding")) {
     if (typeof sizeRecord.paddingY === "number") {
       assign("paddingTop", sizeRecord.paddingY);
       assign("paddingBottom", sizeRecord.paddingY);

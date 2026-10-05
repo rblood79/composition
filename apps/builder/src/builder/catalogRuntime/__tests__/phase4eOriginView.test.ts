@@ -6,6 +6,7 @@ import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/c
 import type {
   EntryId,
   NodeEntry,
+  LibraryDefinitionId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
@@ -394,6 +395,18 @@ describe("ADR-248 4e library origin view", () => {
       return workspace.root.getGeometry([record!]).get(record!)!;
     };
     expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(COMPONENTS_PAGE_WIDTH);
+    // A Menu draws its trigger button: its items are in the popover (not on the Canvas), so its
+    // box is its trigger's — the Button's metrics at the same size (padding, min width).
+    const menuRect = rectOf(
+      originSampleId("lib:definition:origin-component-menu" as LibraryDefinitionId),
+    );
+    const buttonRect = rectOf(
+      originSampleId("lib:definition:origin-component-button" as LibraryDefinitionId),
+    );
+    expect([menuRect.width, menuRect.height]).toEqual([
+      buttonRect.width,
+      buttonRect.height,
+    ]);
     const columns = nodeOf(ORIGIN_VIEW_NODE).children.map((id) => ({
       height: rectOf(id).height,
       last: rectOf(nodeOf(id).children.at(-1)!).height,

@@ -42,6 +42,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `staleDeployRecovery.test.ts` (buildId 다름 → 1 회 · 같음 · 반복 · probe 실패 · dev · storage 불가) · `initAllWasmRethrow.test.ts` (원복 RED 확인).
 - 재배포 모사 `apps/builder/scripts/adr244-redeploy-sim.mjs` — Chromium · WebKit 에서 새 탭 N+1 쌍만 요청 · 옛 탭 새로고침 1 회 뒤 부팅 · 깨진 배포 1 회 뒤 실패 화면. D 이전 빌드는 새 탭 · 옛 탭 모두 실패 (원복 RED).
 
+## [Canvas 의 Menu 가 점으로 그려지던 문제] - 2026-10-06
+
+### Fixed
+
+- **Menu 가 Canvas 에서 2×2 점으로 그려졌다** (page 에 놓은 Menu · Components page 의 Menu 카드 모두): 이제 Preview 와 같은 트리거 버튼으로 그려진다 — label ("Menu") 과 Button 의 크기 (md 68×30).
+  - **Why** — 세 곳이 겹쳤다. ① 트리거 상자의 padding: Menu rule 의 `sizes` 에 `paddingY` 가 없었고, size 축 padding 이 목록 panel 의 `structure.containerStyles.padding` 선언 때문에 통째로 건너뛰어졌다 (`resolveCatalogRuleCanvasBox` — 생성 CSS 의 skip 규칙을 그대로 따랐는데, 그 선언은 Canvas 가 그리지 않는 popover 목록의 것이다). ② 글자 폭: 레이아웃이 자식이 있는 노드의 자기 글자를 재지 않는데, Menu 의 자식 (MenuItem) 은 Canvas 에서 숨는다 (`compositionRoot.textLeaf`). ③ 글자 칠: 같은 이유로 label 을 그리지 않았다 (`rulePaint` 의 `_hasChildren`).
+  - 수정: Menu `sizes` 에 Button 과 같은 `paddingY` 추가 (생성 Menu.css 무변 — `validate:sync` 통과) · top-level 상자가 있는 rule 은 size 축 padding 을 적용 · Menu 는 자식이 있어도 자기 label 을 재고 그린다 · 트리거의 `minWidth` · `fontWeight` 는 Button rule 에서 읽는다 (`ruleDefinition.triggerSize` — DOM 트리거가 공용 Button 이다).
+  - Components page 의 Menu 카드에 Variants 줄이 다시 나온다 (variant 가 트리거 버튼의 칠이다).
+
 ## [dark mode 에서 Tab · Tag label 글자가 안 보이던 문제] - 2026-10-06
 
 ### Fixed

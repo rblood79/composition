@@ -277,6 +277,25 @@ export function ruleRootBox(type: string, rule: ComponentRule): RootBox {
   };
 }
 
+/**
+ * A Menu's Canvas box is its trigger — in the DOM the shared Button at the same `data-size`
+ * (`Menu.tsx`). The Button-only metrics (`minWidth`, `fontWeight`) are the Button rule's: Menu's
+ * own `sizes` also feed the generated list panel CSS, where they do not belong.
+ */
+function triggerSize(
+  type: string,
+  sizeName: string,
+  size: ComponentRuleSize,
+): ComponentRuleSize {
+  if (type !== "Menu") return size;
+  const button = (
+    COMPONENT_RULES_TABLE as Record<string, ComponentRule>
+  ).Button?.sizes?.[sizeName] as ComponentRuleSize | undefined;
+  return button
+    ? { ...size, minWidth: button.minWidth, fontWeight: button.fontWeight }
+    : size;
+}
+
 /** Per-size geometry of `CSSGenerator.generateSizeStyles` as typed values. */
 function sizeVisual(
   sizeName: string,
@@ -441,7 +460,7 @@ export function ruleTypeDefinition(
   if (Object.keys(choices).length) definition.propChoices = choices;
   const sizes: Record<string, VisualValues> = {};
   for (const [name, size] of Object.entries(rule.sizes))
-    sizes[name] = sizeVisual(name, size, box, theme, tokens);
+    sizes[name] = sizeVisual(name, triggerSize(type, name, size), box, theme, tokens);
   // Circle leaves: the DOM renderer draws a square box of the size's height (Avatar also keeps it
   // from shrinking in a row).
   if (CIRCLE_LEAF_RULES.has(type)) {

@@ -269,10 +269,16 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       // ADR-151 B7: 캔버스 Menu 표현 = 트리거 버튼 통일. 구 목록 panel 8필드(flex/column/
       // gap/padding/width:100%/maxH/overflow/outline)는 Skia 만 소비해 390px 전폭 바 발산.
       // DOM 목록 panel 규칙은 structure 채널(generated Menu.css) 유지.
+      // 2026-10-06: 트리거 상자의 padding (DOM = 공용 Button 의 md 4 · 12) — 종전에는 size 축
+      // padding 이 목록 panel 의 `structure.containerStyles.padding` 에 가려 0 이었다.
       expect(fb).toEqual({
         display: "inline-flex",
         alignItems: "center",
         width: "fit-content",
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 12,
+        paddingRight: 12,
       });
     });
   });
@@ -418,11 +424,15 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("menu → 트리거 박스 3필드 (ADR-151 B7 — 목록 panel 메트릭에서 전환)", () => {
+    it("menu → 트리거 박스 3필드 + Button padding (ADR-151 B7 — 목록 panel 메트릭에서 전환)", () => {
       expect(resolveContainerStylesFallback("menu", {})).toEqual({
         display: "inline-flex",
         alignItems: "center",
         width: "fit-content",
+        paddingTop: 4,
+        paddingBottom: 4,
+        paddingLeft: 12,
+        paddingRight: 12,
       });
     });
 

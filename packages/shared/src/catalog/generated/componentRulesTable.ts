@@ -7232,9 +7232,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       alignItems: "center",
       width: "fit-content",
     },
+    // The trigger box's metrics (2026-10-06): the DOM trigger is the shared Button at the same
+    //   `data-size`, so paddingX/paddingY are the Button's. The list panel's own padding is
+    //   `structure.containerStyles.padding` — the generated Menu.css emits no size padding.
     sizes: {
       sm: {
         paddingX: 8,
+        paddingY: 2,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -7243,6 +7247,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       md: {
         paddingX: 12,
+        paddingY: 4,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -7251,6 +7256,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       lg: {
         paddingX: 16,
+        paddingY: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -7259,6 +7265,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       xl: {
         paddingX: 24,
+        paddingY: 12,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
