@@ -208,7 +208,7 @@ Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 
 
 **선행 기록 (통합 시점, 2026-09-17)** — 엔진 G0 100MB 진행률 15회 · 단절 2회 재개 재전송 8MB · G1 4GB×3 힙 Δ 중앙값 2.22MB · 재개 3경로 4.06MB/0/0 · core+tus 5,852 B / IIFE 8,068 B gz · **tusd v2.10.1 대조군 8/8 (G2a)** · G2b `mvn -q test` 53/53 (JDK 17) + cargo 기동 curl 흐름 · 웹루트 저장 기동 거부 실물 · FileUpload 실배선 live 20/20 (engine=loaded) · initial 번들 상한 재승인 (사용자).
 
-**ADR-244 Phase 1 · 2 뒤 (2026-10-06, 사용자 판정 "수용")** — CanvasKit wasm 해시 경로 · 옛 배포 복구 (+231) 와 dashboard 미리 받기 registry · 계기 (+1,068) 로 Builder initial **1,227,057** (ADR-244 전 `2b3b3efbc` 1,225,758 대비 +1,299) · Preview 290,095 (−6). 별도 worktree clean 빌드 · `adr209-bundle-closure.mjs`. ADR-244 HC1 (Δ ≤ 0) 은 넘지만 절대 상한 (1,421,000 / 623,000, 만료 2026-10-25) 안 — 상한 값 변경 없음. 근거: [ADR-244](../244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) Status.
+**ADR-244 Phase 1 · 2 뒤 (2026-10-06, 사용자 판정 "수용")** — CanvasKit wasm 해시 경로 · 옛 배포 복구 (+231) 와 dashboard 미리 받기 registry · 계기 (+1,068) 로 Builder initial **1,227,057** (ADR-244 전 `2b3b3efbc` 1,225,758 대비 +1,299) · Preview 290,095 (−6). 별도 worktree clean 빌드 · `adr209-bundle-closure.mjs`. ADR-244 HC1 (Δ ≤ 0) 은 넘지만 절대 상한 (1,421,000 / 623,000, 만료 2026-10-25) 안 — 상한 값 변경 없음. 근거: [ADR-244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) Status.
 
 **ADR-242 뒤 (2026-09-26)** — 초기 화면 밖 패널 lazy 분리로 Builder initial **1,403,816** (상한 1,421,000 까지 여유 17,184) · Preview 622,496 (여유 504). 상한 값 조정은 사용자 판정 — 만료 2026-10-25 그대로.
 

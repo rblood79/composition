@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-244 Implemented**: 초기 로드 — Phase 1 (D) CanvasKit wasm 해시 경로 · 옛 탭 새로고침 복구 + Phase 2 (A) dashboard 미리 받기. 10 Mbps 대기 뒤 클릭 p95 Chromium 6,545 → 1,101 ms · WebKit 6,542 → 1,150 ms, 즉시 클릭 · 직접 진입 +1.8 % 이내, 진행 중 진입 wasm 각 1 회 전송, 실패 주입 6/6. 실제 Pages Live Exercise press → presented 343 ms (부팅 wasm 전송 0). Builder initial +1,299 B — HC1 초과 사용자 수용. Service Worker (B) 보류. 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 279).
+
 > **2026-10-05 ADR-248 Implemented**: Publish 전환·canonical/spec 제거·Switch 색상 수리와 최종 검증 종결. G3 state 75/75·child 보충 33/33·Icon 보충 7/7, 기존 G4/G5 및 현재 bundle/G6 PASS. 원본 미검증 이력은 보충 검증과 연결해 보존. [종합 근거](design/248-final-closure.md).
 
 > **2026-09-29 ADR-249 Proposed**: 빌더 전체 메뉴 개편 (Framer 메뉴 어법 — 검색 · 작업 공간 구역 · 계층 · 비활성 표시). 열림 7 (Proposed 6 · Accepted 1), 합계 276. **같은 날 Accepted + P0~P4 구현** (`/execute-adr 249`): G0 인벤토리 7/7 (변이 RED 4) · G1/G3 live 23/23 (headed Playwright, scope 인자 원복 RED) · G2 Builder initial JS gzip −50 B (lazy chunk 가 initial 공유 청크를 쪼개던 것을 `headerMenuRuntime` 주입으로 해소 · 새 번역 키 5). 실행 중 사용자 지시: 작업 공간 방향 머리글 제거 · 패널 항목에 레일 아이콘 · 도움 구역 (명령 팔레트 · 설정 · 도움말) · 명령 이름 축약 (대시보드 · Workflow · 명령 팔레트 · 설정) · 레일에서 테마 · 작업 내역 버튼 제거 · 켜짐 표시 = 아이콘 칸 채움 · 메뉴 아이콘 16. **같은 날 Implemented** (사용자 커밋 지시).
@@ -157,14 +159,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     274 |
-| ├ Implemented / Complete(d)   |     231 |
+| 완료 (`completed/`)           |     275 |
+| ├ Implemented / Complete(d)   |     232 |
 | ├ Accepted                    |      15 |
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       5 |
-| ├ Proposed                    |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       4 |
+| ├ Proposed                    |       4 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **279** |
@@ -181,11 +183,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
-
-#### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
-
-- **상태**: Proposed — 2026-09-27 (개정 2026-10-05 — ADR-248 뒤 코드 사실 재대조, 결정 무변경). **Phase 0 종료 · G0 = 대안 A 진행** (2026-10-05, 첫 방문 네트워크 대기 몫 81 ~ 87 % · 폰트 포함 — [evidence](evidence/244-phase0-baseline.md)) · **Phase 1 (D) 구현 · G1 통과** (2026-10-06 — wasm 해시 경로 · 재배포 뒤 옛 탭 새로고침 1 회 복구, Builder initial +230 B) · **Phase 2 (A) 구현 · G2 · G4 통과 · G3 Δ 사용자 수용** (2026-10-06 — 대기 뒤 클릭 p95 −82 ~ −83 %, 불리 조건 +1.8 % 이내, 실패 주입 6/6, Builder initial +1,068 B — HC1 초과 수용, [evidence](evidence/244-phase2-warmup.md))
-- **규모**: Phase 0 (GitHub Pages 헤더 모사 서버 + 실제 Pages 1 회 · Chromium/WebKit · 카드 press → `composition:builder.presented` 구간 분해 — 문서 열기 구간 포함) · 대안 D (wasm `?url` 해시 경로 — glue 와 쌍) 무조건 · 대안 A (의도/idle 미리 받기) 조건부 · SW 보류. 사용자 결정: SW 보류로의 scope 변경 · 미리 받기 트리거 · `scripts/prepare-wasm.mjs` 삭제 · initial Δ. breakdown: [design/244](design/244-initial-load-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -271,7 +268,7 @@
 
 ---
 
-## 완료 ADR (274)
+## 완료 ADR (275)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -298,6 +295,7 @@
 | [246](completed/246-deterministic-count-ratchet-and-begin-frame-harness.md) | 결정적 카운트 ratchet 게이트 — 경로 스코프 pre-push 가 고정 입력 하니스 카운트 (파이프라인 label · 캐시 · React measure · Layout/RecalcStyle · 함수별 V8 호출 수) 를 `apps/builder/perf/ratchet.json` 과 비교 (등급 A 정확 · 초과는 재실행 같을 때만 차단 · B 밴드 1.05 경고 · 하향만 자동 · 올리기는 승인 + 만료일) · 빠른 경로 / 전용 worktree 경로 · `SKIP_PERF_RATCHET=1` · 첫 하향 `selectCanonicalNode` id 인덱스 · Phase 3 begin-frame Deferred (macOS) | Implemented | 2026-09-27 |
 | [162](completed/162-gridlist-template-subtree-projection.md) | 데이터 바인딩 GridList 카드 = 항목 origin instance — 행 노드가 origin 을 ref 로 가리키고 행별 `{field}` 보간 (허용표 한 곳, Canvas · Preview · 패널 공용) · 접기/펼침 판정 하나 · 소유자별 origin 해석 한 곳 · Properties "카드 필드" 절 · 펼친 카드 행 높이 실측 캐시 + 추정 → ADR-150 행 offset 함수, scroll anchoring · 팔레트 GridList 상태 변형 origin 해석 | Implemented | 2026-09-27 |
 | [247](completed/247-cold-entry-static-shell.md) | cold entry 정적 셸 — 빌더 URL 직접 진입에 `index.html` 셸 (앱과 같은 class · 인라인 boot 가 테마 · UI 배율 해석 · builder 경로 한정) 을 CSS 도착 즉시 그리고 React 첫 commit 이 같은 자리에서 이어받음 · presented 순간 chrome (헤더 섬 · 패널 · 레일) 스냅샷 → 다음 진입 조건 (빌드 · viewport · 배율 · 테마 · 배치) 일치 시 골격을 그려 presented 프레임에 교체 · 부팅 mark 2 · 하니스 `cold-entry-shell.mjs` · 첫 paint 4x 72 ~ 80 ms (종전 496 ~ 500) · 다크 흰 프레임 0/40 · 288 진입 골격 0.02 px · layout-shift 0 | Implemented | 2026-09-27 |
+| [244](completed/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) | 초기 로드 — CanvasKit wasm 해시 경로 (glue 와 같은 빌드의 쌍 · postinstall 복사 제거) · 재배포 뒤 옛 탭 buildId 판정 → 새로고침 1 회 복구 · dashboard idle · 카드 의도에 wasm · 내장 폰트 미리 받기 (자산별 대기 · IDB 폰트 제외 · 런타임 import 0 lazy chunk) · Service Worker 보류. 10 Mbps 대기 뒤 클릭 p95 −82 ~ −83 % · 불리 조건 +1.8 % 이내 · 실패 주입 6/6 · Builder initial +1,299 B (HC1 초과 사용자 수용) | Implemented | 2026-10-06 |
 | [248](completed/248-unified-catalog-document.md) | 통합 catalog 문서 모델·Builder/Preview/Publish 공용 runtime·canonical 및 잔존 spec 제거. G3 state 75/75·child 보충 33/33·Icon 보충 7/7, G4/G5/G6 종결. [최종 근거](design/248-final-closure.md) | Implemented | 2026-10-05 |
 | [249](completed/249-builder-main-menu.md) | 빌더 전체 메뉴 개편 (Framer 메뉴 어법) — 선언적 구조 표 (순서 · 구역만) + 원본 재사용 (라벨 ADR-200 · 실행 ADR-195 · 활성 = 등록 · ADR-196 precondition · 등록자 `canRun` · 소속 패널 열림) · 실행 인자 scope (`createScopedHandler` — 인터랙션 패널만 열린 상태의 복사가 Events placeholder 로 가던 경로 차단) · 작업 공간 구역 (`PanelRegistry` × `railOrder` 파생, 레일 아이콘 · 열림 = 아이콘 칸 채움 · `hiddenFromMenu`) · RAC `MenuSection selectionMode` 체크 · `Autocomplete` 검색 평면화 · lazy 본문 + `headerMenuRuntime` 주입 (Rolldown 공유 청크 분할 회피). G0 7/7 · G1/G3 live 26/26 · G2 Builder initial JS gzip −50 B. 레일에서 테마 · 작업 내역 버튼 제거 · 명령 이름 축약 | Implemented | 2026-09-29 |
 | [243](completed/243-interaction-responsiveness-long-task-yield.md) | 상호작용 응답성 기준선 — 실제 입력 · production · Chrome 4x/1x · WebKit · 600/5k 의 Event Timing 지연 · 완료 시간 · LoAF 귀속. 기준 초과이나 지배 구간이 다음 paint 에 필요한 작업 (분기 ②) → 분할 구현 없이 측정 기록으로 종결 · 저장 호출 추적 `persistState()` | Implemented | 2026-09-28 |

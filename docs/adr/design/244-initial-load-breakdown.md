@@ -1,6 +1,6 @@
 # ADR-244 구현 상세 — CanvasKit wasm 미리 받기 · 고유 경로화
 
-> 본문: [ADR-244](../244-canvaskit-wasm-early-fetch-and-service-worker-cache.md). 이 문서는 phase · 파일 · 측정 절차만 담는다. 결정 · 위험 · gate 판정은 본문이 정본.
+> 본문: [ADR-244](../completed/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md). 이 문서는 phase · 파일 · 측정 절차만 담는다. 결정 · 위험 · gate 판정은 본문이 정본.
 >
 > **개정 2026-10-05**: ADR-248 catalog 전환 뒤 코드 인용을 전부 다시 대조했다 — 부팅 진입점 `CatalogBuilderCore.tsx` · 종점 `composition:builder.presented` mark · 문서 열기 구간 · 배포 복구 · `deploy.yml` 경로 필터 없음.
 
@@ -116,6 +116,8 @@
 - 기대: builder 부팅 성공 · builder 가 받는 wasm · chunk 요청 정상 · page error 0 · WebKit 은 새로고침 뒤 한 번 더.
 
 ## §5 Phase 3 — 종결
+
+> **완료 2026-10-06** — G3 번들 (별도 worktree 3 개, 측정 뒤 삭제 — 사용자 승인) · 실제 Pages 켬/끔 재측정 (Chromium n = 5) · Live Exercise (실제 Pages, headed Chrome) · README · CHANGELOG. 결과는 본문 Status · Live Exercise.
 
 - G3 번들 (변경 전 SHA · after 둘 다 별도 worktree, frozen lockfile, `pnpm wasm:build:engine`) · README · CHANGELOG · Live Exercise.
 - 실제 GitHub Pages 에서 Chromium 조건 2 (첫 방문 대기 뒤 클릭 · 10 분 안 재방문) 1 회 재측정 — D (+ A) 가 배포된 뒤, Phase 0 의 실제 Pages 값과 비교.

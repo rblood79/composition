@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-244 Phase 2 — 프로젝트 목록에서 캔버스 자산 미리 받기] - 2026-10-06
+## [ADR-244 Implemented — 프로젝트 목록에서 캔버스 자산 미리 받기 (Phase 2 · 3)] - 2026-10-06
 
 ### Changed
 
 - **프로젝트를 여는 시간 단축 (느린 망 · 첫 방문)**: dashboard 가 한가할 때와 프로젝트 카드에 마우스를 올리거나 포커스 · 누르기 시작할 때, 빌더가 부팅에 쓰는 CanvasKit wasm · 레이아웃 엔진 wasm · 내장 폰트 (Pretendard · Inter TTF) 를 미리 받아 브라우저 캐시에 둔다. 10 Mbps / 100 ms 에서 dashboard 에 머문 뒤 프로젝트를 열면 첫 캔버스까지 p95 **6.5 초 → 1.1 초** (Chromium · WebKit). 바로 누르거나 주소창으로 들어가는 경우는 그대로 (±2 %).
 - 받는 중에 들어가도 같은 파일을 두 번 받지 않는다 — 부팅 로더가 자기 파일의 받기만 기다린다 (상한 10 초). 브라우저 저장소 (IndexedDB) 에 이미 있는 폰트는 받지 않는다. 데이터 절약 모드 · 보이지 않는 탭에서는 받지 않고, 실패하면 조용히 넘어간다 (빌더는 언제나 직접 받는다).
 - Builder initial JS gzip +1,068 B (미리 받기 상태 · dashboard 계기). 받기 코드는 별도 lazy chunk.
+- ADR-244 Implemented (Phase 0 ~ 3): 실제 GitHub Pages 에서 dashboard 에 머문 뒤 프로젝트를 열면 부팅이 wasm 을 캐시에서 읽어 (전송 0) press → 첫 캔버스 343 ms. ADR-244 전체 Builder initial +1,299 B 는 HC1 (Δ ≤ 0) 을 넘지만 사용자 판정으로 수용 (운영 상한 1,421,000 안). Service Worker precache 는 보류 (ADR 본문 Decision 4 의 재개 조건).
 
 ### Tests
 
@@ -866,7 +867,7 @@ ADR-248 Phase 4 (4a~~4e) — Builder 를 통합 catalog 문서 모델로 전환.
 
 - **배포 사이트에서 `/composition/dashboard` · `/composition/builder/<id>` 로 바로 들어가거나 builder 를 새로고침하면 GitHub 404 페이지가 뜨던 문제.** GitHub Pages 는 없는 경로에 `404.html` 을 주는데 빌드에 그 파일이 없었다. 빌드가 `index.html` 을 `404.html` 로 복사해 내보낸다 (`vite.config.ts` `spaFallbackPlugin`) — SPA 가 부팅해 router 가 경로를 처리한다 (응답 상태는 404 그대로). 배포가 복구된 뒤부터 적용된다.
   - live: production 빌드를 Pages 와 같은 방식 (없는 경로 → `404.html`, 404 상태) 으로 제공 — 대시보드 직접 진입 · builder 직접 진입 (캔버스 부팅) · builder 새로고침 Chromium · WebKit 4/4, 대조군 (404.html 없음) 1/3 (`apps/builder/scripts/spa-deep-link-live.mjs`)
-  - 관련: [ADR-244](adr/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) 옛 배포 복구가 이 동작 위에서 `location.reload()` 를 쓴다
+  - 관련: [ADR-244](adr/completed/244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) 옛 배포 복구가 이 동작 위에서 `location.reload()` 를 쓴다
 
 ## [ADR-150 남은 후속 — 목록 카드 · 행 · instance 편집 정합] - 2026-09-27
 

@@ -2,15 +2,15 @@
 
 ## Status
 
-Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계해". 출처: Chrome case study 대조 — Photoshop web 의 Service Worker precache · Google Search speculation rules 의 의도 기반 선요청)
+**Implemented — 2026-10-06** (Phase 0 ~ 3 / G0 ~ G4 종결 · G3 initial Δ 사용자 수용 · 대안 B Service Worker 는 보류 유지 — 재개 조건은 Decision 4). Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계해". 출처: Chrome case study 대조 — Photoshop web 의 Service Worker precache · Google Search speculation rules 의 의도 기반 선요청)
 
 **개정 2026-10-05** (사용자 지시 — ADR-248 catalog 전환 뒤 전체 재대조): 결정 (D 무조건 · A 조건부 · B 보류) 은 그대로다. 바뀐 것은 본문이 기대던 코드 사실이다 — 부팅 진입점 (`SkiaCanvas.tsx` 삭제 → `CatalogBuilderCore.tsx`) · 계약 지표의 종점 (`isCanvasReady` 는 쓰는 곳이 없어짐 → `composition:builder.presented` mark) · 부팅 구간 구성 (문서 열기 구간 추가) · 배포 상태 (복구됨) · 번들 기준선. Context · Decision 1 · R4 ~ R6 · Gates 의 코드 인용을 전부 다시 대조했다.
 
-**Phase 0 종료 — G0 판정 2026-10-05: 대안 A 진행.** 제한 프로파일 (10 Mbps / 100 ms) 첫 방문의 네트워크 대기 몫이 press → presented p50 의 81 ~ 87 % (기준 30 %) — Chromium 1x · 4x · WebKit, 새 프로젝트 · 합성 5,000 요소 모두. 폰트 구간 42 ~ 52 % (기준 20 %) → 미리 받기에 폰트 포함. wasm 컴파일 구간은 9 ~ 46 ms 라 `compileStreaming` 예열 변형은 제외. 실제 GitHub Pages 에서도 몫 47 % 로 방향 일치. 근거: [evidence/244-phase0-baseline.md](evidence/244-phase0-baseline.md). 다음은 Phase 1 (D).
+**Phase 0 종료 — G0 판정 2026-10-05: 대안 A 진행.** 제한 프로파일 (10 Mbps / 100 ms) 첫 방문의 네트워크 대기 몫이 press → presented p50 의 81 ~ 87 % (기준 30 %) — Chromium 1x · 4x · WebKit, 새 프로젝트 · 합성 5,000 요소 모두. 폰트 구간 42 ~ 52 % (기준 20 %) → 미리 받기에 폰트 포함. wasm 컴파일 구간은 9 ~ 46 ms 라 `compileStreaming` 예열 변형은 제외. 실제 GitHub Pages 에서도 몫 47 % 로 방향 일치. 근거: [evidence/244-phase0-baseline.md](../evidence/244-phase0-baseline.md). 다음은 Phase 1 (D).
 
 **Phase 1 (D) 구현 2026-10-06 — G1 통과.** CanvasKit wasm 이 `assets/canvaskit-<hash>.wasm` 1 개로 나가고 고정 경로 참조 0. 재배포 모사 (빌드 N = bin · N+1 = full, `adr244-redeploy-sim.mjs`) Chromium · WebKit: 새 탭은 N+1 glue · wasm 만 요청해 부팅 · 재배포 전에 연 탭은 옛 부팅 chunk 404 → buildId 판정 → 새로고침 1 회 → N+1 로 부팅 · N+1 wasm 이 없으면 새로고침 1 회 뒤 실패 화면 (반복 없음). 원복 RED: D 이전 빌드는 새 탭 (wasm 요청 0 — 캐시의 옛 wasm) · 옛 탭 모두 실패. dev 부팅 · browser 테스트 (`paletteBaseCanvas`) PASS. Builder initial **+230 B** (Preview 0) — 복구 코드는 initial 에 있어야 한다 (옛 탭에서는 lazy chunk 자체가 404). HC1 판정은 G3 (Phase 2 종료) 에서. `scripts/prepare-wasm.mjs` · `prepare:wasm` 스크립트 · `.gitignore` 줄 삭제 (사용자 승인 2026-10-06).
 
-**Phase 2 (A) 구현 2026-10-06 (`8a9966878`) — G2 · G4 통과, G3 Δ 초과 사용자 수용.** dashboard idle · 카드 의도에 lazy chunk 가 CanvasKit · engine wasm 과 내장 폰트 ttf (IDB 에 없을 때만) 를 받아 HTTP 캐시에 두고, 세 로더가 자기 URL 의 받기만 기다린다. G2 (같은 빌드 대조군, n = 10, 제한 프로파일): 대기 뒤 클릭 p95 **−83 % (Chromium 1,101 vs 6,545 ms) · −82 % (WebKit 1,150 vs 6,542 ms)**, 즉시 클릭 · 직접 진입 p95 Δ 최대 +1.8 %, 진행 중 진입 wasm 전송 각 1 회, IDB 폰트 재방문 폰트 전송 0 · +0.3 / +0.9 %, 미리 받기 동안 long task 0. G4 실패 주입 3 종 × 2 브라우저 6/6 부팅 · 새로고침 · 재진입 · page error 0. **G3: Builder initial gzip +1,068 B (Phase 1 대비 · ADR-244 전 대비 누적 +1,299 B) · Preview −6 B** — HC1 (Δ ≤ 0) 초과. 부팅 로더가 기다릴 registry 와 dashboard 계기는 initial 에 있어야 해 상쇄할 수 없다 — Gates G3 실패 경로대로 사용자 판정: **수용** (2026-10-06, 운영 상한 1,421,000 안 · 상한 값 변경 없음, ADR-201 재승인 절에 기록). 다음은 Phase 3 (Live Exercise · Implemented). 근거: [evidence/244-phase2-warmup.md](evidence/244-phase2-warmup.md).
+**Phase 2 (A) 구현 2026-10-06 (`8a9966878`) — G2 · G4 통과, G3 Δ 초과 사용자 수용.** dashboard idle · 카드 의도에 lazy chunk 가 CanvasKit · engine wasm 과 내장 폰트 ttf (IDB 에 없을 때만) 를 받아 HTTP 캐시에 두고, 세 로더가 자기 URL 의 받기만 기다린다. G2 (같은 빌드 대조군, n = 10, 제한 프로파일): 대기 뒤 클릭 p95 **−83 % (Chromium 1,101 vs 6,545 ms) · −82 % (WebKit 1,150 vs 6,542 ms)**, 즉시 클릭 · 직접 진입 p95 Δ 최대 +1.8 %, 진행 중 진입 wasm 전송 각 1 회, IDB 폰트 재방문 폰트 전송 0 · +0.3 / +0.9 %, 미리 받기 동안 long task 0. G4 실패 주입 3 종 × 2 브라우저 6/6 부팅 · 새로고침 · 재진입 · page error 0. **G3: Builder initial gzip +1,068 B (Phase 1 대비 · ADR-244 전 대비 누적 +1,299 B) · Preview −6 B** — HC1 (Δ ≤ 0) 초과. 부팅 로더가 기다릴 registry 와 dashboard 계기는 initial 에 있어야 해 상쇄할 수 없다 — Gates G3 실패 경로대로 사용자 판정: **수용** (2026-10-06, 운영 상한 1,421,000 안 · 상한 값 변경 없음, ADR-201 재승인 절에 기록). 다음은 Phase 3 (Live Exercise · Implemented). 근거: [evidence/244-phase2-warmup.md](../evidence/244-phase2-warmup.md).
 
 ## Context
 
@@ -48,7 +48,7 @@ PWA 요소는 없다: manifest · Service Worker 등록 · Workbox 가 `apps/bui
 - **Google Search speculation rules**: 다음 화면 자원을 hover 의도 ("moderate" eagerness) 에서만 받아 낭비를 줄인다. API (문서 navigation · prerender 전용, Chromium 전용) 는 SPA 안 route 전환에 해당하지 않고, **"의도 · idle 에 다음 화면의 무거운 자원을 받는다" 는 패턴**만 쓴다. `<link rel=prefetch>` 는 Safari 기본 지원이 확인되지 않아 의존하지 않는다.
 - **Compression dictionary transport** (Chrome 130+, Safari 미지원): 재배포 delta 에 맞지만 GitHub Pages 가 `Use-As-Dictionary` 헤더를 줄 수 없다 → 범위 밖.
 
-성능 목표 정합: CLAUDE.md 는 "초기 로드 < 3 초 · 초기 번들 < 500 KB" 이고, 실제 운영 상한은 ADR-201 재승인 절 **Builder ≤ 1,421,000 / Preview ≤ 623,000 B gzip (만료 2026-10-25)** 이다. ADR-248 뒤 정적 initial 은 Builder 1,228,752 · Preview 394,104 ([248 G5 근거](design/248-phase4-g5-evidence.md) §3, 2026-10-03). 이 ADR 은 initial 을 줄이는 ADR 이 아니다 — initial 은 늘리지 않고 (HC1), 계약 지표는 "빌더 진입 → 첫 캔버스 프레임" 이다. 500 KB 목표와의 간격은 이 ADR 이 다루지 않는다.
+성능 목표 정합: CLAUDE.md 는 "초기 로드 < 3 초 · 초기 번들 < 500 KB" 이고, 실제 운영 상한은 ADR-201 재승인 절 **Builder ≤ 1,421,000 / Preview ≤ 623,000 B gzip (만료 2026-10-25)** 이다. ADR-248 뒤 정적 initial 은 Builder 1,228,752 · Preview 394,104 ([248 G5 근거](../design/248-phase4-g5-evidence.md) §3, 2026-10-03). 이 ADR 은 initial 을 줄이는 ADR 이 아니다 — initial 은 늘리지 않고 (HC1), 계약 지표는 "빌더 진입 → 첫 캔버스 프레임" 이다. 500 KB 목표와의 간격은 이 ADR 이 다루지 않는다.
 
 ### SSOT 3-Domain 판정
 
@@ -141,7 +141,7 @@ HIGH 없는 조합 (D + A) 이 있어 루프 불필요.
 
 **범위 밖**: `keep_files` 로 옛 chunk 보존 · 폰트 ttf 의 해시 경로화 (IndexedDB 폰트 캐시가 URL 로 무효화 — 고정 경로라 내용이 바뀌어도 갱신 안 됨, 별도 판단) · 문서 열기 구간 (library · storage · workspace) 의 단축 · 쓰는 곳 없는 `canvasLifecycle` store 정리 · initial 500 KB 목표.
 
-> 구현 상세: [244-initial-load-breakdown.md](design/244-initial-load-breakdown.md)
+> 구현 상세: [244-initial-load-breakdown.md](../design/244-initial-load-breakdown.md)
 
 ## Risks
 
@@ -172,7 +172,12 @@ HIGH 는 R1 · R3 — 각각 G2 · G4 에 대응한다.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — production 빌드 Chromium · WebKit 에서 dashboard → builder 진입 · 재배포 모사 · 실패 주입 결과, 실제 GitHub Pages 재측정 결과)
+2026-10-06 — 실제 builder 에서 exercise (자동화: headed Chrome 154 + Playwright, 저장된 인증 세션 — 사용자 Chrome 은 Pages 미로그인이라 Chrome MCP 대신. 사용자 confirm 아님).
+
+- **실제 GitHub Pages** (`https://rblood79.github.io/composition/`, buildId `muvgu0u7-f11f43a3` — D + A 배포): HTTP 캐시를 비운 dashboard 에 6 초 머무는 동안 미리 받기 항목 4 (CanvasKit wasm · engine wasm · Pretendard · Inter) 가 등록되고 wasm 둘이 받아졌다 (2,963,690 · 163,391 B). 폰트는 IndexedDB 에 이미 있어 받지 않았다. 카드를 누르면 builder 가 **press → presented 343 ms** 에 그려지고 (빈 Home 페이지 · 헤더 · 레일 정상), 부팅의 wasm 두 요청은 `transferSize` **0** (HTTP 캐시). page error 0. 스크린샷 `.cache/adr244/live-phase3-{dashboard,builder}.png` (로컬).
+- **실제 Pages 켬/끔** (Chromium n = 5, [evidence §5](../evidence/244-phase2-warmup.md)): 대기 뒤 클릭 p50 412 vs 643 ms · 즉시 클릭 485 vs 632 ms · 10 분 안 재방문 167 vs 161 ms — 모사 서버와 방향 같음. Phase 0 의 실제 Pages 값 (대기 뒤 클릭 몫 47 %) 과 비교해 wasm 대기가 빠졌다.
+- **재배포 모사 (G1, production 빌드)**: Chromium · WebKit — 새 탭 N+1 쌍만 요청 · 재배포 전 탭은 옛 chunk 404 → buildId 판정 → 새로고침 1 회 → 부팅 · 깨진 배포는 1 회 뒤 실패 화면.
+- **실패 주입 (G4, production 빌드)**: 받기 끊김 · 404 · 미리 받기 chunk 404 × Chromium · WebKit 6/6 부팅 · 새로고침 · 재진입 · page error 0.
 
 ## Consequences
 
