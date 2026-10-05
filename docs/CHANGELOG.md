@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-244 Phase 2 — 프로젝트 목록에서 캔버스 자산 미리 받기] - 2026-10-06
+
+### Changed
+
+- **프로젝트를 여는 시간 단축 (느린 망 · 첫 방문)**: dashboard 가 한가할 때와 프로젝트 카드에 마우스를 올리거나 포커스 · 누르기 시작할 때, 빌더가 부팅에 쓰는 CanvasKit wasm · 레이아웃 엔진 wasm · 내장 폰트 (Pretendard · Inter TTF) 를 미리 받아 브라우저 캐시에 둔다. 10 Mbps / 100 ms 에서 dashboard 에 머문 뒤 프로젝트를 열면 첫 캔버스까지 p95 **6.5 초 → 1.1 초** (Chromium · WebKit). 바로 누르거나 주소창으로 들어가는 경우는 그대로 (±2 %).
+- 받는 중에 들어가도 같은 파일을 두 번 받지 않는다 — 부팅 로더가 자기 파일의 받기만 기다린다 (상한 10 초). 브라우저 저장소 (IndexedDB) 에 이미 있는 폰트는 받지 않는다. 데이터 절약 모드 · 보이지 않는 탭에서는 받지 않고, 실패하면 조용히 넘어간다 (빌더는 언제나 직접 받는다).
+- Builder initial JS gzip +1,068 B (미리 받기 상태 · dashboard 계기). 받기 코드는 별도 lazy chunk.
+
+### Tests
+
+- `warmupRegistry.test.ts` · `canvasWarmup.test.ts` · `canvasWarmupTrigger.test.ts` · 정적 가드 `canvasWarmup.static.test.ts` (미리 받기 chunk 런타임 import 0 — 원복 RED 확인).
+- 진입 지연 하니스 `--warmup on,off` (같은 빌드 대조군) · 실패 주입 `apps/builder/scripts/adr244-warmup-faults.mjs` (받기 끊김 · 404 · chunk 404 → Chromium · WebKit 부팅 6/6).
+
 ## [ADR-244 Phase 1 — CanvasKit wasm 해시 경로 · 재배포 뒤 옛 탭 자동 복구] - 2026-10-06
 
 ### Fixed

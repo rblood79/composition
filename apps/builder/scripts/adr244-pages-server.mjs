@@ -7,6 +7,7 @@
  *   - 없는 경로는 `404.html` 을 **404 상태로** (SPA 깊은 링크 — `spa-deep-link-live.mjs` 와 같은 규칙)
  *   - 서버측 대역폭 · RTT 제한 (모든 연결이 한 대역폭을 나눠 쓴다 — WebKit 에도 같은 조건)
  *   - 요청 기록 (경로 · 상태 · 전송 바이트 · 조건부 여부 · 시각) — 이중 받기 · 재검증 판정의 외부 oracle
+ *   - 실패 주입 (G4, `setFault`): 경로별로 404 를 주거나 본문 첫 chunk 뒤 연결을 끊는다
  *
  * 모사하지 않는 것: HTTP/2 다중화 · CDN edge · TCP/TLS handshake 왕복 (RTT 는 응답 첫 바이트 지연으로만).
  *
@@ -56,6 +57,8 @@ export async function startPagesServer(options) {
   let rateBps = (options.rateMbps ?? 0) * 125_000; // 0 = 무제한
   let rttMs = options.rttMs ?? 0;
   let noStoreAll = false;
+  /** @type {((path: string) => "404" | "abort" | null) | null} */
+  let fault = null;
   const log = [];
   /** @type {Map<string, { body: Buffer, gzip: Buffer | null, etag: string }>} */
   const cache = new Map();
@@ -119,6 +122,13 @@ export async function startPagesServer(options) {
         return;
       }
     }
+    const injected = status === 200 ? fault?.(path) : null;
+    if (injected === "404") {
+      if (rttMs > 0) await sleep(rttMs);
+      res.writeHead(404, { "content-type": "text/plain" }).end("injected");
+      log.push({ t: startedAt, path, status: 404, bytes: 0, conditional, injected });
+      return;
+    }
     const entry = load(file);
     const noStore = noStoreAll || path.endsWith("/version.json");
     const headers = {
@@ -140,6 +150,14 @@ export async function startPagesServer(options) {
     if (gzip) headers["content-encoding"] = "gzip";
     headers["content-length"] = payload.length;
     res.writeHead(status, headers);
+    if (injected === "abort") {
+      // 본문 첫 chunk 뒤 연결을 끊는다 (받는 중 실패).
+      res.write(payload.subarray(0, CHUNK));
+      await sleep(50);
+      res.destroy();
+      log.push({ t: startedAt, path, status, bytes: CHUNK, conditional, aborted: true, injected });
+      return;
+    }
     const { sent, aborted } = await send(res, payload);
     res.end();
     record(status, sent, aborted);
@@ -170,6 +188,10 @@ export async function startPagesServer(options) {
     setDist: (next) => {
       dist = resolve(next);
       cache.clear();
+    },
+    /** 실패 주입 (G4): 경로마다 "404" · "abort" · null (정상). null 을 주면 끈다. */
+    setFault: (next) => {
+      fault = next;
     },
     close: () => new Promise((r) => server.close(r)),
   };

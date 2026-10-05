@@ -73,6 +73,15 @@
 
 ## §4 Phase 2 — 대안 A: 미리 받기 (G0 판정이 진행일 때만)
 
+> **구현 2026-10-06** — 아래 설계에서 바뀐 점:
+>
+> - **미리 받기 chunk 는 런타임 import 0** (`import type` 만): URL · registry · 폰트 캐시 규칙을 호출자 (`dashboard/canvasWarmupTrigger.ts`, initial) 가 넘긴다. 처음 구현처럼 initial 모듈을 import 하면 번들러가 그 모듈들을 공유 chunk 로 쪼개 initial 요청 · gzip 이 늘었다 (예비 빌드 Builder +1,182 → +1,061 B, Preview +98 → −6 B — G3 worktree 정식 값 +1,068 · −6). 정적 가드도 "금지 목록" 대신 "런타임 import 0 · 동적 import 0" 으로 단순해졌다.
+> - registry `canvasWarmup/warmupRegistry.ts` (`registerWarmup` · `awaitWarmup`, 상한 10 s) · URL `canvasWarmup/canvasAssetUrls.ts` — engine wasm URL 은 `import.meta.glob(…engine_bg.wasm, { query: "?url" })` 로 얻는다 (`engine-pkg` 를 빌드하지 않은 checkout 에서도 변환이 실패하지 않는다). 빌드 산출물에서 `vite-plugin-wasm` 의 loader 와 **같은 URL 상수 chunk** 를 공유함을 확인 (`engine_bg-<hash>.wasm` 1 개).
+> - 내장 폰트 목록 `builtinSkiaFonts()` 는 `canvasAssetUrls.ts` — `fonts/builtinFonts.ts` 에 두면 Preview 와 공유하는 chunk 에 실려 Preview initial 이 늘었다.
+> - 폰트 IDB 이름 · 키 · hit 판정 `skia/fontCache.ts` (`fontManager` 와 공용). 미리 받기가 DB 를 먼저 만들어도 store 모양이 같다.
+> - 순서: wasm 둘을 먼저 받고 폰트는 wasm 이 끝난 뒤 (부팅과 같은 순서). 폰트 항목은 처음부터 등록한다 — 그 사이 부팅이 같은 폰트를 따로 받지 않게.
+> - 대조군 스위치: localStorage `composition:canvas-warmup=off`. 하니스 `--warmup on,off`.
+
 ### 4.1 모듈 경계
 
 - `apps/builder/src/dashboard/canvasWarmup.ts` (신규, lazy chunk) — 받을 URL 목록 (`canvaskit-wasm/bin/canvaskit.wasm?url` · engine wasm URL · 조건부 폰트 `resolveFontUrl("fonts/PretendardVariable.ttf")` 등) 과 받기 함수.
