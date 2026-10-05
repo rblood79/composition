@@ -502,26 +502,19 @@ export function catalogComponentsPageEntries(
     row(theme(key, "row", "origin"), "Origin", cells);
   {
     // A family's head (`accent`) is the origin; `accent-hover`, `on-accent` derive from it.
-    // Surfaces derive from `base`; the palette is the raw colors the tint and neutral pick from.
+    // Surfaces derive from `base`. The raw palette the tint and neutral pick from is left out —
+    // the card shows the semantic colors components are drawn with.
     const names = Object.keys(lightColors);
     const groups = new Map<string, string[]>(
-      [...COLOR_FAMILIES, "surface", "palette"].map((key) => [key, []]),
+      [...COLOR_FAMILIES, "surface"].map((key) => [key, []]),
     );
     const heads: string[] = [];
     for (const name of names) {
       const family = name.replace(/^on-/, "").split("-")[0]!;
       const semantic = COLOR_FAMILIES.includes(family);
       if ((semantic && name === family) || name === "base") heads.push(name);
-      else
-        groups
-          .get(
-            semantic
-              ? family
-              : COLOR_SURFACES.includes(name)
-                ? "surface"
-                : "palette",
-          )!
-          .push(name);
+      else if (semantic) groups.get(family)!.push(name);
+      else if (COLOR_SURFACES.includes(name)) groups.get("surface")!.push(name);
     }
     for (const [key, list] of groups) if (!list.length) groups.delete(key);
     const swatch = (name: string, mark: string, caption = name) =>

@@ -259,6 +259,13 @@ describe("ADR-248 4e library origin view", () => {
         value: resolveToken("{color.accent}", "light"),
       },
     });
+    // Colors lists the semantic colors only — no row of the raw palette they pick from.
+    expect(
+      cards
+        .find((candidate) => candidate.name === "Colors")!
+        .children.slice(1)
+        .map((id) => nodeOf(id).name),
+    ).toEqual(["Origin", "Accent", "Neutral", "Negative", "Border", "Surface"]);
     expect(themeNode("typography/text-xl/sample").visual).toMatchObject({
       fontSize: { kind: "set", value: 20 },
     });
