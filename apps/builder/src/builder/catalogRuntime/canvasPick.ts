@@ -1,5 +1,10 @@
 import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommands";
+import {
+  ORIGIN_VIEW_NODE,
+  originOfPageInstance,
+  originOfSample,
+} from "./originViewNode";
 import type { CatalogSelectionItem, CatalogSession } from "./session";
 
 /** The record fields picking reads (a composition root record). */
@@ -67,8 +72,16 @@ export function resolveCatalogClickRecord(
   ) {
     const parent = records.get(record.parentId);
     if (editingContext === undefined) {
+      // The Components page: an origin's sample or an instance beside it, else the page (its
+      // card, line and cell frames are layout only).
+      if (
+        originOfSample(record.sourceId) ||
+        originOfPageInstance(record.sourceId)
+      )
+        return record.id;
       if (record.parentId === PAGE_GRID) return record.id;
-      if (parent?.parentId === PAGE_GRID) return record.id;
+      if (parent?.parentId === PAGE_GRID)
+        return parent.sourceId === ORIGIN_VIEW_NODE ? parent.id : record.id;
     } else if (parent?.sourceId === editingContext) return record.id;
   }
   return undefined;

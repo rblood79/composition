@@ -1,12 +1,11 @@
 import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Key } from "react-stately";
 import { Button } from "react-aria-components/Button";
-import { LayoutTemplate } from "lucide-react";
+import { File, LayoutTemplate } from "lucide-react";
 import { deleteLayout } from "../../../../../../../packages/shared/src/catalog/commands";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  catalogBuiltinOrigins,
   catalogDefinitionList,
   catalogNewLayoutCommand,
   catalogNextLayoutName,
@@ -16,6 +15,7 @@ import {
   useCatalogSession,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
+import { COMPONENTS_VIEW } from "../../../catalogRuntime/originView";
 import type { CatalogDefinitionViewId } from "../../../catalogRuntime/session";
 import { ActionIconButton } from "../../../components/ui/ActionIconButton";
 import { Section } from "../../../components/panel/Section";
@@ -26,10 +26,10 @@ import { TreeBase } from "../tree/TreeBase";
 import type { TreeItemState } from "../tree/TreeBase/types";
 import { useCatalogCommandRunner } from "./useCatalogCommandRunner";
 
-/** A listed definition: a project one, or a built-in component origin (`builtin`). */
+/** A listed definition: a project one, or the Components page (`page` — the built-in origins). */
 type DefinitionNode = Omit<CatalogDefinitionItem, "id"> & {
   id: CatalogDefinitionViewId;
-  builtin?: true;
+  page?: true;
   parentId: null;
   depth: 0;
   hasChildren: false;
@@ -44,8 +44,9 @@ const AddIcon = ACTION_ICONS.add;
  * Selecting one opens the definition edit view (its template on the Canvas and in Layers); a new
  * layout is a body with one content slot; a layout is deleted with its pages' content given back.
  * A component is made from a selection (Create component) and dissolved from Properties. The
- * Components tab lists the project's components, then the built-in component origins (the types
- * the Components palette registers — user 2026-10-01); opening one shows its derived sample.
+ * Components tab lists the Components page first — one derived page that draws every built-in
+ * component origin with its state variants (user 2026-10-05, `componentsPage`) — then the
+ * project's components.
  */
 export const CatalogDefinitionsSection = memo(
   function CatalogDefinitionsSection({
@@ -76,19 +77,19 @@ export const CatalogDefinitionsSection = memo(
         ),
       [listKey],
     );
-    const builtins = useMemo(
-      (): DefinitionNode[] =>
-        usage === "component"
-          ? catalogBuiltinOrigins(graph.library).map((origin) => ({
-              ...origin,
-              usage: "component",
-              builtin: true,
-              parentId: null,
-              depth: 0,
-              hasChildren: false,
-            }))
-          : [],
-      [graph, usage],
+    const componentsPage = useMemo(
+      (): DefinitionNode[] => [
+        {
+          id: COMPONENTS_VIEW,
+          name: t("navigator.builtinComponents"),
+          usage: "component",
+          page: true,
+          parentId: null,
+          depth: 0,
+          hasChildren: false,
+        },
+      ],
+      [t],
     );
     const definitionView = useCatalogSession((state) => state.definitionView);
     const selectedKeys = useMemo(
@@ -130,7 +131,13 @@ export const CatalogDefinitionsSection = memo(
         <div className={`elementItem ${state.isSelected ? "active" : ""}`}>
           <div className="elementItemIndent" />
           <div className="elementItemIcon">
-            {item.usage === "layout" ? (
+            {item.page ? (
+              <File
+                color={ICON_EDIT_PROPS.color}
+                strokeWidth={ICON_EDIT_PROPS.stroke}
+                size={ICON_EDIT_PROPS.size}
+              />
+            ) : item.usage === "layout" ? (
               <LayoutTemplate
                 color={ICON_EDIT_PROPS.color}
                 strokeWidth={ICON_EDIT_PROPS.stroke}
@@ -193,9 +200,21 @@ export const CatalogDefinitionsSection = memo(
         }
       >
         {usage === "component" && (
-          <div className="navigator-definition-group">
-            {t("navigator.userComponents")}
-          </div>
+          <>
+            <TreeBase<DefinitionNode>
+              aria-label={t("navigator.builtinComponents")}
+              items={componentsPage}
+              getKey={(item) => item.id}
+              getTextValue={(item) => item.name}
+              renderContent={renderContent}
+              selectedKeys={selectedKeys}
+              onSelectionChange={handleSelectionChange}
+              className="page-tree"
+            />
+            <div className="navigator-definition-group">
+              {t("navigator.userComponents")}
+            </div>
+          </>
         )}
         {items.length === 0 ? (
           <div className="page-search-empty" role="status">
@@ -214,23 +233,6 @@ export const CatalogDefinitionsSection = memo(
             onSelectionChange={handleSelectionChange}
             className="page-tree"
           />
-        )}
-        {builtins.length > 0 && (
-          <>
-            <div className="navigator-definition-group">
-              {t("navigator.builtinComponents")}
-            </div>
-            <TreeBase<DefinitionNode>
-              aria-label={t("navigator.builtinComponents")}
-              items={builtins}
-              getKey={(item) => item.id}
-              getTextValue={(item) => item.name}
-              renderContent={renderContent}
-              selectedKeys={selectedKeys}
-              onSelectionChange={handleSelectionChange}
-              className="page-tree"
-            />
-          </>
         )}
       </Section>
     );

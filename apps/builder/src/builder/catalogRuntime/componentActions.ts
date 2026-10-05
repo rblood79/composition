@@ -9,7 +9,7 @@ import type { NewId } from "../../../../../packages/shared/src/catalog/commands/
 import {
   catalogDefinitionTitle,
   isLibraryOrigin,
-  ORIGIN_VIEW_NODE,
+  originOfEditableSample,
 } from "./originView";
 import type {
   CatalogReader,
@@ -82,12 +82,15 @@ export function catalogComponentState(
 ): CatalogComponentState {
   const node = graph.getEntry(id);
   if (node?.kind !== "node") return {};
+  // A built-in origin's sample on the Components page is that origin.
+  const sampled = originOfEditableSample(id);
+  if (sampled) {
+    const originOf = componentRef(graph, sampled);
+    return originOf ? { originOf } : {};
+  }
   if (definitionView) {
     const viewed = graph.getEntry(definitionView);
-    const origin =
-      id === ORIGIN_VIEW_NODE ||
-      (viewed?.kind === "definition" && viewed.templateRootId === id);
-    if (origin) {
+    if (viewed?.kind === "definition" && viewed.templateRootId === id) {
       const originOf = componentRef(graph, definitionView);
       return originOf ? { originOf } : {};
     }
@@ -108,12 +111,10 @@ export function catalogComponentRole(
 ): "origin" | "instance" | undefined {
   const node = graph.getEntry(id);
   if (node?.kind !== "node") return undefined;
+  if (originOfEditableSample(id)) return "origin";
   if (definitionView) {
     const viewed = graph.getEntry(definitionView);
-    if (
-      id === ORIGIN_VIEW_NODE ||
-      (viewed?.kind === "definition" && viewed.templateRootId === id)
-    )
+    if (viewed?.kind === "definition" && viewed.templateRootId === id)
       return componentDefinition(graph, definitionView) ? "origin" : undefined;
   }
   return componentDefinition(graph, node.definitionId) ? "instance" : undefined;

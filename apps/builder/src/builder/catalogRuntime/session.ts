@@ -1,5 +1,4 @@
 import type {
-  LibraryDefinitionId,
   BreakpointName,
   EditTarget,
   EntryId,
@@ -7,6 +6,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { targetExists } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogRuntime } from "./controller";
+import type { CatalogComponentsViewId } from "./originViewNode";
 
 /**
  * ADR-248 Phase 4c session state: what the author is looking at and working on — the page, the
@@ -38,9 +38,12 @@ export interface CatalogSessionState {
    */
   readonly definitionView?: CatalogDefinitionViewId;
 }
-/** A definition the edit view shows: a project definition, or a library component origin. */
+/**
+ * What the edit view shows instead of the pages: a project definition, or the Components page
+ * (every built-in component origin).
+ */
 export type CatalogDefinitionViewId =
-  EntryId<"definition"> | LibraryDefinitionId;
+  EntryId<"definition"> | CatalogComponentsViewId;
 
 export const targetKey = (target: EditTarget): string =>
   target.kind === "node"

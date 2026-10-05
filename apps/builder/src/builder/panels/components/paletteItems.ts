@@ -76,6 +76,21 @@ import {
   type PanelMeta,
 } from "@composition/shared";
 
+/**
+ * 팔레트 category (레이블 · 설명) — 키 순서 = 표시 순서. Components 팔레트와 Navigator
+ * Components 탭 (기본 원본 묶음) 이 같이 읽는다.
+ */
+export const PALETTE_CATEGORIES = {
+  content: { label: "Content", description: "Display and indicators" },
+  layout: { label: "Layout", description: "Containers and navigation" },
+  buttons: { label: "Buttons", description: "Actions and triggers" },
+  forms: { label: "Forms", description: "Inputs and controls" },
+  collections: { label: "Collections", description: "Lists and data display" },
+  charts: { label: "Charts", description: "Data visualization" },
+  dateTime: { label: "Date & Time", description: "Date and time pickers" },
+  overlays: { label: "Overlays", description: "Dialogs and popups" },
+} as const;
+
 export interface PaletteItem {
   componentType?: string;
   initialProps?: Record<string, unknown>;

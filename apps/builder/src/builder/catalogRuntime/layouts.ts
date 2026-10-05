@@ -10,7 +10,7 @@ import { createLayout } from "../../../../../packages/shared/src/catalog/command
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import { getPaletteItems } from "../panels/components/paletteItems";
-import { isLibraryOrigin } from "./originView";
+import { isComponentsView, isLibraryOrigin } from "./originView";
 import { catalogPaletteDefinitionId } from "./paletteInsert";
 import type { CatalogDefinitionViewId } from "./session";
 
@@ -60,10 +60,12 @@ export function catalogDefinitionList(
 export interface CatalogBuiltinOrigin {
   id: LibraryDefinitionId;
   name: string;
+  /** The palette category it is registered under (`PALETTE_CATEGORIES` key). */
+  category: string;
 }
 /**
- * The built-in component origins the Components tab lists (user 2026-10-01): the reusable origin
- * of each type the Components palette registers, in palette order (one per origin).
+ * The built-in component origins the Components page draws (user 2026-10-01 · 2026-10-05): the
+ * reusable origin of each type the Components palette registers, in palette order (one each).
  */
 export function catalogBuiltinOrigins(
   library: CatalogLibrary,
@@ -74,7 +76,7 @@ export function catalogBuiltinOrigins(
     const id = catalogPaletteDefinitionId(library, type);
     if (!isLibraryOrigin(id) || seen.has(id)) return [];
     seen.add(id);
-    return [{ id, name: type }];
+    return [{ id, name: type, category: item.category }];
   });
 }
 
@@ -84,7 +86,7 @@ export function catalogNavigatorTabOf(
   definitionId: CatalogDefinitionViewId | undefined,
 ): CatalogNavigatorTab | undefined {
   if (!definitionId) return undefined;
-  if (isLibraryOrigin(definitionId)) return "components";
+  if (isComponentsView(definitionId)) return "components";
   const definition = graph.getEntry(definitionId);
   if (definition?.kind !== "definition") return undefined;
   return definition.usage === "layout" ? "layouts" : "components";

@@ -10,7 +10,11 @@ import {
   type EditingSemanticsDetachConfirmationRequest,
   type EditingSemanticsImpactConfirmationRequest,
 } from "../utils/editingSemanticsImpactConfirmation";
-import { catalogDefinitionTitle, isLibraryOrigin } from "./originView";
+import {
+  catalogDefinitionTitle,
+  isComponentsView,
+  isLibraryOrigin,
+} from "./originView";
 import type { CatalogWorkspace } from "./workspace";
 
 /**
@@ -105,18 +109,16 @@ function touchesTemplate(
   return false;
 }
 
-/** A step that changed the project override of a built-in origin. */
-function touchesOverrideOf(
+/** The built-in origin whose project override a step changed (`undefined` = none). */
+function overriddenOrigin(
   graph: CatalogReader,
   changedIds: ReadonlySet<string>,
-  definitionId: string,
-): boolean {
+): string | undefined {
   for (const id of changedIds) {
     const entry = graph.getEntry(id);
-    if (entry?.kind === "definitionOverride" && entry.targetId === definitionId)
-      return true;
+    if (entry?.kind === "definitionOverride") return entry.targetId;
   }
-  return false;
+  return undefined;
 }
 
 /**
@@ -137,18 +139,21 @@ export function watchCatalogComponentEdits(
     const view = workspace.session.getSnapshot().definitionView;
     if (!view) return;
     const graph = workspace.runtime.graph;
-    // A built-in origin's view: its edits are the project's defaults for it (its override).
-    if (isLibraryOrigin(view)) {
-      if (!touchesOverrideOf(graph, result.changedIds, view)) return;
+    // The Components page: a sample's edits are the project's defaults for its origin (its
+    // override) — the component edited is that origin.
+    let edited: string | undefined = view;
+    if (isComponentsView(view)) {
+      edited = overriddenOrigin(graph, result.changedIds);
+      if (!edited) return;
     } else {
       const definition = graph.getEntry(view);
       if (definition?.kind !== "definition" || definition.usage === "layout")
         return;
       if (!touchesTemplate(graph, result.changedIds, view)) return;
     }
-    const request = impactRequest(graph, view);
+    const request = impactRequest(graph, edited);
     if (!request) return;
-    const key = JSON.stringify([view, request.impactedInstanceIds]);
+    const key = JSON.stringify([edited, request.impactedInstanceIds]);
     if (confirmed.has(key)) return;
     const depth = workspace.runtime.historyDepth.undo - 1;
     pending = true;

@@ -3,6 +3,7 @@ import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { Box, ChevronRight, GripVertical, Settings2 } from "lucide-react";
 import type { CatalogLayerNode } from "../../../catalogRuntime/layerTree";
+import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { ICON_EDIT_PROPS } from "../tree/helpers";
 import { IndentGuides } from "../tree/LayerTree/IndentGuides";
@@ -33,9 +34,16 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
   onContextMenu?: (node: CatalogLayerNode, event: React.MouseEvent) => void;
 }) {
   const { depth, hasChildren, name, body } = node;
-  // A data row (a bound collection's projection) is neither draggable nor deletable.
+  // A data row (a bound collection's projection) is neither draggable nor deletable; nor is a
+  // node of the Components page (derived: its frames, samples and state variants).
+  const derived =
+    node.position.target.kind === "node" &&
+    node.position.target.id.startsWith(ORIGIN_VIEW_NODE);
   const fixed =
-    body || node.projection === true || node.position.target.kind !== "node";
+    body ||
+    derived ||
+    node.projection === true ||
+    node.position.target.kind !== "node";
   return (
     <div
       className={`elementItem ${isSelected ? "active" : ""} ${
@@ -113,6 +121,7 @@ export const CatalogLayerItem = memo(function CatalogLayerItem({
         )}
         {/* A part the owner draws (toggle indicator, TreeItem chevron) is the owner's own RAC element — not removable (`removeTargets`). */}
         {!body &&
+          !derived &&
           !node.projection &&
           !OWNER_DRAWN_PART_OWNERS[node.typeName] && (
             <Button

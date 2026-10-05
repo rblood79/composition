@@ -9,7 +9,11 @@ import {
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
 import { Blocks, SearchX } from "lucide-react";
-import { getPaletteItems, type PaletteItem } from "./paletteItems";
+import {
+  getPaletteItems,
+  PALETTE_CATEGORIES,
+  type PaletteItem,
+} from "./paletteItems";
 import { EmptyState } from "../../components/feedback/EmptyState";
 import { PanelHeader } from "../../components/panel/PanelHeader";
 import { Section } from "../../components/panel/Section";
@@ -45,17 +49,8 @@ interface ComponentListProps {
 // 표시 메타(category/label/icon/layoutOnly)는 catalog entry.panel + PALETTE_ONLY overlay 에서 파생.
 // → 새 컴포넌트 추가 시 ComponentList 손 등록 불필요(catalog entry 1곳이 palette 파생).
 
-// 카테고리 설정 (레이블 및 설명)
-const categoryConfig = {
-  content: { label: "Content", description: "Display and indicators" },
-  layout: { label: "Layout", description: "Containers and navigation" },
-  buttons: { label: "Buttons", description: "Actions and triggers" },
-  forms: { label: "Forms", description: "Inputs and controls" },
-  collections: { label: "Collections", description: "Lists and data display" },
-  charts: { label: "Charts", description: "Data visualization" },
-  dateTime: { label: "Date & Time", description: "Date and time pickers" },
-  overlays: { label: "Overlays", description: "Dialogs and popups" },
-} as const;
+// 카테고리 설정 (레이블 및 설명) — Navigator Components 탭과 공유 (paletteItems.ts)
+const categoryConfig = PALETTE_CATEGORIES;
 
 // 개별 컴포넌트 아이템을 메모이제이션
 const ComponentItem = ({

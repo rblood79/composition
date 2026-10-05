@@ -22,8 +22,13 @@ import type {
 import { catalogNodeState, resolveCatalogNode } from "../resolution/resolver";
 import { catalogAuthoredVisual } from "./libraryVisual";
 import { catalogRuleTextColor } from "./rulePaint";
-import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originViewNode";
-type CatalogDefinitionViewId = import("../document/types").DefinitionId;
+import {
+  isComponentsView,
+  ORIGIN_VIEW_NODE,
+  type CatalogComponentsViewId,
+} from "./originViewNode";
+type CatalogDefinitionViewId =
+  import("../document/types").DefinitionId | CatalogComponentsViewId;
 import {
   PersistentLayoutTree,
   type PersistentBatchNode,
@@ -1583,8 +1588,8 @@ export class CatalogCompositionRoot {
 
   private pageRoots(): NodeId[] {
     if (this.definitionView) {
-      // A library origin: the derived sample instance the workspace put in the graph's view.
-      if (isLibraryOrigin(this.definitionView))
+      // The Components page: the derived root frame the workspace put in the graph's view.
+      if (isComponentsView(this.definitionView))
         return this.runtime.graph.isViewEntry(ORIGIN_VIEW_NODE)
           ? [ORIGIN_VIEW_NODE]
           : [];
@@ -3273,10 +3278,10 @@ export class CatalogCompositionRoot {
           (op.entry.kind === "token" ||
             op.entry.kind === "definitionOverride")),
     );
-    // The library origin view redraws its one sample root on every step (below).
+    // The Components page redraws its root on every step (below).
     if (
       valueOnly &&
-      !isLibraryOrigin(this.definitionView) &&
+      !isComponentsView(this.definitionView) &&
       !this.touchesTableRows(result)
     ) {
       const indirect = result.forward.some(
@@ -3335,8 +3340,8 @@ export class CatalogCompositionRoot {
             id === this.definitionView
           );
         },
-        // The library origin view's sample follows the project override: redraw its one root.
-      ) || isLibraryOrigin(this.definitionView);
+        // The Components page's samples follow the project overrides: redraw its root.
+      ) || isComponentsView(this.definitionView);
     const currentRoots = structureChanged
       ? new Set(this.pageRoots())
       : this.rootIds;

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Navigator Components 탭 — 기본 컴포넌트를 Components page 하나로] - 2026-10-05
+
+### Changed
+
+- **Components 탭이 기본 컴포넌트를 page 하나로 보인다** (사용자 지시 2026-10-05, 샘플 `docs/design/components.PNG`): 종전에는 기본 원본 56개가 목록으로 나열되고 하나를 고르면 그 원본 표본 하나만 그렸다. 이제 목록 맨 위의 「기본 컴포넌트」 page 를 열면 Canvas 가 전 기본 원본을 번호 붙은 카드로 그린다 (6열, 열 높이는 카드의 실제 높이로 맞춘다).
+  - 카드 하나 = 원본 하나, 세 구역이다. **Origin** — 원본 표본 (◆). **Parts** — 원본을 구성 부품으로 분해한 것 (TextField → Label · Input · FieldError, Toolbar → ◇ Button ×3 · Separator; 자식이 없는 Button 은 없음). **Instances** (◇) — 상태 변형이 있는 원본은 variant 마다 한 줄 (Accent · Primary …) 에 Default · Disabled · Hover · Pressed · Focus, 상태가 없으면 variant 를 나란히, size 가 있으면 「Sizes」 줄.
+  - Layers 는 틀 (카드 · 줄 · 칸) 을 빼고 **원본 → 부품 · instance** 계층으로 보인다: page 아래에 원본 행 (◆) 이 팔레트 순서로, 원본을 펼치면 부품과 그 instance 행 (◇) 이 온다. Canvas 클릭은 표본 (원본 · instance) 을 바로 고르고, instance 를 고르면 Layers 가 그 원본 행을 펼친다. 틀을 누르면 page 가 선택된다.
+  - 편집 범위는 그대로다 — 편집되는 것은 Origin 표본의 props · 기본 스타일뿐이고 프로젝트 기본값 (override) 으로 쓰인다. instance · 부품 · page 의 틀은 편집되지 않는다. 인스턴스의 「컴포넌트로 이동」 은 이 page 를 열고 그 원본을 선택한다.
+  - 기본 원본 template 에는 slot 선언이 없어 (전수 확인 0건) slot 대신 구성 부품을 분해로 보인다 (사용자 결정).
+  - 카드 앞에 **테마 구역 01~04** 가 온다 — Colors (의미 계열 Accent · Neutral · Negative · Border, Surface, Palette 의 swatch 와 값), Typography (크기 단계별 표본 · px / 줄 높이), Icons (Lucide 21종), Spacing (단계별 상자). 값은 theme token 표에서 프로젝트의 테마 · 색 mode 로 읽고, 테마가 바뀌면 열린 page 가 다시 읽는다. 컴포넌트 카드 번호는 05 부터다. page · 카드 바탕색도 token 이라 dark mode 를 따른다.
+  - page 는 저장 · export · 색인에 들어가지 않는 파생 화면이다 (`catalogRuntime/componentsPage.ts` · `originView.ts`, shared `runtime/originViewNode.ts` 의 `COMPONENTS_VIEW`).
+
 ## [입력 유실·경합·자원 정리 등 16건 수리 — 미열람 범위 감사 LOW] - 2026-10-05
 
 ### Fixed

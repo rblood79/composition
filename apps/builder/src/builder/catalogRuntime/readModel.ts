@@ -23,7 +23,7 @@ import {
   pagePositions,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import { isLibraryOrigin, ORIGIN_VIEW_NODE } from "./originView";
+import { isComponentsView, ORIGIN_VIEW_NODE } from "./originView";
 import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogRuntime, CatalogStepContext } from "./controller";
 import type { DataBindingValue } from "@composition/shared";
@@ -171,8 +171,8 @@ export class CatalogReadModel {
         "pageId" in parent
           ? pagePositions(reader, parent.pageId)
           : "definitionId" in parent
-            ? isLibraryOrigin(parent.definitionId)
-              ? // A library origin: the derived sample the view draws.
+            ? isComponentsView(parent.definitionId)
+              ? // The Components page: its derived root frame.
                 reader.getEntry(ORIGIN_VIEW_NODE)
                 ? [nodePosition(reader, ORIGIN_VIEW_NODE)]
                 : []
@@ -451,7 +451,7 @@ export class CatalogReadModel {
           stale.add(key);
       }
     }
-    // A derived view entry (the library origin sample) follows any change it may derive from.
+    // A derived view entry (the Components page) follows any change it may derive from.
     if (changed.size)
       for (const id of this.runtime.graph.viewEntryIds())
         for (const key of this.byDep.get(id) ?? []) stale.add(key);

@@ -14,18 +14,37 @@ import type {
 import type { CatalogOperation } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 
 /**
- * ADR-248 4e (user 2026-10-01): the library origin view — a built-in component origin
- * (`lib:definition:origin-*`) opened from the Navigator Components tab. The Canvas draws one
- * derived sample instance of it (`ORIGIN_VIEW_NODE`, a graph view entry: never saved, exported or
- * indexed). Its own props and styles are the project's override of the origin (the root defaults
+ * ADR-248 4e (user 2026-10-01 · 2026-10-05): the built-in component origins on the Components
+ * page (`componentsPage` — derived graph view entries: never saved, exported or indexed). A
+ * sample's own props and styles are the project's override of its origin (the root defaults
  * every instance shows), so the panels read and reset them as own values. Edits are root only
- * (user decision): a command's prop and base style writes on the sample become the origin's
- * project defaults (`setLibraryDefault`); anything else on it — its children, sizing, layout,
- * breakpoint layers, fills, structure — is refused.
+ * (user decision): a command's prop and base style writes on a sample become that origin's
+ * project defaults (`setLibraryDefault`); anything else on the page — a sample's children,
+ * sizing, layout, breakpoint layers, fills, the instances beside it, the page's own frames — is refused.
  */
-import { ORIGIN_VIEW_NODE, isLibraryOrigin } from "./originViewNode";
+import {
+  COMPONENTS_VIEW,
+  ORIGIN_VIEW_NODE,
+  isComponentsView,
+  isLibraryOrigin,
+  originInstanceId,
+  originOfPageInstance,
+  originOfSample,
+  originSampleId,
+} from "./originViewNode";
 
-export { ORIGIN_VIEW_NODE, isLibraryOrigin };
+export {
+  COMPONENTS_VIEW,
+  ORIGIN_VIEW_NODE,
+  isComponentsView,
+  isLibraryOrigin,
+  originInstanceId,
+  originOfPageInstance,
+  originSampleId,
+};
+
+/** The origin a Components page node is the editable sample of. */
+export const originOfEditableSample = originOfSample;
 
 export class CatalogOriginEditError extends Error {
   constructor() {
@@ -50,7 +69,10 @@ export function catalogDefinitionTitle(
 }
 
 /** The project override of a library definition, if any. */
-function overrideOf(graph: CatalogReader, definitionId: LibraryDefinitionId) {
+export function catalogOriginOverride(
+  graph: CatalogReader,
+  definitionId: LibraryDefinitionId,
+) {
   const project = graph.getEntry(graph.projectId);
   if (project?.kind !== "project") return undefined;
   for (const id of project.overrideIds) {
@@ -61,63 +83,34 @@ function overrideOf(graph: CatalogReader, definitionId: LibraryDefinitionId) {
   return undefined;
 }
 
-/** The sample instance the origin view draws: its own fields = the project's override. */
-export function catalogOriginViewEntry(
-  graph: CatalogReader,
-  definitionId: LibraryDefinitionId,
-): NodeEntry {
-  const override = overrideOf(graph, definitionId);
-  return {
-    kind: "node",
-    id: ORIGIN_VIEW_NODE,
-    name: catalogDefinitionTitle(graph, definitionId),
-    definitionId,
-    children: [],
-    props: override?.defaults ?? {},
-    visual: override?.visual ?? {},
-    sizing: {},
-    descendantOverrides: [],
-  };
-}
-
-/** Show (or stop showing) the sample of a library origin in the graph's view entries. */
-export function setCatalogOriginView(
-  graph: CatalogGraph,
-  definitionId: LibraryDefinitionId | undefined,
-): void {
-  graph.setViewEntry(
-    ORIGIN_VIEW_NODE,
-    definitionId
-      ? () => catalogOriginViewEntry(graph, definitionId)
-      : undefined,
-  );
-}
-
-const touchesSample = (op: CatalogOperation): boolean =>
-  op.kind === "put"
-    ? op.entry.id === ORIGIN_VIEW_NODE
-    : "id" in op && op.id === ORIGIN_VIEW_NODE;
+/** The Components page node an operation writes (`undefined` = a document entry). */
+const pageNodeOf = (graph: CatalogGraph, op: CatalogOperation) => {
+  const id = op.kind === "put" ? op.entry.id : "id" in op ? op.id : undefined;
+  return id !== undefined && graph.isViewEntry(id) ? id : undefined;
+};
 
 /**
- * A command on the origin view: its writes on the sample root as the origin's project defaults.
- * Commands that do not touch the sample run as they are.
+ * A command on the Components page: its writes on an origin's sample as that origin's project
+ * defaults. Commands that do not touch the page run as they are.
  */
 export function catalogOriginEditCommand(
   graph: CatalogGraph,
   command: CatalogCommand,
-  definitionId: LibraryDefinitionId,
   newId: NewId,
 ): CatalogCommand {
   return (reader) => {
     const planned = command(reader);
-    if (!planned.ops.some(touchesSample)) return planned;
+    if (!planned.ops.some((op) => pageNodeOf(graph, op))) return planned;
     const writes: CatalogCommand[] = [];
     const rest: CatalogOperation[] = [];
     for (const op of planned.ops) {
-      if (!touchesSample(op)) {
+      const pageNode = pageNodeOf(graph, op);
+      if (!pageNode) {
         rest.push(op);
         continue;
       }
+      const definitionId = originOfEditableSample(pageNode);
+      if (!definitionId) throw new CatalogOriginEditError();
       if (op.kind === "patchNodeProp")
         writes.push(
           setLibraryDefault({

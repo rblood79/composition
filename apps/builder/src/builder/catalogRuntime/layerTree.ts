@@ -1,7 +1,12 @@
 import { isBodyType } from "@composition/shared";
 import { moveNodes } from "../../../../../packages/shared/src/catalog/commands";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
-import { isLibraryOrigin } from "./originView";
+import { catalogComponentsPageRows } from "./componentsPage";
+import {
+  isComponentsView,
+  ORIGIN_VIEW_NODE,
+  originOfEditableSample,
+} from "./originView";
 import type { CatalogDefinitionViewId } from "./session";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
@@ -109,14 +114,21 @@ const nameOf = (
   const own = position.target.kind === "node" || node?.slot ? node?.name : "";
   return own || node?.slot?.name || typeName;
 };
-/** A row's mark: the definition view's root is the origin; a component's instance is an instance. */
+/**
+ * A row's mark: the definition view's root is the origin, as is a built-in origin's sample on the
+ * Components page (whose own root is only the page); a component's instance is an instance.
+ */
 const roleOf = (
   graph: CatalogReader,
   position: CatalogPosition,
   parentId: string | null,
   definitionView: boolean,
 ): CatalogLayerNode["role"] => {
-  if (definitionView && parentId === null) return "origin";
+  const nodeId =
+    position.target.kind === "node" ? position.target.id : undefined;
+  if (originOfEditableSample(nodeId)) return "origin";
+  if (definitionView && parentId === null)
+    return nodeId === ORIGIN_VIEW_NODE ? undefined : "origin";
   const definitionId = String(position.definitionId);
   if (position.target.kind !== "node") return undefined;
   if (definitionId.startsWith("lib:definition:origin-")) return "instance";
@@ -229,7 +241,11 @@ export class CatalogLayerTreeStore {
       depth: number,
     ): CatalogLayerNode => {
       wanted.add(position.identity);
-      const rows = readModel.childRows(position);
+      // The Components page lists origins and their instances, not its drawn frames.
+      const rows =
+        (isComponentsView(this.ownerId)
+          ? catalogComponentsPageRows(graph, position)
+          : undefined) ?? readModel.childRows(position);
       const bound = this.host.boundRows?.(position);
       const typeName = typeNameOf(graph, position);
       const slot = slotOf(graph, position);
@@ -346,7 +362,7 @@ export class CatalogLayerTreeStore {
   private definitionOwner(): boolean {
     return (
       this.ownerId.startsWith("project:definition:") ||
-      isLibraryOrigin(this.ownerId)
+      isComponentsView(this.ownerId)
     );
   }
 

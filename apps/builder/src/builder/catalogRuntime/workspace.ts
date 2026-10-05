@@ -4,6 +4,7 @@ import type {
   BreakpointName,
   DefinitionId,
   EntryId,
+  LibraryDefinitionId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
@@ -34,10 +35,16 @@ import { CatalogReadModel } from "./readModel";
 import { catalogRowSampleHidden } from "./rowSample";
 import { CatalogHistoryStore } from "./history";
 import {
+  catalogComponentsPageCards,
+  setCatalogComponentsView,
+} from "./componentsPage";
+import {
   catalogOriginEditCommand,
+  COMPONENTS_VIEW,
+  isComponentsView,
   isLibraryOrigin,
   ORIGIN_VIEW_NODE,
-  setCatalogOriginView,
+  originSampleId,
 } from "./originView";
 import {
   CatalogSession,
@@ -171,8 +178,21 @@ export class CatalogWorkspace {
    * changed theme builds a new root, as after a step.
    */
   refreshTheme(): void {
-    if (this.applyTheme()) this.replaceRoot(this.currentRoot.breakpoint);
+    if (this.applyTheme()) this.rebuildThemed();
   }
+  /** A new root after a theme change; the open Components page reads its colors again. */
+  private rebuildThemed(): void {
+    if (isComponentsView(this.definitionView))
+      setCatalogComponentsView(
+        this.runtime.graph,
+        true,
+        this.componentsHeights,
+        this.colorMode,
+      );
+    this.replaceRoot(this.currentRoot.breakpoint);
+  }
+  /** The Components page's measured card heights (its columns stay balanced on a re-read). */
+  private componentsHeights: ReadonlyMap<string, number> | undefined;
   /** A new composition root over the same runtime (the layout engine starts empty). */
   private replaceRoot(breakpoint: BreakpointName): void {
     this.options.engine.clear();
@@ -186,14 +206,14 @@ export class CatalogWorkspace {
     // The viewed definition is gone (an undo of its creation, a dissolve): back to the pages.
     if (
       this.definitionView &&
-      !isLibraryOrigin(this.definitionView) &&
+      !isComponentsView(this.definitionView) &&
       this.runtime.graph.getEntry(this.definitionView)?.kind !== "definition"
     ) {
       this.showDefinition(undefined);
       return;
     }
     if (touchesTheme(result, this.projectId) && this.applyTheme())
-      this.replaceRoot(this.currentRoot.breakpoint);
+      this.rebuildThemed();
   }
   private definitionView: CatalogDefinitionViewId | undefined;
   /**
@@ -202,24 +222,48 @@ export class CatalogWorkspace {
    * nodes, so selection, the panels and every edit command work on them as on a page; the
    * instances elsewhere follow each step.
    */
-  showDefinition(definitionId: CatalogDefinitionViewId | undefined): void {
+  showDefinition(
+    definitionId: CatalogDefinitionViewId | LibraryDefinitionId | undefined,
+  ): void {
+    // A built-in origin lives on the Components page: open the page and select its sample.
+    if (isLibraryOrigin(definitionId)) {
+      if (!this.runtime.graph.library.definitions.has(definitionId))
+        throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
+      this.showDefinition(COMPONENTS_VIEW);
+      this.session.select(this.itemsOfNode(originSampleId(definitionId), 1));
+      return;
+    }
     if (definitionId === this.definitionView) return;
     const graph = this.runtime.graph;
     if (
       definitionId &&
-      (isLibraryOrigin(definitionId)
-        ? !graph.library.definitions.has(definitionId)
-        : graph.getEntry(definitionId)?.kind !== "definition")
+      !isComponentsView(definitionId) &&
+      graph.getEntry(definitionId)?.kind !== "definition"
     )
       throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
-    // A library origin is drawn as a derived sample (never saved); a project one is its template.
-    setCatalogOriginView(
+    // The Components page is derived view entries (never saved); a project one is its template.
+    this.componentsHeights = undefined;
+    setCatalogComponentsView(
       graph,
-      isLibraryOrigin(definitionId) ? definitionId : undefined,
+      isComponentsView(definitionId),
+      undefined,
+      this.colorMode,
     );
     this.definitionView = definitionId;
     this.session.setDefinitionView(definitionId);
     this.replaceRoot(this.currentRoot.breakpoint);
+    // The Components page: balance its columns by the cards' drawn heights (a second layout).
+    if (isComponentsView(definitionId)) {
+      const heights = new Map<string, number>();
+      for (const cardId of catalogComponentsPageCards(graph)) {
+        const records = this.root.recordsOfSource(cardId);
+        const height = this.root.getGeometry(records).get(records[0]!)?.height;
+        if (height !== undefined) heights.set(cardId, height);
+      }
+      this.componentsHeights = heights;
+      setCatalogComponentsView(graph, true, heights, this.colorMode);
+      this.replaceRoot(this.currentRoot.breakpoint);
+    }
   }
   /**
    * Show another breakpoint: a new composition root over the same runtime (history, saves and
@@ -375,19 +419,14 @@ export class CatalogWorkspace {
     plan: CatalogCommandPlan;
     result: CatalogTransactionResult;
   } {
-    // The library origin view: the sample's root writes become the origin's project defaults.
+    // The Components page: a sample's root writes become its origin's project defaults.
     const view = this.definitionView;
     // Each element the action creates gets its author DOM id (the old `customId`) in this step.
     const executed = this.root.execute(
       catalogAutoHtmlIds(
         this.runtime.graph,
-        isLibraryOrigin(view)
-          ? catalogOriginEditCommand(
-              this.runtime.graph,
-              command,
-              view,
-              this.newId,
-            )
+        isComponentsView(view)
+          ? catalogOriginEditCommand(this.runtime.graph, command, this.newId)
           : command,
       ),
     );
@@ -496,7 +535,7 @@ export class CatalogWorkspace {
     const owner = this.ownerOfRecord(recordId);
     if (!chain.length || !owner) return undefined;
     let rows =
-      owner.startsWith("project:definition:") || isLibraryOrigin(owner)
+      owner.startsWith("project:definition:") || isComponentsView(owner)
         ? this.readModel.definitionRows(owner as CatalogDefinitionViewId)
         : this.readModel.pageRows(owner as EntryId<"page">);
     let position: CatalogPosition | undefined;

@@ -144,8 +144,10 @@ export function CatalogPropertiesBody({
     first.target.kind === "node"
       ? catalogSettingsPage(graph, first.target.id)
       : undefined;
+  // A node of the Components page (a built-in origin's sample, a state variant, a frame).
   const originSample =
-    first.target.kind === "node" && first.target.id === ORIGIN_VIEW_NODE;
+    first.target.kind === "node" &&
+    first.target.id.startsWith(ORIGIN_VIEW_NODE);
   return (
     <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
       <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
@@ -155,7 +157,7 @@ export function CatalogPropertiesBody({
             nodeId={first.target.id}
           />
         )}
-        {/* A built-in origin's sample: only its root props and styles are its project
+        {/* The Components page: only a sample's root props and styles are its origin's project
             defaults (user decision: root only) — no node attributes, state or slot. */}
         {!originSample && (
           <CatalogAttributesSection
