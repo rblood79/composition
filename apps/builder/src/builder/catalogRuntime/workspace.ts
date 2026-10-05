@@ -44,6 +44,7 @@ import {
   isComponentsView,
   isLibraryOrigin,
   ORIGIN_VIEW_NODE,
+  originCardId,
   originSampleId,
 } from "./originView";
 import {
@@ -231,6 +232,11 @@ export class CatalogWorkspace {
         throw new Error(`CATALOG_DEFINITION_NOT_FOUND:${definitionId}`);
       this.showDefinition(COMPONENTS_VIEW);
       this.session.select(this.itemsOfNode(originSampleId(definitionId), 1));
+      // Bring that component's card into view (the page is far larger than the Canvas).
+      const [card] = this.itemsOfNode(originCardId(definitionId), 1);
+      if (card)
+        for (const listener of [...this.recordRevealListeners])
+          listener(card.identity);
       return;
     }
     if (definitionId === this.definitionView) return;
@@ -393,6 +399,12 @@ export class CatalogWorkspace {
   subscribeReveal(listener: (pageId: EntryId<"page">) => void): () => void {
     this.revealListeners.add(listener);
     return () => this.revealListeners.delete(listener);
+  }
+  private readonly recordRevealListeners = new Set<(identity: string) => void>();
+  /** The Canvas brings a drawn record into view when asked (a component's card on its page). */
+  subscribeRevealRecord(listener: (identity: string) => void): () => void {
+    this.recordRevealListeners.add(listener);
+    return () => this.recordRevealListeners.delete(listener);
   }
 
   /** Copied subtrees of this project (in memory; paste re-creates them with new ids). */

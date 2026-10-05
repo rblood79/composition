@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 편집 범위는 그대로다 — 편집되는 것은 Origin 표본의 props · 기본 스타일뿐이고 프로젝트 기본값 (override) 으로 쓰인다. instance · 부품 · page 의 틀은 편집되지 않는다. 인스턴스의 「컴포넌트로 이동」 은 이 page 를 열고 그 원본을 선택한다.
   - 기본 원본 template 에는 slot 선언이 없어 (전수 확인 0건) slot 대신 구성 부품을 분해로 보인다 (사용자 결정).
   - 카드 앞에 **테마 구역 01~04** 가 온다 — Colors · Typography · Icons · Spacing. 구성은 컴포넌트 카드와 같다: 기준 값이 Origin (◆ — `accent` · `neutral` · `base`, `text-base`, Icon, `md`), 거기서 나온 값이 Instances (◇ — `accent` 의 hover · pressed · subtle, 크기 단계, 아이콘 21종, 간격 단계). 테마 값의 ◆/◇ 는 읽기 위한 묶음이고 문서의 원본 · instance 관계는 아니다. 값은 theme token 표에서 프로젝트의 테마 · 색 mode 로 읽고, 테마가 바뀌면 열린 page 가 다시 읽는다. 컴포넌트 카드 번호는 05 부터다. page · 카드 바탕색도 token 이라 dark mode 를 따른다.
+  - 다듬기 (2026-10-06): 분해한 부품 표본이 `{label}` 같은 자리표시 글자 대신 원본의 값으로 그려진다 (TextField 의 Label → "Text Field", ListBox 의 item → "Inbox"). 인스턴스의 「컴포넌트로 이동」 은 Canvas 를 그 컴포넌트 카드에 맞춘다. page 의 노드는 크기를 바꿀 수 없으므로 선택해도 resize 손잡이가 나오지 않는다.
   - page 는 저장 · export · 색인에 들어가지 않는 파생 화면이다 (`catalogRuntime/componentsPage.ts` · `originView.ts`, shared `runtime/originViewNode.ts` 의 `COMPONENTS_VIEW`).
 
 ## [입력 유실·경합·자원 정리 등 16건 수리 — 미열람 범위 감사 LOW] - 2026-10-05

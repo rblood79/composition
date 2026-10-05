@@ -220,6 +220,27 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
     origin && "templateRootId" in origin && origin.templateRootId
       ? library.templates.get(origin.templateRootId)
       : undefined;
+  const type = root
+    ? (library.definitions.get(root.definitionId as LibraryDefinitionId) as
+        | { defaults?: Readonly<Record<string, unknown>> }
+        | undefined)
+    : undefined;
+  // A part's `{prop}` value is its owner's prop: drawn alone, it reads the origin's own value
+  // (its template root's, else the type's default), else its own name.
+  const filled = (
+    props: Readonly<Record<string, unknown>> | undefined,
+    name: string,
+  ) =>
+    Object.fromEntries(
+      Object.entries(props ?? {}).map(([key, value]) => {
+        const owner =
+          typeof value === "string" ? /^\{(\w+)\}$/.exec(value)?.[1] : undefined;
+        const read = owner
+          ? (root?.props?.[owner] ?? type?.defaults?.[owner] ?? name)
+          : value;
+        return [key, set(typeof read === "object" ? name : read)];
+      }),
+    ) as NodeEntry["props"];
   const parts = new Map<
     string,
     {
@@ -228,6 +249,8 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
       instance: boolean;
       count: number;
       props: NodeEntry["props"];
+      /** The template's own patches of the part (an item's label and icon), as the node's. */
+      overrides: (id: NodeId) => NodeEntry["descendantOverrides"];
     }
   >();
   for (const childId of root?.children ?? []) {
@@ -244,12 +267,16 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
       name: catalogDefinitionTitle(graph, definitionId),
       instance: isLibraryOrigin(definitionId),
       count: 1,
-      props: Object.fromEntries(
-        Object.entries(child.props ?? {}).map(([key, value]) => [
-          key,
-          set(value),
-        ]),
-      ) as NodeEntry["props"],
+      props: filled(child.props, catalogDefinitionTitle(graph, definitionId)),
+      overrides: (id) =>
+        (child.descendantPatches ?? []).map((patch) => ({
+          kind: "patch" as const,
+          address: { instances: [id], templatePath: patch.templatePath },
+          ...(patch.props
+            ? { props: filled(patch.props, catalogDefinitionTitle(graph, definitionId)) }
+            : {}),
+          ...(patch.enabled === undefined ? {} : { enabled: patch.enabled }),
+        })),
     });
   }
   return [...parts.values()];
@@ -725,6 +752,7 @@ export function catalogComponentsPageEntries(
                 node(base("part", String(at)), item.definitionId, {
                   name: item.name,
                   props: item.props,
+                  descendantOverrides: item.overrides(base("part", String(at))),
                 }),
               ),
             ),

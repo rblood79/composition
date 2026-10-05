@@ -61,6 +61,7 @@ import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
+import { isComponentsView } from "../../../catalogRuntime/originView";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
 import { CatalogActionBar } from "./CatalogActionBar";
@@ -858,6 +859,20 @@ export function CatalogCanvas({
       );
     });
 
+    // "Go to component": fit that component's card (after the new root's own camera settles).
+    const unsubscribeRevealRecord = workspace.subscribeRevealRecord(
+      (identity) => {
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const rect = boundsRef.current(identity);
+            const { width, height } = containerEl.getBoundingClientRect();
+            if (rect && width && height)
+              fitCatalogPageFrame(rect, { width, height }, 1);
+          }),
+        );
+      },
+    );
+
     // Pointer picking (scene coordinates from the camera). Pan owns its pointer (viewport bridge).
     const scenePoint = (event: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
@@ -975,7 +990,10 @@ export function CatalogCanvas({
         picking.leave();
         return;
       }
-      if (gestures.beginResize(x, y, zoomNow())) {
+      if (
+        !isComponentsView(workspace.root.definitionView) &&
+        gestures.beginResize(x, y, zoomNow())
+      ) {
         gestureSession.promoteElement(event.pointerId, "resize");
         picking.leave();
         return;
@@ -1327,6 +1345,7 @@ export function CatalogCanvas({
       window.removeEventListener("pagehide", camera.flush);
       camera.flush();
       unsubscribeReveal();
+      unsubscribeRevealRecord();
       cancelPanAnimation();
       setEditingElementId(null);
       sceneRef.current = undefined;

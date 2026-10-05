@@ -116,10 +116,16 @@ describe("ADR-248 4e library origin view", () => {
   it("opening an origin shows the Components page (never part of the document) with its sample selected", async () => {
     const { workspace, library, button } = await open();
     const sampleId = originSampleId(button.id);
+    const revealed: string[] = [];
+    workspace.subscribeRevealRecord((identity) => revealed.push(identity));
     workspace.showDefinition(button.id);
     expect(workspace.session.getSnapshot().definitionView).toBe(
       COMPONENTS_VIEW,
     );
+    // The Canvas is asked to bring that component's card into view.
+    expect(revealed).toEqual([
+      workspace.itemsOfNode(originCardId(button.id), 1)[0]!.identity,
+    ]);
     expect(
       workspace.session.getSnapshot().selection.map((item) => item.target),
     ).toEqual([{ kind: "node", id: sampleId }]);
@@ -365,6 +371,11 @@ describe("ADR-248 4e library origin view", () => {
       },
       props: { children: { kind: "set", value: "Item" } },
     });
+    // A part drawn alone reads the origin's own value where the template holds `{prop}`.
+    const fieldParts = cellsOf(parts).map(sampleOf);
+    expect(JSON.stringify(fieldParts.map((part) => part.props))).not.toMatch(
+      /\{\w+\}/,
+    );
     const accentHover = sampleOf(cellsOf(rows[1]!)[2]!);
     expect(accentHover.definitionId).toBe(`${origin}--hover`);
     expect(accentHover.props).toEqual({

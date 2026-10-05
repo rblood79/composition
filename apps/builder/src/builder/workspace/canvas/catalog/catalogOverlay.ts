@@ -40,6 +40,7 @@ import type { AIVisualFeedbackState } from "../../../stores/aiVisualFeedback";
 import type { SpacingBand } from "../interaction/spacingGeometry";
 import type { SpacingActiveTarget } from "../interaction/spacingTypes";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
+import { isComponentsView } from "../../../catalogRuntime/originView";
 
 export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
@@ -342,7 +343,9 @@ export function catalogOverlayNode(
       if (box && state.selection.length > 1)
         renderSelectionBox(ck, canvas, box, zoom);
       if (box) {
-        renderTransformHandles(ck, canvas, box, zoom);
+        // The Components page takes no resize (its nodes are derived): no handles to grab.
+        if (!isComponentsView(state.definitionView))
+          renderTransformHandles(ck, canvas, box, zoom);
         renderDimensionLabels(ck, canvas, box, zoom, inputs.fontMgr());
       }
       if (tree)
