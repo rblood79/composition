@@ -22,4 +22,4 @@
       font-weight: 100 900;
       font-display: swap;
     }
-  `}function r(t=document){let r=t.getElementById(e),i=n();if(r){r.textContent=i;return}let a=t.createElement(`style`);a.id=e,a.textContent=i,t.head.appendChild(a)}export{t as n,r as t};
+  `}function r(t=document){let r=t.getElementById(e),i=n();if(r){r.textContent=i;return}let a=t.createElement(`style`);a.id=e,a.textContent=i,t.head.appendChild(a)}export{r as t};
