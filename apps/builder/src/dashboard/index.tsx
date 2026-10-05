@@ -56,6 +56,10 @@ import type { ProjectListItem } from "../types/dashboard.types";
 import "./index.css";
 import { ACTION_ICONS } from "../builder/config/actionIcons";
 import { navigateWithTransition } from "../utils/ui/viewTransition";
+import {
+  requestCanvasWarmup,
+  scheduleIdleCanvasWarmup,
+} from "./canvasWarmupTrigger";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
@@ -182,6 +186,9 @@ function ProjectCard({
         className="react-aria-Button project-card-open"
         isDisabled={loading}
         onPress={() => onOpen(project.id)}
+        onHoverStart={requestCanvasWarmup}
+        onFocus={requestCanvasWarmup}
+        onPressStart={requestCanvasWarmup}
       >
         <span className="project-card-thumb">
           <ProjectThumbPlaceholder />
@@ -222,6 +229,9 @@ function ProjectRow({
         className="react-aria-Button projects-row-open"
         isDisabled={loading}
         onPress={() => onOpen(project.id)}
+        onHoverStart={requestCanvasWarmup}
+        onFocus={requestCanvasWarmup}
+        onPressStart={requestCanvasWarmup}
       >
         <span className="projects-row-name">
           <span className="projects-row-glyph">
@@ -444,6 +454,9 @@ function Dashboard() {
       cancelled = true;
     };
   }, [fetchProjects]);
+
+  // ADR-244 A — builder 부팅 자산 (wasm · 폰트) 을 dashboard idle 에 미리 받는다. 카드 의도는 위 카드가.
+  useEffect(() => scheduleIdleCanvasWarmup(), []);
 
   const createProjectMutation = useAsyncMutation<string, CreateProjectRequest>(
     async ({ name }) => {

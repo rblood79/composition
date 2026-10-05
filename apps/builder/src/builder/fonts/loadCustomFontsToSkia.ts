@@ -14,7 +14,7 @@ import {
   type FontFaceAsset,
 } from "@composition/shared";
 import { skiaFontManager } from "../workspace/canvas/skia/fontManager";
-import { resolveFontUrl } from "../../fonts/builtinFonts";
+import { builtinSkiaFonts } from "../../canvasWarmup/canvasAssetUrls";
 
 /** 빌트인 폰트 — unloadFont 대상에서 제외 */
 const PROTECTED_FAMILIES = new Set(["Pretendard", "Inter"]);
@@ -60,22 +60,12 @@ async function registerFontInBrowser(
  * variation 생성 때 반복 디코딩 비용이 크다. 브라우저는 기존 WOFF2를 유지한다.
  */
 export async function loadBuiltinFontsToSkia(): Promise<void> {
-  const builtins: Array<{
+  const builtins: ReadonlyArray<{
     family: string;
     url: string;
     browserUrl?: string;
     fallbackUrl?: string;
-  }> = [
-    {
-      family: "Pretendard",
-      url: resolveFontUrl("fonts/PretendardVariable.ttf"),
-    },
-    {
-      family: "Inter",
-      url: resolveFontUrl("fonts/InterVariable.ttf"),
-      browserUrl: resolveFontUrl("fonts/InterVariable.woff2"),
-    },
-  ];
+  }> = builtinSkiaFonts();
 
   for (const { family, url, browserUrl, fallbackUrl } of builtins) {
     if (skiaFontManager.hasFont(family)) continue;

@@ -10,7 +10,8 @@
  */
 
 import type { CanvasKit } from "canvaskit-wasm";
-import canvaskitWasmUrl from "canvaskit-wasm/bin/canvaskit.wasm?url";
+import { CANVASKIT_WASM_URL as canvaskitWasmUrl } from "../../../../canvasWarmup/canvasAssetUrls";
+import { awaitWarmup } from "../../../../canvasWarmup/warmupRegistry";
 
 const CK_GLOBAL_KEY = "__composition_CANVASKIT_INSTANCE__";
 const CK_PROMISE_KEY = "__composition_CANVASKIT_PROMISE__";
@@ -28,7 +29,7 @@ let canvasKit: CanvasKit | null = null;
  * CanvasKit WASM을 비동기 초기화한다.
  *
  * - HMR 시 기존 인스턴스를 재사용하여 중복 초기화를 방지한다.
- * - .wasm 은 `canvaskit-wasm/bin/canvaskit.wasm?url` — Vite 가 해시 경로로 내보낸다.
+ * - .wasm 은 `canvaskit-wasm/bin/canvaskit.wasm?url` (`canvasAssetUrls.ts`) — Vite 가 해시 경로로 내보낸다.
  */
 export async function initCanvasKit(): Promise<CanvasKit> {
   // 1. 모듈 레벨 캐시 확인
@@ -50,7 +51,12 @@ export async function initCanvasKit(): Promise<CanvasKit> {
 
   // 4. 새로 초기화
   const promise = (async () => {
-    const CanvasKitInit = (await import("canvaskit-wasm")).default;
+    // ADR-244 A: dashboard 가 wasm 을 받는 중이면 끝날 때까지 기다려 HTTP 캐시에서 받는다 (glue chunk
+    // 받기와 겹친다). 다른 자산 (폰트 · engine) 의 받기는 기다리지 않는다.
+    const [CanvasKitInit] = await Promise.all([
+      import("canvaskit-wasm").then((m) => m.default),
+      awaitWarmup(canvaskitWasmUrl),
+    ]);
 
     const ck = await CanvasKitInit({
       locateFile: (file: string) => {

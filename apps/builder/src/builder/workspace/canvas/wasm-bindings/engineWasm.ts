@@ -16,6 +16,9 @@
  * @see docs/adr/916-unified-rust-engine.md §Status log (C-2a)
  */
 
+import { ENGINE_WASM_URL } from "../../../../canvasWarmup/canvasAssetUrls";
+import { awaitWarmup } from "../../../../canvasWarmup/warmupRegistry";
+
 // wasm-pack bundler 산출물의 `LayoutEngine` 클래스 타입(camelCase 16-메서드 계약).
 // 자체 pkg 는 `LayoutEngineAPI`(layoutBridge.ts)와 이름 일치 — raw 반환(Uint32Array/
 // Float32Array)만 wrapper 에서 number[]/Map 으로 변환한다.
@@ -108,6 +111,10 @@ export async function initEngineWasm(): Promise<void> {
       // 에 멈춘다. 산출물이 gitignored 라 빌드가 깨진다는 지적이 있었으나,
       // deploy.yml 은 build 전에 `pnpm wasm:build:engine` 을 돌리고 fresh
       // clone 도 같은 순서가 필수다 (CLAUDE.md §명령·환경).
+      //
+      // ADR-244 A: engine.js 는 평가될 때 wasm 을 받는다 — dashboard 가 같은 wasm 을 받는 중이면 끝난
+      // 뒤 import 해 HTTP 캐시에서 받는다 (진행 중인 받기와 겹쳐 두 번 받지 않게).
+      if (ENGINE_WASM_URL) await awaitWarmup(ENGINE_WASM_URL);
       const mod =
         (await import("./engine-pkg/engine.js")) as unknown as EngineModule;
 

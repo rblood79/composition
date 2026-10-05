@@ -13,6 +13,12 @@
  *   revisit-expired  수명 2 s 로 채운 독립 profile 에서 3 s 뒤 방문 — 서버 기록에 wasm 304 가
  *                    있어야 유효 표본 (리뷰 244 R3 m3)
  *   direct           빈 캐시에서 주소창으로 `/builder/<id>` 직접 진입 (시작점 = navigation start)
+ *   in-progress      (Phase 2) 빈 캐시 · 미리 받기가 시작된 뒤 200 ms 에 press (대조군은 idle 뒤 200 ms)
+ *   revisit-idb      (Phase 2) 폰트 IDB 있음 · HTTP 캐시 비움 · 카드가 보이자마자 press — 폰트 ttf 요청 0 이어야
+ *
+ * `--warmup on,off` (Phase 2, G2): 같은 빌드에서 미리 받기 켬 / 끔 (localStorage
+ * `composition:canvas-warmup`) 두 arm 을 표본마다 번갈아 잰다. 자산별 전송 횟수는 dashboard 진입부터
+ * 센다 (미리 받기 + 부팅 — 진행 중 진입에서 같은 wasm 을 두 번 받는지).
  *
  * 표본마다 **새 persistent profile** (디스크 캐시) 을 쓴다. Playwright 의 일반 context 는 WebKit 에서
  * `fetch()` 응답을 HTTP 캐시에 두지 않아 재방문 조건이 매번 새로 받기가 된다
@@ -26,7 +32,7 @@
  *   node apps/builder/scripts/adr244-boot-latency.mjs --dist apps/builder/dist --out <json>
  *        [--n 10] [--browsers chromium,webkit] [--profiles unlimited,limited] [--cpu 1,4]
  *        [--conditions first-immediate,first-waited,revisit-fresh,revisit-expired,direct]
- *        [--seed-count 5000 --seed-dist <harness dist>]
+ *        [--seed-count 5000 --seed-dist <harness dist>] [--warmup on,off]
  */
 import { execSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -56,6 +62,9 @@ const CONDITIONS = list(
 // 실제 배포 (예: https://rblood79.github.io/composition/) 를 잰다 — 서버 기록 · 대역폭 제한 없음, Chromium 전용.
 const REMOTE = arg("--url");
 const SEED_COUNT = Number(arg("--seed-count", 0));
+// Phase 2 대조군 — 미리 받기를 끈 arm. Phase 0 빌드에는 스위치가 없어 "on" 하나로 잰다.
+const WARMUP_ARMS = list("--warmup", "on");
+const WARMUP_SWITCH_KEY = "composition:canvas-warmup";
 const SEED_DIST = arg("--seed-dist") ? resolve(arg("--seed-dist")) : null;
 if (SEED_COUNT && !SEED_DIST)
   throw new Error("--seed-count 에는 --seed-dist (harness 빌드) 가 필요하다");
@@ -74,6 +83,7 @@ const PROFILES = {
 const CARD = ".project-card-open, .projects-row-open";
 const FONT_DB = "composition-fonts";
 const BOOT_ASSET = /canvaskit[^/]*\.wasm|engine_bg[^/]*\.wasm|\.ttf(\?|$)/;
+const FONT_ASSET = /\.ttf(\?|$)/;
 const WASM_ASSET = /canvaskit[^/]*\.wasm|engine_bg[^/]*\.wasm/;
 const PRESENTED_TIMEOUT = 180_000;
 const SHORT_LIFE_S = 2;
@@ -81,7 +91,12 @@ const SHORT_LIFE_S = 2;
 /** press 시각을 페이지 timeline 에 남긴다 (SPA 라 builder mark 와 같은 timeline). */
 const INIT = `
   performance.setResourceTimingBufferSize(100000);
-  window.__adr244 = { press: null };
+  window.__adr244 = { press: null, longtasks: [] };
+  try {
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) window.__adr244.longtasks.push([e.startTime, e.duration]);
+    }).observe({ type: "longtask", buffered: true });
+  } catch {}
   addEventListener("pointerdown", (e) => {
     if (window.__adr244.press == null && e.target.closest?.(${JSON.stringify(CARD)}))
       window.__adr244.press = performance.now();
@@ -110,6 +125,10 @@ async function collect(page, direct) {
       return {
         press,
         visibility: document.visibilityState,
+        // dashboard 동안의 long task (Chromium 만 — WebKit 은 미지원으로 빈 목록)
+        dashboardLongTasks: direct
+          ? null
+          : window.__adr244.longtasks.filter(([start]) => start < press),
         marks: {
           firstCommit: mark("first-commit"),
           wasm: mark("boot.wasm"),
@@ -176,6 +195,10 @@ function derive(raw, serverLog) {
     // A 의 이득 상한 참고: CanvasKit wasm 구간 중 engine wasm 과 겹치지 않는 길이
     canvaskitOnly: wasmNet - unionLength(engine.map(clip)),
     canvaskitNet: unionLength(canvaskit.map(clip)),
+    // press 뒤 부팅이 받은 wasm 바이트 (HTTP 캐시 hit 면 0 — 원복 RED 의 신호)
+    bootWasmTransfer: wasm
+      .filter((r) => r.start >= press)
+      .reduce((sum, r) => sum + (r.transferSize ?? 0), 0),
     server: serverLog
       .filter((e) => BOOT_ASSET.test(e.path))
       .map((e) => ({
@@ -184,6 +207,17 @@ function derive(raw, serverLog) {
         bytes: e.bytes,
         conditional: e.conditional,
       })),
+  };
+}
+
+/** dashboard 진입부터 자산별 전송 (200) 횟수 — 미리 받기 + 부팅 합. */
+function transfers(serverLog) {
+  const count = (re) =>
+    serverLog.filter((e) => e.status === 200 && re.test(e.path)).length;
+  return {
+    canvaskit: count(/canvaskit[^/]*\.wasm/),
+    engine: count(/engine_bg[^/]*\.wasm/),
+    fonts: count(FONT_ASSET),
   };
 }
 
@@ -278,7 +312,7 @@ async function seedElements(page, count) {
  * profile 준비: no-store 서버에서 프로젝트를 만들고 폰트 DB 를 지운다 — HTTP 캐시 · 폰트 IDB 는
  * 비어 있고 프로젝트만 있는 "첫 방문" 상태. 돌려주는 값은 builder 경로.
  */
-async function prepareProfile(context, server) {
+async function prepareProfile(context, server, { keepFonts = false } = {}) {
   server.setNoStore(true);
   server.setProfile(PROFILES.unlimited);
   if (SEED_DIST) server.setDist(SEED_DIST);
@@ -295,9 +329,10 @@ async function prepareProfile(context, server) {
     if (SEED_COUNT) await seedElements(page, SEED_COUNT);
     else await page.waitForTimeout(2000); // 첫 저장
     const projectPath = new URL(page.url()).pathname;
-    // 앱 문서를 떠난 뒤 (DB 연결 닫힘) 폰트 캐시를 지운다.
+    // 앱 문서를 떠난 뒤 (DB 연결 닫힘) 폰트 캐시를 지운다. revisit-idb 는 남긴다 — no-store 라
+    // HTTP 캐시는 비어 있고 폰트는 IDB 에만 있는 상태.
     await page.goto(`${server.base}appIcon.svg`);
-    await page.evaluate(
+    if (!keepFonts) await page.evaluate(
       (name) =>
         new Promise((done) => {
           const request = indexedDB.deleteDatabase(name);
@@ -326,11 +361,12 @@ async function runArm({ type, engine, cpu, profileId, server }) {
   const samples = [];
   const auth = authScript();
   let version = "";
-  const push = (condition, i, errors, sample, extra = {}) => {
+  const push = (condition, arm, i, errors, sample, extra = {}) => {
     samples.push({
       engine,
       cpu,
       profile: profileId,
+      warmup: arm,
       condition,
       i,
       errors,
@@ -342,12 +378,15 @@ async function runArm({ type, engine, cpu, profileId, server }) {
       : extra.valid === false
         ? " · 무효"
         : "";
+    const sent = extra.transfers
+      ? ` · 전송 ck ${extra.transfers.canvaskit} engine ${extra.transfers.engine} font ${extra.transfers.fonts}`
+      : "";
     process.stdout.write(
-      `  ${engine} cpu${cpu} ${profileId} ${condition} #${i}: ${sample.total?.toFixed(0) ?? "—"} ms` +
-        ` · net ${sample.networkWait?.toFixed(0) ?? "—"}${note}\n`,
+      `  ${engine} cpu${cpu} ${profileId} warmup-${arm} ${condition} #${i}: ${sample.total?.toFixed(0) ?? "—"} ms` +
+        ` · net ${sample.networkWait?.toFixed(0) ?? "—"}${sent}${note}\n`,
     );
   };
-  const guarded = async (condition, i, body) => {
+  const guarded = async (condition, arm, i, body, prepare = {}) => {
     const errors = [];
     const dir = mkdtempSync(join(tmpdir(), "adr244-"));
     let context;
@@ -357,11 +396,15 @@ async function runArm({ type, engine, cpu, profileId, server }) {
         viewport: { width: 1440, height: 900 },
       });
       version = context.browser()?.version() ?? version;
-      await context.addInitScript(INIT + auth);
-      const projectPath = await prepareProfile(context, server);
+      await context.addInitScript(
+        INIT +
+          auth +
+          `localStorage.setItem(${JSON.stringify(WARMUP_SWITCH_KEY)}, ${JSON.stringify(arm)});`,
+      );
+      const projectPath = await prepareProfile(context, server, prepare);
       await body(context, errors, projectPath);
     } catch (error) {
-      push(condition, i, errors, {}, { failed: String(error).slice(0, 200) });
+      push(condition, arm, i, errors, {}, { failed: String(error).slice(0, 200) });
     } finally {
       server.setMaxAge(600);
       server.setNoStore(false);
@@ -369,82 +412,136 @@ async function runArm({ type, engine, cpu, profileId, server }) {
       rmSync(dir, { recursive: true, force: true });
     }
   };
+  /** dashboard 를 열고 `ready` 뒤 press — 전송 횟수는 dashboard 진입부터. */
+  const visit = async (context, errors, ready) => {
+    server.setProfile(profile);
+    const page = await newPage(context, engine, cpu, errors);
+    const from = server.mark();
+    await ready(page);
+    const sample = await pressAndMeasure(page, server);
+    return { page, sample, transfers: transfers(server.since(from)) };
+  };
 
-  for (let i = 0; i < N; i += 1) {
-    if (CONDITIONS.includes("first-immediate"))
-      await guarded("first-immediate", i, async (context, errors) => {
-        server.setProfile(profile);
-        const page = await newPage(context, engine, cpu, errors);
-        await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
-        await page.locator(CARD).first().waitFor({ timeout: 60_000 });
-        push("first-immediate", i, errors, await pressAndMeasure(page, server));
-      });
+  for (let i = 0; i < N; i += 1)
+    for (const arm of WARMUP_ARMS) {
+      if (CONDITIONS.includes("first-immediate"))
+        await guarded("first-immediate", arm, i, async (context, errors) => {
+          const { sample, transfers } = await visit(context, errors, async (page) => {
+            await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
+            await page.locator(CARD).first().waitFor({ timeout: 60_000 });
+          });
+          push("first-immediate", arm, i, errors, sample, { transfers });
+        });
 
-    if (
-      CONDITIONS.includes("first-waited") ||
-      CONDITIONS.includes("revisit-fresh")
-    )
-      await guarded("first-waited", i, async (context, errors) => {
-        server.setProfile(profile);
-        const page = await newPage(context, engine, cpu, errors);
-        await page.goto(`${server.base}dashboard`, {
-          waitUntil: "networkidle",
+      if (
+        CONDITIONS.includes("first-waited") ||
+        CONDITIONS.includes("revisit-fresh")
+      )
+        await guarded("first-waited", arm, i, async (context, errors) => {
+          const { page, sample, transfers } = await visit(
+            context,
+            errors,
+            async (page) => {
+              await page.goto(`${server.base}dashboard`, {
+                waitUntil: "networkidle",
+              });
+              await page.waitForTimeout(3000);
+            },
+          );
+          if (CONDITIONS.includes("first-waited"))
+            push("first-waited", arm, i, errors, sample, { transfers });
+          if (!CONDITIONS.includes("revisit-fresh")) return;
+          await page.waitForTimeout(1500);
+          await page.goto(`${server.base}dashboard`, {
+            waitUntil: "networkidle",
+          });
+          await page.waitForTimeout(1000);
+          push("revisit-fresh", arm, i, errors, await pressAndMeasure(page, server));
         });
-        await page.waitForTimeout(3000);
-        const first = await pressAndMeasure(page, server);
-        if (CONDITIONS.includes("first-waited"))
-          push("first-waited", i, errors, first);
-        if (!CONDITIONS.includes("revisit-fresh")) return;
-        await page.waitForTimeout(1500);
-        await page.goto(`${server.base}dashboard`, {
-          waitUntil: "networkidle",
-        });
-        await page.waitForTimeout(1000);
-        push("revisit-fresh", i, errors, await pressAndMeasure(page, server));
-      });
 
-    if (CONDITIONS.includes("revisit-expired"))
-      await guarded("revisit-expired", i, async (context, errors) => {
-        // 처음부터 짧은 수명으로 채운다 — 저장된 뒤 서버 헤더를 바꿔서는 만료되지 않는다.
-        server.setMaxAge(SHORT_LIFE_S);
-        server.setProfile(PROFILES.unlimited);
-        const page = await newPage(context, engine, cpu, errors);
-        await page.goto(`${server.base}dashboard`, {
-          waitUntil: "networkidle",
+      if (CONDITIONS.includes("in-progress"))
+        await guarded("in-progress", arm, i, async (context, errors) => {
+          const { sample, transfers } = await visit(context, errors, async (page) => {
+            await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
+            await page.locator(CARD).first().waitFor({ timeout: 60_000 });
+            // 켬: 미리 받기가 시작된 뒤 · 끔: 같은 idle 시점 — 그 뒤 200 ms 에 press.
+            if (arm === "off")
+              await page.evaluate(
+                () =>
+                  new Promise((done) =>
+                    typeof requestIdleCallback === "function"
+                      ? requestIdleCallback(done, { timeout: 5_000 })
+                      : setTimeout(done, 1_000),
+                  ),
+              );
+            else
+              await page.waitForFunction(
+                () => (window.__composition_CANVAS_WARMUP__?.size ?? 0) > 0,
+                undefined,
+                { timeout: 30_000 },
+              );
+            await page.waitForTimeout(200);
+          });
+          push("in-progress", arm, i, errors, sample, { transfers });
         });
-        await page.locator(CARD).first().click();
-        await waitPresented(page);
-        await page.waitForTimeout((SHORT_LIFE_S + 1) * 1000);
-        server.setProfile(profile);
-        await page.goto(`${server.base}dashboard`, {
-          waitUntil: "networkidle",
-        });
-        await page.waitForTimeout(1000);
-        const sample = await pressAndMeasure(page, server);
-        const wasm = sample.server.filter((e) => WASM_ASSET.test(e.file));
-        // 사전 조건: 두 wasm 모두 조건부 요청 → 304
-        const valid =
-          wasm.filter((e) => e.status === 304 && e.conditional).length >= 2 &&
-          wasm.every((e) => e.status === 304);
-        push("revisit-expired", i, errors, sample, { valid });
-      });
 
-    if (CONDITIONS.includes("direct"))
-      await guarded("direct", i, async (context, errors, projectPath) => {
-        server.setProfile(profile);
-        const page = await newPage(context, engine, cpu, errors);
-        const from = server.mark();
-        await page.goto(`${server.origin}${projectPath}`, {
-          waitUntil: "commit",
+      if (CONDITIONS.includes("revisit-idb"))
+        await guarded(
+          "revisit-idb",
+          arm,
+          i,
+          async (context, errors) => {
+            const { sample, transfers } = await visit(context, errors, async (page) => {
+              await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
+              await page.locator(CARD).first().waitFor({ timeout: 60_000 });
+            });
+            push("revisit-idb", arm, i, errors, sample, { transfers });
+          },
+          { keepFonts: true },
+        );
+
+      if (CONDITIONS.includes("revisit-expired"))
+        await guarded("revisit-expired", arm, i, async (context, errors) => {
+          // 처음부터 짧은 수명으로 채운다 — 저장된 뒤 서버 헤더를 바꿔서는 만료되지 않는다.
+          server.setMaxAge(SHORT_LIFE_S);
+          server.setProfile(PROFILES.unlimited);
+          const page = await newPage(context, engine, cpu, errors);
+          await page.goto(`${server.base}dashboard`, {
+            waitUntil: "networkidle",
+          });
+          await page.locator(CARD).first().click();
+          await waitPresented(page);
+          await page.waitForTimeout((SHORT_LIFE_S + 1) * 1000);
+          server.setProfile(profile);
+          await page.goto(`${server.base}dashboard`, {
+            waitUntil: "networkidle",
+          });
+          await page.waitForTimeout(1000);
+          const sample = await pressAndMeasure(page, server);
+          const wasm = sample.server.filter((e) => WASM_ASSET.test(e.file));
+          // 사전 조건: 두 wasm 모두 조건부 요청 → 304
+          const valid =
+            wasm.filter((e) => e.status === 304 && e.conditional).length >= 2 &&
+            wasm.every((e) => e.status === 304);
+          push("revisit-expired", arm, i, errors, sample, { valid });
         });
-        await waitPresented(page);
-        const raw = await collect(page, true);
-        push("direct", i, errors, {
-          ...raw,
-          ...derive(raw, server.since(from)),
+
+      if (CONDITIONS.includes("direct"))
+        await guarded("direct", arm, i, async (context, errors, projectPath) => {
+          server.setProfile(profile);
+          const page = await newPage(context, engine, cpu, errors);
+          const from = server.mark();
+          await page.goto(`${server.origin}${projectPath}`, {
+            waitUntil: "commit",
+          });
+          await waitPresented(page);
+          const raw = await collect(page, true);
+          const log = server.since(from);
+          push("direct", arm, i, errors, { ...raw, ...derive(raw, log) }, {
+            transfers: transfers(log),
+          });
         });
-      });
-  }
+    }
   return { version, samples };
 }
 
@@ -458,7 +555,13 @@ const round = (v) => (v == null ? null : Math.round(v * 10) / 10);
 function summarize(samples) {
   const groups = new Map();
   for (const s of samples) {
-    const key = [s.engine, `cpu${s.cpu}`, s.profile, s.condition].join(" | ");
+    const key = [
+      s.engine,
+      `cpu${s.cpu}`,
+      s.profile,
+      `warmup-${s.warmup ?? "on"}`,
+      s.condition,
+    ].join(" | ");
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(s);
   }
@@ -491,6 +594,28 @@ function summarize(samples) {
       networkWaitP50: round(net50),
       // A 진행 판정의 값: 네트워크 대기 몫 p50 / press → presented p50
       networkShare: total50 ? round((net50 / total50) * 100) : null,
+      // 진행 중 진입 · IDB 폰트 판정: 표본별 최대 전송 횟수 (1 이 기대값, 폰트는 revisit-idb 에서 0)
+      maxTransfers: all.some((s) => s.transfers)
+        ? {
+            canvaskit: Math.max(...ok.map((s) => s.transfers?.canvaskit ?? 0)),
+            engine: Math.max(...ok.map((s) => s.transfers?.engine ?? 0)),
+            fonts: Math.max(...ok.map((s) => s.transfers?.fonts ?? 0)),
+          }
+        : null,
+      bootWasmTransferP50: round(
+        percentile(
+          column((s) => s.bootWasmTransfer),
+          0.5,
+        ),
+      ),
+      dashboardLongTaskMsP50: round(
+        percentile(
+          column((s) =>
+            (s.dashboardLongTasks ?? []).reduce((sum, [, d]) => sum + d, 0),
+          ),
+          0.5,
+        ),
+      ),
       canvaskitOnlyP50: round(
         percentile(
           column((s) => s.canvaskitOnly),
@@ -525,6 +650,7 @@ const manifest = {
   profiles: Object.fromEntries(PROFILE_IDS.map((id) => [id, PROFILES[id]])),
   cpuRates: CPU_RATES,
   conditions: CONDITIONS,
+  warmupArms: WARMUP_ARMS,
   machine: `${cpus()[0].model} × ${cpus().length}`,
   playwright: JSON.parse(
     readFileSync(
@@ -584,6 +710,10 @@ process.stdout.write(
 );
 for (const row of summarize(samples))
   process.stdout.write(
-    `${row.key} | ${row.n}(${row.used}) | ${row.totalP50} | ${row.totalP95} | ${row.networkWaitP50} | ${row.networkShare}\n`,
+    `${row.key} | ${row.n}(${row.used}) | ${row.totalP50} | ${row.totalP95} | ${row.networkWaitP50} | ${row.networkShare}` +
+      (row.maxTransfers
+        ? ` | 전송 max ck ${row.maxTransfers.canvaskit} engine ${row.maxTransfers.engine} font ${row.maxTransfers.fonts}`
+        : "") +
+      ` | boot wasm B p50 ${row.bootWasmTransferP50}\n`,
   );
 process.stdout.write(`\n→ ${OUT}\n`);

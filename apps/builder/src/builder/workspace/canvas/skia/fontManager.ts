@@ -18,27 +18,14 @@ import type {
   TypefaceFontProvider,
 } from "canvaskit-wasm";
 import { getCanvasKit } from "./initCanvasKit";
-
-const IDB_NAME = "composition-fonts";
-const IDB_VERSION = 2; // v2: 이전 잘못된 서브셋 캐시 무효화
-const IDB_STORE = "fonts";
-
-interface FontCacheEntry {
-  /** IDB keyPath — 복합키 "family::weight::style" */
-  family: string;
-  /** 원본 URL — URL 변경 시 캐시 무효화에 사용 */
-  url?: string;
-  buffer: ArrayBuffer;
-  timestamp: number;
-}
-
-/**
- * 복합키 생성: "family::weight::style"
- * Pretendard 등 단일 로드 시 weight/style 미지정 → "family::400::normal"
- */
-function makeKey(family: string, weight?: string, style?: string): string {
-  return `${family}::${weight ?? "400"}::${style ?? "normal"}`;
-}
+import {
+  FONT_CACHE_STORE as IDB_STORE,
+  fontCacheKey as makeKey,
+  isFontCacheHit,
+  openFontCacheDb,
+  type FontCacheEntry,
+} from "./fontCache";
+import { awaitWarmup } from "../../../../canvasWarmup/warmupRegistry";
 
 /** 복합키에서 family 부분만 추출 */
 function familyFromKey(key: string): string {
@@ -90,6 +77,8 @@ export class SkiaFontManager {
     let buffer = await this.getFromCache(key, url);
 
     if (!buffer) {
+      // ADR-244 A: dashboard 가 이 폰트를 받는 중이면 끝난 뒤 HTTP 캐시에서 받는다 (IDB hit 면 보지 않는다).
+      await awaitWarmup(url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(
@@ -355,30 +344,21 @@ export class SkiaFontManager {
     // 열기 진행 중이면 대기
     if (this.dbPromise) return this.dbPromise;
 
-    this.dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(IDB_NAME, IDB_VERSION);
-
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(IDB_STORE)) {
-          db.createObjectStore(IDB_STORE, { keyPath: "family" });
-        }
-      };
-
-      request.onsuccess = () => {
-        this.dbInstance = request.result;
+    this.dbPromise = openFontCacheDb().then(
+      (db) => {
+        this.dbInstance = db;
         // 연결 끊김 시 캐시 무효화
-        this.dbInstance.onclose = () => {
+        db.onclose = () => {
           this.dbInstance = null;
           this.dbPromise = null;
         };
-        resolve(this.dbInstance);
-      };
-      request.onerror = () => {
+        return db;
+      },
+      (error: unknown) => {
         this.dbPromise = null;
-        reject(request.error);
-      };
-    });
+        throw error;
+      },
+    );
 
     return this.dbPromise;
   }
@@ -396,16 +376,8 @@ export class SkiaFontManager {
 
         req.onsuccess = () => {
           const entry = req.result as FontCacheEntry | undefined;
-          if (!entry?.buffer) {
-            resolve(null);
-            return;
-          }
           // URL이 변경되었으면 캐시 무효화 (이전 CDN 소스의 잘못된 데이터 방지)
-          if (expectedUrl && entry.url && entry.url !== expectedUrl) {
-            resolve(null);
-            return;
-          }
-          resolve(entry.buffer);
+          resolve(isFontCacheHit(entry, expectedUrl) ? entry.buffer : null);
         };
         req.onerror = () => resolve(null);
       });
