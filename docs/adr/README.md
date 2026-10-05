@@ -184,12 +184,12 @@
 
 #### [244](244-canvaskit-wasm-early-fetch-and-service-worker-cache.md) — 초기 로드: CanvasKit wasm 미리 받기 · 고유 경로화 (Service Worker precache 는 측정 조건부 보류)
 
-- **상태**: Proposed — 2026-09-27
-- **규모**: Phase 0 (GitHub Pages 헤더 모사 서버 · Chromium/WebKit · 카드 press → `isCanvasReady` 구간 분해) · 대안 D (wasm `?url` 해시 경로 — glue 와 쌍) 무조건 · 대안 A (의도/idle 미리 받기) 조건부 · SW 보류. 사용자 결정: SW 보류로의 scope 변경 · 미리 받기 트리거 · 배포 실패 복구 선행 (gh-pages 09-04 멈춤) · `scripts/prepare-wasm.mjs` 삭제 · initial Δ. breakdown: [design/244](design/244-initial-load-breakdown.md)
+- **상태**: Proposed — 2026-09-27 (개정 2026-10-05 — ADR-248 뒤 코드 사실 재대조, 결정 무변경)
+- **규모**: Phase 0 (GitHub Pages 헤더 모사 서버 + 실제 Pages 1 회 · Chromium/WebKit · 카드 press → `composition:builder.presented` 구간 분해 — 문서 열기 구간 포함) · 대안 D (wasm `?url` 해시 경로 — glue 와 쌍) 무조건 · 대안 A (의도/idle 미리 받기) 조건부 · SW 보류. 사용자 결정: SW 보류로의 scope 변경 · 미리 받기 트리거 · `scripts/prepare-wasm.mjs` 삭제 · initial Δ. breakdown: [design/244](design/244-initial-load-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
-- **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 Rejected/Deferred 가 정상 종결)
+- **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
 - **규모**: Phase 0 go/no-go 계측 (수정 전후 Ollama · one-shot · Prompt API arm, 한국어 모호 요청 20+ · 정답 IR). go 면 `chrome-built-in` provider (IR 전용 · Translator ko→en · 동의 뒤 다운로드 · 상태 4단계). 사용자 결정: G0 절대 목표 (제안 5초) · 요청 세트 승인 · 서버 측 one-shot 이 이길 때의 소속 · 채택 근거 범위 · 자격 기기. breakdown: [design/245](design/245-ai-on-device-breakdown.md)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처

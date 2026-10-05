@@ -4,25 +4,28 @@
 
 Proposed — 2026-09-27 (사용자 `/create-adr` — AI 패널 지연 개선 후보 중 on-device 경로. **사용자 전제: 이 경로는 선택 사항이며, reasoningEffort 수정 (`1f0aa5d23`) 뒤에도 지연이 부족할 때만 정당화된다.** 따라서 Phase 0 은 go/no-go 계측이고, no-go 로 닫는 것도 정상 종결이다. no-go 는 상태 계약 (`adr-writing.md` §Status 전이) 안에서 기록한다 — **기각은 Deprecated**, 재개 조건이 살아 있는 **보류는 Proposed 유지** + Status 문장에 `보류 (no-go)` · 재개 조건 · Phase 0 수치 링크. 새 상태값을 만들지 않는다.)
 
+**개정 2026-10-05** (사용자 지시 — ADR-248 catalog 전환 뒤 전체 재대조): 결정과 Phase 0 설계는 그대로다. AI 쓰기 · 읽기 경로가 catalog 문서로 옮겨졌지만 (`aiWriteHost.ts` · `aiReadHost.ts`), 이 ADR 이 기대는 경계 — provider 선택 · one-shot IR 계약 · `validateProgram` — 는 그 위층이라 바뀌지 않았다. 코드 인용 라인 · 번들 기준선 · 「적용」 의 뜻 (catalog 문서 commit) 을 갱신했다.
+
 ## Context
 
 ### 문제 — 모호한 요청의 지연
 
 명시적 요청은 이미 LLM 없이 처리된다. ADR-202 compiler direct 경로가 "버튼 생성해" 를 모델 호출 0 · 2.0~2.1 초에 적용한다 ([ADR-202 Live Exercise 2차](completed/202-builder-ai-compiler-first-command-execution.md) §Live Exercise 2차). 남은 지연은 compile 결과가 `ambiguous` 인 요청 ("이 화면을 조금 더 보기 좋게 정리해줘" 류) 이다.
 
-- `compiler/runtime.ts:68-78` — `ambiguous` 는 main 프로파일 provider 를 부르되, `provider.id !== "anthropic"` 이면 `legacy` 로 돌려 기존 Agent 루프 (`createAgentRunner.ts:113-135` — planner 가 구성돼 있으면 Orchestrator, 아니면 `AgentService` 단일 루프, `AgentService.ts:32` `MAX_TURNS = 10`) 로 넘긴다. IR 만 받는 one-shot (`compiler/oneShot.ts`, `responseSchema: programJsonSchema()`) 은 Anthropic 에만 열려 있다.
+- `compiler/runtime.ts:68-78` — `ambiguous` 는 main 프로파일 provider 를 부르되, `provider.id !== "anthropic"` 이면 `legacy` 로 돌려 기존 Agent 루프 (`createAgentRunner.ts:125-131` — planner 가 구성돼 있으면 Orchestrator, 아니면 `AgentService` 단일 루프, `AgentService.ts:33` `MAX_TURNS = 10`) 로 넘긴다. IR 만 받는 one-shot (`compiler/oneShot.ts`, `responseSchema: programJsonSchema()`) 은 Anthropic 에만 열려 있다.
 - 기준선 (수정 전): "버튼 생성해" 가 Agent 경로일 때 26.8 초 = prompt 평가 3,794 token / 22.5 초 + Qwen3 기본 thinking 약 8.1 초, 요청 본문 약 15 KB (system prompt 5,071 자 + 도구 schema 9개 6,039 자) — 2026-09-01, `qwen3:14b`, 메모리 `project-ai-assistant-ollama-latency-rootcause`. ADR-202 승격 live (2026-09-16) 의 모호 요청 legacy Agent 는 **호출당 28~106 초** (n_tokens ≈ 10.8k, 11 t/s).
-- 2026-09-27 수정 (`1f0aa5d23` · 하니스 `a760c8cf1`): 프로파일 `reasoningEffort` 가 요청까지 전달되고 (`AgentProfileRegistry.ts:232-234` → `OpenAICompatibleProvider.ts:119` `reasoning_effort`), `ReasoningEffort` 에 `"none"` 추가 (`LLMProvider.ts:34-40`, OpenAI 호환 전용). local-ollama 프리셋 main · executor · fast = `none`, planner · verifier = 모델 기본 (`AgentProfileRegistry.ts:145-174`). **모호 요청의 첫 호출은 planner 라 planner 를 구성한 사용자는 여전히 thinking 이 돈다** (`a760c8cf1` 메시지). 저장된 프로파일은 프리셋을 다시 적용해야 새 값이 들어간다 (`agentProfiles.ts:46-53` — 저장값이 있으면 프리셋을 읽지 않는다).
+- 2026-09-27 수정 (`1f0aa5d23` · 하니스 `a760c8cf1`): 프로파일 `reasoningEffort` 가 요청까지 전달되고 (`AgentProfileRegistry.ts:232-234` → `OpenAICompatibleProvider.ts:120` `reasoning_effort`), `ReasoningEffort` 에 `"none"` 추가 (`LLMProvider.ts:34-40`, OpenAI 호환 전용). local-ollama 프리셋 main · executor · fast = `none`, planner · verifier = 모델 기본 (`AgentProfileRegistry.ts:145-174`). **모호 요청의 첫 호출은 planner 라 planner 를 구성한 사용자는 여전히 thinking 이 돈다** (`a760c8cf1` 메시지). 저장된 프로파일은 프리셋을 다시 적용해야 새 값이 들어간다 (`agentProfiles.ts:46-53` — 저장값이 있으면 프리셋을 읽지 않는다).
 - **수정 뒤 모호 요청 지연은 아직 아무도 재지 않았다.** 이 ADR 의 정당성은 그 수치에 달려 있다.
 
 ### 코드 사실 — 이 ADR 이 기대는 경계
 
 - `LLMProviderId = "anthropic" | "openai-compatible"` (`providers/LLMProvider.ts:21`). ADR-134 D1 은 어댑터를 이 2-way 로 줄였다.
-- **원격 provider 는 브라우저에서 실제로 막혀 있다.** `requestStream` 이 모든 호출 전에 `assertBrowserCallAllowed` (`LLMProvider.ts:216-222, 292`) 를 부르고, 우회 필드 `allowRemoteDirect` 는 저장소 안에 설정하는 호출자가 없다 (grep 0 — 타입 선언 · 판정 코드뿐). 프록시 (ADR-134 D10) 는 아직 없다. 그래서 **지금 AI 패널에서 실제로 동작하는 LLM 은 로컬 · 사설망 OpenAI 호환 endpoint (Ollama 등) 뿐**이고, Anthropic one-shot 은 실사용 경로가 아니다. "on-device 가 안 되면 Anthropic 으로" 는 현재 성립하지 않는 fallback 이다 — fallback 은 Ollama 프로파일 또는 "설정 필요" 안내다.
+- **원격 provider 는 브라우저에서 실제로 막혀 있다.** `requestStream` 이 모든 호출 전에 `assertBrowserCallAllowed` (`LLMProvider.ts:218-224, 294`) 를 부르고, 우회 필드 `allowRemoteDirect` 는 저장소 안에 설정하는 호출자가 없다 (grep 0 — 타입 선언 · 판정 코드 · 테스트뿐, 판정은 `import.meta.env.DEV` 에서만 통과). 프록시 (ADR-134 D10) 는 아직 없다. 그래서 **지금 AI 패널에서 실제로 동작하는 LLM 은 로컬 · 사설망 OpenAI 호환 endpoint (Ollama 등) 뿐**이고, Anthropic one-shot 은 실사용 경로가 아니다. "on-device 가 안 되면 Anthropic 으로" 는 현재 성립하지 않는 fallback 이다 — fallback 은 Ollama 프로파일 또는 "설정 필요" 안내다.
 - one-shot 의 IR 계약은 provider 중립이다: `programContract` (`compiler/contracts.ts:53-58`, operations 정확히 1) · `programJsonSchema()` (`:68-73`) · `validateProgram` 재검증과 삭제/명령 거부 (`runtime.ts:94-120`). 새 provider 는 이 계약을 그대로 소비할 수 있다.
+- **문서 쓰기 · 읽기는 catalog 다 (ADR-248)**: 요소 도구 (`create_element` · `update_element` · `delete_element`) 는 열린 Builder 가 설치한 `AiWriteHost` (`aiWriteHost.ts`) 를 거쳐 catalog 명령으로 쓰고 (쓰기 1 회 = history 1 단계), manifest 의 컴포넌트 필드는 `catalogCreationEditFields` 에서, context 는 `AiReadHost` 에서 나온다 (`compiler/builderHost.ts:25-60`). host 가 없으면 context 는 비어 있다 — 계측은 반드시 열린 Builder 안에서 `readCompilerState()` 를 읽는다. IR 계약 · executor 진입 (`runtime.ts:123-126`) 은 무변경이라 새 provider 가 닿는 표면은 ADR-248 전과 같다.
 - AI 패널은 lazy chunk 다 (`builder/panels/ai/lazyAIPanel.tsx`, `lazyPanelBoundary.static.test.ts` 의 `ai/AIPanel` 대상). `AgentProfileRegistry` · `agentProfiles` 를 값 import 하는 곳 7개 (`AgentProfileSettings` · `ConnectionStatus` · `useAgentLoop` · `AgentService` · `createAgentRunner` · `AgentProfileRouter` · `compiler/runtime`) 가 전부 AI 패널 · AI 서비스 안이다.
 - 연결 상태 UI 는 `builder/panels/ai/components/ConnectionStatus.tsx` — "어느 작업이 어느 프로파일로 가는가" 를 보여 주며, 모델 다운로드 상태 같은 수명주기 표시는 없다.
-- ADR-134 Phase 5: catalog 전체 상세 6,454 tok, Tier 1 + 선택 주입 1,389 tok. one-shot 은 현재 `CommandManifest` 전체를 system 문장에 싣는다 (`oneShot.ts:19`).
+- ADR-134 Phase 5: catalog 전체 상세 6,454 tok, Tier 1 + 선택 주입 1,389 tok. one-shot 은 현재 `CommandManifest` 전체를 system 문장에 싣는다 (`oneShot.ts:19`). 두 수치는 ADR-248 전 (2026-08-28) 측정이고 manifest 출처가 catalog 편집 계약으로 바뀌었다 — 지금 크기는 Phase 0 의 context 사용량 측정이 다시 잰다 (R4).
 
 ### 외부 사실 — Chrome built-in AI (2026-09-27 조사, Chrome for Developers 사례 · 릴리스 노트 원문 대조)
 
@@ -40,9 +43,9 @@ D1 · D2 · D3 어느 것도 아니다. AI provider 선택은 빌더 chrome 의 
 ### Hard constraints
 
 - **HC1 계약 지표** — 모호 요청 중 **적용 가능한 요청** (정답 IR 이 1 operation) 의 "제출 → 첫 명령 적용" 지연 p50 / p95 가 이 ADR 의 유일한 채택 근거다. 표현 불가 요청은 적용 시각이 없으므로 정답률 (적용 0 = 정답) 과 종료 시간으로 따로 채점한다 (breakdown §2.2 · §2.3). 절대 목표와 상대 기준은 G0 (사용자 확정).
-- **HC2 번들** — Builder · Preview initial gzip Δ ≤ 0. 어댑터는 AI lazy chunk 안에서만 도달 (ADR-201 · ADR-242 상한 — ADR-242 종결 기준 Builder 1,401,576 / 상한 1,421,000, 만료 2026-10-25).
+- **HC2 번들** — Builder · Preview initial gzip Δ ≤ 0. 어댑터는 AI lazy chunk 안에서만 도달 (ADR-201 상한 Builder ≤ 1,421,000 / Preview ≤ 623,000, 만료 2026-10-25 — ADR-248 뒤 정적 initial Builder 1,228,752 · Preview 394,104, [248 G5 근거](design/248-phase4-g5-evidence.md) §3).
 - **HC3 fallback 정합** — on-device 를 쓸 수 없는 모든 경우 (Safari · 기기 미달 · 모델 미다운로드 · 한국어 번역 불가 · 정책 차단 · 폐쇄망 · 출력 무효) 에 동작이 지금과 같다 (Ollama 프로파일 있으면 legacy Agent, 없으면 "설정 필요"). 출력 무효는 지금 `runtime.ts` 가 `handled: true` 로 끝내므로, mutation 전 on-device 의 **출력 형식 오류 (허용 목록 3 종)** 만 `handled: false` 로 돌려 legacy 로 넘기는 반환 분기가 필요하다 — `protected-target` 등 안전 · 의미 거부는 넘기지 않는다 (breakdown §4). on-device 선택은 레지스트리가 아니라 one-shot 전용 비동기 resolver 가 하고, 쓸 수 없으면 지금의 `resolveProvider("main")` 결과를 그대로 쓴다 (breakdown §4).
-- **HC4 안전** — 모델 출력은 IR 뿐. `validateProgram` · 삭제/명령 거부 · 대상 선택 일치 (`runtime.ts:94-120`) 를 그대로 지난다. 도구 호출 · Agent 루프에 on-device 모델을 넣지 않는다.
+- **HC4 안전** — 모델 출력은 IR 뿐. `validateProgram` · 삭제/명령 거부 · 대상 선택 일치 (`runtime.ts:94-120`) 를 그대로 지나고, 적용은 기존 executor → `AiWriteHost` → catalog 명령 하나다. 도구 호출 · Agent 루프에 on-device 모델을 넣지 않는다.
 - **HC5 동의** — 모델 · 언어팩 자동 다운로드 금지. 사용자가 누른 동작에서만, 크기 · 저장 공간 안내 뒤.
 - **HC6 Canvas 프레임** — 추론 중에도 Canvas cadence 유지 (ADR-134 HC1 · CLAUDE.md 성능 기준). on-device 추론은 Skia (CanvasKit WebGL) 와 GPU 를 나눠 쓴다.
 
