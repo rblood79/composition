@@ -15,9 +15,10 @@
 
 ### 2.1 GitHub Pages 헤더 모사 서버 `apps/builder/scripts/adr244-pages-server.mjs` (신규)
 
-- `dist/` 를 `/composition/` 아래로 제공. 모든 응답 `Cache-Control: max-age=600` (옵션 `--max-age 0` 으로 "10 분 뒤" 모사) · 약한 ETag · `If-None-Match` → 304 · gzip (`application/wasm` · js · css · ttf).
+- `dist/` 를 `/composition/` 아래로 제공. 모든 응답 `Cache-Control: max-age=600` (옵션 `--max-age <초>` — "10 분 뒤" 조건은 아래 만료 arm 절차) · 약한 ETag · `If-None-Match` → 304 · gzip (`application/wasm` · js · css · ttf).
 - 서버측 대역폭 · RTT 제한 (`--rate 10mbps --rtt 100`) — Chromium CDP 제한과 달리 WebKit 에도 같은 조건을 준다.
 - 요청 기록 (경로 · 상태 · 전송 바이트 · 시각) 을 JSON 으로 — 이중 받기 · 재배포 모사 판정의 외부 oracle.
+- **만료 arm ("10 분 뒤 재방문") 준비 (리뷰 244 R3 m3)**: 이미 `max-age=600` 으로 저장된 응답은 서버 헤더를 나중에 0 으로 바꿔도 fresh 로 남아 재검증 요청이 가지 않는다 (freshness 는 저장된 응답의 헤더로 계산 — RFC 9111, Chrome 154 격리 실험에서 서버 기록 200 한 건뿐). 그래서 만료 arm 은 **독립 브라우저 profile** 을 처음부터 짧은 수명 (`--max-age 2`) 서버로 prime 하고, 3 초 이상 기다린 뒤 측정 방문을 한다. **사전 조건**: 측정 방문의 서버 기록에 wasm · 폰트 자산마다 `If-None-Match` 조건부 요청 → 304 가 있어야 유효 표본이다 (없으면 그 표본은 폐기 — fresh hit 는 "10 분 안" arm 과 같다). 캐시 전체 삭제는 cold arm 이므로 대체하지 않는다. WebKit 은 격리 실험에서 순차 fetch 도 캐시를 재사용하지 않았다 — 같은 사전 조건으로 걸러지며, 걸러진 수를 기록한다.
 - `--dist` 두 개를 받아 실행 중 교체 (재배포 모사, G1).
 - 주소창 직접 진입 조건: 서버는 실제 GitHub Pages 처럼 없는 경로 (`/composition/builder/*` · `/composition/dashboard`) 에 `dist/404.html` 을 **404 상태로** 응답한다. `404.html` 은 빌드가 `index.html` 을 복사해 내보낸다 (`vite.config.ts:182` `spaFallbackPlugin`). 서버 구현은 `spa-deep-link-live.mjs` 의 정적 서버를 재사용한다 (`adr248-g5-boot-bundle.mjs` `serveDist` 는 없는 경로를 200 으로 주므로 이 조건에 쓰지 않는다).
 
@@ -74,10 +75,15 @@
 
 - `apps/builder/src/dashboard/canvasWarmup.ts` (신규, lazy chunk) — 받을 URL 목록 (`canvaskit-wasm/bin/canvaskit.wasm?url` · engine wasm URL · 조건부 폰트 `resolveFontUrl("fonts/PretendardVariable.ttf")` 등) 과 받기 함수.
   - `fetch(url, { credentials: "same-origin" })` (CanvasKit 로더와 같은 모드) → `response.body.pipeTo(new WritableStream())` 로 끝까지 흘림 (메모리 보관 0).
-  - 결과 promise 를 `window.__composition_CANVAS_WARMUP__` 에 둔다 (`initCanvasKit.ts:12-13` 전역 키 관례).
+  - **자산별 promise (리뷰 244 R3 h1)**: `window.__composition_CANVAS_WARMUP__` 은 promise 하나가 아니라 `Map<절대 URL, Promise<void>>` 다 (`initCanvasKit.ts:12-13` 전역 키 관례). 소비자는 **자기 URL 의 항목만** 기다린다 — CanvasKit 로더가 폰트 받기를, 폰트 로더가 wasm 받기를 기다리는 일이 없다. 전체를 묶은 promise 는 만들지 않는다.
+  - **폰트는 IndexedDB 에 없을 때만 받는다**: 받기 전에 `composition-fonts` store 를 열어 그 폰트 키가 있으면 URL 을 목록에서 뺀다 (`fontManager.ts:386` `getFromCache` 와 같은 키 — 키 계산은 initial 에 있는 작은 순수 함수로 공유, `fontManager` 자체는 import 하지 않는다). IDB 를 열 수 없으면 폰트를 받지 않는다 (안전한 쪽). HTTP 폰트 캐시는 축출됐지만 IDB 폰트가 살아 있는 재방문에서 필요 없는 6.7 MB 전송 · 대기가 생기지 않는다.
+  - engine wasm URL 은 `engine-pkg/engine_bg.wasm?url` 로 얻는다 — `vite-plugin-wasm` 이 내보내는 파일과 **같은 해시 경로**인지 빌드 산출물로 확인하고, 다르면 engine 은 미리 받기 대상에서 뺀다 (다른 URL 을 받으면 낭비만 남는다).
   - **정적 import 금지 대상**: `initCanvasKit` · `canvaskit-wasm` · `wasm-bindings/*` · builder lazy chunk. 허용: initial 에 이미 있는 모듈만.
 - `apps/builder/src/dashboard/index.tsx` — dashboard 가 그려진 뒤 idle (`requestIdleCallback` · 없으면 `setTimeout`, `lazyPanel.tsx:140-141` 관례) 과 카드 `onHoverStart` · `onFocus` · `onPressStart` 에서 `import("./canvasWarmup")` 1 회. `navigator.connection?.saveData` · `document.visibilityState !== "visible"` 이면 건너뜀. 실패는 조용히 무시.
-- `initCanvasKit.ts` — `CanvasKitInit` 호출 전에 `window.__composition_CANVAS_WARMUP__` 가 있으면 상한 시간 (예: 10 s) 안에서 기다림, 실패 · 초과면 무시하고 진행.
+- **소비자 3 곳이 각자 자기 자산만 기다린다** — 공통 helper `awaitWarmup(url, 상한)` (initial 에 있는 작은 모듈: Map 에 그 URL 이 있으면 상한 시간 (예: 10 s) 안에서 기다리고, 없음 · 실패 · 초과면 바로 진행):
+  - `initCanvasKit.ts` — `CanvasKitInit` 호출 전에 CanvasKit wasm URL.
+  - `wasm-bindings/engineWasm.ts` — `import("./engine-pkg/engine.js")` (`:112`) 전에 engine wasm URL (리뷰 244 R3 m2). `initAllWasm` 은 engine 을 CanvasKit 보다 먼저 시작하므로 (`init.ts:31-45`) 이 대기가 없으면 진행 중인 예열 요청과 겹쳐 같은 자산을 두 번 받는다 (WebKit 격리 실험 2 회 전송).
+  - `fontManager.ts` `loadFont` — `getFromCache` 가 miss 일 때만 (`:90-93`), `fetch` 전에 그 폰트 URL. IDB hit 면 Map 을 보지 않는다.
 - 폰트 포함 여부: Phase 0 에서 첫 방문 폰트 구간이 press → presented 의 20 % 이상일 때만. 폰트는 두 번째 방문부터 IndexedDB (`fontManager.ts:90`) 가 덮으므로 이득은 첫 방문 한정.
 
 ### 4.2 정적 가드
@@ -88,6 +94,8 @@
 ### 4.3 G2 측정 조건 추가
 
 - 즉시 클릭 (dashboard 표시 직후 press) · 대기 뒤 클릭 (idle 받기 완료 확인 뒤) · 진행 중 진입 (받기 시작 후 200 ms 에 press) · 주소창 직접 진입.
+- 진행 중 진입의 전송 1 회 판정은 **CanvasKit wasm · engine wasm 각각** 서버 기록으로 본다 (Chromium · WebKit).
+- 불리 조건 추가 (리뷰 244 R3 h1): **IDB 폰트 있음 + HTTP 캐시 비움 + 제한 프로파일** 재방문 — 서버 기록에 폰트 ttf 요청 0, press → presented 가 대조군 +5 % 이내. 원복 RED: 자산별 Map 을 promise 하나로 되돌리면 이 조건에서 폰트 전송과 대기가 검출된다.
 - 대조군: 같은 빌드에 `?warmup=0` (또는 localStorage 스위치) 로 끔 — 빌드 편차 제거. 변경 전 SHA worktree 빌드는 G3 번들 비교와 D 전후 비교에만.
 - dashboard long task: `PerformanceObserver("longtask")` (Chromium) — WebKit 은 미지원, 기록만.
 
