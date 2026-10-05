@@ -24,7 +24,7 @@
 
 ### 2.2 부팅 측정 하니스 `apps/builder/scripts/adr244-boot-latency.mjs` (신규)
 
-- Playwright `chromium` · `webkit`. 컨텍스트마다 새 저장소 (첫 방문) 또는 같은 컨텍스트 재사용 (재방문). 로그인은 저장된 인증 세션 (`perf-baseline.mjs` `loadStorageState`) 으로 `/dashboard` 직행.
+- Playwright `chromium` · `webkit`. **표본마다 새 persistent profile** (디스크 캐시) — Playwright 일반 context 는 WebKit 에서 `fetch()` 응답을 HTTP 캐시에 두지 않아 재방문 조건이 성립하지 않는다 (`adr244-cache-probe.mjs`, [evidence §6](../evidence/244-phase0-baseline.md)). profile 준비: 서버를 `no-store` 로 두고 dashboard 에서 프로젝트를 만든 뒤 폰트 DB 를 지운다 (프로젝트는 있고 자산은 처음 받는 상태). 인증은 저장된 세션의 localStorage 를 init script 로 심는다. 요소 수가 많은 프로젝트는 준비 단계만 harness 빌드로 제공해 context 안에서 시드한다 (`--seed-count` · `--seed-dist`).
 - 시각 기록 (page 안 `performance.now()` · User Timing):
   - `t_press` — 카드 `pointerdown` (RAC `onPress` 대상, `dashboard/index.tsx:184` · `:224`).
   - `t_presented` — `composition:builder.presented` mark (`CatalogBuilderCore.tsx:289`). 계약 지표의 종점.
@@ -33,12 +33,12 @@
 - 구간: wasm 받기 = `responseEnd − max(startTime, t_press)` (자산별 참고 열), 컴파일/instantiate ≈ `boot.wasm mark − max(wasm responseEnd, engine responseEnd)`, 폰트 = `boot.fonts − boot.wasm` (내장 + 사용자 폰트), 문서 열기 = `boot.workspace − boot.fonts` (library · `CatalogStorage.load` · data store · workspace 생성), 첫 프레임 = `t_presented − boot.workspace`.
 - **네트워크 대기 몫 (A 진행 판정의 분자)**: 부팅이 기다린 요청 (`canvaskit*.wasm` · `engine_bg-*.wasm` · 부팅 폰트 `*.ttf`) 마다 구간 `[max(startTime, t_press), responseEnd]` 을 `[t_press, t_presented]` 로 자른 뒤 **합집합 길이**를 잰다. engine · CanvasKit wasm 은 병렬로 초기화되므로 (`wasm-bindings/init.ts:15-52`) 자산별 길이를 더하면 겹친 구간을 두 번 센다 — 합산 금지. 폰트는 wasm 뒤에 순차로 오므로 합집합이 그대로 이어 붙인다. 판정 = 합집합 길이 p50 / press → presented p50 ≥ 30 % (새 프로젝트 기준 — 본문 R8). A 의 이득 상한 참고로 CanvasKit wasm 구간 중 engine wasm 과 겹치지 않는 길이를 따로 기록한다.
 - 조건 5 (본문 G0) × 브라우저 2 × 프로파일 2 × n ≥ 10. Chromium 은 CPU 1x/4x 추가. 프로젝트 2 종 (새 프로젝트 · 요소 수가 많은 프로젝트).
-- 기록 manifest: SHA · `git status --porcelain` dirty 수 (> 0 이면 폐기 — 메모리 `feedback-baseline-build-separate-worktree-original-deps`) · 브라우저 버전 · `visibilityState` · 프로파일 · 프로젝트 종류 · 요소 수.
+- 기록 manifest: SHA · `git status --porcelain` dirty 수 (**빌드 시점**의 제품 소스 dirty > 0 이면 폐기 — 메모리 `feedback-baseline-build-separate-worktree-original-deps`. 실행 시점 dirty 가 하니스 스크립트뿐이면 그 사실을 evidence 에 적는다) · 브라우저 버전 · `visibilityState` · 프로파일 · 프로젝트 종류 · 요소 수.
 - 하니스 실행 중 소스 편집 금지 (HMR 무관한 production 빌드지만 dist 교체 방지).
 
 ### 2.3 산출
 
-- `docs/adr/evidence/244-phase0-baseline.md` (로컬 evidence) — 표 + A 진행 판정 (네트워크 대기 몫 ≥ 30 %).
+- **완료 (2026-10-05)**: [evidence/244-phase0-baseline.md](../evidence/244-phase0-baseline.md) — A 진행 (몫 81 ~ 87 %) · 폰트 포함 (42 ~ 52 %) · `compileStreaming` 예열 제외 (컴파일 9 ~ 46 ms) · 실제 Pages 방향 일치. 아래 항목은 그 문서가 답한다.
 - Chrome warm 컴파일 구간 비교로 코드 캐시 사용 여부 기록 (10 분 안 재방문 vs 첫 방문의 컴파일 구간).
 - `WebAssembly.compileStreaming` 예열 변형은 Phase 0 에서 1 회 탐색 측정만 (dashboard 에서 예열 → builder 진입 컴파일 구간). 코드 캐시가 채워지지 않으면 이후 phase 에서 제외.
 - 실제 GitHub Pages 1 회 (본문 R6): 배포된 빌드에서 Chromium 조건 2 종의 press → presented · wasm `transferSize` — 모사 서버 값과 방향 비교. 측정용 mark 가 배포된 뒤에 잰다.

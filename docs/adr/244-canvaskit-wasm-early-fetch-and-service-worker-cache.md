@@ -6,6 +6,8 @@ Proposed — 2026-09-27 (사용자 `/create-adr` — "병렬로 한번에 설계
 
 **개정 2026-10-05** (사용자 지시 — ADR-248 catalog 전환 뒤 전체 재대조): 결정 (D 무조건 · A 조건부 · B 보류) 은 그대로다. 바뀐 것은 본문이 기대던 코드 사실이다 — 부팅 진입점 (`SkiaCanvas.tsx` 삭제 → `CatalogBuilderCore.tsx`) · 계약 지표의 종점 (`isCanvasReady` 는 쓰는 곳이 없어짐 → `composition:builder.presented` mark) · 부팅 구간 구성 (문서 열기 구간 추가) · 배포 상태 (복구됨) · 번들 기준선. Context · Decision 1 · R4 ~ R6 · Gates 의 코드 인용을 전부 다시 대조했다.
 
+**Phase 0 종료 — G0 판정 2026-10-05: 대안 A 진행.** 제한 프로파일 (10 Mbps / 100 ms) 첫 방문의 네트워크 대기 몫이 press → presented p50 의 81 ~ 87 % (기준 30 %) — Chromium 1x · 4x · WebKit, 새 프로젝트 · 합성 5,000 요소 모두. 폰트 구간 42 ~ 52 % (기준 20 %) → 미리 받기에 폰트 포함. wasm 컴파일 구간은 9 ~ 46 ms 라 `compileStreaming` 예열 변형은 제외. 실제 GitHub Pages 에서도 몫 47 % 로 방향 일치. 근거: [evidence/244-phase0-baseline.md](evidence/244-phase0-baseline.md). 다음은 Phase 1 (D).
+
 ## Context
 
 ### 문제

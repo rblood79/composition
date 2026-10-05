@@ -14,18 +14,24 @@
  *                    있어야 유효 표본 (리뷰 244 R3 m3)
  *   direct           빈 캐시에서 주소창으로 `/builder/<id>` 직접 진입 (시작점 = navigation start)
  *
- * 프로젝트는 dashboard 에서 한 번 만들어 IndexedDB 포함 저장 상태로 각 profile 에 심는다
- * (폰트 DB `composition-fonts` 는 뺀다 — 첫 방문 조건).
+ * 표본마다 **새 persistent profile** (디스크 캐시) 을 쓴다. Playwright 의 일반 context 는 WebKit 에서
+ * `fetch()` 응답을 HTTP 캐시에 두지 않아 재방문 조건이 매번 새로 받기가 된다
+ * (`adr244-cache-probe.mjs` — 일반 context 서버 요청 4/4, persistent 1/4).
+ * profile 준비: 서버를 `no-store` 로 두고 dashboard 에서 프로젝트를 만든 뒤 (HTTP 캐시에 아무것도
+ * 남지 않는다) 폰트 DB `composition-fonts` 를 지운다 — 프로젝트는 있고 자산은 처음 받는 상태.
+ * `--seed-count N` 은 준비 단계만 harness 빌드 (`--seed-dist`, `VITE_COMPOSITION_HARNESS=1`) 로
+ * 제공해 요소 N 개 (Text / frame 교대 · absolute 160×60 6 열 — ADR-248 G5 `mixed` 모양) 를 넣는다.
+ * 합성 문서라 규모 전용이다 (measurement-validity Q1).
  *
  *   node apps/builder/scripts/adr244-boot-latency.mjs --dist apps/builder/dist --out <json>
  *        [--n 10] [--browsers chromium,webkit] [--profiles unlimited,limited] [--cpu 1,4]
  *        [--conditions first-immediate,first-waited,revisit-fresh,revisit-expired,direct]
- *        [--state <저장 상태 json>]   # 미리 만든 프로젝트 (큰 문서) 로 재기
+ *        [--seed-count 5000 --seed-dist <harness dist>]
  */
 import { execSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { cpus } from "node:os";
-import { resolve } from "node:path";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpus, tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { chromium, webkit } from "playwright";
 import { startPagesServer } from "./adr244-pages-server.mjs";
 import { loadStorageState } from "./perf-baseline.mjs";
@@ -47,9 +53,18 @@ const CONDITIONS = list(
   "--conditions",
   "first-immediate,first-waited,revisit-fresh,revisit-expired,direct",
 );
-const STATE = arg("--state");
+// 실제 배포 (예: https://rblood79.github.io/composition/) 를 잰다 — 서버 기록 · 대역폭 제한 없음, Chromium 전용.
+const REMOTE = arg("--url");
+const SEED_COUNT = Number(arg("--seed-count", 0));
+const SEED_DIST = arg("--seed-dist") ? resolve(arg("--seed-dist")) : null;
+if (SEED_COUNT && !SEED_DIST)
+  throw new Error("--seed-count 에는 --seed-dist (harness 빌드) 가 필요하다");
 const AUTH = resolve(
-  arg("--auth", process.env.ADR248_AUTH_SESSION ?? "apps/builder/scripts/.auth-session.json"),
+  arg(
+    "--auth",
+    process.env.ADR248_AUTH_SESSION ??
+      "apps/builder/scripts/.auth-session.json",
+  ),
 );
 
 const PROFILES = {
@@ -63,18 +78,6 @@ const WASM_ASSET = /canvaskit[^/]*\.wasm|engine_bg[^/]*\.wasm/;
 const PRESENTED_TIMEOUT = 180_000;
 const SHORT_LIFE_S = 2;
 
-const withOrigin = (state, origin) => ({
-  cookies: [],
-  origins: state.origins.map((o) => ({ ...o, origin })),
-});
-const withoutFonts = (state) => ({
-  ...state,
-  origins: state.origins.map((o) => ({
-    ...o,
-    indexedDB: o.indexedDB?.filter((db) => db.name !== FONT_DB),
-  })),
-});
-
 /** press 시각을 페이지 timeline 에 남긴다 (SPA 라 builder mark 와 같은 timeline). */
 const INIT = `
   performance.setResourceTimingBufferSize(100000);
@@ -87,7 +90,8 @@ const INIT = `
 
 async function waitPresented(page) {
   await page.waitForFunction(
-    () => performance.getEntriesByName("composition:builder.presented").length > 0,
+    () =>
+      performance.getEntriesByName("composition:builder.presented").length > 0,
     undefined,
     { timeout: PRESENTED_TIMEOUT },
   );
@@ -131,7 +135,9 @@ async function collect(page, direct) {
 
 /** 구간 합집합 길이 — 병렬로 받는 engine · CanvasKit wasm 을 겹쳐 세지 않는다. */
 function unionLength(intervals) {
-  const sorted = intervals.filter(([a, b]) => b > a).sort((x, y) => x[0] - y[0]);
+  const sorted = intervals
+    .filter(([a, b]) => b > a)
+    .sort((x, y) => x[0] - y[0]);
   let total = 0;
   let end = -Infinity;
   for (const [a, b] of sorted) {
@@ -199,17 +205,85 @@ async function pressAndMeasure(page, server) {
   return { ...raw, ...derive(raw, server.since(from)) };
 }
 
-/** dashboard 에서 프로젝트 하나를 만들고 IndexedDB 포함 저장 상태를 돌려준다. */
-async function seedState(type, engine, server) {
-  server.setProfile(PROFILES.unlimited);
-  const auth = withOrigin(loadStorageState(AUTH), server.origin);
-  const browser = await type.launch(engine === "chromium" ? { channel: "chrome" } : {});
-  try {
-    const context = await browser.newContext({
-      storageState: auth,
-      viewport: { width: 1440, height: 900 },
+/** 인증 (localStorage) 을 문서가 뜨기 전에 심는다 — persistent profile 은 저장 상태를 받지 못한다. */
+function authScript() {
+  const entries = loadStorageState(AUTH).origins.flatMap(
+    (o) => o.localStorage ?? [],
+  );
+  return `for (const { name, value } of ${JSON.stringify(entries)}) localStorage.setItem(name, value);`;
+}
+
+/** 요소 N 개를 넣고 저장을 기다린다 (harness 빌드 — ADR-248 G5 mixed 모양). */
+async function seedElements(page, count) {
+  await page.waitForFunction(() =>
+    Boolean(window.__COMPOSITION_CATALOG__?.workspace),
+  );
+  const seeded = await page.evaluate(async (count) => {
+    const h = window.__COMPOSITION_CATALOG__;
+    const ws = h.workspace;
+    const graph = ws.runtime.graph;
+    const homePageId = graph.getEntry(graph.projectId).pageIds[0];
+    const body = graph.getEntry(homePageId).children[0];
+    const def = (type) =>
+      h.palette.catalogPaletteDefinitionId(graph.library, type);
+    const entries = Array.from({ length: count }, (_, i) => {
+      const text = i % 2 === 0;
+      return {
+        kind: "node",
+        id: `project:node:perf-seed-${i}`,
+        definitionId: def(text ? "Text" : "frame"),
+        children: [],
+        props: text ? { children: { kind: "set", value: `Seed ${i}` } } : {},
+        visual: {
+          fontSize: { kind: "set", value: 14 },
+          ...(text
+            ? {}
+            : { backgroundColor: { kind: "set", value: "#dbe7ff" } }),
+        },
+        sizing: {
+          width: { kind: "set", value: 160 },
+          height: { kind: "set", value: 60 },
+        },
+        placement: {
+          kind: "absolute",
+          x: 20 + (i % 6) * 200,
+          y: 20 + Math.floor(i / 6) * 90,
+        },
+        descendantOverrides: [],
+      };
     });
-    const page = await context.newPage();
+    ws.execute(
+      h.commands.insertNodes({
+        parent: { kind: "node", id: body },
+        entries,
+        rootIds: entries.map((e) => e.id),
+        newId: ws.newId,
+        label: "Seed",
+      }),
+    );
+    ws.session.clearSelection();
+    let saved = false;
+    for (let i = 0; i < 1200 && !saved; i += 1) {
+      saved =
+        ws.autosave.getSnapshot().state === "saved" &&
+        ws.runtime.durableRevision === graph.revision;
+      if (!saved) await new Promise((r) => setTimeout(r, 25));
+    }
+    return { saved };
+  }, count);
+  if (!seeded.saved) throw new Error("시드 문서가 저장되지 않았다");
+}
+
+/**
+ * profile 준비: no-store 서버에서 프로젝트를 만들고 폰트 DB 를 지운다 — HTTP 캐시 · 폰트 IDB 는
+ * 비어 있고 프로젝트만 있는 "첫 방문" 상태. 돌려주는 값은 builder 경로.
+ */
+async function prepareProfile(context, server) {
+  server.setNoStore(true);
+  server.setProfile(PROFILES.unlimited);
+  if (SEED_DIST) server.setDist(SEED_DIST);
+  const page = await context.newPage();
+  try {
     await page.goto(`${server.base}dashboard`, { waitUntil: "networkidle" });
     await page.locator("button.dashboard-create-button").first().click();
     const input = page.locator("#new-project-name");
@@ -218,109 +292,158 @@ async function seedState(type, engine, server) {
     await input.press("Enter");
     await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60_000 });
     await waitPresented(page);
-    await page.waitForTimeout(2000); // 첫 저장
+    if (SEED_COUNT) await seedElements(page, SEED_COUNT);
+    else await page.waitForTimeout(2000); // 첫 저장
     const projectPath = new URL(page.url()).pathname;
-    const state = withoutFonts(await context.storageState({ indexedDB: true }));
-    return { state, projectPath };
+    // 앱 문서를 떠난 뒤 (DB 연결 닫힘) 폰트 캐시를 지운다.
+    await page.goto(`${server.base}appIcon.svg`);
+    await page.evaluate(
+      (name) =>
+        new Promise((done) => {
+          const request = indexedDB.deleteDatabase(name);
+          request.onsuccess =
+            request.onerror =
+            request.onblocked =
+              () => done();
+        }),
+      FONT_DB,
+    );
+    // 실제 배포는 no-store 로 둘 수 없다 — 준비 단계가 채운 HTTP 캐시를 비운다 (Chromium CDP).
+    if (server.remote) {
+      const cdp = await context.newCDPSession(page);
+      await cdp.send("Network.clearBrowserCache");
+    }
+    return projectPath;
   } finally {
-    await browser.close();
+    await page.close();
+    if (SEED_DIST) server.setDist(DIST);
+    server.setNoStore(false);
   }
 }
 
-async function runArm({ type, engine, cpu, profileId, server, state, projectPath }) {
+async function runArm({ type, engine, cpu, profileId, server }) {
   const profile = PROFILES[profileId];
   const samples = [];
-  const browser = await type.launch(engine === "chromium" ? { channel: "chrome" } : {});
-  const version = browser.version();
-  const open = async () => {
-    const context = await browser.newContext({
-      storageState: withOrigin(state, server.origin),
-      viewport: { width: 1440, height: 900 },
-    });
-    await context.addInitScript(INIT);
-    return context;
-  };
+  const auth = authScript();
+  let version = "";
   const push = (condition, i, errors, sample, extra = {}) => {
-    samples.push({ engine, cpu, profile: profileId, condition, i, errors, ...sample, ...extra });
+    samples.push({
+      engine,
+      cpu,
+      profile: profileId,
+      condition,
+      i,
+      errors,
+      ...sample,
+      ...extra,
+    });
+    const note = extra.failed
+      ? ` · 실패 ${extra.failed}`
+      : extra.valid === false
+        ? " · 무효"
+        : "";
     process.stdout.write(
       `  ${engine} cpu${cpu} ${profileId} ${condition} #${i}: ${sample.total?.toFixed(0) ?? "—"} ms` +
-        ` · net ${sample.networkWait?.toFixed(0) ?? "—"}${extra.valid === false ? " · 무효" : ""}\n`,
+        ` · net ${sample.networkWait?.toFixed(0) ?? "—"}${note}\n`,
     );
   };
   const guarded = async (condition, i, body) => {
     const errors = [];
-    const context = await open();
+    const dir = mkdtempSync(join(tmpdir(), "adr244-"));
+    let context;
     try {
-      await body(context, errors);
+      context = await type.launchPersistentContext(dir, {
+        ...(engine === "chromium" ? { channel: "chrome" } : {}),
+        viewport: { width: 1440, height: 900 },
+      });
+      version = context.browser()?.version() ?? version;
+      await context.addInitScript(INIT + auth);
+      const projectPath = await prepareProfile(context, server);
+      await body(context, errors, projectPath);
     } catch (error) {
       push(condition, i, errors, {}, { failed: String(error).slice(0, 200) });
     } finally {
       server.setMaxAge(600);
-      await context.close();
+      server.setNoStore(false);
+      await context?.close().catch(() => {});
+      rmSync(dir, { recursive: true, force: true });
     }
   };
 
-  try {
-    for (let i = 0; i < N; i += 1) {
-      if (CONDITIONS.includes("first-immediate"))
-        await guarded("first-immediate", i, async (context, errors) => {
-          server.setProfile(profile);
-          const page = await newPage(context, engine, cpu, errors);
-          await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
-          await page.locator(CARD).first().waitFor({ timeout: 60_000 });
-          push("first-immediate", i, errors, await pressAndMeasure(page, server));
-        });
+  for (let i = 0; i < N; i += 1) {
+    if (CONDITIONS.includes("first-immediate"))
+      await guarded("first-immediate", i, async (context, errors) => {
+        server.setProfile(profile);
+        const page = await newPage(context, engine, cpu, errors);
+        await page.goto(`${server.base}dashboard`, { waitUntil: "commit" });
+        await page.locator(CARD).first().waitFor({ timeout: 60_000 });
+        push("first-immediate", i, errors, await pressAndMeasure(page, server));
+      });
 
-      if (CONDITIONS.includes("first-waited") || CONDITIONS.includes("revisit-fresh"))
-        await guarded("first-waited", i, async (context, errors) => {
-          server.setProfile(profile);
-          const page = await newPage(context, engine, cpu, errors);
-          await page.goto(`${server.base}dashboard`, { waitUntil: "networkidle" });
-          await page.waitForTimeout(3000);
-          const first = await pressAndMeasure(page, server);
-          if (CONDITIONS.includes("first-waited")) push("first-waited", i, errors, first);
-          if (!CONDITIONS.includes("revisit-fresh")) return;
-          await page.waitForTimeout(1500);
-          await page.goto(`${server.base}dashboard`, { waitUntil: "networkidle" });
-          await page.waitForTimeout(1000);
-          push("revisit-fresh", i, errors, await pressAndMeasure(page, server));
+    if (
+      CONDITIONS.includes("first-waited") ||
+      CONDITIONS.includes("revisit-fresh")
+    )
+      await guarded("first-waited", i, async (context, errors) => {
+        server.setProfile(profile);
+        const page = await newPage(context, engine, cpu, errors);
+        await page.goto(`${server.base}dashboard`, {
+          waitUntil: "networkidle",
         });
+        await page.waitForTimeout(3000);
+        const first = await pressAndMeasure(page, server);
+        if (CONDITIONS.includes("first-waited"))
+          push("first-waited", i, errors, first);
+        if (!CONDITIONS.includes("revisit-fresh")) return;
+        await page.waitForTimeout(1500);
+        await page.goto(`${server.base}dashboard`, {
+          waitUntil: "networkidle",
+        });
+        await page.waitForTimeout(1000);
+        push("revisit-fresh", i, errors, await pressAndMeasure(page, server));
+      });
 
-      if (CONDITIONS.includes("revisit-expired"))
-        await guarded("revisit-expired", i, async (context, errors) => {
-          // 처음부터 짧은 수명으로 채운다 — 저장된 뒤 서버 헤더를 바꿔서는 만료되지 않는다.
-          server.setMaxAge(SHORT_LIFE_S);
-          server.setProfile(PROFILES.unlimited);
-          const page = await newPage(context, engine, cpu, errors);
-          await page.goto(`${server.base}dashboard`, { waitUntil: "networkidle" });
-          await page.locator(CARD).first().click();
-          await waitPresented(page);
-          await page.waitForTimeout((SHORT_LIFE_S + 1) * 1000);
-          server.setProfile(profile);
-          await page.goto(`${server.base}dashboard`, { waitUntil: "networkidle" });
-          await page.waitForTimeout(1000);
-          const sample = await pressAndMeasure(page, server);
-          const wasm = sample.server.filter((e) => WASM_ASSET.test(e.file));
-          // 사전 조건: 두 wasm 모두 조건부 요청 → 304
-          const valid =
-            wasm.filter((e) => e.status === 304 && e.conditional).length >= 2 &&
-            wasm.every((e) => e.status === 304);
-          push("revisit-expired", i, errors, sample, { valid });
+    if (CONDITIONS.includes("revisit-expired"))
+      await guarded("revisit-expired", i, async (context, errors) => {
+        // 처음부터 짧은 수명으로 채운다 — 저장된 뒤 서버 헤더를 바꿔서는 만료되지 않는다.
+        server.setMaxAge(SHORT_LIFE_S);
+        server.setProfile(PROFILES.unlimited);
+        const page = await newPage(context, engine, cpu, errors);
+        await page.goto(`${server.base}dashboard`, {
+          waitUntil: "networkidle",
         });
+        await page.locator(CARD).first().click();
+        await waitPresented(page);
+        await page.waitForTimeout((SHORT_LIFE_S + 1) * 1000);
+        server.setProfile(profile);
+        await page.goto(`${server.base}dashboard`, {
+          waitUntil: "networkidle",
+        });
+        await page.waitForTimeout(1000);
+        const sample = await pressAndMeasure(page, server);
+        const wasm = sample.server.filter((e) => WASM_ASSET.test(e.file));
+        // 사전 조건: 두 wasm 모두 조건부 요청 → 304
+        const valid =
+          wasm.filter((e) => e.status === 304 && e.conditional).length >= 2 &&
+          wasm.every((e) => e.status === 304);
+        push("revisit-expired", i, errors, sample, { valid });
+      });
 
-      if (CONDITIONS.includes("direct"))
-        await guarded("direct", i, async (context, errors) => {
-          server.setProfile(profile);
-          const page = await newPage(context, engine, cpu, errors);
-          const from = server.mark();
-          await page.goto(`${server.origin}${projectPath}`, { waitUntil: "commit" });
-          await waitPresented(page);
-          const raw = await collect(page, true);
-          push("direct", i, errors, { ...raw, ...derive(raw, server.since(from)) });
+    if (CONDITIONS.includes("direct"))
+      await guarded("direct", i, async (context, errors, projectPath) => {
+        server.setProfile(profile);
+        const page = await newPage(context, engine, cpu, errors);
+        const from = server.mark();
+        await page.goto(`${server.origin}${projectPath}`, {
+          waitUntil: "commit",
         });
-    }
-  } finally {
-    await browser.close();
+        await waitPresented(page);
+        const raw = await collect(page, true);
+        push("direct", i, errors, {
+          ...raw,
+          ...derive(raw, server.since(from)),
+        });
+      });
   }
   return { version, samples };
 }
@@ -343,8 +466,14 @@ function summarize(samples) {
   for (const [key, all] of groups) {
     const ok = all.filter((s) => s.total != null && s.valid !== false);
     const column = (pick) => ok.map(pick);
-    const total50 = percentile(column((s) => s.total), 0.5);
-    const net50 = percentile(column((s) => s.networkWait), 0.5);
+    const total50 = percentile(
+      column((s) => s.total),
+      0.5,
+    );
+    const net50 = percentile(
+      column((s) => s.networkWait),
+      0.5,
+    );
     rows.push({
       key,
       n: all.length,
@@ -353,16 +482,33 @@ function summarize(samples) {
       invalid: all.filter((s) => s.valid === false).length,
       pageErrors: all.reduce((sum, s) => sum + s.errors.length, 0),
       totalP50: round(total50),
-      totalP95: round(percentile(column((s) => s.total), 0.95)),
+      totalP95: round(
+        percentile(
+          column((s) => s.total),
+          0.95,
+        ),
+      ),
       networkWaitP50: round(net50),
       // A 진행 판정의 값: 네트워크 대기 몫 p50 / press → presented p50
       networkShare: total50 ? round((net50 / total50) * 100) : null,
-      canvaskitOnlyP50: round(percentile(column((s) => s.canvaskitOnly), 0.5)),
+      canvaskitOnlyP50: round(
+        percentile(
+          column((s) => s.canvaskitOnly),
+          0.5,
+        ),
+      ),
       segmentsP50: Object.fromEntries(
-        ["wasmFetch", "compile", "fonts", "document", "firstFrame"].map((name) => [
-          name,
-          round(percentile(column((s) => s.segments[name]), 0.5)),
-        ]),
+        ["wasmFetch", "compile", "fonts", "document", "firstFrame"].map(
+          (name) => [
+            name,
+            round(
+              percentile(
+                column((s) => s.segments[name]),
+                0.5,
+              ),
+            ),
+          ],
+        ),
       ),
     });
   }
@@ -381,42 +527,62 @@ const manifest = {
   conditions: CONDITIONS,
   machine: `${cpus()[0].model} × ${cpus().length}`,
   playwright: JSON.parse(
-    readFileSync(new URL("../node_modules/playwright/package.json", import.meta.url), "utf8"),
+    readFileSync(
+      new URL("../node_modules/playwright/package.json", import.meta.url),
+      "utf8",
+    ),
   ).version,
   browsers: {},
-  server: "adr244-pages-server (HTTP/1.1 · max-age=600 · 약한 ETag · gzip · 공유 대역폭)",
-  project: STATE ? `저장 상태 ${STATE}` : "새 프로젝트 (하니스가 dashboard 에서 생성)",
+  context:
+    "표본마다 새 persistent profile (디스크 캐시) · no-store 서버에서 프로젝트 생성 뒤 폰트 DB 삭제",
+  target: REMOTE ?? "모사 서버",
+  server:
+    "adr244-pages-server (HTTP/1.1 · max-age=600 · 약한 ETag · gzip · 공유 대역폭)",
+  project: SEED_COUNT
+    ? `합성 문서 — 요소 ${SEED_COUNT} (규모 전용)`
+    : "새 프로젝트 (dashboard 에서 생성)",
 };
 
-const server = await startPagesServer({ dist: DIST });
+const server = REMOTE
+  ? {
+      remote: true,
+      origin: new URL(REMOTE).origin,
+      base: REMOTE.endsWith("/") ? REMOTE : `${REMOTE}/`,
+      mark: () => 0,
+      since: () => [],
+      setProfile: () => {},
+      setMaxAge: () => {},
+      setNoStore: () => {},
+      setDist: () => {},
+      close: async () => {},
+    }
+  : await startPagesServer({ dist: DIST });
 const samples = [];
+const save = () =>
+  writeFileSync(
+    OUT,
+    JSON.stringify({ manifest, summary: summarize(samples), samples }, null, 1),
+  );
 try {
   for (const engine of BROWSERS) {
     const type = engine === "webkit" ? webkit : chromium;
-    let seed;
-    if (STATE) {
-      const saved = JSON.parse(readFileSync(resolve(STATE), "utf8"));
-      seed = { state: withoutFonts(saved.state), projectPath: saved.projectPath };
-    } else {
-      seed = await seedState(type, engine, server);
-    }
-    process.stdout.write(`[${engine}] 프로젝트 ${seed.projectPath}\n`);
     for (const cpu of engine === "chromium" ? CPU_RATES : [1])
       for (const profileId of PROFILE_IDS) {
-        const arm = await runArm({ type, engine, cpu, profileId, server, ...seed });
+        const arm = await runArm({ type, engine, cpu, profileId, server });
         manifest.browsers[engine] = arm.version;
         samples.push(...arm.samples);
-        writeFileSync(OUT, JSON.stringify({ manifest, summary: summarize(samples), samples }, null, 1));
+        save();
       }
   }
 } finally {
   await server.close();
 }
 
-const summary = summarize(samples);
-writeFileSync(OUT, JSON.stringify({ manifest, summary, samples }, null, 1));
-process.stdout.write("\n조건 | n(사용) | p50 | p95 | 네트워크 대기 p50 | 몫 %\n");
-for (const row of summary)
+save();
+process.stdout.write(
+  "\n조건 | n(사용) | p50 | p95 | 네트워크 대기 p50 | 몫 %\n",
+);
+for (const row of summarize(samples))
   process.stdout.write(
     `${row.key} | ${row.n}(${row.used}) | ${row.totalP50} | ${row.totalP95} | ${row.networkWaitP50} | ${row.networkShare}\n`,
   );

@@ -35,7 +35,15 @@ const TYPES = {
   ".ico": "image/x-icon",
 };
 // Pages (Fastly) 가 압축하는 종류 — woff2 · png 는 이미 압축돼 있어 그대로 준다.
-const GZIP = new Set([".html", ".js", ".css", ".wasm", ".json", ".svg", ".ttf"]);
+const GZIP = new Set([
+  ".html",
+  ".js",
+  ".css",
+  ".wasm",
+  ".json",
+  ".svg",
+  ".ttf",
+]);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -47,6 +55,7 @@ export async function startPagesServer(options) {
   let maxAge = options.maxAge ?? 600;
   let rateBps = (options.rateMbps ?? 0) * 125_000; // 0 = 무제한
   let rttMs = options.rttMs ?? 0;
+  let noStoreAll = false;
   const log = [];
   /** @type {Map<string, { body: Buffer, gzip: Buffer | null, etag: string }>} */
   const cache = new Map();
@@ -111,7 +120,7 @@ export async function startPagesServer(options) {
       }
     }
     const entry = load(file);
-    const noStore = path.endsWith("/version.json");
+    const noStore = noStoreAll || path.endsWith("/version.json");
     const headers = {
       "content-type": TYPES[extname(file)] ?? "application/octet-stream",
       "cache-control": noStore ? "no-store" : `max-age=${maxAge}`,
@@ -125,7 +134,8 @@ export async function startPagesServer(options) {
       return;
     }
     const gzip =
-      entry.gzip && /\bgzip\b/.test(String(req.headers["accept-encoding"] ?? ""));
+      entry.gzip &&
+      /\bgzip\b/.test(String(req.headers["accept-encoding"] ?? ""));
     const payload = gzip ? entry.gzip : entry.body;
     if (gzip) headers["content-encoding"] = "gzip";
     headers["content-length"] = payload.length;
@@ -151,6 +161,10 @@ export async function startPagesServer(options) {
     },
     setMaxAge: (seconds) => {
       maxAge = seconds;
+    },
+    /** 준비 단계 (프로젝트 만들기) 의 응답이 HTTP 캐시에 남지 않게 한다 — 첫 방문 조건의 전제. */
+    setNoStore: (on) => {
+      noStoreAll = on;
     },
     /** 재배포 모사 (G1): 제공 dist 를 바꾼다. */
     setDist: (next) => {
