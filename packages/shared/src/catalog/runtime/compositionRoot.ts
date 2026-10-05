@@ -1745,6 +1745,8 @@ export class CatalogCompositionRoot {
       type: item.ruleId,
       authoredVisual: catalogAuthoredVisual(this, item),
       state: catalogNodeState(item.displayState, this.state),
+      // The item color in this root's color mode (its tokens differ in dark).
+      theme: this.colorMode,
     });
     return color === undefined ? derived : { ...derived, color };
   }

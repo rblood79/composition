@@ -1,3 +1,4 @@
+import { resolveToken } from "@composition/rendering";
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import {
@@ -267,6 +268,29 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(colors()).toEqual([
       TAILWIND_PALETTE.neutral[900],
       TAILWIND_PALETTE.neutral[600],
+    ]);
+    // In dark mode the label reads the item color in that mode (not the light value — a
+    // near-black selected tab on a dark surface).
+    const dark = new CatalogCompositionRoot(
+      scene.runtime,
+      new StyleLayoutEngine(),
+      { width: 1440, height: 900 },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { colorMode: "dark" },
+    );
+    expect(
+      ["one-label", "two-label"].map(
+        (name) =>
+          [...dark.canvasInputs.values()].find(
+            (node) => node.sourceId === id(name),
+          )!.derivedProps?.color,
+      ),
+    ).toEqual([
+      resolveToken("{color.neutral}", "dark"),
+      resolveToken("{color.neutral-subdued}", "dark"),
     ]);
     const notified: string[] = [];
     for (const key of scene.root.canvasInputs.keys())

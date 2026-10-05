@@ -28,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `staleDeployRecovery.test.ts` (buildId 다름 → 1 회 · 같음 · 반복 · probe 실패 · dev · storage 불가) · `initAllWasmRethrow.test.ts` (원복 RED 확인).
 - 재배포 모사 `apps/builder/scripts/adr244-redeploy-sim.mjs` — Chromium · WebKit 에서 새 탭 N+1 쌍만 요청 · 옛 탭 새로고침 1 회 뒤 부팅 · 깨진 배포 1 회 뒤 실패 화면. D 이전 빌드는 새 탭 · 옛 탭 모두 실패 (원복 RED).
 
+## [dark mode 에서 Tab · Tag label 글자가 안 보이던 문제] - 2026-10-06
+
+### Fixed
+
+- **Canvas 의 Tab · Tag label 이 dark mode 에서도 light 색으로 그려졌다**: 선택된 Tab 의 글자가 어두운 바탕 위에 거의 검정 (`#171717`) 으로, 선택 안 된 Tab 은 어두운 회색으로 그려져 읽히지 않았다. 이제 label 이 item 의 색을 현재 색 mode 로 읽는다 (선택 `#f5f5f5` · 미선택 `#a1a1a1`).
+  - **Why**: label Text 는 부모 item 의 색을 물려받는데 (`.react-aria-Tab .react-aria-Text { color: inherit }`), 그 색을 계산하는 `CatalogCompositionRoot.derivedOf` 가 `catalogRuleTextColor` 에 색 mode 를 넘기지 않아 token 을 항상 light 로 풀었다. item 자신의 칠 (`canvasBinding`) 은 mode 를 넘기고 있었다.
+  - 회귀 테스트: `phase3Presence.test.ts` (dark root 의 Tab label 색).
+
 ## [Navigator Components 탭 — 기본 컴포넌트를 Components page 하나로] - 2026-10-05
 
 ### Changed
