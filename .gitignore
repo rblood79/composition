@@ -23,7 +23,6 @@ dist/
 /build/
 
 # WASM — wasm-pack 산출물 (pnpm wasm:build:engine). CanvasKit wasm 은 Vite 빌드 산출물 (ADR-244)
-apps/builder/src/builder/workspace/canvas/wasm/target/
 apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg/
 target-install/
 
@@ -34,9 +33,8 @@ blob-report/
 coverage/
 .playwright-cli/
 /output/
-# 하니스 덤프. 디렉토리 자체는 열어둠 — visual-parity 의 .gitignore 가 추적됨
-**/.artifacts/**
-!**/.artifacts/.gitignore
+# 하니스 덤프
+**/.artifacts/
 
 # Logs / temp
 logs/
