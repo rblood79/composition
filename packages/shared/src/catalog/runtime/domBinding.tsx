@@ -39,6 +39,7 @@ import { FIELD_HINT_OWNERS } from "./presence";
 import {
   authoredInvalid,
   CATALOG_DELEGATED_DOM,
+  CATALOG_DATE_INPUT_NODE_FIELDS,
   CATALOG_INPUT_NODE_FIELDS,
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldHintNodes,
@@ -663,6 +664,34 @@ function fieldInputBinding(
   });
 }
 
+/**
+ * A date field's DateInput node (ADR-253): a RAC `DateInput` — its segments are RAC's — inside
+ * the field's RAC context. Its box is the DateInput rule's sheet at the node's size
+ * (`data-size`); `style` carries only what the document wrote. `slot` is RAC's named slot of a
+ * range picker's pair (`start` · `end`).
+ */
+function fieldDateInputBinding(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+): ReactElement {
+  return createElement(
+    RAC.DateInput,
+    {
+      key: node.id,
+      "data-catalog-id": node.id,
+      ...(typeof node.props.size === "string"
+        ? { "data-size": node.props.size }
+        : {}),
+      ...(typeof node.props.slot === "string" && node.props.slot
+        ? { slot: node.props.slot }
+        : {}),
+      style,
+    } as unknown as Parameters<typeof RAC.DateInput>[0],
+    ((segment: Parameters<typeof RAC.DateSegment>[0]["segment"]) =>
+      createElement(RAC.DateSegment, { segment })) as never,
+  );
+}
+
 /** Binding ids with a product DOM binding (census and consumers read this, not a copy). */
 export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
   Object.keys(bindings),
@@ -865,6 +894,8 @@ function ruleDom(
   if (parts?.label) rest.label = parts.label;
   if (parts?.description) rest.description = parts.description;
   if (parts?.error) rest.errorMessage = parts.error;
+  // (A picker's control: the part node elements inside its Group — ADR-253.)
+  if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
   // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
   // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
@@ -1463,6 +1494,18 @@ function renderNode(
         ? { ...authoredStyle(root, node), ...styleOverride }
         : authoredStyle(root, node),
       field,
+    );
+  // A date field's DateInput node is a RAC DateInput inside the field's context (ADR-253).
+  if (
+    field &&
+    CATALOG_DATE_INPUT_NODE_FIELDS.has(field.bindingId ?? "") &&
+    node.ruleId === "DateInput"
+  )
+    return fieldDateInputBinding(
+      node,
+      styleOverride
+        ? { ...authoredStyle(root, node), ...styleOverride }
+        : authoredStyle(root, node),
     );
   // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
   // it while the field is invalid — the authored message, else what its validation raised.

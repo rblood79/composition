@@ -20,7 +20,9 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d6626
 >
 > **Phase 3 (4c) SearchField** (같은 날, 브랜치): container 안이 검색 glyph (Icon) · Input 원본의 instance · Button 원본의 instance (지우기 버튼 — 자리에서 적은 모양) 다. 빈 값이면 지우기 버튼이 양쪽에서 없고, Canvas 가 field 의 값을 입력칸에 그린다. 같이 고친 것: Canvas 의 Input 글자가 문서가 쓴 좌우 padding 을 따른다 (glyph · 버튼 자리) · 변수와 token 이름이 다른 CSS 변수 색 (`--fg-muted`) 을 Canvas 가 푼다.
 >
-> **Phase 3 (4d) Select** (2026-10-07, 브랜치): trigger 노드가 Button 원본 (secondary) 의 instance 이고 그 안이 값 (RAC `SelectValue`) 과 Icon 이다 — RAC 의 trigger 가 Button 자체라 wrapper 가 없다. 칠 · 상태는 Button rule 의 것이고 Select rule 은 배치만 한다. Builder 화면이 직접 조립하는 Select 3곳이 기대던 값은 `form-controls.css` 로 옮겼다 (전환 전 빌드와 차이 0). 남은 부모: 날짜 4종.
+> **Phase 3 (4d) Select** (2026-10-07, 브랜치): trigger 노드가 Button 원본 (secondary) 의 instance 이고 그 안이 값 (RAC `SelectValue`) 과 Icon 이다 — RAC 의 trigger 가 Button 자체라 wrapper 가 없다. 칠 · 상태는 Button rule 의 것이고 Select rule 은 배치만 한다. Builder 화면이 직접 조립하는 Select 3곳이 기대던 값은 `form-controls.css` 로 옮겼다 (전환 전 빌드와 차이 0).
+>
+> **Phase 3 (4e) 날짜 4종** (2026-10-07, 브랜치): **DateInput 원본** 이 날짜 field 의 입력 상자다 — DateInput rule 이 자기 sheet (크기 단계 · 상태 · 조각) 를 내고 4 부모의 조각 선언은 그리로 모았다. DateField · TimeField 는 그 instance 를 바로 쓰고, DatePicker 는 Group (배치만) 안에 DateInput instance + FieldButton instance, DateRangePicker 는 Group 이 상자이고 그 안이 slot `start` · `end` 의 DateInput instance 2개 + 구분자 + FieldButton 이다 (종전: 노드 하나가 쌍을 대신). 이로써 field 계열 전 부모의 부품 자리가 원본 instance 다. 남은 것: Phase 3 끝 정리 (quiet · `SelectIcon` 등 쓰지 않는 type · 측정). 찾은 것: locale 을 쓰지 않은 날짜 field 를 Canvas 는 Builder locale 로, Preview 는 en-US 로 그린다 (전환 전부터).
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 

@@ -60,6 +60,11 @@ export interface DatePickerProps<T extends DateValue> extends Omit<
   showWeekNumbers?: boolean;
   highlightToday?: boolean;
   allowClear?: boolean;
+  /**
+   * The Group's content, drawn by its part nodes (ADR-253 — a DateInput instance and a
+   * FieldButton instance). Absent: the component composes the DateInput and the button itself.
+   */
+  controlElements?: React.ReactNode[];
   // 새로운 time 옵션
   includeTime?: boolean;
   timeFormat?: "12h" | "24h";
@@ -121,6 +126,7 @@ export function DatePicker<T extends DateValue>({
   showWeekNumbers = false,
   highlightToday = true,
   allowClear = false,
+  controlElements,
   includeTime = false,
   timeFormat = "24h",
   timeLabel,
@@ -219,35 +225,45 @@ export function DatePicker<T extends DateValue>({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
-        {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">
-            {/* canonical SelectIcon 의 iconName + iconSize 를 함께 소비 → Builder(Skia) 와 시각
-                대칭(D3). 위치(Button slot)는 RAC DOM(D1) 유지, 아이콘 종류/크기(D2/D3)만 동적. */}
-            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
-          </Button>
-        )}
-        <DateInput>
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
-              }
-            />
-          )}
-        </DateInput>
-        {showCalendarIcon && calendarIconPosition === "right" && (
-          <Button>
-            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
-          </Button>
-        )}
-        {allowClear && props.value && (
-          <Button
-            onPress={() => props.onChange?.(null)}
-            aria-label="Clear date"
-          >
-            ✕
-          </Button>
+        {controlElements ?? (
+          <>
+            {showCalendarIcon && calendarIconPosition === "left" && (
+              <Button slot="prefix">
+                {/* canonical SelectIcon 의 iconName + iconSize 를 함께 소비 → Builder(Skia) 와 시각
+                    대칭(D3). 위치(Button slot)는 RAC DOM(D1) 유지, 아이콘 종류/크기(D2/D3)만 동적. */}
+                <Icon
+                  iconName={iconName}
+                  style={{ fontSize: triggerIconSize }}
+                />
+              </Button>
+            )}
+            <DateInput>
+              {(segment) => (
+                <DateSegment
+                  segment={segment}
+                  data-placeholder={
+                    !segment.isPlaceholder ? undefined : placeholder
+                  }
+                />
+              )}
+            </DateInput>
+            {showCalendarIcon && calendarIconPosition === "right" && (
+              <Button>
+                <Icon
+                  iconName={iconName}
+                  style={{ fontSize: triggerIconSize }}
+                />
+              </Button>
+            )}
+            {allowClear && props.value && (
+              <Button
+                onPress={() => props.onChange?.(null)}
+                aria-label="Clear date"
+              >
+                ✕
+              </Button>
+            )}
+          </>
         )}
       </Group>
       {renderFieldDescription(description)}

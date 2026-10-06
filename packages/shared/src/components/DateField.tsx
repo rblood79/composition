@@ -5,6 +5,7 @@
  * Sizes: sm, md, lg
  */
 
+import type { ReactNode } from "react";
 import {
   DateField as AriaDateField,
   DateFieldProps as AriaDateFieldProps,
@@ -71,6 +72,11 @@ export interface DateFieldProps<T extends DateValue> extends Omit<
    */
   labelAlign?: "start" | "center" | "end";
   isQuiet?: boolean;
+  /**
+   * The control, drawn by its part node (ADR-253 — an instance of the DateInput origin). Absent:
+   * the component composes the DateInput itself.
+   */
+  inputElement?: ReactNode;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
   placeholderValue?: string;
@@ -94,6 +100,7 @@ export function DateField<T extends DateValue>({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  inputElement,
   hideTimeZone,
   shouldForceLeadingZeros,
   placeholderValue,
@@ -149,9 +156,9 @@ export function DateField<T extends DateValue>({
       validationBehavior={validationBehavior}
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
-      <DateInput className="react-aria-DateInput inset">
-        {(segment) => <DateSegment segment={segment} />}
-      </DateInput>
+      {inputElement ?? (
+        <DateInput>{(segment) => <DateSegment segment={segment} />}</DateInput>
+      )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}
     </AriaDateField>

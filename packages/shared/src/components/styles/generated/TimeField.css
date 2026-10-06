@@ -61,117 +61,28 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-TimeField[data-size="xs"] {
-  --time-field-input-padding: var(--spacing-3xs) var(--spacing-xs);
-  --time-field-input-size: var(--text-2xs);
-  --time-field-input-line-height: var(--text-2xs--line-height);
   --time-field-input-min-width: 100px;
 }
 
 .react-aria-TimeField[data-size="sm"] {
-  --time-field-input-padding: var(--spacing-2xs) var(--spacing-sm);
-  --time-field-input-size: var(--text-xs);
-  --time-field-input-line-height: var(--text-xs--line-height);
   --time-field-input-min-width: 120px;
 }
 
 .react-aria-TimeField[data-size="md"] {
-  --time-field-input-padding: var(--spacing-xs) var(--spacing-md);
-  --time-field-input-size: var(--text-sm);
-  --time-field-input-line-height: var(--text-sm--line-height);
   --time-field-input-min-width: 150px;
 }
 
 .react-aria-TimeField[data-size="lg"] {
-  --time-field-input-padding: var(--spacing-sm) var(--spacing-lg);
-  --time-field-input-size: var(--text-base);
-  --time-field-input-line-height: var(--text-base--line-height);
   --time-field-input-min-width: 180px;
 }
 
 .react-aria-TimeField[data-size="xl"] {
-  --time-field-input-padding: var(--spacing-md) var(--spacing-xl);
-  --time-field-input-size: var(--text-lg);
-  --time-field-input-line-height: var(--text-lg--line-height);
   --time-field-input-min-width: 220px;
 }
 
 .react-aria-TimeField .react-aria-DateInput {
-  display: inline-flex;
-  padding: var(--time-field-input-padding);
-  background: var(--bg-inset);
-  border: var(--border-width-thin) solid;
-  border-radius: var(--border-radius);
   width: 100%;
   min-width: var(--time-field-input-min-width);
-  white-space: nowrap;
-  forced-color-adjust: none;
-  font-size: var(--time-field-input-size);
-  line-height: var(--time-field-input-line-height);
-  transition: border-color 200ms ease, background-color 200ms ease;
-}
-
-.react-aria-TimeField[data-size="xs"] {
-  --time-field-segment-size: var(--text-2xs);
-}
-
-.react-aria-TimeField[data-size="sm"] {
-  --time-field-segment-size: var(--text-xs);
-}
-
-.react-aria-TimeField[data-size="md"] {
-  --time-field-segment-size: var(--text-sm);
-}
-
-.react-aria-TimeField[data-size="lg"] {
-  --time-field-segment-size: var(--text-base);
-}
-
-.react-aria-TimeField[data-size="xl"] {
-  --time-field-segment-size: var(--text-lg);
-}
-
-.react-aria-TimeField .react-aria-DateSegment {
-  padding: 0 2px;
-  border: none;
-  background: transparent;
-  height: auto;
-  font-variant-numeric: tabular-nums;
-  text-align: end;
-  color: var(--fg);
-  border-radius: var(--radius-xs);
-  font-size: var(--time-field-segment-size);
-  transition: all 150ms ease;
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where([data-type="literal"]) {
-  padding: 0;
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where([data-placeholder]) {
-  color: var(--fg-muted);
-  opacity: 0.6;
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where(:focus) {
-  color: var(--fg);
-  background: var(--accent-subtle);
-  outline: none;
-  border-radius: var(--radius-xs);
-  caret-color: transparent;
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where([data-invalid]) {
-  color: var(--negative);
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where([data-invalid]:focus) {
-  background: var(--negative);
-  color: var(--color-white);
-}
-
-.react-aria-TimeField .react-aria-DateSegment:where([data-disabled]) {
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
-  cursor: not-allowed;
 }
 
 .react-aria-TimeField[data-size="sm"] {

@@ -383,9 +383,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   ProgressBarValue: () => ({ omit: ["lineHeight"] }),
   MeterValue: () => ({ omit: ["lineHeight"] }),
   SelectValue: () => ({ omit: ["height"] }),
-  // No generated CSS (no `structure`): the DOM DateInput is the RAC segment row, boxed only by the
-  // owning field's delegation (padding/border); `sizes.height` is read by no stylesheet.
-  DateInput: () => ({ replace: true, layout: { display: "inline-flex" } }),
   // `Label.css` (generated CSS disabled): a fit-content inline box that does not stretch.
   Label: () => ({
     layout: { display: "inline-flex", alignItems: "center" },

@@ -766,7 +766,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     }
   });
 
-  it("measures a DateInput as the RAC segment row: padded editable parts, literals, and a range's start/end pair around `–`", async () => {
+  it("measures a DateInput as the RAC segment row: padded editable parts and literals — a range's start and end one row each", async () => {
     // Fake measurer: 10px per character, so the expected widths read off the segment text.
     const measure = (text: string) => ({ width: text.length * 10, height: 20 });
     const widthOf = async (definition: string) => {
@@ -802,15 +802,13 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const range = await widthOf(
       "lib:definition:origin-component-daterangepicker",
     );
-    expect(range.gap).toBeGreaterThan(0);
+    // (ADR-253: a range picker's start and end are DateInput nodes of their own.)
     expect(
-      range.style.some(
-        (entry) => entry.contentMinWidth === 2 * row + 2 * range.gap + 10,
-      ),
-    ).toBe(true);
+      range.style.filter((entry) => entry.contentMinWidth === row),
+    ).toHaveLength(2);
   });
 
-  it("paints a picker's DateInput as segment text inside the trigger box and its icon from the picker's `iconName` (DOM self-compose)", async () => {
+  it("paints a DatePicker's DateInput as its own box, a range's pair bare inside the Group, and the button glyph from the picker's `iconName`", async () => {
     const pickerScene = async (definition: string) => {
       const scene = await open(
         definition as DefinitionId,
@@ -826,7 +824,16 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         type: "DateInput",
         authoredVisual: {},
       });
-      return { scene, shapes, icon: () => scene.byType("SelectIcon")[0]! };
+      // The button glyph: the Icon inside the FieldButton instance in the Group (ADR-253).
+      const icon = () => {
+        const records = scene.root.canvasInputs;
+        const button = scene
+          .byType("SelectTrigger")[0]!
+          .children.map((id) => records.get(id)!)
+          .find((node) => node.bindingId === "button")!;
+        return records.get(button.children[0]!)!;
+      };
+      return { scene, shapes, icon };
     };
     const texts = (shapes: ReturnType<typeof catalogRuleShapes>) =>
       shapes.flatMap((shape) =>
@@ -839,11 +846,11 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     const iconName = (node: CatalogConsumerNode) =>
       node.derivedProps?.iconName ?? node.props.iconName;
 
-    // DatePicker: the SelectTrigger draws the box; the DateInput only its segments.
+    // DatePicker: the DateInput (an instance of the DateInput origin) draws the box.
     const picker = await pickerScene(
       "lib:definition:origin-component-datepicker",
     );
-    expect(boxes(picker.shapes)).toEqual([]);
+    expect(boxes(picker.shapes).length).toBeGreaterThan(0);
     expect(texts(picker.shapes)).toHaveLength(1);
     expect(iconName(picker.icon())).toBe("calendar");
     // The owner's icon edit reaches the trigger icon (incremental = fresh).
@@ -860,12 +867,23 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       picker.scene.fresh(),
     );
 
-    // DateRangePicker: one typed DateInput is RAC's start/end pair.
+    // DateRangePicker: the Group draws the box; RAC's start/end pair are two DateInput instances
+    // whose template positions carry no box, around the separator Text.
     const range = await pickerScene(
       "lib:definition:origin-component-daterangepicker",
     );
-    expect(boxes(range.shapes)).toEqual([]);
-    expect(texts(range.shapes)[0]).toContain("–");
+    const pair = range.scene.byType("DateInput");
+    expect(pair.map((node) => node.props.slot)).toEqual(["start", "end"]);
+    for (const node of pair)
+      expect(node.visual).toMatchObject({
+        fill: "transparent",
+        borderWidth: 0,
+        paddingX: 0,
+      });
+    expect(texts(range.shapes)[0]).not.toContain("–");
+    expect(
+      range.scene.byType("Text").some((node) => node.props.children === "–"),
+    ).toBe(true);
     expect(iconName(range.icon())).toBe("calendar");
 
     // A standalone DateField's DateInput stays its own field box.
@@ -937,12 +955,13 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       color: "var(--fg-muted)",
       opacity: 0.6,
     });
+    // (The DatePicker's DateInput is the box: its border 1 + padding 12 come first.)
     expect(picker.texts.map(({ text, x }) => [text, x])).toEqual([
-      ["mm", 2],
-      ["/", 24],
-      ["dd", 36],
-      ["/", 58],
-      ["yyyy", 70],
+      ["mm", 13 + 2],
+      ["/", 13 + 24],
+      ["dd", 13 + 36],
+      ["/", 13 + 58],
+      ["yyyy", 13 + 70],
     ]);
     expect(picker.texts.map(({ fill }) => fill === "#11223399")).toEqual([
       true,
@@ -951,15 +970,17 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       false,
       true,
     ]);
-    // Range: start row, `–` after the trigger gap, end row after the next gap.
+    // Range: the start DateInput is one row of its own (bare — no border, no padding).
     const range = await paintOf(
       "lib:definition:origin-component-daterangepicker",
       "en-US",
     );
-    expect(range.texts.map(({ text }) => text)).toEqual([
-      ...["mm", "/", "dd", "/", "yyyy"],
-      "–",
-      ...["mm", "/", "dd", "/", "yyyy"],
+    expect(range.texts.map(({ text, x }) => [text, x])).toEqual([
+      ["mm", 2],
+      ["/", 24],
+      ["dd", 36],
+      ["/", 58],
+      ["yyyy", 70],
     ]);
     // ko-KR: the locale's own order and placeholders, not the en order.
     const korean = await paintOf(
@@ -1002,7 +1023,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     ]);
   });
 
-  it("draws a DateField's input box at its laid-out height and catalog corner, its empty segments italic (DateField `[data-placeholder]`)", async () => {
+  it("draws a DateField's input box at its laid-out height and the DateInput rule's corner, its empty segments in the DateInput rule's placeholder paint", async () => {
     const measure = (text: string, font: { fontStyle?: string }) => ({
       width: text.length * (font.fontStyle === "italic" ? 11 : 10),
       height: 20,
@@ -1032,11 +1053,13 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       (node) => node.bindingId === "dateinput",
     )!;
     const paint = root.dateSegmentPaint(input.id)!;
-    expect(paint.placeholder.fontStyle).toBe("italic");
-    // Editable runs are measured italic (11/char): `mm` 22 + 2×2 padding, then `/`.
+    // (ADR-253: one DateSegment definition — the DateInput rule's — for every date field: no
+    // italic, the field font.)
+    expect(paint.placeholder.fontStyle).toBeUndefined();
+    // `mm` 20 + 2×2 padding, then `/`.
     expect(paint.runs.slice(0, 2).map(({ text, x }) => [text, x])).toEqual([
       ["mm", 16 + 1 + 2],
-      ["/", 16 + 1 + 26],
+      ["/", 16 + 1 + 24],
     ]);
     const shapes = catalogRuleShapes({
       node: input.derivedProps
@@ -1051,17 +1074,18 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(shapes.find((shape) => shape.type === "roundRect")).toEqual(
       expect.objectContaining({ height: 42, radius: input.visual.radius }),
     );
-    expect(input.visual.radius).toBe(6);
+    // (The corner follows the DateInput rule's size step — lg.)
+    expect(input.visual.radius).toBe(8);
     const texts = shapes.filter((shape) => shape.type === "text") as Array<{
       text: string;
       fontStyle?: string;
     }>;
     expect(texts.map(({ text, fontStyle }) => [text, fontStyle])).toEqual([
-      ["mm", "italic"],
+      ["mm", undefined],
       ["/", undefined],
-      ["dd", "italic"],
+      ["dd", undefined],
       ["/", undefined],
-      ["yyyy", "italic"],
+      ["yyyy", undefined],
     ]);
   });
 

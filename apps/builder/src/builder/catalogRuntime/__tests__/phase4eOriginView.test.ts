@@ -154,10 +154,13 @@ describe("ADR-248 4e library origin view", () => {
     const [root] = store.getSnapshot();
     expect(root!.role).toBe(undefined);
     expect(root!.hasChildren).toBe(true);
-    const cardRow = (id: string) => workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
+    const cardRow = (id: string) =>
+      workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
     const buttonCard = cardRow(originCardId(button.id));
     const fieldCard = cardRow(
-      originCardId("lib:definition:origin-component-textfield" as typeof button.id),
+      originCardId(
+        "lib:definition:origin-component-textfield" as typeof button.id,
+      ),
     );
     store.setExpanded(new Set([root!.id, buttonCard, fieldCard]));
     const groups = store.getSnapshot()[0]!.children!;
@@ -170,11 +173,19 @@ describe("ADR-248 4e library origin view", () => {
     ]);
     expect(groups.every((row) => row.role === undefined)).toBe(true);
     // A theme group lists its values.
-    store.setExpanded(new Set([root!.id, buttonCard, fieldCard, groups[3]!.id]));
+    store.setExpanded(
+      new Set([root!.id, buttonCard, fieldCard, groups[3]!.id]),
+    );
     const groupOf = (id: string) =>
       store.getSnapshot()[0]!.children!.find((row) => row.id === id)!;
     expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
-      "md", "2xs", "xs", "sm", "lg", "xl", "2xl",
+      "md",
+      "2xs",
+      "xs",
+      "sm",
+      "lg",
+      "xl",
+      "2xl",
     ]);
     // IconButton: the origin, then 6 variants × (rest + 4 states).
     const [originRow, ...instances] = groupOf(buttonCard).children!;
@@ -206,7 +217,8 @@ describe("ADR-248 4e library origin view", () => {
     }
     // A Canvas click picks the sample or instance under it; a card's own frames pick the card.
     const records = workspace.root.domInputs;
-    const recordOf = (id: string) => workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
+    const recordOf = (id: string) =>
+      workspace.itemsOfNode(id as NodeId, 1)[0]!.identity;
     const caption = [...records.values()].find((record) =>
       record.sourceId.endsWith(`${button.id}/cell/primary/Hover/caption`),
     )!;
@@ -287,7 +299,9 @@ describe("ADR-248 4e library origin view", () => {
       .children.slice(1)
       .map(nodeOf);
     expect(spacingRows.map((row) => row.name)).toEqual(["Origin", "Sizes"]);
-    expect(themeCells(spacingRows[0]!).map((cell) => cell.name)).toEqual(["◆ md"]);
+    expect(themeCells(spacingRows[0]!).map((cell) => cell.name)).toEqual([
+      "◆ md",
+    ]);
     expect(themeCells(spacingRows[1]!)[0]!.name).toBe("◇ 2xs");
     const colorRows = cards
       .find((candidate) => candidate.name === "Colors")!
@@ -341,15 +355,14 @@ describe("ADR-248 4e library origin view", () => {
     // A card has no Parts row (it drew the origin once more; what a collection holds is its
     // Item row).
     const field = cards.find((candidate) => candidate.name === "TextField")!;
-    expect(field.children.map(nodeOf).map((row) => row.name)).not.toContain("Parts");
+    expect(field.children.map(nodeOf).map((row) => row.name)).not.toContain(
+      "Parts",
+    );
     // A collection shows its item origin's states (not its own variants — they only tint its
     // hover): the item drawn on its own, its label filled in and its placeholders off.
     const grid = cards.find((candidate) => candidate.name === "GridList")!;
     const gridRows = grid.children.slice(1).map(nodeOf);
-    expect(gridRows.map((row) => row.name)).toEqual([
-      "Origin",
-      "Item",
-    ]);
+    expect(gridRows.map((row) => row.name)).toEqual(["Origin", "Item"]);
     // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
     expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
       "◆ GridList",
@@ -357,8 +370,16 @@ describe("ADR-248 4e library origin view", () => {
     ]);
     const itemCells = cellsOf(gridRows[1]!);
     expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
-      ["", "--unselected", "--disabled", "--hover", "--pressed", "--focus-visible"].map(
-        (state) => `lib:definition:origin-component-gridlist-item-default${state}`,
+      [
+        "",
+        "--unselected",
+        "--disabled",
+        "--hover",
+        "--pressed",
+        "--focus-visible",
+      ].map(
+        (state) =>
+          `lib:definition:origin-component-gridlist-item-default${state}`,
       ),
     );
     const hoverItem = sampleOf(itemCells[3]!);
@@ -388,7 +409,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(catalogComponentRole(graph, accentHover.id)).toBe("instance");
     // No instance of a card sets a size.
     expect(
-      rows.flatMap((row) => cellsOf(row).map((cell) => sampleOf(cell).props.size)),
+      rows.flatMap((row) =>
+        cellsOf(row).map((cell) => sampleOf(cell).props.size),
+      ),
     ).toEqual(rows.flatMap((row) => cellsOf(row).map(() => undefined)));
     // A Chart card draws an instance per chart type — the palette's creation variants of the
     // origin, each with the props the palette creates it with.
@@ -396,7 +419,11 @@ describe("ADR-248 4e library origin view", () => {
       .find((candidate) => candidate.name === "Chart")!
       .children.slice(1)
       .map(nodeOf);
-    expect(chartRows.map((row) => row.name)).toEqual(["Origin", "Variants", "Types"]);
+    expect(chartRows.map((row) => row.name)).toEqual([
+      "Origin",
+      "Variants",
+      "Types",
+    ]);
     const chartTypes = cellsOf(chartRows[2]!);
     expect(chartTypes.map((cell) => cell.name)).toEqual(
       ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
@@ -404,15 +431,19 @@ describe("ADR-248 4e library origin view", () => {
       ),
     );
     expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
-      ["area", "bar", "line", "pie", "radar", "radial", "scatter"].map((value) => ({
-        kind: "set",
-        value,
-      })),
+      ["area", "bar", "line", "pie", "radar", "radial", "scatter"].map(
+        (value) => ({
+          kind: "set",
+          value,
+        }),
+      ),
     );
     expect(sampleOf(chartTypes[0]!).definitionId).toBe(
       "lib:definition:origin-component-chart",
     );
-    expect(catalogComponentRole(graph, sampleOf(chartTypes[0]!).id)).toBe("instance");
+    expect(catalogComponentRole(graph, sampleOf(chartTypes[0]!).id)).toBe(
+      "instance",
+    );
     // The page keeps its own width whatever the viewport, and its columns are balanced by the
     // cards' drawn heights: no column is taller than the shortest by more than its last card
     // (and the gap under it — each next card goes on the column lightest so far, gap included).
@@ -423,15 +454,21 @@ describe("ADR-248 4e library origin view", () => {
     expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(COMPONENTS_PAGE_WIDTH);
     // The chart types are drawn two to a line (each half the card's inner width).
     const chartRects = chartTypes.map((cell) => rectOf(sampleOf(cell).id));
-    expect(chartRects.map((rect) => rect.width)).toEqual(chartTypes.map(() => 248));
+    expect(chartRects.map((rect) => rect.width)).toEqual(
+      chartTypes.map(() => 248),
+    );
     expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
     // A Menu draws its trigger button: its items are in the popover (not on the Canvas), so its
     // box is its trigger's — the Button's metrics at the same size (padding, min width).
     const menuRect = rectOf(
-      originSampleId("lib:definition:origin-component-menu" as LibraryDefinitionId),
+      originSampleId(
+        "lib:definition:origin-component-menu" as LibraryDefinitionId,
+      ),
     );
     const buttonRect = rectOf(
-      originSampleId("lib:definition:origin-component-button" as LibraryDefinitionId),
+      originSampleId(
+        "lib:definition:origin-component-button" as LibraryDefinitionId,
+      ),
     );
     expect([menuRect.width, menuRect.height]).toEqual([
       buttonRect.width,
@@ -471,14 +508,13 @@ describe("ADR-248 4e library origin view", () => {
       visual: { paddingTop: { kind: "set", value: 20 } },
     });
     // The sample shows its override as own values; the placed instance follows.
-    expect(
-      (graphOf(workspace).getEntry(SAMPLE) as NodeEntry).props,
-    ).toEqual({ label: { kind: "set", value: "Go" } });
+    expect((graphOf(workspace).getEntry(SAMPLE) as NodeEntry).props).toEqual({
+      label: { kind: "set", value: "Go" },
+    });
     expect(placedLabel(workspace)).toBe("Go");
     // The panels read it as the sample's own value (resettable).
     expect(
-      workspace.readModel.ownFields({ kind: "node", id: SAMPLE })
-        .props,
+      workspace.readModel.ownFields({ kind: "node", id: SAMPLE }).props,
     ).toEqual({ label: { kind: "set", value: "Go" } });
     const sample = [...workspace.root.domInputs.values()].find(
       (record) => record.sourceId === SAMPLE,
@@ -570,22 +606,24 @@ describe("ADR-248 4e library origin view", () => {
     const SAMPLE = originSampleId(button.id);
     workspace.showDefinition(button.id);
     const graph = graphOf(workspace);
-    expect(
-      catalogComponentState(graph, SAMPLE, COMPONENTS_VIEW),
-    ).toMatchObject({
-      originOf: {
-        definitionId: button.id,
-        project: false,
-        instanceIds: [PLACED],
+    expect(catalogComponentState(graph, SAMPLE, COMPONENTS_VIEW)).toMatchObject(
+      {
+        originOf: {
+          definitionId: button.id,
+          project: false,
+          instanceIds: [PLACED],
+        },
       },
-    });
-    expect(catalogComponentState(graph, PLACED, COMPONENTS_VIEW)).toMatchObject({
-      instanceOf: {
-        definitionId: button.id,
-        project: false,
-        instanceIds: [PLACED],
+    );
+    expect(catalogComponentState(graph, PLACED, COMPONENTS_VIEW)).toMatchObject(
+      {
+        instanceOf: {
+          definitionId: button.id,
+          project: false,
+          instanceIds: [PLACED],
+        },
       },
-    });
+    );
     workspace.dispose();
   });
   it("draws each origin as the DOM sizes it: circle height, owner-sized glyphs and members, track variants, slots", async () => {
@@ -595,7 +633,8 @@ describe("ADR-248 4e library origin view", () => {
     const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
     const rectOf = (id: string) =>
       workspace.root.getGeometry([recordOf(id)]).get(recordOf(id))!;
-    const inputOf = (record: string) => workspace.root.canvasInputs.get(record)!;
+    const inputOf = (record: string) =>
+      workspace.root.canvasInputs.get(record)!;
     const under = (record: string, binding: string): string[] =>
       inputOf(record).children.flatMap((child) => [
         ...(inputOf(child).bindingId === binding ? [child] : []),
@@ -606,9 +645,13 @@ describe("ADR-248 4e library origin view", () => {
       `project:node:sized-${origin}-${size}` as NodeId;
     const sizedPairs = [
       ...["sm", "md", "lg"].map((size) => ["progresscircle", size] as const),
-      ...["select", "combobox", "datepicker", "daterangepicker", "numberfield"].flatMap(
-        (origin) => [[origin, "xs"] as const, [origin, "xl"] as const],
-      ),
+      ...[
+        "select",
+        "combobox",
+        "datepicker",
+        "daterangepicker",
+        "numberfield",
+      ].flatMap((origin) => [[origin, "xs"] as const, [origin, "xl"] as const]),
       ["avatargroup", "xl"] as const,
       ["buttongroup", "xs"] as const,
       ["calendar", "sm"] as const,
@@ -631,26 +674,26 @@ describe("ADR-248 4e library origin view", () => {
       }),
     );
     // A ProgressCircle is its diameter square (the `progress` archetype drops a bar's height).
-    for (const [key, diameter] of [["sm", 24], ["md", 32], ["lg", 64]] as const) {
+    for (const [key, diameter] of [
+      ["sm", 24],
+      ["md", 32],
+      ["lg", 64],
+    ] as const) {
       const rect = rectOf(sized("progresscircle", key));
       expect([rect.width, rect.height]).toEqual([diameter, diameter]);
     }
-    // A trigger glyph follows its owner's size (the DOM sizes the svg from the owner's `size`).
-    const glyphs = (origin: string, size: string) =>
-      under(recordOf(sized(origin, size)), "selecticon").map(
-        (record) => inputOf(record).visual.iconSize,
-      );
-    for (const origin of ["datepicker", "daterangepicker"]) {
-      expect(glyphs(origin, "xs")).toEqual([14]);
-      expect(glyphs(origin, "xl")).toEqual([28]);
-    }
-    // A ComboBox's button is a FieldButton instance, a Select's trigger a Button instance
-    // (ADR-253): the glyph is the Button's scale.
+    // A field's button is a FieldButton instance (ComboBox · DatePicker · DateRangePicker), a
+    // Select's trigger a Button instance (ADR-253): the glyph is the Button's scale.
     const buttonGlyphs = (origin: string, size: string) =>
       under(recordOf(sized(origin, size)), "icon").map(
         (record) => inputOf(record).visual.iconSize,
       );
-    for (const origin of ["combobox", "select"]) {
+    for (const origin of [
+      "combobox",
+      "select",
+      "datepicker",
+      "daterangepicker",
+    ]) {
       expect(buttonGlyphs(origin, "xs")).toEqual([14]);
       expect(buttonGlyphs(origin, "xl")).toEqual([28]);
     }
@@ -662,7 +705,11 @@ describe("ADR-248 4e library origin view", () => {
       under(recordOf(sized(origin, size)), binding).map(
         (record) => inputOf(record).props.size,
       );
-    expect(sizesUnder("avatargroup", "xl", "avatar")).toEqual(["xl", "xl", "xl"]);
+    expect(sizesUnder("avatargroup", "xl", "avatar")).toEqual([
+      "xl",
+      "xl",
+      "xl",
+    ]);
     expect(sizesUnder("buttongroup", "xs", "button")).toEqual(["xs", "xs"]);
     expect(sizesUnder("calendar", "sm", "calendargrid")).toEqual(["sm"]);
     expect(sizesUnder("calendar", "sm", "calendarheader")).toEqual(["sm"]);
@@ -698,7 +745,11 @@ describe("ADR-248 4e library origin view", () => {
     expect(
       catalogSlotMarks(workspace, pageBounds, pageBounds)
         .filter((mark) => inputOf(placedCard).children.includes(mark.identity))
-        .map((mark) => [inputOf(mark.identity).slot?.name, mark.empty, mark.role]),
+        .map((mark) => [
+          inputOf(mark.identity).slot?.name,
+          mark.empty,
+          mark.role,
+        ]),
     ).toEqual([["Footer", true, "instance"]]);
     workspace.showDefinition(button.id);
     // A ProgressBar's track takes its owner's variant: the track rule paints every one of them
@@ -710,7 +761,8 @@ describe("ADR-248 4e library origin view", () => {
     expect(neutralTrack).toEqual(["neutral"]);
     expect(
       Object.keys(COMPONENT_RULES_TABLE.ProgressBar.variants).filter(
-        (variant) => !(variant in COMPONENT_RULES_TABLE.ProgressBarTrack.variants),
+        (variant) =>
+          !(variant in COMPONENT_RULES_TABLE.ProgressBarTrack.variants),
       ),
     ).toEqual([]);
     const bounds = new Map(
@@ -726,14 +778,20 @@ describe("ADR-248 4e library origin view", () => {
     // box of their own.
     const slotMarks = catalogSlotMarks(workspace, bounds, bounds);
     const marksUnder = (record: string) =>
-      slotMarks.filter((mark) => inputOf(record).children.includes(mark.identity));
+      slotMarks.filter((mark) =>
+        inputOf(record).children.includes(mark.identity),
+      );
     const tabsOrigin = recordOf(originSampleId(lib("tabs")));
-    expect(marksUnder(tabsOrigin).map((mark) => [mark.empty, mark.role])).toEqual([
+    expect(
+      marksUnder(tabsOrigin).map((mark) => [mark.empty, mark.role]),
+    ).toEqual([
       [true, "origin"],
       [true, "origin"],
     ]);
     expect(
-      marksUnder(tabsOrigin).every((mark) => mark.box.width > 0 && mark.box.height > 0),
+      marksUnder(tabsOrigin).every(
+        (mark) => mark.box.width > 0 && mark.box.height > 0,
+      ),
     ).toBe(true);
     // A slot that has a box is hatched at that box at every zoom (a zoomed-out Components page
     // must not grow it over the row below); only one of no height gets the visible band, which
@@ -741,8 +799,12 @@ describe("ADR-248 4e library origin view", () => {
     for (const mark of marksUnder(tabsOrigin))
       for (const zoom of [0.1, 0.25, 1, 4])
         expect(catalogSlotBand(mark.box.height, zoom)).toBe(mark.box.height);
-    expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([48, 48, 12]);
-    expect(marksUnder(recordOf(originInstanceId(lib("tabs"), "instance")))).toEqual([]);
+    expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([
+      48, 48, 12,
+    ]);
+    expect(
+      marksUnder(recordOf(originInstanceId(lib("tabs"), "instance"))),
+    ).toEqual([]);
     const tableMarks = marksUnder(recordOf(originSampleId(lib("table"))));
     expect(tableMarks.map((mark) => [mark.empty, mark.role])).toEqual([
       [true, "origin"],
@@ -754,21 +816,37 @@ describe("ADR-248 4e library origin view", () => {
     const listOrigin = recordOf(originSampleId(lib("listbox")));
     expect(inputOf(listOrigin).children.length).toBeGreaterThan(0);
     expect(
-      inputOf(listOrigin).children.map((child) => inputOf(child).visual.opacity),
+      inputOf(listOrigin).children.map(
+        (child) => inputOf(child).visual.opacity,
+      ),
     ).toEqual(inputOf(listOrigin).children.map(() => 0));
     expect(
       slotMarks
         .filter((mark) => mark.identity === listOrigin)
-        .map((mark) => [mark.empty, mark.role, mark.box.width > 0, mark.box.height > 0]),
+        .map((mark) => [
+          mark.empty,
+          mark.role,
+          mark.box.width > 0,
+          mark.box.height > 0,
+        ]),
     ).toEqual([[true, "origin", true, true]]);
     const listInstance = recordOf(originInstanceId(lib("listbox"), "instance"));
-    expect(slotMarks.filter((mark) => mark.identity === listInstance)).toEqual([]);
+    expect(slotMarks.filter((mark) => mark.identity === listInstance)).toEqual(
+      [],
+    );
     expect(
-      inputOf(listInstance).children.map((child) => inputOf(child).visual.opacity ?? 1),
+      inputOf(listInstance).children.map(
+        (child) => inputOf(child).visual.opacity ?? 1,
+      ),
     ).toEqual(inputOf(listInstance).children.map(() => 1));
     // The slot is the size its contents take (a ToggleButtonGroup's is its buttons' height, not
     // a fixed box): the origin measures what the filled instance does.
-    for (const origin of ["togglebuttongroup", "buttongroup", "toolbar", "listbox"]) {
+    for (const origin of [
+      "togglebuttongroup",
+      "buttongroup",
+      "toolbar",
+      "listbox",
+    ]) {
       const empty = rectOf(originSampleId(lib(origin)));
       const filled = rectOf(originInstanceId(lib(origin), "instance"));
       expect([origin, empty.width, empty.height]).toEqual([
@@ -787,15 +865,18 @@ describe("ADR-248 4e library origin view", () => {
       "Content",
       "Footer",
     ]);
-    expect(slotNames(recordOf(originInstanceId(lib("card"), "instance")))).toEqual([
-      "Footer",
-    ]);
+    expect(
+      slotNames(recordOf(originInstanceId(lib("card"), "instance"))),
+    ).toEqual(["Footer"]);
     // No Slots row: the origin shows them.
-    const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
+    const entryOf = (id: string) =>
+      graphOf(workspace).getEntry(id) as NodeEntry;
     const tabsCard = catalogComponentsPageCards(graphOf(workspace))
       .map(entryOf)
       .find((candidate) => candidate.name === "Tabs")!;
-    expect(tabsCard.children.map(entryOf).map((row) => row.name)).not.toContain("Slots");
+    expect(tabsCard.children.map(entryOf).map((row) => row.name)).not.toContain(
+      "Slots",
+    );
     workspace.dispose();
   });
 });

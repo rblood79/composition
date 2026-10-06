@@ -9,8 +9,9 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * Parts covered so far (Phase 3): Label · FieldError · Description — every one under a field · group
  * is an instance of its origin, sized by its own rule at its owner's size — and the Input of the
  * fields whose control is their Input node (TextField · TextArea · ColorField). The fields whose
- * control is still a trigger wrapper (ComboBox · NumberField · SearchField) follow with the Group ·
- * Button step, the `quiet` variant blocks with the quiet step.
+ * control is a wrapper around part instances (ComboBox · NumberField · SearchField) and the date
+ * fields (the DateInput origin) are covered below; the `quiet` variant blocks follow with the
+ * quiet step.
  */
 const LABEL_SELECTOR = ".react-aria-Label";
 const PART_VARIABLES =
@@ -170,6 +171,64 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         Record<string, unknown> | undefined;
       if (variants?.disabled !== undefined)
         found.push(`${type} containerVariants.disabled`);
+    }
+    expect(found).toEqual([]);
+  });
+
+  // A date field's box is an instance of the DateInput origin: its field only places it (and a
+  // picker its FieldButton). No DateInput shape and no DateSegment declaration in a field rule —
+  // the DateInput rule's sheet has both. A DateRangePicker's Group is its box (the pair inside
+  // carries none): the field turns the pair's focus ring off, the Group shows it.
+  it("a date field only places its DateInput and its button", () => {
+    const DATE_PLACEMENT = new Set([
+      ...PLACEMENT_KEYS,
+      "display",
+      "align-items",
+      "height",
+      "box-sizing",
+      "padding-right",
+      "padding-left",
+    ]);
+    const PAIR_FOCUS_OFF = JSON.stringify({
+      "[data-focus-within]": { outline: "none" },
+    });
+    const found: string[] = [];
+    for (const type of [
+      "DateField",
+      "TimeField",
+      "DatePicker",
+      "DateRangePicker",
+    ]) {
+      const delegation = (
+        COMPONENT_RULES_TABLE as Record<
+          string,
+          { structure?: { composition?: Record<string, unknown> } }
+        >
+      )[type]?.structure?.composition?.delegation;
+      for (const entry of (Array.isArray(delegation)
+        ? delegation
+        : []) as Array<{
+        childSelector?: string;
+        bridges?: Styles;
+        states?: unknown;
+      }>) {
+        const selector = entry.childSelector ?? "";
+        if (/\.react-aria-DateSegment/.test(selector))
+          found.push(`${type} ${selector}`);
+        const placed =
+          /\.react-aria-(DateInput|Button)(?![\w-])/.test(selector) ||
+          (type === "DatePicker" && /\.react-aria-Group/.test(selector));
+        if (!placed) continue;
+        const pairFocusOff =
+          type === "DateRangePicker" &&
+          selector === ".react-aria-DateInput" &&
+          JSON.stringify(entry.states) === PAIR_FOCUS_OFF;
+        if (entry.states !== undefined && !pairFocusOff)
+          found.push(`${type} ${selector} { states }`);
+        for (const key of Object.keys(entry.bridges ?? {}))
+          if (!DATE_PLACEMENT.has(key))
+            found.push(`${type} ${selector} { ${key} }`);
+      }
     }
     expect(found).toEqual([]);
   });

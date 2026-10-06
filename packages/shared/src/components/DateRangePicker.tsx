@@ -54,6 +54,11 @@ export interface DateRangePickerProps<T extends DateValue> extends Omit<
   showWeekNumbers?: boolean;
   highlightToday?: boolean;
   allowClear?: boolean;
+  /**
+   * The Group's content, drawn by its part nodes (ADR-253 — the pair's DateInput instances, the
+   * separator and a FieldButton instance). Absent: the component composes them itself.
+   */
+  controlElements?: React.ReactNode[];
   includeTime?: boolean;
   timeFormat?: "12h" | "24h";
   startTimeLabel?: string;
@@ -100,6 +105,7 @@ export function DateRangePicker<T extends DateValue>({
   showWeekNumbers = false,
   highlightToday = true,
   allowClear = false,
+  controlElements,
   includeTime = false,
   timeFormat = "24h",
   startTimeLabel,
@@ -189,44 +195,54 @@ export function DateRangePicker<T extends DateValue>({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
-        {showCalendarIcon && calendarIconPosition === "left" && (
-          <Button slot="prefix">
-            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
-          </Button>
-        )}
-        <DateInput slot="start">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
-              }
-            />
-          )}
-        </DateInput>
-        <span aria-hidden="true">–</span>
-        <DateInput slot="end">
-          {(segment) => (
-            <DateSegment
-              segment={segment}
-              data-placeholder={
-                !segment.isPlaceholder ? undefined : placeholder
-              }
-            />
-          )}
-        </DateInput>
-        {showCalendarIcon && calendarIconPosition === "right" && (
-          <Button>
-            <Icon iconName={iconName} style={{ fontSize: triggerIconSize }} />
-          </Button>
-        )}
-        {allowClear && props.value && (
-          <Button
-            onPress={() => props.onChange?.(null)}
-            aria-label="Clear date range"
-          >
-            ✕
-          </Button>
+        {controlElements ?? (
+          <>
+            {showCalendarIcon && calendarIconPosition === "left" && (
+              <Button slot="prefix">
+                <Icon
+                  iconName={iconName}
+                  style={{ fontSize: triggerIconSize }}
+                />
+              </Button>
+            )}
+            <DateInput slot="start">
+              {(segment) => (
+                <DateSegment
+                  segment={segment}
+                  data-placeholder={
+                    !segment.isPlaceholder ? undefined : placeholder
+                  }
+                />
+              )}
+            </DateInput>
+            <span aria-hidden="true">–</span>
+            <DateInput slot="end">
+              {(segment) => (
+                <DateSegment
+                  segment={segment}
+                  data-placeholder={
+                    !segment.isPlaceholder ? undefined : placeholder
+                  }
+                />
+              )}
+            </DateInput>
+            {showCalendarIcon && calendarIconPosition === "right" && (
+              <Button>
+                <Icon
+                  iconName={iconName}
+                  style={{ fontSize: triggerIconSize }}
+                />
+              </Button>
+            )}
+            {allowClear && props.value && (
+              <Button
+                onPress={() => props.onChange?.(null)}
+                aria-label="Clear date range"
+              >
+                ✕
+              </Button>
+            )}
+          </>
         )}
       </Group>
       {renderFieldDescription(description)}

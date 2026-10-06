@@ -5,6 +5,7 @@
  * Sizes: sm, md, lg
  */
 
+import type { ReactNode } from "react";
 import { DateInput, DateSegment } from "react-aria-components/DateField";
 import { FieldError } from "react-aria-components/FieldError";
 import { Text } from "react-aria-components/Text";
@@ -60,6 +61,11 @@ export interface TimeFieldProps<T extends TimeValue> extends Omit<
    */
   labelAlign?: "start" | "center" | "end";
   isQuiet?: boolean;
+  /**
+   * The control, drawn by its part node (ADR-253 — an instance of the DateInput origin). Absent:
+   * the component composes the DateInput itself.
+   */
+  inputElement?: ReactNode;
   hideTimeZone?: boolean;
   shouldForceLeadingZeros?: boolean;
   /** @example "09:00" */
@@ -83,6 +89,7 @@ export function TimeField<T extends TimeValue>({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  inputElement,
   hideTimeZone,
   shouldForceLeadingZeros,
   placeholderValue,
@@ -131,14 +138,18 @@ export function TimeField<T extends TimeValue>({
       validationBehavior={validationBehavior}
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
-      <DateInput className="react-aria-DateInput inset">
-        {(segment) => (
-          <DateSegment
-            segment={segment}
-            data-placeholder={!segment.isPlaceholder ? undefined : placeholder}
-          />
-        )}
-      </DateInput>
+      {inputElement ?? (
+        <DateInput>
+          {(segment) => (
+            <DateSegment
+              segment={segment}
+              data-placeholder={
+                !segment.isPlaceholder ? undefined : placeholder
+              }
+            />
+          )}
+        </DateInput>
+      )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}
     </AriaTimeField>

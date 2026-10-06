@@ -262,6 +262,10 @@ export function catalogHiddenAtRest(
     return !catalogBreadcrumbSeparator(parent, get, typeOf);
   const field = catalogSearchFieldOfClear(node, get, typeOf);
   if (field) return !field.props.value;
+  if (
+    catalogPickerOfButton(node, get, typeOf)?.props.showCalendarIcon === false
+  )
+    return true;
   if (type === "TreeItem" && parentType === "TreeItem")
     return !catalogTreeItemExpanded(parent, get, typeOf);
   if (parentType === "Disclosure" && !DISCLOSURE_TRIGGER_TYPES.has(type))
@@ -275,6 +279,24 @@ export function catalogHiddenAtRest(
     );
   }
   return false;
+}
+
+/**
+ * A picker's calendar button (the FieldButton instance in its Group — ADR-253): the shared pickers
+ * draw it unless `showCalendarIcon` is false. Returns the owning picker for that node.
+ */
+export function catalogPickerOfButton(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Button") return;
+  const trigger = get(node.parentId);
+  if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
+  const field = get(trigger.parentId);
+  return field && ["DatePicker", "DateRangePicker"].includes(typeOf(field))
+    ? field
+    : undefined;
 }
 
 /** The SearchField that owns `node` as the Input in its control wrapper. */
@@ -401,6 +423,10 @@ export function catalogPresenceDependents(
             .flatMap((trigger) => childrenOf(trigger, get))
             .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf))
         : []),
+      // (A picker's calendar button follows its `showCalendarIcon`.)
+      ...childrenOf(scope, get)
+        .flatMap((trigger) => childrenOf(trigger, get))
+        .filter((button) => catalogPickerOfButton(button, get, typeOf)),
     ];
   const items: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {

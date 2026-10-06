@@ -22,9 +22,12 @@ const AUTH =
 const state = JSON.parse(readFileSync(AUTH, "utf8"));
 state.origins = (state.origins ?? []).map((o) => ({ ...o, origin: BASE }));
 const browser = await chromium.launch({ headless: false, channel: "chrome" });
+// LOCALE=en-US: one browser locale for the Builder and the Preview (a date field without a
+// `locale` formats its segments in each document's own).
 const context = await browser.newContext({
   storageState: state,
   viewport: { width: 1600, height: 1000 },
+  ...(process.env.LOCALE ? { locale: process.env.LOCALE } : {}),
 });
 const errors = [];
 const results = [];
@@ -184,10 +187,12 @@ const snap = () =>
             const childType =
               child && g.getDefinition(child.definitionId)?.name;
             // (A field's control: its wrapper, or a Select's trigger Button.)
+            // (… or a date field's DateInput.)
             return (
               depth > 0 ||
               childType === "SelectTrigger" ||
-              childType === "Button"
+              childType === "Button" ||
+              childType === "DateInput"
             );
           };
           if (node.hidden !== true)
@@ -235,7 +240,7 @@ const snapPreview = () =>
         const fieldBox = fieldEl.getBoundingClientRect();
         out[type] = [
           ...fieldEl.querySelectorAll(
-            ".react-aria-Group, .combobox-container, .searchfield-container, input:not([hidden]), button, button svg, .react-aria-SelectValue, .select-chevron",
+            ".react-aria-Group, .combobox-container, .searchfield-container, input:not([hidden]), button, button svg, .react-aria-SelectValue, .select-chevron, .react-aria-DateInput, .react-aria-Group > span",
           ),
         ].map((el) => {
           const cs = view.getComputedStyle(el);
@@ -295,7 +300,10 @@ const mismatches = (shot) =>
         part.c.borderColorCss !== part.p.border.split(" ").slice(2).join(" ")
       )
         bad.push(`${tag} border color ${part.c.borderColor}/${part.p.border}`);
-      if (["Input", "Button"].includes(part.type) && part.p.size !== part.size)
+      if (
+        ["Input", "Button", "DateInput"].includes(part.type) &&
+        part.p.size !== part.size
+      )
         bad.push(`${tag} data-size ${part.p.size}/${part.size}`);
     }
     return bad.length ? [`${type}: ${bad.join(" · ")}`] : [];
@@ -530,9 +538,10 @@ await step("rest-md", async () => {
 });
 for (const size of ["xl", "xs", "sm", "lg"])
   await step(`size-${size}`, async () => {
-    // (SearchField's rule has no xs size.)
+    // (These rules have no xs size.)
+    const NO_XS = ["SearchField", "DateField", "TimeField"];
     const failed = await writeFields(
-      TYPES.filter((type) => !(size === "xs" && type === "SearchField")),
+      TYPES.filter((type) => !(size === "xs" && NO_XS.includes(type))),
       { size },
     );
     await page.waitForTimeout(1200);
@@ -616,7 +625,7 @@ if (TYPES.includes("NumberField"))
       ].find(
         (button) =>
           !button.closest(
-            ".react-aria-ComboBox, .react-aria-SearchField, .react-aria-Select",
+            ".react-aria-ComboBox, .react-aria-SearchField, .react-aria-Select, .react-aria-DatePicker, .react-aria-DateRangePicker",
           ),
       );
       if (!el) return {};
@@ -913,6 +922,168 @@ if (TYPES.includes("Select"))
       renamed: renamed.value.text,
     });
   });
+/** A placed date field in the Preview, after an action inside that document. */
+const dateField = (type, action) =>
+  page.evaluate(
+    async ([type, action]) => {
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const view = doc.defaultView;
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const placed = [...ws.root.canvasInputs.values()].find(
+        (r) =>
+          g.getDefinition(r.definitionId)?.name === type &&
+          r.sourceId.startsWith("project:"),
+      );
+      const field = doc.querySelector(
+        `[data-catalog-id="${CSS.escape(placed.id)}"]`,
+      );
+      const inputs = [...field.querySelectorAll(".react-aria-DateInput")];
+      const group = field.querySelector(".react-aria-Group");
+      const button = field.querySelector("button");
+      const segment = field.querySelector(
+        '.react-aria-DateSegment[role="spinbutton"]',
+      );
+      const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+      const pointer = (el, names) => {
+        for (const name of names)
+          el.dispatchEvent(
+            new view.PointerEvent(name, {
+              bubbles: !/enter|leave/.test(name),
+              pointerType: "mouse",
+            }),
+          );
+      };
+      const over = ["pointerover", "pointerenter", "mouseover"];
+      const out = ["pointerout", "pointerleave", "mouseout"];
+      if (action === "focus") segment.focus();
+      if (action === "blur") segment.blur();
+      // (The box that takes the pointer: the DateInput — a range picker's Group.)
+      const boxOwner = inputs.length > 1 ? group : inputs[0];
+      if (action === "hover") pointer(boxOwner, over);
+      if (action === "unhover") pointer(boxOwner, out);
+      if (action === "open") button?.click();
+      if (action === "hoverButton") pointer(button, over);
+      if (action === "unhoverButton") pointer(button, out);
+      await wait(450);
+      const box = (el) => {
+        const cs = view.getComputedStyle(el);
+        return {
+          focusWithin: el.hasAttribute("data-focus-within"),
+          hovered: el.hasAttribute("data-hovered"),
+          outline: `${cs.outlineStyle} ${cs.outlineWidth}`,
+          border: cs.borderTopColor,
+          background: cs.backgroundColor,
+          size: el.getAttribute("data-size"),
+          slot: el.getAttribute("slot"),
+        };
+      };
+      const empty = field.querySelector(
+        ".react-aria-DateSegment[data-placeholder]",
+      );
+      const ecs = empty && view.getComputedStyle(empty);
+      const bcs = button && view.getComputedStyle(button);
+      return {
+        inputs: inputs.map(box),
+        group: group && box(group),
+        button: button && {
+          expanded: button.getAttribute("aria-expanded"),
+          disabled: button.hasAttribute("disabled"),
+          hovered: button.hasAttribute("data-hovered"),
+          background: bcs.backgroundColor,
+          opacity: bcs.opacity,
+        },
+        popup: !!doc.querySelector(
+          '[role="dialog"], .react-aria-Calendar, .react-aria-RangeCalendar',
+        ),
+        segments: field.querySelectorAll(".react-aria-DateSegment").length,
+        // The first DateInput's segment spans, and the runs the Canvas measured for its node.
+        segmentBoxes: [
+          ...inputs[0].querySelectorAll(".react-aria-DateSegment"),
+        ].map((el) => {
+          const cs = view.getComputedStyle(el);
+          return [
+            el.textContent,
+            Math.round(el.getBoundingClientRect().width * 10) / 10,
+            cs.fontSize,
+            cs.fontWeight,
+            cs.paddingLeft,
+            cs.fontFamily.slice(0, 24),
+          ];
+        }),
+        canvasRuns: (() => {
+          const id = inputs[0].getAttribute("data-catalog-id");
+          return id
+            ? ws.root
+                .dateSegmentPaint(id)
+                ?.runs.map((run) => [run.text, Math.round(run.x * 10) / 10])
+            : null;
+        })(),
+        empty: ecs && `${ecs.color} ${ecs.fontStyle} ${ecs.opacity}`,
+        rootOpacity: view.getComputedStyle(field).opacity,
+      };
+    },
+    [type, action],
+  );
+for (const type of [
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+].filter((name) => TYPES.includes(name)))
+  await step(`date-${type}`, async () => {
+    const picker = type === "DatePicker" || type === "DateRangePicker";
+    const range = type === "DateRangePicker";
+    const rest = await dateField(type);
+    const hover = await dateField(type, "hover");
+    await dateField(type, "unhover");
+    const focus = await dateField(type, "focus");
+    await dateField(type, "blur");
+    let open;
+    let closed;
+    let hoverButton;
+    if (picker) {
+      hoverButton = await dateField(type, "hoverButton");
+      await dateField(type, "unhoverButton");
+      open = await dateField(type, "open");
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(500);
+      closed = await dateField(type);
+    }
+    await writeFields([type], { isDisabled: true });
+    await page.waitForTimeout(800);
+    const disabled = await dateField(type);
+    await writeFields([type], { isDisabled: false });
+    await page.waitForTimeout(800);
+    // The box that shows the field's hover and focus: the DateInput — a range picker's Group.
+    const owner = (shot) => (range ? shot.group : shot.inputs[0]);
+    const pass =
+      rest.segments > 2 &&
+      owner(hover).hovered &&
+      owner(hover).border !== owner(rest).border &&
+      owner(focus).focusWithin &&
+      /solid 2px/.test(owner(focus).outline) &&
+      // (A range picker's pair shows no ring of its own.)
+      (!range || focus.inputs.every((input) => /^none/.test(input.outline))) &&
+      (!picker ||
+        (open.button.expanded === "true" &&
+          open.popup &&
+          closed.button.expanded === "false" &&
+          hoverButton.button.hovered &&
+          hoverButton.button.background !== rest.button.background &&
+          disabled.button.disabled &&
+          disabled.button.opacity === "1")) &&
+      disabled.rootOpacity === "0.38";
+    record(`date-${type}`, BEFORE || pass, {
+      rest,
+      hover: owner(hover),
+      focus: [owner(focus), focus.inputs.map((input) => input.outline)],
+      open: open && [open.button.expanded, open.popup],
+      closed: closed && closed.button.expanded,
+      hoverButton: hoverButton && hoverButton.button,
+      disabled: [disabled.button, disabled.rootOpacity],
+    });
+  });
 /** The placed SearchField in the Preview, after an action inside that document. */
 const search = (action) =>
   page.evaluate(
@@ -1076,11 +1247,22 @@ if (!BEFORE) {
     ComboBox: "lib:definition:origin-component-fieldbutton",
     SearchField: BUTTON,
     Select: BUTTON,
+    DatePicker: "lib:definition:origin-component-fieldbutton",
+    DateRangePicker: "lib:definition:origin-component-fieldbutton",
   };
+  const DATE_INPUT = "lib:definition:origin-component-dateinput";
+  const DATE_TYPES = [
+    "DateField",
+    "TimeField",
+    "DatePicker",
+    "DateRangePicker",
+  ];
   // A SearchField's clear button writes its own fill on its template position: the Button
   // origin's fill stays under it (its border color, which the position does not write, follows).
   const OWN_FILL = new Set(["SearchField"]);
-  const NO_INPUT = new Set(["Select"]);
+  const NO_INPUT = new Set(["Select", ...DATE_TYPES]);
+  // (A DateField · TimeField has no button.)
+  const NO_BUTTON = new Set(["DateField", "TimeField"]);
   const partsOf = (shot, type, partType) =>
     (shot.fields[type]?.parts ?? []).filter((part) => part.type === partType);
   await step("edit-origins", async () => {
@@ -1112,7 +1294,9 @@ if (!BEFORE) {
       );
     const asked = [];
     const failures = [];
-    const origins = [...new Set(TYPES.map((type) => BUTTON_ORIGIN[type]))];
+    const origins = [
+      ...new Set(TYPES.map((type) => BUTTON_ORIGIN[type]).filter(Boolean)),
+    ];
     for (const origin of origins) {
       failures.push(await write(origin, { fill: "#ffcc00" }));
       asked.push(await continueImpact());
@@ -1121,6 +1305,10 @@ if (!BEFORE) {
     }
     failures.push(await write(INPUT, { borderColor: "#0000ff" }));
     asked.push(await continueImpact());
+    if (TYPES.some((type) => DATE_TYPES.includes(type))) {
+      failures.push(await write(DATE_INPUT, { borderColor: "#00aa00" }));
+      asked.push(await continueImpact());
+    }
     await page.evaluate(() =>
       window.__COMPOSITION_CATALOG__.workspace.showDefinition(undefined),
     );
@@ -1131,12 +1319,25 @@ if (!BEFORE) {
     const followed = TYPES.map((type) => {
       const buttons = partsOf(after, type, "Button");
       const input = partsOf(after, type, "Input")[0];
+      const dateInputs = partsOf(after, type, "DateInput");
       return {
         type,
         buttons: buttons.map((part) => [part.c.fill, part.p.background]),
         input: input && [input.c.borderColor, input.p.border],
+        dateInputs: dateInputs.map((part) => [
+          part.c.borderColor,
+          part.p.border,
+        ]),
         ok:
-          buttons.length > 0 &&
+          (NO_BUTTON.has(type) || buttons.length > 0) &&
+          // (A date field's box follows the DateInput origin.)
+          (!DATE_TYPES.includes(type) ||
+            (dateInputs.length > 0 &&
+              dateInputs.every(
+                (part) =>
+                  part.c.borderColor === "#00aa00" &&
+                  part.p.border.endsWith("rgb(0, 170, 0)"),
+              ))) &&
           buttons.every(
             (part) =>
               part.c.borderColor === "#ff0000" &&
@@ -1167,6 +1368,7 @@ if (!BEFORE) {
             part.c.borderColor,
           ]),
           partsOf(shot, type, "Input").map((part) => part.c.borderColor),
+          partsOf(shot, type, "DateInput").map((part) => part.c.borderColor),
         ]),
       );
     for (let i = 0; i < 10; i += 1) {

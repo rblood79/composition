@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { safeParseDateString } from "../../../../../../packages/shared/src/utils/core/dateUtils";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { renderCatalogDom } from "../domBinding";
@@ -182,7 +183,34 @@ const BUTTON_NODE_MARKS = [
  * shared component drew its own svg, so the glyph markup is left out of the structure on both
  * sides and asserted on its own.
  */
-const WRAPPED_TYPES = ["numberfield", "combobox", "searchfield", "select"];
+const WRAPPED_TYPES = [
+  "numberfield",
+  "combobox",
+  "searchfield",
+  "select",
+  "datepicker",
+  "daterangepicker",
+];
+/**
+ * What a date field's part nodes write differently from the component's own composition
+ * (ADR-253), applied to the fixture: the DateInput's box is the DateInput rule's sheet (no
+ * `inset` utility class); a range picker's separator is a Text node.
+ */
+const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
+  {
+    datefield: [
+      ["class=react-aria-DateInput inset", "class=react-aria-DateInput"],
+    ],
+    timefield: [
+      ["class=react-aria-DateInput inset", "class=react-aria-DateInput"],
+    ],
+    daterangepicker: [
+      [
+        "<span aria-hidden=true>\u2013</>",
+        "<span class=react-aria-Text>\u2013</>",
+      ],
+    ],
+  };
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
@@ -195,9 +223,13 @@ const withoutGlyphs = (structure: string) =>
 /** A document's structure: elements, their attributes (sorted) and text, in order. */
 function normalize(html: string): string {
   const walk = (element: Element): string => {
-    const control = ["input", "textarea"].includes(
-      element.tagName.toLowerCase(),
-    );
+    // (A DateInput node's element carries its size like an Input's; so does a range picker's
+    // separator Text node.)
+    const control =
+      ["input", "textarea"].includes(element.tagName.toLowerCase()) ||
+      element.classList.contains("react-aria-DateInput") ||
+      (element.classList.contains("react-aria-Text") &&
+        element.parentElement?.classList.contains("react-aria-Group") === true);
     // A Button node's element carries the Button rule's marks (`button-base` · `data-*`): what
     // its sheet reads, as an Input's `data-size`.
     const button = element.tagName.toLowerCase() === "button";
@@ -290,8 +322,9 @@ async function render(
   )!;
   const html = renderToStaticMarkup(
     renderCatalogDom(workspace.root, field.id, {
-      // A fixed day: the date fields' segments are the same in every run.
-      today: () => undefined,
+      // A fixed day (the day the fixture was written): a DateField shows today by default, so
+      // its segments would differ from the fixture on any other day.
+      today: () => safeParseDateString("2026-10-06"),
     }),
   );
   return { html, workspace, field };
@@ -347,11 +380,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           const glyphless = WRAPPED_TYPES.includes(type)
             ? withoutGlyphs
             : (text: string) => text;
+          const expected = (DATE_PART_MARKUP[type] ?? []).reduce(
+            (text, [before, after]) => text.replaceAll(before, after),
+            fixture[`${type}/${name}`],
+          );
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,
             ),
-          ).toBe(glyphless(fixture[`${type}/${name}`]));
+          ).toBe(glyphless(expected));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -1275,6 +1312,271 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style")).toBe(
         "Select",
       );
+    },
+  );
+
+  /**
+   * The date fields' control (ADR-253): the box is an instance of the DateInput origin — its
+   * shape, size steps, states and RAC segments are the DateInput rule's. A DateField · TimeField
+   * holds it directly; a DatePicker's Group (placement only) holds it with a FieldButton instance
+   * laid over its end; a DateRangePicker's Group is the box, holding RAC's start/end pair (two
+   * instances whose template positions carry no box) around a separator and a FieldButton.
+   */
+  it.skipIf(write)(
+    "date fields — the box is a DateInput instance; a picker's button a FieldButton instance",
+    async () => {
+      const open = async (type: string) => {
+        const { workspace, field } = (await render(type, {}))!;
+        const records = workspace.root.canvasInputs;
+        const typeOf = (id: string) =>
+          workspace.runtime.graph.getDefinition(
+            records.get(id)!.definitionId as LibraryDefinitionId,
+          )!.name;
+        const children = (id: string) =>
+          records.get(id)!.children.map((child) => records.get(child)!);
+        const wrapper = () =>
+          children(field.id).find(
+            (child) => typeOf(child.id) === "SelectTrigger",
+          )!;
+        const host = () => {
+          const element = document.createElement("div");
+          element.innerHTML = renderToStaticMarkup(
+            renderCatalogDom(workspace.root, field.id, {
+              today: () => undefined,
+            }),
+          );
+          return element;
+        };
+        const rect = (id: string) =>
+          workspace.root.getGeometry([id]).get(id) as {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+          };
+        const hidden = (id: string) =>
+          (workspace.root.layoutInputs.get(id) as { hidden?: boolean })
+            .hidden === true;
+        return {
+          workspace,
+          field,
+          records,
+          typeOf,
+          children,
+          wrapper,
+          host,
+          rect,
+          hidden,
+        };
+      };
+      const setField = (
+        workspace: CatalogWorkspace,
+        props: Record<string, string | boolean>,
+      ) =>
+        workspace.execute(
+          setFields({
+            targets: [{ kind: "node", id: FIELD }],
+            props: Object.fromEntries(
+              Object.entries(props).map(([key, value]) => [key, set(value)]),
+            ),
+          }),
+        );
+
+      // DateField · TimeField: the DateInput node is the control.
+      for (const type of ["datefield", "timefield"]) {
+        const scene = await open(type);
+        const input = () =>
+          scene
+            .children(scene.field.id)
+            .find((child) => scene.typeOf(child.id) === "DateInput")!;
+        expect(input().collapsedSourceIds).toEqual([
+          "lib:template:component-dateinput",
+        ]);
+        expect(scene.rect(input().id)).toMatchObject({
+          x: 0,
+          width: scene.rect(scene.field.id).width,
+        });
+        expect(input().visual).toMatchObject({
+          paddingX: 12,
+          paddingY: 4,
+          borderWidth: 1,
+          radius: 6,
+          minWidth: 150,
+        });
+        // DOM: the RAC DateInput is the node's element, sized by its `data-size`; its box is the
+        // DateInput rule's sheet (nothing inline, no `inset` utility class).
+        const element = scene
+          .host()
+          .querySelector(".react-aria-DateInput:not(template *)")!;
+        expect(element.getAttribute("data-catalog-id")).toBe(input().id);
+        expect(element.getAttribute("data-size")).toBe("md");
+        expect(element.getAttribute("role")).toBe("group");
+        expect(element.className).toBe("react-aria-DateInput");
+        expect(element.getAttribute("style")).not.toMatch(
+          /background|border|padding/,
+        );
+        expect(
+          element.querySelectorAll(".react-aria-DateSegment").length,
+        ).toBeGreaterThan(2);
+        // The field's size reaches it.
+        setField(scene.workspace, { size: "xl" });
+        expect(input().props.size).toBe("xl");
+        expect(input().visual).toMatchObject({ paddingX: 24, minWidth: 220 });
+        // The DateInput origin is where its shape comes from.
+        scene.workspace.execute(
+          setLibraryDefault({
+            definitionId:
+              "lib:definition:origin-component-dateinput" as LibraryDefinitionId,
+            scope: "visual",
+            key: "borderColor",
+            write: set("#0000ff"),
+            newId: scene.workspace.newId,
+          }),
+        );
+        expect(input().visual.borderColor).toBe("#0000ff");
+        expect(
+          scene
+            .host()
+            .querySelector(".react-aria-DateInput:not(template *)")!
+            .getAttribute("style"),
+        ).toMatch(/border-color:\s*#0000ff/);
+        // Edit axes: the box is its own (an instance).
+        expect(
+          catalogSubpartOwnerType(
+            scene.workspace.runtime.graph,
+            scene.workspace.root.domInputs,
+            input().id,
+            "style",
+          ),
+        ).toBeNull();
+      }
+
+      // DatePicker: the Group places; the DateInput instance is the box, the FieldButton
+      // instance a square 4px inside its end.
+      const picker = await open("datepicker");
+      expect(picker.wrapper().visual).toMatchObject({
+        fill: "transparent",
+        borderWidth: 0,
+        paddingX: 0,
+      });
+      const pickerParts = () => picker.children(picker.wrapper().id);
+      expect(pickerParts().map((part) => picker.typeOf(part.id))).toEqual([
+        "DateInput",
+        "Button",
+      ]);
+      expect(pickerParts().map((part) => part.collapsedSourceIds)).toEqual([
+        ["lib:template:component-dateinput"],
+        ["lib:template:component-fieldbutton", "lib:template:component-button"],
+      ]);
+      const group = picker.rect(picker.wrapper().id);
+      expect(picker.rect(pickerParts()[0]!.id)).toMatchObject({
+        x: 0,
+        width: group.width,
+      });
+      expect(pickerParts()[0]!.visual).toMatchObject({
+        paddingX: 12,
+        paddingRight: 34,
+        borderWidth: 1,
+      });
+      expect(picker.rect(pickerParts()[1]!.id)).toMatchObject({
+        x: group.width - 26,
+        width: 22,
+        height: 22,
+      });
+      const pickerGlyph = () =>
+        picker.records.get(pickerParts()[1]!.children[0]!)!;
+      expect(pickerGlyph().props.iconName).toBe("calendar");
+      setField(picker.workspace, { iconName: "clock" });
+      expect(pickerGlyph().props.iconName).toBe("clock");
+      const pickerGroup = () =>
+        picker.host().querySelector(".react-aria-Group:not(template *)")!;
+      expect(
+        [...pickerGroup().children]
+          .map((child) => child.getAttribute("data-catalog-id"))
+          .filter(Boolean),
+      ).toEqual(pickerParts().map((part) => part.id));
+      expect(
+        pickerGroup().querySelector("button")!.getAttribute("aria-haspopup"),
+      ).toBe("dialog");
+      // `showCalendarIcon: false`: no button on either side.
+      setField(picker.workspace, { showCalendarIcon: false });
+      expect(picker.hidden(pickerParts()[1]!.id)).toBe(true);
+      expect(pickerGroup().querySelector("button")).toBeNull();
+      setField(picker.workspace, { showCalendarIcon: true });
+      expect(picker.hidden(pickerParts()[1]!.id)).toBe(false);
+      expect(pickerGroup().querySelector("button")).not.toBeNull();
+
+      // DateRangePicker: the Group is the box; the pair carries none.
+      const range = await open("daterangepicker");
+      expect(range.wrapper().visual).toMatchObject({
+        borderWidth: 1,
+        paddingLeft: 12,
+        paddingRight: 3,
+        paddingTop: 3,
+      });
+      expect(range.wrapper().visual.fill).not.toBe("transparent");
+      const rangeParts = () => range.children(range.wrapper().id);
+      expect(rangeParts().map((part) => range.typeOf(part.id))).toEqual([
+        "DateInput",
+        "Text",
+        "DateInput",
+        "Button",
+      ]);
+      const [start, separator, end, button] = rangeParts();
+      expect([start.props.slot, end.props.slot]).toEqual(["start", "end"]);
+      for (const part of [start, end])
+        expect(part.visual).toMatchObject({
+          fill: "transparent",
+          borderWidth: 0,
+          paddingX: 0,
+          paddingY: 0,
+          width: "auto",
+        });
+      expect(separator.props.children).toBe("–");
+      expect(separator.visual).toMatchObject({
+        color: "var(--fg-muted)",
+        paddingX: 4,
+        fontSize: 14,
+      });
+      // The end input takes the free space up to the button, 3px inside the Group's end.
+      expect(end.layout).toMatchObject({ flexGrow: "1" });
+      expect(start.layout.flexGrow).toBeUndefined();
+      const rangeBox = range.rect(range.wrapper().id);
+      expect(rangeBox.height).toBe(30);
+      expect(range.rect(button.id)).toMatchObject({
+        x: rangeBox.width - 1 - 3 - 22,
+        y: 4,
+        width: 22,
+        height: 22,
+      });
+      const rangeGroup = range
+        .host()
+        .querySelector(".react-aria-Group:not(template *)")!;
+      expect(
+        [...rangeGroup.children]
+          .map((child) => child.getAttribute("data-catalog-id"))
+          .filter(Boolean),
+      ).toEqual(rangeParts().map((part) => part.id));
+      expect(
+        [...rangeGroup.querySelectorAll(".react-aria-DateInput")].map(
+          (element) => element.getAttribute("slot"),
+        ),
+      ).toEqual(["start", "end"]);
+      expect(rangeGroup.querySelector(".react-aria-Text")!.textContent).toBe(
+        "–",
+      );
+      // The field's size reaches the Group and through it the parts.
+      setField(range.workspace, { size: "xl" });
+      expect(rangeParts().map((part) => part.props.size)).toEqual([
+        "xl",
+        "xl",
+        "xl",
+        "xl",
+      ]);
+      expect(range.rect(rangeParts()[3]!.id)).toMatchObject({
+        width: 46,
+        height: 46,
+      });
     },
   );
 

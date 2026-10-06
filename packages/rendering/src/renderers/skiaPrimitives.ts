@@ -2048,15 +2048,13 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   // 세그먼트 placeholder text — buildDateInputDisplayText 단일 소스 (datePickerShapes).
   //   layout 의 콘텐츠 폭 측정(calculateContentWidth dateinput 분기)이 동일 함수를 써서
   //   box 폭(layout)과 그려지는 텍스트(여기)가 어긋나지 않게 통일.
+  //   (ADR-253: a range picker's start · end are DateInput nodes of their own — one date each.)
   const displayText = buildDateInputDisplayText({
-    parentTag,
+    parentTag: parentTag === "DateRangePicker" ? "DatePicker" : parentTag,
     granularity,
     hourCycle,
     locale,
   });
-
-  const isPickerInput =
-    parentTag === "DatePicker" || parentTag === "DateRangePicker";
 
   // RAC 세그먼트 run (Canvas executor 가 레이아웃과 같은 측정으로 준 `_segmentRuns`): 세그먼트마다
   //   자기 위치에 그린다 — 편집 세그먼트는 owner `[data-placeholder]` 색, literal 은 field 색.
@@ -2068,34 +2066,29 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     (p._segmentPlaceholderFill as ColorValue | undefined) ?? textColor;
   const placeholderItalic = p._segmentPlaceholderItalic === true;
   const segmentTexts = (x: number): Shape[] =>
-    (runs?.length
-      ? runs
-      : [{ text: displayText, x, editable: false }]
-    ).map((run) => ({
-      type: "text" as const,
-      x: run.x,
-      y: 0,
-      text: run.text,
-      fontSize,
-      fontFamily: ff,
-      fontWeight: 400,
-      fill: run.editable ? placeholderFill : textColor,
-      ...(run.editable && placeholderItalic
-        ? { fontStyle: "italic" as const }
-        : {}),
-      align: "left" as const,
-      baseline: "middle" as const,
-      verticalAlign: textVerticalAlign,
-      whiteSpace: "nowrap" as const,
-    }));
+    (runs?.length ? runs : [{ text: displayText, x, editable: false }]).map(
+      (run) => ({
+        type: "text" as const,
+        x: run.x,
+        y: 0,
+        text: run.text,
+        fontSize,
+        fontFamily: ff,
+        fontWeight: 400,
+        fill: run.editable ? placeholderFill : textColor,
+        ...(run.editable && placeholderItalic
+          ? { fontStyle: "italic" as const }
+          : {}),
+        align: "left" as const,
+        baseline: "middle" as const,
+        verticalAlign: textVerticalAlign,
+        whiteSpace: "nowrap" as const,
+      }),
+    );
 
-  // 그룹 A↔B 통일 (factory canonical 자식): picker(DatePicker/DateRangePicker) 의 DateInput 은
-  //   이제 SelectTrigger 래퍼 안의 flex 자식으로, box/border 는 SelectTrigger 가, calendar icon 은
-  //   별도 SelectIcon 이 그린다. 따라서 picker DateInput 은 **segment text 만** 렌더한다(box/border/
-  //   icon 그리면 SelectTrigger box + SelectIcon 과 이중 렌더). x=0 + baseline:middle → 노드
-  //   containerHeight 중앙. DateField/TimeField(picker 아님)는 자신이 box 라 box+border+text 유지.
-  if (isPickerInput) return segmentTexts(0);
-
+  // ADR-253: DateInput 은 어느 부모 안에서든 자기 노드 값으로 상자를 그린다 (DateInput 원본의 instance).
+  //   DatePicker 의 DateInput 은 상자이고, DateRangePicker 의 start · end 는 template 이 상자를 지운 자리다
+  //   (투명 배경 · 테두리 0 — Group 이 상자를 그린다).
   // 단독 field 의 상자 = 노드 자신의 상자: 레이아웃 높이와 catalog 모서리 · 테두리 두께 (DOM DateInput 의
   //   padding + line-height · `var(--border-radius)`). 측정기 없는 소비자만 크기 표 폴백.
   const boxHeight =
@@ -2120,13 +2113,17 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
       radius: boxRadius,
       fill: bgColor,
     },
-    {
-      type: "border" as const,
-      target: "input-bg",
-      borderWidth: boxBorderWidth,
-      color: borderColor,
-      radius: boxRadius,
-    },
+    ...(boxBorderWidth > 0
+      ? [
+          {
+            type: "border" as const,
+            target: "input-bg",
+            borderWidth: boxBorderWidth,
+            color: borderColor,
+            radius: boxRadius,
+          },
+        ]
+      : []),
     ...segmentTexts(paddingX),
   ];
 };

@@ -124,6 +124,7 @@
 /* Form Controls */
 @import "./generated/Description.css";
 @import "./generated/Input.css"; /* ADR-253: 입력칸의 정본 (base.css 수동 블록 대체). field sheet 들보다 앞 — 같은 특이도의 부모 배치 선언 (ComboBox · NumberField · SearchField 의 `outline: none` 등) 이 뒤에서 이긴다 */
+@import "./generated/DateInput.css"; /* ADR-253: 날짜 입력 상자의 정본 (종전 `.inset` utility + 부모 delegation). field sheet 들보다 앞 */
 @import "./generated/Label.css";
 @import "./Label.css";
 @import "./generated/Checkbox.css";

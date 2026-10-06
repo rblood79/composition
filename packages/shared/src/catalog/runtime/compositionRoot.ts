@@ -69,7 +69,6 @@ import {
   type DateSegmentPart,
 } from "../document/dateSegments";
 import {
-  catalogDateRangeEndGrow,
   catalogDateSegmentPaddingX,
   catalogDateSegmentPlaceholderPaint,
 } from "../document/rulePartRules";
@@ -677,9 +676,6 @@ interface CatalogDateSegments {
   placeholderFontStyle?: string;
   parts: readonly DateSegmentPart[];
   paddingX: number;
-  /** DateRangePicker: start/end rows around the separator span, spaced by the trigger gap. */
-  /** A range's pair row: trigger gap, separator and the end input's catalog grow. */
-  range?: { gap: number; separator: string; grow: number };
   lineHeight?: number;
 }
 
@@ -732,12 +728,6 @@ function segmentRuns(
     }
   };
   row();
-  if (segmentText.range) {
-    x += segmentText.range.gap;
-    runs.push({ text: segmentText.range.separator, x, editable: false });
-    x += widthOf(segmentText.range.separator, false) + segmentText.range.gap;
-    row();
-  }
   return { runs, width: x, height };
 }
 
@@ -816,14 +806,6 @@ function styleOf(
             contentMinWidth: width,
             contentMaxWidth: width,
             contentHeight: height,
-            // The DOM end input grows into the trigger's free space (basis 0, min-content
-            // floor): the pair box grows by the same free space from its content width. An
-            // authored grow (item layout / fill intent) stays the author's.
-            ...(segmentText.range?.grow &&
-            node.layout.flexGrow === undefined &&
-            node.fillLayout?.flexGrow === undefined
-              ? { flexGrow: segmentText.range.grow }
-              : {}),
           };
         })()
       : undefined;
@@ -1965,7 +1947,7 @@ export class CatalogCompositionRoot {
     return {
       runs: runs.map((run) => ({ ...run, x: run.x + left })),
       placeholder: segmentText.ownerType
-        ? catalogDateSegmentPlaceholderPaint(segmentText.ownerType)
+        ? catalogDateSegmentPlaceholderPaint()
         : {},
     };
   }
@@ -2043,22 +2025,13 @@ export class CatalogCompositionRoot {
       ...(ownerType === "TimeField" ? { maxGranularity: "hour" as const } : {}),
     });
     const placeholderFontStyle = ownerType
-      ? catalogDateSegmentPlaceholderPaint(ownerType).fontStyle
+      ? catalogDateSegmentPlaceholderPaint().fontStyle
       : undefined;
     return {
       ...(ownerType ? { ownerType } : {}),
       ...(placeholderFontStyle ? { placeholderFontStyle } : {}),
       parts,
-      paddingX: ownerType ? catalogDateSegmentPaddingX(ownerType) : 0,
-      ...(ownerType === "DateRangePicker"
-        ? {
-            range: {
-              gap: Number(wrapper?.visual.gap ?? 0),
-              separator: "\u2013",
-              grow: catalogDateRangeEndGrow(ownerType),
-            },
-          }
-        : {}),
+      paddingX: ownerType ? catalogDateSegmentPaddingX() : 0,
       ...(lineHeight !== undefined ? { lineHeight } : {}),
     };
   }

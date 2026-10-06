@@ -47,7 +47,9 @@ describe("FileTrigger — rule box on the trigger button", () => {
   });
 
   it("the Canvas layout input carries the same box", async () => {
-    const fixture = await openStylesFixture([{ id: "ft", type: "FileTrigger" }]);
+    const fixture = await openStylesFixture([
+      { id: "ft", type: "FileTrigger" },
+    ]);
     const input = fixture.workspace.root.getLayoutInput(fixture.recordOf("ft"));
     expect(input).toMatchObject({
       display: "inline-flex",
@@ -120,7 +122,10 @@ describe("rule-backed text — the layout's wrap decision", () => {
     const workspace = await open({});
     const record = workspace.root.recordsOfSource("project:node:ft")[0]!;
     expect(workspace.root.textWraps(record)).toBe(false);
-    const canvas = bindCatalogCanvas(workspace.root, workspace.root.pageRootRecords());
+    const canvas = bindCatalogCanvas(
+      workspace.root,
+      workspace.root.pageRootRecords(),
+    );
     expect(textOf(getSkiaNode(record))).toMatchObject({
       content: "Select files",
       whiteSpace: "nowrap",
@@ -133,7 +138,10 @@ describe("rule-backed text — the layout's wrap decision", () => {
     const workspace = await open({ width: { kind: "set", value: 90 } });
     const record = workspace.root.recordsOfSource("project:node:ft")[0]!;
     expect(workspace.root.textWraps(record)).toBe(true);
-    const canvas = bindCatalogCanvas(workspace.root, workspace.root.pageRootRecords());
+    const canvas = bindCatalogCanvas(
+      workspace.root,
+      workspace.root.pageRootRecords(),
+    );
     expect(textOf(getSkiaNode(record))?.whiteSpace).not.toBe("nowrap");
     canvas.dispose();
     workspace.dispose();
@@ -142,11 +150,11 @@ describe("rule-backed text — the layout's wrap decision", () => {
 
 /**
  * ADR-248 4e-10 G3 DateRangePicker xs: the catalog's `[slot="end"] { flex: 1 }` delegation grows
- * the DOM end DateInput into the trigger's free space (basis 0, min-content floor). The Canvas has
- * one typed DateInput for the start/end pair, so the pair box grows the same way.
+ * the DOM end DateInput into the trigger's free space (basis 0, min-content floor). The Canvas end
+ * DateInput (an instance of the DateInput origin with `slot: "end"` — ADR-253) grows the same way.
  */
 describe("DateRangePicker — the end input's catalog grow", () => {
-  it("the pair DateInput grows into the trigger's free space", async () => {
+  it("the end DateInput grows into the trigger's free space", async () => {
     const measure: CatalogTextMeasure = (text, font) => ({
       width: text.length * font.fontSize * 0.5,
       exactWidth: text.length * font.fontSize * 0.5,
@@ -177,7 +185,10 @@ describe("DateRangePicker — the end input's catalog grow", () => {
           {
             kind: "node",
             id: "project:node:range",
-            definitionId: catalogPaletteDefinitionId(library, "DateRangePicker"),
+            definitionId: catalogPaletteDefinitionId(
+              library,
+              "DateRangePicker",
+            ),
             children: [],
             props: { size: { kind: "set", value: "xs" } },
             visual: {},
@@ -191,7 +202,12 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     );
     const root = workspace.root;
     const records = [...root.layoutInputs.values()];
-    const input = records.find((record) => record.bindingId === "dateinput")!;
+    const inputs = records.filter((record) => record.bindingId === "dateinput");
+    expect(inputs.map((record) => record.props.slot)).toEqual(["start", "end"]);
+    expect(root.getLayoutInput(inputs[0]!.id)).not.toMatchObject({
+      flexGrow: 1,
+    });
+    const input = inputs[1]!;
     expect(root.getLayoutInput(input.id)).toMatchObject({ flexGrow: 1 });
     const wrapper = root.layoutInputs.get(input.parentId)!;
     const siblings = wrapper.children;
@@ -199,7 +215,7 @@ describe("DateRangePicker — the end input's catalog grow", () => {
     const box = geometry.get(input.id)!;
     const next = geometry.get(siblings[siblings.indexOf(input.id) + 1]!)!;
     const gap = Number(wrapper.visual.gap ?? 0);
-    // The pair fills up to the trigger button (the DOM's start · – · grown end).
+    // The end input fills up to the trigger button (the DOM's start · – · grown end).
     expect(next.x - (box.x + box.width)).toBeCloseTo(gap, 1);
     const outer = geometry.get(wrapper.id)!;
     expect(next.x + next.width).toBeGreaterThan(outer.x + outer.width - 10);
@@ -288,7 +304,10 @@ describe("DropZone content — catalog declaration in both consumers", () => {
     const label = blockOf(css, '.react-aria-DropZone [slot="label"]');
     expect(label).toContain("font-size: inherit;");
     expect(label).toContain("color: inherit;");
-    const description = blockOf(css, '.react-aria-DropZone [slot="description"]');
+    const description = blockOf(
+      css,
+      '.react-aria-DropZone [slot="description"]',
+    );
     expect(description).toContain("font-size: var(--text-xs);");
     expect(description).toContain("color: inherit;");
   });
@@ -300,9 +319,14 @@ describe("DropZone content — catalog declaration in both consumers", () => {
     const zone = container.querySelector(".react-aria-DropZone")!;
     expect(zone.querySelector(".dropzone-content")).toBeNull();
     const items = [...zone.children].filter(
-      (child) => !child.querySelector("input, button") && child.tagName !== "INPUT",
+      (child) =>
+        !child.querySelector("input, button") && child.tagName !== "INPUT",
     );
-    expect(items.map((child) => child.getAttribute("slot") ?? child.getAttribute("class"))).toEqual([
+    expect(
+      items.map(
+        (child) => child.getAttribute("slot") ?? child.getAttribute("class"),
+      ),
+    ).toEqual([
       expect.stringContaining("dropzone-icon"),
       "label",
       "description",
@@ -331,7 +355,8 @@ describe("DropZone content — catalog declaration in both consumers", () => {
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const data = getSkiaNode(zone.id)!;
     const parts = (data.children ?? []).filter(
-      (child) => child.type === "icon_path" || child.text?.content === "Drop files here",
+      (child) =>
+        child.type === "icon_path" || child.text?.content === "Drop files here",
     );
     expect(parts.map((child) => child.type)).toEqual(["icon_path", "text"]);
     const [icon, label] = parts;

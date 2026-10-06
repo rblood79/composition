@@ -133,6 +133,21 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Select trigger = Button instance [SelectValue, Icon] (ADR-253 — old: an input-like box around the value and a boxed chevron)",
   },
   {
+    // ADR-253 Phase 3 (4e): 날짜 picker 의 상자와 버튼이 부품 원본의 instance 다. DatePicker = Group (배치만)
+    //   [DateInput instance (상자 — Group 을 채운다), FieldButton instance (끝 안쪽 정사각형)].
+    //   DateRangePicker = Group (상자) [start DateInput, 구분자 Text, end DateInput, FieldButton] — start · end
+    //   는 상자가 없는 자리다. old 는 trigger 상자 안에 글자만 그리는 DateInput 하나 (range 는 쌍을 한 노드로)
+    //   와 glyph 노드가 있었다. (위치로 짝을 지어 range 의 구분자는 old 의 glyph 와 짝이 된다.)
+    id: "date-picker-dateinput-and-field-button-parts",
+    class: "decided",
+    owners: ["DatePicker", "DateRangePicker"],
+    nodes: ["DateInput", "Button", "Text"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "DatePicker = Group [DateInput instance, FieldButton instance]; DateRangePicker = Group box [start, separator, end, FieldButton] (ADR-253 — old: one trigger box around segment text and a glyph node)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],
@@ -557,11 +572,28 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     //   old 는 glyph 가 버튼 자리 노드 (SelectIcon) 자체였다.
     id: "field-button-glyph-node",
     class: "decided",
-    owners: ["NumberField", "ComboBox", "SearchField"],
+    owners: [
+      "NumberField",
+      "ComboBox",
+      "SearchField",
+      "DatePicker",
+      "DateRangePicker",
+    ],
     side: "new",
     nodes: ["Icon"],
     reason:
       "a field's button = Button instance [Icon] (ADR-253 — old: the glyph was the button node itself)",
+  },
+  {
+    // ADR-253 Phase 3 (4e): DateRangePicker 의 end DateInput 과 FieldButton — old 는 쌍이 한 노드였고 버튼
+    //   자리는 glyph 노드였다 (위치 짝짓기에서 남는 new 노드).
+    id: "daterangepicker-end-and-button-nodes",
+    class: "decided",
+    owners: ["DateRangePicker"],
+    side: "new",
+    nodes: ["DateInput", "Button"],
+    reason:
+      "DateRangePicker = Group [start, separator, end, FieldButton] (ADR-253 — old: one DateInput for the pair, a glyph node)",
   },
   {
     id: "tree-item-chevron-node",

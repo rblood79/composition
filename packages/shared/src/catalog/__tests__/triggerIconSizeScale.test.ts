@@ -64,32 +64,32 @@ const ICON_SCALE: Record<string, string> = {
 };
 
 describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () => {
-  // 아이콘 크기를 담는 CSS 변수명은 컴포넌트마다 다르다 (2축 vs 단일 size 변수).
+  // ADR-253: field 안 버튼은 FieldButton 원본의 instance 다 (ComboBox · DatePicker · DateRangePicker). glyph
+  //   는 그 안의 Icon 노드이고 크기는 Button rule 의 glyph 단계다 — 부모 rule 에는 버튼 **상자** 크기만
+  //   남는다. 세 부모가 같은 상자 단계를 쓴다 (control 안쪽 정사각형).
+  const FIELD_BUTTON_BOX: Record<string, string> = {
+    xs: "16px",
+    sm: "18px",
+    md: "22px",
+    lg: "34px",
+    xl: "46px",
+  };
   const targets = [
-    {
-      type: "DatePicker",
-      prefix: "dp-btn",
-      vars: ["--dp-btn-width", "--dp-btn-height"],
-    },
-    {
-      type: "DateRangePicker",
-      prefix: "drp-btn",
-      vars: ["--drp-btn-width", "--drp-btn-height"],
-    },
-    // (Select 의 trigger glyph 는 Button 원본 instance 안의 Icon 노드다 — ADR-253. 크기는 Button rule 의
-    //   glyph 단계이고 Select rule 에는 chevron 변수가 없다.)
+    { type: "ComboBox", prefix: "combo-btn", vars: ["--combo-btn-size"] },
+    { type: "DatePicker", prefix: "dp-btn", vars: ["--dp-btn-size"] },
+    { type: "DateRangePicker", prefix: "drp-btn", vars: ["--drp-btn-size"] },
   ] as const;
 
   it.each(targets)(
-    "$type($prefix) 의 아이콘 크기가 아이콘 스케일(14/16/18/22/28)과 일치",
+    "$type($prefix) 의 FieldButton 상자 크기가 세 부모에서 같다 (16/18/22/34/46)",
     ({ type, prefix, vars }) => {
       for (const cssVar of vars) {
-        expect(delegationSizes(type, prefix, cssVar)).toEqual(ICON_SCALE);
+        expect(delegationSizes(type, prefix, cssVar)).toEqual(FIELD_BUTTON_BOX);
       }
     },
   );
 
-  it("typography 토큰(var(--text-*))을 아이콘 박스 크기로 쓰지 않는다", () => {
+  it("typography 토큰(var(--text-*))을 버튼 상자 크기로 쓰지 않는다", () => {
     const violations: string[] = [];
     for (const { type, prefix, vars } of targets) {
       for (const cssVar of vars) {

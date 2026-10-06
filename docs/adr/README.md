@@ -149,7 +149,9 @@
 
 ## 현황
 
-> **2026-10-07 ADR-253 Phase 3 (4d) Select (브랜치 `adr-253`, main 병합 전)**: trigger = Button 원본 (secondary) instance > 값 (RAC SelectValue) + Icon — wrapper 없음. 칠 · 상태는 Button rule, Select rule 은 배치만. Builder 가 직접 조립하는 Select 3곳의 값은 `form-controls.css` 로 (패널 308건 · 주입 14,800건 차이 0). unit 305 · 원복 RED 9종 · live 13/13 · 시각 하니스 69/70 (CardView 무관). 남은 부모: 날짜 4종.
+> **2026-10-07 ADR-253 Phase 3 (4e) 날짜 4종 (브랜치 `adr-253`, main 병합 전)**: DateInput 원본 (자기 sheet — 크기 단계 · 상태 · 조각) 을 DateField · TimeField · DatePicker 가 쓰고, DateRangePicker 는 Group 상자 안에 slot start · end 의 instance 2개 + 구분자. picker 의 버튼은 FieldButton instance. field 계열 전 부모의 부품 자리가 원본 instance 가 됐다. unit 306 · 원복 RED 11종 · live 13/13 (locale en-US 고정) · 시각 하니스 69/70 (CardView 무관). 찾은 것: locale 없는 날짜 field 의 Canvas (Builder locale) ↔ Preview (en-US) 차이 — 전환 전부터. 남은 것: Phase 3 끝 정리.
+>
+> **2026-10-07 ADR-253 Phase 3 (4d) Select (브랜치 `adr-253`, main 병합 전)**: trigger = Button 원본 (secondary) instance > 값 (RAC SelectValue) + Icon — wrapper 없음. 칠 · 상태는 Button rule, Select rule 은 배치만. Builder 가 직접 조립하는 Select 3곳의 값은 `form-controls.css` 로 (패널 308건 · 주입 14,800건 차이 0). unit 305 · 원복 RED 9종 · live 13/13 · 시각 하니스 69/70 (CardView 무관).
 >
 > **2026-10-06 ADR-253 Phase 3 (4c) SearchField (브랜치 `adr-253`, main 병합 전)**: container 안이 검색 glyph (Icon) + Input instance + Button instance (지우기 버튼). 빈 값이면 지우기 버튼이 양쪽에서 없고 Canvas 가 값을 입력칸에 그린다. Canvas 의 Input 글자가 문서가 쓴 좌우 padding 을 따르고, 변수 · token 이름이 다른 CSS 변수 색을 Canvas 가 푼다. unit 304 · 원복 RED 9종 · live 12/12 · 시각 하니스 69/70 (CardView 무관).
 >

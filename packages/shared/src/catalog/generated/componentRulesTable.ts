@@ -3155,121 +3155,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
+          // ADR-253: 입력 상자는 DateInput 원본의 instance 다 — 상자 · 크기 단계 · 상태 · 조각은 DateInput
+          //   rule 의 것이고, field 는 배치만 한다 (폭 · 크기별 최소 폭).
           {
             childSelector: ".react-aria-DateInput",
             prefix: "df-input",
             variables: {
               xs: {
-                "--df-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
-                "--df-input-size": "var(--text-2xs)",
-                "--df-input-line-height": "var(--text-2xs--line-height)",
                 "--df-input-min-width": "100px",
               },
               sm: {
-                "--df-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
-                "--df-input-size": "var(--text-xs)",
-                "--df-input-line-height": "var(--text-xs--line-height)",
                 "--df-input-min-width": "120px",
               },
               md: {
-                "--df-input-padding": "var(--spacing-xs) var(--spacing-md)",
-                "--df-input-size": "var(--text-sm)",
-                "--df-input-line-height": "var(--text-sm--line-height)",
                 "--df-input-min-width": "150px",
               },
               lg: {
-                "--df-input-padding": "var(--spacing-sm) var(--spacing-lg)",
-                "--df-input-size": "var(--text-base)",
-                "--df-input-line-height": "var(--text-base--line-height)",
                 "--df-input-min-width": "180px",
               },
               xl: {
-                "--df-input-padding": "var(--spacing-md) var(--spacing-xl)",
-                "--df-input-size": "var(--text-lg)",
-                "--df-input-line-height": "var(--text-lg--line-height)",
                 "--df-input-min-width": "220px",
               },
             },
             bridges: {
-              display: "inline-flex",
-              padding: "var(--df-input-padding)",
-              background: "var(--bg-inset)",
-              border: "var(--border-width-thin) solid",
-              "border-radius": "var(--border-radius)",
               width: "100%",
               "min-width": "var(--df-input-min-width)",
-              "white-space": "nowrap",
-              "forced-color-adjust": "none",
-              "font-size": "var(--df-input-size)",
-              "line-height": "var(--df-input-line-height)",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-            },
-          },
-          {
-            childSelector: ".react-aria-DateSegment",
-            prefix: "df-segment",
-            variables: {
-              xs: {
-                "--df-segment-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--df-segment-size": "var(--text-xs)",
-              },
-              md: {
-                "--df-segment-size": "var(--text-sm)",
-              },
-              lg: {
-                "--df-segment-size": "var(--text-base)",
-              },
-              xl: {
-                "--df-segment-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              padding: "0 2px",
-              border: "none",
-              background: "transparent",
-              height: "auto",
-              "font-variant-numeric": "tabular-nums",
-              "text-align": "end",
-              color: "var(--fg)",
-              "border-radius": "var(--radius-xs)",
-              "font-size": "var(--df-segment-size)",
-              transition: "all 150ms ease",
-            },
-            states: {
-              '[data-type="literal"]': {
-                padding: "0",
-              },
-              "[data-placeholder]": {
-                color: "var(--fg-muted)",
-                "font-style": "italic",
-                opacity: "0.6",
-              },
-              ":focus": {
-                color: "var(--fg)",
-                background: "var(--accent-subtle)",
-                outline: "none",
-                "border-radius": "var(--radius-xs)",
-                "caret-color": "transparent",
-              },
-              "[data-invalid]": {
-                color: "var(--negative)",
-              },
-              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
-              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
-              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
-              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
-              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
-              "[data-invalid]:focus": {
-                background: "var(--negative)",
-                color: "var(--color-white)",
-              },
-              "[data-disabled]": {
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-              },
             },
           },
           {
@@ -3331,31 +3241,154 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-253: DateInput 은 날짜 field 의 입력 상자 부품이다 (DateField · TimeField · DatePicker 가 그 원본의
+    //   instance 를 쓴다). 크기 단계는 Input rule 과 같다 — 한 form 안의 입력 상자가 같은 높이 · padding ·
+    //   모서리를 갖는다. 높이는 내용 (줄 높이 + padding + border) 이다.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.sm}",
-        height: 20,
+        lineHeight: "{typography.text-2xs--line-height}",
+        borderRadius: "{radius.xs}",
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        paddingX: 4,
+        paddingY: 1,
       },
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 22,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        paddingX: 8,
+        paddingY: 2,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        height: 30,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        paddingX: 12,
+        paddingY: 4,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
-        height: 42,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        paddingX: 16,
+        paddingY: 8,
       },
       xl: {
         fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
-        height: 54,
+        borderWidth: "{border.width.thin}",
+        height: 0,
+        paddingX: 24,
+        paddingY: 12,
+      },
+    },
+    // 자기 stylesheet (ADR-253): 상자 · 크기 단계 · 상태 (hover · focus-within · invalid · disabled) 와 그 안의
+    //   RAC 조각 (`DateSegment`) 을 이 rule 이 그린다. 부모 rule 은 배치만 한다. 상태 표시는 Input 과 같다
+    //   (hover 는 테두리색, focus 는 2px outline + 테두리색).
+    structure: {
+      archetype: "input-base",
+      element: "div",
+      containerStyles: {
+        display: "inline-flex",
+        width: "100%",
+      },
+      states: {
+        hover: {},
+        pressed: {},
+        disabled: {
+          opacity: 1,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        },
+        focusVisible: {
+          focusRing: "{focus.ring.default}",
+        },
+      },
+      composition: {
+        rootSelectors: {
+          "&": {
+            styles: {
+              "white-space": "nowrap",
+              "forced-color-adjust": "none",
+              transition: "border-color 200ms ease, color 200ms ease",
+            },
+          },
+          "&[data-hovered]:not([data-focus-within]):not([data-disabled])": {
+            styles: {
+              "border-color": "var(--border-hover)",
+            },
+          },
+          "&[data-focus-within]": {
+            styles: {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              "border-color": "var(--accent)",
+            },
+          },
+          "&[data-invalid]": {
+            styles: {
+              "border-color": "var(--negative)",
+            },
+          },
+          "&[data-invalid][data-focus-within]": {
+            styles: {
+              "outline-color": "var(--negative)",
+            },
+          },
+        },
+        delegation: [
+          // RAC 조각: 글자 크기 · 줄 높이는 DateInput 의 것을 상속한다.
+          {
+            childSelector: ".react-aria-DateSegment",
+            bridges: {
+              padding: "0 2px",
+              border: "none",
+              background: "transparent",
+              height: "auto",
+              "font-variant-numeric": "tabular-nums",
+              "text-align": "end",
+              color: "var(--fg)",
+              "border-radius": "var(--radius-xs)",
+              transition: "all 150ms ease",
+            },
+            states: {
+              '[data-type="literal"]': {
+                padding: "0",
+              },
+              "[data-placeholder]": {
+                color: "var(--fg-muted)",
+                opacity: "0.6",
+              },
+              ":focus": {
+                color: "var(--fg)",
+                background: "var(--accent-subtle)",
+                outline: "none",
+                "border-radius": "var(--radius-xs)",
+                "caret-color": "transparent",
+              },
+              "[data-invalid]": {
+                color: "var(--negative)",
+              },
+              "[data-invalid]:focus": {
+                background: "var(--negative)",
+                color: "var(--color-white)",
+              },
+              "[data-disabled]": {
+                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
+                cursor: "not-allowed",
+              },
+            },
+          },
+        ],
       },
     },
   },
@@ -3516,7 +3549,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             true: {
               nested: [
                 {
-                  selector: ".react-aria-Group",
+                  selector: ".react-aria-DateInput",
                   styles: {
                     background: "transparent",
                     "border-color": "transparent",
@@ -3527,7 +3560,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 },
                 {
                   selector:
-                    ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
+                    ".react-aria-DateInput[data-hovered]:not([data-focus-within]):not([data-disabled])",
                   styles: {
                     background: "transparent",
                     "border-color": "transparent",
@@ -3536,7 +3569,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: ".react-aria-Group[data-focus-within]",
+                  selector: ".react-aria-DateInput[data-focus-within]",
                   styles: {
                     outline: "none",
                     background: "transparent",
@@ -3546,7 +3579,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector: ".react-aria-Group[data-invalid]",
+                  selector: ".react-aria-DateInput[data-invalid]",
                   styles: {
                     "border-color": "transparent",
                     "border-bottom-color": "var(--negative)",
@@ -3581,222 +3614,73 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
+          // ADR-253: Group 은 배치만 한다. 상자는 DateInput 원본의 instance 가 그리고 (Group 을 채운다 — 끝 쪽
+          //   padding 이 버튼 자리), 버튼은 FieldButton 원본의 instance 가 그 끝에 겹친다 (ComboBox 와 같은 배치).
           {
             childSelector: ".react-aria-Group",
-            prefix: "dp-group",
-            variables: {
-              xs: {
-                "--dp-group-padding":
-                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
-                "--dp-group-font-size": "var(--text-2xs)",
-                "--dp-group-line-height": "var(--text-2xs--line-height)",
-                "--dp-group-gap": "var(--spacing-2xs)",
-              },
-              sm: {
-                "--dp-group-padding":
-                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
-                "--dp-group-font-size": "var(--text-xs)",
-                "--dp-group-line-height": "var(--text-xs--line-height)",
-                "--dp-group-gap": "var(--spacing-xs)",
-              },
-              md: {
-                "--dp-group-padding":
-                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
-                "--dp-group-font-size": "var(--text-sm)",
-                "--dp-group-line-height": "var(--text-sm--line-height)",
-                "--dp-group-gap": "var(--spacing-xs)",
-              },
-              lg: {
-                "--dp-group-padding":
-                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
-                "--dp-group-font-size": "var(--text-base)",
-                "--dp-group-line-height": "var(--text-base--line-height)",
-                "--dp-group-gap": "var(--spacing-xs)",
-              },
-              xl: {
-                "--dp-group-padding":
-                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
-                "--dp-group-font-size": "var(--text-lg)",
-                "--dp-group-line-height": "var(--text-lg--line-height)",
-                "--dp-group-gap": "var(--spacing-sm)",
-              },
-            },
             bridges: {
               display: "flex",
               "align-items": "center",
               width: "100%",
-              gap: "var(--dp-group-gap)",
-              padding: "var(--dp-group-padding)",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
-              background: "var(--bg-inset)",
-              color: "var(--fg)",
-              "white-space": "nowrap",
-              "forced-color-adjust": "none",
-              "font-size": "var(--dp-group-font-size)",
-              "line-height": "var(--dp-group-line-height)",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-              cursor: "text",
-            },
-            states: {
-              "[data-hovered]": {
-                "border-color": "var(--border-hover)",
-                background: "var(--bg-overlay)",
-              },
-              "[data-focus-within]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-                "border-color": "var(--accent)",
-                background: "var(--bg-overlay)",
-              },
-              "[data-invalid]": {
-                "border-color": "var(--negative)",
-              },
-              "[data-disabled]": {
-                opacity: "0.38",
-                cursor: "not-allowed",
-                background: "var(--bg-muted)",
-              },
             },
           },
           {
             childSelector: ".react-aria-DateInput",
             prefix: "dp-input",
-            bridges: {
-              display: "inline-flex",
-              flex: "1",
-              "min-width": "0",
-              padding: "0",
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: "var(--fg)",
-              "font-size": "var(--dp-group-font-size)",
-              "white-space": "nowrap",
-            },
-          },
-          {
-            childSelector: ".react-aria-DateSegment",
-            prefix: "dp-segment",
             variables: {
               xs: {
-                "--dp-segment-size": "var(--text-2xs)",
+                "--dp-input-pad-end": "20px",
               },
               sm: {
-                "--dp-segment-size": "var(--text-xs)",
+                "--dp-input-pad-end": "26px",
               },
               md: {
-                "--dp-segment-size": "var(--text-sm)",
+                "--dp-input-pad-end": "34px",
               },
               lg: {
-                "--dp-segment-size": "var(--text-base)",
+                "--dp-input-pad-end": "50px",
               },
               xl: {
-                "--dp-segment-size": "var(--text-lg)",
+                "--dp-input-pad-end": "70px",
               },
             },
+            // (폭은 DateInput 자기 것 — 100%. `flex: 1` 을 주면 버튼의 음수 margin 만큼 Group 밖으로 넘친다.)
             bridges: {
-              padding: "0 2px",
-              border: "none",
-              background: "transparent",
-              height: "auto",
-              "font-variant-numeric": "tabular-nums",
-              "text-align": "end",
-              color: "var(--fg)",
-              "border-radius": "var(--radius-xs)",
-              "font-size": "var(--dp-segment-size)",
-              transition: "all 150ms ease",
-            },
-            states: {
-              '[data-type="literal"]': {
-                padding: "0",
-              },
-              "[data-placeholder]": {
-                color: "var(--fg-muted)",
-                opacity: "0.6",
-              },
-              ":focus": {
-                color: "var(--fg)",
-                background: "var(--accent-subtle)",
-                outline: "none",
-                "border-radius": "var(--radius-xs)",
-                "caret-color": "transparent",
-              },
-              "[data-invalid]": {
-                color: "var(--negative)",
-              },
-              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
-              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
-              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
-              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
-              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
-              "[data-invalid]:focus": {
-                background: "var(--negative)",
-                color: "var(--color-white)",
-              },
-              "[data-disabled]": {
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-              },
+              "min-width": "0",
+              "padding-right": "var(--dp-input-pad-end)",
             },
           },
           {
             childSelector: ".react-aria-Button",
             prefix: "dp-btn",
-            // 트리거 아이콘 크기 = **아이콘 스케일** (Select 의 `.select-chevron` 과 동일:
-            //   14/16/18/22/28, `SelectIcon.sizes[*].iconSize` 정합).
-            //   **typography 토큰(`--text-*`) 사용 금지 (2026-07-14)**: 폰트 크기 스케일은
-            //   아이콘 박스 스케일이 아니다 — `--text-xl`(20) / `--text-2xl`(24) / `--text-3xl`(30)
-            //   을 쓰면 Skia(`SelectIcon.iconSize` 18/22/28)와 md/lg/xl 전부 어긋난다
-            //   (실측 md: DOM 버튼 20 vs Skia 18). Select 는 처음부터 px 아이콘 스케일이라
-            //   정합이었고, DatePicker/DateRangePicker 만 typography 스케일을 쓰던 예외였다.
             variables: {
               xs: {
-                "--dp-btn-width": "14px",
-                "--dp-btn-height": "14px",
+                "--dp-btn-size": "16px",
+                "--dp-btn-offset": "-18px",
               },
               sm: {
-                "--dp-btn-width": "16px",
-                "--dp-btn-height": "16px",
+                "--dp-btn-size": "18px",
+                "--dp-btn-offset": "-20px",
               },
               md: {
-                "--dp-btn-width": "18px",
-                "--dp-btn-height": "18px",
+                "--dp-btn-size": "22px",
+                "--dp-btn-offset": "-26px",
               },
               lg: {
-                "--dp-btn-width": "22px",
-                "--dp-btn-height": "22px",
+                "--dp-btn-size": "34px",
+                "--dp-btn-offset": "-38px",
               },
               xl: {
-                "--dp-btn-width": "28px",
-                "--dp-btn-height": "28px",
+                "--dp-btn-size": "46px",
+                "--dp-btn-offset": "-50px",
               },
             },
             bridges: {
-              background: "transparent",
-              color: "var(--fg-muted)",
-              "forced-color-adjust": "none",
-              border: "none",
-              width: "var(--dp-btn-width)",
-              "min-width": "unset",
-              height: "var(--dp-btn-height)",
-              padding: "0",
-              cursor: "default",
-              "flex-shrink": "0",
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "center",
-            },
-            states: {
-              "[data-pressed]": {
-                "box-shadow": "none",
-                background: "var(--bg-muted)",
-              },
-              "[data-focus-visible]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "2px",
-              },
+              flex: "0 0 auto",
+              width: "var(--dp-btn-size)",
+              height: "var(--dp-btn-size)",
+              "min-width": "0",
+              "margin-inline-start": "var(--dp-btn-offset)",
             },
           },
           {
@@ -4042,36 +3926,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             prefix: "drp-group",
             variables: {
               xs: {
-                "--drp-group-padding":
-                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
+                "--drp-group-radius": "var(--radius-xs)",
+                "--drp-group-padding": "1px 1px 1px var(--spacing-xs)",
                 "--drp-group-font-size": "var(--text-2xs)",
                 "--drp-group-line-height": "var(--text-2xs--line-height)",
                 "--drp-group-gap": "var(--spacing-2xs)",
               },
               sm: {
-                "--drp-group-padding":
-                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
+                "--drp-group-radius": "var(--radius-sm)",
+                "--drp-group-padding": "1px 1px 1px var(--spacing-sm)",
                 "--drp-group-font-size": "var(--text-xs)",
                 "--drp-group-line-height": "var(--text-xs--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               md: {
-                "--drp-group-padding":
-                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
+                "--drp-group-radius": "var(--radius-md)",
+                "--drp-group-padding": "3px 3px 3px var(--spacing-md)",
                 "--drp-group-font-size": "var(--text-sm)",
                 "--drp-group-line-height": "var(--text-sm--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               lg: {
-                "--drp-group-padding":
-                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
+                "--drp-group-radius": "var(--radius-lg)",
+                "--drp-group-padding": "3px 3px 3px var(--spacing-lg)",
                 "--drp-group-font-size": "var(--text-base)",
                 "--drp-group-line-height": "var(--text-base--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
               xl: {
-                "--drp-group-padding":
-                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
+                "--drp-group-radius": "var(--radius-xl)",
+                "--drp-group-padding": "3px 3px 3px var(--spacing-xl)",
                 "--drp-group-font-size": "var(--text-lg)",
                 "--drp-group-line-height": "var(--text-lg--line-height)",
                 "--drp-group-gap": "var(--spacing-sm)",
@@ -4084,7 +3968,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               gap: "var(--drp-group-gap)",
               padding: "var(--drp-group-padding)",
               border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
+              // (모서리는 Input · DateInput 과 같은 크기 단계 — 같은 줄의 입력 상자와 모양이 같다.)
+              "border-radius": "var(--drp-group-radius)",
               background: "var(--bg-inset)",
               color: "var(--fg)",
               "white-space": "nowrap",
@@ -4115,151 +4000,63 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
+          // ADR-253: 상자는 Group 이 그린다. 그 안의 start · end 는 DateInput 원본의 instance 이고 template 이
+          //   상자를 지운 자리다 — field 는 배치만 한다 (폭 · end 가 남는 폭을 차지). focus 표시는 Group 의
+          //   것이라 안쪽 DateInput 의 outline 은 끈다.
           {
             childSelector: ".react-aria-DateInput",
             bridges: {
-              width: "unset",
-              "min-width": "unset",
-              padding: "unset",
-              border: "unset",
-              background: "transparent",
-              outline: "unset",
-              "font-size": "var(--drp-group-font-size)",
+              width: "auto",
+              "min-width": "0",
             },
             states: {
               "[data-focus-within]": {
-                outline: "0px solid transparent",
-              },
-            },
-          },
-          {
-            childSelector: ".react-aria-DateSegment",
-            prefix: "drp-segment",
-            variables: {
-              xs: {
-                "--drp-segment-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--drp-segment-size": "var(--text-xs)",
-              },
-              md: {
-                "--drp-segment-size": "var(--text-sm)",
-              },
-              lg: {
-                "--drp-segment-size": "var(--text-base)",
-              },
-              xl: {
-                "--drp-segment-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              padding: "0 2px",
-              border: "none",
-              background: "transparent",
-              height: "auto",
-              "font-variant-numeric": "tabular-nums",
-              "text-align": "end",
-              color: "var(--fg)",
-              "border-radius": "var(--radius-xs)",
-              "font-size": "var(--drp-segment-size)",
-              transition: "all 150ms ease",
-            },
-            states: {
-              '[data-type="literal"]': {
-                padding: "0",
-              },
-              "[data-placeholder]": {
-                color: "var(--fg-muted)",
-                opacity: "0.6",
-              },
-              ":focus": {
-                color: "var(--fg)",
-                background: "var(--accent-subtle)",
                 outline: "none",
-                "border-radius": "var(--radius-xs)",
-                "caret-color": "transparent",
-              },
-              "[data-invalid]": {
-                color: "var(--negative)",
-              },
-              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
-              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
-              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
-              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
-              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
-              "[data-invalid]:focus": {
-                background: "var(--negative)",
-                color: "var(--color-white)",
-              },
-              "[data-disabled]": {
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
               },
             },
           },
           {
-            childSelector: '[slot="start"] + span',
-            bridges: {
-              padding: "0 4px",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
-            childSelector: '[slot="end"]',
+            childSelector: '.react-aria-DateInput[slot="end"]',
             bridges: {
               flex: "1",
             },
           },
+          // start 와 end 사이의 구분자 (Text 노드 — 색은 template 자리가 적는다).
+          {
+            childSelector: ".react-aria-Group > .react-aria-Text",
+            bridges: {
+              flex: "0 0 auto",
+              width: "auto",
+              padding: "0 4px",
+              "font-size": "var(--drp-group-font-size)",
+            },
+          },
+          // 버튼은 FieldButton 원본의 instance — Group 의 끝에 놓인다 (크기별 정사각형).
           {
             childSelector: ".react-aria-Button",
             prefix: "drp-btn",
-            // 트리거 아이콘 크기 = 아이콘 스케일 (dp-btn 과 동일 근거 — 위 DatePicker 주석 참조).
             variables: {
               xs: {
-                "--drp-btn-width": "14px",
-                "--drp-btn-height": "14px",
+                "--drp-btn-size": "16px",
               },
               sm: {
-                "--drp-btn-width": "16px",
-                "--drp-btn-height": "16px",
+                "--drp-btn-size": "18px",
               },
               md: {
-                "--drp-btn-width": "18px",
-                "--drp-btn-height": "18px",
+                "--drp-btn-size": "22px",
               },
               lg: {
-                "--drp-btn-width": "22px",
-                "--drp-btn-height": "22px",
+                "--drp-btn-size": "34px",
               },
               xl: {
-                "--drp-btn-width": "28px",
-                "--drp-btn-height": "28px",
+                "--drp-btn-size": "46px",
               },
             },
             bridges: {
-              background: "transparent",
-              color: "var(--fg-muted)",
-              "forced-color-adjust": "none",
-              border: "none",
-              width: "var(--drp-btn-width)",
-              "min-width": "unset",
-              height: "var(--drp-btn-height)",
-              padding: "0",
-              cursor: "default",
-              "flex-shrink": "0",
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "center",
-            },
-            states: {
-              "[data-pressed]": {
-                "box-shadow": "none",
-                background: "var(--bg-muted)",
-              },
-              "[data-focus-visible]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "2px",
-              },
+              flex: "0 0 auto",
+              width: "var(--drp-btn-size)",
+              height: "var(--drp-btn-size)",
+              "min-width": "0",
             },
           },
           {
@@ -12623,127 +12420,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
+          // ADR-253: 입력 상자는 DateInput 원본의 instance 다 — 상자 · 크기 단계 · 상태 · 조각은 DateInput
+          //   rule 의 것이고, field 는 배치만 한다 (폭 · 크기별 최소 폭).
           {
             childSelector: ".react-aria-DateInput",
             prefix: "time-field-input",
             variables: {
               xs: {
-                "--time-field-input-padding":
-                  "var(--spacing-3xs) var(--spacing-xs)",
-                "--time-field-input-size": "var(--text-2xs)",
-                "--time-field-input-line-height":
-                  "var(--text-2xs--line-height)",
                 "--time-field-input-min-width": "100px",
               },
               sm: {
-                "--time-field-input-padding":
-                  "var(--spacing-2xs) var(--spacing-sm)",
-                "--time-field-input-size": "var(--text-xs)",
-                "--time-field-input-line-height": "var(--text-xs--line-height)",
                 "--time-field-input-min-width": "120px",
               },
               md: {
-                "--time-field-input-padding":
-                  "var(--spacing-xs) var(--spacing-md)",
-                "--time-field-input-size": "var(--text-sm)",
-                "--time-field-input-line-height": "var(--text-sm--line-height)",
                 "--time-field-input-min-width": "150px",
               },
               lg: {
-                "--time-field-input-padding":
-                  "var(--spacing-sm) var(--spacing-lg)",
-                "--time-field-input-size": "var(--text-base)",
-                "--time-field-input-line-height":
-                  "var(--text-base--line-height)",
                 "--time-field-input-min-width": "180px",
               },
               xl: {
-                "--time-field-input-padding":
-                  "var(--spacing-md) var(--spacing-xl)",
-                "--time-field-input-size": "var(--text-lg)",
-                "--time-field-input-line-height": "var(--text-lg--line-height)",
                 "--time-field-input-min-width": "220px",
               },
             },
             bridges: {
-              display: "inline-flex",
-              padding: "var(--time-field-input-padding)",
-              background: "var(--bg-inset)",
-              border: "var(--border-width-thin) solid",
-              "border-radius": "var(--border-radius)",
               width: "100%",
               "min-width": "var(--time-field-input-min-width)",
-              "white-space": "nowrap",
-              "forced-color-adjust": "none",
-              "font-size": "var(--time-field-input-size)",
-              "line-height": "var(--time-field-input-line-height)",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-            },
-          },
-          {
-            childSelector: ".react-aria-DateSegment",
-            prefix: "time-field-segment",
-            variables: {
-              xs: {
-                "--time-field-segment-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--time-field-segment-size": "var(--text-xs)",
-              },
-              md: {
-                "--time-field-segment-size": "var(--text-sm)",
-              },
-              lg: {
-                "--time-field-segment-size": "var(--text-base)",
-              },
-              xl: {
-                "--time-field-segment-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              padding: "0 2px",
-              border: "none",
-              background: "transparent",
-              height: "auto",
-              "font-variant-numeric": "tabular-nums",
-              "text-align": "end",
-              color: "var(--fg)",
-              "border-radius": "var(--radius-xs)",
-              "font-size": "var(--time-field-segment-size)",
-              transition: "all 150ms ease",
-            },
-            states: {
-              '[data-type="literal"]': {
-                padding: "0",
-              },
-              "[data-placeholder]": {
-                color: "var(--fg-muted)",
-                opacity: "0.6",
-              },
-              ":focus": {
-                color: "var(--fg)",
-                background: "var(--accent-subtle)",
-                outline: "none",
-                "border-radius": "var(--radius-xs)",
-                "caret-color": "transparent",
-              },
-              "[data-invalid]": {
-                color: "var(--negative)",
-              },
-              // 2026-06-22 reference 정합(ADR-914 Tier1): reference DateField.css:62-64 의
-              //   [data-invalid]:focus 는 solid `--highlight-background-invalid` + `--highlight-foreground`(흰)
-              //   = 전경/배경 전체 반전. 기존 15% 반투명 tint + 적색 전경(반전 없음)은 가독성/대비 약화.
-              //   filled bg → 전경 동반(on-negative=--color-white) 패턴은 Table 선택행 fix 와 동축.
-              //   DateSegment 단일 시각 contract — DateField/DatePicker/DateRangePicker/TimeField 4곳 동일 정합.
-              "[data-invalid]:focus": {
-                background: "var(--negative)",
-                color: "var(--color-white)",
-              },
-              "[data-disabled]": {
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-              },
             },
           },
           {

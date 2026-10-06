@@ -422,6 +422,8 @@ export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
   "combobox",
   "searchfield",
+  "datepicker",
+  "daterangepicker",
 ]);
 /**
  * The control part nodes of a field: those inside its control wrapper, or a Select's trigger
@@ -440,7 +442,13 @@ export function catalogFieldControlNodes(
   const wrapper = childrenOf(root, field).find(
     (child) => catalogTypeName(root, child) === "SelectTrigger",
   );
-  return wrapper ? childrenOf(root, wrapper) : [];
+  const parts = wrapper ? childrenOf(root, wrapper) : [];
+  // A picker draws its calendar button unless `showCalendarIcon` is false (the Canvas hides the
+  // node the same way — `catalogPickerOfButton`).
+  return ["datepicker", "daterangepicker"].includes(field.bindingId ?? "") &&
+    field.props.showCalendarIcon === false
+    ? parts.filter((part) => catalogTypeName(root, part) !== "Button")
+    : parts;
 }
 /**
  * The field a part node belongs to: its parent, or the parent of the control wrapper it is in.
@@ -456,16 +464,35 @@ export function catalogPartField(
     ? field
     : parent;
 }
-/** The Input node of a field that draws its control from it; `undefined` = the field composes it. */
+/**
+ * Date fields whose control is their DateInput node (ADR-253): an instance of the DateInput
+ * origin, drawn by its own binding inside the field's RAC context (a RAC `DateInput` and its
+ * segments).
+ */
+export const CATALOG_DATE_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
+  "datefield",
+  "timefield",
+  "datepicker",
+  "daterangepicker",
+]);
+/**
+ * The Input (a date field's DateInput) node of a field that draws its control from it;
+ * `undefined` = the field composes it.
+ */
 export function catalogFieldInputNode(
   root: CatalogCompositionRoot,
   field: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
-  if (!CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "")) return undefined;
+  const type = CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "")
+    ? "Input"
+    : CATALOG_DATE_INPUT_NODE_FIELDS.has(field.bindingId ?? "")
+      ? "DateInput"
+      : undefined;
+  if (!type) return undefined;
   return [
     ...childrenOf(root, field),
     ...catalogFieldControlNodes(root, field),
-  ].find((child) => catalogTypeName(root, child) === "Input");
+  ].find((child) => catalogTypeName(root, child) === type);
 }
 /** A field's control for its shared component: the Input node's own element, when it has one. */
 function fieldInput(input: DelegatedDomInput): ReactNode {
@@ -1048,6 +1075,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return withI18n(
         createElement(DateField as ElementType, {
           ...fieldBase(input),
+          inputElement: fieldInput(input),
           label: fieldLabel(
             input,
             propagatedText(
@@ -1087,6 +1115,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return withI18n(
         createElement(TimeField as ElementType, {
           ...fieldBase(input),
+          inputElement: fieldInput(input),
           label: fieldLabel(
             input,
             propagatedText(

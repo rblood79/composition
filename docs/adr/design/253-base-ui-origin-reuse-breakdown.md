@@ -597,3 +597,66 @@ field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라�
 - Canvas 는 placeholder 를 trigger 의 글자색 그대로 그린다 (Preview 는 `fg-muted` × 0.6) — 전환 전부터 있던 차이다.
 - trigger 안 Icon 의 색은 Icon 자신의 값이다 (Button 원본의 글자색을 고쳐도 glyph 는 따라가지 않는다 — NumberField · ComboBox 의 버튼 glyph 와 같다).
 - `SelectTrigger` 의 칠하는 variant 와 `SelectIcon` 은 picker 2종이 아직 쓴다. `SelectValue` 는 Select 의 sub-part 로 남는다.
+
+### 2026-10-07 — Phase 3 (4e) 날짜 4종: DateInput 원본 · picker 의 Group · FieldButton (브랜치 `adr-253`)
+
+**구현하면서 정한 것**
+
+- **DateInput 원본** (`origin-component-dateinput` — `BASE_PART_ORIGIN_TYPES`, Components page 의 부품 칸): 날짜 field 의 입력 상자 부품이다. DateInput rule 이 자기 stylesheet 를 낸다 (`structure` — 생성 `DateInput.css`): 상자 · 크기 단계 · 상태 (hover · focus-within · invalid · disabled) 와 그 안의 RAC 조각 (`DateSegment`). 크기 단계는 Input rule 과 같다 (padding · 글자 · 줄 높이 · 모서리 — 한 form 안의 입력 상자가 같은 모양). 높이는 내용이다 (고정 높이 없음).
+- **DateSegment 는 DateInput 의 내부 조각이다.** 4 부모가 각자 적던 조각 선언 (padding · 색 · placeholder · focus · invalid · disabled) 을 DateInput rule 한 곳으로 모았다. Canvas 가 조각의 padding · placeholder 칠을 읽는 출처도 부모 rule 에서 DateInput rule 로 바뀌었다. placeholder 는 색만 다르다 (`fg-muted` × 0.6) — DateField 만 있던 italic 은 없앴다 (레퍼런스 · 나머지 3 부모와 같다).
+- **상태 표시는 Input 과 같다**: hover 는 테두리색만, focus 는 2px outline + 테두리색. 종전 DateField · TimeField 는 `.inset` utility 로 hover · focus 에 배경도 바뀌었다 ((3b) 에서 남긴 「Input ↔ DateInput hover 차이」 를 Input 쪽으로 모았다).
+- **DateField · TimeField**: `__2` 가 DateInput instance 다. field 는 배치만 한다 (폭 100% · 크기별 최소 폭).
+- **DatePicker**: Group (wrapper `plain` — 배치만) 안이 DateInput instance (상자 — Group 을 채운다, 끝 쪽 padding 이 버튼 자리) 와 FieldButton instance (`icon: {iconName}` — 끝 안쪽 정사각형, 음수 margin 으로 겹친다) 다. ComboBox 와 같은 배치 · 같은 수치다. §2-2 6번대로 상자를 칠하는 주체가 Group 에서 DateInput 으로 바뀌었다.
+- **DateRangePicker**: Group (wrapper) 이 상자다 (§2-2 6번). 그 안이 **start DateInput · 구분자 · end DateInput · FieldButton** 이다. 종전에는 DateInput 노드 하나가 RAC 의 start/end 쌍을 대신했다 (Canvas 가 쌍과 구분자를 한 노드 안에 그리고 DOM 상자는 둘의 합). 이제 RAC 의 slot (`start` · `end`) 을 template 자리에 적은 instance 2개이고 (본문 Decision 5), template 이 그 자리의 상자를 지운다 (투명 배경 · 테두리 0 · padding 0). 구분자는 Text 노드 (`–`) 다. end 가 남는 폭을 차지한다 (`.react-aria-DateInput[slot="end"] { flex: 1 }` — partRule 이 selector 의 `slot` 조건을 자식 prop 조건으로 컴파일한다).
+  - Group 의 padding 은 버튼이 내용 높이를 정하도록 다시 잡았다 (md 3 3 3 12 — 버튼 22 + 6 + 테두리 2 = 30). 모서리는 Input · DateInput 과 같은 크기 단계다 (종전 6px 고정 — Canvas 는 이미 크기 단계였다).
+  - 안쪽 DateInput 의 focus outline 은 부모 rule 이 끈다 (Group 이 focus 표시를 그린다) — 부모 rule 에 남긴 유일한 부품 상태 선언이고 정적 테스트에 예외로 적었다.
+- **Canvas 의 DateInput 은 어느 부모 안에서든 자기 노드 값으로 상자를 그린다.** 종전 primitive 는 picker 안이면 글자만 그렸다 (`_parentTag` 분기) — 분기를 없앴다. 테두리 0 인 자리는 테두리를 그리지 않는다.
+- **DateInput 은 「부모 소유 sub-part」 판정에서 빠진다** (`DELEGATED_SUBPART_CHILD_TOKENS` · hop 대상). 원본의 instance 라 style 은 노드 자신이 정본이다 — Styles 패널 편집이 부모로 귀속되지 않는다 (unit 이 잡았다). 패널의 picker DateInput 높이 특례 (`100%`) 도 없앴다 — 높이는 어느 부모 안에서든 내용이다.
+- `showCalendarIcon: false` 면 버튼이 양쪽에서 없다 (Canvas presence · DOM 은 그 노드를 그리지 않는다). 종전에는 DOM 만 숨겼다.
+- picker 의 `iconName` 은 template 자리표시로 FieldButton 에 내려간다 (picker 원본이 받는다고 선언).
+
+**변화 목록 (G0 ① — px, 전환 전 빌드 5173 과 Preview 대조)**
+
+| 항목                          | 전                                                                  | 후                                                                                                 | 근거                     |
+| ----------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------ |
+| 바깥 상자 (4종)               | md 1920 × 30 · xl 54                                                | 같다                                                                                               | —                        |
+| DateField · TimeField 의 상자 | padding md 4 12 · 모서리 6 고정 · hover / focus 에 배경도 바뀜      | padding 같다 · 모서리는 크기 단계 (xl 12) · hover 는 테두리색만 · focus 는 outline + 테두리색      | §2-2 6번 · Input 과 같다 |
+| DateField 의 빈 조각          | italic                                                              | italic 없음 (색 `fg-muted` × 0.6 은 같다)                                                          | 한 정의 (레퍼런스)       |
+| DatePicker 의 상자            | Group (padding 4 4 4 12 · 모서리 6) 안에 글자만 있는 DateInput      | DateInput (Group 을 채움 · padding 4 34 4 12 · 모서리 크기 단계). Group 은 칠 없음                 | §2-2 6번                 |
+| picker 의 버튼                | 18 × 18 · 투명 · `fg-muted` glyph (xl 28)                           | FieldButton — md 22 × 22 · 옅은 강조색 배경 · 모서리 4 (xl 46) · glyph 는 Button 단계 (18 · xl 28) | §2-2 7번                 |
+| DateRangePicker 의 Group      | padding 4 4 4 12 · 모서리 6 고정                                    | padding 3 3 3 12 (xl 3 3 3 24) · 모서리 크기 단계                                                  | 버튼이 내용 높이         |
+| range 의 구분자               | 글자색 · padding 0 (선언한 selector 가 DOM 에 맞지 않았다) — 폭 6.6 | `fg-muted` · padding 0 4 — 폭 14.6 (end 가 8px 뒤로)                                               | 선언대로 (Text 노드)     |
+| disabled field                | root 0.38 × Group 0.38                                              | root 0.38 한 번                                                                                    | Canvas 와 같다           |
+| popup 의 시간 입력칸          | 꾸밈 없는 글자 (16px · 상자 없음)                                   | DateInput 상자 (md — 30px · 테두리 · 배경 · 14px)                                                  | DateInput 한 정의        |
+
+마지막 줄: picker 의 popup 은 컴포넌트가 직접 조립하는 RAC TimeField > DateInput 을 쓴다 (노드가 아니다). 종전에는 어느 sheet 도 닿지 않았고 이제 DateInput sheet 의 기본 (md) 이 닿는다 — 같은 마크업을 두 빌드의 Preview 에 주입해 확인했다.
+
+**구현**
+
+- library: `origin-component-dateinput` (+ template) · DateField / TimeField `__2` = DateInput instance · DatePicker `__2` (wrapper `plain`) 아래 `__2_1` DateInput instance · `__2_2` FieldButton instance (`icon: "{iconName}"`) · DateRangePicker `__2` (wrapper — 상자) 아래 `__2_1` DateInput (`slot: start` · 상자 없음) · `__2_sep` Text (`–` · `fg-muted`) · `__2_end` DateInput (`slot: end`) · `__2_2` FieldButton. picker 원본의 `accepts` 에 `iconName`.
+- 값 (`T`): DateInput rule 에 크기 단계 · `structure` · DateSegment 선언. DateField · TimeField · DatePicker 의 delegation 은 배치만. DateRangePicker 는 Group 의 상자 (종전 값 + padding · 모서리 단계) 와 부품 배치. 4 부모의 DateSegment 블록 · DatePicker 의 Group 칠 · 상태 · picker 2종의 버튼 칠 · 상태를 지웠다. DatePicker 의 quiet 는 DateInput 모양.
+- 판정 · 전달: `SUBPART_TOKENS` (picker 2종) · `ATTRIBUTE_PROPS.slot` · `WRAPPED_BY_TRIGGER` 에 Text · 크기 전달 (DateField / TimeField → DateInput, picker → wrapper → DateInput · Button · Text) · presence (`catalogPickerOfButton`) · `SUBPART_UNION` 비움 · `TRIGGER_GLYPH_OWNERS` · `catalogDateRangeEndGrow` 삭제 · DateInput binding 의 `slot` (편집 surface 에 내지 않음).
+- DOM: DateInput 노드는 RAC `DateInput` (+ `DateSegment`) 을 field 의 RAC context 안에서 그린다 (`fieldDateInputBinding` — `data-size` · `slot` · 문서가 쓴 값만 inline). DateField · TimeField 는 `inputElement`, picker 2종은 Group 안 `controlElements` 로 받는다.
+- Canvas: `datefield_segments` primitive 의 picker 분기 제거 · range 쌍 측정 제거 (`segmentText.range`).
+- Builder 화면 자체: RAC DateField · DatePicker · DateInput 을 직접 쓰는 곳이 없다 (코드로 확인) — 옮길 값 없음.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 306건 (+1): 날짜 4종의 DOM 구조 대조 52 조합은 전환 전 빌드와 같다 (명시한 차이: DateInput 의 `data-size` · `inset` class 없음 · 버튼 표지 · glyph 마크업 · range 구분자). 부품 테스트: DateField / TimeField 의 DateInput instance (Canvas 상자 · DOM 이 그 노드 · sheet 가 상자 · size · 원본 편집 · style 축 자기 소유) · DatePicker (Group 배치만 · DateInput 이 Group 을 채움 · 끝 padding 34 · FieldButton 22 × 22 · `iconName` · `showCalendarIcon` 양쪽) · DateRangePicker (Group 이 상자 · [DateInput, Text, DateInput, Button] · slot · 상자 없는 자리 · end 가 남는 폭 · 버튼 위치 · DOM · size xl). 구조 대조의 날짜는 fixture 작성일로 고정했다 (DateField 가 오늘 날짜를 보여 다른 날에는 깨지던 것 — 10-07 에 드러났다).
+- 정적: 날짜 field 의 delegation 은 DateInput · 버튼을 배치만 한다 (DateSegment 선언 0 · 예외 1 — range 쌍의 focus outline 끄기).
+- 원복 RED 11종: DateInput 노드 binding · field 가 노드를 그림 · size 전달 · 달력 버튼 presence · DOM · slot 조건 컴파일 · style 축 판정 · range 버튼 크기 · picker 끝 padding · range 쌍의 slot · Group padding.
+- 회귀: `pnpm type-check` · shared 1,500 · rendering 1,379 · builder 4,457 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (outline 5 → 3) · `triggerIconSizeScale` (FieldButton 상자 단계 3 부모 일치로 바꿈) · `generatedCssLoadInventory` (생성 100 · index 76) · `catalogCss` (98) · `skiaPrimitives.dateInput` (picker 분기) · `phase3Presence` (4건 — range 쌍 · italic · picker 글자 위치) · `phase4e10FileUpload` (end grow) · `phase4e11PreviewFollow` · `phase4eOriginView` (picker glyph = FieldButton 안 Icon) · `useTransformValues` (높이 특례 제거).
+- 시각 하니스: 70건 중 69 통과 (남은 1건 CardView — 무관). old/new 비교는 `date-picker-dateinput-and-field-button-parts` · `daterangepicker-end-and-button-nodes` 로 승인 기록에 넣고 `field-button-glyph-node` 에 picker 2종을 더했다.
+- live `adr253-p3-control-live.mjs` 13/13 (`LOCALE=en-US PALETTE="date field,time field,date picker,date range picker,button" TYPES=DateField,TimeField,DatePicker,DateRangePicker`, 5175 · headed Chrome · DPR 1 · visible — 앞 단계의 4 field 까지 8 type 을 한 번에 돌린 것도 17/17): 4 field 의 DateInput · Group · 구분자 · 버튼 · glyph 상자 · 모서리 · 테두리 · 배경이 Canvas 와 Preview 에서 같다 — 크기 단계 (DateField · TimeField 는 xs 없음) · side 라벨 → field 별: hover (테두리색) · 조각 focus (상자의 2px outline — range 는 Group 이 그리고 안쪽 쌍은 outline 없음) · picker 는 버튼 hover (배경이 바뀜) · 누르면 popup 이 열리고 (`aria-expanded` · dialog) Escape 로 닫힘 · disabled (버튼 disabled · root 0.38 · 버튼 흐림 1) → Components page 에서 DateInput · FieldButton 원본을 고치면 4 field 가 양쪽에서 바뀜 → undo. 콘솔 오류 0. 확대 화면에서 Canvas 의 4 field 모양을 눈으로 확인했다.
+- 대조군: `BEFORE=1` 로 main 빌드 (5173) 의 Preview 수치를 떴다 (위 변화 목록). popup 의 시간 입력칸은 같은 마크업을 두 빌드에 주입해 쟀다.
+
+**찾은 것 (전환 전부터 — 이 단계 범위 밖)**
+
+- **locale 을 쓰지 않은 날짜 field 를 Canvas 는 Builder 문서의 locale (이 환경 ko-KR — 「연도. 월. 일.」) 로, Preview 는 en-US (`mm/dd/yyyy`) 로 그린다.** main 빌드 (5173) 도 같다. 상자 폭이 내용에 달린 곳 (range 의 start) 에서 12.8px 차이로 드러났다 — live 는 브라우저 locale 을 en-US 로 맞춰 (`LOCALE`) 기하를 대조했다. 원인 (Preview 의 RAC locale 결정) 은 따로 봐야 한다.
+
+**남긴 것**
+
+- `.inset` utility: 날짜 field 는 더 쓰지 않는다. 남은 사용처는 `Field.tsx` 의 `Input` wrapper 하나 (`renderers/FormRenderers` 의 옛 경로) — 그 경로를 정리할 때 같이 지운다 (Phase 6).
+- DateField · TimeField 의 quiet 변형 (`.inset` 기준 선언) 은 Phase 3 끝의 quiet 정리에서 DateInput 기준으로 옮긴다.
+- `SelectTrigger` 의 칠하는 variant 는 이제 DateRangePicker 의 Group 만 쓴다. `SelectIcon` · presence 의 `iconName` 파생은 쓰는 template 이 없다 — Phase 3 끝 정리 대상.
+- Canvas 의 날짜 값 표시 (DateField 의 기본값 — Preview 는 오늘 날짜, Canvas 는 빈 조각) 는 종전과 같다.

@@ -187,10 +187,9 @@ describe("field trigger buttons — no generic Button min-width", () => {
     async (owner) => {
       const workspace = await openOwner(owner, { size: "md" });
       const root = workspace.root;
-      // (A ComboBox's glyph is the Icon inside its FieldButton instance — ADR-253.)
+      // (The glyph is the Icon inside the FieldButton instance — ADR-253.)
       const icons = [...root.layoutInputs.values()].filter(
-        (record) =>
-          record.bindingId === (owner === "ComboBox" ? "icon" : "selecticon"),
+        (record) => record.bindingId === "icon",
       );
       expect(icons.length).toBeGreaterThan(0);
       for (const icon of icons) {

@@ -25,6 +25,7 @@
 @import "./generated/ToggleButtonGroup.css";
 @import "./ToggleButtonGroup.css";
 @import "./generated/Input.css"; /* ADR-253: 입력칸의 정본 — 종전 foundation (base.css) 의 수동 블록 자리. field sheet 들보다 앞 */
+@import "./generated/DateInput.css"; /* ADR-253: 날짜 입력 상자의 정본 (종전 `.inset` utility + 부모 delegation). field sheet 들보다 앞 */
 @import "./generated/TextField.css";
 @import "./generated/NumberField.css";
 @import "./generated/SearchField.css";

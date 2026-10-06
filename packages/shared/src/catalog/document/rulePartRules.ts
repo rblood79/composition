@@ -67,15 +67,13 @@ const SUBPART_TOKENS: Readonly<
       ".searchfield-container > .react-aria-Icon svg",
     ],
   },
-  DatePicker: {
-    SelectTrigger: [".react-aria-Group"],
-    DateInput: [".react-aria-DateInput"],
-    SelectIcon: [".react-aria-Button"],
-  },
+  // ADR-253: the Group holds a DateInput instance and a FieldButton instance (their own tokens).
+  DatePicker: { SelectTrigger: [".react-aria-Group"] },
+  // ADR-253: the Group (the box) holds the pair's DateInput instances around the separator (a Text
+  // node — a whole selector: the Group's own child) and a FieldButton instance.
   DateRangePicker: {
     SelectTrigger: [".react-aria-Group"],
-    DateInput: [".react-aria-DateInput"],
-    SelectIcon: [".react-aria-Button"],
+    Text: [".react-aria-Group > .react-aria-Text"],
   },
   ProgressBar: { ProgressBarValue: [".value"], ProgressBarTrack: [".bar"] },
   Meter: { MeterValue: [".value"], MeterTrack: [".bar"] },
@@ -127,13 +125,10 @@ const GLYPH_TOKENS: Readonly<Record<string, { box: boolean }>> = {
   ".searchfield-container > .react-aria-Icon svg": { box: true },
 };
 /**
- * Typed children that stand for several owner-composed DOM parts: DateRangePicker's one typed
- * `DateInput` is RAC's start/end DateInput pair (and the separator between them), its box their
- * union.
+ * Typed children that stand for several owner-composed DOM parts (their box is the parts' union).
+ * None now: a DateRangePicker's start and end are DateInput nodes of their own (ADR-253).
  */
-const SUBPART_UNION: Readonly<Record<string, ReadonlySet<string>>> = {
-  DateRangePicker: new Set(["DateInput"]),
-};
+const SUBPART_UNION: Readonly<Record<string, ReadonlySet<string>>> = {};
 /** Whether the typed child's DOM box is the union of every part its selectors match. */
 export function catalogSubpartDomUnion(
   ownerType: string,
@@ -157,10 +152,12 @@ const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
   "SelectValue",
   "SelectIcon",
   "DateInput",
-  // ADR-253: the parts a field's wrapper holds — instances of their origins, a field's glyph.
+  // ADR-253: the parts a field's wrapper holds — instances of their origins, a field's glyph,
+  // a range picker's separator.
   "Input",
   "Button",
   "Icon",
+  "Text",
 ]);
 const SHARED_TOKENS: Readonly<Record<string, string>> = {
   '[slot="description"]': "Description",
@@ -169,6 +166,8 @@ const SHARED_TOKENS: Readonly<Record<string, string>> = {
 /** DOM attribute → typed prop of the matched child. */
 const ATTRIBUTE_PROPS: Readonly<Record<string, string>> = {
   "aria-orientation": "orientation",
+  // RAC's named slot of one of an owner's same-type parts (a range picker's `start` · `end`).
+  slot: "slot",
 };
 
 /**
@@ -612,14 +611,13 @@ function sizeNames(rule: ComponentRule): string[] {
 }
 
 /**
- * Inline padding of an owner's RAC date segments (`.react-aria-DateSegment` delegation bridge,
- * `padding: 0 2px`): editable segments carry it on both sides, literals do not
- * (`[data-type="literal"] { padding: 0 }`). 0 when the owner declares none.
+ * Inline padding of a DateInput's RAC date segments (the DateInput rule's `.react-aria-DateSegment`
+ * bridge, `padding: 0 2px` — ADR-253: one definition for every date field): editable segments
+ * carry it on both sides, literals do not (`[data-type="literal"] { padding: 0 }`).
  */
-export function catalogDateSegmentPaddingX(ownerType: string): number {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-    ownerType
-  ];
+export function catalogDateSegmentPaddingX(): number {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .DateInput;
   const delegation = (
     rule?.structure?.composition as
       | {
@@ -639,18 +637,17 @@ export function catalogDateSegmentPaddingX(ownerType: string): number {
 }
 
 /**
- * Paint of an owner's empty RAC date segments (`.react-aria-DateSegment[data-placeholder]`
- * delegation state — the editable segments; literals keep the field color): the CSS color as
- * written, its opacity and font style (DateField's italic). Empty when the owner declares none.
+ * Paint of a DateInput's empty RAC date segments (the DateInput rule's
+ * `.react-aria-DateSegment[data-placeholder]` state — the editable segments; literals keep the
+ * field color): the CSS color as written, its opacity and font style.
  */
-export function catalogDateSegmentPlaceholderPaint(ownerType: string): {
+export function catalogDateSegmentPlaceholderPaint(): {
   color?: string;
   opacity?: number;
   fontStyle?: string;
 } {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-    ownerType
-  ];
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .DateInput;
   const delegation = (
     rule?.structure?.composition as
       | {
@@ -674,33 +671,6 @@ export function catalogDateSegmentPlaceholderPaint(ownerType: string): {
       ? { fontStyle: state["font-style"] }
       : {}),
   };
-}
-
-/**
- * Flex grow the owner's delegation gives its RAC range end input (`[slot="end"] { flex: N }` —
- * DateRangePicker): the DOM end DateInput takes the trigger's free space past its min-content.
- * 0 when the owner declares none.
- */
-export function catalogDateRangeEndGrow(ownerType: string): number {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-    ownerType
-  ];
-  const delegation = (
-    rule?.structure?.composition as
-      | {
-          delegation?: Array<{
-            childSelector?: string;
-            bridges?: Record<string, string>;
-          }>;
-        }
-      | undefined
-  )?.delegation;
-  const flex = delegation?.find(
-    (entry) => entry.childSelector === '[slot="end"]',
-  )?.bridges?.flex;
-  const grow =
-    typeof flex === "string" ? Number(flex.trim().split(/\s+/)[0]) : 0;
-  return Number.isFinite(grow) && grow > 0 ? grow : 0;
 }
 
 /** One composed text of the DropZone content: its own px font size (absent = the DropZone's). */
@@ -1400,7 +1370,6 @@ export function compileRulePartRules(
     }
   }
   out.push(...containerVariantPartRules(parentType, rule, rootVariables));
-  out.push(...triggerGlyphPartRules(parentType, rule));
   // Generated `[data-size]` selectors never match a root without that attribute: only the default
   // size's values apply, for every size (manual parts keep their real size keys).
   if (manual?.rootSizeAttribute !== undefined)
@@ -1411,29 +1380,6 @@ export function compileRulePartRules(
       return [unsized];
     });
   return out;
-}
-
-/**
- * Owners whose DOM sizes the trigger glyph in JS from their own `size`
- * (`resolveTriggerIconSize(size)` → the svg's width/height — no CSS declaration to compile).
- */
-const TRIGGER_GLYPH_OWNERS: ReadonlySet<string> = new Set([
-  "DatePicker",
-  "DateRangePicker",
-]);
-/** The trigger glyph (`SelectIcon` under the trigger) at each owner size: the same scale. */
-function triggerGlyphPartRules(
-  parentType: string,
-  rule: ComponentRule,
-): CompiledPartRule[] {
-  if (!TRIGGER_GLYPH_OWNERS.has(parentType)) return [];
-  return Object.keys(rule.sizes).map((size) => ({
-    childType: "SelectIcon",
-    via: "SelectTrigger",
-    size,
-    layout: {},
-    visual: { iconSize: resolveTriggerIconSize(size) },
-  }));
 }
 
 /**

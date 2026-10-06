@@ -20,7 +20,12 @@ import type { PrimitiveBinding } from "../types";
  *     controller-free 동형). _parentTag/_granularity/_hourCycle/_locale 정적 props 자기충족.
  *   - 색 = rule variant text/border/fill(default/accent/negative). spec-free.
  *
- * **DOM = 부모 self-compose(독립 노드 0)**: DateField.tsx:149 / TimeField.tsx:127 / DatePicker.tsx:209 /
+ * **ADR-253 (2026-10-07)**: DateInput 은 DateInput 원본의 instance 로 쓰이는 부품이다. DOM 은 그 노드가
+ *   RAC `DateInput` (+ `DateSegment`) 을 부모의 RAC context 안에서 직접 그리고 (`domBinding`
+ *   `fieldDateInputBinding`), 상자 · 크기 단계 · 상태 · 조각은 DateInput rule 의 자기 sheet 다. Canvas 는
+ *   어느 부모 안에서든 노드 값으로 상자를 그린다. 아래 「DOM = 부모 self-compose」 는 그 전의 기록이다.
+ *
+ * **DOM = 부모 self-compose(독립 노드 0)** (ADR-253 전): DateField.tsx:149 / TimeField.tsx:127 / DatePicker.tsx:209 /
  *   DateRangePicker.tsx:184 가 모두 RAC `<DateInput>{(segment)=><DateSegment/>}</DateInput>` 를
  *   self-compose 하고 canonical DateInput 자식을 DOM 트리에 순회하지 않는다 → DateInput 자식 노드는
  *   DOM 미렌더. catalog 등록 후에도 DOM 변화 0 — 발효 가치는 Skia 대칭 한정. source.renderer
@@ -55,6 +60,14 @@ export const dateInputBinding: PrimitiveBinding = {
         default: "md",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // ADR-253: RAC's named slot of a range picker's pair (`start` · `end`) — written on the
+      //   template position, never edited.
+      slot: {
+        kind: "string",
+        label: "Slot",
+        section: "content",
+        editorHidden: true,
+      },
     },
     toRacProps: "default",
   },

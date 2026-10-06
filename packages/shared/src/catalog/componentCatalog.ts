@@ -1376,6 +1376,7 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
 export const BASE_PART_ORIGIN_TYPES: readonly string[] = [
   "Label",
   "Input",
+  "DateInput",
   "Description",
   "FieldError",
 ];

@@ -1094,12 +1094,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "iconName": "string"
     },
     "defaults": {
       "label": "Date Picker",
       "description": "",
-      "errorMessage": ""
+      "errorMessage": "",
+      "iconName": "calendar"
     },
     "visual": {},
     "stateRules": {},
@@ -1112,12 +1114,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "iconName": "string"
     },
     "defaults": {
       "label": "Date Range",
       "description": "",
-      "errorMessage": ""
+      "errorMessage": "",
+      "iconName": "calendar"
     },
     "visual": {},
     "stateRules": {},
@@ -1276,6 +1280,16 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-fieldbutton"
+  },
+  {
+    "id": "lib:definition:origin-component-dateinput",
+    "name": "DateInput",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-dateinput"
   },
   {
     "id": "lib:definition:origin-component-radio",
@@ -5278,7 +5292,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-datepicker__2_2"
     ],
     "props": {
-      "size": "md"
+      "variant": "plain"
     },
     "visual": {},
     "layout": {
@@ -5287,19 +5301,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-datepicker__2_1",
-    "definitionId": "lib:definition:type-DateInput",
+    "definitionId": "lib:definition:origin-component-dateinput",
     "children": [],
-    "props": {
-      "size": "md"
-    },
+    "props": {},
     "visual": {}
   },
   {
     "id": "lib:template:component-datepicker__2_2",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-fieldbutton",
     "children": [],
     "props": {
-      "size": "md"
+      "icon": "{iconName}"
     },
     "visual": {}
   },
@@ -5365,6 +5377,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SelectTrigger",
     "children": [
       "lib:template:component-daterangepicker__2_1",
+      "lib:template:component-daterangepicker__2_sep",
+      "lib:template:component-daterangepicker__2_end",
       "lib:template:component-daterangepicker__2_2"
     ],
     "props": {
@@ -5377,19 +5391,49 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-daterangepicker__2_1",
-    "definitionId": "lib:definition:type-DateInput",
+    "definitionId": "lib:definition:origin-component-dateinput",
     "children": [],
     "props": {
-      "size": "md"
+      "slot": "start"
     },
-    "visual": {}
+    "visual": {
+      "fill": "transparent",
+      "borderWidth": 0,
+      "paddingX": 0,
+      "paddingY": 0
+    }
+  },
+  {
+    "id": "lib:template:component-daterangepicker__2_sep",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "–"
+    },
+    "visual": {
+      "color": "var(--fg-muted)"
+    }
+  },
+  {
+    "id": "lib:template:component-daterangepicker__2_end",
+    "definitionId": "lib:definition:origin-component-dateinput",
+    "children": [],
+    "props": {
+      "slot": "end"
+    },
+    "visual": {
+      "fill": "transparent",
+      "borderWidth": 0,
+      "paddingX": 0,
+      "paddingY": 0
+    }
   },
   {
     "id": "lib:template:component-daterangepicker__2_2",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-fieldbutton",
     "children": [],
     "props": {
-      "size": "md"
+      "icon": "{iconName}"
     },
     "visual": {}
   },
@@ -5450,11 +5494,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-datefield__2",
-    "definitionId": "lib:definition:type-DateInput",
+    "definitionId": "lib:definition:origin-component-dateinput",
     "children": [],
-    "props": {
-      "size": "md"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5508,11 +5550,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-timefield__2",
-    "definitionId": "lib:definition:type-DateInput",
+    "definitionId": "lib:definition:origin-component-dateinput",
     "children": [],
-    "props": {
-      "size": "md"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5817,6 +5857,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "iconName": "{icon}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-dateinput",
+    "definitionId": "lib:definition:type-DateInput",
+    "children": [],
+    "props": {},
     "visual": {}
   },
   {

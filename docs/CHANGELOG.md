@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [날짜 field 의 입력 상자가 DateInput 원본을 따른다 (ADR-253 Phase 3 — 날짜 4종)] - 2026-10-07
+
+### Added
+
+- Components page 에 DateInput 원본 카드가 있다 (날짜 field 의 입력 상자). 이 원본을 고치면 DateField · TimeField · DatePicker · DateRangePicker 의 입력 상자가 Builder 와 Preview 에서 같이 바뀐다.
+
+### Changed
+
+- DateField · TimeField · DatePicker 의 입력 상자는 DateInput 원본의 instance 다. 모서리가 크기를 따르고, hover 는 테두리색만 · focus 는 outline + 테두리색으로 표시한다 (입력칸과 같다 — 전에는 배경도 바뀌었다). DateField 의 빈 조각은 italic 이 아니다.
+- DatePicker · DateRangePicker 의 달력 버튼은 FieldButton 원본의 instance 다 — md 18 → 22px · 옅은 강조색 배경. DatePicker 의 상자는 DateInput 이 그린다 (전에는 Group).
+- DateRangePicker 의 start · end 가 각각 DateInput 노드다 (전에는 한 노드가 쌍을 대신했다). 구분자는 옅은 글자색이고 좌우 여백 4px 을 갖는다.
+- picker popup 의 시간 입력칸이 DateInput 상자 모양이 된다 (전에는 꾸밈 없는 글자).
+- `showCalendarIcon` 을 끄면 Builder 에서도 달력 버튼이 사라진다 (전에는 Preview 만).
+
+### Fixed
+
+- Preview 에서 disabled 인 DatePicker · DateRangePicker 의 control 이 겹쳐 흐려지던 문제 (field 0.38 × Group 0.38).
+- DateRangePicker 의 Group 모서리가 Builder 와 Preview 에서 달랐던 문제 (Preview 6px 고정 ↔ Builder 크기 단계).
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 306건 (+1): 날짜 4종의 부품이 원본 instance · Canvas 상자 · DOM (RAC DateInput · slot) · 달력 버튼 presence · 원본 전파. 구조 대조의 날짜를 고정했다. 원복 RED 11종.
+- live `adr253-p3-control-live.mjs` 13/13 (날짜 4종 · locale en-US): 부품 상자 · 모서리 · 색이 Canvas 와 Preview 에서 같다 · hover · focus · popup 열기/닫기 · disabled · 원본 편집 · undo. 시각 하니스 69/70 (남은 1건 CardView — 무관).
+
 ## [Select 의 trigger 가 Button 원본을 따른다 (ADR-253 Phase 3 — Select)] - 2026-10-07
 
 ### Changed

@@ -115,7 +115,8 @@ export function hasDelegatedChild(
 export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   Record<string, readonly string[]>
 > = {
-  DateInput: [".react-aria-DateInput"],
+  // (DateInput 은 ADR-253 부터 DateInput 원본의 instance 다 — DOM 이 그 노드를 직접 그리고 style 은 노드
+  //   자신이 정본이라 sub-part 가 아니다.)
   // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
   //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
   //   읽지 않는다 — 래퍼 상자는 parent rule delegation 이 그린다: NumberField · DatePicker · DateRangePicker
@@ -214,10 +215,11 @@ export const SUBPART_HOP_WRAPPER_TYPES: ReadonlySet<string> = new Set([
   "Button",
 ]);
 
-/** 래퍼 안에서 DOM 이 실제로 호스트하는 sub-part 만 hop — `.react-aria-Group > .react-aria-DateInput`. */
-export const SUBPART_HOP_CHILD_TYPES: ReadonlySet<string> = new Set([
-  "DateInput",
-]);
+/**
+ * 래퍼 안에서 부모가 두 축을 모두 소유하는 sub-part 만 hop. 지금은 없다 — picker 의 DateInput 은 ADR-253 부터
+ * DateInput 원본의 instance 다 (종전: `.react-aria-Group > .react-aria-DateInput`).
+ */
+export const SUBPART_HOP_CHILD_TYPES: ReadonlySet<string> = new Set([]);
 
 /**
  * **style 축만** read-only 인 sub-part (2026-09-04 판정 A) — child type → 그 style 을 소유하는 field parent.

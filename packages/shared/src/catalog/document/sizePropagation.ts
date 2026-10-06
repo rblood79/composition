@@ -13,6 +13,8 @@
 const FIELD_PARTS = ["Label", "Description", "FieldError"] as const;
 /** Fields whose control is an instance of the Input origin: the Input rule sizes it at their size. */
 const INPUT_FIELD_PARTS = [...FIELD_PARTS, "Input"] as const;
+/** Date fields whose control is an instance of the DateInput origin (the DateInput rule sizes it). */
+const DATE_FIELD_PARTS = [...FIELD_PARTS, "DateInput"] as const;
 
 /**
  * Fields whose control is a wrapper (`SelectTrigger` — the field's Group) around part instances:
@@ -52,11 +54,12 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // (A Select's trigger is a Button instance — ADR-253.)
   Select: [...FIELD_PARTS, "Button"],
   ComboBox: WRAPPED_FIELD_PARTS,
-  DateField: FIELD_PARTS,
-  TimeField: FIELD_PARTS,
-  DatePicker: FIELD_PARTS,
-  DateRangePicker: FIELD_PARTS,
-  SelectTrigger: ["Input", "Button"],
+  DateField: DATE_FIELD_PARTS,
+  TimeField: DATE_FIELD_PARTS,
+  DatePicker: WRAPPED_FIELD_PARTS,
+  DateRangePicker: WRAPPED_FIELD_PARTS,
+  // (`Text`: a range picker's separator between its pair.)
+  SelectTrigger: ["Input", "DateInput", "Button", "Text"],
   Meter: ["Label"],
   ProgressBar: ["Label"],
 };
