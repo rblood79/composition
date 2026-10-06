@@ -462,12 +462,13 @@ export function ruleTypeDefinition(
   for (const [name, size] of Object.entries(rule.sizes))
     sizes[name] = sizeVisual(name, triggerSize(type, name, size), box, theme, tokens);
   // Circle leaves: the DOM renderer draws a square box of the size's height (Avatar also keeps it
-  // from shrinking in a row).
+  // from shrinking in a row). The height is set here too — a ProgressCircle's `progress`
+  // archetype drops the size axis' height (a bar's track row), its DOM root is the diameter square.
   if (CIRCLE_LEAF_RULES.has(type)) {
     for (const [name, size] of Object.entries(rule.sizes)) {
       const height = pixels(size.height, theme);
       if (height !== undefined && height > 0)
-        sizes[name] = { ...sizes[name], width: height };
+        sizes[name] = { ...sizes[name], width: height, height };
     }
     if (type === "Avatar") layout.flexShrink = "0";
   }

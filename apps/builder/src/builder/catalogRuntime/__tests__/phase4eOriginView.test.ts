@@ -13,7 +13,9 @@ import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { resolveCatalogNode } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
+import { catalogSlotMarks } from "../../workspace/canvas/catalog/catalogChrome";
 import { resolveCatalogClickRecord } from "../canvasPick";
 import { CatalogLayerTreeStore } from "../layerTree";
 import {
@@ -31,6 +33,7 @@ import {
   ORIGIN_VIEW_NODE,
   originCardId,
   originInstanceId,
+  originPartsId,
   originSampleId,
 } from "../originView";
 import { newCatalogProjectDocument } from "../project";
@@ -171,11 +174,13 @@ describe("ADR-248 4e library origin view", () => {
     expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
       "md", "2xs", "xs", "sm", "lg", "xl", "2xl",
     ]);
-    // IconButton: the origin, its 2 parts, then 6 variants × (rest + 4 states) + 5 sizes.
-    const [originRow, icon, label, ...instances] = groupOf(buttonCard).children!;
+    // IconButton: the origin, the origin drawn for its parts, then 6 variants × (rest + 4
+    // states) + 5 sizes.
+    const [originRow, partsRow, ...instances] = groupOf(buttonCard).children!;
     expect(originRow!.role).toBe("origin");
     expect(originRow!.name).toBe("IconButton");
-    expect([icon!.typeName, label!.typeName]).toEqual(["Icon", "Text"]);
+    expect(partsRow!.name).toBe("IconButton / Parts");
+    expect(partsRow!.role).toBe("instance");
     expect(instances.every((row) => row.role === "instance")).toBe(true);
     expect(instances.map((row) => row.name).slice(0, 2)).toEqual([
       "IconButton / Accent / Default",
@@ -186,9 +191,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(originRow!.hasChildren).toBe(true);
     expect(
       groupOf(fieldCard)
-        .children!.slice(0, 4)
-        .map((row) => row.typeName),
-    ).toEqual(["TextField", "Label", "Input", "FieldError"]);
+        .children!.slice(0, 2)
+        .map((row) => row.name),
+    ).toEqual(["TextField", "TextField / Parts"]);
     expect(catalogComponentRole(graphOf(workspace), sampleId)).toBe("origin");
     const hover = originInstanceId(button.id, "primary/Hover");
     expect(catalogComponentRole(graphOf(workspace), hover)).toBe("instance");
@@ -331,20 +336,24 @@ describe("ADR-248 4e library origin view", () => {
         (state) => `${origin}${state}`,
       ),
     );
-    // A composed origin is taken apart: one cell per kind of template child.
+    // A composed origin shows its parts in place: the origin once more (an instance of it),
+    // captioned with one name per kind of template child (◇ = another origin's instance).
     const field = cards.find((candidate) => candidate.name === "TextField")!;
     const parts = field.children.map(nodeOf).find((row) => row.name === "Parts")!;
     expect(cellsOf(parts).map((cell) => cell.name)).toEqual([
-      "Label",
-      "Input",
-      "FieldError",
+      "Label · Input · FieldError",
     ]);
+    const fieldParts = sampleOf(cellsOf(parts)[0]!);
+    expect(fieldParts.id).toBe(
+      originPartsId("lib:definition:origin-component-textfield" as LibraryDefinitionId),
+    );
+    expect(fieldParts.definitionId).toBe("lib:definition:origin-component-textfield");
     const toolbar = cards.find((candidate) => candidate.name === "Toolbar")!;
     expect(
       cellsOf(
         toolbar.children.map(nodeOf).find((row) => row.name === "Parts")!,
       ).map((cell) => cell.name),
-    ).toEqual(["◇ Button ×3", "Separator"]);
+    ).toEqual(["◇ Button ×3 · Separator"]);
     // A collection shows its item origin's states (not its own variants — they only tint its
     // hover): the item drawn on its own, its label filled in and its placeholders off.
     const grid = cards.find((candidate) => candidate.name === "GridList")!;
@@ -379,11 +388,6 @@ describe("ADR-248 4e library origin view", () => {
       },
       props: { children: { kind: "set", value: "Item" } },
     });
-    // A part drawn alone reads the origin's own value where the template holds `{prop}`.
-    const fieldParts = cellsOf(parts).map(sampleOf);
-    expect(JSON.stringify(fieldParts.map((part) => part.props))).not.toMatch(
-      /\{\w+\}/,
-    );
     const accentHover = sampleOf(cellsOf(rows[1]!)[2]!);
     expect(accentHover.definitionId).toBe(`${origin}--hover`);
     expect(accentHover.props).toEqual({
@@ -563,6 +567,81 @@ describe("ADR-248 4e library origin view", () => {
         instanceIds: [PLACED],
       },
     });
+    workspace.dispose();
+  });
+  it("draws each origin as the DOM sizes it: circle height, owner-sized glyphs and members, track variants, parts in place", async () => {
+    const { workspace, button } = await open();
+    workspace.showDefinition(button.id);
+    const lib = (name: string) =>
+      `lib:definition:origin-component-${name}` as LibraryDefinitionId;
+    const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
+    const rectOf = (id: string) =>
+      workspace.root.getGeometry([recordOf(id)]).get(recordOf(id))!;
+    const inputOf = (record: string) => workspace.root.canvasInputs.get(record)!;
+    const under = (record: string, binding: string): string[] =>
+      inputOf(record).children.flatMap((child) => [
+        ...(inputOf(child).bindingId === binding ? [child] : []),
+        ...under(child, binding),
+      ]);
+    // A ProgressCircle is its diameter square (the `progress` archetype drops a bar's height).
+    for (const [key, diameter] of [["sm", 24], ["md", 32], ["lg", 64]] as const) {
+      const rect = rectOf(originInstanceId(lib("progresscircle"), `size/${key}`));
+      expect([rect.width, rect.height]).toEqual([diameter, diameter]);
+    }
+    // A trigger glyph follows its owner's size (the DOM sizes the svg from the owner's `size`).
+    const glyphs = (origin: string, size: string) =>
+      under(recordOf(originInstanceId(lib(origin), `size/${size}`)), "selecticon").map(
+        (record) => inputOf(record).visual.iconSize,
+      );
+    for (const origin of ["select", "combobox", "datepicker", "daterangepicker"]) {
+      expect(glyphs(origin, "xs")).toEqual([14]);
+      expect(glyphs(origin, "xl")).toEqual([28]);
+    }
+    // A NumberField's stepper glyphs are its own scale (`--nf-btn-icon-size`).
+    expect(glyphs("numberfield", "xs")).toEqual([10, 10]);
+    expect(glyphs("numberfield", "xl")).toEqual([22, 22]);
+    // A group's size reaches its members; a calendar's its header and grid.
+    const sizesUnder = (origin: string, size: string, binding: string) =>
+      under(recordOf(originInstanceId(lib(origin), `size/${size}`)), binding).map(
+        (record) => inputOf(record).props.size,
+      );
+    expect(sizesUnder("avatargroup", "xl", "avatar")).toEqual(["xl", "xl", "xl"]);
+    expect(sizesUnder("buttongroup", "xs", "button")).toEqual(["xs", "xs"]);
+    expect(sizesUnder("calendar", "sm", "calendargrid")).toEqual(["sm"]);
+    expect(sizesUnder("calendar", "sm", "calendarheader")).toEqual(["sm"]);
+    // A ProgressBar's track takes its owner's variant: the track rule paints every one of them
+    // (a missing variant painted no track).
+    const neutralTrack = under(
+      recordOf(originInstanceId(lib("progressbar"), "neutral")),
+      "progressbartrack",
+    ).map((record) => inputOf(record).derivedProps?.variant);
+    expect(neutralTrack).toEqual(["neutral"]);
+    expect(
+      Object.keys(COMPONENT_RULES_TABLE.ProgressBar.variants).filter(
+        (variant) => !(variant in COMPONENT_RULES_TABLE.ProgressBarTrack.variants),
+      ),
+    ).toEqual([]);
+    // The parts instance: the origin once more; the chrome outlines each drawn part.
+    const parts = recordOf(originPartsId(lib("textfield")));
+    const bounds = new Map(
+      [...workspace.root.canvasInputs.keys()].flatMap((record) => {
+        const rect = workspace.root.getGeometry([record]).get(record);
+        return rect ? [[record, rect] as const] : [];
+      }),
+    );
+    const regions = catalogSlotMarks(workspace, bounds, bounds).filter(
+      (mark) => mark.region,
+    );
+    const fieldRegions = regions.filter((mark) =>
+      inputOf(parts).children.includes(mark.identity),
+    );
+    expect(fieldRegions.length).toBeGreaterThanOrEqual(1);
+    expect(fieldRegions.every((mark) => mark.role === "instance" && !mark.empty)).toBe(
+      true,
+    );
+    expect(
+      regions.every((mark) => mark.box.width > 0 && mark.box.height > 0),
+    ).toBe(true);
     workspace.dispose();
   });
 });

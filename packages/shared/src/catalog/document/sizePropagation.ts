@@ -21,4 +21,12 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
   TagGroup: ["TagList"],
   TagList: ["Tag"],
+  // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
+  // buttons inside).
+  AvatarGroup: ["Avatar"],
+  ButtonGroup: ["Button"],
+  // A calendar composes its header and month grid at its own size (the DOM draws both from the
+  // calendar's `data-size`): the typed children are painted at it too.
+  Calendar: ["CalendarHeader", "CalendarGrid"],
+  RangeCalendar: ["CalendarHeader", "CalendarGrid"],
 };

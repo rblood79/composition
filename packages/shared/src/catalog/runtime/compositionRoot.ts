@@ -1,3 +1,6 @@
+import { CATALOG_SIZE_PROPAGATION } from "../document/sizePropagation";
+import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
 import { definitionTypeName } from "../commands/context";
 import type {
@@ -761,6 +764,17 @@ function catalogTableHeight(
   return { height: `${height + border * 2}px` };
 }
 
+/** The width before a StatusLight's label: its dot (rule `indicator.dotSize`) and the row gap. */
+function catalogStatusLightLead(node: CatalogConsumerNode): number {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .StatusLight;
+  const size =
+    rule?.sizes[String(node.props.size ?? rule.defaultSize)] ??
+    (rule?.defaultSize ? rule.sizes[rule.defaultSize] : undefined);
+  const gap = Number(node.visual.gap ?? size?.gap ?? 8);
+  return (size?.indicator?.dotSize ?? 10) + (Number.isFinite(gap) ? gap : 8);
+}
+
 function styleOf(
   node: CatalogConsumerNode,
   measure: CatalogTextMeasure | undefined,
@@ -829,7 +843,16 @@ function styleOf(
           // CSS max-content is the fractional advance (the DOM box is not rounded); a single-line
           // label is also its own min-content. The wrap decision (`rewrap`) compares against the
           // same exact width, so a box laid out at max-content never wraps on a sub-pixel.
-          const width = size.exactWidth ?? size.width;
+          // A StatusLight's label follows its dot (the DOM flex row: dot · gap · label).
+          const lead =
+            node.bindingId === "statuslight" ? catalogStatusLightLead(node) : 0;
+          const width = (size.exactWidth ?? size.width) + lead;
+          if (lead > 0)
+            return {
+              contentMinWidth: width,
+              contentMaxWidth: width,
+              contentHeight: wrappedHeight ?? size.height,
+            };
           if (noWrapTextBindings.has(node.bindingId ?? "") || leaf.singleLine)
             return {
               contentMinWidth: width,
@@ -3001,6 +3024,22 @@ export class CatalogCompositionRoot {
           queued.add(childId);
           queue.push(childId);
         }
+      // An owner's size reaches the children it propagates to (`CATALOG_SIZE_PROPAGATION`): they
+      // resolve again with it (and their own children after them).
+      if (before.props.size !== record.props.size) {
+        const sized = CATALOG_SIZE_PROPAGATION[this.typeOf(record)];
+        for (const childId of sized ? record.children : []) {
+          const child = this.records.get(childId);
+          if (
+            child &&
+            sized!.includes(this.typeOf(child)) &&
+            !queued.has(childId)
+          ) {
+            queued.add(childId);
+            queue.push(childId);
+          }
+        }
+      }
       updates.push(this.planRecord(id, record, rootId));
       roots.add(rootId);
     }

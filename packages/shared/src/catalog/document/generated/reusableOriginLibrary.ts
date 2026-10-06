@@ -4492,7 +4492,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-filetrigger",
     "definitionId": "lib:definition:type-FileTrigger",
     "children": [],
-    "props": {},
+    "props": {
+      "children": "Select files"
+    },
     "visual": {}
   },
   {

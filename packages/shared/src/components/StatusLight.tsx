@@ -65,11 +65,13 @@ export function StatusLight({
   ...rest
 }: StatusLightProps): React.ReactElement {
   const sizeKey = String(size).toLowerCase();
-  const dotSize = DOT_SIZE[sizeKey] ?? 10;
   const fontSize = FONT_SIZE[sizeKey] ?? 14;
 
   // dot 색 = rule fill base (20 variant) → CSS. Skia escape 와 같은 source.
   const rule = resolveComponentRule("StatusLight");
+  // dot 지름 = rule sizes[size].indicator.dotSize (Skia · Canvas 폭 계산과 같은 source).
+  const dotSize =
+    rule?.sizes?.[sizeKey]?.indicator?.dotSize ?? DOT_SIZE[sizeKey] ?? 10;
   const fillBase = rule?.variants?.[variant]?.fill?.default?.base;
   const dotColor = colorTokenToCss(fillBase);
 

@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컴포넌트 그리기 결함 일괄 수정 · Components page 구성 표시 개편] - 2026-10-06
+
+### Fixed
+
+- **ProgressCircle 높이 0**: Canvas 에서 ProgressCircle 상자의 높이가 0 이라 아래 요소와 겹쳤다. `progress` 계열 규칙이 size 의 높이 (막대의 track 행) 를 빼는데 원형도 같은 계열이었다. DOM 과 같이 지름 정사각형 (sm 24 · md 32 · lg 64) 으로 놓는다. 위치: `packages/shared/src/catalog/document/ruleDefinition.ts`.
+- **trigger 아이콘이 size 를 따르지 않음 (Select · ComboBox · DatePicker · DateRangePicker)**: 상자만 size 를 따르고 glyph 는 18 고정이라 XS 에서는 넘치고 LG · XL 에서는 작았다. DOM 은 owner 의 size 로 svg 크기를 정한다 (`resolveTriggerIconSize`, 14 / 16 / 18 / 22 / 28) — Canvas 도 같은 값을 읽는다. NumberField 의 − / + 는 자기 눈금 (`--nf-btn-icon-size`, 10 / 12 / 16 / 18 / 22). 위치: `packages/shared/src/catalog/document/rulePartRules.ts`.
+- **Calendar · RangeCalendar 의 SM · LG 에서 날짜 grid 가 상자와 어긋남**: 상자는 달력의 size 로 잡히는데 header · grid 는 md 로 그려져 SM 은 넘치고 LG 는 남았다. 달력의 size 가 header · grid 에 전달된다.
+- **StatusLight 가 옆 요소와 겹침**: 폭을 글자만으로 재어 점 (dot) 과 간격만큼 모자랐다. 점 지름을 rule (`indicator.dotSize`, 8 / 10 / 12 / 14) 로 옮겨 DOM · Skia · 폭 계산이 같은 값을 읽는다 — Canvas 의 점이 size 와 무관하게 10 이던 것도 같이 고쳐진다.
+- **ProgressBar track 색**: track 이 회색 (neutral-subtle) 으로 그려졌고 Accent · Neutral variant 에서는 track 이 아예 없었다. DOM 과 같이 default · accent 는 accent-subtle / accent, neutral 은 neutral-subtle / neutral-subdued.
+- **FileTrigger 가 글자 없는 빈 버튼**: 기본 원본에 label 이 없었다. 기본값 "Select files".
+
+### Changed
+
+- **AvatarGroup · ButtonGroup 의 size 가 안의 Avatar · Button 에 전달된다** (S2 방식 — RadioGroup · TagGroup 과 같은 경로, Canvas · Preview 공통). 그룹 size 를 바꾸면 안의 요소 크기가 따라간다. 요소에 따로 준 size 는 그룹 값이 덮는다.
+- **Components page 의 Parts 줄**: 부품을 하나씩 떼어 그리던 방식 (owner 가 주는 크기 · 글자 · 자리를 잃어 깨져 보임) 대신, 원본을 한 번 더 그리고 그 안의 각 부품 영역을 테두리로 표시한다. 줄 아래에 부품 이름을 적는다 (◇ = 다른 원본의 instance).
+- Components page: 카드에 마우스를 올려도 안의 모든 요소에 점선이 그려지지 않는다 (카드는 묶음일 뿐). 폭을 채우지 않는 컴포넌트 (Pagination · AvatarGroup · RadioGroup 등) 는 고정 폭 칸 대신 자기 폭으로 놓여 옆 칸을 덮지 않는다. DisclosureGroup 의 Item states 에 헤더가 나온다. Typography 의 `text-md` 표기 「16px / -px」 → 「16px」.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (원형 높이 · owner size glyph · 그룹 / 달력 size 전달 · track variant · 부품 영역 표시) · `phase3Presence.test.ts` (StatusLight 폭 · 달력 size 편집 시 자식 재해석). 수정 9건 각각 원복 시 RED 확인.
+- 실제 Builder: Components page 전체 (60 카드) 를 100% 로 나눠 찍어 수정 전후 대조, page 에 놓은 ProgressCircle · StatusLight · ProgressBar · FileTrigger · DatePicker 를 Preview DOM 수치와 대조 (32×32 · dot 10 + 간격 8 · track accent-subtle · "Select files" · 아이콘 18). 콘솔 오류 0.
+
 ## [ADR-244 Implemented — 프로젝트 목록에서 캔버스 자산 미리 받기 (Phase 2 · 3)] - 2026-10-06
 
 ### Changed

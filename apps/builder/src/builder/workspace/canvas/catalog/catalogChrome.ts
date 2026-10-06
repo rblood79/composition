@@ -1,3 +1,4 @@
+import { isPageParts } from "../../../catalogRuntime/originView";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
 
@@ -5,6 +6,8 @@ import type { BoundingBox } from "../selection/types";
  * Slot chrome (editor only, not document paint). The definition edit view marks every declared
  * slot (origin color, hatched while empty); on the pages a project component's or layout's slot
  * that holds nothing is hatched (instance color, its visible part — the old page slot marker).
+ * The Components page outlines the parts of an origin drawn for its parts (`region`: the part's
+ * own box, never the empty slot's band).
  */
 export function catalogSlotMarks(
   workspace: CatalogWorkspace,
@@ -15,6 +18,7 @@ export function catalogSlotMarks(
   empty: boolean;
   role: "origin" | "instance";
   identity: string;
+  region?: true;
 }[] {
   const graph = workspace.runtime.graph;
   const view = !!workspace.root.definitionView;
@@ -23,8 +27,23 @@ export function catalogSlotMarks(
     empty: boolean;
     role: "origin" | "instance";
     identity: string;
+    region?: true;
   }[] = [];
-  for (const record of workspace.root.domInputs.values()) {
+  const records = workspace.root.domInputs;
+  for (const record of records.values()) {
+    // A part of an origin drawn for its parts: its drawn box (a hidden part has none).
+    if (isPageParts(records.get(record.parentId)?.sourceId)) {
+      const box = bounds.get(record.id);
+      if (box && box.width > 0 && box.height > 0)
+        marks.push({
+          box,
+          empty: false,
+          role: "instance",
+          identity: record.id,
+          region: true,
+        });
+      continue;
+    }
     const node = graph.getEntry(record.sourceId);
     if (node?.kind !== "node" || !node.slot) continue;
     const empty = record.children.length === 0;

@@ -21,7 +21,7 @@
   display: grid;
 
   /* Default variant */
-  background: var(--bg-muted);
+  background: var(--accent-subtle);
   color: var(--fg);
   border: none;
 
@@ -32,6 +32,32 @@
 }
 
 .react-aria-ProgressBarTrack[data-variant="default"] {
+  background: var(--accent-subtle);
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: var(--accent-subtle);
+  }
+
+  &[data-pressed] {
+    background: var(--accent-subtle);
+  }
+}
+
+.react-aria-ProgressBarTrack[data-variant="accent"] {
+  background: var(--accent-subtle);
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: var(--accent-subtle);
+  }
+
+  &[data-pressed] {
+    background: var(--accent-subtle);
+  }
+}
+
+.react-aria-ProgressBarTrack[data-variant="neutral"] {
   background: var(--bg-muted);
   color: var(--fg);
 

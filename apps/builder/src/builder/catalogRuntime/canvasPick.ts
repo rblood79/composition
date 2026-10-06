@@ -3,7 +3,6 @@ import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommand
 import {
   ORIGIN_VIEW_NODE,
   isPageCard,
-  isPagePart,
   isThemeSample,
   originOfPageInstance,
   originOfSample,
@@ -81,7 +80,6 @@ export function resolveCatalogClickRecord(
       if (
         originOfSample(record.sourceId) ||
         originOfPageInstance(record.sourceId) ||
-        isPagePart(record.sourceId) ||
         isThemeSample(record.sourceId) ||
         isPageCard(record.sourceId)
       )

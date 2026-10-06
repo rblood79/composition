@@ -61,13 +61,14 @@ const CARD_PREFIX = `${ORIGIN_VIEW_NODE}/origin/`;
 /** A component's card (its group frame): the origin, its parts and its instances are inside. */
 export const originCardId = (originId: LibraryDefinitionId): NodeId =>
   `${CARD_PREFIX}${originId}/card` as NodeId;
-/** A part the page draws of an origin taken apart (`at`: its place among the origin's parts). */
-export const originPartId = (
-  originId: LibraryDefinitionId,
-  at: number,
-): NodeId => `${CARD_PREFIX}${originId}/part/${at}` as NodeId;
-export const isPagePart = (id: string | undefined): boolean =>
-  !!id && id.startsWith(CARD_PREFIX) && /\/part\/\d+$/.test(id);
+/**
+ * The instance a card draws to show an origin's parts in place (its template's children, each
+ * region outlined by the editor chrome).
+ */
+export const originPartsId = (originId: LibraryDefinitionId): NodeId =>
+  originInstanceId(originId, "parts");
+export const isPageParts = (id: string | undefined): boolean =>
+  !!id && id.startsWith(INSTANCE_PREFIX) && id.endsWith("/parts");
 /** A card of the page: a component's (`originCardId`) or a theme's. */
 export const isPageCard = (id: string | undefined): boolean =>
   !!id && id.startsWith(`${ORIGIN_VIEW_NODE}/`) && id.endsWith("/card");

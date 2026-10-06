@@ -61,7 +61,10 @@ import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
 import { useViewportSyncStore } from "../stores";
 import { useCompareModeStore } from "../stores/compareMode";
 import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
-import { isComponentsView } from "../../../catalogRuntime/originView";
+import {
+  isComponentsView,
+  isPageCard,
+} from "../../../catalogRuntime/originView";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
 import { CatalogActionBar } from "./CatalogActionBar";
@@ -395,6 +398,8 @@ export function CatalogCanvas({
           // A page body is an empty area (canvas-interaction §8.6): no guides.
           const records = workspace.root.canvasInputs;
           if (records.get(identity)?.parentId === "catalog:root") return [];
+          // A Components page card is a group of samples, not a component: its own outline only.
+          if (isPageCard(records.get(identity)?.sourceId)) return [];
           if (
             hoverLeavesMemo.identity !== identity ||
             hoverLeavesMemo.root !== workspace.root ||

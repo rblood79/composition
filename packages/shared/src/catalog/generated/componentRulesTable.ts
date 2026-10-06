@@ -9074,7 +9074,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     variants: {
+      // The track takes its owner's variant (`catalogDerivedProps`). Colors mirror the owner's DOM
+      //   custom properties (ProgressBar `composition`): `.bar` = `--track-color`, `.fill` =
+      //   `--fill-color` — default · accent: accent-subtle / accent, neutral: neutral-subtle /
+      //   neutral-subdued. `fillBar` is read by the `value_fill_bar` escape.
       default: {
+        fill: {
+          default: {
+            base: "{color.accent-subtle}",
+            hover: "{color.accent-subtle}",
+            pressed: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+        fillBar: "{color.accent}",
+      },
+      accent: {
+        fill: {
+          default: {
+            base: "{color.accent-subtle}",
+            hover: "{color.accent-subtle}",
+            pressed: "{color.accent-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+        fillBar: "{color.accent}",
+      },
+      neutral: {
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -9085,9 +9115,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        // ADR-912 선행-2: value 채움 막대 색 (value_fill_bar escape 가 읽음).
-        //   track 배경(fill.base = neutral-subtle) 위에 덧그리는 진행 막대.
-        fillBar: "{color.accent}",
+        fillBar: "{color.neutral-subdued}",
       },
     },
     sizes: {
@@ -11680,30 +11708,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // `indicator.dotSize`: the dot diameter (DOM inline style · Skia `status_light` · the Canvas
+    //   content width) — not emitted to CSS.
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 20,
         gap: 8,
+        indicator: { dotSize: 8 },
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 24,
         gap: 8,
+        indicator: { dotSize: 10 },
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 28,
         gap: 8,
+        indicator: { dotSize: 12 },
       },
       xl: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 32,
         gap: 8,
+        indicator: { dotSize: 14 },
       },
     },
     structure: {

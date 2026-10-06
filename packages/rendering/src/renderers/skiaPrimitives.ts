@@ -3190,7 +3190,7 @@ const illustratedMessage: SkiaPrimitiveDrawFn = ({
  *   는 ctx.size(rule sizes). DOM(StatusLight.tsx) 인라인 style 과 시각 대칭.
  */
 const statusLight: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
-  const dotSize = typeof size.dotSize === "number" ? size.dotSize : 10;
+  const dotSize = size.indicator?.dotSize ?? 10;
   const dotRadius = dotSize / 2;
   const gap = typeof size.gap === "number" ? size.gap : 8;
   const h = typeof size.height === "number" ? size.height : 24;

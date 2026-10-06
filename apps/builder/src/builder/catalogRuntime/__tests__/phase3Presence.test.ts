@@ -693,6 +693,28 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(header().derivedProps?.children).toBe(title("ja-JP"));
   });
 
+  it("lays a StatusLight out as its dot, gap and label (the DOM flex row), not the label alone", async () => {
+    const scene = await open(
+      "lib:definition:origin-component-statuslight" as DefinitionId,
+      "status-light",
+    );
+    const engine = new StyleLayoutEngine();
+    new CatalogCompositionRoot(
+      scene.runtime,
+      engine,
+      { width: 1440, height: 900 },
+      undefined,
+      undefined,
+      () => ({ width: 120, minWidth: 120, height: 20 }),
+    );
+    // md: dot 10 (rule `indicator.dotSize`) + gap 8 + the label's 120.
+    expect(
+      [...engine.styles.values()].filter(
+        (style) => style.contentMaxWidth === 138,
+      ),
+    ).toEqual([expect.objectContaining({ contentMinWidth: 138 })]);
+  });
+
   it("paints a Button's Icon and Text in the Button's text color in every state (Preview `.button-base > *` inherit)", async () => {
     const id = (name: string) => `project:node:${name}` as NodeId;
     const entry = (

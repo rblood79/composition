@@ -18,19 +18,20 @@ import {
   spacing,
   typography,
 } from "@composition/rendering";
+import { resolveCatalogRuleCanvasBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { catalogBuiltinOrigins } from "./layouts";
 import {
   catalogDefinitionTitle,
   catalogOriginOverride,
   isLibraryOrigin,
   isPageCard,
-  isPagePart,
   isThemeSample,
   ORIGIN_VIEW_NODE,
   originCardId,
   originInstanceId,
   originOfEditableSample,
   originOfPageInstance,
+  originPartsId,
   originSampleId,
   themeSampleId,
 } from "./originView";
@@ -45,8 +46,8 @@ import {
  * that draws every built-in component origin as a numbered card, in palette order over a few
  * columns, after the theme's cards (01–04: colors, type scale, icons, spacing — read from the
  * theme token tables in the workspace's color mode). A card shows the origin (◆ — its one editable sample: its props and styles are the
- * project's override of that origin, `originView` holds the edit rules), the origin taken apart
- * (its template's children), then its instances (◇): variants × states (a line per variant when
+ * project's override of that origin, `originView` holds the edit rules), its parts in place (the
+ * origin once more, each of its template's children outlined), then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
  * by side) and sizes. All of it is graph view entries (never saved, exported or indexed). The
  * Layers tree lists the page as card → origin, parts and instances (`catalogComponentsPageRows`).
@@ -60,6 +61,11 @@ export const COMPONENTS_PAGE_WIDTH =
   COLUMN_WIDTH * COLUMNS + GAP * (COLUMNS - 1) + PAGE_PADDING * 2;
 /** A composed origin's cell (a field, a list): wide enough to lay its parts out. */
 const COMPOSED_CELL_WIDTH = 240;
+/**
+ * Origins whose largest size is wider than the composed cell (a date range's two inputs do not
+ * shrink): their cell's width.
+ */
+const WIDER_CELL: Readonly<Record<string, number>> = { DateRangePicker: 360 };
 /** Icons the Icons card shows (those the registry holds). */
 const SAMPLE_ICONS = [
   "house", "search", "bell", "circle-user", "settings", "mail", "calendar",
@@ -112,6 +118,8 @@ interface OriginFacets {
   states: { id: LibraryDefinitionId; name: string }[];
   /** The origin's template has children (a composed component: drawn larger). */
   composed: boolean;
+  /** The origin fills its container's width (a field, a list): its cell is a fixed width. */
+  fills: boolean;
 }
 function originFacets(
   graph: CatalogGraph,
@@ -144,6 +152,12 @@ function originFacets(
       name: titleCase(id.slice(id.indexOf("--") + 2)),
     })),
     composed: (root?.children.length ?? 0) > 0,
+    fills:
+      (root?.visual?.width ??
+        resolveCatalogRuleCanvasBox(
+          String(root?.definitionId ?? "").replace("lib:definition:type-", ""),
+          undefined,
+        ).width) === "100%",
   };
 }
 
@@ -197,10 +211,12 @@ function originItems(
   const parts = item.root.children.flatMap((id) => {
     const child = library.templates.get(id as LibraryTemplateId);
     if (!child || !placeholder(child.props)) return [];
+    // The item's name: its first part that reads the owner's label, title or children (a
+    // ListBoxItem's label Text, a Disclosure's header).
     const label =
       !labelled &&
-      child.definitionId === "lib:definition:text" &&
-      (child.props?.slot === undefined || child.props.slot === "label");
+      typeof child.props?.children === "string" &&
+      /^\{(label|title|children)\}$/.test(child.props.children);
     labelled ||= label;
     return [
       { path: [item.rootId, id as LibraryTemplateId], label },
@@ -215,8 +231,8 @@ function originItems(
 }
 
 /**
- * An origin taken apart: its template's direct children, one of each kind in template order
- * (`count` of them; `instance` = the part is another origin's instance — a Toolbar's Button).
+ * An origin's parts: its template's direct children, one of each kind in template order (`count`
+ * of them; `instance` = the part is another origin's instance — a Toolbar's Button).
  */
 function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
   const library = graph.library;
@@ -225,64 +241,24 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
     origin && "templateRootId" in origin && origin.templateRootId
       ? library.templates.get(origin.templateRootId)
       : undefined;
-  const type = root
-    ? (library.definitions.get(root.definitionId as LibraryDefinitionId) as
-        | { defaults?: Readonly<Record<string, unknown>> }
-        | undefined)
-    : undefined;
-  // A part's `{prop}` value is its owner's prop: drawn alone, it reads the origin's own value
-  // (its template root's, else the type's default), else its own name.
-  const filled = (
-    props: Readonly<Record<string, unknown>> | undefined,
-    name: string,
-  ) =>
-    Object.fromEntries(
-      Object.entries(props ?? {}).map(([key, value]) => {
-        const owner =
-          typeof value === "string" ? /^\{(\w+)\}$/.exec(value)?.[1] : undefined;
-        const read = owner
-          ? (root?.props?.[owner] ?? type?.defaults?.[owner] ?? name)
-          : value;
-        return [key, set(typeof read === "object" ? name : read)];
-      }),
-    ) as NodeEntry["props"];
   const parts = new Map<
     string,
-    {
-      definitionId: NodeEntry["definitionId"];
-      name: string;
-      instance: boolean;
-      count: number;
-      props: NodeEntry["props"];
-      /** The template's own patches of the part (an item's label and icon), as the node's. */
-      overrides: (id: NodeId) => NodeEntry["descendantOverrides"];
-    }
+    { name: string; instance: boolean; count: number }
   >();
   for (const childId of root?.children ?? []) {
     const child = library.templates.get(childId as LibraryTemplateId);
     if (!child) continue;
     const known = parts.get(child.definitionId);
-    if (known) {
-      known.count += 1;
-      continue;
-    }
-    const definitionId = child.definitionId as LibraryDefinitionId;
-    parts.set(child.definitionId, {
-      definitionId,
-      name: catalogDefinitionTitle(graph, definitionId),
-      instance: isLibraryOrigin(definitionId),
-      count: 1,
-      props: filled(child.props, catalogDefinitionTitle(graph, definitionId)),
-      overrides: (id) =>
-        (child.descendantPatches ?? []).map((patch) => ({
-          kind: "patch" as const,
-          address: { instances: [id], templatePath: patch.templatePath },
-          ...(patch.props
-            ? { props: filled(patch.props, catalogDefinitionTitle(graph, definitionId)) }
-            : {}),
-          ...(patch.enabled === undefined ? {} : { enabled: patch.enabled }),
-        })),
-    });
+    if (known) known.count += 1;
+    else
+      parts.set(child.definitionId, {
+        name: catalogDefinitionTitle(
+          graph,
+          child.definitionId as LibraryDefinitionId,
+        ),
+        instance: isLibraryOrigin(child.definitionId),
+        count: 1,
+      });
   }
   return [...parts.values()];
 }
@@ -349,7 +325,6 @@ function readPageRows(
     position,
     (nodeId) =>
       originOfEditableSample(nodeId) !== undefined ||
-      isPagePart(nodeId) ||
       originOfPageInstance(nodeId) !== undefined ||
       isThemeSample(nodeId),
   );
@@ -576,7 +551,12 @@ export function catalogComponentsPageEntries(
           { fontSize: Number(size) },
           name,
         ),
-        `${mark} ${name} · ${size}px / ${lineHeights[`${name}--line-height`] ?? "-"}px`,
+        // `text-md` declares no line height of its own.
+        `${mark} ${name} · ${size}px${
+          lineHeights[`${name}--line-height`] === undefined
+            ? ""
+            : ` / ${lineHeights[`${name}--line-height`]}px`
+        }`,
       );
     const base = sizes.find(([name]) => name === TYPE_BASE) ?? sizes[0]!;
     card(
@@ -670,12 +650,21 @@ export function catalogComponentsPageEntries(
     const base = (...path: string[]) => part("origin", origin.id, ...path);
     // A composed origin without states (a field, a list) fills a fixed cell; a stateful one
     // (IconButton, Checkbox) is as small as a leaf.
-    const wide = facets.composed && facets.states.length === 0;
-    const cellWidth = wide ? COMPOSED_CELL_WIDTH : undefined;
+    const wide =
+      facets.composed && facets.states.length === 0 && facets.fills;
+    const cellWidth = wide
+      ? (WIDER_CELL[origin.name] ?? COMPOSED_CELL_WIDTH)
+      : undefined;
     // Estimated drawn height of a line of `count` cells (columns are balanced by it).
     const lineHeight = (count: number) => {
       const perLine = wide
-        ? Math.floor((COLUMN_WIDTH - CARD_PADDING * 2) / (COMPOSED_CELL_WIDTH + 16))
+        ? Math.max(
+            1,
+            Math.floor(
+              (COLUMN_WIDTH - CARD_PADDING * 2) /
+                ((WIDER_CELL[origin.name] ?? COMPOSED_CELL_WIDTH) + 16),
+            ),
+          )
         : 5;
       return Math.ceil(count / perLine) * (wide ? 220 : 64) + 30;
     };
@@ -733,31 +722,34 @@ export function catalogComponentsPageEntries(
       ]),
     ];
     let weight = 60 + lineHeight(1);
-    // The origin taken apart: its template's children, one of each kind.
+    // The origin's parts, in place: the origin drawn once more, each of its template's children
+    // outlined by the editor chrome (`catalogSlotMarks`) — a part drawn alone has lost what its
+    // owner gives it (its size, its text, its place). The caption names them (◇ = an instance
+    // of another origin).
     const parts = originParts(graph, origin.id);
     if (parts.length > 0) {
       rows.push(
-        row(
-          base("row", "parts"),
-          "Parts",
-          parts.map((item, at) =>
-            cell(
-              base("cell", `part-${at}`),
-              `${item.instance ? `${INSTANCE_MARK} ` : ""}${item.name}${
-                item.count > 1 ? ` ×${item.count}` : ""
-              }`,
-              fixed(
-                node(base("part", String(at)), item.definitionId, {
-                  name: item.name,
-                  props: item.props,
-                  descendantOverrides: item.overrides(base("part", String(at))),
-                }),
-              ),
+        row(base("row", "parts"), "Parts", [
+          cell(
+            base("cell", "parts"),
+            parts
+              .map(
+                (item) =>
+                  `${item.instance ? `${INSTANCE_MARK} ` : ""}${item.name}${
+                    item.count > 1 ? ` ×${item.count}` : ""
+                  }`,
+              )
+              .join(" · "),
+            fixed(
+              node(originPartsId(origin.id), origin.id, {
+                name: `${origin.name} / Parts`,
+              }),
             ),
+            cellWidth,
           ),
-        ),
+        ]),
       );
-      weight += 94;
+      weight += lineHeight(1);
     }
     const items = originItems(graph, origin.id, stateIds);
     if (items) {

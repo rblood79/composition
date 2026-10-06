@@ -23,6 +23,7 @@ import {
   resolveCatalogRuleCanvasBox,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { isDelegatedSubpartChild } from "../resolvers/resolveDelegatedChildFontSize";
+import { resolveTriggerIconSize } from "../resolvers/resolveTriggerIconSize";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { manualBoxRule } from "./manualBoxRules";
 import type { LayoutField, Scalar, VisualField } from "./types";
@@ -63,7 +64,8 @@ const SUBPART_TOKENS: Readonly<
   NumberField: {
     SelectTrigger: [".react-aria-Group"],
     SelectValue: [".react-aria-Input"],
-    SelectIcon: [".react-aria-Button"],
+    // `… svg`: the stepper glyph's own size (`--nf-btn-icon-size`), smaller than its button.
+    SelectIcon: [".react-aria-Button", ".react-aria-Button svg"],
   },
   SearchField: {
     SelectTrigger: [".searchfield-container"],
@@ -1383,6 +1385,7 @@ export function compileRulePartRules(
     }
   }
   out.push(...containerVariantPartRules(parentType, rule, rootVariables));
+  out.push(...triggerGlyphPartRules(parentType, rule));
   // Generated `[data-size]` selectors never match a root without that attribute: only the default
   // size's values apply, for every size (manual parts keep their real size keys).
   if (manual?.rootSizeAttribute !== undefined)
@@ -1393,6 +1396,31 @@ export function compileRulePartRules(
       return [unsized];
     });
   return out;
+}
+
+/**
+ * Owners whose DOM sizes the trigger glyph in JS from their own `size`
+ * (`resolveTriggerIconSize(size)` → the svg's width/height — no CSS declaration to compile).
+ */
+const TRIGGER_GLYPH_OWNERS: ReadonlySet<string> = new Set([
+  "Select",
+  "ComboBox",
+  "DatePicker",
+  "DateRangePicker",
+]);
+/** The trigger glyph (`SelectIcon` under the trigger) at each owner size: the same scale. */
+function triggerGlyphPartRules(
+  parentType: string,
+  rule: ComponentRule,
+): CompiledPartRule[] {
+  if (!TRIGGER_GLYPH_OWNERS.has(parentType)) return [];
+  return Object.keys(rule.sizes).map((size) => ({
+    childType: "SelectIcon",
+    via: "SelectTrigger",
+    size,
+    layout: {},
+    visual: { iconSize: resolveTriggerIconSize(size) },
+  }));
 }
 
 /**

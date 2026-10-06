@@ -74,6 +74,8 @@ export interface CatalogOverlayInputs {
     role: EditingSemanticsRole;
     /** The slot's record: its chrome is cut where a later-painted page covers its page. */
     identity?: string;
+    /** A drawn part's region (the Components page): its own box, no empty-slot band. */
+    region?: true;
   }[];
   /**
    * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with
@@ -227,7 +229,9 @@ export function catalogOverlayNode(
         identity ? inputs.occluders?.(identity) : undefined;
       for (const slot of inputs.slots?.() ?? []) {
         // An empty slot has no height of its own: show a band the author can see and pick.
-        const band = Math.max(slot.box.height, 48 / zoom);
+        const band = slot.region
+          ? slot.box.height
+          : Math.max(slot.box.height, 48 / zoom);
         withOccluders(ck, canvas, occludersOf(slot.identity), () =>
           renderSlotHatchPattern(
             ck,
