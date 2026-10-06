@@ -12,7 +12,12 @@ Proposed — 2026-10-06
 
 이 ADR 은 [ADR-923](completed/923-layout-vocabulary-closure.md) Phase 5 후속의 내부 부품 판정 (2026-09-03, 사용자 판정 A × 2 — [evidence](evidence/923-phase5-followup-subpart-extension.md)) 을 고친다. 그 판정은 「Preview 가 부모 값만으로 그리므로 부품의 편집을 부모로 돌린다」 였고, 이 ADR 은 Preview 가 부품을 직접 그리게 해서 그 전제를 없앤다. 원본 template 구조가 바뀌므로 [ADR-251](completed/251-radio-checkbox-items-node-restore.md) 과 같은 방식으로 library contract version 을 올린다.
 
-**사용자 확인이 필요한 항목** (Accepted 전): ① 실행 범위 — Phase 4 (Select · ComboBox) 와 Phase 5 (바탕 사슬) 를 이 ADR 에 둘지 ② 부품마다 다른 현재 값을 하나로 모을 때 생기는 화면 차이 목록 (G0 산출물) 의 승인 ③ contract 2 로 저장된 개발용 프로젝트를 거부하는 전제 (ADR-248 HC3 · ADR-251 선례) 의 재확인.
+**사용자 확인 (2026-10-06)** — 세 항목 모두 답을 받았다 (4 는 2 의 보충).
+
+1. 실행 범위: 「지금은 한 ADR 안에 단계로 두어도 문제가 발생하지 않는다면 그대로 진행」 — Phase 4 · 5 를 이 ADR 에 둔다. 문제가 생기지 않는 근거: 두 Phase 는 각자의 Gate (G4 · G5) 와 「그 Phase 만 미룬다」 는 후퇴안이 있어 앞 Phase 의 종결을 막지 않고, template 이 바뀌는 병합마다 contract version 을 올리므로 (Decision 9) 저장 포맷이 Phase 사이에 어긋나지 않는다.
+2. 값 차이 처리: 「RAC 레퍼런스 값 기준으로」 · 「RAC starter 보다 https://react-aria.adobe.com 레퍼런스 사이트에서」 — 부모마다 다른 값은 react-aria.adobe.com 의 Vanilla CSS 예제가 그 부품을 다루는 방식으로 모은다 (Decision 3 · breakdown §2-2).
+3. contract 2 프로젝트 거부: 「상관없다. 개발단계인데 무시해도된다」.
+4. 레퍼런스 값의 위치: 「레퍼런스는 스타일 일뿐이고 default theme값일 뿐이다」 — 레퍼런스 값을 부품의 기본값으로 그대로 쓰고 항목별 예외를 두지 않는다 (Label 굵기 · Select trigger 포함).
 
 ## Context
 
@@ -44,12 +49,12 @@ Proposed — 2026-10-06
 
 ### 참고한 재사용 패턴
 
-| 패턴               | pen.dev (`pencil-shadcn.pen`, 2026-10-06 조회)                                                                                   | RAC 1.21.0 (설치본)                                              | 지금                             |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------- |
-| 항목 재사용        | `Tab Item/Active` 원본 → `Inactive` 는 그 instance → `Tabs` slot 이 두 항목을 허용 → 사용처가 항목 instance 로 채움              | TabList 의 정적 `<Tab>` 자식                                     | 적용됨 (ADR-234 · 237 ~ 241)     |
-| 기본 부품 재사용   | Pagination 의 ← → 는 `Button/Large/Ghost` 의 instance                                                                            | Label · Input · Button · FieldError 를 모든 field 가 조합해 쓴다 | 없음 (F5 · F10)                  |
-| 안에 넣는 컴포넌트 | —                                                                                                                                | Select · ComboBox 안의 ListBox, DatePicker 안의 Calendar         | 구조만 일부 (Calendar), DOM 은 0 |
-| 바탕 재사용 사슬   | `Card` (빈 slot 3) → `Dialog` · `Modal/Left` = Card instance + slot 채움 (다시 원본) → `Modal/Center` = `Modal/Left` 의 instance | Modal · Popover 안의 Dialog                                      | 없음 (F12 · F13)                 |
+| 패턴               | pen.dev (`pencil-shadcn.pen`, 2026-10-06 조회)                                                                                   | RAC 1.21.0 (설치본)                                                                                                                                                                             | 지금                             |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| 항목 재사용        | `Tab Item/Active` 원본 → `Inactive` 는 그 instance → `Tabs` slot 이 두 항목을 허용 → 사용처가 항목 instance 로 채움              | TabList 의 정적 `<Tab>` 자식                                                                                                                                                                    | 적용됨 (ADR-234 · 237 ~ 241)     |
+| 기본 부품 재사용   | Pagination 의 ← → 는 `Button/Large/Ghost` 의 instance                                                                            | Label · Input · Button · FieldError 를 모든 field 가 조합해 쓴다. 레퍼런스 사이트 예제는 `Form` 모듈 하나가 Label · FieldError · Description · FieldButton 을 정의하고 field 10종이 가져다 쓴다 | 없음 (F5 · F10)                  |
+| 안에 넣는 컴포넌트 | —                                                                                                                                | Select · ComboBox 안의 ListBox, DatePicker 안의 Calendar. 레퍼런스 사이트 예제도 Select · ComboBox 가 `ListBox` 모듈을, DatePicker 가 `Calendar` 모듈을 가져다 쓴다                             | 구조만 일부 (Calendar), DOM 은 0 |
+| 바탕 재사용 사슬   | `Card` (빈 slot 3) → `Dialog` · `Modal/Left` = Card instance + slot 채움 (다시 원본) → `Modal/Center` = `Modal/Left` 의 instance | Modal · Popover 안의 Dialog                                                                                                                                                                     | 없음 (F12 · F13)                 |
 
 pen.dev 는 구조를 그대로 옮길 대상이 아니다 (사용자 지시). 예: Pagination 의 번호 slot 은 이 ADR 의 범위가 아니다.
 
@@ -64,8 +69,8 @@ Generator 선언 (ADR 작성 규칙 #2): 생성기는 자식 selector 를 이미
 ### 제약
 
 - **hard — 시각 계약**: ADR-248 G3 수치 그대로. Canvas ↔ DOM geometry ≤ 1 CSS px, 비텍스트 픽셀 차이 ≤ 0.001.
-- **hard — 의도한 화면 변화만**: F3 의 값을 하나로 모으면 일부 컴포넌트의 모습이 바뀐다. 바뀌는 목록은 G0 에서 고정하고 사용자가 승인한 것만 허용한다. 그 밖의 변화는 0.
-- **hard — 저장 포맷 (BC 수식)**: template 위치 id 와 정의 id 가 바뀐다. `LIBRARY_CONTRACT_VERSION` 2 → 3 (`D/types.ts:10`). contract 2 로 저장된 개발용 프로젝트는 **전부** 열리지 않는다. 변환 · 재직렬화 0 파일. 보존 대상 프로젝트 0 (ADR-248 HC3) 이 전제이고 사용자 재확인 대상이다.
+- **hard — 의도한 화면 변화만**: F3 의 값을 하나로 모으면 일부 컴포넌트의 모습이 바뀐다. 모으는 기준은 react-aria.adobe.com 레퍼런스 예제다 (사용자 결정). G0 에서 그 기준으로 바뀌는 목록을 고정하고, 목록 밖의 변화는 0 이다. 레퍼런스 값은 부품의 기본 theme 값이다 (사용자 「레퍼런스는 스타일 일뿐이고 default theme값일 뿐이다」) — 권위가 아니고 원본에서 고치면 전체가 바뀌므로, 기본값으로 그대로 쓰고 항목별 예외를 두지 않는다. 값은 우리 token 으로 적고 token 의 수치는 theme 이 정한다. 레퍼런스에 없는 것 (크기 xs · sm · lg · xl 단계 · quiet 변형) 은 부품 자신의 rule 값을 쓴다.
+- **hard — 저장 포맷 (BC 수식)**: template 위치 id 와 정의 id 가 바뀐다. `LIBRARY_CONTRACT_VERSION` 2 → 3 (`D/types.ts:10`). contract 2 로 저장된 개발용 프로젝트는 **전부** 열리지 않는다. 변환 · 재직렬화 0 파일. 보존 대상 프로젝트 0 (ADR-248 HC3) 이 전제다 — 사용자 확인 3.
 - **hard — 성능**: ADR-246 ratchet A등급 증가 0. 부품이 원본의 instance 가 되면 해석 단계가 부품마다 한 층 늘어난다 — `scene.build` 증가는 G6 에서 잰다 (ADR-234 G4 가 같은 종류의 비용으로 +2 ms 대를 기록했다).
 - **hard — 번들**: Builder initial ≤ 1,421,000 · Preview ≤ 623,000 (ADR-201 재승인, 만료 2026-10-25). `apps/publish` 수정 0.
 - **soft**: Skia 전용 시각 효과 0. 구조 전환은 worktree 에서 phase 별로 커밋하고 Gate 통과 뒤 main 에 병합한다 (ADR-251 Decision 7 방식).
@@ -75,7 +80,8 @@ Generator 선언 (ADR 작성 규칙 #2): 생성기는 자식 selector 를 이미
 외부 사례:
 
 - **RAC** (설치본 실측): 조합이 설계의 중심이다. Select · ComboBox 가 `ListBoxContext` 를, DatePicker 가 `CalendarContext` · `DialogContext` 를 제공하고, `ButtonContext` 는 14개 · `InputContext` 는 7개 컴포넌트가 쓴다. 부품의 스타일은 부품 자신의 className 으로 준다.
-- **React Spectrum S2**: field 부품 (FieldLabel · FieldGroup · HelpText) 을 한 모듈에 두고 TextField · NumberField · Picker · ComboBox · DatePicker 가 가져다 쓴다 (공개 소스 기준 지식 — G0 에서 재확인).
+- **react-aria.adobe.com 레퍼런스 예제** (Vanilla CSS, 2026-10-06 조회 — 각 컴포넌트 문서의 `.md`): `Form.tsx` · `Form.css` 가 Label · FieldError · Description · FieldButton 을 한 번 정의하고 TextField · ColorField · SearchField · NumberField · ComboBox · Select · DateField · TimeField · DatePicker · DateRangePicker 가 가져다 쓴다. Input · TextArea 는 `TextField.css` 한 곳, DateInput 은 `DateField.css` 한 곳에 있다. field 상자의 칠 (`inset`) 은 공용 정의 하나를 Input · TextArea · DateInput · DateRangePicker 의 Group 이 쓴다. 부모가 덧붙이는 것은 배치와 몇 개의 명시 차이뿐이다 (ComboBox 는 버튼 자리 padding, NumberField 는 맞닿는 쪽 모서리 0, SearchField 는 둥근 모서리). 이 예제는 D1 의 권위가 아니고 (D1 정본 = 설치된 패키지), 여기서는 D3 값 차이를 모으는 기준으로만 쓴다.
+- **React Spectrum S2**: field 부품 (FieldLabel · FieldGroup · HelpText) 을 한 모듈에 두고 TextField · NumberField · Picker · ComboBox · DatePicker 가 가져다 쓴다 (공개 소스 기준 지식 — 판정 근거로는 쓰지 않는다).
 - **pen.dev**: 위 표. 원본을 고치면 instance 전부가 따라오고, 달라야 하는 값만 instance 의 override 로 적는다.
 - **Figma**: 컴포넌트 안에 다른 컴포넌트의 instance 를 중첩하고, 안쪽 instance 의 속성을 바깥으로 노출한다. main 컴포넌트를 고치면 전 instance 에 반영된다.
 - **Material 3 · Spectrum 의 component token**: 부품 단위 값을 token 으로 두고 (`label 글자 크기` 등) 컴포넌트들이 그 token 을 읽는다. 구조 재사용 없이 값만 한 곳에 모으는 방식이다.
@@ -111,7 +117,7 @@ Generator 선언 (ADR 작성 규칙 #2): 생성기는 자식 selector 를 이미
 
 HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ (DOM 이 자식을 그림) 를 빼고 B 의 stylesheet 채널을 쓴다」 — 기술 위험은 MEDIUM 으로 내려가지만 F6 의 어긋남 (자식 값이 Canvas 에만 보임) 을 남기고 채널이 둘이 된다. 그래서 A 의 실패 시 후퇴안으로만 둔다.
 
-별도 ADR 분리 가능성 (작성 규칙 부차 질문): ⑤ (Select · ComboBox) 와 ⑥ (바탕 사슬) 은 ① ~ ④ 없이도 정의할 수 있어 분리할 수 있다. 다만 셋 다 「원본을 instance 로 재사용하고 DOM 이 그 노드를 그린다」 는 한 결정의 적용이고 같은 contract version 을 올린다. 분리는 결정 지점 ① 이라 이 문서에서 정하지 않고 Phase 와 Gate 로 나눠 두었다 — Status 의 확인 항목 ①.
+별도 ADR 분리 가능성 (작성 규칙 부차 질문): ⑤ (Select · ComboBox) 와 ⑥ (바탕 사슬) 은 ① ~ ④ 없이도 정의할 수 있어 분리할 수 있다. 다만 셋 다 「원본을 instance 로 재사용하고 DOM 이 그 노드를 그린다」 는 한 결정의 적용이고 같은 contract version 을 올린다. 사용자가 한 ADR 안의 Phase 로 두기로 정했다 (확인 1).
 
 ## Decision
 
@@ -120,17 +126,17 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 결정 내용:
 
 1. **단위는 원본이다.** 사용자가 Components page 에서 고치는 것은 원본이고, 그 원본의 instance 는 어디에 있든 따라온다. 원본에 쓴 스타일이 instance 루트까지 닿게 한다 (F7 수리). 이것은 Label 같은 새 원본뿐 아니라 지금 있는 Button 등 전 원본에 해당한다.
-2. **부품은 원본의 instance 다.** Label · Input · FieldError · Description 원본을 팔레트 밖 원본으로 등록하고 (`NESTED_REUSABLE_ORIGIN_TYPES` — Radio 선례), field 계열 template 의 부품 자리를 그 instance 로 바꾼다. field 안의 Button (NumberField 증감 · Select trigger · picker 버튼) 은 Button 원본의 instance 로 바꾼다.
-3. **모양은 부품이 정하고, 부모는 배치만 정한다.** 부모 rule 의 delegation 에서 부품의 모양 선언 (글자 크기 · 굵기 · 색 · 테두리 · 모서리 · 배경) 을 걷어내 부품 rule 로 모은다. 부모 안에서 실제로 달라야 하는 모양 (예: ComboBox 안의 Input 은 테두리가 없다) 은 template 의 그 자리에 명시 patch 로 적는다 — 숨은 차이가 아니라 적힌 차이가 된다.
+2. **부품은 원본의 instance 다.** Label · Input · FieldError · Description 원본을 팔레트 밖 원본으로 등록하고 (`NESTED_REUSABLE_ORIGIN_TYPES` — Radio 선례), field 계열 template 의 부품 자리를 그 instance 로 바꾼다. field 안의 버튼은 레퍼런스 예제의 구분을 따른다: NumberField 증감 · Select trigger 는 Button 원본의 instance (secondary), ComboBox · DatePicker · DateRangePicker 의 버튼은 FieldButton 원본 하나의 instance 다. FieldButton 은 Button 원본의 instance 에 모양 patch 를 얹은 원본이다 (상태 변형 원본과 같은 형태 — library 가 이미 표현한다).
+3. **모양은 부품이 정하고, 부모는 배치만 정한다.** 부모 rule 의 delegation 에서 부품의 모양 선언 (글자 크기 · 굵기 · 색 · 테두리 · 모서리 · 배경) 을 걷어내 부품 rule 로 모은다. 부모마다 다르던 값은 레퍼런스 예제가 그 부품을 다루는 방식으로 정한다 (사용자 결정 — 항목별 처리는 breakdown §2-2). 부모 안에서 실제로 달라야 하는 모양은 template 의 그 자리에 명시 patch 로 적는다 — 숨은 차이가 아니라 적힌 차이가 된다.
 4. **값의 순서**: 부품 정의 → 부모가 주는 배치 → 부품 원본에 대한 프로젝트 override → template 자리의 명시 patch → instance 가 쓴 값. 부모의 partRule 이 부품 원본의 override 를 덮지 않는다.
 5. **두 렌더 경로가 같은 노드를 그린다.** Preview · Publish DOM 은 field 의 부품을 자식 노드에서 그린다 (RAC 조합). 부모의 `label` · `description` · `errorMessage` 는 template 의 자리표시 (`{label}`) 로 부품에 내려간다. 결과 DOM 구조는 지금과 같다.
 6. **편집 범위**: 부품의 텍스트는 계속 부모의 prop 이 정본이다 (D2). 부품의 스타일은 부품 instance 에서 고칠 수 있고 두 경로에 똑같이 보인다. 패널의 「부모에서 편집하세요」 안내는 텍스트 축에만 남긴다 (SelectValue 의 축 분리 선례 — `resolveSubpartStyleOwnerType`).
 7. **안에 넣는 컴포넌트**: Select · ComboBox 는 ListBox 원본의 instance 를 갖고 항목은 그 ListBox 의 slot 에 놓인다. Preview 의 선택 목록은 그 항목에서 나온다 (F11 수리).
 8. **바탕 사슬**: Dialog · Popover 의 제목 · 설명 · 버튼 줄을 공용 바탕 원본에서 받는다. library 가 「원본의 instance + slot 채움」 을 표현할 수 있어야 하므로 (F12), G5 에서 가능 여부를 먼저 판정하고 불가하면 이 항목만 미룬다.
-9. `LIBRARY_CONTRACT_VERSION` 을 3 으로 올린다. contract 2 문서는 거부한다. 변환 코드는 만들지 않는다.
+9. template 구조가 처음 바뀌는 병합 (Phase 2) 에서 `LIBRARY_CONTRACT_VERSION` 을 3 으로 올리고, 그 뒤 template 구조가 다시 바뀌는 병합마다 한 번씩 더 올린다. 앞 버전 문서는 거부한다. 변환 코드는 만들지 않는다 (사용자 확인 3).
 10. 범위 밖: 원본 template 의 slot 을 데이터에서 비우는 일 (2026-10-06 「지금 구조 유지해」) · Pagination 번호 slot · Section 3종의 감싸는 노드 · owner 가 그리는 부품 (Checkbox indicator · TreeItem chevron — 2026-10-04 판정 유지).
 
-위험 수용 근거: A 의 HIGH 는 「DOM 조립 방식을 바꾸면서 결과를 그대로 유지」 하는 것과 「값 순서 변경」 두 가지다. 둘 다 부품 하나 × 부모 하나 (Label × TextField) 로 끝까지 통과시켜 볼 수 있다 — 원본 편집 → Canvas record → Preview DOM 의 computed style 까지. 같은 조합 방식이 이미 동작하는 곳이 있다 (Dialog · Card 는 자식 노드를 각자의 binding 으로 그린다 — `S/components/Dialog.tsx:22-57` · `X/delegatedDom.tsx:1248-1277`). G2 가 실패하면 대안 B 의 stylesheet 채널로 물러나고 ④ 는 접는다. 마이그레이션 위험은 ADR-251 과 같은 전제 (보존 대상 0) 로 수용하며 사용자 재확인을 조건으로 둔다.
+위험 수용 근거: A 의 HIGH 는 「DOM 조립 방식을 바꾸면서 결과를 그대로 유지」 하는 것과 「값 순서 변경」 두 가지다. 둘 다 부품 하나 × 부모 하나 (Label × TextField) 로 끝까지 통과시켜 볼 수 있다 — 원본 편집 → Canvas record → Preview DOM 의 computed style 까지. 같은 조합 방식이 이미 동작하는 곳이 있다 (Dialog · Card 는 자식 노드를 각자의 binding 으로 그린다 — `S/components/Dialog.tsx:22-57` · `X/delegatedDom.tsx:1248-1277`). G2 가 실패하면 대안 B 의 stylesheet 채널로 물러나고 ④ 는 접는다. 마이그레이션 위험은 ADR-251 과 같은 전제 (보존 대상 0) 로 수용한다 — 사용자 확인 3.
 
 기각 사유:
 
@@ -146,11 +152,11 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | R1  | DOM 구조가 달라짐 — `ownsAll` 을 자식 렌더로 바꾸면 조건부 부품 (label 이 비면 Label 없음 · FieldError 는 invalid 일 때만 · necessity 표시) 이 어긋날 수 있다 (`X/delegatedDom.tsx:752-771` · `S/components/TextField.tsx:107-115` · `X/presence.ts:204-221`) |  HIGH  | G2 · G3 — 전환 전후 DOM 구조 대조 (요소 · class · ARIA 속성 · 순서) 를 부모 × 상태 조합으로. 부품의 있음/없음은 Canvas 와 같은 presence 규칙 하나를 읽는다 |
 | R2  | 값 순서 변경의 파급 — 부모 partRule 이 부품 override 를 덮지 않게 하면 partRule 에 기대던 다른 부품 (Tab · RadioItems 등) 의 값이 바뀔 수 있다 (`resolver.ts:461-505` `applyTypedRules` · `:620-633` · `D/rulePartRules.ts:1230-1300`)                        |  HIGH  | G1 — 순서 표를 unit 으로 고정하고 ADR-248 G3 하니스 전 case 를 돌려 승인 차이 증가 0. 배치 키와 모양 키를 나누는 목록을 G0 에서 고정                       |
-| R3  | 의도하지 않은 화면 변화 — delegation 의 모양 선언을 걷어내면 F3 의 값 차이가 사라진다. 어떤 것은 의도한 차이일 수 있다 (`T:13623` · `T:3264` · `T:4218` · `T:10571`)                                                                                          |  HIGH  | G0 에서 부품 × 부모 값 대조표를 만들고 「하나로 모음 / 명시 patch 로 남김」 을 항목마다 정해 사용자 승인. G3 는 승인 목록 밖 차이 0                        |
+| R3  | 의도하지 않은 화면 변화 — delegation 의 모양 선언을 걷어내면 F3 의 값 차이가 사라진다. 어떤 것은 의도한 차이일 수 있다 (`T:13623` · `T:3264` · `T:4218` · `T:10571`)                                                                                          |  HIGH  | 기준은 레퍼런스 예제 (사용자 결정). G0 에서 그 기준으로 부품 × 부모 변화 목록을 고정한다. G3 는 목록 밖 차이 0                                             |
 | R4  | 해석 비용 — 부품마다 instance 한 층. field 가 많은 Form 에서 `scene.build` 가 는다 (`resolver.ts:1118-1164`)                                                                                                                                                  |  MED   | G6 — ratchet A등급 증가 0 · 600 요소 seed 의 `scene.build` Δ 측정. 초과 시 ADR-234 의 해석 재사용 (같은 원본의 instance 는 한 번만 푼다) 을 부품에 적용    |
 | R5  | library 표현력 — 바탕 사슬은 template 이 fillSlot 을 가져야 한다 (`D/types.ts:654-680`). 프로젝트 정의 쪽도 template 노드 자신의 override 는 해석 때 읽지 않는다 (`resolver.ts:942-944`)                                                                      |  MED   | G5 — Phase 5 착수 전 go/no-go. 불가하면 Decision 8 만 미루고 나머지는 닫는다                                                                               |
 | R6  | 자리표시가 원본 instance 자식에 쓰인 적이 없다 — `{label}` 은 지금 type 노드에만 있다 (0건). 구조 편집 때 그런 자리는 `POSITION_HAS_TEMPLATE_BINDING` 으로 막힌다 (`resolver.ts:991-996` · `S/catalog/commands/materialize.ts:244-245`)                       |  MED   | G2 — `{label}` 이 Label instance 의 텍스트로 내려가는 것을 unit + live 로 확인. 부품 자리는 구조 편집 대상이 아니므로 막힘은 의도와 같다                   |
-| R7  | contract 2 프로젝트 전부 거부 · contract 2 위치 id 를 쓰는 테스트와 G3 승인 기록                                                                                                                                                                              |  MED   | 의도된 동작 (사용자 재확인 조건). 테스트 · 승인 기록은 새 id 로 고친다                                                                                     |
+| R7  | contract 2 프로젝트 전부 거부 · contract 2 위치 id 를 쓰는 테스트와 G3 승인 기록                                                                                                                                                                              |  MED   | 의도된 동작 (사용자 확인 3). 테스트 · 승인 기록은 새 id 로 고친다                                                                                          |
 | R8  | 패널 안내 · AI 도구가 옛 판정을 읽는다 — `R/subpart.ts` · `apps/builder/src/builder/panels/delegatedSubpart.ts` · `apps/builder/src/services/ai/tools/updateElement.ts:26-43`                                                                                 |  MED   | Phase 3 에서 술어를 텍스트 축 · 스타일 축으로 나누고 소비처 4곳을 같이 고친다. `.claude/rules/ssot-hierarchy.md` 의 sub-part 절 갱신                       |
 | R9  | library 생성 파일 직접 편집 — `reusableOriginLibrary.ts` 를 손으로 고친다 (생성 스크립트 삭제됨)                                                                                                                                                              |  LOW   | library 검증 (`buildCodeCatalogLibrary`) 이 구조 오류를 잡는다. template 편집은 스크립트로 일괄 적용하고 diff 를 검토                                      |
 
@@ -158,16 +164,16 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 
 측정 조건: 대상은 팔레트가 만드는 실제 원본 instance (합성 fixture 아님). 불리한 경우 = field 계열 × size xl × labelPosition side × invalid + description. oracle = 실제 브라우저의 DOM 과 `getComputedStyle` (Canvas ↔ DOM), 시스템 자신의 재생성값이 아니다. 대조군 = 전환 전 빌드 (별도 worktree) 의 같은 문서 · 같은 조합이고, 성능은 전환 전후 교대 3쌍으로 잰다. 기록 항목: 기기 · DPR · 탭 `visibilityState`.
 
-| Gate | 시점            | 통과 조건                                                                                                                                                                                                                                                        | 실패 시 대안                                                 |
-| ---- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| G0   | 착수 전         | 인벤토리 고정: ① 부품 × 부모 값 대조표와 항목별 처리 (모음 / 명시 patch) — 사용자 승인 ② 자식을 그리지 않는 DOM binding 전수 ③ 배치 키 · 모양 키 목록 ④ live 재현 — 원본 스타일 편집이 instance 에 안 닿음 (F7) · Preview Select 목록 (F11) ⑤ S2 사례 재확인     | 목록이 breakdown §2 의 1.5배를 넘으면 breakdown 보강 후 진행 |
-| G1   | Phase 1         | 원본에 쓴 스타일이 page 에 놓은 instance 와 다른 원본 안의 instance (Toolbar · ButtonGroup · Pagination) 의 Canvas record · Preview DOM 에 닿는다 (원복 RED). 값 순서 표 unit. G3 하니스 전 case 승인 차이 증가 0 (R2)                                           | 순서 변경을 부품 type 한정으로 좁힌다                        |
-| G2   | Phase 2         | 수직 절단 Label × TextField: Label 원본의 굵기 · 색 · 글자 크기를 고치면 TextField 안 Label 이 Canvas 와 Preview 에서 같이 바뀐다 (live). `label` prop 이 Label 텍스트로 내려간다. 전환 전후 TextField DOM 구조 동일. G3 하니스 TextField 전 case PASS (R1 · R6) | 대안 B 의 stylesheet 채널로 후퇴하고 Decision 5 를 접는다    |
-| G3   | Phase 3         | 전 부품 × 전 부모: 부모 delegation 에 부품의 모양 선언 0 (정적 테스트 — 허용 목록 = 배치 키) · DOM 구조 대조 PASS · G3 하니스 PASS 이고 차이는 G0 승인 목록과 같다 (R1 · R3)                                                                                     | 통과한 부모만 반영하고 나머지는 다음 phase 로                |
-| G4   | Phase 4         | Select · ComboBox: Preview 의 선택 목록 = Canvas 의 항목 (추가 · 삭제 · 텍스트 변경이 양쪽에 반영). ListBox 원본의 스타일 편집이 Select 의 목록에 닿는다                                                                                                         | Phase 4 만 미룬다                                            |
-| G5   | Phase 5 착수 전 | library 가 「원본의 instance + slot 채움」 을 표현한다 (타입 · 검증 · 해석 unit). Dialog · Popover 의 DOM · Canvas 가 전환 전과 같다 (R5)                                                                                                                        | Decision 8 을 미루고 ADR 을 닫는다 (후속은 사용자 결정)      |
-| G6   | 각 Phase 끝     | ADR-246 ratchet A등급 증가 0 · `scene.build` Δ 기록 · initial 번들 상한 안 (R4)                                                                                                                                                                                  | 해석 재사용 적용. 그래도 넘으면 사용자 판정                  |
-| G7   | 종결            | 사용자 확인 — Components page 에서 Label · Input · Button 원본을 고쳐 Builder 와 Preview 전체가 한 세트로 바뀌는 것                                                                                                                                              | —                                                            |
+| Gate | 시점            | 통과 조건                                                                                                                                                                                                                                                                                                                                  | 실패 시 대안                                                 |
+| ---- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| G0   | 착수 전         | 인벤토리 고정: ① 레퍼런스 예제 기준으로 만든 부품 × 부모 변화 목록 (breakdown §2-2 를 px 단위로 전개) ② 자식을 그리지 않는 DOM binding 전수 ③ 배치 키 · 모양 키 목록 ④ live 재현 — 원본 스타일 편집이 instance 에 안 닿음 (F7) · Preview Select 목록 (F11) ⑤ 레퍼런스가 정하지 않는 항목 (크기 단계 · quiet) 의 값 = 부품 rule 값임을 확인 | 목록이 breakdown §2 의 1.5배를 넘으면 breakdown 보강 후 진행 |
+| G1   | Phase 1         | 원본에 쓴 스타일이 page 에 놓은 instance 와 다른 원본 안의 instance (Toolbar · ButtonGroup · Pagination) 의 Canvas record · Preview DOM 에 닿는다 (원복 RED). 값 순서 표 unit. G3 하니스 전 case 승인 차이 증가 0 (R2)                                                                                                                     | 순서 변경을 부품 type 한정으로 좁힌다                        |
+| G2   | Phase 2         | 수직 절단 Label × TextField: Label 원본의 굵기 · 색 · 글자 크기를 고치면 TextField 안 Label 이 Canvas 와 Preview 에서 같이 바뀐다 (live). `label` prop 이 Label 텍스트로 내려간다. 전환 전후 TextField DOM 구조 동일. G3 하니스 TextField 전 case PASS (R1 · R6)                                                                           | 대안 B 의 stylesheet 채널로 후퇴하고 Decision 5 를 접는다    |
+| G3   | Phase 3         | 전 부품 × 전 부모: 부모 delegation 에 부품의 모양 선언 0 (정적 테스트 — 허용 목록 = 배치 키) · DOM 구조 대조 PASS · G3 하니스 PASS 이고 차이는 G0 승인 목록과 같다 (R1 · R3)                                                                                                                                                               | 통과한 부모만 반영하고 나머지는 다음 phase 로                |
+| G4   | Phase 4         | Select · ComboBox: Preview 의 선택 목록 = Canvas 의 항목 (추가 · 삭제 · 텍스트 변경이 양쪽에 반영). ListBox 원본의 스타일 편집이 Select 의 목록에 닿는다                                                                                                                                                                                   | Phase 4 만 미룬다                                            |
+| G5   | Phase 5 착수 전 | library 가 「원본의 instance + slot 채움」 을 표현한다 (타입 · 검증 · 해석 unit). Dialog · Popover 의 DOM · Canvas 가 전환 전과 같다 (R5)                                                                                                                                                                                                  | Decision 8 을 미루고 ADR 을 닫는다 (후속은 사용자 결정)      |
+| G6   | 각 Phase 끝     | ADR-246 ratchet A등급 증가 0 · `scene.build` Δ 기록 · initial 번들 상한 안 (R4)                                                                                                                                                                                                                                                            | 해석 재사용 적용. 그래도 넘으면 사용자 판정                  |
+| G7   | 종결            | 사용자 확인 — Components page 에서 Label · Input · Button 원본을 고쳐 Builder 와 Preview 전체가 한 세트로 바뀌는 것                                                                                                                                                                                                                        | —                                                            |
 
 ### Live Exercise
 
@@ -181,6 +187,7 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 - 부품의 모양 정본이 하나가 된다. 부모마다 조금씩 다르던 값 (F3) 이 없어지거나, 적힌 차이로 남는다.
 - Canvas 와 DOM 이 같은 노드 집합을 그린다. 「자식에 쓴 값이 Canvas 에만 보이는」 종류의 어긋남과 그것을 가리던 패널 특례가 없어진다.
 - Preview 의 Select · ComboBox 목록이 문서의 항목에서 나온다.
+- Select 와 ComboBox 가 모양으로 구분된다. 지금은 둘 다 입력 상자에 화살표가 붙은 모양이라 구분이 가지 않았다 (사용자 2026-10-06). 레퍼런스 기본값에서는 Select 가 누르는 Button 이고 ComboBox 가 글자를 넣는 Input + 작은 버튼이다.
 
 ### Negative
 

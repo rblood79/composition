@@ -149,7 +149,7 @@
 
 ## 현황
 
-> **2026-10-06 ADR-253 Proposed**: 기본 UI 원본의 재사용 — 부품 (Label · Input · FieldError · Description · field 안 Button) · 안에 넣는 컴포넌트 (Select · ComboBox 의 ListBox) · 바탕 (Dialog · Popover) 을 원본의 instance 로 두고, 원본 하나를 고치면 Builder 와 Preview 전체가 한 세트로 바뀌게 한다 (사용자 `/create-adr` · 같은 날 대화의 방향). 실측: 원본의 스타일 편집이 instance 에 닿지 않는다 · 부품 모양이 부모 rule 마다 따로 (Label 11 · FieldError 10 · Button 6 · Input 5) · Preview 는 field 의 부품 노드를 그리지 않는다. 2026-09-03 내부 부품 판정 개정 · contract 3. 사용자 확인 3 (범위 · 화면 차이 목록 · contract 2 거부). 열림 +1 (열림 5 — Proposed 5, 합계 280).
+> **2026-10-06 ADR-253 Proposed**: 기본 UI 원본의 재사용 — 부품 (Label · Input · FieldError · Description · field 안 Button) · 안에 넣는 컴포넌트 (Select · ComboBox 의 ListBox) · 바탕 (Dialog · Popover) 을 원본의 instance 로 두고, 원본 하나를 고치면 Builder 와 Preview 전체가 한 세트로 바뀌게 한다 (사용자 `/create-adr` · 같은 날 대화의 방향). 실측: 원본의 스타일 편집이 instance 에 닿지 않는다 · 부품 모양이 부모 rule 마다 따로 (Label 11 · FieldError 10 · Button 6 · Input 5) · Preview 는 field 의 부품 노드를 그리지 않는다. 2026-09-03 내부 부품 판정 개정 · contract 3. 사용자 확인 3 은 같은 날 완료 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용. 열림 +1 (열림 5 — Proposed 5, 합계 280).
 
 > **2026-10-06 ADR-244 Implemented**: 초기 로드 — Phase 1 (D) CanvasKit wasm 해시 경로 · 옛 탭 새로고침 복구 + Phase 2 (A) dashboard 미리 받기. 10 Mbps 대기 뒤 클릭 p95 Chromium 6,545 → 1,101 ms · WebKit 6,542 → 1,150 ms, 즉시 클릭 · 직접 진입 +1.8 % 이내, 진행 중 진입 wasm 각 1 회 전송, 실패 주입 6/6. 실제 Pages Live Exercise press → presented 343 ms (부팅 wasm 전송 0). Builder initial +1,299 B — HC1 초과 사용자 수용. Service Worker (B) 보류. 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 279).
 
@@ -193,7 +193,7 @@
 
 #### [253](253-base-ui-origin-reuse.md) — 기본 UI 원본의 재사용 — 부품 · 안에 넣는 컴포넌트 · 바탕을 원본의 instance 로
 
-- **상태**: Proposed — 2026-10-06 (사용자 확인 3 대기 — 실행 범위 · 화면 차이 목록 · contract 2 거부 전제)
+- **상태**: Proposed — 2026-10-06 (사용자 확인 3 완료 같은 날 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용)
 - **규모**: Phase 0 ~ 6. Phase 1 = 원본 override 가 instance 루트까지 닿게 (현행 결함 수리 · 단독 병합 가능) → Phase 2 = 수직 절단 Label × TextField (실패 시 stylesheet 채널로 후퇴) → Phase 3 = field 계열 전체 (부모 delegation 의 모양 선언 0) → Phase 4 = Select · ComboBox 안 ListBox → Phase 5 = Dialog · Popover 바탕 사슬 (library 표현력 go/no-go). `LIBRARY_CONTRACT_VERSION` 3 · 2026-09-03 내부 부품 판정 개정. breakdown: [design/253](design/253-base-ui-origin-reuse-breakdown.md)
 - **우선순위**: 사용자 결정
 
