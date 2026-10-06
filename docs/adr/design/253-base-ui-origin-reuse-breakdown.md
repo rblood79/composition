@@ -453,3 +453,48 @@ field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라�
 - 증감 버튼만 놓고 쓰는 Button (Icon 만 있는 Button instance) 을 늘여 놓으면 (stretch) Canvas 가 자식을 다시 가운데에 두지 않았다 (1px). 버튼에 높이를 명시해 피했다 — 엔진 쪽 확인이 남는다 (재현: flex row 의 stretch 된 inline-flex 자식 + `alignItems: center` 자식).
 - 원본을 고칠 때의 영향 안내가 여전히 page 의 instance 만 센다 (「1 instance」 — 증감 버튼 2개는 세지 않음).
 - 문서 노드 쪽 (page 에 놓은 instance 가 직접 가진 자식) 의 규칙 부모는 그대로다 — 이번에 고친 것은 library template 의 합성 자리다.
+
+### 2026-10-06 — Phase 3 (4b) ComboBox: container · Input · FieldButton (브랜치 `adr-253`)
+
+**구현하면서 정한 것**
+
+- **FieldButton 원본** (`origin-component-fieldbutton`): template 루트가 Button 원본의 instance (`variant: secondary`) 이고 그 자리에 모양을 적는다 — 배경 `var(--accent-subtle)` · 테두리 0 · 모서리 4 · padding 0. 자식은 Icon 하나 (`{icon}` — 기본 `chevron-down`). 동명 primitive 가 없는 원본이라 `BASE_PART_DERIVED_ORIGINS` 로 따로 적고 Components page 의 부품 칸에 같이 그린다. Button 원본을 고치면 FieldButton 에도 닿고 (FieldButton 이 적은 값이 그 위), FieldButton 을 고치면 그 instance 전부가 바뀐다.
+- **문서가 쓴 Button 색은 sheet 의 변수로 낸다.** FieldButton 의 배경처럼 template · 원본 override 가 쓴 색을 `background-color` 로 inline 에 내면 hover · pressed 색을 덮는다 (입력칸 단계에서 남긴 문제와 같다). `.button-base` 는 `--button-color` · `--button-border` · `--button-text` 를 읽고 hover · pressed 를 그 값에서 만든다 (`color-mix`). 그래서 문서가 쓴 배경 · 테두리색 · 글자색을 그 변수로 내고 variant 가 명시한 hover / pressed 변수는 푼다 (`initial`). 원본 override 로 Button 의 배경을 바꿔도 hover 가 그 색에서 나온다. outline Button 의 배경과 fill layer 는 종전대로 property 다 (sheet 가 변수를 읽지 않는 자리). 본문 Status 의 「Preview 상태별 값」 판정 (문서가 쓴 상태별 값의 채널) 과는 다른 일이다 — 여기는 쉬는 색에서 상태 색이 나오게 한 것이다.
+- 버튼은 입력칸 위에 겹친다: 입력칸이 container 를 다 채우고 (끝 쪽 padding = 자기 padding + 버튼 폭), 버튼은 음수 margin 으로 그 자리에 놓인다 (레퍼런스의 배치). 버튼 크기와 padding 은 크기별 변수다 (xs 16 · sm 18 · md 22 · lg 34 · xl 46 — control 안쪽 2px (xs · sm) / 4px).
+- field 의 `placeholder` · `iconName` 은 template 자리표시로 부품에 내려간다 (ComboBox 원본이 두 키를 받는다고 선언). 종전에는 SelectValue 의 literal 과 presence 의 파생 값이었다.
+- Preview 의 ComboBox 는 항목이 없어 열리지 않는다 (F11 — 이 빌드와 전환 전 빌드 모두 `aria-expanded` 가 `false` 로 남는다). 버튼의 연결 (`aria-haspopup` · context 의 press) 은 unit 으로 확인했고, 여는 동작은 Phase 4 에서 항목이 생긴 뒤 본다.
+
+**변화 목록 (G0 ① — px, 전환 전 빌드 5173 과 Preview 대조)**
+
+| 항목               | 전                                                                                 | 후                                                                                                   | 근거                      |
+| ------------------ | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------- |
+| 상자를 칠하는 주체 | container (테두리 · 배경 · padding 4 4 4 12 — md)                                  | 입력칸 (padding 4 34 4 12 — md · xl 12 70 12 24). container 는 칠 · padding 없음                     | §2-2 5번                  |
+| 상자의 모서리      | 6px (전 크기)                                                                      | Input rule 의 크기 단계 (xs 2 · sm 4 · md 6 · lg 8 · xl 12)                                          | §2-2 5번                  |
+| 버튼               | md 18 × 18 · 배경 `bg-overlay` · 그림자 · 모서리 6 (xs 10 · sm 14 · lg 22 · xl 28) | FieldButton — md 22 × 22 · 옅은 강조색 배경 · 그림자 없음 · 모서리 4 (xs 16 · sm 18 · lg 34 · xl 46) | §2-2 7번                  |
+| glyph              | 버튼 크기와 같다 (xs 10 · sm 14 · md 18 · lg 22 · xl 28)                           | Button 의 glyph 단계 (14 · 16 · 18 · 24 · 28)                                                        | Button 원본의 instance    |
+| focus · hover      | container 의 outline · 테두리                                                      | 입력칸 자신 (Input sheet) · 버튼은 자기 배경에서 나온 hover 색                                       | 부품이 자기 상태를 그린다 |
+| disabled field     | root 0.38 × container 0.38                                                         | root 0.38 한 번                                                                                      | Canvas 와 같다            |
+
+**구현**
+
+- library: `origin-component-fieldbutton` (+ template 2) · ComboBox `__2` (wrapper `plain`) 아래 `__2_1` = Input instance (`placeholder: "{placeholder}"`), `__2_2` = FieldButton instance (`icon: "{iconName}"`). ComboBox 원본의 `accepts` 에 `placeholder` · `iconName`.
+- 값 (`T`): ComboBox 의 delegation 은 배치만 — container `display · align-items · width`, Input `min-width · padding-right (크기별)`, Button `flex · width · height · min-width · margin-inline-start (크기별)`. container 의 칠 · 상태 7종 · `--combo-container-*` · `--combo-input-*` · 버튼의 칠 · 상태 4종을 지웠다. quiet 는 입력칸 모양.
+- DOM: `combobox` binding 이 wrapper 안 부품 노드의 요소를 `controlElements` 로 넘긴다. Button 의 테두리를 문서가 없앤 경우 (`borderWidth: 0`) inline 으로 낸다 (sheet 가 모든 Button 에 테두리를 준다).
+- Builder 화면 자체: 속성 패널의 단위 입력 (`.react-aria-UnitComboBox` — RAC ComboBox 를 직접 조립) 이 생성 ComboBox.css 의 container 배치 · 입력칸 상자 제거 · 버튼 모양에 기대고 있었다. 그 값을 `form-controls.css` 에 직접 적었다.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 303건 (+1): ComboBox 의 DOM 구조 대조 13 조합은 전환 전 빌드와 같다 (Button 표지 · glyph 마크업은 명시한 차이). 부품이 원본 instance (FieldButton 은 두 층으로 접힘) · Canvas 상자 (입력칸이 container 를 채움 · 버튼 22 × 22 · 끝에서 4px · glyph 가운데) · `placeholder` / `iconName` → 부품 · DOM 의 container 자식이 그 노드들 (`role=combobox` · `aria-haspopup`) · 버튼의 배경이 변수 (`--button-color` · hover 는 `initial`) 이고 테두리 0 · size xl · FieldButton 원본 편집과 Button 원본 편집 (FieldButton 이 적지 않은 글자색) → Canvas · DOM · 판정 축.
+- 정적: ComboBox 의 delegation 은 배치 키만 (`align-items` · `padding-right` 추가) · 상태 선언 0.
+- 원복 RED 6종: 문서가 쓴 배경을 property 로 (2) · DOM 이 control 을 자기가 조립 · 입력칸 placeholder 자리표시 · 테두리 0 미출력 · FieldButton 루트를 type 노드로 · size 전달.
+- 회귀: `pnpm type-check` · shared 1,499 · rendering 1,379 · builder 4,454 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (outline 13 → 9) · `phase4eOriginView` (ComboBox glyph 는 FieldButton 안 Icon) · `phase4e11PreviewFollow` (버튼 `min-width: 0` · glyph 노드).
+- 시각 하니스: 70건 중 69 통과 (남은 1건 CardView — 무관). ComboBox 의 Canvas ↔ DOM 최대 0.014px. old/new 비교는 `combobox-input-and-field-button-parts` · `field-button-glyph-node` 로 승인 기록에 넣고, 쓰는 곳이 없어진 `field-button-size` 를 지웠다.
+- live `adr253-p3-control-live.mjs` 11/11 (`PALETTE="combo box,number field,button" TYPES=ComboBox,NumberField`, 5175 · headed Chrome · DPR 1 · visible): 두 field 의 wrapper · 입력칸 · 버튼 · glyph 상자 · 모서리 · 테두리 · 배경 (theme 변수는 Preview 가 계산한 색으로 비교) 이 Canvas 와 Preview 에서 같다 — 5 크기 · side 라벨 → ComboBox: 버튼 hover (배경이 바뀜) · 입력칸 focus (2px outline) · disabled field (버튼 disabled · root 0.38 · 버튼 흐림 1 · 쉬는 색) · required (전환 전과 같다 — blur 만으로는 오류 문구 없음) → Components page 에서 FieldButton · Button · Input 원본을 고치면 ComboBox 의 버튼 · NumberField 의 버튼 2 · 두 입력칸이 양쪽에서 바뀜 → undo. 콘솔 오류 0.
+- 대조군: `BEFORE=1` 로 main 빌드 (5173) 의 Preview 수치와 ComboBox 동작 (열기 · required) 을 떴다 — 열기 · required 결과는 두 빌드가 같다. Builder 화면 자체: Design 패널의 Property · Layout · Style · Text 탭에서 RAC NumberField · UnitComboBox 의 root · container · input · button · glyph computed style 157건 — 차이 0 (`form-controls.css` 를 고치기 전에는 46건이 달랐다).
+- G6: `pnpm gate:perf-ratchet` (커밋 `0f903794f`, NumberField 단계) 판정 pass — A등급 증가 0. B등급 경고 1 (`seeds.600.edit.B.cdp.LayoutCount` 20 → 25, 한도 22). `scene.build` Δ 와 initial 번들은 Phase 3 끝에서 잰다.
+
+**남긴 것**
+
+- ComboBox 의 여는 동작 (항목이 생기는 Phase 4).
+- xl 에서 버튼의 모서리 (4px 고정) 와 입력칸의 모서리 (12px) — FieldButton 의 모서리는 크기를 따르지 않는다 (레퍼런스는 한 크기).
+- `SelectTrigger` 의 칠하는 variant (`default` · `accent` · `negative`) 와 `SelectValue` · `SelectIcon` 은 아직 SearchField · Select · picker 2종이 쓴다 — 그 부모들을 바꾼 뒤 정리한다.

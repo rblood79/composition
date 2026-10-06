@@ -69,8 +69,17 @@
         }
       }
 
+      /* 패널의 단위 입력 (RAC ComboBox 를 직접 조립한다). 종전에는 생성 ComboBox.css 가 container 의
+         배치 · 안쪽 입력칸의 상자 제거 · 버튼 모양을 정했고, ADR-253 부터 그 sheet 는 catalog ComboBox
+         의 부품 배치만 정한다 (상자 = Input rule · 버튼 = FieldButton 원본) — 패널이 쓰던 값은 여기서
+         직접 정한다. */
       .react-aria-UnitComboBox {
         .combobox-container {
+          display: flex;
+          align-items: center;
+          gap: var(--btn-gap, var(--spacing-xs));
+          width: 100%;
+          overflow: hidden;
           background-color: transparent;
           border-radius: var(--radius-sm);
           padding: 0;
@@ -78,13 +87,51 @@
           border: none;
         }
 
+        .react-aria-Input {
+          flex: 1 1 auto;
+          min-width: 0;
+          border: none;
+          border-radius: 0;
+          background: transparent;
+          outline: none;
+          /* (시작 쪽 padding 은 아래 패널 공통 입력칸 규칙의 것.) */
+          padding-top: 0;
+          padding-right: 0;
+          padding-bottom: 0;
+        }
+
         .react-aria-Button {
+          position: static;
+          flex: 0 0 auto;
+          padding: 0;
+          border-width: 0;
+          min-width: unset;
+          background: var(--bg-overlay);
+          color: var(--fg);
+          box-shadow: var(--shadow-sm);
           width: var(--text-xl);
           height: var(--text-xl);
           border-radius: var(--radius-sm);
           margin: 0;
-          /* Layer 우선순위로 builder-system.css 값 사용
-           * 수정 불필요 - ComboBox.css와 동일한 변수명 */
+
+          &:where([data-hovered]:not([data-disabled])) {
+            background: var(--accent-subtle);
+          }
+
+          &:where([data-pressed]:not([data-disabled])) {
+            background: color-mix(in srgb, var(--fg) 12%, var(--bg-overlay));
+          }
+
+          &:where([data-focus-visible]) {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+          }
+
+          &:where([data-disabled]) {
+            background: color-mix(in srgb, var(--fg) 12%, transparent);
+            color: color-mix(in srgb, var(--fg) 38%, transparent);
+            cursor: not-allowed;
+          }
         }
       }
 

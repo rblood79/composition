@@ -50,7 +50,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   SearchField: FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,
   Select: FIELD_PARTS,
-  ComboBox: FIELD_PARTS,
+  ComboBox: WRAPPED_FIELD_PARTS,
   DateField: FIELD_PARTS,
   TimeField: FIELD_PARTS,
   DatePicker: FIELD_PARTS,

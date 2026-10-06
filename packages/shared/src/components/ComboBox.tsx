@@ -54,6 +54,11 @@ export interface ComboBoxProps<T extends object> extends Omit<
   errorMessage?:
     string | ((validation: ValidationResult) => string) | React.ReactElement;
   /**
+   * The field's control part node elements (catalog runtime, ADR-253): the Input and the button
+   * inside the container, in order; absent = composed here.
+   */
+  controlElements?: React.ReactNode[];
+  /**
    * ADR-912 영역 B Task 7: 정적 items[] SSOT (StoredComboBoxItem[] 직렬화 형태).
    *   RAC `AriaComboBoxProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
    *   Select Task 6 과 달리 ComboBox 는 기존 interface 에 items prop 이 없었으므로 신설(additive).
@@ -105,6 +110,7 @@ export function ComboBox<T extends object>({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  controlElements,
   ...props
 }: ComboBoxProps<T>) {
   const t = useComponentStrings();
@@ -297,35 +303,39 @@ export function ComboBox<T extends object>({
       {hasVisibleLabel &&
         renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
       <div className="combobox-container">
-        <Input placeholder={placeholder} />
-        <Button>
-          {(() => {
-            const name = iconName || "chevron-down";
-            const data = getIconData(name);
-            if (!data) return null;
-            return (
-              <svg
-                width={chevronIconSize}
-                height={chevronIconSize}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {data.paths.map((d: string, i: number) => (
-                  <path key={i} d={d} />
-                ))}
-                {data.circles?.map(
-                  (c: { cx: number; cy: number; r: number }, i: number) => (
-                    <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
-                  ),
-                )}
-              </svg>
-            );
-          })()}
-        </Button>
+        {controlElements ?? (
+          <>
+            <Input placeholder={placeholder} />
+            <Button>
+              {(() => {
+                const name = iconName || "chevron-down";
+                const data = getIconData(name);
+                if (!data) return null;
+                return (
+                  <svg
+                    width={chevronIconSize}
+                    height={chevronIconSize}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {data.paths.map((d: string, i: number) => (
+                      <path key={i} d={d} />
+                    ))}
+                    {data.circles?.map(
+                      (c: { cx: number; cy: number; r: number }, i: number) => (
+                        <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
+                      ),
+                    )}
+                  </svg>
+                );
+              })()}
+            </Button>
+          </>
+        )}
       </div>
       {renderFieldDescription(description)}
       {isLoadingState && <Text slot="description">{t("loadingData")}</Text>}

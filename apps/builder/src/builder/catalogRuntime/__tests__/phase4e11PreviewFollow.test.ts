@@ -175,8 +175,9 @@ describe("field trigger buttons — no generic Button min-width", () => {
     "%s button delegation resets min-width",
     (owner) => {
       const css = readFileSync(`${GENERATED}/${owner}.css`, "utf8");
-      expect(blockOf(css, `.react-aria-${owner} .react-aria-Button`)).toContain(
-        "min-width: unset;",
+      // (`0`: a button that is a Button instance — ADR-253, the ComboBox's FieldButton.)
+      expect(blockOf(css, `.react-aria-${owner} .react-aria-Button`)).toMatch(
+        /min-width: (unset|0);/,
       );
     },
   );
@@ -186,8 +187,10 @@ describe("field trigger buttons — no generic Button min-width", () => {
     async (owner) => {
       const workspace = await openOwner(owner, { size: "md" });
       const root = workspace.root;
+      // (A ComboBox's glyph is the Icon inside its FieldButton instance — ADR-253.)
       const icons = [...root.layoutInputs.values()].filter(
-        (record) => record.bindingId === "selecticon",
+        (record) =>
+          record.bindingId === (owner === "ComboBox" ? "icon" : "selecticon"),
       );
       expect(icons.length).toBeGreaterThan(0);
       for (const icon of icons) {

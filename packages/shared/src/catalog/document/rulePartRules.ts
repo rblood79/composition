@@ -57,11 +57,8 @@ const SUBPART_TOKENS: Readonly<
     SelectValue: [".react-aria-SelectValue"],
     SelectIcon: [".select-chevron"],
   },
-  ComboBox: {
-    SelectTrigger: [".combobox-container"],
-    SelectValue: [".react-aria-Input"],
-    SelectIcon: [".react-aria-Button"],
-  },
+  // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
+  ComboBox: { SelectTrigger: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
   NumberField: { SelectTrigger: [".react-aria-Group"] },
   SearchField: {
@@ -1415,7 +1412,6 @@ export function compileRulePartRules(
  */
 const TRIGGER_GLYPH_OWNERS: ReadonlySet<string> = new Set([
   "Select",
-  "ComboBox",
   "DatePicker",
   "DateRangePicker",
 ]);

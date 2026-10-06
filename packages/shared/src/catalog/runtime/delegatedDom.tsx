@@ -410,6 +410,7 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
   "textarea",
   "colorfield",
   "numberfield",
+  "combobox",
 ]);
 /**
  * Fields whose control is a wrapper node (`SelectTrigger` — the field's RAC Group / container
@@ -418,6 +419,7 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
  */
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
+  "combobox",
 ]);
 /** The part nodes inside the control wrapper of such a field (`[]` = the field composes them). */
 export function catalogFieldControlNodes(

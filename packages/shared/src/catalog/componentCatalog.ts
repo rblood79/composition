@@ -1380,6 +1380,16 @@ export const BASE_PART_ORIGIN_TYPES: readonly string[] = [
   "FieldError",
 ];
 
+/**
+ * ADR-253 — 다른 원본의 instance 로 만든 기본 부품 원본 (동명 primitive 없음). FieldButton 은 Button
+ * 원본의 instance 에 field 안 버튼의 모양을 얹은 원본이고, ComboBox · DatePicker 의 버튼이 그
+ * instance 다. Components page 는 `BASE_PART_ORIGIN_TYPES` 뒤에 같이 그린다.
+ */
+export const BASE_PART_DERIVED_ORIGINS: readonly {
+  name: string;
+  reusableId: string;
+}[] = [{ name: "FieldButton", reusableId: "component-fieldbutton" }];
+
 export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Radio",
   ...BASE_PART_ORIGIN_TYPES,

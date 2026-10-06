@@ -179,7 +179,7 @@ const BUTTON_NODE_MARKS = [
  * shared component drew its own svg, so the glyph markup is left out of the structure on both
  * sides and asserted on its own.
  */
-const WRAPPED_TYPES = ["numberfield"];
+const WRAPPED_TYPES = ["numberfield", "combobox"];
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
@@ -870,7 +870,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ).toEqual(["#0000ff", "#ff0000", "#ff0000"]);
       for (const button of stepperElements())
         expect(button.getAttribute("style")).toMatch(
-          /background-color:\s*#ff0000/,
+          /--button-color:\s*#ff0000/,
         );
       expect(
         host()
@@ -893,6 +893,184 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(catalogSubpartOwnerType(graph, dom, wrapper().id, "style")).toBe(
         "NumberField",
       );
+    },
+  );
+
+  /**
+   * A ComboBox's control: the container (the wrapper node — placement only) holds an instance of
+   * the Input origin, which draws the box with room for the button at its end, and an instance of
+   * the FieldButton origin (an instance of the Button origin with the field button's shape) laid
+   * over that room. Both are drawn in the DOM by their own nodes inside the ComboBox's context.
+   */
+  it.skipIf(write)(
+    "combobox — its container holds an Input instance and a FieldButton instance",
+    async () => {
+      const { workspace, field } = (await render("combobox", {}))!;
+      const records = workspace.root.canvasInputs;
+      const typeOf = (id: string) =>
+        workspace.runtime.graph.getDefinition(
+          records.get(id)!.definitionId as LibraryDefinitionId,
+        )!.name;
+      const wrapper = () =>
+        records
+          .get(field.id)!
+          .children.map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+      const parts = () => wrapper().children.map((id) => records.get(id)!);
+      const host = () => {
+        const element = document.createElement("div");
+        element.innerHTML = renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        );
+        return element;
+      };
+      const rect = (id: string) =>
+        workspace.root.getGeometry([id]).get(id) as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        };
+      expect(wrapper().visual).toMatchObject({
+        fill: "transparent",
+        borderWidth: 0,
+        paddingX: 0,
+      });
+      expect(parts().map((part) => typeOf(part.id))).toEqual([
+        "Input",
+        "Button",
+      ]);
+      expect(parts().map((part) => part.collapsedSourceIds)).toEqual([
+        ["lib:template:component-input"],
+        ["lib:template:component-fieldbutton", "lib:template:component-button"],
+      ]);
+      const [input, button] = parts();
+      // Canvas: the Input is the whole control; the button is a square 4px inside its end.
+      const group = rect(wrapper().id);
+      expect(rect(input.id)).toMatchObject({
+        x: 0,
+        width: group.width,
+        height: 30,
+      });
+      expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
+      expect(rect(button.id)).toMatchObject({
+        x: group.width - 26,
+        y: 4,
+        width: 22,
+        height: 22,
+      });
+      expect(button.visual).toMatchObject({
+        fill: "var(--accent-subtle)",
+        borderWidth: 0,
+        radius: 4,
+      });
+      const glyph = records.get(button.children[0]!)!;
+      expect(glyph.props.iconName).toBe("chevron-down");
+      expect(rect(glyph.id)).toMatchObject({ x: 2, y: 2, width: 18 });
+      // The field's `placeholder` and `iconName` reach the parts (template bindings).
+      expect(input.props.placeholder).toBe("Type or select...");
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { placeholder: set("Pick one"), iconName: set("search") },
+        }),
+      );
+      expect(parts()[0]!.props.placeholder).toBe("Pick one");
+      expect(records.get(parts()[1]!.children[0]!)!.props.iconName).toBe(
+        "search",
+      );
+      // DOM: the container's children are those nodes' elements; the Input is the combobox RAC
+      // wires, the button its trigger. The button's authored fill is the sheet's own variable,
+      // so its hover and pressed colors derive from it.
+      const container = host().querySelector(
+        ".combobox-container:not(template *)",
+      )!;
+      expect(
+        [...container.children].map((child) =>
+          child.getAttribute("data-catalog-id"),
+        ),
+      ).toEqual(parts().map((part) => part.id));
+      const inputElement = container.querySelector("input")!;
+      expect(inputElement.getAttribute("role")).toBe("combobox");
+      expect(inputElement.getAttribute("placeholder")).toBe("Pick one");
+      expect(inputElement.getAttribute("data-size")).toBe("md");
+      const buttonElement = container.querySelector("button")!;
+      expect(buttonElement.getAttribute("aria-haspopup")).toBe("listbox");
+      const style = buttonElement.getAttribute("style")!;
+      expect(style).toMatch(/--button-color:\s*var\(--accent-subtle\)/);
+      expect(style).toMatch(/--button-color-hover:\s*initial/);
+      expect(style).not.toMatch(/background-color|border-color/);
+      // (The sheet gives every Button a border: the one the FieldButton removes is written out.)
+      expect(style).toMatch(/border-width:\s*0(;|$)/);
+      // The field's size reaches the parts.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { size: set("xl") },
+        }),
+      );
+      expect(parts().map((part) => part.props.size)).toEqual(["xl", "xl"]);
+      expect(rect(parts()[1]!.id)).toMatchObject({
+        width: 46,
+        height: 46,
+        y: 4,
+      });
+      expect(parts()[0]!.visual.paddingRight).toBe(70);
+      // The FieldButton origin is where the button's shape comes from; it is itself an instance
+      // of the Button origin, whose style reaches it under the FieldButton's own.
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-fieldbutton" as LibraryDefinitionId,
+          scope: "visual",
+          key: "fill",
+          write: set("#ff0000"),
+          newId: workspace.newId,
+        }),
+      );
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "color",
+          write: set("#00aa00"),
+          newId: workspace.newId,
+        }),
+      );
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "fill",
+          write: set("#0000ff"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(parts()[1]!.visual).toMatchObject({
+        fill: "#ff0000",
+        color: "#00aa00",
+      });
+      const edited = host()
+        .querySelector(".combobox-container:not(template *) button")!
+        .getAttribute("style")!;
+      expect(edited).toMatch(/--button-color:\s*#ff0000/);
+      expect(edited).toMatch(/--button-text:\s*#00aa00/);
+      // Edit axes: the Input's text is the field's, its style and the button's are their own.
+      const graph = workspace.runtime.graph;
+      const dom = workspace.root.domInputs;
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style"),
+      ).toBeNull();
+      expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "all")).toBe(
+        "ComboBox",
+      );
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),
+      ).toBeNull();
     },
   );
 
@@ -934,8 +1112,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         renderCatalogDom(workspace.root, field.id, { today: () => undefined }),
       );
       const overridden = host.querySelector("button")!.getAttribute("style")!;
-      expect(overridden).toMatch(/background-color:\s*#ff0000/);
-      expect(overridden).not.toMatch(/border-color/);
+      // (As the sheet's own variable: its hover and pressed colors derive from it.)
+      expect(overridden).toMatch(/--button-color:\s*#ff0000/);
+      expect(overridden).toMatch(/--button-color-hover:\s*initial/);
+      expect(overridden).not.toMatch(/background-color|border-color/);
     },
   );
 

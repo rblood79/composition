@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ComboBox 의 입력칸 · 버튼이 Input · FieldButton 원본을 따른다 (ADR-253 Phase 3 — ComboBox)] - 2026-10-06
+
+### Added
+
+- Components page 에 FieldButton 원본 카드가 있다 (field 안 버튼 — Button 원본의 instance 에 모양을 얹은 원본). 이 원본을 고치면 ComboBox 의 버튼이 Builder 와 Preview 에서 같이 바뀐다 (DatePicker 2종은 다음 단계). Button 원본을 고친 값도 FieldButton 에 닿는다.
+
+### Changed
+
+- ComboBox 의 control 은 Input 원본의 instance 와 FieldButton 원본의 instance 다. 상자를 입력칸이 그리고 (전에는 container), 버튼은 입력칸 끝 안쪽의 정사각형이다 — md 18 → 22px · 옅은 강조색 배경 · 그림자 없음 · 모서리 4px. 상자의 모서리는 크기를 따른다.
+- ComboBox 의 `placeholder` · `iconName` 이 입력칸 · 버튼 glyph 에 template 자리표시로 내려간다.
+- Components page 에서 원본의 Button 색 (배경 · 테두리색 · 글자색) 을 고치면 Preview 의 hover · pressed 색도 그 색에서 나온다 (전에는 고친 색이 상태 색을 덮었다).
+
+### Fixed
+
+- Preview 에서 disabled 인 ComboBox 의 control 이 겹쳐 흐려지던 문제 (field 0.38 × container 0.38).
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 303건 (+1): ComboBox 의 container 안이 원본 instance · Canvas 상자 · placeholder / iconName 전달 · 버튼 색이 sheet 변수 · 원본 전파 (FieldButton · Button). 원복 RED 6종.
+- live `adr253-p3-control-live.mjs` 11/11 (ComboBox + NumberField): 부품 상자 · 모서리 · 색이 Canvas 와 Preview 에서 같다 (5 크기 · side) · hover · focus · disabled · 원본 편집 · undo. Builder 화면 자체의 숫자 · 단위 입력칸 157건은 전환 전 빌드와 차이 0. 시각 하니스 69/70 (남은 1건 CardView — 무관).
+
 ## [NumberField 의 입력칸 · 증감 버튼이 Input · Button 원본을 따른다 (ADR-253 Phase 3 — NumberField)] - 2026-10-06
 
 ### Changed

@@ -43,6 +43,7 @@ import {
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldHintNodes,
   catalogFieldLabelNecessity,
+  catalogFieldControlNodes,
   catalogFieldLabelNode,
   catalogPartField,
   catalogOwnerDrawnPart,
@@ -111,6 +112,8 @@ interface FieldPartElements {
   label?: ReactElement;
   description?: ReactElement;
   error?: ReactElement;
+  /** The part node elements inside the field's control wrapper, in order (ADR-253). */
+  control?: ReactElement[];
 }
 type DomBinding = (
   node: CatalogConsumerNode,
@@ -592,6 +595,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         (typeof node.props.label === "string" ? node.props.label : undefined),
       description: parts?.description,
       errorMessage: parts?.error,
+      controlElements: parts?.control,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -1365,6 +1369,13 @@ function renderNode(
           ? partElement(hints.description)
           : undefined,
         error: partElement(hints.error),
+        ...(catalogFieldControlNodes(root, node).length
+          ? {
+              control: catalogFieldControlNodes(root, node).map(
+                (part) => partElement(part)!,
+              ),
+            }
+          : {}),
       }
     : undefined;
   const children: ReactElement[] = owning
@@ -1465,16 +1476,33 @@ function renderNode(
       partField !== undefined &&
       partField.id !== node.parentId &&
       partField.props.isDisabled === true;
+    // (The sheet gives every Button a border: one the document removes is written out.)
+    if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;
     if (node.props.isDisabled !== true && !fieldDisabled) {
+      // A color the document wrote goes out as the sheet's own variable (`.button-base` reads
+      // `--button-color` · `--button-border` · `--button-text`), so its hover and pressed colors
+      // derive from it; the variant's explicit hover / pressed colors are released with it.
       const authored = catalogAuthoredVisual(root, node, true);
-      if (
-        authored.fill === undefined &&
-        authored.backgroundColor === undefined &&
-        !node.fills?.length
-      )
+      const variables = bound as Record<string, unknown>;
+      const fillAuthored =
+        authored.fill !== undefined || authored.backgroundColor !== undefined;
+      // (An outline Button's sheet does not read `--button-color`: its fill stays a property;
+      // fill layers are their own background.)
+      const direct = node.fills?.length || node.props.fillStyle === "outline";
+      if (!(fillAuthored && direct) && !node.fills?.length) {
+        if (fillAuthored) {
+          variables["--button-color"] = bound.backgroundColor;
+          variables["--button-color-hover"] = "initial";
+          variables["--button-color-pressed"] = "initial";
+        }
         delete bound.backgroundColor;
-      if (authored.borderColor === undefined) delete bound.borderColor;
-      if (authored.color === undefined) delete bound.color;
+      }
+      if (authored.borderColor !== undefined)
+        variables["--button-border"] = bound.borderColor;
+      delete bound.borderColor;
+      if (authored.color !== undefined)
+        variables["--button-text"] = bound.color;
+      delete bound.color;
     } else if (fieldDisabled && node.props.isDisabled !== true)
       bound.opacity = 1;
   }

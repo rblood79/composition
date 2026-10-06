@@ -9,7 +9,10 @@ import type {
 import { createLayout } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
-import { BASE_PART_ORIGIN_TYPES } from "../../../../../packages/shared/src/catalog/componentCatalog";
+import {
+  BASE_PART_DERIVED_ORIGINS,
+  BASE_PART_ORIGIN_TYPES,
+} from "../../../../../packages/shared/src/catalog/componentCatalog";
 import { getPaletteItems } from "../panels/components/paletteItems";
 import { isComponentsView, isLibraryOrigin } from "./originView";
 import { catalogPaletteDefinitionId } from "./paletteInsert";
@@ -82,12 +85,20 @@ export function catalogBuiltinOrigins(
 ): CatalogBuiltinOrigin[] {
   const seen = new Map<string, CatalogBuiltinOrigin>();
   // The base parts first (ADR-253): the origins the composed components below are built from.
-  const parts = BASE_PART_ORIGIN_TYPES.flatMap((type) => {
-    const id = catalogPaletteDefinitionId(library, type);
-    return isLibraryOrigin(id)
-      ? [{ id, name: type, category: "parts" } satisfies CatalogBuiltinOrigin]
-      : [];
-  });
+  const parts: CatalogBuiltinOrigin[] = BASE_PART_ORIGIN_TYPES.flatMap(
+    (type) => {
+      const id = catalogPaletteDefinitionId(library, type);
+      return isLibraryOrigin(id)
+        ? [{ id, name: type, category: "parts" } satisfies CatalogBuiltinOrigin]
+        : [];
+    },
+  );
+  // Part origins made from another origin's instance (a FieldButton = a Button instance).
+  for (const { name, reusableId } of BASE_PART_DERIVED_ORIGINS) {
+    const id = `lib:definition:origin-${reusableId}` as LibraryDefinitionId;
+    if (library.definitions.has(id))
+      parts.push({ id, name, category: "parts" });
+  }
   const palette = getPaletteItems().flatMap((item) => {
     const type = item.componentType ?? item.type;
     const id = catalogPaletteDefinitionId(library, type);

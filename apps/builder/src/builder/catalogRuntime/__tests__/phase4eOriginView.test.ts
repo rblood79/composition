@@ -640,17 +640,20 @@ describe("ADR-248 4e library origin view", () => {
       under(recordOf(sized(origin, size)), "selecticon").map(
         (record) => inputOf(record).visual.iconSize,
       );
-    for (const origin of ["select", "combobox", "datepicker", "daterangepicker"]) {
+    for (const origin of ["select", "datepicker", "daterangepicker"]) {
       expect(glyphs(origin, "xs")).toEqual([14]);
       expect(glyphs(origin, "xl")).toEqual([28]);
     }
-    // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
-    const stepperGlyphs = (size: string) =>
-      under(recordOf(sized("numberfield", size)), "icon").map(
+    // A ComboBox's button is a FieldButton instance (ADR-253): its glyph is the Button's scale.
+    const buttonGlyphs = (origin: string, size: string) =>
+      under(recordOf(sized(origin, size)), "icon").map(
         (record) => inputOf(record).visual.iconSize,
       );
-    expect(stepperGlyphs("xs")).toEqual([14, 14]);
-    expect(stepperGlyphs("xl")).toEqual([28, 28]);
+    expect(buttonGlyphs("combobox", "xs")).toEqual([14]);
+    expect(buttonGlyphs("combobox", "xl")).toEqual([28]);
+    // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
+    expect(buttonGlyphs("numberfield", "xs")).toEqual([14, 14]);
+    expect(buttonGlyphs("numberfield", "xl")).toEqual([28, 28]);
     // A group's size reaches its members; a calendar's its header and grid.
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(

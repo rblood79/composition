@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 3 (4b) ComboBox (브랜치 `adr-253`, main 병합 전)**: container 는 배치만 · 그 안이 Input instance + FieldButton instance (FieldButton 원본 = Button 원본의 instance + 모양, Components page 부품 칸). 문서가 쓴 Button 색은 sheet 변수 (`--button-color` …) 로 나가 hover · pressed 가 그 색에서 나온다. 패널의 단위 입력이 기대던 값은 `form-controls.css` 로 (Builder 화면 157건 차이 0). unit 303 · 원복 RED 6종 · live 11/11 · 시각 하니스 69/70. 남은 부모: SearchField · Select · 날짜 4종.
+
 > **2026-10-06 ADR-253 Phase 3 (4a) NumberField (브랜치 `adr-253`, main 병합 전)**: Group · Button 단계의 첫 부모 — NumberField 의 Group 은 배치만 하고 그 안이 Input instance + Button instance 둘 (Icon 자식). Button binding 이 `slot` 을 넘기고 `isDisabled` 는 문서가 쓴 값만 (R10). 같이 고친 것: Preview 의 Button hover · pressed 색 (쉬는 색 inline 이 sheet 를 덮음) · 합성 자리 자식의 규칙 부모 · 모서리 radius longhand. unit 302 · 원복 RED 11종 · live 10/10 · 시각 하니스 69/70 (NumberField 2건 해소). 남은 부모: ComboBox · SearchField · Select · 날짜 4종.
 
 > **2026-10-06 ADR-253 Phase 3 (3a) Input (브랜치 `adr-253`, main 병합 전)**: Input 원본 등록 · TextField · TextArea · ColorField 의 입력칸이 그 instance · Input rule 이 자기 stylesheet 를 낸다 (`base.css` 블록 · TextField / ColorField 의 모양 delegation 제거). 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리. unit 300 · live 10/10 · 전환 전 빌드와 Preview / Builder 화면 대조 · 시각 하니스 전환 전과 동일. 남은 단계: Group · Button (DateInput · ComboBox / NumberField / SearchField 의 입력칸 포함 — DateInput 은 picker 와 한 번에 바꾼다).

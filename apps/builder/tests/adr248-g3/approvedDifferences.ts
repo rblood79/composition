@@ -93,6 +93,19 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "NumberField = Group [Input instance, Button instance × 2] (ADR-253 — old: one painted Group around a bare value and two glyphs)",
   },
   {
+    // ADR-253 Phase 3 (4b): ComboBox 의 상자는 Input 원본의 instance 이고 (container 를 채운다 — 버튼 자리는
+    //   끝 쪽 padding), 버튼은 FieldButton 원본의 instance 다 (control 안쪽 정사각형 · 옅은 강조색). old 는
+    //   container 가 상자 (padding 4 · 12) 를 그리고 그 안에 글자와 18px glyph 가 있었다.
+    id: "combobox-input-and-field-button-parts",
+    class: "decided",
+    owners: ["ComboBox"],
+    nodes: ["Input", "Button"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "ComboBox = container [Input instance, FieldButton instance] (ADR-253 — old: one painted container around a bare value and a glyph)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],
@@ -291,16 +304,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     noDomBox: true,
     reason:
       "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.lg.gap` 6); the wrapper height follows the label line box",
-  },
-  {
-    id: "field-button-size",
-    class: "oldDefect",
-    // (NumberField left this rule with ADR-253: its steppers are Button instances.)
-    owners: ["ComboBox"],
-    nodes: ["SelectIcon", "SelectValue"],
-    axes: ALL,
-    reason:
-      "old draws the trigger button at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` xs 10 · sm 14",
   },
   {
     id: "searchfield-icon-clear",
@@ -532,15 +535,15 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "toggle = [indicator node, Label] (2026-10-04 user 「1안」 — old: the toggle painted its indicator in its own box)",
   },
   {
-    // ADR-253 Phase 3 (4): 증감 버튼 (Button instance) 의 glyph 는 그 Icon 자식이다. old 는 glyph 가
-    //   버튼 자리 노드 (SelectIcon) 자체였다.
-    id: "numberfield-stepper-glyph-node",
+    // ADR-253 Phase 3 (4): field 안 버튼 (Button · FieldButton instance) 의 glyph 는 그 Icon 자식이다.
+    //   old 는 glyph 가 버튼 자리 노드 (SelectIcon) 자체였다.
+    id: "field-button-glyph-node",
     class: "decided",
-    owners: ["NumberField"],
+    owners: ["NumberField", "ComboBox"],
     side: "new",
     nodes: ["Icon"],
     reason:
-      "a stepper = Button instance [Icon] (ADR-253 — old: the glyph was the stepper node itself)",
+      "a field's button = Button instance [Icon] (ADR-253 — old: the glyph was the button node itself)",
   },
   {
     id: "tree-item-chevron-node",

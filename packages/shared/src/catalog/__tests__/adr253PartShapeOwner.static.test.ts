@@ -129,11 +129,14 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     const WRAPPED_PLACEMENT = new Set([
       ...PLACEMENT_KEYS,
       "display",
+      "align-items",
       "height",
       "box-sizing",
+      // The room a part leaves for the one laid over it (a ComboBox's button over its Input).
+      "padding-right",
     ]);
     const found: string[] = [];
-    for (const type of ["NumberField"]) {
+    for (const type of ["NumberField", "ComboBox"]) {
       const composition = (
         COMPONENT_RULES_TABLE as Record<
           string,
@@ -149,7 +152,7 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         states?: unknown;
       }>) {
         if (
-          !/\.react-aria-(Group|Input|Button)(?![\w-])/.test(
+          !/\.(react-aria-(Group|Input|Button)|combobox-container)(?![\w-])/.test(
             entry.childSelector ?? "",
           )
         )

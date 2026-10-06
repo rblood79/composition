@@ -160,8 +160,8 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   Description: FIELD_HINT_PARENTS,
   FieldError: FIELD_HINT_PARENTS,
   // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
-  //   NumberField 의 입력칸은 Group (래퍼) 안에 있다 — 래퍼를 건너 field 로 판정한다.
-  Input: ["TextField", "TextArea", "ColorField", "NumberField"],
+  //   NumberField · ComboBox 의 입력칸은 래퍼 (Group · container) 안에 있다 — 래퍼를 건너 field 로 판정한다.
+  Input: ["TextField", "TextArea", "ColorField", "NumberField", "ComboBox"],
   Label: [
     "TextField",
     "TextArea",

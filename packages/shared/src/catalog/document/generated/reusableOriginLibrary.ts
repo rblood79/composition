@@ -888,12 +888,16 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "placeholder": "string",
+      "iconName": "string"
     },
     "defaults": {
       "label": "Combo Box",
       "description": "",
-      "errorMessage": ""
+      "errorMessage": "",
+      "placeholder": "Type or select...",
+      "iconName": "chevron-down"
     },
     "visual": {},
     "stateRules": {},
@@ -1252,6 +1256,20 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-input"
+  },
+  {
+    "id": "lib:definition:origin-component-fieldbutton",
+    "name": "FieldButton",
+    "mode": "composite",
+    "accepts": {
+      "icon": "string"
+    },
+    "defaults": {
+      "icon": "chevron-down"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-fieldbutton"
   },
   {
     "id": "lib:definition:origin-component-radio",
@@ -4327,7 +4345,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-combobox__2_1",
       "lib:template:component-combobox__2_2"
     ],
-    "props": {},
+    "props": {
+      "variant": "plain"
+    },
     "visual": {},
     "layout": {
       "display": "flex"
@@ -4335,19 +4355,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-combobox__2_1",
-    "definitionId": "lib:definition:type-SelectValue",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "children": "Type or select...",
-      "placeholder": "Type or select..."
+      "placeholder": "{placeholder}"
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-combobox__2_2",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-fieldbutton",
     "children": [],
-    "props": {},
+    "props": {
+      "icon": "{iconName}"
+    },
     "visual": {}
   },
   {
@@ -5732,6 +5753,34 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "type": "{type}",
       "placeholder": "{placeholder}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fieldbutton",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-fieldbutton__icon"
+    ],
+    "props": {
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {
+      "fill": "var(--accent-subtle)",
+      "borderWidth": 0,
+      "radius": 4,
+      "paddingX": 0,
+      "paddingY": 0,
+      "minWidth": 0
+    }
+  },
+  {
+    "id": "lib:template:component-fieldbutton__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "{icon}"
     },
     "visual": {}
   },

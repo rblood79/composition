@@ -133,6 +133,16 @@ const snap = () =>
             const box = el?.getBoundingClientRect();
             const v = node.visual;
             const corner = (key) => v[key] ?? v.radius ?? 0;
+            // A Canvas color as the Preview document computes it (theme variables included).
+            const computed = (value) => {
+              if (typeof value !== "string" || !doc) return undefined;
+              const probe = doc.createElement("div");
+              probe.style.backgroundColor = value;
+              doc.body.appendChild(probe);
+              const out = view.getComputedStyle(probe).backgroundColor;
+              probe.remove();
+              return out;
+            };
             parts.push({
               type: name,
               source: node.sourceId.split("component-").pop(),
@@ -147,7 +157,9 @@ const snap = () =>
                 radius: `${corner("radiusTopLeft")}px ${corner("radiusTopRight")}px ${corner("radiusBottomRight")}px ${corner("radiusBottomLeft")}px`,
                 borderWidth: v.borderWidth,
                 fill: v.fill,
+                fillCss: computed(v.fill),
                 borderColor: v.borderColor,
+                borderColorCss: computed(v.borderColor),
                 color: v.color,
                 iconSize: v.iconSize,
               },
@@ -167,11 +179,14 @@ const snap = () =>
                 : null,
             });
           }
-          if (
-            !["Label", "Description", "FieldError"].includes(name) ||
-            depth === 0
-          )
-            for (const child of node.children) walk(child, x, y, depth + 1);
+          const inside = (childId) => {
+            const child = ws.root.canvasInputs.get(childId);
+            const childType =
+              child && g.getDefinition(child.definitionId)?.name;
+            return depth > 0 || childType === "SelectTrigger";
+          };
+          for (const child of node.children)
+            if (inside(child)) walk(child, x, y, depth + 1);
         };
         walk(field.id, -(fieldRect?.x ?? 0), -(fieldRect?.y ?? 0), 0);
         const input = fieldEl?.querySelector("input:not([hidden])");
@@ -238,14 +253,6 @@ const snapPreview = () =>
     },
     [TYPES],
   );
-const rgb = (value) => {
-  if (typeof value !== "string") return undefined;
-  if (value === "transparent") return "rgba(0, 0, 0, 0)";
-  const hex = /^#([0-9a-f]{6})$/i.exec(value)?.[1];
-  if (!hex) return value;
-  const n = parseInt(hex, 16);
-  return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`;
-};
 /** Parts whose Canvas record and Preview element differ (box > 1px · corners · border · fill). */
 const mismatches = (shot) =>
   TYPES.flatMap((type) => {
@@ -274,12 +281,12 @@ const mismatches = (shot) =>
       // A stepper RAC disables at the value's limit is the Preview's run state: its sheet's
       // disabled paint is not the document's (the Canvas draws the document).
       if (part.type === "Button" && part.p.disabled) continue;
-      if (part.c.fill && rgb(part.c.fill) !== part.p.background)
+      if (part.c.fill && part.c.fillCss !== part.p.background)
         bad.push(`${tag} fill ${part.c.fill}/${part.p.background}`);
       if (
         part.c.borderWidth &&
         part.c.borderColor &&
-        rgb(part.c.borderColor) !== part.p.border.split(" ").slice(2).join(" ")
+        part.c.borderColorCss !== part.p.border.split(" ").slice(2).join(" ")
       )
         bad.push(`${tag} border color ${part.c.borderColor}/${part.p.border}`);
       if (["Input", "Button"].includes(part.type) && part.p.size !== part.size)
@@ -582,7 +589,9 @@ if (TYPES.includes("NumberField"))
     const pageButton = await page.evaluate(async () => {
       const doc = document.querySelector("#previewFrame").contentDocument;
       const view = doc.defaultView;
-      const el = doc.querySelector("button.react-aria-Button:not([slot])");
+      const el = [
+        ...doc.querySelectorAll("button.react-aria-Button:not([slot])"),
+      ].find((button) => !button.closest(".react-aria-ComboBox"));
       if (!el) return {};
       const before = view.getComputedStyle(el).backgroundColor;
       for (const name of ["pointerover", "pointerenter", "mouseover"])
@@ -645,7 +654,124 @@ if (TYPES.includes("NumberField"))
       focus,
     });
   });
+/** The placed ComboBox in the Preview, after an action inside that document. */
+const combo = (action) =>
+  page.evaluate(
+    async ([action]) => {
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const view = doc.defaultView;
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const placed = [...ws.root.canvasInputs.values()].find(
+        (r) =>
+          g.getDefinition(r.definitionId)?.name === "ComboBox" &&
+          r.sourceId.startsWith("project:"),
+      );
+      const field = doc.querySelector(
+        `[data-catalog-id="${CSS.escape(placed.id)}"]`,
+      );
+      const input = field.querySelector("input");
+      const button = field.querySelector("button");
+      const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+      const pointer = (el, names) => {
+        for (const name of names)
+          el.dispatchEvent(
+            new view.PointerEvent(name, {
+              bubbles: !/enter|leave/.test(name),
+              pointerType: "mouse",
+            }),
+          );
+      };
+      if (action === "open" || action === "close") button.click();
+      if (action === "hover")
+        pointer(button, ["pointerover", "pointerenter", "mouseover"]);
+      if (action === "unhover")
+        pointer(button, ["pointerout", "pointerleave", "mouseout"]);
+      if (action === "focus") input.focus();
+      if (action === "blur") input.blur();
+      await wait(450);
+      const bcs = view.getComputedStyle(button);
+      const ics = view.getComputedStyle(input);
+      const error = field.querySelector(".react-aria-FieldError");
+      return {
+        expanded: input.getAttribute("aria-expanded"),
+        options: doc.querySelectorAll('[role="option"]').length,
+        listbox: !!doc.querySelector('[role="listbox"]'),
+        button: {
+          disabled: button.hasAttribute("disabled"),
+          hovered: button.hasAttribute("data-hovered"),
+          background: bcs.backgroundColor,
+          opacity: bcs.opacity,
+        },
+        input: {
+          focused: input.hasAttribute("data-focused"),
+          outline: `${ics.outlineStyle} ${ics.outlineWidth} ${ics.outlineOffset}`,
+          invalid: input.hasAttribute("data-invalid"),
+          required:
+            input.hasAttribute("required") ||
+            input.getAttribute("aria-required"),
+        },
+        error: error?.textContent ?? null,
+        rootOpacity: view.getComputedStyle(field).opacity,
+      };
+    },
+    [action],
+  );
+if (TYPES.includes("ComboBox"))
+  await step("combobox", async () => {
+    const rest = await combo();
+    const open = await combo("open");
+    const closed = await combo("close");
+    const hover = await combo("hover");
+    await combo("unhover");
+    const focus = await combo("focus");
+    await combo("blur");
+    await writeFields(["ComboBox"], { isDisabled: true });
+    await page.waitForTimeout(800);
+    const disabled = await combo();
+    await writeFields(["ComboBox"], { isDisabled: false });
+    await page.waitForTimeout(800);
+    // Required: focus and leave the empty field (RAC's own validation — the Preview's run state).
+    await writeFields(["ComboBox"], { isRequired: true });
+    await page.waitForTimeout(800);
+    await combo("focus");
+    const required = await combo("blur");
+    await writeFields(["ComboBox"], { isRequired: false });
+    await page.waitForTimeout(800);
+    const pass =
+      rest.expanded === "false" &&
+      // The Preview gives the ComboBox no items yet (ADR-253 F11 — Phase 4): RAC opens no empty
+      // list, in this build and the one before. With items the button opens and closes it.
+      (open.options === 0
+        ? open.expanded === "false"
+        : open.expanded === "true" && open.listbox) &&
+      closed.expanded === "false" &&
+      hover.button.hovered &&
+      hover.button.background !== rest.button.background &&
+      focus.input.focused &&
+      /solid 2px/.test(focus.input.outline) &&
+      disabled.button.disabled &&
+      disabled.rootOpacity === "0.38" &&
+      disabled.button.opacity === "1" &&
+      disabled.button.background === rest.button.background;
+    record("combobox", BEFORE || pass, {
+      rest,
+      open: [open.expanded, open.listbox, open.options],
+      closed: closed.expanded,
+      hover: hover.button,
+      focus: focus.input,
+      disabled: [disabled.button, disabled.rootOpacity],
+      required: [required.input, required.error],
+    });
+  });
 if (!BEFORE) {
+  // The origin a type's button is an instance of.
+  const BUTTON_ORIGIN = {
+    NumberField: BUTTON,
+    ComboBox: "lib:definition:origin-component-fieldbutton",
+  };
+  const partsOf = (shot, type, partType) =>
+    (shot.fields[type]?.parts ?? []).filter((part) => part.type === partType);
   await step("edit-origins", async () => {
     const before = await snap();
     const write = (definition, visual) =>
@@ -675,10 +801,13 @@ if (!BEFORE) {
       );
     const asked = [];
     const failures = [];
-    failures.push(await write(BUTTON, { fill: "#ffcc00" }));
-    asked.push(await continueImpact());
-    failures.push(await write(BUTTON, { borderColor: "#ff0000" }));
-    asked.push(await continueImpact());
+    const origins = [...new Set(TYPES.map((type) => BUTTON_ORIGIN[type]))];
+    for (const origin of origins) {
+      failures.push(await write(origin, { fill: "#ffcc00" }));
+      asked.push(await continueImpact());
+      failures.push(await write(origin, { borderColor: "#ff0000" }));
+      asked.push(await continueImpact());
+    }
     failures.push(await write(INPUT, { borderColor: "#0000ff" }));
     asked.push(await continueImpact());
     await page.evaluate(() =>
@@ -687,82 +816,66 @@ if (!BEFORE) {
     await page.waitForTimeout(1500);
     const after = await snap();
     writeFileSync(`${OUT}/3-origins.png`, await page.screenshot());
-    const parts = after.fields.NumberField?.parts ?? [];
-    const buttons = parts.filter((part) => part.type === "Button");
-    const input = parts.find((part) => part.type === "Input");
     const bad = mismatches(after);
-    const pass =
-      failures.every((failure) => !failure) &&
-      bad.length === 0 &&
-      buttons.length === 2 &&
-      buttons.every(
-        (part) =>
-          part.c.fill === "#ffcc00" &&
-          part.c.borderColor === "#ff0000" &&
-          part.p.background === "rgb(255, 204, 0)" &&
-          part.p.border.endsWith("rgb(255, 0, 0)"),
-      ) &&
-      input?.c.borderColor === "#0000ff" &&
-      input.p.border.endsWith("rgb(0, 0, 255)");
-    record("edit-origins", pass, {
-      failures,
-      asked,
-      bad,
-      buttons: buttons.map((part) => [
-        part.c.fill,
-        part.p.background,
-        part.p.border,
-      ]),
-      input: input && [input.c.borderColor, input.p.border],
-      before: before.fields.NumberField?.parts
-        .filter((part) => part.type === "Button")
-        .map((part) => [part.c.fill, part.p.background]),
+    const followed = TYPES.map((type) => {
+      const buttons = partsOf(after, type, "Button");
+      const input = partsOf(after, type, "Input")[0];
+      return {
+        type,
+        buttons: buttons.map((part) => [part.c.fill, part.p.background]),
+        input: input && [input.c.borderColor, input.p.border],
+        ok:
+          buttons.length > 0 &&
+          buttons.every(
+            (part) =>
+              part.c.fill === "#ffcc00" &&
+              part.c.borderColor === "#ff0000" &&
+              (part.p.disabled || part.p.background === "rgb(255, 204, 0)"),
+          ) &&
+          input?.c.borderColor === "#0000ff" &&
+          input.p.border.endsWith("rgb(0, 0, 255)"),
+      };
     });
+    record(
+      "edit-origins",
+      failures.every((failure) => !failure) &&
+        bad.length === 0 &&
+        followed.every((item) => item.ok),
+      { failures, asked, bad, followed },
+    );
     // Undo back to the origins' own values.
-    for (let i = 0; i < 6; i += 1) {
+    const fills = (shot) =>
+      JSON.stringify(
+        TYPES.map((type) => [
+          partsOf(shot, type, "Button").map((part) => [
+            part.c.fill,
+            part.c.borderColor,
+          ]),
+          partsOf(shot, type, "Input").map((part) => part.c.borderColor),
+        ]),
+      );
+    for (let i = 0; i < 10; i += 1) {
       await page.evaluate(() =>
         window.__COMPOSITION_CATALOG__.workspace.undo(),
       );
       await page.waitForTimeout(250);
-      const shot = await snap();
-      const first = shot.fields.NumberField?.parts.find(
-        (part) => part.type === "Button",
-      );
-      if (first?.c.fill === buttons[0] && false) break;
-      if (
-        first?.c.fill ===
-          before.fields.NumberField?.parts.find(
-            (part) => part.type === "Button",
-          )?.c.fill &&
-        shot.fields.NumberField?.parts.find((part) => part.type === "Input")?.c
-          .borderColor ===
-          before.fields.NumberField?.parts.find((part) => part.type === "Input")
-            ?.c.borderColor &&
-        first?.c.borderColor ===
-          before.fields.NumberField?.parts.find(
-            (part) => part.type === "Button",
-          )?.c.borderColor
-      )
-        break;
+      if (fills(await snap()) === fills(before)) break;
     }
     await page.waitForTimeout(800);
     const undone = await snap();
     const undoneBad = mismatches(undone);
-    const undoneButton = undone.fields.NumberField?.parts.find(
-      (part) => part.type === "Button",
-    );
-    const beforeButton = before.fields.NumberField?.parts.find(
-      (part) => part.type === "Button",
-    );
+    const paint = (shot) =>
+      JSON.stringify(
+        TYPES.map((type) =>
+          partsOf(shot, type, "Button").map((part) => part.p.background),
+        ),
+      );
     record(
       "undo",
       undoneBad.length === 0 &&
-        undoneButton?.c.fill === beforeButton?.c.fill &&
-        undoneButton?.p.background === beforeButton?.p.background,
-      {
-        undoneBad,
-        fill: [undoneButton?.c.fill, undoneButton?.p.background],
-      },
+        fills(undone) === fills(before) &&
+        paint(undone) === paint(before),
+      { undoneBad, fills: fills(undone), paint: paint(undone) },
     );
   });
 }

@@ -70,177 +70,68 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ComboBox[data-size="xs"] {
-  --combo-container-padding: var(--spacing-3xs) var(--spacing-xs);
-  --combo-container-padding-right: var(--spacing-3xs);
-}
-
-.react-aria-ComboBox[data-size="sm"] {
-  --combo-container-padding: var(--spacing-2xs) var(--spacing-sm);
-  --combo-container-padding-right: var(--spacing-2xs);
-}
-
-.react-aria-ComboBox[data-size="md"] {
-  --combo-container-padding: var(--spacing-xs) var(--spacing-md);
-  --combo-container-padding-right: var(--spacing-xs);
-}
-
-.react-aria-ComboBox[data-size="lg"] {
-  --combo-container-padding: var(--spacing-sm) var(--spacing-lg);
-  --combo-container-padding-right: var(--spacing-sm);
-}
-
-.react-aria-ComboBox[data-size="xl"] {
-  --combo-container-padding: var(--spacing-md) var(--spacing-xl);
-  --combo-container-padding-right: var(--spacing-md);
-}
-
 .react-aria-ComboBox .combobox-container {
   display: flex;
   align-items: center;
-  gap: var(--btn-gap, var(--spacing-xs));
   width: 100%;
-  border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--border-radius);
-  background: var(--bg-inset);
-  overflow: hidden;
-  transition: border-color 200ms ease, background-color 200ms ease;
-  padding: var(--combo-container-padding);
-  padding-right: var(--combo-container-padding-right);
-}
-
-.react-aria-ComboBox .combobox-container:where(:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-ComboBox .combobox-container:where(:has(.react-aria-Button[data-hovered]:not([data-disabled]))) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-ComboBox .combobox-container:where(:has(.react-aria-Input[data-focused])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-ComboBox .combobox-container:where(:has(.react-aria-Input[data-focus-within])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-ComboBox .combobox-container:where(:has(.react-aria-Button[data-focus-visible])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-ComboBox .combobox-container:where(:has([data-invalid])) {
-  border-color: var(--negative);
-}
-
-.react-aria-ComboBox .combobox-container:where(:has([data-disabled])) {
-  background: color-mix(in srgb, var(--fg) 4%, transparent);
-  border-color: color-mix(in srgb, var(--fg) 12%, transparent);
-  opacity: 0.38;
 }
 
 .react-aria-ComboBox[data-size="xs"] {
-  --combo-input-padding: 0;
-  --combo-input-font-size: var(--text-2xs);
-  --combo-input-line-height: var(--text-2xs--line-height);
+  --combo-input-pad-end: 20px;
 }
 
 .react-aria-ComboBox[data-size="sm"] {
-  --combo-input-padding: 0;
-  --combo-input-font-size: var(--text-xs);
-  --combo-input-line-height: var(--text-xs--line-height);
+  --combo-input-pad-end: 26px;
 }
 
 .react-aria-ComboBox[data-size="md"] {
-  --combo-input-padding: 0;
-  --combo-input-font-size: var(--text-sm);
-  --combo-input-line-height: var(--text-sm--line-height);
+  --combo-input-pad-end: 34px;
 }
 
 .react-aria-ComboBox[data-size="lg"] {
-  --combo-input-padding: 0;
-  --combo-input-font-size: var(--text-base);
-  --combo-input-line-height: var(--text-base--line-height);
+  --combo-input-pad-end: 50px;
 }
 
 .react-aria-ComboBox[data-size="xl"] {
-  --combo-input-padding: 0;
-  --combo-input-font-size: var(--text-lg);
-  --combo-input-line-height: var(--text-lg--line-height);
+  --combo-input-pad-end: 70px;
 }
 
 .react-aria-ComboBox .react-aria-Input {
-  flex: 1 1 auto;
   min-width: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  outline: none;
-  forced-color-adjust: none;
-  padding: 0;
-  font-size: var(--combo-input-font-size);
-  line-height: var(--combo-input-line-height);
-  --input-padding: var(--combo-input-padding);
-  --input-font-size: var(--combo-input-font-size);
-  --input-line-height: var(--combo-input-line-height);
+  padding-right: var(--combo-input-pad-end);
 }
 
 .react-aria-ComboBox[data-size="xs"] {
-  --combo-btn-size: 10px;
+  --combo-btn-size: 16px;
+  --combo-btn-offset: -18px;
 }
 
 .react-aria-ComboBox[data-size="sm"] {
-  --combo-btn-size: 14px;
+  --combo-btn-size: 18px;
+  --combo-btn-offset: -20px;
 }
 
 .react-aria-ComboBox[data-size="md"] {
-  --combo-btn-size: 18px;
+  --combo-btn-size: 22px;
+  --combo-btn-offset: -26px;
 }
 
 .react-aria-ComboBox[data-size="lg"] {
-  --combo-btn-size: 22px;
+  --combo-btn-size: 34px;
+  --combo-btn-offset: -38px;
 }
 
 .react-aria-ComboBox[data-size="xl"] {
-  --combo-btn-size: 28px;
+  --combo-btn-size: 46px;
+  --combo-btn-offset: -50px;
 }
 
 .react-aria-ComboBox .react-aria-Button {
-  position: static;
   flex: 0 0 auto;
-  padding: 0;
-  border-width: 0;
   width: var(--combo-btn-size);
-  min-width: unset;
   height: var(--combo-btn-size);
-  background: var(--bg-overlay);
-  color: var(--fg);
-  forced-color-adjust: none;
-  box-shadow: var(--shadow-sm);
-}
-
-.react-aria-ComboBox .react-aria-Button:where([data-hovered]:not([data-disabled])) {
-  background: var(--accent-subtle);
-}
-
-.react-aria-ComboBox .react-aria-Button:where([data-pressed]:not([data-disabled])) {
-  background: color-mix(in srgb, var(--fg) 12%, var(--bg-overlay));
-}
-
-.react-aria-ComboBox .react-aria-Button:where([data-focus-visible]) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.react-aria-ComboBox .react-aria-Button:where([data-disabled]) {
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
-  cursor: not-allowed;
+  min-width: 0;
+  margin-inline-start: var(--combo-btn-offset);
 }
 
 .react-aria-ComboBox[data-size="xs"] {
@@ -318,35 +209,7 @@
   --form-label-align: end;
 }
 
-.react-aria-ComboBox[data-quiet="true"] .react-aria-Button {
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-  border-color: transparent;
-}
-
-.react-aria-ComboBox[data-quiet="true"] .react-aria-Button[data-hovered] {
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-  border-color: transparent;
-}
-
-.react-aria-ComboBox[data-quiet="true"] .react-aria-Button[data-pressed] {
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-  border-color: transparent;
-}
-
-.react-aria-ComboBox[data-quiet="true"] .react-aria-Button[data-focus-visible] {
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-  border-color: transparent;
-}
-
-.react-aria-ComboBox[data-quiet="true"] .combobox-container {
+.react-aria-ComboBox[data-quiet="true"] .react-aria-Input {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -354,44 +217,13 @@
   border-bottom: 1px solid var(--border);
 }
 
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .combobox-container {
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Button[data-hovered]:not([data-disabled])) .combobox-container {
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Input[data-focused]:not([data-disabled])) .combobox-container {
+.react-aria-ComboBox[data-quiet="true"] .react-aria-Input:where([data-focused]) {
   outline: none;
-  background: transparent;
-  border-color: transparent;
   border-bottom-color: var(--accent);
 }
 
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .combobox-container {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .combobox-container {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-ComboBox[data-quiet="true"]:has(.react-aria-Button[data-pressed]:not([data-disabled])) .combobox-container {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--accent);
+.react-aria-ComboBox[data-quiet="true"] .react-aria-Input:where([data-invalid]) {
+  border-bottom-color: var(--negative);
 }
 
 
