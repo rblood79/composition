@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [기본 UI 원본의 재사용 — 원본의 상태별 값이 Preview 의 Button 에 닿는다 (ADR-253 Implemented)] - 2026-10-07
+
+### Fixed
+
+- Button 원본에 쓴 상태별 값 (hover · pressed · disabled · focus 표시) 이 Preview 의 Button 에 닿는다. 전에는 Components page 의 상태 칸만 바뀌고, Preview 에서 실제로 hover 한 Button 은 기본 hover 색 그대로였다. 놓은 Button 과 다른 컴포넌트 안의 Button (Toolbar · NumberField 의 증감 · Select 의 trigger …) 모두 같다. 상태별 값을 쓰는 패널은 아직 없다 (명령으로만 쓴다).
+
+### Changed
+
+- ADR-253 종결: Components page 에서 Label · Input · Button 원본을 고치면 그 원본을 쓰는 field · 그룹 · Toolbar 의 부품이 Builder 와 Preview 에서 같이 바뀐다 (실제 Builder 에서 확인 — Label 6곳 · 입력칸 4곳 · Button 8곳). Checkbox · Radio · Switch 의 글자는 Label 원본을 따르지 않는다 (Label 원본의 instance 가 아니다).
+- Dialog · Popover 의 공용 바탕 원본 (바탕 사슬) 은 미뤘다 — 지금 구조에서는 노드를 늘리지 않고 만들 수 없다.
+
+### Removed
+
+- 쓰지 않는 `SelectTrigger` 의 `accent` · `negative` variant 와 읽는 곳이 없는 `STATIC_LIST_FAMILY_BY_OWNER` 표.
+
+### Technical
+
+- resolver 결과와 consumer record 가 상태별 값을 갖는다 (`stateVisual` — 상태 규칙이 쓰는 키만). DOM 의 Button 은 그 값을 RAC 의 render state 함수 style 로 낸다 (쉬는 style 위에 그 상태 동안만).
+
 ## [Select · ComboBox 의 항목이 ListBox 안에 있다 — Preview 에서 열린다 (ADR-253 Phase 4)] - 2026-10-07
 
 ### Fixed

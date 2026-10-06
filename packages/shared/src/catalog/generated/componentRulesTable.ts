@@ -9388,20 +9388,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           borderHover: "{color.border-hover}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-          borderHover: "{color.accent-hover}",
-        },
-      },
       // ADR-253: a wrapper that only places its parts (a field whose box is its Input / DateInput
       //   instance): no paint, no padding, no border.
       plain: {
@@ -9416,20 +9402,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.transparent}",
           borderHover: "{color.transparent}",
-        },
-      },
-      negative: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
-          borderHover: "{color.negative-hover}",
         },
       },
     },

@@ -182,6 +182,8 @@ export interface CatalogConsumerNode {
   readonly hidden?: true;
   /** State-origin display state of the collapsed instance (`ResolvedCatalogNode.displayState`). */
   readonly displayState?: ResolvedCatalogNode["displayState"];
+  /** The values each state gives the drawn root (`ResolvedCatalogNode.stateVisual`). */
+  readonly stateVisual?: ResolvedCatalogNode["stateVisual"];
   /**
    * Values the owning RAC component gives this sub-part (`catalogDerivedProps` — a progress
    * track's fill): the Canvas paints them over the resolved props; the DOM owner renders its own.
@@ -1093,6 +1095,9 @@ function sameRecord(
       JSON.stringify(right.fillSizing ?? null) &&
     JSON.stringify(left.themeOverride ?? null) ===
       JSON.stringify(right.themeOverride ?? null) &&
+    (left.stateVisual === right.stateVisual ||
+      JSON.stringify(left.stateVisual ?? null) ===
+        JSON.stringify(right.stateVisual ?? null)) &&
     sameList(
       left.regions?.map((item) => `${item.name}:${item.required}`) ?? [],
       right.regions?.map((item) => `${item.name}:${item.required}`) ?? [],
@@ -2253,6 +2258,7 @@ export class CatalogCompositionRoot {
       regions: top.regions ?? target.regions,
       placeholder: top.placeholder ?? target.placeholder,
       ...(target.displayState ? { displayState: target.displayState } : {}),
+      ...(target.stateVisual ? { stateVisual: target.stateVisual } : {}),
       ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
       ...((target.rowCount ?? top.rowCount) !== undefined
         ? { rowCount: target.rowCount ?? top.rowCount }
@@ -3010,6 +3016,7 @@ export class CatalogCompositionRoot {
         className: _className,
         ariaLabel: _ariaLabel,
         templateProps: _templateProps,
+        stateVisual: _stateVisual,
         ...kept
       } = before;
       const resolvedRecord: CatalogConsumerNode = {
@@ -3031,6 +3038,7 @@ export class CatalogCompositionRoot {
         layout: resolved.layout,
         sizing: resolved.sizing,
         placement: top.placement ?? resolved.placement,
+        ...(resolved.stateVisual ? { stateVisual: resolved.stateVisual } : {}),
         ...authoredFields(resolved),
         ...domAttributes(top, resolved),
         slot: top.slot ?? resolved.slot,

@@ -835,3 +835,62 @@ G5 의 조건은 「공용 바탕 원본의 모양을 정할 수 있고, Dialog 
 **결론**: G5 미충족. Gate 표의 후퇴안대로 **Decision 8 (바탕 사슬) 을 미룬다** — Phase 5 는 착수하지 않는다. Phase 4 가 만든 slot 채움 표현은 Select · ComboBox 가 쓰고 있고, 바탕 사슬이 다시 필요해지면 그대로 쓸 수 있다. 후속을 열지는 사용자가 정한다.
 
 **같이 본 것 (이 ADR 범위 밖 — 사용자 판단 재료)**: Dialog 의 버튼 2개는 이미 Button 원본의 instance 다. 제목 · 설명은 원본의 instance 가 아니다 — Dialog · Popover · Card 등 6 자리의 Description 은 `type-Description` 이고 (Phase 3 이 바꾼 field 계열 13 자리만 Description 원본의 instance), heading 은 원본이 없다. 「원본 하나를 고치면 전부 바뀐다」 를 Dialog · Popover · Card 의 제목 · 설명까지 넓히려면 바탕 사슬이 아니라 Decision 2 (부품 = 원본의 instance) 의 대상을 field 밖으로 넓히는 쪽이 노드를 늘리지 않는다.
+
+### 2026-10-07 — Phase 6 정리 · G1 의 Preview 상태별 값 · G7 확인 (브랜치 `adr-253`)
+
+사용자 지시 (2026-10-07): 「Phase 6 의 코드 제거 승인」 · 「2 (G7) · 3 (G1 의 Preview 상태별 값) 은 직접 검증 해라」.
+
+**Phase 6 — 정리**
+
+- 지운 것: `S/catalog/slotRoles.ts` 의 `STATIC_LIST_FAMILY_BY_OWNER` (읽는 곳 0) · `SelectTrigger` rule 의 `accent` · `negative` variant (template 사용 0 — 쓰는 것은 `plain` 4곳과 기본 1곳). 전수 비교 건수 8,460 → 8,388 (`resolveCatalogPaint.shadow.test.ts`).
+- 지우지 않은 것 — 조사해 보니 쓰고 있다:
+  - `SelectIcon` rule: `resolveTriggerIconSize` 가 그 크기 표를 읽고, shared Select · ComboBox · SearchField · DatePicker · DateRangePicker 와 `rulePartRules` 가 그 함수를 쓴다. 이 shared 컴포넌트는 Builder 자체 패널 UI 가 쓴다 (import 24 파일).
+  - shared 컴포넌트의 props 조립 fallback: Builder 패널의 Select 등이 지나는 경로다. Phase 3 (4d) 에서 적은 「호출처가 옛 `renderers/*` 뿐」 은 틀렸다.
+  - `packages/shared/src/renderers` (32 파일 · 11,278 줄): 테스트 2개 · 스크립트 · vite alias · package export 가 읽는다. ADR-248 의 옛 경로 정리에 속하는 일이라 이 ADR 에서 지우지 않는다. `.inset` utility 는 그 경로 (`Field.tsx`) 와 같이 남는다.
+- 문서: `.claude/rules/ssot-hierarchy.md` 의 부품 절 · G3 승인 기록 · CHANGELOG · README 는 Phase 마다 반영했다. `docs/adr/evidence/923-phase5-followup-subpart-extension.md` 는 `dcfaec4b0` 에서 지워져 표기할 파일이 없다.
+
+**G1 — Preview 의 상태별 값**
+
+- 다시 확인 (`adr253-p1-live.mjs`, 5175): Button 원본의 hover 배경을 `#123456` 으로 쓰면 Preview 의 Button 은 hover 에서 (`data-hovered` 확인) sheet 의 hover 색 그대로였다 — 미통과.
+- 구현:
+  - resolver 가 노드마다 상태별 값을 결과에 싣는다 (`ResolvedCatalogNode.stateVisual` — 상태 규칙이 쓰는 키만, 순서는 정의 → override → template 자리 → 받은 층 (원본 정의 · 원본 override · instance) → instance patch). `visual` 은 종전대로 그 상태로 해석할 때만 그 값을 갖는다.
+  - record 는 그려지는 루트의 것을 갖는다 (`CatalogConsumerNode.stateVisual`, 비교 대상에 포함).
+  - DOM 의 Button 은 그 값을 RAC 의 render state 함수 style 로 낸다: 쉬는 style 위에 hover · focusVisible · pressed · disabled 인 동안만 그 상태의 차이를 inline 으로 얹는다 (`X/domBinding.tsx` `catalogDomStateStyles` · `withStateStyles`). 상태 값이 없는 Button 은 종전대로 객체 style 이다.
+- 대상은 Button binding 이다 (Gate 가 적은 대상). 다른 type 은 record 에 값이 실리지만 DOM 이 읽지 않는다 — 상태별 값을 쓰는 편집 UI 가 아직 없어 (명령 `setLibraryDefault` 의 `stateRules` 뿐) 넓히지 않았다.
+- unit `adr253StateStyleDom.test.ts` 5건: record 의 상태별 값 (놓인 instance · Toolbar 안 instance · instance 가 쓴 값이 위) · 실제 마운트에서 hover 동안만 배경 · 글자색 · 마운트 뒤 값만 바꾼 편집 · disabled · 상태 값이 없는 Button.
+- 원복 RED 4행 (`red-g1.sh` — 받은 층 제외 · record 비교 제외 · 함수 style 제외 · disabled flag 제외) 전부 RED, 트리 복원 확인.
+- live `adr253-p1-live.mjs` 8/8: `state-preview` 가 통과 — 쉬는 배경 `rgb(23, 23, 23)`, hover 에서 `rgb(18, 52, 86)`. 콘솔 오류 0.
+
+**G7 — 원본을 고치면 전체가 한 세트로 바뀐다**
+
+live `apps/builder/scripts/adr253-g7-live.mjs` 7/7 (worktree 빌드 5175 · headed Chrome · DPR 1 · visible · Compare Mode). 팔레트 클릭으로 Button · Toolbar · TextField · NumberField · Select · ComboBox · SearchField · CheckboxGroup 을 놓고 Components page 에서 원본을 고친 뒤 page 로 돌아와 Canvas record 와 Preview computed style 을 읽었다.
+
+| 원본   | 쓴 값                        | Canvas · Preview 에서 바뀐 것                                                                                |
+| ------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Label  | 글자색 `#ff0000` · 크기 18   | field · 그룹 6곳의 Label 전부 (TextField · NumberField · Select · ComboBox · SearchField · CheckboxGroup)    |
+| Input  | 배경 `#ffff00` · 테두리 파랑 | 입력칸 4곳 전부 (TextField · NumberField · ComboBox · SearchField)                                           |
+| Button | 배경 `#00aa00`               | Button 8곳 전부 — 놓은 Button · Toolbar 3 · NumberField 증감 2 · Select 의 trigger · ComboBox 의 FieldButton |
+
+- Design 패널: Label 원본을 고른 채 「Project defaults」 의 `fontSize` Reset 버튼을 누르면 6곳의 글자 크기가 양쪽에서 14 로 돌아가고 글자색은 남는다.
+- undo 4번 뒤 Canvas record 와 Preview computed style 이 편집 전과 같다. 콘솔 오류 0.
+- 따르지 않는 것 (정해 둔 것): Checkbox · Radio · Switch 의 글자는 Label 원본의 instance 가 아니다 (Phase 3 (1) 결정) — CheckboxGroup 안 Checkbox 2개의 글자는 그대로였다.
+- 관찰: NumberField 의 감소 버튼은 Preview 에서 RAC 의 실행 상태가 disabled 라 sheet 의 disabled 칠을 보이고, Canvas 는 원본의 배경을 그린다 (실행 상태는 Canvas 가 그리지 않는다 — 전부터).
+- 한계: 원본의 값 쓰기는 패널이 내는 것과 같은 명령 (`setFields` → `workspace.execute`) 으로 했다. 패널 조작은 Reset 버튼 하나다.
+
+**검증 · G6**
+
+- `pnpm type-check` 통과 · shared 1,515 · builder 4,489 · publish 11.
+- 시각 하니스 69/70 — 실패 1건은 종전과 같은 CardView.
+- initial 번들 (production 빌드 · `adr209-bundle-closure.mjs`, Phase 4 대비): Builder JS gzip 1,227,683 → 1,228,120 (+437) · Preview JS gzip 287,042 → 286,972 (−70) · CSS 는 둘 다 같다. 상한 안.
+
+**Gate 종합**
+
+| Gate | 결과                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------- |
+| G1   | 통과 — 기본 스타일 (Phase 1) · 상태별 값의 Canvas (Phase 1) · Preview 의 실제 hover (이 절) |
+| G2   | 통과 (Phase 2)                                                                              |
+| G3   | 통과 (Phase 3 · 남았던 Select · ComboBox 열기는 Phase 4)                                    |
+| G4   | 통과 (Phase 4)                                                                              |
+| G5   | 조건 미충족 — Decision 8 (바탕 사슬) 미룸, Phase 5 미착수. 후속은 사용자 결정               |
+| G6   | 통과 — Phase 마다 ratchet · 번들 상한 안                                                    |
+| G7   | 통과 — 사용자 지시로 실행자가 live 로 확인 (위 표)                                          |

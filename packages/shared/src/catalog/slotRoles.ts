@@ -473,28 +473,6 @@ export function isItemRoleSlotNameAllowed(
 }
 
 /**
- * ADR-234 Phase 3 — 정적 목록 가족: owner type → 항목을 담는 목록 틀 type (`null` = owner 자신) · 항목 type.
- * 두 leg 의 ref 해석 (Canvas `resolveCanonicalRefTree` · Preview resolver) 이 바인딩 owner 에서 origin 의
- * 정적 항목을 펼치지 않을 때 읽는다.
- */
-export const STATIC_LIST_FAMILY_BY_OWNER: Readonly<
-  Record<string, { listType: string | null; itemType: string }>
-> = {
-  Tabs: { listType: "TabList", itemType: "Tab" },
-  TagGroup: { listType: "TagList", itemType: "Tag" },
-  ListBox: { listType: null, itemType: "ListBoxItem" },
-  GridList: { listType: null, itemType: "GridListItem" },
-  Menu: { listType: null, itemType: "MenuItem" },
-  // ADR-237 Phase 3 — Breadcrumbs (목록 틀 = owner) · 바인딩 목록은 `items` 행 그대로.
-  Breadcrumbs: { listType: null, itemType: "Breadcrumb" },
-  // ADR-238 Phase 3 — Select · ComboBox (목록 틀 = owner, 항목 = popover 안 ListBoxItem instance — Menu 선례).
-  Select: { listType: null, itemType: "ListBoxItem" },
-  ComboBox: { listType: null, itemType: "ListBoxItem" },
-  // ADR-239 Phase 1 — Tree (목록 틀 = owner, 항목 안 항목 = 재귀). 바인딩 Tree 는 `dataBinding` 행 그대로.
-  Tree: { listType: null, itemType: "TreeItem" },
-};
-
-/**
  * ADR-238 Phase 2 — 목록 owner → section type (RAC `ListBoxSection` · `MenuSection` · `GridListSection`, 한 단계).
  */
 export const SECTION_TYPE_BY_OWNER: Readonly<Record<string, string>> = {

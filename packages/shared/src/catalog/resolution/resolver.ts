@@ -74,6 +74,12 @@ export interface ResolvedCatalogNode {
   /** State-origin display state (outer instance layer wins over its template's). */
   displayState?: DisplayStateName;
   /**
+   * The values each state gives this node (the keys its state rules write, in the rules' order —
+   * definition, overrides, the instance's own): a consumer that draws states itself (the DOM, by
+   * RAC's render state) reads them; `visual` holds them only when resolved in that state.
+   */
+  stateVisual?: Readonly<Partial<Record<StateName, Readonly<Values>>>>;
+  /**
    * A data row's key on every node the row projects (not the first row, which keeps the row
    * template position's identity): the record identity's row segment.
    */
@@ -447,6 +453,30 @@ export function resolveCatalogNode(
       // remove resets this local layer; the inherited value remains visible.
     }
   };
+  /** `ResolvedCatalogNode.stateVisual` of the state rule layers a node takes, lowest first. */
+  const stateValues = (
+    layers: readonly (StateRules | undefined)[],
+  ): ResolvedCatalogNode["stateVisual"] => {
+    let out: Partial<Record<StateName, Values>> | undefined;
+    for (const rules of layers) {
+      if (!rules) continue;
+      for (const name in rules) {
+        const writes = rules[name as StateName];
+        if (writes)
+          applyWrites(
+            ((out ??= {})[name as StateName] ??= {}) as Record<
+              string,
+              PropValue | null
+            >,
+            writes,
+          );
+      }
+    }
+    if (!out) return undefined;
+    for (const name of Object.keys(out) as StateName[])
+      if (Object.keys(out[name]!).length === 0) delete out[name];
+    return Object.keys(out).length ? out : undefined;
+  };
   /** Structural ancestor type names, nearest first (collapsed composite layers skipped). */
   function* ancestorTypes(
     context: ParentContext | undefined,
@@ -734,12 +764,18 @@ export function resolveCatalogNode(
       applyWrites(visual, rule);
     if (state && node.stateRules?.[state])
       applyWrites(visual, node.stateRules[state]);
+    const ownStates = stateValues([
+      lookupDefinition(node.definitionId).stateRules,
+      findOverride(node.definitionId)?.stateRules,
+      node.stateRules,
+    ]);
     return {
       sourceId: node.id,
       instancePath,
       definitionId: node.definitionId,
       props,
       visual,
+      ...(ownStates ? { stateVisual: ownStates } : {}),
       layout,
       sizing,
       placement: node.placement,
@@ -1367,12 +1403,20 @@ export function resolveCatalogNode(
         if (rules[nodeState]) applyWrites(visual, rules[nodeState]);
     if (nodeState && change?.kind === "patch" && change.stateRules?.[nodeState])
       applyWrites(visual, change.stateRules[nodeState]);
+    const templateStates = stateValues([
+      lookupDefinition(template.definitionId).stateRules,
+      findOverride(template.definitionId)?.stateRules,
+      template.stateRules,
+      ...receivedStateRules,
+      change?.kind === "patch" ? change.stateRules : undefined,
+    ]);
     return {
       sourceId: templateId,
       instancePath,
       definitionId: template.definitionId,
       props,
       visual,
+      ...(templateStates ? { stateVisual: templateStates } : {}),
       layout,
       sizing,
       placement: "kind" in template ? template.placement : undefined,

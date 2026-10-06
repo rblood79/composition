@@ -36,6 +36,7 @@ import {
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import { FIELD_HINT_OWNERS } from "./presence";
+import type { StateName } from "../document/types";
 import {
   authoredInvalid,
   CATALOG_DELEGATED_DOM,
@@ -1595,6 +1596,12 @@ function renderNode(
   // A Button the document disables keeps its rest paint inline, as the Canvas draws it (the
   // rule's disabled state is its opacity; the shared `.button-base` sheet would also repaint it).
   // Inside a disabled field the field's root fades once: the Button does not fade again.
+  // The values a state gives the Button (`stateVisual` — an origin's override, the node's own):
+  // inline while RAC reports that state, over the sheet's state paint.
+  const stateStyles =
+    bound && node.bindingId === "button" && node.stateVisual
+      ? catalogDomStateStyles(node, parentInput, bound)
+      : undefined;
   if (bound && node.bindingId === "button") {
     const partField = catalogPartField(root, node);
     const fieldDisabled =
@@ -1651,9 +1658,70 @@ function renderNode(
   return withHtmlId(
     root,
     node,
-    slot
-      ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
-      : rendered,
+    withStateStyles(
+      slot
+        ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
+        : rendered,
+      stateStyles,
+    ),
+  );
+}
+
+/** RAC's render-state flag of each drawn state, in the order a later one wins. */
+const STATE_RENDER_FLAGS: readonly (readonly [StateName, string])[] = [
+  ["hover", "isHovered"],
+  ["focusVisible", "isFocusVisible"],
+  ["pressed", "isPressed"],
+  ["disabled", "isDisabled"],
+];
+type StateStyles = Partial<Record<StateName, CSSProperties>>;
+
+/**
+ * Each state's inline style over the rest style: what `catalogDomStyle` gives the node with that
+ * state's values, less what the rest style already says.
+ */
+function catalogDomStateStyles(
+  node: CatalogConsumerNode,
+  parent: CatalogConsumerNode | undefined,
+  rest: CSSProperties,
+): StateStyles | undefined {
+  const out: StateStyles = {};
+  const base = rest as Readonly<Record<string, unknown>>;
+  for (const [state] of STATE_RENDER_FLAGS) {
+    const values = node.stateVisual?.[state];
+    if (!values) continue;
+    const styled = catalogDomStyle(
+      { ...node, visual: { ...node.visual, ...values } },
+      parent,
+    ) as Readonly<Record<string, unknown>>;
+    const delta: Record<string, unknown> = {};
+    for (const key of Object.keys(styled))
+      if (!Object.is(styled[key], base[key])) delta[key] = styled[key];
+    if (Object.keys(delta).length) out[state] = delta as CSSProperties;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+/** The element with its style as RAC's render-state function: the rest style, then each state's. */
+function withStateStyles(
+  element: ReactElement,
+  states: StateStyles | undefined,
+): ReactElement {
+  if (!states) return element;
+  const rest = (element.props as { style?: CSSProperties }).style ?? {};
+  return cloneElement(
+    element as ReactElement<{
+      style?: (render: Readonly<Record<string, unknown>>) => CSSProperties;
+    }>,
+    {
+      style: (render) => {
+        let style = rest;
+        for (const [state, flag] of STATE_RENDER_FLAGS)
+          if (render[flag] === true && states[state])
+            style = { ...style, ...states[state] };
+        return style;
+      },
+    },
   );
 }
 
