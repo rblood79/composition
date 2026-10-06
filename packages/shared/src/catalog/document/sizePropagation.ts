@@ -11,6 +11,8 @@
  * field's size (the fields' rules declare no part font).
  */
 const FIELD_PARTS = ["Label", "Description", "FieldError"] as const;
+/** Fields whose control is an instance of the Input origin: the Input rule sizes it at their size. */
+const INPUT_FIELD_PARTS = [...FIELD_PARTS, "Input"] as const;
 
 export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
@@ -36,11 +38,11 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   Calendar: ["CalendarHeader", "CalendarGrid"],
   RangeCalendar: ["CalendarHeader", "CalendarGrid"],
   // ADR-253: a field's parts (`FIELD_PARTS`).
-  TextField: FIELD_PARTS,
-  TextArea: FIELD_PARTS,
+  TextField: INPUT_FIELD_PARTS,
+  TextArea: INPUT_FIELD_PARTS,
   NumberField: FIELD_PARTS,
   SearchField: FIELD_PARTS,
-  ColorField: FIELD_PARTS,
+  ColorField: INPUT_FIELD_PARTS,
   Select: FIELD_PARTS,
   ComboBox: FIELD_PARTS,
   DateField: FIELD_PARTS,

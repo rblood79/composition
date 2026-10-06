@@ -70,10 +70,12 @@ describe("ADR-248 Phase 4e delegated sub-part owner (catalog records)", () => {
     const input = all.find(
       (id) => typeOf(id) === "Input" && records.get(id)!.parentId === field,
     )!;
-    for (const axis of ["all", "style"] as const)
-      expect(catalogSubpartOwnerType(graph, records, input, axis)).toBe(
-        "TextField",
-      );
+    // The Input as well (an instance of the Input origin): its placeholder · type are the
+    // field's props, its style is its own.
+    expect(catalogSubpartOwnerType(graph, records, input, "all")).toBe(
+      "TextField",
+    );
+    expect(catalogSubpartOwnerType(graph, records, input, "style")).toBeNull();
     expect(catalogSubpartOwnerType(graph, records, field, "all")).toBeNull();
     expect(catalogSubpartOwnerType(graph, records, frame, "all")).toBeNull();
   });

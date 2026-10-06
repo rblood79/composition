@@ -82,8 +82,12 @@ describe("TextArea sizes — field 패밀리 스케일 정렬", () => {
     for (const size of ["sm", "md", "lg", "xl"] as const) {
       expect(ta[size].height, `TextArea.sizes.${size}.height`).toBeUndefined();
     }
-    // 한 줄 상자 (Input) 쪽은 반대로 있어야 한다 — 계산식의 입력이다.
-    expect(typeof table.Input.sizes.md.height).toBe("number");
+    // 계산식의 입력은 Input rule 의 줄 높이다 (ADR-253: Input 의 높이도 내용 — 줄 높이 + padding +
+    //   border — 이라 고정 height 를 두지 않는다).
+    expect(table.Input.sizes.md.lineHeight).toBe(
+      "{typography.text-sm--line-height}",
+    );
+    expect(table.Input.sizes.md.height).toBe(0);
   });
 
   it("xs 는 없다 — Spectrum text-area 는 s/m/l/xl 4종", () => {

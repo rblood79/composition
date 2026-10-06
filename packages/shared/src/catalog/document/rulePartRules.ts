@@ -173,18 +173,14 @@ const ATTRIBUTE_PROPS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Custom properties a child's stylesheet consumes as its own declaration (`base.css`
- * `font-size: var(--input-font-size)` …): the delegation bridge sets the variable, the child
- * declares the property. A Label takes none (ADR-253: the Label rule sizes it at its owner's size).
+ * Custom properties a child's stylesheet consumes as its own declaration (`Tab.css`
+ * `font-size: var(--tab-font-size)` …): the delegation bridge sets the variable, the child
+ * declares the property. A Label and a field Input take none (ADR-253: their own rules size them
+ * at their owner's size).
  */
 const CONSUMED_VARIABLES: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = {
-  Input: {
-    "--input-padding": "padding",
-    "--input-font-size": "font-size",
-    "--input-line-height": "line-height",
-  },
   Tab: { "--tab-padding": "padding", "--tab-font-size": "font-size" },
 };
 

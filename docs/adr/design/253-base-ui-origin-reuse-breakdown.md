@@ -332,3 +332,57 @@ Label · FieldError · Description 과 구조가 다르다. 세 부품은 상태
 - 원본 override 로 쓴 테두리 색 · 배경은 inline 이라 상태 색을 덮는다. G1 에서 남긴 「Preview 의 상태별 값」 판정 (본문 Status) 과 같은 채널 문제다 — Input · Button 에서 처음 눈에 보이게 된다.
 - 크기별 정적 값은 md 에서 Input rule 과 TextField delegation 이 같다 (padding 4 · 12 · 글자 14 · 모서리 6). 나머지 크기와 부모별 차이 (§2-2 5 · 6번) 는 레퍼런스 예제를 다시 받아 px 로 전개한 뒤 시작한다.
 - ComboBox · NumberField · SearchField · Select · picker 2종은 control 이 `SelectTrigger > SelectValue + SelectIcon` 노드다. Input · Group · Button 노드로 다시 짜는 일은 (4) Group · Button 과 한 묶음이다.
+
+### 2026-10-06 — Phase 3 (3a) Input (브랜치 `adr-253`)
+
+대상은 control 이 Input 노드인 field 셋이다: TextField · TextArea · ColorField. ComboBox · NumberField · SearchField 는 control 이 아직 `SelectTrigger > SelectValue` 라 Group · Button 단계에서 같이 바꾼다 (위 「착수 전 확인」 마지막 항목).
+
+**변화 목록 (G0 ① — px)**
+
+전환 전 빌드에서 field 11종 × size 5 × labelPosition 2 의 Canvas record 를 떠서 전환 후와 대조했다. 바뀌는 record 는 세 field 의 Input 뿐이고 (22건, md 는 0건), 바뀌는 값은 둘이다.
+
+| 항목                                                 | 전                                                                 | 후                                                            | 근거                                                                              |
+| ---------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Input 의 모서리 (Canvas · Preview)                   | 전 크기 6px                                                        | Input rule 의 크기 단계 — xs 2 · sm 4 · md 6 · lg 8 · xl 12px | 레퍼런스에 없는 크기 단계는 부품 rule 값 (본문 제약). Button 과 같은 단계다       |
+| ColorField 입력칸의 모서리 (Preview)                 | 4px (`radius-sm`)                                                  | TextField 와 같다 (md 6px)                                    | §2-2 5번                                                                          |
+| ColorField 입력칸의 상태 (Preview)                   | hover · focus · invalid 표시 없음 (focus 는 브라우저 기본 outline) | TextField 와 같다                                             | §2-2 5번 — 「ColorField 는 덧붙이는 것이 없다」                                   |
+| ColorField 입력칸의 placeholder (Preview)            | 없음                                                               | 노드의 값 (`#000000`)                                         | Canvas 는 이미 그렸다 — 같은 노드를 그린다 (Decision 5)                           |
+| disabled 인 TextField · TextArea 의 입력칸 (Preview) | field root 0.38 × 입력칸 0.38 × 글자 38% 로 겹쳐 흐림              | field root 0.38 한 번                                         | Canvas 는 root 한 번만 흐렸다. 입력칸이 자기 모양을 한 번 더 바꾸면 DOM 만 겹친다 |
+
+padding · 글자 크기 · 줄 높이 · 테두리 굵기 · 폭 · TextArea 의 rows 높이는 전 크기에서 전과 같다 (TextField 의 delegation 값과 Input rule 값이 같았다).
+
+**구현**
+
+- 값 (`T` Input rule): 크기 단계에 줄 높이 · 테두리 굵기를 적고 고정 `height` 를 뺐다 — 높이는 내용 (줄 높이 + padding + border, md 20 + 8 + 2 = 30) 이라 같은 정의가 TextArea 의 `<textarea>` 에도 맞는다. `structure` 를 선언해 자기 stylesheet (`generated/Input.css`) 를 낸다: 크기 단계 (`[data-size]`) · hover · focus · invalid. `base.css` 의 입력칸 블록 · TextField 의 `:is(.react-aria-Input, .react-aria-TextArea)` delegation (크기 변수 + 상태 5종) · ColorField 의 모양 bridge 를 지웠다. ColorField 에는 배치 (`max-width` · `box-sizing`) 만 남는다.
+- 생성기: `structure.classAliases` — 한 rule 의 sheet 가 다른 RAC class 를 root 로 같이 그린다. Input rule 은 `["TextArea"]` 이고 selector 가 `:is(.react-aria-Input, .react-aria-TextArea)` 로 나간다 (특이도는 class 하나 그대로). 본문의 「새 emit 기능을 요구하지 않는다」 는 자식 selector 에 대한 선언이었고, 이 옵션은 그 밖의 작은 추가다 (출력 문자열 치환 한 곳 — `CSSGenerator.ts` `generateCSS` 끝).
+- library: `origin-component-input` (팔레트 밖 · Components page 의 부품 칸 — `placeholder` · `type` 을 받는다) 과 세 field 의 `__2` 자리. `size: "md"` 리터럴을 지우고 field 의 size 가 내려간다 (`CATALOG_SIZE_PROPAGATION`). contract 는 이 Phase 의 4 그대로.
+- Canvas: `manualBoxRules` 의 Input (수동 `base.css` 를 옮겨 적은 것) 과 `CONSUMED_VARIABLES` 의 `--input-*` 를 지웠다 — 상자는 rule 의 일반 경로 (`resolveCatalogRuleCanvasBox`) 가 낸다. TextArea 의 rows 높이는 Input rule 의 줄 높이에서 계산한다 (`catalogTextAreaInputHeight`).
+- DOM: field 의 binding 이 Input 노드의 요소를 shared 컴포넌트의 `inputElement` 로 넘긴다 (`fieldInput` · `catalogFieldInputNode`). 노드는 RAC `Input` (TextArea 는 RAC `TextArea`) 이고 `data-size` 와 문서가 쓴 값 (원본 override · 자기 값) 만 inline 으로 낸다 (`fieldInputBinding`). field 의 context 가 주는 것 (id · value · disabled · invalid) 은 넘기지 않는다 (Decision 5 ③). TextField 도 다른 field 처럼 부품을 prop 으로 받는다 — Phase 2 의 children 방식은 없앴다 (Label 단계에서 남긴 통일).
+- 판정: Input 은 텍스트 축 (`placeholder` · `type`) 만 부모 소유 (`TEXT_ONLY_SUBPART_PARENTS`). `DELEGATED_SUBPART_CHILD_TOKENS` 의 Input 은 지웠다.
+- Builder 화면 자체: Builder 문서는 `builder-components.css` 를 싣는다 — 거기에 `generated/Input.css` 를 넣었다 (종전 `foundation` 의 `base.css` 블록 자리). 속성 패널 (`form-controls.css`) 은 `--input-*` 변수 대신 테두리 · padding 을 직접 선언한다.
+
+**구현하면서 정한 것**
+
+- 입력칸의 disabled 는 자기 모양을 바꾸지 않는다 (`states.disabled.opacity: 1`, 색 선언 없음). RAC 는 field 의 disabled 를 입력칸에도 `data-disabled` 로 주므로 입력칸 sheet 가 흐리면 field root 의 흐림과 겹친다 — DOM 만. 처음에는 색만 남겼는데, 그 선언이 ComboBox · NumberField 안의 입력칸 글자색까지 바꿨다 (대조군 비교에서 드러남) — 지웠다.
+- placeholder 색은 선언하지 않았다 (전환 전 TextField 는 브라우저 기본색). `.inset` 의 placeholder 색은 그 utility 를 쓰는 요소에만 있다.
+- 빈 입력칸의 높이: Canvas 는 글자 (값 · placeholder) 가 없으면 줄 상자를 재지 않아 Input 이 10px (padding + border) 였다 — DOM `<input>` 은 30px. Components page 의 Input 카드에서 드러났다 (TextField 의 placeholder 를 비워도 같다 — 전환 전부터). 글자 없는 Input 도 한 줄 높이를 갖게 했다 (`compositionRoot.ts` `emptyLine`).
+- Components page 의 Input 카드는 field 와 같은 고정 폭 칸 (240) 을 쓴다 — `width: 100%` 인 leaf 가 fit-content 칸에서 접힌다.
+- quiet 변형은 그대로 부모 rule 에 있다 (TextField · ColorField 의 `containerVariants.quiet.true.nested` — `.react-aria-Input` 의 모양). §3 의 quiet 항목에서 모은다. 그 selector 는 `<textarea>` 에 닿지 않아 TextArea 의 quiet 는 Preview 에서 상자가 남는다 — 전환 전부터 같다 (대조군 확인).
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 300건 (+5): DOM 구조 대조 221 조합 — 세 field 의 39 조합은 control 의 `data-size` 를 구조에서 빼고 비교하며 (Input rule 의 sheet 가 읽는 크기 표지), ColorField 는 노드의 placeholder 가 더 있음을 따로 단언한다. 세 field: 원본 instance · 요소가 그 노드 · inline 에 해석 상자 없음 · field size → Input (lg 8 / 16 · 16px · 줄 24 · 모서리 8) · 원본 편집 2회 → Canvas · DOM · 자기 스타일은 그 위에 · 판정 두 축. TextArea 의 rows → 높이 · `rows`. 빈 placeholder 의 높이 30.
+- 정적 `adr253PartShapeOwner.static.test.ts`: 세 field 의 delegation 이 Input 에 주는 것은 배치 키뿐이고 상태 선언이 없다.
+- 원복 RED 6종: size 전달 제거 (1) · DOM 이 자기 Input 을 조립 (16) · inline 에 해석 상자 (57) · TextField 자리를 type 노드로 (1) · ColorField 에 모서리 bridge (정적 1) · 텍스트 축 판정 제거 (3). 빈 입력칸 높이는 수리 전 RED (10 ≠ 30).
+- 회귀: `pnpm type-check` · shared 1,498 · rendering 1,379 · builder 4,451 · publish 11 통과. 고친 기대값: 생성 CSS 개수 96 → 97 · 로드 인벤토리 (index 75 · 미로드 24) · `phase4eSubpart` 의 Input style 축 · `resolveDelegatedChildMaxWidth` (ColorField bridge 에 글자 크기 없음) · `domClassMatchesRuleKey` (계산식의 입력 = Input 의 줄 높이).
+- 시각 하니스: 전환 전과 같다 (70건 중 67 통과 · 실패 3건은 같은 내용 — CardView 외 1 · NumberField 2).
+- live `apps/builder/scripts/adr253-p3-input-live.mjs` 10/10 (worktree 빌드 5175 · headed Chrome · DPR 1 · visible): 팔레트 클릭으로 6종을 놓음 → 세 field 의 Input 이 Canvas 와 Preview 에서 같은 상자 (field 기준 x · y · 폭 · 높이 ≤ 1px) · padding · 글꼴 · 모서리 — md · xl · sm · side 라벨 → Preview 의 hover (테두리색) · focus (2px outline + 테두리색) · invalid · disabled (root 0.38 · 입력칸 1) → quiet → Preview 에서 글자를 넣으면 값이 들어간다 → Components page 의 Input 원본에 테두리색 · 모서리 0 을 두 번 쓰면 세 field 가 양쪽에서 바뀐다 → TextField 의 Input 에만 쓰면 그것만 → undo 로 처음 값. 콘솔 오류 0.
+- 대조군: 같은 스크립트를 main 빌드 (5173) 에 돌려 Preview 의 computed style 을 비교했다. 다른 것은 위 변화 목록의 항목과, 컨테이너가 상자를 그리는 세 field 의 안쪽 입력칸 focus `outline-offset` (0 → −1px, outline 이 `none` 이라 보이지 않음) 뿐이다. quiet 는 세 field 모두 같다.
+- Builder 화면 자체: 두 빌드에서 세 화면 상태의 입력칸 computed style 을 비교했다 — TextField 를 선택한 Builder (Components 검색 · AI 입력 · Design 패널, 14개) · Data · Data Editor · Interactions 패널을 연 뒤 (14개) · 새 프로젝트 대화상자 (2개) · 속성 패널 입력칸의 focus 상태. 차이 0. (처음에는 `base.css` 블록만 지워 패널 입력칸의 폭 · 모서리가 달라졌고, 이 비교에서 잡았다.)
+- 한계: Components page 열기 · 값 쓰기 · size 변경은 패널이 내는 것과 같은 호출로 했다. Preview 의 hover 는 Preview 문서 안 PointerEvent 로 줬다. Builder 화면의 비교는 위 세 상태에서 보이는 입력칸까지다. 나머지는 코드로 확인했다: 로그인 화면 · Builder 검색칸 · 필드 템플릿 입력은 자기 CSS 가 테두리 · padding · outline 을 직접 정하고 (`builder-system` layer), 글꼴 · 아이콘 선택기 · 캔버스 간격 입력은 자기 class 를 써서 `.react-aria-Input` 에 걸리지 않는다.
+
+**남긴 것**
+
+- Preview 에서 원본 override 로 쓴 테두리색 · 배경은 inline 이라 hover · focus · invalid 색을 덮는다 (G1 의 「Preview 상태별 값」 판정과 같은 채널 문제 — 본문 Status).
+- quiet 변형 (위) · TextArea 의 quiet.
+- ComboBox · NumberField · SearchField 의 delegation 은 지금 아무도 읽지 않는 `--input-*` bridge 를 아직 적고 있다 (직접 선언이 같이 있어 화면은 같다). Group · Button 단계에서 delegation 과 함께 지운다.

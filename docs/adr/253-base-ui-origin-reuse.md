@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d66260dd`. Phase 3 진행 중: Label · FieldError · Description 단계 완료, 브랜치 `adr-253`)
+Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d66260dd`. Phase 3 진행 중: Label · FieldError · Description · Input 단계 완료, 브랜치 `adr-253`)
 
 > **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
 >
@@ -11,6 +11,8 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d6626
 > **Phase 3 (1) Label** (같은 날, 브랜치 `adr-253`): field · 그룹 17종의 Label 이 Label 원본의 instance 이고 Preview DOM 이 그 노드를 그린다. 부모 rule 의 Label 모양 선언 0 (정적 테스트) · Label 굵기 500 · contract 4. DOM 구조는 전환 전 빌드와 같다 (17 부모 × 13 조합). 남은 단계: FieldError · Description → Input · DateInput → Group · Button.
 >
 > **Phase 3 (2) FieldError · Description** (같은 날, 브랜치): 두 부품의 원본을 등록하고 field · 그룹 13종의 도움말 · 오류 문구 자리를 그 instance 로 했다. Canvas 가 처음으로 도움말과 오류 문구를 그린다 (지금까지 DOM 만 그렸다). Preview 는 그 노드를 RAC 컴포넌트로 그려 자체 validation 오류가 보인다 (required · email — 전환 전에는 표시 없음, G3 ②). 부모 rule 의 두 부품 모양 선언 0. 남은 단계: Input · DateInput → Group · Button.
+
+> **Phase 3 (3a) Input** (같은 날, 브랜치): Input 원본을 등록하고 TextField · TextArea · ColorField 의 입력칸을 그 instance 로 했다. Input rule 이 자기 stylesheet (크기 단계 + hover · focus · invalid) 를 내고, 수동 `base.css` 블록과 TextField · ColorField 의 모양 delegation 을 지웠다. Preview 는 Input 노드를 RAC `Input` 으로 그린다 (`data-size` + 문서가 쓴 값만 inline). 바뀌는 화면: 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리 (breakdown §6 의 변화 목록). 남은 단계: DateInput → Group · Button (ComboBox · NumberField · SearchField 의 입력칸 포함).
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 

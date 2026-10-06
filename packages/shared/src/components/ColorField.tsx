@@ -8,11 +8,13 @@ import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { Text } from "./Content";
 import { FieldError } from "./Field";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldInput,
   renderFieldDescription,
   renderFieldError,
 } from "./FieldNecessityIndicator";
@@ -33,6 +35,8 @@ export interface ColorFieldProps extends AriaColorFieldProps {
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   necessityIndicator?: NecessityIndicator;
+  /** The field's Input node element (catalog runtime, ADR-253); absent = composed from props. */
+  inputElement?: ReactNode;
   labelPosition?: "top" | "side";
   labelAlign?: "start" | "center" | "end";
   isQuiet?: boolean;
@@ -62,6 +66,7 @@ export function ColorField({
   //   ADR-923 r24m1 기본값 계약 게이트를 통과한다 (CSS 는 center/end 만 규칙이 있어 시각 동일).
   labelAlign = "start",
   isQuiet,
+  inputElement,
   ...props
 }: ColorFieldProps) {
   const colorFieldClassName = composeRenderProps(
@@ -82,7 +87,7 @@ export function ColorField({
       data-quiet={isQuiet ? "true" : undefined}
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
-      <Input />
+      {renderFieldInput(inputElement, <Input data-size={size} />)}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}
     </AriaColorField>

@@ -701,7 +701,15 @@ export function generateCSS<Props>(
     lines.push(...atRules);
   }
 
-  return lines.join("\n");
+  const css = lines.join("\n");
+  // ADR-253: a spec that also styles another RAC class as its root (`classAliases`).
+  if (!spec.classAliases?.length) return css;
+  const root = `.react-aria-${spec.name}`;
+  const aliased = `:is(${[root, ...spec.classAliases.map((alias) => `.react-aria-${alias}`)].join(", ")})`;
+  return css.replace(
+    new RegExp(`${root.replace(/[.]/g, "\\.")}(?![\\w-])`, "g"),
+    aliased,
+  );
 }
 
 // ─── Base Styles (Archetype 분기) ───────────────────────────────────────────

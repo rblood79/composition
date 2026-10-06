@@ -28,7 +28,6 @@ const REPO_ROOT = resolve(STYLES_DIR, "../../../../..");
 export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // B. 수동 CSS 가 같은 `.react-aria-X` 를 담당 (base.css/forms.css 또는 컴포넌트 모듈 import)
   FieldError: "B 수동 — base.css 등 61 규칙",
-  Input: "B 수동 — base.css/forms.css 56 규칙",
   Skeleton: "B 수동 — Skeleton.css (Skeleton.tsx import)",
   Toast: "B 수동 — Toast.css (Toast.tsx import)",
   Breadcrumb: "B 수동 — Breadcrumbs.css (Breadcrumbs.tsx import)",
@@ -163,14 +162,14 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   });
 
   // 2026-09-24 — DialogTrigger (`3f50bcf6c`, index 로드) 가 집계를 안 고쳐 96/73 으로 어긋나 있던 것도 같이 맞춘다.
-  it("인벤토리 집계 — 생성 99 · index 74 · 모듈 0 · 미로드 25 (Body CSS load 포함 · DialogTrigger · ADR-238 section 3)", () => {
+  it("인벤토리 집계 — 생성 99 · index 75 · 모듈 0 · 미로드 24 (Body CSS load 포함 · DialogTrigger · ADR-238 section 3 · ADR-253 Input)", () => {
     expect(generated.length).toBe(99);
-    expect(indexImported.size).toBe(74);
+    expect(indexImported.size).toBe(75);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(24);
   });
 });

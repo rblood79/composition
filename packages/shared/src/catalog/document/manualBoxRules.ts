@@ -364,16 +364,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // `generated/Input.css` is not loaded (`UNLOADED_GENERATED_CSS` B): the box is the manual
-  // `base.css` `.react-aria-Input` — `width: 100%`, 1px border, `padding: var(--input-padding,
-  // var(--spacing))`, no height (content = line box). The owner's delegation variables
-  // (`--input-padding` …, compiled part rules) replace the padding per owner size; the Input's own
-  // `sizes[*].height` is read by no stylesheet.
-  Input: () => ({
-    replace: true,
-    layout: { display: "block" },
-    visual: { width: "100%", borderWidth: 1, paddingY: 4, paddingX: 4 },
-  }),
   // No generated CSS (no `structure`) and no DOM element with its class: the field's trigger wrapper
   // is the owner's delegation box (`.react-aria-Group` / `.combobox-container` /
   // `.searchfield-container` / Select's `.react-aria-Button`) and the value is the owner's input or

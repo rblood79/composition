@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 3 (3a) Input (브랜치 `adr-253`, main 병합 전)**: Input 원본 등록 · TextField · TextArea · ColorField 의 입력칸이 그 instance · Input rule 이 자기 stylesheet 를 낸다 (`base.css` 블록 · TextField / ColorField 의 모양 delegation 제거). 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리. unit 300 · live 10/10 · 전환 전 빌드와 Preview / Builder 화면 대조 · 시각 하니스 전환 전과 동일. 남은 단계: DateInput → Group · Button.
+
 > **2026-10-06 ADR-253 Phase 3 (2) FieldError · Description (브랜치 `adr-253`, main 병합 전)**: 두 부품 원본 등록 · field · 그룹 13종의 도움말 · 오류 문구가 그 instance. Canvas 가 도움말 · 오류 문구를 그리기 시작 (전에는 DOM 만) · Preview 의 자체 validation 오류 표시 수리 (대조군 main: 표시 없음) · 부모 rule 의 두 부품 모양 선언 0. unit 295 · live 9/9 · 시각 하니스 전환 전과 동일. 남은 단계: Input · DateInput → Group · Button.
 
 > **2026-10-06 ADR-253 Phase 3 (1) Label (브랜치 `adr-253`, main 병합 전)**: field · 그룹 17종의 Label 이 Label 원본의 instance · Preview DOM 이 Label 노드를 그림 · 부모 rule 의 Label 모양 선언 0 · 굵기 500 (`LIBRARY_CONTRACT_VERSION` 4). unit 272 (DOM 구조 대조 17 부모 × 13 조합 — 전환 전 빌드 기준) · live 5/5 · 시각 하니스 Canvas ↔ DOM 전환 전과 동일. 남은 단계: FieldError · Description → Input · DateInput → Group · Button.

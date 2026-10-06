@@ -100,3 +100,15 @@ export function renderFieldError(
   if (isValidElement(errorMessage)) return errorMessage;
   return createElement(FieldError, { children: errorMessage });
 }
+
+/**
+ * A field's control (ADR-253): the field's Input node element from the catalog runtime (a RAC
+ * Input its binding drew inside this field's context), else the control the field composes from
+ * its own props.
+ */
+export function renderFieldInput(
+  inputElement: ReactNode,
+  composed: ReactNode,
+): ReactNode {
+  return isValidElement(inputElement) ? inputElement : composed;
+}

@@ -115,7 +115,6 @@ export function hasDelegatedChild(
 export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   Record<string, readonly string[]>
 > = {
-  Input: [".react-aria-Input"],
   DateInput: [".react-aria-DateInput"],
   // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
   //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
@@ -160,6 +159,8 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   //   `errorMessage` 가 정본이다.
   Description: FIELD_HINT_PARENTS,
   FieldError: FIELD_HINT_PARENTS,
+  // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
+  Input: ["TextField", "TextArea", "ColorField"],
   Label: [
     "TextField",
     "TextArea",

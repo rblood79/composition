@@ -16,8 +16,6 @@
  * size/labelPosition/quiet 가 여기서 빠지면 theme CSS 가 통째로 안 걸린다.
  */
 
-import { FieldError } from "react-aria-components/FieldError";
-import { Text } from "react-aria-components/Text";
 import { TextArea as AriaTextArea } from "react-aria-components/TextArea";
 import {
   TextField as AriaTextField,
@@ -25,11 +23,13 @@ import {
   ValidationResult,
 } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldInput,
   renderFieldDescription,
   renderFieldError,
 } from "./FieldNecessityIndicator";
@@ -49,6 +49,8 @@ export interface TextAreaProps extends AriaTextFieldProps {
   rows?: number;
   size?: ComponentSize;
   necessityIndicator?: NecessityIndicator;
+  /** The field's Input node element (catalog runtime, ADR-253); absent = composed from props. */
+  inputElement?: ReactNode;
   isLoading?: boolean;
   labelPosition?: "top" | "side";
   /**
@@ -77,6 +79,7 @@ export function TextArea({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  inputElement,
   ...props
 }: TextAreaProps) {
   if (isLoading) {
@@ -109,7 +112,10 @@ export function TextArea({
       isReadOnly={isReadOnly}
     >
       {renderFieldLabel(label, necessityIndicator, isRequired)}
-      <AriaTextArea rows={rows} placeholder={placeholder} />
+      {renderFieldInput(
+        inputElement,
+        <AriaTextArea rows={rows} placeholder={placeholder} data-size={size} />,
+      )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}
     </AriaTextField>

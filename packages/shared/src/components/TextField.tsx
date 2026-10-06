@@ -5,20 +5,19 @@
  * Sizes: sm, md, lg
  */
 
-import { FieldError } from "react-aria-components/FieldError";
 import { Input } from "react-aria-components/Input";
-import { Label } from "react-aria-components/Label";
-import { Text } from "react-aria-components/Text";
 import {
   TextField as AriaTextField,
   TextFieldProps as AriaTextFieldProps,
   ValidationResult,
 } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
-  renderNecessityIndicator,
+  renderFieldLabel,
+  renderFieldInput,
   renderFieldDescription,
   renderFieldError,
 } from "./FieldNecessityIndicator";
@@ -34,6 +33,8 @@ export interface TextFieldProps extends AriaTextFieldProps {
   label?: string;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
+  /** The field's Input node element (catalog runtime, ADR-253); absent = composed from props. */
+  inputElement?: ReactNode;
   placeholder?: string;
   type?: "text" | "email" | "password" | "search" | "tel" | "url" | "number";
   value?: string;
@@ -74,7 +75,7 @@ export function TextField({
   labelPosition = "top",
   labelAlign,
   isQuiet,
-  children,
+  inputElement,
   ...props
 }: TextFieldProps) {
   if (isLoading) {
@@ -106,22 +107,15 @@ export function TextField({
       isDisabled={isDisabled}
       isReadOnly={isReadOnly}
     >
-      {/* ADR-253: the catalog runtime passes the field's part nodes (each drawn by its own
-          binding inside this field's RAC context); without them the field composes its parts
-          from its props. */}
-      {children ?? (
-        <>
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(necessityIndicator, isRequired)}
-            </Label>
-          )}
-          <Input type={type} placeholder={placeholder} />
-          {renderFieldDescription(description)}
-          {renderFieldError(errorMessage)}
-        </>
+      {/* ADR-253: the catalog runtime passes the field's part nodes as elements (each drawn by
+          its own binding inside this field's RAC context); any other value is composed here. */}
+      {renderFieldLabel(label, necessityIndicator, isRequired)}
+      {renderFieldInput(
+        inputElement,
+        <Input type={type} placeholder={placeholder} data-size={size} />,
       )}
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
     </AriaTextField>
   );
 }

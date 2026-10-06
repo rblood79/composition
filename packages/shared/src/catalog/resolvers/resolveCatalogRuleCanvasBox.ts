@@ -195,30 +195,32 @@ export function resolveCatalogRuleCanvasBox(
 
 /**
  * TextArea value box height: the DOM `<textarea rows>` = rows × line-height + paddingY×2 +
- * border×2, the line being the catalog one-row `Input` box minus its padding and border (md 30 −
- * 8 − 2 = 20). `rows` below 1 or fractional floors to 1 (DOM `rows` rule); absent = 3 (shared
- * default). `TextArea.sizes[size].height` is read by neither the DOM nor the Canvas.
+ * border×2, the line being the catalog `Input` rule's own (`sizes[size].lineHeight` — md 20; the
+ * one-row box is 20 + 8 + 2 = 30). `rows` below 1 or fractional floors to 1 (DOM `rows` rule);
+ * absent = 3 (shared default). `TextArea.sizes[size].height` is read by neither the DOM nor the
+ * Canvas.
  */
 export function catalogTextAreaInputHeight(
   sizeName: string,
   rawRows: unknown,
 ): number | undefined {
-  const sizes = resolveComponentRule("Input")?.sizes as
-    Record<string, ComponentRuleSize> | undefined;
   const rule = resolveComponentRule("Input");
+  const sizes = rule?.sizes as Record<string, ComponentRuleSize> | undefined;
   const size =
     sizes?.[sizeName] ??
     (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
-  const oneRow = size?.height;
-  if (typeof oneRow !== "number") return undefined;
+  const lineHeight =
+    size?.lineHeight === undefined
+      ? undefined
+      : resolveCatalogLayoutValue(size.lineHeight);
+  if (typeof lineHeight !== "number") return undefined;
   const padY = typeof size?.paddingY === "number" ? size.paddingY : 0;
   const border = resolveBorderWidthPx(size?.borderWidth);
-  const lineHeight = oneRow - padY * 2 - border * 2;
   const rows =
     typeof rawRows === "number" && Number.isFinite(rawRows)
       ? Math.max(1, Math.floor(rawRows))
       : 3;
-  return oneRow + (rows - 1) * lineHeight;
+  return rows * lineHeight + padY * 2 + border * 2;
 }
 
 /**

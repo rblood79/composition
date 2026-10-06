@@ -31,7 +31,9 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * Oracle: `fixtures/adr253-field-dom.json` — the same catalog documents rendered by the build
  * before Phase 3 (main `1d66260dd`; written there with `ADR253_WRITE_DOM=1`). Structure =
  * elements, their attributes and text, in order; generated ids, the catalog markers and inline
- * style are not structure (what the parts draw is judged by the Canvas ↔ DOM comparison).
+ * style are not structure (what the parts draw is judged by the Canvas ↔ DOM comparison). Nor is
+ * the `data-size` of a field's control: the Input node's element carries the field's size for the
+ * Input rule's own sheet (before, the field's sheet sized it through variables).
  */
 const FIXTURE = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -123,6 +125,17 @@ const DESCRIPTION_ORIGIN =
   "lib:definition:origin-component-description" as LibraryDefinitionId;
 const FIELD_ERROR_ORIGIN =
   "lib:definition:origin-component-fielderror" as LibraryDefinitionId;
+const INPUT_ORIGIN =
+  "lib:definition:origin-component-input" as LibraryDefinitionId;
+/** Fields whose control is their Input node (an instance of the Input origin). */
+const INPUT_TYPES = ["textfield", "textarea", "colorfield"] as const;
+/**
+ * The ColorField's Input node has a placeholder (`#000000`, drawn on the Canvas); the Preview's
+ * own composition left it out. The node's element shows it.
+ */
+const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
+  colorfield: " placeholder=#000000",
+};
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 const SIDE_INDENT: Record<string, number> = {
   textfield: 182,
@@ -157,10 +170,15 @@ const set = <T>(value: T) => ({ kind: "set" as const, value });
 /** A document's structure: elements, their attributes (sorted) and text, in order. */
 function normalize(html: string): string {
   const walk = (element: Element): string => {
+    const control = ["input", "textarea"].includes(
+      element.tagName.toLowerCase(),
+    );
     const attributes = [...element.attributes]
       .filter(
         (attribute) =>
-          attribute.name !== "data-catalog-id" && attribute.name !== "style",
+          attribute.name !== "data-catalog-id" &&
+          attribute.name !== "style" &&
+          !(control && attribute.name === "data-size"),
       )
       .map((attribute) =>
         [
@@ -272,7 +290,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }
         const shown = SHOWN_SINCE[`${type}/${name}`];
         if (!shown) {
-          expect(structure).toBe(fixture[`${type}/${name}`]);
+          const placeholder = INPUT_PLACEHOLDER_SINCE[type];
+          if (placeholder) expect(structure).toContain(placeholder);
+          expect(
+            placeholder ? structure.replace(placeholder, "") : structure,
+          ).toBe(fixture[`${type}/${name}`]);
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -510,6 +532,176 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }
       },
     );
+
+  /**
+   * The control (Input): an instance of the Input origin, drawn in the DOM by its own node — a RAC
+   * Input inside the field's context. Its box is the Input rule's sheet at the field's size
+   * (`data-size`); the element's inline style carries only what the document wrote.
+   */
+  for (const type of INPUT_TYPES)
+    it.skipIf(write)(`${type} — its control is its Input node`, async () => {
+      const rendered = (await render(type, {}))!;
+      const { workspace, field } = rendered;
+      const input = () =>
+        workspace.root.canvasInputs
+          .get(field.id)!
+          .children.map((id) => workspace.root.canvasInputs.get(id)!)
+          .find((child) => child.ruleId === "Input")!;
+      const element = (html: string) => {
+        const host = document.createElement("div");
+        host.innerHTML = html;
+        return host.querySelector<HTMLElement>(
+          `[data-catalog-id="${input().id}"]`,
+        )!;
+      };
+      const html = () =>
+        renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        );
+      expect(input().collapsedSourceIds).toEqual([
+        "lib:template:component-input",
+      ]);
+      // The element: the control RAC wires to the field (id ← the Label's `for`), sized by the
+      // rule's sheet — no resolved box inline.
+      const control = element(html());
+      expect(control.tagName).toBe(type === "textarea" ? "TEXTAREA" : "INPUT");
+      expect(control.getAttribute("data-size")).toBe("md");
+      expect(control.getAttribute("style") ?? "").not.toMatch(
+        /padding|border|background|font-size/,
+      );
+      // The Input rule sizes it at the field's size (no field rule declares an Input shape).
+      expect(input().props.size).toBe("md");
+      expect(input().visual).toMatchObject({
+        paddingY: 4,
+        paddingX: 12,
+        fontSize: 14,
+        radius: 6,
+        borderWidth: 1,
+      });
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { size: set("lg") },
+        }),
+      );
+      expect(input().props.size).toBe("lg");
+      expect(input().visual).toMatchObject({
+        paddingY: 8,
+        paddingX: 16,
+        fontSize: 16,
+        radius: 8,
+      });
+      expect(
+        Number(input().visual.lineHeight) * Number(input().visual.fontSize),
+      ).toBeCloseTo(24, 5);
+      expect(element(html()).getAttribute("data-size")).toBe("lg");
+      // The Input origin is the one place its style comes from — a second edit as well — and it
+      // reaches the element as inline style over the sheet.
+      for (const color of ["#ff0000", "#0000ff"]) {
+        workspace.execute(
+          setLibraryDefault({
+            definitionId: INPUT_ORIGIN,
+            scope: "visual",
+            key: "borderColor",
+            write: set(color),
+            newId: workspace.newId,
+          }),
+        );
+        expect(input().visual.borderColor).toBe(color);
+        expect(
+          workspace.root.domInputs.get(input().id)!.visual.borderColor,
+        ).toBe(color);
+      }
+      expect(element(html()).getAttribute("style")).toMatch(
+        /border-color:\s*#0000ff/,
+      );
+      // Its style is its own to edit; its text (placeholder · type) is the field's.
+      const graph = workspace.runtime.graph;
+      const records = workspace.root.domInputs;
+      expect(
+        catalogSubpartOwnerType(graph, records, input().id, "style"),
+      ).toBeNull();
+      expect(
+        catalogSubpartOwnerType(graph, records, input().id, "all"),
+      ).not.toBeNull();
+      workspace.execute(
+        setFields({
+          targets: [workspace.itemOfRecord(input().id)!.target],
+          visual: { borderColor: set("#00aa00") },
+        }),
+      );
+      expect(input().visual.borderColor).toBe("#00aa00");
+      expect(element(html()).getAttribute("style")).toMatch(
+        /border-color:\s*#00aa00/,
+      );
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: INPUT_ORIGIN,
+          scope: "visual",
+          key: "borderColor",
+          write: set("#123456"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(input().visual.borderColor).toBe("#00aa00");
+    });
+
+  /**
+   * An Input's height is its content: one line box + padding + border — with or without text
+   * (the DOM `<input>` keeps its line box when it has no value and no placeholder).
+   */
+  it.skipIf(write)(
+    "textfield — its Input keeps its line box without a placeholder",
+    async () => {
+      const { workspace, field } = (await render("textfield", {}))!;
+      const height = () => {
+        const input = workspace.root.canvasInputs
+          .get(field.id)!
+          .children.map((id) => workspace.root.canvasInputs.get(id)!)
+          .find((child) => child.ruleId === "Input")!;
+        return workspace.root.getGeometry([input.id]).get(input.id)!.height;
+      };
+      expect(height()).toBe(30);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { placeholder: set("") },
+        }),
+      );
+      expect(height()).toBe(30);
+    },
+  );
+
+  /** A TextArea's Input node is its `<textarea rows>`: the field's `rows`, on both sides. */
+  it.skipIf(write)("textarea — its rows size its Input node", async () => {
+    const { workspace, field } = (await render("textarea", {}))!;
+    const input = () =>
+      workspace.root.canvasInputs
+        .get(field.id)!
+        .children.map((id) => workspace.root.canvasInputs.get(id)!)
+        .find((child) => child.ruleId === "Input")!;
+    const rows = () =>
+      /<textarea[^>]*rows="(\d+)"/.exec(
+        renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        ),
+      )?.[1];
+    // 3 rows × 20 + padding 8 + border 2.
+    expect(input().visual.height).toBe(70);
+    expect(rows()).toBe("3");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: FIELD }],
+        props: { rows: set(5) },
+      }),
+    );
+    expect(input().visual.height).toBe(110);
+    expect(rows()).toBe("5");
+  });
 
   /**
    * A side label field places its hints under the control: the label column's width plus the

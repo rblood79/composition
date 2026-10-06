@@ -144,6 +144,13 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    * true 시 CSSGenerator가 이 Spec의 CSS 파일을 생성하지 않음.
    */
   skipCSSGeneration?: boolean;
+  /**
+   * Further RAC class names this spec's sheet styles as its own root (ADR-253): the Input rule is
+   * also the `<textarea>` of a TextArea, which RAC classes `.react-aria-TextArea`. Every root
+   * selector is emitted as `:is(.react-aria-{name}, .react-aria-{alias})` (the specificity of one
+   * class, as before).
+   */
+  classAliases?: readonly string[];
 
   /**
    * 기본 HTML 태그 (React용)

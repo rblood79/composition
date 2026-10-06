@@ -622,6 +622,12 @@ export interface ComponentRuleStructure {
    */
   skipCSSGeneration?: boolean;
   /**
+   * 이 rule 의 생성 sheet 가 root 로 같이 그리는 RAC class (ADR-253) — Input rule 은 TextArea 의
+   * `<textarea>` (`.react-aria-TextArea`) 도 그린다. selector 는 `:is(.react-aria-Input,
+   * .react-aria-TextArea)` 로 나간다 (특이도는 class 하나 그대로).
+   */
+  classAliases?: readonly string[];
+  /**
    * `.button-base` utility 착용 대상 명시 선언 — CSS emit 은 direct 인데 markup 클래스와
    * Skia 자식 color 상속 게이트만 필요한 컴포넌트용 (ToggleButtonGroup). `cssEmitMode:
    * "button-base"` 는 이 선언을 함의하므로 중복 지정 불요. 소비는 `usesButtonBaseUtility()`.

@@ -13,7 +13,6 @@ import {
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
-import { Input as AriaInput } from "react-aria-components/Input";
 import { Text as AriaText } from "react-aria-components/Text";
 import {
   FILE_UPLOAD_INPUT_CHILD_TYPES,
@@ -401,6 +400,30 @@ function fieldError(input: DelegatedDomInput, text: string): ReactNode {
 function fieldLabel(input: DelegatedDomInput, text: string): ReactNode {
   const label = catalogFieldLabelNode(input.root, input.node);
   return label && text ? input.renderChild(label.id) : text;
+}
+/**
+ * Fields whose control is their Input node (ADR-253): an instance of the Input origin, drawn by
+ * its own binding inside the field's RAC context (a RAC `Input`; the `<textarea>` of a TextArea).
+ */
+export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
+  "textfield",
+  "textarea",
+  "colorfield",
+]);
+/** The Input node of a field that draws its control from it; `undefined` = the field composes it. */
+export function catalogFieldInputNode(
+  root: CatalogCompositionRoot,
+  field: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  if (!CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "")) return undefined;
+  return childrenOf(root, field).find(
+    (child) => catalogTypeName(root, child) === "Input",
+  );
+}
+/** A field's control for its shared component: the Input node's own element, when it has one. */
+function fieldInput(input: DelegatedDomInput): ReactNode {
+  const node = catalogFieldInputNode(input.root, input.node);
+  return node ? input.renderChild(node.id) : undefined;
 }
 /**
  * A field's `isInvalid` for RAC: `true` while the document says so, else left unset. An explicit
@@ -873,43 +896,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      const label = childOf(input, "Label");
-      const text = str(props.label);
-      const description = str(props.description);
-      const type = props.type || "text";
-      const placeholder = str(props.placeholder);
-      return createElement(
-        TextField as ElementType,
-        {
-          ...fieldBase(input),
-          ...inputHints(props),
-          size: props.size,
-          label: text,
-          description,
-          errorMessage: str(props.errorMessage),
-          placeholder,
-          type,
-          defaultValue: str(props.value),
-          maxLength: num(props.maxLength),
-          minLength: num(props.minLength),
-          pattern: opt(props.pattern),
-        },
-        // ADR-253: the Label is the field's Label node (an instance of the Label origin), drawn by
-        // its own binding inside the field's RAC context. The other parts are still the field's
-        // own composition (Phase 3 moves them to their nodes).
-        ...(label
-          ? [
-              text ? input.renderChild(label.id) : null,
-              createElement(AriaInput, {
-                key: "input",
-                type: String(type),
-                placeholder,
-              }),
-              fieldDescription(input, description) || null,
-              fieldError(input, str(props.errorMessage)),
-            ]
-          : []),
-      );
+      // ADR-253: the field's parts are its part nodes (instances of the part origins), each drawn
+      // by its own binding inside the field's RAC context and placed by the shared component.
+      return createElement(TextField as ElementType, {
+        ...fieldBase(input),
+        ...inputHints(props),
+        size: props.size,
+        label: fieldLabel(input, str(props.label)),
+        description: fieldDescription(input, str(props.description)),
+        errorMessage: fieldError(input, str(props.errorMessage)),
+        inputElement: fieldInput(input),
+        placeholder: str(props.placeholder),
+        type: props.type || "text",
+        defaultValue: str(props.value),
+        maxLength: num(props.maxLength),
+        minLength: num(props.minLength),
+        pattern: opt(props.pattern),
+      });
     },
   },
   textarea: {
@@ -923,6 +926,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         label: fieldLabel(input, str(props.label)),
         description: fieldDescription(input, str(props.description)),
         errorMessage: fieldError(input, str(props.errorMessage)),
+        inputElement: fieldInput(input),
         placeholder: str(props.placeholder),
         rows: num(props.rows),
         defaultValue: str(props.value),
@@ -1067,6 +1071,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         description:
           fieldDescription(input, str(props.description)) || undefined,
         errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
+        inputElement: fieldInput(input),
         defaultValue: opt(props.defaultValue),
         channel: props.channel,
         colorSpace: props.colorSpace,

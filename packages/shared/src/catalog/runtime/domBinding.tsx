@@ -38,6 +38,7 @@ import { FIELD_HINT_OWNERS } from "./presence";
 import {
   authoredInvalid,
   CATALOG_DELEGATED_DOM,
+  CATALOG_INPUT_NODE_FIELDS,
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldHintNodes,
   catalogFieldLabelNecessity,
@@ -591,6 +592,37 @@ const fieldErrorBinding: DomBinding = (node, style) =>
     >[0],
     String(node.props.children ?? "") || undefined,
   );
+
+/**
+ * A field's Input node (ADR-253): a RAC `Input` — the `<textarea>` of a TextArea — inside the
+ * field's RAC context, which gives it its id, value and state. Its box is the Input rule's sheet
+ * at the node's size (`data-size`, the field's); `style` carries only what the document wrote
+ * (the Input origin's override, this node's own values). Nothing the field's context already
+ * provides is passed.
+ */
+function fieldInputBinding(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+  field: CatalogConsumerNode,
+): ReactElement {
+  const text = (key: string) =>
+    typeof node.props[key] === "string" && node.props[key]
+      ? { [key]: node.props[key] }
+      : {};
+  const multiline = field.bindingId === "textarea";
+  return createElement((multiline ? RAC.TextArea : RAC.Input) as ElementType, {
+    key: node.id,
+    "data-catalog-id": node.id,
+    ...(typeof node.props.size === "string"
+      ? { "data-size": node.props.size }
+      : {}),
+    ...(multiline
+      ? { rows: typeof field.props.rows === "number" ? field.props.rows : 3 }
+      : text("type")),
+    ...text("placeholder"),
+    style,
+  });
+}
 
 /** Binding ids with a product DOM binding (census and consumers read this, not a copy). */
 export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
@@ -1172,7 +1204,9 @@ const CatalogDomNode = memo(function CatalogDomNode({
     ((textBindings.has(node.bindingId ?? "") &&
       parentInput?.bindingId === "slot") ||
       (node.bindingId === "label" &&
-        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !== undefined))
+        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !== undefined) ||
+      // A TextArea's Input node is its `<textarea rows>` (the field's `rows`).
+      (parentInput?.bindingId === "textarea" && node.ruleId === "Input"))
       ? node.parentId
       : undefined;
   const readParent = useCallback(
@@ -1361,6 +1395,20 @@ function renderNode(
             }
           : {}),
       }),
+    );
+  // A field's Input node is a RAC Input inside the field's context (ADR-253).
+  const field = watchedParent ?? parentInput;
+  if (
+    field &&
+    CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "") &&
+    node.ruleId === "Input"
+  )
+    return fieldInputBinding(
+      node,
+      styleOverride
+        ? { ...authoredStyle(root, node), ...styleOverride }
+        : authoredStyle(root, node),
+      field,
     );
   // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
   // it while the field is invalid — the authored message, else what its validation raised.

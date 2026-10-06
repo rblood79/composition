@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Input 원본 하나가 입력칸의 모양을 정한다 (ADR-253 Phase 3 — Input)] - 2026-10-06
+
+### Added
+
+- Components page 에 Input 원본 카드가 있다. 이 원본을 고치면 TextField · TextArea · ColorField 의 입력칸이 Builder 와 Preview 에서 같이 바뀐다 (ComboBox · NumberField · SearchField 는 다음 단계).
+- field 안 입력칸의 스타일은 그 입력칸에서 직접 고친다 (Styles 패널). placeholder · type 은 계속 field 가 정한다.
+
+### Changed
+
+- 입력칸의 모양 (padding · 글꼴 · 테두리 · 모서리 · hover / focus / invalid) 은 Input 자신의 rule 이 field 의 size 로 정한다. 부모 rule 과 수동 CSS (`base.css`) 에 흩어져 있던 정의가 하나가 된다.
+- 입력칸의 모서리가 크기를 따른다: xs 2 · sm 4 · md 6 · lg 8 · xl 12px (전에는 전 크기 6px — Button 과 같은 단계가 된다).
+- ColorField 의 입력칸이 TextField 와 같은 모양이다: 모서리 4 → 6px (md), hover · focus · invalid 표시가 생긴다. Preview 에도 placeholder (`#000000`) 가 나온다 (Builder 는 이미 그렸다).
+
+### Fixed
+
+- Preview 에서 disabled 인 TextField · TextArea 의 입력칸이 겹쳐 흐려지던 문제 (field 0.38 × 입력칸 0.38 × 글자 38%). Builder 처럼 한 번만 흐려진다.
+- placeholder 와 값이 모두 없는 입력칸이 Builder 에서 납작하게 (10px) 그려지던 문제. Preview 처럼 한 줄 높이를 갖는다.
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 300건 (+5): 세 field 의 입력칸이 Input 원본의 instance · DOM 요소가 그 노드 · field size → 입력칸 · 원본 전파 2회 · TextArea rows · 빈 입력칸 높이. DOM 구조 대조는 전환 전 빌드 기준 (입력칸의 `data-size` 와 ColorField 의 placeholder 는 명시한 차이). 원복 RED 6종.
+- live `adr253-p3-input-live.mjs` 10/10: 입력칸의 상자 · 글꼴 · 모서리가 Canvas 와 Preview 에서 같다 (md · xl · sm · side) · Preview 의 hover / focus / invalid / disabled · 원본 편집 → 세 field · undo. 전환 전 빌드와 Preview computed style 대조 — 차이는 위 Changed · Fixed 항목뿐. Builder 화면 자체의 입력칸 (세 화면 상태) 은 전후 차이 0.
+
 ## [도움말 · 오류 문구가 부품 원본의 instance — Builder 도 그린다 (ADR-253 Phase 3 — FieldError · Description)] - 2026-10-06
 
 ### Added

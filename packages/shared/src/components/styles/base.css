@@ -1,30 +1,6 @@
 @layer components {
-  /* 공통 Input structure — state styles delegated to .inset utility */
-  .react-aria-Input,
-  .react-aria-TextArea {
-    width: 100%;
-    margin: 0;
-    border: var(--input-border, 1px solid var(--border));
-    border-radius: var(--border-radius);
-    padding: var(--input-padding, var(--spacing));
-    font-size: var(--input-font-size, var(--text-sm));
-    font-family: inherit;
-    line-height: var(--input-line-height, var(--text-sm--line-height));
-    background: var(--bg-inset);
-    color: var(--fg);
-    transition:
-      border-color 200ms ease,
-      color 200ms ease;
-
-    /* Autofill: 브라우저 기본 배경 무력화 */
-    &:-webkit-autofill,
-    &:-webkit-autofill:hover,
-    &:-webkit-autofill:focus {
-      -webkit-text-fill-color: var(--fg) !important;
-      -webkit-box-shadow: 0 0 0 1000px var(--bg-inset) inset !important;
-      caret-color: var(--fg);
-    }
-  }
+  /* 입력칸 (`.react-aria-Input` · `.react-aria-TextArea`) 은 catalog Input rule 의 생성 CSS
+     (`generated/Input.css`) 가 정본이다 — ADR-253 Phase 3. 여기에 다시 적지 않는다. */
 
   /* 공통 Label, FieldError */
   .react-aria-Label {

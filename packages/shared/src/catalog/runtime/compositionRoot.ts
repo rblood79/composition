@@ -866,6 +866,20 @@ function styleOf(
           };
         })()
       : undefined;
+  // An Input without text (no value, no placeholder) keeps its line box, as the DOM `<input>`
+  // does: its height is one line + padding + border either way (ADR-253 — the Input rule's
+  // content height).
+  const emptyLine =
+    !leaf &&
+    typeName === "Input" &&
+    node.children.length === 0 &&
+    Number(node.visual.fontSize) > 0 &&
+    Number(node.visual.lineHeight) > 0
+      ? {
+          contentHeight:
+            Number(node.visual.fontSize) * Number(node.visual.lineHeight),
+        }
+      : undefined;
   const out: Record<string, unknown> = {
     display: box.display,
     ...(box.flexDirection ? { flexDirection: box.flexDirection } : {}),
@@ -929,7 +943,7 @@ function styleOf(
     ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
       ? { aspectRatio: catalogAspectRatio(node.visual.aspectRatio) }
       : {}),
-    ...(contentText ?? {}),
+    ...(contentText ?? emptyLine ?? {}),
     ...(glyph !== undefined
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
       : {}),

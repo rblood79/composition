@@ -1238,6 +1238,22 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-fielderror"
   },
   {
+    "id": "lib:definition:origin-component-input",
+    "name": "Input",
+    "mode": "composite",
+    "accepts": {
+      "placeholder": "string",
+      "type": "string"
+    },
+    "defaults": {
+      "placeholder": "Enter text...",
+      "type": "text"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-input"
+  },
+  {
     "id": "lib:definition:origin-component-radio",
     "name": "Radio",
     "mode": "composite",
@@ -3406,12 +3422,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-textfield__2",
-    "definitionId": "lib:definition:type-Input",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
       "type": "{type}",
-      "placeholder": "{placeholder}",
-      "size": "md"
+      "placeholder": "{placeholder}"
     },
     "visual": {}
   },
@@ -3468,10 +3483,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-textarea__2",
-    "definitionId": "lib:definition:type-Input",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "type": "text",
       "placeholder": "{placeholder}"
     },
     "visual": {}
@@ -3705,16 +3719,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorfield__2",
-    "definitionId": "lib:definition:type-Input",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "type": "text",
       "placeholder": "#000000"
     },
-    "visual": {},
-    "layout": {
-      "display": "block"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-colorfield__description",
@@ -5677,6 +5687,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-input",
+    "definitionId": "lib:definition:type-Input",
+    "children": [],
+    "props": {
+      "type": "{type}",
+      "placeholder": "{placeholder}"
     },
     "visual": {}
   },

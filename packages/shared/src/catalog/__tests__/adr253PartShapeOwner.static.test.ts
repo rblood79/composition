@@ -7,7 +7,10 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * selectors: width · flex · margin of the side label column), not what it looks like.
  *
  * Parts covered so far (Phase 3): Label · FieldError · Description — every one under a field · group
- * is an instance of its origin, sized by its own rule at its owner's size.
+ * is an instance of its origin, sized by its own rule at its owner's size — and the Input of the
+ * fields whose control is their Input node (TextField · TextArea · ColorField). The fields whose
+ * control is still a trigger wrapper (ComboBox · NumberField · SearchField) follow with the Group ·
+ * Button step, the `quiet` variant blocks with the quiet step.
  */
 const LABEL_SELECTOR = ".react-aria-Label";
 const PART_VARIABLES =
@@ -85,6 +88,39 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       });
       expect(owners).toEqual([]);
     });
+
+  it("a field whose control is its Input node only places it", () => {
+    const found: string[] = [];
+    for (const type of ["TextField", "TextArea", "ColorField"]) {
+      const delegation = (
+        COMPONENT_RULES_TABLE as Record<
+          string,
+          { structure?: { composition?: { delegation?: unknown } } }
+        >
+      )[type]?.structure?.composition?.delegation;
+      for (const entry of (Array.isArray(delegation)
+        ? delegation
+        : []) as Array<{
+        childSelector?: string;
+        bridges?: Styles;
+        states?: unknown;
+      }>) {
+        if (
+          !/\.react-aria-(Input|TextArea)(?![\w-])/.test(
+            entry.childSelector ?? "",
+          )
+        )
+          continue;
+        // The Input rule's own sheet declares its states (hover · focus · invalid · disabled).
+        if (entry.states !== undefined)
+          found.push(`${type} ${entry.childSelector} { states }`);
+        for (const key of Object.keys(entry.bridges ?? {}))
+          if (!PLACEMENT_KEYS.has(key) && key !== "box-sizing")
+            found.push(`${type} ${entry.childSelector} { ${key} }`);
+      }
+    }
+    expect(found).toEqual([]);
+  });
 
   it("no rule sets a part variable (`--label-*` · `--error-*`) on its element", () => {
     const found: string[] = [];

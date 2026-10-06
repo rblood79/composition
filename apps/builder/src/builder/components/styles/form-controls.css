@@ -232,10 +232,24 @@
       color: var(--fg-muted);
     }
 
-    --input-border: 1px solid transparent;
-    --input-padding: var(--spacing-3xs);
-    --input-font-size: var(--text-xs);
-    --input-line-height: var(--text-xs--line-height);
+    /* 입력칸의 기본 모양은 catalog Input rule 의 생성 CSS 다 (ADR-253 — 종전 base.css 의
+       `--input-*` 변수 채널은 없다). 패널은 테두리 색 · padding 을 여기서 직접 정한다. 상자를
+       컨테이너가 그리는 field (NumberField · ComboBox · SearchField) 안의 입력칸은 그 field 의
+       sheet 가 테두리 · padding 을 없앤다 — 이 layer 가 그 선언을 덮지 않게 뺀다. */
+    /* (`:where()` — 특이도 0: 아래 블록의 longhand (`border-left-width` · `padding-top` …) 가 이긴다.) */
+    :where(
+      :is(.react-aria-Input, .react-aria-TextArea):not(
+        :is(
+            .react-aria-NumberField,
+            .react-aria-ComboBox,
+            .react-aria-SearchField
+          )
+          .react-aria-Input
+      )
+    ) {
+      border: 1px solid transparent;
+      padding: var(--spacing-3xs);
+    }
 
     .react-aria-Input,
     .react-aria-TextArea {

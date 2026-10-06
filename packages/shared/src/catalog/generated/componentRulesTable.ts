@@ -2391,45 +2391,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         delegation: [
           {
+            // 배치만 (ADR-253): 입력칸의 최대 폭. 모양 (padding · 글꼴 · 모서리) 은 Input rule 이 정한다.
             childSelector: ".react-aria-Input",
             prefix: "cf-input",
             variables: {
               xs: {
-                "--cf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
-                "--cf-input-size": "var(--text-2xs)",
-                "--cf-input-line-height": "var(--text-2xs--line-height)",
                 "--cf-input-max-width": "9ch",
               },
               sm: {
-                "--cf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
-                "--cf-input-size": "var(--text-xs)",
-                "--cf-input-line-height": "var(--text-xs--line-height)",
                 "--cf-input-max-width": "10ch",
               },
               md: {
-                "--cf-input-padding": "var(--spacing-xs) var(--spacing-md)",
-                "--cf-input-size": "var(--text-sm)",
-                "--cf-input-line-height": "var(--text-sm--line-height)",
                 "--cf-input-max-width": "12ch",
               },
               lg: {
-                "--cf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
-                "--cf-input-size": "var(--text-base)",
-                "--cf-input-line-height": "var(--text-base--line-height)",
                 "--cf-input-max-width": "14ch",
               },
               xl: {
-                "--cf-input-padding": "var(--spacing-md) var(--spacing-xl)",
-                "--cf-input-size": "var(--text-lg)",
-                "--cf-input-line-height": "var(--text-lg--line-height)",
                 "--cf-input-max-width": "16ch",
               },
             },
             bridges: {
-              "--input-padding": "var(--cf-input-padding)",
-              "--input-font-size": "var(--cf-input-size)",
-              "--input-line-height": "var(--cf-input-line-height)",
-              "border-radius": "var(--radius-sm)",
               "max-width": "var(--cf-input-max-width)",
               "box-sizing": "border-box",
             },
@@ -6385,48 +6367,124 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      // ADR-912 단계5 step4 (2026-06-17): paddingY/gap 보강 — InputSpec.spec 삭제 대비
-      //   generate-css virtual emit(padding: {paddingY}px {paddingX}px + gap)이 기존 Input.css
-      //   (padding 1px 4px~12px 24px / gap 2~10) byte-identical 재현하려면 필수. InputSpec.sizes 미러.
+      // ADR-253 Phase 3: the Input rule is the one definition of a field's input box (the fields'
+      //   rules declare none). Its height is its content — line height + paddingY×2 + border×2
+      //   (md 20 + 8 + 2 = 30) — so the same block sizes the `<textarea>` of a TextArea, whose
+      //   height is its `rows`.
       xs: {
         fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
-        height: 20,
+        borderWidth: "{border.width.thin}",
+        height: 0,
         paddingX: 4,
         paddingY: 1,
-        gap: 2,
       },
       sm: {
         fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        height: 22,
+        borderWidth: "{border.width.thin}",
+        height: 0,
         paddingX: 8,
         paddingY: 2,
-        gap: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
+        lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        height: 30,
+        borderWidth: "{border.width.thin}",
+        height: 0,
         paddingX: 12,
         paddingY: 4,
-        gap: 6,
       },
       lg: {
         fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
-        height: 42,
+        borderWidth: "{border.width.thin}",
+        height: 0,
         paddingX: 16,
         paddingY: 8,
-        gap: 8,
       },
       xl: {
         fontSize: "{typography.text-lg}",
+        lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
-        height: 54,
+        borderWidth: "{border.width.thin}",
+        height: 0,
         paddingX: 24,
         paddingY: 12,
-        gap: 10,
+      },
+    },
+    // ADR-253 Phase 3: the generated sheet of the field input — `.react-aria-Input` and the
+    //   `<textarea>` RAC classes `.react-aria-TextArea` (`classAliases`). It replaces the manual
+    //   `base.css` block and the TextField · ColorField delegations (size variables + states).
+    structure: {
+      archetype: "input-base",
+      element: "input",
+      classAliases: ["TextArea"],
+      containerStyles: {
+        display: "block",
+        width: "100%",
+      },
+      states: {
+        hover: {},
+        pressed: {},
+        // 흐림은 field root 가 한다 (`[data-disabled] { opacity: 0.38 }` — Canvas 도 root 한 번). RAC 는
+        //   field 의 disabled 를 입력칸에도 `data-disabled` 로 주므로, 입력칸이 자기 모양을 한 번 더 바꾸면
+        //   DOM 만 겹쳐 흐려진다 (종전 TextField: root 0.38 × 입력칸 0.38 × 글자 38%). 여기서는 바꾸지 않는다.
+        disabled: {
+          opacity: 1,
+          cursor: "not-allowed",
+          pointerEvents: "none",
+        },
+        focusVisible: {
+          focusRing: "{focus.ring.default}",
+        },
+      },
+      composition: {
+        delegation: [],
+        rootSelectors: {
+          "&": {
+            styles: {
+              margin: "0",
+              "font-family": "inherit",
+              transition: "border-color 200ms ease, color 200ms ease",
+            },
+          },
+          "&:is(:-webkit-autofill, :-webkit-autofill:hover, :-webkit-autofill:focus)":
+            {
+              styles: {
+                "-webkit-text-fill-color": "var(--fg) !important",
+                "-webkit-box-shadow":
+                  "0 0 0 1000px var(--bg-inset) inset !important",
+                "caret-color": "var(--fg)",
+              },
+            },
+          "&[data-hovered]:not([data-focused]):not([data-disabled])": {
+            styles: {
+              "border-color": "var(--border-hover)",
+            },
+          },
+          "&[data-focused]": {
+            styles: {
+              outline: "2px solid var(--accent)",
+              "outline-offset": "-1px",
+              "border-color": "var(--accent)",
+            },
+          },
+          "&[data-invalid]": {
+            styles: {
+              "border-color": "var(--negative)",
+            },
+          },
+          "&[data-invalid][data-focused]": {
+            styles: {
+              "outline-color": "var(--negative)",
+            },
+          },
+        },
       },
     },
   },
@@ -12962,72 +13020,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            // `:is(...)` 로 `<textarea>` 까지 덮는다 (2026-08-21). canonical `TextArea` 는
-            //   DOM 에서 RAC `TextField` 컨테이너로 렌더되고 그 안의 control 은
-            //   `.react-aria-TextArea` 클래스를 단 `<textarea>` 다 — `.react-aria-Input` 만
-            //   노리면 TextArea 의 control 이 size 위임(padding/font-size/line-height)과
-            //   state(hover/focus/invalid/disabled) 를 통째로 못 받는다.
-            //   `:is()` 의 특이도는 인자 중 최대값이라 `.react-aria-Input` 단독과 동일 —
-            //   기존 TextField 렌더 결과는 바뀌지 않는다(상위집합 매칭).
-            childSelector: ":is(.react-aria-Input, .react-aria-TextArea)",
-            prefix: "tf-input",
-            variables: {
-              xs: {
-                "--tf-input-padding": "var(--spacing-3xs) var(--spacing-xs)",
-                "--tf-input-size": "var(--text-2xs)",
-                "--tf-input-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--tf-input-padding": "var(--spacing-2xs) var(--spacing-sm)",
-                "--tf-input-size": "var(--text-xs)",
-                "--tf-input-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--tf-input-padding": "var(--spacing-xs) var(--spacing-md)",
-                "--tf-input-size": "var(--text-sm)",
-                "--tf-input-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--tf-input-padding": "var(--spacing-sm) var(--spacing-lg)",
-                "--tf-input-size": "var(--text-base)",
-                "--tf-input-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--tf-input-padding": "var(--spacing-md) var(--spacing-xl)",
-                "--tf-input-size": "var(--text-lg)",
-                "--tf-input-line-height": "var(--text-lg--line-height)",
-              },
-            },
-            bridges: {
-              "--input-padding": "var(--tf-input-padding)",
-              "--input-font-size": "var(--tf-input-size)",
-              "--input-line-height": "var(--tf-input-line-height)",
-            },
-            states: {
-              "[data-hovered]:not([data-focused]):not([data-disabled])": {
-                "border-color": "var(--border-hover)",
-              },
-              "[data-focused]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-                "border-color": "var(--accent)",
-              },
-              "[data-invalid]": {
-                "border-color": "var(--negative)",
-              },
-              "[data-invalid][data-focused]": {
-                "outline-color": "var(--negative)",
-              },
-              "[data-disabled]": {
-                "border-color":
-                  "color-mix(in srgb, var(--fg) 12%, transparent)",
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-                opacity: "0.38",
-              },
-            },
-          },
           {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--tf-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
