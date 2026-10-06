@@ -64,9 +64,10 @@ export function catalogSlotMarks(
       continue;
     }
     // A declared slot: the node's own (a project component's), or the library template's (a
-    // built-in origin's collection host — the record carries it).
+    // built-in origin's collection host — the record carries it, an instance's record its
+    // template root's).
     const node = graph.getEntry(record.sourceId);
-    const slot = node?.kind === "node" ? node.slot : record.slot;
+    const slot = (node?.kind === "node" ? node.slot : undefined) ?? record.slot;
     if (!slot) continue;
     const empty = record.children.length === 0;
     if (!view && !empty) continue;
@@ -84,6 +85,15 @@ export function catalogSlotMarks(
       });
   }
   return marks;
+}
+
+/**
+ * The drawn height of a slot mark (scene units). A slot that has a box is hatched at that box; only
+ * one of no height gets a band the author can see and pick — 48 screen px, and never more than 48
+ * scene px, so zooming out shrinks it with the content instead of growing it over its neighbours.
+ */
+export function catalogSlotBand(height: number, zoom: number): number {
+  return height > 0 ? height : Math.min(48, 48 / zoom);
 }
 
 /** The leaf records under a record (its own id when it has no children). */

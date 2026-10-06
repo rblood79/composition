@@ -15,7 +15,10 @@ import {
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import { resolveCatalogNode } from "../../../../../../packages/shared/src/catalog/resolution/resolver";
-import { catalogSlotMarks } from "../../workspace/canvas/catalog/catalogChrome";
+import {
+  catalogSlotBand,
+  catalogSlotMarks,
+} from "../../workspace/canvas/catalog/catalogChrome";
 import { resolveCatalogClickRecord } from "../canvasPick";
 import { CatalogLayerTreeStore } from "../layerTree";
 import {
@@ -362,9 +365,10 @@ describe("ADR-248 4e library origin view", () => {
     expect(gridRows.map((row) => row.name)).toEqual([
       "Origin",
       "Parts",
+      "Slots",
       "Item states",
     ]);
-    const itemCells = cellsOf(gridRows[2]!);
+    const itemCells = cellsOf(gridRows[3]!);
     expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
       ["", "--unselected", "--disabled", "--hover", "--pressed", "--focus-visible"].map(
         (state) => `lib:definition:origin-component-gridlist-item-default${state}`,
@@ -660,6 +664,13 @@ describe("ADR-248 4e library origin view", () => {
     expect(
       marksUnder(tabsSlots).every((mark) => mark.box.width > 0 && mark.box.height > 0),
     ).toBe(true);
+    // A slot that has a box is hatched at that box at every zoom (a zoomed-out Components page
+    // must not grow it over the row below); only one of no height gets the visible band, which
+    // never exceeds 48 scene px.
+    for (const mark of marksUnder(tabsSlots))
+      for (const zoom of [0.1, 0.25, 1, 4])
+        expect(catalogSlotBand(mark.box.height, zoom)).toBe(mark.box.height);
+    expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([48, 48, 12]);
     expect(marksUnder(recordOf(originSampleId(lib("tabs"))))).toEqual([]);
     expect(
       marksUnder(recordOf(originSampleId(lib("table")))).map((mark) => [
@@ -670,6 +681,24 @@ describe("ADR-248 4e library origin view", () => {
       [true, "origin"],
       [true, "origin"],
     ]);
+    // A collection whose root holds its items is itself the slot: its Slots instance is the
+    // emptied root (its own box), hatched; the filled origin is not marked.
+    const listSlots = recordOf(originSlotsId(lib("listbox")));
+    expect(inputOf(listSlots).children).toEqual([]);
+    expect(
+      slotMarks
+        .filter((mark) => mark.identity === listSlots)
+        .map((mark) => [mark.empty, mark.role, mark.box.width > 0, mark.box.height > 0]),
+    ).toEqual([[true, "instance", true, true]]);
+    expect(
+      slotMarks.filter(
+        (mark) => mark.identity === recordOf(originSampleId(lib("listbox"))),
+      ),
+    ).toEqual([]);
+    // A fit-content collection emptied has no size of its own: its Slots instance keeps a box.
+    const groupSlots = rectOf(originSlotsId(lib("buttongroup")));
+    expect(groupSlots.width).toBeGreaterThanOrEqual(160);
+    expect(groupSlots.height).toBeGreaterThanOrEqual(40);
     const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
     const tabsCard = catalogComponentsPageCards(graphOf(workspace))
       .map(entryOf)

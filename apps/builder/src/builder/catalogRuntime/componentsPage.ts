@@ -797,15 +797,27 @@ export function catalogComponentsPageEntries(
             fixed(
               node(originSlotsId(origin.id), origin.id, {
                 name: `${origin.name} / Slots`,
+                // A slot on the template's root is the instance itself: the box is its own.
+                ...(slots.some((slot) => slot.path.length === 1)
+                  ? {
+                      visual: wide
+                        ? { minHeight: SLOT_BOX.minHeight }
+                        : SLOT_BOX,
+                    }
+                  : {}),
                 descendantOverrides: slots.flatMap((slot) => [
-                  {
-                    kind: "patch" as const,
-                    address: {
-                      instances: [originSlotsId(origin.id)],
-                      templatePath: slot.path,
-                    },
-                    visual: SLOT_BOX,
-                  },
+                  ...(slot.path.length === 1
+                    ? []
+                    : [
+                        {
+                          kind: "patch" as const,
+                          address: {
+                            instances: [originSlotsId(origin.id)],
+                            templatePath: slot.path,
+                          },
+                          visual: SLOT_BOX,
+                        },
+                      ]),
                   ...slot.contents.map((templatePath) => ({
                     kind: "patch" as const,
                     address: {

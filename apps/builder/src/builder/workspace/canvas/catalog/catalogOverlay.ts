@@ -25,6 +25,7 @@ import {
   type DataBadgeBounds,
 } from "../skia/bindingBadgeRenderer";
 import type { BindingBadgeTarget } from "../skia/overlayTypes";
+import { catalogSlotBand } from "./catalogChrome";
 import {
   renderCollectionRemainderMarker,
   renderSlotHatchPattern,
@@ -74,7 +75,7 @@ export interface CatalogOverlayInputs {
     role: EditingSemanticsRole;
     /** The slot's record: its chrome is cut where a later-painted page covers its page. */
     identity?: string;
-    /** A drawn part's region (the Components page): its own box, no empty-slot band. */
+    /** A drawn part's region (the Components page), not a slot. */
     region?: true;
   }[];
   /**
@@ -228,10 +229,7 @@ export function catalogOverlayNode(
       const occludersOf = (identity: string | undefined) =>
         identity ? inputs.occluders?.(identity) : undefined;
       for (const slot of inputs.slots?.() ?? []) {
-        // An empty slot has no height of its own: show a band the author can see and pick.
-        const band = slot.region
-          ? slot.box.height
-          : Math.max(slot.box.height, 48 / zoom);
+        const band = catalogSlotBand(slot.box.height, zoom);
         withOccluders(ck, canvas, occludersOf(slot.identity), () =>
           renderSlotHatchPattern(
             ck,

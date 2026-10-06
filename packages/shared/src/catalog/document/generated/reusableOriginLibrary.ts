@@ -1609,6 +1609,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-listbox",
     "definitionId": "lib:definition:type-ListBox",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
     "children": [
       "lib:template:component-listbox__item-1",
       "lib:template:component-listbox__item-2",
@@ -1808,6 +1812,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-gridlist",
     "definitionId": "lib:definition:type-GridList",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
     "children": [
       "lib:template:component-gridlist__item-1",
       "lib:template:component-gridlist__item-2",
@@ -1993,6 +2001,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-toolbar",
     "definitionId": "lib:definition:type-Toolbar",
+    "slot": {
+      "name": "Actions",
+      "required": false
+    },
     "children": [
       "lib:template:component-toolbar__button-1",
       "lib:template:component-toolbar__button-2",
@@ -2047,6 +2059,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-form",
     "definitionId": "lib:definition:type-Form",
+    "slot": {
+      "name": "Fields",
+      "required": false
+    },
     "children": [
       "lib:template:component-form__field-1",
       "lib:template:component-form__field-2",
@@ -2390,6 +2406,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-avatargroup",
     "definitionId": "lib:definition:type-AvatarGroup",
+    "slot": {
+      "name": "Avatars",
+      "required": false
+    },
     "children": [
       "lib:template:component-avatargroup__1",
       "lib:template:component-avatargroup__2",
@@ -2513,6 +2533,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-breadcrumbs",
     "definitionId": "lib:definition:type-Breadcrumbs",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
     "children": [
       "lib:template:component-breadcrumbs__item-1",
       "lib:template:component-breadcrumbs__item-2",
@@ -2631,6 +2655,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-nav",
     "definitionId": "lib:definition:type-Nav",
+    "slot": {
+      "name": "Links",
+      "required": false
+    },
     "children": [
       "lib:template:component-nav__1",
       "lib:template:component-nav__2",
@@ -2758,6 +2786,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-disclosuregroup",
     "definitionId": "lib:definition:type-DisclosureGroup",
+    "slot": {
+      "name": "Sections",
+      "required": false
+    },
     "children": [
       "lib:template:component-disclosuregroup__1",
       "lib:template:component-disclosuregroup__2"
@@ -2868,6 +2900,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-cardview",
     "definitionId": "lib:definition:type-CardView",
+    "slot": {
+      "name": "Cards",
+      "required": false
+    },
     "children": [
       "lib:template:component-cardview__1",
       "lib:template:component-cardview__2",
@@ -3022,6 +3058,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-togglebuttongroup",
     "definitionId": "lib:definition:type-ToggleButtonGroup",
+    "slot": {
+      "name": "Buttons",
+      "required": false
+    },
     "children": [
       "lib:template:component-togglebuttongroup__1",
       "lib:template:component-togglebuttongroup__2"
@@ -3054,6 +3094,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-buttongroup",
     "definitionId": "lib:definition:type-ButtonGroup",
+    "slot": {
+      "name": "Buttons",
+      "required": false
+    },
     "children": [
       "lib:template:component-buttongroup__1",
       "lib:template:component-buttongroup__2"
@@ -4543,6 +4587,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tree",
     "definitionId": "lib:definition:type-Tree",
+    "slot": {
+      "name": "Items",
+      "required": false
+    },
     "children": [
       "lib:template:component-tree__item-1",
       "lib:template:component-tree__item-2"

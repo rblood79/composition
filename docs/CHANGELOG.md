@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [루트가 collection 인 기본 원본의 slot 선언] - 2026-10-06
+
+### Changed
+
+- **루트가 곧 항목 자리인 원본 12종도 slot 이다**: ListBox · GridList · Tree (Items), Breadcrumbs (Items), Nav (Links), Toolbar (Actions), ButtonGroup · ToggleButtonGroup (Buttons), AvatarGroup (Avatars), DisclosureGroup (Sections), CardView (Cards), Form (Fields). 항목을 모두 지우면 Canvas 가 빈 자리를 빗금으로 표시한다. Components page 의 해당 카드에 Slots 줄 (비운 instance · 빗금) 이 생긴다.
+- page 에 놓은 instance 의 Layers 이름은 그대로다 (ListBox 는 「ListBox」 — slot 이름으로 바뀌지 않는다). Menu · Select · ComboBox (항목이 popover 안) · Pagination 은 대상이 아니다.
+
+### Fixed
+
+- 기본 원본 instance 의 slot 표시: instance 노드 자신에게 slot 이 없으면 template 루트의 선언을 읽는다 (루트 slot 이 표시되지 않던 것).
+- slot 빗금이 축소할수록 커지던 것: 상자가 있는 slot 에도 화면 48px 띠를 적용해, 확대율이 낮아지면 (창 크기를 줄여 page 가 다시 맞춰질 때 포함) 빗금이 상자 밖으로 자라 아래 줄을 덮었다. 이제 상자가 있는 slot 은 그 상자만 칠하고, 높이 0 인 slot 의 띠만 남기되 장면 기준 48px 을 넘지 않는다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (ListBox 의 Slots instance = 비운 루트 빗금 · 채운 Origin 무표시 · ButtonGroup 의 빈 루트 상자 160×40 이상). 루트 slot 선언 · instance record slot 읽기 · 루트 slot 상자 각각 원복 RED. 실제 Builder: Toolbar · GridList 카드의 Slots 줄 빗금, page 에 놓은 ListBox · Toolbar · ButtonGroup 의 Layers 이름 유지, 콘솔 오류 0. slot 띠 높이 (`catalogSlotBand`) 원복 RED (확대율 10% 에서 480 ≠ 40), 실제 Builder Components page 27% · 12% · 창 1200 폭에서 빗금이 상자 안에 머무는 것 확인.
+
 ## [기본 원본의 slot 선언 · Components page 의 Slots 줄 (pen.dev 디자인 시스템 페이지 참고)] - 2026-10-06
 
 ### Changed
