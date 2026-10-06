@@ -64,7 +64,6 @@ import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 import {
   isComponentsView,
   isPageCard,
-  isPageSlots,
 } from "../../../catalogRuntime/originView";
 import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
 import { CatalogSpacingInput } from "./CatalogSpacingInput";
@@ -401,14 +400,25 @@ export function CatalogCanvas({
           if (records.get(identity)?.parentId === "catalog:root") return [];
           // A Components page card is a group of samples, not a component: its own outline only.
           if (isPageCard(records.get(identity)?.sourceId)) return [];
-          // A card's Slots instance: what its slots hold is not drawn — no guides of it.
-          if (isPageSlots(records.get(identity)?.sourceId)) return [];
           if (
             hoverLeavesMemo.identity !== identity ||
             hoverLeavesMemo.root !== workspace.root ||
             hoverLeavesMemo.revision !== workspace.runtime.graph.revision
           ) {
-            const leaves = catalogLeafRecords(records, identity);
+            // The Components page: an origin sample's slot contents are laid out but not drawn
+            // (opacity 0) — no guides of them.
+            const drawn = (leaf: string) => {
+              for (
+                let cursor = records.get(leaf);
+                cursor && cursor.id !== identity;
+                cursor = records.get(cursor.parentId)
+              )
+                if (cursor.visual.opacity === 0) return false;
+              return true;
+            };
+            const leaves = isComponentsView(workspace.root.definitionView)
+              ? catalogLeafRecords(records, identity).filter(drawn)
+              : catalogLeafRecords(records, identity);
             hoverLeavesMemo = {
               identity,
               root: workspace.root,

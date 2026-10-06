@@ -23,7 +23,6 @@ import { catalogBuiltinOrigins } from "./layouts";
 import {
   catalogDefinitionTitle,
   catalogOriginOverride,
-  isLibraryOrigin,
   isPageCard,
   isThemeSample,
   ORIGIN_VIEW_NODE,
@@ -31,9 +30,7 @@ import {
   originInstanceId,
   originOfEditableSample,
   originOfPageInstance,
-  originPartsId,
   originSampleId,
-  originSlotsId,
   themeSampleId,
 } from "./originView";
 import {
@@ -47,11 +44,10 @@ import {
  * that draws every built-in component origin as a numbered card, in palette order over a few
  * columns, after the theme's cards (01–04: colors, type scale, icons, spacing — read from the
  * theme token tables in the workspace's color mode). A card shows the origin (◆ — its one editable sample: its props and styles are the
- * project's override of that origin, `originView` holds the edit rules), its parts in place (the
- * origin once more, each of its template's children outlined), then its instances (◇): variants × states (a line per variant when
+ * project's override of that origin, `originView` holds the edit rules) with its slots empty, an instance (◇) beside it filled, a collection's item, then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
  * by side) and sizes. All of it is graph view entries (never saved, exported or indexed). The
- * Layers tree lists the page as card → origin, parts and instances (`catalogComponentsPageRows`).
+ * Layers tree lists the page as card → origin and instances (`catalogComponentsPageRows`).
  */
 const COLUMNS = 6;
 const COLUMN_WIDTH = 560;
@@ -232,39 +228,6 @@ function originItems(
 }
 
 /**
- * An origin's parts: its template's direct children, one of each kind in template order (`count`
- * of them; `instance` = the part is another origin's instance — a Toolbar's Button).
- */
-function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
-  const library = graph.library;
-  const origin = library.definitions.get(originId);
-  const root =
-    origin && "templateRootId" in origin && origin.templateRootId
-      ? library.templates.get(origin.templateRootId)
-      : undefined;
-  const parts = new Map<
-    string,
-    { name: string; instance: boolean; count: number }
-  >();
-  for (const childId of root?.children ?? []) {
-    const child = library.templates.get(childId as LibraryTemplateId);
-    if (!child) continue;
-    const known = parts.get(child.definitionId);
-    if (known) known.count += 1;
-    else
-      parts.set(child.definitionId, {
-        name: catalogDefinitionTitle(
-          graph,
-          child.definitionId as LibraryDefinitionId,
-        ),
-        instance: isLibraryOrigin(child.definitionId),
-        count: 1,
-      });
-  }
-  return [...parts.values()];
-}
-
-/**
  * An origin's declared slots (its template nodes with `slot`, root first): each slot's path from
  * the template root and the paths of what it holds (switched off to show the slot empty).
  */
@@ -350,7 +313,7 @@ function readPageRows(
         .sort((a, b) => order.get(a.sourceId)! - order.get(b.sourceId)!),
     ];
   }
-  // A card: the origin, its parts and its instances (a theme card: its values), side by side.
+  // A card: the origin and its instances (a theme card: its values), side by side.
   walk(
     position,
     (nodeId) =>
@@ -698,14 +661,41 @@ export function catalogComponentsPageEntries(
         : 5;
       return Math.ceil(count / perLine) * (wide ? 220 : 64) + 30;
     };
-    // The origin's own sample: its fields = the project's override (read on each read).
+    // The origin's own sample: its fields = the project's override (read on each read). Its
+    // declared slots show empty (the pen.dev design-system page: a component's master shows its
+    // slots hatched, the instance beside it what fills them — the instance is what a page uses):
+    // what each slot holds is laid out but not drawn, so the slot keeps the size its contents
+    // take (a ToggleButtonGroup's is its buttons' height, not a fixed box) and the chrome
+    // hatches it (`catalogSlotMarks`). A slot the origin leaves empty (a Table's columns) has no
+    // such size: it takes a box of its own.
     const sampleId = originSampleId(origin.id);
+    const slots = originSlots(graph, origin.id);
+    // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
+    const SLOT_BOX = { width: set(wide ? "100%" : 160), minHeight: set(40) };
+    const unfilled = (slot: (typeof slots)[number]) => slot.contents.length === 0;
+    const slotPatches = slots.flatMap((slot) => [
+      ...(slot.path.length === 1 || !unfilled(slot)
+        ? []
+        : [
+            {
+              kind: "patch" as const,
+              address: { instances: [sampleId], templatePath: slot.path },
+              visual: SLOT_BOX,
+            },
+          ]),
+      ...slot.contents.map((templatePath) => ({
+        kind: "patch" as const,
+        address: { instances: [sampleId], templatePath },
+        visual: { opacity: set(0) },
+      })),
+    ]);
     entries.set(sampleId, () => {
       const override = catalogOriginOverride(graph, origin.id);
       return node(sampleId, origin.id, {
         name: catalogDefinitionTitle(graph, origin.id),
         props: override?.defaults ?? {},
         visual: override?.visual ?? {},
+        ...(slotPatches.length > 0 ? { descendantOverrides: slotPatches } : {}),
       });
     });
     /** An instance of the origin (or of one of its state variants) in a captioned cell. */
@@ -741,6 +731,9 @@ export function catalogComponentsPageEntries(
         ),
       ];
     };
+    // The origin (its slots empty) and, where a slot holds something, an instance of it beside
+    // it: the component as a page uses it.
+    const filled = slots.some((slot) => !unfilled(slot));
     const rows: NodeId[] = [
       row(base("row", "origin"), "Origin", [
         cell(
@@ -749,94 +742,10 @@ export function catalogComponentsPageEntries(
           sampleId,
           cellWidth,
         ),
+        ...(filled ? [instance("instance", origin.name, origin.id, {})] : []),
       ]),
     ];
-    let weight = 60 + lineHeight(1);
-    // The origin's parts, in place: the origin drawn once more, each of its template's children
-    // outlined by the editor chrome (`catalogSlotMarks`) — a part drawn alone has lost what its
-    // owner gives it (its size, its text, its place). The caption names them (◇ = an instance
-    // of another origin).
-    const parts = originParts(graph, origin.id);
-    if (parts.length > 0) {
-      rows.push(
-        row(base("row", "parts"), "Parts", [
-          cell(
-            base("cell", "parts"),
-            parts
-              .map(
-                (item) =>
-                  `${item.instance ? `${INSTANCE_MARK} ` : ""}${item.name}${
-                    item.count > 1 ? ` ×${item.count}` : ""
-                  }`,
-              )
-              .join(" · "),
-            fixed(
-              node(originPartsId(origin.id), origin.id, {
-                name: `${origin.name} / Parts`,
-              }),
-            ),
-            cellWidth,
-          ),
-        ]),
-      );
-      weight += lineHeight(1);
-    }
-    // The origin's slots, empty (the pen.dev design-system page: a container's master shows its
-    // slot hatched, the filled instance beside it): what each declared slot holds is laid out but
-    // not drawn, so the slot keeps the size its contents take (a ToggleButtonGroup's is its
-    // buttons' height, not a fixed box), which the chrome hatches (`catalogSlotMarks`). A slot
-    // the origin leaves empty (a Table's columns) has no such size: it takes a box of its own.
-    const slots = originSlots(graph, origin.id);
-    // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
-    const SLOT_BOX = { width: set(wide ? "100%" : 160), minHeight: set(40) };
-    const unfilled = (slot: (typeof slots)[number]) => slot.contents.length === 0;
-    if (slots.length > 0) {
-      rows.push(
-        row(base("row", "slots"), "Slots", [
-          cell(
-            base("cell", "slots"),
-            slots.map((slot) => slot.name).join(" · "),
-            fixed(
-              node(originSlotsId(origin.id), origin.id, {
-                name: `${origin.name} / Slots`,
-                // A slot on the template's root is the instance itself: the box is its own.
-                ...(slots.some((slot) => slot.path.length === 1 && unfilled(slot))
-                  ? {
-                      visual: wide
-                        ? { minHeight: SLOT_BOX.minHeight }
-                        : SLOT_BOX,
-                    }
-                  : {}),
-                descendantOverrides: slots.flatMap((slot) => [
-                  ...(slot.path.length === 1 || !unfilled(slot)
-                    ? []
-                    : [
-                        {
-                          kind: "patch" as const,
-                          address: {
-                            instances: [originSlotsId(origin.id)],
-                            templatePath: slot.path,
-                          },
-                          visual: SLOT_BOX,
-                        },
-                      ]),
-                  ...slot.contents.map((templatePath) => ({
-                    kind: "patch" as const,
-                    address: {
-                      instances: [originSlotsId(origin.id)],
-                      templatePath,
-                    },
-                    visual: { opacity: set(0) },
-                  })),
-                ]),
-              }),
-            ),
-            cellWidth,
-          ),
-        ]),
-      );
-      weight += lineHeight(1);
-    }
+    let weight = 60 + lineHeight(filled ? 2 : 1);
     const items = originItems(graph, origin.id, stateIds);
     if (items) {
       // A collection: the states are its item origin's (the collection's own variant only tints
@@ -846,7 +755,7 @@ export function catalogComponentsPageEntries(
       rows.push(
         row(
           base("row", "items"),
-          "Item states",
+          "Item",
           states.map((stateId) => {
             const title = catalogDefinitionTitle(graph, stateId);
             const caption = title.slice(title.indexOf("/") + 1).replace(/\//g, " / ");

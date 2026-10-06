@@ -28,16 +28,12 @@ import {
   isComponentsView,
   isLibraryOrigin,
   isPageCard,
-  isPageParts,
-  isPageSlots,
   isThemeSample,
   originInstanceId,
   originCardId,
   originOfPageInstance,
-  originPartsId,
   originOfSample,
   originSampleId,
-  originSlotsId,
   themeSampleId,
 } from "./originViewNode";
 
@@ -47,16 +43,12 @@ export {
   isComponentsView,
   isLibraryOrigin,
   isPageCard,
-  isPageParts,
-  isPageSlots,
   isThemeSample,
   originInstanceId,
   originCardId,
   originOfPageInstance,
   originOfSample,
-  originPartsId,
   originSampleId,
-  originSlotsId,
   themeSampleId,
 };
 

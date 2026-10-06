@@ -75,8 +75,6 @@ export interface CatalogOverlayInputs {
     role: EditingSemanticsRole;
     /** The slot's record: its chrome is cut where a later-painted page covers its page. */
     identity?: string;
-    /** A drawn part's region (the Components page), not a slot. */
-    region?: true;
   }[];
   /**
    * Bound collections showing a sample (ADR-157): the area of the rows not drawn, hatched with

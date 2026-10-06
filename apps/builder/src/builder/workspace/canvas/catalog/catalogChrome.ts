@@ -1,7 +1,5 @@
 import {
   isComponentsView,
-  isPageParts,
-  isPageSlots,
   originOfSample,
 } from "../../../catalogRuntime/originView";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -11,11 +9,10 @@ import type { BoundingBox } from "../selection/types";
  * Slot chrome (editor only, not document paint). The definition edit view marks every declared
  * slot (origin color, hatched while empty); on the pages a project component's or layout's slot
  * that holds nothing is hatched (instance color, its visible part — the old page slot marker).
- * The Components page outlines the parts of an origin drawn for its parts (`region`: the part's
- * own box, never the empty slot's band) and hatches a library origin's declared slots where they
+ * The Components page hatches a library origin's declared slots where they
  * hold nothing (the origin's sample in origin color, an instance's in instance color) — a filled
- * slot is not marked (the page shows the origin's content, not its edit chrome). A card's Slots
- * instance keeps what its slots hold laid out but undrawn: each is hatched as empty at that size.
+ * slot is not marked. An origin's sample keeps what its slots hold laid out but undrawn
+ * (opacity 0): such a slot is hatched as empty at that size.
  */
 export function catalogSlotMarks(
   workspace: CatalogWorkspace,
@@ -26,7 +23,6 @@ export function catalogSlotMarks(
   empty: boolean;
   role: "origin" | "instance";
   identity: string;
-  region?: true;
 }[] {
   const graph = workspace.runtime.graph;
   // One root read per pass (the ADR-246 ratchet counts `workspace.root`).
@@ -40,41 +36,28 @@ export function catalogSlotMarks(
       let cursor: { sourceId: string; parentId: string } | undefined = record;
       cursor;
       cursor = records.get(cursor.parentId)
-    ) {
+    )
       if (originOfSample(cursor.sourceId)) return "origin" as const;
-      if (isPageSlots(cursor.sourceId)) return "slots" as const;
-    }
     return "instance" as const;
   };
+  // The Components page: content laid out but not drawn (an origin sample's slot contents).
+  const undrawn = (id: string) => records.get(id)?.visual.opacity === 0;
   const marks: {
     box: BoundingBox;
     empty: boolean;
     role: "origin" | "instance";
     identity: string;
-    region?: true;
   }[] = [];
   for (const record of records.values()) {
-    // A part of an origin drawn for its parts: its drawn box (a hidden part has none).
-    if (isPageParts(records.get(record.parentId)?.sourceId)) {
-      const box = bounds.get(record.id);
-      if (box && box.width > 0 && box.height > 0)
-        marks.push({
-          box,
-          empty: false,
-          role: "instance",
-          identity: record.id,
-          region: true,
-        });
-      continue;
-    }
     // A declared slot: the node's own (a project component's), or the library template's (a
     // built-in origin's collection host — the record carries it, an instance's record its
     // template root's).
     const node = graph.getEntry(record.sourceId);
     const slot = (node?.kind === "node" ? node.slot : undefined) ?? record.slot;
     if (!slot) continue;
-    const role = view ? "origin" : components ? pageRole(record) : "instance";
-    const empty = role === "slots" || record.children.length === 0;
+    const empty = components
+      ? record.children.every(undrawn)
+      : record.children.length === 0;
     if (!view && !empty) continue;
     // An empty slot of no height has no visible part to clip: its own box (the band shows it).
     const own = bounds.get(record.id);
@@ -85,7 +68,7 @@ export function catalogSlotMarks(
       marks.push({
         box,
         empty,
-        role: role === "slots" ? "instance" : role,
+        role: view ? "origin" : components ? pageRole(record) : "instance",
         identity: record.id,
       });
   }

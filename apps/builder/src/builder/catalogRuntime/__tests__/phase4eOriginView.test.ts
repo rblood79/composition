@@ -36,9 +36,7 @@ import {
   ORIGIN_VIEW_NODE,
   originCardId,
   originInstanceId,
-  originPartsId,
   originSampleId,
-  originSlotsId,
 } from "../originView";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -142,7 +140,7 @@ describe("ADR-248 4e library origin view", () => {
     );
     expect(roots.map((record) => record.sourceId)).toEqual([ORIGIN_VIEW_NODE]);
     // Layers: the page lists a group per card (theme, then components in palette order); a
-    // component's group holds its origin, the origin's parts and its instances side by side —
+    // component's group holds its origin and its instances side by side —
     // the column, line and cell frames are not rows.
     const store = new CatalogLayerTreeStore(
       {
@@ -178,13 +176,10 @@ describe("ADR-248 4e library origin view", () => {
     expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
       "md", "2xs", "xs", "sm", "lg", "xl", "2xl",
     ]);
-    // IconButton: the origin, the origin drawn for its parts, then 6 variants × (rest + 4
-    // states) + 5 sizes.
-    const [originRow, partsRow, ...instances] = groupOf(buttonCard).children!;
+    // IconButton: the origin, then 6 variants × (rest + 4 states) + 5 sizes.
+    const [originRow, ...instances] = groupOf(buttonCard).children!;
     expect(originRow!.role).toBe("origin");
     expect(originRow!.name).toBe("IconButton");
-    expect(partsRow!.name).toBe("IconButton / Parts");
-    expect(partsRow!.role).toBe("instance");
     expect(instances.every((row) => row.role === "instance")).toBe(true);
     expect(instances.map((row) => row.name).slice(0, 2)).toEqual([
       "IconButton / Accent / Default",
@@ -193,11 +188,14 @@ describe("ADR-248 4e library origin view", () => {
     expect(instances.length).toBe(35);
     // The origin's own row holds only its template (not the instances again).
     expect(originRow!.hasChildren).toBe(true);
+    // (No row draws the origin again for its parts: a card's first row is its origin, the rest
+    // its instances.)
+    expect(groupOf(fieldCard).children![0]!.name).toBe("TextField");
     expect(
       groupOf(fieldCard)
-        .children!.slice(0, 2)
-        .map((row) => row.name),
-    ).toEqual(["TextField", "TextField / Parts"]);
+        .children!.map((row) => row.name)
+        .filter((name) => name.endsWith("/ Parts")),
+    ).toEqual([]);
     expect(catalogComponentRole(graphOf(workspace), sampleId)).toBe("origin");
     const hover = originInstanceId(button.id, "primary/Hover");
     expect(catalogComponentRole(graphOf(workspace), hover)).toBe("instance");
@@ -340,35 +338,24 @@ describe("ADR-248 4e library origin view", () => {
         (state) => `${origin}${state}`,
       ),
     );
-    // A composed origin shows its parts in place: the origin once more (an instance of it),
-    // captioned with one name per kind of template child (◇ = another origin's instance).
+    // A card has no Parts row (it drew the origin once more; what a collection holds is its
+    // Item row).
     const field = cards.find((candidate) => candidate.name === "TextField")!;
-    const parts = field.children.map(nodeOf).find((row) => row.name === "Parts")!;
-    expect(cellsOf(parts).map((cell) => cell.name)).toEqual([
-      "Label · Input · FieldError",
-    ]);
-    const fieldParts = sampleOf(cellsOf(parts)[0]!);
-    expect(fieldParts.id).toBe(
-      originPartsId("lib:definition:origin-component-textfield" as LibraryDefinitionId),
-    );
-    expect(fieldParts.definitionId).toBe("lib:definition:origin-component-textfield");
-    const toolbar = cards.find((candidate) => candidate.name === "Toolbar")!;
-    expect(
-      cellsOf(
-        toolbar.children.map(nodeOf).find((row) => row.name === "Parts")!,
-      ).map((cell) => cell.name),
-    ).toEqual(["◇ Button ×3 · Separator"]);
+    expect(field.children.map(nodeOf).map((row) => row.name)).not.toContain("Parts");
     // A collection shows its item origin's states (not its own variants — they only tint its
     // hover): the item drawn on its own, its label filled in and its placeholders off.
     const grid = cards.find((candidate) => candidate.name === "GridList")!;
     const gridRows = grid.children.slice(1).map(nodeOf);
     expect(gridRows.map((row) => row.name)).toEqual([
       "Origin",
-      "Parts",
-      "Slots",
-      "Item states",
+      "Item",
     ]);
-    const itemCells = cellsOf(gridRows[3]!);
+    // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
+    expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
+      "◆ GridList",
+      "◇ GridList",
+    ]);
+    const itemCells = cellsOf(gridRows[1]!);
     expect(itemCells.map((cell) => sampleOf(cell).definitionId)).toEqual(
       ["", "--unselected", "--disabled", "--hover", "--pressed", "--focus-visible"].map(
         (state) => `lib:definition:origin-component-gridlist-item-default${state}`,
@@ -574,7 +561,7 @@ describe("ADR-248 4e library origin view", () => {
     });
     workspace.dispose();
   });
-  it("draws each origin as the DOM sizes it: circle height, owner-sized glyphs and members, track variants, parts in place", async () => {
+  it("draws each origin as the DOM sizes it: circle height, owner-sized glyphs and members, track variants, slots", async () => {
     const { workspace, button } = await open();
     workspace.showDefinition(button.id);
     const lib = (name: string) =>
@@ -626,98 +613,76 @@ describe("ADR-248 4e library origin view", () => {
         (variant) => !(variant in COMPONENT_RULES_TABLE.ProgressBarTrack.variants),
       ),
     ).toEqual([]);
-    // The parts instance: the origin once more; the chrome outlines each drawn part.
-    const parts = recordOf(originPartsId(lib("textfield")));
     const bounds = new Map(
       [...workspace.root.canvasInputs.keys()].flatMap((record) => {
         const rect = workspace.root.getGeometry([record]).get(record);
         return rect ? [[record, rect] as const] : [];
       }),
     );
-    const regions = catalogSlotMarks(workspace, bounds, bounds).filter(
-      (mark) => mark.region,
-    );
-    const fieldRegions = regions.filter((mark) =>
-      inputOf(parts).children.includes(mark.identity),
-    );
-    expect(fieldRegions.length).toBeGreaterThanOrEqual(1);
-    expect(fieldRegions.every((mark) => mark.role === "instance" && !mark.empty)).toBe(
-      true,
-    );
-    expect(
-      regions.every((mark) => mark.box.width > 0 && mark.box.height > 0),
-    ).toBe(true);
-    // Declared slots (pen.dev's design-system page: a container's master shows its slots
-    // hatched, the filled instance beside it): a Tabs card draws its origin filled (no mark)
-    // and a Slots instance with its tab list and panels emptied — each hatched at a box of its
-    // own; a Table's origin holds no columns or rows, so its own slots are hatched.
-    const slotMarks = catalogSlotMarks(workspace, bounds, bounds).filter(
-      (mark) => !mark.region,
-    );
+    // Declared slots (pen.dev's design-system page: a component's master shows its slots
+    // hatched, the instance beside it what fills them): a Tabs card's origin keeps its tab list
+    // and panels laid out but not drawn — each slot hatched at that size — and the instance
+    // beside it is filled (no mark); a Table's origin holds no columns or rows: its slots take a
+    // box of their own.
+    const slotMarks = catalogSlotMarks(workspace, bounds, bounds);
     const marksUnder = (record: string) =>
       slotMarks.filter((mark) => inputOf(record).children.includes(mark.identity));
-    const tabsSlots = recordOf(originSlotsId(lib("tabs")));
-    expect(marksUnder(tabsSlots).map((mark) => [mark.empty, mark.role])).toEqual([
-      [true, "instance"],
-      [true, "instance"],
+    const tabsOrigin = recordOf(originSampleId(lib("tabs")));
+    expect(marksUnder(tabsOrigin).map((mark) => [mark.empty, mark.role])).toEqual([
+      [true, "origin"],
+      [true, "origin"],
     ]);
     expect(
-      marksUnder(tabsSlots).every((mark) => mark.box.width > 0 && mark.box.height > 0),
+      marksUnder(tabsOrigin).every((mark) => mark.box.width > 0 && mark.box.height > 0),
     ).toBe(true);
     // A slot that has a box is hatched at that box at every zoom (a zoomed-out Components page
     // must not grow it over the row below); only one of no height gets the visible band, which
     // never exceeds 48 scene px.
-    for (const mark of marksUnder(tabsSlots))
+    for (const mark of marksUnder(tabsOrigin))
       for (const zoom of [0.1, 0.25, 1, 4])
         expect(catalogSlotBand(mark.box.height, zoom)).toBe(mark.box.height);
     expect([0.25, 1, 4].map((zoom) => catalogSlotBand(0, zoom))).toEqual([48, 48, 12]);
-    expect(marksUnder(recordOf(originSampleId(lib("tabs"))))).toEqual([]);
-    expect(
-      marksUnder(recordOf(originSampleId(lib("table")))).map((mark) => [
-        mark.empty,
-        mark.role,
-      ]),
-    ).toEqual([
+    expect(marksUnder(recordOf(originInstanceId(lib("tabs"), "instance")))).toEqual([]);
+    const tableMarks = marksUnder(recordOf(originSampleId(lib("table"))));
+    expect(tableMarks.map((mark) => [mark.empty, mark.role])).toEqual([
       [true, "origin"],
       [true, "origin"],
     ]);
-    // A collection whose root holds its items is itself the slot: its Slots instance is the
-    // root hatched as empty — what it holds is laid out but not drawn; the filled origin is not
-    // marked.
-    const listSlots = recordOf(originSlotsId(lib("listbox")));
-    expect(inputOf(listSlots).children.length).toBeGreaterThan(0);
+    expect(tableMarks.every((mark) => mark.box.height >= 40)).toBe(true);
+    // A collection whose root holds its items is itself the slot: the origin's root is hatched
+    // as empty — what it holds is laid out but not drawn; the instance beside it is not marked.
+    const listOrigin = recordOf(originSampleId(lib("listbox")));
+    expect(inputOf(listOrigin).children.length).toBeGreaterThan(0);
     expect(
-      inputOf(listSlots).children.map((child) => inputOf(child).visual.opacity),
-    ).toEqual(inputOf(listSlots).children.map(() => 0));
+      inputOf(listOrigin).children.map((child) => inputOf(child).visual.opacity),
+    ).toEqual(inputOf(listOrigin).children.map(() => 0));
     expect(
       slotMarks
-        .filter((mark) => mark.identity === listSlots)
+        .filter((mark) => mark.identity === listOrigin)
         .map((mark) => [mark.empty, mark.role, mark.box.width > 0, mark.box.height > 0]),
-    ).toEqual([[true, "instance", true, true]]);
+    ).toEqual([[true, "origin", true, true]]);
+    const listInstance = recordOf(originInstanceId(lib("listbox"), "instance"));
+    expect(slotMarks.filter((mark) => mark.identity === listInstance)).toEqual([]);
     expect(
-      slotMarks.filter(
-        (mark) => mark.identity === recordOf(originSampleId(lib("listbox"))),
-      ),
-    ).toEqual([]);
+      inputOf(listInstance).children.map((child) => inputOf(child).visual.opacity ?? 1),
+    ).toEqual(inputOf(listInstance).children.map(() => 1));
     // The slot is the size its contents take (a ToggleButtonGroup's is its buttons' height, not
-    // a fixed box): the Slots instance measures what the filled origin does.
+    // a fixed box): the origin measures what the filled instance does.
     for (const origin of ["togglebuttongroup", "buttongroup", "toolbar", "listbox"]) {
-      const filled = rectOf(originSampleId(lib(origin)));
-      const slots = rectOf(originSlotsId(lib(origin)));
-      expect([origin, slots.width, slots.height]).toEqual([
+      const empty = rectOf(originSampleId(lib(origin)));
+      const filled = rectOf(originInstanceId(lib(origin), "instance"));
+      expect([origin, empty.width, empty.height]).toEqual([
         origin,
         filled.width,
         filled.height,
       ]);
     }
+    // No Slots row: the origin shows them.
     const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
     const tabsCard = catalogComponentsPageCards(graphOf(workspace))
       .map(entryOf)
       .find((candidate) => candidate.name === "Tabs")!;
-    const slotsRow = tabsCard.children.map(entryOf).find((row) => row.name === "Slots")!;
-    expect(
-      entryOf(slotsRow.children[1]!).children.map((cell) => entryOf(cell).name),
-    ).toEqual(["Tabs · Panels"]);
+    expect(tabsCard.children.map(entryOf).map((row) => row.name)).not.toContain("Slots");
     workspace.dispose();
   });
 });

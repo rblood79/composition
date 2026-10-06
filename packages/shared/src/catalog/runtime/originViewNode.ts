@@ -58,26 +58,9 @@ export const isThemeSample = (id: string | undefined): boolean =>
   !!id && id.startsWith(THEME_PREFIX) && id.endsWith("/sample");
 
 const CARD_PREFIX = `${ORIGIN_VIEW_NODE}/origin/`;
-/** A component's card (its group frame): the origin, its parts and its instances are inside. */
+/** A component's card (its group frame): the origin and its instances are inside. */
 export const originCardId = (originId: LibraryDefinitionId): NodeId =>
   `${CARD_PREFIX}${originId}/card` as NodeId;
-/**
- * The instance a card draws to show an origin's parts in place (its template's children, each
- * region outlined by the editor chrome).
- */
-export const originPartsId = (originId: LibraryDefinitionId): NodeId =>
-  originInstanceId(originId, "parts");
-export const isPageParts = (id: string | undefined): boolean =>
-  !!id && id.startsWith(INSTANCE_PREFIX) && id.endsWith("/parts");
-/**
- * The instance a card draws to show an origin's declared slots empty (what each slot holds is
- * laid out but not drawn, so the editor chrome hatches the slot at the size its contents take — the
- * component's "fill me" areas).
- */
-export const originSlotsId = (originId: LibraryDefinitionId): NodeId =>
-  originInstanceId(originId, "slots");
-export const isPageSlots = (id: string | undefined): boolean =>
-  !!id && id.startsWith(INSTANCE_PREFIX) && id.endsWith("/slots");
 /** A card of the page: a component's (`originCardId`) or a theme's. */
 export const isPageCard = (id: string | undefined): boolean =>
   !!id && id.startsWith(`${ORIGIN_VIEW_NODE}/`) && id.endsWith("/card");

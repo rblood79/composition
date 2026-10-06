@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components page — 원본은 slot 을, instance 는 완성 모습을 (pen.dev 구조) · Parts 줄 제거] - 2026-10-06
+
+### Changed
+
+- **Origin 줄이 pen.dev 디자인 시스템 페이지의 구조를 따른다**: 원본 (◆) 은 선언된 slot 을 비운 채 빗금으로 보여 주고, 그 옆의 instance (◇) 가 slot 을 채운 완성 모습을 보여 준다 — page 에서 실제로 쓰는 것은 instance 다. 별도 Slots 줄은 Origin 줄에 흡수돼 없어졌다. 원본의 slot 내용은 배치만 하고 그리지 않으므로 slot 은 내용이 차지하는 크기 그대로다. 원본이 비워 둔 slot (Table 의 Columns · Rows) 은 자기 상자 (높이 40) 를 갖고 옆의 instance 는 두지 않는다. 표시만 바꾼 것이고 문서 데이터 · 팔레트 동작은 그대로다.
+- 카드의 Parts 줄 (원본을 한 번 더 그리고 구성 요소마다 테두리를 친 줄) 을 없앴다. collection 은 Item 줄과 내용이 겹쳤다. 줄 이름 「Item states」 는 「Item」 으로 바꿨다.
+- 카드의 줄 순서: Origin (◆ + ◇) → Item → (Variants · States) → Sizes. Layers 의 카드 그룹에서 「<이름> / Parts」 · 「<이름> / Slots」 행이 사라지고 「<이름> / Instance」 행이 생긴다.
+- 항목이 없는 조합 컴포넌트 (TextField 의 Label · Input · FieldError 등) 는 구성 요소를 따로 보여 주는 줄이 없다 — Origin 이 그 모습이다.
+- 원본에 hover 해도 그려지지 않는 slot 내용의 안내선은 나오지 않는다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (GridList 의 Origin 줄 = ◆ · ◇ 두 칸, Tabs 원본의 두 slot 빗금 · instance 무표시, ListBox 원본 내용 opacity 0 · instance 는 그대로, ToggleButtonGroup 등 4종의 원본 크기 = instance 크기, Table 원본 slot 높이 40 이상, 카드 · Layers 에 Parts · Slots 없음). 원본 slot 숨김 · 옆 instance · 그리지 않는 내용의 빈 slot 판정 각각 원복 RED. 실제 Builder: ToggleButtonGroup · Tabs · Table 카드 확인, 콘솔 오류 0.
+
 ## [Components page 의 Slots 줄 — slot 상자가 내용 크기를 따른다] - 2026-10-06
 
 ### Fixed
