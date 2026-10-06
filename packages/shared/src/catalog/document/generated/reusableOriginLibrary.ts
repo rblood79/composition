@@ -2231,6 +2231,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-card__preview",
     "definitionId": "lib:definition:type-CardPreview",
+    "slot": {
+      "name": "Preview",
+      "required": false
+    },
     "children": [
       "lib:template:component-card__preview-image"
     ],
@@ -2252,6 +2256,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-card__header",
     "definitionId": "lib:definition:type-CardHeader",
+    "slot": {
+      "name": "Header",
+      "required": false
+    },
     "children": [
       "lib:template:component-card__title"
     ],
@@ -2282,6 +2290,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-card__content",
     "definitionId": "lib:definition:type-CardContent",
+    "slot": {
+      "name": "Content",
+      "required": false
+    },
     "children": [
       "lib:template:component-card__description"
     ],
@@ -2304,6 +2316,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-card__footer",
     "definitionId": "lib:definition:type-CardFooter",
+    "slot": {
+      "name": "Footer",
+      "required": false
+    },
     "children": [],
     "props": {},
     "visual": {

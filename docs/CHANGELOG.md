@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Card 원본의 slot 선언] - 2026-10-06
+
+### Changed
+
+- Card 의 네 영역이 slot 이다: Preview · Header · Content · Footer (pen.dev 의 Card master — header · content · actions — 와 같은 구조). Components page 의 Card 원본 (◆) 은 네 영역을 빗금으로, 옆 instance (◇) 는 채운 모습으로 보여 준다.
+- Card 는 Footer 를 비워 둔 채 만들어지므로, page 에 놓은 Card 와 CardView 의 Card 마다 Footer 자리 (높이 8) 에 빈 slot 빗금이 보인다. Footer 에 요소를 넣으면 사라진다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (Card 원본의 mark 4개 · 옆 instance 와 page 에 놓은 Card 는 Footer 하나). Footer 선언 원복 RED. shared 1,492 · builder 4,130 통과. 실제 Builder: Components page 의 Card 카드 확인, 콘솔 오류 0.
+
 ## [Components page — Chart 카드에 종류별 instance (Types 줄)] - 2026-10-06
 
 ### Added

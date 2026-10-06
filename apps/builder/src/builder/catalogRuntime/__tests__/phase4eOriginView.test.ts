@@ -656,6 +656,40 @@ describe("ADR-248 4e library origin view", () => {
     expect(sizesUnder("buttongroup", "xs", "button")).toEqual(["xs", "xs"]);
     expect(sizesUnder("calendar", "sm", "calendargrid")).toEqual(["sm"]);
     expect(sizesUnder("calendar", "sm", "calendarheader")).toEqual(["sm"]);
+    // A Card placed on a page: its regions are slots — the one it leaves empty (the footer) is
+    // hatched at its own box, the filled ones are not marked.
+    const CARD = "project:node:card-placed" as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: CARD,
+            definitionId: lib("card"),
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          },
+        ],
+        rootIds: [CARD],
+        newId: workspace.newId,
+      }),
+    );
+    const pageBounds = new Map(
+      [...workspace.root.canvasInputs.keys()].flatMap((record) => {
+        const rect = workspace.root.getGeometry([record]).get(record);
+        return rect ? [[record, rect] as const] : [];
+      }),
+    );
+    const placedCard = recordOf(CARD);
+    expect(
+      catalogSlotMarks(workspace, pageBounds, pageBounds)
+        .filter((mark) => inputOf(placedCard).children.includes(mark.identity))
+        .map((mark) => [inputOf(mark.identity).slot?.name, mark.empty, mark.role]),
+    ).toEqual([["Footer", true, "instance"]]);
     workspace.showDefinition(button.id);
     // A ProgressBar's track takes its owner's variant: the track rule paints every one of them
     // (a missing variant painted no track).
@@ -733,6 +767,19 @@ describe("ADR-248 4e library origin view", () => {
         filled.height,
       ]);
     }
+    // A Card's regions are its slots (pen.dev's Card master: header, content, actions): the
+    // origin hatches all four, the instance beside it only the footer it leaves empty.
+    const slotNames = (record: string) =>
+      marksUnder(record).map((mark) => inputOf(mark.identity).slot?.name);
+    expect(slotNames(recordOf(originSampleId(lib("card"))))).toEqual([
+      "Preview",
+      "Header",
+      "Content",
+      "Footer",
+    ]);
+    expect(slotNames(recordOf(originInstanceId(lib("card"), "instance")))).toEqual([
+      "Footer",
+    ]);
     // No Slots row: the origin shows them.
     const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
     const tabsCard = catalogComponentsPageCards(graphOf(workspace))
