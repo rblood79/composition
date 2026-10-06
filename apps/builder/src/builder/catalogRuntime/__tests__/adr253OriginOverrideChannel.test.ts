@@ -165,6 +165,28 @@ describe("ADR-253 Phase 1 — an origin's override reaches its instances", () =>
     expect(dom.visual.backgroundColor).toBe("#ff0000");
   });
 
+  it("a later edit of the origin (its override already exists) redraws the instances inside other origins", async () => {
+    const { workspace, write } = await open({
+      button: { of: BUTTON },
+      toolbar: { of: origin("toolbar") },
+    });
+    /** The Button records the Canvas and the DOM draw (placed and inside the Toolbar). */
+    const drawnRecords = () =>
+      [workspace.root.canvasInputs, workspace.root.domInputs].flatMap(
+        (inputs) =>
+          [...inputs.values()]
+            .filter((record) => record.definitionId === BUTTON_TYPE)
+            .map((record) => record.visual.paddingTop),
+      );
+    write("visual", "paddingTop", 77);
+    expect(drawnRecords()).toEqual(Array(8).fill(77));
+    // The second write patches the existing override: a value-only step.
+    write("visual", "paddingTop", 88);
+    expect(drawnRecords()).toEqual(Array(8).fill(88));
+    workspace.undo();
+    expect(drawnRecords()).toEqual(Array(8).fill(77));
+  });
+
   it("an instance's own value stays over the origin's override", async () => {
     const { workspace, write } = await open({
       plain: { of: BUTTON },

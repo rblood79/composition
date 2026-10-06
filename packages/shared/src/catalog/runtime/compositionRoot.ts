@@ -2845,6 +2845,44 @@ export class CatalogCompositionRoot {
    * whose composite definition accepts the changed key binds it into its template (`{label}`), so
    * its template descendants re-resolve with it. Other prop changes keep the fast path.
    */
+  /**
+   * Records that draw a definition whose project override changed (ADR-253). The step's
+   * invalidated ids name the nodes placed as its instances; an instance inside another
+   * definition's template is a template position, which no graph index lists — so every record
+   * whose own definition, or the definition of a layer it collapses, is the override's target.
+   */
+  private overrideDependents(result: CatalogTransactionResult): string[] {
+    const graph = this.runtime.graph;
+    const targets = new Set<string>();
+    for (const op of result.forward) {
+      const entry =
+        op.kind === "patchDefinitionOverride"
+          ? graph.getEntry(op.id)
+          : op.kind === "put"
+            ? op.entry
+            : undefined;
+      if (entry?.kind === "definitionOverride") targets.add(entry.targetId);
+    }
+    if (!targets.size) return [];
+    const definitionOf = (sourceId: string): string | undefined => {
+      if (sourceId.startsWith("lib:"))
+        return graph.library.templates.get(sourceId as `lib:template:${string}`)
+          ?.definitionId;
+      const entry = graph.getEntry(sourceId);
+      return entry?.kind === "node" ? entry.definitionId : undefined;
+    };
+    const dependents: string[] = [];
+    for (const record of this.records.values())
+      if (
+        targets.has(record.definitionId) ||
+        recordSources(record).some((sourceId) => {
+          const definitionId = definitionOf(sourceId);
+          return definitionId !== undefined && targets.has(definitionId);
+        })
+      )
+        dependents.push(record.id);
+    return dependents;
+  }
   private bindingDependents(result: CatalogTransactionResult): string[] {
     const changedKeys = new Map<string, Set<string>>();
     for (const op of result.forward)
@@ -3335,10 +3373,10 @@ export class CatalogCompositionRoot {
               op.entry.kind === "definitionOverride")),
       );
       const sources = new Set(indirect ? invalidatedIds : result.changedIds);
-      const planned = this.planInstances(
-        sources,
-        this.bindingDependents(result),
-      );
+      const planned = this.planInstances(sources, [
+        ...this.bindingDependents(result),
+        ...this.overrideDependents(result),
+      ]);
       const byRoot = new Map<NodeId, RecordPlan[]>();
       for (const update of planned.updates) {
         let list = byRoot.get(update.rootId);
