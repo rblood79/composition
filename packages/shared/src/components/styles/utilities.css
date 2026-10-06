@@ -117,6 +117,13 @@
     color: inherit;
   }
 
+  /* Button 안 Icon 의 상자는 glyph 크기다 (ADR-253 — field 의 증감 버튼). Button 이 자식 Icon 의 크기를
+     자기 size 로 정하고 (Button rule `sizes.iconSize` → svg), Canvas 의 Icon 상자는 그 glyph 다. Icon
+     sheet 의 자기 size 높이 (data-size 없음 = 기본 24px) 는 그 glyph 와 무관해 상자만 달라졌다. */
+  .react-aria-Button.button-base > .react-aria-Icon {
+    height: auto;
+  }
+
   /* group member ToggleButton 은 children 을 <span> 으로 감싼다(ToggleButton.tsx — group
      pressed micro-interaction `> span { scale:0.9 }` 소비). 그 결과 DOM 이
      `ToggleButton.button-base > span > (Icon, Text)` 가 되어 Icon/Text 가 더 이상 직계 자식이

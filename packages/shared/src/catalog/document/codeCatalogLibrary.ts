@@ -443,6 +443,13 @@ function selectTriggerDefinition(
     // definition owns that layout while the existing Builder factory remains untouched.
     layout: { display: "flex", flexDirection: "row" },
     propVisualRules: { variant: variants, size: sizes },
+    // ADR-253: `plain` only places its parts — the box is the Input / DateInput instance inside.
+    conditionalRules: [
+      {
+        when: { variant: "plain" },
+        visual: { paddingX: 0, paddingY: 0, borderWidth: 0, radius: 0 },
+      },
+    ],
     stateRules: {},
   };
 }

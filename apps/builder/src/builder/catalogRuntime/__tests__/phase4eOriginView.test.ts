@@ -644,9 +644,13 @@ describe("ADR-248 4e library origin view", () => {
       expect(glyphs(origin, "xs")).toEqual([14]);
       expect(glyphs(origin, "xl")).toEqual([28]);
     }
-    // A NumberField's stepper glyphs are its own scale (`--nf-btn-icon-size`).
-    expect(glyphs("numberfield", "xs")).toEqual([10, 10]);
-    expect(glyphs("numberfield", "xl")).toEqual([22, 22]);
+    // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
+    const stepperGlyphs = (size: string) =>
+      under(recordOf(sized("numberfield", size)), "icon").map(
+        (record) => inputOf(record).visual.iconSize,
+      );
+    expect(stepperGlyphs("xs")).toEqual([14, 14]);
+    expect(stepperGlyphs("xl")).toEqual([28, 28]);
     // A group's size reaches its members; a calendar's its header and grid.
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(

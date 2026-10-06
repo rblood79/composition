@@ -73,172 +73,42 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-NumberField[data-size="xs"] {
-  --nf-group-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
-}
-
-.react-aria-NumberField[data-size="sm"] {
-  --nf-group-padding: var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm);
-}
-
-.react-aria-NumberField[data-size="md"] {
-  --nf-group-padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
-}
-
-.react-aria-NumberField[data-size="lg"] {
-  --nf-group-padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
-}
-
-.react-aria-NumberField[data-size="xl"] {
-  --nf-group-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
-}
-
 .react-aria-NumberField .react-aria-Group {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
   width: 100%;
-  border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--border-radius);
-  background: var(--bg-inset);
-  overflow: hidden;
-  transition: border-color 200ms ease, background-color 200ms ease;
-  padding: var(--nf-group-padding);
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Button[data-hovered]:not([data-disabled]))) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Input[data-focused])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Input[data-focus-within])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has(.react-aria-Button[data-focus-visible])) {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-.react-aria-NumberField .react-aria-Group:where(:has([data-invalid])) {
-  border-color: var(--negative);
-}
-
-.react-aria-NumberField[data-size="xs"] {
-  --nf-input-font-size: var(--text-2xs);
-  --nf-input-line-height: var(--text-2xs--line-height);
-}
-
-.react-aria-NumberField[data-size="sm"] {
-  --nf-input-font-size: var(--text-xs);
-  --nf-input-line-height: var(--text-xs--line-height);
-}
-
-.react-aria-NumberField[data-size="md"] {
-  --nf-input-font-size: var(--text-sm);
-  --nf-input-line-height: var(--text-sm--line-height);
-}
-
-.react-aria-NumberField[data-size="lg"] {
-  --nf-input-font-size: var(--text-base);
-  --nf-input-line-height: var(--text-base--line-height);
-}
-
-.react-aria-NumberField[data-size="xl"] {
-  --nf-input-font-size: var(--text-lg);
-  --nf-input-line-height: var(--text-lg--line-height);
 }
 
 .react-aria-NumberField .react-aria-Input {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-width: 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  outline: none;
-  forced-color-adjust: none;
-  padding: 0;
-  font-size: var(--nf-input-font-size);
-  line-height: var(--nf-input-line-height);
-  --input-padding: 0;
-  --input-font-size: var(--nf-input-font-size);
-  --input-line-height: var(--nf-input-line-height);
 }
 
 .react-aria-NumberField[data-size="xs"] {
-  --nf-btn-size: 10px;
-  --nf-btn-icon-size: 10px;
+  --nf-btn-size: 20px;
 }
 
 .react-aria-NumberField[data-size="sm"] {
-  --nf-btn-size: 14px;
-  --nf-btn-icon-size: 12px;
+  --nf-btn-size: 22px;
 }
 
 .react-aria-NumberField[data-size="md"] {
-  --nf-btn-size: 18px;
-  --nf-btn-icon-size: 16px;
+  --nf-btn-size: 30px;
 }
 
 .react-aria-NumberField[data-size="lg"] {
-  --nf-btn-size: 22px;
-  --nf-btn-icon-size: 18px;
+  --nf-btn-size: 42px;
 }
 
 .react-aria-NumberField[data-size="xl"] {
-  --nf-btn-size: 28px;
-  --nf-btn-icon-size: 22px;
+  --nf-btn-size: 54px;
 }
 
 .react-aria-NumberField .react-aria-Button {
-  position: static;
   flex: 0 0 auto;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-xs);
   width: var(--nf-btn-size);
   height: var(--nf-btn-size);
-  min-width: unset;
-  min-height: unset;
-  background: var(--bg-overlay);
-  color: var(--fg);
-  forced-color-adjust: none;
-  box-shadow: var(--shadow-sm);
-}
-
-.react-aria-NumberField .react-aria-Button:where([data-hovered]:not([data-disabled])) {
-  background: var(--accent-subtle);
-}
-
-.react-aria-NumberField .react-aria-Button:where([data-pressed]:not([data-disabled])) {
-  background: color-mix(in srgb, var(--fg) 12%, var(--bg-overlay));
-}
-
-.react-aria-NumberField .react-aria-Button:where([data-focus-visible]) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.react-aria-NumberField .react-aria-Button:where([data-disabled]) {
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
-  cursor: not-allowed;
-}
-
-.react-aria-NumberField .react-aria-Button svg {
-  width: var(--nf-btn-icon-size);
-  height: var(--nf-btn-icon-size);
+  min-width: 0;
+  margin-inline-start: -1px;
 }
 
 .react-aria-NumberField[data-size="xs"] {
@@ -259,12 +129,6 @@
 
 .react-aria-NumberField[data-size="xl"] {
   --nf-side-gap: 10px;
-}
-
-.react-aria-NumberField[data-disabled="true"] .react-aria-Group {
-  background: color-mix(in srgb, var(--fg) 4%, transparent);
-  border-color: color-mix(in srgb, var(--fg) 12%, transparent);
-  opacity: 0.38;
 }
 
 .react-aria-NumberField[data-label-position="side"] {
@@ -302,7 +166,7 @@
   --form-label-align: end;
 }
 
-.react-aria-NumberField[data-quiet="true"] .react-aria-Group {
+.react-aria-NumberField[data-quiet="true"] .react-aria-Input {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -310,46 +174,12 @@
   border-bottom: 1px solid var(--border);
 }
 
-.react-aria-NumberField[data-quiet="true"]:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .react-aria-Group {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-NumberField[data-quiet="true"]:has(.react-aria-Button[data-hovered]:not([data-disabled])) .react-aria-Group {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-NumberField[data-quiet="true"]:has(.react-aria-Input[data-focused]:not([data-disabled])) .react-aria-Group {
+.react-aria-NumberField[data-quiet="true"] .react-aria-Input:where([data-focused]) {
   outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
   border-bottom-color: var(--accent);
 }
 
-.react-aria-NumberField[data-quiet="true"]:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .react-aria-Group {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-NumberField[data-quiet="true"]:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .react-aria-Group {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-NumberField[data-quiet="true"][data-invalid] .react-aria-Group {
-  border-color: transparent;
+.react-aria-NumberField[data-quiet="true"] .react-aria-Input:where([data-invalid]) {
   border-bottom-color: var(--negative);
 }
 

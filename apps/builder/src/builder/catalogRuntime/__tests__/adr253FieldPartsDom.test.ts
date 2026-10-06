@@ -135,6 +135,7 @@ const INPUT_TYPES = ["textfield", "textarea", "colorfield"] as const;
  */
 const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
   colorfield: " placeholder=#000000",
+  numberfield: " placeholder=0",
 };
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 const SIDE_INDENT: Record<string, number> = {
@@ -166,6 +167,23 @@ const HINT_TYPES = [
   "radiogroup",
 ] as const;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
+const BUTTON_NODE_MARKS = [
+  "data-variant",
+  "data-fill-style",
+  "data-size",
+  "data-static-color",
+];
+/**
+ * Fields whose control is a wrapper around part nodes (the Group of a NumberField): an Input
+ * instance and Button instances. A Button's glyph is its Icon node — the Canvas glyph — where the
+ * shared component drew its own svg, so the glyph markup is left out of the structure on both
+ * sides and asserted on its own.
+ */
+const WRAPPED_TYPES = ["numberfield"];
+const withoutGlyphs = (structure: string) =>
+  structure
+    .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
+    .replace(/<div class=react-aria-Icon><\/>/g, "");
 
 /** A document's structure: elements, their attributes (sorted) and text, in order. */
 function normalize(html: string): string {
@@ -173,12 +191,16 @@ function normalize(html: string): string {
     const control = ["input", "textarea"].includes(
       element.tagName.toLowerCase(),
     );
+    // A Button node's element carries the Button rule's marks (`button-base` · `data-*`): what
+    // its sheet reads, as an Input's `data-size`.
+    const button = element.tagName.toLowerCase() === "button";
     const attributes = [...element.attributes]
       .filter(
         (attribute) =>
           attribute.name !== "data-catalog-id" &&
           attribute.name !== "style" &&
-          !(control && attribute.name === "data-size"),
+          !(control && attribute.name === "data-size") &&
+          !(button && BUTTON_NODE_MARKS.includes(attribute.name)),
       )
       .map((attribute) =>
         [
@@ -189,7 +211,9 @@ function normalize(html: string): string {
           "aria-controls",
         ].includes(attribute.name)
           ? attribute.name
-          : `${attribute.name}=${attribute.value}`,
+          : button && attribute.name === "class"
+            ? `class=${attribute.value.replace(" button-base", "")}`
+            : `${attribute.name}=${attribute.value}`,
       )
       .sort();
     const content = [...element.childNodes].map((child) =>
@@ -292,9 +316,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         if (!shown) {
           const placeholder = INPUT_PLACEHOLDER_SINCE[type];
           if (placeholder) expect(structure).toContain(placeholder);
+          const glyphless = WRAPPED_TYPES.includes(type)
+            ? withoutGlyphs
+            : (text: string) => text;
           expect(
-            placeholder ? structure.replace(placeholder, "") : structure,
-          ).toBe(fixture[`${type}/${name}`]);
+            glyphless(
+              placeholder ? structure.replace(placeholder, "") : structure,
+            ),
+          ).toBe(glyphless(fixture[`${type}/${name}`]));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
@@ -647,6 +676,268 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       expect(input().visual.borderColor).toBe("#00aa00");
     });
+
+  /**
+   * A NumberField's control: the Group (the wrapper node — placement only) holds an instance of the
+   * Input origin and two instances of the Button origin, each drawn in the DOM by its own node
+   * inside the field's RAC context. The steppers keep what that context gives them (their slot's
+   * press handlers, disabled at the value's limit or with the field).
+   */
+  it.skipIf(write)(
+    "numberfield — its Group holds an Input instance and two Button instances",
+    async () => {
+      const { workspace, field } = (await render("numberfield", {}))!;
+      const records = workspace.root.canvasInputs;
+      const typeOf = (id: string) =>
+        workspace.runtime.graph.getDefinition(
+          records.get(id)!.definitionId as LibraryDefinitionId,
+        )!.name;
+      const wrapper = () =>
+        records
+          .get(field.id)!
+          .children.map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+      const parts = () => wrapper().children.map((id) => records.get(id)!);
+      const html = () =>
+        renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        );
+      const host = () => {
+        const element = document.createElement("div");
+        element.innerHTML = html();
+        return element;
+      };
+      const rect = (id: string) =>
+        workspace.root.getGeometry([id]).get(id) as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        };
+      // The wrapper paints nothing; its parts are the origins' instances.
+      expect(wrapper().visual).toMatchObject({
+        fill: "transparent",
+        borderWidth: 0,
+        paddingX: 0,
+        paddingY: 0,
+      });
+      expect(parts().map((part) => typeOf(part.id))).toEqual([
+        "Input",
+        "Button",
+        "Button",
+      ]);
+      expect(parts().map((part) => part.collapsedSourceIds)).toEqual([
+        ["lib:template:component-input"],
+        ["lib:template:component-button"],
+        ["lib:template:component-button"],
+      ]);
+      const [input, decrement, increment] = parts();
+      // Canvas: the Input fills the Group; a stepper is as wide as the control is high and
+      // overlaps its neighbour's border by 1px; its glyph (an Icon node) is centered in it.
+      const group = rect(wrapper().id);
+      expect(group.height).toBe(30);
+      expect(rect(input.id)).toMatchObject({ height: 30 });
+      for (const stepper of [decrement, increment]) {
+        expect(rect(stepper.id)).toMatchObject({ width: 30, height: 30 });
+        expect(stepper.props).toMatchObject({
+          variant: "secondary",
+          size: "md",
+        });
+        const glyph = records.get(stepper.children[0]!)!;
+        expect(typeOf(glyph.id)).toBe("Icon");
+        expect(glyph.visual.iconSize).toBe(18);
+        // (A record's box is from its parent's.)
+        const icon = rect(glyph.id);
+        expect(icon).toMatchObject({ x: 6, width: 18 });
+        expect(icon.y * 2 + icon.height).toBe(30);
+      }
+      expect(rect(decrement.id).x).toBe(
+        rect(input.id).x + rect(input.id).width - 1,
+      );
+      expect(rect(increment.id).x + 30).toBe(group.width);
+      // The square corners on the touching sides are written on the template positions.
+      expect(input.visual).toMatchObject({
+        radius: 6,
+        radiusTopRight: 0,
+        radiusBottomRight: 0,
+      });
+      expect(decrement.visual.radius).toBe(0);
+      expect(increment.visual).toMatchObject({
+        radiusTopLeft: 0,
+        radiusBottomLeft: 0,
+      });
+      // DOM: the Group's children are those nodes' elements, in order.
+      const groupElement = host().querySelector(".react-aria-Group")!;
+      expect(
+        [...groupElement.children].map((child) =>
+          child.getAttribute("data-catalog-id"),
+        ),
+      ).toEqual(parts().map((part) => part.id));
+      const stepperElements = () => [
+        ...host().querySelectorAll<HTMLElement>(".react-aria-Group > button"),
+      ];
+      expect(stepperElements().map((button) => button.slot)).toEqual([
+        "decrement",
+        "increment",
+      ]);
+      for (const button of stepperElements()) {
+        expect(button.getAttribute("data-variant")).toBe("secondary");
+        expect(button.getAttribute("data-size")).toBe("md");
+        expect(button.querySelector(".react-aria-Icon svg")).not.toBeNull();
+      }
+      // Their paint is the Button rule's sheet (hover · pressed · disabled change it): no rest
+      // color inline.
+      for (const button of stepperElements())
+        expect(button.getAttribute("style") ?? "").not.toMatch(
+          /background-color|border-color|(^|;)color:/,
+        );
+      // RAC's context reaches them (nothing the document did not write is passed): the value 0 is
+      // the minimum — decrease is disabled, increase is not; a disabled field disables both.
+      expect(
+        stepperElements().map((button) => button.hasAttribute("disabled")),
+      ).toEqual([true, false]);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { minValue: set(-5) as never, isDisabled: set(false) },
+        }),
+      );
+      expect(
+        stepperElements().map((button) => button.hasAttribute("disabled")),
+      ).toEqual([false, false]);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { isDisabled: set(true) },
+        }),
+      );
+      expect(
+        stepperElements().map((button) => button.hasAttribute("disabled")),
+      ).toEqual([true, true]);
+      // A disabled field fades once, at its root (as the Canvas draws it): its steppers keep
+      // their rest paint and do not fade again.
+      for (const button of stepperElements()) {
+        expect(button.getAttribute("style")).toMatch(
+          /background-color:\s*#fafafa/,
+        );
+        expect(button.getAttribute("style")).toMatch(/opacity:\s*1(;|$)/);
+      }
+      expect(parts().map((part) => part.visual.opacity)).toEqual([
+        undefined,
+        undefined,
+        undefined,
+      ]);
+      // The field's size reaches the parts through the wrapper.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { size: set("xl"), isDisabled: set(false) },
+        }),
+      );
+      expect(parts().map((part) => part.props.size)).toEqual([
+        "xl",
+        "xl",
+        "xl",
+      ]);
+      expect(rect(parts()[1]!.id)).toMatchObject({ width: 54, height: 54 });
+      expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(28);
+      expect(rect(parts()[0]!.id).height).toBe(54);
+      // The origins are where their style comes from: the Button origin's reaches the steppers,
+      // the Input origin's the value — on the Canvas and in the DOM.
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "fill",
+          write: set("#ff0000"),
+          newId: workspace.newId,
+        }),
+      );
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: INPUT_ORIGIN,
+          scope: "visual",
+          key: "borderColor",
+          write: set("#0000ff"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(
+        parts().map((part) => part.visual.fill ?? part.visual.borderColor),
+      ).toEqual(["#0000ff", "#ff0000", "#ff0000"]);
+      for (const button of stepperElements())
+        expect(button.getAttribute("style")).toMatch(
+          /background-color:\s*#ff0000/,
+        );
+      expect(
+        host()
+          .querySelector(".react-aria-Group > input")!
+          .getAttribute("style"),
+      ).toMatch(/border-color:\s*#0000ff/);
+      // The Input's text (placeholder · type) is the field's; its style and a stepper's are their
+      // own; the wrapper stays the field's.
+      const graph = workspace.runtime.graph;
+      const dom = workspace.root.domInputs;
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style"),
+      ).toBeNull();
+      expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "all")).toBe(
+        "NumberField",
+      );
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),
+      ).toBeNull();
+      expect(catalogSubpartOwnerType(graph, dom, wrapper().id, "style")).toBe(
+        "NumberField",
+      );
+    },
+  );
+
+  /**
+   * A Button's paint is its rule's sheet, which changes it by state: the rest colors go inline
+   * only when the document wrote them, or while the document disables the Button (the Canvas
+   * draws a disabled Button at its rest paint, faded).
+   */
+  it.skipIf(write)(
+    "button — its rest paint is the sheet's, inline only when authored or disabled",
+    async () => {
+      const style = async (authored: Record<string, string | boolean>) => {
+        const { html } = (await render("button", authored))!;
+        const host = document.createElement("div");
+        host.innerHTML = html;
+        return host.querySelector("button")!.getAttribute("style") ?? "";
+      };
+      const paint = /background-color|border-color|(^|;)color:/;
+      expect(await style({})).not.toMatch(paint);
+      expect(await style({ variant: "secondary" })).not.toMatch(paint);
+      expect(await style({ fillStyle: "outline" })).not.toMatch(paint);
+      expect(await style({ isDisabled: true })).toMatch(
+        /background-color:\s*#171717/,
+      );
+      // An origin override is the document's: inline over the sheet.
+      const { workspace, field } = (await render("button", {}))!;
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "fill",
+          write: set("#ff0000"),
+          newId: workspace.newId,
+        }),
+      );
+      const host = document.createElement("div");
+      host.innerHTML = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, field.id, { today: () => undefined }),
+      );
+      const overridden = host.querySelector("button")!.getAttribute("style")!;
+      expect(overridden).toMatch(/background-color:\s*#ff0000/);
+      expect(overridden).not.toMatch(/border-color/);
+    },
+  );
 
   /**
    * An Input's height is its content: one line box + padding + border — with or without text

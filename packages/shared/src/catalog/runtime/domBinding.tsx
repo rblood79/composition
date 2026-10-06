@@ -2,6 +2,7 @@ import { isBodyType } from "../../domain/predicates";
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
+  CATALOG_RADIUS_CSS,
   catalogVisualWithBackground,
   catalogAuthoredDomStyle,
   catalogAuthoredPaintCss,
@@ -43,6 +44,7 @@ import {
   catalogFieldHintNodes,
   catalogFieldLabelNecessity,
   catalogFieldLabelNode,
+  catalogPartField,
   catalogOwnerDrawnPart,
   catalogTypeName,
 } from "./delegatedDom";
@@ -276,6 +278,20 @@ export function catalogDomStyle(
   // Authored paint (effects, per-corner radius, per-side width, fill layers): the same CSS
   // record the Canvas converts (`authoredStyle.ts`).
   Object.assign(style, catalogAuthoredDomStyle(node));
+  // A corner radius next to the box radius goes out as four corners: React rewrites a changed
+  // shorthand over the longhands it keeps (a later re-render would round the square corners of a
+  // field's stepper again — ADR-253).
+  const corners = Object.values(CATALOG_RADIUS_CSS) as (keyof CSSProperties)[];
+  if (
+    style.borderRadius !== undefined &&
+    corners.some((corner) => style[corner] !== undefined)
+  ) {
+    const radius = style.borderRadius;
+    delete style.borderRadius;
+    for (const corner of corners)
+      if (style[corner] === undefined)
+        (style as Record<string, unknown>)[corner] = radius;
+  }
   // Item/placement layout, max sizes, aspect ratio and the fill projection: the Rust input's own
   // fields (`styleOf`), as CSS.
   Object.assign(style, catalogNodeLayoutCss(node));
@@ -528,12 +544,18 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         fillStyle: node.props.fillStyle,
         staticColor: node.props.staticColor,
         type: node.props.type,
-        isDisabled: node.props.isDisabled === true,
-        autoFocus: node.props.autoFocus === true,
+        // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
+        // parent's context, so a default `false` would undo a field's disabled stepper.
+        ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+        ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
+        // RAC's named slot of the parent this Button belongs to (a NumberField's steppers).
+        ...(typeof node.props.slot === "string" && node.props.slot
+          ? { slot: node.props.slot }
+          : {}),
         style,
       } as Parameters<typeof Button>[0],
       ...children,
-      ...(node.props.children === undefined
+      ...(node.props.children === undefined || node.props.children === ""
         ? []
         : [String(node.props.children)]),
     ),
@@ -1208,7 +1230,11 @@ const CatalogDomNode = memo(function CatalogDomNode({
       // A TextArea's Input node is its `<textarea rows>` (the field's `rows`).
       (parentInput?.bindingId === "textarea" && node.ruleId === "Input"))
       ? node.parentId
-      : undefined;
+      : // A Button inside a field's control wrapper is drawn by the field's state (disabled).
+        node?.bindingId === "button" &&
+          parentInput?.bindingId === "selecttrigger"
+        ? parentInput.parentId
+        : undefined;
   const readParent = useCallback(
     () => (watchedParentId ? root.domInputs.get(watchedParentId) : undefined),
     [root, watchedParentId],
@@ -1397,7 +1423,7 @@ function renderNode(
       }),
     );
   // A field's Input node is a RAC Input inside the field's context (ADR-253).
-  const field = watchedParent ?? parentInput;
+  const field = watchedParent ?? catalogPartField(root, node);
   if (
     field &&
     CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "") &&
@@ -1418,15 +1444,44 @@ function renderNode(
     FIELD_HINT_OWNERS.has(catalogTypeName(root, parentInput))
       ? fieldErrorBinding
       : bindingOf(node);
+  const bound = binding
+    ? catalogDomStyle(
+        node,
+        node.bindingId === "button" ? parentInput : (watchedParent ?? parentInput),
+      )
+    : undefined;
+  // A Button's paint is its rule's sheet (`data-variant` · `data-fill-style` …), which also
+  // changes it by state (hover · pressed · disabled): the background, border color and text color
+  // go inline only when the document wrote them (an origin override, the node's own value) —
+  // an inline rest color would keep every state at rest (ADR-253: a field's stepper and trigger
+  // are Button instances).
+  //
+  // A Button the document disables keeps its rest paint inline, as the Canvas draws it (the
+  // rule's disabled state is its opacity; the shared `.button-base` sheet would also repaint it).
+  // Inside a disabled field the field's root fades once: the Button does not fade again.
+  if (bound && node.bindingId === "button") {
+    const partField = catalogPartField(root, node);
+    const fieldDisabled =
+      partField !== undefined &&
+      partField.id !== node.parentId &&
+      partField.props.isDisabled === true;
+    if (node.props.isDisabled !== true && !fieldDisabled) {
+      const authored = catalogAuthoredVisual(root, node, true);
+      if (
+        authored.fill === undefined &&
+        authored.backgroundColor === undefined &&
+        !node.fills?.length
+      )
+        delete bound.backgroundColor;
+      if (authored.borderColor === undefined) delete bound.borderColor;
+      if (authored.color === undefined) delete bound.color;
+    } else if (fieldDisabled && node.props.isDisabled !== true)
+      bound.opacity = 1;
+  }
   const rendered = binding
     ? binding(
         node,
-        styleOverride
-          ? {
-              ...catalogDomStyle(node, watchedParent ?? parentInput),
-              ...styleOverride,
-            }
-          : catalogDomStyle(node, watchedParent ?? parentInput),
+        styleOverride ? { ...bound, ...styleOverride } : bound!,
         children,
         context,
         parts,

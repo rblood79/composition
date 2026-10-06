@@ -79,6 +79,20 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Label weight 500 (ADR-253 — the Label rule's default; old 600 measures 1.0–1.8px wider)",
   },
   {
+    // ADR-253 Phase 3 (4) (사용자 결정 2026-10-06 — 레퍼런스 값이 부품의 기본값): NumberField 의 상자는
+    //   Input 원본의 instance 이고 증감 버튼은 Button 원본 (secondary) 의 instance 다 — 입력칸이 Group 을
+    //   채우고 버튼은 그 높이의 정사각형. old 는 Group 이 상자 (padding 4 · 12) 를 그리고 그 안에 글자와
+    //   18px glyph 두 개가 있었다.
+    id: "numberfield-input-and-stepper-parts",
+    class: "decided",
+    owners: ["NumberField"],
+    nodes: ["Input", "Button"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "NumberField = Group [Input instance, Button instance × 2] (ADR-253 — old: one painted Group around a bare value and two glyphs)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],
@@ -281,11 +295,12 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
   {
     id: "field-button-size",
     class: "oldDefect",
-    owners: ["ComboBox", "NumberField"],
+    // (NumberField left this rule with ADR-253: its steppers are Button instances.)
+    owners: ["ComboBox"],
     nodes: ["SelectIcon", "SelectValue"],
     axes: ALL,
     reason:
-      "old draws the trigger buttons at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` / `--nf-btn-size` xs 10 · sm 14",
+      "old draws the trigger button at the SelectIcon scale (xs 14 · sm 16); catalog `--combo-btn-size` xs 10 · sm 14",
   },
   {
     id: "searchfield-icon-clear",
@@ -515,6 +530,17 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     nodes: ["CheckboxIndicator", "RadioIndicator", "SwitchIndicator"],
     reason:
       "toggle = [indicator node, Label] (2026-10-04 user 「1안」 — old: the toggle painted its indicator in its own box)",
+  },
+  {
+    // ADR-253 Phase 3 (4): 증감 버튼 (Button instance) 의 glyph 는 그 Icon 자식이다. old 는 glyph 가
+    //   버튼 자리 노드 (SelectIcon) 자체였다.
+    id: "numberfield-stepper-glyph-node",
+    class: "decided",
+    owners: ["NumberField"],
+    side: "new",
+    nodes: ["Icon"],
+    reason:
+      "a stepper = Button instance [Icon] (ADR-253 — old: the glyph was the stepper node itself)",
   },
   {
     id: "tree-item-chevron-node",

@@ -159,7 +159,8 @@ export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
     "Description",
     "FieldError",
   ],
-  SelectTrigger: ["DateInput", "SelectIcon", "SelectValue", "Input"],
+  // (ADR-253: a field's wrapper holds part instances — the Input and the Button origins'.)
+  SelectTrigger: ["DateInput", "SelectIcon", "SelectValue", "Input", "Button"],
   // 단일 control 의 label 슬롯 — RSP `children` 은 label 텍스트다
   Checkbox: ["CheckboxIndicator", "Label", "Text", "Icon"],
   Radio: ["RadioIndicator", "Label", "Text", "Icon"],

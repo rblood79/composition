@@ -70,7 +70,8 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     expect(hits).toEqual([]);
   });
 
-  it("확정 예외 목록은 고정 — outline 17 · border-bottom 10 (늘면 판정 필요)", () => {
+  // ADR-253 (2026-10-06): NumberField 의 Group focus 표시 4건 제거 (입력칸 · 버튼이 각자 그린다) → outline 13.
+  it("확정 예외 목록은 고정 — outline 13 · border-bottom 10 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -81,7 +82,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         borderBottom += 1;
     });
     expect({ outline, borderBottom }).toEqual({
-      outline: 17,
+      outline: 13,
       borderBottom: 10,
     });
   });

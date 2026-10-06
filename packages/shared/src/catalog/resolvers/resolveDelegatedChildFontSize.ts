@@ -160,7 +160,8 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   Description: FIELD_HINT_PARENTS,
   FieldError: FIELD_HINT_PARENTS,
   // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
-  Input: ["TextField", "TextArea", "ColorField"],
+  //   NumberField 의 입력칸은 Group (래퍼) 안에 있다 — 래퍼를 건너 field 로 판정한다.
+  Input: ["TextField", "TextArea", "ColorField", "NumberField"],
   Label: [
     "TextField",
     "TextArea",
@@ -289,8 +290,13 @@ export function resolveDelegatedSubpartOwnerType(
     grandparentType,
   );
   if (full) return full;
-  return TEXT_ONLY_SUBPART_PARENTS[childType]?.includes(parentType)
-    ? parentType
+  const owners = TEXT_ONLY_SUBPART_PARENTS[childType];
+  if (owners?.includes(parentType)) return parentType;
+  // 래퍼 (field 의 Group) 안의 부품: 글자는 조부모 field 의 prop 이 정본이다.
+  return grandparentType &&
+    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    owners?.includes(grandparentType)
+    ? grandparentType
     : null;
 }
 

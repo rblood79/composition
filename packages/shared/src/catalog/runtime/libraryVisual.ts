@@ -13,6 +13,11 @@ import type {
 export function catalogLibraryVisual(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
+  /**
+   * Also the definition's resting conditional rules that match the node's props (a Button's
+   * `fillStyle: outline` paint): what the generated sheet draws from the same `data-*` values.
+   */
+  conditional = false,
 ): Record<string, unknown> {
   const graph = root.runtime.graph;
   const definition = graph.getDefinition(node.definitionId as DefinitionId);
@@ -38,6 +43,15 @@ export function catalogLibraryVisual(
       const choice = node.props[prop];
       if (typeof choice === "string") apply(choices[choice]);
     }
+  if (conditional && "conditionalRules" in definition)
+    for (const rule of definition.conditionalRules ?? [])
+      if (
+        rule.state === undefined &&
+        Object.entries(rule.when ?? {}).every(
+          ([key, value]) => node.props[key] === value,
+        )
+      )
+        apply(rule.visual);
   return values;
 }
 
@@ -50,8 +64,9 @@ export function catalogLibraryVisual(
 export function catalogAuthoredVisual(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
+  conditional = false,
 ): Record<string, unknown> {
-  const library = catalogLibraryVisual(root, node);
+  const library = catalogLibraryVisual(root, node, conditional);
   const authored: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node.visual))
     if (!Object.is(library[key], value)) authored[key] = value;

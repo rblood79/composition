@@ -331,19 +331,19 @@ describe("Slider size reaches the track", () => {
 });
 
 /**
- * numberfield-trigger-content-height: the NumberField group's padding follows the size like
- * ComboBox's container (the SelectTrigger scale), so the trigger is 20/22/30/42/54 tall in both
- * consumers — no stylesheet read the catalog trigger heights before.
+ * numberfield-trigger-content-height: the NumberField group is 20/22/30/42/54 tall in both
+ * consumers. Since ADR-253 the group only places its parts — the height is the Input instance's
+ * box (the Input rule at the field's size) and the steppers are squares of that height.
  */
-describe("NumberField group — per-size padding", () => {
-  it("generated CSS sizes the group padding per size", () => {
+describe("NumberField group — per-size height", () => {
+  it("generated CSS only places the group and sizes the steppers per size", () => {
     const css = readFileSync(`${GENERATED}/NumberField.css`, "utf8");
-    expect(blockOf(css, ".react-aria-NumberField .react-aria-Group")).toContain(
-      "padding: var(--nf-group-padding);",
-    );
-    expect(css).toContain(
-      "--nf-group-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);",
-    );
+    const group = blockOf(css, ".react-aria-NumberField .react-aria-Group");
+    expect(group).not.toMatch(/padding|border|background/);
+    expect(
+      blockOf(css, ".react-aria-NumberField .react-aria-Button"),
+    ).toContain("width: var(--nf-btn-size);");
+    expect(css).toContain("--nf-btn-size: 54px;");
   });
 
   it.each([

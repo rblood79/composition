@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [NumberField 의 입력칸 · 증감 버튼이 Input · Button 원본을 따른다 (ADR-253 Phase 3 — NumberField)] - 2026-10-06
+
+### Changed
+
+- NumberField 의 control 은 Input 원본의 instance 하나와 Button 원본 (secondary) 의 instance 둘이다. Components page 에서 Input · Button 원본을 고치면 NumberField 의 입력칸 · 증감 버튼이 Builder 와 Preview 에서 같이 바뀐다. 둘의 스타일은 그 자리에서 직접 고칠 수 있다.
+- NumberField 의 모양이 바뀐다: 상자를 입력칸이 그리고 (전에는 Group), 증감 버튼은 control 높이의 정사각형 Button 이다 (md 18 → 30px · 테두리 1px · 이웃과 1px 겹침, glyph 16 → 18px). 입력칸의 왼쪽 모서리는 크기를 따르고 버튼 쪽은 각지다. focus 표시는 입력칸 자신이 그린다.
+- Preview 의 NumberField 입력칸에 placeholder (`0`) 가 나온다 (Builder 는 이미 그렸다).
+
+### Fixed
+
+- Preview 의 Button 이 hover · pressed 에서 색이 바뀌지 않던 문제 (page 에 놓은 Button 포함). 쉬는 색을 inline 으로 내서 stylesheet 의 상태 색을 덮고 있었다 — 문서가 쓴 색 (원본 편집 · 자기 값) 과 disabled 일 때만 inline 으로 낸다.
+- Preview 에서 disabled 인 NumberField 의 control 이 겹쳐 흐려지던 문제 (field 0.38 × Group 0.38). Builder 처럼 한 번만 흐려진다.
+- Builder 와 Preview 의 증감 glyph 크기 · 위치가 달랐던 문제 (Builder 18px · Preview 16px, x 21px). 같은 Icon 노드를 그린다.
+- Icon 만 가진 Button 의 내용이 Builder 에서 왼쪽에 붙던 문제 (Preview 는 가운데) · Button 안 Icon 의 Preview 상자 높이가 glyph 와 무관하게 24px 이던 문제.
+- 모서리별 radius 를 준 요소가 Preview 에서 다시 그려질 때 전체 radius 로 덮이던 문제.
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 302건 (+2): NumberField 의 Group 안이 원본 instance · Canvas 상자 · 증감 버튼의 disabled (값 한계 · disabled field) · 원본 전파 · Button 의 inline 색 규칙. DOM 구조 대조는 전환 전 빌드 기준 (Button 노드의 표지 · glyph 마크업 · 입력칸 placeholder 는 명시한 차이). 원복 RED 11종.
+- live `adr253-p3-control-live.mjs` 10/10: 부품의 상자 · 모서리 · 테두리 · 배경이 Canvas 와 Preview 에서 같다 (5 크기 · side) · 증감 클릭 · 값 한계 / disabled field / readOnly · hover · focus · 원본 편집 → 증감 버튼 · 입력칸 · undo. Builder 화면 자체의 숫자 입력칸 8개는 전환 전 빌드와 차이 0.
+- 시각 하니스 70건 중 69 통과 — NumberField 2건 (전환 전부터 실패) 이 통과한다. 남은 1건은 CardView (무관).
+
 ## [Input 원본 하나가 입력칸의 모양을 정한다 (ADR-253 Phase 3 — Input)] - 2026-10-06
 
 ### Added

@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 3 (4a) NumberField (브랜치 `adr-253`, main 병합 전)**: Group · Button 단계의 첫 부모 — NumberField 의 Group 은 배치만 하고 그 안이 Input instance + Button instance 둘 (Icon 자식). Button binding 이 `slot` 을 넘기고 `isDisabled` 는 문서가 쓴 값만 (R10). 같이 고친 것: Preview 의 Button hover · pressed 색 (쉬는 색 inline 이 sheet 를 덮음) · 합성 자리 자식의 규칙 부모 · 모서리 radius longhand. unit 302 · 원복 RED 11종 · live 10/10 · 시각 하니스 69/70 (NumberField 2건 해소). 남은 부모: ComboBox · SearchField · Select · 날짜 4종.
+
 > **2026-10-06 ADR-253 Phase 3 (3a) Input (브랜치 `adr-253`, main 병합 전)**: Input 원본 등록 · TextField · TextArea · ColorField 의 입력칸이 그 instance · Input rule 이 자기 stylesheet 를 낸다 (`base.css` 블록 · TextField / ColorField 의 모양 delegation 제거). 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리. unit 300 · live 10/10 · 전환 전 빌드와 Preview / Builder 화면 대조 · 시각 하니스 전환 전과 동일. 남은 단계: Group · Button (DateInput · ComboBox / NumberField / SearchField 의 입력칸 포함 — DateInput 은 picker 와 한 번에 바꾼다).
 
 > **2026-10-06 ADR-253 Phase 3 (2) FieldError · Description (브랜치 `adr-253`, main 병합 전)**: 두 부품 원본 등록 · field · 그룹 13종의 도움말 · 오류 문구가 그 instance. Canvas 가 도움말 · 오류 문구를 그리기 시작 (전에는 DOM 만) · Preview 의 자체 validation 오류 표시 수리 (대조군 main: 표시 없음) · 부모 rule 의 두 부품 모양 선언 0. unit 295 · live 9/9 · 시각 하니스 전환 전과 동일. 남은 단계: Input · DateInput → Group · Button.

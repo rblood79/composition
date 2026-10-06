@@ -263,7 +263,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     //   authored paint axis × interaction state). diffs 0 은 그대로 — 새 variant 도 발산 없음.
     // ADR-201 (2026-09-17): FileUpload 1 variant 추가로 8,316 → 8,352 (+36). diffs 0 유지.
     // 2026-10-06: ProgressBarTrack accent · neutral variant 추가로 8,352 → 8,424 (+72). diffs 0 유지.
-    expect(compared).toBe(8_424);
+    // ADR-253 (2026-10-06): SelectTrigger `plain` variant (배치 전용 wrapper) 추가로 8,424 → 8,460 (+36). diffs 0 유지.
+    expect(compared).toBe(8_460);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

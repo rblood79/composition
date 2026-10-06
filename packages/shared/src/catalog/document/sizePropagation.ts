@@ -14,6 +14,12 @@ const FIELD_PARTS = ["Label", "Description", "FieldError"] as const;
 /** Fields whose control is an instance of the Input origin: the Input rule sizes it at their size. */
 const INPUT_FIELD_PARTS = [...FIELD_PARTS, "Input"] as const;
 
+/**
+ * Fields whose control is a wrapper (`SelectTrigger` — the field's Group) around part instances:
+ * the field's size reaches the wrapper, and the wrapper's its parts (`SelectTrigger` below).
+ */
+const WRAPPED_FIELD_PARTS = [...FIELD_PARTS, "SelectTrigger"] as const;
+
 export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
 > = {
@@ -40,7 +46,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-253: a field's parts (`FIELD_PARTS`).
   TextField: INPUT_FIELD_PARTS,
   TextArea: INPUT_FIELD_PARTS,
-  NumberField: FIELD_PARTS,
+  NumberField: WRAPPED_FIELD_PARTS,
   SearchField: FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,
   Select: FIELD_PARTS,
@@ -49,6 +55,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   TimeField: FIELD_PARTS,
   DatePicker: FIELD_PARTS,
   DateRangePicker: FIELD_PARTS,
+  SelectTrigger: ["Input", "Button"],
   Meter: ["Label"],
   ProgressBar: ["Label"],
 };

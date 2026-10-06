@@ -122,6 +122,53 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     expect(found).toEqual([]);
   });
 
+  // A field whose control is a wrapper (its Group) around part instances — the Input and Button
+  // origins': the wrapper and the parts are only placed (their size on the wrapper's axis is
+  // placement — a stepper is a square of the control's height). No part shape, no part state.
+  it("a field whose control is a wrapper only places the wrapper and its parts", () => {
+    const WRAPPED_PLACEMENT = new Set([
+      ...PLACEMENT_KEYS,
+      "display",
+      "height",
+      "box-sizing",
+    ]);
+    const found: string[] = [];
+    for (const type of ["NumberField"]) {
+      const composition = (
+        COMPONENT_RULES_TABLE as Record<
+          string,
+          { structure?: { composition?: Record<string, unknown> } }
+        >
+      )[type]?.structure?.composition;
+      const delegation = composition?.delegation;
+      for (const entry of (Array.isArray(delegation)
+        ? delegation
+        : []) as Array<{
+        childSelector?: string;
+        bridges?: Styles;
+        states?: unknown;
+      }>) {
+        if (
+          !/\.react-aria-(Group|Input|Button)(?![\w-])/.test(
+            entry.childSelector ?? "",
+          )
+        )
+          continue;
+        if (entry.states !== undefined)
+          found.push(`${type} ${entry.childSelector} { states }`);
+        for (const key of Object.keys(entry.bridges ?? {}))
+          if (!WRAPPED_PLACEMENT.has(key))
+            found.push(`${type} ${entry.childSelector} { ${key} }`);
+      }
+      // The disabled field fades once, at its root: no variant re-paints the wrapper.
+      const variants = composition?.containerVariants as
+        Record<string, unknown> | undefined;
+      if (variants?.disabled !== undefined)
+        found.push(`${type} containerVariants.disabled`);
+    }
+    expect(found).toEqual([]);
+  });
+
   it("no rule sets a part variable (`--label-*` · `--error-*`) on its element", () => {
     const found: string[] = [];
     const visit = (type: string, value: unknown, path: string) => {

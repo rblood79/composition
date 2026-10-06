@@ -86,12 +86,17 @@ describe("ADR-248 Phase 4a-3 authored paint", () => {
       },
     });
     const dom = catalogDomStyle(node);
+    // (A corner next to the box radius goes out as four corners: React rewrites a changed
+    // shorthand over the longhands it keeps — ADR-253.)
     expect(dom).toMatchObject({
-      borderRadius: 2,
       borderTopLeftRadius: "8px",
+      borderTopRightRadius: 2,
+      borderBottomRightRadius: 2,
+      borderBottomLeftRadius: 2,
       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.25)",
       zIndex: 3,
     });
+    expect(dom).not.toHaveProperty("borderRadius");
     const data = applyCatalogAuthoredPaint(node, baseBox(), rect);
     expect(data.box!.borderRadius).toEqual([8, 2, 2, 2]);
     const shadow = data.effects!.find(

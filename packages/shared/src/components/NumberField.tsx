@@ -16,6 +16,7 @@ import {
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
 import { Plus, Minus } from "lucide-react";
 import {
@@ -44,6 +45,11 @@ export interface NumberFieldProps extends AriaNumberFieldProps {
    * Intl.NumberFormatOptions 직접 전달
    */
   formatOptions?: Intl.NumberFormatOptions;
+  /**
+   * The field's control part node elements (catalog runtime, ADR-253): the Input and the two
+   * stepper Buttons inside the Group, in order; absent = composed here.
+   */
+  controlElements?: ReactNode[];
   // S2 props
   size?: ComponentSize;
   necessityIndicator?: NecessityIndicator;
@@ -67,6 +73,7 @@ export function NumberField({
   labelAlign,
   isQuiet,
   formatOptions,
+  controlElements,
   ...props
 }: NumberFieldProps) {
   return (
@@ -85,13 +92,17 @@ export function NumberField({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
-        <Input />
-        <Button slot="decrement">
-          <Minus />
-        </Button>
-        <Button slot="increment">
-          <Plus />
-        </Button>
+        {controlElements ?? (
+          <>
+            <Input />
+            <Button slot="decrement">
+              <Minus />
+            </Button>
+            <Button slot="increment">
+              <Plus />
+            </Button>
+          </>
+        )}
       </Group>
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}

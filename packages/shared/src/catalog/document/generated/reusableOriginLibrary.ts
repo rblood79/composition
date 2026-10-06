@@ -3548,7 +3548,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-numberfield__2_2",
       "lib:template:component-numberfield__2_3"
     ],
-    "props": {},
+    "props": {
+      "variant": "plain"
+    },
     "visual": {},
     "layout": {
       "display": "flex"
@@ -3556,19 +3558,35 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-numberfield__2_1",
-    "definitionId": "lib:definition:type-SelectValue",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
       "placeholder": "0"
     },
-    "visual": {},
-    "layout": {
-      "display": "block"
+    "visual": {
+      "radiusTopRight": 0,
+      "radiusBottomRight": 0
     }
   },
   {
     "id": "lib:template:component-numberfield__2_2",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-numberfield__2_2_1"
+    ],
+    "props": {
+      "slot": "decrement",
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {
+      "paddingX": 0,
+      "radius": 0
+    }
+  },
+  {
+    "id": "lib:template:component-numberfield__2_2_1",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
       "iconName": "minus"
@@ -3577,7 +3595,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-numberfield__2_3",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-numberfield__2_3_1"
+    ],
+    "props": {
+      "slot": "increment",
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {
+      "paddingX": 0,
+      "radiusTopLeft": 0,
+      "radiusBottomLeft": 0
+    }
+  },
+  {
+    "id": "lib:template:component-numberfield__2_3_1",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
       "iconName": "plus"

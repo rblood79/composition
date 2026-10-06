@@ -396,3 +396,60 @@ DateInput 은 DateField · TimeField 만 먼저 바꾸지 않고, picker 2종 (D
 - Canvas 도 같다: picker 의 DateInput 노드는 지금 rule 상자를 쓰지 않는다 (`manualBoxRules` 의 DateInput `replace`). rule 이 상자를 내면 picker 의 DateInput record 에 줄 높이가 생기고, partRule 컴파일은 `inherit` 을 옮기지 못한다.
 - 그래서 DateField · TimeField 만 바꾸려면 두 picker rule 에 「새 규칙을 되돌리는」 선언과 Canvas 특례를 임시로 넣어야 하고, 그것은 다음 단계에서 picker 의 delegation · template 을 다시 쓸 때 전부 지운다. Phase 2 에서 TextField 의 delegation 정리를 TextArea 와 같이 하려고 미룬 것과 같은 판단이다.
 - 같이 옮기는 것: DateSegment (4 부모가 각자 적는 조각 모양 — DateInput 의 내부 조각이고 Canvas 가 부모 delegation 에서 읽는다) · `.inset` utility (지금 쓰는 곳은 DateField · TimeField 의 DateInput 과 `Field.tsx` 의 Input 뿐 — DateInput 이 자기 sheet 를 가지면 utility 를 지울 수 있다) · DateInput 과 Input 의 hover 차이 (DateInput 은 `.inset` 이라 배경도 바뀌고, Input 은 테두리색만 — 지금 화면 그대로 두었다. 하나로 모을 때 변화 목록에 적는다).
+
+### 2026-10-06 — Phase 3 (4a) NumberField: Group · Input · Button (브랜치 `adr-253`)
+
+(4) 는 부모마다 나눠 커밋한다 — NumberField → ComboBox → SearchField → Select → 날짜 4종 (DateInput). 이 절은 첫 부모와, 뒤 부모들이 같이 쓰는 기반이다.
+
+**구현하면서 정한 것 (뒤 부모 공통)**
+
+- **wrapper 노드의 type 은 그대로 `SelectTrigger`** 다. field 의 RAC Group (ComboBox · SearchField 는 container `div`) 자리이고, shared 컴포넌트가 그 요소를 계속 만든다. catalog 의 `Group` type 은 팔레트에 놓는 ARIA Group (label · role · orientation 을 명시로 넘기는 binding) 이라 field 안 Group 에 쓰면 DOM 구조와 RAC context 가 달라진다. wrapper 는 배치만 한다: `SelectTrigger` rule 에 `plain` variant (칠 · padding · border 0) 를 두고 전환한 부모의 template 이 그것을 쓴다. wrapper 의 편집은 계속 부모로 돌린다 (2026-09-03 판정 유지 — §2-2 8번 「배치는 부모에 남긴다」). type 이름 정리는 Phase 6 후보.
+- **wrapper 안이 부품 instance** 다: 입력칸 = Input 원본 · 버튼 = Button 원본 (자식으로 Icon 노드). 크기는 field → wrapper → 부품으로 내려간다 (`CATALOG_SIZE_PROPAGATION`).
+- **합성 자리의 자식은 접히는 루트의 규칙을 받는다** (`resolver.ts` `projectTemplate`). template 의 Button instance 자리에 Icon 을 자식으로 적으면 consumer tree 에서는 Button 루트의 자식이 되는데 (`collapsedChildren`), 규칙의 부모는 합성 정의로 남아 Button 의 자식 규칙 (Icon 크기 · 색) 이 닿지 않았다. 루트가 자식을 갖지 않는 원본 (Button) 에는 이것으로 충분하다. 기본 자식이 있는 원본 (ListBox) 을 「채우는」 표현은 Phase 4 그대로다.
+- **Button 의 색은 sheet 가 그린다.** Button 노드는 해석 값 전체를 inline 으로 냈고, 그 배경 · 테두리색 · 글자색이 sheet 의 hover · pressed 색을 덮고 있었다 — Preview 의 모든 Button 이 hover 에서 배경이 바뀌지 않았다 (page 에 놓은 Button 포함, live 확인). 증감 버튼이 Button instance 가 되면 그 표시를 잃으므로 같이 고쳤다: 세 색은 문서가 쓴 값 (원본 override · 자기 값) 일 때만 inline 이다. 문서가 disabled 로 둔 Button 은 종전대로 쉬는 색을 inline 으로 둔다 — Canvas 는 disabled Button 을 쉬는 색 × 0.38 로 그리고, 공용 `.button-base` sheet 는 색도 바꾼다 (수동 CSS — Builder 화면이 같이 쓴다). disabled field 안의 Button 은 field root 가 한 번 흐리므로 다시 흐리지 않는다 (입력칸과 같은 처리).
+- Button 의 Canvas 레이아웃에 `justifyContent: center` (생성 sheet 는 이미 가운데 — 내용보다 넓은 Button 의 자식 위치가 달랐다). Button 안 Icon 의 DOM 상자는 glyph 크기 (`utilities.css` — Icon sheet 의 기본 높이 24px 가 Button 이 정한 glyph 크기와 무관하게 남아 있었다).
+- 모서리 radius 와 모서리별 radius 를 같이 inline 으로 내면 React 가 다시 그릴 때 shorthand 가 longhand 를 덮는다 (증감 버튼의 각진 모서리가 둥글어졌다 — live 에서 드러남). 네 모서리 longhand 로 낸다.
+
+**변화 목록 (G0 ① — px, 전환 전 빌드 5173 과 Preview 대조)**
+
+| 항목                                | 전                                                                                     | 후                                                                                                                                                              | 근거                                     |
+| ----------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 상자를 칠하는 주체                  | Group (테두리 · 배경 · padding 4 4 4 12 — md)                                          | 입력칸 (Input 원본 — padding 4 12 · 테두리 · 배경). Group 은 칠 · padding 없음                                                                                  | §2-2 5번                                 |
+| 입력칸의 모서리                     | Group 6px (전 크기)                                                                    | 왼쪽 = Input rule 의 크기 단계 (xs 2 · sm 4 · md 6 · lg 8 · xl 12), 버튼 쪽 0                                                                                   | §2-2 5번 「버튼 쪽 모서리 0」            |
+| 증감 버튼                           | 상자 안의 작은 버튼 (md 18 × 18 · 배경 `bg-overlay` · 그림자 · 테두리 없음 · 모서리 2) | Button secondary — control 높이의 정사각형 (xs 20 · sm 22 · md 30 · lg 42 · xl 54), 테두리 1px, 이웃과 1px 겹침. 감소 버튼 모서리 0 · 증가 버튼 바깥쪽만 둥글다 | §2-2 7번                                 |
+| 증감 glyph                          | md 16px (자체 단계 10 · 12 · 16 · 18 · 22)                                             | Button 의 glyph 단계 (14 · 16 · 18 · 24 · 28)                                                                                                                   | Button 원본의 instance                   |
+| focus 표시                          | Group 둘레 outline                                                                     | 입력칸 자신의 outline (Input sheet) · 버튼은 Button 의 focus 표시                                                                                               | 부품이 자기 상태를 그린다                |
+| hover                               | Group 테두리 · 배경                                                                    | 입력칸의 테두리색 (Input sheet) · 버튼의 배경 (Button sheet)                                                                                                    | 같음                                     |
+| disabled field                      | root 0.38 × Group 0.38                                                                 | root 0.38 한 번                                                                                                                                                 | Canvas 와 같다 (입력칸 단계와 같은 수리) |
+| Preview 의 placeholder              | 없음                                                                                   | `0` (노드의 값 — Canvas 는 이미 그렸다)                                                                                                                         | 같은 노드를 그린다                       |
+| Preview 의 Button hover (전 Button) | 배경이 바뀌지 않음                                                                     | sheet 의 hover · pressed 색                                                                                                                                     | 위 「Button 의 색」                      |
+
+field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라벨 배치는 전과 같다.
+
+**구현**
+
+- library: NumberField `__2` (wrapper, `variant: plain`) 아래 `__2_1` = Input instance (`placeholder: "0"` · 버튼 쪽 모서리 0), `__2_2` · `__2_3` = Button instance (`slot` · `variant: secondary` · `children: ""` · padding 0 · 모서리) 와 그 Icon 자식 (`__2_2_1` · `__2_3_1`). contract 는 이 Phase 의 4 그대로.
+- 값 (`T`): NumberField 의 delegation 은 배치만 — Group `display · width`, Input `flex · min-width`, Button `flex · width · height (크기별 변수) · min-width · margin-inline-start −1px`. Group 의 칠 · 상태 6종 · disabled 변형 · `--nf-group-*` · `--nf-input-*` · 죽은 `--input-*` bridge 를 지웠다. quiet 는 TextField 와 같은 입력칸 모양.
+- Canvas: `SUBPART_TOKENS` 의 NumberField 는 wrapper 만 — Input · Button 은 자기 class token 으로 wrapper 를 거쳐 (`via`) 닿는다.
+- DOM: `numberfield` binding 이 wrapper 안 부품 노드의 요소를 shared 컴포넌트의 `controlElements` 로 넘긴다 (Group 은 컴포넌트가 만든다). Button binding 은 `slot` 을 넘기고 `isDisabled` · `autoFocus` 는 문서가 쓴 값일 때만 넘긴다 (본문 Decision 5 ② ③ · R10).
+- 판정: 입력칸은 텍스트 축만 field 소유 (wrapper 를 건너 판정). 증감 버튼은 자기 것 (Toolbar 안 Button 과 같다). wrapper 는 field 소유.
+- Builder 화면 자체: 속성 패널의 숫자 입력칸 (`form-controls.css`) 이 테두리 · 모서리 · padding 을 직접 정한다 — 종전에는 NumberField sheet 가 안쪽 입력칸의 상자를 없앴다.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 302건 (+2): DOM 구조 대조 13 조합은 전환 전 빌드와 같다 — Button 노드의 표지 (`button-base` · `data-variant` · `data-size` …) 와 glyph 마크업 (Icon 노드 ↔ 컴포넌트가 그리던 svg) · 입력칸의 placeholder 는 명시한 차이. wrapper 가 칠하지 않음 · 부품이 원본 instance · Canvas 상자 (입력칸이 Group 을 채움 · 버튼 30 × 30 · 1px 겹침 · glyph 가운데) · DOM 의 Group 자식이 그 노드들 · 값 0 (= 최솟값) 에서 감소만 disabled · 최솟값을 내리면 둘 다 enabled · disabled field 에서 둘 다 disabled 이고 쉬는 색 + 흐림 없음 · size xl → 54 · glyph 28 · Button 원본 / Input 원본 편집 → Canvas · DOM · 판정 축. Button 의 inline 색 (쉬는 상태 · secondary · outline 은 없음 · disabled 는 있음 · 원본 override 만 inline).
+- 정적: NumberField 의 delegation 은 배치 키만 · 상태 선언 0 · disabled 변형 0.
+- 원복 RED 11종: 합성 자리 자식의 규칙 부모 · `isDisabled: false` 명시 (12) · `slot` 누락 (12) · wrapper → 부품 size 전달 · Button `justifyContent` · DOM 이 control 을 자기가 조립 (12) · wrapper 의 `plain` · 모서리 longhand · Button 색 항상 inline (2) · disabled field 구분 · conditional 규칙을 authored 로 셈.
+- 회귀: `pnpm type-check` · shared 1,499 · rendering 1,379 · builder 4,453 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (outline 17 → 13) · `resolveCatalogPaint.shadow` (variant +1 → 8,460) · `phase4eOriginView` (증감 glyph 단계) · `phase4e11PreviewFollow` (Group padding → 배치 전용) · `phase4AuthoredPaint` (모서리 longhand).
+- 시각 하니스: 70건 중 69 통과. **NumberField-top · NumberField-side 가 통과한다** (전환 전부터 있던 실패 — 증감 glyph 가 Canvas 18 · DOM 16 이고 x 가 21px 달랐다. 이제 같은 Icon 노드다, Canvas ↔ DOM 최대 0.01px). 남은 실패 1건은 CardView (이 ADR 과 무관, 전과 같다). old/new 비교의 NumberField 는 `numberfield-input-and-stepper-parts` · `numberfield-stepper-glyph-node` 로 승인 기록에 넣었다.
+- live `apps/builder/scripts/adr253-p3-control-live.mjs` 10/10 (worktree 빌드 5175 · headed Chrome · DPR 1 · visible): 팔레트 클릭으로 NumberField · TextField · Button 을 놓음 → wrapper · 입력칸 · 버튼 2 · glyph 2 의 상자 (field 기준 ≤ 1px) · 모서리 네 곳 · 테두리 · 배경이 Canvas 와 Preview 에서 같다 — md · xl · xs · sm · lg · side 라벨 → Preview 에서 증가 2번 (0 → 1 → 2) · 감소 (→ 1) · 값 0 에서 감소 disabled · disabled field (둘 다 disabled · root 0.38 · 버튼 흐림 1 · 쉬는 색) · readOnly (값 그대로) · 버튼 hover (배경이 바뀜 — page 의 Button 도) · 입력칸 focus (2px outline) → Components page 에서 Button 원본의 배경 · 테두리색, Input 원본의 테두리색을 쓰면 증감 버튼 2 · 입력칸이 양쪽에서 바뀜 → undo 로 처음 값. 콘솔 오류 0.
+- 대조군: 같은 스크립트를 `BEFORE=1` 로 main 빌드 (5173) 에 돌려 Preview 의 수치를 떴다 (위 변화 목록). Builder 화면 자체: 두 빌드에서 Design 패널의 RAC NumberField 8개 (NumberField · TextField · Slider 를 선택했을 때) 의 root · group · input computed style — 차이 0 (`form-controls.css` 를 고치기 전에는 테두리 1px · 모서리 6 · padding-right 12 · 높이 16 → 18 로 달라졌고 이 비교에서 잡았다).
+- 한계: Components page 열기 · 값 쓰기 · size 변경은 패널이 내는 것과 같은 호출로 했다. Preview 의 클릭 · hover 는 Preview 문서 안의 이벤트로 줬다.
+
+**남긴 것**
+
+- 값 한계 · readOnly 로 RAC 가 disabled 로 만든 증감 버튼은 Preview 의 실행 상태다 (sheet 의 disabled 색). Canvas 는 쉬는 모습을 그린다 — 전환 전에도 같았다 (Canvas 는 glyph 를 쉬는 색으로 그렸다).
+- xs 에서 입력칸의 모서리 (Input rule 2px) 와 증가 버튼의 모서리 (Button rule 4px) 가 다르다 — 두 rule 의 xs 값 차이다.
+- 증감 버튼만 놓고 쓰는 Button (Icon 만 있는 Button instance) 을 늘여 놓으면 (stretch) Canvas 가 자식을 다시 가운데에 두지 않았다 (1px). 버튼에 높이를 명시해 피했다 — 엔진 쪽 확인이 남는다 (재현: flex row 의 stretch 된 inline-flex 자식 + `alignItems: center` 자식).
+- 원본을 고칠 때의 영향 안내가 여전히 page 의 instance 만 센다 (「1 instance」 — 증감 버튼 2개는 세지 않음).
+- 문서 노드 쪽 (page 에 놓은 instance 가 직접 가진 자식) 의 규칙 부모는 그대로다 — 이번에 고친 것은 library template 의 합성 자리다.

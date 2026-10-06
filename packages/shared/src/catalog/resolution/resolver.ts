@@ -1225,6 +1225,32 @@ export function resolveCatalogNode(
             ...(rowLabel ? { rowLabel } : {}),
           }
         : undefined;
+    // A composite position's own children are drawn inside the root it collapses into (ADR-253:
+    // a field's stepper is an instance of the Button origin that holds its glyph): that root's
+    // rules reach them, as they reach the root's own template children.
+    let childParent = self;
+    if (definition.mode === "composite" && template.children.length) {
+      let inner = children[0];
+      while (inner) {
+        const innerDefinition = lookupDefinition(
+          inner.definitionId as DefinitionId,
+        );
+        const first = inner.children[0];
+        if (
+          innerDefinition.mode !== "composite" ||
+          first?.sourceId !== innerDefinition.templateRootId
+        )
+          break;
+        inner = first;
+      }
+      if (inner)
+        childParent = {
+          definitionId: inner.definitionId as DefinitionId,
+          props: inner.props as Props,
+          parent,
+          ...(nodeState ? { state: nodeState } : {}),
+        };
+    }
     for (const childId of template.children) {
       if (selection && !selection.include(childId, instancePath)) continue;
       const childPath = [...path, childId];
@@ -1258,7 +1284,7 @@ export function resolveCatalogNode(
           childId,
           instancePath,
           childPath,
-          self,
+          childParent,
           bindings,
           undefined,
           patches,

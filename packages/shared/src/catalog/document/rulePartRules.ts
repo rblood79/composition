@@ -62,12 +62,8 @@ const SUBPART_TOKENS: Readonly<
     SelectValue: [".react-aria-Input"],
     SelectIcon: [".react-aria-Button"],
   },
-  NumberField: {
-    SelectTrigger: [".react-aria-Group"],
-    SelectValue: [".react-aria-Input"],
-    // `… svg`: the stepper glyph's own size (`--nf-btn-icon-size`), smaller than its button.
-    SelectIcon: [".react-aria-Button", ".react-aria-Button svg"],
-  },
+  // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
+  NumberField: { SelectTrigger: [".react-aria-Group"] },
   SearchField: {
     SelectTrigger: [".searchfield-container"],
     SelectValue: [".react-aria-Input"],
@@ -162,6 +158,9 @@ const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
   "SelectValue",
   "SelectIcon",
   "DateInput",
+  // ADR-253: the parts a field's wrapper holds as instances of their origins.
+  "Input",
+  "Button",
 ]);
 const SHARED_TOKENS: Readonly<Record<string, string>> = {
   '[slot="description"]': "Description",
@@ -232,7 +231,9 @@ function childTypeOf(
   // A token the owner maps to another child is not this type's own element.
   if (Object.values(own).some((tokens) => tokens.includes(token)))
     return undefined;
-  return { childType: rac };
+  return WRAPPED_BY_TRIGGER.has(rac) && own.SelectTrigger
+    ? { childType: rac, via: "SelectTrigger" }
+    : { childType: rac };
 }
 
 /**

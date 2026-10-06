@@ -409,21 +409,66 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
   "textfield",
   "textarea",
   "colorfield",
+  "numberfield",
 ]);
+/**
+ * Fields whose control is a wrapper node (`SelectTrigger` — the field's RAC Group / container
+ * element, which the shared component keeps) around part nodes (ADR-253): each part is drawn by
+ * its own binding inside the field's RAC context, in the wrapper's order.
+ */
+export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
+  "numberfield",
+]);
+/** The part nodes inside the control wrapper of such a field (`[]` = the field composes them). */
+export function catalogFieldControlNodes(
+  root: CatalogCompositionRoot,
+  field: CatalogConsumerNode,
+): CatalogConsumerNode[] {
+  if (!CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")) return [];
+  const wrapper = childrenOf(root, field).find(
+    (child) => catalogTypeName(root, child) === "SelectTrigger",
+  );
+  return wrapper ? childrenOf(root, wrapper) : [];
+}
+/**
+ * The field a part node belongs to: its parent, or the parent of the control wrapper it is in.
+ */
+export function catalogPartField(
+  root: CatalogCompositionRoot,
+  part: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  const parent = root.domInputs.get(part.parentId);
+  if (!parent || parent.bindingId !== "selecttrigger") return parent;
+  const field = root.domInputs.get(parent.parentId);
+  return field && CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")
+    ? field
+    : parent;
+}
 /** The Input node of a field that draws its control from it; `undefined` = the field composes it. */
 export function catalogFieldInputNode(
   root: CatalogCompositionRoot,
   field: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
   if (!CATALOG_INPUT_NODE_FIELDS.has(field.bindingId ?? "")) return undefined;
-  return childrenOf(root, field).find(
-    (child) => catalogTypeName(root, child) === "Input",
-  );
+  return [
+    ...childrenOf(root, field),
+    ...catalogFieldControlNodes(root, field),
+  ].find((child) => catalogTypeName(root, child) === "Input");
 }
 /** A field's control for its shared component: the Input node's own element, when it has one. */
 function fieldInput(input: DelegatedDomInput): ReactNode {
   const node = catalogFieldInputNode(input.root, input.node);
   return node ? input.renderChild(node.id) : undefined;
+}
+/**
+ * A wrapped field's control parts for its shared component: the elements of the part nodes inside
+ * its wrapper, in order (`undefined` = the field composes them from its props).
+ */
+function fieldControl(input: DelegatedDomInput): ReactNode[] | undefined {
+  const nodes = catalogFieldControlNodes(input.root, input.node);
+  return nodes.length
+    ? nodes.map((node) => input.renderChild(node.id))
+    : undefined;
 }
 /**
  * A field's `isInvalid` for RAC: `true` while the document says so, else left unset. An explicit
@@ -945,6 +990,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         label: fieldLabel(input, str(props.label)),
         description: fieldDescription(input, str(props.description)),
         errorMessage: fieldError(input, str(props.errorMessage)),
+        controlElements: fieldControl(input),
         defaultValue: Number(props.value || 0),
         minValue: num(props.minValue),
         maxValue: num(props.maxValue),

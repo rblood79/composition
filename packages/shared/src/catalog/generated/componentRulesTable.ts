@@ -964,10 +964,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   그 표시는 Phase 4 가 패널 판정을 inner 기준(flex | inline-flex)으로 고쳐 해소했다. outer 가
     //   inline 이어야 block 부모 안에서 Button 2 개가 한 줄에 놓인다 (엔진 line box).
     //   gap 은 size 별(sizes[size].gap 4~12px)이라 여기 두지 않음.
+    //   justifyContent (ADR-253): 생성 sheet 는 내용을 가운데에 둔다 (`structure.containerStyles`) —
+    //   내용보다 넓은 Button (field 의 증감 버튼 · minWidth 가 남는 IconButton) 의 Canvas 자식도 같다.
     containerStyles: {
       display: "inline-flex",
       flexDirection: "row",
       alignItems: "center",
+      justifyContent: "center",
     },
     variants: {
       accent: {
@@ -7834,21 +7837,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           color: "var(--fg)",
         },
         containerVariants: {
-          disabled: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Group",
-                  styles: {
-                    background: "color-mix(in srgb, var(--fg) 4%, transparent)",
-                    "border-color":
-                      "color-mix(in srgb, var(--fg) 12%, transparent)",
-                    opacity: "0.38",
-                  },
-                },
-              ],
-            },
-          },
           "label-position": {
             side: {
               styles: {
@@ -7920,9 +7908,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           quiet: {
             true: {
+              // ADR-253: the box is the Input (an instance of the Input origin) — the same quiet
+              //   shape as TextField's.
               nested: [
                 {
-                  selector: ".react-aria-Group",
+                  selector: ".react-aria-Input",
                   styles: {
                     background: "transparent",
                     "border-color": "transparent",
@@ -7932,62 +7922,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector:
-                    "&:has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled])) .react-aria-Group",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector:
-                    "&:has(.react-aria-Button[data-hovered]:not([data-disabled])) .react-aria-Group",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector:
-                    "&:has(.react-aria-Input[data-focused]:not([data-disabled])) .react-aria-Group",
+                  selector: ".react-aria-Input:where([data-focused])",
                   styles: {
                     outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
                     "border-bottom-color": "var(--accent)",
                   },
                 },
                 {
-                  selector:
-                    "&:has(.react-aria-Input[data-focus-within]:not([data-disabled])) .react-aria-Group",
+                  selector: ".react-aria-Input:where([data-invalid])",
                   styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector:
-                    "&:has(.react-aria-Button[data-focus-visible]:not([data-disabled])) .react-aria-Group",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: "&[data-invalid] .react-aria-Group",
-                  styles: {
-                    "border-color": "transparent",
                     "border-bottom-color": "var(--negative)",
                   },
                 },
@@ -7995,179 +7938,42 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // ADR-253: the Group only places its parts. The value is an instance of the Input origin (it
+        //   draws the box) and the steppers are instances of the Button origin (secondary); what
+        //   differs here in shape (square corners on the touching sides, no stepper padding) is
+        //   written on the template positions.
         delegation: [
           {
             childSelector: ".react-aria-Group",
-            prefix: "nf-group",
-            // 4e-11: per-size padding like ComboBox's `.combobox-container` (the SelectTrigger
-            //   scale — height = padding + the input line + border: 20/22/30/42/54).
-            variables: {
-              xs: {
-                "--nf-group-padding":
-                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
-              },
-              sm: {
-                "--nf-group-padding":
-                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
-              },
-              md: {
-                "--nf-group-padding":
-                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
-              },
-              lg: {
-                "--nf-group-padding":
-                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
-              },
-              xl: {
-                "--nf-group-padding":
-                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
-              },
-            },
             bridges: {
               display: "flex",
-              "align-items": "center",
-              gap: "var(--spacing-xs)",
               width: "100%",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
-              background: "var(--bg-inset)",
-              overflow: "hidden",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-              padding: "var(--nf-group-padding)",
-            },
-            states: {
-              ":has(.react-aria-Input[data-hovered]:not([data-focused]):not([data-disabled]))":
-                {
-                  "border-color": "var(--border-hover)",
-                  background: "var(--bg-overlay)",
-                },
-              ":has(.react-aria-Button[data-hovered]:not([data-disabled]))": {
-                "border-color": "var(--border-hover)",
-                background: "var(--bg-overlay)",
-              },
-              ":has(.react-aria-Input[data-focused])": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-              },
-              ":has(.react-aria-Input[data-focus-within])": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-              },
-              ":has(.react-aria-Button[data-focus-visible])": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-              },
-              ":has([data-invalid])": {
-                "border-color": "var(--negative)",
-              },
             },
           },
           {
             childSelector: ".react-aria-Input",
-            prefix: "nf-input",
-            variables: {
-              xs: {
-                "--nf-input-font-size": "var(--text-2xs)",
-                "--nf-input-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--nf-input-font-size": "var(--text-xs)",
-                "--nf-input-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--nf-input-font-size": "var(--text-sm)",
-                "--nf-input-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--nf-input-font-size": "var(--text-base)",
-                "--nf-input-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--nf-input-font-size": "var(--text-lg)",
-                "--nf-input-line-height": "var(--text-lg--line-height)",
-              },
-            },
             bridges: {
-              flex: "1 1 auto",
+              flex: "1 1 0%",
               "min-width": "0",
-              border: "none",
-              "border-radius": "0",
-              background: "transparent",
-              outline: "none",
-              "forced-color-adjust": "none",
-              padding: "0",
-              "font-size": "var(--nf-input-font-size)",
-              "line-height": "var(--nf-input-line-height)",
-              "--input-padding": "0",
-              "--input-font-size": "var(--nf-input-font-size)",
-              "--input-line-height": "var(--nf-input-line-height)",
             },
           },
           {
+            // A stepper is a square of the control's height (the Input / Button box at each size).
             childSelector: ".react-aria-Button",
             prefix: "nf-btn",
             variables: {
-              xs: {
-                "--nf-btn-size": "10px",
-                "--nf-btn-icon-size": "10px",
-              },
-              sm: {
-                "--nf-btn-size": "14px",
-                "--nf-btn-icon-size": "12px",
-              },
-              md: {
-                "--nf-btn-size": "18px",
-                "--nf-btn-icon-size": "16px",
-              },
-              lg: {
-                "--nf-btn-size": "22px",
-                "--nf-btn-icon-size": "18px",
-              },
-              xl: {
-                "--nf-btn-size": "28px",
-                "--nf-btn-icon-size": "22px",
-              },
+              xs: { "--nf-btn-size": "20px" },
+              sm: { "--nf-btn-size": "22px" },
+              md: { "--nf-btn-size": "30px" },
+              lg: { "--nf-btn-size": "42px" },
+              xl: { "--nf-btn-size": "54px" },
             },
             bridges: {
-              position: "static",
               flex: "0 0 auto",
-              padding: "0",
-              border: "none",
-              "border-radius": "var(--radius-xs)",
               width: "var(--nf-btn-size)",
               height: "var(--nf-btn-size)",
-              "min-width": "unset",
-              "min-height": "unset",
-              background: "var(--bg-overlay)",
-              color: "var(--fg)",
-              "forced-color-adjust": "none",
-              "box-shadow": "var(--shadow-sm)",
-            },
-            states: {
-              "[data-hovered]:not([data-disabled])": {
-                background: "var(--accent-subtle)",
-              },
-              "[data-pressed]:not([data-disabled])": {
-                background:
-                  "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
-              },
-              "[data-focus-visible]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "2px",
-              },
-              "[data-disabled]": {
-                background: "color-mix(in srgb, var(--fg) 12%, transparent)",
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-              },
-            },
-          },
-          {
-            childSelector: ".react-aria-Button svg",
-            bridges: {
-              width: "var(--nf-btn-icon-size)",
-              height: "var(--nf-btn-icon-size)",
+              "min-width": "0",
+              "margin-inline-start": "-1px",
             },
           },
           {
@@ -10334,6 +10140,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.accent}",
           borderHover: "{color.accent-hover}",
+        },
+      },
+      // ADR-253: a wrapper that only places its parts (a field whose box is its Input / DateInput
+      //   instance): no paint, no padding, no border.
+      plain: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+          borderHover: "{color.transparent}",
         },
       },
       negative: {
