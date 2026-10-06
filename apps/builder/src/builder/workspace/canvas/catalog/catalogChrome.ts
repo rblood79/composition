@@ -1,6 +1,7 @@
 import {
   isComponentsView,
   isPageParts,
+  isPageSlots,
   originOfSample,
 } from "../../../catalogRuntime/originView";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -13,7 +14,8 @@ import type { BoundingBox } from "../selection/types";
  * The Components page outlines the parts of an origin drawn for its parts (`region`: the part's
  * own box, never the empty slot's band) and hatches a library origin's declared slots where they
  * hold nothing (the origin's sample in origin color, an instance's in instance color) — a filled
- * slot is not marked (the page shows the origin's content, not its edit chrome).
+ * slot is not marked (the page shows the origin's content, not its edit chrome). A card's Slots
+ * instance keeps what its slots hold laid out but undrawn: each is hatched as empty at that size.
  */
 export function catalogSlotMarks(
   workspace: CatalogWorkspace,
@@ -38,8 +40,10 @@ export function catalogSlotMarks(
       let cursor: { sourceId: string; parentId: string } | undefined = record;
       cursor;
       cursor = records.get(cursor.parentId)
-    )
+    ) {
       if (originOfSample(cursor.sourceId)) return "origin" as const;
+      if (isPageSlots(cursor.sourceId)) return "slots" as const;
+    }
     return "instance" as const;
   };
   const marks: {
@@ -69,7 +73,8 @@ export function catalogSlotMarks(
     const node = graph.getEntry(record.sourceId);
     const slot = (node?.kind === "node" ? node.slot : undefined) ?? record.slot;
     if (!slot) continue;
-    const empty = record.children.length === 0;
+    const role = view ? "origin" : components ? pageRole(record) : "instance";
+    const empty = role === "slots" || record.children.length === 0;
     if (!view && !empty) continue;
     // An empty slot of no height has no visible part to clip: its own box (the band shows it).
     const own = bounds.get(record.id);
@@ -80,7 +85,7 @@ export function catalogSlotMarks(
       marks.push({
         box,
         empty,
-        role: view ? "origin" : components ? pageRole(record) : "instance",
+        role: role === "slots" ? "instance" : role,
         identity: record.id,
       });
   }

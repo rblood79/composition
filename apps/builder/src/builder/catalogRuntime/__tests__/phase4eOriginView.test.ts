@@ -682,9 +682,13 @@ describe("ADR-248 4e library origin view", () => {
       [true, "origin"],
     ]);
     // A collection whose root holds its items is itself the slot: its Slots instance is the
-    // emptied root (its own box), hatched; the filled origin is not marked.
+    // root hatched as empty — what it holds is laid out but not drawn; the filled origin is not
+    // marked.
     const listSlots = recordOf(originSlotsId(lib("listbox")));
-    expect(inputOf(listSlots).children).toEqual([]);
+    expect(inputOf(listSlots).children.length).toBeGreaterThan(0);
+    expect(
+      inputOf(listSlots).children.map((child) => inputOf(child).visual.opacity),
+    ).toEqual(inputOf(listSlots).children.map(() => 0));
     expect(
       slotMarks
         .filter((mark) => mark.identity === listSlots)
@@ -695,10 +699,17 @@ describe("ADR-248 4e library origin view", () => {
         (mark) => mark.identity === recordOf(originSampleId(lib("listbox"))),
       ),
     ).toEqual([]);
-    // A fit-content collection emptied has no size of its own: its Slots instance keeps a box.
-    const groupSlots = rectOf(originSlotsId(lib("buttongroup")));
-    expect(groupSlots.width).toBeGreaterThanOrEqual(160);
-    expect(groupSlots.height).toBeGreaterThanOrEqual(40);
+    // The slot is the size its contents take (a ToggleButtonGroup's is its buttons' height, not
+    // a fixed box): the Slots instance measures what the filled origin does.
+    for (const origin of ["togglebuttongroup", "buttongroup", "toolbar", "listbox"]) {
+      const filled = rectOf(originSampleId(lib(origin)));
+      const slots = rectOf(originSlotsId(lib(origin)));
+      expect([origin, slots.width, slots.height]).toEqual([
+        origin,
+        filled.width,
+        filled.height,
+      ]);
+    }
     const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
     const tabsCard = catalogComponentsPageCards(graphOf(workspace))
       .map(entryOf)

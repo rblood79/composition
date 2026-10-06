@@ -782,12 +782,14 @@ export function catalogComponentsPageEntries(
       weight += lineHeight(1);
     }
     // The origin's slots, empty (the pen.dev design-system page: a container's master shows its
-    // slot hatched, the filled instance beside it): what each declared slot holds is switched
-    // off and the emptied slot keeps a box (an empty list is nothing to see), which the chrome
-    // hatches (`catalogSlotMarks`).
+    // slot hatched, the filled instance beside it): what each declared slot holds is laid out but
+    // not drawn, so the slot keeps the size its contents take (a ToggleButtonGroup's is its
+    // buttons' height, not a fixed box), which the chrome hatches (`catalogSlotMarks`). A slot
+    // the origin leaves empty (a Table's columns) has no such size: it takes a box of its own.
     const slots = originSlots(graph, origin.id);
     // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
     const SLOT_BOX = { width: set(wide ? "100%" : 160), minHeight: set(40) };
+    const unfilled = (slot: (typeof slots)[number]) => slot.contents.length === 0;
     if (slots.length > 0) {
       rows.push(
         row(base("row", "slots"), "Slots", [
@@ -798,7 +800,7 @@ export function catalogComponentsPageEntries(
               node(originSlotsId(origin.id), origin.id, {
                 name: `${origin.name} / Slots`,
                 // A slot on the template's root is the instance itself: the box is its own.
-                ...(slots.some((slot) => slot.path.length === 1)
+                ...(slots.some((slot) => slot.path.length === 1 && unfilled(slot))
                   ? {
                       visual: wide
                         ? { minHeight: SLOT_BOX.minHeight }
@@ -806,7 +808,7 @@ export function catalogComponentsPageEntries(
                     }
                   : {}),
                 descendantOverrides: slots.flatMap((slot) => [
-                  ...(slot.path.length === 1
+                  ...(slot.path.length === 1 || !unfilled(slot)
                     ? []
                     : [
                         {
@@ -824,7 +826,7 @@ export function catalogComponentsPageEntries(
                       instances: [originSlotsId(origin.id)],
                       templatePath,
                     },
-                    enabled: false,
+                    visual: { opacity: set(0) },
                   })),
                 ]),
               }),

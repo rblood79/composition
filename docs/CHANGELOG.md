@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components page 의 Slots 줄 — slot 상자가 내용 크기를 따른다] - 2026-10-06
+
+### Fixed
+
+- Slots 줄의 빈 slot 상자가 160×40 고정이던 것: ToggleButtonGroup 은 버튼 높이가 30 인데 slot 은 40 으로 그려졌고, 다른 컴포넌트도 같았다. 이제 slot 이 담는 내용을 끄지 않고 배치만 한 채 그리지 않는다 (opacity 0) — slot 은 채운 원본과 같은 크기로 빗금 표시된다. 원본이 비워 둔 slot (Table 의 Columns · Rows) 만 자기 상자 (160×40) 를 유지한다.
+- Slots instance 에 hover 해도 그려지지 않는 내용의 안내선은 나오지 않는다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (ToggleButtonGroup · ButtonGroup · Toolbar · ListBox 의 Slots instance 크기 = 채운 원본 크기, 내용 opacity 0, 빗금 표시 유지). 내용 끄기 · Slots 판정 각각 원복 RED. 실제 Builder: ToggleButtonGroup · Breadcrumbs · Tabs · RadioGroup 카드의 Slots 줄이 원본 내용과 같은 크기로 빗금 표시, 콘솔 오류 0.
+
 ## [루트가 collection 인 기본 원본의 slot 선언] - 2026-10-06
 
 ### Changed

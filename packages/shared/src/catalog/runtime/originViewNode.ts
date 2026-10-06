@@ -71,10 +71,13 @@ export const isPageParts = (id: string | undefined): boolean =>
   !!id && id.startsWith(INSTANCE_PREFIX) && id.endsWith("/parts");
 /**
  * The instance a card draws to show an origin's declared slots empty (what each slot holds is
- * switched off, so the editor chrome hatches the slot — the component's "fill me" areas).
+ * laid out but not drawn, so the editor chrome hatches the slot at the size its contents take — the
+ * component's "fill me" areas).
  */
 export const originSlotsId = (originId: LibraryDefinitionId): NodeId =>
   originInstanceId(originId, "slots");
+export const isPageSlots = (id: string | undefined): boolean =>
+  !!id && id.startsWith(INSTANCE_PREFIX) && id.endsWith("/slots");
 /** A card of the page: a component's (`originCardId`) or a theme's. */
 export const isPageCard = (id: string | undefined): boolean =>
   !!id && id.startsWith(`${ORIGIN_VIEW_NODE}/`) && id.endsWith("/card");
