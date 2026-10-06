@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 3 (4c) SearchField (브랜치 `adr-253`, main 병합 전)**: container 안이 검색 glyph (Icon) + Input instance + Button instance (지우기 버튼). 빈 값이면 지우기 버튼이 양쪽에서 없고 Canvas 가 값을 입력칸에 그린다. Canvas 의 Input 글자가 문서가 쓴 좌우 padding 을 따르고, 변수 · token 이름이 다른 CSS 변수 색을 Canvas 가 푼다. unit 304 · 원복 RED 9종 · live 12/12 · 시각 하니스 69/70 (CardView 무관). 남은 부모: Select · 날짜 4종.
+>
 > **2026-10-06 ADR-253 Phase 3 (4b) ComboBox (브랜치 `adr-253`, main 병합 전)**: container 는 배치만 · 그 안이 Input instance + FieldButton instance (FieldButton 원본 = Button 원본의 instance + 모양, Components page 부품 칸). 문서가 쓴 Button 색은 sheet 변수 (`--button-color` …) 로 나가 hover · pressed 가 그 색에서 나온다. 패널의 단위 입력이 기대던 값은 `form-controls.css` 로 (Builder 화면 157건 차이 0). unit 303 · 원복 RED 6종 · live 11/11 · 시각 하니스 69/70. 남은 부모: SearchField · Select · 날짜 4종.
 
 > **2026-10-06 ADR-253 Phase 3 (4a) NumberField (브랜치 `adr-253`, main 병합 전)**: Group · Button 단계의 첫 부모 — NumberField 의 Group 은 배치만 하고 그 안이 Input instance + Button instance 둘 (Icon 자식). Button binding 이 `slot` 을 넘기고 `isDisabled` 는 문서가 쓴 값만 (R10). 같이 고친 것: Preview 의 Button hover · pressed 색 (쉬는 색 inline 이 sheet 를 덮음) · 합성 자리 자식의 규칙 부모 · 모서리 radius longhand. unit 302 · 원복 RED 11종 · live 10/10 · 시각 하니스 69/70 (NumberField 2건 해소). 남은 부모: ComboBox · SearchField · Select · 날짜 4종.

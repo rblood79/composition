@@ -47,7 +47,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   TextField: INPUT_FIELD_PARTS,
   TextArea: INPUT_FIELD_PARTS,
   NumberField: WRAPPED_FIELD_PARTS,
-  SearchField: FIELD_PARTS,
+  SearchField: WRAPPED_FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,
   Select: FIELD_PARTS,
   ComboBox: WRAPPED_FIELD_PARTS,

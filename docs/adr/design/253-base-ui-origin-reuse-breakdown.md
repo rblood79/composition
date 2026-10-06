@@ -498,3 +498,52 @@ field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라�
 - ComboBox 의 여는 동작 (항목이 생기는 Phase 4).
 - xl 에서 버튼의 모서리 (4px 고정) 와 입력칸의 모서리 (12px) — FieldButton 의 모서리는 크기를 따르지 않는다 (레퍼런스는 한 크기).
 - `SelectTrigger` 의 칠하는 variant (`default` · `accent` · `negative`) 와 `SelectValue` · `SelectIcon` 은 아직 SearchField · Select · picker 2종이 쓴다 — 그 부모들을 바꾼 뒤 정리한다.
+
+### 2026-10-06 — Phase 3 (4c) SearchField: container · glyph · Input · Button (브랜치 `adr-253`)
+
+**구현하면서 정한 것**
+
+- container (`SelectTrigger` 노드 `plain`) 안이 **검색 glyph (Icon 노드) · Input 원본의 instance · Button 원본의 instance (지우기 버튼)** 다. 상자는 입력칸이 그리고 (container 를 채운 알약 모양 — 레퍼런스의 SearchField), glyph 와 지우기 버튼은 입력칸 위에 겹친다: glyph 는 음수 margin 으로 입력칸 시작 안쪽에 놓이고 `zIndex: 1` 로 위에 그려진다 (입력칸의 시작 쪽 padding = glyph 자리), 지우기 버튼은 끝 안쪽의 원이다 (ComboBox 버튼과 같은 배치).
+- 지우기 버튼은 FieldButton 이 아니라 Button 원본의 instance 에 자리에서 모양을 적는다 (`variant: primary` · 배경 `var(--fg-muted)` · 테두리 0 · 원 · padding 0 · glyph 12px). 레퍼런스의 지우기 버튼은 다른 field 버튼과 모양이 다른 한 벌이라 원본을 따로 두지 않았다. Button 원본의 배경을 고쳐도 이 자리가 적은 배경이 위다 (테두리색 · 글자색처럼 적지 않은 값은 원본을 따른다).
+- **빈 값이면 지우기 버튼이 없다** — Canvas 는 presence (`SearchField > SelectTrigger > Button` · field 의 `value` 가 비었을 때 hidden), DOM 은 RAC 의 `data-empty` 와 부모 rule 의 `empty` 변형 (`display: none`). 그 Button 은 `display` 를 inline 으로 내지 않는다 (inline 값이 sheet 의 `display: none` 을 덮는다 — live 에서 실행 중 비웠을 때 버튼이 남는 것으로 드러났다).
+- **Canvas 가 field 의 값을 입력칸에 그린다.** SearchField 의 `value` 는 입력칸의 처음 값이다 (renderer 의 `defaultValue`). Canvas 의 Input 은 `placeholder` 만 그리므로 값이 있으면 그 값을 파생 값으로 준다 (`catalogDerivedProps`). 전환 전에는 값이 있으면 Canvas 가 입력칸을 비워 그렸다.
+- **Canvas 의 Input 글자는 문서가 쓴 좌우 padding 안에 놓인다.** rule 노드의 글자 x 는 rule 크기의 `paddingX` 만 읽고 있었다 — 부모 rule 이 준 `padding-left` (glyph 자리) 가 상자에는 들어가고 글자에는 닿지 않아 glyph 와 글자가 겹쳤다 (live 확대 화면에서 발견). `catalogRulePaint` 가 문서가 쓴 `paddingLeft` · `paddingRight` 를 양쪽 다 풀어 넘긴다. ComboBox 의 끝 쪽 padding 도 같은 수정으로 글자 폭에 닿는다 (글자가 버튼 밑으로 들어가지 않는다).
+- **`var(--fg-muted)` 같은 CSS 변수 색을 Canvas 가 푼다.** template 이 쓴 `var(--name)` 색은 이름이 같은 색 token 으로만 풀렸다 (`--accent-subtle`). 변수와 token 의 이름이 다른 색 (`--fg-muted` ← `neutral-subdued`) 은 `colorTokenOfCssVar` 로 token 을 찾는다 (live 의 Canvas 오류 `CATALOG_CSS_VAR_COLOR_UNRESOLVED` 로 드러났다).
+- 입력칸의 `type` 은 TextField 일 때만 문서 값을 넘긴다 — 다른 field 는 RAC context 가 정한다 (SearchField 의 `search`).
+- field 의 `placeholder` 는 template 자리표시로 입력칸에 내려간다 (SearchField 원본이 받는다고 선언). SearchField 의 rule 에는 xs 크기가 없다 (종전과 같다).
+
+**변화 목록 (G0 ① — px, 전환 전 빌드 5173 과 Preview 대조 · md)**
+
+| 항목                | 전                                                         | 후                                                                                   | 근거                      |
+| ------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------- |
+| 상자를 칠하는 주체  | container (테두리 · 배경 · padding 4 4 4 12 · 모서리 6)    | 입력칸 (container 를 채움 · padding 4 32 · 모서리 9999). container 는 칠 · padding 0 | §2-2 (레퍼런스 알약 모양) |
+| 글자 시작 x         | 33                                                         | 33 (테두리 1 + padding 32)                                                           | 같다                      |
+| 지우기 버튼         | 18 × 18 · 배경 `bg-overlay` · 그림자 · 모서리 6 · glyph 16 | 16 × 16 원 · 배경 옅은 글자색 (`fg-muted`) · 그림자 없음 · glyph 12 (흰색)           | 레퍼런스                  |
+| 지우기 버튼 (빈 값) | 양쪽 다 없음 (Canvas presence · DOM `data-empty`)          | 같다 — 판정 대상만 Button 노드로 바뀜                                                | RAC `data-empty`          |
+| 값이 있을 때 Canvas | 입력칸이 비어 보임                                         | 값을 그림                                                                            | DOM 과 같다               |
+| focus · hover       | container 의 outline · 테두리                              | 입력칸 자신 (Input sheet) · 버튼은 자기 배경에서 나온 hover 색                       | 부품이 자기 상태를 그린다 |
+| disabled field      | root 0.38 × container 0.38                                 | root 0.38 한 번                                                                      | Canvas 와 같다            |
+
+**구현**
+
+- library: SearchField `__2` (wrapper `plain`) 아래 `__2_1` = Icon (`search` · 색 `var(--fg-muted)` · `zIndex: 1`), `__2_2` = Input instance (`placeholder: "{placeholder}"` · 모서리 9999), `__2_3` = Button instance (지우기 — 자리에서 적은 모양) + 자식 Icon `x` (12px). SearchField 원본의 `accepts` 에 `placeholder`.
+- 값 (`T`): SearchField 의 delegation 은 배치만 — container `display · align-items · width`, glyph `flex · margin (크기별 자리)` 와 svg 크기, Input `min-width · padding-left · padding-right (크기별)`, Button `flex · width · height · min-width · margin-inline-start (크기별)`. container 의 칠 · 상태 선언과 `.search-icon` · 버튼의 칠을 지웠다. quiet 는 입력칸 모양. `empty` 변형 (버튼 숨김) 은 남는다.
+- 판정 · 전달: `SUBPART_TOKENS.SearchField` (container · glyph 2 selector) · 크기 전달 `WRAPPED_FIELD_PARTS` · presence (지우기 버튼 · 값 파생) · `CATALOG_WRAPPED_CONTROL_FIELDS` 에 `searchfield`.
+- DOM: `searchfield` 가 wrapper 안 부품 노드의 요소를 `controlElements` 로 넘긴다 (shared `SearchField` 가 container 안에 그린다). 지우기 버튼은 RAC context 의 Button 이다 (label · press 로 비우기).
+- Builder 화면 자체: Builder 의 검색칸은 전부 자체 class 다 (`builder-search-field` · `icon-picker-search`) — 생성 SearchField.css 의 selector (`.react-aria-SearchField …`) 가 닿지 않는다 (코드로 확인, 고칠 곳 없음).
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 304건 (+1): SearchField 의 DOM 구조 대조 13 조합은 전환 전 빌드와 같다 (glyph 마크업 · Button 표지는 명시한 차이). 부품 type [Icon · Input · Button] · 원본 instance · Canvas 상자 (입력칸이 container 를 채움 · glyph 8,7 16 × 16 · `zIndex 1`) · 글자 위치 (x 32 · 끝 padding 32 — ComboBox 는 x 12 · 끝 34) · 빈 값이면 지우기 버튼 hidden, 값이 있으면 16 × 16 원 (끝에서 8px) · 값 파생 (넣기 → 비우기 → 넣기) · `placeholder` 전달 · DOM (container 자식이 그 노드 · `type=search` · `value` · 버튼 배경 변수 · inline `display` 없음 · glyph `z-index: 1`) · `var(--fg-muted)` 가 light / dark 에서 풀림 · size xl · Input / Button 원본 전파 · 판정 축.
+- 정적: SearchField 의 delegation 은 배치 키만 (`padding-left` 추가) · 상태 선언 0.
+- 원복 RED 9종: 지우기 버튼 presence · 값 파생 · 좌우 padding 의 글자 위치 · CSS 변수 색 token · 버튼 inline `display` · 입력칸 `type` · size 전달 · glyph selector · control 조립.
+- 회귀: `pnpm type-check` · shared 1,499 · rendering 1,379 · builder 4,455 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (outline 9 → 7).
+- 시각 하니스: 70건 중 69 통과 (남은 1건 CardView — 무관). old/new 비교는 `searchfield-glyph-input-and-clear-parts` 로 승인 기록에 넣고 (`searchfield-icon-clear` 를 대체), `field-button-glyph-node` 에 SearchField 를 더했다.
+- live `adr253-p3-control-live.mjs` 12/12 (`PALETTE="search field,combo box,number field,button" TYPES=SearchField,ComboBox,NumberField`, 5175 · headed Chrome · DPR 1 · visible): 세 field 의 wrapper · glyph · 입력칸 · 버튼 상자 · 모서리 · 테두리 · 배경이 Canvas 와 Preview 에서 같다 — 4 크기 (SearchField 는 xs 없음) · side 라벨 → SearchField: 값 「abc」 로 시작 (`type=search` · glyph 가 입력칸 안 · 위) → 지우기 버튼 hover (배경이 바뀜) → 누르면 비워지고 버튼이 사라짐 → 입력하면 다시 나타남 → 입력칸 focus (2px outline) → disabled field (버튼 disabled · root 0.38 · 버튼 흐림 1) → 문서 값을 비우고 Preview 를 다시 mount 하면 양쪽 다 버튼 없음 → Components page 에서 Button · Input 원본을 고치면 세 field 가 양쪽에서 바뀜 (SearchField 지우기 버튼은 테두리색만 — 배경은 자리가 적은 값) → undo. 콘솔 오류 0. 확대 화면 (`CLOSEUP=1`, mobile viewport 107%) 에서 Canvas 의 glyph · 값 글자 · 지우기 버튼이 겹치지 않는 것을 눈으로 확인했다.
+- 대조군: `BEFORE=1` 로 main 빌드 (5173) 의 Preview 수치와 동작을 떴다 — control 의 바깥 상자 (0,28 1920 × 30) 와 글자 시작 x 는 같고, 나머지는 위 변화 목록이다.
+
+**남긴 것**
+
+- Canvas 가 값을 그리는 것은 SearchField 만이다. NumberField 의 `value` 등 다른 field 의 값 표시는 종전과 같다 (placeholder 를 그린다).
+- 지우기 버튼의 크기 단계 (sm 14 · md 16 · lg 20 · xl 24) 는 부모 rule 의 배치 값이다 — Button 원본의 크기 단계를 쓰지 않는다 (ComboBox 버튼과 같다).
+- `SelectTrigger` 의 칠하는 variant 와 `SelectValue` · `SelectIcon` 은 아직 Select · picker 2종이 쓴다 — 그 부모들을 바꾼 뒤 정리한다.

@@ -16,7 +16,9 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d6626
 
 > **Phase 3 (4a) NumberField** (같은 날, 브랜치): Group · Button 단계의 첫 부모. NumberField 의 Group 은 배치만 하고 (칠 · padding 없음), 그 안이 Input 원본의 instance 와 Button 원본 (secondary) 의 instance 둘이다 — Preview 는 그 노드들을 Group 안에 그린다 (증감 버튼은 RAC 의 `slot` 과 context 를 그대로 받는다: 값 한계 · disabled field 에서 disabled). 같이 고친 것: Preview 의 Button 이 hover · pressed 색을 내지 못하던 문제 (쉬는 색이 inline 으로 sheet 를 덮었다 — page 의 Button 포함). 시각 하니스의 NumberField 실패 2건 (전환 전부터) 이 통과한다. 남은 부모: ComboBox · SearchField · Select · 날짜 4종 (breakdown §6).
 
-> **Phase 3 (4b) ComboBox** (같은 날, 브랜치): ComboBox 의 container 는 배치만 하고 그 안이 Input 원본의 instance 와 **FieldButton 원본** (Button 원본의 instance + field 안 버튼의 모양 — Components page 의 부품 칸) 의 instance 다. 문서가 쓴 Button 색 (template · 원본 override) 은 sheet 의 변수로 나가 hover · pressed 색이 그 색에서 나온다. Preview 의 ComboBox 는 항목이 없어 열리지 않는다 (F11 — 전환 전과 같다, Phase 4). 남은 부모: SearchField · Select · 날짜 4종.
+> **Phase 3 (4b) ComboBox** (같은 날, 브랜치): ComboBox 의 container 는 배치만 하고 그 안이 Input 원본의 instance 와 **FieldButton 원본** (Button 원본의 instance + field 안 버튼의 모양 — Components page 의 부품 칸) 의 instance 다. 문서가 쓴 Button 색 (template · 원본 override) 은 sheet 의 변수로 나가 hover · pressed 색이 그 색에서 나온다. Preview 의 ComboBox 는 항목이 없어 열리지 않는다 (F11 — 전환 전과 같다, Phase 4). 남은 부모는 아래 (4c) 뒤 기준.
+>
+> **Phase 3 (4c) SearchField** (같은 날, 브랜치): container 안이 검색 glyph (Icon) · Input 원본의 instance · Button 원본의 instance (지우기 버튼 — 자리에서 적은 모양) 다. 빈 값이면 지우기 버튼이 양쪽에서 없고, Canvas 가 field 의 값을 입력칸에 그린다. 같이 고친 것: Canvas 의 Input 글자가 문서가 쓴 좌우 padding 을 따른다 (glyph · 버튼 자리) · 변수와 token 이름이 다른 CSS 변수 색 (`--fg-muted`) 을 Canvas 가 푼다. 남은 부모: Select · 날짜 4종.
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 

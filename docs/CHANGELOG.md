@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [SearchField 의 입력칸 · 지우기 버튼이 Input · Button 원본을 따른다 (ADR-253 Phase 3 — SearchField)] - 2026-10-06
+
+### Changed
+
+- SearchField 의 control 은 검색 glyph · Input 원본의 instance · Button 원본의 instance (지우기 버튼) 다. 상자를 입력칸이 그리고 (전에는 container) 알약 모양이다. 지우기 버튼은 입력칸 끝 안쪽의 16px 원 (옅은 글자색 배경 · 흰 glyph) 이다 — 전에는 18px · 그림자가 있는 네모.
+- SearchField 의 `placeholder` 가 입력칸에 template 자리표시로 내려간다.
+- Builder 가 SearchField 의 값을 입력칸에 그린다 (전에는 값이 있으면 입력칸이 비어 보였다).
+
+### Fixed
+
+- Preview 에서 disabled 인 SearchField 의 control 이 겹쳐 흐려지던 문제 (field 0.38 × container 0.38).
+- Builder 에서 입력칸의 글자가 문서가 쓴 좌우 padding 을 따르지 않던 문제 (ComboBox 의 글자가 버튼 밑으로 들어갈 수 있었다).
+- template 이 쓴 CSS 변수 색 중 token 과 이름이 다른 것 (`var(--fg-muted)`) 을 Builder 가 풀지 못하던 문제.
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 304건 (+1): SearchField 의 container 안이 glyph · 원본 instance · Canvas 상자와 글자 위치 · 지우기 버튼 presence · 값 파생 · placeholder 전달 · 원본 전파. 원복 RED 9종.
+- live `adr253-p3-control-live.mjs` 12/12 (SearchField + ComboBox + NumberField): 부품 상자 · 모서리 · 색이 Canvas 와 Preview 에서 같다 (4 크기 · side) · 지우기 (hover · 누르기 · 다시 입력) · focus · disabled · 빈 값 · 원본 편집 · undo. 시각 하니스 69/70 (남은 1건 CardView — 무관).
+
 ## [ComboBox 의 입력칸 · 버튼이 Input · FieldButton 원본을 따른다 (ADR-253 Phase 3 — ComboBox)] - 2026-10-06
 
 ### Added

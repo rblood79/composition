@@ -106,6 +106,20 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "ComboBox = container [Input instance, FieldButton instance] (ADR-253 — old: one painted container around a bare value and a glyph)",
   },
   {
+    // ADR-253 Phase 3 (4c): SearchField 의 상자는 Input 원본의 instance 이고 (container 를 채운 알약 모양 —
+    //   검색 glyph 와 지우기 버튼 자리는 양끝 padding), 지우기 버튼은 Button 원본의 instance 다 (16px 원 ·
+    //   옅은 글자색 칠). old 는 container 가 상자 (padding 4 · 12, radius 6) 를 그리고 그 안에 glyph · 글자 ·
+    //   18px glyph 버튼이 있었다 (SelectTrigger rule 의 icon 18 · 빈 값에도 지우기 버튼).
+    id: "searchfield-glyph-input-and-clear-parts",
+    class: "decided",
+    owners: ["SearchField"],
+    nodes: ["Icon", "Input", "Button"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "SearchField = container [glyph Icon, Input instance, Button instance] (ADR-253 — old: one painted container around a glyph, a bare value and a glyph button)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],
@@ -304,15 +318,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     noDomBox: true,
     reason:
       "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.lg.gap` 6); the wrapper height follows the label line box",
-  },
-  {
-    id: "searchfield-icon-clear",
-    class: "oldDefect",
-    owners: ["SearchField"],
-    nodes: ["SelectIcon", "SelectValue"],
-    axes: ALL,
-    reason:
-      "old: SelectTrigger rule icon 18 · empty value keeps the clear button",
   },
   {
     id: "checkboxgroup-items-width",
@@ -539,7 +544,7 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     //   old 는 glyph 가 버튼 자리 노드 (SelectIcon) 자체였다.
     id: "field-button-glyph-node",
     class: "decided",
-    owners: ["NumberField", "ComboBox"],
+    owners: ["NumberField", "ComboBox", "SearchField"],
     side: "new",
     nodes: ["Icon"],
     reason:

@@ -89,6 +89,17 @@ COLOR_TOKEN_CSS["neutral-pressed"] ??=
   "var(--neutral-pressed, color-mix(in srgb, var(--bg-muted) 75%, black))";
 
 /**
+ * CSS 변수 이름 (`fg-muted`) → 그 변수를 CSS 값으로 쓰는 색 token 이름 (`neutral-subdued`).
+ * token 이름과 변수 이름이 같은 색 (`accent-subtle`) 은 표에 없어도 그대로 읽힌다.
+ */
+export function colorTokenOfCssVar(name: string): string | undefined {
+  const css = `var(--${name})`;
+  for (const [token, value] of Object.entries(COLOR_TOKEN_CSS))
+    if (value === css) return token;
+  return undefined;
+}
+
+/**
  * `{color.X}` TokenRef 또는 직접 CSS 값을 CSS 색 문자열로 변환.
  * - `{color.yellow}` → `var(--hue-yellow)` (light yellow-500 / dark yellow-400 — semantic-palette.css)
  * - 이미 CSS 값(`var(...)`, `#fff`, `rgb(...)`, `oklch(...)`)이면 그대로 passthrough.

@@ -6,6 +6,7 @@ import {
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { StateName } from "../document/types";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
+import { colorTokenOfCssVar } from "../resolvers/colorTokenToCss";
 import type { CatalogConsumerNode } from "./compositionRoot";
 
 /**
@@ -67,7 +68,12 @@ export function cssVarColor(value: unknown, theme: "light" | "dark"): unknown {
   const match =
     typeof value === "string" ? /^var\(--([a-z0-9-]+)\)$/.exec(value) : null;
   if (!match) return value;
-  const resolved = resolveToken(`{color.${match[1]}}` as TokenRef, theme);
+  let resolved = resolveToken(`{color.${match[1]}}` as TokenRef, theme);
+  // A variable whose token carries another name (`--fg-muted` ← `{color.neutral-subdued}`).
+  if (typeof resolved !== "string") {
+    const token = colorTokenOfCssVar(match[1]);
+    if (token) resolved = resolveToken(`{color.${token}}` as TokenRef, theme);
+  }
   if (typeof resolved !== "string")
     throw new Error(`CATALOG_CSS_VAR_COLOR_UNRESOLVED:${value}`);
   return resolved;
@@ -140,6 +146,22 @@ export function catalogRulePaint(
       style[styleKey] = PAINT_STYLE_KEYS[key]
         ? cssVarColor(value, theme)
         : value;
+  }
+  // A side padding the document wrote (a field rule's room for its glyph or button on an Input —
+  // the DOM's inline `padding-left` / `padding-right`) places the text: both resolved sides go
+  // out together, since the shape builder reads a lone side as both.
+  if (
+    authoredVisual.paddingLeft !== undefined ||
+    authoredVisual.paddingRight !== undefined
+  ) {
+    const side = (key: "paddingLeft" | "paddingRight") =>
+      Number(node.visual[key] ?? node.visual.paddingX ?? node.visual.padding);
+    const left = side("paddingLeft");
+    const right = side("paddingRight");
+    if (Number.isFinite(left) && Number.isFinite(right)) {
+      style.paddingLeft = left;
+      style.paddingRight = right;
+    }
   }
   const props: Record<string, unknown> = {
     ...node.props,

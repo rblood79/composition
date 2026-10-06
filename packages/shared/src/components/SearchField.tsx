@@ -15,6 +15,7 @@ import {
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import type { ReactNode } from "react";
 import type { ComponentSize } from "../types";
 import { getIconData } from "@composition/rendering";
 import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";
@@ -31,6 +32,11 @@ export interface SearchFieldProps extends AriaSearchFieldProps {
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   placeholder?: string;
+  /**
+   * The field's control part node elements (catalog runtime, ADR-253): the search glyph, the
+   * Input and the clear button inside the container, in order; absent = composed here.
+   */
+  controlElements?: ReactNode[];
   size?: ComponentSize;
   necessityIndicator?: NecessityIndicator;
   labelPosition?: "top" | "side";
@@ -53,6 +59,7 @@ export function SearchField({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  controlElements,
   ...props
 }: SearchFieldProps) {
   const searchIconData = getIconData("search");
@@ -76,46 +83,50 @@ export function SearchField({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <div className="searchfield-container">
-        {searchIconData && (
-          <span className="search-icon" aria-hidden="true">
-            <svg
-              width={iconSize}
-              height={iconSize}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {searchIconData.paths.map((d, i) => (
-                <path key={i} d={d} />
-              ))}
-              {searchIconData.circles?.map((c, i) => (
-                <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
-              ))}
-            </svg>
-          </span>
+        {controlElements ?? (
+          <>
+            {searchIconData && (
+              <span className="search-icon" aria-hidden="true">
+                <svg
+                  width={iconSize}
+                  height={iconSize}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {searchIconData.paths.map((d, i) => (
+                    <path key={i} d={d} />
+                  ))}
+                  {searchIconData.circles?.map((c, i) => (
+                    <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
+                  ))}
+                </svg>
+              </span>
+            )}
+            <Input placeholder={placeholder} />
+            <Button>
+              {clearIconData && (
+                <svg
+                  width={iconSize}
+                  height={iconSize}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  {clearIconData.paths.map((d, i) => (
+                    <path key={i} d={d} />
+                  ))}
+                </svg>
+              )}
+            </Button>
+          </>
         )}
-        <Input placeholder={placeholder} />
-        <Button>
-          {clearIconData && (
-            <svg
-              width={iconSize}
-              height={iconSize}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              {clearIconData.paths.map((d, i) => (
-                <path key={i} d={d} />
-              ))}
-            </svg>
-          )}
-        </Button>
       </div>
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}

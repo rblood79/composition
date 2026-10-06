@@ -67,189 +67,111 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-SearchField[data-size="xs"] {
-  --sf-input-size: var(--text-2xs);
-  --sf-input-line-height: var(--text-2xs--line-height);
-}
-
-.react-aria-SearchField[data-size="sm"] {
-  --sf-input-size: var(--text-xs);
-  --sf-input-line-height: var(--text-xs--line-height);
-}
-
-.react-aria-SearchField[data-size="md"] {
-  --sf-input-size: var(--text-sm);
-  --sf-input-line-height: var(--text-sm--line-height);
-}
-
-.react-aria-SearchField[data-size="lg"] {
-  --sf-input-size: var(--text-base);
-  --sf-input-line-height: var(--text-base--line-height);
-}
-
-.react-aria-SearchField[data-size="xl"] {
-  --sf-input-size: var(--text-lg);
-  --sf-input-line-height: var(--text-lg--line-height);
-}
-
-.react-aria-SearchField .react-aria-Input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--fg);
-  font-size: var(--sf-input-size);
-  line-height: var(--sf-input-line-height);
+.react-aria-SearchField .searchfield-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .react-aria-SearchField[data-size="xs"] {
   --sf-icon-size: 10px;
+  --sf-icon-inset: 4px;
+  --sf-icon-pull: -14px;
 }
 
 .react-aria-SearchField[data-size="sm"] {
   --sf-icon-size: 12px;
+  --sf-icon-inset: 6px;
+  --sf-icon-pull: -18px;
 }
 
 .react-aria-SearchField[data-size="md"] {
   --sf-icon-size: 16px;
+  --sf-icon-inset: 8px;
+  --sf-icon-pull: -24px;
 }
 
 .react-aria-SearchField[data-size="lg"] {
   --sf-icon-size: 18px;
+  --sf-icon-inset: 12px;
+  --sf-icon-pull: -30px;
 }
 
 .react-aria-SearchField[data-size="xl"] {
   --sf-icon-size: 22px;
+  --sf-icon-inset: 16px;
+  --sf-icon-pull: -38px;
 }
 
-.react-aria-SearchField .search-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--fg-muted);
+.react-aria-SearchField .searchfield-container > .react-aria-Icon {
+  flex: 0 0 auto;
+  height: auto;
+  margin-inline-start: var(--sf-icon-inset);
+  margin-inline-end: var(--sf-icon-pull);
 }
 
-.react-aria-SearchField .search-icon svg {
+.react-aria-SearchField .searchfield-container > .react-aria-Icon svg {
   width: var(--sf-icon-size);
   height: var(--sf-icon-size);
 }
 
 .react-aria-SearchField[data-size="xs"] {
-  --sf-btn-size: 10px;
+  --sf-input-pad: 20px;
+}
+
+.react-aria-SearchField[data-size="sm"] {
+  --sf-input-pad: 24px;
+}
+
+.react-aria-SearchField[data-size="md"] {
+  --sf-input-pad: 32px;
+}
+
+.react-aria-SearchField[data-size="lg"] {
+  --sf-input-pad: 40px;
+}
+
+.react-aria-SearchField[data-size="xl"] {
+  --sf-input-pad: 52px;
+}
+
+.react-aria-SearchField .react-aria-Input {
+  min-width: 0;
+  padding-left: var(--sf-input-pad);
+  padding-right: var(--sf-input-pad);
+}
+
+.react-aria-SearchField[data-size="xs"] {
+  --sf-btn-size: 12px;
+  --sf-btn-offset: -16px;
 }
 
 .react-aria-SearchField[data-size="sm"] {
   --sf-btn-size: 14px;
+  --sf-btn-offset: -20px;
 }
 
 .react-aria-SearchField[data-size="md"] {
-  --sf-btn-size: 18px;
+  --sf-btn-size: 16px;
+  --sf-btn-offset: -24px;
 }
 
 .react-aria-SearchField[data-size="lg"] {
-  --sf-btn-size: 22px;
+  --sf-btn-size: 20px;
+  --sf-btn-offset: -32px;
 }
 
 .react-aria-SearchField[data-size="xl"] {
-  --sf-btn-size: 28px;
+  --sf-btn-size: 24px;
+  --sf-btn-offset: -40px;
 }
 
 .react-aria-SearchField .react-aria-Button {
-  position: static;
   flex: 0 0 auto;
   width: var(--sf-btn-size);
-  min-width: unset;
   height: var(--sf-btn-size);
-  padding: 0;
-  border: none;
-  background: var(--bg-overlay);
-  color: var(--fg);
-  forced-color-adjust: none;
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.react-aria-SearchField .react-aria-Button:where([data-hovered]:not([data-disabled])) {
-  background: var(--accent-subtle);
-}
-
-.react-aria-SearchField .react-aria-Button:where([data-pressed]:not([data-disabled])) {
-  background: color-mix(in srgb, var(--fg) 12%, var(--bg-overlay));
-}
-
-.react-aria-SearchField .react-aria-Button:where([data-focus-visible]) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.react-aria-SearchField .react-aria-Button:where([data-disabled]) {
-  background: color-mix(in srgb, var(--fg) 12%, transparent);
-  color: color-mix(in srgb, var(--fg) 38%, transparent);
-  cursor: not-allowed;
-}
-
-.react-aria-SearchField .react-aria-Button svg {
-  width: var(--sf-icon-size);
-  height: var(--sf-icon-size);
-}
-
-.react-aria-SearchField[data-size="xs"] {
-  --sf-container-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
-}
-
-.react-aria-SearchField[data-size="sm"] {
-  --sf-container-padding: var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm);
-}
-
-.react-aria-SearchField[data-size="md"] {
-  --sf-container-padding: var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md);
-}
-
-.react-aria-SearchField[data-size="lg"] {
-  --sf-container-padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
-}
-
-.react-aria-SearchField[data-size="xl"] {
-  --sf-container-padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl);
-}
-
-.react-aria-SearchField .searchfield-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  width: 100%;
-  gap: var(--spacing-xs);
-  padding: var(--sf-container-padding);
-  border: var(--border-width-thin) solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-inset);
-  transition: border-color 200ms ease, background-color 200ms ease;
-  cursor: text;
-}
-
-.react-aria-SearchField .searchfield-container:where(:hover:not(:has([data-disabled]))) {
-  border-color: var(--border-hover);
-  background: var(--bg-overlay);
-}
-
-.react-aria-SearchField .searchfield-container:where(:has([data-focused])) {
-  border-color: var(--accent);
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-  background: var(--bg-overlay);
-}
-
-.react-aria-SearchField .searchfield-container:where(:has([data-invalid])) {
-  border-color: var(--negative);
-}
-
-.react-aria-SearchField .searchfield-container:where(:has([data-disabled])) {
-  opacity: 0.38;
-  cursor: not-allowed;
-  background: var(--bg-muted);
+  min-width: 0;
+  margin-inline-start: var(--sf-btn-offset);
 }
 
 .react-aria-SearchField[data-size="sm"] {
@@ -303,7 +225,7 @@
   --form-label-align: end;
 }
 
-.react-aria-SearchField[data-quiet="true"] .searchfield-container {
+.react-aria-SearchField[data-quiet="true"] .react-aria-Input {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
@@ -311,21 +233,12 @@
   border-bottom: 1px solid var(--border);
 }
 
-.react-aria-SearchField[data-quiet="true"] .searchfield-container:hover:not(:has([data-disabled])):not(:has([data-focused])) {
-  background: transparent;
-  border-color: transparent;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-SearchField[data-quiet="true"] .searchfield-container:has([data-focused]) {
+.react-aria-SearchField[data-quiet="true"] .react-aria-Input:where([data-focused]) {
   outline: none;
-  background: transparent;
-  border-color: transparent;
   border-bottom-color: var(--accent);
 }
 
-.react-aria-SearchField[data-quiet="true"] .searchfield-container:has([data-invalid]) {
-  border-color: transparent;
+.react-aria-SearchField[data-quiet="true"] .react-aria-Input:where([data-invalid]) {
   border-bottom-color: var(--negative);
 }
 

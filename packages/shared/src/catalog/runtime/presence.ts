@@ -277,18 +277,31 @@ export function catalogHiddenAtRest(
   return false;
 }
 
+/** The SearchField that owns `node` as the Input in its control wrapper. */
+function catalogSearchFieldOfInput(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Input") return;
+  const trigger = get(node.parentId);
+  if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
+  const field = get(trigger.parentId);
+  return field && typeOf(field) === "SearchField" ? field : undefined;
+}
+
 /**
- * SearchField's clear button (the template's trailing `SelectIcon` `iconName: "x"` in its
- * trigger): RAC marks the field `data-empty` while its value (`value`, the renderer's
- * `defaultValue`) is empty and the stylesheet hides the button (`[data-empty="true"]
- * .react-aria-Button { display: none }`). Returns the owning field for that node.
+ * SearchField's clear button (the Button instance in its control wrapper — ADR-253): RAC marks
+ * the field `data-empty` while its value (`value`, the renderer's `defaultValue`) is empty and
+ * the stylesheet hides the button (`[data-empty="true"] .react-aria-Button { display: none }`).
+ * Returns the owning field for that node.
  */
 function catalogSearchFieldOfClear(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "SelectIcon" || node.props.iconName !== "x") return;
+  if (typeOf(node) !== "Button") return;
   const trigger = get(node.parentId);
   if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
   const field = get(trigger.parentId);
@@ -655,6 +668,11 @@ function ownDerivedProps(
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
+  // A SearchField's `value` is its input's initial value (the renderer's `defaultValue`): the
+  // Canvas draws it in the Input's text, where the DOM input shows it over the placeholder.
+  const searchValue = catalogSearchFieldOfInput(node, get, typeOf)?.props.value;
+  if (typeof searchValue === "string" && searchValue !== "")
+    return { placeholder: searchValue };
   const level = catalogTreeLevel(node, get, typeOf);
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
@@ -745,7 +763,11 @@ function fieldSubparts(
     .flatMap((child) =>
       typeOf(child) === "SelectTrigger" ? childrenOf(child, get) : [child],
     )
-    .filter((child) => fieldSubpartProps(child, get, typeOf) !== undefined);
+    .filter(
+      (child) =>
+        fieldSubpartProps(child, get, typeOf) !== undefined ||
+        catalogSearchFieldOfInput(child, get, typeOf) !== undefined,
+    );
 }
 
 function derivedDependents(

@@ -734,12 +734,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "placeholder": "string"
     },
     "defaults": {
       "label": "Search",
       "description": "",
-      "errorMessage": ""
+      "errorMessage": "",
+      "placeholder": "Search..."
     },
     "visual": {},
     "stateRules": {},
@@ -3693,7 +3695,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-searchfield__2_2",
       "lib:template:component-searchfield__2_3"
     ],
-    "props": {},
+    "props": {
+      "variant": "plain"
+    },
     "visual": {},
     "layout": {
       "display": "flex"
@@ -3701,31 +3705,56 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-searchfield__2_1",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
       "iconName": "search"
     },
-    "visual": {}
+    "visual": {
+      "color": "var(--fg-muted)",
+      "zIndex": 1
+    }
   },
   {
     "id": "lib:template:component-searchfield__2_2",
-    "definitionId": "lib:definition:type-SelectValue",
+    "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "children": "",
-      "placeholder": "Search..."
+      "placeholder": "{placeholder}"
     },
-    "visual": {}
+    "visual": {
+      "radius": 9999
+    }
   },
   {
     "id": "lib:template:component-searchfield__2_3",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-searchfield__2_3_1"
+    ],
+    "props": {
+      "variant": "primary",
+      "children": ""
+    },
+    "visual": {
+      "fill": "var(--fg-muted)",
+      "borderWidth": 0,
+      "radius": 9999,
+      "paddingX": 0,
+      "paddingY": 0,
+      "minWidth": 0
+    }
+  },
+  {
+    "id": "lib:template:component-searchfield__2_3_1",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
     "props": {
       "iconName": "x"
     },
-    "visual": {}
+    "visual": {
+      "iconSize": 12
+    }
   },
   {
     "id": "lib:template:component-searchfield__description",

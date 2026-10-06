@@ -9055,9 +9055,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           quiet: {
             true: {
+              // ADR-253: the box is the Input (an instance of the Input origin) — the same quiet
+              //   shape as TextField's.
               nested: [
                 {
-                  selector: ".searchfield-container",
+                  selector: ".react-aria-Input",
                   styles: {
                     background: "transparent",
                     "border-color": "transparent",
@@ -9067,27 +9069,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector:
-                    ".searchfield-container:hover:not(:has([data-disabled])):not(:has([data-focused]))",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector: ".searchfield-container:has([data-focused])",
+                  selector: ".react-aria-Input:where([data-focused])",
                   styles: {
                     outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
                     "border-bottom-color": "var(--accent)",
                   },
                 },
                 {
-                  selector: ".searchfield-container:has([data-invalid])",
+                  selector: ".react-aria-Input:where([data-invalid])",
                   styles: {
-                    "border-color": "transparent",
                     "border-bottom-color": "var(--negative)",
                   },
                 },
@@ -9107,197 +9097,98 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // ADR-253: the container only places its parts. The value is an instance of the Input origin (it
+        //   draws the box — rounded here, with room for the glyph at its start and the clear button at
+        //   its end); the search glyph is an Icon laid over the start, the clear button an instance of
+        //   the Button origin laid over the end.
         delegation: [
           {
-            childSelector: ".react-aria-Input",
-            prefix: "sf-input",
-            variables: {
-              xs: {
-                "--sf-input-size": "var(--text-2xs)",
-                "--sf-input-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--sf-input-size": "var(--text-xs)",
-                "--sf-input-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--sf-input-size": "var(--text-sm)",
-                "--sf-input-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--sf-input-size": "var(--text-base)",
-                "--sf-input-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--sf-input-size": "var(--text-lg)",
-                "--sf-input-line-height": "var(--text-lg--line-height)",
-              },
-            },
+            childSelector: ".searchfield-container",
             bridges: {
-              flex: "1",
-              "min-width": "0",
-              padding: "0",
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              color: "var(--fg)",
-              "font-size": "var(--sf-input-size)",
-              "line-height": "var(--sf-input-line-height)",
+              display: "flex",
+              "align-items": "center",
+              width: "100%",
             },
           },
           {
-            childSelector: ".search-icon",
+            // The search glyph: its own width is pulled back, so the Input starts under it.
+            childSelector: ".searchfield-container > .react-aria-Icon",
             prefix: "sf-icon",
             variables: {
               xs: {
                 "--sf-icon-size": "10px",
+                "--sf-icon-inset": "4px",
+                "--sf-icon-pull": "-14px",
               },
               sm: {
                 "--sf-icon-size": "12px",
+                "--sf-icon-inset": "6px",
+                "--sf-icon-pull": "-18px",
               },
               md: {
                 "--sf-icon-size": "16px",
+                "--sf-icon-inset": "8px",
+                "--sf-icon-pull": "-24px",
               },
               lg: {
                 "--sf-icon-size": "18px",
+                "--sf-icon-inset": "12px",
+                "--sf-icon-pull": "-30px",
               },
               xl: {
                 "--sf-icon-size": "22px",
+                "--sf-icon-inset": "16px",
+                "--sf-icon-pull": "-38px",
               },
             },
             bridges: {
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "center",
-              "flex-shrink": "0",
-              color: "var(--fg-muted)",
+              flex: "0 0 auto",
+              height: "auto",
+              "margin-inline-start": "var(--sf-icon-inset)",
+              "margin-inline-end": "var(--sf-icon-pull)",
             },
           },
           {
-            childSelector: ".search-icon svg",
+            childSelector: ".searchfield-container > .react-aria-Icon svg",
             bridges: {
               width: "var(--sf-icon-size)",
               height: "var(--sf-icon-size)",
             },
           },
           {
+            // Room at both ends: the glyph and the clear button, each with its inset and a gap.
+            childSelector: ".react-aria-Input",
+            prefix: "sf-input",
+            variables: {
+              xs: { "--sf-input-pad": "20px" },
+              sm: { "--sf-input-pad": "24px" },
+              md: { "--sf-input-pad": "32px" },
+              lg: { "--sf-input-pad": "40px" },
+              xl: { "--sf-input-pad": "52px" },
+            },
+            bridges: {
+              "min-width": "0",
+              "padding-left": "var(--sf-input-pad)",
+              "padding-right": "var(--sf-input-pad)",
+            },
+          },
+          {
+            // The clear button: a small circle inside the Input's end.
             childSelector: ".react-aria-Button",
             prefix: "sf-btn",
             variables: {
-              xs: {
-                "--sf-btn-size": "10px",
-              },
-              sm: {
-                "--sf-btn-size": "14px",
-              },
-              md: {
-                "--sf-btn-size": "18px",
-              },
-              lg: {
-                "--sf-btn-size": "22px",
-              },
-              xl: {
-                "--sf-btn-size": "28px",
-              },
+              xs: { "--sf-btn-size": "12px", "--sf-btn-offset": "-16px" },
+              sm: { "--sf-btn-size": "14px", "--sf-btn-offset": "-20px" },
+              md: { "--sf-btn-size": "16px", "--sf-btn-offset": "-24px" },
+              lg: { "--sf-btn-size": "20px", "--sf-btn-offset": "-32px" },
+              xl: { "--sf-btn-size": "24px", "--sf-btn-offset": "-40px" },
             },
             bridges: {
-              position: "static",
               flex: "0 0 auto",
               width: "var(--sf-btn-size)",
-              "min-width": "unset",
               height: "var(--sf-btn-size)",
-              padding: "0",
-              border: "none",
-              background: "var(--bg-overlay)",
-              color: "var(--fg)",
-              "forced-color-adjust": "none",
-              "box-shadow": "var(--shadow-sm)",
-              cursor: "pointer",
-            },
-            states: {
-              "[data-hovered]:not([data-disabled])": {
-                background: "var(--accent-subtle)",
-              },
-              "[data-pressed]:not([data-disabled])": {
-                background:
-                  "color-mix(in srgb, var(--fg) 12%, var(--bg-overlay))",
-              },
-              "[data-focus-visible]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "2px",
-              },
-              "[data-disabled]": {
-                background: "color-mix(in srgb, var(--fg) 12%, transparent)",
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-              },
-            },
-          },
-          {
-            childSelector: ".react-aria-Button svg",
-            bridges: {
-              width: "var(--sf-icon-size)",
-              height: "var(--sf-icon-size)",
-            },
-          },
-          {
-            childSelector: ".searchfield-container",
-            prefix: "sf-container",
-            variables: {
-              xs: {
-                "--sf-container-padding":
-                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
-              },
-              sm: {
-                "--sf-container-padding":
-                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
-              },
-              md: {
-                "--sf-container-padding":
-                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
-              },
-              lg: {
-                "--sf-container-padding":
-                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
-              },
-              xl: {
-                "--sf-container-padding":
-                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
-              },
-            },
-            bridges: {
-              display: "flex",
-              "flex-direction": "row",
-              "align-items": "center",
-              width: "100%",
-              gap: "var(--spacing-xs)",
-              padding: "var(--sf-container-padding)",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--radius-md)",
-              background: "var(--bg-inset)",
-              transition:
-                "border-color 200ms ease, background-color 200ms ease",
-              cursor: "text",
-            },
-            states: {
-              ":hover:not(:has([data-disabled]))": {
-                "border-color": "var(--border-hover)",
-                background: "var(--bg-overlay)",
-              },
-              ":has([data-focused])": {
-                "border-color": "var(--accent)",
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-                background: "var(--bg-overlay)",
-              },
-              ":has([data-invalid])": {
-                "border-color": "var(--negative)",
-              },
-              ":has([data-disabled])": {
-                opacity: "0.38",
-                cursor: "not-allowed",
-                background: "var(--bg-muted)",
-              },
+              "min-width": "0",
+              "margin-inline-start": "var(--sf-btn-offset)",
             },
           },
           {

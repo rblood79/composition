@@ -132,11 +132,13 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       "align-items",
       "height",
       "box-sizing",
-      // The room a part leaves for the one laid over it (a ComboBox's button over its Input).
+      // The room a part leaves for the one laid over it (a ComboBox's button over its Input's
+      // end, a SearchField's glyph over its start).
       "padding-right",
+      "padding-left",
     ]);
     const found: string[] = [];
-    for (const type of ["NumberField", "ComboBox"]) {
+    for (const type of ["NumberField", "ComboBox", "SearchField"]) {
       const composition = (
         COMPONENT_RULES_TABLE as Record<
           string,
@@ -152,7 +154,7 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         states?: unknown;
       }>) {
         if (
-          !/\.(react-aria-(Group|Input|Button)|combobox-container)(?![\w-])/.test(
+          !/\.(react-aria-(Group|Input|Button|Icon)|combobox-container|searchfield-container)(?![\w-])/.test(
             entry.childSelector ?? "",
           )
         )

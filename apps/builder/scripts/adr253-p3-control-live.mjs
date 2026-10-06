@@ -185,8 +185,9 @@ const snap = () =>
               child && g.getDefinition(child.definitionId)?.name;
             return depth > 0 || childType === "SelectTrigger";
           };
-          for (const child of node.children)
-            if (inside(child)) walk(child, x, y, depth + 1);
+          if (node.hidden !== true)
+            for (const child of node.children)
+              if (inside(child)) walk(child, x, y, depth + 1);
         };
         walk(field.id, -(fieldRect?.x ?? 0), -(fieldRect?.y ?? 0), 0);
         const input = fieldEl?.querySelector("input:not([hidden])");
@@ -484,6 +485,18 @@ await step("rest-md", async () => {
     } catch (error) {
       placed.push(`${label}: ${String(error?.message ?? error).slice(0, 80)}`);
     }
+  // A SearchField's value is its input's initial value: set before the Preview mounts, so the
+  // clear button shows on both sides.
+  if (TYPES.includes("SearchField"))
+    await writeFields(["SearchField"], { value: "abc" });
+  // CLOSEUP=1: the Canvas alone at the mobile viewport (near 100%), to look at the parts.
+  if (process.env.CLOSEUP) {
+    await page.getByLabel("Mobile", { exact: true }).first().click();
+    await page.waitForTimeout(1500);
+    writeFileSync(`${OUT}/0-closeup.png`, await page.screenshot());
+    await page.getByLabel("Desktop", { exact: true }).first().click();
+    await page.waitForTimeout(1500);
+  }
   await page
     .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
     .first()
@@ -512,7 +525,11 @@ await step("rest-md", async () => {
 });
 for (const size of ["xl", "xs", "sm", "lg"])
   await step(`size-${size}`, async () => {
-    const failed = await writeFields(TYPES, { size });
+    // (SearchField's rule has no xs size.)
+    const failed = await writeFields(
+      TYPES.filter((type) => !(size === "xs" && type === "SearchField")),
+      { size },
+    );
     await page.waitForTimeout(1200);
     preview[size] = await snapPreview();
     if (size === "xl")
@@ -591,7 +608,10 @@ if (TYPES.includes("NumberField"))
       const view = doc.defaultView;
       const el = [
         ...doc.querySelectorAll("button.react-aria-Button:not([slot])"),
-      ].find((button) => !button.closest(".react-aria-ComboBox"));
+      ].find(
+        (button) =>
+          !button.closest(".react-aria-ComboBox, .react-aria-SearchField"),
+      );
       if (!el) return {};
       const before = view.getComputedStyle(el).backgroundColor;
       for (const name of ["pointerover", "pointerenter", "mouseover"])
@@ -764,12 +784,172 @@ if (TYPES.includes("ComboBox"))
       required: [required.input, required.error],
     });
   });
+/** The placed SearchField in the Preview, after an action inside that document. */
+const search = (action) =>
+  page.evaluate(
+    async ([action]) => {
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const view = doc.defaultView;
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const placed = [...ws.root.canvasInputs.values()].find(
+        (r) =>
+          g.getDefinition(r.definitionId)?.name === "SearchField" &&
+          r.sourceId.startsWith("project:"),
+      );
+      const field = doc.querySelector(
+        `[data-catalog-id="${CSS.escape(placed.id)}"]`,
+      );
+      const input = field.querySelector("input");
+      const button = field.querySelector("button");
+      const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+      const pointer = (el, names) => {
+        for (const name of names)
+          el.dispatchEvent(
+            new view.PointerEvent(name, {
+              bubbles: !/enter|leave/.test(name),
+              pointerType: "mouse",
+            }),
+          );
+      };
+      if (action === "clear") button.click();
+      if (action === "type") {
+        const setter = Object.getOwnPropertyDescriptor(
+          view.HTMLInputElement.prototype,
+          "value",
+        ).set;
+        setter.call(input, "xyz");
+        input.dispatchEvent(new view.Event("input", { bubbles: true }));
+      }
+      if (action === "hover")
+        pointer(button, ["pointerover", "pointerenter", "mouseover"]);
+      if (action === "unhover")
+        pointer(button, ["pointerout", "pointerleave", "mouseout"]);
+      if (action === "focus") input.focus();
+      if (action === "blur") input.blur();
+      await wait(450);
+      const bcs = view.getComputedStyle(button);
+      const ics = view.getComputedStyle(input);
+      const glyph = field.querySelector(
+        ".searchfield-container > .react-aria-Icon, .search-icon",
+      );
+      const glyphBox = glyph?.getBoundingClientRect();
+      const inputBox = input.getBoundingClientRect();
+      return {
+        value: input.value,
+        type: input.type,
+        empty: field.getAttribute("data-empty"),
+        button: {
+          display: bcs.display,
+          label: button.getAttribute("aria-label"),
+          disabled: button.hasAttribute("disabled"),
+          hovered: button.hasAttribute("data-hovered"),
+          background: bcs.backgroundColor,
+          opacity: bcs.opacity,
+          radius: bcs.borderTopLeftRadius,
+        },
+        input: {
+          focused: input.hasAttribute("data-focused"),
+          outline: `${ics.outlineStyle} ${ics.outlineWidth} ${ics.outlineOffset}`,
+          radius: ics.borderTopLeftRadius,
+        },
+        // The glyph is drawn over the Input (inside its box, above it).
+        glyph: glyph && {
+          inside:
+            glyphBox.left >= inputBox.left && glyphBox.right <= inputBox.right,
+          top:
+            doc.elementFromPoint(
+              glyphBox.left + glyphBox.width / 2,
+              glyphBox.top + glyphBox.height / 2,
+            ) !== input,
+          color: view.getComputedStyle(glyph).color,
+        },
+        rootOpacity: view.getComputedStyle(field).opacity,
+      };
+    },
+    [action],
+  );
+if (TYPES.includes("SearchField"))
+  await step("searchfield", async () => {
+    const rest = await search();
+    const hover = await search("hover");
+    await search("unhover");
+    const cleared = await search("clear");
+    const typed = await search("type");
+    const focus = await search("focus");
+    await search("blur");
+    await writeFields(["SearchField"], { isDisabled: true });
+    await page.waitForTimeout(800);
+    const disabled = await search();
+    await writeFields(["SearchField"], { isDisabled: false });
+    await page.waitForTimeout(800);
+    // An empty document value: the clear button is hidden on both sides from the start.
+    // (The value is the input's initial value: the Preview mounts again to read it.)
+    const remount = async () => {
+      for (const name of ["Skia Only Mode", "Compare Mode (Preview + Skia)"]) {
+        await page.getByRole("button", { name, exact: true }).first().click();
+        await page.waitForTimeout(name.startsWith("Skia") ? 500 : 3000);
+      }
+    };
+    await writeFields(["SearchField"], { value: "" });
+    await remount();
+    const emptied = await search();
+    const emptiedCanvas = await page.evaluate(() => {
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const records = [...ws.root.canvasInputs.values()];
+      const field = records.find(
+        (r) =>
+          g.getDefinition(r.definitionId)?.name === "SearchField" &&
+          r.sourceId.startsWith("project:"),
+      );
+      const wrapper = ws.root.canvasInputs.get(field.children[1]);
+      return wrapper.children.map(
+        (id) => ws.root.canvasInputs.get(id).hidden === true,
+      );
+    });
+    await writeFields(["SearchField"], { value: "abc" });
+    await remount();
+    const pass =
+      rest.value === "abc" &&
+      rest.type === "search" &&
+      rest.button.display !== "none" &&
+      rest.glyph?.inside &&
+      rest.glyph.top &&
+      hover.button.hovered &&
+      hover.button.background !== rest.button.background &&
+      cleared.value === "" &&
+      cleared.button.display === "none" &&
+      typed.value === "xyz" &&
+      typed.button.display !== "none" &&
+      focus.input.focused &&
+      /solid 2px/.test(focus.input.outline) &&
+      disabled.button.disabled &&
+      disabled.rootOpacity === "0.38" &&
+      disabled.button.opacity === "1" &&
+      emptied.value === "" &&
+      emptied.button.display === "none" &&
+      emptiedCanvas.at(-1) === true;
+    record("searchfield", BEFORE || pass, {
+      emptied: [emptied.value, emptied.button.display, emptiedCanvas],
+      rest,
+      hover: hover.button,
+      cleared: [cleared.value, cleared.empty, cleared.button.display],
+      typed: [typed.value, typed.button.display],
+      focus: focus.input,
+      disabled: [disabled.button, disabled.rootOpacity],
+    });
+  });
 if (!BEFORE) {
   // The origin a type's button is an instance of.
   const BUTTON_ORIGIN = {
     NumberField: BUTTON,
     ComboBox: "lib:definition:origin-component-fieldbutton",
+    SearchField: BUTTON,
   };
+  // A SearchField's clear button writes its own fill on its template position: the Button
+  // origin's fill stays under it (its border color, which the position does not write, follows).
+  const OWN_FILL = new Set(["SearchField"]);
   const partsOf = (shot, type, partType) =>
     (shot.fields[type]?.parts ?? []).filter((part) => part.type === partType);
   await step("edit-origins", async () => {
@@ -828,9 +1008,11 @@ if (!BEFORE) {
           buttons.length > 0 &&
           buttons.every(
             (part) =>
-              part.c.fill === "#ffcc00" &&
               part.c.borderColor === "#ff0000" &&
-              (part.p.disabled || part.p.background === "rgb(255, 204, 0)"),
+              (OWN_FILL.has(type) ||
+                (part.c.fill === "#ffcc00" &&
+                  (part.p.disabled ||
+                    part.p.background === "rgb(255, 204, 0)"))),
           ) &&
           input?.c.borderColor === "#0000ff" &&
           input.p.border.endsWith("rgb(0, 0, 255)"),

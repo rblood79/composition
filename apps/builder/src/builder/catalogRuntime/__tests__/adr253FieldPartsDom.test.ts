@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { renderCatalogDom } from "../domBinding";
+import { cssVarColor } from "../../../../../../packages/shared/src/catalog/runtime/rulePaint";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -18,6 +19,8 @@ import {
   setLibraryDefault,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogSubpartOwnerType } from "../subpart";
+import { catalogRuleShapes } from "../ruleShapes";
+import { catalogAuthoredVisual } from "../../../../../../packages/shared/src/catalog/runtime/libraryVisual";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -179,11 +182,13 @@ const BUTTON_NODE_MARKS = [
  * shared component drew its own svg, so the glyph markup is left out of the structure on both
  * sides and asserted on its own.
  */
-const WRAPPED_TYPES = ["numberfield", "combobox"];
+const WRAPPED_TYPES = ["numberfield", "combobox", "searchfield"];
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
-    .replace(/<div class=react-aria-Icon><\/>/g, "");
+    .replace(/<div class=react-aria-Icon><\/>/g, "")
+    // (A SearchField's leading glyph: the component's own wrapper before, the Icon node now.)
+    .replace(/<span aria-hidden=true class=search-icon><\/>/g, "");
 
 /** A document's structure: elements, their attributes (sorted) and text, in order. */
 function normalize(html: string): string {
@@ -288,6 +293,27 @@ async function render(
     }),
   );
   return { html, workspace, field };
+}
+
+/** Where the Canvas draws an Input node's text in its box: the start x and the end padding. */
+function inputTextBand(workspace: CatalogWorkspace, id: string) {
+  const root = workspace.root;
+  const node = root.canvasInputs.get(id)!;
+  const box = root.getGeometry([id]).get(id) as {
+    width: number;
+    height: number;
+  };
+  const text = catalogRuleShapes({
+    node,
+    rect: { width: box.width, height: box.height },
+    rule: workspace.runtime.graph.library.rules.get("Input" as never)!,
+    type: "Input",
+    authoredVisual: catalogAuthoredVisual(root, node),
+  }).find((shape) => shape.type === "text") as unknown as {
+    x: number;
+    paddingRight?: number;
+  };
+  return { x: text.x, paddingRight: text.paddingRight };
 }
 
 describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its props before", () => {
@@ -955,6 +981,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         height: 30,
       });
       expect(input.visual).toMatchObject({ paddingX: 12, paddingRight: 34 });
+      // (The end padding keeps the text clear of the button; its start stays the Input's own.)
+      expect(inputTextBand(workspace, input.id)).toEqual({
+        x: 12,
+        paddingRight: 34,
+      });
       expect(rect(button.id)).toMatchObject({
         x: group.width - 26,
         y: 4,
@@ -1067,6 +1098,206 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ).toBeNull();
       expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "all")).toBe(
         "ComboBox",
+      );
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),
+      ).toBeNull();
+    },
+  );
+
+  /**
+   * A SearchField's control: the container (the wrapper node — placement only) holds the search
+   * glyph (an Icon node laid over the Input's start), an instance of the Input origin (the box —
+   * rounded here) and the clear button, an instance of the Button origin laid over the Input's
+   * end. The clear button shows while the field has a value (RAC's `data-empty`).
+   */
+  it.skipIf(write)(
+    "searchfield — its container holds the glyph, an Input instance and a Button instance",
+    async () => {
+      const { workspace, field } = (await render("searchfield", {}))!;
+      const records = workspace.root.canvasInputs;
+      const typeOf = (id: string) =>
+        workspace.runtime.graph.getDefinition(
+          records.get(id)!.definitionId as LibraryDefinitionId,
+        )!.name;
+      const wrapper = () =>
+        records
+          .get(field.id)!
+          .children.map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+      const parts = () => wrapper().children.map((id) => records.get(id)!);
+      const host = () => {
+        const element = document.createElement("div");
+        element.innerHTML = renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        );
+        return element;
+      };
+      const rect = (id: string) =>
+        workspace.root.getGeometry([id]).get(id) as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        };
+      const layoutRecord = (id: string) =>
+        workspace.root.layoutInputs.get(id) as { hidden?: boolean };
+      expect(parts().map((part) => typeOf(part.id))).toEqual([
+        "Icon",
+        "Input",
+        "Button",
+      ]);
+      expect(parts().map((part) => part.collapsedSourceIds)).toEqual([
+        undefined,
+        ["lib:template:component-input"],
+        ["lib:template:component-button"],
+      ]);
+      const [glyph, input, clear] = parts();
+      // Canvas: the Input is the whole control, rounded, with room at both ends; the glyph sits
+      // 8px inside its start, over it.
+      const group = rect(wrapper().id);
+      expect(rect(input.id)).toMatchObject({
+        x: 0,
+        width: group.width,
+        height: 30,
+      });
+      expect(input.visual).toMatchObject({
+        radius: 9999,
+        paddingLeft: 32,
+        paddingRight: 32,
+      });
+      // (Its text starts after that padding, clear of the glyph — as the DOM `padding-left` does.)
+      expect(inputTextBand(workspace, input.id)).toEqual({
+        x: 32,
+        paddingRight: 32,
+      });
+      expect(rect(glyph.id)).toMatchObject({
+        x: 8,
+        y: 7,
+        width: 16,
+        height: 16,
+      });
+      expect(glyph.visual).toMatchObject({ iconSize: 16, zIndex: 1 });
+      // An empty field shows no clear button (RAC `data-empty`); with a value it is a 16px
+      // circle 8px inside the Input's end.
+      expect(layoutRecord(clear.id).hidden).toBe(true);
+      expect(input.derivedProps).toBeUndefined();
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { value: set("abc"), placeholder: set("Find") },
+        }),
+      );
+      // The Canvas draws the value in the Input's text (the DOM input shows it over the
+      // placeholder); emptied, the placeholder is back.
+      expect(parts()[1]!.derivedProps).toEqual({ placeholder: "abc" });
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { value: set("") },
+        }),
+      );
+      expect(parts()[1]!.derivedProps).toBeUndefined();
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { value: set("abc") },
+        }),
+      );
+      expect(parts()[1]!.derivedProps).toEqual({ placeholder: "abc" });
+      const shown = parts()[2]!;
+      expect(layoutRecord(shown.id).hidden).not.toBe(true);
+      expect(rect(shown.id)).toMatchObject({
+        x: group.width - 24,
+        y: 7,
+        width: 16,
+        height: 16,
+      });
+      expect(shown.visual).toMatchObject({
+        fill: "var(--fg-muted)",
+        radius: 9999,
+        borderWidth: 0,
+      });
+      expect(records.get(shown.children[0]!)!.visual.iconSize).toBe(12);
+      expect(parts()[1]!.props.placeholder).toBe("Find");
+      // DOM: the container's children are those nodes' elements; the Input is the searchbox RAC
+      // wires (its `type` is RAC's), the Button the clear button RAC labels.
+      const container = host().querySelector(".searchfield-container")!;
+      expect(
+        [...container.children].map((child) =>
+          child.getAttribute("data-catalog-id"),
+        ),
+      ).toEqual(parts().map((part) => part.id));
+      const inputElement = container.querySelector("input")!;
+      expect(inputElement.getAttribute("type")).toBe("search");
+      expect(inputElement.getAttribute("placeholder")).toBe("Find");
+      expect(inputElement.getAttribute("value")).toBe("abc");
+      expect(inputElement.getAttribute("style")).toMatch(
+        /border-radius:\s*9999px/,
+      );
+      const clearElement = container.querySelector("button")!;
+      expect(clearElement.getAttribute("aria-label")).toBeTruthy();
+      expect(clearElement.getAttribute("style")).toMatch(
+        /--button-color:\s*var\(--fg-muted\)/,
+      );
+      // The field's sheet hides the clear button while the input is empty (`[data-empty]`, RAC's
+      // run state): an inline display would keep it shown.
+      expect(clearElement.getAttribute("style")).not.toMatch(
+        /(^|;)\s*display:/,
+      );
+      // The Canvas reads the same color: `--fg-muted` is the `neutral-subdued` token's variable.
+      expect(cssVarColor("var(--fg-muted)", "light")).toMatch(
+        /^#[0-9a-f]{6}$/i,
+      );
+      expect(cssVarColor("var(--fg-muted)", "dark")).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(
+        container.querySelector(".react-aria-Icon")!.getAttribute("style"),
+      ).toMatch(/z-index:\s*1/);
+      // The field's size reaches the parts.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { size: set("xl") },
+        }),
+      );
+      expect(parts()[1]!.props.size).toBe("xl");
+      expect(parts()[1]!.visual).toMatchObject({
+        paddingLeft: 52,
+        paddingRight: 52,
+      });
+      expect(rect(parts()[0]!.id)).toMatchObject({ x: 16, width: 22 });
+      expect(rect(parts()[2]!.id)).toMatchObject({ width: 24, height: 24 });
+      // The Input origin and the Button origin reach them (the Button's own shape stays).
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: INPUT_ORIGIN,
+          scope: "visual",
+          key: "borderColor",
+          write: set("#0000ff"),
+          newId: workspace.newId,
+        }),
+      );
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "color",
+          write: set("#00aa00"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(parts()[1]!.visual.borderColor).toBe("#0000ff");
+      expect(parts()[2]!.visual).toMatchObject({
+        color: "#00aa00",
+        fill: "var(--fg-muted)",
+      });
+      const graph = workspace.runtime.graph;
+      const dom = workspace.root.domInputs;
+      expect(catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "all")).toBe(
+        "SearchField",
       );
       expect(
         catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),

@@ -411,6 +411,7 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
   "colorfield",
   "numberfield",
   "combobox",
+  "searchfield",
 ]);
 /**
  * Fields whose control is a wrapper node (`SelectTrigger` — the field's RAC Group / container
@@ -420,6 +421,7 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
   "combobox",
+  "searchfield",
 ]);
 /** The part nodes inside the control wrapper of such a field (`[]` = the field composes them). */
 export function catalogFieldControlNodes(
@@ -1006,12 +1008,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      const trigger = childOf(input, "SelectTrigger");
-      const value = trigger
-        ? childrenOf(input.root, trigger).find(
-            (child) => catalogTypeName(input.root, child) === "SelectValue",
-          )
-        : undefined;
       return createElement(SearchField as ElementType, {
         ...fieldBase(input),
         ...inputHints(props),
@@ -1022,9 +1018,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ),
         description: fieldDescription(input, str(props.description)),
         errorMessage: fieldError(input, str(props.errorMessage)),
-        placeholder: value
-          ? str(value.props.placeholder)
-          : str(props.placeholder),
+        // ADR-253: the glyph, the Input and the clear button are the wrapper's part nodes.
+        controlElements: fieldControl(input),
+        placeholder: str(props.placeholder),
         defaultValue: str(props.value),
         maxLength: num(props.maxLength),
         minLength: num(props.minLength),

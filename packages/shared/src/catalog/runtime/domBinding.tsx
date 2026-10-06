@@ -642,9 +642,13 @@ function fieldInputBinding(
     ...(typeof node.props.size === "string"
       ? { "data-size": node.props.size }
       : {}),
+    // (`type` is a TextField's own prop: any other field's RAC context sets its input's type —
+    // a SearchField's `search`.)
     ...(multiline
       ? { rows: typeof field.props.rows === "number" ? field.props.rows : 3 }
-      : text("type")),
+      : field.bindingId === "textfield"
+        ? text("type")
+        : {}),
     ...text("placeholder"),
     style,
   });
@@ -1478,6 +1482,13 @@ function renderNode(
       partField.props.isDisabled === true;
     // (The sheet gives every Button a border: one the document removes is written out.)
     if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;
+    // A SearchField's sheet hides its clear button while the input is empty (`[data-empty]`,
+    // RAC's run state): that Button's display stays the sheet's.
+    if (
+      partField?.bindingId === "searchfield" &&
+      partField.id !== node.parentId
+    )
+      delete bound.display;
     if (node.props.isDisabled !== true && !fieldDisabled) {
       // A color the document wrote goes out as the sheet's own variable (`.button-base` reads
       // `--button-color` · `--button-border` · `--button-text`), so its hover and pressed colors

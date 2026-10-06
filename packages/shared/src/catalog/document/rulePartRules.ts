@@ -61,13 +61,13 @@ const SUBPART_TOKENS: Readonly<
   ComboBox: { SelectTrigger: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
   NumberField: { SelectTrigger: [".react-aria-Group"] },
+  // ADR-253: the container holds the search glyph (an Icon — whole selectors: a direct child, not
+  // the clear button's own glyph), an Input instance and a Button instance.
   SearchField: {
     SelectTrigger: [".searchfield-container"],
-    SelectValue: [".react-aria-Input"],
-    SelectIcon: [
-      ".search-icon svg",
-      ".react-aria-Button",
-      ".react-aria-Button svg",
+    Icon: [
+      ".searchfield-container > .react-aria-Icon",
+      ".searchfield-container > .react-aria-Icon svg",
     ],
   },
   DatePicker: {
@@ -121,20 +121,13 @@ export function catalogSubpartDomSelectors(
  */
 const SUBPART_CHILD_PROPS: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, Scalar>>>>>
-> = {
-  SearchField: {
-    ".search-icon svg": { iconName: "search" },
-    ".react-aria-Button": { iconName: "x" },
-    ".react-aria-Button svg": { iconName: "x" },
-  },
-};
+> = {};
 /**
  * `… svg` tokens size the glyph (`iconSize`). `box`: the glyph's wrapper has no size of its own
  * (`.search-icon` flex span), so the svg size is also the child's box.
  */
 const GLYPH_TOKENS: Readonly<Record<string, { box: boolean }>> = {
-  ".search-icon svg": { box: true },
-  ".react-aria-Button svg": { box: false },
+  ".searchfield-container > .react-aria-Icon svg": { box: true },
 };
 /**
  * Typed children that stand for several owner-composed DOM parts: DateRangePicker's one typed
@@ -155,9 +148,10 @@ const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
   "SelectValue",
   "SelectIcon",
   "DateInput",
-  // ADR-253: the parts a field's wrapper holds as instances of their origins.
+  // ADR-253: the parts a field's wrapper holds — instances of their origins, a field's glyph.
   "Input",
   "Button",
+  "Icon",
 ]);
 const SHARED_TOKENS: Readonly<Record<string, string>> = {
   '[slot="description"]': "Description",
