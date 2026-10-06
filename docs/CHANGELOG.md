@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - Page 기본 테두리용 Paint를 Canvas 수명 동안 재사용하고, 프레임마다 root를 추가 조회하지 않도록 해 오버레이의 반복 작업을 줄였다.
+- Page 겹침 판정은 이미 알고 있는 Page root의 그리기 순서를 사용해 불필요한 부모 조회를 생략한다.
 
 ## [Canvas hover 가이드 — 1px 두께 통일] - 2026-10-07
 

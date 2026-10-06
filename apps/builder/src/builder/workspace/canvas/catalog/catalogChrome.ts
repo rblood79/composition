@@ -111,14 +111,18 @@ export function catalogOccludingPages(
   paintRoots: readonly string[],
   boundsOf: (id: string) => BoundingBox | undefined,
 ): BoundingBox[] {
-  let pageRoot = identity;
-  for (
-    let parent = parentOf(pageRoot);
-    parent && parent !== "catalog:root";
-    parent = parentOf(pageRoot)
-  )
-    pageRoot = parent;
-  const at = paintRoots.indexOf(pageRoot);
+  // A page frame already has its paint-order identity; only descendants need ancestry reads.
+  let at = paintRoots.indexOf(identity);
+  if (at < 0) {
+    let pageRoot = identity;
+    for (
+      let parent = parentOf(pageRoot);
+      parent && parent !== "catalog:root";
+      parent = parentOf(pageRoot)
+    )
+      pageRoot = parent;
+    at = paintRoots.indexOf(pageRoot);
+  }
   if (at < 0) return [];
   return paintRoots.slice(at + 1).flatMap((id) => {
     const box = boundsOf(id);

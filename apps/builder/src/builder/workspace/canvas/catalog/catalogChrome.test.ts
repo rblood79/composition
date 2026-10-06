@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { catalogOccludingPages } from "./catalogChrome";
 
 /**
@@ -22,6 +22,19 @@ const parentOf = (id: string) => parents.get(id);
 const boundsOf = (id: string) => boxes.get(id);
 
 describe("catalogOccludingPages", () => {
+  it("이미 그려진 Page root이면 부모를 조회하지 않는다", () => {
+    const lookup = vi.fn(parentOf);
+    expect(
+      catalogOccludingPages(
+        "home",
+        lookup,
+        ["home", "second", "third"],
+        boundsOf,
+      ),
+    ).toEqual([boxes.get("second"), boxes.get("third")]);
+    expect(lookup).not.toHaveBeenCalled();
+  });
+
   it("gives the pages painted after a record's own page", () => {
     expect(
       catalogOccludingPages(
