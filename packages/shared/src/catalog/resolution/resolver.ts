@@ -261,6 +261,14 @@ const DISPLAY_PAINT_STATE: Readonly<
 type LibraryPatchScope = {
   instances: readonly (NodeId | TemplateId)[];
   patches: readonly LibraryDescendantPatch[];
+  /**
+   * Slot fills of that template node (`LibraryTemplateNode.slotFills`): at the composite's slot
+   * position, the node's own children projected in place of the position's default children.
+   */
+  fills?: readonly {
+    templatePath: readonly TemplateId[];
+    project: (parent: ParentContext) => ResolvedCatalogNode[];
+  }[];
 };
 const sameIds = (left: readonly string[], right: readonly string[]): boolean =>
   left.length === right.length &&
@@ -1147,6 +1155,107 @@ export function resolveCatalogNode(
           ...(root.stateRules ?? []),
         ]
       : [];
+    const rowSet = rowing?.rowSet;
+    const itemPositions = rowSet
+      ? template.children.filter((childId) =>
+          CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
+        )
+      : [];
+    // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
+    const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
+    const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
+    const childRowing =
+      row || passRows
+        ? {
+            ...(row ? { row } : {}),
+            ...(passRows ? { rowSet: passRows } : {}),
+            ...(rowLabel ? { rowLabel } : {}),
+          }
+        : undefined;
+    /** This node's template children (`ids`) projected under `childrenParent`, rows repeated. */
+    const projectChildren = (
+      ids: readonly TemplateId[],
+      childrenParent: ParentContext | undefined,
+      rowParent: ParentContext | undefined,
+    ): ResolvedCatalogNode[] => {
+      const out: ResolvedCatalogNode[] = [];
+      for (const childId of ids) {
+        if (selection && !selection.include(childId, instancePath)) continue;
+        const childPath = [...path, childId];
+        if (rowSet && itemPositions.includes(childId)) {
+          // The first item position is the row template; the rest are sample items.
+          if (childId !== itemPositions[0]) continue;
+          rowSet.forEach((data, index) => {
+            const projected = projectTemplate(
+              owner,
+              childId,
+              instancePath,
+              childPath,
+              rowParent,
+              bindings,
+              undefined,
+              patches,
+              { row: data, rowStart: true },
+            );
+            if (projected)
+              push(out, {
+                ...(index === 0 ? projected : withRowKey(projected, data.key)),
+                rowIndex: index,
+              });
+          });
+          continue;
+        }
+        push(
+          out,
+          projectTemplate(
+            owner,
+            childId,
+            instancePath,
+            childPath,
+            childrenParent,
+            bindings,
+            undefined,
+            patches,
+            childRowing,
+          ),
+        );
+      }
+      return out;
+    };
+    // Children of this node that fill slot positions of the composite it instantiates
+    // (`slotFills`) are projected there, not after the composite's root.
+    const slotFills =
+      "slotFills" in template && template.slotFills ? template.slotFills : [];
+    const filledIds = new Set<TemplateId>(
+      slotFills.flatMap((fill) => fill.childIds),
+    );
+    const ownChildIds = filledIds.size
+      ? template.children.filter((childId) => !filledIds.has(childId))
+      : template.children;
+    const nestedScope = (
+      nestedPath: readonly (NodeId | TemplateId)[],
+    ): LibraryPatchScope | undefined => {
+      const nestedPatches =
+        "descendantPatches" in template &&
+        template.descendantPatches &&
+        !rowing?.rowStart
+          ? template.descendantPatches
+          : undefined;
+      if (!nestedPatches && !slotFills.length) return undefined;
+      return {
+        instances: nestedPath,
+        patches: nestedPatches ?? [],
+        ...(slotFills.length
+          ? {
+              fills: slotFills.map((fill) => ({
+                templatePath: fill.templatePath,
+                project: (slot: ParentContext) =>
+                  projectChildren(fill.childIds, slot, slot),
+              })),
+            }
+          : {}),
+      };
+    };
     const children: ResolvedCatalogNode[] = [];
     if (definition.mode === "composite" && definition.templateRootId) {
       const nestedPath = [...instancePath, templateId];
@@ -1199,32 +1308,11 @@ export function resolveCatalogNode(
                 },
               ),
             ),
-            "descendantPatches" in template &&
-              template.descendantPatches &&
-              !rowing?.rowStart
-              ? { instances: nestedPath, patches: template.descendantPatches }
-              : undefined,
+            nestedScope(nestedPath),
             row ? { row } : undefined,
           ),
         );
     }
-    const rowSet = rowing?.rowSet;
-    const itemPositions = rowSet
-      ? template.children.filter((childId) =>
-          CATALOG_ROW_ITEM_TYPES.has(templateTypeName(childId)),
-        )
-      : [];
-    // The rows reach the item positions below a part without them (TagGroup > TagList > Tag).
-    const passRows = rowSet && itemPositions.length === 0 ? rowSet : undefined;
-    const rowLabel = !!row && templateTypeName(templateId) === "Breadcrumb";
-    const childRowing =
-      row || passRows
-        ? {
-            ...(row ? { row } : {}),
-            ...(passRows ? { rowSet: passRows } : {}),
-            ...(rowLabel ? { rowLabel } : {}),
-          }
-        : undefined;
     // A composite position's own children are drawn inside the root it collapses into (ADR-253:
     // a field's stepper is an instance of the Button origin that holds its glyph): that root's
     // rules reach them, as they reach the root's own template children.
@@ -1251,47 +1339,14 @@ export function resolveCatalogNode(
           ...(nodeState ? { state: nodeState } : {}),
         };
     }
-    for (const childId of template.children) {
-      if (selection && !selection.include(childId, instancePath)) continue;
-      const childPath = [...path, childId];
-      if (rowSet && itemPositions.includes(childId)) {
-        // The first item position is the row template; the rest are sample items.
-        if (childId !== itemPositions[0]) continue;
-        rowSet.forEach((data, index) => {
-          const projected = projectTemplate(
-            owner,
-            childId,
-            instancePath,
-            childPath,
-            self,
-            bindings,
-            undefined,
-            patches,
-            { row: data, rowStart: true },
-          );
-          if (projected)
-            push(children, {
-              ...(index === 0 ? projected : withRowKey(projected, data.key)),
-              rowIndex: index,
-            });
-        });
-        continue;
-      }
-      push(
-        children,
-        projectTemplate(
-          owner,
-          childId,
-          instancePath,
-          childPath,
-          childParent,
-          bindings,
-          undefined,
-          patches,
-          childRowing,
-        ),
-      );
-    }
+    // The slot position of the composite this node's template sits in, filled by that node
+    // (`slotFills`): its default children give way to the fill.
+    const libraryFill =
+      patches?.fills && sameIds(patches.instances, instancePath)
+        ? patches.fills.find((item) => sameIds(item.templatePath, path))
+        : undefined;
+    if (libraryFill) children.push(...libraryFill.project(self));
+    else children.push(...projectChildren(ownChildIds, childParent, self));
     if (change?.kind === "fillSlot") {
       children.length = 0;
       for (const childId of change.childIds) {

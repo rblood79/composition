@@ -5,6 +5,7 @@ import type {
   EditTarget,
   EntryId,
   LibraryDescendantPatch,
+  LibrarySlotFill,
   LibraryTemplateId,
   NodeEntry,
   NodeId,
@@ -47,12 +48,28 @@ interface PositionScope {
     instances: readonly (NodeId | TemplateId)[];
     patches: readonly LibraryDescendantPatch[];
   };
+  /**
+   * Slot fills of the library template node whose composite template this scope is in
+   * (`LibraryTemplateNode.slotFills`): at `templatePath`, that node's children `childIds` —
+   * positions of the node's own template (`scope` · `instancePath`) — stand in place of the slot
+   * position's default children.
+   */
+  fills?: {
+    instances: readonly (NodeId | TemplateId)[];
+    fills: readonly {
+      templatePath: readonly TemplateId[];
+      childIds: readonly TemplateId[];
+      scope: PositionScope;
+      instancePath: readonly (NodeId | TemplateId)[];
+    }[];
+  };
 }
 type TemplateRecord = {
   definitionId: DefinitionId;
   children: readonly TemplateId[];
   enabled?: boolean;
   descendantPatches?: readonly LibraryDescendantPatch[];
+  slotFills?: readonly LibrarySlotFill[];
 };
 
 const sameIds = (a: readonly string[], b: readonly string[]) =>
@@ -258,6 +275,29 @@ export function childPositions(
   const template = readTemplate(reader, templateId);
   const nestedRoot = templateRootOf(reader, template.definitionId);
   const nestedPath = [...instancePath, templateId];
+  // A slot position the enclosing template node fills (`slotFills`) shows that node's children.
+  const libraryFill =
+    scope.fills && sameIds(scope.fills.instances, instancePath)
+      ? scope.fills.fills.find((item) => sameIds(item.templatePath, scope.path))
+      : undefined;
+  const slotFills = template.slotFills ?? [];
+  const filledIds = new Set<TemplateId>(
+    slotFills.flatMap((fill) => fill.childIds),
+  );
+  const templateChildren = (
+    ids: readonly TemplateId[],
+    at: PositionScope,
+    atInstancePath: readonly (NodeId | TemplateId)[],
+  ) =>
+    ids.flatMap((childId) => {
+      const child = templatePosition(
+        reader,
+        { ...at, path: [...at.path, childId] },
+        atInstancePath,
+        options,
+      );
+      return child ? [child] : [];
+    });
   return [
     ...(nestedRoot
       ? collapsedRootChildren(
@@ -273,20 +313,35 @@ export function childPositions(
                   },
                 }
               : {}),
+            ...(slotFills.length
+              ? {
+                  fills: {
+                    instances: nestedPath,
+                    fills: slotFills.map((fill) => ({
+                      templatePath: fill.templatePath,
+                      childIds: fill.childIds,
+                      scope,
+                      instancePath,
+                    })),
+                  },
+                }
+              : {}),
           },
           nestedPath,
           options,
         )
       : []),
-    ...template.children.flatMap((childId) => {
-      const child = templatePosition(
-        reader,
-        { ...scope, path: [...scope.path, childId] },
-        instancePath,
-        options,
-      );
-      return child ? [child] : [];
-    }),
+    ...(libraryFill
+      ? templateChildren(
+          libraryFill.childIds,
+          libraryFill.scope,
+          libraryFill.instancePath,
+        )
+      : templateChildren(
+          template.children.filter((childId) => !filledIds.has(childId)),
+          scope,
+          instancePath,
+        )),
   ];
 }
 

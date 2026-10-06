@@ -105,7 +105,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 4,
+    libraryContractVersion: 5,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -480,9 +480,18 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "lib:definition:origin-component-select" as DefinitionId,
       "select",
     );
+    // The items sit in the Select's ListBox (ADR-253 Phase 4): the closed list is hidden, and its
+    // subtree with it.
+    const list = select.byType("ListBox");
+    expect(list.map((node) => node.hidden)).toEqual([true]);
     const listItems = select.byType("ListBoxItem");
     expect(listItems.length).toBeGreaterThan(0);
-    expect(listItems.every((item) => item.hidden)).toBe(true);
+    expect(listItems.every((item) => item.parentId === list[0]!.id)).toBe(true);
+    const boxes = select.root.getGeometry(listItems.map((item) => item.id));
+    for (const item of listItems) {
+      const box = boxes.get(item.id) as { width: number; height: number };
+      expect((box?.width ?? 0) * (box?.height ?? 0)).toBe(0);
+    }
     expect(select.byType("SelectTrigger").every((node) => !node.hidden)).toBe(
       true,
     );

@@ -1529,6 +1529,7 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "slot",
       "enabled",
       "descendantPatches",
+      "slotFills",
       "displayState",
       "stateRules",
     ],
@@ -1577,6 +1578,23 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
         patch.enabled === undefined
       )
         invalid("EMPTY_PATCH", at);
+    });
+  }
+  if (item.slotFills !== undefined) {
+    if (!Array.isArray(item.slotFills))
+      invalid("ARRAY_REQUIRED", "library.template.slotFills");
+    const paths = new Set<string>();
+    item.slotFills.forEach((raw, index) => {
+      const at = `library.template.slotFills[${index}]`;
+      const fill = object(raw, at);
+      exact(fill, ["templatePath", "childIds"], at);
+      list(fill.templatePath, "lib:template:", `${at}.templatePath`);
+      if (!(fill.templatePath as unknown[]).length)
+        invalid("EMPTY_TEMPLATE_PATH", at);
+      const key = JSON.stringify(fill.templatePath);
+      if (paths.has(key)) invalid("DUPLICATE_DESCENDANT_ADDRESS", at);
+      paths.add(key);
+      list(fill.childIds, "lib:template:", `${at}.childIds`);
     });
   }
   id(item.id, "lib:template:", "library.template.id");

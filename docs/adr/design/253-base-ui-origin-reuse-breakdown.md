@@ -747,3 +747,63 @@ G6 통과.
 
 - Phase 6 (정리) 으로: `SelectIcon` type 과 presence 의 `iconName` 파생 · `SelectTrigger` 의 칠하는 variant 중 쓰지 않는 것 · shared 컴포넌트의 props 조립 fallback 과 옛 `renderers/*` · `.inset` utility (파일 삭제는 사용자 승인 뒤).
 - ratchet 의 「하향 가능 5」 는 기록하지 않았다 (상한은 최적화 커밋에서 내린다).
+
+### 2026-10-07 — Phase 4: library 의 slot 채움 · Select · ComboBox 의 ListBox (G4, 브랜치 `adr-253`)
+
+**무엇이 바뀌었나**
+
+- **library 의 slot 채움 표현** (`D/types.ts` `LibrarySlotFill` · `LibraryTemplateNode.slotFills`): 합성 정의를 instance 로 쓰는 template 노드가 자기 `children` 가운데 일부를 그 합성 template 의 slot 자리에 세운다 — `{ templatePath (합성 template 루트부터), childIds }`. 뜻은 instance 의 `fillSlot` 을 중첩 루트 주소 `{ instances: [..., 그 노드], templatePath }` 에 쓴 것과 같고, instance 가 그 자리를 직접 채우면 그것이 library 의 채움을 대신한다. 채움 자식은 그 노드의 children 에 그대로 있어 주소 (`[…, 노드, 항목]`) 가 종전 template 자리와 같은 꼴이다.
+  - 검증: 모양 (`validation.ts` `validateLibraryTemplate` — 빈 경로 · 같은 경로 두 번) · 뜻 (`library.ts` `INVALID_SLOT_FILL` — 합성 instance 가 아님 · 경로가 그 template 의 것이 아님 · 대상에 `slot` 선언 없음 · 자식이 그 노드의 것이 아님 · 한 자식이 두 자리).
+  - 해석 (`resolver.ts` `projectTemplate`): 채움 자식은 합성 루트 뒤가 아니라 slot 자리 아래에 투영되고 그 자리의 기본 자식은 나오지 않는다. 그 뒤 instance 의 `fillSlot` 이 있으면 종전대로 그것으로 바뀐다. 데이터 행 반복 (`rowSet`) 은 채움 자식에서도 같다.
+  - Layers 행 (`positions.ts` `childPositions`): 해석과 같은 모양 — slot 자리 아래에 채움 자식.
+  - 명령: 「자리의 자식 목록」 을 한 곳에서 정한다 (`commands/context.ts` `listParent`) — 루트 slot 을 채우는 template 자리 (Select 의 ListBox) 의 목록은 중첩 루트의 slot 주소다. 첫 구조 편집 (`ensureChildList`) 은 library 의 채움 자식을 owned 노드로 복사해 그 주소의 `fillSlot` 으로 적는다. 자리 전체가 복사될 때 (detach) 는 채움이 사본 instance 의 `fillSlot` 이 된다 (`materialize.ts`).
+- **Select · ComboBox** (`L` `component-select__listbox` · `component-combobox__listbox`): 항목 4개가 루트 직계에서 **ListBox 원본 instance 의 slot 채움**으로 옮겨 갔다. `LIBRARY_CONTRACT_VERSION` 4 → 5.
+  - 「+」: ListBox 자리가 항목 · section 을 받는다 (ListBox 가족 그대로 — `COLLECTION_FAMILIES` 의 Select · ComboBox 행 삭제). picker 를 고른 채 누르는 「+」 는 그 ListBox 로 넘긴다 (`itemInsert.ts` — 닫힌 목록은 Canvas 에서 고를 수 없다).
+  - 중첩 규칙: picker 의 직계 자식은 Label · trigger · 도움말 · 오류 문구 · ListBox 다 (항목은 ListBox 안).
+  - 바인딩 행 템플릿 (`rowTemplate.ts`): 루트 직계에 항목이 없으면 한 단계 아래 (ListBox 안) 의 첫 항목.
+- **DOM** (F11 의 수리): select · combobox binding 이 ListBox 노드의 요소를 shared 컴포넌트의 `listElement` 로 넘기고, 컴포넌트는 그것을 Popover 안에 둔다 (없으면 종전처럼 `items` · children 으로 조립). picker 안의 ListBox 는 RAC `ListBox` 그대로 그린다 — 이름 · 선택 · focus 는 RAC 의 Select · ComboBox context 가 정하고 (`aria-label` 을 따로 적지 않는다) `data-size` 는 picker 의 size 다. ListBoxItem 은 label 부품의 글자를 `textValue` 로 받는다 (ComboBox 의 입력값 · 걸러내기, type-ahead, 숨은 native select 가 읽는다).
+- Canvas: 닫힌 picker 의 ListBox 는 종전 규칙 (`presence.ts` `TRIGGER_OVERLAY_CHILDREN`) 으로 숨고 항목은 그 아래라 같이 숨는다.
+
+**검증**
+
+- unit `adr253SlotFill.test.ts` 14건 (shared — 실제 code library + 최소 library): ListBox 루트 안 = picker 의 항목 4개 · 루트 뒤 항목 0 · ListBox 원본의 기본 항목 0 · Layers 행 = consumer tree · 항목 추가 → `fillSlot` 이 중첩 루트 주소 하나 · 사본이 template 항목과 같은 글자 · 바인딩 행 3개가 ListBox 안에서 반복 · 삭제 (자리 끄기) · detach 뒤에도 ListBox 가 항목을 가짐 · library 검증 거부 6종.
+- unit `adr253PickerListBox.test.ts` 12건 (builder — workspace · Canvas / DOM record · 실제 마운트): 양쪽 record 가 같은 구조 · picker 와 ListBox 양쪽에서 「+」 · 한 history step · undo · 항목 글자 편집과 삭제 · ListBox 원본의 배경색이 picker 의 목록 record 에 · 바인딩 행 템플릿 · **Preview 의 picker 를 마운트해 trigger 를 누르면 목록이 열리고 option = 항목 노드 (text · `data-catalog-id`), 고르면 Select 의 값 · ComboBox 의 입력값이 된다**.
+- 고친 기대값: `adr253FieldPartsDom` 의 Select 구조 대조 — 숨은 native select 에 항목 option 4개가 생겼다 (따로 단언). `phase3Presence` — 숨는 것은 ListBox 이고 항목은 그 아래 (상자 넓이 0).
+- 원복 RED 15행 (편집 → 테스트 → 바이트 복원, 끝에 트리 일치 확인): 채움을 slot 에 투영하지 않음 (9건 RED) · 채움 자식이 루트 뒤에도 나옴 (9) · 행이 채움을 무시 (4) · 목록 부모 정규화 없음 (2) · 첫 편집이 루트의 기본 항목을 복사 (2) · detach 가 채움을 버림 (2) · slot 없는 자리의 채움 허용 (1) · 남의 자식 허용 (1) · Select 가 목록 요소를 받지 않음 (1) · `textValue` 없음 (1) · picker 목록을 단독 ListBox 로 그림 (2) · 「+」 위임 없음 (4) · 행 템플릿을 루트 직계에서만 찾음 (2) · 행 템플릿 판정을 주소 자리로 (2) · library 에서 `slotFills` 를 뺌 (4).
+- 회귀: `pnpm type-check` · shared 1,515 · builder 4,479 · publish 11 통과. 시각 하니스 70건 중 69 (남은 1건 CardView — 종전과 같다).
+- initial 번들 (production 빌드 · `adr209-bundle-closure.mjs`, Phase 3 끝 `dfbdba22d` 대비): Builder JS gzip 1,226,609 → 1,227,683 (+1,074) · Preview JS gzip 287,048 → 287,042 (−6) · CSS 는 둘 다 같다. 상한 (Builder 1,421,000 · Preview 623,000) 안.
+- live `apps/builder/scripts/adr253-p4-live.mjs` 8/8 (5175 · headed Chrome · DPR 1 · visible · locale en-US): 팔레트로 ListBox · ComboBox · Select 를 놓고 Compare Mode → Preview 의 Select trigger 를 누르면 열리고 (`aria-expanded` true) option 4개 = Canvas 의 항목 (글자 · 노드 id), 목록 요소 = ListBox 노드, Popover 폭 = field 폭 · 「Dog」 를 고르면 값이 된다 → ComboBox 를 버튼으로 열면 같은 4개, 「ca」 를 치면 「Cat」 만 남고 고르면 입력값이 「Cat」 → Select 를 고르고 Design 패널의 「+」 → 양쪽 5개 (`Item 5`), 문서에는 중첩 루트 주소의 `fillSlot` 하나 → 둘째 항목 글자를 바꾸고 셋째를 지움 → 양쪽 같은 4개 → ListBox 원본의 배경색을 두 번 바꿈 → Select · ComboBox 의 목록과 단독 ListBox 가 Canvas record 와 Preview computed style 에서 같이 바뀜 → undo 로 처음 4개. 콘솔 오류 0. 화면에서 열린 목록 (선택 ✓ · 원본 배경색) 을 눈으로 확인했다.
+  - 한계: 항목 글자 편집 · 삭제 · 원본 편집은 패널 조작이 아니라 패널이 내는 것과 같은 명령 (`setFields` · `removeTargets` · `setLibraryDefault`) 으로 썼다. 「+」 는 실제 패널 버튼이다.
+
+**G4 판정**
+
+| 조건                                                                                                    | 결과                                                 |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| slot 채움 표현: 타입 · 검증 · 해석 unit — 루트 안 = Select 의 항목 · 루트 밖 0 · 기본 항목 0 (원복 RED) | 통과 — `adr253SlotFill` 14건 · RED 1 · 2 · 15행      |
+| Preview 의 선택 목록 = Canvas 의 항목 (추가 · 삭제 · 텍스트 변경이 양쪽에)                              | 통과 — unit (마운트) · live                          |
+| ListBox 원본의 스타일 편집이 Select 의 목록에 닿는다                                                    | 통과 — unit (record) · live (Preview computed style) |
+| G3 잔여: Select · ComboBox 가 Preview 에서 열린다                                                       | 통과 — unit (마운트) · live                          |
+
+G4 통과. Phase 3 의 G3 표에서 남았던 「Select · ComboBox 열기」 도 이것으로 닫힌다.
+
+**찾은 것 (이 Phase 범위 밖)**
+
+- **Preview 채널: 한 delta 사이에 만들어졌다 지워진 노드.** live 스크립트가 undo 를 한 프레임에 몰아 실행했을 때 (삭제의 undo → 삽입의 undo) Preview 가 delta 를 거부하고 (`ENTRY_NOT_FOUND` — replica 가 가진 적 없는 id 의 삭제) snapshot 을 다시 받았다. 화면은 복구되고 콘솔에 오류 한 줄이 남는다. ADR-248 의 delta 구성 (`previewChannel.ts` 가 프레임마다 모은 id 를 「있으면 put · 없으면 remove」 로 보낸다) 에서 나오는 것으로 이 Phase 의 변경과 무관하다. 스크립트는 undo 를 delta 마다 한 번씩 하도록 했다.
+- picker 목록의 항목은 단독 ListBox 의 항목과 같은 모양이다 (같은 원본 `ListBoxItem` — label 부품의 글자 굵기 포함). picker 에서만 다르게 하려면 항목 원본의 변형이나 picker template 의 patch 를 정해야 한다 — 이번에는 정하지 않았다.
+
+**남긴 것**
+
+- Select · ComboBox 의 `selectedKey` · `defaultSelectedKey` 는 여전히 DOM 에 닿지 않는다 (binding 이 넘기지 않는다 — 전환 전과 같다). Preview 의 선택은 실행 상태다.
+- `S/catalog/slotRoles.ts` `STATIC_LIST_FAMILY_BY_OWNER` 는 읽는 곳이 없다 (Select · ComboBox 행이 옛 구조를 적고 있다) — Phase 6 정리 대상.
+
+**판독 (1회) — HIGH 0 · MEDIUM 0, Phase 4 닫힘**
+
+판독자가 resolver 의 fill 조회 (두 겹 중첩 주소) · 행 반복 · `listParent` 의 호출처 · materialize · shared Select / ComboBox 의 `listElement` 를 코드로 따라가 종전 경로와 같음을 확인했다. 수리할 것이 없어 수리 검증 라운드는 열지 않는다. LOW deferred:
+
+- `materialize.ts` 의 fill 분기가 사본이 생긴 항목 아래의 소비되지 않은 override 를 owner 에 남긴다 (resolver 가 그 주소를 지나지 않아 화면 영향 0).
+- `listParent` 는 루트 slot 채움만 정규화한다 (resolver · positions 는 임의 깊이). library 데이터가 루트 slot 만 쓰는 동안은 재현되지 않는다 — 깊은 slot 을 채우는 데이터를 넣을 때 (Phase 5 에서 필요하면) 같이 고친다.
+- instance 가 `fillSlot` 으로 ListBox 루트를 채웠을 때도 library fill 을 먼저 투영하고 버린다 (결과는 같고 투영 비용만 든다).
+- Select · ComboBox 의 허용 자식에 `ListBox` 가 있어 두 번째 ListBox 를 넣을 수 있다 (DOM 은 첫 ListBox 만 그린다 — 일부러 만들어야 하는 상태).
+- 두 겹 중첩 (사용자 컴포넌트 안의 Select) 은 코드 추적으로만 확인했다.
+
+판독자의 미확인 3건은 실행자가 확인했다: `STATIC_LIST_FAMILY_BY_OWNER` 는 읽는 곳이 없고 (위 「남긴 것」), ListBox · ListBoxItem 의 생성 CSS 에 `data-size` 선택자가 없어 picker 의 size 로 항목 모양이 갈리지 않으며, picker 목록 판정의 노드 동일성은 마운트 unit · live 가 통과한다.

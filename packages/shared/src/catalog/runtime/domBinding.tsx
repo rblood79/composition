@@ -45,6 +45,7 @@ import {
   catalogFieldHintNodes,
   catalogFieldLabelNecessity,
   catalogFieldControlNodes,
+  catalogPickerListNode,
   catalogFieldLabelNode,
   catalogPartField,
   catalogOwnerDrawnPart,
@@ -115,6 +116,8 @@ interface FieldPartElements {
   error?: ReactElement;
   /** The part node elements inside the field's control wrapper, in order (ADR-253). */
   control?: ReactElement[];
+  /** A picker's option list: its ListBox node's element (ADR-253 Phase 4). */
+  list?: ReactElement;
 }
 type DomBinding = (
   node: CatalogConsumerNode,
@@ -585,6 +588,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       description: parts?.description,
       errorMessage: parts?.error,
       controlElements: parts?.control,
+      listElement: parts?.list,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -606,6 +610,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       description: parts?.description,
       errorMessage: parts?.error,
       controlElements: parts?.control,
+      listElement: parts?.list,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -1024,11 +1029,7 @@ function ruleDom(
               node.props as Record<string, unknown>,
               node.id,
             ),
-            textValue: node.children
-              .map((id) => root.domInputs.get(id))
-              .filter((child) => child?.props.slot === "label")
-              .map((child) => String(child?.props.children ?? ""))
-              .join(""),
+            textValue: itemLabelText(root, node),
             isDisabled: node.props.isDisabled === true,
             ...(typeof node.props.href === "string" && node.props.href
               ? { href: node.props.href }
@@ -1042,6 +1043,11 @@ function ruleDom(
               node.id,
             ),
           }
+        : {}),
+      // A ListBoxItem's text is its label part's (RAC reads `textValue` for a picker's input
+      // value and filter, type-ahead and the hidden native select — its children are elements).
+      ...(lower === "listboxitem" && itemLabelText(root, node)
+        ? { textValue: itemLabelText(root, node) }
         : {}),
       ...(usesButtonBaseUtility(type)
         ? { className: `react-aria-${type} button-base` }
@@ -1095,6 +1101,18 @@ function ruleDom(
         ]
       : []),
   );
+}
+
+/** A collection item's text: its label part's (the `label` slot role child). */
+function itemLabelText(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string {
+  return node.children
+    .map((id) => root.domInputs.get(id))
+    .filter((child) => child?.props.slot === "label")
+    .map((child) => String(child?.props.children ?? ""))
+    .join("");
 }
 
 /** Preview `ORPHAN_ITEM_HOST`: RAC host of each collection item/section type (lower-case). */
@@ -1457,6 +1475,9 @@ function renderNode(
                 partElement(part)!,
               ),
             }
+          : {}),
+        ...(catalogPickerListNode(root, node)
+          ? { list: partElement(catalogPickerListNode(root, node)) }
           : {}),
       }
     : undefined;

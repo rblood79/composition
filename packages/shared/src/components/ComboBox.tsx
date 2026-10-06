@@ -59,6 +59,11 @@ export interface ComboBoxProps<T extends object> extends Omit<
    */
   controlElements?: React.ReactNode[];
   /**
+   * The option list, drawn by its ListBox node (ADR-253 Phase 4 — an instance of the ListBox
+   * origin holding the items). Absent: the component builds the list from `items` · children.
+   */
+  listElement?: React.ReactNode;
+  /**
    * ADR-912 영역 B Task 7: 정적 items[] SSOT (StoredComboBoxItem[] 직렬화 형태).
    *   RAC `AriaComboBoxProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
    *   Select Task 6 과 달리 ComboBox 는 기존 interface 에 items prop 이 없었으므로 신설(additive).
@@ -111,6 +116,7 @@ export function ComboBox<T extends object>({
   labelAlign,
   isQuiet,
   controlElements,
+  listElement,
   ...props
 }: ComboBoxProps<T>) {
   const t = useComponentStrings();
@@ -356,13 +362,15 @@ export function ComboBox<T extends object>({
           offset={4}
           style={popoverStyle}
         >
-          <ListBox
-            className="react-aria-ListBox"
-            items={comboBoxItems}
-            data-size={size}
-          >
-            {listBoxChildren}
-          </ListBox>
+          {listElement ?? (
+            <ListBox
+              className="react-aria-ListBox"
+              items={comboBoxItems}
+              data-size={size}
+            >
+              {listBoxChildren}
+            </ListBox>
+          )}
         </Popover>
       )}
     </AriaComboBox>

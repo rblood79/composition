@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select · ComboBox 의 항목이 ListBox 안에 있다 — Preview 에서 열린다 (ADR-253 Phase 4)] - 2026-10-07
+
+### Fixed
+
+- Preview 에서 Select · ComboBox 가 열린다. 전에는 선택 목록에 항목이 없어 눌러도 열리지 않았다. 목록의 항목은 Builder 문서의 항목 그대로다 — 항목을 추가 · 삭제하거나 글자를 바꾸면 Preview 의 목록도 같이 바뀐다.
+- ComboBox 에 글자를 치면 항목이 걸러지고, 고른 항목의 글자가 입력값이 된다.
+
+### Changed
+
+- Select · ComboBox 의 항목은 그 안의 ListBox (ListBox 원본의 instance) 에 들어 있다. Layers 에서 항목은 ListBox 아래에 보인다.
+- ListBox 원본의 스타일을 고치면 단독 ListBox 와 함께 Select · ComboBox 의 선택 목록도 바뀐다.
+- Select · ComboBox 를 고른 채 누르는 항목 「+」 는 그 ListBox 에 항목을 더한다 (ListBox 를 골라도 같다).
+- 저장 형식: library contract 5. 앞 버전으로 저장한 프로젝트는 열리지 않는다 (변환 없음 — 개발 단계 정책).
+
+### Technical
+
+- library template 노드가 slot 채움을 적는다 (`LibraryTemplateNode.slotFills`). 합성 원본을 instance 로 쓰는 자리가 자기 자식을 그 원본 template 의 slot 자리에 세운다 — instance 의 `fillSlot` 과 같은 뜻이고, instance 가 그 자리를 채우면 그것이 대신한다. 바탕 사슬 (Phase 5) 이 같은 표현을 쓴다.
+
 ## [Page 기본 테두리 — Builder 전용 오버레이] - 2026-10-07
 
 ### Added

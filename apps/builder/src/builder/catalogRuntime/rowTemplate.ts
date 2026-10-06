@@ -54,13 +54,20 @@ export function catalogRowTemplateId(
   const rootId = (definition as { templateRootId?: TemplateId } | undefined)
     ?.templateRootId;
   if (!rootId) return undefined;
-  const root = rootId.startsWith("lib:")
-    ? reader.library.templates.get(rootId as `lib:template:${string}`)
-    : reader.getEntry(rootId);
-  const children =
-    (root as { children?: readonly TemplateId[] } | undefined)?.children ?? [];
-  return children.find((childId) =>
-    ROW_ITEM_TYPES.has(templateType(reader, childId)),
+  const childrenOf = (id: TemplateId): readonly TemplateId[] =>
+    (
+      (id.startsWith("lib:")
+        ? reader.library.templates.get(id as `lib:template:${string}`)
+        : reader.getEntry(id)) as
+        { children?: readonly TemplateId[] } | undefined
+    )?.children ?? [];
+  const itemOf = (ids: readonly TemplateId[]) =>
+    ids.find((childId) => ROW_ITEM_TYPES.has(templateType(reader, childId)));
+  const children = childrenOf(rootId);
+  // The rows reach the items of a part that holds them (a Select's ListBox — the resolver passes
+  // the rows on to a part when the root itself has no item position).
+  return (
+    itemOf(children) ?? itemOf(children.flatMap((child) => childrenOf(child)))
   );
 }
 
@@ -72,9 +79,12 @@ export function catalogRowTemplateOwner(
   if (target.kind !== "descendant") return undefined;
   const rowTemplate = catalogRowTemplateId(reader, target.ownerId);
   if (!rowTemplate) return undefined;
+  // (The row template itself, a position below it, or one inside its own composite template.)
   const { instances, templatePath } = target.address;
-  const entry = instances.length > 1 ? instances[1] : templatePath[1];
-  return entry === rowTemplate ? target.ownerId : undefined;
+  return (instances as readonly string[]).includes(rowTemplate) ||
+    templatePath.includes(rowTemplate)
+    ? target.ownerId
+    : undefined;
 }
 
 export interface CatalogCardField {

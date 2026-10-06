@@ -13,6 +13,7 @@ import {
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
+import { ListBox as AriaListBox } from "react-aria-components/ListBox";
 import { Text as AriaText } from "react-aria-components/Text";
 import {
   FILE_UPLOAD_INPUT_CHILD_TYPES,
@@ -451,6 +452,20 @@ export function catalogFieldControlNodes(
     : parts;
 }
 /**
+ * A picker's option list (ADR-253 Phase 4): the ListBox node of a Select · ComboBox — an instance
+ * of the ListBox origin holding the items, drawn inside the picker's Popover.
+ */
+export function catalogPickerListNode(
+  root: CatalogCompositionRoot,
+  field: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  if (field.bindingId !== "select" && field.bindingId !== "combobox")
+    return undefined;
+  return childrenOf(root, field).find(
+    (child) => catalogTypeName(root, child) === "ListBox",
+  );
+}
+/**
  * The field a part node belongs to: its parent, or the parent of the control wrapper it is in.
  */
 export function catalogPartField(
@@ -672,20 +687,36 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       !["ListBoxItem", "ListBoxSection"].includes(catalogTypeName(root, child)),
     render: (input) => {
       const props = input.node.props;
+      // A picker's list (ADR-253 Phase 4): RAC's Select · ComboBox own its name, selection and
+      // focus (their context), and its sheet reads the picker's size.
+      const picker = input.root.domInputs.get(input.node.parentId);
+      const inPicker =
+        !!picker && catalogPickerListNode(input.root, picker) === input.node;
+      // (RAC's ListBox itself, as the shared Select · ComboBox compose it: the shared ListBox's
+      // variant marks are the standalone list's.)
       return createElement(
-        ListBox as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          "aria-label": str(props.label || "List"),
-          variant: props.variant || undefined,
-          orientation: props.orientation || "vertical",
-          selectionMode: props.selectionMode ?? "none",
-          disallowEmptySelection: bool(props.disallowEmptySelection),
-          autoFocus: bool(props.autoFocus),
-          defaultSelectedKeys:
-            typeof props.selectedKey === "string" ? [props.selectedKey] : [],
-        },
+        (inPicker ? AriaListBox : ListBox) as ElementType,
+        inPicker
+          ? {
+              ...marker(input),
+              style: input.style,
+              className: "react-aria-ListBox",
+              "data-size": str(picker.props.size || "md"),
+            }
+          : {
+              ...marker(input),
+              style: input.style,
+              "aria-label": str(props.label || "List"),
+              variant: props.variant || undefined,
+              orientation: props.orientation || "vertical",
+              selectionMode: props.selectionMode ?? "none",
+              disallowEmptySelection: bool(props.disallowEmptySelection),
+              autoFocus: bool(props.autoFocus),
+              defaultSelectedKeys:
+                typeof props.selectedKey === "string"
+                  ? [props.selectedKey]
+                  : [],
+            },
         ...renderAll(
           input,
           children(input).filter((child) =>

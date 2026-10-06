@@ -120,12 +120,27 @@ function itemTypesOf(
   return [...types];
 }
 
+/**
+ * ADR-253 Phase 4 — pickers whose items sit in their ListBox (an instance of the ListBox origin,
+ * hidden on the Canvas while the picker is closed): the picker's "+" adds the item there.
+ */
+const PICKER_LIST: Readonly<Record<string, string>> = {
+  Select: "ListBox",
+  ComboBox: "ListBox",
+};
+
 export function catalogItemInsertChoices(
   host: CatalogItemInsertHost,
   position: CatalogPosition,
 ): CatalogItemInsertChoice[] {
   const { graph, readModel, newId } = host;
   const type = typeOf(graph, position.definitionId);
+  if (PICKER_LIST[type]) {
+    const list = readModel
+      .childRows(position)
+      .find((row) => typeOf(graph, row.definitionId) === PICKER_LIST[type]);
+    return list ? catalogItemInsertChoices(host, list) : [];
+  }
   const types = itemTypesOf(graph, type, position);
   if (!types.length) return [];
   const own = readModel.childRows(position);

@@ -43,8 +43,6 @@ interface CollectionFamily {
   section?: string;
   /** Items hold items (TreeItem, MenuItem). */
   recursive?: boolean;
-  /** A picker popover item never becomes the selection on insert (Select, ComboBox). */
-  skipsSelection?: boolean;
   /** Tabs: each Tab pairs with a TabPanel by key. */
   panels?: boolean;
 }
@@ -71,20 +69,8 @@ export const COLLECTION_FAMILIES: readonly CollectionFamily[] = [
     recursive: true,
   },
   { owner: "Breadcrumbs", list: null, item: "Breadcrumb" },
-  {
-    owner: "Select",
-    list: null,
-    item: "ListBoxItem",
-    section: "ListBoxSection",
-    skipsSelection: true,
-  },
-  {
-    owner: "ComboBox",
-    list: null,
-    item: "ListBoxItem",
-    section: "ListBoxSection",
-    skipsSelection: true,
-  },
+  // (A Select · ComboBox holds its items in its ListBox — an instance of the ListBox origin,
+  // ADR-253 Phase 4: the ListBox family above places them.)
   { owner: "Tree", list: null, item: "TreeItem", recursive: true },
 ];
 
@@ -335,7 +321,7 @@ export const insertCollectionItem =
       }
     }
     const extra: CatalogOperation[] = [];
-    if (input.selectItem && !isSection && !family.skipsSelection && !itemHost) {
+    if (input.selectItem && !isSection && !itemHost) {
       const owner =
         family.list === null && hostType !== family.section
           ? input.host

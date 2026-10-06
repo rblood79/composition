@@ -89,6 +89,11 @@ export interface SelectProps<T extends object> extends Omit<
    */
   controlElements?: React.ReactNode[];
   /**
+   * The option list, drawn by its ListBox node (ADR-253 Phase 4 — an instance of the ListBox
+   * origin holding the items). Absent: the component builds the list from `items` · children.
+   */
+  listElement?: React.ReactNode;
+  /**
    * Show loading skeleton instead of select
    * @default false
    */
@@ -116,6 +121,7 @@ export function Select<T extends object>({
   size = "md",
   iconName,
   controlElements,
+  listElement,
   selectionMode = "single",
   // Note: 다중 선택 관련 기능은 현재 미구현 상태
   multipleDisplayMode: _multipleDisplayMode = "count",
@@ -443,14 +449,16 @@ export function Select<T extends object>({
               popoverWidth > 0 ? { width: `${popoverWidth}px` } : undefined
             }
           >
-            <ListBox
-              items={selectItems}
-              className="react-aria-ListBox"
-              selectionMode={selectionMode}
-              data-size={size}
-            >
-              {listBoxContent}
-            </ListBox>
+            {listElement ?? (
+              <ListBox
+                items={selectItems}
+                className="react-aria-ListBox"
+                selectionMode={selectionMode}
+                data-size={size}
+              >
+                {listBoxContent}
+              </ListBox>
+            )}
           </Popover>
         </>
       )}

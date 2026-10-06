@@ -127,23 +127,10 @@ export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
   DateField: ["Label", "DateInput", "Description", "FieldError"],
   TimeField: ["Label", "DateInput", "Description", "FieldError"],
   ColorField: ["Label", "Input", "ColorSwatch", "Description", "FieldError"],
-  // ADR-238 Phase 3 — 정적 항목 = ListBoxItem instance · section (popover 내용, Menu 선례).
-  Select: [
-    "Label",
-    "Button",
-    "Description",
-    "FieldError",
-    "ListBoxItem",
-    "ListBoxSection",
-  ],
-  ComboBox: [
-    "Label",
-    "SelectTrigger",
-    "Description",
-    "FieldError",
-    "ListBoxItem",
-    "ListBoxSection",
-  ],
+  // ADR-253 Phase 4 — 정적 항목은 picker 의 ListBox (ListBox 원본의 instance — popover 내용) 안에 있다.
+  //   항목 · section 은 그 ListBox 의 자식이다 (DOM 은 ListBox 노드의 요소를 Popover 에 넣는다).
+  Select: ["Label", "Button", "Description", "FieldError", "ListBox"],
+  ComboBox: ["Label", "SelectTrigger", "Description", "FieldError", "ListBox"],
   DatePicker: [
     "Label",
     "SelectTrigger",

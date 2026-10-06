@@ -195,13 +195,52 @@ export function overrideAt(
 }
 
 /**
+ * The position that holds a parent's child list. A library template position that fills the root
+ * slot of the composite it instantiates (`slotFills`, ADR-253 — a Select's ListBox) shows that
+ * slot's children as its own: its list is the composite's root at the nested instance level
+ * (where an instance's `fillSlot` replaces the library fill). Every other parent holds its own.
+ */
+export function listParent(
+  draft: CommandDraft,
+  parent: NodeParent,
+): NodeParent {
+  if (parent.kind !== "descendant") return parent;
+  const { instances, templatePath } = parent.address;
+  const templateId = templatePath[templatePath.length - 1];
+  if (!templateId?.startsWith("lib:")) return parent;
+  const library = draft.reader.library;
+  const template = library.templates.get(
+    templateId as `lib:template:${string}`,
+  );
+  if (!template?.slotFills?.length) return parent;
+  const definition = library.definitions.get(
+    template.definitionId as `lib:definition:${string}`,
+  );
+  const rootId =
+    definition?.mode === "composite" ? definition.templateRootId : undefined;
+  if (
+    !rootId ||
+    !template.slotFills.some(
+      (fill) =>
+        fill.templatePath.length === 1 && fill.templatePath[0] === rootId,
+    )
+  )
+    return parent;
+  return {
+    ...parent,
+    address: { instances: [...instances, templateId], templatePath: [rootId] },
+  };
+}
+
+/**
  * The child list a parent currently shows through its own record, or `undefined` for an instance
  * position that still shows its template children (no `fillSlot` yet).
  */
 export function childList(
   draft: CommandDraft,
-  parent: NodeParent,
+  at: NodeParent,
 ): readonly NodeId[] | undefined {
+  const parent = listParent(draft, at);
   if (parent.kind === "page") return draft.page(parent.id).children;
   if (parent.kind === "node") return draft.node(parent.id).children;
   const override = overrideAt(draft.node(parent.ownerId), parent.address);
@@ -211,9 +250,10 @@ export function childList(
 /** Replace a parent's child list (an instance position becomes / stays a `fillSlot`). */
 export function setChildList(
   draft: CommandDraft,
-  parent: NodeParent,
+  at: NodeParent,
   childIds: readonly NodeId[],
 ): void {
+  const parent = listParent(draft, at);
   if (parent.kind === "page") {
     draft.write({ ...draft.page(parent.id), children: [...childIds] });
     return;

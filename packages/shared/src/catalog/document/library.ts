@@ -347,6 +347,32 @@ export function buildCatalogLibrary(
           );
       }
     }
+    const filled = new Set<LibraryTemplateId>();
+    for (const [index, fill] of (node.slotFills ?? []).entries()) {
+      const at = `${node.id}.slotFills[${index}]`;
+      if (
+        composite.mode !== "composite" ||
+        fill.templatePath[0] !== composite.templateRootId
+      )
+        throw new CatalogValidationError("INVALID_SLOT_FILL", at);
+      let target = templates.get(fill.templatePath[0]);
+      for (const step of fill.templatePath.slice(1)) {
+        if (!target?.children.includes(step))
+          throw new CatalogValidationError("INVALID_SLOT_FILL", at);
+        target = templates.get(step);
+      }
+      // Only a declared slot position is filled, and each child fills one position.
+      if (!target?.slot)
+        throw new CatalogValidationError("INVALID_SLOT_FILL", at);
+      for (const childId of fill.childIds) {
+        if (!node.children.includes(childId) || filled.has(childId))
+          throw new CatalogValidationError(
+            "INVALID_SLOT_FILL",
+            `${at}.${childId}`,
+          );
+        filled.add(childId);
+      }
+    }
   }
   const owned = new Map<LibraryTemplateId, string>();
   const own = (id: LibraryTemplateId, owner: string): void => {

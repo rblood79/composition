@@ -224,6 +224,11 @@ const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
       ],
     ],
   };
+/**
+ * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
+ * the Preview's Select had no options at all): they are asserted on their own.
+ */
+const ITEM_OPTION = /<option value=[^ >]+>([^<]*)<\/>/g;
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
@@ -382,11 +387,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           if (!write) expect(fixture[`${type}/${name}`]).toBeUndefined();
           return;
         }
-        const structure = normalize(rendered.html);
+        const markup = normalize(rendered.html);
         if (write) {
-          written[`${type}/${name}`] = structure;
+          written[`${type}/${name}`] = markup;
           return;
         }
+        if (type === "select")
+          expect(
+            [...markup.matchAll(ITEM_OPTION)].map((match) => match[1]),
+          ).toEqual(["Aardvark", "Cat", "Dog", "Kangaroo"]);
+        const structure = markup.replace(ITEM_OPTION, "");
         const shown = SHOWN_SINCE[`${type}/${name}`];
         if (!shown) {
           const placeholder = INPUT_PLACEHOLDER_SINCE[type];

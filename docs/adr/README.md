@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 ADR-253 Phase 4 완료 (G4)**: library template 이 slot 채움을 적는다 (`LibraryTemplateNode.slotFills` — 합성 instance 자리의 자식이 그 template 의 slot 자리에 선다, instance 의 `fillSlot` 과 같은 뜻) · Select · ComboBox 의 항목이 ListBox 원본 instance 의 slot 채움 (`LIBRARY_CONTRACT_VERSION` 5) · Preview 의 picker 가 ListBox 노드의 요소를 Popover 에 넣어 **열린다** (F11 — 전에는 항목이 없어 열리지 않았다). G4 = unit 26 (slot 채움 14 · picker 12, 실제 마운트로 열기 · 고르기 포함) · 원복 RED 15행 · live 8/8 (열기 · ComboBox 걸러내기 · 「+」 · 글자 편집 · 삭제 · ListBox 원본 스타일 · undo). shared 1,515 · builder 4,479 · 시각 하니스 69/70 (CardView 무관). 찾은 것: 한 프레임에 몰린 undo 에서 Preview delta 가 한 번 거부되고 snapshot 으로 복구된다 (ADR-248 채널 — 이 Phase 밖).
+
 > **2026-10-07 ADR-253 Phase 3 완료 (G3 · G6)**: quiet 밑줄을 Input · DateInput rule 의 자기 상태 한 정의로 모았다 (8 부모의 반복 선언 삭제 — Preview 에서 TextArea · ComboBox · DatePicker 의 quiet 가 보인다). Select 의 값 노드는 style 축이 자기 것. G3 = 정적 9 · DOM 구조 대조 · 동작 통과 · 시각 하니스 69/70 (CardView 무관) — Select · ComboBox 열기만 Phase 4 로. G6 = ratchet pass · field 100개 격자 편집 `record.content` +0.5 ms (p50) · initial 번들 Builder −1,879 B / Preview −3,121 B. unit 316 · 원복 RED 10종 · live 7/7. 찾은 것: Canvas 는 field 의 quiet 를 그리지 않는다 (전환 전부터).
 
 > **2026-10-07 ADR-253 Phase 3 (4e) 날짜 4종 (브랜치 `adr-253`, main 병합 전)**: DateInput 원본 (자기 sheet — 크기 단계 · 상태 · 조각) 을 DateField · TimeField · DatePicker 가 쓰고, DateRangePicker 는 Group 상자 안에 slot start · end 의 instance 2개 + 구분자. picker 의 버튼은 FieldButton instance. field 계열 전 부모의 부품 자리가 원본 instance 가 됐다. unit 306 · 원복 RED 11종 · live 13/13 (locale en-US 고정) · 시각 하니스 69/70 (CardView 무관). 찾은 것: locale 없는 날짜 field 의 Canvas (Builder locale) ↔ Preview (en-US) 차이 — 전환 전부터. 남은 것: Phase 3 끝 정리.

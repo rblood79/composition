@@ -8,10 +8,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * the wrapper, no longer the first Radio). 3 — ADR-253: a field's parts are instances of the part
  * origins (`component-textfield__1` is an instance of the Label origin; its Label is that
  * origin's template root). 4 — ADR-253 Phase 3: every field · group Label position
- * (`component-select__1` …) is an instance of the Label origin. An earlier contract's document is
- * refused, never re-mapped.
+ * (`component-select__1` …) is an instance of the Label origin. 5 — ADR-253 Phase 4: a Select ·
+ * ComboBox holds its items in its ListBox (`component-select__listbox`, an instance of the ListBox
+ * origin whose slot the items fill — `component-select__item-1` sits below it). An earlier
+ * contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 4 as const;
+export const LIBRARY_CONTRACT_VERSION = 5 as const;
 
 export type EntryKind =
   | "project"
@@ -662,6 +664,17 @@ export interface LibraryDescendantPatch {
   layout?: LayoutValues;
   enabled?: boolean;
 }
+/**
+ * A slot fill of a library template node that instantiates a composite (ADR-253): the listed
+ * children of that node stand at a slot position of the composite's template in place of the
+ * position's own (default) children — the library form of an instance's `fillSlot`, which
+ * replaces it when the instance fills the same position. `templatePath` starts at the composite's
+ * template root (as `LibraryDescendantPatch.templatePath`).
+ */
+export interface LibrarySlotFill {
+  templatePath: readonly LibraryTemplateId[];
+  childIds: readonly LibraryTemplateId[];
+}
 export interface LibraryTemplateNode {
   id: LibraryTemplateId;
   definitionId: DefinitionId;
@@ -674,6 +687,8 @@ export interface LibraryTemplateNode {
   /** `false` hides this template node (and subtree) unless an instance enables it. */
   enabled?: boolean;
   descendantPatches?: readonly LibraryDescendantPatch[];
+  /** Children of this node that fill slot positions of the composite it instantiates. */
+  slotFills?: readonly LibrarySlotFill[];
   /** State-origin template node: the state it displays (`DisplayStateName`). */
   displayState?: DisplayStateName;
   /**

@@ -15,6 +15,7 @@ import type {
 } from "../document/types";
 import {
   childList,
+  listParent,
   fail,
   sameAddress,
   setChildList,
@@ -87,6 +88,8 @@ type TemplateView = Pick<
   extra?: Partial<NodeEntry>;
   /** Library patches this template node applies to its own composite template. */
   descendantPatches?: LibraryTemplateNode["descendantPatches"];
+  /** Children this template node places at slot positions of its composite template. */
+  slotFills?: LibraryTemplateNode["slotFills"];
   /** A project template node's own descendant overrides (they start at the template node). */
   overrides?: readonly DescendantOverride[];
   hasBinding: boolean;
@@ -112,6 +115,7 @@ export function readTemplate(
       visual: sets(node.visual) as VisualWrites,
       ...(node.layout ? { layout: sets(node.layout) as LayoutWrites } : {}),
       descendantPatches: node.descendantPatches,
+      slotFills: node.slotFills,
       hasBinding: Object.values(node.props).some(
         (value) => typeof value === "string" && TEMPLATE_BINDING.test(value),
       ),
@@ -191,8 +195,11 @@ function applyPatch(entry: NodeEntry, patch: Patch): NodeEntry {
 export interface Materializer {
   /** Owned copy of the template position at `path` (at the owner's instance level). */
   node(path: readonly TemplateId[], fixedId?: NodeId): NodeId;
-  /** The owner's overrides that stay: not absorbed and not under the `prefix` position. */
-  remainingOverrides(prefix: readonly TemplateId[]): DescendantOverride[];
+  /**
+   * The owner's overrides that stay: not absorbed and not under the `prefix` position (no
+   * `prefix`: only the absorbed ones go).
+   */
+  remainingOverrides(prefix?: readonly TemplateId[]): DescendantOverride[];
   /** The owner's interactions addressing a copied position now belong to the copy. */
   reanchorInteractions(): void;
 }
@@ -322,8 +329,28 @@ export function createMaterializer(
           },
         });
       }
+    // This template node's slot fills (`slotFills`): its children at a slot position of its
+    // composite template become the owned instance's `fillSlot` there — unless the owner filled
+    // that position itself (that override moves with the node, above).
+    const filled = new Set<TemplateId>();
+    const ownFills: DescendantOverride[] = [];
+    for (const fill of template.slotFills ?? []) {
+      for (const childId of fill.childIds) filled.add(childId);
+      if (
+        overrideAt({ instances: nestedPrefix, templatePath: fill.templatePath })
+          ?.kind === "fillSlot"
+      )
+        continue;
+      ownFills.push({
+        kind: "fillSlot",
+        address: { instances: [id], templatePath: fill.templatePath },
+        childIds: fill.childIds.map((childId) =>
+          materialize([...path, childId]),
+        ),
+      });
+    }
     const overrides = [...entry.descendantOverrides];
-    for (const item of [...ownPatches, ...moved]) {
+    for (const item of [...ownPatches, ...ownFills, ...moved]) {
       const index = overrides.findIndex((existing) =>
         sameAddress(existing.address, item.address),
       );
@@ -339,7 +366,9 @@ export function createMaterializer(
       children:
         change?.kind === "fillSlot"
           ? [...change.childIds]
-          : template.children.map((childId) => materialize([...path, childId])),
+          : template.children
+              .filter((childId) => !filled.has(childId))
+              .map((childId) => materialize([...path, childId])),
     };
     if (fixedId) draft.write(entry);
     else draft.create(entry);
@@ -353,6 +382,7 @@ export function createMaterializer(
         (item) =>
           !consumed.has(item) &&
           !(
+            prefix &&
             sameAddress(
               { instances: item.address.instances, templatePath: [] },
               { instances, templatePath: [] },
@@ -372,29 +402,91 @@ export function createMaterializer(
  */
 export function ensureChildList(
   draft: CommandDraft,
-  parent: NodeParent,
+  at: NodeParent,
   newId: NewId,
 ): readonly NodeId[] {
-  const current = childList(draft, parent);
+  const current = childList(draft, at);
   if (current) return current;
+  const parent = listParent(draft, at);
   if (parent.kind !== "descendant") return fail("PARENT_REQUIRED", "parent");
   const path = parent.address.templatePath;
+  // A slot position the enclosing library template node fills (`slotFills`) shows that node's
+  // children: those are the positions copied (they sit in the enclosing node's own template).
+  const fill = librarySlotFillAt(draft, parent.address);
   const materializer = createMaterializer(
     draft,
     parent.ownerId,
-    parent.address.instances,
+    fill ? fill.instances : parent.address.instances,
     newId,
   );
-  const ids = readTemplate(draft, path[path.length - 1]).children.map(
-    (childId) => materializer.node([...path, childId]),
-  );
+  const ids = fill
+    ? fill.childIds.map((childId) => materializer.node([...fill.path, childId]))
+    : readTemplate(draft, path[path.length - 1]).children.map((childId) =>
+        materializer.node([...path, childId]),
+      );
   draft.write({
     ...draft.node(parent.ownerId),
-    descendantOverrides: materializer.remainingOverrides(path),
+    descendantOverrides: materializer.remainingOverrides(
+      fill ? undefined : path,
+    ),
   });
   setChildList(draft, parent, ids);
   materializer.reanchorInteractions();
   return ids;
+}
+
+/**
+ * The library slot fill shown at an instance address: the last instance step is a library
+ * template node whose `slotFills` fill `templatePath`. Returns the filling children with the
+ * address level they sit at (the step's own template: `instances` without the step, `path` =
+ * the step's template path from its template root).
+ */
+export function librarySlotFillAt(
+  draft: CommandDraft,
+  address: InstanceAddress,
+):
+  | {
+      instances: InstanceAddress["instances"];
+      path: readonly TemplateId[];
+      childIds: readonly TemplateId[];
+    }
+  | undefined {
+  const { instances, templatePath } = address;
+  const step = instances[instances.length - 1];
+  if (instances.length < 2 || !step.startsWith("lib:")) return undefined;
+  const templates = draft.reader.library.templates;
+  const fill = templates
+    .get(step as `lib:template:${string}`)
+    ?.slotFills?.find(
+      (item) =>
+        item.templatePath.length === templatePath.length &&
+        item.templatePath.every((id, index) => id === templatePath[index]),
+    );
+  if (!fill) return undefined;
+  return {
+    instances: instances.slice(0, -1),
+    path: libraryTemplatePath(draft.reader.library, step as TemplateId),
+    childIds: fill.childIds,
+  };
+}
+
+const templateParents = new WeakMap<object, Map<string, string>>();
+/** A library template node's path from its template root (each node has one parent). */
+function libraryTemplatePath(
+  library: CommandDraft["reader"]["library"],
+  id: TemplateId,
+): TemplateId[] {
+  let parents = templateParents.get(library);
+  if (!parents) {
+    parents = new Map();
+    for (const node of library.templates.values())
+      for (const child of node.children) parents.set(child, node.id);
+    templateParents.set(library, parents);
+  }
+  const path = [id];
+  for (let at = parents.get(id); at; at = parents.get(at))
+    path.unshift(at as TemplateId);
+  return path;
 }
 
 function mergePatches(base: Patch, over: Patch): Patch {

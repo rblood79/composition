@@ -4149,10 +4149,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-select__2",
       "lib:template:component-select__description",
       "lib:template:component-select__error",
-      "lib:template:component-select__item-1",
-      "lib:template:component-select__item-2",
-      "lib:template:component-select__item-3",
-      "lib:template:component-select__item-4"
+      "lib:template:component-select__listbox"
     ],
     "props": {
       "label": "Select",
@@ -4223,6 +4220,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "{errorMessage}"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__listbox",
+    "definitionId": "lib:definition:origin-component-listbox",
+    "children": [
+      "lib:template:component-select__item-1",
+      "lib:template:component-select__item-2",
+      "lib:template:component-select__item-3",
+      "lib:template:component-select__item-4"
+    ],
+    "props": {},
+    "visual": {},
+    "slotFills": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox"
+        ],
+        "childIds": [
+          "lib:template:component-select__item-1",
+          "lib:template:component-select__item-2",
+          "lib:template:component-select__item-3",
+          "lib:template:component-select__item-4"
+        ]
+      }
+    ]
   },
   {
     "id": "lib:template:component-select__item-1",
@@ -4360,10 +4382,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-combobox__2",
       "lib:template:component-combobox__description",
       "lib:template:component-combobox__error",
-      "lib:template:component-combobox__item-1",
-      "lib:template:component-combobox__item-2",
-      "lib:template:component-combobox__item-3",
-      "lib:template:component-combobox__item-4"
+      "lib:template:component-combobox__listbox"
     ],
     "props": {
       "label": "Combo Box",
@@ -4437,6 +4456,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "{errorMessage}"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__listbox",
+    "definitionId": "lib:definition:origin-component-listbox",
+    "children": [
+      "lib:template:component-combobox__item-1",
+      "lib:template:component-combobox__item-2",
+      "lib:template:component-combobox__item-3",
+      "lib:template:component-combobox__item-4"
+    ],
+    "props": {},
+    "visual": {},
+    "slotFills": [
+      {
+        "templatePath": [
+          "lib:template:component-listbox"
+        ],
+        "childIds": [
+          "lib:template:component-combobox__item-1",
+          "lib:template:component-combobox__item-2",
+          "lib:template:component-combobox__item-3",
+          "lib:template:component-combobox__item-4"
+        ]
+      }
+    ]
   },
   {
     "id": "lib:template:component-combobox__item-1",

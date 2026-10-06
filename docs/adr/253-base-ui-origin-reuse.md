@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 완료. Phase 3 은 G3 (Select · ComboBox 열기 한 항목 제외 — Phase 4 대상) · G6 통과. 남은 것: Phase 4 · 5 · 6 · G7)
+Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 · 4 완료. G3 · G4 · G6 통과 (G3 에서 남았던 Select · ComboBox 열기는 Phase 4 가 닫았다). 남은 것: Phase 5 (G5 판정 뒤) · 6 · G7)
 
 > **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
 >
