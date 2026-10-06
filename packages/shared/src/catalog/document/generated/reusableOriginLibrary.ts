@@ -2894,40 +2894,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200,
-      "height": 160,
-      "padding": 16
-    },
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__preview"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__header"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__content"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__footer"
-        ],
-        "enabled": false
-      }
-    ]
+      "width": 200
+    }
   },
   {
     "id": "lib:template:component-cardview__2",
@@ -2935,40 +2903,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200,
-      "height": 160,
-      "padding": 16
-    },
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__preview"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__header"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__content"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__footer"
-        ],
-        "enabled": false
-      }
-    ]
+      "width": 200
+    }
   },
   {
     "id": "lib:template:component-cardview__3",
@@ -2976,40 +2912,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {},
     "visual": {
-      "width": 200,
-      "height": 160,
-      "padding": 16
-    },
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__preview"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__header"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__content"
-        ],
-        "enabled": false
-      },
-      {
-        "templatePath": [
-          "lib:template:component-card",
-          "lib:template:component-card__footer"
-        ],
-        "enabled": false
-      }
-    ]
+      "width": 200
+    }
   },
   {
     "id": "lib:template:component-button",
@@ -3735,6 +3639,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-checkboxgroup__2",
     "definitionId": "lib:definition:type-CheckboxItems",
+    "slot": {
+      "name": "Options",
+      "required": false
+    },
     "children": [
       "lib:template:component-checkboxgroup__2__checkbox-1",
       "lib:template:component-checkboxgroup__2__checkbox-2"
@@ -3821,6 +3729,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-radiogroup__2",
     "definitionId": "lib:definition:type-RadioItems",
+    "slot": {
+      "name": "Options",
+      "required": false
+    },
     "children": [
       "lib:template:component-radiogroup__2__radio-1",
       "lib:template:component-radiogroup__2__radio-2"
@@ -4609,6 +4521,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-table__1",
     "definitionId": "lib:definition:type-TableHeader",
+    "slot": {
+      "name": "Columns",
+      "required": false
+    },
     "children": [],
     "props": {},
     "visual": {}
@@ -4616,6 +4532,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-table__2",
     "definitionId": "lib:definition:type-TableBody",
+    "slot": {
+      "name": "Rows",
+      "required": false
+    },
     "children": [],
     "props": {},
     "visual": {}
@@ -4711,6 +4631,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tableview__1",
     "definitionId": "lib:definition:type-TableHeader",
+    "slot": {
+      "name": "Columns",
+      "required": false
+    },
     "children": [
       "lib:template:component-tableview__1_1",
       "lib:template:component-tableview__1_2",
@@ -4749,6 +4673,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tableview__2",
     "definitionId": "lib:definition:type-TableBody",
+    "slot": {
+      "name": "Rows",
+      "required": false
+    },
     "children": [
       "lib:template:component-tableview__2_1"
     ],
@@ -4798,6 +4726,48 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Chart",
     "children": [],
     "props": {
+      "data": [
+        {
+          "category": "Mon",
+          "value": 12,
+          "series": "A"
+        },
+        {
+          "category": "Tue",
+          "value": 30,
+          "series": "A"
+        },
+        {
+          "category": "Wed",
+          "value": 18,
+          "series": "A"
+        },
+        {
+          "category": "Thu",
+          "value": 24,
+          "series": "A"
+        },
+        {
+          "category": "Mon",
+          "value": 20,
+          "series": "B"
+        },
+        {
+          "category": "Tue",
+          "value": 8,
+          "series": "B"
+        },
+        {
+          "category": "Wed",
+          "value": 25,
+          "series": "B"
+        },
+        {
+          "category": "Thu",
+          "value": 14,
+          "series": "B"
+        }
+      ],
       "chartType": "bar",
       "dimension": "category",
       "metric": "value",
@@ -5612,6 +5582,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tabs__1",
     "definitionId": "lib:definition:type-TabList",
+    "slot": {
+      "name": "Tabs",
+      "required": false
+    },
     "children": [
       "lib:template:component-tabs__1__tab-1",
       "lib:template:component-tabs__1__tab-2"
@@ -5658,6 +5632,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-tabs__2",
     "definitionId": "lib:definition:type-TabPanels",
+    "slot": {
+      "name": "Panels",
+      "required": false
+    },
     "children": [
       "lib:template:component-tabs__2_1",
       "lib:template:component-tabs__2_2"
@@ -5805,6 +5783,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-taggroup__2",
     "definitionId": "lib:definition:type-TagList",
+    "slot": {
+      "name": "Tags",
+      "required": false
+    },
     "children": [
       "lib:template:component-taggroup__2__tag-1",
       "lib:template:component-taggroup__2__tag-2",

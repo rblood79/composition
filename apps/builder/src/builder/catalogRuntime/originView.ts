@@ -36,6 +36,7 @@ import {
   originPartsId,
   originOfSample,
   originSampleId,
+  originSlotsId,
   themeSampleId,
 } from "./originViewNode";
 
@@ -50,8 +51,10 @@ export {
   originInstanceId,
   originCardId,
   originOfPageInstance,
+  originOfSample,
   originPartsId,
   originSampleId,
+  originSlotsId,
   themeSampleId,
 };
 

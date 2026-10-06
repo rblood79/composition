@@ -35,6 +35,7 @@ import {
   originInstanceId,
   originPartsId,
   originSampleId,
+  originSlotsId,
 } from "../originView";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -642,6 +643,41 @@ describe("ADR-248 4e library origin view", () => {
     expect(
       regions.every((mark) => mark.box.width > 0 && mark.box.height > 0),
     ).toBe(true);
+    // Declared slots (pen.dev's design-system page: a container's master shows its slots
+    // hatched, the filled instance beside it): a Tabs card draws its origin filled (no mark)
+    // and a Slots instance with its tab list and panels emptied — each hatched at a box of its
+    // own; a Table's origin holds no columns or rows, so its own slots are hatched.
+    const slotMarks = catalogSlotMarks(workspace, bounds, bounds).filter(
+      (mark) => !mark.region,
+    );
+    const marksUnder = (record: string) =>
+      slotMarks.filter((mark) => inputOf(record).children.includes(mark.identity));
+    const tabsSlots = recordOf(originSlotsId(lib("tabs")));
+    expect(marksUnder(tabsSlots).map((mark) => [mark.empty, mark.role])).toEqual([
+      [true, "instance"],
+      [true, "instance"],
+    ]);
+    expect(
+      marksUnder(tabsSlots).every((mark) => mark.box.width > 0 && mark.box.height > 0),
+    ).toBe(true);
+    expect(marksUnder(recordOf(originSampleId(lib("tabs"))))).toEqual([]);
+    expect(
+      marksUnder(recordOf(originSampleId(lib("table")))).map((mark) => [
+        mark.empty,
+        mark.role,
+      ]),
+    ).toEqual([
+      [true, "origin"],
+      [true, "origin"],
+    ]);
+    const entryOf = (id: string) => graphOf(workspace).getEntry(id) as NodeEntry;
+    const tabsCard = catalogComponentsPageCards(graphOf(workspace))
+      .map(entryOf)
+      .find((candidate) => candidate.name === "Tabs")!;
+    const slotsRow = tabsCard.children.map(entryOf).find((row) => row.name === "Slots")!;
+    expect(
+      entryOf(slotsRow.children[1]!).children.map((cell) => entryOf(cell).name),
+    ).toEqual(["Tabs · Panels"]);
     workspace.dispose();
   });
 });

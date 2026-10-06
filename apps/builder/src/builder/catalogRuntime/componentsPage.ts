@@ -33,6 +33,7 @@ import {
   originOfPageInstance,
   originPartsId,
   originSampleId,
+  originSlotsId,
   themeSampleId,
 } from "./originView";
 import {
@@ -261,6 +262,35 @@ function originParts(graph: CatalogGraph, originId: LibraryDefinitionId) {
       });
   }
   return [...parts.values()];
+}
+
+/**
+ * An origin's declared slots (its template nodes with `slot`, root first): each slot's path from
+ * the template root and the paths of what it holds (switched off to show the slot empty).
+ */
+function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
+  const library = graph.library;
+  const origin = library.definitions.get(originId);
+  const rootId =
+    origin && "templateRootId" in origin ? origin.templateRootId : undefined;
+  const slots: {
+    name: string;
+    path: LibraryTemplateId[];
+    contents: LibraryTemplateId[][];
+  }[] = [];
+  const visit = (path: LibraryTemplateId[]) => {
+    const node = library.templates.get(path[path.length - 1]!);
+    if (!node) return;
+    if (node.slot)
+      slots.push({
+        name: node.slot.name,
+        path,
+        contents: node.children.map((child) => [...path, child as LibraryTemplateId]),
+      });
+    for (const child of node.children) visit([...path, child as LibraryTemplateId]);
+  };
+  if (rootId) visit([rootId]);
+  return slots;
 }
 
 /** The Layers rows read so far, by the page's root entry (a new one each time the page is laid out). */
@@ -743,6 +773,48 @@ export function catalogComponentsPageEntries(
             fixed(
               node(originPartsId(origin.id), origin.id, {
                 name: `${origin.name} / Parts`,
+              }),
+            ),
+            cellWidth,
+          ),
+        ]),
+      );
+      weight += lineHeight(1);
+    }
+    // The origin's slots, empty (the pen.dev design-system page: a container's master shows its
+    // slot hatched, the filled instance beside it): what each declared slot holds is switched
+    // off and the emptied slot keeps a box (an empty list is nothing to see), which the chrome
+    // hatches (`catalogSlotMarks`).
+    const slots = originSlots(graph, origin.id);
+    // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
+    const SLOT_BOX = { width: set(wide ? "100%" : 160), minHeight: set(40) };
+    if (slots.length > 0) {
+      rows.push(
+        row(base("row", "slots"), "Slots", [
+          cell(
+            base("cell", "slots"),
+            slots.map((slot) => slot.name).join(" · "),
+            fixed(
+              node(originSlotsId(origin.id), origin.id, {
+                name: `${origin.name} / Slots`,
+                descendantOverrides: slots.flatMap((slot) => [
+                  {
+                    kind: "patch" as const,
+                    address: {
+                      instances: [originSlotsId(origin.id)],
+                      templatePath: slot.path,
+                    },
+                    visual: SLOT_BOX,
+                  },
+                  ...slot.contents.map((templatePath) => ({
+                    kind: "patch" as const,
+                    address: {
+                      instances: [originSlotsId(origin.id)],
+                      templatePath,
+                    },
+                    enabled: false,
+                  })),
+                ]),
               }),
             ),
             cellWidth,

@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [기본 원본의 slot 선언 · Components page 의 Slots 줄 (pen.dev 디자인 시스템 페이지 참고)] - 2026-10-06
+
+### Changed
+
+- **collection 호스트가 slot 이다**: 기본 원본 template 의 항목 자리 9곳 — Tabs 의 TabList (Tabs) · TabPanels (Panels), Table · TableView 의 TableHeader (Columns) · TableBody (Rows), TagGroup 의 TagList (Tags), RadioGroup · CheckboxGroup 의 항목 묶음 (Options) — 에 slot 을 선언한다. 비어 있으면 Canvas 가 빗금으로 표시하고 (page 의 Table 원본은 열 · 행이 없어 빗금), Layers 행에 slot 표시가 붙는다. 채워진 slot 은 표시하지 않는다.
+- **Components page 의 Slots 줄**: slot 을 가진 원본은 Origin (채워진 모습) 옆에 slot 을 비운 instance 를 둔다 — pen.dev 의 디자인 시스템 페이지가 Table · Tabs · Dropdown 의 master 를 빈 슬롯 (빗금) 으로 두고 채운 instance 를 옆에 두는 방식. 비운 slot 은 자기 상자 (폭 100% 또는 160 · 최소 높이 40) 를 가져 빗금이 보인다. 캡션은 slot 이름.
+- Components page 의 slot 표시: 원본 sample 아래는 origin 색, instance 아래는 instance 색.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (Tabs 의 Slots instance 2 slot 빗금 · 채워진 Origin 무표시 · Table 원본의 빈 Columns · Rows 빗금 · 캡션). library slot 선언 · record slot 읽기 · 채워진 slot 무표시 · slot 상자 각각 원복 RED.
+
+## [CardView · Chart 기본 원본에 내용] - 2026-10-06
+
+### Changed
+
+- **CardView**: 안의 Card 3개가 모든 부분을 끈 빈 상자 (200×160) 였다. 이제 Card 원본의 기본 내용 (미리보기 · 제목 · 설명) 을 그대로 보이는 Card instance 3개 (폭 200). 기존 프로젝트의 CardView 도 같이 바뀐다.
+- **Chart**: 기본 원본에 데이터가 없어 "No data" 였다. 팔레트의 Bar Chart 와 같은 샘플 행 (Mon~Thu × 시리즈 A · B) 을 둔다.
+- Table 은 그대로 둔다 — 열은 데이터 연결 (Quick Connect) 이 만들고 행은 프로젝트 데이터 표에서 오는 구조라 library 원본에 담을 값이 없다 (열을 미리 넣으면 데이터 연결 · 열 추가 명령과 충돌: 관련 테스트 5건).
+
 ## [컴포넌트 그리기 결함 일괄 수정 · Components page 구성 표시 개편] - 2026-10-06
 
 ### Fixed
