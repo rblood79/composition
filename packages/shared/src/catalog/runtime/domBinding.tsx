@@ -562,6 +562,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ? []
         : [String(node.props.children)]),
     ),
+  // RAC `SelectValue` inside a Select's trigger Button (ADR-253): RAC writes the selected item's
+  // text, or the Select's placeholder.
+  selectvalue: (node, style) =>
+    createElement(RAC.SelectValue, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      style,
+    } as Parameters<typeof RAC.SelectValue>[0]),
   icon: glyph("circle", 24),
   selecticon: glyph("chevron-down", 18),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
@@ -575,6 +583,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         (typeof node.props.label === "string" ? node.props.label : undefined),
       description: parts?.description,
       errorMessage: parts?.error,
+      controlElements: parts?.control,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -1234,7 +1243,8 @@ const CatalogDomNode = memo(function CatalogDomNode({
     ((textBindings.has(node.bindingId ?? "") &&
       parentInput?.bindingId === "slot") ||
       (node.bindingId === "label" &&
-        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !== undefined) ||
+        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !==
+          undefined) ||
       // A TextArea's Input node is its `<textarea rows>` (the field's `rows`).
       (parentInput?.bindingId === "textarea" && node.ruleId === "Input"))
       ? node.parentId
@@ -1242,7 +1252,10 @@ const CatalogDomNode = memo(function CatalogDomNode({
         node?.bindingId === "button" &&
           parentInput?.bindingId === "selecttrigger"
         ? parentInput.parentId
-        : undefined;
+        : // (A Select's trigger Button is the field's direct child.)
+          node?.bindingId === "button" && parentInput?.bindingId === "select"
+          ? node.parentId
+          : undefined;
   const readParent = useCallback(
     () => (watchedParentId ? root.domInputs.get(watchedParentId) : undefined),
     [root, watchedParentId],
@@ -1375,8 +1388,8 @@ function renderNode(
         error: partElement(hints.error),
         ...(catalogFieldControlNodes(root, node).length
           ? {
-              control: catalogFieldControlNodes(root, node).map(
-                (part) => partElement(part)!,
+              control: catalogFieldControlNodes(root, node).map((part) =>
+                partElement(part)!,
               ),
             }
           : {}),
@@ -1462,9 +1475,19 @@ function renderNode(
   const bound = binding
     ? catalogDomStyle(
         node,
-        node.bindingId === "button" ? parentInput : (watchedParent ?? parentInput),
+        node.bindingId === "button"
+          ? parentInput
+          : (watchedParent ?? parentInput),
       )
     : undefined;
+  // A Select's value takes its trigger Button's text color and the field sheet's placeholder
+  // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
+  if (
+    bound &&
+    node.bindingId === "selectvalue" &&
+    catalogAuthoredVisual(root, node).color === undefined
+  )
+    delete bound.color;
   // A Button's paint is its rule's sheet (`data-variant` · `data-fill-style` …), which also
   // changes it by state (hover · pressed · disabled): the background, border color and text color
   // go inline only when the document wrote them (an origin override, the node's own value) —
@@ -1478,7 +1501,7 @@ function renderNode(
     const partField = catalogPartField(root, node);
     const fieldDisabled =
       partField !== undefined &&
-      partField.id !== node.parentId &&
+      (partField.id !== node.parentId || partField.bindingId === "select") &&
       partField.props.isDisabled === true;
     // (The sheet gives every Button a border: one the document removes is written out.)
     if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;

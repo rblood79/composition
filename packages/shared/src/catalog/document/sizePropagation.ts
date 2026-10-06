@@ -49,7 +49,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   NumberField: WRAPPED_FIELD_PARTS,
   SearchField: WRAPPED_FIELD_PARTS,
   ColorField: INPUT_FIELD_PARTS,
-  Select: FIELD_PARTS,
+  // (A Select's trigger is a Button instance — ADR-253.)
+  Select: [...FIELD_PARTS, "Button"],
   ComboBox: WRAPPED_FIELD_PARTS,
   DateField: FIELD_PARTS,
   TimeField: FIELD_PARTS,

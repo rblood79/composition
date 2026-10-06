@@ -183,7 +183,12 @@ const snap = () =>
             const child = ws.root.canvasInputs.get(childId);
             const childType =
               child && g.getDefinition(child.definitionId)?.name;
-            return depth > 0 || childType === "SelectTrigger";
+            // (A field's control: its wrapper, or a Select's trigger Button.)
+            return (
+              depth > 0 ||
+              childType === "SelectTrigger" ||
+              childType === "Button"
+            );
           };
           if (node.hidden !== true)
             for (const child of node.children)
@@ -230,7 +235,7 @@ const snapPreview = () =>
         const fieldBox = fieldEl.getBoundingClientRect();
         out[type] = [
           ...fieldEl.querySelectorAll(
-            ".react-aria-Group, .combobox-container, .searchfield-container, input:not([hidden]), button, button svg",
+            ".react-aria-Group, .combobox-container, .searchfield-container, input:not([hidden]), button, button svg, .react-aria-SelectValue, .select-chevron",
           ),
         ].map((el) => {
           const cs = view.getComputedStyle(el);
@@ -610,7 +615,9 @@ if (TYPES.includes("NumberField"))
         ...doc.querySelectorAll("button.react-aria-Button:not([slot])"),
       ].find(
         (button) =>
-          !button.closest(".react-aria-ComboBox, .react-aria-SearchField"),
+          !button.closest(
+            ".react-aria-ComboBox, .react-aria-SearchField, .react-aria-Select",
+          ),
       );
       if (!el) return {};
       const before = view.getComputedStyle(el).backgroundColor;
@@ -784,6 +791,128 @@ if (TYPES.includes("ComboBox"))
       required: [required.input, required.error],
     });
   });
+/** The placed Select in the Preview, after an action inside that document. */
+const select = (action) =>
+  page.evaluate(
+    async ([action]) => {
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const view = doc.defaultView;
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const placed = [...ws.root.canvasInputs.values()].find(
+        (r) =>
+          g.getDefinition(r.definitionId)?.name === "Select" &&
+          r.sourceId.startsWith("project:"),
+      );
+      const field = doc.querySelector(
+        `[data-catalog-id="${CSS.escape(placed.id)}"]`,
+      );
+      const button = field.querySelector("button");
+      const value = button.querySelector(".react-aria-SelectValue");
+      const wait = (ms) => new Promise((done) => setTimeout(done, ms));
+      const pointer = (el, names) => {
+        for (const name of names)
+          el.dispatchEvent(
+            new view.PointerEvent(name, {
+              bubbles: !/enter|leave/.test(name),
+              pointerType: "mouse",
+            }),
+          );
+      };
+      if (action === "open" || action === "close") button.click();
+      if (action === "hover")
+        pointer(button, ["pointerover", "pointerenter", "mouseover"]);
+      if (action === "unhover")
+        pointer(button, ["pointerout", "pointerleave", "mouseout"]);
+      await wait(450);
+      const bcs = view.getComputedStyle(button);
+      const vcs = view.getComputedStyle(value);
+      const out = {
+        expanded: button.getAttribute("aria-expanded"),
+        haspopup: button.getAttribute("aria-haspopup"),
+        options: doc.querySelectorAll('[role="option"]').length,
+        listbox: !!doc.querySelector('[role="listbox"]'),
+        button: {
+          disabled: button.hasAttribute("disabled"),
+          hovered: button.hasAttribute("data-hovered"),
+          background: bcs.backgroundColor,
+          border: bcs.borderTopColor,
+          opacity: bcs.opacity,
+        },
+        value: {
+          text: value.textContent,
+          placeholder: value.hasAttribute("data-placeholder"),
+          color: vcs.color,
+          opacity: vcs.opacity,
+          font: vcs.fontSize,
+          weight: vcs.fontWeight,
+          // (The Canvas draws the value at the node's own weight.)
+          canvasWeight:
+            ws.root.canvasInputs.get(
+              ws.root.canvasInputs.get(
+                placed.children.find(
+                  (id) =>
+                    g.getDefinition(ws.root.canvasInputs.get(id).definitionId)
+                      ?.name === "Button",
+                ),
+              )?.children[0],
+            )?.visual.fontWeight ?? 400,
+        },
+        rootOpacity: view.getComputedStyle(field).opacity,
+      };
+      // (An open popover is closed again: Escape on the listbox.)
+      if (action === "close" && out.expanded === "true") button.click();
+      return out;
+    },
+    [action],
+  );
+if (TYPES.includes("Select"))
+  await step("select", async () => {
+    const rest = await select();
+    const open = await select("open");
+    if (open.expanded === "true") {
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(400);
+    }
+    const closed = await select();
+    const hover = await select("hover");
+    await select("unhover");
+    await writeFields(["Select"], { isDisabled: true });
+    await page.waitForTimeout(800);
+    const disabled = await select();
+    await writeFields(["Select"], { isDisabled: false });
+    await page.waitForTimeout(800);
+    await writeFields(["Select"], { placeholder: "Pick one" });
+    await page.waitForTimeout(800);
+    const renamed = await select();
+    await writeFields(["Select"], { placeholder: "Choose an option..." });
+    await page.waitForTimeout(800);
+    const pass =
+      rest.expanded === "false" &&
+      rest.haspopup === "listbox" &&
+      rest.value.placeholder &&
+      rest.value.text === "Choose an option..." &&
+      Number(rest.value.weight) === Number(rest.value.canvasWeight) &&
+      // The Preview gives the Select no items yet (ADR-253 F11 — Phase 4): the popover it opens
+      // is empty, in this build and the one before.
+      (open.expanded === "true" || open.expanded === "false") &&
+      closed.expanded === "false" &&
+      hover.button.hovered &&
+      hover.button.background !== rest.button.background &&
+      disabled.button.disabled &&
+      disabled.rootOpacity === "0.38" &&
+      disabled.button.opacity === "1" &&
+      disabled.button.background === rest.button.background &&
+      renamed.value.text === "Pick one";
+    record("select", BEFORE || pass, {
+      rest,
+      open: [open.expanded, open.listbox, open.options],
+      closed: closed.expanded,
+      hover: hover.button,
+      disabled: [disabled.button, disabled.rootOpacity],
+      renamed: renamed.value.text,
+    });
+  });
 /** The placed SearchField in the Preview, after an action inside that document. */
 const search = (action) =>
   page.evaluate(
@@ -946,10 +1075,12 @@ if (!BEFORE) {
     NumberField: BUTTON,
     ComboBox: "lib:definition:origin-component-fieldbutton",
     SearchField: BUTTON,
+    Select: BUTTON,
   };
   // A SearchField's clear button writes its own fill on its template position: the Button
   // origin's fill stays under it (its border color, which the position does not write, follows).
   const OWN_FILL = new Set(["SearchField"]);
+  const NO_INPUT = new Set(["Select"]);
   const partsOf = (shot, type, partType) =>
     (shot.fields[type]?.parts ?? []).filter((part) => part.type === partType);
   await step("edit-origins", async () => {
@@ -1014,8 +1145,10 @@ if (!BEFORE) {
                   (part.p.disabled ||
                     part.p.background === "rgb(255, 204, 0)"))),
           ) &&
-          input?.c.borderColor === "#0000ff" &&
-          input.p.border.endsWith("rgb(0, 0, 255)"),
+          // (A Select has no Input: its trigger is the Button.)
+          (NO_INPUT.has(type) ||
+            (input?.c.borderColor === "#0000ff" &&
+              input.p.border.endsWith("rgb(0, 0, 255)"))),
       };
     });
     record(

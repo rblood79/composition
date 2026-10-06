@@ -76,11 +76,8 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
       prefix: "drp-btn",
       vars: ["--drp-btn-width", "--drp-btn-height"],
     },
-    {
-      type: "Select",
-      prefix: "select-chevron",
-      vars: ["--select-chevron-size"],
-    },
+    // (Select 의 trigger glyph 는 Button 원본 instance 안의 Icon 노드다 — ADR-253. 크기는 Button rule 의
+    //   glyph 단계이고 Select rule 에는 chevron 변수가 없다.)
   ] as const;
 
   it.each(targets)(

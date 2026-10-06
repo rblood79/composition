@@ -423,11 +423,19 @@ export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "combobox",
   "searchfield",
 ]);
-/** The part nodes inside the control wrapper of such a field (`[]` = the field composes them). */
+/**
+ * The control part nodes of a field: those inside its control wrapper, or a Select's trigger
+ * Button (`[]` = the field composes them).
+ */
 export function catalogFieldControlNodes(
   root: CatalogCompositionRoot,
   field: CatalogConsumerNode,
 ): CatalogConsumerNode[] {
+  // A Select's trigger is RAC's Button itself: the Button node, a direct child.
+  if (field.bindingId === "select")
+    return childrenOf(root, field).filter(
+      (child) => catalogTypeName(root, child) === "Button",
+    );
   if (!CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")) return [];
   const wrapper = childrenOf(root, field).find(
     (child) => catalogTypeName(root, child) === "SelectTrigger",

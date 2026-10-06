@@ -182,13 +182,15 @@ const BUTTON_NODE_MARKS = [
  * shared component drew its own svg, so the glyph markup is left out of the structure on both
  * sides and asserted on its own.
  */
-const WRAPPED_TYPES = ["numberfield", "combobox", "searchfield"];
+const WRAPPED_TYPES = ["numberfield", "combobox", "searchfield", "select"];
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
     .replace(/<div class=react-aria-Icon><\/>/g, "")
     // (A SearchField's leading glyph: the component's own wrapper before, the Icon node now.)
-    .replace(/<span aria-hidden=true class=search-icon><\/>/g, "");
+    .replace(/<span aria-hidden=true class=search-icon><\/>/g, "")
+    // (A Select's trigger glyph: the component's own chevron wrapper before, the Icon node now.)
+    .replace(/<span aria-hidden=true class=select-chevron><\/>/g, "");
 
 /** A document's structure: elements, their attributes (sorted) and text, in order. */
 function normalize(html: string): string {
@@ -1102,6 +1104,177 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         catalogSubpartOwnerType(graph, dom, parts()[1]!.id, "style"),
       ).toBeNull();
+    },
+  );
+
+  /**
+   * A Select's control: RAC's trigger is the Button itself, so the trigger node is an instance of
+   * the Button origin (secondary) — its paint and states are the Button rule's — holding the value
+   * (RAC `SelectValue`, the field's own sub-part) and the glyph (an Icon node). The field places
+   * it: full width, a smaller end padding beside the glyph, the value ↔ glyph gap.
+   */
+  it.skipIf(write)(
+    "select — its trigger is a Button instance holding the value and the glyph",
+    async () => {
+      const { workspace, field } = (await render("select", {}))!;
+      const records = workspace.root.canvasInputs;
+      const typeOf = (id: string) =>
+        workspace.runtime.graph.getDefinition(
+          records.get(id)!.definitionId as LibraryDefinitionId,
+        )!.name;
+      const trigger = () =>
+        records
+          .get(field.id)!
+          .children.map((id) => records.get(id)!)
+          .find((child) => typeOf(child.id) === "Button")!;
+      const parts = () => trigger().children.map((id) => records.get(id)!);
+      const host = () => {
+        const element = document.createElement("div");
+        element.innerHTML = renderToStaticMarkup(
+          renderCatalogDom(workspace.root, field.id, {
+            today: () => undefined,
+          }),
+        );
+        return element;
+      };
+      const rect = (id: string) =>
+        workspace.root.getGeometry([id]).get(id) as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        };
+      expect(trigger().collapsedSourceIds).toEqual([
+        "lib:template:component-button",
+      ]);
+      expect(trigger().props).toMatchObject({ variant: "secondary" });
+      expect(parts().map((part) => typeOf(part.id))).toEqual([
+        "SelectValue",
+        "Icon",
+      ]);
+      // Canvas: the trigger fills the field; the value fills the trigger up to the glyph, 4px
+      // before it; the glyph sits 8px inside the end (the Button's own padding at the start).
+      const width = rect(field.id).width;
+      expect(rect(trigger().id)).toMatchObject({ x: 0, width });
+      expect(trigger().visual).toMatchObject({
+        width: "100%",
+        minWidth: 0,
+        paddingX: 12,
+        paddingRight: 8,
+        gap: 4,
+        borderWidth: 1,
+      });
+      const [value, glyph] = parts();
+      expect(rect(glyph.id)).toMatchObject({
+        x: width - 1 - 8 - 18,
+        width: 18,
+        height: 18,
+      });
+      expect(rect(value.id)).toMatchObject({
+        x: 13,
+        width: width - 13 - 4 - 18 - 8 - 1,
+      });
+      expect(value.visual.fontSize).toBe(14);
+      // (The value keeps its own weight: it does not take the trigger Button's 500.)
+      expect(value.visual.fontWeight).toBe(400);
+      // The field's `placeholder` and `iconName` reach the parts (template bindings).
+      expect(value.props).toMatchObject({
+        placeholder: "Choose an option...",
+        children: "Choose an option...",
+      });
+      expect(glyph.props.iconName).toBe("chevron-down");
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { placeholder: set("Pick one"), iconName: set("search") },
+        }),
+      );
+      expect(parts()[0]!.props).toMatchObject({
+        placeholder: "Pick one",
+        children: "Pick one",
+      });
+      expect(parts()[1]!.props.iconName).toBe("search");
+      // DOM: the trigger element is the Button node's (RAC wires it as the Select's trigger); its
+      // children are the value (RAC `SelectValue` — RAC writes the placeholder) and the glyph.
+      const button = () => host().querySelector(".react-aria-Select > button")!;
+      expect(button().getAttribute("data-catalog-id")).toBe(trigger().id);
+      expect(button().getAttribute("aria-haspopup")).toBe("listbox");
+      expect(button().className).toContain("button-base");
+      expect(button().getAttribute("data-variant")).toBe("secondary");
+      expect(
+        [...button().children].map((child) =>
+          child.getAttribute("data-catalog-id"),
+        ),
+      ).toEqual(parts().map((part) => part.id));
+      const valueElement = button().querySelector(".react-aria-SelectValue")!;
+      expect(valueElement.textContent).toBe("Pick one");
+      expect(valueElement.hasAttribute("data-placeholder")).toBe(true);
+      // (Its color is the trigger's, the placeholder paint the field sheet's: nothing inline.)
+      expect(valueElement.getAttribute("style")).not.toMatch(/(^|;)\s*color:/);
+      expect(valueElement.getAttribute("style")).toMatch(/font-weight:\s*400/);
+      const style = button().getAttribute("style")!;
+      expect(style).toMatch(/(^|;)width:\s*100%/);
+      expect(style).toMatch(/padding-right:\s*8px/);
+      expect(style).toMatch(/column-gap:\s*4px/);
+      // (A Button's rest paint is its sheet's: hover, pressed and focus are the Button rule's.)
+      expect(style).not.toMatch(/background-color|border-color|opacity/);
+      // A disabled field: RAC disables the trigger; the root fades once.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { isDisabled: set(true) },
+        }),
+      );
+      expect(button().hasAttribute("disabled")).toBe(true);
+      expect(button().getAttribute("style")).toMatch(/opacity:\s*1(;|$)/);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { isDisabled: set(false) },
+        }),
+      );
+      // The field's size reaches the trigger, and through it the glyph; the value follows the
+      // field's size.
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { size: set("xl") },
+        }),
+      );
+      expect(trigger().props.size).toBe("xl");
+      expect(trigger().visual).toMatchObject({
+        paddingX: 24,
+        paddingRight: 16,
+      });
+      expect(parts()[0]!.visual.fontSize).toBe(18);
+      expect(parts()[1]!.visual.iconSize).toBe(28);
+      // The Button origin is where the trigger's shape comes from.
+      workspace.execute(
+        setLibraryDefault({
+          definitionId:
+            "lib:definition:origin-component-button" as LibraryDefinitionId,
+          scope: "visual",
+          key: "fill",
+          write: set("#0000ff"),
+          newId: workspace.newId,
+        }),
+      );
+      expect(trigger().visual.fill).toBe("#0000ff");
+      expect(button().getAttribute("style")).toMatch(
+        /--button-color:\s*#0000ff/,
+      );
+      // Edit axes: the trigger is its own (an instance); the value's style is the field's.
+      const graph = workspace.runtime.graph;
+      const dom = workspace.root.domInputs;
+      expect(
+        catalogSubpartOwnerType(graph, dom, trigger().id, "style"),
+      ).toBeNull();
+      expect(
+        catalogSubpartOwnerType(graph, dom, trigger().id, "all"),
+      ).toBeNull();
+      expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style")).toBe(
+        "Select",
+      );
     },
   );
 

@@ -84,6 +84,11 @@ export interface SelectProps<T extends object> extends Omit<
   /** 트리거 아이콘 이름 (Lucide 아이콘) */
   iconName?: string;
   /**
+   * The trigger, drawn by its part node (ADR-253 — an instance of the Button origin holding the
+   * value and the glyph). Absent: the component composes the trigger itself.
+   */
+  controlElements?: React.ReactNode[];
+  /**
    * Show loading skeleton instead of select
    * @default false
    */
@@ -110,6 +115,7 @@ export function Select<T extends object>({
   columnMapping,
   size = "md",
   iconName,
+  controlElements,
   selectionMode = "single",
   // Note: 다중 선택 관련 기능은 현재 미구현 상태
   multipleDisplayMode: _multipleDisplayMode = "count",
@@ -339,13 +345,41 @@ export function Select<T extends object>({
           {hasVisibleLabel &&
             renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
 
-          <Button className="react-aria-Button">
-            <SelectValue />
-            <span aria-hidden="true" className="select-chevron">
-              {(() => {
-                const data = iconName ? getIconData(iconName) : null;
-                if (data) {
-                  return (
+          {controlElements ?? (
+            <Button className="react-aria-Button">
+              <SelectValue />
+              <span aria-hidden="true" className="select-chevron">
+                {(() => {
+                  const data = iconName ? getIconData(iconName) : null;
+                  if (data) {
+                    return (
+                      <svg
+                        width={chevronIconSize}
+                        height={chevronIconSize}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        {data.paths.map((d: string, i: number) => (
+                          <path key={i} d={d} />
+                        ))}
+                        {data.circles?.map(
+                          (
+                            c: { cx: number; cy: number; r: number },
+                            i: number,
+                          ) => (
+                            <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
+                          ),
+                        )}
+                      </svg>
+                    );
+                  }
+                  // Default: chevron-down
+                  const defaultData = getIconData("chevron-down");
+                  return defaultData ? (
                     <svg
                       width={chevronIconSize}
                       height={chevronIconSize}
@@ -356,41 +390,15 @@ export function Select<T extends object>({
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      {data.paths.map((d: string, i: number) => (
+                      {defaultData.paths.map((d: string, i: number) => (
                         <path key={i} d={d} />
                       ))}
-                      {data.circles?.map(
-                        (
-                          c: { cx: number; cy: number; r: number },
-                          i: number,
-                        ) => (
-                          <circle key={`c${i}`} cx={c.cx} cy={c.cy} r={c.r} />
-                        ),
-                      )}
                     </svg>
-                  );
-                }
-                // Default: chevron-down
-                const defaultData = getIconData("chevron-down");
-                return defaultData ? (
-                  <svg
-                    width={chevronIconSize}
-                    height={chevronIconSize}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    {defaultData.paths.map((d: string, i: number) => (
-                      <path key={i} d={d} />
-                    ))}
-                  </svg>
-                ) : null;
-              })()}
-            </span>
-          </Button>
+                  ) : null;
+                })()}
+              </span>
+            </Button>
+          )}
 
           {/* 도움말은 다른 field 와 같은 RAC Text 기본 클래스 (`.react-aria-Text`) — `.react-aria-Description`
               (단독 Description 요소의 클래스) 을 붙이면 줄 높이가 1.333 으로 갈려 Canvas · 다른 field (1.5) 와

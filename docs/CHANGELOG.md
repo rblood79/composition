@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select 의 trigger 가 Button 원본을 따른다 (ADR-253 Phase 3 — Select)] - 2026-10-07
+
+### Changed
+
+- Select 의 trigger 는 Button 원본 (secondary) 의 instance 다. Components page 에서 Button 원본을 고치면 Select 의 trigger 가 Builder 와 Preview 에서 같이 바뀐다. hover · pressed · focus 표시는 Button 의 것이다 (전에는 테두리색 · accent outline).
+- trigger 의 glyph 는 상자 없는 아이콘이다 (전에는 배경 · 그림자가 있는 chevron 상자). 끝 쪽 padding 이 md 4 → 8px, 모서리는 크기를 따른다.
+- Select 의 `placeholder` · `iconName` 이 값 글자 · glyph 에 template 자리표시로 내려간다.
+
+### Fixed
+
+- Preview 에서 disabled 인 Select 의 trigger 가 겹쳐 흐려지던 문제 (field 0.38 × trigger 0.38).
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 305건 (+1): Select 의 trigger 가 Button instance · 자식 [SelectValue · Icon] · Canvas 상자 · placeholder / iconName 전달 · DOM (RAC trigger · SelectValue) · 원본 전파. 원복 RED 9종.
+- live `adr253-p3-control-live.mjs` 13/13 (Select + SearchField + ComboBox + NumberField): 부품 상자 · 모서리 · 색이 Canvas 와 Preview 에서 같다 (5 크기 · side) · hover · disabled · placeholder · 원본 편집 · undo. Builder 화면 자체의 Select 는 전환 전 빌드와 차이 0 (패널 308건 · 주입 14,800건). 시각 하니스 69/70 (남은 1건 CardView — 무관).
+
 ## [SearchField 의 입력칸 · 지우기 버튼이 Input · Button 원본을 따른다 (ADR-253 Phase 3 — SearchField)] - 2026-10-06
 
 ### Changed

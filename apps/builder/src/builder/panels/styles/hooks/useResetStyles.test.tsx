@@ -120,9 +120,9 @@ describe("useResetStyles — 신규 팔레트 노드는 dirty 가 아니다", ()
   });
 
   // Select-family sub-part (SelectTrigger · SelectValue · SelectIcon · DateInput): 원본 template 의
-  //   자리도 사용자가 쓴 것이 없으면 dirty 가 아니다.
+  //   자리도 사용자가 쓴 것이 없으면 dirty 가 아니다. (Select 의 trigger 는 Button 원본의 instance — ADR-253.)
   it.each([
-    ["Select", "SelectTrigger"],
+    ["Select", "Button"],
     ["Select", "SelectValue"],
     ["ComboBox", "SelectTrigger"],
     ["DatePicker", "DateInput"],

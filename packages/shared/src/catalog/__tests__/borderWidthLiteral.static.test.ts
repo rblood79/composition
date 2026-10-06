@@ -71,8 +71,9 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
   });
 
   // ADR-253 (2026-10-06): NumberField · ComboBox (4건씩) · SearchField (2건) 의 wrapper / 버튼 focus 표시
-  //   제거 (입력칸 · 버튼이 각자 그린다) → outline 7.
-  it("확정 예외 목록은 고정 — outline 7 · border-bottom 10 (늘면 판정 필요)", () => {
+  //   제거 (입력칸 · 버튼이 각자 그린다) → outline 7. Select trigger 의 pressed · focus 표시 (2건) 는 Button
+  //   원본의 것 → outline 5.
+  it("확정 예외 목록은 고정 — outline 5 · border-bottom 10 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -83,7 +84,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
         borderBottom += 1;
     });
     expect({ outline, borderBottom }).toEqual({
-      outline: 7,
+      outline: 5,
       borderBottom: 10,
     });
   });

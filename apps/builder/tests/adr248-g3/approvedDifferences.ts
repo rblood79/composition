@@ -120,6 +120,19 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "SearchField = container [glyph Icon, Input instance, Button instance] (ADR-253 — old: one painted container around a glyph, a bare value and a glyph button)",
   },
   {
+    // ADR-253 Phase 3 (4d): Select 의 trigger 는 Button 원본 (secondary) 의 instance 다 — 끝 쪽 padding 8
+    //   (old 4) 이고 glyph 는 그 안의 Icon 노드다. old 는 입력 상자 모양의 trigger 안에 상자가 있는 chevron
+    //   (배경 · 그림자) 이 있었다.
+    id: "select-trigger-button-instance",
+    class: "decided",
+    owners: ["Select"],
+    nodes: ["Button", "SelectValue", "Icon"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "Select trigger = Button instance [SelectValue, Icon] (ADR-253 — old: an input-like box around the value and a boxed chevron)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],

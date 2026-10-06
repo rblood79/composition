@@ -130,7 +130,7 @@ export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
   // ADR-238 Phase 3 — 정적 항목 = ListBoxItem instance · section (popover 내용, Menu 선례).
   Select: [
     "Label",
-    "SelectTrigger",
+    "Button",
     "Description",
     "FieldError",
     "ListBoxItem",

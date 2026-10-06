@@ -547,3 +547,53 @@ field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라�
 - Canvas 가 값을 그리는 것은 SearchField 만이다. NumberField 의 `value` 등 다른 field 의 값 표시는 종전과 같다 (placeholder 를 그린다).
 - 지우기 버튼의 크기 단계 (sm 14 · md 16 · lg 20 · xl 24) 는 부모 rule 의 배치 값이다 — Button 원본의 크기 단계를 쓰지 않는다 (ComboBox 버튼과 같다).
 - `SelectTrigger` 의 칠하는 variant 와 `SelectValue` · `SelectIcon` 은 아직 Select · picker 2종이 쓴다 — 그 부모들을 바꾼 뒤 정리한다.
+
+### 2026-10-07 — Phase 3 (4d) Select: trigger = Button instance (브랜치 `adr-253`)
+
+**구현하면서 정한 것**
+
+- **trigger 노드가 Button 원본 (secondary) 의 instance 다 — wrapper 가 없다.** RAC Select 의 trigger 는 Button 자체라 (`<Button><SelectValue/>glyph</Button>`) NumberField · ComboBox · SearchField 처럼 container 노드를 두지 않는다. template 의 `__2` 가 Button instance 이고 그 자리의 자식이 `SelectValue` (Select 의 자기 sub-part — type 노드 그대로) 와 Icon (`{iconName}`) 이다. 합성 자리의 자식은 (4a) 의 resolver 수정대로 가장 안쪽 루트 (Button type) 를 규칙 부모로 받는다.
+- 칠 · 테두리 · 글자 · 상태 (hover · pressed · focus · disabled) 는 Button rule 의 것이다. Select rule 은 trigger 를 배치만 한다: `width 100%` · `min-width 0` · 끝 쪽 padding (크기별 — glyph 옆은 Button 자기 padding 보다 좁다, md 8 = 레퍼런스) · 값 ↔ glyph 간격 4 (사용자 결정 2026-09-29 — 지운 선언에 있던 값이라 배치 선언으로 남겼다).
+- **부모 rule → wrapper 를 건넌 자식** 의 일반화: partRule 의 `via` 는 `SelectTrigger` 고정이었다. 부모별 wrapper (`SUBPART_WRAPPERS` — Select 는 Button) 로 바꿔 Select rule 의 `.react-aria-SelectValue` 선언이 `Select > Button > SelectValue` 에 닿는다. side 라벨의 control 자리 (`> :not(.react-aria-Label, …)`) 에 Button 을 더했다.
+- **값 글자 (`SelectValue`)**: DOM 은 RAC `SelectValue` 를 그 노드에서 그린다 (RAC 가 고른 항목 글자 또는 Select 의 placeholder 를 쓴다). 색은 inline 으로 내지 않는다 — trigger 의 글자색을 상속하고 placeholder 는 부모 sheet (`[data-placeholder]`) 가 칠한다. 굵기는 400 을 Select rule 에 선언했다 — 선언이 없으면 Preview 만 Button 의 500 을 상속한다 (live 에서 Canvas 400 ↔ Preview 500 으로 드러났다. 전환 전 DOM 도 400).
+- glyph 는 상자 없는 Icon 이다 (레퍼런스의 `ChevronDown`). 전에는 배경 · 그림자가 있는 chevron 상자였다. 크기는 Button rule 의 glyph 단계 (14 · 16 · 18 · 24 · 28 — lg 만 22 → 24).
+- disabled field: RAC 가 trigger 를 disabled 로 만든다 (context). root 가 한 번 흐리고 (0.38) trigger 는 쉬는 색 그대로다 — 전에는 root 0.38 × trigger 0.38 · 다른 색.
+- field 의 `placeholder` · `iconName` 은 template 자리표시로 내려간다 (Select 원본이 받는다고 선언). `iconName` 의 presence 파생 (SelectIcon) 은 picker 2종만 쓴다.
+- quiet 변형 선언은 그대로 두었다 (Preview 의 select binding 이 `isQuiet` 를 넘기지 않아 닿지 않는다 — Phase 3 끝의 quiet 정리에서 다룬다).
+
+**변화 목록 (G0 ① — px, 전환 전 빌드 5173 과 Preview 대조)**
+
+| 항목            | 전                                                           | 후                                                                               | 근거                       |
+| --------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------- | -------------------------- |
+| trigger 의 모양 | 입력 상자 (`bg-inset` · 테두리 · 모서리 6 고정)              | Button secondary (같은 배경 · 테두리색 — 모서리는 크기 단계 xs 4 · md 6 · xl 12) | §2-2 7번                   |
+| 끝 쪽 padding   | xs 1 · md 4 · xl 12                                          | xs 2 · sm 4 · md 8 · lg 12 · xl 16                                               | 레퍼런스 md 8              |
+| 바깥 상자       | md 1920 × 30 · xl 54 · xs 20                                 | 같다                                                                             | —                          |
+| 값 글자         | x 13 · 굵기 400 · placeholder 는 `fg-muted` × 0.6            | 같다 (폭은 끝 쪽 padding 만큼 달라진다)                                          | —                          |
+| glyph           | 상자 (배경 · 그림자 · 모서리 2) 18 × 18 안의 svg — md x 1897 | 상자 없는 Icon 18 × 18 — md x 1893 (lg 22 → 24)                                  | 레퍼런스 · Button instance |
+| hover           | 테두리색만 바뀜                                              | Button secondary 의 hover (배경 · 테두리색)                                      | 부품이 자기 상태를 그린다  |
+| pressed · focus | accent 2px outline                                           | Button 의 pressed 색 · focus ring                                                | 부품이 자기 상태를 그린다  |
+| disabled field  | root 0.38 × trigger 0.38 · 흐린 배경                         | root 0.38 한 번                                                                  | Canvas 와 같다             |
+
+**구현**
+
+- library: Select `__2` = Button instance (`variant: secondary`) · 자식 `__2_1` SelectValue (`placeholder` · `children` = `{placeholder}`) · `__2_2` Icon (`{iconName}`). Select 원본의 `accepts` 에 `placeholder` · `iconName`.
+- 값 (`T`): Select 의 delegation — Button 은 배치 (`width · min-width · padding-right · gap`), SelectValue 는 자기 sub-part 선언 (글자 크기 · 굵기 · `flex 1` · 말줄임 · placeholder 색). trigger 의 칠 · 상태 4종 · `--select-btn-padding/-font-size/-line-height` · chevron 상자 (`.select-chevron`) · `disabled` 변형을 지웠다.
+- 판정 · 전달: `SUBPART_TOKENS.Select` (SelectValue 만) · `SUBPART_WRAPPERS` · `FIELD_CONTROL_TYPES` 에 Button · `TRIGGER_GLYPH_OWNERS` 에서 Select 제거 · 크기 전달 `Select → Button` · 중첩 규칙 (Select 의 자식 Button) · style 축 판정의 hop wrapper 에 Button (SelectValue 의 style 은 Select 소유 — 종전 판정 그대로).
+- DOM: `select` 가 trigger Button 노드의 요소를 `controlElements` 로 넘긴다 (shared `Select` 가 그 자리에 그린다). `selectvalue` binding (RAC `SelectValue`). disabled field 안 Button 의 흐림 1 처리를 Select 의 직계 Button 에도 적용.
+- **Builder 화면 자체**: RAC Select 를 직접 조립하는 3곳 (PropertySelect · CompactSelect · 데이터 바인딩) 이 생성 Select.css 의 trigger 선언 (상자 · 상태 · chevron 상자) 에 기대고 있었다. 그 값을 `form-controls.css` 의 맨 앞에 `:where()` 특이도 0 으로 옮겼다 — 종전 (components layer) 처럼 builder-system layer 의 다른 규칙이 전부 이긴다.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 305건 (+1): Select 의 DOM 구조 대조 10 조합은 전환 전 빌드와 같다 (Button 표지 · glyph 마크업은 명시한 차이). trigger 가 Button instance · 자식 [SelectValue · Icon] · Canvas 상자 (trigger 가 field 를 채움 · 값 x 13 · glyph 끝에서 9px) · 끝 padding 8 · gap 4 · 값 굵기 400 · `placeholder` / `iconName` 전달 · DOM (trigger 가 그 노드 · `aria-haspopup=listbox` · RAC SelectValue 의 `data-placeholder` · 값의 inline 색 없음 · trigger 의 inline 배경 없음) · disabled field (RAC disabled · 흐림 1) · size xl · Button 원본 편집 → Canvas · DOM · 판정 축.
+- 원복 RED 9종: control 조립 · 값 inline 색 · disabled 흐림 · wrapper 경유 partRule · size 전달 · 값 굵기 · 끝 padding · gap 4 · placeholder 자리표시.
+- 회귀: `pnpm type-check` · shared 1,498 · rendering 1,379 · builder 4,456 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (outline 7 → 5) · `triggerIconSizeScale` (Select 는 chevron 변수가 없다) · `phase4eOriginView` (Select glyph 는 Button 안 Icon) · `useResetStyles` (Select 의 trigger 는 Button).
+- 시각 하니스: 70건 중 69 통과 (남은 1건 CardView — 무관). old/new 비교는 `select-trigger-button-instance` 로 승인 기록에 넣었다 (glyph x 4px).
+- live `adr253-p3-control-live.mjs` 13/13 (`PALETTE="select,search field,combo box,number field,button" TYPES=Select,SearchField,ComboBox,NumberField`, 5175 · headed Chrome · DPR 1 · visible): Select 의 trigger · 값 · glyph 상자 · 모서리 · 테두리 · 배경이 Canvas 와 Preview 에서 같다 — 5 크기 · side 라벨 → trigger hover (배경이 바뀜) → 누르기 (항목이 없어 `aria-expanded` 는 `false` — 전환 전과 같다, F11) → disabled field (trigger disabled · root 0.38 · 흐림 1 · 쉬는 색) → placeholder 를 바꾸면 값 글자가 바뀜 → 값 글자 굵기 Canvas 400 = Preview 400 → Components page 에서 Button 원본을 고치면 trigger 가 양쪽에서 바뀜 → undo. 콘솔 오류 0. 확대 화면에서 Canvas 의 trigger 모양을 눈으로 확인했다.
+- Builder 화면 자체 (전환 전 빌드 5173 과 대조): Design 패널의 Select 308건 차이 0 (옮기기 전 84건). 패널 밖 Select 는 같은 마크업 (root class 4종 × root disabled × placeholder × 쉬는 · hover · pressed · focus · disabled) 을 두 빌드에 주입해 37 속성을 쟀다 — 14,800건 차이 0.
+
+**남긴 것**
+
+- Preview 의 Select 열기 (항목이 생기는 Phase 4).
+- Canvas 는 placeholder 를 trigger 의 글자색 그대로 그린다 (Preview 는 `fg-muted` × 0.6) — 전환 전부터 있던 차이다.
+- trigger 안 Icon 의 색은 Icon 자신의 값이다 (Button 원본의 글자색을 고쳐도 glyph 는 따라가지 않는다 — NumberField · ComboBox 의 버튼 glyph 와 같다).
+- `SelectTrigger` 의 칠하는 variant 와 `SelectIcon` 은 picker 2종이 아직 쓴다. `SelectValue` 는 Select 의 sub-part 로 남는다.

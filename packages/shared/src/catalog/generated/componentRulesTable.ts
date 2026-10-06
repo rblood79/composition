@@ -9469,31 +9469,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          disabled: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Button",
-                  styles: {
-                    background: "color-mix(in srgb, var(--fg) 4%, transparent)",
-                    "border-color":
-                      "color-mix(in srgb, var(--fg) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                    cursor: "not-allowed",
-                    opacity: "0.38",
-                  },
-                },
-                {
-                  selector: ".react-aria-Button .select-chevron",
-                  styles: {
-                    background:
-                      "color-mix(in srgb, var(--fg) 12%, transparent)",
-                    color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                  },
-                },
-              ],
-            },
-          },
           quiet: {
             true: {
               nested: [
@@ -9588,85 +9563,63 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
+          // ADR-253: the trigger is an instance of the Button origin (secondary) — its paint, font
+          //   and states are the Button rule's. The field only places it: full width, and a
+          //   smaller end padding beside the glyph.
           {
             childSelector: ".react-aria-Button",
             prefix: "select-btn",
             variables: {
               xs: {
-                "--select-btn-padding":
-                  "var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs)",
-                "--select-btn-font-size": "var(--text-2xs)",
-                "--select-btn-line-height": "var(--text-2xs--line-height)",
+                "--select-btn-pad-end": "2px",
               },
               sm: {
-                "--select-btn-padding":
-                  "var(--spacing-2xs) var(--spacing-2xs) var(--spacing-2xs) var(--spacing-sm)",
-                "--select-btn-font-size": "var(--text-xs)",
-                "--select-btn-line-height": "var(--text-xs--line-height)",
+                "--select-btn-pad-end": "4px",
               },
               md: {
-                "--select-btn-padding":
-                  "var(--spacing-xs) var(--spacing-xs) var(--spacing-xs) var(--spacing-md)",
-                "--select-btn-font-size": "var(--text-sm)",
-                "--select-btn-line-height": "var(--text-sm--line-height)",
+                "--select-btn-pad-end": "8px",
               },
               lg: {
-                "--select-btn-padding":
-                  "var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg)",
-                "--select-btn-font-size": "var(--text-base)",
-                "--select-btn-line-height": "var(--text-base--line-height)",
+                "--select-btn-pad-end": "12px",
               },
               xl: {
-                "--select-btn-padding":
-                  "var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-xl)",
-                "--select-btn-font-size": "var(--text-lg)",
-                "--select-btn-line-height": "var(--text-lg--line-height)",
+                "--select-btn-pad-end": "16px",
               },
             },
             bridges: {
               width: "100%",
-              padding: "var(--select-btn-padding)",
-              // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 일반 Button rule 의 크기별 gap
-              //   (md 8) 을 받는다 — Canvas 는 field 트리거 공통 gap 4 (implicitStyles fieldTriggerRowStyle).
+              "min-width": "0",
+              "padding-right": "var(--select-btn-pad-end)",
+              // 값 ↔ chevron 간격 4 (사용자 결정 2026-09-29). 없으면 Button rule 의 크기별 gap
+              //   (md 8) 을 받는다.
               gap: "var(--spacing-xs)",
-              "text-align": "left",
-              border: "var(--border-width-thin) solid var(--border)",
-              "border-radius": "var(--border-radius)",
-              background: "var(--bg-inset)",
-              color: "var(--fg)",
-              "forced-color-adjust": "none",
-              "font-size": "var(--select-btn-font-size)",
-              "line-height": "var(--select-btn-line-height)",
-            },
-            states: {
-              "[data-hovered]:not([data-pressed]):not([data-disabled])": {
-                "border-color": "var(--border-hover)",
-                background: "var(--bg-overlay)",
-              },
-              "[data-pressed]:not([data-disabled])": {
-                background: "var(--accent-subtle)",
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-              },
-              "[data-focus-visible]": {
-                outline: "2px solid var(--accent)",
-                "outline-offset": "-1px",
-              },
-              "[data-disabled]": {
-                background: "color-mix(in srgb, var(--fg) 4%, transparent)",
-                "border-color":
-                  "color-mix(in srgb, var(--fg) 12%, transparent)",
-                color: "color-mix(in srgb, var(--fg) 38%, transparent)",
-                cursor: "not-allowed",
-                opacity: "0.38",
-              },
             },
           },
+          // The value (RAC `SelectValue` — the field's own sub-part) fills the trigger and clips.
           {
             childSelector: ".react-aria-SelectValue",
+            prefix: "select-value",
+            variables: {
+              xs: {
+                "--select-value-font-size": "var(--text-2xs)",
+              },
+              sm: {
+                "--select-value-font-size": "var(--text-xs)",
+              },
+              md: {
+                "--select-value-font-size": "var(--text-sm)",
+              },
+              lg: {
+                "--select-value-font-size": "var(--text-base)",
+              },
+              xl: {
+                "--select-value-font-size": "var(--text-lg)",
+              },
+            },
             bridges: {
-              "font-size": "var(--select-btn-font-size)",
-              color: "var(--fg)",
+              "font-size": "var(--select-value-font-size)",
+              // (The value's own weight — it does not take the trigger Button's 500.)
+              "font-weight": "400",
               flex: "1",
               display: "flex",
               "white-space": "nowrap",
@@ -9685,46 +9638,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: '.react-aria-SelectValue [slot="description"]',
             bridges: {
               display: "none",
-            },
-          },
-          {
-            childSelector: ".select-chevron",
-            prefix: "select-chevron",
-            variables: {
-              xs: {
-                "--select-chevron-size": "14px",
-                "--select-chevron-margin": "var(--spacing-xs)",
-              },
-              sm: {
-                "--select-chevron-size": "16px",
-                "--select-chevron-margin": "var(--spacing-sm)",
-              },
-              md: {
-                "--select-chevron-size": "18px",
-                "--select-chevron-margin": "var(--spacing)",
-              },
-              lg: {
-                "--select-chevron-size": "22px",
-                "--select-chevron-margin": "var(--spacing-md)",
-              },
-              xl: {
-                "--select-chevron-size": "28px",
-                "--select-chevron-margin": "var(--spacing-lg)",
-              },
-            },
-            bridges: {
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "center",
-              width: "var(--select-chevron-size)",
-              height: "var(--select-chevron-size)",
-              "margin-left": "var(--select-chevron-margin)",
-              "border-radius": "var(--radius-xs)",
-              background: "var(--bg-overlay)",
-              color: "var(--fg)",
-              transition: "all 150ms ease",
-              "forced-color-adjust": "none",
-              "box-shadow": "var(--shadow-sm)",
             },
           },
           {

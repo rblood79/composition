@@ -872,12 +872,16 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "description": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "placeholder": "string",
+      "iconName": "string"
     },
     "defaults": {
       "label": "Select",
       "description": "",
-      "errorMessage": ""
+      "errorMessage": "",
+      "placeholder": "Choose an option...",
+      "iconName": "chevron-down"
     },
     "visual": {},
     "stateRules": {},
@@ -4158,32 +4162,34 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-select__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:origin-component-button",
     "children": [
       "lib:template:component-select__2_1",
       "lib:template:component-select__2_2"
     ],
-    "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex"
-    }
+    "props": {
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-select__2_1",
     "definitionId": "lib:definition:type-SelectValue",
     "children": [],
     "props": {
-      "placeholder": "Choose an option...",
-      "children": "Choose an option..."
+      "placeholder": "{placeholder}",
+      "children": "{placeholder}"
     },
     "visual": {}
   },
   {
     "id": "lib:template:component-select__2_2",
-    "definitionId": "lib:definition:type-SelectIcon",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
-    "props": {},
+    "props": {
+      "iconName": "{iconName}"
+    },
     "visual": {}
   },
   {

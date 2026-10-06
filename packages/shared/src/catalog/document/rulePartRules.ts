@@ -52,11 +52,8 @@ export interface CompiledPartRule {
 const SUBPART_TOKENS: Readonly<
   Record<string, Readonly<Record<string, readonly string[]>>>
 > = {
-  Select: {
-    SelectTrigger: [".react-aria-Button"],
-    SelectValue: [".react-aria-SelectValue"],
-    SelectIcon: [".select-chevron"],
-  },
+  // ADR-253: the trigger is a Button instance (its own class token) holding the value and an Icon.
+  Select: { SelectValue: [".react-aria-SelectValue"] },
   // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
   ComboBox: { SelectTrigger: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
@@ -144,6 +141,18 @@ export function catalogSubpartDomUnion(
 ): boolean {
   return SUBPART_UNION[ownerType]?.has(childType) ?? false;
 }
+/**
+ * The node an owner's wrapped parts sit under (`via`): the `SelectTrigger` wrapper of a field that
+ * has one, a Select's trigger Button (ADR-253 — RAC's trigger is the Button itself).
+ */
+const SUBPART_WRAPPERS: Readonly<Record<string, string>> = { Select: "Button" };
+function wrapperOf(parentType: string, childType: string): string | undefined {
+  if (!WRAPPED_BY_TRIGGER.has(childType)) return undefined;
+  const wrapper =
+    SUBPART_WRAPPERS[parentType] ??
+    (SUBPART_TOKENS[parentType]?.SelectTrigger ? "SelectTrigger" : undefined);
+  return wrapper === childType ? undefined : wrapper;
+}
 const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
   "SelectValue",
   "SelectIcon",
@@ -211,20 +220,19 @@ function childTypeOf(
   token: string,
 ): { childType: string; via?: string } | undefined {
   const own = SUBPART_TOKENS[parentType] ?? {};
+  const reached = (childType: string) => {
+    const via = wrapperOf(parentType, childType);
+    return via ? { childType, via } : { childType };
+  };
   for (const [childType, tokens] of Object.entries(own))
-    if (tokens.includes(token))
-      return WRAPPED_BY_TRIGGER.has(childType) && own.SelectTrigger
-        ? { childType, via: "SelectTrigger" }
-        : { childType };
+    if (tokens.includes(token)) return reached(childType);
   if (SHARED_TOKENS[token]) return { childType: SHARED_TOKENS[token] };
   const rac = /^\.react-aria-([A-Z]\w*)$/.exec(token)?.[1];
   if (!rac || !(rac in COMPONENT_RULES_TABLE)) return undefined;
   // A token the owner maps to another child is not this type's own element.
   if (Object.values(own).some((tokens) => tokens.includes(token)))
     return undefined;
-  return WRAPPED_BY_TRIGGER.has(rac) && own.SelectTrigger
-    ? { childType: rac, via: "SelectTrigger" }
-    : { childType: rac };
+  return reached(rac);
 }
 
 /**
@@ -856,9 +864,8 @@ function tokenRuleBasePartRules(parentType: string): CompiledPartRule[] {
         return [
           {
             childType,
-            ...(WRAPPED_BY_TRIGGER.has(childType) &&
-            SUBPART_TOKENS[parentType]?.SelectTrigger
-              ? { via: "SelectTrigger" }
+            ...(wrapperOf(parentType, childType)
+              ? { via: wrapperOf(parentType, childType) }
               : {}),
             ...(childProps ? { childProps: { ...childProps } } : {}),
             layout: {},
@@ -1048,7 +1055,13 @@ const LABEL_ALIGN_AXIS = {
  * Typed direct children a side `> :not(.react-aria-Label, …)` selector reaches: the field's control
  * box (TextField `Input`, DateField `DateInput`, the picker / NumberField / SearchField trigger).
  */
-const FIELD_CONTROL_TYPES = ["Input", "SelectTrigger", "DateInput"] as const;
+const FIELD_CONTROL_TYPES = [
+  "Input",
+  "SelectTrigger",
+  "DateInput",
+  // (A Select's trigger — a Button instance, ADR-253.)
+  "Button",
+] as const;
 
 function containerVariantsOf(
   rule: ComponentRule,
@@ -1405,7 +1418,6 @@ export function compileRulePartRules(
  * (`resolveTriggerIconSize(size)` → the svg's width/height — no CSS declaration to compile).
  */
 const TRIGGER_GLYPH_OWNERS: ReadonlySet<string> = new Set([
-  "Select",
   "DatePicker",
   "DateRangePicker",
 ]);

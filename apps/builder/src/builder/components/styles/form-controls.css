@@ -1,4 +1,81 @@
 @layer builder-system {
+  /* RAC Select 를 직접 조립하는 Builder 화면의 trigger (PropertySelect · CompactSelect · 데이터 바인딩의
+     `Button.react-aria-Button > SelectValue + span.select-chevron`). 생성 Select.css 가 주던 값이다 —
+     ADR-253 으로 그 sheet 는 trigger 를 배치만 한다 (Preview 의 trigger 는 Button 원본의 instance).
+     `:where()` 특이도 0: 종전 (components layer) 처럼 이 layer 의 다른 규칙이 전부 이긴다.
+     Builder 의 Select 는 `data-size` 가 없어 크기 변수가 비어 있었다 — padding 0 · 글자는 상속. */
+  :where(.react-aria-Select) :where(.react-aria-Button) {
+    width: 100%;
+    /* (생성 sheet 가 Preview 의 trigger 에 주는 `min-width: 0` 은 받지 않는다.) */
+    min-width: auto;
+    padding: 0;
+    gap: var(--spacing-xs);
+    text-align: left;
+    border: var(--border-width-thin) solid var(--border);
+    border-radius: var(--border-radius);
+    background: var(--bg-inset);
+    color: var(--fg);
+    forced-color-adjust: none;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  :where(.react-aria-Select)
+    :where(
+      .react-aria-Button[data-hovered]:not([data-pressed]):not([data-disabled])
+    ) {
+    border-color: var(--border-hover);
+    background: var(--bg-overlay);
+  }
+
+  :where(.react-aria-Select)
+    :where(.react-aria-Button[data-pressed]:not([data-disabled])) {
+    background: var(--accent-subtle);
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  :where(.react-aria-Select) :where(.react-aria-Button[data-focus-visible]) {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+  }
+
+  :where(.react-aria-Select) :where(.react-aria-Button[data-disabled]),
+  :where(.react-aria-Select[data-disabled="true"]) :where(.react-aria-Button) {
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
+    border-color: color-mix(in srgb, var(--fg) 12%, transparent);
+    color: color-mix(in srgb, var(--fg) 38%, transparent);
+    cursor: not-allowed;
+    opacity: 0.38;
+  }
+
+  :where(.react-aria-Select) :where(.react-aria-SelectValue) {
+    color: var(--fg);
+  }
+
+  :where(.react-aria-Select) :where(.react-aria-SelectValue[data-placeholder]) {
+    color: var(--fg-muted);
+  }
+
+  :where(.react-aria-Select) :where(.select-chevron) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-xs);
+    background: var(--bg-overlay);
+    color: var(--fg);
+    transition: all 150ms ease;
+    forced-color-adjust: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  :where(
+    .react-aria-Select[data-disabled="true"] .react-aria-Button .select-chevron
+  ) {
+    background: color-mix(in srgb, var(--fg) 12%, transparent);
+    color: color-mix(in srgb, var(--fg) 38%, transparent);
+  }
+
   .section {
     .color-swatch-button {
       padding: var(--spacing-xs);

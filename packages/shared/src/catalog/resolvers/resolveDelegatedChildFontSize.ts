@@ -210,6 +210,8 @@ export const OWNER_DRAWN_PART_OWNERS: Readonly<Record<string, string>> = {
  */
 export const SUBPART_HOP_WRAPPER_TYPES: ReadonlySet<string> = new Set([
   "SelectTrigger",
+  // Select 의 trigger 는 Button 원본의 instance 다 (ADR-253) — 그 안의 SelectValue 는 Select 로 판정한다.
+  "Button",
 ]);
 
 /** 래퍼 안에서 DOM 이 실제로 호스트하는 sub-part 만 hop — `.react-aria-Group > .react-aria-DateInput`. */
