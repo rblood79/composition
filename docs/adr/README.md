@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 ADR-253 Implemented**: 기본 UI 원본의 재사용 종결 — Phase 1 · 2 · 3 · 4 · 6, G1 · G2 · G3 · G4 · G6 · G7 통과 (G5 미충족 → 바탕 사슬 미룸). 마지막 날: ① G1 의 Preview 상태별 값 — resolver 결과 · record 가 상태별 값 (`stateVisual`) 을 갖고 DOM 의 Button 이 RAC 의 render state 함수 style 로 낸다 (unit 5 · 원복 RED 4행 · live 8/8) ② Phase 6 — 쓰지 않는 SelectTrigger variant 2 · 읽는 곳 없는 목록 가족 표 제거 (사용자 승인), SelectIcon rule · shared 컴포넌트 fallback 은 Builder 자체 UI 가 써서 남김 ③ G7 — 사용자 지시로 실행자가 실제 Builder 에서 확인 (`adr253-g7-live.mjs` 7/7: Label 6곳 · 입력칸 4곳 · Button 8곳이 Canvas 와 Preview 에서 같이 바뀜). 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 280).
+
 > **2026-10-07 ADR-253 G5 판정 — 바탕 사슬 미룸**: Dialog · Popover (· Card) 의 공용 바탕 원본은 지금 구조에서 조건 (DOM · Canvas 가 전환 전과 같다) 을 맞추는 모양이 없다 — Card 를 바탕으로 하면 instance 루트가 `Card` 가 돼 Dialog · Popover 의 RAC 루트를 잃고, Popover 안에 Dialog 를 두는 구조는 padding 회귀로 걷어낸 것이며, 중립 frame 바탕은 노드를 하나 늘리고 공유하는 값이 제목 굵기 하나다. Gate 의 후퇴안대로 Decision 8 을 미루고 Phase 5 는 착수하지 않는다. 남은 것: Phase 6 (정리) · G7 (사용자 확인).
 
 > **2026-10-07 ADR-253 Phase 4 완료 (G4)**: library template 이 slot 채움을 적는다 (`LibraryTemplateNode.slotFills` — 합성 instance 자리의 자식이 그 template 의 slot 자리에 선다, instance 의 `fillSlot` 과 같은 뜻) · Select · ComboBox 의 항목이 ListBox 원본 instance 의 slot 채움 (`LIBRARY_CONTRACT_VERSION` 5) · Preview 의 picker 가 ListBox 노드의 요소를 Popover 에 넣어 **열린다** (F11 — 전에는 항목이 없어 열리지 않았다). G4 = unit 26 (slot 채움 14 · picker 12, 실제 마운트로 열기 · 고르기 포함) · 원복 RED 15행 · live 8/8 (열기 · ComboBox 걸러내기 · 「+」 · 글자 편집 · 삭제 · ListBox 원본 스타일 · undo). shared 1,515 · builder 4,479 · 시각 하니스 69/70 (CardView 무관). 찾은 것: 한 프레임에 몰린 undo 에서 Preview delta 가 한 번 거부되고 snapshot 으로 복구된다 (ADR-248 채널 — 이 Phase 밖).
@@ -187,14 +189,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     275 |
-| ├ Implemented / Complete(d)   |     232 |
+| 완료 (`completed/`)           |     276 |
+| ├ Implemented / Complete(d)   |     233 |
 | ├ Accepted                    |      15 |
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       5 |
-| ├ Proposed                    |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       4 |
+| ├ Proposed                    |       4 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **280** |
@@ -216,12 +218,6 @@
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
 - **규모**: Phase 0 go/no-go 계측 (수정 전후 Ollama · one-shot · Prompt API arm, 한국어 모호 요청 20+ · 정답 IR). go 면 `chrome-built-in` provider (IR 전용 · Translator ko→en · 동의 뒤 다운로드 · 상태 4단계). 사용자 결정: G0 절대 목표 (제안 5초) · 요청 세트 승인 · 서버 측 one-shot 이 이길 때의 소속 · 채택 근거 범위 · 자격 기기. breakdown: [design/245](design/245-ai-on-device-breakdown.md)
-
-#### [253](253-base-ui-origin-reuse.md) — 기본 UI 원본의 재사용 — 부품 · 안에 넣는 컴포넌트 · 바탕을 원본의 instance 로
-
-- **상태**: Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합, Phase 3 진행 중 (Label · FieldError · Description 완료 · 브랜치) · G1 의 Preview 상태 항목 사용자 판정 대기. 사용자 확인 4 완료 같은 날 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용)
-- **규모**: Phase 0 ~ 6. Phase 1 = 원본 override 가 instance 루트까지 닿게 (현행 결함 수리 · 단독 병합 가능) → Phase 2 = 수직 절단 Label × TextField (실패 시 stylesheet 채널로 후퇴) → Phase 3 = field 계열 전체 (부모 delegation 의 모양 선언 0) → Phase 4 = Select · ComboBox 안 ListBox → Phase 5 = Dialog · Popover 바탕 사슬 (library 표현력 go/no-go). `LIBRARY_CONTRACT_VERSION` 3 · 2026-09-03 내부 부품 판정 개정. breakdown: [design/253](design/253-base-ui-origin-reuse-breakdown.md)
-- **우선순위**: 사용자 결정
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
@@ -302,7 +298,7 @@
 
 ---
 
-## 완료 ADR (275)
+## 완료 ADR (276)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -585,6 +581,7 @@
 | [250](completed/250-preview-expansion-runtime-state.md) | Preview 의 펼침 조작 — 문서 역기록 대신 Preview 실행 상태 (대안 B · 사용자 판정). Disclosure · Tree · DisclosureGroup 펼침 = record 실행 prop (규칙 capability 와 같은 값 · 문서 값이 바뀌면 버림) · Preview Tree 펼침 복원 · 그룹 선언 추종 · Canvas · Builder 메시지 변경 0 | Implemented | 2026-10-03 |
 | [251](completed/251-radio-checkbox-items-node-restore.md) | RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems — TagGroup > TagList 동형). 그룹 rule 의 orientation 블록이 묶음 partRule · DOM 은 shared `div.*-items` 1개 · 「+」 는 묶음 안 · 묶음 Direction = 그룹 orientation · library contract 2 (ADR-912 Items 폐기를 뒤집음) | Implemented | 2026-10-03 |
 | [252](completed/252-design-panel-merge.md) | Properties · Styles 패널을 Design 패널 하나로 통합 — 탭 `Property | Layout | Style | Text | Screen` (Modified 제거) · id `properties` 유지 · `styles` 등록 해제 · ⌥6 = Layout 탭 · ⌘⌥C/V 는 활성 탭의 쌍만 등록 · 최소 폭 233 · ratchet 상한 +2 (RAC tabpanel tabIndex) | Implemented | 2026-10-04 |
+| [253](completed/253-base-ui-origin-reuse.md) | 기본 UI 원본의 재사용 — 원본에 쓴 스타일 · 상태별 값이 그 원본의 전 instance 에 닿음 · field 계열의 Label · Description · FieldError · Input · DateInput · Button 이 부품 원본의 instance (모양 정본 = 부품 rule, DOM 이 부품 노드를 RAC 로 직접 그림) · Select · ComboBox 의 항목 = ListBox 원본 instance 의 slot 채움 (library `slotFills`) · library contract 5 · 바탕 사슬 (Dialog · Popover) 은 미룸 | Implemented | 2026-10-07 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

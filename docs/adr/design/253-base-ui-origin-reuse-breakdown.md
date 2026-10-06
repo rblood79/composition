@@ -1,6 +1,6 @@
 # ADR-253 breakdown — 기본 UI 원본의 재사용
 
-> 본문: [ADR-253](../253-base-ui-origin-reuse.md) (Proposed 2026-10-06). 대안 A 기준. 줄 번호는 main `468c6d41f` 기준이며 G0 에서 다시 확인한다.
+> 본문: [ADR-253](../completed/253-base-ui-origin-reuse.md) (Implemented 2026-10-07). 대안 A 기준. 줄 번호는 main `468c6d41f` 기준이며 G0 에서 다시 확인한다.
 
 경로 약어: `S/` = `packages/shared/src/` · `D/` = `S/catalog/document/` · `X/` = `S/catalog/runtime/` · `R/` = `apps/builder/src/builder/catalogRuntime/` · `P/` = `apps/builder/src/builder/panels/` · `T` = `S/catalog/generated/componentRulesTable.ts` · `L` = `D/generated/reusableOriginLibrary.ts`
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 · 4 완료. G3 · G4 · G6 통과 (G3 에서 남았던 Select · ComboBox 열기는 Phase 4 가 닫았다). G5 는 조건 미충족 — Decision 8 (바탕 사슬) 을 Gate 의 후퇴안대로 미루고 Phase 5 는 착수하지 않는다 (2026-10-07, breakdown 「G5 판정」). 남은 것: Phase 6 · G7)
+Implemented — 2026-10-07 (Accepted 2026-10-06. Phase 1 · 2 · 3 · 4 · 6 완료 — G1 · G2 · G3 · G4 · G6 · G7 통과. G5 는 조건 미충족이라 Decision 8 (바탕 사슬) 을 Gate 의 후퇴안대로 미뤘고 Phase 5 는 착수하지 않았다 — 후속은 사용자 결정. G1 의 Preview 상태별 값은 2026-10-07 에 DOM 채널을 만들어 통과했다 (대상 = Button). G7 은 사용자 지시 「직접 검증 해라」 로 실행자가 실제 Builder 에서 확인했다)
 
-> **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
+> **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](../reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](../design/253-base-ui-origin-reuse-breakdown.md).
 >
 > **Phase 2** (같은 날, 브랜치 `adr-253`): Label 원본을 등록하고 TextField 의 Label 자리를 그 instance 로, Preview DOM 이 Label 노드를 직접 그리게 했다 (contract 3). G2 통과 — Components page 에서 Label 원본을 고치면 TextField 의 Label 이 Canvas 와 Preview 에서 같이 바뀌고, DOM 구조는 전환 전과 같다. 부모 delegation 의 Label 모양 선언 정리와 굵기 500 은 Phase 3 으로 옮겼다 (TextArea 가 TextField 의 CSS 범위를 같이 쓴다 — breakdown §6).
 
@@ -24,7 +24,7 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 · 4 완료. G3 · G4 
 >
 > **Phase 3 (4e) 날짜 4종** (2026-10-07, 브랜치): **DateInput 원본** 이 날짜 field 의 입력 상자다 — DateInput rule 이 자기 sheet (크기 단계 · 상태 · 조각) 를 내고 4 부모의 조각 선언은 그리로 모았다. DateField · TimeField 는 그 instance 를 바로 쓰고, DatePicker 는 Group (배치만) 안에 DateInput instance + FieldButton instance, DateRangePicker 는 Group 이 상자이고 그 안이 slot `start` · `end` 의 DateInput instance 2개 + 구분자 + FieldButton 이다 (종전: 노드 하나가 쌍을 대신). 이로써 field 계열 전 부모의 부품 자리가 원본 instance 다. 남은 것: Phase 3 끝 정리 (quiet · `SelectIcon` 등 쓰지 않는 type · 측정). 찾은 것: locale 을 쓰지 않은 날짜 field 를 Canvas 는 Builder locale 로, Preview 는 en-US 로 그린다 (전환 전부터).
 >
-> **Phase 3 끝 — quiet · 판정 · 측정** (2026-10-07): quiet (`isQuiet`) 의 밑줄 모양을 8 부모가 반복하던 선언에서 **Input · DateInput rule 의 자기 상태 (`&[data-quiet]`) 한 정의** 로 모았다 — quiet field 의 상자 부품이 `data-quiet` 를 갖는다. Preview 에서 TextArea · ComboBox · DatePicker 의 quiet 가 처음으로 보이고 (전에는 닿지 않았다), hover 에 밑줄 색이 바뀐다. Select 의 값 노드는 style 을 자기가 갖는다 (Styles 패널이 그대로 편집). **G3**: 정적 · DOM 구조 대조 · 동작 통과, 시각 하니스 69/70 (남은 1건 CardView 는 이 ADR 이전부터). Select · ComboBox 를 Preview 에서 여는 항목만 통과하지 못한다 — 항목이 없다 (F11, 전환 전과 같다 · Phase 4). **G6**: ratchet pass · field 100개 격자에서 편집 한 번의 `record.content` +0.5 ms (p50, 전환 전후 교대 3쌍) · initial 번들 Builder −1,879 B · Preview −3,121 B (JS gzip). 찾은 것: Canvas 는 field 의 quiet 모양을 그리지 않는다 (전환 전부터 — 이번에 Preview 쪽이 9 type 으로 늘어 차이가 넓어졌다). 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
+> **Phase 3 끝 — quiet · 판정 · 측정** (2026-10-07): quiet (`isQuiet`) 의 밑줄 모양을 8 부모가 반복하던 선언에서 **Input · DateInput rule 의 자기 상태 (`&[data-quiet]`) 한 정의** 로 모았다 — quiet field 의 상자 부품이 `data-quiet` 를 갖는다. Preview 에서 TextArea · ComboBox · DatePicker 의 quiet 가 처음으로 보이고 (전에는 닿지 않았다), hover 에 밑줄 색이 바뀐다. Select 의 값 노드는 style 을 자기가 갖는다 (Styles 패널이 그대로 편집). **G3**: 정적 · DOM 구조 대조 · 동작 통과, 시각 하니스 69/70 (남은 1건 CardView 는 이 ADR 이전부터). Select · ComboBox 를 Preview 에서 여는 항목만 통과하지 못한다 — 항목이 없다 (F11, 전환 전과 같다 · Phase 4). **G6**: ratchet pass · field 100개 격자에서 편집 한 번의 `record.content` +0.5 ms (p50, 전환 전후 교대 3쌍) · initial 번들 Builder −1,879 B · Preview −3,121 B (JS gzip). 찾은 것: Canvas 는 field 의 quiet 모양을 그리지 않는다 (전환 전부터 — 이번에 Preview 쪽이 9 type 으로 늘어 차이가 넓어졌다). 기록: [breakdown §6](../design/253-base-ui-origin-reuse-breakdown.md).
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 
@@ -32,7 +32,7 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 · 4 완료. G3 · G4 
 - 「그 기본 ui는 theme 의 최소요소라 그것만 변경하면 컴퍼넌트들 전체가 한 세트로 일관된 디자인으로 변경하자는것」
 - 「pen.dev 샘플은 여러가지를 보여주기 위해서 만들어진 샘플이라 재사용의 참고패턴만 확인하는것」 — 잘된 예로 Tabs (TabList 재사용) 와 Modal 을 들었다.
 
-이 ADR 은 [ADR-923](completed/923-layout-vocabulary-closure.md) Phase 5 후속의 내부 부품 판정 (2026-09-03, 사용자 판정 A × 2 — [evidence](evidence/923-phase5-followup-subpart-extension.md)) 을 고친다. 그 판정은 「Preview 가 부모 값만으로 그리므로 부품의 편집을 부모로 돌린다」 였고, 이 ADR 은 Preview 가 부품을 직접 그리게 해서 그 전제를 없앤다. 원본 template 구조가 바뀌므로 [ADR-251](completed/251-radio-checkbox-items-node-restore.md) 과 같은 방식으로 library contract version 을 올린다.
+이 ADR 은 [ADR-923](923-layout-vocabulary-closure.md) Phase 5 후속의 내부 부품 판정 (2026-09-03, 사용자 판정 A × 2 — 그 evidence 문서는 `dcfaec4b0` 에서 지워졌다) 을 고친다. 그 판정은 「Preview 가 부모 값만으로 그리므로 부품의 편집을 부모로 돌린다」 였고, 이 ADR 은 Preview 가 부품을 직접 그리게 해서 그 전제를 없앤다. 원본 template 구조가 바뀌므로 [ADR-251](251-radio-checkbox-items-node-restore.md) 과 같은 방식으로 library contract version 을 올린다.
 
 **사용자 확인 (2026-10-06)** — 세 항목 모두 답을 받았다 (4 는 2 의 보충).
 
@@ -41,7 +41,7 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 · 4 완료. G3 · G4 
 3. contract 2 프로젝트 거부: 「상관없다. 개발단계인데 무시해도된다」.
 4. 레퍼런스 값의 위치: 「레퍼런스는 스타일 일뿐이고 default theme값일 뿐이다」 — 레퍼런스 값을 부품의 기본값으로 그대로 쓰고 항목별 예외를 두지 않는다 (Label 굵기 · Select trigger 포함).
 
-> **2026-10-06 리뷰 round 1 반영** ([reviews/253.md](reviews/253.md), Codex — HIGH 2 · MEDIUM 2): ① Select 의 항목을 ListBox instance 의 자식으로 적으면 slot 채움이 되지 않고 ListBox 루트 밖에 붙는다 → library 의 slot 채움 표현을 Phase 4 의 선행으로 옮김 (Decision 7 · 8 · G4 · G5) ② 일반 Button binding 은 RAC 의 `slot` 을 버리고 `isDisabled: false` 를 명시해 부모 context 를 덮는다 → 부품이 부모의 RAC context 를 그대로 받는 계약 추가 (Decision 5 · R10 · G3) ③ 지금의 FieldError binding 은 정적 `span` 이라 동적 validation 과 ARIA 연결이 끊긴다 → 부품을 RAC 컴포넌트로 그리고 검증 추가 (Decision 5 · R1 · G3) ④ 원본의 상태별 스타일은 template 루트 투영 뒤에 적용돼 닿지 않는다 → 상태별 전파를 Phase 1 의 범위와 G1 에 명시 (Decision 1 · G1). 네 건 모두 코드에서 확인했다. 대안 A 와 사용자 확인 4 는 그대로다.
+> **2026-10-06 리뷰 round 1 반영** ([reviews/253.md](../reviews/253.md), Codex — HIGH 2 · MEDIUM 2): ① Select 의 항목을 ListBox instance 의 자식으로 적으면 slot 채움이 되지 않고 ListBox 루트 밖에 붙는다 → library 의 slot 채움 표현을 Phase 4 의 선행으로 옮김 (Decision 7 · 8 · G4 · G5) ② 일반 Button binding 은 RAC 의 `slot` 을 버리고 `isDisabled: false` 를 명시해 부모 context 를 덮는다 → 부품이 부모의 RAC context 를 그대로 받는 계약 추가 (Decision 5 · R10 · G3) ③ 지금의 FieldError binding 은 정적 `span` 이라 동적 validation 과 ARIA 연결이 끊긴다 → 부품을 RAC 컴포넌트로 그리고 검증 추가 (Decision 5 · R1 · G3) ④ 원본의 상태별 스타일은 template 루트 투영 뒤에 적용돼 닿지 않는다 → 상태별 전파를 Phase 1 의 범위와 G1 에 명시 (Decision 1 · G1). 네 건 모두 코드에서 확인했다. 대안 A 와 사용자 확인 4 는 그대로다.
 
 ## Context
 
@@ -168,7 +168,7 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 - **C**: 값은 한 곳에 모이지만 구조 재사용이 아니다. 원본 편집이 instance 에 닿지 않는 F7 과 Preview 목록이 비는 F11 을 고치지 못한다.
 - **D**: 목표를 주지 않는다. F7 은 현행 기능의 결함이다.
 
-> 구현 상세: [253-base-ui-origin-reuse-breakdown.md](design/253-base-ui-origin-reuse-breakdown.md)
+> 구현 상세: [253-base-ui-origin-reuse-breakdown.md](../design/253-base-ui-origin-reuse-breakdown.md)
 
 ## Risks
 
@@ -202,7 +202,17 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실제 Builder (worktree 빌드 `localhost:5175` · headed Chrome · DPR 1 · visible · Compare Mode — Canvas 와 Preview 를 같이 본다) 에서 Playwright 로 실행했다. 사용자 confirm 이 아니라 실행자의 직접 확인이다 (사용자 지시 2026-10-07 「2, 3 은 직접 검증 해라」). 스크립트는 `apps/builder/scripts/adr253-*-live.mjs`, 단계별 기록은 [breakdown](../design/253-base-ui-origin-reuse-breakdown.md).
+
+| 날짜       | 시나리오                                                                                                                                                                                                               | 결과                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 2026-10-07 | **G7** (`adr253-g7-live.mjs`): 팔레트로 8 종을 놓고 Components page 에서 Label (글자색 · 크기) · Input (배경 · 테두리색) · Button (배경) 원본을 고친 뒤 page 로 돌아와 Canvas record 와 Preview computed style 을 읽음 | 7/7 — Label 6곳 · 입력칸 4곳 · Button 8곳이 양쪽에서 바뀜. Design 패널의 Reset 버튼 · undo 4번 · 콘솔 오류 0 |
+| 2026-10-07 | **G1** (`adr253-p1-live.mjs`): Button 원본의 기본 배경 · padding 과 hover 배경을 쓰고, Preview 의 Button 에 실제 hover 를 줌                                                                                           | 8/8 — 놓은 Button 과 Toolbar 안 Button 이 양쪽에서 바뀜 · hover 에서 `rgb(18, 52, 86)`                       |
+| 2026-10-07 | **G4** (`adr253-p4-live.mjs`): Select · ComboBox 를 놓고 Preview 에서 열기 · 걸러내기 · 고르기, Design 패널의 「+」, 항목 글자 편집 · 삭제, ListBox 원본 배경색, undo                                                  | 8/8                                                                                                          |
+| 2026-10-07 | **G3** (`adr253-p3-control-live.mjs` · `adr253-p3-quiet-live.mjs`): field 8 종의 부품 상자 · 모서리 · 테두리 · 배경이 Canvas 와 Preview 에서 같음, 증감 · 열기 · 지우기 · validation 동작                              | 17/17 · 7/7                                                                                                  |
+| 2026-10-06 | **G2** (`adr253-p2-live.mjs`): Label 원본의 굵기 · 색 · 크기를 고치면 TextField 안 Label 이 Canvas 와 Preview 에서 같이 바뀜                                                                                           | 6/6                                                                                                          |
+
+따르지 않는 것 (정해 둔 것): Checkbox · Radio · Switch 의 글자는 Label 원본의 instance 가 아니다. 한계: 원본의 값 쓰기는 패널이 내는 것과 같은 명령 (`setFields` → `workspace.execute`) 으로 했고, 패널 조작은 Reset 버튼과 「+」 버튼이다. 상태별 값을 쓰는 편집 UI 는 없다.
 
 ## Consequences
 
@@ -218,7 +228,7 @@ HIGH 가 없는 대안이 없다. 한 번 더 살핀 회피안: 「A 에서 ④ 
 
 - contract 2 로 저장된 개발용 프로젝트는 열리지 않는다 (의도).
 - 일부 컴포넌트의 모습이 바뀐다 (G0 승인 목록).
-- 2026-09-03 내부 부품 판정을 고친다. `.claude/rules/ssot-hierarchy.md` 의 「D3 read-only sub-part」 절과 [evidence](evidence/923-phase5-followup-subpart-extension.md) 에 이 ADR 을 가리키는 표기를 넣는다 (Implemented 승격 때).
+- 2026-09-03 내부 부품 판정을 고친다. `.claude/rules/ssot-hierarchy.md` 의 부품 절을 이 ADR 기준으로 다시 썼다 (Phase 3 · 4). 그 판정의 evidence 문서는 `dcfaec4b0` 에서 지워져 표기할 파일이 없다.
 - 부품마다 해석 한 층이 늘어난다 (G6).
 - 영향 파일 (대표): `D/generated/reusableOriginLibrary.ts` · `T` · `D/rulePartRules.ts` · `D/types.ts` · `S/catalog/resolution/resolver.ts` · `S/catalog/componentCatalog.ts` · `X/{delegatedDom.tsx, domBinding.tsx, presence.ts}` · `S/components/{TextField, TextArea, NumberField, SearchField, ColorField, Select, ComboBox, DateField, TimeField, DatePicker, DateRangePicker}.tsx` · `S/components/styles/base.css` · `S/catalog/resolvers/resolveDelegatedChildFontSize.ts` · `R/{subpart.ts, componentsPage.ts, layouts.ts}` · `apps/builder/tests/adr248-g3/`.
 - ADR-248 Phase 4 의 G3 승인 기록 중 field 계열 항목은 다시 승인해야 한다.
