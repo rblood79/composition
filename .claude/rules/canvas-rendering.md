@@ -65,7 +65,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 - **Layer A — CSS value parser SSOT**: `packages/specs/src/primitives/cssValueParser.ts` 의 `parsePxValue / parsePadding4Way / parseGapValue / parseBorderWidth` 만 사용. **금지**: `parseFloat(String(x))` ad-hoc 파싱. **Why**: edge case (undefined/null/"" /"20px"/숫자/percentage) 일관 처리 + generic fallback (`parsePxValue<F>(value, fallback: F): number | F` — TokenRef passthrough 허용)
 - **Layer B — Container spacing primitive**: `packages/specs/src/primitives/containerSpacing.ts` 의 `resolveContainerSpacing({ style, defaults })` 가 padding(4way)/gap(row+column)/borderWidth/fontSize 를 통합 resolve. 각 caller 는 `defaults` 에 spec 기본값 전달. **Why**: 7 공통 필드의 컴포넌트별 중복 파싱 제거
-- **Layer C — Renderer root style 계약**: `packages/shared/src/renderers/__tests__/rendererStyleContract.test.ts` 가 11 renderer 의 root JSX props 에 `style={element.props.style as React.CSSProperties | undefined}` 전달을 runtime 검증. **allowlist 는 빈 Set** (2026-04-24 Phase 5 도달). 신규 collection renderer 추가 시 `RENDERERS` 배열 추가만으로 동일 Gate 자동 적용
+- **Layer C — DOM root style 계약**: 옛 Preview renderer (`packages/shared/src/renderers/`, 2026-10-07 삭제) 의 `rendererStyleContract.test.ts` 가 하던 검증은 catalog DOM binding (`packages/shared/src/catalog/runtime/domBinding.tsx` `catalogDomStyle` — 노드의 해석 값이 요소 inline style 로) 이 대신한다. 새 binding 은 `style` 을 요소에 전달해야 한다
 - **Layer D — Spec metric SSOT**: `render.shapes()` 와 `calculateContentHeight()` 가 **동일 resolver 심볼** 호출. 예: `resolveGridListSpacingMetric()` (GridList), `resolveContainerSpacing()` 직접 호출 (Menu/Toolbar). **Hard Constraint**: root container spacing 과 item 내부 spacing 은 같은 속성명으로 섞지 않음 (예: Table `size.paddingX` 는 cell-level, 유지)
 
 ### 신규 collection 컴포넌트 추가 시 체크리스트

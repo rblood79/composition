@@ -1,7 +1,7 @@
 /**
  * ADR-923 Phase 5 후속 잔여 1 (2026-09-03, 판정 A) — **read-only sub-part** 판정.
  *
- * DOM (Preview·publish 공통 `@composition/shared/renderers`) 은 parent props 만으로 self-compose 하고 canonical
+ * DOM (Preview·publish 공통 catalog runtime `delegatedDom.tsx`) 은 parent props 만으로 self-compose 하고 canonical
  * 자식을 읽지 않는다. 다음 자식은 read-only sub-part 다 — 자식에 준 인라인 style 은 어떤 채널로도 DOM 에
  * 닿지 않는다 (2026-09-03 판정 A × 4):
  *   - parent rule delegation 이 class 토큰을 가진 자식 — FieldError · Label · Input · DateInput · SelectTrigger 래퍼

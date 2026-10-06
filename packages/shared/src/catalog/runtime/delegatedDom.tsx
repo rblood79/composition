@@ -34,7 +34,7 @@ import { GridList } from "../../components/GridList";
 import { Tree, TreeItem } from "../../components/Tree";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import { MenuButton } from "../../components/Menu";
-import { TABLEVIEW_CHILD_STYLE } from "../../renderers/LayoutRenderers";
+import { TABLEVIEW_CHILD_STYLE } from "./tableViewChildStyle";
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
 import { resolveStaticItemKey } from "../slotRoles";
 import { catalogTabsSelection, catalogTreeItemExpanded } from "./presence";

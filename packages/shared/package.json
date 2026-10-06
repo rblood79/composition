@@ -2,7 +2,7 @@
   "name": "@composition/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "composition shared types, utilities, components, and renderers",
+  "description": "composition shared types, utilities, components, and catalog runtime",
   "type": "module",
   "exports": {
     ".": {
@@ -35,10 +35,6 @@
     },
     "./components/styles/*": {
       "default": "./src/components/styles/*"
-    },
-    "./renderers": {
-      "types": "./src/renderers/index.ts",
-      "default": "./src/renderers/index.ts"
     },
     "./hooks": {
       "types": "./src/hooks/index.ts",

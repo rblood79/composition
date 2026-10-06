@@ -7,7 +7,7 @@
  * 기존 call-site 전수 교체 대상:
  * - apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts
  * - packages/specs/src/components/*.spec.ts (ad-hoc parseFloat 패턴)
- * - packages/shared/src/renderers/** (Preview post-process)
+ * - packages/shared/src/catalog/runtime/** (Preview DOM binding)
  *
  * 숫자/문자열/undefined 3 형태를 모두 수용하며 fallback 으로 기존 default 를 보존한다.
  */

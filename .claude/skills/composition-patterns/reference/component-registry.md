@@ -76,10 +76,10 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 ### Spec/렌더 매핑
 
-| 심볼                            | 위치                                             | 내용                                                                     |
-| ------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
-| `TAG_SPEC_MAP` (builder merged) | `workspace/canvas/styleConversion/tagSpecMap.ts` | packages/specs 정본 + `BUILDER_ALIAS_MAP`. catalog Canvas 는 쓰지 않는다 |
-| `rendererMap`                   | `@composition/shared/renderers`                  | DOM 렌더러 매핑 — ADR-907 Layer C 계약 (`rendererStyleContract.test.ts`) |
+| 심볼                                 | 위치                                                                | 내용                                                                                     |
+| ------------------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `TAG_SPEC_MAP` (builder merged)      | `workspace/canvas/styleConversion/tagSpecMap.ts`                    | packages/specs 정본 + `BUILDER_ALIAS_MAP`. catalog Canvas 는 쓰지 않는다                 |
+| `bindings` · `CATALOG_DELEGATED_DOM` | `packages/shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx` | DOM binding 매핑 (옛 `rendererMap` · `@composition/shared/renderers` 는 2026-10-07 삭제) |
 
 ---
 

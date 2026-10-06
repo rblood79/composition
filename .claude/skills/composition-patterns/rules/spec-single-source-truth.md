@@ -66,7 +66,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
 COMPONENT_RULES_TABLE
  ├─ DOM/CSS  : packages/specs/scripts/generate-css.ts 가 getComponentRulesTable() 로
  │             variant 색상을 주입 → packages/shared/src/components/styles/generated/*.css
- │             (렌더러: packages/shared/src/renderers/LayoutRenderers.tsx)
+ │             (DOM binding: packages/shared/src/catalog/runtime/delegatedDom.tsx)
  └─ Skia     : resolveComponentRule() (packages/shared/src/catalog/resolvers/resolveComponentRule.ts)
                → builder ruleVariantToVisual() → buildCatalogShapes() (generic box+text)
                → 비-box 도형은 binding.skiaPrimitive → skiaPrimitives.ts

@@ -4,7 +4,6 @@ paths:
   - "packages/upload-engine/**"
   - "packages/shared/src/upload/**"
   - "packages/shared/src/components/FileUpload*.tsx"
-  - "packages/shared/src/renderers/UploadRenderers.tsx"
   - "docs/reference/upload/**"
   - "examples/upload-server-spring/**"
   - "examples/upload-client-jsp/**"

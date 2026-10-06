@@ -22,7 +22,6 @@ export default defineConfig({
       },
       ...Object.entries({
         "@composition/shared/components": `${dir}/../../packages/shared/src/components/index.ts`,
-        "@composition/shared/renderers": `${dir}/../../packages/shared/src/renderers/index.ts`,
         "@composition/shared/types": `${dir}/../../packages/shared/src/types/index.ts`,
         "@composition/shared/hooks": `${dir}/../../packages/shared/src/hooks/index.ts`,
         "@composition/shared/utils": `${dir}/../../packages/shared/src/utils/index.ts`,

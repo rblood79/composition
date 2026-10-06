@@ -344,10 +344,6 @@ export default defineConfig(({ command }) => {
           replacement: `${import.meta.dirname}/../../packages/shared/src/types/index.ts`,
         },
         {
-          find: "@composition/shared/renderers",
-          replacement: `${import.meta.dirname}/../../packages/shared/src/renderers/index.ts`,
-        },
-        {
           find: "@composition/shared/hooks",
           replacement: `${import.meta.dirname}/../../packages/shared/src/hooks/index.ts`,
         },

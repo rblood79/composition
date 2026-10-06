@@ -19,7 +19,7 @@ tags: [architecture, reference, patterns]
 | ComponentSpec 정의    | `specs/src/components/Frame.spec.ts`                                 | 잔존 canonical spec 표준 구조 (ADR-130 layout container) |
 | CSS 생성기            | `specs/src/renderers/CSSGenerator.ts`                                | Spec → CSS 파일 생성                                     |
 | Catalog → Skia shapes | `specs/src/renderers/buildCatalogShapes.ts`                          | catalog rule → Shape[] 생성 (Skia consumer)              |
-| Preview DOM 렌더러    | `shared/src/renderers/` (예: `FormRenderers.tsx`)                    | RAC 기반 Preview/Publish DOM 렌더 (CSS consumer)         |
+| Preview DOM binding   | `shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx`           | RAC 기반 Preview/Publish DOM 렌더 (CSS consumer)         |
 | 토큰 리졸버           | `specs/src/renderers/utils/tokenResolver.ts`                         | 토큰 → 실제 값 변환                                      |
 | 색상 토큰             | `specs/src/primitives/colors.ts`                                     | 디자인 토큰 정의                                         |
 | 그림자 토큰           | `specs/src/primitives/shadows.ts`                                    | 그림자 토큰 정의                                         |

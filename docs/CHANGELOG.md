@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [옛 Preview 렌더러 삭제 — `packages/shared/src/renderers`] - 2026-10-07
+
+### Removed
+
+- ADR-248 전환 전의 Preview 렌더러 (`packages/shared/src/renderers`, 32 파일 · 11,278 줄) 와 그것만 읽던 테스트 2개 · 옛 DOM 기준선 스크립트 · `@composition/shared/renderers` export 와 vite · vitest alias 4곳. Preview · publish 는 ADR-248 뒤로 catalog DOM binding (`catalog/runtime/{domBinding,delegatedDom}.tsx`) 만 쓴다. 사용자 가시 변화 0 (실제 Builder 에서 TableView · Tabs · ListBox · TagGroup · Tree · FileUpload · DatePicker 확인 · initial 번들 같음).
+
+### Technical
+
+- 옛 렌더러에서 아직 읽히던 `TABLEVIEW_CHILD_STYLE` (TableView 자식의 시각 계약) 은 `catalog/runtime/tableViewChildStyle.ts` 로 옮겼다.
+
 ## [기본 UI 원본의 재사용 — 원본의 상태별 값이 Preview 의 Button 에 닿는다 (ADR-253 Implemented)] - 2026-10-07
 
 ### Fixed
