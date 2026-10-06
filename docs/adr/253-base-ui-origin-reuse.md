@@ -2,9 +2,11 @@
 
 ## Status
 
-Accepted — 2026-10-06 (실행 중 — Phase 1 구현, main 병합 전)
+Accepted — 2026-10-06 (실행 중 — Phase 1 main 커밋 · Phase 2 는 브랜치 `adr-253` 에서 G2 통과, main 병합 전)
 
 > **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
+>
+> **Phase 2** (같은 날, 브랜치 `adr-253`): Label 원본을 등록하고 TextField 의 Label 자리를 그 instance 로, Preview DOM 이 Label 노드를 직접 그리게 했다 (contract 3). G2 통과 — Components page 에서 Label 원본을 고치면 TextField 의 Label 이 Canvas 와 Preview 에서 같이 바뀌고, DOM 구조는 전환 전과 같다. 부모 delegation 의 Label 모양 선언 정리와 굵기 500 은 Phase 3 으로 옮겼다 (TextArea 가 TextField 의 CSS 범위를 같이 쓴다 — breakdown §6).
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 

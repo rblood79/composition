@@ -212,3 +212,34 @@
 
 - G1 의 Preview 상태 항목 — 사용자 판정 대기 (본문 Status).
 - 원본을 처음 고칠 때 뜨는 영향 안내가 「1 instance」 로 센다 (page 에 놓은 것만). 이제는 다른 원본 안의 instance (Toolbar 의 Button 3개) 도 같이 바뀐다 — 세는 범위를 Phase 3 에서 맞춘다.
+
+### 2026-10-06 — Phase 1 보완 · Phase 2 (worktree `.worktrees/adr-253` · 브랜치 `adr-253`)
+
+**Phase 1 보완** (`05b75c019`): override 가 이미 있는 원본을 한 번 더 고치면 (value-only step) page 에 놓은 instance 의 record 만 다시 계산되고, 다른 원본 template 안의 instance 는 옛 값으로 남았다 — Phase 2 의 Label 테스트에서 드러났다 (해석 결과는 800 · 화면 record 는 600). 그 자리는 template 위치라 graph 색인에 없다. `X/compositionRoot.ts` 의 `overrideDependents` 가 override 대상 정의를 그리는 record (자기 정의 또는 접힌 층의 정의가 대상인 것) 를 모두 다시 계산한다. 테스트: 두 번째 편집 · undo 뒤 Canvas · DOM record 8개 (수정 전 `[88,77,77,77,…]`). Phase 1 커밋 (`12df3757a`) 은 main 에 있고 이 보완은 브랜치에만 있다 — 병합 때 같이 들어간다.
+
+**Phase 2 — 구현**
+
+- library (`9bfe05f6a`): `origin-component-label` 정의와 template 루트 (`component-label`, type Label, `children: "{children}"`). TextField template 의 `__1` 이 Label 원본의 instance. 팔레트 밖 원본 목록에 Label. `LIBRARY_CONTRACT_VERSION` 3 (테스트 fixture 26 파일의 리터럴 갱신).
+- DOM (`7f2e04799`): textfield binding 이 Label 자식을 `renderChild` 로 그린다 (RAC `Label`, TextField 의 context 안 — `for` 연결 유지). Input · description · FieldError 는 binding 이 RAC 요소로 같이 넘긴다 (Phase 3 에서 노드로). shared `TextField` 는 `children` 이 있으면 그대로 넘기고 없으면 종전처럼 조립한다 (Builder 화면 자체가 쓰는 호출처 3곳). Label 노드는 field 가 붙이는 necessity 표시를 같이 그리고 field 값이 바뀌면 다시 그린다 (`CATALOG_LABEL_NODE_FIELDS` · `catalogFieldLabelNecessity`).
+- Components page: 기본 부품 원본 (`BASE_PART_ORIGIN_TYPES` — Label) 을 팔레트 원본 앞에 그린다.
+
+**구현하면서 정한 것**
+
+- Label 노드의 DOM 스타일은 그 record 의 해석 값 전체가 inline style 로 나간다 (지금 page 에 놓은 Label 이 그려지는 방식과 같다 — text leaf binding). 그래서 Label 의 글자 크기 · 굵기 · 색은 Canvas 가 읽는 record 와 DOM 이 같은 값이고, Label 원본의 override 는 추가 채널 없이 DOM 에 닿는다. 본문 Decision 5 의 「같은 노드를 그린다」 가 값까지 포함하게 된다.
+- **부모 delegation 정리는 Phase 3 으로 옮긴다** (이 절 Phase 2 의 「`T:13516` 에서 모양 선언을 걷어낸다」). TextArea 의 DOM root 가 `react-aria-TextField` class 를 쓰고 자기 CSS 가 없어 TextField 의 생성 CSS (Label bridge 포함) 를 같이 쓴다 (`S/components/TextArea.tsx` 머리말 · `S/catalog/resolvers/resolveDelegatedChildFontSize.ts:47-52`). TextField 의 Label delegation 만 지우면 TextArea 의 Label 이 md 밖 크기에서 Canvas 와 갈린다. TextArea 의 Label 을 노드로 바꾸는 것과 같이 지운다. G2 는 이 정리 없이 통과한다 — 원본 override 가 부모 partRule 위에 있다 (Phase 1 의 값 순서).
+- Label 굵기 600 → 500 (§2-2 1번) 은 Phase 3 의 Label 단계에서 전 Label 에 한 번에 한다. 글자 폭이 바뀌어 old/new 비교의 geometry 승인 기록을 type 마다 고쳐야 하고, 부모마다 굵기 bridge 가 남아 있는 동안 부분 적용하면 Canvas 와 DOM 이 갈린다.
+- TextField 는 size 를 Label 에 넘기지 않는다 (`D/sizePropagation.ts` 에 없다) — Label 의 글자 크기는 아직 TextField 의 partRule 이 준다. delegation 정리 때 size 전달로 바꾼다. 그때 md 밖 크기에서 Label 의 줄 높이가 Label rule 값으로 바뀐다 (예: xl 25.7 → 28px) — 변화 목록에 넣는다.
+
+**검증 (G2)**
+
+- unit `R/__tests__/adr253LabelOrigin.test.ts` 16건: 원본 등록과 접힘 (`collapsedSourceIds`) · Components page 의 Label 카드 · `label` prop 과 field size → Label · Label 원본의 스타일 → Label 의 Canvas · DOM record · DOM 구조 대조 11가지 · Label 요소의 inline style.
+- DOM 구조 대조: 기본 · required · necessity `label` (required · optional) · label 없음 · description · invalid + errorMessage · side · xl · disabled · readOnly. oracle 은 shared `TextField` 가 props 로 자기 Label 을 조립한 문서 (전환 전 DOM). 요소 · class · ARIA 속성 · 순서가 같다 (생성 id · `data-catalog-id` · inline style 제외).
+- 회귀: `pnpm type-check` · shared 1,492 · builder 4,151 통과.
+- 시각 하니스: 전환 전과 출력이 같다 (기존 실패 3건 그대로, TextField-top · TextField-side 통과).
+- live (`apps/builder/scripts/adr253-p2-live.mjs`, worktree 빌드 5175 · headed Chrome · DPR 1 · visible) 6/6:
+  - 놓은 TextField 의 Label: Canvas record 는 Label 원본의 루트로 접히고, Preview 의 `label` 은 Label 노드의 것이며 `for` 가 input 을 가리킨다. Label 상자 Canvas 62.5 × 20 · DOM 62.6 × 20.
+  - Components page 의 Label 원본에 색 `#ff0000` · 굵기 800 · 글자 20 → TextField 의 Label 이 Canvas record 와 Preview computed style 에서 같이 바뀐다 (상자 92.5 × 28.6 양쪽 같음).
+  - TextField 의 `label` 을 「Email」 로, `isRequired` 를 켜면 Preview 는 「Email*」 · Canvas 접미 「 *」.
+  - 원본을 한 번 더 고친 값 (`#0000ff`) 도 page 에서 바로 보이고, undo 3번으로 처음 값에 돌아온다. 콘솔 오류 0.
+  - 한계: Components page 열기와 값 쓰기는 패널이 내는 것과 같은 호출로 했다 (Phase 1 과 같다).
+- G6: ratchet 통과 (A등급 증가 0, worktree 빌드). `scene.build` Δ 와 initial 번들은 재지 않았다 — 구조 변경이 가장 큰 Phase 3 끝에서 전환 전 빌드와 교대로 잰다.

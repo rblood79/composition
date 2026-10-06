@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Label 원본 — TextField 의 Label 이 그 instance (ADR-253 Phase 2)] - 2026-10-06
+
+### Added
+
+- Components page 맨 앞에 Label 원본 카드가 있다. 이 원본의 스타일 (색 · 굵기 · 글자 크기) 을 고치면 TextField 의 Label 이 Builder 와 Preview 에서 같이 바뀐다.
+
+### Changed
+
+- TextField 의 Label 은 Label 원본의 instance 다. Preview 는 그 Label 노드를 직접 그린다 (문서 구조 · 접근성 연결은 전과 같다).
+- **기존 프로젝트는 열리지 않는다** (library contract 3 — 변환 없음, 개발 단계 결정).
+
+### Fixed
+
+- 원본을 두 번째로 고칠 때 다른 컴포넌트 안에 있는 instance (Toolbar 안 Button 등) 가 옛 값으로 남던 문제.
+
+### Tests
+
+- `adr253LabelOrigin.test.ts` 16건 (DOM 구조 대조 11가지 포함) · `adr253OriginOverrideChannel.test.ts` 5건. shared 1,492 · builder 4,151 통과. 실제 Builder + Preview 6/6 (`apps/builder/scripts/adr253-p2-live.mjs`).
+
 ## [원본 스타일 편집이 instance 에 닿는다 — ADR-253 Phase 1] - 2026-10-06
 
 ### Fixed

@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 2 (브랜치 `adr-253`, main 병합 전)**: Label 원본 등록 · TextField 의 Label 자리가 그 instance · Preview DOM 이 Label 노드를 직접 그림 (`LIBRARY_CONTRACT_VERSION` 3). G2 통과 — unit 16 (DOM 구조 대조 11가지) · live 6/6 · 시각 하니스 전환 전과 동일 · ratchet 통과. Phase 1 보완 (원본을 다시 고칠 때 다른 원본 안 instance 의 record 갱신) 포함.
+
 > **2026-10-06 ADR-253 Accepted + Phase 1 구현** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0): 원본에 쓴 스타일과 상태별 스타일이 그 원본의 모든 instance (page 에 놓은 것 · 다른 원본 안의 것) 의 그려지는 루트에 닿는다 — Components page 에서 Button 원본을 고치면 Toolbar · ButtonGroup · Pagination 안 Button 까지 Builder 와 Preview 에서 같이 바뀐다. unit 4 (원복 RED 4종) · live GREEN/RED · 시각 하니스 전후 동일. G1 중 Preview 의 상태별 값 항목은 미통과 (DOM 에 상태별 값 채널 없음 · 편집 UI 없음) — 사용자 판정 대기. main 병합 전. 열림 5 (Proposed 4 · Accepted 1), 합계 280.
 
 > **2026-10-06 ADR-253 Proposed**: 기본 UI 원본의 재사용 — 부품 (Label · Input · FieldError · Description · field 안 Button) · 안에 넣는 컴포넌트 (Select · ComboBox 의 ListBox) · 바탕 (Dialog · Popover) 을 원본의 instance 로 두고, 원본 하나를 고치면 Builder 와 Preview 전체가 한 세트로 바뀌게 한다 (사용자 `/create-adr` · 같은 날 대화의 방향). 실측: 원본의 스타일 편집이 instance 에 닿지 않는다 · 부품 모양이 부모 rule 마다 따로 (Label 11 · FieldError 10 · Button 6 · Input 5) · Preview 는 field 의 부품 노드를 그리지 않는다. 2026-09-03 내부 부품 판정 개정 · contract 3. 사용자 확인 3 은 같은 날 완료 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용. 열림 +1 (열림 5 — Proposed 5, 합계 280).
