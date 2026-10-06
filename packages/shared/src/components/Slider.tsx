@@ -1,4 +1,4 @@
-import { Label } from "react-aria-components/Label";
+import { renderFieldLabel } from "./FieldNecessityIndicator";
 import {
   Slider as AriaSlider,
   SliderOutput,
@@ -10,7 +10,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatNumber } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
-
 
 export interface SliderProps<T> extends AriaSliderProps<T> {
   label?: string;
@@ -119,7 +118,7 @@ export function Slider<T extends number | number[]>({
       data-size={size}
       data-label-position={labelPosition}
     >
-      {label && <Label>{label}</Label>}
+      {renderFieldLabel(label)}
       {showValueLabel && (
         <SliderOutput>
           {({ state }) =>

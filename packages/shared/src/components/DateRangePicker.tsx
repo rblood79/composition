@@ -29,6 +29,7 @@ import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconS
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { Icon } from "./Icon";
 
@@ -184,12 +185,7 @@ export function DateRangePicker<T extends DateValue>({
       form={form}
       validationBehavior={validationBehavior}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
           <Button slot="prefix">

@@ -31,7 +31,7 @@
     cursor: default;
     font-size: var(--label-font-size, var(--text-sm));
     line-height: var(--label-line-height, var(--text-sm--line-height));
-    font-weight: var(--label-font-weight, 600);
+    font-weight: var(--label-font-weight, 500);
     color: var(--label-color, var(--fg));
     /* margin-bottom: var(--label-margin, 0); */
   }

@@ -2080,8 +2080,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: "var(--spacing-xs)",
         containerStyles: {
           color: "var(--fg)",
-          "--label-font-size": "var(--text-sm)",
-          "--label-line-height": "var(--text-sm--line-height)",
           "--cb-items-gap": "12px",
           "--cb-hint-size": "var(--text-xs)",
         },
@@ -2089,15 +2087,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           size: {
             sm: {
               styles: {
-                "--label-font-size": "var(--text-xs)",
-                "--label-line-height": "var(--text-xs--line-height)",
                 "--cb-items-gap": "8px",
               },
             },
             lg: {
               styles: {
-                "--label-font-size": "var(--text-base)",
-                "--label-line-height": "var(--text-base--line-height)",
                 "--cb-items-gap": "16px",
               },
             },
@@ -2403,32 +2397,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "cf-label",
-            variables: {
-              xs: {
-                "--cf-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--cf-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--cf-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--cf-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--cf-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--cf-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
           {
             childSelector: ".react-aria-Input",
             prefix: "cf-input",
@@ -3085,32 +3053,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         ],
         delegation: [
           {
-            childSelector: ".react-aria-Label",
-            prefix: "combo-label",
-            variables: {
-              xs: {
-                "--combo-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--combo-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--combo-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--combo-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--combo-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--combo-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
-          {
             childSelector: ".combobox-container",
             prefix: "combo-container",
             variables: {
@@ -3506,32 +3448,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "df-label",
-            variables: {
-              xs: {
-                "--df-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--df-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--df-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--df-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--df-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--df-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
           {
             childSelector: ".react-aria-DateInput",
             prefix: "df-input",
@@ -3990,37 +3906,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "dp-label",
-            variables: {
-              xs: {
-                "--dp-label-size": "var(--text-2xs)",
-                "--dp-label-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--dp-label-size": "var(--text-xs)",
-                "--dp-label-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--dp-label-size": "var(--text-sm)",
-                "--dp-label-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--dp-label-size": "var(--text-base)",
-                "--dp-label-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--dp-label-size": "var(--text-lg)",
-                "--dp-label-line-height": "var(--text-lg--line-height)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--dp-label-size)",
-              "--label-line-height": "var(--dp-label-line-height)",
-              "--label-font-weight": "600",
-            },
-          },
           {
             childSelector: ".react-aria-Group",
             prefix: "dp-group",
@@ -4508,37 +4393,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "drp-label",
-            variables: {
-              xs: {
-                "--drp-label-size": "var(--text-2xs)",
-                "--drp-label-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--drp-label-size": "var(--text-xs)",
-                "--drp-label-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--drp-label-size": "var(--text-sm)",
-                "--drp-label-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--drp-label-size": "var(--text-base)",
-                "--drp-label-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--drp-label-size": "var(--text-lg)",
-                "--drp-label-line-height": "var(--text-lg--line-height)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--drp-label-size)",
-              "--label-line-height": "var(--drp-label-line-height)",
-              "--label-font-weight": "600",
-            },
-          },
           {
             childSelector: ".react-aria-Group",
             prefix: "drp-group",
@@ -6791,11 +6645,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        // ADR-912 위험군 해소(선행-6, 2026-06-04): Label catalog 측정/렌더 fontWeight drift 차단.
-        //   buildCatalogShapes fallback 500 ↔ Label spec render.shapes 600(Label.spec L130-134
-        //   기본값) → variant.textWeight=600 명시(TEXT_LEAF Text 선례 동형). 누락 시 catalog
-        //   전환으로 Label 이 600→500 가늘어짐.
-        textWeight: 600,
+        // 굵기 500 (ADR-253 — react-aria.adobe.com 레퍼런스의 Label 기본값). 전 Label 의 정본:
+        //   field 계열의 Label 은 Label 원본의 instance 이고 부모 rule 은 굵기를 선언하지 않는다.
+        textWeight: 500,
       },
     },
     sizes: {
@@ -7529,7 +7381,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
           color: "var(--fg)",
           "font-size": "var(--text-sm)",
-          "--label-font-size": "var(--text-sm)",
           "--fill-color": "var(--informative)",
         },
         staticSelectors: {
@@ -7595,28 +7446,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             critical: {
               styles: {
                 "--fill-color": "var(--negative)",
-              },
-            },
-          },
-          size: {
-            sm: {
-              styles: {
-                "--label-font-size": "var(--text-xs)",
-              },
-            },
-            md: {
-              styles: {
-                "--label-font-size": "var(--text-sm)",
-              },
-            },
-            lg: {
-              styles: {
-                "--label-font-size": "var(--text-base)",
-              },
-            },
-            xl: {
-              styles: {
-                "--label-font-size": "var(--text-lg)",
               },
             },
           },
@@ -8244,32 +8073,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         delegation: [
           {
-            childSelector: ".react-aria-Label",
-            prefix: "nf-label",
-            variables: {
-              xs: {
-                "--nf-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--nf-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--nf-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--nf-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--nf-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--nf-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
-          {
             childSelector: ".react-aria-Group",
             prefix: "nf-group",
             // 4e-11: per-size padding like ComboBox's `.combobox-container` (the SelectTrigger
@@ -8884,7 +8687,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
           color: "var(--fg)",
           "font-size": "var(--text-sm)",
-          "--label-font-size": "var(--text-sm)",
           "--fill-color": "var(--accent)",
           "--track-color": "var(--accent-subtle)",
         },
@@ -8975,28 +8777,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 opacity: "0.38",
                 cursor: "not-allowed",
                 "pointer-events": "none",
-              },
-            },
-          },
-          size: {
-            sm: {
-              styles: {
-                "--label-font-size": "var(--text-xs)",
-              },
-            },
-            md: {
-              styles: {
-                "--label-font-size": "var(--text-sm)",
-              },
-            },
-            lg: {
-              styles: {
-                "--label-font-size": "var(--text-base)",
-              },
-            },
-            xl: {
-              styles: {
-                "--label-font-size": "var(--text-lg)",
               },
             },
           },
@@ -9480,8 +9260,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: "var(--spacing-xs)",
         containerStyles: {
           color: "var(--fg)",
-          "--label-font-size": "var(--text-sm)",
-          "--label-line-height": "var(--text-sm--line-height)",
           "--radio-items-gap": "12px",
           "--rg-hint-size": "var(--text-xs)",
         },
@@ -9489,15 +9267,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           size: {
             sm: {
               styles: {
-                "--label-font-size": "var(--text-xs)",
-                "--label-line-height": "var(--text-xs--line-height)",
                 "--radio-items-gap": "8px",
               },
             },
             lg: {
               styles: {
-                "--label-font-size": "var(--text-base)",
-                "--label-line-height": "var(--text-base--line-height)",
                 "--radio-items-gap": "16px",
               },
             },
@@ -9851,32 +9625,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "sf-label",
-            variables: {
-              xs: {
-                "--sf-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--sf-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--sf-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--sf-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--sf-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--sf-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "0",
-            },
-          },
           {
             childSelector: ".react-aria-Input",
             prefix: "sf-input",
@@ -10498,32 +10246,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         ],
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "select-label",
-            variables: {
-              xs: {
-                "--select-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--select-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--select-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--select-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--select-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--select-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
           {
             childSelector: ".react-aria-Button",
             prefix: "select-btn",
@@ -13273,43 +12995,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   `.react-aria-TextArea` 라는 이름은 RAC 에서 **안쪽 `<textarea>`** 의 클래스라
           //   되살리면 엉뚱한 요소에 걸린다.
         },
-        // delegation 은 **CSS 전용 채널**이다(CSSGenerator Tier 2). 위 게이트로 TextArea 는
-        //   CSS 를 생성하지 않으므로 현재 emit 되지 않는다 — 삭제하지 않고 남겨 두는 이유는
-        //   label 폰트 브리지의 의도를 보존하기 위함이고, 컨테이너 클래스 문제가 해소되면
-        //   그대로 되살아난다. Skia 는 `composition.layout` / `containerStyles` /
-        //   `containerVariants` 만 읽는다(resolveCatalogContainer) — delegation 은 안 읽는다.
-        delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "ta-label",
-            variables: {
-              xs: {
-                "--ta-label-size": "var(--text-2xs)",
-                "--ta-label-line-height": "var(--text-2xs--line-height)",
-              },
-              sm: {
-                "--ta-label-size": "var(--text-xs)",
-                "--ta-label-line-height": "var(--text-xs--line-height)",
-              },
-              md: {
-                "--ta-label-size": "var(--text-sm)",
-                "--ta-label-line-height": "var(--text-sm--line-height)",
-              },
-              lg: {
-                "--ta-label-size": "var(--text-base)",
-                "--ta-label-line-height": "var(--text-base--line-height)",
-              },
-              xl: {
-                "--ta-label-size": "var(--text-lg)",
-                "--ta-label-line-height": "var(--text-lg--line-height)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--ta-label-size)",
-              "--label-line-height": "var(--ta-label-line-height)",
-            },
-          },
-        ],
+        // Label 은 Label 원본의 instance 다 (ADR-253) — 글자 크기 · 굵기는 Label rule 이 field 의
+        //   size 로 정한다. 이 rule 은 부품의 모양을 선언하지 않는다.
       },
     },
   },
@@ -13512,37 +13199,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "tf-label",
-            variables: {
-              xs: {
-                "--tf-label-size": "var(--text-2xs)",
-                "--tf-label-margin": "0px",
-              },
-              sm: {
-                "--tf-label-size": "var(--text-xs)",
-                "--tf-label-margin": "0px",
-              },
-              md: {
-                "--tf-label-size": "var(--text-sm)",
-                "--tf-label-margin": "2px",
-              },
-              lg: {
-                "--tf-label-size": "var(--text-base)",
-                "--tf-label-margin": "4px",
-              },
-              xl: {
-                "--tf-label-size": "var(--text-lg)",
-                "--tf-label-margin": "6px",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--tf-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--tf-label-margin)",
-            },
-          },
           {
             // `:is(...)` 로 `<textarea>` 까지 덮는다 (2026-08-21). canonical `TextArea` 는
             //   DOM 에서 RAC `TextField` 컨테이너로 렌더되고 그 안의 control 은
@@ -13825,32 +13481,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: ".react-aria-Label",
-            prefix: "time-field-label",
-            variables: {
-              xs: {
-                "--time-field-label-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--time-field-label-size": "var(--text-xs)",
-              },
-              md: {
-                "--time-field-label-size": "var(--text-sm)",
-              },
-              lg: {
-                "--time-field-label-size": "var(--text-base)",
-              },
-              xl: {
-                "--time-field-label-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--label-font-size": "var(--time-field-label-size)",
-              "--label-font-weight": "600",
-              "--label-margin": "var(--spacing-xs)",
-            },
-          },
           {
             childSelector: ".react-aria-DateInput",
             prefix: "time-field-input",

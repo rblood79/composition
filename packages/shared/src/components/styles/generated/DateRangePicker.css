@@ -74,37 +74,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-DateRangePicker[data-size="xs"] {
-  --drp-label-size: var(--text-2xs);
-  --drp-label-line-height: var(--text-2xs--line-height);
-}
-
-.react-aria-DateRangePicker[data-size="sm"] {
-  --drp-label-size: var(--text-xs);
-  --drp-label-line-height: var(--text-xs--line-height);
-}
-
-.react-aria-DateRangePicker[data-size="md"] {
-  --drp-label-size: var(--text-sm);
-  --drp-label-line-height: var(--text-sm--line-height);
-}
-
-.react-aria-DateRangePicker[data-size="lg"] {
-  --drp-label-size: var(--text-base);
-  --drp-label-line-height: var(--text-base--line-height);
-}
-
-.react-aria-DateRangePicker[data-size="xl"] {
-  --drp-label-size: var(--text-lg);
-  --drp-label-line-height: var(--text-lg--line-height);
-}
-
-.react-aria-DateRangePicker .react-aria-Label {
-  --label-font-size: var(--drp-label-size);
-  --label-line-height: var(--drp-label-line-height);
-  --label-font-weight: 600;
-}
-
-.react-aria-DateRangePicker[data-size="xs"] {
   --drp-group-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
   --drp-group-font-size: var(--text-2xs);
   --drp-group-line-height: var(--text-2xs--line-height);

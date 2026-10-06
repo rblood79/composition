@@ -2376,11 +2376,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-progressbar__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -3330,8 +3329,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -3383,7 +3381,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-textarea__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3436,7 +3434,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-numberfield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3520,7 +3518,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-searchfield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3585,7 +3583,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorfield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3703,7 +3701,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-checkboxgroup__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3793,7 +3791,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-radiogroup__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -3886,7 +3884,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-select__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -4077,7 +4075,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-combobox__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}"
@@ -4340,11 +4338,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-slider__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -4410,11 +4407,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-meter__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -4953,11 +4949,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-datepicker__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -5024,11 +5019,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-daterangepicker__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -5094,11 +5088,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-datefield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -5146,11 +5139,10 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-timefield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
     "visual": {}
   },
@@ -5857,15 +5849,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-taggroup__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
-      "children": "{label}",
-      "size": "md"
+      "children": "{label}"
     },
-    "visual": {
-      "fontWeight": 600
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-taggroup__2",

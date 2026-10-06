@@ -13,7 +13,6 @@ import {
 } from "react-aria-components/DateField";
 import { DateValue } from "react-aria-components/Calendar";
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
@@ -23,8 +22,8 @@ import { safeParseDateString } from "../utils/core/dateUtils";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
-
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -147,12 +146,7 @@ export function DateField<T extends DateValue>({
       autoComplete={autoComplete}
       validationBehavior={validationBehavior}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <DateInput className="react-aria-DateInput inset">
         {(segment) => <DateSegment segment={segment} />}
       </DateInput>

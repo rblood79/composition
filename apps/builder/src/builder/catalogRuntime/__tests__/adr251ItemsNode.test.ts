@@ -30,7 +30,11 @@ const measure: CatalogTextMeasure = (text, font) => ({
   height: font.fontSize * (font.lineHeight || 1.2),
 });
 
-/** G0 per size: item gap, item height (indicator), item Label x, items top (label top), side x. */
+/**
+ * G0 per size: item gap, item height (indicator), item Label x, items top (label top), side x.
+ * xl `topY` 48 (ADR-253): the group Label is sized by the Label rule at the group's size — its xl
+ * line is the token's 28px (the group rule declared no xl line height: 18 × 20/14 = 25.71 before).
+ */
 const G0: Record<
   string,
   Record<
@@ -42,13 +46,13 @@ const G0: Record<
     sm: { gap: 8, height: 16, labelX: 22, topY: 24, sideX: 74 },
     md: { gap: 12, height: 20, labelX: 28, topY: 32, sideX: 89 },
     lg: { gap: 16, height: 24, labelX: 34, topY: 40, sideX: 104 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 45.714287, sideX: 119 },
+    xl: { gap: 12, height: 30, labelX: 42, topY: 48, sideX: 119 },
   },
   CheckboxGroup: {
     sm: { gap: 8, height: 16, labelX: 22, topY: 24, sideX: 92 },
     md: { gap: 12, height: 20, labelX: 28, topY: 32, sideX: 110 },
     lg: { gap: 16, height: 24, labelX: 34, topY: 40, sideX: 128 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 45.714287, sideX: 146 },
+    xl: { gap: 12, height: 30, labelX: 42, topY: 48, sideX: 146 },
   },
 };
 

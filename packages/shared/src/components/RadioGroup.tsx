@@ -6,7 +6,6 @@
  */
 
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import {
   Radio as AriaRadio,
   RadioGroup as AriaRadioGroup,
@@ -21,6 +20,7 @@ import type { ComponentSizeSubset } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
 
@@ -125,15 +125,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
@@ -152,15 +144,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
@@ -181,15 +165,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <div className="radio-items">{children}</div>
           {description && <Text slot="description">{description}</Text>}
           <FieldError>{errorMessage}</FieldError>
@@ -207,15 +183,7 @@ export function RadioGroup({
         data-size={size}
         data-label-position={labelPosition}
       >
-        {label && (
-          <Label>
-            {label}
-            {renderNecessityIndicator(
-              props.necessityIndicator,
-              props.isRequired,
-            )}
-          </Label>
-        )}
+        {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
         <div className="radio-items">{children}</div>
         {description && <Text slot="description">{description}</Text>}
         <FieldError>{errorMessage}</FieldError>
@@ -237,15 +205,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
@@ -264,15 +224,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaRadioGroup>
@@ -301,15 +253,7 @@ export function RadioGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           {radioItems.map((item) => (
             <AriaRadio
               key={item.id}
@@ -341,12 +285,7 @@ export function RadioGroup({
       data-size={size}
       data-label-position={labelPosition}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
       <div className="radio-items">{children}</div>
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>

@@ -299,35 +299,76 @@ const container =
     );
 /**
  * Fields whose DOM Label is their Label node (ADR-253): the node's binding draws it inside the
- * field's RAC context, so what the field appends to its Label (the necessity indicator) is
- * rendered there.
+ * field's RAC context, with what the field appends to its Label. The value is how the field
+ * resolves that necessity indicator (what its renderer gave the shared component before):
+ * `form` = its own, else the nearest Form's · `own` = its own · `required` = the default
+ * indicator of `isRequired` · `none` = the component appends nothing.
  */
-export const CATALOG_LABEL_NODE_FIELDS: ReadonlySet<string> = new Set([
-  "textfield",
-]);
-/** The necessity indicator a field appends to its Label node (`fieldBase`'s values). */
+export const CATALOG_LABEL_NODE_FIELDS: Readonly<
+  Record<string, "form" | "own" | "required" | "none">
+> = {
+  textfield: "form",
+  textarea: "form",
+  numberfield: "form",
+  searchfield: "form",
+  colorfield: "form",
+  datefield: "form",
+  timefield: "form",
+  datepicker: "required",
+  daterangepicker: "required",
+  checkboxgroup: "own",
+  radiogroup: "own",
+  select: "required",
+  combobox: "required",
+  meter: "none",
+  progressbar: "none",
+  slider: "none",
+  taggroup: "none",
+};
+/** The Label node of a field that draws its Label from it; `undefined` = the field composes it. */
+export function catalogFieldLabelNode(
+  root: CatalogCompositionRoot,
+  field: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  if (CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] === undefined)
+    return undefined;
+  return childrenOf(root, field).find(
+    (child) => catalogTypeName(root, child) === "Label",
+  );
+}
+/** The necessity indicator a field appends to its Label node. */
 export function catalogFieldLabelNecessity(
   root: CatalogCompositionRoot,
   label: CatalogConsumerNode,
 ): ReactNode {
   const field = root.domInputs.get(label.parentId);
-  if (!field || !CATALOG_LABEL_NODE_FIELDS.has(field.bindingId ?? ""))
-    return null;
-  let indicator = field.props.necessityIndicator;
+  const mode = field && CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""];
+  if (!field || !mode || mode === "none") return null;
+  let indicator =
+    mode === "required" ? undefined : field.props.necessityIndicator;
   // The nearest Form's, when the field sets none (`inheritedForm`).
-  for (
-    let parent = root.domInputs.get(field.parentId);
-    indicator === undefined && parent;
-    parent = root.domInputs.get(parent.parentId)
-  )
-    if (catalogTypeName(root, parent) === "Form") {
-      indicator = parent.props.necessityIndicator;
-      break;
-    }
+  if (mode === "form")
+    for (
+      let parent = root.domInputs.get(field.parentId);
+      indicator === undefined && parent;
+      parent = root.domInputs.get(parent.parentId)
+    )
+      if (catalogTypeName(root, parent) === "Form") {
+        indicator = parent.props.necessityIndicator;
+        break;
+      }
   return renderNecessityIndicator(
     indicator as NecessityIndicator | undefined,
     bool(field.props.isRequired),
   );
+}
+/**
+ * A field's `label` for its shared component: the Label node's own element when the field shows
+ * a label (`renderFieldLabel` places it as it is), else the text.
+ */
+function fieldLabel(input: DelegatedDomInput, text: string): ReactNode {
+  const label = catalogFieldLabelNode(input.root, input.node);
+  return label && text ? input.renderChild(label.id) : text;
 }
 function fieldBase(input: DelegatedDomInput) {
   const props = input.node.props;
@@ -455,7 +496,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...marker(input),
         style: input.style,
         variant: str(props.variant || "default"),
-        label: str(props.label),
+        label: fieldLabel(input, str(props.label)),
         description: str(props.description),
         errorMessage: str(props.errorMessage),
         allowsRemoving: bool(props.allowsRemoving),
@@ -849,7 +890,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...fieldBase(input),
         ...inputHints(props),
         size: props.size || "md",
-        label: str(props.label),
+        label: fieldLabel(input, str(props.label)),
         description: str(props.description),
         errorMessage: str(props.errorMessage),
         placeholder: str(props.placeholder),
@@ -867,7 +908,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(NumberField as ElementType, {
         ...fieldBase(input),
         size: props.size || "md",
-        label: str(props.label),
+        label: fieldLabel(input, str(props.label)),
         description: str(props.description),
         errorMessage: str(props.errorMessage),
         defaultValue: Number(props.value || 0),
@@ -893,7 +934,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...fieldBase(input),
         ...inputHints(props),
         size: props.size || "md",
-        label: propagatedText(input.root, props.label, childOf(input, "Label")),
+        label: fieldLabel(
+          input,
+          propagatedText(input.root, props.label, childOf(input, "Label")),
+        ),
         description: str(props.description),
         errorMessage: str(props.errorMessage),
         placeholder: value
@@ -918,11 +962,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return withI18n(
         createElement(DateField as ElementType, {
           ...fieldBase(input),
-          label: propagatedText(
-            input.root,
-            props.label,
-            childOf(input, "Label"),
-            "Date",
+          label: fieldLabel(
+            input,
+            propagatedText(
+              input.root,
+              props.label,
+              childOf(input, "Label"),
+              "Date",
+            ),
           ),
           description: str(props.description),
           errorMessage: str(props.errorMessage),
@@ -954,11 +1001,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return withI18n(
         createElement(TimeField as ElementType, {
           ...fieldBase(input),
-          label: propagatedText(
-            input.root,
-            props.label,
-            childOf(input, "Label"),
-            "Time",
+          label: fieldLabel(
+            input,
+            propagatedText(
+              input.root,
+              props.label,
+              childOf(input, "Label"),
+              "Time",
+            ),
           ),
           description: str(props.description),
           errorMessage: str(props.errorMessage),
@@ -983,7 +1033,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(ColorField as ElementType, {
         ...fieldBase(input),
         size: props.size || "md",
-        label: opt(props.label),
+        label: fieldLabel(input, str(props.label)) || undefined,
         description: opt(props.description),
         errorMessage: opt(props.errorMessage),
         defaultValue: opt(props.defaultValue),
@@ -999,7 +1049,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(Slider as ElementType, {
         ...marker(input),
         style: input.style,
-        label: str(props.label),
+        label: fieldLabel(input, str(props.label)),
         defaultValue: [Number(props.value) || 50],
         minValue: Number(props.minValue) || 0,
         maxValue: Number(props.maxValue) || 100,
@@ -1021,7 +1071,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(ProgressBar as ElementType, {
         ...marker(input),
         style: input.style,
-        label: propagatedText(input.root, props.label, childOf(input, "Label")),
+        label: fieldLabel(
+          input,
+          propagatedText(input.root, props.label, childOf(input, "Label")),
+        ),
         variant: props.variant || "default",
         value: Number(props.value || 0),
         minValue: props.minValue !== undefined ? Number(props.minValue) : 0,
@@ -1043,7 +1096,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       return createElement(Meter as ElementType, {
         ...marker(input),
         style: input.style,
-        label: propagatedText(input.root, props.label, childOf(input, "Label")),
+        label: fieldLabel(
+          input,
+          propagatedText(input.root, props.label, childOf(input, "Label")),
+        ),
         value: Number(props.value || 0),
         minValue: props.minValue !== undefined ? Number(props.minValue) : 0,
         maxValue: props.maxValue !== undefined ? Number(props.maxValue) : 100,
@@ -1128,8 +1184,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: `${input.node.id}:${selected.join(",")}`,
           style: input.style,
           label:
-            propagatedText(input.root, props.label, childOf(input, "Label")) ||
-            undefined,
+            fieldLabel(
+              input,
+              propagatedText(input.root, props.label, childOf(input, "Label")),
+            ) || undefined,
           defaultValue: selected,
           orientation: props.orientation || "vertical",
           size: props.size || "md",
@@ -1192,8 +1250,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: `${input.node.id}:${value}`,
           style: input.style,
           label:
-            propagatedText(input.root, props.label, childOf(input, "Label")) ||
-            undefined,
+            fieldLabel(
+              input,
+              propagatedText(input.root, props.label, childOf(input, "Label")),
+            ) || undefined,
           defaultValue: value,
           orientation: props.orientation || "vertical",
           size: props.size || "md",

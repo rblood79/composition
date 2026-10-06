@@ -61,32 +61,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-DateField[data-size="xs"] {
-  --df-label-size: var(--text-2xs);
-}
-
-.react-aria-DateField[data-size="sm"] {
-  --df-label-size: var(--text-xs);
-}
-
-.react-aria-DateField[data-size="md"] {
-  --df-label-size: var(--text-sm);
-}
-
-.react-aria-DateField[data-size="lg"] {
-  --df-label-size: var(--text-base);
-}
-
-.react-aria-DateField[data-size="xl"] {
-  --df-label-size: var(--text-lg);
-}
-
-.react-aria-DateField .react-aria-Label {
-  --label-font-size: var(--df-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-DateField[data-size="xs"] {
   --df-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --df-input-size: var(--text-2xs);
   --df-input-line-height: var(--text-2xs--line-height);

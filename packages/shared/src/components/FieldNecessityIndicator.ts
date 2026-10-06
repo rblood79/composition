@@ -1,4 +1,5 @@
-import { createElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ReactNode } from "react";
+import { Label } from "react-aria-components/Label";
 
 export type NecessityIndicator = "icon" | "label";
 
@@ -50,5 +51,25 @@ export function renderNecessityIndicator(
       "aria-hidden": isRequired ? "true" : undefined,
     },
     text,
+  );
+}
+
+/**
+ * A field's Label (ADR-253). The catalog runtime passes the field's Label node as `label`: an
+ * element that node's binding drew (a RAC Label inside this field's context, with what the field
+ * appends to it), placed as it is. Any other `label` is composed here from the field's props.
+ */
+export function renderFieldLabel(
+  label: ReactNode,
+  necessityIndicator?: NecessityIndicator,
+  isRequired?: boolean,
+): ReactNode {
+  if (!label) return null;
+  if (isValidElement(label)) return label;
+  return createElement(
+    Label,
+    null,
+    label,
+    renderNecessityIndicator(necessityIndicator, isRequired),
   );
 }

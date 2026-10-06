@@ -61,32 +61,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-TimeField[data-size="xs"] {
-  --time-field-label-size: var(--text-2xs);
-}
-
-.react-aria-TimeField[data-size="sm"] {
-  --time-field-label-size: var(--text-xs);
-}
-
-.react-aria-TimeField[data-size="md"] {
-  --time-field-label-size: var(--text-sm);
-}
-
-.react-aria-TimeField[data-size="lg"] {
-  --time-field-label-size: var(--text-base);
-}
-
-.react-aria-TimeField[data-size="xl"] {
-  --time-field-label-size: var(--text-lg);
-}
-
-.react-aria-TimeField .react-aria-Label {
-  --label-font-size: var(--time-field-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-TimeField[data-size="xs"] {
   --time-field-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --time-field-input-size: var(--text-2xs);
   --time-field-input-line-height: var(--text-2xs--line-height);

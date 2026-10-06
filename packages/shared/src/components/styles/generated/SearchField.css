@@ -68,32 +68,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-SearchField[data-size="xs"] {
-  --sf-label-size: var(--text-2xs);
-}
-
-.react-aria-SearchField[data-size="sm"] {
-  --sf-label-size: var(--text-xs);
-}
-
-.react-aria-SearchField[data-size="md"] {
-  --sf-label-size: var(--text-sm);
-}
-
-.react-aria-SearchField[data-size="lg"] {
-  --sf-label-size: var(--text-base);
-}
-
-.react-aria-SearchField[data-size="xl"] {
-  --sf-label-size: var(--text-lg);
-}
-
-.react-aria-SearchField .react-aria-Label {
-  --label-font-size: var(--sf-label-size);
-  --label-font-weight: 600;
-  --label-margin: 0;
-}
-
-.react-aria-SearchField[data-size="xs"] {
   --sf-input-size: var(--text-2xs);
   --sf-input-line-height: var(--text-2xs--line-height);
 }

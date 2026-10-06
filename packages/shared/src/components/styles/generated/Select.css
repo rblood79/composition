@@ -71,32 +71,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-Select[data-size="xs"] {
-  --select-label-size: var(--text-2xs);
-}
-
-.react-aria-Select[data-size="sm"] {
-  --select-label-size: var(--text-xs);
-}
-
-.react-aria-Select[data-size="md"] {
-  --select-label-size: var(--text-sm);
-}
-
-.react-aria-Select[data-size="lg"] {
-  --select-label-size: var(--text-base);
-}
-
-.react-aria-Select[data-size="xl"] {
-  --select-label-size: var(--text-lg);
-}
-
-.react-aria-Select .react-aria-Label {
-  --label-font-size: var(--select-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-Select[data-size="xs"] {
   --select-btn-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
   --select-btn-font-size: var(--text-2xs);
   --select-btn-line-height: var(--text-2xs--line-height);

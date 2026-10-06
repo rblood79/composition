@@ -70,20 +70,6 @@ const textPx = (name: string): number | undefined => {
 };
 
 /**
- * Group Label font per group size from a manual sheet keyed on the component's own size attribute
- * (`--label-font-size: var(--text-*)` on `.react-aria-X[data-<x>-size="…"]`).
- */
-const groupLabelFontParts = (
-  fonts: Readonly<Record<string, string>>,
-): CompiledPartRule[] =>
-  Object.entries(fonts).flatMap(([size, name]): CompiledPartRule[] => {
-    const fontSize = textPx(name);
-    return fontSize
-      ? [{ childType: "Label", size, layout: {}, visual: { fontSize } }]
-      : [];
-  });
-
-/**
  * A child the owner's DOM renderer does not render: the owner draws its own `children` text in
  * that place, which inherits the owner's manual size font (`font-size: var(--text-*)` +
  * `line-height: var(--text-*--line-height)`, weight 400) instead of the child's own defaults.
@@ -539,42 +525,20 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // radio keeps its content width inside the group's stretching `.radio-items` column.
   Radio: () => ({ visual: { width: "fit-content" } }),
   // `RadioGroup.tsx` / `CheckboxGroup.tsx` also carry `data-size` (4e-11 — the generated
-  // `[data-size]` blocks apply); `TagGroup.tsx` puts the size on `data-tag-size` only. The manual
-  // sheets (`Radio.css` / `Checkbox.css` / `TagGroup.css`) set the group Label font.
+  // `[data-size]` blocks apply); `TagGroup.tsx` puts the size on `data-tag-size` only. The group
+  // Label is an instance of the Label origin, sized by the Label rule at the group's size
+  // (ADR-253 — `CATALOG_SIZE_PROPAGATION`).
   RadioGroup: () => ({
-    parts: [
-      ...groupLabelFontParts({
-        sm: "text-xs",
-        md: "text-sm",
-        lg: "text-base",
-        xl: "text-lg",
-      }),
-      ...groupItemIndicatorParts("Radio", "RadioItems"),
-    ],
+    parts: [...groupItemIndicatorParts("Radio", "RadioItems")],
   }),
   CheckboxGroup: () => ({
-    parts: [
-      ...groupLabelFontParts({
-        sm: "text-xs",
-        md: "text-sm",
-        lg: "text-base",
-        xl: "text-lg",
-      }),
-      ...groupItemIndicatorParts("Checkbox", "CheckboxItems"),
-    ],
+    parts: [...groupItemIndicatorParts("Checkbox", "CheckboxItems")],
   }),
   // The chip wrapper (`.tag-list-wrapper`, typed TagList) takes the catalog `TagList` size gap and
   // min-height by the same group size (`TagGroup.tsx` writes `data-tag-size` on both).
   TagGroup: () => ({
     rootSizeAttribute: "data-tag-size",
     parts: [
-      ...groupLabelFontParts({
-        xs: "text-2xs",
-        sm: "text-xs",
-        md: "text-sm",
-        lg: "text-base",
-        xl: "text-lg",
-      }),
       ...Object.entries(sizesOf("TagList")).map(
         ([size, values]): CompiledPartRule => ({
           childType: "TagList",

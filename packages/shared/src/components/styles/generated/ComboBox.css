@@ -71,32 +71,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-ComboBox[data-size="xs"] {
-  --combo-label-size: var(--text-2xs);
-}
-
-.react-aria-ComboBox[data-size="sm"] {
-  --combo-label-size: var(--text-xs);
-}
-
-.react-aria-ComboBox[data-size="md"] {
-  --combo-label-size: var(--text-sm);
-}
-
-.react-aria-ComboBox[data-size="lg"] {
-  --combo-label-size: var(--text-base);
-}
-
-.react-aria-ComboBox[data-size="xl"] {
-  --combo-label-size: var(--text-lg);
-}
-
-.react-aria-ComboBox .react-aria-Label {
-  --label-font-size: var(--combo-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-ComboBox[data-size="xs"] {
   --combo-container-padding: var(--spacing-3xs) var(--spacing-xs);
   --combo-container-padding-right: var(--spacing-3xs);
 }

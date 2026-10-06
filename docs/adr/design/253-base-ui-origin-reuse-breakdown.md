@@ -243,3 +243,39 @@
   - 원본을 한 번 더 고친 값 (`#0000ff`) 도 page 에서 바로 보이고, undo 3번으로 처음 값에 돌아온다. 콘솔 오류 0.
   - 한계: Components page 열기와 값 쓰기는 패널이 내는 것과 같은 호출로 했다 (Phase 1 과 같다).
 - G6: ratchet 통과 (A등급 증가 0, worktree 빌드). `scene.build` Δ 와 initial 번들은 재지 않았다 — 구조 변경이 가장 큰 Phase 3 끝에서 전환 전 빌드와 교대로 잰다.
+
+### 2026-10-06 — Phase 3 (1) Label (worktree `.worktrees/adr-253` · 브랜치 `adr-253`)
+
+**Phase 0 의 남은 항목 중 Label 에 해당하는 것**
+
+- 변화 목록 (px): 전환 전 빌드에서 17 부모 × size 5 × labelPosition 2 의 resolved record 를 떠서 전환 후와 대조했다. Label record 만 바뀐다 — 글자 크기는 전 부모가 Label rule 의 단계와 이미 같았고 (xs 10 · sm 12 · md 14 · lg 16 · xl 18), 바뀌는 것은 굵기 600 → 500 과 md 밖 줄 높이 (Label rule 의 token 값: xs · sm 16 · lg 24 · xl 28px. 전에는 Canvas 가 글자 크기 × 20/14, DOM 이 20px 고정 — DatePicker 2종 · 그룹의 sm · lg 는 이미 token 값) 다. 다른 record 의 값 변화 0.
+- Checkbox · Radio · Switch 의 글자 (type Label 노드): Label 원본의 instance 로 바꾸지 않는다 — 레퍼런스에서 Form 의 Label 이 아닌 요소다. Label rule 을 같이 읽으므로 굵기 500 은 Checkbox · Radio 에도 적용된다 (§2-2 1번 「전 Label」). Switch 의 글자는 400 그대로 (자기 규칙).
+- Slider · TagGroup 의 Label 을 범위에 넣었다 (§3 의 「10 부모 + root 변수 4」 밖). 레퍼런스 예제가 둘 다 Form 의 Label 을 쓰고, 빼면 Label 원본을 고쳐도 따라오지 않는 Label 이 남는다. 대상 17 부모.
+
+**구현**
+
+- library: 17 부모 template 의 `__1` 이 Label 원본의 instance (`size: "md"` 리터럴 제거 — field 의 size 가 내려간다). TagGroup `__1` 의 `fontWeight: 600` 제거. `LIBRARY_CONTRACT_VERSION` 4.
+- 값: `CATALOG_SIZE_PROPAGATION` 에 field · 그룹 → Label. `T` 의 Label delegation 11개 · root 의 `--label-*` 변수 (CheckboxGroup · RadioGroup · Meter · ProgressBar) · `manualBoxRules` 의 그룹 Label 글자 규칙 3개 · `rulePartRules` 의 Label 변수 소비 표 제거. Label rule `textWeight` 500, `base.css` · `Label.css` 의 기본 굵기 500.
+- DOM: field 의 binding 이 Label 노드의 요소를 shared 컴포넌트의 `label` 로 넘긴다 (`fieldLabel` · `catalogFieldLabelNode`). shared 컴포넌트 16개의 Label 조립부는 `renderFieldLabel` 하나 — 요소를 받으면 그대로 놓고, 글자를 받으면 종전처럼 조립한다 (Builder 화면 자체의 호출처). 자식을 그리지 않는 binding (Select · ComboBox · DatePicker · DateRangePicker) 도 Label 만은 노드에서 받는다. necessity 표시는 Label 노드가 그리고, field 마다 종전 방식 그대로다 (`CATALOG_LABEL_NODE_FIELDS` — 자기 값 · 가까운 Form · 기본 표시 · 없음).
+- 내부 부품 판정: Label 은 텍스트 축만 부모 소유 (`TEXT_ONLY_SUBPART_PARENTS`). Properties 는 부모 안내, Styles · AI 의 style 편집은 Label 자신. 소비처 (§2-5) 는 이미 두 축으로 나뉘어 있어 술어만 고쳤다.
+
+**구현하면서 정한 것**
+
+- DOM 구조 대조의 oracle 은 전환 전 빌드의 출력이다 (`fixtures/adr253-field-dom.json` — main `1d66260dd` 에서 같은 테스트로 기록). Phase 2 의 「shared 컴포넌트가 props 로 조립한 문서」 는 binding 마다 넘기는 props 를 테스트가 다시 적어야 해서 부모 17종으로 넓히지 않았다. 이 fixture 는 Phase 3 의 뒤 단계 (FieldError · Input · Group · Button) 에서도 같은 oracle 이다.
+- 부모 rule 의 delegation 을 지우면 props 로 조립하는 Label (Builder 화면 자체) 은 field size 와 무관하게 md 글꼴이 된다. Builder 화면에서 shared field 를 쓰는 곳은 8 파일이고 Label 을 가진 md 밖 크기 사용은 찾지 못했다.
+- DOM 의 necessity 표시 방식이 field 마다 다르다 (Select · ComboBox · picker 2종은 Form 의 값을 받지 않고 자기 `necessityIndicator` 도 넘기지 않는다 · 그룹은 Form 의 값을 받지 않는다 · TagGroup 은 표시가 없다). Canvas 는 규칙 하나 (`catalogLabelSuffix` — 자기 값 또는 가까운 Form) 라서 그 조합에서는 전환 전부터 Canvas 와 DOM 이 다르다. 이번에는 DOM 을 전환 전과 같게 두었다 (G3 의 DOM 구조 대조). 하나로 맞추는 일은 남긴다.
+
+**검증**
+
+- unit `R/__tests__/adr253FieldPartsDom.test.ts` 272건: DOM 구조 대조 17 부모 × 13 조합 (기본 · required · necessity `label` 2종 · label 없음 · description · invalid · side · sm · xl · disabled · readOnly · quiet — field 가 받지 않는 prop 의 조합은 없음) · Label 요소가 Label 노드이고 inline style 이 record 값 · field size → Label (lg 16 / 24 · 500) · Label 원본 편집 2회 → Canvas · DOM · 자기 스타일은 그 위에 남음 · 판정 두 축.
+- 정적 `S/catalog/__tests__/adr253PartShapeOwner.static.test.ts`: `.react-aria-Label` delegation 0 · `--label-*` 0 · Label 에 닿는 nested selector 는 배치 키만.
+- 원복 RED: size 전달 제거 (2건) · DOM 이 글자를 넘김 (24건) · ComboBox 자리를 type 노드로 (2건) · Label 굵기 600 (34건) · rule 표를 되돌림 (정적 2건).
+- 회귀: `pnpm type-check` · shared 1,495 · builder 4,406 · publish 11 통과. 고친 기대값: `adr251ItemsNode` 의 xl `topY` 45.71 → 48 (그룹 Label 줄 높이 28) · `phase4eSubpart` 의 Label style 축.
+- 시각 하니스: Canvas ↔ DOM 은 전 항목 전환 전과 같은 수준 (최대 0.73px — Form). old/new 비교에서 Label 폭이 1px 넘게 준 6종 (Checkbox · ComboBox · Select · TagGroup · TextField · TimeField, −1.0 ~ −1.8px) 을 `label-weight-500` 으로 승인 기록에 넣었다. 남은 실패는 전환 전과 같은 3건 (CardView · NumberField 2).
+- live (`apps/builder/scripts/adr253-p3-live.mjs`, worktree 빌드 5175 · headed Chrome · DPR 1 · visible) 5/5: 팔레트 클릭으로 17종을 놓음 → Label 의 Canvas record 와 Preview computed style · 상자가 같다 (md 14/20 · 500) → 각 field 를 가장 큰 size 로 (xl 18/28, TagGroup lg) → Label 원본에 색 `#ff0000` · 굵기 800 → 17종 전부 양쪽에서 바뀜 → Select 의 Label 에만 색을 쓰면 그것만 바뀜 → undo 로 처음 값. 콘솔 오류 0. 한계: Components page 열기 · 값 쓰기 · size 변경은 패널이 내는 것과 같은 호출로 했다.
+
+**남긴 것**
+
+- `.claude/rules/ssot-hierarchy.md` 의 「D3 read-only sub-part」 절은 Label 을 아직 부모 소유로 적는다 — Phase 6.
+- Canvas 와 DOM 의 necessity 표시 규칙 통일 (위).
+- `CATALOG_LABEL_NODE_FIELDS` 는 Phase 2 의 TextField 방식 (children 전체를 넘김) 과 이번 방식 (`label` 로 요소를 넘김) 을 같이 쓴다. Input 단계에서 하나로 정리한다.

@@ -13,7 +13,6 @@ import {
 } from "react-aria-components/ComboBox";
 import { FieldError } from "react-aria-components/FieldError";
 import { Input } from "react-aria-components/Input";
-import { Label } from "react-aria-components/Label";
 import {
   ListBox,
   ListBoxItem,
@@ -32,6 +31,7 @@ import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
@@ -46,7 +46,8 @@ export interface ComboBoxProps<T extends object> extends Omit<
   AriaComboBoxProps<T>,
   "children" | "items"
 > {
-  label?: string;
+  /** The label text, or the field's Label node element (catalog runtime — ADR-253). */
+  label?: string | React.ReactElement;
   description?: string | null;
   errorMessage?: string | ((validation: ValidationResult) => string);
   /**
@@ -290,12 +291,8 @@ export function ComboBox<T extends object>({
       aria-label={ariaLabel}
       isDisabled={comboBoxDisabled}
     >
-      {hasVisibleLabel && (
-        <Label>
-          {String(label)}
-          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {hasVisibleLabel &&
+        renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
       <div className="combobox-container">
         <Input placeholder={placeholder} />
         <Button>

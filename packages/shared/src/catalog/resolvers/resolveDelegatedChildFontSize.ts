@@ -116,7 +116,6 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   Record<string, readonly string[]>
 > = {
   FieldError: [".react-aria-FieldError"],
-  Label: [".react-aria-Label"],
   Input: [".react-aria-Input"],
   DateInput: [".react-aria-DateInput"],
   // description 줄 (2026-09-04 판정 — 착수 10): DOM 은 parent `description` prop 으로 self-compose 하고
@@ -138,20 +137,36 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
 };
 
 /**
- * delegation 항목 없이도 DOM 이 parent `label` prop 으로 RAC Label 을 self-compose 하는 parent (2026-09-03 판정
- * A — 그룹 Label 확장). 자식 Label 은 parent `label` 이 undefined 일 때 **텍스트만** legacy 폴백으로 읽히고
- * (`resolvePropagatedText`, ADR-923 r17m1 — Slider 는 그것도 없이 parent prop 만) style 은 어떤 채널로도 DOM 에
- * 닿지 않는다. 이 parent 들은 delegation 이 없어 DOM Label 이 Label rule 로 직접 스타일되므로 Canvas Label rule
- * 과 이미 같다 — 갈리는 것은 자식 인라인뿐이라 같은 read-only sub-part 다. factory 는 Meter · ProgressBar ·
- * Slider 에만 Label 자식을 만들고 CheckboxGroup · RadioGroup 은 옛 문서만 해당한다.
+ * **텍스트 축만** parent 소유인 sub-part (ADR-253) — child type → 그 글자를 소유하는 parent.
+ *
+ * field · 그룹의 Label 은 Label 원본의 instance 이고 DOM 이 그 노드를 직접 그린다 (RAC Label, parent 의
+ * context 안). 그래서 style 은 Label 노드 자신이 정본이고 — Styles 패널이 그대로 편집하며 Canvas 와 DOM 이
+ * 같은 record 를 읽는다 — 글자는 parent 의 `label` prop 이 정본이다 (D2: template 의 `{label}` 자리).
+ * 2026-09-03 판정 (Label 을 parent 가 self-compose — delegation 토큰 · 그룹 목록) 을 이 표가 대신한다.
  */
-export const SELF_COMPOSED_LABEL_PARENTS: ReadonlySet<string> = new Set([
-  "CheckboxGroup",
-  "RadioGroup",
-  "Meter",
-  "ProgressBar",
-  "Slider",
-]);
+export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  Label: [
+    "TextField",
+    "TextArea",
+    "NumberField",
+    "SearchField",
+    "ColorField",
+    "Select",
+    "ComboBox",
+    "DateField",
+    "TimeField",
+    "DatePicker",
+    "DateRangePicker",
+    "CheckboxGroup",
+    "RadioGroup",
+    "Meter",
+    "ProgressBar",
+    "Slider",
+    "TagGroup",
+  ],
+};
 
 /**
  * 부모가 그리는 part 노드 → 그것을 그리는 부모 (2026-10-04). DOM 은 부모 RAC 컴포넌트가 그 요소를 직접
@@ -215,8 +230,6 @@ function selectorHasToken(selector: string, token: string): boolean {
 
 function ownsSubpartDirect(childType: string, parentType: string): boolean {
   if (OWNER_DRAWN_PART_OWNERS[childType] === parentType) return true;
-  if (childType === "Label" && SELF_COMPOSED_LABEL_PARENTS.has(parentType))
-    return true;
   const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];
   if (!tokens) return false;
   const has = (p: string) =>
@@ -228,17 +241,12 @@ function ownsSubpartDirect(childType: string, parentType: string): boolean {
   return alias ? has(alias) : false;
 }
 
-/**
- * 이 자식이 read-only sub-part 면 그것을 **소유한 DOM parent type** (직계 parent, 또는 직계가 sub-part 래퍼면
- * 조부모) 을, 아니면 null 을 돌려준다. 패널 안내의 `{parent}` 와 FieldError delegation 글자 크기 조회가 이
- * owner 를 쓴다.
- */
-export function resolveDelegatedSubpartOwnerType(
-  childType: string | null | undefined,
-  parentType: string | null | undefined,
+/** 텍스트 · style 두 축이 모두 parent 소유인 sub-part 의 owner (직계 parent, 또는 직계가 래퍼면 조부모). */
+function resolveFullSubpartOwnerType(
+  childType: string,
+  parentType: string,
   grandparentType?: string | null,
 ): string | null {
-  if (!childType || !parentType) return null;
   if (ownsSubpartDirect(childType, parentType)) return parentType;
   if (
     grandparentType &&
@@ -251,22 +259,44 @@ export function resolveDelegatedSubpartOwnerType(
 }
 
 /**
- * 이 자식의 **style 축** 을 소유한 DOM parent type — 전체 sub-part (텍스트·style 모두 parent 소유) 면 그 owner,
- * style 축만 parent 소유인 자식 (SelectValue) 이면 그 field parent, 아니면 null. Canvas read 경로 (layout 투영 ·
- * Skia) 와 Styles 패널이 이것을 쓴다. Properties 패널 (텍스트 축) 은 `resolveDelegatedSubpartOwnerType` 을 그대로 쓴다.
+ * 이 자식의 **텍스트 축** (글자 · prop) 을 소유한 DOM parent type — 두 축 모두 parent 소유인 sub-part 면 그
+ * owner (직계 parent, 또는 직계가 sub-part 래퍼면 조부모), 텍스트 축만 parent 소유인 자식 (Label — ADR-253)
+ * 이면 그 parent, 아니면 null. Properties 패널 안내의 `{parent}` 가 이 owner 를 쓴다.
+ */
+export function resolveDelegatedSubpartOwnerType(
+  childType: string | null | undefined,
+  parentType: string | null | undefined,
+  grandparentType?: string | null,
+): string | null {
+  if (!childType || !parentType) return null;
+  const full = resolveFullSubpartOwnerType(
+    childType,
+    parentType,
+    grandparentType,
+  );
+  if (full) return full;
+  return TEXT_ONLY_SUBPART_PARENTS[childType]?.includes(parentType)
+    ? parentType
+    : null;
+}
+
+/**
+ * 이 자식의 **style 축** 을 소유한 DOM parent type — 두 축 모두 parent 소유인 sub-part 면 그 owner, style 축만
+ * parent 소유인 자식 (SelectValue) 이면 그 field parent, 아니면 null (텍스트 축만 parent 소유인 Label 은 style 을
+ * 자기가 갖는다). Styles 패널 · AI style 편집이 이것을 쓴다.
  */
 export function resolveSubpartStyleOwnerType(
   childType: string | null | undefined,
   parentType: string | null | undefined,
   grandparentType?: string | null,
 ): string | null {
-  const full = resolveDelegatedSubpartOwnerType(
+  if (!childType || !parentType) return null;
+  const full = resolveFullSubpartOwnerType(
     childType,
     parentType,
     grandparentType,
   );
   if (full) return full;
-  if (!childType || !parentType) return null;
   const owners = STYLE_ONLY_SUBPART_PARENTS[childType];
   if (!owners) return null;
   if (owners.includes(parentType)) return parentType;

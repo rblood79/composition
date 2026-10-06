@@ -71,32 +71,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-ColorField[data-size="xs"] {
-  --cf-label-size: var(--text-2xs);
-}
-
-.react-aria-ColorField[data-size="sm"] {
-  --cf-label-size: var(--text-xs);
-}
-
-.react-aria-ColorField[data-size="md"] {
-  --cf-label-size: var(--text-sm);
-}
-
-.react-aria-ColorField[data-size="lg"] {
-  --cf-label-size: var(--text-base);
-}
-
-.react-aria-ColorField[data-size="xl"] {
-  --cf-label-size: var(--text-lg);
-}
-
-.react-aria-ColorField .react-aria-Label {
-  --label-font-size: var(--cf-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-ColorField[data-size="xs"] {
   --cf-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --cf-input-size: var(--text-2xs);
   --cf-input-line-height: var(--text-2xs--line-height);

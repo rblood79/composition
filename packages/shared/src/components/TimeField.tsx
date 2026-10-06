@@ -7,7 +7,6 @@
 
 import { DateInput, DateSegment } from "react-aria-components/DateField";
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import {
   TimeField as AriaTimeField,
@@ -21,8 +20,8 @@ import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
-
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -129,12 +128,7 @@ export function TimeField<T extends TimeValue>({
       form={form}
       validationBehavior={validationBehavior}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <DateInput className="react-aria-DateInput inset">
         {(segment) => (
           <DateSegment

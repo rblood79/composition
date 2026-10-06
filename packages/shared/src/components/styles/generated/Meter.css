@@ -16,7 +16,6 @@
     width: 100%;
     color: var(--fg);
     font-size: var(--text-sm);
-    --label-font-size: var(--text-sm);
     --fill-color: var(--informative);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -101,22 +100,6 @@
 
 .react-aria-Meter[data-variant="critical"] {
   --fill-color: var(--negative);
-}
-
-.react-aria-Meter[data-size="sm"] {
-  --label-font-size: var(--text-xs);
-}
-
-.react-aria-Meter[data-size="md"] {
-  --label-font-size: var(--text-sm);
-}
-
-.react-aria-Meter[data-size="lg"] {
-  --label-font-size: var(--text-base);
-}
-
-.react-aria-Meter[data-size="xl"] {
-  --label-font-size: var(--text-lg);
 }
 
 .react-aria-Meter[data-disabled="true"] {

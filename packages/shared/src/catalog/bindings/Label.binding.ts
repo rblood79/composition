@@ -32,7 +32,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition `<label>` (internal source, generic DOM).
  * D2: children/size 편집 surface (부모 field 가 label prop 주입 시 dispatch 변형으로 덮어씀).
- * D3: 시각(텍스트 색/크기/lineHeight/weight 600)은 theme rule(COMPONENT_RULES_TABLE.Label).
+ * D3: 시각(텍스트 색/크기/lineHeight/weight 500 — ADR-253)은 theme rule(COMPONENT_RULES_TABLE.Label).
  */
 export const labelBinding: PrimitiveBinding = {
   source: {

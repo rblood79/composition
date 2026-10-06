@@ -4,7 +4,6 @@ import {
   CheckboxGroupProps as AriaCheckboxGroupProps,
 } from "react-aria-components/CheckboxGroup";
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
@@ -15,6 +14,7 @@ import type { ComponentSizeSubset } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
 
@@ -120,15 +120,7 @@ export function CheckboxGroup({
           data-label-position={labelPosition}
           isDisabled
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaCheckboxGroup>
@@ -147,15 +139,7 @@ export function CheckboxGroup({
           data-label-position={labelPosition}
           isDisabled
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaCheckboxGroup>
@@ -178,15 +162,7 @@ export function CheckboxGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           {children}
           {description && <Text slot="description">{description}</Text>}
           <FieldError>{errorMessage}</FieldError>
@@ -204,15 +180,7 @@ export function CheckboxGroup({
         data-size={size}
         data-label-position={labelPosition}
       >
-        {label && (
-          <Label>
-            {label}
-            {renderNecessityIndicator(
-              props.necessityIndicator,
-              props.isRequired,
-            )}
-          </Label>
-        )}
+        {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
         {children}
         {description && <Text slot="description">{description}</Text>}
         <FieldError>{errorMessage}</FieldError>
@@ -234,15 +202,7 @@ export function CheckboxGroup({
           data-label-position={labelPosition}
           isDisabled
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("loadingData")}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaCheckboxGroup>
@@ -261,15 +221,7 @@ export function CheckboxGroup({
           data-label-position={labelPosition}
           isDisabled
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           <Text>{t("errorWithMessage", { message: String(error) })}</Text>
           {description && <Text slot="description">{description}</Text>}
         </AriaCheckboxGroup>
@@ -301,15 +253,7 @@ export function CheckboxGroup({
           data-size={size}
           data-label-position={labelPosition}
         >
-          {label && (
-            <Label>
-              {label}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
           {checkboxItems.map((item) => (
             <AriaCheckbox
               key={item.id}
@@ -352,12 +296,7 @@ export function CheckboxGroup({
       data-size={size}
       data-label-position={labelPosition}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(props.necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
       <div className="checkbox-items">{children}</div>
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>

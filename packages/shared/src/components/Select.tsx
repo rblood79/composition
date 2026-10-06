@@ -8,7 +8,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Button } from "react-aria-components/Button";
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import {
   ListBox,
   ListBoxItem,
@@ -37,6 +36,7 @@ import { useResolvedCollectionItems } from "../hooks";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
@@ -45,7 +45,8 @@ export interface SelectProps<T extends object> extends Omit<
   AriaSelectProps<T>,
   "children" | "selectionMode" | "items"
 > {
-  label?: string;
+  /** The label text, or the field's Label node element (catalog runtime — ADR-253). */
+  label?: string | React.ReactElement;
   description?: string;
   errorMessage?: string | ((validation: ValidationResult) => string);
   /**
@@ -333,15 +334,8 @@ export function Select<T extends object>({
     >
       {() => (
         <>
-          {hasVisibleLabel && (
-            <Label className="react-aria-Label">
-              {String(label)}
-              {renderNecessityIndicator(
-                props.necessityIndicator,
-                props.isRequired,
-              )}
-            </Label>
-          )}
+          {hasVisibleLabel &&
+            renderFieldLabel(label, props.necessityIndicator, props.isRequired)}
 
           <Button className="react-aria-Button">
             <SelectValue />

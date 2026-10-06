@@ -73,37 +73,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-TextField[data-size="xs"] {
-  --tf-label-size: var(--text-2xs);
-  --tf-label-margin: 0px;
-}
-
-.react-aria-TextField[data-size="sm"] {
-  --tf-label-size: var(--text-xs);
-  --tf-label-margin: 0px;
-}
-
-.react-aria-TextField[data-size="md"] {
-  --tf-label-size: var(--text-sm);
-  --tf-label-margin: 2px;
-}
-
-.react-aria-TextField[data-size="lg"] {
-  --tf-label-size: var(--text-base);
-  --tf-label-margin: 4px;
-}
-
-.react-aria-TextField[data-size="xl"] {
-  --tf-label-size: var(--text-lg);
-  --tf-label-margin: 6px;
-}
-
-.react-aria-TextField .react-aria-Label {
-  --label-font-size: var(--tf-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--tf-label-margin);
-}
-
-.react-aria-TextField[data-size="xs"] {
   --tf-input-padding: var(--spacing-3xs) var(--spacing-xs);
   --tf-input-size: var(--text-2xs);
   --tf-input-line-height: var(--text-2xs--line-height);

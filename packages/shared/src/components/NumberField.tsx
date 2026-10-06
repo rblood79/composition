@@ -9,7 +9,6 @@ import { Button } from "react-aria-components/Button";
 import { FieldError } from "react-aria-components/FieldError";
 import { Group } from "react-aria-components/Group";
 import { Input } from "react-aria-components/Input";
-import { Label } from "react-aria-components/Label";
 import {
   NumberField as AriaNumberField,
   NumberFieldProps as AriaNumberFieldProps,
@@ -22,8 +21,8 @@ import { Plus, Minus } from "lucide-react";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
-
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -82,12 +81,7 @@ export function NumberField({
       data-quiet={isQuiet ? "true" : undefined}
       formatOptions={formatOptions}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
         <Input />
         <Button slot="decrement">

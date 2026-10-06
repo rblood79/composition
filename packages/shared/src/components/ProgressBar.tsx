@@ -5,7 +5,7 @@
  * Based on React Aria Components ProgressBar
  */
 
-import { Label } from "react-aria-components/Label";
+import { renderFieldLabel } from "./FieldNecessityIndicator";
 import {
   ProgressBar as AriaProgressBar,
   ProgressBarProps as AriaProgressBarProps,
@@ -142,7 +142,7 @@ export function ProgressBar({
     >
       {({ percentage, valueText }) => (
         <>
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           {showValueLabel && (
             <span className="value">
               {valueLabel ??

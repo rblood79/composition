@@ -17,7 +17,6 @@
  */
 
 import { FieldError } from "react-aria-components/FieldError";
-import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { TextArea as AriaTextArea } from "react-aria-components/TextArea";
 import {
@@ -30,9 +29,9 @@ import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
-
 
 export interface TextAreaProps extends AriaTextFieldProps {
   label?: string;
@@ -107,12 +106,7 @@ export function TextArea({
       isDisabled={isDisabled}
       isReadOnly={isReadOnly}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, isRequired)}
       <AriaTextArea rows={rows} placeholder={placeholder} />
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>

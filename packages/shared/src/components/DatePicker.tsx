@@ -30,6 +30,7 @@ import { Icon } from "./Icon";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 
 import { useComponentStrings } from "../i18n";
@@ -214,12 +215,7 @@ export function DatePicker<T extends DateValue>({
       autoComplete={autoComplete}
       validationBehavior={validationBehavior}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Group>
         {showCalendarIcon && calendarIconPosition === "left" && (
           <Button slot="prefix">

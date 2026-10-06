@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Label 원본 하나가 전 field · 그룹의 Label 을 정한다 (ADR-253 Phase 3 — Label)] - 2026-10-06
+
+### Changed
+
+- field · 그룹 17종 (TextField · TextArea · NumberField · SearchField · ColorField · Select · ComboBox · DateField · TimeField · DatePicker · DateRangePicker · CheckboxGroup · RadioGroup · Meter · ProgressBar · Slider · TagGroup) 의 Label 이 Label 원본의 instance 다. Components page 에서 Label 원본을 고치면 전부가 Builder 와 Preview 에서 같이 바뀐다.
+- Label 의 글자 크기 · 줄 높이 · 굵기는 Label 자신의 rule 이 정한다 (field 의 size 를 따른다). 부모 rule 은 Label 의 모양을 선언하지 않는다.
+- **Label 굵기 600 → 500** (전 Label — react-aria.adobe.com 레퍼런스의 기본값). md 밖 크기에서 Label 줄 높이가 token 값이 된다 (xs · sm 16 · lg 24 · xl 28px).
+- field 안 Label 의 스타일은 그 Label 에서 직접 고친다 (Styles 패널). 글자는 계속 field 의 `label` 이 정한다.
+- **기존 프로젝트는 열리지 않는다** (library contract 4 — 변환 없음, 개발 단계 결정).
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 272건: 17 부모 × 13 조합의 Preview DOM 구조가 전환 전 빌드와 같다 (`fixtures/adr253-field-dom.json`) · Label 요소 = Label 노드 · size 전달 · 원본 전파 (두 번째 편집 포함) · 자기 스타일. 원복 RED 4종.
+- `adr253PartShapeOwner.static.test.ts`: 부모 rule 에 Label 모양 선언 0 (원복 RED).
+- live `adr253-p3-live.mjs` 5/5 (실제 Builder + Compare Mode Preview): 팔레트로 놓은 17종의 Label 이 Canvas 와 Preview 에서 같은 글꼴 · 상자 (md · xl), 원본 편집 → 전부 반영, undo.
+
 ## [Label 원본 — TextField 의 Label 이 그 instance (ADR-253 Phase 2)] - 2026-10-06
 
 ### Added

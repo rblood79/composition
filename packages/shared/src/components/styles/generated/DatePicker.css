@@ -74,37 +74,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-DatePicker[data-size="xs"] {
-  --dp-label-size: var(--text-2xs);
-  --dp-label-line-height: var(--text-2xs--line-height);
-}
-
-.react-aria-DatePicker[data-size="sm"] {
-  --dp-label-size: var(--text-xs);
-  --dp-label-line-height: var(--text-xs--line-height);
-}
-
-.react-aria-DatePicker[data-size="md"] {
-  --dp-label-size: var(--text-sm);
-  --dp-label-line-height: var(--text-sm--line-height);
-}
-
-.react-aria-DatePicker[data-size="lg"] {
-  --dp-label-size: var(--text-base);
-  --dp-label-line-height: var(--text-base--line-height);
-}
-
-.react-aria-DatePicker[data-size="xl"] {
-  --dp-label-size: var(--text-lg);
-  --dp-label-line-height: var(--text-lg--line-height);
-}
-
-.react-aria-DatePicker .react-aria-Label {
-  --label-font-size: var(--dp-label-size);
-  --label-line-height: var(--dp-label-line-height);
-  --label-font-weight: 600;
-}
-
-.react-aria-DatePicker[data-size="xs"] {
   --dp-group-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
   --dp-group-font-size: var(--text-2xs);
   --dp-group-line-height: var(--text-2xs--line-height);

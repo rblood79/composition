@@ -61,6 +61,24 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     reason: "② Label height fit-content (69 → 20)",
   },
   {
+    // ADR-253 Phase 3 (사용자 결정 2026-10-06 — 레퍼런스 값이 부품의 기본값): 전 Label 의 굵기 500.
+    //   old 캡처는 600 이라 글자 폭이 1.0 ~ 1.8px 넓다. 폭 차이가 1px 을 넘는 Label 만 적는다.
+    id: "label-weight-500",
+    class: "decided",
+    owners: [
+      "Checkbox",
+      "ComboBox",
+      "Select",
+      "TagGroup",
+      "TextField",
+      "TimeField",
+    ],
+    nodes: ["Label"],
+    axes: ["width"],
+    reason:
+      "Label weight 500 (ADR-253 — the Label rule's default; old 600 measures 1.0–1.8px wider)",
+  },
+  {
     id: "form-necessity-indicator",
     class: "decided",
     owners: ["Form"],

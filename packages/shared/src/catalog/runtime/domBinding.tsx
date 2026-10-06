@@ -38,6 +38,7 @@ import {
   CATALOG_DELEGATED_DOM,
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldLabelNecessity,
+  catalogFieldLabelNode,
   catalogOwnerDrawnPart,
   catalogTypeName,
 } from "./delegatedDom";
@@ -511,12 +512,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   selecticon: glyph("chevron-down", 18),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
   // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
-  select: (node, style) =>
+  // (`fieldLabel`: the field's Label node element, when it shows a label — ADR-253.)
+  select: (node, style, [fieldLabel]) =>
     createElement(Select, {
       key: node.id,
       "data-catalog-id": node.id,
       label:
-        typeof node.props.label === "string" ? node.props.label : undefined,
+        fieldLabel ??
+        (typeof node.props.label === "string" ? node.props.label : undefined),
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -528,12 +531,13 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       isRequired: node.props.isRequired === true,
       style,
     } as Parameters<typeof Select>[0]),
-  combobox: (node, style) =>
+  combobox: (node, style, [fieldLabel]) =>
     createElement(ComboBox, {
       key: node.id,
       "data-catalog-id": node.id,
       label:
-        typeof node.props.label === "string" ? node.props.label : undefined,
+        fieldLabel ??
+        (typeof node.props.label === "string" ? node.props.label : undefined),
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -733,6 +737,8 @@ function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   children: ReactElement[],
+  /** The field's Label node element, in place of its `label` text (ADR-253). */
+  fieldLabel?: ReactElement,
 ): ReactElement {
   const type = node.ruleId!;
   const binding = getPrimitiveBinding(type);
@@ -745,6 +751,7 @@ function ruleDom(
   const style = authoredStyle(root, node);
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
+  if (fieldLabel) rest.label = fieldLabel;
   const lower = type.toLowerCase();
   // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
   // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
@@ -1123,7 +1130,7 @@ const CatalogDomNode = memo(function CatalogDomNode({
     ((textBindings.has(node.bindingId ?? "") &&
       parentInput?.bindingId === "slot") ||
       (node.bindingId === "label" &&
-        CATALOG_LABEL_NODE_FIELDS.has(parentInput?.bindingId ?? "")))
+        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !== undefined))
       ? node.parentId
       : undefined;
   const readParent = useCallback(
@@ -1240,10 +1247,26 @@ function renderNode(
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
   const id = node.id;
+  // A field whose RAC component composes its parts itself still draws its Label from its Label
+  // node (ADR-253): the one element it is given, placed as the component's `label`.
+  const labelNode = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
+    ? catalogFieldLabelNode(root, node)
+    : undefined;
+  const fieldLabel =
+    labelNode && String(node.props.label ?? "").trim()
+      ? createElement(CatalogDomNode, {
+          key: labelNode.id,
+          root,
+          id: labelNode.id,
+          context,
+        })
+      : undefined;
   const children: ReactElement[] = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(
     node.bindingId ?? "",
   )
-    ? []
+    ? fieldLabel && bindings[node.bindingId ?? ""]
+      ? [fieldLabel]
+      : []
     : node.children
         .filter((childId) => {
           const child = root.domInputs.get(childId);
@@ -1310,7 +1333,7 @@ function renderNode(
         children,
         context,
       )
-    : ruleDom(root, node, children);
+    : ruleDom(root, node, children, fieldLabel);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
     root,

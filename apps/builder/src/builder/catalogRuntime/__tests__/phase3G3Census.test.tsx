@@ -159,7 +159,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 3,
+    libraryContractVersion: 4,
     revision: 0,
     projectId,
     rootId: projectId,

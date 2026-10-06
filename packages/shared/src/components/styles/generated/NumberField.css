@@ -74,32 +74,6 @@
 /* ── Tier 2: Composite Delegation ── */
 
 .react-aria-NumberField[data-size="xs"] {
-  --nf-label-size: var(--text-2xs);
-}
-
-.react-aria-NumberField[data-size="sm"] {
-  --nf-label-size: var(--text-xs);
-}
-
-.react-aria-NumberField[data-size="md"] {
-  --nf-label-size: var(--text-sm);
-}
-
-.react-aria-NumberField[data-size="lg"] {
-  --nf-label-size: var(--text-base);
-}
-
-.react-aria-NumberField[data-size="xl"] {
-  --nf-label-size: var(--text-lg);
-}
-
-.react-aria-NumberField .react-aria-Label {
-  --label-font-size: var(--nf-label-size);
-  --label-font-weight: 600;
-  --label-margin: var(--spacing-xs);
-}
-
-.react-aria-NumberField[data-size="xs"] {
   --nf-group-padding: var(--spacing-3xs) var(--spacing-3xs) var(--spacing-3xs) var(--spacing-xs);
 }
 

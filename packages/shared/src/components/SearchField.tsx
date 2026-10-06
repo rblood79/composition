@@ -8,7 +8,6 @@
 import { Button } from "react-aria-components/Button";
 import { FieldError } from "react-aria-components/FieldError";
 import { Input } from "react-aria-components/Input";
-import { Label } from "react-aria-components/Label";
 import {
   SearchField as AriaSearchField,
   SearchFieldProps as AriaSearchFieldProps,
@@ -22,6 +21,7 @@ import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconS
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
 
 export interface SearchFieldProps extends AriaSearchFieldProps {
@@ -72,12 +72,7 @@ export function SearchField({
       data-label-align={labelAlign}
       data-quiet={isQuiet ? "true" : undefined}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <div className="searchfield-container">
         {searchIconData && (
           <span className="search-icon" aria-hidden="true">

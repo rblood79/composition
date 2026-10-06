@@ -1,7 +1,7 @@
 import React, { JSX, useState, useRef, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "react-aria-components/Button";
-import { Label } from "react-aria-components/Label";
+import { renderFieldLabel } from "./FieldNecessityIndicator";
 import {
   Tag as AriaTag,
   TagGroup as AriaTagGroup,
@@ -125,14 +125,15 @@ export function TagGroup<T extends object>({
   //   (Skia `appendTagRowProjection` 의 default ⊕ selected origin style 과 대칭). 구성은 leading slot
   //   존재 gating 에 쓴다 — selected chip 은 selected origin 의 구성 (없으면 default).
   const chipBaseStyle = (itemTemplate?.rootStyles.base ?? undefined) as
-    | React.CSSProperties
-    | undefined;
+    React.CSSProperties | undefined;
   const chipSelectedStyle = (itemTemplate?.rootStyles.selected ?? undefined) as
-    | React.CSSProperties
-    | undefined;
+    React.CSSProperties | undefined;
   const chipStyle = (isSelected: boolean): React.CSSProperties | undefined => {
     if (!chipBaseStyle && !chipSelectedStyle) return undefined;
-    return { ...chipBaseStyle, ...(isSelected ? chipSelectedStyle : undefined) };
+    return {
+      ...chipBaseStyle,
+      ...(isSelected ? chipSelectedStyle : undefined),
+    };
   };
   const chipComposition = (isSelected: boolean) =>
     isSelected
@@ -371,7 +372,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
@@ -391,7 +392,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("errorLabel")}>
               {t("errorWithMessage", { message: String(error) })}
@@ -429,7 +430,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList
             items={tagItems}
             renderEmptyState={renderEmptyState}
@@ -459,7 +460,7 @@ export function TagGroup<T extends object>({
         data-tag-size={size}
         data-label-position={labelPosition}
       >
-        {label && <Label>{label}</Label>}
+        {renderFieldLabel(label)}
         <TagList
           items={items}
           renderEmptyState={renderEmptyState}
@@ -486,7 +487,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
@@ -506,7 +507,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("errorLabel")}>
               {t("errorWithMessage", { message: String(error) })}
@@ -541,7 +542,7 @@ export function TagGroup<T extends object>({
           data-tag-size={size}
           data-label-position={labelPosition}
         >
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           <TagList
             items={tagItems}
             renderEmptyState={renderEmptyState}
@@ -682,7 +683,7 @@ export function TagGroup<T extends object>({
         data-tag-size={size}
         data-label-position={labelPosition}
       >
-        {label && <Label>{label}</Label>}
+        {renderFieldLabel(label)}
         <div ref={tagListWrapperRef} className="tag-list-wrapper">
           {hasResolvedRows && !staticNodes ? (
             <TagList
@@ -703,7 +704,10 @@ export function TagGroup<T extends object>({
                 >
                   {({ allowsRemoving: removing, isSelected: chipSelected }) => (
                     <>
-                      {renderTagLeadingSlot(item, chipComposition(chipSelected))}
+                      {renderTagLeadingSlot(
+                        item,
+                        chipComposition(chipSelected),
+                      )}
                       {item.label}
                       {removing && (
                         <Button slot="remove" className="tag-remove-btn">

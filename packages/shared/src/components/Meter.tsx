@@ -5,7 +5,7 @@
  * Based on React Aria Components Meter
  */
 
-import { Label } from "react-aria-components/Label";
+import { renderFieldLabel } from "./FieldNecessityIndicator";
 import {
   Meter as AriaMeter,
   MeterProps as AriaMeterProps,
@@ -14,7 +14,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset, MeterVariant } from "../types";
 import { formatPercent } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
-
 
 export interface MeterProps extends AriaMeterProps {
   label?: string;
@@ -134,7 +133,7 @@ export function Meter({
     >
       {({ percentage, valueText }) => (
         <>
-          {label && <Label>{label}</Label>}
+          {renderFieldLabel(label)}
           {showValueLabel && (
             <span className="value">
               {valueLabel ??

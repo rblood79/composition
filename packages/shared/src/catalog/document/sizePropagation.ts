@@ -11,15 +11,15 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
 > = {
   ToggleButtonGroup: ["ToggleButton"],
   // ADR-251: group → items wrapper (internal `size`, never edited) → item.
-  RadioGroup: ["RadioItems"],
+  RadioGroup: ["RadioItems", "Label"],
   RadioItems: ["Radio"],
-  CheckboxGroup: ["CheckboxItems"],
+  CheckboxGroup: ["CheckboxItems", "Label"],
   CheckboxItems: ["Checkbox"],
   Radio: ["Label"],
   Checkbox: ["Label"],
-  Slider: ["SliderTrack"],
+  Slider: ["SliderTrack", "Label"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
-  TagGroup: ["TagList"],
+  TagGroup: ["TagList", "Label"],
   TagList: ["Tag"],
   // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
   // buttons inside).
@@ -29,4 +29,19 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // calendar's `data-size`): the typed children are painted at it too.
   Calendar: ["CalendarHeader", "CalendarGrid"],
   RangeCalendar: ["CalendarHeader", "CalendarGrid"],
+  // ADR-253: a field's Label is an instance of the Label origin, sized by the Label rule at the
+  // field's size (the fields' rules no longer declare their Label's font).
+  TextField: ["Label"],
+  TextArea: ["Label"],
+  NumberField: ["Label"],
+  SearchField: ["Label"],
+  ColorField: ["Label"],
+  Select: ["Label"],
+  ComboBox: ["Label"],
+  DateField: ["Label"],
+  TimeField: ["Label"],
+  DatePicker: ["Label"],
+  DateRangePicker: ["Label"],
+  Meter: ["Label"],
+  ProgressBar: ["Label"],
 };

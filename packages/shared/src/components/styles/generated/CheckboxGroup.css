@@ -13,8 +13,6 @@
     align-items: flex-start;
     box-sizing: border-box;
     color: var(--fg);
-    --label-font-size: var(--text-sm);
-    --label-line-height: var(--text-sm--line-height);
     --cb-items-gap: 12px;
     --cb-hint-size: var(--text-xs);
 
@@ -69,14 +67,10 @@
 }
 
 .react-aria-CheckboxGroup[data-size="sm"] {
-  --label-font-size: var(--text-xs);
-  --label-line-height: var(--text-xs--line-height);
   --cb-items-gap: 8px;
 }
 
 .react-aria-CheckboxGroup[data-size="lg"] {
-  --label-font-size: var(--text-base);
-  --label-line-height: var(--text-base--line-height);
   --cb-items-gap: 16px;
 }
 

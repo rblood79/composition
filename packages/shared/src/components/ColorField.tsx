@@ -7,13 +7,13 @@ import { Input } from "react-aria-components/Input";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { Text } from "./Content";
-import { Label, FieldError } from "./Field";
+import { FieldError } from "./Field";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
-
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환
@@ -79,12 +79,7 @@ export function ColorField({
       data-label-align={labelAlign}
       data-quiet={isQuiet ? "true" : undefined}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, props.isRequired)}
-        </Label>
-      )}
+      {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Input />
       {description && <Text slot="description">{description}</Text>}
       <FieldError>{errorMessage}</FieldError>
