@@ -22,7 +22,6 @@ import {
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 
-
 /**
  * 🚀 Phase 4: data-* 패턴 전환
  * - tailwind-variants 제거
@@ -73,6 +72,7 @@ export function TextField({
   labelPosition = "top",
   labelAlign,
   isQuiet,
+  children,
   ...props
 }: TextFieldProps) {
   if (isLoading) {
@@ -104,15 +104,22 @@ export function TextField({
       isDisabled={isDisabled}
       isReadOnly={isReadOnly}
     >
-      {label && (
-        <Label>
-          {label}
-          {renderNecessityIndicator(necessityIndicator, isRequired)}
-        </Label>
+      {/* ADR-253: the catalog runtime passes the field's part nodes (each drawn by its own
+          binding inside this field's RAC context); without them the field composes its parts
+          from its props. */}
+      {children ?? (
+        <>
+          {label && (
+            <Label>
+              {label}
+              {renderNecessityIndicator(necessityIndicator, isRequired)}
+            </Label>
+          )}
+          <Input type={type} placeholder={placeholder} />
+          {description && <Text slot="description">{description}</Text>}
+          <FieldError>{errorMessage}</FieldError>
+        </>
       )}
-      <Input type={type} placeholder={placeholder} />
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
     </AriaTextField>
   );
 }

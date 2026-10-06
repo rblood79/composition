@@ -9,6 +9,7 @@ import type {
 import { createLayout } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
+import { BASE_PART_ORIGIN_TYPES } from "../../../../../packages/shared/src/catalog/componentCatalog";
 import { getPaletteItems } from "../panels/components/paletteItems";
 import { isComponentsView, isLibraryOrigin } from "./originView";
 import { catalogPaletteDefinitionId } from "./paletteInsert";
@@ -60,13 +61,17 @@ export function catalogDefinitionList(
 export interface CatalogBuiltinOrigin {
   id: LibraryDefinitionId;
   name: string;
-  /** The palette category it is registered under (`PALETTE_CATEGORIES` key). */
+  /** The palette category it is registered under (`PALETTE_CATEGORIES` key); `parts` = a base part. */
   category: string;
   /**
    * The palette's creation variants of the origin, palette order (a Chart's chart types: one
    * palette item each, the same origin with other initial props). Absent = one palette item.
    */
-  kinds?: { key: string; label: string; initialProps: Record<string, unknown> }[];
+  kinds?: {
+    key: string;
+    label: string;
+    initialProps: Record<string, unknown>;
+  }[];
 }
 /**
  * The built-in component origins the Components page draws (user 2026-10-01 · 2026-10-05): the
@@ -76,7 +81,14 @@ export function catalogBuiltinOrigins(
   library: CatalogLibrary,
 ): CatalogBuiltinOrigin[] {
   const seen = new Map<string, CatalogBuiltinOrigin>();
-  return getPaletteItems().flatMap((item) => {
+  // The base parts first (ADR-253): the origins the composed components below are built from.
+  const parts = BASE_PART_ORIGIN_TYPES.flatMap((type) => {
+    const id = catalogPaletteDefinitionId(library, type);
+    return isLibraryOrigin(id)
+      ? [{ id, name: type, category: "parts" } satisfies CatalogBuiltinOrigin]
+      : [];
+  });
+  const palette = getPaletteItems().flatMap((item) => {
     const type = item.componentType ?? item.type;
     const id = catalogPaletteDefinitionId(library, type);
     if (!isLibraryOrigin(id)) return [];
@@ -98,6 +110,7 @@ export function catalogBuiltinOrigins(
     seen.set(id, origin);
     return [origin];
   });
+  return [...parts, ...palette];
 }
 
 /** The Navigator tab listing a definition (its edit view selects it); `undefined` = none. */

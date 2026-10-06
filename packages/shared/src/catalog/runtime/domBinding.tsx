@@ -11,6 +11,7 @@ import * as RAC from "react-aria-components";
 import {
   cloneElement,
   createElement,
+  isValidElement,
   memo,
   useCallback,
   useRef,
@@ -35,6 +36,8 @@ import {
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   CATALOG_DELEGATED_DOM,
+  CATALOG_LABEL_NODE_FIELDS,
+  catalogFieldLabelNecessity,
   catalogOwnerDrawnPart,
   catalogTypeName,
 } from "./delegatedDom";
@@ -445,13 +448,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       >[0],
       String(node.props.children ?? ""),
     ),
-  label: (node, style) =>
+  // (`children`: what its field appends to the Label — the necessity indicator, ADR-253.)
+  label: (node, style, children) =>
     createElement(
       Label,
       { key: node.id, "data-catalog-id": node.id, style } as Parameters<
         typeof Label
       >[0],
       String(node.props.children ?? ""),
+      ...children,
     ),
   description: (node, style) =>
     createElement(
@@ -1111,10 +1116,14 @@ const CatalogDomNode = memo(function CatalogDomNode({
     readRevision,
   );
   const parentInput = node ? root.domInputs.get(node.parentId) : undefined;
+  // A text leaf in a slot reads the slot's values; a field's Label node shows what its field
+  // appends to it (the necessity indicator of the field's `isRequired` — ADR-253).
   const watchedParentId =
     node &&
-    textBindings.has(node.bindingId ?? "") &&
-    parentInput?.bindingId === "slot"
+    ((textBindings.has(node.bindingId ?? "") &&
+      parentInput?.bindingId === "slot") ||
+      (node.bindingId === "label" &&
+        CATALOG_LABEL_NODE_FIELDS.has(parentInput?.bindingId ?? "")))
       ? node.parentId
       : undefined;
   const readParent = useCallback(
@@ -1231,7 +1240,9 @@ function renderNode(
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
   const id = node.id;
-  const children = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
+  const children: ReactElement[] = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(
+    node.bindingId ?? "",
+  )
     ? []
     : node.children
         .filter((childId) => {
@@ -1246,6 +1257,11 @@ function renderNode(
             context,
           }),
         );
+  if (node.bindingId === "label") {
+    const necessity = catalogFieldLabelNecessity(root, node);
+    if (isValidElement(necessity))
+      children.push(cloneElement(necessity, { key: "necessity" }));
+  }
   const delegated = CATALOG_DELEGATED_DOM[node.bindingId ?? ""];
   if (delegated && !bindings[node.bindingId ?? ""])
     return withHtmlId(

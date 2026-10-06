@@ -12,6 +12,9 @@ import {
 } from "../../utils/dateFieldDefaults";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
+import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
+import { Input as AriaInput } from "react-aria-components/Input";
+import { Text as AriaText } from "react-aria-components/Text";
 import {
   FILE_UPLOAD_INPUT_CHILD_TYPES,
   FileUpload,
@@ -19,6 +22,10 @@ import {
 import { FileTriggerIntake } from "../../upload/intakeAdapters";
 import { resolveTextSourceText, textFromValue } from "@composition/rendering";
 import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
+import {
+  type NecessityIndicator,
+  renderNecessityIndicator,
+} from "../../components/FieldNecessityIndicator";
 import { Tabs, TabList, TabPanel } from "../../components/Tabs";
 import { TagGroup } from "../../components/TagGroup";
 import { ListBox } from "../../components/ListBox";
@@ -290,6 +297,38 @@ const container =
       { ...marker(input), ...extra?.(input), style: input.style },
       ...renderAll(input),
     );
+/**
+ * Fields whose DOM Label is their Label node (ADR-253): the node's binding draws it inside the
+ * field's RAC context, so what the field appends to its Label (the necessity indicator) is
+ * rendered there.
+ */
+export const CATALOG_LABEL_NODE_FIELDS: ReadonlySet<string> = new Set([
+  "textfield",
+]);
+/** The necessity indicator a field appends to its Label node (`fieldBase`'s values). */
+export function catalogFieldLabelNecessity(
+  root: CatalogCompositionRoot,
+  label: CatalogConsumerNode,
+): ReactNode {
+  const field = root.domInputs.get(label.parentId);
+  if (!field || !CATALOG_LABEL_NODE_FIELDS.has(field.bindingId ?? ""))
+    return null;
+  let indicator = field.props.necessityIndicator;
+  // The nearest Form's, when the field sets none (`inheritedForm`).
+  for (
+    let parent = root.domInputs.get(field.parentId);
+    indicator === undefined && parent;
+    parent = root.domInputs.get(parent.parentId)
+  )
+    if (catalogTypeName(root, parent) === "Form") {
+      indicator = parent.props.necessityIndicator;
+      break;
+    }
+  return renderNecessityIndicator(
+    indicator as NecessityIndicator | undefined,
+    bool(field.props.isRequired),
+  );
+}
 function fieldBase(input: DelegatedDomInput) {
   const props = input.node.props;
   const form = inheritedForm(input);
@@ -753,20 +792,53 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return createElement(TextField as ElementType, {
-        ...fieldBase(input),
-        ...inputHints(props),
-        size: props.size,
-        label: str(props.label),
-        description: str(props.description),
-        errorMessage: str(props.errorMessage),
-        placeholder: str(props.placeholder),
-        type: props.type || "text",
-        defaultValue: str(props.value),
-        maxLength: num(props.maxLength),
-        minLength: num(props.minLength),
-        pattern: opt(props.pattern),
-      });
+      const label = childOf(input, "Label");
+      const text = str(props.label);
+      const description = str(props.description);
+      const type = props.type || "text";
+      const placeholder = str(props.placeholder);
+      return createElement(
+        TextField as ElementType,
+        {
+          ...fieldBase(input),
+          ...inputHints(props),
+          size: props.size,
+          label: text,
+          description,
+          errorMessage: str(props.errorMessage),
+          placeholder,
+          type,
+          defaultValue: str(props.value),
+          maxLength: num(props.maxLength),
+          minLength: num(props.minLength),
+          pattern: opt(props.pattern),
+        },
+        // ADR-253: the Label is the field's Label node (an instance of the Label origin), drawn by
+        // its own binding inside the field's RAC context. The other parts are still the field's
+        // own composition (Phase 3 moves them to their nodes).
+        ...(label
+          ? [
+              text ? input.renderChild(label.id) : null,
+              createElement(AriaInput, {
+                key: "input",
+                type: String(type),
+                placeholder,
+              }),
+              description
+                ? createElement(
+                    AriaText,
+                    { key: "description", slot: "description" },
+                    description,
+                  )
+                : null,
+              createElement(
+                AriaFieldError,
+                { key: "error" },
+                str(props.errorMessage),
+              ),
+            ]
+          : []),
+      );
     },
   },
   textarea: {

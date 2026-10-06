@@ -1368,11 +1368,16 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
  * 다 — Radio 는 그 목록에 없어 팔레트 노출 0. `PALETTE_ORDER` 일치 ratchet (`adr228Inventory`) 과
  * 섞이지 않게 목록만 나눈다.
  */
+/**
+ * ADR-253 — 기본 부품 원본. 팔레트 항목은 아니지만 field 계열 template 의 부품 자리가 이 원본의
+ * instance 다: 원본 하나를 고치면 그것을 쓰는 전 컴포넌트가 바뀐다. Components page 는 이 원본을
+ * 팔레트 원본 앞에 그린다.
+ */
+export const BASE_PART_ORIGIN_TYPES: readonly string[] = ["Label"];
+
 export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Radio",
-  // ADR-253 — 기본 부품 원본. field 계열 template 의 부품 자리가 이 원본의 instance 다
-  //   (원본 하나를 고치면 그것을 쓰는 전 컴포넌트가 바뀐다).
-  "Label",
+  ...BASE_PART_ORIGIN_TYPES,
   // ADR-239 Phase 4 — ColorSwatchPicker (팔레트 밖 — AI · import 로 생성) 와 그 항목 ColorSwatch. 배치 = instance,
   //   swatch 모양은 ColorSwatch origin 하나에서.
   "ColorSwatchPicker",
