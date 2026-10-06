@@ -7,7 +7,7 @@
 ## 1. 전제 점검
 
 1. **base / 응용**: ADR-248 (catalog 문서 모델 · library contract · 원본 override) 이 base 이고, ADR-234 · 237 ~ 241 (항목 = 원본의 instance · slot 채움) 이 같은 개념의 앞선 적용이다. ADR-253 은 그 개념을 부품 · 안에 넣는 컴포넌트 · 바탕으로 넓히는 응용이다. 253 → 248 · 234 의존.
-2. **schema 직교성**: 문서 schema 변경 0 (`CATALOG_SCHEMA_VERSION` 그대로). 바뀌는 것은 library 내용 · 값 해석 순서 · `LIBRARY_CONTRACT_VERSION` 이다. Phase 5 만 library 타입 (`LibraryTemplateNode`) 확장을 요구한다 — G5 에서 따로 판정.
+2. **schema 직교성**: 문서 schema 변경 0 (`CATALOG_SCHEMA_VERSION` 그대로). 바뀌는 것은 library 내용 · 값 해석 순서 · `LIBRARY_CONTRACT_VERSION` 이다. Phase 4 가 library 타입 (`LibraryTemplateNode`) 에 slot 채움 표현을 더하고 Phase 5 가 그것을 쓴다 (리뷰 round 1 h1).
 3. **선행 전제 검증**: ADR-248 의 「보존할 프로젝트 0 · 구 포맷 거부 · 자동 재해석 금지」 를 쓴다 — 사용자 확인 2026-10-06 「상관없다. 개발단계인데 무시해도된다」. ADR-923 Phase 5 후속의 「DOM 이 자식을 읽지 않으므로 편집을 부모로」 전제는 승계하지 않는다 — 이 ADR 이 그 원인을 없앤다. owner 가 그리는 부품 (2026-10-04 판정) 은 그대로 둔다.
 4. **범위 confirm**: 사용자 `/create-adr` (2026-10-06) + 같은 날 대화의 방향 3문장 (본문 Status). Phase 4 · 5 는 이 ADR 안의 Phase 로 둔다 (사용자 확인 2026-10-06).
 
@@ -93,8 +93,11 @@
 ### Phase 1 — 채널 수리 (G1)
 
 - 원본 override 의 `visual` · `stateRules` 가 instance 루트 record 까지 내려가게 한다 (§2-4 「instance 루트로 내려가는 값」). 대상은 놓인 instance 와 다른 원본 template 안의 instance 둘 다.
+- 상태별 값은 기본 스타일과 길이 다르다. 지금은 template 루트를 투영한 뒤에 바깥 노드에만 적용한다 (`resolver.ts:681` 전달 → `:710` 상태 적용, 중첩 경로 `:1135` · `:1234` 도 같은 순서). 그래서 키 전달만 늘려서는 닿지 않는다 — 원본 override 의 상태별 값을 template 루트 · 중첩 루트의 상태 적용 단계에 넣는다. 우선순위: 원본 정의의 상태 규칙 → 원본 override 의 상태별 값 → instance 가 쓴 상태별 값.
 - 값 순서를 본문 Decision 4 로 맞춘다. 배치 키 · 모양 키 목록 (G0 ③) 으로 부모 partRule 이 덮을 수 있는 범위를 정한다.
 - unit: Button 원본에 padding · 배경을 쓰면 놓인 Button · Toolbar · ButtonGroup · Pagination 의 Button record 에 보인다. instance 가 직접 쓴 값은 그 위에 남는다. 원복 RED.
+- unit (상태): Button 원본의 hover · pressed · disabled 값을 고친 뒤 그 상태로 해석하면 **그려지는 template 루트** 가 새 값을 갖는다 (리뷰 반례: hover fill 을 `#123456` 으로 써도 루트는 `#c3c3c3` 그대로). 놓인 instance · 중첩 instance · instance 가 같은 상태 값을 쓴 경우 셋 다. 원복 RED.
+- live: Preview 에서 실제 hover · press 한 Button 의 computed style 이 원본 편집을 따른다.
 - 이 Phase 는 template 을 바꾸지 않는다 (contract 2 유지). 단독으로 main 에 병합할 수 있다 — 현행 결함 (F7) 의 수리이기도 하다.
 
 ### Phase 2 — 수직 절단: Label × TextField (G2)
@@ -102,7 +105,7 @@
 - Label 원본 등록 (`S/catalog/componentCatalog.ts` 팔레트 밖 원본 목록 · `L` 에 정의 + template). Components page 에 Label 카드가 나온다.
 - TextField template 의 `__1` (`L:3315`) 을 Label 원본의 instance 로 바꾸고 `{label}` 자리표시가 Label 텍스트로 내려가게 한다 (Label 원본이 `children` 을 받는다고 선언).
 - `T:13516` TextField 의 Label delegation 에서 모양 선언을 걷어내고 Label rule 이 정하게 한다. Label 의 크기는 부모 size 를 따른다 (`D/sizePropagation.ts`).
-- DOM: textfield binding 이 Label 자식을 `renderChild` 로 그린다. `S/components/TextField.tsx` 는 children 을 받으면 그대로 넘기고, 없으면 지금 방식으로 조립한다 (전환 중 다른 호출처 보호 — Phase 3 끝에 정리).
+- DOM: textfield binding 이 Label 자식을 `renderChild` 로 그린다. Label 은 RAC `Label` 로 그려 TextField 의 context (`id` · `htmlFor`) 를 받는다. `S/components/TextField.tsx` 는 children 을 받으면 그대로 넘기고, 없으면 지금 방식으로 조립한다 (전환 중 다른 호출처 보호 — Phase 3 끝에 정리).
 - `LIBRARY_CONTRACT_VERSION` 3 은 이 Phase 에서 올린다. 뒤 Phase 에서 template 구조가 다시 바뀌는 병합마다 한 번씩 더 올린다 (본문 Decision 9).
 - 통과하지 못하면 여기서 멈추고 대안 B 로 물러난다 (본문 G2).
 
@@ -110,6 +113,11 @@
 
 - 부품 순서: Label (나머지 10 부모 + root 변수 4) → FieldError · Description → Input · DateInput → Group · Button.
 - 부모마다: template 자리를 instance 로 · delegation 의 모양 선언 제거 · 달라야 하는 값은 template patch (`descendantPatches`) · DOM binding 을 자식 렌더로.
+- 부품은 RAC 컴포넌트로 그려 부모의 context 를 받는다 (본문 Decision 5 ① ~ ④, 리뷰 round 1 h2 · m1):
+  - FieldError binding (`X/domBinding.tsx:473` — 지금은 `span role="alert"`) 을 field 안에서는 RAC `FieldError` 로 바꾼다. 부모 `errorMessage` 는 그 children 으로 넘긴다. 표시 여부는 RAC 의 validation 상태가 정한다.
+  - Button binding (`X/domBinding.tsx:485-504`) 이 `slot` 을 넘기고, `isDisabled` · `autoFocus` 는 문서가 쓴 값일 때만 넘긴다. Button 원본 기본값 `isDisabled: false` (`L:2981`) 는 「쓰지 않음」 으로 다룬다.
+  - RAC 가 이름을 정한 slot 은 template 자리에 적는다: NumberField 증감 = `decrement` · `increment` (`S/components/NumberField.tsx:93`), DateRangePicker DateInput = `start` · `end`. Select · ComboBox · DatePicker 의 버튼과 SearchField 의 지우기 버튼은 RAC 가 context 로 연결하므로 slot 이름이 없다.
+  - `slot` 은 Button · DateInput 정의가 받는 내부 운반 값이다 (편집 surface 에 내지 않음).
 - FieldButton 원본 등록 (Button 원본의 instance + 모양 patch) — ComboBox · DatePicker · DateRangePicker 가 쓴다. NumberField 증감 · Select trigger 는 Button 원본 (secondary) 의 instance (§2-2 7번).
 - 상자를 칠하는 주체를 §2-2 5 · 6번대로 옮긴다 (ComboBox · NumberField · SearchField · DatePicker). DOM 구조는 그대로이고 칠하는 요소만 바뀐다.
 - quiet 변형의 반복 (§2-1) 은 부품 원본의 quiet 상태로 모은다.
@@ -119,14 +127,15 @@
 
 ### Phase 4 — Select · ComboBox 안의 ListBox (G4)
 
-- Select · ComboBox template 의 항목 자식을 ListBox 원본 instance 의 slot 채움으로 옮긴다 (`L:3852` · `L:4041`). 항목 추가 (「+」) 의 삽입 위치를 그 ListBox 로 (`S/catalog/commands/collections.ts`).
+- **선행 — library 의 slot 채움 표현** (리뷰 round 1 h1): template 노드가 「원본의 instance + 그 원본 template 의 slot 자리를 채우는 항목 목록」 을 가질 수 있게 `LibraryTemplateNode` 를 넓힌다 (`D/types.ts:661-680` · 검증 `D/library.ts:276-330` · 해석 `resolver.ts:1118-1164` · `:1182-1233`). 지금 `children` 으로 적으면 ListBox 의 기본 항목 3개가 루트 안에 남고 Select 의 항목 4개는 루트 밖에 붙는다. unit: ListBox 루트 안 = Select 의 항목 4개 · 루트 밖 항목 0 · ListBox 기본 항목 0. 프로젝트 쪽의 `fillSlot` (`resolver.ts:1223-1233`) 과 같은 뜻이어야 한다 — instance 가 다시 채우면 library 의 채움을 대신한다.
+- Select · ComboBox template 의 항목 자식을 위 표현으로 ListBox 원본 instance 의 slot 채움으로 옮긴다 (`L:3852` · `L:4041`). 항목 추가 (「+」) 의 삽입 위치를 그 ListBox 로 (`S/catalog/commands/collections.ts`).
 - Canvas: 닫힌 상태에서 ListBox 를 숨기는 규칙은 이미 있다 (`X/presence.ts:30`).
 - DOM: select · combobox binding 이 ListBox instance 의 항목을 선택 목록으로 넘긴다 (`X/domBinding.tsx:509-543`). `S/components/Select.tsx:148-160` 의 `items` 경로는 데이터 바인딩용으로 남는다.
 - Menu (루트가 Menu 이고 항목이 직접 자식) 는 이미 slot 형태라 대상이 아니다.
 
 ### Phase 5 — 바탕 사슬 (G5 통과 시)
 
-- library template 이 「원본의 instance + slot 채움」 을 표현하도록 `LibraryTemplateNode` 를 넓힌다 (`D/types.ts:661-680` · 검증 `D/library.ts:276-330` · 해석 `resolver.ts:942-944` · `1182-1233`).
+- Phase 4 가 만든 slot 채움 표현을 쓴다. Phase 4 를 미루면 이 Phase 도 미룬다.
 - 공용 바탕 원본 (제목 · 내용 · 버튼 줄 slot) 을 정하고 Dialog · Popover 를 그 instance 로 다시 적는다 (`L:5205` · `L:5322`). Card 와 합칠지는 G5 에서 정한다 — Card 는 Preview · Header · Content · Footer 네 영역이라 모양이 다르다.
 - Modal 원본 (`LEGACY_ONLY_REUSABLE_ORIGIN_TYPES`) 은 건드리지 않는다.
 
@@ -138,8 +147,9 @@
 
 ## 4. 검증
 
-- **unit**: 값 순서 표 · override 전파 (놓인 instance · 중첩 instance) · 자리표시 전달 · library 검증 · contract 2 거부. 각 Gate 의 핵심 행은 원복 RED 로 확인한다 (편집 역적용 — `git checkout` 금지).
-- **DOM 구조 대조**: 전환 전 빌드와 전환 후 빌드에서 같은 문서를 Preview 로 열어 부모 root 아래의 요소 · class · ARIA 속성 · 순서를 비교한다. 조합: 부모 × size 5 × labelPosition 2 × (기본 · invalid · description 있음 · label 없음 · required).
+- **unit**: 값 순서 표 · override 전파 (놓인 instance · 중첩 instance · 상태별 값) · 자리표시 전달 · library 검증 (slot 채움 포함) · contract 2 거부. 각 Gate 의 핵심 행은 원복 RED 로 확인한다 (편집 역적용 — `git checkout` 금지).
+- **DOM 구조 대조**: 전환 전 빌드와 전환 후 빌드에서 같은 문서를 Preview 로 열어 부모 root 아래의 요소 · class · ARIA 속성 · 순서를 비교한다. 조합: 부모 × size 5 × labelPosition 2 × (기본 · invalid · description 있음 · label 없음 · required · disabled · readOnly).
+- **동작** (실제 브라우저, 전환 전 빌드와 대조 — 리뷰 round 1 h2 · m1): ① NumberField `defaultValue = maxValue` 에서 증가 버튼 disabled · `minValue` 에서 감소 버튼 disabled · 부모 disabled 에서 둘 다 disabled · 증감 클릭이 값을 바꾼다 ② Select · ComboBox · DatePicker 버튼이 목록 · 달력을 연다 · SearchField 지우기가 값을 비운다 ③ TextField 에 required · `type="email"` · `pattern` 을 주고 입력 → blur · submit → 오류가 보인다 → 고치면 사라진다 → 입력의 `aria-describedby` 가 가리키는 id 의 요소가 DOM 에 있다 ([React Aria Forms](https://react-aria.adobe.com/forms) 의 validation 동작).
 - **시각**: ADR-248 G3 하니스 (`paletteBaseCanvas` · `propAxisCanvasDom`) 전 case. 승인 차이는 G0 목록과 같아야 한다.
 - **성능**: `pnpm gate:perf-ratchet` · `pnpm perf:baseline -- --lane frame --fixed-inputs --call-counts` 로 `scene.build` Δ (전환 전 빌드와 교대 3쌍). 불리한 경우 = field 가 많은 Form 을 반복한 600 요소 seed.
 - **live** (실제 Builder + Preview): Components page 에서 Label 굵기 · Input 테두리 · Button 반경을 고친다 → page 의 TextField · Select · NumberField · Toolbar 가 Builder 와 Preview 에서 같이 바뀐다 → undo 로 돌아온다.
