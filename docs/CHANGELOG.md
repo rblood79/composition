@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 기본·hover·선택 테두리는 편집기 오버레이로만 표시하며 문서 Border, Preview, publish 결과에 포함하지 않는다.
   - 위치: `apps/builder/src/builder/workspace/canvas/catalog/catalogOverlay.ts`, `CatalogCanvas.tsx`
 
+### Performance
+
+- Page 기본 테두리용 Paint를 Canvas 수명 동안 재사용하고, 프레임마다 root를 추가 조회하지 않도록 해 오버레이의 반복 작업을 줄였다.
+
 ## [Canvas hover 가이드 — 1px 두께 통일] - 2026-10-07
 
 ### Changed

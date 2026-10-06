@@ -8,13 +8,12 @@ import {
   catalogSelectionBox,
   type CatalogOverlayInputs,
 } from "./catalogOverlay";
-import { renderHoverHighlight, strokeBoundsRect } from "../skia/hoverRenderer";
+import { renderHoverHighlight } from "../skia/hoverRenderer";
 import { renderSelectionBox } from "../skia/selectionRenderer";
 
 vi.mock("../skia/hoverRenderer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../skia/hoverRenderer")>()),
   renderHoverHighlight: vi.fn(),
-  strokeBoundsRect: vi.fn(),
 }));
 vi.mock("../skia/selectionRenderer", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../skia/selectionRenderer")>()),
@@ -88,6 +87,7 @@ describe("Builder 전용 Page 기본 테두리", () => {
   beforeEach(() => vi.clearAllMocks());
 
   const color = Float32Array.of(0.4, 0.5, 0.6, 1);
+  const viewport = new DOMRect(0, 0, 800, 600);
   const inputs = (): CatalogOverlayInputs => ({
     session: () => ({
       pageId: undefined,
@@ -103,49 +103,65 @@ describe("Builder 전용 Page 기본 테두리", () => {
     zoom: () => 2,
     fontMgr: () => undefined,
   });
+  const surface = () => {
+    const paint = {
+      setAntiAlias: vi.fn(),
+      setStyle: vi.fn(),
+      setColor: vi.fn(),
+      setStrokeWidth: vi.fn(),
+      delete: vi.fn(),
+    };
+    const Paint = vi.fn(function () {
+      return paint;
+    });
+    const ck = {
+      Paint,
+      PaintStyle: { Stroke: 1 },
+      ClipOp: { Difference: 0 },
+      XYWHRect: (...rect: number[]) => rect,
+    } as unknown as CanvasKit;
+    const canvas = {
+      drawRect: vi.fn(),
+      save: vi.fn(),
+      clipRect: vi.fn(),
+      restore: vi.fn(),
+    } as unknown as Canvas;
+    return { ck, canvas, paint, Paint };
+  };
 
   it("그려진 Page에만 1px 선을 추가하고 일반 자식·없는 Page는 제외한다", () => {
     const input = inputs();
-    const ck = {} as CanvasKit;
-    const canvas = {} as Canvas;
-    catalogOverlayNode(ck, input).renderSkia(
-      canvas,
-      new DOMRect(0, 0, 800, 600),
-    );
-
-    expect(strokeBoundsRect).toHaveBeenCalledTimes(2);
-    for (const id of ["a", "b"])
-      expect(strokeBoundsRect).toHaveBeenCalledWith(
-        ck,
-        canvas,
-        bounds.get(id),
-        color,
-        0.5,
-        null,
-      );
+    const { ck, canvas, paint } = surface();
+    const node = catalogOverlayNode(ck, input);
+    node.renderSkia(canvas, viewport);
+    expect(canvas.drawRect).toHaveBeenCalledTimes(2);
+    expect(canvas.drawRect).toHaveBeenCalledWith([0, 0, 10, 10], paint);
+    expect(canvas.drawRect).toHaveBeenCalledWith([30, 20, 10, 10], paint);
+    expect(paint.setStrokeWidth).toHaveBeenLastCalledWith(0.5);
+    expect(paint.setColor).toHaveBeenLastCalledWith(color);
 
     vi.clearAllMocks();
-    // Definition/Components view 또는 Page가 없는 화면은 기본 선을 추가하지 않는다.
-    input.pageBorders = () => ({ roots: [], color });
-    catalogOverlayNode(ck, input).renderSkia(
-      canvas,
-      new DOMRect(0, 0, 800, 600),
-    );
-    expect(strokeBoundsRect).not.toHaveBeenCalled();
+    input.session = () => ({
+      ...inputs().session(),
+      definitionView: "project:definition:test" as never,
+    });
+    node.renderSkia(canvas, viewport);
+    expect(canvas.drawRect).not.toHaveBeenCalled();
+    node.dispose();
   });
 
   it("hover·선택이 기본 테두리를 대체하고 해제하면 기본 색으로 돌아온다", () => {
     const input = inputs();
     const base = input.session();
-    const node = catalogOverlayNode({} as CanvasKit, input);
-    const canvas = {} as Canvas;
+    const { ck, canvas } = surface();
+    const node = catalogOverlayNode(ck, input);
     input.session = () => ({
       ...base,
       hover: item("a"),
       selection: [item("b")],
     });
-    node.renderSkia(canvas, new DOMRect(0, 0, 800, 600));
-    expect(strokeBoundsRect).not.toHaveBeenCalled();
+    node.renderSkia(canvas, viewport);
+    expect(canvas.drawRect).not.toHaveBeenCalled();
     expect(renderHoverHighlight).toHaveBeenCalledTimes(1);
     expect(renderSelectionBox).toHaveBeenCalledTimes(1);
 
@@ -155,48 +171,48 @@ describe("Builder 전용 Page 기본 테두리", () => {
       hover: item("a"),
       selection: [item("a")],
     });
-    node.renderSkia(canvas, new DOMRect(0, 0, 800, 600));
+    node.renderSkia(canvas, viewport);
     expect(renderHoverHighlight).not.toHaveBeenCalled();
     expect(renderSelectionBox).toHaveBeenCalledTimes(1);
-    expect(strokeBoundsRect).toHaveBeenCalledTimes(1);
+    expect(canvas.drawRect).toHaveBeenCalledTimes(1);
 
     vi.clearAllMocks();
     input.session = () => base;
-    node.renderSkia(canvas, new DOMRect(0, 0, 800, 600));
-    expect(strokeBoundsRect).toHaveBeenCalledTimes(2);
+    node.renderSkia(canvas, viewport);
+    expect(canvas.drawRect).toHaveBeenCalledTimes(2);
+    node.dispose();
   });
 
-  it("뒤 Page의 기본 선은 앞 Page에 가려지고 새 테마 색을 소비한다", () => {
+  it("뒤 Page의 기본 선은 앞 Page에 가려진다", () => {
     const input = inputs();
-    const ck = {
-      XYWHRect: vi.fn((...rect) => rect),
-      ClipOp: { Difference: 0 },
-    } as unknown as CanvasKit;
-    const canvas = {
-      save: vi.fn(),
-      clipRect: vi.fn(),
-      restore: vi.fn(),
-    } as unknown as Canvas;
+    const { ck, canvas } = surface();
     input.occluders = (id) => (id === "a" ? [bounds.get("b")!] : []);
     const node = catalogOverlayNode(ck, input);
-    node.renderSkia(canvas, new DOMRect(0, 0, 800, 600));
+    node.renderSkia(canvas, viewport);
     expect(canvas.clipRect).toHaveBeenCalledWith([30, 20, 10, 10], 0, true);
     expect(vi.mocked(canvas.save).mock.invocationCallOrder[0]).toBeLessThan(
-      vi.mocked(strokeBoundsRect).mock.invocationCallOrder[0],
+      vi.mocked(canvas.drawRect).mock.invocationCallOrder[0],
     );
     expect(
       vi.mocked(canvas.restore).mock.invocationCallOrder[0],
-    ).toBeGreaterThan(vi.mocked(strokeBoundsRect).mock.invocationCallOrder[0]);
+    ).toBeGreaterThan(vi.mocked(canvas.drawRect).mock.invocationCallOrder[0]);
+    node.dispose();
+  });
+
+  it("테마·줌이 바뀌어도 Paint 1개를 재사용하고 Canvas 종료 때 해제한다", () => {
+    const input = inputs();
+    const { ck, canvas, paint, Paint } = surface();
+    const node = catalogOverlayNode(ck, input);
+    node.renderSkia(canvas, viewport);
     const nextColor = Float32Array.of(0.7, 0.8, 0.9, 1);
     input.pageBorders = () => ({ roots: ["b"], color: nextColor });
-    node.renderSkia(canvas, new DOMRect(0, 0, 800, 600));
-    expect(strokeBoundsRect).toHaveBeenLastCalledWith(
-      ck,
-      canvas,
-      bounds.get("b"),
-      nextColor,
-      0.5,
-      null,
-    );
+    input.zoom = () => 0.5;
+    node.renderSkia(canvas, viewport);
+    expect(Paint).toHaveBeenCalledTimes(1);
+    expect(paint.setColor).toHaveBeenLastCalledWith(nextColor);
+    expect(paint.setStrokeWidth).toHaveBeenLastCalledWith(2);
+    expect(paint.delete).not.toHaveBeenCalled();
+    node.dispose();
+    expect(paint.delete).toHaveBeenCalledTimes(1);
   });
 });

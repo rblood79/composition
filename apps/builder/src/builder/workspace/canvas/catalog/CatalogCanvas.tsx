@@ -383,128 +383,126 @@ export function CatalogCanvas({
       return colorIntToFloat32(cssColorToHex(css), cssColorToAlpha(css));
     };
     let pageBorderColor = readPageBorderColor();
-    renderer.setOverlayNode(
-      catalogOverlayNode(ck, {
-        session: workspace.session.getSnapshot,
-        bounds: () => scene.stream.boundsMap,
-        pageBorders: () => ({
-          roots: workspace.root.definitionView ? [] : scene.pageRootIds,
-          color: pageBorderColor,
-        }),
-        recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
-        zoom: () => Math.max(viewportState.zoom, 0.001),
-        fontMgr,
-        gesture: () => gestures.preview(),
-        guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
-        slots: () =>
-          catalogSlotMarks(
-            workspace,
-            scene.stream.boundsMap,
-            scene.stream.hitBoundsMap,
-          ),
-        hitBounds: () => scene.stream.hitBoundsMap,
-        roleOf: (identity) => {
-          const target = workspace.itemOfRecord(identity)?.target;
-          return target?.kind === "node"
-            ? (catalogComponentRole(
-                workspace.runtime.graph,
-                target.id,
-                workspace.root.definitionView,
-              ) ?? null)
-            : null;
-        },
-        hoverLeaves: (identity) => {
-          // A page body is an empty area (canvas-interaction §8.6): no guides.
-          const records = workspace.root.canvasInputs;
-          if (records.get(identity)?.parentId === "catalog:root") return [];
-          // A Components page card is a group of samples, not a component: its own outline only.
-          if (isPageCard(records.get(identity)?.sourceId)) return [];
-          if (
-            hoverLeavesMemo.identity !== identity ||
-            hoverLeavesMemo.root !== workspace.root ||
-            hoverLeavesMemo.revision !== workspace.runtime.graph.revision
-          ) {
-            // The Components page: an origin sample's slot contents are laid out but not drawn
-            // (opacity 0) — no guides of them.
-            const drawn = (leaf: string) => {
-              for (
-                let cursor = records.get(leaf);
-                cursor && cursor.id !== identity;
-                cursor = records.get(cursor.parentId)
-              )
-                if (cursor.visual.opacity === 0) return false;
-              return true;
-            };
-            const leaves = isComponentsView(workspace.root.definitionView)
-              ? catalogLeafRecords(records, identity).filter(drawn)
-              : catalogLeafRecords(records, identity);
-            hoverLeavesMemo = {
-              identity,
-              root: workspace.root,
-              revision: workspace.runtime.graph.revision,
-              // A leaf hovers alone (its own outline).
-              leaves:
-                leaves.length === 1 && leaves[0] === identity ? [] : leaves,
-            };
-          }
-          return hoverLeavesMemo.leaves;
-        },
-        remainders: () =>
-          catalogRowRemainders(workspace.root).flatMap((remainder) => {
-            const box = catalogRowRemainderBox(
-              remainder,
-              (id) => scene.stream.boundsMap.get(id),
-              scene.stream.hitBoundsMap.get(remainder.ownerId),
-            );
-            return box
-              ? [
-                  {
-                    box,
-                    hiddenRows: remainder.hiddenRows,
-                    ownerId: remainder.ownerId,
-                  },
-                ]
-              : [];
-          }),
-        // A badge whose anchor a later-painted page covers is neither drawn nor pressed.
-        badges: () =>
-          badges
-            .targets(scene.stream.boundsMap, scene.stream.hitBoundsMap)
-            .filter(
-              (badge) =>
-                !badge.recordId ||
-                !occludersOf(badge.recordId).some(
-                  (rect) =>
-                    badge.bounds.x >= rect.x &&
-                    badge.bounds.y >= rect.y &&
-                    badge.bounds.x <= rect.x + rect.width &&
-                    badge.bounds.y <= rect.y + rect.height,
-                ),
-            ),
-        occluders: (identity) => occludersOf(identity),
-        badgeHits,
-        overflow: () => overflowTree,
-        ai: () => useAIVisualFeedbackStore.getState(),
-        radiusOf: (id) => getSkiaNode(id)?.box?.borderRadius ?? 0,
-        measuring: () => measuring,
-        spacing: () => {
-          const owner = gestures.spacingOwner();
-          if (!owner) return undefined;
-          return {
-            bands: gestures.spacingBands(),
-            clipRect: scene.stream.hitBoundsMap.get(owner.id) ?? null,
-            hoveredBandId: spacingHover,
-            active: spacingInputRef.current
-              ? {
-                  bandId: spacingInputRef.current.band.id,
-                  bandIds: spacingInputRef.current.bandIds,
-                  mode: "input" as const,
-                }
-              : null,
-          };
-        },
+    const overlay = catalogOverlayNode(ck, {
+      session: workspace.session.getSnapshot,
+      bounds: () => scene.stream.boundsMap,
+      pageBorders: () => ({
+        roots: scene.pageRootIds,
+        color: pageBorderColor,
       }),
-    );
+      recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
+      zoom: () => Math.max(viewportState.zoom, 0.001),
+      fontMgr,
+      gesture: () => gestures.preview(),
+      guides: (overlayCanvas) => guidesRef.current?.paint(ck, overlayCanvas),
+      slots: () =>
+        catalogSlotMarks(
+          workspace,
+          scene.stream.boundsMap,
+          scene.stream.hitBoundsMap,
+        ),
+      hitBounds: () => scene.stream.hitBoundsMap,
+      roleOf: (identity) => {
+        const target = workspace.itemOfRecord(identity)?.target;
+        return target?.kind === "node"
+          ? (catalogComponentRole(
+              workspace.runtime.graph,
+              target.id,
+              workspace.root.definitionView,
+            ) ?? null)
+          : null;
+      },
+      hoverLeaves: (identity) => {
+        // A page body is an empty area (canvas-interaction §8.6): no guides.
+        const records = workspace.root.canvasInputs;
+        if (records.get(identity)?.parentId === "catalog:root") return [];
+        // A Components page card is a group of samples, not a component: its own outline only.
+        if (isPageCard(records.get(identity)?.sourceId)) return [];
+        if (
+          hoverLeavesMemo.identity !== identity ||
+          hoverLeavesMemo.root !== workspace.root ||
+          hoverLeavesMemo.revision !== workspace.runtime.graph.revision
+        ) {
+          // The Components page: an origin sample's slot contents are laid out but not drawn
+          // (opacity 0) — no guides of them.
+          const drawn = (leaf: string) => {
+            for (
+              let cursor = records.get(leaf);
+              cursor && cursor.id !== identity;
+              cursor = records.get(cursor.parentId)
+            )
+              if (cursor.visual.opacity === 0) return false;
+            return true;
+          };
+          const leaves = isComponentsView(workspace.root.definitionView)
+            ? catalogLeafRecords(records, identity).filter(drawn)
+            : catalogLeafRecords(records, identity);
+          hoverLeavesMemo = {
+            identity,
+            root: workspace.root,
+            revision: workspace.runtime.graph.revision,
+            // A leaf hovers alone (its own outline).
+            leaves: leaves.length === 1 && leaves[0] === identity ? [] : leaves,
+          };
+        }
+        return hoverLeavesMemo.leaves;
+      },
+      remainders: () =>
+        catalogRowRemainders(workspace.root).flatMap((remainder) => {
+          const box = catalogRowRemainderBox(
+            remainder,
+            (id) => scene.stream.boundsMap.get(id),
+            scene.stream.hitBoundsMap.get(remainder.ownerId),
+          );
+          return box
+            ? [
+                {
+                  box,
+                  hiddenRows: remainder.hiddenRows,
+                  ownerId: remainder.ownerId,
+                },
+              ]
+            : [];
+        }),
+      // A badge whose anchor a later-painted page covers is neither drawn nor pressed.
+      badges: () =>
+        badges
+          .targets(scene.stream.boundsMap, scene.stream.hitBoundsMap)
+          .filter(
+            (badge) =>
+              !badge.recordId ||
+              !occludersOf(badge.recordId).some(
+                (rect) =>
+                  badge.bounds.x >= rect.x &&
+                  badge.bounds.y >= rect.y &&
+                  badge.bounds.x <= rect.x + rect.width &&
+                  badge.bounds.y <= rect.y + rect.height,
+              ),
+          ),
+      occluders: (identity) => occludersOf(identity),
+      badgeHits,
+      overflow: () => overflowTree,
+      ai: () => useAIVisualFeedbackStore.getState(),
+      radiusOf: (id) => getSkiaNode(id)?.box?.borderRadius ?? 0,
+      measuring: () => measuring,
+      spacing: () => {
+        const owner = gestures.spacingOwner();
+        if (!owner) return undefined;
+        return {
+          bands: gestures.spacingBands(),
+          clipRect: scene.stream.hitBoundsMap.get(owner.id) ?? null,
+          hoveredBandId: spacingHover,
+          active: spacingInputRef.current
+            ? {
+                bandId: spacingInputRef.current.band.id,
+                bandIds: spacingInputRef.current.bandIds,
+                mode: "input" as const,
+              }
+            : null,
+        };
+      },
+    });
+    renderer.setOverlayNode(overlay);
     // The overlay follows the session and the scene's boxes (its own version, no content redraw).
     let overlayVersion = 0;
     const invalidateOverlay = () => {
@@ -1399,6 +1397,7 @@ export function CatalogCanvas({
       unsubscribeRows();
       unsubscribeFrames();
       scheduler.dispose();
+      overlay.dispose();
       scene.dispose();
       renderer.dispose();
     };

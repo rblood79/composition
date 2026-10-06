@@ -8,7 +8,6 @@ import {
   renderHoverHighlight,
   renderOverflowContent,
   renderOverflowHatching,
-  strokeBoundsRect,
 } from "../skia/hoverRenderer";
 import {
   catalogOverflowContent,
@@ -212,8 +211,14 @@ function withOccluders(
 export function catalogOverlayNode(
   ck: CanvasKit,
   inputs: CatalogOverlayInputs,
-): SkiaRenderable {
+): SkiaRenderable & { dispose(): void } {
+  // The page frame is persistent editor chrome. Own one cold Paint until Canvas teardown;
+  // acquiring/resetting a pooled Paint for every page on every overlay frame adds hot work.
+  const pageBorderPaint = inputs.pageBorders ? new ck.Paint() : undefined;
+  pageBorderPaint?.setAntiAlias(true);
+  pageBorderPaint?.setStyle(ck.PaintStyle.Stroke);
   return {
+    dispose: () => pageBorderPaint?.delete(),
     renderSkia: (canvas) => {
       const state = inputs.session();
       const bounds = inputs.bounds();
@@ -234,15 +239,22 @@ export function catalogOverlayNode(
       }
       const occludersOf = (identity: string | undefined) =>
         identity ? inputs.occluders?.(identity) : undefined;
-      const pages = inputs.pageBorders?.();
+      const pages = !state.definitionView ? inputs.pageBorders?.() : undefined;
+      if (pages && pageBorderPaint) {
+        pageBorderPaint.setColor(pages.color);
+        pageBorderPaint.setStrokeWidth(1 / zoom);
+      }
       for (const id of pages?.roots ?? []) {
         // Hover/selection replaces the resting border, so translucent strokes do not stack.
         if (id === hoverId || selected.has(id)) continue;
         const box = bounds.get(id);
-        if (box && pages)
-          withOccluders(ck, canvas, occludersOf(id), () =>
-            strokeBoundsRect(ck, canvas, box, pages.color, 1 / zoom, null),
-          );
+        if (box && pageBorderPaint)
+          withOccluders(ck, canvas, occludersOf(id), () => {
+            canvas.drawRect(
+              ck.XYWHRect(box.x, box.y, box.width, box.height),
+              pageBorderPaint,
+            );
+          });
       }
       for (const slot of inputs.slots?.() ?? []) {
         const band = catalogSlotBand(slot.box.height, zoom);
