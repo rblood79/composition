@@ -176,7 +176,7 @@ describe("ADR-248 4e library origin view", () => {
     expect(groupOf(groups[3]!.id).children!.map((row) => row.name)).toEqual([
       "md", "2xs", "xs", "sm", "lg", "xl", "2xl",
     ]);
-    // IconButton: the origin, then 6 variants × (rest + 4 states) + 5 sizes.
+    // IconButton: the origin, then 6 variants × (rest + 4 states).
     const [originRow, ...instances] = groupOf(buttonCard).children!;
     expect(originRow!.role).toBe("origin");
     expect(originRow!.name).toBe("IconButton");
@@ -185,7 +185,7 @@ describe("ADR-248 4e library origin view", () => {
       "IconButton / Accent / Default",
       "IconButton / Accent / Disabled",
     ]);
-    expect(instances.length).toBe(35);
+    expect(instances.length).toBe(30);
     // The origin's own row holds only its template (not the instances again).
     expect(originRow!.hasChildren).toBe(true);
     // (No row draws the origin again for its parts: a card's first row is its origin, the rest
@@ -228,7 +228,7 @@ describe("ADR-248 4e library origin view", () => {
     workspace.dispose();
   });
 
-  it("the page: a card per built-in origin over balanced columns — variants × states, sizes, captions", async () => {
+  it("the page: a card per built-in origin over balanced columns — variants × states, captions", async () => {
     const { workspace, library } = await open();
     workspace.showDefinition(COMPONENTS_VIEW);
     const graph = graphOf(workspace);
@@ -305,7 +305,8 @@ describe("ADR-248 4e library origin view", () => {
     const card = cards.find((candidate) => candidate.name === "Button")!;
     const [title, ...rows] = card.children.map(nodeOf);
     expect(title!.name).toMatch(/^\d\d\. BUTTON$/);
-    // The origin, then its instances: a line per variant and the sizes.
+    // The origin, then its instances: a line per variant (no line of sizes — a size is a prop
+    // of every instance, and the line took most of a card).
     expect(rows.map((row) => row.name)).toEqual([
       "Origin",
       "Accent",
@@ -314,7 +315,6 @@ describe("ADR-248 4e library origin view", () => {
       "Negative",
       "Premium",
       "Genai",
-      "Sizes",
     ]);
     const cellsOf = (row: NodeEntry) =>
       nodeOf(row.children[1]!).children.map(nodeOf);
@@ -386,18 +386,45 @@ describe("ADR-248 4e library origin view", () => {
       variant: { kind: "set", value: "accent" },
     });
     expect(catalogComponentRole(graph, accentHover.id)).toBe("instance");
+    // No instance of a card sets a size.
     expect(
-      cellsOf(rows.at(-1)!).map((cell) => sampleOf(cell).props.size),
-    ).toEqual(
-      ["xs", "sm", "md", "lg", "xl"].map((value) => ({ kind: "set", value })),
+      rows.flatMap((row) => cellsOf(row).map((cell) => sampleOf(cell).props.size)),
+    ).toEqual(rows.flatMap((row) => cellsOf(row).map(() => undefined)));
+    // A Chart card draws an instance per chart type — the palette's creation variants of the
+    // origin, each with the props the palette creates it with.
+    const chartRows = cards
+      .find((candidate) => candidate.name === "Chart")!
+      .children.slice(1)
+      .map(nodeOf);
+    expect(chartRows.map((row) => row.name)).toEqual(["Origin", "Variants", "Types"]);
+    const chartTypes = cellsOf(chartRows[2]!);
+    expect(chartTypes.map((cell) => cell.name)).toEqual(
+      ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
+        (name) => `◇ ${name} Chart`,
+      ),
     );
+    expect(chartTypes.map((cell) => sampleOf(cell).props.chartType)).toEqual(
+      ["area", "bar", "line", "pie", "radar", "radial", "scatter"].map((value) => ({
+        kind: "set",
+        value,
+      })),
+    );
+    expect(sampleOf(chartTypes[0]!).definitionId).toBe(
+      "lib:definition:origin-component-chart",
+    );
+    expect(catalogComponentRole(graph, sampleOf(chartTypes[0]!).id)).toBe("instance");
     // The page keeps its own width whatever the viewport, and its columns are balanced by the
-    // cards' drawn heights: no column is taller than the shortest by more than its last card.
+    // cards' drawn heights: no column is taller than the shortest by more than its last card
+    // (and the gap under it — each next card goes on the column lightest so far, gap included).
     const rectOf = (id: string) => {
       const [record] = workspace.root.recordsOfSource(id);
       return workspace.root.getGeometry([record!]).get(record!)!;
     };
     expect(rectOf(ORIGIN_VIEW_NODE).width).toBe(COMPONENTS_PAGE_WIDTH);
+    // The chart types are drawn two to a line (each half the card's inner width).
+    const chartRects = chartTypes.map((cell) => rectOf(sampleOf(cell).id));
+    expect(chartRects.map((rect) => rect.width)).toEqual(chartTypes.map(() => 248));
+    expect(chartRects.every((rect) => rect.height > 0)).toBe(true);
     // A Menu draws its trigger button: its items are in the popover (not on the Canvas), so its
     // box is its trigger's — the Button's metrics at the same size (padding, min width).
     const menuRect = rectOf(
@@ -416,7 +443,7 @@ describe("ADR-248 4e library origin view", () => {
     }));
     const shortest = Math.min(...columns.map((column) => column.height));
     for (const column of columns)
-      expect(column.height - column.last).toBeLessThanOrEqual(shortest);
+      expect(column.height - column.last).toBeLessThanOrEqual(shortest + 24);
     workspace.dispose();
   });
 
@@ -563,7 +590,6 @@ describe("ADR-248 4e library origin view", () => {
   });
   it("draws each origin as the DOM sizes it: circle height, owner-sized glyphs and members, track variants, slots", async () => {
     const { workspace, button } = await open();
-    workspace.showDefinition(button.id);
     const lib = (name: string) =>
       `lib:definition:origin-component-${name}` as LibraryDefinitionId;
     const recordOf = (id: string) => workspace.root.recordsOfSource(id)[0]!;
@@ -575,14 +601,43 @@ describe("ADR-248 4e library origin view", () => {
         ...(inputOf(child).bindingId === binding ? [child] : []),
         ...under(child, binding),
       ]);
+    // Instances of an origin at a size, placed on the page (the Components page draws no sizes).
+    const sized = (origin: string, size: string) =>
+      `project:node:sized-${origin}-${size}` as NodeId;
+    const sizedPairs = [
+      ...["sm", "md", "lg"].map((size) => ["progresscircle", size] as const),
+      ...["select", "combobox", "datepicker", "daterangepicker", "numberfield"].flatMap(
+        (origin) => [[origin, "xs"] as const, [origin, "xl"] as const],
+      ),
+      ["avatargroup", "xl"] as const,
+      ["buttongroup", "xs"] as const,
+      ["calendar", "sm"] as const,
+    ];
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: sizedPairs.map(([origin, size]) => ({
+          kind: "node" as const,
+          id: sized(origin, size),
+          definitionId: lib(origin),
+          children: [],
+          props: { size: { kind: "set" as const, value: size } },
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        })),
+        rootIds: sizedPairs.map(([origin, size]) => sized(origin, size)),
+        newId: workspace.newId,
+      }),
+    );
     // A ProgressCircle is its diameter square (the `progress` archetype drops a bar's height).
     for (const [key, diameter] of [["sm", 24], ["md", 32], ["lg", 64]] as const) {
-      const rect = rectOf(originInstanceId(lib("progresscircle"), `size/${key}`));
+      const rect = rectOf(sized("progresscircle", key));
       expect([rect.width, rect.height]).toEqual([diameter, diameter]);
     }
     // A trigger glyph follows its owner's size (the DOM sizes the svg from the owner's `size`).
     const glyphs = (origin: string, size: string) =>
-      under(recordOf(originInstanceId(lib(origin), `size/${size}`)), "selecticon").map(
+      under(recordOf(sized(origin, size)), "selecticon").map(
         (record) => inputOf(record).visual.iconSize,
       );
     for (const origin of ["select", "combobox", "datepicker", "daterangepicker"]) {
@@ -594,13 +649,14 @@ describe("ADR-248 4e library origin view", () => {
     expect(glyphs("numberfield", "xl")).toEqual([22, 22]);
     // A group's size reaches its members; a calendar's its header and grid.
     const sizesUnder = (origin: string, size: string, binding: string) =>
-      under(recordOf(originInstanceId(lib(origin), `size/${size}`)), binding).map(
+      under(recordOf(sized(origin, size)), binding).map(
         (record) => inputOf(record).props.size,
       );
     expect(sizesUnder("avatargroup", "xl", "avatar")).toEqual(["xl", "xl", "xl"]);
     expect(sizesUnder("buttongroup", "xs", "button")).toEqual(["xs", "xs"]);
     expect(sizesUnder("calendar", "sm", "calendargrid")).toEqual(["sm"]);
     expect(sizesUnder("calendar", "sm", "calendarheader")).toEqual(["sm"]);
+    workspace.showDefinition(button.id);
     // A ProgressBar's track takes its owner's variant: the track rule paints every one of them
     // (a missing variant painted no track).
     const neutralTrack = under(

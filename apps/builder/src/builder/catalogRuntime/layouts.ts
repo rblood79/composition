@@ -62,6 +62,11 @@ export interface CatalogBuiltinOrigin {
   name: string;
   /** The palette category it is registered under (`PALETTE_CATEGORIES` key). */
   category: string;
+  /**
+   * The palette's creation variants of the origin, palette order (a Chart's chart types: one
+   * palette item each, the same origin with other initial props). Absent = one palette item.
+   */
+  kinds?: { key: string; label: string; initialProps: Record<string, unknown> }[];
 }
 /**
  * The built-in component origins the Components page draws (user 2026-10-01 · 2026-10-05): the
@@ -70,13 +75,28 @@ export interface CatalogBuiltinOrigin {
 export function catalogBuiltinOrigins(
   library: CatalogLibrary,
 ): CatalogBuiltinOrigin[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, CatalogBuiltinOrigin>();
   return getPaletteItems().flatMap((item) => {
     const type = item.componentType ?? item.type;
     const id = catalogPaletteDefinitionId(library, type);
-    if (!isLibraryOrigin(id) || seen.has(id)) return [];
-    seen.add(id);
-    return [{ id, name: type, category: item.category }];
+    if (!isLibraryOrigin(id)) return [];
+    const kind =
+      item.componentType && item.initialProps
+        ? { key: item.type, label: item.label, initialProps: item.initialProps }
+        : undefined;
+    const known = seen.get(id);
+    if (known) {
+      if (kind) known.kinds?.push(kind);
+      return [];
+    }
+    const origin: CatalogBuiltinOrigin = {
+      id,
+      name: type,
+      category: item.category,
+      ...(kind ? { kinds: [kind] } : {}),
+    };
+    seen.set(id, origin);
+    return [origin];
   });
 }
 

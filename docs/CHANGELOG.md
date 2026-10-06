@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Components page — Chart 카드에 종류별 instance (Types 줄)] - 2026-10-06
+
+### Added
+
+- Chart 카드에 Types 줄: Area · Bar · Line · Pie · Radar · Radial · Scatter 를 한 칸씩, 한 줄에 둘씩 그린다. 각 칸은 팔레트가 그 종류를 만들 때 쓰는 props 그대로의 Chart instance 다 (팔레트의 생성 변형을 원본에 실어 읽는다 — `catalogBuiltinOrigins` 의 `kinds`). 팔레트 항목이 여럿인 원본이 생기면 같은 줄이 자동으로 생긴다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (Chart 카드 줄 = Origin · Variants · Types, 7종의 이름 · `chartType` · 폭 248). Types 줄 원복 RED. 실제 Builder: Chart 카드에 7종이 각자 모양으로 그려지는 것 확인, 콘솔 오류 0.
+
+## [Components page — 컴포넌트 카드의 Sizes 줄 제거] - 2026-10-06
+
+### Changed
+
+- 컴포넌트 카드에서 Sizes 줄 (size 마다 instance 하나씩) 을 없앴다 — 카드에서 차지하는 비중이 너무 컸다. 카드의 줄은 Origin (◆ + ◇) → Item → (Variants · States) 다. page 높이가 줄어 전체 맞춤 확대율이 10% → 19% (2400 폭 창) 로 커진다. 테마 카드 (Typography · Spacing) 의 Sizes 줄은 그대로다.
+
+### Tests
+
+- `phase4eOriginView.test.ts` (Button 카드 줄에 Sizes 없음 · 카드의 어느 instance 도 size 를 지정하지 않음 · IconButton instance 30개). size 에 따른 그리기 검증 (ProgressCircle 지름 · trigger glyph · group 구성원 size 전파) 은 page 에 놓은 instance 로 옮겼다. 열 균형 검증은 한계를 gap (24) 포함으로 바로잡았다. 실제 Builder: Components page 에 size instance 0개 · page 높이 4,991 · 콘솔 오류 0.
+
 ## [Components page — 원본은 slot 을, instance 는 완성 모습을 (pen.dev 구조) · Parts 줄 제거] - 2026-10-06
 
 ### Changed

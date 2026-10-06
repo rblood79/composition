@@ -46,7 +46,7 @@ import {
  * theme token tables in the workspace's color mode). A card shows the origin (◆ — its one editable sample: its props and styles are the
  * project's override of that origin, `originView` holds the edit rules) with its slots empty, an instance (◇) beside it filled, a collection's item, then its instances (◇): variants × states (a line per variant when
  * it has state variants — `<origin>--<state>`, instances of the origin — else its variants side
- * by side) and sizes. All of it is graph view entries (never saved, exported or indexed). The
+ * by side); a card draws no line of sizes (user 2026-10-06: it took most of a card). All of it is graph view entries (never saved, exported or indexed). The
  * Layers tree lists the page as card → origin and instances (`catalogComponentsPageRows`).
  */
 const COLUMNS = 6;
@@ -106,11 +106,10 @@ const set = <T,>(value: T) => ({ kind: "set" as const, value });
 const ORIGIN_MARK = "◆";
 const INSTANCE_MARK = "◇";
 
-/** What a card shows of one origin: its variants, sizes and state variants. */
+/** What a card shows of one origin: its variants and state variants. */
 interface OriginFacets {
   variants: string[];
   defaultVariant: string | undefined;
-  sizes: string[];
   /** State variant definitions (`<origin>--<state>`), library order. */
   states: { id: LibraryDefinitionId; name: string }[];
   /** The origin's template has children (a composed component: drawn larger). */
@@ -143,7 +142,6 @@ function originFacets(
   return {
     variants: choices("variant"),
     defaultVariant: variant === undefined ? undefined : String(variant),
-    sizes: choices("size"),
     states: stateIds.map((id) => ({
       id,
       name: titleCase(id.slice(id.indexOf("--") + 2)),
@@ -832,19 +830,36 @@ export function catalogComponentsPageEntries(
       rows.push(row(base("row", "states"), "States", stateCells(undefined)));
       weight += lineHeight(1 + facets.states.length);
     }
-    if (facets.sizes.length > 1) {
+    // The palette's creation variants of the origin (a Chart's chart types — user 2026-10-06):
+    // an instance of each, with the props the palette creates it with, two to a line.
+    if (origin.kinds && origin.kinds.length > 1) {
+      const width = (COLUMN_WIDTH - CARD_PADDING * 2 - 16) / 2;
       rows.push(
         row(
-          base("row", "sizes"),
-          "Sizes",
-          facets.sizes.map((size) =>
-            instance(`size/${size}`, size.toUpperCase(), origin.id, {
-              size: set(size),
-            }),
+          base("row", "types"),
+          "Types",
+          origin.kinds.map((kind) =>
+            cell(
+              base("cell", "type", kind.key),
+              `${INSTANCE_MARK} ${kind.label}`,
+              fixed(
+                node(originInstanceId(origin.id, `type/${kind.key}`), origin.id, {
+                  name: `${origin.name} / ${kind.label}`,
+                  props: catalogCreationProps(
+                    library,
+                    origin.id,
+                    origin.name,
+                    kind.initialProps,
+                  ),
+                  ...catalogCreationStyle({ style: { width } }),
+                }),
+              ),
+              width,
+            ),
           ),
         ),
       );
-      weight += lineHeight(facets.sizes.length);
+      weight += Math.ceil(origin.kinds.length / 2) * 240 + 30;
     }
     card(base("card"), base("title"), origin.name, rows, weight);
   });
