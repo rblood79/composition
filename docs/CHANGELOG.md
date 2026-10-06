@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [원본 스타일 편집이 instance 에 닿는다 — ADR-253 Phase 1] - 2026-10-06
+
+### Fixed
+
+- Components page 에서 원본의 스타일 (배경 · padding 등) 을 고치면 그 원본의 모든 instance 가 따라온다 — page 에 놓은 것과 다른 컴포넌트 안에 있는 것 (Toolbar · ButtonGroup · Pagination 안 Button 등) 모두, Builder 와 Preview 에서 같이. 지금까지는 Components page 의 sample 만 바뀌었다.
+- 값 순서: 컴포넌트 자신의 값 → 부모가 주는 값 → 원본에 쓴 값 → 그 자리에 따로 적힌 값 → instance 에 직접 쓴 값. instance 에 직접 쓴 값은 그대로 남는다.
+- 원본의 상태별 값 (hover 등) 도 같은 길로 내려간다 (Components page 의 상태 칸에 보인다). Preview 의 실제 hover 에는 아직 반영되지 않는다 — 상태별 값을 쓰는 편집 화면도 아직 없다.
+
+### Tests
+
+- `adr253OriginOverrideChannel.test.ts` 4건 (팔레트 원본의 실제 instance). 원복 RED 4종. shared 1,492 · builder 4,134 통과. 실제 Builder + Preview: Button 원본 편집 → page 의 Button 과 Toolbar 안 Button 3개가 Canvas · Preview 에서 같이 바뀌고 undo 로 복귀 (`apps/builder/scripts/adr253-p1-live.mjs`), 수정을 되돌린 빌드에서는 그대로. 콘솔 오류 0.
+
 ## [Card 원본의 slot 선언] - 2026-10-06
 
 ### Changed

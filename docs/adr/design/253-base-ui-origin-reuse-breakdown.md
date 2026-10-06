@@ -163,4 +163,52 @@
 
 ## 6. 실행 기록
 
-(착수 뒤 기재)
+### 2026-10-06 — Phase 0 (일부) · Phase 1
+
+기준 HEAD `5ca00a312`. 작업은 main checkout 에서 했다 (Phase 1 은 template 을 바꾸지 않는다 — 구조 전환 Phase 부터 worktree).
+
+**Phase 0 (G0) — 한 것과 남은 것**
+
+| G0 항목                                                                      | 상태                                                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ④ live 재현 — 원본 스타일 편집이 instance 에 안 닿음 (F7)                    | 확인. 수정을 되돌린 빌드에서 Button 원본의 배경 · padding 을 고치면 page 의 Button 과 Toolbar 안 Button 3개가 Canvas record · Preview computed style 모두 그대로다 (`apps/builder/scripts/adr253-p1-live.mjs` — `instances-follow` FAIL) |
+| ④ live 재현 — Preview Select 목록 (F11)                                      | 미확인. Compare Mode 의 Preview 에서 Select 가 Enter 로 열리지 않았다 (`aria-expanded="false"`). Canvas 의 항목은 4개. Phase 4 착수 때 다시 확인한다                                                                                     |
+| ① 변화 목록의 px 전개 · ③ 배치 키 · 모양 키 목록 · ⑤ 레퍼런스에 없는 값 확인 | Phase 2 · 3 착수 전에 한다 (Phase 1 은 이 목록을 쓰지 않는다 — 아래 「값 순서」)                                                                                                                                                         |
+| ② 자식을 그리지 않는 DOM binding 전수                                        | §2-3 그대로 (줄 번호 재확인은 Phase 2 착수 때)                                                                                                                                                                                           |
+
+조사에서 나온 사실 (본문 F7 보충):
+
+- Components page 의 sample 이 편집을 보여 주던 것은 채널이 아니라 우회였다 — sample 노드가 override 의 값을 자기 값으로 다시 싣는다 (`R/componentsPage.ts` 의 sample 생성부).
+- consumer 가 그리는 record 는 instance 가 접히는 가장 안쪽 template 루트다 (`X/compositionRoot.ts` `collapseLayers` · `consumerRecord`). 그래서 바깥 record 에만 닿은 값은 Canvas 에도 DOM 에도 보이지 않는다.
+- 원본 override 의 prop 기본값 (`defaults`) 은 원본이 받는다고 선언한 키만 쓸 수 있다 (`PROP_NOT_ACCEPTED`). 그 키는 자리표시로 이미 template 에 닿는다. Phase 1 의 대상은 스타일 (`visual` · `stateRules`) 이다.
+- 문서의 상태별 값 (`stateRules`) 은 library 137곳 중 1곳 (ListBoxItem 의 selected) 만 쓰고, 쓰는 편집 UI 가 없으며, Preview DOM 은 읽지 않는다. Canvas 는 `displayState` 가 있는 노드 (Components page 의 상태 칸) 에서만 읽는다.
+
+**Phase 1 — 구현** (`S/catalog/resolution/resolver.ts`)
+
+- template 루트를 투영할 때 그 루트가 속한 원본 (`InstanceRoot.origin`) 의 프로젝트 override 를 싣는다. 놓인 instance (`resolveOwned`) 와 다른 template 안의 instance (`projectTemplate` 의 중첩 호출) 둘 다 원본 id 를 넘긴다.
+- 값 순서 (루트 한 곳): 루트의 type 정의 → type override → prop 규칙 · 부모 partRule → template 루트 자신의 값 → **원본 override** → 바깥 template 의 patch → instance 자리 · instance 가 쓴 값. 본문 Decision 4 와 같다. 부모 partRule 은 원본 override 보다 아래이고, 키를 배치 · 모양으로 나누는 처리는 필요하지 않았다 (override 가 없으면 결과가 수정 전과 같다).
+- 상태별 값: 루트의 상태 적용 단계에 「원본 정의의 상태 규칙 → 원본 override 의 상태별 값 → instance 자리 · instance 가 쓴 상태별 값」 을 넣었다 (`receivedStateRules`). 중첩 루트로는 받은 층을 그대로 넘긴다.
+- 중첩 루트로 내려가는 키에 「위에서 받은 값」 (바깥 instance 가 쓴 값 · 원본 override) 을 더했다 — 상태 변형 원본처럼 루트가 다시 다른 원본의 instance 인 경우 가장 안쪽 루트까지 닿는다.
+
+**검증**
+
+- unit `R/__tests__/adr253OriginOverrideChannel.test.ts` 4건 — 대상은 팔레트 원본의 실제 instance (Button · Toolbar · ButtonGroup · Pagination · Checkbox · CheckboxGroup · Card · CardView · Button 의 hover 상태 변형).
+  - 기본 스타일: 놓인 Button 과 Toolbar · ButtonGroup · Pagination 안 Button 의 그려지는 record · Canvas 입력 · DOM 입력.
+  - instance 가 쓴 값이 override 위에 남는다.
+  - 값 순서: CheckboxGroup 의 rule 이 Checkbox 에 주는 `minHeight` 20 → Checkbox 원본 override 41 이 이긴다. CardView template 이 Card 자리에 적은 `width` 200 은 Card 원본 override 300 위에 남는다.
+  - 상태: hover 에서 놓인 instance · Toolbar 안 instance · hover 상태 변형의 루트가 `#123456`. instance 가 쓴 hover 값은 남는다. 쉬는 상태 · pressed 는 그대로.
+- 원복 RED (편집 역적용 4종): override 줄 제거 → 3건 RED · 상태 적용 제거 → 1건 RED · override 를 instance 값 뒤로 → 2건 RED · 중첩 호출의 원본 id 제거 → 3건 RED.
+- 회귀: `pnpm type-check` 통과 · shared 1,492 · builder 4,134 통과.
+- 시각 하니스 (`vitest.adr248-g3.browser.config.ts`): 수정 전후 출력이 같다 (70건 중 통과 67 · 실패 3 — 실패 3건은 수정 전 HEAD 에서도 같은 내용: `paletteBaseCanvas` 의 CardView 외 1 · `propAxisCanvasDom` 의 NumberField-top · NumberField-side). 이 ADR 이전부터 있던 실패다. CardView: Card 원본의 slot 선언 (`01d59d525`, Footer 자리 높이 8) 으로 Card 높이가 구 캡처와 달라졌고 승인 기록이 갱신되지 않았다 (Canvas ↔ DOM 은 차이 0). NumberField: 증감 버튼 아이콘이 Canvas 18×18 · DOM 16×16 이고 x 가 21px 다르다 (`lib:template:component-numberfield__2_3`) — Phase 3 에서 증감 버튼을 Button instance 로 바꿀 때 같이 본다. 하니스는 실행할 때 `docs/adr/design/248-phase3-palette-base-canvas.json` 을 고쳐 쓰므로 실행 뒤 되돌렸다.
+- live (실제 Builder + Compare Mode Preview, headed Chrome · DPR 1 · `visibilityState` visible, `adr253-p1-live.mjs`):
+  - Button · Toolbar 를 팔레트로 놓고 Components page 에서 Button 원본의 배경 `#ff0000` · padding-top 20 을 쓴다 → page 의 Button 과 Toolbar 안 Button 3개가 Canvas record (`#ff0000` · 20) 와 Preview computed style (`rgb(255, 0, 0)` · `20px`) 에서 같이 바뀐다 → undo 로 전부 돌아온다. 콘솔 오류 0.
+  - 같은 스크립트를 수정을 되돌린 빌드로 돌리면 `instances-follow` · `state-canvas` 가 FAIL 이다.
+  - 상태: 원본의 hover 배경을 `#123456` 으로 쓰면 Components page 의 Hover 칸 3개 (variant 3종) 만 `#123456` 이 된다.
+  - **통과하지 못한 것**: Preview 에서 Button 에 hover 를 줘도 (`data-hovered` 확인) 배경은 그대로다 — 위 「조사에서 나온 사실」 의 마지막 항목.
+  - 한계: Components page 열기와 값 쓰기는 패널 조작이 아니라 패널이 내는 것과 같은 호출 (`showDefinition` · `setFields` → `workspace.execute`) 로 했다. Preview 의 hover 는 Builder 의 편집 overlay 가 pointer 를 가져가 Preview 문서에 pointer 이벤트를 직접 줬다.
+- G6 (ratchet): 게이트가 dirty 트리에서는 HEAD 를 재므로 커밋 뒤 pre-push 에서 잰다.
+
+**남긴 것**
+
+- G1 의 Preview 상태 항목 — 사용자 판정 대기 (본문 Status).
+- 원본을 처음 고칠 때 뜨는 영향 안내가 「1 instance」 로 센다 (page 에 놓은 것만). 이제는 다른 원본 안의 instance (Toolbar 의 Button 3개) 도 같이 바뀐다 — 세는 범위를 Phase 3 에서 맞춘다.

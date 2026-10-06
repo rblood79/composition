@@ -19,6 +19,7 @@ import type {
   PropWrites,
   Scalar,
   StateName,
+  StateRules,
   TemplateId,
   VisualWrites,
   WriteValue,
@@ -225,6 +226,14 @@ type InstanceRoot = {
    */
   fills?: readonly CatalogFillLayer[];
   fillSizing?: FillSizing;
+  /**
+   * The composite definition whose template root this is (ADR-253): its project override is the
+   * origin's style, so it lands on the root — over the root's own values, under the values the
+   * instance position authored.
+   */
+  origin?: DefinitionId;
+  /** State rules the instance position authored (outer layers last): over the origin's. */
+  stateRules?: readonly StateRules[];
 };
 /**
  * Accepted boolean props a display state sets, the way the old Canvas and Preview read a state
@@ -517,6 +526,7 @@ export function resolveCatalogNode(
     sizing: Readonly<Record<string, number | null>>,
     layout: Readonly<Record<string, string>> = {},
     paint: Pick<InstanceRoot, "fills" | "fillSizing"> = {},
+    from: Pick<InstanceRoot, "origin" | "stateRules"> = {},
   ): InstanceRoot => {
     const root: InstanceRoot = {
       props: {},
@@ -525,6 +535,7 @@ export function resolveCatalogNode(
       layout: { ...layout },
       ...(paint.fills ? { fills: paint.fills } : {}),
       ...(paint.fillSizing ? { fillSizing: paint.fillSizing } : {}),
+      ...from,
     };
     for (const key of propKeys) if (key in props) root.props[key] = props[key];
     for (const key of visualKeys)
@@ -691,6 +702,10 @@ export function resolveCatalogNode(
               // author edits): its own layout over the root's rules, its fills over the root's.
               ownLayout,
               instancePaint(node, layers),
+              {
+                origin: node.definitionId,
+                stateRules: node.stateRules ? [node.stateRules] : [],
+              },
             ),
             undefined,
             rowSet ? { rowSet } : records ? { records } : undefined,
@@ -991,6 +1006,10 @@ export function resolveCatalogNode(
     if (bindings)
       for (const key of Object.keys(template.props))
         if (key in props) props[key] = bindTemplateValue(props[key], bindings);
+    // The origin this root belongs to (ADR-253): its project override is the origin's own style,
+    // so every instance draws it — over the root's template values, under the instance's.
+    // (Its prop defaults are the origin's accepted keys: they reach the template as bindings.)
+    const originOverride = root?.origin ? findOverride(root.origin) : undefined;
     if (root)
       for (const [key, value] of Object.entries(root.props))
         if (key in definition.accepts) props[key] = value;
@@ -1091,6 +1110,7 @@ export function resolveCatalogNode(
       for (const layer of templateLayers)
         if (layer.visual) applyWrites(visual, layer.visual);
     } else applyValues(visual, template.visual);
+    if (originOverride) applyWrites(visual, originOverride.visual);
     if (libraryPatch?.visual) applyValues(visual, libraryPatch.visual);
     if (root) Object.assign(visual, root.visual);
     const self: ParentContext = {
@@ -1105,15 +1125,28 @@ export function resolveCatalogNode(
       if (layer.visual) applyWrites(visual, layer.visual);
     // This position's fills: a path patch's, else the owning instance's (template root), else the
     // template node's own — the output fields below and a nested instance's root read the same.
-    const ownPaint = "kind" in template ? instancePaint(template, templateLayers) : {};
+    const ownPaint =
+      "kind" in template ? instancePaint(template, templateLayers) : {};
     const fills = patch?.fills ?? root?.fills ?? ownPaint.fills;
     const fillSizing = patch?.fillSizing
-      ? cascadeFillSizing({ fillSizing: patch.fillSizing } as NodeEntry, patchLayers)
+      ? cascadeFillSizing(
+          { fillSizing: patch.fillSizing } as NodeEntry,
+          patchLayers,
+        )
       : (root?.fillSizing ?? ownPaint.fillSizing);
     const templatePaint: Pick<InstanceRoot, "fills" | "fillSizing"> = {
       ...(fills ? { fills } : {}),
       ...(fillSizing ? { fillSizing } : {}),
     };
+    // State rules from above this root (ADR-253), in order: its origin's, the origin's project
+    // override, then the ones the instance position authored.
+    const receivedStateRules: StateRules[] = root?.origin
+      ? [
+          lookupDefinition(root.origin).stateRules,
+          ...(originOverride ? [originOverride.stateRules] : []),
+          ...(root.stateRules ?? []),
+        ]
+      : [];
     const children: ResolvedCatalogNode[] = [];
     if (definition.mode === "composite" && definition.templateRootId) {
       const nestedPath = [...instancePath, templateId];
@@ -1142,6 +1175,9 @@ export function resolveCatalogNode(
                 ],
                 props,
                 [
+                  // What this position got from above goes on to the root it collapses into.
+                  ...Object.keys(root?.visual ?? {}),
+                  ...Object.keys(originOverride?.visual ?? {}),
                   ...Object.keys(template.visual),
                   ...(change?.kind === "patch"
                     ? Object.keys(change.visual ?? {})
@@ -1151,6 +1187,16 @@ export function resolveCatalogNode(
                 sizing,
                 authoredLayout,
                 templatePaint,
+                {
+                  origin: template.definitionId,
+                  stateRules: [
+                    ...(template.stateRules ? [template.stateRules] : []),
+                    ...receivedStateRules,
+                    ...(change?.kind === "patch" && change.stateRules
+                      ? [change.stateRules]
+                      : []),
+                  ],
+                },
               ),
             ),
             "descendantPatches" in template &&
@@ -1235,6 +1281,9 @@ export function resolveCatalogNode(
       applyWrites(visual, rule);
     if (nodeState && template.stateRules?.[nodeState])
       applyWrites(visual, template.stateRules[nodeState]);
+    if (nodeState)
+      for (const rules of receivedStateRules)
+        if (rules[nodeState]) applyWrites(visual, rules[nodeState]);
     if (nodeState && change?.kind === "patch" && change.stateRules?.[nodeState])
       applyWrites(visual, change.stateRules[nodeState]);
     return {
