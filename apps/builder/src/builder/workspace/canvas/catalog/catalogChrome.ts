@@ -27,9 +27,11 @@ export function catalogSlotMarks(
   region?: true;
 }[] {
   const graph = workspace.runtime.graph;
-  const components = isComponentsView(workspace.root.definitionView);
-  const view = !components && !!workspace.root.definitionView;
-  const records = workspace.root.domInputs;
+  // One root read per pass (the ADR-246 ratchet counts `workspace.root`).
+  const root = workspace.root;
+  const components = isComponentsView(root.definitionView);
+  const view = !components && !!root.definitionView;
+  const records = root.domInputs;
   // The Components page: a record under an origin's sample is the origin's; the rest instances'.
   const pageRole = (record: { sourceId: string; parentId: string }) => {
     for (
