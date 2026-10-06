@@ -2081,7 +2081,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         containerStyles: {
           color: "var(--fg)",
           "--cb-items-gap": "12px",
-          "--cb-hint-size": "var(--text-xs)",
         },
         containerVariants: {
           size: {
@@ -2133,12 +2132,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--cb-hint-size)",
-            },
-          },
         ],
       },
     },
@@ -2439,37 +2432,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "border-radius": "var(--radius-sm)",
               "max-width": "var(--cf-input-max-width)",
               "box-sizing": "border-box",
-            },
-          },
-          {
-            childSelector: ".react-aria-FieldError",
-            prefix: "cf-hint",
-            variables: {
-              xs: {
-                "--cf-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--cf-hint-size": "var(--text-2xs)",
-              },
-              md: {
-                "--cf-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--cf-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--cf-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--cf-hint-size)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--cf-hint-size)",
-              color: "var(--fg-muted)",
             },
           },
         ],
@@ -3228,38 +3190,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-FieldError",
-            prefix: "combo-hint",
-            variables: {
-              xs: {
-                "--combo-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--combo-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--combo-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--combo-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--combo-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--combo-hint-size)",
-              "--error-margin": "var(--spacing-xs)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--combo-hint-size)",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--combo-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
             childSelector: ':is(.react-aria-FieldError, [slot="description"])',
@@ -3563,38 +3493,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
                 cursor: "not-allowed",
               },
-            },
-          },
-          {
-            childSelector: ".react-aria-FieldError",
-            prefix: "df-hint",
-            variables: {
-              xs: {
-                "--df-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--df-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--df-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--df-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--df-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--df-hint-size)",
-              "--error-margin": "var(--spacing-xs)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--df-hint-size)",
-              color: "var(--fg-muted)",
             },
           },
           {
@@ -4125,37 +4023,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-FieldError",
-            prefix: "dp-hint",
-            variables: {
-              xs: {
-                "--dp-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--dp-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--dp-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--dp-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--dp-hint-size": "var(--text-sm)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--dp-hint-size)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--dp-hint-size)",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--dp-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
             childSelector: ':is(.react-aria-FieldError, [slot="description"])',
@@ -4619,37 +4486,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-FieldError",
-            prefix: "drp-hint",
-            variables: {
-              xs: {
-                "--drp-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--drp-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--drp-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--drp-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--drp-hint-size": "var(--text-sm)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--drp-hint-size)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--drp-hint-size)",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--drp-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
             childSelector: ':is(.react-aria-FieldError, [slot="description"])',
@@ -4693,6 +4529,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // lineHeight 보강: catalog generic 의 getLabelLineHeight(fontSize) fallback 과 동일 typography
       //   토큰을 명시 → drift 0 (sm/md: text-xs=12 → text-xs--line-height=16, lg: text-sm=14 →
       //   text-sm--line-height=20). 실측 2026-06-04 (typography.ts:89-90 FONT_SIZE_TO_LINE_HEIGHT).
+      // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
+      //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
+      //   reference's hint size (one step under the field's text).
+      xs: {
+        fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
@@ -4708,6 +4553,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       lg: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
+      xl: {
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -5411,6 +5262,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // lineHeight 보강: catalog generic 의 getLabelLineHeight(fontSize) fallback 과 동일 typography
       //   토큰을 명시 → drift 0 (sm/md: text-xs=12 → text-xs--line-height=16, lg: text-sm=14 →
       //   text-sm--line-height=20). 실측 2026-06-04 (typography.ts:89-90 FONT_SIZE_TO_LINE_HEIGHT).
+      // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
+      //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
+      //   reference's hint size (one step under the field's text).
+      xs: {
+        fontSize: "{typography.text-2xs}",
+        lineHeight: "{typography.text-2xs--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
@@ -5426,6 +5286,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       lg: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
+        borderRadius: "{radius.none}",
+        height: 0,
+      },
+      xl: {
+        fontSize: "{typography.text-base}",
+        lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
@@ -8247,38 +8113,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-FieldError",
-            prefix: "nf-hint",
-            variables: {
-              xs: {
-                "--nf-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--nf-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--nf-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--nf-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--nf-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--nf-hint-size)",
-              "--error-margin": "var(--spacing-xs)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--nf-hint-size)",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--nf-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
             childSelector: ':is(.react-aria-FieldError, [slot="description"])',
@@ -9261,7 +9095,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         containerStyles: {
           color: "var(--fg)",
           "--radio-items-gap": "12px",
-          "--rg-hint-size": "var(--text-xs)",
         },
         containerVariants: {
           size: {
@@ -9313,12 +9146,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--rg-hint-size)",
-            },
-          },
         ],
       },
     },
@@ -9660,38 +9487,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               color: "var(--fg)",
               "font-size": "var(--sf-input-size)",
               "line-height": "var(--sf-input-line-height)",
-            },
-          },
-          {
-            childSelector: ".react-aria-FieldError",
-            prefix: "sf-hint",
-            variables: {
-              xs: {
-                "--sf-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--sf-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--sf-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--sf-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--sf-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "font-size": "var(--sf-hint-size)",
-              color: "var(--negative)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--sf-hint-size)",
-              color: "var(--fg-muted)",
             },
           },
           {
@@ -10383,38 +10178,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               transition: "all 150ms ease",
               "forced-color-adjust": "none",
               "box-shadow": "var(--shadow-sm)",
-            },
-          },
-          {
-            childSelector: ".react-aria-FieldError",
-            prefix: "select-hint",
-            variables: {
-              xs: {
-                "--select-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--select-hint-size": "var(--text-2xs)",
-              },
-              md: {
-                "--select-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--select-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--select-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--select-hint-size)",
-              "--error-margin": "var(--spacing-xs)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--select-hint-size)",
-              color: "var(--fg-muted)",
             },
           },
           {
@@ -13266,37 +13029,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
           {
-            childSelector: ".react-aria-FieldError",
-            prefix: "tf-hint",
-            variables: {
-              xs: {
-                "--tf-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--tf-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--tf-hint-size": "var(--text-sm)",
-              },
-              lg: {
-                "--tf-hint-size": "var(--text-base)",
-              },
-              xl: {
-                "--tf-hint-size": "var(--text-lg)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--tf-hint-size)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--tf-hint-size)",
-              color: "var(--fg-muted)",
-            },
-          },
-          {
             // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--tf-side-gap` 으로 (sizes
             //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
             childSelector: ':is(.react-aria-FieldError, [slot="description"])',
@@ -13602,38 +13334,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 color: "color-mix(in srgb, var(--fg) 38%, transparent)",
                 cursor: "not-allowed",
               },
-            },
-          },
-          {
-            childSelector: ".react-aria-FieldError",
-            prefix: "time-field-hint",
-            variables: {
-              xs: {
-                "--time-field-hint-size": "var(--text-2xs)",
-              },
-              sm: {
-                "--time-field-hint-size": "var(--text-xs)",
-              },
-              md: {
-                "--time-field-hint-size": "var(--text-xs)",
-              },
-              lg: {
-                "--time-field-hint-size": "var(--text-sm)",
-              },
-              xl: {
-                "--time-field-hint-size": "var(--text-base)",
-              },
-            },
-            bridges: {
-              "--error-font-size": "var(--time-field-hint-size)",
-              "--error-margin": "var(--spacing-xs)",
-            },
-          },
-          {
-            childSelector: '[slot="description"]',
-            bridges: {
-              "font-size": "var(--time-field-hint-size)",
-              color: "var(--fg-muted)",
             },
           },
           {

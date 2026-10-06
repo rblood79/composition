@@ -6,12 +6,12 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * part does not declare it. A parent says where the part sits (its `containerVariants` nested
  * selectors: width · flex · margin of the side label column), not what it looks like.
  *
- * Parts covered so far: Label (Phase 3 — every Label under a field · group is an instance of the
- * Label origin, sized by the Label rule at its owner's size).
+ * Parts covered so far (Phase 3): Label · FieldError · Description — every one under a field · group
+ * is an instance of its origin, sized by its own rule at its owner's size.
  */
 const LABEL_SELECTOR = ".react-aria-Label";
-const LABEL_VARIABLES =
-  /^--label-(font-size|font-weight|line-height|margin|color)$/;
+const PART_VARIABLES =
+  /^--(label-(font-size|font-weight|line-height|margin|color)|error-(font-size|margin))$/;
 /** Declarations a parent may give its Label: where it sits. */
 const PLACEMENT_KEYS: ReadonlySet<string> = new Set([
   "width",
@@ -42,36 +42,56 @@ interface Nested {
   styles?: Styles;
 }
 
-describe("ADR-253 — a parent rule does not declare its Label's shape", () => {
+describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
   const rules = Object.entries(
     COMPONENT_RULES_TABLE as Record<
       string,
       { structure?: { composition?: Record<string, unknown> } }
     >,
-  ).filter(([type]) => type !== "Label");
+  ).filter(([type]) => !["Label", "FieldError", "Description"].includes(type));
+  /** Part → the selector token a parent reaches it with. */
+  const PARTS: Record<string, string> = {
+    Label: LABEL_SELECTOR,
+    FieldError: ".react-aria-FieldError",
+    Description: '[slot="description"]',
+  };
+  /**
+   * Not a field part: a DropZone's description is its own composed content (the upload text
+   * under its icon), drawn by the DropZone.
+   */
+  const OWN_CONTENT: ReadonlySet<string> = new Set(["DropZone Description"]);
 
-  it("no rule delegates to `.react-aria-Label`", () => {
-    const owners = rules.flatMap(([type, rule]) => {
-      const delegation = rule.structure?.composition?.delegation;
-      return Array.isArray(delegation) &&
-        delegation.some(
-          (entry: { childSelector?: unknown }) =>
-            typeof entry.childSelector === "string" &&
-            entry.childSelector.includes(LABEL_SELECTOR) &&
-            !entry.childSelector.includes(":not("),
-        )
-        ? [type]
-        : [];
+  for (const [part, token] of Object.entries(PARTS))
+    it(`no rule delegates declarations to its ${part}`, () => {
+      const owners = rules.flatMap(([type, rule]) => {
+        if (OWN_CONTENT.has(`${type} ${part}`)) return [];
+        const delegation = rule.structure?.composition?.delegation;
+        return Array.isArray(delegation) &&
+          delegation.some(
+            (entry: { childSelector?: unknown; bridges?: unknown }) =>
+              typeof entry.childSelector === "string" &&
+              // The owner's own part: one compound selector (`.react-aria-SelectValue
+              // [slot="description"]` is the selected item's description inside the value).
+              !/\S\s+\S/.test(entry.childSelector.replace(/,\s+/g, ",")) &&
+              entry.childSelector
+                .replace(/:not\([^)]*\)/g, "")
+                .includes(token) &&
+              // A declaration-only entry places the part (a side label field's per-size
+              // `--{prefix}-gap`, read by the hint indent): it declares no property.
+              entry.bridges !== undefined,
+          )
+          ? [type]
+          : [];
+      });
+      expect(owners).toEqual([]);
     });
-    expect(owners).toEqual([]);
-  });
 
-  it("no rule sets a Label variable (`--label-*`) on its element", () => {
+  it("no rule sets a part variable (`--label-*` · `--error-*`) on its element", () => {
     const found: string[] = [];
     const visit = (type: string, value: unknown, path: string) => {
       if (!value || typeof value !== "object") return;
       for (const [key, child] of Object.entries(value)) {
-        if (LABEL_VARIABLES.test(key)) found.push(`${type}${path}.${key}`);
+        if (PART_VARIABLES.test(key)) found.push(`${type}${path}.${key}`);
         visit(type, child, `${path}.${key}`);
       }
     };
@@ -80,7 +100,7 @@ describe("ADR-253 — a parent rule does not declare its Label's shape", () => {
     expect(found).toEqual([]);
   });
 
-  it("a nested selector that reaches the Label only places it", () => {
+  it("a nested selector that reaches a part only places it", () => {
     const found: string[] = [];
     const visit = (type: string, value: unknown) => {
       if (!value || typeof value !== "object") return;
@@ -90,7 +110,9 @@ describe("ADR-253 — a parent rule does not declare its Label's shape", () => {
           // `> .react-aria-Label` reaches the Label; `:not(.react-aria-Label, …)` reaches the rest.
           if (
             typeof selector === "string" &&
-            selector.replace(/:not\([^)]*\)/g, "").includes(LABEL_SELECTOR)
+            Object.values(PARTS).some((token) =>
+              selector.replace(/:not\([^)]*\)/g, "").includes(token),
+            )
           )
             for (const key of Object.keys(entry.styles ?? {}))
               if (!PLACEMENT_KEYS.has(key))

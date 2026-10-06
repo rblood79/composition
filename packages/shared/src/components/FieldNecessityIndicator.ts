@@ -1,5 +1,10 @@
 import { createElement, isValidElement, type ReactNode } from "react";
+import {
+  FieldError,
+  type FieldErrorProps,
+} from "react-aria-components/FieldError";
 import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
 
 export type NecessityIndicator = "icon" | "label";
 
@@ -72,4 +77,26 @@ export function renderFieldLabel(
     label,
     renderNecessityIndicator(necessityIndicator, isRequired),
   );
+}
+
+/**
+ * A field's description (ADR-253): the field's Description node element from the catalog runtime
+ * (placed as it is), else composed from the field's `description` prop.
+ */
+export function renderFieldDescription(description: ReactNode): ReactNode {
+  if (!description) return null;
+  if (isValidElement(description)) return description;
+  return createElement(Text, { slot: "description" }, description);
+}
+
+/**
+ * A field's error message (ADR-253): the field's FieldError node element from the catalog runtime
+ * (a RAC FieldError its binding drew — RAC shows it while the field is invalid), else composed
+ * from the field's `errorMessage` prop.
+ */
+export function renderFieldError(
+  errorMessage: FieldErrorProps["children"],
+): ReactNode {
+  if (isValidElement(errorMessage)) return errorMessage;
+  return createElement(FieldError, { children: errorMessage });
 }

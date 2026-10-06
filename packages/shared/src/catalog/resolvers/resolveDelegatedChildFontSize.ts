@@ -115,14 +115,8 @@ export function hasDelegatedChild(
 export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   Record<string, readonly string[]>
 > = {
-  FieldError: [".react-aria-FieldError"],
   Input: [".react-aria-Input"],
   DateInput: [".react-aria-DateInput"],
-  // description 줄 (2026-09-04 판정 — 착수 10): DOM 은 parent `description` prop 으로 self-compose 하고
-  //   (`<Text slot="description">`) canonical 자식을 읽지 않는다. 이 토큰을 delegation 에 가진 parent 는
-  //   field 12 종뿐이라 (Card · collection item 의 Description 은 delegation 이 없어 영향 0) 그 아래의
-  //   canonical Description 자식만 parent 소유가 된다.
-  Description: ['[slot="description"]'],
   // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
   //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
   //   읽지 않는다 — 래퍼 상자는 parent rule delegation 이 그린다: NumberField · DatePicker · DateRangePicker
@@ -139,14 +133,33 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
 /**
  * **텍스트 축만** parent 소유인 sub-part (ADR-253) — child type → 그 글자를 소유하는 parent.
  *
- * field · 그룹의 Label 은 Label 원본의 instance 이고 DOM 이 그 노드를 직접 그린다 (RAC Label, parent 의
- * context 안). 그래서 style 은 Label 노드 자신이 정본이고 — Styles 패널이 그대로 편집하며 Canvas 와 DOM 이
+ * field · 그룹의 Label · Description · FieldError 는 부품 원본의 instance 이고 DOM 이 그 노드를 직접 그린다
+ * (RAC 컴포넌트, parent 의 context 안). 그래서 style 은 부품 노드 자신이 정본이고 — Styles 패널이 그대로 편집하며 Canvas 와 DOM 이
  * 같은 record 를 읽는다 — 글자는 parent 의 `label` prop 이 정본이다 (D2: template 의 `{label}` 자리).
  * 2026-09-03 판정 (Label 을 parent 가 self-compose — delegation 토큰 · 그룹 목록) 을 이 표가 대신한다.
  */
+const FIELD_HINT_PARENTS = [
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "ColorField",
+  "Select",
+  "ComboBox",
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+  "CheckboxGroup",
+  "RadioGroup",
+] as const;
 export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   Record<string, readonly string[]>
 > = {
+  // 도움말 · 오류 문구: Description · FieldError 원본의 instance. 글자는 parent 의 `description` ·
+  //   `errorMessage` 가 정본이다.
+  Description: FIELD_HINT_PARENTS,
+  FieldError: FIELD_HINT_PARENTS,
   Label: [
     "TextField",
     "TextArea",

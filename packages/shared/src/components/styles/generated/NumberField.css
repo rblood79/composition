@@ -242,36 +242,6 @@
 }
 
 .react-aria-NumberField[data-size="xs"] {
-  --nf-hint-size: var(--text-2xs);
-}
-
-.react-aria-NumberField[data-size="sm"] {
-  --nf-hint-size: var(--text-xs);
-}
-
-.react-aria-NumberField[data-size="md"] {
-  --nf-hint-size: var(--text-xs);
-}
-
-.react-aria-NumberField[data-size="lg"] {
-  --nf-hint-size: var(--text-sm);
-}
-
-.react-aria-NumberField[data-size="xl"] {
-  --nf-hint-size: var(--text-base);
-}
-
-.react-aria-NumberField .react-aria-FieldError {
-  --error-font-size: var(--nf-hint-size);
-  --error-margin: var(--spacing-xs);
-}
-
-.react-aria-NumberField [slot="description"] {
-  font-size: var(--nf-hint-size);
-  color: var(--fg-muted);
-}
-
-.react-aria-NumberField[data-size="xs"] {
   --nf-side-gap: 2px;
 }
 

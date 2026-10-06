@@ -286,35 +286,6 @@
 }
 
 .react-aria-DateRangePicker[data-size="xs"] {
-  --drp-hint-size: var(--text-2xs);
-}
-
-.react-aria-DateRangePicker[data-size="sm"] {
-  --drp-hint-size: var(--text-xs);
-}
-
-.react-aria-DateRangePicker[data-size="md"] {
-  --drp-hint-size: var(--text-xs);
-}
-
-.react-aria-DateRangePicker[data-size="lg"] {
-  --drp-hint-size: var(--text-sm);
-}
-
-.react-aria-DateRangePicker[data-size="xl"] {
-  --drp-hint-size: var(--text-sm);
-}
-
-.react-aria-DateRangePicker .react-aria-FieldError {
-  --error-font-size: var(--drp-hint-size);
-}
-
-.react-aria-DateRangePicker [slot="description"] {
-  font-size: var(--drp-hint-size);
-  color: var(--fg-muted);
-}
-
-.react-aria-DateRangePicker[data-size="xs"] {
   --drp-side-gap: 2px;
 }
 

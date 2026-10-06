@@ -32,6 +32,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
@@ -48,8 +50,9 @@ export interface ComboBoxProps<T extends object> extends Omit<
 > {
   /** The label text, or the field's Label node element (catalog runtime — ADR-253). */
   label?: string | React.ReactElement;
-  description?: string | null;
-  errorMessage?: string | ((validation: ValidationResult) => string);
+  description?: string | null | React.ReactElement;
+  errorMessage?:
+    string | ((validation: ValidationResult) => string) | React.ReactElement;
   /**
    * ADR-912 영역 B Task 7: 정적 items[] SSOT (StoredComboBoxItem[] 직렬화 형태).
    *   RAC `AriaComboBoxProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
@@ -324,14 +327,14 @@ export function ComboBox<T extends object>({
           })()}
         </Button>
       </div>
-      {description && <Text slot="description">{description}</Text>}
+      {renderFieldDescription(description)}
       {isLoadingState && <Text slot="description">{t("loadingData")}</Text>}
       {isErrorState && (
         <FieldError>
           {t("errorWithMessage", { message: String(error) })}
         </FieldError>
       )}
-      {errorMessage && !isErrorState && <FieldError>{errorMessage}</FieldError>}
+      {errorMessage && !isErrorState && renderFieldError(errorMessage)}
       {shouldRenderPopover && (
         <Popover
           className={popoverClassName}

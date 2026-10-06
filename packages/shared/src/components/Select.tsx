@@ -37,6 +37,7 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
@@ -47,8 +48,9 @@ export interface SelectProps<T extends object> extends Omit<
 > {
   /** The label text, or the field's Label node element (catalog runtime — ADR-253). */
   label?: string | React.ReactElement;
-  description?: string;
-  errorMessage?: string | ((validation: ValidationResult) => string);
+  description?: string | React.ReactElement;
+  errorMessage?:
+    string | ((validation: ValidationResult) => string) | React.ReactElement;
   /**
    * ADR-912 영역 B Task 6: 정적 items[] SSOT (StoredSelectItem[] 직렬화 형태).
    *   RAC `AriaSelectProps.items`(Iterable<T>)를 재의미화 — dataBinding 없을 때 source.
@@ -393,8 +395,10 @@ export function Select<T extends object>({
           {/* 도움말은 다른 field 와 같은 RAC Text 기본 클래스 (`.react-aria-Text`) — `.react-aria-Description`
               (단독 Description 요소의 클래스) 을 붙이면 줄 높이가 1.333 으로 갈려 Canvas · 다른 field (1.5) 와
               md 에서 2 px 달랐다 (2026-09-26). */}
-          {description && String(description).trim() && (
-            <Text slot="description">{String(description)}</Text>
+          {renderFieldDescription(
+            typeof description === "string" && !description.trim()
+              ? undefined
+              : description,
           )}
 
           {/* Show loading message */}
@@ -410,13 +414,17 @@ export function Select<T extends object>({
           )}
 
           {/* Show validation error */}
-          {errorMessage && !error && (
-            <FieldError className="react-aria-FieldError">
-              {typeof errorMessage === "function"
-                ? errorMessage({ isInvalid: true } as ValidationResult)
-                : String(errorMessage)}
-            </FieldError>
-          )}
+          {errorMessage &&
+            !error &&
+            (React.isValidElement(errorMessage) ? (
+              errorMessage
+            ) : (
+              <FieldError className="react-aria-FieldError">
+                {typeof errorMessage === "function"
+                  ? errorMessage({ isInvalid: true } as ValidationResult)
+                  : String(errorMessage)}
+              </FieldError>
+            ))}
 
           <Popover
             className="react-aria-Popover"

@@ -175,36 +175,6 @@
   cursor: not-allowed;
 }
 
-.react-aria-DateField[data-size="xs"] {
-  --df-hint-size: var(--text-2xs);
-}
-
-.react-aria-DateField[data-size="sm"] {
-  --df-hint-size: var(--text-xs);
-}
-
-.react-aria-DateField[data-size="md"] {
-  --df-hint-size: var(--text-xs);
-}
-
-.react-aria-DateField[data-size="lg"] {
-  --df-hint-size: var(--text-sm);
-}
-
-.react-aria-DateField[data-size="xl"] {
-  --df-hint-size: var(--text-base);
-}
-
-.react-aria-DateField .react-aria-FieldError {
-  --error-font-size: var(--df-hint-size);
-  --error-margin: var(--spacing-xs);
-}
-
-.react-aria-DateField [slot="description"] {
-  font-size: var(--df-hint-size);
-  color: var(--fg-muted);
-}
-
 .react-aria-DateField[data-size="sm"] {
   --df-side-gap: 4px;
 }

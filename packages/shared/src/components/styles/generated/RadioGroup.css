@@ -14,7 +14,6 @@
     box-sizing: border-box;
     color: var(--fg);
     --radio-items-gap: 12px;
-    --rg-hint-size: var(--text-xs);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: flex;
@@ -61,10 +60,6 @@
 }
 
 /* ── Tier 2: Composite Delegation ── */
-
-.react-aria-RadioGroup [slot="description"] {
-  font-size: var(--rg-hint-size);
-}
 
 .react-aria-RadioGroup[data-size="sm"] {
   --radio-items-gap: 8px;

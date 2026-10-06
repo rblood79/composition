@@ -13,6 +13,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 
 /**
@@ -81,8 +83,8 @@ export function ColorField({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       <Input />
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
     </AriaColorField>
   );
 }

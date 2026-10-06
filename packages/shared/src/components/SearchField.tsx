@@ -22,6 +22,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 
 export interface SearchFieldProps extends AriaSearchFieldProps {
@@ -115,8 +117,8 @@ export function SearchField({
           )}
         </Button>
       </div>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
     </AriaSearchField>
   );
 }

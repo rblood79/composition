@@ -34,9 +34,12 @@ import {
   INTERNAL_RENDERERS,
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
+import { FIELD_HINT_OWNERS } from "./presence";
 import {
+  authoredInvalid,
   CATALOG_DELEGATED_DOM,
   CATALOG_LABEL_NODE_FIELDS,
+  catalogFieldHintNodes,
   catalogFieldLabelNecessity,
   catalogFieldLabelNode,
   catalogOwnerDrawnPart,
@@ -97,11 +100,21 @@ export interface CatalogDomContext {
   /** Current date/time for date fields (deterministic renders in tests). */
   today?: () => unknown;
 }
+/**
+ * The part node elements of a field whose RAC component composes its parts itself (ADR-253): each
+ * is placed as the component's `label` · `description` · `errorMessage`.
+ */
+interface FieldPartElements {
+  label?: ReactElement;
+  description?: ReactElement;
+  error?: ReactElement;
+}
 type DomBinding = (
   node: CatalogConsumerNode,
   style: CSSProperties,
   children: ReactElement[],
   context: CatalogDomContext,
+  parts?: FieldPartElements,
 ) => ReactElement;
 
 const textBindings = new Set([
@@ -285,8 +298,23 @@ export function catalogDomStyle(
   }
   if (isText) {
     const metrics = catalogTextMetrics(node, parent);
+    // A text element's UA margin is reset; the margin its owner's rule places it with (a side
+    // label field's hint indent — a part rule, in the record's layout) is written back after it,
+    // or the reset would win over the owner's stylesheet (ADR-253).
+    const placed = catalogLayoutCss(
+      Object.fromEntries(
+        (["marginTop", "marginRight", "marginBottom", "marginLeft"] as const)
+          .filter((key) => node.layout[key] !== undefined)
+          .map((key) => [key, node.layout[key]!]),
+      ),
+    ) as CSSProperties;
     Object.assign(style, {
-      margin: 0,
+      // (Four sides, not the shorthand: React warns on a shorthand mixed with a side.)
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      ...placed,
       fontFamily: metrics.fontFamily ?? "Pretendard, sans-serif",
       fontSize: metrics.fontSize,
       whiteSpace: (metrics.whiteSpace ??
@@ -512,14 +540,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   selecticon: glyph("chevron-down", 18),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
   // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
-  // (`fieldLabel`: the field's Label node element, when it shows a label — ADR-253.)
-  select: (node, style, [fieldLabel]) =>
+  select: (node, style, _children, _context, parts) =>
     createElement(Select, {
       key: node.id,
       "data-catalog-id": node.id,
       label:
-        fieldLabel ??
+        parts?.label ??
         (typeof node.props.label === "string" ? node.props.label : undefined),
+      description: parts?.description,
+      errorMessage: parts?.error,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -527,17 +556,19 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       size: typeof node.props.size === "string" ? node.props.size : "md",
       ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
-      isInvalid: node.props.isInvalid === true,
+      isInvalid: authoredInvalid(node.props),
       isRequired: node.props.isRequired === true,
       style,
     } as Parameters<typeof Select>[0]),
-  combobox: (node, style, [fieldLabel]) =>
+  combobox: (node, style, _children, _context, parts) =>
     createElement(ComboBox, {
       key: node.id,
       "data-catalog-id": node.id,
       label:
-        fieldLabel ??
+        parts?.label ??
         (typeof node.props.label === "string" ? node.props.label : undefined),
+      description: parts?.description,
+      errorMessage: parts?.error,
       placeholder:
         typeof node.props.placeholder === "string"
           ? node.props.placeholder
@@ -545,12 +576,21 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       size: typeof node.props.size === "string" ? node.props.size : "md",
       ...labelLayout(node),
       isDisabled: node.props.isDisabled === true,
-      isInvalid: node.props.isInvalid === true,
+      isInvalid: authoredInvalid(node.props),
       isReadOnly: node.props.isReadOnly === true,
       isRequired: node.props.isRequired === true,
       style,
     } as Parameters<typeof ComboBox>[0]),
 };
+
+const fieldErrorBinding: DomBinding = (node, style) =>
+  createElement(
+    RAC.FieldError,
+    { key: node.id, "data-catalog-id": node.id, style } as Parameters<
+      typeof RAC.FieldError
+    >[0],
+    String(node.props.children ?? "") || undefined,
+  );
 
 /** Binding ids with a product DOM binding (census and consumers read this, not a copy). */
 export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
@@ -737,8 +777,8 @@ function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   children: ReactElement[],
-  /** The field's Label node element, in place of its `label` text (ADR-253). */
-  fieldLabel?: ReactElement,
+  /** The field's part node elements, in place of its `label` · hint texts (ADR-253). */
+  parts?: FieldPartElements,
 ): ReactElement {
   const type = node.ruleId!;
   const binding = getPrimitiveBinding(type);
@@ -751,7 +791,9 @@ function ruleDom(
   const style = authoredStyle(root, node);
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
-  if (fieldLabel) rest.label = fieldLabel;
+  if (parts?.label) rest.label = parts.label;
+  if (parts?.description) rest.description = parts.description;
+  if (parts?.error) rest.errorMessage = parts.error;
   const lower = type.toLowerCase();
   // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
   // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
@@ -1247,26 +1289,26 @@ function renderNode(
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
   const id = node.id;
-  // A field whose RAC component composes its parts itself still draws its Label from its Label
-  // node (ADR-253): the one element it is given, placed as the component's `label`.
-  const labelNode = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "")
-    ? catalogFieldLabelNode(root, node)
+  // A field whose RAC component composes its parts itself still draws its Label · Description ·
+  // FieldError from its part nodes (ADR-253): each element is placed as the component's prop.
+  const owning = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "");
+  const partElement = (part: CatalogConsumerNode | undefined) =>
+    part &&
+    createElement(CatalogDomNode, { key: part.id, root, id: part.id, context });
+  const hints = owning ? catalogFieldHintNodes(root, node) : {};
+  const parts: FieldPartElements | undefined = owning
+    ? {
+        label: String(node.props.label ?? "").trim()
+          ? partElement(catalogFieldLabelNode(root, node))
+          : undefined,
+        description: String(node.props.description ?? "").trim()
+          ? partElement(hints.description)
+          : undefined,
+        error: partElement(hints.error),
+      }
     : undefined;
-  const fieldLabel =
-    labelNode && String(node.props.label ?? "").trim()
-      ? createElement(CatalogDomNode, {
-          key: labelNode.id,
-          root,
-          id: labelNode.id,
-          context,
-        })
-      : undefined;
-  const children: ReactElement[] = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(
-    node.bindingId ?? "",
-  )
-    ? fieldLabel && bindings[node.bindingId ?? ""]
-      ? [fieldLabel]
-      : []
+  const children: ReactElement[] = owning
+    ? []
     : node.children
         .filter((childId) => {
           const child = root.domInputs.get(childId);
@@ -1320,7 +1362,14 @@ function renderNode(
           : {}),
       }),
     );
-  const binding = bindingOf(node);
+  // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
+  // it while the field is invalid — the authored message, else what its validation raised.
+  const binding =
+    node.bindingId === "fielderror" &&
+    parentInput &&
+    FIELD_HINT_OWNERS.has(catalogTypeName(root, parentInput))
+      ? fieldErrorBinding
+      : bindingOf(node);
   const rendered = binding
     ? binding(
         node,
@@ -1332,8 +1381,9 @@ function renderNode(
           : catalogDomStyle(node, watchedParent ?? parentInput),
         children,
         context,
+        parts,
       )
-    : ruleDom(root, node, children, fieldLabel);
+    : ruleDom(root, node, children, parts);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
     root,

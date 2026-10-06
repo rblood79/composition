@@ -13,6 +13,7 @@
 import {
   ARCHETYPE_BASE_STYLES,
   cssVarToTokenRef,
+  deriveAutoDelegationVariables,
   resolveToken,
   type TokenRef,
 } from "@composition/rendering";
@@ -184,7 +185,6 @@ const CONSUMED_VARIABLES: Readonly<
     "--input-font-size": "font-size",
     "--input-line-height": "line-height",
   },
-  FieldError: { "--error-font-size": "font-size" },
   Tab: { "--tab-padding": "padding", "--tab-font-size": "font-size" },
 };
 
@@ -1282,6 +1282,25 @@ export function compileRulePartRules(
   for (const block of blocks)
     for (const [size, values] of Object.entries(block.variables ?? {}))
       Object.assign((rootVariables[size] ??= {}), values);
+  // A declaration-only `variables: "auto"` entry (no bridges — a side label field's
+  // `--{prefix}-gap`, which its hint indent `calc(label width + gap)` reads): the generator
+  // derives its per-size values from the rule's sizes, and so do the part rules (ADR-253 — the
+  // hint parts are drawn on the Canvas too).
+  for (const entry of (composition?.delegation ?? []) as unknown[]) {
+    const delegation = entry as {
+      variables?: unknown;
+      bridges?: unknown;
+      prefix?: string;
+    };
+    if (delegation.variables !== "auto" || delegation.bridges) continue;
+    for (const [size, values] of Object.entries(
+      deriveAutoDelegationVariables(
+        { name: parentType, sizes: rule.sizes } as never,
+        delegation as never,
+      ),
+    ))
+      Object.assign((rootVariables[size] ??= {}), values);
+  }
   const out: CompiledPartRule[] = [
     ...ownerVariablePartRules(parentType),
     ...tokenRuleBasePartRules(parentType),

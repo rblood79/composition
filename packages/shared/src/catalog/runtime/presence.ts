@@ -200,6 +200,42 @@ function catalogTabsOfTab(
   return tabs && typeOf(tabs) === "Tabs" ? tabs : undefined;
 }
 
+/**
+ * Fields whose Description · FieldError are part nodes (ADR-253 — instances of the part origins).
+ * The Description shows while the field has a `description`; the FieldError while the field is
+ * invalid and has an `errorMessage` (RAC `FieldError` renders on `isInvalid`; an error RAC raises
+ * at run time — blur, submit — is the Preview's run state, not the document's).
+ */
+export const FIELD_HINT_OWNERS: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "ColorField",
+  "Select",
+  "ComboBox",
+  "DateField",
+  "TimeField",
+  "DatePicker",
+  "DateRangePicker",
+  "CheckboxGroup",
+  "RadioGroup",
+]);
+/** Whether a field's hint part (`Description` · `FieldError`) shows; `undefined` = not one. */
+export function catalogFieldHintShown(
+  type: string,
+  field: CatalogConsumerNode,
+  fieldType: string,
+): boolean | undefined {
+  if (!FIELD_HINT_OWNERS.has(fieldType)) return undefined;
+  if (type === "Description") return !!String(field.props.description ?? "");
+  if (type === "FieldError")
+    return (
+      field.props.isInvalid === true && !!String(field.props.errorMessage ?? "")
+    );
+  return undefined;
+}
+
 /** Whether the node itself is not shown in the resting state (its subtree follows it). */
 export function catalogHiddenAtRest(
   node: CatalogConsumerNode,
@@ -219,6 +255,8 @@ export function catalogHiddenAtRest(
   const type = typeOf(node);
   const parentType = typeOf(parent);
   if (TRIGGER_OVERLAY_CHILDREN[parentType]?.has(type)) return true;
+  const hint = catalogFieldHintShown(type, parent, parentType);
+  if (hint !== undefined) return !hint;
   // The separator Icon after a crumb's Link: shared `Breadcrumb` drops it on RAC's current crumb.
   if (parentType === "Breadcrumb" && node.props.slot === "separator")
     return !catalogBreadcrumbSeparator(parent, get, typeOf);
@@ -304,6 +342,8 @@ export function catalogPresenceScope(
   for (let depth = 0; cursor && depth < 3; depth++) {
     const type = typeOf(cursor);
     if (type === "Tabs" || type === "SearchField") return cursor;
+    // A field's hint parts follow its `description` · `isInvalid` · `errorMessage`.
+    if (depth === 0 && FIELD_HINT_OWNERS.has(type)) return cursor;
     if (!TABS_SELECTION_TYPES.has(type)) break;
     cursor = get(cursor.parentId);
   }
@@ -338,10 +378,17 @@ export function catalogPresenceDependents(
         (child) => !DISCLOSURE_TRIGGER_TYPES.has(typeOf(child)),
       ),
     );
-  if (typeOf(scope) === "SearchField")
-    return childrenOf(scope, get)
-      .flatMap((trigger) => childrenOf(trigger, get))
-      .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf));
+  if (FIELD_HINT_OWNERS.has(typeOf(scope)))
+    return [
+      ...childrenOf(scope, get).filter((child) =>
+        ["Description", "FieldError"].includes(typeOf(child)),
+      ),
+      ...(typeOf(scope) === "SearchField"
+        ? childrenOf(scope, get)
+            .flatMap((trigger) => childrenOf(trigger, get))
+            .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf))
+        : []),
+    ];
   const items: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get))

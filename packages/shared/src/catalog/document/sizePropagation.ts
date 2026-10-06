@@ -6,14 +6,20 @@
  *
  * The old Builder's `propagationRegistry` (`override: true` rules) copied the same sizes on write.
  */
+/**
+ * ADR-253: a field's parts are instances of the part origins, each sized by its own rule at the
+ * field's size (the fields' rules declare no part font).
+ */
+const FIELD_PARTS = ["Label", "Description", "FieldError"] as const;
+
 export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
 > = {
   ToggleButtonGroup: ["ToggleButton"],
   // ADR-251: group → items wrapper (internal `size`, never edited) → item.
-  RadioGroup: ["RadioItems", "Label"],
+  RadioGroup: ["RadioItems", ...FIELD_PARTS],
   RadioItems: ["Radio"],
-  CheckboxGroup: ["CheckboxItems", "Label"],
+  CheckboxGroup: ["CheckboxItems", ...FIELD_PARTS],
   CheckboxItems: ["Checkbox"],
   Radio: ["Label"],
   Checkbox: ["Label"],
@@ -29,19 +35,18 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // calendar's `data-size`): the typed children are painted at it too.
   Calendar: ["CalendarHeader", "CalendarGrid"],
   RangeCalendar: ["CalendarHeader", "CalendarGrid"],
-  // ADR-253: a field's Label is an instance of the Label origin, sized by the Label rule at the
-  // field's size (the fields' rules no longer declare their Label's font).
-  TextField: ["Label"],
-  TextArea: ["Label"],
-  NumberField: ["Label"],
-  SearchField: ["Label"],
-  ColorField: ["Label"],
-  Select: ["Label"],
-  ComboBox: ["Label"],
-  DateField: ["Label"],
-  TimeField: ["Label"],
-  DatePicker: ["Label"],
-  DateRangePicker: ["Label"],
+  // ADR-253: a field's parts (`FIELD_PARTS`).
+  TextField: FIELD_PARTS,
+  TextArea: FIELD_PARTS,
+  NumberField: FIELD_PARTS,
+  SearchField: FIELD_PARTS,
+  ColorField: FIELD_PARTS,
+  Select: FIELD_PARTS,
+  ComboBox: FIELD_PARTS,
+  DateField: FIELD_PARTS,
+  TimeField: FIELD_PARTS,
+  DatePicker: FIELD_PARTS,
+  DateRangePicker: FIELD_PARTS,
   Meter: ["Label"],
   ProgressBar: ["Label"],
 };

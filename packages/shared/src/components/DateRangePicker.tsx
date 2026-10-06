@@ -30,6 +30,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 import { Icon } from "./Icon";
 
@@ -227,8 +229,8 @@ export function DateRangePicker<T extends DateValue>({
           </Button>
         )}
       </Group>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
       <Popover>
         {/* reference(react-aria-starter DateRangePicker.tsx)는 <Popover><RangeCalendar/></Popover>
             로 Dialog 없이 calendar 를 직접 둔다 — 모달용 Dialog padding 이 calendar dropdown 에

@@ -22,6 +22,7 @@ import {
 import { FileTriggerIntake } from "../../upload/intakeAdapters";
 import { resolveTextSourceText, textFromValue } from "@composition/rendering";
 import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
+import { FIELD_HINT_OWNERS } from "./presence";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -363,6 +364,37 @@ export function catalogFieldLabelNecessity(
   );
 }
 /**
+ * The hint part nodes (`Description` · `FieldError`) of a field that draws them from its nodes
+ * (`FIELD_HINT_OWNERS`): instances of the part origins, each drawn by its own binding inside the
+ * field's RAC context.
+ */
+export function catalogFieldHintNodes(
+  root: CatalogCompositionRoot,
+  field: CatalogConsumerNode,
+): { description?: CatalogConsumerNode; error?: CatalogConsumerNode } {
+  if (!FIELD_HINT_OWNERS.has(catalogTypeName(root, field))) return {};
+  const kids = childrenOf(root, field);
+  const find = (type: string) =>
+    kids.find((child) => catalogTypeName(root, child) === type);
+  return { description: find("Description"), error: find("FieldError") };
+}
+/**
+ * A field's `description` for its shared component: the Description node's element while the
+ * field has a description (`renderFieldDescription` places it as it is), else the text.
+ */
+function fieldDescription(input: DelegatedDomInput, text: string): ReactNode {
+  const node = catalogFieldHintNodes(input.root, input.node).description;
+  return node && text ? input.renderChild(node.id) : text;
+}
+/**
+ * A field's `errorMessage` for its shared component: the FieldError node's element (a RAC
+ * FieldError — RAC shows it while the field is invalid), else the text.
+ */
+function fieldError(input: DelegatedDomInput, text: string): ReactNode {
+  const node = catalogFieldHintNodes(input.root, input.node).error;
+  return node ? input.renderChild(node.id) : text;
+}
+/**
  * A field's `label` for its shared component: the Label node's own element when the field shows
  * a label (`renderFieldLabel` places it as it is), else the text.
  */
@@ -370,6 +402,14 @@ function fieldLabel(input: DelegatedDomInput, text: string): ReactNode {
   const label = catalogFieldLabelNode(input.root, input.node);
   return label && text ? input.renderChild(label.id) : text;
 }
+/**
+ * A field's `isInvalid` for RAC: `true` while the document says so, else left unset. An explicit
+ * `false` would fix the field as valid — RAC's own validation (required · type · pattern, shown
+ * after the value is committed) could never show its error (ADR-253 Decision 5).
+ */
+export const authoredInvalid = (
+  props: CatalogConsumerNode["props"],
+): true | undefined => (props.isInvalid === true ? true : undefined);
 function fieldBase(input: DelegatedDomInput) {
   const props = input.node.props;
   const form = inheritedForm(input);
@@ -379,7 +419,7 @@ function fieldBase(input: DelegatedDomInput) {
     isDisabled: bool(props.isDisabled),
     isRequired: bool(props.isRequired),
     isReadOnly: bool(props.isReadOnly),
-    isInvalid: bool(props.isInvalid),
+    isInvalid: authoredInvalid(props),
     isQuiet: bool(props.isQuiet),
     necessityIndicator: props.necessityIndicator ?? form.necessityIndicator,
     labelPosition: props.labelPosition ?? form.labelPosition ?? "top",
@@ -497,8 +537,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         style: input.style,
         variant: str(props.variant || "default"),
         label: fieldLabel(input, str(props.label)),
-        description: str(props.description),
-        errorMessage: str(props.errorMessage),
+        description: fieldDescription(input, str(props.description)),
+        errorMessage: fieldError(input, str(props.errorMessage)),
         allowsRemoving: bool(props.allowsRemoving),
         selectionMode: props.selectionMode ?? "none",
         selectionBehavior: props.selectionBehavior || "toggle",
@@ -865,18 +905,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 type: String(type),
                 placeholder,
               }),
-              description
-                ? createElement(
-                    AriaText,
-                    { key: "description", slot: "description" },
-                    description,
-                  )
-                : null,
-              createElement(
-                AriaFieldError,
-                { key: "error" },
-                str(props.errorMessage),
-              ),
+              fieldDescription(input, description) || null,
+              fieldError(input, str(props.errorMessage)),
             ]
           : []),
       );
@@ -891,8 +921,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...inputHints(props),
         size: props.size || "md",
         label: fieldLabel(input, str(props.label)),
-        description: str(props.description),
-        errorMessage: str(props.errorMessage),
+        description: fieldDescription(input, str(props.description)),
+        errorMessage: fieldError(input, str(props.errorMessage)),
         placeholder: str(props.placeholder),
         rows: num(props.rows),
         defaultValue: str(props.value),
@@ -909,8 +939,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...fieldBase(input),
         size: props.size || "md",
         label: fieldLabel(input, str(props.label)),
-        description: str(props.description),
-        errorMessage: str(props.errorMessage),
+        description: fieldDescription(input, str(props.description)),
+        errorMessage: fieldError(input, str(props.errorMessage)),
         defaultValue: Number(props.value || 0),
         minValue: num(props.minValue),
         maxValue: num(props.maxValue),
@@ -938,8 +968,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           input,
           propagatedText(input.root, props.label, childOf(input, "Label")),
         ),
-        description: str(props.description),
-        errorMessage: str(props.errorMessage),
+        description: fieldDescription(input, str(props.description)),
+        errorMessage: fieldError(input, str(props.errorMessage)),
         placeholder: value
           ? str(value.props.placeholder)
           : str(props.placeholder),
@@ -971,8 +1001,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               "Date",
             ),
           ),
-          description: str(props.description),
-          errorMessage: str(props.errorMessage),
+          description: fieldDescription(input, str(props.description)),
+          errorMessage: fieldError(input, str(props.errorMessage)),
           size: props.size || undefined,
           hideTimeZone: props.hideTimeZone !== false,
           shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
@@ -1010,8 +1040,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               "Time",
             ),
           ),
-          description: str(props.description),
-          errorMessage: str(props.errorMessage),
+          description: fieldDescription(input, str(props.description)),
+          errorMessage: fieldError(input, str(props.errorMessage)),
           size: props.size || undefined,
           hideTimeZone: props.hideTimeZone !== false,
           shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
@@ -1034,8 +1064,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...fieldBase(input),
         size: props.size || "md",
         label: fieldLabel(input, str(props.label)) || undefined,
-        description: opt(props.description),
-        errorMessage: opt(props.errorMessage),
+        description:
+          fieldDescription(input, str(props.description)) || undefined,
+        errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         defaultValue: opt(props.defaultValue),
         channel: props.channel,
         colorSpace: props.colorSpace,
@@ -1192,13 +1223,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           orientation: props.orientation || "vertical",
           size: props.size || "md",
           isDisabled: bool(props.isDisabled),
-          isInvalid: bool(props.isInvalid),
+          isInvalid: authoredInvalid(props),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
           necessityIndicator: props.necessityIndicator,
           labelPosition: props.labelPosition || "top",
           name: opt(props.name),
-          errorMessage: opt(props.errorMessage),
+          description:
+            fieldDescription(input, str(props.description)) || undefined,
+          errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         },
         ...boxes.map((box) => {
           const labels = childrenOf(input.root, box).filter(
@@ -1258,13 +1291,15 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           orientation: props.orientation || "vertical",
           size: props.size || "md",
           isDisabled: bool(props.isDisabled),
-          isInvalid: bool(props.isInvalid),
+          isInvalid: authoredInvalid(props),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
           necessityIndicator: props.necessityIndicator,
           labelPosition: props.labelPosition || "top",
           name: opt(props.name),
-          errorMessage: opt(props.errorMessage),
+          description:
+            fieldDescription(input, str(props.description)) || undefined,
+          errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         },
         ...radios.map((radio) => input.renderChild(radio.id)),
       );

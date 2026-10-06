@@ -19,6 +19,8 @@ import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 
@@ -116,8 +118,8 @@ export function TextField({
             </Label>
           )}
           <Input type={type} placeholder={placeholder} />
-          {description && <Text slot="description">{description}</Text>}
-          <FieldError>{errorMessage}</FieldError>
+          {renderFieldDescription(description)}
+          {renderFieldError(errorMessage)}
         </>
       )}
     </AriaTextField>

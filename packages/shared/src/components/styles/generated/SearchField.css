@@ -105,36 +105,6 @@
 }
 
 .react-aria-SearchField[data-size="xs"] {
-  --sf-hint-size: var(--text-2xs);
-}
-
-.react-aria-SearchField[data-size="sm"] {
-  --sf-hint-size: var(--text-xs);
-}
-
-.react-aria-SearchField[data-size="md"] {
-  --sf-hint-size: var(--text-xs);
-}
-
-.react-aria-SearchField[data-size="lg"] {
-  --sf-hint-size: var(--text-sm);
-}
-
-.react-aria-SearchField[data-size="xl"] {
-  --sf-hint-size: var(--text-base);
-}
-
-.react-aria-SearchField .react-aria-FieldError {
-  font-size: var(--sf-hint-size);
-  color: var(--negative);
-}
-
-.react-aria-SearchField [slot="description"] {
-  font-size: var(--sf-hint-size);
-  color: var(--fg-muted);
-}
-
-.react-aria-SearchField[data-size="xs"] {
   --sf-icon-size: 10px;
 }
 

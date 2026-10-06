@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [도움말 · 오류 문구가 부품 원본의 instance — Builder 도 그린다 (ADR-253 Phase 3 — FieldError · Description)] - 2026-10-06
+
+### Added
+
+- Components page 에 Description · FieldError 원본 카드가 있다. 이 원본을 고치면 field · 그룹 13종 (TextField · TextArea · NumberField · SearchField · ColorField · Select · ComboBox · DateField · TimeField · DatePicker · DateRangePicker · CheckboxGroup · RadioGroup) 의 도움말 · 오류 문구가 Builder 와 Preview 에서 같이 바뀐다.
+- **Builder 가 도움말과 오류 문구를 그린다.** 지금까지 Canvas 는 field 의 `description` · `errorMessage` 를 그리지 않았다 (Preview 만). 도움말은 `description` 이 있을 때, 오류 문구는 invalid 이고 문구가 있을 때 보인다. side 라벨에서는 입력칸 아래로 들여쓴다.
+- Preview 의 Select · ComboBox 가 `description` · `errorMessage` 를, CheckboxGroup · RadioGroup 이 `description` 을 보여 준다 (지금까지 속성 패널에서 적어도 Preview 에 나오지 않았다).
+
+### Fixed
+
+- Preview 에서 field 의 자체 validation 오류가 보이지 않던 문제. required · email · pattern 을 어긴 값을 넣고 벗어나면 오류 문구가 나오고, 고치면 사라진다 (전에는 작성한 `errorMessage` 만 보였다).
+
+### Changed
+
+- 도움말 · 오류 문구의 글자 크기는 부품 자신의 rule 이 field 의 size 로 정한다 (xs 10 · sm · md 12 · lg 14 · xl 16px — 본문보다 한 단계 작게). 부모마다 다르던 값이 하나가 된다: TextField · TextArea 는 md 14 → 12 · lg 16 → 14 · xl 18 → 16px, ColorField · Select 의 sm 은 10 → 12px, DatePicker · DateRangePicker 의 xl 은 14 → 16px.
+- field 안 도움말 · 오류 문구의 스타일은 그 부품에서 직접 고친다 (Styles 패널). 글자는 계속 field 의 `description` · `errorMessage` 가 정한다.
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 295건: DOM 구조 대조 (전환 전 빌드 기준 — 달라지는 6 조합은 「전에는 Preview 가 안 그리던 문구」 로 명시) · 13 부모의 도움말 · 오류 문구 노드 (표시 조건 · size · 원본 전파 · DOM) · side 들여쓰기. 원복 RED 5종.
+- live `adr253-p3-live.mjs` 9/9: 13 부모의 도움말 · 오류 문구가 Canvas 와 Preview 에서 같은 위치 · 크기 (top · side · xl) · email 필드에 틀린 값 → 오류 표시 → 고치면 해제 (전환 전 빌드는 같은 순서에서 표시 없음).
+
 ## [Label 원본 하나가 전 field · 그룹의 Label 을 정한다 (ADR-253 Phase 3 — Label)] - 2026-10-06
 
 ### Changed

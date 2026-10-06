@@ -42,6 +42,14 @@
   }
 }
 
+.react-aria-Description[data-size="xs"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-2xs);
+  border-radius: var(--radius-none);
+  line-height: var(--text-2xs--line-height);
+}
+
 .react-aria-Description[data-size="sm"] {
   height: auto;
   padding: 0px 0px;
@@ -64,6 +72,14 @@
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
   line-height: var(--text-sm--line-height);
+}
+
+.react-aria-Description[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  line-height: var(--text-base--line-height);
 }
 
 .react-aria-Description[data-focus-visible] {

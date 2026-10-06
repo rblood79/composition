@@ -279,3 +279,44 @@
 - `.claude/rules/ssot-hierarchy.md` 의 「D3 read-only sub-part」 절은 Label 을 아직 부모 소유로 적는다 — Phase 6.
 - Canvas 와 DOM 의 necessity 표시 규칙 통일 (위).
 - `CATALOG_LABEL_NODE_FIELDS` 는 Phase 2 의 TextField 방식 (children 전체를 넘김) 과 이번 방식 (`label` 로 요소를 넘김) 을 같이 쓴다. Input 단계에서 하나로 정리한다.
+
+### 2026-10-06 — Phase 3 (2) FieldError · Description (브랜치 `adr-253`)
+
+**착수 때 확인한 사실** (본문 F5 · F6 보충)
+
+- Canvas 는 field 의 도움말과 오류 문구를 그리지 않고 있었다. FieldError 노드는 5 부모 (TextField · TextArea · NumberField · DateField · TimeField) 의 template 에만 있고 `display: none` 고정이었으며, Description 노드는 어느 field 에도 없었다. DOM 만 `description` · `errorMessage` 로 조립했다.
+- Preview 의 Select · ComboBox binding 은 `description` · `errorMessage` 를, 그룹 binding 은 `description` 을 넘기지 않았다 — 속성 패널에서 적어도 Preview 에 나오지 않았다.
+- binding 이 `isInvalid: false` 를 명시로 넘겨 RAC 의 자체 validation 이 항상 「유효」 였다. `<FieldError>{""}</FieldError>` 의 빈 글자도 RAC 의 문구를 가렸다. 그래서 required · email · pattern 오류는 Preview 에 나온 적이 없다 (대조군: main 빌드에서 같은 입력 순서 — 표시 없음).
+- side 라벨의 들여쓰기 (`margin-inline-start: calc(라벨 폭 + gap)`) 가 읽는 크기별 gap 변수 (`variables: "auto"` 선언) 를 Canvas 쪽 partRule 컴파일이 몰랐다. Canvas 가 문구를 그리지 않아 드러나지 않던 빈틈이다.
+
+**구현**
+
+- library: Description · FieldError 원본 (`origin-component-description` · `-fielderror`, 팔레트 밖 · Components page 의 부품 칸). 13 부모 template 에 도움말 자리 (`__description`) 와 오류 문구 자리 (있던 5 부모는 `__3` 그대로, 나머지는 `__error`) 를 control 뒤에 둔다. 원본이 `description` · `errorMessage` 를 받아 자리표시로 내려 준다. contract 는 이 Phase 의 4 그대로 (병합 한 번에 한 번).
+- 값: FieldError · Description rule 에 xs · xl 단계 추가 (§2-2 2 · 3번). field · 그룹 → 두 부품으로 size 전달. 부모 rule 의 FieldError delegation 10 · description delegation 12 (DropZone 의 것은 자기 내용이라 남김) · `--*-hint-size` 변수 제거. side 들여쓰기의 gap 선언 (`:is(.react-aria-FieldError, [slot="description"])` · `variables: "auto"`) 은 배치라 남기고, partRule 컴파일이 생성기와 같은 함수 (`deriveAutoDelegationVariables`) 로 읽는다.
+- 표시 (`X/presence.ts` `catalogFieldHintShown`): 도움말은 `description` 이 있을 때, 오류 문구는 `isInvalid` 이고 `errorMessage` 가 있을 때. field 의 값이 바뀌면 다시 판정한다 (presence scope).
+- DOM: field 의 binding 이 두 노드의 요소를 `description` · `errorMessage` 로 넘긴다 (`renderFieldDescription` · `renderFieldError` — Label 과 같은 방식). field 안 FieldError 노드는 RAC `FieldError` 다 (`fieldErrorBinding`): 문구가 있으면 그 글자, 없으면 children 을 비워 RAC 의 validation 문구가 나온다. `isInvalid` 는 문서가 invalid 일 때만 넘긴다 (`authoredInvalid` — 본문 Decision 5 ③ 과 같은 계약).
+- text leaf 의 inline style 은 margin 을 0 으로 되돌린 뒤 부모 rule 이 준 배치 margin 을 다시 쓴다 (네 변으로 — shorthand 와 섞으면 React 가 경고). 안 그러면 reset 이 부모 stylesheet 의 들여쓰기를 이긴다.
+- 판정: FieldError · Description 도 텍스트 축만 부모 소유 (`TEXT_ONLY_SUBPART_PARENTS`).
+
+**구현하면서 정한 것**
+
+- Canvas 의 오류 문구 표시는 「invalid + 문구 있음」 이다. 문구 없이 invalid 인 문서는 Canvas 에 문구 상자가 없고, Preview 도 정적으로는 없다 (RAC 가 실행 중에 낸 오류는 Preview 의 실행 상태 — 본문 Decision 5 ④).
+- TagGroup 의 도움말 · Meter 등은 범위 밖이다 (delegation 목록에 없고 TagGroup 은 `errorMessage` 를 받지 않는다).
+- side 라벨에서 ColorField 와 그룹 2종은 들여쓰기 규칙이 없다 (rule 에 선언 없음 — 전환 전 DOM 도 같다). Canvas 와 DOM 은 서로 같다.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 295건 (Label 단계 272 + 23): DOM 구조 대조는 215 조합이 전환 전 빌드와 같고, 6 조합 (select · combobox 의 description · invalid, 그룹 2종의 description) 은 「문구 요소가 그 부품 노드이고 control 의 `aria-describedby` 가 가리킨다」 로 단언한다. 13 부모: 원본 instance · 쉬는 상태 숨김 · `description` → 표시 · invalid 만으로는 숨김 · 문구 → 표시 · size md 12 / lg 14 · 원본 편집 2회 → Canvas · DOM · 판정 두 축 · DOM inline 색. side 들여쓰기 10 부모 (176 + 부모의 md gap: 180 · 182 · 184px).
+- 정적: 부모 rule 의 FieldError · description 선언 0 · `--error-*` 0 (직전 rule 표로 3건 RED).
+- 원복 RED: presence 제거 (13) · 오류 문구를 글자로 (16) · size 전달 제거 (13) · gap 변수 파생 제거 (10) · DOM margin 되쓰기 제거 (10).
+- 회귀: `pnpm type-check` · shared 1,497 · builder 4,446 · publish 11 · rendering 1,379 통과. 고친 기대값: 그룹의 자식 목록 (`adr251ItemsNode` · `phase4eItemInsert` — 도움말 · 오류 문구 자리 추가).
+- 시각 하니스: Canvas ↔ DOM · old/new geometry 수치는 Label 단계와 같다. 쉬는 상태에서 숨는 FieldError 의 old 쪽 짝 없음 (5 부모 + Form) 을 `field-error-hidden-at-rest` 로 승인 기록에 넣었다. 남은 실패는 전환 전과 같은 3건.
+- live `adr253-p3-live.mjs` 9/9 (5175 · headed Chrome · DPR 1 · visible): 쉬는 상태 — 13 부모 모두 양쪽에 문구 없음 → `description` · invalid · `errorMessage` → Label · Description · FieldError 의 상자 (field 기준 x · y · 폭 · 높이) · 글꼴 · field 높이가 Canvas 와 Preview 에서 같다 (≤ 1px) → side 라벨 → 같다 → 가장 큰 size → 같다. 동적: required + email TextField 에 「abc」 입력 후 Tab → 브라우저의 오류 문구가 FieldError 노드 요소에 나오고 input 의 `aria-describedby` 가 가리킨다 → 「a@b.co」 → 문구 없음 → 비움 → required 문구 → `errorMessage` 를 쓰면 그 글자. 콘솔 오류 0.
+- 대조군: 같은 스크립트를 main 빌드 (5173) 에 돌리면 동적 단계에서 문구가 나오지 않는다 (`error: null` 3번).
+- 한계: 값 쓰기는 패널이 내는 것과 같은 호출로 했다. submit 으로 생기는 오류 · NumberField 의 min/max · Select · ComboBox 의 required 는 이 단계에서 재지 않았다 (Group · Button 단계의 동작 검사에서 같이).
+
+**남긴 것**
+
+- TagGroup 의 도움말.
+- ColorField · 그룹 2종의 side 들여쓰기 (rule 에 선언이 없다 — 전환 전부터).
+- Phase 2 의 TextField 방식 (children 전체) 과 prop 으로 요소를 넘기는 방식의 통일 (Input 단계).

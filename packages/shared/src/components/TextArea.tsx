@@ -30,6 +30,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 
@@ -108,8 +110,8 @@ export function TextArea({
     >
       {renderFieldLabel(label, necessityIndicator, isRequired)}
       <AriaTextArea rows={rows} placeholder={placeholder} />
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
     </AriaTextField>
   );
 }

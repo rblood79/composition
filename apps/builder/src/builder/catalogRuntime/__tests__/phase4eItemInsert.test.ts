@@ -187,6 +187,9 @@ describe("ADR-248 4e item insert ('+')", () => {
     expect(childTypes(workspace, "RadioGroup")).toEqual([
       "Label",
       "RadioItems",
+      // ADR-253: the group's hint parts (instances of the Description · FieldError origins).
+      "Description",
+      "FieldError",
     ]);
     workspace.dispose();
   });
@@ -202,6 +205,9 @@ describe("ADR-248 4e item insert ('+')", () => {
     expect(childTypes(workspace, "CheckboxGroup")).toEqual([
       "Label",
       "CheckboxItems",
+      // ADR-253: the group's hint parts (instances of the Description · FieldError origins).
+      "Description",
+      "FieldError",
     ]);
     workspace.dispose();
   });

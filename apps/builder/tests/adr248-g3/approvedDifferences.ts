@@ -535,6 +535,26 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "⑦ crumb = [label Text, separator Icon] (old: a leaf crumb with `::after`)",
   },
   {
+    // ADR-253 Phase 3: a field's FieldError is a part node hidden at rest by the presence rule
+    //   (shown while the field is invalid with a message). old kept it in the tree as a
+    //   `display: none` node — a zero box either way.
+    id: "field-error-hidden-at-rest",
+    class: "decided",
+    owners: [
+      "DateField",
+      "Form",
+      "NumberField",
+      "TextArea",
+      "TextField",
+      "TimeField",
+    ],
+    side: "old",
+    oldPath:
+      /(^|\/)component-(datefield|numberfield|textarea|textfield|timefield)__3$/,
+    reason:
+      "a resting field shows no FieldError (ADR-253 presence — old: a `display: none` node)",
+  },
+  {
     id: "searchfield-empty-clear-button",
     class: "oldDefect",
     owners: ["SearchField"],

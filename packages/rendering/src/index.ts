@@ -294,3 +294,7 @@ export type { DatePickerShapesInput } from "./renderers/datePickerShapes";
 export * from "./chart";
 
 export * from "./data/fieldIdIndex";
+
+// `variables: "auto"` delegation variables (ADR-059 v2): the generator's derivation, also read by
+// the catalog part rules (ADR-253 — a side label field's hint indent reads `--{prefix}-gap`).
+export { deriveAutoDelegationVariables } from "./runtime/deriveAutoDelegationVariables";

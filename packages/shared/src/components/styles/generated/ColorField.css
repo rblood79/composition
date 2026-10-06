@@ -114,35 +114,6 @@
   box-sizing: border-box;
 }
 
-.react-aria-ColorField[data-size="xs"] {
-  --cf-hint-size: var(--text-2xs);
-}
-
-.react-aria-ColorField[data-size="sm"] {
-  --cf-hint-size: var(--text-2xs);
-}
-
-.react-aria-ColorField[data-size="md"] {
-  --cf-hint-size: var(--text-xs);
-}
-
-.react-aria-ColorField[data-size="lg"] {
-  --cf-hint-size: var(--text-sm);
-}
-
-.react-aria-ColorField[data-size="xl"] {
-  --cf-hint-size: var(--text-base);
-}
-
-.react-aria-ColorField .react-aria-FieldError {
-  --error-font-size: var(--cf-hint-size);
-}
-
-.react-aria-ColorField [slot="description"] {
-  font-size: var(--cf-hint-size);
-  color: var(--fg-muted);
-}
-
 .react-aria-ColorField[data-label-position="side"] {
   flex-direction: row;
   align-items: flex-start;

@@ -199,36 +199,6 @@
 }
 
 .react-aria-Select[data-size="xs"] {
-  --select-hint-size: var(--text-2xs);
-}
-
-.react-aria-Select[data-size="sm"] {
-  --select-hint-size: var(--text-2xs);
-}
-
-.react-aria-Select[data-size="md"] {
-  --select-hint-size: var(--text-xs);
-}
-
-.react-aria-Select[data-size="lg"] {
-  --select-hint-size: var(--text-sm);
-}
-
-.react-aria-Select[data-size="xl"] {
-  --select-hint-size: var(--text-base);
-}
-
-.react-aria-Select .react-aria-FieldError {
-  --error-font-size: var(--select-hint-size);
-  --error-margin: var(--spacing-xs);
-}
-
-.react-aria-Select [slot="description"] {
-  font-size: var(--select-hint-size);
-  color: var(--fg-muted);
-}
-
-.react-aria-Select[data-size="xs"] {
   --select-side-gap: 2px;
 }
 

@@ -1373,7 +1373,11 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
  * instance 다: 원본 하나를 고치면 그것을 쓰는 전 컴포넌트가 바뀐다. Components page 는 이 원본을
  * 팔레트 원본 앞에 그린다.
  */
-export const BASE_PART_ORIGIN_TYPES: readonly string[] = ["Label"];
+export const BASE_PART_ORIGIN_TYPES: readonly string[] = [
+  "Label",
+  "Description",
+  "FieldError",
+];
 
 export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Radio",

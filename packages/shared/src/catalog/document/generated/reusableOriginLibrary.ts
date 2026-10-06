@@ -675,13 +675,15 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "label": "string",
       "placeholder": "string",
       "type": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "description": "string"
     },
     "defaults": {
       "label": "Text Field",
       "placeholder": "Enter text...",
       "type": "text",
-      "errorMessage": ""
+      "errorMessage": "",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -694,12 +696,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "label": "string",
       "placeholder": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "description": "string"
     },
     "defaults": {
       "label": "Text Area",
       "placeholder": "Enter text...",
-      "errorMessage": ""
+      "errorMessage": "",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -711,11 +715,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "label": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "description": "string"
     },
     "defaults": {
       "label": "Number",
-      "errorMessage": ""
+      "errorMessage": "",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -726,10 +732,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "SearchField",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Search"
+      "label": "Search",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -740,10 +750,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "ColorField",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Color"
+      "label": "Color",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -818,10 +832,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "CheckboxGroup",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Checkbox Group"
+      "label": "Checkbox Group",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -832,10 +850,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "RadioGroup",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Radio Group"
+      "label": "Radio Group",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -846,10 +868,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Select",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Select"
+      "label": "Select",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -860,10 +886,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "ComboBox",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Combo Box"
+      "label": "Combo Box",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1052,10 +1082,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "DatePicker",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Date Picker"
+      "label": "Date Picker",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1066,10 +1100,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "DateRangePicker",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Date Range"
+      "label": "Date Range",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1081,11 +1119,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "label": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "description": "string"
     },
     "defaults": {
       "label": "Date Field",
-      "errorMessage": ""
+      "errorMessage": "",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1097,11 +1137,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "label": "string",
-      "errorMessage": "string"
+      "errorMessage": "string",
+      "description": "string"
     },
     "defaults": {
       "label": "Time",
-      "errorMessage": ""
+      "errorMessage": "",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1166,6 +1208,34 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-label"
+  },
+  {
+    "id": "lib:definition:origin-component-description",
+    "name": "Description",
+    "mode": "composite",
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": "Description"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-description"
+  },
+  {
+    "id": "lib:definition:origin-component-fielderror",
+    "name": "FieldError",
+    "mode": "composite",
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": "Error"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-fielderror"
   },
   {
     "id": "lib:definition:origin-component-radio",
@@ -3305,6 +3375,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-textfield__1",
       "lib:template:component-textfield__2",
+      "lib:template:component-textfield__description",
       "lib:template:component-textfield__3"
     ],
     "props": {
@@ -3345,16 +3416,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-textfield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-textfield__3",
-    "definitionId": "lib:definition:type-FieldError",
+    "definitionId": "lib:definition:origin-component-fielderror",
     "children": [],
     "props": {
       "children": "{errorMessage}"
     },
-    "visual": {},
-    "layout": {
-      "display": "none"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-textarea",
@@ -3362,6 +3439,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-textarea__1",
       "lib:template:component-textarea__2",
+      "lib:template:component-textarea__description",
       "lib:template:component-textarea__3"
     ],
     "props": {
@@ -3399,16 +3477,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-textarea__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-textarea__3",
-    "definitionId": "lib:definition:type-FieldError",
+    "definitionId": "lib:definition:origin-component-fielderror",
     "children": [],
     "props": {
       "children": "{errorMessage}"
     },
-    "visual": {},
-    "layout": {
-      "display": "none"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-numberfield",
@@ -3416,6 +3500,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-numberfield__1",
       "lib:template:component-numberfield__2",
+      "lib:template:component-numberfield__description",
       "lib:template:component-numberfield__3"
     ],
     "props": {
@@ -3486,23 +3571,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-numberfield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-numberfield__3",
-    "definitionId": "lib:definition:type-FieldError",
+    "definitionId": "lib:definition:origin-component-fielderror",
     "children": [],
     "props": {
       "children": "{errorMessage}"
     },
-    "visual": {},
-    "layout": {
-      "display": "none"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-searchfield",
     "definitionId": "lib:definition:type-SearchField",
     "children": [
       "lib:template:component-searchfield__1",
-      "lib:template:component-searchfield__2"
+      "lib:template:component-searchfield__2",
+      "lib:template:component-searchfield__description",
+      "lib:template:component-searchfield__error"
     ],
     "props": {
       "label": "Search",
@@ -3568,11 +3661,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-searchfield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-searchfield__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-colorfield",
     "definitionId": "lib:definition:type-ColorField",
     "children": [
       "lib:template:component-colorfield__1",
-      "lib:template:component-colorfield__2"
+      "lib:template:component-colorfield__2",
+      "lib:template:component-colorfield__description",
+      "lib:template:component-colorfield__error"
     ],
     "props": {
       "label": "Color",
@@ -3602,6 +3715,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "layout": {
       "display": "block"
     }
+  },
+  {
+    "id": "lib:template:component-colorfield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorfield__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-checkbox",
@@ -3685,7 +3816,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CheckboxGroup",
     "children": [
       "lib:template:component-checkboxgroup__1",
-      "lib:template:component-checkboxgroup__2"
+      "lib:template:component-checkboxgroup__2",
+      "lib:template:component-checkboxgroup__description",
+      "lib:template:component-checkboxgroup__error"
     ],
     "props": {
       "label": "Checkbox Group",
@@ -3771,11 +3904,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
+    "id": "lib:template:component-checkboxgroup__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkboxgroup__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-radiogroup",
     "definitionId": "lib:definition:type-RadioGroup",
     "children": [
       "lib:template:component-radiogroup__1",
-      "lib:template:component-radiogroup__2"
+      "lib:template:component-radiogroup__2",
+      "lib:template:component-radiogroup__description",
+      "lib:template:component-radiogroup__error"
     ],
     "props": {
       "label": "Radio Group",
@@ -3861,11 +4014,31 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ]
   },
   {
+    "id": "lib:template:component-radiogroup__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radiogroup__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-select",
     "definitionId": "lib:definition:type-Select",
     "children": [
       "lib:template:component-select__1",
       "lib:template:component-select__2",
+      "lib:template:component-select__description",
+      "lib:template:component-select__error",
       "lib:template:component-select__item-1",
       "lib:template:component-select__item-2",
       "lib:template:component-select__item-3",
@@ -3919,6 +4092,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SelectIcon",
     "children": [],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
     "visual": {}
   },
   {
@@ -4055,6 +4246,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-combobox__1",
       "lib:template:component-combobox__2",
+      "lib:template:component-combobox__description",
+      "lib:template:component-combobox__error",
       "lib:template:component-combobox__item-1",
       "lib:template:component-combobox__item-2",
       "lib:template:component-combobox__item-3",
@@ -4110,6 +4303,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SelectIcon",
     "children": [],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
     "visual": {}
   },
   {
@@ -4932,6 +5143,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-datepicker__1",
       "lib:template:component-datepicker__2",
+      "lib:template:component-datepicker__description",
+      "lib:template:component-datepicker__error",
       "lib:template:component-datepicker__3"
     ],
     "props": {
@@ -4990,6 +5203,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-datepicker__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-datepicker__3",
     "definitionId": "lib:definition:origin-component-calendar",
     "children": [],
@@ -5002,6 +5233,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-daterangepicker__1",
       "lib:template:component-daterangepicker__2",
+      "lib:template:component-daterangepicker__description",
+      "lib:template:component-daterangepicker__error",
       "lib:template:component-daterangepicker__3"
     ],
     "props": {
@@ -5060,6 +5293,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-daterangepicker__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-daterangepicker__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-daterangepicker__3",
     "definitionId": "lib:definition:origin-component-calendar",
     "children": [],
@@ -5072,6 +5323,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-datefield__1",
       "lib:template:component-datefield__2",
+      "lib:template:component-datefield__description",
       "lib:template:component-datefield__3"
     ],
     "props": {
@@ -5105,16 +5357,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-datefield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-datefield__3",
-    "definitionId": "lib:definition:type-FieldError",
+    "definitionId": "lib:definition:origin-component-fielderror",
     "children": [],
     "props": {
       "children": "{errorMessage}"
     },
-    "visual": {},
-    "layout": {
-      "display": "none"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-timefield",
@@ -5122,6 +5380,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-timefield__1",
       "lib:template:component-timefield__2",
+      "lib:template:component-timefield__description",
       "lib:template:component-timefield__3"
     ],
     "props": {
@@ -5156,16 +5415,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-timefield__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-timefield__3",
-    "definitionId": "lib:definition:type-FieldError",
+    "definitionId": "lib:definition:origin-component-fielderror",
     "children": [],
     "props": {
       "children": "{errorMessage}"
     },
-    "visual": {},
-    "layout": {
-      "display": "none"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-rangecalendar",
@@ -5391,6 +5656,24 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-label",
     "definitionId": "lib:definition:type-Label",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-description",
+    "definitionId": "lib:definition:type-Description",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-fielderror",
+    "definitionId": "lib:definition:type-FieldError",
     "children": [],
     "props": {
       "children": "{children}"

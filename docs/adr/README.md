@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-06 ADR-253 Phase 3 (2) FieldError · Description (브랜치 `adr-253`, main 병합 전)**: 두 부품 원본 등록 · field · 그룹 13종의 도움말 · 오류 문구가 그 instance. Canvas 가 도움말 · 오류 문구를 그리기 시작 (전에는 DOM 만) · Preview 의 자체 validation 오류 표시 수리 (대조군 main: 표시 없음) · 부모 rule 의 두 부품 모양 선언 0. unit 295 · live 9/9 · 시각 하니스 전환 전과 동일. 남은 단계: Input · DateInput → Group · Button.
+
 > **2026-10-06 ADR-253 Phase 3 (1) Label (브랜치 `adr-253`, main 병합 전)**: field · 그룹 17종의 Label 이 Label 원본의 instance · Preview DOM 이 Label 노드를 그림 · 부모 rule 의 Label 모양 선언 0 · 굵기 500 (`LIBRARY_CONTRACT_VERSION` 4). unit 272 (DOM 구조 대조 17 부모 × 13 조합 — 전환 전 빌드 기준) · live 5/5 · 시각 하니스 Canvas ↔ DOM 전환 전과 동일. 남은 단계: FieldError · Description → Input · DateInput → Group · Button.
 
 > **2026-10-06 ADR-253 Phase 2 (main 병합 · push `1d66260dd`)**: Label 원본 등록 · TextField 의 Label 자리가 그 instance · Preview DOM 이 Label 노드를 직접 그림 (`LIBRARY_CONTRACT_VERSION` 3). G2 통과 — unit 16 (DOM 구조 대조 11가지) · live 6/6 · 시각 하니스 전환 전과 동일 · ratchet 통과. Phase 1 보완 (원본을 다시 고칠 때 다른 원본 안 instance 의 record 갱신) 포함.
@@ -199,7 +201,7 @@
 
 #### [253](253-base-ui-origin-reuse.md) — 기본 UI 원본의 재사용 — 부품 · 안에 넣는 컴포넌트 · 바탕을 원본의 instance 로
 
-- **상태**: Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합, Phase 3 진행 중 (Label 단계 완료 · 브랜치) · G1 의 Preview 상태 항목 사용자 판정 대기. 사용자 확인 4 완료 같은 날 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용)
+- **상태**: Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합, Phase 3 진행 중 (Label · FieldError · Description 완료 · 브랜치) · G1 의 Preview 상태 항목 사용자 판정 대기. 사용자 확인 4 완료 같은 날 — 한 ADR 안의 Phase · 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 · contract 2 거부 수용)
 - **규모**: Phase 0 ~ 6. Phase 1 = 원본 override 가 instance 루트까지 닿게 (현행 결함 수리 · 단독 병합 가능) → Phase 2 = 수직 절단 Label × TextField (실패 시 stylesheet 채널로 후퇴) → Phase 3 = field 계열 전체 (부모 delegation 의 모양 선언 0) → Phase 4 = Select · ComboBox 안 ListBox → Phase 5 = Dialog · Popover 바탕 사슬 (library 표현력 go/no-go). `LIBRARY_CONTRACT_VERSION` 3 · 2026-09-03 내부 부품 판정 개정. breakdown: [design/253](design/253-base-ui-origin-reuse-breakdown.md)
 - **우선순위**: 사용자 결정
 

@@ -14,7 +14,6 @@
     box-sizing: border-box;
     color: var(--fg);
     --cb-items-gap: 12px;
-    --cb-hint-size: var(--text-xs);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: flex;
@@ -61,10 +60,6 @@
 }
 
 /* ── Tier 2: Composite Delegation ── */
-
-.react-aria-CheckboxGroup [slot="description"] {
-  font-size: var(--cb-hint-size);
-}
 
 .react-aria-CheckboxGroup[data-size="sm"] {
   --cb-items-gap: 8px;

@@ -23,6 +23,8 @@ import {
   type NecessityIndicator,
   renderNecessityIndicator,
   renderFieldLabel,
+  renderFieldDescription,
+  renderFieldError,
 } from "./FieldNecessityIndicator";
 
 /**
@@ -150,8 +152,8 @@ export function DateField<T extends DateValue>({
       <DateInput className="react-aria-DateInput inset">
         {(segment) => <DateSegment segment={segment} />}
       </DateInput>
-      {description && <Text slot="description">{description}</Text>}
-      <FieldError>{errorMessage}</FieldError>
+      {renderFieldDescription(description)}
+      {renderFieldError(errorMessage)}
     </AriaDateField>
   );
 }

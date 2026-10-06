@@ -134,35 +134,6 @@
 }
 
 .react-aria-TextField[data-size="xs"] {
-  --tf-hint-size: var(--text-2xs);
-}
-
-.react-aria-TextField[data-size="sm"] {
-  --tf-hint-size: var(--text-xs);
-}
-
-.react-aria-TextField[data-size="md"] {
-  --tf-hint-size: var(--text-sm);
-}
-
-.react-aria-TextField[data-size="lg"] {
-  --tf-hint-size: var(--text-base);
-}
-
-.react-aria-TextField[data-size="xl"] {
-  --tf-hint-size: var(--text-lg);
-}
-
-.react-aria-TextField .react-aria-FieldError {
-  --error-font-size: var(--tf-hint-size);
-}
-
-.react-aria-TextField [slot="description"] {
-  font-size: var(--tf-hint-size);
-  color: var(--fg-muted);
-}
-
-.react-aria-TextField[data-size="xs"] {
   --tf-side-gap: 2px;
 }
 

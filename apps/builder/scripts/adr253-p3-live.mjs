@@ -232,6 +232,171 @@ await step("setup", async () => {
     sample: before.fields.Select,
   });
 });
+const HINT_TYPES = TYPES.filter(
+  (type) => !["Meter", "ProgressBar", "Slider", "TagGroup"].includes(type),
+);
+/**
+ * Every hint field's visible parts (Label · Description · FieldError): the Canvas box relative to
+ * the field and the Preview element's box relative to the field's element, with their fonts.
+ */
+const snapParts = () =>
+  page.evaluate((types) => {
+    const ws = window.__COMPOSITION_CATALOG__.workspace;
+    const g = ws.runtime.graph;
+    const doc = document.querySelector("#previewFrame")?.contentDocument;
+    const round = (v) => Math.round(v * 10) / 10;
+    const out = {};
+    for (const field of ws.root.canvasInputs.values()) {
+      const type = g.getDefinition(field.definitionId)?.name;
+      if (!types.includes(type) || !field.sourceId.startsWith("project:"))
+        continue;
+      const fieldEl = doc?.querySelector(
+        `[data-catalog-id="${CSS.escape(field.id)}"]`,
+      );
+      const fieldBox = fieldEl?.getBoundingClientRect();
+      const fieldRect = ws.root.getGeometry([field.id]).get(field.id);
+      const parts = {};
+      for (const id of field.children) {
+        const record = ws.root.canvasInputs.get(id);
+        const name = g.getDefinition(record.definitionId)?.name;
+        if (!["Label", "Description", "FieldError"].includes(name)) continue;
+        const rect = ws.root.getGeometry([id]).get(id);
+        const el = doc?.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+        const cs = el && doc.defaultView.getComputedStyle(el);
+        const box = el?.getBoundingClientRect();
+        parts[name] = {
+          hidden: record.hidden === true,
+          text: record.props.children,
+          c: rect && {
+            x: round(rect.x),
+            y: round(rect.y),
+            w: round(rect.width),
+            h: round(rect.height),
+            font: record.visual.fontSize,
+            line: round(record.visual.lineHeight * record.visual.fontSize),
+            color: record.visual.color,
+          },
+          p: el
+            ? {
+                x: round(box.x - fieldBox.x),
+                y: round(box.y - fieldBox.y),
+                w: round(box.width),
+                h: round(box.height),
+                font: parseFloat(cs.fontSize),
+                line: round(parseFloat(cs.lineHeight)),
+                color: cs.color,
+                text: el.textContent,
+              }
+            : null,
+        };
+      }
+      out[type] = {
+        field: {
+          c: fieldRect && {
+            w: round(fieldRect.width),
+            h: round(fieldRect.height),
+          },
+          p: fieldBox && {
+            w: round(fieldBox.width),
+            h: round(fieldBox.height),
+          },
+        },
+        parts,
+      };
+    }
+    return out;
+  }, HINT_TYPES);
+/** Parts the Canvas and the Preview draw differently (presence · font · box > 1px). */
+const partMismatches = (shot, shown) =>
+  HINT_TYPES.flatMap((type) => {
+    const f = shot[type];
+    if (!f) return [`${type}: not placed`];
+    const bad = [];
+    if (Math.abs(f.field.c.h - f.field.p.h) > 1)
+      bad.push(`field h ${f.field.c.h}/${f.field.p.h}`);
+    for (const name of ["Label", "Description", "FieldError"]) {
+      const part = f.parts[name];
+      if (!part) {
+        bad.push(`${name}: no node`);
+        continue;
+      }
+      const visible = name === "Label" || shown;
+      if (part.hidden === visible) bad.push(`${name}: hidden=${part.hidden}`);
+      if (!!part.p !== visible) bad.push(`${name}: dom=${!!part.p}`);
+      if (!visible || !part.p || !part.c) continue;
+      for (const key of ["x", "y", "w", "h"])
+        if (Math.abs(part.c[key] - part.p[key]) > 1)
+          bad.push(`${name}.${key} ${part.c[key]}/${part.p[key]}`);
+      if (part.c.font !== part.p.font)
+        bad.push(`${name}.font ${part.c.font}/${part.p.font}`);
+      if (Math.abs(part.c.line - part.p.line) > 0.5)
+        bad.push(`${name}.line ${part.c.line}/${part.p.line}`);
+    }
+    return bad.length ? [`${type}: ${bad.join(" · ")}`] : [];
+  });
+const writeFields = (types, props) =>
+  page.evaluate(
+    async ([path, types, props]) => {
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const g = ws.runtime.graph;
+      const { setFields } = await import(/* @vite-ignore */ path);
+      const failed = [];
+      for (const field of [...ws.root.canvasInputs.values()]) {
+        const type = g.getDefinition(field.definitionId)?.name;
+        if (!types.includes(type) || !field.sourceId.startsWith("project:"))
+          continue;
+        for (const [key, value] of Object.entries(props))
+          try {
+            ws.execute(
+              setFields({
+                targets: [{ kind: "node", id: field.sourceId }],
+                props: { [key]: { kind: "set", value } },
+              }),
+            );
+          } catch (error) {
+            failed.push(`${type}.${key}: ${String(error).slice(0, 60)}`);
+          }
+      }
+      return failed;
+    },
+    [commands, types, props],
+  );
+await step("hints-rest", async () => {
+  // At rest no field shows a Description or a FieldError, on either side.
+  const shot = await snapParts();
+  const bad = partMismatches(shot, false);
+  record("hints-rest", bad.length === 0, { bad, sample: shot.TextField });
+});
+await step("hints-top", async () => {
+  const failed = await writeFields(HINT_TYPES, {
+    description: "Help text",
+    isInvalid: true,
+    errorMessage: "Not valid",
+  });
+  await page.waitForTimeout(3000);
+  const shot = await snapParts();
+  writeFileSync(`${OUT}/1b-hints-top.png`, await page.screenshot());
+  const bad = partMismatches(shot, true);
+  record("hints-top", bad.length === 0 && failed.length === 0, {
+    bad,
+    failed,
+    sample: shot.Select,
+  });
+});
+await step("hints-side", async () => {
+  const failed = await writeFields(HINT_TYPES, { labelPosition: "side" });
+  await page.waitForTimeout(3000);
+  const shot = await snapParts();
+  writeFileSync(`${OUT}/1c-hints-side.png`, await page.screenshot());
+  const bad = partMismatches(shot, true);
+  record("hints-side", bad.length === 0 && failed.length === 0, {
+    bad,
+    failed,
+    sample: shot.TextField,
+  });
+  await writeFields(HINT_TYPES, { labelPosition: "top" });
+  await page.waitForTimeout(1500);
+});
 await step("size-xl", async () => {
   // Each field at its largest size: its Label takes the Label rule's font at that size.
   const sized = await page.evaluate(
@@ -272,6 +437,7 @@ await step("size-xl", async () => {
     if (c && (c.size !== size || c.font !== want[0] || c.line !== want[1]))
       bad.push(`${type}: ${size} → ${c.size} ${c.font}/${c.line}`);
   }
+  bad.push(...partMismatches(await snapParts(), true));
   record("size-xl", bad.length === 0, {
     bad,
     sized,
@@ -376,6 +542,81 @@ await step("own-style-and-undo", async () => {
     own: { select: own.fields.Select, combo: own.fields.ComboBox.p },
     bad,
   });
+});
+await step("dynamic-validation", async () => {
+  // RAC's own validation (the Preview's run state): a required email TextField with no authored
+  // message shows the browser's message after the value is committed, described to the input,
+  // and drops it once the value is valid. With an authored `errorMessage` that text shows.
+  await writeFields(["TextField"], {
+    isRequired: true,
+    type: "email",
+    isInvalid: false,
+    errorMessage: "",
+    description: "",
+  });
+  await page.waitForTimeout(1500);
+  const frame = page.frameLocator("#previewFrame");
+  const input = frame.locator(".react-aria-TextField input").first();
+  const read = () =>
+    page.evaluate(() => {
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const field = doc.querySelector(".react-aria-TextField");
+      const input = field.querySelector("input");
+      const error = field.querySelector(".react-aria-FieldError");
+      const described = (input.getAttribute("aria-describedby") ?? "")
+        .split(" ")
+        .filter(Boolean);
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const record = error
+        ? ws.root.canvasInputs.get(error.getAttribute("data-catalog-id"))
+        : undefined;
+      return {
+        value: input.value,
+        invalid: input.getAttribute("aria-invalid"),
+        error: error?.textContent ?? null,
+        errorIsNode: !!record,
+        describedByError: !!error && described.includes(error.id),
+        danglingDescribedBy: described.filter((id) => !doc.getElementById(id)),
+      };
+    });
+  await input.focus();
+  await page.keyboard.type("abc");
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(600);
+  const wrong = await read();
+  await input.focus();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type("a@b.co");
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(600);
+  const fixed = await read();
+  await input.focus();
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press("Tab");
+  await page.waitForTimeout(600);
+  const empty = await read();
+  writeFileSync(`${OUT}/6-validation.png`, await page.screenshot());
+  // The authored message, while the document says the field is invalid.
+  await writeFields(["TextField"], {
+    isInvalid: true,
+    errorMessage: "Not valid",
+  });
+  await page.waitForTimeout(1500);
+  const authored = await read();
+  record(
+    "dynamic-validation",
+    !!wrong.error &&
+      wrong.errorIsNode &&
+      wrong.describedByError &&
+      wrong.danglingDescribedBy.length === 0 &&
+      fixed.error === null &&
+      !!empty.error &&
+      empty.describedByError &&
+      authored.error === "Not valid" &&
+      authored.describedByError,
+    { wrong, fixed, empty, authored },
+  );
 });
 record("errors", errors.length === 0, {
   count: errors.length,
