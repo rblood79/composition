@@ -1370,6 +1370,9 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
  */
 export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Radio",
+  // ADR-253 — 기본 부품 원본. field 계열 template 의 부품 자리가 이 원본의 instance 다
+  //   (원본 하나를 고치면 그것을 쓰는 전 컴포넌트가 바뀐다).
+  "Label",
   // ADR-239 Phase 4 — ColorSwatchPicker (팔레트 밖 — AI · import 로 생성) 와 그 항목 ColorSwatch. 배치 = instance,
   //   swatch 모양은 ColorSwatch origin 하나에서.
   "ColorSwatchPicker",

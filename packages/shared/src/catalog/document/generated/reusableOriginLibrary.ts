@@ -1154,6 +1154,20 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-tooltip"
   },
   {
+    "id": "lib:definition:origin-component-label",
+    "name": "Label",
+    "mode": "composite",
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": "Label"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-label"
+  },
+  {
     "id": "lib:definition:origin-component-radio",
     "name": "Radio",
     "mode": "composite",
@@ -3313,7 +3327,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-textfield__1",
-    "definitionId": "lib:definition:type-Label",
+    "definitionId": "lib:definition:origin-component-label",
     "children": [],
     "props": {
       "children": "{label}",
@@ -5381,6 +5395,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "layout": {
       "display": "block"
     }
+  },
+  {
+    "id": "lib:template:component-label",
+    "definitionId": "lib:definition:type-Label",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-radio",
