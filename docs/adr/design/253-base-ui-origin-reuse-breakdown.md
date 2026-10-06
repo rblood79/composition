@@ -807,3 +807,31 @@ G4 통과. Phase 3 의 G3 표에서 남았던 「Select · ComboBox 열기」 �
 - 두 겹 중첩 (사용자 컴포넌트 안의 Select) 은 코드 추적으로만 확인했다.
 
 판독자의 미확인 3건은 실행자가 확인했다: `STATIC_LIST_FAMILY_BY_OWNER` 는 읽는 곳이 없고 (위 「남긴 것」), ListBox · ListBoxItem 의 생성 CSS 에 `data-size` 선택자가 없어 picker 의 size 로 항목 모양이 갈리지 않으며, picker 목록 판정의 노드 동일성은 마운트 unit · live 가 통과한다.
+
+### 2026-10-07 — G5 판정: 공용 바탕 원본의 모양 — 조건 미충족, Decision 8 미룸
+
+G5 의 조건은 「공용 바탕 원본의 모양을 정할 수 있고, Dialog · Popover 의 DOM · Canvas 가 전환 전과 같다」 이다. 지금 구조 (`L` 의 template · rule · shared 컴포넌트) 에서 후보 세 가지를 따져 보았고 셋 다 조건에 맞지 않는다.
+
+**지금 구조 (실측)**
+
+| 원본    | template                                                                                                                                              | DOM                                                                                                                 | Canvas                                                  |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Dialog  | `DialogTrigger` > Button instance + `Dialog` > 제목 (heading lg) · frame > Description (lg) · `DialogFooter` > frame + Button instance (`slot=close`) | 닫힌 동안 trigger 만. 열면 `ModalOverlay > Modal > RAC Dialog` 의 직계 자식으로 세 노드 (`S/components/Dialog.tsx`) | trigger 만 (`X/presence.ts` `TRIGGER_OVERLAY_CHILDREN`) |
+| Popover | `Popover` > 제목 (heading sm) · Description (md)                                                                                                      | 없음 — 닫힌 overlay (`X/domBinding.tsx` `CATALOG_DOM_OVERLAY_BINDINGS`)                                             | 상자 + 화살표 + 두 자식                                 |
+| Card    | `Card` > CardPreview · CardHeader (제목) · CardContent (설명) · CardFooter — slot 4                                                                   | 네 영역 각자의 요소                                                                                                 | 같은 네 영역                                            |
+
+세 원본이 같이 갖는 것은 제목 (heading) 과 설명 (Description) 두 잎 노드뿐이고, 그 값도 다르다 (제목 lg · sm · md, 설명 lg · md · lg). 버튼 줄은 Dialog 에만 있다.
+
+**후보와 판정**
+
+| 후보                                                        | 걸리는 것                                                                                                                                                                                                                                                                                                       | 판정 |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| ① Card 를 바탕으로 (참고 패턴 그대로)                       | instance 의 루트는 원본 template 의 루트다. Card instance 의 루트 type 은 `Card` 라서 Dialog · Popover 가 자기 RAC 루트 (`Dialog` · `Popover`) 를 잃는다 (D1). 참고 도구는 노드에 DOM 의미가 없어 가능한 구조다. Card 는 구조 재편도 예정돼 있다 (2026-09-29 사용자 결정 — CardHeader 제거, 별도 ADR)           | 불가 |
+| ② `Dialog` 본문을 바탕으로 (RAC 의 Popover > Dialog 구조)   | shared Popover 는 안에 Dialog 를 두지 않는다 — Dialog 의 padding 이 dropdown 으로 새던 회귀 때문에 걷어낸 구조다 (`S/components/Popover.tsx` 주석). 되살리면 Canvas 의 Popover 안에 상자가 하나 생긴다. Modal 원본은 손대지 않기로 했으므로 (breakdown Phase 5) 이 바탕을 쓰는 곳은 Dialog 하나뿐이다           | 불가 |
+| ③ 중립 frame 을 루트로 한 새 바탕 (제목 · 내용 · 버튼 slot) | Dialog · Popover 안에 노드가 하나 는다 — 열린 Dialog 의 DOM 에 `div` 하나, Canvas 에 상자 하나. DOM 에서 흡수하면 그 노드에 쓴 스타일이 DOM 에 닿지 않는다 (묶음 노드와 같은 한계). 부모마다 제목 · 설명 크기를 patch 로 덮어야 하고 버튼 줄은 Dialog 만 채우므로, 바탕이 실제로 공유하는 값은 제목 굵기 하나다 | 불가 |
+
+①은 D1 때문에, ②·③은 「DOM · Canvas 가 전환 전과 같다」 때문에 맞지 않는다. ③은 조건을 느슨하게 읽어도 얻는 것 (공유 값 1개) 이 드는 것 (노드 1개 · 부모별 patch 4개) 보다 작다.
+
+**결론**: G5 미충족. Gate 표의 후퇴안대로 **Decision 8 (바탕 사슬) 을 미룬다** — Phase 5 는 착수하지 않는다. Phase 4 가 만든 slot 채움 표현은 Select · ComboBox 가 쓰고 있고, 바탕 사슬이 다시 필요해지면 그대로 쓸 수 있다. 후속을 열지는 사용자가 정한다.
+
+**같이 본 것 (이 ADR 범위 밖 — 사용자 판단 재료)**: Dialog 의 버튼 2개는 이미 Button 원본의 instance 다. 제목 · 설명은 원본의 instance 가 아니다 — Dialog · Popover · Card 등 6 자리의 Description 은 `type-Description` 이고 (Phase 3 이 바꾼 field 계열 13 자리만 Description 원본의 instance), heading 은 원본이 없다. 「원본 하나를 고치면 전부 바뀐다」 를 Dialog · Popover · Card 의 제목 · 설명까지 넓히려면 바탕 사슬이 아니라 Decision 2 (부품 = 원본의 instance) 의 대상을 field 밖으로 넓히는 쪽이 노드를 늘리지 않는다.
