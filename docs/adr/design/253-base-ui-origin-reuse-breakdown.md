@@ -320,3 +320,15 @@
 - TagGroup 의 도움말.
 - ColorField · 그룹 2종의 side 들여쓰기 (rule 에 선언이 없다 — 전환 전부터).
 - Phase 2 의 TextField 방식 (children 전체) 과 prop 으로 요소를 넘기는 방식의 통일 (Input 단계).
+
+### Phase 3 (3) Input · DateInput — 착수 전 확인 (2026-10-06)
+
+Label · FieldError · Description 과 구조가 다르다. 세 부품은 상태가 없어 「노드의 해석 값 전체를 inline style 로」 내는 것으로 Canvas 와 DOM 이 같은 값을 읽었다. Input 은 그렇게 할 수 없다.
+
+- field 안 Input 의 DOM 모양은 세 곳에서 온다: `base.css` 의 `.react-aria-Input` (테두리 · 모서리 · padding 변수) · `utilities.css` 의 `.inset` (hover · focus · invalid · disabled — 부모가 `--inset-*` 로 조정) · 부모 delegation (`T` TextField 의 `:is(.react-aria-Input, .react-aria-TextArea)` — 크기별 변수와 상태 selector 5개).
+- Input rule (`T` `Input:`) 에는 `structure` 가 없어 생성 CSS 가 없다. 지금 page 에 단독으로 놓은 Input 은 해석 값 전체가 inline 으로 나간다 (`authoredStyle` 의 `noSheet`).
+- field 안 Input 을 inline 전체로 그리면 inline 의 테두리 색 · 배경이 stylesheet 의 hover · focus · invalid 색을 이긴다 — 상태 표시가 사라진다.
+- 그래서 이 단계는 Input rule 이 자기 stylesheet (크기 단계 + 상태) 를 내는 정본이 되고, 부모 delegation · `.inset` 의 부모별 조정은 걷어내며, 노드는 `data-size` 와 직접 쓴 값 (원본 override 포함) 만 inline 으로 내는 형태가 된다. 생성 Input CSS 를 불러오면 Builder 화면 자체의 입력칸 (`.react-aria-Input`) 에도 닿으므로 범위를 확인해야 한다.
+- 원본 override 로 쓴 테두리 색 · 배경은 inline 이라 상태 색을 덮는다. G1 에서 남긴 「Preview 의 상태별 값」 판정 (본문 Status) 과 같은 채널 문제다 — Input · Button 에서 처음 눈에 보이게 된다.
+- 크기별 정적 값은 md 에서 Input rule 과 TextField delegation 이 같다 (padding 4 · 12 · 글자 14 · 모서리 6). 나머지 크기와 부모별 차이 (§2-2 5 · 6번) 는 레퍼런스 예제를 다시 받아 px 로 전개한 뒤 시작한다.
+- ComboBox · NumberField · SearchField · Select · picker 2종은 control 이 `SelectTrigger > SelectValue + SelectIcon` 노드다. Input · Group · Button 노드로 다시 짜는 일은 (4) Group · Button 과 한 묶음이다.
