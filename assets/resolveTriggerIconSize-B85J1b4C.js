@@ -1,0 +1,1 @@
+import{Mt as e}from"./src-BBvahi_F.js";function t(t){let n=e.SelectIcon?.sizes??{},r=e.SelectIcon?.defaultSize??`md`;return n[t??r]?.iconSize??n[r]?.iconSize??18}export{t};
