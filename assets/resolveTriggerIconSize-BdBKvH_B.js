@@ -1,0 +1,1 @@
+import{jt as e}from"./src-CNLph97h.js";function t(t){let n=e.SelectIcon?.sizes??{},r=e.SelectIcon?.defaultSize??`md`;return n[t??r]?.iconSize??n[r]?.iconSize??18}export{t};
