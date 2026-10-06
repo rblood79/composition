@@ -8,6 +8,7 @@ import {
   renderHoverHighlight,
   renderOverflowContent,
   renderOverflowHatching,
+  strokeBoundsRect,
 } from "../skia/hoverRenderer";
 import {
   catalogOverflowContent,
@@ -47,6 +48,11 @@ export interface CatalogOverlayInputs {
   session: () => CatalogSessionState;
   /** Scene-coordinate boxes of the drawn records (the bound stream's `boundsMap`). */
   bounds: () => ReadonlyMap<string, BoundingBox>;
+  /** Builder-only page frames; never part of document paint or Preview/Publish. */
+  pageBorders?: () => {
+    roots: readonly string[];
+    color: Float32Array;
+  };
   /**
    * The drawn records' visible boxes (ancestor clips applied — `hitBoundsMap`): the hover chrome
    * marks only what shows (canvas-interaction §8.5).
@@ -212,6 +218,8 @@ export function catalogOverlayNode(
       const state = inputs.session();
       const bounds = inputs.bounds();
       const zoom = inputs.zoom();
+      const selected = new Set(state.selection.map((item) => item.identity));
+      const hoverId = state.hover?.identity;
       const ai = inputs.ai?.();
       if (ai && (ai.generatingNodes.size || ai.flashAnimations.size)) {
         const now = performance.now();
@@ -226,6 +234,16 @@ export function catalogOverlayNode(
       }
       const occludersOf = (identity: string | undefined) =>
         identity ? inputs.occluders?.(identity) : undefined;
+      const pages = inputs.pageBorders?.();
+      for (const id of pages?.roots ?? []) {
+        // Hover/selection replaces the resting border, so translucent strokes do not stack.
+        if (id === hoverId || selected.has(id)) continue;
+        const box = bounds.get(id);
+        if (box && pages)
+          withOccluders(ck, canvas, occludersOf(id), () =>
+            strokeBoundsRect(ck, canvas, box, pages.color, 1 / zoom, null),
+          );
+      }
       for (const slot of inputs.slots?.() ?? []) {
         const band = catalogSlotBand(slot.box.height, zoom);
         withOccluders(ck, canvas, occludersOf(slot.identity), () =>
@@ -266,10 +284,8 @@ export function catalogOverlayNode(
           const box = bounds.get(id);
           if (box) renderEditingContextBorder(ck, canvas, box, zoom);
         }
-      const selected = new Set(state.selection.map((item) => item.identity));
       const roleOf = (id: string) => inputs.roleOf?.(id) ?? null;
       const hit = inputs.hitBounds?.();
-      const hoverId = state.hover?.identity;
       if (hoverId && !selected.has(hoverId))
         // The hovered record's page decides the cut (its leaves are on the same page).
         withOccluders(ck, canvas, occludersOf(hoverId), () => {

@@ -11,10 +11,7 @@ import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import type { BoundingBox } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemanticsRole";
-import type {
-  OverflowContentInfo,
-  ChildOverflowContext,
-} from "./overlayTypes";
+import type { OverflowContentInfo, ChildOverflowContext } from "./overlayTypes";
 import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   getSemanticOverlayColor,
@@ -108,7 +105,7 @@ export function renderHoverHighlight(
     canvas,
     bounds,
     getSemanticOverlayColor(ck, semanticRole, HOVER_ALPHA),
-    (dashed ? 1 : 2) / zoom,
+    1 / zoom,
     dashed ? [4 / zoom, 3 / zoom] : null,
   );
 }

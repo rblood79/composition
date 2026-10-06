@@ -51,6 +51,12 @@ import {
 } from "../skia/frameScheduler";
 import { getCanvasKit } from "../skia/initCanvasKit";
 import { SkiaRenderer } from "../skia/SkiaRenderer";
+import { setupThemeWatcher } from "../skia/themeWatcher";
+import {
+  colorIntToFloat32,
+  cssColorToAlpha,
+  cssColorToHex,
+} from "../styleConversion/styleConverter";
 import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
 import { getViewportController } from "../viewport/ViewportController";
@@ -368,10 +374,23 @@ export function CatalogCanvas({
       childrenOf: (id) => workspace.root.canvasInputs.get(id)?.children ?? [],
       parentOf: (id) => workspace.root.canvasInputs.get(id)?.parentId,
     };
+    // Read the Builder scope's token, not the edited document's theme. Only theme changes
+    // read computed styles; drawing/panning reuses this color without a DOM style read.
+    const readPageBorderColor = () => {
+      const css = getComputedStyle(containerEl)
+        .getPropertyValue("--border-hover")
+        .trim();
+      return colorIntToFloat32(cssColorToHex(css), cssColorToAlpha(css));
+    };
+    let pageBorderColor = readPageBorderColor();
     renderer.setOverlayNode(
       catalogOverlayNode(ck, {
         session: workspace.session.getSnapshot,
         bounds: () => scene.stream.boundsMap,
+        pageBorders: () => ({
+          roots: workspace.root.definitionView ? [] : scene.pageRootIds,
+          color: pageBorderColor,
+        }),
         recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
         zoom: () => Math.max(viewportState.zoom, 0.001),
         fontMgr,
@@ -493,6 +512,12 @@ export function CatalogCanvas({
       scheduler.invalidate();
     };
     invalidateOverlayRef.current = invalidateOverlay;
+    const themeWatcher = setupThemeWatcher({
+      onThemeChange: () => {
+        pageBorderColor = readPageBorderColor();
+        invalidateOverlay();
+      },
+    });
     const picking = new CatalogCanvasPicking({
       get records() {
         return workspace.root.domInputs;
@@ -1332,6 +1357,7 @@ export function CatalogCanvas({
     return () => {
       running = false;
       resize.disconnect();
+      themeWatcher.disconnect();
       dprQuery.removeEventListener("change", onDprChange);
       unwatchContext();
       setSurfaceLost(false);

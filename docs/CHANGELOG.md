@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Page 기본 테두리 — Builder 전용 오버레이] - 2026-10-07
+
+### Added
+
+- **Builder의 Page 기본 테두리를 화면 기준 1px, `var(--border-hover)`로 표시**
+  - Builder 테마를 따르며 hover·선택 시 해당 테두리로 전환한다.
+  - 기본·hover·선택 테두리는 편집기 오버레이로만 표시하며 문서 Border, Preview, publish 결과에 포함하지 않는다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/catalogOverlay.ts`, `CatalogCanvas.tsx`
+
+## [Canvas hover 가이드 — 1px 두께 통일] - 2026-10-07
+
+### Changed
+
+- **Page와 요소의 hover 가이드 두께를 화면 기준 2px에서 1px로 변경**
+  - 선택 박스와 같은 두께를 사용하고 확대·축소 시에도 1px을 유지한다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/hoverRenderer.ts`
+
 ## [quiet field 의 밑줄을 입력칸 원본이 그린다 (ADR-253 Phase 3 완료)] - 2026-10-07
 
 ### Changed
