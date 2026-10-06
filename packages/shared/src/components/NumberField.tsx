@@ -94,7 +94,7 @@ export function NumberField({
       <Group>
         {controlElements ?? (
           <>
-            <Input />
+            <Input data-quiet={isQuiet ? "true" : undefined} />
             <Button slot="decrement">
               <Minus />
             </Button>

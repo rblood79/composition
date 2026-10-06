@@ -139,7 +139,7 @@ export function TimeField<T extends TimeValue>({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       {inputElement ?? (
-        <DateInput>
+        <DateInput data-quiet={isQuiet ? "true" : undefined}>
           {(segment) => (
             <DateSegment
               segment={segment}

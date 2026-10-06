@@ -121,6 +121,19 @@ const SHOWN_SINCE: Record<
     node: /component-radiogroup__description$/,
   },
 };
+/** Fields with `isQuiet`, and whether their box is a part instance (a range picker's is its Group). */
+const QUIET_BOX_PARTS: Record<string, boolean> = {
+  textfield: true,
+  textarea: true,
+  numberfield: true,
+  searchfield: true,
+  colorfield: true,
+  combobox: true,
+  datefield: true,
+  timefield: true,
+  datepicker: true,
+  daterangepicker: false,
+};
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
 const LABEL_ORIGIN =
@@ -238,7 +251,8 @@ function normalize(html: string): string {
         (attribute) =>
           attribute.name !== "data-catalog-id" &&
           attribute.name !== "style" &&
-          !(control && attribute.name === "data-size") &&
+          // (… and the quiet state of a quiet field's box — the part rule's `&[data-quiet]`.)
+          !(control && ["data-size", "data-quiet"].includes(attribute.name)) &&
           !(button && BUTTON_NODE_MARKS.includes(attribute.name)),
       )
       .map((attribute) =>
@@ -1270,6 +1284,46 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           props: { isDisabled: set(false) },
         }),
       );
+      // The value's style is the node's own (the DOM draws that node): a style written on it
+      // reaches the Canvas record and the DOM element. Only its text is the Select's.
+      const valueId = parts()[0]!.id;
+      expect(
+        catalogSubpartOwnerType(
+          workspace.runtime.graph,
+          workspace.root.domInputs,
+          valueId,
+          "style",
+        ),
+      ).toBeNull();
+      expect(
+        catalogSubpartOwnerType(
+          workspace.runtime.graph,
+          workspace.root.domInputs,
+          valueId,
+          "all",
+        ),
+      ).toBe("Select");
+      const writeValueSize = (fontSize: number | undefined) =>
+        workspace.execute(
+          setFields({
+            targets: [workspace.itemOfRecord(valueId)!.target],
+            visual: {
+              fontSize:
+                fontSize === undefined
+                  ? { kind: "remove" as const }
+                  : set(fontSize),
+            },
+          }),
+        );
+      writeValueSize(20);
+      expect(parts()[0]!.visual.fontSize).toBe(20);
+      expect(
+        button()
+          .querySelector(".react-aria-SelectValue")!
+          .getAttribute("style"),
+      ).toMatch(/font-size:\s*20px/);
+      writeValueSize(undefined);
+      expect(parts()[0]!.visual.fontSize).toBe(14);
       // The field's size reaches the trigger, and through it the glyph; the value follows the
       // field's size.
       workspace.execute(
@@ -1300,7 +1354,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(button().getAttribute("style")).toMatch(
         /--button-color:\s*#0000ff/,
       );
-      // Edit axes: the trigger is its own (an instance); the value's style is the field's.
+      // Edit axes: the trigger is its own (an instance); so is the value's style (above).
       const graph = workspace.runtime.graph;
       const dom = workspace.root.domInputs;
       expect(
@@ -1309,9 +1363,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         catalogSubpartOwnerType(graph, dom, trigger().id, "all"),
       ).toBeNull();
-      expect(catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style")).toBe(
-        "Select",
-      );
+      expect(
+        catalogSubpartOwnerType(graph, dom, parts()[0]!.id, "style"),
+      ).toBeNull();
     },
   );
 
@@ -1915,6 +1969,71 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             ),
           );
         }
+      },
+    );
+
+  /**
+   * A quiet field (RSP `isQuiet`): the part that draws its box — its Input / DateInput instance —
+   * carries the quiet state (`data-quiet`, the part rule's `&[data-quiet]`), and follows the
+   * field's prop. A range picker's box is its Group: its pair of DateInputs stays as it is.
+   */
+  for (const [type, quiet] of Object.entries(QUIET_BOX_PARTS))
+    it.skipIf(write)(
+      `${type} — quiet: its box part ${quiet ? "carries" : "does not carry"} the quiet state`,
+      async () => {
+        const { workspace, field } = (await render(type, {}))!;
+        const boxes = () => {
+          const host = document.createElement("div");
+          host.innerHTML = renderToStaticMarkup(
+            renderCatalogDom(workspace.root, field.id, {
+              today: () => undefined,
+            }),
+          );
+          return [
+            ...host.querySelectorAll(
+              "input[data-catalog-id], textarea[data-catalog-id], .react-aria-DateInput[data-catalog-id]",
+            ),
+          ];
+        };
+        const setQuiet = (value: boolean) =>
+          workspace.execute(
+            setFields({
+              targets: [{ kind: "node", id: FIELD }],
+              props: { isQuiet: set(value) },
+            }),
+          );
+        expect(boxes().length).toBeGreaterThan(0);
+        expect(boxes().filter((box) => box.hasAttribute("data-quiet"))).toEqual(
+          [],
+        );
+        // The part's DOM record follows the field's prop (its element is re-rendered).
+        let notified = 0;
+        const stop = boxes().map((box) =>
+          workspace.root.subscribeDom(
+            box.getAttribute("data-catalog-id")!,
+            () => notified++,
+          ),
+        );
+        setQuiet(true);
+        expect(boxes().map((box) => box.getAttribute("data-quiet"))).toEqual(
+          boxes().map(() => (quiet ? "true" : null)),
+        );
+        expect(notified > 0).toBe(quiet);
+        // The quiet state draws the corners (square): a rest radius the document wrote on the
+        // part — a SearchField's pill — is not inline while it is quiet.
+        if (type === "searchfield")
+          expect(boxes()[0]!.getAttribute("style") ?? "").not.toMatch(
+            /border-radius/,
+          );
+        setQuiet(false);
+        if (type === "searchfield")
+          expect(boxes()[0]!.getAttribute("style")).toMatch(
+            /border-radius:\s*9999px/,
+          );
+        expect(boxes().filter((box) => box.hasAttribute("data-quiet"))).toEqual(
+          [],
+        );
+        for (const off of stop) off();
       },
     );
 });

@@ -87,7 +87,10 @@ export function ColorField({
       data-quiet={isQuiet ? "true" : undefined}
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
-      {renderFieldInput(inputElement, <Input data-size={size} />)}
+      {renderFieldInput(
+        inputElement,
+        <Input data-size={size} data-quiet={isQuiet ? "true" : undefined} />,
+      )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}
     </AriaColorField>

@@ -165,6 +165,8 @@ export function parseArgs(argv) {
   // ADR-229 G3 — `forms` (Form origin subtree 를 plain 으로 펼친 격자) 와 `form-refs` (같은 격자를
   //   `component-form` instance — 자식이 origin instance 라 3단 실체화) · `taggroups` / `taggroup-refs`
   //   (8 item chip projection) 도 같은 시드의 ref 0% / 100% 두 arm.
+  // ADR-253 G6 — `fields` (palette field instance 격자: 부품이 원본 instance 인 조합 컴포넌트) 는
+  //   catalog runtime 에서 도는 조합 fixture 다 (위 ref 계열은 옛 앱 전용).
   // ADR-230 G3 — `button-refs-stateful` (같은 ref 격자, 홀수 instance 가 `isDisabled:true` = 상태 50%)
   //   vs `button-refs` (상태 0%) — 상태 overlay 의 scene.build 비용.
   if (
@@ -179,6 +181,7 @@ export function parseArgs(argv) {
       "form-refs",
       "taggroups",
       "taggroup-refs",
+      "fields",
     ].includes(options.fixtureKind)
   )
     throw new Error("fixture kind");
@@ -644,6 +647,36 @@ export async function seedDocument(
                 position: "absolute",
                 left: `${20 + col * 200}px`,
                 top: `${20 + row * 90}px`,
+              },
+            },
+          });
+          continue;
+        }
+        if (fixtureKind === "fields") {
+          // ADR-253 G6: field 격자 — 종류를 돌려 가며 놓는다 (부품 instance 가 많은 문서).
+          const FIELD_TYPES = [
+            "TextField",
+            "NumberField",
+            "Select",
+            "ComboBox",
+            "SearchField",
+            "DatePicker",
+          ];
+          missingElements.push({
+            id,
+            customId: id,
+            type: FIELD_TYPES[i % FIELD_TYPES.length],
+            parent_id: body.id,
+            page_id: pageId,
+            order_num: i,
+            created_at: now,
+            updated_at: now,
+            props: {
+              style: {
+                position: "absolute",
+                left: `${20 + col * 200}px`,
+                top: `${20 + row * 90}px`,
+                width: "160px",
               },
             },
           });

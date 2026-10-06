@@ -225,23 +225,6 @@
   --form-label-align: end;
 }
 
-.react-aria-SearchField[data-quiet="true"] .react-aria-Input {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.react-aria-SearchField[data-quiet="true"] .react-aria-Input:where([data-focused]) {
-  outline: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-SearchField[data-quiet="true"] .react-aria-Input:where([data-invalid]) {
-  border-bottom-color: var(--negative);
-}
-
 .react-aria-SearchField[data-empty="true"] .react-aria-Button {
   display: none;
 }

@@ -2134,8 +2134,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-        ],
+        delegation: [],
       },
     },
   },
@@ -2360,35 +2359,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
         },
@@ -2751,8 +2721,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/TimeField 동형
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[4]). generated
-    //   ComboBox.css:326-329 side 블록과 byte-identical. Skia sideMode 트리거 styles 만 —
-    //   quiet nested(.react-aria-Button)는 DOM generated CSS 전용 제외.
+    //   ComboBox.css:326-329 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
@@ -2857,37 +2826,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              // ADR-253: the box is the Input (an instance of the Input origin) — the same quiet
-              //   shape as TextField's.
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
         },
@@ -3017,7 +2955,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): DateField.spec.composition.containerVariants 의
     //   label-position:side Skia 복구 — spec 삭제 회귀. DatePicker/TimeField 동형
     //   (flex-direction:row). resolveActiveContainerVariants 가 spec→catalog fallback 으로 읽음.
-    //   Skia sideMode 트리거 styles 만 — quiet nested(.react-aria-DateInput)는 DOM generated CSS 전용 제외.
+    //   Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
@@ -3122,35 +3060,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-DateInput",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
         },
@@ -3342,6 +3251,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "&[data-invalid][data-focus-within]": {
             styles: {
               "outline-color": "var(--negative)",
+            },
+          },
+          // quiet (RSP `isQuiet` — ADR-253): the field's box as an underline. The part's own state
+          //   (`data-quiet`, set on the part of a quiet field) — one definition for every field
+          //   whose box is an instance of this origin.
+          "&[data-quiet]": {
+            styles: {
+              background: "transparent",
+              "border-color": "transparent",
+              "box-shadow": "none",
+              "border-radius": "0",
+              "border-bottom": "1px solid var(--border)",
+            },
+          },
+          "&[data-quiet][data-hovered]:not([data-focus-within]):not([data-disabled])":
+            {
+              styles: {
+                "border-color": "transparent",
+                "border-bottom-color": "var(--border-hover)",
+              },
+            },
+          "&[data-quiet][data-focus-within]": {
+            styles: {
+              outline: "none",
+              "border-color": "transparent",
+              "border-bottom-color": "var(--accent)",
+            },
+          },
+          "&[data-quiet][data-invalid]": {
+            styles: {
+              "border-color": "transparent",
+              "border-bottom-color": "var(--negative)",
             },
           },
         },
@@ -3543,49 +3484,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-DateInput",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-DateInput[data-hovered]:not([data-focus-within]):not([data-disabled])",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput[data-focus-within]",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput[data-invalid]",
-                  styles: {
-                    "border-color": "transparent",
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
         },
@@ -6076,6 +5974,38 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "outline-color": "var(--negative)",
             },
           },
+          // quiet (RSP `isQuiet` — ADR-253): the field's box as an underline. The part's own state
+          //   (`data-quiet`, set on the part of a quiet field) — one definition for every field
+          //   whose box is an instance of this origin.
+          "&[data-quiet]": {
+            styles: {
+              background: "transparent",
+              "border-color": "transparent",
+              "box-shadow": "none",
+              "border-radius": "0",
+              "border-bottom": "1px solid var(--border)",
+            },
+          },
+          "&[data-quiet][data-hovered]:not([data-focused]):not([data-disabled])":
+            {
+              styles: {
+                "border-color": "transparent",
+                "border-bottom-color": "var(--border-hover)",
+              },
+            },
+          "&[data-quiet][data-focused]": {
+            styles: {
+              outline: "none",
+              "border-color": "transparent",
+              "border-bottom-color": "var(--accent)",
+            },
+          },
+          "&[data-quiet][data-invalid]": {
+            styles: {
+              "border-color": "transparent",
+              "border-bottom-color": "var(--negative)",
+            },
+          },
         },
       },
     },
@@ -7495,37 +7425,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          quiet: {
-            true: {
-              // ADR-253: the box is the Input (an instance of the Input origin) — the same quiet
-              //   shape as TextField's.
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
-            },
-          },
         },
         // ADR-253: the Group only places its parts. The value is an instance of the Input origin (it
         //   draws the box) and the steppers are instances of the Button origin (secondary); what
@@ -8598,8 +8497,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-        ],
+        delegation: [],
       },
     },
   },
@@ -8848,37 +8746,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              // ADR-253: the box is the Input (an instance of the Input origin) — the same quiet
-              //   shape as TextField's.
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
           empty: {
@@ -12023,9 +11890,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   binding 의 `source.component` 가 `TextField` 라(RAC 에 TextArea **컨테이너**
           //   primitive 가 없다) renderCatalogDom 의 cutover 경로가 `RAC.TextField` 를
           //   그대로 렌더하고 RAC 가 자기 이름으로 클래스를 붙이기 때문이다. 실제 시각은
-          //   TextField 의 generated CSS 가 담당한다(quiet 포함 — `data-quiet` 은 toRacProps 가
-          //   emit 하므로 그 규칙이 그대로 걸린다. 라이브 확인: 배경 투명 + 아래 테두리 1px +
-          //   radius 0).
+          //   TextField 의 generated CSS 가 담당한다. (ADR-253: quiet 는 입력칸 — Input rule 의
+          //   `&[data-quiet]` — 이 그린다. `<textarea>` 도 같은 rule 의 요소다.)
           //   그래서 이 rule 은 **CSS 를 아예 생성하지 않는다** — generate-css.ts 가 binding 에서
           //   파생한 게이트로 skip 한다(2026-08-21). 여기에 컨테이너 규칙을 더해도 emit 되지 않고,
           //   `.react-aria-TextArea` 라는 이름은 RAC 에서 **안쪽 `<textarea>`** 의 클래스라
@@ -12200,39 +12066,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          quiet: {
-            true: {
-              styles: {
-                "--tf-border": "transparent",
-                "--tf-bg": "transparent",
-              },
-              nested: [
-                {
-                  selector: ".react-aria-Input",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Input:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
-            },
-          },
         },
         delegation: [
           {
@@ -12281,8 +12114,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/ComboBox 동형
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[7], breakdown §5 lock-in).
-    //   generated TimeField.css:237-240 side 블록과 byte-identical. Skia sideMode 트리거 styles 만 —
-    //   quiet nested(.react-aria-DateInput)는 DOM generated CSS 전용 제외.
+    //   generated TimeField.css:237-240 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
     containerVariants: {
       "label-position": {
         side: {
@@ -12387,35 +12219,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "--form-label-align": "end",
               },
-            },
-          },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-DateInput",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput:where([data-focused])",
-                  styles: {
-                    outline: "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-DateInput:where([data-invalid])",
-                  styles: {
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
             },
           },
         },

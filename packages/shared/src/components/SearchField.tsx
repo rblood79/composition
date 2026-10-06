@@ -106,7 +106,10 @@ export function SearchField({
                 </svg>
               </span>
             )}
-            <Input placeholder={placeholder} />
+            <Input
+              placeholder={placeholder}
+              data-quiet={isQuiet ? "true" : undefined}
+            />
             <Button>
               {clearIconData && (
                 <svg

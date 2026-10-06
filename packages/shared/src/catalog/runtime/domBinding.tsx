@@ -630,6 +630,38 @@ const fieldErrorBinding: DomBinding = (node, style) =>
   );
 
 /**
+ * The quiet state of a field's box part (`data-quiet` — the part rule's `&[data-quiet]`): the
+ * part of a quiet field (`derivedProps.isQuiet`, `presence.ts`).
+ */
+const quietState = (node: CatalogConsumerNode) =>
+  node.derivedProps?.isQuiet === true ? { "data-quiet": "true" } : {};
+/**
+ * What the quiet state itself draws — no fill, an underline, square corners: a rest value the
+ * document wrote for those (a SearchField's pill radius on its Input) stays out of the inline
+ * style while the part is quiet, so the part sheet's state shows (as a Button's state paint).
+ */
+const QUIET_STATE_KEYS: ReadonlySet<string> = new Set([
+  "background",
+  "backgroundColor",
+  "borderColor",
+  "borderRadius",
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
+  "boxShadow",
+]);
+const quietStyle = (
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+): CSSProperties =>
+  node.derivedProps?.isQuiet === true
+    ? (Object.fromEntries(
+        Object.entries(style).filter(([key]) => !QUIET_STATE_KEYS.has(key)),
+      ) as CSSProperties)
+    : style;
+
+/**
  * A field's Input node (ADR-253): a RAC `Input` — the `<textarea>` of a TextArea — inside the
  * field's RAC context, which gives it its id, value and state. Its box is the Input rule's sheet
  * at the node's size (`data-size`, the field's); `style` carries only what the document wrote
@@ -652,6 +684,7 @@ function fieldInputBinding(
     ...(typeof node.props.size === "string"
       ? { "data-size": node.props.size }
       : {}),
+    ...quietState(node),
     // (`type` is a TextField's own prop: any other field's RAC context sets its input's type —
     // a SearchField's `search`.)
     ...(multiline
@@ -660,7 +693,7 @@ function fieldInputBinding(
         ? text("type")
         : {}),
     ...text("placeholder"),
-    style,
+    style: quietStyle(node, style),
   });
 }
 
@@ -682,10 +715,11 @@ function fieldDateInputBinding(
       ...(typeof node.props.size === "string"
         ? { "data-size": node.props.size }
         : {}),
+      ...quietState(node),
       ...(typeof node.props.slot === "string" && node.props.slot
         ? { slot: node.props.slot }
         : {}),
-      style,
+      style: quietStyle(node, style),
     } as unknown as Parameters<typeof RAC.DateInput>[0],
     ((segment: Parameters<typeof RAC.DateSegment>[0]["segment"]) =>
       createElement(RAC.DateSegment, { segment })) as never,

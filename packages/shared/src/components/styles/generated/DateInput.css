@@ -209,5 +209,29 @@
     outline-color: var(--negative);
   }
 
+  .react-aria-DateInput[data-quiet] {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .react-aria-DateInput[data-quiet][data-hovered]:not([data-focus-within]):not([data-disabled]) {
+    border-color: transparent;
+    border-bottom-color: var(--border-hover);
+  }
+
+  .react-aria-DateInput[data-quiet][data-focus-within] {
+    outline: none;
+    border-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  .react-aria-DateInput[data-quiet][data-invalid] {
+    border-color: transparent;
+    border-bottom-color: var(--negative);
+  }
+
 
 } /* @layer components */

@@ -237,7 +237,7 @@ export function DatePicker<T extends DateValue>({
                 />
               </Button>
             )}
-            <DateInput>
+            <DateInput data-quiet={isQuiet ? "true" : undefined}>
               {(segment) => (
                 <DateSegment
                   segment={segment}

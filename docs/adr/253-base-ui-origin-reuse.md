@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d66260dd`. Phase 3 진행 중: Label · FieldError · Description · Input · NumberField · ComboBox (Group · Button · FieldButton) 단계 완료, 브랜치 `adr-253`)
+Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 · 3 완료. Phase 3 은 G3 (Select · ComboBox 열기 한 항목 제외 — Phase 4 대상) · G6 통과. 남은 것: Phase 4 · 5 · 6 · G7)
 
 > **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
 >
@@ -23,6 +23,8 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d6626
 > **Phase 3 (4d) Select** (2026-10-07, 브랜치): trigger 노드가 Button 원본 (secondary) 의 instance 이고 그 안이 값 (RAC `SelectValue`) 과 Icon 이다 — RAC 의 trigger 가 Button 자체라 wrapper 가 없다. 칠 · 상태는 Button rule 의 것이고 Select rule 은 배치만 한다. Builder 화면이 직접 조립하는 Select 3곳이 기대던 값은 `form-controls.css` 로 옮겼다 (전환 전 빌드와 차이 0).
 >
 > **Phase 3 (4e) 날짜 4종** (2026-10-07, 브랜치): **DateInput 원본** 이 날짜 field 의 입력 상자다 — DateInput rule 이 자기 sheet (크기 단계 · 상태 · 조각) 를 내고 4 부모의 조각 선언은 그리로 모았다. DateField · TimeField 는 그 instance 를 바로 쓰고, DatePicker 는 Group (배치만) 안에 DateInput instance + FieldButton instance, DateRangePicker 는 Group 이 상자이고 그 안이 slot `start` · `end` 의 DateInput instance 2개 + 구분자 + FieldButton 이다 (종전: 노드 하나가 쌍을 대신). 이로써 field 계열 전 부모의 부품 자리가 원본 instance 다. 남은 것: Phase 3 끝 정리 (quiet · `SelectIcon` 등 쓰지 않는 type · 측정). 찾은 것: locale 을 쓰지 않은 날짜 field 를 Canvas 는 Builder locale 로, Preview 는 en-US 로 그린다 (전환 전부터).
+>
+> **Phase 3 끝 — quiet · 판정 · 측정** (2026-10-07): quiet (`isQuiet`) 의 밑줄 모양을 8 부모가 반복하던 선언에서 **Input · DateInput rule 의 자기 상태 (`&[data-quiet]`) 한 정의** 로 모았다 — quiet field 의 상자 부품이 `data-quiet` 를 갖는다. Preview 에서 TextArea · ComboBox · DatePicker 의 quiet 가 처음으로 보이고 (전에는 닿지 않았다), hover 에 밑줄 색이 바뀐다. Select 의 값 노드는 style 을 자기가 갖는다 (Styles 패널이 그대로 편집). **G3**: 정적 · DOM 구조 대조 · 동작 통과, 시각 하니스 69/70 (남은 1건 CardView 는 이 ADR 이전부터). Select · ComboBox 를 Preview 에서 여는 항목만 통과하지 못한다 — 항목이 없다 (F11, 전환 전과 같다 · Phase 4). **G6**: ratchet pass · field 100개 격자에서 편집 한 번의 `record.content` +0.5 ms (p50, 전환 전후 교대 3쌍) · initial 번들 Builder −1,879 B · Preview −3,121 B (JS gzip). 찾은 것: Canvas 는 field 의 quiet 모양을 그리지 않는다 (전환 전부터 — 이번에 Preview 쪽이 9 type 으로 늘어 차이가 넓어졌다). 기록: [breakdown §6](design/253-base-ui-origin-reuse-breakdown.md).
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 

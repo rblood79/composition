@@ -206,34 +206,6 @@
   --form-label-align: end;
 }
 
-.react-aria-DatePicker[data-quiet="true"] .react-aria-DateInput {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.react-aria-DatePicker[data-quiet="true"] .react-aria-DateInput[data-hovered]:not([data-focus-within]):not([data-disabled]) {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-DatePicker[data-quiet="true"] .react-aria-DateInput[data-focus-within] {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-DatePicker[data-quiet="true"] .react-aria-DateInput[data-invalid] {
-  border-color: transparent;
-  border-bottom-color: var(--negative);
-}
-
 
 @media (forced-colors: active) {
   .react-aria-DatePicker {

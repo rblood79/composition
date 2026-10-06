@@ -74,7 +74,9 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
   //   제거 (입력칸 · 버튼이 각자 그린다) → outline 7. Select trigger 의 pressed · focus 표시 (2건) 는 Button
   //   원본의 것 → outline 5. DatePicker 의 Group focus 표시 · picker 2종의 버튼 focus 표시는 DateInput ·
   //   FieldButton 의 것 → outline 3 (남은 것: DateInput rule · DateRangePicker 의 Group …).
-  it("확정 예외 목록은 고정 — outline 3 · border-bottom 10 (늘면 판정 필요)", () => {
+  //   quiet 밑줄 (2026-10-07): 8 부모가 반복하던 선언을 Input · DateInput rule 의 `&[data-quiet]` 로 모아
+  //   border-bottom 10 → 4 (Input · DateInput · Select 의 trigger · DateRangePicker 의 Group).
+  it("확정 예외 목록은 고정 — outline 3 · border-bottom 4 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -86,7 +88,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     });
     expect({ outline, borderBottom }).toEqual({
       outline: 3,
-      borderBottom: 10,
+      borderBottom: 4,
     });
   });
 });

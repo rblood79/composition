@@ -681,9 +681,34 @@ export function catalogDerivedProps(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
-  const own = ownDerivedProps(node, get, typeOf, locale);
+  const control = ownDerivedProps(node, get, typeOf, locale);
+  // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`).
+  const own = fieldBoxOfQuietField(node, get, typeOf)
+    ? { ...control, isQuiet: true }
+    : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
   return selected === undefined ? own : { ...own, _isSelected: selected };
+}
+
+/**
+ * A field's box part — its Input / DateInput instance, direct or inside a control wrapper that
+ * paints nothing (`variant: "plain"`; a range picker's Group is the box itself) — whose field is
+ * quiet (RSP `isQuiet`, ADR-253): the part's rule draws the quiet shape (`&[data-quiet]`), one
+ * definition for every field. Returns the owning field for that node.
+ */
+function fieldBoxOfQuietField(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const type = typeOf(node);
+  if (type !== "Input" && type !== "DateInput") return;
+  const parent = get(node.parentId);
+  if (!parent) return;
+  if (typeOf(parent) === "SelectTrigger" && parent.props.variant !== "plain")
+    return;
+  const owner = triggerOwner(node, get, typeOf);
+  return owner?.props.isQuiet === true ? owner : undefined;
 }
 
 function ownDerivedProps(
@@ -779,7 +804,10 @@ export function catalogDerivedPropsDependents(
   ];
 }
 
-/** A field's DateInput / trigger icons (`fieldSubpartProps`), direct or inside its SelectTrigger. */
+/**
+ * A field's box and trigger parts whose derived values read the field (`fieldSubpartProps` · an
+ * Input's quiet state and a SearchField's value), direct or inside its SelectTrigger.
+ */
 function fieldSubparts(
   owner: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -792,7 +820,7 @@ function fieldSubparts(
     .filter(
       (child) =>
         fieldSubpartProps(child, get, typeOf) !== undefined ||
-        catalogSearchFieldOfInput(child, get, typeOf) !== undefined,
+        typeOf(child) === "Input",
     );
 }
 

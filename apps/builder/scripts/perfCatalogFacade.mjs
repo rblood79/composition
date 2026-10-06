@@ -17,7 +17,8 @@
 //   undo · redo                               → workspace undo / redo
 //
 // Element ids are catalog node ids without the `project:node:` prefix (`perf-seed-3`); page ids are
-// catalog page ids. Other fixture kinds (refs, forms …) are old-app only and throw here.
+// catalog page ids. The `fields` fixture places palette field instances the same way. Other
+// fixture kinds (refs, forms …) are old-app only and throw here.
 export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
   let real;
   let facade;
@@ -59,8 +60,10 @@ export const CATALOG_STORE_FACADE_SCRIPT = `(() => {
       if (props && "children" in props && typeof props.children === "string") out.props = { children: set(props.children) };
       return out;
     };
+    // (Palette types the fixtures place: the mixed Text / frame grid and the fields grid.)
+    const FIXTURE_TYPES = ["Text", "frame", "TextField", "NumberField", "Select", "ComboBox", "SearchField", "DatePicker"];
     const entryOf = (el) => {
-      if (el.type !== "Text" && el.type !== "frame") throw new Error("catalog facade: fixture type " + el.type + " is old-app only");
+      if (!FIXTURE_TYPES.includes(el.type)) throw new Error("catalog facade: fixture type " + el.type + " is old-app only");
       const style = el.props?.style ?? {};
       const w = writesOf(el.props);
       return {

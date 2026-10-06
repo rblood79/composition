@@ -305,7 +305,10 @@ export function ComboBox<T extends object>({
       <div className="combobox-container">
         {controlElements ?? (
           <>
-            <Input placeholder={placeholder} />
+            <Input
+              placeholder={placeholder}
+              data-quiet={isQuiet ? "true" : undefined}
+            />
             <Button>
               {(() => {
                 const name = iconName || "chevron-down";

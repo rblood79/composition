@@ -660,3 +660,90 @@ field 높이 (md 56) · control 높이 (20 · 22 · 30 · 42 · 54) · side 라�
 - DateField · TimeField 의 quiet 변형 (`.inset` 기준 선언) 은 Phase 3 끝의 quiet 정리에서 DateInput 기준으로 옮긴다.
 - `SelectTrigger` 의 칠하는 variant 는 이제 DateRangePicker 의 Group 만 쓴다. `SelectIcon` · presence 의 `iconName` 파생은 쓰는 template 이 없다 — Phase 3 끝 정리 대상.
 - Canvas 의 날짜 값 표시 (DateField 의 기본값 — Preview 는 오늘 날짜, Canvas 는 빈 조각) 는 종전과 같다.
+
+### 2026-10-07 — Phase 3 끝: quiet 한 정의 · 판정 정리 · 측정 (G3 · G6, 브랜치 `adr-253`)
+
+**구현하면서 정한 것**
+
+- quiet (`isQuiet`) 는 field 의 **상자 부품이 자기 상태로** 그린다 — Input · DateInput rule 의 `&[data-quiet]` (쉬는 상태 · hover · focus · invalid 네 줄) 한 정의. 요소의 `data-quiet` 는 quiet field 의 상자 부품에 파생 값 (`derivedProps.isQuiet`) 으로 실린다. 부모 root 의 `data-quiet` 를 조상 selector 로 읽는 방식은 쓰지 않았다 — Card 도 `data-quiet` 를 내서 quiet Card 안의 입력칸이 같이 바뀐다.
+- 상자 부품 = field 의 Input / DateInput instance (직계, 또는 칠하지 않는 wrapper 안). DateRangePicker 는 Group 이 상자라 그 쌍은 받지 않는다 (판정은 type 목록이 아니라 wrapper 의 `variant` — `plain` 이면 부품이 상자).
+- quiet 동안에는 quiet 상태가 그리는 값 (배경 · 테두리색 · 모서리 · 그림자) 을 inline 으로 내지 않는다. 문서가 쓴 쉬는 값 (SearchField 입력칸의 pill 모서리) 이 inline 으로 sheet 를 덮어 밑줄 양끝이 휘었다 (live 에서 발견) — Button 의 상태 칠과 같은 처리다.
+- Select 의 trigger · DateRangePicker 의 Group 의 quiet 블록은 그 field rule 에 남는다 (그 field 만의 상자다).
+- Select 의 값 (SelectValue) 은 style 축이 노드 자신의 것이다 — DOM 이 그 노드를 직접 그리므로 (4d) 노드에 쓴 style 이 Canvas 와 DOM 에 같이 닿는다. 글자 축만 Select 소유 (`placeholder` · 선택 항목). 「style 축만 부모 소유」 인 부품은 이제 없다.
+- 미룬 것: `SelectIcon` type · `SelectTrigger` 의 칠하는 variant · shared 컴포넌트의 props 조립 fallback 은 Phase 6 (정리) 으로 옮긴다. `SelectIcon` 은 template 이 쓰지 않지만 참조 파일이 38개이고 (binding 파일 삭제 포함), fallback 은 호출처가 옛 `renderers/*` 뿐인데 그 디렉터리 자체가 import 되지 않는다 — 둘 다 파일 삭제가 따르므로 사용자 승인을 받고 한 번에 한다.
+
+**변화 목록 (Preview — main 빌드 5173 과 대조, quiet field)**
+
+| 대상                               | 전환 전 (main)                                                          | 전환 후                                     |
+| ---------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------- |
+| TextField · ColorField             | 쉬는 상태 · focus · invalid 같다. hover 는 변화 없음                    | hover 에 밑줄이 `border-hover` 색           |
+| DateField · TimeField              | 네 상태 모두 같다                                                       | 같다                                        |
+| NumberField · SearchField          | 밑줄 (container 가 그림)                                                | 밑줄 (Input 이 그림 — SearchField 모서리 0) |
+| TextArea                           | 상자 그대로 (`isQuiet` 가 닿지 않음 — selector 가 `<textarea>` 에 없음) | 밑줄                                        |
+| ComboBox · DatePicker              | 상자 그대로 (root 가 `data-quiet` 를 내지 않음)                         | 밑줄                                        |
+| Select · DateRangePicker           | 상자 그대로 (root 가 `data-quiet` 를 내지 않음)                         | 그대로 — 아래 「찾은 것」                   |
+| Styles 패널 — Select 의 값 선택 시 | 「부모 (Select) 에서 편집」 안내                                        | 노드를 그대로 편집                          |
+
+**구현**
+
+- 값 (`T`): Input · DateInput rule 의 `rootSelectors` 에 quiet 네 줄. 8 부모 (ColorField · ComboBox · DateField · DatePicker · NumberField · SearchField · TextField · TimeField) 의 `containerVariants.quiet` 삭제 (256줄) · 읽는 곳이 없던 `--tf-border` · `--tf-bg` 삭제.
+- 파생 (`X/presence.ts`): `fieldBoxOfQuietField` → `catalogDerivedProps` 가 `isQuiet: true` · field 가 바뀌면 그 Input 들이 다시 계산된다 (`fieldSubparts`).
+- DOM (`X/domBinding.tsx`): Input · DateInput 노드 요소에 `data-quiet` · quiet 동안 `QUIET_STATE_KEYS` 를 inline 에서 뺀다. shared 컴포넌트의 fallback 입력칸 8곳도 `data-quiet` 를 받는다.
+- 판정 (`S/catalog/resolvers/resolveDelegatedChildFontSize.ts`): `STYLE_ONLY_SUBPART_PARENTS` 비움 · `TEXT_ONLY_SUBPART_PARENTS.SelectValue = ["Select"]` · `SelectTrigger` 토큰에서 `.react-aria-Button` 제거 (Select 에는 wrapper 가 없다).
+- 규칙 문서: `.claude/rules/ssot-hierarchy.md` 의 sub-part 절을 이 구조로 다시 적었다 (종전 절은 「DOM 이 부모 props 로 self-compose 하고 자식을 읽지 않는다」 — 더는 사실이 아니다).
+- 하니스: `perf-baseline.mjs` 에 `--fixture-kind fields` (palette field instance 격자) — 종전 조합 fixture (`form-refs` 등) 는 옛 앱 전용이라 catalog runtime 에서 돌지 않았다.
+
+**검증**
+
+- unit `adr253FieldPartsDom.test.ts` 316건 (+10): quiet 10 type — 상자 부품이 `data-quiet` 를 갖고 field 의 prop 을 따라 다시 그려진다 · range picker 의 쌍은 받지 않는다 · SearchField 의 pill 모서리가 quiet 동안 inline 에 없다. Select 의 값: style 축 판정 null · 글자 축 Select · 노드에 쓴 글자 크기가 Canvas record 와 DOM inline 에 닿는다. 구조 대조는 control 의 `data-quiet` 를 구조에서 뺀다 (`data-size` 와 같다).
+- 정적 `adr253PartShapeOwner.static.test.ts` 9건 (+1): 어느 field rule 도 quiet 블록에서 Input · DateInput 을 다시 선언하지 않는다 · 두 부품 rule 이 quiet 상태를 갖는다.
+- 원복 RED 10종: 파생 값 (9건 RED) · Input 의 `data-quiet` (6) · DateInput 의 `data-quiet` (3) · 다시 계산 대상 (5) · 칠하는 wrapper 예외 (1) · quiet inline 키 (1) · SelectValue style 축 (1) · 글자 축 (1) · 부모가 quiet 를 다시 선언 (정적 1) · 부품의 quiet 상태 없음 (정적 1). 편집 → 테스트 → 바이트 복원, 끝에 트리 일치 확인.
+- 회귀: `pnpm type-check` · shared 1,501 · rendering 1,379 · builder 4,467 · publish 11 통과. 고친 기대값: `borderWidthLiteral` (border-bottom 10 → 4).
+- 시각 하니스: 70건 중 69 통과 (남은 1건 CardView — Phase 1 기록과 같은 내용, 이 ADR 밖).
+- live `apps/builder/scripts/adr253-p3-quiet-live.mjs` 7/7 (5175 · headed Chrome · DPR 1 · visible · locale en-US): 팔레트로 9 field 를 놓고 `isQuiet` 를 켠다 → Preview 의 상자 부품이 배경 없음 · 위 / 옆 테두리 투명 · 밑줄 1px · 모서리 0 → 마우스를 올리면 밑줄이 `border-hover` 색 (`data-hovered` 확인) → focus 하면 outline 없이 밑줄이 강조색 (`data-focused` · `data-focus-within` 확인) → `isInvalid` 면 밑줄이 negative 색 → 끄면 켜기 전 computed style 과 같다. 콘솔 오류 0. 대조군: 같은 스크립트를 `BEFORE=1` 로 main 빌드 (5173) 에 돌려 위 변화 목록을 만들었다.
+  - 한계: hover 는 Builder 의 편집 overlay 가 pointer 를 가져가 Preview 문서의 요소에 pointer 이벤트를 직접 줬다. `isQuiet` 는 패널 조작이 아니라 패널이 내는 것과 같은 호출 (`setFields`) 로 썼다.
+
+**G3 판정 (Phase 3 전체)**
+
+| 조건                                             | 결과                                                                                                                                                                                                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 부모 delegation 에 부품 모양 선언 0              | 통과 — 정적 9건 (Label · FieldError · Description · Input · wrapper 안 부품 · 날짜 field · part 변수 · nested selector · quiet)                                                                                                                    |
+| DOM 구조 대조                                    | 통과 — 17 부모 × 13 조합, 차이는 테스트에 적은 것뿐 (control 의 `data-size` · `data-quiet` · 버튼 표지 · glyph 마크업 · range 구분자 · 전에 그리지 않던 도움말 / 오류 문구)                                                                        |
+| 시각 하니스                                      | 70건 중 69. 남은 1건 CardView 는 Phase 1 착수 전부터 실패하던 것이다 (Card 원본의 slot 선언 뒤 승인 기록 미갱신 — Canvas ↔ DOM 차이 0). field 계열 case 는 전부 통과하고 승인 차이는 단계별 변화 목록과 같다                                       |
+| 동작 ① 증감 · disabled 경계 · 열기 · 지우기      | NumberField 증감 · 값 한계 · disabled (4a) · SearchField 지우기 (4c) · DatePicker / DateRangePicker popup 열기 · 닫기 (4e) 통과. **Select · ComboBox 는 Preview 에서 열리지 않는다** — 항목이 없다 (F11, 전환 전과 같다). Phase 4 (G4) 의 대상이다 |
+| 동작 ② validation 오류 표시 · `aria-describedby` | 통과 — (2) 의 live                                                                                                                                                                                                                                 |
+
+G3 은 Select · ComboBox 열기 한 항목을 빼고 통과다. 그 항목은 이 Phase 가 만든 문제가 아니고 (main 빌드도 같다) Phase 4 가 다룬다 — Gate 표의 「통과한 부모만 반영하고 나머지는 다음 phase 로」 에 따라 Phase 3 을 main 에 병합한다.
+
+**G6 (Phase 3 전체 — 전환 전 = main `1d66260dd`)**
+
+- ratchet: `pnpm gate:perf-ratchet` 판정 pass (커밋 `da6be1995`, 시드 60 · 600 — A등급 증가 0). 이 게이트의 시드는 Text / frame 격자라 field 의 비용은 재지 않는다 — 아래가 그 몫이다.
+- 프레임 비용 (`perf-baseline.mjs --lane frame --fixed-inputs --fixture-kind fields --seed-count 100`: field 6종 × 100 instance · 2 page · dev 빌드 · headless Chrome 154 · 1440×900 · DPR 1 · visible · Apple M4 Pro, 전환 전 5173 ↔ 전환 후 5175 교대 3쌍의 중앙값). catalog runtime 에는 `scene.build` label 이 없어 같은 자리의 `record.content` 로 쟀다.
+
+  | 부류   | 지표                    | 전환 전 (3회)         | 전환 후 (3회)         | Δ (중앙값) |
+  | ------ | ----------------------- | --------------------- | --------------------- | ---------- |
+  | edit   | `record.content` p50 ms | 3.9 · 4.1 · 4.2       | 4.4 · 4.6 · 4.7       | +0.5       |
+  | edit   | `record.content` p95 ms | 4.5 · 4.7 · 7.1       | 6.9 · 5.6 · 5.7       | +1.0       |
+  | edit   | main thread task ms     | 279 · 290 · 320       | 341 · 360 · 357       | +67 (+23%) |
+  | edit   | 할당 MB/s               | 5.8 · 5.8 · 5.8       | 7.2 · 7.2 · 7.2       | +1.4       |
+  | edit   | callback gap p95 ms     | 17.6 · 17.6 · 18.0    | 17.8 · 17.7 · 17.8    | +0.2       |
+  | pan    | `record.content` p50 ms | 4.1 · 5.4 · 6.3       | 7.5 · 7.3 · 7.8       | +2.1       |
+  | pan    | `record.content` p95 ms | 6.3 · 8.6 · 7.8       | 7.7 · 7.9 · 9.3       | +0.1       |
+  | pan    | main thread task ms     | 550 · 729 · 915       | 735 · 924 · 878       | 노이즈 폭  |
+  | select | main thread task ms     | 1,225 · 1,181 · 1,256 | 1,194 · 1,206 · 1,221 | −19        |
+
+  읽기: 편집 한 번의 그리기 준비가 0.5 ms (p50) 늘었고 프레임 간격은 같다 (gap p95 17.6 → 17.8 · 25 ms 초과 비율은 양쪽 모두 0 ~ 0.5%). field 하나가 그리는 노드가 늘어난 값이다 (버튼 · glyph · 도움말 · 오류 문구가 노드가 됐다). pan 의 p50 은 전환 전 3회가 4.1 ~ 6.3 으로 흩어져 +2.1 을 그대로 믿기 어렵다 (p95 는 같다). 합성 격자이므로 규모만 본다 — 분포는 근거가 아니다. ADR-234 G4 가 기록한 +2 ms 대 안이다.
+
+- initial 번들 (production 빌드 두 벌 · `adr209-bundle-closure.mjs`): Builder JS gzip 1,228,488 → 1,226,609 (−1,879) · CSS gzip 76,355 → 73,810 (−2,545). Preview JS gzip 290,169 → 287,048 (−3,121) · CSS gzip 47,312 → 44,212 (−3,100). 상한 (Builder 1,421,000 · Preview 623,000) 안이고 둘 다 줄었다.
+
+G6 통과.
+
+**찾은 것 (전환 전부터 — 이 Phase 범위 밖)**
+
+- **Canvas 는 field 의 quiet 모양을 그리지 않는다.** `isQuiet` 를 켜도 Canvas 의 상자는 그대로이고 (live: Canvas record 의 테두리 1 · 모서리 6) Preview 만 밑줄이 된다. main 빌드도 같다. 이번에 ComboBox · DatePicker · TextArea 가 Preview 에서 quiet 를 그리게 되면서 이 차이가 6 type → 9 type 으로 넓어졌다. 부품에 `isQuiet` 파생 값이 실리므로 Canvas 쪽은 부품 rule 의 quiet 값을 읽는 일만 남는다 (한쪽 테두리를 rule 노드가 그리는 경로가 필요하다).
+- **Select · DateRangePicker 의 `isQuiet` 는 Preview 에 닿지 않는다** — binding 이 root 에 `data-quiet` 를 내지 않는다. Canvas 도 그리지 않으므로 양쪽에서 효과가 없는 prop 이다.
+
+**남긴 것**
+
+- Phase 6 (정리) 으로: `SelectIcon` type 과 presence 의 `iconName` 파생 · `SelectTrigger` 의 칠하는 variant 중 쓰지 않는 것 · shared 컴포넌트의 props 조립 fallback 과 옛 `renderers/*` · `.inset` utility (파일 삭제는 사용자 승인 뒤).
+- ratchet 의 「하향 가능 5」 는 기록하지 않았다 (상한은 최적화 커밋에서 내린다).

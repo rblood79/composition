@@ -10,8 +10,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * is an instance of its origin, sized by its own rule at its owner's size — and the Input of the
  * fields whose control is their Input node (TextField · TextArea · ColorField). The fields whose
  * control is a wrapper around part instances (ComboBox · NumberField · SearchField) and the date
- * fields (the DateInput origin) are covered below; the `quiet` variant blocks follow with the
- * quiet step.
+ * fields (the DateInput origin) are covered below, and the `quiet` shape of a field's box (the
+ * box part's own state).
  */
 const LABEL_SELECTOR = ".react-aria-Label";
 const PART_VARIABLES =
@@ -272,5 +272,48 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     };
     for (const [type, rule] of rules) visit(type, rule.structure?.composition);
     expect(found).toEqual([]);
+  });
+
+  /**
+   * RSP `isQuiet`: the underline shape of a quiet field's box is the box part's own state
+   * (`&[data-quiet]` in the Input · DateInput rule) — one definition. No field rule repeats it for
+   * the part (a Select's trigger and a range picker's Group are those fields' own boxes).
+   */
+  it("the quiet shape of a field's box is the box part's state", () => {
+    const found: string[] = [];
+    for (const [type, rule] of rules) {
+      const variants = (
+        rule.structure?.composition as
+          { containerVariants?: Record<string, unknown> } | undefined
+      )?.containerVariants;
+      const text = JSON.stringify(variants?.quiet ?? {});
+      for (const token of [".react-aria-Input", ".react-aria-DateInput"])
+        if (text.includes(token)) found.push(`${type} quiet ${token}`);
+    }
+    expect(found).toEqual([]);
+    for (const [type, focus] of [
+      ["Input", "data-focused"],
+      ["DateInput", "data-focus-within"],
+    ] as const) {
+      const selectors = (
+        (COMPONENT_RULES_TABLE as Record<string, (typeof rules)[number][1]>)[
+          type
+        ].structure?.composition as
+          { rootSelectors?: Record<string, { styles?: Styles }> } | undefined
+      )?.rootSelectors;
+      expect(selectors?.["&[data-quiet]"]?.styles).toMatchObject({
+        background: "transparent",
+        "border-bottom": "1px solid var(--border)",
+        "border-radius": "0",
+      });
+      expect(
+        selectors?.[`&[data-quiet][${focus}]`]?.styles?.["border-bottom-color"],
+      ).toBe("var(--accent)");
+      expect(
+        selectors?.["&[data-quiet][data-invalid]"]?.styles?.[
+          "border-bottom-color"
+        ],
+      ).toBe("var(--negative)");
+    }
   });
 });

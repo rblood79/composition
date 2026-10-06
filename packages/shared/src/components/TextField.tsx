@@ -112,7 +112,12 @@ export function TextField({
       {renderFieldLabel(label, necessityIndicator, isRequired)}
       {renderFieldInput(
         inputElement,
-        <Input type={type} placeholder={placeholder} data-size={size} />,
+        <Input
+          type={type}
+          placeholder={placeholder}
+          data-size={size}
+          data-quiet={isQuiet ? "true" : undefined}
+        />,
       )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}

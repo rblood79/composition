@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [quiet field 의 밑줄을 입력칸 원본이 그린다 (ADR-253 Phase 3 완료)] - 2026-10-07
+
+### Changed
+
+- field 의 Quiet (`isQuiet`) 모양 — 배경 없음 · 밑줄 · 각진 모서리 — 을 입력 상자 부품 (Input · DateInput) 이 자기 상태로 그린다. 8 field 가 따로 적던 선언이 한 정의가 됐다.
+- Preview 에서 Quiet 인 TextArea · ComboBox · DatePicker 가 밑줄 모양이 된다 (전에는 켜도 상자 그대로였다).
+- Quiet 인 입력칸에 마우스를 올리면 밑줄 색이 진해진다 (전에는 TextField · ColorField 에서 변화가 없었다).
+- Styles 패널에서 Select 의 값 (선택된 글자) 을 고르면 그 노드를 그대로 편집한다 (전에는 「Select 에서 편집」 안내). 글자 내용은 계속 Select 의 Placeholder 가 정한다.
+
+### Known issues
+
+- Builder Canvas 는 field 의 Quiet 모양을 그리지 않는다 (Preview 만 밑줄). 이전부터 있던 차이이고 이번에 대상 field 가 늘었다.
+- Select · DateRangePicker 의 Quiet 는 Builder 와 Preview 어디에도 반영되지 않는다.
+
+### Performance
+
+- Phase 3 전체 (부품이 원본 instance) 의 비용: field 100개 격자에서 편집 한 번의 그리기 준비 (`record.content`) 4.1 → 4.6 ms (p50, 전환 전후 교대 3쌍). 프레임 간격은 같다. initial 번들은 줄었다 — Builder JS −1,879 B · CSS −2,545 B, Preview JS −3,121 B · CSS −3,100 B (gzip).
+
+### Tests
+
+- `adr253FieldPartsDom.test.ts` 316건 (+10) · 정적 `adr253PartShapeOwner.static.test.ts` 9건 (+1) · 원복 RED 10종.
+- live `adr253-p3-quiet-live.mjs` 7/7: 9 field 의 Quiet 쉬는 상태 · hover · focus · invalid · 끄기 (Preview computed style, main 빌드와 대조). 시각 하니스 69/70 (남은 1건 CardView — 무관).
+- 성능 하니스에 field 격자 fixture (`perf-baseline.mjs --fixture-kind fields`).
+
 ## [날짜 field 의 입력 상자가 DateInput 원본을 따른다 (ADR-253 Phase 3 — 날짜 4종)] - 2026-10-07
 
 ### Added

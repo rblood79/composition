@@ -172,5 +172,29 @@
     outline-color: var(--negative);
   }
 
+  :is(.react-aria-Input, .react-aria-TextArea)[data-quiet] {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea)[data-quiet][data-hovered]:not([data-focused]):not([data-disabled]) {
+    border-color: transparent;
+    border-bottom-color: var(--border-hover);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea)[data-quiet][data-focused] {
+    outline: none;
+    border-color: transparent;
+    border-bottom-color: var(--accent);
+  }
+
+  :is(.react-aria-Input, .react-aria-TextArea)[data-quiet][data-invalid] {
+    border-color: transparent;
+    border-bottom-color: var(--negative);
+  }
+
 
 } /* @layer components */

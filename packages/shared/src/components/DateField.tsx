@@ -157,7 +157,9 @@ export function DateField<T extends DateValue>({
     >
       {renderFieldLabel(label, necessityIndicator, props.isRequired)}
       {inputElement ?? (
-        <DateInput>{(segment) => <DateSegment segment={segment} />}</DateInput>
+        <DateInput data-quiet={isQuiet ? "true" : undefined}>
+          {(segment) => <DateSegment segment={segment} />}
+        </DateInput>
       )}
       {renderFieldDescription(description)}
       {renderFieldError(errorMessage)}

@@ -117,16 +117,15 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
 > = {
   // (DateInput 은 ADR-253 부터 DateInput 원본의 instance 다 — DOM 이 그 노드를 직접 그리고 style 은 노드
   //   자신이 정본이라 sub-part 가 아니다.)
-  // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 렌더러 (`FormRenderers` · `SelectionRenderers`
-  //   · `DateRenderers`) 는 canonical SelectTrigger 를 SelectValue 손자를 찾는 경로로만 쓰고 그 style·props 는
-  //   읽지 않는다 — 래퍼 상자는 parent rule delegation 이 그린다: NumberField · DatePicker · DateRangePicker
-  //   `.react-aria-Group`, ComboBox `.combobox-container`, SearchField `.searchfield-container`, Select 은 RAC
-  //   Select 의 trigger 가 Button 자체 (`.react-aria-Button` 안에 SelectValue + chevron).
+  // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 은 field 의 shared 컴포넌트가 그 상자
+  //   (RAC `Group` · container div) 를 직접 만들고 래퍼 노드의 style · props 는 읽지 않는다 — 상자의 배치는
+  //   parent rule delegation 이 준다: NumberField · DatePicker · DateRangePicker `.react-aria-Group`,
+  //   ComboBox `.combobox-container`, SearchField `.searchfield-container`. (Select 는 ADR-253 부터 래퍼가
+  //   없다 — trigger 가 Button 원본의 instance 다.)
   SelectTrigger: [
     ".react-aria-Group",
     ".combobox-container",
     ".searchfield-container",
-    ".react-aria-Button",
   ],
 };
 
@@ -160,6 +159,9 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   //   `errorMessage` 가 정본이다.
   Description: FIELD_HINT_PARENTS,
   FieldError: FIELD_HINT_PARENTS,
+  // Select 의 값 (trigger Button 안의 RAC `SelectValue`): 글자는 Select 의 `placeholder` · 선택 항목이
+  //   정본이다. style 은 노드 자신이 정본이다 — DOM 이 그 노드를 직접 그린다 (ADR-253).
+  SelectValue: ["Select"],
   // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
   //   NumberField · ComboBox · SearchField 의 입력칸은 래퍼 (Group · container) 안에 있다 — 래퍼를 건너 field 로 판정한다.
   Input: [
@@ -222,21 +224,15 @@ export const SUBPART_HOP_WRAPPER_TYPES: ReadonlySet<string> = new Set([
 export const SUBPART_HOP_CHILD_TYPES: ReadonlySet<string> = new Set([]);
 
 /**
- * **style 축만** read-only 인 sub-part (2026-09-04 판정 A) — child type → 그 style 을 소유하는 field parent.
+ * **style 축만** parent 소유인 sub-part — child type → 그 style 을 소유하는 field parent. 지금은 없다.
  *
- * SelectValue 는 DOM 렌더러가 `children` / `placeholder` 를 **자식 우선**으로 읽어 텍스트 축은 자식이 정본이지만
- * (`SelectionRenderers` renderSelect:1152 · renderComboBox:1566, `FormRenderers` SearchField:397), style 은 어디에서도
- * 읽지 않는다 (실측 SearchField: 자식에 fontSize 30 · marginTop 30 을 얹어도 DOM 14px · 0px 불변). Canvas 는 자식
- * 인라인을 그대로 먹어 21 → 318 로 부푼다. 그래서 **style 축만** parent 소유로 귀속한다 — Styles 패널은 owner 안내,
- * Canvas read 경로는 인라인 무시. 텍스트/placeholder 편집 surface (Properties 패널) 는 자식에 남는다.
- * 구조값 (flex 1 · minWidth 0 · fontSize · nowrap/ellipsis) 은 implicitStyles selecttrigger 분기의 read-through
- * 주입이 유일 채널이라 인라인을 걷어내도 그대로다.
+ * 2026-09-04 판정 A 의 대상이던 SelectValue (Select · ComboBox · SearchField — DOM 이 자식의 글자는 읽고 style 은
+ * 읽지 않았다) 는 ADR-253 에서 사라졌다: ComboBox · SearchField 의 입력칸은 Input 원본의 instance 이고, Select 의
+ * SelectValue 는 DOM 이 노드를 직접 그려 style 이 노드 자신의 것이다 (글자 축만 Select — `TEXT_ONLY_SUBPART_PARENTS`).
  */
 export const STYLE_ONLY_SUBPART_PARENTS: Readonly<
   Record<string, readonly string[]>
-> = {
-  SelectValue: ["Select", "ComboBox", "SearchField"],
-};
+> = {};
 
 function delegationSelectors(parentType: string): string[] {
   const rule = resolveComponentRuleByTag(parentType);
