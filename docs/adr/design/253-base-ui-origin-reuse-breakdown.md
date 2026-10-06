@@ -379,6 +379,7 @@ padding · 글자 크기 · 줄 높이 · 테두리 굵기 · 폭 · TextArea �
 - live `apps/builder/scripts/adr253-p3-input-live.mjs` 10/10 (worktree 빌드 5175 · headed Chrome · DPR 1 · visible): 팔레트 클릭으로 6종을 놓음 → 세 field 의 Input 이 Canvas 와 Preview 에서 같은 상자 (field 기준 x · y · 폭 · 높이 ≤ 1px) · padding · 글꼴 · 모서리 — md · xl · sm · side 라벨 → Preview 의 hover (테두리색) · focus (2px outline + 테두리색) · invalid · disabled (root 0.38 · 입력칸 1) → quiet → Preview 에서 글자를 넣으면 값이 들어간다 → Components page 의 Input 원본에 테두리색 · 모서리 0 을 두 번 쓰면 세 field 가 양쪽에서 바뀐다 → TextField 의 Input 에만 쓰면 그것만 → undo 로 처음 값. 콘솔 오류 0.
 - 대조군: 같은 스크립트를 main 빌드 (5173) 에 돌려 Preview 의 computed style 을 비교했다. 다른 것은 위 변화 목록의 항목과, 컨테이너가 상자를 그리는 세 field 의 안쪽 입력칸 focus `outline-offset` (0 → −1px, outline 이 `none` 이라 보이지 않음) 뿐이다. quiet 는 세 field 모두 같다.
 - Builder 화면 자체: 두 빌드에서 세 화면 상태의 입력칸 computed style 을 비교했다 — TextField 를 선택한 Builder (Components 검색 · AI 입력 · Design 패널, 14개) · Data · Data Editor · Interactions 패널을 연 뒤 (14개) · 새 프로젝트 대화상자 (2개) · 속성 패널 입력칸의 focus 상태. 차이 0. (처음에는 `base.css` 블록만 지워 패널 입력칸의 폭 · 모서리가 달라졌고, 이 비교에서 잡았다.)
+- G6: `pnpm gate:perf-ratchet` 통과 (커밋 `57f5df660`, 시드 60 · 600 — A등급 증가 0). `scene.build` Δ 와 initial 번들은 Phase 3 끝에서 전환 전 빌드와 교대로 잰다.
 - 한계: Components page 열기 · 값 쓰기 · size 변경은 패널이 내는 것과 같은 호출로 했다. Preview 의 hover 는 Preview 문서 안 PointerEvent 로 줬다. Builder 화면의 비교는 위 세 상태에서 보이는 입력칸까지다. 나머지는 코드로 확인했다: 로그인 화면 · Builder 검색칸 · 필드 템플릿 입력은 자기 CSS 가 테두리 · padding · outline 을 직접 정하고 (`builder-system` layer), 글꼴 · 아이콘 선택기 · 캔버스 간격 입력은 자기 class 를 써서 `.react-aria-Input` 에 걸리지 않는다.
 
 **남긴 것**
@@ -386,3 +387,12 @@ padding · 글자 크기 · 줄 높이 · 테두리 굵기 · 폭 · TextArea �
 - Preview 에서 원본 override 로 쓴 테두리색 · 배경은 inline 이라 hover · focus · invalid 색을 덮는다 (G1 의 「Preview 상태별 값」 판정과 같은 채널 문제 — 본문 Status).
 - quiet 변형 (위) · TextArea 의 quiet.
 - ComboBox · NumberField · SearchField 의 delegation 은 지금 아무도 읽지 않는 `--input-*` bridge 를 아직 적고 있다 (직접 선언이 같이 있어 화면은 같다). Group · Button 단계에서 delegation 과 함께 지운다.
+
+### Phase 3 (3b) DateInput — Group · Button 단계로 옮김 (2026-10-06)
+
+DateInput 은 DateField · TimeField 만 먼저 바꾸지 않고, picker 2종 (DatePicker · DateRangePicker) 의 Group · Button 과 한 번에 바꾼다. 순서만 바뀌고 Phase 3 의 범위는 그대로다.
+
+- DateInput rule 이 자기 stylesheet 를 내면 selector 는 `.react-aria-DateInput` 이고, picker 안의 DateInput (shared `DatePicker.tsx` · `DateRangePicker.tsx` 가 조립하는 요소 — `data-size` 없음) 에도 닿는다. 두 picker 의 delegation 은 그 요소에 padding · border · background · font-size 만 적는다 (`T` DatePicker · DateRangePicker 의 `.react-aria-DateInput` bridge). 적지 않은 것이 새로 걸린다: 줄 높이 (지금은 Group 의 것을 물려받는다 — md 밖 크기에서 높이가 바뀐다) · hover 배경 (`[data-hovered]:not(…)` 의 특이도가 picker 의 `background: transparent` 보다 높다) · DateRangePicker 의 `display` (지금 block).
+- Canvas 도 같다: picker 의 DateInput 노드는 지금 rule 상자를 쓰지 않는다 (`manualBoxRules` 의 DateInput `replace`). rule 이 상자를 내면 picker 의 DateInput record 에 줄 높이가 생기고, partRule 컴파일은 `inherit` 을 옮기지 못한다.
+- 그래서 DateField · TimeField 만 바꾸려면 두 picker rule 에 「새 규칙을 되돌리는」 선언과 Canvas 특례를 임시로 넣어야 하고, 그것은 다음 단계에서 picker 의 delegation · template 을 다시 쓸 때 전부 지운다. Phase 2 에서 TextField 의 delegation 정리를 TextArea 와 같이 하려고 미룬 것과 같은 판단이다.
+- 같이 옮기는 것: DateSegment (4 부모가 각자 적는 조각 모양 — DateInput 의 내부 조각이고 Canvas 가 부모 delegation 에서 읽는다) · `.inset` utility (지금 쓰는 곳은 DateField · TimeField 의 DateInput 과 `Field.tsx` 의 Input 뿐 — DateInput 이 자기 sheet 를 가지면 utility 를 지울 수 있다) · DateInput 과 Input 의 hover 차이 (DateInput 은 `.inset` 이라 배경도 바뀌고, Input 은 테두리색만 — 지금 화면 그대로 두었다. 하나로 모을 때 변화 목록에 적는다).

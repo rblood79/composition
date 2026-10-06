@@ -12,7 +12,7 @@ Accepted — 2026-10-06 (실행 중 — Phase 1 · 2 main 병합 · push `1d6626
 >
 > **Phase 3 (2) FieldError · Description** (같은 날, 브랜치): 두 부품의 원본을 등록하고 field · 그룹 13종의 도움말 · 오류 문구 자리를 그 instance 로 했다. Canvas 가 처음으로 도움말과 오류 문구를 그린다 (지금까지 DOM 만 그렸다). Preview 는 그 노드를 RAC 컴포넌트로 그려 자체 validation 오류가 보인다 (required · email — 전환 전에는 표시 없음, G3 ②). 부모 rule 의 두 부품 모양 선언 0. 남은 단계: Input · DateInput → Group · Button.
 
-> **Phase 3 (3a) Input** (같은 날, 브랜치): Input 원본을 등록하고 TextField · TextArea · ColorField 의 입력칸을 그 instance 로 했다. Input rule 이 자기 stylesheet (크기 단계 + hover · focus · invalid) 를 내고, 수동 `base.css` 블록과 TextField · ColorField 의 모양 delegation 을 지웠다. Preview 는 Input 노드를 RAC `Input` 으로 그린다 (`data-size` + 문서가 쓴 값만 inline). 바뀌는 화면: 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리 (breakdown §6 의 변화 목록). 남은 단계: DateInput → Group · Button (ComboBox · NumberField · SearchField 의 입력칸 포함).
+> **Phase 3 (3a) Input** (같은 날, 브랜치): Input 원본을 등록하고 TextField · TextArea · ColorField 의 입력칸을 그 instance 로 했다. Input rule 이 자기 stylesheet (크기 단계 + hover · focus · invalid) 를 내고, 수동 `base.css` 블록과 TextField · ColorField 의 모양 delegation 을 지웠다. Preview 는 Input 노드를 RAC `Input` 으로 그린다 (`data-size` + 문서가 쓴 값만 inline). 바뀌는 화면: 입력칸 모서리가 크기를 따른다 · ColorField 가 TextField 와 같은 입력칸 · disabled 겹침 흐림 수리 (breakdown §6 의 변화 목록). 남은 단계: Group · Button — DateInput (DateField · TimeField · picker 2종 을 한 번에: 따로 바꾸면 picker 에 새 규칙이 새어 든다 — breakdown §6) 과 ComboBox · NumberField · SearchField 의 입력칸 포함.
 
 사용자 요청: `/create-adr` (2026-10-06). 방향은 같은 날 대화에서 사용자가 정했다.
 
