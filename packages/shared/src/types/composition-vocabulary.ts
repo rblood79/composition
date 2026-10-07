@@ -138,6 +138,7 @@ export type ComponentTag =
   | "ToggleButtonGroup"
   | "Toolbar"
   | "Tooltip"
+  | "TooltipTrigger"
   | "Tree"
   // ── pencil 공용 구조 타입 3개 ──
   | "ref"

@@ -79,6 +79,20 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Label weight 500 (ADR-253 — the Label rule's default; old 600 measures 1.0–1.8px wider)",
   },
   {
+    // ADR-255 (사용자 선택 2026-10-07 「레퍼런스 구조로」): Popover · Tooltip 원본 = trigger 조합
+    //   (DialogTrigger > Button + Popover · TooltipTrigger > Button + Tooltip). 두 소비자 모두 닫힌
+    //   overlay 를 그리지 않아 놓은 모습이 trigger 버튼이다. old 캡처는 열린 카드 · 상자 — 루트와
+    //   버튼이 old 의 overlay · 제목 (설명) 과 순서로 짝지어진다.
+    id: "overlay-origin-trigger-composition",
+    class: "decided",
+    owners: ["Popover", "Tooltip"],
+    nodes: ["DialogTrigger", "TooltipTrigger", "Button"],
+    axes: ALL,
+    paint: true,
+    reason:
+      "Popover · Tooltip origins = their trigger + the closed overlay (ADR-255 — old: the open overlay without a trigger)",
+  },
+  {
     // ADR-254 Phase 2 (Accepted 2026-10-07 — G0 변화 목록): InlineAlert 의 제목 · 설명은 Heading ·
     //   Description 원본의 instance 라 줄 높이가 부품 rule 의 값이다 (제목 md 1.4 → 1.5, 설명은 한 단계
     //   위 lg 1.5 → 1.429). 글자 크기는 그대로 — 제목 높이 22.4 → 24, 설명이 그만큼 내려가고 줄 높이만큼
@@ -571,6 +585,17 @@ export interface ApprovedUnpaired {
 }
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
+  {
+    // ADR-255: the Popover origin's closed overlay takes no box — the old open card's description
+    //   pairs with nothing on the new side (its title pairs with the trigger Button, above).
+    id: "overlay-origin-closed-overlay",
+    class: "decided",
+    owners: ["Popover", "Tooltip"],
+    side: "old",
+    oldPath: /^component-(popover|tooltip)__\d+$/,
+    reason:
+      "the closed overlay's parts take no box (ADR-255 — old: the open overlay's title · description)",
+  },
   {
     id: "toggle-indicator-node",
     class: "decided",

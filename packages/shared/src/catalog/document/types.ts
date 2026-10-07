@@ -13,9 +13,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * origin whose slot the items fill — `component-select__item-1` sits below it). 6 — ADR-254
  * Phase 2: the title and description positions of the Dialog · Popover · Card · InlineAlert ·
  * Tooltip origins (`component-card__title` …) are instances of the Heading · Description origins.
+ * 7 — ADR-255: the Popover origin is `DialogTrigger > Button + Popover`, the Tooltip origin
+ * `TooltipTrigger > Button + Tooltip` (the overlay one level down, `component-popover__overlay`).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 6 as const;
+export const LIBRARY_CONTRACT_VERSION = 7 as const;
 
 export type EntryKind =
   | "project"

@@ -194,6 +194,7 @@
 @import "./generated/Modal.css";
 @import "./generated/Dialog.css";
 @import "./generated/DialogTrigger.css";
+@import "./generated/TooltipTrigger.css";
 @import "./generated/Popover.css";
 @import "./Popover.css"; /* animations, placement, Dialog position:static override */
 

@@ -25,6 +25,8 @@ export type CatalogTypeOf = (node: CatalogConsumerNode) => string;
 const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
   {
     DialogTrigger: new Set(["Dialog", "Modal", "Popover"]),
+    // ADR-255: RAC TooltipTrigger — the Tooltip shows on the trigger's hover / focus.
+    TooltipTrigger: new Set(["Tooltip"]),
     DatePicker: new Set(["Calendar", "Popover"]),
     DateRangePicker: new Set(["RangeCalendar", "Calendar", "Popover"]),
     Select: new Set(["ListBox", "ListBoxItem", "ListBoxSection", "Popover"]),

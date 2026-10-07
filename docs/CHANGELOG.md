@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Popover · Tooltip 이 Preview 에서 동작 — ADR-255 · 범위 밖 수리 2건] - 2026-10-07
+
+### Changed
+
+- **팔레트 Popover · Tooltip = trigger 조합** (ADR-255): Popover 는 `DialogTrigger > Button + Popover`, Tooltip 은 `TooltipTrigger > Button + Tooltip` (react-aria 레퍼런스 구조). 놓으면 Builder 와 Preview 모두 버튼이 보이고, Preview 에서 누르면 Popover 가, 키보드 focus · hover 로 Tooltip 이 열린다 (전에는 Canvas 에만 열린 카드가 있고 Preview 에는 아무것도 없었다). 놓은 Popover · Tooltip 의 Properties 에서 placement · offset · size 등 overlay 의 prop 을 그대로 고친다. 저장 형식 contract 7 (앞 버전 문서는 열리지 않는다).
+
+### Added
+
+- **TooltipTrigger** 컴포넌트 타입 (RAC TooltipTrigger — Tooltip 원본의 루트, 팔레트에는 없다).
+
+### Fixed
+
+- **Card 제목 · 설명을 Canvas 더블클릭으로 고칠 수 있다** — 더블클릭이 CardHeader 에서 멈추던 것을, 더 들어갈 수 없는 자리에서는 포인터 아래 글자를 편집하도록 (글자는 Card 의 `title` · `description` 에 쓴다).
+- quiet field 밑줄 폭을 border 기하 helper 로 읽어 ADR-219 정적 게이트를 복구했다 (값 변화 0).
+
 ## [ADR-254 Implemented — 바탕의 부품 사슬] - 2026-10-07
 
 ### Changed

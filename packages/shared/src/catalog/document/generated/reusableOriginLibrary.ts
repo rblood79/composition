@@ -1193,8 +1193,24 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-popover",
     "name": "Popover",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "size": "string",
+      "hideArrow": "boolean",
+      "placement": "string",
+      "offset": "number",
+      "crossOffset": "number",
+      "shouldFlip": "boolean",
+      "containerPadding": "number"
+    },
+    "defaults": {
+      "size": "md",
+      "hideArrow": false,
+      "placement": "bottom",
+      "offset": 8,
+      "crossOffset": 0,
+      "shouldFlip": true,
+      "containerPadding": 12
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-popover"
@@ -1203,8 +1219,24 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-tooltip",
     "name": "Tooltip",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "variant": "string",
+      "size": "string",
+      "placement": "string",
+      "offset": "number",
+      "crossOffset": "number",
+      "shouldFlip": "boolean",
+      "containerPadding": "number"
+    },
+    "defaults": {
+      "variant": "neutral",
+      "size": "md",
+      "placement": "top",
+      "offset": 0,
+      "crossOffset": 0,
+      "shouldFlip": true,
+      "containerPadding": 12
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-tooltip"
@@ -5787,13 +5819,38 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-popover",
+    "definitionId": "lib:definition:type-DialogTrigger",
+    "children": [
+      "lib:template:component-popover__trigger",
+      "lib:template:component-popover__overlay"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-popover__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "children": "Open Popover"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-popover__overlay",
     "definitionId": "lib:definition:type-Popover",
     "children": [
       "lib:template:component-popover__1",
       "lib:template:component-popover__2"
     ],
     "props": {
-      "size": "md"
+      "size": "{size}",
+      "hideArrow": "{hideArrow}",
+      "placement": "{placement}",
+      "offset": "{offset}",
+      "crossOffset": "{crossOffset}",
+      "shouldFlip": "{shouldFlip}",
+      "containerPadding": "{containerPadding}"
     },
     "visual": {
       "width": "240px"
@@ -5827,11 +5884,38 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tooltip",
+    "definitionId": "lib:definition:type-TooltipTrigger",
+    "children": [
+      "lib:template:component-tooltip__trigger",
+      "lib:template:component-tooltip__overlay"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tooltip__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "children": "Hover me"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tooltip__overlay",
     "definitionId": "lib:definition:type-Tooltip",
     "children": [
       "lib:template:component-tooltip__1"
     ],
-    "props": {},
+    "props": {
+      "variant": "{variant}",
+      "size": "{size}",
+      "placement": "{placement}",
+      "offset": "{offset}",
+      "crossOffset": "{crossOffset}",
+      "shouldFlip": "{shouldFlip}",
+      "containerPadding": "{containerPadding}"
+    },
     "visual": {}
   },
   {

@@ -13009,6 +13009,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-255: the Tooltip origin's root — the same layout box as DialogTrigger (the trigger shows,
+  //   the closed Tooltip does not take a box on either side).
+  TooltipTrigger: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "12px",
+        width: "fit-content",
+      },
+    },
+  },
   Tree: {
     defaultVariant: "default",
     defaultSize: "md",

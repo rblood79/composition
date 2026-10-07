@@ -6,6 +6,7 @@ import { ComboBox } from "@composition/shared/components/ComboBox";
 import { DatePicker } from "@composition/shared/components/DatePicker";
 import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
+import { TooltipTrigger } from "@composition/shared/components/TooltipTrigger";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { FileUpload } from "@composition/shared/components/FileUpload";
@@ -72,6 +73,8 @@ export const INTERNAL_RENDERERS: Readonly<
   modal: Modal,
   popover: Popover,
   tooltip: Tooltip,
+  // ADR-255: the Tooltip origin's root.
+  tooltiptrigger: TooltipTrigger,
   dropzone: DropZone,
   fileupload: FileUpload,
   calendar: Calendar,

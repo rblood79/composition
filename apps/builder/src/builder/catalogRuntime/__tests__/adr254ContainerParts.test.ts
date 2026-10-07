@@ -251,9 +251,15 @@ function expectSinceConversion(
   before: PartsOf,
 ) {
   const alertSize = authored.size ?? "md";
-  expect(Object.keys(now.records)).toEqual(Object.keys(before.records));
+  // ADR-255: a Popover · Tooltip origin is its trigger and its overlay — the parts sit one level
+  // down (in the overlay, `__overlay`, after the trigger Button).
+  const moved = type === "popover" || type === "tooltip";
+  const pathNow = (path: string) => (moved ? `/1${path}` : path);
+  expect(Object.keys(now.records)).toEqual(
+    Object.keys(before.records).map(pathNow),
+  );
   for (const [path, was] of Object.entries(before.records)) {
-    const part = now.records[path]!;
+    const part = now.records[pathNow(path)]!;
     expect(part.binding).toBe(was.binding);
     expect(part.text).toBe(was.text);
     expect(part.visual.fontSize).toBe(was.visual.fontSize);

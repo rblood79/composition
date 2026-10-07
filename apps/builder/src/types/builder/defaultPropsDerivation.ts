@@ -137,4 +137,6 @@ export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   //   factory(createFileUploadDefinition) 도 같은 파생을 부모 props 로 쓴다 (두 진입로 동일 값).
   "FileUpload",
   "DialogTrigger",
+  // ADR-255: the Tooltip origin's root (entry-derived defaults, as DialogTrigger).
+  "TooltipTrigger",
 ]);

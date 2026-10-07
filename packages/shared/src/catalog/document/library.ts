@@ -177,6 +177,9 @@ export function instanceContract<
   };
 }
 
+/** A template value that is one binding and nothing else (`{offset}`). */
+const WHOLE_BINDING = /^\{(\w+)\}$/;
+
 /** Build-time or test-only. No global registration and no Builder import. */
 export function buildCatalogLibrary(
   input: CatalogLibraryInput,
@@ -279,6 +282,26 @@ export function buildCatalogLibrary(
       (id) => definitions.get(id as LibraryDefinitionId),
       (id) => templates.get(id as LibraryTemplateId),
     );
+  // The origin that unfolds each template node (its tree's root → the composite whose
+  // `templateRootId` it is): a `{name}` binding reads that origin's prop (ADR-255).
+  const templateParent = new Map<string, string>();
+  for (const node of templates.values()) {
+    for (const child of node.children) templateParent.set(child, node.id);
+    for (const fill of node.slotFills ?? [])
+      for (const child of fill.childIds) templateParent.set(child, node.id);
+  }
+  const originByRoot = new Map<string, Readonly<LibraryDefinition>>();
+  for (const definition of definitions.values())
+    if (definition.mode === "composite" && definition.templateRootId)
+      originByRoot.set(definition.templateRootId, definition);
+  const originOf = (id: string) => {
+    let root = id;
+    for (let parent = templateParent.get(root); parent;) {
+      root = parent;
+      parent = templateParent.get(root);
+    }
+    return originByRoot.get(root);
+  };
   for (const node of templates.values()) {
     if (!definitions.has(node.definitionId as LibraryDefinitionId))
       throw new CatalogValidationError(
@@ -295,6 +318,26 @@ export function buildCatalogLibrary(
           "PROP_NOT_ACCEPTED",
           `${node.id}.${key}`,
         );
+      // A value that is one binding of its origin's prop of the same type (`"offset": "{offset}"`):
+      // the origin's default and its instances' values arrive there, checked by the origin's own
+      // contract — the default must still be one of this position's choices.
+      const bound =
+        typeof value === "string" ? WHOLE_BINDING.exec(value) : null;
+      const origin = bound ? originOf(node.id) : undefined;
+      if (bound && origin?.accepts[bound[1]] === expected) {
+        const choices = definition.propChoices?.[key];
+        const fallback = origin.defaults[bound[1]];
+        if (
+          choices &&
+          fallback !== undefined &&
+          !choices.includes(literal(fallback) as never)
+        )
+          throw new CatalogValidationError(
+            "PROP_CHOICE_MISMATCH",
+            `${node.id}.${key}`,
+          );
+        continue;
+      }
       if (typeof value !== "object" && typeof value !== expected)
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",

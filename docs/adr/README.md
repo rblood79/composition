@@ -153,6 +153,8 @@
 
 > **2026-10-07 열린 계획 재검토 (ADR-248 · 253 뒤)**: 열린 ADR 과 부분 완료 · 보류 항목을 현재 코드와 대조했다 (사용자 지시 「검토해줘」 → 1 · 2 번 승인). 결과 — ① ADR-910 · 911 은 채택한 「canonical 문서 SSOT」 축을 248 이 catalog graph 로 교체했고 입력 reference (`react-aria-starter` · `design.md`) 가 없어 **Superseded by 248** (비교 기록으로 본문 보존, `completed/` 이동). ② ADR-041 잔여 (Hybrid 2 · Custom 25) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 0 파일 → **Superseded by 248**. ③ ADR-198 잔여 Phase 6 · 9 region 이 가리키던 `tests/visual-parity/` 가 248 Phase 4e-9-6 (`e23a5a419`) 에서 삭제됨 → 잔여는 **248 G3 하니스로 이관** (Superseded 표기). ④ 보류 항목 ADR-152 P6 초안은 전제 (`publish/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree`) 가 소멸해 종결, ADR-162 G4 는 측정 심볼 (`layout.publish`) 이 `perfMarks.ts` 에만 남아 재측정 전 유효 여부 미정. ⑤ ADR-921 은 Context 전제 (canonical resolver SSOT) 소멸 + 인용 코드 14 경로 중 10 소멸 — Deprecated 또는 catalog runtime 기준 재작성은 **사용자 판정 대기** (리뷰 round 2 의 미결 질문 「native/SDK 또는 Rust compile 요구가 로드맵에 있는가」). ADR-245 는 10-05 개정으로 정합 (253 영향 0). 열림 −2 (열림 3 — Proposed 3), 완료 +2 (Superseded +4 · Accepted −1 · Implemented −1), 합계 281.
 
+> **2026-10-07 ADR-255 Implemented (작성 · 구현 같은 날)**: Popover · Tooltip 원본을 trigger 조합으로 — 사용자 지시 「범위 밖으로 남긴 것 수정 시작해」 → 해결 방식 질문에 「레퍼런스 구조로」. Popover = `DialogTrigger > Button + Popover`, Tooltip = `TooltipTrigger` (새 type — RAC TooltipTrigger) `> Button + Tooltip`. Canvas · Preview 모두 trigger 버튼, Preview 에서 누르기 · focus 로 열림. 놓은 overlay 의 Properties 는 overlay 의 prop 을 원본 바인딩으로 편집 (라이브러리 검증기가 원본 prop 의 같은 타입 바인딩을 받음). contract 7. ADR-254 F7 정정 (DialogTrigger 안 Popover 는 원래 열렸다). live 4/4 · 시각 하니스 69/70. 같은 날 범위 밖 수리 2건: `borderGeometry.static` 복구 (`a51e5a8b5`) · Card 제목 더블클릭 편집 (`eef51e79f`). 완료 +1 (열림 1 — Proposed 1, 합계 282).
+
 > **2026-10-07 ADR-254 Implemented**: 바탕의 부품 사슬 종결 — Phase 0 · 1 · 2 · 3, G0 ~ G4 통과 (G4 는 사용자 지시 「직접 검증 시작해라」 로 실행자 live). Heading 부품 원본 (AI 가 넣는 Heading 도 instance · 생성 계약 size 상속) · 다섯 컨테이너의 제목 · 설명 9 자리가 Heading · Description 원본 instance · InlineAlert 는 size 전달 (설명 한 단계 위 — `CATALOG_SIZE_STEP`, 굵기 700 → 600 · 줄 높이 rule 값) · Dialog 이름 = 제목 (RAC `slot="title"`, `aria-labelledby`) · Card 설명이 Preview 에 노드 style · 글자 소유 = template 바인딩 (TextField Label 을 고친 뒤 `label` 이 먹지 않던 결함 수리) · contract 6. live 5/5 · 3/3 · 4/4, 시각 하니스 69/70 (CardView 는 전환 전부터). 범위 밖 기록: Card 제목은 더블클릭이 닿지 않음 · `borderGeometry.static` 실패 (`e6360e0d2`). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 281).
 
 > **2026-10-07 ADR-254 Proposed**: 바탕의 부품 사슬 — ADR-253 Decision 8 (공용 바탕 원본) 의 후속 (사용자 「바탕 사슬 후속 ADR 작성해라」). 실측: 다섯 컨테이너 (Dialog · Popover · Card · InlineAlert · Tooltip) 가 공유하는 것은 제목 (heading 4 자리) · 설명 (Description 5 자리) 뿐이고, Heading 은 원본이 없으며, 레퍼런스도 Dialog 와 Popover 가 바탕을 공유하지 않는다 (Popover = 자유 내용 · Modal > Dialog > Heading slot=title). 대안 A 선택 — Heading 부품 원본 신설 + 자리 9곳을 Heading · Description 원본의 instance 로 (노드 수 불변 · contract 6 · InlineAlert 는 size 전달) + Dialog 제목을 RAC `slot="title"` 로 접근성 이름에 연결 (shared Dialog 의 `aria-label` 폴백은 binding 으로). 바탕 원본 (B · C) 은 기각. 리뷰 round 1 (HIGH 2 · MEDIUM 2 · LOW 1 — Dialog 폴백이 RAC `titleId` 를 버림 · InlineAlert size 별 값 · Heading 은 팔레트에 없음 · Popover · Tooltip DOM 대조 공허 · IllustratedMessage) 전부 반영. 부수 결함 기록: Dialog 제목이 접근성 이름이 아님 · Popover 가 Preview 에 보이지 않음 (범위 밖). 열림 +1 (열림 5 — Proposed 5, 합계 281).
@@ -197,8 +199,8 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     280 |
-| ├ Implemented / Complete(d)   |     233 |
+| 완료 (`completed/`)           |     281 |
+| ├ Implemented / Complete(d)   |     234 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
@@ -207,7 +209,7 @@
 | ├ Proposed                    |       1 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **281** |
+| **합계**                      | **282** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >

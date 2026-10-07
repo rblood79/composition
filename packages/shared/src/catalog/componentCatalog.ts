@@ -1071,6 +1071,14 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "tooltip",
     icon: "MessageSquare",
   }),
+  // ADR-255: RAC TooltipTrigger — a trigger and its Tooltip (the Tooltip origin's root, as the
+  //   DialogTrigger is the Dialog · Popover origins'). Not placed on its own.
+  primitiveEntry("TooltipTrigger", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "tooltip trigger",
+    icon: "MessageSquare",
+    placeable: false,
+  }),
   primitiveEntry("DropZone", "overlays", FAMILY_6_CUTOVER, {
     category: "forms",
     label: "drop zone",
