@@ -112,6 +112,31 @@ export function resolveCatalogContextEntry(
 }
 
 /**
+ * The record a double click edits the text of, when it enters nothing (`resolveCatalogContextEntry`
+ * is `undefined`): the click target when it has its own text, else the text drawn under the
+ * pointer inside it. The second case is a container the double click cannot enter — a template
+ * position of an instance (a Card's CardHeader: a context is a document node, and the template id
+ * names that position in every Card), so its text (the Card's title) is edited from there.
+ * `undefined` = no text to edit.
+ */
+export function resolveCatalogTextEditRecord(
+  records: CatalogPickRecords,
+  pickedId: string,
+  targetId: string,
+  hasText: (id: string) => boolean,
+): string | undefined {
+  if (hasText(targetId)) return targetId;
+  if (pickedId === targetId || !hasText(pickedId)) return undefined;
+  for (
+    let record = records.get(pickedId);
+    record;
+    record = records.get(record.parentId)
+  )
+    if (record.parentId === targetId) return pickedId;
+  return undefined;
+}
+
+/**
  * Escape inside a context: the context's record on the selected record's parent chain (it becomes
  * the selection) and the context one level up (`undefined` = back to the page level).
  */

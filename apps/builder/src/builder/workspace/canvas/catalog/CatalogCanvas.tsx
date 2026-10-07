@@ -29,7 +29,10 @@ import {
   notifyNestingRejected,
   showNestingRelocatedToast,
 } from "../interaction/nestingToast";
-import { CatalogCanvasPicking } from "../../../catalogRuntime/canvasPick";
+import {
+  CatalogCanvasPicking,
+  resolveCatalogTextEditRecord,
+} from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
@@ -1204,13 +1207,25 @@ export function CatalogCanvas({
       syncScene();
       const { x, y } = scenePoint(event);
       if (!picking.doubleClick(x, y)) {
-        // Nothing to enter: a double click on an element with its own text edits it inline.
+        // Nothing to enter: a double click on an element with its own text edits it inline — or
+        // the text under the pointer inside a container it cannot enter (a Card's title).
         const target = picking.target(x, y, false);
-        const item =
+        const picked = picking.pick(x, y);
+        const records = workspace.root.domInputs;
+        const id =
           target &&
-          catalogTextKey(workspace.root.domInputs.get(target.id)) &&
-          workspace.itemOfRecord(target.id);
-        if (item) workspace.session.startTextEdit(item);
+          picked &&
+          resolveCatalogTextEditRecord(
+            records,
+            picked,
+            target.id,
+            (record) => !!catalogTextKey(records.get(record)),
+          );
+        const item = id && workspace.itemOfRecord(id);
+        if (item) {
+          if (id !== target!.id) workspace.selectRecords([id]);
+          workspace.session.startTextEdit(item);
+        }
       }
       rehover();
     };
