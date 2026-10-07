@@ -137,9 +137,12 @@ export class CatalogPreviewReceiver {
       ...message.changed.map(
         (entry) => ({ kind: "put", entry }) as CatalogOperation,
       ),
-      ...message.removedIds.map(
-        (id) => ({ kind: "remove", id }) as CatalogOperation,
-      ),
+      // A removed id is one absent at the delta's revision. One the replica never held (made and
+      // taken away between two of the Builder's flushes) is already absent — removing it would
+      // refuse the whole delta (`ENTRY_NOT_FOUND`) and cost a snapshot.
+      ...message.removedIds
+        .filter((id) => graph.getEntry(id) !== undefined)
+        .map((id) => ({ kind: "remove", id }) as CatalogOperation),
     ];
     const touched = [
       ...message.changed.map((entry) => entry.id),
@@ -148,7 +151,8 @@ export class CatalogPreviewReceiver {
     let invalidated: Set<string>;
     try {
       const before = graph.collectAffectedIds(touched);
-      this.apply(graph, ops);
+      // (A delta whose every id was made and removed in between changes nothing here.)
+      if (ops.length) this.apply(graph, ops);
       invalidated = new Set([...before, ...graph.collectAffectedIds(touched)]);
     } catch (error) {
       this.requestOnce();

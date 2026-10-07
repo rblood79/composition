@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview 증분 갱신 — 한 번에 생겼다 지워진 노드] - 2026-10-07
+
+### Fixed
+
+- **한 프레임 안에서 만들어졌다 지워진 노드가 Preview 갱신을 거부시키던 것** (ADR-248 Preview payload — ADR-253 Phase 4 에서 찾음):
+  - **Why**: Builder 는 프레임마다 바뀐 id 를 모아 「있으면 put · 없으면 remove」 로 보낸다. 그 사이에 생겼다 지워진 노드 (예: redo 직후 undo) 도 remove 로 나가는데, Preview 복제본은 그 id 를 가진 적이 없어 delta 전체를 `ENTRY_NOT_FOUND` 로 거부하고 문서 전체를 다시 받았다 (콘솔 `payload rejected` 한 줄). remove 는 「그 revision 에 없다」 는 뜻이므로 복제본에 없는 id 는 건너뛴다.
+  - 위치: `packages/shared/src/catalog/preview/receiver.ts`
+
 ## [Popover · Tooltip 이 Preview 에서 동작 — ADR-255 · 범위 밖 수리 2건] - 2026-10-07
 
 ### Changed

@@ -307,4 +307,40 @@ describe("ADR-248 Phase 4d Preview payload", () => {
     expect(receipts.at(-1)).toBe("delta");
     same();
   });
+
+  /**
+   * A node made and taken away between two frames (an insert and its undo, run together) is named
+   * in the delta's removed ids although the replica never held it: removed means 「absent at this
+   * revision」, so the replica applies the delta instead of refusing it and asking for a snapshot.
+   */
+  it("a node made and removed within one delta is applied, not refused", async () => {
+    const { runtime, channel, sent, flushes, run, same, receipts } = await open(
+      [node("frame", "lib:definition:type-frame", { children: [id("a")] }), text("a", "A")],
+      ["frame"],
+      { deferFlush: true },
+    );
+    channel.onReady();
+    run(
+      insertNodes({
+        parent: { kind: "node", id: id("frame") },
+        entries: [text("b", "B")],
+        rootIds: [id("b")],
+        newId: allocator(),
+      }),
+    );
+    runtime.undo();
+    run(
+      setFields({
+        targets: [{ kind: "node", id: id("a") }],
+        props: { children: { kind: "set", value: "A1" } },
+      }),
+    );
+    flushes.shift()!();
+    const delta = sent.at(-1) as CatalogPreviewDeltaMessage;
+    expect(delta.type).toBe("CATALOG_DELTA");
+    expect(delta.removedIds).toContain(id("b"));
+    expect(receipts).toEqual(["snapshot", "delta"]);
+    expect(sent.map((m) => m.type)).toEqual(["CATALOG_SNAPSHOT", "CATALOG_DELTA"]);
+    same();
+  });
 });
