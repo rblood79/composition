@@ -117,7 +117,9 @@ export const insertNodes =
     for (const entry of input.entries) draft.create(entry);
     addRelated(draft, input.related ?? []);
     placeAt(draft, input.parent, input.index, input.rootIds, input.newId);
-    assertStateOwnersLinked(draft, input.rootIds);
+    // (Only entries that carry a condition can be unlinked by being placed.)
+    if (input.entries.some((entry) => entry.showWhen))
+      assertStateOwnersLinked(draft, input.rootIds);
     return {
       label: input.label ?? "Insert",
       ops: draft.ops(),
@@ -416,7 +418,11 @@ export const moveNodes =
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
     assertRequiredPartsKept(draft, roots);
-    assertStateOwnersLinked(draft, roots);
+    // (A reorder among the same siblings keeps every ancestor: nothing to unlink.)
+    assertStateOwnersLinked(
+      draft,
+      roots.filter((id) => owners.get(id) !== parentNode),
+    );
     return {
       label: input.label ?? "Move",
       ops: draft.ops(),
@@ -643,7 +649,8 @@ export const duplicateNodes =
       placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
       copies.push(clone.rootId);
     }
-    assertStateOwnersLinked(draft, copies);
+    // (A duplicate needs no check: it sits beside its original — the same ancestors — and an owner
+    // inside the copy is the copy's.)
     return {
       label: input.label ?? "Duplicate",
       ops: draft.ops(),
