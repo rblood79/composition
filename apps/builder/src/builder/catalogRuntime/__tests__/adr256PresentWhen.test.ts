@@ -159,13 +159,19 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
     ).toBe(false);
   });
 
-  it("only a field's Label · Description positions declare it; an unknown value is refused", () => {
+  it("only optional Label · Description positions (and a collection item's description Text) declare it; an unknown value is refused", () => {
     const declared = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) => template.presentWhen,
-    ).map((template) => template.definitionId);
+    );
     expect(declared.length).toBeGreaterThan(0);
-    for (const definitionId of declared)
-      expect(definitionId).toMatch(/origin-component-(label|description)$/);
+    for (const template of declared)
+      if (template.definitionId === "lib:definition:text")
+        // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
+        expect(template.props.slot).toBe("description");
+      else
+        expect(template.definitionId).toMatch(
+          /origin-component-(label|description)$/,
+        );
     const template = REUSABLE_ORIGIN_TEMPLATES.find(
       (item) => item.id === "lib:template:component-textfield__1",
     )!;

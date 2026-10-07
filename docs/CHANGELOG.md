@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5c — ListBox · GridList · Menu 항목의 빈 설명] - 2026-10-09
+
+### Changed
+
+- **항목 설명을 비우면 설명 자리가 없어진다** (ADR-256 Decision 7): ListBox · GridList · Menu 항목의 description 글자가 비면 Canvas · Preview 둘 다 그 자리를 그리지 않는다 (전에는 빈 줄을 남겼다). ListBox 구조는 레퍼런스 예제 1 과 같음을 고정했다
+- **저장 형식 contract 12**
+
 ## [ADR-256 Phase 5b — ColorSwatchPicker 항목 층] - 2026-10-09
 
 ### Changed

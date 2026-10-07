@@ -24,10 +24,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * (`component-breadcrumb-item-default__label`, `href` bound to the crumb's) and its separator Icon
  * is there while the crumb is not current (`showWhen: { all: [{ not: "isCurrent" }] }`). 11 —
  * ADR-256 Phase 5b: a ColorSwatchPicker's items are `ColorSwatchPickerItem` positions
- * (`component-colorswatchpicker__1` …, the item `color`) each holding a ColorSwatch instance.
+ * (`component-colorswatchpicker__1` …, the item `color`) each holding a ColorSwatch instance. 12 —
+ * ADR-256 Phase 5c: a ListBox · GridList · Menu item's description Text carries `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 11 as const;
+export const LIBRARY_CONTRACT_VERSION = 12 as const;
 
 export type EntryKind =
   | "project"
