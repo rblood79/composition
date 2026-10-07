@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 ADR-256 Proposed**: RAC 수준의 조립 — 사용자 원칙 「RAC 수준이 되지 않는다면 빌더를 하는 의미가 없다」 (`/create-adr`). 실측: slot 25자리를 손으로 고름 · 넣기 목록은 모든 slot 에 같은 5종 (항목 목록 slot 7곳은 하나도 들어가지 않음 · Card Header/Content 는 채울 수 없음) · 원본 루트 slot 12곳은 instance 에서 채우는 UI 없음 · 원인은 Preview 위임 renderer 47개 중 26개 (props 15 · 선별 8 · 무시 3) 가 자식을 노드 순서대로 그리지 않고, 중첩 규칙 (`SELF_COMPOSED_CONTAINER_CHILD_TYPES`) 이 그 한계를 사용자에게 옮긴 것. 대안 B 선택 — Preview 가 노드 트리를 RAC 부품 그대로 그림 · 원본 template = react-aria.adobe.com 예제 조립 (S2 전용은 react-spectrum.adobe.com) · 넣는 자리 = RAC children 종류 하나의 판정 · 부모 rule 이 그리던 조립 가능 부품을 노드로 · 상태별 표시 `showWhen` · Card S2 구조 (CardHeader 삭제, ADR-240 기각을 뒤집음). A (slot 만) · C (pen.dev 식 자유 slot) · D (합성 컴포넌트 slot prop) 는 목표 미달로 기각. 사용자 확인 3건 답 받음 (contract 거부 허용 · `showWhen` 필드 · Nav/Pagination/FileUpload/Chart 유지) — 리뷰 round 1 뒤 Accepted. 열림 +1 (열림 2 — Proposed 2), 합계 283.
+
 > **2026-10-07 ADR-921 Deprecated** (사용자 결정 「Deprecated 로 닫아라」): RenderScene·Backend 통합 — 편익이 두 번째 소비자 (native · SDK · Rust compiler) 요구에 조건부인데 그 요구가 없고, 단독 편익 R1 (scene truth 3개) 은 ADR-248 이 해소했으며 (`SceneStructureSnapshot` · `SkiaRendererInput` 소멸, `renderCommands.ts` 한 경로), Context 전제 (canonical SSOT) 와 인용 코드 14 중 10 이 사라졌다. 재개 조건 = 그 요구가 확정될 때 catalog runtime 기준의 **새 ADR** (리뷰 round 2 미결 m1 · m2 는 그 Phase 0 진입 조건으로 승계). `completed/` 이동. 열림 −1 (열림 2 — Proposed 2), 완료 +1 (Deprecated +1), 합계 281.
 
 > **2026-10-07 열린 계획 재검토 (ADR-248 · 253 뒤)**: 열린 ADR 과 부분 완료 · 보류 항목을 현재 코드와 대조했다 (사용자 지시 「검토해줘」 → 1 · 2 번 승인). 결과 — ① ADR-910 · 911 은 채택한 「canonical 문서 SSOT」 축을 248 이 catalog graph 로 교체했고 입력 reference (`react-aria-starter` · `design.md`) 가 없어 **Superseded by 248** (비교 기록으로 본문 보존, `completed/` 이동). ② ADR-041 잔여 (Hybrid 2 · Custom 25) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 0 파일 → **Superseded by 248**. ③ ADR-198 잔여 Phase 6 · 9 region 이 가리키던 `tests/visual-parity/` 가 248 Phase 4e-9-6 (`e23a5a419`) 에서 삭제됨 → 잔여는 **248 G3 하니스로 이관** (Superseded 표기). ④ 보류 항목 ADR-152 P6 초안은 전제 (`publish/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree`) 가 소멸해 종결, ADR-162 G4 는 측정 심볼 (`layout.publish`) 이 `perfMarks.ts` 에만 남아 재측정 전 유효 여부 미정. ⑤ ADR-921 은 Context 전제 (canonical resolver SSOT) 소멸 + 인용 코드 14 경로 중 10 소멸 — Deprecated 또는 catalog runtime 기준 재작성은 **사용자 판정 대기** (리뷰 round 2 의 미결 질문 「native/SDK 또는 Rust compile 요구가 로드맵에 있는가」). ADR-245 는 10-05 개정으로 정합 (253 영향 0). 열림 −2 (열림 3 — Proposed 3), 완료 +2 (Superseded +4 · Accepted −1 · Implemented −1), 합계 281.
@@ -224,6 +226,11 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
+#### [256](256-rac-composition-level.md) — RAC 수준의 조립 (노드 트리를 RAC 부품 그대로 · 넣는 자리를 레퍼런스에서)
+
+- **상태**: Proposed — 2026-10-07 (사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 1 대기)
+- **규모**: Phase 0 인벤토리 → 1 판정 하나 → 2 ~ 10 family 전환 (field · toggle · 상태별 표시 · collection · picker · range · overlay · calendar · S2) → 11 종결 (레퍼런스 예제 13개 재현). breakdown: [design/256](design/256-rac-composition-level-breakdown.md)
+
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -253,7 +260,8 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [256](256-rac-composition-level.md)                                                            | Proposed — Phase 0 인벤토리부터 (사용자 원칙 — 빌더의 전제)  | 리뷰 round 1                                                              |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
