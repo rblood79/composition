@@ -1,0 +1,153 @@
+# ADR-254: 바탕의 부품 사슬 — Dialog · Popover · Card · InlineAlert · Tooltip 의 제목 · 설명을 Heading · Description 원본의 instance 로
+
+## Status
+
+Proposed — 2026-10-07
+
+> **2026-10-07 리뷰 round 1 반영** ([reviews/254.md](reviews/254.md) — HIGH 2 · MEDIUM 2 · LOW 1): ① shared Dialog 의 `aria-label="Dialog"` 폴백이 RAC 의 `titleId` 를 버리게 해 (`useDialog.mjs:27`) heading 에 `slot="title"` 만 넘겨서는 연결되지 않는다 → F6 · Decision 4 · 영향 파일에 `Dialog.tsx` 추가 ② InlineAlert 의 제목 · 설명 크기는 InlineAlert `size` 를 따른다 (sm/md/lg 14/16/18 · 12/14/16) → size 전달 + 단계 대응표 (Decision 3) ③ Heading 은 팔레트에 없다 (`PALETTE_ORDER` 에 Text 만) — 「팔레트 Heading 도 instance」 를 뺐고, Heading 노드의 진입 경로 (AI 레이아웃 템플릿) 와 `placeable` 영향을 F3 · R1 에 적었다 ④ Popover · Tooltip 은 DOM 출력 0 이라 DOM 대조가 공허하다 → G0 · G2 의 대상을 열린 Dialog · Card · InlineAlert 로 한정, R4 에 Tooltip 추가 ⑤ IllustratedMessage rule 에도 제목 크기 선언이 있다 (template 에 heading 노드는 없어 범위 밖) → F10. 다섯 건 모두 코드로 확인했다.
+
+사용자 요청: 「바탕 사슬 후속 ADR 작성해라」 (2026-10-07). [ADR-253](completed/253-base-ui-origin-reuse.md) 의 Decision 8 (바탕 사슬) 이 G5 미충족으로 미뤄졌고 (Gate 의 후퇴안 — 「후속은 사용자 결정」), 이 ADR 이 그 후속이다. 전제 기록 (fork 4 질문 · 사용자 confirm): [breakdown §1](design/254-base-part-chain-breakdown.md#1-전제-확정-기록).
+
+## Context
+
+### 목표
+
+ADR-253 은 field 계열의 부품 (Label · Input · Description · FieldError · DateInput · Button) 을 부품 원본의 instance 로 만들어 「원본 하나를 고치면 그 원본을 쓰는 전 컴포넌트가 Builder 와 Preview 에서 같이 바뀐다」 를 field 에서 이뤘다. 남은 것은 **바탕** — Dialog · Popover · Card 같은 컨테이너의 제목 · 설명 · 버튼 줄이다. ADR-253 Decision 8 은 이것을 「공용 바탕 원본」 (pen.dev 의 Card → Dialog → Modal 사슬) 으로 풀려 했고, G5 판정 ([breakdown](design/253-base-ui-origin-reuse-breakdown.md) 「G5 판정」) 에서 그 모양이 composition 의 구조에 맞지 않는다고 결론 났다. 이 ADR 은 같은 목표를 다른 단위로 다시 묻는다: 컨테이너끼리 실제로 공유하는 것이 무엇이고, 그것을 원본으로 두면 무엇이 바뀌는가.
+
+### 지금 되는 것과 안 되는 것 (2026-10-07 실측 · main `e6360e0d2`)
+
+경로 약어: `S/` = `packages/shared/src/` · `L` = `S/catalog/document/generated/reusableOriginLibrary.ts` · `X/` = `S/catalog/runtime/` · `T` = `S/catalog/generated/componentRulesTable.ts` · `C` = `S/catalog/componentCatalog.ts`
+
+| #   | 사실                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | 근거                                                                                                                                                                                                                                                                             |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | 다섯 컨테이너의 template 이 제목 · 설명을 각자 적는다. Dialog = `DialogTrigger` > Button instance + `Dialog` > heading (lg · 600) · frame > Description (lg) · `DialogFooter` > frame + Button instance (`slot: close`). Popover = `Popover` > heading (sm · 600) · Description (md). Card = `Card` > CardPreview · CardHeader > heading (md · 600) · CardContent > Description (lg · 색 `#49454f`) · CardFooter. InlineAlert = heading (`slot: label`) · Description (`slot: description`). Tooltip = Description (md) | `L` `component-dialog__2_1` · `__2_2` · `component-popover__1` · `__2` · `component-card__title` · `__description` · `component-inline-alert__title` · `__description` · `component-tooltip__1`                                                                                  |
+| F2  | 컨테이너끼리 공유하는 노드는 제목 (heading 4곳) 과 설명 (`type-Description` 5곳) 뿐이다. 버튼 줄은 Dialog 에만 있고 그 Button 은 이미 Button 원본의 instance 다. 설명 자리는 ADR-253 Phase 3 이 바꾼 field 13곳 밖에 남은 전부다                                                                                                                                                                                                                                                                                        | `L` (위 자리 9곳) · `C:1376` `BASE_PART_ORIGIN_TYPES`                                                                                                                                                                                                                            |
+| F3  | **Heading 은 원본이 없고 팔레트에도 없다.** Heading 은 primitive 정의 (`lib:definition:heading`) 이고 다섯 컨테이너의 제목이 그 정의를 직접 쓴다. 팔레트 (`PALETTE_ORDER`) 에는 Text 만 있고 Heading 노드는 AI 의 레이아웃 템플릿 경로로만 문서에 들어온다. Description 은 ADR-253 이 만든 부품 원본 (`origin-component-description`) 이 있다. 부품 원본 집합 (`NESTED_REUSABLE_ORIGIN_TYPE_SET`) 에 든 type 의 primitive 는 `placeable: false` 가 돼 AI manifest 가 바뀐다                                             | `C:152` (`primitiveEntry("Heading")`) · `apps/builder/src/builder/panels/components/paletteItems.ts` `PALETTE_ORDER` · `apps/builder/src/services/ai/templates/layoutTemplates.ts` · `S/catalog/document/codeCatalogLibrary.ts:656-662` · `C:1376` · `C:1470-1476` (`placeable`) |
+| F4  | 레퍼런스는 Dialog 와 Popover 가 바탕을 공유하지 않는다. Popover 예제 = `DialogTrigger` > Button + `Popover` > 자유 내용 (Dialog · Heading 없음). Modal 예제 = `DialogTrigger` > Button + `Modal` > `Dialog` > `Heading slot="title"` + 내용 + 버튼. 공유되는 것은 부품 (Heading · Button) 이다                                                                                                                                                                                                                          | react-aria.adobe.com `Popover.md` · `Modal.md` (2026-10-07 curl) · [ADR-240](completed/240-named-regions-free-content-slots.md) R2                                                                                                                                               |
+| F5  | shared Popover 는 안에 Dialog 를 두지 않는다 — Dialog 의 padding 이 picker 의 dropdown 으로 새던 회귀를 걷어낸 구조다                                                                                                                                                                                                                                                                                                                                                                                                   | `S/components/Popover.tsx` (주석 「기존 `<Dialog>` 래핑은 … 회귀 원인」)                                                                                                                                                                                                         |
+| F6  | **Dialog 의 제목은 접근성 이름이 아니다.** 원인이 둘이다: DOM 의 heading binding 이 RAC `slot` 을 넘기지 않고, shared Dialog 가 `aria-labelledby` 가 없으면 `aria-label="Dialog"` 를 넣는데 RAC `useDialog` 는 `aria-label` 이 있으면 `titleId` 를 버린다 — 그래서 `slot="title"` 만 넘겨서는 연결되지 않는다 (레퍼런스는 `Heading slot="title"` 과 aria-label 없음)                                                                                                                                                    | `S/components/Dialog.tsx:33-37` · `X/domBinding.tsx:498-505` · react-aria 3.52.0 `dist/private/dialog/useDialog.mjs:27` (`titleId = props['aria-label'] ? undefined : titleId`)                                                                                                  |
+| F7  | **Popover 원본은 Preview 에 보이지 않는다.** Popover · Modal · Tooltip 은 닫힌 overlay 로 DOM 출력 0 이고 (`DialogTrigger` 안에서도 같다 — 부모를 보지 않는다), `bindings` 에 `popover` 가 없다. Canvas 도 `DialogTrigger` 안의 Popover 를 숨긴다. 놓은 Popover 는 Canvas 에만 있다                                                                                                                                                                                                                                     | `X/domBinding.tsx:758-772` (`isClosedOverlay` · `CATALOG_DOM_OVERLAY_BINDINGS`) · `X/presence.ts:27`                                                                                                                                                                             |
+| F8  | instance 의 루트 type 은 원본 template 의 루트 type 이다. 그래서 Card 를 바탕으로 하면 Dialog · Popover 가 자기 RAC 루트를 잃는다 (D1) — G5 판정 ①                                                                                                                                                                                                                                                                                                                                                                      | ADR-253 breakdown 「G5 판정」                                                                                                                                                                                                                                                    |
+| F9  | library 는 「원본의 instance + slot 채움」 (`slotFills`) 을 표현한다 (ADR-253 Phase 4). 바탕 원본이 필요해지면 쓸 수 있다 — 표현력은 더 이상 장애가 아니다                                                                                                                                                                                                                                                                                                                                                              | `S/catalog/document/types.ts` `LibrarySlotFill` · `S/catalog/resolution/resolver.ts` `projectTemplate`                                                                                                                                                                           |
+| F10 | 제목 · 설명의 모양 정본이 갈라져 있다. Heading rule 은 굵기 600 · 크기 단계를 갖지만, Dialog · Popover · Card 의 template 자리가 `fontWeight: 600` 과 `size` 를 따로 적고 Card 의 설명은 색까지 적는다. InlineAlert 는 자기 rule 에 제목 · 설명의 모양을 size 단계별로 선언한다 (`headingFontSize` 14/16/18 · 굵기 700 · `descFontSize` 12/14/16 — field 부모가 Phase 3 전에 하던 방식). IllustratedMessage rule 에도 `headingFontSize` 가 있지만 그 template 에는 heading 노드가 없어 이 ADR 의 범위 밖이다            | `T:5427` (Heading) · `T:3972` (Description) · `T:5763-5797` (InlineAlert sizes) · `T:5594-5623` (IllustratedMessage) · `L` 위 자리                                                                                                                                               |
+| F11 | Card 는 구조 재편 (CardHeader 제거) 이 사용자 결정으로 예정돼 있다 (2026-09-29, ADR 미작성). Card 의 제목 · 설명 노드는 그 재편에서 자리만 옮긴다                                                                                                                                                                                                                                                                                                                                                                       | 메모리 `project-card-s2-restructure-deferred-after-adr248`                                                                                                                                                                                                                       |
+| F12 | `LIBRARY_CONTRACT_VERSION` 은 5 (ADR-253 Phase 4). template 구조가 바뀌는 병합마다 올린다 (ADR-253 Decision 9)                                                                                                                                                                                                                                                                                                                                                                                                          | `S/catalog/document/types.ts`                                                                                                                                                                                                                                                    |
+
+요약: 바탕끼리 공유하는 것은 **부품** 이고 (F2 · F4), 그 부품 중 Heading 에는 원본이 없으며 (F3), 제목 · 설명의 모양은 자리마다 따로 적혀 있다 (F10). 공용 바탕 원본 (Decision 8 의 모양) 은 레퍼런스에도 없고 (F4) 구조상 노드를 늘리지 않고는 만들 수 없다 (F8). 부수로 찾은 결함 둘: Dialog 의 제목이 접근성 이름이 아니다 (F6) · Popover 가 Preview 에 보이지 않는다 (F7).
+
+### Domain (SSOT 3-domain)
+
+- **D3 시각 스타일 (본체)**: 제목 · 설명의 모양 정본을 template 자리의 값과 InlineAlert rule 의 선언에서 Heading · Description 부품 rule 로 모은다 (ADR-253 Decision 3 과 같은 방향). 컨테이너마다 달라야 하는 값 (Dialog 제목 lg · Popover sm · Card md) 은 자리의 명시 patch 로 남긴다.
+- **D1 DOM/접근성**: RAC 가 내는 DOM 구조 변경 0 — 노드 수 · 요소 수 · class 가 전환 전과 같다 (G2). 한 가지는 바뀐다: Dialog 의 제목 Heading 에 RAC 의 `slot="title"` 을 넘기고 shared Dialog 의 `aria-label="Dialog"` 폴백을 제목이 없을 때로 좁혀, RAC 가 하는 `aria-labelledby` 연결을 받는다 (F6 수리 — 폴백이 남아 있으면 RAC 가 `titleId` 를 버린다). `slot` 은 RAC 의 prop 이고 편집 surface 에 내지 않는 내부 운반 값이다 (ADR-253 Decision 5 ② — NumberField 증감의 `slot` 선례). D1 침범이 아니라 RAC 가 제공하는 것을 쓰는 것이다.
+- **D2 Props/API**: 컨테이너의 `title` · `description` prop (Card · InlineAlert) 은 그대로이고, template 의 자리표시 (`{title}` · `{description}`) 로 부품에 내려간다 (Phase 3 의 `label` 과 같다). 새 prop 0.
+
+### 제약
+
+- **hard — 시각 계약**: ADR-248 G3 수치 그대로 (Canvas ↔ DOM geometry ≤ 1 CSS px · 비텍스트 픽셀 차이 ≤ 0.001). 의도한 화면 변화는 G0 에서 목록으로 고정하고 그 밖의 변화는 0 이다.
+- **hard — 저장 포맷**: template 자리의 정의 id 가 바뀐다 (`heading` → Heading 원본 instance). `LIBRARY_CONTRACT_VERSION` 5 → 6. 앞 버전 문서는 거부, 변환 0 (ADR-253 사용자 확인 3 과 같은 전제 — 보존 대상 프로젝트 0).
+- **hard — 성능 · 번들**: ADR-246 ratchet A등급 증가 0. initial 번들 상한 Builder ≤ 1,421,000 · Preview ≤ 623,000 (ADR-201 재승인). `apps/publish` 수정 0.
+- **soft**: Skia 전용 시각 효과 0 · worktree 에서 phase 별 커밋 · Gate 통과 뒤 main 직접 병합.
+
+## Alternatives Considered
+
+### 대안 A: 부품 사슬 — Heading 원본을 만들고 다섯 컨테이너의 제목 · 설명을 Heading · Description 원본의 instance 로
+
+- 설명: Heading 부품 원본 (`origin-component-heading`, Label · Description 과 같은 `BASE_PART_ORIGIN_TYPES`) 을 등록한다 (Components page 의 부품 칸). 다섯 컨테이너의 제목 4 자리 · 설명 5 자리를 Heading · Description 원본의 instance 로 바꾼다. 자리의 `fontWeight: 600` 은 Heading rule 이 이미 갖고 있어 지우고, 크기 · 색 차이는 자리의 명시 patch 로 적는다 (레퍼런스 기준으로 모을지는 G0 의 목록으로 정한다). InlineAlert 는 자기 `size` 를 제목 · 설명에 전달하고 (`CATALOG_SIZE_PROPAGATION` — Phase 3 의 field → Label 과 같다) 그 rule 의 size 별 모양 선언을 부품 rule 로 옮긴다 (정적 게이트 확장). Dialog 제목에 `slot: "title"` + shared Dialog 의 `aria-label` 폴백 축소. 노드 수 불변. AI 경로로 들어오는 Heading 노드는 그대로 둔다 (Phase 0 에서 `placeable` 영향을 확인해 primitive 를 placeable 로 남긴다).
+- 위험: 기술 **L** (Phase 3 과 같은 작업 — 부품 원본 등록 · 자리 전환 · DOM binding 의 `slot` 전달) / 성능 **L** (instance 한 층 × 9 자리) / 유지보수 **L** (부품 rule 하나가 정본) / 마이그레이션 **M** (contract 6 · 자리 9곳의 정의 id 변경 · AI manifest 의 Heading 항목)
+
+### 대안 B: 대화 본문 바탕 — `Dialog` 루트의 바탕 원본 (제목 · 내용 · 버튼 줄 slot) 을 Dialog · Modal 이 instance + slot 채움으로
+
+- 설명: 레퍼런스 Modal 구조 (`Modal` > `Dialog` > Heading …) 를 따라 `Dialog` type 루트의 바탕 원본을 만들고, Dialog 원본 (`DialogTrigger` 안) 과 Modal 원본이 그 instance 를 slot 채움 (F9) 으로 쓴다. Popover 는 제외한다 (F4 · F5).
+- 위험: 기술 **M** (Modal 원본은 legacy-only 이고 내용이 없다 — 바탕을 쓰는 곳이 실질 Dialog 하나) / 성능 **L** / 유지보수 **M** (소비자 1개의 바탕은 공유가 아니라 간접 참조다) / 마이그레이션 **M** (Dialog instance 의 patch 경로 전치 — ADR-240 G4 와 같은 종류)
+- 참고: Dialog 의 변형 원본 (예: 확인 · 알림) 이 생기면 Dialog 원본 자체가 바탕이고, 변형 = 원본의 instance + slot 채움은 지금 표현으로 이미 된다 (F9). 지금 변형은 0 이다.
+
+### 대안 C: Card 를 바탕으로 (참고 패턴 그대로)
+
+- 설명: pen.dev 의 Card → Dialog · Modal 사슬을 그대로 옮긴다.
+- 위험: 기술 **C** (instance 루트 type = Card — Dialog · Popover 의 RAC 루트 상실, D1 · F8) / 성능 L / 유지보수 H (Card 재편 F11 위에 사슬) / 마이그레이션 H
+
+### 대안 D: 현행 유지
+
+- 설명: 바탕은 그대로 둔다.
+- 위험: 기술 L / 성능 L / 유지보수 **H** (제목 · 설명의 모양이 자리 9곳과 InlineAlert rule 에 흩어진 채 남고, Heading 원본이 없어 「원본 하나로 전부」 가 컨테이너에서 성립하지 않는다 — F10) / 마이그레이션 L
+
+### Risk Threshold Check
+
+| 대안 | HIGH+                                    | 판정                                |
+| ---- | ---------------------------------------- | ----------------------------------- |
+| A    | 없음 (마이그레이션 M)                    | 선택                                |
+| B    | 없음 (기술 · 유지보수 M)                 | 가치가 비용에 못 미침 — 기각 (아래) |
+| C    | 기술 **C** · 유지보수 H · 마이그레이션 H | CRITICAL — 기각                     |
+| D    | 유지보수 H                               | 목표 미달 — 기각                    |
+
+CRITICAL 인 C 를 피하는 대안 (A · B) 이 이미 있어 루프는 1회로 끝난다.
+
+## Decision
+
+**대안 A.** 바탕의 재사용 단위는 바탕 자체가 아니라 바탕이 쓰는 **부품** 이다 — 레퍼런스가 그렇게 돼 있고 (F4), composition 의 구조가 그것만 노드를 늘리지 않고 허용한다 (F8).
+
+결정 내용:
+
+1. **Heading 부품 원본**: `origin-component-heading` 을 `BASE_PART_ORIGIN_TYPES` 에 등록한다 (Components page 의 부품 칸). Heading 의 모양 정본은 Heading rule 이다 (굵기 600 · 크기 단계). Heading 은 팔레트에 없으므로 (F3) 「놓는 경로」 는 바꾸지 않는다 — AI 레이아웃 템플릿이 넣는 Heading 노드는 primitive 그대로이고, `NESTED_REUSABLE_ORIGIN_TYPE_SET` 에 넣을 때 primitive 의 `placeable` 이 꺼지지 않게 한다 (Phase 0 에서 AI manifest 의 Heading 항목이 전환 전과 같음을 확인).
+2. **제목 · 설명 자리 9곳을 instance 로**: Dialog · Popover · Card · InlineAlert 의 제목은 Heading 원본의, Dialog · Popover · Card · InlineAlert · Tooltip 의 설명은 Description 원본의 instance 다. 자리의 `fontWeight: 600` 은 지운다 (rule 의 것). 크기 (lg · sm · md) 와 Card 설명의 색은 자리의 명시 patch 로 남긴다 — 레퍼런스 값으로 모을지, 어느 값을 남길지는 G0 의 변화 목록으로 정하고 (ADR-253 사용자 확인 2 · 4 의 기준: 레퍼런스 값 = 부품 기본값, 자리 차이 = 적힌 차이), 목록 밖의 화면 변화는 0 이다.
+3. **모양은 부품이 정하고 컨테이너는 배치만**: InlineAlert rule 의 size 별 제목 · 설명 선언 (`headingFontSize` · `descFontSize` · 굵기) 을 부품 rule 로 옮기고, InlineAlert 가 자기 `size` 를 제목 · 설명에 전달한다 — 단계 대응은 제목 = 같은 단계 (Heading rule sm/md/lg = 14/16/18, 지금 값과 같다), 설명 = 한 단계 위 (Description rule md/lg/xl = 12/14/16, 지금 값과 같다). 굵기 700 → 600 은 G0 변화 목록의 항목이다. 정적 게이트 (`adr253PartShapeOwner.static.test.ts`) 의 대상에 다섯 컨테이너를 넣는다. 컨테이너 rule 에 남는 것은 배치 (gap · flex · 폭) 뿐이다.
+4. **Dialog 제목 = 접근성 이름**: Dialog 안 Heading 자리에 RAC `slot: "title"` 을 두고 binding 이 넘긴다. shared Dialog 의 `aria-label="Dialog"` 폴백은 제목 노드가 없을 때만 넣는다 — binding 이 제목 유무를 알므로 `aria-label` 을 binding 이 정하고 `Dialog.tsx` 는 폴백을 만들지 않는다 (RAC `useDialog` 는 `aria-label` 이 있으면 `titleId` 를 버린다 — F6). 의도한 DOM 변화이고 G2 에 명시한다.
+5. **편집 범위**: Card · InlineAlert 의 제목 · 설명 글자는 컨테이너의 `title` · `description` prop 이 정본이다 (`TEXT_ONLY_SUBPART_PARENTS` 에 두 컨테이너 추가 — ADR-253 Decision 6 과 같다). Dialog · Popover · Tooltip 의 글자는 노드 자신의 것이다 (prop 이 없다). 스타일은 모두 부품 노드 자신의 것이다.
+6. **바탕 원본은 만들지 않는다** (Decision 8 의 모양 — B · C). Dialog 의 변형이 필요해지면 Dialog 원본의 instance + slot 채움으로 정의한다 (F9) — 그때 이 ADR 을 고칠 것은 없다.
+7. **범위 밖 (기록만)**: Popover 가 Preview 에 보이지 않는 것 (F7) 과 Card 재편 (F11). 이 ADR 의 Popover 항목은 Canvas 와 record 로 확인하고 Preview 확인은 F7 이 풀린 뒤로 둔다.
+8. template 구조가 바뀌는 병합에서 `LIBRARY_CONTRACT_VERSION` 6. 앞 버전 문서는 거부, 변환 0.
+
+위험 수용 근거: A 의 마이그레이션 M 은 「놓은 Heading 노드가 Heading 원본의 instance 노드가 된다」 는 변경인데, 보존 대상 프로젝트가 0 이라는 ADR-253 의 전제가 그대로다 (contract 5 → 6 거부). 작업은 ADR-253 Phase 3 (1) · (2) 와 같은 종류 (부품 원본 등록 · 자리 전환 · 정적 게이트) 이고 그 절차 (DOM 구조 oracle · 원복 RED · live) 를 그대로 쓴다.
+
+기각 사유:
+
+- **B**: 바탕을 쓰는 곳이 Dialog 하나라 (Modal 원본은 비어 있고 legacy-only, Popover 는 레퍼런스가 자유 내용) 공유가 아니다. 변형이 생길 때 Dialog 원본 자체가 바탕이 되고 지금 표현으로 이미 된다.
+- **C**: instance 루트 type 이 Card 가 돼 D1 을 깬다. Card 재편 (F11) 위에 사슬을 얹는 순서 문제도 있다.
+- **D**: 목표 (원본 하나로 전부) 가 컨테이너에서 성립하지 않고, 제목 · 설명 모양이 흩어진 채 남는다.
+
+> 구현 상세: [254-base-part-chain-breakdown.md](design/254-base-part-chain-breakdown.md)
+
+## Risks
+
+| ID  | 위험                                                                                                                                                                                                                           | 심각도 | 대응                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | Heading 원본을 부품 집합에 넣으면 Heading primitive 의 `placeable` 이 꺼져 AI manifest 가 바뀌고, 컨테이너 안 제목 (instance 루트) 의 글자 편집 (Canvas 인라인 편집 · Properties) 이 instance 루트의 `children` 으로 가야 한다 |  MED   | Phase 0 에서 Heading 을 다루는 코드 경로 목록 (`layoutTemplates` · `dynamicInjection` · inline 편집 · `presence` 의 Disclosure Heading) 과 AI manifest 전후 대조. Phase 2 의 unit · live 에 「Dialog 제목 글자 고치고 · undo」 |
+| R2  | 모양 정본 이동 (자리 값 · InlineAlert rule → 부품 rule) 으로 다섯 컨테이너의 모습이 바뀔 수 있다                                                                                                                               |  MED   | G0 변화 목록 (전환 전 빌드의 record 대조) · 시각 하니스 전 case · 목록 밖 변화 0                                                                                                                                               |
+| R3  | Dialog 제목의 `slot="title"` 로 접근성 이름이 바뀐다 (`"Dialog"` → 제목 글자)                                                                                                                                                  |  LOW   | 의도한 변화. G2 에서 `aria-labelledby` 가 제목 요소를 가리키는지 확인                                                                                                                                                          |
+| R4  | Popover · Tooltip 은 Preview 에 보이지 않아 (F7 — DOM 출력 0) DOM 확인이 불가하고, 그 둘의 DOM 대조는 어떤 변경에도 통과한다                                                                                                   |  LOW   | 둘은 Canvas record · 해석 결과로만 확인하고 DOM 대조 · Preview 확인 대상에서 뺀다 (G0 · G1 · G2). Preview 확인은 F7 수리 뒤로 (별도 작업)                                                                                      |
+| R5  | Card 재편 ADR (F11) 과 자리가 겹친다                                                                                                                                                                                           |  LOW   | 이 ADR 은 Card 의 노드 구조를 바꾸지 않는다 (제목 · 설명 노드의 정의만). 재편 ADR 은 그 노드를 옮기기만 하면 된다                                                                                                              |
+| R6  | contract 6 — 개발용 프로젝트가 열리지 않는다                                                                                                                                                                                   |  LOW   | ADR-253 과 같은 전제 (보존 대상 0 · 변환 0)                                                                                                                                                                                    |
+
+잔존 HIGH 위험 없음.
+
+## Gates
+
+| Gate | 시점           | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                      | 실패 시 대안                                                            |
+| ---- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| G0   | Phase 0        | 변화 목록 고정: 전환 전 빌드에서 다섯 컨테이너 × 크기 단계의 제목 · 설명 record 를 oracle 로 뜨고, DOM 구조 oracle 은 DOM 을 내는 셋 — 열린 Dialog (실제 마운트) · Card · InlineAlert — 의 마크업으로 한다 (Popover · Tooltip 은 DOM 0). 자리 값 · InlineAlert rule → 부품 rule 이동으로 바뀌는 값 (굵기 · 크기 · 색 · 줄 높이) 을 px 로 적는다. Heading 코드 경로 목록 · AI manifest 전후 (R1)                | 목록이 레퍼런스 기준으로 정리되지 않는 자리는 명시 patch 로 남긴다      |
+| G1   | Phase 1 · 2 끝 | Heading 원본 편집 (색 · 굵기 · 크기) 이 네 컨테이너의 제목에, Description 원본 편집이 다섯 컨테이너의 설명에 Canvas record 로 닿고, DOM 을 내는 셋 (열린 Dialog · Card · InlineAlert) 은 Preview computed style 로도 닿는다 (Popover · Tooltip 은 record 까지 — R4). InlineAlert size sm/md/lg 에서 제목 · 설명 크기가 전환 전과 같다. 자리의 명시 patch 는 원본 override 위에 남는다 (값 순서 unit). 원복 RED | 닿지 않는 컨테이너는 Phase 3 의 「통과한 부모만」 과 같이 다음 phase 로 |
+| G2   | Phase 2 끝     | DOM 구조 대조: 열린 Dialog · Card · InlineAlert × 크기 단계 × (Card · InlineAlert 는 prop 조합) 의 마크업이 전환 전 oracle 과 같다 — 명시한 차이는 Dialog 의 `aria-label="Dialog"` 가 없어지고 `aria-labelledby` 가 제목 요소의 `id` 를 가리키는 것 하나 (실제 마운트에서 확인). 제목이 없는 Dialog 는 종전대로 `aria-label="Dialog"`                                                                          | 차이가 나는 컨테이너는 전환 전 구조로 되돌리고 원인을 적는다            |
+| G3   | 각 Phase 끝    | 정적 게이트: 다섯 컨테이너 rule 에 Heading · Description 모양 선언 0 (배치 키만). 시각 하니스 전 case 승인 차이 증가 0 (G0 목록은 승인 기록으로). ADR-246 ratchet A등급 증가 0 · initial 번들 상한 안                                                                                                                                                                                                          | 초과분은 Phase 0 inventory 보강으로 흡수, 상한 초과면 그 Phase 보류     |
+| G4   | 종결           | 사용자 확인 — Components page 에서 Heading · Description 원본을 고쳐 Dialog · Card · InlineAlert (Preview 에 보이는 셋) 가 Builder 와 Preview 에서 한 세트로 바뀌는 것. 사용자가 「직접 검증」 을 지시하면 실행자가 live 로 대신한다 (ADR-253 G7 선례)                                                                                                                                                         | 사용자 판정                                                             |
+
+### Live Exercise
+
+(Implemented 승격 시 기재)
+
+## Consequences
+
+### Positive
+
+- Heading 이 Label · Input · Button 과 같은 급의 기본 원본이 된다 — 제목의 모양을 한 곳에서 고치면 Dialog · Popover · Card · InlineAlert 와 page 에 놓은 Heading 이 같이 바뀐다.
+- 제목 · 설명의 모양 정본이 자리 9곳 · InlineAlert rule 에서 부품 rule 둘로 모인다. 남는 차이는 적힌 차이 (명시 patch) 다.
+- Dialog 의 제목이 접근성 이름이 된다 (RAC 의 연결).
+- Decision 8 의 질문 (바탕 사슬) 이 닫힌다 — 바탕 원본은 만들지 않고, 변형은 원본의 instance + slot 채움으로.
+
+### Negative
+
+- contract 6 — 앞 버전 문서 거부 (의도).
+- Heading 원본을 부품 집합에 넣을 때 AI manifest 의 Heading 항목이 바뀌지 않게 예외를 둬야 한다 (R1).
+- shared `Dialog.tsx` 의 `aria-label` 폴백이 binding 으로 옮겨 간다.
+- 다섯 컨테이너의 모습이 G0 목록만큼 바뀐다.
+- Popover 의 Preview 확인은 이 ADR 밖에 남는다 (F7).
+- 영향 파일 (대표): `L` · `T` (Heading · Description · InlineAlert · 컨테이너 5) · `C` (`BASE_PART_ORIGIN_TYPES` · `placeable` 예외) · `S/catalog/document/types.ts` (contract) · `S/catalog/document/sizePropagation.ts` (InlineAlert → 제목 · 설명) · `X/domBinding.tsx` (heading binding 의 `slot` · dialog 의 `aria-label`) · `S/components/Dialog.tsx` (폴백 제거) · `S/catalog/resolvers/resolveDelegatedChildFontSize.ts` (`TEXT_ONLY_SUBPART_PARENTS`) · `apps/builder/src/services/ai/**` (Heading manifest — Phase 0 확인) · `apps/builder/tests/adr248-g3/approvedDifferences.ts`.

@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 ADR-254 Proposed**: 바탕의 부품 사슬 — ADR-253 Decision 8 (공용 바탕 원본) 의 후속 (사용자 「바탕 사슬 후속 ADR 작성해라」). 실측: 다섯 컨테이너 (Dialog · Popover · Card · InlineAlert · Tooltip) 가 공유하는 것은 제목 (heading 4 자리) · 설명 (Description 5 자리) 뿐이고, Heading 은 원본이 없으며, 레퍼런스도 Dialog 와 Popover 가 바탕을 공유하지 않는다 (Popover = 자유 내용 · Modal > Dialog > Heading slot=title). 대안 A 선택 — Heading 부품 원본 신설 + 자리 9곳을 Heading · Description 원본의 instance 로 (노드 수 불변 · contract 6 · InlineAlert 는 size 전달) + Dialog 제목을 RAC `slot="title"` 로 접근성 이름에 연결 (shared Dialog 의 `aria-label` 폴백은 binding 으로). 바탕 원본 (B · C) 은 기각. 리뷰 round 1 (HIGH 2 · MEDIUM 2 · LOW 1 — Dialog 폴백이 RAC `titleId` 를 버림 · InlineAlert size 별 값 · Heading 은 팔레트에 없음 · Popover · Tooltip DOM 대조 공허 · IllustratedMessage) 전부 반영. 부수 결함 기록: Dialog 제목이 접근성 이름이 아님 · Popover 가 Preview 에 보이지 않음 (범위 밖). 열림 +1 (열림 5 — Proposed 5, 합계 281).
+
 > **2026-10-07 ADR-253 Implemented**: 기본 UI 원본의 재사용 종결 — Phase 1 · 2 · 3 · 4 · 6, G1 · G2 · G3 · G4 · G6 · G7 통과 (G5 미충족 → 바탕 사슬 미룸). 마지막 날: ① G1 의 Preview 상태별 값 — resolver 결과 · record 가 상태별 값 (`stateVisual`) 을 갖고 DOM 의 Button 이 RAC 의 render state 함수 style 로 낸다 (unit 5 · 원복 RED 4행 · live 8/8) ② Phase 6 — 쓰지 않는 SelectTrigger variant 2 · 읽는 곳 없는 목록 가족 표 제거 (사용자 승인), SelectIcon rule · shared 컴포넌트 fallback 은 Builder 자체 UI 가 써서 남김 ③ G7 — 사용자 지시로 실행자가 실제 Builder 에서 확인 (`adr253-g7-live.mjs` 7/7: Label 6곳 · 입력칸 4곳 · Button 8곳이 Canvas 와 Preview 에서 같이 바뀜). 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 280).
 
 > **2026-10-07 ADR-253 G5 판정 — 바탕 사슬 미룸**: Dialog · Popover (· Card) 의 공용 바탕 원본은 지금 구조에서 조건 (DOM · Canvas 가 전환 전과 같다) 을 맞추는 모양이 없다 — Card 를 바탕으로 하면 instance 루트가 `Card` 가 돼 Dialog · Popover 의 RAC 루트를 잃고, Popover 안에 Dialog 를 두는 구조는 padding 회귀로 걷어낸 것이며, 중립 frame 바탕은 노드를 하나 늘리고 공유하는 값이 제목 굵기 하나다. Gate 의 후퇴안대로 Decision 8 을 미루고 Phase 5 는 착수하지 않는다. 남은 것: Phase 6 (정리) · G7 (사용자 확인).
@@ -195,11 +197,11 @@
 | ├ Superseded                  |      14 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       4 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       5 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **280** |
+| **합계**                      | **281** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -218,6 +220,12 @@
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
 - **규모**: Phase 0 go/no-go 계측 (수정 전후 Ollama · one-shot · Prompt API arm, 한국어 모호 요청 20+ · 정답 IR). go 면 `chrome-built-in` provider (IR 전용 · Translator ko→en · 동의 뒤 다운로드 · 상태 4단계). 사용자 결정: G0 절대 목표 (제안 5초) · 요청 세트 승인 · 서버 측 one-shot 이 이길 때의 소속 · 채택 근거 범위 · 자격 기기. breakdown: [design/245](design/245-ai-on-device-breakdown.md)
+
+#### [254](254-base-part-chain.md) — 바탕의 부품 사슬 — Dialog · Popover · Card · InlineAlert · Tooltip 의 제목 · 설명을 Heading · Description 원본의 instance 로
+
+- **상태**: Proposed — 2026-10-07 (사용자 「바탕 사슬 후속 ADR 작성해라」 — ADR-253 Decision 8 후속)
+- **규모**: Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) → Phase 1 (Heading 부품 원본 · 팔레트 Heading 도 instance · contract 6) → Phase 2 (자리 9곳 전환 · InlineAlert rule 의 모양 선언 → 부품 rule · Dialog 제목 `slot="title"`) → Phase 3 (정리). Gate G0 ~ G4 (G4 = 사용자 확인). breakdown: [design/254](design/254-base-part-chain-breakdown.md)
+- **선후**: ADR-253 Implemented 뒤. Card 재편 (사용자 결정 09-29, ADR 미작성) 과는 노드 정의만 겹친다 (구조는 건드리지 않음)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
