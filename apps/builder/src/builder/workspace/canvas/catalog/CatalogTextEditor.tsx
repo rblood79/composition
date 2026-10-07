@@ -94,6 +94,8 @@ function TextField({
       : undefined;
   };
   const [placement, setPlacement] = useState(place);
+  /** The typed text's own height (scene px) — the field grows past the box as lines are added. */
+  const [contentHeight, setContentHeight] = useState(0);
   const placeRef = useRef(place);
   placeRef.current = place;
   // The camera moves while editing (wheel pan/zoom): follow it — one subscription, and a frame
@@ -191,7 +193,8 @@ function TextField({
     left: x + box.x * zoom,
     top: y + box.y * zoom,
     width: Math.max(box.width, 24),
-    minHeight: box.height,
+    // The text's box, one line for one line (a textarea's default is two rows).
+    height: Math.max(box.height, contentHeight),
     transform: `scale(${zoom})`,
     transformOrigin: "0 0",
     zIndex: 3,
@@ -224,10 +227,18 @@ function TextField({
       className="catalog-text-editor"
       data-testid="catalog-text-editor"
       defaultValue={start.text}
+      rows={1}
       style={style}
       spellCheck={false}
       onChange={(event) => {
         draft.current = event.target.value;
+        // Measure the text alone: a field already taller would report its own height.
+        const field = event.target;
+        const height = field.style.height;
+        field.style.height = "0px";
+        const next = field.scrollHeight;
+        field.style.height = height;
+        setContentHeight(next);
       }}
       onBlur={commit}
       onKeyDown={(event) => {

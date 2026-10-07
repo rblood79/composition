@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Card 제목 · 설명을 Canvas 더블클릭으로 고칠 수 있다** — 더블클릭이 CardHeader 에서 멈추던 것을, 더 들어갈 수 없는 자리에서는 포인터 아래 글자를 편집하도록 (글자는 Card 의 `title` · `description` 에 쓴다).
 - quiet field 밑줄 폭을 border 기하 helper 로 읽어 ADR-219 정적 게이트를 복구했다 (값 변화 0).
+- **Canvas 글자 더블클릭 편집 영역이 두 줄 높이로 열리던 것** — 이제 글자 상자 높이 그대로 열리고, 줄을 넣으면 따라 커진다.
+  - **Why**: 편집 `<textarea>` 가 높이를 `minHeight` 로만 받아 브라우저 기본 `rows=2` 가 높이를 정했다 (한 줄 상자 18px 에 36px). 줄을 더해도 커지지 않았다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogTextEditor.tsx`
 
 ## [ADR-254 Implemented — 바탕의 부품 사슬] - 2026-10-07
 

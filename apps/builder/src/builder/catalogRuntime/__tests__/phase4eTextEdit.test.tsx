@@ -120,6 +120,23 @@ describe("ADR-248 Phase 4e-3b inline text editing", () => {
     expect(visual()).not.toHaveProperty("whiteSpace");
   });
 
+  /**
+   * The field is the text's box: one line tall when the text is one line (a textarea's own default
+   * is two rows — its height then overshot the box), growing with the typed lines.
+   */
+  it("the field is as tall as the text's box, not a textarea's default two rows", async () => {
+    const { workspace, record, field } = await open();
+    act(() => workspace.session.startTextEdit(workspace.itemOfRecord(record)!));
+    expect(field()!.rows).toBe(1);
+    expect(field()!.style.height).toBe("40px");
+    Object.defineProperty(field()!, "scrollHeight", {
+      configurable: true,
+      get: () => 120,
+    });
+    fireEvent.change(field()!, { target: { value: "a\nb\nc" } });
+    expect(field()!.style.height).toBe("120px");
+  });
+
   it("a committed text without a line break, or one already pre-formatted, leaves white-space alone", async () => {
     const { workspace, record, field } = await open();
     const visual = () => {
