@@ -183,6 +183,11 @@ export interface CatalogConsumerNode {
   readonly hidden?: true;
   /** State-origin display state of the collapsed instance (`ResolvedCatalogNode.displayState`). */
   readonly displayState?: ResolvedCatalogNode["displayState"];
+  /**
+   * ADR-256 Decision 7 — the value condition of the position (`presentWhen`): the outer layer (the
+   * template position that places this part) over the part origin's own.
+   */
+  readonly presentWhen?: ResolvedCatalogNode["presentWhen"];
   /** The values each state gives the drawn root (`ResolvedCatalogNode.stateVisual`). */
   readonly stateVisual?: ResolvedCatalogNode["stateVisual"];
   /**
@@ -2274,6 +2279,9 @@ export class CatalogCompositionRoot {
       regions: top.regions ?? target.regions,
       placeholder: top.placeholder ?? target.placeholder,
       ...(target.displayState ? { displayState: target.displayState } : {}),
+      ...((top.presentWhen ?? target.presentWhen)
+        ? { presentWhen: top.presentWhen ?? target.presentWhen }
+        : {}),
       ...(target.stateVisual ? { stateVisual: target.stateVisual } : {}),
       ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
       ...((target.rowCount ?? top.rowCount) !== undefined

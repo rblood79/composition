@@ -78,7 +78,12 @@ const startsWith = (
 
 type TemplateView = Pick<
   LibraryTemplateNode,
-  "definitionId" | "children" | "slot" | "enabled" | "stateRules"
+  | "definitionId"
+  | "children"
+  | "slot"
+  | "enabled"
+  | "stateRules"
+  | "presentWhen"
 > & {
   props: PropWrites;
   visual: VisualWrites;
@@ -110,6 +115,7 @@ export function readTemplate(
       children: node.children,
       slot: node.slot,
       enabled: node.enabled,
+      presentWhen: node.presentWhen,
       stateRules: node.stateRules,
       props: sets(node.props) as PropWrites,
       visual: sets(node.visual) as VisualWrites,
@@ -136,6 +142,7 @@ export function readTemplate(
     slot,
     enabled,
     stateRules,
+    presentWhen,
     ...extra
   } = structuredClone(node);
   return {
@@ -143,6 +150,7 @@ export function readTemplate(
     children: children as readonly TemplateId[] as never,
     slot,
     enabled,
+    presentWhen,
     stateRules,
     props,
     visual,
@@ -273,6 +281,7 @@ export function createMaterializer(
       ...(template.slot ? { slot: template.slot } : {}),
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
       ...(template.stateRules ? { stateRules: template.stateRules } : {}),
+      ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
     };
     const libraryPatch = enclosing?.find((item) =>
       sameAddress(

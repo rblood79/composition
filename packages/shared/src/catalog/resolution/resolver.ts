@@ -9,6 +9,7 @@ import type {
   NodeResponsiveLayer,
   NodeThemeOverride,
   DefinitionId,
+  CatalogPresentWhen,
   DisplayStateName,
   InstanceAddress,
   LibraryDescendantPatch,
@@ -76,6 +77,8 @@ export interface ResolvedCatalogNode {
   placeholder?: boolean;
   /** State-origin display state (outer instance layer wins over its template's). */
   displayState?: DisplayStateName;
+  /** ADR-256 Decision 7 — the node's value condition (`NodeEntry.presentWhen`). */
+  presentWhen?: CatalogPresentWhen;
   /**
    * The values each state gives this node (the keys its state rules write, in the rules' order —
    * definition, overrides, the instance's own): a consumer that draws states itself (the DOM, by
@@ -787,6 +790,7 @@ export function resolveCatalogNode(
       ...(Object.keys(ownLayout).length ? { authoredLayout: ownLayout } : {}),
       ...authoredExtras(node, layers),
       slot: node.slot ?? inherited?.slot,
+      ...(node.presentWhen ? { presentWhen: node.presentWhen } : {}),
       name: node.name,
       regions: node.regions,
       placeholder: node.placeholder,
@@ -1434,6 +1438,7 @@ export function resolveCatalogNode(
         ? { fillSizing: templatePaint.fillSizing }
         : {}),
       slot: template.slot,
+      ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
       ...(displayState ? { displayState } : {}),
       ...(rowSet &&
       itemPositions.length > 0 &&

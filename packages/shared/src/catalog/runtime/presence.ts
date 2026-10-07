@@ -238,6 +238,19 @@ export function catalogFieldHintShown(
   return undefined;
 }
 
+/**
+ * ADR-256 Decision 7 — a node whose value condition (`presentWhen: "nonEmptyText"`) does not hold:
+ * its final text (`String(value ?? "")`, every binding substituted — no trim) is empty and it
+ * holds no child nodes. The Canvas and the DOM read this one predicate.
+ */
+export function catalogAbsentByValue(node: CatalogConsumerNode): boolean {
+  return (
+    node.presentWhen === "nonEmptyText" &&
+    node.children.length === 0 &&
+    String(node.props.children ?? "").length === 0
+  );
+}
+
 /** Whether the node itself is not shown in the resting state (its subtree follows it). */
 export function catalogHiddenAtRest(
   node: CatalogConsumerNode,
@@ -252,6 +265,7 @@ export function catalogHiddenAtRest(
     !getIconData(String(node.props.iconName))
   )
     return true;
+  if (catalogAbsentByValue(node)) return true;
   const parent = get(node.parentId);
   if (!parent) return false;
   const type = typeOf(node);

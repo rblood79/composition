@@ -4,6 +4,8 @@ import {
   LIBRARY_CONTRACT_VERSION,
   type CatalogDocument,
   type CatalogEntry,
+  CATALOG_PRESENT_WHEN,
+  type CatalogPresentWhen,
   DISPLAY_STATE_NAMES,
   type DisplayStateName,
   type EntryKind,
@@ -1095,9 +1097,11 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "visibility",
           "themeOverride",
           "metadata",
+          "presentWhen",
         ],
         "entry",
       );
+      presentWhen(item.presentWhen, "entry.presentWhen");
       if (item.metadata !== undefined) {
         const metadata = object(item.metadata, "entry.metadata");
         exact(metadata, ["htmlId", "className", "ariaLabel"], "entry.metadata");
@@ -1516,6 +1520,14 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
     invalid("DEFINITION_EXECUTION_EXCLUSIVE", "library.definition");
   return value as LibraryDefinition;
 }
+/** ADR-256 Decision 7 — `presentWhen` is one of the fixed value conditions. */
+function presentWhen(value: unknown, at: string): void {
+  if (
+    value !== undefined &&
+    !CATALOG_PRESENT_WHEN.includes(value as CatalogPresentWhen)
+  )
+    invalid("PRESENT_WHEN_UNKNOWN", at);
+}
 export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
   const item = object(value, "library.template");
   exact(
@@ -1533,9 +1545,11 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "slotFills",
       "displayState",
       "stateRules",
+      "presentWhen",
     ],
     "library.template",
   );
+  presentWhen(item.presentWhen, "library.template.presentWhen");
   if (item.layout !== undefined)
     layoutValues(item.layout, "library.template.layout");
   if (item.stateRules !== undefined)

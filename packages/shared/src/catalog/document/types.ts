@@ -492,6 +492,12 @@ export interface DefinitionOverrideEntry {
   visual: VisualWrites;
   stateRules: StateRules;
 }
+/** ADR-256 Decision 7 — the value conditions a node's presence may have (`presentWhen`). */
+export type CatalogPresentWhen = "nonEmptyText";
+export const CATALOG_PRESENT_WHEN: readonly CatalogPresentWhen[] = [
+  "nonEmptyText",
+];
+
 export interface NodeEntry {
   kind: "node";
   id: NodeId;
@@ -512,6 +518,13 @@ export interface NodeEntry {
   placeholder?: boolean;
   /** `false` hides the node and its subtree from every consumer (canonical `enabled`, G0 map). */
   enabled?: boolean;
+  /**
+   * ADR-256 Decision 7 — a value condition on an optional text part (Label · Description · a
+   * description `Text`): `nonEmptyText` = the node is there only while its final text (every
+   * binding substituted, `String(value ?? "")`) is not empty, or it holds child nodes. Absent = the
+   * node is always there (a binding never removes a node by itself).
+   */
+  presentWhen?: CatalogPresentWhen;
   /** Authored box layout over the definition and rule layout (ADR-248 Phase 4a). */
   layout?: LayoutWrites;
   /** Paint layers; absent = the definition's fill. */
@@ -701,6 +714,13 @@ export interface LibraryTemplateNode {
   layout?: LayoutValues;
   /** `false` hides this template node (and subtree) unless an instance enables it. */
   enabled?: boolean;
+  /**
+   * ADR-256 Decision 7 — a value condition on an optional text part (Label · Description · a
+   * description `Text`): `nonEmptyText` = the node is there only while its final text (every
+   * binding substituted, `String(value ?? "")`) is not empty, or it holds child nodes. Absent = the
+   * node is always there (a binding never removes a node by itself).
+   */
+  presentWhen?: CatalogPresentWhen;
   descendantPatches?: readonly LibraryDescendantPatch[];
   /** Children of this node that fill slot positions of the composite it instantiates. */
   slotFills?: readonly LibrarySlotFill[];

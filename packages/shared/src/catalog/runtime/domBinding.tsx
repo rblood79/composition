@@ -37,7 +37,7 @@ import {
   INTERNAL_RENDERERS,
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
-import { FIELD_HINT_OWNERS } from "./presence";
+import { FIELD_HINT_OWNERS, catalogAbsentByValue } from "./presence";
 import {
   racSlotProps,
   resolveRacSlot,
@@ -1634,6 +1634,8 @@ function renderNode(
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
   const id = node.id;
+  // ADR-256 Decision 7: an optional text part with nothing to say is not there.
+  if (catalogAbsentByValue(node)) return null;
   // A field whose RAC component composes its parts itself still draws its Label · Description ·
   // FieldError from its part nodes (ADR-253): each element is placed as the component's prop.
   const owning = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "");
