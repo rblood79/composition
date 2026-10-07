@@ -134,12 +134,12 @@ const requiredPartChecks = new WeakMap<
 function assertRequiredPartsKept(
   draft: CommandDraft,
   rootId: NodeId,
-  destinationAncestors?: readonly string[],
+  destination?: NodeParent,
 ): void {
   const reader = draft.reader;
   // A composed command's stage changes within one revision: answer it fresh.
   if (reader instanceof CatalogStage) {
-    const refusal = requiredPartRefusal(draft, rootId, destinationAncestors);
+    const refusal = requiredPartRefusal(draft, rootId, destination);
     if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
     return;
   }
@@ -148,12 +148,9 @@ function assertRequiredPartsKept(
     memo = { revision: reader.revision, answers: new Map() };
     requiredPartChecks.set(reader, memo);
   }
-  const key = `${rootId}|${destinationAncestors?.join(">") ?? ""}`;
+  const key = `${rootId}|${destination ? JSON.stringify(destination) : ""}`;
   if (!memo.answers.has(key))
-    memo.answers.set(
-      key,
-      requiredPartRefusal(draft, rootId, destinationAncestors),
-    );
+    memo.answers.set(key, requiredPartRefusal(draft, rootId, destination));
   const refusal = memo.answers.get(key);
   if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
 }
@@ -167,7 +164,7 @@ function assertRequiredPartsKept(
 function requiredPartRefusal(
   draft: CommandDraft,
   rootId: NodeId,
-  destinationAncestors?: readonly string[],
+  destination?: NodeParent,
 ): string | null {
   const reader = draft.reader;
   const entryOf = (id: string) => {
@@ -189,12 +186,27 @@ function requiredPartRefusal(
   };
   collect(rootId, []);
   if (!carried.length) return null;
-  const { parent } = locate(draft, rootId);
-  const above = parentAncestorTypes(draft, parent);
+  // The owner sits right above, or above layout wrappers only (Decision 5): walk up through
+  // wrappers, stop at the first other part (it is no owner of these).
+  const above: string[] = [];
+  for (let cursor = reader.ownerOf(rootId); cursor;) {
+    const entry = entryOf(cursor);
+    if (!entry) break;
+    const type = definitionTypeName(reader, entry.definitionId);
+    above.push(type);
+    if (type in RAC_REQUIRED_PARTS || !NESTING_PASSTHROUGH_TYPES.has(type))
+      break;
+    cursor = reader.ownerOf(cursor);
+  }
   if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return null;
+  const { parent } = locate(draft, rootId);
+  // A move keeps the part when its destination is inside an owner of that type (read only now).
+  const destinationTypes = destination
+    ? parentAncestorTypes(draft, destination)
+    : [];
   for (const part of carried) {
     const owner = requiredPartOwner(part.type, [...part.path, ...above]);
-    if (!owner || destinationAncestors?.includes(owner)) continue;
+    if (!owner || destinationTypes.includes(owner)) continue;
     // Only an owner above the root loses it; a twin beside the root keeps the owner working.
     if (part.path.includes(owner)) continue;
     const twin =
@@ -235,8 +247,7 @@ export const moveNodes =
       input.parent,
       roots.map((id) => draft.node(id).definitionId),
     );
-    const destination = parentAncestorTypes(draft, input.parent);
-    for (const id of roots) assertRequiredPartsKept(draft, id, destination);
+    for (const id of roots) assertRequiredPartsKept(draft, id, input.parent);
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
     for (const id of roots) {
       const { parent } = locate(draft, id, owners.get(id));
