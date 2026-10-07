@@ -3838,49 +3838,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             },
           },
-          quiet: {
-            true: {
-              nested: [
-                {
-                  selector: ".react-aria-Group",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-radius": "0",
-                    "border-bottom": "1px solid var(--border)",
-                  },
-                },
-                {
-                  selector:
-                    ".react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused])",
-                  styles: {
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--border-hover)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Group[data-focus-within]",
-                  styles: {
-                    outline: "none",
-                    background: "transparent",
-                    "border-color": "transparent",
-                    "box-shadow": "none",
-                    "border-bottom-color": "var(--accent)",
-                  },
-                },
-                {
-                  selector: ".react-aria-Group[data-invalid]",
-                  styles: {
-                    "border-color": "transparent",
-                    "border-bottom-color": "var(--negative)",
-                  },
-                },
-              ],
-            },
-          },
         },
         externalStyles: [
           {

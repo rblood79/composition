@@ -162,7 +162,7 @@ function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
 
 /**
  * A quiet field's box that the field's own rule styles (`catalogQuietStyles` `_quietOwner` — a
- * Select's trigger, a range picker's Group): the DOM sheet's `.react-aria-<Field>[data-quiet="true"]
+ * Select's trigger): the DOM sheet's `.react-aria-<Field>[data-quiet="true"]
  * <box>` — no fill or box border, square corners, a bottom border. Returns the box's visual for
  * that state and the bottom border as a strip on the box's bottom edge (inside it, as the CSS
  * border is); undefined when the box is not quiet.
@@ -371,8 +371,7 @@ const bindings: Readonly<Record<string, Binding>> = {
   box,
   icon: glyph,
   selecticon: glyph,
-  selecttrigger: (node, rect) =>
-    withQuietOwnerBox(node, rect, (painted) => box(painted, rect)),
+  selecttrigger: box,
   select: containerWithAuthoredPaint,
   combobox: containerWithAuthoredPaint,
   text: (node, rect, parent, wraps, suffix = "") => {

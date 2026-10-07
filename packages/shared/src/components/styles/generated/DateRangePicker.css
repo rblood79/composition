@@ -272,34 +272,6 @@
   --form-label-align: end;
 }
 
-.react-aria-DateRangePicker[data-quiet="true"] .react-aria-Group {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.react-aria-DateRangePicker[data-quiet="true"] .react-aria-Group[data-hovered]:not([data-focus-within]):not([data-focused]) {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--border-hover);
-}
-
-.react-aria-DateRangePicker[data-quiet="true"] .react-aria-Group[data-focus-within] {
-  outline: none;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  border-bottom-color: var(--accent);
-}
-
-.react-aria-DateRangePicker[data-quiet="true"] .react-aria-Group[data-invalid] {
-  border-color: transparent;
-  border-bottom-color: var(--negative);
-}
-
 
 @media (forced-colors: active) {
   .react-aria-DateRangePicker {

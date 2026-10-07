@@ -132,7 +132,6 @@ const QUIET_BOX_PARTS: Record<string, boolean> = {
   datefield: true,
   timefield: true,
   datepicker: true,
-  daterangepicker: false,
 };
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
@@ -1954,7 +1953,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
   /**
    * A quiet field (RSP `isQuiet`): the part that draws its box — its Input / DateInput instance —
    * carries the quiet state (`data-quiet`, the part rule's `&[data-quiet]`), and follows the
-   * field's prop. A range picker's box is its Group: its pair of DateInputs stays as it is.
+   * field's prop. (A DateRangePicker takes no `isQuiet` — S2 has none.)
    */
   for (const [type, quiet] of Object.entries(QUIET_BOX_PARTS))
     it.skipIf(write)(

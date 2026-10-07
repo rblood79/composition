@@ -5,8 +5,7 @@ import type { StateName } from "../document/types";
 /**
  * The quiet paint of a quiet field's box part, the same declarations its DOM sheet applies:
  * the part rule's root selectors (`&[data-quiet]` — an Input / DateInput instance), else, for a
- * box the field's own rule styles (`_quietOwner` — a Select's trigger Button, a range picker's
- * Group), that rule's `quiet.true.nested` blocks for the box (`.react-aria-Select[data-quiet="true"]
+ * box the field's own rule styles (`_quietOwner` — a Select's trigger Button), that rule's `quiet.true.nested` blocks for the box (`.react-aria-Select[data-quiet="true"]
  * .react-aria-Button`). Undefined when the part is not quiet.
  */
 export function catalogQuietStyles(
@@ -85,5 +84,4 @@ export function catalogQuietStyles(
 /** The DOM token of the box a field's own rule styles when quiet (`ownerStyledQuietBox`). */
 const QUIET_OWNER_BOX_TOKENS: Readonly<Record<string, string>> = {
   Select: ".react-aria-Button",
-  DateRangePicker: ".react-aria-Group",
 };

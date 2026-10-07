@@ -111,7 +111,6 @@ export const dateRangePickerBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       necessityIndicator: {
         kind: "enum",
         label: "Necessity Indicator",

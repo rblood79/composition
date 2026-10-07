@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [날짜 field · ColorField 레퍼런스 정렬] - 2026-10-07
 
+### Breaking Changes
+
+- **DateRangePicker 의 `isQuiet` prop 제거** — S2 DateRangePicker 에는 없다 (react-spectrum.adobe.com 레퍼런스). Properties 에서 사라지고 rule 의 quiet 선언 · Canvas 처리도 걷어냈다. Select 의 `isQuiet` (S2 Picker 에 있음) 은 그대로다.
+
 ### Changed
 
 - **ColorField 기본 배치 = 세로** (RSP · RAC 레퍼런스): 라벨 위 · 입력칸 · 도움말 아래 (TextField 와 같은 field 배치). 2026-06-23 의 가로 배치 (Label · hex 입력 · ColorSwatch 한 줄) 는 지금 template 에 ColorSwatch 가 없어 근거가 없다. Canvas · Preview 모두. 위치: `componentRulesTable.ts` ColorField `layout` · `generated/ColorField.css`

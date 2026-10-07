@@ -728,12 +728,11 @@ function fieldBoxOfQuietField(
 /**
  * A quiet field's box that the field's own rule styles (`quiet.true.nested` — the DOM sheet's
  * `.react-aria-<Field>[data-quiet="true"] <box>`): a Select's trigger (a Button instance — RAC's
- * trigger is the Button itself) and a range picker's Group (its SelectTrigger wrapper, the box
- * around the start · end pair). Returns the owning field.
+ * trigger is the Button itself). Returns the owning field. (A DateRangePicker takes no `isQuiet`
+ * — S2 has none, 2026-10-07.)
  */
 const QUIET_OWNER_BOXES: Readonly<Record<string, string>> = {
   Select: "Button",
-  DateRangePicker: "SelectTrigger",
 };
 function ownerStyledQuietBox(
   node: CatalogConsumerNode,

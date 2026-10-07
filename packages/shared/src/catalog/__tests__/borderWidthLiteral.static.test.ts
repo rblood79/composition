@@ -76,7 +76,8 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
   //   FieldButton 의 것 → outline 3 (남은 것: DateInput rule · DateRangePicker 의 Group …).
   //   quiet 밑줄 (2026-10-07): 8 부모가 반복하던 선언을 Input · DateInput rule 의 `&[data-quiet]` 로 모아
   //   border-bottom 10 → 4 (Input · DateInput · Select 의 trigger · DateRangePicker 의 Group).
-  it("확정 예외 목록은 고정 — outline 3 · border-bottom 4 (늘면 판정 필요)", () => {
+  //   DateRangePicker 의 isQuiet 제거 (2026-10-07 — S2 에 없음) → border-bottom 3.
+  it("확정 예외 목록은 고정 — outline 3 · border-bottom 3 (늘면 판정 필요)", () => {
     let outline = 0;
     let borderBottom = 0;
     walk(COMPONENT_RULES_TABLE, (key, v) => {
@@ -88,7 +89,7 @@ describe("ADR-227 G3 — catalog border 폭 리터럴 0 ratchet", () => {
     });
     expect({ outline, borderBottom }).toEqual({
       outline: 3,
-      borderBottom: 4,
+      borderBottom: 3,
     });
   });
 });

@@ -12,7 +12,6 @@ import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { catalogQuietStyles } from "../../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import { renderCatalogDom } from "../domBinding";
 import { catalogQuietOwnerPaint } from "../canvasBinding";
 import { cssVarColor } from "../../../../../../packages/shared/src/catalog/runtime/rulePaint";
@@ -22,11 +21,11 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * RSP `isQuiet` on a Select and a DateRangePicker: their box is not an Input / DateInput part but
- * one their own rule styles when quiet (`quiet.true.nested` — the Select's trigger Button, the range
- * picker's Group). The DOM root carries `data-quiet` (before: never — the prop did not reach the
- * Select, and the range picker's component cleared the attribute), and the Canvas draws the same
- * declarations on that box: no fill or box border, square corners, an underline.
+ * RSP `isQuiet` on a Select: its box is not an Input / DateInput part but its trigger Button, which
+ * the Select rule styles when quiet (`quiet.true.nested`). The DOM root carries `data-quiet`
+ * (before: never — the prop did not reach the Select), and the Canvas draws the same declarations
+ * on the trigger: no fill or box border, square corners, an underline. A DateRangePicker takes no
+ * `isQuiet` (S2 has none — 2026-10-07).
  */
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
@@ -133,28 +132,8 @@ describe("quiet Select · DateRangePicker", () => {
     expect(html()).not.toMatch(/data-quiet/);
   });
 
-  it("DateRangePicker: the root carries data-quiet and the Group takes the field rule's quiet box", async () => {
-    const { box, html, setQuiet } = await place("daterangepicker");
-    const quiet = () => {
-      const group = box("SelectTrigger");
-      return catalogQuietStyles(undefined, {
-        ...group.props,
-        ...group.derivedProps,
-      });
-    };
-    expect(quiet()).toBeUndefined();
-    setQuiet(true);
-    expect(
-      /<div[^>]*class="react-aria-DateRangePicker"[^>]*data-quiet="true"|<div[^>]*data-quiet="true"[^>]*class="react-aria-DateRangePicker"/.test(
-        html(),
-      ),
-    ).toBe(true);
-    expect(quiet()).toMatchObject({
-      background: "transparent",
-      "border-radius": "0",
-      "border-bottom": "1px solid var(--border)",
-    });
-    setQuiet(false);
-    expect(quiet()).toBeUndefined();
+  it("DateRangePicker takes no isQuiet (S2 has none): the prop is not on its edit contract", async () => {
+    const { setQuiet } = await place("daterangepicker");
+    expect(() => setQuiet(true)).toThrow();
   });
 });

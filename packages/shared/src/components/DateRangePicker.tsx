@@ -90,7 +90,6 @@ export interface DateRangePickerProps<T extends DateValue> extends Omit<
   endName?: string;
   form?: string;
   validationBehavior?: "native" | "aria";
-  isQuiet?: boolean;
 }
 
 export function DateRangePicker<T extends DateValue>({
@@ -120,7 +119,6 @@ export function DateRangePicker<T extends DateValue>({
   necessityIndicator,
   labelPosition = "top",
   labelAlign,
-  isQuiet,
   hideTimeZone,
   pageBehavior,
   maxVisibleMonths,
@@ -180,9 +178,6 @@ export function DateRangePicker<T extends DateValue>({
       data-size={size}
       data-label-position={labelPosition}
       data-label-align={labelAlign}
-      // (The catalog DOM passes `data-quiet` itself — `toRacProps` — through `props`: an absent
-      // `isQuiet` must not clear it.)
-      {...(isQuiet ? { "data-quiet": "true" } : {})}
       granularity={effectiveGranularity}
       placeholderValue={placeholderValue}
       defaultValue={defaultValue}
