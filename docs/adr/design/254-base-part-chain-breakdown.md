@@ -74,4 +74,34 @@ fork 4 질문 (adr-writing.md) 과 사용자 confirm:
 
 ## 5. 실행 기록
 
-(착수 뒤 기재)
+### Phase 0 — 2026-10-07 (main `1b51bcfe5`, 전환 전)
+
+착수: 사용자가 리뷰 종결 뒤 `/execute-adr 254` 실행 → Accepted. 작업은 main checkout 에서 직접 (5173 dev 서버가 main 기준, 다른 세션의 미커밋 변경은 docs 3개 — 경로 지정 커밋). soft 제약의 「worktree」 는 이 사정으로 따르지 않았다.
+
+**Oracle (G0)**: `apps/builder/src/builder/catalogRuntime/__tests__/adr254ContainerParts.test.ts` + `fixtures/adr254-container-parts.json` (`ADR254_WRITE=1` 로 이 빌드에서 씀). 18 case — Dialog · Popover · Tooltip 기본, Card 7 (size sm · lg · variant 3 · title/description), InlineAlert 8 (size sm · lg · variant 4 · title/description). 거부된 case 0. 기록: 제목 · 설명 record (instance 루트로부터의 경로 · binding · size · slot · 글자 · `visual` · `layout`) + DOM 마크업 (열린 Dialog 의 section · Card · InlineAlert, inline style 포함).
+
+oracle 이 보여 준 값 (전환 전):
+
+| 자리              | 크기 · 굵기 · 줄 높이                                        | 색        |
+| ----------------- | ------------------------------------------------------------ | --------- |
+| Dialog 제목 (lg)  | 18 · 600 · 1.556                                             | `#171717` |
+| Dialog 설명 (lg)  | 14 · 400 · 1.429                                             | `#525252` |
+| Popover 제목 (sm) | 14 · 600 · 1.429                                             | `#171717` |
+| Popover 설명 (md) | 12 · 400 · 1.333                                             | `#525252` |
+| Tooltip 설명 (md) | 12 · 400 · 1.333                                             | `#525252` |
+| Card 제목 (md)    | 16 · 600 · 1.5 — Card 의 size 는 제목에 닿지 않는다 (patch)  | `#171717` |
+| Card 설명 (lg)    | 14 · 400 · 1.429                                             | `#49454f` |
+| InlineAlert 제목  | sm/md/lg 14/16/18 · **700** · **1.4** (InlineAlert partRule) | `#171717` |
+| InlineAlert 설명  | sm/md/lg 12/14/16 · 400 · **1.5** (InlineAlert partRule)     | `#525252` |
+
+- 전환 뒤 바뀔 값 (G0 변화 목록 후보 — Phase 2 에서 대조): InlineAlert 제목 굵기 700 → 600 · 줄 높이 1.4 → Heading rule (sm 1.429 · md 1.5 · lg 1.556). InlineAlert 설명 줄 높이 1.5 → Description rule (md 1.333 · lg 1.429 · xl 1.5). 나머지 자리는 크기 · 색을 patch 로 남겨 값 변화 0 이 목표.
+- DOM: Dialog 는 `section[aria-label=Dialog]` (F6 확인). InlineAlert 의 제목 요소에 `slot` 속성이 없다 (heading binding 이 넘기지 않는다). **Card 설명은 CardContent 가 직접 조립한다** — `div.react-aria-Description.card-description[data-size=lg]`, 노드 style 없음 (`X/delegatedDom.tsx` `cardcontent`). 그래서 Canvas 의 색 `#49454f` 는 Preview 에 없고 (Description sheet 의 색), Description 원본 편집도 Card 설명의 DOM 에 닿지 않는다 → Phase 2 에서 CardContent 가 Description 노드의 style 을 싣는다 (요소 · class 는 그대로 — 구조 변화 0).
+
+**Heading 생성 경로 (R1)**: AI `create_element` → `catalogRuntime/aiHost.ts:515` `catalogPaletteDefinitionId` 하나 — 원본이 등록되면 그 원본의 instance 를 만든다. `layoutTemplates.ts` · `dynamicInjection.ts` 는 프롬프트에 넣는 type 목록뿐 (노드를 만들지 않는다). library template 의 `lib:definition:heading` 사용은 네 컨테이너 자리 4곳뿐. `presence.ts` 의 Disclosure trigger 판정은 type 이름 「Heading」 을 읽는다 — instance 는 template 루트 정의 (`heading`) 로 접히므로 같은 이름. shared `Dialog` 를 catalog binding 밖에서 쓰는 곳 0 (`domRegistry.tsx` 하나).
+
+**글자 바인딩 (Decision 5)**: template 노드 props 의 `{name}` 은 그 template 을 펼치는 instance 의 bindings 로 풀리고 (`resolver.ts` projectTemplate 의 `bindTemplateValue`), 그 뒤에 descendant patch 의 props 가 덮는다 — 자식에 쓴 글자가 부모 prop 을 가린다. 추적 방법: record 의 `sourceId` (template 노드 id) → library template 의 원래 props 에서 `{name}` 토큰 → 그 template 트리의 루트를 `collapsedSourceIds` 로 가진 가장 가까운 조상 record (= 바인딩 소스 instance) → 그 record 의 편집 target.
+
+**live 재현** (`apps/builder/scripts/adr254-text-binding-live.mjs`, 5173 · main 빌드 · Compare Mode):
+
+- TextField 의 Label 더블클릭 → 「Child label」 → TextField `label` = 「Parent label」 → Canvas · Preview 모두 「Child label」 (FAIL — 결함 재현). undo 두 번으로 원래 글자. ADR-253 의 Label 자리 결함이므로 Phase 2 의 수리 대상이고 CHANGELOG 의 수정 항목이다.
+- Card 제목: 더블클릭이 CardHeader 까지만 들어간다 — 인스턴스 안 template 노드는 context 로 들어가지 않는다 (`catalogRuntime/canvasPick.ts` `resolveCatalogContextEntry` 의 `isNodeSource`). Card 제목은 지금 더블클릭으로 글자 편집이 열리지 않는다 (**범위 밖 — 기록만**). Phase 2 의 Card live 는 같은 편집기를 session 으로 열어 확인한다. InlineAlert 제목 · 설명은 루트의 직계라 더블클릭으로 닿는다.

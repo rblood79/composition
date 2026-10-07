@@ -1,0 +1,779 @@
+{
+ "dialog/default": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "lg",
+    "text": "Dialog Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 18,
+     "lineHeight": 1.5555555555555556,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   },
+   "/1/1/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Dialog content goes here.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<section aria-label=Dialog class=react-aria-Dialog data-rac= data-size=md role=dialog tabindex=-1><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:600;line-height:1.5555555555555556>Dialog Title</><div style=box-sizing:border-box;display:flex;flex-direction:column;border-radius:0;row-gap:0;column-gap:0><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.4285714285714286>Dialog content goes here.</></><div class=react-aria-DialogFooter data-size=md style=row-gap:8px;column-gap:8px;display:flex;justify-content:flex-end><div style=box-sizing:border-box;display:flex;flex-direction:row;align-items:center;border-radius:0;row-gap:0;column-gap:8px></><button class=react-aria-Button button-base data-fill-style=fill data-rac= data-react-aria-pressable=true data-size=md data-static-color=auto data-variant=secondary id slot=close style=box-sizing:border-box;display:inline-flex;flex-direction:row;align-items:center;justify-content:center;min-width:68px;row-gap:8px;column-gap:8px;padding-top:4px;padding-right:12px;padding-bottom:4px;padding-left:12px;border-width:1px;border-style:solid;border-radius:6px;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:nowrap;font-weight:500;line-height:1.4285714285714286 tabindex=0 type=button>Close</></></>"
+ },
+ "popover/default": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "sm",
+    "text": "Popover Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "text": "Popover content goes here.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 12,
+     "lineHeight": 1.3333333333333333,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  }
+ },
+ "tooltip/default": {
+  "records": {
+   "/0": {
+    "binding": "description",
+    "size": "md",
+    "text": "Tooltip text",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 12,
+     "lineHeight": 1.3333333333333333,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  }
+ },
+ "card/default": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/size sm": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=sm data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/size lg": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=lg data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/variant secondary": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=secondary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/variant tertiary": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=tertiary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/variant quiet": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Card Title",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Card description text goes here.",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=quiet id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "card/title, description": {
+  "records": {
+   "/1/0": {
+    "binding": "heading",
+    "size": "md",
+    "text": "Ttl",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": "600",
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0",
+     "marginRight": "0",
+     "marginBottom": "0",
+     "marginLeft": "0",
+     "flexGrow": "1",
+     "flexShrink": "1",
+     "flexBasis": "0%"
+    }
+   },
+   "/2/0": {
+    "binding": "description",
+    "size": "lg",
+    "text": "Desc",
+    "visual": {
+     "color": "#49454f",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4285714285714286,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block"
+    }
+   }
+  },
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Ttl</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Desc</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+ },
+ "inline-alert/default": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/size sm": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 12,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=sm data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:12px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/size lg": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 18,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=lg data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/variant neutral": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=neutral id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/variant positive": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=positive id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/variant notice": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=notice id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/variant negative": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Alert Heading",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "There was an error processing your request. Please try again.",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=negative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+ },
+ "inline-alert/title, description": {
+  "records": {
+   "/0": {
+    "binding": "heading",
+    "size": "md",
+    "slot": "label",
+    "text": "Ttl",
+    "visual": {
+     "color": "#171717",
+     "fontWeight": 700,
+     "width": "100%",
+     "fontSize": 16,
+     "lineHeight": 1.4,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   },
+   "/1": {
+    "binding": "description",
+    "size": "md",
+    "slot": "description",
+    "text": "Desc",
+    "visual": {
+     "color": "#525252",
+     "fontWeight": 400,
+     "width": "100%",
+     "fontSize": 14,
+     "lineHeight": 1.5,
+     "radius": 0
+    },
+    "layout": {
+     "display": "block",
+     "marginTop": "0px",
+     "marginRight": "0px",
+     "marginBottom": "0px",
+     "marginLeft": "0px"
+    }
+   }
+  },
+  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Ttl</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>Desc</></>"
+ }
+}

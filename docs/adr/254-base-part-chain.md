@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-10-07
+Accepted — 2026-10-07 (사용자가 리뷰 종결 뒤 `/execute-adr 254` 실행 — 대안 A 승인)
 
 > **2026-10-07 리뷰 round 1 반영** ([reviews/254.md](reviews/254.md) — HIGH 2 · MEDIUM 2 · LOW 1): ① shared Dialog 의 `aria-label="Dialog"` 폴백이 RAC 의 `titleId` 를 버리게 해 (`useDialog.mjs:27`) heading 에 `slot="title"` 만 넘겨서는 연결되지 않는다 → F6 · Decision 4 · 영향 파일에 `Dialog.tsx` 추가 ② InlineAlert 의 제목 · 설명 크기는 InlineAlert `size` 를 따른다 (sm/md/lg 14/16/18 · 12/14/16) → size 전달 + 단계 대응표 (Decision 3) ③ Heading 은 팔레트에 없다 (`PALETTE_ORDER` 에 Text 만) — 「팔레트 Heading 도 instance」 를 뺐고, Heading 노드의 진입 경로 (AI 레이아웃 템플릿) 와 `placeable` 영향을 F3 · R1 에 적었다 ④ Popover · Tooltip 은 DOM 출력 0 이라 DOM 대조가 공허하다 → G0 · G2 의 대상을 열린 Dialog · Card · InlineAlert 로 한정, R4 에 Tooltip 추가 ⑤ IllustratedMessage rule 에도 제목 크기 선언이 있다 (template 에 heading 노드는 없어 범위 밖) → F10. 다섯 건 모두 코드로 확인했다.
 
