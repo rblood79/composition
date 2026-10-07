@@ -6,7 +6,6 @@ import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTab
 import { ComboBox } from "../ComboBox";
 import { DatePicker } from "../DatePicker";
 import { DateRangePicker } from "../DateRangePicker";
-import { SearchField } from "../SearchField";
 import { Select } from "../Select";
 
 /**
@@ -49,7 +48,8 @@ const TARGETS = [
   },
   { name: "Select", Comp: Select, props: {} },
   { name: "ComboBox", Comp: ComboBox, props: {} },
-  { name: "SearchField", Comp: SearchField, props: {} },
+  // (SearchField draws its glyph from its Icon node — the Canvas glyph, ADR-256 Phase 2: the
+  // shared component is gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
 ] as const;
 
 describe("트리거 아이콘 glyph 가 size 를 따른다 (DOM ↔ Skia 동일 source)", () => {

@@ -1,8 +1,6 @@
 import "fake-indexeddb/auto";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { TextField } from "../../../../../../packages/shared/src/components/TextField";
 import { renderCatalogDom } from "../domBinding";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -158,38 +156,12 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
 
   /**
    * G2 — the DOM draws the field's Label from the Label node (RAC composition inside the field).
-   * Oracle: the shared TextField composing its own Label from the field's props (the DOM before
-   * this ADR). Generated ids and the catalog markers aside, the two documents are the same.
+   * The document's structure is the frozen field DOM oracle's (`adr253FieldPartsDom.test.ts`) and
+   * the reference example's (`adr256FieldNodeTree.test.ts`); here, the Label element is the Label
+   * node's own. (The shared TextField that was this test's oracle left the Preview in ADR-256
+   * Phase 2 and was deleted.)
    */
   describe("DOM", () => {
-    /** A document's structure: elements, their attributes (sorted) and text, in order. */
-    const normalize = (html: string) => {
-      // Inline style is not structure: the field's is the catalog's authored style, the Label
-      // node's is its resolved style (the Canvas ↔ DOM comparison judges what they draw).
-      const walk = (element: Element): string => {
-        const attributes = [...element.attributes]
-          .filter(
-            (attribute) =>
-              attribute.name !== "data-catalog-id" &&
-              attribute.name !== "style",
-          )
-          .map((attribute) =>
-            ["id", "for", "aria-labelledby", "aria-describedby"].includes(
-              attribute.name,
-            )
-              ? attribute.name
-              : `${attribute.name}=${attribute.value}`,
-          )
-          .sort();
-        const content = [...element.childNodes].map((child) =>
-          child.nodeType === 1 ? walk(child as Element) : child.textContent,
-        );
-        return `<${element.tagName.toLowerCase()} ${attributes.join(" ")}>${content.join("")}</>`;
-      };
-      const host = document.createElement("div");
-      host.innerHTML = html;
-      return [...host.children].map(walk).join("\n");
-    };
     const CASES: Record<string, Record<string, string | boolean>> = {
       default: {},
       required: { isRequired: true },
@@ -207,7 +179,7 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
       "read only": { isReadOnly: true },
     };
     for (const [name, authored] of Object.entries(CASES))
-      it(`${name}: the same document as the field composing its own Label`, async () => {
+      it(`${name}: the Label element is the Label node's`, async () => {
         const { workspace } = await open({
           props: Object.fromEntries(
             Object.entries(authored).map(([key, value]) => [key, set(value)]),
@@ -219,28 +191,6 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
         const actual = renderToStaticMarkup(
           renderCatalogDom(workspace.root, field.id),
         );
-        const props = field.props;
-        const expected = renderToStaticMarkup(
-          createElement(TextField, {
-            isDisabled: !!props.isDisabled,
-            isRequired: !!props.isRequired,
-            isReadOnly: !!props.isReadOnly,
-            isInvalid: !!props.isInvalid,
-            isQuiet: !!props.isQuiet,
-            necessityIndicator: props.necessityIndicator as never,
-            labelPosition: (props.labelPosition ?? "top") as never,
-            labelAlign: props.labelAlign as never,
-            autoFocus: false,
-            size: props.size as never,
-            label: String(props.label || ""),
-            description: String(props.description || ""),
-            errorMessage: String(props.errorMessage || ""),
-            placeholder: String(props.placeholder || ""),
-            type: (props.type || "text") as never,
-            defaultValue: String(props.value || ""),
-          }),
-        );
-        expect(normalize(actual)).toBe(normalize(expected));
         // The Label element is the Label node's own (its record id marks it).
         const marked = /<label[^>]*data-catalog-id="([^"]*)"/.exec(actual)?.[1];
         if (authored.label === "") expect(actual).not.toContain("<label");

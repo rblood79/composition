@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **빈 label · description 의 부품은 없다 — 값 조건 `presentWhen`** (Decision 7): field 의 Label · Description 은 최종 글자가 빈 문자열일 때만 없다 (`0` · `false` · 공백은 남는다). Canvas 도 이제 빈 label 의 Label 자리를 그리지 않는다 (Preview 와 같다). 바인딩만으로는 노드가 사라지지 않는다 — FieldError 는 빈 문구여도 RAC 의 검증 메시지를 보인다. 위치: `catalog/runtime/presence.ts` `catalogAbsentByValue`
 - **저장 형식 contract 8**: 옛 contract 문서는 열지 않는다 (ADR-256 Decision 10)
 
+### Removed
+
+- **shared field 컴포넌트 6개** (`TextField` · `TextArea` · `NumberField` · `SearchField` · `DateField` · `TimeField` — `@composition/shared` components export): Preview 가 field 를 노드 트리로 그리면서 쓰는 곳이 없어졌다. Builder UI 의 입력은 RAC 를 직접 쓴다. `ColorField` 는 `ColorPicker` 가 써서 남는다
+
 ### Fixed (2026-10-08 Phase 2 판독 수리)
 
 - **field 안에 Frame 을 넣고 부품을 옮기면 입력이 망가지던 것**: DateField · TimeField 의 날짜 칸이 사라지고, TextArea 가 한 줄 입력이 되고, NumberField · SearchField 의 입력 상자를 Frame 에 넣으면 Preview 가 오류로 멈췄다. 이제 Frame 은 부품과 field 사이를 끊지 않는다 — Preview 는 같은 RAC 입력을, Canvas 는 같은 값 (날짜 형식 · quiet · 필수 표시) 을 그린다. 위치: `catalog/runtime/presence.ts` `catalogPartParent`
