@@ -36,6 +36,7 @@ import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
+import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
@@ -199,10 +200,13 @@ export function CatalogPropertiesBody({
           key={`roles:${first.identity}`}
           identity={first.identity}
         />
-        <CatalogRacSlotSection
-          key={`rac-slot:${first.identity}`}
-          identity={first.identity}
-        />
+        {/* Only a part that reads a RAC slot context mounts it (no hook cost per selection). */}
+        {catalogRacSlotConsumer(contract.type) && (
+          <CatalogRacSlotSection
+            key={`rac-slot:${first.identity}`}
+            identity={first.identity}
+          />
+        )}
         <CatalogItemOriginNotice
           key={`origin:${targetKey(first.target)}`}
           target={first.target}
