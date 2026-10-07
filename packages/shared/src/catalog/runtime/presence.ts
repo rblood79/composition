@@ -127,6 +127,8 @@ const NODE_TREE_FIELDS: ReadonlySet<string> = new Set([
   "Checkbox",
   "Switch",
   "Radio",
+  "CheckboxGroup",
+  "RadioGroup",
 ]);
 
 /**

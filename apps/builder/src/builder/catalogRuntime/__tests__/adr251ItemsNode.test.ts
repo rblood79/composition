@@ -186,7 +186,7 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
         );
         expect(box.y + first.y).toBeCloseTo(0, 3);
       }
-      // DOM (G4): one wrapper div holding every item; the wrapper record renders no element.
+      // DOM (G4): one wrapper div holding every item — the wrapper node's own element (ADR-256 Phase 3).
       const dom = [...root.domInputs.values()].find(
         (record) => record.sourceId === "project:node:owner",
       )!;
@@ -198,7 +198,9 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
       expect(
         inside.match(new RegExp(`class="${itemClass}"`, "g")) ?? [],
       ).toHaveLength(2);
-      expect(html).not.toContain(`data-catalog-id="${wrapper.id}"`);
+      expect(html).toContain(
+        `<div data-catalog-id="${wrapper.id}" class="${token}">`,
+      );
       workspace.dispose();
     },
   );

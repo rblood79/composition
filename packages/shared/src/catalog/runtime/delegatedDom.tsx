@@ -21,6 +21,7 @@ import {
   RadioField as AriaRadioField,
   RadioGroup as AriaRadioGroup,
 } from "react-aria-components/RadioGroup";
+import { CheckboxGroup as AriaCheckboxGroup } from "react-aria-components/CheckboxGroup";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
@@ -63,7 +64,6 @@ import { catalogTabsSelection, catalogTreeItemExpanded } from "./presence";
 import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
-import { CheckboxGroup } from "../../components/CheckboxGroup";
 import {
   ColorSwatchPicker,
   ColorSwatchPickerItem,
@@ -74,7 +74,6 @@ import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
 import { Meter } from "../../components/Meter";
 import { ProgressBar } from "../../components/ProgressBar";
-import { RadioGroup } from "../../components/RadioGroup";
 import { RangeCalendar } from "../../components/RangeCalendar";
 import { Slider } from "../../components/Slider";
 import { ToggleButton } from "../../components/ToggleButton";
@@ -1362,14 +1361,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   ),
 
+  // ADR-256 Phase 3: a CheckboxGroup is RAC `CheckboxGroup` — its children in order (the Label, the
+  // items wrapper, a Description, a FieldError, anything the author put in). Its value is the
+  // selected items' record ids (each item is a `CheckboxField` with its record id — `checkbox`).
   checkboxgroup: {
-    // The group label is read from the Label child; Checkbox children are composed by the group.
-    // ADR-251: the items sit in the CheckboxItems node — the shared `CheckboxGroup` renders its
-    // one `div.checkbox-items` around them, so the node itself is absorbed (TagGroup's TagList).
-    ownsChild: (child, _parent, root) =>
-      !["CheckboxItems", "Checkbox"].includes(catalogTypeName(root, child)),
-    absorbsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) === "CheckboxItems",
     render: (input) => {
       const props = input.node.props;
       const items = childOf(input, "CheckboxItems");
@@ -1379,43 +1374,52 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const selected = boxes
         .filter((box) => box.props.isSelected === true)
         .map((box) => box.id);
+      const size = str(props.size) || "md";
       return createElement(
-        CheckboxGroup as ElementType,
+        AriaCheckboxGroup as ElementType,
         {
           ...marker(input),
           key: `${input.node.id}:${selected.join(",")}`,
           style: input.style,
-          label:
-            fieldLabel(
-              input,
-              propagatedText(input.root, props.label, childOf(input, "Label")),
-            ) || undefined,
+          className: "react-aria-CheckboxGroup",
+          "data-orientation": str(props.orientation) || "vertical",
+          "data-checkbox-size": size,
+          "data-size": size,
+          "data-label-position": str(props.labelPosition) || "top",
           defaultValue: selected,
-          orientation: props.orientation || "vertical",
-          size: props.size || "md",
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
-          necessityIndicator: props.necessityIndicator,
-          labelPosition: props.labelPosition || "top",
           name: opt(props.name),
-          description:
-            fieldDescription(input, str(props.description)) || undefined,
-          errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         },
-        // Each item draws itself (ADR-256 Phase 3 — RAC `CheckboxField` in the group's context).
-        ...boxes.map((box) => input.renderChild(box.id)),
+        ...renderAll(input),
       );
     },
   },
+  // ADR-251 · ADR-256 Phase 3: a group's items wrapper is the reference's `div.checkbox-items` /
+  // `div.radio-items` (outside RAC's structure, no role) — its children in order, with its node's
+  // marker. Its box is the group rule's (`orientation` block); it takes no authored style (as the
+  // Canvas paints none).
+  checkboxitems: {
+    render: (input) =>
+      createElement(
+        "div",
+        { ...marker(input), className: "checkbox-items" },
+        ...renderAll(input),
+      ),
+  },
+  radioitems: {
+    render: (input) =>
+      createElement(
+        "div",
+        { ...marker(input), className: "radio-items" },
+        ...renderAll(input),
+      ),
+  },
+  // ADR-256 Phase 3: a RadioGroup is RAC `RadioGroup` — its children in order. Its value is the
+  // first selected item's (each item is a `RadioField` with its `value` — `radio`), else its own.
   radiogroup: {
-    // ADR-251: the items sit in the RadioItems node — the shared `RadioGroup` renders its one
-    // `div.radio-items` around them, so the node itself is absorbed.
-    ownsChild: (child, _parent, root) =>
-      !["RadioItems", "Radio"].includes(catalogTypeName(root, child)),
-    absorbsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) === "RadioItems",
     render: (input) => {
       const props = input.node.props;
       const items = childOf(input, "RadioItems");
@@ -1427,32 +1431,27 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         selected?.props.value !== undefined
           ? String(selected.props.value)
           : str(props.value);
+      const size = str(props.size) || "md";
       return createElement(
-        RadioGroup as ElementType,
+        AriaRadioGroup as ElementType,
         {
           ...marker(input),
           key: `${input.node.id}:${value}`,
           style: input.style,
-          label:
-            fieldLabel(
-              input,
-              propagatedText(input.root, props.label, childOf(input, "Label")),
-            ) || undefined,
+          className: "react-aria-RadioGroup",
+          "data-radio-variant": str(props.variant) || "default",
+          "data-radio-size": size,
+          "data-size": size,
+          "data-label-position": str(props.labelPosition) || "top",
           defaultValue: value,
-          orientation: props.orientation || "vertical",
-          size: props.size || "md",
+          orientation: str(props.orientation) || "vertical",
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
-          necessityIndicator: props.necessityIndicator,
-          labelPosition: props.labelPosition || "top",
           name: opt(props.name),
-          description:
-            fieldDescription(input, str(props.description)) || undefined,
-          errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         },
-        ...radios.map((radio) => input.renderChild(radio.id)),
+        ...renderAll(input),
       );
     },
   },
@@ -1481,9 +1480,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-256 Phase 3: a ToggleButtonGroup draws its children in order (its ToggleButtons and anything
+  // the author put in) — the shared group gives its buttons the S2 contexts (indicator · emphasized ·
+  // quiet · static color).
   togglebuttongroup: {
-    ownsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) !== "ToggleButton",
     render: (input) => {
       const props = input.node.props;
       const buttons = children(input).filter(
@@ -1510,8 +1510,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           size: props.size || "md",
           density: props.density || "regular",
           defaultSelectedKeys: selected,
+          // (Only when disabled — RAC writes `aria-disabled` for any boolean.)
+          isDisabled: bool(props.isDisabled) || undefined,
         },
-        ...buttons.map((button) => input.renderChild(button.id)),
+        ...renderAll(input),
       );
     },
   },

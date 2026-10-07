@@ -28,6 +28,7 @@ import {
   catalogDomRendersNode,
   renderCatalogDom,
 } from "../domBinding";
+import { CATALOG_DELEGATED_DOM } from "../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
 import { CatalogStorage } from "../storage";
 import { CATALOG_RULE_EXECUTOR_PAINT_STATES } from "../rulePaint";
 import { writeEvidence } from "./support/evidence";
@@ -159,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 8,
+    libraryContractVersion: 9,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -259,6 +260,8 @@ function run(
             const dom =
               !catalogDomRendersNode(root, input.id) ||
               CATALOG_DOM_BINDING_IDS.has(key) ||
+              // A node-tree renderer (ADR-256 Phase 3 — the group items wrappers have no rule).
+              !!CATALOG_DELEGATED_DOM[key] ||
               !!input.ruleId;
             return !canvas || !dom;
           })

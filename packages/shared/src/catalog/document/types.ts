@@ -17,10 +17,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `TooltipTrigger > Button + Tooltip` (the overlay one level down, `component-popover__overlay`).
  * 8 — ADR-256 Phase 2: a field's Label · Description positions carry `presentWhen: "nonEmptyText"`
  * (their presence is that value condition; a binding alone keeps every node), and the field
- * draws its node tree.
+ * draws its node tree. 9 — ADR-256 Phase 3: Checkbox · Switch · Radio are `*Field > *Button`
+ * (`component-checkbox__button` holds the indicator and the text `component-checkbox__1`) with
+ * Description (· FieldError) positions; a CheckboxGroup · RadioGroup Label · Description carry
+ * `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 8 as const;
+export const LIBRARY_CONTRACT_VERSION = 9 as const;
 
 export type EntryKind =
   | "project"

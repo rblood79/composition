@@ -165,18 +165,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
       "Text",
     ],
   },
-  // toggle — Phase 3. 단일 control 의 label 자리 (RSP `children` 은 label 텍스트)
-  RadioGroup: {
-    children: ["Label", "RadioItems", "Description", "FieldError"],
-    wrappers: true,
-  },
-  RadioItems: { children: ["Radio"] },
-  CheckboxGroup: {
-    children: ["Label", "CheckboxItems", "Description", "FieldError"],
-    wrappers: true,
-  },
-  CheckboxItems: { children: ["Checkbox"] },
-  ToggleButtonGroup: { children: ["ToggleButton"] },
+  // (toggle — Phase 3 (2026-10-08): 노드 트리로 전환 — Checkbox · Switch · Radio · 그룹 · ToggleButtonGroup 행 없음.)
   // collection — Phase 5
   Tabs: { children: ["TabList", "TabPanels", "TabPanel"], wrappers: true },
   TabPanels: { children: ["TabPanel"] },

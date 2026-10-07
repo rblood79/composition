@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 3c — 그룹 · ToggleButtonGroup 이 자식을 순서대로] - 2026-10-08
+
+### Changed
+
+- **CheckboxGroup · RadioGroup 은 RAC `CheckboxGroup` / `RadioGroup` 안에 자식 노드를 순서대로 그린다** (ADR-256 Decision 2 · 3 — react-aria.adobe.com CheckboxGroup · RadioGroup 예제): Label · 항목 묶음 (`div.checkbox-items` / `div.radio-items` — 이제 묶음 노드 자신의 요소) · Description · FieldError 와 작성자가 넣은 자유 자식. ToggleButtonGroup 도 자식을 순서대로 그린다. 세 그룹 모두 다른 요소를 넣을 수 있다 (전에는 중첩 규칙이 막았다 — Preview 가 그리지 않아서). 화면은 그대로다 (Canvas 는 변경 전과 픽셀이 같다). 위치: `catalog/runtime/delegatedDom.tsx` `checkboxgroup` · `radiogroup` · `checkboxitems` · `radioitems` · `togglebuttongroup`
+- **저장 형식 contract 9**: 옛 contract 문서는 열지 않는다 (ADR-256 Decision 10)
+
+### Fixed
+
+- **label 이 빈 CheckboxGroup · RadioGroup 의 Canvas 가 빈 Label 자리를 그리던 것**: Preview 는 그리지 않았다 — 이제 같다 (`presentWhen`, Description 도 같음)
+
 ## [ADR-256 Phase 3b — Switch · Radio 를 레퍼런스 구조로] - 2026-10-08
 
 ### Changed
