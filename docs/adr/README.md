@@ -202,8 +202,8 @@
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
 | 열려 있는 것 (`adr/*.md`)     |       2 |
-| ├ Proposed                    |       2 |
-| ├ Accepted (미착수·일부 착수) |       0 |
+| ├ Proposed                    |       1 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **281** |
 
@@ -227,7 +227,7 @@
 
 #### [254](254-base-part-chain.md) — 바탕의 부품 사슬 — Dialog · Popover · Card · InlineAlert · Tooltip 의 제목 · 설명을 Heading · Description 원본의 instance 로
 
-- **상태**: Proposed — 2026-10-07 (사용자 「바탕 사슬 후속 ADR 작성해라」 — ADR-253 Decision 8 후속)
+- **상태**: Accepted — 2026-10-07 (Proposed 같은 날 · 리뷰 round 1~3 종결 `1b51bcfe5` CRITICAL/HIGH 0 · pending 0 → 사용자 `/execute-adr 254`, 대안 A 승인 · **Phase 0 착수**)
 - **규모**: Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) → Phase 1 (Heading 부품 원본 · 팔레트 Heading 도 instance · contract 6) → Phase 2 (자리 9곳 전환 · InlineAlert rule 의 모양 선언 → 부품 rule · Dialog 제목 `slot="title"`) → Phase 3 (정리). Gate G0 ~ G4 (G4 = 사용자 확인). breakdown: [design/254](design/254-base-part-chain-breakdown.md)
 - **선후**: ADR-253 Implemented 뒤. Card 재편 (사용자 결정 09-29, ADR 미작성) 과는 노드 정의만 겹친다 (구조는 건드리지 않음)
 
@@ -253,27 +253,12 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                                                                          |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-|  1   | [254](254-base-part-chain.md)                                                                  | Proposed · **리뷰 검토 중** (`reviews/254.md`, 2026-10-07)   | 리뷰 종결 (최신 round pending 0) → 사용자 Accepted 판정 → `/execute-adr 254` (Phase 0 inventory 부터). ADR-253 Implemented 선행 충족 |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                            |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                               |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                                                                          |
-
-**착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
-
-<details>
-<summary>1. ADR-254 (Proposed — 리뷰 종결 + 사용자 Accepted 판정 뒤)</summary>
-
-```
-/execute-adr 254
-
-- Status 를 Accepted 로 승격하고 Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) 부터
-- breakdown design/254-base-part-chain-breakdown.md 의 Phase · Gate 순서 그대로 — G4 는 사용자 확인
-- Card 재편 (사용자 결정 09-29, ADR 미작성) 과 노드 정의만 겹친다 — 구조는 건드리지 않는다
-```
-
-</details>
+| 순위 | ADR                                                                                            | 착수 준비도                                                                           | 차단 · 선행                                                                                                          |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+|  1   | [254](254-base-part-chain.md)                                                                  | **Accepted · Phase 0 진행 중** (2026-10-07, 리뷰 round 1~3 종결 → `/execute-adr 254`) | 전제 확정 — 구현 중 재질문 금지. Phase 0 → 1 (Heading 원본 · contract 6) → 2 (자리 9곳) → 3 (정리), G4 = 사용자 확인 |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)                          | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                            |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                               | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                               |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                    | 각 항목의 재개 조건 발생 시                                                                                          |
 
 ---
 
