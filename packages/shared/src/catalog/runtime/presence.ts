@@ -7,6 +7,12 @@ import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import { catalogCalendarTitle } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { racFieldHourCycle } from "../document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import type {
+  CatalogShowWhen,
+  CatalogStateKey,
+  CatalogStateOwnerRef,
+} from "../document/types";
+import { RAC_STATE_KEYS } from "../generated/racStateKeys";
 
 /**
  * ADR-248 resting-state presence of a resolved node: which nodes a component does not show until
@@ -325,6 +331,8 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogAbsentByValue(node)) return true;
+  // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
+  if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   const parent = get(node.parentId);
   if (!parent) return false;
   const type = typeOf(node);
@@ -1216,4 +1224,223 @@ export function catalogBreadcrumbItems(
   return typeOf(owner) === "Breadcrumbs"
     ? childrenOf(owner, get).filter((child) => typeOf(child) === "Breadcrumb")
     : [];
+}
+
+// ── ADR-256 Decision 7 — state conditions (`showWhen`) ───────────────────────────────────────────
+
+/** The RAC part a catalog type renders, where the names differ (its render props are that part's). */
+const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
+  // ADR-256 Phase 3: the toggle roots are RAC's `*Field` (state, no interaction keys).
+  Checkbox: "CheckboxField",
+  Switch: "SwitchField",
+  Radio: "RadioField",
+  TextArea: "TextField",
+};
+
+/** A toggle's RAC button type → its field type (the button reads the field's state). */
+const TOGGLE_BUTTON_FIELDS: Readonly<Record<string, string>> = {
+  CheckboxButton: "Checkbox",
+  SwitchButton: "Switch",
+  RadioButton: "Radio",
+};
+/** Keys only an interaction gives (the part under the pointer — on the Canvas, a display state). */
+const INTERACTION_KEYS: ReadonlySet<CatalogStateKey> = new Set([
+  "isPressed",
+  "isHovered",
+  "isFocusVisible",
+]);
+
+/** The state keys a type gives its children (`RAC_STATE_KEYS` — the installed RAC's run). */
+export function catalogStateKeysOf(type: string): readonly string[] {
+  return RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ?? [];
+}
+
+/** One `showWhen` condition, normalized: its key, negation and own state owner. */
+export interface CatalogStateCondition {
+  readonly key: CatalogStateKey;
+  readonly not: boolean;
+  readonly from?: CatalogStateOwnerRef;
+}
+export function catalogStateConditions(
+  showWhen: CatalogShowWhen,
+): CatalogStateCondition[] {
+  return showWhen.all.map((item) =>
+    typeof item === "string"
+      ? { key: item, not: false, from: showWhen.from }
+      : "key" in item
+        ? { key: item.key, not: false, from: item.from }
+        : {
+            key: item.not,
+            not: true,
+            from: ("from" in item ? item.from : undefined) ?? showWhen.from,
+          },
+  );
+}
+
+/** A record id's instance path segments and own id (`a/b::own`). */
+function recordAddress(id: string): { path: string[]; own: string } {
+  const at = id.lastIndexOf("::");
+  return at < 0
+    ? { path: [], own: id }
+    : { path: id.slice(0, at).split("/"), own: id.slice(at + 2) };
+}
+const endsWith = (path: readonly string[], tail: readonly string[]) =>
+  tail.length <= path.length &&
+  tail.every((id, index) => path[path.length - tail.length + index] === id);
+
+/** Whether `record` is the ancestor a stored state owner address names (breakdown §1-1). */
+function isStateOwner(
+  record: CatalogConsumerNode,
+  ref: Extract<CatalogStateOwnerRef, { ancestor: unknown }>["ancestor"],
+): boolean {
+  const { path, own } = recordAddress(record.id);
+  if ("nodeId" in ref) return own === ref.nodeId;
+  const address = "address" in ref ? ref.address : ref.local;
+  return (
+    own === address.templatePath[address.templatePath.length - 1] &&
+    endsWith(path, address.instances)
+  );
+}
+
+/**
+ * The part whose state a condition reads: the nearest ancestor that gives the key (default), the
+ * nearest of a type that gives it (`{ type }`), or the one ancestor an address names (`{ ancestor }`
+ * — inside an origin, `local` is that origin's position in the nearest instance). `undefined` =
+ * the reference is not linked (no such ancestor, or it does not give the key): the condition is
+ * false — never another ancestor in its place.
+ */
+export function catalogStateOwner(
+  node: CatalogConsumerNode,
+  key: CatalogStateKey,
+  from: CatalogStateOwnerRef | undefined,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
+    const gives = catalogStateKeysOf(typeOf(cursor)).includes(key);
+    if (!from) {
+      if (gives) return cursor;
+    } else if ("type" in from) {
+      if (typeOf(cursor) === from.type && gives) return cursor;
+    } else if (isStateOwner(cursor, from.ancestor))
+      return gives ? cursor : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * A state owner's resting value of a key on the Canvas (no interaction): the record's props, its
+ * display state (a Components page state cell · a state origin) and the values derived for it.
+ * hover · pressed · focus-visible exist only as a display state; an overlay is never open.
+ */
+export function catalogStateValue(
+  owner: CatalogConsumerNode,
+  key: CatalogStateKey,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  // A toggle's RAC button shares its field's state (RAC's `*Field` context): the field's record
+  // holds it, the button only its own interaction display state.
+  const host = TOGGLE_BUTTON_FIELDS[typeOf(owner)];
+  if (host && !INTERACTION_KEYS.has(key)) {
+    const field = catalogPartParent(owner, get, typeOf);
+    if (field && typeOf(field) === host)
+      return catalogStateValue(field, key, get, typeOf);
+  }
+  const props = owner.props;
+  const derived = (owner.derivedProps ?? {}) as Record<string, unknown>;
+  const state = owner.displayState;
+  switch (key) {
+    case "isSelected":
+      if (state === "selected") return true;
+      if (state === "unselected") return false;
+      return (
+        (derived._isSelected ?? props.isSelected ?? props.defaultSelected) ===
+        true
+      );
+    case "isIndeterminate":
+      return props.isIndeterminate === true || derived.isIndeterminate === true;
+    case "isExpanded":
+      if (state === "collapsed") return false;
+      if (typeOf(owner) === "Disclosure")
+        return catalogDisclosureExpanded(owner, get, typeOf);
+      if (typeOf(owner) === "TreeItem")
+        return catalogTreeItemExpanded(owner, get, typeOf);
+      return (derived.isExpanded ?? props.isExpanded) === true;
+    case "isInvalid":
+      return props.isInvalid === true || derived._fieldInvalid === true;
+    case "isDisabled":
+      return (
+        state === "disabled" ||
+        props.isDisabled === true ||
+        derived._fieldDisabled === true
+      );
+    case "isReadOnly":
+    case "isRequired":
+    case "allowsRemoving":
+    case "allowsSorting":
+      return props[key] === true;
+    case "isPressed":
+      return state === "pressed";
+    case "isHovered":
+      return state === "hover";
+    case "isFocusVisible":
+      return state === "focusVisible";
+    case "isOpen":
+      return false;
+    case "isCurrent":
+      return state === "current" || derived._isLast === true;
+    case "hasSubmenu": {
+      const parent = get(owner.parentId);
+      return !!parent && typeOf(parent) === "SubmenuTrigger";
+    }
+  }
+}
+
+/**
+ * ADR-256 Decision 7 — whether a node's `showWhen` holds: every condition's owner is linked and
+ * its value (negated for `not`) is true. `valueOf` = where the owner's state comes from (the
+ * Canvas resting value; the DOM passes RAC's render props).
+ */
+export function catalogShowWhenHolds(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+  valueOf: (owner: CatalogConsumerNode, key: CatalogStateKey) => boolean = (
+    owner,
+    key,
+  ) => catalogStateValue(owner, key, get, typeOf),
+): boolean {
+  if (!node.showWhen) return true;
+  return catalogStateConditions(node.showWhen).every((condition) => {
+    const owner = catalogStateOwner(
+      node,
+      condition.key,
+      condition.from,
+      get,
+      typeOf,
+    );
+    return !!owner && valueOf(owner, condition.key) !== condition.not;
+  });
+}
+
+/**
+ * Nodes whose `showWhen` can follow `node`'s state: the conditioned nodes below a part that gives
+ * state keys (a change of its values re-judges them).
+ */
+export function catalogStateDependents(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  if (!catalogStateKeysOf(typeOf(node)).length) return [];
+  const out: CatalogConsumerNode[] = [];
+  const visit = (record: CatalogConsumerNode) => {
+    for (const child of childrenOf(record, get)) {
+      if (child.showWhen) out.push(child);
+      visit(child);
+    }
+  };
+  visit(node);
+  return out;
 }

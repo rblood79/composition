@@ -38,7 +38,18 @@ import {
   INTERNAL_RENDERERS,
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
-import { FIELD_HINT_OWNERS, catalogAbsentByValue } from "./presence";
+import {
+  FIELD_HINT_OWNERS,
+  catalogAbsentByValue,
+  catalogStateConditions,
+  catalogStateOwner,
+  catalogStateValue,
+} from "./presence";
+import {
+  catalogShowWhenGate,
+  catalogStateChildren,
+  type CatalogDomStateCondition,
+} from "./stateFrames";
 import {
   racSlotProps,
   resolveRacSlot,
@@ -449,24 +460,23 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ? (node.props[key] as string)
         : undefined;
     const role = text("role");
-    return createElement(
-      Group,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        role: role === "region" || role === "presentation" ? role : "group",
-        label: text("label"),
-        isDisabled: node.props.isDisabled === true,
-        isInvalid: node.props.isInvalid === true,
-        isReadOnly: node.props.isReadOnly === true,
-        "aria-label": text("aria-label") ?? node.name,
-        "aria-labelledby": text("aria-labelledby"),
-        "aria-orientation":
-          node.props.orientation === "horizontal" ? "horizontal" : "vertical",
-        style,
-      } as Parameters<typeof Group>[0],
-      ...children,
-    );
+    return createElement(Group, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      role: role === "region" || role === "presentation" ? role : "group",
+      label: text("label"),
+      isDisabled: node.props.isDisabled === true,
+      isInvalid: node.props.isInvalid === true,
+      isReadOnly: node.props.isReadOnly === true,
+      "aria-label": text("aria-label") ?? node.name,
+      "aria-labelledby": text("aria-labelledby"),
+      "aria-orientation":
+        node.props.orientation === "horizontal" ? "horizontal" : "vertical",
+      style,
+      // (Its render props are the state frame of the `showWhen` nodes inside — ADR-256
+      // Decision 7.)
+      children: catalogStateChildren(node.id, () => children),
+    } as unknown as Parameters<typeof Group>[0]);
   },
   slot: (node, style, children, context) =>
     createElement(
@@ -1587,7 +1597,7 @@ const CatalogDomNode = memo(function CatalogDomNode({
     node,
     runtime?.overrideOf(id),
   );
-  return withRuntime(
+  const element = withRuntime(
     withCatalogStateStyles(
       renderNode(
         root,
@@ -1602,7 +1612,38 @@ const CatalogDomNode = memo(function CatalogDomNode({
     ),
     runtime?.handlersOf(id),
   );
+  // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
+  // RAC state where they pass it down (`stateFrames.tsx`), else their records.
+  return shown.showWhen && element
+    ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), element)
+    : element;
 });
+
+/** A conditioned node's conditions against the DOM records (`catalogStateOwner` — the Canvas's). */
+function catalogDomStateConditions(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CatalogDomStateCondition[] {
+  const get = (id: string) => root.domInputs.get(id);
+  const typeOf = (record: CatalogConsumerNode) => catalogTypeName(root, record);
+  return catalogStateConditions(node.showWhen!).map((condition) => {
+    const owner = catalogStateOwner(
+      node,
+      condition.key,
+      condition.from,
+      get,
+      typeOf,
+    );
+    return {
+      ownerId: owner?.id,
+      key: condition.key,
+      not: condition.not,
+      recordValue: owner
+        ? catalogStateValue(owner, condition.key, get, typeOf)
+        : false,
+    };
+  });
+}
 
 const NO_CHILDREN: readonly string[] = [];
 

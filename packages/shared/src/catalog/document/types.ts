@@ -504,6 +504,63 @@ export const CATALOG_PRESENT_WHEN: readonly CatalogPresentWhen[] = [
   "nonEmptyText",
 ];
 
+/**
+ * ADR-256 Decision 7 — the state keys a node's `showWhen` may test: boolean render props of the RAC
+ * parts (G0 ④-1 — the installed RAC's `useRenderProps` values).
+ */
+export const CATALOG_STATE_KEYS = [
+  "isSelected",
+  "isIndeterminate",
+  "isExpanded",
+  "isInvalid",
+  "isDisabled",
+  "isReadOnly",
+  "isRequired",
+  "isPressed",
+  "isHovered",
+  "isFocusVisible",
+  "isOpen",
+  "isCurrent",
+  "hasSubmenu",
+  "allowsRemoving",
+  "allowsSorting",
+] as const;
+export type CatalogStateKey = (typeof CATALOG_STATE_KEYS)[number];
+/**
+ * The part whose state a condition reads (breakdown §1-1): `{ type }` = the nearest ancestor of
+ * that type that gives the key; `{ ancestor }` = one particular ancestor by its stored address — an
+ * authored node (`nodeId`), a node inside an instance (`address`), or, inside an origin's template,
+ * a position of that origin (`local`, prefixed with the current instance when used).
+ */
+export type CatalogStateOwnerRef =
+  | { type: string }
+  | {
+      ancestor:
+        | { nodeId: NodeId }
+        | { address: InstanceAddress }
+        | {
+            local: {
+              instances: readonly TemplateId[];
+              templatePath: readonly TemplateId[];
+            };
+          };
+    };
+/** One condition: a key, its negation, or either with its own state owner. */
+export type CatalogShowCondition =
+  | CatalogStateKey
+  | { not: CatalogStateKey }
+  | { key: CatalogStateKey; from: CatalogStateOwnerRef }
+  | { not: CatalogStateKey; from: CatalogStateOwnerRef };
+/**
+ * ADR-256 Decision 7 — the states in which a node is there: every condition holds (`all`, 1 – 3).
+ * A condition's own `from` comes before the whole `from`; with neither, the owner is the nearest
+ * ancestor that gives the key. False: the node is not in the DOM and takes no place.
+ */
+export interface CatalogShowWhen {
+  all: readonly CatalogShowCondition[];
+  from?: CatalogStateOwnerRef;
+}
+
 export interface NodeEntry {
   kind: "node";
   id: NodeId;
@@ -531,6 +588,8 @@ export interface NodeEntry {
    * node is always there (a binding never removes a node by itself).
    */
   presentWhen?: CatalogPresentWhen;
+  /** ADR-256 Decision 7 — the states in which the node is there (`CatalogShowWhen`). */
+  showWhen?: CatalogShowWhen;
   /** Authored box layout over the definition and rule layout (ADR-248 Phase 4a). */
   layout?: LayoutWrites;
   /** Paint layers; absent = the definition's fill. */
@@ -727,6 +786,8 @@ export interface LibraryTemplateNode {
    * node is always there (a binding never removes a node by itself).
    */
   presentWhen?: CatalogPresentWhen;
+  /** ADR-256 Decision 7 — the states in which the node is there (`CatalogShowWhen`). */
+  showWhen?: CatalogShowWhen;
   descendantPatches?: readonly LibraryDescendantPatch[];
   /** Children of this node that fill slot positions of the composite it instantiates. */
   slotFills?: readonly LibrarySlotFill[];

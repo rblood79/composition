@@ -88,6 +88,7 @@ import {
   type CatalogComposedPart,
   catalogHiddenAtRest,
   catalogPresenceDependents,
+  catalogStateDependents,
   catalogPresenceScope,
   catalogBreadcrumbItems,
   catalogBreadcrumbSeparator,
@@ -188,6 +189,11 @@ export interface CatalogConsumerNode {
    * template position that places this part) over the part origin's own.
    */
   readonly presentWhen?: ResolvedCatalogNode["presentWhen"];
+  /**
+   * ADR-256 Decision 7 — the states in which the position is there (`showWhen`): the outer layer
+   * over the part origin's own, as `presentWhen`.
+   */
+  readonly showWhen?: ResolvedCatalogNode["showWhen"];
   /** The values each state gives the drawn root (`ResolvedCatalogNode.stateVisual`). */
   readonly stateVisual?: ResolvedCatalogNode["stateVisual"];
   /**
@@ -2290,6 +2296,9 @@ export class CatalogCompositionRoot {
       ...((top.presentWhen ?? target.presentWhen)
         ? { presentWhen: top.presentWhen ?? target.presentWhen }
         : {}),
+      ...((top.showWhen ?? target.showWhen)
+        ? { showWhen: top.showWhen ?? target.showWhen }
+        : {}),
       ...(target.stateVisual ? { stateVisual: target.stateVisual } : {}),
       ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
       ...((target.rowCount ?? top.rowCount) !== undefined
@@ -3126,9 +3135,18 @@ export class CatalogCompositionRoot {
         this.typeOf,
       ))
         presence.set(panel.id, panel);
-    // A value-conditioned part (ADR-256 Decision 7) follows its own final text.
-    for (const update of updates)
-      if (update.record.presentWhen) presence.set(update.id, update.record);
+    // A value-conditioned part (ADR-256 Decision 7) follows its own final text; a state-conditioned
+    // one (`showWhen`) its own condition and its state owners' values.
+    for (const update of updates) {
+      if (update.record.presentWhen || update.record.showWhen)
+        presence.set(update.id, update.record);
+      for (const dependent of catalogStateDependents(
+        update.record,
+        get,
+        this.typeOf,
+      ))
+        presence.set(dependent.id, dependent);
+    }
     for (const panel of presence.values()) {
       const hidden = catalogHiddenAtRest(panel, get, this.typeOf);
       if (hidden === (panel.hidden === true)) continue;

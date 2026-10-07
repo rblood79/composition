@@ -10,6 +10,7 @@ import type {
   NodeThemeOverride,
   DefinitionId,
   CatalogPresentWhen,
+  CatalogShowWhen,
   DisplayStateName,
   InstanceAddress,
   LibraryDescendantPatch,
@@ -80,6 +81,8 @@ export interface ResolvedCatalogNode {
   displayState?: DisplayStateName;
   /** ADR-256 Decision 7 — the node's value condition (`NodeEntry.presentWhen`). */
   presentWhen?: CatalogPresentWhen;
+  /** ADR-256 Decision 7 — the states in which the node is there (`NodeEntry.showWhen`). */
+  showWhen?: CatalogShowWhen;
   /**
    * The values each state gives this node (the keys its state rules write, in the rules' order —
    * definition, overrides, the instance's own): a consumer that draws states itself (the DOM, by
@@ -813,6 +816,7 @@ export function resolveCatalogNode(
       ...authoredExtras(node, layers),
       slot: node.slot ?? inherited?.slot,
       ...(node.presentWhen ? { presentWhen: node.presentWhen } : {}),
+      ...(node.showWhen ? { showWhen: node.showWhen } : {}),
       name: node.name,
       regions: node.regions,
       placeholder: node.placeholder,
@@ -1461,6 +1465,7 @@ export function resolveCatalogNode(
         : {}),
       slot: template.slot,
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
+      ...(template.showWhen ? { showWhen: template.showWhen } : {}),
       ...(displayState ? { displayState } : {}),
       ...(rowSet &&
       itemPositions.length > 0 &&

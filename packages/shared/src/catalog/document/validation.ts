@@ -5,6 +5,8 @@ import {
   type CatalogDocument,
   type CatalogEntry,
   CATALOG_PRESENT_WHEN,
+  CATALOG_STATE_KEYS,
+  type CatalogStateKey,
   type CatalogPresentWhen,
   DISPLAY_STATE_NAMES,
   type DisplayStateName,
@@ -1098,10 +1100,12 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "themeOverride",
           "metadata",
           "presentWhen",
+          "showWhen",
         ],
         "entry",
       );
       presentWhen(item.presentWhen, "entry.presentWhen");
+      showWhen(item.showWhen, "entry.showWhen");
       if (item.metadata !== undefined) {
         const metadata = object(item.metadata, "entry.metadata");
         exact(metadata, ["htmlId", "className", "ariaLabel"], "entry.metadata");
@@ -1520,6 +1524,70 @@ export function validateLibraryDefinition(value: unknown): LibraryDefinition {
     invalid("DEFINITION_EXECUTION_EXCLUSIVE", "library.definition");
   return value as LibraryDefinition;
 }
+/**
+ * ADR-256 Decision 7 — `showWhen`: `{ all: [1 – 3 conditions], from? }`. A condition is a state key,
+ * `{ not }`, or either with its own `from`; a state owner is `{ type }` or `{ ancestor: nodeId |
+ * address | local }` (breakdown §1-1). Whether the owner exists and gives the key is the commands'
+ * (an external document's broken reference reads as false — `catalogShowWhenHolds`).
+ */
+function showWhen(value: unknown, at: string): void {
+  if (value === undefined) return;
+  const data = object(value, at);
+  exact(data, ["all", "from"], at);
+  if (!Array.isArray(data.all) || data.all.length < 1 || data.all.length > 3)
+    invalid("SHOW_WHEN_CONDITION_COUNT", `${at}.all`);
+  const key = (item: unknown, where: string) => {
+    if (!CATALOG_STATE_KEYS.includes(item as CatalogStateKey))
+      invalid("SHOW_WHEN_KEY_UNKNOWN", where);
+  };
+  data.all.forEach((item, index) => {
+    const where = `${at}.all[${index}]`;
+    if (typeof item === "string") return key(item, where);
+    const condition = object(item, where);
+    exact(condition, ["key", "not", "from"], where);
+    if ((condition.key === undefined) === (condition.not === undefined))
+      invalid("SHOW_WHEN_CONDITION_SHAPE", where);
+    if (condition.key !== undefined && condition.from === undefined)
+      invalid("SHOW_WHEN_CONDITION_SHAPE", where);
+    key(condition.key ?? condition.not, where);
+    if (condition.from !== undefined)
+      stateOwnerRef(condition.from, `${where}.from`);
+  });
+  if (data.from !== undefined) stateOwnerRef(data.from, `${at}.from`);
+}
+function stateOwnerRef(value: unknown, at: string): void {
+  const data = object(value, at);
+  if ("type" in data) {
+    exact(data, ["type"], at);
+    string(data.type, `${at}.type`);
+    return;
+  }
+  exact(data, ["ancestor"], at);
+  const ancestor = object(data.ancestor, `${at}.ancestor`);
+  const [form] = Object.keys(ancestor);
+  if (Object.keys(ancestor).length !== 1)
+    invalid("STATE_OWNER_REF_SHAPE", `${at}.ancestor`);
+  if (form === "nodeId")
+    id(ancestor.nodeId, "project:node:", `${at}.ancestor.nodeId`);
+  else if (form === "address")
+    address(ancestor.address, `${at}.ancestor.address`);
+  else if (form === "local") {
+    const local = object(ancestor.local, `${at}.ancestor.local`);
+    exact(local, ["instances", "templatePath"], `${at}.ancestor.local`);
+    if (!Array.isArray(local.instances))
+      invalid("ARRAY_REQUIRED", `${at}.ancestor.local.instances`);
+    if (!Array.isArray(local.templatePath) || local.templatePath.length === 0)
+      invalid("TEMPLATE_PATH_REQUIRED", `${at}.ancestor.local.templatePath`);
+    for (const [index, item] of [
+      ...local.instances,
+      ...local.templatePath,
+    ].entries()) {
+      const text = id(item, "", `${at}.ancestor.local[${index}]`);
+      if (!text.startsWith("project:node:") && !text.startsWith("lib:template:"))
+        invalid("TEMPLATE_ID_REQUIRED", `${at}.ancestor.local`);
+    }
+  } else invalid("STATE_OWNER_REF_SHAPE", `${at}.ancestor`);
+}
 /** ADR-256 Decision 7 — `presentWhen` is one of the fixed value conditions. */
 function presentWhen(value: unknown, at: string): void {
   if (
@@ -1546,10 +1614,12 @@ export function validateLibraryTemplate(value: unknown): LibraryTemplateNode {
       "displayState",
       "stateRules",
       "presentWhen",
+      "showWhen",
     ],
     "library.template",
   );
   presentWhen(item.presentWhen, "library.template.presentWhen");
+  showWhen(item.showWhen, "library.template.showWhen");
   if (item.layout !== undefined)
     layoutValues(item.layout, "library.template.layout");
   if (item.stateRules !== undefined)

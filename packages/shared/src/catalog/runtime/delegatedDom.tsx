@@ -45,6 +45,7 @@ import {
   OWNER_DRAWN_PART_HOSTS,
   OWNER_DRAWN_PART_OWNERS,
 } from "@composition/shared";
+import { catalogStateChildren, catalogStateFrame } from "./stateFrames";
 import {
   CATALOG_LABEL_NODE_FIELDS,
   FIELD_HINT_OWNERS,
@@ -65,7 +66,11 @@ import { MenuButton } from "../../components/Menu";
 import { TABLEVIEW_CHILD_STYLE } from "./tableViewChildStyle";
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
 import { resolveStaticItemKey } from "../slotRoles";
-import { catalogTabsSelection, catalogTreeItemExpanded } from "./presence";
+import {
+  catalogDisclosureExpanded,
+  catalogTabsSelection,
+  catalogTreeItemExpanded,
+} from "./presence";
 import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
@@ -608,8 +613,9 @@ export function catalogToggleIndicatorElement(
   node: CatalogConsumerNode,
 ): ReactElement | null {
   const type = catalogTypeName(root, node);
-  return OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, catalogDomPartParent(root, node) ?? node)] &&
-    OWNER_DRAWN_PART_OWNERS[type]
+  return OWNER_DRAWN_PART_HOSTS[
+    catalogTypeName(root, catalogDomPartParent(root, node) ?? node)
+  ] && OWNER_DRAWN_PART_OWNERS[type]
     ? createElement(ToggleIndicatorPart, {
         key: node.id,
         type,
@@ -629,16 +635,22 @@ function toggleButton(
         style: input.style,
         className,
         children: (state: ToggleRenderProps) =>
-          createElement(
-            ToggleIndicatorContext.Provider,
-            { value: { state, indicators } },
-            ...input.node.children.map((id) => {
-              const child = input.root.domInputs.get(id);
-              const indicator = child
-                ? indicators[catalogTypeName(input.root, child)]
-                : undefined;
-              return indicator ? indicator(id, state) : input.renderChild(id);
-            }),
+          // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
+          catalogStateFrame(
+            input.node.id,
+            input.node.id,
+            state,
+            createElement(
+              ToggleIndicatorContext.Provider,
+              { value: { state, indicators } },
+              ...input.node.children.map((id) => {
+                const child = input.root.domInputs.get(id);
+                const indicator = child
+                  ? indicators[catalogTypeName(input.root, child)]
+                  : undefined;
+                return indicator ? indicator(id, state) : input.renderChild(id);
+              }),
+            ),
           ),
       }),
   };
@@ -1306,23 +1318,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   switch: {
     render: (input) => {
       const props = input.node.props;
-      return createElement(
-        AriaSwitchField as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          className: "react-aria-Switch",
-          "data-size": str(props.size) || "md",
-          "data-emphasized": bool(props.isEmphasized) || undefined,
-          defaultSelected: bool(props.isSelected),
-          isDisabled: bool(props.isDisabled),
-          isReadOnly: bool(props.isReadOnly),
-          name: opt(props.name),
-          value: opt(props.value),
-          autoFocus: bool(props.autoFocus),
-        },
-        ...renderAll(input),
-      );
+      return createElement(AriaSwitchField as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-Switch",
+        "data-size": str(props.size) || "md",
+        "data-emphasized": bool(props.isEmphasized) || undefined,
+        defaultSelected: bool(props.isSelected),
+        isDisabled: bool(props.isDisabled),
+        isReadOnly: bool(props.isReadOnly),
+        name: opt(props.name),
+        value: opt(props.value),
+        autoFocus: bool(props.autoFocus),
+        // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      });
     },
   },
   // ADR-256 Phase 3: the Radio is RAC `RadioField` — its children in order (the RadioButton, a
@@ -1331,20 +1341,18 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   radio: {
     render: (input) => {
       const props = input.node.props;
-      const element = createElement(
-        AriaRadioField as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          className: "react-aria-Radio",
-          "data-size": str(props.size) || "md",
-          "data-variant": str(props.variant) || "default",
-          value: str(props.value),
-          isDisabled: bool(props.isDisabled),
-          autoFocus: bool(props.autoFocus),
-        },
-        ...renderAll(input),
-      );
+      const element = createElement(AriaRadioField as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-Radio",
+        "data-size": str(props.size) || "md",
+        "data-variant": str(props.variant) || "default",
+        value: str(props.value),
+        isDisabled: bool(props.isDisabled),
+        autoFocus: bool(props.autoFocus),
+        // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      });
       for (
         let parent = input.root.domInputs.get(input.node.parentId);
         parent;
@@ -1388,30 +1396,28 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ["CheckboxItems", "CheckboxGroup"].includes(
           catalogTypeName(input.root, host),
         );
-      return createElement(
-        AriaCheckboxField as ElementType,
-        {
-          ...marker(input),
-          style: input.style,
-          className: "react-aria-Checkbox",
-          "data-size": str(props.size) || "md",
-          "data-emphasized": bool(props.isEmphasized) || undefined,
-          ...(inGroup
-            ? { value: input.node.id }
-            : {
-                defaultSelected: bool(props.isSelected),
-                name: opt(props.name),
-                value: opt(props.value),
-              }),
-          isIndeterminate: bool(props.isIndeterminate),
-          isDisabled: bool(props.isDisabled),
-          isInvalid: bool(props.isInvalid),
-          isReadOnly: bool(props.isReadOnly),
-          isRequired: bool(props.isRequired),
-          autoFocus: bool(props.autoFocus),
-        },
-        ...renderAll(input),
-      );
+      return createElement(AriaCheckboxField as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-Checkbox",
+        "data-size": str(props.size) || "md",
+        "data-emphasized": bool(props.isEmphasized) || undefined,
+        ...(inGroup
+          ? { value: input.node.id }
+          : {
+              defaultSelected: bool(props.isSelected),
+              name: opt(props.name),
+              value: opt(props.value),
+            }),
+        isIndeterminate: bool(props.isIndeterminate),
+        isDisabled: bool(props.isDisabled),
+        isInvalid: bool(props.isInvalid),
+        isReadOnly: bool(props.isReadOnly),
+        isRequired: bool(props.isRequired),
+        autoFocus: bool(props.autoFocus),
+        // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      });
     },
   },
   // ADR-256 Phase 3: the Checkbox's RAC `CheckboxButton` (the `label`) — its children in order; the
@@ -1807,34 +1813,56 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // In the Preview the user's expansion is a runtime prop of the record (ADR-250); a static
       // render shows the declared state.
       const runtime = !inGroup ? input.setRuntimeProps : undefined;
-      return createElement(
-        Disclosure as ElementType,
-        {
-          ...marker(input),
-          key:
-            inGroup || runtime ? input.node.id : `${input.node.id}:${expanded}`,
-          id: input.node.id,
-          style: input.style,
-          title,
-          size: props.size || "md",
-          isDisabled: bool(props.isDisabled),
-          ...(inGroup
-            ? {}
-            : runtime
-              ? {
-                  isExpanded: expanded,
-                  onExpandedChange: (next: boolean) =>
-                    runtime(input.node.id, { isExpanded: next }),
-                }
-              : { defaultExpanded: expanded }),
-        },
-        ...renderAll(
-          input,
-          children(input).filter(
-            (child) =>
-              !["DisclosureHeader", "Heading"].includes(
-                catalogTypeName(input.root, child),
-              ),
+      // (Its state for the `showWhen` nodes inside — ADR-256 Decision 7: the expansion is its prop,
+      // the Preview's runtime value, else the group's.)
+      const frame = (element: ReactElement) =>
+        catalogStateFrame(
+          input.node.id,
+          input.node.id,
+          {
+            isExpanded: inGroup
+              ? catalogDisclosureExpanded(
+                  input.node,
+                  (id) => input.root.domInputs.get(id),
+                  (record) => catalogTypeName(input.root, record),
+                )
+              : expanded,
+            isDisabled: bool(props.isDisabled),
+          },
+          element,
+        );
+      return frame(
+        createElement(
+          Disclosure as ElementType,
+          {
+            ...marker(input),
+            key:
+              inGroup || runtime
+                ? input.node.id
+                : `${input.node.id}:${expanded}`,
+            id: input.node.id,
+            style: input.style,
+            title,
+            size: props.size || "md",
+            isDisabled: bool(props.isDisabled),
+            ...(inGroup
+              ? {}
+              : runtime
+                ? {
+                    isExpanded: expanded,
+                    onExpandedChange: (next: boolean) =>
+                      runtime(input.node.id, { isExpanded: next }),
+                  }
+                : { defaultExpanded: expanded }),
+          },
+          ...renderAll(
+            input,
+            children(input).filter(
+              (child) =>
+                !["DisclosureHeader", "Heading"].includes(
+                  catalogTypeName(input.root, child),
+                ),
+            ),
           ),
         ),
       );

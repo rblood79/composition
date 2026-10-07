@@ -84,6 +84,7 @@ type TemplateView = Pick<
   | "enabled"
   | "stateRules"
   | "presentWhen"
+  | "showWhen"
 > & {
   props: PropWrites;
   visual: VisualWrites;
@@ -116,6 +117,7 @@ export function readTemplate(
       slot: node.slot,
       enabled: node.enabled,
       presentWhen: node.presentWhen,
+      showWhen: node.showWhen,
       stateRules: node.stateRules,
       props: sets(node.props) as PropWrites,
       visual: sets(node.visual) as VisualWrites,
@@ -143,6 +145,7 @@ export function readTemplate(
     enabled,
     stateRules,
     presentWhen,
+    showWhen,
     ...extra
   } = structuredClone(node);
   return {
@@ -151,6 +154,7 @@ export function readTemplate(
     slot,
     enabled,
     presentWhen,
+    showWhen,
     stateRules,
     props,
     visual,
@@ -282,6 +286,7 @@ export function createMaterializer(
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
       ...(template.stateRules ? { stateRules: template.stateRules } : {}),
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
+      ...(template.showWhen ? { showWhen: template.showWhen } : {}),
     };
     const libraryPatch = enclosing?.find((item) =>
       sameAddress(
