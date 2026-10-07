@@ -32,6 +32,7 @@ import {
 import { ensureChildList, type NewId } from "./materialize";
 import {
   RAC_REQUIRED_PART_TYPES,
+  RAC_REQUIRED_PARTS,
   requiredPartOwner,
 } from "../nesting/requiredParts";
 
@@ -128,21 +129,12 @@ function assertRequiredPartsKept(
   destinationAncestors?: readonly string[],
 ): void {
   const reader = draft.reader;
-  // The subtree's types first: without a part any owner needs there is nothing to keep (and no
-  // ancestor to read — the canvas menu dry-runs this on every selection, ADR-246 count).
-  const types = new Map<NodeId, string>();
-  let needed = false;
-  const collect = (id: NodeId) => {
-    const type = definitionTypeName(reader, draft.node(id).definitionId);
-    types.set(id, type);
-    if (RAC_REQUIRED_PART_TYPES.has(type)) needed = true;
-    for (const child of childList(draft, { kind: "node", id }) ?? [])
-      collect(child);
-  };
-  collect(rootId);
-  if (!needed) return;
+  // An owner that needs a part must be above the root; without one there is nothing to keep (the
+  // canvas menu dry-runs this on every selection — read the subtree only under an owner, ADR-246).
   const { parent } = locate(draft, rootId);
   const above = parentAncestorTypes(draft, parent);
+  if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return;
+  const types = new Map<NodeId, string>();
   const typeOf = (id: NodeId) =>
     types.get(id) ?? definitionTypeName(reader, draft.node(id).definitionId);
   const visit = (id: NodeId, chain: readonly string[]) => {
