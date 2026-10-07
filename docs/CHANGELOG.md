@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **컴포넌트가 동작하는 데 필요한 부품은 지우거나 밖으로 옮길 수 없다** (ADR-256 Decision 5 — 설치 RAC 에서 빠지면 역할이 사라지는 부품): Select 의 Button · ListBox, ComboBox 의 Input, field 의 Input · DateInput, Slider 의 SliderTrack · SliderThumb, Calendar 의 CalendarGrid, Disclosure 의 header, Tabs 의 TabList, TagGroup 의 TagList, DialogTrigger · TooltipTrigger 의 trigger 와 overlay, Table 의 TableHeader. 그 부품을 감싼 Frame 삭제도 거부하고, 소유자 안에서의 재배치 · 소유자 통째 삭제 · 옆에 같은 type 이 하나 더 있을 때 (교체 중) 는 허용한다. 거부하면 「컴포넌트가 동작하는 데 필요한 부품」 안내가 뜬다. Properties 「RAC slot」 은 필수 부품에 Detach 를 내지 않는다. 위치: `catalog/nesting/requiredParts.ts` · `commands/structure.ts`
+
 - **이름 붙은 자리 (RAC `slot`) 가 RAC 에 닿는다** (ADR-256 Decision 4): Text 는 이제 Preview 에서 RAC `Text` 로 그려진다 — ListBoxItem 의 label Text 가 option 의 이름 (`aria-labelledby`) 이 되고 description 이 설명이 된다 (전에는 plain span 이라 option 의 label id 가 없는 요소를 가리켰다). Text · Description · Heading · Button 은 렌더 시점의 RAC context 로 slot 을 판정한다 — 제공자의 이름이면 그대로, 미지정이면 RAC 기본 slot, 일반 context 면 그대로, 제공자에 없는 이름 (MenuItem 의 `shortcut` · Tag 의 `label`) 은 RAC 가 throw 하는 대신 연결 없이 그린다. 위치: `catalog/runtime/racSlot.ts` · `domBinding.tsx` `RacSlotScope`
 - **Properties 의 「RAC slot」 섹션**: Text · Heading · Button · DateInput 을 선택하면 가장 가까운 제공자의 slot 이름 · Default · Detach (`slot={null}`) 를 고른다. 제공자에 없는 이름은 「Not connected」. 제공자 표는 설치 RAC 를 마운트한 결과에서 생성한다 (`generated/racSlotProviders.ts` — `adr256-gen-rac-slots.mjs`, drift 게이트 테스트). 문서의 slot 값 타입 `slot` 이 미지정 · 이름 · 명시 해제 (`false`) 를 구분한다
 

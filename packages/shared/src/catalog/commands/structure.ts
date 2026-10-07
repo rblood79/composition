@@ -20,6 +20,8 @@ import {
   fail,
   isWithin,
   locate,
+  parentAncestorTypes,
+  templateDefinitionId,
   overrideAt,
   sameAddress,
   setChildList,
@@ -28,6 +30,7 @@ import {
   type NodeParent,
 } from "./context";
 import { ensureChildList, type NewId } from "./materialize";
+import { requiredPartOwner } from "../nesting/requiredParts";
 
 /**
  * ADR-248 Phase 4b structure commands: insert, move/reorder, remove, duplicate, copy and paste.
@@ -111,6 +114,41 @@ export const insertNodes =
     };
   };
 
+/**
+ * ADR-256 Decision 5 — refuse taking a part RAC needs away from its owner: deleting it (or a wrapper
+ * around it), or moving it out of every owner of that type. Another part of the same type beside it
+ * keeps the owner working (a swap in progress), so that stays allowed.
+ */
+function assertRequiredPartsKept(
+  draft: CommandDraft,
+  rootId: NodeId,
+  destinationAncestors?: readonly string[],
+): void {
+  const reader = draft.reader;
+  const typeOf = (id: NodeId) =>
+    definitionTypeName(reader, draft.node(id).definitionId);
+  const { parent } = locate(draft, rootId);
+  const above = parentAncestorTypes(draft, parent);
+  const visit = (id: NodeId, chain: readonly string[]) => {
+    const type = typeOf(id);
+    const owner = requiredPartOwner(type, chain);
+    // Only an owner above the moved / deleted root loses the part (one inside goes with it).
+    const ownerAbove =
+      owner !== undefined &&
+      chain.indexOf(owner) >= chain.length - above.length;
+    if (ownerAbove && !destinationAncestors?.includes(owner!)) {
+      const siblings = id === rootId ? (childList(draft, parent) ?? []) : [];
+      const twin = siblings.some(
+        (other) => other !== id && typeOf(other) === type,
+      );
+      if (!twin) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${type}`);
+    }
+    for (const child of childList(draft, { kind: "node", id }) ?? [])
+      visit(child, [type, ...chain]);
+  };
+  visit(rootId, above);
+}
+
 export interface MoveNodesInput {
   ids: readonly NodeId[];
   parent: NodeParent;
@@ -139,6 +177,8 @@ export const moveNodes =
       input.parent,
       roots.map((id) => draft.node(id).definitionId),
     );
+    const destination = parentAncestorTypes(draft, input.parent);
+    for (const id of roots) assertRequiredPartsKept(draft, id, destination);
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
     for (const id of roots) {
       const { parent } = locate(draft, id, owners.get(id));
@@ -230,6 +270,7 @@ export const removeTargets =
       ),
     );
     const removed: NodeId[] = [];
+    for (const id of nodeIds) assertRequiredPartsKept(draft, id);
     for (const id of nodeIds) {
       const ownerId = reader.ownerOf(id);
       const owner = ownerId ? draft.read(ownerId) : undefined;
@@ -276,6 +317,23 @@ export const removeTargets =
         ]
       )
         fail("OWNER_DRAWN_PART_NOT_REMOVABLE", templateId!);
+      // ADR-256 Decision 5: a template position RAC needs (a Select's trigger Button …).
+      if (templateId && target.address.templatePath.length > 1) {
+        const type = definitionTypeName(
+          reader,
+          templateDefinitionId(reader, templateId),
+        );
+        const above = parentAncestorTypes(draft, {
+          kind: "descendant",
+          ownerId: target.ownerId,
+          address: {
+            ...target.address,
+            templatePath: target.address.templatePath.slice(0, -1),
+          },
+        });
+        const owner = requiredPartOwner(type, above);
+        if (owner) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${type}`);
+      }
       const owner = draft.node(target.ownerId);
       const current = overrideAt(owner, target.address);
       const overrides = owner.descendantOverrides.filter(

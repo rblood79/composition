@@ -227,6 +227,7 @@ export interface TranslationKeys {
     bodyLocked: string;
     systemOriginLocked: string;
     templateAnchorLocked: string;
+    requiredPartKept: string;
     instanceChildLocked: string;
     notAllowed: string;
     groupParentsDiffer: string;

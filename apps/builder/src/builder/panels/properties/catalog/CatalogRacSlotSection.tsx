@@ -4,6 +4,7 @@ import {
   catalogRacSlotProvider,
   predictRacSlot,
 } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
+import { requiredPartOwner } from "../../../../../../../packages/shared/src/catalog/nesting/requiredParts";
 import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContract";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
@@ -19,6 +20,8 @@ interface RacSlotView {
   hasDefault: boolean;
   /** The authored value: a name, `false` (detached), or unset. */
   authored?: string | false;
+  /** A part its owner needs (ADR-256 Decision 5): its context tie is not cut here. */
+  required: boolean;
   connected: boolean;
 }
 
@@ -68,6 +71,7 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
       hasDefault: provider?.provision.hasDefault === true,
       authored,
       connected: prediction.kind !== "unconnected",
+      required: requiredPartOwner(type, ancestors) !== undefined,
     };
   }, [identity, root]);
   const subscribe = useCallback(
@@ -113,7 +117,10 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
     ...(typeof view.authored === "string" && !view.names.includes(view.authored)
       ? [{ value: view.authored, label: view.authored }]
       : []),
-    { value: DETACH, label: "Detach (slot = null)" },
+    // Detaching a required part (a Select's trigger Button) would cut the owner's tie to it.
+    ...(view.required && view.authored !== false
+      ? []
+      : [{ value: DETACH, label: "Detach (slot = null)" }]),
   ];
   return (
     <PropertySection title="RAC slot">

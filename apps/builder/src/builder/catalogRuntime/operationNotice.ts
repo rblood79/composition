@@ -20,6 +20,8 @@ const REASON_KEY: Record<string, string> = {
   UNGROUP_INSTANCE: "operation.ungroupInstance",
   TEMPLATE_ROOT_FIXED: "operation.templateAnchorLocked",
   REPLACEMENT_NOT_MOVABLE: "operation.templateAnchorLocked",
+  // ADR-256 Decision 5: a part RAC needs for its owner (a Select's trigger Button …).
+  REQUIRED_PART_NOT_REMOVABLE: "operation.requiredPartKept",
 };
 
 /**
