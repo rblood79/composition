@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-254 Implemented — 바탕의 부품 사슬] - 2026-10-07
+
+### Changed
+
+- **ADR-254 종결**: Dialog · Popover · Card · InlineAlert · Tooltip 의 제목 · 설명이 Heading · Description 원본의 instance 다 (공용 바탕 원본은 두지 않는다). G4 는 실행자 live 로 확인 — 원본 편집이 Canvas 9 자리와 Preview 의 열린 Dialog · Card · InlineAlert 에 같이 닿는다 (live 5/5 · 3/3 · 4/4). 기록: [ADR-254](adr/completed/254-base-part-chain.md#live-exercise).
+
 ## [바탕의 부품 사슬 — ADR-254 Phase 1 · 2] - 2026-10-07
 
 ### Added

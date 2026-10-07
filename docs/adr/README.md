@@ -153,6 +153,8 @@
 
 > **2026-10-07 열린 계획 재검토 (ADR-248 · 253 뒤)**: 열린 ADR 과 부분 완료 · 보류 항목을 현재 코드와 대조했다 (사용자 지시 「검토해줘」 → 1 · 2 번 승인). 결과 — ① ADR-910 · 911 은 채택한 「canonical 문서 SSOT」 축을 248 이 catalog graph 로 교체했고 입력 reference (`react-aria-starter` · `design.md`) 가 없어 **Superseded by 248** (비교 기록으로 본문 보존, `completed/` 이동). ② ADR-041 잔여 (Hybrid 2 · Custom 25) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 0 파일 → **Superseded by 248**. ③ ADR-198 잔여 Phase 6 · 9 region 이 가리키던 `tests/visual-parity/` 가 248 Phase 4e-9-6 (`e23a5a419`) 에서 삭제됨 → 잔여는 **248 G3 하니스로 이관** (Superseded 표기). ④ 보류 항목 ADR-152 P6 초안은 전제 (`publish/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree`) 가 소멸해 종결, ADR-162 G4 는 측정 심볼 (`layout.publish`) 이 `perfMarks.ts` 에만 남아 재측정 전 유효 여부 미정. ⑤ ADR-921 은 Context 전제 (canonical resolver SSOT) 소멸 + 인용 코드 14 경로 중 10 소멸 — Deprecated 또는 catalog runtime 기준 재작성은 **사용자 판정 대기** (리뷰 round 2 의 미결 질문 「native/SDK 또는 Rust compile 요구가 로드맵에 있는가」). ADR-245 는 10-05 개정으로 정합 (253 영향 0). 열림 −2 (열림 3 — Proposed 3), 완료 +2 (Superseded +4 · Accepted −1 · Implemented −1), 합계 281.
 
+> **2026-10-07 ADR-254 Implemented**: 바탕의 부품 사슬 종결 — Phase 0 · 1 · 2 · 3, G0 ~ G4 통과 (G4 는 사용자 지시 「직접 검증 시작해라」 로 실행자 live). Heading 부품 원본 (AI 가 넣는 Heading 도 instance · 생성 계약 size 상속) · 다섯 컨테이너의 제목 · 설명 9 자리가 Heading · Description 원본 instance · InlineAlert 는 size 전달 (설명 한 단계 위 — `CATALOG_SIZE_STEP`, 굵기 700 → 600 · 줄 높이 rule 값) · Dialog 이름 = 제목 (RAC `slot="title"`, `aria-labelledby`) · Card 설명이 Preview 에 노드 style · 글자 소유 = template 바인딩 (TextField Label 을 고친 뒤 `label` 이 먹지 않던 결함 수리) · contract 6. live 5/5 · 3/3 · 4/4, 시각 하니스 69/70 (CardView 는 전환 전부터). 범위 밖 기록: Card 제목은 더블클릭이 닿지 않음 · `borderGeometry.static` 실패 (`e6360e0d2`). 열림 −1, 완료 +1 (열림 1 — Proposed 1, 합계 281).
+
 > **2026-10-07 ADR-254 Proposed**: 바탕의 부품 사슬 — ADR-253 Decision 8 (공용 바탕 원본) 의 후속 (사용자 「바탕 사슬 후속 ADR 작성해라」). 실측: 다섯 컨테이너 (Dialog · Popover · Card · InlineAlert · Tooltip) 가 공유하는 것은 제목 (heading 4 자리) · 설명 (Description 5 자리) 뿐이고, Heading 은 원본이 없으며, 레퍼런스도 Dialog 와 Popover 가 바탕을 공유하지 않는다 (Popover = 자유 내용 · Modal > Dialog > Heading slot=title). 대안 A 선택 — Heading 부품 원본 신설 + 자리 9곳을 Heading · Description 원본의 instance 로 (노드 수 불변 · contract 6 · InlineAlert 는 size 전달) + Dialog 제목을 RAC `slot="title"` 로 접근성 이름에 연결 (shared Dialog 의 `aria-label` 폴백은 binding 으로). 바탕 원본 (B · C) 은 기각. 리뷰 round 1 (HIGH 2 · MEDIUM 2 · LOW 1 — Dialog 폴백이 RAC `titleId` 를 버림 · InlineAlert size 별 값 · Heading 은 팔레트에 없음 · Popover · Tooltip DOM 대조 공허 · IllustratedMessage) 전부 반영. 부수 결함 기록: Dialog 제목이 접근성 이름이 아님 · Popover 가 Preview 에 보이지 않음 (범위 밖). 열림 +1 (열림 5 — Proposed 5, 합계 281).
 
 > **2026-10-07 ADR-253 Implemented**: 기본 UI 원본의 재사용 종결 — Phase 1 · 2 · 3 · 4 · 6, G1 · G2 · G3 · G4 · G6 · G7 통과 (G5 미충족 → 바탕 사슬 미룸). 마지막 날: ① G1 의 Preview 상태별 값 — resolver 결과 · record 가 상태별 값 (`stateVisual`) 을 갖고 DOM 의 Button 이 RAC 의 render state 함수 style 로 낸다 (unit 5 · 원복 RED 4행 · live 8/8) ② Phase 6 — 쓰지 않는 SelectTrigger variant 2 · 읽는 곳 없는 목록 가족 표 제거 (사용자 승인), SelectIcon rule · shared 컴포넌트 fallback 은 Builder 자체 UI 가 써서 남김 ③ G7 — 사용자 지시로 실행자가 실제 Builder 에서 확인 (`adr253-g7-live.mjs` 7/7: Label 6곳 · 입력칸 4곳 · Button 8곳이 Canvas 와 Preview 에서 같이 바뀜). 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 280).
@@ -195,15 +197,15 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     279 |
-| ├ Implemented / Complete(d)   |     232 |
+| 완료 (`completed/`)           |     280 |
+| ├ Implemented / Complete(d)   |     233 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       2 |
+| 열려 있는 것 (`adr/*.md`)     |       1 |
 | ├ Proposed                    |       1 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **281** |
 
@@ -224,12 +226,6 @@
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
 - **규모**: Phase 0 go/no-go 계측 (수정 전후 Ollama · one-shot · Prompt API arm, 한국어 모호 요청 20+ · 정답 IR). go 면 `chrome-built-in` provider (IR 전용 · Translator ko→en · 동의 뒤 다운로드 · 상태 4단계). 사용자 결정: G0 절대 목표 (제안 5초) · 요청 세트 승인 · 서버 측 one-shot 이 이길 때의 소속 · 채택 근거 범위 · 자격 기기. breakdown: [design/245](design/245-ai-on-device-breakdown.md)
-
-#### [254](254-base-part-chain.md) — 바탕의 부품 사슬 — Dialog · Popover · Card · InlineAlert · Tooltip 의 제목 · 설명을 Heading · Description 원본의 instance 로
-
-- **상태**: Accepted — 2026-10-07 (Proposed 같은 날 · 리뷰 round 1~3 종결 `1b51bcfe5` CRITICAL/HIGH 0 · pending 0 → 사용자 `/execute-adr 254`, 대안 A 승인). **Phase 0 · 1 · 2 완료** (`5bbd6a2b1` · `487e3f614` · `202f5ae50` — G0 ~ G3 통과, live 5/5 · 3/3 · 4/4) · **G4 사용자 확인 대기** 뒤 Implemented
-- **규모**: Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) → Phase 1 (Heading 부품 원본 · AI 가 넣는 Heading 도 instance · 생성 계약 size 상속) → Phase 2 (자리 9곳 전환 · InlineAlert rule 의 모양 선언 → 부품 rule · Dialog 제목 `slot="title"` · 글자 소유를 바인딩으로 · contract 6) → Phase 3 (정리). Gate G0 ~ G4 (G4 = 사용자 확인). breakdown: [design/254](design/254-base-part-chain-breakdown.md)
-- **선후**: ADR-253 Implemented 뒤. Card 재편 (사용자 결정 09-29, ADR 미작성) 과는 노드 정의만 겹친다 (구조는 건드리지 않음)
 
 ### 부분 완료
 
@@ -253,12 +249,11 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                                                                                                                                  |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|  1   | [254](254-base-part-chain.md)                                                                  | **Accepted · Phase 0 ~ 2 완료** (2026-10-07, `202f5ae50`)    | **G4 사용자 확인** (Components page 에서 Heading · Description 원본을 고쳐 Dialog · Card · InlineAlert 가 Builder · Preview 에서 한 세트로 바뀌는지) → Phase 3 (Live Exercise · Implemented) |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                                                                                    |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                                                                                       |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                                                                                                                                  |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 

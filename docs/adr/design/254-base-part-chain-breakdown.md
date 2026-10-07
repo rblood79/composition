@@ -1,6 +1,6 @@
 # ADR-254 breakdown — 바탕의 부품 사슬
 
-> 본문: [ADR-254](../254-base-part-chain.md) (Proposed 2026-10-07). 대안 A 기준. 줄 번호는 main `e6360e0d2` 기준이며 Phase 0 에서 다시 확인한다. 경로 약어는 본문과 같다.
+> 본문: [ADR-254](../completed/254-base-part-chain.md) (Proposed → Accepted → Implemented 2026-10-07). 대안 A 기준. 줄 번호는 main `e6360e0d2` 기준이며 Phase 0 에서 다시 확인한다. 경로 약어는 본문과 같다.
 
 ## 1. 전제 확정 기록
 
@@ -134,3 +134,8 @@ oracle 이 보여 준 값 (전환 전):
 - 시각 하니스: 69/70 — InlineAlert 의 G0 변화 (제목 높이 22.4 → 24 · 설명 y · 높이 63 → 60) 를 승인 기록 `inline-alert-parts-rule-line-height` 로. 남은 1건은 전환 전과 같은 CardView. 실행 뒤 `248-phase3-palette-base-canvas.json` 복원.
 - 번들 (production, `adr209-bundle-closure.mjs`): initial JS gzip Builder 1,229,472 (상한 1,421,000) · Preview 286,946 (상한 623,000).
 - live (5173 · Compare Mode): `adr254-containers-live.mjs` 5/5 — 9 자리가 원본 instance · 열린 Dialog 이름 = 「Dialog Title」 (`aria-labelledby`, `h2`) · Heading 원본 빨강 · Description 원본 초록이 Canvas 9 자리와 Preview (열린 Dialog · Card · InlineAlert) 에 (Card 설명은 `#49454f` 유지) · InlineAlert sm/lg → 14/12 · 18/16 (600/400) 양쪽 · undo. `adr254-text-binding-live.mjs` 3/3 — TextField Label · InlineAlert 제목 (더블클릭) · Card 제목 (session) 편집 뒤 부모 prop → Canvas · Preview 모두 부모 값, undo 단계대로 (Phase 0 의 FAIL 이 PASS 로).
+
+### Phase 3 — 2026-10-07 (정리 · G4)
+
+- G4: 사용자 지시 「직접 검증 시작해라」 → 실행자가 main `3e4e0cb0d` (5173) 에서 live 세 스크립트를 다시 돌렸다 — `adr254-containers-live.mjs` 5/5 · `adr254-text-binding-live.mjs` 3/3 · `adr254-heading-origin-live.mjs` 4/4, 콘솔 오류 0. Components page 에서 Heading 원본 (빨강) · Description 원본 (초록) 을 고치면 Canvas 9 자리와 Preview 의 열린 Dialog · Card · InlineAlert 가 같은 색으로 바뀌는 것을 화면으로도 확인했다 (Card 설명은 자리 색 유지).
+- 정리: 승인 기록 `inline-alert-parts-rule-line-height` (Phase 2) · `.claude/rules/ssot-hierarchy.md` 부품 절 2줄 · README (Implemented · 집계) · CHANGELOG · ADR 본문 `### Live Exercise` · `completed/` 이동.
