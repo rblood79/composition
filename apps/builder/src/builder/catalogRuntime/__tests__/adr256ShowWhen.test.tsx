@@ -13,6 +13,7 @@ import {
   moveNodes,
   pasteNodes,
   setFields,
+  setShowWhen,
   ungroupNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import {
@@ -605,6 +606,46 @@ describe("ADR-256 Phase 4a — an origin-local address names the position in the
     expect(owner([])).toBe("p/outer/lib:template:t-inner::lib:template:t-group");
     expect(owner(["lib:template:t-inner"])).toBe(
       "p/outer/lib:template:t-inner::lib:template:t-group",
+    );
+  });
+});
+
+describe("ADR-256 Phase 4d — setShowWhen (the Design panel's command)", () => {
+  it("sets, refuses an unlinked owner or a fourth condition, and clears", async () => {
+    const { workspace, canvas } = await open(checkbox({}), "box");
+    const run = (showWhen: CatalogShowWhen | null) =>
+      workspace.root.execute(setShowWhen({ id: id("box-text"), showWhen }));
+    const code = (showWhen: CatalogShowWhen) => {
+      try {
+        run(showWhen);
+      } catch (error) {
+        return (error as { code?: string }).code;
+      }
+    };
+    run({ all: ["isSelected"] });
+    expect(canvas("box-text")).toBe(false);
+    run({ all: [{ not: "isSelected" }], from: { ancestor: { nodeId: id("box") } } });
+    expect(canvas("box-text")).toBe(true);
+    expect(
+      code({ all: ["isSelected"], from: { ancestor: { nodeId: id("elsewhere") } } }),
+    ).toBe("STATE_OWNER_UNLINKED");
+    expect(
+      code({ all: ["isSelected", "isDisabled", "isInvalid", "isRequired"] }),
+    ).toBe("SHOW_WHEN_CONDITION_COUNT");
+    // The DOM is told even where the Canvas's resting judgment stays the same (the record changed).
+    let notified = 0;
+    const stop = workspace.root.subscribeDom(
+      [...workspace.root.domInputs.values()].find(
+        (r) => r.sourceId === id("box-text"),
+      )!.id,
+      () => (notified += 1),
+    );
+    run(null);
+    stop();
+    expect(notified).toBeGreaterThan(0);
+    expect(canvas("box-text")).toBe(true);
+    expect(workspace.runtime.graph.getEntry(id("box-text"))).not.toHaveProperty(
+      "showWhen",
     );
   });
 });

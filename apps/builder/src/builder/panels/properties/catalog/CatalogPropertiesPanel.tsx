@@ -36,6 +36,10 @@ import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
+import {
+  CatalogShowWhenSection,
+  catalogShowWhenApplies,
+} from "./CatalogShowWhenSection";
 import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";
@@ -214,6 +218,19 @@ export function CatalogPropertiesBody({
             root={root!}
           />
         )}
+        {/* ADR-256 Decision 7: only a node under a part that gives state keys (or with a
+            condition) mounts it (no hook cost per selection). */}
+        {first.target.kind === "node" &&
+          !originSample &&
+          root &&
+          catalogShowWhenApplies(root, first.identity) && (
+            <CatalogShowWhenSection
+              key={`show-when:${first.identity}`}
+              identity={first.identity}
+              workspace={workspace}
+              root={root}
+            />
+          )}
         <CatalogItemOriginNotice
           key={`origin:${targetKey(first.target)}`}
           target={first.target}

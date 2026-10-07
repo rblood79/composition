@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 4 — 상태별 표시 (Show when)] - 2026-10-08
+
+### Added
+
+- **노드의 표시 조건 「Show when」** (ADR-256 Decision 7 — react-aria.adobe.com 예제의 render props 조건부 표시): Design 패널에서 노드가 어느 상태에서 보이는지 정한다 — 조건 3개까지, 각 조건은 조상 부품이 주는 상태 키 (`isSelected` · `isIndeterminate` · `isExpanded` · `isDisabled` · `isInvalid` · `isPressed` … 15개) 의 참 / 거짓, 그 상태를 읽을 부품은 가장 가까운 것 또는 특정 조상. 예: Checkbox 버튼 안 체크 Icon = `isSelected` 이고 `isIndeterminate` 아님, 가로선 Icon = `isIndeterminate`. Preview 는 RAC 의 실제 상태 (클릭 · 키보드) 로, Canvas 는 그 부품의 값 (props · 상태 칸) 으로 판정한다. 위치: `catalog/runtime/presence.ts` `catalogShowWhenHolds` · `stateFrames.tsx`, `panels/properties/catalog/CatalogShowWhenSection.tsx`
+- 특정 조상을 가리키는 조건은 그 연결을 끊는 편집 (밖으로 옮기기 · 붙여넣기 · 주인 ungroup) 을 막는다. 복제 · 붙여넣기 사본은 사본 안의 부품을 가리키고, detach 는 원본 위치를 새 노드로 바꾼다
+
 ## [ADR-256 Phase 3 판독 수리 — toggle 안의 layout frame] - 2026-10-08
 
 ### Fixed

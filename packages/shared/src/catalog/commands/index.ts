@@ -20,6 +20,7 @@ export {
   ungroupNodes,
   type CatalogClipboard,
 } from "./structure";
+export { setShowWhen } from "./showWhen";
 export {
   renameNode,
   resetDescendant,

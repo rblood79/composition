@@ -1092,6 +1092,10 @@ function sameRecord(
     left.name === right.name &&
     left.placeholder === right.placeholder &&
     left.hidden === right.hidden &&
+    // ADR-256 Decision 7: the DOM judges a node's presence itself (RAC state) — a changed
+    // condition is a changed record even where the Canvas's resting judgment stays the same.
+    left.presentWhen === right.presentWhen &&
+    JSON.stringify(left.showWhen) === JSON.stringify(right.showWhen) &&
     left.rowIndex === right.rowIndex &&
     left.rowCount === right.rowCount &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&

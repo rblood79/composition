@@ -213,7 +213,7 @@ function assertRequiredPartsKept(
  * (an instance's address: the instance holds the node). A reference by type or the nearest owner
  * is never refused. Call after the command's writes.
  */
-function assertStateOwnersLinked(
+export function assertStateOwnersLinked(
   draft: CommandDraft,
   touched: readonly NodeId[],
 ): void {
