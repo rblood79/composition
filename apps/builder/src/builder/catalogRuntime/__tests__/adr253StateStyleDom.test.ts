@@ -106,7 +106,6 @@ async function open(
         renderCatalogDom(
           workspace.root,
           placedButton(workspace.root.domInputs, name).id,
-          { today: () => undefined },
         ),
       );
     });
@@ -279,7 +278,7 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
       )!;
       const host = document.createElement("div");
       host.innerHTML = renderToStaticMarkup(
-        renderCatalogDom(workspace.root, field.id, { today: () => undefined }),
+        renderCatalogDom(workspace.root, field.id),
       );
       const input = host.querySelector<HTMLElement>(
         "input:not([type=hidden]), textarea, .react-aria-DateInput",

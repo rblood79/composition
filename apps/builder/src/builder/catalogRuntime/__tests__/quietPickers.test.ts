@@ -83,9 +83,7 @@ async function place(type: string) {
       .find((child) => root.typeOf(child) === type)!;
   const html = () =>
     renderToStaticMarkup(
-      renderCatalogDom(root, root.recordsOfSource(FIELD)[0]!, {
-        today: () => undefined,
-      }),
+      renderCatalogDom(root, root.recordsOfSource(FIELD)[0]!),
     );
   const setQuiet = (value: boolean) =>
     workspace.execute(

@@ -6,10 +6,6 @@ import {
   type ReactNode,
 } from "react";
 import { parseColor } from "react-aria-components/ColorPicker";
-import {
-  dateFieldDefaultValue,
-  timeFieldDefaultValue,
-} from "../../utils/dateFieldDefaults";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
@@ -101,8 +97,6 @@ export interface DelegatedDomInput {
    * a child the renderer composes itself in place of the child's element (a Card's Description).
    */
   readonly childStyle?: (id: string) => CSSProperties;
-  /** Current date/time source for date fields (deterministic in tests). */
-  readonly today?: () => unknown;
   /**
    * A running Preview's runtime props (ADR-250): the component's own state (expansion) goes here
    * and comes back as the node's props; absent = a static render of the declared state.
@@ -1099,9 +1093,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
           minValue: props.minValue,
           maxValue: props.maxValue,
+          // No value of its own: the empty segments (RAC · RSP — the Canvas draws the same).
           placeholderValue: props.placeholderValue,
-          defaultValue:
-            input.today?.() ?? dateFieldDefaultValue(String(granularity)),
           granularity,
           hourCycle: num(props.hourCycle),
         }),
@@ -1140,7 +1133,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           placeholderValue: props.placeholderValue,
           minValue: props.minValue,
           maxValue: props.maxValue,
-          defaultValue: timeFieldDefaultValue(),
           granularity,
           hourCycle: num(props.hourCycle),
         }),

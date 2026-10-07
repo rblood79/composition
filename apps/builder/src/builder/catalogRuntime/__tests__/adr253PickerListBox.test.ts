@@ -121,11 +121,7 @@ async function open(type: string, patch: Partial<NodeEntry> = {}) {
     const host = document.body.appendChild(document.createElement("div"));
     const reactRoot = createRoot(host);
     await act(async () => {
-      reactRoot.render(
-        renderCatalogDom(workspace.root, dom().field.id, {
-          today: () => undefined,
-        }),
-      );
+      reactRoot.render(renderCatalogDom(workspace.root, dom().field.id));
     });
     const trigger = host.querySelector("button")!;
     const listbox = () => document.body.querySelector('[role="listbox"]');

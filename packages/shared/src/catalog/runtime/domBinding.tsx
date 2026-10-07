@@ -105,8 +105,6 @@ export interface CatalogDomContext {
   runtime?: CatalogDomRuntime;
   /** Observation hook: called once per node binding render (initial mount and each delta). */
   onNodeRender?: (id: string) => void;
-  /** Current date/time for date fields (deterministic renders in tests). */
-  today?: () => unknown;
 }
 /**
  * The part node elements of a field whose RAC component composes its parts itself (ADR-253): each
@@ -1584,7 +1582,6 @@ function renderNode(
           const child = root.domInputs.get(childId);
           return child ? catalogDomStyle(child, node) : {};
         },
-        today: context.today,
         ...(context.runtime
           ? {
               runtimeProps: (recordId: string) =>

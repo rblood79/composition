@@ -2,7 +2,6 @@ import "fake-indexeddb/auto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { safeParseDateString } from "../../../../../../packages/shared/src/utils/core/dateUtils";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { renderCatalogDom } from "../domBinding";
@@ -341,11 +340,8 @@ async function render(
     (record) => record.sourceId === FIELD,
   )!;
   const html = renderToStaticMarkup(
-    renderCatalogDom(workspace.root, field.id, {
-      // A fixed day (the day the fixture was written): a DateField shows today by default, so
-      // its segments would differ from the fixture on any other day.
-      today: () => safeParseDateString("2026-10-06"),
-    }),
+    // (A DateField · TimeField without a value shows its empty segments — RAC · RSP.)
+    renderCatalogDom(workspace.root, field.id),
   );
   return { html, workspace, field };
 }
@@ -509,11 +505,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           expect(label().dom.visual.color).toBe(color);
         }
         const html = () =>
-          renderToStaticMarkup(
-            renderCatalogDom(workspace.root, field.id, {
-              today: () => undefined,
-            }),
-          );
+          renderToStaticMarkup(renderCatalogDom(workspace.root, field.id));
         expect(html()).toMatch(
           /<(label|span)[^>]*style="[^"]*color:\s*#0000ff/,
         );
@@ -637,9 +629,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         // The DOM: the same nodes' elements, with the origin's color.
         write({ description: "Help text", isInvalid: true });
         const html = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
+          renderCatalogDom(workspace.root, field.id),
         );
         for (const binding of ["description", "fielderror"]) {
           const id = part(binding).id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -674,11 +664,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         )!;
       };
       const html = () =>
-        renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
-        );
+        renderToStaticMarkup(renderCatalogDom(workspace.root, field.id));
       expect(input().collapsedSourceIds).toEqual([
         "lib:template:component-input",
       ]);
@@ -789,11 +775,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .find((child) => typeOf(child.id) === "SelectTrigger")!;
       const parts = () => wrapper().children.map((id) => records.get(id)!);
       const html = () =>
-        renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
-        );
+        renderToStaticMarkup(renderCatalogDom(workspace.root, field.id));
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = html();
@@ -1010,9 +992,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
+          renderCatalogDom(workspace.root, field.id),
         );
         return element;
       };
@@ -1193,9 +1173,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
+          renderCatalogDom(workspace.root, field.id),
         );
         return element;
       };
@@ -1406,9 +1384,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         const host = () => {
           const element = document.createElement("div");
           element.innerHTML = renderToStaticMarkup(
-            renderCatalogDom(workspace.root, field.id, {
-              today: () => undefined,
-            }),
+            renderCatalogDom(workspace.root, field.id),
           );
           return element;
         };
@@ -1669,9 +1645,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
+          renderCatalogDom(workspace.root, field.id),
         );
         return element;
       };
@@ -1880,7 +1854,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       );
       const host = document.createElement("div");
       host.innerHTML = renderToStaticMarkup(
-        renderCatalogDom(workspace.root, field.id, { today: () => undefined }),
+        renderCatalogDom(workspace.root, field.id),
       );
       const overridden = host.querySelector("button")!.getAttribute("style")!;
       // (As the sheet's own variable: its hover and pressed colors derive from it.)
@@ -1926,11 +1900,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         .find((child) => child.ruleId === "Input")!;
     const rows = () =>
       /<textarea[^>]*rows="(\d+)"/.exec(
-        renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
-        ),
+        renderToStaticMarkup(renderCatalogDom(workspace.root, field.id)),
       )?.[1];
     // 3 rows × 20 + padding 8 + border 2.
     expect(input().visual.height).toBe(70);
@@ -1962,9 +1932,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           errorMessage: "Not valid",
         }))!;
         const html = renderToStaticMarkup(
-          renderCatalogDom(workspace.root, field.id, {
-            today: () => undefined,
-          }),
+          renderCatalogDom(workspace.root, field.id),
         );
         for (const binding of ["description", "fielderror"]) {
           const part = workspace.root.canvasInputs
@@ -1996,9 +1964,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         const boxes = () => {
           const host = document.createElement("div");
           host.innerHTML = renderToStaticMarkup(
-            renderCatalogDom(workspace.root, field.id, {
-              today: () => undefined,
-            }),
+            renderCatalogDom(workspace.root, field.id),
           );
           return [
             ...host.querySelectorAll(

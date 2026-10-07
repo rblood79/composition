@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [날짜 field · ColorField 레퍼런스 정렬] - 2026-10-07
+
+### Fixed
+
+- **DateField · TimeField 가 Preview 에서만 오늘 날짜 · 09:00 을 보이던 것** — 값이 없으면 빈 조각 (「연도. 월. 일.」 · 「––:––」) 이다 (RAC · RSP 레퍼런스, Canvas 와 같다).
+  - **Why**: DOM binding 이 값 없는 field 에 오늘 · 09:00 을 `defaultValue` 로 넣었다.
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx`
+
 ## [field 부품 — Canvas 와 Preview 가 같게 (ADR-253 후속)] - 2026-10-07
 
 ### Fixed
