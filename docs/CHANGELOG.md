@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [기본 UI 원본 상태·quiet 수리 — ADR-253 G1·G3] - 2026-10-07
+
+### Fixed
+
+- **원본 상태 스타일이 입력칸과 다른 DOM 부품에도 전파됨**
+  - Button 한정 경로를 공용 채널로 바꾸고, 기본값과 같은 명시 상태색도 유지한다. 선택·hover 조합과 disabled도 같은 경로를 따른다.
+- **quiet field의 Canvas와 Preview 모양을 일치시킴**
+  - TextArea·ComboBox·DatePicker를 포함한 9종이 Input·DateInput의 같은 rule에서 투명 배경과 밑줄을 가져온다. hover·focus·invalid 색과 quiet 해제도 대조한다.
+
+### Tests
+
+- 원본 상태 전파·동등색·quiet 회귀 RED를 고정하고, 실제 Builder/Preview 상태 하니스와 Canvas shape 비교를 보강했다. 근거: `docs/adr/reviews/253.md`의 Round 3 수리.
+
 ## [Compare Mode 높이 동기화 — Preview breakpoint viewport] - 2026-10-07
 
 ### Fixed

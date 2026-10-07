@@ -81,3 +81,6 @@
 @import "./Table.css";
 @import "./generated/Slot.css";
 @import "./Toast.css";
+
+/* Authored catalog state values, scoped to catalog node attributes. */
+@import "./generated/CatalogStates.css";

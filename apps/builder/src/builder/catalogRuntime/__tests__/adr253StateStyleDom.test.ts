@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -26,7 +27,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 /**
  * ADR-253 G1 (state values in the Preview): a state value the document wrote — an origin's
  * override, an instance's own — reaches the DOM element in that state. The record carries the
- * values of each state (`stateVisual`), and a Button draws them through RAC's render state.
+ * values of each state (`stateVisual`), and every binding exposes them to the shared state sheet.
  */
 const BODY = "project:node:home-body" as NodeId;
 const origin = (name: string) =>
@@ -182,8 +183,12 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
     expect(element.style.backgroundColor).toBe("");
     await mounted.hover();
     expect(element.hasAttribute("data-hovered")).toBe(true);
-    expect(element.style.backgroundColor).toBe("rgb(18, 52, 86)");
-    expect(element.style.color).toBe("rgb(0, 255, 0)");
+    expect(
+      element.style.getPropertyValue("--catalog-hover-background-color"),
+    ).toBe("#123456");
+    expect(element.style.getPropertyValue("--catalog-hover-color")).toBe(
+      "#00ff00",
+    );
     await mounted.leave();
     expect(element.hasAttribute("data-hovered")).toBe(false);
     expect(element.style.backgroundColor).toBe("");
@@ -199,7 +204,11 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
       write("hover", "backgroundColor", "#00ff00");
     });
     await mounted.hover();
-    expect(mounted.element.style.backgroundColor).toBe("rgb(0, 255, 0)");
+    expect(
+      mounted.element.style.getPropertyValue(
+        "--catalog-hover-background-color",
+      ),
+    ).toBe("#00ff00");
     await mounted.unmount();
   });
 
@@ -216,12 +225,154 @@ describe("ADR-253 G1 — a state value the document wrote reaches the Preview", 
     );
     write("disabled", "backgroundColor", "#445566");
     const disabled = await mount("button");
-    expect(disabled.element.style.backgroundColor).toBe("rgb(68, 85, 102)");
+    expect(
+      disabled.element.style.getPropertyValue(
+        "--catalog-disabled-background-color",
+      ),
+    ).toBe("#445566");
+    expect(disabled.element.hasAttribute("data-disabled")).toBe(true);
     await disabled.unmount();
     const enabled = await mount("enabled");
     expect(enabled.element.style.backgroundColor).toBe("");
     await enabled.unmount();
   });
+
+  it("keeps an explicit hover color equal to the rest color", async () => {
+    const { workspace, write, mount } = await open({ button: { of: BUTTON } });
+    workspace.execute(
+      setLibraryDefault({
+        definitionId: BUTTON,
+        scope: "visual",
+        key: "backgroundColor",
+        write: set("#123456"),
+        newId: workspace.newId,
+      }),
+    );
+    write("hover", "backgroundColor", "#123456");
+    const mounted = await mount("button");
+    await mounted.hover();
+    expect(
+      mounted.element.style.getPropertyValue(
+        "--catalog-hover-background-color",
+      ),
+    ).toBe("#123456");
+    await mounted.unmount();
+  });
+
+  it.each(["textfield", "textarea", "combobox", "datefield", "datepicker"])(
+    "%s passes the part origin state to the actual input element",
+    async (type) => {
+      const { workspace } = await open({ field: { of: origin(type) } });
+      const partType = type.startsWith("date") ? "DateInput" : "Input";
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: origin(partType.toLowerCase()),
+          scope: "stateRules",
+          state: "hover",
+          key: "backgroundColor",
+          write: set("#123456"),
+          newId: workspace.newId,
+        }),
+      );
+      const field = [...workspace.root.domInputs.values()].find(
+        (r) => r.sourceId === node("field"),
+      )!;
+      const host = document.createElement("div");
+      host.innerHTML = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, field.id, { today: () => undefined }),
+      );
+      const input = host.querySelector<HTMLElement>(
+        "input:not([type=hidden]), textarea, .react-aria-DateInput",
+      )!;
+      expect(
+        input.style.getPropertyValue("--catalog-hover-background-color"),
+      ).toBe("#123456");
+      expect(input.getAttribute("data-catalog-hover")).toContain(
+        "background-color",
+      );
+    },
+  );
+
+  it("a state padding shorthand keeps the resolved side override", async () => {
+    const { workspace } = await open({ field: { of: origin("textfield") } });
+    for (const [scope, key, value] of [
+      ["visual", "paddingLeft", 77],
+      ["stateRules", "padding", 9],
+    ] as const)
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: origin("input"),
+          scope,
+          key,
+          ...(scope === "stateRules" ? { state: "hover" as const } : {}),
+          write: set(value),
+          newId: workspace.newId,
+        }),
+      );
+    const record = [...workspace.root.domInputs.values()].find(
+      (r) => r.sourceId === node("field"),
+    )!;
+    const host = document.createElement("div");
+    host.innerHTML = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, record.id),
+    );
+    const input = host.querySelector("input")!;
+    expect(input.style.getPropertyValue("--catalog-hover-padding-left")).toBe(
+      "77px",
+    );
+  });
+
+  it.each([
+    "label",
+    "description",
+    "fielderror",
+    "textfield",
+    "radio",
+    "table",
+  ])(
+    "%s applies state writes to the painted element, including orphan hosts",
+    async (type) => {
+      const parent =
+        type === "fielderror"
+          ? "textfield"
+          : type === "radio"
+            ? "radiogroup"
+            : type;
+      const { workspace } = await open({
+        sample: {
+          of: origin(parent),
+          ...(type === "fielderror"
+            ? { props: { isInvalid: set(true), errorMessage: set("Error") } }
+            : {}),
+        },
+      });
+      workspace.execute(
+        setLibraryDefault({
+          definitionId: origin(type),
+          scope: "stateRules",
+          state: "hover",
+          key: "color",
+          write: set("#123456"),
+          newId: workspace.newId,
+        }),
+      );
+      const record = [...workspace.root.domInputs.values()].find(
+        (r) => r.sourceId === node("sample"),
+      )!;
+      const host = document.createElement("div");
+      host.innerHTML = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, record.id),
+      );
+      const painted = host.querySelector<HTMLElement>(
+        '[data-catalog-hover~="color"]',
+      )!;
+      expect(painted).not.toBeNull();
+      expect(painted.style.display).not.toBe("contents");
+      expect(painted.style.getPropertyValue("--catalog-hover-color")).toBe(
+        "#123456",
+      );
+    },
+  );
 
   it("a Button without state values keeps a plain style object", async () => {
     const { mount } = await open({ button: { of: BUTTON } });

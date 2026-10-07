@@ -2,7 +2,9 @@
 
 ## Status
 
-Implemented — 2026-10-07 (Accepted 2026-10-06. Phase 1 · 2 · 3 · 4 · 6 완료 — G1 · G2 · G3 · G4 · G6 · G7 통과. G5 는 조건 미충족이라 Decision 8 (바탕 사슬) 을 Gate 의 후퇴안대로 미뤘고 Phase 5 는 착수하지 않았다 — 후속은 사용자 결정. G1 의 Preview 상태별 값은 2026-10-07 에 DOM 채널을 만들어 통과했다 (대상 = Button). G7 은 사용자 지시 「직접 검증 해라」 로 실행자가 실제 Builder 에서 확인했다)
+Implemented — 2026-10-07 (Accepted 2026-10-06. Phase 1 · 2 · 3 · 4 · 6 완료 — G1 · G2 · G3 · G4 · G6 · G7 통과. G5 는 조건 미충족이라 Decision 8 (바탕 사슬) 을 Gate 의 후퇴안대로 미뤘고 Phase 5 는 착수하지 않았다 — 후속은 사용자 결정. G1 의 Preview 상태별 값은 2026-10-07 에 DOM 채널을 만들어 통과했다 (최초 대상 = Button; Round 3 수리에서 전 binding 공용 채널로 확대). G7 은 사용자 지시 「직접 검증 해라」 로 실행자가 실제 Builder 에서 확인했다)
+
+> **2026-10-07 Round 3 수리**: 원본의 상태별 값을 전 DOM binding이 소비하고, 기본값과 같은 명시 상태값도 유지한다. Input·DateInput의 quiet rule은 Canvas도 읽는다. G1/G3의 실제 입력칸 상태 전파와 9종 quiet 비교를 보강했다. [수리 근거와 검증 한계](../reviews/253.md#round-3-수리--2026-10-07).
 
 > **2026-10-06 실행 착수** (사용자 `/execute-adr 253` · 리뷰 round 2 HIGH 0 — [reviews/253.md](../reviews/253.md)): Phase 1 (원본 override 가 instance 루트까지) 을 구현했다. G1 은 한 항목을 빼고 통과했다 — 「Preview 에서 실제 hover · press 의 computed style 이 바뀐다」 는 통과하지 못한다. Preview DOM 에는 문서가 쓴 상태별 값을 싣는 채널이 없고 (`X/` 에 0건 — instance 가 쓴 상태별 값도 같다), 상태별 값을 쓰는 편집 UI 도 없다 (`setLibraryDefault` 의 `stateRules` 범위를 부르는 곳 0). 상태별 값은 해석 결과와 Canvas (Components page 의 상태 칸) 까지 닿는다. 이 항목의 처리 (DOM 채널을 이 ADR 에서 만들지 · 상태 편집 UI 가 생길 때로 미룰지) 는 사용자 판정 대기다. 기록: [breakdown §6](../design/253-base-ui-origin-reuse-breakdown.md).
 >

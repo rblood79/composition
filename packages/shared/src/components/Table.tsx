@@ -164,6 +164,7 @@ export interface DataMapping {
 }
 
 export interface TableProps<T extends { id: string | number }> {
+  [attribute: `data-${string}`]: unknown;
   className?: string;
   /** Root div inline style — ADR-907 Phase 5 Layer C (a) O 전환 */
   style?: React.CSSProperties;
@@ -1261,11 +1262,16 @@ export default React.memo(function Table<T extends { id: string | number }>(
     [isAsync, mode, hasNext, cursor, loading, fetchMore],
   );
 
+  // DOM data attributes belong to the painted root, including catalog state-style predicates.
+  const dataAttributes = Object.fromEntries(
+    Object.entries(props).filter(([key]) => key.startsWith("data-")),
+  );
   // ---------- 렌더 ----------
   if (externalLoading) {
     const skeletonColumnCount = Math.max(columns.length, 3);
     return (
       <div
+        {...dataAttributes}
         className={getTableClassName(variant, size, className)}
         style={style}
         data-variant={variant}
@@ -1333,6 +1339,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
     <>
       <div
         data-element-id={props["data-element-id"]}
+        {...dataAttributes}
         className={getTableClassName(variant, size, className)}
         style={style}
         data-variant={variant}

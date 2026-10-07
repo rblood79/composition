@@ -894,3 +894,13 @@ live `apps/builder/scripts/adr253-g7-live.mjs` 7/7 (worktree 빌드 5175 · head
 | G5   | 조건 미충족 — Decision 8 (바탕 사슬) 미룸, Phase 5 미착수. 후속은 사용자 결정               |
 | G6   | 통과 — Phase 마다 ratchet · 번들 상한 안                                                    |
 | G7   | 통과 — 사용자 지시로 실행자가 live 로 확인 (위 표)                                          |
+
+### 2026-10-07 — Round 3 구현 수리 (G1 · G3)
+
+[리뷰 Round 3 수리](../reviews/253.md#round-3-수리--2026-10-07)에 따라 다음 기록을 갱신한다. 앞서 적은 Phase 6의 「Button 한정 DOM 소비」와 Phase 3 끝의 「Canvas quiet 미해결」은 이 수리 이전 상태다.
+
+- `X/domBinding.tsx` 공용 반환 → `X/stateStyles.ts`: 원본/instance의 `stateVisual`을 전 binding이 소비한다. 노드의 CSS 변수에 작성 값을 보존하고 생성 stylesheet는 상태를 선택하기만 한다. 상태 이름 7개, 명시 값 유지, side/corner 우선순위, 실제 template 루트/부품과 orphan host의 칠하는 자식이 대상이다. 편집 UI 추가나 type/token으로의 편집 단위 변경은 없다.
+- `X/quietStyles.ts` → `R/ruleShapes.ts`: Input·DateInput의 기존 rootSelectors를 Canvas에서도 읽는다. quiet field 9종의 밑줄 색/두께와 배경/radius를 공용 rule에서 가져온다. `presence.ts`는 quiet 부모의 invalid/disabled 상태도 전달한다.
+- G1 보강: Input·DateInput 9곳의 hover·radius, 편집·undo, 동등 rest/hover Button, ToggleButton 선택+hover, disabled의 실제 DOM computed style. `adr253-state-live.mjs` 7/7.
+- G3 보강: `adr253-p3-quiet-live.mjs`가 Preview뿐 아니라 production Canvas shape를 비교한다. quiet 9종 × rest/hover/focus/invalid/off, 7/7. unit/SSR/shape 395 PASS · 1 skipped와 Chromium CSS cascade 8 PASS. 상세 근거와 미확인 범위는 리뷰 로그에 적었다.
+- 범위별 기본 게이트·schema 147/147·생성 CSS 동기화·production 다중 entry 빌드 통과. initial JS gzip Builder 1,228,881 / Preview 286,973 B, CSS gzip 78,897 / 48,742 B. JS 상한 이내이며 이번 수리의 성능 ratchet은 재측정하지 않았다.

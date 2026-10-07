@@ -6,6 +6,7 @@
  * Usage: pnpm generate:css
  */
 
+import { catalogStateStylesheet } from "../../shared/src/catalog/runtime/stateStyles";
 import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
 import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type {
@@ -107,6 +108,12 @@ async function generateAllCSS(
     specName: string,
   ) => Record<string, ComponentVisualRule> | undefined,
 ): Promise<void> {
+  const statePath = path.join(outputDir, "CatalogStates.css");
+  const stateCss = catalogStateStylesheet();
+  if (process.argv.includes("--check")) {
+    if ((await fs.readFile(statePath, "utf8")) !== stateCss)
+      throw new Error("CATALOG_CSS_STALE:CatalogStates");
+  } else await fs.writeFile(statePath, stateCss, "utf8");
   for (const spec of specs) {
     const css = generateCSS(spec, variantSource(spec.name));
     if (css === null) {

@@ -683,8 +683,14 @@ export function catalogDerivedProps(
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const control = ownDerivedProps(node, get, typeOf, locale);
   // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`).
-  const own = fieldBoxOfQuietField(node, get, typeOf)
-    ? { ...control, isQuiet: true }
+  const quietField = fieldBoxOfQuietField(node, get, typeOf);
+  const own = quietField
+    ? {
+        ...control,
+        isQuiet: true,
+        _fieldDisabled: quietField.props.isDisabled === true,
+        _fieldInvalid: quietField.props.isInvalid === true,
+      }
     : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
   return selected === undefined ? own : { ...own, _isSelected: selected };

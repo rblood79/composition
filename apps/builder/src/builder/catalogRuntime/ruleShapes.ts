@@ -23,8 +23,10 @@ import type {
 import {
   CHILD_PROP_MERGE_TYPES,
   catalogRulePaint,
+  cssVarColor,
   type CatalogRuleShapeInput,
 } from "./rulePaint";
+import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 
 /**
  * ADR-248 Canvas executor for rule-backed definitions (`LibraryDefinition.ruleId`): the node's
@@ -109,6 +111,80 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
 
 /** Shapes for one rule-backed node (before conversion; exposed for shape-level checks). */
 export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
+  const shapes = ruleShapes(input);
+  const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
+  if (!quiet) return shapes;
+  const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(
+    quiet["border-bottom"] ?? "",
+  );
+  if (!border) throw new Error("CATALOG_QUIET_BORDER_UNSUPPORTED");
+  const theme = input.theme ?? "light";
+  const state = input.state ? input.node.stateVisual?.[input.state] : undefined;
+  // Quiet releases rest box paint in both consumers. A document's explicit state write still
+  // wins, just as the DOM state sheet wins over the quiet selector.
+  const fill = state?.backgroundColor ?? state?.fill ?? quiet.background;
+  const radius = Number(state?.radius ?? quiet["border-radius"]);
+  const borderColor = state?.borderColor ?? quiet["border-color"];
+  const width = Number(
+    state?.borderBottomWidth ?? state?.borderWidth ?? border[1],
+  );
+  const color = cssVarColor(
+    state?.borderColor ?? quiet["border-bottom-color"] ?? border[2],
+    theme,
+  ) as string;
+  const backgrounds = new Set(
+    shapes
+      .filter(
+        (shape) =>
+          "presentationRole" in shape &&
+          shape.presentationRole === "background-fill" &&
+          "id" in shape,
+      )
+      .map((shape) => (shape as { id: string }).id),
+  );
+  const painted = shapes.flatMap((shape): Shape[] => {
+    if (
+      shape.type === "border" &&
+      shape.target &&
+      backgrounds.has(shape.target)
+    )
+      return borderColor === "transparent"
+        ? []
+        : [
+            {
+              ...shape,
+              color: cssVarColor(borderColor, theme) as string,
+              radius,
+            },
+          ];
+    if (
+      (shape.type === "roundRect" || shape.type === "rect") &&
+      shape.id &&
+      backgrounds.has(shape.id)
+    )
+      return [
+        {
+          ...shape,
+          type: "roundRect",
+          fill: cssVarColor(fill, theme) as string,
+          radius,
+        },
+      ];
+    return [shape];
+  });
+  painted.push({
+    type: "line",
+    x1: 0,
+    x2: input.rect.width,
+    y1: input.rect.height - width / 2,
+    y2: input.rect.height - width / 2,
+    stroke: color,
+    strokeWidth: width,
+  });
+  return painted;
+}
+
+function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
   const { rect, rule, type } = input;
   const { ctx } = ruleShapeContext(input);
   const { props, visual, paint, size: sizeSpec } = ctx;

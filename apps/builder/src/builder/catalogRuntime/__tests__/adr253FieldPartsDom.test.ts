@@ -13,6 +13,7 @@ import type {
   EntryId,
   LibraryDefinitionId,
   NodeId,
+  StateName,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
   insertNodes,
@@ -2024,7 +2025,41 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             () => notified++,
           ),
         );
+        const shapes = (state?: StateName) =>
+          boxes().map((box) => {
+            const part = workspace.root.canvasInputs.get(
+              box.getAttribute("data-catalog-id")!,
+            )!;
+            return catalogRuleShapes({
+              node: { ...part, props: { ...part.props, ...part.derivedProps } },
+              rect: { width: 200, height: 32 },
+              rule: workspace.runtime.graph.library.rules.get(part.ruleId!)!,
+              type: part.ruleId!,
+              authoredVisual: catalogAuthoredVisual(workspace.root, part),
+              state,
+            });
+          });
+        const plainShapes = shapes();
         setQuiet(true);
+        if (quiet)
+          for (const drawn of shapes()) {
+            expect(drawn.filter((s) => s.type === "border")).toEqual([]);
+            expect(
+              drawn.filter(
+                (s) => s.type === "roundRect" && s.fill !== "transparent",
+              ),
+            ).toEqual([]);
+            expect(
+              drawn.some(
+                (s) =>
+                  s.type === "line" &&
+                  s.y1 === 31.5 &&
+                  s.y2 === 31.5 &&
+                  s.strokeWidth === 1,
+              ),
+            ).toBe(true);
+          }
+        else expect(shapes()).toEqual(plainShapes);
         expect(boxes().map((box) => box.getAttribute("data-quiet"))).toEqual(
           boxes().map(() => (quiet ? "true" : null)),
         );
@@ -2035,7 +2070,39 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           expect(boxes()[0]!.getAttribute("style") ?? "").not.toMatch(
             /border-radius/,
           );
+        if (quiet) {
+          const colors = (state?: StateName) =>
+            shapes(state).map(
+              (items) => items.find((s) => s.type === "line")?.stroke,
+            );
+          expect(colors("hover")).not.toEqual(colors());
+          expect(colors("focusVisible")).not.toEqual(colors());
+          workspace.execute(
+            setFields({
+              targets: [{ kind: "node", id: FIELD }],
+              props: { isInvalid: set(true) },
+            }),
+          );
+          expect(colors()).toEqual(
+            boxes().map(() => cssVarColor("var(--negative)", "light")),
+          );
+          expect(colors("hover")).toEqual(colors());
+          workspace.execute(
+            setFields({
+              targets: [{ kind: "node", id: FIELD }],
+              props: { isInvalid: set(false), isDisabled: set(true) },
+            }),
+          );
+          expect(colors("hover")).toEqual(colors());
+          workspace.execute(
+            setFields({
+              targets: [{ kind: "node", id: FIELD }],
+              props: { isDisabled: set(false) },
+            }),
+          );
+        }
         setQuiet(false);
+        expect(shapes()).toEqual(plainShapes);
         if (type === "searchfield")
           expect(boxes()[0]!.getAttribute("style")).toMatch(
             /border-radius:\s*9999px/,

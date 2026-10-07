@@ -116,7 +116,13 @@ const writeFields = (props) =>
  */
 const snap = (stateName) =>
   page.evaluate(
-    async ([types, stateName]) => {
+    async ([types, stateName, repo]) => {
+      const { catalogRuleShapes } = await import(
+        /* @vite-ignore */ `/@fs${repo}/apps/builder/src/builder/catalogRuntime/ruleShapes.ts`
+      );
+      const { catalogAuthoredVisual } = await import(
+        /* @vite-ignore */ `/@fs${repo}/packages/shared/src/catalog/runtime/libraryVisual.ts`
+      );
       const ws = window.__COMPOSITION_CATALOG__.workspace;
       const g = ws.runtime.graph;
       const frame = document.querySelector("#previewFrame");
@@ -135,6 +141,34 @@ const snap = (stateName) =>
           ".react-aria-DateInput, textarea, input:not([hidden]):not([type=hidden])",
         );
         if (!box) {
+          const shapes =
+            part &&
+            catalogRuleShapes({
+              node: { ...part, props: { ...part.props, ...part.derivedProps } },
+              rect: {
+                width: box.getBoundingClientRect().width,
+                height: box.getBoundingClientRect().height,
+              },
+              rule: g.library.rules.get(part.ruleId),
+              type: part.ruleId,
+              authoredVisual: catalogAuthoredVisual(ws.root, part),
+              state:
+                stateName === "focus"
+                  ? "focusVisible"
+                  : stateName === "hover"
+                    ? "hover"
+                    : undefined,
+              theme: ws.root.colorMode,
+            });
+          const line = shapes?.find((s) => s.type === "line");
+          const rgba = (color) => {
+            const surface = doc.createElement("canvas");
+            surface.width = surface.height = 1;
+            const paint = surface.getContext("2d");
+            paint.fillStyle = color;
+            paint.fillRect(0, 0, 1, 1);
+            return [...paint.getImageData(0, 0, 1, 1).data].join(",");
+          };
           out[type] = { missing: true };
           continue;
         }
@@ -171,6 +205,34 @@ const snap = (stateName) =>
           return undefined;
         };
         const part = walk(field.id);
+        const shapes =
+          part &&
+          catalogRuleShapes({
+            node: { ...part, props: { ...part.props, ...part.derivedProps } },
+            rect: {
+              width: box.getBoundingClientRect().width,
+              height: box.getBoundingClientRect().height,
+            },
+            rule: g.library.rules.get(part.ruleId),
+            type: part.ruleId,
+            authoredVisual: catalogAuthoredVisual(ws.root, part),
+            state:
+              stateName === "focus"
+                ? "focusVisible"
+                : stateName === "hover"
+                  ? "hover"
+                  : undefined,
+            theme: ws.root.colorMode,
+          });
+        const line = shapes?.find((s) => s.type === "line");
+        const rgba = (color) => {
+          const surface = doc.createElement("canvas");
+          surface.width = surface.height = 1;
+          const paint = surface.getContext("2d");
+          paint.fillStyle = color;
+          paint.fillRect(0, 0, 1, 1);
+          return [...paint.getImageData(0, 0, 1, 1).data].join(",");
+        };
         out[type] = {
           quiet: box.getAttribute("data-quiet"),
           rootQuiet: fieldEl.getAttribute("data-quiet"),
@@ -190,6 +252,18 @@ const snap = (stateName) =>
             borderWidth: part.visual.borderWidth,
             radius: part.visual.radius,
             derivedQuiet: part.derivedProps?.isQuiet ?? null,
+            shapes,
+            quietParity: Boolean(
+              line &&
+              line.strokeWidth === parseFloat(cs.borderBottomWidth) &&
+              rgba(line.stroke) === rgba(cs.borderBottomColor) &&
+              !shapes.some(
+                (s) =>
+                  s.type === "border" ||
+                  (s.type === "roundRect" &&
+                    (s.fill !== "transparent" || s.radius !== 0)),
+              ),
+            ),
           },
         };
         if (stateName === "hover") {
@@ -206,7 +280,7 @@ const snap = (stateName) =>
       }
       return out;
     },
-    [TYPES, stateName ?? "rest"],
+    [TYPES, stateName ?? "rest", REPO],
   );
 
 const CLEAR = "rgba(0, 0, 0, 0)";
@@ -223,7 +297,8 @@ const quietRest = (shot) =>
   color(shot.left) === CLEAR &&
   shot.bottom.startsWith("1px solid") &&
   color(shot.bottom) !== CLEAR &&
-  shot.radius === "0px";
+  shot.radius === "0px" &&
+  shot.canvas?.quietParity;
 
 await page.goto(`${BASE}/dashboard`);
 await page
@@ -281,7 +356,7 @@ await step("quiet-rest", async () => {
   record("quiet-rest", bad.length === 0, {
     bad: bad.map((type) => [type, shot[type]]),
     sample: shot.TextField,
-    // (The Canvas does not draw a field's quiet shape — before this step either.)
+    // The production Canvas shape executor must agree with the Preview.
     canvas: shot.TextField?.canvas,
   });
 });
@@ -293,6 +368,7 @@ await step("quiet-hover", async () => {
   const bad = TYPES.filter((type) => {
     const s = shot[type];
     return !(
+      s.canvas?.quietParity &&
       s.hovered &&
       s.background === CLEAR &&
       color(s.top) === CLEAR &&
@@ -314,6 +390,7 @@ await step("quiet-focus", async () => {
   const bad = TYPES.filter((type) => {
     const s = shot[type];
     return !(
+      s.canvas?.quietParity &&
       s.focused &&
       s.outline.startsWith("none") &&
       color(s.top) === CLEAR &&
@@ -339,6 +416,7 @@ await step("quiet-invalid", async () => {
   const bad = TYPES.filter((type) => {
     const s = shot[type];
     return !(
+      s.canvas?.quietParity &&
       color(s.top) === CLEAR &&
       color(s.left) === CLEAR &&
       color(s.bottom) !== CLEAR &&
@@ -360,8 +438,7 @@ await step("quiet-off", async () => {
   // Back to the box the field showed before it was quiet.
   const bad = TYPES.filter(
     (type) =>
-      JSON.stringify({ ...shot[type], canvas: 0 }) !==
-      JSON.stringify({ ...preview.plain[type], canvas: 0 }),
+      JSON.stringify(shot[type]) !== JSON.stringify(preview.plain[type]),
   );
   record("quiet-off", bad.length === 0, {
     bad: bad.map((type) => [type, shot[type], preview.plain[type]]),
