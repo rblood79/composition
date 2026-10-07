@@ -344,9 +344,6 @@ export function catalogHiddenAtRest(
   const hint =
     hintField && catalogFieldHintShown(type, hintField, typeOf(hintField));
   if (hint !== undefined) return !hint;
-  // The separator Icon after a crumb's Link: shared `Breadcrumb` drops it on RAC's current crumb.
-  if (parentType === "Breadcrumb" && node.props.slot === "separator")
-    return !catalogBreadcrumbSeparator(parent, get, typeOf);
   const field = catalogSearchFieldOfClear(node, get, typeOf);
   if (field) return !field.props.value;
   if (
@@ -482,11 +479,11 @@ export function catalogPresenceDependents(
 ): CatalogConsumerNode[] {
   if (typeOf(scope) === "Tabs")
     return catalogTabsSelection(scope, get, typeOf).panels;
+  // Which crumb is current moves with the crumb list: the conditioned nodes in every crumb
+  // (`showWhen` — the reference's separator `!isCurrent`) are judged again.
   if (typeOf(scope) === "Breadcrumbs")
     return catalogBreadcrumbItems(scope, get, typeOf).flatMap((crumb) =>
-      childrenOf(crumb, get).filter(
-        (child) => child.props.slot === "separator",
-      ),
+      catalogStateDependents(crumb, get, typeOf),
     );
   if (typeOf(scope) === "Disclosure" || typeOf(scope) === "DisclosureGroup")
     return (
@@ -873,7 +870,12 @@ function ownDerivedProps(
     typeOf(crumb) === "Breadcrumb" &&
     catalogBreadcrumbLabels(crumb, get, typeOf).includes(node)
   )
-    return { _isLast: !catalogBreadcrumbSeparator(crumb, get, typeOf) };
+    return {
+      _isLast: !catalogBreadcrumbSeparator(crumb, get, typeOf),
+      // A crumb's Link rests without the Link rule's underline (`Breadcrumbs.css`
+      // `.react-aria-Link { text-decoration: none }`; hover is the Preview's).
+      ...(typeOf(node) === "Link" ? { _noUnderline: true } : {}),
+    };
   // RAC Calendar's header heading is its visible-range title from the Calendar's own props (the
   // header child's authored `children` is not read by the DOM).
   const calendar = get(node.parentId);
@@ -1211,8 +1213,11 @@ export function catalogBreadcrumbLabels(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  // (A crumb's label: the reference's `Link` — ADR-256 Phase 5a — or an authored Text.)
   return childrenOf(crumb, get).filter(
-    (child) => typeOf(child) === "Text" && child.props.slot !== "separator",
+    (child) =>
+      (typeOf(child) === "Link" || typeOf(child) === "Text") &&
+      child.props.slot !== "separator",
   );
 }
 

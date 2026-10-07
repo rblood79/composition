@@ -700,9 +700,10 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     class: "decided",
     owners: ["Breadcrumbs", "Breadcrumb"],
     side: "new",
-    nodes: ["Text", "Icon"],
+    // (ADR-256 Phase 5a: the label is the reference's RAC `Link` node.)
+    nodes: ["Text", "Link", "Icon"],
     reason:
-      "⑦ crumb = [label Text, separator Icon] (old: a leaf crumb with `::after`)",
+      "⑦ crumb = [label Text / Link, separator Icon] (old: a leaf crumb with `::after`)",
   },
   {
     // ADR-253 Phase 3: a field's FieldError is a part node hidden at rest by the presence rule

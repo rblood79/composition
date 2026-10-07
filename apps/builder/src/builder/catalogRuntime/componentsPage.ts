@@ -198,9 +198,11 @@ function originItems(
     | undefined;
   const item = templateOf(origin);
   if (!origin || !item) return undefined;
+  // (A crumb Link's `{href}` is the item's address, not a content place — ADR-256 Phase 5a.)
   const placeholder = (props: Readonly<Record<string, unknown>> | undefined) =>
-    Object.values(props ?? {}).some(
-      (value) => typeof value === "string" && /^\{.+\}$/.test(value),
+    Object.entries(props ?? {}).some(
+      ([key, value]) =>
+        key !== "href" && typeof value === "string" && /^\{.+\}$/.test(value),
     );
   let labelled = false;
   const parts = item.root.children.flatMap((id) => {

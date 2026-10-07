@@ -599,7 +599,7 @@ function textLeaf(
   // `Breadcrumb.currentTextWeight` (the Canvas crumb primitive paints `_isLast` at the same weight;
   // DOM `Breadcrumbs.css` writes the value on the Link, which the label Text inherits).
   const current =
-    (typeName === "Breadcrumb" || typeName === "Text") &&
+    (typeName === "Breadcrumb" || typeName === "Text" || typeName === "Link") &&
     node.derivedProps?._isLast === true;
   return {
     text,

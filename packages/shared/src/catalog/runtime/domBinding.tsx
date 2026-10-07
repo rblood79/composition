@@ -24,7 +24,6 @@ import {
   type ReactElement,
 } from "react";
 import {
-  catalogBreadcrumbSeparatorIcon,
   componentTypeSet,
   getPrimitiveBinding,
   resolveStaticItemKey,
@@ -1160,31 +1159,8 @@ function ruleDom(
   // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.
   if (lower === "dialog" && !node.ariaLabel && !dialogTitleOf(root, node))
     rest["aria-label"] = "Dialog";
-  // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
-  // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
-  // catalog default Icon.
-  const separatorIds =
-    lower === "breadcrumb"
-      ? new Set(
-          node.children.filter(
-            (childId) =>
-              root.domInputs.get(childId)?.props.slot === "separator",
-          ),
-        )
-      : undefined;
-  const ownChildren = separatorIds
-    ? children.filter((child) => !separatorIds.has(String(child.key)))
-    : children;
-  const separator =
-    separatorIds === undefined
-      ? undefined
-      : node.children.length === 0
-        ? createElement(Icon, {
-            iconName: catalogBreadcrumbSeparatorIcon(undefined).name,
-          })
-        : separatorIds.size > 0
-          ? children.filter((child) => separatorIds.has(String(child.key)))
-          : undefined;
+  // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
+  const ownChildren = children;
   const content =
     ownChildren.length > 0
       ? ownChildren
@@ -1276,7 +1252,6 @@ function ruleDom(
       ...(usesButtonBaseUtility(type)
         ? { className: `react-aria-${type} button-base` }
         : {}),
-      ...(separator !== undefined ? { separator } : {}),
       style,
     },
     ...content,
@@ -1313,17 +1288,6 @@ function ruleDom(
     lower === "tag"
       ? createElement(RAC.TagList, { style: { display: "contents" } }, element)
       : element,
-    // Preview orphan host: a hidden next crumb keeps the sample a link, except the `current`
-    // state origin, which stays last (current).
-    ...(lower === "breadcrumb" && node.displayState !== "current"
-      ? [
-          createElement(RAC.Breadcrumb, {
-            key: "__orphan-next",
-            id: "__orphan-next",
-            style: { display: "none" },
-          }),
-        ]
-      : []),
   );
 }
 

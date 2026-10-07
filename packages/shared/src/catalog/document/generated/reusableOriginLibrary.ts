@@ -387,8 +387,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-breadcrumb-item-default",
     "name": "Breadcrumb/Default",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "href": "string"
+    },
+    "defaults": {
+      "href": "#"
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-breadcrumb-item-default"
@@ -2703,19 +2707,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-breadcrumb-item-default__label",
       "lib:template:component-breadcrumb-item-default__separator"
     ],
-    "props": {
-      "href": "#"
-    },
+    "props": {},
     "visual": {
       "width": "fit-content"
     }
   },
   {
     "id": "lib:template:component-breadcrumb-item-default__label",
-    "definitionId": "lib:definition:text",
+    "definitionId": "lib:definition:type-Link",
     "children": [],
     "props": {
-      "children": "Breadcrumb"
+      "children": "Breadcrumb",
+      "href": "{href}"
     },
     "visual": {}
   },
@@ -2726,6 +2729,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "separator",
       "iconName": "chevron-right"
+    },
+    "showWhen": {
+      "all": [
+        {
+          "not": "isCurrent"
+        }
+      ]
     },
     "visual": {}
   },

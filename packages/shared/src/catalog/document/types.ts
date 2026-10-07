@@ -20,10 +20,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * draws its node tree. 9 — ADR-256 Phase 3: Checkbox · Switch · Radio are `*Field > *Button`
  * (`component-checkbox__button` holds the indicator and the text `component-checkbox__1`) with
  * Description (· FieldError) positions; a CheckboxGroup · RadioGroup Label · Description carry
- * `presentWhen`.
+ * `presentWhen`. 10 — ADR-256 Phase 5a: a Breadcrumb's label position is a RAC `Link`
+ * (`component-breadcrumb-item-default__label`, `href` bound to the crumb's) and its separator Icon
+ * is there while the crumb is not current (`showWhen: { all: [{ not: "isCurrent" }] }`).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 9 as const;
+export const LIBRARY_CONTRACT_VERSION = 10 as const;
 
 export type EntryKind =
   | "project"

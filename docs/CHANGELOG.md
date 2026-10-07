@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5a — Breadcrumbs 를 레퍼런스 구조로] - 2026-10-09
+
+### Changed
+
+- **Breadcrumb 은 `Breadcrumb > Link + 구분 Icon`** (ADR-256 — react-aria.adobe.com Breadcrumbs 예제): crumb 의 글자가 RAC `Link` 노드가 되고 (주소는 crumb 의 `href`), 구분 Icon 은 현재 crumb 이 아닐 때만 보인다 (Show when `not isCurrent`). crumb 안에 아이콘 같은 자유 자식을 넣을 수 있다. 화면은 그대로다 (Canvas 는 변경 전과 픽셀이 같다). 조건 없이 직접 넣은 구분 Icon 은 마지막 crumb 에서도 보인다 (조건으로 정한다). 위치: `catalog/runtime/delegatedDom.tsx` `breadcrumb`
+- **저장 형식 contract 10**: 옛 contract 문서는 열지 않는다 (ADR-256 Decision 10)
+
 ## [ADR-256 Phase 4 — 상태별 표시 (Show when)] - 2026-10-08
 
 ### Added

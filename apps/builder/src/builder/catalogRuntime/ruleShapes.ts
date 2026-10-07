@@ -217,7 +217,8 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
     paint,
     shellProps,
     sizeSpec,
-    rule.textDecoration,
+    // The node's own decoration (authored) over the rule's; a crumb's Link rests without it.
+    catalogTextDecoration(props, visual, rule.textDecoration),
     type,
   );
   const prepend: Shape[] = [];
@@ -356,4 +357,16 @@ export function catalogDateInputPaintProps(
     ...(fill ? { _segmentPlaceholderFill: fill } : {}),
     ...(fontStyle === "italic" ? { _segmentPlaceholderItalic: true } : {}),
   };
+}
+
+/** A rule node's text decoration: off for a crumb's Link, the node's own, else the rule's. */
+function catalogTextDecoration(
+  props: Readonly<Record<string, unknown>>,
+  visual: unknown,
+  ruleDecoration: string | undefined,
+): string | undefined {
+  if (props._noUnderline === true) return undefined;
+  const own = (visual as Record<string, unknown> | undefined)?.textDecoration;
+  if (own === undefined) return ruleDecoration;
+  return String(own) === "none" ? undefined : String(own);
 }

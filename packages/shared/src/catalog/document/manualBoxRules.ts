@@ -430,6 +430,23 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
               ...(crumbText ? { color: crumbText } : {}),
             },
           },
+          // ADR-256 Phase 5a: the crumb's label is the reference's RAC `Link` node — the same font
+          // and color (`.react-aria-Breadcrumbs .react-aria-Link`; its resting underline is off —
+          // the derived `_noUnderline`, Canvas only: the Preview's hover underline stays the sheet's).
+          {
+            childType: "Link",
+            via: "Breadcrumb",
+            size: name,
+            layout: {},
+            visual: {
+              fontSize: crumbFont,
+              ...(linkLineHeightRatio()
+                ? { lineHeight: linkLineHeightRatio()! }
+                : {}),
+              fontWeight: 400,
+              ...(crumbText ? { color: crumbText } : {}),
+            },
+          },
           {
             childType: "Icon",
             via: "Breadcrumb",
@@ -467,6 +484,20 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           childProps: { slot: "separator" },
           layout: {},
           visual: { width: iconSize, height: iconSize, iconSize },
+        },
+        // ADR-256 Phase 5a: the label Link takes the crumb's font (a Text label inherited it) and
+        // color — inside Breadcrumbs the owner's per-size parts take over.
+        {
+          childType: "Link",
+          layout: {},
+          visual: {
+            ...(px(base?.fontSize) ? { fontSize: px(base?.fontSize)! } : {}),
+            ...(ratio ? { lineHeight: ratio } : {}),
+            fontWeight: 400,
+            ...(rule?.variants.default?.colors?.text
+              ? { color: rule.variants.default.colors.text }
+              : {}),
+          } as CompiledPartRule["visual"],
         },
       ],
     };

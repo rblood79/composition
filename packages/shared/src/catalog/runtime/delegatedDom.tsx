@@ -63,6 +63,10 @@ import { ListBox } from "../../components/ListBox";
 import { GridList } from "../../components/GridList";
 import { Tree, TreeItem } from "../../components/Tree";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
+import {
+  Breadcrumb as AriaBreadcrumb,
+  Breadcrumbs as AriaBreadcrumbs,
+} from "react-aria-components/Breadcrumbs";
 import { MenuButton } from "../../components/Menu";
 import { TABLEVIEW_CHILD_STYLE } from "./tableViewChildStyle";
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
@@ -965,6 +969,47 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             (child) => catalogTypeName(input.root, child) === "Breadcrumb",
           ),
         ),
+      );
+    },
+  },
+  // ADR-256 Phase 5a: a Breadcrumb is RAC `Breadcrumb` — its children in order (the reference's
+  // `Link` and a separator Icon there while not current, `showWhen`); its render props
+  // (`isCurrent` · `isDisabled`) are the state frame of the nodes inside. Outside a Breadcrumbs (a
+  // Components page sample) RAC needs its collection: a host with no box, and a hidden next crumb
+  // that keeps a non-current sample a link.
+  breadcrumb: {
+    render: (input) => {
+      const props = input.node.props;
+      const element = createElement(AriaBreadcrumb as ElementType, {
+        ...marker(input),
+        id: resolveStaticItemKey(
+          props as Record<string, unknown>,
+          input.node.id,
+        ),
+        style: input.style,
+        className: "react-aria-Breadcrumb",
+        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      });
+      const parent = input.root.domInputs.get(input.node.parentId);
+      if (parent && catalogTypeName(input.root, parent) === "Breadcrumbs")
+        return element;
+      return createElement(
+        AriaBreadcrumbs as ElementType,
+        {
+          key: `host:${input.node.id}`,
+          "aria-label": "Breadcrumb sample",
+          style: { display: "contents" },
+        },
+        element,
+        ...(input.node.displayState !== "current"
+          ? [
+              createElement(AriaBreadcrumb as ElementType, {
+                key: "__orphan-next",
+                id: "__orphan-next",
+                style: { display: "none" },
+              }),
+            ]
+          : []),
       );
     },
   },
