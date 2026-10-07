@@ -56,6 +56,7 @@ import {
   catalogFieldControlNodes,
   catalogPickerListNode,
   catalogFieldLabelNode,
+  catalogDomPartParent,
   catalogPartField,
   catalogOwnerDrawnPart,
   catalogTypeName,
@@ -1517,26 +1518,33 @@ const CatalogDomNode = memo(function CatalogDomNode({
     readRevision,
   );
   const parentInput = node ? root.domInputs.get(node.parentId) : undefined;
+  // A field's part keeps its field through a layout frame (ADR-256 G2 — `catalogDomPartParent`).
+  const partParent =
+    parentInput?.bindingId === "frame" && node
+      ? catalogDomPartParent(root, node)
+      : parentInput;
   // A text leaf in a slot reads the slot's values; a field's Label node shows what its field
   // appends to it (the necessity indicator of the field's `isRequired` — ADR-253).
   const watchedParentId =
     node &&
-    ((textBindings.has(node.bindingId ?? "") &&
-      parentInput?.bindingId === "slot") ||
-      (node.bindingId === "label" &&
-        CATALOG_LABEL_NODE_FIELDS[parentInput?.bindingId ?? ""] !==
-          undefined) ||
-      // A TextArea's Input node is its `<textarea rows>` (the field's `rows`).
-      (parentInput?.bindingId === "textarea" && node.ruleId === "Input"))
+    textBindings.has(node.bindingId ?? "") &&
+    parentInput?.bindingId === "slot"
       ? node.parentId
-      : // A Button inside a field's control wrapper is drawn by the field's state (disabled).
-        node?.bindingId === "button" &&
-          parentInput?.bindingId === "selecttrigger"
-        ? parentInput.parentId
-        : // (A Select's trigger Button is the field's direct child.)
-          node?.bindingId === "button" && parentInput?.bindingId === "select"
-          ? node.parentId
-          : undefined;
+      : node &&
+          ((node.bindingId === "label" &&
+            CATALOG_LABEL_NODE_FIELDS[partParent?.bindingId ?? ""] !==
+              undefined) ||
+            // A TextArea's Input node is its `<textarea rows>` (the field's `rows`).
+            (partParent?.bindingId === "textarea" && node.ruleId === "Input"))
+        ? partParent!.id
+        : // A Button inside a field's control wrapper is drawn by the field's state (disabled).
+          node?.bindingId === "button" &&
+            partParent?.bindingId === "selecttrigger"
+          ? catalogPartField(root, node)?.id
+          : // (A Select's trigger Button is the field's direct child.)
+            node?.bindingId === "button" && partParent?.bindingId === "select"
+            ? partParent.id
+            : undefined;
   const readParent = useCallback(
     () => (watchedParentId ? root.domInputs.get(watchedParentId) : undefined),
     [root, watchedParentId],
@@ -1571,6 +1579,7 @@ const CatalogDomNode = memo(function CatalogDomNode({
         shown,
         context,
         parentInput,
+        partParent,
         watchedParent,
         styleOverride,
       ),
@@ -1657,6 +1666,7 @@ function renderNode(
   node: CatalogConsumerNode,
   context: CatalogDomContext,
   parentInput: CatalogConsumerNode | undefined,
+  partParent: CatalogConsumerNode | undefined,
   watchedParent: CatalogConsumerNode | undefined,
   styleOverride: CSSProperties | undefined,
 ): ReactElement | null {
@@ -1754,10 +1764,9 @@ function renderNode(
   // Its box is the field sheet's (the field owns the wrapper's look — no inline style).
   const wrapper =
     node.bindingId === "selecttrigger"
-      ? NODE_TREE_CONTROL_WRAPPERS[parentInput?.bindingId ?? ""]
+      ? NODE_TREE_CONTROL_WRAPPERS[partParent?.bindingId ?? ""]
       : undefined;
-  if (wrapper)
-    return withHtmlId(root, node, wrapper(node, children));
+  if (wrapper) return withHtmlId(root, node, wrapper(node, children));
   // A field's Input node is a RAC Input inside the field's context (ADR-253).
   const field = watchedParent ?? catalogPartField(root, node);
   if (
@@ -1788,16 +1797,16 @@ function renderNode(
   // it while the field is invalid — the authored message, else what its validation raised.
   const binding =
     node.bindingId === "fielderror" &&
-    parentInput &&
-    FIELD_HINT_OWNERS.has(catalogTypeName(root, parentInput))
+    partParent &&
+    FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
       ? fieldErrorBinding
       : bindingOf(node);
   const bound = binding
     ? catalogDomStyle(
         node,
-        node.bindingId === "button"
+        node.bindingId === "button" || watchedParent?.id !== node.parentId
           ? parentInput
-          : (watchedParent ?? parentInput),
+          : watchedParent,
       )
     : undefined;
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
@@ -1825,7 +1834,7 @@ function renderNode(
     const partField = catalogPartField(root, node);
     const fieldDisabled =
       partField !== undefined &&
-      (partField.id !== node.parentId || partField.bindingId === "select") &&
+      (partField.id !== partParent?.id || partField.bindingId === "select") &&
       partField.props.isDisabled === true;
     // (The sheet gives every Button a border: one the document removes is written out.)
     if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;
@@ -1833,7 +1842,7 @@ function renderNode(
     // RAC's run state): that Button's display stays the sheet's.
     if (
       partField?.bindingId === "searchfield" &&
-      partField.id !== node.parentId
+      partField.id !== partParent?.id
     )
       delete bound.display;
     if (node.props.isDisabled !== true && !fieldDisabled) {

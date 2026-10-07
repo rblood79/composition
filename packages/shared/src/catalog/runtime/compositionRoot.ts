@@ -1509,8 +1509,16 @@ export class CatalogCompositionRoot {
     for (const id of this.stateReaders(names)) {
       const record = this.records.get(id)!;
       const rootId = this.recordRoots.get(id)!;
-      const next = this.withState(record, get, this.rootPage.get(rootId));
-      if (sameFields(next.props, record.props)) continue;
+      const valued = this.withState(record, get, this.rootPage.get(rootId));
+      if (sameFields(valued.props, record.props)) continue;
+      // A value-conditioned part (ADR-256 Decision 7) follows its new final text.
+      const { hidden: _hidden, ...shown } = valued;
+      const next =
+        valued.presentWhen === undefined
+          ? valued
+          : catalogHiddenAtRest(shown, get, this.typeOf)
+            ? { ...shown, hidden: true as const }
+            : shown;
       let list = byRoot.get(rootId);
       if (!list) byRoot.set(rootId, (list = []));
       list.push(this.planRecord(id, next, rootId));
@@ -3110,26 +3118,34 @@ export class CatalogCompositionRoot {
       const owner = catalogPresenceScope(update.record, get, this.typeOf);
       if (owner) owners.add(owner.id);
     }
+    const presence = new Map<string, CatalogConsumerNode>();
     for (const ownerId of owners)
       for (const panel of catalogPresenceDependents(
         get(ownerId)!,
         get,
         this.typeOf,
-      )) {
-        const hidden = catalogHiddenAtRest(panel, get, this.typeOf);
-        if (hidden === (panel.hidden === true)) continue;
-        const { hidden: _hidden, ...shown } = panel;
-        const rootId = this.recordRoots.get(panel.id)!;
-        const next = this.planRecord(
-          panel.id,
-          hidden ? { ...shown, hidden: true } : shown,
-          rootId,
-        );
-        const index = updates.findIndex((update) => update.id === panel.id);
-        if (index >= 0) updates[index] = next;
-        else updates.push(next);
-        roots.add(rootId);
-      }
+      ))
+        presence.set(panel.id, panel);
+    // A value-conditioned part (ADR-256 Decision 7) follows its own final text.
+    for (const update of updates)
+      if (update.record.presentWhen) presence.set(update.id, update.record);
+    for (const panel of presence.values()) {
+      const hidden = catalogHiddenAtRest(panel, get, this.typeOf);
+      if (hidden === (panel.hidden === true)) continue;
+      const { hidden: _hidden, ...shown } = panel;
+      const rootId = this.recordRoots.get(panel.id)!;
+      const next = this.planRecord(
+        panel.id,
+        hidden ? { ...shown, hidden: true } : shown,
+        rootId,
+      );
+      const index = updates.findIndex((update) => update.id === panel.id);
+      if (index >= 0) updates[index] = next;
+      else updates.push(next);
+      // (The re-plans below read the shown record.)
+      planned.set(panel.id, next);
+      roots.add(rootId);
+    }
     // Slider thumbs follow the Slider's value, field Labels the necessity inputs (their layout
     // reads them): re-plan them against the planned records.
     for (const update of [...updates])

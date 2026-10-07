@@ -30,6 +30,7 @@ import {
   CATALOG_LABEL_NODE_FIELDS,
   FIELD_HINT_OWNERS,
   catalogFieldNecessityIndicator,
+  catalogPartParent,
 } from "./presence";
 import {
   type NecessityIndicator,
@@ -320,7 +321,7 @@ export function catalogFieldLabelNecessity(
   root: CatalogCompositionRoot,
   label: CatalogConsumerNode,
 ): ReactNode {
-  const field = root.domInputs.get(label.parentId);
+  const field = catalogDomPartParent(root, label);
   if (
     !field ||
     CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
@@ -438,15 +439,30 @@ export function catalogPickerListNode(
   );
 }
 /**
- * The field a part node belongs to: its parent, or the parent of the control wrapper it is in.
+ * A part node's parent with the layout frames it sits in skipped (`catalogPartParent` — ADR-256
+ * G2: a frame around a field's parts keeps them in the field's RAC context).
+ */
+export function catalogDomPartParent(
+  root: CatalogCompositionRoot,
+  part: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  return catalogPartParent(
+    part,
+    (id) => root.domInputs.get(id),
+    (record) => catalogTypeName(root, record),
+  );
+}
+/**
+ * The field a part node belongs to: its parent, or the parent of the control wrapper it is in
+ * (layout frames skipped — `catalogDomPartParent`).
  */
 export function catalogPartField(
   root: CatalogCompositionRoot,
   part: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
-  const parent = root.domInputs.get(part.parentId);
+  const parent = catalogDomPartParent(root, part);
   if (!parent || parent.bindingId !== "selecttrigger") return parent;
-  const field = root.domInputs.get(parent.parentId);
+  const field = catalogDomPartParent(root, parent);
   return field && CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")
     ? field
     : parent;
@@ -580,8 +596,13 @@ const dateValue = (value: unknown) =>
 /** A time prop the document wrote as text (`HH:MM(:SS)`), parsed for RAC. */
 function timeValue(value: unknown): unknown {
   if (typeof value !== "string") return value || undefined;
-  const [hour, minute, second] = value.split(":").map((part) => parseInt(part, 10));
-  return hour !== undefined && minute !== undefined && !isNaN(hour) && !isNaN(minute)
+  const [hour, minute, second] = value
+    .split(":")
+    .map((part) => parseInt(part, 10));
+  return hour !== undefined &&
+    minute !== undefined &&
+    !isNaN(hour) &&
+    !isNaN(minute)
     ? new Time(hour, minute, second && !isNaN(second) ? second : 0)
     : undefined;
 }

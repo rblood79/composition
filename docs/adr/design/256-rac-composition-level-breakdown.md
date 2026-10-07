@@ -138,3 +138,4 @@ react-aria.adobe.com 문서의 예제에서 고른다. 기준값 = 예제 코드
   - G3 하니스 70/70 (전에는 69/70). G4: ratchet pass · `scene.build` Δ 는 측정하지 않음 — Canvas 쪽 변경은 presence 술어 하나 (Phase 1 과 같은 한계). 번들 initial gzip Builder 1,234,798 · Preview 288,132 (상한 안)
   - live: `adr256-p2-field-live.mjs` 4/4 (Compare Mode — Label · Icon · Input 순서 양쪽 같음, 빈 Description 숨김, 재열기 같음)
   - contract 7 → 8 (template 의 presentWhen — 옛 문서 거부)
+  - 판독 1회 (2026-10-08, `reviews/256.md` Round 6): HIGH 1 · MEDIUM 2 전부 재현 후 수리 — frame 안의 부품이 field 를 잃던 것 (DOM · Canvas 가 `catalogPartParent` 하나로 frame 을 건넌다 · NumberField · SearchField wrapper throw 포함) · presentWhen 노드의 존재를 증분 · 변수 갱신 경로에서도 다시 판정 · 노드 트리 field 의 Description 은 자기 글자로만 판정. 원복 RED 11/11 · live `adr256-p2-review-live.mjs` 6/6 · G3 70/70. 수리 검증 1회는 수리 커밋에 대해 연다

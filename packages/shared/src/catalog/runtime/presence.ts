@@ -81,6 +81,52 @@ const childrenOf = (node: CatalogConsumerNode, get: CatalogRecordLookup) =>
   });
 
 /**
+ * ADR-256 G2 — a layout frame the author puts around a field's parts is a plain element with no
+ * RAC context of its own: the parts inside it stay in the field's context (RAC passes context
+ * through any element). The field's part lookups go through it.
+ */
+const PART_FRAME_TYPES: ReadonlySet<string> = new Set(["frame"]);
+
+/** A node's parent with the layout frames it sits in skipped (`PART_FRAME_TYPES`). */
+export function catalogPartParent(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  let parent = get(node.parentId);
+  while (parent && PART_FRAME_TYPES.has(typeOf(parent)))
+    parent = get(parent.parentId);
+  return parent;
+}
+
+/** A node's children with the layout frames among them opened (`PART_FRAME_TYPES`). */
+function partChildrenOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(node, get).flatMap((child) =>
+    PART_FRAME_TYPES.has(typeOf(child))
+      ? partChildrenOf(child, get, typeOf)
+      : [child],
+  );
+}
+
+/**
+ * Fields the Preview draws as their node tree (ADR-256 Phase 2): each part shows by its own value,
+ * not by a field prop — the Description its own text (`presentWhen`).
+ */
+const NODE_TREE_FIELDS: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "SearchField",
+  "ColorField",
+  "DateField",
+  "TimeField",
+]);
+
+/**
  * Tabs' Tab ↔ TabPanel pairing (by `itemId`, or by order for a typed template without item keys)
  * and the key RAC selects on the first render (explicit key, else the first enabled tab).
  */
@@ -230,7 +276,10 @@ export function catalogFieldHintShown(
   fieldType: string,
 ): boolean | undefined {
   if (!FIELD_HINT_OWNERS.has(fieldType)) return undefined;
-  if (type === "Description") return !!String(field.props.description ?? "");
+  if (type === "Description")
+    return NODE_TREE_FIELDS.has(fieldType)
+      ? undefined
+      : !!String(field.props.description ?? "");
   if (type === "FieldError")
     return (
       field.props.isInvalid === true && !!String(field.props.errorMessage ?? "")
@@ -271,7 +320,10 @@ export function catalogHiddenAtRest(
   const type = typeOf(node);
   const parentType = typeOf(parent);
   if (TRIGGER_OVERLAY_CHILDREN[parentType]?.has(type)) return true;
-  const hint = catalogFieldHintShown(type, parent, parentType);
+  // (A hint part keeps its field through a layout frame — `catalogPartParent`.)
+  const hintField = catalogPartParent(node, get, typeOf);
+  const hint =
+    hintField && catalogFieldHintShown(type, hintField, typeOf(hintField));
   if (hint !== undefined) return !hint;
   // The separator Icon after a crumb's Link: shared `Breadcrumb` drops it on RAC's current crumb.
   if (parentType === "Breadcrumb" && node.props.slot === "separator")
@@ -307,9 +359,9 @@ export function catalogPickerOfButton(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
-  const trigger = get(node.parentId);
+  const trigger = catalogPartParent(node, get, typeOf);
   if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = get(trigger.parentId);
+  const field = catalogPartParent(trigger, get, typeOf);
   return field && ["DatePicker", "DateRangePicker"].includes(typeOf(field))
     ? field
     : undefined;
@@ -322,9 +374,9 @@ function catalogSearchFieldOfInput(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Input") return;
-  const trigger = get(node.parentId);
+  const trigger = catalogPartParent(node, get, typeOf);
   if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = get(trigger.parentId);
+  const field = catalogPartParent(trigger, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -340,9 +392,9 @@ function catalogSearchFieldOfClear(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
-  const trigger = get(node.parentId);
+  const trigger = catalogPartParent(node, get, typeOf);
   if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = get(trigger.parentId);
+  const field = catalogPartParent(trigger, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -431,17 +483,17 @@ export function catalogPresenceDependents(
     );
   if (FIELD_HINT_OWNERS.has(typeOf(scope)))
     return [
-      ...childrenOf(scope, get).filter((child) =>
+      ...partChildrenOf(scope, get, typeOf).filter((child) =>
         ["Description", "FieldError"].includes(typeOf(child)),
       ),
       ...(typeOf(scope) === "SearchField"
-        ? childrenOf(scope, get)
-            .flatMap((trigger) => childrenOf(trigger, get))
+        ? partChildrenOf(scope, get, typeOf)
+            .flatMap((trigger) => partChildrenOf(trigger, get, typeOf))
             .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf))
         : []),
       // (A picker's calendar button follows its `showCalendarIcon`.)
-      ...childrenOf(scope, get)
-        .flatMap((trigger) => childrenOf(trigger, get))
+      ...partChildrenOf(scope, get, typeOf)
+        .flatMap((trigger) => partChildrenOf(trigger, get, typeOf))
         .filter((button) => catalogPickerOfButton(button, get, typeOf)),
     ];
   const items: CatalogConsumerNode[] = [];
@@ -642,9 +694,9 @@ function triggerOwner(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  let owner = get(node.parentId);
+  let owner = catalogPartParent(node, get, typeOf);
   while (owner && typeOf(owner) === "SelectTrigger")
-    owner = get(owner.parentId);
+    owner = catalogPartParent(owner, get, typeOf);
   return owner;
 }
 
@@ -662,7 +714,7 @@ function fieldSubpartProps(
 ): Record<string, string | number | boolean> | undefined {
   const type = typeOf(node);
   if (type !== "DateInput" && type !== "SelectIcon") return undefined;
-  const wrapper = get(node.parentId);
+  const wrapper = catalogPartParent(node, get, typeOf);
   const owner = triggerOwner(node, get, typeOf);
   if (!wrapper || !owner) return undefined;
   if (type === "SelectIcon")
@@ -737,7 +789,7 @@ function fieldBoxOfQuietField(
 ): CatalogConsumerNode | undefined {
   const type = typeOf(node);
   if (type !== "Input" && type !== "DateInput") return;
-  const parent = get(node.parentId);
+  const parent = catalogPartParent(node, get, typeOf);
   if (!parent) return;
   if (typeOf(parent) === "SelectTrigger" && parent.props.variant !== "plain")
     return;
@@ -896,9 +948,11 @@ function fieldSubparts(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  return childrenOf(owner, get)
+  return partChildrenOf(owner, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "SelectTrigger" ? childrenOf(child, get) : [child],
+      typeOf(child) === "SelectTrigger"
+        ? partChildrenOf(child, get, typeOf)
+        : [child],
     )
     .filter(
       (child) =>
@@ -945,9 +999,7 @@ function derivedDependents(
           ? parent
           : undefined;
     const disclosures = group
-      ? childrenOf(group, get).filter(
-          (child) => typeOf(child) === "Disclosure",
-        )
+      ? childrenOf(group, get).filter((child) => typeOf(child) === "Disclosure")
       : [owner];
     return disclosures.flatMap((disclosure) =>
       childrenOf(disclosure, get).filter(
@@ -1047,7 +1099,7 @@ export function catalogLabelSuffix(
   typeOf: CatalogTypeOf,
 ): string {
   if (typeOf(node) !== "Label") return "";
-  const field = get(node.parentId);
+  const field = catalogPartParent(node, get, typeOf);
   if (
     !field ||
     CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
@@ -1071,7 +1123,9 @@ export function catalogLabelSuffixDependents(
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
   if (CATALOG_LABEL_NODE_FIELDS[owner.bindingId ?? ""] === "necessity")
-    return childrenOf(owner, get).filter((child) => typeOf(child) === "Label");
+    return partChildrenOf(owner, get, typeOf).filter(
+      (child) => typeOf(child) === "Label",
+    );
   if (type !== "Form") return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {

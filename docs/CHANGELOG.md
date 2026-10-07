@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **빈 label · description 의 부품은 없다 — 값 조건 `presentWhen`** (Decision 7): field 의 Label · Description 은 최종 글자가 빈 문자열일 때만 없다 (`0` · `false` · 공백은 남는다). Canvas 도 이제 빈 label 의 Label 자리를 그리지 않는다 (Preview 와 같다). 바인딩만으로는 노드가 사라지지 않는다 — FieldError 는 빈 문구여도 RAC 의 검증 메시지를 보인다. 위치: `catalog/runtime/presence.ts` `catalogAbsentByValue`
 - **저장 형식 contract 8**: 옛 contract 문서는 열지 않는다 (ADR-256 Decision 10)
 
+### Fixed (2026-10-08 Phase 2 판독 수리)
+
+- **field 안에 Frame 을 넣고 부품을 옮기면 입력이 망가지던 것**: DateField · TimeField 의 날짜 칸이 사라지고, TextArea 가 한 줄 입력이 되고, NumberField · SearchField 의 입력 상자를 Frame 에 넣으면 Preview 가 오류로 멈췄다. 이제 Frame 은 부품과 field 사이를 끊지 않는다 — Preview 는 같은 RAC 입력을, Canvas 는 같은 값 (날짜 형식 · quiet · 필수 표시) 을 그린다. 위치: `catalog/runtime/presence.ts` `catalogPartParent`
+- **label 을 바꿔도 Canvas 의 Label 이 숨김 그대로이던 것**: 비어 있던 label 을 채워도 Canvas 는 Label 을 숨겼고, 비우면 빈 자리가 남았다 (프로젝트 변수로 바뀌는 label 도). 이제 값이 바뀔 때마다 Preview 와 같이 따라간다. 위치: `catalog/runtime/compositionRoot.ts`
+- **Description 에 직접 쓴 글자가 Canvas 에 안 보이던 것**: field 의 description 값이 비어 있으면 Description 노드에 글자를 써도 Canvas 가 숨겼다 (Preview 는 보였다). 위치: `catalog/runtime/presence.ts` `catalogFieldHintShown`
+
 ## [ADR-256 Phase 1 — 넣을 수 있는가를 하나로 판정] - 2026-10-07
 
 ### Changed
