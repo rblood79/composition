@@ -904,3 +904,19 @@ live `apps/builder/scripts/adr253-g7-live.mjs` 7/7 (worktree 빌드 5175 · head
 - G1 보강: Input·DateInput 9곳의 hover·radius, 편집·undo, 동등 rest/hover Button, ToggleButton 선택+hover, disabled의 실제 DOM computed style. `adr253-state-live.mjs` 7/7.
 - G3 보강: `adr253-p3-quiet-live.mjs`가 Preview뿐 아니라 production Canvas shape를 비교한다. quiet 9종 × rest/hover/focus/invalid/off, 7/7. unit/SSR/shape 395 PASS · 1 skipped와 Chromium CSS cascade 8 PASS. 상세 근거와 미확인 범위는 리뷰 로그에 적었다.
 - 범위별 기본 게이트·schema 147/147·생성 CSS 동기화·production 다중 entry 빌드 통과. initial JS gzip Builder 1,228,881 / Preview 286,973 B, CSS gzip 78,897 / 48,742 B. JS 상한 이내이며 이번 수리의 성능 ratchet은 재측정하지 않았다.
+
+### 2026-10-07 — 후속 (범위 밖으로 남겼던 것 · 사용자 지시 「남은 것 진행, 판단은 react-aria · react-spectrum 레퍼런스」)
+
+| 남긴 것 | 처리 | 커밋 |
+| --- | --- | --- |
+| G3 CardView 실패 | 원인은 `f9746eda4` (CardView 의 Card 를 내용 있는 instance 로) — 승인 기록 2건, 70/70 | `ebad674d2` |
+| `build:all` 실패 | 지워진 `vite.preview.config.ts` 를 가리키던 `build:preview` 제거 | `2f2389948` |
+| Preview delta 의 생겼다 지워진 id (`ENTRY_NOT_FOUND`) | 복제본이 가진 적 없는 id 의 remove 는 건너뜀 | `e28787b6e` |
+| Select placeholder 색 (Canvas `fg` ↔ Preview `fg-muted` × 0.6) | Canvas 가 rule 의 `[data-placeholder]` 를 SelectValue 색으로 읽음 | `c80ad6c13` |
+| ColorField · 그룹 2종의 side 들여쓰기 | RSP side 라벨 = 라벨 열 + 도움말 아래 들여쓰기, 세 컴포넌트에 TextField 와 같은 선언 | `0cf97947c` |
+| 날짜 field locale (Canvas 브라우저 ↔ Preview UI 언어) | Preview 를 RAC 기본 locale (브라우저, publish 와 같음) 로 | `d04089aac` |
+| 필수 표시 방식 차이 | RSP 규칙 하나 (자기 값 → Form → icon), field 정의는 기본값 없음 — Form 의 값이 처음으로 닿음 | `0d0390eca` |
+| Select · DateRangePicker `isQuiet` 효과 0 | DOM root `data-quiet` · 상자에 `_quietOwner` 파생 · Canvas `catalogQuietOwnerPaint` · quiet trigger 의 `.button-base` 끔 | 이 커밋 |
+
+찾은 것 (이번 범위 밖): DateField · TimeField 는 DOM 만 값이 없을 때 오늘 날짜 · 09:00 을 기본값으로 넣는다 (Canvas 와 레퍼런스는 빈 조각). ColorField 의 top 배치는 가로 (2026-06-23 결정) 로 RSP 의 세로와 다르다. S2 DateRangePicker 에는 `isQuiet` 가 없다 (v3 에는 있었다).
+

@@ -42,6 +42,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ...restProps
     } = props;
     const { focusProps, isFocusVisible } = useFocusRing();
+    const quiet =
+      (restProps as Record<string, unknown>)["data-quiet"] === "true";
 
     return (
       <RACButton
@@ -56,11 +58,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         data-focus-visible={isFocusVisible || undefined}
         data-loading={isLoading || undefined}
         aria-busy={isLoading || undefined}
-        className={composeRenderProps(className, (cls) =>
-          cls
-            ? `react-aria-Button button-base ${cls}`
-            : "react-aria-Button button-base",
-        )}
+        className={composeRenderProps(className, (cls) => {
+          // A quiet field's box (a quiet Select's trigger, `data-quiet`): the field sheet draws it
+          // (no fill, an underline) — the filled `.button-base` paint (a later layer) stays off.
+          const base = quiet
+            ? "react-aria-Button"
+            : "react-aria-Button button-base";
+          return cls ? `${base} ${cls}` : base;
+        })}
         style={style}
       >
         {isLoading ? (

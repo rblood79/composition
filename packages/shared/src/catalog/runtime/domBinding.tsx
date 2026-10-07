@@ -569,8 +569,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ...(typeof node.props.slot === "string" && node.props.slot
           ? { slot: node.props.slot }
           : {}),
-        style,
-      } as Parameters<typeof Button>[0],
+        // (A quiet Select's trigger: the field sheet draws the quiet box — `data-quiet` keeps the
+        // filled Button paint off, and a rest paint the document wrote stays out while quiet, as
+        // on a quiet field's Input.)
+        ...quietState(node),
+        style: quietStyle(node, style),
+      } as unknown as Parameters<typeof Button>[0],
       ...children,
       ...(node.props.children === undefined || node.props.children === ""
         ? []
@@ -608,6 +612,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       isDisabled: node.props.isDisabled === true,
       isInvalid: authoredInvalid(node.props),
       isRequired: node.props.isRequired === true,
+      // RSP `isQuiet` → `data-quiet` on the root: the Select sheet's quiet trigger.
+      isQuiet: node.props.isQuiet === true,
       style,
     } as Parameters<typeof Select>[0]),
   combobox: (node, style, _children, _context, parts) =>

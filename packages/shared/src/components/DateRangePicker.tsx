@@ -180,7 +180,9 @@ export function DateRangePicker<T extends DateValue>({
       data-size={size}
       data-label-position={labelPosition}
       data-label-align={labelAlign}
-      data-quiet={isQuiet ? "true" : undefined}
+      // (The catalog DOM passes `data-quiet` itself — `toRacProps` — through `props`: an absent
+      // `isQuiet` must not clear it.)
+      {...(isQuiet ? { "data-quiet": "true" } : {})}
       granularity={effectiveGranularity}
       placeholderValue={placeholderValue}
       defaultValue={defaultValue}

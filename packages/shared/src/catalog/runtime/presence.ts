@@ -684,14 +684,20 @@ export function catalogDerivedProps(
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
   const control = ownDerivedProps(node, get, typeOf, locale);
-  // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`).
+  // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`); a box the field's
+  // own rule styles names that field (`_quietOwner` — `catalogQuietStyles`).
   const quietField = fieldBoxOfQuietField(node, get, typeOf);
-  const own = quietField
+  const quietOwner = quietField
+    ? undefined
+    : ownerStyledQuietBox(node, get, typeOf);
+  const quiet = quietField ?? quietOwner;
+  const own = quiet
     ? {
         ...control,
         isQuiet: true,
-        _fieldDisabled: quietField.props.isDisabled === true,
-        _fieldInvalid: quietField.props.isInvalid === true,
+        ...(quietOwner ? { _quietOwner: typeOf(quietOwner) } : {}),
+        _fieldDisabled: quiet.props.isDisabled === true,
+        _fieldInvalid: quiet.props.isInvalid === true,
       }
     : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
@@ -717,6 +723,26 @@ function fieldBoxOfQuietField(
     return;
   const owner = triggerOwner(node, get, typeOf);
   return owner?.props.isQuiet === true ? owner : undefined;
+}
+
+/**
+ * A quiet field's box that the field's own rule styles (`quiet.true.nested` — the DOM sheet's
+ * `.react-aria-<Field>[data-quiet="true"] <box>`): a Select's trigger (a Button instance — RAC's
+ * trigger is the Button itself) and a range picker's Group (its SelectTrigger wrapper, the box
+ * around the start · end pair). Returns the owning field.
+ */
+const QUIET_OWNER_BOXES: Readonly<Record<string, string>> = {
+  Select: "Button",
+  DateRangePicker: "SelectTrigger",
+};
+function ownerStyledQuietBox(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const owner = get(node.parentId);
+  if (!owner || QUIET_OWNER_BOXES[typeOf(owner)] !== typeOf(node)) return;
+  return owner.props.isQuiet === true ? owner : undefined;
 }
 
 function ownDerivedProps(
@@ -803,6 +829,10 @@ export function catalogDerivedPropsDependents(
   const items = [
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
+    // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
+    ...childrenOf(owner, get).filter(
+      (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
+    ),
   ];
   return [
     ...items,

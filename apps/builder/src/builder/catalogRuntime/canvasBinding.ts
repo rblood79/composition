@@ -20,6 +20,7 @@ import {
   catalogRuleNodeData,
 } from "./ruleShapes";
 import { catalogTreeChevronInset } from "./presence";
+import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
   cssVarColor,
@@ -156,6 +157,77 @@ function box(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
           }
         : {}),
     },
+  };
+}
+
+/**
+ * A quiet field's box that the field's own rule styles (`catalogQuietStyles` `_quietOwner` — a
+ * Select's trigger, a range picker's Group): the DOM sheet's `.react-aria-<Field>[data-quiet="true"]
+ * <box>` — no fill or box border, square corners, a bottom border. Returns the box's visual for
+ * that state and the bottom border as a strip on the box's bottom edge (inside it, as the CSS
+ * border is); undefined when the box is not quiet.
+ */
+export function catalogQuietOwnerPaint(
+  node: CatalogConsumerNode,
+  rect: { width: number; height: number },
+):
+  | {
+      visual: CatalogConsumerNode["visual"];
+      underline: { y: number; height: number; color: string };
+    }
+  | undefined {
+  const quiet = catalogQuietStyles(undefined, {
+    ...node.props,
+    ...node.derivedProps,
+  });
+  if (!quiet) return undefined;
+  const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(
+    quiet["border-bottom"] ?? "",
+  );
+  if (!border) throw new Error(`CATALOG_QUIET_BORDER_UNSUPPORTED:${node.id}`);
+  const width = Number(border[1]);
+  const { borderColor: _borderColor, ...visual } = node.visual;
+  return {
+    visual: {
+      ...visual,
+      borderWidth: 0,
+      radius: Number(quiet["border-radius"] ?? 0),
+      ...(quiet.background !== undefined ? { fill: quiet.background } : {}),
+    },
+    underline: {
+      y: rect.height - width,
+      height: width,
+      color: cssVarColor(
+        quiet["border-bottom-color"] ?? border[2],
+        colorMode,
+      ) as string,
+    },
+  };
+}
+
+/** `paint` of a quiet owner-styled box (`catalogQuietOwnerPaint`), else `paint` of the node. */
+function withQuietOwnerBox(
+  node: CatalogConsumerNode,
+  rect: Rect,
+  paint: (node: CatalogConsumerNode) => SkiaNodeData,
+): SkiaNodeData {
+  const quiet = catalogQuietOwnerPaint(node, rect);
+  if (!quiet) return paint(node);
+  const data = paint({ ...node, visual: quiet.visual });
+  return {
+    ...data,
+    children: [
+      ...(data.children ?? []),
+      {
+        type: "box",
+        x: 0,
+        y: quiet.underline.y,
+        width: rect.width,
+        height: quiet.underline.height,
+        visible: true,
+        box: { fillColor: rgba(quiet.underline.color), borderRadius: 0 },
+      },
+    ],
   };
 }
 
@@ -299,7 +371,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   box,
   icon: glyph,
   selecticon: glyph,
-  selecttrigger: box,
+  selecttrigger: (node, rect) =>
+    withQuietOwnerBox(node, rect, (painted) => box(painted, rect)),
   select: containerWithAuthoredPaint,
   combobox: containerWithAuthoredPaint,
   text: (node, rect, parent, wraps, suffix = "") => {
@@ -377,7 +450,10 @@ const bindings: Readonly<Record<string, Binding>> = {
     };
   },
   button: (node, rect, parent) => {
-    const painted = bindings.text(node, rect, parent);
+    // (A quiet Select's trigger: the Select rule's quiet box — `catalogQuietOwnerPaint`.)
+    const painted = withQuietOwnerBox(node, rect, (own) =>
+      bindings.text(own, rect, parent),
+    );
     const paddingX = Number(node.visual.paddingX ?? 0);
     return {
       ...painted,

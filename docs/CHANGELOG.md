@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: field 마다 DOM 의 방식 (`form` · `own` · `required`) 이 달랐고 Canvas 는 다른 목록을 썼다. 또 binding 기본값 `icon` 이 모든 field 의 해석 값에 실려 Form 의 값은 어느 field 에도 닿지 않았다. 목록 · 규칙을 `presence.ts` 하나에 두고 두 consumer 가 읽으며, field type 정의는 그 기본값을 싣지 않는다 (Properties 패널은 값이 없을 때 그대로 `Icon` 을 보인다).
   - 위치: `packages/shared/src/catalog/runtime/presence.ts` `CATALOG_LABEL_NODE_FIELDS` · `catalogFieldNecessityIndicator` · `delegatedDom.tsx` · `document/ruleDefinition.ts`
 
+- **Select · DateRangePicker 의 `isQuiet`** (RSP Picker `isQuiet` — ADR-253 Phase 3 끝에서 찾음):
+  - 두 field 는 quiet 을 켜도 Canvas · Preview 모두 그대로였다. 이제 상자 (Select 의 trigger · DateRangePicker 의 Group) 가 칠 없음 · 각진 모서리 · 밑줄로 바뀐다.
+  - **Why**: 상자가 Input · DateInput 이 아니라 field rule 의 `quiet.true.nested` 가 그리는데, DOM 은 root 에 `data-quiet` 가 실리지 않았고 (Select 는 prop 을 넘기지 않음 · DateRangePicker 는 컴포넌트가 지움), Select trigger 는 `.button-base` 칠 (뒤 layer) 이 quiet 선언을 이겼고, Canvas 는 그 선언을 읽지 않았다. 상자에 `_quietOwner` 파생 값을 주고 Canvas 가 같은 선언을 그리며 (`catalogQuietOwnerPaint`), quiet trigger 는 `.button-base` 를 끈다.
+  - 위치: `packages/shared/src/catalog/runtime/{presence,quietStyles,domBinding}.ts(x)` · `components/{Button,DateRangePicker}.tsx` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+
 ### Changed
 
 - **ColorField · CheckboxGroup · RadioGroup 의 side 라벨 = 라벨 열** (RSP `labelPosition="side"` 레퍼런스):
