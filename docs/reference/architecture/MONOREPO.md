@@ -76,8 +76,9 @@ composition/
 
 ## 3. Turborepo 태스크
 
-`turbo.json` 이 정의하는 태스크: `build` · `build:preview` · `build:all` · `dev` · `type-check` ·
-`lint` · `test` · `clean`.
+`turbo.json` 이 정의하는 태스크: `build` · `build:all` · `dev` · `type-check` · `lint` · `test` ·
+`clean`. Preview 는 builder 의 `vite.config.ts` 가 `preview.html` entry 로 같이 빌드한다 — 따로 빌드하는
+태스크는 없다 (`build:all` 은 `build` 와 같다).
 
 ```bash
 pnpm install          # postinstall: specs 빌드 (CanvasKit wasm 은 Vite 빌드 산출물 — ADR-244)

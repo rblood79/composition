@@ -6,12 +6,8 @@
       "outputs": ["dist/**", ".next/**"],
       "inputs": ["src/**", "package.json", "tsconfig.json", "vite.config.ts"]
     },
-    "build:preview": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/preview/**"]
-    },
     "build:all": {
-      "dependsOn": ["build:preview", "build"]
+      "dependsOn": ["build"]
     },
     "dev": {
       "dependsOn": ["^build"],
