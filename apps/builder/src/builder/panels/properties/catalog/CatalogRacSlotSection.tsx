@@ -5,10 +5,10 @@ import {
   predictRacSlot,
 } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 import { catalogSemanticPatchCommand } from "../../../catalogRuntime/editContract";
-import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
-import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
+import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import { useToastStore } from "../../../stores/toast";
 
 const DEFAULT = "";
 const DETACH = "__detach__";
@@ -31,13 +31,15 @@ interface RacSlotView {
  */
 export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
   identity,
+  workspace,
+  root,
 }: {
   identity: string;
+  /** The panel's workspace and root (no hook or getter of its own per selection — ADR-246). */
+  workspace: CatalogWorkspace;
+  root: CatalogWorkspace["root"];
 }) {
-  const workspace = useCatalogWorkspace();
-  const run = useCatalogCommandRunner();
   const read = useCallback((): RacSlotView | null => {
-    const root = workspace.root;
     const record = root.canvasInputs.get(identity);
     if (!record) return null;
     const type = root.typeOf(record);
@@ -67,7 +69,7 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
       authored,
       connected: prediction.kind !== "unconnected",
     };
-  }, [identity, workspace]);
+  }, [identity, root]);
   const subscribe = useCallback(
     (notify: () => void) => workspace.runtime.subscribeSteps(() => notify()),
     [workspace],
@@ -88,9 +90,19 @@ export const CatalogRacSlotSection = memo(function CatalogRacSlotSection({
         { slot: next },
         () => current.authored,
       );
-      if (command) run(command);
+      if (!command) return;
+      try {
+        workspace.execute(command);
+      } catch (error) {
+        useToastStore
+          .getState()
+          .showToast(
+            "error",
+            error instanceof Error ? error.message : String(error),
+          );
+      }
     },
-    [identity, read, run, workspace],
+    [identity, read, workspace],
   );
 
   if (!view) return null;
