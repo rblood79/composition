@@ -192,36 +192,93 @@ function assertRequiredPartsKept(
     const type = typeOf(owner.definitionId);
     for (const kinds of RAC_REQUIRED_PARTS[type] ?? [])
       if (
-        !holdsPart(after, ownerId, kinds, typeOf) &&
-        holdsPart(before, ownerId, kinds, typeOf)
+        !holdsPart(reader, after, ownerId, kinds, typeOf) &&
+        holdsPart(reader, before, ownerId, kinds, typeOf)
       )
         fail("REQUIRED_PART_NOT_REMOVABLE", `${type}>${kinds.join("|")}`);
   }
 }
 
-/** Whether the owner's own subtree holds a node of one of `kinds` (not under a nearer owner of it). */
+/** Whether the owner holds a node of one of `kinds` (not under a nearer owner of that kind). */
 function holdsPart(
+  reader: CatalogReader,
   read: (id: string) => CatalogEntry | undefined,
   ownerId: NodeId,
   kinds: readonly string[],
   typeOf: (definitionId: DefinitionId) => string,
 ): boolean {
   const owner = read(ownerId);
-  const stack = owner ? ownedChildren(owner) : [];
+  if (owner?.kind !== "node") return false;
+  // A nearer owner of the same kind keeps what it holds.
+  const nearer = (type: string) =>
+    RAC_REQUIRED_PARTS[type]?.some((alternatives) =>
+      alternatives.some((kind) => kinds.includes(kind)),
+    ) ?? false;
+  // Its own nodes (children, fill-slot children, replacements) …
+  const stack = ownedChildren(owner);
   while (stack.length) {
     const entry = read(stack.pop()!);
     if (entry?.kind !== "node") continue;
     const type = typeOf(entry.definitionId);
     if (kinds.includes(type)) return true;
-    if (
-      RAC_REQUIRED_PARTS[type]?.some((alternatives) =>
-        alternatives.some((kind) => kinds.includes(kind)),
-      )
+    if (!nearer(type)) stack.push(...ownedChildren(entry));
+  }
+  // … and, for an instance, the template positions it still shows (not hidden, not replaced).
+  const rootId = definitionTemplateRoot(reader, owner.definitionId);
+  if (!rootId) return false;
+  const gone = owner.descendantOverrides
+    .filter(
+      (item) =>
+        item.address.instances.length === 1 &&
+        (item.kind === "replace" ||
+          (item.kind === "patch" && item.enabled === false)),
     )
+    .map((item) => item.address.templatePath.join("\n"));
+  const positions: string[][] = templateChildren(reader, rootId).map(
+    (child) => [rootId, child],
+  );
+  while (positions.length) {
+    const path = positions.pop()!;
+    const key = path.join("\n");
+    if (gone.some((hidden) => key === hidden || key.startsWith(`${hidden}\n`)))
       continue;
-    stack.push(...ownedChildren(entry));
+    const id = path[path.length - 1]!;
+    const type = definitionTypeName(reader, templateDefinitionId(reader, id));
+    if (kinds.includes(type)) return true;
+    if (!nearer(type))
+      positions.push(
+        ...templateChildren(reader, id).map((child) => [...path, child]),
+      );
   }
   return false;
+}
+
+/** A composite definition's template root (library or project), if any. */
+function definitionTemplateRoot(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+): string | undefined {
+  const definition = definitionId.startsWith("lib:")
+    ? reader.library.definitions.get(definitionId as `lib:definition:${string}`)
+    : reader.getEntry(definitionId);
+  if (!definition || ("kind" in definition && definition.kind !== "definition"))
+    return undefined;
+  const { mode, templateRootId } = definition as {
+    mode?: string;
+    templateRootId?: string;
+  };
+  return mode === "composite" ? templateRootId : undefined;
+}
+
+/** A template position's children: a library template node's, or a project template node's own. */
+function templateChildren(reader: CatalogReader, id: string): string[] {
+  if (id.startsWith("lib:"))
+    return [
+      ...(reader.library.templates.get(id as `lib:template:${string}`)
+        ?.children ?? []),
+    ];
+  const entry = reader.getEntry(id);
+  return entry?.kind === "node" ? ownedChildren(entry) : [];
 }
 
 /**
@@ -234,15 +291,13 @@ function assertTemplatePartsKept(
   templateId: string,
 ): void {
   const reader = draft.reader;
-  const templates = reader.library.templates;
   const typeOfTemplate = (id: string) =>
     definitionTypeName(reader, templateDefinitionId(reader, id));
   const carried: { type: string; inner: string[] }[] = [];
   const walk = (id: string, inner: string[]) => {
     const type = typeOfTemplate(id);
     if (RAC_REQUIRED_PART_TYPES.has(type)) carried.push({ type, inner });
-    for (const child of templates.get(id as `lib:template:${string}`)
-      ?.children ?? [])
+    for (const child of templateChildren(reader, id))
       walk(child, [type, ...inner]);
   };
   walk(templateId, []);

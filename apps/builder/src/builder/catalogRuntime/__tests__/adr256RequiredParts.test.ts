@@ -12,6 +12,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  createComponent,
   detachInstances,
   insertNodes,
   moveNodes,
@@ -331,6 +332,94 @@ describe("ADR-256 Decision 5 — required parts", () => {
           ),
         ),
       ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    });
+
+    it("hiding a project component's control wrapper (it holds the Input) is refused (repair check RV-H1)", async () => {
+      const { workspace, graph, id, owned } = await placeOrigin("combobox");
+      workspace.execute(detachInstances({ ids: [id], newId: workspace.newId }));
+      const [wrapper] = owned("SelectTrigger");
+      expect(wrapper).toBeTruthy();
+      workspace.execute(
+        createComponent({ id, name: "My combo", newId: workspace.newId }),
+      );
+      const instance = (graph.getEntry(BODY) as NodeEntry).children.find(
+        (child) => child !== id && !String(child).includes("home"),
+      )!;
+      expect(
+        (graph.getEntry(instance) as NodeEntry).definitionId.startsWith(
+          "project:",
+        ),
+      ).toBe(true);
+      expect(
+        code(() =>
+          workspace.execute(
+            removeTargets({
+              targets: [
+                {
+                  kind: "descendant",
+                  ownerId: instance,
+                  address: {
+                    instances: [instance],
+                    templatePath: [id, wrapper!],
+                  },
+                },
+              ],
+            }),
+          ),
+        ),
+      ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    });
+
+    it("an extra Button moved out of a Select instance is allowed: its template trigger stays (repair check RV-M1)", async () => {
+      const { workspace, library } = await open();
+      const select = library.definitions.get(
+        "lib:definition:origin-component-select",
+      ) as { templateRootId: LibraryTemplateId };
+      const ids = ["a", "b"].map((name) => `project:node:${name}` as NodeId);
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: ids.map((nodeId) =>
+            node(nodeId, "lib:definition:origin-component-select"),
+          ),
+          rootIds: ids,
+          newId: workspace.newId,
+        }),
+      );
+      const [a, b] = ids as [NodeId, NodeId];
+      // The extra Button sits in the Select's first option (its nearest Button owner is the Select).
+      const atRoot = (owner: NodeId) => ({
+        kind: "descendant" as const,
+        ownerId: owner,
+        address: {
+          instances: [owner],
+          templatePath: [
+            select.templateRootId,
+            "lib:template:component-select__listbox" as LibraryTemplateId,
+            "lib:template:component-select__item-1" as LibraryTemplateId,
+          ],
+        },
+      });
+      const extra = "project:node:extra" as NodeId;
+      expect(
+        code(() =>
+          workspace.execute(
+            insertNodes({
+              parent: atRoot(a),
+              entries: [node(extra, "lib:definition:origin-component-button")],
+              rootIds: [extra],
+              newId: workspace.newId,
+            }),
+          ),
+        ),
+      ).toBe("ok");
+      expect(
+        code(() =>
+          workspace.execute(
+            moveNodes({ ids: [extra], parent: atRoot(b), newId: workspace.newId }),
+          ),
+        ),
+      ).toBe("ok");
     });
 
     it("a part moved to another owner of the same type, or every twin deleted at once, is refused", async () => {
