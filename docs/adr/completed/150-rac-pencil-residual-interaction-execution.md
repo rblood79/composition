@@ -49,8 +49,8 @@ Implemented — 2026-09-27 (Phase 0 ~ 3 / G0 ~ G3 · `b2916bde2` · `b58c3c45e` 
    - `resolveCollectionWriteTarget` (ADR-912 단계 4, 3-route) 은 production 호출이 0 이다.
    - origin 이동 인프라는 이미 있다: `selectElementWithPageTransition` (`stores/elements.ts:1594`), "원본으로 이동" 액션 (`componentSemanticsActions.ts:128`).
 4. **910/911**:
-   - [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 HIGH / G-projected (10k draw/hit · 가장 깊은 선택 · drill-in/data edit) 를 증명할 곳은 150 뿐이다. 그런데 150 이 닫힐 때 911 Status 를 바꾸는 조항이 없다.
-   - [ADR-910](../910-rac-pencil-component-architecture.md) T-7/G-state 는 A1 철회를 반영하지 않았다.
+   - [ADR-911](911-rac-pencil-target-component-architecture.md) R-3 HIGH / G-projected (10k draw/hit · 가장 깊은 선택 · drill-in/data edit) 를 증명할 곳은 150 뿐이다. 그런데 150 이 닫힐 때 911 Status 를 바꾸는 조항이 없다.
+   - [ADR-910](910-rac-pencil-component-architecture.md) T-7/G-state 는 A1 철회를 반영하지 않았다.
 
 **인접 ADR**:
 

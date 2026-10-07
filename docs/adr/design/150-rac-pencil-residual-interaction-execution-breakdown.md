@@ -231,14 +231,14 @@ LOW deferred (production 증상 없음): L1 목록 입력이면 스크롤마다 
 
 ## §5 Phase 3 — closure (G3)
 
-1. [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 / G-projected 문구를 본 ADR 게이트로 재정의하고 닫힘으로 표기한다. [ADR-910](../910-rac-pencil-component-architecture.md) T-7 / G-state 에 A1 철회 1 줄을 남긴다.
+1. [ADR-911](../completed/911-rac-pencil-target-component-architecture.md) R-3 / G-projected 문구를 본 ADR 게이트로 재정의하고 닫힘으로 표기한다. [ADR-910](../completed/910-rac-pencil-component-architecture.md) T-7 / G-state 에 A1 철회 1 줄을 남긴다.
 2. §2-6 stale 표기를 정정하고, wrap 잔여 (R1) 를 후속 항목으로 기록한다.
 3. README 현황 · 실행 순서 행을 갱신한다. ADR-162 Phase 4 의 선행 조건을 "150 A2 시각 확인" 에서 "150 Phase 1 함수 계약" 으로 바꾼다. CHANGELOG 와 `### Live Exercise` 절도 채운다.
 4. `/cross-check` 를 가족당 1 회 돌린다. 판독은 phase 당 1 + 수리 검증 1 로 한다 (`.claude/rules/review-loop-closure.md`).
 
 ### §5 Phase 3 결과 (2026-09-27)
 
-1. **910/911 종결 조항**: [ADR-911](../911-rac-pencil-target-component-architecture.md) R-3 행 · G-projected 행 · 잔존 HIGH 요약에 "닫힘 2026-09-27 — ADR-150 G1 · G2 로 재정의" (10k 행 → window 노드 상한 + 행 위치 = DOM · 가장 깊은 선택 / drill-in → 데이터 행 origin 진입 · projected id 유입 0). 911 Status 는 바꾸지 않는다 (비실행 목표 참조 — R-1 · R-2 는 여전히 미증명). [ADR-910](../910-rac-pencil-component-architecture.md) T-7 행에 A1 철회 1 줄 (`5e635ebbc` · ADR-230 → 234).
+1. **910/911 종결 조항**: [ADR-911](../completed/911-rac-pencil-target-component-architecture.md) R-3 행 · G-projected 행 · 잔존 HIGH 요약에 "닫힘 2026-09-27 — ADR-150 G1 · G2 로 재정의" (10k 행 → window 노드 상한 + 행 위치 = DOM · 가장 깊은 선택 / drill-in → 데이터 행 origin 진입 · projected id 유입 0). 911 Status 는 바꾸지 않는다 (비실행 목표 참조 — R-1 · R-2 는 여전히 미증명). [ADR-910](../completed/910-rac-pencil-component-architecture.md) T-7 행에 A1 철회 1 줄 (`5e635ebbc` · ADR-230 → 234).
 2. **stale 정정**:
    - §2-6 의 `canvasSceneNode.ts` spacer wrap-flow 서술 · "rowsGroup gap 0" 은 Phase 1 이 주석을 이미 새로 썼다 (`COLLECTION_FILLER_STYLE` · ListBox gap 배선 주석) — 남은 stale 0.
    - `collectionVirtualization.ts` `resolveGridListRowStride` 의 "§1.55c 와 동일 공식" → 카드 border 를 더하지 않는 대표값 근사로 정정 (window · spacer · 스크롤 범위는 border 포함 행별 plan 이 만든다 — 값 무변경).

@@ -1,6 +1,6 @@
 # ADR-910 Breakdown: RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
-> 본 문서는 [ADR-910](../910-rac-pencil-component-architecture.md) 의 구현 상세 — 설계 산출물 ①~⑩.
+> 본 문서는 [ADR-910](../completed/910-rac-pencil-component-architecture.md) 의 구현 상세 — 설계 산출물 ①~⑩.
 > ADR 본문(Risk-First)에는 결정·대안·위험만 두고, 설계 본문 전체는 이 breakdown 에 분리한다(adr-writing.md 스캐폴딩 규칙).
 >
 > **1차 원리**: Adobe React Aria Components(RAC) core 방법론(data/render 분리 + 접근성 hooks) + Pencil app/format 방법론(canonical document = 노드 + 보편 속성 + reusable/ref/descendants/slot)에서 컴포넌트 시스템을 백지 재유도한다.

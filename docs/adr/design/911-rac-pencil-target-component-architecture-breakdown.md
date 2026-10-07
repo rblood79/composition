@@ -1,6 +1,6 @@
 # ADR-911 목표 상세 — RAC core + Pencil format 백지 목표 컴포넌트 아키텍처
 
-> 본 문서는 ADR-911 의 **목표 아키텍처 정적 정의** 다. 현재 코드에서 목표로 가는 전환 경로(마이그레이션 / cutover / family 순서 / 레거시 제거)는 본 문서 범위가 아니다 — 그 전환 설계는 [ADR-910](../910-rac-pencil-component-architecture.md)(cutover 실행 설계서)가 담당한다. 본 문서는 "조건(ADR-911 Status/Context/HC/SC)을 만족하는 컴포넌트 시스템이 정적으로 어떤 구조인가"만 1차 원리로 유도한다. `execute-adr` 착수 / phase land / mutation scope 산정에는 사용하지 않으며, ADR-910 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.
+> 본 문서는 ADR-911 의 **목표 아키텍처 정적 정의** 다. 현재 코드에서 목표로 가는 전환 경로(마이그레이션 / cutover / family 순서 / 레거시 제거)는 본 문서 범위가 아니다 — 그 전환 설계는 [ADR-910](../completed/910-rac-pencil-component-architecture.md)(cutover 실행 설계서)가 담당한다. 본 문서는 "조건(ADR-911 Status/Context/HC/SC)을 만족하는 컴포넌트 시스템이 정적으로 어떤 구조인가"만 1차 원리로 유도한다. `execute-adr` 착수 / phase land / mutation scope 산정에는 사용하지 않으며, ADR-910 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.
 
 ## 설계 산출물 목차
 

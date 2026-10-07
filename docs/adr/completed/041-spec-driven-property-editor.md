@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+**Superseded by [ADR-248](248-unified-catalog-document.md)** — 2026-10-07 (Accepted 2026-03-13 · Phase 0~4 는 2026-03-27 완료). 잔여 범위 (Hybrid 2 — Tabs · Slider · Custom 25 자동화 검토) 의 바탕인 `ComponentSpec` · `GenericPropertyEditor` 는 ADR-248 의 `packages/specs` 삭제로 소스에 없고, Properties 패널은 `apps/builder/src/builder/panels/properties/catalog/` 의 catalog 기반 섹션으로 재구성됐다 (잔존 `editors/` 항목 2개). 구현된 Phase 의 결정 (섹션 분류 · 자동 생성 원칙) 은 catalog 패널이 이어받았고, 잔여 항목은 대상이 사라져 닫는다 — 2026-10-07 열린 계획 재검토.
 
 ## Date
 

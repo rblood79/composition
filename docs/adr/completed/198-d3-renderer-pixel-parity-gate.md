@@ -2,7 +2,9 @@
 
 ## Status
 
-Partial — 2026-09-07 (Phase 0~5 로컬 완료 · **Phase 6 보류**, 사용자 결정으로 `completed/` 이동 · Accepted 2026-08-31 · Proposed 2026-08-30 · review round 1 이슈 3건 전부 `fixed`)
+**Superseded (잔여 Phase 6 · ratchet 9 region) by [ADR-248](248-unified-catalog-document.md) G3 하니스** — 2026-10-07. Phase 0~5 의 로컬 완료 범위는 그대로다. 잔여가 가리키던 `apps/builder/tests/visual-parity/` (`crossLeg.browser.test.ts` 의 `KNOWN_OVER_BUDGET`) 와 pre-push smoke 는 ADR-248 Phase 4e-9-6 (`e23a5a419`, 2026-10-02) 에서 삭제됐고, Canvas ↔ DOM 픽셀 판정 (L3 pixelmatch 0.1 · 비텍스트 `maxDiffRatio` 0.001) 은 `apps/builder/tests/adr248-g3/` 가 같은 정의로 이어받았다 (ADR-248 HC6). 아래 재개 조건과 9 region 목록은 삭제된 하니스 기준이라 그대로는 재개할 수 없다 — 해당 영역 (disabled Button 배경 · SVG 래스터 · 텍스트 AA 예산) 을 다시 재려면 248 G3 하니스에 case 를 더한다. 2026-10-07 열린 계획 재검토.
+
+이전 Status: Partial — 2026-09-07 (Phase 0~5 로컬 완료 · **Phase 6 보류**, 사용자 결정으로 `completed/` 이동 · Accepted 2026-08-31 · Proposed 2026-08-30 · review round 1 이슈 3건 전부 `fixed`)
 
 > **2026-09-07 재판정 (사용자 결정 — Phase 6 보류)**: 게이트의 본래 가치 (두 프로덕션 leg 맞대기 · pre-push 경로-스코프 게이트 · 결함 4건 발견 — 프레임 배경/테두리 미방출 · accent 토큰 발산 · 하니스 폰트 비대칭 · catalog IFC 시뮬레이션 → ADR-923 · ADR-205 G4 재사용) 는 가동 중이다. 파일럿 4 케이스가 원인 미규명 발산을 안은 채 7 가족 matrix 를 넓히면 ratchet 행만 늘고 해소 채널이 없어 Phase 6 은 착수하지 않는다. **재개 조건**: gh-pages 배포가 필요해지거나 disabled Button / SVG 래스터 영역을 건드릴 때. 잔여는 `crossLeg.browser.test.ts` `KNOWN_OVER_BUDGET` 9 region (09-05 첫 측정) — disabled Button 채우기 ratio 0.90 (Preview 는 `.button-base:where([data-disabled])` 가 배경을 중립색으로 교체, Skia 는 catalog `states.disabled` 에 opacity 뿐 → catalog disabled 배경 축 = D3 스키마 확장, ADR-908 fill token 계열 결정) · `image-raster` `/appIcon.svg` ratio 0.91 픽셀 75% 변화 (한 leg 가 SVG 를 거의 안 그림, 조사 0회) · 텍스트 AA 5 region ratio 0.07~0.10 vs 예산 0.05 (hinting, 예산 교정 판단) · clip-fill / clip-boundary 미조사. CI 판단 기준은 "통과 가능한 환경에서 실패할 때만 차단 자격" — 아래 Phase 5 행 참조.
 

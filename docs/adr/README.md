@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 열린 계획 재검토 (ADR-248 · 253 뒤)**: 열린 ADR 과 부분 완료 · 보류 항목을 현재 코드와 대조했다 (사용자 지시 「검토해줘」 → 1 · 2 번 승인). 결과 — ① ADR-910 · 911 은 채택한 「canonical 문서 SSOT」 축을 248 이 catalog graph 로 교체했고 입력 reference (`react-aria-starter` · `design.md`) 가 없어 **Superseded by 248** (비교 기록으로 본문 보존, `completed/` 이동). ② ADR-041 잔여 (Hybrid 2 · Custom 25) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 0 파일 → **Superseded by 248**. ③ ADR-198 잔여 Phase 6 · 9 region 이 가리키던 `tests/visual-parity/` 가 248 Phase 4e-9-6 (`e23a5a419`) 에서 삭제됨 → 잔여는 **248 G3 하니스로 이관** (Superseded 표기). ④ 보류 항목 ADR-152 P6 초안은 전제 (`publish/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree`) 가 소멸해 종결, ADR-162 G4 는 측정 심볼 (`layout.publish`) 이 `perfMarks.ts` 에만 남아 재측정 전 유효 여부 미정. ⑤ ADR-921 은 Context 전제 (canonical resolver SSOT) 소멸 + 인용 코드 14 경로 중 10 소멸 — Deprecated 또는 catalog runtime 기준 재작성은 **사용자 판정 대기** (리뷰 round 2 의 미결 질문 「native/SDK 또는 Rust compile 요구가 로드맵에 있는가」). ADR-245 는 10-05 개정으로 정합 (253 영향 0). 열림 −2 (열림 3 — Proposed 3), 완료 +2 (Superseded +4 · Accepted −1 · Implemented −1), 합계 281.
+
 > **2026-10-07 ADR-254 Proposed**: 바탕의 부품 사슬 — ADR-253 Decision 8 (공용 바탕 원본) 의 후속 (사용자 「바탕 사슬 후속 ADR 작성해라」). 실측: 다섯 컨테이너 (Dialog · Popover · Card · InlineAlert · Tooltip) 가 공유하는 것은 제목 (heading 4 자리) · 설명 (Description 5 자리) 뿐이고, Heading 은 원본이 없으며, 레퍼런스도 Dialog 와 Popover 가 바탕을 공유하지 않는다 (Popover = 자유 내용 · Modal > Dialog > Heading slot=title). 대안 A 선택 — Heading 부품 원본 신설 + 자리 9곳을 Heading · Description 원본의 instance 로 (노드 수 불변 · contract 6 · InlineAlert 는 size 전달) + Dialog 제목을 RAC `slot="title"` 로 접근성 이름에 연결 (shared Dialog 의 `aria-label` 폴백은 binding 으로). 바탕 원본 (B · C) 은 기각. 리뷰 round 1 (HIGH 2 · MEDIUM 2 · LOW 1 — Dialog 폴백이 RAC `titleId` 를 버림 · InlineAlert size 별 값 · Heading 은 팔레트에 없음 · Popover · Tooltip DOM 대조 공허 · IllustratedMessage) 전부 반영. 부수 결함 기록: Dialog 제목이 접근성 이름이 아님 · Popover 가 Preview 에 보이지 않음 (범위 밖). 열림 +1 (열림 5 — Proposed 5, 합계 281).
 
 > **2026-10-07 ADR-253 Implemented**: 기본 UI 원본의 재사용 종결 — Phase 1 · 2 · 3 · 4 · 6, G1 · G2 · G3 · G4 · G6 · G7 통과 (G5 미충족 → 바탕 사슬 미룸). 마지막 날: ① G1 의 Preview 상태별 값 — resolver 결과 · record 가 상태별 값 (`stateVisual`) 을 갖고 DOM 의 Button 이 RAC 의 render state 함수 style 로 낸다 (unit 5 · 원복 RED 4행 · live 8/8) ② Phase 6 — 쓰지 않는 SelectTrigger variant 2 · 읽는 곳 없는 목록 가족 표 제거 (사용자 승인), SelectIcon rule · shared 컴포넌트 fallback 은 Builder 자체 UI 가 써서 남김 ③ G7 — 사용자 지시로 실행자가 실제 Builder 에서 확인 (`adr253-g7-live.mjs` 7/7: Label 6곳 · 입력칸 4곳 · Button 8곳이 Canvas 와 Preview 에서 같이 바뀜). 열림 −1, 완료 +1 (열림 4 — Proposed 4, 합계 280).
@@ -191,14 +193,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     276 |
-| ├ Implemented / Complete(d)   |     233 |
-| ├ Accepted                    |      15 |
-| ├ Superseded                  |      14 |
+| 완료 (`completed/`)           |     278 |
+| ├ Implemented / Complete(d)   |     232 |
+| ├ Accepted                    |      14 |
+| ├ Superseded                  |      18 |
 | ├ Deprecated                  |      12 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       5 |
-| ├ Proposed                    |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       3 |
+| ├ Proposed                    |       3 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **281** |
@@ -227,23 +229,12 @@
 - **규모**: Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) → Phase 1 (Heading 부품 원본 · 팔레트 Heading 도 instance · contract 6) → Phase 2 (자리 9곳 전환 · InlineAlert rule 의 모양 선언 → 부품 rule · Dialog 제목 `slot="title"`) → Phase 3 (정리). Gate G0 ~ G4 (G4 = 사용자 확인). breakdown: [design/254](design/254-base-part-chain-breakdown.md)
 - **선후**: ADR-253 Implemented 뒤. Card 재편 (사용자 결정 09-29, ADR 미작성) 과는 노드 정의만 겹친다 (구조는 건드리지 않음)
 
-#### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
-
-- **상태**: Proposed — **비착수 비교 기록** (실행 owner ADR-912 Implemented)
-- **규모**: 독립 설계 ADR (사용자 요청 2026-06-01 "기존 spec 무시, RAC core + Pencil 방법론으로 새로 설계"). RAC(data/render 분리 + 접근성 hooks) + Pencil canonical document format 을 1차 원리로 백지 재유도 → 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택. **정본: 컴포넌트 = 노드 데이터(base/override 2층)** — 노드는 의미값(content/variant/size)을 `props` 에, 사용자 시각 override(fontSize/fill/padding/gap)를 `props.style` 에 보유. 시각 base(컴포넌트 default)는 노드가 아니라 theme rule 에서 resolve. `props.style` = "사용자가 base 를 덮어쓴 키만 담는 override layer"(키 존재=override, 부재=base) — base/override 는 노드 간(origin↔ref.descendants) 분리(ADR-907 Layer B 보존, 평면화 철회). **단일 공급원** — Properties Panel·Style Panel·DOM·Skia·Publish 가 같은 노드 하나 + 같은 theme rule 을 읽음. 패널은 `resolveEditContract(node)`(의미∪`props.style` 계약 합집합) 결과를 `section` 태그로 필터링한 두 view(저장 평면화 불필요). leaf=`PrimitiveBinding` ~~35 / 조합=reusable 문서 / 등록=단일 `componentCatalog` / 렌더=generic 렌더러 1개(traversal 1 + DOM·Skia backend 2, `toReactStyle`/`toSkiaStyle` 단일 어댑터가 base⊕override 병합). 잔존 HIGH 8건(T-1 generic 공통기반 / T-3·T-ADAPT base⊕override backend 어댑터 / T-4 collection virtualization↔Taffy / T-7 Skia state / T-PARITY 기능 퇴보 방어 / **T-PROJECT·T-DEEP ADR-920 흡수 Interactive Projected Tree**) — 전부 Gate 1:1(G-parity/G8/G9 포함) + family 격리. **[ADR-920](completed/920-rac-format-interactive-projected-tree.md) 흡수·supersede (2026-06-02)**: 같은 외부 입력의 Codex 독립 설계 중 collection Interactive Projected Tree(깊은 노드 hit-test/drill-in/edit-route)를 HC#7 + breakdown §4.12/§5.11/§7-4/⑪ 로 흡수. behavior/page frame/data 축은 ADR-131/132/135/136 관할이라 bridge 참조만. 설계 산출물 ①~~⑩ + ⑪(920 흡수 경계) breakdown 동봉. design breakdown `design/910-rac-pencil-component-architecture-breakdown.md`. **문서 위상: 점진 cutover 전략의 비교 기록 (비착수)** — 사용자 옵션 B 결정(2026-06-02)으로 점진 cutover(legacy 격리)는 착수하지 않고, 실제 `execute-adr` 착수는 [ADR-912](completed/912-rac-pencil-rebuild-cutover.md)(백지 직행) 단독. 910 은 supersede 없이 점진 전략 비교 기록으로 유지. 같은 목표 구조의 비실행 목표 참조(Target Reference)는 [ADR-911](911-rac-pencil-target-component-architecture.md). 910=점진 cutover / 911=목표 자체 / 912=백지 직행(착수).
-- **우선순위**: **P1**
-
-#### [911](911-rac-pencil-target-component-architecture.md) — RAC core + Pencil format 백지 목표 컴포넌트 아키텍처 (비실행 목표 참조)
-
-- **상태**: Proposed — **비실행 목표 참조** (execute-adr 대상 아님)
-- **규모**: **비실행 목표 참조(Target Reference) / 백지 목표 아키텍처 설계서** (사용자 요청 2026-06-02 "서두 조건 Status/Context/HC/SC 기반으로 재작성 — 현재코드 수정 설계서 아님"). ADR-910 이 현재 124 spec / family cutover / 레거시 제거를 다루는 **전환(cutover) 실행 설계서**가 된 데 대해, 911 은 현재 코드를 참조하지 않고 **"조건을 만족하는 목표 구조가 정적으로 무엇인가"** 만 1차 원리(RAC core + Pencil format)로 유도한다. 같은 대안 E(Canonical 문서 SSOT + RAC primitive binding) 채택 — 목표 구조가 910/912 와 수렴하되 전략이 다름(910=점진 cutover / 911=목표 자체 / 912=백지 직행). **착수/execute-adr/phase 반영은 ADR-912(백지 직행, 유일 착수)로 진행하고(사용자 옵션 B 2026-06-02, codex review 라우팅 동기화), 911 은 912 실행 중 목표 구조 drift 를 판정하는 reference 로 사용한다.** HC 1~7 ↔ 목표 구조 1:1 증명(breakdown ⑨). Risks 는 **목표 성립 불확실성만**(R-1 generic 공통기반 / R-2 base⊕override 단일 어댑터 / R-3 Interactive Projected Tree 60fps+깊은노드 / R-4 Skia 상태모델) — 마이그레이션 축 N/A, 실행 위험(정합성 회귀 / 등록 collapse / 레거시 제거)은 912 보유. Gate 는 증명 게이트(G-slice/G-adapter/G-projected/G-state) — 실행 게이트는 912. design breakdown `design/911-rac-pencil-target-component-architecture-breakdown.md`.
-- **우선순위**: **P1**
-
 #### [921](921-render-scene-backend-integration.md) — RenderScene·Backend 통합 — CanvasKit 실행 기준과 Rust 다중 백엔드 경계
 
 - **상태**: Proposed
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
+- **2026-10-07 재검토 — 사용자 판정 대기**: Context 의 전제 「`CompositionDocument` + canonical resolver 가 SSOT」 는 ADR-248 (Implemented 2026-10-05) 이 통합 catalog graph 로 교체했다. 본문 · breakdown 이 인용한 코드 14 경로 중 10 이 소스에 없다 (`scene/buildSceneSnapshot.ts` · `renderers/rendererInput.ts` · `skia/skiaFramePipeline.ts` · `skia/SkiaCanvas.tsx` · `scene/canvasSceneNode.ts` · interaction resolver 2 · `skia/buildSpecNodeData.ts` · preview `CanonicalNodeRenderer.tsx` · publish `ElementRenderer.tsx`), 핵심 심볼 `SceneStructureSnapshot` · `SkiaRendererInput` · `sceneVersion` 은 0 파일이고 남은 것은 `skia/renderCommands.ts` · `skia/SkiaRenderer.ts` 뿐이다. 2026-08-26 「기준선 갱신」 으로는 닿지 않는 수준 — 리뷰 round 2 (`reviews/921.md`) 의 미결 질문 「native/SDK 또는 Rust compile 의 확정 요구가 로드맵에 있는가」 에 따라 **없으면 Deprecated, 있으면 catalog runtime 기준으로 Context · Risks · breakdown §1 · §6 재작성** — 그 전까지 착수 금지.
 
 ### 부분 완료
 
@@ -256,50 +247,35 @@
 #### [025](completed/025-s2-named-color-palette.md) — S2 Named Color Palette 확장
 
 - **완료 범위**: Phase 1~3 완료 (named palette 토큰 + resolver + 컴포넌트 적용)
-- **미완료 범위**: Phase 4 (Inspector UI) 미구현 — Status Accepted 유지
-- **우선순위**: P4
-
-#### [041](completed/041-spec-driven-property-editor.md) — Spec-Driven Property Editor 자동 생성
-
-- **완료 범위**: Phase 0~4 전체 완료. S2 섹션 재분류(Content/Appearance/State/Locale). **Spec 97개, Generic 71개, Hybrid 2개, Custom 25개**. 에디터 34개 삭제. PropertySizeToggle non-indicator 모드 전환.
-- **미완료 범위**: 잔여 Hybrid 2개(Tabs/Slider), Custom 25개 중 자동화 가능 에디터 검토
-- **우선순위**: **P2**
-
-#### [198](completed/198-d3-renderer-pixel-parity-gate.md) — D3 Renderer Pixel Parity Gate
-
-- **완료 범위**: Phase 0~~5 로컬 완료 (production CanvasKit SW leg + 실제 Preview leg · 계층 비교 L0~~L4 + negative probe · ratchet · 경로-스코프 pre-push smoke 7.4s) — 결함 4건 발견 (프레임 배경/테두리 · accent 토큰 · 하니스 폰트 비대칭 · catalog IFC → ADR-923) · ADR-205 G4 재사용
-- **미완료 범위**: **Phase 6 보류 (2026-09-07 사용자 결정)**. CI smoke 는 Linux runner 0/N (환경 발산, G2 결정성 macOS 만 측정) · deploy 09-04 이후 실패 (ADR-205 drift step 가드 없음). 잔여 ratchet 9 region: disabled Button 채우기 0.90 (catalog disabled 배경 축 = ADR-908 계열) · `/appIcon.svg` 래스터 0.91 미조사 · 텍스트 AA 예산. 재개 조건: gh-pages 배포 필요 또는 해당 영역 착수
+- **미완료 범위**: Phase 4 (Inspector UI) 미구현 — Status Accepted 유지. 2026-10-07 재검토: ADR-248 · 253 영향 없음. 다만 ADR-252 (Properties + Styles → Design 패널 통합) 뒤 UI 자리가 바뀌었으니 재개 시 Phase 4 의 패널 서술만 다시 쓴다
 - **우선순위**: P4
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-09-19 재산정
+### 권장 착수 순서 — 2026-10-07 재산정
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
-> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지. 2026-08-28 산정 대비 변경: 201 추가 → **Implemented 2026-09-17** (worktree 3개 병렬 Phase 0~~4 · G0~~G5 실측, 완료 표로 이동) · 220 은 추가 당일 **Implemented 2026-09-16** (Phase 0~~3) 로 완료 표로 이동 · 202 는 **Implemented 2026-09-16** (승격 판정 live 2차 + 상한 재승인) 로 완료 표로 이동 · 013 은 **Implemented 2026-09-17** (Phase 0~~3, live 6종 31/31) 로 완료 표로 이동 · 212/214 행은 완료 표로 이동 · 150 과 162 는 같은 카드 높이 축이라 150 A2 확정을 162 앞에 둠 · 228 은 **Implemented 2026-09-21** 로 완료 표로 이동 (227 은 228 이 채운 Components 페이지를 테마 표면으로 읽는다).
+> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 round 1 반영) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                                                                                                                                          | 착수 준비도                                                                                                                                             | 차단 · 선행                                                                 |
-| :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-|  1   | [921](921-render-scene-backend-integration.md)                                                                                                                                                               | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~~190 이후 §6-2 파일 대량 변경 + 09 월 206·209~~219 로 Skia 파이프라인 추가 변경) | 재freeze 전 착수 금지 — 재freeze 비용이 6건 중 가장 큼                      |
-|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md)                                                                                                     | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                                                                    | 실행 owner = ADR-912 Implemented                                            |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) · [041](completed/041-spec-driven-property-editor.md) · [198](completed/198-d3-renderer-pixel-parity-gate.md) | P4 (041 만 P2)                                                                                                                                          | 각 항목의 재개 조건 발생 시 (198 은 gh-pages 배포 필요 또는 해당 영역 착수) |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+|  1   | [254](254-base-part-chain.md)                                                                  | Proposed · 리뷰 round 1 반영 — Phase 0 inventory 부터        | 사용자 Accepted 판정 뒤 `/execute-adr 254`. ADR-253 Implemented 선행 충족 |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](921-render-scene-backend-integration.md)                                                 | **착수 금지** — 전제 소멸 (2026-10-07 재검토)                | 사용자 판정: Deprecated vs catalog runtime 기준 재작성                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
 
 <details>
-<summary>1. ADR-194 (Accepted — 승인 없이 이어서 진행 가능)</summary>
+<summary>1. ADR-254 (Proposed — 사용자 Accepted 판정 뒤)</summary>
 
 ```
-/execute-adr 194
+/execute-adr 254
 
-- Phase 0 inventory freeze 부터: §2 표 재grep · generate-css 의 chart 채널 emit 가능 여부 판정(R1) ·
-  publish registry 가 registration contract test 에 포함되는지 · 등록 8지점 line 확정 ·
-  size→layout 무효화 등재(R10) · ADR-117 Implemented의 `Path.MakeFromSVGString` 유지 계약 확인
-- emit 불가 판정 시 Phase 3 에 generate-css emit 확장 선행 commit 추가 (G0 분기)
-- 신규 런타임 의존 0 (HC1) 유지 — d3-shape 포함 어떤 외부 패키지도 추가 금지
-- Phase 4 parity: 동일 scene → DOM d/rect 좌표 == Skia PathShape/RectShape 좌표 byte-identical
-- Phase 5 live 는 builder 측 + 샘플 fallback 으로 종결 (152 격차 7 미수리 상태 전제, R7)
+- Status 를 Accepted 로 승격하고 Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) 부터
+- breakdown design/254-base-part-chain-breakdown.md 의 Phase · Gate 순서 그대로 — G4 는 사용자 확인
+- Card 재편 (사용자 결정 09-29, ADR 미작성) 과 노드 정의만 겹친다 — 구조는 건드리지 않는다
 ```
 
 </details>
@@ -599,7 +575,27 @@
 
 ## Superseded / Deprecated — 사유와 후속
 
-> 판정 이력: ADR-133 / ADR-134 supersede — 2026-05-13 / ADR-145 supersede ADR-144 — 2026-05-27 / 사용자 결정 ADR-038 — 2026-05-13 / 사용자 결정 ADR-133 폐기 — 2026-07-08 / ADR-167 G0 실측 기각 — 2026-07-26 / 사용자 결정 ADR-016 Superseded → ADR-192 — 2026-08-26 / 사용자 결정 ADR-197 계획 폐기 — 2026-09-03 / 사용자 결정 ADR-015 Deprecated — 2026-09-07
+> 판정 이력: ADR-133 / ADR-134 supersede — 2026-05-13 / ADR-145 supersede ADR-144 — 2026-05-27 / 사용자 결정 ADR-038 — 2026-05-13 / 사용자 결정 ADR-133 폐기 — 2026-07-08 / ADR-167 G0 실측 기각 — 2026-07-26 / 사용자 결정 ADR-016 Superseded → ADR-192 — 2026-08-26 / 사용자 결정 ADR-197 계획 폐기 — 2026-09-03 / 사용자 결정 ADR-015 Deprecated / 열린 계획 재검토 ADR-910 · 911 · 041 · 198 Superseded by ADR-248 — 2026-10-07 — 2026-09-07
+
+#### [910](completed/910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처 (점진 cutover 비교 기록)
+
+- **Superseded 일자**: 2026-10-07 → [ADR-248](completed/248-unified-catalog-document.md)
+- **사유 / 후속 처리**: 채택한 대안 E 의 「canonical 문서 SSOT + RAC primitive binding」 중 canonical 축을 ADR-248 이 통합 catalog graph 로 교체했고, 입력 reference `packages/react-aria-starter` (2026-09-29 제거) · `packages/design.md` 가 저장소에 없다. 2026-06-02 「supersede 없이 유지」 는 912 와의 전략 관계에 대한 결정이라 248 의 모델 교체로 전제가 바뀜. 본문은 비교 기록으로 보존 (코드 경로는 2026-06 기준). 사용자-가시 변화 없음이라 CHANGELOG 엔트리 없음.
+
+#### [911](completed/911-rac-pencil-target-component-architecture.md) — RAC core + Pencil format 백지 목표 컴포넌트 아키텍처 (비실행 목표 참조)
+
+- **Superseded 일자**: 2026-10-07 → [ADR-248](completed/248-unified-catalog-document.md)
+- **사유 / 후속 처리**: 목표 구조의 「구조 SSOT = canonical 문서 트리」 를 248 이 교체했고, drift 판정 reference 로 삼던 ADR-912 의 등록 · 시각 계층도 248 이 「교체 관계」 로 명시. 본문 보존. CHANGELOG 엔트리 없음.
+
+#### [041](completed/041-spec-driven-property-editor.md) — Spec-Driven Property Editor 자동 생성
+
+- **Superseded 일자**: 2026-10-07 → [ADR-248](completed/248-unified-catalog-document.md) (Phase 0~4 는 2026-03-27 완료 — 그 결정은 유효)
+- **사유 / 후속 처리**: 잔여 범위 (Hybrid 2 — Tabs · Slider · Custom 25 자동화 검토) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 248 의 `packages/specs` 삭제로 0 파일. Properties 패널은 `panels/properties/catalog/` 의 catalog 섹션으로 재구성 (잔존 `editors/` 2개). 잔여 항목은 대상이 사라져 닫음. CHANGELOG 엔트리 없음.
+
+#### [198](completed/198-d3-renderer-pixel-parity-gate.md) — D3 Renderer Pixel Parity Gate (잔여 Phase 6 · ratchet 9 region)
+
+- **Superseded 일자**: 2026-10-07 → [ADR-248](completed/248-unified-catalog-document.md) G3 하니스 (Phase 0~5 로컬 완료 범위는 유지)
+- **사유 / 후속 처리**: 잔여가 가리키던 `apps/builder/tests/visual-parity/` (`crossLeg.browser.test.ts` `KNOWN_OVER_BUDGET` 9 region) 와 pre-push smoke 가 248 Phase 4e-9-6 (`e23a5a419`, 2026-10-02) 에서 삭제됨. 픽셀 판정 정의 (L3 pixelmatch 0.1 · 비텍스트 0.001) 는 `tests/adr248-g3/` 가 이어받음 (248 HC6). disabled Button 배경 · SVG 래스터 · 텍스트 AA 예산을 다시 재려면 248 G3 하니스에 case 추가. CHANGELOG 엔트리 없음.
 
 #### [015](completed/015-sitemap-layout.md) — Sitemap Hierarchy 워크플로우 엣지
 
@@ -679,7 +675,7 @@
 #### [920](completed/920-rac-format-interactive-projected-tree.md) — RAC Format Interactive Projected Tree — Pencil식 tree 구조 + Skia 하위 노드 직접 접근
 
 - **Deprecated 일자**: 2026-06-02
-- **사유 / 후속 처리**: Superseded by [ADR-910](910-rac-pencil-component-architecture.md) — 같은 외부 입력(react-aria-starter + Pencil format)을 ADR-910 이 1차 원리로 재구성하며 흡수.
+- **사유 / 후속 처리**: Superseded by [ADR-910](completed/910-rac-pencil-component-architecture.md) — 같은 외부 입력(react-aria-starter + Pencil format)을 ADR-910 이 1차 원리로 재구성하며 흡수.
 
 ---
 
@@ -748,34 +744,13 @@ ADR-098 Charter + ADR-099 (098-c Collection Section/Header) / ADR-100 (098-a Sel
 
 ## 보류 항목
 
-| 출처                         | 항목                                                                                                                                                                           | 사유                                                                                                                                   | 재개 조건                                                                                           |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| ADR-006                      | Table/Tree 자식 조합 패턴                                                                                                                                                      | 다단계 중첩 복잡도                                                                                                                     | 별도 설계 필요                                                                                      |
-| ADR-010 P2                   | AI 이벤트 생성                                                                                                                                                                 | 장기 계획                                                                                                                              | AI 인프라 성숙 후                                                                                   |
-| ADR-152 P6 실측 (2026-09-11) | publish 의 canonical ref 확장 (reusable 인스턴스 · collection 템플릿) — 아래 초안                                                                                              | publish 는 기능 링크만 (메모리 `project-publish-link-only-defer-until-builder-stable`) · builder 4 모듈 이동이 필요해 `/fix` 급이 아님 | publish 방침 해제 시 별도 ADR 또는 ADR-162 publish leg phase 로 착수 — 결정 지점 (1)                |
-| ADR-162 G4 (2026-09-27)      | 가상화 목록 스크롤의 window 교체 프레임 비용 — 교체마다 `layout.publish` ~12 ms (접힌 카드) · ~22 ms (펼친 카드 6 노드) 로 연속 스크롤 rAF p95 41.6 · 50.1 ms, 60Hz floor 미달 | 162 가 만든 비용 아님 (대조군 = slot-only 카드도 미달) — 사용자 판정 "승격 + 후속 분리"                                                | window 교체 때 layout 범위 축소 (owner 부분 layout) 또는 overscan 조정 — ADR-150 또는 별도 성능 ADR |
-| ADR-246 P3 (2026-09-27)      | 120Hz begin-frame 결정적 프레임 하니스 (`HeadlessExperimental.beginFrame` × 240 → rAF 240 · idle render 0 · pan render = 입력 수)                                              | CDP `Target.createTarget.enableBeginFrameControl` 이 macOS 미지원 · Docker 없음 (사용자 결정 4 기본안 Deferred)                        | Linux 실행 환경 (CI 러너 또는 Linux 머신) 이 생기면 breakdown §5 로 재개                            |
-
-<details>
-<summary>ADR 초안 항목 — publish canonical ref 확장 (2026-09-11 실측, 착수 전 기록)</summary>
-
-**문제 (실측)**: `apps/publish/src/renderer/ElementRenderer.tsx:81` 은 `getComponent(element.type)` 로만 그리고 `type:"ref"` 분기가 없다 → export 에 실린 ref 노드 (`project.schema.ts:70` `ref?: string`) 는 `Unknown component` 경고 후 빈칸. **publish 의 모든 reusable 인스턴스**가 안 그려지고, ADR-152 G3 에서 본 "ref ListBox master slot 템플릿 미보간" 은 그 한 증상이다. builder preview 는 `preview/App.tsx:648-655` 에서 `resolveCanonicalRefTree` 로 확장한다.
-
-**범위 (포함)**:
-
-1. `resolveCanonicalRefTree` 와 의존 4 모듈을 `@composition/shared` 로 이동 — store 결합 0 (실측: `referenceResolution.ts` 45줄 import 0 · `renderProjectionIds.ts` 182줄 import 0 · `instanceResolver.ts` 170줄 shared 만 · `legacyElementFields.ts` 는 builder `Element` 타입만 → shared 의 element 타입으로 교체) · `canonicalRefResolution.ts` 790줄. builder import 14곳 재지정 (`resolvers/canonical/storeBridge` · `preview/App` · `preview/presentation/editorPresentationProjectionIndex` · `skia/StoreRenderBridge` · `scene/canonicalSceneModel` · `PropertiesPanel` · `ComponentSlotFillSection` · `useCanonicalPropertyRead` · `useLayerTreeData` · `stores/inspectorActions` · `stores/index` · `builder/utils/canonicalRefResolution` (re-export) · `iconButtonTemplateOrigins` · `editorPresentationCommitAdapter`)
-2. `apps/publish/src/App.tsx` 에 preview 와 같은 확장 호출 (`resolvedElements = resolveCanonicalRefTree({ elements, elementsMap }).elements`) — `PageRenderer` 입력을 확장 결과로
-3. preview 의 ref 부수 로직 중 publish 에 필요한 것 판정: `templateSlotCompositions` (`preview/App.tsx:284`, ADR-148 — ListBox master slot[0] · GridList/Menu origin → renderContext `:803,816`) 는 shared renderer 가 소비하므로 **필요** (없으면 ref ListBox 행 템플릿 자식이 없어 152 G3 격차 그대로) · `visibleCanonicalNodes` (`:246`, semantic target index 정합) 는 preview 편집 연동용 — publish 불필요 판정 후보
-
-**범위 (제외)**: publish 의 다른 기능 격차 (ADR-154 반응형은 이미 됨 · interactions 는 `InteractionRuntime`) · builder 쪽 동작 변경 0 (이동만)
-
-**Risk 후보**: R1 Publish 번들 예산 <500,000 B (ADR-211 승인) — ~1,200줄 + 템플릿 slot 구성이 initial 에 실린다 (측정 후 lazy 분리 여부) · R2 shared 로 올린 모듈이 builder 전용 개념 (`isRenderProjectionId` 의 projection id 접두) 을 끌고 가 D 경계가 흐려짐 — projection id 술어만 builder 에 남기고 주입하는 분리 검토 · R3 `legacyElementFields` 타입 교체로 builder `Element` ↔ shared element 타입 차이가 드러남
-
-**Gate 후보**: G0 이동 전후 builder 테스트 · type-check 무변경 (동작 변경 0 커밋 — review-loop-closure §3 축소 절차) · G1 publish 탭 live: reusable Button/ListBox 인스턴스 1개씩 → DOM 에 master 자식 렌더 + ref ListBox 행 텍스트가 `{#id}` 템플릿 보간 (ADR-152 P6 하니스 `adr152-p6-live.mjs` 재사용, "publish 미보간" 정보 항목을 PASS 조건으로 승격) · G2 Publish 번들 <500,000 B
-
-**의존**: ADR-148 (reusable/slot, Implemented) · ADR-162 (GridList 템플릿, Implemented 2026-09-27 — publish leg 를 어느 ADR 이 갖는지가 결정 지점 (1) fork/통합) · ADR-152 Implemented (데이터 계약은 이미 publish snapshot 에 실린다 — 확장기만 없음)
-
-</details>
+| 출처                         | 항목                                                                                                                                                                           | 사유                                                                                                                                                                                                                                                                                                                   | 재개 조건                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| ADR-006                      | Table/Tree 자식 조합 패턴                                                                                                                                                      | 다단계 중첩 복잡도                                                                                                                                                                                                                                                                                                     | 별도 설계 필요                                                                                                 |
+| ADR-010 P2                   | AI 이벤트 생성                                                                                                                                                                 | 장기 계획                                                                                                                                                                                                                                                                                                              | AI 인프라 성숙 후                                                                                              |
+| ADR-152 P6 실측 (2026-09-11) | publish 의 canonical ref 확장 (reusable 인스턴스 · collection 템플릿)                                                                                                          | **종결 2026-10-07 (열린 계획 재검토)** — 문제 정의의 `apps/publish/src/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree` 가 ADR-248 Publish 전환으로 소멸. publish 는 Preview 와 같은 `CatalogPreviewSession` 으로 그린다 (`apps/publish/src/App.tsx`). 초안 본문은 git 이력 (`0899af878` 이전 README) 에 남김 | reusable instance 가 publish 에서 그려지는지 1회 확인만 남음 — 안 그려지면 248 결함으로 `/fix` (별도 ADR 아님) |
+| ADR-162 G4 (2026-09-27)      | 가상화 목록 스크롤의 window 교체 프레임 비용 — 교체마다 `layout.publish` ~12 ms (접힌 카드) · ~22 ms (펼친 카드 6 노드) 로 연속 스크롤 rAF p95 41.6 · 50.1 ms, 60Hz floor 미달 | 162 가 만든 비용 아님 (대조군 = slot-only 카드도 미달) — 사용자 판정 "승격 + 후속 분리"                                                                                                                                                                                                                                | window 교체 때 layout 범위 축소 (owner 부분 layout) 또는 overscan 조정 — ADR-150 또는 별도 성능 ADR            |
+| ADR-246 P3 (2026-09-27)      | 120Hz begin-frame 결정적 프레임 하니스 (`HeadlessExperimental.beginFrame` × 240 → rAF 240 · idle render 0 · pan render = 입력 수)                                              | CDP `Target.createTarget.enableBeginFrameControl` 이 macOS 미지원 · Docker 없음 (사용자 결정 4 기본안 Deferred)                                                                                                                                                                                                        | Linux 실행 환경 (CI 러너 또는 Linux 머신) 이 생기면 breakdown §5 로 재개                                       |
 
 ---
 
