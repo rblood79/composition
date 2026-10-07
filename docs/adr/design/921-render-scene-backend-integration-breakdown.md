@@ -1,6 +1,6 @@
 # ADR-921 Design Breakdown: RenderScene·Backend 통합
 
-> 본문: [921-render-scene-backend-integration.md](../921-render-scene-backend-integration.md)
+> 본문: [921-render-scene-backend-integration.md](../completed/921-render-scene-backend-integration.md)
 > 상태: **Proposed — 2026-08-17**
 
 ## 1. 결정 경계와 선행 ADR 관계

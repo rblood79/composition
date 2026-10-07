@@ -2,25 +2,33 @@
 
 ## Status
 
-Proposed — 2026-08-17
+**Deprecated — 2026-10-07** (사용자 결정 「Deprecated 로 닫아라」 · Proposed 2026-08-17 · 리뷰 round 1 2026-08-17 승인 · round 2 MEDIUM 2 deferred)
 
-> **기준선 갱신 필요 (2026-08-26, scope 무변경)**: 본 ADR 의 코드 기준선(2026-08-17)은 이후 [ADR-187](completed/187-editor-presentation-transaction-and-typed-invalidation.md)(에디터 프레젠테이션 트랜잭션·typed invalidation·targeted Skia patch) · [ADR-188](completed/188-targeted-layout-and-skia-subtree-patching.md)(타깃 레이아웃 입력 + Skia 서브트리 패치) · [ADR-189](completed/189-commit-lane-incremental-record.md)(커밋 레인 sparse damage playback) · [ADR-190](completed/190-commit-descriptor-emitter-expansion.md)(commit descriptor emitter) 로 낡았다 — §6-2 예상 변경 파일 중 `renderCommands.ts` 9 commit / `SkiaCanvas.tsx` 8 / `rendererInput.ts` 4 / `skiaFramePipeline.ts` 2 / `buildSceneSnapshot.ts` 1 이 08-17 이후 바뀌었고, ADR-189 는 "command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정" 을 명시한다. 대안·Decision·Phase 구성은 유지하되, **Phase 0 inventory freeze 는 187~190 반영 코드로 재실측**하고 semantic command trace / `RenderSceneSnapshot` 계약이 189 의 sparse commit lane·damage clip 과 190 의 descriptor emitter 를 입력으로 흡수하는지 breakdown §1-2 에 고정한다.
+**사유**: ① 편익이 조건부다 — renderer-neutral scene 의 이득은 두 번째 소비자 (native 렌더러 · 읽기 전용 SDK · Rust scene compiler) 가 있을 때 실현되는데 (본문 Decision 6 · Consequences Negative), 2026-10-07 기준 제품 계획에 그 요구가 없다 (사용자 「현재로서 큰 이득은 없다」). ② 단독 편익이던 R1 (scene truth 3개 단일화) 은 [ADR-248](248-unified-catalog-document.md) 이 해소했다 — `SceneStructureSnapshot` · `SkiaRendererInput` 은 소스에 없고 `skia/renderCommands.ts` 한 경로만 남았다. ③ 전제가 소멸했다 — Context 의 「`CompositionDocument` + canonical resolver SSOT」 는 248 의 통합 catalog graph 로 교체됐고, 본문 · breakdown 이 인용한 코드 14 경로 중 10 (`scene/buildSceneSnapshot.ts` · `renderers/rendererInput.ts` · `skia/skiaFramePipeline.ts` · `skia/SkiaCanvas.tsx` · `scene/canvasSceneNode.ts` · interaction resolver 2 · `skia/buildSpecNodeData.ts` · preview `CanonicalNodeRenderer.tsx` · publish `ElementRenderer.tsx`) 가 없다. 2026-08-26 에 예고한 「기준선 갱신」 으로는 닿지 않는다.
+
+**재개 조건**: native 렌더러 · 읽기 전용 SDK · Rust scene compile 중 하나가 제품 요구로 확정될 때 — 이 문서를 되살리지 않고 그때의 catalog runtime 을 출발점으로 **새 ADR** 을 쓴다. 리뷰 round 2 (`reviews/921.md`) 의 미결 2건 (m1 편익 실현 조건 · m2 oracle 2회 실행 재현성) 은 그 새 ADR 의 Phase 0 진입 조건으로 승계한다. OpenPencil 구조 조사 ([PENCIL_ECOSYSTEM_ANALYSIS](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md)) 와 아래 대안 비교 (A ~ D · Risk Threshold) 는 그때 참고 자료로 유효하다. 사용자-가시 변화 없음 — CHANGELOG 엔트리 없음.
+
+아래 본문은 2026-08-17 기준이며 고치지 않는다.
+
+이전 Status: Proposed — 2026-08-17
+
+> **기준선 갱신 필요 (2026-08-26, scope 무변경)**: 본 ADR 의 코드 기준선(2026-08-17)은 이후 [ADR-187](187-editor-presentation-transaction-and-typed-invalidation.md)(에디터 프레젠테이션 트랜잭션·typed invalidation·targeted Skia patch) · [ADR-188](188-targeted-layout-and-skia-subtree-patching.md)(타깃 레이아웃 입력 + Skia 서브트리 패치) · [ADR-189](189-commit-lane-incremental-record.md)(커밋 레인 sparse damage playback) · [ADR-190](190-commit-descriptor-emitter-expansion.md)(commit descriptor emitter) 로 낡았다 — §6-2 예상 변경 파일 중 `renderCommands.ts` 9 commit / `SkiaCanvas.tsx` 8 / `rendererInput.ts` 4 / `skiaFramePipeline.ts` 2 / `buildSceneSnapshot.ts` 1 이 08-17 이후 바뀌었고, ADR-189 는 "command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정" 을 명시한다. 대안·Decision·Phase 구성은 유지하되, **Phase 0 inventory freeze 는 187~190 반영 코드로 재실측**하고 semantic command trace / `RenderSceneSnapshot` 계약이 189 의 sparse commit lane·damage clip 과 190 의 descriptor emitter 를 입력으로 흡수하는지 breakdown §1-2 에 고정한다.
 
 ## Context
 
 composition의 현재 렌더링은 역할별로 강점이 분명하다.
 
 - `CompositionDocument`가 저장·편집 SSOT이고, canonical resolver가 reusable/ref/slot과
-  projection을 해소한다 ([ADR-116](completed/116-canonical-document-ssot-transition.md),
-  [ADR-122](completed/122-canonical-only-runtime-legacy-mirror-removal.md)).
+  projection을 해소한다 ([ADR-116](116-canonical-document-ssot-transition.md),
+  [ADR-122](122-canonical-only-runtime-legacy-mirror-removal.md)).
 - `packages/engine`의 자체 Rust/WASM 엔진이 flex/grid/block layout을 계산한다
-  ([ADR-916](completed/916-unified-rust-engine.md)).
+  ([ADR-916](916-unified-rust-engine.md)).
 - Builder는 `createSkiaRendererInput()` → `buildSkiaFrameContent()` →
   `RenderCommandStream` → `executeRenderCommands()` → `SkiaRenderer.render()` 경로로
   CanvasKit을 실행한다. command/Picture cache, dual surface, ping-pong snapshot,
   p50/p95/p99 계측, 지연 WASM 폐기까지 production 검증 자산을 갖고 있다
-  ([ADR-153](completed/153-render-optimization-measurement-first-adoption.md),
-  [ADR-174](completed/174-paragraph-retained-lifetime.md)).
+  ([ADR-153](153-render-optimization-measurement-first-adoption.md),
+  [ADR-174](174-paragraph-retained-lifetime.md)).
 
 반면 현재 `SceneStructureSnapshot`은 page visibility/projection/version read model이고,
 `RenderCommandStream`은 CanvasKit 실행에 결합된 내부 타입이다. **layout-resolved,
@@ -42,7 +50,7 @@ CSS Preview/Publish, projected ID, canonical mutation 규칙과 다르다. 코�
 scene + shared backend architecture를 목표 구조로 삼되, composition의 현재 CanvasKit
 결과를 실행·시각·interaction·성능·수명 검증의 oracle로 유지하면서 도달하는 경계**를
 정해야 한다. 조사 근거와 제품 비교는
-[PENCIL_ECOSYSTEM_ANALYSIS](../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md)에 연결한다.
+[PENCIL_ECOSYSTEM_ANALYSIS](../../explanation/research/PENCIL_ECOSYSTEM_ANALYSIS.md)에 연결한다.
 
 ### 3-Domain 판정
 
@@ -194,7 +202,7 @@ Rust/backend 확장**을 선택한다.
 - **대안 D 기각**: ADR-916에서 병목·분리 가능성이 반증된 기존 command/SpatialIndex 경로를
   Rust로 옮기는 작업이다. contract seam을 먼저 만들지 않아 검증 가능한 중간 상태도 없다.
 
-> 구현 상세: [921-render-scene-backend-integration-breakdown.md](design/921-render-scene-backend-integration-breakdown.md)
+> 구현 상세: [921-render-scene-backend-integration-breakdown.md](../design/921-render-scene-backend-integration-breakdown.md)
 
 ## Risks
 

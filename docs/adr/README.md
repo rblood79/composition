@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-07 ADR-921 Deprecated** (사용자 결정 「Deprecated 로 닫아라」): RenderScene·Backend 통합 — 편익이 두 번째 소비자 (native · SDK · Rust compiler) 요구에 조건부인데 그 요구가 없고, 단독 편익 R1 (scene truth 3개) 은 ADR-248 이 해소했으며 (`SceneStructureSnapshot` · `SkiaRendererInput` 소멸, `renderCommands.ts` 한 경로), Context 전제 (canonical SSOT) 와 인용 코드 14 중 10 이 사라졌다. 재개 조건 = 그 요구가 확정될 때 catalog runtime 기준의 **새 ADR** (리뷰 round 2 미결 m1 · m2 는 그 Phase 0 진입 조건으로 승계). `completed/` 이동. 열림 −1 (열림 2 — Proposed 2), 완료 +1 (Deprecated +1), 합계 281.
+
 > **2026-10-07 열린 계획 재검토 (ADR-248 · 253 뒤)**: 열린 ADR 과 부분 완료 · 보류 항목을 현재 코드와 대조했다 (사용자 지시 「검토해줘」 → 1 · 2 번 승인). 결과 — ① ADR-910 · 911 은 채택한 「canonical 문서 SSOT」 축을 248 이 catalog graph 로 교체했고 입력 reference (`react-aria-starter` · `design.md`) 가 없어 **Superseded by 248** (비교 기록으로 본문 보존, `completed/` 이동). ② ADR-041 잔여 (Hybrid 2 · Custom 25) 의 바탕 `ComponentSpec` · `GenericPropertyEditor` 가 0 파일 → **Superseded by 248**. ③ ADR-198 잔여 Phase 6 · 9 region 이 가리키던 `tests/visual-parity/` 가 248 Phase 4e-9-6 (`e23a5a419`) 에서 삭제됨 → 잔여는 **248 G3 하니스로 이관** (Superseded 표기). ④ 보류 항목 ADR-152 P6 초안은 전제 (`publish/renderer/ElementRenderer.tsx` · `resolveCanonicalRefTree`) 가 소멸해 종결, ADR-162 G4 는 측정 심볼 (`layout.publish`) 이 `perfMarks.ts` 에만 남아 재측정 전 유효 여부 미정. ⑤ ADR-921 은 Context 전제 (canonical resolver SSOT) 소멸 + 인용 코드 14 경로 중 10 소멸 — Deprecated 또는 catalog runtime 기준 재작성은 **사용자 판정 대기** (리뷰 round 2 의 미결 질문 「native/SDK 또는 Rust compile 요구가 로드맵에 있는가」). ADR-245 는 10-05 개정으로 정합 (253 영향 0). 열림 −2 (열림 3 — Proposed 3), 완료 +2 (Superseded +4 · Accepted −1 · Implemented −1), 합계 281.
 
 > **2026-10-07 ADR-254 Proposed**: 바탕의 부품 사슬 — ADR-253 Decision 8 (공용 바탕 원본) 의 후속 (사용자 「바탕 사슬 후속 ADR 작성해라」). 실측: 다섯 컨테이너 (Dialog · Popover · Card · InlineAlert · Tooltip) 가 공유하는 것은 제목 (heading 4 자리) · 설명 (Description 5 자리) 뿐이고, Heading 은 원본이 없으며, 레퍼런스도 Dialog 와 Popover 가 바탕을 공유하지 않는다 (Popover = 자유 내용 · Modal > Dialog > Heading slot=title). 대안 A 선택 — Heading 부품 원본 신설 + 자리 9곳을 Heading · Description 원본의 instance 로 (노드 수 불변 · contract 6 · InlineAlert 는 size 전달) + Dialog 제목을 RAC `slot="title"` 로 접근성 이름에 연결 (shared Dialog 의 `aria-label` 폴백은 binding 으로). 바탕 원본 (B · C) 은 기각. 리뷰 round 1 (HIGH 2 · MEDIUM 2 · LOW 1 — Dialog 폴백이 RAC `titleId` 를 버림 · InlineAlert size 별 값 · Heading 은 팔레트에 없음 · Popover · Tooltip DOM 대조 공허 · IllustratedMessage) 전부 반영. 부수 결함 기록: Dialog 제목이 접근성 이름이 아님 · Popover 가 Preview 에 보이지 않음 (범위 밖). 열림 +1 (열림 5 — Proposed 5, 합계 281).
@@ -193,14 +195,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     278 |
+| 완료 (`completed/`)           |     279 |
 | ├ Implemented / Complete(d)   |     232 |
 | ├ Accepted                    |      14 |
 | ├ Superseded                  |      18 |
-| ├ Deprecated                  |      12 |
+| ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       3 |
-| ├ Proposed                    |       3 |
+| 열려 있는 것 (`adr/*.md`)     |       2 |
+| ├ Proposed                    |       2 |
 | ├ Accepted (미착수·일부 착수) |       0 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **281** |
@@ -229,13 +231,6 @@
 - **규모**: Phase 0 (inventory · 전환 전 oracle · Heading 코드 경로 목록) → Phase 1 (Heading 부품 원본 · 팔레트 Heading 도 instance · contract 6) → Phase 2 (자리 9곳 전환 · InlineAlert rule 의 모양 선언 → 부품 rule · Dialog 제목 `slot="title"`) → Phase 3 (정리). Gate G0 ~ G4 (G4 = 사용자 확인). breakdown: [design/254](design/254-base-part-chain-breakdown.md)
 - **선후**: ADR-253 Implemented 뒤. Card 재편 (사용자 결정 09-29, ADR 미작성) 과는 노드 정의만 겹친다 (구조는 건드리지 않음)
 
-#### [921](921-render-scene-backend-integration.md) — RenderScene·Backend 통합 — CanvasKit 실행 기준과 Rust 다중 백엔드 경계
-
-- **상태**: Proposed
-- **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
-- **우선순위**: **P1**
-- **2026-10-07 재검토 — 사용자 판정 대기**: Context 의 전제 「`CompositionDocument` + canonical resolver 가 SSOT」 는 ADR-248 (Implemented 2026-10-05) 이 통합 catalog graph 로 교체했다. 본문 · breakdown 이 인용한 코드 14 경로 중 10 이 소스에 없다 (`scene/buildSceneSnapshot.ts` · `renderers/rendererInput.ts` · `skia/skiaFramePipeline.ts` · `skia/SkiaCanvas.tsx` · `scene/canvasSceneNode.ts` · interaction resolver 2 · `skia/buildSpecNodeData.ts` · preview `CanonicalNodeRenderer.tsx` · publish `ElementRenderer.tsx`), 핵심 심볼 `SceneStructureSnapshot` · `SkiaRendererInput` · `sceneVersion` 은 0 파일이고 남은 것은 `skia/renderCommands.ts` · `skia/SkiaRenderer.ts` 뿐이다. 2026-08-26 「기준선 갱신」 으로는 닿지 않는 수준 — 리뷰 round 2 (`reviews/921.md`) 의 미결 질문 「native/SDK 또는 Rust compile 의 확정 요구가 로드맵에 있는가」 에 따라 **없으면 Deprecated, 있으면 catalog runtime 기준으로 Context · Risks · breakdown §1 · §6 재작성** — 그 전까지 착수 금지.
-
 ### 부분 완료
 
 #### [019](completed/019-icon-system.md) — 아이콘 시스템 — Icon 선택/변경/추가
@@ -262,7 +257,7 @@
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 |  1   | [254](254-base-part-chain.md)                                                                  | Proposed · **리뷰 검토 중** (`reviews/254.md`, 2026-10-07)   | 리뷰 종결 (최신 round pending 0) → 사용자 Accepted 판정 → `/execute-adr 254` (Phase 0 inventory 부터). ADR-253 Implemented 선행 충족 |
 |  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                            |
-|  —   | [921](921-render-scene-backend-integration.md)                                                 | **착수 금지** — 전제 소멸 (2026-10-07 재검토)                | 사용자 판정: Deprecated vs catalog runtime 기준 재작성                                                                               |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                                                                               |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                                                                          |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
@@ -575,7 +570,12 @@
 
 ## Superseded / Deprecated — 사유와 후속
 
-> 판정 이력: ADR-133 / ADR-134 supersede — 2026-05-13 / ADR-145 supersede ADR-144 — 2026-05-27 / 사용자 결정 ADR-038 — 2026-05-13 / 사용자 결정 ADR-133 폐기 — 2026-07-08 / ADR-167 G0 실측 기각 — 2026-07-26 / 사용자 결정 ADR-016 Superseded → ADR-192 — 2026-08-26 / 사용자 결정 ADR-197 계획 폐기 — 2026-09-03 / 사용자 결정 ADR-015 Deprecated / 열린 계획 재검토 ADR-910 · 911 · 041 · 198 Superseded by ADR-248 — 2026-10-07 — 2026-09-07
+> 판정 이력: ADR-133 / ADR-134 supersede — 2026-05-13 / ADR-145 supersede ADR-144 — 2026-05-27 / 사용자 결정 ADR-038 — 2026-05-13 / 사용자 결정 ADR-133 폐기 — 2026-07-08 / ADR-167 G0 실측 기각 — 2026-07-26 / 사용자 결정 ADR-016 Superseded → ADR-192 — 2026-08-26 / 사용자 결정 ADR-197 계획 폐기 — 2026-09-03 / 사용자 결정 ADR-015 Deprecated / 열린 계획 재검토 ADR-910 · 911 · 041 · 198 Superseded by ADR-248 — 2026-10-07 / 사용자 결정 ADR-921 Deprecated — 2026-10-07 — 2026-09-07
+
+#### [921](completed/921-render-scene-backend-integration.md) — RenderScene·Backend 통합 — CanvasKit 실행 기준과 Rust 다중 백엔드 경계
+
+- **Deprecated 일자**: 2026-10-07 (사용자 결정 「Deprecated 로 닫아라」 · Proposed 2026-08-17 · 리뷰 round 1 승인 · round 2 MEDIUM 2 deferred)
+- **사유 / 후속 처리**: ① renderer-neutral scene 의 편익은 두 번째 소비자 (native 렌더러 · 읽기 전용 SDK · Rust scene compiler) 가 있을 때 실현되는데 제품 계획에 그 요구가 없다 (사용자 「현재로서 큰 이득은 없다」). ② 단독 편익 R1 (scene truth 3개 단일화) 은 ADR-248 이 해소 — `SceneStructureSnapshot` · `SkiaRendererInput` 은 소스에 없고 `skia/renderCommands.ts` 한 경로만 남음. ③ Context 전제 (canonical resolver SSOT) 와 인용 코드 14 경로 중 10 이 248 로 소멸해 「기준선 갱신」 으로 살릴 수 없다. **재개 조건**: 위 요구 중 하나가 확정될 때 catalog runtime 기준의 새 ADR — 리뷰 round 2 미결 (m1 편익 조건 · m2 oracle 재현성) 을 그 Phase 0 진입 조건으로 승계. breakdown · OpenPencil 조사는 참고 자료로 보존. 사용자-가시 변화 없음이라 CHANGELOG 엔트리 없음.
 
 #### [910](completed/910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처 (점진 cutover 비교 기록)
 

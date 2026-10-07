@@ -18,7 +18,7 @@ Implemented — 2026-08-24 (Phase 0~~5 / G0~~G5 complete; proposal origin 2026-0
 
 Related: [ADR-188 타깃 레이아웃 입력과 Skia 서브트리 패치](188-targeted-layout-and-skia-subtree-patching.md),
 [ADR-153 렌더 최적화 measurement-first 도입](153-render-optimization-measurement-first-adoption.md),
-[ADR-921 RenderScene·Backend 통합](../921-render-scene-backend-integration.md)
+[ADR-921 RenderScene·Backend 통합](921-render-scene-backend-integration.md)
 (Proposed — command stream 계약이 교차하므로 어느 쪽이든 착수 시 상호 조정)
 
 ## Context
