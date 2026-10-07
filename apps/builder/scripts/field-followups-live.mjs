@@ -166,9 +166,30 @@ const snapshot = await page.evaluate(() => {
           placeholder: valueElement?.hasAttribute("data-placeholder"),
         }
       : undefined;
+    // Date segments: the Canvas's segment runs and the Preview's DateInput text, per DateInput.
+    const under = (r) => {
+      for (let c = r; c; c = records.get(c.parentId)) if (c.id === field.id) return true;
+      return false;
+    };
+    const dateInputs = [...records.values()].filter(
+      (r) => r.bindingId === "dateinput" && under(r),
+    );
+    const segments = dateInputs.length
+      ? {
+          canvas: dateInputs.map((r) =>
+            (ws.root.dateSegmentPaint(r.id)?.runs ?? [])
+              .map((run) => run.text ?? "")
+              .join(""),
+          ),
+          preview: [...(element?.querySelectorAll(".react-aria-DateInput") ?? [])].map(
+            (el) => el.textContent,
+          ),
+        }
+      : undefined;
     return {
       type,
       ...(value ? { value } : {}),
+      ...(segments ? { segments } : {}),
       props: field.props,
       canvas: { size: rel(fieldBox, fieldBox), parts: canvas },
       preview: {
@@ -180,6 +201,26 @@ const snapshot = await page.evaluate(() => {
     };
   });
 });
+if (process.env.PROBE_LOCALE)
+  process.stdout.write(
+    `locale probe: ${JSON.stringify(
+      await page.evaluate(() => {
+        const frame = document.querySelector("#previewFrame");
+        const win = frame?.contentWindow;
+        const doc = frame?.contentDocument;
+        return {
+          builder: navigator.language,
+          builderIntl: Intl.DateTimeFormat().resolvedOptions().locale,
+          preview: win?.navigator.language,
+          previewIntl: win && new win.Intl.DateTimeFormat().resolvedOptions().locale,
+          htmlLang: doc?.documentElement.lang,
+          dirLangAttrs: [...(doc?.querySelectorAll("[lang]") ?? [])]
+            .slice(0, 5)
+            .map((el) => `${el.tagName}:${el.getAttribute("lang")}`),
+        };
+      }),
+    )}\n`,
+  );
 writeFileSync(`${OUT}/compare.png`, await page.screenshot());
 writeFileSync(
   `${OUT}/snapshot.json`,

@@ -1,29 +1,22 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { I18nProvider as AriaI18nProvider } from "@react-aria/i18n";
-// `../i18n` barrel 이 아니라 `locales` 직접 — barrel 은 translations(302 KB)·labels 를 끌고 와 Preview initial
-// 을 키운다 (2026-09-16 ADR-202 승격 판정: Properties i18n 키가 Preview 공유 locale 청크로 +5.6 KB gzip).
-// Preview 는 t() 를 한 번도 쓰지 않는다 — 가드 previewI18nImport.static.test.
-import {
-  getLocaleConfig,
-  getStoredLocale,
-  LOCALE_STORAGE_KEY,
-} from "../i18n/locales";
+import { useEffect, type ReactNode } from "react";
+import { useLocale } from "@react-aria/i18n";
 
+/**
+ * The Preview's document language: the browser's locale, as the published page has it (publish
+ * wraps no `I18nProvider` — RAC reads `navigator.language` and follows `languagechange`) and as
+ * the Canvas root measures (`locale: navigator.language`). A date field without its own `locale`
+ * so formats alike in the Canvas, the Preview and the published page. The Builder UI's language
+ * setting is the Builder's chrome, not the document's (2026-10-07 — the Preview took it and drew
+ * date segments in en-US beside a ko-KR Canvas).
+ */
 export function PreviewLocale({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState(getStoredLocale);
-
-  useEffect(() => {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === LOCALE_STORAGE_KEY) setLocale(getStoredLocale());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  // (No provider above: RAC's default locale.)
+  const { locale, direction } = useLocale();
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.documentElement.dir = getLocaleConfig(locale).direction;
-  }, [locale]);
+    document.documentElement.dir = direction;
+  }, [locale, direction]);
 
-  return <AriaI18nProvider locale={locale}>{children}</AriaI18nProvider>;
+  return children;
 }
