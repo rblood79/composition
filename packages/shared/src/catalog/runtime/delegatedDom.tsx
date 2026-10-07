@@ -837,13 +837,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const tags = childrenOf(input.root, list ?? input.node).filter(
         (child) => catalogTypeName(input.root, child) === "Tag",
       );
+      // ADR-256 Phase 5d: the reference's `Text[description]` · `Text[errorMessage]` are the
+      // Description · FieldError part nodes (each shown while it has text — `presentWhen`).
+      const hint = (type: string) => {
+        const node = childOf(input, type);
+        return node ? input.renderChild(node.id) : undefined;
+      };
       return createElement(TagGroup as ElementType, {
         ...marker(input),
         style: input.style,
         variant: str(props.variant || "default"),
         label: fieldLabel(input, str(props.label)),
-        description: fieldDescription(input, str(props.description)),
-        errorMessage: fieldError(input, str(props.errorMessage)),
+        description: hint("Description"),
+        errorMessage: hint("FieldError"),
         allowsRemoving: bool(props.allowsRemoving),
         selectionMode: props.selectionMode ?? "none",
         selectionBehavior: props.selectionBehavior || "toggle",
@@ -860,6 +866,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 .map((kid) => str(kid.props.children))
                 .join(" "),
               node: input.renderChild(tag.id),
+              id: resolveStaticItemKey(
+                tag.props as Record<string, unknown>,
+                tag.id,
+              ),
             }))
           : undefined,
       });

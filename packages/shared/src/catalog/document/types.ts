@@ -28,7 +28,7 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * ADR-256 Phase 5c: a ListBox · GridList · Menu item's description Text carries `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 12 as const;
+export const LIBRARY_CONTRACT_VERSION = 13 as const;
 
 export type EntryKind =
   | "project"

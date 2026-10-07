@@ -22,6 +22,7 @@ import {
   type CSSProperties,
   type ElementType,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import {
   componentTypeSet,
@@ -442,7 +443,10 @@ const glyph =
       strokeWidth: Number(node.props.strokeWidth ?? 2),
       style: {
         ...style,
-        color: cssColor(node.visual.color),
+        // (An item's remove glyph takes the item color — `derivedOf`, ADR-256 Phase 5d.)
+        color: cssColor(
+          (node.derivedProps?.color as string | undefined) ?? node.visual.color,
+        ),
         fontSize: catalogGlyphSize(node) ?? fallbackSize,
       },
     });
@@ -710,6 +714,24 @@ const fieldErrorBinding: DomBinding = (node, style) =>
       typeof RAC.FieldError
     >[0],
     String(node.props.children ?? "") || undefined,
+  );
+
+/**
+ * ADR-256 Phase 5d — a TagGroup's error part (a FieldError origin instance): the reference's
+ * `Text[slot=errorMessage]` in the TagGroup's text context (a TagGroup has no validation, so no
+ * RAC FieldError context — the part shows while it has a message, `presentWhen`).
+ */
+const tagGroupErrorBinding: DomBinding = (node, style) =>
+  createElement(
+    RAC.Text,
+    {
+      key: node.id,
+      "data-catalog-id": node.id,
+      slot: "errorMessage",
+      className: "react-aria-FieldError",
+      style,
+    } as Parameters<typeof RAC.Text>[0],
+    String(node.props.children ?? ""),
   );
 
 /**
@@ -1255,12 +1277,21 @@ function ruleDom(
       ...(lower === "listboxitem" && itemLabelText(root, node)
         ? { textValue: itemLabelText(root, node) }
         : {}),
+      // A Tag's text is its label Text's (the reference's plain children).
+      ...(lower === "tag" ? { textValue: itemTextChildren(root, node) } : {}),
       ...(usesButtonBaseUtility(type)
         ? { className: `react-aria-${type} button-base` }
         : {}),
       style,
     },
-    ...content,
+    // ADR-256 Decision 7: an item whose parts are conditioned on its state (a Tag's remove button
+    // — `allowsRemoving`) passes its RAC render props down as their frame.
+    ...(STATE_FRAME_ITEMS.has(lower)
+      ? [
+          // (RAC takes a render function as an item's children.)
+          catalogStateChildren(node.id, () => content) as unknown as ReactNode,
+        ]
+      : content),
   );
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
@@ -1295,6 +1326,21 @@ function ruleDom(
       ? createElement(RAC.TagList, { style: { display: "contents" } }, element)
       : element,
   );
+}
+
+/** Collection items that pass their RAC render props to their parts (`catalogStateChildren`). */
+const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set(["tag"]);
+
+/** An item's text: its Text children's (a Tag's label — no slot name, as the reference). */
+function itemTextChildren(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): string {
+  return node.children
+    .map((id) => root.domInputs.get(id))
+    .filter((child) => !!child && catalogTypeName(root, child) === "Text")
+    .map((child) => String(child?.props.children ?? ""))
+    .join(" ");
 }
 
 /** A collection item's text: its label part's (the `label` slot role child). */
@@ -1830,6 +1876,10 @@ function renderNode(
     partParent &&
     FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
       ? fieldErrorBinding
+      : node.bindingId === "fielderror" &&
+          partParent &&
+          catalogTypeName(root, partParent) === "TagGroup"
+        ? tagGroupErrorBinding
       : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
         // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
         // would take the group's label context).

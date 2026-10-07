@@ -42,8 +42,9 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   //   `manualBoxRules` Switch).
   Switch: ["Description", "FieldError"],
   Slider: ["SliderTrack", "Label"],
-  // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
-  TagGroup: ["TagList", "Label"],
+  // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size. (ADR-256 Phase 5d:
+  //   its hint parts — the reference's `Text[description]` · `Text[errorMessage]`.)
+  TagGroup: ["TagList", "Label", "Description", "FieldError"],
   TagList: ["Tag"],
   // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
   // buttons inside).

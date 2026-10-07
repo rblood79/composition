@@ -349,7 +349,12 @@ const glyph: Binding = (node, rect) => {
       cx,
       cy,
       size,
-      strokeColor: rgba(node.visual.color ?? "#000000"),
+      // (An item's remove glyph takes the item color — `derivedOf`, ADR-256 Phase 5d.)
+      strokeColor: rgba(
+        (node.derivedProps?.color as string | undefined) ??
+          node.visual.color ??
+          "#000000",
+      ),
       strokeWidth: Number(node.props.strokeWidth ?? 2),
     },
   };

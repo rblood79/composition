@@ -26,7 +26,7 @@ import type { CatalogCommand } from "../compose";
  */
 export const library = () =>
   buildCatalogLibrary({
-    contractVersion: 12,
+    contractVersion: 13,
     revision: "phase4b-structure",
     bindingIds: ["section", "text", "listbox", "item"],
     actionOpCodes: ["setState", "capability", "navigate"],
@@ -246,7 +246,7 @@ export function documentOf(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 12,
+    libraryContractVersion: 13,
     revision: 0,
     projectId: PROJECT,
     rootId: PROJECT,

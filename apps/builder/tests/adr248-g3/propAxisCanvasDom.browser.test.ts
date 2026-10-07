@@ -84,7 +84,7 @@ const SIDE_LABEL_TYPES = [
 const CASES: Array<{
   key: string;
   type: string;
-  props: Record<string, string>;
+  props: Record<string, string | boolean>;
 }> = [
   ...SIDE_LABEL_TYPES.flatMap((type): typeof CASES => [
     { key: `${type}-top`, type, props: {} },
@@ -115,6 +115,14 @@ const CASES: Array<{
   // TreeItem chevron node (2026-10-04): the shared Tree's `Button[slot="chevron"]` box and the
   // label after it, per row.
   { key: "Tree-chevron", type: "Tree", props: {} },
+  // ADR-256 Phase 5d: the Tag's remove button node (`showWhen allowsRemoving`) and the TagGroup's
+  // hint part nodes (Description · FieldError as the reference's `Text[errorMessage]`).
+  { key: "TagGroup-removing", type: "TagGroup", props: { allowsRemoving: true } },
+  {
+    key: "TagGroup-hints",
+    type: "TagGroup",
+    props: { description: "Pick some", errorMessage: "Pick fewer" },
+  },
 ];
 
 let code: CatalogLibrary;
@@ -122,7 +130,7 @@ const report: unknown[] = [];
 
 function documentFor(
   definitionId: DefinitionId,
-  props: Record<string, string>,
+  props: Record<string, string | boolean>,
 ): CatalogDocument {
   const projectId = "project:project:axis" as const;
   const pageId = "project:page:main" as const;
@@ -145,7 +153,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 12,
+    libraryContractVersion: 13,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -222,7 +230,7 @@ afterAll(async () => {
 /** Canvas page-absolute rects of every record and the isolated DOM box of the same node. */
 async function compare(
   type: string,
-  props: Record<string, string>,
+  props: Record<string, string | boolean>,
   key: string,
 ) {
   const definitionId = catalogPaletteDefinitionId(code, type) as DefinitionId;

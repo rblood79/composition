@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5d — TagGroup 지우기 버튼 · 설명 · 오류 노드] - 2026-10-09
+
+### Changed
+
+- **TagGroup 의 각 Tag 에 지우기 버튼 노드** (ADR-256 Phase 5d — react-aria.adobe.com TagGroup 예제): `allowsRemoving` 을 켜면 Tag 마다 `Button[slot=remove]` (x 아이콘) 가 Canvas · Preview 에 같은 자리로 생긴다. 버튼은 Tag 원본의 노드라 모양을 고칠 수 있고, Preview 에서 누르면 그 tag 가 실행 중 목록에서 빠진다 (문서는 그대로). 위치: Tag 원본 template · `catalog/runtime/domBinding.tsx` (Tag state frame) · `components/TagGroup.tsx`
+- **TagGroup 의 설명 · 오류 글자가 부품 노드** — Description · FieldError 원본 instance, 글자가 있을 때만 있다. 오류는 레퍼런스처럼 `Text[slot=errorMessage]`
+- **Tag 글자 Text 의 slot 이름 `label` 을 없앴다** — 레퍼런스의 Tag 는 그냥 글자. Tag 의 접근 이름은 그 글자 (`aria-label`)
+- **저장 형식 contract 13**
+
+### Fixed
+
+- **`allowsRemoving` 을 켜도 지우기 X 가 Canvas · Preview 어디에도 없던 것**
+  - **Why**: Canvas 는 Tag rule `trailingIcon` 이 Tag 자신의 `allowsRemoving` prop 을 읽었는데 catalog 문서의 Tag 는 그 값을 갖지 않았고, Preview 는 RAC TagGroup 에 `onRemove` 를 넘기지 않아 RAC 가 버튼을 숨겼다
+  - 수리: 버튼을 노드로 두고 Tag 의 상태 (TagGroup 값) 로 보인다 · Preview 는 작성 tag 의 `onRemove` 를 실행 상태로 가진다
+
 ## [ADR-256 Phase 5c — ListBox · GridList · Menu 항목의 빈 설명] - 2026-10-09
 
 ### Changed

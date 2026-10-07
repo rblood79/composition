@@ -191,6 +191,17 @@ function toggleFieldMarkup(text: string, type: "Checkbox" | "Radio"): string {
       `${type === "Radio" ? "<div class=indicator></>" : ""}<span class=react-aria-Label>$1</></></>`,
     );
 }
+/**
+ * ADR-256 Phase 5d: a Tag's label is a plain Text (no `slot="label"` — the reference's children),
+ * and the Tag is named by it (`textValue` → RAC's `aria-label` · `aria-labelledby`).
+ */
+function tagGroupMarkup(text: string): string {
+  return text.replace(
+    /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
+    (_match, selected, rest, size, label) =>
+      `<div aria-label=${label} aria-labelledby aria-selected=${selected} class=react-aria-Tag ${rest}><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=${size}>${label}<`,
+  );
+}
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 const SIDE_INDENT: Record<string, number> = {
   textfield: 182,
@@ -447,7 +458,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
               ? toggleFieldMarkup(fixed, "Checkbox")
               : type === "radiogroup"
                 ? toggleFieldMarkup(fixed, "Radio")
-                : fixed;
+                : type === "taggroup"
+                  ? tagGroupMarkup(fixed)
+                  : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,

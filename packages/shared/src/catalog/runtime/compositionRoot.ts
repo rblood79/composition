@@ -89,6 +89,7 @@ import {
   catalogHiddenAtRest,
   catalogPresenceDependents,
   catalogStateDependents,
+  catalogItemRemoveGlyphItem,
   catalogPresenceScope,
   catalogBreadcrumbItems,
   catalogBreadcrumbSeparator,
@@ -1806,13 +1807,18 @@ export class CatalogCompositionRoot {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
     }
-    const item = get(record.parentId);
+    // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d.)
+    const glyphItem = catalogItemRemoveGlyphItem(record, get, this.typeOf);
+    const item = glyphItem ?? get(record.parentId);
     if (
       !item?.ruleId ||
-      !catalogItemLabels(item, get, this.typeOf).some(
-        (label) => label.id === record.id,
-      ) ||
-      catalogAuthoredVisual(this, record).color !== undefined
+      // (The glyph's own resolved color is its button's paint, not an authored one: the sheet's
+      // `color: inherit` wins over it.)
+      (!glyphItem &&
+        (!catalogItemLabels(item, get, this.typeOf).some(
+          (label) => label.id === record.id,
+        ) ||
+          catalogAuthoredVisual(this, record).color !== undefined))
     )
       return derived;
     const rule = this.runtime.graph.library.rules.get(item.ruleId);

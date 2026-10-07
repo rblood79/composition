@@ -33,6 +33,9 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
+/** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
+const TAG_REMOVE_PADDING_RIGHT = 4;
+
 const sizesOf = (type: string) =>
   (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type]?.sizes ?? {};
 
@@ -554,6 +557,39 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
         childProps: { slot: "avatar" },
         layout: { flexShrink: "0" },
         visual: { width: 16, height: 16 },
+      },
+      // ADR-256 Phase 5d: the remove button (RAC `Button[slot=remove]`, the reference's) is the
+      // sheet's `.tag-remove-btn` — a bare round 18px box around the 14px glyph, 2px after the
+      // label — and the chip's `[data-allows-removing] { padding-right: --spacing-xs }`: the button
+      // takes back the chip's right padding beyond 4px (per chip size).
+      ...Object.entries(sizesOf("Tag")).map(
+        ([size, values]): CompiledPartRule => ({
+          childType: "Button",
+          childProps: { slot: "remove" },
+          size,
+          layout: {
+            flexShrink: "0",
+            marginLeft: "2px",
+            marginRight: `${TAG_REMOVE_PADDING_RIGHT - (px(values.paddingX) ?? 0)}px`,
+          },
+          visual: {
+            width: 18,
+            height: 18,
+            minWidth: 0,
+            paddingX: 2,
+            paddingY: 2,
+            borderWidth: 0,
+            radius: 9,
+            fill: "transparent",
+          },
+        }),
+      ),
+      {
+        childType: "Icon",
+        via: "Button",
+        viaProps: { slot: "remove" },
+        layout: {},
+        visual: { width: 14, height: 14, iconSize: 14 },
       },
     ],
   }),

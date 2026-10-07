@@ -954,9 +954,17 @@ export function catalogDerivedPropsDependents(
   ];
   return [
     ...items,
-    ...[owner, ...items].flatMap((item) =>
-      catalogItemLabels(item, get, typeOf),
-    ),
+    ...[owner, ...items].flatMap((item) => [
+      ...catalogItemLabels(item, get, typeOf),
+      // (and its remove button's glyph — `catalogItemRemoveGlyphItem`)
+      ...(MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
+        ? childrenOf(item, get)
+            .flatMap((button) => childrenOf(button, get))
+            .filter(
+              (glyph) => catalogItemRemoveGlyphItem(glyph, get, typeOf) === item,
+            )
+        : []),
+    ]),
   ];
 }
 
@@ -1046,6 +1054,24 @@ export function catalogItemLabels(
   return MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
     ? childrenOf(item, get).filter((child) => typeOf(child) === "Text")
     : [];
+}
+
+/**
+ * ADR-256 Phase 5d — the item whose color a remove button's glyph takes (`TagGroup.css`
+ * `.react-aria-Tag [slot=remove] { color: inherit }`): the glyph's button is the item's
+ * `Button[slot=remove]`, and the item colors its labels (`catalogItemLabels`).
+ */
+export function catalogItemRemoveGlyphItem(
+  glyph: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(glyph) !== "Icon") return undefined;
+  const button = get(glyph.parentId);
+  if (!button || typeOf(button) !== "Button" || button.props.slot !== "remove")
+    return undefined;
+  const item = get(button.parentId);
+  return item && MANUAL_ITEM_LABEL_COLORS[typeOf(item)] ? item : undefined;
 }
 
 /** Thumbs whose placement a Slider record's values decide. */
@@ -1342,10 +1368,17 @@ export function catalogStateOwner(
 const GROUP_OF_ITEM: Readonly<Record<string, string>> = {
   Checkbox: "CheckboxGroup",
   Radio: "RadioGroup",
+  // ADR-256 Phase 5d: a Tag's `allowsRemoving` is its TagGroup's (RAC `useTag` — the group's
+  // `onRemove`), through the TagList.
+  Tag: "TagGroup",
 };
+const ITEM_STATE_GROUPS: ReadonlySet<string> = new Set(
+  Object.values(GROUP_OF_ITEM),
+);
 const GROUP_ITEMS_TYPES: ReadonlySet<string> = new Set([
   "CheckboxItems",
   "RadioItems",
+  "TagList",
 ]);
 /**
  * The states an item takes from its group (installed RAC 1.21.0): a Radio all four from the
@@ -1355,8 +1388,9 @@ const GROUP_ITEMS_TYPES: ReadonlySet<string> = new Set([
 const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> = {
   Checkbox: new Set(["isDisabled", "isReadOnly", "isInvalid"]),
   Radio: new Set(["isDisabled", "isReadOnly", "isInvalid", "isRequired"]),
+  Tag: new Set(["allowsRemoving"]),
 };
-/** The CheckboxGroup / RadioGroup a toggle sits in (through its items wrapper and frames). */
+/** The CheckboxGroup / RadioGroup / TagGroup an item sits in (through its items wrapper and frames). */
 function catalogItemGroup(
   owner: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -1511,7 +1545,12 @@ export function catalogStateDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  if (!catalogStateKeysOf(typeOf(node)).length) return [];
+  // (A group whose items take its state — a TagGroup's `allowsRemoving` — gives no keys of its own.)
+  if (
+    !catalogStateKeysOf(typeOf(node)).length &&
+    !ITEM_STATE_GROUPS.has(typeOf(node))
+  )
+    return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (record: CatalogConsumerNode) => {
     for (const child of childrenOf(record, get)) {

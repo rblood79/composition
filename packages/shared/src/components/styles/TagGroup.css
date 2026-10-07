@@ -201,6 +201,13 @@
       }
     }
 
+    /* ADR-256 Phase 5d — the remove button node (`Button[slot=remove]`, the reference's): its box is
+       the Tag part rule's (`manualBoxRules` Tag — inline), the sheet keeps it from shrinking
+       (part-rule layout reaches the DOM through the sheet, as `[slot=avatar]`). */
+    .react-aria-Button[slot="remove"] {
+      flex-shrink: 0;
+    }
+
     &[data-selected] {
       .tag-remove-btn {
         color: inherit;

@@ -159,7 +159,7 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
     ).toBe(false);
   });
 
-  it("only optional Label · Description positions (and a collection item's description Text) declare it; an unknown value is refused", () => {
+  it("only optional Label · Description positions (and a collection item's description Text, a TagGroup's error text) declare it; an unknown value is refused", () => {
     const declared = REUSABLE_ORIGIN_TEMPLATES.filter(
       (template) => template.presentWhen,
     );
@@ -168,6 +168,12 @@ describe("ADR-256 Decision 7 — presentWhen: nonEmptyText", () => {
       if (template.definitionId === "lib:definition:text")
         // ADR-256 Phase 5c: a ListBox · GridList · Menu item's description (`Text slot="description"`).
         expect(template.props.slot).toBe("description");
+      else if (template.id === "lib:template:component-taggroup__error")
+        // ADR-256 Phase 5d: the reference's `{errorMessage && <Text slot="errorMessage">}` — a
+        // TagGroup has no validation, so its error part shows with its text.
+        expect(template.definitionId).toBe(
+          "lib:definition:origin-component-fielderror",
+        );
       else
         expect(template.definitionId).toMatch(
           /origin-component-(label|description)$/,

@@ -1570,10 +1570,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "TagGroup",
     "mode": "composite",
     "accepts": {
-      "label": "string"
+      "label": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "label": "Tag Group"
+      "label": "Tag Group",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -6535,7 +6539,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-tag-item-default__icon",
       "lib:template:component-tag-item-default__avatar",
-      "lib:template:component-tag-item-default__label"
+      "lib:template:component-tag-item-default__label",
+      "lib:template:component-tag-item-default__remove"
     ],
     "props": {
       "children": "{label}"
@@ -6576,8 +6581,33 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "slot": "label",
       "children": "{label}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tag-item-default__remove",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-tag-item-default__remove__icon"
+    ],
+    "props": {
+      "slot": "remove",
+      "children": ""
+    },
+    "showWhen": {
+      "all": [
+        "allowsRemoving"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tag-item-default__remove__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "x"
     },
     "visual": {}
   },
@@ -6626,7 +6656,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-TagGroup",
     "children": [
       "lib:template:component-taggroup__1",
-      "lib:template:component-taggroup__2"
+      "lib:template:component-taggroup__2",
+      "lib:template:component-taggroup__description",
+      "lib:template:component-taggroup__error"
     ],
     "props": {
       "label": "Tag Group",
@@ -6647,6 +6679,26 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-taggroup__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-taggroup__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
+    },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

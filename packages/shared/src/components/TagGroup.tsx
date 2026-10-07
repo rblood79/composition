@@ -1,7 +1,10 @@
 import React, { JSX, useState, useRef, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
 import { Button } from "react-aria-components/Button";
-import { renderFieldLabel } from "./FieldNecessityIndicator";
+import {
+  renderFieldDescription,
+  renderFieldLabel,
+} from "./FieldNecessityIndicator";
 import {
   Tag as AriaTag,
   TagGroup as AriaTagGroup,
@@ -31,9 +34,10 @@ export interface TagGroupProps<T>
   extends
     Omit<AriaTagGroupProps, "children">,
     Pick<TagListProps<T>, "items" | "children" | "renderEmptyState"> {
-  label?: string;
-  description?: string;
-  errorMessage?: string;
+  /** ADR-256 Phase 5d: the catalog's Label · Description · error part node elements, else text. */
+  label?: React.ReactNode;
+  description?: React.ReactNode;
+  errorMessage?: React.ReactNode;
   allowsRemoving?: boolean;
   onRemove?: (keys: Selection) => void;
   // 선택 관련 프로퍼티 추가
@@ -88,7 +92,19 @@ export interface TagGroupProps<T>
    * (catalog 경로는 renderCatalogDom 가 상태 층 render props 를 실은 RAC Tag). `text` 는 maxRows
    * 미러 측정용 글자. 있으면 `items` · `children` 보다 우선.
    */
-  staticItems?: ReadonlyArray<{ node: React.ReactNode; text: string }>;
+  staticItems?: ReadonlyArray<{
+    node: React.ReactNode;
+    text: string;
+    /** The item's RAC key (ADR-256 Phase 5d: a removed item leaves the list). */
+    id?: Key;
+  }>;
+}
+
+/** The reference's error text (`Text[slot=errorMessage]`); a catalog part element as it is. */
+function renderTagGroupError(errorMessage: React.ReactNode): React.ReactNode {
+  if (!errorMessage) return null;
+  if (React.isValidElement(errorMessage)) return errorMessage;
+  return <Text slot="errorMessage">{errorMessage}</Text>;
 }
 
 export function TagGroup<T extends object>({
@@ -156,6 +172,34 @@ export function TagGroup<T extends object>({
   //   측정 직전에 실제 wrapper clientWidth 를 미러 width 에 주입해 폭을 일치시킨다.
   const tagListWrapperRef = useRef<HTMLDivElement>(null);
   const [visibleTagCount, setVisibleTagCount] = useState<number>(Infinity);
+  // ADR-256 Phase 5d: the reference's `onRemove` for authored tags — a removed tag leaves the list
+  // (Preview run state; the document keeps it). RAC shows a tag's remove button only with one.
+  const [removedStatic, setRemovedStatic] = useState<ReadonlySet<Key>>(
+    () => new Set(),
+  );
+  // (Authored tags stay the source after every one is removed — the list is then empty.)
+  const liveStaticItems =
+    staticItems && staticItems.length > 0
+      ? staticItems.filter(
+          (entry) => entry.id === undefined || !removedStatic.has(entry.id),
+        )
+      : undefined;
+  const handleRemove =
+    onRemove ??
+    (staticItems
+      ? (keys: Selection) =>
+          setRemovedStatic(
+            (previous) =>
+              new Set([
+                ...previous,
+                ...(keys === "all"
+                  ? staticItems.flatMap((entry) =>
+                      entry.id === undefined ? [] : [entry.id],
+                    )
+                  : keys),
+              ]),
+          )
+      : undefined);
 
   const hasMaxRows = maxRows != null && maxRows > 0;
   const showCollapsed = hasMaxRows && isCollapsed;
@@ -320,8 +364,8 @@ export function TagGroup<T extends object>({
     Array<{ text: string; icon: string | null; avatar: string | null }>
   >(() => {
     if (hasDataBinding) return [];
-    if (staticItems && staticItems.length > 0)
-      return staticItems.map((entry) => ({
+    if (liveStaticItems)
+      return liveStaticItems.map((entry) => ({
         text: entry.text,
         icon: null,
         avatar: null,
@@ -353,7 +397,7 @@ export function TagGroup<T extends object>({
       icon: null,
       avatar: null,
     }));
-  }, [hasDataBinding, filteredRows, children, staticItems]);
+  }, [hasDataBinding, filteredRows, children, liveStaticItems]);
 
   // children이 render function인지 확인 (Field children 렌더링 모드)
   const isRenderFunction = typeof children === "function";
@@ -376,7 +420,7 @@ export function TagGroup<T extends object>({
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
+          {renderFieldDescription(description)}
         </AriaTagGroup>
       );
     }
@@ -398,7 +442,7 @@ export function TagGroup<T extends object>({
               {t("errorWithMessage", { message: String(error) })}
             </AriaTag>
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
+          {renderFieldDescription(description)}
         </AriaTagGroup>
       );
     }
@@ -424,7 +468,7 @@ export function TagGroup<T extends object>({
           defaultSelectedKeys={defaultSelectedKeys}
           onSelectionChange={onSelectionChange}
           disallowEmptySelection={disallowEmptySelection}
-          onRemove={allowsRemoving ? onRemove : undefined}
+          onRemove={allowsRemoving ? handleRemove : undefined}
           className={tagGroupClassName}
           data-tag-variant={variant}
           data-tag-size={size}
@@ -438,8 +482,8 @@ export function TagGroup<T extends object>({
           >
             {children}
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
-          {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
+          {renderFieldDescription(description)}
+          {renderTagGroupError(errorMessage)}
         </AriaTagGroup>
       );
     }
@@ -454,7 +498,7 @@ export function TagGroup<T extends object>({
         defaultSelectedKeys={defaultSelectedKeys}
         onSelectionChange={onSelectionChange}
         disallowEmptySelection={disallowEmptySelection}
-        onRemove={allowsRemoving ? onRemove : undefined}
+        onRemove={allowsRemoving ? handleRemove : undefined}
         className={tagGroupClassName}
         data-tag-variant={variant}
         data-tag-size={size}
@@ -468,8 +512,8 @@ export function TagGroup<T extends object>({
         >
           {children}
         </TagList>
-        {description && <Text slot="description">{description}</Text>}
-        {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
+        {renderFieldDescription(description)}
+        {renderTagGroupError(errorMessage)}
       </AriaTagGroup>
     );
   }
@@ -491,7 +535,7 @@ export function TagGroup<T extends object>({
           <TagList className="react-aria-TagList">
             <AriaTag textValue={t("loadingLabel")}>{t("loadingData")}</AriaTag>
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
+          {renderFieldDescription(description)}
         </AriaTagGroup>
       );
     }
@@ -513,7 +557,7 @@ export function TagGroup<T extends object>({
               {t("errorWithMessage", { message: String(error) })}
             </AriaTag>
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
+          {renderFieldDescription(description)}
         </AriaTagGroup>
       );
     }
@@ -536,7 +580,7 @@ export function TagGroup<T extends object>({
           defaultSelectedKeys={defaultSelectedKeys}
           onSelectionChange={onSelectionChange}
           disallowEmptySelection={disallowEmptySelection}
-          onRemove={allowsRemoving ? onRemove : undefined}
+          onRemove={allowsRemoving ? handleRemove : undefined}
           className={tagGroupClassName}
           data-tag-variant={variant}
           data-tag-size={size}
@@ -568,8 +612,8 @@ export function TagGroup<T extends object>({
               </AriaTag>
             )}
           </TagList>
-          {description && <Text slot="description">{description}</Text>}
-          {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
+          {renderFieldDescription(description)}
+          {renderTagGroupError(errorMessage)}
         </AriaTagGroup>
       );
     }
@@ -605,16 +649,16 @@ export function TagGroup<T extends object>({
   );
 
   const totalChildCount =
-    staticItems && staticItems.length > 0
-      ? staticItems.length
+    liveStaticItems
+      ? liveStaticItems.length
       : hasResolvedRows
         ? resolvedTagItems.length
         : tagTexts.length;
 
   // 실제 렌더링할 children: static children 경로(외부 JSX)에서만 collapsed 슬라이스 적용.
   const staticNodes =
-    staticItems && staticItems.length > 0
-      ? staticItems.map((entry) => entry.node)
+    liveStaticItems
+      ? liveStaticItems.map((entry) => entry.node)
       : null;
   const displayChildren = staticNodes
     ? showCollapsed
@@ -677,7 +721,7 @@ export function TagGroup<T extends object>({
         defaultSelectedKeys={defaultSelectedKeys}
         onSelectionChange={onSelectionChange}
         disallowEmptySelection={disallowEmptySelection}
-        onRemove={allowsRemoving ? onRemove : undefined}
+        onRemove={allowsRemoving ? handleRemove : undefined}
         className={tagGroupClassName}
         data-tag-variant={variant}
         data-tag-size={size}
@@ -747,8 +791,8 @@ export function TagGroup<T extends object>({
             </button>
           )}
         </div>
-        {description && <Text slot="description">{description}</Text>}
-        {errorMessage && <Text slot="errorMessage">{errorMessage}</Text>}
+        {renderFieldDescription(description)}
+        {renderTagGroupError(errorMessage)}
       </AriaTagGroup>
     </div>
   );
@@ -761,16 +805,13 @@ export function Tag({ children, ...props }: TagProps): JSX.Element {
       {(renderProps) => (
         <>
           {/* ADR-234 Phase 3 — 정적 Tag instance 는 자손 상태 층을 children 함수로 받는다. */}
+          {/* ADR-256 Phase 5d — 지우기 버튼은 Tag 원본의 `Button[slot=remove]` 노드다 (showWhen
+              allowsRemoving): 여기서 덧붙이지 않는다. */}
           {typeof children === "function"
             ? (children as (p: typeof renderProps) => React.ReactNode)(
                 renderProps,
               )
             : children}
-          {renderProps.allowsRemoving && (
-            <Button slot="remove" className="tag-remove-btn">
-              <X size={14} />
-            </Button>
-          )}
         </>
       )}
     </AriaTag>

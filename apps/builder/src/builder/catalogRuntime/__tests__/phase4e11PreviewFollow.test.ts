@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 12,
+    libraryContractVersion: 13,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -483,8 +483,12 @@ describe("standalone collection items — item slot roles", () => {
     if (avatar) {
       expect(root.getGeometry([avatar.id]).get(avatar.id)!.width).toBe(16);
       // Avatar → label: the Tag's flex gap 4 only (catalog `leadingAvatar.gap`), no slot margin.
+      // (The label is the Tag's Text — no slot name since ADR-256 Phase 5d, as the reference.)
       const label = [...root.layoutInputs.values()].find(
-        (record) => record.props.slot === "label" && !record.hidden,
+        (record) =>
+          record.bindingId === "text" &&
+          record.parentId === avatar.parentId &&
+          !record.hidden,
       )!;
       const boxes = root.getGeometry([avatar.id, label.id]);
       expect(
