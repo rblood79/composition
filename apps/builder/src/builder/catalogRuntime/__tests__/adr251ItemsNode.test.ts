@@ -142,10 +142,16 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
       ]);
       const wrapper = kids[1];
       const items = wrapper.children.map((id) => root.layoutInputs.get(id)!);
-      // An item's Label (the item's indicator node sits before it — 2026-10-04).
-      const labelOf = (record: (typeof items)[number]) =>
+      // An item's Label (the item's indicator node sits before it — 2026-10-04), in the item's RAC
+      // button when it has one (ADR-256 Phase 3 — Checkbox = CheckboxField > CheckboxButton); its x
+      // is then the button's plus its own (the button at the item's left).
+      const rowOf = (record: (typeof items)[number]) =>
         record.children
           .map((id) => root.layoutInputs.get(id)!)
+          .find((child) => child.bindingId === `${item}button`) ?? record;
+      const labelOf = (record: (typeof items)[number]) =>
+        rowOf(record)
+          .children.map((id) => root.layoutInputs.get(id)!)
           .find((child) => child.bindingId === "label")!;
       expect(items.map((record) => record.bindingId)).toEqual([item, item]);
       // The group size reaches the wrapper and, through it, the items and their labels.

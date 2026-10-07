@@ -8,6 +8,10 @@ import {
 import { parseColor } from "react-aria-components/ColorPicker";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
+import {
+  CheckboxButton as AriaCheckboxButton,
+  CheckboxField as AriaCheckboxField,
+} from "react-aria-components/Checkbox";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
@@ -49,7 +53,7 @@ import { resolveStaticItemKey } from "../slotRoles";
 import { catalogTabsSelection, catalogTreeItemExpanded } from "./presence";
 import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
-import { Checkbox } from "../../components/Checkbox";
+import { CheckboxIndicatorBox } from "../../components/Checkbox";
 import { CheckboxGroup } from "../../components/CheckboxGroup";
 import {
   ColorSwatchPicker,
@@ -1213,31 +1217,72 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-256 Phase 3: the Checkbox is RAC `CheckboxField` — its children in order (the CheckboxButton,
+  // a Description, a FieldError, anything the author put in). In a CheckboxGroup it is one of the
+  // group's values (its record id — the group's `defaultValue`).
   checkbox: {
     render: (input) => {
       const props = input.node.props;
-      const hasLabel = !!childOf(input, "Label");
+      const host = catalogDomPartParent(input.root, input.node);
+      const inGroup =
+        host !== undefined &&
+        ["CheckboxItems", "CheckboxGroup"].includes(
+          catalogTypeName(input.root, host),
+        );
       return createElement(
-        Checkbox as ElementType,
+        AriaCheckboxField as ElementType,
         {
           ...marker(input),
           style: input.style,
-          defaultSelected: bool(props.isSelected),
+          className: "react-aria-Checkbox",
+          "data-size": str(props.size) || "md",
+          "data-emphasized": bool(props.isEmphasized) || undefined,
+          ...(inGroup
+            ? { value: input.node.id }
+            : {
+                defaultSelected: bool(props.isSelected),
+                name: opt(props.name),
+                value: opt(props.value),
+              }),
           isIndeterminate: bool(props.isIndeterminate),
           isDisabled: bool(props.isDisabled),
           isInvalid: bool(props.isInvalid),
           isReadOnly: bool(props.isReadOnly),
           isRequired: bool(props.isRequired),
-          name: opt(props.name),
-          value: opt(props.value),
           autoFocus: bool(props.autoFocus),
-          isEmphasized: bool(props.isEmphasized),
-          size: props.size || "md",
         },
-        typeof props.children === "string" && !hasLabel ? props.children : null,
         ...renderAll(input),
       );
     },
+  },
+  // ADR-256 Phase 3: the Checkbox's RAC `CheckboxButton` (the `label`) — its children in order; the
+  // CheckboxIndicator node's place is the indicator box, drawn by RAC's state (a part its owner
+  // draws: the node has no element of its own).
+  checkboxbutton: {
+    render: (input) =>
+      createElement(AriaCheckboxButton as ElementType, {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-CheckboxButton",
+        children: ({
+          isSelected,
+          isIndeterminate,
+        }: {
+          isSelected: boolean;
+          isIndeterminate: boolean;
+        }) =>
+          input.node.children.map((id) => {
+            const child = input.root.domInputs.get(id);
+            return child &&
+              catalogTypeName(input.root, child) === "CheckboxIndicator"
+              ? createElement(CheckboxIndicatorBox, {
+                  key: id,
+                  isSelected,
+                  isIndeterminate,
+                })
+              : input.renderChild(id);
+          }),
+      }),
   },
   checkboxgroup: {
     // The group label is read from the Label child; Checkbox children are composed by the group.
@@ -1281,28 +1326,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             fieldDescription(input, str(props.description)) || undefined,
           errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
         },
-        ...boxes.map((box) => {
-          const labels = childrenOf(input.root, box).filter(
-            (child) => catalogTypeName(input.root, child) === "Label",
-          );
-          return createElement(
-            Checkbox as ElementType,
-            {
-              key: box.id,
-              "data-catalog-id": box.id,
-              value: box.id,
-              isIndeterminate: bool(box.props.isIndeterminate),
-              isDisabled: bool(box.props.isDisabled),
-              // The item's resolved size: the group's (`CATALOG_SIZE_PROPAGATION`).
-              size: box.props.size || "md",
-            },
-            ...(labels.length
-              ? labels.map((label) => input.renderChild(label.id))
-              : typeof box.props.children === "string"
-                ? [box.props.children]
-                : []),
-          );
-        }),
+        // Each item draws itself (ADR-256 Phase 3 — RAC `CheckboxField` in the group's context).
+        ...boxes.map((box) => input.renderChild(box.id)),
       );
     },
   },

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 3a — Checkbox 를 레퍼런스 구조로] - 2026-10-08
+
+### Changed
+
+- **Checkbox 는 `CheckboxField > CheckboxButton (indicator + 글자) + Description + FieldError`** (ADR-256 Decision 3 — react-aria.adobe.com Checkbox 예제): Preview 는 RAC `CheckboxField` (`div`) 안에 누르는 자리 `CheckboxButton` (`label`) 을 그리고, 그 안에 indicator 와 글자를 자식 순서대로 그린다. Layers 에 `CheckboxButton` 이 보이고, 그 안에 아이콘 같은 자유 자식을 넣을 수 있다 (버튼은 지울 수 없다 — RAC 가 필요로 하는 부품). 화면은 그대로다 (Canvas 는 변경 전과 픽셀이 같다). 위치: `catalog/runtime/delegatedDom.tsx` `checkbox` · `checkboxbutton`, `componentRulesTable.ts` Checkbox
+- **Checkbox 에 Description · Error Message**: Properties 에서 도움말과 오류 문구를 쓸 수 있다 — 도움말은 비어 있으면 없고, 오류 문구는 Invalid 일 때 보인다 (Canvas · Preview 같음)
+
+### Fixed
+
+- **CheckboxGroup 항목 글자가 그룹 이름의 id 를 같이 갖던 것**: 항목 글자가 RAC `Label` 로 그려져 그룹의 label context (id) 를 받았다 — 그룹의 `aria-labelledby` 가 같은 id 의 요소 셋을 가리켰다. 이제 그룹 Label 하나만 그 id 를 갖는다
+- **단독 Checkbox 의 글자가 `label` 안의 `label` 이던 것**: 이제 버튼 안의 `span` 이다
+
 ## [ADR-256 Phase 2 — field 가 노드 트리를 그린다] - 2026-10-08
 
 ### Changed

@@ -273,6 +273,8 @@ const results: unknown[] = [];
 
 /** Part nodes the owner draws (2026-10-04): no old node held them. */
 const OWNER_DRAWN_PART_TYPES = Object.keys(OWNER_DRAWN_PART_OWNERS);
+/** New row hosts between a toggle and its parts (ADR-256 Phase 3 — RAC `CheckboxButton`). */
+const NEW_ROW_HOST_TYPES = ["CheckboxButton"];
 
 /** Set when the local G0 baseline is absent (a fresh clone). */
 let baselineAbsent = false;
@@ -1096,9 +1098,23 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
             : Number.POSITIVE_INFINITY;
         pairs.push({ newId, oldPath, delta });
         // Nodes hidden at rest have no box, as in the old filtered layout tree.
-        const shownKids = (root.canvasInputs.get(newId)?.children ?? []).filter(
-          (child) => !root.canvasInputs.get(child)?.hidden,
-        );
+        const shownOf = (id: string) =>
+          (root.canvasInputs.get(id)?.children ?? []).filter(
+            (child) => !root.canvasInputs.get(child)?.hidden,
+          );
+        // ADR-256 Phase 3: a toggle's RAC button (CheckboxButton) is a new node between the toggle
+        // and its row (old: the toggle held the row) — its children pair with the old toggle's; the
+        // button itself stays unpaired (APPROVED_UNPAIRED `toggle-button-node`).
+        const shownKids = shownOf(newId).flatMap((child) => {
+          if (
+            !NEW_ROW_HOST_TYPES.includes(
+              root.typeOf(root.canvasInputs.get(child)!),
+            )
+          )
+            return [child];
+          unpaired.push(`new:${child}`);
+          return shownOf(child);
+        });
         // A part node the owner draws (2026-10-04 — a toggle's indicator, a TreeItem's chevron)
         // has no old node: the old owner painted it in its own box. It stays out of the order
         // pairing (APPROVED_UNPAIRED).

@@ -166,7 +166,6 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
     ],
   },
   // toggle — Phase 3. 단일 control 의 label 자리 (RSP `children` 은 label 텍스트)
-  Checkbox: { children: ["CheckboxIndicator", "Label", "Text", "Icon"] },
   Radio: { children: ["RadioIndicator", "Label", "Text", "Icon"] },
   Switch: { children: ["SwitchIndicator", "Label", "Text", "Icon"] },
   RadioGroup: {
@@ -290,6 +289,10 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "Button",
   "ToggleButton",
   "Link",
+  // ADR-256 Phase 3: Checkbox 의 누르는 자리는 RAC `CheckboxButton` — `<label>` 안의 숨은 checkbox 가 그
+  //   label 의 control 이다. 다른 interactive · labelable 요소를 그 안에 두지 않는다 (루트 CheckboxField 는
+  //   `div` 라 host 가 아니다 — Description · FieldError · 자유 내용을 받는다).
+  "CheckboxButton",
   // DisclosureHeader 는 부모 Disclosure 가 `<Heading><Button slot="trigger">` 로
   // self-compose 한다 (binding 주석) — 루트가 button 이 아니라 host 가 아니다.
 ]);
@@ -301,6 +304,7 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "ToggleButtonGroup",
   "Link",
   "Checkbox",
+  "CheckboxButton",
   "CheckboxGroup",
   "Radio",
   "RadioGroup",

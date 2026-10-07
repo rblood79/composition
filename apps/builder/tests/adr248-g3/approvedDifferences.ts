@@ -639,6 +639,17 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "toggle = [indicator node, Label] (2026-10-04 user 「1안」 — old: the toggle painted its indicator in its own box)",
   },
   {
+    // ADR-256 Phase 3 (2026-10-08): a Checkbox is RAC `CheckboxField > CheckboxButton (indicator + Label)`
+    //   — the button is a node between the toggle and its row (old: the toggle held the row itself).
+    id: "toggle-button-node",
+    class: "decided",
+    owners: ["Checkbox", "CheckboxGroup"],
+    side: "new",
+    nodes: ["CheckboxButton"],
+    reason:
+      "toggle = CheckboxField > CheckboxButton [indicator node, Label] (ADR-256 — the reference Checkbox; old: the toggle was the row)",
+  },
+  {
     // ADR-253 Phase 3 (4): field 안 버튼 (Button · FieldButton instance) 의 glyph 는 그 Icon 자식이다.
     //   old 는 glyph 가 버튼 자리 노드 (SelectIcon) 자체였다.
     id: "field-button-glyph-node",

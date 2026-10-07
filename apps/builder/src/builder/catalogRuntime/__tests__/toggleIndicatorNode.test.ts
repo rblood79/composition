@@ -131,8 +131,14 @@ async function openToggle(owner: keyof typeof TOGGLES, size: string) {
   const toggle = [...root.layoutInputs.values()].find(
     (record) => record.bindingId === binding,
   )!;
-  const kids = toggle.children.map((id) => root.layoutInputs.get(id)!);
-  return { workspace, root, binding, toggle, kids };
+  const own = toggle.children.map((id) => root.layoutInputs.get(id)!);
+  // ADR-256 Phase 3: a toggle drawn as RAC `*Field > *Button` holds its indicator and text in the
+  // button (`button`) — the row the geometry below measures.
+  const button = own.find((record) => record.bindingId === `${binding}button`);
+  const kids = button
+    ? button.children.map((id) => root.layoutInputs.get(id)!)
+    : own;
+  return { workspace, root, binding, toggle, button, kids };
 }
 
 const CASES = (Object.keys(TOGGLES) as (keyof typeof TOGGLES)[]).flatMap(
@@ -143,16 +149,28 @@ describe("toggle indicator node", () => {
   it.each(CASES)(
     "$owner $size: the indicator node holds the indicator box before the Label",
     async ({ owner, size }) => {
-      const { workspace, root, binding, toggle, kids } = await openToggle(
-        owner,
-        size,
-      );
+      const { workspace, root, binding, toggle, button, kids } =
+        await openToggle(owner, size);
       expect(kids.map((record) => record.bindingId)).toEqual([
         `${binding}indicator`,
         "label",
       ]);
       const [indicator, label] = kids;
-      const geometry = root.getGeometry([toggle.id, indicator.id, label.id]);
+      const geometry = root.getGeometry([
+        toggle.id,
+        indicator.id,
+        label.id,
+        ...(button ? [button.id] : []),
+      ]);
+      // The button is the toggle's row: at its top-left, as tall (the hint parts are empty).
+      if (button) {
+        expect(geometry.get(button.id)!.x).toBeCloseTo(0, 3);
+        expect(geometry.get(button.id)!.y).toBeCloseTo(0, 3);
+        expect(geometry.get(button.id)!.height).toBeCloseTo(
+          geometry.get(toggle.id)!.height,
+          3,
+        );
+      }
       const expected = EXPECTED[owner][size];
       const box = geometry.get(indicator.id)!;
       expect([box.width, box.height]).toEqual(expected.box);

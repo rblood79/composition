@@ -1,5 +1,10 @@
 /**
  * Checkbox Component Styles
+ *
+ * Two structures carry `.react-aria-Checkbox`: the shared `Checkbox` (Builder UI — RAC `Checkbox`, the
+ * `label` itself) and the catalog Checkbox (ADR-256 Phase 3 — RAC `CheckboxField` `div` around a
+ * `CheckboxButton` `label`). RAC puts the pressed / focus-visible state on the label, so those
+ * selectors name both.
  */
 
 @layer components {
@@ -102,11 +107,15 @@
       transition: all 0.2s ease;
     }
 
-    &[data-pressed] .checkbox {
+    &[data-pressed] .checkbox,
+
+    & .react-aria-CheckboxButton[data-pressed] .checkbox {
       border-color: var(--border-pressed);
     }
 
-    &[data-focus-visible] .checkbox {
+    &[data-focus-visible] .checkbox,
+
+    & .react-aria-CheckboxButton[data-focus-visible] .checkbox {
       outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
     }
@@ -118,7 +127,9 @@
         background: var(--selected-color);
       }
 
-      &[data-pressed] .checkbox {
+      &[data-pressed] .checkbox,
+
+      & .react-aria-CheckboxButton[data-pressed] .checkbox {
         border-color: color-mix(in srgb, var(--selected-color) 75%, black);
         background: color-mix(in srgb, var(--selected-color) 75%, black);
       }
@@ -139,7 +150,9 @@
         border-color: var(--negative);
       }
 
-      &[data-pressed] .checkbox {
+      &[data-pressed] .checkbox,
+
+      & .react-aria-CheckboxButton[data-pressed] .checkbox {
         border-color: color-mix(in srgb, var(--negative) 75%, black);
       }
 
@@ -149,7 +162,9 @@
           background: var(--negative);
         }
 
-        &[data-pressed] .checkbox {
+        &[data-pressed] .checkbox,
+
+        & .react-aria-CheckboxButton[data-pressed] .checkbox {
           background: color-mix(in srgb, var(--negative) 75%, black);
         }
       }

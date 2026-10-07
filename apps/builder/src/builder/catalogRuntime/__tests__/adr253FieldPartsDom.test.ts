@@ -153,6 +153,42 @@ const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
   colorfield: " placeholder=#000000",
   numberfield: " placeholder=0",
 };
+/**
+ * ADR-256 Phase 3 — a Checkbox is RAC `CheckboxField` around a `CheckboxButton` (the reference
+ * Checkbox), applied to the fixture: the item's `label.react-aria-Checkbox` becomes a
+ * `div.react-aria-Checkbox` (RAC's field state) holding a `label.react-aria-CheckboxButton` (the
+ * pressable — RAC puts the same state on it); no `slot="selection"` (none outside a collection). The
+ * item's text is its own element — before, RAC's `Label` took the group's label context (its id).
+ */
+const CHECKBOX_FIELD_STATE =
+  /^data-(disabled|indeterminate|invalid|readonly|required|selected)=/;
+function checkboxFieldMarkup(text: string): string {
+  return text
+    .replace(
+      /<label class=react-aria-Checkbox ([^>]*)>/g,
+      (_tag, list: string) => {
+        const attributes = list.split(" ");
+        const field = attributes.filter(
+          (attribute) =>
+            !attribute.startsWith("data-react-aria-pressable=") &&
+            !attribute.startsWith("slot="),
+        );
+        const button = attributes
+          .filter(
+            (attribute) =>
+              CHECKBOX_FIELD_STATE.test(attribute) ||
+              attribute === "data-rac=" ||
+              attribute.startsWith("data-react-aria-pressable="),
+          )
+          .sort();
+        return `<div class=react-aria-Checkbox ${field.join(" ")}><label class=react-aria-CheckboxButton ${button.join(" ")}>`;
+      },
+    )
+    .replace(
+      /<span class=react-aria-Label id>(Option \d)<\/><\/>/g,
+      "<span class=react-aria-Label>$1</></></>",
+    );
+}
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
 const SIDE_INDENT: Record<string, number> = {
   textfield: 182,
@@ -400,10 +436,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           const glyphless = WRAPPED_TYPES.includes(type)
             ? withoutGlyphs
             : (text: string) => text;
-          const expected = (DATE_PART_MARKUP[type] ?? []).reduce(
+          const fixed = (DATE_PART_MARKUP[type] ?? []).reduce(
             (text, [before, after]) => text.replaceAll(before, after),
             fixture[`${type}/${name}`],
           );
+          const expected =
+            type === "checkboxgroup" ? checkboxFieldMarkup(fixed) : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,

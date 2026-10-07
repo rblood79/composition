@@ -83,6 +83,7 @@ import { radioGroupBinding } from "./RadioGroup.binding";
 import { radioItemsBinding } from "./RadioItems.binding";
 import { checkboxItemsBinding } from "./CheckboxItems.binding";
 import { checkboxIndicatorBinding } from "./CheckboxIndicator.binding";
+import { checkboxButtonBinding } from "./CheckboxButton.binding";
 import { radioIndicatorBinding } from "./RadioIndicator.binding";
 import { switchIndicatorBinding } from "./SwitchIndicator.binding";
 import { treeItemChevronBinding } from "./TreeItemChevron.binding";
@@ -208,6 +209,7 @@ export * from "./RadioGroup.binding";
 export * from "./RadioItems.binding";
 export * from "./CheckboxItems.binding";
 export * from "./CheckboxIndicator.binding";
+export * from "./CheckboxButton.binding";
 export * from "./RadioIndicator.binding";
 export * from "./SwitchIndicator.binding";
 export * from "./TreeItemChevron.binding";
@@ -406,6 +408,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Switch: switchBinding,
   // 2026-10-04: toggle 의 indicator 상자 노드 (부모 DOM 이 흡수, 자기 rule 없음 — 값은 부모 rule).
   CheckboxIndicator: checkboxIndicatorBinding,
+  // ADR-256 Phase 3: Checkbox 의 누르는 자리 (RAC CheckboxButton — 행 배치는 Checkbox rule).
+  CheckboxButton: checkboxButtonBinding,
   RadioIndicator: radioIndicatorBinding,
   SwitchIndicator: switchIndicatorBinding,
   // 2026-10-04: TreeItem 의 chevron 버튼 노드 (부모 Tree DOM 이 흡수, 자기 rule 없음 — 값은 TreeItem rule).

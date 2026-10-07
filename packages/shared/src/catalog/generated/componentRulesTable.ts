@@ -1966,12 +1966,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         indicator: { boxSize: 30, boxRadius: 4 },
       },
     },
+    // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `CheckboxField > CheckboxButton (indicator + 글자) + Description +
+    //   FieldError`. 이 rule 의 요소는 RAC `CheckboxField` (`div`) — 누르는 자리 · 도움말 · 오류를 세로로 둔다
+    //   (size 의 gap 이 그 사이). indicator · 글자의 행 (종전 이 요소의 inline-flex 행 · size 별 gap) 은
+    //   `.react-aria-CheckboxButton` 블록으로 옮겼다 — 같은 gap 값 (`--cb-button-gap`, sizes 파생). focus 표시는
+    //   RAC 가 `data-focus-visible` 을 주는 CheckboxButton 의 것.
     structure: {
       archetype: "toggle-indicator",
-      element: "label",
+      element: "div",
+      // (A box taller than its content keeps the row vertically centered, as the old row's
+      //   `align-items: center` did — `justify-content` on the column.)
       containerStyles: {
         display: "inline-flex",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
       },
       states: {
         hover: {},
@@ -1981,9 +1990,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           cursor: "not-allowed",
           pointerEvents: "none",
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+      },
+      composition: {
+        staticSelectors: {
+          ".react-aria-CheckboxButton": {
+            display: "inline-flex",
+            "align-items": "center",
+            gap: "var(--cb-button-gap)",
+          },
+          ".react-aria-CheckboxButton[data-focus-visible]": {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "outline-offset": "var(--focus-ring-offset)",
+          },
         },
+        delegation: [
+          {
+            // 행 gap — 크기별 gap 을 root 에 `--cb-button-gap` 으로 (sizes 파생, `variables: "auto"`).
+            childSelector: ".react-aria-CheckboxButton",
+            prefix: "cb-button",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
+        ],
       },
     },
   },

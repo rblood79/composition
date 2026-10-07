@@ -23,7 +23,10 @@ import {
   catalogTextAreaInputHeight,
   resolveCatalogRuleCanvasBox,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
-import { isDelegatedSubpartChild } from "../resolvers/resolveDelegatedChildFontSize";
+import {
+  isDelegatedSubpartChild,
+  OWNER_DRAWN_PART_HOSTS,
+} from "../resolvers/resolveDelegatedChildFontSize";
 import { resolveTriggerIconSize } from "../resolvers/resolveTriggerIconSize";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { manualBoxRule } from "./manualBoxRules";
@@ -83,7 +86,12 @@ const SUBPART_TOKENS: Readonly<
   CheckboxGroup: { CheckboxItems: [".checkbox-items"] },
   // A toggle's indicator node (2026-10-04): the shared component's indicator element. Radio's
   // indicator is `.react-aria-Radio::before` — no element to name.
-  Checkbox: { CheckboxIndicator: [".checkbox"] },
+  // ADR-256 Phase 3: the catalog Checkbox is RAC `CheckboxField` around a `CheckboxButton` (the row
+  // the indicator sits in — reached `via` it, `TOGGLE_BUTTONS`).
+  Checkbox: {
+    CheckboxButton: [".react-aria-CheckboxButton"],
+    CheckboxIndicator: [".checkbox"],
+  },
   Switch: { SwitchIndicator: [".indicator"] },
   // A TreeItem's chevron node (2026-10-04): the shared Tree's chevron button (whole selector).
   TreeItem: { TreeItemChevron: [".react-aria-Button[slot='chevron']"] },
@@ -141,7 +149,19 @@ export function catalogSubpartDomUnion(
  * has one, a Select's trigger Button (ADR-253 — RAC's trigger is the Button itself).
  */
 const SUBPART_WRAPPERS: Readonly<Record<string, string>> = { Select: "Button" };
+/**
+ * ADR-256 Phase 3 — the RAC button a toggle's indicator sits in (`CheckboxField > CheckboxButton >
+ * indicator`, `OWNER_DRAWN_PART_HOSTS`): toggle type → its button type.
+ */
+const TOGGLE_BUTTONS: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(OWNER_DRAWN_PART_HOSTS).map(([button, owner]) => [
+    owner,
+    button,
+  ]),
+);
 function wrapperOf(parentType: string, childType: string): string | undefined {
+  if (TOGGLE_BUTTONS[parentType] && childType === `${parentType}Indicator`)
+    return TOGGLE_BUTTONS[parentType];
   if (!WRAPPED_BY_TRIGGER.has(childType)) return undefined;
   const wrapper =
     SUBPART_WRAPPERS[parentType] ??
@@ -798,6 +818,10 @@ function toggleIndicatorPartRules(parentType: string): CompiledPartRule[] {
       : [
           {
             childType: `${parentType}Indicator`,
+            // (Inside the toggle's RAC button when it has one — ADR-256 Phase 3.)
+            ...(TOGGLE_BUTTONS[parentType]
+              ? { via: TOGGLE_BUTTONS[parentType] }
+              : {}),
             size,
             layout: { flexShrink: "0" },
             visual: { width: box.width, height: box.height },

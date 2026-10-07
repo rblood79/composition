@@ -285,7 +285,10 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   CheckboxGroup: { families: ["disablingGroup"] },
   CheckboxItems: { owners: ["CheckboxGroup"] },
   // 2026-10-04: toggle 의 indicator 상자 노드 — 자기 부모 toggle 안에만 (부모 DOM 이 흡수).
-  CheckboxIndicator: { owners: ["Checkbox"] },
+  // ADR-256 Phase 3: Checkbox = CheckboxField > CheckboxButton (indicator + 글자) — 누르는 자리는 Checkbox
+  //   안에만, indicator 는 그 안에.
+  CheckboxButton: { owners: ["Checkbox"] },
+  CheckboxIndicator: { owners: ["CheckboxButton"] },
   RadioIndicator: { owners: ["Radio"] },
   SwitchIndicator: { owners: ["Switch"] },
   // TreeItem 의 chevron 버튼 노드 — 자기 부모 TreeItem 안에만 (부모 Tree DOM 이 흡수).

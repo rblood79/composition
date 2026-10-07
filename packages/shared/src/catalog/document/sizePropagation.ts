@@ -32,7 +32,10 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   CheckboxGroup: ["CheckboxItems", ...FIELD_PARTS],
   CheckboxItems: ["Checkbox"],
   Radio: ["Label"],
-  Checkbox: ["Label"],
+  // ADR-256 Phase 3: Checkbox = CheckboxField > CheckboxButton (indicator + 글자 Label) + Description +
+  //   FieldError — size 는 누르는 자리 (내부 운반 값) 를 지나 글자까지.
+  Checkbox: ["CheckboxButton", "Description", "FieldError"],
+  CheckboxButton: ["Label"],
   Slider: ["SliderTrack", "Label"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
   TagGroup: ["TagList", "Label"],

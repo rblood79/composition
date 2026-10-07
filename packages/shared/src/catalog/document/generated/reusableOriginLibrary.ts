@@ -770,10 +770,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Checkbox",
     "mode": "composite",
     "accepts": {
-      "children": "string"
+      "children": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "children": "Checkbox"
+      "children": "Checkbox",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -3905,8 +3909,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-checkbox",
     "definitionId": "lib:definition:type-Checkbox",
     "children": [
-      "lib:template:component-checkbox__indicator",
-      "lib:template:component-checkbox__1"
+      "lib:template:component-checkbox__button",
+      "lib:template:component-checkbox__description",
+      "lib:template:component-checkbox__error"
     ],
     "props": {
       "children": "Checkbox",
@@ -3923,6 +3928,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "displayState": "selected"
   },
   {
+    "id": "lib:template:component-checkbox__button",
+    "definitionId": "lib:definition:type-CheckboxButton",
+    "children": [
+      "lib:template:component-checkbox__indicator",
+      "lib:template:component-checkbox__1"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-checkbox__indicator",
     "definitionId": "lib:definition:type-CheckboxIndicator",
     "children": [],
@@ -3935,6 +3950,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkbox__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-checkbox__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
     },
     "visual": {}
   },
@@ -4034,6 +4068,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-checkbox",
+          "lib:template:component-checkbox__button",
           "lib:template:component-checkbox__1"
         ],
         "props": {
@@ -4058,6 +4093,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-checkbox",
+          "lib:template:component-checkbox__button",
           "lib:template:component-checkbox__1"
         ],
         "props": {

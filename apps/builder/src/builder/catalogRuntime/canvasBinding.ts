@@ -1,6 +1,9 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
 import { getIconData, getSkiaPrimitiveMode } from "@composition/rendering";
-import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
+import {
+  OWNER_DRAWN_PART_HOSTS,
+  OWNER_DRAWN_PART_OWNERS,
+} from "@composition/shared";
 import type { ComputedLayout } from "../workspace/canvas/layout/engines/LayoutEngine";
 import {
   buildRenderCommandStream,
@@ -362,6 +365,9 @@ const bindings: Readonly<Record<string, Binding>> = {
   // no authored paint, so the Canvas paints none either (layout box only).
   radioitems: container,
   checkboxitems: container,
+  // ADR-256 Phase 3: a Checkbox's RAC button (`label` — its own element, the authored style inline):
+  // a box for its indicator and text (the row is the Checkbox rule's).
+  checkboxbutton: containerWithAuthoredPaint,
   // A part its owner draws (toggle indicator, TreeItem · Disclosure chevron): painted from its
   // owner's rule (`ownerDrawnPartNodeData` — the binding stands for the record in the registration
   // loop only).
@@ -528,13 +534,26 @@ function ownerDrawnPart(
 ): { readonly id: string; readonly primitive: string } | undefined {
   const type = root.typeOf(node);
   if (!OWNER_DRAWN_PART_OWNER_TYPES.has(type)) return undefined;
-  for (const id of node.children) {
-    const child = root.canvasInputs.get(id);
-    const childType = child ? root.typeOf(child) : "";
-    if (OWNER_DRAWN_PART_OWNERS[childType] === type)
-      return { id, primitive: OWNER_DRAWN_PART_PRIMITIVES[childType] };
-  }
-  return undefined;
+  // The part sits under the owner, or under the owner's RAC button (`OWNER_DRAWN_PART_HOSTS` —
+  // ADR-256 Phase 3 `CheckboxField > CheckboxButton > indicator`).
+  const visit = (
+    ids: readonly string[],
+    depth: number,
+  ): { readonly id: string; readonly primitive: string } | undefined => {
+    for (const id of ids) {
+      const child = root.canvasInputs.get(id);
+      if (!child) continue;
+      const childType = root.typeOf(child);
+      if (OWNER_DRAWN_PART_OWNERS[childType] === type)
+        return { id, primitive: OWNER_DRAWN_PART_PRIMITIVES[childType] };
+      if (depth === 0 && OWNER_DRAWN_PART_HOSTS[childType] === type) {
+        const found = visit(child.children, 1);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
+  return visit(node.children, 0);
 }
 
 /**
@@ -549,7 +568,12 @@ function ownerDrawnPartNodeData(
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
-  const owner = root.canvasInputs.get(node.parentId);
+  const parent = root.canvasInputs.get(node.parentId);
+  // (Through the owner's RAC button — `OWNER_DRAWN_PART_HOSTS`.)
+  const owner =
+    parent && OWNER_DRAWN_PART_HOSTS[root.typeOf(parent)]
+      ? root.canvasInputs.get(parent.parentId)
+      : parent;
   if (!owner?.ruleId)
     throw new Error(`CATALOG_CANVAS_PART_OWNER_REQUIRED:${node.id}`);
   const primitive = OWNER_DRAWN_PART_PRIMITIVES[root.typeOf(node)];

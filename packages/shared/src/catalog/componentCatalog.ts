@@ -619,6 +619,14 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // CheckboxIndicator · RadioIndicator · SwitchIndicator — toggle 의 indicator 상자 (2026-10-04, RadioItems
   //   동형). Checkbox · Radio · Switch template 의 첫 자식, DOM 은 부모 RAC 가 그린다. palette 비노출.
+  // CheckboxButton — ADR-256 Phase 3: Checkbox 의 누르는 자리 (RAC CheckboxButton — indicator 와 글자를
+  //   품는 label). Checkbox template 이 만든다. palette 비노출 (필수 부품).
+  primitiveEntry("CheckboxButton", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "checkbox button",
+    icon: "SquareCheck",
+    placeable: false,
+  }),
   primitiveEntry("CheckboxIndicator", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "checkbox indicator",

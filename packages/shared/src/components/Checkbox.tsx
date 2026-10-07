@@ -16,7 +16,6 @@ import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
 import { Skeleton } from "./Skeleton";
 
-
 export interface CheckboxProps extends Omit<AriaCheckboxProps, "children"> {
   children?: React.ReactNode;
   isTreeItemChild?: boolean; // TreeItem 내부에서 사용될 때를 위한 prop
@@ -81,17 +80,37 @@ export function MyCheckbox(props: CheckboxProps) {
     >
       {({ isSelected, isIndeterminate }) => (
         <>
-          <div className="checkbox">
-            {isIndeterminate ? (
-              <Minus size={16} strokeWidth={4} />
-            ) : (
-              isSelected && <CheckIcon size={16} strokeWidth={4} />
-            )}
-          </div>
+          <CheckboxIndicatorBox
+            isSelected={isSelected}
+            isIndeterminate={isIndeterminate}
+          />
           {children}
         </>
       )}
     </AriaCheckbox>
+  );
+}
+
+/**
+ * The indicator box and its glyph (`div.checkbox` — `Checkbox.css`): a check while selected, a dash
+ * while indeterminate. This component and the catalog CheckboxButton (ADR-256 Phase 3 — the
+ * CheckboxIndicator node's element) draw the same markup.
+ */
+export function CheckboxIndicatorBox({
+  isSelected,
+  isIndeterminate,
+}: {
+  isSelected: boolean;
+  isIndeterminate: boolean;
+}) {
+  return (
+    <div className="checkbox">
+      {isIndeterminate ? (
+        <Minus size={16} strokeWidth={4} />
+      ) : (
+        isSelected && <CheckIcon size={16} strokeWidth={4} />
+      )}
+    </div>
   );
 }
 

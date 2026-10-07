@@ -30,6 +30,8 @@ export const RAC_REQUIRED_PARTS: Readonly<
   Disclosure: [["DisclosureHeader"]],
   Tabs: [["TabList"]],
   TagGroup: [["TagList"]],
+  // ADR-256 Phase 3 (G0 ⑨): CheckboxField without its CheckboxButton has no checkbox input.
+  Checkbox: [["CheckboxButton"]],
   DialogTrigger: [["Button"], ["Dialog", "Popover", "Modal"]],
   TooltipTrigger: [["Button"], ["Tooltip"]],
   Table: [["TableHeader"]],

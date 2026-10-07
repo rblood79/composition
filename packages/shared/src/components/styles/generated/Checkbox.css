@@ -16,7 +16,9 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 
   /* Default variant */
   background: var(--bg);
@@ -100,6 +102,25 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Checkbox[data-size="sm"] {
+  --cb-button-gap: 6px;
+}
+
+.react-aria-Checkbox[data-size="md"] {
+  --cb-button-gap: 8px;
+}
+
+.react-aria-Checkbox[data-size="lg"] {
+  --cb-button-gap: 10px;
+}
+
+.react-aria-Checkbox[data-size="xl"] {
+  --cb-button-gap: 12px;
+}
+
+
 @media (forced-colors: active) {
   .react-aria-Checkbox {
     forced-color-adjust: auto;
@@ -111,5 +132,17 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Checkbox .react-aria-CheckboxButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--cb-button-gap);
+  }
+
+  .react-aria-Checkbox .react-aria-CheckboxButton[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
 
 } /* @layer components */

@@ -151,6 +151,8 @@ const FIELD_HINT_PARENTS = [
   "DateRangePicker",
   "CheckboxGroup",
   "RadioGroup",
+  // ADR-256 Phase 3: the reference Checkbox's Description · FieldError.
+  "Checkbox",
 ] as const;
 export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   Record<string, readonly string[]>
@@ -206,6 +208,34 @@ export const OWNER_DRAWN_PART_OWNERS: Readonly<Record<string, string>> = {
   TreeItemChevron: "TreeItem",
   DisclosureChevron: "DisclosureHeader",
 };
+
+/**
+ * ADR-256 Phase 3 — 부모가 그리는 part 가 owner 안의 RAC 버튼 안에 있는 경우 (레퍼런스
+ * `CheckboxField > CheckboxButton > indicator`): 그 버튼 type → owner type. part 의 owner 는 이 버튼을 건너
+ * 찾는다 (Canvas 칠 · 편집 surface · 삭제 금지가 같은 판정).
+ */
+export const OWNER_DRAWN_PART_HOSTS: Readonly<Record<string, string>> = {
+  CheckboxButton: "Checkbox",
+};
+
+/**
+ * part type 의 owner 가 이 부모 사슬인가 — 직계 parent 가 owner, 또는 직계가 owner 의 버튼 (`OWNER_DRAWN_PART_HOSTS`)
+ * 이고 조부모가 owner.
+ */
+export function catalogOwnerDrawnPartOwnedBy(
+  childType: string,
+  parentType: string | null | undefined,
+  grandparentType?: string | null,
+): string | undefined {
+  const owner = OWNER_DRAWN_PART_OWNERS[childType];
+  if (!owner) return undefined;
+  if (parentType === owner) return owner;
+  return parentType &&
+    OWNER_DRAWN_PART_HOSTS[parentType] === owner &&
+    grandparentType === owner
+    ? owner
+    : undefined;
+}
 
 /**
  * sub-part 래퍼 — 이 type 이 직계 parent 면 자식의 판정은 **조부모** (field) 에 대해 한다. DatePicker ·
@@ -271,6 +301,12 @@ function resolveFullSubpartOwnerType(
   grandparentType?: string | null,
 ): string | null {
   if (ownsSubpartDirect(childType, parentType)) return parentType;
+  const drawnBy = catalogOwnerDrawnPartOwnedBy(
+    childType,
+    parentType,
+    grandparentType,
+  );
+  if (drawnBy) return drawnBy;
   if (
     grandparentType &&
     SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&

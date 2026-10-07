@@ -540,6 +540,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + TreeItemChevron (the TreeItem chevron node, 2026-10-04).
     // + TooltipTrigger (the Tooltip origin's root, ADR-255 2026-10-07).
     // + DisclosureChevron (the Disclosure trigger's chevron node, 2026-10-07).
-    expect(types.length).toBe(138);
+    // + CheckboxButton (ADR-256 Phase 3 — RAC CheckboxField > CheckboxButton, 2026-10-08).
+    expect(types.length).toBe(139);
   }, 120_000);
 });

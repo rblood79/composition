@@ -265,10 +265,13 @@ describe("group size reaches the items", () => {
       expect(items.length).toBeGreaterThan(0);
       for (const entry of items) expect(entry.size).toBe("lg");
       const root = workspace.root;
+      // (An item's Label sits in its RAC button when it has one — ADR-256 Phase 3 CheckboxButton.)
       const labels = [...root.layoutInputs.values()].filter(
         (record) =>
           record.bindingId === "label" &&
-          root.layoutInputs.get(record.parentId)?.bindingId === item,
+          [item, `${item}button`].includes(
+            root.layoutInputs.get(record.parentId)?.bindingId ?? "",
+          ),
       );
       expect(labels.length).toBeGreaterThan(0);
       for (const label of labels) expect(label.props.size).toBe("lg");
@@ -278,9 +281,11 @@ describe("group size reaches the items", () => {
       )!;
       const html = renderToStaticMarkup(renderCatalogDom(root, group.id));
       const itemClass = `react-aria-${item === "radio" ? "Radio" : "Checkbox"}`;
+      // (A Checkbox item's element is RAC `CheckboxField` — a `div` — ADR-256 Phase 3.)
       const tags =
-        html.match(new RegExp(`<label[^>]*class="${itemClass}"[^>]*>`, "g")) ??
-        [];
+        html.match(
+          new RegExp(`<(?:label|div)[^>]*class="${itemClass}"[^>]*>`, "g"),
+        ) ?? [];
       expect(tags.length).toBe(items.length);
       if (item === "checkbox")
         for (const tag of tags) expect(tag).toContain('data-size="lg"');

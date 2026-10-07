@@ -34,6 +34,13 @@ export const checkboxBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Label", section: "content" },
+      // ADR-256 Phase 3: 레퍼런스 Checkbox (`CheckboxField` + Description + FieldError) 의 도움말 · 오류 문구 —
+      //   template 의 Description `{description}` · FieldError `{errorMessage}` 자리.
+      description: {
+        kind: "string",
+        label: "Description",
+        section: "content",
+      },
       variant: {
         kind: "variant",
         label: "Variant",
@@ -54,6 +61,11 @@ export const checkboxBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Checkbox 공식 prop —
       //   isReadOnly/isRequired/name/value 는 renderCheckbox 기소비, autoFocus 는 배선 동반.
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

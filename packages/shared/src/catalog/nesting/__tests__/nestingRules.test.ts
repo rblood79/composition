@@ -88,8 +88,15 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("AvatarGroup", "Avatar")).toBe(true);
     expect(canNest("AvatarGroup", "Button")).toBe(false);
     expect(canNest("Select", "Select")).toBe(false);
-    expect(canNest("Checkbox", "Checkbox")).toBe(false);
-    expect(canNest("Checkbox", "Label")).toBe(true);
+    // ADR-256 Phase 3: a Checkbox is RAC `CheckboxField` (a `div` — free content, the reference's
+    // Description); its pressable `CheckboxButton` is a `<label>` that holds no other control.
+    expect(canNest("Checkbox", "Description")).toBe(true);
+    expect(
+      canNest("CheckboxButton", "Checkbox", ["CheckboxButton", "Checkbox"]),
+    ).toBe(false);
+    expect(
+      canNest("CheckboxButton", "Label", ["CheckboxButton", "Checkbox"]),
+    ).toBe(true);
     expect(canNest("TableView", "Button")).toBe(false);
     expect(canNest("Row", "Cell", ["Row", "TableBody", "TableView"])).toBe(
       true,

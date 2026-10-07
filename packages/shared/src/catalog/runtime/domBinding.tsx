@@ -30,6 +30,7 @@ import {
   resolveStaticItemKey,
   toRacProps,
   usesButtonBaseUtility,
+  OWNER_DRAWN_PART_HOSTS,
 } from "@composition/shared";
 import {
   DELEGATING_INTERNAL_RENDERERS,
@@ -679,6 +680,19 @@ const NODE_TREE_CONTROL_WRAPPERS: Readonly<
     ),
 };
 
+/** A toggle's text in its RAC button (ADR-256 Phase 3): a `span` with the Label rule's look. */
+const toggleTextBinding: DomBinding = (node, style, children) =>
+  createElement(
+    "span",
+    {
+      key: node.id,
+      "data-catalog-id": node.id,
+      className: "react-aria-Label",
+      style,
+    },
+    String(node.props.children ?? ""),
+    ...children,
+  );
 const fieldErrorBinding: DomBinding = (node, style) =>
   createElement(
     RAC.FieldError,
@@ -1800,7 +1814,14 @@ function renderNode(
     partParent &&
     FIELD_HINT_OWNERS.has(catalogTypeName(root, partParent))
       ? fieldErrorBinding
-      : bindingOf(node);
+      : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
+        // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
+        // would take the group's label context).
+        node.bindingId === "label" &&
+          parentInput &&
+          OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, parentInput)]
+        ? toggleTextBinding
+        : bindingOf(node);
   const bound = binding
     ? catalogDomStyle(
         node,
