@@ -8,6 +8,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { DATE_LOCALE_PROP } from "./dateLocaleProps";
 
 export const timeFieldBinding: PrimitiveBinding = {
   source: {
@@ -153,6 +154,8 @@ export const timeFieldBinding: PrimitiveBinding = {
         label: "Placeholder Value",
         section: "content",
       },
+      // react-aria.adobe.com "International calendars": unset = the browser's locale.
+      locale: DATE_LOCALE_PROP,
     },
     toRacProps: "default",
     // size 를 TimeField.tsx 가 React prop 으로 소비 + 자기 `data-size` 를 재작성

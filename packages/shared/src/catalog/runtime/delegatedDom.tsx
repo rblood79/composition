@@ -533,7 +533,8 @@ function withI18n(
   calendar?: unknown,
 ): ReactElement {
   if (!locale && !calendar) return element;
-  const base = String(locale || "en-US");
+  // (A calendar system alone extends the environment's locale — RAC's default.)
+  const base = String(locale || globalThis.navigator?.language || "en-US");
   const tag = calendar ? `${base}-u-ca-${String(calendar)}` : base;
   return createElement(
     I18nProvider as ElementType,
@@ -1099,7 +1100,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           hourCycle: num(props.hourCycle),
         }),
         props.locale,
-        props.calendar,
+        props.calendarSystem,
       );
     },
   },

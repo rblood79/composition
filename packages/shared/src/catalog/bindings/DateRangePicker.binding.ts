@@ -9,6 +9,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { DATE_CALENDAR_SYSTEM_PROP, DATE_LOCALE_PROP } from "./dateLocaleProps";
 
 export const dateRangePickerBinding: PrimitiveBinding = {
   source: {
@@ -194,6 +195,9 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         // RAC Form 이 FormContext 로 자식 field 에 전파 — Form 하나만 편집 (2026-09-15)
         editorHidden: true,
       },
+      // react-aria.adobe.com "International calendars": unset = the browser's locale.
+      locale: DATE_LOCALE_PROP,
+      calendarSystem: DATE_CALENDAR_SYSTEM_PROP,
     },
     toRacProps: "default",
     // size 는 DateRangePicker.tsx 가 React prop 으로 직접 소비 + 자기 `data-size` 를 다시 emit

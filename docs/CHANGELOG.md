@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [날짜 field · ColorField 레퍼런스 정렬] - 2026-10-07
 
+### Added
+
+- **날짜 계열 6종의 `locale` · `calendarSystem` 선택** (react-aria.adobe.com Calendar 「International calendars」): Calendar · RangeCalendar · DateField · DatePicker · DateRangePicker 에 Locale (React Aria 번역 언어 36개 + 「Browser default」) 과 Calendar (gregory · buddhist · japanese 등 13 + 「Locale default」), TimeField 에 Locale. 비우면 브라우저 locale. 위치: `packages/shared/src/catalog/bindings/dateLocaleProps.ts`
+
 ### Breaking Changes
 
 - **DateRangePicker 의 `isQuiet` prop 제거** — S2 DateRangePicker 에는 없다 (react-spectrum.adobe.com 레퍼런스). Properties 에서 사라지고 rule 의 quiet 선언 · Canvas 처리도 걷어냈다. Select 의 `isQuiet` (S2 Picker 에 있음) 은 그대로다.
@@ -22,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ColorField 기본 배치 = 세로** (RSP · RAC 레퍼런스): 라벨 위 · 입력칸 · 도움말 아래 (TextField 와 같은 field 배치). 2026-06-23 의 가로 배치 (Label · hex 입력 · ColorSwatch 한 줄) 는 지금 template 에 ColorSwatch 가 없어 근거가 없다. Canvas · Preview 모두. 위치: `componentRulesTable.ts` ColorField `layout` · `generated/ColorField.css`
 
 ### Fixed
+
+- **Calendar 의 locale 이 세 군데에서 달랐던 것** — 달력 칸 (Canvas) 은 한국식, 년월 제목은 미국식, Preview 는 미국식 요일:
+  - **Why**: Calendar 원본이 `locale` 기본값 `ko-KR` 을 template 의 CalendarGrid 부품에만 묶었고, 제목 · Preview (RAC Calendar 루트) 는 브라우저 locale 을 썼다. 이제 값은 Calendar 루트 하나 (template `{locale}` · `{calendarSystem}`) 이고, Canvas 의 제목과 달력 칸이 그 값을 (없으면 브라우저 locale) 파생으로 받는다. DateField 계열의 Canvas 조각도 달력 체계를 따른다.
+  - 위치: `reusableOriginLibrary.ts` (Calendar · RangeCalendar) · `catalog/runtime/presence.ts` · `compositionRoot.ts` · `delegatedDom.tsx`
 
 - **DateField · TimeField 가 Preview 에서만 오늘 날짜 · 09:00 을 보이던 것** — 값이 없으면 빈 조각 (「연도. 월. 일.」 · 「––:––」) 이다 (RAC · RSP 레퍼런스, Canvas 와 같다).
   - **Why**: DOM binding 이 값 없는 field 에 오늘 · 09:00 을 `defaultValue` 로 넣었다.

@@ -2026,10 +2026,15 @@ export class CatalogCompositionRoot {
     const granularity = prop("granularity");
     const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
     const parts = racDateSegmentParts({
-      locale:
-        typeof prop("locale") === "string"
+      // The field's locale and calendar system (`-u-ca-`), else the environment's locale.
+      locale: ((own, system) => (system ? `${own}-u-ca-${system}` : own))(
+        typeof prop("locale") === "string" && prop("locale")
           ? String(prop("locale"))
-          : this.locale,
+          : (this.locale ?? globalThis.navigator?.language ?? "en-US"),
+        typeof prop("calendarSystem") === "string"
+          ? String(prop("calendarSystem"))
+          : "",
+      ),
       granularity:
         typeof granularity === "string"
           ? granularity

@@ -8,6 +8,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { DATE_CALENDAR_SYSTEM_PROP, DATE_LOCALE_PROP } from "./dateLocaleProps";
 
 export const rangeCalendarBinding: PrimitiveBinding = {
   source: {
@@ -69,6 +70,9 @@ export const rangeCalendarBinding: PrimitiveBinding = {
         label: "Non-contiguous Ranges",
         section: "state",
       },
+      // react-aria.adobe.com "International calendars": unset = the browser's locale.
+      locale: DATE_LOCALE_PROP,
+      calendarSystem: DATE_CALENDAR_SYSTEM_PROP,
     },
     toRacProps: "default",
   },

@@ -667,8 +667,14 @@ function fieldSubpartProps(
   const hourCycle = racFieldHourCycle(ownerType, prop("hourCycle"));
   if (hourCycle !== undefined) out._hourCycle = hourCycle;
   const ownLocale = prop("locale");
-  const resolvedLocale = typeof ownLocale === "string" ? ownLocale : locale;
-  if (resolvedLocale) out._locale = resolvedLocale;
+  const resolvedLocale =
+    typeof ownLocale === "string" && ownLocale ? ownLocale : locale;
+  const system = prop("calendarSystem");
+  if (resolvedLocale)
+    out._locale =
+      typeof system === "string" && system
+        ? `${resolvedLocale}-u-ca-${system}`
+        : resolvedLocale;
   return out;
 }
 
@@ -783,6 +789,23 @@ function ownDerivedProps(
     CALENDAR_TYPES.has(typeOf(calendar))
   )
     return { children: catalogCalendarTitle(calendar.props, locale) };
+  // RAC Calendar's grid formats its weekdays and days in the Calendar's locale and calendar system
+  // (`I18nProvider` around the RAC Calendar): the Calendar's own, else the environment's.
+  if (
+    typeOf(node) === "CalendarGrid" &&
+    calendar &&
+    CALENDAR_TYPES.has(typeOf(calendar))
+  ) {
+    const own = calendar.props.locale;
+    const system = calendar.props.calendarSystem;
+    return {
+      locale:
+        typeof own === "string" && own
+          ? own
+          : (locale ?? globalThis.navigator?.language ?? "en-US"),
+      calendarSystem: typeof system === "string" ? system : "",
+    };
+  }
   if (level !== undefined)
     return {
       _treeLevel: level,
@@ -885,8 +908,8 @@ function derivedDependents(
       ...catalogBreadcrumbLabels(crumb, get, typeOf),
     ]);
   if (CALENDAR_TYPES.has(type))
-    return childrenOf(owner, get).filter(
-      (child) => typeOf(child) === "CalendarHeader",
+    return childrenOf(owner, get).filter((child) =>
+      ["CalendarHeader", "CalendarGrid"].includes(typeOf(child)),
     );
   const parent = get(owner.parentId);
   return type === "TreeItem" && parent && typeOf(parent) === "TreeItem"

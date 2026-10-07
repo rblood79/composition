@@ -1080,7 +1080,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "calendarSystem": "string"
     },
     "defaults": {
-      "locale": "ko-KR",
+      "locale": "",
       "calendarSystem": ""
     },
     "visual": {},
@@ -1172,7 +1172,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "calendarSystem": "string"
     },
     "defaults": {
-      "locale": "ko-KR",
+      "locale": "",
       "calendarSystem": ""
     },
     "visual": {},
@@ -5304,7 +5304,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "size": "md",
       "maxVisibleMonths": 1,
       "isDisabled": false,
-      "isReadOnly": false
+      "isReadOnly": false,
+      "locale": "{locale}",
+      "calendarSystem": "{calendarSystem}"
     },
     "visual": {}
   },
@@ -5314,9 +5316,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "2026년 9월",
-      "size": "md",
-      "locale": "{locale}",
-      "calendarSystem": "{calendarSystem}"
+      "size": "md"
     },
     "visual": {},
     "layout": {
@@ -5333,10 +5333,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "defaultToday": true,
-      "locale": "{locale}",
       "variant": "default",
-      "size": "md",
-      "calendarSystem": "{calendarSystem}"
+      "size": "md"
     },
     "visual": {}
   },
@@ -5672,7 +5670,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "variant": "default",
       "size": "md",
       "isDisabled": false,
-      "isReadOnly": false
+      "isReadOnly": false,
+      "locale": "{locale}",
+      "calendarSystem": "{calendarSystem}"
     },
     "visual": {}
   },
@@ -5682,9 +5682,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "2026년 9월",
-      "size": "md",
-      "locale": "{locale}",
-      "calendarSystem": "{calendarSystem}"
+      "size": "md"
     },
     "visual": {}
   },
@@ -5693,11 +5691,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CalendarGrid",
     "children": [],
     "props": {
-      "locale": "{locale}",
       "defaultToday": true,
       "variant": "default",
-      "size": "md",
-      "calendarSystem": "{calendarSystem}"
+      "size": "md"
     },
     "visual": {}
   },
