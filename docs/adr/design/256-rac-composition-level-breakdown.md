@@ -127,4 +127,4 @@ react-aria.adobe.com 문서의 예제에서 고른다. 기준값 = 예제 코드
   - G4: `pnpm gate:perf-ratchet` pass. 처음엔 A 등급 초과 — RAC slot 섹션의 hook · getter (선택마다) 와 Canvas 메뉴의 삭제 사전 실행 (선택마다 여러 번) 이 읽기를 늘렸다. 섹션은 slot 소비 타입에서만 · 패널의 workspace · root 를 받고, 필수 부품 검사는 래퍼 경로만 + revision 단위 기억으로 줄여 상한 안 (올림 0)
   - live: 넣기 목록 6/6 · RAC slot 6/6 · 필수 부품 4/4 (대조군 포함, headed Chrome — `adr256-p1-*-live.mjs`)
   - 사후 보고 (ADR 작성 규칙): ratchet 수리 커밋 7개 (sliver 5 이상) — 측정 → 수리 → 재측정을 한 번씩 남겼다. Phase 1 을 1a ~ 1d 로 나눴다 (sub-group 4)
-  - 범위 밖 · 남김: parity `adr248CatalogRealDom` Select/ComboBox trigger 실패는 Phase 1 이전 (`5f70fce09`) 에서도 같다 · `components/slotFillNodes.ts` 는 미사용 (삭제 승인 대기) · Components page 의 slot 표시는 slot 선언 이름만 읽어 옛 표 참조가 없다 (변경 0)
+  - 범위 밖 · 남김: parity `adr248CatalogRealDom` Select/ComboBox trigger 실패는 Phase 1 이전 (`5f70fce09`) 에서도 같다 · `components/slotFillNodes.ts` 는 사용자 승인으로 삭제 (2026-10-08) · Components page 의 slot 표시는 slot 선언 이름만 읽어 옛 표 참조가 없다 (변경 0)

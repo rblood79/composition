@@ -36,15 +36,12 @@ const OLD_TABLES = [
   "isSlotFillPrimitiveType",
   "slotFillPrimitiveLabel",
 ];
-/** The old module itself, until its deletion is approved (CLAUDE.md — 원본 파일 삭제는 별도 승인). */
-const OLD_MODULE = /components\/slotFillNodes\.ts$/;
 
 describe("ADR-256 G1 — one children judgment", () => {
   it("no source reads the old tables", () => {
     const hits: string[] = [];
     for (const root of ROOTS)
       for (const file of sources(root)) {
-        if (OLD_MODULE.test(file)) continue;
         const text = readFileSync(file, "utf8");
         for (const name of OLD_TABLES)
           if (text.includes(name))
