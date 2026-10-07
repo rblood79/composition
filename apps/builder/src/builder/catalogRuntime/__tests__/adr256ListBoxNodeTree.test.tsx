@@ -197,4 +197,45 @@ describe("ADR-256 Phase 5c — ListBox items are the reference's (example 1)", (
     expect(description().hidden).not.toBe(true);
     expect(html().match(/slot="description"/g)?.length).toBe(3);
   });
+
+  it("a node put into an item of the ListBox keeps the item's content (the item's own children)", async () => {
+    const { workspace, root, html } = await open(
+      "lib:definition:origin-component-listbox",
+    );
+    const item = [...root.canvasInputs.values()].find(
+      (r) => root.typeOf(r) === "ListBoxItem",
+    )!;
+    const icon = workspace.newId("node") as NodeId;
+    workspace.execute(
+      insertNodes({
+        parent: workspace.positionOfRecord(item.id)!.target as never,
+        index: 0,
+        entries: [
+          {
+            kind: "node",
+            id: icon,
+            definitionId: "lib:definition:type-Icon",
+            children: [],
+            props: { iconName: set("star") },
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: [icon],
+        newId: workspace.newId,
+      }),
+    );
+    // (Before ADR-256 Phase 5f the insert filled the item's position: the item became its
+    // children alone — no ListBoxItem, no label · description.)
+    const after = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId === icon,
+    )!;
+    const host = root.canvasInputs.get(after.parentId)!;
+    expect(root.typeOf(host)).toBe("ListBoxItem");
+    expect(host.children.map((id) => root.typeOf(root.canvasInputs.get(id)!))).toEqual(
+      ["Icon", "Icon", "Text", "Text"],
+    );
+    expect(html().match(/role="option"/g)).toHaveLength(3);
+  });
 });

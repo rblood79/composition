@@ -206,10 +206,12 @@ export function overrideAt(
 }
 
 /**
- * The position that holds a parent's child list. A library template position that fills the root
- * slot of the composite it instantiates (`slotFills`, ADR-253 — a Select's ListBox) shows that
- * slot's children as its own: its list is the composite's root at the nested instance level
- * (where an instance's `fillSlot` replaces the library fill). Every other parent holds its own.
+ * The position that holds a parent's child list. A library template position that instantiates a
+ * composite collapses into that composite's root, so its children are the root's (at the nested
+ * instance level — where an instance's `fillSlot` replaces them): a Select's ListBox that fills
+ * the root slot (`slotFills`, ADR-253), a collection item inside its collection's template
+ * (ADR-256 Phase 5f — an item's own content, its template children first). A fill on the position
+ * itself would stand in place of the root. Every other parent holds its own.
  */
 export function listParent(
   draft: CommandDraft,
@@ -223,20 +225,13 @@ export function listParent(
   const template = library.templates.get(
     templateId as `lib:template:${string}`,
   );
-  if (!template?.slotFills?.length) return parent;
+  if (!template) return parent;
   const definition = library.definitions.get(
     template.definitionId as `lib:definition:${string}`,
   );
   const rootId =
     definition?.mode === "composite" ? definition.templateRootId : undefined;
-  if (
-    !rootId ||
-    !template.slotFills.some(
-      (fill) =>
-        fill.templatePath.length === 1 && fill.templatePath[0] === rootId,
-    )
-  )
-    return parent;
+  if (!rootId) return parent;
   return {
     ...parent,
     address: { instances: [...instances, templateId], templatePath: [rootId] },

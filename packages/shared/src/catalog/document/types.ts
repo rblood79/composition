@@ -30,10 +30,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `showWhen: { all: ["allowsRemoving"] }`) and its label Text has no slot name; a TagGroup holds
  * Description · FieldError positions (`component-taggroup__description` · `__error`). 14 — ADR-256
  * Phase 5e: a Tab holds a `SelectionIndicator` (`component-tab-item-default__indicator`) and its
- * label Text has no slot name.
+ * label Text has no slot name. 15 — ADR-256 Phase 5f: the Checkbox origin takes `slot` (a
+ * collection item's `Checkbox[slot=selection]`) and its label carries `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 14 as const;
+export const LIBRARY_CONTRACT_VERSION = 15 as const;
 
 export type EntryKind =
   | "project"

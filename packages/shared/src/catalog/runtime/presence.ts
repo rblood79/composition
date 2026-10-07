@@ -3,6 +3,7 @@ import { isDisclosureExpandedInContext } from "../../utils/disclosureGroupExpans
 import { resolveStaticItemKey } from "../slotRoles";
 import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
 import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
+import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import { catalogCalendarTitle } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { racFieldHourCycle } from "../document/dateSegments";
@@ -188,6 +189,10 @@ function catalogCollectionItemSelected(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean | undefined {
+  // A selection checkbox shows its item's selection (RAC `CheckboxFieldContext` slot `selection`).
+  const checkboxItem = catalogSelectionCheckboxItem(node, get, typeOf);
+  if (checkboxItem)
+    return catalogStateValue(checkboxItem, "isSelected", get, typeOf);
   const tabs = catalogTabsOfTab(node, get, typeOf);
   if (tabs) {
     const { pairs, selectedKey } = catalogTabsSelection(tabs, get, typeOf);
@@ -205,6 +210,57 @@ function catalogCollectionItemSelected(
     typeof owner.props.selectedKey === "string"
     ? owner.props.selectedKey === key
     : false;
+}
+
+/**
+ * ADR-256 Phase 5f — the item a `Checkbox[slot=selection]` is the selection checkbox of: the
+ * nearest ancestor providing RAC's Checkbox context, when its slots have `selection` (GridListItem
+ * · TreeItem · Row — the installed RAC's `useGridListSelectionCheckbox` props). Undefined for any
+ * other node, and for a Checkbox the slot does not connect.
+ */
+export function catalogSelectionCheckboxItem(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Checkbox" || node.props.slot !== "selection")
+    return undefined;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
+    const provision = RAC_SLOT_PROVIDERS[typeOf(cursor)]?.Checkbox;
+    if (!provision) continue;
+    return !provision.cleared && provision.slots?.includes("selection")
+      ? cursor
+      : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * A selection checkbox is disabled when its item cannot be selected (RAC `canSelectItem`): the
+ * item is disabled, or its collection selects nothing (`selectionMode` none — a standalone item's
+ * host collection too).
+ */
+function catalogSelectionCheckboxDisabled(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (catalogStateValue(item, "isDisabled", get, typeOf)) return true;
+  const collection = catalogCollectionOfItem(item, get, typeOf);
+  const mode = collection?.props.selectionMode;
+  return typeof mode !== "string" || mode === "none";
+}
+
+/** The selection checkboxes of an item (`catalogSelectionCheckboxItem`), through frames. */
+function catalogSelectionCheckboxes(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  if (!RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox) return [];
+  return partChildrenOf(item, get, typeOf).filter(
+    (child) => catalogSelectionCheckboxItem(child, get, typeOf) === item,
+  );
 }
 
 function catalogCollectionOfItem(
@@ -800,7 +856,14 @@ export function catalogDerivedProps(
       }
     : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
-  return selected === undefined ? own : { ...own, _isSelected: selected };
+  const withSelection =
+    selected === undefined ? own : { ...own, _isSelected: selected };
+  // (A selection checkbox is disabled while its item cannot be selected — RAC's context value.)
+  const checkboxItem = catalogSelectionCheckboxItem(node, get, typeOf);
+  return checkboxItem &&
+    catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)
+    ? { ...withSelection, isDisabled: true }
+    : withSelection;
 }
 
 /**
@@ -978,6 +1041,8 @@ export function catalogDerivedPropsDependents(
       ...catalogItemLabels(item, get, typeOf),
       // (its selection indicators — their bar follows the Tab's orientation, ADR-256 Phase 5e)
       ...catalogSelectionIndicators(item, get, typeOf),
+      // (its selection checkboxes — the item's selection and selectability, Phase 5f)
+      ...catalogSelectionCheckboxes(item, get, typeOf),
       // (and its remove button's glyph — `catalogItemRemoveGlyphItem`)
       ...(MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
         ? childrenOf(item, get)
@@ -1527,12 +1592,16 @@ export function catalogStateValue(
       return (derived.isExpanded ?? props.isExpanded) === true;
     case "isInvalid":
       return props.isInvalid === true || derived._fieldInvalid === true;
-    case "isDisabled":
+    case "isDisabled": {
+      const checkboxItem = catalogSelectionCheckboxItem(owner, get, typeOf);
       return (
         state === "disabled" ||
         props.isDisabled === true ||
-        derived._fieldDisabled === true
+        derived._fieldDisabled === true ||
+        (!!checkboxItem &&
+          catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf))
       );
+    }
     case "isReadOnly":
     case "isRequired":
     case "allowsRemoving":

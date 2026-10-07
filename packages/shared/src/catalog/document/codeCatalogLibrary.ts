@@ -509,6 +509,8 @@ const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Icon",
   "Avatar",
   "Button",
+  // (ADR-256 Phase 5f: a collection item's selection checkbox — `Checkbox slot="selection"`.)
+  "Checkbox",
 ]);
 
 function withRuleBox(input: LibraryDefinition): LibraryDefinition {

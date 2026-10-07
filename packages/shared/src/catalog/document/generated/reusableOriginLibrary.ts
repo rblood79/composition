@@ -774,6 +774,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Checkbox",
     "mode": "composite",
     "accepts": {
+      "slot": "slot",
       "children": "string",
       "description": "string",
       "errorMessage": "string"
@@ -3974,6 +3975,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{children}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

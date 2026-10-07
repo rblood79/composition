@@ -15,10 +15,8 @@ import {
   isValidElement,
   memo,
   useCallback,
-  useContext,
   useRef,
   useSyncExternalStore,
-  type Context,
   type CSSProperties,
   type ElementType,
   type ReactElement,
@@ -50,11 +48,8 @@ import {
   catalogStateChildren,
   type CatalogDomStateCondition,
 } from "./stateFrames";
-import {
-  racSlotProps,
-  resolveRacSlot,
-  type RacSlotResolution,
-} from "./racSlot";
+import { racSlotProps, type RacSlotResolution } from "./racSlot";
+import { RacSlotScope } from "./racSlotScope";
 import type { StateName } from "../document/types";
 import { withCatalogStateStyles, type CatalogStateStyles } from "./stateStyles";
 import {
@@ -875,74 +870,6 @@ function buttonElement(
   );
 }
 
-/** The RAC consumer contexts a catalog part reads its slot from (`racSlot.ts`). */
-const RAC_SLOT_CONTEXTS = {
-  Text: RAC.TextContext,
-  Heading: RAC.HeadingContext,
-  Button: RAC.ButtonContext,
-} as const;
-
-/**
- * ADR-256 Decision 4 — resolves a part's authored RAC slot against the live context it renders in
- * (`racSlot.ts`), then renders. Props the DOM pass adds to the binding's element (`slot` — a
- * collection item role · `id` — the HTML id) reach the rendered element.
- */
-function RacSlotScope({
-  context,
-  authored,
-  render,
-  slot,
-  ...rest
-}: {
-  context: keyof typeof RAC_SLOT_CONTEXTS;
-  authored: unknown;
-  render: (resolution: RacSlotResolution) => ReactElement;
-  slot?: string;
-  [key: string]: unknown;
-}): ReactElement {
-  const element = render(
-    resolveRacSlot(
-      useContext(RAC_SLOT_CONTEXTS[context] as Context<unknown>),
-      slot ?? authored,
-    ),
-  );
-  return Object.keys(rest).length
-    ? cloneElement(element, overScopeProps(element, rest))
-    : element;
-}
-
-/**
- * The DOM pass decorates the scope as it would the binding's element (`withCatalogStateStyles` ·
- * `withRuntime` read the element's own `style` · handlers to go over them). The scope has none, so
- * what it was given goes over the rendered element's own: a style merges (a RAC style function
- * keeps its values), a handler runs after the element's.
- */
-function overScopeProps(
-  element: ReactElement,
-  given: Readonly<Record<string, unknown>>,
-): Record<string, unknown> {
-  const own = element.props as Record<string, unknown>;
-  const out: Record<string, unknown> = { ...given };
-  for (const [key, value] of Object.entries(given)) {
-    const mine = own[key];
-    if (key === "style" && mine && value && typeof value === "object") {
-      const extra = value as CSSProperties;
-      out.style =
-        typeof mine === "function"
-          ? (values: never) => ({
-              ...(mine as (values: never) => CSSProperties)(values),
-              ...extra,
-            })
-          : { ...(mine as CSSProperties), ...extra };
-    } else if (typeof mine === "function" && typeof value === "function")
-      out[key] = (...args: unknown[]) => {
-        (mine as (...a: unknown[]) => void)(...args);
-        (value as (...a: unknown[]) => void)(...args);
-      };
-  }
-  return out;
-}
-
 /**
  * A resolution with no context to connect to — detached, not connected, or no provider above
  * (rendered as the plain element, the DOM it had before ADR-256).
@@ -1285,8 +1212,11 @@ function ruleDom(
       ...(lower === "listboxitem" && itemLabelText(root, node)
         ? { textValue: itemLabelText(root, node) }
         : {}),
-      // A Tag's text is its label Text's (the reference's plain children).
-      ...(lower === "tag" ? { textValue: itemTextChildren(root, node) } : {}),
+      // A Tag's · GridListItem's text is its label Text's (the reference's plain children ·
+      // `textValue={image.title}` — the row's name).
+      ...(lower === "tag" || lower === "gridlistitem"
+        ? { textValue: itemTextChildren(root, node) }
+        : {}),
       ...(usesButtonBaseUtility(type)
         ? { className: `react-aria-${type} button-base` }
         : {}),
@@ -1339,14 +1269,20 @@ function ruleDom(
 /** Collection items that pass their RAC render props to their parts (`catalogStateChildren`). */
 const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set(["tag"]);
 
-/** An item's text: its Text children's (a Tag's label — no slot name, as the reference). */
+/** An item's text: its Text children's without a slot name (a Tag's · GridListItem's label). */
 function itemTextChildren(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): string {
   return node.children
     .map((id) => root.domInputs.get(id))
-    .filter((child) => !!child && catalogTypeName(root, child) === "Text")
+    .filter(
+      (child) =>
+        !!child &&
+        catalogTypeName(root, child) === "Text" &&
+        // (Not a description — `Text slot="description"`.)
+        !child.props.slot,
+    )
     .map((child) => String(child?.props.children ?? ""))
     .join(" ");
 }

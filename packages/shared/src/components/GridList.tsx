@@ -560,13 +560,12 @@ export function GridListItem({
       className="react-aria-GridListItem"
       data-variant={isQuiet ? "quiet" : "default"}
     >
-      {({ selectionMode, selectionBehavior, allowsDragging }) => (
+      {({ allowsDragging }) => (
         <>
-          {/* Add elements for drag and drop and selection. */}
+          {/* Add elements for drag and drop. */}
           {allowsDragging && <Button slot="drag">≡</Button>}
-          {selectionMode === "multiple" && selectionBehavior === "toggle" && (
-            <MyCheckbox slot="selection" />
-          )}
+          {/* (The selection checkbox is the item's `Checkbox slot="selection"` node — ADR-256
+              Phase 5f: the author puts it in, the item does not add one.) */}
           {children}
         </>
       )}

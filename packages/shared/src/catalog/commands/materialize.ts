@@ -24,6 +24,7 @@ import {
   childList,
   listParent,
   fail,
+  overrideAt,
   sameAddress,
   setChildList,
   type CommandDraft,
@@ -511,6 +512,11 @@ export function ensureChildList(
     parent.ownerId,
     fill ? fill.instances : parent.address.instances,
     newId,
+    // (A composite position's root children take the position's values for their `{key}`
+    // placeholders — its item label — as a detach does.)
+    !fill && parent !== at && at.kind === "descendant"
+      ? positionBindings(draft, at.ownerId, at.address)
+      : undefined,
   );
   const ids = fill
     ? fill.childIds.map((childId) => materializer.node([...fill.path, childId]))
@@ -526,6 +532,54 @@ export function ensureChildList(
   setChildList(draft, parent, ids);
   materializer.reanchorInteractions();
   return ids;
+}
+
+/**
+ * The values a composite template position gives its template's `{key}` placeholders (detach's
+ * bindings at a position): the owner's patch there, else the position's own template value, else
+ * the composite's default. A value that is itself a placeholder (bound one level up) is left out
+ * — that placeholder stays, and copying it is refused.
+ */
+function positionBindings(
+  draft: CommandDraft,
+  ownerId: NodeId,
+  address: InstanceAddress,
+): TemplateBindings {
+  const templateId = address.templatePath[address.templatePath.length - 1];
+  const template = readTemplate(draft, templateId);
+  const definition = draft.reader.library.definitions.get(
+    template.definitionId as `lib:definition:${string}`,
+  );
+  const patch = overrideAt(draft.node(ownerId), address);
+  const scalar = (value: unknown): Scalar | undefined => {
+    if (value === undefined || value === null || Array.isArray(value))
+      return undefined;
+    if (typeof value !== "object")
+      return typeof value === "string" && TEMPLATE_BINDING.test(value)
+        ? undefined
+        : (value as Scalar);
+    const tokenId = (value as { tokenId?: string }).tokenId;
+    const token = tokenId?.startsWith("lib:")
+      ? draft.reader.library.tokens.get(tokenId as `lib:token:${string}`)
+      : tokenId
+        ? draft.reader.getEntry(tokenId)
+        : undefined;
+    return token && "value" in token ? (token.value as Scalar) : undefined;
+  };
+  const bindings: Record<string, Scalar> = {};
+  for (const key of Object.keys(definition?.accepts ?? {})) {
+    const patched =
+      patch?.kind === "patch" ? patch.props?.[key] : undefined;
+    const own = template.props[key];
+    const value =
+      patched?.kind === "set"
+        ? scalar(patched.value)
+        : own?.kind === "set"
+          ? scalar(own.value)
+          : scalar(definition?.defaults[key]);
+    if (value !== undefined) bindings[key] = value;
+  }
+  return bindings;
 }
 
 /**

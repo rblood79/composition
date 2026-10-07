@@ -52,8 +52,13 @@ import type {
   CatalogDocument,
   CatalogLibrary,
   DefinitionId,
+  InstanceAddress,
   NodeEntry,
 } from "../../../../packages/shared/src/catalog/document/types";
+import {
+  insertNodes,
+  type CatalogCommand,
+} from "../../../../packages/shared/src/catalog/commands";
 
 type Rect = { x: number; y: number; width: number; height: number };
 const PAGE = { width: 1920, height: 1080 };
@@ -85,6 +90,8 @@ const CASES: Array<{
   key: string;
   type: string;
   props: Record<string, string | boolean>;
+  /** An author edit before the comparison (the subject's id; the root executes the command). */
+  edit?: (subject: NodeEntry["id"]) => CatalogCommand[];
 }> = [
   ...SIDE_LABEL_TYPES.flatMap((type): typeof CASES => [
     { key: `${type}-top`, type, props: {} },
@@ -127,7 +134,51 @@ const CASES: Array<{
     type: "TagGroup",
     props: { description: "Pick some", errorMessage: "Pick fewer" },
   },
+  // ADR-256 Phase 5f: the author's selection Checkbox first in each item (through the item's
+  // position, as the Builder's insert) — RAC connects it to the item (CheckboxField slot
+  // `selection`).
+  {
+    key: "GridList-selection",
+    type: "GridList",
+    props: { selectionMode: "multiple" },
+    edit: (subject) =>
+      [1, 2, 3].map((index) =>
+        insertNodes({
+          parent: {
+            kind: "descendant",
+            ownerId: subject,
+            address: {
+              instances: [subject],
+              templatePath: [
+                "lib:template:component-gridlist",
+                `lib:template:component-gridlist__item-${index}`,
+              ],
+            } as unknown as InstanceAddress,
+          },
+          index: 0,
+          entries: [
+            {
+              kind: "node",
+              id: `project:node:axis-box-${index}` as NodeEntry["id"],
+              definitionId: "lib:definition:origin-component-checkbox",
+              children: [],
+              props: {
+                slot: { kind: "set", value: "selection" },
+                children: { kind: "set", value: "" },
+              },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [`project:node:axis-box-${index}` as NodeEntry["id"]],
+          newId: ((kind: string) =>
+            `project:${kind}:axis-${(axisIds += 1)}`) as never,
+        }),
+      ),
+  },
 ];
+let axisIds = 0;
 
 let code: CatalogLibrary;
 const report: unknown[] = [];
@@ -157,7 +208,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 14,
+    libraryContractVersion: 15,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -236,6 +287,7 @@ async function compare(
   type: string,
   props: Record<string, string | boolean>,
   key: string,
+  edit?: (subject: NodeEntry["id"]) => CatalogCommand[],
 ) {
   const definitionId = catalogPaletteDefinitionId(code, type) as DefinitionId;
   const runtime = new CatalogRuntime(
@@ -251,6 +303,8 @@ async function compare(
     catalogTextMeasure,
     LOCALE,
   );
+  for (const command of edit?.("project:node:subject" as NodeEntry["id"]) ?? [])
+    root.execute(command);
   const rootInput = [...root.canvasInputs.values()].find(
     (input) => input.parentId === "catalog:root",
   )!;
@@ -401,9 +455,9 @@ async function compare(
 }
 
 describe("ADR-248 4e — prop axis Canvas ↔ DOM", () => {
-  for (const { key, type, props } of CASES)
+  for (const { key, type, props, edit } of CASES)
     it(key, async () => {
-      const result = await compare(type, props, key);
+      const result = await compare(type, props, key, edit);
       report.push(result);
       expect(result.over).toEqual([]);
     });

@@ -48,6 +48,8 @@ import {
   OWNER_DRAWN_PART_OWNERS,
 } from "@composition/shared";
 import { catalogStateChildren, catalogStateFrame } from "./stateFrames";
+import { racSlotProps } from "./racSlot";
+import { RacSlotScope } from "./racSlotScope";
 import {
   CATALOG_LABEL_NODE_FIELDS,
   FIELD_HINT_OWNERS,
@@ -1483,7 +1485,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   }),
   // ADR-256 Phase 3: the Checkbox is RAC `CheckboxField` — its children in order (the CheckboxButton,
   // a Description, a FieldError, anything the author put in). In a CheckboxGroup it is one of the
-  // group's values (its record id — the group's `defaultValue`).
+  // group's values (its record id — the group's `defaultValue`). Phase 5f: its authored slot
+  // connects it to the RAC context it renders in — a collection item's `selection` gives it the
+  // item's selection (state · name · handler), so its own state props stay out (RAC merges the
+  // element's props over the context's).
   checkbox: {
     render: (input) => {
       const props = input.node.props;
@@ -1493,27 +1498,40 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ["CheckboxItems", "CheckboxGroup"].includes(
           catalogTypeName(input.root, host),
         );
-      return createElement(AriaCheckboxField as ElementType, {
-        ...marker(input),
-        style: input.style,
-        className: "react-aria-Checkbox",
-        "data-size": str(props.size) || "md",
-        "data-emphasized": bool(props.isEmphasized) || undefined,
-        ...(inGroup
-          ? { value: input.node.id }
-          : {
-              defaultSelected: bool(props.isSelected),
-              name: opt(props.name),
-              value: opt(props.value),
-            }),
-        isIndeterminate: bool(props.isIndeterminate),
-        isDisabled: bool(props.isDisabled),
-        isInvalid: bool(props.isInvalid),
-        isReadOnly: bool(props.isReadOnly),
-        isRequired: bool(props.isRequired),
-        autoFocus: bool(props.autoFocus),
-        // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
-        children: catalogStateChildren(input.node.id, () => renderAll(input)),
+      return createElement(RacSlotScope, {
+        key: input.node.id,
+        context: "Checkbox",
+        authored: props.slot,
+        render: (resolution) =>
+          createElement(AriaCheckboxField as ElementType, {
+            "data-catalog-id": input.node.id,
+            ...racSlotProps(resolution),
+            style: input.style,
+            className: "react-aria-Checkbox",
+            "data-size": str(props.size) || "md",
+            "data-emphasized": bool(props.isEmphasized) || undefined,
+            ...(resolution.kind === "named"
+              ? {}
+              : {
+                  ...(inGroup
+                    ? { value: input.node.id }
+                    : {
+                        defaultSelected: bool(props.isSelected),
+                        name: opt(props.name),
+                        value: opt(props.value),
+                      }),
+                  isIndeterminate: bool(props.isIndeterminate),
+                  isDisabled: bool(props.isDisabled),
+                }),
+            isInvalid: bool(props.isInvalid),
+            isReadOnly: bool(props.isReadOnly),
+            isRequired: bool(props.isRequired),
+            autoFocus: bool(props.autoFocus),
+            // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
+            children: catalogStateChildren(input.node.id, () =>
+              renderAll(input),
+            ),
+          }),
       });
     },
   },

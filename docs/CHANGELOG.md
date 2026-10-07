@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5f — GridList 항목의 선택 체크박스 노드] - 2026-10-09
+
+### Changed
+
+- **GridList 항목의 선택 체크박스는 작성자가 넣는 `Checkbox slot="selection"` 노드** (ADR-256 Phase 5f — react-aria.adobe.com GridList 예제)
+  - Preview 의 항목은 더 이상 다중 선택일 때 체크박스를 스스로 붙이지 않는다. 항목 안에 Checkbox 를 넣고 Design 의 slot 을 `selection` 으로 고르면, RAC 가 그 체크박스를 항목 선택에 잇는다 (누르면 행 선택 · 이름은 행).
+  - Canvas 도 같은 노드를 그린다 — 선택 상태는 항목의 것을 따르고, 선택하지 않는 목록 (`selectionMode` none) 에서는 비활성으로 그린다.
+  - 위치: `catalog/runtime/delegatedDom.tsx` `checkbox` · `catalog/runtime/racSlotScope.tsx` · `presence.ts` `catalogSelectionCheckboxItem` · `components/GridList.tsx`
+- **Checkbox 가 `slot` 을 받는다**, Checkbox 의 빈 글자는 그리지 않는다 (`presentWhen`) — 레퍼런스의 `<Checkbox slot="selection" />` 에는 글자가 없다
+- **GridList 행의 접근 이름은 항목의 글자 Text** (`textValue`)
+- **저장 형식 contract 15**
+
+### Fixed
+
+- **instance 안 collection 항목 (GridList · ListBox · Menu · Tag 항목 …) 에 요소를 넣으면 항목 내용이 사라지던 것**
+  - 항목 type 이 원본 이름으로 바뀌고 Preview 는 항목을 그리지 않았다.
+  - **Why**: 넣기가 항목 위치 자체를 자식 목록으로 채워, resolver 가 항목이 접혀 들어가는 원본 root (와 그 label · description) 를 통째로 바꿔 끼웠다. 이제 항목 위치의 자식 목록은 그 root 의 자식이다 — 넣을 때 root 의 template 자식을 위치의 값으로 꺼내고 (`commands/context.ts` `listParent` · `materialize.ts` `positionBindings`), 새 요소는 그 사이 원하는 자리에 놓인다
+
 ## [ADR-256 Phase 5e-2 — Tabs 안 자유 내용] - 2026-10-09
 
 ### Changed
