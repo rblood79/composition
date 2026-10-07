@@ -22,7 +22,7 @@ import {
   catalogLeadingIconPartNodeData,
   catalogRuleNodeData,
 } from "./ruleShapes";
-import { catalogTreeChevronInset } from "./presence";
+import { catalogPartParent, catalogTreeChevronInset } from "./presence";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
@@ -548,10 +548,15 @@ function ownerDrawnPart(
       const childType = root.typeOf(child);
       if (OWNER_DRAWN_PART_OWNERS[childType] === type)
         return { id, primitive: OWNER_DRAWN_PART_PRIMITIVES[childType] };
-      if (depth === 0 && OWNER_DRAWN_PART_HOSTS[childType] === type) {
-        const found = visit(child.children, 1);
-        if (found) return found;
-      }
+      // (A layout frame the author put around the part or the button passes it through — RAC's
+      // contexts and the toggle's selectors reach through it, ADR-256 Phase 3 review m1.)
+      const found =
+        childType === "frame"
+          ? visit(child.children, depth)
+          : depth === 0 && OWNER_DRAWN_PART_HOSTS[childType] === type
+            ? visit(child.children, 1)
+            : undefined;
+      if (found) return found;
     }
     return undefined;
   };
@@ -570,11 +575,14 @@ function ownerDrawnPartNodeData(
   node: CatalogConsumerNode,
   rect: Rect,
 ): SkiaNodeData {
-  const parent = root.canvasInputs.get(node.parentId);
-  // (Through the owner's RAC button — `OWNER_DRAWN_PART_HOSTS`.)
+  // (Through the owner's RAC button — `OWNER_DRAWN_PART_HOSTS` — and the layout frames around the
+  // part or the button: `catalogPartParent`.)
+  const partParent = (record: CatalogConsumerNode) =>
+    catalogPartParent(record, (id) => root.canvasInputs.get(id), root.typeOf);
+  const parent = partParent(node);
   const owner =
     parent && OWNER_DRAWN_PART_HOSTS[root.typeOf(parent)]
-      ? root.canvasInputs.get(parent.parentId)
+      ? partParent(parent)
       : parent;
   if (!owner?.ruleId)
     throw new Error(`CATALOG_CANVAS_PART_OWNER_REQUIRED:${node.id}`);

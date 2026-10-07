@@ -60,6 +60,7 @@ import {
   catalogDomPartParent,
   catalogPartField,
   catalogOwnerDrawnPart,
+  catalogToggleIndicatorElement,
   catalogTypeName,
 } from "./delegatedDom";
 import { Heading, Label, Text } from "react-aria-components";
@@ -1717,19 +1718,23 @@ function renderNode(
     : undefined;
   const children: ReactElement[] = owning
     ? []
-    : node.children
-        .filter((childId) => {
-          const child = root.domInputs.get(childId);
-          return !child || !catalogOwnerDrawnPart(root, child);
-        })
-        .map((childId) =>
+    : node.children.flatMap((childId) => {
+        const child = root.domInputs.get(childId);
+        // A part its owner draws has no element of its own — but a toggle indicator in a layout
+        // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).
+        if (child && catalogOwnerDrawnPart(root, child)) {
+          const indicator = catalogToggleIndicatorElement(root, child);
+          return indicator ? [indicator] : [];
+        }
+        return [
           createElement(CatalogDomNode, {
             key: childId,
             root,
             id: childId,
             context,
           }),
-        );
+        ];
+      });
   if (node.bindingId === "label") {
     const necessity = catalogFieldLabelNecessity(root, node);
     if (isValidElement(necessity))
@@ -1818,8 +1823,8 @@ function renderNode(
         // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
         // would take the group's label context).
         node.bindingId === "label" &&
-          parentInput &&
-          OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, parentInput)]
+          partParent &&
+          OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
         ? toggleTextBinding
         : bindingOf(node);
   const bound = binding

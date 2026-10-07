@@ -32,6 +32,7 @@ import {
   CATALOG_SIZE_STEP,
 } from "../document/sizePropagation";
 import { CatalogValidationError } from "../document/validation";
+import { OWNER_DRAWN_PART_HOSTS } from "../resolvers/resolveDelegatedChildFontSize";
 import { catalogTokenValue } from "../document/themedToken";
 import {
   compileFieldTemplate,
@@ -530,9 +531,30 @@ export function resolveCatalogNode(
           if (rule.visual) applyValues(visual, rule.visual);
           if (rule.layout) Object.assign(layout, rule.layout);
         }
-    const owner = structuralParent(parent);
-    if (!owner) return;
-    const grand = structuralParent(owner.parent);
+    const near = structuralParent(parent);
+    if (!near) return;
+    // A toggle's part rules are descendant selectors (`.react-aria-Checkbox .react-aria-CheckboxButton`,
+    // `.react-aria-CheckboxButton … .checkbox`): a layout frame the author put inside the toggle
+    // passes them through (ADR-256 Phase 3 review m1). Other owners' rules stop at the frame.
+    const pastFrames = (context: ParentContext | undefined) => {
+      let cursor = context;
+      while (cursor && lookupDefinition(cursor.definitionId).name === "frame")
+        cursor = structuralParent(cursor.parent);
+      return cursor;
+    };
+    const toggleFamily = (context: ParentContext | undefined) => {
+      const name = context && lookupDefinition(context.definitionId).name;
+      return (
+        !!name &&
+        (OWNER_DRAWN_PART_HOSTS[name] !== undefined ||
+          Object.values(OWNER_DRAWN_PART_HOSTS).includes(name))
+      );
+    };
+    const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;
+    const grandNear = structuralParent(owner.parent);
+    const grand = toggleFamily(pastFrames(grandNear))
+      ? pastFrames(grandNear)
+      : grandNear;
     // The parent's own rules, then the grandparent's `via` rules (through this node's parent): a
     // selector reaching through the wrapper from its owner is the more specific one in the sheet.
     const owners: Array<{ owner: ParentContext; via?: DefinitionId }> = [

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 3 판독 수리 — toggle 안의 layout frame] - 2026-10-08
+
+### Fixed
+
+- **toggle 안에 넣은 frame 이 toggle 을 깨던 것** (ADR-256 Phase 3 판독 Round 8): Checkbox · Switch · Radio 버튼 안의 indicator 를 frame 으로 감싸면 Preview 가 indicator 를 그리지 않고 Canvas 는 0×0 으로 그렸다 · 버튼을 frame 으로 감싸면 Canvas 가 indicator 칠의 주인을 frame 으로 잡았다 · 버튼 글자를 frame 으로 감싸면 글자가 RAC `Label` 로 돌아가 그룹 이름의 id 를 가져갔다 (단독 Checkbox 는 label 안 label) · 그룹 항목을 frame 으로 감싸면 그 항목이 처음 선택값에서 빠졌다. 이제 frame 은 레퍼런스의 `div` 처럼 지나간다. 위치: `catalog/runtime/delegatedDom.tsx` `toggleButton` · `groupItems`, `domBinding.tsx`, `canvasBinding.ts` `ownerDrawnPart`, `resolver.ts` `applyTypedRules`
+
 ## [ADR-256 Phase 3c — 그룹 · ToggleButtonGroup 이 자식을 순서대로] - 2026-10-08
 
 ### Changed

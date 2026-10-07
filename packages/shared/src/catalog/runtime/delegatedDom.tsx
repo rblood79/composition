@@ -1,5 +1,7 @@
 import {
+  createContext,
   createElement,
+  useContext,
   type CSSProperties,
   type ElementType,
   type ReactElement,
@@ -39,7 +41,10 @@ import {
 } from "../../components/FileUpload";
 import { FileTriggerIntake } from "../../upload/intakeAdapters";
 import { resolveTextSourceText, textFromValue } from "@composition/rendering";
-import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
+import {
+  OWNER_DRAWN_PART_HOSTS,
+  OWNER_DRAWN_PART_OWNERS,
+} from "@composition/shared";
 import {
   CATALOG_LABEL_NODE_FIELDS,
   FIELD_HINT_OWNERS,
@@ -571,12 +576,51 @@ function withI18n(
  * node has no element of its own).
  */
 type ToggleRenderProps = { isSelected: boolean; isIndeterminate?: boolean };
+type ToggleIndicators = Readonly<
+  Record<string, (key: string, state: ToggleRenderProps) => ReactElement>
+>;
+/**
+ * The button's render state and indicator drawing, for an indicator node the author put in a layout
+ * frame inside the button (RAC's render props reach only the button's direct children; the frame
+ * passes this context through as RAC passes its own).
+ */
+const ToggleIndicatorContext = createContext<{
+  readonly state: ToggleRenderProps;
+  readonly indicators: ToggleIndicators;
+} | null>(null);
+function ToggleIndicatorPart({
+  type,
+  nodeKey,
+}: {
+  type: string;
+  nodeKey: string;
+}): ReactElement | null {
+  const toggle = useContext(ToggleIndicatorContext);
+  return toggle?.indicators[type]?.(nodeKey, toggle.state) ?? null;
+}
+/**
+ * The element a toggle indicator node stands for when it is not its button's direct child (inside a
+ * layout frame in the button — ADR-256 Phase 3 review m1): the button's indicator, by its state.
+ * Other parts their owner draws have no element here.
+ */
+export function catalogToggleIndicatorElement(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): ReactElement | null {
+  const type = catalogTypeName(root, node);
+  return OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, catalogDomPartParent(root, node) ?? node)] &&
+    OWNER_DRAWN_PART_OWNERS[type]
+    ? createElement(ToggleIndicatorPart, {
+        key: node.id,
+        type,
+        nodeKey: node.id,
+      })
+    : null;
+}
 function toggleButton(
   component: ElementType,
   className: string,
-  indicators: Readonly<
-    Record<string, (key: string, state: ToggleRenderProps) => ReactElement>
-  >,
+  indicators: ToggleIndicators,
 ): DelegatedDomBinding {
   return {
     render: (input) =>
@@ -585,15 +629,40 @@ function toggleButton(
         style: input.style,
         className,
         children: (state: ToggleRenderProps) =>
-          input.node.children.map((id) => {
-            const child = input.root.domInputs.get(id);
-            const indicator = child
-              ? indicators[catalogTypeName(input.root, child)]
-              : undefined;
-            return indicator ? indicator(id, state) : input.renderChild(id);
-          }),
+          createElement(
+            ToggleIndicatorContext.Provider,
+            { value: { state, indicators } },
+            ...input.node.children.map((id) => {
+              const child = input.root.domInputs.get(id);
+              const indicator = child
+                ? indicators[catalogTypeName(input.root, child)]
+                : undefined;
+              return indicator ? indicator(id, state) : input.renderChild(id);
+            }),
+          ),
       }),
   };
+}
+/**
+ * A CheckboxGroup's / RadioGroup's items in order: the toggles in the group's RAC context — under the
+ * group, its items wrapper or a layout frame in them (as an item judges itself in the group,
+ * `catalogDomPartParent`), not in a nested group.
+ */
+function groupItems(
+  input: DelegatedDomInput,
+  itemType: string,
+  itemsType: string,
+): CatalogConsumerNode[] {
+  const visit = (node: CatalogConsumerNode): CatalogConsumerNode[] =>
+    childrenOf(input.root, node).flatMap((child) => {
+      const type = catalogTypeName(input.root, child);
+      return type === itemType
+        ? [child]
+        : type === itemsType || type === "frame"
+          ? visit(child)
+          : [];
+    });
+  return visit(input.node);
 }
 function nodeTreeField(
   component: ElementType,
@@ -1367,10 +1436,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   checkboxgroup: {
     render: (input) => {
       const props = input.node.props;
-      const items = childOf(input, "CheckboxItems");
-      const boxes = (items ? childrenOf(input.root, items) : []).filter(
-        (child) => catalogTypeName(input.root, child) === "Checkbox",
-      );
+      const boxes = groupItems(input, "Checkbox", "CheckboxItems");
       const selected = boxes
         .filter((box) => box.props.isSelected === true)
         .map((box) => box.id);
@@ -1422,10 +1488,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   radiogroup: {
     render: (input) => {
       const props = input.node.props;
-      const items = childOf(input, "RadioItems");
-      const radios = (items ? childrenOf(input.root, items) : []).filter(
-        (child) => catalogTypeName(input.root, child) === "Radio",
-      );
+      const radios = groupItems(input, "Radio", "RadioItems");
       const selected = radios.find((radio) => radio.props.isSelected === true);
       const value =
         selected?.props.value !== undefined
