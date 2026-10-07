@@ -19,8 +19,8 @@ import {
  * 가 안 보임(Skia canvas 는 switch_toggle/checkbox skiaPrimitive 가 그려 비대칭). DateField/TimeField
  * 동형(render function 이 아니라 정적 자식 div 라는 점만 다름)의 self-compose 위임 누락.
  *
- * Radio 는 제외 — `.react-aria-Radio::before` pseudo-element ring 모델이라 DOM 자식 불요, RAC
- * `<Radio>` 직접 렌더로도 indicator 정상(live 확인). 등록하면 불필요한 위임(surface 증가)이라 제외.
+ * Radio 는 ADR-256 Phase 3 (2026-10-08) 부터 등록 — 레퍼런스 `RadioField > RadioButton (div.indicator +
+ * 글자)` 를 노드 순서대로 그린다 (종전 `.react-aria-Radio::before` ring 은 `div.indicator` 요소가 됐다).
  */
 describe("domRegistry — Switch/Checkbox 위임 등록 (ADR-913 slice 3 회귀 방지)", () => {
   it("Switch 는 DELEGATING_RAC_RENDERERS 에 등록 (.indicator div self-compose)", () => {
@@ -31,9 +31,8 @@ describe("domRegistry — Switch/Checkbox 위임 등록 (ADR-913 slice 3 회귀 
     expect(DELEGATING_RAC_RENDERERS.has("Checkbox")).toBe(true);
   });
 
-  it("Radio 는 DELEGATING_RAC_RENDERERS 에 미등록 (::before pseudo ring — DOM 자식 불요)", () => {
-    // Radio 는 RAC `<Radio>` 직접 렌더로도 ::before ring 정상. 위임은 불필요한 surface 증가.
-    expect(DELEGATING_RAC_RENDERERS.has("Radio")).toBe(false);
+  it("Radio 는 DELEGATING_RAC_RENDERERS 에 등록 (ADR-256 Phase 3 — RadioField > RadioButton 노드 트리)", () => {
+    expect(DELEGATING_RAC_RENDERERS.has("Radio")).toBe(true);
   });
 
   it("DateField/TimeField/NumberField/SearchField 동형 멤버 보존 (회귀 0)", () => {

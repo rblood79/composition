@@ -1,26 +1,27 @@
 /**
  * Radio Component Styles
+ *
+ * ADR-256 Phase 3: the catalog Radio is RAC `RadioField` (`div` — the field state) around a
+ * `RadioButton` (`label` — the pressable, with the pressed / focus-visible state) holding the ring
+ * `div.indicator` and the text (the reference Radio; the ring was `.react-aria-Radio::before`). The
+ * row and its gap are the generated sheet's (`.react-aria-RadioButton`, `--radio-button-gap`).
  */
 
 @layer components {
   .react-aria-Radio {
     --radio-color: var(--accent);
 
-    display: flex;
     position: relative;
-    align-items: center;
-    gap: var(--radio-gap, var(--spacing-sm));
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     --label-font-size: var(--text-sm);
     color: var(--fg);
     forced-color-adjust: none;
-    padding: var(--spacing) 0;
     width: fit-content;
 
-    &:before {
-      content: "";
+    .indicator {
       display: block;
+      flex-shrink: 0;
       width: var(--text-xl);
       height: var(--text-xl);
       box-sizing: border-box;
@@ -30,32 +31,32 @@
       transition: all 0.2s ease;
     }
 
-    &[data-pressed]:before {
+    .react-aria-RadioButton[data-pressed] .indicator {
       border-color: var(--border-hover);
     }
 
     &[data-selected] {
-      &:before {
+      .indicator {
         border-color: var(--radio-color);
         border-width: 6px;
       }
 
-      &[data-pressed]:before {
+      .react-aria-RadioButton[data-pressed] .indicator {
         border-color: color-mix(in srgb, var(--radio-color) 75%, black);
       }
     }
 
-    &[data-focus-visible]:before {
+    .react-aria-RadioButton[data-focus-visible] .indicator {
       outline: 2px solid var(--radio-color);
       outline-offset: 2px;
     }
 
     &[data-invalid] {
-      &:before {
+      .indicator {
         border-color: var(--negative);
       }
 
-      &[data-selected]:before {
+      &[data-selected] .indicator {
         border-color: var(--negative);
       }
     }
@@ -63,7 +64,7 @@
     &[data-disabled] {
       color: var(--fg-disabled);
 
-      &:before {
+      .indicator {
         border-color: var(--border-disabled);
       }
     }
@@ -86,7 +87,7 @@
   .react-aria-RadioGroup[data-radio-variant="surface"] .react-aria-Radio {
     --radio-color: var(--accent-subtle);
 
-    &[data-focus-visible]:before {
+    .react-aria-RadioButton[data-focus-visible] .indicator {
       outline-color: var(--fg);
     }
   }
@@ -116,13 +117,13 @@
     --label-font-size: var(--text-xs);
     --radio-gap: 6px;
 
-    &:before {
+    .indicator {
       width: var(--text-base);
       height: var(--text-base);
       border-radius: var(--text-base);
     }
 
-    &[data-selected]:before {
+    &[data-selected] .indicator {
       border-width: 5px;
     }
   }
@@ -133,13 +134,13 @@
     --label-font-size: var(--text-sm);
     --radio-gap: var(--spacing-sm);
 
-    &:before {
+    .indicator {
       width: var(--text-xl);
       height: var(--text-xl);
       border-radius: var(--text-xl);
     }
 
-    &[data-selected]:before {
+    &[data-selected] .indicator {
       border-width: 6px;
     }
   }
@@ -150,13 +151,13 @@
     --label-font-size: var(--text-base);
     --radio-gap: 10px;
 
-    &:before {
+    .indicator {
       width: var(--text-2xl);
       height: var(--text-2xl);
       border-radius: var(--text-2xl);
     }
 
-    &[data-selected]:before {
+    &[data-selected] .indicator {
       border-width: 7px;
     }
   }
@@ -170,13 +171,13 @@
     --label-font-size: var(--text-lg);
     --radio-gap: var(--spacing-md);
 
-    &:before {
+    .indicator {
       width: var(--text-3xl);
       height: var(--text-3xl);
       border-radius: var(--text-3xl);
     }
 
-    &[data-selected]:before {
+    &[data-selected] .indicator {
       border-width: 8px;
     }
   }

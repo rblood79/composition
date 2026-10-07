@@ -12,6 +12,15 @@ import {
   CheckboxButton as AriaCheckboxButton,
   CheckboxField as AriaCheckboxField,
 } from "react-aria-components/Checkbox";
+import {
+  SwitchButton as AriaSwitchButton,
+  SwitchField as AriaSwitchField,
+} from "react-aria-components/Switch";
+import {
+  RadioButton as AriaRadioButton,
+  RadioField as AriaRadioField,
+  RadioGroup as AriaRadioGroup,
+} from "react-aria-components/RadioGroup";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
@@ -68,7 +77,6 @@ import { ProgressBar } from "../../components/ProgressBar";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RangeCalendar } from "../../components/RangeCalendar";
 import { Slider } from "../../components/Slider";
-import { Switch } from "../../components/Switch";
 import { ToggleButton } from "../../components/ToggleButton";
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
 import {
@@ -558,6 +566,36 @@ function withI18n(
  * layout and quiet are data attributes its sheet reads. (The shared field components composed
  * the same root from props — they are no longer on the Preview path.)
  */
+/**
+ * A toggle's RAC button (ADR-256 Phase 3 — `CheckboxButton` · `SwitchButton`): its children in
+ * order; the indicator node's place is the element RAC's state draws (a part its owner draws — the
+ * node has no element of its own).
+ */
+type ToggleRenderProps = { isSelected: boolean; isIndeterminate?: boolean };
+function toggleButton(
+  component: ElementType,
+  className: string,
+  indicators: Readonly<
+    Record<string, (key: string, state: ToggleRenderProps) => ReactElement>
+  >,
+): DelegatedDomBinding {
+  return {
+    render: (input) =>
+      createElement(component, {
+        ...marker(input),
+        style: input.style,
+        className,
+        children: (state: ToggleRenderProps) =>
+          input.node.children.map((id) => {
+            const child = input.root.domInputs.get(id);
+            const indicator = child
+              ? indicators[catalogTypeName(input.root, child)]
+              : undefined;
+            return indicator ? indicator(id, state) : input.renderChild(id);
+          }),
+      }),
+  };
+}
 function nodeTreeField(
   component: ElementType,
   type: string,
@@ -1195,28 +1233,81 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       });
     },
   },
+  // ADR-256 Phase 3: the Switch is RAC `SwitchField` — its children in order (the SwitchButton, a
+  // Description, a FieldError, anything the author put in).
   switch: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
       return createElement(
-        Switch as ElementType,
+        AriaSwitchField as ElementType,
         {
           ...marker(input),
           style: input.style,
+          className: "react-aria-Switch",
+          "data-size": str(props.size) || "md",
+          "data-emphasized": bool(props.isEmphasized) || undefined,
           defaultSelected: bool(props.isSelected),
           isDisabled: bool(props.isDisabled),
           isReadOnly: bool(props.isReadOnly),
           name: opt(props.name),
           value: opt(props.value),
           autoFocus: bool(props.autoFocus),
-          isEmphasized: bool(props.isEmphasized),
-          size: props.size || "md",
         },
-        typeof props.children === "string" ? props.children : null,
+        ...renderAll(input),
       );
     },
   },
+  // ADR-256 Phase 3: the Radio is RAC `RadioField` — its children in order (the RadioButton, a
+  // Description, anything the author put in). Outside a RadioGroup it needs RAC's group state: a
+  // host group with no box of its own (`display: contents` — the old `hostOrphanRadio`).
+  radio: {
+    render: (input) => {
+      const props = input.node.props;
+      const element = createElement(
+        AriaRadioField as ElementType,
+        {
+          ...marker(input),
+          style: input.style,
+          className: "react-aria-Radio",
+          "data-size": str(props.size) || "md",
+          "data-variant": str(props.variant) || "default",
+          value: str(props.value),
+          isDisabled: bool(props.isDisabled),
+          autoFocus: bool(props.autoFocus),
+        },
+        ...renderAll(input),
+      );
+      for (
+        let parent = input.root.domInputs.get(input.node.parentId);
+        parent;
+        parent = input.root.domInputs.get(parent.parentId)
+      )
+        if (catalogTypeName(input.root, parent) === "RadioGroup")
+          return element;
+      return createElement(
+        AriaRadioGroup,
+        {
+          key: `host:${input.node.id}`,
+          "aria-label": "Radio sample",
+          value: props.isSelected === true ? str(props.value) : null,
+          style: { display: "contents" },
+        },
+        element,
+      );
+    },
+  },
+  // ADR-256 Phase 3: the Radio's RAC `RadioButton` (the `label`) — its children in order; the
+  // RadioIndicator node's place is the ring (`div.indicator` — `Radio.css`, the reference's).
+  radiobutton: toggleButton(AriaRadioButton, "react-aria-RadioButton", {
+    RadioIndicator: (key) =>
+      createElement("div", { key, className: "indicator" }),
+  }),
+  // ADR-256 Phase 3: the Switch's RAC `SwitchButton` (the `label`) — its children in order; the
+  // SwitchIndicator node's place is the track (`div.indicator` — `Switch.css`).
+  switchbutton: toggleButton(AriaSwitchButton, "react-aria-SwitchButton", {
+    SwitchIndicator: (key) =>
+      createElement("div", { key, className: "indicator" }),
+  }),
   // ADR-256 Phase 3: the Checkbox is RAC `CheckboxField` — its children in order (the CheckboxButton,
   // a Description, a FieldError, anything the author put in). In a CheckboxGroup it is one of the
   // group's values (its record id — the group's `defaultValue`).
@@ -1258,32 +1349,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 3: the Checkbox's RAC `CheckboxButton` (the `label`) — its children in order; the
   // CheckboxIndicator node's place is the indicator box, drawn by RAC's state (a part its owner
   // draws: the node has no element of its own).
-  checkboxbutton: {
-    render: (input) =>
-      createElement(AriaCheckboxButton as ElementType, {
-        ...marker(input),
-        style: input.style,
-        className: "react-aria-CheckboxButton",
-        children: ({
+  checkboxbutton: toggleButton(
+    AriaCheckboxButton,
+    "react-aria-CheckboxButton",
+    {
+      CheckboxIndicator: (key, { isSelected, isIndeterminate }) =>
+        createElement(CheckboxIndicatorBox, {
+          key,
           isSelected,
-          isIndeterminate,
-        }: {
-          isSelected: boolean;
-          isIndeterminate: boolean;
-        }) =>
-          input.node.children.map((id) => {
-            const child = input.root.domInputs.get(id);
-            return child &&
-              catalogTypeName(input.root, child) === "CheckboxIndicator"
-              ? createElement(CheckboxIndicatorBox, {
-                  key: id,
-                  isSelected,
-                  isIndeterminate,
-                })
-              : input.renderChild(id);
-          }),
-      }),
-  },
+          isIndeterminate: isIndeterminate === true,
+        }),
+    },
+  ),
+
   checkboxgroup: {
     // The group label is read from the Label child; Checkbox children are composed by the group.
     // ADR-251: the items sit in the CheckboxItems node — the shared `CheckboxGroup` renders its

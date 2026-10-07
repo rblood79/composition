@@ -3,6 +3,10 @@
  */
 
 @layer components {
+  /* Two structures carry `.react-aria-Switch`: the shared `Switch` / PropertySwitch (RAC `Switch`, the
+     `label` itself) and the catalog Switch (ADR-256 Phase 3 — RAC `SwitchField` `div` around a
+     `SwitchButton` `label`). RAC puts the pressed / focus-visible state on the label, so those
+     selectors name both. */
   .react-aria-Switch {
     /* Default (non-emphasized): neutral color when selected */
     --switch-color: var(--fg);
@@ -19,8 +23,13 @@
        S2 Switch 도 inline-flex. */
     display: inline-flex;
     position: relative;
-    align-items: center;
-    gap: var(--switch-gap, 10px);
+    /* The row (indicator · text) is the root only in the shared Switch (a RAC `Switch` — `label`); the
+       catalog Switch is a RAC `SwitchField` column around a `SwitchButton` row (ADR-256 Phase 3 — the
+       generated sheet lays both out). */
+    &:is(label) {
+      align-items: center;
+      gap: var(--switch-gap, 10px);
+    }
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     --label-font-size: var(--text-sm);
@@ -48,7 +57,9 @@
       }
     }
 
-    &[data-pressed] .indicator {
+    &[data-pressed] .indicator,
+
+    & .react-aria-SwitchButton[data-pressed] .indicator {
       border-color: var(--border-hover);
 
       &:before {
@@ -69,13 +80,17 @@
         }
       }
 
-      &[data-pressed] .indicator {
+      &[data-pressed] .indicator,
+
+      & .react-aria-SwitchButton[data-pressed] .indicator {
         border-color: color-mix(in srgb, var(--switch-color) 75%, black);
         background: color-mix(in srgb, var(--switch-color) 75%, black);
       }
     }
 
-    &[data-focus-visible] .indicator {
+    &[data-focus-visible] .indicator,
+
+    & .react-aria-SwitchButton[data-focus-visible] .indicator {
       outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
     }

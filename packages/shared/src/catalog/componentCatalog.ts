@@ -633,10 +633,24 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     icon: "SquareCheck",
     placeable: false,
   }),
+  // RadioButton — ADR-256 Phase 3: Radio 의 누르는 자리 (RAC RadioButton). palette 비노출 (필수 부품).
+  primitiveEntry("RadioButton", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "radio button",
+    icon: "Circle",
+    placeable: false,
+  }),
   primitiveEntry("RadioIndicator", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "radio indicator",
     icon: "Circle",
+    placeable: false,
+  }),
+  // SwitchButton — ADR-256 Phase 3: Switch 의 누르는 자리 (RAC SwitchButton). palette 비노출 (필수 부품).
+  primitiveEntry("SwitchButton", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "switch button",
+    icon: "ToggleRight",
     placeable: false,
   }),
   primitiveEntry("SwitchIndicator", "selection", FAMILY_3_CUTOVER, {

@@ -643,9 +643,9 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     //   — the button is a node between the toggle and its row (old: the toggle held the row itself).
     id: "toggle-button-node",
     class: "decided",
-    owners: ["Checkbox", "CheckboxGroup"],
+    owners: ["Checkbox", "CheckboxGroup", "Switch", "Radio", "RadioGroup"],
     side: "new",
-    nodes: ["CheckboxButton"],
+    nodes: ["CheckboxButton", "SwitchButton", "RadioButton"],
     reason:
       "toggle = CheckboxField > CheckboxButton [indicator node, Label] (ADR-256 — the reference Checkbox; old: the toggle was the row)",
   },

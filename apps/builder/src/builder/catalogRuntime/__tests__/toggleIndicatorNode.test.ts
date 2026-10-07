@@ -162,23 +162,23 @@ describe("toggle indicator node", () => {
         label.id,
         ...(button ? [button.id] : []),
       ]);
-      // The button is the toggle's row: at its top-left, as tall (the hint parts are empty).
-      if (button) {
-        expect(geometry.get(button.id)!.x).toBeCloseTo(0, 3);
-        expect(geometry.get(button.id)!.y).toBeCloseTo(0, 3);
-        expect(geometry.get(button.id)!.height).toBeCloseTo(
-          geometry.get(toggle.id)!.height,
-          3,
-        );
-      }
+      // In the toggle's RAC button (the row) the parts' rects are the button's; the expected values
+      // are the toggle's (the button sits at the toggle's padding).
+      const offset = button ? geometry.get(button.id)! : { x: 0, y: 0 };
       const expected = EXPECTED[owner][size];
       const box = geometry.get(indicator.id)!;
       expect([box.width, box.height]).toEqual(expected.box);
-      expect(box.x).toBeCloseTo(0, 3);
-      expect(box.y).toBeCloseTo(expected.indicatorY, 3);
+      expect(offset.x + box.x).toBeCloseTo(0, 3);
+      expect(offset.y + box.y).toBeCloseTo(expected.indicatorY, 3);
       expect(geometry.get(toggle.id)!.height).toBeCloseTo(expected.height, 3);
-      expect(geometry.get(label.id)!.x).toBeCloseTo(expected.labelX, 3);
-      expect(geometry.get(label.id)!.y).toBeCloseTo(expected.labelY, 3);
+      expect(offset.x + geometry.get(label.id)!.x).toBeCloseTo(
+        expected.labelX,
+        3,
+      );
+      expect(offset.y + geometry.get(label.id)!.y).toBeCloseTo(
+        expected.labelY,
+        3,
+      );
       workspace.dispose();
     },
   );

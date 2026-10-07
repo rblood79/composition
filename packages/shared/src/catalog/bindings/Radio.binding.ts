@@ -28,6 +28,12 @@ export const radioBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Label", section: "content" },
+      // ADR-256 Phase 3: 레퍼런스 `RadioField` 의 도움말 (template 의 Description `{description}` 자리).
+      description: {
+        kind: "string",
+        label: "Description",
+        section: "content",
+      },
       // RAC Radio 는 group 안에서 value 로 식별
       value: { kind: "string", label: "Value", section: "content" },
       variant: {

@@ -16,7 +16,9 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
   position: relative;
 
   /* Default variant */
@@ -101,6 +103,25 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Switch[data-size="sm"] {
+  --sw-button-gap: 8px;
+}
+
+.react-aria-Switch[data-size="md"] {
+  --sw-button-gap: 10px;
+}
+
+.react-aria-Switch[data-size="lg"] {
+  --sw-button-gap: 12px;
+}
+
+.react-aria-Switch[data-size="xl"] {
+  --sw-button-gap: 14px;
+}
+
+
 @media (forced-colors: active) {
   .react-aria-Switch {
     forced-color-adjust: auto;
@@ -112,5 +133,17 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Switch .react-aria-SwitchButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sw-button-gap);
+  }
+
+  .react-aria-Switch .react-aria-SwitchButton[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
 
 } /* @layer components */

@@ -359,6 +359,13 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     reason:
       'renderCheckbox 가 <div className="checkbox">(box) + svg(checkmark) DOM 자식을 자기완결 합성. generic rac 경로는 그 자식 div 미생성 → checkmark 미렌더. Radio 는 ::before pseudo-element ring 모델이라 DOM 자식 불요 → 제외(generic 정상).',
   },
+  {
+    key: "Radio",
+    kind: "delegating-rac",
+    reason:
+      "ADR-256 Phase 3: Radio = RAC RadioField > RadioButton (div.indicator + 글자) — 자식을 노드 순서대로 그리고 indicator 노드 자리에 div.indicator 를 둔다. RadioGroup 밖이면 상자 없는 RadioGroup host 로 감싼다.",
+  },
+
   // rac 13 → 15 (2026-09-10, Properties 패널 D2 대조): field 가족에서 ColorField 만, button 가족에서
   //   FileTrigger 만 generic 경로에 남아 있었다.
   {

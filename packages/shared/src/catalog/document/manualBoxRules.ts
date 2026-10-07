@@ -77,6 +77,7 @@ const textPx = (name: string): number | undefined => {
 const ownerTextParts = (
   childType: string,
   fonts: Readonly<Record<string, string>>,
+  via?: string,
 ): CompiledPartRule[] =>
   Object.entries(fonts).flatMap(([size, name]): CompiledPartRule[] => {
     const fontSize = textPx(name);
@@ -85,6 +86,7 @@ const ownerTextParts = (
       ? [
           {
             childType,
+            ...(via ? { via } : {}),
             size,
             layout: {},
             visual: {
@@ -476,15 +478,19 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     layout: { display: "flex", flexDirection: "row", alignItems: "center" },
     visual: { gap: 2, minHeight: 32, paddingY: 4, paddingX: 8 },
   }),
-  // `renderSwitch` draws the Switch's own `children` text in `label.react-aria-Switch`; the
-  // template's Label child has no DOM element, so its text takes the `Switch.css` size font.
+  // The Switch's text (a Label node in its RAC SwitchButton — ADR-256 Phase 3) takes the
+  // `Switch.css` size font the old `label.react-aria-Switch` gave its own `children` text.
   Switch: () => ({
-    parts: ownerTextParts("Label", {
-      sm: "text-xs",
-      md: "text-sm",
-      lg: "text-base",
-      xl: "text-lg",
-    }),
+    parts: ownerTextParts(
+      "Label",
+      {
+        sm: "text-xs",
+        md: "text-sm",
+        lg: "text-base",
+        xl: "text-lg",
+      },
+      "SwitchButton",
+    ),
   }),
   Tab: () => ({ parts: itemLabelFontParts("Tab") }),
   // `TagGroup.css` `.react-aria-Tag > .react-aria-Icon[slot=icon]` (14px) and

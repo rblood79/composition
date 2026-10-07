@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 3b — Switch · Radio 를 레퍼런스 구조로] - 2026-10-08
+
+### Changed
+
+- **Switch 는 `SwitchField > SwitchButton (track + 글자) + Description + FieldError`, Radio 는 `RadioField > RadioButton (고리 + 글자) + Description`** (ADR-256 Decision 3 — react-aria.adobe.com Switch · RadioGroup 예제): Preview 는 자식 노드를 순서대로 그린다 — 종전 Switch 는 자식 노드를 그리지 않고 글자만 썼고, Radio 의 고리는 `::before` 였다 (이제 `div.indicator` 요소). Layers 에 `SwitchButton` · `RadioButton` 이 보이고 그 안에 자유 자식을 넣을 수 있다 (버튼은 지울 수 없다). 화면은 그대로다 (Canvas 는 변경 전과 픽셀이 같다). Switch · Radio 에 Description, Switch 에 Error Message 가 생겼다. 위치: `catalog/runtime/delegatedDom.tsx` `switch` · `radio` · `toggleButton`, `components/styles/Radio.css`
+
+### Fixed
+
+- **RadioGroup 항목 글자가 그룹 이름의 id 를 같이 갖던 것**: Checkbox (3a) 와 같은 수리 — 이제 그룹 Label 하나만 그 id 를 갖는다
+
 ## [ADR-256 Phase 3a — Checkbox 를 레퍼런스 구조로] - 2026-10-08
 
 ### Changed

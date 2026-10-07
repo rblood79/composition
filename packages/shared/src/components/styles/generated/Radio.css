@@ -16,7 +16,9 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 
   /* Default variant */
   background: var(--bg);
@@ -126,6 +128,25 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Radio[data-size="sm"] {
+  --radio-button-gap: 6px;
+}
+
+.react-aria-Radio[data-size="md"] {
+  --radio-button-gap: 8px;
+}
+
+.react-aria-Radio[data-size="lg"] {
+  --radio-button-gap: 10px;
+}
+
+.react-aria-Radio[data-size="xl"] {
+  --radio-button-gap: 12px;
+}
+
+
 @media (forced-colors: active) {
   .react-aria-Radio {
     forced-color-adjust: auto;
@@ -137,5 +158,17 @@
     transition-duration: 0s !important;
   }
 }
+
+  .react-aria-Radio .react-aria-RadioButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--radio-button-gap);
+  }
+
+  .react-aria-Radio .react-aria-RadioButton[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
 
 } /* @layer components */

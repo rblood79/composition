@@ -6,6 +6,12 @@ import {
   CheckboxButton,
   CheckboxField,
   FieldError,
+  Label,
+  RadioButton,
+  RadioField,
+  RadioGroup,
+  SwitchButton,
+  SwitchField,
   Text,
 } from "react-aria-components";
 import { describe, expect, it } from "vitest";
@@ -95,13 +101,18 @@ async function open(type: string, props: Record<string, string | boolean>) {
 function structure(html: string): string {
   const host = document.createElement("div");
   host.innerHTML = html;
-  for (const text of [...host.querySelectorAll("span.react-aria-Label")])
+  for (const text of [
+    ...host.querySelectorAll(
+      ":is(.react-aria-CheckboxButton, .react-aria-SwitchButton, .react-aria-RadioButton) > span.react-aria-Label",
+    ),
+  ])
     text.replaceWith(...text.childNodes);
   for (const svg of [...host.querySelectorAll("svg")]) svg.innerHTML = "";
   const all = [...host.querySelectorAll("*")];
   const position = (id: string) => {
     const index = all.findIndex((element) => element.id === id);
-    return index < 0 ? `missing:${id}` : `#${index}`;
+    // (A link to an element RAC did not draw names no position — its generated id is not structure.)
+    return index < 0 ? "missing" : `#${index}`;
   };
   const KEEP = /^(role|slot|type|aria-.*|disabled|required|readonly|checked)$/;
   const LINKS = new Set(["aria-labelledby", "aria-describedby", "for"]);
@@ -301,4 +312,99 @@ describe("ADR-256 Phase 3 — Checkbox is CheckboxField > CheckboxButton", () =>
       ),
     ).toHaveLength(2);
   });
+});
+
+describe("ADR-256 Phase 3 — Switch · Radio are *Field > *Button", () => {
+  it("Switch has the reference structure: SwitchField > SwitchButton (track + text) + Description + FieldError", async () => {
+    const { html } = await open("switch", {
+      children: "Wi-Fi",
+      description: "Connect automatically",
+      isSelected: true,
+    });
+    const reference = renderToStaticMarkup(
+      createElement(
+        SwitchField,
+        { defaultSelected: true },
+        createElement(
+          SwitchButton,
+          null,
+          createElement("div", { className: "indicator" }),
+          "Wi-Fi",
+        ),
+        createElement(Text, { slot: "description" }, "Connect automatically"),
+        createElement(FieldError),
+      ),
+    );
+    expect(structure(html())).toBe(structure(reference));
+  });
+
+  it("RadioGroup items have the reference structure: RadioField > RadioButton (ring + text)", async () => {
+    const { html, field } = await open("radiogroup", { label: "Size" });
+    const radios = [...html().matchAll(/value="([^"]+)"/g)].map((m) => m[1]!);
+    const reference = renderToStaticMarkup(
+      createElement(
+        RadioGroup,
+        { defaultValue: radios[0] },
+        createElement(Label, null, "Size"),
+        createElement(
+          "div",
+          { className: "radio-items" },
+          ...radios.map((value, index) =>
+            createElement(
+              RadioField,
+              { key: value, value },
+              createElement(
+                RadioButton,
+                null,
+                createElement("div", { className: "indicator" }),
+                `Option ${index + 1}`,
+              ),
+            ),
+          ),
+        ),
+        createElement(FieldError),
+      ),
+    );
+    expect(field()).toBeDefined();
+    expect(structure(html())).toBe(structure(reference));
+  });
+
+  it.each([
+    ["checkbox", [], "component-checkbox"],
+    ["switch", [], "component-switch"],
+    // (A RadioGroup's Radio is an instance inside the group's template.)
+    [
+      "radiogroup",
+      ["lib:template:component-radiogroup__2__radio-1"],
+      "component-radio",
+    ],
+  ] as const)(
+    "%s: the toggle's button is a part RAC needs — its origin position cannot be hidden",
+    async (type, inner, origin) => {
+      const { workspace } = await open(type, {});
+      let code: string | undefined;
+      try {
+        workspace.execute(
+          removeTargets({
+            targets: [
+              {
+                kind: "descendant",
+                ownerId: FIELD,
+                address: {
+                  instances: [FIELD, ...inner],
+                  templatePath: [
+                    `lib:template:${origin}`,
+                    `lib:template:${origin}__button`,
+                  ],
+                },
+              },
+            ],
+          } as never),
+        );
+      } catch (error) {
+        code = (error as { code?: string }).code;
+      }
+      expect(code).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    },
+  );
 });

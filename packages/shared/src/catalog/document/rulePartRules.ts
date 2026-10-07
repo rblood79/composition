@@ -84,15 +84,22 @@ const SUBPART_TOKENS: Readonly<
   // RadioItems / CheckboxItems node — the rule's `orientation` nested block lays it out.
   RadioGroup: { RadioItems: [".radio-items"] },
   CheckboxGroup: { CheckboxItems: [".checkbox-items"] },
-  // A toggle's indicator node (2026-10-04): the shared component's indicator element. Radio's
-  // indicator is `.react-aria-Radio::before` — no element to name.
+  // A toggle's indicator node (2026-10-04): the indicator element. ADR-256 Phase 3: the Radio's is
+  // `div.indicator` in its RAC RadioButton (was `.react-aria-Radio::before`).
+  Radio: {
+    RadioButton: [".react-aria-RadioButton"],
+    RadioIndicator: [".indicator"],
+  },
   // ADR-256 Phase 3: the catalog Checkbox is RAC `CheckboxField` around a `CheckboxButton` (the row
   // the indicator sits in — reached `via` it, `TOGGLE_BUTTONS`).
   Checkbox: {
     CheckboxButton: [".react-aria-CheckboxButton"],
     CheckboxIndicator: [".checkbox"],
   },
-  Switch: { SwitchIndicator: [".indicator"] },
+  Switch: {
+    SwitchButton: [".react-aria-SwitchButton"],
+    SwitchIndicator: [".indicator"],
+  },
   // A TreeItem's chevron node (2026-10-04): the shared Tree's chevron button (whole selector).
   TreeItem: { TreeItemChevron: [".react-aria-Button[slot='chevron']"] },
   TextField: { Input: [".react-aria-Input"] },

@@ -28,6 +28,18 @@ export const switchBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Label", section: "content" },
+      // ADR-256 Phase 3: 레퍼런스 `SwitchField` 의 도움말 · 오류 문구 (template 의 Description `{description}` ·
+      //   FieldError `{errorMessage}` 자리 — 오류는 RAC 검증이 실패할 때 보인다).
+      description: {
+        kind: "string",
+        label: "Description",
+        section: "content",
+      },
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
       variant: {
         kind: "variant",
         label: "Variant",

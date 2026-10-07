@@ -31,11 +31,16 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   RadioItems: ["Radio"],
   CheckboxGroup: ["CheckboxItems", ...FIELD_PARTS],
   CheckboxItems: ["Checkbox"],
-  Radio: ["Label"],
+  // ADR-256 Phase 3: Radio = RadioField > RadioButton (indicator + 글자 Label) + Description.
+  Radio: ["RadioButton", "Description"],
+  RadioButton: ["Label"],
   // ADR-256 Phase 3: Checkbox = CheckboxField > CheckboxButton (indicator + 글자 Label) + Description +
   //   FieldError — size 는 누르는 자리 (내부 운반 값) 를 지나 글자까지.
   Checkbox: ["CheckboxButton", "Description", "FieldError"],
   CheckboxButton: ["Label"],
+  // ADR-256 Phase 3: the Switch's hint parts (its text takes the Switch sheet's size font —
+  //   `manualBoxRules` Switch).
+  Switch: ["Description", "FieldError"],
   Slider: ["SliderTrack", "Label"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size.
   TagGroup: ["TagList", "Label"],

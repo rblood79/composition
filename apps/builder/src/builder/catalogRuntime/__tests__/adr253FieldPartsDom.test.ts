@@ -154,18 +154,20 @@ const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
   numberfield: " placeholder=0",
 };
 /**
- * ADR-256 Phase 3 — a Checkbox is RAC `CheckboxField` around a `CheckboxButton` (the reference
- * Checkbox), applied to the fixture: the item's `label.react-aria-Checkbox` becomes a
- * `div.react-aria-Checkbox` (RAC's field state) holding a `label.react-aria-CheckboxButton` (the
- * pressable — RAC puts the same state on it); no `slot="selection"` (none outside a collection). The
- * item's text is its own element — before, RAC's `Label` took the group's label context (its id).
+ * ADR-256 Phase 3 — a Checkbox · Radio is RAC `CheckboxField` · `RadioField` around a
+ * `CheckboxButton` · `RadioButton` (the reference), applied to the fixture: the item's
+ * `label.react-aria-<Type>` becomes a `div.react-aria-<Type>` (RAC's field state) holding a
+ * `label.react-aria-<Type>Button` (the pressable — RAC puts the same state on it); no
+ * `slot="selection"` (none outside a collection). A Radio's ring is the reference's `div.indicator`
+ * element (was the label's `::before`). The item's text is its own element — before, RAC's `Label`
+ * took the group's label context (its id).
  */
-const CHECKBOX_FIELD_STATE =
+const TOGGLE_FIELD_STATE =
   /^data-(disabled|indeterminate|invalid|readonly|required|selected)=/;
-function checkboxFieldMarkup(text: string): string {
+function toggleFieldMarkup(text: string, type: "Checkbox" | "Radio"): string {
   return text
     .replace(
-      /<label class=react-aria-Checkbox ([^>]*)>/g,
+      new RegExp(`<label class=react-aria-${type} ([^>]*)>`, "g"),
       (_tag, list: string) => {
         const attributes = list.split(" ");
         const field = attributes.filter(
@@ -176,17 +178,17 @@ function checkboxFieldMarkup(text: string): string {
         const button = attributes
           .filter(
             (attribute) =>
-              CHECKBOX_FIELD_STATE.test(attribute) ||
+              TOGGLE_FIELD_STATE.test(attribute) ||
               attribute === "data-rac=" ||
               attribute.startsWith("data-react-aria-pressable="),
           )
           .sort();
-        return `<div class=react-aria-Checkbox ${field.join(" ")}><label class=react-aria-CheckboxButton ${button.join(" ")}>`;
+        return `<div class=react-aria-${type} ${field.join(" ")}><label class=react-aria-${type}Button ${button.join(" ")}>`;
       },
     )
     .replace(
       /<span class=react-aria-Label id>(Option \d)<\/><\/>/g,
-      "<span class=react-aria-Label>$1</></></>",
+      `${type === "Radio" ? "<div class=indicator></>" : ""}<span class=react-aria-Label>$1</></></>`,
     );
 }
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
@@ -441,7 +443,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             fixture[`${type}/${name}`],
           );
           const expected =
-            type === "checkboxgroup" ? checkboxFieldMarkup(fixed) : fixed;
+            type === "checkboxgroup"
+              ? toggleFieldMarkup(fixed, "Checkbox")
+              : type === "radiogroup"
+                ? toggleFieldMarkup(fixed, "Radio")
+                : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,

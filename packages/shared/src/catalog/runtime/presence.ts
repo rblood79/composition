@@ -125,6 +125,8 @@ const NODE_TREE_FIELDS: ReadonlySet<string> = new Set([
   "DateField",
   "TimeField",
   "Checkbox",
+  "Switch",
+  "Radio",
 ]);
 
 /**
@@ -269,8 +271,11 @@ export const FIELD_HINT_OWNERS: ReadonlySet<string> = new Set([
   "DateRangePicker",
   "CheckboxGroup",
   "RadioGroup",
-  // ADR-256 Phase 3: RAC `CheckboxField` (+ Description · FieldError — the reference Checkbox).
+  // ADR-256 Phase 3: RAC `CheckboxField` · `SwitchField` (+ Description · FieldError — the reference).
   "Checkbox",
+  "Switch",
+  // RAC `RadioField` (+ Description — the reference Radio has no FieldError).
+  "Radio",
 ]);
 /** Whether a field's hint part (`Description` · `FieldError`) shows; `undefined` = not one. */
 export function catalogFieldHintShown(

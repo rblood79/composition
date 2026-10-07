@@ -289,8 +289,10 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   //   안에만, indicator 는 그 안에.
   CheckboxButton: { owners: ["Checkbox"] },
   CheckboxIndicator: { owners: ["CheckboxButton"] },
-  RadioIndicator: { owners: ["Radio"] },
-  SwitchIndicator: { owners: ["Switch"] },
+  RadioButton: { owners: ["Radio"] },
+  RadioIndicator: { owners: ["RadioButton"] },
+  SwitchButton: { owners: ["Switch"] },
+  SwitchIndicator: { owners: ["SwitchButton"] },
   // TreeItem 의 chevron 버튼 노드 — 자기 부모 TreeItem 안에만 (부모 Tree DOM 이 흡수).
   TreeItemChevron: { owners: ["TreeItem"] },
   DisclosureGroup: {},

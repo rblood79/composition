@@ -918,10 +918,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Switch",
     "mode": "composite",
     "accepts": {
-      "children": "string"
+      "children": "string",
+      "description": "string",
+      "errorMessage": "string"
     },
     "defaults": {
-      "children": "Switch"
+      "children": "Switch",
+      "description": "",
+      "errorMessage": ""
     },
     "visual": {},
     "stateRules": {},
@@ -1346,10 +1350,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Radio",
     "mode": "composite",
     "accepts": {
-      "children": "string"
+      "children": "string",
+      "description": "string"
     },
     "defaults": {
-      "children": "Radio"
+      "children": "Radio",
+      "description": ""
     },
     "visual": {},
     "stateRules": {},
@@ -4181,6 +4187,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-radio",
+          "lib:template:component-radio__button",
           "lib:template:component-radio__1"
         ],
         "props": {
@@ -4205,6 +4212,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-radio",
+          "lib:template:component-radio__button",
           "lib:template:component-radio__1"
         ],
         "props": {
@@ -4707,8 +4715,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-switch",
     "definitionId": "lib:definition:type-Switch",
     "children": [
-      "lib:template:component-switch__indicator",
-      "lib:template:component-switch__1"
+      "lib:template:component-switch__button",
+      "lib:template:component-switch__description",
+      "lib:template:component-switch__error"
     ],
     "props": {
       "children": "Switch",
@@ -4719,6 +4728,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-switch__button",
+    "definitionId": "lib:definition:type-SwitchButton",
+    "children": [
+      "lib:template:component-switch__indicator",
+      "lib:template:component-switch__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-switch__indicator",
@@ -4733,6 +4752,25 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-switch__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-switch__error",
+    "definitionId": "lib:definition:origin-component-fielderror",
+    "children": [],
+    "props": {
+      "children": "{errorMessage}"
     },
     "visual": {}
   },
@@ -6065,8 +6103,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-radio",
     "definitionId": "lib:definition:type-Radio",
     "children": [
-      "lib:template:component-radio__indicator",
-      "lib:template:component-radio__1"
+      "lib:template:component-radio__button",
+      "lib:template:component-radio__description"
     ],
     "props": {
       "children": "Radio",
@@ -6076,6 +6114,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "visual": {},
     "displayState": "selected"
+  },
+  {
+    "id": "lib:template:component-radio__button",
+    "definitionId": "lib:definition:type-RadioButton",
+    "children": [
+      "lib:template:component-radio__indicator",
+      "lib:template:component-radio__1"
+    ],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-radio__indicator",
@@ -6091,6 +6139,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{children}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-radio__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "children": "{description}"
+    },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

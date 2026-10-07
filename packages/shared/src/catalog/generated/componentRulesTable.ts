@@ -8409,12 +8409,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         indicator: { boxSize: 30, dotSize: 14 },
       },
     },
+    // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `RadioField > RadioButton (div.indicator + 글자) + Description`.
+    //   이 rule 의 요소는 RAC `RadioField` (`div`) — 누르는 자리 · 도움말을 세로로. indicator · 글자의 행 (종전
+    //   이 요소의 inline-flex 행 · size 별 gap) 은 `.react-aria-RadioButton` 블록 (`--radio-button-gap`, sizes
+    //   파생). focus 표시는 RadioButton 의 것.
     structure: {
       archetype: "toggle-indicator",
-      element: "label",
+      element: "div",
       containerStyles: {
         display: "inline-flex",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
       },
       states: {
         hover: {},
@@ -8424,9 +8430,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           cursor: "not-allowed",
           pointerEvents: "none",
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+      },
+      composition: {
+        staticSelectors: {
+          ".react-aria-RadioButton": {
+            display: "inline-flex",
+            "align-items": "center",
+            gap: "var(--radio-button-gap)",
+          },
+          ".react-aria-RadioButton[data-focus-visible]": {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "outline-offset": "var(--focus-ring-offset)",
+          },
         },
+        delegation: [
+          {
+            // 행 gap — 크기별 gap 을 root 에 `--radio-button-gap` 으로 (sizes 파생, `variables: "auto"`).
+            childSelector: ".react-aria-RadioButton",
+            prefix: "radio-button",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
+        ],
       },
     },
   },
@@ -10578,12 +10603,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-256 Phase 3 (2026-10-08): 레퍼런스 `SwitchField > SwitchButton (indicator + 글자) + Description +
+    //   FieldError`. 이 rule 의 요소는 RAC `SwitchField` (`div`) — 누르는 자리 · 도움말 · 오류를 세로로 (size 의
+    //   paddingY 는 그대로 이 요소). indicator · 글자의 행 (종전 이 요소의 inline-flex 행 · size 별 gap) 은
+    //   `.react-aria-SwitchButton` 블록 (`--sw-button-gap`, sizes 파생). focus 표시는 SwitchButton 의 것.
     structure: {
       archetype: "toggle-indicator",
-      element: "label",
+      element: "div",
       containerStyles: {
         display: "inline-flex",
-        alignItems: "center",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        justifyContent: "center",
         // ADR-171 Phase 1 (2026-07-29): 수동 `Switch.css` 의 실효값 이관 (값 불변).
         position: "relative",
       },
@@ -10595,9 +10626,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           cursor: "not-allowed",
           pointerEvents: "none",
         },
-        focusVisible: {
-          focusRing: "{focus.ring.default}",
+      },
+      composition: {
+        staticSelectors: {
+          ".react-aria-SwitchButton": {
+            display: "inline-flex",
+            "align-items": "center",
+            gap: "var(--sw-button-gap)",
+          },
+          ".react-aria-SwitchButton[data-focus-visible]": {
+            outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "outline-offset": "var(--focus-ring-offset)",
+          },
         },
+        delegation: [
+          {
+            // 행 gap — 크기별 gap 을 root 에 `--sw-button-gap` 으로 (sizes 파생, `variables: "auto"`).
+            childSelector: ".react-aria-SwitchButton",
+            prefix: "sw-button",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
+        ],
       },
     },
   },

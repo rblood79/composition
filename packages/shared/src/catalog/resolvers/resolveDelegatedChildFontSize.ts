@@ -151,8 +151,10 @@ const FIELD_HINT_PARENTS = [
   "DateRangePicker",
   "CheckboxGroup",
   "RadioGroup",
-  // ADR-256 Phase 3: the reference Checkbox's Description · FieldError.
+  // ADR-256 Phase 3: the reference Checkbox's · Switch's Description · FieldError.
   "Checkbox",
+  "Switch",
+  "Radio",
 ] as const;
 export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   Record<string, readonly string[]>
@@ -216,6 +218,8 @@ export const OWNER_DRAWN_PART_OWNERS: Readonly<Record<string, string>> = {
  */
 export const OWNER_DRAWN_PART_HOSTS: Readonly<Record<string, string>> = {
   CheckboxButton: "Checkbox",
+  SwitchButton: "Switch",
+  RadioButton: "Radio",
 };
 
 /**

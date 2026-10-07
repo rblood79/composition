@@ -166,8 +166,6 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
     ],
   },
   // toggle — Phase 3. 단일 control 의 label 자리 (RSP `children` 은 label 텍스트)
-  Radio: { children: ["RadioIndicator", "Label", "Text", "Icon"] },
-  Switch: { children: ["SwitchIndicator", "Label", "Text", "Icon"] },
   RadioGroup: {
     children: ["Label", "RadioItems", "Description", "FieldError"],
     wrappers: true,
@@ -293,6 +291,8 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   //   label 의 control 이다. 다른 interactive · labelable 요소를 그 안에 두지 않는다 (루트 CheckboxField 는
   //   `div` 라 host 가 아니다 — Description · FieldError · 자유 내용을 받는다).
   "CheckboxButton",
+  "SwitchButton",
+  "RadioButton",
   // DisclosureHeader 는 부모 Disclosure 가 `<Heading><Button slot="trigger">` 로
   // self-compose 한다 (binding 주석) — 루트가 button 이 아니라 host 가 아니다.
 ]);
@@ -307,8 +307,10 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "CheckboxButton",
   "CheckboxGroup",
   "Radio",
+  "RadioButton",
   "RadioGroup",
   "Switch",
+  "SwitchButton",
   "Slider",
   "SliderThumb",
   "TextField",

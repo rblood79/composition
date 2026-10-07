@@ -274,7 +274,7 @@ const results: unknown[] = [];
 /** Part nodes the owner draws (2026-10-04): no old node held them. */
 const OWNER_DRAWN_PART_TYPES = Object.keys(OWNER_DRAWN_PART_OWNERS);
 /** New row hosts between a toggle and its parts (ADR-256 Phase 3 — RAC `CheckboxButton`). */
-const NEW_ROW_HOST_TYPES = ["CheckboxButton"];
+const NEW_ROW_HOST_TYPES = ["CheckboxButton", "SwitchButton", "RadioButton"];
 
 /** Set when the local G0 baseline is absent (a fresh clone). */
 let baselineAbsent = false;

@@ -368,6 +368,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   // ADR-256 Phase 3: a Checkbox's RAC button (`label` — its own element, the authored style inline):
   // a box for its indicator and text (the row is the Checkbox rule's).
   checkboxbutton: containerWithAuthoredPaint,
+  switchbutton: containerWithAuthoredPaint,
+  radiobutton: containerWithAuthoredPaint,
   // A part its owner draws (toggle indicator, TreeItem · Disclosure chevron): painted from its
   // owner's rule (`ownerDrawnPartNodeData` — the binding stands for the record in the registration
   // loop only).

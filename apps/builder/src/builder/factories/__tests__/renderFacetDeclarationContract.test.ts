@@ -72,7 +72,8 @@ import {
 //   FileTrigger 는 raw RAC.FileTrigger 가 DOM 을 안 만들어 className/data-*/isDisabled 가 전부
 //   버려졌다(Skia 는 catalog rule box) — 둘 다 wrapper self-compose 위임으로 등록.
 // internal 31 → 32 (2026-09-17): ADR-201 fileupload 추가.
-const INVENTORY = { delegatingInternal: 32, delegatingRac: 15 } as const;
+// ADR-256 Phase 3 (2026-10-08): + Radio (RAC RadioField > RadioButton 노드 트리).
+const INVENTORY = { delegatingInternal: 32, delegatingRac: 16 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == domRegistry DELEGATING_INTERNAL (멤버 + 순서)", () => {
