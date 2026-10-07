@@ -5,7 +5,7 @@ impactDescription: 테마 일관성, 디자인 시스템 통합 — S2 TokenRef 
 tags: [spec, token, design-system]
 ---
 
-catalog rule / 잔존 spec 에서 색상, 간격 등의 값은 **토큰 참조 형식** `{category.name}` 을 사용합니다. 색상 토큰은 **S2 체계만** 허용 — M3 계열(`{color.primary}`, `{color.on-surface}` 등)과 `--primary` 류 CSS 변수는 금지 (정본: `.claude/rules/css-tokens.md`).
+catalog rule 에서 색상, 간격 등의 값은 **토큰 참조 형식** `{category.name}` 을 사용합니다. 색상 토큰은 **S2 체계만** 허용 — M3 계열(`{color.primary}`, `{color.on-surface}` 등)과 `--primary` 류 CSS 변수는 금지 (정본: `.claude/rules/css-tokens.md`).
 
 ## Incorrect
 
@@ -67,7 +67,7 @@ sizes: {
 
 ## 토큰 해석
 
-`packages/specs/src/renderers/utils/tokenResolver.ts`:
+`packages/rendering/src/renderers/utils/tokenResolver.ts`:
 
 ```tsx
 // 테마별 실제 값으로 변환 (lightColors/darkColors — primitives/colors.ts)
@@ -100,7 +100,7 @@ tokenToCSSVar("{shadow.md}"); // → "var(--shadow-md)"
 ## 참조
 
 - `.claude/rules/css-tokens.md` — S2 TokenRef ↔ CSS 변수 매핑 정본 (금지 M3 토큰 목록 포함)
-- `packages/specs/src/primitives/colors.ts` — lightColors/darkColors 정의
-- `packages/specs/src/primitives/typography.ts` / `radius.ts` / `shadows.ts` — 수치 토큰 정의
-- `packages/specs/src/renderers/utils/tokenResolver.ts` — resolveToken / resolveColor / tokenToCSSVar / cssVarToTokenRef
+- `packages/rendering/src/primitives/colors.ts` — lightColors/darkColors 정의
+- `packages/rendering/src/primitives/typography.ts` / `radius.ts` / `shadows.ts` — 수치 토큰 정의
+- `packages/rendering/src/renderers/utils/tokenResolver.ts` — resolveToken / resolveColor / tokenToCSSVar / cssVarToTokenRef
 - `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts` — resolveNum() / resolveColor() (Skia 측)

@@ -1,7 +1,6 @@
 ---
 description: Style SSOT — catalog typed field 저장 모델 (shorthand 분해 · gap 축) 과 consumer 읽기 계약 (ADR-909 → ADR-248 catalog runtime)
 paths:
-  - "packages/specs/**"
   - "apps/builder/src/builder/panels/styles/**"
   - "apps/builder/src/builder/panels/properties/**"
   - "apps/builder/src/builder/panels/design/**"
@@ -102,8 +101,8 @@ const LAYOUT_PROPS = [
 
 아래는 specs 내부 계산이 쓴다. production Canvas · 레이아웃은 위 §3 의 함수를 쓴다 — 여기에 고쳐도 레이아웃은 바뀌지 않는다. (옛 `fullTreeLayout.ts` 경로의 `utils.ts::readGapValue` 는 2026-10-05 삭제.)
 
-- `packages/specs/src/primitives/containerSpacing.ts::resolveContainerSpacing` (Layer B) · `cssValueParser.ts::parsePxValue / parseGapValue / parsePadding4Way` (Layer A)
-- `packages/specs/src/renderers/utils/collectionItemMetrics.ts::resolveListBoxSpacingMetric / resolveGridListSpacingMetric` (Layer D)
+- `packages/rendering/src/primitives/containerSpacing.ts::resolveContainerSpacing` (Layer B) · `cssValueParser.ts::parsePxValue / parseGapValue / parsePadding4Way` (Layer A)
+- `packages/rendering/src/renderers/utils/collectionItemMetrics.ts::resolveListBoxSpacingMetric / resolveGridListSpacingMetric` (Layer D)
 
 ## 관련 ADR
 

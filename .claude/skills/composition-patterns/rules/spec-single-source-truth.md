@@ -64,7 +64,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
 
 ```
 COMPONENT_RULES_TABLE
- ├─ DOM/CSS  : packages/specs/scripts/generate-css.ts 가 getComponentRulesTable() 로
+ ├─ DOM/CSS  : packages/rendering/scripts/generate-css.ts 가 getComponentRulesTable() 로
  │             variant 색상을 주입 → packages/shared/src/components/styles/generated/*.css
  │             (DOM binding: packages/shared/src/catalog/runtime/delegatedDom.tsx)
  └─ Skia     : resolveComponentRule() (packages/shared/src/catalog/resolvers/resolveComponentRule.ts)
@@ -75,17 +75,11 @@ COMPONENT_RULES_TABLE
 - fill 은 `FillTokenSpec`(fillStyle × state 2축, ADR-908) 구조 — consumer 는 `resolveFillTokens()` / 주입된 `visual.fill` 경유로만 접근 (`variant.background*` 직접 access 금지, 타입 삭제됨)
 - TokenRef 는 S2 체계만 사용 (`{color.accent}` / `{color.neutral}` 등) — 매핑 정본: `.claude/rules/css-tokens.md`
 
-## 잔존 spec — 3개뿐
+## 컴포넌트당 spec 파일 — 0개 (ADR-248 으로 패키지 삭제)
 
-catalog 미등록 native 3종만 spec 파일이 남아 있습니다 (`packages/specs/src/components/`):
+Frame · Group · Slot 에 남아 있던 마지막 spec 3개와 `packages/specs` 패키지는 ADR-248 Publish 후속 (2026-10-04, `ddc5fc603`) 에서 삭제됐다. 세 타입도 catalog 입력이다 — `COMPONENT_RULES_TABLE` 의 `frame` · `Group` · `Slot` 키 + `componentCatalog.ts` entry, Canvas 는 `canvasBinding.ts` 의 `containerWithAuthoredPaint` 가 그린다. Group 은 RAC ARIA semantic (D1 — `role="group"`) 이고 시각 책임을 더하지 않는다 (ADR-130).
 
-| spec            | 성격                                                         |
-| --------------- | ------------------------------------------------------------ |
-| `Frame.spec.ts` | canonical layout container (D3, ADR-130 — ARIA role 없음)    |
-| `Group.spec.ts` | RAC ARIA semantic (D1 — `role="group"`), 시각 책임 추가 금지 |
-| `Slot.spec.ts`  | 플레이스홀더 슬롯 컨테이너                                   |
-
-그 외 124개 spec 은 ADR-912 로 삭제 완료 — 시각 수정은 catalog rule 을 직접 편집합니다. `COMPONENT_RULES_TABLE` 은 build-time 생성물이 아니라 **직접 편집 정본** 입니다 (ADR-912 1A-(a) 위상 전환, generate-rules.ts 삭제됨).
+옛 spec 경로의 공용 코드 (`buildCatalogShapes` · `skiaPrimitives` · primitives · `generate-css.ts`) 는 `packages/rendering` 으로 옮겨졌다. 그 외 124개 spec 은 ADR-912 로 삭제 완료 — 시각 수정은 catalog rule 을 직접 편집한다. `COMPONENT_RULES_TABLE` 은 build-time 생성물이 아니라 **직접 편집 정본** 이다 (ADR-912 1A-(a) 위상 전환, generate-rules.ts 삭제됨). **어떤 컴포넌트에도 spec 파일을 새로 만들지 않는다.**
 
 ## Self-Rendering 레이아웃 연계
 
@@ -96,7 +90,7 @@ catalog 미등록 native 3종만 spec 파일이 남아 있습니다 (`packages/s
 - `packages/shared/src/catalog/generated/componentRulesTable.ts` — COMPONENT_RULES_TABLE (직접 편집 정본)
 - `packages/shared/src/catalog/bindings/` — PrimitiveBinding (D2 props + skiaPrimitive)
 - `packages/shared/src/catalog/resolvers/resolveComponentRule.ts` — 런타임 rule resolver
-- `packages/specs/src/renderers/buildCatalogShapes.ts` — Skia generic 생성기
-- `packages/specs/scripts/generate-css.ts` — DOM CSS 생성기
+- `packages/rendering/src/renderers/buildCatalogShapes.ts` — Skia generic 생성기
+- `packages/rendering/scripts/generate-css.ts` — DOM CSS 생성기
 - `.claude/rules/ssot-hierarchy.md` — 3-Domain 분할 정본 (ADR-063)
 - [spec-shape-rendering](spec-shape-rendering.md) / [spec-value-sync](spec-value-sync.md) / [spec-build-sync](spec-build-sync.md)

@@ -1,8 +1,7 @@
 ---
-description: SSOT 체인 배경 맥락 — 역사적 맥락(§0) · 용어 사전(§2) · 주요 ADR 관계(§5). ADR 작성·spec/catalog 작업 시 자동 로드 (정본 ssot-hierarchy.md 에서 2026-08-31 분리)
+description: SSOT 체인 배경 맥락 — 역사적 맥락(§0) · 용어 사전(§2) · 주요 ADR 관계(§5). ADR 작성·catalog 작업 시 자동 로드 (정본 ssot-hierarchy.md 에서 2026-08-31 분리)
 paths:
   - "docs/adr/**"
-  - "packages/specs/**"
   - "packages/shared/src/catalog/**"
 ---
 
@@ -19,15 +18,15 @@ paths:
 
 ## 2. 용어 사전
 
-| 용어                         | 정의                                           | 적용 대상                                                |
-| ---------------------------- | ---------------------------------------------- | -------------------------------------------------------- |
-| **SSOT (Source of Truth)**   | 단일 source. 해당 domain 내에서 유일 정의 권한 | D3에서 catalog(+잔존 spec 3개)에만 적용                  |
-| **권위 (authority)**         | domain 전체를 지배하는 외부 기준               | D1에서 RAC에만 적용                                      |
-| **reference**                | 설계 시 참조하는 외부 원천 (결정권 없음)       | D2에서 RSP에 적용                                        |
-| **consumer**                 | SSOT에서 파생되어 결과를 소비                  | D3의 Builder(Skia) / Preview(DOM+CSS)                    |
-| **symmetric**                | 두 consumer가 대등 — 한쪽이 다른 쪽 기준 아님  | D3의 Skia ↔ CSS                                          |
-| **직접 consumer (direct)**   | SSOT에서 직접 파생                             | Skia, catalog CSS binding (잔존 spec 3개는 CSSGenerator) |
-| **간접 consumer (indirect)** | 중간 변환 경유                                 | Preview(binding→CSS→DOM), Publish                        |
+| 용어                         | 정의                                           | 적용 대상                                        |
+| ---------------------------- | ---------------------------------------------- | ------------------------------------------------ |
+| **SSOT (Source of Truth)**   | 단일 source. 해당 domain 내에서 유일 정의 권한 | D3에서 catalog 에만 적용 (Frame/Group/Slot 포함) |
+| **권위 (authority)**         | domain 전체를 지배하는 외부 기준               | D1에서 RAC에만 적용                              |
+| **reference**                | 설계 시 참조하는 외부 원천 (결정권 없음)       | D2에서 RSP에 적용                                |
+| **consumer**                 | SSOT에서 파생되어 결과를 소비                  | D3의 Builder(Skia) / Preview(DOM+CSS)            |
+| **symmetric**                | 두 consumer가 대등 — 한쪽이 다른 쪽 기준 아님  | D3의 Skia ↔ CSS                                  |
+| **직접 consumer (direct)**   | SSOT에서 직접 파생                             | Skia, catalog generated CSS (`generate-css.ts`)  |
+| **간접 consumer (indirect)** | 중간 변환 경유                                 | Preview(binding→CSS→DOM), Publish                |
 
 ## 5. 주요 ADR과의 관계
 
@@ -36,4 +35,4 @@ paths:
 - **ADR-059 (skipCSSGeneration 해체)**: D3 내부 정리 (spec 시대). "CSS가 SSOT에서 파생되어야" = D3 symmetric consumer 복원
 - **ADR-062 (Field variant 제거)**: D2 정리. RSP 미규정 prop 제거 + RSP 규정 prop(isQuiet) 보강
 - **ADR-063 (본 charter)**: 본 규칙의 ADR 형식 정식화
-- **ADR-142 (Starter/Spec Component System Cutover, Implemented 2026-06-02)**: D3 SSOT를 컴포넌트당 spec 파일에서 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection으로 재정의. ADR-036/907/908의 spec 스키마 메커니즘을 폐기(907/908은 잔존 spec 3개 한정 존속)
+- **ADR-142 (Starter/Spec Component System Cutover, Implemented 2026-06-02)**: D3 SSOT를 컴포넌트당 spec 파일에서 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection으로 재정의. ADR-036/907/908의 spec 스키마 메커니즘을 폐기 (907/908 의 primitive · fill 계약은 `packages/rendering` 에 존속, spec 파일은 ADR-248 에서 전부 삭제)

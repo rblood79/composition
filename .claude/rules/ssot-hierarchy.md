@@ -2,7 +2,7 @@
 
 > **정본**: composition 프로젝트 전체의 Spec/SSOT/권위 관계를 규정하는 최상위 규칙. 모든 ADR, skill, agent, 규칙 파일은 본 문서를 참조한다. 본 문서가 ADR-063(charter)의 명시적 부연이며, D3 SSOT 메커니즘은 ADR-142(2026-06-02 Implemented)로 재정의됐다. 다른 문서와 충돌 시 본 문서 우선.
 
-> §0 역사적 맥락 · §2 용어 사전 · §5 주요 ADR 관계는 [ssot-hierarchy-context.md](ssot-hierarchy-context.md) 로 분리 (2026-08-31 — `docs/adr/**` · `packages/specs/**` · `packages/shared/src/catalog/**` 작업 시 자동 로드). 절 번호는 인용 안정성을 위해 그대로 둔다.
+> §0 역사적 맥락 · §2 용어 사전 · §5 주요 ADR 관계는 [ssot-hierarchy-context.md](ssot-hierarchy-context.md) 로 분리 (2026-08-31 — `docs/adr/**` · `packages/shared/src/catalog/**` 작업 시 자동 로드). 절 번호는 인용 안정성을 위해 그대로 둔다.
 
 ## 1. 3-Domain 분할 (핵심)
 
@@ -73,7 +73,7 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 - RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — catalog Group definition/primitive binding
 - canonical `frame` = D3 layout container — catalog frame definition (skipCSSGeneration:true, ARIA role 없음)
 - 진입점 단일화: builder palette / multi-select grouping / pencil import 모두 `type: "frame"`. RAC ARIA Group 으로 layout 의도 흡수 금지 (D1 침범)
-- canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 Frame.spec 1:1 정합. alias (`BASE_TAG_SPEC_MAP["frame"] = GroupSpec`) 패턴 금지 — ARIA role emit 으로 D1 침범
+- canonical schema `FrameNode` (`clip`/`placeholder` 1차 필드) 와 catalog `frame` entry 1:1 정합. `frame` 을 Group 의 alias 로 두는 패턴 금지 — ARIA role emit 으로 D1 침범 (옛 `BASE_TAG_SPEC_MAP` 은 ADR-248 에서 삭제)
 - legacy `type: "Group" + customId="group_N"` 은 `isLegacyGroupForFrameMigration()` 으로 1회 hydration migration 대상. ARIA Group (customId 없음 또는 다른 prefix) 보존
 
 ## 3. 경계 판정 기준
@@ -108,13 +108,13 @@ D3 SSOT(catalog)가 어디까지 관여하는지의 판정:
 
 ### 4-2. 위반 감지 및 대응
 
-| 위반 유형                       | 감지                                      | 대응                                    |
-| ------------------------------- | ----------------------------------------- | --------------------------------------- |
-| 수동 CSS가 SSOT에서 파생 아님   | `skipCSSGeneration: true` + 수동 CSS 존재 | ADR 작성 → 해체 계획                    |
-| consumer-to-consumer 참조       | `@sync` 주석                              | catalog(또는 잔존 spec) 경유로 재작성   |
-| catalog/잔존 spec 이 D1/D2 침범 | 코드 리뷰                                 | 위반 코드 즉시 거부                     |
-| 시각 비대칭 (CSS≠Skia)          | `/cross-check` 실패                       | 어느 쪽이 SSOT 맞는지 조사 후 양쪽 정렬 |
-| RSP 미규정 prop 임의 도입       | 코드 리뷰                                 | 거부, RSP 참조 요구                     |
+| 위반 유형                     | 감지                                    | 대응                                    |
+| ----------------------------- | --------------------------------------- | --------------------------------------- |
+| 수동 CSS가 SSOT에서 파생 아님 | catalog rule 에 없는 값을 가진 수동 CSS | ADR 작성 → 해체 계획                    |
+| consumer-to-consumer 참조     | `@sync` 주석                            | catalog 경유로 재작성                   |
+| catalog 가 D1/D2 침범         | 코드 리뷰                               | 위반 코드 즉시 거부                     |
+| 시각 비대칭 (CSS≠Skia)        | `/cross-check` 실패                     | 어느 쪽이 SSOT 맞는지 조사 후 양쪽 정렬 |
+| RSP 미규정 prop 임의 도입     | 코드 리뷰                               | 거부, RSP 참조 요구                     |
 
 ### 4-3. 문서 교차 참조 의무
 
@@ -128,15 +128,15 @@ D3 SSOT(catalog)가 어디까지 관여하는지의 판정:
 - ❌ `@sync` 주석으로 CSS↔CSS 참조 (D3 symmetric 위반)
 - ❌ "CSS가 기준, Skia 따라가" 언어 사용 (대칭 위반)
 - ❌ Skia 전용 시각 효과를 도입 (대칭 결과 불가능)
-- ❌ 일반 컴포넌트에 컴포넌트당 spec 파일 신규 생성 (ADR-142로 폐기된 메커니즘 부활 — 잔존 3개 예외만 허용)
+- ❌ 컴포넌트당 spec 파일 신규 생성 — 어떤 컴포넌트에도 (ADR-142 로 폐기, 마지막 3개와 `packages/specs` 는 ADR-248 에서 삭제. 예외 없음)
 - ❌ RAC 컴포넌트 DOM 재작성 또는 ARIA 수동 작성 (D1 침범)
 
 ## 7. 허용 패턴
 
 - ✅ catalog(`COMPONENT_RULES_TABLE`) + theme/tokens가 색상 토큰/사이즈/레이아웃 정의 (일반 컴포넌트)
 - ✅ Frame/Group/Slot도 catalog가 색상 토큰/사이즈/레이아웃을 정의
-- ✅ catalog binding 또는 CSS Generator(잔존 spec 한정)가 SSOT를 CSS로 자동 변환
-- ✅ Skia 렌더가 catalog(또는 잔존 spec)를 shape로 변환
+- ✅ `generate-css.ts` 가 catalog SSOT 를 CSS 로 자동 변환
+- ✅ Skia 렌더가 catalog 를 shape 로 변환
 - ✅ RAC 컴포넌트를 그대로 사용 + CSS로 스타일 적용
 - ✅ RSP props를 custom 구현으로 catalog binding에 추가
 - ✅ `/cross-check`로 시각 대칭 확인

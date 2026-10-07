@@ -8,7 +8,7 @@ tags: [spec, catalog, layout, sync]
 컴포넌트 수치(padding, fontSize, lineHeight, borderWidth 등)의 **정본은 catalog rule sizes** (`COMPONENT_RULES_TABLE[type].sizes`)입니다. 소비 경로는 둘이고 같은 값을 읽어야 합니다:
 
 1. **Canvas** — catalog resolver 가 rule 을 노드의 `visual` · `layout` 으로 풀고, 그 resolved record 를 레이아웃 (`catalogBoxModel` → `styleOf`, `compositionRoot.ts`) 과 Skia shapes (`ruleShapes.ts` · `buildCatalogShapes`) 가 같이 읽는다
-2. **Generated CSS** — `packages/specs/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/*.css`
+2. **Generated CSS** — `packages/rendering/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/*.css`
 
 옛 레이아웃 엔진 내부 파생 상수 (`engines/utils.ts` 의 `BUTTON_SIZE_CONFIG` · `deriveSizeConfig` · `getButtonSizeConfig` · `calculateContentHeight`) 는 2026-10-05 옛 TS 레이아웃 파이프라인과 함께 삭제됐다 — 레이아웃이 rule 값을 따로 복사해 두는 곳은 없다. **catalog rule 1곳 편집 + 두 경로 확인** 이 현행 규칙입니다.
 
@@ -43,7 +43,7 @@ const paddingX = node.visual.paddingX ?? node.visual.padding; // catalogBoxModel
 
 ## Button/ToggleButton 사이즈 레퍼런스
 
-CSS height = lineHeight + paddingY × 2 + borderWidth × 2 (명시적 height 없음). catalog `Button.sizes` + `packages/specs/src/primitives/typography.ts` 의 line-height 토큰 기준:
+CSS height = lineHeight + paddingY × 2 + borderWidth × 2 (명시적 height 없음). catalog `Button.sizes` + `packages/rendering/src/primitives/typography.ts` 의 line-height 토큰 기준:
 
 | Size | fontSize 토큰               | lineHeight (px) | paddingY | borderWidth | **CSS height** |
 | ---- | --------------------------- | --------------- | -------- | ----------- | -------------- |
@@ -60,7 +60,7 @@ CSS Button 은 명시적 `line-height: var(--text-*--line-height)` 를 쓴다. C
 ## 체크리스트 — 수치 수정 시
 
 - [ ] `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 해당 rule sizes/variants 편집 (정본 1곳)
-- [ ] variant 색상 변경 시 generated CSS 재생성: `pnpm --filter @composition/specs build` (generate:css 포함) → [spec-build-sync](spec-build-sync.md)
+- [ ] variant 색상 변경 시 generated CSS 재생성: `pnpm generate:css` → [spec-build-sync](spec-build-sync.md)
 - [ ] 레이아웃 · 렌더 쪽에 같은 값을 하드코딩한 곳이 남아 있지 않은지 grep
 - [ ] Skia ↔ CSS 시각 결과 확인 — `/cross-check`
 
@@ -74,5 +74,5 @@ CSS Button 은 명시적 `line-height: var(--text-*--line-height)` 를 쓴다. C
 - `packages/shared/src/catalog/generated/componentRulesTable.ts` — 수치/색상 정본
 - `apps/builder/src/builder/catalogRuntime/boxModel.ts` — `catalogBoxModel` (resolved record → 엔진 상자)
 - `apps/builder/src/builder/catalogRuntime/compositionRoot.ts` — `styleOf` · `textLeaf`
-- `packages/specs/src/primitives/typography.ts` — fontSize/line-height 토큰 값
+- `packages/rendering/src/primitives/typography.ts` — fontSize/line-height 토큰 값
 - [spec-build-sync](spec-build-sync.md) — 빌드/재생성 동기화

@@ -41,7 +41,7 @@ if (BOX_SIZE_TYPES.has(type)) {
 ### 3단계: shape 생성기에서 소비
 
 ```tsx
-// packages/specs — skiaPrimitives draw module / buildCatalogShapes / datePickerShapes
+// packages/rendering/src/renderers — skiaPrimitives draw module / buildCatalogShapes / datePickerShapes
 const containerWidth =
   typeof props._containerWidth === "number" ? props._containerWidth : 0;
 
@@ -70,7 +70,7 @@ const centerY = containerHeight / 2;
 2. **containerWidth/Height 기준 역산**이 필요한 경우 (우측 정렬, 하단 정렬 등)
 3. **부모 delegation prop** 변경 시 자식 크기가 달라지는 경우
 
-catalog generic box 경로만으로 충분한 type 은 등록하지 않습니다. 잔존 spec 3개 (Frame · Group · Slot) 는 rule 실행기가 아니라 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 그리므로 주입 대상이 아닙니다.
+catalog generic box 경로만으로 충분한 type 은 등록하지 않습니다. Frame · Group · Slot 은 rule 실행기가 아니라 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 그리므로 주입 대상이 아닙니다.
 
 ## 관련 패턴: 부모 · 자식 동시 편집
 
@@ -92,12 +92,12 @@ workspace.execute(childPatch);
 ## 관련 파일 체크리스트
 
 - [ ] `apps/builder/src/builder/catalogRuntime/ruleShapes.ts` — `BOX_SIZE_TYPES` 에 type 등록
-- [ ] 소비 지점: `packages/specs/src/renderers/skiaPrimitives.ts` draw module 또는 `buildCatalogShapes.ts` 에서 `props._containerWidth` 읽기
+- [ ] 소비 지점: `packages/rendering/src/renderers/skiaPrimitives.ts` draw module 또는 `buildCatalogShapes.ts` 에서 `props._containerWidth` 읽기
 - [ ] delegation prop 이 레이아웃에 영향을 주면 [layout-engine.md 「새 레이아웃 키를 추가할 때」](../../../rules/layout-engine.md): `styleOf` (`compositionRoot.ts`) 가 엔진 입력으로 내보내는지, `PAINT_ONLY_VISUAL_KEYS` (`transaction.ts`) 에 잘못 넣지 않았는지
 - [ ] Properties 편집이 부모 + 자식 동시 갱신이면 `composeCommands` 하나로
 
 ## 참조
 
-- [spec-shape-rendering](spec-shape-rendering.md) — Shape 생성 경로 (catalog + 잔존 spec)
+- [spec-shape-rendering](spec-shape-rendering.md) — Shape 생성 경로 (catalog)
 - [spec-value-sync](spec-value-sync.md) — catalog ↔ Canvas ↔ CSS 값 동기화
 - `.claude/rules/layout-engine.md` — 레이아웃 재계산 경로 (catalog runtime)

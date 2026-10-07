@@ -25,7 +25,7 @@ disable-model-invocation: true
 
 Phase의 변경 범위와 성공 기준을 짧게 알리고 필요한 도메인 지침만 읽습니다.
 회귀 조건은 인접 테스트로 고정하고 실제 phase gate를 실행합니다.
-TS 변경은 typecheck, spec 변경은 build:specs, 렌더링 변경은 `cross-check`로 확인합니다.
+TS 변경은 typecheck, catalog rule 의 CSS 반영 값 변경은 `pnpm generate:css`, 렌더링 변경은 `cross-check`로 확인합니다.
 registration·resolved-tree wiring·schema 변경은 unit PASS뿐 아니라 실제 Builder 경로를
 exercise합니다. 검증 실패는 승인 범위에서 원인을 해결하고 영향받은 검사만 재실행합니다.
 

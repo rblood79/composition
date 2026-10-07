@@ -22,8 +22,8 @@ tags: [domain, element, structure, audit]
 문서 노드에는 `type` · `parent_id` 가 없습니다. 구조는 정의 템플릿 (`templateRootId` 아래 children) 이고, 타입은 `definitionId` 에서 유도합니다. 타입명 문자열로 소비자를 찾습니다.
 
 ```bash
-# 변경되는 타입명이 등장하는 표 · 분기 전수 (catalog · builder · specs)
-grep -rn '"Tab"\|"TabList"\|"TabPanels"' --include="*.ts" --include="*.tsx" packages/shared/src packages/specs/src apps/builder/src
+# 변경되는 타입명이 등장하는 표 · 분기 전수 (catalog · builder · rendering)
+grep -rn '"Tab"\|"TabList"\|"TabPanels"' --include="*.ts" --include="*.tsx" packages/shared/src packages/rendering/src apps/builder/src
 ```
 
 ### Step 2: 서브시스템 체크리스트

@@ -18,7 +18,7 @@
 ### 시각 SSOT = catalog
 
 - `COMPONENT_RULES_TABLE` 은 **직접 편집 정본** (ADR-912). 생성기는 삭제됐다.
-- 소비자: DOM generated CSS (`packages/specs/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/`), Canvas rule 실행기 (`catalogRuntime/ruleShapes.ts` · `rulePaint.ts`), Styles 패널 preset (`specPresetResolver.ts`).
+- 소비자: DOM generated CSS (`packages/rendering/scripts/generate-css.ts` → `packages/shared/src/components/styles/generated/`), Canvas rule 실행기 (`catalogRuntime/ruleShapes.ts` · `rulePaint.ts`), Styles 패널 preset (`specPresetResolver.ts`).
 - 타입 정의에 rule 이 있으면 `ruleTypeDefinition` 이 `definition.ruleId = type` 을 붙인다 — Canvas 는 이 `ruleId` 로 rule 실행기를 고른다.
 - binding: `catalog/bindings/{Component}.binding.ts` 의 `PrimitiveBinding` (`catalog/types.ts`) — `source.kind`, `props.accepts` (D2 편집 계약 — Properties 필드 정의), `skiaPrimitive` (비-box 시각의 escape 키), `toRacProps`.
 - `isCatalogCutover` (`catalog/cutover.ts`) 는 남아 있지만 catalog Canvas 의 분기 게이트가 아니다 (catalogRuntime 호출 0).
@@ -64,18 +64,17 @@ Select (props: label, placeholder, labelPosition, isInvalid …)
 - 삽입: `catalogPaletteInsertPlan` → `insertNodes` 명령 (`commands/structure.ts`). 수용 판정은 명령 안의 `assertNestable` (nestingRules).
 - `COMPLEX_COMPONENT_TAGS` (`factories/constants.ts`) 의 남은 소비처는 AI 도구 (`services/ai/tools/compositeMode.ts`) 뿐이다.
 
-## 3. D1/D3 경계 — 잔존 spec 3종
+## 3. D1/D3 경계 — Frame / Group / Slot (spec 없음)
 
-`packages/specs/src/components/` 의 spec 은 **Frame / Group / Slot 3개뿐** (`BASE_TAG_SPEC_MAP`, `packages/specs/src/runtime/tagToElement.ts`).
+세 타입의 spec 파일과 `packages/specs` (`BASE_TAG_SPEC_MAP` · `tagToElement.ts` 포함) 는 ADR-248 (`ddc5fc603`) 에서 삭제됐다. 모두 catalog 입력이다 — `COMPONENT_RULES_TABLE` 의 `frame` · `Group` · `Slot` 키 + `componentCatalog.ts` entry.
 
-| Spec            | Domain | 잔존 이유                                                                        |
-| --------------- | ------ | -------------------------------------------------------------------------------- |
-| `Group.spec.ts` | **D1** | RAC ARIA semantic (`role="group"`) — catalog 로 흡수 시 D1 침범                  |
-| `Frame.spec.ts` | **D3** | ADR-130 layout container (lowercase `frame`) — ARIA role 없음, RAC Group 과 분리 |
-| `Slot.spec.ts`  | —      | 플레이스홀더 컨테이너                                                            |
+| 타입    | Domain | 경계                                                                               |
+| ------- | ------ | ---------------------------------------------------------------------------------- |
+| `Group` | **D1** | RAC ARIA semantic (`role="group"`) — catalog rule 에 시각 책임 추가 금지 (ADR-130) |
+| `frame` | **D3** | ADR-130 layout container (lowercase) — ARIA role 없음, RAC Group 과 분리           |
+| `Slot`  | —      | 플레이스홀더 컨테이너                                                              |
 
-- catalog Canvas 는 이 3종을 spec shapes 로 그리지 않는다 — `frame` · `group` · `slot` 은 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 그린다.
-- builder 측 `TAG_SPEC_MAP` (`workspace/canvas/styleConversion/tagSpecMap.ts`) 은 catalog Canvas 가 쓰지 않는다.
+- Canvas 는 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 세 타입을 그린다. 옛 builder `TAG_SPEC_MAP` 은 삭제됐다.
 
 ## 4. 부모 → 자식 값 전달 — 4채널
 

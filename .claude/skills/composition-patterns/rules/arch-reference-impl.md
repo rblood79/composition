@@ -11,7 +11,7 @@ tags: [architecture, reference, patterns]
 
 ## Component Spec / Catalog 패턴
 
-> **Note**: 이 표의 경로는 `packages/` 기준입니다. ADR-142 catalog cutover 이후 컴포넌트 시각 정본은 catalog(`COMPONENT_RULES_TABLE`)이며, spec 파일은 잔존 최소 집합(Frame 등)만 유지됩니다.
+> **Note**: 이 표의 경로는 `packages/` 기준입니다. ADR-142 catalog cutover 이후 컴포넌트 시각 정본은 catalog(`COMPONENT_RULES_TABLE`)이며, 컴포넌트당 spec 파일과 `packages/specs` 는 ADR-248 (2026-10-04) 에서 삭제됐습니다 (Frame/Group/Slot 도 catalog).
 
 | 패턴                  | 참조 파일                                                            | 설명                                                     |
 | --------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- |

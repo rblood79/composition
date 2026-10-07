@@ -5,18 +5,18 @@ impactDescription: DOM/CSS ↔ Skia 시각 대칭 — catalog 단일 소스에�
 tags: [spec, catalog, shape, rendering, skia]
 ---
 
-Skia 렌더러는 **플랫폼 독립적 도형(`Shape[]`)** 을 그립니다 (ADR-900 Unified Skia Engine — PixiJS/ElementSprite 삭제 완료). Shape 생성 경로는 두 갈래뿐입니다:
+Skia 렌더러는 **플랫폼 독립적 도형(`Shape[]`)** 을 그립니다 (ADR-900 Unified Skia Engine — PixiJS/ElementSprite 삭제 완료). Shape 생성 경로는 catalog 하나뿐입니다 (옛 `spec.render.shapes()` 경로는 ADR-248 에서 삭제):
 
-| 경로                    | 대상                                               | 생성기                                                            |
-| ----------------------- | -------------------------------------------------- | ----------------------------------------------------------------- |
-| **catalog 경로 (기본)** | `isCatalogCutover(type)` = true 인 모든 컴포넌트   | `buildCatalogShapes()` (generic box+text) + `skiaPrimitives` 모듈 |
-| **잔존 spec 경로**      | catalog 미등록 native 3종 — `frame`/`Group`/`Slot` | `spec.render.shapes()`                                            |
+| 경로                     | 대상                                                         | 생성기                                                            |
+| ------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| **catalog rule 경로**    | `node.ruleId` 가 있는 모든 컴포넌트                          | `buildCatalogShapes()` (generic box+text) + `skiaPrimitives` 모듈 |
+| **catalog binding 경로** | `frame` / `Group` / `Slot` 등 `canvasBinding.ts` bindings 표 | `containerWithAuthoredPaint` 등 binding 함수 (authored paint)     |
 
 시각 규칙(D3)의 SSOT 는 catalog `COMPONENT_RULES_TABLE` 이며 컴포넌트별 spec 파일이 아닙니다. → [spec-single-source-truth](spec-single-source-truth.md)
 
 ## 1. Shape 타입 계약
 
-`packages/specs/src/types/shape.types.ts` 의 `Shape` 유니온 (12종):
+`packages/rendering/src/types/shape.types.ts` 의 `Shape` 유니온 (12종):
 
 | 타입        | 용도                                                              |
 | ----------- | ----------------------------------------------------------------- |
@@ -48,14 +48,14 @@ COMPONENT_RULES_TABLE      packages/shared/src/catalog/generated/componentRulesT
   → resolveSkiaVisualRule() / ruleVariantToVisual()
                              apps/builder/src/builder/workspace/canvas/skia/resolveSkiaVisualRule.ts
   → buildCatalogShapes(visual, props, size, state, textDecoration)
-                             packages/specs/src/renderers/buildCatalogShapes.ts:110
+                             packages/rendering/src/renderers/buildCatalogShapes.ts:110
   (+ binding.skiaPrimitive draw module → composeCatalogShapes(base, prepend, append))
   → specShapesToSkia()       apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts:144
   → SkiaNodeData → nodeRenderers
 ```
 
 - **buildCatalogShapes** 는 모든 frame 이 공유하는 **보편 box+text** (bg roundRect + border + text)만 그립니다. 색/크기는 `visual.fill`(ADR-908 `FillTokenSpec`) + `sizes[size]` + `props.style` 우선 오버라이드에서 읽습니다. 패키지 경계(`specs ← shared`)상 rule 테이블은 builder(`catalogRuntime/ruleShapes.ts` → `ruleVariantToVisual`)가 해소하여 `visual` 인자로 주입합니다.
-- **비-DOM-trivial primitive**(원/선/아이콘/arc 등)는 `PrimitiveBinding.skiaPrimitive` 키(`packages/shared/src/catalog/types.ts:111`) → `packages/specs/src/renderers/skiaPrimitives.ts` 의 `SKIA_PRIMITIVES` draw module 이 담당. 합성 모드: `replace` / `prepend`(base 아래 레이어) / `append`(base 위 레이어). draw fn 이 `null` 반환 = "이 props 에는 미적용" → generic box+text fallback.
+- **비-DOM-trivial primitive**(원/선/아이콘/arc 등)는 `PrimitiveBinding.skiaPrimitive` 키(`packages/shared/src/catalog/types.ts:111`) → `packages/rendering/src/renderers/skiaPrimitives.ts` 의 `SKIA_PRIMITIVES` draw module 이 담당. 합성 모드: `replace` / `prepend`(base 아래 레이어) / `append`(base 위 레이어). draw fn 이 `null` 반환 = "이 props 에는 미적용" → generic box+text fallback.
 
 ### 금지 — 컴포넌트 식별 분기 인라인
 
@@ -67,20 +67,20 @@ if (props.isDot) { /* Badge 전용 circle 을 generic 함수에 인라인 */ }
 // ✅ binding 데이터(skiaPrimitive 키)로 표현 — 적용 조건은 draw fn 의 null 반환으로 처리
 // packages/shared/src/catalog/bindings/{Component}.binding.ts
 skiaPrimitive: "dot",
-// packages/specs/src/renderers/skiaPrimitives.ts
+// packages/rendering/src/renderers/skiaPrimitives.ts
 const dot: SkiaPrimitiveDrawFn = ({ props }) =>
   props.isDot === true ? [/* circle shapes */] : null; // null → generic fallback
 ```
 
 데이터 키 유무 분기(`_treeLevel` / `_groupPosition`)는 허용 — 컴포넌트 식별이 아닙니다 (`resolveTreeIndent` / `resolveSegmentedRadius`, buildCatalogShapes.ts).
 
-## 3. 잔존 spec (Frame/Group/Slot) shapes 규약
+## 3. Frame/Group/Slot — spec 없음, Canvas binding 이 그린다
 
-`packages/specs/src/components/{Frame,Group,Slot}.spec.ts` 3개가 잔존 spec 이다. **production Canvas 는 이 spec 의 `render.shapes()` 를 부르지 않는다** — frame · group · slot 은 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 authored paint 로 그린다. `render.shapes()` 소비처는 parity 하니스 (`layout/engines/*`) 와 specs 내부뿐이다. 아래 규약은 spec 파일을 고칠 때의 계약이다.
+Frame · Group · Slot 의 spec 파일과 `packages/specs` 는 ADR-248 (`ddc5fc603`) 에서 삭제됐다. `frame` · `group` · `slot` 은 `catalogRuntime/canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 authored paint 로 그리고, 값은 catalog `COMPONENT_RULES_TABLE` 의 `frame` · `Group` · `Slot` 키가 정본이다.
 
-- `_hasChildren` 주입 시 실렌더 shape 반환 금지 — Frame 은 빈 배열 반환, Group 은 투명 처리 (Child Composition). 3-branch 주입 규칙: `.claude/rules/canvas-rendering.md` §2.5
-- Frame = D3 layout container (`skipCSSGeneration: true`, ARIA role 없음) / Group = RAC ARIA semantic (D1) — Group 에 시각 책임 추가 금지 (ADR-130)
-- **신규 컴포넌트에 `render.shapes()` spec 신설 금지** — catalog 등록(binding + `COMPONENT_RULES_TABLE` rule)이 정본 경로
+- 자식이 있는 컨테이너는 자기 상자 외의 shape 를 그리지 않는다 (Child Composition) — 3-branch 주입 규칙: `.claude/rules/canvas-rendering.md` §2.5
+- Frame = D3 layout container (ARIA role 없음) / Group = RAC ARIA semantic (D1) — Group 에 시각 책임 추가 금지 (ADR-130)
+- **어떤 컴포넌트에도 `render.shapes()` spec 을 신설하지 않는다** — catalog 등록 (binding + `COMPONENT_RULES_TABLE` rule) 이 유일한 경로
 
 ## 4. Fill 접근 — resolveFillTokens 경유 (ADR-908)
 
@@ -88,7 +88,7 @@ const dot: SkiaPrimitiveDrawFn = ({ props }) =>
 // ❌ 금지 — legacy background 필드는 타입에서 삭제됨 (compile error)
 const bg = state === "hover" ? variant.backgroundHover : variant.background;
 
-// ✅ 단일 진입점 — packages/specs/src/utils/fillTokens.ts:26
+// ✅ 단일 진입점 — packages/rendering/src/utils/fillTokens.ts:26
 import { resolveFillTokens } from "../utils/fillTokens";
 const fill = resolveFillTokens(variant); // → variant.fill (FillTokenSpec)
 const bg =
@@ -130,8 +130,8 @@ buildCatalogShapes 는 주입받은 `visual.fill` 에서 동일 구조를 소비
 
 ## 참조
 
-- `packages/specs/src/types/shape.types.ts` — Shape 타입 정의
-- `packages/specs/src/renderers/buildCatalogShapes.ts` / `skiaPrimitives.ts` / `composeCatalogShapes.ts`
+- `packages/rendering/src/types/shape.types.ts` — Shape 타입 정의
+- `packages/rendering/src/renderers/buildCatalogShapes.ts` / `skiaPrimitives.ts` / `composeCatalogShapes.ts`
 - `apps/builder/src/builder/catalogRuntime/canvasBinding.ts` — dispatch (binding / rule) · `ruleShapes.ts` · `rulePaint.ts` — rule 경로 shapes · props 주입
 - `apps/builder/src/builder/workspace/canvas/skia/specShapeConverter.ts` — Shape[] → SkiaNodeData
 - `.claude/rules/canvas-rendering.md` — `_hasChildren` 3-branch / Fill Spec Schema SSOT

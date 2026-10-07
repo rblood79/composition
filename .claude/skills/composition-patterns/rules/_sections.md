@@ -8,7 +8,7 @@
 | 2    | `validation-`  | CRITICAL      | 입력 검증/에러 처리 규칙                                                       |
 | 3    | `style-`       | CRITICAL      | 스타일/CSS 규칙                                                                |
 | 4    | `type-`        | CRITICAL      | TypeScript 타입 규칙                                                           |
-| 5    | `spec-`        | HIGH~CRITICAL | 잔존 spec · shape 생성 규칙                                                    |
+| 5    | `spec-`        | HIGH~CRITICAL | catalog shape 생성 · 토큰 · 값 동기화 규칙 (옛 spec 계층 이름 유지)            |
 | 6    | `react-aria-`  | HIGH          | React-Aria 접근성 규칙                                                         |
 | 7    | `zustand-`     | HIGH          | 남은 UI · 데이터 store 규칙 (문서 · 요소 상태 제외)                            |
 | 8    | `postmessage-` | HIGH~CRITICAL | PostMessage 통신 규칙                                                          |

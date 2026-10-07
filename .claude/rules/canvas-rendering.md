@@ -2,7 +2,6 @@
 description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-900 PixiJS 제거 완료)
 paths:
   - "apps/builder/src/builder/workspace/canvas/**"
-  - "packages/specs/**"
   - "**/nodeRenderers*"
 ---
 
@@ -10,7 +9,7 @@ paths:
 
 > **SSOT 체인 연계**: Skia 렌더는 [ssot-hierarchy.md](ssot-hierarchy.md) **D3(시각 스타일)의 direct consumer**. CSS/DOM consumer와 **대등(symmetric)** — 한쪽이 다른 쪽 기준 아님. 대칭 = "시각 결과의 동일성" (구현 방법 자유). catalog/spec 이 D1(DOM) 침범 금지.
 >
-> **2026-07-08**: D3 SSOT 는 [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented) 로 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 로 전환됨. 본 문서의 "Spec" 서술은 **잔존 spec 3개(Frame/Group/Slot) 한정** — 일반 컴포넌트는 catalog 경로 (ADR-036 은 Superseded by ADR-142).
+> **2026-07-08**: D3 SSOT 는 [ADR-142](../../docs/adr/completed/142-starter-spec-component-system-cutover.md)(Implemented) 로 catalog(`COMPONENT_RULES_TABLE`) + theme/tokens 로 전환됨. 본 문서의 "Spec" 이라는 낱말은 옛 이름이다 — 컴포넌트당 spec 파일과 `packages/specs` 는 ADR-248 (2026-10-04) 에서 삭제됐고 Frame/Group/Slot 도 catalog 경로다 (ADR-036 은 Superseded by ADR-142).
 >
 > 구현 상세는 [canvas-details.md](../skills/composition-patterns/reference/canvas-details.md) 참조
 
@@ -28,7 +27,7 @@ paths:
 
 - TokenRef 숫자 연산 시 `resolveToken()` 변환 필수. **Why**: 미변환 시 NaN 전파
 - `_hasChildren` 체크: 배경 shapes 직후, standalone shapes 직전 배치. **Why**: 자식 유무에 따라 shapes 분기
-- Child Spec 추가 → `packages/specs/src/index.ts` + `components/index.ts` export + `pnpm build:specs` + `TAG_SPEC_MAP` 등록 (신규 child spec 은 D1 예외 컴포넌트만 — 일반 컴포넌트는 catalog)
+- 신규 컴포넌트 (child 포함) 추가 → catalog 등록만 (`catalog/bindings/{Name}.binding.ts` + `componentCatalog.ts` entry + `COMPONENT_RULES_TABLE` rule + `pnpm generate:css`). spec 파일 · `TAG_SPEC_MAP` · `packages/specs` 는 ADR-248 (`ddc5fc603`) 에서 삭제됐다 — 어떤 컴포넌트에도 spec 경로를 새로 만들지 않는다 (Frame/Group/Slot 도 catalog 입력)
 - Spec fontSize 우선순위: `props.size` 명시 시 `size.fontSize` 우선. **Why**: Propagation은 size prop만 변경, style.fontSize 미갱신
 - Spec Container Dimension Injection: `_containerWidth`/`_containerHeight` props 주입 (`catalogRuntime/ruleShapes.ts`). `BOX_SIZE_TYPES` Set 등록 필수 (옛 `buildSpecNodeData.ts` `CONTAINER_DIMENSION_TAGS` — Phase 4e-9-8 삭제). **Why**: Spec shapes가 레이아웃 엔진 결과를 모르면 우측/중앙 배치 불가
 
@@ -38,7 +37,7 @@ VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* �
 
 ### Fill token 구조
 
-타입 정의는 소스가 정본 — `packages/specs/src/types/spec.types.ts` 의 `FillStateTokens` (state 축: `base` 필수, 나머지 선택) / `FillTokenSpec` (fillStyle 축: `default` 필수, `outline`/`subtle` 은 `Partial`, `alpha` 0-1). 여기에 복사본을 두지 않는다 (drift 방지).
+타입 정의는 소스가 정본 — `packages/rendering/src/types/spec.types.ts` 의 `FillStateTokens` (state 축: `base` 필수, 나머지 선택) / `FillTokenSpec` (fillStyle 축: `default` 필수, `outline`/`subtle` 은 `Partial`, `alpha` 0-1). 여기에 복사본을 두지 않는다 (drift 방지).
 
 ### Spec 작성 규약
 
@@ -63,8 +62,8 @@ VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* �
 
 collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, Menu, Select, Tabs, TagGroup, Table, Toolbar, Tree` 11 주대상) 의 `element.props.style` 은 **3경로** (Preview DOM / Skia `render.shapes()` / Layout `calculateContentHeight()`) 에 **동일 resolver** 로 반영되어야 한다. 4 layer 아키텍처:
 
-- **Layer A — CSS value parser SSOT**: `packages/specs/src/primitives/cssValueParser.ts` 의 `parsePxValue / parsePadding4Way / parseGapValue / parseBorderWidth` 만 사용. **금지**: `parseFloat(String(x))` ad-hoc 파싱. **Why**: edge case (undefined/null/"" /"20px"/숫자/percentage) 일관 처리 + generic fallback (`parsePxValue<F>(value, fallback: F): number | F` — TokenRef passthrough 허용)
-- **Layer B — Container spacing primitive**: `packages/specs/src/primitives/containerSpacing.ts` 의 `resolveContainerSpacing({ style, defaults })` 가 padding(4way)/gap(row+column)/borderWidth/fontSize 를 통합 resolve. 각 caller 는 `defaults` 에 spec 기본값 전달. **Why**: 7 공통 필드의 컴포넌트별 중복 파싱 제거
+- **Layer A — CSS value parser SSOT**: `packages/rendering/src/primitives/cssValueParser.ts` 의 `parsePxValue / parsePadding4Way / parseGapValue / parseBorderWidth` 만 사용. **금지**: `parseFloat(String(x))` ad-hoc 파싱. **Why**: edge case (undefined/null/"" /"20px"/숫자/percentage) 일관 처리 + generic fallback (`parsePxValue<F>(value, fallback: F): number | F` — TokenRef passthrough 허용)
+- **Layer B — Container spacing primitive**: `packages/rendering/src/primitives/containerSpacing.ts` 의 `resolveContainerSpacing({ style, defaults })` 가 padding(4way)/gap(row+column)/borderWidth/fontSize 를 통합 resolve. 각 caller 는 `defaults` 에 spec 기본값 전달. **Why**: 7 공통 필드의 컴포넌트별 중복 파싱 제거
 - **Layer C — DOM root style 계약**: 옛 Preview renderer (`packages/shared/src/renderers/`, 2026-10-07 삭제) 의 `rendererStyleContract.test.ts` 가 하던 검증은 catalog DOM binding (`packages/shared/src/catalog/runtime/domBinding.tsx` `catalogDomStyle` — 노드의 해석 값이 요소 inline style 로) 이 대신한다. 새 binding 은 `style` 을 요소에 전달해야 한다
 - **Layer D — Spec metric SSOT**: `render.shapes()` 와 `calculateContentHeight()` 가 **동일 resolver 심볼** 호출. 예: `resolveGridListSpacingMetric()` (GridList), `resolveContainerSpacing()` 직접 호출 (Menu/Toolbar). **Hard Constraint**: root container spacing 과 item 내부 spacing 은 같은 속성명으로 섞지 않음 (예: Table `size.paddingX` 는 cell-level, 유지)
 
@@ -74,7 +73,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 2. `{Component}.spec.ts` 의 `render.shapes()` 가 `resolveContainerSpacing({ style: props.style, defaults: { ...size } })` 경유 (Layer B + D)
 3. 컴포넌트-specific 확장 (numCols / cardPadding 등) 필요 시 `resolve{Component}SpacingMetric()` wrapper 작성 (GridList 패턴)
 4. `utils.ts` 의 `calculateContentHeight()` 분기 존재 시 동일 resolver 호출 (Layer D grep 검증)
-5. `packages/specs/src/__tests__/{Component}.spacing.test.ts` 로 Layer D contract 확증
+5. `packages/rendering/src/__tests__/{Component}.spacing.test.ts` 로 Layer D contract 확증
 6. `rendererStyleContract.test.ts` 의 `RENDERERS` 배열에 추가
 
 ### 금지 패턴 (ADR-907)
@@ -126,7 +125,7 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ## 4. Spec-CSS 경계
 
-- 일반 컴포넌트의 CSS 는 catalog binding 이 만든다. Spec → CSS 생성 (`CSSGenerator`) 은 잔존 spec 3개(Frame/Group/Slot) 한정이며 `skipCSSGeneration` 은 각 spec 이 선언한다
+- 모든 컴포넌트의 CSS 는 catalog rule → `packages/rendering/scripts/generate-css.ts` 가 만든다 (Frame/Group/Slot 포함). 옛 `CSSGenerator` · `skipCSSGeneration` spec 선언은 ADR-248 에서 삭제됐다
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)

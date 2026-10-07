@@ -112,7 +112,7 @@ production 이 쓰는 어댑터는 `gridStyleAdapter.ts` `parseGridTemplate` (co
 | `engines/utils.ts`          | 텍스트 측정 (`measureTextWidth` · `measureTextWithWhiteSpace` · `calculateMin/MaxContentWidth`) — `catalogTextMeasure` 의 Canvas 2D fallback · `INLINE_BLOCK_TAG_CLASSIFICATION` (`defaultDisplay.ts`) |
 | `engines/cssResolver.ts`    | font feature · font stretch · `currentColor` · `preprocessStyle` (Skia 렌더 · textMeasure · styleConverter)                                                                                            |
 | `engines/implicitStyles.ts` | `resolveContainerStylesFallback` · `resolveEffectiveOverflow` · `resolveEffectiveBoxShadow` (Skia · tier seed)                                                                                         |
-| `engines/cssValueParser.ts` | `resolveCSSSizeValue` · `parseBorderShorthand` (styleConverter · borderGeometry). `packages/specs/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                     |
+| `engines/cssValueParser.ts` | `resolveCSSSizeValue` · `parseBorderShorthand` (styleConverter · borderGeometry). `packages/rendering/src/primitives/cssValueParser.ts` (ADR-907 Layer A) 와 별개 파일                                 |
 
 production 에서 이 계층이 하던 일 (상속 텍스트 키, box model, 컨테이너 기본값, indicator 여백) 은 `compositionRoot.ts` (`CATALOG_INHERITED_TEXT_KEYS` · `styleOf`) · `catalogRuntime/boxModel.ts` · `document/rulePartRules.ts` 로 옮겨졌다.
 

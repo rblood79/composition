@@ -34,7 +34,7 @@
 | `resolveComponentRule(type, doc?)` | `catalog/resolvers/resolveComponentRule.ts`                    | doc override 우선 + 테이블 fallback (Properties edit contract · Styles preset 이 읽음)                                                                                   |
 | `resolveStaticComponentRule(type)` | 같은 파일                                                      | override 없는 theme rule base 전용 (ADR-916 P2-CAT)                                                                                                                      |
 | library rules                      | `graph.library.rules`                                          | Canvas rule 실행기 (`canvasBinding.ts` `ruleNodeData`) 가 `node.ruleId` 로 조회                                                                                          |
-| `buildCatalogShapes`               | `packages/specs/src/renderers/buildCatalogShapes.ts`           | component-agnostic generic box+text 생성기. **컴포넌트 식별 분기 금지** — 비-trivial primitive (원/선/아이콘) 는 `binding.skiaPrimitive` (`renderers/skiaPrimitives.ts`) |
+| `buildCatalogShapes`               | `packages/rendering/src/renderers/buildCatalogShapes.ts`       | component-agnostic generic box+text 생성기. **컴포넌트 식별 분기 금지** — 비-trivial primitive (원/선/아이콘) 는 `binding.skiaPrimitive` (`renderers/skiaPrimitives.ts`) |
 
 Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 있거나 `node.ruleId` 가 있어야 그린다. 둘 다 없으면 `CATALOG_CANVAS_BINDING_REQUIRED`, rule 이 library 에 없으면 `CATALOG_CANVAS_RULE_REQUIRED` 로 throw 한다 (조용히 빈 노드를 두지 않는다).
 
@@ -78,7 +78,6 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 | 심볼                                 | 위치                                                                | 내용                                                                                     |
 | ------------------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `TAG_SPEC_MAP` (builder merged)      | `workspace/canvas/styleConversion/tagSpecMap.ts`                    | packages/specs 정본 + `BUILDER_ALIAS_MAP`. catalog Canvas 는 쓰지 않는다                 |
 | `bindings` · `CATALOG_DELEGATED_DOM` | `packages/shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx` | DOM binding 매핑 (옛 `rendererMap` · `@composition/shared/renderers` 는 2026-10-07 삭제) |
 
 ---

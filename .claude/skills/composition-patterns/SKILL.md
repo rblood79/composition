@@ -24,5 +24,5 @@ Codex에서는 Claude의 glob 규칙 자동 로드를 전제하지 않습니다.
 예: `rg --files .claude/skills/composition-patterns/rules`.
 
 핵심 구분: DOM·접근성은 RAC, Props/API는 Spectrum 참조와 custom 계약,
-시각은 catalog `COMPONENT_RULES_TABLE` + theme/tokens입니다. 잔존 spec은
-Frame/Group/Slot 경로입니다. Canvas와 Preview의 시각 결과를 같은 정본에 대조합니다.
+시각은 catalog `COMPONENT_RULES_TABLE` + theme/tokens입니다 (Frame/Group/Slot 포함 —
+컴포넌트당 spec 파일은 없습니다, ADR-248). Canvas와 Preview의 시각 결과를 같은 정본에 대조합니다.
