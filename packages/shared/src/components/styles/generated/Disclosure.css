@@ -93,6 +93,12 @@
     outline: none;
   }
 
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] > .react-aria-Text {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-hovered] {
     background: var(--bg-muted);
     color: var(--fg-emphasis);

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Disclosure header — chevron 과 제목을 노드로] - 2026-10-07
+
+### Changed
+
+- **Disclosure 의 header 가 chevron · 제목을 자식 노드로 갖는다** (Checkbox · Switch 의 indicator, TreeItem 의 chevron 과 같은 방식 — react-aria.adobe.com Disclosure 의 trigger `<ChevronRight />` · `<span>{children}</span>`): template 은 `DisclosureHeader > DisclosureChevron + Text({title})`. Layers 에 두 노드가 보이고, chevron 은 삭제할 수 없다 (부모가 그리는 part). chevron 의 모양은 DisclosureHeader rule 의 `leadingIcon` 이 정본이고, Preview 는 제목 Text 를 trigger 안의 `span.react-aria-Text` 로 그린다. 위치: `reusableOriginLibrary.ts` · `bindings/DisclosureChevron.binding.ts` · `rulePartRules.ts` · `delegatedDom.tsx`
+
+### Fixed
+
+- **Canvas 의 Disclosure chevron · 제목이 DOM 보다 22px 오른쪽에 그려지던 것**: header 의 chevron 자리 inset (34) 과 rule 의 leading icon 밀기가 겹쳐 chevron 중심 43 · 제목 56 이었다 (DOM 21 · 34). 이제 chevron 상자 x 12 · 18×18, 제목 x 34 로 DOM 과 같다. 노드가 없는 옛 header 도 같은 자리에 그린다.
+- **Canvas 의 Disclosure chevron 이 펼침과 상관없이 → 방향이던 것**: header 가 Disclosure (DisclosureGroup 안이면 그룹의 펼침 값) 의 펼침 상태를 파생 값으로 받아 DOM 처럼 돌아간다. 위치: `catalog/runtime/presence.ts`
+- **DisclosureGroup 의 섹션 제목**: template 이 섹션 제목을 header 의 글자에 덮어써 Preview 는 「Section Title」 을 보였다. 이제 각 Disclosure 의 `title` 이 「Section 1」 · 「Section 2」 다.
+
 ## [날짜 field · ColorField 레퍼런스 정렬] - 2026-10-07
 
 ### Added

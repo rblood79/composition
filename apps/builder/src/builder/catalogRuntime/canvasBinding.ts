@@ -362,12 +362,14 @@ const bindings: Readonly<Record<string, Binding>> = {
   // no authored paint, so the Canvas paints none either (layout box only).
   radioitems: container,
   checkboxitems: container,
-  // A part its owner draws (toggle indicator, TreeItem chevron): painted from its owner's rule
-  // (`ownerDrawnPartNodeData` — the binding stands for the record in the registration loop only).
+  // A part its owner draws (toggle indicator, TreeItem · Disclosure chevron): painted from its
+  // owner's rule (`ownerDrawnPartNodeData` — the binding stands for the record in the registration
+  // loop only).
   checkboxindicator: container,
   radioindicator: container,
   switchindicator: container,
   treeitemchevron: container,
+  disclosurechevron: container,
   box,
   icon: glyph,
   selecticon: glyph,
@@ -502,13 +504,15 @@ const RULE_UNPAINTED_TEXT_KEYS = [
 /**
  * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation
  * itself is `OWNER_DRAWN_PART_OWNERS`): a toggle's `*Indicator` runs the toggle's replace
- * primitive, a TreeItem's `TreeItemChevron` its `leading_icon`.
+ * primitive, a TreeItem's `TreeItemChevron` and a DisclosureHeader's `DisclosureChevron` its
+ * `leading_icon`.
  */
 const OWNER_DRAWN_PART_PRIMITIVES: Readonly<Record<string, string>> = {
   CheckboxIndicator: "checkbox",
   RadioIndicator: "radio",
   SwitchIndicator: "switch_toggle",
   TreeItemChevron: "leading_icon",
+  DisclosureChevron: "leading_icon",
 };
 const OWNER_DRAWN_PART_OWNER_TYPES: ReadonlySet<string> = new Set(
   Object.values(OWNER_DRAWN_PART_OWNERS),

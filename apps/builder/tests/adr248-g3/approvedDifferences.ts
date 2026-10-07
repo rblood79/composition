@@ -676,6 +676,15 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "TreeItem = [chevron node, label, child items] (2026-10-04 user 「1안」 — old: the item painted its chevron in its own box)",
   },
   {
+    id: "disclosure-chevron-node",
+    class: "decided",
+    owners: ["Disclosure", "DisclosureGroup"],
+    side: "new",
+    nodes: ["DisclosureChevron", "Text"],
+    reason:
+      "DisclosureHeader = [chevron node, title Text] (2026-10-07 user — the reference trigger's `<ChevronRight />` · `<span>`; old: the header painted both in its own box)",
+  },
+  {
     id: "breadcrumb-separator-icon-children",
     class: "decided",
     owners: ["Breadcrumbs", "Breadcrumb"],

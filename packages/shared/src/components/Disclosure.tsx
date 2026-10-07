@@ -16,9 +16,9 @@ export interface DisclosureProps extends Omit<AriaDisclosureProps, "children"> {
    */
   size?: ComponentSize;
   /**
-   * Disclosure title/trigger text
+   * Disclosure title/trigger content (text, or the title node's element)
    */
-  title?: string;
+  title?: React.ReactNode;
   /**
    * Content to show when expanded
    */

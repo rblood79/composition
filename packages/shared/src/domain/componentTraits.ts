@@ -286,6 +286,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TreeItemChevron: { owners: ["TreeItem"] },
   DisclosureGroup: { children: ["Disclosure"] },
   DisclosureHeader: { owners: ["Disclosure"] },
+  // Disclosure trigger 의 chevron 노드 — 자기 부모 DisclosureHeader 안에만 (부모 Disclosure DOM 이 흡수).
+  DisclosureChevron: { owners: ["DisclosureHeader"] },
   Slider: { children: ["Label", "SliderOutput", "SliderTrack"] },
   SliderOutput: { owners: ["Slider"] },
   SliderTrack: { children: ["SliderThumb"], owners: ["Slider"] },

@@ -136,6 +136,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-912 (B+icon) (2026-06-08): Disclosure/Calendar 헤더 leaf (leading/inline icon escape).
         //   이전 slice 에서 catalog 등록됐으나 본 oracle 미갱신 stale → §2-5 Disclosure slice 와 함께 정합.
         "DisclosureHeader",
+        // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모가 그리는 part, palette 비노출).
+        "DisclosureChevron",
         "CalendarHeader",
         // ADR-912 (A/2D) (2026-06-08): Calendar grid + DateField input leaf (calendar_month_grid /
         //   datefield_segments replace escape). 동일 stale 정합.

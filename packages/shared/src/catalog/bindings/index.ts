@@ -86,6 +86,7 @@ import { checkboxIndicatorBinding } from "./CheckboxIndicator.binding";
 import { radioIndicatorBinding } from "./RadioIndicator.binding";
 import { switchIndicatorBinding } from "./SwitchIndicator.binding";
 import { treeItemChevronBinding } from "./TreeItemChevron.binding";
+import { disclosureChevronBinding } from "./DisclosureChevron.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
@@ -210,6 +211,7 @@ export * from "./CheckboxIndicator.binding";
 export * from "./RadioIndicator.binding";
 export * from "./SwitchIndicator.binding";
 export * from "./TreeItemChevron.binding";
+export * from "./DisclosureChevron.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Section.binding";
@@ -408,6 +410,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SwitchIndicator: switchIndicatorBinding,
   // 2026-10-04: TreeItem 의 chevron 버튼 노드 (부모 Tree DOM 이 흡수, 자기 rule 없음 — 값은 TreeItem rule).
   TreeItemChevron: treeItemChevronBinding,
+  // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모 Disclosure DOM 이 흡수, 자기 rule 없음 — 값은 DisclosureHeader rule).
+  DisclosureChevron: disclosureChevronBinding,
   Slider: sliderBinding,
   // ADR-912 SliderTrack: Slider compound 의 트랙 (배경 + value 막대 + thumb, Skia-전용 sub-part,
   //   slider_fill_bar escape, replace — thumb 컨테이너 box). DOM=RAC Slider self-compose (DOM no-op).

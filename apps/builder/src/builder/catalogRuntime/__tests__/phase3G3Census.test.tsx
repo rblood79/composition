@@ -539,6 +539,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + CheckboxIndicator · RadioIndicator · SwitchIndicator (toggle indicator nodes, 2026-10-04).
     // + TreeItemChevron (the TreeItem chevron node, 2026-10-04).
     // + TooltipTrigger (the Tooltip origin's root, ADR-255 2026-10-07).
-    expect(types.length).toBe(137);
+    // + DisclosureChevron (the Disclosure trigger's chevron node, 2026-10-07).
+    expect(types.length).toBe(138);
   }, 120_000);
 });

@@ -4344,6 +4344,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             transition: "all 200ms",
             outline: "none",
           },
+          // 제목 Text 노드 (2026-10-07 — 레퍼런스 `<span>{children}</span>`): `.react-aria-Text` 의 자기
+          //   font-size · line-height · color 선언을 풀어 trigger 의 글꼴 · 색 (hover 포함) 을 잇는다.
+          //   weight 는 Text 가 선언하지 않아 trigger 의 600 을 상속한다. 폭은 Text 의 100% 그대로 — flex
+          //   행에서 chevron 뒤 남은 폭으로 줄어든다 (Canvas 도 같은 값).
+          ".react-aria-Button[slot='trigger'] > .react-aria-Text": {
+            "font-size": "inherit",
+            "line-height": "inherit",
+            color: "inherit",
+          },
           ".react-aria-Button[slot='trigger'][data-hovered]": {
             background: "var(--bg-muted)",
             color: "var(--fg-emphasis)",

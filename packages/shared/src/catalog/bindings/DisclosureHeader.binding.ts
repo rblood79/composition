@@ -1,7 +1,12 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * DisclosureHeader — Disclosure 트리거 헤더 leaf (leading chevron + title text).
+ * DisclosureHeader — Disclosure 트리거 헤더 (`<Heading><Button slot="trigger">`).
+ *
+ * **2026-10-07 — chevron · 제목을 자식 노드로 (사용자 지시, toggle indicator · TreeItemChevron 선례)**: template 의
+ *   header 는 `DisclosureChevron` (부모가 그리는 part — 이 rule 의 `leadingIcon` 을 노드 상자에서 실행) 과 제목
+ *   `Text` (`{title}` — DOM 은 trigger 안의 `span.react-aria-Text`) 를 자식으로 갖는 flex 행이다. 아래 leaf 설명은
+ *   그 노드가 없는 옛 header (자식 없이 `children` 글자를 가진 것) 의 경로다 — 펼침은 파생 값 `isExpanded`.
  *
  * **ADR-912 (B+icon) proof slice (leadingIcon generic append, 2026-06-08)**: DisclosureHeader 는
  *   catalog 미등록 상태에서 spec.render.shapes(DisclosureHeader.spec.ts:113/125)가 Skia 시각 유일

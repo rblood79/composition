@@ -1642,9 +1642,13 @@ function renderNode(
     : undefined;
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
+  // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text
+  // { color: inherit }` — the trigger's hover color reaches it).
   if (
     bound &&
-    node.bindingId === "selectvalue" &&
+    (node.bindingId === "selectvalue" ||
+      (node.bindingId === "text" &&
+        parentInput?.bindingId === "disclosureheader")) &&
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;

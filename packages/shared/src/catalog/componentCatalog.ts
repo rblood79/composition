@@ -336,6 +336,14 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure header",
     icon: "ChevronRight",
   }),
+  // DisclosureChevron — Disclosure trigger 의 chevron (2026-10-07, TreeItemChevron 노드 동형). DisclosureHeader
+  //   template 의 첫 자식, DOM 은 부모 Disclosure (`svg.disclosure-chevron`) 가 그린다. palette 비노출.
+  primitiveEntry("DisclosureChevron", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "disclosure chevron",
+    icon: "ChevronRight",
+    placeable: false,
+  }),
   // ADR-912 box+text 변환 군 DisclosureContent 발효 (2026-06-10): Disclosure 패널 콘텐츠 leaf
   //   (inline text container div). catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는
   //   buildCatalogShapes box+text generic(rule DisclosureContent: fontSize+lineHeight+textWeight 400,

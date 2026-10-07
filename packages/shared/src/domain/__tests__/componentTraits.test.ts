@@ -308,6 +308,7 @@ describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () =>
       CardFooter: ["Card"],
       CardPreview: ["Card"],
       DisclosureHeader: ["Disclosure"],
+      DisclosureChevron: ["DisclosureHeader"],
       SelectTrigger: [
         "Select",
         "ComboBox",

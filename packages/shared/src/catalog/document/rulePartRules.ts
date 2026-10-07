@@ -885,9 +885,12 @@ function tokenRuleBasePartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
- * Disclosure's trigger renders the chevron (`.disclosure-chevron`, `var(--icon-size)`) before the
- * heading text, separated by the trigger's gap: the typed header (a text leaf) starts its text
- * after that inset.
+ * Disclosure's trigger (the typed header) renders the chevron (`.disclosure-chevron`,
+ * `var(--icon-size)`, `flex-shrink: 0`) and the title Text, separated by the trigger's gap
+ * (`DisclosureChevron` · `Text` nodes, 2026-10-07 — the flex row lays them out). The title Text
+ * takes the trigger's font (`… > .react-aria-Text` inherits size, line height and color; its weight
+ * is the trigger's 600). A header saved before the nodes is a text leaf: its own rule's
+ * `leadingIcon` shifts the text past the chevron (`buildCatalogShapes`).
  */
 function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "Disclosure") return [];
@@ -898,12 +901,8 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
     rule.structure?.composition as
       { staticSelectors?: Record<string, Record<string, string>> } | undefined
   )?.staticSelectors?.[".react-aria-Button[slot='trigger']"];
-  const padding = trigger
-    ? spacing(substitute(trigger.padding ?? "", {}) ?? "")
-    : undefined;
-  const gap = trigger ? lengthPx(trigger.gap ?? "") : undefined;
-  if (!padding || gap === undefined) return [];
-  const left = padding[3] ?? padding[1] ?? padding[0];
+  // (The trigger's padding and gap reach the header through its selector — `compileRulePartRules`.)
+  if (!trigger) return [];
   // The chevron reads the nearest `--icon-size`: the trigger's own `.react-aria-Button` sheet at
   // its default size (the element carries no `data-size`).
   const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
@@ -925,26 +924,35 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   const buttonLine = px(buttonSize?.lineHeight);
   const lineHeight =
     buttonFont && buttonLine ? buttonLine / buttonFont : undefined;
-  const top = padding[0];
-  const bottom = padding[2] ?? padding[0];
+  const titleWeight = Number(trigger?.["font-weight"]);
   return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
     const icon = buttonIcon ?? rule.sizes[size]?.iconSize;
     const fontSize =
       trigger?.["font-size"] === "inherit"
         ? px(rule.sizes[size]?.fontSize)
         : undefined;
+    const font = {
+      ...(fontSize !== undefined ? { fontSize } : {}),
+      ...(lineHeight !== undefined ? { lineHeight } : {}),
+    };
     return typeof icon === "number"
       ? [
+          { childType: "DisclosureHeader", size, layout: {}, visual: font },
           {
-            childType: "DisclosureHeader",
+            childType: "DisclosureChevron",
+            via: "DisclosureHeader",
+            size,
+            layout: { flexShrink: "0" },
+            visual: { width: icon, height: icon },
+          },
+          {
+            childType: "Text",
+            via: "DisclosureHeader",
             size,
             layout: {},
             visual: {
-              paddingLeft: left + icon + gap,
-              ...(fontSize !== undefined ? { fontSize } : {}),
-              ...(lineHeight !== undefined ? { lineHeight } : {}),
-              // The flex row is at least as tall as the chevron (content = max(icon, line box)).
-              minHeight: top + icon + bottom,
+              ...font,
+              ...(titleWeight > 0 ? { fontWeight: titleWeight } : {}),
             },
           },
         ]

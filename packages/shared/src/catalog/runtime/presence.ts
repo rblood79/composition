@@ -766,6 +766,15 @@ function ownDerivedProps(
   const level = catalogTreeLevel(node, get, typeOf);
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
+  // RAC Disclosure: `data-expanded` turns the trigger's chevron (the header rule's `leadingIcon`,
+  // painted in the header's DisclosureChevron node or, without one, by the header itself).
+  const disclosure = get(node.parentId);
+  if (
+    typeOf(node) === "DisclosureHeader" &&
+    disclosure &&
+    typeOf(disclosure) === "Disclosure"
+  )
+    return { isExpanded: catalogDisclosureExpanded(disclosure, get, typeOf) };
   // RAC Breadcrumbs draws its last crumb as the current one (no separator, current paint); the
   // crumb's label Text inherits the current Link's weight.
   if (typeOf(node) === "Breadcrumb")
@@ -911,6 +920,27 @@ function derivedDependents(
     return childrenOf(owner, get).filter((child) =>
       ["CalendarHeader", "CalendarGrid"].includes(typeOf(child)),
     );
+  // A Disclosure's header turns its chevron with the expansion — inside a DisclosureGroup every
+  // sibling's (the group's expanded keys).
+  if (type === "Disclosure" || type === "DisclosureGroup") {
+    const parent = get(owner.parentId);
+    const group =
+      type === "DisclosureGroup"
+        ? owner
+        : parent && typeOf(parent) === "DisclosureGroup"
+          ? parent
+          : undefined;
+    const disclosures = group
+      ? childrenOf(group, get).filter(
+          (child) => typeOf(child) === "Disclosure",
+        )
+      : [owner];
+    return disclosures.flatMap((disclosure) =>
+      childrenOf(disclosure, get).filter(
+        (child) => typeOf(child) === "DisclosureHeader",
+      ),
+    );
+  }
   const parent = get(owner.parentId);
   return type === "TreeItem" && parent && typeOf(parent) === "TreeItem"
     ? [parent]

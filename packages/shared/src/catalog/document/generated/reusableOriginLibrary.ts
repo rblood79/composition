@@ -2998,18 +2998,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-disclosuregroup__1",
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
-    "props": {},
+    "props": {
+      "title": "Section 1"
+    },
     "visual": {},
     "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-disclosure",
-          "lib:template:component-disclosure__1"
-        ],
-        "props": {
-          "children": "Section 1"
-        }
-      },
       {
         "templatePath": [
           "lib:template:component-disclosure",
@@ -3025,18 +3018,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-disclosuregroup__2",
     "definitionId": "lib:definition:origin-component-disclosure",
     "children": [],
-    "props": {},
+    "props": {
+      "title": "Section 2"
+    },
     "visual": {},
     "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-disclosure",
-          "lib:template:component-disclosure__1"
-        ],
-        "props": {
-          "children": "Section 2"
-        }
-      },
       {
         "templatePath": [
           "lib:template:component-disclosure",
@@ -3061,10 +3047,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-disclosure__1",
     "definitionId": "lib:definition:type-DisclosureHeader",
-    "children": [],
-    "props": {
-      "children": "{title}"
-    },
+    "children": [
+      "lib:template:component-disclosure__1__chevron",
+      "lib:template:component-disclosure__1__title"
+    ],
+    "props": {},
     "visual": {
       "width": "100%"
     },
@@ -3074,6 +3061,22 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "justifyContent": "flex-start",
       "alignItems": "center"
     }
+  },
+  {
+    "id": "lib:template:component-disclosure__1__chevron",
+    "definitionId": "lib:definition:type-DisclosureChevron",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-disclosure__1__title",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{title}"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-disclosure__2",
