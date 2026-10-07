@@ -79,6 +79,19 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Label weight 500 (ADR-253 — the Label rule's default; old 600 measures 1.0–1.8px wider)",
   },
   {
+    // ADR-254 Phase 2 (Accepted 2026-10-07 — G0 변화 목록): InlineAlert 의 제목 · 설명은 Heading ·
+    //   Description 원본의 instance 라 줄 높이가 부품 rule 의 값이다 (제목 md 1.4 → 1.5, 설명은 한 단계
+    //   위 lg 1.5 → 1.429). 글자 크기는 그대로 — 제목 높이 22.4 → 24, 설명이 그만큼 내려가고 줄 높이만큼
+    //   낮아진다 (63 → 60). 굵기 700 → 600 은 글자 폭만 바꾼다 (상자 폭은 InlineAlert 가 정한다).
+    id: "inline-alert-parts-rule-line-height",
+    class: "decided",
+    owners: ["InlineAlert"],
+    nodes: ["Heading", "Description"],
+    axes: ["y", "height"],
+    reason:
+      "InlineAlert title · description line height from the Heading · Description rules (ADR-254 — old: the alert rule's 1.4 · 1.5)",
+  },
+  {
     // ADR-253 Phase 3 (4) (사용자 결정 2026-10-06 — 레퍼런스 값이 부품의 기본값): NumberField 의 상자는
     //   Input 원본의 instance 이고 증감 버튼은 Button 원본 (secondary) 의 instance 다 — 입력칸이 Group 을
     //   채우고 버튼은 그 높이의 정사각형. old 는 Group 이 상자 (padding 4 · 12) 를 그리고 그 안에 글자와

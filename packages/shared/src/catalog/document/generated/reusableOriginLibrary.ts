@@ -2346,7 +2346,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-inline-alert__title",
-    "definitionId": "lib:definition:heading",
+    "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
       "slot": "label",
@@ -2356,7 +2356,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-inline-alert__description",
-    "definitionId": "lib:definition:type-Description",
+    "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
       "slot": "description",
@@ -2420,15 +2420,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-card__title",
-    "definitionId": "lib:definition:heading",
+    "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
       "children": "{title}",
       "size": "md"
     },
-    "visual": {
-      "fontWeight": "600"
-    },
+    "visual": {},
     "layout": {
       "marginTop": "0",
       "marginRight": "0",
@@ -2454,7 +2452,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-card__description",
-    "definitionId": "lib:definition:type-Description",
+    "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
       "children": "{description}",
@@ -5706,15 +5704,14 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-dialog__2_1",
-    "definitionId": "lib:definition:heading",
+    "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
       "children": "Dialog Title",
-      "size": "lg"
+      "size": "lg",
+      "slot": "title"
     },
-    "visual": {
-      "fontWeight": "600"
-    },
+    "visual": {},
     "layout": {
       "display": "block"
     }
@@ -5736,7 +5733,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-dialog__2_2",
-    "definitionId": "lib:definition:type-Description",
+    "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
       "children": "Dialog content goes here.",
@@ -5804,22 +5801,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-popover__1",
-    "definitionId": "lib:definition:heading",
+    "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
       "children": "Popover Title",
       "size": "sm"
     },
-    "visual": {
-      "fontWeight": "600"
-    },
+    "visual": {},
     "layout": {
       "display": "block"
     }
   },
   {
     "id": "lib:template:component-popover__2",
-    "definitionId": "lib:definition:type-Description",
+    "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
       "children": "Popover content goes here.",
@@ -5841,7 +5836,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tooltip__1",
-    "definitionId": "lib:definition:type-Description",
+    "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
       "children": "Tooltip text",

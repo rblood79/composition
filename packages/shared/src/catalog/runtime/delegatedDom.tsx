@@ -92,6 +92,11 @@ export interface DelegatedDomInput {
   /** Authored inline style (library visuals come from the class CSS). */
   readonly style: CSSProperties;
   readonly renderChild: (id: string) => ReactElement;
+  /**
+   * A child record's resolved inline style (what its own binding inlines — `catalogDomStyle`): for
+   * a child the renderer composes itself in place of the child's element (a Card's Description).
+   */
+  readonly childStyle?: (id: string) => CSSProperties;
   /** Current date/time source for date fields (deterministic in tests). */
   readonly today?: () => unknown;
   /**
@@ -1569,7 +1574,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: container("div", (input) => chrome(input, "CardFooter")),
   },
   cardcontent: {
-    // A Description child is a plain `div.react-aria-Description` (no RAC slot context in a card).
+    // A Description child is a plain `div.react-aria-Description` (no RAC slot context in a card),
+    // drawn with the Description node's own style — an instance of the Description origin
+    // (ADR-254), so the origin's edits and the card's patch reach it as on the Canvas.
     render: (input) =>
       createElement(
         "div",
@@ -1588,6 +1595,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                   className: "react-aria-Description card-description",
                   "data-size": opt(child.props.size),
                   "data-variant": opt(child.props.variant),
+                  style: input.childStyle?.(child.id),
                 },
                 typeof child.props.children === "string"
                   ? child.props.children

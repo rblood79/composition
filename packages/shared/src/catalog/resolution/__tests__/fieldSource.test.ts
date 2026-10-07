@@ -18,12 +18,14 @@ import {
   type CatalogPosition,
 } from "../positions";
 import { resolveCatalogNode, type ResolvedCatalogNode } from "../resolver";
+import { CATALOG_SIZE_PROPAGATION } from "../../document/sizePropagation";
 
 /**
  * ADR-248 Phase 4c — prop sources against the resolver: for every position of every code
  * library origin instance, the authored value `readPropSource` reports equals the resolved prop,
  * except where the resolver derives the value (a `{key}` template binding, a collection item's
- * selection that its collection decides).
+ * selection that its collection decides, the `size` an owner gives its part —
+ * `CATALOG_SIZE_PROPAGATION`: an InlineAlert's description one step up, ADR-254).
  */
 let library: CatalogLibrary;
 let graph: CatalogGraph;
@@ -43,11 +45,17 @@ beforeAll(async () => {
 
 const identity = (node: ResolvedCatalogNode) =>
   `${node.instancePath.join("/")}::${node.sourceId}`;
+/** Records whose `size` their structural owner sets (composite layers skipped, as the resolver). */
+const ownerSized = new Set<string>();
 function resolvedByIdentity(): Map<string, ResolvedCatalogNode> {
   const map = new Map<string, ResolvedCatalogNode>();
-  const walk = (node: ResolvedCatalogNode) => {
+  const walk = (node: ResolvedCatalogNode, owner?: string) => {
     map.set(identity(node), node);
-    node.children.forEach(walk);
+    const name = library.definitions.get(node.definitionId as never)?.name;
+    if (owner && name && CATALOG_SIZE_PROPAGATION[owner]?.includes(name))
+      ownerSized.add(identity(node));
+    const composite = rootOf(node.definitionId) !== undefined;
+    node.children.forEach((child) => walk(child, composite ? owner : name));
   };
   for (const position of pagePositions(graph, PAGE))
     walk(resolveCatalogNode(graph, position.sourceId as never));
@@ -89,6 +97,7 @@ describe("ADR-248 Phase 4c prop sources", () => {
     ) => {
       for (const [key, value] of Object.entries(record.props)) {
         if (!keep(key)) continue;
+        if (key === "size" && ownerSized.has(identity(record))) continue;
         const reading = readPropSource(graph, target, key);
         if (reading.layers.some((layer) => isBinding(layer.value))) continue;
         compared += 1;

@@ -128,53 +128,6 @@
   gap: 16px;
 }
 
-/* Heading */
-.react-aria-InlineAlert .alert-heading {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-/* Description */
-.react-aria-InlineAlert .react-aria-Description {
-  margin: 0;
-  width: 100%;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 1.5;
-}
-
-.react-aria-InlineAlert[data-size="sm"] .alert-heading {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.react-aria-InlineAlert[data-size="sm"] .react-aria-Description {
-  font-size: 12px;
-  font-weight: 400;
-}
-
-.react-aria-InlineAlert[data-size="md"] .alert-heading {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.react-aria-InlineAlert[data-size="md"] .react-aria-Description {
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.react-aria-InlineAlert[data-size="lg"] .alert-heading {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.react-aria-InlineAlert[data-size="lg"] .react-aria-Description {
-  font-size: 16px;
-  font-weight: 400;
-}
-
 .react-aria-InlineAlert[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

@@ -108,7 +108,7 @@ const partOf = (type, binding, selector) =>
     [type, binding, selector],
   );
 /** Double click the part on the Canvas, replace its text, commit with Escape. */
-const editInline = async (point, text) => {
+const editInline = async (point, text, partId) => {
   // (Each double click enters one level of the instance — a Card's title is two levels in:
   // the text edit opens on the double click that reaches the part.)
   for (let tries = 0; tries < 4; tries++) {
@@ -116,8 +116,20 @@ const editInline = async (point, text) => {
     await page.waitForTimeout(300);
     if ((await page.getByTestId("catalog-text-editor").count()) > 0) break;
   }
-  const editor = page.getByTestId("catalog-text-editor");
-  const opened = (await editor.count()) > 0;
+  // (A part the double click does not reach — a Card's title, two levels in: the same editor,
+  // opened by the session — ADR-254 Phase 0 record.)
+  let opened = (await page.getByTestId("catalog-text-editor").count()) > 0;
+  if (!opened && partId) {
+    await page.evaluate((id) => {
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      ws.session.startTextEdit(ws.itemOfRecord(id));
+    }, partId);
+    await page.waitForTimeout(300);
+    opened =
+      (await page.getByTestId("catalog-text-editor").count()) > 0
+        ? "session"
+        : false;
+  }
   if (opened) {
     await page.keyboard.press("ControlOrMeta+A");
     await page.keyboard.type(text);
@@ -162,7 +174,7 @@ await page.waitForTimeout(1500);
 
 const CASES = (
   process.env.CASES ??
-  "text field:TextField:label:label,card:Card:heading:title"
+  "text field:TextField:label:label,inline alert:InlineAlert:heading:title,card:Card:heading:title"
 )
   .split(",")
   .map((spec) => {
@@ -172,6 +184,12 @@ const CASES = (
 const SELECTOR = {
   label: ".react-aria-TextField .react-aria-Label",
   heading: ".react-aria-Card .react-aria-Heading",
+};
+/** The Preview element of each case (a container's title — by its container). */
+const SELECTOR_OF = {
+  TextField: SELECTOR.label,
+  Card: ".react-aria-Card .react-aria-Heading",
+  InlineAlert: ".react-aria-InlineAlert .react-aria-Heading",
 };
 
 await step("setup", async () => {
@@ -186,9 +204,9 @@ await step("setup", async () => {
 });
 for (const { type, binding, prop } of CASES)
   await step(`${type}-${binding}`, async () => {
-    const selector = SELECTOR[binding];
+    const selector = SELECTOR_OF[type] ?? SELECTOR[binding];
     const before = await partOf(type, binding, selector);
-    const opened = await editInline(before.point, `Child ${prop}`);
+    const opened = await editInline(before.point, `Child ${prop}`, before.part);
     const afterInline = await partOf(type, binding, selector);
     await writeProp(before.containerNode, prop, `Parent ${prop}`);
     await page.waitForTimeout(1200);

@@ -7,10 +7,12 @@ import {
   type CSSProperties,
 } from "react";
 import {
+  catalogBoundTextCommand,
   catalogTextCommand,
   catalogTextKey,
   catalogTextOf,
 } from "../../../catalogRuntime/canvasText";
+import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
@@ -56,9 +58,23 @@ function TextField({
   const [start] = useState(() => {
     const record = workspace.root.domInputs.get(item.identity);
     const key = catalogTextKey(record);
+    // A text the template binds to its instance's prop (a Card's title, a field's Label): the edit
+    // writes that prop (ADR-254 Decision 5) — shown and typed as the prop's text.
+    const binding =
+      key && record
+        ? catalogTextBinding(
+            workspace.runtime.graph.library,
+            workspace.root.domInputs,
+            record,
+            key,
+          )
+        : undefined;
+    const target = binding && workspace.itemOfRecord(binding.source.id)?.target;
     return {
       record,
       key,
+      bound: binding && target ? { target, prop: binding.prop } : undefined,
+      // (A bound text shows the prop's value: the position draws it as resolved.)
       text: key && record ? catalogTextOf(record, key) : "",
     };
   });
@@ -108,13 +124,23 @@ function TextField({
     if (committed.current) return;
     const command =
       start.key &&
-      catalogTextCommand(
-        item,
-        start.key,
-        start.text,
-        draft.current,
-        start.record?.visual.whiteSpace,
-      );
+      (start.bound
+        ? catalogBoundTextCommand(
+            workspace.runtime.graph,
+            item,
+            start.key,
+            start.bound,
+            start.text,
+            draft.current,
+            start.record?.visual.whiteSpace,
+          )
+        : catalogTextCommand(
+            item,
+            start.key,
+            start.text,
+            draft.current,
+            start.record?.visual.whiteSpace,
+          ));
     if (!command) return;
     committed.current = true;
     workspace.execute(command);

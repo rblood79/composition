@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [바탕의 부품 사슬 — ADR-254 Phase 1 · 2] - 2026-10-07
+
+### Added
+
+- **Heading 부품 원본**: Components page 의 Heading 원본을 고치면 AI 가 넣은 Heading 과 Dialog · Popover · Card · InlineAlert 의 제목이 Builder 와 Preview 에서 같이 바뀐다. Description 원본도 이제 다섯 컨테이너 (Tooltip 포함) 의 설명에 닿는다. AI 의 Heading 생성은 원본의 instance 를 만들고 `size` 선택지는 그대로다.
+
+### Changed
+
+- **InlineAlert 의 제목 · 설명은 Heading · Description rule 로 그린다** — InlineAlert 의 size 가 제목 (같은 단계) · 설명 (한 단계 위) 으로 전달된다. 글자 크기는 그대로 (14/16/18 · 12/14/16), 제목 굵기 700 → 600, 줄 높이는 각 rule 값 (제목 md 1.4 → 1.5 · 설명 1.5 → 1.429).
+- **Dialog 의 접근성 이름 = 제목**: 제목이 RAC `Heading slot="title"` 이 되어 Dialog 가 `aria-labelledby` 로 제목을 가리킨다 (제목 요소는 RAC 가 정하는 `h2`). 제목이 없는 Dialog 만 이름 「Dialog」.
+
+### Fixed
+
+- **부모 prop 에 묶인 글자를 Canvas 에서 고친 뒤 부모 prop 이 먹지 않던 문제**: TextField 의 Label · InlineAlert · Card 의 제목처럼 template 이 부모 prop (`label` · `title` · `description`) 에 묶은 글자는 더블클릭 편집이 그 prop 에 쓴다 (자식에 남아 있던 글자는 같은 단계에서 지운다). Properties 는 그 자리를 부모 소유로 안내한다.
+- **Preview 의 Card 설명이 노드 style 을 받지 않던 문제**: Canvas 와 같은 색 (`#49454f`) 과 글꼴이 Preview 에도 inline 으로 실린다.
+
 ## [대형 선택 Action Bar 준비 비용 축소] - 2026-10-07
 
 ### Performance

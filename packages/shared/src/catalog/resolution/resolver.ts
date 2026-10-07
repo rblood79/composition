@@ -26,7 +26,10 @@ import type {
 } from "../document/types";
 import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection } from "../document/collectionItems";
-import { CATALOG_SIZE_PROPAGATION } from "../document/sizePropagation";
+import {
+  CATALOG_SIZE_PROPAGATION,
+  CATALOG_SIZE_STEP,
+} from "../document/sizePropagation";
 import { CatalogValidationError } from "../document/validation";
 import { catalogTokenValue } from "../document/themedToken";
 import {
@@ -613,16 +616,18 @@ export function resolveCatalogNode(
     parent: ParentContext | undefined,
   ): void => {
     const owner = structuralParent(parent);
-    const size = owner?.props.size;
-    if (typeof size !== "string") return;
+    const ownerSize = owner?.props.size;
+    if (typeof ownerSize !== "string") return;
     const definition = lookupDefinition(definitionId);
+    const ownerName = lookupDefinition(owner!.definitionId).name;
     if (
-      !CATALOG_SIZE_PROPAGATION[
-        lookupDefinition(owner!.definitionId).name
-      ]?.includes(definition.name) ||
+      !CATALOG_SIZE_PROPAGATION[ownerName]?.includes(definition.name) ||
       definition.accepts.size !== "string"
     )
       return;
+    // (A child whose rule names the owner's look one step apart — `CATALOG_SIZE_STEP`.)
+    const size =
+      CATALOG_SIZE_STEP[ownerName]?.[definition.name]?.[ownerSize] ?? ownerSize;
     const choices =
       "propChoices" in definition ? definition.propChoices?.size : undefined;
     if (choices && !choices.map(String).includes(size)) return;

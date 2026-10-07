@@ -62,4 +62,19 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   SelectTrigger: ["Input", "DateInput", "Button", "Text"],
   Meter: ["Label"],
   ProgressBar: ["Label"],
+  // ADR-254: an InlineAlert's title and description are instances of the Heading · Description
+  //   origins, sized by their own rules at the alert's size (`CATALOG_SIZE_STEP` maps the step).
+  InlineAlert: ["Heading", "Description"],
+};
+
+/**
+ * Owner type → child type → the child's size for each owner size, where the child's rule names
+ * the same look one step apart (ADR-254): an InlineAlert's description is one step above its own
+ * size (sm/md/lg → Description md/lg/xl = 12/14/16px — the values the alert's rule declared). An
+ * owner size missing here passes as is.
+ */
+export const CATALOG_SIZE_STEP: Readonly<
+  Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
+> = {
+  InlineAlert: { Description: { sm: "md", md: "lg", lg: "xl" } },
 };

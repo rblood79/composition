@@ -495,12 +495,20 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       },
       String(node.props.children ?? ""),
     ),
+  // (`slot`: a Dialog's title — RAC connects it as the dialog's name, ADR-254. Only the slot RAC
+  // gives a Heading: an InlineAlert title's old slot role `label` is no RAC slot, and inside a
+  // Dialog RAC throws on a slot it does not provide.)
   heading: (node, style) =>
     createElement(
       Heading,
-      { key: node.id, "data-catalog-id": node.id, style } as Parameters<
-        typeof Heading
-      >[0],
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        ...(RAC_HEADING_SLOTS.has(node.props.slot as string)
+          ? { slot: node.props.slot }
+          : {}),
+        style,
+      } as Parameters<typeof Heading>[0],
       String(node.props.children ?? ""),
     ),
   // (`children`: what its field appends to the Label — the necessity indicator, ADR-253.)
@@ -905,6 +913,30 @@ const AUTHORED_CSS: Readonly<
   ),
 };
 
+/** A Dialog's title: a Heading below it with RAC's `title` slot (not one of a nested Dialog). */
+function dialogTitleOf(
+  root: CatalogCompositionRoot,
+  dialog: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  const visit = (id: string): CatalogConsumerNode | undefined => {
+    const record = root.domInputs.get(id);
+    if (!record || record.hidden || record.bindingId === "dialog")
+      return undefined;
+    if (record.bindingId === "heading" && record.props.slot === "title")
+      return record;
+    for (const child of record.children) {
+      const found = visit(child);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  for (const child of dialog.children) {
+    const found = visit(child);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 /** Registered components that drop DOM rest props (the shared Table takes `data-element-id` only). */
 const MARKER_WRAPPED_RULE_TYPES: ReadonlySet<string> = new Set(["Table"]);
 
@@ -938,6 +970,11 @@ function ruleDom(
   // (A picker's control: the part node elements inside its Group — ADR-253.)
   if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
+  // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
+  // without a title (and without the author's name) keeps the fallback name. RAC drops the title
+  // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.
+  if (lower === "dialog" && !node.ariaLabel && !dialogTitleOf(root, node))
+    rest["aria-label"] = "Dialog";
   // Preview `renderCatalogDom`: a crumb's separator Icon child renders after its Link (shared
   // `Breadcrumb` `separator`, dropped on the current crumb); a crumb without children takes the
   // catalog default Icon.
@@ -1116,6 +1153,12 @@ function itemLabelText(
     .map((child) => String(child?.props.children ?? ""))
     .join("");
 }
+
+/**
+ * The slots RAC gives a Heading (`HeadingContext` with `slots`): a Dialog's `title` (RAC
+ * `Dialog.mjs` — the heading it labels the dialog with, at level 2).
+ */
+const RAC_HEADING_SLOTS: ReadonlySet<string> = new Set(["title"]);
 
 /** Preview `ORPHAN_ITEM_HOST`: RAC host of each collection item/section type (lower-case). */
 const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {
@@ -1531,6 +1574,10 @@ function renderNode(
             id: childId,
             context,
           }),
+        childStyle: (childId) => {
+          const child = root.domInputs.get(childId);
+          return child ? catalogDomStyle(child, node) : {};
+        },
         today: context.today,
         ...(context.runtime
           ? {

@@ -233,6 +233,44 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     expect(found).toEqual([]);
   });
 
+  /**
+   * ADR-254: a container's title and description are instances of the Heading · Description
+   * origins, drawn by their own rules (an InlineAlert's at its size, `CATALOG_SIZE_STEP`). The
+   * container's rule declares neither their font (the generator's old `headingFontSize` ·
+   * `descFontSize` size keys) nor a selector that reaches them.
+   */
+  it("a container rule does not declare its title's or description's shape", () => {
+    const PART_SIZE_KEY = /^(heading|desc)[A-Z]/;
+    const PART_SELECTOR =
+      /react-aria-Heading|alert-heading|react-aria-Description|card-description|slot="description"/;
+    const found: string[] = [];
+    for (const type of [
+      "Dialog",
+      "Popover",
+      "Card",
+      "CardHeader",
+      "CardContent",
+      "InlineAlert",
+      "Tooltip",
+    ]) {
+      const rule = (
+        COMPONENT_RULES_TABLE as unknown as Record<
+          string,
+          {
+            sizes?: Record<string, Styles>;
+            structure?: { composition?: unknown };
+          }
+        >
+      )[type]!;
+      for (const [size, values] of Object.entries(rule.sizes ?? {}))
+        for (const key of Object.keys(values))
+          if (PART_SIZE_KEY.test(key)) found.push(`${type} ${size}.${key}`);
+      if (PART_SELECTOR.test(JSON.stringify(rule.structure?.composition ?? {})))
+        found.push(`${type} composition`);
+    }
+    expect(found).toEqual([]);
+  });
+
   it("no rule sets a part variable (`--label-*` · `--error-*`) on its element", () => {
     const found: string[] = [];
     const visit = (type: string, value: unknown, path: string) => {

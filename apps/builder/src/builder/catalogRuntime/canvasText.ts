@@ -1,5 +1,11 @@
 import { setFields } from "../../../../../packages/shared/src/catalog/commands";
-import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../packages/shared/src/catalog/commands/compose";
+import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import type { EditTarget } from "../../../../../packages/shared/src/catalog/document/types";
+import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type { CatalogSelectionItem } from "./session";
 import { collapsesSegmentBreaks } from "../workspace/canvas/utils/textWhiteSpace";
@@ -55,6 +61,44 @@ export function catalogTextCommand(
       : {}),
     label: "Edit text",
   });
+}
+
+/**
+ * ADR-254 Decision 5: the command that commits an inline edit of a bound text (`textBinding.ts`) —
+ * the text goes to its source, the instance's prop (`source` · `prop`), not to the edited position:
+ * a position's own text would hide every later edit of the prop. A text the position already wrote
+ * itself is removed in the same step (one source again). The `white-space` lift stays on the
+ * edited position (its style axis is its own).
+ */
+export function catalogBoundTextCommand(
+  graph: CatalogGraph,
+  item: CatalogSelectionItem,
+  key: string,
+  bound: { readonly target: EditTarget; readonly prop: string },
+  before: string,
+  after: string,
+  whiteSpace?: unknown,
+): CatalogCommand | undefined {
+  if (after === before) return undefined;
+  const lifted = committedWhiteSpace(whiteSpace, after);
+  const ownText = readPropSource(graph, item.target, key).own !== undefined;
+  const commands: CatalogCommand[] = [
+    setFields({
+      targets: [bound.target],
+      props: { [bound.prop]: { kind: "set", value: after } },
+    }),
+  ];
+  if (ownText || lifted)
+    commands.push(
+      setFields({
+        targets: [item.target],
+        ...(ownText ? { props: { [key]: { kind: "remove" } } } : {}),
+        ...(lifted
+          ? { visual: { whiteSpace: { kind: "set", value: lifted } } }
+          : {}),
+      }),
+    );
+  return () => composeCommands(graph, "Edit text", commands);
 }
 
 /** `pre-wrap` / `pre` when the committed text's line breaks would otherwise collapse, else null. */

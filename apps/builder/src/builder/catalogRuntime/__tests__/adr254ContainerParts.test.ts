@@ -205,6 +205,116 @@ function domMarkup(
   );
 }
 
+type PartRecord = {
+  binding: string;
+  size?: string;
+  slot?: string;
+  text?: string;
+  hidden?: true;
+  visual: Record<string, unknown>;
+  layout: Record<string, unknown>;
+};
+type PartsOf = { records: Record<string, PartRecord>; dom?: string };
+
+/**
+ * The line height each size gives a converted InlineAlert part (ADR-254 G0 change list): the
+ * Heading rule at the alert's size, the Description rule one step above — they replace the alert
+ * rule's 1.4 · 1.5. The font sizes stay (14/16/18 · 12/14/16).
+ */
+const INLINE_ALERT_LINE_HEIGHT: Record<
+  string,
+  { heading: number; description: number }
+> = {
+  sm: { heading: 20 / 14, description: 16 / 12 },
+  md: { heading: 24 / 16, description: 20 / 14 },
+  lg: { heading: 28 / 18, description: 24 / 16 },
+};
+const MARGINS = ["marginTop", "marginRight", "marginBottom", "marginLeft"];
+/** A markup without inline style (the structure — the values are asserted on their own). */
+const structureOf = (markup: string) => markup.replace(/ style=[^>]*>/g, ">");
+
+/**
+ * ADR-254 Phase 2 (G0 · G2): what the conversion keeps and what it changes on purpose.
+ * - Structure: the oracle's, but the Dialog — its title is RAC's `Heading slot="title"` (RAC
+ *   renders it at level 2 with an id) and names the dialog (`aria-labelledby` for `aria-label`).
+ * - Values: every title / description keeps its font size and color (and its weight, `"600"` now
+ *   the rule's number), but the InlineAlert's: its title is the Heading rule's (weight 600, its
+ *   line height) and its description the Description rule's one step up (its line height); the
+ *   alert rule's zero margins are the parts' own (the DOM writes `0` for `0px`).
+ * - Canvas ↔ DOM: each part element inlines its record's font size, weight and color — the Card's
+ *   description too (the CardContent drew it without its node's style before).
+ */
+function expectSinceConversion(
+  type: string,
+  authored: Record<string, string>,
+  now: PartsOf,
+  before: PartsOf,
+) {
+  const alertSize = authored.size ?? "md";
+  expect(Object.keys(now.records)).toEqual(Object.keys(before.records));
+  for (const [path, was] of Object.entries(before.records)) {
+    const part = now.records[path]!;
+    expect(part.binding).toBe(was.binding);
+    expect(part.text).toBe(was.text);
+    expect(part.visual.fontSize).toBe(was.visual.fontSize);
+    expect(part.visual.color).toBe(was.visual.color);
+    if (type === "inline-alert") {
+      const heading = part.binding === "heading";
+      expect(part.size).toBe(
+        heading
+          ? alertSize
+          : ({ sm: "md", md: "lg", lg: "xl" } as Record<string, string>)[
+              alertSize
+            ],
+      );
+      expect(Number(part.visual.fontWeight)).toBe(heading ? 600 : 400);
+      expect(part.visual.lineHeight).toBeCloseTo(
+        INLINE_ALERT_LINE_HEIGHT[alertSize]![
+          heading ? "heading" : "description"
+        ],
+        6,
+      );
+      expect(part.layout).toEqual(
+        Object.fromEntries(
+          Object.entries(was.layout).filter(([key]) => !MARGINS.includes(key)),
+        ),
+      );
+      continue;
+    }
+    expect(part.size).toBe(was.size);
+    expect(part.slot).toBe(
+      type === "dialog" && part.binding === "heading" ? "title" : was.slot,
+    );
+    expect(Number(part.visual.fontWeight)).toBe(Number(was.visual.fontWeight));
+    expect(part.visual.lineHeight).toBe(was.visual.lineHeight);
+    expect(part.layout).toEqual(was.layout);
+  }
+  if (before.dom === undefined) {
+    expect(now.dom).toBeUndefined();
+    return;
+  }
+  const expected =
+    type === "dialog"
+      ? structureOf(before.dom)
+          .replace("<section aria-label=Dialog ", "<section aria-labelledby ")
+          .replace(
+            "<h3 class=react-aria-Heading>Dialog Title</>",
+            "<h2 class=react-aria-Heading id slot=title>Dialog Title</>",
+          )
+      : structureOf(before.dom);
+  expect(structureOf(now.dom!)).toBe(expected);
+  // Each part element inlines its record's values (the Canvas draws the same record).
+  for (const part of Object.values(now.records)) {
+    const element = new RegExp(
+      `<(?:h2|h3|span|div) [^>]*>${part.text}</>`,
+    ).exec(now.dom!)?.[0];
+    expect(element, `${part.binding}: ${part.text}`).toBeDefined();
+    expect(element).toContain(`font-size:${part.visual.fontSize}px`);
+    expect(element).toContain(`font-weight:${Number(part.visual.fontWeight)}`);
+    expect(element).toContain(`color:${part.visual.color}`);
+  }
+}
+
 describe("ADR-254 — the containers' title and description", () => {
   const write = process.env.ADR254_WRITE === "1";
   const fixture: Record<string, { records: unknown; dom?: string }> =
@@ -233,7 +343,12 @@ describe("ADR-254 — the containers' title and description", () => {
           written[`${type}/${name}`] = value;
           return;
         }
-        expect(value).toEqual(fixture[`${type}/${name}`]);
+        expectSinceConversion(
+          type,
+          authored,
+          value as PartsOf,
+          fixture[`${type}/${name}`] as PartsOf,
+        );
       });
 
   it.runIf(write)("writes the fixture (the build before Phase 1)", () => {

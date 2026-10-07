@@ -10,10 +10,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * origin's template root). 4 — ADR-253 Phase 3: every field · group Label position
  * (`component-select__1` …) is an instance of the Label origin. 5 — ADR-253 Phase 4: a Select ·
  * ComboBox holds its items in its ListBox (`component-select__listbox`, an instance of the ListBox
- * origin whose slot the items fill — `component-select__item-1` sits below it). An earlier
- * contract's document is refused, never re-mapped.
+ * origin whose slot the items fill — `component-select__item-1` sits below it). 6 — ADR-254
+ * Phase 2: the title and description positions of the Dialog · Popover · Card · InlineAlert ·
+ * Tooltip origins (`component-card__title` …) are instances of the Heading · Description origins.
+ * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 5 as const;
+export const LIBRARY_CONTRACT_VERSION = 6 as const;
 
 export type EntryKind =
   | "project"

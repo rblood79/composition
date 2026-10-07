@@ -5757,9 +5757,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 (2026-06-17): InlineAlert spec 삭제 대비 sizes 보충.
       //   paddingY/gap = generated CSS base block(`padding`/`gap`) emit + Canvas 의 catalog 해석이
       //   같이 읽는다 (당시 consumer implicitStyles/StoreRenderBridge/fullTreeLayout 는 삭제됨).
-      //   headingFontSize/headingFontWeight/descFontSize/descFontWeight = `.alert-heading` +
-      //   `.react-aria-Description` 자식 CSS emit (CSSGenerator.generateChildFontStyles).
       //   accentWidth(3/4/4)는 generated CSS/Skia 미emit dead 필드 → 미이관.
+      //   ADR-254: 제목 · 설명의 글자 (종전 headingFontSize/Weight · descFontSize/Weight) 는
+      //   Heading · Description 원본의 instance 가 자기 rule 로 그린다 — InlineAlert 의 size 를
+      //   받아서 (`CATALOG_SIZE_PROPAGATION` · `CATALOG_SIZE_STEP`, 설명은 한 단계 위).
       sm: {
         paddingX: 8,
         paddingY: 8,
@@ -5767,10 +5768,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: "auto",
-        headingFontSize: 14,
-        headingFontWeight: 700,
-        descFontSize: 12,
-        descFontWeight: 400,
       },
       md: {
         paddingX: 16,
@@ -5779,10 +5776,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: "auto",
-        headingFontSize: 16,
-        headingFontWeight: 700,
-        descFontSize: 14,
-        descFontWeight: 400,
       },
       lg: {
         paddingX: 24,
@@ -5791,10 +5784,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: "auto",
-        headingFontSize: 18,
-        headingFontWeight: 700,
-        descFontSize: 16,
-        descFontWeight: 400,
       },
     },
     structure: {
