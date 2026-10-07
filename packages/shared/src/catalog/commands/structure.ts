@@ -11,6 +11,7 @@ import type {
   StateVariableEntry,
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
+import { CatalogStage } from "../transactions/transaction";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
   assertNestable,
@@ -121,23 +122,67 @@ export const insertNodes =
 /**
  * ADR-256 Decision 5 — refuse taking a part RAC needs away from its owner: deleting it (or a wrapper
  * around it), or moving it out of every owner of that type. Another part of the same type beside it
- * keeps the owner working (a swap in progress), so that stays allowed.
+ * keeps the owner working (a swap in progress), so that stays allowed. Runs before the command's own
+ * writes, so the answer is the document revision's: remembered per revision, target and destination
+ * (the canvas menu plans the same delete several times per selection — ADR-246 counts).
  */
+const requiredPartChecks = new WeakMap<
+  CatalogReader,
+  { revision: number; answers: Map<string, string | null> }
+>();
 function assertRequiredPartsKept(
   draft: CommandDraft,
   rootId: NodeId,
   destinationAncestors?: readonly string[],
 ): void {
   const reader = draft.reader;
-  // An owner that needs a part must be above the root; without one there is nothing to keep (the
-  // canvas menu dry-runs this on every selection — read the subtree only under an owner, ADR-246).
+  // A composed command's stage changes within one revision: answer it fresh.
+  if (reader instanceof CatalogStage) {
+    const refusal = requiredPartRefusal(draft, rootId, destinationAncestors);
+    if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
+    return;
+  }
+  let memo = requiredPartChecks.get(reader);
+  if (!memo || memo.revision !== reader.revision) {
+    memo = { revision: reader.revision, answers: new Map() };
+    requiredPartChecks.set(reader, memo);
+  }
+  const key = `${rootId}|${destinationAncestors?.join(">") ?? ""}`;
+  if (!memo.answers.has(key))
+    memo.answers.set(
+      key,
+      requiredPartRefusal(draft, rootId, destinationAncestors),
+    );
+  const refusal = memo.answers.get(key);
+  if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
+}
+
+/** The refused `Owner>Part`, or null. The subtree's types first: no part any owner needs, no read up. */
+function requiredPartRefusal(
+  draft: CommandDraft,
+  rootId: NodeId,
+  destinationAncestors?: readonly string[],
+): string | null {
+  const reader = draft.reader;
+  const types = new Map<NodeId, string>();
+  let needed = false;
+  const collect = (id: NodeId) => {
+    const type = definitionTypeName(reader, draft.node(id).definitionId);
+    types.set(id, type);
+    if (RAC_REQUIRED_PART_TYPES.has(type)) needed = true;
+    for (const child of childList(draft, { kind: "node", id }) ?? [])
+      collect(child);
+  };
+  collect(rootId);
+  if (!needed) return null;
   const { parent } = locate(draft, rootId);
   const above = parentAncestorTypes(draft, parent);
-  if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return;
-  const types = new Map<NodeId, string>();
+  if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return null;
   const typeOf = (id: NodeId) =>
     types.get(id) ?? definitionTypeName(reader, draft.node(id).definitionId);
+  let refusal: string | null = null;
   const visit = (id: NodeId, chain: readonly string[]) => {
+    if (refusal) return;
     const type = typeOf(id);
     const owner = requiredPartOwner(type, chain);
     // Only an owner above the moved / deleted root loses the part (one inside goes with it).
@@ -149,12 +194,13 @@ function assertRequiredPartsKept(
       const twin = siblings.some(
         (other) => other !== id && typeOf(other) === type,
       );
-      if (!twin) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${type}`);
+      if (!twin) refusal = `${owner}>${type}`;
     }
     for (const child of childList(draft, { kind: "node", id }) ?? [])
       visit(child, [type, ...chain]);
   };
   visit(rootId, above);
+  return refusal;
 }
 
 export interface MoveNodesInput {
