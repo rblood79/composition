@@ -1342,12 +1342,15 @@ const GROUP_ITEMS_TYPES: ReadonlySet<string> = new Set([
   "CheckboxItems",
   "RadioItems",
 ]);
-const GROUP_STATE_KEYS: ReadonlySet<CatalogStateKey> = new Set([
-  "isDisabled",
-  "isReadOnly",
-  "isInvalid",
-  "isRequired",
-]);
+/**
+ * The states an item takes from its group (installed RAC 1.21.0): a Radio all four from the
+ * RadioGroup's state; a Checkbox disabled · read-only · invalid from the CheckboxGroup's, its
+ * `isRequired` its own prop (`Checkbox.mjs` — `props.isRequired`).
+ */
+const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> = {
+  Checkbox: new Set(["isDisabled", "isReadOnly", "isInvalid"]),
+  Radio: new Set(["isDisabled", "isReadOnly", "isInvalid", "isRequired"]),
+};
 /** The CheckboxGroup / RadioGroup a toggle sits in (through its items wrapper and frames). */
 function catalogItemGroup(
   owner: CatalogConsumerNode,
@@ -1408,7 +1411,11 @@ export function catalogStateValue(
   // A group item takes its group's state too (RAC's group context): disabled · read-only ·
   // invalid · required, and a Radio's selection is the group's value.
   const group = catalogItemGroup(owner, get, typeOf);
-  if (group && GROUP_STATE_KEYS.has(key) && group.props[key] === true)
+  if (
+    group &&
+    GROUP_STATE_KEYS[typeOf(owner)]?.has(key) &&
+    group.props[key] === true
+  )
     return true;
   switch (key) {
     case "isSelected": {

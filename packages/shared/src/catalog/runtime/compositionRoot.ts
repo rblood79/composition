@@ -1538,19 +1538,27 @@ export class CatalogCompositionRoot {
       [...byRoot.values()].flat().map((plan) => [plan.id, plan.record]),
     );
     const read = (key: string) => refreshed.get(key) ?? this.records.get(key);
-    for (const record of [...refreshed.values()])
-      for (const dependent of catalogStateDependents(record, read, this.typeOf)) {
-        if (refreshed.has(dependent.id)) continue;
-        const { hidden: _hidden, ...shown } = dependent;
-        const hidden = catalogHiddenAtRest(shown, read, this.typeOf);
-        if (hidden === (dependent.hidden === true)) continue;
-        const rootId = this.recordRoots.get(dependent.id)!;
-        let list = byRoot.get(rootId);
-        if (!list) byRoot.set(rootId, (list = []));
-        const next = hidden ? { ...shown, hidden: true as const } : shown;
-        refreshed.set(dependent.id, next);
-        list.push(this.planRecord(dependent.id, next, rootId));
-      }
+    // (Judged against the final lookup — a node refreshed with its owner is judged again too.)
+    const dependents = new Map<string, CatalogConsumerNode>();
+    for (const record of [...refreshed.values()]) {
+      if (record.showWhen) dependents.set(record.id, record);
+      for (const dependent of catalogStateDependents(record, read, this.typeOf))
+        dependents.set(dependent.id, read(dependent.id)!);
+    }
+    for (const dependent of dependents.values()) {
+      const { hidden: _hidden, ...shown } = dependent;
+      const hidden = catalogHiddenAtRest(shown, read, this.typeOf);
+      if (hidden === (dependent.hidden === true)) continue;
+      const rootId = this.recordRoots.get(dependent.id)!;
+      let list = byRoot.get(rootId);
+      if (!list) byRoot.set(rootId, (list = []));
+      const next = hidden ? { ...shown, hidden: true as const } : shown;
+      refreshed.set(dependent.id, next);
+      const at = list.findIndex((plan) => plan.id === dependent.id);
+      const plan = this.planRecord(dependent.id, next, rootId);
+      if (at >= 0) list[at] = plan;
+      else list.push(plan);
+    }
     if (!byRoot.size) return [];
     const count = [...byRoot.values()].reduce(
       (sum, list) => sum + list.length,

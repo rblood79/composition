@@ -218,11 +218,9 @@ export function assertStateOwnersLinked(
   touched: readonly NodeId[],
 ): void {
   const reader = draft.reader;
-  const holds = (ownerId: string, nodeId: string): boolean => {
-    const stack = (() => {
-      const owner = draft.read(ownerId);
-      return owner?.kind === "node" ? ownedChildren(owner) : [];
-    })();
+  /** Whether `nodeId` is in the subtrees of `ids` (owned children, fill-slot children). */
+  const within = (ids: readonly string[], nodeId: string): boolean => {
+    const stack = [...ids];
     while (stack.length) {
       const id = stack.pop()!;
       if (id === nodeId) return true;
@@ -231,70 +229,118 @@ export function assertStateOwnersLinked(
     }
     return false;
   };
-  /** An address's template path exists: root-to-target inside the instance's definition. */
-  const pathExists = (
+  const holds = (ownerId: string, nodeId: string): boolean => {
+    const owner = draft.read(ownerId);
+    return owner?.kind === "node" && within(ownedChildren(owner), nodeId);
+  };
+  /** A template's subtree positions (root first), or none. */
+  const templateIds = (rootId: string): Set<string> => {
+    const ids = new Set<string>();
+    const stack = [rootId];
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (ids.has(id)) continue;
+      ids.add(id);
+      stack.push(...templateChildren(reader, id));
+    }
+    return ids;
+  };
+  /**
+   * The type at an instance address's target, if the address exists: each nested instance step is
+   * a position of the previous definition's template, and the path is root-to-target in the last.
+   */
+  const addressTarget = (
     instance: NodeEntry,
     address: { instances: readonly string[]; templatePath: readonly string[] },
-  ): boolean => {
-    // (A nested instance step names a template of another definition — read as given.)
-    if (address.instances.length !== 1) return true;
-    const rootId = definitionTemplateRoot(reader, instance.definitionId);
-    if (!rootId || address.templatePath[0] !== rootId) return false;
-    return address.templatePath.every(
-      (id, index) =>
-        index === 0 ||
-        templateChildren(reader, address.templatePath[index - 1]!).includes(id),
+  ): string | undefined => {
+    let definitionId: DefinitionId = instance.definitionId;
+    for (const step of address.instances.slice(1)) {
+      const rootId = definitionTemplateRoot(reader, definitionId);
+      if (!rootId || !templateIds(rootId).has(step)) return undefined;
+      definitionId = templateDefinitionId(reader, step);
+    }
+    const rootId = definitionTemplateRoot(reader, definitionId);
+    const path = address.templatePath;
+    if (!rootId || path[0] !== rootId) return undefined;
+    for (let index = 1; index < path.length; index += 1)
+      if (!templateChildren(reader, path[index - 1]!).includes(path[index]!))
+        return undefined;
+    return definitionTypeName(
+      reader,
+      templateDefinitionId(reader, path[path.length - 1]!),
     );
   };
+  /**
+   * Whether a node stands under an instance's template position: it is in a slot the instance
+   * fills (at the same nested step) at or below that position.
+   */
+  const underPosition = (
+    instance: NodeEntry,
+    address: { instances: readonly string[]; templatePath: readonly string[] },
+    nodeId: string,
+  ): boolean =>
+    instance.descendantOverrides.some(
+      (item) =>
+        item.kind === "fillSlot" &&
+        item.address.instances.length === address.instances.length &&
+        item.address.instances.every((id, at) => id === address.instances[at]) &&
+        address.templatePath.every(
+          (id, at) => item.address.templatePath[at] === id,
+        ) &&
+        within(item.childIds, nodeId),
+    );
   /** `node`'s references, judged as standing at `holder` (itself, or the instance showing it). */
-  const check = (node: NodeEntry, holder: NodeId, inside?: ReadonlySet<string>) => {
+  const check = (
+    node: NodeEntry,
+    holder: NodeId,
+    inside?: ReadonlySet<string>,
+  ) => {
     for (const { key, from } of catalogShowWhenRefs(node.showWhen!)) {
       if (!from || !("ancestor" in from) || "local" in from.ancestor) continue;
       const ancestor = from.ancestor;
-      // (A template's reference to a position of its own template follows its instance.)
+      // (A template's reference to a position of its own templates follows its instance.)
       if ("nodeId" in ancestor && inside?.has(ancestor.nodeId)) continue;
       const ownerId =
         "nodeId" in ancestor ? ancestor.nodeId : ancestor.address.instances[0]!;
       const owner = draft.read(ownerId);
-      const linked =
-        owner?.kind === "node" &&
-        holds(ownerId, holder) &&
-        ("address" in ancestor
-          ? // An address names a template position: it exists, and its type gives the key.
-            pathExists(owner, ancestor.address) &&
-            (ancestor.address.instances.length !== 1 ||
-              catalogStateKeysOf(
-                definitionTypeName(
-                  reader,
-                  templateDefinitionId(
-                    reader,
-                    ancestor.address.templatePath[
-                      ancestor.address.templatePath.length - 1
-                    ]!,
-                  ),
-                ),
-              ).includes(key))
-          : catalogStateKeysOf(
-              definitionTypeName(reader, owner.definitionId),
-            ).includes(key));
+      let linked = owner?.kind === "node" && holds(ownerId, holder);
+      if (linked && "address" in ancestor) {
+        const type = addressTarget(owner as NodeEntry, ancestor.address);
+        linked =
+          !!type &&
+          catalogStateKeysOf(type).includes(key) &&
+          underPosition(owner as NodeEntry, ancestor.address, holder);
+      } else if (linked)
+        linked = catalogStateKeysOf(
+          definitionTypeName(reader, (owner as NodeEntry).definitionId),
+        ).includes(key);
       if (!linked) fail("STATE_OWNER_UNLINKED", `${node.id}>${key}`);
     }
   };
-  /** A project component's template nodes reading an owner outside the template: at `instance`. */
+  /**
+   * A project component's template nodes (and the templates of project components nested in it)
+   * reading an owner outside them: judged at `instance`.
+   */
   const checkTemplate = (instance: NodeEntry) => {
-    if (instance.definitionId.startsWith("lib:")) return;
-    const rootId = definitionTemplateRoot(reader, instance.definitionId);
-    if (!rootId) return;
     const template = new Set<string>();
     const nodes: NodeEntry[] = [];
-    const stack = [rootId];
-    while (stack.length) {
-      const entry = draft.read(stack.pop()!);
-      if (entry?.kind !== "node" || template.has(entry.id)) continue;
-      template.add(entry.id);
-      nodes.push(entry);
-      stack.push(...ownedChildren(entry));
-    }
+    const seen = new Set<string>();
+    const collect = (definitionId: DefinitionId) => {
+      if (definitionId.startsWith("lib:") || seen.has(definitionId)) return;
+      seen.add(definitionId);
+      const rootId = definitionTemplateRoot(reader, definitionId);
+      if (!rootId) return;
+      const stack = [rootId];
+      while (stack.length) {
+        const entry = draft.read(stack.pop()!);
+        if (entry?.kind !== "node" || template.has(entry.id)) continue;
+        template.add(entry.id);
+        nodes.push(entry);
+        collect(entry.definitionId);
+        stack.push(...ownedChildren(entry));
+      }
+    };
+    collect(instance.definitionId);
     for (const node of nodes)
       if (node.showWhen) check(node, instance.id, template);
   };

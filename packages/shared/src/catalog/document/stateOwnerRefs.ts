@@ -3,6 +3,7 @@ import type {
   CatalogShowWhen,
   CatalogStateKey,
   CatalogStateOwnerRef,
+  InstanceAddress,
   NodeId,
 } from "./types";
 
@@ -116,6 +117,25 @@ export function mapShowWhenAddress(
     const nodeId = place(from.ancestor.address);
     return nodeId ? { ancestor: { nodeId } } : from;
   };
+  return {
+    all: showWhen.all.map((item) =>
+      typeof item === "string" || !("from" in item) || !item.from
+        ? item
+        : { ...item, from: ref(item.from) },
+    ) as CatalogShowWhen["all"],
+    ...(showWhen.from ? { from: ref(showWhen.from) } : {}),
+  };
+}
+
+/** The `showWhen` with each instance address passed through `map` (same ref when it returns it). */
+export function mapShowWhenAddresses(
+  showWhen: CatalogShowWhen,
+  map: (address: InstanceAddress) => InstanceAddress,
+): CatalogShowWhen {
+  const ref = (from: CatalogStateOwnerRef): CatalogStateOwnerRef =>
+    "ancestor" in from && "address" in from.ancestor
+      ? { ancestor: { address: map(from.ancestor.address) } }
+      : from;
   return {
     all: showWhen.all.map((item) =>
       typeof item === "string" || !("from" in item) || !item.from

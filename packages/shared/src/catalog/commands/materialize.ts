@@ -1,6 +1,7 @@
 import { ownedChildren } from "../document/graph";
 import {
   mapShowWhenAddress,
+  mapShowWhenAddresses,
   mapShowWhenLocal,
   mapShowWhenNodeIds,
 } from "../document/stateOwnerRefs";
@@ -254,6 +255,23 @@ export function createMaterializer(
       sameAddress(item.address, address),
     );
 
+  /** Rewrite the instance addresses in the conditions of the subtrees of `childIds`. */
+  const remapAddresses = (
+    childIds: readonly NodeId[],
+    map: (address: InstanceAddress) => InstanceAddress,
+  ): void => {
+    const stack = [...childIds];
+    while (stack.length) {
+      const entry = draft.read(stack.pop()!);
+      if (entry?.kind !== "node") continue;
+      if (entry.showWhen) {
+        const showWhen = mapShowWhenAddresses(entry.showWhen, map);
+        if (JSON.stringify(showWhen) !== JSON.stringify(entry.showWhen))
+          draft.write({ ...entry, showWhen });
+      }
+      stack.push(...ownedChildren(entry));
+    }
+  };
   /**
    * ADR-256 §1-1: the owner's slot children stay its nodes, but an address of a position of this
    * instance in their conditions becomes that position's new node (placed above them).
@@ -378,6 +396,21 @@ export function createMaterializer(
         startsWith(item.address.instances, nestedPrefix)
       ) {
         consumed.add(item);
+        // ADR-256 §1-1: a slot child's address of a position in this nested instance follows the
+        // instance's new node too.
+        if (item.kind === "fillSlot")
+          remapAddresses(item.childIds, (address) =>
+            address.instances.length > instances.length &&
+            startsWith(address.instances, nestedPrefix)
+              ? {
+                  instances: [
+                    id,
+                    ...address.instances.slice(nestedPrefix.length),
+                  ] as InstanceAddress["instances"],
+                  templatePath: address.templatePath,
+                }
+              : address,
+          );
         moved.push({
           ...item,
           address: {

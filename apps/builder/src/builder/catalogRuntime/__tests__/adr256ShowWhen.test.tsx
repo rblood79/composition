@@ -30,6 +30,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { validateCatalogEntry } from "../../../../../../packages/shared/src/catalog/document/validation";
 import { renderCatalogDom } from "../domBinding";
+import { CatalogCompositionRoot } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -888,5 +889,247 @@ describe("ADR-256 Phase 4 review (round 10) m7 — the panel keeps an owner it d
       stored.all[1],
     ]);
     expect(added.all[2]).toBe("isSelected");
+  });
+});
+
+describe("ADR-256 Phase 4 repair check (round 11)", () => {
+  const code = (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as { code?: string }).code;
+    }
+    return undefined;
+  };
+  const shown = (root: CatalogWorkspace["root"], name: string) =>
+    [...root.canvasInputs.values()].find((r) => r.sourceId === id(name))!
+      .hidden !== true;
+
+  it("rv-m1 a Checkbox does not take its group's isRequired (RAC reads its own); a Radio does", async () => {
+    const box = await open(
+      [
+        node("g", "CheckboxGroup", ["c"], { isRequired: true }),
+        node("c", "Checkbox", ["c-button"]),
+        node("c-button", "CheckboxButton", ["c-ind", "mark"]),
+        node("c-ind", "CheckboxIndicator", []),
+        node("mark", "text", [], { children: "Req" }, { all: ["isRequired"] }),
+      ],
+      "g",
+    );
+    expect([box.canvas("mark"), box.drawn("mark")]).toEqual([false, false]);
+    const radio = await open(
+      [
+        node("g", "RadioGroup", ["r"], { isRequired: true }),
+        node("r", "Radio", ["r-button"], { value: "a" }),
+        node("r-button", "RadioButton", ["r-ind", "mark"]),
+        node("r-ind", "RadioIndicator", []),
+        node("mark", "text", [], { children: "Req" }, { all: ["isRequired"] }),
+      ],
+      "g",
+    );
+    expect([radio.canvas("mark"), radio.drawn("mark")]).toEqual([true, true]);
+  });
+
+  it("rv-m2 a refresh that changes a conditioned node and its owner together re-judges the node", async () => {
+    const { workspace } = await open(
+      [
+        node("g", "RadioGroup", ["r"], { value: "{{ choice }}" }),
+        node("r", "Radio", ["r-button"], { value: "a" }),
+        node("r-button", "RadioButton", ["r-ind", "mark"]),
+        node("r-ind", "RadioIndicator", []),
+        node("mark", "text", [], { children: "{{ label }}" }, { all: ["isSelected"] }),
+      ],
+      "g",
+    );
+    let values: Record<string, string> = { choice: "b", label: "Before" };
+    const root = new CatalogCompositionRoot(
+      workspace.runtime,
+      await nodeLayoutEngine(),
+      { width: 1200, height: 800 },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        state: {
+          projectVariables: () =>
+            Object.entries(values).map(([name, value], index) => ({
+              id: `v${index}`,
+              name,
+              type: "string",
+              defaultValue: value,
+            })),
+        },
+      },
+    );
+    expect(shown(root, "mark")).toBe(false);
+    values = { choice: "a", label: "After" };
+    root.refreshState(new Set(["choice", "label"]));
+    expect(shown(root, "mark")).toBe(true);
+  });
+
+  /** A component R > [TB (ToggleButton) > S (slot), B (slot)]; an instance I. */
+  const twoSlots = async () => {
+    const opened = await open(
+      [
+        node("r", "frame", ["tb", "b"]),
+        node("tb", "ToggleButton", ["s"], { isSelected: true }),
+        { ...node("s", "frame", []), slot: { name: "inner", required: false } } as NodeEntry,
+        { ...node("b", "frame", []), slot: { name: "outer", required: false } } as NodeEntry,
+      ],
+      "r",
+    );
+    const { workspace, root } = opened;
+    workspace.root.execute(
+      createComponent({ id: id("r"), name: "Holder", newId: workspace.newId }),
+    );
+    const instanceId = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId !== id("r") && r.collapsedIds?.some((c) => c.endsWith("::" + id("r"))),
+    )!.sourceId as NodeId;
+    return { ...opened, instanceId };
+  };
+
+  it("rv-m3 moving a slot child to another slot of the same instance, out of its addressed owner, is refused", async () => {
+    const { workspace, instanceId } = await twoSlots();
+    workspace.root.execute(
+      insertNodes({
+        parent: {
+          kind: "descendant",
+          ownerId: instanceId,
+          address: { instances: [instanceId], templatePath: [id("r"), id("tb"), id("s")] },
+        } as never,
+        entries: [
+          node("in-slot", "text", [], { children: "In" }, {
+            all: ["isSelected"],
+            from: {
+              ancestor: {
+                address: { instances: [instanceId], templatePath: [id("r"), id("tb")] as never },
+              },
+            },
+          }),
+        ],
+        rootIds: [id("in-slot")],
+        newId: workspace.newId,
+      }),
+    );
+    expect(
+      code(() =>
+        workspace.root.execute(
+          moveNodes({
+            ids: [id("in-slot")],
+            parent: {
+              kind: "descendant",
+              ownerId: instanceId,
+              address: { instances: [instanceId], templatePath: [id("r"), id("b")] },
+            } as never,
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+  it("rv-m4 a nested component's template reading an outside owner: its outer instance cannot leave it", async () => {
+    const { workspace, root } = await open(
+      [
+        node("tb", "ToggleButton", ["outer"], { isSelected: true }),
+        node("outer", "frame", ["inner"]),
+        node("inner", "frame", ["on"]),
+        node("on", "text", [], { children: "On" }, {
+          all: ["isSelected"],
+          from: { ancestor: { nodeId: id("tb") } },
+        }),
+      ],
+      "tb",
+    );
+    workspace.root.execute(
+      createComponent({ id: id("inner"), name: "Inner", newId: workspace.newId }),
+    );
+    workspace.root.execute(
+      createComponent({ id: id("outer"), name: "Outer", newId: workspace.newId }),
+    );
+    const outer = [...root.canvasInputs.values()].find(
+      (r) => r.parentId && root.canvasInputs.get(r.parentId)?.sourceId === id("tb"),
+    )!;
+    expect(
+      code(() =>
+        workspace.root.execute(
+          moveNodes({
+            ids: [outer.sourceId as NodeId],
+            parent: { kind: "node", id: BODY },
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+  /** Inner = R > TB > S (slot); Outer = O > Inner instance; an Outer instance with a Text in S. */
+  const nested = async (templatePath: (rootId: string) => string[], extra?: string) => {
+    const opened = await open(
+      [
+        node("o", "frame", ["r"]),
+        node("r", "frame", ["tb"]),
+        node("tb", "ToggleButton", ["s"], { isSelected: true }),
+        { ...node("s", "frame", []), slot: { name: "content", required: false } } as NodeEntry,
+      ],
+      "o",
+    );
+    const { workspace, root } = opened;
+    workspace.root.execute(
+      createComponent({ id: id("r"), name: "Inner", newId: workspace.newId }),
+    );
+    const innerInstance = (workspace.runtime.graph.getEntry(id("o")) as NodeEntry)
+      .children[0]!;
+    workspace.root.execute(
+      createComponent({ id: id("o"), name: "Outer", newId: workspace.newId }),
+    );
+    const outerInstance = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId !== id("o") && r.collapsedIds?.some((c) => c.endsWith("::" + id("o"))),
+    )!.sourceId as NodeId;
+    const instances = [outerInstance, innerInstance, ...(extra ? [extra] : [])];
+    const insert = () =>
+      workspace.root.execute(
+        insertNodes({
+          parent: {
+            kind: "descendant",
+            ownerId: outerInstance,
+            address: {
+              instances: [outerInstance, innerInstance],
+              templatePath: [id("r"), id("tb"), id("s")],
+            },
+          } as never,
+          entries: [
+            node("in-slot", "text", [], { children: "In" }, {
+              all: ["isSelected"],
+              from: {
+                ancestor: {
+                  address: { instances: instances as never, templatePath: templatePath(id("r")) as never },
+                },
+              },
+            }),
+          ],
+          rootIds: [id("in-slot")],
+          newId: workspace.newId,
+        }),
+      );
+    return { ...opened, outerInstance, insert };
+  };
+
+  it("rv-m5 detaching the outer instance maps a nested slot child's address to the inner instance's new node", async () => {
+    const { workspace, root, outerInstance, insert } = await nested((r) => [r, id("tb")]);
+    insert();
+    expect(shown(root, "in-slot")).toBe(true);
+    workspace.root.execute(
+      detachInstances({ ids: [outerInstance], newId: workspace.newId }),
+    );
+    expect(shown(root, "in-slot")).toBe(true);
+  });
+
+  it("rv-m6 a nested address whose instance step or path does not exist is refused", async () => {
+    const missingStep = await nested((r) => [r, id("tb")], "project:node:missing");
+    expect(code(missingStep.insert)).toBe("STATE_OWNER_UNLINKED");
+    const missingRoot = await nested(() => [id("missing-root"), id("tb")]);
+    expect(code(missingRoot.insert)).toBe("STATE_OWNER_UNLINKED");
   });
 });
