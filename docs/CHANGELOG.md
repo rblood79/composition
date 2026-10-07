@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [대형 선택 Action Bar 준비 비용 축소] - 2026-10-07
+
+### Performance
+
+- Action Bar에서 표시하지 않는 삭제 명령의 사전 계획을 생략한다. overflow·context menu의 삭제 명령과 validation·history·저장 경로는 유지한다. 전역 cache나 transaction 변경은 없다.
+- 기존 `perf:adr248-followup`에 선택적 명령별 계측·실제 키보드 입력·다른 부모 이동·다중 삭제·overflow/Compare 검증을 추가했다. 동일 dev fixture의 교대 A/B 3쌍(각 규모·조작·arm 9표본)에서 5,000개 모델 준비 p50은 295.5 → 188.0ms, 실제 ⌘A 입력부터 2-rAF까지는 518.0 → 410.6ms였다. 숨은 삭제 계획은 1 → 0회이며 geometry는 1회/5,000개로 동일하다. 600개 입력 지연 개선과 production p95 개선은 주장하지 않는다.
+- 실제 Builder의 5,000개 정렬·overflow 삭제·Undo/Redo·저장·reload와 Canvas/Preview geometry(최대 차이 0px)를 확인했다. 구조 명령 자체는 변경하지 않았고 기존 ratchet 상한도 유지한다.
+
 ## [기본 UI 원본 상태·quiet 수리 — ADR-253 G1·G3] - 2026-10-07
 
 ### Fixed

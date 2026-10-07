@@ -90,7 +90,7 @@ export function catalogActionBarModel(
     (id) => host.records.get(id)?.parentId !== PAGE_GRID,
   );
   return applyActionBarPolicy(
-    catalogCanvasMenuItems(host, "canvas-element", state.selectedIds[0]),
+    catalogCanvasMenuItems(host, "action-bar", state.selectedIds[0]),
     { multi: elements.length >= 2 },
   );
 }

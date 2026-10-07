@@ -13,6 +13,8 @@ import {
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogActionBarModel, catalogActionBarState } from "../actionBar";
+import * as commands from "../../../../../../packages/shared/src/catalog/commands";
+import { catalogCanvasMenuItems } from "../canvasMenu";
 import {
   catalogMenuHost,
   catalogArrangeCommand,
@@ -87,6 +89,44 @@ async function open() {
 }
 
 describe("ADR-248 Phase 4e catalog action bar", () => {
+  it("does not plan hidden deletion for the bar but preserves overflow deletion and history", async () => {
+    const { workspace, record, bar } = await open();
+    workspace.selectRecords([record("p"), record("q")]);
+    const remove = vi.spyOn(commands, "removeTargets");
+    const children = () => {
+      const body = workspace.runtime.graph.getEntry(BODY);
+      if (body?.kind !== "node") throw new Error("Body missing");
+      return body.children;
+    };
+    try {
+      expect(bar().model?.items.map((item) => item.id)).toEqual([
+        "align",
+        "group",
+        "duplicate",
+      ]);
+      expect(remove).not.toHaveBeenCalled();
+      const menu = catalogCanvasMenuItems(
+        catalogMenuHost(workspace),
+        "canvas-element",
+        record("p"),
+      );
+      const deletion = menu.find((item) => item.id === "delete");
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(deletion?.kind).toBe("action");
+      const depth = workspace.runtime.historyDepth.undo;
+      if (deletion?.kind === "action") deletion.run();
+      expect(children()).toEqual([]);
+      expect(workspace.runtime.historyDepth.undo).toBe(depth + 1);
+      workspace.undo();
+      expect(children()).toEqual([id("p"), id("q")]);
+      workspace.redo();
+      expect(children()).toEqual([]);
+    } finally {
+      remove.mockRestore();
+      workspace.dispose();
+    }
+  });
+
   it("reads large selection geometry once per menu and skips an empty selection", async () => {
     const { workspace, bar } = await open();
     const entries = Array.from({ length: 300 }, (_, i) =>

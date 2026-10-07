@@ -127,7 +127,7 @@ const DISTRIBUTE_ITEMS: readonly [DistributionType, CatalogArrangeItem][] = [
  */
 export function catalogCanvasMenuItems(
   host: CatalogMenuHost,
-  surface: "canvas-element" | "canvas-empty",
+  surface: "canvas-element" | "canvas-empty" | "action-bar",
   /** The record under the pointer (the page body on the page background, if any). */
   pickedRecord: string | undefined,
   /** The pointer's scene point (a context menu): "Paste here" puts absolute copies there. */
@@ -511,16 +511,19 @@ export function catalogCanvasMenuItems(
   if (component.some((item) => item.id !== "detach-instance"))
     items.push({ kind: "separator", id: "component-separator" });
   items.push(...component);
-  items.push(
-    { kind: "separator", id: "delete-separator" },
-    ...action(
-      "delete",
-      "contextMenu.delete",
-      removeTargets({ targets: elements.map((item) => item.target) }),
-      "delete",
-      ACTION_ICONS.delete,
-      true,
-    ),
-  );
+  // The bar policy excludes deletion. Planning it here would repeatedly copy each selected
+  // node's sibling list, only to discard the result. Overflow still builds the full menu.
+  if (surface !== "action-bar")
+    items.push(
+      { kind: "separator", id: "delete-separator" },
+      ...action(
+        "delete",
+        "contextMenu.delete",
+        removeTargets({ targets: elements.map((item) => item.target) }),
+        "delete",
+        ACTION_ICONS.delete,
+        true,
+      ),
+    );
   return items;
 }
