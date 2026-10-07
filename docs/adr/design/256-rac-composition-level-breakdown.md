@@ -8,7 +8,7 @@
 
 1. **base / 응용**: 이 ADR 은 ADR-253 (부품 = 원본 instance, 부품을 자기 binding 으로 RAC context 안에 그림) 의 응용이 아니라 그 일반화다. 253 이 field 부품의 「그리기」 를 노드로 옮겼고, 이 ADR 은 「배치 · 넣기 판정」 까지 노드 트리로 옮긴다. 253 의 결정은 그대로 유효하다 (뒤집지 않는다).
 2. **schema 직교성**: children 종류·consumer context 제공자 표는 코드 특성 표다. 문서에는 `showWhen`과 주체 참조, 선택적 텍스트 부품의 `presentWhen: "nonEmptyText"`, slot의 미지정/이름/명시 null 구분을 저장한다. 값 바인딩은 노드 존재를 바꾸지 않으며 기존 `slotFills` · `descendantOverrides` 주소 경로를 보존한다.
-3. **선행 전제 재검증**: ADR-240 의 「영역별 새 type 기각」 은 영역별 renderer 비용이 근거였다 — Decision 2 로 그 비용이 사라지므로 Card 에서 뒤집는다 (본문 Decision 9). ADR-251 의 RadioItems · CheckboxItems 묶음 노드는 RAC 구조 밖 (`div.radio-items`) 이다 — 레퍼런스 예제에는 없으므로 Phase 3 에서 판정한다 (유지 · 제거 둘 다 열어 둠, G0 ⑦ 에 추가).
+3. **선행 전제 재검증**: ADR-240 의 「영역별 새 type 기각」 은 영역별 renderer 비용이 근거였다 — Decision 2 로 그 비용이 사라지므로 Card 에서 뒤집는다 (본문 Decision 9). ADR-251 의 RadioItems · CheckboxItems 묶음 노드는 RAC 구조 밖 (`div.radio-items`) 이다 — G0 ⑦ 판정: **유지**. 레퍼런스 RadioGroup · CheckboxGroup 예제가 같은 `div.radio-items` · `div.checkbox-items` 로 항목을 묶는다 (처음 이 문장의 「레퍼런스 예제에는 없으므로」 는 틀렸다).
 4. **판독 시점**: Phase 0 인벤토리 고정 뒤 판독 1회 (전제 · 범위), 각 Phase 는 판독 1 + 수리 검증 1 (`.claude/rules/review-loop-closure.md`).
 
 ## 1-1. 상태 주체 주소와 제한된 존재 조건 (round 3 수리)
@@ -34,19 +34,20 @@ shared 합성 컴포넌트의 Builder UI 사용 (테스트 제외): Checkbox (`a
 
 ### 2-2. 부모 rule 이 노드 없이 그리는 것 (Canvas)
 
-| 부품                                       | 지금 그리는 곳                                                   | 처리 (Decision 6)                                                            |
-| ------------------------------------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| ListBoxItem · GridListItem 선택 표시       | `listbox_item` · `gridlist_card`                                 | 노드 — `SelectionIndicator` 또는 `showWhen: isSelected` 아이콘               |
-| Tab 선택 막대                              | `tab_indicator`                                                  | 노드 — `SelectionIndicator` (RAC 예제 방식)                                  |
-| Tag 지우기 X                               | `packages/rendering/src/renderers/buildCatalogShapes.ts:537-548` | 노드 — `Button slot="remove"`                                                |
-| Slider 채움 · thumb                        | track 의 `slider_fill_bar`                                       | 노드 — `SliderFill` · thumb 는 이미 노드 (자기 rule 로)                      |
-| ProgressBar · Meter 채움                   | `value_fill_bar`                                                 | 노드 — fill part (레퍼런스 예제의 `.fill`)                                   |
-| Tooltip · Popover 화살표                   | `tooltip_arrow` · `popover_arrow`                                | 노드 — `OverlayArrow`                                                        |
-| TreeItem 선택 checkbox                     | `selection_checkbox`                                             | 노드 — `Checkbox slot="selection"`                                           |
-| StatusLight 점 · Badge 점                  | `status_light` · `dot`                                           | S2 내부 — 그대로                                                             |
-| CalendarHeader chevron · 제목              | `inline_icon_text`                                               | 노드 — RAC 예제 `Button slot="previous"` · `Heading` · `Button slot="next"`  |
-| CalendarGrid 칸 · DateInput 조각 · 요일 칸 | `calendar_month_grid` · `datefield_segments`                     | 반복 template 노드 (Decision 13) — 데이터는 RAC, 칸의 모양 · 자식은 template |
-| Checkbox · Radio · Switch indicator        | owner-drawn part (`OWNER_DRAWN_PART_OWNERS`)                     | 노드 유지 — 모양은 자기 rule 로 옮길지 G0 에서 판정                          |
+| 부품                                       | 지금 그리는 곳                                                   | 처리 (Decision 6)                                                                                                                          |
+| ------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| ListBoxItem 선택 표시                      | `listbox_item`                                                   | 노드 아님 — 자기 rule 의 상태 style (레퍼런스도 CSS `[data-selected]`). picker 항목만 Check 아이콘 `showWhen: isSelected` (Phase 6) — G0 ③ |
+| GridListItem 선택 표시                     | `gridlist_card`                                                  | 노드 — `Checkbox slot="selection"` (G0 ③)                                                                                                  |
+| Tab 선택 막대                              | `tab_indicator`                                                  | 노드 — `SelectionIndicator` (RAC 예제 방식)                                                                                                |
+| Tag 지우기 X                               | `packages/rendering/src/renderers/buildCatalogShapes.ts:537-548` | 노드 — `Button slot="remove"`                                                                                                              |
+| Slider 채움 · thumb                        | track 의 `slider_fill_bar`                                       | 노드 — `SliderFill` · thumb 는 이미 노드 (자기 rule 로)                                                                                    |
+| ProgressBar · Meter 채움                   | `value_fill_bar`                                                 | 노드 — fill part (레퍼런스 예제의 `.fill`)                                                                                                 |
+| Tooltip · Popover 화살표                   | `tooltip_arrow` · `popover_arrow`                                | 노드 — `OverlayArrow`                                                                                                                      |
+| TreeItem 선택 checkbox                     | `selection_checkbox`                                             | 노드 — `Checkbox slot="selection"`                                                                                                         |
+| StatusLight 점 · Badge 점                  | `status_light` · `dot`                                           | S2 내부 — 그대로                                                                                                                           |
+| CalendarHeader chevron · 제목              | `inline_icon_text`                                               | 노드 — RAC 예제 `Button slot="previous"` · `Heading` · `Button slot="next"`                                                                |
+| CalendarGrid 칸 · DateInput 조각 · 요일 칸 | `calendar_month_grid` · `datefield_segments`                     | 반복 template 노드 (Decision 13) — 데이터는 RAC, 칸의 모양 · 자식은 template                                                               |
+| Checkbox · Radio · Switch indicator        | owner-drawn part (`OWNER_DRAWN_PART_OWNERS`)                     | 노드 유지 — 모양은 자기 rule 로 옮길지 G0 에서 판정                                                                                        |
 
 ### 2-3. 중첩 규칙의 renderer 한계 표 (`N:119-187`)
 
@@ -55,6 +56,19 @@ shared 합성 컴포넌트의 Builder UI 사용 (테스트 제외): Checkbox (`a
 ### 2-4. slot 선언 25자리 (`D/generated/reusableOriginLibrary.ts`)
 
 원본 루트 12 (F4) · 하위 부품 13. Phase 1 뒤 slot 선언은 Components page 의 이름 표시만 맡는다.
+
+### 2-5. G0 확정 (2026-10-07)
+
+상세 표는 `docs/adr/evidence/256-g0-inventory.md` · 예제 원문 `256-g0-examples.md` (evidence 폴더는 로컬 전용 — `.gitignore`). RAC 실행 표는 `node apps/builder/scripts/adr256-g0-rac-inventory.mjs <out.json>` 으로 다시 만든다 (설치 RAC 1.21.0 을 jsdom 에 마운트 · fixture 55 throw 0 · 2회 동일). 아래는 결정에 쓰이는 결론만 둔다.
+
+- **children 종류 (②)**: 항목 목록 = ListBox · ListBoxSection · Menu · GridList · Tree · TreeItem · TagList · TabList · Table · TableHeader · TableBody · Row · Breadcrumbs · ColorSwatchPicker (자유 내용을 버림). 그 밖의 부품 (TabPanels 포함) 은 자유 내용.
+- **이름 붙은 자리 (⑧)**: 본문 Decision 4 의 행 + RadioField `Text[description]` · ColorSwatchPickerItem `Text[label · description · 기본]` · GridListItem · TreeItem · Row `Checkbox · CheckboxField[selection · 기본]` · Column `Checkbox[selection]` · DateRangePicker `DateField[start · end]`. context 를 비우는 자리: Select 의 Popover 안 (Button · Label · Text) · DisclosurePanel 안 (Button) · DatePicker Popover 안 Calendar (Group · Label).
+- **지금 template 의 slot 이름 23개**: 제공자와 맞음 11 · RAC Text 로 그리면 throw 2 (MenuItem `shortcut` · Tag `label`) · 제공자 없는 S2 식 이름 10 (Icon `icon` · Avatar `avatar` · Icon `separator` · Text `label` 등). throw 2건은 Phase 1 의 잘못된 이름 경로로 막고 Phase 5 에서 template 을 고친다.
+- **필수 짝 (⑨)**: 부모 밖 throw = collection 항목 전부 · TabPanel(s) · SelectValue · CalendarGrid · CalendarCell · Slider 부품 4 · CheckboxButton · SwitchButton · RadioButton · Radio(Field) · DisclosurePanel · SelectionIndicator · trigger 없는 Popover · Tooltip. 빠지면 역할 소실 (존재 필수) = Select 의 Button · Popover · ListBox · ComboBox Input · field 의 Input / DateInput · Slider Track · Thumb · Calendar Grid · Field 의 Button · Disclosure trigger · Tabs TabList · TagGroup TagList · DialogTrigger overlay · MenuTrigger Menu. 빈 collection · Tabs 의 TabPanel 없음 · Table 의 TableBody 없음은 허용. Table 은 Column 수 = 각 Row 의 Cell 수 (어긋나면 throw).
+- **상태 조건 (④)**: Decision 7 목록에 `isCurrent` · `hasSubmenu` · `allowsRemoving` · `allowsSorting` 추가. 조건으로 두지 않는 것: selectionMode · selectionBehavior · trigger (작성자가 노드를 넣고 뺀다) · allowsDragging · sortDirection (범위 밖) · Meter 의 percentage 구간 색 (catalog variant 색 — 명시 제한). Canvas 출처: `_isSelected` · `isExpanded` · `isIndeterminate` · `value` (percentage) · `_isLast` (isCurrent) 파생 값과 record props · displayState. `isOpen` 은 Canvas 에서 항상 false.
+- **부모 rule 이 그리는 부품 (③)**: ListBoxItem 선택 표시는 노드가 아니다 (레퍼런스도 `[data-selected]` CSS — 자기 rule 의 상태 style). picker 안 항목만 Check 아이콘 노드. GridListItem 선택은 `Checkbox slot="selection"` 노드.
+- **바뀌는 화면 (⑤)**: 「있음 가능」 은 SearchField (상자 노드) · MenuItem Keyboard · Dialog 버튼 줄 · Calendar header · ProgressBar 값 글자 (고정 "50%" → 실제 값) · Card (CardHeader 삭제) · Preview 의 열린 picker 목록 Check. 나머지 노드 추가는 모양 0 이 목표.
+- **예제 세트 (⑥)**: §4 표의 15개. #5 · #8 · #15 는 레퍼런스에 실제 있는 코드로 바꿨다 (§4 표에 반영).
 
 ## 3. Phase
 
@@ -81,26 +95,26 @@ shared 합성 컴포넌트의 Builder UI 사용 (테스트 제외): Checkbox (`a
 
 react-aria.adobe.com 문서의 예제에서 고른다. 기준값 = 예제 코드를 설치 RAC 로 마운트한 DOM (본문 G5). Phase 0 은 예제마다 **소스 코드 · 조회일 · RAC 버전 · 비교 상태 (기본 · 선택 · indeterminate · invalid · disabled · 펼침 · 열림) · Builder 조립 절차 · 저장 뒤 재열기** 를 `docs/adr/evidence/256-g0-inventory.md` 에 고정한다. S2 Card (#13) 의 기준값은 `@react-spectrum/s2` 를 테스트 전용 devDependency 로 마운트한 DOM 이다. 비교 규칙은 본문 Decision 11.
 
-| #   | 예제                                                                                | 확인하는 것                        |
-| --- | ----------------------------------------------------------------------------------- | ---------------------------------- |
-| 1   | ListBox — 항목에 아이콘 + `Text slot="label"` + `Text slot="description"` · Section | 항목 안 자유 내용 · 이름 붙은 자리 |
-| 2   | Menu — `Keyboard` 단축키 · SubmenuTrigger · Separator                               | collection 의 항목 종류 · 새 부품  |
-| 3   | Select — trigger 안 `SelectValue` + 아이콘 · ListBox Section                        | 필수 짝 · picker                   |
-| 4   | ComboBox / Autocomplete — Popover 안 SearchField + Menu                             | context 조립                       |
-| 5   | TextField — Label · Input · description · FieldError + 앞 아이콘                    | field 안 자유 자식                 |
-| 6   | NumberField — Group 안 증감 Button                                                  | `slot` context                     |
-| 7   | Checkbox — `CheckboxField > CheckboxButton` + description · indeterminate 표시      | 상태별 표시                        |
-| 8   | Tabs — TabList + `SelectionIndicator` · TabPanel 안 Form                            | 선택 표시 노드 · 자유 패널         |
-| 9   | Dialog — Modal > Dialog > Heading slot=title + Form + `Button slot="close"`         | overlay context                    |
-| 10  | GridList — 항목 안 Checkbox slot=selection + Button                                 | 항목 안 상호작용 부품              |
-| 11  | Table — Cell 안 Link · Checkbox 열                                                  | collection 2단                     |
-| 12  | Slider — SliderOutput · SliderTrack > SliderFill + SliderThumb                      | 채움 노드                          |
-| 13  | (S2) Card — CardPreview Image · Content (title · description) · Footer Button       | S2 구조                            |
-| 14  | ProgressBar — `{valueText}` 글자 + `{percentage}` 채움                              | 값 전달 (Decision 12)              |
-| 15  | Calendar — CalendarCell 반복 template 에 표시 추가                                  | 반복 template (Decision 13)        |
+| #   | 예제                                                                                                                                                  | 확인하는 것                        |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 1   | ListBox — 항목에 아이콘 + `Text slot="label"` + `Text slot="description"` · Section                                                                   | 항목 안 자유 내용 · 이름 붙은 자리 |
+| 2   | Menu — `Keyboard` 단축키 · SubmenuTrigger · Separator                                                                                                 | collection 의 항목 종류 · 새 부품  |
+| 3   | Select — trigger 안 `SelectValue` + 아이콘 · ListBox Section                                                                                          | 필수 짝 · picker                   |
+| 4   | ComboBox / Autocomplete — Popover 안 SearchField + Menu                                                                                               | context 조립                       |
+| 5   | TextField · SearchField — Label · Input · description · FieldError · SearchField 의 아이콘 + 지우기 Button (G0: TextField 문서에 앞 아이콘 예제 없음) | field 안 자유 자식                 |
+| 6   | NumberField — Group 안 증감 Button                                                                                                                    | `slot` context                     |
+| 7   | Checkbox — `CheckboxField > CheckboxButton` + description · indeterminate 표시                                                                        | 상태별 표시                        |
+| 8   | Tabs — Tab 안 `SelectionIndicator` · Tabs 안 자유 div (G0: TabPanel 안 Form 예제 없음)                                                                | 선택 표시 노드 · 자유 내용         |
+| 9   | Dialog — Modal > Dialog > Heading slot=title + Form + `Button slot="close"`                                                                           | overlay context                    |
+| 10  | GridList — 항목 안 Checkbox slot=selection + Button                                                                                                   | 항목 안 상호작용 부품              |
+| 11  | Table — Cell 안 Link · Checkbox 열                                                                                                                    | collection 2단                     |
+| 12  | Slider — SliderOutput · SliderTrack > SliderFill + SliderThumb                                                                                        | 채움 노드                          |
+| 13  | (S2) Card — CardPreview Image · Content (title · description) · Footer Button                                                                         | S2 구조                            |
+| 14  | ProgressBar — `{valueText}` 글자 + `{percentage}` 채움                                                                                                | 값 전달 (Decision 12)              |
+| 15  | Calendar · RangeCalendar — header 부품 · RangeCalendar 의 `CalendarCell > span > children`                                                            | 반복 template (Decision 13)        |
 
 예제에 없는 family 는 G2 로 연결한다: Meter (Phase 7 · 예제 14 와 같은 바인딩) · OverlayArrow (Phase 8 · Tooltip · Popover 예제) · ColorSwatchPicker (Phase 5) · DateField · TimeField · DateRangePicker (Phase 2 · 6 · 9) · Breadcrumbs · TagGroup · Tree (Phase 5) · Toast · InlineAlert · Badge · AvatarGroup · ButtonGroup · CardView (Phase 10).
 
 ## 5. 기록
 
-(Phase 진행 시 날짜 · 커밋 · 실측을 여기에 적는다)
+- **Phase 0 (G0) — 2026-10-07**: [G0 인벤토리](../evidence/256-g0-inventory.md) ① ~ ⑨ 고정. RAC 실측은 `node apps/builder/scripts/adr256-g0-rac-inventory.mjs <out>` (설치 RAC 1.21.0 · jsdom 마운트 · fixture 55 throw 0 · 2회 동일) → [JSON](../evidence/256-g0-rac-inventory.json). 레퍼런스 45 + S2 8 문서 조회, 예제 15개 원문 [고정](../evidence/256-g0-examples.md). 본문 정정 6곳 (Status 의 G0 절). 같은 날 사용자 「승인」 → Accepted (G0 뒤 판독은 이 승인으로 갈음).
