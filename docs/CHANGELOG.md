@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: Canvas 는 선택을 그리지 않아 (선택은 Preview 의 실행 상태 — Select 는 selected key 를 받지 않는다) 값이 늘 placeholder 인데, 그 상태의 칠을 읽지 않았다. 이제 같은 선언을 SelectValue 의 Canvas 색으로 읽는다 (DOM 은 그대로 sheet — 고른 항목은 trigger 색). 문서가 값에 쓴 색은 양쪽에서 그 위다.
   - 위치: `packages/shared/src/catalog/document/rulePartRules.ts` `catalogSelectPlaceholderColor` · `catalog/runtime/compositionRoot.ts`
 
+### Changed
+
+- **ColorField · CheckboxGroup · RadioGroup 의 side 라벨 = 라벨 열** (RSP `labelPosition="side"` 레퍼런스):
+  - side 에서 라벨이 글자 폭이고 도움말 · 오류 문구가 내용 오른쪽 같은 줄에 붙었다. 이제 TextField 등과 같이 라벨이 176px (`--form-label-width`) 열, 내용이 그 옆을 채우고, 도움말 · 오류 문구는 아래 줄에 내용과 같은 x 로 들여쓴다. Canvas · Preview 모두.
+  - **Why**: 2026-08-21 에 두 그룹은 옛 Skia 가 폭을 강제하지 않는다는 이유로, ColorField 는 Skia side 처리가 없다는 이유로 라벨 열에서 빠졌다. 지금은 Canvas 가 같은 rule 을 읽으므로 그 근거가 없고, 레퍼런스의 side 라벨은 field 종류와 무관하게 열이다. 두 그룹은 `labelAlign` 을 받지 않는다 (정렬 계약은 받는 field 만).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (세 rule 의 `label-position.side` · `--*-side-gap`) · `rulePartRules.ts` (그룹의 항목 묶음 노드가 라벨 옆 내용)
+
 ## [Preview 증분 갱신 — 한 번에 생겼다 지워진 노드] - 2026-10-07
 
 ### Fixed

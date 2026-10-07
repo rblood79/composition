@@ -2103,7 +2103,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
+              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
+              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
+              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
+              //   delegation `--cbg-side-gap` (sizes 파생).
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--cbg-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--cbg-side-gap))",
+                  },
+                },
+              ],
             },
           },
           orientation: {
@@ -2134,7 +2173,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [],
+        delegation: [
+          {
+            // side 라벨 배치 — 크기별 gap 을 root 에 `--cbg-side-gap` 으로 (sizes 파생, `variables:
+            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "cbg-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
+        ],
       },
     },
   },
@@ -2346,7 +2394,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
+              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
+              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
+              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
+              //   delegation `--cf-side-gap` (sizes 파생).
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--cf-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--cf-side-gap))",
+                  },
+                },
+              ],
             },
           },
           "label-align": {
@@ -2363,6 +2450,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
+          {
+            // side 라벨 배치 — 크기별 gap 을 root 에 `--cf-side-gap` 으로 (sizes 파생, `variables:
+            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "cf-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
           {
             // 배치만 (ADR-253): 입력칸의 최대 폭. 모양 (padding · 글꼴 · 모서리) 은 Input rule 이 정한다.
             childSelector: ".react-aria-Input",
@@ -8455,7 +8550,46 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               styles: {
                 "flex-direction": "row",
                 "align-items": "flex-start",
+                "flex-wrap": "wrap",
               },
+              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
+              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
+              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
+              //   delegation `--rg-side-gap` (sizes 파생).
+              nested: [
+                {
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                  },
+                },
+                {
+                  selector:
+                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
+                  styles: {
+                    flex: "1 1 0%",
+                    "min-width": "0",
+                  },
+                },
+                {
+                  selector: "> .react-aria-FieldError",
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--rg-side-gap))",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "flex-basis": "100%",
+                    "margin-inline-start":
+                      "calc(var(--form-label-width, 11rem) + var(--rg-side-gap))",
+                  },
+                },
+              ],
             },
           },
           orientation: {
@@ -8486,7 +8620,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [],
+        delegation: [
+          {
+            // side 라벨 배치 — 크기별 gap 을 root 에 `--rg-side-gap` 으로 (sizes 파생, `variables:
+            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
+            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
+            prefix: "rg-side",
+            variables: "auto",
+            autoKeys: ["gap"],
+          },
+        ],
       },
     },
   },

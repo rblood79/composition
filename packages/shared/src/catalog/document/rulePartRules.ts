@@ -1143,13 +1143,21 @@ function containerVariantPartRules(
         const selector = entry.selector.trim().replace(/^>\s*/, "");
         const excluded = /^:not\((.*)\)$/.exec(selector)?.[1];
         const targets: Array<{ childType: string; via?: string }> = excluded
-          ? FIELD_CONTROL_TYPES.filter((childType) => {
-              const tokens = SUBPART_TOKENS[parentType]?.[childType] ?? [
-                `.react-aria-${childType}`,
-              ];
-              const skip = excluded.split(",").map((token) => token.trim());
-              return !tokens.some((token) => skip.includes(token));
-            }).map((childType) => ({ childType }))
+          ? [
+              ...FIELD_CONTROL_TYPES,
+              // A group's items wrapper (ADR-251) is its content beside a side label.
+              ...(ITEMS_WRAPPERS[parentType]
+                ? [ITEMS_WRAPPERS[parentType].childType]
+                : []),
+            ]
+              .filter((childType) => {
+                const tokens = SUBPART_TOKENS[parentType]?.[childType] ?? [
+                  `.react-aria-${childType}`,
+                ];
+                const skip = excluded.split(",").map((token) => token.trim());
+                return !tokens.some((token) => skip.includes(token));
+              })
+              .map((childType) => ({ childType }))
           : selectorList(selector).flatMap((part) => {
               const simple = parseSimple(part);
               const target =

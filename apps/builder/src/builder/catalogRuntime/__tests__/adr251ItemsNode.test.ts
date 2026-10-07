@@ -6,6 +6,7 @@ import { insertNodes } from "../../../../../../packages/shared/src/catalog/comma
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type { NodeEntry } from "../../../../../../packages/shared/src/catalog/document/types";
+import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { renderCatalogDom } from "../domBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -31,28 +32,27 @@ const measure: CatalogTextMeasure = (text, font) => ({
 });
 
 /**
- * G0 per size: item gap, item height (indicator), item Label x, items top (label top), side x.
+ * G0 per size: item gap, item height (indicator), item Label x, items top (label top). Side: the
+ * items sit right of the side label column (`--form-label-width` 176 + the group size's gap — the
+ * side label of every field, 2026-10-07 ADR-253 follow-up; G0 had the label at its text width).
  * xl `topY` 48 (ADR-253): the group Label is sized by the Label rule at the group's size — its xl
  * line is the token's 28px (the group rule declared no xl line height: 18 × 20/14 = 25.71 before).
  */
 const G0: Record<
   string,
-  Record<
-    string,
-    { gap: number; height: number; labelX: number; topY: number; sideX: number }
-  >
+  Record<string, { gap: number; height: number; labelX: number; topY: number }>
 > = {
   RadioGroup: {
-    sm: { gap: 8, height: 16, labelX: 22, topY: 24, sideX: 74 },
-    md: { gap: 12, height: 20, labelX: 28, topY: 32, sideX: 89 },
-    lg: { gap: 16, height: 24, labelX: 34, topY: 40, sideX: 104 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 48, sideX: 119 },
+    sm: { gap: 8, height: 16, labelX: 22, topY: 24 },
+    md: { gap: 12, height: 20, labelX: 28, topY: 32 },
+    lg: { gap: 16, height: 24, labelX: 34, topY: 40 },
+    xl: { gap: 12, height: 30, labelX: 42, topY: 48 },
   },
   CheckboxGroup: {
-    sm: { gap: 8, height: 16, labelX: 22, topY: 24, sideX: 92 },
-    md: { gap: 12, height: 20, labelX: 28, topY: 32, sideX: 110 },
-    lg: { gap: 16, height: 24, labelX: 34, topY: 40, sideX: 128 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 48, sideX: 146 },
+    sm: { gap: 8, height: 16, labelX: 22, topY: 24 },
+    md: { gap: 12, height: 20, labelX: 28, topY: 32 },
+    lg: { gap: 16, height: 24, labelX: 34, topY: 40 },
+    xl: { gap: 12, height: 30, labelX: 42, topY: 48 },
   },
 };
 
@@ -174,7 +174,10 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
         expect(box.x + first.x).toBeCloseTo(0, 3);
         expect(box.y + first.y).toBeCloseTo(g0.topY, 3);
       } else {
-        expect(box.x + first.x).toBeCloseTo(g0.sideX, 3);
+        expect(box.x + first.x).toBeCloseTo(
+          176 + Number(COMPONENT_RULES_TABLE[owner].sizes[size].gap),
+          3,
+        );
         expect(box.y + first.y).toBeCloseTo(0, 3);
       }
       // DOM (G4): one wrapper div holding every item; the wrapper record renders no element.

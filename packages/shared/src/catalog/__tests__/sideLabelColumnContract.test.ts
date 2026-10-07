@@ -16,8 +16,11 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * 같은 문서가 캔버스와 preview 에서 다르게 보였고, `--form-label-align` 은 읽는 rule 이
  * 없어 labelAlign 이 DOM 에서 완전히 죽어 있었다.
  *
- * CheckboxGroup/RadioGroup 은 **제외**가 정본이다 — 그 패밀리는 side 에서도 라벨 자연폭을
- * 쓰기로 이미 정리됐다(implicitStyles "width 강제 없음"). 목록에 넣으면 그 결정이 뒤집힌다.
+ * ColorField · CheckboxGroup · RadioGroup 도 같은 컬럼이다 (2026-10-07 — ADR-253 후속, 사용자 지시
+ * 「레퍼런스 기준」: RSP 의 side 라벨은 field 종류와 무관하게 라벨 열 옆에 내용, 그 아래 줄 내용과
+ * 같은 x 에 도움말 · 오류 문구). 종전 제외는 옛 Skia 의 「width 강제 없음」 과 ColorField 의 Skia side
+ * 처리 부재가 근거였고, 지금은 Canvas 가 같은 rule 을 읽는다. 두 그룹은 `labelAlign` 을 받지 않아
+ * 정렬 계약 (`label-align` variant) 은 받는 field 만이다.
  */
 
 const SIDE_LABEL_COLUMN_FAMILIES = [
@@ -31,9 +34,15 @@ const SIDE_LABEL_COLUMN_FAMILIES = [
   "TimeField",
   "DatePicker",
   "DateRangePicker",
+  "ColorField",
+  "CheckboxGroup",
+  "RadioGroup",
 ] as const;
 
-const NATURAL_WIDTH_LABEL_FAMILIES = ["CheckboxGroup", "RadioGroup"] as const;
+/** Side-column fields that take RSP `labelAlign` (the groups do not). */
+const LABEL_ALIGN_FAMILIES = SIDE_LABEL_COLUMN_FAMILIES.filter(
+  (component) => component !== "CheckboxGroup" && component !== "RadioGroup",
+);
 
 type NestedRule = { selector: string; styles: Record<string, string> };
 
@@ -75,7 +84,7 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
     },
   );
 
-  it.each(SIDE_LABEL_COLUMN_FAMILIES)(
+  it.each(LABEL_ALIGN_FAMILIES)(
     "%s: labelAlign 이 --form-label-align 을 정의한다 (center/end)",
     (component) => {
       const variant = labelAlignVariant(component);
@@ -84,13 +93,26 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
     },
   );
 
-  it.each(NATURAL_WIDTH_LABEL_FAMILIES)(
-    "%s: 라벨 자연폭 정본 유지 — 고정폭 컬럼 rule 없음",
+  // (TextArea's element is RAC TextField: TextField's sheet places its hints — the rule both
+  // consumers read for it, `domStyleRuleType`.)
+  it.each(
+    SIDE_LABEL_COLUMN_FAMILIES.filter((component) => component !== "TextArea"),
+  )(
+    "%s: side 의 도움말 · 오류 문구는 내용 아래 줄, 라벨 열 + gap 만큼 들여쓴다",
     (component) => {
-      const labelRule = sideLabelNested(component).find((n) =>
-        n.selector.includes(".react-aria-Label"),
-      );
-      expect(labelRule).toBeUndefined();
+      for (const selector of [
+        "> .react-aria-FieldError",
+        '> [slot="description"]',
+      ]) {
+        const hint = sideLabelNested(component).find(
+          (n) => n.selector === selector,
+        );
+        expect(hint, `${component} ${selector}`).toBeDefined();
+        expect(hint!.styles["flex-basis"]).toBe("100%");
+        expect(hint!.styles["margin-inline-start"]).toMatch(
+          /^calc\(var\(--form-label-width, 11rem\) \+ var\(--[\w-]+-gap\)\)$/,
+        );
+      }
     },
   );
 });
