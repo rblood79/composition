@@ -231,31 +231,79 @@ export function assertStateOwnersLinked(
     }
     return false;
   };
-  const check = (node: NodeEntry) => {
+  /** An address's template path exists: root-to-target inside the instance's definition. */
+  const pathExists = (
+    instance: NodeEntry,
+    address: { instances: readonly string[]; templatePath: readonly string[] },
+  ): boolean => {
+    // (A nested instance step names a template of another definition — read as given.)
+    if (address.instances.length !== 1) return true;
+    const rootId = definitionTemplateRoot(reader, instance.definitionId);
+    if (!rootId || address.templatePath[0] !== rootId) return false;
+    return address.templatePath.every(
+      (id, index) =>
+        index === 0 ||
+        templateChildren(reader, address.templatePath[index - 1]!).includes(id),
+    );
+  };
+  /** `node`'s references, judged as standing at `holder` (itself, or the instance showing it). */
+  const check = (node: NodeEntry, holder: NodeId, inside?: ReadonlySet<string>) => {
     for (const { key, from } of catalogShowWhenRefs(node.showWhen!)) {
       if (!from || !("ancestor" in from) || "local" in from.ancestor) continue;
+      const ancestor = from.ancestor;
+      // (A template's reference to a position of its own template follows its instance.)
+      if ("nodeId" in ancestor && inside?.has(ancestor.nodeId)) continue;
       const ownerId =
-        "nodeId" in from.ancestor
-          ? from.ancestor.nodeId
-          : from.ancestor.address.instances[0]!;
+        "nodeId" in ancestor ? ancestor.nodeId : ancestor.address.instances[0]!;
       const owner = draft.read(ownerId);
       const linked =
         owner?.kind === "node" &&
-        holds(ownerId, node.id) &&
-        // (An address names a template position: its type is the position's, read by the
-        // consumers; the instance only has to hold the node.)
-        ("address" in from.ancestor ||
-          catalogStateKeysOf(
-            definitionTypeName(reader, owner.definitionId),
-          ).includes(key));
+        holds(ownerId, holder) &&
+        ("address" in ancestor
+          ? // An address names a template position: it exists, and its type gives the key.
+            pathExists(owner, ancestor.address) &&
+            (ancestor.address.instances.length !== 1 ||
+              catalogStateKeysOf(
+                definitionTypeName(
+                  reader,
+                  templateDefinitionId(
+                    reader,
+                    ancestor.address.templatePath[
+                      ancestor.address.templatePath.length - 1
+                    ]!,
+                  ),
+                ),
+              ).includes(key))
+          : catalogStateKeysOf(
+              definitionTypeName(reader, owner.definitionId),
+            ).includes(key));
       if (!linked) fail("STATE_OWNER_UNLINKED", `${node.id}>${key}`);
     }
+  };
+  /** A project component's template nodes reading an owner outside the template: at `instance`. */
+  const checkTemplate = (instance: NodeEntry) => {
+    if (instance.definitionId.startsWith("lib:")) return;
+    const rootId = definitionTemplateRoot(reader, instance.definitionId);
+    if (!rootId) return;
+    const template = new Set<string>();
+    const nodes: NodeEntry[] = [];
+    const stack = [rootId];
+    while (stack.length) {
+      const entry = draft.read(stack.pop()!);
+      if (entry?.kind !== "node" || template.has(entry.id)) continue;
+      template.add(entry.id);
+      nodes.push(entry);
+      stack.push(...ownedChildren(entry));
+    }
+    for (const node of nodes)
+      if (node.showWhen) check(node, instance.id, template);
   };
   const stack = [...touched];
   while (stack.length) {
     const entry = draft.read(stack.pop()!);
     if (entry?.kind !== "node") continue;
-    if (entry.showWhen) check(entry);
+    if (entry.showWhen) check(entry, entry.id);
+    checkTemplate(entry);
     stack.push(...ownedChildren(entry));
   }
 }
@@ -418,10 +466,17 @@ export const moveNodes =
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
     assertRequiredPartsKept(draft, roots);
-    // (A reorder among the same siblings keeps every ancestor: nothing to unlink.)
+    // (A reorder among the same siblings keeps every ancestor: nothing to unlink. Another slot of
+    // the same instance is another parent.)
     assertStateOwnersLinked(
       draft,
-      roots.filter((id) => owners.get(id) !== parentNode),
+      input.parent.kind === "descendant"
+        ? roots
+        : roots.filter(
+            (id) =>
+              owners.get(id) !==
+              (input.parent as Exclude<NodeParent, { kind: "descendant" }>).id,
+          ),
     );
     return {
       label: input.label ?? "Move",

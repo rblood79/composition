@@ -577,37 +577,45 @@ describe("ADR-256 Phase 4b — an origin's reference follows its instances and a
 
 describe("ADR-256 Phase 4a — an origin-local address names the position in the nearest instance", () => {
   it("`local` is the ancestor whose record is that template position of the same instance", () => {
+    // An outer instance (root > group) holding an inner instance of the same origin (root > group >
+    // leaf): each record id is `instance path::template id`.
+    const outer = "p/outer";
+    const inner = "p/outer/lib:template:t-inner";
     const records = new Map(
       [
-        { id: "p/outer::lib:template:t-root", parentId: "", children: ["p/outer::lib:template:t-group"] },
-        { id: "p/outer::lib:template:t-group", parentId: "p/outer::lib:template:t-root", children: ["p/outer/lib:template:t-inner::lib:template:t-group"] },
-        { id: "p/outer/lib:template:t-inner::lib:template:t-group", parentId: "p/outer::lib:template:t-group", children: ["leaf"] },
-        { id: "leaf", parentId: "p/outer/lib:template:t-inner::lib:template:t-group", children: [] },
+        { id: `${outer}::lib:template:t-root`, parentId: "", children: [`${outer}::lib:template:t-group`] },
+        { id: `${outer}::lib:template:t-group`, parentId: `${outer}::lib:template:t-root`, children: [`${inner}::lib:template:t-root`] },
+        { id: `${inner}::lib:template:t-root`, parentId: `${outer}::lib:template:t-group`, children: [`${inner}::lib:template:t-group`] },
+        { id: `${inner}::lib:template:t-group`, parentId: `${inner}::lib:template:t-root`, children: ["leaf"] },
+        { id: "leaf", parentId: `${inner}::lib:template:t-group`, children: [] },
       ].map((r) => [r.id, { ...r, props: {}, bindingId: "x" } as never]),
     );
     const get = (key: string) => records.get(key);
     const typeOf = () => "Disclosure";
-    const owner = (instances: string[]) =>
+    const owner = (local: { instances: string[]; templatePath: string[] }) =>
       catalogStateOwner(
         get("leaf")!,
         "isExpanded",
-        {
-          ancestor: {
-            local: {
-              instances: instances as never,
-              templatePath: ["lib:template:t-root", "lib:template:t-group"] as never,
-            },
-          },
-        },
+        { ancestor: { local: local as never } },
         get,
         typeOf,
       )?.id;
-    // The nearest instance's position (the inner one), and through a nested instance step the outer.
-    expect(owner([])).toBe("p/outer/lib:template:t-inner::lib:template:t-group");
-    expect(owner(["lib:template:t-inner"])).toBe(
-      "p/outer/lib:template:t-inner::lib:template:t-group",
-    );
+    // The nearest instance's position (the inner one), and through a nested instance step too.
+    expect(
+      owner({ instances: [], templatePath: ["lib:template:t-root", "lib:template:t-group"] }),
+    ).toBe(`${inner}::lib:template:t-group`);
+    expect(
+      owner({
+        instances: ["lib:template:t-inner"],
+        templatePath: ["lib:template:t-root", "lib:template:t-group"],
+      }),
+    ).toBe(`${inner}::lib:template:t-group`);
+    // m6 (round 10): a path that does not exist names nothing — not the position its last id is.
+    expect(
+      owner({ instances: [], templatePath: ["lib:template:missing", "lib:template:t-group"] }),
+    ).toBeUndefined();
   });
+
 });
 
 describe("ADR-256 Phase 4d — setShowWhen (the Design panel's command)", () => {
@@ -647,5 +655,238 @@ describe("ADR-256 Phase 4d — setShowWhen (the Design panel's command)", () => 
     expect(workspace.runtime.graph.getEntry(id("box-text"))).not.toHaveProperty(
       "showWhen",
     );
+  });
+});
+
+describe("ADR-256 Phase 4 review (round 10)", () => {
+  const code = (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as { code?: string }).code;
+    }
+    return undefined;
+  };
+
+  it("m1 a ToggleButton's own selection (a click in the Preview) reaches its conditioned child", async () => {
+    const { root } = await open(
+      [
+        node("tb", "ToggleButton", ["on"], { isSelected: false }),
+        node("on", "text", [], { children: "On" }, { all: ["isSelected"] }),
+      ],
+      "tb",
+    );
+    const host = document.createElement("div");
+    document.body.append(host);
+    const mounted = createRoot(host);
+    await act(async () =>
+      mounted.render(
+        renderCatalogDom(
+          root,
+          [...root.domInputs.values()].find((r) => r.sourceId === id("tb"))!.id,
+        ),
+      ),
+    );
+    const shown = () =>
+      !!host.querySelector(`[data-catalog-id$="::${id("on")}"]`);
+    expect(shown()).toBe(false);
+    await act(async () => host.querySelector("button")!.click());
+    expect(host.querySelector("button")!.getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(shown()).toBe(true);
+    act(() => mounted.unmount());
+    host.remove();
+  });
+
+  it("m2 a group item's state includes its group's (a RadioGroup's value · a CheckboxGroup's disabled)", async () => {
+    const radio = await open(
+      [
+        node("g", "RadioGroup", ["r"], { value: "a" }),
+        node("r", "Radio", ["r-button"], { value: "a" }),
+        node("r-button", "RadioButton", ["r-ind", "mark"]),
+        node("r-ind", "RadioIndicator", []),
+        node("mark", "text", [], { children: "Picked" }, { all: ["isSelected"] }),
+      ],
+      "g",
+    );
+    expect(radio.canvas("mark")).toBe(true);
+    expect(radio.drawn("mark")).toBe(true);
+    const box = await open(
+      [
+        node("g", "CheckboxGroup", ["c"], { isDisabled: true }),
+        node("c", "Checkbox", ["c-button"]),
+        node("c-button", "CheckboxButton", ["c-ind", "mark"]),
+        node("c-ind", "CheckboxIndicator", []),
+        node("mark", "text", [], { children: "Off" }, { all: ["isDisabled"] }),
+      ],
+      "g",
+    );
+    expect(box.canvas("mark")).toBe(true);
+    expect(box.drawn("mark")).toBe(true);
+  });
+
+  it("m3 a Tab's conditioned child follows the selection (first open and an edit), as the derived value", async () => {
+    const { canvas, edit } = await open(
+      [
+        node("tabs", "Tabs", ["list", "panels"]),
+        node("list", "TabList", ["ta", "tb"]),
+        node("ta", "Tab", ["ma"], { id: "a" }),
+        node("ma", "text", [], { children: "A" }, { all: ["isSelected"] }),
+        node("tb", "Tab", ["mb"], { id: "b" }),
+        node("mb", "text", [], { children: "B" }, { all: ["isSelected"] }),
+        node("panels", "TabPanels", ["pa", "pb"]),
+        node("pa", "TabPanel", []),
+        node("pb", "TabPanel", []),
+      ],
+      "tabs",
+    );
+    expect([canvas("ma"), canvas("mb")]).toEqual([true, false]);
+    edit("tabs", { defaultSelectedKey: "b" } as never);
+    expect([canvas("ma"), canvas("mb")]).toEqual([false, true]);
+  });
+
+  it("m4 an instance whose template reads an outside owner cannot leave it; a reorder still can", async () => {
+    const { workspace, root } = await open(
+      [
+        node("tb", "ToggleButton", ["f"], { isSelected: true }),
+        node("f", "frame", ["on"]),
+        node("on", "text", [], { children: "On" }, {
+          all: ["isSelected"],
+          from: { ancestor: { nodeId: id("tb") } },
+        }),
+      ],
+      "tb",
+    );
+    workspace.root.execute(
+      createComponent({ id: id("f"), name: "Inner", newId: workspace.newId }),
+    );
+    const instance = [...root.canvasInputs.values()].find(
+      (r) => r.parentId && root.canvasInputs.get(r.parentId)?.sourceId === id("tb"),
+    )!;
+    expect(
+      code(() =>
+        workspace.root.execute(
+          moveNodes({
+            ids: [instance.sourceId as NodeId],
+            parent: { kind: "node", id: BODY },
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+  /** A component R > TB (ToggleButton) > S (slot); an instance I with a Text in S reading TB. */
+  const slotted = async (templatePath: (rootId: string) => string[]) => {
+    const opened = await open(
+      [
+        node("r", "frame", ["tb"]),
+        node("tb", "ToggleButton", ["s"], { isSelected: true }),
+        { ...node("s", "frame", []), slot: { name: "content", required: false } } as NodeEntry,
+      ],
+      "r",
+    );
+    const { workspace, root } = opened;
+    workspace.root.execute(
+      createComponent({ id: id("r"), name: "Holder", newId: workspace.newId }),
+    );
+    const instanceId = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId !== id("r") && r.collapsedIds?.some((c) => c.endsWith("::" + id("r"))),
+    )!.sourceId as NodeId;
+    const showWhen: CatalogShowWhen = {
+      all: ["isSelected"],
+      from: {
+        ancestor: {
+          address: {
+            instances: [instanceId],
+            templatePath: templatePath(id("r")) as never,
+          },
+        },
+      },
+    };
+    const insert = () =>
+      workspace.root.execute(
+        insertNodes({
+          parent: {
+            kind: "descendant",
+            ownerId: instanceId,
+            address: {
+              instances: [instanceId],
+              templatePath: [id("r"), id("tb"), id("s")],
+            },
+          } as never,
+          entries: [node("in-slot", "text", [], { children: "In" }, showWhen)],
+          rootIds: [id("in-slot")],
+          newId: workspace.newId,
+        }),
+      );
+    return { ...opened, instanceId, insert };
+  };
+
+  it("m5 a detach maps a slot child's address of an inner position to that position's new node", async () => {
+    const { workspace, instanceId, insert, root } = await slotted((r) => [r, id("tb")]);
+    insert();
+    const inSlot = () =>
+      [...root.canvasInputs.values()].find((r) => r.sourceId === id("in-slot"))!;
+    expect(inSlot().hidden).not.toBe(true);
+    workspace.root.execute(
+      detachInstances({ ids: [instanceId], newId: workspace.newId }),
+    );
+    const from = workspace.runtime.graph.getEntry(id("in-slot"))!;
+    expect(
+      "showWhen" in from &&
+        from.showWhen?.from &&
+        "ancestor" in from.showWhen.from &&
+        "nodeId" in from.showWhen.from.ancestor,
+    ).toBe(true);
+    expect(inSlot().hidden).not.toBe(true);
+  });
+
+  it("m6 an address whose path does not exist is not linked (refused; read false, even negated)", async () => {
+    const { insert } = await slotted(() => [id("missing-root"), id("tb")]);
+    expect(code(insert)).toBe("STATE_OWNER_UNLINKED");
+  });
+});
+
+describe("ADR-256 Phase 4 review (round 10) m7 — the panel keeps an owner it does not show", () => {
+  it("a stored type · address owner round-trips; an added row leaves the others' owners", async () => {
+    const { showWhenOf, showWhenViews } = await import(
+      "../../panels/properties/catalog/showWhenView"
+    );
+    const stored: CatalogShowWhen = {
+      all: [
+        "isDisabled",
+        {
+          key: "isSelected",
+          from: {
+            ancestor: {
+              address: {
+                instances: [id("i")],
+                templatePath: ["lib:template:r", "lib:template:t"] as never,
+              },
+            },
+          },
+        },
+      ],
+      from: { type: "Disclosure" },
+    };
+    const views = showWhenViews(stored);
+    expect(showWhenOf(views)).toEqual({
+      all: [
+        { key: "isDisabled", from: { type: "Disclosure" } },
+        stored.all[1],
+      ],
+    });
+    // Add condition (the panel's button): the stored rows keep their owners.
+    const added = showWhenOf([
+      ...views,
+      { key: "isSelected", not: false, owner: "nearest" },
+    ])!;
+    expect(added.all.slice(0, 2)).toEqual([
+      { key: "isDisabled", from: { type: "Disclosure" } },
+      stored.all[1],
+    ]);
+    expect(added.all[2]).toBe("isSelected");
   });
 });

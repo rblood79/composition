@@ -1533,6 +1533,24 @@ export class CatalogCompositionRoot {
       if (!list) byRoot.set(rootId, (list = []));
       list.push(this.planRecord(id, next, rootId));
     }
+    // ADR-256 Decision 7: a state owner's new values re-judge the conditioned nodes below it.
+    const refreshed = new Map(
+      [...byRoot.values()].flat().map((plan) => [plan.id, plan.record]),
+    );
+    const read = (key: string) => refreshed.get(key) ?? this.records.get(key);
+    for (const record of [...refreshed.values()])
+      for (const dependent of catalogStateDependents(record, read, this.typeOf)) {
+        if (refreshed.has(dependent.id)) continue;
+        const { hidden: _hidden, ...shown } = dependent;
+        const hidden = catalogHiddenAtRest(shown, read, this.typeOf);
+        if (hidden === (dependent.hidden === true)) continue;
+        const rootId = this.recordRoots.get(dependent.id)!;
+        let list = byRoot.get(rootId);
+        if (!list) byRoot.set(rootId, (list = []));
+        const next = hidden ? { ...shown, hidden: true as const } : shown;
+        refreshed.set(dependent.id, next);
+        list.push(this.planRecord(dependent.id, next, rootId));
+      }
     if (!byRoot.size) return [];
     const count = [...byRoot.values()].reduce(
       (sum, list) => sum + list.length,

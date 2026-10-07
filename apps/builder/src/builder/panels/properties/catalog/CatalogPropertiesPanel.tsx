@@ -36,10 +36,8 @@ import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
 import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
-import {
-  CatalogShowWhenSection,
-  catalogShowWhenApplies,
-} from "./CatalogShowWhenSection";
+import { CatalogShowWhenSection } from "./CatalogShowWhenSection";
+import { catalogShowWhenApplies } from "./showWhenAncestors";
 import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";

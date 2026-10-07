@@ -99,3 +99,29 @@ export function mapShowWhenLocal(
     ...(showWhen.from ? { from: ref(showWhen.from) } : {}),
   };
 }
+
+/**
+ * The `showWhen` with each instance-address reference passed through `place` (on detach, a
+ * position of the detached instance becomes its new node); others unchanged.
+ */
+export function mapShowWhenAddress(
+  showWhen: CatalogShowWhen,
+  place: (address: {
+    instances: readonly string[];
+    templatePath: readonly string[];
+  }) => NodeId | undefined,
+): CatalogShowWhen {
+  const ref = (from: CatalogStateOwnerRef): CatalogStateOwnerRef => {
+    if (!("ancestor" in from) || !("address" in from.ancestor)) return from;
+    const nodeId = place(from.ancestor.address);
+    return nodeId ? { ancestor: { nodeId } } : from;
+  };
+  return {
+    all: showWhen.all.map((item) =>
+      typeof item === "string" || !("from" in item) || !item.from
+        ? item
+        : { ...item, from: ref(item.from) },
+    ) as CatalogShowWhen["all"],
+    ...(showWhen.from ? { from: ref(showWhen.from) } : {}),
+  };
+}

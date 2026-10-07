@@ -2,6 +2,7 @@ import {
   createContext,
   createElement,
   useContext,
+  useState,
   type CSSProperties,
   type ElementType,
   type ReactElement,
@@ -675,6 +676,29 @@ function groupItems(
           : [];
     });
   return visit(input.node);
+}
+/**
+ * A ToggleButton outside a group: its selection held here (RAC's uncontrolled state, made
+ * controlled), passed down as its state frame (ADR-256 Decision 7).
+ */
+function SelfToggleButton({
+  ownerId,
+  defaultSelected,
+  isDisabled,
+  render,
+}: {
+  ownerId: string;
+  defaultSelected: boolean;
+  isDisabled: boolean;
+  render: (selection: Record<string, unknown>) => ReactElement;
+}): ReactElement {
+  const [isSelected, setSelected] = useState(defaultSelected);
+  return catalogStateFrame(
+    ownerId,
+    ownerId,
+    { isSelected, isDisabled },
+    render({ isSelected, onChange: setSelected }),
+  );
 }
 function nodeTreeField(
   component: ElementType,
@@ -1530,13 +1554,39 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const parent = input.root.domInputs.get(input.node.parentId);
       const inGroup =
         !!parent && catalogTypeName(input.root, parent) === "ToggleButtonGroup";
+      // Outside a group its selection is its own (RAC state): tracked so the `showWhen` nodes inside
+      // read it (ADR-256 Decision 7 — the shared ToggleButton draws children, not RAC's function).
+      if (!inGroup)
+        return createElement(SelfToggleButton, {
+          key: `${input.node.id}:${bool(props.isSelected)}`,
+          ownerId: input.node.id,
+          defaultSelected: bool(props.isSelected),
+          isDisabled: bool(props.isDisabled),
+          render: (selection: Record<string, unknown>) =>
+            createElement(
+              ToggleButton as ElementType,
+              {
+                ...marker(input),
+                id: input.node.id,
+                style: input.style,
+                ...selection,
+                isDisabled: bool(props.isDisabled),
+                autoFocus: bool(props.autoFocus),
+                isEmphasized: bool(props.isEmphasized),
+                isQuiet: bool(props.isQuiet),
+                staticColor: props.staticColor || "auto",
+                size: props.size || "md",
+              },
+              typeof props.children === "string" ? props.children : null,
+              ...renderAll(input),
+            ),
+        });
       return createElement(
         ToggleButton as ElementType,
         {
           ...marker(input),
           id: input.node.id,
           style: input.style,
-          ...(inGroup ? {} : { defaultSelected: bool(props.isSelected) }),
           isDisabled: bool(props.isDisabled),
           autoFocus: bool(props.autoFocus),
           isEmphasized: bool(props.isEmphasized),

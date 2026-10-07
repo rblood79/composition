@@ -1276,20 +1276,34 @@ const endsWith = (path: readonly string[], tail: readonly string[]) =>
   tail.length <= path.length &&
   tail.every((id, index) => path[path.length - tail.length + index] === id);
 
-/** Whether `record` is the ancestor a stored state owner address names (breakdown §1-1). */
+/**
+ * Whether `record` is the ancestor a stored state owner address names (breakdown §1-1): a node id
+ * is the record's own; an address's target is the record's own and the instance path ends the
+ * record's, and every earlier position of the root-to-target path is the record's ancestor in the
+ * same instance (a path that does not exist names nothing).
+ */
 function isStateOwner(
   record: CatalogConsumerNode,
   ref: Extract<CatalogStateOwnerRef, { ancestor: unknown }>["ancestor"],
+  get: CatalogRecordLookup,
 ): boolean {
   // (A composite instance's record is also its collapsed template root's — `collapsedIds`.)
-  return [record.id, ...(record.collapsedIds ?? [])].some((recordId) => {
+  const ids = (node: CatalogConsumerNode) => [node.id, ...(node.collapsedIds ?? [])];
+  return ids(record).some((recordId) => {
     const { path, own } = recordAddress(recordId);
     if ("nodeId" in ref) return own === ref.nodeId;
     const address = "address" in ref ? ref.address : ref.local;
-    return (
-      own === address.templatePath[address.templatePath.length - 1] &&
-      endsWith(path, address.instances)
-    );
+    const steps = address.templatePath;
+    if (own !== steps[steps.length - 1] || !endsWith(path, address.instances))
+      return false;
+    const prefix = path.join("/");
+    let cursor: CatalogConsumerNode | undefined = record;
+    for (let index = steps.length - 2; index >= 0; index -= 1) {
+      cursor = cursor && get(cursor.parentId);
+      if (!cursor || !ids(cursor).includes(`${prefix}::${steps[index]}`))
+        return false;
+    }
+    return true;
   });
 }
 
@@ -1313,10 +1327,60 @@ export function catalogStateOwner(
       if (gives) return cursor;
     } else if ("type" in from) {
       if (typeOf(cursor) === from.type && gives) return cursor;
-    } else if (isStateOwner(cursor, from.ancestor))
+    } else if (isStateOwner(cursor, from.ancestor, get))
       return gives ? cursor : undefined;
   }
   return undefined;
+}
+
+/** A toggle type → its group type (a group item reads the group's context). */
+const GROUP_OF_ITEM: Readonly<Record<string, string>> = {
+  Checkbox: "CheckboxGroup",
+  Radio: "RadioGroup",
+};
+const GROUP_ITEMS_TYPES: ReadonlySet<string> = new Set([
+  "CheckboxItems",
+  "RadioItems",
+]);
+const GROUP_STATE_KEYS: ReadonlySet<CatalogStateKey> = new Set([
+  "isDisabled",
+  "isReadOnly",
+  "isInvalid",
+  "isRequired",
+]);
+/** The CheckboxGroup / RadioGroup a toggle sits in (through its items wrapper and frames). */
+function catalogItemGroup(
+  owner: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const groupType = GROUP_OF_ITEM[typeOf(owner)];
+  if (!groupType) return undefined;
+  let cursor = catalogPartParent(owner, get, typeOf);
+  while (cursor && GROUP_ITEMS_TYPES.has(typeOf(cursor)))
+    cursor = catalogPartParent(cursor, get, typeOf);
+  return cursor && typeOf(cursor) === groupType ? cursor : undefined;
+}
+/** A RadioGroup's value: its first selected Radio's (as the DOM's `radiogroup`), else its own. */
+function catalogRadioGroupValue(
+  group: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string {
+  const radios: CatalogConsumerNode[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of childrenOf(node, get)) {
+      const type = typeOf(child);
+      if (type === "Radio") radios.push(child);
+      else if (GROUP_ITEMS_TYPES.has(type) || PART_FRAME_TYPES.has(type))
+        visit(child);
+    }
+  };
+  visit(group);
+  const selected = radios.find((radio) => radio.props.isSelected === true);
+  return selected?.props.value !== undefined
+    ? String(selected.props.value)
+    : String(group.props.value ?? "");
 }
 
 /**
@@ -1341,14 +1405,21 @@ export function catalogStateValue(
   const props = owner.props;
   const derived = (owner.derivedProps ?? {}) as Record<string, unknown>;
   const state = owner.displayState;
+  // A group item takes its group's state too (RAC's group context): disabled · read-only ·
+  // invalid · required, and a Radio's selection is the group's value.
+  const group = catalogItemGroup(owner, get, typeOf);
+  if (group && GROUP_STATE_KEYS.has(key) && group.props[key] === true)
+    return true;
   switch (key) {
-    case "isSelected":
+    case "isSelected": {
       if (state === "selected") return true;
       if (state === "unselected") return false;
-      return (
-        (derived._isSelected ?? props.isSelected ?? props.defaultSelected) ===
-        true
-      );
+      if (group && typeOf(owner) === "Radio")
+        return catalogRadioGroupValue(group, get, typeOf) === String(props.value ?? "");
+      // (Computed here, not read from the derived values — a condition is judged before they are.)
+      const item = catalogCollectionItemSelected(owner, get, typeOf);
+      return (item ?? props.isSelected ?? props.defaultSelected) === true;
+    }
     case "isIndeterminate":
       return props.isIndeterminate === true || derived.isIndeterminate === true;
     case "isExpanded":
@@ -1380,7 +1451,11 @@ export function catalogStateValue(
     case "isOpen":
       return false;
     case "isCurrent":
-      return state === "current" || derived._isLast === true;
+      return (
+        state === "current" ||
+        (typeOf(owner) === "Breadcrumb" &&
+          !catalogBreadcrumbSeparator(owner, get, typeOf))
+      );
     case "hasSubmenu": {
       const parent = get(owner.parentId);
       return !!parent && typeOf(parent) === "SubmenuTrigger";

@@ -1,4 +1,6 @@
+import { ownedChildren } from "../document/graph";
 import {
+  mapShowWhenAddress,
   mapShowWhenLocal,
   mapShowWhenNodeIds,
 } from "../document/stateOwnerRefs";
@@ -252,6 +254,31 @@ export function createMaterializer(
       sameAddress(item.address, address),
     );
 
+  /**
+   * ADR-256 §1-1: the owner's slot children stay its nodes, but an address of a position of this
+   * instance in their conditions becomes that position's new node (placed above them).
+   */
+  const remapSlotChildren = (childIds: readonly NodeId[]): NodeId[] => {
+    const stack = [...childIds];
+    while (stack.length) {
+      const entry = draft.read(stack.pop()!);
+      if (entry?.kind !== "node") continue;
+      if (entry.showWhen) {
+        const showWhen = mapShowWhenAddress(entry.showWhen, (address) =>
+          sameAddress(
+            { instances: address.instances as never, templatePath: [] },
+            { instances, templatePath: [] },
+          )
+            ? placed.get(key(address.templatePath))
+            : undefined,
+        );
+        if (JSON.stringify(showWhen) !== JSON.stringify(entry.showWhen))
+          draft.write({ ...entry, showWhen });
+      }
+      stack.push(...ownedChildren(entry));
+    }
+    return [...childIds];
+  };
   const materialize = (
     path: readonly TemplateId[],
     fixedId?: NodeId,
@@ -398,7 +425,7 @@ export function createMaterializer(
       ...entry,
       children:
         change?.kind === "fillSlot"
-          ? [...change.childIds]
+          ? remapSlotChildren(change.childIds)
           : template.children
               .filter((childId) => !filled.has(childId))
               .map((childId) => materialize([...path, childId])),

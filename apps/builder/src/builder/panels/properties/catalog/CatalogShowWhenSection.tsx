@@ -3,14 +3,11 @@ import { Minus } from "lucide-react";
 import { setShowWhen } from "../../../../../../../packages/shared/src/catalog/commands";
 import {
   CATALOG_STATE_KEYS,
-  type CatalogShowCondition,
-  type CatalogShowWhen,
   type CatalogStateKey,
   type NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   catalogStateConditions,
-  catalogStateKeysOf,
   catalogStateOwner,
 } from "../../../../../../../packages/shared/src/catalog/runtime/presence";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -18,60 +15,25 @@ import { PropertySelect } from "../../../components/property/PropertySelect";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import { useToastStore } from "../../../stores/toast";
+import {
+  stateAncestors,
+  type StateAncestor,
+} from "./showWhenAncestors";
+import {
+  KEEP,
+  NEAREST,
+  keptOwnerLabel,
+  showWhenOf,
+  showWhenViews,
+  type ShowWhenConditionView,
+} from "./showWhenView";
 
 const AddIcon = ACTION_ICONS.add;
 const MAX_CONDITIONS = 3;
-const NEAREST = "nearest";
 
 type Root = CatalogWorkspace["root"];
 
-/** An ancestor that gives state keys: its record, type and — an authored node — its node id. */
-interface StateAncestor {
-  readonly recordId: string;
-  readonly type: string;
-  readonly nodeId?: string;
-  readonly keys: readonly string[];
-}
-
-/** The selected record's ancestors that give state keys, nearest first. */
-function stateAncestors(root: Root, identity: string): StateAncestor[] {
-  const out: StateAncestor[] = [];
-  const record = root.canvasInputs.get(identity);
-  for (
-    let cursor = record && root.canvasInputs.get(record.parentId);
-    cursor;
-    cursor = root.canvasInputs.get(cursor.parentId)
-  ) {
-    const type = root.typeOf(cursor);
-    const keys = type ? catalogStateKeysOf(type) : [];
-    if (!keys.length) continue;
-    // An authored node's record is its own id (`…::project:node:X` = X); a template position's is not.
-    const own = cursor.id.slice(cursor.id.lastIndexOf("::") + 2);
-    out.push({
-      recordId: cursor.id,
-      type,
-      ...(own === cursor.sourceId ? { nodeId: own } : {}),
-      keys,
-    });
-  }
-  return out;
-}
-
-/**
- * Whether the selected record's section applies: an authored node with a state-giving ancestor, or
- * one that already has a condition. (The panel reads this before mounting — no hook per selection.)
- */
-export function catalogShowWhenApplies(root: Root, identity: string): boolean {
-  const record = root.canvasInputs.get(identity);
-  if (!record) return false;
-  return !!record.showWhen || stateAncestors(root, identity).length > 0;
-}
-
-interface ConditionView {
-  key: CatalogStateKey;
-  not: boolean;
-  /** `nearest`, or `node:<id>` (a stored address). */
-  owner: string;
+interface ConditionView extends ShowWhenConditionView {
   linked: boolean;
 }
 interface ShowWhenView {
@@ -102,25 +64,19 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
     return {
       nodeId: position.target.id,
       ancestors: stateAncestors(root, identity),
-      conditions: record.showWhen
-        ? catalogStateConditions(record.showWhen).map((condition) => ({
-            key: condition.key,
-            not: condition.not,
-            owner:
-              condition.from && "ancestor" in condition.from
-                ? "nodeId" in condition.from.ancestor
-                  ? `node:${condition.from.ancestor.nodeId}`
-                  : NEAREST
-                : NEAREST,
-            linked: !!catalogStateOwner(
-              record,
-              condition.key,
-              condition.from,
-              get,
-              root.typeOf,
-            ),
-          }))
-        : [],
+      conditions: showWhenViews(record.showWhen).map((view, index) => {
+        const condition = catalogStateConditions(record.showWhen!)[index]!;
+        return {
+          ...view,
+          linked: !!catalogStateOwner(
+            record,
+            condition.key,
+            condition.from,
+            get,
+            root.typeOf,
+          ),
+        };
+      }),
     };
   }, [identity, root, workspace]);
   const subscribe = useCallback(
@@ -134,17 +90,8 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
     (conditions: readonly ConditionView[]) => {
       const current = read();
       if (!current) return;
-      const all = conditions.map((condition): CatalogShowCondition => {
-        if (condition.owner === NEAREST)
-          return condition.not ? { not: condition.key } : condition.key;
-        const from = {
-          ancestor: { nodeId: condition.owner.slice(5) as NodeId },
-        };
-        return condition.not
-          ? { not: condition.key, from }
-          : { key: condition.key, from };
-      });
-      const showWhen: CatalogShowWhen | null = all.length ? { all } : null;
+      // (A row the author did not touch keeps its stored owner — `keep`.)
+      const showWhen = showWhenOf(conditions);
       try {
         workspace.execute(
           setShowWhen({ id: current.nodeId as NodeId, showWhen }),
@@ -171,7 +118,7 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
         if (at !== index) return condition;
         const next = { ...condition, ...patch };
         // A new key keeps the owner only if that owner gives it.
-        if (patch.key && next.owner !== NEAREST) {
+        if (patch.key && next.owner !== NEAREST && next.owner !== KEEP) {
           const owner = view.ancestors.find(
             (ancestor) => `node:${ancestor.nodeId}` === next.owner,
           );
@@ -247,12 +194,15 @@ export const CatalogShowWhenSection = memo(function CatalogShowWhenSection({
                         ? `${owner.type} (${at + 1})`
                         : owner.type,
                     })),
-                    ...(condition.owner !== NEAREST &&
-                    !owners.some(
-                      (owner) => `node:${owner.nodeId}` === condition.owner,
-                    )
-                      ? [{ value: condition.owner, label: "Unlinked" }]
-                      : []),
+                    ...(condition.owner === KEEP
+                      ? [{ value: KEEP, label: keptOwnerLabel(condition.from) }]
+                      : condition.owner !== NEAREST &&
+                          !owners.some(
+                            (owner) =>
+                              `node:${owner.nodeId}` === condition.owner,
+                          )
+                        ? [{ value: condition.owner, label: "Unlinked" }]
+                        : []),
                   ]}
                   translateOptions={false}
                   onChange={(value) => change(index, { owner: value })}
