@@ -118,3 +118,13 @@ react-aria.adobe.com 문서의 예제에서 고른다. 기준값 = 예제 코드
 ## 5. 기록
 
 - **Phase 0 (G0) — 2026-10-07**: [G0 인벤토리](../evidence/256-g0-inventory.md) ① ~ ⑨ 고정. RAC 실측은 `node apps/builder/scripts/adr256-g0-rac-inventory.mjs <out>` (설치 RAC 1.21.0 · jsdom 마운트 · fixture 55 throw 0 · 2회 동일) → [JSON](../evidence/256-g0-rac-inventory.json). 레퍼런스 45 + S2 8 문서 조회, 예제 15개 원문 [고정](../evidence/256-g0-examples.md). 본문 정정 6곳 (Status 의 G0 절). 같은 날 사용자 「승인」 → Accepted (G0 뒤 판독은 이 승인으로 갈음).
+- **Phase 1 — 2026-10-07/08** (`81f5d296e` · `d2cc35f9f` · `98f9eebf6` + ratchet 수리 7커밋, 마지막 `c3327c90e`):
+  - 1a 판정 하나: `componentTraits` `children` = RAC 항목 목록 (G0 ②) · `UNCONVERTED_FAMILY_LIMITS` (옛 renderer 한계 표 — 미전환 family 는 이 행이 이긴다, 노드 구조가 아직 RAC 와 달라 교집합 불가) · `catalogChildKind` 를 중첩 판정 · fillSlot 검증 · slot 넣기 목록이 같이 읽는다. section 은 항목만 받는다
+  - 1b 넣기 목록 (`catalogSlotInsertOptions`, 넣기와 같은 `assertNestable`) · 원본 루트 slot 을 instance 에서 채움 (`catalogSlotTarget`, F4). Card Header · Content 는 template 바인딩이라 빈 목록 (Phase 10)
+  - 1c 이름 붙은 자리: 4 경로 + 연결 안 됨 · 제공자 없음 (`racSlot.ts`) — Preview 는 렌더 시점 RAC context, Properties 는 생성 표 (`generated/racSlotProviders.ts` ← `adr256-gen-rac-slots.mjs`, drift 게이트). Text = RAC Text. 값 타입 `slot` (false = 명시 해제) · `scalarFitsType` 하나로 판정 (흩어진 6곳이 slot 조건부 규칙을 버리던 것 정리)
+  - 1d 필수 짝 (`requiredParts.ts`, G0 ⑨): 삭제 · 소유자 밖 이동 거부, 안내 `operation.requiredPartKept`. 소유자는 부품 바로 위 또는 래퍼 위 (Decision 5) — 검사도 그 경로만 읽는다 (ratchet)
+  - G1: F3 재시험 7 원본 · 전 slot 자리 — 목록의 전 항목이 들어감 + 항목 자리엔 항목만 (원복 RED) · 정적 옛 표 참조 0. Decision 4 연결 원복 RED (ListBoxItem `aria-labelledby`). Decision 5 원복 RED 3/3 (unit) · live RED (규칙 끄면 SliderTrack · TabList 삭제됨)
+  - G4: `pnpm gate:perf-ratchet` pass. 처음엔 A 등급 초과 — RAC slot 섹션의 hook · getter (선택마다) 와 Canvas 메뉴의 삭제 사전 실행 (선택마다 여러 번) 이 읽기를 늘렸다. 섹션은 slot 소비 타입에서만 · 패널의 workspace · root 를 받고, 필수 부품 검사는 래퍼 경로만 + revision 단위 기억으로 줄여 상한 안 (올림 0)
+  - live: 넣기 목록 6/6 · RAC slot 6/6 · 필수 부품 4/4 (대조군 포함, headed Chrome — `adr256-p1-*-live.mjs`)
+  - 사후 보고 (ADR 작성 규칙): ratchet 수리 커밋 7개 (sliver 5 이상) — 측정 → 수리 → 재측정을 한 번씩 남겼다. Phase 1 을 1a ~ 1d 로 나눴다 (sub-group 4)
+  - 범위 밖 · 남김: parity `adr248CatalogRealDom` Select/ComboBox trigger 실패는 Phase 1 이전 (`5f70fce09`) 에서도 같다 · `components/slotFillNodes.ts` 는 미사용 (삭제 승인 대기) · Components page 의 slot 표시는 slot 선언 이름만 읽어 옛 표 참조가 없다 (변경 0)

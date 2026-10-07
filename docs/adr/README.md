@@ -230,7 +230,7 @@
 
 #### [256](256-rac-composition-level.md) — RAC 수준의 조립 (노드 트리를 RAC 부품 그대로 · 넣는 자리를 레퍼런스에서)
 
-- **상태**: Accepted — 2026-10-07 (G0 보고 뒤 사용자 「승인」. 사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 3 HIGH 2 · MEDIUM 1 설계 수리 완료. **G0 인벤토리 고정 2026-10-07** — 설치 RAC 1.21.0 실행 표 ([evidence](evidence/256-g0-inventory.md)) · 본문 정정 6곳 · 예제 15개 원문 고정. Phase 1 착수)
+- **상태**: Accepted — 2026-10-07 (G0 보고 뒤 사용자 「승인」. 사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 3 HIGH 2 · MEDIUM 1 설계 수리 완료. **G0 인벤토리 고정 2026-10-07** — 설치 RAC 1.21.0 실행 표 ([evidence](evidence/256-g0-inventory.md)) · 본문 정정 6곳 · 예제 15개 원문 고정. **Phase 1 완료 2026-10-08** — 판정 하나 · 넣기 목록 · 원본 루트 slot · RAC slot 4 경로 · 필수 짝, G1 · G4 · live 16/16. 다음 Phase 2 field)
 - **규모**: Phase 0 인벤토리 → 1 판정 하나 → 2 ~ 10 family 전환 (field · toggle · 상태별 표시 · collection · picker · range · overlay · calendar · S2) → 11 종결 (레퍼런스 예제 15개 재현). breakdown: [design/256](design/256-rac-composition-level-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)

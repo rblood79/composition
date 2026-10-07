@@ -26,7 +26,9 @@ Proposed — 2026-10-07
 
 > **2026-10-07 G0 인벤토리 고정** ([evidence](evidence/256-g0-inventory.md) · [예제 원문](evidence/256-g0-examples.md) · [RAC 실행 결과](evidence/256-g0-rac-inventory.json)): 설치 RAC 1.21.0 을 jsdom 에 실제로 마운트해 slot 제공자 · render props · 필수 짝 · children 종류를 뽑았다 (`apps/builder/scripts/adr256-g0-rac-inventory.mjs`, 2회 동일). evidence 폴더는 로컬 전용이라 결론은 [breakdown §2-5](design/256-rac-composition-level-breakdown.md) 에 둔다. 본문 정정 — F7 (TabPanels 는 자유 내용) · F11 · Decision 4 (제공자 행 추가) · Decision 5 (collection 항목은 context 관계 · Table 열 수) · Decision 7 (조건 키 4개 추가) · Decision 8. breakdown §1 의 RadioItems 판정 (레퍼런스에 `div.radio-items` 가 있다 → 유지) · §4 예제 3개를 레퍼런스에 있는 코드로.
 
-남은 것: Phase 1 ~ 11.
+> **2026-10-08 Phase 1 완료** (G1 · G4, [breakdown §5](design/256-rac-composition-level-breakdown.md)): 판정 하나 (children 종류) · 넣기 목록 · 원본 루트 slot · 이름 붙은 자리 4 경로 (RAC Text) · 필수 짝. live 16/16.
+
+남은 것: Phase 1 판독 1회 · Phase 2 ~ 11.
 
 ## Context
 
