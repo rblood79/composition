@@ -1,0 +1,1 @@
+import{F as e}from"./usePanelLayout-iDdIqj2t.js";var t=e((e,t)=>({status:null,announce:(n,r)=>e({status:{message:n,tone:r?.tone??`info`,seq:(t().status?.seq??0)+1,...r?.action?{action:r.action}:{}}}),clear:()=>e({status:null})})),n=(e,n)=>t.getState().announce(e,n);export{t as n,n as t};
