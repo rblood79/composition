@@ -2377,12 +2377,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
-        // layout:flex-row + width:100% — factory(DateColorComponents) 정본. ColorField 는 Label·hex
-        //   입력(80px)·ColorSwatch(24) 를 가로 배치(row/center)하는 composition 특화 디자인. 기존
-        //   flex-column/fit-content 는 일반 field archetype default 를 답습해 CSS Preview(column) ≠
-        //   Skia(row) 시각 비대칭 + Style Panel false dirty 였음 (2026-06-23 layout 방향 정정, 사용자
-        //   결정 = factory 정본). CSS 재생성 시 .react-aria-ColorField flex-direction:row 로 정합.
-        layout: "flex-row",
+        // layout:flex-column (2026-10-07, 사용자 지시 「ColorField 레퍼런스에 맞춰」): RSP · RAC 의
+        //   ColorField 는 라벨 위 · 입력칸 · 도움말 아래 (TextField 와 같은 field 배치). 2026-06-23 의
+        //   flex-row 는 Label · hex 입력 · ColorSwatch 를 한 줄에 두는 옛 factory 모양이었고, 지금
+        //   template 에는 ColorSwatch 가 없다 (Label · Input · Description · FieldError).
+        layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
           width: "100%",

@@ -93,6 +93,17 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Popover · Tooltip origins = their trigger + the closed overlay (ADR-255 — old: the open overlay without a trigger)",
   },
   {
+    // 2026-10-07 (사용자 지시 「ColorField 레퍼런스에 맞춰」): RSP · RAC 의 ColorField 는 라벨 위 ·
+    //   입력칸 아래 (field 세로 배치). old 는 2026-06-23 의 가로 배치 (Label · 입력칸 한 줄).
+    id: "colorfield-column-layout",
+    class: "decided",
+    owners: ["ColorField"],
+    nodes: ["Label", "Input"],
+    axes: ["x", "y"],
+    reason:
+      "ColorField = label above its input (RSP / RAC field layout — old: one row)",
+  },
+  {
     // 2026-10-06 `f9746eda4` (「CardView · Chart 기본 내용」): CardView 안의 Card 3개가 모든 부분을 끈 빈
     //   상자 (200×160) 에서 Card 원본의 기본 내용 (미리보기 · 제목 · 설명) 을 보이는 instance (폭 200 ·
     //   높이는 내용) 로 바뀌었다. 폭과 x 는 같고 높이와 그에 따른 줄의 y 만 다르다 (Canvas ↔ DOM 일치).
