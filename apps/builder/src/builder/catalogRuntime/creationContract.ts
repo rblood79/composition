@@ -1,5 +1,9 @@
 import { getReusableOriginId, resolveComponentRule } from "@composition/shared";
-import { catalogTypeDefinition } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import {
+  CODE_CATALOG_SUPPORTED_TYPES,
+  catalogTypeDefinition,
+  catalogTypeDefinitionId,
+} from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { instanceContract } from "../../../../../packages/shared/src/catalog/document/library";
 import {
   REUSABLE_ORIGIN_DEFINITIONS,
@@ -20,13 +24,26 @@ const templates = new Map(
   REUSABLE_ORIGIN_TEMPLATES.map((node) => [String(node.id), node]),
 );
 
+/**
+ * The code-catalog types whose definition id is not `lib:definition:type-<Type>` (`Text` ·
+ * `Heading` → `lib:definition:heading` — `catalogTypeDefinitionId`): an origin rooted at one (the
+ * Heading origin, ADR-254) reads its root's accepts through it.
+ */
+const CODE_CATALOG_TYPE_BY_ID = new Map<string, string>(
+  CODE_CATALOG_SUPPORTED_TYPES.map((type) => [
+    catalogTypeDefinitionId(type),
+    type,
+  ]),
+);
+
 function definitionOf(id: string): LibraryDefinition | undefined {
   const existing = definitions.get(id);
   if (existing) return existing;
-  if (!id.startsWith("lib:definition:type-")) return undefined;
-  const definition = catalogTypeDefinition(
-    id.slice("lib:definition:type-".length),
-  );
+  const type = id.startsWith("lib:definition:type-")
+    ? id.slice("lib:definition:type-".length)
+    : CODE_CATALOG_TYPE_BY_ID.get(id);
+  if (!type) return undefined;
+  const definition = catalogTypeDefinition(type);
   definitions.set(id, definition);
   return definition;
 }

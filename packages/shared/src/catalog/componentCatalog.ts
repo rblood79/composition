@@ -1379,6 +1379,9 @@ export const BASE_PART_ORIGIN_TYPES: readonly string[] = [
   "DateInput",
   "Description",
   "FieldError",
+  // ADR-254 — 컨테이너 (Dialog · Popover · Card · InlineAlert) 의 제목과 AI 가 넣는 Heading 이 이
+  //   원본의 instance 다.
+  "Heading",
 ];
 
 /**

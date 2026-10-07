@@ -1,0 +1,351 @@
+{
+ "type": "Heading",
+ "category": "content",
+ "label": "heading",
+ "kind": "primitive",
+ "props": [
+  {
+   "name": "children",
+   "origin": "semantic",
+   "kind": "string"
+  },
+  {
+   "name": "size",
+   "origin": "semantic",
+   "kind": "size",
+   "values": [
+    "xs",
+    "sm",
+    "md",
+    "lg",
+    "xl",
+    "2xl",
+    "3xl"
+   ]
+  },
+  {
+   "name": "fontSize",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "lineHeight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "color",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderColor",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderRadius",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "opacity",
+   "origin": "style",
+   "kind": "number",
+   "min": 0,
+   "max": 1
+  },
+  {
+   "name": "height",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "width",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "position",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "top",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "left",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "flexGrow",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "flexShrink",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "flexBasis",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "alignSelf",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "justifySelf",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "minWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "maxWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "minHeight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "maxHeight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "aspectRatio",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "display",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "flexDirection",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "flexWrap",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "alignItems",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "justifyContent",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "gap",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "rowGap",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "columnGap",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "padding",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "paddingTop",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "paddingRight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "paddingBottom",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "paddingLeft",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "margin",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "marginTop",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "marginRight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "marginBottom",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "marginLeft",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderStyle",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderTopLeftRadius",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderTopRightRadius",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderBottomRightRadius",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderBottomLeftRadius",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderTopWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderRightWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderBottomWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "borderLeftWidth",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "boxShadow",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "filter",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "overflow",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "fontFamily",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "fontWeight",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "fontStyle",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "letterSpacing",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "textAlign",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "textDecoration",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "textTransform",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "verticalAlign",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "whiteSpace",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "wordBreak",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "overflowWrap",
+   "origin": "style",
+   "kind": "css"
+  },
+  {
+   "name": "textOverflow",
+   "origin": "style",
+   "kind": "css"
+  }
+ ],
+ "placeable": true,
+ "creationMode": "leaf"
+}

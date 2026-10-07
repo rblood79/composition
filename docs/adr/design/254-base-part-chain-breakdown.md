@@ -105,3 +105,12 @@ oracle 이 보여 준 값 (전환 전):
 
 - TextField 의 Label 더블클릭 → 「Child label」 → TextField `label` = 「Parent label」 → Canvas · Preview 모두 「Child label」 (FAIL — 결함 재현). undo 두 번으로 원래 글자. ADR-253 의 Label 자리 결함이므로 Phase 2 의 수리 대상이고 CHANGELOG 의 수정 항목이다.
 - Card 제목: 더블클릭이 CardHeader 까지만 들어간다 — 인스턴스 안 template 노드는 context 로 들어가지 않는다 (`catalogRuntime/canvasPick.ts` `resolveCatalogContextEntry` 의 `isNodeSource`). Card 제목은 지금 더블클릭으로 글자 편집이 열리지 않는다 (**범위 밖 — 기록만**). Phase 2 의 Card live 는 같은 편집기를 session 으로 열어 확인한다. InlineAlert 제목 · 설명은 루트의 직계라 더블클릭으로 닿는다.
+
+### Phase 1 — 2026-10-07 (Heading 원본)
+
+- 등록: `C` `BASE_PART_ORIGIN_TYPES` 에 `"Heading"` · `L` 에 `origin-component-heading` (accepts `children`, 기본 「Heading」) + template `component-heading` (루트 = `lib:definition:heading`, children `{children}`). Components page 에 「HEADING」 원본 카드가 생긴다.
+- 생성 계약: `catalogRuntime/creationContract.ts` 의 `definitionOf` 가 code-catalog id 전체를 푼다 (`CODE_CATALOG_SUPPORTED_TYPES` × `catalogTypeDefinitionId` 의 역 — `lib:definition:heading` · `lib:definition:text`). 원본 accepts 에 `size` 를 중복 선언하지 않았다.
+- `LIBRARY_CONTRACT_VERSION` 은 Phase 2 (template 자리의 정의 id 가 바뀌는 병합) 에서 6 으로 올린다 — Phase 1 은 원본 하나를 더할 뿐이라 contract 5 문서가 그대로 열린다 (Heading primitive 정의는 남아 있다).
+- unit (`adr254HeadingOrigin.test.ts`, 6): 원본 id · 생성 계약의 props 와 size 선택지 7 이 전환 전과 같음 · compiler manifest 의 Heading 이 전환 전 (`fixtures/adr254-heading-manifest-before.json`) 과 `kind` · `creationMode` (`leaf → reusable`) · `reusableId` 만 다름 · `create_element Heading { size: "lg" }` 통과 · AI 경로로 만든 Heading 이 원본 instance (lg 18px · 600) · 원본 색 편집 2회가 Canvas record 와 DOM inline style 에 닿음. **원복 RED**: `definitionOf` 를 되돌리면 3행 (계약 · manifest · size 생성) RED.
+- 회귀: shared 1,386 통과. builder 4,508 통과 · 1 실패 — `borderGeometry.static.test.ts` (ADR-219 게이트) 가 `ruleShapes.ts:129` 를 잡는다. 그 줄은 `e6360e0d2` (ADR-253 Round 3 수리) 에서 들어왔고 이 Phase 와 무관하다 (범위 밖, 기록). type-check: 내 변경은 통과, 다른 세션의 미커밋 `phase4eActionBar.test.ts` 가 실패 (범위 밖).
+- live 4/4 (`apps/builder/scripts/adr254-heading-origin-live.mjs`, 5173 · Compare Mode): AI 경로로 만든 Heading = 원본 instance · Canvas 18 / 600 · Preview `h3` 18px / 600 · Components page 의 Heading 원본 sample · 원본 색 `#ff0000` → Canvas · Preview 모두 · undo 로 복귀.

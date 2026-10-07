@@ -1252,6 +1252,20 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-fielderror"
   },
   {
+    "id": "lib:definition:origin-component-heading",
+    "name": "Heading",
+    "mode": "composite",
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": "Heading"
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-heading"
+  },
+  {
     "id": "lib:definition:origin-component-input",
     "name": "Input",
     "mode": "composite",
@@ -5859,6 +5873,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-fielderror",
     "definitionId": "lib:definition:type-FieldError",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-heading",
+    "definitionId": "lib:definition:heading",
     "children": [],
     "props": {
       "children": "{children}"
