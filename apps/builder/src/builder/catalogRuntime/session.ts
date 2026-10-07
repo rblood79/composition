@@ -149,11 +149,20 @@ export class CatalogSession {
         if (at >= 0) selection.splice(at, 1);
         else selection.push(item);
       }
-    } else
-      selection = shown.filter(
-        (item, index) =>
-          shown.findIndex((other) => sameItem(other, item)) === index,
-      );
+    } else {
+      // Keep the first item for each drawn identity/target pair. This index lives only
+      // for this selection change; repeated scans of the same selection are unnecessary.
+      const seen = new Map<string, Set<string>>();
+      selection = shown.filter((item) => {
+        const identity = item.identity;
+        const key = targetKey(item.target);
+        const targets = seen.get(identity);
+        if (targets?.has(key)) return false;
+        if (targets) targets.add(key);
+        else seen.set(identity, new Set([key]));
+        return true;
+      });
+    }
     const unchanged =
       selection.length === this.state.selection.length &&
       selection.every((item, index) =>

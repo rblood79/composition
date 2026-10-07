@@ -129,6 +129,72 @@ describe("ADR-248 Phase 4c session state", () => {
     expect(session.getSnapshot().selection).toEqual([b]);
   });
 
+  it("deduplicates a large replacement selection with bounded identity reads", async () => {
+    const { session, runtime, notices } = await open();
+    const count = 5000;
+    let reads = 0;
+    const target: EditTarget = { kind: "node", id: id("a") };
+    // Different drawn positions may address the same source node.
+    const selection = Array.from({ length: count }, (_, i) => ({
+      target,
+      get identity() {
+        reads++;
+        return `drawn-position-${i}`;
+      },
+    }));
+    const revision = runtime.graph.revision;
+    const before = notices();
+    session.select(selection);
+    const selectionReads = reads;
+    expect(session.getSnapshot().selection).toHaveLength(count);
+    expect(session.getSnapshot().selection[0]).toBe(selection[0]);
+    expect(session.getSnapshot().selection[count - 1]).toBe(
+      selection[count - 1],
+    );
+    expect(notices() - before).toBe(1);
+    expect(runtime.graph.revision).toBe(revision);
+    expect(selectionReads).toBeLessThanOrEqual(count * 6);
+  });
+
+  it("preserves first occurrences, distinct identity/target pairs and unchanged snapshots", async () => {
+    const { session, notices } = await open();
+    const a = item({ kind: "node", id: id("a") });
+    const samePositionOtherTarget = {
+      ...a,
+      target: { kind: "node" as const, id: id("b") },
+    };
+    const sameTargetOtherPosition = {
+      ...a,
+      identity: `${a.identity}:instance`,
+    };
+    const description = { ...DESCRIPTION, identity: a.identity };
+    const selected = [
+      a,
+      samePositionOtherTarget,
+      sameTargetOtherPosition,
+      description,
+    ];
+    session.startTextEdit(a);
+    session.select([
+      a,
+      { ...a },
+      samePositionOtherTarget,
+      sameTargetOtherPosition,
+      description,
+      { ...description },
+    ]);
+    const snapshot = session.getSnapshot();
+    expect(snapshot.selection).toEqual(selected);
+    expect(snapshot.selection[0]).toBe(a);
+    expect(snapshot.textEditing).toBe(a);
+    const before = notices();
+    session.select([...selected, { ...a }, { ...description }]);
+    expect(session.getSnapshot()).toBe(snapshot);
+    expect(notices()).toBe(before);
+    session.select([a, a], { additive: true });
+    expect(session.getSnapshot().selection).toEqual([...selected.slice(1), a]);
+  });
+
   it("ends text editing, hover and context with their element; a gone page falls back to the first", async () => {
     const { session, run } = await open();
     const a = item({ kind: "node", id: id("a") });

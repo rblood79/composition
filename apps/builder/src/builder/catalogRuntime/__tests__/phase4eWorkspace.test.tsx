@@ -136,7 +136,60 @@ describe("ADR-248 Phase 4e-1 workspace host", () => {
     }
     expect(checked).toBe(rows.size);
     expect(checked).toBeGreaterThan(origins.length * 2);
+    const identities = [...rows.keys()].reverse();
+    const expected = identities.map((identity) =>
+      workspace.itemOfRecord(identity)!,
+    );
+    workspace.selectRecords(["::not-drawn", ...identities, identities[0]!]);
+    expect(workspace.session.getSnapshot().selection).toEqual(expected);
   });
+
+  it.each([2, 5000])(
+    "selecting %i of 5k siblings reads only the needed row prefix once",
+    async (selectedCount) => {
+      const count = 5000;
+      const nodes = Array.from({ length: count }, (_, index) =>
+        node(`n${index}`, "lib:definition:type-frame"),
+      );
+      const workspace = await open(
+        [
+          node("body", "lib:definition:type-frame", {
+            children: nodes.map((n) => n.id),
+          }),
+          ...nodes,
+        ],
+        ["body"],
+      );
+      const [body] = workspace.readModel.pageRows(PAGE);
+      const rows = workspace.readModel.childRows(body!);
+      const identities = rows
+        .slice(0, selectedCount)
+        .map((row) => row.identity);
+      let identityReads = 0;
+      for (const row of rows) {
+        const identity = row.identity;
+        Object.defineProperty(row, "identity", {
+          get() {
+            identityReads++;
+            return identity;
+          },
+        });
+      }
+      let notifications = 0;
+      const unsubscribe = workspace.session.subscribe(() => notifications++);
+      const revision = workspace.runtime.graph.revision;
+      workspace.selectRecords(identities);
+      const reads = identityReads;
+      expect(
+        workspace.session.getSnapshot().selection.map((item) => item.identity),
+      ).toEqual(identities);
+      expect(workspace.runtime.graph.revision).toBe(revision);
+      expect(notifications).toBe(1);
+      unsubscribe();
+      workspace.dispose();
+      expect(reads).toBeLessThanOrEqual(selectedCount * 8);
+    },
+  );
 
   it("a command's result is selected at its drawn position; picking a template record selects its descendant target; undo drops it", async () => {
     const workspace = await open(
@@ -174,8 +227,15 @@ describe("ADR-248 Phase 4e-1 workspace host", () => {
       }),
     );
     expect(workspace.root.domInputs.get(label.id)?.props.children).toBe("Mail");
+    workspace.selectRecords([label.id, inserted.identity]);
+    expect(workspace.session.getSnapshot().selection).toEqual([
+      picked,
+      inserted,
+    ]);
     workspace.undo();
     workspace.undo();
+    expect(workspace.session.getSnapshot().selection).toEqual([picked]);
+    workspace.selectRecords([inserted.identity, label.id]);
     expect(workspace.session.getSnapshot().selection).toEqual([picked]);
     workspace.selectRecords([inserted.identity]);
     expect(workspace.session.getSnapshot().selection).toEqual([]);

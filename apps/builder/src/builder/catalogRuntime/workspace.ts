@@ -400,7 +400,9 @@ export class CatalogWorkspace {
     this.revealListeners.add(listener);
     return () => this.revealListeners.delete(listener);
   }
-  private readonly recordRevealListeners = new Set<(identity: string) => void>();
+  private readonly recordRevealListeners = new Set<
+    (identity: string) => void
+  >();
   /** The Canvas brings a drawn record into view when asked (a component's card on its page). */
   subscribeRevealRecord(listener: (identity: string) => void): () => void {
     this.recordRevealListeners.add(listener);
@@ -542,6 +544,17 @@ export class CatalogWorkspace {
    * the row one level at a time (reads only the entries on the way).
    */
   positionOfRecord(recordId: string): CatalogPosition | undefined {
+    return this.findPositionOfRecord(recordId, (rows, identity) =>
+      rows.find((row) => row.identity === identity),
+    );
+  }
+  private findPositionOfRecord(
+    recordId: string,
+    findRow: (
+      rows: readonly CatalogPosition[],
+      identity: string,
+    ) => CatalogPosition | undefined,
+  ): CatalogPosition | undefined {
     // A data row's records are its row template position's.
     const chain = this.recordChain(recordId).map(catalogRowTemplateIdentity);
     const owner = this.ownerOfRecord(recordId);
@@ -552,7 +565,7 @@ export class CatalogWorkspace {
         : this.readModel.pageRows(owner as EntryId<"page">);
     let position: CatalogPosition | undefined;
     for (const id of chain) {
-      position = rows.find((row) => row.identity === id);
+      position = findRow(rows, id);
       if (!position) return undefined;
       rows = this.readModel.childRows(position);
     }
@@ -580,9 +593,34 @@ export class CatalogWorkspace {
     options?: { additive?: boolean },
   ): void {
     const items: CatalogSelectionItem[] = [];
+    // Share sibling lookup only within this selection batch. The read model owns
+    // the row arrays and their invalidation; a later selection reads them anew.
+    const indexes = new Map<
+      readonly CatalogPosition[],
+      { positions: Map<string, CatalogPosition>; next: number }
+    >();
+    const findRow = (rows: readonly CatalogPosition[], identity: string) => {
+      if (recordIds.length === 1)
+        return rows.find((row) => row.identity === identity);
+      let index = indexes.get(rows);
+      if (!index) {
+        index = { positions: new Map(), next: 0 };
+        indexes.set(rows, index);
+      }
+      const found = index.positions.get(identity);
+      if (found) return found;
+      // Scan only as far as needed, so a small selection need not index all siblings.
+      while (index.next < rows.length) {
+        const row = rows[index.next++]!;
+        const key = row.identity;
+        if (!index.positions.has(key)) index.positions.set(key, row);
+        if (key === identity) return row;
+      }
+      return undefined;
+    };
     for (const identity of recordIds) {
-      const item = this.itemOfRecord(identity);
-      if (item) items.push(item);
+      const position = this.findPositionOfRecord(identity, findRow);
+      if (position) items.push({ target: position.target, identity });
     }
     this.selectItems(items, options);
   }

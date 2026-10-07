@@ -1,10 +1,33 @@
 // ADR-248 후속: 합성 규모 fixture, 공개 명령과 실제 액션 바. 카운트/시간을 분리한다.
 // BUILDER_URL / OUT / COUNTS(600,5000) / RUNS(3). 기본 시간은 precise coverage 없이 측정.
+// Production input lane: DIST=<VITE_COMPOSITION_HARNESS=1 build> INPUT_ONLY=1
+// CPU=1|4 WARMUP=2 RUNS=30 OUT=<unique run>. Uses the same sibling fixture;
+// Event Timing is primary, capture→2-rAF/LoAF completion proxy are separate metrics.
 import { chromium } from "playwright";
 import { countsByClass, judge, renderVerdict } from "./perf-ratchet-gate.mjs";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-const base = process.env.BUILDER_URL ?? "http://localhost:5173";
+import { serveDist } from "./adr248-g5-boot-bundle.mjs";
+const inputOnly = process.env.INPUT_ONLY === "1";
+// PROFILE=1 is a separate diagnostic run; its latency is not a comparison oracle.
+const profile = process.env.PROFILE === "1";
+if (profile && !inputOnly) throw Error("PROFILE requires INPUT_ONLY=1");
+const dist = process.env.DIST;
+const cpu = Number(process.env.CPU ?? 1);
+const warmup = Number(process.env.WARMUP ?? 0);
+if (
+  dist &&
+  (!inputOnly ||
+    process.env.DIAGNOSTICS === "1" ||
+    process.env.BASELINE_MODULES)
+)
+  throw Error("DIST requires INPUT_ONLY=1 without dev module instrumentation");
+if (![1, 4].includes(cpu) || !Number.isInteger(warmup) || warmup < 0)
+  throw Error("CPU must be 1/4 and WARMUP a nonnegative integer");
+const server = dist
+  ? await serveDist(dist, Number(process.env.PORT ?? 4188))
+  : null;
+const base = server?.url ?? process.env.BUILDER_URL ?? "http://localhost:5173";
 const out = process.env.OUT ?? "/private/tmp/adr248-followup";
 const counts = (process.env.COUNTS ?? "600,5000").split(",").map(Number);
 const runs = Number(process.env.RUNS ?? 3);
@@ -24,7 +47,10 @@ mkdirSync(out, { recursive: true });
 const auth = JSON.parse(
   readFileSync(new URL("./.auth-session.json", import.meta.url), "utf8"),
 );
-auth.origins = auth.origins.map((o) => ({ ...o, origin: base }));
+auth.origins = auth.origins.map((o) => ({
+  ...o,
+  origin: new URL(base).origin,
+}));
 const browser = await chromium.launch({ channel: "chrome", headless: false });
 const context = await browser.newContext({
   storageState: auth,
@@ -84,6 +110,37 @@ if (diagnostics) {
 }
 const cdp = await context.newCDPSession(page);
 await cdp.send("Performance.enable");
+if (profile) {
+  await cdp.send("Profiler.enable");
+  await cdp.send("Profiler.setSamplingInterval", { interval: 200 });
+}
+// ADR-243 measurement convention: Event Timing >=16 ms, with LoAF as attribution only.
+// Installed only in this isolated measurement browser; no product telemetry.
+if (inputOnly)
+  await context.addInitScript(() => {
+    const h = (window.__adr248Events = {
+      events: [],
+      loafs: [],
+      supported: PerformanceObserver.supportedEntryTypes,
+    });
+    if (h.supported.includes("event"))
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries())
+          if (e.interactionId > 0)
+            h.events.push({
+              name: e.name,
+              id: e.interactionId,
+              start: e.startTime,
+              duration: e.duration,
+              processingStart: e.processingStart,
+              processingEnd: e.processingEnd,
+            });
+      }).observe({ type: "event", durationThreshold: 16, buffered: true });
+    if (h.supported.includes("long-animation-frame"))
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries()) h.loafs.push(e.toJSON());
+      }).observe({ type: "long-animation-frame", buffered: true });
+  });
 await page.exposeFunction("adr248TaskDuration", async () => {
   const metrics = await cdp.send("Performance.getMetrics");
   return metrics.metrics.find((m) => m.name === "TaskDuration").value * 1000;
@@ -98,32 +155,56 @@ const result = {
   errors,
   samples: [],
   diagnostics,
+  profile,
   extended,
   browser: browser.version(),
   environment: {
-    mode: "dev",
+    mode: dist ? "production-harness" : "dev",
     headed: true,
     viewport: [1440, 900],
     dpr: 1,
-    cpuThrottle: 1,
-    warmup: 0,
+    cpuThrottle: cpu,
+    warmup,
     runs,
   },
 };
 try {
+  if (dist)
+    result.build = JSON.parse(readFileSync(`${dist}/version.json`, "utf8"));
   await page.goto(`${base}/dashboard`);
   await page
     .getByRole("button", { name: /new project/i })
     .first()
     .click();
-  await page.keyboard.type("ADR248 structural action bar perf");
-  await page.keyboard.press("Enter");
-  await page.waitForFunction(() => window.__COMPOSITION_CATALOG__?.canvas);
+  await page
+    .locator("#new-project-name")
+    .fill("ADR248 structural action bar perf");
+  await page.locator("#new-project-name").press("Enter");
+  await page.waitForFunction(
+    () => window.__COMPOSITION_CATALOG__?.canvas,
+    null,
+    { timeout: 90000 },
+  );
   await page.bringToFront();
   for (const count of counts) {
+    await page.bringToFront();
     const data = await page.evaluate(
-      async ({ count, runs, diagnostics, extended }) => {
+      async ({ count, runs, diagnostics, extended, inputOnly }) => {
         const { workspace: w, commands: c } = window.__COMPOSITION_CATALOG__;
+        if (inputOnly && !window.__adr248StepTrace) {
+          window.__adr248StepTrace = [];
+          w.runtime.subscribeSteps(({ result }) => {
+            window.__adr248StepTrace.push({
+              revision: result.revision,
+              operations: result.forward?.map(({ kind, id, field }) => ({
+                kind,
+                id,
+                field,
+              })),
+              stack: new Error().stack,
+            });
+          });
+        }
         const module = (path) =>
           import(
             performance
@@ -131,15 +212,15 @@ try {
               .map((e) => e.name)
               .find((n) => n.includes(path)) ?? path
           );
-        const actions = await module(
-          "/src/builder/catalogRuntime/actionBar.ts",
-        );
-        const shortcuts = await module(
-          "/src/builder/catalogRuntime/shortcuts.ts",
-        );
-        const sceneModule = await module(
-          "/src/builder/catalogRuntime/canvasScene.ts",
-        );
+        const actions = inputOnly
+          ? null
+          : await module("/src/builder/catalogRuntime/actionBar.ts");
+        const shortcuts = inputOnly
+          ? null
+          : await module("/src/builder/catalogRuntime/shortcuts.ts");
+        const sceneModule = inputOnly
+          ? null
+          : await module("/src/builder/catalogRuntime/canvasScene.ts");
         const frames = () =>
           new Promise((r) =>
             requestAnimationFrame(() => requestAnimationFrame(r)),
@@ -189,6 +270,20 @@ try {
         w.session.clearSelection();
         await frames();
         await saved();
+        if (inputOnly)
+          return {
+            count,
+            fixture: {
+              siblings: count,
+              selectedForActionBar: count,
+              depthBelowBody: 1,
+              projectNodes: Object.values(
+                w.runtime.graph.exportDocument().entries,
+              ).filter((e) => e.kind === "node").length,
+            },
+            visibility: document.visibilityState,
+            values: [],
+          };
         const engine = Object.values(w.root.layout).find(
           (v) => v && typeof v.getLayoutsBatch === "function",
         );
@@ -354,12 +449,25 @@ try {
           sceneModule.CatalogCanvasScene.prototype.sync = sync;
         }
       },
-      { count, runs, diagnostics, extended },
+      { count, runs, diagnostics, extended, inputOnly },
     );
     result.samples.push(data);
-    if (process.env.INPUT === "1") {
+    if (process.env.INPUT === "1" || inputOnly) {
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+      const probe = () =>
+        page.evaluate(() => {
+          const start = performance.now();
+          let value = 0;
+          for (let i = 0; i < 3e7; i++) value += i % 7;
+          return { ms: performance.now() - start, value };
+        });
+      const unthrottled = await probe();
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpu });
+      data.throttle = { requested: cpu, unthrottled, applied: await probe() };
       data.inputs = [];
-      for (let i = 0; i < runs; i++) {
+      data.warmupInputs = [];
+      for (let i = -warmup; i < runs; i++) {
+        await page.bringToFront();
         await page.evaluate(async () => {
           const w = window.__COMPOSITION_CATALOG__.workspace;
           const body = w.runtime.graph.getEntry(w.session.getSnapshot().pageId)
@@ -375,6 +483,7 @@ try {
           );
           window.__adr248Input = null;
           window.__adr248Plans = [];
+          const revision = w.runtime.graph.revision;
           const onKey = (event) => {
             if (
               event.key.toLowerCase() !== "a" ||
@@ -386,9 +495,14 @@ try {
             requestAnimationFrame(() =>
               requestAnimationFrame(() => {
                 window.__adr248Input = {
+                  eventStart: event.timeStamp,
+                  captureStart: start,
                   inputToTwoRafMs: performance.now() - start,
                   selected: w.session.getSnapshot().selection.length,
                   visibility: document.visibilityState,
+                  focus: document.hasFocus(),
+                  revisionBefore: revision,
+                  revisionAfter: w.runtime.graph.revision,
                   plans: window.__adr248Plans,
                 };
                 window.__adr248Plans = undefined;
@@ -397,23 +511,144 @@ try {
           };
           window.addEventListener("keydown", onKey, true);
         });
+        if (profile && i >= 0) await cdp.send("Profiler.start");
         await page.keyboard.press(
           process.platform === "darwin" ? "Meta+a" : "Control+a",
         );
         await page.waitForFunction(() => window.__adr248Input !== null);
+        if (profile && i >= 0) {
+          const captured = await cdp.send("Profiler.stop");
+          writeFileSync(
+            `${out}/profile-${count}-${i}.json`,
+            JSON.stringify(captured),
+          );
+        }
         const input = await page.evaluate(() => window.__adr248Input);
-        if (input.selected !== count)
+        if (input.selected !== count) {
+          result.inputFailure = { count, index: i, input };
           throw Error("keyboard selection mismatch");
+        }
         if (
           !(await page
             .getByRole("toolbar", { name: /Selection actions|선택 액션/ })
             .isVisible())
         )
           throw Error("keyboard action bar missing");
-        data.inputs.push(input);
+        if (input.visibility !== "visible" || !input.focus)
+          throw Error("input was not foreground");
+        if (inputOnly) {
+          // Wait for observer delivery and trailing frames; never count this quiet wait as latency.
+          const timing = await page.evaluate(async (input) => {
+            const h = window.__adr248Events;
+            if (!h.supported.includes("event"))
+              throw Error("Event Timing unsupported");
+            let timedOut = false;
+            for (;;) {
+              const now = performance.now();
+              const last = Math.max(
+                input.captureStart + input.inputToTwoRafMs,
+                ...h.loafs
+                  .filter((l) => l.startTime >= input.eventStart)
+                  .map((l) => l.startTime + l.duration),
+              );
+              if (now - last >= 1000) break;
+              if (now - input.captureStart > 5000) {
+                timedOut = true;
+                break;
+              }
+              await new Promise((r) => setTimeout(r, 50));
+            }
+            // Meta keydown can precede A by less than 2 ms. Match the closest timestamp,
+            // not the first keydown in that window, so modifier timing cannot replace A.
+            const key = h.events
+              .filter(
+                (e) =>
+                  e.name === "keydown" &&
+                  Math.abs(e.start - input.eventStart) < 0.1,
+              )
+              .sort(
+                (a, b) =>
+                  Math.abs(a.start - input.eventStart) -
+                  Math.abs(b.start - input.eventStart),
+              )[0];
+            const group = key ? h.events.filter((e) => e.id === key.id) : [];
+            const longest = group.reduce(
+              (a, e) => (!a || e.duration > a.duration ? e : a),
+              null,
+            );
+            const loafs = h.loafs.filter(
+              (l) =>
+                l.startTime + l.duration > input.eventStart &&
+                l.startTime < performance.now(),
+            );
+            const w = window.__COMPOSITION_CATALOG__.workspace;
+            return {
+              observed: Boolean(longest),
+              eventTimingMs: longest?.duration ?? 16,
+              inputDelayMs: longest
+                ? longest.processingStart - longest.start
+                : null,
+              processingMs: longest
+                ? longest.processingEnd - longest.processingStart
+                : null,
+              presentationMs: longest
+                ? longest.start + longest.duration - longest.processingEnd
+                : null,
+              events: group,
+              unmatchedEvents: key
+                ? []
+                : h.events.filter(
+                    (e) =>
+                      e.start >= input.eventStart - 2 &&
+                      e.start <= performance.now(),
+                  ),
+              keydownMatchDeltaMs: key
+                ? Math.abs(key.start - input.eventStart)
+                : null,
+              loafs,
+              timedOut,
+              completionProxyMs:
+                Math.max(
+                  input.eventStart + (longest?.duration ?? 16),
+                  input.captureStart + input.inputToTwoRafMs,
+                  ...loafs.map((l) => l.startTime + l.duration),
+                ) - input.eventStart,
+              durableRevision: w.runtime.durableRevision,
+              finalRevision: w.runtime.graph.revision,
+              finalSelected: w.session.getSnapshot().selection.length,
+              unexpectedSteps: window.__adr248StepTrace?.filter(
+                (step) => step.revision > input.revisionBefore,
+              ),
+            };
+          }, input);
+          Object.assign(input, timing);
+          if (
+            input.timedOut ||
+            input.finalSelected !== count ||
+            input.finalRevision !== input.revisionBefore ||
+            input.durableRevision !== input.finalRevision
+          ) {
+            result.inputFailure = { count, index: i, input };
+            throw Error("selection completion/graph invariant failed");
+          }
+        }
+        (i < 0 ? data.warmupInputs : data.inputs).push(input);
+        if (inputOnly && i >= 0 && (i + 1) % 10 === 0) {
+          writeFileSync(`${out}/results.json`, JSON.stringify(result, null, 2));
+          console.log(
+            `Progress ${count} siblings, CPU ${cpu}x: ${i + 1}/${runs}`,
+          );
+        }
       }
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
     }
     writeFileSync(`${out}/results.json`, JSON.stringify(result, null, 2));
+    if (inputOnly) {
+      console.log(
+        `Measured ${count} siblings: ${data.inputs.length} inputs, CPU ${cpu}x`,
+      );
+      continue;
+    }
     const classes = Object.fromEntries(
       ["reorder", "delete", "actionBar"].map((name) => {
         const values = data.values.filter((v) => v.name === name);
@@ -617,29 +852,82 @@ try {
     });
     writeFileSync(`${out}/results.json`, JSON.stringify(result, null, 2));
   }
+  if (inputOnly) {
+    // CSS visibility alone does not establish that the bar is inside the viewport.
+    // Read this after all timing samples so the diagnostic adds no work to an input.
+    result.inputSurface = await page
+      .getByRole("toolbar", { name: /Selection actions|선택 액션/ })
+      .evaluate((bar) => {
+        const r = bar.getBoundingClientRect();
+        return {
+          rect: r.toJSON(),
+          viewport: [innerWidth, innerHeight],
+          intersectsViewport:
+            r.right > 0 &&
+            r.bottom > 0 &&
+            r.left < innerWidth &&
+            r.top < innerHeight,
+        };
+      });
+  }
   await page.screenshot({ path: `${out}/builder.png` });
+} catch (error) {
+  result.failure = String(error);
+  result.failureState = await page
+    .evaluate(() => {
+      const h = window.__COMPOSITION_CATALOG__;
+      const w = h?.workspace;
+      const state = w?.session.getSnapshot();
+      const page = state?.pageId && w.runtime.graph.getEntry(state.pageId);
+      const body =
+        page?.children?.[0] && w.runtime.graph.getEntry(page.children[0]);
+      const active = document.activeElement;
+      return {
+        path: location.pathname,
+        ready: document.readyState,
+        handle: Object.keys(h ?? {}),
+        input: window.__adr248Input,
+        revision: w?.runtime.graph.revision,
+        durableRevision: w?.runtime.durableRevision,
+        selected: state?.selection.length,
+        bodyChildren: body?.children?.length,
+        steps: window.__adr248StepTrace,
+        active: active && {
+          tag: active.tagName,
+          role: active.getAttribute("role"),
+          editable: active.isContentEditable,
+          canvas: Boolean(active.closest('[data-canvas-container="true"]')),
+        },
+      };
+    })
+    .catch(() => null);
+  await page.screenshot({ path: `${out}/failure.png` }).catch(() => {});
+  throw error;
 } finally {
   writeFileSync(`${out}/results.json`, JSON.stringify(result, null, 2));
   await browser.close();
+  server?.close();
 }
 if (errors.length) process.exitCode = 1;
 
-const ratchet = JSON.parse(
-  readFileSync(
-    new URL("../perf/adr248-followup-ratchet.json", import.meta.url),
-    "utf8",
-  ),
-);
-const measured = Object.fromEntries(
-  result.samples.map(({ count }) => [
-    count,
-    countsByClass(
-      JSON.parse(readFileSync(`${out}/frame-${count}.json`, "utf8")),
+if (!inputOnly) {
+  const ratchet = JSON.parse(
+    readFileSync(
+      new URL("../perf/adr248-followup-ratchet.json", import.meta.url),
+      "utf8",
     ),
-  ]),
-);
-const verdict = judge(ratchet, measured);
-console.log(
-  renderVerdict(verdict, { header: "ADR-248 followup geometry ratchet" }),
-);
-if (verdict.overA.length) process.exitCode = 1;
+  );
+  const measured = Object.fromEntries(
+    result.samples.map(({ count }) => [
+      count,
+      countsByClass(
+        JSON.parse(readFileSync(`${out}/frame-${count}.json`, "utf8")),
+      ),
+    ]),
+  );
+  const verdict = judge(ratchet, measured);
+  console.log(
+    renderVerdict(verdict, { header: "ADR-248 followup geometry ratchet" }),
+  );
+  if (verdict.overA.length) process.exitCode = 1;
+}

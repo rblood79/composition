@@ -138,6 +138,11 @@ describe("ADR-248 Phase 4e-6-36 Layers bound rows", () => {
       identity: second!.id,
       target: first!.position.target,
     });
+    workspace.selectRecords([second!.id, first!.id, second!.id]);
+    expect(workspace.session.getSnapshot().selection).toEqual([
+      { identity: second!.id, target: first!.position.target },
+      { identity: first!.id, target: first!.position.target },
+    ]);
   });
 
   it("follows a data change; unbound or unknown rows list the item positions", async () => {

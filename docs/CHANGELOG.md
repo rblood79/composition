@@ -37,6 +37,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: 2026-08-21 에 두 그룹은 옛 Skia 가 폭을 강제하지 않는다는 이유로, ColorField 는 Skia side 처리가 없다는 이유로 라벨 열에서 빠졌다. 지금은 Canvas 가 같은 rule 을 읽으므로 그 근거가 없고, 레퍼런스의 side 라벨은 field 종류와 무관하게 열이다. 두 그룹은 `labelAlign` 을 받지 않는다 (정렬 계약은 받는 field 만).
   - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (세 rule 의 `label-position.side` · `--*-side-gap`) · `rulePartRules.ts` (그룹의 항목 묶음 노드가 라벨 옆 내용)
 
+## [대형 선택의 Layers 위치 조회 — 형제 목록 반복 검색 제거] - 2026-10-07
+
+### Performance
+
+- **Canvas 다중 선택에서 같은 형제 목록을 한 번의 선택 처리 안에서 재사용**:
+  - **Why**: `selectRecords`가 항목마다 `positionOfRecord`의 같은 형제 목록을 처음부터 검색했다. 기존 read model 배열별로 필요한 구간까지만 읽어 임시 검색표를 만들며, 단일 선택·부모 경로·선택 validation·history·저장은 기존 계약을 유지한다.
+  - 5천 형제 회귀 조건의 row identity 읽기: 12,507,500회 → 40,000회 이하. 별도 production CPU profile의 `selectRecords` 평균은 58.41ms → 3.32ms (각 3회, CPU 1배).
+  - 앞선 session 중복 검사 수정을 포함한 before/after production 빌드, Chrome headed 1440×900·DPR 1, 실제 키보드 입력 30회 × 3쌍 비교: 5천 선택 Event Timing p95의 반복 중앙값은 CPU 1배 408ms → 328ms, CPU 4배 1,472ms → 1,184ms. 두 CPU 조건 모두 세 쌍에서 감소했다. 600개·CPU 1배는 쌍별 증감 방향이 달라 개선을 확정하지 않는다.
+  - 재측정 720회는 선택·문서·durable revision 불일치 0. 최초 비교의 선택 불일치 1건은 원인 미확인으로 남기며, 실패 시 상태·transaction stack을 보존하도록 기존 harness를 보완했다. 전체 정합성 종결은 보류한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/workspace.ts`
+
+### Tests
+
+- **선택 범위·대상·검색량 회귀 고정**: 5천 형제 중 2개/전체 선택, 모든 catalog origin과 자손의 row 대상, 선택 순서·중복·없는 identity, Undo 후 재조회, 서로 다른 바인딩 행 identity의 공통 template target을 검증한다.
+  - 위치: `phase4eWorkspace.test.tsx`, `phase4eLayersBoundRows.test.ts`
+
+## [대형 선택 중복 검사 — 호출 내 반복 검색 제거] - 2026-10-07
+
+### Performance
+
+- **선택 교체 시 identity·target 중복 검사를 한 번의 순회로 처리** (ADR-248 Phase 4c session):
+  - **Why**: 항목마다 `findIndex`로 앞선 선택을 다시 검색했다. 호출 수명 안의 `Map`/`Set`으로 첫 항목과 순서를 유지하며 기존 `targetKey`를 재사용한다.
+  - 5천 선택 회귀 조건의 identity 읽기: 변경 전 25,010,000회 → 변경 후 30,000회 이하. 별도 production CPU profile의 `CatalogSession.select` 평균은 37.69ms → 0.59ms (각 3회).
+  - 동일 production fixture·Chrome headed·1440×900·DPR 1에서 실제 키보드 입력을 조건별 30회 × 3쌍 비교했다. 5천 선택의 Event Timing p95 중앙값은 CPU 4배에서 1,624ms → 1,496ms (세 쌍 모두 감소), CPU 1배에서는 424ms → 424ms로 p95 개선 미입증. profile 시간과 입력 지연은 별도 지표다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/session.ts`; 기존 `perf:adr248-followup`에 선택 입력의 별도 CPU profile과 실패 transaction 진단을 보완했다.
+
+### Tests
+
+- **선택 identity·target 계약과 반복 검색 회귀 고정**:
+  - 첫 항목·순서, 서로 다른 identity/target 조합, 변경 없는 snapshot·알림, additive toggle 및 문서 revision 보존을 확인한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/__tests__/phase4cSession.test.ts`
+
 ## [Preview 증분 갱신 — 한 번에 생겼다 지워진 노드] - 2026-10-07
 
 ### Fixed
