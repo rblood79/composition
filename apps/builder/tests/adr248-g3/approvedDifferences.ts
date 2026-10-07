@@ -93,6 +93,18 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
       "Popover · Tooltip origins = their trigger + the closed overlay (ADR-255 — old: the open overlay without a trigger)",
   },
   {
+    // 2026-10-06 `f9746eda4` (「CardView · Chart 기본 내용」): CardView 안의 Card 3개가 모든 부분을 끈 빈
+    //   상자 (200×160) 에서 Card 원본의 기본 내용 (미리보기 · 제목 · 설명) 을 보이는 instance (폭 200 ·
+    //   높이는 내용) 로 바뀌었다. 폭과 x 는 같고 높이와 그에 따른 줄의 y 만 다르다 (Canvas ↔ DOM 일치).
+    id: "cardview-cards-with-content",
+    class: "decided",
+    owners: ["CardView"],
+    nodes: ["Card"],
+    axes: ["y", "height"],
+    reason:
+      "CardView's cards are Card origin instances with their content (f9746eda4 — old: empty 200×160 boxes)",
+  },
+  {
     // ADR-254 Phase 2 (Accepted 2026-10-07 — G0 변화 목록): InlineAlert 의 제목 · 설명은 Heading ·
     //   Description 원본의 instance 라 줄 높이가 부품 rule 의 값이다 (제목 md 1.4 → 1.5, 설명은 한 단계
     //   위 lg 1.5 → 1.429). 글자 크기는 그대로 — 제목 높이 22.4 → 24, 설명이 그만큼 내려가고 줄 높이만큼
@@ -585,6 +597,16 @@ export interface ApprovedUnpaired {
 }
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
+  {
+    // 2026-10-06 `f9746eda4`: CardView 의 Card 가 Card 원본의 네 영역을 갖는다 (old: 영역을 끈 빈 상자).
+    id: "cardview-card-areas",
+    class: "decided",
+    owners: ["CardView"],
+    side: "new",
+    nodes: ["CardPreview", "CardHeader", "CardContent", "CardFooter"],
+    reason:
+      "CardView's cards keep the Card origin's four areas (f9746eda4 — old: every area turned off)",
+  },
   {
     // ADR-255: the Popover origin's closed overlay takes no box — the old open card's description
     //   pairs with nothing on the new side (its title pairs with the trigger Button, above).
