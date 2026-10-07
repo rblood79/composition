@@ -42,11 +42,12 @@ fork 4 질문 (adr-writing.md) 과 사용자 confirm:
 - 전환 전 빌드 (main `e6360e0d2`) 에서 다섯 컨테이너 × size 5 (Card · InlineAlert 는 prop 조합 포함) 의 제목 · 설명 record (`visual` · `layout`) 를 fixture 로 뜬다. DOM 마크업 oracle 은 DOM 을 내는 셋 — Dialog (DialogTrigger 안에서 열어 실제 마운트) · Card · InlineAlert (SSR) — 만 (ADR-253 Phase 3 의 `fixtures/adr253-field-dom.json` 방식). Popover · Tooltip 은 record 만.
 - 자리 값 · InlineAlert rule 을 부품 rule 로 옮길 때 바뀌는 값을 px 로 목록화 (굵기 · 크기 · 줄 높이 · 색). 목록 밖 변화 0 이 G3 의 기준.
 - Heading 을 다루는 코드 경로 목록 (R1): AI 삽입 (`layoutTemplates.ts` · `dynamicInjection.ts` · AI compiler — 각 경로가 `creationMode: reusable` 을 따라 instance 를 만드는지, primitive 를 직접 넣는 경로가 있는지) · Canvas 인라인 글자 편집 · Properties 패널의 Heading 항목 · `presence.ts` (Disclosure 의 Heading = trigger) · `domBinding.tsx` heading binding · 시각 하니스 census. 컨테이너 안 제목 (instance 루트) 에서 각 경로가 「primitive 노드」 를 전제하는지 적는다. Dialog 안 Button instance (Phase 3) 가 같은 경로를 어떻게 지나는지가 기준.
-- 글자 바인딩 경로 (Decision 5): resolver 가 `{title}` · `{label}` 을 어느 조상 prop 에서 푸는지와 record 에서 바인딩 소스를 읽을 수 있는지 (`templateProps`) 확인. 지금 결함의 live 재현 1회 — TextField 의 Label 을 Canvas 에서 더블클릭해 고친 뒤 TextField `label` 을 바꾸면 화면이 자식 값에 남는지 (ADR-253 자리). 재현되면 Phase 2 의 수리 대상에 넣고 CHANGELOG 의 수정 항목으로 적는다.
+- 글자 바인딩 경로 (Decision 5): resolver 가 `{title}` · `{label}` 을 어느 조상 prop 에서 푸는지 (`resolver.ts:1047-1052` 에서 이미 값으로 풀린다) 와 바인딩 소스를 추적하는 방법 확인 — record 의 `templateProps` 는 `{{ state }}` 변수 원문용이라 (`compositionRoot.ts:1453-1477`) 쓸 수 없고, library 의 template · instance 주소로 추적해야 한다. 지금 결함의 live 재현 1회 — TextField 의 Label 을 Canvas 에서 더블클릭해 고친 뒤 TextField `label` 을 바꾸면 화면이 자식 값에 남는지 (ADR-253 자리). 재현되면 Phase 2 의 수리 대상에 넣고 CHANGELOG 의 수정 항목으로 적는다.
 
 ### Phase 1 — Heading 원본 (G1 일부 · G3)
 
 - `origin-component-heading` 등록: `C` `BASE_PART_ORIGIN_TYPES` 에 `"Heading"`, `L` 에 정의 (`accepts: { children }`) + template (`component-heading` 루트 = `heading` 정의, children `{children}`). Components page 의 부품 칸에 Heading 카드.
+- 생성 계약: `apps/builder/src/builder/catalogRuntime/creationContract.ts:23-29` 의 `definitionOf` 가 `lib:definition:type-*` 만 풀어 Heading 원본의 루트 (`lib:definition:heading` — `codeCatalogLibrary.ts:656-661`) 를 못 찾는다 → `instanceContract` 가 원본 accepts (`children`) 만 돌려 `size` 가 빠진다. code-catalog id 를 `catalogTypeDefinitionId` 의 역으로 (등록 type 전체) 풀도록 고친다 — 원본 accepts 에 `size` 중복 선언 금지. 회귀 조건: `create_element` `Heading { children, size: "lg" }` 가 등록 전후 모두 성공 · `catalogCreationEditFields("Heading")` 의 size 선택지가 전환 전과 같음 (원복 RED).
 - AI manifest 의 Heading 항목: `creationMode` `leaf → reusable` · `reusableId` `component-heading` 외 변화 0 을 unit 으로. AI 생성 경로 (Phase 0 목록) 가 Heading 원본의 instance 를 만드는지 unit 으로.
 - unit: Heading 원본 편집 (색 · 굵기 · 크기) 이 원본 sample 과 (Phase 2 뒤) 컨테이너 안 제목의 record 와 DOM 에 닿음 (원복 RED).
 - `LIBRARY_CONTRACT_VERSION` 6 (이 Phase 의 병합에서 한 번).
