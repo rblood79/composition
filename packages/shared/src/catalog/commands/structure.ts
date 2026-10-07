@@ -12,6 +12,7 @@ import type {
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CatalogStage } from "../transactions/transaction";
+import { NESTING_PASSTHROUGH_TYPES } from "../nesting/nestingRules";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
   assertNestable,
@@ -157,50 +158,53 @@ function assertRequiredPartsKept(
   if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
 }
 
-/** The refused `Owner>Part`, or null. The subtree's types first: no part any owner needs, no read up. */
+/**
+ * The refused `Owner>Part`, or null. A required part reaches its owner directly or through layout
+ * wrappers only (Decision 5 allows a Group · Frame between) — so the root, and below a wrapper root
+ * its wrapped children, are what can carry one away. Read before the command's writes (the reader is
+ * the draft's state), types first: no part any owner needs, no read up.
+ */
 function requiredPartRefusal(
   draft: CommandDraft,
   rootId: NodeId,
   destinationAncestors?: readonly string[],
 ): string | null {
   const reader = draft.reader;
-  const types = new Map<NodeId, string>();
-  let needed = false;
-  const collect = (id: NodeId) => {
-    const type = definitionTypeName(reader, draft.node(id).definitionId);
-    types.set(id, type);
-    if (RAC_REQUIRED_PART_TYPES.has(type)) needed = true;
-    for (const child of childList(draft, { kind: "node", id }) ?? [])
-      collect(child);
+  const entryOf = (id: string) => {
+    const entry = reader.getEntry(id);
+    return entry?.kind === "node" ? entry : undefined;
   };
-  collect(rootId);
-  if (!needed) return null;
+  const typeOf = (id: string) => {
+    const entry = entryOf(id);
+    return entry ? definitionTypeName(reader, entry.definitionId) : "";
+  };
+  // The parts the removal carries: the root, and through wrappers what they hold.
+  const carried: { id: NodeId; type: string; path: string[] }[] = [];
+  const collect = (id: NodeId, path: string[]) => {
+    const type = typeOf(id);
+    if (RAC_REQUIRED_PART_TYPES.has(type)) carried.push({ id, type, path });
+    if (!NESTING_PASSTHROUGH_TYPES.has(type)) return;
+    for (const child of entryOf(id)?.children ?? [])
+      collect(child, [type, ...path]);
+  };
+  collect(rootId, []);
+  if (!carried.length) return null;
   const { parent } = locate(draft, rootId);
   const above = parentAncestorTypes(draft, parent);
   if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return null;
-  const typeOf = (id: NodeId) =>
-    types.get(id) ?? definitionTypeName(reader, draft.node(id).definitionId);
-  let refusal: string | null = null;
-  const visit = (id: NodeId, chain: readonly string[]) => {
-    if (refusal) return;
-    const type = typeOf(id);
-    const owner = requiredPartOwner(type, chain);
-    // Only an owner above the moved / deleted root loses the part (one inside goes with it).
-    const ownerAbove =
-      owner !== undefined &&
-      chain.indexOf(owner) >= chain.length - above.length;
-    if (ownerAbove && !destinationAncestors?.includes(owner!)) {
-      const siblings = id === rootId ? (childList(draft, parent) ?? []) : [];
-      const twin = siblings.some(
-        (other) => other !== id && typeOf(other) === type,
+  for (const part of carried) {
+    const owner = requiredPartOwner(part.type, [...part.path, ...above]);
+    if (!owner || destinationAncestors?.includes(owner)) continue;
+    // Only an owner above the root loses it; a twin beside the root keeps the owner working.
+    if (part.path.includes(owner)) continue;
+    const twin =
+      part.id === rootId &&
+      (childList(draft, parent) ?? []).some(
+        (other) => other !== rootId && typeOf(other) === part.type,
       );
-      if (!twin) refusal = `${owner}>${type}`;
-    }
-    for (const child of childList(draft, { kind: "node", id }) ?? [])
-      visit(child, [type, ...chain]);
-  };
-  visit(rootId, above);
-  return refusal;
+    if (!twin) return `${owner}>${part.type}`;
+  }
+  return null;
 }
 
 export interface MoveNodesInput {
