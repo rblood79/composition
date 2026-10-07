@@ -27,6 +27,7 @@ import {
   type CatalogRuleShapeInput,
 } from "./rulePaint";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
+import { resolveBorderGeometry } from "../workspace/canvas/styleConversion/borderGeometry";
 
 /**
  * ADR-248 Canvas executor for rule-backed definitions (`LibraryDefinition.ruleId`): the node's
@@ -125,9 +126,10 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
   const fill = state?.backgroundColor ?? state?.fill ?? quiet.background;
   const radius = Number(state?.radius ?? quiet["border-radius"]);
   const borderColor = state?.borderColor ?? quiet["border-color"];
-  const width = Number(
-    state?.borderBottomWidth ?? state?.borderWidth ?? border[1],
-  );
+  // (The underline is the bottom side: a state's bottom longhand, else its shorthand, else the
+  // quiet rule's — read through the one border-geometry helper, ADR-219.)
+  const width = resolveBorderGeometry(state, { borderWidth: Number(border[1]) })
+    .widths[2];
   const color = cssVarColor(
     state?.borderColor ?? quiet["border-bottom-color"] ?? border[2],
     theme,
