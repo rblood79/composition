@@ -32,7 +32,8 @@ const library = () =>
       },
       {
         id: "lib:definition:type-Item",
-        name: "Item",
+        // A leaf part (ADR-256: a position takes children unless its children kind is leaf).
+        name: "Text",
         mode: "primitive",
         bindingId: "item",
         accepts: { children: "string" },

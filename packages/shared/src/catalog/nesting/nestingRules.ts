@@ -74,14 +74,13 @@ export const PEN_LEAF_TYPES: ReadonlySet<string> = new Set(["Text", "Icon"]);
 // (`apps/builder/src/builder/factories/__tests__/factoryNestingOracle.test.ts`).
 
 /**
- * item 만 읽는 진짜 컬렉션 — 레이아웃 래퍼도 못 들어간다 (RAC collection 은 직계 자식을
- * item 으로 해석한다). 그 밖의 합성 컨테이너 (RadioGroup · Slider · Tabs …) 는 context
- * 기반이라 `frame` 같은 레이아웃 래퍼를 사이에 둬도 된다 — `NESTING_PASSTHROUGH_TYPES`.
+ * 항목 목록 부품 (ADR-256 Decision 4 — RAC collection): 직계 자식으로 항목만 받는다. 레이아웃 래퍼도
+ * 못 들어간다 — 설치 RAC 는 항목이 아닌 자식을 버린다 (G0 ② 실행 결과). 표의 `children` 열이 있는 행.
  */
 export const STRICT_COLLECTION_PARENT_TYPES: ReadonlySet<string> =
   containerTypeSet("collection");
 
-/** 어느 합성 컨테이너 안에서도 레이아웃 용도로 허용되는 래퍼 (strict 컬렉션 제외). */
+/** 미전환 family 의 `wrappers` 제한에서 레이아웃 용도로 허용되는 래퍼. */
 export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
   "frame",
   "group",
@@ -89,10 +88,7 @@ export const NESTING_PASSTHROUGH_TYPES: ReadonlySet<string> = new Set([
   "Slot",
 ]);
 
-/**
- * 컬렉션·합성 컨테이너가 직계 자식으로 읽는 타입. RAC 는 이 밖의 자식을 collection
- * 으로 인식하지 않는다 (렌더는 되더라도 선택·키보드·상태에서 빠진다).
- */
+/** 항목 목록 부품 → 받는 항목 type (표의 `children` 열). */
 export const RAC_COLLECTION_CHILD_TYPES: Readonly<
   Record<string, readonly string[]>
 > = componentContractMap("children");
@@ -105,87 +101,163 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
   Record<string, readonly string[]>
 > = componentContractMap("owners");
 
+export interface UnconvertedFamilyLimit {
+  /** 지금 Preview renderer 가 그리는 자식 type. */
+  readonly children: readonly string[];
+  /** 레이아웃 래퍼 (`NESTING_PASSTHROUGH_TYPES`) 도 받는다 — context 로 조립하는 renderer. */
+  readonly wrappers?: true;
+}
+
 /**
- * DOM 렌더러가 canonical 자식을 **인식하는 sub-part 만** 그리는 self-compose 컨테이너
- * (`renderFacetDeclaration.ts` 의 delegating-rac / delegating-internal — field 가족은
- * parent props 로 self-compose 하고 자식 Label/Input/FieldError 를 읽지 않는다, ADR-923).
- * 여기 없는 자식은 Preview 에서 통째로 사라지고 Skia 만 그린다 (비대칭) — 그래서 이
- * 표는 strict 다 (레이아웃 래퍼도 불가). RSP 계약이 같은 말을 한다 (ButtonGroup
- * `children: ReactElement<ButtonProps>[]` · AvatarGroup ⊃ Avatar · TextField ⊃ Label/Input).
- *
- * 항목은 `factoryNestingOracle.test.ts` 가 팩토리 트리로 검증한다 (2026-09-08 사용자
- * 재현: ButtonGroup ⊃ ButtonGroup · TextField ⊃ TextField 가 통과했다).
+ * **미전환 family 의 제한** (ADR-256 Decision 4). RAC 는 이 부품들의 자식을 더 넓게 받지만, 지금
+ * Preview renderer 가 자식을 노드 순서대로 그리지 않고 정해진 부품만 props 로 넘기거나 고른다
+ * (ADR-256 F5 — `catalog/runtime/delegatedDom.tsx`). 여기 없는 자식은 Preview 에서 사라지고 Canvas 만
+ * 그리므로 (비대칭) 막는다. 이 행이 있으면 RAC children 종류보다 이 행이 이긴다 — 노드 구조가
+ * 아직 RAC 구조와 달라 (TreeItem 의 Text 는 RAC 에선 TreeItemContent 안) 교집합이 성립하지 않는다.
+ * family Phase 가 renderer 를 노드 트리 그리기로 바꾸면 그 family 의 행을 지운다 — 끝에 0 행이 되면
+ * 표를 삭제한다 (breakdown §2-3).
  */
-export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
-  Record<string, readonly string[]>
+export const UNCONVERTED_FAMILY_LIMITS: Readonly<
+  Record<string, UnconvertedFamilyLimit>
 > = {
-  // field 가족 — Label/Input/Description/FieldError 만 (DOM 은 이마저 props 로 self-compose)
-  TextField: ["Label", "Input", "Description", "FieldError"],
-  TextArea: ["Label", "Input", "Description", "FieldError"],
-  NumberField: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
-  SearchField: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
-  DateField: ["Label", "DateInput", "Description", "FieldError"],
-  TimeField: ["Label", "DateInput", "Description", "FieldError"],
-  ColorField: ["Label", "Input", "ColorSwatch", "Description", "FieldError"],
-  // ADR-253 Phase 4 — 정적 항목은 picker 의 ListBox (ListBox 원본의 instance — popover 내용) 안에 있다.
-  //   항목 · section 은 그 ListBox 의 자식이다 (DOM 은 ListBox 노드의 요소를 Popover 에 넣는다).
-  Select: ["Label", "Button", "Description", "FieldError", "ListBox"],
-  ComboBox: ["Label", "SelectTrigger", "Description", "FieldError", "ListBox"],
-  DatePicker: [
-    "Label",
-    "SelectTrigger",
-    "Calendar",
-    "Description",
-    "FieldError",
-  ],
-  DateRangePicker: [
-    "Label",
-    "SelectTrigger",
-    "Calendar",
-    "RangeCalendar",
-    "Description",
-    "FieldError",
-  ],
-  // (ADR-253: a field's wrapper holds part instances — the Input and the Button origins'.)
-  SelectTrigger: [
-    "DateInput",
-    "SelectIcon",
-    "SelectValue",
-    "Input",
-    "Button",
-    // (A range picker's separator between its pair.)
-    "Text",
-  ],
-  // 단일 control 의 label 슬롯 — RSP `children` 은 label 텍스트다
-  Checkbox: ["CheckboxIndicator", "Label", "Text", "Icon"],
-  Radio: ["RadioIndicator", "Label", "Text", "Icon"],
-  Switch: ["SwitchIndicator", "Label", "Text", "Icon"],
-  // 자식 묶음 컨테이너 — RSP 계약 + renderX(childrenByParent) self-compose
-  ButtonGroup: ["Button"],
-  AvatarGroup: ["Avatar"],
-  CardView: ["Card"],
-  Pagination: ["Button"],
-  Toast: ["Heading", "Description"],
-  ColorSwatchPicker: ["ColorSwatch"],
-  ColorPicker: [
-    "ColorArea",
-    "ColorSlider",
-    "ColorWheel",
-    "ColorField",
-    "ColorSwatchPicker",
-    "ColorSwatch",
-  ],
-  TableView: ["TableHeader", "TableBody"],
-  TableHeader: ["Column"],
-  TableBody: ["Row"],
-  Row: ["Cell"],
-  Tree: ["TreeItem"],
-  // ADR-239 — 역할 자식 Label (Text) 은 RAC TreeItemContent 의 자유 자식 (DOM 렌더러가 행 글자로 그린다) ·
-  // seed `TreeItem/Default` origin 이 이 모양이라 detach 가 그대로 만든다.
-  TreeItem: ["TreeItemChevron", "TreeItem", "Text"],
-  // Disclosure trigger 버튼의 내용 — chevron 노드와 제목 Text (레퍼런스 `<ChevronRight />` · `<span>{children}</span>`).
-  DisclosureHeader: ["DisclosureChevron", "Text"],
+  // field 가족 — Phase 2 (DOM 은 Label/Input/Description/FieldError 를 props 로 self-compose)
+  TextField: { children: ["Label", "Input", "Description", "FieldError"] },
+  TextArea: { children: ["Label", "Input", "Description", "FieldError"] },
+  NumberField: {
+    children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
+  },
+  SearchField: {
+    children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
+  },
+  DateField: { children: ["Label", "DateInput", "Description", "FieldError"] },
+  TimeField: { children: ["Label", "DateInput", "Description", "FieldError"] },
+  ColorField: {
+    children: ["Label", "Input", "ColorSwatch", "Description", "FieldError"],
+  },
+  // picker — Phase 6. ADR-253 Phase 4: 정적 항목은 picker 의 ListBox (ListBox 원본의 instance) 안에 있다.
+  Select: {
+    children: ["Label", "Button", "Description", "FieldError", "ListBox"],
+  },
+  ComboBox: {
+    children: [
+      "Label",
+      "SelectTrigger",
+      "Description",
+      "FieldError",
+      "ListBox",
+    ],
+  },
+  DatePicker: {
+    children: [
+      "Label",
+      "SelectTrigger",
+      "Calendar",
+      "Description",
+      "FieldError",
+    ],
+  },
+  DateRangePicker: {
+    children: [
+      "Label",
+      "SelectTrigger",
+      "Calendar",
+      "RangeCalendar",
+      "Description",
+      "FieldError",
+    ],
+  },
+  // (ADR-253: a field's wrapper holds part instances — the Input and the Button origins'.
+  //  A range picker's separator Text sits between its pair.)
+  SelectTrigger: {
+    children: [
+      "DateInput",
+      "SelectIcon",
+      "SelectValue",
+      "Input",
+      "Button",
+      "Text",
+    ],
+  },
+  // toggle — Phase 3. 단일 control 의 label 자리 (RSP `children` 은 label 텍스트)
+  Checkbox: { children: ["CheckboxIndicator", "Label", "Text", "Icon"] },
+  Radio: { children: ["RadioIndicator", "Label", "Text", "Icon"] },
+  Switch: { children: ["SwitchIndicator", "Label", "Text", "Icon"] },
+  RadioGroup: {
+    children: ["Label", "RadioItems", "Description", "FieldError"],
+    wrappers: true,
+  },
+  RadioItems: { children: ["Radio"] },
+  CheckboxGroup: {
+    children: ["Label", "CheckboxItems", "Description", "FieldError"],
+    wrappers: true,
+  },
+  CheckboxItems: { children: ["Checkbox"] },
+  ToggleButtonGroup: { children: ["ToggleButton"] },
+  // collection — Phase 5
+  Tabs: { children: ["TabList", "TabPanels", "TabPanel"], wrappers: true },
+  TabPanels: { children: ["TabPanel"] },
+  TagGroup: {
+    children: ["Label", "TagList", "Description", "FieldError"],
+    wrappers: true,
+  },
+  ColorSwatchPicker: { children: ["ColorSwatch"] },
+  TableView: { children: ["TableHeader", "TableBody"] },
+  Tree: { children: ["TreeItem"] },
+  // ADR-239 — 역할 자식 Label (Text) 은 RAC TreeItemContent 의 자유 자식 (DOM 렌더러가 행 글자로 그린다).
+  TreeItem: { children: ["TreeItemChevron", "TreeItem", "Text"] },
+  // range · progress — Phase 7
+  Slider: {
+    children: ["Label", "SliderOutput", "SliderTrack"],
+    wrappers: true,
+  },
+  SliderTrack: { children: ["SliderThumb"], wrappers: true },
+  Meter: { children: ["Label", "MeterValue", "MeterTrack"], wrappers: true },
+  ProgressBar: {
+    children: ["Label", "ProgressBarValue", "ProgressBarTrack"],
+    wrappers: true,
+  },
+  // overlay · disclosure — Phase 8. Disclosure trigger 버튼의 내용 — chevron 노드와 제목 Text.
+  DisclosureGroup: { children: ["Disclosure"], wrappers: true },
+  DisclosureHeader: { children: ["DisclosureChevron", "Text"] },
+  // calendar — Phase 9
+  Calendar: { children: ["CalendarHeader", "CalendarGrid"], wrappers: true },
+  RangeCalendar: {
+    children: ["CalendarHeader", "CalendarGrid"],
+    wrappers: true,
+  },
+  // S2 · 범위 밖 — Phase 10 (RSP 계약: ButtonGroup `children: ReactElement<ButtonProps>[]` …)
+  ButtonGroup: { children: ["Button"] },
+  AvatarGroup: { children: ["Avatar"] },
+  CardView: { children: ["Card"] },
+  Pagination: { children: ["Button"] },
+  Toast: { children: ["Heading", "Description"] },
+  ColorPicker: {
+    children: [
+      "ColorArea",
+      "ColorSlider",
+      "ColorWheel",
+      "ColorField",
+      "ColorSwatchPicker",
+      "ColorSwatch",
+    ],
+  },
 };
+
+/** 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다. */
+export type CatalogChildKind =
+  | { readonly kind: "leaf" }
+  | { readonly kind: "items"; readonly items: readonly string[] }
+  | { readonly kind: "free" };
+
+export function catalogChildKind(type: string): CatalogChildKind {
+  if (PEN_LEAF_TYPES.has(type) || DOM_LEAF_TYPES.has(type))
+    return { kind: "leaf" };
+  const limit = UNCONVERTED_FAMILY_LIMITS[type];
+  // 미전환 family 는 지금 renderer 가 그리는 자식이 목록이다 (래퍼 허용 행도 목록은 같다).
+  if (limit) return { kind: "items", items: limit.children };
+  const items = RAC_COLLECTION_CHILD_TYPES[type];
+  return items ? { kind: "items", items } : { kind: "free" };
+}
 
 /**
  * DOM 이 자식을 그릴 자리가 없는 타입 — `<img>`·`<input>`·`<hr>` 같은 void 요소, SVG/데이터
@@ -377,28 +449,29 @@ export function resolveNestingViolation(
     };
   }
 
-  // 층 2 — RAC 합성 (0): self-compose 컨테이너는 인식하는 sub-part 만 그린다 (strict).
-  if (parentType !== null && !isOpaque(parentType)) {
-    const allowed = SELF_COMPOSED_CONTAINER_CHILD_TYPES[parentType];
-    if (allowed && !allowed.includes(childType)) {
+  // 층 2 — RAC 합성 (0): 미전환 family 는 지금 renderer 가 그리는 자식만 (ADR-256 Decision 4).
+  const limit =
+    parentType !== null && !isOpaque(parentType)
+      ? UNCONVERTED_FAMILY_LIMITS[parentType]
+      : undefined;
+  if (parentType !== null && limit) {
+    const passthrough =
+      limit.wrappers === true && NESTING_PASSTHROUGH_TYPES.has(childType);
+    if (!limit.children.includes(childType) && !passthrough) {
       return {
         layer: "rac-composition",
         parentType,
         childType,
-        reason: `${parentType} self-composes from ${allowed.join(" · ")} only (RSP/RAC contract — other children never reach the DOM)`,
-        allowedChildren: allowed,
+        reason: `${parentType} draws only ${limit.children.join(" · ")} until its family is converted (ADR-256 — other children never reach the DOM)`,
+        allowedChildren: limit.children,
       };
     }
   }
 
-  // 층 2 — RAC 합성 (a): 컬렉션 컨테이너는 자기 item 만 읽는다. strict 컬렉션이 아니면
-  //   레이아웃 래퍼 (frame 등) 는 통과 — context 기반 합성이라 사이에 둬도 된다.
-  if (parentType !== null && !isOpaque(parentType)) {
+  // 층 2 — RAC 합성 (a): 항목 목록 부품 (RAC collection) 은 항목만 받는다 — 래퍼도 RAC 가 버린다.
+  if (parentType !== null && !isOpaque(parentType) && !limit) {
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
-    const passthrough =
-      !STRICT_COLLECTION_PARENT_TYPES.has(parentType) &&
-      NESTING_PASSTHROUGH_TYPES.has(childType);
-    if (allowed && !allowed.includes(childType) && !passthrough) {
+    if (allowed && !allowed.includes(childType)) {
       return {
         layer: "rac-composition",
         parentType,

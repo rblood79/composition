@@ -222,54 +222,55 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
   });
 });
 
-describe("componentTraits — nestingRules 층 2 파생 == 옛 리터럴", () => {
-  it("strict 컬렉션 (STRICT_COLLECTION_PARENT_TYPES)", () => {
+describe("componentTraits — nestingRules 층 2 파생", () => {
+  // ADR-256 G0 ② — 설치 RAC 1.21.0 을 마운트해 직계에 항목이 아닌 자식을 넣으면 버리는 부품
+  // (`apps/builder/scripts/adr256-g0-rac-inventory.mjs` 의 childKind). MenuSection · GridListSection 은
+  // ListBoxSection 과 같은 section 부품이다.
+  it("항목 목록 부품 (STRICT_COLLECTION_PARENT_TYPES) = RAC 가 자유 내용을 버리는 부품", () => {
     expect(sorted(containerTypeSet("collection"))).toEqual(
       literal([
         "ListBox",
+        "ListBoxSection",
         "Menu",
+        "MenuSection",
         "GridList",
+        "GridListSection",
+        "Tree",
+        "TreeItem",
         "TagList",
-        "Breadcrumbs",
-        "ToggleButtonGroup",
         "TabList",
-        "TabPanels",
-        // ADR-251: the group items wrappers.
-        "RadioItems",
-        "CheckboxItems",
+        "Table",
+        "TableHeader",
+        "TableBody",
+        "Row",
+        "Breadcrumbs",
+        "ColorSwatchPicker",
       ]),
     );
   });
 
-  // 값 배열 순서까지 같아야 한다 — 위반 메시지 (`allowed.join` · `owners.join`) 가 이 순서로 나간다.
-  it("직계 자식 (RAC_COLLECTION_CHILD_TYPES)", () => {
+  // 값 배열 순서까지 같아야 한다 — 위반 메시지 (`allowed.join`) 가 이 순서로 나간다.
+  it("받는 항목 (RAC_COLLECTION_CHILD_TYPES) — 항목 목록 부품만", () => {
     expect(componentContractMap("children")).toStrictEqual({
-      Tabs: ["TabList", "TabPanels", "TabPanel"],
-      TabList: ["Tab"],
-      TabPanels: ["TabPanel"],
       ListBox: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
       ListBoxSection: ["Header", "ListBoxItem"],
       Menu: ["MenuItem", "MenuSection", "Section", "Separator", "Header"],
       MenuSection: ["Header", "MenuItem"],
       GridList: ["GridListItem", "GridListSection"],
       GridListSection: ["Header", "GridListItem"],
-      TagGroup: ["Label", "TagList", "Description", "FieldError"],
       TagList: ["Tag"],
       Breadcrumbs: ["Breadcrumb"],
-      ToggleButtonGroup: ["ToggleButton"],
-      // ADR-251: the items sit in the wrapper node (TagGroup > TagList).
-      RadioGroup: ["Label", "RadioItems", "Description", "FieldError"],
-      RadioItems: ["Radio"],
-      CheckboxGroup: ["Label", "CheckboxItems", "Description", "FieldError"],
-      CheckboxItems: ["Checkbox"],
-      DisclosureGroup: ["Disclosure"],
-      Slider: ["Label", "SliderOutput", "SliderTrack"],
-      SliderTrack: ["SliderThumb"],
-      Meter: ["Label", "MeterValue", "MeterTrack"],
-      ProgressBar: ["Label", "ProgressBarValue", "ProgressBarTrack"],
-      Calendar: ["CalendarHeader", "CalendarGrid"],
-      RangeCalendar: ["CalendarHeader", "CalendarGrid"],
+      TabList: ["Tab"],
+      Table: ["TableHeader", "TableBody"],
+      TableHeader: ["Column"],
+      TableBody: ["Row"],
+      Row: ["Cell"],
+      Tree: ["TreeItem"],
+      TreeItem: ["TreeItem", "TreeItemContent"],
+      ColorSwatchPicker: ["ColorSwatchPickerItem"],
     });
+    for (const type of Object.keys(componentContractMap("children")))
+      expect(containerTypeSet("collection").has(type), type).toBe(true);
   });
 
   it("소유자 (RAC_SUBPART_OWNER_TYPES)", () => {

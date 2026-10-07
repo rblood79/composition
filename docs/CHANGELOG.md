@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 1 — 넣을 수 있는가를 하나로 판정] - 2026-10-07
+
+### Changed
+
+- **Properties 의 Slot 「Fill slot」 목록이 자리의 children 종류를 따른다** (ADR-256 Decision 4): 항목만 받는 자리 (RAC collection — TabList · TagList · TableHeader · ListBox …) 는 그 항목만 (Tabs › TabList = `Tab`), 자유 내용 자리 (Toolbar · Form · Dialog …) 는 기본 원본 (Button · Heading · Checkbox …) · Text · Icon · Image · Separator · Frame · 프로젝트 컴포넌트를 보인다. 목록의 모든 항목은 실제 넣기와 같은 중첩 검사를 통과한 것만이다 — 전에는 모든 slot 에 같은 5종을 보였고 Tabs · Table · CheckboxGroup · RadioGroup · TagGroup 은 그 5종을 하나도 받지 않았다. 위치: `catalogRuntime/slots.ts` `catalogSlotInsertOptions`
+- **원본 루트에 걸린 slot 을 instance 에서 채운다** (ListBox · GridList · Toolbar · Form · AvatarGroup · Breadcrumbs · Nav · DisclosureGroup · CardView · ToggleButtonGroup · ButtonGroup · Tree): 놓은 instance 를 선택하면 Slot 섹션이 나온다 (`catalogSlotTarget`)
+- **중첩 판정**: 타입 특성 표의 `children` 열은 RAC 가 항목만 받는 부품의 항목 목록이 됐다 (설치 RAC 1.21.0 을 마운트해 확인 — ADR-256 G0). 우리 Preview renderer 가 아직 노드 순서대로 그리지 못하는 부품의 제한은 `UNCONVERTED_FAMILY_LIMITS` (옛 `SELF_COMPOSED_CONTAINER_CHILD_TYPES`) 로 옮겼다 — family 가 전환되면 행을 지운다. ListBoxSection · MenuSection · GridListSection 에는 이제 레이아웃 래퍼를 넣을 수 없다 (RAC 가 버린다). instance 자리 검증 (`fillSlot`) 도 같은 판정 — 자식을 받는 부품이면 채울 수 있다
+
 ## [Disclosure header — chevron 과 제목을 노드로] - 2026-10-07
 
 ### Changed

@@ -4,16 +4,28 @@ import {
   setSlotDeclaration,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
-import { overrideAt } from "../../../../../packages/shared/src/catalog/commands/context";
+import {
+  assertNestable,
+  CommandDraft,
+  definitionTypeName,
+  listParent,
+  overrideAt,
+  templateDefinitionId,
+} from "../../../../../packages/shared/src/catalog/commands/context";
+import { catalogChildKind } from "../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
   DefinitionId,
+  NodeParent,
   EditTarget,
   InstanceAddress,
   NodeEntry,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import { getPaletteItems } from "../panels/components/paletteItems";
+import { catalogBuiltinOrigins } from "./layouts";
+import { catalogPaletteDefinitionId } from "./paletteInsert";
 
 /** The graph reads the slot section needs (`CatalogGraph` is one). */
 export interface CatalogSlotReader extends CatalogReader {
@@ -60,12 +72,43 @@ export interface CatalogSlotPosition {
   fillIds?: readonly NodeId[];
 }
 
+/**
+ * The slot position an edit target stands for: a descendant position as is; an instance node whose
+ * component's root template node declares a slot (a ListBox · Toolbar · Form … origin — ADR-256
+ * F4) stands for that root position, so the instance fills it from its own selection.
+ */
+export function catalogSlotTarget(
+  graph: CatalogReader,
+  target: EditTarget,
+): Extract<EditTarget, { kind: "descendant" }> | undefined {
+  if (target.kind === "descendant") return target;
+  if (target.kind !== "node") return undefined;
+  const node = graph.getEntry(target.id);
+  if (node?.kind !== "node") return undefined;
+  const definition = node.definitionId.startsWith("lib:")
+    ? graph.library.definitions.get(
+        node.definitionId as `lib:definition:${string}`,
+      )
+    : graph.getEntry(node.definitionId);
+  const rootId = (definition as { templateRootId?: string } | undefined)
+    ?.templateRootId;
+  if (!rootId) return undefined;
+  const address = {
+    instances: [target.id],
+    templatePath: [rootId],
+  } as unknown as InstanceAddress;
+  return templateNodeAt(graph, address)?.slot
+    ? { kind: "descendant", ownerId: target.id, address }
+    : undefined;
+}
+
 /** An instance's slot position: the declared slot and what fills it. */
 export function catalogSlotPosition(
   graph: CatalogReader,
-  target: EditTarget,
+  edit: EditTarget,
 ): CatalogSlotPosition | undefined {
-  if (target.kind !== "descendant") return undefined;
+  const target = catalogSlotTarget(graph, edit);
+  if (!target) return undefined;
   const slot = templateNodeAt(graph, target.address)?.slot;
   if (!slot) return undefined;
   const owner = graph.getEntry(target.ownerId);
@@ -140,3 +183,148 @@ export const catalogSlotCommands = {
       };
     },
 };
+
+/** One choice of the slot section's insert list. */
+export interface CatalogSlotInsertOption {
+  readonly definitionId: DefinitionId;
+  readonly label: string;
+  /** The palette type it was offered for (its creation props), when it is a palette type. */
+  readonly type?: string;
+}
+
+/** The type name a slot position draws (the template at the address, or the node itself). */
+function positionTypeName(
+  graph: CatalogReader,
+  target: EditTarget,
+): string | undefined {
+  try {
+    if (target.kind === "node") {
+      const node = graph.getEntry(target.id);
+      return node?.kind === "node"
+        ? definitionTypeName(graph, node.definitionId)
+        : undefined;
+    }
+    if (target.kind !== "descendant") return undefined;
+    const id =
+      target.address.templatePath[target.address.templatePath.length - 1];
+    return id
+      ? definitionTypeName(graph, templateDefinitionId(graph, id))
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * ADR-256 Decision 4 — what the slot section offers to put in a position, from the one children
+ * judgment: a part that takes items (a RAC collection, or a family not converted yet) offers its
+ * item types; a part that takes free content offers the built-in origins (Button · Heading · Tab
+ * … — the Components page's), the free-content primitives and the project's components. Every
+ * choice passes the same nesting check the insert command runs (`assertNestable` at the list
+ * position), so what is listed goes in.
+ */
+export function catalogSlotInsertOptions(
+  graph: CatalogSlotReader,
+  target: EditTarget,
+): CatalogSlotInsertOption[] {
+  if (target.kind !== "descendant" && target.kind !== "node") return [];
+  // A root slot (ADR-256 F4) is filled at its instance's root position.
+  if (target.kind === "node") {
+    const root = catalogSlotTarget(graph, target);
+    if (root) return catalogSlotInsertOptions(graph, root);
+  }
+  const type = positionTypeName(graph, target);
+  if (!type) return [];
+  const kind = catalogChildKind(type);
+  if (kind.kind === "leaf") return [];
+  const library = graph.library;
+  const ofType = (itemType: string): CatalogSlotInsertOption | undefined => {
+    const definitionId = catalogPaletteDefinitionId(library, itemType);
+    return library.definitions.has(definitionId)
+      ? { definitionId, label: itemType, type: itemType }
+      : undefined;
+  };
+  const candidates: CatalogSlotInsertOption[] = [];
+  if (kind.kind === "items") {
+    for (const itemType of kind.items) {
+      const option = ofType(itemType);
+      if (option) candidates.push(option);
+    }
+  } else {
+    const builtin = catalogBuiltinOrigins(library);
+    const origins = new Set<string>(builtin.map((item) => item.id));
+    candidates.push(
+      ...builtin.map((item) => ({
+        definitionId: item.id,
+        label: item.name,
+        type: item.name,
+      })),
+    );
+    // The palette's primitives (Text · Icon · Image · Separator · Frame …): no origin of their own.
+    for (const item of getPaletteItems()) {
+      const itemType = item.componentType ?? item.type;
+      const option = ofType(itemType);
+      if (!option || origins.has(option.definitionId)) continue;
+      origins.add(option.definitionId);
+      // Named by type like the origins (the palette's labels are lowercase words).
+      candidates.push({
+        ...option,
+        label: itemType === "frame" ? "Frame" : itemType,
+      });
+    }
+    const project = graph.getEntry(graph.projectId);
+    const instanceDefinition =
+      target.kind === "descendant"
+        ? (
+            graph.getEntry(target.ownerId) as
+              { definitionId?: string } | undefined
+          )?.definitionId
+        : undefined;
+    if (project?.kind === "project")
+      for (const id of project.definitionIds) {
+        const definition = graph.getEntry(id);
+        if (
+          definition?.kind === "definition" &&
+          definition.usage !== "layout" &&
+          id !== instanceDefinition
+        )
+          candidates.push({ definitionId: id, label: definition.name });
+      }
+  }
+  const parent: NodeParent =
+    target.kind === "node"
+      ? { kind: "node", id: target.id }
+      : {
+          kind: "descendant",
+          ownerId: target.ownerId,
+          address: target.address,
+        };
+  const draft = new CommandDraft(graph);
+  let list: NodeParent;
+  try {
+    list = listParent(draft, parent);
+  } catch {
+    return [];
+  }
+  const allowed = candidates.filter((option) => {
+    try {
+      assertNestable(draft, list, [option.definitionId]);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  // A position the insert cannot open at all (a template position whose content is bound to the
+  // instance's props — the Card's header · content, ADR-256 F3) lists nothing: one dry run.
+  if (allowed.length && target.kind === "descendant") {
+    let probe = 0;
+    const probeId = ((kind: string) =>
+      `project:${kind}:__slot-probe-${(probe += 1)}`) as NewId;
+    try {
+      catalogSlotCommands.fill(target, allowed[0].definitionId, probeId)(graph);
+    } catch {
+      return [];
+    }
+  }
+  return allowed;
+}

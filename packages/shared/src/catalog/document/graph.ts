@@ -22,10 +22,7 @@ import {
 } from "./validation";
 import { validateInstanceAddress } from "../resolution/address";
 import { assertCatalogLibrary, instanceContract } from "./library";
-import {
-  getComponentTraits,
-  hasComponentFamily,
-} from "../../domain/componentTraits";
+import { catalogChildKind } from "../nesting/nestingRules";
 
 export interface GraphIndexes {
   definitionToInstances: ReadonlyMap<DefinitionId, ReadonlySet<NodeId>>;
@@ -777,17 +774,16 @@ export class CatalogGraph {
           get,
           this.library,
         );
-        // Filling a template position with instance-owned children: a declared slot, or a
-        // container type that reads its children (collection host, structural container, Table
-        // part — the old list-host "children replacement" route, §3.4).
+        // Filling a template position with instance-owned children: a declared slot, or a part
+        // that takes children (ADR-256 Decision 4 — its RAC children kind is items or free content;
+        // what may go in is the nesting check's, `catalogChildKind`). Leaf positions are refused.
         const targetType = lookupDefinition(target.definitionId)?.name.split(
           "/",
         )[0];
         if (
           override.kind === "fillSlot" &&
           !target.slot &&
-          !getComponentTraits(targetType)?.container &&
-          !hasComponentFamily(targetType, "tableItemHost")
+          (!targetType || catalogChildKind(targetType).kind === "leaf")
         )
           throw new CatalogValidationError("TARGET_NOT_SLOT", entry.id);
         if (override.kind === "patch") {

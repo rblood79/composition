@@ -12,7 +12,12 @@
  *
  * `children` · `owners` 는 RAC 합성 계약의 관찰값이다 (D1 을 정의하지 않고 적는다). 중첩 검사
  * (`catalog/nesting/nestingRules.ts` 층 2) 가 이 두 열과 `container: "collection"` 을 읽는다.
- * 항목은 `factoryNestingOracle.test.ts` 가 팩토리 트리로 검증한다.
+ *
+ * ADR-256 Decision 4 — 부품의 children 종류: `children` 열이 있는 행 = **항목 목록** (RAC collection
+ * — 항목이 아닌 자식은 RAC 가 버린다), 없는 행 = **자유 내용**. 두 값은 설치 RAC 를 마운트해 확인했다
+ * (G0 ② — `apps/builder/scripts/adr256-g0-rac-inventory.mjs` 의 `childKind`). 우리 Preview renderer 가
+ * 아직 노드 트리대로 그리지 못하는 부품의 제한은 이 표가 아니라 `UNCONVERTED_FAMILY_LIMITS`
+ * (nestingRules) 에 둔다 — family 가 전환되면 그 행을 지운다.
  */
 
 /**
@@ -133,11 +138,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   ToggleButton: { families: ["textHost", "buttonChildHost", "action"] },
   ButtonGroup: { families: ["action"] },
   ActionButtonGroup: { families: ["action"] },
-  ToggleButtonGroup: {
-    container: "collection",
-    families: ["disablingGroup"],
-    children: ["ToggleButton"],
-  },
+  ToggleButtonGroup: { families: ["disablingGroup"] },
 
   // ── 이미지 ──
   Image: { families: ["image"] },
@@ -198,6 +199,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     children: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
   },
   ListBoxSection: {
+    container: "collection",
     children: ["Header", "ListBoxItem"],
     owners: ["ListBox", "Select", "ComboBox"],
   },
@@ -210,7 +212,11 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["itemSlotCollection"],
     children: ["MenuItem", "MenuSection", "Section", "Separator", "Header"],
   },
-  MenuSection: { children: ["Header", "MenuItem"], owners: ["Menu"] },
+  MenuSection: {
+    container: "collection",
+    children: ["Header", "MenuItem"],
+    owners: ["Menu"],
+  },
   MenuItem: { owners: ["Menu"] },
   GridList: {
     container: "collection",
@@ -218,6 +224,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     children: ["GridListItem", "GridListSection"],
   },
   GridListSection: {
+    container: "collection",
     children: ["Header", "GridListItem"],
     owners: ["GridList"],
   },
@@ -225,10 +232,7 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["selectionItem", "staticCollectionItem"],
     owners: ["GridList"],
   },
-  TagGroup: {
-    families: ["itemSlotCollection", "disablingGroup"],
-    children: ["Label", "TagList", "Description", "FieldError"],
-  },
+  TagGroup: { families: ["itemSlotCollection", "disablingGroup"] },
   TagList: {
     container: "collection",
     children: ["Tag"],
@@ -242,64 +246,66 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
 
   // ── 합성 컨테이너 ──
-  Tabs: {
-    families: ["disablingGroup"],
-    children: ["TabList", "TabPanels", "TabPanel"],
-  },
+  Tabs: { families: ["disablingGroup"] },
   TabList: { container: "collection", children: ["Tab"], owners: ["Tabs"] },
-  TabPanels: {
-    container: "collection",
-    children: ["TabPanel"],
-    owners: ["Tabs"],
-  },
+  // RAC TabPanels 는 TabPanel 이 아닌 자식도 그린다 (G0 ②) — 자유 내용.
+  TabPanels: { owners: ["Tabs"] },
   TabPanel: { owners: ["Tabs"] },
-  TableHeader: { families: ["tableItemHost"] },
-  TableBody: { families: ["tableItemHost"] },
-  Row: { families: ["tableItemHost"] },
+  Table: { container: "collection", children: ["TableHeader", "TableBody"] },
+  TableHeader: {
+    container: "collection",
+    families: ["tableItemHost"],
+    children: ["Column"],
+  },
+  TableBody: {
+    container: "collection",
+    families: ["tableItemHost"],
+    children: ["Row"],
+  },
+  Row: {
+    container: "collection",
+    families: ["tableItemHost"],
+    children: ["Cell"],
+  },
+  Tree: { container: "collection", children: ["TreeItem"] },
+  TreeItem: {
+    container: "collection",
+    children: ["TreeItem", "TreeItemContent"],
+  },
+  ColorSwatchPicker: {
+    container: "collection",
+    children: ["ColorSwatchPickerItem"],
+  },
   Tab: { families: ["staticCollectionItem"], owners: ["TabList"] },
   // ADR-251: 항목은 묶음 (RadioItems · CheckboxItems) 안에 — 그룹의 직계는 Label · 묶음 (TagGroup >
   //   TagList 동형). 그룹 DOM 은 묶음의 자식만 항목으로 모은다.
-  RadioGroup: {
-    families: ["disablingGroup"],
-    children: ["Label", "RadioItems", "Description", "FieldError"],
-  },
+  RadioGroup: { families: ["disablingGroup"] },
   Radio: { owners: ["RadioGroup"] },
-  RadioItems: {
-    container: "collection",
-    children: ["Radio"],
-    owners: ["RadioGroup"],
-  },
-  CheckboxGroup: {
-    families: ["disablingGroup"],
-    children: ["Label", "CheckboxItems", "Description", "FieldError"],
-  },
-  CheckboxItems: {
-    container: "collection",
-    children: ["Checkbox"],
-    owners: ["CheckboxGroup"],
-  },
+  RadioItems: { owners: ["RadioGroup"] },
+  CheckboxGroup: { families: ["disablingGroup"] },
+  CheckboxItems: { owners: ["CheckboxGroup"] },
   // 2026-10-04: toggle 의 indicator 상자 노드 — 자기 부모 toggle 안에만 (부모 DOM 이 흡수).
   CheckboxIndicator: { owners: ["Checkbox"] },
   RadioIndicator: { owners: ["Radio"] },
   SwitchIndicator: { owners: ["Switch"] },
   // TreeItem 의 chevron 버튼 노드 — 자기 부모 TreeItem 안에만 (부모 Tree DOM 이 흡수).
   TreeItemChevron: { owners: ["TreeItem"] },
-  DisclosureGroup: { children: ["Disclosure"] },
+  DisclosureGroup: {},
   DisclosureHeader: { owners: ["Disclosure"] },
   // Disclosure trigger 의 chevron 노드 — 자기 부모 DisclosureHeader 안에만 (부모 Disclosure DOM 이 흡수).
   DisclosureChevron: { owners: ["DisclosureHeader"] },
-  Slider: { children: ["Label", "SliderOutput", "SliderTrack"] },
+  Slider: {},
   SliderOutput: { owners: ["Slider"] },
-  SliderTrack: { children: ["SliderThumb"], owners: ["Slider"] },
+  SliderTrack: { owners: ["Slider"] },
   SliderThumb: { owners: ["SliderTrack"] },
-  Meter: { children: ["Label", "MeterValue", "MeterTrack"] },
+  Meter: {},
   MeterTrack: { owners: ["Meter"] },
   MeterValue: { owners: ["Meter"] },
-  ProgressBar: { children: ["Label", "ProgressBarValue", "ProgressBarTrack"] },
+  ProgressBar: {},
   ProgressBarTrack: { owners: ["ProgressBar"] },
   ProgressBarValue: { owners: ["ProgressBar"] },
-  Calendar: { children: ["CalendarHeader", "CalendarGrid"] },
-  RangeCalendar: { children: ["CalendarHeader", "CalendarGrid"] },
+  Calendar: {},
+  RangeCalendar: {},
   CalendarGrid: { owners: ["Calendar", "RangeCalendar"] },
   CalendarHeader: { owners: ["Calendar", "RangeCalendar"] },
 };

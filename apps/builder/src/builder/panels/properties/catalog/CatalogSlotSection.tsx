@@ -8,28 +8,22 @@ import type {
   EditTarget,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { removeTargets } from "../../../../../../../packages/shared/src/catalog/commands";
-import {
-  catalogCreationProps,
-  catalogPaletteDefinitionId,
-} from "../../../catalogRuntime/paletteInsert";
+import { catalogCreationProps } from "../../../catalogRuntime/paletteInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import {
   catalogSlotCommands,
   catalogSlotDeclaration,
+  catalogSlotInsertOptions,
   catalogSlotPosition,
+  catalogSlotTarget,
 } from "../../../catalogRuntime/slots";
 import { PropertyInput } from "../../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../../components/panel/Section";
 import { PropertySelect } from "../../../components/property/PropertySelect";
 import { PropertySwitch } from "../../../components/property/PropertySwitch";
-import {
-  SLOT_FILL_PRIMITIVE_TYPES,
-  slotFillPrimitiveLabel,
-} from "../../../components/slotFillNodes";
 import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogCommandRunner";
 
 const DEFAULT_SLOT_NAME = "content";
-const PRIMITIVE_PREFIX = "type:";
 
 /**
  * ADR-248 Phase 4e-4: the slot section over the catalog document (the old FrameSlot and
@@ -67,12 +61,15 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
             : id,
       };
     });
-    return JSON.stringify({ declaration, position, filled });
+    // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert.
+    const options = position ? catalogSlotInsertOptions(graph, target) : [];
+    return JSON.stringify({ declaration, position, filled, options });
   });
-  const { declaration, position, filled } = JSON.parse(viewKey) as {
+  const { declaration, position, filled, options } = JSON.parse(viewKey) as {
     declaration?: ReturnType<typeof catalogSlotDeclaration>;
     position?: ReturnType<typeof catalogSlotPosition>;
     filled?: { id: string; label: string }[];
+    options: ReturnType<typeof catalogSlotInsertOptions>;
   };
 
   // Handlers read the committed declaration (field controls keep their first onChange).
@@ -115,34 +112,36 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   );
   const fill = useCallback(
     (value: string) => {
-      if (!value || target.kind !== "descendant") return;
-      // A free-content primitive starts with the palette's creation props (a Text's text …).
-      if (value.startsWith(PRIMITIVE_PREFIX)) {
-        const type = value.slice(PRIMITIVE_PREFIX.length);
-        const definitionId = catalogPaletteDefinitionId(graph.library, type);
-        run(
-          catalogSlotCommands.fill(
-            target,
-            definitionId,
-            workspace.newId,
-            catalogCreationProps(graph.library, definitionId, type),
-          ),
-        );
-        return;
-      }
+      // A root slot (ADR-256 F4) fills at the instance's root position.
+      const slotTarget = catalogSlotTarget(graph, target);
+      if (!value || !slotTarget) return;
+      const option = catalogSlotInsertOptions(graph, slotTarget).find(
+        (item) => item.definitionId === value,
+      );
+      if (!option) return;
+      // A library choice starts with the palette's creation props (a Text's text …).
+      const definitionId = option.definitionId as DefinitionId;
       run(
         catalogSlotCommands.fill(
-          target,
-          value as DefinitionId,
+          slotTarget,
+          definitionId,
           workspace.newId,
+          option.type && definitionId.startsWith("lib:")
+            ? catalogCreationProps(
+                graph.library,
+                definitionId as Parameters<typeof catalogCreationProps>[1],
+                option.type,
+              )
+            : {},
         ),
       );
     },
     [graph, run, target, workspace],
   );
   const restore = useCallback(() => {
-    if (target.kind === "descendant") run(catalogSlotCommands.restore(target));
-  }, [run, target]);
+    const slotTarget = catalogSlotTarget(graph, target);
+    if (slotTarget) run(catalogSlotCommands.restore(slotTarget));
+  }, [graph, run, target]);
   const removeFill = useCallback(
     (id: string) =>
       run(
@@ -188,31 +187,11 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
   }
   if (!position) return null;
 
-  const instanceDefinition =
-    target.kind === "descendant"
-      ? (
-          graph.getEntry(target.ownerId) as
-            { definitionId?: string } | undefined
-        )?.definitionId
-      : undefined;
-  const project = graph.getEntry(graph.projectId);
-  const components =
-    project?.kind === "project"
-      ? project.definitionIds.flatMap((id) => {
-          const definition = graph.getEntry(id);
-          return definition?.kind === "definition" &&
-            definition.usage !== "layout" &&
-            id !== instanceDefinition
-            ? [{ value: id, label: definition.name }]
-            : [];
-        })
-      : [];
   const fillOptions = [
     { value: "", label: "Add content…" },
-    ...components,
-    ...SLOT_FILL_PRIMITIVE_TYPES.map((type) => ({
-      value: `${PRIMITIVE_PREFIX}${type}`,
-      label: slotFillPrimitiveLabel(type),
+    ...options.map((option) => ({
+      value: option.definitionId,
+      label: option.label,
     })),
   ];
 
