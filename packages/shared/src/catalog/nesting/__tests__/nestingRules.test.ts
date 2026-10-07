@@ -75,11 +75,11 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     ).toMatchObject({ layer: "rac-composition", allowedChildren: ["Button"] });
     expect(
       resolveNestingViolation({
-        parentType: "TextField",
-        childType: "TextField",
+        parentType: "NumberField",
+        childType: "NumberField",
       }),
-    ).toMatchObject({ layer: "rac-composition", parentType: "TextField" });
-    expect(canNest("TextField", "frame")).toBe(false);
+    ).toMatchObject({ layer: "rac-composition", parentType: "NumberField" });
+    expect(canNest("NumberField", "frame")).toBe(false);
     expect(canNest("TextField", "Label", ["TextField", "body"])).toBe(true);
     expect(canNest("TextField", "FieldError", ["TextField", "body"])).toBe(
       true,

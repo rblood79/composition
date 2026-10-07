@@ -120,21 +120,14 @@ export interface UnconvertedFamilyLimit {
 export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   Record<string, UnconvertedFamilyLimit>
 > = {
-  // field 가족 — Phase 2 (DOM 은 Label/Input/Description/FieldError 를 props 로 self-compose)
-  TextField: { children: ["Label", "Input", "Description", "FieldError"] },
-  TextArea: { children: ["Label", "Input", "Description", "FieldError"] },
+  // field 가족 — Phase 2: TextField · TextArea · DateField · TimeField · ColorField 는 노드 트리로
+  // 그린다 (ADR-256 Phase 2b, 행 삭제). NumberField · SearchField 는 wrapper 전환 (2c) 까지.
   NumberField: {
     children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
   },
   SearchField: {
     children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
   },
-  DateField: { children: ["Label", "DateInput", "Description", "FieldError"] },
-  TimeField: { children: ["Label", "DateInput", "Description", "FieldError"] },
-  ColorField: {
-    children: ["Label", "Input", "ColorSwatch", "Description", "FieldError"],
-  },
-  // picker — Phase 6. ADR-253 Phase 4: 정적 항목은 picker 의 ListBox (ListBox 원본의 instance) 안에 있다.
   Select: {
     children: ["Label", "Button", "Description", "FieldError", "ListBox"],
   },

@@ -9,6 +9,12 @@ import { parseColor } from "react-aria-components/ColorPicker";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
+import { TextField as AriaTextField } from "react-aria-components/TextField";
+import { ColorField as AriaColorField } from "react-aria-components/ColorField";
+import { DateField as AriaDateField } from "react-aria-components/DateField";
+import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
+import { Time } from "@internationalized/date";
+import { safeParseDateString } from "../../utils/core/dateUtils";
 import { ListBox as AriaListBox } from "react-aria-components/ListBox";
 import { Text as AriaText } from "react-aria-components/Text";
 import {
@@ -42,12 +48,10 @@ import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { Checkbox } from "../../components/Checkbox";
 import { CheckboxGroup } from "../../components/CheckboxGroup";
-import { ColorField } from "../../components/ColorField";
 import {
   ColorSwatchPicker,
   ColorSwatchPickerItem,
 } from "../../components/ColorSwatchPicker";
-import { DateField } from "../../components/DateField";
 import { Disclosure } from "../../components/Disclosure";
 import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
@@ -60,9 +64,6 @@ import { RangeCalendar } from "../../components/RangeCalendar";
 import { SearchField } from "../../components/SearchField";
 import { Slider } from "../../components/Slider";
 import { Switch } from "../../components/Switch";
-import { TextArea } from "../../components/TextArea";
-import { TextField } from "../../components/TextField";
-import { TimeField } from "../../components/TimeField";
 import { ToggleButton } from "../../components/ToggleButton";
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
 import {
@@ -545,6 +546,62 @@ function withI18n(
 }
 
 /**
+ * ADR-256 Decision 2 (Phase 2) — a field draws its node tree: the RAC field component and its
+ * children in order, each by its own binding inside the field's RAC context (Label with the
+ * necessity indicator · Input / DateInput · Description · FieldError, and any free child the
+ * author put in). The field gives RAC only its own values: state, validation, value; the label
+ * layout and quiet are data attributes its sheet reads. (The shared field components composed
+ * the same root from props — they are no longer on the Preview path.)
+ */
+function nodeTreeField(
+  component: ElementType,
+  type: string,
+  own: (props: CatalogConsumerNode["props"]) => Record<string, unknown>,
+  i18n?: (props: CatalogConsumerNode["props"]) => [unknown, unknown?],
+  defaultLabelAlign?: string,
+): DelegatedDomBinding {
+  return {
+    render: (input) => {
+      const props = input.node.props;
+      const {
+        necessityIndicator: _necessity,
+        labelPosition,
+        labelAlign,
+        isQuiet,
+        ...base
+      } = fieldBase(input);
+      const element = createElement(
+        component,
+        {
+          ...base,
+          className: `react-aria-${type}`,
+          "data-size": str(props.size) || "md",
+          "data-label-position": labelPosition,
+          "data-label-align": labelAlign ?? defaultLabelAlign,
+          "data-quiet": isQuiet ? "true" : undefined,
+          ...own(props),
+        },
+        ...renderAll(input),
+      );
+      if (!i18n) return element;
+      const [locale, calendar] = i18n(props);
+      return withI18n(element, locale, calendar);
+    },
+  };
+}
+/** A date prop the document wrote as text (`2026-10-08`), parsed for RAC. */
+const dateValue = (value: unknown) =>
+  typeof value === "string" ? safeParseDateString(value) : value;
+/** A time prop the document wrote as text (`HH:MM(:SS)`), parsed for RAC. */
+function timeValue(value: unknown): unknown {
+  if (typeof value !== "string") return value || undefined;
+  const [hour, minute, second] = value.split(":").map((part) => parseInt(part, 10));
+  return hour !== undefined && minute !== undefined && !isNaN(hour) && !isNaN(minute)
+    ? new Time(hour, minute, second && !isNaN(second) ? second : 0)
+    : undefined;
+}
+
+/**
  * Marker for components that render no DOM of their own or drop DOM props (FileTrigger renders
  * a hidden input + press responder; DataField takes no rest props): the Preview's delegating
  * wrapper form, `display: contents`, so it adds no box.
@@ -979,49 +1036,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       });
     },
   },
-  textfield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      // ADR-253: the field's parts are its part nodes (instances of the part origins), each drawn
-      // by its own binding inside the field's RAC context and placed by the shared component.
-      return createElement(TextField as ElementType, {
-        ...fieldBase(input),
-        ...inputHints(props),
-        size: props.size,
-        label: fieldLabel(input, str(props.label)),
-        description: fieldDescription(input, str(props.description)),
-        errorMessage: fieldError(input, str(props.errorMessage)),
-        inputElement: fieldInput(input),
-        placeholder: str(props.placeholder),
-        type: props.type || "text",
-        defaultValue: str(props.value),
-        maxLength: num(props.maxLength),
-        minLength: num(props.minLength),
-        pattern: opt(props.pattern),
-      });
-    },
-  },
-  textarea: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      return createElement(TextArea as ElementType, {
-        ...fieldBase(input),
-        ...inputHints(props),
-        size: props.size || "md",
-        label: fieldLabel(input, str(props.label)),
-        description: fieldDescription(input, str(props.description)),
-        errorMessage: fieldError(input, str(props.errorMessage)),
-        inputElement: fieldInput(input),
-        placeholder: str(props.placeholder),
-        rows: num(props.rows),
-        defaultValue: str(props.value),
-        maxLength: num(props.maxLength),
-        minLength: num(props.minLength),
-      });
-    },
-  },
+  textfield: nodeTreeField(AriaTextField, "TextField", (props) => ({
+    ...inputHints(props),
+    defaultValue: str(props.value),
+    maxLength: num(props.maxLength),
+    minLength: num(props.minLength),
+    pattern: opt(props.pattern),
+  })),
+  textarea: nodeTreeField(AriaTextField, "TextField", (props) => ({
+    ...inputHints(props),
+    defaultValue: str(props.value),
+    maxLength: num(props.maxLength),
+    minLength: num(props.minLength),
+  })),
   numberfield: {
     ownsChild: ownsAll,
     render: (input) => {
@@ -1066,100 +1093,57 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       });
     },
   },
-  datefield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      const granularity = ["day", "hour", "minute", "second"].includes(
+  datefield: nodeTreeField(
+    AriaDateField,
+    "DateField",
+    (props) => ({
+      hideTimeZone: props.hideTimeZone !== false,
+      shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
+      minValue: dateValue(props.minValue),
+      maxValue: dateValue(props.maxValue),
+      // No value of its own: the empty segments (RAC · RSP — the Canvas draws the same).
+      placeholderValue:
+        typeof props.placeholderValue === "string"
+          ? safeParseDateString(props.placeholderValue)
+          : undefined,
+      granularity: ["day", "hour", "minute", "second"].includes(
         String(props.granularity),
       )
         ? props.granularity
-        : "day";
-      return withI18n(
-        createElement(DateField as ElementType, {
-          ...fieldBase(input),
-          inputElement: fieldInput(input),
-          label: fieldLabel(
-            input,
-            propagatedText(
-              input.root,
-              props.label,
-              childOf(input, "Label"),
-              "Date",
-            ),
-          ),
-          description: fieldDescription(input, str(props.description)),
-          errorMessage: fieldError(input, str(props.errorMessage)),
-          size: props.size || undefined,
-          hideTimeZone: props.hideTimeZone !== false,
-          shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
-          minValue: props.minValue,
-          maxValue: props.maxValue,
-          // No value of its own: the empty segments (RAC · RSP — the Canvas draws the same).
-          placeholderValue: props.placeholderValue,
-          granularity,
-          hourCycle: num(props.hourCycle),
-        }),
-        props.locale,
-        props.calendarSystem,
-      );
-    },
-  },
-  timefield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      const granularity = ["hour", "minute", "second"].includes(
+        : "day",
+      hourCycle: num(props.hourCycle),
+    }),
+    (props) => [props.locale, props.calendarSystem],
+  ),
+  timefield: nodeTreeField(
+    AriaTimeField,
+    "TimeField",
+    (props) => ({
+      hourCycle: num(props.hourCycle) ?? 24,
+      placeholderValue: timeValue(props.placeholderValue),
+      minValue: timeValue(props.minValue),
+      maxValue: timeValue(props.maxValue),
+      hideTimeZone: props.hideTimeZone !== false,
+      shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
+      granularity: ["hour", "minute", "second"].includes(
         String(props.granularity),
       )
         ? props.granularity
-        : "minute";
-      return withI18n(
-        createElement(TimeField as ElementType, {
-          ...fieldBase(input),
-          inputElement: fieldInput(input),
-          label: fieldLabel(
-            input,
-            propagatedText(
-              input.root,
-              props.label,
-              childOf(input, "Label"),
-              "Time",
-            ),
-          ),
-          description: fieldDescription(input, str(props.description)),
-          errorMessage: fieldError(input, str(props.errorMessage)),
-          size: props.size || undefined,
-          hideTimeZone: props.hideTimeZone !== false,
-          shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
-          placeholderValue: props.placeholderValue,
-          minValue: props.minValue,
-          maxValue: props.maxValue,
-          granularity,
-          hourCycle: num(props.hourCycle),
-        }),
-        props.locale,
-      );
-    },
-  },
-  colorfield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      return createElement(ColorField as ElementType, {
-        ...fieldBase(input),
-        size: props.size || "md",
-        label: fieldLabel(input, str(props.label)) || undefined,
-        description:
-          fieldDescription(input, str(props.description)) || undefined,
-        errorMessage: fieldError(input, str(props.errorMessage)) || undefined,
-        inputElement: fieldInput(input),
-        defaultValue: opt(props.defaultValue),
-        channel: props.channel,
-        colorSpace: props.colorSpace,
-      });
-    },
-  },
+        : "minute",
+    }),
+    (props) => [props.locale],
+  ),
+  colorfield: nodeTreeField(
+    AriaColorField,
+    "ColorField",
+    (props) => ({
+      defaultValue: opt(props.defaultValue),
+      channel: props.channel,
+      colorSpace: props.colorSpace,
+    }),
+    undefined,
+    "start",
+  ),
   slider: {
     ownsChild: ownsAll,
     render: (input) => {

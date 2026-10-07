@@ -30,10 +30,12 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   });
 
   it("미전환 family 는 지금 renderer 가 그리는 목록이 이긴다", () => {
-    expect(catalogChildKind("TextField")).toEqual({
+    expect(catalogChildKind("NumberField")).toEqual({
       kind: "items",
-      items: ["Label", "Input", "Description", "FieldError"],
+      items: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
     });
+    // 전환된 family (ADR-256 Phase 2b) 는 RAC 의 종류 — field 는 자유 내용.
+    expect(catalogChildKind("TextField")).toEqual({ kind: "free" });
     // RAC TreeItem 의 항목은 TreeItem · TreeItemContent 지만 노드 구조가 아직 다르다.
     expect(catalogChildKind("TreeItem")).toEqual({
       kind: "items",
@@ -64,8 +66,11 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
   it("미전환 family: wrappers 행은 레이아웃 래퍼를 받고, 아닌 행은 받지 않는다", () => {
     expect(canNest("Tabs", "frame")).toBe(true);
     expect(canNest("TabPanels", "frame", ["TabPanels", "Tabs"])).toBe(false);
-    expect(canNest("TextField", "frame")).toBe(false);
-    expect(canNest("TextField", "Icon")).toBe(false);
+    expect(canNest("NumberField", "frame")).toBe(false);
+    expect(canNest("NumberField", "Icon")).toBe(false);
+    // 전환된 field (Phase 2b) 는 자유 자식을 받는다 (레퍼런스: field 안 아이콘).
+    expect(canNest("TextField", "frame")).toBe(true);
+    expect(canNest("TextField", "Icon")).toBe(true);
   });
 
   it("제한 표의 모든 행은 그 부품의 지금 자식을 허용한다 (표 자체가 막지 않는다)", () => {
