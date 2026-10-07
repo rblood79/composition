@@ -84,7 +84,8 @@ export const GROUP_ITEM_TYPES: Readonly<Record<string, readonly string[]>> = {
   Pagination: ["Button"],
   AvatarGroup: ["Avatar"],
   Nav: ["Link"],
-  ColorSwatchPicker: ["ColorSwatch"],
+  // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
+  ColorSwatchPicker: ["ColorSwatchPickerItem"],
 };
 
 /**
@@ -107,6 +108,15 @@ function positionType(draft: CommandDraft, parent: NodeParent): string {
     draft.reader,
     templateDefinitionId(draft.reader, path[path.length - 1]),
   );
+}
+/** A node position's definition (an owned node's, or a template position's). */
+function positionDefinition(
+  draft: CommandDraft,
+  parent: Exclude<NodeParent, { kind: "page" }>,
+): NodeEntry["definitionId"] {
+  if (parent.kind === "node") return draft.node(parent.id).definitionId;
+  const path = parent.address.templatePath;
+  return templateDefinitionId(draft.reader, path[path.length - 1]);
 }
 /** An instance's root position is the instance itself (it collapses into its root). */
 function targetOf(parent: NodeParent): EditTarget | undefined {
@@ -483,29 +493,55 @@ export const insertGroupItem =
       while (taken.has(`option${n}`)) n += 1;
       setOwn("value", `option${n}`);
     }
-    if (itemType === "ColorSwatch" && own("color") === undefined) {
-      const swatches = typed("ColorSwatch");
-      const taken = new Set(
-        swatches.map((swatch) =>
-          String(readProp(reader, swatch, "color") ?? "")
-            .trim()
-            .toUpperCase(),
-        ),
-      );
-      setOwn("color", unusedSwatchColor(taken));
-      const last = swatches[swatches.length - 1];
-      if (last?.kind === "node") {
-        const source = draft.node(last.id);
-        item = {
-          ...item,
-          visual: { ...source.visual },
-          sizing: { ...source.sizing },
+    // ADR-256 Phase 5b: a picker item takes an unused color; one made empty gets the reference's
+    // ColorSwatch inside (the last item's swatch box — the origin's 28 × 28 by default).
+    const added: NodeEntry[] = [];
+    if (itemType === "ColorSwatchPickerItem") {
+      const items = typed("ColorSwatchPickerItem");
+      if (own("color") === undefined) {
+        const taken = new Set(
+          items.map((swatch) =>
+            String(readProp(reader, swatch, "color") ?? "")
+              .trim()
+              .toUpperCase(),
+          ),
+        );
+        setOwn("color", unusedSwatchColor(taken));
+      }
+      if (!item.children.length) {
+        const last = items[items.length - 1];
+        const lastSwatch = last ? childPositions(draft, last)[0] : undefined;
+        const source =
+          lastSwatch?.kind === "node" ? draft.node(lastSwatch.id) : undefined;
+        // (The last item's swatch definition, else the ColorSwatch origin.)
+        const swatchDefinition =
+          lastSwatch && lastSwatch.kind !== "page"
+            ? positionDefinition(draft, lastSwatch)
+            : undefined;
+        const swatch: NodeEntry = {
+          kind: "node",
+          id: input.newId("node"),
+          definitionId:
+            swatchDefinition ?? "lib:definition:origin-component-colorswatch",
+          children: [],
+          props: {},
+          visual: source
+            ? { ...source.visual }
+            : {
+                width: { kind: "set", value: 28 },
+                height: { kind: "set", value: 28 },
+              },
+          sizing: source ? { ...source.sizing } : {},
+          descendantOverrides: [],
         };
+        added.push(swatch);
+        item = { ...item, children: [...item.children, swatch.id] };
       }
     }
-    const entries = input.entries.map((entry) =>
-      entry.id === item.id ? item : entry,
-    );
+    const entries = [
+      ...input.entries.map((entry) => (entry.id === item.id ? item : entry)),
+      ...added,
+    ];
     const single =
       own("isSelected") === true &&
       (groupType === "RadioGroup" ||

@@ -1042,7 +1042,13 @@ const AUTHORED_CSS: Readonly<
   color: (value) => ({ color: cssColor(value) }),
   borderColor: (value) => ({ borderColor: cssColor(value) }),
   radius: (value) => ({ borderRadius: Number(value) }),
-  borderWidth: (value) => ({ borderWidth: Number(value) }),
+  // (A length string — an origin's `"1px"` — as written; a number is px.)
+  borderWidth: (value) => ({
+    borderWidth:
+      typeof value === "string" && Number.isNaN(Number(value))
+        ? value
+        : Number(value),
+  }),
   fontSize: (value) => ({ fontSize: Number(value) }),
   fontWeight: (value) => ({ fontWeight: Number(value) }),
   width: (value) => ({ width: cssLength(value as CatalogLength) }),

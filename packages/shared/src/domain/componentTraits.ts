@@ -276,6 +276,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     container: "collection",
     children: ["ColorSwatchPickerItem"],
   },
+  // ADR-256 Phase 5b: the picker's item (its content is free — the reference's ColorSwatch).
+  ColorSwatchPickerItem: { owners: ["ColorSwatchPicker"] },
   Tab: { families: ["staticCollectionItem"], owners: ["TabList"] },
   // ADR-251: 항목은 묶음 (RadioItems · CheckboxItems) 안에 — 그룹의 직계는 Label · 묶음 (TagGroup >
   //   TagList 동형). 그룹 DOM 은 묶음의 자식만 항목으로 모은다.

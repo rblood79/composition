@@ -144,7 +144,7 @@ async function makeScene(size: number) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 10,
+    libraryContractVersion: 11,
     revision: 0,
     projectId,
     rootId: projectId,

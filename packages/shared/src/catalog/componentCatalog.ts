@@ -1220,6 +1220,14 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     label: "color swatch picker",
     icon: "LayoutGrid",
   }),
+  // ColorSwatchPickerItem — ADR-256 Phase 5b: the picker's item (RAC ColorSwatchPickerItem — a
+  //   ColorSwatch inside). The picker template makes it. palette 비노출.
+  primitiveEntry("ColorSwatchPickerItem", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color swatch picker item",
+    icon: "Palette",
+    placeable: false,
+  }),
   primitiveEntry("TailSwatch", "date-color", FAMILY_7_CUTOVER, {
     category: "color",
     label: "tail swatch",

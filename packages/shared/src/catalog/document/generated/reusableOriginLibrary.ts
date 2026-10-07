@@ -6230,11 +6230,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__1",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__1__swatch"
+    ],
     "props": {
       "color": "#FF0000"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__1__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28
@@ -6242,11 +6251,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__2",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__2__swatch"
+    ],
     "props": {
       "color": "#00FF00"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__2__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28
@@ -6254,11 +6272,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__3",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__3__swatch"
+    ],
     "props": {
       "color": "#0000FF"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__3__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28
@@ -6266,11 +6293,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__4",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__4__swatch"
+    ],
     "props": {
       "color": "#FFFF00"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__4__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28
@@ -6278,11 +6314,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__5",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__5__swatch"
+    ],
     "props": {
       "color": "#FF00FF"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__5__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28
@@ -6290,11 +6335,20 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-colorswatchpicker__6",
-    "definitionId": "lib:definition:origin-component-colorswatch",
-    "children": [],
+    "definitionId": "lib:definition:type-ColorSwatchPickerItem",
+    "children": [
+      "lib:template:component-colorswatchpicker__6__swatch"
+    ],
     "props": {
       "color": "#00FFFF"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorswatchpicker__6__swatch",
+    "definitionId": "lib:definition:origin-component-colorswatch",
+    "children": [],
+    "props": {},
     "visual": {
       "width": 28,
       "height": 28

@@ -173,7 +173,8 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
     children: ["Label", "TagList", "Description", "FieldError"],
     wrappers: true,
   },
-  ColorSwatchPicker: { children: ["ColorSwatch"] },
+  // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
+  ColorSwatchPicker: { children: ["ColorSwatchPickerItem"] },
   TableView: { children: ["TableHeader", "TableBody"] },
   Tree: { children: ["TreeItem"] },
   // ADR-239 — 역할 자식 Label (Text) 은 RAC TreeItemContent 의 자유 자식 (DOM 렌더러가 행 글자로 그린다).

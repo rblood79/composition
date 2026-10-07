@@ -502,6 +502,18 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       ],
     };
   },
+  // ADR-256 Phase 5b: a picker item is the sheet's `.react-aria-ColorSwatchPicker >
+  // .react-aria-ColorSwatchPickerItem { display: flex }` box, `width: fit-content` (manual
+  // `ColorSwatchPicker.css`) around its ColorSwatch.
+  ColorSwatchPicker: () => ({
+    parts: [
+      {
+        childType: "ColorSwatchPickerItem",
+        layout: { display: "flex" },
+        visual: { width: "fit-content" },
+      },
+    ],
+  }),
   // `Tree.css` row (`:where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem`): flex,
   // centered, `gap: --spacing-2xs`, `min-height: 32px`, `padding: --spacing-xs --spacing-sm`. Its
   // chevron button is an owner-composed part (`catalogComposedParts`).

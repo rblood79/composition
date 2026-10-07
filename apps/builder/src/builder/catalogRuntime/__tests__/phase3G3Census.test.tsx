@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 10,
+    libraryContractVersion: 11,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -544,6 +544,6 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + TooltipTrigger (the Tooltip origin's root, ADR-255 2026-10-07).
     // + DisclosureChevron (the Disclosure trigger's chevron node, 2026-10-07).
     // + CheckboxButton · SwitchButton · RadioButton (ADR-256 Phase 3 — RAC *Field > *Button, 2026-10-08).
-    expect(types.length).toBe(141);
+    expect(types.length).toBe(142);
   }, 120_000);
 });

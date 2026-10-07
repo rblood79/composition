@@ -56,6 +56,7 @@ const NAMES = [
   ["RadioItems", {}],
   ["Radio", { value: "string", isSelected: "boolean" }],
   ["ColorSwatchPicker", {}],
+  ["ColorSwatchPickerItem", { color: "string" }],
   ["ColorSwatch", { color: "string" }],
   ["TableView", {}],
   ["TableHeader", {}],
@@ -66,7 +67,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 10,
+    contractVersion: 11,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -150,7 +151,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 10,
+    libraryContractVersion: 11,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -351,7 +352,8 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
         node("r2", "Radio", [], { value: "option2" }),
         node("choice", "Choice"),
         node("swatches", "ColorSwatchPicker", ["s1"]),
-        node("s1", "ColorSwatch", [], { color: "#ff0000" }),
+        node("s1", "ColorSwatchPickerItem", ["s1-swatch"], { color: "#ff0000" }),
+        node("s1-swatch", "ColorSwatch", []),
       ],
       ["group", "choice", "swatches"],
     );
@@ -405,15 +407,20 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
       graph,
       insertGroupItem({
         hostId: "project:node:swatches",
-        entries: [node("s2", "ColorSwatch")],
+        entries: [node("s2", "ColorSwatchPickerItem")],
         rootId: "project:node:s2",
-        newId: allocator(),
+        // (Its own ids: the item's new ColorSwatch takes one.)
+        newId: ((next = allocator()) => (kind: EntryKind) =>
+          `${next(kind)}-swatch` as never)(),
       }),
     );
     expect(childProps(graph, "project:node:swatches", "color")).toEqual([
       "#ff0000",
       "#00FF00",
     ]);
+    // ADR-256 Phase 5b: the new item holds the reference's ColorSwatch.
+    const added = graph.getEntry("project:node:s2");
+    expect(added?.kind === "node" && added.children.length).toBe(1);
   });
 
   it("adds table columns with a cell per row, replaces columns, and adds aligned rows", () => {

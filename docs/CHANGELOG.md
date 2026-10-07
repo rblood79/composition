@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5b — ColorSwatchPicker 항목 층] - 2026-10-09
+
+### Changed
+
+- **ColorSwatchPicker 는 `ColorSwatchPickerItem (색) > ColorSwatch`** (ADR-256 — react-aria.adobe.com ColorSwatchPicker 예제): 항목이 노드가 되고 그 색이 안의 ColorSwatch 에 RAC 로 전달된다. 항목 안에 다른 요소를 넣을 수 있고, 「+」 는 쓰지 않은 색의 항목을 swatch 와 함께 만든다. 위치: `catalog/runtime/delegatedDom.tsx` `colorswatchpicker` · `colorswatchpickeritem`
+- **저장 형식 contract 11**
+
+### Fixed
+
+- **Preview 의 ColorSwatch 테두리가 빠지던 것** — 원본의 `borderWidth: "1px"` 를 숫자로 읽어 NaN 이었다 (Canvas 는 그렸다)
+
 ## [ADR-256 Phase 5a — Breadcrumbs 를 레퍼런스 구조로] - 2026-10-09
 
 ### Changed

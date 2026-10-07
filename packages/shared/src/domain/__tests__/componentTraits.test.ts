@@ -288,6 +288,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Tag: ["TagList"],
       TagList: ["TagGroup"],
       Breadcrumb: ["Breadcrumbs"],
+      ColorSwatchPickerItem: ["ColorSwatchPicker"],
       Radio: ["RadioGroup"],
       RadioItems: ["RadioGroup"],
       CheckboxItems: ["CheckboxGroup"],

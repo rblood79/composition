@@ -22,10 +22,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Description (· FieldError) positions; a CheckboxGroup · RadioGroup Label · Description carry
  * `presentWhen`. 10 — ADR-256 Phase 5a: a Breadcrumb's label position is a RAC `Link`
  * (`component-breadcrumb-item-default__label`, `href` bound to the crumb's) and its separator Icon
- * is there while the crumb is not current (`showWhen: { all: [{ not: "isCurrent" }] }`).
+ * is there while the crumb is not current (`showWhen: { all: [{ not: "isCurrent" }] }`). 11 —
+ * ADR-256 Phase 5b: a ColorSwatchPicker's items are `ColorSwatchPickerItem` positions
+ * (`component-colorswatchpicker__1` …, the item `color`) each holding a ColorSwatch instance.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 10 as const;
+export const LIBRARY_CONTRACT_VERSION = 11 as const;
 
 export type EntryKind =
   | "project"

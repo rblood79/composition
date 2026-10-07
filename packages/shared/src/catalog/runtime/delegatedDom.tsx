@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { parseColor } from "react-aria-components/ColorPicker";
+import { ColorSwatchPickerItem as AriaColorSwatchPickerItem } from "react-aria-components/ColorSwatchPicker";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import {
@@ -79,10 +80,7 @@ import {
 import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
-import {
-  ColorSwatchPicker,
-  ColorSwatchPickerItem,
-} from "../../components/ColorSwatchPicker";
+import { ColorSwatchPicker } from "../../components/ColorSwatchPicker";
 import { Disclosure } from "../../components/Disclosure";
 import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
@@ -2029,20 +2027,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...renderAll(input),
       ),
   },
+  // ADR-256 Phase 5b: a ColorSwatchPicker is RAC `ColorSwatchPicker` — its items in order (each
+  // a RAC `ColorSwatchPickerItem` node holding its ColorSwatch).
   colorswatchpicker: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      const swatches = children(input).filter(
-        (child) => catalogTypeName(input.root, child) === "ColorSwatch",
-      );
-      const color = (value: unknown) => {
-        try {
-          return parseColor(String(value || "#3b82f6"));
-        } catch {
-          return parseColor("#3b82f6");
-        }
-      };
       return createElement(
         ColorSwatchPicker as ElementType,
         {
@@ -2055,14 +2044,53 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ? { layout: props.layout }
             : {}),
         },
-        ...swatches.map((swatch) =>
-          createElement(ColorSwatchPickerItem as ElementType, {
-            key: swatch.id,
-            color: color(swatch.props.color || swatch.props.value),
-            isDisabled: props.isDisabled === true,
-          }),
+        ...renderAll(
+          input,
+          children(input).filter(
+            (child) =>
+              catalogTypeName(input.root, child) === "ColorSwatchPickerItem",
+          ),
         ),
       );
+    },
+  },
+  // ADR-256 Phase 5b: the picker's item — RAC `ColorSwatchPickerItem` (its `color` is the picker's
+  // value for it and the ColorSwatch inside shows it through RAC's context), its children in order.
+  colorswatchpickeritem: {
+    render: (input) => {
+      const props = input.node.props;
+      const picker = input.root.domInputs.get(input.node.parentId);
+      let color;
+      try {
+        color = parseColor(String(props.color || "#3b82f6"));
+      } catch {
+        color = parseColor("#3b82f6");
+      }
+      const element = createElement(
+        AriaColorSwatchPickerItem as ElementType,
+        {
+          ...marker(input),
+          style: input.style,
+          className: "react-aria-ColorSwatchPickerItem",
+          color,
+          isDisabled:
+            bool(props.isDisabled) || picker?.props.isDisabled === true,
+        },
+        ...renderAll(input),
+      );
+      // (Outside a picker RAC needs its collection: a host with no box.)
+      return picker &&
+        catalogTypeName(input.root, picker) === "ColorSwatchPicker"
+        ? element
+        : createElement(
+            ColorSwatchPicker as ElementType,
+            {
+              key: `host:${input.node.id}`,
+              "aria-label": "Color swatch sample",
+              style: { display: "contents" },
+            },
+            element,
+          );
     },
   },
   field: {
