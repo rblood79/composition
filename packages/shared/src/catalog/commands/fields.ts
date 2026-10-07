@@ -20,7 +20,14 @@ import type {
   PatchWholeField,
 } from "../transactions/transaction";
 import type { CatalogCommand } from "./compose";
-import { fail, overrideAt, type EditTarget } from "./context";
+import {
+  CommandDraft,
+  fail,
+  overrideAt,
+  parentAncestorTypes,
+  type EditTarget,
+} from "./context";
+import { requiredPartOwner } from "../nesting/requiredParts";
 
 /**
  * ADR-248 Phase 4b field commands: the Properties, Style and Fill panels' edits on owned nodes
@@ -61,9 +68,33 @@ function mergeLayer<T>(
   return Object.keys(next).length ? next : undefined;
 }
 
+/**
+ * ADR-256 Decision 4 · 5 — an explicit detach (`slot = false`) on a part RAC needs cuts it from its
+ * owner's context (a Select's trigger loses its popup ARIA): refused on every path (Properties,
+ * property paste, AI), not only hidden in the panel. The owners of a slot-reading required part
+ * (Select · ComboBox · pickers' Button) give a context without names, so only the detach cuts it.
+ */
+function assertRequiredSlotKept(
+  draft: CommandDraft,
+  target: EditTarget,
+): void {
+  const types =
+    target.kind === "node"
+      ? parentAncestorTypes(draft, { kind: "node", id: target.id })
+      : parentAncestorTypes(draft, target);
+  const [type, ...above] = types;
+  const owner = type ? requiredPartOwner(type, above) : undefined;
+  if (owner) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${type}`);
+}
+
 export const setFields =
   (input: SetFieldsInput): CatalogCommand =>
   (reader) => {
+    const slot = input.props?.slot;
+    if (slot?.kind === "set" && slot.value === false) {
+      const draft = new CommandDraft(reader);
+      for (const target of input.targets) assertRequiredSlotKept(draft, target);
+    }
     const breakpoint =
       input.breakpoint && input.breakpoint !== "desktop"
         ? (input.breakpoint as ResponsiveBreakpointName)

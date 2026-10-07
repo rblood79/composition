@@ -12,9 +12,12 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
+  detachInstances,
   insertNodes,
   moveNodes,
   removeTargets,
+  setFields,
+  ungroupNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -123,6 +126,19 @@ describe("ADR-256 Decision 5 — required parts", () => {
         workspace.execute(removeTargets({ targets: [field.target("Input")] })),
       ),
     ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    // Phase 1 review m3: an explicit detach on the required trigger is refused at the command
+    // (Properties hides the choice; a property paste or the AI reaches setFields directly).
+    const detach = (target: ReturnType<typeof select.target>) =>
+      code(() =>
+        workspace.execute(
+          setFields({
+            targets: [target],
+            props: { slot: { kind: "set", value: false } },
+          }),
+        ),
+      );
+    expect(detach(select.target("Button"))).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    expect(detach(select.target("Description"))).toBe("ok");
     // Deleting the whole owner takes its parts with it.
     expect(
       code(() =>
@@ -231,5 +247,168 @@ describe("ADR-256 Decision 5 — required parts", () => {
       }),
     );
     expect(move()).toBe("ok");
+  });
+
+  /**
+   * Phase 1 review — the check is the command's result: an owner that held a part before still
+   * holds one after. The paths the review found past the old check (a part below a part, a hidden
+   * wrapper of a template part, a move to another owner of the same type, every twin at once, an
+   * ungroup of the part itself).
+   */
+  describe("judged on the command's result (Phase 1 review h2 · m1 · m2 · m4)", () => {
+    const placeOrigin = async (name: string) => {
+      const opened = await open();
+      const id = opened.workspace.newId("node") as NodeId;
+      opened.workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [node(id, `lib:definition:origin-component-${name}`)],
+          rootIds: [id],
+          newId: opened.workspace.newId,
+        }),
+      );
+      const typeOf = (nodeId: string) =>
+        definitionTypeName(
+          opened.graph,
+          (opened.graph.getEntry(nodeId) as NodeEntry).definitionId,
+        );
+      const owned = (type: string, under: string = id): NodeId[] => {
+        const out: NodeId[] = [];
+        const walk = (at: string) => {
+          for (const child of (opened.graph.getEntry(at) as NodeEntry)
+            .children) {
+            if (typeOf(child) === type) out.push(child);
+            walk(child);
+          }
+        };
+        walk(under);
+        return out;
+      };
+      return { ...opened, id, typeOf, owned };
+    };
+
+    it("a detached Slider's only thumb (inside the track) is kept", async () => {
+      const { workspace, id, owned } = await placeOrigin("slider");
+      workspace.execute(detachInstances({ ids: [id], newId: workspace.newId }));
+      const [thumb] = owned("SliderThumb");
+      expect(thumb).toBeTruthy();
+      expect(
+        code(() =>
+          workspace.execute(
+            removeTargets({ targets: [{ kind: "node", id: thumb! }] }),
+          ),
+        ),
+      ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    });
+
+    it("hiding a ComboBox's control wrapper (it holds the Input) is refused", async () => {
+      const { workspace, graph, library, id } = await placeOrigin("combobox");
+      const origin = library.definitions.get(
+        "lib:definition:origin-component-combobox",
+      ) as { templateRootId: LibraryTemplateId };
+      const root = templates.get(origin.templateRootId)!;
+      const wrapper = root.children.find(
+        (child) =>
+          definitionTypeName(graph, templates.get(child)!.definitionId) ===
+          "SelectTrigger",
+      )!;
+      expect(wrapper).toBeTruthy();
+      expect(
+        code(() =>
+          workspace.execute(
+            removeTargets({
+              targets: [
+                {
+                  kind: "descendant",
+                  ownerId: id,
+                  address: {
+                    instances: [id],
+                    templatePath: [origin.templateRootId, wrapper],
+                  },
+                },
+              ],
+            }),
+          ),
+        ),
+      ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    });
+
+    it("a part moved to another owner of the same type, or every twin deleted at once, is refused", async () => {
+      const { workspace } = await open();
+      const id = (name: string) => `project:node:${name}` as NodeId;
+      const tabs = (name: string, lists: string[]) => [
+        node(id(name), "lib:definition:type-Tabs", lists.map(id)),
+        ...lists.map((list) => node(id(list), "lib:definition:type-TabList")),
+      ];
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [...tabs("a", ["a-list"]), ...tabs("b", ["b-1", "b-2"])],
+          rootIds: [id("a"), id("b")],
+          newId: workspace.newId,
+        }),
+      );
+      expect(
+        code(() =>
+          workspace.execute(
+            moveNodes({
+              ids: [id("a-list")],
+              parent: { kind: "node", id: id("b") },
+              newId: workspace.newId,
+            }),
+          ),
+        ),
+      ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+      expect(
+        code(() =>
+          workspace.execute(
+            removeTargets({
+              targets: [
+                { kind: "node", id: id("b-1") },
+                { kind: "node", id: id("b-2") },
+              ],
+            }),
+          ),
+        ),
+      ).toBe("REQUIRED_PART_NOT_REMOVABLE");
+      // One twin at a time stays allowed (the other keeps the owner working).
+      expect(
+        code(() =>
+          workspace.execute(
+            removeTargets({ targets: [{ kind: "node", id: id("b-1") }] }),
+          ),
+        ),
+      ).toBe("ok");
+    });
+
+    it("ungrouping a Disclosure's header is refused; ungrouping a frame around it is not", async () => {
+      const { workspace } = await open();
+      const id = (name: string) => `project:node:${name}` as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            node(id("disclosure"), "lib:definition:type-Disclosure", [
+              id("wrap"),
+            ]),
+            node(id("wrap"), "lib:definition:type-frame", [id("header")]),
+            node(id("header"), "lib:definition:type-DisclosureHeader", [
+              id("title"),
+            ]),
+            node(id("title"), "lib:definition:text"),
+          ],
+          rootIds: [id("disclosure")],
+          newId: workspace.newId,
+        }),
+      );
+      const ungroup = (name: string) =>
+        code(() =>
+          workspace.execute(
+            ungroupNodes({ ids: [id(name)], newId: workspace.newId }),
+          ),
+        );
+      expect(ungroup("header")).toBe("REQUIRED_PART_NOT_REMOVABLE");
+      expect(ungroup("wrap")).toBe("ok");
+    });
   });
 });

@@ -128,3 +128,4 @@ react-aria.adobe.com 문서의 예제에서 고른다. 기준값 = 예제 코드
   - live: 넣기 목록 6/6 · RAC slot 6/6 · 필수 부품 4/4 (대조군 포함, headed Chrome — `adr256-p1-*-live.mjs`)
   - 사후 보고 (ADR 작성 규칙): ratchet 수리 커밋 7개 (sliver 5 이상) — 측정 → 수리 → 재측정을 한 번씩 남겼다. Phase 1 을 1a ~ 1d 로 나눴다 (sub-group 4)
   - 범위 밖 · 남김: parity `adr248CatalogRealDom` Select/ComboBox trigger 실패는 Phase 1 이전 (`5f70fce09`) 에서도 같다 · `components/slotFillNodes.ts` 는 사용자 승인으로 삭제 (2026-10-08) · Components page 의 slot 표시는 slot 선언 이름만 읽어 옛 표 참조가 없다 (변경 0)
+  - 판독 1회 (2026-10-08, `reviews/256.md` Round 4): HIGH 2 · MEDIUM 4 전부 재현 후 수리 — slot scope 가 요소 style 을 덮어쓰던 것 · 필수 부품 판정을 명령 결과 기준으로 (부품 아래 부품 · wrapper 숨김 · 다른 소유자로 이동 · twin 동시 삭제 · Ungroup) · `setFields` 의 `slot = false` 경계. 수리 검증 1회는 수리 커밋에 대해

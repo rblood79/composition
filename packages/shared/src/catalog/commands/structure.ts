@@ -3,6 +3,7 @@ import { ownedChildren, referencedIds } from "../document/graph";
 import type {
   CatalogEntry,
   CatalogReader,
+  DefinitionId,
   EntryId,
   InteractionEntry,
   NodeEntry,
@@ -12,7 +13,6 @@ import type {
 } from "../document/types";
 import type { CatalogCommand } from "./compose";
 import { CatalogStage } from "../transactions/transaction";
-import { NESTING_PASSTHROUGH_TYPES } from "../nesting/nestingRules";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
   assertNestable,
@@ -121,102 +121,145 @@ export const insertNodes =
   };
 
 /**
- * ADR-256 Decision 5 — refuse taking a part RAC needs away from its owner: deleting it (or a wrapper
- * around it), or moving it out of every owner of that type. Another part of the same type beside it
- * keeps the owner working (a swap in progress), so that stays allowed. Runs before the command's own
- * writes, so the answer is the document revision's: remembered per revision, target and destination
- * (the canvas menu plans the same delete several times per selection — ADR-246 counts).
+ * ADR-256 Decision 5 — refuse a command that takes a part RAC needs away from its owner. Judged on
+ * the command's result: every owner above a node the command takes away (deleted, moved, released by
+ * an ungroup) still holds a part of each kind it held before — in its own subtree, not under a nearer
+ * owner of that kind. So a twin beside the part, a move inside the owner, wrapping or unwrapping it
+ * stay allowed; deleting it (or every twin at once, or a wrapper around it), moving it to another
+ * owner, or ungrouping the part itself are refused. Call after the command's writes.
  */
-const requiredPartChecks = new WeakMap<
+const carriedAnswers = new WeakMap<
   CatalogReader,
-  { revision: number; answers: Map<string, string | null> }
+  { revision: number; answers: Map<NodeId, boolean> }
 >();
-function assertRequiredPartsKept(
-  draft: CommandDraft,
-  rootId: NodeId,
-  destination?: NodeParent,
-): void {
-  const reader = draft.reader;
-  // A composed command's stage changes within one revision: answer it fresh.
-  if (reader instanceof CatalogStage) {
-    const refusal = requiredPartRefusal(draft, rootId, destination);
-    if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
-    return;
-  }
-  let memo = requiredPartChecks.get(reader);
+function carriedMemo(reader: CatalogReader): Map<NodeId, boolean> {
+  let memo = carriedAnswers.get(reader);
   if (!memo || memo.revision !== reader.revision) {
     memo = { revision: reader.revision, answers: new Map() };
-    requiredPartChecks.set(reader, memo);
+    carriedAnswers.set(reader, memo);
   }
-  const key = `${rootId}|${destination ? JSON.stringify(destination) : ""}`;
-  if (!memo.answers.has(key))
-    memo.answers.set(key, requiredPartRefusal(draft, rootId, destination));
-  const refusal = memo.answers.get(key);
-  if (refusal) fail("REQUIRED_PART_NOT_REMOVABLE", refusal);
+  return memo.answers;
+}
+
+function assertRequiredPartsKept(
+  draft: CommandDraft,
+  touched: readonly NodeId[],
+): void {
+  const reader = draft.reader;
+  const typeOf = (definitionId: DefinitionId) =>
+    definitionTypeName(reader, definitionId);
+  // Types first (the canvas menu plans a delete on every selection, several times — ADR-246
+  // counts): a node the command takes away can cost an owner a part only if it is one or holds
+  // one. An owner inside it goes along with its own parts. The answer is the revision's (read
+  // before the writes), remembered per revision; a composed command's stage changes within one.
+  const carriesPart = (id: NodeId) => {
+    const memo =
+      reader instanceof CatalogStage ? undefined : carriedMemo(reader);
+    const known = memo?.get(id);
+    if (known !== undefined) return known;
+    let found = false;
+    const stack: NodeId[] = [id];
+    while (stack.length && !found) {
+      const entry = reader.getEntry(stack.pop()!);
+      if (entry?.kind !== "node") continue;
+      const type = typeOf(entry.definitionId);
+      if (RAC_REQUIRED_PART_TYPES.has(type)) found = true;
+      else if (!(type in RAC_REQUIRED_PARTS))
+        stack.push(...ownedChildren(entry));
+    }
+    memo?.set(id, found);
+    return found;
+  };
+  if (!touched.some(carriesPart)) return;
+  const owners = new Set<NodeId>();
+  for (const id of touched)
+    for (
+      let cursor = reader.ownerOf(id);
+      cursor;
+      cursor = reader.ownerOf(cursor)
+    ) {
+      const entry = reader.getEntry(cursor);
+      if (entry?.kind !== "node") break;
+      if (typeOf(entry.definitionId) in RAC_REQUIRED_PARTS)
+        owners.add(entry.id);
+    }
+  const before = (id: string) => reader.getEntry(id);
+  const after = (id: string) => draft.read(id);
+  for (const ownerId of owners) {
+    const owner = draft.read(ownerId);
+    // The owner goes too (a whole Slider deleted): nothing is left without its part.
+    if (owner?.kind !== "node") continue;
+    const type = typeOf(owner.definitionId);
+    for (const kinds of RAC_REQUIRED_PARTS[type] ?? [])
+      if (
+        !holdsPart(after, ownerId, kinds, typeOf) &&
+        holdsPart(before, ownerId, kinds, typeOf)
+      )
+        fail("REQUIRED_PART_NOT_REMOVABLE", `${type}>${kinds.join("|")}`);
+  }
+}
+
+/** Whether the owner's own subtree holds a node of one of `kinds` (not under a nearer owner of it). */
+function holdsPart(
+  read: (id: string) => CatalogEntry | undefined,
+  ownerId: NodeId,
+  kinds: readonly string[],
+  typeOf: (definitionId: DefinitionId) => string,
+): boolean {
+  const owner = read(ownerId);
+  const stack = owner ? ownedChildren(owner) : [];
+  while (stack.length) {
+    const entry = read(stack.pop()!);
+    if (entry?.kind !== "node") continue;
+    const type = typeOf(entry.definitionId);
+    if (kinds.includes(type)) return true;
+    if (
+      RAC_REQUIRED_PARTS[type]?.some((alternatives) =>
+        alternatives.some((kind) => kinds.includes(kind)),
+      )
+    )
+      continue;
+    stack.push(...ownedChildren(entry));
+  }
+  return false;
 }
 
 /**
- * The refused `Owner>Part`, or null. A required part reaches its owner directly or through layout
- * wrappers only (Decision 5 allows a Group · Frame between) — so the root, and below a wrapper root
- * its wrapped children, are what can carry one away. Read before the command's writes (the reader is
- * the draft's state), types first: no part any owner needs, no read up.
+ * ADR-256 Decision 5 for an instance's template position: hiding it takes away every part in its
+ * template subtree. Refused when one of them is a part whose nearest owner sits above the position.
  */
-function requiredPartRefusal(
+function assertTemplatePartsKept(
   draft: CommandDraft,
-  rootId: NodeId,
-  destination?: NodeParent,
-): string | null {
+  target: Extract<EditTarget, { kind: "descendant" }>,
+  templateId: string,
+): void {
   const reader = draft.reader;
-  const entryOf = (id: string) => {
-    const entry = reader.getEntry(id);
-    return entry?.kind === "node" ? entry : undefined;
+  const templates = reader.library.templates;
+  const typeOfTemplate = (id: string) =>
+    definitionTypeName(reader, templateDefinitionId(reader, id));
+  const carried: { type: string; inner: string[] }[] = [];
+  const walk = (id: string, inner: string[]) => {
+    const type = typeOfTemplate(id);
+    if (RAC_REQUIRED_PART_TYPES.has(type)) carried.push({ type, inner });
+    for (const child of templates.get(id as `lib:template:${string}`)
+      ?.children ?? [])
+      walk(child, [type, ...inner]);
   };
-  const typeOf = (id: string) => {
-    const entry = entryOf(id);
-    return entry ? definitionTypeName(reader, entry.definitionId) : "";
-  };
-  // The parts the removal carries: the root, and through wrappers what they hold.
-  const carried: { id: NodeId; type: string; path: string[] }[] = [];
-  const collect = (id: NodeId, path: string[]) => {
-    const type = typeOf(id);
-    if (RAC_REQUIRED_PART_TYPES.has(type)) carried.push({ id, type, path });
-    if (!NESTING_PASSTHROUGH_TYPES.has(type)) return;
-    for (const child of entryOf(id)?.children ?? [])
-      collect(child, [type, ...path]);
-  };
-  collect(rootId, []);
-  if (!carried.length) return null;
-  // The owner sits right above, or above layout wrappers only (Decision 5): walk up through
-  // wrappers, stop at the first other part (it is no owner of these).
-  const above: string[] = [];
-  for (let cursor = reader.ownerOf(rootId); cursor;) {
-    const entry = entryOf(cursor);
-    if (!entry) break;
-    const type = definitionTypeName(reader, entry.definitionId);
-    above.push(type);
-    if (type in RAC_REQUIRED_PARTS || !NESTING_PASSTHROUGH_TYPES.has(type))
-      break;
-    cursor = reader.ownerOf(cursor);
-  }
-  if (!above.some((type) => type in RAC_REQUIRED_PARTS)) return null;
-  const { parent } = locate(draft, rootId);
-  // A move keeps the part when its destination is inside an owner of that type (read only now).
-  const destinationTypes = destination
-    ? parentAncestorTypes(draft, destination)
-    : [];
+  walk(templateId, []);
+  if (!carried.length) return;
+  const above = parentAncestorTypes(draft, {
+    kind: "descendant",
+    ownerId: target.ownerId,
+    address: {
+      ...target.address,
+      templatePath: target.address.templatePath.slice(0, -1),
+    },
+  });
   for (const part of carried) {
-    const owner = requiredPartOwner(part.type, [...part.path, ...above]);
-    if (!owner || destinationTypes.includes(owner)) continue;
-    // Only an owner above the root loses it; a twin beside the root keeps the owner working.
-    if (part.path.includes(owner)) continue;
-    const twin =
-      part.id === rootId &&
-      (childList(draft, parent) ?? []).some(
-        (other) => other !== rootId && typeOf(other) === part.type,
-      );
-    if (!twin) return `${owner}>${part.type}`;
+    if (requiredPartOwner(part.type, part.inner)) continue;
+    const owner = requiredPartOwner(part.type, above);
+    if (owner) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${part.type}`);
   }
-  return null;
 }
 
 export interface MoveNodesInput {
@@ -247,7 +290,6 @@ export const moveNodes =
       input.parent,
       roots.map((id) => draft.node(id).definitionId),
     );
-    for (const id of roots) assertRequiredPartsKept(draft, id, input.parent);
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
     for (const id of roots) {
       const { parent } = locate(draft, id, owners.get(id));
@@ -259,6 +301,7 @@ export const moveNodes =
       );
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
+    assertRequiredPartsKept(draft, roots);
     return {
       label: input.label ?? "Move",
       ops: draft.ops(),
@@ -339,7 +382,6 @@ export const removeTargets =
       ),
     );
     const removed: NodeId[] = [];
-    for (const id of nodeIds) assertRequiredPartsKept(draft, id);
     for (const id of nodeIds) {
       const ownerId = reader.ownerOf(id);
       const owner = ownerId ? draft.read(ownerId) : undefined;
@@ -386,24 +428,9 @@ export const removeTargets =
         ]
       )
         fail("OWNER_DRAWN_PART_NOT_REMOVABLE", templateId!);
-      // ADR-256 Decision 5: a template position RAC needs (a Select's trigger Button …).
-      const partType =
-        templateId && target.address.templatePath.length > 1
-          ? definitionTypeName(reader, templateDefinitionId(reader, templateId))
-          : undefined;
-      if (partType && RAC_REQUIRED_PART_TYPES.has(partType)) {
-        const type = partType;
-        const above = parentAncestorTypes(draft, {
-          kind: "descendant",
-          ownerId: target.ownerId,
-          address: {
-            ...target.address,
-            templatePath: target.address.templatePath.slice(0, -1),
-          },
-        });
-        const owner = requiredPartOwner(type, above);
-        if (owner) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${type}`);
-      }
+      // ADR-256 Decision 5: a template position holding a part RAC needs (a Select's trigger …).
+      if (templateId && target.address.templatePath.length > 1)
+        assertTemplatePartsKept(draft, target, templateId);
       const owner = draft.node(target.ownerId);
       const current = overrideAt(owner, target.address);
       const overrides = owner.descendantOverrides.filter(
@@ -417,6 +444,7 @@ export const removeTargets =
       draft.write({ ...owner, descendantOverrides: overrides });
     }
     removeWithReferrers(draft, removed);
+    assertRequiredPartsKept(draft, nodeIds);
     return { label: input.label ?? "Delete", ops: draft.ops() };
   };
 
@@ -677,6 +705,7 @@ export const ungroupNodes =
       draft.write({ ...group, children: [] });
       removeWithReferrers(draft, [id]);
     }
+    assertRequiredPartsKept(draft, topLevel(reader, input.ids));
     return {
       label: input.label ?? "Ungroup",
       ops: draft.ops(),

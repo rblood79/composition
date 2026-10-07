@@ -824,7 +824,41 @@ function RacSlotScope({
       slot ?? authored,
     ),
   );
-  return Object.keys(rest).length ? cloneElement(element, rest) : element;
+  return Object.keys(rest).length
+    ? cloneElement(element, overScopeProps(element, rest))
+    : element;
+}
+
+/**
+ * The DOM pass decorates the scope as it would the binding's element (`withCatalogStateStyles` ·
+ * `withRuntime` read the element's own `style` · handlers to go over them). The scope has none, so
+ * what it was given goes over the rendered element's own: a style merges (a RAC style function
+ * keeps its values), a handler runs after the element's.
+ */
+function overScopeProps(
+  element: ReactElement,
+  given: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const own = element.props as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...given };
+  for (const [key, value] of Object.entries(given)) {
+    const mine = own[key];
+    if (key === "style" && mine && value && typeof value === "object") {
+      const extra = value as CSSProperties;
+      out.style =
+        typeof mine === "function"
+          ? (values: never) => ({
+              ...(mine as (values: never) => CSSProperties)(values),
+              ...extra,
+            })
+          : { ...(mine as CSSProperties), ...extra };
+    } else if (typeof mine === "function" && typeof value === "function")
+      out[key] = (...args: unknown[]) => {
+        (mine as (...a: unknown[]) => void)(...args);
+        (value as (...a: unknown[]) => void)(...args);
+      };
+  }
+  return out;
 }
 
 /**

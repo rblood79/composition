@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **원본 루트에 걸린 slot 을 instance 에서 채운다** (ListBox · GridList · Toolbar · Form · AvatarGroup · Breadcrumbs · Nav · DisclosureGroup · CardView · ToggleButtonGroup · ButtonGroup · Tree): 놓은 instance 를 선택하면 Slot 섹션이 나온다 (`catalogSlotTarget`)
 - **중첩 판정**: 타입 특성 표의 `children` 열은 RAC 가 항목만 받는 부품의 항목 목록이 됐다 (설치 RAC 1.21.0 을 마운트해 확인 — ADR-256 G0). 우리 Preview renderer 가 아직 노드 순서대로 그리지 못하는 부품의 제한은 `UNCONVERTED_FAMILY_LIMITS` (옛 `SELF_COMPOSED_CONTAINER_CHILD_TYPES`) 로 옮겼다 — family 가 전환되면 행을 지운다. ListBoxSection · MenuSection · GridListSection 에는 이제 레이아웃 래퍼를 넣을 수 없다 (RAC 가 버린다). instance 자리 검증 (`fillSlot`) 도 같은 판정 — 자식을 받는 부품이면 채울 수 있다
 
+### Fixed (2026-10-08 Phase 1 판독 수리)
+
+- **Preview 의 Text · Heading · Description · Button 이 상태 값 (hover 색 등) 을 가지면 자기 폭 · 글꼴 크기를 잃던 것**: RAC slot 판정 scope 가 상태 변수만으로 요소의 style 을 덮어썼다. 이제 둘이 합쳐진다. 위치: `domBinding.tsx` `overScopeProps`
+- **필수 부품 거부가 빠지던 경로**: detach 한 Slider 의 SliderThumb (track 안) 삭제, ComboBox 의 control wrapper 숨김, 필수 부품을 같은 type 의 다른 컴포넌트로 옮기기, 같은 부품 둘을 한 번에 삭제, 필수 부품 자체의 Ungroup, 속성 붙여넣기로 필수 trigger 에 `slot = false` 쓰기. 판정을 명령 결과 (소유자가 명령 뒤에도 그 부품을 갖는가) 로 바꿨다. 위치: `commands/structure.ts` · `commands/fields.ts`
+
 ## [Disclosure header — chevron 과 제목을 노드로] - 2026-10-07
 
 ### Changed
