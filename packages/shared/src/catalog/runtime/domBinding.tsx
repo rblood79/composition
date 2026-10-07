@@ -2070,7 +2070,12 @@ function withHtmlId(
 ): ReactElement {
   if (!node.htmlId && !node.className && !node.ariaLabel) return element;
   const patch: Record<string, unknown> = {};
-  if (node.htmlId) patch.id = node.htmlId;
+  // (A collection item's and a TabPanel's `id` is RAC's key — RAC writes their element id and pairs
+  // a TabPanel with its Tab by it: the author's HTML id would change the key, not the element id.
+  // ADR-256 Phase 5e-2 — a detached Tabs' panel lost its Tab.)
+  const type = catalogTypeName(root, node);
+  if (node.htmlId && !STATIC_ITEM_TYPES.has(type) && type !== "TabPanel")
+    patch.id = node.htmlId;
   if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
   const authored = node.className;
   if (authored) {
@@ -2082,7 +2087,7 @@ function withHtmlId(
         ? (values: { defaultClassName?: string }) => join(own(values), authored)
         : own !== undefined || typeof element.type === "string"
           ? join(own, authored)
-          : join(`react-aria-${catalogTypeName(root, node)}`, authored);
+          : join(`react-aria-${type}`, authored);
   }
   return cloneElement(element, patch);
 }

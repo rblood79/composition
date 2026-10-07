@@ -147,7 +147,8 @@ export function catalogTabsSelection(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ) {
-  const direct = childrenOf(tabsNode, get);
+  // (Through the frames around them — ADR-256 Phase 5e-2: Tabs takes free content.)
+  const direct = partChildrenOf(tabsNode, get, typeOf);
   const tabList = direct.find((child) => typeOf(child) === "TabList");
   const panelsNode = direct.find((child) => typeOf(child) === "TabPanels");
   const tabs = tabList
@@ -254,9 +255,9 @@ function catalogTabsOfTab(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Tab") return undefined;
-  const list = get(node.parentId);
+  const list = catalogPartParent(node, get, typeOf);
   if (!list || typeOf(list) !== "TabList") return undefined;
-  const tabs = get(list.parentId);
+  const tabs = catalogPartParent(list, get, typeOf);
   return tabs && typeOf(tabs) === "Tabs" ? tabs : undefined;
 }
 
@@ -361,7 +362,7 @@ export function catalogHiddenAtRest(
   if (parentType === "Disclosure" && !DISCLOSURE_TRIGGER_TYPES.has(type))
     return !catalogDisclosureExpanded(parent, get, typeOf);
   if (type === "TabPanel" && parentType === "TabPanels") {
-    const tabs = get(parent.parentId);
+    const tabs = catalogPartParent(parent, get, typeOf);
     if (!tabs || typeOf(tabs) !== "Tabs") return false;
     const { pairs, selectedKey } = catalogTabsSelection(tabs, get, typeOf);
     return !pairs.some(
@@ -470,7 +471,8 @@ export function catalogPresenceScope(
     // A field's hint parts follow its `description` · `isInvalid` · `errorMessage`.
     if (depth === 0 && FIELD_HINT_OWNERS.has(type)) return cursor;
     if (!TABS_SELECTION_TYPES.has(type)) break;
-    cursor = get(cursor.parentId);
+    // (A frame around the TabList inside Tabs passes — ADR-256 Phase 5e-2.)
+    cursor = catalogPartParent(cursor, get, typeOf);
   }
   cursor = node;
   while (cursor && typeOf(cursor) === "TreeItem") cursor = get(cursor.parentId);
@@ -1503,13 +1505,16 @@ export function catalogStateValue(
     return true;
   switch (key) {
     case "isSelected": {
+      // (Computed here, not read from the derived values — a condition is judged before they are.)
+      // A collection's item is selected by its collection (Tabs' key — the paint's `_isSelected`),
+      // over a display state its origin carried (a detached Tab keeps the Selected origin's).
+      const item = catalogCollectionItemSelected(owner, get, typeOf);
+      if (item !== undefined) return item;
       if (state === "selected") return true;
       if (state === "unselected") return false;
       if (group && typeOf(owner) === "Radio")
         return catalogRadioGroupValue(group, get, typeOf) === String(props.value ?? "");
-      // (Computed here, not read from the derived values — a condition is judged before they are.)
-      const item = catalogCollectionItemSelected(owner, get, typeOf);
-      return (item ?? props.isSelected ?? props.defaultSelected) === true;
+      return (props.isSelected ?? props.defaultSelected) === true;
     }
     case "isIndeterminate":
       return props.isIndeterminate === true || derived.isIndeterminate === true;

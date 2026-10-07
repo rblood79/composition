@@ -171,13 +171,24 @@ export function assertNestable(
   parent: NodeParent,
   definitionIds: readonly DefinitionId[],
 ): void {
-  const ancestors = parentAncestorTypes(draft, parent);
+  assertNestableUnder(draft, parentAncestorTypes(draft, parent), definitionIds);
+}
+
+/**
+ * `assertNestable` against given ancestor types (nearest first) — a position the command is still
+ * making (a new group's members: the group, then the group's parent chain).
+ */
+export function assertNestableUnder(
+  draft: CommandDraft,
+  ancestors: readonly string[],
+  definitionIds: readonly DefinitionId[],
+): void {
   for (const definitionId of definitionIds) {
     const childType = definitionTypeName(draft.reader, definitionId);
     const violation = resolveNestingViolation({
       parentType: ancestors[0] ?? null,
       childType,
-      ancestorTypes: ancestors,
+      ancestorTypes: [...ancestors],
     });
     if (violation)
       fail("NESTING_NOT_ALLOWED", `${violation.parentType}>${childType}`);

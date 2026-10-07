@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5e-2 — Tabs 안 자유 내용] - 2026-10-09
+
+### Changed
+
+- **Tabs 가 자식을 순서대로 그린다** (ADR-256 Phase 5e — react-aria.adobe.com Tabs 예제): Tabs · TabPanels 안에 아무 요소나 넣을 수 있고 (TabList 를 frame 으로 감싸 옆에 버튼 두기 — 예제 8), Preview 는 레퍼런스 구조 (`TabPanels` 요소 포함) 로 그린다. TabList 의 접근 이름은 그 노드의 `aria-label`. 위치: `catalog/runtime/delegatedDom.tsx` `tabs` · `tablist` · `tabpanels` · `tabpanel`
+
+### Fixed
+
+- **Tabs 안 TabList 를 frame 으로 묶기 (Group) 가 거부되던 것**
+  - **Why**: Group 명령이 새 frame 을 부모에 놓기 전에 자식 중첩을 검사해, TabList 가 조상 Tabs 를 찾지 못했다
+- **분리 (detach) 한 Tabs 의 Preview 에 패널이 안 나오던 것**
+  - **Why**: Builder 가 붙이는 자동 HTML id 가 RAC 의 항목 키 (`id`) 를 바꿔 Tab 과 TabPanel 의 짝이 어긋났다. collection 항목 · TabPanel 은 RAC 가 요소 id 를 직접 쓰므로 키를 그대로 둔다
+- **분리한 Tabs 에서 두 Tab 모두 선택 막대가 보이던 것 (Canvas)** — 선택 판정이 Tabs 의 선택보다 원본에서 따라온 Selected 상태를 먼저 읽었다
+
 ## [ADR-256 Phase 5e-1 — Tab 선택 막대 = SelectionIndicator 노드] - 2026-10-09
 
 ### Changed

@@ -166,9 +166,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
     ],
   },
   // (toggle — Phase 3 (2026-10-08): 노드 트리로 전환 — Checkbox · Switch · Radio · 그룹 · ToggleButtonGroup 행 없음.)
-  // collection — Phase 5
-  Tabs: { children: ["TabList", "TabPanels", "TabPanel"], wrappers: true },
-  TabPanels: { children: ["TabPanel"] },
+  // collection — Phase 5 (Tabs · TabPanels 는 노드 트리로 그린다 — ADR-256 Phase 5e-2, 행 삭제)
   TagGroup: {
     children: ["Label", "TagList", "Description", "FieldError"],
     wrappers: true,

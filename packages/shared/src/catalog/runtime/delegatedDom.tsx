@@ -59,6 +59,7 @@ import {
   renderNecessityIndicator,
 } from "../../components/FieldNecessityIndicator";
 import { Tabs, TabList, TabPanel } from "../../components/Tabs";
+import { TabPanels as AriaTabPanels } from "react-aria-components/Tabs";
 import { TagGroup } from "../../components/TagGroup";
 import { ListBox } from "../../components/ListBox";
 import { GridList } from "../../components/GridList";
@@ -769,11 +770,10 @@ const markerWrap = (input: DelegatedDomInput, element: ReactElement) =>
 
 // ── bindings ───────────────────────────────────────────────────────────
 const DELEGATED: Record<string, DelegatedDomBinding> = {
+  // ADR-256 Phase 5e-2: Tabs draws its node tree — the reference `Tabs > (… TabList …) + TabPanels >
+  // TabPanel`, with free content anywhere (a frame around the TabList, buttons beside it). Each part
+  // renders itself in RAC's Tabs context (`tablist` · `tabpanels` · `tabpanel`).
   tabs: {
-    ownsChild: (child, _parent, root) =>
-      !["TabList", "TabPanels"].includes(catalogTypeName(root, child)),
-    absorbsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) === "TabPanels",
     // RAC renders only the selected TabPanel.
     ownsDescendant: (node, ancestor, root) => {
       if (catalogTypeName(root, node) !== "TabPanel") return false;
@@ -784,8 +784,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
     render: (input) => {
       const props = input.node.props;
-      const tabList = childOf(input, "TabList");
-      const { tabs, pairs } = tabsModel(input.root, input.node);
       return createElement(
         Tabs as ElementType,
         {
@@ -799,30 +797,52 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           size: props.size || "md",
           isDisabled: bool(props.isDisabled),
         },
-        createElement(
-          TabList as ElementType,
-          {
-            key: tabList?.id ?? "tablist",
-            ...(tabList ? { "data-catalog-id": tabList.id } : {}),
-            density: props.density || "regular",
-            size: props.size || "md",
-            showIndicator: props.showIndicator !== false,
-          },
-          ...tabs.map((tab) => input.renderChild(tab.id)),
-        ),
-        ...pairs.flatMap(({ key, panel }) =>
-          panel
-            ? [
-                createElement(
-                  TabPanel as ElementType,
-                  { key: panel.id, id: key, "data-catalog-id": panel.id },
-                  ...childrenOf(input.root, panel).map((child) =>
-                    input.renderChild(child.id),
-                  ),
-                ),
-              ]
-            : [],
-        ),
+        ...renderAll(input),
+      );
+    },
+  },
+  tablist: {
+    render: (input) => {
+      const tabs = tabsAncestor(input.root, input.node);
+      const props = tabs?.props ?? {};
+      return createElement(
+        TabList as ElementType,
+        {
+          ...marker(input),
+          style: input.style,
+          // (The list's accessible name — RAC requires one; the author's `aria-label`.)
+          ...(input.node.ariaLabel
+            ? { "aria-label": input.node.ariaLabel }
+            : {}),
+          density: props.density || "regular",
+          size: props.size || "md",
+          showIndicator: props.showIndicator !== false,
+        },
+        ...renderAll(input),
+      );
+    },
+  },
+  tabpanels: {
+    render: (input) =>
+      createElement(
+        AriaTabPanels as ElementType,
+        { ...marker(input), style: input.style },
+        ...renderAll(input),
+      ),
+  },
+  tabpanel: {
+    render: (input) => {
+      // (Its Tab's key — the pairing `catalogTabsSelection` makes.)
+      const tabs = tabsAncestor(input.root, input.node);
+      const key = tabs
+        ? tabsModel(input.root, tabs).pairs.find(
+            (pair) => pair.panel?.id === input.node.id,
+          )?.key
+        : undefined;
+      return createElement(
+        TabPanel as ElementType,
+        { ...marker(input), style: input.style, id: key ?? input.node.id },
+        ...renderAll(input),
       );
     },
   },
@@ -2228,6 +2248,20 @@ function calendarHeaderStyle(
   for (const key of ["gap", "padding"] as const)
     if (header.visual[key] !== undefined) out[key] = header.visual[key];
   return Object.keys(out).length ? (out as CSSProperties) : undefined;
+}
+
+/** The Tabs a part sits in (through the frames and free content around it). */
+function tabsAncestor(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  for (
+    let cursor = root.domInputs.get(node.parentId);
+    cursor;
+    cursor = root.domInputs.get(cursor.parentId)
+  )
+    if (catalogTypeName(root, cursor) === "Tabs") return cursor;
+  return undefined;
 }
 
 function tabsModel(

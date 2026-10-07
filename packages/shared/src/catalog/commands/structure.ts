@@ -20,6 +20,7 @@ import { CatalogStage } from "../transactions/transaction";
 import { OWNER_DRAWN_PART_OWNERS } from "../resolvers/resolveDelegatedChildFontSize";
 import {
   assertNestable,
+  assertNestableUnder,
   childList,
   CommandDraft,
   definitionTypeName,
@@ -873,12 +874,17 @@ export const groupNodes =
     const list = childList(draft, parent) ?? [];
     const members = list.filter((id) => roots.includes(id));
     const at = Math.min(...located.map((item) => item.index));
-    draft.create({ ...input.group, children: members });
-    assertNestable(
+    // (The members sit under the group and the group's parent chain: a member that needs an owner —
+    // a TabList in Tabs, ADR-256 Phase 5e-2 — finds it above the group.)
+    assertNestableUnder(
       draft,
-      { kind: "node", id: input.group.id },
+      [
+        definitionTypeName(reader, input.group.definitionId),
+        ...parentAncestorTypes(draft, parent),
+      ],
       members.map((id) => draft.node(id).definitionId),
     );
+    draft.create({ ...input.group, children: members });
     const rest = list.filter((id) => !roots.includes(id));
     const index = list.slice(0, at).filter((id) => !roots.includes(id)).length;
     setChildList(draft, parent, [
