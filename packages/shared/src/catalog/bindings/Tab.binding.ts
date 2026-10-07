@@ -52,5 +52,5 @@ export const tabBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  skiaPrimitive: "tab_indicator",
+  // (ADR-256 Phase 5e: the selected Tab's bar is its SelectionIndicator node, not a Tab primitive.)
 };

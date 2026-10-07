@@ -374,6 +374,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   // a box for its indicator and text (the row is the Checkbox rule's).
   checkboxbutton: containerWithAuthoredPaint,
   colorswatchpickeritem: containerWithAuthoredPaint,
+  // ADR-256 Phase 5e: the Tab's bar (its fill is the Tab part rule's).
+  selectionindicator: containerWithAuthoredPaint,
   switchbutton: containerWithAuthoredPaint,
   radiobutton: containerWithAuthoredPaint,
   // A part its owner draws (toggle indicator, TreeItem · Disclosure chevron): painted from its

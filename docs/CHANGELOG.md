@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5e-1 — Tab 선택 막대 = SelectionIndicator 노드] - 2026-10-09
+
+### Changed
+
+- **선택된 Tab 의 막대가 Tab 원본의 `SelectionIndicator` 노드** (ADR-256 Phase 5e — react-aria.adobe.com Tabs 예제): RAC 가 선택된 Tab 에만 두고 선택이 바뀌면 옮긴다. Canvas 도 같은 노드를 선택된 Tab 에만 그린다 (세로 목록은 오른쪽 가장자리). 막대는 노드라 고르거나 지울 수 있다. 위치: Tab 원본 template · `catalog/bindings/SelectionIndicator.binding.ts` · `manualBoxRules.ts` Tab
+- **Tab 글자 Text 의 slot 이름 `label` 을 없앴다** — Tab 은 Text slot 을 주지 않는다
+- **저장 형식 contract 14**
+
+### Fixed
+
+- **sm · lg Tab 의 Canvas 선택 막대 두께** — Canvas 는 2 · 4px, Preview 는 3px 이었다. 둘 다 3px (`TabsIndicator.css`)
+
+### Removed
+
+- Tab 의 Canvas `tab_indicator` primitive (노드가 대신한다)
+
 ## [ADR-256 Phase 5d — TagGroup 지우기 버튼 · 설명 · 오류 노드] - 2026-10-09
 
 ### Changed

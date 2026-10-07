@@ -33,6 +33,8 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
+/** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
+const TAB_INDICATOR = 3;
 /** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
 const TAG_REMOVE_PADDING_RIGHT = 4;
 
@@ -538,7 +540,28 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       "SwitchButton",
     ),
   }),
-  Tab: () => ({ parts: itemLabelFontParts("Tab") }),
+  // ADR-256 Phase 5e: the Tab's SelectionIndicator node is `TabsIndicator.css` `.react-aria-Tab
+  // .react-aria-SelectionIndicator` — an accent 3px bar along the bottom, out of the Tab's flow. It
+  // anchors the bottom-right corner, so a vertical TabList's bar (the right edge, Tab height —
+  // `catalogSelectionIndicatorLayout`) only swaps its size.
+  Tab: () => ({
+    parts: [
+      ...itemLabelFontParts("Tab"),
+      {
+        childType: "SelectionIndicator",
+        layout: {
+          position: "absolute",
+          insetRight: "0px",
+          insetBottom: "0px",
+        },
+        visual: {
+          width: "100%",
+          height: TAB_INDICATOR,
+          fill: "var(--accent)",
+        },
+      },
+    ],
+  }),
   // `TagGroup.css` `.react-aria-Tag > .react-aria-Icon[slot=icon]` (14px) and
   // `> .react-aria-Avatar[slot=avatar]` (16px, no shrink); the label gap is the Tag's flex gap
   // (catalog leading gap 4). The Preview marks the slots in a TagGroup and in a standalone Tag's

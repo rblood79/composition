@@ -90,6 +90,7 @@ import {
   catalogPresenceDependents,
   catalogStateDependents,
   catalogItemRemoveGlyphItem,
+  catalogSelectionIndicatorLayout,
   catalogPresenceScope,
   catalogBreadcrumbItems,
   catalogBreadcrumbSeparator,
@@ -1782,7 +1783,9 @@ export class CatalogCompositionRoot {
       if (inheritedText) output.set(id, { ...record, inheritedText });
     }
     for (const [id, record] of output) {
-      const fillLayout = catalogFillLayout(record, get, this.typeOf);
+      const fillLayout =
+        catalogFillLayout(record, get, this.typeOf) ??
+        catalogSelectionIndicatorLayout(record);
       if (fillLayout) output.set(id, { ...record, fillLayout });
     }
     return output;
@@ -3247,7 +3250,9 @@ export class CatalogCompositionRoot {
         const current = get(thumb.id)!;
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
-        const fillLayout = catalogFillLayout(current, get, this.typeOf);
+        const fillLayout =
+          catalogFillLayout(current, get, this.typeOf) ??
+          catalogSelectionIndicatorLayout({ ...current, derivedProps });
         const {
           derivedProps: _previous,
           inheritedText: _previousText,

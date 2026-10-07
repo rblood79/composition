@@ -270,40 +270,6 @@ const tablistDivider: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   ];
 };
 
-/** Tab indicator 두께 (CSS 정합: sm=2 / md=3 / lg=4) — height(21/29/41) → thickness. */
-const TAB_INDICATOR_THICKNESS: Record<number, number> = { 21: 2, 29: 3, 41: 4 };
-
-/**
- * `tab_indicator` — 선택된 Tab 의 accent 인디케이터(append, 조건부).
- *
- * **ADR-912 projection 3 cutover (2026-06-15)**: Tab.spec.render.shapes 의 조건부 accent rect
- *   (`isSelected && showIndicator` 시 하단/우측 full-width 막대)를 이전. base box(transparent) 위에
- *   덧그리는 막대 → append. 데이터 분기만(ADR-142 §3): `_isSelected`/`_showIndicator`/`orientation`/
- *   `_containerWidth` 미충족 시 빈 배열(미렌더). 비-Tab type 은 이 props 부재 → 자연히 빈 배열.
- *   indicator 색 = `{color.accent}`(spec 동형, full-width 막대라 variant fill 과 별개 고정).
- */
-const tabIndicator: SkiaPrimitiveDrawFn = ({ props, size }) => {
-  if (props._isSelected !== true || props._showIndicator === false) return [];
-  const isVertical = (props.orientation as string | undefined) === "vertical";
-  const h =
-    typeof size.height === "number" && size.height > 0 ? size.height : 29;
-  const thickness = TAB_INDICATOR_THICKNESS[h] ?? 3;
-  const w =
-    typeof props._containerWidth === "number" && props._containerWidth > 0
-      ? props._containerWidth
-      : ("auto" as unknown as number);
-  return [
-    {
-      type: "rect",
-      x: isVertical ? (typeof w === "number" ? w - thickness : 0) : 0,
-      y: isVertical ? 0 : h - thickness,
-      width: isVertical ? thickness : w,
-      height: isVertical ? h : thickness,
-      fill: "{color.accent}" as TokenRef,
-    },
-  ];
-};
-
 /**
  * `breadcrumb_crumb` — Breadcrumb 단일 조각: label + (비-마지막) 구분자 Icon (replace).
  *
@@ -3689,7 +3655,6 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // ADR-912 projection 3 cutover (TabList): 하단/우측 구분선(append, table_row_divider 동형).
   tablist_divider: tablistDivider,
   // ADR-912 projection 3 cutover (Tab): 선택 시 accent 인디케이터 막대(append, 조건부).
-  tab_indicator: tabIndicator,
   // ADR-912 projection 3 cutover (Breadcrumb): label + separator(replace, 위치 누적).
   breadcrumb_crumb: breadcrumbCrumb,
   // ADR-912 collection sub-part cutover (GridListItem): 카드 box+label+description(replace).
@@ -3757,8 +3722,6 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   table_row_divider: "append",
   // ADR-912 projection 3: tablist_divider 는 transparent shell 아래쪽/우측 경계 line → append.
   tablist_divider: "append",
-  // ADR-912 projection 3: tab_indicator 는 transparent box 위 조건부 accent 막대 → append.
-  tab_indicator: "append",
   // ADR-912 projection 3: breadcrumb_crumb 은 label+separator 위치 누적 자체 생성 → replace
   //   (buildCatalogShapes single-text 좌측 고정 가정과 충돌).
   breadcrumb_crumb: "replace",

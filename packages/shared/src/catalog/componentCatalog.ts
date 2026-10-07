@@ -884,6 +884,14 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "tab",
     icon: "AppWindow",
   }),
+  // SelectionIndicator — ADR-256 Phase 5e: the selected item's mark (RAC SelectionIndicator — the
+  //   Tab's bar). The Tab template makes it. palette 비노출.
+  primitiveEntry("SelectionIndicator", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "selection indicator",
+    icon: "AppWindow",
+    placeable: false,
+  }),
   primitiveEntry("TabList", "collections", FAMILY_4_CUTOVER, {
     category: "collections",
     label: "tab list",

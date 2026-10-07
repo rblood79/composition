@@ -1,4 +1,3 @@
-import { createContext, useContext, type ReactNode } from "react";
 import {
   Tabs as RACTabs,
   TabsProps,
@@ -9,8 +8,6 @@ import {
   TabPanel as RACTabPanel,
   TabPanelProps,
 } from "react-aria-components/Tabs";
-import { SelectionIndicator } from "react-aria-components/SelectionIndicator";
-import { SharedElementTransition } from "react-aria-components/SharedElementTransition";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type {
   ComponentSize,
@@ -319,9 +316,12 @@ export function Tabs({
   );
 }
 
-// TabList용 Context - showIndicator 상태 공유
-const TabListIndicatorContext = createContext(false);
-
+/**
+ * ADR-256 Phase 5e — the selected Tab's bar is the Tab origin's `SelectionIndicator` node (RAC's —
+ * the reference `Tab > (children + SelectionIndicator)`); RAC's TabList already slides it
+ * (`SharedElementTransition`). `showIndicator` marks the list so the sheet's `::before` bar
+ * (`TabsIndicator.css` — a Tab without the node) stays off.
+ */
 export function TabList<T extends object>({
   density = "regular",
   size = "md",
@@ -332,62 +332,24 @@ export function TabList<T extends object>({
   const tabListClassName = composeRenderProps(props.className, (className) => {
     return className ? `react-aria-TabList ${className}` : "react-aria-TabList";
   });
-
-  // ADR-066: RACTabList는 Collection dynamic rendering을 위해 children이 함수 또는
-  // 정적 JSX여야 함. Provider를 RACTabList 내부에 두면 children이 Provider 요소로
-  // 래핑되어 Collection 프로토콜 위반 → "Functions are not valid as a React child"
-  // 오류 발생. Provider는 RACTabList 바깥에서 감싼다.
-  const tabList = showIndicator ? (
+  return (
     <RACTabList
       {...props}
       className={tabListClassName}
       data-density={density}
       data-size={size}
-      data-show-indicator="true"
-    >
-      {children}
-    </RACTabList>
-  ) : (
-    <RACTabList
-      {...props}
-      className={tabListClassName}
-      data-density={density}
-      data-size={size}
+      {...(showIndicator ? { "data-show-indicator": "true" } : {})}
     >
       {children}
     </RACTabList>
   );
-
-  const wrapped = (
-    <TabListIndicatorContext.Provider value={showIndicator}>
-      {tabList}
-    </TabListIndicatorContext.Provider>
-  );
-
-  return showIndicator ? (
-    <SharedElementTransition>{wrapped}</SharedElementTransition>
-  ) : (
-    wrapped
-  );
-}
-
-// Tab에서 showIndicator 컨텍스트 사용
-function useTabListIndicator() {
-  return useContext(TabListIndicatorContext);
 }
 
 export function Tab({ children, ...props }: TabProps) {
-  const showIndicator = useTabListIndicator();
-
   return (
     <RACTab {...props} className="react-aria-Tab">
       {/* ADR-234 Phase 3 — 정적 Tab instance 는 자손 상태 층을 render props (children 함수) 로 받는다. */}
-      {composeRenderProps(children, (content) => (
-        <>
-          {showIndicator && <SelectionIndicator />}
-          {content as ReactNode}
-        </>
-      ))}
+      {children}
     </RACTab>
   );
 }

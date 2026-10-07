@@ -616,6 +616,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     } as Parameters<typeof RAC.SelectValue>[0]),
   icon: glyph("circle", 24),
   selecticon: glyph("chevron-down", 18),
+  // ADR-256 Phase 5e: RAC `SelectionIndicator` in its item's context (there while the item is
+  // selected); its box is the item sheet's (`.react-aria-Tab .react-aria-SelectionIndicator`).
+  selectionindicator: (node, style) =>
+    createElement(RAC.SelectionIndicator, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      style,
+    } as Parameters<typeof RAC.SelectionIndicator>[0]),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
   // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
   select: (node, style, _children, _context, parts) =>

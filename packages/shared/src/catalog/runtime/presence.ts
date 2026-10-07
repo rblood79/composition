@@ -334,6 +334,12 @@ export function catalogHiddenAtRest(
   if (catalogAbsentByValue(node)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
+  // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
+  // `SelectionIndicatorContext` — the item's `isSelected`).
+  if (typeOf(node) === "SelectionIndicator") {
+    const item = catalogStateOwner(node, "isSelected", undefined, get, typeOf);
+    return !item || !catalogStateValue(item, "isSelected", get, typeOf);
+  }
   const parent = get(node.parentId);
   if (!parent) return false;
   const type = typeOf(node);
@@ -477,8 +483,11 @@ export function catalogPresenceDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
-  if (typeOf(scope) === "Tabs")
-    return catalogTabsSelection(scope, get, typeOf).panels;
+  if (typeOf(scope) === "Tabs") {
+    const { panels, tabs } = catalogTabsSelection(scope, get, typeOf);
+    // (and the Tabs' selection indicators — ADR-256 Phase 5e)
+    return [...panels, ...tabs.flatMap((tab) => catalogSelectionIndicators(tab, get, typeOf))];
+  }
   // Which crumb is current moves with the crumb list: the conditioned nodes in every crumb
   // (`showWhen` — the reference's separator `!isCurrent`) are judged again.
   if (typeOf(scope) === "Breadcrumbs")
@@ -864,6 +873,15 @@ function ownDerivedProps(
   // RAC Tabs: a vertical TabList's Tab draws its indicator on the trailing edge.
   if (catalogTabsOfTab(node, get, typeOf)?.props.orientation === "vertical")
     return { orientation: "vertical" };
+  // (its SelectionIndicator node — ADR-256 Phase 5e: `catalogSelectionIndicatorLayout`)
+  if (typeOf(node) === "SelectionIndicator") {
+    const tab = catalogPartParent(node, get, typeOf);
+    if (
+      tab &&
+      catalogTabsOfTab(tab, get, typeOf)?.props.orientation === "vertical"
+    )
+      return { orientation: "vertical" };
+  }
   const crumb = get(node.parentId);
   if (
     crumb &&
@@ -956,6 +974,8 @@ export function catalogDerivedPropsDependents(
     ...items,
     ...[owner, ...items].flatMap((item) => [
       ...catalogItemLabels(item, get, typeOf),
+      // (its selection indicators — their bar follows the Tab's orientation, ADR-256 Phase 5e)
+      ...catalogSelectionIndicators(item, get, typeOf),
       // (and its remove button's glyph — `catalogItemRemoveGlyphItem`)
       ...(MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
         ? childrenOf(item, get)
@@ -1054,6 +1074,31 @@ export function catalogItemLabels(
   return MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
     ? childrenOf(item, get).filter((child) => typeOf(child) === "Text")
     : [];
+}
+
+/** ADR-256 Phase 5e — an item's SelectionIndicator nodes (through frames). */
+export function catalogSelectionIndicators(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  if (!catalogStateKeysOf(typeOf(item)).includes("isSelected")) return [];
+  return partChildrenOf(item, get, typeOf).filter(
+    (child) => typeOf(child) === "SelectionIndicator",
+  );
+}
+
+/**
+ * ADR-256 Phase 5e — a vertical TabList's indicator bar (`TabsIndicator.css` vertical: 3px wide,
+ * the Tab's height) over the Tab part rule's horizontal bar; both anchor the Tab's bottom-right.
+ */
+export function catalogSelectionIndicatorLayout(
+  node: CatalogConsumerNode,
+): Record<string, string> | undefined {
+  return node.bindingId === "selectionindicator" &&
+    node.derivedProps?.orientation === "vertical"
+    ? { width: "3px", height: "100%" }
+    : undefined;
 }
 
 /**

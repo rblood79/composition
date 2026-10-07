@@ -105,7 +105,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 13,
+    libraryContractVersion: 14,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -210,7 +210,15 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       true,
     ]);
     // Their label Texts take the item color (`[data-selected] { color: var(--fg) }` moves).
-    const labels = tabInputs.flatMap((tab) => tab.children);
+    const labels = tabInputs
+      .flatMap((tab) => tab.children)
+      .filter((id) => scene.root.canvasInputs.get(id)!.bindingId === "text");
+    // (The selection bar moves with it — the Tabs' SelectionIndicator nodes, ADR-256 Phase 5e.)
+    const indicators = scene.byType("SelectionIndicator");
+    expect(indicators.map((indicator) => indicator.hidden === true)).toEqual([
+      true,
+      false,
+    ]);
     expect(
       labels.map((id) => scene.root.canvasInputs.get(id)!.derivedProps?.color),
     ).toEqual([TAILWIND_PALETTE.neutral[600], TAILWIND_PALETTE.neutral[900]]);
@@ -218,6 +226,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       new Set([
         ...tabInputs.map((tab) => tab.id),
         ...labels,
+        ...indicators.map((indicator) => indicator.id),
         ...panels.map((panel) => panel.id),
       ]),
     );
@@ -345,30 +354,33 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "tag-unselected",
     );
     expect(accentRect(shapesOf(tagUnselected, "Tag"))).toEqual([]);
-    // Tab state origin: selected → the 3px bottom indicator; its hover variant is a hovered Tab.
+    // Tab state origin: selected → its SelectionIndicator node is there (the 3px bottom bar —
+    // ADR-256 Phase 5e; the Tab itself paints none); its hover variant is a hovered, unselected Tab.
     const tab = await open(
       "lib:definition:origin-component-tab-item-default" as DefinitionId,
       "tab-selected",
     );
-    // Bottom edge of the size box (md height 29), full width.
-    expect(accentRect(shapesOf(tab, "Tab"))).toEqual([
-      expect.objectContaining({ x: 0, y: 26, height: 3, width: 120 }),
-    ]);
+    expect(accentRect(shapesOf(tab, "Tab"))).toEqual([]);
+    const shownIndicators = (scene: Awaited<ReturnType<typeof open>>) =>
+      scene
+        .byType("SelectionIndicator")
+        .map((indicator) => indicator.hidden !== true);
+    expect(shownIndicators(tab)).toEqual([true]);
+    // The bar along the bottom edge, full width (its geometry: `adr256TabsNodeTree.test.tsx`).
+    const bar = tab.byType("SelectionIndicator")[0];
+    expect(bar.layout).toMatchObject({ position: "absolute", insetBottom: "0px" });
+    expect(bar.visual).toMatchObject({ width: "100%", height: 3 });
     const tabHover = await open(
       "lib:definition:origin-component-tab-item-default--hover" as DefinitionId,
       "tab-hover",
     );
-    expect(accentRect(shapesOf(tabHover, "Tab"))).toEqual([]);
-    // Tabs: the Tab its selected key picks draws the indicator, the others none.
+    expect(shownIndicators(tabHover)).toEqual([false]);
+    // Tabs: the Tab its selected key picks shows its indicator, the others none.
     const tabs = await open(
       "lib:definition:origin-component-tabs" as DefinitionId,
       "tabs-indicator",
     );
-    expect(
-      tabs
-        .byType("Tab")
-        .map((input) => accentRect(shapesOf(tabs, "Tab", input)).length),
-    ).toEqual([1, 0]);
+    expect(shownIndicators(tabs)).toEqual([true, false]);
     // Collections decide their items' selection like the DOM binding: TagGroup none (its Tags are
     // instances of the selected Tag origin), ListBox its `selectedKey`.
     const tagGroup = await open(

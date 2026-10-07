@@ -630,6 +630,17 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "the closed overlay's parts take no box (ADR-255 — old: the open overlay's title · description)",
   },
   {
+    // ADR-256 Phase 5e: the selected Tab's bar is its SelectionIndicator node (the reference
+    //   `Tab > (children + SelectionIndicator)`) — old: the Tab painted the bar in its own box.
+    id: "tab-selection-indicator-node",
+    class: "decided",
+    owners: ["Tabs", "Tab"],
+    side: "new",
+    nodes: ["SelectionIndicator"],
+    reason:
+      "Tab = [label, SelectionIndicator node] (ADR-256 Phase 5e — old: the Tab painted its selection bar in its own box)",
+  },
+  {
     id: "toggle-indicator-node",
     class: "decided",
     owners: ["Checkbox", "Radio", "Switch", "CheckboxGroup", "RadioGroup"],

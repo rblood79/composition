@@ -6377,7 +6377,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tab-item-default",
     "definitionId": "lib:definition:type-Tab",
     "children": [
-      "lib:template:component-tab-item-default__label"
+      "lib:template:component-tab-item-default__label",
+      "lib:template:component-tab-item-default__indicator"
     ],
     "props": {},
     "visual": {
@@ -6395,9 +6396,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "slot": "label",
       "children": "{label}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tab-item-default__indicator",
+    "definitionId": "lib:definition:type-SelectionIndicator",
+    "children": [],
+    "props": {},
     "visual": {}
   },
   {

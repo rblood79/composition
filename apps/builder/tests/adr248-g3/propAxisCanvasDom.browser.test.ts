@@ -118,6 +118,10 @@ const CASES: Array<{
   // ADR-256 Phase 5d: the Tag's remove button node (`showWhen allowsRemoving`) and the TagGroup's
   // hint part nodes (Description · FieldError as the reference's `Text[errorMessage]`).
   { key: "TagGroup-removing", type: "TagGroup", props: { allowsRemoving: true } },
+  // ADR-256 Phase 5e: the selected Tab's SelectionIndicator node (the bar — bottom, or the right
+  // edge in a vertical list).
+  { key: "Tabs-horizontal", type: "Tabs", props: {} },
+  { key: "Tabs-vertical", type: "Tabs", props: { orientation: "vertical" } },
   {
     key: "TagGroup-hints",
     type: "TagGroup",
@@ -153,7 +157,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 13,
+    libraryContractVersion: 14,
     revision: 0,
     projectId,
     rootId: projectId,

@@ -397,7 +397,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 13,
+          contractVersion: 14,
           revision: "bad",
           definitions: [
             {
@@ -421,7 +421,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 13,
+          contractVersion: 14,
           revision: "bad",
           definitions: [],
           templates: [],
@@ -1369,7 +1369,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
     failureCode(
       () =>
         buildCatalogLibrary({
-          contractVersion: 13,
+          contractVersion: 14,
           revision: "cycle",
           bindingIds: [],
           actionOpCodes: [],
@@ -1434,7 +1434,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("applies compatible immutable library revision changes without project snapshots", () => {
     const { document, library } = createG1Fixture();
     const updated = buildCatalogLibrary({
-      contractVersion: 13,
+      contractVersion: 14,
       revision: "g1-fixture-v2",
       definitions: [...library.definitions.values()],
       templates: [...library.templates.values()],
@@ -1710,7 +1710,7 @@ describe("ADR-248 G1 isolated catalog graph", () => {
   it("fans out one Tree and Slider definition override to both instances", () => {
     const { document, library } = createG1Fixture();
     const extended = buildCatalogLibrary({
-      contractVersion: 13,
+      contractVersion: 14,
       revision: "g1-tree-slider",
       definitions: [
         ...library.definitions.values(),

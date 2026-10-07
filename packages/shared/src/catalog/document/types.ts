@@ -25,10 +25,15 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * is there while the crumb is not current (`showWhen: { all: [{ not: "isCurrent" }] }`). 11 —
  * ADR-256 Phase 5b: a ColorSwatchPicker's items are `ColorSwatchPickerItem` positions
  * (`component-colorswatchpicker__1` …, the item `color`) each holding a ColorSwatch instance. 12 —
- * ADR-256 Phase 5c: a ListBox · GridList · Menu item's description Text carries `presentWhen`.
+ * ADR-256 Phase 5c: a ListBox · GridList · Menu item's description Text carries `presentWhen`. 13 —
+ * ADR-256 Phase 5d: a Tag holds a remove `Button[slot=remove]` (`component-tag-item-default__remove`,
+ * `showWhen: { all: ["allowsRemoving"] }`) and its label Text has no slot name; a TagGroup holds
+ * Description · FieldError positions (`component-taggroup__description` · `__error`). 14 — ADR-256
+ * Phase 5e: a Tab holds a `SelectionIndicator` (`component-tab-item-default__indicator`) and its
+ * label Text has no slot name.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 13 as const;
+export const LIBRARY_CONTRACT_VERSION = 14 as const;
 
 export type EntryKind =
   | "project"
