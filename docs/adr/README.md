@@ -256,19 +256,19 @@
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날) → 225(09-19, Phase 0~~4 / G0~~G6 종결 같은 날) → 224(09-19, G5 소유자 확인으로 종결) → 226(09-19, Phase 0~~3 / G0~~G4 종결 같은 날 + ADR-221 잔존 gesture session 결함 수리) → 228(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 3 수리: chartType canonical diff · scene origin props · ref resolve O(n²); codex round 3 같은 날 — Button 안 Button · origin 재정렬 보존 · parity 56 pair Skia 픽셀 · scene.build 계측) → 229(09-21, Phase 0~~4 / G0~~G4 종결 같은 날 — live 가 잡은 결함 9 + 사용자 지적 3 수리).
 >
-> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 round 1 반영) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
+> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [254](254-base-part-chain.md)                                                                  | Proposed · 리뷰 round 1 반영 — Phase 0 inventory 부터        | 사용자 Accepted 판정 뒤 `/execute-adr 254`. ADR-253 Implemented 선행 충족 |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](921-render-scene-backend-integration.md)                                                 | **착수 금지** — 전제 소멸 (2026-10-07 재검토)                | 사용자 판정: Deprecated vs catalog runtime 기준 재작성                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                                                                                          |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+|  1   | [254](254-base-part-chain.md)                                                                  | Proposed · **리뷰 검토 중** (`reviews/254.md`, 2026-10-07)   | 리뷰 종결 (최신 round pending 0) → 사용자 Accepted 판정 → `/execute-adr 254` (Phase 0 inventory 부터). ADR-253 Implemented 선행 충족 |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기)                                                            |
+|  —   | [921](921-render-scene-backend-integration.md)                                                 | **착수 금지** — 전제 소멸 (2026-10-07 재검토)                | 사용자 판정: Deprecated vs catalog runtime 기준 재작성                                                                               |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                                                                                          |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
 
 <details>
-<summary>1. ADR-254 (Proposed — 사용자 Accepted 판정 뒤)</summary>
+<summary>1. ADR-254 (Proposed — 리뷰 종결 + 사용자 Accepted 판정 뒤)</summary>
 
 ```
 /execute-adr 254
