@@ -1,4 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
+import { scalarFitsType } from "./valueType";
 import { resolveToken, type TokenRef } from "@composition/rendering";
 import { componentCatalog } from "../componentCatalog";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -496,9 +497,10 @@ function selectValueDefinition(
  * every registered type reads its layout declaration from the same catalog rule.
  */
 /**
- * Types a collection item template gives a slot role (`Text slot="label"`, `Icon slot="icon"` …):
- * RAC/Preview read `slot` as the element's role in the item (`itemSlotAttr`, ListBox/GridList/
- * TagGroup/Menu stylesheets), so their typed definitions accept it.
+ * Types that take a named slot (ADR-256 Decision 4): RAC's slot of the parent context they render
+ * in (`Text slot="label"` in a ListBoxItem, `Button slot="increment"` in a NumberField, `Heading
+ * slot="title"` in a Dialog), and the S2 item roles the stylesheets read (`Icon slot="icon"` …).
+ * The value type `slot` keeps unset · a name · the explicit detach (`false`) apart.
  */
 const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Text",
@@ -506,12 +508,13 @@ const ITEM_SLOT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Description",
   "Icon",
   "Avatar",
+  "Button",
 ]);
 
 function withRuleBox(input: LibraryDefinition): LibraryDefinition {
   const definition =
     ITEM_SLOT_CHILD_TYPES.has(input.name) && input.mode !== "composite"
-      ? { ...input, accepts: { ...input.accepts, slot: "string" as const } }
+      ? { ...input, accepts: { ...input.accepts, slot: "slot" as const } }
       : input;
   const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
     definition.name
@@ -592,7 +595,7 @@ function withRuleParts(
       const ownerAccepts = definition.accepts;
       if (
         Object.entries(part.ownerProps ?? {}).some(
-          ([prop, value]) => ownerAccepts[prop] !== typeof value,
+          ([prop, value]) => !scalarFitsType(value, ownerAccepts[prop]),
         )
       )
         return [];
@@ -603,14 +606,14 @@ function withRuleParts(
       const viaAccepts = via ? byId.get(via)!.accepts : {};
       if (
         Object.entries(part.viaProps ?? {}).some(
-          ([prop, value]) => viaAccepts[prop] !== typeof value,
+          ([prop, value]) => !scalarFitsType(value, viaAccepts[prop]),
         )
       )
         return [];
       const accepts = byId.get(child)!.accepts;
       if (
         Object.entries(part.childProps ?? {}).some(
-          ([prop, value]) => accepts[prop] !== typeof value,
+          ([prop, value]) => !scalarFitsType(value, accepts[prop]),
         )
       )
         return [];

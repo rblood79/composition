@@ -1,4 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
+import { scalarFitsType } from "./valueType";
 import type {
   CatalogLibrary,
   InteractionEntry,
@@ -18,6 +19,7 @@ import {
 } from "./validation";
 
 const certifiedLibraries = new WeakSet<object>();
+
 export function assertCatalogLibrary(value: CatalogLibrary): void {
   if (!certifiedLibraries.has(value))
     throw new CatalogValidationError("UNVERIFIED_LIBRARY", "library");
@@ -263,7 +265,7 @@ export function buildCatalogLibrary(
           "PROP_NOT_ACCEPTED",
           `${definition.id}.${key}`,
         );
-      if (typeof value !== "object" && typeof value !== expected)
+      if (typeof value !== "object" && !scalarFitsType(value, expected))
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",
           `${definition.id}.${key}`,
@@ -338,7 +340,7 @@ export function buildCatalogLibrary(
           );
         continue;
       }
-      if (typeof value !== "object" && typeof value !== expected)
+      if (typeof value !== "object" && !scalarFitsType(value, expected))
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",
           `${node.id}.${key}`,
@@ -377,7 +379,7 @@ export function buildCatalogLibrary(
         const expected = targetContract.accepts[key];
         if (!expected)
           throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
-        if (typeof value !== "object" && typeof value !== expected)
+        if (typeof value !== "object" && !scalarFitsType(value, expected))
           throw new CatalogValidationError(
             "PROP_TYPE_MISMATCH",
             `${at}.${key}`,
@@ -507,11 +509,11 @@ export function buildCatalogLibrary(
       if (rule.child.via && !definitions.get(rule.child.via))
         throw new CatalogValidationError("DANGLING_DEFINITION", at);
       for (const [prop, value] of Object.entries(rule.child.props ?? {}))
-        if (child.accepts[prop] !== typeof value)
+        if (!scalarFitsType(value, child.accepts[prop]))
           throw new CatalogValidationError("CONDITION_PROP_NOT_ACCEPTED", at);
       const via = rule.child.via ? definitions.get(rule.child.via) : undefined;
       for (const [prop, value] of Object.entries(rule.child.viaProps ?? {}))
-        if (via?.accepts[prop] !== typeof value)
+        if (!scalarFitsType(value, via?.accepts[prop]))
           throw new CatalogValidationError("CONDITION_PROP_NOT_ACCEPTED", at);
       checkFields(rule.visual ?? {}, undefined, at);
     });

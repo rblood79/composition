@@ -54,7 +54,13 @@ export const buttonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      slot: { kind: "string", label: "Slot", section: "content" },
+      // ADR-256 Decision 4: edited by the RAC slot section (the provider's names · detach).
+      slot: {
+        kind: "string",
+        label: "Slot",
+        section: "content",
+        editorHidden: true,
+      },
       children: { kind: "string", label: "Text", section: "content" },
       // 시각 차원 → data-variant / data-size (theme 가 값 집합 제공)
       variant: {

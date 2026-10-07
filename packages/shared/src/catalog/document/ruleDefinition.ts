@@ -1,3 +1,4 @@
+import { scalarFitsType } from "./valueType";
 import {
   resolveToken,
   type LayoutToken,
@@ -60,6 +61,7 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
 function propDefaultMatches(value: unknown, type: ValueType): boolean {
+  if (type === "slot") return scalarFitsType(value, type);
   if (type === "string[]")
     return (
       Array.isArray(value) && value.every((item) => typeof item === "string")
@@ -556,7 +558,10 @@ export function ruleTypeDefinition(
   // Prop-driven container variants (`[data-label-position="side"]`): the root's own values.
   const variantRules: ConditionalRule[] = catalogContainerVariantRootRules(type)
     .filter((variant) =>
-      Object.keys(variant.when).every((prop) => accepts[prop] === "string"),
+      // (`slot` holds a slot name too — ADR-256: `[slot="description"]` rules key on it.)
+      Object.keys(variant.when).every(
+        (prop) => accepts[prop] === "string" || accepts[prop] === "slot",
+      ),
     )
     .map((variant) => ({
       when: variant.when,
@@ -660,7 +665,7 @@ export function applyManualBox(
   const accepted = (when: Readonly<Record<string, Scalar>>) =>
     Object.entries(when).every(
       ([prop, value]) =>
-        definition.accepts[prop] === typeof value &&
+        scalarFitsType(value, definition.accepts[prop]) &&
         (!definition.propChoices?.[prop] ||
           definition.propChoices[prop].includes(value)),
     );

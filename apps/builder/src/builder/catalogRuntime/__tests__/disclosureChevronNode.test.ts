@@ -172,11 +172,13 @@ describe("Disclosure chevron node", () => {
     )?.[1];
     expect(trigger).toMatch(
       new RegExp(
-        `^<svg[^>]*class="disclosure-chevron".*</svg><span data-catalog-id="${title.id.replace(/[/:]/g, "\\$&")}" class="react-aria-Text"[^>]*>Section Title</span>$`,
+        // (RAC Text in the trigger's context — ADR-256 Decision 4; attribute order is RAC's.)
+        `^<svg[^>]*class="disclosure-chevron".*</svg><span (?=[^>]*class="react-aria-Text")(?=[^>]*data-catalog-id="${title.id.replace(/[/:]/g, "\\$&")}")[^>]*>Section Title</span>$`,
       ),
     );
     // The title takes the trigger's color (its hover color too): no inline rest color.
-    const span = /<span data-catalog-id[^>]*>/.exec(trigger ?? "")?.[0] ?? "";
+    const span =
+      /<span [^>]*data-catalog-id[^>]*>/.exec(trigger ?? "")?.[0] ?? "";
     expect(span).not.toMatch(/[;"]color:/);
     workspace.dispose();
   });

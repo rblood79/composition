@@ -501,7 +501,7 @@ const FIXTURES = {
         e(
           RadioButton,
           { className: rp("RadioButton") },
-          P("RadioField>RadioButton"),
+          P("RadioGroup>RadioField>RadioButton"),
         ),
         P("RadioGroup>RadioField"),
       ),
@@ -640,7 +640,7 @@ const FIXTURES = {
         { id: "a", textValue: "A", className: rp("TreeItem") },
         e(TreeItemContent, null, (values) => {
           rp("TreeItemContent(children fn)")(values);
-          return e(R.Fragment, null, "A", P("Tree>TreeItem>TreeItemContent"));
+          return e(R.Fragment, null, "A", P("Tree>TreeItem"));
         }),
         e(TreeItem, { id: "b", textValue: "B" }, e(TreeItemContent, null, "B")),
       ),
@@ -713,12 +713,7 @@ const FIXTURES = {
         e(
           Row,
           { id: "r", className: rp("Row") },
-          e(
-            Cell,
-            { className: rp("Cell") },
-            "A",
-            P("Table>TableBody>Row>Cell"),
-          ),
+          e(Cell, { className: rp("Cell") }, "A", P("Table>TableBody>Row")),
         ),
       ),
     ),
@@ -842,6 +837,7 @@ const FIXTURES = {
         "err",
         P("TextField>FieldError"),
       ),
+      P("TextField"),
     ),
   Separator: () => e(Separator, { className: rp("Separator") }),
   SelectionIndicatorInTab: () =>

@@ -15,8 +15,10 @@ import {
   isValidElement,
   memo,
   useCallback,
+  useContext,
   useRef,
   useSyncExternalStore,
+  type Context,
   type CSSProperties,
   type ElementType,
   type ReactElement,
@@ -36,6 +38,11 @@ import {
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import { FIELD_HINT_OWNERS } from "./presence";
+import {
+  racSlotProps,
+  resolveRacSlot,
+  type RacSlotResolution,
+} from "./racSlot";
 import type { StateName } from "../document/types";
 import { withCatalogStateStyles, type CatalogStateStyles } from "./stateStyles";
 import {
@@ -476,39 +483,62 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       },
       ...children,
     ),
-  // Preview generic Text = `span.react-aria-Text` (RAC Text's element), without RAC's slot
-  // context: inside a RAC parent that provides Text slots (TagGroup, ListBoxItem…) a slot-less RAC
-  // Text throws, while the Preview draws a plain span.
+  // Text = RAC `Text` (`span.react-aria-Text`) in its parent's Text context (ADR-256 Decision 4 —
+  // a ListBoxItem's label slot names the option). A slot the context does not provide (or none
+  // where it has no default) renders the plain span RAC would refuse, keeping the authored name.
   text: (node, style) =>
-    createElement(
-      "span",
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        className: "react-aria-Text",
-        ...(typeof node.props.size === "string"
-          ? { "data-size": node.props.size }
-          : {}),
-        style,
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Text",
+      authored: node.props.slot,
+      render: (resolution) => {
+        const props = {
+          "data-catalog-id": node.id,
+          className: "react-aria-Text",
+          ...(typeof node.props.size === "string"
+            ? { "data-size": node.props.size }
+            : {}),
+          style,
+        };
+        const text = String(node.props.children ?? "");
+        return detachedSlot(resolution)
+          ? createElement(
+              "span",
+              {
+                ...props,
+                ...(resolution.kind === "unconnected" && resolution.slot
+                  ? { slot: resolution.slot }
+                  : {}),
+              },
+              text,
+            )
+          : createElement(
+              Text,
+              { ...props, ...racSlotProps(resolution) } as Parameters<
+                typeof Text
+              >[0],
+              text,
+            );
       },
-      String(node.props.children ?? ""),
-    ),
-  // (`slot`: a Dialog's title — RAC connects it as the dialog's name, ADR-254. Only the slot RAC
-  // gives a Heading: an InlineAlert title's old slot role `label` is no RAC slot, and inside a
-  // Dialog RAC throws on a slot it does not provide.)
+    }),
+  // (`slot`: a Dialog's title — RAC connects it as the dialog's name, ADR-254. A slot the Heading
+  // context does not provide renders detached instead of throwing — ADR-256 Decision 4.)
   heading: (node, style) =>
-    createElement(
-      Heading,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        ...(RAC_HEADING_SLOTS.has(node.props.slot as string)
-          ? { slot: node.props.slot }
-          : {}),
-        style,
-      } as Parameters<typeof Heading>[0],
-      String(node.props.children ?? ""),
-    ),
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Heading",
+      authored: node.props.slot,
+      render: (resolution) =>
+        createElement(
+          Heading,
+          {
+            "data-catalog-id": node.id,
+            ...racSlotProps(resolution),
+            style,
+          } as Parameters<typeof Heading>[0],
+          String(node.props.children ?? ""),
+        ),
+    }),
   // (`children`: what its field appends to the Label — the necessity indicator, ADR-253.)
   label: (node, style, children) =>
     createElement(
@@ -520,16 +550,21 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ...children,
     ),
   description: (node, style) =>
-    createElement(
-      Text,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        slot: "description",
-        style,
-      } as Parameters<typeof Text>[0],
-      String(node.props.children ?? ""),
-    ),
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Text",
+      authored: node.props.slot ?? "description",
+      render: (resolution) =>
+        createElement(
+          Text,
+          {
+            "data-catalog-id": node.id,
+            ...racSlotProps(resolution),
+            style,
+          } as Parameters<typeof Text>[0],
+          String(node.props.children ?? ""),
+        ),
+    }),
   paragraph: (node, style) =>
     createElement(
       "p",
@@ -549,35 +584,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       String(node.props.children ?? ""),
     ),
   button: (node, style, children) =>
-    createElement(
-      Button,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        variant: node.props.variant,
-        size: node.props.size,
-        fillStyle: node.props.fillStyle,
-        staticColor: node.props.staticColor,
-        type: node.props.type,
-        // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
-        // parent's context, so a default `false` would undo a field's disabled stepper.
-        ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
-        ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
-        // RAC's named slot of the parent this Button belongs to (a NumberField's steppers).
-        ...(typeof node.props.slot === "string" && node.props.slot
-          ? { slot: node.props.slot }
-          : {}),
-        // (A quiet Select's trigger: the field sheet draws the quiet box — `data-quiet` keeps the
-        // filled Button paint off, and a rest paint the document wrote stays out while quiet, as
-        // on a quiet field's Input.)
-        ...quietState(node),
-        style: quietStyle(node, style),
-      } as unknown as Parameters<typeof Button>[0],
-      ...children,
-      ...(node.props.children === undefined || node.props.children === ""
-        ? []
-        : [String(node.props.children)]),
-    ),
+    createElement(RacSlotScope, {
+      key: node.id,
+      context: "Button",
+      authored: node.props.slot,
+      render: (resolution) => buttonElement(node, style, children, resolution),
+    }),
   // RAC `SelectValue` inside a Select's trigger Button (ADR-253): RAC writes the selected item's
   // text, or the Select's placeholder.
   selectvalue: (node, style) =>
@@ -742,6 +754,88 @@ function fieldDateInputBinding(
     } as unknown as Parameters<typeof RAC.DateInput>[0],
     ((segment: Parameters<typeof RAC.DateSegment>[0]["segment"]) =>
       createElement(RAC.DateSegment, { segment })) as never,
+  );
+}
+
+/** A Button node's element (its RAC slot resolved in the parent's Button context). */
+function buttonElement(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+  children: ReactElement[],
+  resolution: RacSlotResolution,
+): ReactElement {
+  return createElement(
+    Button,
+    {
+      "data-catalog-id": node.id,
+      variant: node.props.variant,
+      size: node.props.size,
+      fillStyle: node.props.fillStyle,
+      staticColor: node.props.staticColor,
+      type: node.props.type,
+      // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
+      // parent's context, so a default `false` would undo a field's disabled stepper.
+      ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+      ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
+      // RAC's named slot of the parent this Button belongs to (a NumberField's steppers) —
+      // ADR-256 Decision 4: the slot the context resolves to (`null` = detached).
+      ...racSlotProps(resolution),
+      // (A quiet Select's trigger: the field sheet draws the quiet box — `data-quiet` keeps the
+      // filled Button paint off, and a rest paint the document wrote stays out while quiet, as
+      // on a quiet field's Input.)
+      ...quietState(node),
+      style: quietStyle(node, style),
+    } as unknown as Parameters<typeof Button>[0],
+    ...children,
+    ...(node.props.children === undefined || node.props.children === ""
+      ? []
+      : [String(node.props.children)]),
+  );
+}
+
+/** The RAC consumer contexts a catalog part reads its slot from (`racSlot.ts`). */
+const RAC_SLOT_CONTEXTS = {
+  Text: RAC.TextContext,
+  Heading: RAC.HeadingContext,
+  Button: RAC.ButtonContext,
+} as const;
+
+/**
+ * ADR-256 Decision 4 — resolves a part's authored RAC slot against the live context it renders in
+ * (`racSlot.ts`), then renders. Props the DOM pass adds to the binding's element (`slot` — a
+ * collection item role · `id` — the HTML id) reach the rendered element.
+ */
+function RacSlotScope({
+  context,
+  authored,
+  render,
+  slot,
+  ...rest
+}: {
+  context: keyof typeof RAC_SLOT_CONTEXTS;
+  authored: unknown;
+  render: (resolution: RacSlotResolution) => ReactElement;
+  slot?: string;
+  [key: string]: unknown;
+}): ReactElement {
+  const element = render(
+    resolveRacSlot(
+      useContext(RAC_SLOT_CONTEXTS[context] as Context<unknown>),
+      slot ?? authored,
+    ),
+  );
+  return Object.keys(rest).length ? cloneElement(element, rest) : element;
+}
+
+/**
+ * A resolution with no context to connect to — detached, not connected, or no provider above
+ * (rendered as the plain element, the DOM it had before ADR-256).
+ */
+function detachedSlot(resolution: RacSlotResolution): boolean {
+  return (
+    resolution.kind === "detached" ||
+    resolution.kind === "unconnected" ||
+    resolution.kind === "none"
   );
 }
 
@@ -1157,12 +1251,6 @@ function itemLabelText(
     .map((child) => String(child?.props.children ?? ""))
     .join("");
 }
-
-/**
- * The slots RAC gives a Heading (`HeadingContext` with `slots`): a Dialog's `title` (RAC
- * `Dialog.mjs` — the heading it labels the dialog with, at level 2).
- */
-const RAC_HEADING_SLOTS: ReadonlySet<string> = new Set(["title"]);
 
 /** Preview `ORPHAN_ITEM_HOST`: RAC host of each collection item/section type (lower-case). */
 const ORPHAN_ITEM_HOST: Readonly<Record<string, string>> = {

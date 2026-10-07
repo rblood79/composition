@@ -1,4 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
+import { scalarFitsType } from "./valueType";
 import type {
   CatalogDocument,
   CatalogEntry,
@@ -156,6 +157,7 @@ function edgesOf(entry: CatalogEntry): Edge[] {
  * separately), a string list, a list of flat item records, or a scalar of that type.
  */
 function propValueMatches(value: unknown, type: string): boolean {
+  if (type === "slot") return scalarFitsType(value, type);
   if (type === "string[]")
     return (
       Array.isArray(value) && value.every((item) => typeof item === "string")

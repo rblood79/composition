@@ -58,7 +58,11 @@ function ownedVariables(
 
 /** A catalog value type in the shared variable model (structured values are arrays). */
 function variableType(type: ValueType): VariableDefType {
-  return type === "string[]" || type === "items" ? "array" : type;
+  return type === "string[]" || type === "items"
+    ? "array"
+    : type === "slot"
+      ? "string"
+      : type;
 }
 
 function defaultOf(type: VariableDefType, value: unknown): unknown {

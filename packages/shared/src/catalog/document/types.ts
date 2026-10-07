@@ -61,7 +61,18 @@ export type ItemValue = Readonly<Record<string, Scalar | readonly ItemRow[]>>;
  */
 export type StructuredValue = readonly string[] | readonly ItemValue[];
 export type AuthoredValue = Scalar | TokenUse | StructuredValue;
-export type ValueType = "string" | "number" | "boolean" | "string[]" | "items";
+/**
+ * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
+ * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
+ * context). The three are different values in storage and validation.
+ */
+export type ValueType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "string[]"
+  | "items"
+  | "slot";
 /** Resolved prop value: a scalar or a structured value. */
 export type PropValue = Scalar | StructuredValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";

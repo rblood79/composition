@@ -307,7 +307,14 @@ function expectSinceConversion(
             "<h3 class=react-aria-Heading>Dialog Title</>",
             "<h2 class=react-aria-Heading id slot=title>Dialog Title</>",
           )
-      : structureOf(before.dom);
+      : type === "inline-alert"
+        ? // ADR-256 Decision 4 ④: S2 InlineAlert gives its title a plain Heading context, which
+          // takes the template's slot name as is (the template's `label` goes in Phase 10).
+          structureOf(before.dom).replace(
+            "<h3 class=react-aria-Heading>",
+            "<h3 class=react-aria-Heading slot=label>",
+          )
+        : structureOf(before.dom);
   expect(structureOf(now.dom!)).toBe(expected);
   // Each part element inlines its record's values (the Canvas draws the same record).
   for (const part of Object.values(now.records)) {

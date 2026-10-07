@@ -35,6 +35,7 @@ import {
 import { CatalogPageSection } from "./CatalogPageSection";
 import { CatalogPropertyClipboardActions } from "./CatalogPropertyClipboardActions";
 import { CatalogSlotSection } from "./CatalogSlotSection";
+import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
 import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
@@ -196,6 +197,10 @@ export function CatalogPropertiesBody({
         />
         <CatalogItemRolesSection
           key={`roles:${first.identity}`}
+          identity={first.identity}
+        />
+        <CatalogRacSlotSection
+          key={`rac-slot:${first.identity}`}
           identity={first.identity}
         />
         <CatalogItemOriginNotice
