@@ -673,6 +673,44 @@ export function catalogDateSegmentPlaceholderPaint(): {
   };
 }
 
+/**
+ * Paint of a Select's value while it shows the placeholder (the Select rule's
+ * `.react-aria-SelectValue[data-placeholder]` delegation state — what the DOM sheet applies until
+ * something is chosen) in `mode`: its color as hex with the state's opacity folded into the alpha.
+ * The Canvas draws no selection (a choice is the Preview's run state), so its value always shows
+ * the placeholder. Undefined when the rule declares no such color.
+ */
+export function catalogSelectPlaceholderColor(
+  mode: "light" | "dark",
+): string | undefined {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Select;
+  const state = (
+    rule?.structure?.composition as
+      | {
+          delegation?: Array<{
+            childSelector?: string;
+            states?: Record<string, Record<string, string>>;
+          }>;
+        }
+      | undefined
+  )?.delegation?.find(
+    (entry) => entry.childSelector === ".react-aria-SelectValue",
+  )?.states?.["[data-placeholder]"];
+  if (typeof state?.color !== "string") return undefined;
+  const token = cssVarToTokenRef(state.color);
+  const resolved = token ? resolveToken(token, mode) : state.color;
+  if (typeof resolved !== "string" || !/^#[0-9a-f]{6}$/i.test(resolved))
+    throw new Error(
+      `CATALOG_SELECT_PLACEHOLDER_COLOR_UNSUPPORTED:${state.color}`,
+    );
+  const opacity = Number(state.opacity);
+  return state.opacity !== undefined && Number.isFinite(opacity) && opacity < 1
+    ? `${resolved}${Math.round(Math.max(0, opacity) * 255)
+        .toString(16)
+        .padStart(2, "0")}`
+    : resolved;
+}
+
 /** One composed text of the DropZone content: its own px font size (absent = the DropZone's). */
 export interface CatalogDropZoneTextStyle {
   readonly fontSize?: number;

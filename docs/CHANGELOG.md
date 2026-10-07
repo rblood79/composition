@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [field 부품 — Canvas 와 Preview 가 같게 (ADR-253 후속)] - 2026-10-07
+
+### Fixed
+
+- **Select 의 placeholder 글자색** (ADR-253 Phase 3 (4d) 에서 찾음):
+  - Canvas 가 placeholder 를 trigger 글자색 (`fg`) 으로 그렸다. Preview 는 Select sheet 의 `[data-placeholder]` (`fg-muted` × 0.6) 로 그린다.
+  - **Why**: Canvas 는 선택을 그리지 않아 (선택은 Preview 의 실행 상태 — Select 는 selected key 를 받지 않는다) 값이 늘 placeholder 인데, 그 상태의 칠을 읽지 않았다. 이제 같은 선언을 SelectValue 의 Canvas 색으로 읽는다 (DOM 은 그대로 sheet — 고른 항목은 trigger 색). 문서가 값에 쓴 색은 양쪽에서 그 위다.
+  - 위치: `packages/shared/src/catalog/document/rulePartRules.ts` `catalogSelectPlaceholderColor` · `catalog/runtime/compositionRoot.ts`
+
 ## [Preview 증분 갱신 — 한 번에 생겼다 지워진 노드] - 2026-10-07
 
 ### Fixed

@@ -71,6 +71,7 @@ import {
 import {
   catalogDateSegmentPaddingX,
   catalogDateSegmentPlaceholderPaint,
+  catalogSelectPlaceholderColor,
 } from "../document/rulePartRules";
 import { catalogDropZoneContent } from "./dropZoneContent";
 import {
@@ -1746,6 +1747,16 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined,
   ): Readonly<Record<string, string | number | boolean>> | undefined {
     const derived = catalogDerivedProps(record, get, this.typeOf, this.locale);
+    // A Select's value shows its placeholder (the Canvas draws no selection): the Select sheet's
+    // `[data-placeholder]` paint, unless the value authors its own color. The DOM leaves its color
+    // to that sheet (`domBinding.tsx`), so the derived color is the Canvas's.
+    if (
+      record.bindingId === "selectvalue" &&
+      catalogAuthoredVisual(this, record).color === undefined
+    ) {
+      const color = catalogSelectPlaceholderColor(this.colorMode);
+      if (color) return { ...derived, color };
+    }
     const item = get(record.parentId);
     if (
       !item?.ruleId ||
