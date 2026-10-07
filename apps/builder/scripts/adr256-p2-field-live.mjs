@@ -1,7 +1,7 @@
 // ADR-256 Phase 2 live: a field draws its node tree. A TextField is placed and detached, a search
 // Icon is put between its Label and Input (a free child), and its description emptied: the Preview
 // draws Label · Icon · Input in order, the Canvas shows the Icon and hides the empty Description
-// (presentWhen), Compare Mode screenshot for the two side by side. Real Builder, headed Chrome.
+// (presentWhen), and after a reload the same tree; Compare Mode screenshot for the two side by side. Real Builder, headed Chrome.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-p2-field-live.mjs <out>
 import { chromium } from "playwright";
@@ -160,6 +160,43 @@ record(
     !canvas[1]?.hidden &&
     canvas.some((k) => k.type === "Description" && k.hidden),
   canvas,
+);
+// Saved and opened again: the same node tree (contract 8).
+await page.waitForTimeout(1500);
+await page.reload();
+await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
+await page.waitForFunction(
+  () => window.__COMPOSITION_CATALOG__?.workspace,
+  null,
+  { timeout: 30000 },
+);
+await page.waitForTimeout(2500);
+const compareOn = await page
+  .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+  .first()
+  .isVisible()
+  .catch(() => false);
+if (compareOn)
+  await page
+    .getByRole("button", { name: "Compare Mode (Preview + Skia)", exact: true })
+    .first()
+    .click();
+await page.waitForTimeout(3000);
+const reopened = await page.evaluate((id) => {
+  const doc = document.querySelector("#previewFrame")?.contentDocument;
+  const root = [...(doc?.querySelectorAll("[data-catalog-id]") ?? [])].find(
+    (e) =>
+      e.getAttribute("data-catalog-id").endsWith(`::${id}`) &&
+      e.classList.contains("react-aria-TextField"),
+  );
+  return root
+    ? [...root.children].map((child) => child.tagName.toLowerCase())
+    : null;
+}, fieldId);
+record(
+  "P2-4 reopened: the TextField still draws Label · Icon · Input",
+  JSON.stringify(reopened?.slice(0, 3)) === JSON.stringify(["label", "div", "input"]),
+  { reopened },
 );
 // Close the palette, zoom the Canvas in around the field and shoot both sides.
 await page.mouse.click(265, 77);

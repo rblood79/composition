@@ -13,6 +13,8 @@ import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
+import { NumberField as AriaNumberField } from "react-aria-components/NumberField";
+import { SearchField as AriaSearchField } from "react-aria-components/SearchField";
 import { Time } from "@internationalized/date";
 import { safeParseDateString } from "../../utils/core/dateUtils";
 import { ListBox as AriaListBox } from "react-aria-components/ListBox";
@@ -57,11 +59,9 @@ import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
 import { Meter } from "../../components/Meter";
-import { NumberField } from "../../components/NumberField";
 import { ProgressBar } from "../../components/ProgressBar";
 import { RadioGroup } from "../../components/RadioGroup";
 import { RangeCalendar } from "../../components/RangeCalendar";
-import { SearchField } from "../../components/SearchField";
 import { Slider } from "../../components/Slider";
 import { Switch } from "../../components/Switch";
 import { ToggleButton } from "../../components/ToggleButton";
@@ -480,21 +480,6 @@ export function catalogFieldInputNode(
     ...childrenOf(root, field),
     ...catalogFieldControlNodes(root, field),
   ].find((child) => catalogTypeName(root, child) === type);
-}
-/** A field's control for its shared component: the Input node's own element, when it has one. */
-function fieldInput(input: DelegatedDomInput): ReactNode {
-  const node = catalogFieldInputNode(input.root, input.node);
-  return node ? input.renderChild(node.id) : undefined;
-}
-/**
- * A wrapped field's control parts for its shared component: the elements of the part nodes inside
- * its wrapper, in order (`undefined` = the field composes them from its props).
- */
-function fieldControl(input: DelegatedDomInput): ReactNode[] | undefined {
-  const nodes = catalogFieldControlNodes(input.root, input.node);
-  return nodes.length
-    ? nodes.map((node) => input.renderChild(node.id))
-    : undefined;
 }
 /**
  * A field's `isInvalid` for RAC: `true` while the document says so, else left unset. An explicit
@@ -1049,50 +1034,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     maxLength: num(props.maxLength),
     minLength: num(props.minLength),
   })),
-  numberfield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      return createElement(NumberField as ElementType, {
-        ...fieldBase(input),
-        size: props.size || "md",
-        label: fieldLabel(input, str(props.label)),
-        description: fieldDescription(input, str(props.description)),
-        errorMessage: fieldError(input, str(props.errorMessage)),
-        controlElements: fieldControl(input),
-        defaultValue: Number(props.value || 0),
-        minValue: num(props.minValue),
-        maxValue: num(props.maxValue),
-        step: num(props.step),
-        locale: opt(props.locale),
-        isWheelDisabled: bool(props.isWheelDisabled),
-      });
-    },
-  },
-  searchfield: {
-    ownsChild: ownsAll,
-    render: (input) => {
-      const props = input.node.props;
-      return createElement(SearchField as ElementType, {
-        ...fieldBase(input),
-        ...inputHints(props),
-        size: props.size || "md",
-        label: fieldLabel(
-          input,
-          propagatedText(input.root, props.label, childOf(input, "Label")),
-        ),
-        description: fieldDescription(input, str(props.description)),
-        errorMessage: fieldError(input, str(props.errorMessage)),
-        // ADR-253: the glyph, the Input and the clear button are the wrapper's part nodes.
-        controlElements: fieldControl(input),
-        placeholder: str(props.placeholder),
-        defaultValue: str(props.value),
-        maxLength: num(props.maxLength),
-        minLength: num(props.minLength),
-        pattern: opt(props.pattern),
-      });
-    },
-  },
+  numberfield: nodeTreeField(AriaNumberField, "NumberField", (props) => ({
+    defaultValue: Number(props.value || 0),
+    minValue: num(props.minValue),
+    maxValue: num(props.maxValue),
+    step: num(props.step),
+    locale: opt(props.locale),
+    isWheelDisabled: bool(props.isWheelDisabled),
+  })),
+  searchfield: nodeTreeField(AriaSearchField, "SearchField", (props) => ({
+    ...inputHints(props),
+    defaultValue: str(props.value),
+    maxLength: num(props.maxLength),
+    minLength: num(props.minLength),
+    pattern: opt(props.pattern),
+  })),
   datefield: nodeTreeField(
     AriaDateField,
     "DateField",

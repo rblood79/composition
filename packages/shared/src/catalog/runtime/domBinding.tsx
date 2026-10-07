@@ -651,6 +651,33 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     } as Parameters<typeof ComboBox>[0]),
 };
 
+/** The element of a node-tree field's control wrapper, by the field's binding (ADR-256 Phase 2c). */
+const NODE_TREE_CONTROL_WRAPPERS: Readonly<
+  Record<
+    string,
+    (node: CatalogConsumerNode, children: ReactElement[]) => ReactElement
+  >
+> = {
+  numberfield: (node, children) =>
+    createElement(
+      RAC.Group,
+      { key: node.id, "data-catalog-id": node.id } as Parameters<
+        typeof RAC.Group
+      >[0],
+      ...children,
+    ),
+  searchfield: (node, children) =>
+    createElement(
+      "div",
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        className: "searchfield-container",
+      },
+      ...children,
+    ),
+};
+
 const fieldErrorBinding: DomBinding = (node, style) =>
   createElement(
     RAC.FieldError,
@@ -1722,6 +1749,15 @@ function renderNode(
           : {}),
       }),
     );
+  // A field's control wrapper (`SelectTrigger`) in a field drawn as its node tree (ADR-256 Phase
+  // 2c): RAC's Group of a NumberField, the container of a SearchField — its parts in it, in order.
+  // Its box is the field sheet's (the field owns the wrapper's look — no inline style).
+  const wrapper =
+    node.bindingId === "selecttrigger"
+      ? NODE_TREE_CONTROL_WRAPPERS[parentInput?.bindingId ?? ""]
+      : undefined;
+  if (wrapper)
+    return withHtmlId(root, node, wrapper(node, children));
   // A field's Input node is a RAC Input inside the field's context (ADR-253).
   const field = watchedParent ?? catalogPartField(root, node);
   if (

@@ -3,10 +3,13 @@ import "fake-indexeddb/auto";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
+  Button,
   FieldError,
   Form,
+  Group,
   Input,
   Label,
+  NumberField,
   Text,
   TextField,
 } from "react-aria-components";
@@ -85,17 +88,29 @@ async function open(type: string, props: Record<string, string | boolean>) {
   return { workspace, field };
 }
 
-/** Decision 11 structure: tag · attributes that are structure · text, aria links as positions. */
+/**
+ * Decision 11 structure: tag · attributes that are structure · text, aria links as positions.
+ * Known difference outside the field family, collapsed here and recorded in the breakdown: our
+ * Icon element is `div.react-aria-Icon > svg` where the reference's lucide glyph is the `svg`.
+ */
 function structure(html: string): string {
   const host = document.createElement("div");
   host.innerHTML = html;
+  for (const icon of [...host.querySelectorAll("div.react-aria-Icon")])
+    icon.replaceWith(...icon.childNodes);
+  for (const svg of [...host.querySelectorAll("svg")]) svg.innerHTML = "";
   const all = [...host.querySelectorAll("*")];
   const position = (id: string) => {
     const index = all.findIndex((element) => element.id === id);
     return index < 0 ? `missing:${id}` : `#${index}`;
   };
   const KEEP = /^(role|slot|type|aria-.*|disabled|required|readonly)$/;
-  const LINKS = new Set(["aria-labelledby", "aria-describedby", "for"]);
+  const LINKS = new Set([
+    "aria-labelledby",
+    "aria-describedby",
+    "aria-controls",
+    "for",
+  ]);
   const walk = (element: Element): string => {
     const attributes = [...element.attributes]
       .filter(
@@ -141,7 +156,59 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     expect(structure(actual)).toBe(structure(reference));
   });
 
-  it.each(["textfield", "textarea", "colorfield", "datefield", "timefield"])(
+  it("NumberField has the reference example's structure: Group > Input + stepper Buttons", async () => {
+    const { workspace, field } = await open("numberfield", {
+      label: "Width",
+      description: "",
+    });
+    const actual = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, field().id),
+    );
+    const glyph = () =>
+      createElement("svg", { "aria-hidden": "true" });
+    // react-aria.adobe.com NumberField (G0 example 6).
+    const reference = renderToStaticMarkup(
+      createElement(
+        NumberField,
+        {
+          // The same state as the catalog field (its document writes these).
+          defaultValue: 0,
+          minValue: field().props.minValue as number | undefined,
+          isDisabled: false,
+        },
+        createElement(Label, null, "Width"),
+        createElement(
+          Group,
+          null,
+          createElement(Input),
+          createElement(Button, { slot: "decrement" }, glyph()),
+          createElement(Button, { slot: "increment" }, glyph()),
+        ),
+        createElement(FieldError),
+      ),
+    );
+    expect(structure(actual)).toBe(structure(reference));
+  });
+
+  it("a stepper Button with no text but a glyph stays (Decision 7 — no value condition)", async () => {
+    const { workspace, field } = await open("numberfield", { label: "" });
+    const html = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, field().id),
+    );
+    const buttons = [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)];
+    expect(buttons).toHaveLength(2);
+    for (const [, inner] of buttons) expect(inner).toContain("<svg");
+  });
+
+  it.each([
+    "textfield",
+    "textarea",
+    "numberfield",
+    "searchfield",
+    "colorfield",
+    "datefield",
+    "timefield",
+  ])(
     "%s: a free child the author puts in is drawn in its place (Canvas and DOM)",
     async (type) => {
       const { workspace, field } = await open(type, { label: "Field" });

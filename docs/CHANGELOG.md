@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 2 — field 가 노드 트리를 그린다] - 2026-10-08
+
+### Changed
+
+- **field 7종 (TextField · TextArea · NumberField · SearchField · ColorField · DateField · TimeField) 이 노드 트리를 그린다** (ADR-256 Decision 2): Preview 는 RAC field 안에 자식 노드를 순서대로 그린다 — Label · Input · Description · FieldError 와 작성자가 넣은 자유 자식 (아이콘 등, 레퍼런스의 field 안 아이콘). 이제 field 에 다른 요소를 넣을 수 있다 (전에는 중첩 규칙이 막았다 — Preview 가 그리지 않아서). 기존 DOM 구조는 그대로다. 위치: `catalog/runtime/delegatedDom.tsx` `nodeTreeField`
+- **빈 label · description 의 부품은 없다 — 값 조건 `presentWhen`** (Decision 7): field 의 Label · Description 은 최종 글자가 빈 문자열일 때만 없다 (`0` · `false` · 공백은 남는다). Canvas 도 이제 빈 label 의 Label 자리를 그리지 않는다 (Preview 와 같다). 바인딩만으로는 노드가 사라지지 않는다 — FieldError 는 빈 문구여도 RAC 의 검증 메시지를 보인다. 위치: `catalog/runtime/presence.ts` `catalogAbsentByValue`
+- **저장 형식 contract 8**: 옛 contract 문서는 열지 않는다 (ADR-256 Decision 10)
+
 ## [ADR-256 Phase 1 — 넣을 수 있는가를 하나로 판정] - 2026-10-07
 
 ### Changed

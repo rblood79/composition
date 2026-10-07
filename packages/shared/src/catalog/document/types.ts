@@ -15,9 +15,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Tooltip origins (`component-card__title` …) are instances of the Heading · Description origins.
  * 7 — ADR-255: the Popover origin is `DialogTrigger > Button + Popover`, the Tooltip origin
  * `TooltipTrigger > Button + Tooltip` (the overlay one level down, `component-popover__overlay`).
+ * 8 — ADR-256 Phase 2: a field's Label · Description positions carry `presentWhen: "nonEmptyText"`
+ * (their presence is that value condition; a binding alone keeps every node), and the field
+ * draws its node tree.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 7 as const;
+export const LIBRARY_CONTRACT_VERSION = 8 as const;
 
 export type EntryKind =
   | "project"

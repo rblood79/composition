@@ -120,14 +120,8 @@ export interface UnconvertedFamilyLimit {
 export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   Record<string, UnconvertedFamilyLimit>
 > = {
-  // field 가족 — Phase 2: TextField · TextArea · DateField · TimeField · ColorField 는 노드 트리로
-  // 그린다 (ADR-256 Phase 2b, 행 삭제). NumberField · SearchField 는 wrapper 전환 (2c) 까지.
-  NumberField: {
-    children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
-  },
-  SearchField: {
-    children: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
-  },
+  // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper
+  // (`SelectTrigger`) 는 picker 와 같이 Phase 6 에서 RAC Group 으로 바꾼다 (아래 행 유지).
   Select: {
     children: ["Label", "Button", "Description", "FieldError", "ListBox"],
   },
