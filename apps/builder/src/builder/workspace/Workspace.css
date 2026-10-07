@@ -463,15 +463,14 @@
   border: none;
 }
 
-/* catalog Preview 의 breakpoint 상자: Canvas 페이지 폭 (desktop 1920 · tablet 768 · mobile 390) 으로
-   그리고 가운데 둔다. pane 이 더 작으면 스크롤. */
+/* catalog Preview 의 breakpoint 상자: Canvas viewport 의 폭·높이로 그리고 가운데 둔다.
+   pane 이 더 작으면 두 축 모두 스크롤. */
 .workspace-compare-content:has(> .catalog-preview-frame) {
   display: flex;
   overflow: auto;
 }
 .catalog-preview-frame {
   flex: 0 0 auto;
-  height: 100%;
   margin: auto;
   outline: 1px solid var(--border);
 }

@@ -117,14 +117,12 @@ export function CatalogPreviewFrame({
       workspace.detachPreview();
     };
   }, [workspace]);
-  // The Preview renders at the width the Canvas draws the page at (`CANVAS_VIEWPORT` — desktop
-  // 1920 · tablet 768 · mobile 390), so the CSS side lays out at the editor's breakpoint as the
-  // Canvas does. Desktop too: filling the pane laid it out at the pane's width beside a 1920 page
-  // (2026-10-04 user report). A pane narrower than the frame scrolls.
+  // Canvas와 같은 breakpoint viewport로 렌더한다. 패널 크기를 쓰면 iframe의
+  // 가로·세로 기준이 달라진다. 프레임보다 작은 패널은 두 축 모두 스크롤한다.
   const breakpoint = useCatalogSession((state) => state.breakpoint);
-  const width = `${CANVAS_VIEWPORT[breakpoint].width}px`;
+  const { width, height } = CANVAS_VIEWPORT[breakpoint];
   return (
-    <div className="catalog-preview-frame" style={{ width }}>
+    <div className="catalog-preview-frame" style={{ width, height }}>
       <iframe
         ref={frameRef}
         id="previewFrame"

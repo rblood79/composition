@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
- * Compare Mode's CSS side renders the Preview at the editor's breakpoint width — the width the
- * Canvas draws the page at (`CANVAS_VIEWPORT`). Desktop included: the frame filled the pane
+ * Compare Mode's CSS side renders the Preview at the editor's breakpoint width and height — the
+ * page viewport the Canvas uses (`CANVAS_VIEWPORT`). Desktop included: the frame filled the pane
  * (2026-10-04 user report 「compare 모드에서 css 는 breakpoint 가 미적용」 — desktop CSS 834px beside a
  * 1920px Canvas page).
  */
@@ -20,7 +20,7 @@ import { CANVAS_VIEWPORT } from "../../../canvasBreakpoints";
 import { CatalogPreviewFrame } from "../CatalogPreviewFrame";
 
 describe("Compare Mode Preview frame", () => {
-  it("takes the breakpoint's page width at every breakpoint, desktop included", async () => {
+  it("takes the breakpoint's page width and height at every breakpoint, desktop included", async () => {
     const workspace = new CatalogWorkspace(
       new CatalogGraph(
         newCatalogProjectDocument({
@@ -52,6 +52,9 @@ describe("Compare Mode Preview frame", () => {
       act(() => workspace.setBreakpoint(breakpoint));
       expect(frame().style.width).toBe(
         `${CANVAS_VIEWPORT[breakpoint].width}px`,
+      );
+      expect(frame().style.height).toBe(
+        `${CANVAS_VIEWPORT[breakpoint].height}px`,
       );
     }
     view.unmount();

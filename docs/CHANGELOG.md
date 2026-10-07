@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Compare Mode 높이 동기화 — Preview breakpoint viewport] - 2026-10-07
+
+### Fixed
+
+- **Compare Mode Preview의 폭·높이를 Canvas breakpoint viewport에 맞춤**
+  - Desktop 1920×1080, Tablet 768×1024, Mobile 390×844를 함께 적용하고, 패널이 작으면 두 축 모두 스크롤한다.
+  - **Why:** 폭만 inline으로 적용하고 높이는 `height: 100%`로 패널 크기를 따라 iframe의 세로 viewport가 Canvas와 달랐다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx`, `apps/builder/src/builder/workspace/Workspace.css`.
+
 ## [옛 Preview 렌더러 삭제 — `packages/shared/src/renderers`] - 2026-10-07
 
 ### Removed
