@@ -1,3 +1,4 @@
+import { mapShowWhenNodeIds } from "./stateOwnerRefs";
 import type {
   CatalogReader,
   DescendantOverride,
@@ -141,6 +142,10 @@ export function cloneNodeSubgraph(
       id: map(entry.id),
       children: entry.children.map(map),
       descendantOverrides: overrides(entry.descendantOverrides),
+      // ADR-256 §1-1: a state owner inside the copy is the copy's (a reference outside stays).
+      ...(entry.showWhen
+        ? { showWhen: mapShowWhenNodeIds(entry.showWhen, map) }
+        : {}),
     })),
     relatedEntries,
   };

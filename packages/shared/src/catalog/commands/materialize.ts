@@ -1,3 +1,7 @@
+import {
+  mapShowWhenLocal,
+  mapShowWhenNodeIds,
+} from "../document/stateOwnerRefs";
 import type {
   DescendantOverride,
   EntryId,
@@ -234,6 +238,8 @@ export function createMaterializer(
   const consumed = new Set<DescendantOverride>();
   /** Template path (at the owner's instance level) → the owned node now standing there. */
   const placed = new Map<string, NodeId>();
+  /** Template node → the owned node now standing there (a project template node's own id). */
+  const placedByTemplate = new Map<string, NodeId>();
   const key = (path: readonly string[]) => path.join("\0");
   // Library patches of the nested template step the position sits in (the resolver's `patches`).
   const enclosing =
@@ -256,6 +262,7 @@ export function createMaterializer(
     if (change?.kind === "replace") {
       if (fixedId) fail("POSITION_REPLACED", path[path.length - 1]);
       placed.set(key(path), change.replacementId);
+      placedByTemplate.set(path[path.length - 1], change.replacementId);
       return change.replacementId;
     }
     const templateId = path[path.length - 1];
@@ -265,6 +272,7 @@ export function createMaterializer(
     if (template.displayState) fail("POSITION_HAS_DISPLAY_STATE", templateId);
     const id = fixedId ?? newId("node");
     placed.set(key(path), id);
+    placedByTemplate.set(templateId, id);
     let entry: NodeEntry = {
       ...(template.extra as object),
       kind: "node",
@@ -286,7 +294,18 @@ export function createMaterializer(
       ...(template.enabled !== undefined ? { enabled: template.enabled } : {}),
       ...(template.stateRules ? { stateRules: template.stateRules } : {}),
       ...(template.presentWhen ? { presentWhen: template.presentWhen } : {}),
-      ...(template.showWhen ? { showWhen: template.showWhen } : {}),
+      // ADR-256 §1-1: a reference to a position of this origin becomes that position's new node.
+      ...(template.showWhen
+        ? {
+            showWhen: mapShowWhenNodeIds(
+              mapShowWhenLocal(template.showWhen, (templatePath) =>
+                placed.get(key(templatePath)),
+              ),
+              // (A project origin's template node is a node id: its position's new node.)
+              (nodeId) => placedByTemplate.get(nodeId) ?? nodeId,
+            ),
+          }
+        : {}),
     };
     const libraryPatch = enclosing?.find((item) =>
       sameAddress(

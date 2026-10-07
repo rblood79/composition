@@ -5,9 +5,20 @@ import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  copyNodes,
+  createComponent,
+  detachInstances,
+  duplicateNodes,
   insertNodes,
+  moveNodes,
+  pasteNodes,
   setFields,
+  ungroupNodes,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  catalogShowWhenHolds,
+  catalogStateOwner,
+} from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -48,7 +59,7 @@ const node = (
     kind: "node",
     id: id(name),
     // (A primitive's definition is `lib:definition:<name>` — group · text.)
-    definitionId: /^[a-z]/.test(type)
+    definitionId: /^[a-z]/.test(type) && type !== "frame"
       ? `lib:definition:${type}`
       : `lib:definition:type-${type}`,
     children: children.map(id),
@@ -258,7 +269,7 @@ describe("ADR-256 Phase 4a — showWhen: the state owner", () => {
     expect(canvas("text")).toBe(false);
   });
 
-  it("a reference that is not linked is false — never another ancestor, even negated", async () => {
+  it("a reference that is not linked: authoring it is refused; an external one reads false", async () => {
     for (const showWhen of [
       { all: ["isDisabled"], from: { ancestor: { nodeId: id("elsewhere") } } },
       {
@@ -268,11 +279,28 @@ describe("ADR-256 Phase 4a — showWhen: the state owner", () => {
       // A Disclosure gives no isSelected: an address naming a part without the key is not linked.
       { all: ["isSelected"], from: { ancestor: { nodeId: id("a") } } },
     ] as CatalogShowWhen[]) {
-      const { canvas, drawn } = await open(groups(true, true, showWhen), "a");
-      expect(canvas("text")).toBe(false);
-      expect(drawn("text")).toBe(false);
+      let code: string | undefined;
+      try {
+        await open(groups(true, true, showWhen), "a");
+      } catch (error) {
+        code = (error as { code?: string }).code;
+      }
+      expect(code).toBe("STATE_OWNER_UNLINKED");
+      // An external document's reference (no command ran): the condition is false — even negated
+      // — and no other ancestor stands in.
+      const records = new Map(
+        [
+          { id: "x::project:node:a", parentId: "", children: ["x::project:node:t"], props: { isDisabled: true } },
+          { id: "x::project:node:t", parentId: "x::project:node:a", children: [], props: {}, showWhen },
+        ].map((r) => [r.id, { ...r, bindingId: "x" } as never]),
+      );
+      const get = (key: string) => records.get(key);
+      expect(
+        catalogShowWhenHolds(get("x::project:node:t")!, get, () => "Disclosure"),
+      ).toBe(false);
     }
   });
+
 });
 
 describe("ADR-256 Phase 4a — showWhen: Disclosure expansion", () => {
@@ -323,5 +351,260 @@ describe("ADR-256 Phase 4a — showWhen: the document form", () => {
     const check = () => validateCatalogEntry(entry(showWhen));
     if (valid) expect(check).not.toThrow();
     else expect(check).toThrow();
+  });
+});
+
+describe("ADR-256 Phase 4b — a stored state owner stays linked (breakdown §1-1)", () => {
+  /** Disclosure A > [header > title, Text ⟵ isDisabled from A's address (A's panel)]; a frame F beside A. */
+  const tree = () => [
+    node("a", "Disclosure", ["a-header", "mark"], { isExpanded: true, isDisabled: true }),
+    node("a-header", "DisclosureHeader", ["a-title"]),
+    node("a-title", "text", [], { children: "A" }),
+    node("mark", "text", [], { children: "Off" }, {
+      all: ["isDisabled"],
+      from: { ancestor: { nodeId: id("a") } },
+    }),
+  ];
+  const code = (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as { code?: string }).code;
+    }
+    return undefined;
+  };
+  const withFrame = async () => {
+    const opened = await open(tree(), "a");
+    opened.workspace.root.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("f", "frame", [])],
+        rootIds: [id("f")],
+        newId: opened.workspace.newId,
+      }),
+    );
+    return opened;
+  };
+
+  it("moving the node out of its owner is refused", async () => {
+    const { workspace } = await withFrame();
+    expect(
+      code(() =>
+        workspace.root.execute(
+          moveNodes({
+            ids: [id("mark")],
+            parent: { kind: "node", id: id("f") },
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+  it("moving the owner with the node, or wrapping the node in a frame, keeps the link", async () => {
+    const { workspace, canvas } = await withFrame();
+    workspace.root.execute(
+      moveNodes({
+        ids: [id("a")],
+        parent: { kind: "node", id: id("f") },
+        newId: workspace.newId,
+      }),
+    );
+    expect(canvas("mark")).toBe(true);
+    workspace.root.execute(
+      insertNodes({
+        parent: { kind: "node", id: id("a") },
+        entries: [node("wrap", "frame", [])],
+        rootIds: [id("wrap")],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.root.execute(
+      moveNodes({
+        ids: [id("mark")],
+        parent: { kind: "node", id: id("wrap") },
+        newId: workspace.newId,
+      }),
+    );
+    expect(canvas("mark")).toBe(true);
+  });
+
+  it("ungrouping the owner (the node is released) is refused; ungrouping a wrapper is not", async () => {
+    const { workspace, canvas } = await open(tree(), "a");
+    workspace.root.execute(
+      insertNodes({
+        parent: { kind: "node", id: id("a") },
+        entries: [node("wrap", "frame", [])],
+        rootIds: [id("wrap")],
+        newId: workspace.newId,
+      }),
+    );
+    workspace.root.execute(
+      moveNodes({
+        ids: [id("mark")],
+        parent: { kind: "node", id: id("wrap") },
+        newId: workspace.newId,
+      }),
+    );
+    workspace.root.execute(
+      ungroupNodes({ ids: [id("wrap")], newId: workspace.newId }),
+    );
+    expect(canvas("mark")).toBe(true);
+    // A ToggleButton owner (free content) ungrouped: its node is released past it.
+    const toggle = await open(
+      [
+        node("tb", "ToggleButton", ["on"], { isSelected: true }),
+        node("on", "text", [], { children: "On" }, {
+          all: ["isSelected"],
+          from: { ancestor: { nodeId: id("tb") } },
+        }),
+      ],
+      "tb",
+    );
+    expect(toggle.canvas("on")).toBe(true);
+    expect(
+      code(() =>
+        toggle.workspace.root.execute(
+          ungroupNodes({ ids: [id("tb")], newId: toggle.workspace.newId }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+
+  it("inserting a node whose address names no ancestor is refused", async () => {
+    const { workspace } = await withFrame();
+    expect(
+      code(() =>
+        workspace.root.execute(
+          insertNodes({
+            parent: { kind: "node", id: id("f") },
+            entries: [
+              node("stray", "text", [], { children: "x" }, {
+                all: ["isDisabled"],
+                from: { ancestor: { nodeId: id("a") } },
+              }),
+            ],
+            rootIds: [id("stray")],
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+
+  it("a duplicate's node reads the duplicate's owner (the copy's ids)", async () => {
+    const { workspace, root, edit } = await open(tree(), "a");
+    workspace.root.execute(
+      duplicateNodes({ ids: [id("a")], newId: workspace.newId }),
+    );
+    const marks = [...root.canvasInputs.values()].filter(
+      (r) => r.props.children === "Off",
+    );
+    expect(marks).toHaveLength(2);
+    const copy = marks.find((r) => r.sourceId !== id("mark"))!;
+    const from = copy.showWhen!.from as { ancestor: { nodeId: string } };
+    expect(from.ancestor.nodeId).not.toBe(id("a"));
+    // The original's owner turns off: only the original hides.
+    edit("a", { isDisabled: false });
+    const shown = (sourceId: string) =>
+      [...root.canvasInputs.values()].find((r) => r.sourceId === sourceId)!
+        .hidden !== true;
+    expect([shown(id("mark")), shown(copy.sourceId!)]).toEqual([false, true]);
+  });
+
+  it("pasting the node alone where its owner is not an ancestor is refused", async () => {
+    const { workspace } = await withFrame();
+    const clipboard = copyNodes(workspace.runtime.graph, [id("mark")]);
+    expect(
+      code(() =>
+        workspace.root.execute(
+          pasteNodes({
+            clipboard,
+            parent: { kind: "node", id: id("f") },
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("STATE_OWNER_UNLINKED");
+  });
+});
+
+describe("ADR-256 Phase 4b — an origin's reference follows its instances and a detach", () => {
+  it("made into a component: each instance reads its own owner; detached: the new owner's id", async () => {
+    const { workspace, root } = await open(
+      [
+        node("tb", "ToggleButton", ["on"], { isSelected: true }),
+        node("on", "text", [], { children: "On" }, {
+          all: ["isSelected"],
+          from: { ancestor: { nodeId: id("tb") } },
+        }),
+      ],
+      "tb",
+    );
+    workspace.root.execute(
+      createComponent({ id: id("tb"), name: "Toggle", newId: workspace.newId }),
+    );
+    const instance = [...root.canvasInputs.values()].find(
+      (r) => r.sourceId !== id("tb") && root.typeOf(r) === "ToggleButton",
+    )!;
+    const on = () =>
+      [...root.canvasInputs.values()].filter((r) => r.props.children === "On");
+    expect(on().every((r) => r.hidden !== true)).toBe(true);
+    workspace.root.execute(
+      detachInstances({
+        ids: [instance.sourceId as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    const detached = on().find((r) => !r.id.includes("::project:node:on"))!;
+    const from = detached.showWhen!.from as { ancestor: { nodeId: string } };
+    expect(from.ancestor.nodeId).not.toBe(id("tb"));
+    expect(detached.hidden).not.toBe(true);
+    // The detached owner turns off: its node hides.
+    workspace.root.execute(
+      setFields({
+        targets: [{ kind: "node", id: from.ancestor.nodeId as NodeId }],
+        props: { isSelected: set(false) },
+      }),
+    );
+    expect(
+      on().find((r) => r.sourceId === detached.sourceId)!.hidden,
+    ).toBe(true);
+  });
+});
+
+describe("ADR-256 Phase 4a — an origin-local address names the position in the nearest instance", () => {
+  it("`local` is the ancestor whose record is that template position of the same instance", () => {
+    const records = new Map(
+      [
+        { id: "p/outer::lib:template:t-root", parentId: "", children: ["p/outer::lib:template:t-group"] },
+        { id: "p/outer::lib:template:t-group", parentId: "p/outer::lib:template:t-root", children: ["p/outer/lib:template:t-inner::lib:template:t-group"] },
+        { id: "p/outer/lib:template:t-inner::lib:template:t-group", parentId: "p/outer::lib:template:t-group", children: ["leaf"] },
+        { id: "leaf", parentId: "p/outer/lib:template:t-inner::lib:template:t-group", children: [] },
+      ].map((r) => [r.id, { ...r, props: {}, bindingId: "x" } as never]),
+    );
+    const get = (key: string) => records.get(key);
+    const typeOf = () => "Disclosure";
+    const owner = (instances: string[]) =>
+      catalogStateOwner(
+        get("leaf")!,
+        "isExpanded",
+        {
+          ancestor: {
+            local: {
+              instances: instances as never,
+              templatePath: ["lib:template:t-root", "lib:template:t-group"] as never,
+            },
+          },
+        },
+        get,
+        typeOf,
+      )?.id;
+    // The nearest instance's position (the inner one), and through a nested instance step the outer.
+    expect(owner([])).toBe("p/outer/lib:template:t-inner::lib:template:t-group");
+    expect(owner(["lib:template:t-inner"])).toBe(
+      "p/outer/lib:template:t-inner::lib:template:t-group",
+    );
   });
 });

@@ -1,5 +1,9 @@
 import { cloneNodeSubgraph } from "../document/clone";
 import { ownedChildren, referencedIds } from "../document/graph";
+import {
+  catalogShowWhenRefs,
+  catalogStateKeysOf,
+} from "../document/stateOwnerRefs";
 import type {
   CatalogEntry,
   CatalogReader,
@@ -113,6 +117,7 @@ export const insertNodes =
     for (const entry of input.entries) draft.create(entry);
     addRelated(draft, input.related ?? []);
     placeAt(draft, input.parent, input.index, input.rootIds, input.newId);
+    assertStateOwnersLinked(draft, input.rootIds);
     return {
       label: input.label ?? "Insert",
       ops: draft.ops(),
@@ -196,6 +201,60 @@ function assertRequiredPartsKept(
         holdsPart(reader, before, ownerId, kinds, typeOf)
       )
         fail("REQUIRED_PART_NOT_REMOVABLE", `${type}>${kinds.join("|")}`);
+  }
+}
+
+/**
+ * ADR-256 Decision 7 · breakdown §1-1 — refuse a command that unlinks a stored state owner: after
+ * the command's writes, every `showWhen` reference by address (`{ ancestor: nodeId | address }`) in
+ * the nodes the command placed, moved or released must still name an ancestor that gives the key
+ * (an instance's address: the instance holds the node). A reference by type or the nearest owner
+ * is never refused. Call after the command's writes.
+ */
+function assertStateOwnersLinked(
+  draft: CommandDraft,
+  touched: readonly NodeId[],
+): void {
+  const reader = draft.reader;
+  const holds = (ownerId: string, nodeId: string): boolean => {
+    const stack = (() => {
+      const owner = draft.read(ownerId);
+      return owner?.kind === "node" ? ownedChildren(owner) : [];
+    })();
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (id === nodeId) return true;
+      const entry = draft.read(id);
+      if (entry?.kind === "node") stack.push(...ownedChildren(entry));
+    }
+    return false;
+  };
+  const check = (node: NodeEntry) => {
+    for (const { key, from } of catalogShowWhenRefs(node.showWhen!)) {
+      if (!from || !("ancestor" in from) || "local" in from.ancestor) continue;
+      const ownerId =
+        "nodeId" in from.ancestor
+          ? from.ancestor.nodeId
+          : from.ancestor.address.instances[0]!;
+      const owner = draft.read(ownerId);
+      const linked =
+        owner?.kind === "node" &&
+        holds(ownerId, node.id) &&
+        // (An address names a template position: its type is the position's, read by the
+        // consumers; the instance only has to hold the node.)
+        ("address" in from.ancestor ||
+          catalogStateKeysOf(
+            definitionTypeName(reader, owner.definitionId),
+          ).includes(key));
+      if (!linked) fail("STATE_OWNER_UNLINKED", `${node.id}>${key}`);
+    }
+  };
+  const stack = [...touched];
+  while (stack.length) {
+    const entry = draft.read(stack.pop()!);
+    if (entry?.kind !== "node") continue;
+    if (entry.showWhen) check(entry);
+    stack.push(...ownedChildren(entry));
   }
 }
 
@@ -357,6 +416,7 @@ export const moveNodes =
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
     assertRequiredPartsKept(draft, roots);
+    assertStateOwnersLinked(draft, roots);
     return {
       label: input.label ?? "Move",
       ops: draft.ops(),
@@ -583,6 +643,7 @@ export const duplicateNodes =
       placeAt(draft, parent, index + 1, [clone.rootId], input.newId);
       copies.push(clone.rootId);
     }
+    assertStateOwnersLinked(draft, copies);
     return {
       label: input.label ?? "Duplicate",
       ops: draft.ops(),
@@ -761,6 +822,7 @@ export const ungroupNodes =
       removeWithReferrers(draft, [id]);
     }
     assertRequiredPartsKept(draft, topLevel(reader, input.ids));
+    assertStateOwnersLinked(draft, released);
     return {
       label: input.label ?? "Ungroup",
       ops: draft.ops(),

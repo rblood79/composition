@@ -12,7 +12,8 @@ import type {
   CatalogStateKey,
   CatalogStateOwnerRef,
 } from "../document/types";
-import { RAC_STATE_KEYS } from "../generated/racStateKeys";
+import { catalogStateKeysOf } from "../document/stateOwnerRefs";
+export { catalogStateKeysOf };
 
 /**
  * ADR-248 resting-state presence of a resolved node: which nodes a component does not show until
@@ -1228,15 +1229,6 @@ export function catalogBreadcrumbItems(
 
 // ── ADR-256 Decision 7 — state conditions (`showWhen`) ───────────────────────────────────────────
 
-/** The RAC part a catalog type renders, where the names differ (its render props are that part's). */
-const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
-  // ADR-256 Phase 3: the toggle roots are RAC's `*Field` (state, no interaction keys).
-  Checkbox: "CheckboxField",
-  Switch: "SwitchField",
-  Radio: "RadioField",
-  TextArea: "TextField",
-};
-
 /** A toggle's RAC button type → its field type (the button reads the field's state). */
 const TOGGLE_BUTTON_FIELDS: Readonly<Record<string, string>> = {
   CheckboxButton: "Checkbox",
@@ -1250,10 +1242,6 @@ const INTERACTION_KEYS: ReadonlySet<CatalogStateKey> = new Set([
   "isFocusVisible",
 ]);
 
-/** The state keys a type gives its children (`RAC_STATE_KEYS` — the installed RAC's run). */
-export function catalogStateKeysOf(type: string): readonly string[] {
-  return RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ?? [];
-}
 
 /** One `showWhen` condition, normalized: its key, negation and own state owner. */
 export interface CatalogStateCondition {
@@ -1293,13 +1281,16 @@ function isStateOwner(
   record: CatalogConsumerNode,
   ref: Extract<CatalogStateOwnerRef, { ancestor: unknown }>["ancestor"],
 ): boolean {
-  const { path, own } = recordAddress(record.id);
-  if ("nodeId" in ref) return own === ref.nodeId;
-  const address = "address" in ref ? ref.address : ref.local;
-  return (
-    own === address.templatePath[address.templatePath.length - 1] &&
-    endsWith(path, address.instances)
-  );
+  // (A composite instance's record is also its collapsed template root's — `collapsedIds`.)
+  return [record.id, ...(record.collapsedIds ?? [])].some((recordId) => {
+    const { path, own } = recordAddress(recordId);
+    if ("nodeId" in ref) return own === ref.nodeId;
+    const address = "address" in ref ? ref.address : ref.local;
+    return (
+      own === address.templatePath[address.templatePath.length - 1] &&
+      endsWith(path, address.instances)
+    );
+  });
 }
 
 /**
