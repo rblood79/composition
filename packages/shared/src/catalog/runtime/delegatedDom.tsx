@@ -22,7 +22,11 @@ import {
 import { FileTriggerIntake } from "../../upload/intakeAdapters";
 import { resolveTextSourceText, textFromValue } from "@composition/rendering";
 import { OWNER_DRAWN_PART_OWNERS } from "@composition/shared";
-import { FIELD_HINT_OWNERS } from "./presence";
+import {
+  CATALOG_LABEL_NODE_FIELDS,
+  FIELD_HINT_OWNERS,
+  catalogFieldNecessityIndicator,
+} from "./presence";
 import {
   type NecessityIndicator,
   renderNecessityIndicator,
@@ -303,34 +307,7 @@ const container =
       { ...marker(input), ...extra?.(input), style: input.style },
       ...renderAll(input),
     );
-/**
- * Fields whose DOM Label is their Label node (ADR-253): the node's binding draws it inside the
- * field's RAC context, with what the field appends to its Label. The value is how the field
- * resolves that necessity indicator (what its renderer gave the shared component before):
- * `form` = its own, else the nearest Form's · `own` = its own · `required` = the default
- * indicator of `isRequired` · `none` = the component appends nothing.
- */
-export const CATALOG_LABEL_NODE_FIELDS: Readonly<
-  Record<string, "form" | "own" | "required" | "none">
-> = {
-  textfield: "form",
-  textarea: "form",
-  numberfield: "form",
-  searchfield: "form",
-  colorfield: "form",
-  datefield: "form",
-  timefield: "form",
-  datepicker: "required",
-  daterangepicker: "required",
-  checkboxgroup: "own",
-  radiogroup: "own",
-  select: "required",
-  combobox: "required",
-  meter: "none",
-  progressbar: "none",
-  slider: "none",
-  taggroup: "none",
-};
+export { CATALOG_LABEL_NODE_FIELDS };
 /** The Label node of a field that draws its Label from it; `undefined` = the field composes it. */
 export function catalogFieldLabelNode(
   root: CatalogCompositionRoot,
@@ -342,29 +319,23 @@ export function catalogFieldLabelNode(
     (child) => catalogTypeName(root, child) === "Label",
   );
 }
-/** The necessity indicator a field appends to its Label node. */
+/** The necessity indicator a field appends to its Label node (`catalogFieldNecessityIndicator`). */
 export function catalogFieldLabelNecessity(
   root: CatalogCompositionRoot,
   label: CatalogConsumerNode,
 ): ReactNode {
   const field = root.domInputs.get(label.parentId);
-  const mode = field && CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""];
-  if (!field || !mode || mode === "none") return null;
-  let indicator =
-    mode === "required" ? undefined : field.props.necessityIndicator;
-  // The nearest Form's, when the field sets none (`inheritedForm`).
-  if (mode === "form")
-    for (
-      let parent = root.domInputs.get(field.parentId);
-      indicator === undefined && parent;
-      parent = root.domInputs.get(parent.parentId)
-    )
-      if (catalogTypeName(root, parent) === "Form") {
-        indicator = parent.props.necessityIndicator;
-        break;
-      }
+  if (
+    !field ||
+    CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
+  )
+    return null;
   return renderNecessityIndicator(
-    indicator as NecessityIndicator | undefined,
+    catalogFieldNecessityIndicator(
+      field,
+      (record) => root.domInputs.get(record.parentId),
+      (record) => catalogTypeName(root, record),
+    ) as NecessityIndicator | undefined,
     bool(field.props.isRequired),
   );
 }

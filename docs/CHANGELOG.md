@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: Preview 가 문서 전체를 Builder UI 언어의 `I18nProvider` 로 감쌌다. 배포 페이지는 provider 없이 방문자 브라우저 locale (RAC 기본) 로 그린다. 이제 Preview 도 RAC 기본 locale (브라우저 · `languagechange` 추종) 을 쓰고 `<html lang>` 도 그것이다.
   - 위치: `apps/builder/src/preview/PreviewLocale.tsx`
 
+- **필수 표시 (`necessityIndicator`) 를 field 하나의 규칙으로 — Canvas · Preview 같게** (ADR-253 Phase 3 (1) 에서 찾음):
+  - field 의 자기 값, 없으면 가장 가까운 Form 의 값, 없으면 icon (`*`) — RSP 와 같다. 전에는 DOM 의 Select · ComboBox · DatePicker · DateRangePicker 가 자기 값과 Form 을 무시하고 늘 `*` 였고, 두 그룹은 Form 을 무시했고, Canvas 는 두 picker 에 표시가 없었다.
+  - **Why**: field 마다 DOM 의 방식 (`form` · `own` · `required`) 이 달랐고 Canvas 는 다른 목록을 썼다. 또 binding 기본값 `icon` 이 모든 field 의 해석 값에 실려 Form 의 값은 어느 field 에도 닿지 않았다. 목록 · 규칙을 `presence.ts` 하나에 두고 두 consumer 가 읽으며, field type 정의는 그 기본값을 싣지 않는다 (Properties 패널은 값이 없을 때 그대로 `Icon` 을 보인다).
+  - 위치: `packages/shared/src/catalog/runtime/presence.ts` `CATALOG_LABEL_NODE_FIELDS` · `catalogFieldNecessityIndicator` · `delegatedDom.tsx` · `document/ruleDefinition.ts`
+
 ### Changed
 
 - **ColorField · CheckboxGroup · RadioGroup 의 side 라벨 = 라벨 열** (RSP `labelPosition="side"` 레퍼런스):

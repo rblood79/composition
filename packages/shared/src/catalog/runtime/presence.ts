@@ -893,26 +893,57 @@ export function catalogSliderThumbs(
     );
 }
 
-/** Fields whose DOM renders the necessity indicator after their Label (`renderNecessityIndicator`). */
-const NECESSITY_OWNERS: ReadonlySet<string> = new Set([
-  "TextField",
-  "TextArea",
-  "NumberField",
-  "SearchField",
-  "Select",
-  "ComboBox",
-  "DateField",
-  "TimeField",
-  "ColorField",
-  "CheckboxGroup",
-  "RadioGroup",
-  "TagGroup",
-]);
+/**
+ * Fields whose DOM Label is their Label node (ADR-253): the node's binding draws it inside the
+ * field's RAC context, with what the field appends to its Label. `necessity` = the field shows the
+ * necessity indicator of its `isRequired` (RSP `necessityIndicator`: its own value, else the
+ * nearest Form's, else the icon — every field alike, ADR-253 follow-up 2026-10-07) · `none` = it
+ * appends nothing. Keyed by binding id; the Canvas label suffix and the DOM read this one map.
+ */
+export const CATALOG_LABEL_NODE_FIELDS: Readonly<
+  Record<string, "necessity" | "none">
+> = {
+  textfield: "necessity",
+  textarea: "necessity",
+  numberfield: "necessity",
+  searchfield: "necessity",
+  colorfield: "necessity",
+  datefield: "necessity",
+  timefield: "necessity",
+  datepicker: "necessity",
+  daterangepicker: "necessity",
+  checkboxgroup: "necessity",
+  radiogroup: "necessity",
+  select: "necessity",
+  combobox: "necessity",
+  meter: "none",
+  progressbar: "none",
+  slider: "none",
+  taggroup: "none",
+};
 
 /**
- * Text the DOM appends to a field's Label: the necessity indicator of the field's own
- * `necessityIndicator`, else the nearest Form's (`resolveInheritedFormFieldProps`), for its
- * `isRequired` (`getNecessityIndicatorSuffix`). Empty for any other node.
+ * The necessity indicator a field shows (RSP): its own `necessityIndicator`, else the nearest
+ * Form's; undefined = the icon. `parentOf` walks the records of one consumer.
+ */
+export function catalogFieldNecessityIndicator(
+  field: CatalogConsumerNode,
+  parentOf: (node: CatalogConsumerNode) => CatalogConsumerNode | undefined,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  const own = field.props.necessityIndicator;
+  if (typeof own === "string") return own;
+  for (let cursor = parentOf(field); cursor; cursor = parentOf(cursor))
+    if (typeOf(cursor) === "Form") {
+      const form = cursor.props.necessityIndicator;
+      return typeof form === "string" ? form : undefined;
+    }
+  return undefined;
+}
+
+/**
+ * Text the DOM appends to a field's Label (`catalogFieldLabelNecessity`): the field's necessity
+ * indicator for its `isRequired` (`getNecessityIndicatorSuffix`). Empty for any other node.
  */
 export function catalogLabelSuffix(
   node: CatalogConsumerNode,
@@ -921,16 +952,17 @@ export function catalogLabelSuffix(
 ): string {
   if (typeOf(node) !== "Label") return "";
   const field = get(node.parentId);
-  if (!field || !NECESSITY_OWNERS.has(typeOf(field))) return "";
-  let indicator = field.props.necessityIndicator;
-  for (
-    let cursor = get(field.parentId);
-    typeof indicator !== "string" && cursor;
-    cursor = get(cursor.parentId)
+  if (
+    !field ||
+    CATALOG_LABEL_NODE_FIELDS[field.bindingId ?? ""] !== "necessity"
   )
-    if (typeOf(cursor) === "Form") indicator = cursor.props.necessityIndicator;
+    return "";
   return getNecessityIndicatorSuffix(
-    typeof indicator === "string" ? indicator : undefined,
+    catalogFieldNecessityIndicator(
+      field,
+      (record) => get(record.parentId),
+      typeOf,
+    ),
     field.props.isRequired === true,
   );
 }
@@ -942,13 +974,13 @@ export function catalogLabelSuffixDependents(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
-  if (NECESSITY_OWNERS.has(type))
+  if (CATALOG_LABEL_NODE_FIELDS[owner.bindingId ?? ""] === "necessity")
     return childrenOf(owner, get).filter((child) => typeOf(child) === "Label");
   if (type !== "Form") return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get)) {
-      if (NECESSITY_OWNERS.has(typeOf(child)))
+      if (CATALOG_LABEL_NODE_FIELDS[child.bindingId ?? ""] === "necessity")
         out.push(...catalogLabelSuffixDependents(child, get, typeOf));
       else visit(child);
     }

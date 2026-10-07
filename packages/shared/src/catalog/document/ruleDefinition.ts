@@ -288,9 +288,8 @@ function triggerSize(
   size: ComponentRuleSize,
 ): ComponentRuleSize {
   if (type !== "Menu") return size;
-  const button = (
-    COMPONENT_RULES_TABLE as Record<string, ComponentRule>
-  ).Button?.sizes?.[sizeName] as ComponentRuleSize | undefined;
+  const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).Button
+    ?.sizes?.[sizeName] as ComponentRuleSize | undefined;
   return button
     ? { ...size, minWidth: button.minWidth, fontWeight: button.fontWeight }
     : size;
@@ -397,6 +396,9 @@ export function ruleTypeDefinition(
       const valueType = PROP_KIND_VALUE_TYPE[contract.kind];
       if (!valueType) continue;
       accepts[key] = valueType;
+      // A field's `necessityIndicator` falls back to the nearest Form's (RSP): no definition default
+      // takes its place (the Properties panel shows the contract default while it is unset).
+      if (key === "necessityIndicator" && type !== "Form") continue;
       if (propDefaultMatches(contract.default, valueType))
         defaults[key] = contract.default as AuthoredValue;
     }
@@ -460,7 +462,13 @@ export function ruleTypeDefinition(
   if (Object.keys(choices).length) definition.propChoices = choices;
   const sizes: Record<string, VisualValues> = {};
   for (const [name, size] of Object.entries(rule.sizes))
-    sizes[name] = sizeVisual(name, triggerSize(type, name, size), box, theme, tokens);
+    sizes[name] = sizeVisual(
+      name,
+      triggerSize(type, name, size),
+      box,
+      theme,
+      tokens,
+    );
   // Circle leaves: the DOM renderer draws a square box of the size's height (Avatar also keeps it
   // from shrinking in a row). The height is set here too — a ProgressCircle's `progress`
   // archetype drops the size axis' height (a bar's track row), its DOM root is the diameter square.
