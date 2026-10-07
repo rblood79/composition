@@ -30,7 +30,10 @@ import {
   type NodeParent,
 } from "./context";
 import { ensureChildList, type NewId } from "./materialize";
-import { requiredPartOwner } from "../nesting/requiredParts";
+import {
+  RAC_REQUIRED_PART_TYPES,
+  requiredPartOwner,
+} from "../nesting/requiredParts";
 
 /**
  * ADR-248 Phase 4b structure commands: insert, move/reorder, remove, duplicate, copy and paste.
@@ -125,10 +128,23 @@ function assertRequiredPartsKept(
   destinationAncestors?: readonly string[],
 ): void {
   const reader = draft.reader;
-  const typeOf = (id: NodeId) =>
-    definitionTypeName(reader, draft.node(id).definitionId);
+  // The subtree's types first: without a part any owner needs there is nothing to keep (and no
+  // ancestor to read — the canvas menu dry-runs this on every selection, ADR-246 count).
+  const types = new Map<NodeId, string>();
+  let needed = false;
+  const collect = (id: NodeId) => {
+    const type = definitionTypeName(reader, draft.node(id).definitionId);
+    types.set(id, type);
+    if (RAC_REQUIRED_PART_TYPES.has(type)) needed = true;
+    for (const child of childList(draft, { kind: "node", id }) ?? [])
+      collect(child);
+  };
+  collect(rootId);
+  if (!needed) return;
   const { parent } = locate(draft, rootId);
   const above = parentAncestorTypes(draft, parent);
+  const typeOf = (id: NodeId) =>
+    types.get(id) ?? definitionTypeName(reader, draft.node(id).definitionId);
   const visit = (id: NodeId, chain: readonly string[]) => {
     const type = typeOf(id);
     const owner = requiredPartOwner(type, chain);
@@ -318,11 +334,12 @@ export const removeTargets =
       )
         fail("OWNER_DRAWN_PART_NOT_REMOVABLE", templateId!);
       // ADR-256 Decision 5: a template position RAC needs (a Select's trigger Button …).
-      if (templateId && target.address.templatePath.length > 1) {
-        const type = definitionTypeName(
-          reader,
-          templateDefinitionId(reader, templateId),
-        );
+      const partType =
+        templateId && target.address.templatePath.length > 1
+          ? definitionTypeName(reader, templateDefinitionId(reader, templateId))
+          : undefined;
+      if (partType && RAC_REQUIRED_PART_TYPES.has(partType)) {
+        const type = partType;
         const above = parentAncestorTypes(draft, {
           kind: "descendant",
           ownerId: target.ownerId,

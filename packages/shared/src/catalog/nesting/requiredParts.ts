@@ -36,6 +36,11 @@ export const RAC_REQUIRED_PARTS: Readonly<
   TableView: [["TableHeader"]],
 };
 
+/** Every part type some owner needs (a subtree without one needs no ancestor read). */
+export const RAC_REQUIRED_PART_TYPES: ReadonlySet<string> = new Set(
+  Object.values(RAC_REQUIRED_PARTS).flatMap((parts) => parts.flat()),
+);
+
 /**
  * The nearest owner (in `ancestorTypes`, nearest first) that needs a part of `type`, if any. The
  * search stops at the first ancestor that needs it — a Button inside a Select's ListBox item is not
