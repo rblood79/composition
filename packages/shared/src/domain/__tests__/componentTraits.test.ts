@@ -316,6 +316,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SliderOutput: ["Slider"],
       SliderTrack: ["Slider"],
       SliderThumb: ["SliderTrack"],
+      SliderFill: ["SliderTrack"],
       MeterTrack: ["Meter"],
       MeterValue: ["Meter"],
       MeterFill: ["MeterTrack"],

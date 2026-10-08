@@ -1,6 +1,7 @@
 import { renderFieldLabel } from "./FieldNecessityIndicator";
 import {
   Slider as AriaSlider,
+  SliderFill,
   SliderOutput,
   SliderProps as AriaSliderProps,
   SliderThumb,
@@ -130,30 +131,9 @@ export function Slider<T extends number | number[]>({
       <SliderTrack data-size={size}>
         {({ state, isDisabled }) => (
           <>
-            {/* Track background */}
-            <div
-              className="slider-track-bg"
-              data-disabled={isDisabled || undefined}
-            />
-            {/* Fill bar */}
-            {state.values.length === 1 ? (
-              <div
-                className="slider-fill"
-                style={{
-                  width: `${state.getThumbPercent(0) * 100}%`,
-                }}
-                data-disabled={isDisabled || undefined}
-              />
-            ) : state.values.length >= 2 ? (
-              <div
-                className="slider-fill"
-                style={{
-                  left: `${state.getThumbPercent(0) * 100}%`,
-                  width: `${(state.getThumbPercent(1) - state.getThumbPercent(0)) * 100}%`,
-                }}
-                data-disabled={isDisabled || undefined}
-              />
-            ) : null}
+            {/* ADR-256 Phase 7c: the track is its own bar (SliderTrack rule); the fill is RAC's
+                SliderFill — from the start, or between a range's thumbs. */}
+            <SliderFill data-disabled={isDisabled || undefined} />
             {/* Thumbs */}
             {state.values.map((_, i) => (
               <SliderThumb key={i} index={i} aria-label={thumbLabels?.[i]} />

@@ -10093,6 +10093,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 Phase 7c: RAC's SliderFill (the reference `SliderTrack > SliderFill`) — the filled part
+  //   of the track, placed by RAC (`insetInlineStart` · width — the thumbs' range); accent, full
+  //   radius (as the old track primitive's fill).
+  SliderFill: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.accent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      sm: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.full}",
+      },
+      md: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.full}",
+      },
+      lg: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.full}",
+      },
+      xl: {
+        fontSize: "{typography.text-lg}",
+        borderRadius: "{radius.full}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+    },
+  },
   SliderOutput: {
     defaultSize: "md",
     variants: {},
@@ -10173,6 +10214,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 Phase 7c: the track's bar is the SliderTrack itself (background · full radius — both
+  //   consumers); its fill is the SliderFill node, its thumbs the SliderThumb nodes.
   SliderTrack: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -10192,7 +10235,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.accent}",
       },
     },
     // height = trackHeight (visual 트랙 두께) / thumbSize = 핸들 지름 (layout box 높이, thumb 수용).
@@ -10200,25 +10242,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.full}",
         height: 4,
         thumbSize: 14,
       },
       md: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.full}",
         height: 8,
         thumbSize: 18,
       },
       lg: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.full}",
         height: 12,
         thumbSize: 22,
       },
       xl: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.full}",
         height: 16,
         thumbSize: 26,
       },

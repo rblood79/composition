@@ -107,6 +107,7 @@ import {
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
   catalogProgressFillLayout,
+  catalogSliderFillLayout,
   catalogSliderThumbs,
   catalogTreeChevronLayout,
   catalogTreeChevrons,
@@ -1895,6 +1896,7 @@ export class CatalogCompositionRoot {
     const thumb = record.hidden
       ? undefined
       : (catalogSliderThumbLayout(record, get, this.typeOf) ??
+        catalogSliderFillLayout(record, get, this.typeOf) ??
         catalogProgressFillLayout(record, get, this.typeOf));
     const chevron = record.hidden
       ? undefined

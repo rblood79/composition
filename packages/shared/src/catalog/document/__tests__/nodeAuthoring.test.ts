@@ -29,7 +29,7 @@ const frame: LibraryDefinition = {
 };
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 25,
+    contractVersion: 26,
     revision: "node-authoring",
     bindingIds: ["frame"],
     actionOpCodes: [],
@@ -52,7 +52,7 @@ function graph(nodes: NodeEntry[], roots = nodes.map((item) => item.id)) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 25,
+    libraryContractVersion: 26,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",

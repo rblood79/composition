@@ -267,7 +267,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // 2026-10-09: SelectTrigger type 삭제 (ADR-256 Phase 6b 뒤 사용 0 — 사용자 승인) 로 8,424 → 8,352 (−72 = 2 variant).
     // ADR-256 Phase 7a: + ProgressBarFill (default · accent · neutral) 8,352 → 8,460 (+108). diffs 0 유지.
     // ADR-256 Phase 7b: + MeterFill (4 variants) 8,460 → 8,604 (+144). diffs 0 유지.
-    expect(compared).toBe(8_604);
+    // ADR-256 Phase 7c: + SliderFill (1 variant) 8,604 → 8,640 (+36). diffs 0 유지.
+    expect(compared).toBe(8_640);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

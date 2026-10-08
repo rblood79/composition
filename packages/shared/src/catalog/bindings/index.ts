@@ -112,6 +112,7 @@ import { gridListSectionBinding } from "./GridListSection.binding";
 import { skeletonBinding } from "./Skeleton.binding";
 import { sliderBinding } from "./Slider.binding";
 import { sliderOutputBinding } from "./SliderOutput.binding";
+import { sliderFillBinding } from "./SliderFill.binding";
 import { sliderThumbBinding } from "./SliderThumb.binding";
 import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
@@ -247,6 +248,7 @@ export * from "./GridListSection.binding";
 export * from "./Skeleton.binding";
 export * from "./Slider.binding";
 export * from "./SliderTrack.binding";
+export * from "./SliderFill.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
@@ -451,11 +453,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모 Disclosure DOM 이 흡수, 자기 rule 없음 — 값은 DisclosureHeader rule).
   DisclosureChevron: disclosureChevronBinding,
   Slider: sliderBinding,
-  // ADR-912 SliderTrack: Slider compound 의 트랙 (배경 + value 막대 + thumb, Skia-전용 sub-part,
-  //   slider_fill_bar escape, replace — thumb 컨테이너 box). DOM=RAC Slider self-compose (DOM no-op).
+  // ADR-256 Phase 7c: a Slider's parts are RAC's — SliderTrack (its bar) > SliderFill + SliderThumb.
   SliderTrack: sliderTrackBinding,
-  // ADR-912 SliderThumb (2026-06-16): Slider compound 의 핸들 (circle + border, Skia-전용 sub-part,
-  //   slider_thumb escape, replace — circle 전체 외형). DOM=RAC Slider self-compose (DOM no-op).
+  SliderFill: sliderFillBinding,
   SliderThumb: sliderThumbBinding,
   // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
   ProgressBarTrack: progressBarTrackBinding,

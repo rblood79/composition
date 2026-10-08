@@ -4973,6 +4973,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -4980,7 +4981,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SliderOutput",
     "children": [],
     "props": {
-      "children": "50",
       "size": "md"
     },
     "visual": {
@@ -4991,13 +4991,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-slider__3",
     "definitionId": "lib:definition:type-SliderTrack",
     "children": [
+      "lib:template:component-slider__3_2",
       "lib:template:component-slider__3_1"
     ],
     "props": {
-      "size": "md",
-      "value": 50,
-      "minValue": 0,
-      "maxValue": 100
+      "size": "md"
     },
     "visual": {
       "width": "100%"
@@ -5006,6 +5004,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-slider__3_1",
     "definitionId": "lib:definition:type-SliderThumb",
+    "children": [],
+    "props": {
+      "size": "md"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-slider__3_2",
+    "definitionId": "lib:definition:type-SliderFill",
     "children": [],
     "props": {
       "size": "md"

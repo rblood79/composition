@@ -128,27 +128,9 @@ export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `      display: flex;`,
     `      align-items: center;`,
     `    }`,
-    // 트랙 배경(.slider-track-bg)/채움(.slider-fill)/핸들(.react-aria-SliderThumb) — Slider.tsx 가
-    //   RAC SliderTrack 안에 직접 그리는 커스텀 마크업. spec 비의존(archetype base = generate 정본).
-    //   size 무관 부분(색/위치/모양)만 base 에 두고, size 별 크기(height=trackHeight,
-    //   width/height=thumbSize)는 emitSliderSizeMetrics 가 size.indicator 에서 생성 — Skia
-    //   (SliderTrack.spec.render: trackHeight/thumbSize, fill {color.accent}, track {color.neutral-subtle})
-    //   와 동일 값 source. 색 토큰: 트랙 --bg-muted / fill·thumb --accent / thumb border --bg.
-    `    .slider-track-bg {`,
-    `      position: absolute;`,
-    `      top: 50%;`,
-    `      transform: translateY(-50%);`,
-    `      width: 100%;`,
-    `      border-radius: var(--radius-full);`,
-    `      background: var(--bg-muted);`,
-    `    }`,
-    `    .slider-fill {`,
-    `      position: absolute;`,
-    `      top: 50%;`,
-    `      transform: translateY(-50%);`,
-    `      border-radius: var(--radius-full);`,
-    `      background: var(--accent);`,
-    `    }`,
+    // ADR-256 Phase 7c: the track's bar is the SliderTrack itself (its rule — background · radius),
+    //   the fill is RAC's SliderFill node (its rule), the thumb RAC's SliderThumb (here — its size
+    //   per owner size from `generateSliderSizeMetrics`). Thumb colors: --accent · border --bg.
     `    .react-aria-SliderThumb {`,
     `      top: 50%;`,
     `      border-radius: var(--radius-full);`,
@@ -240,23 +222,6 @@ function isTrackOwningGridContainer<Props>(
   return false;
 }
 
-/**
- * SliderTrack leaf 판정 — slider archetype 이면서 gridTemplateAreas 미보유(Slider 컨테이너가 아님).
- *
- * 트랙 바 시각은 자식 `.slider-track-bg`(둥근 끝 border-radius:full)/`.slider-fill`/
- * `.react-aria-SliderThumb` 가 그린다(ARCHETYPE_BASE_STYLES["slider"]). 따라서 컨테이너 root
- * (`.react-aria-SliderTrack`)에 variant background 를 emit 하면 사각 배경이 둥근 트랙 뒤에 깔려
- * 둥근 끝이 사라지는 시각 회귀가 발생한다. → variant/defaultVariant background 계열 skip.
- *
- * ProgressBarTrack/MeterTrack(progress archetype)과의 차이: progress 트랙은 컨테이너 자체가
- * 트랙 배경(자식 분리 없음)이라 background emit 이 정상이지만, slider 트랙은 자식이 시각을 소유.
- */
-function isSliderTrackLeaf<Props>(spec: ComponentSpec<Props>): boolean {
-  return (
-    spec.archetype === "slider" && !spec.containerStyles?.gridTemplateAreas
-  );
-}
-
 // ─── Main Generator ─────────────────────────────────────────────────────────
 
 /**
@@ -326,8 +291,7 @@ export function generateCSS<Props>(
     !compositionOwnsContainerBox(spec) &&
     !containerHasColors &&
     spec.variants != null &&
-    !spec.skipVariantCss &&
-    !isSliderTrackLeaf(spec) // 자식 .slider-track-bg 가 트랙 시각 소유 — 컨테이너 variant background skip
+    !spec.skipVariantCss
   )
     for (const variantName of Object.keys(spec.variants)) {
       // ADR-912 단계5: variant 색상은 정본 table 파생(_variantSource)만 source.
@@ -674,10 +638,9 @@ export function generateCSS<Props>(
     lines.push(...sizeSelectorRules);
   }
 
-  // ─── ADR-912: slider archetype size별 트랙/thumb 크기 (Skia 동일 값 source) ───
-  //   size.indicator.{trackHeight,thumbSize} 에서 생성 — Skia(SliderTrack.spec.render)와 동일
-  //   값. .slider-track-bg/.slider-fill height = trackHeight, .react-aria-SliderThumb
-  //   width/height = thumbSize. 색/위치는 archetype base CSS, 크기만 size별 emit.
+  // ─── ADR-912: slider archetype size별 thumb 크기 (Skia 동일 값 source) ───
+  //   size.indicator.thumbSize 에서 생성 — `.react-aria-SliderThumb` width/height = thumbSize.
+  //   (트랙 높이는 SliderTrack rule 의 size — ADR-256 Phase 7c 부터 트랙 · 채움이 각자 노드.)
   const sliderSizeRules = generateSliderSizeMetrics(spec);
   if (sliderSizeRules.length > 0) {
     lines.push("");
@@ -768,8 +731,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
   if (
     !baseContainerHasColors &&
     defaultVariant &&
-    !compositionOwnsContainerBox(spec) &&
-    !isSliderTrackLeaf(spec) // 자식 .slider-track-bg 가 트랙 시각 소유 — 컨테이너 default variant background skip
+    !compositionOwnsContainerBox(spec)
   ) {
     // default variant 색상 — Composite 컨테이너는 자식이 관리하므로 skip
     const mode = spec.cssEmitMode ?? "direct";
@@ -1759,14 +1721,10 @@ function generateSizeSelectorRules<Props>(
 }
 
 /**
- * ADR-912 — slider archetype 의 size별 트랙/thumb 크기 CSS 생성.
+ * ADR-912 — slider archetype 의 size별 thumb 크기 CSS 생성 (RAC `SliderThumb` 노드).
  *
- * Slider.tsx 커스텀 마크업(.slider-track-bg / .slider-fill / .react-aria-SliderThumb)의
- * size별 크기를 `spec.sizes[size].indicator.{trackHeight, thumbSize}` 에서 생성한다.
- * **Skia(SliderTrack.spec.render)와 동일 값 source** — 색/위치는 archetype base CSS,
- * size별 크기만 여기서 emit 하여 DOM↔Skia 시각 대칭(사용자 요구: "skia 와 동일한 값에서 css 생성").
- * track height = trackHeight, thumb width/height = thumbSize. SliderTrack 도 동일 archetype
- * 이라 `.react-aria-SliderTrack[data-size]` 컨테이너 안의 자식 selector 로 생성.
+ * `spec.sizes[size].indicator.thumbSize` 에서 `.react-aria-SliderThumb` width/height 를 생성한다 —
+ * Skia 와 동일 값 source. 트랙 · 채움은 ADR-256 Phase 7c 부터 SliderTrack · SliderFill 노드의 rule.
  */
 function generateSliderSizeMetrics<Props>(
   spec: ComponentSpec<Props>,
@@ -1783,10 +1741,6 @@ function generateSliderSizeMetrics<Props>(
     if (trackHeight == null && thumbSize == null) continue;
 
     const sel = `${rootSel}[data-size="${sizeKey}"]`;
-    if (trackHeight != null) {
-      lines.push(`  ${sel} .slider-track-bg { height: ${trackHeight}px; }`);
-      lines.push(`  ${sel} .slider-fill { height: ${trackHeight}px; }`);
-    }
     if (thumbSize != null) {
       lines.push(
         `  ${sel} .react-aria-SliderThumb { width: ${thumbSize}px; height: ${thumbSize}px; }`,

@@ -58,6 +58,7 @@ import {
   catalogBoundValues,
   catalogRenderValue,
   catalogValueKeysIn,
+  catalogRacOwnsText,
   catalogValueOwner,
   type CatalogValueTemplate,
 } from "./valueBindings";
@@ -666,7 +667,58 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   metertrack: (node, style, children) =>
     progressPart(node, style, "div", "bar", children),
   meterfill: (node, style) => progressPart(node, style, "div", "fill"),
+  // ADR-256 Phase 7c: a Slider's parts are RAC's, in the Slider's context. The output writes RAC's
+  // value text unless the node has its own; the fill and the thumbs keep RAC's placement (the
+  // node's own style never moves them — `RAC_PLACED_KEYS`).
+  slideroutput: (node, style) =>
+    createElement(
+      RAC.SliderOutput as ElementType,
+      // (Its type size is the Slider sheet's — `.react-aria-Slider[data-size] .react-aria-SliderOutput`.)
+      { key: node.id, "data-catalog-id": node.id, style },
+      ...(catalogRacOwnsText(node) ? [] : [String(node.props.children ?? "")]),
+    ),
+  slidertrack: (node, style, children) =>
+    createElement(RAC.SliderTrack as ElementType, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      "data-size": String(node.props.size ?? "md"),
+      style,
+      children: catalogStateChildren(node.id, () => children),
+    }),
+  sliderfill: (node, style) =>
+    createElement(RAC.SliderFill as ElementType, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
+        ...withoutRacPlacement(style),
+        ...defaultStyle,
+      }),
+    }),
+  // (A thumb's `index` is its place among its track's thumbs — `renderNode` gives it.)
+  sliderthumb: (node, style) =>
+    createElement(RAC.SliderThumb as ElementType, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      index: Number(node.props._thumbIndex ?? 0),
+      style: withoutRacPlacement(style),
+    }),
 };
+
+/** Keys RAC's SliderFill · SliderThumb place by the Slider's state (`useSliderThumb` · `SliderFill`). */
+const RAC_PLACED_KEYS = [
+  "position",
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "insetInlineStart",
+  "transform",
+] as const;
+function withoutRacPlacement(style: CSSProperties): CSSProperties {
+  const out = { ...style };
+  for (const key of RAC_PLACED_KEYS) delete out[key];
+  return out;
+}
 
 /** A progress part's element (a ProgressBar's · Meter's value text, track and fill). */
 function progressPart(
@@ -2025,6 +2077,23 @@ function renderNode(
             OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
           ? toggleTextBinding
           : bindingOf(node);
+  // A Slider's thumb (ADR-256 Phase 7c): RAC's thumb of its place among the track's thumbs; its
+  // ring is the slider sheet's (`.react-aria-SliderThumb` border — its color is the sheet's), not
+  // inline.
+  if (node.bindingId === "sliderthumb" && parentInput) {
+    const { borderWidth: _ring, ...visual } = node.visual;
+    node = {
+      ...node,
+      visual,
+      props: {
+        ...node.props,
+        _thumbIndex: parentInput.children
+          .map((childId) => root.domInputs.get(childId))
+          .filter((child) => child?.bindingId === "sliderthumb")
+          .findIndex((child) => child!.id === node.id),
+      },
+    };
+  }
   const bound = binding
     ? catalogDomStyle(
         node,

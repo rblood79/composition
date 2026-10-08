@@ -227,21 +227,25 @@ describe("skiaPrimitive 'slider_fill_bar' — SliderTrack value-fill + thumb", (
   });
 });
 
-describe("skiaPrimitive 'slider_thumb' — SliderThumb (selection/hit box 전용)", () => {
+describe("skiaPrimitive 'slider_thumb' — SliderThumb 이 자기 상자에 handle 을 그린다 (ADR-256 Phase 7c)", () => {
   it("registry 에 replace 모드로 등록", () => {
     expect(drawThumb).toBeDefined();
     expect(getSkiaPrimitiveMode("slider_thumb")).toBe("replace");
   });
 
-  it("shapes 0 — 그리기는 slider_fill_bar 소관 (이중 렌더 차단)", () => {
-    // **회귀 게이트**: 여기서 circle 을 그리면 엔진이 absolute 를 무시하는 탓에
-    //   thumb 이 트랙 좌측 끝(0,0)에 중복으로 찍힌다 (2026-06-10~07-13 버그).
+  it("box 중앙의 원 (지름 = box) + 2px {color.base} 링 — 엔진이 absolute box 를 value 자리에 둔다", () => {
     const shapes = drawThumb({
-      props: {},
+      props: { _containerWidth: 18 },
       size: { height: 18 } as SizeSpec,
       visual: thumbVisual,
+      paint: { backgroundColor: "{color.accent}" },
       style: undefined,
-    })!;
-    expect(shapes).toHaveLength(0);
+    } as never)!;
+    expect(circles(shapes)).toHaveLength(1);
+    expect(circles(shapes)[0]).toMatchObject({ x: 9, y: 9, radius: 9 });
+    expect(shapes.find((s) => s.type === "border")).toMatchObject({
+      borderWidth: 2,
+      color: "{color.base}",
+    });
   });
 });

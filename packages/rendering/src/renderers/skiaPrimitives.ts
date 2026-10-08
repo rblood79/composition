@@ -1224,39 +1224,40 @@ const switchToggle: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
 };
 
 /**
- * `slider_thumb` — Slider 핸들: circle + border(replace). SliderThumb element 가
- * implicitStyles slidertrack 분기에서 left:percent% + width/height:thumbSize 로 배치되므로,
- * 자기 box(thumbSize) 안에 원형 핸들을 그린다 (box 중앙 기준). circle 이 전체 외형이라
- * base box 무의미 → replace(avatar/radio 선례 동형, append 아님).
+ * `slider_thumb` — Slider 핸들 (replace): 자기 box 중앙의 원 + 2px 링.
  *
- * **ADR-912 collection sub-part cutover (2026-06-16, SliderThumb spec→catalog)**: 기존
- *   SliderThumb.spec.render.shapes(circle + border 2px {color.base})를 1:1 이전. SliderTrack 의
- *   slider_fill_bar 는 track + value 막대만 그리고 thumb 핸들은 본 escape 가 담당(렌더 소유권
- *   2026-06-10 SliderTrack→SliderThumb 이전 정합 유지). DOM 은 renderSlider(Slider.tsx)가 RAC
- *   SliderThumb 를 self-compose → SliderThumb element 는 DOM 미도달(Slider 가 DELEGATING_RAC_RENDERERS
- *   → 자식 재귀 skip), 본 escape 는 Skia 전용.
- *
- *   지름 = size.height(rule SliderThumb.sizes — Slider.indicator.thumbSize 14/18/22/26 미러).
- *   spec 정합 우선순위: style.width(layout 주입 thumbSize) 가 아니라 size.height 우선 — buildSpecNodeData
- *   가 size 변경마다 rule sizes 로 재계산하므로 신뢰 가능(spec 주석 정합). 색: thumb fill =
- *   style.backgroundColor → visual.fill.default.base → {color.accent}. border = {color.base} 2px(spec 정합).
+ * ADR-256 Phase 7c: SliderThumb 노드가 자기 handle 을 그린다 — box 는 RAC 배치와 같은 자리
+ * (`catalogSliderThumbLayout` — 엔진이 absolute 를 배치한다). 지름 = box (rule thumb 크기), 칠 = rule
+ * fill (`{color.accent}`), 링 = `{color.base}` 2px — slider archetype 의 `.react-aria-SliderThumb`
+ * (`border: 2px solid var(--bg)`) 와 같은 값. (전에는 SliderTrack 의 `slider_fill_bar` 가 그렸다.)
  */
-const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
-  void props;
-  void size;
-  void visual;
-  void style;
-  // shapes 0 (replace 모드) — 그리기는 SliderTrack 의 slider_fill_bar 가 담당한다.
-  //
-  // **Why (2026-07-14)**: 이 escape 가 자기 box 안에 원을 그리려면 box 가 value 위치에 있어야
-  //   하는데, 그 배치는 implicitStyles 의 `position:absolute + left:%` 주입에 의존했다. 그러나
-  //   engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다(Style.inset_* 는
-  //   tree.rs 에 선언만 되고 어떤 알고리즘도 읽지 않음, Position::Absolute 부재) → box 가 항상
-  //   원점(0,0)에 고정되어 thumb 이 트랙 좌측 끝에 그려졌다(value 무관 x 고정 + y 미정렬).
-  //   `_containerWidth` 를 아는 slider_fill_bar 로 렌더 소유권을 되돌려 DOM 좌표와 일치시킨다.
-  //   SliderThumb element 자체는 selection/hit box 로만 잔존(box 위치 정합은 엔진의 absolute
-  //   지원이 전제라 별도 과제).
-  return [];
+const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
+  const width =
+    typeof props._containerWidth === "number" && props._containerWidth > 0
+      ? (props._containerWidth as number)
+      : typeof style?.width === "number" && style.width > 0
+        ? (style.width as number)
+        : typeof size.height === "number"
+          ? size.height
+          : 18;
+  const radius = width / 2;
+  return [
+    {
+      id: "thumb",
+      type: "circle",
+      x: radius,
+      y: radius,
+      radius,
+      fill: paint.backgroundColor ?? ("{color.accent}" as TokenRef),
+    },
+    {
+      type: "border",
+      target: "thumb",
+      borderWidth: 2,
+      color: "{color.base}" as TokenRef,
+      radius,
+    },
+  ];
 };
 
 // ===========================================================================

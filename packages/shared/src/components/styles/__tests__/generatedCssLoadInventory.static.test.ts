@@ -169,9 +169,9 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-09-24 — DialogTrigger (`3f50bcf6c`, index 로드) 가 집계를 안 고쳐 96/73 으로 어긋나 있던 것도 같이 맞춘다.
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 105 · index 79 · 모듈 0 · 미로드 26 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
-    expect(generated.length).toBe(105);
-    expect(indexImported.size).toBe(79);
+  it("인벤토리 집계 — 생성 106 · index 80 · 모듈 0 · 미로드 26 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+    expect(generated.length).toBe(106);
+    expect(indexImported.size).toBe(80);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

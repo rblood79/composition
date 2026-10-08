@@ -130,7 +130,7 @@ async function previewState(page) {
         ? curve.getAttribute("d").split(/[MLC]\s*/).filter(Boolean).map((s) => Number(s.trim().split(/[\s,]+/)[0]))
         : [];
       const host = chart.querySelector(".chart-window-track-host");
-      const fill = host?.querySelector(".slider-fill");
+      const fill = host?.querySelector(".react-aria-SliderFill");
       const fr = fill?.getBoundingClientRect();
       const hr = host?.getBoundingClientRect();
       const ifr = frame.getBoundingClientRect();

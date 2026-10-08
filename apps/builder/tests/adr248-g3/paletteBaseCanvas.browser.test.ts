@@ -272,7 +272,14 @@ let axisPngSha: Map<string, string> = new Map();
 const results: unknown[] = [];
 
 /** Part nodes the owner draws (2026-10-04): no old node held them. */
-const OWNER_DRAWN_PART_TYPES = Object.keys(OWNER_DRAWN_PART_OWNERS);
+const OWNER_DRAWN_PART_TYPES = [
+  ...Object.keys(OWNER_DRAWN_PART_OWNERS),
+  // ADR-256 Phase 7: a ProgressBar's · Meter's · Slider's fill is a node in its track — the old
+  // track painted it in its own box (APPROVED_UNPAIRED `progress-fill-node`).
+  "ProgressBarFill",
+  "MeterFill",
+  "SliderFill",
+];
 /**
  * New row hosts between an owner and its parts: a toggle's RAC button (ADR-256 Phase 3 —
  * `CheckboxButton`), a TreeItem's row content (Phase 5h — RAC `TreeItemContent`).
@@ -616,7 +623,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 25,
+    libraryContractVersion: 26,
     revision: 0,
     projectId,
     rootId: projectId,

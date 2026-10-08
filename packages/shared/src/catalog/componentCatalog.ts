@@ -757,6 +757,12 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
   //   track + value 막대만, thumb 핸들은 본 escape 담당(렌더 소유권 2026-06-10 이전 정합). Track/value
   //   sub-part 동형 — spec 삭제 후 isCatalogSkiaCutover 게이트(buildSpecNodeData.ts:965) 통과로 thumb
   //   circle Skia 보존(미발효 시 return null → thumb 소실).
+  // ADR-256 Phase 7c: RAC SliderFill — the filled part of a Slider's track (palette 미노출).
+  primitiveEntry("SliderFill", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "slider fill",
+    icon: "SlidersHorizontal",
+  }),
   primitiveEntry("SliderThumb", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "slider thumb",

@@ -172,7 +172,7 @@ describe("ADR-211 P3 — Preview 창 Slider", () => {
     await vi.waitFor(() => expect(slider()).toBeTruthy());
     const track = slider()!;
     const fitEff = Number(track.dataset.chartWindowEnd);
-    const fill = track.querySelector<HTMLElement>(".slider-fill")!;
+    const fill = track.querySelector<HTMLElement>(".react-aria-SliderFill")!;
     const rect = fill.getBoundingClientRect();
     const slot = track.getBoundingClientRect().width / 1000;
     const down = (x: number) =>

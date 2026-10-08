@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 7c — Slider 를 노드 트리로 · 채움 = RAC SliderFill · 값 글자 = RAC 의 값] - 2026-10-09
+
+### Changed
+
+- **Slider 가 레퍼런스 구조를 따른다** (ADR-256 Phase 7c — react-aria.adobe.com Slider 예제):
+  - 원본 = `Slider > Label + SliderOutput + SliderTrack > SliderFill + SliderThumb` — Preview 는 RAC Slider 가 자식 노드를 순서대로 그린다 (작성자가 넣은 노드도 그 자리에)
+  - 채움은 새 노드 `SliderFill` (RAC SliderFill — RAC 가 값으로 자리를 정한다), thumb 은 자기 노드가 그린다 (원 + 2px 링). track 은 자기 상자가 막대 (둥근 끝)
+  - 값 글자 (SliderOutput) 는 RAC 가 쓰는 값 — Canvas 에서도 실제 값 (전에는 고정 글자 「50」). 작성자가 글자를 넣으면 그 글자
+  - 문서에서 값을 바꾸면 열린 Preview 도 그 값으로 다시 시작한다 (전에는 다시 열 때까지 옛 값)
+  - `showValueLabel` 을 끄면 Canvas 에서도 값 글자가 사라진다
+  - 보이는 label 이 없으면 Preview 의 Slider 에 이름 (`aria-label` 「Slider」)
+  - Chart 의 창 트랙 (공용 Slider) 도 같은 채움 요소 (RAC SliderFill) 를 쓴다
+  - 저장 형식 contract 26 — 옛 개발용 프로젝트는 열리지 않는다
+  - 위치: `catalog/runtime/delegatedDom.tsx` (`slider`) · `catalog/runtime/domBinding.tsx` · `catalog/runtime/presence.ts` (`catalogSliderFillLayout`) · `catalog/runtime/valueBindings.ts` (SliderOutput 글자) · `packages/rendering` (slider archetype CSS · `slider_thumb`) · `components/Slider.tsx` · `catalog/document/generated/reusableOriginLibrary.ts` (`component-slider`)
+
 ## [ADR-256 Phase 7b — Meter 를 노드 트리로 · 값 글자 · 채움 폭 = RAC 의 값] - 2026-10-09
 
 ### Changed

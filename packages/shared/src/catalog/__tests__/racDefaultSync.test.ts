@@ -23,8 +23,6 @@ const RAC_DEFAULTS: ReadonlyArray<[type: string, key: string, value: unknown]> =
     ["Slider", "minValue", 0],
     ["Slider", "maxValue", 100],
     ["Slider", "step", 1],
-    ["SliderTrack", "minValue", 0],
-    ["SliderTrack", "maxValue", 100],
     ["Popover", "placement", "bottom"],
     ["Popover", "offset", 8],
     ["Popover", "crossOffset", 0],

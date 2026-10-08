@@ -1,5 +1,6 @@
 import { RAC_VALUE_KEYS } from "../generated/racStateKeys";
 import type { CatalogConsumerNode } from "./compositionRoot";
+import { catalogSliderRange } from "./presence";
 
 /**
  * ADR-256 Decision 12 — a node's template binding to a value its RAC owner computes and passes its
@@ -155,6 +156,39 @@ export function catalogBoundValues(
   return { props, visual: visual as CatalogConsumerNode["visual"] };
 }
 
+/**
+ * ADR-256 Phase 7c — RAC parts that write their own text when the document gives none (`children`
+ * empty): a SliderOutput shows its Slider's value (`Slider.mjs` `SliderOutput` —
+ * `state.getThumbValueLabel`, the locale's number format). Its owner and that text, or undefined.
+ */
+const RAC_TEXT_OWNERS: Readonly<Record<string, string>> = {
+  SliderOutput: "Slider",
+};
+function racOwnText(
+  record: CatalogConsumerNode,
+  get: Lookup,
+  typeOf: TypeOf,
+  locale?: string,
+): { owner: CatalogConsumerNode; text: string } | undefined {
+  const ownerType = RAC_TEXT_OWNERS[record.ruleId ?? typeOf(record)];
+  if (!ownerType) return undefined;
+  let owner = get(record.parentId);
+  while (owner && typeOf(owner) !== ownerType) owner = get(owner.parentId);
+  if (!owner) return undefined;
+  const { min, max, value } = catalogSliderRange(owner);
+  const own = typeof owner.props.locale === "string" ? owner.props.locale : "";
+  return {
+    owner,
+    text: new Intl.NumberFormat(
+      own || locale || globalThis.navigator?.language || "en-US",
+    ).format(Math.min(max, Math.max(min, value))),
+  };
+}
+/** Whether a record's text is the one its RAC part writes (no text of its own — `racOwnText`). */
+export function catalogRacOwnsText(record: CatalogConsumerNode): boolean {
+  return record.valueTemplate?.props?.children === "";
+}
+
 /** The record with its value bindings resolved against its owners' records (the same record when none). */
 export function catalogWithValues(
   record: CatalogConsumerNode,
@@ -162,6 +196,20 @@ export function catalogWithValues(
   typeOf: TypeOf,
   locale?: string,
 ): CatalogConsumerNode {
+  const written = catalogRacOwnsText(record)
+    ? ""
+    : record.valueTemplate
+      ? undefined
+      : record.props.children;
+  if (written === undefined || written === "") {
+    const own = racOwnText(record, get, typeOf, locale);
+    if (own)
+      return {
+        ...record,
+        props: { ...record.props, children: own.text },
+        valueTemplate: { props: { children: "" } },
+      };
+  }
   const template = catalogValueTemplateOf(record);
   if (!template) return record;
   const read: CatalogValueRead = (key) => {
@@ -183,7 +231,20 @@ export function catalogValueDependents(
   get: Lookup,
   typeOf: TypeOf,
 ): CatalogConsumerNode[] {
-  if (!RAC_VALUE_KEYS[typeOf(owner)]) return [];
+  const ownerType = typeOf(owner);
+  // (A part whose text RAC writes from this owner — a Slider's SliderOutput, ADR-256 Phase 7c.)
+  if (Object.values(RAC_TEXT_OWNERS).includes(ownerType)) {
+    const parts: CatalogConsumerNode[] = [];
+    const visit = (id: string) => {
+      const node = get(id);
+      if (!node) return;
+      if (catalogRacOwnsText(node)) parts.push(node);
+      node.children.forEach(visit);
+    };
+    owner.children.forEach(visit);
+    return parts;
+  }
+  if (!RAC_VALUE_KEYS[ownerType]) return [];
   const out: CatalogConsumerNode[] = [];
   const visit = (id: string) => {
     const node = get(id);

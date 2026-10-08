@@ -373,6 +373,23 @@ const progressNodeTreeMarkup = (markup: string, name: string, label: string) =>
       )
     : markup;
 /**
+ * ADR-256 Phase 7c: a Slider draws its node tree in RAC's Slider — the track is its own bar (no
+ * `.slider-track-bg` element), the fill is RAC's `SliderFill` (was the shared component's
+ * `.slider-fill` div), and a Slider without a visible label is named (`aria-label`).
+ */
+const sliderNodeTreeMarkup = (markup: string, name: string) => {
+  const disabled = /class=react-aria-Slider [^>]*data-disabled=true/.test(markup);
+  const tree = markup
+    .replace(/<div class=slider-track-bg[^>]*><\/>/, "")
+    .replace(
+      /<div class=slider-fill[^>]*><\/>/,
+      `<div class=react-aria-SliderFill ${disabled ? "data-disabled=true " : ""}data-orientation=horizontal data-rac=></>`,
+    );
+  return name === "no label"
+    ? tree.replace(/^<div aria-labelledby (class=react-aria-Slider)/, "<div aria-label=Slider $1")
+    : tree;
+};
+/**
  * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
  * the Preview's Select had no options at all): they are asserted on their own.
  */
@@ -564,6 +581,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                     ? searchFieldGroupMarkup(fixed)
                     : type === "select"
                       ? selectNodeTreeMarkup(fixed)
+                      : type === "slider"
+                        ? sliderNodeTreeMarkup(fixed, name)
                       : type === "progressbar" || type === "meter"
                         ? progressNodeTreeMarkup(
                             fixed,

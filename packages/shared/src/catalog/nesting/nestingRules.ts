@@ -134,12 +134,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   ColorSwatchPicker: { children: ["ColorSwatchPickerItem"] },
   TableView: { children: ["TableHeader", "TableBody"] },
   // (Tree — ADR-256 Phase 5h: 노드 트리로 그린다 — TreeItem > TreeItemContent (자유 내용) + TreeItem, 행 삭제.)
-  // range · progress — Phase 7
-  Slider: {
-    children: ["Label", "SliderOutput", "SliderTrack"],
-    wrappers: true,
-  },
-  SliderTrack: { children: ["SliderThumb"], wrappers: true },
+  // (range · progress — ADR-256 Phase 7: Slider · Meter · ProgressBar 는 노드 트리로 그린다, 행 삭제.)
   // (Meter — ADR-256 Phase 7b: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // overlay · disclosure — Phase 8. Disclosure trigger 버튼의 내용 — chevron 노드와 제목 Text.
@@ -209,6 +204,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "TailSwatch",
   "SliderThumb",
   "SliderOutput",
+  "SliderFill",
   "MeterValue",
   // (MeterTrack — ADR-256 Phase 7b: the track holds the fill and free content.)
   "MeterFill",

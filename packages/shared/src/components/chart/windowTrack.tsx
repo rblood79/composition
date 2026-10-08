@@ -59,7 +59,7 @@ export function ChartWindowTrack({
   const slotPx = n > 0 ? track.w / n : 0;
   const onPointerDownCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement | null;
-    if (!target?.closest(".slider-fill") || slotPx <= 0) return;
+    if (!target?.closest(".react-aria-SliderFill") || slotPx <= 0) return;
     event.preventDefault();
     event.stopPropagation();
     drag.current = {

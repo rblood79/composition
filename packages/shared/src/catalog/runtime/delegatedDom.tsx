@@ -30,6 +30,7 @@ import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ProgressBar as AriaProgressBar } from "react-aria-components/ProgressBar";
 import { Meter as AriaMeter } from "react-aria-components/Meter";
+import { Slider as AriaSlider } from "react-aria-components/Slider";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
@@ -61,6 +62,7 @@ import {
   FIELD_HINT_OWNERS,
   catalogFieldNecessityIndicator,
   catalogPartParent,
+  catalogSliderRange,
 } from "./presence";
 import {
   type NecessityIndicator,
@@ -97,7 +99,6 @@ import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
 import { RangeCalendar } from "../../components/RangeCalendar";
-import { Slider } from "../../components/Slider";
 import { ToggleButton } from "../../components/ToggleButton";
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
 import {
@@ -1503,26 +1504,34 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     undefined,
     "start",
   ),
+  // ADR-256 Phase 7c: the Slider is RAC's, its children in order — the reference `Label` +
+  // `SliderOutput` + `SliderTrack > SliderFill + SliderThumb`, and anything the author put in.
   slider: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return createElement(Slider as ElementType, {
-        ...marker(input),
-        style: input.style,
-        label: fieldLabel(input, str(props.label)),
-        defaultValue: [Number(props.value) || 50],
-        minValue: Number(props.minValue) || 0,
-        maxValue: Number(props.maxValue) || 100,
-        step: Number(props.step) || 1,
-        orientation: props.orientation || "horizontal",
-        size: props.size || "md",
-        isDisabled: bool(props.isDisabled),
-        isEmphasized: bool(props.isEmphasized),
-        showValueLabel: props.showValueLabel !== false,
-        labelPosition: props.labelPosition || "top",
-        locale: opt(props.locale),
-      });
+      const { min, max, value } = catalogSliderRange(input.node);
+      return withI18n(
+        createElement(AriaSlider as ElementType, {
+          ...marker(input),
+          // (RAC's value is the run state — `defaultValue`; a document edit of the value starts it
+          // again, as a Tabs' selected key does.)
+          key: `${input.node.id}:${value}`,
+          style: input.style,
+          className: "react-aria-Slider",
+          "data-size": str(props.size) || "md",
+          "data-label-position": str(props.labelPosition) || "top",
+          "data-emphasized": bool(props.isEmphasized) || undefined,
+          defaultValue: value,
+          minValue: min,
+          maxValue: max,
+          step: num(props.step) ?? 1,
+          isDisabled: bool(props.isDisabled),
+          // (No visible label: RAC needs a name — the type's own.)
+          "aria-label": str(props.label).trim() ? undefined : "Slider",
+          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        }),
+        props.locale,
+      );
     },
   },
   // ADR-256 Phase 7a: the ProgressBar is RAC's, its children in order — the reference `Label` +

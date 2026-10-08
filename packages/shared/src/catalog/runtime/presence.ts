@@ -712,6 +712,50 @@ export function catalogPresenceDependents(
   return items;
 }
 
+/** A Slider's value and range as RAC reads them (`value` · `defaultValue`, else the middle). */
+export function catalogSliderRange(slider: CatalogConsumerNode): {
+  min: number;
+  max: number;
+  value: number;
+} {
+  const number = (value: unknown, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const min = number(slider.props.minValue, 0);
+  const max = number(slider.props.maxValue, 100);
+  const value = number(
+    slider.props.value ?? slider.props.defaultValue,
+    (min + max) / 2,
+  );
+  return { min, max, value };
+}
+
+/**
+ * ADR-256 Phase 7c — RAC SliderFill placement (D1 behavior, `Slider.mjs` `SliderFill`): absolutely
+ * placed in its track from the range's start (`offset` — the minimum) to the thumb's value
+ * (`insetInlineStart: start%`, `width: (end − start)%`, `height: 100%`). Undefined for any other node.
+ */
+export function catalogSliderFillLayout(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string> | undefined {
+  if ((node.ruleId ?? typeOf(node)) !== "SliderFill") return undefined;
+  const track = get(node.parentId);
+  const slider = track ? get(track.parentId) : undefined;
+  if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
+  if (typeOf(slider) !== "Slider") return undefined;
+  const { min, max, value } = catalogSliderRange(slider);
+  const ratio =
+    max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+  return {
+    position: "absolute",
+    insetLeft: "0%",
+    insetTop: "0px",
+    width: `${ratio * 100}%`,
+    height: "100%",
+  };
+}
+
 /**
  * RAC SliderThumb placement (D1 behavior): absolutely placed on the track at the value's ratio
  * (`left: pct%`, centered with `translateX(-50%)`), vertically centered on the track (`top: 50%`,
@@ -728,12 +772,7 @@ export function catalogSliderThumbLayout(
   if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
   const number = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
-  const min = number(slider.props.minValue, 0);
-  const max = number(slider.props.maxValue, 100);
-  const value = number(
-    slider.props.value ?? slider.props.defaultValue,
-    (min + max) / 2,
-  );
+  const { min, max, value } = catalogSliderRange(slider);
   const ratio =
     max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
   const size = number(node.visual.height ?? node.visual.width, 18);
@@ -967,6 +1006,8 @@ export function catalogProgressFillOwner(
 const PROGRESS_VALUES: Readonly<Record<string, string>> = {
   ProgressBar: "ProgressBarValue",
   Meter: "MeterValue",
+  // (ADR-256 Phase 7c: a Slider's value text — RSP `showValueLabel`.)
+  Slider: "SliderOutput",
 };
 const PROGRESS_VALUE_TYPES: ReadonlySet<string> = new Set(
   Object.values(PROGRESS_VALUES),
@@ -1475,10 +1516,13 @@ export function catalogSliderThumbs(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   if (typeOf(slider) !== "Slider") return [];
+  // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values)
   return childrenOf(slider, get)
     .filter((child) => typeOf(child) === "SliderTrack")
     .flatMap((track) =>
-      childrenOf(track, get).filter((child) => typeOf(child) === "SliderThumb"),
+      childrenOf(track, get).filter((child) =>
+        ["SliderThumb", "SliderFill"].includes(typeOf(child)),
+      ),
     );
 }
 

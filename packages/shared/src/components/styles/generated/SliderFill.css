@@ -1,0 +1,84 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog SliderFill — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-SliderFill {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+
+  /* Default variant */
+  background: var(--accent);
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderFill[data-variant="default"] {
+  background: var(--accent);
+  color: var(--fg);
+
+  &[data-hovered] {
+  }
+
+  &[data-pressed] {
+  }
+}
+
+.react-aria-SliderFill[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderFill[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderFill[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderFill[data-size="xl"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-lg);
+  border-radius: var(--radius-full);
+}
+
+.react-aria-SliderFill[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-SliderFill[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .react-aria-SliderFill {
+    forced-color-adjust: auto;
+  }
+}
+
+
+} /* @layer components */

@@ -116,6 +116,7 @@ export type ComponentTag =
   | "Autocomplete"
   | "Slider"
   | "SliderOutput"
+  | "SliderFill"
   | "SliderThumb"
   | "SliderTrack"
   | "Slot"

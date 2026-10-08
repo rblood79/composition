@@ -53,10 +53,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 24 — ADR-256 Phase 7a: a ProgressBar's value text binds RAC's `{valueText}`
  * (`component-progressbar__2`) and its track holds a `ProgressBarFill` (`__3_1`, width
  * `{percentage}%`); its Label carries `presentWhen`. 25 — ADR-256 Phase 7b: a Meter the same
- * (`component-meter__2` `{valueText}` · `__3_1` `MeterFill`, Label `presentWhen`).
+ * (`component-meter__2` `{valueText}` · `__3_1` `MeterFill`, Label `presentWhen`). 26 — ADR-256
+ * Phase 7c: a Slider's track holds a RAC `SliderFill` (`component-slider__3_2`) before its thumb and
+ * takes no value of its own; its SliderOutput has no text (RAC writes the value); Label `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 25 as const;
+export const LIBRARY_CONTRACT_VERSION = 26 as const;
 
 export type EntryKind =
   | "project"

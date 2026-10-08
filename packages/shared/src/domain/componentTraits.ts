@@ -348,6 +348,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   SliderOutput: { owners: ["Slider"] },
   SliderTrack: { owners: ["Slider"] },
   SliderThumb: { owners: ["SliderTrack"] },
+  // ADR-256 Phase 7c: RAC's SliderFill — in the track (RAC throws outside a Slider's state).
+  SliderFill: { owners: ["SliderTrack"] },
   Meter: {},
   MeterTrack: { owners: ["Meter"] },
   MeterValue: { owners: ["Meter"] },
