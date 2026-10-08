@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Radio 선택 indicator — Canvas 가 Preview 와 같은 두꺼운 링 · 흰 가운데로] - 2026-10-09
+
+### Fixed
+
+- **선택된 Radio 의 indicator 가 Canvas 에서도 Preview 와 같다** — 선택 색의 두꺼운 링 (sm 5 · md 6 · lg 7 · xl 8px) 안쪽이 흰색 (종전 Canvas: 2px 링 + 흰 틈 + 가운데 지름 8 의 accent 점 — 색이 거꾸로).
+  - **Why**: `Radio.css` 는 `[data-selected] .indicator` 의 테두리를 두껍게 하고 바탕 `--color-white` 를 가운데로 남긴다. rule 의 `size.indicator.dotSize` 는 그 흰 가운데의 지름 (`boxSize − 2 × 선택 테두리`) 인데, Canvas `radio` primitive 는 이 값을 선택 색으로 채운 점의 지름으로 썼다. 이제 선택 테두리 색 원 (지름 boxSize) 위에 흰 원 (지름 dotSize) 을 그린다. 미선택 모양은 그대로.
+  - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts` (`radio`)
+- 회귀: `packages/rendering/src/renderers/__tests__/buildCatalogShapes.selection.test.ts` (variant 4 × size 4 선택 모양 — 원복 RED 16) · live `apps/builder/scripts/radio-selected-live.mjs` (실제 Options「Selected」칩, Canvas Skia 데이터 ↔ Preview `.indicator` computed 4/4).
+
 ## [Design 패널 표시값 — 선택 record 의 실효값을 보인다 (부모 part rule · size 전파)] - 2026-10-09
 
 ### Fixed

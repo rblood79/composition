@@ -1105,9 +1105,13 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 };
 
 /**
- * `radio` — 라디오 indicator: outer ring(circle, fillAlpha 0) + border + inner dot(circle,
- * isSelected 시). label 은 자식 Label Element 담당. isSelected 시 ring/dot 색은 보편 상태축
- * (visual.selectedBorder = ring, visual.fill.default.selected = dot). (Radio primitive)
+ * `radio` — 라디오 indicator. 미선택: outer ring(circle, fillAlpha 0) + border. 선택: Radio.css
+ * `[data-selected] .indicator` 와 같은 모양 — 선택 테두리 색 (visual.selectedBorder = `--radio-color`)
+ * 의 두꺼운 링 (5/6/7/8px) 안쪽이 `.indicator` 바탕 흰색으로 남는다. 흰 가운데 지름 = rule
+ * `size.indicator.dotSize` (= boxSize − 2 × 선택 테두리). label 은 자식 Label Element 담당.
+ * (Radio primitive)
+ *
+ * Why (2026-10-09): 종전 선택 모양은 얇은 링 + 흰 틈 + dotSize 크기 accent 점 — CSS 와 색이 거꾸로였다.
  */
 const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const outer = size.indicator?.boxSize ?? 20;
@@ -1119,6 +1123,25 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   // ring border: selected=selectedBorder, 미선택=visual.border (이전 RADIO_*_COLORS 흡수).
   // fallback 은 variant 누락 방어 — 정상 spec 에선 도달 안 함(타입 만족).
   const borderColor = paint.borderColor ?? ("{color.border-hover}" as TokenRef);
+
+  if (isSelected)
+    return [
+      {
+        id: "ring",
+        type: "circle",
+        x: outerRadius,
+        y: outerRadius,
+        radius: outerRadius,
+        fill: borderColor,
+      },
+      {
+        type: "circle",
+        x: outerRadius,
+        y: outerRadius,
+        radius: inner / 2,
+        fill: "{color.white}" as TokenRef,
+      },
+    ];
 
   // ring 배경은 투명(fillAlpha 0) — 색은 시각상 무의미하나 legacy parity 위해 fill base 사용.
   const ringFill = paint.backgroundColor ?? ("{color.base}" as TokenRef);
@@ -1141,16 +1164,6 @@ const radio: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       radius: outerRadius,
     },
   ];
-
-  if (isSelected) {
-    shapes.push({
-      type: "circle",
-      x: outerRadius,
-      y: outerRadius,
-      radius: inner / 2,
-      fill: paint.backgroundColor ?? ("{color.accent}" as TokenRef),
-    });
-  }
 
   return shapes;
 };

@@ -203,11 +203,12 @@ const RADIO_VISUALS: Record<string, ComponentVisualRule> = {
 };
 
 describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", () => {
-  // 구 Radio.spec.sizes: sm(16/6) md(20/8) lg(24/10) xl(28/12)
+  // Radio rule sizes: sm(16/6) md(20/8) lg(24/10) xl(30/14) — dotSize = boxSize − 2 × 선택 테두리 (5/6/7/8)
   const sizes = {
     sm: radioSize(16, 6),
     md: radioSize(20, 8),
     lg: radioSize(24, 10),
+    xl: radioSize(30, 14),
   } as const;
   const variants = ["default", "accent", "neutral", "negative"] as const;
 
@@ -235,18 +236,27 @@ describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", ()
         );
       });
 
-      it(`${variant}/${name}/선택 — inner dot 추가(selected 색)`, () => {
+      // Radio.css `[data-selected] .indicator { border-color: var(--radio-color); border-width: 5/6/7/8px }`
+      //   위에 `.indicator { background: var(--color-white) }` — 두꺼운 링 + 흰 가운데 (지름 dotSize
+      //   = boxSize − 2 × 선택 테두리). 종전 Canvas 는 얇은 링 + 흰 틈 + accent 점 (거꾸로) 이었다.
+      it(`${variant}/${name}/선택 — 선택 테두리 색 원 (반지름 ${outerRadius}) + 흰 가운데 (지름 dotSize)`, () => {
         const shapes = draw.radio({
           props: { variant, isSelected: true, _hasChildren: true },
           size,
           visual: RADIO_VISUALS[variant],
           style: undefined,
         });
-        // 선택: ring + border + dot = 3 shape
-        expect(shapes).toHaveLength(3);
-        const dot = shapes[2] as Extract<Shape, { type: "circle" }>;
-        expect(dot.radius).toBe(size.indicator!.dotSize! / 2);
-        expect(dot.fill).toBe(RADIO_VISUALS[variant].fill!.default.selected);
+        expect(shapes).toHaveLength(2);
+        const [ring, center] = shapes as Extract<Shape, { type: "circle" }>[];
+        expect(ring.type).toBe("circle");
+        expect(ring.radius).toBe(outerRadius);
+        expect(ring.fill).toBe(RADIO_VISUALS[variant].selectedBorder);
+        expect((ring as { fillAlpha?: number }).fillAlpha).toBeUndefined();
+        expect(center.type).toBe("circle");
+        expect(center.x).toBe(outerRadius);
+        expect(center.y).toBe(outerRadius);
+        expect(center.radius).toBe(size.indicator!.dotSize! / 2);
+        expect(center.fill).toBe("{color.white}");
       });
     }
   }
