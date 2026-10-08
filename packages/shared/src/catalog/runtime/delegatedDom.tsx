@@ -12,6 +12,7 @@ import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatchPickerItem as AriaColorSwatchPickerItem } from "react-aria-components/ColorSwatchPicker";
 import { I18nProvider } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
+import { ToggleGroupStateContext } from "react-aria-components/ToggleButtonGroup";
 import {
   CheckboxButton as AriaCheckboxButton,
   CheckboxField as AriaCheckboxField,
@@ -785,6 +786,33 @@ function SelfToggleButton({
     render({ isSelected, onChange: setSelected }),
   );
 }
+/**
+ * A ToggleButton in a group: its selection is the group's RAC state (`ToggleGroupStateContext` —
+ * its key is the node id), passed down as its state frame so the `showWhen` nodes inside follow a
+ * Preview press (ADR-256 후속 18 — the shared ToggleButton draws children, not RAC's function).
+ */
+function GroupToggleFrame({
+  ownerId,
+  isSelected,
+  isDisabled,
+  children,
+}: {
+  ownerId: string;
+  isSelected: boolean;
+  isDisabled: boolean;
+  children: ReactElement;
+}): ReactElement {
+  const group = useContext(ToggleGroupStateContext);
+  return catalogStateFrame(
+    ownerId,
+    ownerId,
+    {
+      isSelected: group ? group.selectedKeys.has(ownerId) : isSelected,
+      isDisabled: isDisabled || !!group?.isDisabled,
+    },
+    children,
+  );
+}
 function nodeTreeField(
   component: ElementType,
   type: string,
@@ -866,6 +894,29 @@ const markerWrap = (input: DelegatedDomInput, element: ReactElement) =>
   );
 
 // ── bindings ───────────────────────────────────────────────────────────
+/** A ToggleButtonGroup's ToggleButtons — its children and those inside layout frames. */
+function groupToggleButtons(
+  group: CatalogConsumerNode,
+  root: CatalogCompositionRoot,
+): { buttons: CatalogConsumerNode[]; frames: CatalogConsumerNode[] } {
+  const buttons: CatalogConsumerNode[] = [];
+  const frames: CatalogConsumerNode[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const id of node.children) {
+      const child = root.domInputs.get(id);
+      if (!child) continue;
+      const type = catalogTypeName(root, child);
+      if (type === "ToggleButton") buttons.push(child);
+      else if (type === "frame") {
+        frames.push(child);
+        visit(child);
+      }
+    }
+  };
+  visit(group);
+  return { buttons, frames };
+}
+
 /** A DisclosureGroup's Disclosures (any depth — RAC context) over the DOM inputs. */
 const groupDisclosures = (
   group: CatalogConsumerNode,
@@ -1844,7 +1895,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   togglebutton: {
     render: (input) => {
       const props = input.node.props;
-      const parent = input.root.domInputs.get(input.node.parentId);
+      // (A frame between keeps it in the group's RAC context.)
+      const parent = catalogDomPartParent(input.root, input.node);
       const inGroup =
         !!parent && catalogTypeName(input.root, parent) === "ToggleButtonGroup";
       // Outside a group its selection is its own (RAC state): tracked so the `showWhen` nodes inside
@@ -1874,33 +1926,42 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...renderAll(input),
             ),
         });
-      return createElement(
-        ToggleButton as ElementType,
-        {
-          ...marker(input),
-          id: input.node.id,
-          style: input.style,
-          isDisabled: bool(props.isDisabled),
-          autoFocus: bool(props.autoFocus),
-          isEmphasized: bool(props.isEmphasized),
-          isQuiet: bool(props.isQuiet),
-          staticColor: props.staticColor || "auto",
-          size: props.size || "md",
-        },
-        typeof props.children === "string" ? props.children : null,
-        ...renderAll(input),
-      );
+      return createElement(GroupToggleFrame, {
+        ownerId: input.node.id,
+        isSelected: bool(props.isSelected),
+        isDisabled: bool(props.isDisabled),
+        children: createElement(
+          ToggleButton as ElementType,
+          {
+            ...marker(input),
+            id: input.node.id,
+            style: input.style,
+            isDisabled: bool(props.isDisabled),
+            autoFocus: bool(props.autoFocus),
+            isEmphasized: bool(props.isEmphasized),
+            isQuiet: bool(props.isQuiet),
+            staticColor: props.staticColor || "auto",
+            size: props.size || "md",
+          },
+          typeof props.children === "string" ? props.children : null,
+          ...renderAll(input),
+        ),
+      });
     },
   },
   // ADR-256 Phase 3: a ToggleButtonGroup draws its children in order (its ToggleButtons and anything
   // the author put in) — the shared group gives its buttons the S2 contexts (indicator · emphasized ·
   // quiet · static color).
   togglebuttongroup: {
+    // Its selection is its ToggleButtons' `isSelected` — through the frames the author put
+    // between (they stay in the group's RAC context — ADR-256 후속 18).
+    watchesChildren: (node, root) => {
+      const { buttons, frames } = groupToggleButtons(node, root);
+      return [...frames, ...buttons].map((record) => record.id);
+    },
     render: (input) => {
       const props = input.node.props;
-      const buttons = children(input).filter(
-        (child) => catalogTypeName(input.root, child) === "ToggleButton",
-      );
+      const { buttons } = groupToggleButtons(input.node, input.root);
       const selected = new Set(
         buttons
           .filter((button) => button.props.isSelected === true)

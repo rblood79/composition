@@ -223,7 +223,7 @@
   max-width: unset;
 }
 
-.react-aria-Popover[data-trigger="DateRangePicker"] .react-aria-Dialog .react-aria-RangeCalendar {
+.react-aria-Popover[data-trigger="DateRangePicker"] .react-aria-RangeCalendar {
   background: transparent;
   border: none;
   padding: 0;

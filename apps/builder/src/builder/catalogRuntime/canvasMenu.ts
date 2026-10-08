@@ -262,15 +262,34 @@ export function catalogCanvasMenuItems(
   }
 
   const selection = host.selection();
-  const elements = selection.filter(
-    (item) =>
-      item.target.kind === "node" &&
-      host.records.get(item.identity)?.parentId !== PAGE_GRID,
+  // Deletion takes every selected target: a node inside an instance is a `descendant` target that
+  // `removeTargets` turns off in its owner (the Layers panel's delete does the same — ADR-256 후속 17).
+  const removable = selection.filter(
+    (item) => host.records.get(item.identity)?.parentId !== PAGE_GRID,
   );
+  const deletion = (): ContextMenuItem[] =>
+    surface === "action-bar"
+      ? []
+      : [
+          { kind: "separator", id: "delete-separator" },
+          ...action(
+            "delete",
+            "contextMenu.delete",
+            removeTargets({
+              targets: removable.map((item) => item.target),
+              newId: host.newId,
+            }),
+            "delete",
+            ACTION_ICONS.delete,
+            true,
+          ),
+        ];
+  const elements = removable.filter((item) => item.target.kind === "node");
   const ids = elements.map(
     (item) => item.target.kind === "node" && item.target.id,
   ) as NodeId[];
-  if (!ids.length) return [];
+  // (Only descendants: copy · paste · component actions take owned nodes — deletion alone.)
+  if (!ids.length) return removable.length ? deletion().slice(1) : [];
   const items: ContextMenuItem[] = [];
   const copy: ContextMenuItem = {
     kind: "action",
@@ -513,20 +532,6 @@ export function catalogCanvasMenuItems(
   items.push(...component);
   // The bar policy excludes deletion. Planning it here would repeatedly copy each selected
   // node's sibling list, only to discard the result. Overflow still builds the full menu.
-  if (surface !== "action-bar")
-    items.push(
-      { kind: "separator", id: "delete-separator" },
-      ...action(
-        "delete",
-        "contextMenu.delete",
-        removeTargets({
-          targets: elements.map((item) => item.target),
-          newId: host.newId,
-        }),
-        "delete",
-        ACTION_ICONS.delete,
-        true,
-      ),
-    );
+  items.push(...deletion());
   return items;
 }

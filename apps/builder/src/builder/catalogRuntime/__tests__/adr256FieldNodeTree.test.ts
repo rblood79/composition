@@ -342,8 +342,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       // react-aria.adobe.com DatePicker · DateRangePicker (API anatomy · vanilla starter): Label ·
       // Group > DateInput (a range: start · end) + Button(glyph) · Text[description] · FieldError ·
       // Popover[hideArrow] > Calendar / RangeCalendar (closed — nothing drawn). Known difference,
-      // recorded in the breakdown: the range's separator is the template's Text node (`span`), where
-      // the vanilla starter's `span` is `aria-hidden` inside a `div.date-fields`.
+      // recorded in the breakdown: the range's separator is the template's Text node (`span`, kept
+      // out of the name as the starter's — `aria-hidden`, ADR-256 후속 10), where the vanilla
+      // starter's sits inside a `div.date-fields`.
       const reference = renderToStaticMarkup(
         createElement(
           (type === "datepicker" ? DatePicker : DateRangePicker) as never,
@@ -355,7 +356,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
                 Group,
                 null,
                 input("start"),
-                createElement("span", null, "–"),
+                createElement("span", { "aria-hidden": "true" }, "–"),
                 input("end"),
                 button,
               ),

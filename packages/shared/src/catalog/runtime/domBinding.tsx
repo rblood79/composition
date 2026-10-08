@@ -513,6 +513,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         const props = {
           "data-catalog-id": node.id,
           className: "react-aria-Text",
+          // (A DateRangePicker's dash — `presence.ts` `_decorative`, the reference's `aria-hidden`.)
+          ...(node.derivedProps?._decorative === true
+            ? { "aria-hidden": true }
+            : {}),
           ...(typeof node.props.size === "string"
             ? { "data-size": node.props.size }
             : {}),

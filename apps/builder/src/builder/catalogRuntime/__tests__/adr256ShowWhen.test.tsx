@@ -28,6 +28,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { mapShowWhenLocal } from "../../../../../../packages/shared/src/catalog/document/stateOwnerRefs";
 import { validateCatalogEntry } from "../../../../../../packages/shared/src/catalog/document/validation";
 import { renderCatalogDom } from "../domBinding";
 import { CatalogCompositionRoot } from "../../../../../../packages/shared/src/catalog/runtime/compositionRoot";
@@ -700,6 +701,50 @@ describe("ADR-256 Phase 4 review (round 10)", () => {
     host.remove();
   });
 
+  it("후속 18 a ToggleButton in a group (directly or in a frame): a Preview press reaches its conditioned child", async () => {
+    for (const framed of [false, true]) {
+      const { root } = await open(
+        [
+          node("g", "ToggleButtonGroup", framed ? ["f"] : ["tb", "tb2"], {
+            selectionMode: "single",
+          }),
+          ...(framed ? [node("f", "frame", ["tb", "tb2"])] : []),
+          node("tb", "ToggleButton", ["on"], { isSelected: false, children: "A" }),
+          node("on", "text", [], { children: "On" }, { all: ["isSelected"] }),
+          node("tb2", "ToggleButton", [], { isSelected: true, children: "B" }),
+        ],
+        "g",
+      );
+      const host = document.createElement("div");
+      document.body.append(host);
+      const mounted = createRoot(host);
+      await act(async () =>
+        mounted.render(
+          renderCatalogDom(
+            root,
+            [...root.domInputs.values()].find((r) => r.sourceId === id("g"))!.id,
+          ),
+        ),
+      );
+      const shown = () =>
+        !!host.querySelector(`[data-catalog-id$="::${id("on")}"]`);
+      const buttons = () => [...host.querySelectorAll("button")];
+      // (The framed group still starts from its buttons' authored selection.)
+      expect(buttons().map((b) => b.hasAttribute("data-selected"))).toEqual([
+        false,
+        true,
+      ]);
+      expect(shown()).toBe(false);
+      await act(async () => buttons()[0]!.click());
+      expect(shown()).toBe(true);
+      // (Single selection: pressing the other button deselects it — the child goes.)
+      await act(async () => buttons()[1]!.click());
+      expect(shown()).toBe(false);
+      act(() => mounted.unmount());
+      host.remove();
+    }
+  });
+
   it("m2 a group item's state includes its group's (a RadioGroup's value · a CheckboxGroup's disabled)", async () => {
     const radio = await open(
       [
@@ -1124,6 +1169,38 @@ describe("ADR-256 Phase 4 repair check (round 11)", () => {
       detachInstances({ ids: [outerInstance], newId: workspace.newId }),
     );
     expect(shown(root, "in-slot")).toBe(true);
+  });
+
+  it("후속 19 a detach maps a library template's local reference through a nested instance to the owned instance's address", () => {
+    const showWhen: CatalogShowWhen = {
+      all: ["isSelected"],
+      from: {
+        ancestor: {
+          local: {
+            instances: ["lib:template:t-inner", "lib:template:t-deeper"] as never,
+            templatePath: ["lib:template:t-root", "lib:template:t-tb"] as never,
+          },
+        },
+      },
+    };
+    const placedNested = new Map([["lib:template:t-inner", "project:node:new-inner"]]);
+    // (The nested instance placed by the detach: its owned instance heads the address.)
+    expect(
+      mapShowWhenLocal(showWhen, () => undefined, (template) =>
+        placedNested.get(template) as NodeId | undefined,
+      ).from,
+    ).toEqual({
+      ancestor: {
+        address: {
+          instances: ["project:node:new-inner", "lib:template:t-deeper"],
+          templatePath: ["lib:template:t-root", "lib:template:t-tb"],
+        },
+      },
+    });
+    // (A nested instance out of reach — a partial materialize — keeps the local reference.)
+    expect(mapShowWhenLocal(showWhen, () => undefined, () => undefined).from).toEqual(
+      showWhen.from,
+    );
   });
 
   it("rv-m6 a nested address whose instance step or path does not exist is refused", async () => {

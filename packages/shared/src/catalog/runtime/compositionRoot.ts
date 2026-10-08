@@ -754,8 +754,11 @@ function segmentRuns(
   const row = () => {
     for (const part of segmentText.parts) {
       const pad = part.editable ? segmentText.paddingX : 0;
-      runs.push({ text: part.text, x: x + pad, editable: part.editable });
-      x += widthOf(part.text, part.editable) + 2 * pad;
+      // Each RAC segment is its own flex item: CSS drops the collapsible spaces at its start and
+      // end (ko-KR `". "` is 3.6px in the DOM, not the 7.1px of `". "` — no-break spaces stay).
+      const text = part.text.replace(/^[ \t\n\r\f]+|[ \t\n\r\f]+$/g, "");
+      runs.push({ text, x: x + pad, editable: part.editable });
+      x += widthOf(text, part.editable) + 2 * pad;
     }
   };
   row();

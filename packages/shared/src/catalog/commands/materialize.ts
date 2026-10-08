@@ -344,8 +344,11 @@ export function createMaterializer(
       ...(template.showWhen
         ? {
             showWhen: mapShowWhenNodeIds(
-              mapShowWhenLocal(template.showWhen, (templatePath) =>
-                placed.get(key(templatePath)),
+              mapShowWhenLocal(
+                template.showWhen,
+                (templatePath) => placed.get(key(templatePath)),
+                // (Through a nested instance placed here: its owned instance's address.)
+                (templateId) => placedByTemplate.get(templateId),
               ),
               // (A project origin's template node is a node id: its position's new node.)
               (nodeId) => placedByTemplate.get(nodeId) ?? nodeId,

@@ -76,19 +76,33 @@ export function mapShowWhenNodeIds(
 }
 
 /**
- * The `showWhen` with each origin-local reference (`{ ancestor: { local } }`) of the same origin
- * (no nested instance step) passed through `place` — on detach, the position's new node.
+ * The `showWhen` with each origin-local reference (`{ ancestor: { local } }`) passed through `place`
+ * — on detach, the position's new node. A reference through a nested instance step whose instance
+ * node is placed (`placeInstance`) becomes that owned instance's address (ADR-256 후속 19 — the
+ * owned instance's address rule, `[id, ...instances.slice(1)]`); one out of reach stays local.
  */
 export function mapShowWhenLocal(
   showWhen: CatalogShowWhen,
   place: (templatePath: readonly string[]) => NodeId | undefined,
+  placeInstance?: (templateId: string) => NodeId | undefined,
 ): CatalogShowWhen {
   const ref = (from: CatalogStateOwnerRef): CatalogStateOwnerRef => {
     if (!("ancestor" in from) || !("local" in from.ancestor)) return from;
     const local = from.ancestor.local;
-    const nodeId = local.instances.length
-      ? undefined
-      : place(local.templatePath);
+    if (local.instances.length) {
+      const head = placeInstance?.(local.instances[0]!);
+      return head
+        ? {
+            ancestor: {
+              address: {
+                instances: [head, ...local.instances.slice(1)],
+                templatePath: local.templatePath,
+              } as InstanceAddress,
+            },
+          }
+        : from;
+    }
+    const nodeId = place(local.templatePath);
     return nodeId ? { ancestor: { nodeId } } : from;
   };
   return {

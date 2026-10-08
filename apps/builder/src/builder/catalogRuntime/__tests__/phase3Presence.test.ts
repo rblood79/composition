@@ -26,9 +26,10 @@ import { CatalogStorage } from "../storage";
 import { racDateSegmentParts } from "../../../../../../packages/shared/src/catalog/document/dateSegments";
 
 /** RAC's empty ko-KR date row (`연도. 월. 일.` placeholders around the locale's literals). */
+// (Each RAC segment is a flex item: its collapsible end spaces are not drawn — ADR-256 후속 8.)
 const racKoreanRow = () =>
   racDateSegmentParts({ locale: "ko-KR" })
-    .map((part) => part.text)
+    .map((part) => part.text.replace(/^[ \t\n\r\f]+|[ \t\n\r\f]+$/g, ""))
     .join("");
 
 /**

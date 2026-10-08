@@ -1297,6 +1297,19 @@ function ownDerivedProps(
     const overlay = catalogPartParent(node, get, typeOf);
     return { _arrowSize: overlay && typeOf(overlay) === "Tooltip" ? 8 : 12 };
   }
+  // The Text between a DateRangePicker's two DateInputs is the reference's decorative dash
+  // (`<span aria-hidden="true">–</span>`): the DOM keeps it out of the accessible name.
+  if (node.bindingId === "text") {
+    const group = get(node.parentId);
+    const picker = group && get(group.parentId);
+    if (
+      group &&
+      picker &&
+      typeOf(picker) === "DateRangePicker" &&
+      isFieldControlGroup(typeOf(group), typeOf(picker))
+    )
+      return { _decorative: true };
+  }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
   // A SearchField's `value` is its input's initial value (the renderer's `defaultValue`): the

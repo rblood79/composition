@@ -161,7 +161,7 @@
   max-width: unset;
 }
 
-.react-aria-Popover[data-trigger="DatePicker"] .react-aria-Dialog .react-aria-Calendar {
+.react-aria-Popover[data-trigger="DatePicker"] .react-aria-Calendar {
   background: transparent;
   border: none;
   padding: 0;

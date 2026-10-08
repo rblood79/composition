@@ -268,7 +268,7 @@ const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
     daterangepicker: [
       [
         "<span aria-hidden=true>\u2013</>",
-        "<span class=react-aria-Text>\u2013</>",
+        "<span aria-hidden=true class=react-aria-Text>\u2013</>",
       ],
     ],
   };
