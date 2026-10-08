@@ -28,7 +28,7 @@
   /* Default size */
   padding: 0px 0px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-variant="default"] {
@@ -73,25 +73,25 @@
 .react-aria-ProgressBarTrack[data-size="sm"] {
   padding: 0px 0px;
   font-size: var(--text-xs);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-size="md"] {
   padding: 0px 0px;
   font-size: var(--text-sm);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarTrack[data-size="lg"] {
   padding: 0px 0px;
   font-size: var(--text-base);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-lg);
 }
 
 .react-aria-ProgressBarTrack[data-size="xl"] {
   padding: 0px 0px;
   font-size: var(--text-lg);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-lg);
 }
 
 .react-aria-ProgressBarTrack[data-focus-visible] {

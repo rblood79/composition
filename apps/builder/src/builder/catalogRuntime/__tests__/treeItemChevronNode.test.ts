@@ -171,7 +171,9 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
       // The `TreeItemChevron` node's box and the label beside it (main `7c806db22`).
       const rows = expanded
         ? [
-            { item: parentItem, chevron: [8, 12, 20, 16], labelX: 30 },
+            // (Its row is the content node — the child item is the next row, not beside it: the
+            // chevron is centered in the 32px row as when collapsed — ADR-256 후속 14.)
+            { item: parentItem, chevron: [8, 8, 20, 16], labelX: 30 },
             // level 2: the button grows by its level padding (`(level − 1) × --padding`)
             {
               item: kids(parentItem.id)[1],

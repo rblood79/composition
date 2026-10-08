@@ -28,7 +28,7 @@
   /* Default size */
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-variant="default"] {
@@ -73,25 +73,25 @@
 .react-aria-ProgressBarFill[data-size="sm"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-size="md"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-ProgressBarFill[data-size="lg"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-md);
 }
 
 .react-aria-ProgressBarFill[data-size="xl"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-lg);
 }
 
 .react-aria-ProgressBarFill[data-focus-visible] {

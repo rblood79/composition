@@ -804,7 +804,51 @@ export function catalogPresenceDependents(
   return items;
 }
 
-/** A Slider's value and range as RAC reads them (`value` · `defaultValue`, else the middle). */
+/** RAC's `roundToStepPrecision` (react-stately `utils/number`): the step's decimal places. */
+function roundToStepPrecision(value: number, step: number): number {
+  const text = step.toString();
+  const exponent = text.toLowerCase().indexOf("e-");
+  const point = text.indexOf(".");
+  const precision =
+    exponent > 0
+      ? Math.abs(Math.floor(Math.log10(Math.abs(step)))) + exponent
+      : point >= 0
+        ? text.length - point
+        : 0;
+  if (precision <= 0) return value;
+  const pow = Math.pow(10, precision);
+  return Math.round(value * pow) / pow;
+}
+
+/**
+ * RAC's `snapValueToStep` (react-stately `utils/number`, which `useSliderState` applies to the
+ * value): the nearest step from the minimum (half up), inside the range — past the maximum, the
+ * last step that fits.
+ */
+function snapValueToStep(
+  value: number,
+  min: number,
+  max: number,
+  step: number,
+): number {
+  const remainder = (value - min) % step;
+  let snapped = roundToStepPrecision(
+    Math.abs(remainder) * 2 >= step
+      ? value + Math.sign(remainder) * (step - Math.abs(remainder))
+      : value - remainder,
+    step,
+  );
+  if (snapped < min) snapped = min;
+  else if (snapped > max)
+    snapped =
+      min + Math.floor(roundToStepPrecision((max - min) / step, step)) * step;
+  return roundToStepPrecision(snapped, step);
+}
+
+/**
+ * A Slider's value and range as RAC reads them (`value` · `defaultValue`, else the middle),
+ * snapped to its `step` as RAC's slider state does (ADR-256 후속 12).
+ */
 export function catalogSliderRange(slider: CatalogConsumerNode): {
   min: number;
   max: number;
@@ -814,10 +858,12 @@ export function catalogSliderRange(slider: CatalogConsumerNode): {
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
   const min = number(slider.props.minValue, 0);
   const max = number(slider.props.maxValue, 100);
-  const value = number(
+  const step = number(slider.props.step, 1);
+  const raw = number(
     slider.props.value ?? slider.props.defaultValue,
     (min + max) / 2,
   );
+  const value = step > 0 ? snapValueToStep(raw, min, max, step) : raw;
   return { min, max, value };
 }
 
@@ -1045,6 +1091,30 @@ export function catalogTreeChevronLayout(
 ): Record<string, string | number> | undefined {
   const level = treeChevronLevel(node, get, typeOf);
   return level === undefined ? undefined : treeChevronStyle(level);
+}
+
+/**
+ * A TreeItem with a row content node, on the Canvas: RAC draws its row and then its child items as
+ * the next rows (flat), so the item's box is a column — the row is its `TreeItemContent` (the
+ * `Tree.css` row box, `manualBoxRules`) and the child items stack below it (ADR-256 후속 14).
+ * Undefined for any other node (an item without a content node keeps the row box itself).
+ */
+export function catalogTreeItemLayout(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string> | undefined {
+  if (!catalogTreeItemContent(node, get, typeOf)) return undefined;
+  return {
+    flexDirection: "column",
+    alignItems: "stretch",
+    rowGap: "0px",
+    columnGap: "0px",
+    paddingTop: "0px",
+    paddingRight: "0px",
+    paddingBottom: "0px",
+    paddingLeft: "0px",
+  };
 }
 
 /**
@@ -1406,7 +1476,8 @@ function ownDerivedProps(
   const fillOwner = catalogProgressFillOwner(node, get, typeOf);
   if (fillOwner) {
     const out: Record<string, string> = {};
-    for (const key of ["variant", "size"])
+    // (and its `staticColor` — the sheet's static `--fill-color`, ADR-256 후속 11)
+    for (const key of ["variant", "size", "staticColor"])
       if (typeof fillOwner.props[key] === "string")
         out[key] = fillOwner.props[key] as string;
     return Object.keys(out).length ? out : undefined;
@@ -1426,7 +1497,8 @@ function ownDerivedProps(
         : 0,
     isIndeterminate: owner.props.isIndeterminate === true,
   };
-  for (const key of ["variant", "size"])
+  // (`staticColor`: the sheet's static `--track-color` — a 25% wash of it.)
+  for (const key of ["variant", "size", "staticColor"])
     if (typeof owner.props[key] === "string")
       out[key] = owner.props[key] as string;
   return out;

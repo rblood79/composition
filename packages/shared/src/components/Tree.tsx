@@ -4,14 +4,12 @@ import {
   TreeItem as AriaTreeItem,
   TreeItemContent as AriaTreeItemContent,
   TreeItemContentProps,
-  TreeItemContentRenderProps,
   TreeItemProps as AriaTreeItemProps,
   TreeProps,
 } from "react-aria-components/Tree";
 import { Collection } from "react-aria-components/Collection";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { InfoIcon, ChevronRightIcon, Minus } from "lucide-react";
-import { MyCheckbox } from "./Checkbox";
 import { resolveSelectionBehavior } from "./selectionStyle";
 import type { DataBinding, DataBindingValue } from "../types";
 import type { ComponentSize } from "../types";
@@ -238,12 +236,11 @@ export function TreeItemContent(
 ) {
   return (
     <AriaTreeItemContent {...props}>
-      {(renderProps: TreeItemContentRenderProps) => (
+      {/* (No automatic selection checkbox: a selection checkbox is the author's
+          `Checkbox[slot=selection]` node — ADR-256 Phase 5h-2 · 후속 16 — the Canvas draws none
+          either.) */}
+      {() => (
         <>
-          {renderProps.selectionBehavior === "toggle" &&
-            renderProps.selectionMode !== "none" && (
-              <MyCheckbox slot="selection" />
-            )}
           <Button slot="chevron">
             {props.hasChildren ? (
               <ChevronRightIcon size={16} data-chevron="true" />

@@ -110,6 +110,7 @@ import {
   catalogSliderFillLayout,
   catalogSliderThumbs,
   catalogTreeChevronLayout,
+  catalogTreeItemLayout,
   catalogTreeChevrons,
 } from "./presence";
 import {
@@ -1949,7 +1950,8 @@ export class CatalogCompositionRoot {
         catalogProgressFillLayout(record, get, this.typeOf));
     const chevron = record.hidden
       ? undefined
-      : catalogTreeChevronLayout(record, get, this.typeOf);
+      : (catalogTreeChevronLayout(record, get, this.typeOf) ??
+        catalogTreeItemLayout(record, get, this.typeOf));
     const separator = record.hidden
       ? undefined
       : this.crumbSeparator(record, get);
@@ -2858,7 +2860,10 @@ export class CatalogCompositionRoot {
         this.layout.updateChildren(entry.id, []);
         this.layout.removeNode(entry.id);
       }
-    if (!old || frameMoved || !sameRecord(old, record))
+    // (A box whose engine style changed with an unchanged record — a Slider fill · thumb, a
+    // ProgressBar fill whose width is its owner's value — is noticed too: the Canvas compares its
+    // rect, which a parent of the same size would not reach — ADR-256 후속 12 live.)
+    if (!old || frameMoved || plan.styleChanged || !sameRecord(old, record))
       notices.push({ id, record });
   }
 

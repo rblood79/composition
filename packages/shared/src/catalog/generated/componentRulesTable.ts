@@ -2728,30 +2728,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     variants: {
+      // ADR-256 후속 13: the picker paints nothing — its DOM sheet (`ColorSwatchPicker.css`) is a
+      //   flex row with no frame. A variant border put a 1px box on the Canvas only (it moved the
+      //   swatches in by 1px).
       default: {
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
+          alpha: 0,
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
       accent: {
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
+          alpha: 0,
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.accent}",
         },
       },
     },
@@ -7009,11 +7012,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-256 후속 11: the track's corners (the DOM fill is clipped by the rounded `.bar`; the Canvas
+    //   clips to a rectangle, so the fill takes the track radius — a partial fill's end is rounded).
     sizes: {
-      sm: { borderRadius: "{radius.none}" },
-      md: { borderRadius: "{radius.none}" },
-      lg: { borderRadius: "{radius.none}" },
-      xl: { borderRadius: "{radius.none}" },
+      sm: { borderRadius: "{radius.sm}" },
+      md: { borderRadius: "{radius.sm}" },
+      lg: { borderRadius: "{radius.lg}" },
+      xl: { borderRadius: "{radius.lg}" },
     },
     structure: {
       archetype: "progress",
@@ -7078,25 +7083,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 8,
       },
       lg: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.lg}",
         height: 12,
       },
       xl: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.lg}",
         height: 16,
       },
     },
@@ -8117,6 +8123,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `--fill-color` — default · accent: accent-subtle / accent, neutral: neutral-subtle /
       //   neutral-subdued (the fill is the ProgressBarFill node — ADR-256 Phase 7a).
       default: {
+        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        fillBar: "{color.accent}",
         fill: {
           default: {
             base: "{color.accent-subtle}",
@@ -8129,6 +8137,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       accent: {
+        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        fillBar: "{color.accent}",
         fill: {
           default: {
             base: "{color.accent-subtle}",
@@ -8141,6 +8151,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       neutral: {
+        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        fillBar: "{color.neutral-subdued}",
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -8153,25 +8165,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 4,
       },
       md: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.sm}",
         height: 8,
       },
       lg: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.lg}",
         height: 12,
       },
       xl: {
         fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
+        borderRadius: "{radius.lg}",
         height: 16,
       },
     },
@@ -8237,11 +8250,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
-      sm: { borderRadius: "{radius.none}" },
-      md: { borderRadius: "{radius.none}" },
-      lg: { borderRadius: "{radius.none}" },
-      xl: { borderRadius: "{radius.none}" },
+      sm: { borderRadius: "{radius.sm}" },
+      md: { borderRadius: "{radius.sm}" },
+      lg: { borderRadius: "{radius.md}" },
+      xl: { borderRadius: "{radius.lg}" },
     },
     structure: {
       archetype: "progress",

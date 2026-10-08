@@ -28,7 +28,7 @@
   /* Default size */
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-MeterFill[data-variant="informative"] {
@@ -86,25 +86,25 @@
 .react-aria-MeterFill[data-size="sm"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-MeterFill[data-size="md"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-sm);
 }
 
 .react-aria-MeterFill[data-size="lg"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-lg);
 }
 
 .react-aria-MeterFill[data-size="xl"] {
   padding: 0px 0px;
   font-size: ;
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-lg);
 }
 
 .react-aria-MeterFill[data-focus-visible] {

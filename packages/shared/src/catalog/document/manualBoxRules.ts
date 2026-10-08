@@ -528,6 +528,46 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       ],
     };
   },
+  // ADR-256 후속 15: a node tree Table's paint — the data table's (`Table.css`): the header row on
+  // `--bg-raised`, a 1px `--border-hover` line under the header cells, a 1px `--border` line under
+  // each body row. Stated as the Table's part values, so both consumers read them (the parts have
+  // no generated sheet — their resolved values go inline in the DOM). Every side's width is
+  // stated: an inline `border-style: solid` alone would give the others the medium width.
+  Table: () => ({
+    parts: [
+      {
+        childType: "TableHeader",
+        layout: {},
+        visual: { fill: "var(--bg-raised)" },
+      },
+      {
+        childType: "Column",
+        via: "TableHeader",
+        layout: {},
+        visual: {
+          borderStyle: "solid",
+          borderColor: "var(--border-hover)",
+          borderTopWidth: 0,
+          borderRightWidth: 0,
+          borderLeftWidth: 0,
+          borderBottomWidth: 1,
+        } as CompiledPartRule["visual"],
+      },
+      {
+        childType: "Row",
+        via: "TableBody",
+        layout: {},
+        visual: {
+          borderStyle: "solid",
+          borderColor: "var(--border)",
+          borderTopWidth: 0,
+          borderRightWidth: 0,
+          borderLeftWidth: 0,
+          borderBottomWidth: 1,
+        } as CompiledPartRule["visual"],
+      },
+    ],
+  }),
   // ADR-256 Phase 5b: a picker item is the sheet's `.react-aria-ColorSwatchPicker >
   // .react-aria-ColorSwatchPickerItem { display: flex }` box, `width: fit-content` (manual
   // `ColorSwatchPicker.css`) around its ColorSwatch.
@@ -549,18 +589,17 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     parts: [
       // ADR-256 Phase 5h: the row content (RAC `TreeItemContent` — no element: its children sit in
       // the row's `display: contents` cell, so they are the row's flex items). The Canvas lays it
-      // out as that flex line: the row's remaining width, its `gap` and centering, and the row's
-      // height when that is definite (the chevron's `height: 100%` reads the row's, as in the DOM).
+      // out as the row itself — the `Tree.css` row box above, while the item is a column holding
+      // the row and then its child items (`catalogTreeItemLayout` — RAC draws them as the next
+      // rows, ADR-256 후속 14). The chevron's `height: 100%` reads an indefinite row height: its own.
       {
         childType: "TreeItemContent",
         layout: {
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          flexGrow: "1",
-          flexShrink: "1",
         },
-        visual: { gap: 2, minWidth: 0, height: "100%" },
+        visual: { gap: 2, minWidth: 0, minHeight: 32, paddingY: 4, paddingX: 8 },
       },
       // Its chevron button: the sheet's `.react-aria-Button[slot=chevron]` (`all: unset` — a bare
       // box around the svg). Its width and level indent are `catalogTreeChevronLayout` on the

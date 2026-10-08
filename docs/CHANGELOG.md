@@ -19,6 +19,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **검증 증거의 최신성 확인**: 최신 결과가 PASS이고 기록한 HEAD·범위·파일 내용이 현재와 같을 때만 live/cross-check 증거를 재사용한다. **Why:** 이후 FAIL이나 소스 변경에도 과거 PASS가 통과 근거로 남던 조건을 제거했다. 위치: `scripts/agent/evidence-state.mjs`, `scripts/agent/run-ledger.sh`
 - **포맷 검사와 수정 분리**: preflight는 `codex:format:check`를 사용한다. 명시적 포맷과 hook은 `.prettierignore`를 공유해 typed 원본과 생성 CSS의 전체 재포맷을 피한다. snapshot은 현행 권한 계약과 관련 지침 링크만 안내한다.
 
+## [ADR-256 후속 — 착수 중 남긴 Canvas · Preview 차이 12건] - 2026-10-09
+
+### Fixed
+
+- **날짜**: DateRangePicker 시작 칸 폭이 Canvas 와 Preview 에서 같다 (ko-KR 날짜 조각의 끝 공백) · 열린 DatePicker · DateRangePicker 달력에 이중 틀이 없다 · 기간 구분자는 화면 읽기에서 빠진다 (`aria-hidden`)
+- **진행 막대 · Slider**: Canvas 의 ProgressBar · Meter track · fill 모서리가 Preview 와 같다 · ProgressBar `staticColor` 를 Canvas 도 칠한다 · Slider 값이 `step` 에 맞춰진다 (Canvas · Preview) · **Slider 값을 바꾸면 Canvas 의 채움 · thumb 가 바로 따라온다** (전에는 다시 열어야 했다)
+- **ColorSwatchPicker**: Canvas 에서 1px 테두리 · 바탕을 그리지 않는다 (Preview 와 같은 자리)
+- **Tree · Table**: 펼친 하위 Tree 항목이 Canvas 에서 부모 행 아래에 놓인다 · 노드 Table 에 header 바탕과 행 구분선이 생긴다 (Canvas · Preview) · checkbox 방식 Tree 의 내용 노드 없는 항목에 자동 체크박스가 붙지 않는다
+- **편집**: 인스턴스 안 노드를 Canvas 에서 선택해 Delete 로 지울 수 있다 · ToggleButtonGroup 안 ToggleButton 을 Preview 에서 누르면 조건부 노드가 따라온다 · detach 가 중첩 instance 를 거친 상태 주체 참조를 유지한다
+- 위치: `catalog/runtime/compositionRoot.ts` · `presence.ts` · `delegatedDom.tsx` · `domBinding.tsx` · `catalog/document/manualBoxRules.ts` · `stateOwnerRefs.ts` · `commands/materialize.ts` · `componentRulesTable.ts` · `components/Tree.tsx` · Builder `catalogRuntime/canvasMenu.ts`
+
 ## [ADR-256 Phase 8 후속 — Tree chevron 회전 · DisclosureGroup 빈 frame] - 2026-10-09
 
 ### Fixed
