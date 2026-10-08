@@ -98,7 +98,7 @@ case "$CMD" in
     # evidence <kind> <status> [--detail t] [--cmd c] [--exit n] [--target t] [--artifact p] [--skip-reason r] [--gate-added g]
     # run 이 없으면 no-op (hook 노이즈 방지). --require 로 강제.
     KIND="${1:-}"; STATUS="${2:-}"; shift 2 2>/dev/null || { echo "[agent:run] evidence <kind> <pass|fail|skip|block|info> ..." >&2; exit 2; }
-    DETAIL=""; ECMD=""; EXIT=""; TARGET=""; ARTIFACT=""; SKIP=""; GATE=""; REQUIRE=0
+    DETAIL=""; ECMD=""; EXIT=""; TARGET=""; ARTIFACT=""; SKIP=""; GATE=""; FILES=""; REQUIRE=0
     while [ "$#" -gt 0 ]; do
       case "$1" in
         --detail) DETAIL="$2"; shift 2 ;;
@@ -108,6 +108,7 @@ case "$CMD" in
         --artifact) ARTIFACT="$2"; shift 2 ;;
         --skip-reason) SKIP="$2"; shift 2 ;;
         --gate-added) GATE="$2"; shift 2 ;;
+        --files) FILES="$2"; shift 2 ;;
         --require) REQUIRE=1; shift ;;
         *) echo "[agent:run] evidence: 알 수 없는 옵션 $1" >&2; exit 2 ;;
       esac
@@ -119,11 +120,18 @@ case "$CMD" in
       exit 0
     fi
     need_jq
+    SNAPSHOT=null
+    case "$KIND" in
+      cross-check|live-exercise)
+        SNAPSHOT=$(node "$ROOT_DIR/scripts/agent/evidence-state.mjs" snapshot "$ROOT_DIR" "$D/run.json" "$FILES")
+        ;;
+    esac
     jq -nc \
       --arg ts "$(now_iso)" --arg host "$(host_name)" --arg src "${AGENT_EVIDENCE_SOURCE:-cli}" \
       --arg kind "$KIND" --arg status "$STATUS" --arg detail "$DETAIL" --arg cmd "$ECMD" \
       --arg cwd "$(pwd)" --arg exit "$EXIT" --arg target "$TARGET" --arg artifact "$ARTIFACT" \
       --arg skip "$SKIP" --arg gate "$GATE" \
+      --argjson snapshot "$SNAPSHOT" \
       '{ts: $ts, host: $host, source: $src, kind: $kind, status: $status,
         detail: (if $detail == "" then null else $detail end),
         cmd: (if $cmd == "" then null else $cmd end), cwd: $cwd,
@@ -131,7 +139,7 @@ case "$CMD" in
         target: (if $target == "" then null else $target end),
         artifact: (if $artifact == "" then null else $artifact end),
         skipReason: (if $skip == "" then null else $skip end),
-        gateAdded: (if $gate == "" then null else $gate end)}' >> "$D/evidence.jsonl"
+        gateAdded: (if $gate == "" then null else $gate end), snapshot: $snapshot}' >> "$D/evidence.jsonl"
     ;;
 
   phase)
@@ -174,9 +182,10 @@ case "$CMD" in
     if [ -s "$D/evidence.jsonl" ]; then
       jq -r '"| \(.kind) | \(.status) | \(.detail // "") | \(.target // "") | \(.exit // "") |"' "$D/evidence.jsonl"
     fi
-    LIVE_N=$(jq -c 'select(.kind == "live-exercise" and .status == "pass")' "$D/evidence.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+    LIVE_N=0
+    if node "$ROOT_DIR/scripts/agent/evidence-state.mjs" has-pass "$ROOT_DIR" "$D/run.json" live-exercise; then LIVE_N=1; fi
     echo
-    echo "- live-exercise pass: ${LIVE_N}건$( [ "$LIVE_N" = 0 ] && echo ' — ⚠ live behavior 미기록 (CLAUDE.md §완료 기준)')"
+    echo "- 현재 범위의 최신 live-exercise pass: ${LIVE_N}건$( [ "$LIVE_N" = 0 ] && echo ' — live behavior 재검증 필요')"
     ;;
 
   close)
@@ -192,9 +201,9 @@ case "$CMD" in
     ;;
 
   has-live)
-    # exit 0 ↔ 현재 run 에 live-exercise pass 기록이 있음 (hook 용)
+    # exit 0 ↔ 최신 PASS와 현재 HEAD·검증 범위 내용이 일치함 (hook 용)
     D=$(run_dir)
-    [ -n "$D" ] && [ -s "$D/evidence.jsonl" ] && grep -q '"kind":"live-exercise","status":"pass"' "$D/evidence.jsonl"
+    [ -n "$D" ] && [ -f "$D/run.json" ] && node "$ROOT_DIR/scripts/agent/evidence-state.mjs" has-pass "$ROOT_DIR" "$D/run.json" live-exercise
     ;;
 
   help|-h|--help)
@@ -204,8 +213,10 @@ agent run ledger (local-only, .agent/runs/):
   pnpm agent:run -- start --understood-as "<요청 1줄 재진술>" [--adr NNN] [--scope-include a,b] [--scope-exclude c]
                          [--skill s] [--role r] [--live "<live 시나리오>"] [--gates g1,g2]
   pnpm agent:run -- evidence <kind> <pass|fail|skip|block|info> [--detail t] [--cmd c] [--exit n]
-                         [--target t] [--artifact p] [--skip-reason r] [--gate-added g]
+                         [--target t] [--artifact p] [--skip-reason r] [--gate-added g] [--files a,b]
         kind 예: typecheck · vitest · cross-check · live-exercise · preflight · catalog-gate · hook-selftest · adr-sync
+        cross-check/live-exercise는 최신 결과와 HEAD·파일 내용이 일치할 때만 재사용한다.
+        work verify --files를 쓰면 evidence에도 같은 --files를 지정한다. 옛 snapshot 없는 PASS는 재검증한다.
   pnpm agent:run -- phase <name> <started|verified|done|blocked>
   pnpm agent:run -- note uncertainty|risk "<text>"
   pnpm agent:run -- status | report | close ["<result>"] | list | has-live

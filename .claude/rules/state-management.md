@@ -3,6 +3,9 @@ description: 편집 상태 (catalog runtime 문서 · 명령 · 히스토리 · 
 paths:
   - "**/stores/**"
   - "apps/builder/src/builder/catalogRuntime/**"
+  - "packages/shared/src/catalog/runtime/**"
+  - "packages/shared/src/catalog/document/**"
+  - "packages/shared/src/catalog/resolution/**"
   - "packages/shared/src/catalog/transactions/**"
   - "packages/shared/src/catalog/commands/**"
 ---
@@ -72,6 +75,10 @@ paths:
 - **읽기 `{{ name }}`**: `resolveStateTemplate` (string prop 만, 깊이 6). **Canvas 는 기본값 env · Preview / publish 는 런타임 env** — 설계된 비대칭이라 `/cross-check` 에서 결함으로 판정하지 않는다. collection 행 템플릿은 `{{ }}` 먼저 → `{field}` 나중. 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax`).
 - **런타임 값**: `createRuntimeState` (shared) — Preview (`catalogPreviewSession.ts`) 와 publish 에만 있다. 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}`. persist 는 project 만 (`composition:runtime-state:v1:${projectId}`). 구독은 `subscribeVariable` (의존 인덱스) — 전체 revision 구독 금지.
 - **쓰기 액션**: 문서에는 `InteractionEntry.action { opcode:"setState" }`, 실행은 shared `dispatcher` → `DispatchDeps.writeState`.
+
+`showWhen`·`presentWhen`·RAC render props 값과 상태 주체 주소는
+[RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다.
+상태 변수 `{{ }}`와 구분하고 owner 변경 뒤 consumer 재평가·저장 주소 보존을 확인한다.
 
 ## 6. Interaction (ADR-131 의 events / actions 를 대체)
 

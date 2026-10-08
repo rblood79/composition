@@ -52,8 +52,8 @@ Node/Turbo/pnpm 명령은 repo root에서 `pnpm` 스크립트로 실행합니다
 - 변경 모듈의 인접 Vitest와, TS 변경 시 `pnpm run codex:typecheck`를 사용합니다.
 - UI·상태 동기화·Canvas/Preview 동작이 바뀌면 실제 브라우저로 해당 흐름을
   확인합니다. 서버·탭은 현재 환경에서 찾고, 확인하지 못한 범위와 이유를 보고합니다.
-- 완료 전 기본 게이트는 `pnpm run codex:preflight`입니다. 전체 dirty 파일을
-  자동 포맷하므로 동시 변경이 있으면 `.agents/README.md`의 범위별 검증을 사용합니다.
+- 완료 전 기본 게이트는 `pnpm run codex:preflight`입니다. 포맷은 검사만 수행합니다.
+  동시 변경이 있으면 `.agents/README.md`의 범위별 검증을 사용합니다.
   영향 없는 검사나 이미 통과한 검사는 새 근거 없이 반복하지 않습니다.
 
 ## Git·문서·보호 파일

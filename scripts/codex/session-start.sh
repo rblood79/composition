@@ -43,7 +43,7 @@ fi
 
 print_section "Quality Gates"
 echo "1) pnpm run codex:guard        # protected-file check"
-echo "2) pnpm run codex:format       # changed-file prettier"
+echo "2) pnpm run codex:format:check # 읽기 전용 포맷 검사; 수정은 codex:format -- <소유 파일>"
 echo "3) pnpm run codex:typecheck    # only when TS changed"
 echo "4) pnpm run codex:preflight    # completion gate"
 echo "5) pnpm run codex:agent-catalog # .claude <-> .agents catalog drift gate"

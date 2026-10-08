@@ -39,6 +39,7 @@ palette 삽입
 if (SHELL_ONLY_TYPES.has(type)) props._hasChildren = true;
 else if (
   type !== "TreeItem" &&
+  type !== "Menu" &&
   !CHILD_PROP_MERGE_TYPES.has(type) &&
   node.children.length > 0
 )
@@ -48,6 +49,7 @@ else if (
 - **Shell-only**: 자식 수 무관 항상 주입 — 자식을 모두 지워도 standalone 복귀 금지.
 - **Child-prop-merge**: 주입 차단 — 부모 shapes 가 자식 props 를 통합 렌더.
 - **Plain**: 자식 있을 때만 주입.
+- **Menu 예외**: 자식은 Popover 항목이고 trigger는 자기 label을 그리므로 제외.
 - **TreeItem 예외**: 자식 TreeItem 이 있어도 자기 행 (chevron+label) 을 그려야 하므로 제외.
 
 소비 측: `buildCatalogShapes` 는 `_hasChildren` 이면 shell (bg+border) 만 반환하는 early return 을 갖고, CHILD_PROP_MERGE 의 text 차단 (`shellProps`) 과 직교로 동작한다.
@@ -58,8 +60,12 @@ Properties 편집은 `catalogSemanticPatchCommand` / `catalogPropertiesPatchComm
 
 - `{prop}` template binding (`resolution/resolver.ts`)
 - `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`) — 옛 `propagationRegistry` 의 `override: true` 규칙 (쓰기 시 복사) 을 대체
-- `catalogDerivedProps` (`catalogRuntime/presence.ts`) — Progress/Meter track fill 등
+- `catalogDerivedProps` (`catalogRuntime/presence.ts`) — collection item 상태 등
 - part rules (`document/rulePartRules.ts`)
+
+RAC의 `showWhen`·`presentWhen`·상태 주체·render props 값 바인딩은
+[RAC 조립 계약](../rules/domain-rac-composition.md)이 정본이다. `valueBindings.ts`와
+`stateFrames.tsx`의 경로를 위 원본 prop 전달과 구분한다.
 
 부모와 자식을 실제로 함께 바꿔야 하는 편집은 `composeCommands` 로 한 entry 에 묶는다 (state-management.md).
 
@@ -91,6 +97,6 @@ layout 경로에 보정치를 넣지 않는다. 교정은 `nodeRendererText.ts` 
 1. **catalog**: `COMPONENT_RULES_TABLE` entry + `bindings/{Name}.binding.ts` (box+text 로 부족하면 `skiaPrimitive` escape 키, draw module 은 `skiaPrimitives.ts`)
 2. **템플릿**: 부모 origin 템플릿 (`reusableOriginLibrary.ts`) 에 자식 노드 추가 + 중첩 규칙 (`nesting/nestingRules.ts`)
 3. **3-branch 재판정**: 부모가 자식 props 를 shapes 에 통합하면 `CHILD_PROP_MERGE_TYPES` (placeholder 포함 text 이중 렌더 주의), 템플릿이 시각을 자식으로 전부 대체하면 `SHELL_ONLY_TYPES`. 판정 절차는 canvas-rendering.md §2.5
-4. **값 전달**: §3 채널 중 하나 (새 채널 금지)
+4. **값 전달**: §3의 원본 prop 전달과 공통 조립 계약의 RAC 상태·값 바인딩을 구분
 5. **컨테이너 폭 의존 shape**: 우측/중앙 좌표가 상자 폭에 의존하면 `BOX_SIZE_TYPES` (`ruleShapes.ts`) 등록
 6. 검증: `pnpm type-check` + `/cross-check` + 자식 전체 삭제 시 shell 유지 (shell-only) / standalone 복귀 (plain) 의도 확인

@@ -5,6 +5,11 @@ paths:
   - "apps/builder/src/builder/workspace/canvas/layout/**"
   - "apps/builder/src/builder/catalogRuntime/compositionRoot.ts"
   - "apps/builder/src/builder/catalogRuntime/canvasBinding.ts"
+  - "packages/shared/src/catalog/runtime/compositionRoot.ts"
+  - "packages/shared/src/catalog/runtime/boxModel.ts"
+  - "packages/shared/src/catalog/runtime/layout*.ts"
+  - "packages/shared/src/catalog/runtime/*Layout.ts"
+  - "packages/shared/src/catalog/runtime/presence.ts"
   - "packages/shared/src/catalog/transactions/transaction.ts"
   - "apps/builder/tests/parity/**"
 ---

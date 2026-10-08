@@ -1,6 +1,6 @@
 ---
 name: cross-check
-description: Canvas와 Preview의 시각 차이를 조사하거나 catalog·spec·렌더러 변경의 정합성을 검증할 때 사용.
+description: Canvas와 Preview의 시각 차이를 조사하거나 catalog·렌더러 변경의 정합성을 검증할 때 사용.
 user-invocable: true
 ---
 
@@ -12,8 +12,7 @@ Canvas(Skia)와 Preview(DOM/CSS)는 catalog + theme/tokens의 대등한 소비�
 
 ## 변경 경로
 
-영향받은 컴포넌트와 상태를 정하고 실제 catalog/spec → factory → CSS → Skia →
-Preview 경로를 대조합니다. 구체적인 파일과 확인 항목은
+영향받은 컴포넌트와 상태를 정하고 catalog 정의·origin template → CSS/DOM·Skia 소비 경로를 대조합니다. 구체적인 파일과 확인 항목은
 [레이어 참조](references/layers.md)에서 해당 부분만 읽습니다.
 스타일 패널을 건드렸다면 저장한 값이 양쪽 renderer에 도달하는지도 확인합니다.
 

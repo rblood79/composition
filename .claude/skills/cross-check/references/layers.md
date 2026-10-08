@@ -1,45 +1,32 @@
-## Phase 2: 컴포넌트별 5-레이어 교차 검증
+## 변경 경로 대조
 
-**Step 0 — catalog 등록 선판정**: 컴포넌트 키가 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 에 존재하면 **catalog 경로** (variants/sizes/containerStyles 해당 키), 미존재 시에만 잔존 spec 경로 (Frame/Group/Slot 3개). 판정 후 아래 테이블 작성:
+모든 컴포넌트는 catalog 경로다. Frame/Group/Slot도 spec 예외가 없다. rule이 없는
+타입은 현재 definition·binding과 부품 소유 계약을 확인하며 spec 경로를 새로 만들지 않는다.
 
-| 레이어               | 파일                                                                                                                                               | 검증 항목                                                                                                                            | 상태 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| **Catalog/Spec**     | catalog: `componentRulesTable.ts` 해당 키 + `catalog/bindings/{Name}.binding.ts` (spec 파일 없음 — `packages/specs` 는 ADR-248 에서 삭제)          | variants, sizes, containerStyles, binding `skiaPrimitive` · `accepts`                                                                |
-| **Factory**          | `apps/builder/src/builder/factories/definitions/*.ts`                                                                                              | 기본 props, style, 자식 구조                                                                                                         |
-| **CSS Renderer**     | `packages/shared/src/components/styles/{Name}.css` + `styles/generated/{Name}.css`                                                                 | data-variant/data-size 선택자, 토큰                                                                                                  |
-| **Skia Renderer**    | `catalogRuntime/canvasBinding.ts` + `ruleShapes.ts` / `rulePaint.ts` + `compositionRoot.ts` (`styleOf` 레이아웃 입력) + `skia/buildBoxNodeData.ts` | rule 실행기 등록 (`BOX_SIZE_TYPES` 등), 텍스트 leaf 측정 (`textLeaf` → `catalogTextMeasure`), 기본 display (`resolveDefaultDisplay`) |      |
-| **Preview Renderer** | `packages/shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx`                                                                                | variant/size props 전달, data-\* 속성                                                                                                |
+| 레이어         | 확인 위치                                                                                                                   | 확인 사항                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Catalog        | `packages/shared/src/catalog/componentCatalog.ts` · `bindings/` · `generated/componentRulesTable.ts`                        | accepts/defaults, variants/sizes, rule·primitive 참조         |
+| 정의·원본·생성 | `catalog/document/codeCatalogLibrary.ts` · `generated/reusableOriginLibrary.ts` · Builder `catalogRuntime/paletteInsert.ts` | definition 선택, template 자식 순서, slot 채움, 초기값        |
+| CSS            | `packages/shared/src/components/styles/` · `styles/generated/`                                                              | catalog CSS 생성값, data-variant/data-size/state 선택자       |
+| Canvas         | Builder `catalogRuntime/canvasBinding.ts` · `ruleShapes.ts`, shared `catalog/runtime/rulePaint.ts` · `compositionRoot.ts`   | 자식 소유, rule shape, layout 입력, 텍스트 측정, dirty 재평가 |
+| DOM            | `packages/shared/src/catalog/runtime/domBinding.tsx` · `delegatedDom.tsx`                                                   | 노드 순서, RAC context, style/props 전달, 상태 frame          |
 
-## Phase 3: 정합성 검증 항목
+위 표의 `catalog/`는 `packages/shared/src/catalog/` 기준이다. Builder의 `catalogRuntime/`
+재수출 파일만 보고 구현을 확인했다고 판단하지 않는다.
 
-각 컴포넌트에 대해 아래를 확인합니다:
+## 시각·레이아웃
 
-### 3.1 Variant 정합성
+- variant·size 기본값과 명시값이 definition/rule → CSS/Canvas 양쪽에 도달하는지 확인한다.
+  size 이름은 해당 타입 계약을 따르고 별도 기본 size 표를 만들지 않는다.
+- `compositionRoot.ts`의 `styleOf`가 노드의 layout/sizing/visual과 catalog 기본값을 엔진에
+  넘기는지 확인한다. 텍스트는 `textLeaf` → `catalogTextMeasure`의 측정값과 실제 페인트를 대조한다.
+- 상자 폭·높이로 shape 좌표를 계산하는 타입은 `ruleShapes.ts`의 `BOX_SIZE_TYPES`를 확인한다.
+  삭제된 `INTRINSIC_MEASURE_TAGS`·`DEFAULT_SIZE_BY_TAG` 등록은 요구하지 않는다.
+- fill·토큰·opacity·border·간격은 같은 fixture/viewport/DPR/theme/상태에서 비교한다.
+  부품 자신의 rule과 부모 소유 예외는 [SSOT](../../../rules/ssot-hierarchy.md)를 따른다.
 
-- [ ] Spec `defaultVariant`와 React 컴포넌트 기본값 일치
-- [ ] Spec `variants` 키와 CSS `[data-variant="..."]` 선택자 일치
-- [ ] Preview 렌더러가 `variant` prop을 컴포넌트에 전달
+## RAC 조립·상태 검증
 
-### 3.2 Size 정합성
-
-- [ ] Spec `defaultSize`와 React 컴포넌트 기본값 일치
-- [ ] Size casing 일관성 (sm/md/lg, S/M/L 혼용 금지)
-- [ ] Spec sizes의 fontSize/paddingX/paddingY/lineHeight/borderWidth가 CSS와 일치
-- [ ] Preview 렌더러가 `size` prop을 컴포넌트에 전달
-
-### 3.3 Skia 레이아웃 정합성
-
-- [ ] `INTRINSIC_MEASURE_TAGS` (분류표 `INLINE_BLOCK_TAG_CLASSIFICATION`, utils.ts) 등록 여부 (fit-content 측정 필요 시 — 기본 display 는 catalog `containerStyles.display` 가 정본, ADR-923 Phase 5)
-- [ ] `DEFAULT_SIZE_BY_TAG` 등록 여부
-- [ ] 텍스트를 가진 노드가 `styleOf` 의 측정 스칼라 (`contentMinWidth` · `contentMaxWidth` · `contentHeight`) 를 받는지 (rules/layout-engine.md §TS 잔존 계약)
-
-### 3.4 토큰 정합성
-
-- [ ] Spec TokenRef와 CSS 변수 매핑 일치 (css-tokens.md 참조)
-- [ ] 금지된 M3 토큰 사용 없음
-- [ ] `--bg-inset` / `{color.layer-2}` 필드 배경 통일 (해당 시)
-
-### 상태 정합성
-
-hover/disabled/focus 등 변경된 상태의 값은 현재 catalog와 theme/tokens에서 확인해
-각 소비자에 대조합니다. 특정 시점의 숫자를 보편적 기준으로 사용하지 않습니다.
+자식 구조·slot·상태 조건이 바뀌면 [RAC 조립 계약](../../composition-patterns/rules/domain-rac-composition.md)의
+검증 항목을 적용한다. RAC 기준 DOM 구조 비교와 Canvas↔Preview 시각 비교는 별도 판정이다.
+시각 하니스 통과만으로 DOM 구조·aria 연결·저장 주소 계약까지 통과했다고 보고하지 않는다.

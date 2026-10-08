@@ -3,6 +3,13 @@ description: Canvas/Skia 렌더링 관련 파일 작업 시 적용 (ADR-900 Pixi
 paths:
   - "apps/builder/src/builder/workspace/canvas/**"
   - "**/nodeRenderers*"
+  - "apps/builder/src/builder/catalogRuntime/canvas*.ts"
+  - "apps/builder/src/builder/catalogRuntime/ruleShapes.ts"
+  - "apps/builder/src/builder/catalogRuntime/textMeasure.ts"
+  - "packages/shared/src/catalog/runtime/rulePaint.ts"
+  - "packages/shared/src/catalog/runtime/compositionRoot.ts"
+  - "packages/shared/src/catalog/runtime/presence.ts"
+  - "packages/rendering/src/renderers/**"
 ---
 
 # Canvas 렌더링 규칙
@@ -15,7 +22,7 @@ paths:
 
 ## 0. 렌더링 버그 수정 원칙 (CLAUDE.md 에서 이관 2026-08-31)
 
-2개 렌더링 타겟 (CSS/Skia) × 5개 레이어 (spec/factory/CSS renderer/Skia renderer/editor). 한 경로만 수정 금지 → `/cross-check` 로 검증. factory → spec → renderer → editor 하류 파손 확인. 동일 패턴 이슈는 grep 배치 스윕. 요청 범위만 수정.
+2개 렌더링 타겟 (CSS/Skia)의 catalog 정의·origin template → CSS·DOM·Skia consumer → editor 경로를 함께 확인하고 `/cross-check`로 검증한다. 구조·상태 조립은 [RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다. 동일 패턴은 관련 소비자를 검색하되 요청 범위만 수정한다.
 
 ## 1. Skia 단일 렌더러 핵심 (ADR-900)
 
@@ -60,33 +67,27 @@ VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* �
 
 ## 2.6. Container style pipeline (ADR-907 Implemented)
 
-collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, Menu, Select, Tabs, TagGroup, Table, Toolbar, Tree` 11 주대상) 의 `element.props.style` 은 **3경로** (Preview DOM / Skia `render.shapes()` / Layout `calculateContentHeight()`) 에 **동일 resolver** 로 반영되어야 한다. 4 layer 아키텍처:
+컨테이너의 padding·gap·border·font 값은 catalog rule과 노드의 typed field에서 읽는다.
+DOM은 `packages/shared/src/catalog/runtime/domBinding.tsx`의 `catalogDomStyle`, Canvas의
+shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`, 레이아웃 입력은 shared `runtime/compositionRoot.ts`의
+`styleOf`에서 해당 값을 소비한다. `props.style`은 consumer가 구성한 입력일 수 있지만
+저작·저장 정본이 아니다 ([style-ssot.md](style-ssot.md)).
 
-- **Layer A — CSS value parser SSOT**: `packages/rendering/src/primitives/cssValueParser.ts` 의 `parsePxValue / parsePadding4Way / parseGapValue / parseBorderWidth` 만 사용. **금지**: `parseFloat(String(x))` ad-hoc 파싱. **Why**: edge case (undefined/null/"" /"20px"/숫자/percentage) 일관 처리 + generic fallback (`parsePxValue<F>(value, fallback: F): number | F` — TokenRef passthrough 허용)
-- **Layer B — Container spacing primitive**: `packages/rendering/src/primitives/containerSpacing.ts` 의 `resolveContainerSpacing({ style, defaults })` 가 padding(4way)/gap(row+column)/borderWidth/fontSize 를 통합 resolve. 각 caller 는 `defaults` 에 spec 기본값 전달. **Why**: 7 공통 필드의 컴포넌트별 중복 파싱 제거
-- **Layer C — DOM root style 계약**: 옛 Preview renderer (`packages/shared/src/renderers/`, 2026-10-07 삭제) 의 `rendererStyleContract.test.ts` 가 하던 검증은 catalog DOM binding (`packages/shared/src/catalog/runtime/domBinding.tsx` `catalogDomStyle` — 노드의 해석 값이 요소 inline style 로) 이 대신한다. 새 binding 은 `style` 을 요소에 전달해야 한다
-- **Layer D — Spec metric SSOT**: `render.shapes()` 와 `calculateContentHeight()` 가 **동일 resolver 심볼** 호출. 예: `resolveGridListSpacingMetric()` (GridList), `resolveContainerSpacing()` 직접 호출 (Menu/Toolbar). **Hard Constraint**: root container spacing 과 item 내부 spacing 은 같은 속성명으로 섞지 않음 (예: Table `size.paddingX` 는 cell-level, 유지)
-
-### 신규 collection 컴포넌트 추가 시 체크리스트
-
-1. `render{Component}` 가 `<RootComponent>` root 에 `style={element.props.style}` 전달 (Layer C)
-2. `{Component}.spec.ts` 의 `render.shapes()` 가 `resolveContainerSpacing({ style: props.style, defaults: { ...size } })` 경유 (Layer B + D)
-3. 컴포넌트-specific 확장 (numCols / cardPadding 등) 필요 시 `resolve{Component}SpacingMetric()` wrapper 작성 (GridList 패턴)
-4. `utils.ts` 의 `calculateContentHeight()` 분기 존재 시 동일 resolver 호출 (Layer D grep 검증)
-5. `packages/rendering/src/__tests__/{Component}.spacing.test.ts` 로 Layer D contract 확증
-6. `rendererStyleContract.test.ts` 의 `RENDERERS` 배열에 추가
-
-### 금지 패턴 (ADR-907)
-
-- ❌ renderer root 에 `style={element.props.style}` 누락 (allowlist 가 빈 Set 이므로 자동 test FAIL)
-- ❌ `render.shapes()` 에서 `size.paddingX` / `size.gap` 직접 하드코딩 (style.padding/gap 미소비 → Preview/Layout drift)
-- ❌ `parseFloat(String(style.x))` ad-hoc 파싱 (`parsePxValue` 사용 필수)
-- ❌ `calculateContentHeight()` GridList 분기에서 `paddingY * 2` (4-way padding 지원: `paddingTop + paddingBottom`)
-- ❌ Layer D resolver wrapper 를 `apps/builder/**` 에 배치 (package boundary: specs ← shared ← builder)
+- CSS 값 해석은 `packages/rendering/src/primitives/cssValueParser.ts`의 `parsePxValue` ·
+  `parsePadding4Way` · `parseGapValue` · `parseBorderWidth`를 사용한다.
+- shape가 컨테이너 간격을 직접 소비하면 `primitives/containerSpacing.ts`의
+  `resolveContainerSpacing` 또는 해당 공용 metric resolver를 사용한다. root 간격과
+  item 내부 간격을 같은 속성으로 섞지 않는다.
+- 신규 binding은 노드 style을 자기 DOM 요소에 전달한다. RAC가 요소를 만들지 않거나
+  부모가 소유하는 부품은 해당 계약에 따라 처리하고, 별도 상자를 임의 생성하지 않는다.
+- 노드 트리의 자식 배치는 엔진이 계산한다. 삭제된 `calculateContentHeight` 분기나
+  컴포넌트별 spec·옛 renderer 등록표를 재생성하지 않는다.
+- 검증은 변경된 spacing/typed field를 기본값과 다르게 설정해 DOM·Canvas·레이아웃에
+  도달하는지 확인한다. 인접 runtime/spacing 검사와 `/cross-check`를 사용한다.
 
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 
-컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem` 은 Plain 에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
+컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem` · `Menu` 는 Plain 에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
 
 ### 3분류 정의
 
@@ -98,17 +99,17 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 
 ### 판정 알고리즘 (신규 컨테이너 추가 시)
 
-1. `spec.render.shapes`가 자식 props를 참조하여 shapes 구성 → **Synthetic-merge**
-2. factory definition이 자식 Element를 자동 생성하고 spec standalone 분기가 `type:"container"` 빈 placeholder → **Shell-only**
-3. standalone 분기에 text/gradient/arrow 등 실렌더 shape 존재 → factory가 해당 시각 요소를 자식 Element로 대체 커버하는지 확인 후 **Shell-only** (대체 불가 시 Plain 유지)
-4. `spec.render.shapes`가 `() => []`로 shapes 자체가 빈 배열 → **Plain** (두 Set 모두 미포함)
+1. 현재 rule/primitive가 자식 props를 합쳐 그리는 경우 기존 `CHILD_PROP_MERGE_TYPES` 계약을 확인한다. 새 RAC 조립 부품을 부모 shapes에 다시 합치는 기본 절차로 사용하지 않는다.
+2. origin template의 자식 노드가 내용을 그리며, 자식이 없어도 부모 standalone 내용이 돌아오면 안 되면 **Shell-only**다.
+3. 그 외 자식 유무에 따라 standalone과 shell을 전환하면 **Plain**이다. 부모가 계속 그려야 하는 부분은 실제 binding/primitive에서 확인한다.
+4. 멤버십과 예외는 `packages/shared/src/catalog/runtime/rulePaint.ts`가 정본이다. 등록만 바꾸지 말고 DOM·Canvas의 자식 소유와 함께 대조한다.
 
 ### 금지 패턴
 
-- ❌ Shell-only 이동 대상 태그가 factory 자식 자동 생성을 하지 않음 → 기본 상태 UI 소실
-- ❌ Synthetic-merge에 shell-only 태그 혼입 → `_hasChildren` 주입 차단으로 standalone 분기가 실행되며, 자식 Element가 동시에 독립 Skia 노드로 렌더 → **UI 중복** (Calendar 2026-04-17 버그 유형)
-- ❌ `_hasChildren` 주입 조건을 `childElements.length > 0`으로만 판단 → Shell-only 태그에서 자식 0개일 때 standalone 복귀 (ADR-072에서 3-branch로 해소)
-- ❌ standalone 분기 ≥ 50줄 태그를 "빈 placeholder" 가정으로 이동 → 내용 정독 + factory definition 교차 확인 필수
+- ❌ template/binding의 자식 렌더가 없는 타입을 Shell-only로 옮겨 기본 UI를 없앰
+- ❌ 부모 shapes와 독립 자식 노드에서 같은 내용을 두 번 그림
+- ❌ 자식 개수만으로 모든 타입을 처리해 Shell-only가 자식 0개일 때 standalone으로 복귀함
+- ❌ factory/spec 파일을 새로 만들어 판정 근거로 삼음 — 현재 origin template·rule·binding을 읽는다
 
 ## 3. 텍스트 측정 동기화
 

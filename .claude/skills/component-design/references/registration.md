@@ -1,12 +1,14 @@
-### 구현 순서 (composition 컴포넌트 — catalog cutover 체계, ADR-142/912/913/914)
+### 구현 순서 (catalog 문서·원본·RAC 조립, ADR-248/255/256)
 
 > **시각 SSOT 는 catalog 다.** 컴포넌트당 spec 파일과 `packages/specs` 패키지는 ADR-248 (2026-10-04, `ddc5fc603`) 에서 삭제됐다 — Frame/Group/Slot 도 catalog 입력이다. spec 파일 신규 생성은 어떤 예외로도 허용하지 않는다 (D1 ARIA 컴포넌트도 catalog binding 으로 등록).
 
-1. **타입 + 기본 props** — `apps/builder/src/types/builder/unified.types.ts` 에 Props 타입 추가. 기본 props 는 `getDefaultProps(type)` 분기: catalog 파생 대상이면 `ENTRY_DERIVED_DEFAULT_TYPES` 등록 + `deriveDefaultPropsFromCatalog` (`types/builder/defaultPropsDerivation.ts`), 아니면 `DEFAULT_PROPS_MAP` literal row. `factories/entryUniverse.ts` facet 정합 확인 — `entryUniverseContract.test.ts` 의 INVENTORY freeze 카운트 갱신 (정본: `docs/adr/design/914-entry-universe-inventory.md`)
+1. **타입 + 기본 props** — `apps/builder/src/types/builder/unified.types.ts` 의 해당 Props 타입과 `getDefaultProps(type)` 경로를 확인한다. catalog 파생 대상은 `ENTRY_DERIVED_DEFAULT_TYPES` + `deriveDefaultPropsFromCatalog` (`types/builder/defaultPropsDerivation.ts`), 나머지는 `DEFAULT_PROPS_MAP`을 사용한다. library 정의의 accepts/defaults와 팔레트 초기값을 함께 대조한다. 삭제된 Entry Universe나 factory 등록표를 재생성하지 않는다.
 2. **시각 정본 (catalog)** — ① `packages/shared/src/catalog/bindings/{Component}.binding.ts` binding 작성 → ② `componentCatalog.ts` entry 등록 (kind/family/cutover/binding/panel) — cutover 게이트는 `getCatalogCutoverTypes()` → `cutover.ts::isCatalogCutover` 로 자동 파생 → ③ `COMPONENT_RULES_TABLE` (`packages/shared/src/catalog/generated/componentRulesTable.ts` — build 산출물 아님, **직접 편집 정본**) 에 variants/sizes/fill rule 추가 → ④ `pnpm generate:css` 로 rule 기반 CSS 재생성
-3. **Factory** — `apps/builder/src/builder/factories/definitions/` 에 생성 팩토리 등록 (자식 tree 필요 시 complex creator)
-4. **Preview** — catalog DOM binding (`packages/shared/src/catalog/runtime/domBinding.tsx` 의 `bindings`) 이 그린다. 자식을 직접 조립하는 컴포넌트 (RAC collection · field) 는 `delegatedDom.tsx` 의 `CATALOG_DELEGATED_DOM` 에 binding 을 추가한다 (옛 `packages/shared/src/renderers/` 와 `rendererMap` 은 2026-10-07 삭제)
+3. **정의·원본·삽입** — `document/ruleDefinition.ts` · `codeCatalogLibrary.ts`의 타입 정의와, 합성이라면 `document/generated/reusableOriginLibrary.ts`의 origin 정의·template을 확인한다. 이 파일은 일회 변환 후 유지하는 typed library 코드 정본이다. 헤더의 옛 변환 테스트·seed는 삭제됐으므로 생성기로 사용하지 않는다. template 변경은 [원본 편집 절차](../../composition-patterns/reference/compositional-architecture.md#원본-template-편집검증)에 따른다. 팔레트는 `catalogPaletteDefinitionId` → `catalogPaletteInsertPlan` (`apps/builder/src/builder/catalogRuntime/paletteInsert.ts`) → `insertNodes` → `workspace.execute`로 넣는다. 원본 구조·저장 버전 계약은 [구조 변경 감사](../../composition-patterns/rules/domain-structure-change-audit.md)를 따른다.
+4. **Preview** — `packages/shared/src/catalog/runtime/domBinding.tsx`의 `bindings`와 `delegatedDom.tsx`의 `CATALOG_DELEGATED_DOM`에서 해당 RAC context 안에 작성된 자식을 순서대로 렌더한다. 미전환 family의 제한과 자식 소유 처리는 현재 구현에서 확인하며, 부모가 고정 자식을 재조립하는 옛 패턴을 신규 기본값으로 삼지 않는다.
 5. **Skia** — catalog 경로 1차: `buildCatalogShapes` (`packages/rendering/src/renderers/buildCatalogShapes.ts`) + builder 측 rule 주입 `resolveSkiaVisualRule.ts`. 옛 `TAG_SPEC_MAP` 경로는 삭제됐다 — Canvas 는 `catalogRuntime/canvasBinding.ts` 의 bindings 표 또는 `node.ruleId` 로만 그린다
 6. **Property Editor** — 스타일 패널 에디터 추가 (필요 시)
 
-**실무 사례**: commit `c936f54a3` (DialogFooter childSpec→catalog cutover, 2026-06-15) — binding 신설 → componentCatalog entry 등록 → CanonicalNodeRenderer 태그 매핑 → generate-css virtual CSS → spec 물리 삭제 순서가 위 절차와 일치.
+children·RAC slot·필수 부품·상태 주체·값 바인딩은 [RAC 조립 계약](../../composition-patterns/rules/domain-rac-composition.md)을 적용한다.
+
+현재 트리 예시는 [합성 구조](../../composition-patterns/reference/compositional-architecture.md)의 Select·overlay 원본을 참조한다. 옛 CanonicalNodeRenderer·factory cutover 사례는 현행 등록 절차가 아니다.

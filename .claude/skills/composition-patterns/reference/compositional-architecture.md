@@ -45,17 +45,34 @@ DOM (Preview) 은 `catalogRuntime/domBinding.tsx` 가 같은 해석 결과 (`Cat
 `lib:definition:origin-component-select` (`mode: "composite"`, `accepts: { label }`, `defaults: { label: "Select" }`) 의 템플릿 `lib:template:component-select`:
 
 ```
-Select (props: label, placeholder, labelPosition, isInvalid …)
-├─ Label            props.children = "{label}"   ← template binding
-├─ SelectTrigger    layout.display = "flex"
-│  ├─ SelectValue   props.children = "Choose an option..."
-│  └─ SelectIcon
-└─ ListBoxItem origin instance × 4  (lib:definition:origin-component-listbox-item-default)
+Select
+├─ Label origin instance                 children = "{label}" · presentWhen
+├─ Button origin instance
+│  ├─ SelectValue                        placeholder = "{placeholder}"
+│  └─ Icon
+├─ Description origin instance           children = "{description}" · presentWhen
+├─ FieldError origin instance            children = "{errorMessage}"
+└─ Popover
+   └─ ListBox origin instance
+      └─ ListBoxItem origin instance × 4  (ListBox의 slotFills)
 ```
 
-- 옵션은 **ListBoxItem origin instance 자식**이다 (옛 factory 의 `items: StoredSelectItem[]` 데이터 prop 이 아니다).
-- `{label}` 은 resolver 의 template binding (`resolution/resolver.ts` `bindTemplateValue`, ADR-148 계약) 이 instance 의 `label` 값으로 채운다.
-- 템플릿에는 인라인 `style` 이 없다 — 시각값은 rule 이 준다.
+- 항목은 ListBox가 소유한다. Select 직계 자식으로 넣지 않는다. 실제 template은
+  `document/generated/reusableOriginLibrary.ts`, DOM 경로는 `runtime/delegatedDom.tsx`의 `select`다.
+- `{label}` 등 원본 prop 바인딩은 `resolution/resolver.ts`가 해석한다. 빈 문구의 존재 조건과
+  RAC 값 바인딩은 [RAC 조립 계약](../rules/domain-rac-composition.md)을 따른다.
+- 시각값은 rule과 노드의 typed field에서 읽는다. 닫힌 Popover의 자식은 Canvas에서 숨긴다.
+
+### Overlay 원본 (ADR-255)
+
+팔레트 이름과 원본 template의 루트 타입은 다를 수 있다. 원본 ID로 library 정의를 조회한다.
+
+- Popover 원본: `DialogTrigger > Button origin instance + Popover > Heading/Description`
+- Tooltip 원본: `TooltipTrigger > Button origin instance + Tooltip > Description`
+
+trigger가 RAC 열림 상태와 anchor context를 제공한다. trigger 없는 overlay를 새 원본 기본
+구조로 만들거나 Preview에서 강제로 열어 맞추지 않는다. 닫힌 overlay 편집은 Layers 선택을
+사용한다. 구조 정본은 같은 template 파일의 `component-popover` · `component-tooltip`이다.
 
 ### 생성 경로
 
@@ -76,15 +93,15 @@ Select (props: label, placeholder, labelPosition, isInvalid …)
 
 - Canvas 는 `canvasBinding.ts` 의 `containerWithAuthoredPaint` binding 이 세 타입을 그린다. 옛 builder `TAG_SPEC_MAP` 은 삭제됐다.
 
-## 4. 부모 → 자식 값 전달 — 4채널
+## 4. 부모 → 자식 값 전달
 
-catalog 는 시각값만 담으므로, 트리 밖 시각 요소와 부모→자식 값 전달은 아래 채널이 담당한다. 모두 resolver 또는 composition root 에서 한 번 계산해 Canvas · DOM 이 같이 읽는다.
+문서 graph는 구조·props·시각·상태 정의를 담는다. 원본 prop과 파생 값은 아래 채널로 전달하며, RAC render props의 상태·값은 [RAC 조립 계약](../rules/domain-rac-composition.md)을 따른다. DOM의 실제 RAC 상태 frame과 Canvas의 파생 상태를 같은 실행 경로라고 가정하지 않는다.
 
-| 채널             | 위치                                                                                                  | 예                                                                                           |
-| ---------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| template binding | `{prop}` — `resolution/resolver.ts` `bindTemplateValue`                                               | Select Label 텍스트 = `{label}`                                                              |
-| size propagation | `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`, resolver 가 읽음)                          | RadioGroup → RadioItems → Radio → Label, TagGroup → TagList → Tag                            |
-| owner 파생 값    | `catalogDerivedProps` (`catalogRuntime/presence.ts`)                                                  | ProgressBar/Meter 의 value → Track fill, collection item `_isSelected`                       |
+| 채널             | 위치                                                                                                                                     | 예                                                                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| template binding | `{prop}` — `resolution/resolver.ts` `bindTemplateValue`                                                                                  | Select Label 텍스트 = `{label}`                                                                                                                                                                   |
+| size propagation | `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`, resolver 가 읽음)                                                             | RadioGroup → RadioItems → Radio → Label, TagGroup → TagList → Tag                                                                                                                                 |
+| owner 파생 값    | `catalogDerivedProps` (`catalogRuntime/presence.ts`)                                                                                     | collection item `_isSelected` 등 owner 상태                                                                                                                                                       |
 | part rules       | `document/rulePartRules.ts` (`catalogToggleIndicatorBox` · `catalogSubpartDomSelectors` 등) + composition root `partRuleChildren` 재계획 | Checkbox/Radio/Switch 의 `*Indicator` 노드 상자 = toggle rule `sizes[size].indicator` (2026-10-04 부터 indicator 는 문서 노드 — 옛 `catalogIndicatorInset` 의 Label 여백 방식은 `ef1ff8c04` 삭제) |
 
 - 컨테이너 치수 주입: `BOX_SIZE_TYPES` (`catalogRuntime/ruleShapes.ts`) 등록 타입에 `_containerWidth` / `_containerHeight` — 원칙은 canvas-rendering.md §2.
@@ -93,9 +110,35 @@ catalog 는 시각값만 담으므로, 트리 밖 시각 요소와 부모→자�
 ## 5. 신규 합성 컴포넌트 추가 시 개요 체크리스트
 
 1. **catalog**: `COMPONENT_RULES_TABLE` entry (variants/sizes/structure) + `bindings/{Name}.binding.ts` (accepts D2 계약) + `componentCatalog.ts` 등록.
-2. **템플릿**: reusable origin 정의 · 템플릿 (`reusableOriginLibrary.ts` — 생성 절차는 파일 헤더) + 팔레트 노출이면 `PALETTE_REUSABLE_ORIGIN_TYPES`.
-3. **중첩 규칙**: `catalog/nesting/nestingRules.ts` (RAC 조합 · HTML content model).
+2. **템플릿**: reusable origin 정의 · 템플릿 (`reusableOriginLibrary.ts` — 아래 원본 편집 절차) + 팔레트 노출이면 `PALETTE_REUSABLE_ORIGIN_TYPES`.
+3. **조립 계약**: `catalogChildKind` · RAC slot · 필수 부품 · 상태 주체는 [RAC 조립 계약](../rules/domain-rac-composition.md).
 4. **3-branch 판정**: shell-only / child-prop-merge / plain — 판정 알고리즘은 canvas-rendering.md §2.5, 구현 상세는 [child-composition.md](child-composition.md).
-5. **값 전달**: §4 의 채널 중 하나로 (템플릿 binding 우선). 새 채널을 만들지 않는다.
+5. **값 전달**: 원본 prop은 §4, RAC 상태·값은 공통 조립 계약의 경로를 사용한다.
 6. **등록 계약**: `pnpm test:registration-contract` (루트) (`phase4ePalette.test.ts` + `phase3G3Census.test.tsx`).
-7. 검증: `pnpm type-check` + `/cross-check` (Canvas↔Preview 시각 대칭).
+7. 검증: `pnpm run codex:typecheck` + 공통 조립 계약의 DOM 구조·저장 검증 + `/cross-check` (Canvas↔Preview 시각 대칭).
+
+### 원본 template 편집·검증
+
+`packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`는 ADR-248에서 한 번
+변환한 뒤 유지하는 typed library 코드 정본이다. 디렉터리명은 `generated`지만 현행 생성기는
+없다. 파일 헤더의 `phase3ReusableOriginTemplates.test.ts`·`catalogOrigins.ts`와
+`ADR248_WRITE_REUSABLE_ORIGINS=1`은 삭제된 일회 변환 경로이며 다시 만들거나 실행하지 않는다.
+
+- 원본 변경은 이 파일의 `REUSABLE_ORIGIN_DEFINITIONS`·`REUSABLE_ORIGIN_TEMPLATES` 중
+  해당 정의와 노드를 편집한다. accepts/defaults·templateRootId·children·slotFills·바인딩의
+  참조를 함께 확인한다. 이 코드 정본의 편집 허용을 CSS·dist 등 실제 생성물에 확대하지 않는다.
+- template의 `visual`은 CSS 객체가 아니다. `document/types.ts`의 `VisualField`와 실제
+  DOM·Canvas 소비자가 기대하는 값 형식을 확인한다. 예를 들어 둥글기를 없애려면
+  `borderRadius: "0px"`나 `radius: "0px"`가 아니라 `radius: 0`이다. 값 타입은 넓은
+  `AuthoredValue`이므로 typecheck 통과만으로 `NaN` 등 런타임 오류가 배제되지 않는다.
+- 큰 template 파일은 기존 표기와 무관한 노드를 보존한다. 포맷 후 파일 전체의 따옴표·공백만
+  바뀌었다면 본인 변경에서 생긴 포맷 차이만 제거하고 변경 노드의 diff를 다시 확인한다.
+  다른 작업자의 변경을 파일 전체 되돌리기로 지우지 않는다.
+- 구조 변경은 [구조 변경 감사](../rules/domain-structure-change-audit.md)의 library contract
+  증가·옛 프로젝트 거부·현재 주소 무결성 계약을 적용한다.
+- `packages/shared/src/catalog/document/__tests__/codeCatalogLibrary.test.ts`와 변경 family의
+  Builder `catalogRuntime/__tests__/adr256*` 인접 테스트를 실행한다. 팔레트 노출·기본 생성이
+  바뀌면 `pnpm run test:registration-contract`도 적용한다.
+- 실제 Builder에서 새 instance 생성 → Preview 동작 → 저장·재열기를 확인한다.
+  CSS 시각 rule도 바뀌었으면 별도로 `pnpm generate:css`와
+  `pnpm -F @composition/rendering validate:sync`를 실행한다.

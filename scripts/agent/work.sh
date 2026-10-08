@@ -15,7 +15,7 @@
 #   1. guard            항상 (scripts/codex/protect-files.sh)
 #   2. vitest (focused) 변경 package 의 `vitest related` + 변경된 test 파일 직접 실행
 #   3. typecheck        변경 package 단위 (builder 는 baseline wrapper) — root turbo 전체 아님
-#   4. registration     apps/builder TS 변경 시 ADR-139 contract (scripts/codex/registration-gate.sh)
+#   4. registration     builder·shared catalog/component 변경 시 등록 contract
 #   5. cargo test       packages/engine/src 변경 시
 #   6. preflight        --full 일 때만 (root type-check 를 한 번 더 도는 비용)
 #   7. cross-check      render 경로 변경 → ledger 에 `cross-check pass` 없으면 block (skill 은 CLI 로 못 돌린다)
@@ -32,6 +32,7 @@ LEDGER="$ROOT_DIR/scripts/agent/run-ledger.sh"
 RUNS_DIR="${AGENT_RUNS_DIR:-$ROOT_DIR/.agent/runs}"
 CURRENT_FILE="$RUNS_DIR/current"
 cd "$ROOT_DIR"
+source "$ROOT_DIR/scripts/codex/validation-scope.sh"
 
 if [ "${1:-}" = "--" ]; then shift; fi
 CMD="${1:-help}"; [ "$#" -gt 0 ] && shift
@@ -49,19 +50,20 @@ require_run() {
 }
 ledger() { AGENT_RUNS_DIR="$RUNS_DIR" AGENT_EVIDENCE_SOURCE=work.sh bash "$LEDGER" "$@"; }
 evidence() { ledger evidence "$@" >/dev/null 2>&1 || true; }
-has_pass() {  # has_pass <kind> — 현재 run 에 kind=… status=pass 기록이 있는가
-  local d; d=$(run_dir); [ -n "$d" ] && [ -s "$d/evidence.jsonl" ] && grep -q "\"kind\":\"$1\",\"status\":\"pass\"" "$d/evidence.jsonl"
+has_pass() {  # 최신 PASS + 현재 검증 범위 내용 일치
+  local d; d=$(run_dir)
+  [ -n "$d" ] && node "$ROOT_DIR/scripts/agent/evidence-state.mjs" has-pass "$ROOT_DIR" "$d/run.json" "$1" "${2:-}"
 }
 
 # 변경 파일 = working tree (unstaged + staged + untracked) ∪ run 시작 이후 commit 된 파일
 changed_files() {
   local base="${1:-}"
   {
-    git diff --name-only --diff-filter=ACMR 2>/dev/null || true
-    git diff --name-only --cached --diff-filter=ACMR 2>/dev/null || true
+    git diff --name-only --diff-filter=ACMRD 2>/dev/null || true
+    git diff --name-only --cached --diff-filter=ACMRD 2>/dev/null || true
     git ls-files --others --exclude-standard 2>/dev/null || true
     if [ -n "$base" ] && git rev-parse -q --verify "$base" >/dev/null 2>&1; then
-      git diff --name-only --diff-filter=ACMR "$base"..HEAD 2>/dev/null || true
+      git diff --name-only --diff-filter=ACMRD "$base"..HEAD 2>/dev/null || true
     fi
   } | sed '/^$/d' | sort -u
 }
@@ -69,7 +71,7 @@ changed_files() {
 # scope 분류 (ERE) — CLAUDE.md §완료 기준 (registration / resolved-tree wiring / schema / 렌더) 을 경로로 옮긴 것
 RE_TS='\.(ts|tsx)$'
 RE_TEST='\.(test|spec)\.(ts|tsx)$'
-RE_RENDER='^(apps/builder/src/builder/workspace/canvas/|packages/rendering/src/|packages/shared/src/catalog/|apps/builder/src/preview/|packages/engine/src/)|\.css$'
+RE_RENDER='^(apps/builder/src/builder/(workspace/canvas/|catalogRuntime/)|packages/rendering/src/|packages/shared/src/(catalog/|components/|domain/componentTraits\.ts)|apps/builder/src/preview/|apps/publish/src/|packages/engine/src/)|\.css$'
 RE_LIVE='^(apps/builder/src/builder/(factories|panels|components|stores|hooks)/|apps/builder/src/builder/catalogRuntime/|packages/shared/src/schemas/)'
 RE_ENGINE='^packages/engine/src/'
 RE_DOCS='^(docs/|\.claude/|\.agents/|\.agent/|scripts/|AGENTS\.md$|CLAUDE\.md$|README\.md$)|\.md$'
@@ -106,7 +108,7 @@ compute_scope() {  # compute_scope <files-newline-list>
 print_scope() {
   local n; n=$(printf '%s\n' "$FILES" | sed '/^$/d' | wc -l | tr -d ' ')
   echo "scope: 변경 파일 ${n}개 · TS $(printf '%s\n' "$TS_FILES" | sed '/^$/d' | wc -l | tr -d ' ') · package [$(printf '%s' "$PKGS" | tr '\n' ' ' | sed 's/ $//')]"
-  [ "$DOCS_ONLY" = 1 ] && echo "       docs/scripts 만 변경 — 코드 검증 없음"
+  [ "$DOCS_ONLY" = 1 ] && echo "       docs/scripts 범위 — 관련 스킬·tooling 검사는 별도 선택"
   [ -n "$RENDER_HIT" ] && echo "       render 경로 → cross-check 필요 ($(printf '%s\n' "$RENDER_HIT" | sed '/^$/d' | wc -l | tr -d ' ')개)"
   [ -n "$LIVE_HIT" ] && echo "       사용자-가시/wiring/schema 경로 → live exercise 필요 ($(printf '%s\n' "$LIVE_HIT" | sed '/^$/d' | wc -l | tr -d ' ')개)"
   return 0
@@ -143,7 +145,7 @@ human_step() {  # human_step <kind> <needed:0|1> <how>
   if [ "$needed" = 0 ]; then skip_step "$kind" "해당 경로 변경 없음"; return 0; fi
   if [ "$NO_LIVE" = 1 ]; then skip_step "$kind" "--no-live"; return 0; fi
   if [ "$DRY" = 1 ]; then row "$kind" plan "필요 — $how"; return 0; fi
-  if has_pass "$kind"; then row "$kind" pass "ledger 에 pass 기록 있음"; return 0; fi
+  if has_pass "$kind" "$(printf '%s' "$FILES" | tr '\n' ',')"; then row "$kind" pass "최신 PASS와 HEAD·범위 내용 일치"; return 0; fi
   evidence "$kind" block --detail "$how"
   row "$kind" block "$how"
 }
@@ -166,6 +168,7 @@ do_verify() {
   if [ -z "$BASE" ] && [ -n "$d" ]; then BASE=$(jq -r '.headAtStart // ""' "$d/run.json" 2>/dev/null || true); [ "$BASE" = "unknown" ] && BASE=""; fi
   if [ -n "$OVERRIDE" ]; then compute_scope "$(printf '%s' "$OVERRIDE" | tr ',' '\n')"; else compute_scope "$(changed_files "$BASE")"; fi
   STEP_LOG=$(mktemp)
+  trap 'rm -f "$STEP_LOG"' EXIT
 
   echo "[agent:work] verify$( [ "$DRY" = 1 ] && printf ' (dry-run)' )$( [ "$SKIP_EXEC" = 1 ] && printf ' (skip-exec)' )"
   print_scope
@@ -173,6 +176,16 @@ do_verify() {
 
   # 1. guard
   if [ -n "$OVERRIDE" ]; then skip_step guard "--files override (git scope 아님)"; else run_step guard "" bash scripts/codex/protect-files.sh; fi
+
+  # 공용 스킬·수동 라우터·검증 도구의 관련 변경에만 실행한다.
+  local check
+  for check in $(codex_instruction_checks "$FILES"); do
+    case "$check" in
+      skills-validate) run_step "$check" "" pnpm run codex:skills:validate ;;
+      skills-test) run_step "$check" "" pnpm run codex:skills:test ;;
+      workflow-test) run_step "$check" "" pnpm run codex:workflow:test ;;
+    esac
+  done
 
   # 2. vitest focused / 3. typecheck per package
   if [ -z "$TS_FILES" ]; then
@@ -182,29 +195,35 @@ do_verify() {
       local dir rel tests
       dir=$(pkg_dir "$p")
       if pkg_has_vitest "$p"; then
-        rel=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | sed "s|^$dir/||" | tr '\n' ' ' | sed 's/ $//' || true)
+        rel=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | sed "s|^$dir/||" | grep -vE '^tests/(adr248-g3|parity|visual-parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
         tests=$(printf '%s\n' "$TS_FILES" | grep "^$dir/" | grep -E "$RE_TEST" | sed "s|^$dir/||" | tr '\n' ' ' | sed 's/ $//' || true)
         # shellcheck disable=SC2086
-        run_step vitest "$p" pnpm -F "$(pkg_filter "$p")" exec vitest related --run --passWithNoTests $rel
+        [ -n "$rel" ] && run_step vitest "$p" pnpm -F "$(pkg_filter "$p")" exec vitest related --run --passWithNoTests $rel
         # 테스트 파일은 **자기 config 로** 돌린다. 기본 config 의 include 가
         # `src/**` 라서 `tests/**` 를 그냥 넘기면 "No test files found" → exit 1 로
         # 항상 빨간불이 된다 (ADR-198 Phase 3 에서 확인). config 파일이 실재할 때만
         # 갈아 끼우므로 다른 패키지 동작은 그대로다.
         if [ -n "$tests" ]; then
-          local browser_tests visual_tests default_tests
+          local browser_tests visual_tests g3_tests default_tests
+          # shellcheck disable=SC2086
+          g3_tests=$(printf '%s\n' $tests | grep -E '^tests/adr248-g3/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
           visual_tests=$(printf '%s\n' $tests | grep -E '^tests/visual-parity/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
           browser_tests=$(printf '%s\n' $tests | grep -E '^tests/parity/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
-          default_tests=$(printf '%s\n' $tests | grep -vE '^tests/(visual-parity|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
+          default_tests=$(printf '%s\n' $tests | grep -vE '^tests/(adr248-g3|visual-parity|parity)/' | tr '\n' ' ' | sed 's/ $//' || true)
           # shellcheck disable=SC2086
           [ -n "$default_tests" ] && run_step vitest "$p:test-files" pnpm -F "$(pkg_filter "$p")" exec vitest run $default_tests
-          if [ -n "$browser_tests" ] && [ -f "$dir/vitest.browser.config.ts" ]; then
+          if [ -n "$g3_tests" ]; then
+            # shellcheck disable=SC2086
+            run_step vitest "$p:adr248-g3" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.adr248-g3.browser.config.ts $g3_tests
+          fi
+          if [ -n "$browser_tests" ]; then
             # shellcheck disable=SC2086
             run_step vitest "$p:browser-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.browser.config.ts $browser_tests
           fi
-          if [ -n "$visual_tests" ] && [ -f "$dir/vitest.visual-parity.config.ts" ]; then
+          if [ -n "$visual_tests" ]; then
             # shellcheck disable=SC2086
             run_step vitest "$p:visual-parity" pnpm -F "$(pkg_filter "$p")" exec vitest run --config vitest.visual-parity.config.ts $visual_tests
           fi
@@ -218,12 +237,11 @@ do_verify() {
     done
   fi
 
-  # 4. registration (ADR-139) — builder TS 변경 시
-  if printf '%s\n' "$PKGS" | grep -qx builder; then
-    if [ -n "$OVERRIDE" ]; then run_step registration "ADR-139" pnpm run test:registration-contract   # gate 는 git scope 만 보므로 override 땐 contract 직접
-    else run_step registration "ADR-139" bash scripts/codex/registration-gate.sh; fi
+  # 4. catalog·원본·binding 정본은 shared에 있다. base/삭제/명시 범위도 동일하게 검사한다.
+  if printf '%s\n' "$TS_FILES" | grep -qE '^(apps/builder/|packages/shared/src/(catalog/|components/|domain/componentTraits\.ts))'; then
+    run_step registration "catalog/library/binding" pnpm run test:registration-contract
   else
-    skip_step registration "builder TS 변경 없음"
+    skip_step registration "등록 경로 TS 변경 없음"
   fi
 
   # 5. cargo test — engine src 변경 시
@@ -263,6 +281,11 @@ readiness() {  # exit 0 = 닫아도 됨. stdout 에 사유 나열
     case "$last" in
       fail) echo "  - $k: 마지막 기록이 fail"; bad=1 ;;
       block) echo "  - $k: block 미해결 (pass 기록 필요)"; bad=1 ;;
+      pass)
+        case "$k" in cross-check|live-exercise)
+          if ! has_pass "$k"; then echo "  - $k: 현재 변경에 대한 최신 증거 없음"; bad=1; fi ;;
+        esac
+        ;;
     esac
   done
   return $bad

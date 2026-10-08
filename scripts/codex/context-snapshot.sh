@@ -16,64 +16,45 @@ print_section() {
 
 CHANGED="$(codex_changed_files)"
 
-print_rule_head() {
-  local title="$1"
-  local path="$2"
-  local lines="${3:-60}"
-
-  print_section "$title"
-  if [ -f "$path" ]; then
-    sed -n "1,${lines}p" "$path"
-  else
-    echo "missing: $path"
-  fi
-}
-
 print_section "Codex Context Snapshot"
 echo "repo: $(basename "$ROOT_DIR")"
 echo "branch: $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)"
 echo "head: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 echo "mise: ${CODEX_MISE_STATUS:-unknown}"
 
-print_section "Changed Files"
+print_section "Changed Files (최대 20개)"
 if [ -z "$CHANGED" ]; then
   echo "none"
 else
-  echo "$CHANGED"
+  printf '%s\n' "$CHANGED" | sed -n '1,20p'
+  echo "전체 목록: git status --short"
 fi
 
 print_section "Core Contract"
-echo "- Prefer AGENTS.md and .agents/* over legacy .claude/*."
-echo "- Claude hooks are not automatic in Codex; use pnpm run codex:* commands."
-echo "- Default git flow is local commit then git push origin main; no web PR unless the user explicitly asks."
+echo "- AGENTS.md: 작업 범위·권한·완료 계약. 공용 skill/rule 정본은 .claude/, .agents는 심링크."
+echo "- commit/push는 사용자 명시 요청 시에만 실행. 다른 작업의 dirty 변경 보존."
+echo "- 인수인계: .agent/task-state.json에서 현재 작업 항목만 읽는다."
 
-if [ -z "$CHANGED" ]; then
-  print_section "Default High-Signal Rules"
-  echo "- composition-patterns before nontrivial code changes"
-  echo "- codex:route when skill/rule mapping is unclear"
-  echo "- codex:preflight before completion"
-  exit 0
+print_section "관련 지침 (필요한 링크만 열기)"
+echo "- .agents/README.md: 범위별 검증·evidence 운영"
+if echo "$CHANGED" | grep -qiE "catalog|shared/src/components|canvas|skia|rendering|preview|packages/engine"; then
+  echo "- .agents/skills/composition-patterns/SKILL.md"
+  echo "- .agents/skills/composition-patterns/rules/domain-rac-composition.md"
+  echo "- .agents/skills/cross-check/SKILL.md"
 fi
-
-if echo "$CHANGED" | grep -qiE "canvas|skia|sprite|renderer|Spec\\.(ts|tsx)|nodeRenderer|specShape"; then
-  print_rule_head "Canvas Rendering Rule" ".agents/rules/canvas-rendering.md" 80
+if echo "$CHANGED" | grep -qiE "catalog/(commands|document|runtime)|catalogRuntime|store|session|history|autosave"; then
+  echo "- .agents/rules/state-management.md"
 fi
-
-if echo "$CHANGED" | grep -qiE "layout|fullTree|taffy|yoga|flex|grid|enrichWith"; then
-  print_rule_head "Layout Engine Rule" ".agents/rules/layout-engine.md" 70
+if echo "$CHANGED" | grep -qiE "layout|packages/engine|catalogRuntime|catalog/runtime"; then
+  echo "- .agents/rules/layout-engine.md"
 fi
-
-if echo "$CHANGED" | grep -qiE "store|slice|zustand|elementsMap|childrenMap|history"; then
-  print_rule_head "State Management Rule" ".agents/rules/state-management.md" 70
+if echo "$CHANGED" | grep -qiE "\.css$|theme|token"; then
+  echo "- .agents/rules/style-ssot.md"
 fi
-
-if echo "$CHANGED" | grep -qiE "\\.css$|theme|token|preview-system|builder-system"; then
-  print_rule_head "CSS Token Rule" ".agents/rules/css-tokens.md" 70
-fi
-
 if echo "$CHANGED" | grep -qiE "docs/adr|adr-writing|CHANGELOG"; then
-  print_rule_head "ADR/Docs Rule" ".agents/rules/adr-writing.md" 80
+  echo "- .agents/rules/adr-writing.md"
 fi
 
 print_section "Completion Gate"
-echo "pnpm run codex:preflight"
+echo "pnpm run codex:preflight (포맷은 검사만, 파일 수정 없음)"
+echo "동시 작업은 .agents/README.md의 범위별 검증 사용; 검증한 최신 변경에만 PASS 적용."

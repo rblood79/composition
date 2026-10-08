@@ -16,6 +16,7 @@ Codex에서는 Claude의 glob 규칙 자동 로드를 전제하지 않습니다.
 | CanvasKit·Skia 캐시·렌더 루프           | [Canvas](../../rules/canvas-rendering.md)                                                     |
 | Rust 엔진·layout invalidation·grid/flex | [레이아웃](../../rules/layout-engine.md)                                                      |
 | CSS·token·variant                       | [스타일](../../rules/css-tokens.md)                                                           |
+| children·RAC slot·조건부 표시·값 바인딩 | [RAC 조립 계약](rules/domain-rac-composition.md)                                              |
 | 트리 구조 변경의 소비자                 | [구조 변경 감사](rules/domain-structure-change-audit.md)                                      |
 | 패널 섹션                               | [Section 계약](rules/domain-section-component.md)                                             |
 | Preview 동기화                          | [origin](rules/postmessage-origin-verify.md), [ready 버퍼](rules/postmessage-buffer-ready.md) |

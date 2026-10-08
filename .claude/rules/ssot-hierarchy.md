@@ -55,6 +55,9 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
   - `@sync` 주석으로 CSS 파일 간 참조 (SSOT 거치지 않은 consumer-to-consumer)
   - Skia 전용 시각 표현 (DOM/CSS로 재현 불가능한 효과를 도입)
 
+children·RAC slot·필수 부품·상태 주체·값 바인딩의 구현·검증은
+[RAC 조립 계약](../skills/composition-patterns/rules/domain-rac-composition.md)을 따른다.
+
 **D3 sub-part — field 가족의 부품 노드 (ADR-253 Phase 3, 2026-10-07 — ADR-923 Phase 5 후속의 2026-09-03 · 09-04 판정을 대체)**:
 
 - field · 그룹의 Label · Description · FieldError · Input · DateInput · Button (NumberField 증감 · FieldButton · Select 의 trigger) 은 **부품 원본의 instance** 다. Preview/publish DOM 은 그 노드를 RAC 컴포넌트로 부모의 RAC context 안에서 직접 그리고 (`catalog/runtime/domBinding.tsx` · `delegatedDom.tsx`), 모양은 **부품 자신의 rule** 이 정본이다. 부모 rule 의 delegation 은 배치 (폭 · flex · margin · 버튼 자리) 만 선언한다 — 정적 게이트 `adr253PartShapeOwner.static.test.ts`.

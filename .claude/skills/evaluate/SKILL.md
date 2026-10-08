@@ -16,8 +16,11 @@ argument-hint: [검증 대상 기능 + 완료 기준 (한 줄씩)]
 - Canvas·시각 결과는 foreground 또는 활성 RAF가 확인된 환경에서 측정합니다.
   hidden 탭의 stale overlay를 시각 근거로 사용하지 않습니다.
 - 상태 변경은 Inspector·Canvas·Preview 반영과 Undo/Redo를 관련 범위에서 확인합니다.
+- 컴포넌트 자식·slot·조건부 표시가 바뀌면 [RAC 조립 계약](../composition-patterns/rules/domain-rac-composition.md)의
+  변경 범위 검증을 적용합니다. DOM 구조·상태 연결과 Canvas↔Preview 시각 판정을 구분합니다.
 - 저장 관련 변경은 새로고침 후 hydration도 확인합니다.
 - 시각 정합성은 `cross-check`를 사용하고, 동작 중 콘솔 오류와 키보드·focus도 살핍니다.
 
 관찰한 행동 → 결과 → 증거 경로를 남깁니다. 임의 가중 점수로 기능 실패를 상쇄하지 않습니다.
+재시도는 실행별 증거 폴더를 사용해 첫 실패의 로그·결과·스크린샷을 덮어쓰지 않습니다.
 검증만 요청되면 보고하고, 수정까지 요청되면 발견한 범위의 문제도 해결합니다.

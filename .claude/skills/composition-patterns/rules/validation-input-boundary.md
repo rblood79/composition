@@ -1,133 +1,45 @@
 ---
 title: Input Validation at Boundaries
 impact: CRITICAL
-impactDescription: 미검증 입력 = 보안 취약점, 런타임 크래시
+impactDescription: 미검증 입력은 잘못된 문서·메시지를 runtime에 반영할 수 있음
 tags: [validation, security, boundary]
 ---
 
-시스템 경계에서 모든 외부 입력을 검증합니다.
+# Catalog 입력 경계
 
-> **실코드 기준**: composition 의 경계 검증은 **origin 검증 + 타입 가드** 가 기본입니다. zod 는 theme 타입(`types/theme/index.ts`)에 한정 사용 중이며, 신규 경계에 선택적으로 도입할 수 있습니다 (필수 아님). cloud 백엔드는 없다 (ADR-128 · 인증도 로컬 라이선스) — DB 요소 fetch 경계는 존재하지 않고, 요소/문서 영속 경계는 IndexedDB canonical document 입니다.
+문서 영속 형식은 `CatalogDocument`, runtime 정본은 `CatalogGraph`다 (ADR-248).
+옛 canonical 요소를 sanitize해서 새 runtime에 넣는 adapter를 만들지 않는다.
 
-## 경계 정의
+## Preview 메시지
 
-```
-외부 입력 경계:
-1. PostMessage (Preview ↔ Builder)
-2. URL 파라미터 (라우팅)
-3. 사용자 입력 (폼, 에디터)
-4. 로컬 스토리지 / IndexedDB (canonical document hydrate)
-```
+- Builder 수신: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx`의
+  iframe `event.source`와 `event.origin` 검증을 유지한다.
+- Preview 수신: `apps/builder/src/preview/catalog/CatalogPreviewApp.tsx`에서
+  `event.origin === window.location.origin` 및 `event.source === window.parent`를 확인한 뒤
+  `CatalogPreviewSession.receive(event.data)`에 넘긴다. 개발 모드도 검증한다.
+- `CATALOG_SNAPSHOT` · `CATALOG_DELTA` 등의 payload 판정은 기존 session/channel 경로를 쓴다.
+  `type` 문자열 존재나 TypeScript cast만으로 payload가 유효하다고 간주하지 않는다.
+  거부 결과는 기존 오류 보고 경로에 전달한다. 전송에도 정확한 `targetOrigin`을 사용한다.
 
-## Incorrect
+## 문서 저장·로드
 
-```typescript
-// ❌ PostMessage 무검증
-window.addEventListener("message", (event) => {
-  const { type, data } = event.data; // origin/shape 검증 없이 사용
-  handleMessage(type, data);
-});
+- `packages/shared/src/catalog/document/validation.ts`의 `validateCatalogDocument`가 format,
+  schema version, library contract version, entry 형식을 검증한다.
+- `document/graph.ts`의 `createCatalogGraph`가 library와 문서의 구조·참조를 검증한다.
+- `runtime/storage.ts`의 `CatalogStorage`가 저장 head의 format/version과 revision을 검사하고,
+  로드한 문서로 graph를 검증한다. `CatalogAutosave`의 저장 실패를 삼키지 않는다.
+- origin template 구조 변경의 버전 갱신·옛 프로젝트 거부는
+  [구조 변경 감사](domain-structure-change-audit.md)의 저장 계약을 따른다.
+  버전 불일치를 임의 변환·필드 삭제·기본값 fallback으로 통과시키지 않는다.
 
-// ❌ URL 파라미터 무검증
-const pageId = useParams().pageId;
-loadPage(pageId); // 유효하지 않은 ID 가능
+## 사용자 입력·도메인 명령
 
-// ❌ 사용자 입력 무검증
-const handleInput = (value: string) => {
-  element.props.width = parseInt(value); // NaN 가능성
-};
-```
+- URL의 ID는 문자열 형태뿐 아니라 현재 graph/session에서 대상이 존재하는지도 확인한다.
+- 숫자·단위 등 패널 입력은 해당 edit contract에서 검증하고 typed field 명령으로 바꾼다.
+  `node.props`나 graph를 직접 수정하지 않는다.
+- children·필수 부품·상태 주체 참조는 [RAC 조립 계약](domain-rac-composition.md)과 명령의
+  검증 경로를 따른다. `workspace.execute` 실패는 기존 command runner의 거부 UI로 전달한다.
+- Zod 등 검증 라이브러리 추가는 경계의 필요에 따라 결정한다. 현재 catalog 검증기를
+  우회하거나 같은 스키마를 별도로 복제하지 않는다.
 
-## Correct
-
-### PostMessage — origin 검증 + shape 가드 (실코드)
-
-```typescript
-// ✅ Preview 측 (preview/messaging/messageHandler.ts handle())
-handle(event: MessageEvent): void {
-  // 1. Origin 검증 (production에서만 — dev 는 동일 origin iframe)
-  if (import.meta.env.PROD) {
-    if (event.origin !== window.location.origin) {
-      console.warn("[Preview] Message from untrusted origin:", event.origin);
-      return;
-    }
-  }
-
-  // 2. Shape 가드 — type discriminant 없는 메시지 거부
-  const data = event.data as BuilderToPreviewMessage;
-  if (!data || typeof data !== "object" || !data.type) {
-    return;
-  }
-
-  // 3. type 별 discriminated switch 로 분기
-  switch (data.type) {
-    case "UPDATE_CANONICAL_DOCUMENT": /* ... */ break;
-    // ...
-  }
-}
-
-// ✅ Builder 측 (utils/dom/iframeMessenger.ts)
-// allowedOrigins 목록 기반 isAllowedOrigin() 검증 후에만 처리
-if (!this.isAllowedOrigin(event.origin)) {
-  console.warn(`Blocked message from unauthorized origin: ${event.origin}`);
-  return;
-}
-```
-
-### URL 파라미터 / 사용자 입력 — 타입 가드
-
-```typescript
-// ✅ URL 파라미터 검증 (타입 가드)
-const PageRoute = () => {
-  const { pageId } = useParams();
-
-  const validPageId = useMemo(
-    () => (typeof pageId === 'string' && pageId.length > 0 ? pageId : null),
-    [pageId],
-  );
-
-  if (!validPageId) return <NotFoundPage />;
-  return <PageEditor pageId={validPageId} />;
-};
-
-// ✅ 숫자 입력 검증
-const handleWidthChange = (value: string) => {
-  const num = Number(value);
-  if (!Number.isFinite(num) || num < 0) {
-    showError('유효한 숫자를 입력하세요');
-    return;
-  }
-  updateElementProps(elementId, { width: num });
-};
-```
-
-### 저장/hydrate 경계 — sanitize
-
-```typescript
-// ✅ IndexedDB/legacy 데이터 hydrate 시 sanitize
-// (adapters/canonical/legacyElementSanitizer.ts — sanitizeElement)
-const sanitized = sanitizeElement(element);
-```
-
-## 검증 레이어 구조
-
-```typescript
-// 1. 경계 레이어: origin + shape 검증 (위 PostMessage 패턴)
-// 2. 도메인 레이어: 비즈니스 규칙 검증
-if (!canHaveChildren(parentElement.type)) {
-  throw new DomainError("Leaf elements cannot have children");
-}
-// 3. 저장 레이어: 무결성 검증 (sanitizeElement 후 persist)
-```
-
-## zod 도입 기준 (선택)
-
-- 현행 사용처: `apps/builder/src/types/theme/index.ts` (theme 스키마)
-- 복잡한 discriminated union 경계(신규 외부 API 등)를 추가할 때 선택적 도입 가능 — 기존 postMessage 경계를 zod 로 일괄 전환할 의무는 없음
-
-## 참조 파일
-
-- `apps/builder/src/preview/messaging/messageHandler.ts` - 메시지 origin/shape 검증
-- `apps/builder/src/utils/dom/iframeMessenger.ts` - `isAllowedOrigin()` origin 검증
-- `apps/builder/src/adapters/canonical/legacyElementSanitizer.ts` - `sanitizeElement()` hydrate sanitize
-- `apps/builder/src/types/builder/unified.types.ts` - 타입 정의
+편집·저장 순서와 history 계약은 [상태 관리](../../../rules/state-management.md)가 정본이다.

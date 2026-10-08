@@ -1,0 +1,4 @@
+# 일회 변환 뒤 수동으로 유지하는 typed 원본: 변경 노드의 기존 표기를 보존한다.
+packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts
+# generator가 출력 형식을 소유한다. pnpm generate:css로 갱신한다.
+packages/shared/src/components/styles/generated/

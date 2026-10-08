@@ -21,9 +21,10 @@
     "test:registration-contract": "pnpm -F @composition/builder exec vitest run src/builder/catalogRuntime/__tests__/phase4ePalette.test.ts src/builder/catalogRuntime/__tests__/phase3G3Census.test.tsx",
     "codex:guard": "bash scripts/codex/protect-files.sh",
     "codex:format": "bash scripts/codex/format-changed.sh",
+    "codex:format:check": "bash scripts/codex/format-changed.sh --check",
     "codex:typecheck": "bash scripts/codex/type-check-gate.sh",
     "codex:registration": "bash scripts/codex/registration-gate.sh",
-    "codex:preflight": "pnpm run codex:guard && pnpm run codex:format && pnpm run codex:typecheck && pnpm run codex:registration && pnpm run codex:agent-catalog",
+    "codex:preflight": "pnpm run codex:guard && pnpm run codex:format:check && pnpm run codex:typecheck && pnpm run codex:registration && pnpm run codex:agent-catalog && pnpm run codex:skills:gate",
     "codex:harness": "bash scripts/codex/harness.sh",
     "codex:route": "bash scripts/codex/route-prompt.sh",
     "codex:snapshot": "bash scripts/codex/context-snapshot.sh",
@@ -49,7 +50,9 @@
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs",
     "gate:catalog-runtime": "pnpm -F @composition/builder exec node scripts/adr248-runtime-boundary.mjs",
     "codex:skills:validate": "node scripts/codex/validate-skills.mjs",
-    "codex:skills:test": "node --test scripts/codex/skills.test.mjs"
+    "codex:skills:test": "node --test scripts/codex/skills.test.mjs",
+    "codex:skills:gate": "bash scripts/codex/skills-gate.sh",
+    "codex:workflow:test": "node --test .codex/tests/*.test.mjs"
   },
   "devDependencies": {
     "gray-matter": "^4.0.3",

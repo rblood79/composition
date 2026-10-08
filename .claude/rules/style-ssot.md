@@ -9,6 +9,9 @@ paths:
   - "apps/builder/src/builder/catalogRuntime/styleDirty.ts"
   - "apps/builder/src/builder/catalogRuntime/boxModel.ts"
   - "apps/builder/src/builder/catalogRuntime/editContract.ts"
+  - "packages/shared/src/catalog/runtime/boxModel.ts"
+  - "packages/shared/src/catalog/runtime/rulePaint.ts"
+  - "packages/shared/src/catalog/runtime/compositionRoot.ts"
   - "apps/builder/src/builder/workspace/canvas/layout/**"
 ---
 

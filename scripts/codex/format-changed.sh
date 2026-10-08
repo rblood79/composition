@@ -8,9 +8,9 @@ source "$ROOT_DIR/scripts/codex/env.sh"
 codex_activate_env
 cd "$ROOT_DIR"
 
-if [ "${1:-}" = "--" ]; then
-  shift
-fi
+MODE=--write
+case "${1:-}" in --check|--write) MODE="$1"; shift ;; esac
+if [ "${1:-}" = "--" ]; then shift; fi
 
 if [ "$#" -gt 0 ]; then
   FILES="$(printf '%s\n' "$@")"
@@ -18,24 +18,23 @@ else
   FILES="$(codex_changed_files)"
 fi
 
-TARGETS="$(
-  echo "$FILES" |
-    grep -E '\.(ts|tsx|js|jsx|css|json|md)$' |
-    while IFS= read -r file; do
-      [ -L "$file" ] || printf '%s\n' "$file"
-    done || true
-)"
+TARGETS=()
+while IFS= read -r file; do
+  if [[ "$file" =~ \.(ts|tsx|js|jsx|mjs|cjs|css|json|md)$ ]] && [ -f "$file" ] && [ ! -L "$file" ]; then
+    TARGETS+=("$file")
+  fi
+done <<< "$FILES"
 
-if [ -z "$TARGETS" ]; then
+if [ "${#TARGETS[@]}" -eq 0 ]; then
   echo "[codex:format] 포맷 대상 없음"
   exit 0
 fi
 
-echo "[codex:format] prettier 실행"
+echo "[codex:format] prettier $MODE 실행 (.prettierignore 공통 적용)"
 if [ -x "./node_modules/.bin/prettier" ]; then
-  # shellcheck disable=SC2086
-  ./node_modules/.bin/prettier --write $TARGETS
+  ./node_modules/.bin/prettier "$MODE" --ignore-path "$ROOT_DIR/.prettierignore" -- "${TARGETS[@]}"
   exit 0
 fi
 
-echo "[codex:format] 로컬 prettier 미설치 - 스킵"
+echo "[codex:format] 로컬 prettier 미설치 - 검증 불가" >&2
+exit 1

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Codex 검증 하니스 보완 — 범위 선택 · 최신 증거 · 비수정 preflight] - 2026-10-09
+
+### Infrastructure
+
+- **현행 catalog 경로에 맞춘 검증 선택**: shared 컴포넌트의 시각·브라우저 검사, shared 원본의 등록 검사, ADR-248 G3 전용 browser config를 선택한다. 스킬·하니스 변경에는 해당 Node 회귀와 스킬 검증을 연결했다. 위치: `scripts/agent/work.sh`, `scripts/codex/skills-gate.sh`
+- **검증 증거의 최신성 확인**: 최신 결과가 PASS이고 기록한 HEAD·범위·파일 내용이 현재와 같을 때만 live/cross-check 증거를 재사용한다. **Why:** 이후 FAIL이나 소스 변경에도 과거 PASS가 통과 근거로 남던 조건을 제거했다. 위치: `scripts/agent/evidence-state.mjs`, `scripts/agent/run-ledger.sh`
+- **포맷 검사와 수정 분리**: preflight는 `codex:format:check`를 사용한다. 명시적 포맷과 hook은 `.prettierignore`를 공유해 typed 원본과 생성 CSS의 전체 재포맷을 피한다. snapshot은 현행 권한 계약과 관련 지침 링크만 안내한다.
+
 ## [ADR-256 Phase 8 판독 수리 — Disclosure 그룹 소속 · frame 안 Heading · trigger 속성 · chevron 회전] - 2026-10-08
 
 ### Fixed

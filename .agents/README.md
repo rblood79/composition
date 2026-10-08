@@ -13,18 +13,22 @@
 | 인수인계 snapshot            | `pnpm run codex:snapshot`                                     |
 | 보호 파일 검사               | `pnpm run codex:guard`                                        |
 | 지정 파일 포맷               | `pnpm run codex:format -- <파일들>`                           |
+| 지정 파일 포맷 검사          | `pnpm run codex:format:check -- <파일들>`                     |
 | TS 검사                      | `pnpm run codex:typecheck`                                    |
 | 등록·정본 미러 검사          | `pnpm run codex:registration`, `pnpm run codex:agent-catalog` |
 | 스킬 형식·링크 검사          | `pnpm run codex:skills:validate`                              |
 | 스킬 검증기·수동 라우터 회귀 | `pnpm run codex:skills:test`                                  |
+| 하니스·포맷·evidence 회귀    | `pnpm run codex:workflow:test`                                |
 | 수동 요청 라우팅 확인        | `pnpm run codex:route -- "<요청>"`                            |
 | 로컬 hook self-test          | `pnpm run codex:hooks:selftest`                               |
 | 전체 기본 검증               | `pnpm run codex:preflight`                                    |
 | 작업 범위별 검증·evidence    | `pnpm run agent:work -- verify`                               |
 | Evidence 조회                | `pnpm run agent:dashboard`                                    |
 
-`codex:preflight`는 dirty 파일 전체를 포맷합니다. 다른 작업자의 변경이 있으면
-자신의 파일만 `codex:format -- <파일들>`로 처리하고, guard 및 변경에 해당하는
+`codex:preflight`는 dirty 파일의 포맷을 검사하며 파일을 수정하지 않습니다.
+명시적 포맷과 자동 hook은 `.prettierignore`를 공유하며 typed 원본 라이브러리와 생성 CSS를
+제외합니다. 원본은 변경 노드의 기존 표기를 유지하고 CSS는 생성 명령으로 갱신합니다.
+다른 작업자의 변경이 있으면 자신의 파일만 `codex:format -- <파일들>`로 처리하고, guard 및 변경에 해당하는
 typecheck·registration·catalog·engine/text-axis 검사만 실행합니다.
 명령 상세는 `pnpm run codex:harness -- help`를 참조합니다.
 
@@ -34,6 +38,12 @@ ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면
 형식으로 기록합니다. `report`와 `close`는 기록된 근거를 사용합니다.
 단순 편집에 별도 run을 만들 필요는 없습니다.
 
+`cross-check`·`live-exercise`는 최신 결과가 PASS이고 기록 당시 HEAD·파일 목록·내용이
+현재 검증 범위와 일치할 때만 재사용합니다. snapshot 없는 옛 PASS와 이후 FAIL은 재검증합니다.
+`agent:work -- verify --files a,b`로 범위를 정했다면 evidence 기록에도 `--files a,b`를
+전달합니다. 범위 생략 시 run 시작 이후 커밋과 현재 dirty/untracked 파일을 사용합니다.
+상태 기록은 검증 직후 남기며, 후속 코드 변경 뒤에는 해당 흐름을 다시 검증합니다.
+
 catalog palette/CSS 생성 입력 변경 후에는 `pnpm run build:specs`가 필요한지 확인합니다. hook 등록과
 새 세션의 trust 확인 방법은 `.codex/README.md`에 있습니다.
 
@@ -42,6 +52,8 @@ catalog palette/CSS 생성 입력 변경 후에는 `pnpm run build:specs`가 필
 스킬 지침 변경 시 `pnpm run codex:skills:validate`와
 `pnpm run codex:agent-catalog`를 실행합니다. 검증기·수동 라우터를 변경하면
 `pnpm run codex:skills:test`로 실제 요청 입력과 정상·오류 fixture도 확인합니다.
+`codex:preflight`의 `codex:skills:gate`와 `agent:work -- verify`가 이 검사를 변경 경로에
+따라 선택합니다. Codex/agent 하니스·hook·포맷 정책 변경은 `codex:workflow:test`도 선택합니다.
 특정 스킬만 검사하려면 `pnpm run codex:skills:validate -- .claude/skills/review`처럼
 스킬 폴더 또는 `SKILL.md` 경로를 전달합니다.
 

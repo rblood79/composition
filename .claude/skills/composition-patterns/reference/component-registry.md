@@ -15,16 +15,16 @@
 
 ## 1. 등록 SSOT — componentCatalog → library 정의
 
-| 심볼                                                                                                             | 위치                                                  | 내용                                                                                                                                     |
-| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `componentCatalog`                                                                                               | `packages/shared/src/catalog/componentCatalog.ts`     | 전체 entry 배열. `kind: "primitive"` (leaf, `binding` 정의) 또는 `kind: "reusable"` (`reusableId` → reusable origin)                     |
-| `getCatalogEntry` / `getPanelMeta` / `getCatalogCutoverTypes` / `getCatalogDefaultProps` / `getReusableOriginId` | 같은 파일                                             | 조회 진입점                                                                                                                              |
-| `ComponentFamily` · `CutoverState`                                                                               | `catalog/types.ts`                                    | family 분류 · `legacy → cutting-over → catalog` (family 단위 atomic, 불변식 D)                                                           |
-| `PrimitiveBinding`                                                                                               | `catalog/types.ts`                                    | leaf 의 DOM source (`rac`/`internal`) + props schema (`accepts`) + `skiaPrimitive` 참조. 개별 정의: `catalog/bindings/{Type}.binding.ts` |
-| `ruleTypeDefinition`                                                                                             | `catalog/document/ruleDefinition.ts`                  | 등록 타입 → typed library 정의. rule 이 있으면 `ruleId = type`                                                                           |
-| `catalogTypeDefinitionId`                                                                                        | `catalog/document/codeCatalogLibrary.ts`              | 타입명 → `lib:definition:type-<Type>`                                                                                                    |
-| `REUSABLE_ORIGIN_DEFINITIONS` · 템플릿                                                                           | `catalog/document/generated/reusableOriginLibrary.ts` | 합성 컴포넌트 origin 정의 + 템플릿 트리 (생성 절차는 파일 헤더)                                                                          |
-| `PALETTE_REUSABLE_ORIGIN_TYPES`                                                                                  | `componentCatalog.ts`                                 | 팔레트가 origin instance 로 만드는 타입 (ADR-228)                                                                                        |
+| 심볼                                                                                                             | 위치                                                  | 내용                                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `componentCatalog`                                                                                               | `packages/shared/src/catalog/componentCatalog.ts`     | 전체 entry 배열. `kind: "primitive"` (leaf, `binding` 정의) 또는 `kind: "reusable"` (`reusableId` → reusable origin)                         |
+| `getCatalogEntry` / `getPanelMeta` / `getCatalogCutoverTypes` / `getCatalogDefaultProps` / `getReusableOriginId` | 같은 파일                                             | 조회 진입점                                                                                                                                  |
+| `ComponentFamily` · `CutoverState`                                                                               | `catalog/types.ts`                                    | family 분류 · `legacy → cutting-over → catalog` (family 단위 atomic, 불변식 D)                                                               |
+| `PrimitiveBinding`                                                                                               | `catalog/types.ts`                                    | leaf 의 DOM source (`rac`/`internal`) + props schema (`accepts`) + `skiaPrimitive` 참조. 개별 정의: `catalog/bindings/{Type}.binding.ts`     |
+| `ruleTypeDefinition`                                                                                             | `catalog/document/ruleDefinition.ts`                  | 등록 타입 → typed library 정의. rule 이 있으면 `ruleId = type`                                                                               |
+| `catalogTypeDefinitionId`                                                                                        | `catalog/document/codeCatalogLibrary.ts`              | 타입명 → `lib:definition:type-<Type>`                                                                                                        |
+| `REUSABLE_ORIGIN_DEFINITIONS` · 템플릿                                                                           | `catalog/document/generated/reusableOriginLibrary.ts` | 합성 컴포넌트 origin 정의 + 템플릿 트리 (일회 변환 후 유지하는 코드 정본; [편집 절차](compositional-architecture.md#원본-template-편집검증)) |
+| `PALETTE_REUSABLE_ORIGIN_TYPES`                                                                                  | `componentCatalog.ts`                                 | 팔레트가 origin instance 로 만드는 타입 (ADR-228)                                                                                            |
 
 ### D3 시각 규칙 — COMPONENT_RULES_TABLE
 
@@ -42,13 +42,13 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 ## 2. DOM 렌더 매핑
 
-| 심볼                                                | 위치                                                               | 내용                                                        |
-| --------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `domBinding.tsx`                                    | `packages/shared/src/catalog/runtime/` (Builder 쪽 `catalogRuntime/domBinding.tsx` 는 host 배선) | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)    |
-| `catalogDomRendersNode` · `ownsChild`               | `packages/shared/src/catalog/runtime/domBinding.tsx` · `delegatedDom.tsx` | 자식이 자기 DOM 요소를 그리는지 — delegated binding 의 `ownsChild` 가 부모가 삼키는 자식을 말한다 (옛 `CATALOG_DOM_CHILD_OWNING_BINDINGS` 표는 ADR-256 Phase 6e `a49bf13af` 삭제) |
-| renderer registry                                   | `apps/builder/src/preview/components/canonicalRendererRegistry.ts` | 타입 → shared 컴포넌트 (`@composition/shared/components/*`) |
-| `RENDER_FACET_DELEGATIONS`                          | `apps/builder/src/preview/components/renderFacetDeclaration.ts`    | delegating 렌더 선언 (순수 데이터)                          |
-| `ENTRY_DERIVED_DEFAULT_TYPES` · `DEFAULT_PROPS_MAP` | `types/builder/defaultPropsDerivation.ts` · `unified.types.ts`     | 기본 props — 신규는 catalog binding 파생 경로 우선          |
+| 심볼                                                | 위치                                                                                             | 내용                                                                                                                                                                              |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domBinding.tsx`                                    | `packages/shared/src/catalog/runtime/` (Builder 쪽 `catalogRuntime/domBinding.tsx` 는 host 배선) | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)                                                                                                                          |
+| `catalogDomRendersNode` · `ownsChild`               | `packages/shared/src/catalog/runtime/domBinding.tsx` · `delegatedDom.tsx`                        | 자식이 자기 DOM 요소를 그리는지 — delegated binding 의 `ownsChild` 가 부모가 삼키는 자식을 말한다 (옛 `CATALOG_DOM_CHILD_OWNING_BINDINGS` 표는 ADR-256 Phase 6e `a49bf13af` 삭제) |
+| renderer registry                                   | `apps/builder/src/preview/components/canonicalRendererRegistry.ts`                               | 타입 → shared 컴포넌트 (`@composition/shared/components/*`)                                                                                                                       |
+| `RENDER_FACET_DELEGATIONS`                          | `apps/builder/src/preview/components/renderFacetDeclaration.ts`                                  | delegating 렌더 선언 (순수 데이터)                                                                                                                                                |
+| `ENTRY_DERIVED_DEFAULT_TYPES` · `DEFAULT_PROPS_MAP` | `types/builder/defaultPropsDerivation.ts` · `unified.types.ts`                                   | 기본 props — 신규는 catalog binding 파생 경로 우선                                                                                                                                |
 
 ---
 
@@ -66,7 +66,7 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 | `bindings` 표              | `canvasBinding.ts` |   ❌   | rule 대신 전용 binding 으로 그리는 키 (composite · frame · group · slot · box · icon · selecttrigger · 텍스트 계열 …) |
 | `TRIGGER_OVERLAY_CHILDREN` | `presence.ts`      |   ❌   | 닫힌 overlay 의 자식 — 레이아웃 상자 0, Canvas 미렌더 (옛 `POPOVER_CHILDREN_TAGS`)                                    |
 
-`_hasChildren` 3-branch 코드: `rulePaint.ts` — SHELL_ONLY → 항상 / TreeItem 명시 예외 / CHILD_PROP_MERGE → 차단 / 그 외 → `node.children.length > 0`. 판정 알고리즘은 정본 §2.5.
+`_hasChildren` 3-branch 코드: `rulePaint.ts` — SHELL_ONLY → 항상 / TreeItem · Menu 명시 예외 / CHILD_PROP_MERGE → 차단 / 그 외 → `node.children.length > 0`. 판정 알고리즘은 정본 §2.5.
 
 부모 · 자식 의존 재계획 (옛 `StoreRenderBridge` incrementalSync 확장의 현행 형태): `compositionRoot.ts` `planInstances` — `partRuleChildren` · presence dependents · breadcrumb items 를 같은 step 에 다시 계획한다.
 
@@ -89,10 +89,10 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 1. **catalog entry** — `catalog/bindings/{Type}.binding.ts` + `componentCatalog.ts` entry (kind / family / cutover / panel meta). family 의 `cutover` 상태와 일치 (불변식 D).
 2. **시각 규칙** — `componentRulesTable.ts` 직접 편집 (ADR-908 `FillTokenSpec` 구조, 정본 canvas-rendering.md §2.5.5).
 3. **합성 구조** — 자식 트리가 필요하면 reusable origin 정의 · 템플릿 (`reusableOriginLibrary.ts`) + 팔레트 노출이면 `PALETTE_REUSABLE_ORIGIN_TYPES`. 레이아웃 기본값은 템플릿 노드의 `layout` typed field (style-ssot.md).
-4. **중첩 규칙** — `catalog/nesting/nestingRules.ts`.
+4. **조립 계약** — [RAC 조립 계약](../rules/domain-rac-composition.md)의 children · slot · 필수 부품 · 상태 주체.
 5. **`_hasChildren` 3분류** — SHELL_ONLY / CHILD_PROP_MERGE / Plain 판정 후 `rulePaint.ts` Set 등록 (Plain 은 무등록).
 6. **Canvas 실행** — rule 로 그릴 수 없는 시각이면 `skiaPrimitive` 또는 `canvasBinding.ts` bindings. shape 가 상자 폭 좌표를 쓰면 `BOX_SIZE_TYPES`.
-7. **검증** — `pnpm test:registration-contract` (`phase4ePalette.test.ts` + `phase3G3Census.test.tsx`) + `rendererStyleContract.test.ts` + `pnpm type-check` + `/cross-check` + **live builder exercise** (CLAUDE.md 완료 기준).
+7. **검증** — `pnpm test:registration-contract` (`phase4ePalette.test.ts` + `phase3G3Census.test.tsx`) + 변경된 DOM binding 인접 검사 + `pnpm run codex:typecheck` + `/cross-check` + **live builder exercise** (CLAUDE.md 완료 기준).
 
 **흔한 누락 증상 → 원인 매핑**:
 

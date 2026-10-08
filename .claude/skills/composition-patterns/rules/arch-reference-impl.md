@@ -13,17 +13,17 @@ tags: [architecture, reference, patterns]
 
 > **Note**: 이 표의 경로는 `packages/` 기준입니다. ADR-142 catalog cutover 이후 컴포넌트 시각 정본은 catalog(`COMPONENT_RULES_TABLE`)이며, 컴포넌트당 spec 파일과 `packages/specs` 는 ADR-248 (2026-10-04) 에서 삭제됐습니다 (Frame/Group/Slot 도 catalog).
 
-| 패턴                  | 참조 파일                                                            | 설명                                                     |
-| --------------------- | -------------------------------------------------------------------- | -------------------------------------------------------- |
-| 시각 정본 (catalog)   | `shared/src/catalog/generated/componentRulesTable.ts`                | `COMPONENT_RULES_TABLE` — 컴포넌트 시각 스타일 SSOT      |
-| ComponentSpec 정의    | `specs/src/components/Frame.spec.ts`                                 | 잔존 canonical spec 표준 구조 (ADR-130 layout container) |
-| CSS 생성기            | `specs/src/renderers/CSSGenerator.ts`                                | Spec → CSS 파일 생성                                     |
-| Catalog → Skia shapes | `specs/src/renderers/buildCatalogShapes.ts`                          | catalog rule → Shape[] 생성 (Skia consumer)              |
-| Preview DOM binding   | `shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx`           | RAC 기반 Preview/Publish DOM 렌더 (CSS consumer)         |
-| 토큰 리졸버           | `specs/src/renderers/utils/tokenResolver.ts`                         | 토큰 → 실제 값 변환                                      |
-| 색상 토큰             | `specs/src/primitives/colors.ts`                                     | 디자인 토큰 정의                                         |
-| 그림자 토큰           | `specs/src/primitives/shadows.ts`                                    | 그림자 토큰 정의                                         |
-| Skia Shape 변환기     | `(apps/builder) builder/workspace/canvas/skia/specShapeConverter.ts` | Shape[] → SkiaNodeData 변환                              |
+| 패턴                  | 참조 파일                                                            | 설명                                                |
+| --------------------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| 시각 정본 (catalog)   | `shared/src/catalog/generated/componentRulesTable.ts`                | `COMPONENT_RULES_TABLE` — 컴포넌트 시각 스타일 SSOT |
+| 타입·원본 정의        | `shared/src/catalog/document/codeCatalogLibrary.ts`                  | 타입 정의와 reusable origin을 같은 library에서 조회 |
+| CSS 생성기            | `rendering/src/renderers/CSSGenerator.ts`                            | catalog rule → CSS 파일 생성                        |
+| Catalog → Skia shapes | `rendering/src/renderers/buildCatalogShapes.ts`                      | catalog rule → Shape[] 생성 (Skia consumer)         |
+| Preview DOM binding   | `shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx`           | RAC 기반 Preview/Publish DOM 렌더 (CSS consumer)    |
+| 토큰 리졸버           | `rendering/src/renderers/utils/tokenResolver.ts`                     | 토큰 → 실제 값 변환                                 |
+| 색상 토큰             | `rendering/src/primitives/colors.ts`                                 | 디자인 토큰 정의                                    |
+| 그림자 토큰           | `rendering/src/primitives/shadows.ts`                                | 그림자 토큰 정의                                    |
+| Skia Shape 변환기     | `(apps/builder) builder/workspace/canvas/skia/specShapeConverter.ts` | Shape[] → SkiaNodeData 변환                         |
 
 옛 설계 기록은 `docs/legacy/COMPONENT_SPEC.md` (ADR-248 이전 — 2026-10-08 legacy 이동). 현행 구조는 `.claude/rules/ssot-hierarchy.md` 와 `state-management.md`.
 

@@ -121,7 +121,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 ## 렌더링 버그 수정 원칙
 
-CSS/Skia 두 타겟 × 5 레이어 (spec/factory/CSS renderer/Skia renderer/editor) 를 함께 확인하고 `/cross-check` 로 검증한다 — 원칙 전문·금지 패턴: `.claude/rules/canvas-rendering.md` §0 (편집 시 자동 로드)
+CSS/Skia 두 타겟의 catalog 정의·origin template·CSS/DOM·Skia·editor 경로를 함께 확인하고 `/cross-check` 로 검증한다 — 원칙 전문·금지 패턴: `.claude/rules/canvas-rendering.md` §0 (편집 시 자동 로드)
 
 ## 병렬 워크플로
 

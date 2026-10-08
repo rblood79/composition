@@ -17,14 +17,17 @@ tags: [domain, element, structure, audit]
 
 ## 필수 감사 절차
 
-### Step 1: 소비자 식별 (grep 필수)
+### Step 1: 소비자 식별
 
 문서 노드에는 `type` · `parent_id` 가 없습니다. 구조는 정의 템플릿 (`templateRootId` 아래 children) 이고, 타입은 `definitionId` 에서 유도합니다. 타입명 문자열로 소비자를 찾습니다.
 
 ```bash
 # 변경되는 타입명이 등장하는 표 · 분기 전수 (catalog · builder · rendering)
-grep -rn '"Tab"\|"TabList"\|"TabPanels"' --include="*.ts" --include="*.tsx" packages/shared/src packages/rendering/src apps/builder/src
+rg -n '"Tab"|"TabList"|"TabPanels"' -g '*.ts' -g '*.tsx' packages/shared/src packages/rendering/src apps/builder/src
 ```
+
+children 판정·RAC slot·필수 부품·상태 주체 주소와 값 바인딩의 공통 기준은
+[RAC 조립 계약](domain-rac-composition.md)을 적용한다.
 
 ### Step 2: 서브시스템 체크리스트
 
@@ -35,23 +38,30 @@ grep -rn '"Tab"\|"TabList"\|"TabPanels"' --include="*.ts" --include="*.tsx" pack
 | 3   | **명령**           | `catalog/commands/collections.ts` (`GROUP_ITEM_TYPES` · `insertGroupItem` · `insertTableRow`) · `commands/items.ts`                                                                        | 항목 추가 / 삭제가 새 래퍼 안으로 가는지                                                            |
 | 4   | **Layers**         | `catalogRuntime/layerTree.ts` · `readModel.ts` · `catalog/resolution/positions.ts`                                                                                                         | 행 순서 · 펼침 · 표시명                                                                             |
 | 5   | **Canvas**         | `catalogRuntime/compositionRoot.ts` (의존 재계획) · `rulePaint.ts` (`CHILD_PROP_MERGE_TYPES` · `SHELL_ONLY_TYPES`) · `ruleShapes.ts` (`BOX_SIZE_TYPES`) · `subpart.ts` · `itemRoles.ts`    | 부모가 자식 props 를 합치는지 · 자식 그리기 · 상자 크기                                             |
-| 6   | **DOM / Preview**  | `packages/shared/src/catalog/runtime/domBinding.tsx` (`catalogDomRendersNode`) · `delegatedDom.tsx` (`ownsChild`)                                                                                                 | 자식 조회 · RAC 구조 (D1)                                                                           |
+| 6   | **DOM / Preview**  | `packages/shared/src/catalog/runtime/domBinding.tsx` (`catalogDomRendersNode`) · `delegatedDom.tsx` (`ownsChild`)                                                                          | 자식 조회 · RAC 구조 (D1)                                                                           |
 | 7   | **Properties**     | `catalogRuntime/editContract.ts` · `panels/properties/catalog/*`                                                                                                                           | 자식 카운트 · 항목 추가 / 삭제 UI                                                                   |
 | 8   | **기존 문서 주소** | `catalog/resolution/address.ts` (`validateInstanceAddress`)                                                                                                                                | 기존 instance 의 `descendantOverrides` address 가 새 템플릿에서 끊기지 않는지 (`DANGLING_TEMPLATE`) |
 
-### Step 3: 기존 문서 호환
+### Step 3: 저장 버전과 문서 주소
 
-Builder 는 옛 프로젝트 문서를 변환하지 않습니다 (`catalogRuntime/project.ts` — "no old document is converted"). 템플릿 구조를 바꾸면 이미 만든 instance 의 override address 가 옛 template id 를 가리킬 수 있습니다. 템플릿 id 를 유지할 수 있으면 유지하고, 못 하면 address 검증이 실패하는 경우를 테스트로 먼저 보입니다.
+origin template 구조를 바꾸는 병합은 `document/types.ts`의 `LIBRARY_CONTRACT_VERSION`을
+올린다 (ADR-256 사용자 승인). 옛 개발용 프로젝트는 거부하며 자동 변환·dual-write를
+추가하지 않는다. 현재 숫자를 지침에 복제하지 말고 소스 상수를 읽는다.
+
+`document/validation.ts`의 `UNSUPPORTED_LIBRARY_CONTRACT`와 `runtime/storage.ts`의
+`UNSUPPORTED_PROJECT_FORMAT` 거부 경로를 확인한다. 새 버전에서 생성한 instance는
+`descendantOverrides`·slot 채움·명시 상태 주체 주소가 저장·재열기 후 보존돼야 한다.
+주소 검증과 구조 명령의 참조 갱신·단절 거부는 별도 계약이며 버전 증가로 대체하지 않는다.
 
 ### Step 4: 실제 확인
 
 구현 뒤 반드시 실행:
 
 1. **팔레트로 새로 생성** → Layers 에서 구조 확인
-2. **Canvas (Skia)** → 모든 자식이 그려지는지
-3. **Preview (DOM)** → React Aria 동작 확인 — Canvas 와의 대칭은 `/cross-check`
+2. **Canvas (Skia)** → 같은 상태에서 존재해야 하는 자식이 그려지는지 (닫힌 overlay·조건부 숨김 구분)
+3. **Preview (DOM)** → 공통 조립 계약의 RAC DOM 구조·slot·aria·상태 확인 — 시각 대칭은 별도 `/cross-check`
 4. **Properties** → 자식 카운트 · 항목 추가 / 삭제
-5. **기존 instance** → 구조 변경 전 만든 instance 의 override 가 유지되는지
+5. **저장·재열기** → 새 버전 instance의 override·slot·상태 주체 보존, 옛 contract 프로젝트 거부
 
 ## Incorrect
 
@@ -69,8 +79,8 @@ Builder 는 옛 프로젝트 문서를 변환하지 않습니다 (`catalogRuntim
 // ✅ 구조 변경 전 소비자 전수 조사
 // 1. 타입명 grep
 // 2. 8개 서브시스템 체크리스트 순회
-// 3. 기존 instance address 호환 확인
-// 4. 실제 확인 (Layers → Canvas → Preview → Properties → 기존 instance)
+// 3. library contract 갱신·옛 프로젝트 거부·현재 주소 무결성 확인
+// 4. 실제 확인 (Layers → Canvas → Preview → Properties → 저장·재열기)
 
 // ✅ 작업량은 소비자 수 × 수정 복잡도로 산정
 ```

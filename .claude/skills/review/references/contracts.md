@@ -12,13 +12,17 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
   시각 결과를 뜻합니다 (`.claude/rules/ssot-hierarchy.md`).
 - 컴포넌트당 spec 파일 · `packages/specs` · `TAG_SPEC_MAP` 등록은 없습니다. 신규 컴포넌트는
   `catalog/bindings/{Name}.binding.ts` + `componentCatalog.ts` + rule + `pnpm generate:css`.
-- 부품 노드 (Label · Input · Button · Indicator …) 의 모양은 부품 자신의 rule 이 정본이고
-  부모 rule 의 delegation 은 배치만 선언합니다. 소유 판정은 `resolveSubpartStyleOwnerType` ·
-  `resolveDelegatedSubpartOwnerType` (`catalogRuntime/subpart.ts`) 과
-  `TEXT_ONLY_SUBPART_PARENTS` · `OWNER_DRAWN_PART_OWNERS` 표가 정본입니다 — 새 부품 type 을
-  표에 넣지 않고 분기문으로 흉내 내지 않습니다.
+- Label·Input·Description 등 독립 부품의 모양은 자기 rule이 정본이며 부모는 배치를
+  선언합니다. `OWNER_DRAWN_PART_OWNERS`의 indicator·chevron과
+  `FIELD_CONTROL_GROUP_HOSTS` 아래 control Group은 부모가 시각도 소유하는 예외입니다.
+  모든 부품에 자기 rule을 강제하지 않습니다. 실제 소유 판정은
+  `packages/shared/src/catalog/resolvers/resolveDelegatedChildFontSize.ts`의
+  `resolveSubpartStyleOwnerType`·`resolveDelegatedSubpartOwnerType`을 읽고,
+  Builder `catalogRuntime/subpart.ts`의 소비와 [SSOT](../../../rules/ssot-hierarchy.md)를 대조합니다.
 - 기본 원본 라이브러리 (`codeCatalogLibrary.ts`) 구조를 바꾸면 `LIBRARY_CONTRACT_VERSION`
-  을 올리고, 옛 문서의 거부 · 이관 경로를 함께 봅니다.
+  을 올리고, 옛 개발 프로젝트 거부와 새 문서의 주소 보존을 함께 봅니다. 자동 이관을 추가하지 않습니다.
+- 자식·RAC slot·필수 부품·상태 주체·값 바인딩 변경은 [RAC 조립 계약](../../composition-patterns/rules/domain-rac-composition.md)을
+  적용합니다. 미전환 family 제한과 DOM 구조/시각 검증을 구분합니다.
 - Builder 아이콘 버튼은 `ActionIconButton`, 패널 섹션은 기존 `Section` (`.claude/rules/panel-structure.md`).
 
 ## 상태·동기화 (`.claude/rules/state-management.md`)
