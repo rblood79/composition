@@ -231,6 +231,59 @@ const TABLE_PART_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * A node's type in the revision a command reads (before its writes), remembered per revision: the
+ * canvas menu plans a delete on every selection, several times (ADR-246 counts) — the table checks
+ * read each id's type once. Empty for an id the revision does not hold (a new node).
+ */
+const typeAnswers = new WeakMap<
+  CatalogReader,
+  { revision: number; answers: Map<string, string> }
+>();
+function revisionType(reader: CatalogReader, id: string): string {
+  let memo =
+    reader instanceof CatalogStage ? undefined : typeAnswers.get(reader);
+  if (
+    !(reader instanceof CatalogStage) &&
+    (!memo || memo.revision !== reader.revision)
+  ) {
+    memo = { revision: reader.revision, answers: new Map() };
+    typeAnswers.set(reader, memo);
+  }
+  const known = memo?.answers.get(id);
+  if (known !== undefined) return known;
+  const entry = reader.getEntry(id);
+  const type =
+    entry?.kind === "node"
+      ? definitionTypeName(reader, entry.definitionId)
+      : "";
+  memo?.answers.set(id, type);
+  return type;
+}
+
+/**
+ * Whether the revision holds a RAC Table at all (an owned `Table`, or an instance of the palette's
+ * Table origin) — a document without one skips the table checks without reading a node.
+ */
+const TABLE_DEFINITIONS = [
+  "lib:definition:type-Table",
+  "lib:definition:origin-component-table",
+] as const;
+const tableAnswers = new WeakMap<
+  CatalogReader,
+  { revision: number; has: boolean }
+>();
+function holdsRacTable(reader: CatalogReader): boolean {
+  const known = tableAnswers.get(reader);
+  if (known && known.revision === reader.revision) return known.has;
+  const has = TABLE_DEFINITIONS.some(
+    (definitionId) => reader.instancesOf(definitionId).size > 0,
+  );
+  if (!(reader instanceof CatalogStage))
+    tableAnswers.set(reader, { revision: reader.revision, has });
+  return has;
+}
+
+/**
  * ADR-256 Phase 5i-3 — refuse a command whose result leaves a RAC Table with a row whose cell count
  * differs from its column count (RAC throws — G0 ⑨) when the table was aligned before. `near`: the
  * nodes the command took away, moved or released, and the parents it placed under — their Table
@@ -241,21 +294,17 @@ function assertTablesAligned(
   near: readonly string[],
 ): void {
   const reader = draft.reader;
-  const typeOfId = (id: string) => {
-    const entry = draft.read(id) ?? reader.getEntry(id);
-    return entry?.kind === "node"
-      ? definitionTypeName(reader, entry.definitionId)
-      : "";
-  };
+  // (A Table the command adds is not one the revision held — its rows are its own, built aligned.)
+  if (!holdsRacTable(reader)) return;
   const tables = new Set<NodeId>();
   for (const id of near) {
-    if (!TABLE_PART_TYPES.has(typeOfId(id))) continue;
+    if (!TABLE_PART_TYPES.has(revisionType(reader, id))) continue;
     for (
       let cursor: string | undefined = id;
       cursor;
       cursor = reader.ownerOf(cursor) ?? undefined
     ) {
-      const type = typeOfId(cursor);
+      const type = revisionType(reader, cursor);
       if (type === "Table") tables.add(cursor as NodeId);
       if (!TABLE_PART_TYPES.has(type)) break;
     }
@@ -570,7 +619,10 @@ export const moveNodes =
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
     // ADR-256 Phase 5i-3: a RAC Table column moved within its header takes its cells along.
     const columnOrders = roots.flatMap((id) => {
-      const order = tableColumnOrder(draft, id);
+      const order =
+        holdsRacTable(reader) && revisionType(reader, id) === "Column"
+          ? tableColumnOrder(draft, id)
+          : undefined;
       return order ? [order] : [];
     });
     for (const id of roots) {
@@ -685,7 +737,11 @@ export const removeTargets =
     // one transaction, as a new column gives every row a cell).
     const nodeIds = topLevel(reader, [
       ...picked,
-      ...picked.flatMap((id) => tableColumnCells(draft, id)),
+      ...picked.flatMap((id) =>
+        holdsRacTable(reader) && revisionType(reader, id) === "Column"
+          ? tableColumnCells(draft, id as NodeId)
+          : [],
+      ),
     ]);
     const removed: NodeId[] = [];
     for (const id of nodeIds) {
