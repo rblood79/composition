@@ -471,6 +471,7 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogAbsentByValue(node)) return true;
+  if (catalogProgressValueHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -614,6 +615,8 @@ export function catalogPresenceScope(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) === "DisclosureGroup") return node;
+  // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
+  if (PROGRESS_VALUES[typeOf(node)]) return node;
   // Which crumb is current (its separator hidden) follows the Breadcrumbs' crumb list.
   if (typeOf(node) === "Breadcrumbs") return node;
   if (typeOf(node) === "Breadcrumb") {
@@ -645,6 +648,11 @@ export function catalogPresenceDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  const valueType = PROGRESS_VALUES[typeOf(scope)];
+  if (valueType)
+    return partChildrenOf(scope, get, typeOf).filter(
+      (child) => typeOf(child) === valueType,
+    );
   if (typeOf(scope) === "Tabs") {
     const { panels, tabs } = catalogTabsSelection(scope, get, typeOf);
     // (and the Tabs' selection indicators — ADR-256 Phase 5e)
@@ -931,6 +939,67 @@ const PROGRESS_TRACKS: Readonly<Record<string, string>> = {
   Meter: "MeterTrack",
 };
 
+/** ADR-256 Phase 7a — a progress owner's fill node (in its track — the reference `div.track > div.fill`). */
+const PROGRESS_FILLS: Readonly<Record<string, string>> = {
+  ProgressBar: "ProgressBarFill",
+};
+
+/** The ProgressBar a fill node fills (its nearest progress ancestor, past the track and any frame). */
+export function catalogProgressFillOwner(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const type = typeOf(node);
+  if (!Object.values(PROGRESS_FILLS).includes(type)) return undefined;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
+    if (PROGRESS_TRACKS[typeOf(cursor)])
+      return PROGRESS_FILLS[typeOf(cursor)] === type ? cursor : undefined;
+  return undefined;
+}
+
+/** A progress owner's value text part (RSP `showValueLabel` — false hides it). */
+const PROGRESS_VALUES: Readonly<Record<string, string>> = {
+  ProgressBar: "ProgressBarValue",
+  Meter: "MeterValue",
+};
+
+/**
+ * ADR-256 Phase 7a — a ProgressBar's · Meter's value text while its owner's `showValueLabel` is
+ * false (RSP): not there. The Canvas and the DOM read this one predicate.
+ */
+export function catalogProgressValueHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  const type = typeOf(node);
+  if (!Object.values(PROGRESS_VALUES).includes(type)) return false;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
+    if (PROGRESS_VALUES[typeOf(cursor)])
+      return (
+        PROGRESS_VALUES[typeOf(cursor)] === type &&
+        cursor.props.showValueLabel === false
+      );
+  return false;
+}
+
+/**
+ * ADR-256 Phase 7a — an indeterminate ProgressBar's fill on the Canvas: the still bar the track
+ * primitive drew (20 % → 50 % of the track — the DOM animates the sheet's 120px `.fill`, the Canvas
+ * draws no motion). Its width binding has no value then (`{percentage}` — RAC gives none).
+ */
+export function catalogProgressFillLayout(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): Record<string, string> | undefined {
+  const owner = catalogProgressFillOwner(node, get, typeOf);
+  return owner?.props.isIndeterminate === true
+    ? { width: "30%", marginLeft: "20%" }
+    : undefined;
+}
+
 /** RAC date fields that compose their DateInput's segments from their own props. */
 const DATE_INPUT_OWNERS = new Set([
   "DateField",
@@ -1169,6 +1238,15 @@ function ownDerivedProps(
       ),
       isExpanded: catalogTreeItemExpanded(node, get, typeOf),
     };
+  // ADR-256 Phase 7a: a fill takes its ProgressBar's variant and size (its paint · its box).
+  const fillOwner = catalogProgressFillOwner(node, get, typeOf);
+  if (fillOwner) {
+    const out: Record<string, string> = {};
+    for (const key of ["variant", "size"])
+      if (typeof fillOwner.props[key] === "string")
+        out[key] = fillOwner.props[key] as string;
+    return Object.keys(out).length ? out : undefined;
+  }
   const owner = get(node.parentId);
   if (!owner || PROGRESS_TRACKS[typeOf(owner)] !== typeOf(node))
     return undefined;
@@ -1267,8 +1345,21 @@ function derivedDependents(
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
   const track = PROGRESS_TRACKS[type];
-  if (track)
-    return childrenOf(owner, get).filter((child) => typeOf(child) === track);
+  if (track) {
+    const tracks = childrenOf(owner, get).filter(
+      (child) => typeOf(child) === track,
+    );
+    // (and the fill in each track — ADR-256 Phase 7a)
+    const fill = PROGRESS_FILLS[type];
+    return fill
+      ? [
+          ...tracks,
+          ...tracks.flatMap((part) =>
+            childrenOf(part, get).filter((child) => typeOf(child) === fill),
+          ),
+        ]
+      : tracks;
+  }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   const items = catalogCollectionItems(owner, get, typeOf);
   if (items.length) return items;

@@ -39,8 +39,11 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // D. DOM 이 `.react-aria-X` 를 방출하지 않음 (RAC self-compose 자식 · 제거된 추상 · 다른 class)
   MeterTrack: "D DOM 미방출 — RAC Meter self-compose",
   MeterValue: "D DOM 미방출 — RAC Meter self-compose",
-  ProgressBarTrack: "D DOM 미방출 — RAC ProgressBar self-compose",
-  ProgressBarValue: "D DOM 미방출 — RAC ProgressBar self-compose",
+  // ADR-256 Phase 7a: the parts are elements in RAC's ProgressBar children — the ProgressBar sheet's
+  //   `.bar` · `.value` · `.fill` give their boxes (class `bar` · `value` · `fill`, no own class).
+  ProgressBarTrack: "D 부모 ProgressBar sheet `.bar` 가 상자 (ADR-256 Phase 7a)",
+  ProgressBarValue: "D 부모 ProgressBar sheet `.value` 가 상자 (ADR-256 Phase 7a)",
+  ProgressBarFill: "D 부모 ProgressBar sheet `.fill` 가 상자 (ADR-256 Phase 7a)",
   FormField: "D 제거된 추상 (ADR-171 Phase 6)",
   CalendarHeader:
     "D Calendar self-compose — DOM header 는 CalendarCommon.css class",
@@ -164,14 +167,14 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-09-24 — DialogTrigger (`3f50bcf6c`, index 로드) 가 집계를 안 고쳐 96/73 으로 어긋나 있던 것도 같이 맞춘다.
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 103 · index 79 · 모듈 0 · 미로드 24 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
-    expect(generated.length).toBe(103);
+  it("인벤토리 집계 — 생성 104 · index 79 · 모듈 0 · 미로드 25 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+    expect(generated.length).toBe(104);
     expect(indexImported.size).toBe(79);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(24);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
   });
 });

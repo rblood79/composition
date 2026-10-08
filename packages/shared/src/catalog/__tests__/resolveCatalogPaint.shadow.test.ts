@@ -265,7 +265,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // ADR-253 Phase 6 (2026-10-07): SelectTrigger `accent` · `negative` variant 제거 (template 사용 0) 로 8,460 → 8,388.
     // (ADR-256 Phase 5g: + Keyboard — 36 cases.)
     // 2026-10-09: SelectTrigger type 삭제 (ADR-256 Phase 6b 뒤 사용 0 — 사용자 승인) 로 8,424 → 8,352 (−72 = 2 variant).
-    expect(compared).toBe(8_352);
+    // ADR-256 Phase 7a: + ProgressBarFill (default · accent · neutral) 8,352 → 8,460 (+108). diffs 0 유지.
+    expect(compared).toBe(8_460);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

@@ -8252,6 +8252,65 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 Phase 7a: the filled part of a ProgressBar's track (reference `div.fill`). It takes its
+  //   owner's variant (`catalogDerivedProps`); its color is the owner's DOM `--fill-color` (ProgressBar
+  //   `composition` variant block) — default · accent: accent, neutral: neutral-subdued. Its box
+  //   (radius · height) is the ProgressBar sheet's `.fill` (part rule), its width `{percentage}%`.
+  ProgressBarFill: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.accent}",
+            hover: "{color.accent}",
+            pressed: "{color.accent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      accent: {
+        fill: {
+          default: {
+            base: "{color.accent}",
+            hover: "{color.accent}",
+            pressed: "{color.accent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      neutral: {
+        fill: {
+          default: {
+            base: "{color.neutral-subdued}",
+            hover: "{color.neutral-subdued}",
+            pressed: "{color.neutral-subdued}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      sm: { borderRadius: "{radius.none}" },
+      md: { borderRadius: "{radius.none}" },
+      lg: { borderRadius: "{radius.none}" },
+      xl: { borderRadius: "{radius.none}" },
+    },
+    structure: {
+      archetype: "progress",
+      element: "div",
+      containerStyles: {
+        display: "block",
+      },
+    },
+  },
   ProgressBarValue: {
     defaultVariant: "default",
     defaultSize: "md",

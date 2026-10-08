@@ -81,6 +81,7 @@ import { paginationBinding } from "./Pagination.binding";
 import { paragraphBinding } from "./Paragraph.binding";
 import { popoverBinding } from "./Popover.binding";
 import { progressBarBinding } from "./ProgressBar.binding";
+import { progressBarFillBinding } from "./ProgressBarFill.binding";
 import { progressBarTrackBinding } from "./ProgressBarTrack.binding";
 import { progressBarValueBinding } from "./ProgressBarValue.binding";
 import { progressCircleBinding } from "./ProgressCircle.binding";
@@ -215,6 +216,7 @@ export * from "./Pagination.binding";
 export * from "./Paragraph.binding";
 export * from "./Popover.binding";
 export * from "./ProgressBar.binding";
+export * from "./ProgressBarFill.binding";
 export * from "./ProgressBarTrack.binding";
 export * from "./ProgressCircle.binding";
 export * from "./Radio.binding";
@@ -455,6 +457,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SliderThumb: sliderThumbBinding,
   // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
   ProgressBarTrack: progressBarTrackBinding,
+  // ADR-256 Phase 7a: the fill in a ProgressBar's track (its width `{percentage}%`).
+  ProgressBarFill: progressBarFillBinding,
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
   MeterTrack: meterTrackBinding,
   // ADR-912 value-label (2026-06-11): 부모 compound 의 현재 값 텍스트 leaf (buildCatalogShapes text,

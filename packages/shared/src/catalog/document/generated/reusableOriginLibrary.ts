@@ -2609,6 +2609,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -2616,7 +2617,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-ProgressBarValue",
     "children": [],
     "props": {
-      "children": "50%",
+      "children": "{valueText}",
       "size": "md"
     },
     "visual": {
@@ -2633,7 +2634,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-progressbar__3",
     "definitionId": "lib:definition:type-ProgressBarTrack",
-    "children": [],
+    "children": [
+      "lib:template:component-progressbar__3_1"
+    ],
     "props": {
       "size": "md"
     },
@@ -2645,6 +2648,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "gridColumnEnd": "3",
       "gridRowStart": "2",
       "gridRowEnd": "3"
+    }
+  },
+  {
+    "id": "lib:template:component-progressbar__3_1",
+    "definitionId": "lib:definition:type-ProgressBarFill",
+    "children": [],
+    "props": {
+      "size": "md"
+    },
+    "visual": {
+      "width": "{percentage}%"
     }
   },
   {
@@ -5154,18 +5168,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "value": 60,
       "valueLabel": "2.4 MB · 60%"
     },
-    "visual": {},
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-progressbar",
-          "lib:template:component-progressbar__2"
-        ],
-        "props": {
-          "children": "2.4 MB · 60%"
-        }
-      }
-    ]
+    "visual": {}
   },
   {
     "id": "lib:template:component-fileupload__4",
@@ -5176,18 +5179,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "value": 25,
       "valueLabel": "860 KB · 25%"
     },
-    "visual": {},
-    "descendantPatches": [
-      {
-        "templatePath": [
-          "lib:template:component-progressbar",
-          "lib:template:component-progressbar__2"
-        ],
-        "props": {
-          "children": "860 KB · 25%"
-        }
-      }
-    ]
+    "visual": {}
   },
   {
     "id": "lib:template:component-table",

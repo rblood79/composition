@@ -50,9 +50,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Button) + Description + FieldError + Popover > Calendar`. 23 — ADR-256 Phase 6h: a Column's
  * name sits in a RAC `Group` (`Column > Group[role=presentation] > Text {children}` — the
  * reference's `.column-name`); a TableView's columns are plain Columns (its own grid).
+ * 24 — ADR-256 Phase 7a: a ProgressBar's value text binds RAC's `{valueText}`
+ * (`component-progressbar__2`) and its track holds a `ProgressBarFill` (`__3_1`, width
+ * `{percentage}%`); its Label carries `presentWhen`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 23 as const;
+export const LIBRARY_CONTRACT_VERSION = 24 as const;
 
 export type EntryKind =
   | "project"

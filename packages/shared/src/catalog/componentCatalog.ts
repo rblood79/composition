@@ -719,6 +719,13 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress bar track",
     icon: "BarChart3",
   }),
+  // ADR-256 Phase 7a: the filled part of a ProgressBar's track (the reference `div.fill`, its width
+  //   the template binding `{percentage}%`). Palette 미노출 — ProgressBar 원본의 부품.
+  primitiveEntry("ProgressBarFill", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "progress bar fill",
+    icon: "BarChart3",
+  }),
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part).
   //   palette 미노출(ComponentList 가 Meter 부모만 등록) — catalog 등록은 Skia generic
   //   경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC Meter 가 track 담당.

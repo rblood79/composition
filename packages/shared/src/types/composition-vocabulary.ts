@@ -95,6 +95,7 @@ export type ComponentTag =
   | "Paragraph"
   | "Popover"
   | "ProgressBar"
+  | "ProgressBarFill"
   | "ProgressBarTrack"
   | "ProgressBarValue"
   | "ProgressCircle"

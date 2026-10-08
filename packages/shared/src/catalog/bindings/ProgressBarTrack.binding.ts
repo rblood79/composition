@@ -1,17 +1,15 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * ProgressBarTrack — ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part).
+ * ProgressBarTrack — a ProgressBar's track (the reference `div.track`, ADR-256 Phase 7a). DOM is a
+ * plain `div.bar` in RAC's `ProgressBar` children — its box the ProgressBar sheet's `.bar` (part
+ * rule) — holding the fill node (`ProgressBarFill`, its width `{percentage}%`) and anything else the
+ * author puts in. The Canvas draws the track box from this rule (the owner's variant —
+ * `catalogDerivedProps`); the fill draws itself (no `value_fill_bar` over the track).
  *
- * **DOM no-op (ADR-912 선행-2, 2026-06-04)**: DOM 에서 ProgressBar 는 RAC `<ProgressBar>`
- *   단일 컴포넌트로 track+fill 을 내부 렌더한다(LayoutRenderers.renderProgressBar). 부모
- *   ProgressBar 가 자식 element 를 DOM 트리에서 순회하지 않으므로 ProgressBarTrack 자식
- *   노드는 DOM 에 렌더되지 않는다 → source.renderer 는 DOM 미도달(INTERNAL_RENDERERS 등록
- *   불요). Skia 만 ProgressBarTrack 노드를 그린다(ListBox row projection 과 동형 비대칭).
- *
- * **Skia = value_fill_bar escape**: track box(buildCatalogShapes) 위에 value 비례 채움 막대.
- *   value/min/max/isIndeterminate 는 props, 채움 색은 rule.fillBar(`{color.accent}`).
- *   기존 ProgressBarTrack.spec.ts render.shapes 의 fillWidth 계산을 escape 로 이전.
+ * D1: none — a plain element in RAC's `ProgressBar` children.
+ * D2: no props of its own (`variant` · `size` come from its ProgressBar).
+ * D3: the track color (the owner's DOM `--track-color`).
  */
 export const progressBarTrackBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "progressbartrack" },
@@ -29,20 +27,7 @@ export const progressBarTrackBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      value: {
-        kind: "number",
-        label: "Value",
-        section: "content",
-        default: 0,
-      },
-      isIndeterminate: {
-        kind: "boolean",
-        label: "Indeterminate",
-        section: "state",
-        default: false,
-      },
     },
     toRacProps: "default",
   },
-  skiaPrimitive: "value_fill_bar",
 };

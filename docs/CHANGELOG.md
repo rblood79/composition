@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 7a — ProgressBar 를 노드 트리로 · 값 글자 · 채움 폭 = RAC 의 값] - 2026-10-09
+
+### Changed
+
+- **ProgressBar 가 레퍼런스 구조를 따른다** (ADR-256 Phase 7a — react-aria.adobe.com ProgressBar 예제):
+  - 원본 = `ProgressBar > Label + 값 글자 + track > fill` — Preview 는 RAC ProgressBar 가 자식 노드를 순서대로 그린다 (작성자가 넣은 노드도 그 자리에)
+  - 값 글자는 RAC 의 `valueText` (`{valueText}`), 채움 폭은 RAC 의 `percentage` (`width: {percentage}%`) 에 묶인다 — Canvas 는 같은 계산으로 ProgressBar 의 값에서 읽고, Preview 는 RAC 의 값을 읽는다. 값을 바꾸면 둘 다 바로 따라온다
+  - 값 글자가 실제 값을 보인다 — 전에는 원본의 고정 글자 「50%」 였다 (Canvas). 최솟값 · 최댓값이 0 · 100 이 아니면 RAC 처럼 범위 안의 자리로 백분율을 낸다 (전 Preview 는 값을 그대로 백분율로 썼다). `valueLabel` 이 있으면 그 글자
+  - 채움은 track 안의 노드 (`ProgressBarFill`) — 칠은 ProgressBar 의 variant 색
+  - indeterminate 이면 값 글자가 없다 (RAC) — 전 Preview 는 값을 보였다
+  - `showValueLabel` 을 끄면 Canvas 에서도 값 글자가 사라진다 (전에는 Preview 만)
+  - 보이는 label 이 없으면 Preview 의 ProgressBar 에 이름 (`aria-label` 「Progress」) 이 붙는다
+  - 저장 형식 contract 24 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+  - 위치: `catalog/runtime/valueBindings.ts` (새) · `catalog/runtime/delegatedDom.tsx` (`progressbar`) · `catalog/runtime/domBinding.tsx` · `catalog/runtime/presence.ts` · `catalog/runtime/compositionRoot.ts` · `catalog/generated/racStateKeys.ts` (`RAC_VALUE_KEYS`) · `catalog/document/generated/reusableOriginLibrary.ts` (`component-progressbar`)
+
 ## [ADR-256 Phase 6 판독 수리 — picker 부품을 frame 으로 감싸거나 Popover 위치를 바꿀 때] - 2026-10-08
 
 ### Fixed

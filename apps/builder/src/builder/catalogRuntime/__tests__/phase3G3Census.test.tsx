@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 23,
+    libraryContractVersion: 24,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -550,6 +550,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // − SelectTrigger (the field trigger box is a RAC Group node since ADR-256 Phase 6b; the type
     //   is deleted, 2026-10-09).
     // + Autocomplete (ADR-256 Phase 6g — RAC Autocomplete, no element of its own).
-    expect(types.length).toBe(145);
+    // + ProgressBarFill (ADR-256 Phase 7a — the fill in a ProgressBar's track).
+    expect(types.length).toBe(146);
   }, 120_000);
 });

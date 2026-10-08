@@ -28,6 +28,7 @@ import {
 import { CheckboxGroup as AriaCheckboxGroup } from "react-aria-components/CheckboxGroup";
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
+import { ProgressBar as AriaProgressBar } from "react-aria-components/ProgressBar";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
@@ -95,7 +96,6 @@ import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
 import { Meter } from "../../components/Meter";
-import { ProgressBar } from "../../components/ProgressBar";
 import { RangeCalendar } from "../../components/RangeCalendar";
 import { Slider } from "../../components/Slider";
 import { ToggleButton } from "../../components/ToggleButton";
@@ -1525,29 +1525,37 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       });
     },
   },
+  // ADR-256 Phase 7a: the ProgressBar is RAC's, its children in order — the reference `Label` +
+  // value text (`{valueText}`) + track > fill (`width: {percentage}%`), and anything the author put
+  // in. Its render props are the state frame the bound parts read (Decision 12 — `stateFrames.tsx`).
   progressbar: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return createElement(ProgressBar as ElementType, {
-        ...marker(input),
-        style: input.style,
-        label: fieldLabel(
-          input,
-          propagatedText(input.root, props.label, childOf(input, "Label")),
-        ),
-        variant: props.variant || "default",
-        value: Number(props.value || 0),
-        minValue: props.minValue !== undefined ? Number(props.minValue) : 0,
-        maxValue: props.maxValue !== undefined ? Number(props.maxValue) : 100,
-        isIndeterminate: bool(props.isIndeterminate),
-        size: props.size || "md",
-        staticColor: props.staticColor,
-        showValueLabel: props.showValueLabel !== false,
-        valueLabel: opt(props.valueLabel),
-        locale: opt(props.locale),
-        labelPosition: props.labelPosition || "top",
-      });
+      const staticColor = props.staticColor;
+      return withI18n(
+        createElement(AriaProgressBar as ElementType, {
+          ...marker(input),
+          style: input.style,
+          className: "react-aria-ProgressBar",
+          "data-variant": str(props.variant) || "default",
+          "data-size": str(props.size) || "md",
+          "data-label-position": str(props.labelPosition) || "top",
+          "data-indeterminate": bool(props.isIndeterminate) ? "true" : undefined,
+          "data-static-color":
+            staticColor === "white" || staticColor === "black"
+              ? staticColor
+              : undefined,
+          value: num(props.value) ?? 0,
+          minValue: num(props.minValue) ?? 0,
+          maxValue: num(props.maxValue) ?? 100,
+          isIndeterminate: bool(props.isIndeterminate),
+          valueLabel: opt(props.valueLabel),
+          // (No visible label: RAC needs a name — the type's own.)
+          "aria-label": str(props.label).trim() ? undefined : "Progress",
+          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        }),
+        props.locale,
+      );
     },
   },
   meter: {

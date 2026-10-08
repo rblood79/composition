@@ -241,3 +241,10 @@ export const RAC_STATE_KEYS: Readonly<Record<string, readonly string[]>> = {
     "isFocusVisible",
   ],
 };
+
+// ADR-256 Decision 12: the render props values each RAC part gives (`{percentage}` · `{valueText}`) —
+// a node's template binding reads the nearest ancestor part that gives the key.
+export const RAC_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  Meter: ["percentage", "valueText"],
+  ProgressBar: ["percentage", "valueText"],
+};

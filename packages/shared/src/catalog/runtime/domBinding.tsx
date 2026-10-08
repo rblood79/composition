@@ -41,6 +41,7 @@ import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
   catalogPickerOfButton,
+  catalogProgressValueHidden,
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
@@ -50,8 +51,16 @@ import {
 import {
   catalogShowWhenGate,
   catalogStateChildren,
+  catalogValueGate,
   type CatalogDomStateCondition,
 } from "./stateFrames";
+import {
+  catalogBoundValues,
+  catalogRenderValue,
+  catalogValueKeysIn,
+  catalogValueOwner,
+  type CatalogValueTemplate,
+} from "./valueBindings";
 import { racSlotProps, type RacSlotResolution } from "./racSlot";
 import { RacSlotScope } from "./racSlotScope";
 import type { StateName } from "../document/types";
@@ -645,6 +654,28 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     ),
   // (A Select · ComboBox draws its node tree — `delegatedDom` `select` · `combobox`, ADR-256 Phase
   // 6c · 6d.)
+  // ADR-256 Phase 7a: a ProgressBar's parts in its RAC children — the reference's value text and
+  // `div.track > div.fill`, with the classes the ProgressBar sheet styles (`.value` · `.bar` ·
+  // `.fill`). Their bound text · width are the owner's render props (`valueBindings.ts`).
+  progressbarvalue: (node, style) =>
+    createElement(
+      "span",
+      { key: node.id, "data-catalog-id": node.id, className: "value", style },
+      String(node.props.children ?? ""),
+    ),
+  progressbartrack: (node, style, children) =>
+    createElement(
+      "div",
+      { key: node.id, "data-catalog-id": node.id, className: "bar", style },
+      ...children,
+    ),
+  progressbarfill: (node, style) =>
+    createElement("div", {
+      key: node.id,
+      "data-catalog-id": node.id,
+      className: "fill",
+      style,
+    }),
 };
 
 /** RAC `Autocomplete` with the reference's filter (`useFilter({sensitivity: "base"}).contains`). */
@@ -1671,27 +1702,69 @@ const CatalogDomNode = memo(function CatalogDomNode({
     node,
     runtime?.overrideOf(id),
   );
-  const element = withRuntime(
-    withCatalogStateStyles(
-      renderNode(
-        root,
-        shown,
-        context,
-        parentInput,
-        partParent,
-        watchedParent,
-        styleOverride,
+  const draw = (record: CatalogConsumerNode) =>
+    withRuntime(
+      withCatalogStateStyles(
+        renderNode(
+          root,
+          record,
+          context,
+          parentInput,
+          partParent,
+          watchedParent,
+          styleOverride,
+        ),
+        catalogDomStateStyles(record),
       ),
-      catalogDomStateStyles(shown),
-    ),
-    runtime?.handlersOf(id),
-  );
+      runtime?.handlersOf(id),
+    );
+  // ADR-256 Decision 12: a node bound to its owner's value draws RAC's render props value (the
+  // owner's frame); the record holds the record's value where no frame passes it.
+  const template = shown.valueTemplate;
+  const element = template
+    ? catalogValueGate(id, catalogDomValueOwners(root, shown, template), (read) =>
+        draw({
+          ...shown,
+          ...catalogBoundValues(shown, template, (key) => {
+            const frame = read(key);
+            if (frame.found) return { linked: true, value: frame.value };
+            const owner = catalogValueOwner(
+              shown,
+              key,
+              (ownerId) => root.domInputs.get(ownerId),
+              (entry) => catalogTypeName(root, entry),
+            );
+            return owner
+              ? { linked: true, value: catalogRenderValue(owner, key) }
+              : { linked: false, value: undefined };
+          }),
+        }),
+      )
+    : draw(shown);
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
   // RAC state where they pass it down (`stateFrames.tsx`), else their records.
   return shown.showWhen && element
     ? catalogShowWhenGate(id, catalogDomStateConditions(root, shown), element)
     : element;
 });
+
+/** Each bound key's owner record id (`catalogValueOwner` — the Canvas's). */
+function catalogDomValueOwners(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  template: CatalogValueTemplate,
+): Record<string, string | undefined> {
+  const owners: Record<string, string | undefined> = {};
+  for (const text of Object.values({ ...template.props, ...template.visual }))
+    for (const key of catalogValueKeysIn(text))
+      owners[key] = catalogValueOwner(
+        node,
+        key,
+        (id) => root.domInputs.get(id),
+        (entry) => catalogTypeName(root, entry),
+      )?.id;
+  return owners;
+}
 
 /** A conditioned node's conditions against the DOM records (`catalogStateOwner` — the Canvas's). */
 function catalogDomStateConditions(
@@ -1803,6 +1876,15 @@ function renderNode(
   const id = node.id;
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
   if (catalogAbsentByValue(node)) return null;
+  // (A ProgressBar's · Meter's value text while `showValueLabel` is false — the Canvas's predicate.)
+  if (
+    catalogProgressValueHidden(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    return null;
   // A DatePicker's · DateRangePicker's calendar button is not there while `showCalendarIcon` is
   // false — the Canvas hides the node the same way (`catalogPickerOfButton`; ADR-256 Phase 6e: the
   // picker's Group draws its parts in order).

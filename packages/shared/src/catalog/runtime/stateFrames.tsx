@@ -89,6 +89,41 @@ export function catalogShowWhenGate(
   });
 }
 
+/**
+ * ADR-256 Decision 12 — a node bound to its owners' render props values (`{valueText}` ·
+ * `{percentage}%`): drawn by `render` with each key's value from its owner's frame — `found: false`
+ * where the owner passes none (the record's value stands).
+ */
+function CatalogValueGate({
+  owners,
+  render,
+}: {
+  owners: Readonly<Record<string, string | undefined>>;
+  render: (
+    read: (key: string) => { found: boolean; value: unknown },
+  ) => ReactElement | null;
+}): ReactElement | null {
+  const frames = useContext(CatalogStateFrameContext);
+  return render((key) => {
+    const ownerId = owners[key];
+    let frame = ownerId ? frames : null;
+    while (frame && frame.ownerId !== ownerId) frame = frame.parent;
+    return frame
+      ? { found: true, value: frame.values[key] }
+      : { found: false, value: undefined };
+  });
+}
+
+export function catalogValueGate(
+  key: string,
+  owners: Readonly<Record<string, string | undefined>>,
+  render: (
+    read: (key: string) => { found: boolean; value: unknown },
+  ) => ReactElement | null,
+): ReactElement {
+  return createElement(CatalogValueGate, { key, owners, render });
+}
+
 /** A part whose state is not a RAC `children` function's (a controlled value): its frame around it. */
 export function catalogStateFrame(
   key: string,

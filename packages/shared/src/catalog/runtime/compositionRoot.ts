@@ -76,6 +76,11 @@ import {
 } from "../document/rulePartRules";
 import { catalogDropZoneContent } from "./dropZoneContent";
 import {
+  catalogValueDependents,
+  catalogWithValues,
+  type CatalogValueTemplate,
+} from "./valueBindings";
+import {
   catalogBoxModel,
   catalogTextBreaksWords,
   catalogTextTypography,
@@ -101,6 +106,7 @@ import {
   catalogLabelSuffix,
   catalogLabelSuffixDependents,
   catalogSliderThumbLayout,
+  catalogProgressFillLayout,
   catalogSliderThumbs,
   catalogTreeChevronLayout,
   catalogTreeChevrons,
@@ -205,6 +211,12 @@ export interface CatalogConsumerNode {
    * track's fill): the Canvas paints them over the resolved props; the DOM owner renders its own.
    */
   readonly derivedProps?: Readonly<Record<string, string | number | boolean>>;
+  /**
+   * ADR-256 Decision 12 — the props · visual written with a RAC render props value binding
+   * (`{valueText}` · `{percentage}%`, `valueBindings.ts`): `props` / `visual` hold the values the
+   * owner's record gives; a changed owner re-resolves them.
+   */
+  readonly valueTemplate?: CatalogValueTemplate;
   /**
    * Inheritable text values (CSS inheritance) the nearest ancestors declare and this node does
    * not (`CATALOG_INHERITED_TEXT_KEYS`). Resolved here so the Canvas paint, the layout measure
@@ -1103,6 +1115,8 @@ function sameRecord(
     left.rowIndex === right.rowIndex &&
     left.rowCount === right.rowCount &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
+    JSON.stringify(left.valueTemplate ?? null) ===
+      JSON.stringify(right.valueTemplate ?? null) &&
     sameFields(left.inheritedText ?? {}, right.inheritedText ?? {}) &&
     sameFields(left.fillLayout ?? {}, right.fillLayout ?? {}) &&
     sameFields(left.authoredLayout ?? {}, right.authoredLayout ?? {}) &&
@@ -1773,6 +1787,12 @@ export class CatalogCompositionRoot {
       const templated = this.withState(record, get, pageId);
       if (templated !== record) output.set(id, templated);
     }
+    // ADR-256 Decision 12: value bindings read their owners' records (a part's final text decides
+    // its `presentWhen` below).
+    for (const [id, record] of output) {
+      const valued = catalogWithValues(record, get, this.typeOf, this.locale);
+      if (valued !== record) output.set(id, valued);
+    }
     for (const [id, record] of output)
       if (catalogHiddenAtRest(record, get, this.typeOf))
         output.set(id, { ...record, hidden: true });
@@ -1874,7 +1894,8 @@ export class CatalogCompositionRoot {
     );
     const thumb = record.hidden
       ? undefined
-      : catalogSliderThumbLayout(record, get, this.typeOf);
+      : (catalogSliderThumbLayout(record, get, this.typeOf) ??
+        catalogProgressFillLayout(record, get, this.typeOf));
     const chevron = record.hidden
       ? undefined
       : catalogTreeChevronLayout(record, get, this.typeOf);
@@ -3238,6 +3259,8 @@ export class CatalogCompositionRoot {
           ? [get(update.record.parentId)!]
           : []),
         ...catalogDerivedPropsDependents(update.record, get, this.typeOf),
+        // ADR-256 Decision 12: a part bound to the owner's value (`{valueText}` · `{percentage}%`).
+        ...catalogValueDependents(update.record, get, this.typeOf),
         ...(update.record.children.length > 0 &&
         this.records.get(update.id)?.visual.lineHeight !==
           update.record.visual.lineHeight
@@ -3268,7 +3291,12 @@ export class CatalogCompositionRoot {
           : []),
       ]) {
         const rootId = this.recordRoots.get(thumb.id)!;
-        const current = get(thumb.id)!;
+        const current = catalogWithValues(
+          get(thumb.id)!,
+          get,
+          this.typeOf,
+          this.locale,
+        );
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
         const fillLayout =

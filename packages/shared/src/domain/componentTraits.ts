@@ -354,6 +354,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   ProgressBar: {},
   ProgressBarTrack: { owners: ["ProgressBar"] },
   ProgressBarValue: { owners: ["ProgressBar"] },
+  // ADR-256 Phase 7a: the fill (its width the ProgressBar's `{percentage}`) — in the track.
+  ProgressBarFill: { owners: ["ProgressBarTrack"] },
   Calendar: {},
   RangeCalendar: {},
   CalendarGrid: { owners: ["Calendar", "RangeCalendar"] },

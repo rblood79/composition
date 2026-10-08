@@ -320,6 +320,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       MeterValue: ["Meter"],
       ProgressBarTrack: ["ProgressBar"],
       ProgressBarValue: ["ProgressBar"],
+      ProgressBarFill: ["ProgressBarTrack"],
       CalendarGrid: ["Calendar", "RangeCalendar"],
       CalendarHeader: ["Calendar", "RangeCalendar"],
       CardHeader: ["Card"],
