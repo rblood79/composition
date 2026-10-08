@@ -20,7 +20,6 @@ import {
   resolveDirectionDrivenProp,
   flexDirectionToDrivenValue,
 } from "../utils/orientationDrivenTags";
-import { resolveLayoutSpecPreset } from "../utils/specPresetResolver";
 
 /** Direction 토글이 style 경로에서 쓰는 display 값 — 사용자가 따로 고른 grid 등은 남긴다. */
 const DIRECTION_TOGGLE_DISPLAYS = new Set(["flex", "block"]);
@@ -59,17 +58,12 @@ function isSelectedDirectionDriven(host: StylesHost): boolean {
  * 서던 요소가 다른 줄로 떨어진다. inner 는 둘 다 flex 라 토글 의미는 같다.
  */
 function selectedFlexDisplayPatch(host: StylesHost): Record<string, string> {
-  // 패널 표시와 같은 해석값 — ref instance 의 origin 인라인 · 활성 breakpoint 값을 포함한다.
-  const { type, style, props } = host.readSelectedTarget();
+  // 패널 표시와 같은 해석값 — 작성값 (ref instance 의 origin 인라인 · 활성 breakpoint 값 포함),
+  // 없으면 그려진 record 의 실효 display (부모 part rule 이 준 inline-flex 도 여기 있다).
+  const { style, effective } = host.readSelectedTarget();
   const inline = style.display;
   const display =
-    typeof inline === "string" && inline
-      ? inline
-      : resolveLayoutSpecPreset(
-          type,
-          typeof props.size === "string" ? props.size : undefined,
-          props,
-        ).display;
+    typeof inline === "string" && inline ? inline : effective?.display;
   return display === "inline-flex" ? {} : { display: "flex" };
 }
 

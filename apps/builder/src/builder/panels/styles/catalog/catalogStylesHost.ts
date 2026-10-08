@@ -31,6 +31,7 @@ import {
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
 import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import { catalogEffectiveStyle } from "../../../catalogRuntime/effectiveStyle";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
 import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
@@ -211,6 +212,12 @@ function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
   }
 }
 
+/** The effective CSS view of a drawn record (undefined without a record). */
+function effectiveOf(workspace: CatalogWorkspace, id: string | null) {
+  const record = id ? workspace.root.domInputs.get(id) : undefined;
+  return record ? catalogEffectiveStyle(record) : undefined;
+}
+
 /** The drawn font size of a record (a px line height is a ratio to it). */
 function fontSizeOf(workspace: CatalogWorkspace, identity: string | undefined) {
   const size = identity
@@ -368,6 +375,13 @@ export function createCatalogStylesHost(
         [id, contract],
       );
       const ownerContract = useCatalogEditContract(ownerTarget);
+      // The drawn record follows every step and root replacement (breakpoint · project).
+      const version = useCatalogLayoutVersion(workspace);
+      const effective = useMemo(
+        () => effectiveOf(workspace, id),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- re-read per layout version
+        [id, version],
+      );
       return useMemo(() => {
         const props = Object.fromEntries(
           contract.fields.map((field) => [field.key, field.currentValue]),
@@ -397,6 +411,7 @@ export function createCatalogStylesHost(
                   ...(own ? catalogPlacementStyle(own.placement) : {}),
                 }
               : undefined,
+          effective,
           type: contract.type || undefined,
           size: typeof props.size === "string" ? props.size : undefined,
           sizing: Object.keys(fill).length ? fill : undefined,
@@ -406,7 +421,16 @@ export function createCatalogStylesHost(
           // The accent the token swatches resolve with: the node's, else an ancestor's.
           accentColor: accentOf(workspace, id),
         };
-      }, [breakpoint, contract, id, own, master, ownerTarget, ownerContract]);
+      }, [
+        breakpoint,
+        contract,
+        id,
+        own,
+        master,
+        ownerTarget,
+        ownerContract,
+        effective,
+      ]);
     },
     readSelectedTarget(): StylesTargetSnapshot {
       const first = selection()[0];
@@ -434,6 +458,7 @@ export function createCatalogStylesHost(
           ...view(own),
           ...catalogPlacementStyle(own.placement),
         },
+        effective: effectiveOf(workspace, first.identity),
       };
     },
     updateStyle: (property, value) => writeStyles({ [property]: value }),

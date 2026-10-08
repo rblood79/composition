@@ -61,6 +61,8 @@ export interface StylesTargetSnapshot {
   type: string | undefined;
   /** Authored style at the active breakpoint (a reusable instance: its origin's under its own). */
   style: Record<string, unknown>;
+  /** The drawn record's effective CSS view (`catalogEffectiveStyle`); undefined without a record. */
+  effective?: Record<string, string | number>;
   props: Record<string, unknown>;
 }
 

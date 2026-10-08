@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { ElementStyleContext } from "../../hooks/useElementStyleContext";
 import { StylesHostContext, type StylesHost } from "../../stylesHostContext";
+import { resolveLayoutSpecPreset } from "../../utils/specPresetResolver";
 
 /**
  * ADR-248 4e-9 C: a Styles host that serves fixed elements as its style context — for the pure
@@ -13,6 +14,12 @@ export interface StubElement {
   parent_id?: string | null;
   props?: Record<string, unknown>;
   sizing?: ElementStyleContext["sizing"];
+  /**
+   * The drawn record's effective view the host would serve. Absent: synthesized from the test's
+   * catalog rules (`resolveLayoutSpecPreset` over the mocked `@composition/shared` resolvers) —
+   * what the real host reads from the resolved record.
+   */
+  effective?: Record<string, string | number>;
 }
 
 export function stubStylesHost() {
@@ -23,10 +30,20 @@ export function stubStylesHost() {
     const { style, ...rest } = props as {
       style?: Record<string, unknown>;
     } & Record<string, unknown>;
+    const size = typeof rest.size === "string" ? rest.size : undefined;
+    const effective = element
+      ? (element.effective ??
+        (Object.fromEntries(
+          Object.entries(
+            resolveLayoutSpecPreset(element.type, size, rest),
+          ).filter(([, value]) => value !== undefined),
+        ) as Record<string, string | number>))
+      : undefined;
     return {
       style: style ?? (element ? {} : undefined),
+      effective,
       type: element?.type,
-      size: typeof rest.size === "string" ? rest.size : undefined,
+      size,
       sizing: element?.sizing,
       props: element ? rest : undefined,
     } as ElementStyleContext;

@@ -7,7 +7,6 @@ import {
 } from "../__tests__/support/catalogStylesFixture";
 import { useLayoutValues } from "./useLayoutValues";
 import { useHasDirtyStyles, useResetStyles } from "./useResetStyles";
-import * as preset from "../utils/specPresetResolver";
 
 /**
  * ADR-248 4e-9 C: dirty (the section reset button) and reset over the catalog Styles host. Dirty is
@@ -31,13 +30,8 @@ function resetOf(fixture: StylesFixture) {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("useResetStyles — spec preset dirty regression", () => {
-  it("신규 TagGroup(style 없음) 은 Layout dirty=false 이고 spec fallback 값을 보여준다", async () => {
-    vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({
-      display: "flex",
-      flexDirection: "column",
-      gap: 2,
-    });
+describe("useResetStyles — record fallback dirty regression", () => {
+  it("신규 TagGroup(style 없음) 은 Layout dirty=false 이고 record 의 실효값을 보여준다", async () => {
     const fixture = await openStylesFixture([{ id: "tg", type: "TagGroup" }], {
       select: "tg",
     });
@@ -48,15 +42,10 @@ describe("useResetStyles — spec preset dirty regression", () => {
     }).result.current;
     expect(values?.display).toBe("flex");
     expect(values?.flexDirection).toBe("column");
-    expect(values?.gap).toBe("2px");
+    expect(values?.gap).toBe("4px"); // TagGroup md record gap
   });
 
   it("inline override 후에는 Layout dirty=true 로, reset 후 fallback 으로 돌아간다", async () => {
-    vi.spyOn(preset, "resolveLayoutSpecPreset").mockReturnValue({
-      display: "flex",
-      flexDirection: "column",
-      gap: 2,
-    });
     const fixture = await openStylesFixture(
       [{ id: "tg", type: "TagGroup", style: { flexDirection: "row" } }],
       { select: "tg" },

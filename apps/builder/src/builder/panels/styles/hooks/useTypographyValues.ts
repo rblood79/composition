@@ -1,5 +1,5 @@
 /**
- * useTypographyValues - Typography 섹션 전용 Zustand 스타일 값 훅
+ * useTypographyValues - Typography 섹션 전용 스타일 값 훅
  */
 
 import { useMemo } from "react";
@@ -15,7 +15,11 @@ export interface TypographyStyleValues {
   fontFamily: string;
   fontSize: string;
   fontWeight: string;
-  /** catalog base 굵기 (inline 없을 때 값) — Bold 토글 해제가 inline 을 지울지 400 을 쓸지 가른다 */
+  /**
+   * 작성값을 뺀 굵기 기준선 — Bold 토글 해제가 inline 을 지울지 400 을 쓸지 가른다. 작성된 fontWeight
+   * 가 없으면 record 의 실효 굵기, 있으면 자기 type rule 의 굵기 (record 는 작성값이 덮인 뒤라
+   * 그 밑을 모른다).
+   */
   fontWeightBase: string;
   fontStyle: string;
   lineHeight: string;
@@ -31,6 +35,7 @@ export interface TypographyStyleValues {
   textOverflow: string;
   overflow: string;
   textBehaviorPreset: string;
+  /** 글자 크기가 작성값이 아니라 record 의 실효값이다. */
   isFontSizeFromPreset?: boolean;
 }
 
@@ -60,6 +65,9 @@ function deriveTextBehaviorPreset(
   return "custom";
 }
 
+const text = (value: string | number | undefined) =>
+  value === undefined ? undefined : String(value);
+
 export function useTypographyValues(
   id: string | null,
 ): TypographyStyleValues | null {
@@ -68,65 +76,90 @@ export function useTypographyValues(
   return useMemo(() => {
     if (!id || !colorValues) return null;
     const s = colorValues.context.style ?? {};
-    const specPreset = colorValues.typographyPreset;
+    // 그려진 record 의 실효 typography (`catalogEffectiveStyle`) — 부모 size 전파 · 자기 rule 의
+    // 글자 크기 · 굵기 · 줄 높이 (px) 가 여기 있다.
+    const e = colorValues.context.effective ?? {};
+    // record 에 없는 키만 자기 type rule 로 (record 가 글자 축을 들지 않는 노드).
+    const preset = colorValues.typographyPreset;
 
     const rawFamily = firstDefined(
       s.fontFamily,
-      specPreset.fontFamily,
+      text(e.fontFamily) ?? preset.fontFamily,
       DEFAULT_FONT_FAMILY,
     );
     const fontFamily = extractFirstFontFamily(rawFamily);
 
     const hasInlineFontSize =
       s.fontSize !== undefined && s.fontSize !== null && s.fontSize !== "";
+    const effectiveFontSize = numToPx(e.fontSize) ?? numToPx(preset.fontSize);
     const isFontSizeFromPreset =
-      !hasInlineFontSize && specPreset.fontSize !== undefined;
+      !hasInlineFontSize && effectiveFontSize !== undefined;
 
-    const fontSize = firstDefined(
-      s.fontSize,
-      numToPx(specPreset.fontSize),
-      "16px",
-    );
+    const fontSize = firstDefined(s.fontSize, effectiveFontSize, "16px");
 
-    const fontWeightRaw = firstDefined(
-      s.fontWeight,
-      specPreset.fontWeight,
-      "400",
+    const hasInlineFontWeight =
+      s.fontWeight !== undefined &&
+      s.fontWeight !== null &&
+      s.fontWeight !== "";
+    const effectiveFontWeight = text(e.fontWeight) ?? preset.fontWeight;
+    const fontWeight = normalizeFontWeight(
+      firstDefined(s.fontWeight, effectiveFontWeight, "400"),
     );
-    const fontWeight = normalizeFontWeight(fontWeightRaw);
     const fontWeightBase = normalizeFontWeight(
-      firstDefined(undefined, specPreset.fontWeight, "400"),
+      hasInlineFontWeight
+        ? (preset.fontWeight ?? "400")
+        : (effectiveFontWeight ?? "400"),
     );
 
     const lineHeight = firstDefined(
       s.lineHeight,
-      numToPx(specPreset.lineHeight),
+      numToPx(e.lineHeight) ?? numToPx(preset.lineHeight),
       "normal",
     );
     const letterSpacing = firstDefined(
       s.letterSpacing,
-      numToPx(specPreset.letterSpacing),
+      numToPx(e.letterSpacing) ?? numToPx(preset.letterSpacing),
       "normal",
     );
 
-    const whiteSpace = firstDefined(s.whiteSpace, undefined, "normal");
-    const wordBreak = firstDefined(s.wordBreak, undefined, "normal");
-    const overflowWrap = firstDefined(s.overflowWrap, undefined, "normal");
-    const textOverflow = firstDefined(s.textOverflow, undefined, "clip");
-    const overflow = firstDefined(s.overflow, undefined, "visible");
+    const whiteSpace = firstDefined(s.whiteSpace, text(e.whiteSpace), "normal");
+    const wordBreak = firstDefined(s.wordBreak, text(e.wordBreak), "normal");
+    const overflowWrap = firstDefined(
+      s.overflowWrap,
+      text(e.overflowWrap),
+      "normal",
+    );
+    const textOverflow = firstDefined(
+      s.textOverflow,
+      text(e.textOverflow),
+      "clip",
+    );
+    const overflow = firstDefined(s.overflow, text(e.overflow), "visible");
     return {
       fontFamily,
       fontSize,
       fontWeight,
       fontWeightBase,
-      fontStyle: firstDefined(s.fontStyle, undefined, "normal"),
+      fontStyle: firstDefined(s.fontStyle, text(e.fontStyle), "normal"),
       lineHeight,
       letterSpacing,
       color: colorValues.color.concrete,
-      textAlign: firstDefined(s.textAlign, undefined, "left"),
-      textDecoration: firstDefined(s.textDecoration, undefined, "none"),
-      textTransform: firstDefined(s.textTransform, undefined, "none"),
-      verticalAlign: firstDefined(s.verticalAlign, undefined, "baseline"),
+      textAlign: firstDefined(s.textAlign, text(e.textAlign), "left"),
+      textDecoration: firstDefined(
+        s.textDecoration,
+        text(e.textDecoration),
+        "none",
+      ),
+      textTransform: firstDefined(
+        s.textTransform,
+        text(e.textTransform),
+        "none",
+      ),
+      verticalAlign: firstDefined(
+        s.verticalAlign,
+        text(e.verticalAlign),
+        "baseline",
+      ),
       whiteSpace,
       wordBreak,
       overflowWrap,

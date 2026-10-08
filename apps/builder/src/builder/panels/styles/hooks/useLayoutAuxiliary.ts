@@ -23,15 +23,12 @@ function asString(value: unknown): string | undefined {
 }
 
 function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
-  const { style, type, size, props } = useElementStyleContext(id);
-
-  const specPreset = useMemo(
-    () => resolveLayoutSpecPreset(type, size, props),
-    [type, size, props],
-  );
+  const { style, effective, type, props } = useElementStyleContext(id);
 
   return useMemo(() => {
     const s = style ?? {};
+    // 실효값 — 그려진 record 의 상자 모델 (`catalogEffectiveStyle`). 작성값이 없을 때의 표시.
+    const e = effective ?? {};
 
     // 그룹 축 prop derive 컨테이너(ToggleButtonGroup/Toolbar=orientation,
     // RadioGroup/CheckboxGroup=labelPosition)는 그룹 root flexDirection SSOT 가
@@ -39,23 +36,23 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
     // 보다 우선해야 SSOT 와 일치(stale inline 잔재로 토글이 어긋나는 것 방지).
     //   표시 축은 **렌더가 실제로 따르는 축** 이다 — prop 에서 옮긴 고정 규칙 (top=column · side=row)
     //   은 catalog 가 방향을 정하지 않을 때 (grid 인 ProgressBar · Meter · Slider 의 top) 만 쓴다.
-    //   · catalog base + 변형의 flex 방향이 먼저 — ColorField 는 base 가 row 라 top 도 row 로 그린다.
+    //   · record 의 실효 flex 방향이 먼저 — ColorField 는 base 가 row 라 top 도 row 로 그린다.
     //   · 라벨 위치 컨테이너는 인라인 방향이 더 먼저 — DOM (root 인라인 > `[data-label-position]`) ·
-    //     Canvas (implicitStyles 가 인라인을 마지막에 얹는다) 둘 다 인라인을 따른다. 인라인은 스타일
-    //     붙여넣기로 지금도 들어온다. orientation 컨테이너는 Canvas 가 prop 으로 덮어 인라인을 보지 않는다.
+    //     Canvas 둘 다 인라인을 따른다. 인라인은 스타일 붙여넣기로 지금도 들어온다. orientation
+    //     컨테이너는 Canvas 가 prop 으로 덮어 인라인을 보지 않는다.
     //   Alignment 도 같은 축으로 매핑한다 — 다르면 정렬 점이 가로 · 세로가 뒤바뀐 칸에 쓰였다.
     const drivenProp = resolveDirectionDrivenProp(type);
     const premiseFlexDirection = resolveDrivenFlexDirection(type, props);
     const resolvedDisplay = firstDefined(
       s.display,
-      asString(specPreset.display),
+      asString(e.display),
       "block",
     );
     const renderedFlexDirection = isFlexDisplay(resolvedDisplay)
       ? toFlexAxis(
           (drivenProp === "labelPosition"
             ? asString(s.flexDirection)
-            : undefined) ?? asString(specPreset.flexDirection),
+            : undefined) ?? asString(e.flexDirection),
         )
       : undefined;
     const drivenFlexDirection =
@@ -68,28 +65,16 @@ function useResolvedLayoutFields(id: string | null): ResolvedLayoutFields {
       directionDriven: drivenFlexDirection !== undefined,
       flexDirection:
         drivenFlexDirection ??
-        firstDefined(
-          s.flexDirection,
-          asString(specPreset.flexDirection),
-          "row",
-        ),
-      alignItems: firstDefined(
-        s.alignItems,
-        asString(specPreset.alignItems),
-        "",
-      ),
+        firstDefined(s.flexDirection, asString(e.flexDirection), "row"),
+      alignItems: firstDefined(s.alignItems, asString(e.alignItems), ""),
       justifyContent: firstDefined(
         s.justifyContent,
-        asString(specPreset.justifyContent),
+        asString(e.justifyContent),
         "",
       ),
-      flexWrap: firstDefined(
-        s.flexWrap,
-        asString(specPreset.flexWrap),
-        "nowrap",
-      ),
+      flexWrap: firstDefined(s.flexWrap, asString(e.flexWrap), "nowrap"),
     };
-  }, [style, specPreset, type, props]);
+  }, [style, effective, type, props]);
 }
 
 /**
@@ -214,11 +199,14 @@ function isGridDisplay(display: unknown): boolean {
 /**
  * Alignment · Space · Wrap 비활성 — grid 컨테이너. 세 핸들러는 flex 속성과 `display: flex` 를 쓰므로
  * grid 에서 누르면 grid 가 조용히 flex 가 된다 (ProgressBar · Meter · Slider 는 막대가 폭 0 으로
- * 사라졌다). 판정: 해석된 display 가 grid 이거나, catalog 기본이 grid (side variant 로 flex 가 된
+ * 사라졌다). 판정: 실효 display 가 grid 이거나, catalog 기본이 grid (side variant 로 flex 가 된
  * 상태도 — 그 방향은 labelPosition 이 정한다). 모드 전환은 Direction 이 맡는다.
+ *
+ * 편집 가능 조건이지 표시 값이 아니다 — "catalog 기본이 grid" 는 자기 type rule 의 base 를 읽는다
+ * (record 는 variant 적용 뒤의 실효값만 가진다).
  */
 export function useLayoutAlignmentDisabled(id: string | null): boolean {
-  const { style, type, size, props } = useElementStyleContext(id);
+  const { style, effective, type, size } = useElementStyleContext(id);
   return useMemo(() => {
     const inlineDisplay = style?.display;
     if (inlineDisplay !== undefined && inlineDisplay !== "") {
@@ -227,8 +215,8 @@ export function useLayoutAlignmentDisabled(id: string | null): boolean {
     if (isGridDisplay(resolveLayoutSpecPreset(type, size).display)) {
       return true;
     }
-    return isGridDisplay(resolveLayoutSpecPreset(type, size, props).display);
-  }, [style, type, size, props]);
+    return isGridDisplay(effective?.display);
+  }, [style, effective, type, size]);
 }
 
 export function useFlexWrapKeys(id: string | null): string[] {

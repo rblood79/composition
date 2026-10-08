@@ -1,16 +1,19 @@
 import { useMemo } from "react";
 import { useElementStyleContext } from "./useElementStyleContext";
 import { useStylesHost } from "../stylesHost";
+import { isBodyType } from "@composition/shared";
 import {
   resolveSpecPreset,
   type TransformSpecPreset,
 } from "../utils/specPresetResolver";
-import { isBodyType } from "@composition/shared";
 
 export interface TransformTier {
   inline: string | number | undefined;
   effective: number | undefined;
-  /** ADR-082 A2: containerStyles/composition 에서 공급된 string 값 ("100%", "fit-content") 포함 */
+  /**
+   * The drawn record's effective value where nothing is authored (`catalogEffectiveStyle` —
+   * "100%", "fit-content", "68px" …); the old name is the Transform section's.
+   */
   specDefault: number | string | undefined;
 }
 
@@ -25,7 +28,7 @@ export interface TransformValuesBundle {
   minHeight: TransformTier;
   maxHeight: TransformTier;
   aspectRatio: TransformTier;
-  /** overflow — Size 절로 이동 (panel-ui 01). spec 기본은 appearance preset 이 아니라 "visible". */
+  /** overflow — Size 절로 이동 (panel-ui 01). record 에 없으면 "visible". */
   overflow: TransformTier;
   isBody: boolean;
 }
@@ -33,7 +36,7 @@ export interface TransformValuesBundle {
 /**
  * 어느 축의 layout 실측 (`effective`) 을 구독할지 — Size 절은 width/height 만, Position 절은 x/y 만.
  * 안 보는 축을 구독하면 캔버스 드래그 (x/y) 가 Size 절을, 리사이즈 (w/h) 가 Position 절을
- * 매 layout publish 마다 다시 그린다. `none` 은 inline/spec 값만 (PositionSection 의 접힘 판정).
+ * 매 layout publish 마다 다시 그린다. `none` 은 inline/record 값만 (PositionSection 의 접힘 판정).
  */
 export type TransformLayoutAxes = "all" | "size" | "position" | "none";
 
@@ -41,7 +44,7 @@ export function useTransformValues(
   id: string | null,
   layoutAxes: TransformLayoutAxes = "all",
 ): TransformValuesBundle | null {
-  const { style, type, size } = useElementStyleContext(id);
+  const { style, effective: record, type, size } = useElementStyleContext(id);
   const { useLayoutValue } = useStylesHost();
 
   const sizeId = layoutAxes === "all" || layoutAxes === "size" ? id : null;
@@ -54,7 +57,8 @@ export function useTransformValues(
 
   const isBody = isBodyType(type);
 
-  const specPreset = useMemo<TransformSpecPreset>(
+  // record 에 없는 키만 자기 type rule 로 (containerStyles 의 길이 키워드).
+  const preset = useMemo<TransformSpecPreset>(
     () => resolveSpecPreset(type, size),
     [type, size],
   );
@@ -65,12 +69,16 @@ export function useTransformValues(
       string,
       string | number | undefined
     >;
-    const presetRec = specPreset as Record<string, number | string | undefined>;
+    const recordRec = (record ?? {}) as Record<
+      string,
+      number | string | undefined
+    >;
+    const presetRec = preset as Record<string, number | string | undefined>;
 
     const tier = (prop: string, effective?: number): TransformTier => ({
       inline: styleRec[prop],
       effective,
-      specDefault: presetRec[prop],
+      specDefault: recordRec[prop] ?? presetRec[prop],
     });
 
     return {
@@ -87,5 +95,15 @@ export function useTransformValues(
       overflow: tier("overflow"),
       isBody,
     };
-  }, [id, style, specPreset, effWidth, effHeight, effTop, effLeft, isBody]);
+  }, [
+    id,
+    style,
+    record,
+    preset,
+    effWidth,
+    effHeight,
+    effTop,
+    effLeft,
+    isBody,
+  ]);
 }

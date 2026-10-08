@@ -5,6 +5,12 @@ import type { TintPreset } from "../../../../utils/theme/tintToSkiaColors";
 export interface ElementStyleContext {
   sizing?: FillAxes;
   style: Record<string, unknown> | undefined;
+  /**
+   * The drawn record's effective CSS view (`catalogEffectiveStyle`) — the value a field shows
+   * where nothing is authored. Undefined when the selection has no drawn record (the panel then
+   * shows its fallback, not a resolved value).
+   */
+  effective: Record<string, string | number> | undefined;
   type: string | undefined;
   size: string | undefined;
   fills: unknown[] | undefined;

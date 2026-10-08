@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 표시값 — 선택 record 의 실효값을 보인다 (부모 part rule · size 전파)] - 2026-10-09
+
+### Fixed
+
+- **Checkbox · Radio · Switch 안의 Button 부품 (CheckboxButton · RadioButton · SwitchButton) 을 고르면 Layout 탭이 실제 배치 (Row · 가운데 정렬 · Gap 8 / 10) 를 보인다** (종전: Block · Gap 0).
+  - **Why**: 패널이 작성값이 없을 때의 기본값을 노드 **자기 type 의 rule** 로 다시 계산했다 (`specPresetResolver`). 이 부품들은 자기 rule 이 없고 배치는 부모 Checkbox rule 의 `.react-aria-CheckboxButton` 블록이 part rule 로 record 에 준다 — Canvas · DOM 은 그 record 를 읽는데 패널만 다른 계산을 했다. 이제 패널은 작성값 → **그려진 record 의 실효 view** (`catalogEffectiveStyle` — Canvas 레이아웃 입력 · DOM 이 쓰는 같은 상자 모델 `catalogBoxModel` + layout longhand + typography) → 패널 기본 순서로 읽는다. dirty · reset 은 그대로 작성값 기준.
+  - 같은 원인으로 고쳐진 것: **size xl Checkbox 의 Label** 이 Text 탭에 18px · 줄 높이 28px (종전 Label rule 의 md 14px · 20px) · **TextField · Select 루트의 Padding 0** (종전 자식 Input 의 size padding 12 를 루트 값처럼 표시) · 정렬 토글이 실효 display 가 `inline-flex` 인 부품에 `display: flex` 를 쓰지 않는다 (block 부모에서 줄이 떨어지던 것).
+  - record 에 없는 채널만 자기 type rule 을 뒤에 둔다 — Popover · Modal 의 `box-shadow` 처럼 생성 CSS class 로만 DOM 에 닿는 containerStyles (Appearance · Text · Size 키). Layout 키는 record 만 읽는다. Alignment 비활성 (catalog 기본이 grid) 와 Bold 해제 기준선은 표시 값이 아닌 편집 조건이라 자기 rule 판정을 유지한다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/effectiveStyle.ts` (새 adapter) · `panels/styles/catalog/catalogStylesHost.ts` (`effective`) · `panels/styles/hooks/{useLayoutValues,useLayoutAuxiliary,useStyleActions,useTypographyValues,useAppearanceValues,useTransformValues,useTransformAuxiliary}.ts`
+- 회귀: `apps/builder/src/builder/panels/styles/__tests__/effectiveStyleValues.test.tsx` (CheckboxButton · RadioButton · SwitchButton · TextField · Select · Slider rowGap · Button 불변 · xl Label · 정렬 토글 display 미기록 — 원복 RED 7/7) · live `apps/builder/scripts/design-panel-effective-live.mjs` (실제 Builder 패널 입력값 4/4).
+
 ## [Checkbox 선택 · indeterminate · indicator 모서리 — Canvas 와 Preview 가 Properties Options 를 따른다] - 2026-10-09
 
 ### Fixed

@@ -19,15 +19,18 @@ export function useParentFlexDirection(id: string | null): string {
 }
 
 function useSizeMode(id: string | null, axis: "width" | "height"): SizeMode {
-  const { style, type, size, sizing } = useElementStyleContext(id);
+  const { style, effective, sizing, type, size } = useElementStyleContext(id);
   const parentDisplay = useParentDisplay(id);
   const parentFlexDirection = useParentFlexDirection(id);
-  const specPreset = useMemo(() => resolveSpecPreset(type, size), [type, size]);
+  const preset = useMemo(() => resolveSpecPreset(type, size), [type, size]);
   return useMemo(() => {
     if (sizing?.[axis]) return "fill";
     const resolvedStyle = { ...(style ?? {}) };
-    if (resolvedStyle[axis] == null && specPreset[axis] != null) {
-      resolvedStyle[axis] = specPreset[axis];
+    // 작성값이 없으면 그려진 record 의 실효 길이 ("100%" · "fit-content" · "68px"), 그도 없으면
+    // 자기 type rule 의 길이 키워드.
+    const fallback = effective?.[axis] ?? preset[axis];
+    if (resolvedStyle[axis] == null && fallback != null) {
+      resolvedStyle[axis] = fallback;
     }
     return inferSizeMode(
       resolvedStyle,
@@ -35,7 +38,15 @@ function useSizeMode(id: string | null, axis: "width" | "height"): SizeMode {
       parentDisplay,
       parentFlexDirection,
     );
-  }, [style, sizing, axis, parentDisplay, parentFlexDirection, specPreset]);
+  }, [
+    style,
+    effective,
+    preset,
+    sizing,
+    axis,
+    parentDisplay,
+    parentFlexDirection,
+  ]);
 }
 
 export function useWidthSizeMode(id: string | null): SizeMode {

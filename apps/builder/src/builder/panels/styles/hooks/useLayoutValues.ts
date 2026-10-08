@@ -1,8 +1,4 @@
 import { useMemo } from "react";
-import {
-  resolveLayoutSpecPreset,
-  type LayoutSpecPreset,
-} from "../utils/specPresetResolver";
 import { numToPx, firstDefined, uniform4Way } from "../utils/styleValueHelpers";
 import { useElementStyleContext } from "./useElementStyleContext";
 import { resolveGapAxisProperty } from "../utils/gapAxis";
@@ -26,51 +22,51 @@ export interface LayoutStyleValues {
   marginLeft: string;
 }
 
-export function useLayoutValues(id: string | null): LayoutStyleValues | null {
-  const { style, type, size, props } = useElementStyleContext(id);
+type Length = number | string | undefined;
 
-  const specPreset = useMemo<LayoutSpecPreset>(
-    () => resolveLayoutSpecPreset(type, size, props),
-    [type, size, props],
-  );
+/**
+ * Layout 탭의 표시 값 — 작성값 (`style`, 활성 breakpoint 레이어) 이 먼저, 없으면 그려진 record 의
+ * 실효값 (`effective` — `catalogEffectiveStyle`: Canvas · DOM 이 읽는 상자 모델과 longhand), 그도
+ * 없으면 패널 기본. 기본값을 type · size 로 다시 계산하지 않는다 — 부모 part rule · size 전파가
+ * 준 값은 record 에만 있다.
+ */
+export function useLayoutValues(id: string | null): LayoutStyleValues | null {
+  const { style, effective } = useElementStyleContext(id);
 
   return useMemo(() => {
     if (!id) return null;
     const s = style ?? {};
-    const display = firstDefined(s.display, specPreset.display, "block");
+    const e = (effective ?? {}) as Record<string, Length>;
+    const display = firstDefined(s.display, numToPx(e.display), "block");
     const flexDirection = firstDefined(
       s.flexDirection,
-      specPreset.flexDirection,
+      numToPx(e.flexDirection),
       "row",
     );
-    const flexWrap = firstDefined(
-      s.flexWrap,
-      typeof specPreset.flexWrap === "string" ? specPreset.flexWrap : undefined,
-      "nowrap",
-    );
+    const flexWrap = firstDefined(s.flexWrap, numToPx(e.flexWrap), "nowrap");
     // ADR-222 §4.1: 단일 행/열 flex 는 주축 longhand 를 우선 표시 (row → columnGap · column → rowGap)
     const gapAxis = resolveGapAxisProperty(display, flexDirection, flexWrap);
     const axisGap = gapAxis ? s[gapAxis] : undefined;
-    const axisPresetGap = gapAxis ? specPreset[gapAxis] : undefined;
+    const axisEffectiveGap = gapAxis ? e[gapAxis] : undefined;
     const inlineUniformPadding = uniform4Way(
-      numToPx(s.paddingTop as number | string | undefined),
-      numToPx(s.paddingRight as number | string | undefined),
-      numToPx(s.paddingBottom as number | string | undefined),
-      numToPx(s.paddingLeft as number | string | undefined),
+      numToPx(s.paddingTop as Length),
+      numToPx(s.paddingRight as Length),
+      numToPx(s.paddingBottom as Length),
+      numToPx(s.paddingLeft as Length),
     );
     const inlineUniformMargin = uniform4Way(
-      numToPx(s.marginTop as number | string | undefined),
-      numToPx(s.marginRight as number | string | undefined),
-      numToPx(s.marginBottom as number | string | undefined),
-      numToPx(s.marginLeft as number | string | undefined),
+      numToPx(s.marginTop as Length),
+      numToPx(s.marginRight as Length),
+      numToPx(s.marginBottom as Length),
+      numToPx(s.marginLeft as Length),
     );
     return {
       display,
       flexDirection,
-      alignItems: firstDefined(s.alignItems, specPreset.alignItems, ""),
+      alignItems: firstDefined(s.alignItems, numToPx(e.alignItems), ""),
       justifyContent: firstDefined(
         s.justifyContent,
-        specPreset.justifyContent,
+        numToPx(e.justifyContent),
         "",
       ),
       // store 는 longhand (rowGap/columnGap) 만 유지 — shorthand gap 은
@@ -78,80 +74,52 @@ export function useLayoutValues(id: string | null): LayoutStyleValues | null {
       // 우선, 없으면 columnGap, 없으면 shorthand `s.gap` (legacy) 표시.
       gap: firstDefined(
         axisGap ?? s.rowGap ?? s.columnGap ?? s.gap,
-        numToPx(
-          axisPresetGap ??
-            specPreset.rowGap ??
-            specPreset.columnGap ??
-            specPreset.gap,
-        ),
+        numToPx(axisEffectiveGap ?? e.rowGap ?? e.columnGap ?? e.gap),
         "0px",
       ),
       flexWrap,
-      // ADR-082 P1-2: Spec 4-way uniform 이면 shorthand 에 반영 (collapsed 모드 UX)
+      // ADR-082 P1-2: 실효 4-way 가 균일하면 shorthand 에 반영 (collapsed 모드 UX)
       padding: firstDefined(
-        numToPx(s.padding as number | string | undefined) ??
-          inlineUniformPadding,
-        numToPx(specPreset.padding) ??
-          uniform4Way(
-            numToPx(specPreset.paddingTop),
-            numToPx(specPreset.paddingRight),
-            numToPx(specPreset.paddingBottom),
-            numToPx(specPreset.paddingLeft),
-          ),
+        numToPx(s.padding as Length) ?? inlineUniformPadding,
+        uniform4Way(
+          numToPx(e.paddingTop),
+          numToPx(e.paddingRight),
+          numToPx(e.paddingBottom),
+          numToPx(e.paddingLeft),
+        ),
         "0px",
       ),
-      paddingTop: firstDefined(
-        s.paddingTop,
-        numToPx(specPreset.paddingTop),
-        "0px",
-      ),
+      paddingTop: firstDefined(s.paddingTop, numToPx(e.paddingTop), "0px"),
       paddingRight: firstDefined(
         s.paddingRight,
-        numToPx(specPreset.paddingRight),
+        numToPx(e.paddingRight),
         "0px",
       ),
       paddingBottom: firstDefined(
         s.paddingBottom,
-        numToPx(specPreset.paddingBottom),
+        numToPx(e.paddingBottom),
         "0px",
       ),
-      paddingLeft: firstDefined(
-        s.paddingLeft,
-        numToPx(specPreset.paddingLeft),
-        "0px",
-      ),
+      paddingLeft: firstDefined(s.paddingLeft, numToPx(e.paddingLeft), "0px"),
       // ADR-082 P1-2: margin 도 4-way uniform fallback 동일 적용
       margin: firstDefined(
-        numToPx(s.margin as number | string | undefined) ?? inlineUniformMargin,
-        numToPx(specPreset.margin) ??
-          uniform4Way(
-            numToPx(specPreset.marginTop),
-            numToPx(specPreset.marginRight),
-            numToPx(specPreset.marginBottom),
-            numToPx(specPreset.marginLeft),
-          ),
+        numToPx(s.margin as Length) ?? inlineUniformMargin,
+        uniform4Way(
+          numToPx(e.marginTop),
+          numToPx(e.marginRight),
+          numToPx(e.marginBottom),
+          numToPx(e.marginLeft),
+        ),
         "0px",
       ),
-      marginTop: firstDefined(
-        s.marginTop,
-        numToPx(specPreset.marginTop),
-        "0px",
-      ),
-      marginRight: firstDefined(
-        s.marginRight,
-        numToPx(specPreset.marginRight),
-        "0px",
-      ),
+      marginTop: firstDefined(s.marginTop, numToPx(e.marginTop), "0px"),
+      marginRight: firstDefined(s.marginRight, numToPx(e.marginRight), "0px"),
       marginBottom: firstDefined(
         s.marginBottom,
-        numToPx(specPreset.marginBottom),
+        numToPx(e.marginBottom),
         "0px",
       ),
-      marginLeft: firstDefined(
-        s.marginLeft,
-        numToPx(specPreset.marginLeft),
-        "0px",
-      ),
+      marginLeft: firstDefined(s.marginLeft, numToPx(e.marginLeft), "0px"),
     };
-  }, [id, style, specPreset]);
+  }, [id, style, effective]);
 }
