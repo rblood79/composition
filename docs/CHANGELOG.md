@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [문서·메모리 낡은 심볼 정리 — `pnpm docs:stale-symbols` 게이트 · ADR-248 이전 문서 38개 legacy 이동] - 2026-10-08
+
+### Tests
+
+- **낡은 코드 심볼 게이트 신설** — `pnpm docs:stale-symbols` (`scripts/check-stale-doc-symbols.py`):
+  - `.claude/rules` · skill · agent · `CLAUDE.md` 가 소스 (apps · packages · scripts) 에 없는 식별자를 **현재 것처럼** 인용하면 exit 1. `--docs` · `--memory` · `--all` 은 보고만 (`/wiki-lint` 가 `--memory` 를 호출)
+  - 판정 문맥 = 줄 + 직전 줄 + 표 머리행 + 가까운 제목 + 날짜 — 「옛 · 삭제 · 기록 당시 · 정정」 표지가 있으면 이력 인용으로 통과. 파일 끝 정정 노트가 같은 이름을 이력으로 표시해도 통과
+  - **Why**: 삭제 · 개명 커밋 (ADR-248 Phase 4e `0b0eaea28` · 옛 TS 레이아웃 파이프라인 `78469745d` 등) 이 소스만 지우고 규칙 · skill · 메모리의 이름은 두고 가서, `/review` 체크리스트 (`contracts.md`) 가 삭제된 `readImmediateSelectionSnapshot` 경로로 판정하는 등 drift 가 쌓였다. 전수 스캔 결과 `.claude` 285 파일 · `docs/` 1,699 파일 · 메모리 304 파일에서 현재 것처럼 인용된 낡은 이름이 각각 53 · 63 · 121 이었다 — 세 영역 모두 0 으로 정리
+
+### Documentation
+
+- **`/review` 체크리스트를 catalog runtime 기준으로 개정** — `.claude/skills/review/references/contracts.md`:
+  - 옛 Zustand store · spec 경로 항목 삭제 → 명령 파이프라인 (`workspace.execute`) · history 의도 · 부품 소유 술어 · typed field · 레이아웃 증분 경로로 재작성
+  - 마켓플레이스 `code-review` 플러그인의 git 이력 관점과 `pr-review-toolkit` 의 silent-failure 관점을 프로젝트 함정 기록 (fallback = 기본값이면 끊긴 채널이 무증상 등) 에 맞춰 두 절로 추가
+- **규칙 · skill 문서의 낡은 이름 교체** — `ssot-hierarchy.md` (`SELF_COMPOSED_CONTAINER_CHILD_TYPES` → `ListBoxItem.owners` 계약 · `catalogQuietOwnerPaint` → `catalogQuietStyles`) · `component-registry.md` · `domain-structure-change-audit.md` (`CATALOG_DOM_CHILD_OWNING_BINDINGS` → `catalogDomRendersNode` · `ownsChild`) · `canvas-details.md` (`parseLineHeight` → `visual.lineHeight` 비율 + `resolveLineHeightValue`) · `compositional-architecture.md` (`catalogIndicatorInset` → `catalogToggleIndicatorBox`) · `canvas-interaction.md` hover 행 · `arch-reference-impl.md` 참조
+- **ADR-248 이전 구조 문서 38개를 `docs/legacy/` 로 이동** (`docs/reference` · `features/completed` · `explanation/architecture` · `how-to` · `migrations` — 낡은 이름 비율 ≥ 30% 또는 전면 구식):
+  - `STRUCTURE_STORE` · `CANVAS_INTERACTIONS` · `DRAG_DROP_DESIGN` · `SAVESERVICE` · `COMPONENT_SPEC` (제목은 「현행」이나 publish 자체 registry · `TAG_SPEC_MAP` 기준) · `KEYBOARD_SHORTCUTS` · `MULTIPAGE` · `MULTI_SELECT` · `INDEXDB` (현행 스키마는 `storage.ts` 의 heads · entries) 등. 각 파일 Legacy 배너 · 상대 링크 재계산 · `docs/README` 현행 목록 정리 · `legacy/README` 사유 표
+  - ADR-912 prop parity 감사는 `docs/reference/audits/2026-06-25-…` 로 (외부 RAC/RSP prop 이름이라 감사 기록 폴더)
+  - 남긴 `CSS_SUPPORT_MATRIX.md` (M-4 해소 표기) · `COLOR_PICKER.md` (옛 `borderUtils` 기록 표기) 는 줄 단위 정정
+- **메모리 정리** (`/wiki-lint`) — 80 파일에 삭제 커밋 · 현재 거처를 적은 정정 노트, `MEMORY.md` 의 「투영은 `propagationRegistry` 하나」 hook 정정 (10-05 삭제 → resolver `catalogDerivedProps`), 같은 결함 (`|| "기본"` 이 빈 값과 부재를 합침) 을 두 번 기록한 r17 · r18 메모리 통합
+
+### Infrastructure
+
+- `CLAUDE.md` 명령 블록에 `pnpm docs:stale-symbols` 등재 · `/wiki-lint` 실행 절에 `--memory` 호출 추가. Codex 플러그인 1.0.4 → 1.0.6 · Codex CLI 0.160.1 → 0.161.0
+
 ## [ADR-256 Phase 7 판독 수리 — 값 바인딩 편집 · frame 안 Slider 부품 · 늘어난 absolute 상자] - 2026-10-09
 
 ### Fixed
