@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Codex Round 21 — Group 으로 감싼 Label 이 TagGroup 의 이름] - 2026-10-09
+
+### Fixed
+
+- **TagGroup 의 Label 을 Group 으로 감싸도 목록 이름은 그 Label 이다** (종전: 화면엔 Label 글자가 보이는데 목록 이름은 `label` 값 — `aria-label` 로 강제, `aria-labelledby` 없음).
+  - **Why**: Label 이 있는지 직계 자식만 봤다. RAC `Group` 은 Label context 를 지우지 않아 RAC 는 Group 안 Label 로 이름을 붙인다. 이제 Group · frame 을 건너 글자 있는 Label 을 찾는다 (detach 뒤 `label` 값이 비어 있어도 Label 글자가 이름).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`tagGroupLabelled`)
+- 회귀: `adr256TagGroupAuthoredTree.test.tsx` 7 (원복 RED 1) · live `apps/builder/scripts/adr256-round20-live.mjs` 12/12
+
 ## [ADR-256 Codex Round 20 — TagGroup 노드 트리 · Group 으로 감싼 그룹 항목 · TagGroup 선택] - 2026-10-09
 
 ### Fixed

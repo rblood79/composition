@@ -61,6 +61,7 @@ import { RacSlotScope } from "./racSlotScope";
 import {
   CATALOG_LABEL_NODE_FIELDS,
   FIELD_HINT_OWNERS,
+  catalogAbsentByValue,
   catalogFieldNecessityIndicator,
   catalogPartParent,
   catalogSliderRange,
@@ -939,6 +940,22 @@ const TagGroupRunContext = createContext<{
 /** A Tag node's RAC key (as its binding gives it). */
 const tagKey = (tag: CatalogConsumerNode) =>
   resolveStaticItemKey(tag.props as Record<string, unknown>, tag.id);
+/**
+ * Whether a Label node the TagGroup's RAC label slot takes is there: a Label in its tree with text
+ * (`catalogAbsentByValue` renders none), reached through layout containers (Group · frame — RAC's
+ * Group leaves the `LabelContext` as it is). RAC then names the grid by it (`aria-labelledby`).
+ */
+const LABEL_PASS_THROUGH_TYPES = new Set(["Group", "frame"]);
+function tagGroupLabelled(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  return childrenOf(root, node).some((child) => {
+    const type = catalogTypeName(root, child);
+    if (type === "Label") return !catalogAbsentByValue(child);
+    return LABEL_PASS_THROUGH_TYPES.has(type) && tagGroupLabelled(root, child);
+  });
+}
 /** The author's DOM attributes `withHtmlId` puts on a renderer's element (id · class · aria-label). */
 type AuthoredDomAttributes = Readonly<Record<string, unknown>>;
 function TagGroupRun({
@@ -951,11 +968,7 @@ function TagGroupRun({
   const [removed, setRemoved] = useState<ReadonlySet<Key>>(() => new Set());
   const rows = useTagRowsState();
   const label = str(props.label).trim();
-  const named =
-    !!label &&
-    childrenOf(input.root, input.node).some(
-      (child) => catalogTypeName(input.root, child) === "Label",
-    );
+  const named = tagGroupLabelled(input.root, input.node);
   const size = str(props.size) || "md";
   const labelPosition = str(props.labelPosition) || "top";
   const allTags = () =>

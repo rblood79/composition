@@ -6,9 +6,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   detachInstances,
+  groupNodes,
   insertNodes,
   moveNodes,
   removeTargets,
+  setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -157,6 +159,61 @@ describe("Codex Round 20 H1 — a TagGroup drawn from its node tree", () => {
       list.compareDocumentPosition(labelElement) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it("a Label wrapped in a Group still names the grid (RAC's label slot, not the label prop)", async () => {
+    const { workspace, root, of, target, groupId } = await open({
+      label: "Parent label",
+    });
+    workspace.execute(
+      detachInstances({ ids: [GROUP], newId: workspace.newId }),
+    );
+    workspace.execute(
+      setFields({
+        targets: [target(of("Label")[0]!.id)],
+        props: { children: set("Visible tags") },
+      }),
+    );
+    const label = target(of("Label")[0]!.id) as { id: NodeId };
+    workspace.execute(
+      groupNodes({
+        ids: [label.id],
+        group: {
+          kind: "node",
+          id: workspace.newId("node"),
+          definitionId: "lib:definition:type-Group",
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        } as NodeEntry,
+        newId: workspace.newId,
+      }),
+    );
+    expect(of("Group")).toHaveLength(1);
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    await act(async () => reactRoot.render(renderCatalogDom(root, groupId())));
+    const labelElement = host.querySelector(
+      ".react-aria-TagGroup > .react-aria-Group .react-aria-Label",
+    )!;
+    expect(labelElement.textContent).toBe("Visible tags");
+    const grid = host.querySelector('[role="grid"]')!;
+    expect(grid.getAttribute("aria-label")).toBeNull();
+    expect(grid.getAttribute("aria-labelledby")?.split(" ")).toContain(
+      labelElement.id,
+    );
+    await act(async () => reactRoot.unmount());
+    host.remove();
   });
 
   it("the TagList node's element is the chip wrapper (its marker)", async () => {

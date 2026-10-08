@@ -409,6 +409,15 @@ const tagsView = () =>
             (e) => e.textContent,
           )
         : null,
+      labelIds: owner
+        ? [...owner.querySelectorAll(".react-aria-Label")].map((e) => e.id)
+        : null,
+      gridName: owner && {
+        label: owner.querySelector('[role="grid"]')?.getAttribute("aria-label"),
+        labelledby: owner
+          .querySelector('[role="grid"]')
+          ?.getAttribute("aria-labelledby"),
+      },
       tags: owner
         ? [...owner.querySelectorAll('[role="row"]')].map((e) =>
             e.getAttribute("aria-selected"),
@@ -521,13 +530,88 @@ record(
     canvasChildren: afterText.canvasChildren,
   },
 );
+// Round 21: the Label (its own text) wrapped in a Group still names the grid — RAC's label slot
+// reaches through the Group; the label prop is not forced as aria-label
 await exec((c, ws, arg) => {
   const group = [...ws.root.canvasInputs.values()].find(
     (x) => x.sourceId === arg,
   );
-  const label = group.children
-    .map((id) => ws.root.canvasInputs.get(id))
-    .find((x) => ws.root.typeOf(x) === "Label");
+  const find = (node) => {
+    for (const id of node.children) {
+      const child = ws.root.canvasInputs.get(id);
+      if (!child) continue;
+      if (ws.root.typeOf(child) === "Label") return child;
+      const inner = find(child);
+      if (inner) return inner;
+    }
+  };
+  const label = find(group);
+  return c.setFields({
+    targets: [ws.positionOfRecord(label.id).target],
+    props: { children: { kind: "set", value: "Visible tags" } },
+  });
+}, tagGroup);
+const wrappedLabel = await exec((c, ws, arg) => {
+  const group = [...ws.root.canvasInputs.values()].find(
+    (x) => x.sourceId === arg,
+  );
+  const find = (node) => {
+    for (const id of node.children) {
+      const child = ws.root.canvasInputs.get(id);
+      if (!child) continue;
+      if (ws.root.typeOf(child) === "Label") return child;
+      const inner = find(child);
+      if (inner) return inner;
+    }
+  };
+  const label = find(group);
+  return c.groupNodes({
+    ids: [label.sourceId],
+    group: {
+      kind: "node",
+      id: ws.newId("node"),
+      definitionId: "lib:definition:type-Group",
+      children: [],
+      props: {},
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    },
+    newId: ws.newId,
+  });
+}, tagGroup);
+const afterWrap = await tagsView();
+record(
+  "Round 21 a Label wrapped in a Group names the grid (aria-labelledby, no aria-label)",
+  wrappedLabel.ok &&
+    afterWrap.canvasChildren.includes("Group") &&
+    afterWrap.labels.includes("Visible tags") &&
+    afterWrap.gridName?.label == null &&
+    (afterWrap.gridName?.labelledby ?? "")
+      .split(" ")
+      .includes(afterWrap.labelIds[0]),
+  {
+    wrappedLabel,
+    gridName: afterWrap.gridName,
+    labelIds: afterWrap.labelIds,
+    labels: afterWrap.labels,
+    canvasChildren: afterWrap.canvasChildren,
+  },
+);
+await exec((c, ws, arg) => {
+  const group = [...ws.root.canvasInputs.values()].find(
+    (x) => x.sourceId === arg,
+  );
+  const find = (node) => {
+    for (const id of node.children) {
+      const child = ws.root.canvasInputs.get(id);
+      if (!child) continue;
+      if (ws.root.typeOf(child) === "Label") return child;
+      const inner = find(child);
+      if (inner) return inner;
+    }
+  };
+  const label = find(group);
   return c.removeTargets({ targets: [ws.positionOfRecord(label.id).target] });
 }, tagGroup);
 const afterDelete = await tagsView();
