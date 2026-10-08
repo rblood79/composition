@@ -76,7 +76,6 @@ import { Heading, Label, Text } from "react-aria-components";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Group } from "../../components/Group";
-import { Select } from "../../components/Select";
 import { ComboBox } from "../../components/ComboBox";
 import { Slot } from "../../components/Slot";
 import {
@@ -647,32 +646,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       { key: node.id },
       ...children,
     ),
-  // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
-  // graph and Canvas scene.
-  select: (node, style, _children, _context, parts) =>
-    createElement(Select, {
-      key: node.id,
-      "data-catalog-id": node.id,
-      label:
-        parts?.label ??
-        (typeof node.props.label === "string" ? node.props.label : undefined),
-      description: parts?.description,
-      errorMessage: parts?.error,
-      controlElements: parts?.control,
-      listElement: parts?.list,
-      placeholder:
-        typeof node.props.placeholder === "string"
-          ? node.props.placeholder
-          : undefined,
-      size: typeof node.props.size === "string" ? node.props.size : "md",
-      ...labelLayout(node),
-      isDisabled: node.props.isDisabled === true,
-      isInvalid: authoredInvalid(node.props),
-      isRequired: node.props.isRequired === true,
-      // RSP `isQuiet` → `data-quiet` on the root: the Select sheet's quiet trigger.
-      isQuiet: node.props.isQuiet === true,
-      style,
-    } as Parameters<typeof Select>[0]),
+  // RAC owns the input, value, icon and option DOM. The typed child IDs remain in the graph and
+  // Canvas scene. (A Select draws its node tree — `delegatedDom` `select`, ADR-256 Phase 6c.)
   combobox: (node, style, _children, _context, parts) =>
     createElement(ComboBox, {
       key: node.id,
@@ -937,7 +912,7 @@ export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
  * graph and Canvas identity but render no DOM element of their own.
  */
 export const CATALOG_DOM_CHILD_OWNING_BINDINGS: ReadonlySet<string> = new Set([
-  "select",
+  // (A Select draws its node tree — ADR-256 Phase 6c.)
   "combobox",
   // Shared components that compose from their own props and never read `children`.
   "datepicker",
@@ -1186,6 +1161,12 @@ function dialogTitleOf(
   return undefined;
 }
 
+/** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c). */
+const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
+  "SubmenuTrigger",
+  "Select",
+]);
+
 /**
  * Registered components that drop DOM rest props: the marker is a `display: contents` wrapper.
  * (None now — the shared data Table was the one; the catalog Table is RAC's, ADR-256 Phase 5i.)
@@ -1222,12 +1203,14 @@ function ruleDom(
   // (A picker's control: the part node elements inside its Group — ADR-253.)
   if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
-  // ADR-256 Phase 5g: a submenu's Popover takes its place from RAC's SubmenuTrigger (`end top`, its
-  // `PopoverContext`) — the type's default `placement` would override it (the reference passes none).
+  // ADR-256 Phase 5g · 6c: a submenu's · Select's Popover takes its place from RAC's SubmenuTrigger ·
+  // Select (`end top` · `bottom start`, their `PopoverContext`) — the type's default `placement`
+  // would override it (the reference passes none).
   if (
     lower === "popover" &&
-    catalogTypeName(root, root.domInputs.get(node.parentId)!) ===
-      "SubmenuTrigger"
+    CONTEXT_PLACED_POPOVER_PARENTS.has(
+      catalogTypeName(root, root.domInputs.get(node.parentId)!),
+    )
   )
     delete rest.placement;
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one

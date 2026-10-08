@@ -121,10 +121,8 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   Record<string, UnconvertedFamilyLimit>
 > = {
   // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper 는 RAC
-  // `Group` 이다 (ADR-256 Phase 6b — 자유 내용, 옛 `SelectTrigger` 행 삭제).
-  Select: {
-    children: ["Label", "Button", "Description", "FieldError", "ListBox"],
-  },
+  // `Group` 이다 (ADR-256 Phase 6b — 자유 내용, 옛 `SelectTrigger` 행 삭제). Select 도 노드 트리로
+  // 그린다 (ADR-256 Phase 6c — `Popover > ListBox`, 행 삭제).
   ComboBox: {
     children: [
       "Label",

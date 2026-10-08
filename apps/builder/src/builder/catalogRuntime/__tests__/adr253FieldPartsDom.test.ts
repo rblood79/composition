@@ -297,6 +297,15 @@ const searchFieldGroupMarkup = (markup: string) => {
   );
 };
 /**
+ * ADR-256 Phase 6c: a Select draws its node tree in RAC's Select — the shared component's own
+ * root mark `data-selection-mode` (no sheet reads it; RAC's Select has none) is gone.
+ */
+const selectNodeTreeMarkup = (markup: string) =>
+  markup.replace(
+    /(<div class=react-aria-Select[^>]*) data-selection-mode=single/,
+    "$1",
+  );
+/**
  * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
  * the Preview's Select had no options at all): they are asserted on their own.
  */
@@ -486,7 +495,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                   ? tagGroupMarkup(fixed)
                   : type === "searchfield"
                     ? searchFieldGroupMarkup(fixed)
-                    : fixed;
+                    : type === "select"
+                      ? selectNodeTreeMarkup(fixed)
+                      : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,

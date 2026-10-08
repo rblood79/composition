@@ -219,14 +219,16 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     families: ["itemSlotCollection", "disablingGroup"],
     children: ["ListBoxItem", "ListBoxSection", "Section", "Header"],
   },
+  // (ADR-256 Phase 6c: a Select's items are in its ListBox — the reference's `Popover > ListBox` —
+  // not the Select's own children.)
   ListBoxSection: {
     container: "collection",
     children: ["Header", "ListBoxItem"],
-    owners: ["ListBox", "Select", "ComboBox"],
+    owners: ["ListBox", "ComboBox"],
   },
   ListBoxItem: {
     families: ["selectionItem", "staticCollectionItem"],
-    owners: ["ListBox", "Select", "ComboBox"],
+    owners: ["ListBox", "ComboBox"],
   },
   Menu: {
     container: "collection",

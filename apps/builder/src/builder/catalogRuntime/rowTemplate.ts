@@ -63,12 +63,18 @@ export function catalogRowTemplateId(
     )?.children ?? [];
   const itemOf = (ids: readonly TemplateId[]) =>
     ids.find((childId) => ROW_ITEM_TYPES.has(templateType(reader, childId)));
-  const children = childrenOf(rootId);
-  // The rows reach the items of a part that holds them (a Select's ListBox — the resolver passes
-  // the rows on to a part when the root itself has no item position).
-  return (
-    itemOf(children) ?? itemOf(children.flatMap((child) => childrenOf(child)))
-  );
+  // The rows reach the items of a part that holds them, at any depth (a Select's `Popover >
+  // ListBox` — ADR-256 Phase 6c: the resolver passes the rows on to the children of a position
+  // with no item position, level by level).
+  for (
+    let level = childrenOf(rootId);
+    level.length;
+    level = level.flatMap((child) => childrenOf(child))
+  ) {
+    const item = itemOf(level);
+    if (item) return item;
+  }
+  return undefined;
 }
 
 /** The bound owner whose row template the target is (or is inside); undefined otherwise. */

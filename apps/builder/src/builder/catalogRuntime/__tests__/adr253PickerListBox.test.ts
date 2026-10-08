@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
@@ -81,11 +81,17 @@ async function open(type: string, patch: Partial<NodeEntry> = {}) {
       workspace.runtime.graph,
       record.definitionId as DefinitionId,
     );
-  /** The picker's records on one side: the field, its ListBox and the items in it. */
+  /**
+   * The picker's records on one side: the field, its ListBox and the items in it (a Select's
+   * ListBox is in its Popover — ADR-256 Phase 6c; `closed` = the node the closed picker hides).
+   */
   const side = (records: ReadonlyMap<string, CatalogConsumerNode>) => {
     const field = records.get(workspace.root.recordsOfSource(FIELD)[0]!)!;
     const children = field.children.map((id) => records.get(id)!);
-    const list = children.find((child) => typeOf(child) === "ListBox")!;
+    const popover = children.find((child) => typeOf(child) === "Popover");
+    const list = (
+      popover ? popover.children.map((id) => records.get(id)!) : children
+    ).find((child) => typeOf(child) === "ListBox")!;
     const items = list.children.map((id) => records.get(id)!);
     const labelOf = (item: CatalogConsumerNode) =>
       item.children
@@ -94,6 +100,8 @@ async function open(type: string, patch: Partial<NodeEntry> = {}) {
         ?.props.children;
     return {
       field,
+      popover,
+      closed: popover ?? list,
       list,
       items,
       childTypes: children.map(typeOf),
@@ -159,11 +167,14 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
     it(`${type}: the ListBox holds the picker's items on the Canvas and in the Preview`, async () => {
       const picker = await open(type);
       for (const read of [picker.canvas, picker.dom]) {
-        const { childTypes, itemTypes, labels, list, items, all } = read();
-        // The items are inside the ListBox — none beside it, none of the ListBox origin's own.
-        expect(childTypes.filter((name) => name === "ListBox")).toEqual([
-          "ListBox",
-        ]);
+        const { childTypes, itemTypes, labels, closed, popover, items, all } =
+          read();
+        // The items are inside the ListBox — none beside it, none of the ListBox origin's own. A
+        // Select's ListBox is in its Popover (the reference's `Popover > ListBox`, ADR-256 Phase 6c).
+        expect(childTypes.filter((name) => name === "ListBox")).toEqual(
+          type === "select" ? [] : ["ListBox"],
+        );
+        expect(popover !== undefined).toBe(type === "select");
         expect(childTypes).not.toContain("ListBoxItem");
         expect(itemTypes).toEqual(items.map(() => "ListBoxItem"));
         expect(labels).toEqual(LABELS);
@@ -176,7 +187,7 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
           ),
         ).toEqual([]);
         // The closed list is not drawn on the Canvas (its subtree follows it).
-        expect(list.hidden).toBe(true);
+        expect(closed.hidden).toBe(true);
       }
     });
 
@@ -281,6 +292,50 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       ).toBeUndefined();
     });
 
+    if (type === "select")
+      it("select: its Popover node takes RAC's place for the Select — `bottom start` below the trigger (ADR-256 Phase 6c)", async () => {
+        const picker = await open(type);
+        // A trigger at x 100 (50 wide) and a wider list (200): the Select's place starts the list
+        // at the trigger's start edge (a centred list would start at x 25).
+        const rect = (x: number, y: number, width: number, height: number) =>
+          ({
+            x,
+            y,
+            left: x,
+            top: y,
+            width,
+            height,
+            right: x + width,
+            bottom: y + height,
+            toJSON: () => ({}),
+          }) as DOMRect;
+        const rects = vi
+          .spyOn(Element.prototype, "getBoundingClientRect")
+          .mockImplementation(function (this: Element) {
+            if (this.matches("button")) return rect(100, 40, 50, 30);
+            if (this.classList.contains("react-aria-Popover"))
+              return rect(0, 0, 200, 120);
+            return rect(0, 0, 1000, 800);
+          });
+        const sizes = ["clientWidth", "clientHeight"].map((key) =>
+          vi
+            .spyOn(document.documentElement, key as "clientWidth", "get")
+            .mockReturnValue(key === "clientWidth" ? 1000 : 800),
+        );
+        try {
+          const preview = await picker.mounted();
+          await preview.press();
+          const popover = preview.listbox()!.closest<HTMLElement>(
+            ".react-aria-Popover",
+          )!;
+          expect(popover.style.left).toBe("100px");
+          await preview.unmount();
+        } finally {
+          rects.mockRestore();
+          for (const size of sizes) size.mockRestore();
+        }
+      });
+
     it(`${type}: the Preview's picker opens with the list's items`, async () => {
       const picker = await open(type);
       const { workspace } = picker;
@@ -291,8 +346,18 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       expect(preview.trigger.getAttribute("aria-expanded")).toBe("false");
       await preview.press();
       expect(preview.trigger.getAttribute("aria-expanded")).toBe("true");
-      // The open list is the ListBox node's element, holding the item nodes' elements.
+      // The open list is the ListBox node's element, holding the item nodes' elements. A Select's
+      // is in its Popover node's element — RAC's Popover in the Select's context, no arrow (the
+      // reference's `hideArrow`).
       const list = preview.listbox()!;
+      if (type === "select") {
+        const popover = list.closest(".react-aria-Popover")!;
+        expect(popover.getAttribute("data-catalog-id")).toBe(
+          picker.dom().popover!.id,
+        );
+        expect(popover.getAttribute("data-trigger")).toBe("Select");
+        expect(popover.querySelector(".react-aria-OverlayArrow")).toBeNull();
+      }
       expect(list.getAttribute("data-catalog-id")).toBe(picker.dom().list.id);
       expect(list.className).toBe("react-aria-ListBox");
       expect(list.getAttribute("data-size")).toBe("md");

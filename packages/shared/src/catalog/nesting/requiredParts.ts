@@ -8,7 +8,8 @@
  * item's tie to its collection is the nesting owners check (`RAC_SUBPART_OWNER_TYPES`).
  *
  * Keys are catalog types as the document holds them today (a family not converted yet keeps its own
- * shape — a Select's ListBox sits in the Select, not in a Popover node).
+ * shape — a ComboBox's ListBox sits in the ComboBox, not in a Popover node; a Select's is in its
+ * Popover, ADR-256 Phase 6c — the part is found below the owner, at any depth).
  */
 export const RAC_REQUIRED_PARTS: Readonly<
   Record<string, readonly (readonly string[])[]>

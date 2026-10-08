@@ -33,6 +33,7 @@ import { DateField as AriaDateField } from "react-aria-components/DateField";
 import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
 import { NumberField as AriaNumberField } from "react-aria-components/NumberField";
 import { SearchField as AriaSearchField } from "react-aria-components/SearchField";
+import { Select as AriaSelect } from "react-aria-components/Select";
 import { Time } from "@internationalized/date";
 import { safeParseDateString } from "../../utils/core/dateUtils";
 import { ListBox as AriaListBox } from "react-aria-components/ListBox";
@@ -468,18 +469,13 @@ export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "daterangepicker",
 ]);
 /**
- * The control part nodes of a field: those inside its control wrapper, or a Select's trigger
- * Button (`[]` = the field composes them).
+ * The control part nodes of a field: those inside its control wrapper (`[]` = the field composes
+ * them).
  */
 export function catalogFieldControlNodes(
   root: CatalogCompositionRoot,
   field: CatalogConsumerNode,
 ): CatalogConsumerNode[] {
-  // A Select's trigger is RAC's Button itself: the Button node, a direct child.
-  if (field.bindingId === "select")
-    return childrenOf(root, field).filter(
-      (child) => catalogTypeName(root, child) === "Button",
-    );
   if (!CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")) return [];
   const wrapper = childrenOf(root, field).find(
     (child) => catalogTypeName(root, child) === "Group",
@@ -493,18 +489,36 @@ export function catalogFieldControlNodes(
     : parts;
 }
 /**
- * A picker's option list (ADR-253 Phase 4): the ListBox node of a Select · ComboBox — an instance
- * of the ListBox origin holding the items, drawn inside the picker's Popover.
+ * A ComboBox's option list (ADR-253 Phase 4): its ListBox node — an instance of the ListBox origin
+ * holding the items, drawn inside the picker's Popover. (A Select draws its node tree — its
+ * Popover node holds the ListBox, ADR-256 Phase 6c.)
  */
 export function catalogPickerListNode(
   root: CatalogCompositionRoot,
   field: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
-  if (field.bindingId !== "select" && field.bindingId !== "combobox")
-    return undefined;
+  if (field.bindingId !== "combobox") return undefined;
   return childrenOf(root, field).find(
     (child) => catalogTypeName(root, child) === "ListBox",
   );
+}
+/**
+ * The picker whose RAC `ListBoxContext` a ListBox node takes (its name, selection and focus — D1):
+ * a ComboBox's list node, or a ListBox in a Select — in its Popover, the reference's `Popover >
+ * ListBox` (ADR-256 Phase 6c), or its direct child (RAC's context reaches it there too).
+ */
+export function catalogListPicker(
+  root: CatalogCompositionRoot,
+  list: CatalogConsumerNode,
+): CatalogConsumerNode | undefined {
+  const parent = root.domInputs.get(list.parentId);
+  if (!parent) return undefined;
+  if (catalogPickerListNode(root, parent) === list) return parent;
+  const host =
+    catalogTypeName(root, parent) === "Popover"
+      ? root.domInputs.get(parent.parentId)
+      : parent;
+  return host?.bindingId === "select" ? host : undefined;
 }
 /**
  * A part node's parent with the layout frames it sits in skipped (`catalogPartParent` — ADR-256
@@ -945,9 +959,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       // A picker's list (ADR-253 Phase 4): RAC's Select · ComboBox own its name, selection and
       // focus (their context), and its sheet reads the picker's size.
-      const picker = input.root.domInputs.get(input.node.parentId);
-      const inPicker =
-        !!picker && catalogPickerListNode(input.root, picker) === input.node;
+      const picker = catalogListPicker(input.root, input.node);
+      const inPicker = !!picker;
       // (RAC's ListBox itself, as the shared Select · ComboBox compose it: the shared ListBox's
       // variant marks are the standalone list's.)
       return createElement(
@@ -957,7 +970,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...marker(input),
               style: input.style,
               className: "react-aria-ListBox",
-              "data-size": str(picker.props.size || "md"),
+              "data-size": str(picker!.props.size || "md"),
             }
           : {
               ...marker(input),
@@ -1355,6 +1368,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     step: num(props.step),
     locale: opt(props.locale),
     isWheelDisabled: bool(props.isWheelDisabled),
+  })),
+  // ADR-256 Phase 6c: the reference's tree — `Select > Label + Button(SelectValue + Icon) +
+  // Text[description] + FieldError + Popover > ListBox`, each part in RAC's Select context (its
+  // Popover takes the Select's trigger and place — `PopoverContext`). Without a visible label the
+  // Select is named by its placeholder (RAC needs a label or an `aria-label`).
+  select: nodeTreeField(AriaSelect, "Select", (props) => ({
+    placeholder: opt(props.placeholder),
+    "aria-label": str(props.label).trim()
+      ? undefined
+      : (opt(props.placeholder) ?? "Select an option"),
   })),
   searchfield: nodeTreeField(AriaSearchField, "SearchField", (props) => ({
     ...inputHints(props),

@@ -112,10 +112,17 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
   for (const type of ["select", "combobox"]) {
     const LIST = T(`${type}__listbox`);
     const ITEMS = [1, 2, 3, 4].map((n) => T(`${type}__item-${n}`));
+    // ADR-256 Phase 6c: a Select's ListBox is in its Popover (`Popover > ListBox`).
+    const VIA = type === "select" ? [T("select__popover")] : [];
     const listRow = (graph: CatalogGraph) =>
-      childPositions(graph, pagePositions(graph, PAGE)[0]!).find(
-        (row) => row.sourceId === LIST,
-      )!;
+      childPositions(
+        graph,
+        VIA.reduce(
+          (row, via) =>
+            childPositions(graph, row).find((r) => r.sourceId === via)!,
+          pagePositions(graph, PAGE)[0]!,
+        ),
+      ).find((row) => row.sourceId === LIST)!;
 
     it(`${type}: the ListBox root holds the field's items — none outside it, none of the ListBox's own`, () => {
       const graph = open(type);
@@ -150,7 +157,7 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
         ownerId: FIELD,
         address: {
           instances: [FIELD],
-          templatePath: [T(type), LIST, ITEMS[1]],
+          templatePath: [T(type), ...VIA, LIST, ITEMS[1]],
         },
       });
       expect(rowsOf(graph, pagePositions(graph, PAGE)[0]!)).toEqual(
@@ -330,7 +337,7 @@ describe("ADR-253 Phase 4 — library validation of a slot fill", () => {
     extra: LibraryTemplateNode[] = [],
   ) =>
     buildCatalogLibrary({
-      contractVersion: 19,
+      contractVersion: 20,
       revision: "adr253-slot-fill",
       bindingIds: ["box", "text"],
       actionOpCodes: [],

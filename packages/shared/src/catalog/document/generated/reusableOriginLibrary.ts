@@ -4287,7 +4287,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-select__2",
       "lib:template:component-select__description",
       "lib:template:component-select__error",
-      "lib:template:component-select__listbox"
+      "lib:template:component-select__popover"
     ],
     "props": {
       "label": "Select",
@@ -4307,6 +4307,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -4348,6 +4349,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{description}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -4356,6 +4358,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-select__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-select__listbox"
+    ],
+    "props": {
+      "hideArrow": true
     },
     "visual": {}
   },

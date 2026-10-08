@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6c — Select 를 노드 트리로 그린다] - 2026-10-09
+
+### Changed
+
+- **Select 원본 = react-aria.adobe.com 의 구조** — `Select > Label + Button(SelectValue + Icon) + Description + FieldError + Popover > ListBox`. 목록은 Select 바로 아래가 아니라 **Popover 노드** 안에 있다 (레퍼런스대로 `hideArrow`). Layers 에 Popover 가 보이고, 닫힌 목록은 종전대로 Canvas 에 그리지 않는다
+- **Preview 가 Select 의 자식을 순서대로 RAC Select 안에서 그린다** — 옛 공용 `Select` 컴포넌트가 정해진 부품만 받아 조립하던 것을 걷었다. 작성자가 Select 안에 넣은 아이콘 · frame 같은 자유 자식도 제자리에 그려진다 (다른 field 와 같이). Popover 는 RAC Select 가 주는 자리 (트리거 Button 의 시작 가장자리 아래 · 트리거 폭 이상) 에 열린다. 옛 공용 컴포넌트는 Select 전체 폭에 맞춰 붙였다
+- Select 의 「+」 (항목 넣기) 는 Popover 안 ListBox 에 넣는다 · 데이터에 묶인 Select 의 행 템플릿도 Popover 안 첫 항목
+- 항목 (`ListBoxItem` · `ListBoxSection`) 은 ListBox 안에서만 받는다 — Select 바로 아래 항목은 RAC 가 collection 으로 그리지 않는다. Popover 밖에 둔 ListBox 는 RAC 가 Select context 로 그리므로 Canvas 도 그린다
+- Label · 도움말 자리에 다른 field 와 같은 `presentWhen` (빈 글자면 없음)
+- 저장 형식 contract 20 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+- 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/runtime/{delegatedDom,domBinding,presence}.ts(x)` · `catalog/nesting/{nestingRules,requiredParts}.ts` · `domain/componentTraits.ts` · `catalogRuntime/{itemInsert,rowTemplate}.ts`
+
 ## [ADR-256 Phase 6b — 입력 상자 = RAC Group 노드] - 2026-10-09
 
 ### Changed

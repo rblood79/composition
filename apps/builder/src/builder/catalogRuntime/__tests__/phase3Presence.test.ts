@@ -105,7 +105,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 19,
+    libraryContractVersion: 20,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -501,10 +501,12 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "lib:definition:origin-component-select" as DefinitionId,
       "select",
     );
-    // The items sit in the Select's ListBox (ADR-253 Phase 4): the closed list is hidden, and its
-    // subtree with it.
+    // The items sit in the Select's ListBox (ADR-253 Phase 4), in its Popover (ADR-256 Phase 6c):
+    // the closed Popover is hidden, and its subtree with it.
+    const popover = select.byType("Popover");
+    expect(popover.map((node) => node.hidden)).toEqual([true]);
     const list = select.byType("ListBox");
-    expect(list.map((node) => node.hidden)).toEqual([true]);
+    expect(list.map((node) => node.parentId)).toEqual([popover[0]!.id]);
     const listItems = select.byType("ListBoxItem");
     expect(listItems.length).toBeGreaterThan(0);
     expect(listItems.every((item) => item.parentId === list[0]!.id)).toBe(true);

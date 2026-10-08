@@ -38,7 +38,9 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     TooltipTrigger: new Set(["Tooltip"]),
     DatePicker: new Set(["Calendar", "Popover"]),
     DateRangePicker: new Set(["RangeCalendar", "Calendar", "Popover"]),
-    Select: new Set(["ListBox", "ListBoxItem", "ListBoxSection", "Popover"]),
+    // ADR-256 Phase 6c: a Select's list is in its Popover (a ListBox outside it shows — RAC draws
+    // it in the Select's context; items sit only in a ListBox).
+    Select: new Set(["Popover"]),
     ComboBox: new Set(["ListBox", "ListBoxItem", "ListBoxSection", "Popover"]),
     // RAC MenuTrigger: the items live in the closed Popover; only the trigger button shows.
     Menu: new Set([
