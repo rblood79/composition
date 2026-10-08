@@ -2074,7 +2074,9 @@ export class CatalogCompositionRoot {
     let owner = wrapper;
     while (owner && this.typeOf(owner) === "Group") {
       const parent = get(owner.parentId);
-      if (!isFieldControlGroup("Group", parent ? this.typeOf(parent) : undefined))
+      if (
+        !isFieldControlGroup("Group", parent ? this.typeOf(parent) : undefined)
+      )
         break;
       owner = parent;
     }
@@ -3432,9 +3434,19 @@ export class CatalogCompositionRoot {
     };
     for (const update of planned.updates)
       rootPlan(update.rootId).updates.push(update);
+    // A removed record goes with the records under it — an instance's include its origin template's,
+    // which are not document entries in `removedIds` (left behind, they stayed in the Canvas and DOM
+    // inputs, and an item an author had put a node into pointed at the removed node).
+    const removed = new Set<string>();
+    const remove = (id: string) => {
+      const record = this.records.get(id);
+      if (!record || removed.has(id)) return;
+      removed.add(id);
+      rootPlan(this.recordRoots.get(id)!).removed.push(id);
+      for (const child of record.children) remove(child);
+    };
     for (const sourceId of result.removedIds)
-      for (const id of this.sourceInstances.get(sourceId) ?? [])
-        rootPlan(this.recordRoots.get(id)!).removed.push(id);
+      for (const id of this.sourceInstances.get(sourceId) ?? []) remove(id);
     return {
       result,
       roots: [...byRoot.values()],

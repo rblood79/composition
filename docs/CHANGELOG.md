@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6f — picker 항목의 선택 표시를 작성자 노드로 바꿀 수 있다] - 2026-10-08
+
+### Changed
+
+- **Select · ComboBox 의 항목에 작성자가 넣은 선택 표시 노드가 RAC 의 선택을 따른다** (ADR-256 Phase 6f):
+  - 기본은 그대로 — 열린 목록에서 고른 항목 왼쪽에 sheet 의 ✓ 글리프
+  - 항목 안에 `Show when: isSelected` 노드 (레퍼런스 DropdownItem 의 `isSelected && <Check />` — 예: check Icon) 를 넣으면 그 노드가 Preview 에서 고른 항목에만 보이고, 그 항목의 글리프는 비킨다 (둘이 겹치지 않는다). 아이콘 노드는 글리프 자리 (왼쪽 여백, 세로 가운데) 에 놓인다
+  - **Why**: 옛 Preview 의 ListBoxItem 은 RAC 의 선택 상태를 자식에게 넘기지 않아 `isSelected` 조건 노드가 문서 값 (늘 거짓) 으로만 판정됐다 — Menu 항목 (Phase 5g) 과 같은 길로 맞췄다
+  - 원본 · 저장 형식 변경 없음 (contract 22 그대로)
+  - 위치: `catalog/runtime/domBinding.tsx` (`STATE_FRAME_ITEMS` · `hasSelectionMark`) · `components/styles/ListBox.css`
+
+### Fixed
+
+- **항목에 노드를 넣은 인스턴스를 지우면 Canvas 장면 조립이 실패하던 결함**:
+  - 항목 안에 노드를 넣은 Select (등 원본 instance) 를 지우면 Canvas 장면 조립이 `CATALOG_CANVAS_CHILD_REQUIRED` 로 실패했다 (콘솔 오류)
+  - **Why**: 지우기 빠른 경로가 지운 문서 노드의 record 만 지우고, 원본 template 이 준 내부 record (Label · Button · ListBox · 항목 …) 는 Canvas · DOM 입력에 남겼다. 평소에는 화면에 닿지 않는 고아 record 라 보이지 않았지만, 작성자가 넣은 노드는 지워져 남은 항목이 없는 자식을 가리켰다
+  - 수정: 지운 record 아래의 record 전체를 함께 지운다 (일반 경로와 같은 결과)
+  - 위치: `catalog/runtime/compositionRoot.ts` (`planOwnedRemovalOrOrder`)
+
 ## [ADR-256 Phase 6e — DatePicker · DateRangePicker 를 노드 트리로 그린다] - 2026-10-09
 
 ### Changed

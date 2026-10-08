@@ -346,6 +346,25 @@
         }
       }
 
+      /* ADR-256 Phase 6f — 작성자의 선택 표시 노드 (레퍼런스 DropdownItem 의 `isSelected && <Check />`,
+       * `showWhen: isSelected`) 가 있는 항목은 그 노드가 표시다. 위 글리프는 비키고 (`data-selection-mark`
+       * — `domBinding.tsx` `hasSelectionMark`, Menu.css 와 같은 길), 아이콘 노드는 글리프 자리 (왼쪽
+       * gutter) 에 놓인다 — 레퍼런스 `.dropdown-item[data-selected] .lucide-check` 처럼. */
+      &[data-selection-mark]::before {
+        display: none;
+      }
+
+      &[data-selection-mark] > .react-aria-Icon:not([slot]) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 18px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
       &[data-focused],
       &[data-pressed] {
         background: var(--bg-overlay);

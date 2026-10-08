@@ -1274,6 +1274,11 @@ function ruleDom(
       ...(lower === "listboxitem" && itemLabelText(root, node)
         ? { textValue: itemLabelText(root, node) }
         : {}),
+      // ADR-256 Phase 6f: a picker item's author mark (the reference DropdownItem's Check) stands in
+      // for the sheet's glyph (`ListBox.css`), as a MenuItem's does.
+      ...(lower === "listboxitem" && hasSelectionMark(root, node)
+        ? { "data-selection-mark": "" }
+        : {}),
       // A Tag's · GridListItem's text is its label Text's (the reference's plain children ·
       // `textValue={image.title}` — the row's name).
       ...(lower === "tag" || lower === "gridlistitem"
@@ -1329,9 +1334,14 @@ function ruleDom(
 }
 
 /** Collection items that pass their RAC render props to their parts (`catalogStateChildren`). */
-const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set(["tag", "menuitem"]);
+const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set([
+  "tag",
+  "menuitem",
+  // ADR-256 Phase 6f: a picker item's mark shown while it is selected.
+  "listboxitem",
+]);
 
-/** Whether an item holds a node shown while it is selected (a MenuItem's Check / Dot). */
+/** Whether an item holds a node shown while it is selected (a MenuItem's · picker item's Check / Dot). */
 function hasSelectionMark(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
