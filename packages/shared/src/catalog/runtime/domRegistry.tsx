@@ -1,4 +1,5 @@
-import type { ElementType } from "react";
+import { createElement, type ElementType, type HTMLAttributes } from "react";
+import { Keyboard } from "react-aria-components/Keyboard";
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
@@ -38,10 +39,20 @@ import {
   deriveDelegatingRacRenderers,
 } from "./renderFacetDeclaration";
 
+/**
+ * ADR-256 Phase 5g: RAC `Keyboard` (`<kbd>`) — in a MenuItem it takes the item's `KeyboardContext`
+ * (its id, the item's `aria-describedby`). RAC sets no class of its own; the rule's sheet reads
+ * `.react-aria-Keyboard`.
+ */
+function CatalogKeyboard(props: HTMLAttributes<HTMLElement>) {
+  return createElement(Keyboard, { className: "react-aria-Keyboard", ...props });
+}
+
 export const INTERNAL_RENDERERS: Readonly<
   Record<string, ElementType | undefined>
 > = {
   icon: Icon,
+  keyboard: CatalogKeyboard,
   chart: Chart,
   badge: Badge,
   skeleton: Skeleton,

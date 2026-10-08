@@ -1197,6 +1197,11 @@ function ruleDom(
             ...(typeof node.props.href === "string" && node.props.href
               ? { href: node.props.href }
               : {}),
+            // The author's selection mark (a node shown while `isSelected` — the reference's
+            // Check / Dot) stands in for the sheet's glyph (`Menu.css`).
+            ...(hasSelectionMark(root, node)
+              ? { "data-selection-mark": "" }
+              : {}),
           }
         : {}),
       ...(STATIC_ITEM_TYPES.has(type)
@@ -1267,7 +1272,23 @@ function ruleDom(
 }
 
 /** Collection items that pass their RAC render props to their parts (`catalogStateChildren`). */
-const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set(["tag"]);
+const STATE_FRAME_ITEMS: ReadonlySet<string> = new Set(["tag", "menuitem"]);
+
+/** Whether an item holds a node shown while it is selected (a MenuItem's Check / Dot). */
+function hasSelectionMark(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  return node.children.some((id) => {
+    const child = root.domInputs.get(id);
+    return (
+      !!child?.showWhen &&
+      catalogStateConditions(child.showWhen).some(
+        (condition) => condition.key === "isSelected" && !condition.not,
+      )
+    );
+  });
+}
 
 /** An item's text: its Text children's without a slot name (a Tag's · GridListItem's label). */
 function itemTextChildren(

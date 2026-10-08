@@ -25,6 +25,13 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "icon",
     icon: "Smile",
   },
+  // ADR-256 Phase 5g (2026-10-09): a keyboard shortcut (RAC Keyboard) — the reference's MenuItem part.
+  {
+    type: "Keyboard",
+    category: "content",
+    label: "keyboard shortcut",
+    icon: "Keyboard",
+  },
   {
     type: "Separator",
     category: "content",

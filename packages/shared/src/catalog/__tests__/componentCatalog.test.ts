@@ -114,6 +114,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Paragraph",
         "Code",
         "Kbd",
+        // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard).
+        "Keyboard",
         "Label",
         "Description",
         "FieldError",

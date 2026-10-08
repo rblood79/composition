@@ -2153,12 +2153,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-menu-item-default__shortcut",
-    "definitionId": "lib:definition:text",
+    "definitionId": "lib:definition:type-Keyboard",
     "children": [],
     "props": {
-      "slot": "shortcut",
       "children": "{shortcut}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

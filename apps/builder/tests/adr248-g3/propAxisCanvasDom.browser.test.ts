@@ -134,6 +134,8 @@ const CASES: Array<{
     type: "TagGroup",
     props: { description: "Pick some", errorMessage: "Pick fewer" },
   },
+  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — the reference `Menu.css` kbd chip).
+  { key: "Keyboard", type: "Keyboard", props: { children: "⌘C" } },
   // ADR-256 Phase 5f: the author's selection Checkbox first in each item (through the item's
   // position, as the Builder's insert) — RAC connects it to the item (CheckboxField slot
   // `selection`).
@@ -208,7 +210,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 15,
+    libraryContractVersion: 16,
     revision: 0,
     projectId,
     rootId: projectId,

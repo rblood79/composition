@@ -59,6 +59,7 @@ const CHILDREN_TEXT_TYPES: ReadonlySet<string> = new Set([
   "label",
   "description",
   "kbd",
+  "keyboard",
   "code",
   "fielderror",
 ]);

@@ -78,6 +78,7 @@ export type ComponentTag =
   | "InlineAlert"
   | "Input"
   | "Kbd"
+  | "Keyboard"
   | "Label"
   | "Link"
   | "ListBox"

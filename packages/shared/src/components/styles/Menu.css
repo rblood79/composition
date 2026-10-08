@@ -47,4 +47,11 @@
   .react-aria-MenuItem[data-selection-mode="single"][data-selected]::before {
     content: "●" / "";
   }
+
+  /* 작성자의 선택 표시 노드 (ADR-256 Phase 5g — 레퍼런스의 Check / Dot, `showWhen: isSelected`) 가
+     항목에 있으면 그 노드가 표시다 — 이 글리프 열은 비킨다 (두 개가 겹치지 않게). DOM 이 그런 항목에
+     `data-selection-mark` 를 단다 (`domBinding.tsx` `hasSelectionMark`). */
+  .react-aria-MenuItem[data-selection-mark][data-selection-mode]::before {
+    display: none;
+  }
 }

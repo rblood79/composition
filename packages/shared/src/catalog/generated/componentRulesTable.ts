@@ -6131,6 +6131,59 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut). The reference
+  //   `Menu.css` `kbd`: a small key chip — one step smaller text (`--font-size-sm`), 0 4px padding,
+  //   small radius, a subtle fill and border, the item's font (not mono — unlike Kbd).
+  Keyboard: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.neutral-subtle}",
+            hover: "{color.neutral-subtle}",
+            pressed: "{color.neutral-subtle}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.border}",
+        },
+        textWeight: 400,
+      },
+    },
+    sizes: {
+      md: {
+        paddingX: 4,
+        fontSize: "{typography.text-xs}",
+        lineHeight: "{typography.text-xs--line-height}",
+        borderRadius: "{radius.sm}",
+        borderWidth: "{border.width.thin}",
+        height: 18,
+      },
+    },
+    structure: {
+      archetype: "simple",
+      element: "kbd",
+      containerStyles: {
+        display: "inline-flex",
+        alignItems: "center",
+      },
+      // The item's font (the reference sets `font-family: system-ui`, not the `<kbd>` default
+      //   monospace) — the Canvas draws the theme sans, the DOM inherits it.
+      composition: {
+        rootSelectors: {
+          "&": {
+            styles: {
+              "font-family": "inherit",
+            },
+          },
+        },
+        delegation: [],
+      },
+    },
+  },
   Label: {
     defaultVariant: "default",
     defaultSize: "md",

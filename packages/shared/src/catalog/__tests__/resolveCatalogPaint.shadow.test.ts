@@ -265,7 +265,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // 2026-10-06: ProgressBarTrack accent · neutral variant 추가로 8,352 → 8,424 (+72). diffs 0 유지.
     // ADR-253 (2026-10-06): SelectTrigger `plain` variant (배치 전용 wrapper) 추가로 8,424 → 8,460 (+36). diffs 0 유지.
     // ADR-253 Phase 6 (2026-10-07): SelectTrigger `accent` · `negative` variant 제거 (template 사용 0) 로 8,460 → 8,388.
-    expect(compared).toBe(8_388);
+    // (ADR-256 Phase 5g: + Keyboard — 36 cases.)
+    expect(compared).toBe(8_424);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

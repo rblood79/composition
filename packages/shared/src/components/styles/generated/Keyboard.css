@@ -1,0 +1,73 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog Keyboard — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: simple
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-Keyboard {
+  /* Base styles — archetype: simple */
+    display: inline-flex;
+    align-items: center;
+    box-sizing: border-box;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+
+  /* Default variant */
+  background: var(--bg-muted);
+  color: var(--fg);
+  border: var(--border-width-thin) solid var(--border);
+
+  /* Default size */
+  height: 18px;
+  padding: 0px 4px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  line-height: var(--text-xs--line-height);
+  border-width: var(--border-width-thin);
+}
+
+.react-aria-Keyboard[data-variant="default"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: var(--border);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
+  }
+
+  &[data-pressed] {
+    background: var(--bg-muted);
+  }
+}
+
+.react-aria-Keyboard[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Keyboard[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Keyboard {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-Keyboard {
+    font-family: inherit;
+  }
+
+
+} /* @layer components */

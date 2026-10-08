@@ -358,6 +358,7 @@ export const HTML_PHRASING_ONLY_PARENT_TYPES: ReadonlySet<string> = new Set([
   "Label",
   "Code",
   "Kbd",
+  "Keyboard",
   "Description",
 ]);
 
@@ -367,6 +368,7 @@ export const HTML_PHRASING_CHILD_TYPES: ReadonlySet<string> = new Set([
   "Icon",
   "Link",
   "Kbd",
+  "Keyboard",
   "Code",
   "Image",
   "Badge",

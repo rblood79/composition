@@ -170,6 +170,12 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "keyboard key",
     icon: "Keyboard",
   }),
+  // Keyboard — ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut).
+  primitiveEntry("Keyboard", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "keyboard shortcut",
+    icon: "Keyboard",
+  }),
   // ADR-912 위험군 해소(선행-6): field/form 라벨 leaf. TEXT_LEAF 동형(box+text generic),
   //   부모 의존 4단계 변형(label/necessity/align/nowrap)은 dispatch 이전 specProps 단이라 직교.
   //   rule textWeight 600 + lineHeight 완비로 drift 0.

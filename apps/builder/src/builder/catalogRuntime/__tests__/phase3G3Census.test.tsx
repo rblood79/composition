@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 15,
+    libraryContractVersion: 16,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -545,6 +545,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + DisclosureChevron (the Disclosure trigger's chevron node, 2026-10-07).
     // + CheckboxButton · SwitchButton · RadioButton (ADR-256 Phase 3 — RAC *Field > *Button, 2026-10-08).
     // + SelectionIndicator (ADR-256 Phase 5e — the Tab's selection bar node).
-    expect(types.length).toBe(143);
+    // + Keyboard (ADR-256 Phase 5g — a MenuItem's shortcut).
+    expect(types.length).toBe(144);
   }, 120_000);
 });

@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5g-1 — Menu 항목의 단축키 = Keyboard 노드 · 선택 표시 노드] - 2026-10-09
+
+### Added
+
+- **새 요소 `Keyboard` (키보드 단축키)** — 팔레트 content 에서 꺼내 Menu 항목 안에 넣는다 (react-aria.adobe.com Menu 예제: `MenuItem > Text[label] + Text[description] + Keyboard`). Preview 는 RAC `Keyboard` (`<kbd>`) 로 그리고, Menu 항목 안에서는 RAC 가 그 단축키로 항목을 설명한다 (`aria-describedby`). 모양은 레퍼런스 `Menu.css` 의 `kbd` — 한 단계 작은 글자 · 옅은 배경 · 테두리 · 작은 모서리 (`COMPONENT_RULES_TABLE.Keyboard`)
+
+### Changed
+
+- **Menu 항목 원본의 단축키는 Keyboard 노드** — 종전 `Text[slot=shortcut]` 은 RAC 가 주지 않는 slot 이름이라 항목과 이어지지 않는 글자였다. 단축키 글자가 비면 그리지 않는다 (`presentWhen`). 기본 Menu 의 항목은 단축키를 끈 채라 화면 변화 없음
+- **Menu 항목 안 요소가 항목의 상태를 읽는다** (`showWhen` — 레퍼런스의 선택 Check / Dot): 항목 안에 아이콘을 넣고 「선택됐을 때만」 으로 두면 RAC 의 선택 상태로 보이고 숨는다. 그런 항목에서는 Menu 시트의 선택 글리프 (✓ / ●) 가 비킨다 — 두 표시가 겹치지 않는다. 표시 노드가 없는 항목은 종전 글리프 그대로
+- 위치: `catalog/bindings/Keyboard.binding.ts` · `catalog/runtime/domRegistry.tsx` · `domBinding.tsx` `STATE_FRAME_ITEMS` · `hasSelectionMark` · `components/styles/Menu.css`
+- **저장 형식 contract 16**
+
 ## [ADR-256 Phase 5f — GridList 항목의 선택 체크박스 노드] - 2026-10-09
 
 ### Changed

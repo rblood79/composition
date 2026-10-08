@@ -16,6 +16,7 @@
 
 import {
   AlertTriangle,
+  Keyboard,
   AppWindow,
   AppWindowMac,
   BarChart3,
@@ -114,6 +115,7 @@ export const ICON_MAP: Record<
   React.ComponentType<React.SVGProps<SVGSVGElement>>
 > = {
   AlertTriangle,
+  Keyboard,
   AppWindow,
   AppWindowMac,
   BarChart3,
@@ -204,6 +206,9 @@ const PALETTE_ORDER: ReadonlyArray<{
 }> = [
   { type: "Text", source: "catalog" },
   { type: "Icon", source: "catalog" },
+  // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard) — the reference's MenuItem part, put in
+  //   by the author (G0 example 2). A content primitive like Text · Icon (no origin of its own).
+  { type: "Keyboard", source: "catalog" },
   { type: "Separator", source: "catalog" },
   { type: "Badge", source: "catalog" },
   { type: "ProgressBar", source: "catalog" },
