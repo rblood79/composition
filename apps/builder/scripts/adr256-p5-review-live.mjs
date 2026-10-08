@@ -290,6 +290,33 @@ record(
   { made, g5, del, g6 },
 );
 
+// Round 13: after that delete the reusable row keeps up — a new column (Design), the new column
+// moved to the front (the Layers drag's command), a new row (Design).
+await insertVia("TableHeader", "Insert Column", 1);
+await page.waitForTimeout(600);
+const lastColumn = await page.evaluate(() => {
+  const ws = window.__COMPOSITION_CATALOG__.workspace;
+  return [...ws.root.canvasInputs.values()].filter((r) => ws.root.typeOf(r) === "Column").at(-1)?.sourceId;
+});
+const headerId = await partId("TableHeader");
+const moved = await run(
+  (c, ws, at, arg) => c.moveNodes({ ids: [arg.lastColumn], parent: at(arg.headerId), index: 0, newId: ws.newId }),
+  { lastColumn, headerId },
+);
+await insertVia("TableBody", "Insert Row", 1);
+await page.waitForTimeout(800);
+const g7 = await tableGrid(tableId);
+const texts = await page.evaluate((tableId) => {
+  const doc = document.querySelector("#previewFrame")?.contentDocument;
+  const table = doc?.querySelector(`[data-catalog-id="${CSS.escape(tableId)}"]`);
+  return [...(table?.querySelectorAll("tbody [role=row]") ?? [])].map((row) => [...row.children].map((c) => c.textContent));
+}, tableId);
+record(
+  "R-4b (h1 Round 13) after the delete: a new column, moved to the front, and a new row — every row (the reusable one too) keeps a cell per column",
+  moved.ok && g7.columns === 3 && JSON.stringify(g7.rows) === "[3,3,3]",
+  { moved, g7, texts },
+);
+
 // ── Menu (m5) ───────────────────────────────────────────────────────────
 await newProject("ADR-256 P5 review submenu");
 await addFromPalette("menu");

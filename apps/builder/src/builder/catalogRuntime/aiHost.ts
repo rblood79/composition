@@ -624,7 +624,7 @@ export function createCatalogAiWriteHost(
         const target = targetOf(id);
         if (!target) return { ok: false, error: `ELEMENT_NOT_FOUND: ${id}` };
         runSteps(workspace, "AI: delete", [
-          removeTargets({ targets: [target] }),
+          removeTargets({ targets: [target], newId: workspace.newId }),
         ]);
         return { ok: true };
       } catch (error) {

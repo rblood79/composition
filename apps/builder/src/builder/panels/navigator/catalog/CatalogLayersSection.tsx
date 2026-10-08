@@ -213,9 +213,14 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
 
   const handleDelete = useCallback(
     (node: CatalogLayerNode) => {
-      run(removeTargets({ targets: [node.position.target] }));
+      run(
+        removeTargets({
+          targets: [node.position.target],
+          newId: workspace.newId,
+        }),
+      );
     },
-    [run],
+    [run, workspace],
   );
   const dropCommand = useCallback(
     (

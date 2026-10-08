@@ -38,6 +38,7 @@ import {
 } from "./context";
 import { ensureChildList, type NewId } from "./materialize";
 import {
+  dropTableColumnTemplateCells,
   tableAlignedIn,
   tableColumnCells,
   tableColumnOrder,
@@ -691,7 +692,7 @@ export const moveNodes =
     const columnOrders = roots.flatMap((id) => {
       const order =
         holdsRacTable(reader) && revisionType(reader, id) === "Column"
-          ? tableColumnOrder(draft, id)
+          ? tableColumnOrder(draft, id, input.newId)
           : undefined;
       return order ? [order] : [];
     });
@@ -794,6 +795,11 @@ export function removeWithReferrers(
 export interface RemoveInput {
   /** Owned nodes are deleted; an instance's template position is hidden (`enabled: false`). */
   targets: readonly EditTarget[];
+  /**
+   * New ids for copies a delete makes: a RAC Table column's delete makes a reusable row's template
+   * cells the row's own (ADR-256 Phase 5 Round 13) — refused without.
+   */
+  newId?: NewId;
   label?: string;
 }
 export const removeTargets =
@@ -803,6 +809,13 @@ export const removeTargets =
     // ADR-256 Phase 5i-3: a RAC Table column takes its cell in every aligned row along (G0 ⑨ —
     // one transaction, as a new column gives every row a cell). A reusable row's template cell is
     // hidden there, as a deleted template position is (Round 12).
+    if (holdsRacTable(reader))
+      for (const target of input.targets)
+        if (
+          target.kind !== "node" ||
+          revisionType(reader, target.id) === "Column"
+        )
+          dropTableColumnTemplateCells(draft, target, input.newId);
     const targets = [
       ...input.targets,
       ...tableColumnCellTargets(reader, draft, input.targets),

@@ -519,7 +519,10 @@ export function catalogCanvasMenuItems(
       ...action(
         "delete",
         "contextMenu.delete",
-        removeTargets({ targets: elements.map((item) => item.target) }),
+        removeTargets({
+          targets: elements.map((item) => item.target),
+          newId: host.newId,
+        }),
         "delete",
         ACTION_ICONS.delete,
         true,

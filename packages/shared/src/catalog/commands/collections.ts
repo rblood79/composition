@@ -875,17 +875,13 @@ export function tableColumnCells(
 export function tableColumnOrder(
   draft: CommandDraft,
   columnId: NodeId,
+  newId: NewId,
 ): { follow(): void } | undefined {
   const grid = tableColumnGrid(draft, { kind: "node", id: columnId });
   if (!grid) return undefined;
   const { header } = grid;
   const before = grid.columns.map(positionKey);
-  const rows = grid.rows.map(({ row, cells }) => ({
-    id: row.kind === "node" ? row.id : undefined,
-    cells: cells.every((cell) => cell.kind === "node")
-      ? cells.map((cell) => positionId(cell) as NodeId)
-      : undefined,
-  }));
+  const rows = grid.rows.map(({ row }) => row);
   return {
     follow() {
       const after = partChildren(draft, header).map(positionKey);
@@ -895,18 +891,77 @@ export function tableColumnOrder(
       )
         return;
       for (const row of rows) {
-        if (!row.id || !row.cells) {
+        // (A row in an instance's template has no list of its own to reorder.)
+        if (row.kind !== "node") {
           fail("TABLE_CELLS_NOT_ALIGNED", positionId(header));
           return;
         }
+        // A reusable row's template cells become its own first (Round 13), then all its cells take
+        // the header's new order — in the list its template cells were in, else its own.
+        const root = ownTableRowCells(draft, row, newId);
+        const cells = partChildren(draft, row).map(
+          (cell) => positionId(cell) as NodeId,
+        );
+        const ordered = after.map((key) => cells[before.indexOf(key)]!);
         const node = draft.node(row.id);
-        draft.write({
-          ...node,
-          children: after.map((key) => row.cells![before.indexOf(key)]!),
-        });
+        if (root) {
+          draft.write({ ...node, children: [] });
+          setChildList(draft, root, ordered);
+        } else draft.write({ ...node, children: ordered });
       }
     },
   };
+}
+
+/**
+ * ADR-256 Phase 5 Round 13 — a reusable row's (a component instance's) template cells made its own
+ * (`ensureChildList` — copies in the instance, as a detach copies): a column delete or move then
+ * edits real cells instead of leaving hidden template positions that every later count would
+ * read. Returns the row's template root position when it has one.
+ */
+function ownTableRowCells(
+  draft: CommandDraft,
+  row: NodeParent,
+  newId: NewId | undefined,
+): NodeParent | undefined {
+  const root = compositeRootOf(draft, row);
+  if (!root || childList(draft, root) || !childPositions(draft, root).length)
+    return root;
+  if (!newId) return fail("TABLE_CELLS_NOT_ALIGNED", positionId(row));
+  ensureChildList(draft, root, newId);
+  return root;
+}
+
+/**
+ * A RAC Table column's delete in its reusable rows (Round 13): each row whose cells are still its
+ * template's takes them as its own, without the copy at the column's place (the copies are new —
+ * the delete's other cells, already the rows' own, go the usual way).
+ */
+export function dropTableColumnTemplateCells(
+  draft: CommandDraft,
+  column: NodeParent,
+  newId: NewId | undefined,
+): void {
+  const grid = tableColumnGrid(draft, column);
+  if (!grid) return;
+  const index = grid.columns.findIndex(
+    (position) => positionKey(position) === positionKey(column),
+  );
+  for (const { row } of grid.rows) {
+    const root = compositeRootOf(draft, row);
+    if (!root || childList(draft, root) || !childPositions(draft, root).length)
+      continue;
+    ownTableRowCells(draft, row, newId);
+    const ids = childList(draft, root)!;
+    const dropped = ids[index];
+    if (!dropped) continue;
+    setChildList(
+      draft,
+      root,
+      ids.filter((id) => id !== dropped),
+    );
+    removeWithReferrers(draft, subtree(draft, dropped));
+  }
 }
 
 /** The hiding a new cell under `column` copies (a hidden column's cells are hidden — Round 12). */
@@ -1086,6 +1141,12 @@ export const insertTableRow =
           : entry,
       );
     }
+    // (A row whose definition brings cells of its own — a reusable row's — would hold more.)
+    if (
+      partChildren(draft, { kind: "node", id: built.rootId }).length !==
+      columnCount
+    )
+      fail("TABLE_ROWS_NOT_ALIGNED", built.rootId);
     setChildList(draft, input.body, [...rows, built.rootId]);
     return {
       label: input.label ?? "Add row",

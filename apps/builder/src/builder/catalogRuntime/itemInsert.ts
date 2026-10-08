@@ -288,8 +288,14 @@ export function catalogItemInsertChoices(
           const cells = Array.from({ length: columnCount }, () =>
             entry(cellDefinition, "Cell"),
           );
+          // (A plain Row like the palette's: a reusable row — a project component — brings its
+          // own cells, ADR-256 Phase 5 Round 13.)
           const next = entry(
-            definitionFor("Row"),
+            rows.find(
+              (child) =>
+                typeOf(graph, child.definitionId) === "Row" &&
+                child.definitionId.startsWith("lib:"),
+            )?.definitionId ?? catalogPaletteDefinitionId(graph.library, "Row"),
             "Row",
             undefined,
             cells.map((cell) => cell.id),

@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **첫 열을 행 이름 열에서 빼면 (`isRowHeader` 끔) 표가 멈추던 것** — 다음 열이 행 이름을 맡는다. 띄워 둔 Preview 에서 첫 열을 지우거나 다른 열의 `isRowHeader` 를 바꿔도 행 이름 열이 따라간다 (다른 열이 다시 그려지지 않아 행 이름 열이 없어지던 것)
 - **Tree 의 chevron 버튼을 frame 으로 묶으면** Canvas 에서 잎 항목의 glyph 가 보이고 버튼이 Button 기본 크기 (50) 가 되던 것 — chevron 판정 · 모양이 frame 을 건넌다 (RAC context 와 `Tree.css` 자손 선택자처럼)
 - **하위 메뉴 (`SubmenuTrigger`) 의 Popover 를 항목보다 앞에 두면 메뉴 전체가 열리지 않던 것** — Preview 는 항목 · Popover 를 RAC 가 읽는 순서로 넘긴다. Popover 를 아직 넣지 않은 하위 메뉴는 항목만 보통 항목으로 그린다 (전에는 항목이 사라졌다)
-- 위치: `catalog/commands/{collections,structure,fields}.ts` (`tableAlignedIn` · `tableHidingTargets` · `partChildren`) · `catalog/runtime/domBinding.tsx` (`columnIsRowHeader` · 열 형제 구독 · `submenuTriggerChildren`) · `catalog/runtime/presence.ts` · `catalog/resolution/resolver.ts`
+- **컴포넌트 행이 있는 표에서 열을 지운 뒤의 편집** (Round 13) — 열 삭제가 그 행의 칸을 숨김으로 남겨, 이어서 열을 넣거나 옮기거나 행을 넣으면 표가 다시 멈추거나 값이 다른 열 아래로 갔다. 이제 열 삭제 · 열 이동은 그 행의 칸을 행의 자기 칸으로 꺼내 실제로 지우고 옮긴다. Design 「Insert Row」 는 컴포넌트 행 옆에서도 보통 행을 만든다 (전에는 컴포넌트의 칸까지 붙어 칸이 남았다)
+- 위치: `catalog/commands/{collections,structure,fields}.ts` (`tableAlignedIn` · `tableHidingTargets` · `partChildren` · `dropTableColumnTemplateCells`) · `catalogRuntime/itemInsert.ts` · `catalog/runtime/domBinding.tsx` (`columnIsRowHeader` · 열 형제 구독 · `submenuTriggerChildren`) · `catalog/runtime/presence.ts` · `catalog/resolution/resolver.ts`
 
 ## [ADR-256 Phase 5i-3 — Table 의 행은 열마다 칸 하나] - 2026-10-09
 

@@ -30,6 +30,7 @@ import type {
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { renderCatalogDom } from "../domBinding";
+import { catalogItemInsertChoices } from "../itemInsert";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -694,7 +695,7 @@ describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => 
     return { ...opened, cell };
   }
 
-  it("h1 — a reusable row's cells count: deleting a column hides its cell there too", async () => {
+  it("h1 — a reusable row's cells count: deleting a column deletes its cell there too", async () => {
     const { workspace, record, draw } = await openWithReusableRow();
     expect(cellsOf(draw())[0]).toEqual(["Games", "File folder"]);
     workspace.execute(
@@ -702,6 +703,7 @@ describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => 
         targets: [
           workspace.positionOfRecord(record("project:node:name").id)!.target,
         ],
+        newId: workspace.newId,
       }),
     );
     expect(cellsOf(draw())).toEqual([
@@ -711,8 +713,8 @@ describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => 
     ]);
   });
 
-  it("h1 — a reusable row's own cell cannot be deleted alone, and its template cells cannot follow a column move", async () => {
-    const { workspace, record, cell } = await openWithReusableRow();
+  it("h1 — a reusable row's own cell cannot be deleted alone, and a column move takes its cells along (Round 13)", async () => {
+    const { workspace, record, cell, draw } = await openWithReusableRow();
     expect(
       refusal(() =>
         workspace.execute(
@@ -722,16 +724,153 @@ describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => 
         ),
       ),
     ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    workspace.execute(
+      moveNodes({
+        ids: [record("project:node:type").sourceId as NodeId],
+        parent: workspace.positionOfRecord(record("project:node:header").id)!
+          .target as never,
+        index: 0,
+        newId: workspace.newId,
+      }),
+    );
+    expect(cellsOf(draw())).toEqual([
+      ["File folder", "Games"],
+      ["File folder", "Program Files"],
+      ["System file", "bootmgr"],
+    ]);
+  });
+
+  it("h1 (Round 13) — after a column is deleted, the reusable row keeps up: a new column, a moved column, a new row", async () => {
+    const { workspace, record, draw } = await openWithReusableRow();
+    const header = () =>
+      workspace.positionOfRecord(record("project:node:header").id)!.target;
+    const addColumn = () =>
+      workspace.execute(
+        insertTableColumns({
+          header: header(),
+          buildColumn: () => {
+            const column = node(workspace.newId("node"), "Column", {
+              children: "New",
+            });
+            return { entries: [column], rootId: column.id as NodeId };
+          },
+          buildCell: () => {
+            const c = node(workspace.newId("node"), "Cell", {
+              children: "+",
+            });
+            return { entries: [c], rootId: c.id as NodeId };
+          },
+          newId: workspace.newId,
+        }),
+      );
+    addColumn();
+    workspace.execute(
+      removeTargets({
+        targets: [
+          workspace.positionOfRecord(record("project:node:name").id)!.target,
+        ],
+        newId: workspace.newId,
+      }),
+    );
+    addColumn();
+    expect(cellsOf(draw())).toEqual([
+      ["File folder", "+", "+"],
+      ["File folder", "+", "+"],
+      ["System file", "+", "+"],
+    ]);
+    // (The last column to the front: every row's cells follow, the reusable row's too.)
+    const columns = [...workspace.root.domInputs.values()].filter(
+      (r) => workspace.root.typeOf(r) === "Column",
+    );
+    workspace.execute(
+      moveNodes({
+        ids: [columns.at(-1)!.sourceId as NodeId],
+        parent: header() as never,
+        index: 0,
+        newId: workspace.newId,
+      }),
+    );
+    expect(cellsOf(draw())).toEqual([
+      ["+", "File folder", "+"],
+      ["+", "File folder", "+"],
+      ["+", "System file", "+"],
+    ]);
+    workspace.execute(
+      insertTableRow({
+        body: workspace.positionOfRecord(record("project:node:body").id)!
+          .target,
+        buildRow: (count) => {
+          const cells = Array.from({ length: count }, () =>
+            node(workspace.newId("node"), "Cell", { children: "" }),
+          );
+          const row = {
+            ...node(workspace.newId("node"), "Row"),
+            children: cells.map((cell) => cell.id),
+          } as NodeEntry;
+          return { entries: [row, ...cells], rootId: row.id as NodeId };
+        },
+        newId: workspace.newId,
+      }),
+    );
+    expect(cellsOf(draw()).map((row) => row.length)).toEqual([3, 3, 3, 3]);
+  });
+
+  it("h1 (Round 13 live) — the Design panel's Insert Row beside a reusable row adds a plain row of a cell per column", async () => {
+    const { workspace, record, draw } = await openWithReusableRow();
+    const insertRow = catalogItemInsertChoices(
+      {
+        graph: workspace.runtime.graph,
+        readModel: workspace.readModel,
+        newId: workspace.newId,
+      },
+      workspace.positionOfRecord(record("project:node:body").id)!,
+    ).find((choice) => choice.type === "Row")!;
+    workspace.execute(insertRow.build());
+    expect(cellsOf(draw()).map((row) => row.length)).toEqual([2, 2, 2, 2]);
+    // (The command refuses a row whose cells, its template's included, miss the column count.)
+    // (The reusable row's definition — "File row".)
+    const graph = workspace.runtime.graph;
+    const componentId = (
+      graph.getEntry(
+        (graph.getEntry("project:node:body" as NodeId) as NodeEntry)
+          .children[0]!,
+      ) as NodeEntry
+    ).definitionId;
+    expect(graph.getEntry(componentId)).toMatchObject({ name: "File row" });
     expect(
       refusal(() =>
         workspace.execute(
-          moveNodes({
-            ids: [record("project:node:type").sourceId as NodeId],
-            parent: workspace.positionOfRecord(
-              record("project:node:header").id,
-            )!.target as never,
-            index: 0,
+          insertTableRow({
+            body: workspace.positionOfRecord(record("project:node:body").id)!
+              .target,
+            buildRow: (count) => {
+              const cells = Array.from({ length: count }, () =>
+                node(workspace.newId("node"), "Cell", { children: "" }),
+              );
+              const row = {
+                ...node(workspace.newId("node"), "Row"),
+                definitionId: componentId,
+                children: cells.map((cell) => cell.id),
+              } as NodeEntry;
+              return { entries: [row, ...cells], rootId: row.id as NodeId };
+            },
             newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("TABLE_ROWS_NOT_ALIGNED");
+  });
+
+  it("h1 (Round 13) — without new ids a delete cannot take a reusable row's cell: refused, not left hidden", async () => {
+    const { workspace, record } = await openWithReusableRow();
+    expect(
+      refusal(() =>
+        workspace.execute(
+          removeTargets({
+            targets: [
+              workspace.positionOfRecord(record("project:node:name").id)!
+                .target,
+            ],
           }),
         ),
       ),

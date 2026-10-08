@@ -230,7 +230,7 @@
 
 #### [256](256-rac-composition-level.md) — RAC 수준의 조립 (노드 트리를 RAC 부품 그대로 · 넣는 자리를 레퍼런스에서)
 
-- **상태**: Accepted — 2026-10-07 (G0 보고 뒤 사용자 「승인」. 사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 3 HIGH 2 · MEDIUM 1 설계 수리 완료. **G0 인벤토리 고정 2026-10-07** — 설치 RAC 1.21.0 실행 표 ([evidence](evidence/256-g0-inventory.md)) · 본문 정정 6곳 · 예제 15개 원문 고정. **Phase 1 완료 2026-10-08** — 판정 하나 · 넣기 목록 · 원본 루트 slot · RAC slot 4 경로 · 필수 짝, G1 · G4 · live 16/16, 판독 Round 4 · 수리 검증 Round 5 닫힘. **Phase 2 완료 2026-10-08** — presentWhen (Label · Description 의 값 조건) · field 7종이 노드 트리로 그림 (자유 자식) · contract 8 · G2 · G3 하니스 70/70 · live 4/4. 다음 Phase 3 toggle)
+- **상태**: Accepted — 2026-10-07 (G0 보고 뒤 사용자 「승인」. 사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 3 HIGH 2 · MEDIUM 1 설계 수리 완료. **G0 인벤토리 고정 2026-10-07** — 설치 RAC 1.21.0 실행 표 ([evidence](evidence/256-g0-inventory.md)) · 본문 정정 6곳 · 예제 15개 원문 고정. **Phase 1 완료 2026-10-08** — 판정 하나 · 넣기 목록 · 원본 루트 slot · RAC slot 4 경로 · 필수 짝, G1 · G4 · live 16/16, 판독 Round 4 · 수리 검증 Round 5 닫힘. **Phase 2 완료 2026-10-08** — presentWhen (Label · Description 의 값 조건) · field 7종이 노드 트리로 그림 (자유 자식) · contract 8 · G2 · G3 하니스 70/70 · live 4/4. **Phase 3 완료 2026-10-08** — toggle (`*Field > *Button` · 그룹 3종) · contract 9 · 판독 Round 8 · 수리 검증 Round 9 닫힘. **Phase 4 완료 2026-10-09** — 노드 `showWhen` · 주소 참조 무결성 · Design 패널 표시 조건 (4c 값 바인딩은 Phase 7 로) · 판독 Round 10 · 11 닫힘. **Phase 5 완료 2026-10-09** — collection 9 family 가 노드 트리 (Breadcrumbs · ColorSwatchPicker · ListBox · TagGroup · Tabs · GridList · Menu + SubmenuTrigger · Keyboard · Tree + TreeItemContent · Table — 행 넣기 · `isRowHeader` · 열 수 = 칸 수) · 선택 표시 = 작성자 `Checkbox[slot=selection]` · contract 18 · G3 63 PASS + 1 UNVERIFIED · prop-axis 60/60 · 번들 Builder 1,240,932 · Preview 287,150 · 판독 Round 12 (HIGH 2 · MEDIUM 3) · 수리 검증 Round 13 (HIGH 1 수리) 닫힘 · Column 안 Group 은 Phase 6 으로. 다음 Phase 6 picker)
 - **규모**: Phase 0 인벤토리 → 1 판정 하나 → 2 ~ 10 family 전환 (field · toggle · 상태별 표시 · collection · picker · range · overlay · calendar · S2) → 11 종결 (레퍼런스 예제 15개 재현). breakdown: [design/256](design/256-rac-composition-level-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -260,12 +260,12 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
-|  1   | [256](256-rac-composition-level.md)                                                            | Proposed — Phase 0 인벤토리부터 (사용자 원칙 — 빌더의 전제)  | round 3 설계 수리 완료                                                    |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                    | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
+|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제) | 다음 Phase 6 picker                                                       |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)   | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                        | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                             | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
