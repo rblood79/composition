@@ -153,6 +153,25 @@ describe("date locale — one value on the component, read by the Canvas and the
     });
   });
 
+  it("DatePicker: its locale reaches the Canvas segments of the DateInput in its control Group (ADR-256 Phase 6b)", async () => {
+    const { root, part, write } = await place("datepicker");
+    const segments = () => {
+      const id = part("DateInput").id;
+      root.getGeometry([id]);
+      return (root.dateSegmentPaint(id)?.runs ?? [])
+        .map((run) => run.text)
+        .join("");
+    };
+    // (The DateInput sits in the picker's Group — the owner is the picker past it.)
+    expect(root.typeOf(root.canvasInputs.get(part("DateInput").parentId)!)).toBe(
+      "Group",
+    );
+    const before = segments();
+    write({ locale: "de-DE" });
+    expect(segments()).not.toBe(before);
+    expect(segments()).toMatch(/^tt\.mm\.jjjj$/);
+  });
+
   it("the Properties panel offers the locale and the calendar system as choices", () => {
     for (const type of [
       "Calendar",

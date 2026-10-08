@@ -49,8 +49,8 @@ export interface CompiledPartRule {
 
 /**
  * DOM sub-part a typed child stands for, per owner (D1 structure the owner's RAC renderer builds):
- * the typed child type → the class/attribute tokens its DOM element carries. Children under the
- * `SelectTrigger` wrapper are reached through it (`via`). Absent entries use `.react-aria-<Type>`.
+ * the typed child type → the class/attribute tokens its DOM element carries. Children under a
+ * field's control `Group` are reached through it (`via`). Absent entries use `.react-aria-<Type>`.
  */
 const SUBPART_TOKENS: Readonly<
   Record<string, Readonly<Record<string, readonly string[]>>>
@@ -58,24 +58,24 @@ const SUBPART_TOKENS: Readonly<
   // ADR-253: the trigger is a Button instance (its own class token) holding the value and an Icon.
   Select: { SelectValue: [".react-aria-SelectValue"] },
   // ADR-253: the container holds an Input instance and a FieldButton instance (their own tokens).
-  ComboBox: { SelectTrigger: [".combobox-container"] },
+  ComboBox: { Group: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
-  NumberField: { SelectTrigger: [".react-aria-Group"] },
+  NumberField: { Group: [".react-aria-Group"] },
   // ADR-253: the container holds the search glyph (an Icon — whole selectors: a direct child, not
   // the clear button's own glyph), an Input instance and a Button instance.
   SearchField: {
-    SelectTrigger: [".searchfield-container"],
+    Group: [".searchfield-container"],
     Icon: [
       ".searchfield-container > .react-aria-Icon",
       ".searchfield-container > .react-aria-Icon svg",
     ],
   },
   // ADR-253: the Group holds a DateInput instance and a FieldButton instance (their own tokens).
-  DatePicker: { SelectTrigger: [".react-aria-Group"] },
+  DatePicker: { Group: [".react-aria-Group"] },
   // ADR-253: the Group (the box) holds the pair's DateInput instances around the separator (a Text
   // node — a whole selector: the Group's own child) and a FieldButton instance.
   DateRangePicker: {
-    SelectTrigger: [".react-aria-Group"],
+    Group: [".react-aria-Group"],
     Text: [".react-aria-Group > .react-aria-Text"],
   },
   ProgressBar: { ProgressBarValue: [".value"], ProgressBarTrack: [".bar"] },
@@ -150,8 +150,8 @@ export function catalogSubpartDomUnion(
   return SUBPART_UNION[ownerType]?.has(childType) ?? false;
 }
 /**
- * The node an owner's wrapped parts sit under (`via`): the `SelectTrigger` wrapper of a field that
- * has one, a Select's trigger Button (ADR-253 — RAC's trigger is the Button itself).
+ * The node an owner's wrapped parts sit under (`via`): the control `Group` of a field that has one
+ * (ADR-256 Phase 6b), a Select's trigger Button (ADR-253 — RAC's trigger is the Button itself).
  */
 const SUBPART_WRAPPERS: Readonly<Record<string, string>> = { Select: "Button" };
 /**
@@ -170,7 +170,7 @@ function wrapperOf(parentType: string, childType: string): string | undefined {
   if (!WRAPPED_BY_TRIGGER.has(childType)) return undefined;
   const wrapper =
     SUBPART_WRAPPERS[parentType] ??
-    (SUBPART_TOKENS[parentType]?.SelectTrigger ? "SelectTrigger" : undefined);
+    (SUBPART_TOKENS[parentType]?.Group ? "Group" : undefined);
   return wrapper === childType ? undefined : wrapper;
 }
 const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
@@ -1102,7 +1102,8 @@ const LABEL_ALIGN_AXIS = {
  */
 const FIELD_CONTROL_TYPES = [
   "Input",
-  "SelectTrigger",
+  // (A picker / NumberField / SearchField control Group — ADR-256 Phase 6b.)
+  "Group",
   "DateInput",
   // (A Select's trigger — a Button instance, ADR-253.)
   "Button",

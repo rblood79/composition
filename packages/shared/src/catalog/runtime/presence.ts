@@ -14,6 +14,7 @@ import type {
   CatalogStateOwnerRef,
 } from "../document/types";
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
+import { isFieldControlGroup } from "../../domain/componentTraits";
 export { catalogStateKeysOf };
 
 /**
@@ -512,6 +513,20 @@ export function catalogHiddenAtRest(
 }
 
 /**
+ * ADR-256 Phase 6b — a field's control Group (`FIELD_CONTROL_GROUP_HOSTS`, layout frames skipped):
+ * the node a field's wrapped parts sit in.
+ */
+export function catalogIsFieldControlGroup(
+  node: CatalogConsumerNode | undefined,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (!node || typeOf(node) !== "Group") return false;
+  const field = catalogPartParent(node, get, typeOf);
+  return isFieldControlGroup("Group", field ? typeOf(field) : undefined);
+}
+
+/**
  * A picker's calendar button (the FieldButton instance in its Group — ADR-253): the shared pickers
  * draw it unless `showCalendarIcon` is false. Returns the owning picker for that node.
  */
@@ -522,8 +537,8 @@ export function catalogPickerOfButton(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
   const trigger = catalogPartParent(node, get, typeOf);
-  if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = catalogPartParent(trigger, get, typeOf);
+  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
+  const field = catalogPartParent(trigger!, get, typeOf);
   return field && ["DatePicker", "DateRangePicker"].includes(typeOf(field))
     ? field
     : undefined;
@@ -537,8 +552,8 @@ function catalogSearchFieldOfInput(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Input") return;
   const trigger = catalogPartParent(node, get, typeOf);
-  if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = catalogPartParent(trigger, get, typeOf);
+  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
+  const field = catalogPartParent(trigger!, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -555,8 +570,8 @@ function catalogSearchFieldOfClear(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
   const trigger = catalogPartParent(node, get, typeOf);
-  if (!trigger || typeOf(trigger) !== "SelectTrigger") return;
-  const field = catalogPartParent(trigger, get, typeOf);
+  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
+  const field = catalogPartParent(trigger!, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -918,14 +933,14 @@ const DATE_INPUT_OWNERS = new Set([
   "DateRangePicker",
 ]);
 
-/** The field owning a trigger sub-part, past the SelectTrigger wrapper. */
+/** The field owning a trigger sub-part, past the field's control Group. */
 function triggerOwner(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   let owner = catalogPartParent(node, get, typeOf);
-  while (owner && typeOf(owner) === "SelectTrigger")
+  while (owner && catalogIsFieldControlGroup(owner, get, typeOf))
     owner = catalogPartParent(owner, get, typeOf);
   return owner;
 }
@@ -948,7 +963,7 @@ function fieldSubpartProps(
   const owner = triggerOwner(node, get, typeOf);
   if (!wrapper || !owner) return undefined;
   if (type === "SelectIcon")
-    return typeOf(wrapper) === "SelectTrigger" &&
+    return catalogIsFieldControlGroup(wrapper, get, typeOf) &&
       typeof owner.props.iconName === "string"
       ? { iconName: owner.props.iconName }
       : undefined;
@@ -1026,10 +1041,9 @@ function fieldBoxOfQuietField(
 ): CatalogConsumerNode | undefined {
   const type = typeOf(node);
   if (type !== "Input" && type !== "DateInput") return;
-  const parent = catalogPartParent(node, get, typeOf);
-  if (!parent) return;
-  if (typeOf(parent) === "SelectTrigger" && parent.props.variant !== "plain")
-    return;
+  if (!catalogPartParent(node, get, typeOf)) return;
+  // (A field's control Group only places its box — a DateRangePicker's Group, the one that paints,
+  // takes no `isQuiet`.)
   const owner = triggerOwner(node, get, typeOf);
   return owner?.props.isQuiet === true ? owner : undefined;
 }
@@ -1220,7 +1234,7 @@ export function catalogDerivedPropsDependents(
 
 /**
  * A field's box and trigger parts whose derived values read the field (`fieldSubpartProps` · an
- * Input's quiet state and a SearchField's value), direct or inside its SelectTrigger.
+ * Input's quiet state and a SearchField's value), direct or inside its control Group.
  */
 function fieldSubparts(
   owner: CatalogConsumerNode,
@@ -1229,7 +1243,7 @@ function fieldSubparts(
 ): CatalogConsumerNode[] {
   return partChildrenOf(owner, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "SelectTrigger"
+      typeOf(child) === "Group"
         ? partChildrenOf(child, get, typeOf)
         : [child],
     )

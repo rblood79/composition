@@ -33,6 +33,15 @@ export interface ManualBoxRule {
   parts?: CompiledPartRule[];
 }
 
+/**
+ * ADR-256 Phase 6b — the range picker's Group box paint, the `DateRangePicker` rule's own bridge
+ * values (`.react-aria-Group` `background` · `border` color).
+ */
+export const DATE_RANGE_GROUP_PAINT = {
+  fill: "var(--bg-inset)",
+  borderColor: "var(--border)",
+} as const;
+
 /** `TabsIndicator.css` `.react-aria-Tab .react-aria-SelectionIndicator` thickness (every size). */
 const TAB_INDICATOR = 3;
 /** `TagGroup.css` `.react-aria-Tag[data-allows-removing] { padding-right: var(--spacing-xs) }`. */
@@ -394,6 +403,27 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   Label: () => ({
     layout: { display: "inline-flex", alignItems: "center" },
     visual: { width: "fit-content", height: "fit-content" },
+  }),
+  // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
+  // delegation `.react-aria-Group`: `background: var(--bg-inset)` · `border: … var(--border)` ·
+  // `border-radius: var(--drp-group-radius)` = the size's radius token). The part rule compiler
+  // carries only its box geometry (padding · border width); the paint is stated here with the same
+  // values (`adr256FieldControlGroup` checks the bridges still say so).
+  DateRangePicker: () => ({
+    parts: Object.keys(sizesOf("DateRangePicker")).map(
+      (name): CompiledPartRule => ({
+        childType: "Group",
+        size: name,
+        layout: {},
+        visual: {
+          fill: DATE_RANGE_GROUP_PAINT.fill,
+          borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
+          ...(px(`{radius.${name}}`) !== undefined
+            ? { radius: px(`{radius.${name}}`)! }
+            : {}),
+        },
+      }),
+    ),
   }),
   // The crumb's own sheet is not loaded (below): its text inherits the Breadcrumbs size font.
   // `Breadcrumbs.css` `[data-size]` also sets `--breadcrumb-gap` (the crumb row's and the list's gap —

@@ -97,8 +97,8 @@ async function open(type: string, props: Record<string, unknown>) {
 const CONTROL: Record<string, string> = {
   textfield: "Input",
   textarea: "Input",
-  numberfield: "SelectTrigger",
-  searchfield: "SelectTrigger",
+  numberfield: "Group",
+  searchfield: "Group",
   colorfield: "Input",
   datefield: "DateInput",
   timefield: "DateInput",

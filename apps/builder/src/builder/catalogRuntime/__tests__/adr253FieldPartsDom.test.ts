@@ -273,6 +273,30 @@ const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
     ],
   };
 /**
+ * A field's control Group that only places its parts (ADR-256 Phase 6b — a RAC Group carries no
+ * fill, border or padding of its own; before, a `plain` SelectTrigger zeroed them).
+ */
+const expectPaintsNothing = (visual: Readonly<Record<string, unknown>>) => {
+  expect([undefined, "transparent"]).toContain(visual.fill);
+  for (const key of ["borderWidth", "paddingX", "paddingY"] as const)
+    expect([undefined, 0]).toContain(visual[key]);
+};
+/**
+ * ADR-256 Phase 6b: a SearchField's control box is a RAC Group node (its container class kept for
+ * the SearchField rule's selector) — RAC's SearchField gives it the field's disabled · invalid.
+ */
+const searchFieldGroupMarkup = (markup: string) => {
+  const root = /^<div [^>]*>/.exec(markup)?.[0] ?? "";
+  const state = ["data-disabled=true", "data-invalid=true"]
+    .filter((attribute) => root.includes(` ${attribute}`))
+    .map((attribute) => ` ${attribute}`)
+    .join("");
+  return markup.replace(
+    "<div class=searchfield-container>",
+    `<div class=react-aria-Group searchfield-container${state} data-rac= role=group>`,
+  );
+};
+/**
  * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
  * the Preview's Select had no options at all): they are asserted on their own.
  */
@@ -460,7 +484,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                 ? toggleFieldMarkup(fixed, "Radio")
                 : type === "taggroup"
                   ? tagGroupMarkup(fixed)
-                  : fixed;
+                  : type === "searchfield"
+                    ? searchFieldGroupMarkup(fixed)
+                    : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,
@@ -828,7 +854,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         records
           .get(field.id)!
           .children.map((id) => records.get(id)!)
-          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+          .find((child) => typeOf(child.id) === "Group")!;
       const parts = () => wrapper().children.map((id) => records.get(id)!);
       const html = () =>
         renderToStaticMarkup(renderCatalogDom(workspace.root, field.id));
@@ -845,12 +871,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           height: number;
         };
       // The wrapper paints nothing; its parts are the origins' instances.
-      expect(wrapper().visual).toMatchObject({
-        fill: "transparent",
-        borderWidth: 0,
-        paddingX: 0,
-        paddingY: 0,
-      });
+      expectPaintsNothing(wrapper().visual);
       expect(parts().map((part) => typeOf(part.id))).toEqual([
         "Input",
         "Button",
@@ -1043,7 +1064,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         records
           .get(field.id)!
           .children.map((id) => records.get(id)!)
-          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+          .find((child) => typeOf(child.id) === "Group")!;
       const parts = () => wrapper().children.map((id) => records.get(id)!);
       const host = () => {
         const element = document.createElement("div");
@@ -1059,11 +1080,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           width: number;
           height: number;
         };
-      expect(wrapper().visual).toMatchObject({
-        fill: "transparent",
-        borderWidth: 0,
-        paddingX: 0,
-      });
+      expectPaintsNothing(wrapper().visual);
       expect(parts().map((part) => typeOf(part.id))).toEqual([
         "Input",
         "Button",
@@ -1435,7 +1452,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           records.get(id)!.children.map((child) => records.get(child)!);
         const wrapper = () =>
           children(field.id).find(
-            (child) => typeOf(child.id) === "SelectTrigger",
+            (child) => typeOf(child.id) === "Group",
           )!;
         const host = () => {
           const element = document.createElement("div");
@@ -1551,11 +1568,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // DatePicker: the Group places; the DateInput instance is the box, the FieldButton
       // instance a square 4px inside its end.
       const picker = await open("datepicker");
-      expect(picker.wrapper().visual).toMatchObject({
-        fill: "transparent",
-        borderWidth: 0,
-        paddingX: 0,
-      });
+      expectPaintsNothing(picker.wrapper().visual);
       const pickerParts = () => picker.children(picker.wrapper().id);
       expect(pickerParts().map((part) => picker.typeOf(part.id))).toEqual([
         "DateInput",
@@ -1696,7 +1709,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         records
           .get(field.id)!
           .children.map((id) => records.get(id)!)
-          .find((child) => typeOf(child.id) === "SelectTrigger")!;
+          .find((child) => typeOf(child.id) === "Group")!;
       const parts = () => wrapper().children.map((id) => records.get(id)!);
       const host = () => {
         const element = document.createElement("div");

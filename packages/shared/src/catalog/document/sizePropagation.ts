@@ -17,10 +17,17 @@ const INPUT_FIELD_PARTS = [...FIELD_PARTS, "Input"] as const;
 const DATE_FIELD_PARTS = [...FIELD_PARTS, "DateInput"] as const;
 
 /**
- * Fields whose control is a wrapper (`SelectTrigger` — the field's Group) around part instances:
- * the field's size reaches the wrapper, and the wrapper's its parts (`SelectTrigger` below).
+ * Fields whose control is a RAC `Group` around part instances (ADR-256 Phase 6b): the Group takes
+ * no size — the field's reaches the parts in it (the resolver passes the field's control Group,
+ * `FIELD_CONTROL_GROUP_HOSTS`). (`Text`: a range picker's separator between its pair.)
  */
-const WRAPPED_FIELD_PARTS = [...FIELD_PARTS, "SelectTrigger"] as const;
+const WRAPPED_FIELD_PARTS = [
+  ...FIELD_PARTS,
+  "Input",
+  "DateInput",
+  "Button",
+  "Text",
+] as const;
 
 export const CATALOG_SIZE_PROPAGATION: Readonly<
   Record<string, readonly string[]>
@@ -67,8 +74,6 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   TimeField: DATE_FIELD_PARTS,
   DatePicker: WRAPPED_FIELD_PARTS,
   DateRangePicker: WRAPPED_FIELD_PARTS,
-  // (`Text`: a range picker's separator between its pair.)
-  SelectTrigger: ["Input", "DateInput", "Button", "Text"],
   Meter: ["Label"],
   ProgressBar: ["Label"],
   // ADR-254: an InlineAlert's title and description are instances of the Heading · Description

@@ -648,7 +648,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ...children,
     ),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
-  // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
+  // graph and Canvas scene.
   select: (node, style, _children, _context, parts) =>
     createElement(Select, {
       key: node.id,
@@ -698,7 +698,11 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     } as Parameters<typeof ComboBox>[0]),
 };
 
-/** The element of a node-tree field's control wrapper, by the field's binding (ADR-256 Phase 2c). */
+/**
+ * The element of a node-tree field's control Group, by the field's binding (ADR-256 Phase 2c ·
+ * 6b): RAC's `Group` — a SearchField's also carries its container class (the SearchField rule's
+ * selector for the box).
+ */
 const NODE_TREE_CONTROL_WRAPPERS: Readonly<
   Record<
     string,
@@ -715,12 +719,12 @@ const NODE_TREE_CONTROL_WRAPPERS: Readonly<
     ),
   searchfield: (node, children) =>
     createElement(
-      "div",
+      RAC.Group,
       {
         key: node.id,
         "data-catalog-id": node.id,
-        className: "searchfield-container",
-      },
+        className: "react-aria-Group searchfield-container",
+      } as Parameters<typeof RAC.Group>[0],
       ...children,
     ),
 };
@@ -1004,16 +1008,17 @@ export function catalogDomRendersNode(
   return true;
 }
 
-/** DOM target owned by a shared RAC parent for a typed SelectTrigger sub-part. */
+/**
+ * DOM target owned by a shared RAC parent for a field's control Group the shared component draws
+ * itself (a ComboBox's container — ADR-256 Phase 6b).
+ */
 export function catalogDomOwnerTarget(
   root: CatalogCompositionRoot,
   id: string,
 ): { ownerId: string; selector: string } | undefined {
   const node = root.domInputs.get(id);
-  if (node?.bindingId !== "selecttrigger") return undefined;
+  if (node?.bindingId !== "group") return undefined;
   const parent = root.domInputs.get(node.parentId);
-  if (parent?.bindingId === "select")
-    return { ownerId: parent.id, selector: ".react-aria-Button" };
   if (parent?.bindingId === "combobox")
     return { ownerId: parent.id, selector: ".combobox-container" };
   return undefined;
@@ -1658,7 +1663,8 @@ const CatalogDomNode = memo(function CatalogDomNode({
         ? partParent!.id
         : // A Button inside a field's control wrapper is drawn by the field's state (disabled).
           node?.bindingId === "button" &&
-            partParent?.bindingId === "selecttrigger"
+            partParent?.bindingId === "group" &&
+            catalogPartField(root, node) !== partParent
           ? catalogPartField(root, node)?.id
           : // (A Select's trigger Button is the field's direct child.)
             node?.bindingId === "button" && partParent?.bindingId === "select"
@@ -1938,11 +1944,11 @@ function renderNode(
           : {}),
       }),
     );
-  // A field's control wrapper (`SelectTrigger`) in a field drawn as its node tree (ADR-256 Phase
-  // 2c): RAC's Group of a NumberField, the container of a SearchField — its parts in it, in order.
-  // Its box is the field sheet's (the field owns the wrapper's look — no inline style).
+  // A field's control Group in a field drawn as its node tree (ADR-256 Phase 2c · 6b): RAC's Group
+  // of a NumberField · SearchField — its parts in it, in order. Its box is the field sheet's (the
+  // field owns the Group's look — no inline style).
   const wrapper =
-    node.bindingId === "selecttrigger"
+    node.bindingId === "group"
       ? NODE_TREE_CONTROL_WRAPPERS[partParent?.bindingId ?? ""]
       : undefined;
   if (wrapper) return withHtmlId(root, node, wrapper(node, children));

@@ -120,15 +120,15 @@ export interface UnconvertedFamilyLimit {
 export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   Record<string, UnconvertedFamilyLimit>
 > = {
-  // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper
-  // (`SelectTrigger`) 는 picker 와 같이 Phase 6 에서 RAC Group 으로 바꾼다 (아래 행 유지).
+  // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper 는 RAC
+  // `Group` 이다 (ADR-256 Phase 6b — 자유 내용, 옛 `SelectTrigger` 행 삭제).
   Select: {
     children: ["Label", "Button", "Description", "FieldError", "ListBox"],
   },
   ComboBox: {
     children: [
       "Label",
-      "SelectTrigger",
+      "Group",
       "Description",
       "FieldError",
       "ListBox",
@@ -137,7 +137,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   DatePicker: {
     children: [
       "Label",
-      "SelectTrigger",
+      "Group",
       "Calendar",
       "Description",
       "FieldError",
@@ -146,23 +146,11 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   DateRangePicker: {
     children: [
       "Label",
-      "SelectTrigger",
+      "Group",
       "Calendar",
       "RangeCalendar",
       "Description",
       "FieldError",
-    ],
-  },
-  // (ADR-253: a field's wrapper holds part instances — the Input and the Button origins'.
-  //  A range picker's separator Text sits between its pair.)
-  SelectTrigger: {
-    children: [
-      "DateInput",
-      "SelectIcon",
-      "SelectValue",
-      "Input",
-      "Button",
-      "Text",
     ],
   },
   // (toggle — Phase 3 (2026-10-08): 노드 트리로 전환 — Checkbox · Switch · Radio · 그룹 · ToggleButtonGroup 행 없음.)

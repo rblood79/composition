@@ -456,9 +456,9 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
   "searchfield",
 ]);
 /**
- * Fields whose control is a wrapper node (`SelectTrigger` — the field's RAC Group / container
- * element, which the shared component keeps) around part nodes (ADR-253): each part is drawn by
- * its own binding inside the field's RAC context, in the wrapper's order.
+ * Fields whose control is a wrapper node (a RAC `Group` — ADR-256 Phase 6b, `FIELD_CONTROL_GROUP_HOSTS`)
+ * around part nodes (ADR-253): each part is drawn by its own binding inside the field's RAC
+ * context, in the wrapper's order.
  */
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
@@ -482,7 +482,7 @@ export function catalogFieldControlNodes(
     );
   if (!CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")) return [];
   const wrapper = childrenOf(root, field).find(
-    (child) => catalogTypeName(root, child) === "SelectTrigger",
+    (child) => catalogTypeName(root, child) === "Group",
   );
   const parts = wrapper ? childrenOf(root, wrapper) : [];
   // A picker draws its calendar button unless `showCalendarIcon` is false (the Canvas hides the
@@ -529,7 +529,7 @@ export function catalogPartField(
   part: CatalogConsumerNode,
 ): CatalogConsumerNode | undefined {
   const parent = catalogDomPartParent(root, part);
-  if (!parent || parent.bindingId !== "selecttrigger") return parent;
+  if (!parent || parent.bindingId !== "group") return parent;
   const field = catalogDomPartParent(root, parent);
   return field && CATALOG_WRAPPED_CONTROL_FIELDS.has(field.bindingId ?? "")
     ? field

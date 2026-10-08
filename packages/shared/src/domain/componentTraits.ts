@@ -77,6 +77,27 @@ const SELECT_TRIGGER_OWNERS = [
   "DateRangePicker",
 ] as const;
 
+/**
+ * ADR-256 Phase 6b — fields whose control box is a RAC `Group` node, their direct child (layout
+ * frames skipped): `NumberField > Group > (Button + Input + Button)` · `DatePicker > Group >
+ * (DateInput + Button)` … The Group holds the field's parts; the field's rule places and (a range
+ * picker) paints it. A Group anywhere else is a plain RAC Group.
+ */
+export const FIELD_CONTROL_GROUP_HOSTS: ReadonlySet<string> = new Set([
+  "ComboBox",
+  "SearchField",
+  "NumberField",
+  "DatePicker",
+  "DateRangePicker",
+]);
+/** A field's control Group (`FIELD_CONTROL_GROUP_HOSTS`) by type names. */
+export function isFieldControlGroup(
+  type: string | undefined,
+  parentType: string | undefined,
+): boolean {
+  return type === "Group" && FIELD_CONTROL_GROUP_HOSTS.has(parentType ?? "");
+}
+
 export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ── 구조 컨테이너 ──
   body: { container: "structural" },

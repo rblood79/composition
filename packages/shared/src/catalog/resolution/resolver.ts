@@ -26,6 +26,7 @@ import type {
   VisualWrites,
   WriteValue,
 } from "../document/types";
+import { FIELD_CONTROL_GROUP_HOSTS } from "../../domain/componentTraits";
 import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection } from "../document/collectionItems";
 import {
@@ -646,7 +647,16 @@ export function resolveCatalogNode(
     props: Props,
     parent: ParentContext | undefined,
   ): void => {
-    const owner = structuralParent(parent);
+    let owner = structuralParent(parent);
+    // (ADR-256 Phase 6b — a field's control Group takes no size: the field's reaches its parts.)
+    if (owner && lookupDefinition(owner.definitionId).name === "Group") {
+      const field = structuralParent(owner.parent);
+      if (
+        field &&
+        FIELD_CONTROL_GROUP_HOSTS.has(lookupDefinition(field.definitionId).name)
+      )
+        owner = field;
+    }
     const ownerSize = owner?.props.size;
     if (typeof ownerSize !== "string") return;
     const definition = lookupDefinition(definitionId);

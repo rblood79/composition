@@ -1,4 +1,5 @@
 import { CATALOG_SIZE_PROPAGATION } from "../document/sizePropagation";
+import { isFieldControlGroup } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
@@ -687,7 +688,7 @@ function calendarPartSize(
 
 /** A DateInput's RAC segment row (`segmentText`). */
 interface CatalogDateSegments {
-  /** The date field whose RAC DateInput this is (past the SelectTrigger wrapper). */
+  /** The date field whose RAC DateInput this is (past the field's control Group). */
   ownerType?: string;
   /** The owner's empty-segment font style (`[data-placeholder]` — DateField italic). */
   placeholderFontStyle?: string;
@@ -2058,8 +2059,8 @@ export class CatalogCompositionRoot {
   }
   /**
    * A DateInput's DOM content is its RAC date segments (`racDateSegmentParts` in the rendering
-   * locale, padded by the owning field's `.react-aria-DateSegment` delegation, past the
-   * SelectTrigger wrapper): the typed node has no text of its own. A DateRangePicker's one typed
+   * locale, padded by the owning field's `.react-aria-DateSegment` delegation, past the field's
+   * control Group): the typed node has no text of its own. A DateRangePicker's one typed
    * DateInput is the product's start/end pair around its `–` span, spaced by the trigger gap.
    */
   private segmentText(
@@ -2071,8 +2072,12 @@ export class CatalogCompositionRoot {
     if (record.bindingId !== "dateinput") return undefined;
     const wrapper = get(record.parentId);
     let owner = wrapper;
-    while (owner && this.typeOf(owner) === "SelectTrigger")
-      owner = get(owner.parentId);
+    while (owner && this.typeOf(owner) === "Group") {
+      const parent = get(owner.parentId);
+      if (!isFieldControlGroup("Group", parent ? this.typeOf(parent) : undefined))
+        break;
+      owner = parent;
+    }
     const ownerType = owner ? this.typeOf(owner) : undefined;
     // RAC-owned segments inherit the line height of their nearest declaring ancestor (CSS
     // inheritance of the unitless ratio).
@@ -3145,7 +3150,17 @@ export class CatalogCompositionRoot {
       // resolve again with it (and their own children after them).
       if (before.props.size !== record.props.size) {
         const sized = CATALOG_SIZE_PROPAGATION[this.typeOf(record)];
-        for (const childId of sized ? record.children : []) {
+        // (ADR-256 Phase 6b — through a field's control Group, which takes no size, to its parts.)
+        const reached = sized
+          ? record.children.flatMap((childId) => {
+              const child = this.records.get(childId);
+              return child &&
+                isFieldControlGroup(this.typeOf(child), this.typeOf(record))
+                ? child.children
+                : [childId];
+            })
+          : [];
+        for (const childId of reached) {
           const child = this.records.get(childId);
           if (
             child &&

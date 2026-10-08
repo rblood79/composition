@@ -38,9 +38,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 18 — ADR-256 Phase 5h: a TreeItem's row is a RAC `TreeItemContent`
  * (`component-tree-item-default__content`) holding the chevron `Button[slot=chevron] > Icon` and the
  * label, in place of a `TreeItemChevron` and the label as the item's children.
+ * 19 — ADR-256 Phase 6b: a field's control wrapper (NumberField · SearchField · ComboBox ·
+ * DatePicker · DateRangePicker `__2`) is a RAC `Group` in place of a `SelectTrigger`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 18 as const;
+export const LIBRARY_CONTRACT_VERSION = 19 as const;
 
 export type EntryKind =
   | "project"

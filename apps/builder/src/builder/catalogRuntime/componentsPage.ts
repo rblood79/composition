@@ -71,7 +71,8 @@ const SAMPLE_ICONS = [
 ];
 const ICON = "lib:definition:type-Icon";
 const TYPE_BASE = "text-base";
-const SELECT_TRIGGER = "lib:definition:type-SelectTrigger";
+// (A field's control Group — ADR-256 Phase 6b: a field, not a collection.)
+const CONTROL_GROUP = "lib:definition:type-Group";
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
   "base", "raised", "layer-1", "layer-2", "elevated", "disabled",
@@ -184,7 +185,7 @@ function originItems(
   const children = own.root.children.map((id) =>
     library.templates.get(id as LibraryTemplateId),
   );
-  if (children.some((child) => child?.definitionId === SELECT_TRIGGER))
+  if (children.some((child) => child?.definitionId === CONTROL_GROUP))
     return undefined;
   const origin = [
     ...children,

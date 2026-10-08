@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6b — 입력 상자 = RAC Group 노드] - 2026-10-09
+
+### Changed
+
+- **NumberField · SearchField · ComboBox · DatePicker · DateRangePicker 의 입력 상자는 RAC `Group` 노드** (react-aria.adobe.com 의 `NumberField > Group > Button + Input + Button` · `DatePicker > Group > DateInput + Button`) — 옛 자체 type `SelectTrigger` 를 대신한다. 상자의 모양 · 배치는 종전대로 field rule 이 주고 (DateRangePicker 는 Group 이 상자를 칠한다), field 의 크기는 Group 을 건너 안의 Input · Button · DateInput 에 닿는다. Canvas 화면은 바뀌지 않는다
+- **SearchField 의 상자도 Preview 에서 RAC `Group`** (`div.react-aria-Group.searchfield-container[role=group]`) — RAC SearchField 가 비활성 · 오류 상태를 그 Group 에 넘긴다 (Tailwind starter 의 `FieldGroup` 과 같은 조립)
+- 저장 형식 contract 19 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+- 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `domain/componentTraits.ts` (`FIELD_CONTROL_GROUP_HOSTS`) · `catalog/runtime/{delegatedDom,domBinding,presence,compositionRoot}.ts(x)` · `catalog/resolution/resolver.ts` · `catalog/document/{rulePartRules,sizePropagation}.ts` · `catalog/nesting/nestingRules.ts` · `catalog/resolvers/resolveDelegatedChildFontSize.ts` · `catalogRuntime/componentsPage.ts`
+
 ## [ADR-256 Phase 6a — RAC Group 이 문서 노드 type] - 2026-10-09
 
 ### Added

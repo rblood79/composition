@@ -3676,18 +3676,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-numberfield__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:type-Group",
     "children": [
       "lib:template:component-numberfield__2_1",
       "lib:template:component-numberfield__2_2",
       "lib:template:component-numberfield__2_3"
     ],
-    "props": {
-      "variant": "plain"
-    },
+    "props": {},
     "visual": {},
     "layout": {
-      "display": "flex"
+      "display": "flex",
+      "flexDirection": "row"
     }
   },
   {
@@ -3805,18 +3804,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-searchfield__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:type-Group",
     "children": [
       "lib:template:component-searchfield__2_1",
       "lib:template:component-searchfield__2_2",
       "lib:template:component-searchfield__2_3"
     ],
-    "props": {
-      "variant": "plain"
-    },
+    "props": {},
     "visual": {},
     "layout": {
-      "display": "flex"
+      "display": "flex",
+      "flexDirection": "row"
     }
   },
   {
@@ -4548,17 +4546,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-combobox__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:type-Group",
     "children": [
       "lib:template:component-combobox__2_1",
       "lib:template:component-combobox__2_2"
     ],
-    "props": {
-      "variant": "plain"
-    },
+    "props": {},
     "visual": {},
     "layout": {
-      "display": "flex"
+      "display": "flex",
+      "flexDirection": "row"
     }
   },
   {
@@ -5501,17 +5498,16 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-datepicker__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:type-Group",
     "children": [
       "lib:template:component-datepicker__2_1",
       "lib:template:component-datepicker__2_2"
     ],
-    "props": {
-      "variant": "plain"
-    },
+    "props": {},
     "visual": {},
     "layout": {
-      "display": "flex"
+      "display": "flex",
+      "flexDirection": "row"
     }
   },
   {
@@ -5589,19 +5585,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-daterangepicker__2",
-    "definitionId": "lib:definition:type-SelectTrigger",
+    "definitionId": "lib:definition:type-Group",
     "children": [
       "lib:template:component-daterangepicker__2_1",
       "lib:template:component-daterangepicker__2_sep",
       "lib:template:component-daterangepicker__2_end",
       "lib:template:component-daterangepicker__2_2"
     ],
-    "props": {
-      "size": "md"
-    },
+    "props": {},
     "visual": {},
     "layout": {
-      "display": "flex"
+      "display": "flex",
+      "flexDirection": "row"
     }
   },
   {

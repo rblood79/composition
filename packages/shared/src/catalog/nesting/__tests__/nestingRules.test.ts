@@ -117,6 +117,13 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     ).toBe(true);
   });
 
+  it("ADR-256 Phase 6b — picker 의 control 상자는 RAC Group 이다 (옛 SelectTrigger 는 받지 않는다)", () => {
+    for (const picker of ["ComboBox", "DatePicker", "DateRangePicker"]) {
+      expect(canNest(picker, "Group", [picker, "body"])).toBe(true);
+      expect(canNest(picker, "SelectTrigger", [picker, "body"])).toBe(false);
+    }
+  });
+
   it("DOM void/self-contained 타입은 자식을 가질 수 없다", () => {
     expect(
       resolveNestingViolation({ parentType: "Image", childType: "Text" }),

@@ -14,6 +14,7 @@
  * 값은 `var(--text-*)` CSS 변수 참조만 해석한다 (typography 토큰 → px). 항목·size·변수가 없으면
  * undefined — 호출자가 자기 기본 (FieldError 자체 rule size) 으로 돌아간다.
  */
+import { isFieldControlGroup } from "../../domain/componentTraits";
 import { typography } from "@composition/rendering";
 
 import { resolveComponentRuleByTag } from "./resolveComponentRule";
@@ -117,16 +118,10 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
 > = {
   // (DateInput 은 ADR-253 부터 DateInput 원본의 instance 다 — DOM 이 그 노드를 직접 그리고 style 은 노드
   //   자신이 정본이라 sub-part 가 아니다.)
-  // 입력 상자 래퍼 (2026-09-03 판정 A — SelectTrigger 확장). DOM 은 field 의 shared 컴포넌트가 그 상자
-  //   (RAC `Group` · container div) 를 직접 만들고 래퍼 노드의 style · props 는 읽지 않는다 — 상자의 배치는
-  //   parent rule delegation 이 준다: NumberField · DatePicker · DateRangePicker `.react-aria-Group`,
-  //   ComboBox `.combobox-container`, SearchField `.searchfield-container`. (Select 는 ADR-253 부터 래퍼가
-  //   없다 — trigger 가 Button 원본의 instance 다.)
-  SelectTrigger: [
-    ".react-aria-Group",
-    ".combobox-container",
-    ".searchfield-container",
-  ],
+  // (입력 상자 래퍼 — field 의 control `Group` — 는 아래 `ownsSubpartDirect` 가 field type 으로 판정한다
+  //   (ADR-256 Phase 6b): 상자의 모양 · 배치는 field rule delegation 이 준다 — NumberField · DatePicker ·
+  //   DateRangePicker `.react-aria-Group`, ComboBox `.combobox-container`, SearchField
+  //   `.searchfield-container`. DOM 은 Group 노드의 style 을 읽지 않는다.)
 };
 
 /**
@@ -243,11 +238,12 @@ export function catalogOwnerDrawnPartOwnedBy(
 
 /**
  * sub-part 래퍼 — 이 type 이 직계 parent 면 자식의 판정은 **조부모** (field) 에 대해 한다. DatePicker ·
- * DateRangePicker 의 canonical 은 `field > SelectTrigger > DateInput` 이라 DateInput 의 직계는 SelectTrigger 인데,
+ * DateRangePicker 의 canonical 은 `field > Group > DateInput` 이라 DateInput 의 직계는 Group 인데 (Group 은
+ * field 의 control Group 일 때만 — `hopsWrapper`),
  * DOM 은 field rule delegation `.react-aria-DateInput` 으로 그린다 (DateField · TimeField 와 같은 판정).
  */
 export const SUBPART_HOP_WRAPPER_TYPES: ReadonlySet<string> = new Set([
-  "SelectTrigger",
+  "Group",
   // Select 의 trigger 는 Button 원본의 instance 다 (ADR-253) — 그 안의 SelectValue 는 Select 로 판정한다.
   "Button",
 ]);
@@ -287,6 +283,8 @@ function selectorHasToken(selector: string, token: string): boolean {
 
 function ownsSubpartDirect(childType: string, parentType: string): boolean {
   if (OWNER_DRAWN_PART_OWNERS[childType] === parentType) return true;
+  // A field's control Group (ADR-256 Phase 6b): the field's rule draws and places it.
+  if (isFieldControlGroup(childType, parentType)) return true;
   const tokens = DELEGATED_SUBPART_CHILD_TOKENS[childType];
   if (!tokens) return false;
   const has = (p: string) =>
@@ -296,6 +294,18 @@ function ownsSubpartDirect(childType: string, parentType: string): boolean {
   if (has(parentType)) return true;
   const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
   return alias ? has(alias) : false;
+}
+
+/** 직계 parent 가 sub-part 래퍼인가 — Group 은 field 의 control Group 일 때만 (ADR-256 Phase 6b). */
+function hopsWrapper(
+  parentType: string,
+  grandparentType: string | null | undefined,
+): boolean {
+  return (
+    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    (parentType !== "Group" ||
+      isFieldControlGroup(parentType, grandparentType ?? undefined))
+  );
 }
 
 /** 텍스트 · style 두 축이 모두 parent 소유인 sub-part 의 owner (직계 parent, 또는 직계가 래퍼면 조부모). */
@@ -313,7 +323,7 @@ function resolveFullSubpartOwnerType(
   if (drawnBy) return drawnBy;
   if (
     grandparentType &&
-    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    hopsWrapper(parentType, grandparentType) &&
     SUBPART_HOP_CHILD_TYPES.has(childType) &&
     ownsSubpartDirect(childType, grandparentType)
   )
@@ -342,7 +352,7 @@ export function resolveDelegatedSubpartOwnerType(
   if (owners?.includes(parentType)) return parentType;
   // 래퍼 (field 의 Group) 안의 부품: 글자는 조부모 field 의 prop 이 정본이다.
   return grandparentType &&
-    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    hopsWrapper(parentType, grandparentType) &&
     owners?.includes(grandparentType)
     ? grandparentType
     : null;
@@ -370,7 +380,7 @@ export function resolveSubpartStyleOwnerType(
   if (owners.includes(parentType)) return parentType;
   if (
     grandparentType &&
-    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    hopsWrapper(parentType, grandparentType) &&
     owners.includes(grandparentType)
   )
     return grandparentType;
@@ -379,7 +389,7 @@ export function resolveSubpartStyleOwnerType(
 
 /**
  * parent rule (또는 DOM root alias) 의 delegation 이 이 자식 type 의 class 토큰을 갖는가 — 또는 parent 가 Label 을
- * self-compose 하는 그룹인가. `grandparentType` 을 주면 직계가 sub-part 래퍼 (SelectTrigger) 일 때 조부모로 판정.
+ * self-compose 하는 그룹인가. `grandparentType` 을 주면 직계가 sub-part 래퍼 (field 의 control Group) 일 때 조부모로 판정.
  */
 export function isDelegatedSubpartChild(
   childType: string | null | undefined,

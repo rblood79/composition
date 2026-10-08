@@ -105,7 +105,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 18,
+    libraryContractVersion: 19,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -513,7 +513,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       const box = boxes.get(item.id) as { width: number; height: number };
       expect((box?.width ?? 0) * (box?.height ?? 0)).toBe(0);
     }
-    expect(select.byType("SelectTrigger").every((node) => !node.hidden)).toBe(
+    expect(select.byType("Group").every((node) => !node.hidden)).toBe(
       true,
     );
   });
@@ -858,7 +858,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       const icon = () => {
         const records = scene.root.canvasInputs;
         const button = scene
-          .byType("SelectTrigger")[0]!
+          .byType("Group")[0]!
           .children.map((id) => records.get(id)!)
           .find((node) => node.bindingId === "button")!;
         return records.get(button.children[0]!)!;

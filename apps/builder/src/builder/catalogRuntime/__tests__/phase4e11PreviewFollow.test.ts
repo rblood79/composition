@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 18,
+    libraryContractVersion: 19,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -363,7 +363,7 @@ describe("NumberField group — per-size height", () => {
     const workspace = await openOwner("NumberField", { size });
     const root = workspace.root;
     const trigger = [...root.layoutInputs.values()].find(
-      (record) => record.bindingId === "selecttrigger",
+      (record) => record.bindingId === "group",
     )!;
     expect(root.getGeometry([trigger.id]).get(trigger.id)!.height).toBe(height);
     workspace.dispose();

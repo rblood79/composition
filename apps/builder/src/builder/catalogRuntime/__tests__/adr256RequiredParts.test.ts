@@ -311,7 +311,7 @@ describe("ADR-256 Decision 5 — required parts", () => {
       const wrapper = root.children.find(
         (child) =>
           definitionTypeName(graph, templates.get(child)!.definitionId) ===
-          "SelectTrigger",
+          "Group",
       )!;
       expect(wrapper).toBeTruthy();
       expect(
@@ -337,7 +337,7 @@ describe("ADR-256 Decision 5 — required parts", () => {
     it("hiding a project component's control wrapper (it holds the Input) is refused (repair check RV-H1)", async () => {
       const { workspace, graph, id, owned } = await placeOrigin("combobox");
       workspace.execute(detachInstances({ ids: [id], newId: workspace.newId }));
-      const [wrapper] = owned("SelectTrigger");
+      const [wrapper] = owned("Group");
       expect(wrapper).toBeTruthy();
       workspace.execute(
         createComponent({ id, name: "My combo", newId: workspace.newId }),

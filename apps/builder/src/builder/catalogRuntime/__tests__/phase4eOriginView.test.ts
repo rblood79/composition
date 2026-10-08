@@ -363,6 +363,12 @@ describe("ADR-248 4e library origin view", () => {
     const grid = cards.find((candidate) => candidate.name === "GridList")!;
     const gridRows = grid.children.slice(1).map(nodeOf);
     expect(gridRows.map((row) => row.name)).toEqual(["Origin", "Item"]);
+    // A field with a control Group (ADR-256 Phase 6b — a ComboBox's list items sit in its ListBox
+    // part) is not a collection: no Item line.
+    const combo = cards.find((candidate) => candidate.name === "ComboBox")!;
+    expect(combo.children.slice(1).map(nodeOf).map((row) => row.name)).not.toContain(
+      "Item",
+    );
     // The Origin row: the origin (its slot empty) and an instance of it (the slot filled).
     expect(cellsOf(gridRows[0]!).map((cell) => cell.name)).toEqual([
       "◆ GridList",
