@@ -44,8 +44,8 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 | 심볼                                                | 위치                                                               | 내용                                                        |
 | --------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `domBinding.tsx`                                    | `apps/builder/src/builder/catalogRuntime/`                         | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)    |
-| `CATALOG_DOM_CHILD_OWNING_BINDINGS`                 | `domBinding.tsx`                                                   | 자식을 스스로 그리는 binding (RAC 컬렉션 등)                |
+| `domBinding.tsx`                                    | `packages/shared/src/catalog/runtime/` (Builder 쪽 `catalogRuntime/domBinding.tsx` 는 host 배선) | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)    |
+| `catalogDomRendersNode` · `ownsChild`               | `packages/shared/src/catalog/runtime/domBinding.tsx` · `delegatedDom.tsx` | 자식이 자기 DOM 요소를 그리는지 — delegated binding 의 `ownsChild` 가 부모가 삼키는 자식을 말한다 (옛 `CATALOG_DOM_CHILD_OWNING_BINDINGS` 표는 ADR-256 Phase 6e `a49bf13af` 삭제) |
 | renderer registry                                   | `apps/builder/src/preview/components/canonicalRendererRegistry.ts` | 타입 → shared 컴포넌트 (`@composition/shared/components/*`) |
 | `RENDER_FACET_DELEGATIONS`                          | `apps/builder/src/preview/components/renderFacetDeclaration.ts`    | delegating 렌더 선언 (순수 데이터)                          |
 | `ENTRY_DERIVED_DEFAULT_TYPES` · `DEFAULT_PROPS_MAP` | `types/builder/defaultPropsDerivation.ts` · `unified.types.ts`     | 기본 props — 신규는 catalog binding 파생 경로 우선          |

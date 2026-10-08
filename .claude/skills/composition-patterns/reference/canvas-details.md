@@ -15,7 +15,7 @@
 | Necessity 접미사 | `catalogLabelSuffix` (`catalogRuntime/presence.ts`) — field 자신의 `necessityIndicator`, 없으면 가장 가까운 Form 의 값 + `isRequired` → `getNecessityIndicatorSuffix`. DOM 은 `renderNecessityIndicator` (`packages/shared/src/components/FieldNecessityIndicator`) |
 
 - **주의**: `--text-md` CSS 변수는 없다 → `var(--text-base)` (`tokenToCSSVar()` 가 `text-md` → `text-base` 매핑).
-- lineHeight 는 `"20px"` 문자열 (숫자는 `parseLineHeight` 가 배율로 해석).
+- 노드의 `visual.lineHeight` 는 글자 크기 대비 **비율 숫자** (style-ssot.md §1). rule `sizes[size].lineHeight` (px 숫자 · TokenRef) 는 Skia 가 `resolveLineHeightValue` (`skia/specBuildHelpers.ts`) 로 읽는다 — 옛 `parseLineHeight` 는 `78469745d` (2026-10-05) 에서 삭제.
 - `createDefaultLabelProps()` (`types/builder/unified.types.ts`) 는 옛 타입 mirror 다 — catalog 생성 경로가 쓰지 않는다.
 
 ## Tag/Badge · Table 셀 nowrap

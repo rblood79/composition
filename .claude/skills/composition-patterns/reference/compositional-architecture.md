@@ -85,7 +85,7 @@ catalog 는 시각값만 담으므로, 트리 밖 시각 요소와 부모→자�
 | template binding | `{prop}` — `resolution/resolver.ts` `bindTemplateValue`                                               | Select Label 텍스트 = `{label}`                                                              |
 | size propagation | `CATALOG_SIZE_PROPAGATION` (`document/sizePropagation.ts`, resolver 가 읽음)                          | RadioGroup → RadioItems → Radio → Label, TagGroup → TagList → Tag                            |
 | owner 파생 값    | `catalogDerivedProps` (`catalogRuntime/presence.ts`)                                                  | ProgressBar/Meter 의 value → Track fill, collection item `_isSelected`                       |
-| part rules       | `document/rulePartRules.ts` (`catalogIndicatorInset` 등) + composition root `partRuleChildren` 재계획 | Checkbox/Radio/Switch indicator 폭 + gap 만큼 Label 인라인 여백 (트리에 indicator 노드 없음) |
+| part rules       | `document/rulePartRules.ts` (`catalogToggleIndicatorBox` · `catalogSubpartDomSelectors` 등) + composition root `partRuleChildren` 재계획 | Checkbox/Radio/Switch 의 `*Indicator` 노드 상자 = toggle rule `sizes[size].indicator` (2026-10-04 부터 indicator 는 문서 노드 — 옛 `catalogIndicatorInset` 의 Label 여백 방식은 `ef1ff8c04` 삭제) |
 
 - 컨테이너 치수 주입: `BOX_SIZE_TYPES` (`catalogRuntime/ruleShapes.ts`) 등록 타입에 `_containerWidth` / `_containerHeight` — 원칙은 canvas-rendering.md §2.
 - 옛 메커니즘 (`implicitStyles.ts` indicator marginLeft · `SYNTHETIC_LABEL_TAGS` · `applyParentPropagationProps` · `resolveParentDelegatedSize`) 은 2026-10-05 옛 TS 레이아웃 파이프라인 (`fullTreeLayout.ts` · `propagationRegistry.ts`) 과 함께 삭제됐다 ([layout-engine.md](../../../rules/layout-engine.md)).
