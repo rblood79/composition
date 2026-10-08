@@ -35,7 +35,6 @@ import type {
 /** Native types whose typed definitions the test entry composes until their catalog port. */
 const NATIVE_TEST_ENTRY_TYPES: ReadonlySet<string> = new Set([
   "frame",
-  "Group",
   "Slot",
 ]);
 

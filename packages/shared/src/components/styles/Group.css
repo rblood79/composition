@@ -1,90 +1,19 @@
 /**
- * Group Component Styles
- * Phase 4: Grouping & Organization
- * Based on React Aria Group component
+ * Group Component Styles — RAC Group (`div[role=group]`)
  *
- * @see https://react-spectrum.adobe.com/react-aria/Group.html
+ * ADR-256 Phase 6a: a neutral container. Its look comes from the catalog rule (no paint) and,
+ * inside a field, from the field's part rule. The old layout group's builder indicators
+ * (dashed outline · label badge) and disabled dimming are gone — the Canvas drew neither, and
+ * layout grouping is a frame (ADR-130).
+ *
+ * @see https://react-aria.adobe.com/Group
  */
 
 @layer components {
   .react-aria-Group {
-    /* Base container */
     position: relative;
     display: block;
-
-    /* Default styling */
     padding: 0;
     margin: 0;
-
-    /* Interactive states (React Aria data attributes) */
-    &[data-hovered] {
-      /* Hover state - can be styled by user */
-    }
-
-    &[data-focus-within] {
-      /* Focus within state - when any child is focused */
-    }
-
-    /* Disabled state */
-    &[data-disabled] {
-      opacity: 0.38;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-
-    /* Invalid state */
-    &.invalid {
-      /* Can be styled to show validation errors */
-    }
-
-    /* Read-only state */
-    &.read-only {
-      /* Can be styled to indicate read-only mode */
-    }
-
-    /* === Builder Mode Indicators === */
-
-    /* Visual indication in builder mode (when element has data-element-id) */
-    &[data-element-id] {
-      /* Subtle border to indicate grouping boundary in builder */
-      outline: 1px dashed var(--border);
-      outline-offset: 2px;
-
-      /* Hover state in builder */
-      &:hover {
-        outline-color: var(--accent);
-      }
-
-      /* Focus within in builder */
-      &[data-focus-within] {
-        outline-color: var(--accent);
-        outline-width: 2px;
-      }
-    }
-
-    /* Label indicator (only visible in builder) */
-    &[data-group-label][data-element-id]::before {
-      content: attr(data-group-label);
-      position: absolute;
-      top: -20px;
-      left: 0;
-      font-size: var(--text-2xs);
-      color: var(--fg-muted);
-      background: var(--color-white);
-      padding: 2px 6px;
-      border-radius: var(--radius-xs);
-      border: 1px solid var(--border);
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    /* Production mode: no visual indicators */
-    &:not([data-element-id]) {
-      outline: none;
-
-      &::before {
-        display: none;
-      }
-    }
   }
 }

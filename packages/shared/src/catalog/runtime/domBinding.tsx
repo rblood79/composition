@@ -471,8 +471,15 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       isReadOnly: node.props.isReadOnly === true,
       "aria-label": text("aria-label") ?? node.name,
       "aria-labelledby": text("aria-labelledby"),
-      "aria-orientation":
-        node.props.orientation === "horizontal" ? "horizontal" : "vertical",
+      // (The old layout group's orientation — RAC's Group itself has none, ADR-256 Phase 6a.)
+      ...(typeof node.props.orientation === "string"
+        ? {
+            "aria-orientation":
+              node.props.orientation === "horizontal"
+                ? "horizontal"
+                : "vertical",
+          }
+        : {}),
       style,
       // (Its render props are the state frame of the `showWhen` nodes inside — ADR-256
       // Decision 7.)

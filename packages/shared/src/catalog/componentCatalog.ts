@@ -1035,6 +1035,14 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "tree item",
     icon: "ListTree",
   }),
+  // Group — ADR-256 Phase 6a: RAC Group (Decision 8). Not on the palette — the palette's layout
+  //   group is a frame (ADR-130); templates put it where the reference does.
+  primitiveEntry("Group", "primitives", FAMILY_1_CUTOVER, {
+    category: "layout",
+    label: "group",
+    icon: "Group",
+    placeable: false,
+  }),
   // TreeItemContent — ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — the
   //   reference's chevron Button · text inside, nested items after it). palette 비노출.
   primitiveEntry("TreeItemContent", "tree-table", FAMILY_5_CUTOVER, {

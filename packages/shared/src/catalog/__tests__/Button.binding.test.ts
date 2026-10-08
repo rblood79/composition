@@ -75,8 +75,7 @@ describe("getPrimitiveBinding", () => {
   });
 
   it("returns undefined for a non-cataloged type", () => {
-    // ADR-912 R6 (2026-06-15): 기존 "ListBoxItem" 은 R3 collection sub-part cutover(2026-06-14)로
-    //   catalog 등록됨 → stale. 실제 미등록 type(Group — D1 ARIA, binding 부재)으로 교체.
-    expect(getPrimitiveBinding("Group")).toBeUndefined();
+    // ADR-256 Phase 6a: Group 이 RAC Group binding 으로 등록돼 미등록 type 이름으로 교체.
+    expect(getPrimitiveBinding("NotACatalogType")).toBeUndefined();
   });
 });

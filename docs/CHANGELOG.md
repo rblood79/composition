@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6a — RAC Group 이 문서 노드 type] - 2026-10-09
+
+### Added
+
+- **RAC `Group` 을 문서에 둘 수 있다** (react-aria.adobe.com 의 `Group` — 관련 컨트롤을 묶는 `div[role=group]`) — 붙여넣기 · AI 넣기로 놓인 Group 은 Preview 에서 RAC `Group` 으로 그려지고, Design 패널에서 role (group · region · presentation) · 비활성 · 오류 · 읽기 전용을 고른다. 비활성 같은 상태는 RAC 가 Group 에 주고 안의 `showWhen` 노드가 읽는다. 자기 칠은 없다. 팔레트와 「묶기」 는 종전대로 frame 을 만든다 (레이아웃 묶음은 frame — ADR-130). 다음 단계 (6b) 에서 입력 상자 (NumberField · ComboBox · DatePicker 의 `SelectTrigger`) 가 이 Group 이 된다
+
+### Fixed
+
+- Preview 의 Group 이 비활성일 때만 흐려지던 것 (Canvas 는 흐리지 않음) · 늘 `aria-orientation="vertical"` 을 달던 것 (RAC Group 엔 없음) — 옛 layout group 용 수동 CSS (builder 점선 · 이름 badge · 흐림) 를 걷었다
+- 위치: `catalog/bindings/Group.binding.ts` · `catalog/componentCatalog.ts` · `catalog/document/codeCatalogLibrary.ts` · `catalog/runtime/domBinding.tsx` · `components/styles/Group.css`
+
 ## [ADR-256 Phase 5 판독 수리 (Round 12) — Table · Tree · 하위 메뉴가 깨지는 편집 5건] - 2026-10-09
 
 ### Fixed

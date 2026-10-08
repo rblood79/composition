@@ -116,6 +116,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Kbd",
         // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard).
         "Keyboard",
+        // ADR-256 Phase 6a: RAC Group (D1 role group — palette 비노출, 묶기는 frame).
+        "Group",
         "Label",
         "Description",
         "FieldError",
