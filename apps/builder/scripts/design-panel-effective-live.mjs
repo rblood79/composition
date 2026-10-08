@@ -3,6 +3,8 @@
 //       `.react-aria-CheckboxButton` block, not Block · 0)
 //   L-2 TextField root: Layout tab Padding 0 on every side (the Input's size padding 12 is not the root's)
 //   L-3 Checkbox size xl → its Label: Text tab Font Size 18 (parent size propagation, not the Label rule's 14)
+//   L-5 multi-select CheckboxButton + Frame → Direction Column: the button keeps inline-flex (no display
+//       written), the Frame gets display flex (each target judged on its own — Codex review 2026-10-09)
 //   L-4 no page / console errors
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/design-panel-effective-live.mjs <out>
@@ -193,6 +195,58 @@ try {
   );
 } catch (e) {
   record("L-3 Checkbox xl → Label Font Size 18", false, { ...l3, error: String(e).slice(0, 300) });
+}
+
+// L-5 multi-select Direction
+try {
+  await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.selectRecords([]));
+  await page.waitForTimeout(300);
+  await addFromPalette("frame", /^frame$/i);
+  await page.getByRole("button", { name: "Components", exact: true }).first().click();
+  await page.waitForTimeout(400);
+  const [frame] = await recordsOf("frame");
+  const [button] = await recordsOf("CheckboxButton");
+  await page.evaluate(
+    (ids) => window.__COMPOSITION_CATALOG__.workspace.selectRecords(ids),
+    [button, frame],
+  );
+  await page.waitForTimeout(500);
+  if (!(await page.getByRole("tab", { name: "Layout", exact: true }).isVisible().catch(() => false)))
+    await page.getByRole("button", { name: /^design/i }).last().click();
+  await tab("Layout");
+  await page
+    .locator('[aria-label="Flex direction"]')
+    .getByRole("radio", { name: "Column" })
+    .or(page.locator('[aria-label="Flex direction"] [aria-label="Column"]'))
+    .first()
+    .click();
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${OUT}/5-multi-direction.png` });
+  const l5 = await page.evaluate((ids) => {
+    const ws = window.__COMPOSITION_CATALOG__.workspace;
+    return ids.map((id) => {
+      const target = ws.itemOfRecord(id)?.target;
+      const own = target ? ws.readModel.ownFields(target) : undefined;
+      // Own fields hold write values (`{ kind: "set", value }`).
+      const value = (field) => (field?.kind === "set" ? field.value : field);
+      return {
+        authoredDisplay: value(own?.layout?.display),
+        authoredDirection: value(own?.layout?.flexDirection),
+        drawnDisplay: ws.root.domInputs.get(id)?.layout.display,
+      };
+    });
+  }, [button, frame]);
+  record(
+    "L-5 multi-select Direction Column — button inline-flex kept · Frame flex",
+    l5[0].authoredDisplay === undefined &&
+      l5[0].drawnDisplay === "inline-flex" &&
+      l5[0].authoredDirection === "column" &&
+      l5[1].authoredDisplay === "flex" &&
+      l5[1].authoredDirection === "column",
+    l5,
+  );
+} catch (e) {
+  record("L-5 multi-select Direction", false, { error: String(e).slice(0, 300) });
 }
 
 record("L-4 no errors", errors.length === 0, errors.slice(0, 5));

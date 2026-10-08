@@ -292,12 +292,13 @@ export function createCatalogStylesHost(
       endPreviews();
     }
   };
-  /** The selection's style edit as one command (undefined = nothing to write). */
+  /** The selection's (or `subset`'s) style edit as one command (undefined = nothing to write). */
   const styleCommandOf = (
     styles: Record<string, string>,
+    subset?: ReturnType<typeof selection>,
   ): CatalogCommand | undefined => {
     {
-      const items = selection();
+      const items = subset ?? selection();
       if (!items.length || !Object.keys(styles).length) return undefined;
       const targets = items.map((item) => item.target);
       const own = (target: EditTarget) => workspace.readModel.ownFields(target);
@@ -358,6 +359,37 @@ export function createCatalogStylesHost(
   };
   const writeProps = (patch: Record<string, unknown>) =>
     run(() => propsCommandOf(patch));
+
+  /** One selection item as the style actions read it (authored at the breakpoint, effective record). */
+  const snapshotOf = (
+    first: ReturnType<typeof selection>[number],
+  ): StylesTargetSnapshot => {
+    const own = workspace.readModel.ownFields(first.target);
+    const breakpoint = workspace.session.getSnapshot().breakpoint;
+    const fontSize = fontSizeOf(workspace, first.identity);
+    // An instance: its component's values under its own (as `useElementStyleContext` reads).
+    const master = masterTargetOf(workspace, first.target);
+    const view = (fields: typeof own) =>
+      catalogStyleView(catalogFieldsAt(fields, breakpoint), { fontSize });
+    const owned = propsOf(workspace, first.target);
+    const ownerTarget = orientationOwnerTargetOf(workspace, first.identity);
+    return {
+      id: first.identity,
+      type: owned.type,
+      props: ownerTarget
+        ? {
+            ...owned.props,
+            orientation: propsOf(workspace, ownerTarget).props.orientation,
+          }
+        : owned.props,
+      style: {
+        ...(master ? view(workspace.readModel.ownFields(master)) : {}),
+        ...view(own),
+        ...catalogPlacementStyle(own.placement),
+      },
+      effective: effectiveOf(workspace, first.identity),
+    };
+  };
 
   const host: StylesHost = {
     useSelectedId: () =>
@@ -435,31 +467,42 @@ export function createCatalogStylesHost(
     readSelectedTarget(): StylesTargetSnapshot {
       const first = selection()[0];
       if (!first) return { id: null, type: undefined, style: {}, props: {} };
-      const own = workspace.readModel.ownFields(first.target);
-      const breakpoint = workspace.session.getSnapshot().breakpoint;
-      const fontSize = fontSizeOf(workspace, first.identity);
-      // An instance: its component's values under its own (as `useElementStyleContext` reads).
-      const master = masterTargetOf(workspace, first.target);
-      const view = (fields: typeof own) =>
-        catalogStyleView(catalogFieldsAt(fields, breakpoint), { fontSize });
-      const owned = propsOf(workspace, first.target);
-      const ownerTarget = orientationOwnerTargetOf(workspace, first.identity);
-      return {
-        id: first.identity,
-        type: owned.type,
-        props: ownerTarget
-          ? {
-              ...owned.props,
-              orientation: propsOf(workspace, ownerTarget).props.orientation,
-            }
-          : owned.props,
-        style: {
-          ...(master ? view(workspace.readModel.ownFields(master)) : {}),
-          ...view(own),
-          ...catalogPlacementStyle(own.placement),
-        },
-        effective: effectiveOf(workspace, first.identity),
-      };
+      return snapshotOf(first);
+    },
+    updateFlexStyles(styles) {
+      const items = selection();
+      if (!items.length) return;
+      // Each target keeps its own `inline-flex` (authored, else the drawn record's): `flex` would turn
+      // its outer box block and drop it to its own line. Any other display becomes `flex`.
+      const keeps = items.map((item) => {
+        const { style, effective } = snapshotOf(item);
+        const display =
+          typeof style.display === "string" && style.display
+            ? style.display
+            : effective?.display;
+        return display === "inline-flex";
+      });
+      if (keeps.every((keep) => keep === keeps[0])) {
+        host.updateStyles(keeps[0] ? styles : { display: "flex", ...styles });
+        return;
+      }
+      run(() => {
+        const commands = [
+          styleCommandOf(
+            styles,
+            items.filter((_, index) => keeps[index]),
+          ),
+          styleCommandOf(
+            { display: "flex", ...styles },
+            items.filter((_, index) => !keeps[index]),
+          ),
+        ].filter((command): command is CatalogCommand => !!command);
+        if (!commands.length) return undefined;
+        return ((reader) => ({
+          label: "Edit style",
+          ops: commands.flatMap((command) => command(reader).ops),
+        })) satisfies CatalogCommand;
+      });
     },
     updateStyle: (property, value) => writeStyles({ [property]: value }),
     updateStyles: writeStyles,

@@ -20,7 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 같은 원인으로 고쳐진 것: **size xl Checkbox 의 Label** 이 Text 탭에 18px · 줄 높이 28px (종전 Label rule 의 md 14px · 20px) · **TextField · Select 루트의 Padding 0** (종전 자식 Input 의 size padding 12 를 루트 값처럼 표시) · 정렬 토글이 실효 display 가 `inline-flex` 인 부품에 `display: flex` 를 쓰지 않는다 (block 부모에서 줄이 떨어지던 것).
   - record 에 없는 채널만 자기 type rule 을 뒤에 둔다 — Popover · Modal 의 `box-shadow` 처럼 생성 CSS class 로만 DOM 에 닿는 containerStyles (Appearance · Text · Size 키). Layout 키는 record 만 읽는다. Alignment 비활성 (catalog 기본이 grid) 와 Bold 해제 기준선은 표시 값이 아닌 편집 조건이라 자기 rule 판정을 유지한다.
   - 위치: `apps/builder/src/builder/catalogRuntime/effectiveStyle.ts` (새 adapter) · `panels/styles/catalog/catalogStylesHost.ts` (`effective`) · `panels/styles/hooks/{useLayoutValues,useLayoutAuxiliary,useStyleActions,useTypographyValues,useAppearanceValues,useTransformValues,useTransformAuxiliary}.ts`
-- 회귀: `apps/builder/src/builder/panels/styles/__tests__/effectiveStyleValues.test.tsx` (CheckboxButton · RadioButton · SwitchButton · TextField · Select · Slider rowGap · Button 불변 · xl Label · 정렬 토글 display 미기록 — 원복 RED 7/7) · live `apps/builder/scripts/design-panel-effective-live.mjs` (실제 Builder 패널 입력값 4/4).
+- **여러 요소를 함께 골라 정렬 · Direction · Space · Wrap 을 누르면 요소마다 `display` 를 정한다** — `inline-flex` 인 요소 (Button · CheckboxButton) 는 그대로 두고 나머지는 `flex` 가 된다.
+  - **Why**: 판정을 첫 선택 하나로 해 모든 선택에 같은 쓰기를 냈다. CheckboxButton 을 먼저 고르면 함께 고른 Frame 이 `display: block; flexDirection: row` 로 남아 자식이 가로로 서지 않았다 (Codex 판독 2026-10-09). 이제 host 의 `updateFlexStyles` 가 대상마다 작성값 → record 실효 display 로 판정하고 한 단계로 쓴다.
+  - 위치: `panels/styles/catalog/catalogStylesHost.ts` (`updateFlexStyles`) · `panels/styles/hooks/useStyleActions.ts`
+- 회귀: `apps/builder/src/builder/panels/styles/__tests__/effectiveStyleValues.test.tsx` (CheckboxButton · RadioButton · SwitchButton · TextField · Select · Slider rowGap · Button 불변 · xl Label · 정렬 토글 display 미기록 — 원복 RED 7/7 · 다중 선택 대상별 display — 원복 RED 1/1) · live `apps/builder/scripts/design-panel-effective-live.mjs` (실제 Builder 패널 입력값 · 다중 선택 Direction 5/5).
 
 ## [Checkbox 선택 · indeterminate · indicator 모서리 — Canvas 와 Preview 가 Properties Options 를 따른다] - 2026-10-09
 

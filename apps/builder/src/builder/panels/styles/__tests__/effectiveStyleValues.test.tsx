@@ -77,6 +77,31 @@ describe("Layout 탭 — 부모 part rule 이 배치하는 부품", () => {
     expect(authored.alignItems).toBe("flex-end");
     expect(authored.display).toBeUndefined();
   });
+
+  it("다중 선택은 대상마다 판정한다 — CheckboxButton 은 inline-flex 유지, 함께 고른 Frame 은 flex 가 된다 (Codex 판독 2026-10-09)", async () => {
+    const multi = await openStylesFixture([
+      { id: "cb", type: "Checkbox" },
+      { id: "fr", type: "Frame" },
+      { id: "fr-a", type: "Frame", parent: "fr" },
+      { id: "fr-b", type: "Frame", parent: "fr" },
+    ]);
+    const button = multi.descendantRecord("cb", "CheckboxButton");
+    const frame = multi.recordOf("fr");
+    multi.workspace.selectRecords([button, frame]);
+    const actions = renderHook(() => useStyleActions(), {
+      wrapper: multi.wrapper,
+    }).result.current;
+    act(() => actions.handleFlexDirection("row"));
+    multi.workspace.selectRecords([button]);
+    const buttonStyle = multi.host.readSelectedTarget();
+    expect(buttonStyle.style.display).toBeUndefined();
+    expect(buttonStyle.effective?.display).toBe("inline-flex");
+    expect(buttonStyle.style.flexDirection).toBe("row");
+    multi.workspace.selectRecords([frame]);
+    const frameStyle = multi.host.readSelectedTarget().style;
+    expect(frameStyle.display).toBe("flex");
+    expect(frameStyle.flexDirection).toBe("row");
+  });
 });
 
 describe("Layout 탭 — 루트가 받지 않는 size 값", () => {

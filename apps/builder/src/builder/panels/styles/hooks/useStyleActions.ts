@@ -52,20 +52,13 @@ function isSelectedDirectionDriven(host: StylesHost): boolean {
   );
 }
 
-/**
- * 정렬 · 방향 · 간격 · 줄바꿈 토글이 함께 쓰는 `display` — 이미 `inline-flex` (인라인 또는 catalog —
- * Button 등) 면 쓰지 않는다. `flex` 로 바꾸면 outer 가 inline → block 이 돼 block 부모 안에서 한 줄에
- * 서던 요소가 다른 줄로 떨어진다. inner 는 둘 다 flex 라 토글 의미는 같다.
+/*
+ * 정렬 · 방향 · 간격 · 줄바꿈 토글의 `display` 는 host 의 `updateFlexStyles` 가 선택 대상마다 정한다 —
+ * 이미 `inline-flex` (작성값, 없으면 그려진 record — Button · 부모 part rule 이 준 CheckboxButton) 면
+ * 쓰지 않고 그 밖은 `flex`. `flex` 로 바꾸면 outer 가 inline → block 이 돼 block 부모 안에서 한 줄에
+ * 서던 요소가 다른 줄로 떨어진다. Why (2026-10-09 Codex 판독): 첫 선택의 판정을 다중 선택 전체에
+ * 쓰면 CheckboxButton + Frame 에서 Frame 이 `display: block; flexDirection: row` 로 남았다.
  */
-function selectedFlexDisplayPatch(host: StylesHost): Record<string, string> {
-  // 패널 표시와 같은 해석값 — 작성값 (ref instance 의 origin 인라인 · 활성 breakpoint 값 포함),
-  // 없으면 그려진 record 의 실효 display (부모 part rule 이 준 inline-flex 도 여기 있다).
-  const { style, effective } = host.readSelectedTarget();
-  const inline = style.display;
-  const display =
-    typeof inline === "string" && inline ? inline : effective?.display;
-  return display === "inline-flex" ? {} : { display: "flex" };
-}
 
 export function useStyleActions() {
   const host = useStylesHost();
@@ -130,8 +123,7 @@ export function useStyleActions() {
         "align-vertical-end": "flex-end",
       };
 
-      host.updateStyles({
-        ...selectedFlexDisplayPatch(host),
+      host.updateFlexStyles({
         alignItems: alignItemsMap[value] || "flex-start",
       });
     },
@@ -149,8 +141,7 @@ export function useStyleActions() {
         "align-horizontal-end": "flex-end",
       };
 
-      host.updateStyles({
-        ...selectedFlexDisplayPatch(host),
+      host.updateFlexStyles({
         justifyContent: justifyContentMap[value] || "flex-start",
       });
     },
@@ -205,10 +196,7 @@ export function useStyleActions() {
           gap: "",
         });
       } else if (value === "row" || value === "column") {
-        host.updateStyles({
-          ...selectedFlexDisplayPatch(host),
-          flexDirection: value,
-        });
+        host.updateFlexStyles({ flexDirection: value });
       }
     },
     [host],
@@ -244,11 +232,11 @@ export function useStyleActions() {
         const flexDirection =
           currentFlexDirection === "column" ? "column" : "row";
         // 라벨 위치 컨테이너는 축만 매핑한다 (방향은 호출측이 prop 에서 읽어 넘긴다).
-        const layoutMode: Record<string, string> = isSelectedDirectionDriven(
-          host,
-        )
-          ? {}
-          : { ...selectedFlexDisplayPatch(host), flexDirection };
+        const directionDriven = isSelectedDirectionDriven(host);
+        const write = (styles: Record<string, string>) =>
+          directionDriven
+            ? host.updateStyles(styles)
+            : host.updateFlexStyles({ flexDirection, ...styles });
 
         // For row: horizontal = justifyContent, vertical = alignItems
         // For column: horizontal = alignItems, vertical = justifyContent
@@ -256,15 +244,13 @@ export function useStyleActions() {
         //   space-* 그대로 둔다 (panel-ui 01).
         const preserveMainAxis = options?.preserveMainAxis === true;
         if (flexDirection === "column") {
-          host.updateStyles({
-            ...layoutMode,
+          write({
             ...(preserveMainAxis ? {} : { justifyContent: position.vertical }),
             alignItems: position.horizontal,
           });
         } else {
           // row or default
-          host.updateStyles({
-            ...layoutMode,
+          write({
             ...(preserveMainAxis
               ? {}
               : { justifyContent: position.horizontal }),
@@ -281,12 +267,10 @@ export function useStyleActions() {
    */
   const handleJustifyContentSpacing = useCallback(
     (value: string) => {
-      host.updateStyles({
-        ...(isSelectedDirectionDriven(host)
-          ? {}
-          : selectedFlexDisplayPatch(host)),
-        justifyContent: value, // space-around, space-between, space-evenly
-      });
+      // space-around, space-between, space-evenly
+      if (isSelectedDirectionDriven(host))
+        host.updateStyles({ justifyContent: value });
+      else host.updateFlexStyles({ justifyContent: value });
     },
     [host],
   );
@@ -296,12 +280,10 @@ export function useStyleActions() {
    */
   const handleFlexWrap = useCallback(
     (value: string) => {
-      host.updateStyles({
-        ...(isSelectedDirectionDriven(host)
-          ? {}
-          : selectedFlexDisplayPatch(host)),
-        flexWrap: value, // wrap, wrap-reverse, nowrap
-      });
+      // wrap, wrap-reverse, nowrap
+      if (isSelectedDirectionDriven(host))
+        host.updateStyles({ flexWrap: value });
+      else host.updateFlexStyles({ flexWrap: value });
     },
     [host],
   );

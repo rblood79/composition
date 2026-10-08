@@ -93,6 +93,11 @@ export interface StylesHost {
   updateStyle(property: string, value: string): void;
   /** Several CSS keys as one step. */
   updateStyles(styles: Record<string, string>): void;
+  /**
+   * Flex container keys (alignment · direction · space · wrap) as one step, with `display: flex` on
+   * each selected target that is not already `inline-flex` (judged per target, not by the first).
+   */
+  updateFlexStyles(styles: Record<string, string>): void;
   /** A live value while dragging (no history). */
   previewStyle(property: string, value: string): void;
   updateProperty(key: string, value: unknown): void;
