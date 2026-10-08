@@ -324,6 +324,43 @@ const selectNodeTreeMarkup = (markup: string) =>
     "$1",
   );
 /**
+ * ADR-256 Phase 6e: a DatePicker · DateRangePicker draws its node tree in RAC's picker — the shared
+ * component's root mark `data-necessity-indicator` (the Form's mark — no field sheet reads it; no
+ * node-tree field carries it) is gone, a quiet picker's root carries `data-quiet` as every node-tree
+ * field's does, and a picker without a visible label is named (RAC needs a label or an
+ * `aria-label` — before, it had no name). The closed Popover draws nothing.
+ */
+const datePickerNodeTreeMarkup = (
+  markup: string,
+  type: string,
+  name: string,
+) => {
+  const root = new RegExp(`(<div class=react-aria-${type}[^>]*?) data-necessity-indicator=\\w+`);
+  const tree = markup.replace(root, "$1");
+  if (name === "quiet")
+    return tree.replace(
+      new RegExp(`(<div class=react-aria-${type}[^>]*data-label-position=\\w+)`),
+      "$1 data-quiet=true",
+    );
+  if (name !== "no label") return tree;
+  // (RAC names the picker's Group by its `aria-label`; a DatePicker's segments name themselves by
+  // it too, a range's keep their link to the Group.)
+  if (type === "DateRangePicker")
+    return tree.replace(
+      "aria-describedby aria-labelledby class=react-aria-Group",
+      "aria-describedby aria-label=Date Range class=react-aria-Group",
+    );
+  return tree
+    .replace(
+      "aria-describedby aria-labelledby class=react-aria-Group",
+      "aria-describedby aria-label=Date Picker aria-labelledby class=react-aria-Group",
+    )
+    .replace(
+      /aria-label=((?:month|day|year), ) aria-labelledby/g,
+      "aria-label=$1Date Picker",
+    );
+};
+/**
  * A Select's hidden native select lists the items of its ListBox node (ADR-253 Phase 4 — before,
  * the Preview's Select had no options at all): they are asserted on their own.
  */
@@ -517,7 +554,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                       ? selectNodeTreeMarkup(fixed)
                       : type === "combobox"
                         ? comboBoxGroupMarkup(fixed, name === "quiet")
-                        : fixed;
+                        : type === "datepicker"
+                          ? datePickerNodeTreeMarkup(fixed, "DatePicker", name)
+                          : type === "daterangepicker"
+                            ? datePickerNodeTreeMarkup(
+                                fixed,
+                                "DateRangePicker",
+                                name,
+                              )
+                            : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,

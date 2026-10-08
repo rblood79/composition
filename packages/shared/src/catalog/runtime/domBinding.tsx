@@ -40,6 +40,7 @@ import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
+  catalogPickerOfButton,
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
@@ -61,10 +62,7 @@ import {
   CATALOG_DATE_INPUT_NODE_FIELDS,
   CATALOG_INPUT_NODE_FIELDS,
   CATALOG_LABEL_NODE_FIELDS,
-  catalogFieldHintNodes,
   catalogFieldLabelNecessity,
-  catalogFieldControlNodes,
-  catalogFieldLabelNode,
   catalogDomPartParent,
   catalogPartField,
   catalogOwnerDrawnPart,
@@ -122,23 +120,11 @@ export interface CatalogDomContext {
   /** Observation hook: called once per node binding render (initial mount and each delta). */
   onNodeRender?: (id: string) => void;
 }
-/**
- * The part node elements of a field whose RAC component composes its parts itself (ADR-253): each
- * is placed as the component's `label` · `description` · `errorMessage`.
- */
-interface FieldPartElements {
-  label?: ReactElement;
-  description?: ReactElement;
-  error?: ReactElement;
-  /** The part node elements inside the field's control wrapper, in order (ADR-253). */
-  control?: ReactElement[];
-}
 type DomBinding = (
   node: CatalogConsumerNode,
   style: CSSProperties,
   children: ReactElement[],
   context: CatalogDomContext,
-  parts?: FieldPartElements,
 ) => ReactElement;
 
 const textBindings = new Set([
@@ -675,6 +661,24 @@ const NODE_TREE_CONTROL_WRAPPERS: Readonly<
       } as Parameters<typeof RAC.Group>[0],
       ...children,
     ),
+  // (RAC's DatePicker · DateRangePicker take this Group as their Popover's trigger — `GroupContext`
+  // ref, ADR-256 Phase 6e.)
+  datepicker: (node, children) =>
+    createElement(
+      RAC.Group,
+      { key: node.id, "data-catalog-id": node.id } as Parameters<
+        typeof RAC.Group
+      >[0],
+      ...children,
+    ),
+  daterangepicker: (node, children) =>
+    createElement(
+      RAC.Group,
+      { key: node.id, "data-catalog-id": node.id } as Parameters<
+        typeof RAC.Group
+      >[0],
+      ...children,
+    ),
   // (RAC's ComboBox takes this Group as its Popover's trigger — `GroupContext` ref.)
   combobox: (node, children) =>
     createElement(
@@ -891,17 +895,6 @@ export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
   Object.keys(bindings),
 );
 
-/**
- * Bindings whose RAC component composes its sub-part DOM itself (D1). Their typed children keep
- * graph and Canvas identity but render no DOM element of their own.
- */
-export const CATALOG_DOM_CHILD_OWNING_BINDINGS: ReadonlySet<string> = new Set([
-  // (A Select · ComboBox draws its node tree — ADR-256 Phase 6c · 6d.)
-  // Shared components that compose from their own props and never read `children`.
-  "datepicker",
-  "daterangepicker",
-  // (A Table draws its node tree — ADR-256 Phase 5i.)
-]);
 
 /**
  * RAC overlays render nothing while closed (D1): a Tooltip/Popover/Modal without an open trigger,
@@ -954,7 +947,6 @@ export function catalogDomRendersNode(
     if (!parent) return true;
     const delegated = CATALOG_DELEGATED_DOM[parent.bindingId ?? ""];
     if (
-      CATALOG_DOM_CHILD_OWNING_BINDINGS.has(parent.bindingId ?? "") ||
       isClosedOverlay(root, parent) ||
       delegated?.ownsChild?.(child, parent, root) ||
       path.some((node) => delegated?.ownsDescendant?.(node, parent, root))
@@ -1128,11 +1120,13 @@ function dialogTitleOf(
   return undefined;
 }
 
-/** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d). */
+/** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d · 6e). */
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
   "Select",
   "ComboBox",
+  "DatePicker",
+  "DateRangePicker",
 ]);
 
 /**
@@ -1151,8 +1145,6 @@ function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   children: ReactElement[],
-  /** The field's part node elements, in place of its `label` · hint texts (ADR-253). */
-  parts?: FieldPartElements,
 ): ReactElement {
   const type = node.ruleId!;
   const binding = getPrimitiveBinding(type);
@@ -1165,15 +1157,11 @@ function ruleDom(
   const style = authoredStyle(root, node);
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
-  if (parts?.label) rest.label = parts.label;
-  if (parts?.description) rest.description = parts.description;
-  if (parts?.error) rest.errorMessage = parts.error;
-  // (A picker's control: the part node elements inside its Group — ADR-253.)
-  if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
-  // ADR-256 Phase 5g · 6c · 6d: a submenu's · Select's · ComboBox's Popover takes its place from
-  // RAC's SubmenuTrigger · Select · ComboBox (`end top` · `bottom start`, their `PopoverContext`) —
-  // the type's default `placement` would override it (the reference passes none).
+  // ADR-256 Phase 5g · 6c · 6d · 6e: a submenu's · picker's Popover takes its place from RAC's
+  // SubmenuTrigger · Select · ComboBox · DatePicker · DateRangePicker (`end top` · `bottom start`,
+  // their `PopoverContext`) — the type's default `placement` would override it (the reference
+  // passes none).
   if (
     lower === "popover" &&
     CONTEXT_PLACED_POPOVER_PARENTS.has(
@@ -1802,37 +1790,23 @@ function renderNode(
   const id = node.id;
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
   if (catalogAbsentByValue(node)) return null;
-  // A field whose RAC component composes its parts itself still draws its Label · Description ·
-  // FieldError from its part nodes (ADR-253): each element is placed as the component's prop.
-  const owning = CATALOG_DOM_CHILD_OWNING_BINDINGS.has(node.bindingId ?? "");
-  const partElement = (part: CatalogConsumerNode | undefined) =>
-    part &&
-    createElement(CatalogDomNode, { key: part.id, root, id: part.id, context });
-  const hints = owning ? catalogFieldHintNodes(root, node) : {};
-  const parts: FieldPartElements | undefined = owning
-    ? {
-        label: String(node.props.label ?? "").trim()
-          ? partElement(catalogFieldLabelNode(root, node))
-          : undefined,
-        description: String(node.props.description ?? "").trim()
-          ? partElement(hints.description)
-          : undefined,
-        error: partElement(hints.error),
-        ...(catalogFieldControlNodes(root, node).length
-          ? {
-              control: catalogFieldControlNodes(root, node).map((part) =>
-                partElement(part)!,
-              ),
-            }
-          : {}),
-      }
-    : undefined;
-  const children: ReactElement[] = owning
-    ? []
-    : (node.bindingId === "submenutrigger"
-        ? submenuTriggerChildren(root, node)
-        : node.children
-      ).flatMap((childId) => {
+  // A DatePicker's · DateRangePicker's calendar button is not there while `showCalendarIcon` is
+  // false — the Canvas hides the node the same way (`catalogPickerOfButton`; ADR-256 Phase 6e: the
+  // picker's Group draws its parts in order).
+  if (
+    node.bindingId === "button" &&
+    catalogPickerOfButton(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )?.props.showCalendarIcon === false
+  )
+    return null;
+  const children: ReactElement[] = (
+    node.bindingId === "submenutrigger"
+      ? submenuTriggerChildren(root, node)
+      : node.children
+  ).flatMap((childId) => {
         const child = root.domInputs.get(childId);
         // A part its owner draws has no element of its own — but a toggle indicator in a layout
         // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).
@@ -2050,9 +2024,8 @@ function renderNode(
         sheetBox ?? (styleOverride ? { ...bound, ...styleOverride } : bound!),
         children,
         context,
-        parts,
       )
-    : ruleDom(root, node, children, parts);
+    : ruleDom(root, node, children);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
     root,

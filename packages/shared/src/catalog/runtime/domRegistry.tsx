@@ -17,8 +17,6 @@ import {
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
-import { DatePicker } from "@composition/shared/components/DatePicker";
-import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 import { TooltipTrigger } from "@composition/shared/components/TooltipTrigger";
 import { Dialog } from "@composition/shared/components/Dialog";
@@ -140,8 +138,6 @@ export const INTERNAL_RENDERERS: Readonly<
   fileupload: FileUpload,
   calendar: Calendar,
   rangecalendar: RangeCalendar,
-  datepicker: DatePicker,
-  daterangepicker: DateRangePicker,
 };
 
 /**

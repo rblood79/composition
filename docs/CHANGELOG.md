@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6e — DatePicker · DateRangePicker 를 노드 트리로 그린다] - 2026-10-09
+
+### Changed
+
+- **DatePicker · DateRangePicker 원본 = react-aria.adobe.com 의 구조** — `DatePicker > Label + Group(DateInput + Button) + Description + FieldError + Popover > Calendar` (DateRangePicker 는 DateInput 쌍 + `RangeCalendar`). 달력은 picker 바로 아래가 아니라 **Popover 노드** 안에 있다 (레퍼런스대로 `hideArrow`, Dialog 없이 — Popover 가 dialog 다). 닫힌 달력은 종전대로 Canvas 에 그리지 않는다
+- **DateRangePicker 의 달력이 RangeCalendar 다** — 옛 원본은 Calendar 노드를 두었지만 Preview 는 그 노드를 무시하고 공용 컴포넌트가 자기 RangeCalendar 를 그렸다. 이제 문서의 RangeCalendar 노드가 그대로 열린다
+- **Preview 가 picker 의 자식을 순서대로 RAC DatePicker · DateRangePicker 안에서 그린다** — 옛 공용 컴포넌트가 정해진 부품만 받아 조립하던 것을 걷었다. 입력 상자는 Group 노드 자신의 RAC `Group` 이고, RAC 가 그 Group 을 달력의 기준으로 삼아 Popover 를 상자의 시작 가장자리 아래에 연다. 달력 노드는 RAC 의 달력 context (값 · 포커스 · 상태 · `pageBehavior`) 를 받고, picker 의 크기와 `maxVisibleMonths` 로 그려진다. 작성자가 picker 안에 넣은 자유 자식도 제자리에 그려진다
+- label 이 없는 picker 에 이름이 생긴다 (`aria-label` — 옛 Preview 는 이름이 없었다) · quiet picker 의 루트에 다른 field 와 같은 `data-quiet` · Label · 도움말 자리에 `presentWhen`
+- 시간 granularity 의 picker 가 열린 달력 아래에 따로 붙이던 TimeField 는 레퍼런스에 없어 그리지 않는다 (시간은 입력 상자의 시 · 분 조각으로 고친다. 필요하면 작성자가 Popover 안에 TimeField 노드를 넣는다)
+- 저장 형식 contract 22 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+- 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/runtime/{delegatedDom,domBinding,domRegistry,presence,renderFacetDeclaration}.ts(x)` · `catalog/nesting/nestingRules.ts`
+
+### Removed
+
+- `domBinding` 의 「공용 컴포넌트에 부품을 props 로 넘기는」 경로 (`CATALOG_DOM_CHILD_OWNING_BINDINGS` · 부품 요소 묶음) — 마지막 사용처였던 두 picker 가 노드 트리로 그린다
+- **공용 `DatePicker` · `DateRangePicker` 컴포넌트** (`components/DatePicker.tsx` · `DateRangePicker.tsx` · `styles/DatePickerCommon.css`) — catalog 경로에서 쓰이지 않게 됐다 (사용자 승인). `domRegistry` 등록 · `components/{index,list}` export 와 두 컴포넌트만 남았던 glyph 크기 시험 (`triggerIconGlyphSize.test.tsx`) 도 걷었다
+
 ## [ADR-256 Phase 6d — ComboBox 를 노드 트리로 그린다] - 2026-10-09
 
 ### Changed

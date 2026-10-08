@@ -44,8 +44,6 @@ export { FileTrigger } from "./FileTrigger";
 export { DropZone } from "./DropZone";
 
 // Date/Time Components
-export { DatePicker } from "./DatePicker";
-export { DateRangePicker } from "./DateRangePicker";
 export { Calendar } from "./Calendar";
 export { RangeCalendar } from "./RangeCalendar";
 

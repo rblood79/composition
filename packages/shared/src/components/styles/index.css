@@ -78,7 +78,6 @@
 @import "./generated/Breadcrumbs.css";
 @import "./generated/Button.css";
 @import "./CalendarCommon.css"; /* Foundation 공유 — Spec 없음 */
-@import "./DatePickerCommon.css"; /* Foundation 공유 — Spec 없음 */
 @import "./EventHandlerManager.css"; /* 빌더 전용 */
 @import "./EventPalette.css"; /* 빌더 전용 */
 @import "./EventSection.css"; /* 빌더 전용 */

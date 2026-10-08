@@ -1,11 +1,9 @@
 /**
  * ADR-142 family ⑦(date) — DatePicker primitive 의 `PrimitiveBinding`.
  *
- * inventory(§2-1) primitive. composition wrapper(`DatePicker.tsx`)가 RAC DatePicker +
- * Label/Group/DateInput/Button/Popover/Calendar 합성(internal source). 캔버스 정적 노드 시각은
- * trigger field(input box + display text + 후행 calendar icon) — Popover+Calendar grid 는 클릭
- * 시 열리는 portal(정적 캔버스 미표시). Skia 는 `datefield_trigger` skiaPrimitive(replace) escape 로
- * trigger field 재현(ADR-912 단계 5 (1b) — skiaLegacy 제거).
+ * Preview 는 노드 트리 — RAC DatePicker 안에서 자식 (Label · Group > DateInput + Button ·
+ * Description · FieldError · Popover > Calendar) 을 순서대로 그린다 (`delegatedDom` `datepicker`,
+ * ADR-256 Phase 6e). 닫힌 Popover 는 Canvas 에 그리지 않는다. Skia 는 각 부품 노드를 그린다.
  */
 
 import type { PrimitiveBinding } from "../types";

@@ -15,8 +15,6 @@ export * from "./GridList";
 export * from "./Tabs";
 export * from "./Tree";
 export * from "./Calendar";
-export * from "./DatePicker";
-export * from "./DateRangePicker";
 export * from "./Switch";
 export * from "./Table";
 export { default as Table } from "./Table";

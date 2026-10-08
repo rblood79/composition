@@ -66,7 +66,7 @@ export interface RenderFacetDelegation {
  * insertion order 를 유지하므로, 파생 set 이 byte-identical 하려면 순서 동일 필요).
  */
 export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
-  // ── delegating-internal (29) — binding.source.kind==="internal" self-compose ──
+  // ── delegating-internal (34) — binding.source.kind==="internal" self-compose ──
   {
     key: "tabs",
     kind: "delegating-internal",
@@ -144,6 +144,18 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-internal",
     reason:
       "ComboBox 는 delegatedDom `combobox` 노드 트리 binding 이 RAC ComboBox 안에서 자식을 순서대로 그린다 (ADR-256 Phase 6d). generic ruleDom 은 RAC ComboBox context 를 만들지 않아 Input · Button · Group · Popover 가 ComboBox 와 끊긴다.",
+  },
+  {
+    key: "datepicker",
+    kind: "delegating-internal",
+    reason:
+      "DatePicker 는 delegatedDom `datepicker` 노드 트리 binding 이 RAC DatePicker 안에서 자식을 순서대로 그린다 (ADR-256 Phase 6e). generic ruleDom 은 RAC DatePicker context 를 만들지 않아 Group · DateInput · Button · Popover · Calendar 가 DatePicker 와 끊긴다.",
+  },
+  {
+    key: "daterangepicker",
+    kind: "delegating-internal",
+    reason:
+      "DateRangePicker 는 delegatedDom `daterangepicker` 노드 트리 binding 이 RAC DateRangePicker 안에서 자식을 순서대로 그린다 (ADR-256 Phase 6e). generic ruleDom 은 RAC DateRangePicker context 를 만들지 않아 DateInput 쌍 · Button · Popover · RangeCalendar 가 끊긴다.",
   },
   {
     key: "tree",

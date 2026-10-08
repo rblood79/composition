@@ -44,10 +44,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `hideArrow`) — `Select > Label + Button + Description + FieldError + Popover > ListBox`. 21 —
  * ADR-256 Phase 6d: a ComboBox's ListBox sits in its Popover (`component-combobox__popover`,
  * `hideArrow`) — `ComboBox > Label + Group(Input + Button) + Description + FieldError + Popover >
- * ListBox`.
+ * ListBox`. 22 — ADR-256 Phase 6e: a DatePicker's Calendar · a DateRangePicker's RangeCalendar
+ * (was a Calendar) sits in its Popover (`component-datepicker__popover` ·
+ * `component-daterangepicker__popover`, `hideArrow`) — `DatePicker > Label + Group(DateInput +
+ * Button) + Description + FieldError + Popover > Calendar`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 21 as const;
+export const LIBRARY_CONTRACT_VERSION = 22 as const;
 
 export type EntryKind =
   | "project"

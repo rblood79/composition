@@ -36,10 +36,10 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     DialogTrigger: new Set(["Dialog", "Modal", "Popover"]),
     // ADR-255: RAC TooltipTrigger — the Tooltip shows on the trigger's hover / focus.
     TooltipTrigger: new Set(["Tooltip"]),
-    DatePicker: new Set(["Calendar", "Popover"]),
-    DateRangePicker: new Set(["RangeCalendar", "Calendar", "Popover"]),
-    // ADR-256 Phase 6c · 6d: a Select's · ComboBox's list is in its Popover (a ListBox outside it
-    // shows — RAC draws it in the picker's context; items sit only in a ListBox).
+    // ADR-256 Phase 6c · 6d · 6e: a picker's list · calendar is in its Popover (a ListBox · Calendar
+    // outside it shows — RAC draws it in the picker's context; items sit only in a ListBox).
+    DatePicker: new Set(["Popover"]),
+    DateRangePicker: new Set(["Popover"]),
     Select: new Set(["Popover"]),
     ComboBox: new Set(["Popover"]),
     // RAC MenuTrigger: the items live in the closed Popover; only the trigger button shows.

@@ -75,11 +75,11 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     ).toMatchObject({ layer: "rac-composition", allowedChildren: ["Button"] });
     expect(
       resolveNestingViolation({
-        parentType: "DatePicker",
-        childType: "DatePicker",
+        parentType: "Toast",
+        childType: "Toast",
       }),
-    ).toMatchObject({ layer: "rac-composition", parentType: "DatePicker" });
-    expect(canNest("DatePicker", "frame")).toBe(false);
+    ).toMatchObject({ layer: "rac-composition", parentType: "Toast" });
+    expect(canNest("Toast", "frame")).toBe(false);
     expect(canNest("TextField", "Label", ["TextField", "body"])).toBe(true);
     expect(canNest("TextField", "FieldError", ["TextField", "body"])).toBe(
       true,
@@ -87,7 +87,7 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("ButtonGroup", "Button")).toBe(true);
     expect(canNest("AvatarGroup", "Avatar")).toBe(true);
     expect(canNest("AvatarGroup", "Button")).toBe(false);
-    expect(canNest("DatePicker", "DatePicker")).toBe(false);
+    expect(canNest("Toast", "Toast")).toBe(false);
     // ADR-256 Phase 3: a Checkbox is RAC `CheckboxField` (a `div` — free content, the reference's
     // Description); its pressable `CheckboxButton` is a `<label>` that holds no other control.
     expect(canNest("Checkbox", "Description")).toBe(true);
@@ -117,13 +117,26 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     ).toBe(true);
   });
 
-  it("ADR-256 Phase 6b — picker 의 control 상자는 RAC Group 이다 (옛 SelectTrigger 는 받지 않는다)", () => {
+  it("ADR-256 Phase 6b — picker 의 control 상자는 RAC Group 이다", () => {
     for (const picker of ["ComboBox", "DatePicker", "DateRangePicker"])
       expect(canNest(picker, "Group", [picker, "body"])).toBe(true);
-    // (ComboBox 는 6d 부터 자유 내용 — 미전환 picker 만 목록 밖 type 을 거부한다.)
-    for (const picker of ["DatePicker", "DateRangePicker"])
-      expect(canNest(picker, "SelectTrigger", [picker, "body"])).toBe(false);
   });
+
+  it.each([
+    ["DatePicker", "Calendar"],
+    ["DateRangePicker", "RangeCalendar"],
+  ])(
+    "ADR-256 Phase 6e — %s 는 노드 트리: Popover > %s 를 받는다",
+    (picker, calendar) => {
+      expect(canNest(picker, "Popover", [picker, "body"])).toBe(true);
+      expect(canNest("Popover", calendar, ["Popover", picker, "body"])).toBe(
+        true,
+      );
+      expect(
+        canNest(calendar, "CalendarGrid", [calendar, "Popover", picker]),
+      ).toBe(true);
+    },
+  );
 
   it.each(["Select", "ComboBox"])(
     "ADR-256 Phase 6c · 6d — %s 는 노드 트리: Popover > ListBox 를 받고, 항목은 ListBox 안에서만",

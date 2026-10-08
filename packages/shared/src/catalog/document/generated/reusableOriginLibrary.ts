@@ -5498,7 +5498,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-datepicker__2",
       "lib:template:component-datepicker__description",
       "lib:template:component-datepicker__error",
-      "lib:template:component-datepicker__3"
+      "lib:template:component-datepicker__popover"
     ],
     "props": {
       "label": "Date Picker",
@@ -5520,6 +5520,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -5559,6 +5560,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{description}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -5567,6 +5569,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-datepicker__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-datepicker__3"
+    ],
+    "props": {
+      "hideArrow": true
     },
     "visual": {}
   },
@@ -5585,7 +5598,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-daterangepicker__2",
       "lib:template:component-daterangepicker__description",
       "lib:template:component-daterangepicker__error",
-      "lib:template:component-daterangepicker__3"
+      "lib:template:component-daterangepicker__popover"
     ],
     "props": {
       "label": "Date Range",
@@ -5607,6 +5620,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -5680,6 +5694,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{description}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -5692,8 +5707,19 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-daterangepicker__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-daterangepicker__3"
+    ],
+    "props": {
+      "hideArrow": true
+    },
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-daterangepicker__3",
-    "definitionId": "lib:definition:origin-component-calendar",
+    "definitionId": "lib:definition:origin-component-rangecalendar",
     "children": [],
     "props": {},
     "visual": {}

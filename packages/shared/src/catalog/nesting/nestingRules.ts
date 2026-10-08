@@ -123,25 +123,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper 는 RAC
   // `Group` 이다 (ADR-256 Phase 6b — 자유 내용, 옛 `SelectTrigger` 행 삭제). Select 도 노드 트리로
   // 그린다 (ADR-256 Phase 6c — `Popover > ListBox`, 행 삭제). ComboBox 도 같다 (6d, 행 삭제).
-  DatePicker: {
-    children: [
-      "Label",
-      "Group",
-      "Calendar",
-      "Description",
-      "FieldError",
-    ],
-  },
-  DateRangePicker: {
-    children: [
-      "Label",
-      "Group",
-      "Calendar",
-      "RangeCalendar",
-      "Description",
-      "FieldError",
-    ],
-  },
+  // DatePicker · DateRangePicker 도 같다 (6e — `Popover > Calendar` / `RangeCalendar`, 행 삭제).
   // (toggle — Phase 3 (2026-10-08): 노드 트리로 전환 — Checkbox · Switch · Radio · 그룹 · ToggleButtonGroup 행 없음.)
   // collection — Phase 5 (Tabs · TabPanels 는 노드 트리로 그린다 — ADR-256 Phase 5e-2, 행 삭제)
   TagGroup: {

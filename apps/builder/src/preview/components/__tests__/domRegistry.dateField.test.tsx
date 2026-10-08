@@ -33,13 +33,13 @@ describe("domRegistry — DateField/TimeField 위임 등록 (회귀 방지)", ()
     expect(DELEGATING_RAC_RENDERERS.has("Slider")).toBe(true);
   });
 
-  it("DatePicker/DateRangePicker 는 rac 위임 대상 아님 (source.kind=internal, INTERNAL 경로)", () => {
-    // DatePicker/DateRangePicker 는 source.kind="internal" 라 INTERNAL_RENDERERS["datepicker"]/
-    // ["daterangepicker"] generic 경로로 composition wrapper(self-compose) 직접 렌더 — rac 위임
-    // 집합에 들어가면 안 된다(type 이 PascalCase "DatePicker" 라 어차피 미매칭이지만 의도 고정).
+  it("DatePicker/DateRangePicker 는 internal 위임 — 노드 트리 binding 이 그린다 (ADR-256 Phase 6e)", () => {
+    // source.kind="internal" 이라 rac 위임 집합에는 없다. 노드 트리 binding (delegatedDom
+    // `datepicker` · `daterangepicker`) 이 RAC picker 안에서 자식을 그리므로 generic 경로 (ruleDom
+    // 의 공용 컴포넌트) 로 가지 않게 internal 위임 집합에 둔다.
     expect(DELEGATING_RAC_RENDERERS.has("DatePicker")).toBe(false);
     expect(DELEGATING_RAC_RENDERERS.has("DateRangePicker")).toBe(false);
-    // internal 위임 집합에도 datepicker 류는 미포함(INTERNAL_RENDERERS map 직접 위임 경로 사용).
-    expect(DELEGATING_INTERNAL_RENDERERS.has("datepicker")).toBe(false);
+    expect(DELEGATING_INTERNAL_RENDERERS.has("datepicker")).toBe(true);
+    expect(DELEGATING_INTERNAL_RENDERERS.has("daterangepicker")).toBe(true);
   });
 });

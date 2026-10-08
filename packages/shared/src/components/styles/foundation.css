@@ -30,7 +30,6 @@
    ============================================ */
 @import "./ActionList.css";
 @import "./CalendarCommon.css";
-@import "./DatePickerCommon.css";
 @import "./EventHandlerManager.css";
 @import "./EventPalette.css";
 @import "./EventSection.css";

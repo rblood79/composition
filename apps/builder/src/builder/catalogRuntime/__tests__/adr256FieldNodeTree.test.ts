@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { createElement, type ReactElement } from "react";
+import { createElement, type ElementType, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   Button,
+  Calendar,
   ComboBox,
+  DateInput,
+  DatePicker,
+  DateRangePicker,
+  DateSegment,
   FieldError,
   Form,
   Group,
@@ -31,6 +36,7 @@ import type {
 import {
   detachInstances,
   insertNodes,
+  setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -311,6 +317,91 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     ]);
   });
 
+  it.each([
+    ["datepicker", "Date Picker"],
+    ["daterangepicker", "Date Range"],
+  ])(
+    "%s has the reference example's structure: Group(DateInput + Button) · Popover > calendar (ADR-256 Phase 6e)",
+    async (type, label) => {
+      const { workspace, field } = await open(type, { description: "Pick" });
+      const actual = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, field().id),
+      );
+      const input = (slot?: string) =>
+        createElement(
+          DateInput as ElementType,
+          slot ? { slot } : null,
+          ((segment: Parameters<typeof DateSegment>[0]["segment"]) =>
+            createElement(DateSegment, { segment })) as never,
+        );
+      const button = createElement(
+        Button,
+        null,
+        createElement("svg", { "aria-hidden": "true" }),
+      );
+      // react-aria.adobe.com DatePicker · DateRangePicker (API anatomy · vanilla starter): Label ·
+      // Group > DateInput (a range: start · end) + Button(glyph) · Text[description] · FieldError ·
+      // Popover[hideArrow] > Calendar / RangeCalendar (closed — nothing drawn). Known difference,
+      // recorded in the breakdown: the range's separator is the template's Text node (`span`), where
+      // the vanilla starter's `span` is `aria-hidden` inside a `div.date-fields`.
+      const reference = renderToStaticMarkup(
+        createElement(
+          (type === "datepicker" ? DatePicker : DateRangePicker) as never,
+          null,
+          createElement(Label, null, label),
+          type === "datepicker"
+            ? createElement(Group, null, input(), button)
+            : createElement(
+                Group,
+                null,
+                input("start"),
+                createElement("span", null, "–"),
+                input("end"),
+                button,
+              ),
+          createElement(Text, { slot: "description" }, "Pick"),
+          createElement(FieldError),
+          createElement(
+            Popover as ElementType,
+            { hideArrow: true },
+            createElement(Calendar as ElementType),
+          ),
+        ),
+      );
+      expect(structure(actual)).toBe(structure(reference));
+      // Its parts are its own elements; the closed Popover has none (and the Canvas hides it).
+      const kids = field().children.map((id) =>
+        workspace.root.domInputs.get(id)!,
+      );
+      expect(
+        kids.map((kid) => [
+          workspace.root.typeOf(kid),
+          catalogDomRendersNode(workspace.root, kid.id),
+        ]),
+      ).toEqual([
+        ["Label", true],
+        ["Group", true],
+        ["Description", true],
+        ["FieldError", true],
+        ["Popover", false],
+      ]);
+      const popover = [...workspace.root.canvasInputs.values()].find(
+        (item) =>
+          item.parentId === field().id &&
+          workspace.root.typeOf(item) === "Popover",
+      );
+      expect(popover?.hidden).toBe(true);
+      // The range picker's calendar is RAC's RangeCalendar (RAC's DateRangePicker gives its context
+      // to that one only).
+      const calendar = workspace.root.domInputs.get(
+        workspace.root.domInputs.get(popover!.id)!.children[0]!,
+      )!;
+      expect(workspace.root.typeOf(calendar)).toBe(
+        type === "datepicker" ? "Calendar" : "RangeCalendar",
+      );
+    },
+  );
+
   it("a stepper Button with no text but a glyph stays (Decision 7 — no value condition)", async () => {
     const { workspace, field } = await open("numberfield", { label: "" });
     const html = renderToStaticMarkup(
@@ -329,9 +420,11 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     "colorfield",
     "datefield",
     "timefield",
-    // ADR-256 Phase 6c · 6d: a Select · ComboBox draws its node tree too.
+    // ADR-256 Phase 6c · 6d · 6e: a picker draws its node tree too.
     "select",
     "combobox",
+    "datepicker",
+    "daterangepicker",
   ])(
     "%s: a free child the author puts in is drawn in its place (Canvas and DOM)",
     async (type) => {
@@ -431,6 +524,67 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
           workspace.root.typeOf(item) === "Popover",
       );
       expect(popover?.hidden).toBe(true);
+    },
+  );
+
+  it.each([
+    ["datepicker", "calendar"],
+    ["daterangepicker", "rangecalendar"],
+  ])(
+    "%s: a %s the author puts beside the Popover shows on both sides, in the picker's state (ADR-256 Phase 6e)",
+    async (type, calendarType) => {
+      const { workspace, field } = await open(type, {
+        label: "Field",
+        size: "lg",
+        isDisabled: true,
+      });
+      workspace.execute(
+        detachInstances({ ids: [FIELD], newId: workspace.newId }),
+      );
+      // (The picker's visible months — RSP `maxVisibleMonths`, which RAC's context does not carry.)
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { maxVisibleMonths: set(2) },
+        }),
+      );
+      const calendar = "project:node:free-calendar" as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: FIELD },
+          entries: [
+            {
+              kind: "node",
+              id: calendar,
+              definitionId: `lib:definition:origin-component-${calendarType}`,
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [calendar],
+          newId: workspace.newId,
+        }),
+      );
+      const host = document.createElement("div");
+      host.innerHTML = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, field().id),
+      );
+      const drawn = [...host.querySelectorAll("[data-catalog-id]")].find(
+        (element) => element.getAttribute("data-catalog-id")?.endsWith(calendar),
+      );
+      expect(drawn).toBeDefined();
+      // RAC's calendar context (the picker's disabled state — the node does not override it to
+      // false), the picker's size and visible months.
+      expect(drawn!.hasAttribute("data-disabled")).toBe(true);
+      expect(drawn!.getAttribute("data-size")).toBe("lg");
+      expect(drawn!.querySelectorAll("table")).toHaveLength(2);
+      const record = [...workspace.root.canvasInputs.values()].find(
+        (item) => item.sourceId === calendar,
+      );
+      expect(record && !record.hidden).toBe(true);
     },
   );
 
