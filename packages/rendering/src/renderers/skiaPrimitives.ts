@@ -27,7 +27,6 @@ import {
   getDescriptionLineHeight,
 } from "../primitives/typography";
 import {
-  buildCardSelectionEntry,
   COLLECTION_TEXT_DEFAULT_FONT_SIZE,
   resolveCollectionRowMetric,
   resolveListBoxItemInset,
@@ -516,11 +515,6 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
   //   미설정(항상 top) + textX=cardPaddingX(icon/check 예약 없음) + description lineHeight 1.5×.
   //   `cardWidth`(=style.width)는 buildSpecNodeData width injection 이 확정한 실제 카드 폭.
   const explicitHeight = parsePxValue(style?.height, undefined);
-  // 선택 체크박스(2026-08-22) — Tree 행과 달리 카드는 flex-column 이라 라벨 **왼쪽이 아니라 위**에
-  //   선다. 그래서 leading 슬롯처럼 textX 를 밀지 않고 스택 **첫 블록**으로 들어간다(간격도 카드
-  //   자체 gap = descGap 을 그대로 공유 — DOM 실측 checkbox 20 → gap 2 → label). 가시성 신호는
-  //   builder 가 부모 GridList 의 selectionMode·selectionStyle 을 해석해 주입한다(ADR-142 §3).
-  const selectionSlot = resolveSelectionSlot(visual, props);
   const cardMetric = resolveCollectionRowMetric({
     containerWidth: cardWidth,
     paddingTop: cardPaddingY,
@@ -534,7 +528,6 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
     rightReserve: 0,
     fontFamily: ff,
     entries: [
-      ...(selectionSlot ? [buildCardSelectionEntry(selectionSlot.size)] : []),
       ...stackEntries.map((entry) => ({
         role: entry,
         text: entry === "label" ? label : (description ?? ""),
@@ -587,26 +580,7 @@ const gridListCard: SkiaPrimitiveDrawFn = ({
   const descriptionFill =
     (descriptionSlotStyle?.color as string | undefined) ??
     ("{color.neutral-subdued}" as TokenRef);
-  // 체크박스 블록 — 스택 첫 자리(라벨 위). geometry 는 metric 의 블록 offset 그대로라
-  //   높이 계산(측정)과 그리기(paint)가 어긋날 수 없다. shell 모드에서도 그린다: 체크박스는
-  //   카드 chrome 이지 slot 자식이 렌더하는 내용이 아니다(선택 상태는 owner 소유).
-  const selectionBlock = cardMetric.slotBlocks.selection;
-  if (selectionSlot && selectionBlock) {
-    shapes.push(
-      ...buildSelectionCheckboxShapes({
-        sc: visual!.selectionCheckbox!,
-        x: cardPaddingX,
-        y: selectionBlock.y,
-        box: selectionSlot.size,
-        isSelected: selectionSlot.isSelected,
-      }),
-    );
-  }
-
-  let stackY =
-    selectionSlot && selectionBlock
-      ? selectionBlock.y + selectionBlock.height + descGap
-      : cardPaddingY;
+  let stackY = cardPaddingY;
   // shell 모드: 내용 스택은 실 자식 노드가 렌더 (이중 렌더 차단).
   for (const entry of contentHidden ? [] : stackEntries) {
     if (entry === "label") {

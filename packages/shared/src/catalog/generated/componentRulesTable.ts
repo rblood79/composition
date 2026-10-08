@@ -5295,20 +5295,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         // 굵기 선언 없음 (사용자 결정 2026-09-29): 카드 label · description 모두 기본 굵기 (400).
         //   종전 600 은 description 까지 굵게 했다 (DOM 상속).
-        /* 선택 체크박스 (2026-08-22, 감사 §1-2 축② 잔여) — DOM 은 RAC 가 카드 flex-column 첫
-           자식으로 `<Checkbox slot="selection">` 을 렌더한다(라벨 왼쪽이 아니라 **위**). Skia
-           escape(gridlist_card)가 이 채널을 소비해 같은 자리에 그리고, 카드 높이도 같은 블록으로
-           +22(box 20 + 카드 gap 2) 늘어난다 — DOM 실측 98 vs 76. 가시성은 `_showSelectionCheckbox`
-           데이터 신호(부모 GridList 의 selectionMode·selectionStyle 해석 결과). 색은 DOM
-           `Checkbox.css` 와 같은 시맨틱 토큰. */
-        selectionCheckbox: {
-          size: 20,
-          gap: 2,
-          fill: "{color.base}",
-          border: "{color.border}",
-          selectedFill: "{color.accent}",
-          checkColor: "{color.on-accent}",
-        },
       },
       /* quiet (2026-08-22, 감사 §1-2 축② 잔여) — 컬렉션 quiet 은 **컨테이너가 아니라 카드**
          에서 성립한다. GridList 컨테이너는 catalog·CSS 양쪽 다 이미 transparent/border none
@@ -5335,14 +5321,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.transparent}",
           selectedBorder: "{color.accent}",
-        },
-        selectionCheckbox: {
-          size: 20,
-          gap: 2,
-          fill: "{color.base}",
-          border: "{color.border}",
-          selectedFill: "{color.accent}",
-          checkColor: "{color.on-accent}",
         },
       },
     },

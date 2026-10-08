@@ -257,11 +257,6 @@ export type {
   CollectionRowSlotRole,
 } from "./renderers/utils/collectionItemMetrics";
 
-export {
-  buildCardSelectionEntry,
-  resolveCardSelectionExtra,
-} from "./renderers/utils/collectionItemMetrics";
-
 export { resolveListBoxItemInset } from "./renderers/utils/collectionItemMetrics";
 export type {
   ListBoxItemInsetInput,
