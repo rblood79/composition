@@ -38,6 +38,11 @@ import {
 } from "./context";
 import { ensureChildList, type NewId } from "./materialize";
 import {
+  tableAlignmentIn,
+  tableColumnCells,
+  tableColumnOrder,
+} from "./collections";
+import {
   RAC_REQUIRED_PART_TYPES,
   RAC_REQUIRED_PARTS,
   requiredPartOwner,
@@ -118,6 +123,14 @@ export const insertNodes =
     for (const entry of input.entries) draft.create(entry);
     addRelated(draft, input.related ?? []);
     placeAt(draft, input.parent, input.index, input.rootIds, input.newId);
+    assertTablesAligned(
+      draft,
+      input.parent.kind === "node"
+        ? [input.parent.id]
+        : input.parent.kind === "descendant"
+          ? [input.parent.ownerId]
+          : [],
+    );
     // (Only entries that carry a condition can be unlinked by being placed.)
     if (input.entries.some((entry) => entry.showWhen))
       assertStateOwnersLinked(draft, input.rootIds);
@@ -207,6 +220,57 @@ function assertRequiredPartsKept(
   }
 }
 
+/** RAC Table parts a command can misalign (G0 ⑨ — a row's cells against the header's columns). */
+const TABLE_PART_TYPES: ReadonlySet<string> = new Set([
+  "Table",
+  "TableHeader",
+  "TableBody",
+  "Column",
+  "Row",
+  "Cell",
+]);
+
+/**
+ * ADR-256 Phase 5i-3 — refuse a command whose result leaves a RAC Table with a row whose cell count
+ * differs from its column count (RAC throws — G0 ⑨) when the table was aligned before. `near`: the
+ * nodes the command took away, moved or released, and the parents it placed under — their Table
+ * ancestors are judged. A command that touches no table part pays one type read per id.
+ */
+function assertTablesAligned(
+  draft: CommandDraft,
+  near: readonly string[],
+): void {
+  const reader = draft.reader;
+  const typeOfId = (id: string) => {
+    const entry = draft.read(id) ?? reader.getEntry(id);
+    return entry?.kind === "node"
+      ? definitionTypeName(reader, entry.definitionId)
+      : "";
+  };
+  const tables = new Set<NodeId>();
+  for (const id of near) {
+    if (!TABLE_PART_TYPES.has(typeOfId(id))) continue;
+    for (
+      let cursor: string | undefined = id;
+      cursor;
+      cursor = reader.ownerOf(cursor) ?? undefined
+    ) {
+      const type = typeOfId(cursor);
+      if (type === "Table") tables.add(cursor as NodeId);
+      if (!TABLE_PART_TYPES.has(type)) break;
+    }
+  }
+  for (const tableId of tables) {
+    const after = tableAlignmentIn(draft, tableId);
+    if (!after || after.rows.every((cells) => cells === after.columns))
+      continue;
+    const before = tableAlignmentIn(new CommandDraft(reader), tableId);
+    if (before && before.rows.some((cells) => cells !== before.columns))
+      continue;
+    fail("TABLE_CELLS_NOT_ALIGNED", tableId);
+  }
+}
+
 /**
  * ADR-256 Decision 7 · breakdown §1-1 — refuse a command that unlinks a stored state owner: after
  * the command's writes, every `showWhen` reference by address (`{ ancestor: nodeId | address }`) in
@@ -284,7 +348,9 @@ export function assertStateOwnersLinked(
       (item) =>
         item.kind === "fillSlot" &&
         item.address.instances.length === address.instances.length &&
-        item.address.instances.every((id, at) => id === address.instances[at]) &&
+        item.address.instances.every(
+          (id, at) => id === address.instances[at],
+        ) &&
         address.templatePath.every(
           (id, at) => item.address.templatePath[at] === id,
         ) &&
@@ -502,6 +568,11 @@ export const moveNodes =
       roots.map((id) => draft.node(id).definitionId),
     );
     const owners = new Map(roots.map((id) => [id, reader.ownerOf(id)]));
+    // ADR-256 Phase 5i-3: a RAC Table column moved within its header takes its cells along.
+    const columnOrders = roots.flatMap((id) => {
+      const order = tableColumnOrder(draft, id);
+      return order ? [order] : [];
+    });
     for (const id of roots) {
       const { parent } = locate(draft, id, owners.get(id));
       const list = childList(draft, parent) ?? [];
@@ -512,7 +583,16 @@ export const moveNodes =
       );
     }
     placeAt(draft, input.parent, input.index, roots, input.newId);
+    for (const order of columnOrders) order.follow();
     assertRequiredPartsKept(draft, roots);
+    assertTablesAligned(draft, [
+      ...roots,
+      ...(input.parent.kind === "node"
+        ? [input.parent.id]
+        : input.parent.kind === "descendant"
+          ? [input.parent.ownerId]
+          : []),
+    ]);
     // (A reorder among the same siblings keeps every ancestor: nothing to unlink. Another slot of
     // the same instance is another parent.)
     assertStateOwnersLinked(
@@ -598,12 +678,15 @@ export const removeTargets =
   (input: RemoveInput): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
-    const nodeIds = topLevel(
-      reader,
-      input.targets.flatMap((target) =>
-        target.kind === "node" ? [target.id] : [],
-      ),
+    const picked = input.targets.flatMap((target) =>
+      target.kind === "node" ? [target.id] : [],
     );
+    // ADR-256 Phase 5i-3: a RAC Table column takes its cell in every aligned row along (G0 ⑨ —
+    // one transaction, as a new column gives every row a cell).
+    const nodeIds = topLevel(reader, [
+      ...picked,
+      ...picked.flatMap((id) => tableColumnCells(draft, id)),
+    ]);
     const removed: NodeId[] = [];
     for (const id of nodeIds) {
       const ownerId = reader.ownerOf(id);
@@ -668,6 +751,12 @@ export const removeTargets =
     }
     removeWithReferrers(draft, removed);
     assertRequiredPartsKept(draft, nodeIds);
+    assertTablesAligned(draft, [
+      ...nodeIds,
+      ...input.targets.flatMap((target) =>
+        target.kind === "descendant" ? [target.ownerId] : [],
+      ),
+    ]);
     return { label: input.label ?? "Delete", ops: draft.ops() };
   };
 
@@ -936,6 +1025,7 @@ export const ungroupNodes =
       removeWithReferrers(draft, [id]);
     }
     assertRequiredPartsKept(draft, topLevel(reader, input.ids));
+    assertTablesAligned(draft, [...topLevel(reader, input.ids), ...released]);
     assertStateOwnersLinked(draft, released);
     return {
       label: input.label ?? "Ungroup",

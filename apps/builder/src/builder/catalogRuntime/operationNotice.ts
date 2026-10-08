@@ -22,6 +22,8 @@ const REASON_KEY: Record<string, string> = {
   REPLACEMENT_NOT_MOVABLE: "operation.templateAnchorLocked",
   // ADR-256 Decision 5: a part RAC needs for its owner (a Select's trigger Button …).
   REQUIRED_PART_NOT_REMOVABLE: "operation.requiredPartKept",
+  // ADR-256 Phase 5i-3: a Table row keeps one cell per column (RAC).
+  TABLE_CELLS_NOT_ALIGNED: "operation.tableCellsAligned",
 };
 
 /**

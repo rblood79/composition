@@ -228,6 +228,7 @@ export interface TranslationKeys {
     systemOriginLocked: string;
     templateAnchorLocked: string;
     requiredPartKept: string;
+    tableCellsAligned: string;
     instanceChildLocked: string;
     notAllowed: string;
     groupParentsDiffer: string;

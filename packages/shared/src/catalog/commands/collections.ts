@@ -666,7 +666,13 @@ export function tableHeaderPosition(
   reader: CatalogReader,
   tableId: NodeId,
 ): NodeParent | undefined {
-  const draft = new CommandDraft(reader);
+  return headerPositionIn(new CommandDraft(reader), tableId);
+}
+function headerPositionIn(
+  draft: CommandDraft,
+  tableId: NodeId,
+): NodeParent | undefined {
+  const reader = draft.reader;
   const node = draft.read(tableId);
   if (node?.kind !== "node") return undefined;
   const definition = node.definitionId.startsWith("lib:")
@@ -695,6 +701,132 @@ export function tableHeaderPosition(
     level = level.flatMap((position) => childPositions(draft, position));
   }
   return undefined;
+}
+
+/** Shown positions (a node the author hid — `enabled: false` — is not there). */
+function shownPositions(
+  draft: CommandDraft,
+  positions: readonly NodeParent[],
+): NodeParent[] {
+  return positions.filter(
+    (position) =>
+      position.kind !== "node" || draft.node(position.id).enabled !== false,
+  );
+}
+
+/**
+ * ADR-256 Phase 5i-3 — a RAC Table's alignment (G0 ⑨: RAC throws when a row's cell count differs
+ * from the column count): its shown column count and each shown row's cell count, read from
+ * `draft` (a command's result). Undefined for any node that is not a RAC Table (a TableView draws
+ * its own grid).
+ */
+export function tableAlignmentIn(
+  draft: CommandDraft,
+  tableId: NodeId,
+): { columns: number; rows: number[] } | undefined {
+  const table = draft.read(tableId);
+  if (
+    table?.kind !== "node" ||
+    definitionTypeName(draft.reader, table.definitionId) !== "Table"
+  )
+    return undefined;
+  const header = headerPositionIn(draft, tableId);
+  if (!header) return undefined;
+  const body = tableBodyOf(draft, header);
+  return {
+    columns: shownPositions(draft, childPositions(draft, header)).length,
+    rows: body
+      ? shownPositions(draft, childPositions(draft, body)).map(
+          (row) => shownPositions(draft, childPositions(draft, row)).length,
+        )
+      : [],
+  };
+}
+
+/**
+ * ADR-256 Phase 5i-3 — the cells a RAC Table column takes along when it is deleted: the cell at
+ * the column's place in every row that is aligned with the header (G0 ⑨ — one transaction).
+ * Empty for a node that is not an owned Column of a RAC Table.
+ */
+export function tableColumnCells(
+  draft: CommandDraft,
+  columnId: NodeId,
+): NodeId[] {
+  const column = draft.read(columnId);
+  if (
+    column?.kind !== "node" ||
+    definitionTypeName(draft.reader, column.definitionId) !== "Column"
+  )
+    return [];
+  const header = parentOf(draft, { kind: "node", id: columnId });
+  const table = header ? parentOf(draft, header) : undefined;
+  if (
+    !header ||
+    !table ||
+    positionType(draft, header) !== "TableHeader" ||
+    positionType(draft, table) !== "Table"
+  )
+    return [];
+  const columns = shownPositions(draft, childPositions(draft, header));
+  const index = columns.findIndex(
+    (position) => position.kind === "node" && position.id === columnId,
+  );
+  const body = tableBodyOf(draft, header);
+  if (index < 0 || !body) return [];
+  return shownPositions(draft, childPositions(draft, body)).flatMap((row) => {
+    const cells = shownPositions(draft, childPositions(draft, row));
+    const cell = cells[index];
+    return cells.length === columns.length && cell?.kind === "node"
+      ? [cell.id]
+      : [];
+  });
+}
+
+/**
+ * ADR-256 Phase 5i-3 — a RAC Table header's column order and its aligned rows' cells, before a
+ * command reorders the columns: `follow` (after the command's writes) gives every such row its
+ * cells in the header's new column order — RAC pairs a row's cells with the columns by place.
+ * Undefined when `columnId` is not an owned Column of a RAC Table.
+ */
+export function tableColumnOrder(
+  draft: CommandDraft,
+  columnId: NodeId,
+): { follow(): void } | undefined {
+  const header = parentOf(draft, { kind: "node", id: columnId });
+  const table = header ? parentOf(draft, header) : undefined;
+  if (
+    !header ||
+    !table ||
+    positionType(draft, header) !== "TableHeader" ||
+    positionType(draft, table) !== "Table"
+  )
+    return undefined;
+  const columnIds = (positions: readonly NodeParent[]) =>
+    positions.map((position) => positionId(position));
+  const before = columnIds(childPositions(draft, header));
+  const body = tableBodyOf(draft, header);
+  const rows = (body ? childPositions(draft, body) : []).flatMap((row) =>
+    row.kind === "node" && draft.node(row.id).children.length === before.length
+      ? [{ id: row.id, cells: [...draft.node(row.id).children] }]
+      : [],
+  );
+  return {
+    follow() {
+      const after = columnIds(childPositions(draft, header));
+      if (
+        after.length !== before.length ||
+        after.every((id, index) => id === before[index])
+      )
+        return;
+      for (const row of rows) {
+        const node = draft.node(row.id);
+        draft.write({
+          ...node,
+          children: after.map((id) => row.cells[before.indexOf(id)]!),
+        });
+      }
+    },
+  };
 }
 
 /** The header's columns as the table reads them (key and shown label). */

@@ -390,6 +390,8 @@ const koKR: TranslationKeys = {
     templateAnchorLocked: "목록의 항목 템플릿은 삭제할 수 없습니다",
     requiredPartKept:
       "컴포넌트가 동작하는 데 필요한 부품이라 삭제하거나 밖으로 옮길 수 없습니다",
+    tableCellsAligned:
+      "표의 행은 열마다 칸이 하나씩 있어야 합니다 — 열을 지우거나 넣으면 칸이 같이 바뀝니다",
     instanceChildLocked: "인스턴스 안 요소는 원본에서 편집합니다",
     notAllowed: "이 선택에는 할 수 없는 작업입니다",
     groupParentsDiffer: "같은 부모 아래의 요소만 그룹으로 묶을 수 있습니다",
@@ -2524,6 +2526,8 @@ const enUS: TranslationKeys = {
     templateAnchorLocked: "A list's item template can't be deleted",
     requiredPartKept:
       "The component needs this part to work — it can't be deleted or moved out",
+    tableCellsAligned:
+      "A table row needs one cell per column — deleting or adding a column changes its cells",
     instanceChildLocked: "Edit elements inside an instance on its component",
     notAllowed: "This can't be done to the selection",
     groupParentsDiffer: "Only elements under the same parent can be grouped",

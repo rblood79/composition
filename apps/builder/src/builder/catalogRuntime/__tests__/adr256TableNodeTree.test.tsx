@@ -16,6 +16,8 @@ import {
   insertNodes,
   insertTableColumns,
   insertTableRow,
+  moveNodes,
+  removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
@@ -75,6 +77,8 @@ const ROWS = [
 async function open(
   tableProps: Record<string, unknown> = {},
   tableExtra: Partial<NodeEntry> = {},
+  /** ADR-256 Phase 5i-2: a selection column first (its Column and each row's Cell, with a Checkbox). */
+  withSelection = false,
 ) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -92,19 +96,30 @@ async function open(
       autosaveSchedule: () => {},
     },
   );
+  const selectionBox = (id: string) =>
+    ({
+      ...node(id, "Checkbox", { children: "", slot: "selection" }),
+      definitionId: "lib:definition:origin-component-checkbox",
+    }) as NodeEntry;
   const rows = ROWS.map((cells, r) =>
-    node(
-      `project:node:r${r}`,
-      "Row",
-      {},
-      cells.map((_, c) => `project:node:r${r}c${c}`),
-    ),
+    node(`project:node:r${r}`, "Row", {}, [
+      ...(withSelection ? [`project:node:r${r}s`] : []),
+      ...cells.map((_, c) => `project:node:r${r}c${c}`),
+    ]),
   );
-  const cells = ROWS.flatMap((cells, r) =>
-    cells.map((text, c) =>
+  const cells = ROWS.flatMap((cells, r) => [
+    ...(withSelection
+      ? [
+          node(`project:node:r${r}s`, "Cell", { children: "" }, [
+            `project:node:r${r}s-box`,
+          ]),
+          selectionBox(`project:node:r${r}s-box`),
+        ]
+      : []),
+    ...cells.map((text, c) =>
       node(`project:node:r${r}c${c}`, "Cell", { children: text }),
     ),
-  );
+  ]);
   workspace.root.execute(
     insertNodes({
       parent: { kind: "node", id: BODY },
@@ -117,9 +132,18 @@ async function open(
           ...tableExtra,
         } as NodeEntry,
         node("project:node:header", "TableHeader", {}, [
+          ...(withSelection ? ["project:node:select"] : []),
           "project:node:name",
           "project:node:type",
         ]),
+        ...(withSelection
+          ? [
+              node("project:node:select", "Column", { children: "" }, [
+                "project:node:select-box",
+              ]),
+              selectionBox("project:node:select-box"),
+            ]
+          : []),
         node("project:node:name", "Column", { children: "Name" }),
         node("project:node:type", "Column", { children: "Type" }),
         node(
@@ -320,49 +344,9 @@ describe("ADR-256 Phase 5i-1 — Table draws its node tree", () => {
  * no `selectionMode` condition — the author puts them in.
  */
 describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[selection] nodes", () => {
-  const box = (id: string) =>
-    ({
-      ...node(id, "Checkbox", { children: "", slot: "selection" }),
-      definitionId: "lib:definition:origin-component-checkbox",
-    }) as NodeEntry;
   /** The selection column first: a Column and one Cell per row, each with its Checkbox. */
-  async function openSelection(selectionMode = "multiple") {
-    const opened = await open({ selectionMode });
-    const { workspace, record } = opened;
-    workspace.root.execute(
-      insertNodes({
-        parent: workspace.positionOfRecord(record("project:node:header").id)!
-          .target as never,
-        index: 0,
-        entries: [
-          node("project:node:select", "Column", { children: "" }, [
-            "project:node:select-box",
-          ]),
-          box("project:node:select-box"),
-        ],
-        rootIds: ["project:node:select" as NodeId],
-        newId: workspace.newId,
-      }),
-    );
-    ROWS.forEach((_, r) =>
-      workspace.root.execute(
-        insertNodes({
-          parent: workspace.positionOfRecord(record(`project:node:r${r}`).id)!
-            .target as never,
-          index: 0,
-          entries: [
-            node(`project:node:r${r}s`, "Cell", { children: "" }, [
-              `project:node:r${r}s-box`,
-            ]),
-            box(`project:node:r${r}s-box`),
-          ],
-          rootIds: [`project:node:r${r}s` as NodeId],
-          newId: workspace.newId,
-        }),
-      ),
-    );
-    return opened;
-  }
+  const openSelection = (selectionMode = "multiple") =>
+    open({ selectionMode }, {}, true);
   const checkbox = () =>
     createElement(
       CheckboxField,
@@ -460,5 +444,211 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
     expect(selected()).toEqual([true, false, false]);
     fireEvent.click(inputs()[0]!);
     expect(selected()).toEqual([true, true, true]);
+  });
+});
+
+/**
+ * ADR-256 Phase 5i-3 — a RAC Table's rows keep one cell per column (G0 ⑨: RAC throws otherwise).
+ * Deleting a column takes its cell in every row along (one step, as a new column gives every row a
+ * cell); a command that would leave a row with another cell count is refused.
+ */
+describe("ADR-256 Phase 5i-3 — Column count = Cell count", () => {
+  const refusal = (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as { code?: unknown }).code;
+    }
+    return undefined;
+  };
+
+  it("deleting a column deletes its cell in every row — one step, undone together", async () => {
+    const { workspace, record, draw } = await open();
+    const before = workspace.runtime.historyDepth.undo;
+    workspace.execute(
+      removeTargets({
+        targets: [
+          workspace.positionOfRecord(record("project:node:name").id)!.target,
+        ],
+      }),
+    );
+    expect(workspace.runtime.historyDepth.undo).toBe(before + 1);
+    let grid = draw();
+    expect(grid.querySelectorAll("[role=columnheader]")).toHaveLength(1);
+    expect(
+      [...grid.querySelectorAll("tbody [role=row]")].map(
+        (row) => row.textContent,
+      ),
+    ).toEqual(["File folder", "File folder", "System file"]);
+    await workspace.undo();
+    grid = draw();
+    expect(grid.querySelectorAll("[role=columnheader]")).toHaveLength(2);
+    expect(
+      [...grid.querySelectorAll("tbody [role=row]")].every(
+        (row) => row.children.length === 2,
+      ),
+    ).toBe(true);
+  });
+
+  it("moving a column takes its cell in every row along (RAC pairs cells with columns by place)", async () => {
+    const { workspace, record, draw } = await open();
+    workspace.execute(
+      moveNodes({
+        ids: [record("project:node:type").sourceId as NodeId],
+        parent: workspace.positionOfRecord(record("project:node:header").id)!
+          .target as never,
+        index: 0,
+        newId: workspace.newId,
+      }),
+    );
+    const grid = draw();
+    expect(
+      [...grid.querySelectorAll("[role=columnheader]")].map(
+        (c) => c.textContent,
+      ),
+    ).toEqual(["Type", "Name"]);
+    expect(
+      [...grid.querySelectorAll("tbody [role=row]")].map((row) =>
+        [...row.children].map((cell) => cell.textContent),
+      ),
+    ).toEqual([
+      ["File folder", "Games"],
+      ["File folder", "Program Files"],
+      ["System file", "bootmgr"],
+    ]);
+  });
+
+  it("a cell alone cannot be deleted, added to a row or moved to another row", async () => {
+    const { workspace, record } = await open();
+    const at = (id: string) =>
+      workspace.positionOfRecord(record(id).id)!.target;
+    expect(
+      refusal(() =>
+        workspace.execute(
+          removeTargets({ targets: [at("project:node:r0c1")] }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    expect(
+      refusal(() =>
+        workspace.execute(
+          insertNodes({
+            parent: at("project:node:r0") as never,
+            entries: [node("project:node:extra", "Cell", { children: "x" })],
+            rootIds: ["project:node:extra" as NodeId],
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    expect(
+      refusal(() =>
+        workspace.execute(
+          moveNodes({
+            ids: ["project:node:r0c1" as NodeId],
+            parent: at("project:node:r1") as never,
+            index: 0,
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    // (A whole row goes freely — the others stay aligned.)
+    expect(
+      refusal(() =>
+        workspace.execute(removeTargets({ targets: [at("project:node:r2")] })),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("the palette's Table (an instance): its added columns and rows keep the rule too", async () => {
+    const library = await buildCodeCatalogLibrary();
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId:
+            "project:project:adr256-table-palette" as EntryId<"project">,
+          name: "Table",
+        }),
+        library,
+      ),
+      new CatalogStorage(indexedDB, `adr256-table-p-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1200, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    cleanups.push(() => act(() => workspace.dispose()));
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            ...node(OWNER, "Table"),
+            definitionId: catalogPaletteDefinitionId(library, "Table"),
+          } as NodeEntry,
+        ],
+        rootIds: [OWNER],
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const of = (type: string) =>
+      [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
+    const entry = (type: string) =>
+      node(
+        workspace.newId("node"),
+        type,
+        type === "Row" ? {} : { children: "" },
+      );
+    const header = workspace.positionOfRecord(of("TableHeader")[0]!.id)!.target;
+    const body = workspace.positionOfRecord(of("TableBody")[0]!.id)!.target;
+    for (let k = 0; k < 2; k++)
+      workspace.execute(
+        insertTableColumns({
+          header,
+          buildColumn: () => {
+            const column = entry("Column");
+            return { entries: [column], rootId: column.id as NodeId };
+          },
+          buildCell: () => {
+            const cell = entry("Cell");
+            return { entries: [cell], rootId: cell.id as NodeId };
+          },
+          newId: workspace.newId,
+        }),
+      );
+    workspace.execute(
+      insertTableRow({
+        body,
+        buildRow: (count) => {
+          const cells = Array.from({ length: count }, () => entry("Cell"));
+          const row = {
+            ...entry("Row"),
+            children: cells.map((cell) => cell.id),
+          };
+          return { entries: [row, ...cells], rootId: row.id as NodeId };
+        },
+        newId: workspace.newId,
+      }),
+    );
+    expect(of("Cell")).toHaveLength(2);
+    workspace.execute(
+      removeTargets({
+        targets: [workspace.positionOfRecord(of("Column")[0]!.id)!.target],
+      }),
+    );
+    expect(of("Column")).toHaveLength(1);
+    expect(of("Cell")).toHaveLength(1);
+    expect(
+      refusal(() =>
+        workspace.execute(
+          removeTargets({
+            targets: [workspace.positionOfRecord(of("Cell")[0]!.id)!.target],
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
   });
 });

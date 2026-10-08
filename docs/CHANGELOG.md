@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5i-3 — Table 의 행은 열마다 칸 하나] - 2026-10-09
+
+### Changed
+
+- **열을 지우면 각 행의 그 자리 칸도 함께 지워진다** (한 번의 실행 · 한 번에 되돌림) — 열을 넣으면 각 행에 칸이 생기는 것과 짝이다. **열을 같은 표 안에서 옮기면 각 행의 칸도 같이 옮겨진다** (RAC 는 칸을 순서로 열과 짝짓는다 — 옛 동작은 열 이름만 옮겨 데이터가 다른 열 아래로 갔다)
+- **표의 행이 열 수와 다른 칸을 갖게 되는 편집은 거부한다** — 칸 하나만 지우기 · 행에 칸 더하기 · 칸을 다른 행으로 옮기기 · 붙여넣기. 안내: 「표의 행은 열마다 칸이 하나씩 있어야 합니다」. RAC Table 은 칸 수가 다르면 그리지 못하고 멈춘다 (Preview 오류)
+- 위치: `catalog/commands/structure.ts` (`assertTablesAligned` · 열 삭제 연쇄 · 열 이동) · `catalog/commands/collections.ts` (`tableAlignmentIn` · `tableColumnCells` · `tableColumnOrder`) · `catalogRuntime/operationNotice.ts`
+
 ## [ADR-256 Phase 5i-2 — Table 의 선택 열 = Checkbox[selection] 노드] - 2026-10-09
 
 ### Changed
