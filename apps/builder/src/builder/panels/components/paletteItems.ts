@@ -55,6 +55,7 @@ import {
   Palette,
   RectangleEllipsis,
   Search,
+  TextSearch,
   SeparatorHorizontal,
   Settings,
   SlidersHorizontal,
@@ -154,6 +155,7 @@ export const ICON_MAP: Record<
   Palette,
   RectangleEllipsis,
   Search,
+  TextSearch,
   SeparatorHorizontal,
   Settings,
   SlidersHorizontal,
@@ -252,6 +254,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "TextArea", source: "catalog" },
   { type: "NumberField", source: "catalog" },
   { type: "SearchField", source: "catalog" },
+  // ADR-256 Phase 6g: RAC Autocomplete (SearchField + ListBox) — after its text field.
+  { type: "Autocomplete", source: "catalog" },
   // ColorField: field 패밀리 형제(TextField/TextArea/NumberField/SearchField) 뒤.
   { type: "ColorField", source: "catalog" },
   { type: "Checkbox", source: "catalog" },

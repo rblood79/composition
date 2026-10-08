@@ -11,6 +11,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6 판독 수리 — picker 부품을 frame 으로 감싸거나 Popover 위치를 바꿀 때] - 2026-10-08
+
+### Fixed
+
+- **picker 부품 편집 4건** (ADR-256 Phase 6 판독 Round 14):
+  - DatePicker · DateRangePicker 의 달력을 frame 으로 감싸면 picker 의 개월 수 · 크기 · 읽기 전용을 잃던 것 — frame 을 건너 picker 를 찾는다
+  - field 의 입력 상자 Group (NumberField · SearchField · ComboBox · DatePicker · DateRangePicker) 안의 `showWhen` 노드가 Group 의 RAC 상태 (focus 등) 를 받지 못하고, Group 에 작성한 `role` 이 Preview 에 없던 것
+  - Select · ComboBox 의 Popover 를 frame 으로 감싸면 닫힌 Popover 가 Canvas 에 그려지던 것 (Preview 는 닫힘)
+  - picker 의 Popover 에 작성한 위치 (`placement` — 예 `top`) 가 무시되고 늘 아래로 열리던 것. 기본값 (`bottom`) 이면 지금처럼 picker 자리 (`bottom start`)
+  - 위치: `catalog/runtime/delegatedDom.tsx` (`pickerHost`) · `catalog/runtime/domBinding.tsx` (`nodeTreeControlGroup` · `ruleDom`) · `catalog/runtime/presence.ts` (`catalogHiddenAtRest`)
+
+## [ADR-256 Phase 6h — Table 열 이름이 RAC Group 안에] - 2026-10-08
+
+### Changed
+
+- **Table 의 Column 이 레퍼런스 구조를 따른다** (ADR-256 Phase 6h — react-aria.adobe.com Table 의 starter Column `Group[role=presentation].column-name`):
+  - Insert Column 이 넣는 Column 은 `Column > Group[role=presentation] > Text` 다
+  - 열 이름은 지금처럼 Column 의 「Text」 (`children`) 로 바꾼다 — 안쪽 Text 가 그 값에 묶여 있다. 데이터 연결 열의 label 도 같은 값을 읽는다
+  - 이름은 굵게 (600) — Canvas · Preview 같은 값
+  - TableView 는 바뀌지 않는다 (자기 격자 — 열은 글자를 가진 Column 그대로)
+  - 저장 형식 contract 23 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+  - 위치: `catalog/document/generated/reusableOriginLibrary.ts` (`component-table-column` · `component-tableview`) · `catalog/document/types.ts` (`LIBRARY_CONTRACT_VERSION`)
+
+## [ADR-256 Phase 6g — Autocomplete 컴포넌트 · 레이아웃 엔진의 display: contents] - 2026-10-08
+
+### Added
+
+- **Autocomplete** (ADR-256 Phase 6g — react-aria.adobe.com Autocomplete 의 "ListBox example"):
+  - 팔레트 forms 의 `autocomplete` 가 `Autocomplete > SearchField + ListBox` 를 놓는다. Preview 에서 검색어를 입력하면 목록이 걸러지고 (레퍼런스의 `useFilter({sensitivity: "base"}).contains` — 대소문자 무시), 첫 일치 항목이 가상 focus 를 받는다 (입력에 focus 를 둔 채 화살표로 이동)
+  - Autocomplete 자체는 요소가 없다 (RAC 그대로) — SearchField 와 ListBox 가 부모의 흐름에 바로 선다. 안에 다른 노드 (wrapper · 글자) 를 넣을 수 있다 (자유 내용)
+  - prop: `defaultInputValue` · `disableAutoFocusFirst` · `disableVirtualFocus` (RAC `AutocompleteProps`)
+  - 위치: `catalog/bindings/Autocomplete.binding.ts` · `catalog/runtime/domBinding.tsx` (`CatalogAutocomplete`) · `document/generated/reusableOriginLibrary.ts` (`component-autocomplete`) · `generated/componentRulesTable.ts`
+- **레이아웃 엔진이 `display: contents` 를 지원한다** (CSS-DISPLAY-3 §2.5):
+  - contents 노드는 상자를 만들지 않고 그 자식이 부모의 자식 자리에 선다 (부모의 flex 방향 · gap · blockify 를 그대로 받는다). contents 노드의 보고 상자는 자식들의 합집합 (선택 · 오버레이용) 이고, 자식 좌표는 그 상자 기준이라 Canvas 는 바꿀 것이 없다
+  - **Why**: 요소가 없는 RAC 부품 (Autocomplete) 을 Canvas 가 상자로 그리면 부모가 가로 흐름이거나 gap 이 있을 때 Preview 와 자리가 달라진다. TS 보정 대신 엔진에 CSS 의미를 구현했다 (레이아웃 규칙 「새 CSS gap 은 엔진 구현이 기본 경로」)
+  - 위치: `packages/engine/src/tree.rs` (`box_children` · `settle_contents_children` · `layout_parent`) · `catalog/document/validation.ts` (display 값 `contents` 허용)
+
 ## [ADR-256 Phase 6f — picker 항목의 선택 표시를 작성자 노드로 바꿀 수 있다] - 2026-10-08
 
 ### Changed

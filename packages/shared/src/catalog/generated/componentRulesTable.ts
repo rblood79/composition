@@ -15,6 +15,28 @@
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
 
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
+  // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
+  //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
+  //   its children are its parent's items; its own box is their union, for selection only).
+  Autocomplete: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
+      },
+    },
+  },
   Avatar: {
     defaultVariant: "default",
     defaultSize: "md",

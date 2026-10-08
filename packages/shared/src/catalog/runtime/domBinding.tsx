@@ -620,6 +620,21 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           { key: node.id },
           ...children,
         ),
+  // ADR-256 Phase 6g: RAC `Autocomplete` — no element of its own; it gives the text field inside
+  // its input props and the collection beside it the filter · virtual focus.
+  autocomplete: (node, _style, children) =>
+    createElement(
+      CatalogAutocomplete as ElementType,
+      {
+        key: node.id,
+        ...(typeof node.props.defaultInputValue === "string"
+          ? { defaultInputValue: node.props.defaultInputValue }
+          : {}),
+        disableAutoFocusFirst: node.props.disableAutoFocusFirst === true,
+        disableVirtualFocus: node.props.disableVirtualFocus === true,
+      },
+      ...children,
+    ),
   // ADR-256 Phase 5h: RAC `TreeItemContent` — no element of its own; its children are the row's
   // (RAC gives them the row's chevron `Button` and selection `Checkbox` contexts).
   treeitemcontent: (node, _style, children) =>
@@ -632,65 +647,50 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // 6c · 6d.)
 };
 
+/** RAC `Autocomplete` with the reference's filter (`useFilter({sensitivity: "base"}).contains`). */
+function CatalogAutocomplete(
+  props: Omit<RAC.AutocompleteProps<object>, "filter">,
+): ReactElement {
+  const { contains } = RAC.useFilter({ sensitivity: "base" });
+  return createElement(RAC.Autocomplete, { ...props, filter: contains });
+}
+
 /**
  * The element of a node-tree field's control Group, by the field's binding (ADR-256 Phase 2c ·
  * 6b · 6d): RAC's `Group` — a SearchField's · ComboBox's also carries its container class (the
- * field rule's selector for the box · the parts' row).
+ * field rule's selector for the box · the parts' row). Like any Group it passes the author's `role`
+ * and its render props as the state frame of the `showWhen` nodes inside (Decision 7); its states
+ * go only when the author set them — `false` would override the field's own (RAC's `GroupContext`).
  */
-const NODE_TREE_CONTROL_WRAPPERS: Readonly<
-  Record<
-    string,
-    (node: CatalogConsumerNode, children: ReactElement[]) => ReactElement
-  >
-> = {
-  numberfield: (node, children) =>
-    createElement(
-      RAC.Group,
-      { key: node.id, "data-catalog-id": node.id } as Parameters<
-        typeof RAC.Group
-      >[0],
-      ...children,
+const NODE_TREE_CONTROL_CLASSES: Readonly<Record<string, string | undefined>> =
+  {
+    numberfield: undefined,
+    searchfield: "react-aria-Group searchfield-container",
+    // (RAC's DatePicker · DateRangePicker · ComboBox take this Group as their Popover's trigger —
+    // `GroupContext` ref, ADR-256 Phase 6d · 6e.)
+    datepicker: undefined,
+    daterangepicker: undefined,
+    combobox: "react-aria-Group combobox-container",
+  };
+function nodeTreeControlGroup(
+  node: CatalogConsumerNode,
+  className: string | undefined,
+  children: ReactElement[],
+): ReactElement {
+  const role = node.props.role;
+  return createElement(RAC.Group, {
+    key: node.id,
+    "data-catalog-id": node.id,
+    ...(className ? { className } : {}),
+    ...(role === "region" || role === "presentation" ? { role } : {}),
+    ...Object.fromEntries(
+      (["isDisabled", "isInvalid", "isReadOnly"] as const)
+        .filter((key) => node.props[key] === true)
+        .map((key) => [key, true]),
     ),
-  searchfield: (node, children) =>
-    createElement(
-      RAC.Group,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        className: "react-aria-Group searchfield-container",
-      } as Parameters<typeof RAC.Group>[0],
-      ...children,
-    ),
-  // (RAC's DatePicker · DateRangePicker take this Group as their Popover's trigger — `GroupContext`
-  // ref, ADR-256 Phase 6e.)
-  datepicker: (node, children) =>
-    createElement(
-      RAC.Group,
-      { key: node.id, "data-catalog-id": node.id } as Parameters<
-        typeof RAC.Group
-      >[0],
-      ...children,
-    ),
-  daterangepicker: (node, children) =>
-    createElement(
-      RAC.Group,
-      { key: node.id, "data-catalog-id": node.id } as Parameters<
-        typeof RAC.Group
-      >[0],
-      ...children,
-    ),
-  // (RAC's ComboBox takes this Group as its Popover's trigger — `GroupContext` ref.)
-  combobox: (node, children) =>
-    createElement(
-      RAC.Group,
-      {
-        key: node.id,
-        "data-catalog-id": node.id,
-        className: "react-aria-Group combobox-container",
-      } as Parameters<typeof RAC.Group>[0],
-      ...children,
-    ),
-};
+    children: catalogStateChildren(node.id, () => children),
+  } as unknown as Parameters<typeof RAC.Group>[0]);
+}
 
 /** A toggle's text in its RAC button (ADR-256 Phase 3): a `span` with the Label rule's look. */
 const toggleTextBinding: DomBinding = (node, style, children) =>
@@ -1161,12 +1161,15 @@ function ruleDom(
   // ADR-256 Phase 5g · 6c · 6d · 6e: a submenu's · picker's Popover takes its place from RAC's
   // SubmenuTrigger · Select · ComboBox · DatePicker · DateRangePicker (`end top` · `bottom start`,
   // their `PopoverContext`) — the type's default `placement` would override it (the reference
-  // passes none).
+  // passes none). A placement the author chose wins (Phase 6 Round 14 m4); the record carries the
+  // default when none was chosen, so the default value stands for "none". The trigger owner is
+  // found through layout frames (RAC's context reaches the Popover there).
+  const placementOwner =
+    lower === "popover" ? catalogDomPartParent(root, node) : undefined;
   if (
-    lower === "popover" &&
-    CONTEXT_PLACED_POPOVER_PARENTS.has(
-      catalogTypeName(root, root.domInputs.get(node.parentId)!),
-    )
+    placementOwner &&
+    CONTEXT_PLACED_POPOVER_PARENTS.has(catalogTypeName(root, placementOwner)) &&
+    rest.placement === binding?.props.accepts.placement?.default
   )
     delete rest.placement;
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
@@ -1879,11 +1882,17 @@ function renderNode(
   // A field's control Group in a field drawn as its node tree (ADR-256 Phase 2c · 6b): RAC's Group
   // of a NumberField · SearchField — its parts in it, in order. Its box is the field sheet's (the
   // field owns the Group's look — no inline style).
-  const wrapper =
-    node.bindingId === "group"
-      ? NODE_TREE_CONTROL_WRAPPERS[partParent?.bindingId ?? ""]
-      : undefined;
-  if (wrapper) return withHtmlId(root, node, wrapper(node, children));
+  const controlOf = partParent?.bindingId ?? "";
+  if (node.bindingId === "group" && controlOf in NODE_TREE_CONTROL_CLASSES)
+    return withHtmlId(
+      root,
+      node,
+      nodeTreeControlGroup(
+        node,
+        NODE_TREE_CONTROL_CLASSES[controlOf],
+        children,
+      ),
+    );
   // A field's Input node is a RAC Input inside the field's context (ADR-253).
   const field = watchedParent ?? catalogPartField(root, node);
   if (

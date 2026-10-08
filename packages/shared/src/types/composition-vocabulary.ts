@@ -111,6 +111,7 @@ export type ComponentTag =
   | "Separator"
   | "Skeleton"
   | "SubmenuTrigger"
+  | "Autocomplete"
   | "Slider"
   | "SliderOutput"
   | "SliderThumb"

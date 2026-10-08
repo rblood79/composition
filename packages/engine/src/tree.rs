@@ -1812,8 +1812,8 @@ impl LayoutTree {
             return display::parse_display(None);
         };
         let own = display::parse_display(node.style.display.as_deref());
-        let parent_is_flex_or_grid = node
-            .parent
+        let parent_is_flex_or_grid = self
+            .layout_parent(handle)
             .and_then(|p| self.get(p))
             .map(|p| {
                 matches!(
@@ -1879,7 +1879,9 @@ impl LayoutTree {
             return prev;
         }
 
-        let children = node.children.clone();
+        // `display: contents` 자식은 상자가 없다 — 그 자식들이 이 노드의 자식 자리에 선다
+        // (CSS-DISPLAY-3 §2.5). 상자는 배치 뒤 `settle_contents_children` 이 보고용으로 준다.
+        let children = self.box_children(handle);
         // ADR-923 Phase 1: display 이원 계약 — 자기 solver 는 **inner** 로 고른다. 부모가
         // flex/grid 컨테이너면 blockify (outer=block, inner 유지 — CSS Display 3 §2.7).
         let display = container_display_of(self.effective_display(handle));
@@ -2101,8 +2103,7 @@ impl LayoutTree {
             let aspect_needs_w = own_aspect.is_some() && explicit_h <= 0.0;
             if own_min_w.is_some() || own_max_w.is_some() || aspect_needs_w {
                 let parent_is_block = self
-                    .get(handle)
-                    .and_then(|n| n.parent)
+                    .layout_parent(handle)
                     .and_then(|p| self.get(p))
                     .map(|p| {
                         classify_container_display(p.style.display.as_deref())
@@ -2277,6 +2278,7 @@ impl LayoutTree {
             if !abs_children.is_empty() {
                 self.place_absolute_children(handle, &abs_children, w_box, h_box, avail_w);
             }
+            self.settle_contents_children(handle);
             if let Some(n) = self.get_mut(handle) {
                 n.last_solved = Some((w, h));
             }
@@ -2349,10 +2351,103 @@ impl LayoutTree {
             };
             self.place_absolute_children(handle, &abs_children, box_w, box_h, avail_w);
         }
+        self.settle_contents_children(handle);
         if let Some(n) = self.get_mut(handle) {
             n.last_solved = Some((cw, ch));
         }
         (cw, ch)
+    }
+
+    /// `handle` 의 상자 자식 — `display: contents` 자식은 그 자식들로 (재귀) 펼친다
+    /// (CSS-DISPLAY-3 §2.5: contents 요소는 상자를 만들지 않고 자식이 부모의 자식 자리에 선다).
+    fn box_children(&self, handle: usize) -> Vec<usize> {
+        let mut out = Vec::new();
+        if let Some(n) = self.get(handle) {
+            for &c in &n.children {
+                self.push_box_child(c, &mut out);
+            }
+        }
+        out
+    }
+
+    fn push_box_child(&self, c: usize, out: &mut Vec<usize>) {
+        match self.get(c) {
+            Some(cn) if style_is_contents(&cn.style) => {
+                for &k in &cn.children {
+                    self.push_box_child(k, out);
+                }
+            }
+            Some(_) => out.push(c),
+            None => {}
+        }
+    }
+
+    /// 배치에 쓰는 부모 — `display: contents` 조상은 상자가 없어 건너뛴다 (blockify · block 부모 ·
+    /// flex/grid item 판정이 실제로 자기를 배치하는 상자를 보게).
+    fn layout_parent(&self, handle: usize) -> Option<usize> {
+        let mut p = self.get(handle)?.parent;
+        while let Some(h) = p {
+            let n = self.get(h)?;
+            if !style_is_contents(&n.style) {
+                return Some(h);
+            }
+            p = n.parent;
+        }
+        None
+    }
+
+    /// 배치가 끝난 `handle` 의 `display: contents` 자식에 보고용 상자를 준다 — 펼쳐 배치된 자손의
+    /// 합집합 (자기 좌표 = `handle` 기준), 그 자식들은 그 상자 기준 좌표로 옮긴다. 소비자가 노드
+    /// 트리를 따라 부모 좌표를 더하므로 화면 위치는 그대로다. contents 노드는 solve 되지 않으므로
+    /// dirty 도 여기서 걷는다.
+    fn settle_contents_children(&mut self, handle: usize) {
+        let kids = match self.get(handle) {
+            Some(n) => n.children.clone(),
+            None => return,
+        };
+        for c in kids {
+            if self.get(c).is_some_and(|n| style_is_contents(&n.style)) {
+                self.settle_contents(c);
+            }
+        }
+    }
+
+    /// contents 노드 `c` 의 상자 `(x0, y0, x1, y1)` (배치 부모 좌표). 상자 자손이 없으면 None.
+    fn settle_contents(&mut self, c: usize) -> Option<(f32, f32, f32, f32)> {
+        let kids = self.get(c).map(|n| n.children.clone()).unwrap_or_default();
+        let mut bbox: Option<(f32, f32, f32, f32)> = None;
+        let mut placed: Vec<usize> = Vec::with_capacity(kids.len());
+        for &k in &kids {
+            let Some(kn) = self.get(k) else { continue };
+            let rect = if style_is_contents(&kn.style) {
+                self.settle_contents(k)
+            } else if kn.style.display.as_deref() == Some("none") {
+                None
+            } else {
+                let l = kn.layout;
+                Some((l.x, l.y, l.x + l.width, l.y + l.height))
+            };
+            if let Some((x0, y0, x1, y1)) = rect {
+                placed.push(k);
+                bbox = Some(match bbox {
+                    Some((a, b, c2, d)) => (a.min(x0), b.min(y0), c2.max(x1), d.max(y1)),
+                    None => (x0, y0, x1, y1),
+                });
+            }
+        }
+        let (x0, y0, x1, y1) = bbox.unwrap_or((0.0, 0.0, 0.0, 0.0));
+        for k in placed {
+            if let Some(n) = self.get_mut(k) {
+                n.layout.x -= x0;
+                n.layout.y -= y0;
+            }
+        }
+        if let Some(n) = self.get_mut(c) {
+            n.layout = NodeLayout { x: x0, y: y0, width: x1 - x0, height: y1 - y0, baseline: BASELINE_NONE };
+            n.dirty = false;
+            n.subtree_dirty = false;
+        }
+        bbox
     }
 
     /// E10: `position:relative` 자식에 inset 시각 offset 적용.
@@ -3737,8 +3832,7 @@ impl LayoutTree {
         let block_align = parse_block_align_content(style.align_content.as_deref());
         let align_contains_margins = block_align.is_some();
         let parent_is_flex_or_grid = self
-            .get(handle)
-            .and_then(|n| n.parent)
+            .layout_parent(handle)
             .and_then(|p| self.get(p))
             .map(|p| {
                 matches!(
@@ -6594,6 +6688,11 @@ fn resolve_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Option<f
 /// CSS: absolute/fixed 자식은 정상 흐름에서 빠져 컨테이너 크기·형제 배치·gap 에
 /// 기여하지 않는다. static/relative/sticky 는 in-flow.
 #[inline]
+/// `display: contents` (CSS-DISPLAY-3 §2.5) — 상자를 만들지 않는 노드.
+fn style_is_contents(style: &NodeStyle) -> bool {
+    style.display.as_deref().is_some_and(|d| d.trim().eq_ignore_ascii_case("contents"))
+}
+
 fn is_out_of_flow(position: Option<&str>) -> bool {
     matches!(position, Some("absolute") | Some("fixed"))
 }
@@ -11976,5 +12075,125 @@ mod tests {
         let la = tree.get_layout(h[1]);
         let lb = tree.get_layout(h[2]);
         assert_eq!((la.x, lb.x), (0.0, 60.0), "둘 다 flex item");
+    }
+
+    // ── display: contents (CSS-DISPLAY-3 §2.5 — ADR-256 Phase 6g) ──
+
+    /// `h` 의 페이지 좌표 — 소비자처럼 노드 트리를 따라 부모 좌표를 더한다.
+    fn abs_rect(tree: &LayoutTree, h: usize) -> (f32, f32, f32, f32) {
+        let l = tree.get_layout(h);
+        let (mut x, mut y) = (l.x, l.y);
+        let mut p = tree.get(h).and_then(|n| n.parent);
+        while let Some(ph) = p {
+            let pl = tree.get_layout(ph);
+            x += pl.x;
+            y += pl.y;
+            p = tree.get(ph).and_then(|n| n.parent);
+        }
+        (x, y, l.width, l.height)
+    }
+
+    /// 부모 flex column (gap 10) 의 `[a, contents{b, c}, d]` 는 펼친 `[a, b, c, d]` 와 같은 자리에
+    /// 서고 (부모의 gap 이 b · c 사이에도), contents 상자는 b · c 의 합집합이다.
+    #[test]
+    fn contents_children_lay_out_in_parent_flow() {
+        let col = r#"{"display":"flex","flexDirection":"column","rowGap":"10px","paddingTop":"5px","paddingLeft":"7px","width":"200px"}"#;
+        let mut flat = LayoutTree::new();
+        let fh = flat
+            .build_tree_batch(&format!(
+                r#"[
+                {{"style":{{"height":"20px"}},"children":[]}},
+                {{"style":{{"height":"30px"}},"children":[]}},
+                {{"style":{{"width":"50px","height":"40px"}},"children":[]}},
+                {{"style":{{"height":"15px"}},"children":[]}},
+                {{"style":{col},"children":[0,1,2,3]}}
+            ]"#
+            ))
+            .unwrap();
+        flat.compute_layout(fh[4], 200.0, 400.0);
+
+        let mut tree = LayoutTree::new();
+        let h = tree
+            .build_tree_batch(&format!(
+                r#"[
+                {{"style":{{"height":"20px"}},"children":[]}},
+                {{"style":{{"height":"30px"}},"children":[]}},
+                {{"style":{{"width":"50px","height":"40px"}},"children":[]}},
+                {{"style":{{"display":"contents"}},"children":[1,2]}},
+                {{"style":{{"height":"15px"}},"children":[]}},
+                {{"style":{col},"children":[0,3,4]}}
+            ]"#
+            ))
+            .unwrap();
+        tree.compute_layout(h[5], 200.0, 400.0);
+
+        for (t, f) in [(0, 0), (1, 1), (2, 2), (4, 3)] {
+            assert_eq!(abs_rect(&tree, h[t]), abs_rect(&flat, fh[f]), "node {t}");
+        }
+        assert_eq!(tree.get_layout(h[5]).height, flat.get_layout(fh[4]).height);
+        // contents 상자 = b ∪ c (부모 좌표), 자식은 그 상자 기준.
+        let c = tree.get_layout(h[3]);
+        let (bx, by, bw, _) = abs_rect(&flat, fh[1]);
+        let (_, cy, _, ch) = abs_rect(&flat, fh[2]);
+        assert_eq!((c.x, c.y, c.width, c.height), (bx, by, bw, cy + ch - by));
+        assert_eq!((tree.get_layout(h[1]).x, tree.get_layout(h[1]).y), (0.0, 0.0));
+        assert_eq!(tree.get_layout(h[2]).y, 40.0, "30 + gap 10");
+    }
+
+    /// 펼친 자식의 부모 판정은 상자가 있는 조상 — flex 부모 아래 contents 안의 inline-block 은
+    /// flex item 으로 blockify 되고, 중첩 contents 도 같은 줄에 선다.
+    #[test]
+    fn contents_nested_children_are_items_of_the_box_parent() {
+        let mut tree = LayoutTree::new();
+        let h = tree
+            .build_tree_batch(
+                r#"[
+                {"style":{"display":"inline-block","width":"60px","height":"30px"},"children":[]},
+                {"style":{"width":"40px","height":"20px"},"children":[]},
+                {"style":{"display":"contents"},"children":[1]},
+                {"style":{"display":"contents"},"children":[0,2]},
+                {"style":{"display":"flex","flexDirection":"row","columnGap":"4px","width":"300px","height":"100px","alignItems":"flex-start"},"children":[3]}
+            ]"#,
+            )
+            .unwrap();
+        tree.compute_layout(h[4], 300.0, 100.0);
+        assert_eq!(tree.effective_display(h[0]).outer, display::OuterDisplay::Block);
+        assert_eq!(abs_rect(&tree, h[0]), (0.0, 0.0, 60.0, 30.0));
+        assert_eq!(abs_rect(&tree, h[1]), (64.0, 0.0, 40.0, 20.0));
+        let outer = tree.get_layout(h[3]);
+        assert_eq!((outer.x, outer.y, outer.width, outer.height), (0.0, 0.0, 104.0, 30.0));
+    }
+
+    /// 증분: contents 안 자식의 style 이 바뀌면 다시 배치되고, 형제만 바뀌는 재계산은 contents
+    /// 상자 · 자식 좌표를 바꾸지 않는다 (상대 좌표 이동이 누적되지 않는다).
+    #[test]
+    fn contents_incremental_relayout_is_stable() {
+        let mut tree = LayoutTree::new();
+        let h = tree
+            .build_tree_batch(
+                r#"[
+                {"style":{"height":"20px"},"children":[]},
+                {"style":{"height":"30px"},"children":[]},
+                {"style":{"display":"contents"},"children":[0,1]},
+                {"style":{"height":"10px"},"children":[]},
+                {"style":{"display":"flex","flexDirection":"column","rowGap":"8px","width":"100px"},"children":[3,2]}
+            ]"#,
+            )
+            .unwrap();
+        tree.compute_layout(h[4], 100.0, 400.0);
+        assert_eq!(abs_rect(&tree, h[1]), (0.0, 46.0, 100.0, 30.0));
+        for round in 0..3 {
+            tree.update_style(
+                h[3],
+                serde_json::from_str(&format!(r#"{{"height":"{}px"}}"#, 10 + round)).unwrap(),
+            );
+            tree.compute_layout(h[4], 100.0, 400.0);
+            assert_eq!(abs_rect(&tree, h[1]).1, 46.0 + round as f32, "round {round}");
+            assert_eq!(tree.get_layout(h[1]).y, 28.0, "contents 기준 좌표가 누적되지 않음");
+        }
+        tree.update_style(h[0], serde_json::from_str(r#"{"height":"50px"}"#).unwrap());
+        tree.compute_layout(h[4], 100.0, 400.0);
+        assert_eq!(abs_rect(&tree, h[1]), (0.0, 12.0 + 8.0 + 50.0 + 8.0, 100.0, 30.0));
+        assert_eq!(tree.get_layout(h[2]).height, 50.0 + 8.0 + 30.0);
     }
 }

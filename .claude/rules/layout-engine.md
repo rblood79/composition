@@ -46,6 +46,11 @@ paths:
 
 - production 은 `PersistentLayoutTree` 와 `gridStyleAdapter.parseGridTemplate` 만 쓴다 (`compositionRoot.ts`). 계산은 단일 자체 Rust WASM (`packages/engine`, ADR-916 Implemented 2026-07-06) 이 하고, TS 는 `styleOf` 로 입력을 직렬화할 뿐이다. 옛 style 어댑터 (`displayAdapter` · `flexStyleAdapter` · `blockStyleAdapter`) 는 2026-10-05 옛 파이프라인과 함께 삭제됐다. JS 심볼의 `Taffy*` 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Engine*` 로 개명했다 — 옛 이름은 ADR·evidence 이력 문서에만 남는다
 
+## display: contents — 엔진 소속 (ADR-256 Phase 6g, 2026-10-08)
+
+- 요소가 없는 RAC 부품 (Autocomplete) 은 rule 의 `display: contents` 로 엔진에 간다. 엔진이 CSS-DISPLAY-3 §2.5 를 구현한다 — `solve_node` 가 자식 목록을 펼치고 (`box_children`), 펼친 자식의 부모 판정 (blockify · block 부모 · flex/grid item) 은 상자가 있는 조상을 본다 (`layout_parent`). 배치 뒤 contents 노드는 자손 합집합 상자를 보고하고 자식 좌표는 그 상자 기준이다 (`settle_contents_children`) — 소비자 (`getGeometry` · Canvas) 가 부모 좌표를 더하는 계약 그대로.
+- TS 에서 contents 를 흉내 내지 않는다 (부모 흐름 값을 복사한 상자 · 자식 재부모화 금지). 시험: `tree.rs` `contents_*` 3 · `adr256AutocompleteNodeTree` (gap 가로 frame) · live `adr256-p6g-live.mjs` L-5 (Chrome oracle).
+
 ## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
 
 - out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.

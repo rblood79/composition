@@ -99,6 +99,8 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
       sorted(componentTypeSet("freeContentHost", { lowercase: true })),
     ).toEqual(
       literal([
+        // ADR-256 Phase 6g: RAC Autocomplete (its contexts reach any descendant).
+        "autocomplete",
         "box",
         "cardcontent",
         "cardfooter",

@@ -47,10 +47,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * ListBox`. 22 — ADR-256 Phase 6e: a DatePicker's Calendar · a DateRangePicker's RangeCalendar
  * (was a Calendar) sits in its Popover (`component-datepicker__popover` ·
  * `component-daterangepicker__popover`, `hideArrow`) — `DatePicker > Label + Group(DateInput +
- * Button) + Description + FieldError + Popover > Calendar`.
+ * Button) + Description + FieldError + Popover > Calendar`. 23 — ADR-256 Phase 6h: a Column's
+ * name sits in a RAC `Group` (`Column > Group[role=presentation] > Text {children}` — the
+ * reference's `.column-name`); a TableView's columns are plain Columns (its own grid).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 22 as const;
+export const LIBRARY_CONTRACT_VERSION = 23 as const;
 
 export type EntryKind =
   | "project"

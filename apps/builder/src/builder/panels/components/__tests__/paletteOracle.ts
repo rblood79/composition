@@ -236,6 +236,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "Search",
   },
   {
+    type: "Autocomplete",
+    category: "forms",
+    label: "autocomplete",
+    icon: "TextSearch",
+  },
+  {
     type: "ColorField",
     category: "forms",
     label: "color field",

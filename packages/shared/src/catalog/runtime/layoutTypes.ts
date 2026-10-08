@@ -24,6 +24,7 @@ export type EngineDisplay =
   | "inline-flex"
   | "grid"
   | "inline-grid"
+  | "contents"
   | "none";
 export type EnginePosition = "relative" | "absolute";
 export type EngineOverflow = "visible" | "hidden" | "clip" | "scroll";

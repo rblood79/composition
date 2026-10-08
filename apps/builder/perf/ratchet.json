@@ -1,8 +1,8 @@
 {
   "version": 1,
   "recorderSha256": "6f842d4bf2b5bf45c5be24dc60848be44aa683cb2eda2086617a57f026ad878a",
-  "generatedAt": "2026-10-04",
-  "head": "ffd0f52ae249fcdf6d9383697285e4ac172c9be6",
+  "generatedAt": "2026-10-08",
+  "head": "77253b581cdb3b8bfc34706353914de0b9ef63d3",
   "band": 1.05,
   "minSlack": 2,
   "runs": {
@@ -57,17 +57,17 @@
           "v8.fn.src/builder/catalogRuntime/controller.ts#current": 2444,
           "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 1931,
           "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace": 1326,
-          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1920,
-          "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 1690,
+          "v8.fn.src/builder/catalogRuntime/readModel.ts#read": 1710,
+          "v8.fn.src/builder/catalogRuntime/session.ts#getSnapshot": 1480,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#(anonymous)": 5880,
-          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1828,
+          "v8.fn.src/builder/catalogRuntime/workspace.ts#get root": 1797,
           "v8.fn.src/builder/catalogRuntime/workspace.ts#isElementRecord": 1440,
           "v8.fn.src/builder/panels/navigator/catalog/CatalogLayersSection.tsx#getKey": 1891,
           "v8.fn.src/catalog/commands/components.ts#(anonymous)": 1800,
-          "v8.fn.src/catalog/commands/context.ts#read": 1724,
+          "v8.fn.src/catalog/commands/context.ts#read": 1604,
           "v8.fn.src/catalog/commands/structure.ts#(anonymous)": 7080,
           "v8.fn.src/catalog/document/graph.ts#getEntry": 6009,
-          "v8.fn.src/catalog/document/graph.ts#ownerOf": 2191,
+          "v8.fn.src/catalog/document/graph.ts#ownerOf": 2071,
           "v8.fn.src/i18n/I18nProvider.tsx#(anonymous)": 1730
         },
         "B": {
@@ -75,7 +75,12 @@
           "cdp.RecalcStyleCount": 155,
           "domMutations.childList": 280,
           "reactRenderMeasures": 4487,
-          "v8.app": 123136
+          "v8.app": 123136,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 9610,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 2504,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 1976,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#get domInputs": 1430,
+          "v8.fn.src/catalog/document/library.ts#get": 1301
         }
       },
       "edit": {
@@ -123,7 +128,11 @@
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#get": 2114,
           "v8.fn.src/builder/workspace/canvas/skia/renderCommands.ts#isArrayIndex": 2058,
           "v8.fn.src/builder/workspace/canvas/skia/useSkiaNode.ts#getSkiaNode": 882,
-          "v8.fn.src/catalog/document/graph.ts#getEntry": 1636
+          "v8.fn.src/catalog/document/graph.ts#getEntry": 1636,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 4960,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#get canvasInputs": 2056,
+          "v8.fn.src/catalog/runtime/boxModel.ts#length": 1296,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#typeOf": 1053
         }
       },
       "page-switch": {
@@ -166,7 +175,10 @@
           "domMutations.childList": 70,
           "reactRenderMeasures": 1745,
           "v8.app": 19124,
-          "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 157
+          "v8.fn.src/builder/catalogRuntime/controller.ts#get graph": 157,
+          "v8.fn.src/catalog/runtime/compositionRoot.ts#(anonymous)": 2480,
+          "v8.fn.src/catalog/runtime/controller.ts#current": 178,
+          "v8.fn.src/catalog/runtime/controller.ts#get graph": 157
         }
       },
       "panel-toggle": {

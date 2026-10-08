@@ -517,17 +517,20 @@ export function catalogCalendarPicker(
 ): CatalogConsumerNode | undefined {
   return pickerHost(root, calendar, CALENDAR_PICKER_BINDINGS);
 }
-/** A node's picker of `hosts`: its parent, or the parent of the Popover it is in. */
+/**
+ * A node's picker of `hosts`: its parent, or the parent of the Popover it is in — layout frames
+ * between skipped (`catalogDomPartParent`: a frame keeps a part in its picker's RAC context).
+ */
 function pickerHost(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   hosts: ReadonlySet<string>,
 ): CatalogConsumerNode | undefined {
-  const parent = root.domInputs.get(node.parentId);
+  const parent = catalogDomPartParent(root, node);
   if (!parent) return undefined;
   const host =
     catalogTypeName(root, parent) === "Popover"
-      ? root.domInputs.get(parent.parentId)
+      ? catalogDomPartParent(root, parent)
       : parent;
   return hosts.has(host?.bindingId ?? "") ? host : undefined;
 }

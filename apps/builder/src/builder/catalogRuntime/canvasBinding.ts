@@ -387,6 +387,9 @@ const bindings: Readonly<Record<string, Binding>> = {
   checkboxindicator: container,
   radioindicator: container,
   switchindicator: container,
+  // ADR-256 Phase 6g: RAC Autocomplete has no element — `display: contents` (its rule), so its
+  // children are its parent's items; nothing of its own to paint.
+  autocomplete: container,
   // ADR-256 Phase 5h: RAC TreeItemContent has no element (a layout box for the row's flex line).
   treeitemcontent: container,
   disclosurechevron: container,

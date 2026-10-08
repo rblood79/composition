@@ -546,6 +546,13 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     label: "search field",
     icon: "Search",
   }),
+  // Autocomplete — ADR-256 Phase 6g: RAC Autocomplete (a text field filtering the collection
+  //   beside it — the reference's `Autocomplete > SearchField + ListBox`). No element of its own.
+  primitiveEntry("Autocomplete", "fields", FAMILY_2_CUTOVER, {
+    category: "forms",
+    label: "autocomplete",
+    icon: "TextSearch",
+  }),
   primitiveEntry("DateField", "fields", FAMILY_2_CUTOVER, {
     category: "dateTime",
     label: "date field",
@@ -1394,6 +1401,7 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "TextArea",
   "NumberField",
   "SearchField",
+  "Autocomplete",
   "ColorField",
   "Checkbox",
   "CheckboxGroup",

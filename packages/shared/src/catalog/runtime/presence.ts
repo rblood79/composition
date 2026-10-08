@@ -483,9 +483,13 @@ export function catalogHiddenAtRest(
   if (!parent) return false;
   const type = typeOf(node);
   const parentType = typeOf(parent);
-  if (TRIGGER_OVERLAY_CHILDREN[parentType]?.has(type)) return true;
+  // (A closed overlay keeps its trigger owner through a layout frame — RAC's `PopoverContext`
+  // reaches it there, `catalogPartParent`.)
+  const partParent = catalogPartParent(node, get, typeOf);
+  if (partParent && TRIGGER_OVERLAY_CHILDREN[typeOf(partParent)]?.has(type))
+    return true;
   // (A hint part keeps its field through a layout frame — `catalogPartParent`.)
-  const hintField = catalogPartParent(node, get, typeOf);
+  const hintField = partParent;
   const hint =
     hintField && catalogFieldHintShown(type, hintField, typeOf(hintField));
   if (hint !== undefined) return !hint;

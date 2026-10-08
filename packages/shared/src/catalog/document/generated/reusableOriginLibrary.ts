@@ -752,6 +752,24 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-searchfield"
   },
   {
+    "id": "lib:definition:origin-component-autocomplete",
+    "name": "Autocomplete",
+    "mode": "composite",
+    "accepts": {
+      "defaultInputValue": "string",
+      "disableAutoFocusFirst": "boolean",
+      "disableVirtualFocus": "boolean"
+    },
+    "defaults": {
+      "defaultInputValue": "",
+      "disableAutoFocusFirst": false,
+      "disableVirtualFocus": false
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-autocomplete"
+  },
+  {
     "id": "lib:definition:origin-component-colorfield",
     "name": "ColorField",
     "mode": "composite",
@@ -1688,8 +1706,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-table-column",
     "name": "Column",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "children": "string"
+    },
+    "defaults": {
+      "children": "Column"
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-table-column"
@@ -3772,6 +3794,37 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
+    "id": "lib:template:component-autocomplete",
+    "definitionId": "lib:definition:type-Autocomplete",
+    "children": [
+      "lib:template:component-autocomplete__search",
+      "lib:template:component-autocomplete__listbox"
+    ],
+    "props": {
+      "defaultInputValue": "{defaultInputValue}",
+      "disableAutoFocusFirst": "{disableAutoFocusFirst}",
+      "disableVirtualFocus": "{disableVirtualFocus}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-autocomplete__search",
+    "definitionId": "lib:definition:origin-component-searchfield",
+    "children": [],
+    "props": {
+      "label": "Search",
+      "placeholder": "Search items"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-autocomplete__listbox",
+    "definitionId": "lib:definition:origin-component-listbox",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
     "id": "lib:template:component-searchfield",
     "definitionId": "lib:definition:type-SearchField",
     "children": [
@@ -5285,7 +5338,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tableview__1_1",
-    "definitionId": "lib:definition:origin-component-table-column",
+    "definitionId": "lib:definition:type-Column",
     "children": [],
     "props": {
       "children": "Name"
@@ -5294,7 +5347,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tableview__1_2",
-    "definitionId": "lib:definition:origin-component-table-column",
+    "definitionId": "lib:definition:type-Column",
     "children": [],
     "props": {
       "children": "Type"
@@ -5303,7 +5356,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-tableview__1_3",
-    "definitionId": "lib:definition:origin-component-table-column",
+    "definitionId": "lib:definition:type-Column",
     "children": [],
     "props": {
       "children": "Status"
@@ -7285,11 +7338,33 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-table-column",
     "definitionId": "lib:definition:type-Column",
-    "children": [],
+    "children": [
+      "lib:template:component-table-column__name"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-table-column__name",
+    "definitionId": "lib:definition:type-Group",
+    "children": [
+      "lib:template:component-table-column__label"
+    ],
     "props": {
-      "children": "Column"
+      "role": "presentation"
     },
     "visual": {}
+  },
+  {
+    "id": "lib:template:component-table-column__label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{children}"
+    },
+    "visual": {
+      "fontWeight": 600
+    }
   },
   {
     "id": "lib:template:component-table-row",

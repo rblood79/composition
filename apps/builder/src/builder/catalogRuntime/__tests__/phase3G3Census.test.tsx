@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 22,
+    libraryContractVersion: 23,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -549,6 +549,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     //   Button — the TreeItemChevron node of 2026-10-04 is deleted).
     // − SelectTrigger (the field trigger box is a RAC Group node since ADR-256 Phase 6b; the type
     //   is deleted, 2026-10-09).
-    expect(types.length).toBe(144);
+    // + Autocomplete (ADR-256 Phase 6g — RAC Autocomplete, no element of its own).
+    expect(types.length).toBe(145);
   }, 120_000);
 });

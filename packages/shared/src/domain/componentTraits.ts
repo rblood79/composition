@@ -105,6 +105,10 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   container: { container: "structural" },
   frame: { container: "structural", families: ["freeContentHost"] },
   Group: { container: "structural", families: ["freeContentHost"] },
+  // ADR-256 Phase 6g: RAC Autocomplete — any content (no box of its own; the reference's SearchField · TextField and
+  // ListBox · GridList · TagGroup · Table · Menu, or a wrapper around them: RAC gives its contexts
+  // to the descendants).
+  Autocomplete: { families: ["freeContentHost"] },
   Section: { container: "structural", families: ["freeContentHost"] },
   Card: { container: "structural" },
   CardHeader: {
