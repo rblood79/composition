@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 7 판독 수리 — 값 바인딩 편집 · frame 안 Slider 부품 · 늘어난 absolute 상자] - 2026-10-09
+
+### Fixed
+
+- **detach 한 ProgressBar · Meter · Slider 의 값 글자를 바꾸면 Canvas 와 Preview 가 그 글자를 그린다** — 전에는 Preview 가 계속 값 (30%) 을 그리고, 값을 바꾸면 Canvas 도 되돌아갔다. 부품에 새로 쓴 `{valueText}` 도 이제 값을 읽는다. 위치: `catalog/runtime/compositionRoot.ts`
+- **값을 바인딩한 Label 이 값이 돌아오면 Canvas 에 다시 보인다** (indeterminate 를 끈 뒤) · **프로젝트 변수로 쓴 `valueLabel` 이 바뀌면 Canvas 값 글자가 따라온다**
+- **SliderFill · SliderTrack 을 frame 으로 감싸도 Canvas 의 채움 · thumb 이 값 자리에 놓인다** — 전에는 채움 높이 0 · 트랙 전체. 위치: `catalog/runtime/presence.ts`
+- **레이아웃 엔진: 양쪽 inset 으로 늘어난 absolute 상자 안 absolute 자식의 `%` 크기** — 늘어난 상자 기준으로 놓는다 (전에는 0). 레퍼런스 Slider 예제의 `.track { position: absolute }` 조립이 Canvas 에서 맞는다. 위치: `packages/engine/src/tree.rs`
+
 ## [ADR-256 Phase 7d — Meter track 색 정리 · 쓰지 않는 코드 삭제] - 2026-10-09
 
 ### Fixed

@@ -2687,6 +2687,28 @@ impl LayoutTree {
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
+            // 늘이기 (양측 inset · auto 축) 로 상자가 solve 결과와 달라졌으면, 그 상자가 자기 absolute
+            //   자식의 containing block 이다 (CSS 2 §10.1 — used size 뒤). solve 는 늘이기 전 크기로 그들을
+            //   놓았다 (absolute 자식만 가진 auto 높이 상자 = 0 → 손자 `height: 100%` 0). 종전 결함:
+            //   ADR-256 Phase 7 판독 M1 (react-aria Slider 예제의 `.track` 안 SliderFill).
+            let stretched = (!has_w && (nw - w).abs() > 0.01) || (!has_h && (nh - h).abs() > 0.01);
+            if child_is_container && stretched {
+                let grand: Vec<usize> = self
+                    .get(c)
+                    .map(|n| n.children.clone())
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|&g| {
+                        self.get(g).is_some_and(|gn| {
+                            gn.style.display.as_deref() != Some("none")
+                                && is_out_of_flow(gn.style.position.as_deref())
+                        })
+                    })
+                    .collect();
+                if !grand.is_empty() {
+                    self.place_absolute_children(c, &grand, nw, nh, cb_w);
+                }
+            }
         }
     }
 
@@ -10284,6 +10306,27 @@ mod tests {
         assert_eq!(c.width, 180.0, "stretch w = 200 - 10 - 10");
         assert_eq!(c.y, 15.0, "top:15");
         assert_eq!(c.height, 60.0, "stretch h = 100 - 15 - 25");
+    }
+
+    /// E11 ① 뒤: 양측 inset 으로 늘어난 auto 크기 컨테이너는 늘어난 크기로 자기 자식을 배치한다
+    /// (CSS 2 §10.3.7 · §10.6.4 — used size 가 정해진 뒤 그 상자가 자식의 containing block). 종전엔
+    /// 늘이기 전 solve (auto 높이 = content 0) 로 absolute 손자를 놓아 `%` 가 0 이었다 (ADR-256 Phase 7
+    /// 판독 M1 — react-aria Slider 예제의 `.track` 이 감싼 SliderFill: Chrome 30% · 100%).
+    #[test]
+    fn absolute_stretched_container_places_its_children_in_the_stretched_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"absolute","insetLeft":"0%","insetTop":"0px","width":"30%","height":"100%"},"children":[]},
+            {"style":{"display":"block","position":"absolute","insetLeft":"0px","insetTop":"0px","insetRight":"0px","insetBottom":"0px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"8px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let wrap = tree.get_layout(handles[1]);
+        assert_eq!((wrap.width, wrap.height), (200.0, 8.0), "inset 0 stretch");
+        let fill = tree.get_layout(handles[0]);
+        assert!((fill.width - 60.0).abs() < 0.01, "늘어난 상자의 30%: {}", fill.width);
+        assert_eq!(fill.height, 8.0, "늘어난 상자의 100%");
     }
 
     /// E11 ②: inset 무지정 → 정상 흐름 위치(static position) 유지.

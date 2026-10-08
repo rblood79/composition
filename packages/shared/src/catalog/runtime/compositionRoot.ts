@@ -1068,6 +1068,18 @@ function itemLayout(node: CatalogConsumerNode): Record<string, unknown> {
     out.position = "absolute";
   return out;
 }
+/** The record with its `hidden` judged again (`catalogHiddenAtRest`) against `get`. */
+function withHidden(
+  record: CatalogConsumerNode,
+  get: (id: string) => CatalogConsumerNode | undefined,
+  typeOf: (node: CatalogConsumerNode) => string,
+): CatalogConsumerNode {
+  const { hidden: _hidden, ...shown } = record;
+  return catalogHiddenAtRest(shown, get, typeOf)
+    ? { ...shown, hidden: true }
+    : shown;
+}
+
 function sameFields(
   left: Readonly<Record<string, unknown>>,
   right: Readonly<Record<string, unknown>>,
@@ -1538,16 +1550,26 @@ export class CatalogCompositionRoot {
     for (const id of this.stateReaders(names)) {
       const record = this.records.get(id)!;
       const rootId = this.recordRoots.get(id)!;
-      const valued = this.withState(record, get, this.rootPage.get(rootId));
+      // (ADR-256 Decision 12 — the value bindings are read again from the new written values.)
+      const { valueTemplate, ...unbound } = this.withState(
+        record,
+        get,
+        this.rootPage.get(rootId),
+      );
+      const valued = catalogWithValues(
+        valueTemplate?.visual
+          ? { ...unbound, visual: { ...unbound.visual, ...valueTemplate.visual } }
+          : unbound,
+        get,
+        this.typeOf,
+        this.locale,
+      );
       if (sameFields(valued.props, record.props)) continue;
       // A value-conditioned part (ADR-256 Decision 7) follows its new final text.
-      const { hidden: _hidden, ...shown } = valued;
       const next =
         valued.presentWhen === undefined
           ? valued
-          : catalogHiddenAtRest(shown, get, this.typeOf)
-            ? { ...shown, hidden: true as const }
-            : shown;
+          : withHidden(valued, get, this.typeOf);
       let list = byRoot.get(rootId);
       if (!list) byRoot.set(rootId, (list = []));
       list.push(this.planRecord(id, next, rootId));
@@ -1557,6 +1579,30 @@ export class CatalogCompositionRoot {
       [...byRoot.values()].flat().map((plan) => [plan.id, plan.record]),
     );
     const read = (key: string) => refreshed.get(key) ?? this.records.get(key);
+    // ADR-256 Decision 12: an owner's new values reach the parts bound to them (`{valueText}`).
+    for (const record of [...refreshed.values()])
+      for (const dependent of catalogValueDependents(record, read, this.typeOf)) {
+        const current = read(dependent.id)!;
+        const valued = catalogWithValues(current, read, this.typeOf, this.locale);
+        const next =
+          valued.presentWhen === undefined
+            ? valued
+            : withHidden(valued, read, this.typeOf);
+        if (
+          sameFields(next.props, current.props) &&
+          sameFields(next.visual, current.visual) &&
+          next.hidden === current.hidden
+        )
+          continue;
+        const rootId = this.recordRoots.get(dependent.id)!;
+        let list = byRoot.get(rootId);
+        if (!list) byRoot.set(rootId, (list = []));
+        refreshed.set(dependent.id, next);
+        const at = list.findIndex((plan) => plan.id === dependent.id);
+        const plan = this.planRecord(dependent.id, next, rootId);
+        if (at >= 0) list[at] = plan;
+        else list.push(plan);
+      }
     // (Judged against the final lookup — a node refreshed with its owner is judged again too.)
     const dependents = new Map<string, CatalogConsumerNode>();
     for (const record of [...refreshed.values()]) {
@@ -3131,6 +3177,8 @@ export class CatalogCompositionRoot {
         ariaLabel: _ariaLabel,
         templateProps: _templateProps,
         stateVisual: _stateVisual,
+        // (ADR-256 Decision 12 — the bindings are read again from the new written values below.)
+        valueTemplate: _valueTemplate,
         ...kept
       } = before;
       const resolvedRecord: CatalogConsumerNode = {
@@ -3160,10 +3208,15 @@ export class CatalogCompositionRoot {
         regions: top.regions ?? resolved.regions,
         placeholder: top.placeholder ?? resolved.placeholder,
       };
-      const record = this.withState(
-        resolvedRecord,
+      const record = catalogWithValues(
+        this.withState(
+          resolvedRecord,
+          (key) => this.records.get(key),
+          this.rootPage.get(rootId),
+        ),
         (key) => this.records.get(key),
-        this.rootPage.get(rootId),
+        this.typeOf,
+        this.locale,
       );
       // A parent prop change reaches the direct children its partRules target.
       for (const childId of this.partRuleChildren(before, record))
@@ -3293,12 +3346,17 @@ export class CatalogCompositionRoot {
           : []),
       ]) {
         const rootId = this.recordRoots.get(thumb.id)!;
-        const current = catalogWithValues(
+        const valued = catalogWithValues(
           get(thumb.id)!,
           get,
           this.typeOf,
           this.locale,
         );
+        // (A value-conditioned part follows the final text its owner's value gives it — Decision 7.)
+        const current =
+          valued.presentWhen === undefined
+            ? valued
+            : withHidden(valued, get, this.typeOf);
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
         const fillLayout =

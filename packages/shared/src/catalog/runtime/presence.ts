@@ -740,8 +740,9 @@ export function catalogSliderFillLayout(
   typeOf: CatalogTypeOf,
 ): Record<string, string> | undefined {
   if ((node.ruleId ?? typeOf(node)) !== "SliderFill") return undefined;
-  const track = get(node.parentId);
-  const slider = track ? get(track.parentId) : undefined;
+  // (Through the layout frames the author puts around a part — `catalogPartParent`.)
+  const track = catalogPartParent(node, get, typeOf);
+  const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
   if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
   if (typeOf(slider) !== "Slider") return undefined;
   const { min, max, value } = catalogSliderRange(slider);
@@ -767,8 +768,9 @@ export function catalogSliderThumbLayout(
   typeOf: CatalogTypeOf,
 ): Record<string, unknown> | undefined {
   if (typeOf(node) !== "SliderThumb") return undefined;
-  const track = get(node.parentId);
-  const slider = track ? get(track.parentId) : undefined;
+  // (Through the layout frames the author puts around a part — `catalogPartParent`.)
+  const track = catalogPartParent(node, get, typeOf);
+  const slider = track ? catalogPartParent(track, get, typeOf) : undefined;
   if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
   const number = (value: unknown, fallback: number) =>
     typeof value === "number" && Number.isFinite(value) ? value : fallback;
@@ -1517,10 +1519,10 @@ export function catalogSliderThumbs(
 ): CatalogConsumerNode[] {
   if (typeOf(slider) !== "Slider") return [];
   // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values)
-  return childrenOf(slider, get)
+  return partChildrenOf(slider, get, typeOf)
     .filter((child) => typeOf(child) === "SliderTrack")
     .flatMap((track) =>
-      childrenOf(track, get).filter((child) =>
+      partChildrenOf(track, get, typeOf).filter((child) =>
         ["SliderThumb", "SliderFill"].includes(typeOf(child)),
       ),
     );

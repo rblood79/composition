@@ -54,6 +54,7 @@ paths:
 ## position:absolute / fixed — 엔진 소속 + 의도적 미지원 경계 (ADR-164 Phase 2, 2026-07-25)
 
 - out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.
+- 양측 inset 으로 늘어난 auto 크기 absolute 상자는 **늘어난 상자로** 자기 absolute 자식을 다시 놓는다 (CSS 2 §10.1 — 2026-10-08 ADR-256 Phase 7 판독 M1: 늘이기 전 solve 는 absolute 자식만 가진 상자를 0 으로 봐 손자 `%` 가 0). Rust `absolute_stretched_container_places_its_children_in_the_stretched_box`
 - **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3):
   - containing block **조상 체인** 탐색 (nearest positioned ancestor) — 직계 부모 고정. 재개 조건 = positioned ancestor 2단 이상 실사용 등장
   - `position:fixed` viewport 기준 — absolute 근사. catalog 경로는 위치를 가진 상자를 `position:absolute` + `insetLeft/Top` px 로만 보낸다 (`styleOf`) — fixed 를 엔진에 보내는 경로가 없다. 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
