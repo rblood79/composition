@@ -22,11 +22,7 @@ import {
   catalogLeadingIconPartNodeData,
   catalogRuleNodeData,
 } from "./ruleShapes";
-import {
-  catalogPartParent,
-  catalogTreeChevronInset,
-  catalogTreeItemContent,
-} from "./presence";
+import { catalogPartParent, catalogTreeItemContent } from "./presence";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
@@ -385,13 +381,12 @@ const bindings: Readonly<Record<string, Binding>> = {
   submenutrigger: container,
   switchbutton: containerWithAuthoredPaint,
   radiobutton: containerWithAuthoredPaint,
-  // A part its owner draws (toggle indicator, TreeItem · Disclosure chevron): painted from its
+  // A part its owner draws (toggle indicator, Disclosure chevron): painted from its
   // owner's rule (`ownerDrawnPartNodeData` — the binding stands for the record in the registration
   // loop only).
   checkboxindicator: container,
   radioindicator: container,
   switchindicator: container,
-  treeitemchevron: container,
   // ADR-256 Phase 5h: RAC TreeItemContent has no element (a layout box for the row's flex line).
   treeitemcontent: container,
   disclosurechevron: container,
@@ -529,14 +524,12 @@ const RULE_UNPAINTED_TEXT_KEYS = [
 /**
  * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation
  * itself is `OWNER_DRAWN_PART_OWNERS`): a toggle's `*Indicator` runs the toggle's replace
- * primitive, a TreeItem's `TreeItemChevron` and a DisclosureHeader's `DisclosureChevron` its
- * `leading_icon`.
+ * primitive, a DisclosureHeader's `DisclosureChevron` its `leading_icon`.
  */
 const OWNER_DRAWN_PART_PRIMITIVES: Readonly<Record<string, string>> = {
   CheckboxIndicator: "checkbox",
   RadioIndicator: "radio",
   SwitchIndicator: "switch_toggle",
-  TreeItemChevron: "leading_icon",
   DisclosureChevron: "leading_icon",
 };
 const OWNER_DRAWN_PART_OWNER_TYPES: ReadonlySet<string> = new Set(
@@ -584,8 +577,8 @@ function ownerDrawnPart(
  * A part node its owner draws: the owner's rule primitive in the part's own box — the owner's
  * props, display state, variant and authored paint decide it, as they decide the DOM element. A
  * replace primitive (checkbox box · radio circle · switch track, `size.indicator`) is the owner's
- * whole rule paint; the `leading_icon` (TreeItem chevron) is the glyph alone, centered right of the
- * part's level indent.
+ * whole rule paint; the `leading_icon` (Disclosure chevron) is the glyph alone, centered in the
+ * part's box.
  */
 function ownerDrawnPartNodeData(
   root: CatalogCompositionRoot,
@@ -613,14 +606,7 @@ function ownerDrawnPartNodeData(
   if (getSkiaPrimitiveMode(primitive) === "replace")
     data = catalogRuleNodeData(input);
   else if (primitive === "leading_icon")
-    data = catalogLeadingIconPartNodeData(
-      input,
-      catalogTreeChevronInset(
-        node,
-        (id) => root.canvasInputs.get(id),
-        root.typeOf,
-      ),
-    );
+    data = catalogLeadingIconPartNodeData(input);
   else
     throw new Error(`CATALOG_CANVAS_PART_PRIMITIVE_UNSUPPORTED:${primitive}`);
   return { ...data, elementId: node.id, x: rect.x, y: rect.y };

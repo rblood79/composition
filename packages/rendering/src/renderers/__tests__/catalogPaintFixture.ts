@@ -17,7 +17,6 @@ export {
   resolveLeadingIconName,
   resolveLeadingSlot,
   resolveSegmentedRadius,
-  resolveSelectionSlot,
   resolveTreeIndent,
 } from "../buildCatalogShapes";
 export {

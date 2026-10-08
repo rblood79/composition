@@ -130,6 +130,8 @@ const LAYOUT_PROP_CACHE_SOURCE = [
   "heightMode",
   "_projectedRowsContentHeight",
   "_slots",
+  // (No consumer injects it since ADR-256 Phase 5h — kept: the ADR-187 Phase 0 baseline freezes
+  // this list.)
   "_showSelectionCheckbox",
 ] as const;
 

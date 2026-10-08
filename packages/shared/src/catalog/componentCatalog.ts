@@ -342,7 +342,7 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure header",
     icon: "ChevronRight",
   }),
-  // DisclosureChevron — Disclosure trigger 의 chevron (2026-10-07, TreeItemChevron 노드 동형). DisclosureHeader
+  // DisclosureChevron — Disclosure trigger 의 chevron (2026-10-07, toggle indicator 노드 동형). DisclosureHeader
   //   template 의 첫 자식, DOM 은 부모 Disclosure (`svg.disclosure-chevron`) 가 그린다. palette 비노출.
   primitiveEntry("DisclosureChevron", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
@@ -1034,14 +1034,6 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     category: "collections",
     label: "tree item",
     icon: "ListTree",
-  }),
-  // TreeItemChevron — TreeItem 의 chevron 버튼 (2026-10-04, toggle indicator 노드 동형). TreeItem
-  //   template 의 첫 자식, DOM 은 부모 Tree (RAC TreeItemContent) 가 그린다. palette 비노출.
-  primitiveEntry("TreeItemChevron", "tree-table", FAMILY_5_CUTOVER, {
-    category: "collections",
-    label: "tree item chevron",
-    icon: "ChevronRight",
-    placeable: false,
   }),
   // TreeItemContent — ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — the
   //   reference's chevron Button · text inside, nested items after it). palette 비노출.

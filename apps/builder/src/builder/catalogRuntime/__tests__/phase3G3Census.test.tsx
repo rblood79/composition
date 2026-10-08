@@ -540,13 +540,13 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     console.info("[adr248-g3-census]", JSON.stringify(summary));
     // ADR-251: + RadioItems · CheckboxItems (the group items wrappers).
     // + CheckboxIndicator · RadioIndicator · SwitchIndicator (toggle indicator nodes, 2026-10-04).
-    // + TreeItemChevron (the TreeItem chevron node, 2026-10-04).
     // + TooltipTrigger (the Tooltip origin's root, ADR-255 2026-10-07).
     // + DisclosureChevron (the Disclosure trigger's chevron node, 2026-10-07).
     // + CheckboxButton · SwitchButton · RadioButton (ADR-256 Phase 3 — RAC *Field > *Button, 2026-10-08).
     // + SelectionIndicator (ADR-256 Phase 5e — the Tab's selection bar node).
     // + Keyboard · SubmenuTrigger (ADR-256 Phase 5g — a MenuItem's shortcut · a submenu).
-    // + TreeItemContent (ADR-256 Phase 5h — a TreeItem's row content).
-    expect(types.length).toBe(146);
+    // + TreeItemContent (ADR-256 Phase 5h — a TreeItem's row content; its chevron is an authored
+    //   Button — the TreeItemChevron node of 2026-10-04 is deleted).
+    expect(types.length).toBe(145);
   }, 120_000);
 });

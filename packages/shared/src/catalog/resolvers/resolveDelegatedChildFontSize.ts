@@ -199,15 +199,15 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
 
 /**
  * 부모가 그리는 part 노드 → 그것을 그리는 부모 (2026-10-04). DOM 은 부모 RAC 컴포넌트가 그 요소를 직접
- * 만들고 노드를 읽지 않는다 — toggle 의 indicator (`div.checkbox` · `::before` · `div.indicator`), TreeItem
- * 의 chevron 버튼 (`Button[slot="chevron"]`), Disclosure trigger 의 chevron (`svg.disclosure-chevron`). 크기 · 색은 부모 rule 과 부모의 prop · style 이 정한다. 그래서
+ * 만들고 노드를 읽지 않는다 — toggle 의 indicator (`div.checkbox` · `::before` · `div.indicator`),
+ * Disclosure trigger 의 chevron (`svg.disclosure-chevron`). (TreeItem 의 chevron 은 ADR-256 Phase 5h 부터
+ * 작성자 Button 노드다.) 크기 · 색은 부모 rule 과 부모의 prop · style 이 정한다. 그래서
  * 편집 surface 는 부모로 귀속하고 (FieldError 와 같은 판정) 위치는 지울 수 없다.
  */
 export const OWNER_DRAWN_PART_OWNERS: Readonly<Record<string, string>> = {
   CheckboxIndicator: "Checkbox",
   RadioIndicator: "Radio",
   SwitchIndicator: "Switch",
-  TreeItemChevron: "TreeItem",
   DisclosureChevron: "DisclosureHeader",
 };
 

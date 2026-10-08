@@ -100,8 +100,6 @@ const SUBPART_TOKENS: Readonly<
     SwitchButton: [".react-aria-SwitchButton"],
     SwitchIndicator: [".indicator"],
   },
-  // A TreeItem's chevron node (2026-10-04): the shared Tree's chevron button (whole selector).
-  TreeItem: { TreeItemChevron: [".react-aria-Button[slot='chevron']"] },
   TextField: { Input: [".react-aria-Input"] },
   TextArea: { Input: [".react-aria-TextArea", ".react-aria-Input"] },
   ColorField: { Input: [".react-aria-Input"] },

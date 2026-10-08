@@ -184,8 +184,7 @@ export function catalogTypeName(
 }
 /**
  * A part node its owner draws (`OWNER_DRAWN_PART_OWNERS`, 2026-10-04): a toggle's indicator (the
- * RAC toggle draws `div.checkbox` · `::before` · `div.indicator`), a TreeItem's chevron (the
- * shared Tree's `TreeItemContent` draws `Button[slot="chevron"]`) and a Disclosure's chevron (the
+ * RAC toggle draws `div.checkbox` · `::before` · `div.indicator`) and a Disclosure's chevron (the
  * shared Disclosure's trigger draws `svg.disclosure-chevron`). The record renders no element —
  * the owner absorbs it, so the delegated renderers never see it as a child.
  */

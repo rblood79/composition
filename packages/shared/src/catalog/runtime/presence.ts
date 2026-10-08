@@ -659,7 +659,7 @@ export function catalogSliderThumbLayout(
 
 /**
  * A box the owner's DOM renderer composes with no catalog node of its own (the chevron button of a
- * Tree item that has no `TreeItemChevron` child — an item detached or made before the node): a
+ * Tree item that has no row content — a bare TreeItem the shared Tree draws): a
  * layout leaf before the record's children. It paints nothing itself — the owner's D3 rule draws
  * what the box holds (TreeItem `visual.leadingIcon` over `catalogDerivedProps`).
  */
@@ -776,9 +776,9 @@ function treeItemHasChildItems(
 }
 
 /**
- * A TreeItem's chevron button records — its `TreeItemChevron` child (2026-10-04) or the
- * `Button[slot=chevron]` in its `TreeItemContent` (ADR-256 Phase 5h) — and their glyphs: the
- * re-plan dependents of the item (level indent, child items, expansion).
+ * A TreeItem's chevron button records — the `Button[slot=chevron]` in its `TreeItemContent`
+ * (ADR-256 Phase 5h) — and their glyphs: the re-plan dependents of the item (level indent, child
+ * items, expansion).
  */
 export function catalogTreeChevrons(
   node: CatalogConsumerNode,
@@ -786,10 +786,6 @@ export function catalogTreeChevrons(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   if (typeOf(node) !== "TreeItem") return [];
-  for (const id of node.children) {
-    const child = get(id);
-    if (child && typeOf(child) === "TreeItemChevron") return [child];
-  }
   const content = catalogTreeItemContent(node, get, typeOf);
   if (!content) return [];
   return childrenOf(content, get)
@@ -808,15 +804,13 @@ function treeChevronLevel(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): number | undefined {
-  const item =
-    typeOf(node) === "TreeItemChevron"
-      ? get(node.parentId)
-      : catalogTreeChevronButtonItem(node, get, typeOf);
+  const item = catalogTreeChevronButtonItem(node, get, typeOf);
   return item ? catalogTreeLevel(item, get, typeOf) : undefined;
 }
 
 /**
- * A `TreeItemChevron` record's layout: its TreeItem's chevron button at the item's level.
+ * A TreeItem chevron button's layout (`Button[slot=chevron]` in its row content): the `Tree.css`
+ * button at the item's level.
  * Undefined for any other node.
  */
 export function catalogTreeChevronLayout(
@@ -828,31 +822,17 @@ export function catalogTreeChevronLayout(
   return level === undefined ? undefined : treeChevronStyle(level);
 }
 
-/** A `TreeItemChevron` record's left padding (its level indent) — what its glyph centers right of. */
-export function catalogTreeChevronInset(
-  node: CatalogConsumerNode,
-  get: CatalogRecordLookup,
-  typeOf: CatalogTypeOf,
-): number {
-  const level = treeChevronLevel(node, get, typeOf);
-  return level === undefined ? 0 : treeChevronIndent(level);
-}
-
 /**
  * Parts a record's DOM owner composes before its children: a TreeItem row's chevron button when
- * the item has neither a `TreeItemChevron` child nor a `TreeItemContent` (ADR-256 Phase 5h — the
- * content holds its own chevron button, or none) to hold it.
+ * the item has no `TreeItemContent` (ADR-256 Phase 5h — the content holds its own chevron button,
+ * or none) to hold it.
  */
 export function catalogComposedParts(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): readonly CatalogComposedPart[] {
-  if (
-    catalogTreeChevrons(node, get, typeOf).length ||
-    catalogTreeItemContent(node, get, typeOf)
-  )
-    return [];
+  if (catalogTreeItemContent(node, get, typeOf)) return [];
   const level = catalogTreeLevel(node, get, typeOf);
   if (level === undefined) return [];
   return [{ id: `${node.id}::part:chevron`, style: treeChevronStyle(level) }];

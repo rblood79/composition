@@ -235,13 +235,12 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
 }
 
 /**
- * A part node that holds its owner's leading icon (a TreeItem's `TreeItemChevron`): the owner's
- * `leading_icon` primitive — glyph, expanded turn, color — in the part's box, centered in its
- * content box right of `inset` (the DOM chevron button centers its svg). `input` is the owner's.
+ * A part node that holds its owner's leading icon (a DisclosureHeader's `DisclosureChevron`): the
+ * owner's `leading_icon` primitive — glyph, expanded turn, color — centered in the part's box.
+ * `input` is the owner's.
  */
 export function catalogLeadingIconPartNodeData(
   input: CatalogRuleShapeInput,
-  inset: number,
 ): SkiaNodeData {
   const { rect } = input;
   const {
@@ -252,11 +251,10 @@ export function catalogLeadingIconPartNodeData(
     (mergedStyle.fontSize as string | number | undefined) ?? sizeSpec.fontSize,
     14,
   );
-  // The part is the slot alone: no row indent or selection checkbox ahead of it.
+  // The part is the slot alone: no row indent ahead of it.
   const partProps: Record<string, unknown> = {
     ...props,
     _treeLevel: undefined,
-    _showSelectionCheckbox: undefined,
   };
   const slot = resolveLeadingSlot(visual, partProps, sizeSpec, fontSize);
   const iconSize = slot?.kind === "icon" ? slot.size : 0;
@@ -268,7 +266,7 @@ export function catalogLeadingIconPartNodeData(
       paint,
       style: {
         ...mergedStyle,
-        paddingLeft: inset + (rect.width - inset - iconSize) / 2,
+        paddingLeft: (rect.width - iconSize) / 2,
       },
     }) ?? [];
   return specShapesToSkia(

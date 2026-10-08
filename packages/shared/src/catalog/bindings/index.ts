@@ -92,7 +92,6 @@ import { switchButtonBinding } from "./SwitchButton.binding";
 import { radioButtonBinding } from "./RadioButton.binding";
 import { radioIndicatorBinding } from "./RadioIndicator.binding";
 import { switchIndicatorBinding } from "./SwitchIndicator.binding";
-import { treeItemChevronBinding } from "./TreeItemChevron.binding";
 import { treeItemContentBinding } from "./TreeItemContent.binding";
 import { disclosureChevronBinding } from "./DisclosureChevron.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
@@ -225,7 +224,6 @@ export * from "./SwitchButton.binding";
 export * from "./RadioButton.binding";
 export * from "./RadioIndicator.binding";
 export * from "./SwitchIndicator.binding";
-export * from "./TreeItemChevron.binding";
 export * from "./TreeItemContent.binding";
 export * from "./DisclosureChevron.binding";
 export * from "./RangeCalendar.binding";
@@ -438,8 +436,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   RadioButton: radioButtonBinding,
   RadioIndicator: radioIndicatorBinding,
   SwitchIndicator: switchIndicatorBinding,
-  // 2026-10-04: TreeItem 의 chevron 버튼 노드 (부모 Tree DOM 이 흡수, 자기 rule 없음 — 값은 TreeItem rule).
-  TreeItemChevron: treeItemChevronBinding,
   // ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — no element of its own).
   TreeItemContent: treeItemContentBinding,
   // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모 Disclosure DOM 이 흡수, 자기 rule 없음 — 값은 DisclosureHeader rule).

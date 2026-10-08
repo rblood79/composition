@@ -210,7 +210,6 @@ describe("ADR-256 Phase 5h — TreeItem is the reference's node tree", () => {
       // Each item holds its row content, the content its chevron Button and title.
       const content = of("TreeItemContent");
       expect(content).toHaveLength(3);
-      expect(of("TreeItemChevron")).toHaveLength(0);
     },
   );
 

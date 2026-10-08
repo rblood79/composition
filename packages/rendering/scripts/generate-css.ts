@@ -70,8 +70,6 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
       c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
     leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
     leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
-    selectionCheckbox:
-      v.selectionCheckbox as ComponentVisualRule["selectionCheckbox"],
     trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
     textAlign: v.textAlign,
   };

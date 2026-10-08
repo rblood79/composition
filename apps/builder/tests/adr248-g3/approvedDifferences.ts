@@ -693,7 +693,7 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     class: "decided",
     owners: ["Tree", "TreeItem"],
     side: "new",
-    nodes: ["TreeItemChevron", "TreeItemContent", "Button"],
+    nodes: ["TreeItemContent", "Button"],
     reason:
       "TreeItem = [TreeItemContent [chevron Button > Icon, label], child items] (ADR-256 Phase 5h — the reference Tree; 2026-10-04 user 「1안」 the chevron node — old: the item painted its chevron in its own box)",
   },

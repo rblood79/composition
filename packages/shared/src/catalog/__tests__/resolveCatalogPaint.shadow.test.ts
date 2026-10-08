@@ -72,8 +72,6 @@ function toLegacyVisual(variant: ComponentRuleVariant): ComponentVisualRule {
     leadingIcon: variant.leadingIcon as ComponentVisualRule["leadingIcon"],
     leadingAvatar:
       variant.leadingAvatar as ComponentVisualRule["leadingAvatar"],
-    selectionCheckbox:
-      variant.selectionCheckbox as ComponentVisualRule["selectionCheckbox"],
     trailingIcon: variant.trailingIcon as ComponentVisualRule["trailingIcon"],
     textAlign: variant.textAlign,
   };
