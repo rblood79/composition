@@ -145,7 +145,7 @@ function templateChain(
   libraryPatch: PropLayer | undefined,
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
-  ancestors: readonly string[] = [],
+  ancestors: Ancestors = NO_ANCESTORS,
 ): PropLayer[] {
   const template = readTemplate(reader, templateId);
   const state = ownedSelection(
@@ -185,7 +185,7 @@ function definitionChain(
   key: string,
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
-  ancestors: readonly string[] = [],
+  ancestors: Ancestors = NO_ANCESTORS,
 ): PropLayer[] {
   const definition = readDefinition(reader, definitionId);
   const composite =
@@ -280,7 +280,7 @@ function propLayers(
         key,
         new Set(),
         undefined,
-        nodeAncestors(reader, node.id),
+        lazy(() => nodeAncestors(reader, node.id)),
       ),
     ];
   }
@@ -346,7 +346,7 @@ function propLayers(
       libraryPatch,
       new Set(),
       enclosingState,
-      positionAncestors(reader, owner, target.address),
+      lazy(() => positionAncestors(reader, owner, target.address)),
     ),
   );
   return layers;
@@ -361,13 +361,21 @@ function ownedSelection(
   reader: CatalogReader,
   definitionId: DefinitionId,
   state: TemplateRecord["displayState"],
-  ancestors: readonly string[],
+  ancestors: Ancestors,
 ): TemplateRecord["displayState"] {
   if (state !== "selected" && state !== "unselected") return state;
   const name = readDefinition(reader, definitionId).name;
-  return isInOwnCollection(name, ancestors) || isInOwnGroup(name, ancestors)
+  return isInOwnCollection(name, ancestors()) ||
+    isInOwnGroup(name, ancestors())
     ? undefined
     : state;
+}
+/** A node's ancestor type names, walked only when a selection display state asks (prop reads). */
+type Ancestors = () => readonly string[];
+const NO_ANCESTORS: Ancestors = () => [];
+function lazy(walk: () => readonly string[]): Ancestors {
+  let names: readonly string[] | undefined;
+  return () => (names ??= walk());
 }
 /** A document node's ancestor type names, nearest first. */
 function nodeAncestors(reader: CatalogReader, id: string): string[] {
