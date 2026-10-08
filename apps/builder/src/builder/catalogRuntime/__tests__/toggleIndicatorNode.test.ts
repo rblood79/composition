@@ -282,6 +282,45 @@ describe("toggle indicator node", () => {
     workspace.dispose();
   });
 
+  it("Checkbox: invalid paints the box border — and a selected or indeterminate box — negative", async () => {
+    // (2026-10-09) `Checkbox.css` `[data-invalid] .checkbox { border-color: var(--negative) }` and,
+    // selected or indeterminate, `background: var(--negative)` (the check stays white).
+    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    const set = (props: Record<string, boolean>) => {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value },
+            ]),
+          ),
+        }),
+      );
+      canvas.update();
+      const box = getSkiaNode(kids[0].id)!.box!;
+      return {
+        fill: JSON.stringify(box.fillColor),
+        stroke: JSON.stringify(box.strokeColor),
+      };
+    };
+    const valid = set({ isSelected: false });
+    const invalid = set({ isInvalid: true });
+    expect(invalid.stroke).not.toBe(valid.stroke);
+    expect(invalid.fill).toBe(valid.fill);
+    const selected = set({ isSelected: true });
+    expect(selected.fill).toBe(invalid.stroke);
+    expect(selected.stroke).toBe(invalid.stroke);
+    const indeterminate = set({ isSelected: false, isIndeterminate: true });
+    expect(indeterminate.fill).toBe(invalid.stroke);
+    const restored = set({ isInvalid: false, isIndeterminate: false });
+    expect(restored).toEqual(valid);
+    canvas.dispose();
+    workspace.dispose();
+  });
+
   it.each([
     ["sm", 16],
     ["md", 20],

@@ -28,7 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Canvas 의 체크 · 가로선이 Preview 의 lucide 아이콘과 같은 모양 · 굵기다** (md: 선 2.67px · round cap — 종전 Canvas 는 상자 비율 0.2/0.4/0.8 의 임의 꺾은선 · 2.5px 고정이라 세로로 길고 얇았다).
   - **Why**: DOM 은 lucide `Check` (`M20 6 9 17l-5-5`) · `Minus` (`M5 12h14`) 를 viewBox 24 · stroke 4 로 `.checkbox` content box (border 안쪽 `boxSize − 4` 정사각형) 에 그린다. Canvas primitive 는 그 path 와 상관없는 비율을 하드코딩했다. 이제 같은 path 를 같은 영역 (border 만큼 안쪽, 배율 `(boxSize − 2·border)/24`) 에 굵기 `4 × 배율` · round cap 으로 그린다.
   - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts` (`checkbox`)
-- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/toggleIndicatorNode.test.ts` (Canvas 상태 3 · 모서리 · 크기별 glyph 4 · 마운트된 DOM · 시트) · live `apps/builder/scripts/checkbox-state-radius-live.mjs` (실제 Options 칩 클릭, Canvas Skia 데이터 ↔ Preview computed style · svg 실측 frame 의 glyph 좌표).
+- **Options「Invalid」가 Canvas 에 보인다** — 상자 테두리 negative, 선택 · indeterminate 상자는 바탕도 negative (체크는 흰색).
+  - **Why**: Canvas `checkbox` primitive 가 `isInvalid` 를 읽지 않았다 (invalid 모양은 `Checkbox.css` `[data-invalid] .checkbox` 에만 있었다).
+  - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts` (`checkbox`)
+- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/toggleIndicatorNode.test.ts` (Canvas 상태 3 · 모서리 · 크기별 glyph 4 · invalid · 마운트된 DOM · 시트) · live `apps/builder/scripts/checkbox-state-radius-live.mjs` (실제 Options 칩 클릭, Canvas Skia 데이터 ↔ Preview computed style · svg 실측 frame 의 glyph 좌표 · invalid 색).
 
 ## [ADR-256 후속 4 · 6 — Menu 를 MenuTrigger > Button + Popover > Menu 로 · 하위 메뉴 넣기] - 2026-10-09
 

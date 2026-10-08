@@ -4,6 +4,7 @@
 //   L-2 Indeterminate on: Canvas box filled + one dash · Preview box filled + a stroked Minus glyph
 //   L-3 indicator radius: Canvas `box.borderRadius` = Preview `.checkbox` computed border-radius
 //   L-4 no page / console errors
+//   L-6 Invalid: Canvas border (and a filled box's fill) = the Preview's computed negative
 //   L-5 glyph geometry: Canvas check · dash lines = the Preview's lucide paths in the measured svg frame
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/checkbox-state-radius-live.mjs <out>
@@ -85,10 +86,20 @@ const read = () =>
     const box = el?.querySelector(".checkbox");
     const svg = box?.querySelector("svg");
     const css = box ? getComputedStyle(box) : undefined;
+    // (Computed colors come as oklch: read them back as sRGB through a 1px 2D canvas.)
+    const toRgb = (color) => {
+      if (!color) return null;
+      const ctx = new OffscreenCanvas(1, 1).getContext("2d");
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    };
     return {
       debug: { ownerProps: { isSelected: owner.props.isSelected, isIndeterminate: owner.props.isIndeterminate, displayState: owner.displayState ?? null }, entryProps: entry?.props ?? null, hasData: !!data, indicatorId: indicator.id },
       canvas: {
         fill: data?.box?.fillColor ? Array.from(Object.values(data.box.fillColor)).map((v) => +v.toFixed(3)) : null,
+        stroke: data?.box?.strokeColor ? Array.from(Object.values(data.box.strokeColor)).map((v) => Math.round(v * 255)) : null,
         radius: data?.box?.borderRadius ?? null,
         lines: (data?.children ?? []).filter((c) => c.type === "line").length,
         glyph: (data?.children ?? [])
@@ -98,7 +109,9 @@ const read = () =>
       preview: {
         selected: el?.hasAttribute("data-selected") ?? null,
         indeterminate: el?.hasAttribute("data-indeterminate") ?? null,
-        background: css?.backgroundColor ?? null,
+        background: toRgb(css?.backgroundColor),
+        borderColor: toRgb(css?.borderTopColor),
+        invalid: el?.hasAttribute("data-invalid") ?? null,
         radius: css?.borderRadius ?? null,
         glyph: svg?.getAttribute("class") ?? null,
         glyphStroke: svg ? getComputedStyle(svg).stroke : null,
@@ -145,6 +158,12 @@ await chip("Selected");
 await chip("Indeterminate");
 const indeterminate = await read();
 await shot("4-indeterminate");
+// L-6: Invalid on an indeterminate box, then on an unselected one.
+await chip("Invalid");
+const invalidFilled = await read();
+await chip("Indeterminate");
+const invalidEmpty = await read();
+await shot("5-invalid");
 
 record(
   "L-1 Selected off → on follows on the Canvas and in the Preview",
@@ -196,6 +215,23 @@ record(
   {
     check: { canvas: initial.canvas.glyph, frame: initial.preview.glyphFrame },
     dash: { canvas: indeterminate.canvas.glyph, frame: indeterminate.preview.glyphFrame },
+  },
+);
+// L-6: invalid — Canvas box border (and a filled box's fill) = the Preview's computed negative.
+const rgb = (css) => (css?.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((v) => Math.round(+v));
+const near = (a, b) => a?.length === 3 && b?.length >= 3 && a.every((v, i) => Math.abs(v - b[i]) <= 1);
+const fill255 = (sample) => sample.canvas.fill?.slice(0, 3).map((v) => Math.round(v * 255));
+record(
+  "L-6 Invalid: Canvas border (and filled box) = Preview negative",
+  invalidFilled.preview.invalid === true &&
+    near(rgb(invalidFilled.preview.borderColor), invalidFilled.canvas.stroke) &&
+    near(rgb(invalidFilled.preview.background), fill255(invalidFilled)) &&
+    near(rgb(invalidEmpty.preview.borderColor), invalidEmpty.canvas.stroke) &&
+    JSON.stringify(invalidEmpty.canvas.fill) === JSON.stringify(off.canvas.fill) &&
+    !near(rgb(off.preview.borderColor), invalidEmpty.canvas.stroke),
+  {
+    filled: { canvas: { fill: fill255(invalidFilled), stroke: invalidFilled.canvas.stroke }, preview: { background: invalidFilled.preview.background, border: invalidFilled.preview.borderColor } },
+    empty: { canvas: { fill: fill255(invalidEmpty), stroke: invalidEmpty.canvas.stroke }, preview: { background: invalidEmpty.preview.background, border: invalidEmpty.preview.borderColor } },
   },
 );
 record("L-4 no errors", errors.length === 0, { errors });

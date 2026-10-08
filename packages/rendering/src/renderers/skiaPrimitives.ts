@@ -1046,8 +1046,17 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   // checked 시각 = 보편 상태축: bg=fill.default.selected, border=selectedBorder.
   // 미선택: bg=fill.default.base, border=visual.border (이전 CHECKBOX_*_COLORS 상수 흡수).
   // fallback("{color.border}")은 variant 누락 방어 — 정상 spec 에선 도달 안 함(타입 만족).
-  const bgColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
-  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
+  // invalid = `Checkbox.css` `[data-invalid] .checkbox`: 테두리 negative, 선택 · indeterminate 면
+  //   바탕도 negative (indeterminate 는 rulePaint 가 선택 칠로 넘긴다 — isChecked). 체크는 흰색 그대로.
+  const isInvalid = props.isInvalid === true;
+  const negative = "{color.negative}" as TokenRef;
+  const bgColor =
+    isInvalid && isChecked
+      ? negative
+      : (paint.backgroundColor ?? ("{color.base}" as TokenRef));
+  const borderColor = isInvalid
+    ? negative
+    : (paint.borderColor ?? ("{color.border}" as TokenRef));
 
   const shapes: Shape[] = [
     {
