@@ -110,7 +110,7 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
       overlay.children.map(
         (id) => child(overlay, overlay.children.indexOf(id)).bindingId,
       ),
-    ).toEqual(["heading", "description"]);
+    ).toEqual(["overlayarrow", "heading", "description"]);
   });
 
   it("Tooltip: TooltipTrigger > Button + Tooltip; the Canvas draws the trigger only", async () => {
@@ -121,7 +121,8 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
     expect(trigger.props.children).toBe("Hover me");
     expect(overlay.bindingId).toBe("tooltip");
     expect(overlay.hidden).toBe(true);
-    expect(child(overlay, 0).bindingId).toBe("description");
+    expect(child(overlay, 0).bindingId).toBe("overlayarrow");
+    expect(child(overlay, 1).bindingId).toBe("description");
   });
 
   it("the Preview shows the trigger and no closed overlay", async () => {
@@ -215,7 +216,6 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
       editContractFixture("Popover").fields.map((field) => field.key),
     ).toEqual([
       "size",
-      "hideArrow",
       "placement",
       "offset",
       "crossOffset",

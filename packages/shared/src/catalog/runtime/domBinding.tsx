@@ -694,6 +694,20 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         ...defaultStyle,
       }),
     }),
+  // ADR-256 Phase 8a: RAC `OverlayArrow` with the reference starter's svg (its overlay's size —
+  // `_arrowSize`); RAC places it from the trigger and the overlay's sheet turns and paints the svg.
+  overlayarrow: (node, style) => {
+    const size = Number(node.derivedProps?._arrowSize ?? 12);
+    return createElement(
+      RAC.OverlayArrow as ElementType,
+      { key: node.id, "data-catalog-id": node.id, style },
+      createElement(
+        "svg",
+        { width: size, height: size, viewBox: `0 0 ${size} ${size}` },
+        createElement("path", { d: `M0 0 L${size / 2} ${size / 2} L${size} 0` }),
+      ),
+    );
+  },
   // (A thumb's `index` is its place among its track's thumbs — `renderNode` gives it.)
   sliderthumb: (node, style) =>
     createElement(RAC.SliderThumb as ElementType, {
@@ -1265,6 +1279,9 @@ function ruleDom(
   // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.
   if (lower === "dialog" && !node.ariaLabel && !dialogTitleOf(root, node))
     rest["aria-label"] = "Dialog";
+  // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
+  // draws none of its own.
+  if (lower === "popover" || lower === "tooltip") rest.hideArrow = true;
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
   const ownChildren = children;
   const content =

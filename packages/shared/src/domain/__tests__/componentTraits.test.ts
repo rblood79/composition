@@ -303,6 +303,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Breadcrumb: ["Breadcrumbs"],
       ColorSwatchPickerItem: ["ColorSwatchPicker"],
       SelectionIndicator: ["Tab"],
+      OverlayArrow: ["Popover", "Tooltip"],
       Radio: ["RadioGroup"],
       RadioItems: ["RadioGroup"],
       CheckboxItems: ["CheckboxGroup"],

@@ -1113,8 +1113,8 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     icon: "InspectionPanel",
   }),
   // Popover — Skia generic 전환 (skiaLegacy 제거, ADR-142 Inc3 2026-06-01): bg/border 는
-  //   buildCatalogShapes(variant fill {color.layer-2}), V-arrow 는 skiaPrimitive
-  //   (popover_arrow append) 합성.
+  //   buildCatalogShapes(variant fill {color.layer-2}). 화살표는 자식 OverlayArrow 노드 (ADR-256
+  //   Phase 8a — 옛 popover_arrow primitive 는 뗐다).
   //   ADR-166 Phase 4 (2026-07-25): popover_shadow 은퇴 — 그림자는 containerStyles.boxShadow
   //   (`{shadow.md}`) 를 Skia 가 theme-aware 로 소비하는 단일 채널.
   primitiveEntry("Popover", "overlays", FAMILY_6_CUTOVER, {
@@ -1124,12 +1124,19 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // Tooltip — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 5 (1b) 2026-06-04): bg(roundRect)
   //   + text 는 buildCatalogShapes(variant fill {color.neutral-subtle}, text {color.neutral} —
-  //   rule table 과 spec 일치), arrow 는 skiaPrimitive(tooltip_arrow, append) 합성. Tooltip 은
+  //   rule table 과 spec 일치), 화살표는 자식 OverlayArrow 노드 (ADR-256 Phase 8a). Tooltip 은
   //   SYNTHETIC 아님(text content 가 본문) → buildCatalogShapes 가 text 자연 렌더(Menu 동형).
   primitiveEntry("Tooltip", "overlays", FAMILY_6_CUTOVER, {
     category: "overlays",
     label: "tooltip",
     icon: "MessageSquare",
+  }),
+  // ADR-256 Phase 8a: RAC OverlayArrow — a Popover's · Tooltip's arrow (palette 미노출 — the author
+  //   adds or removes it in the overlay).
+  primitiveEntry("OverlayArrow", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "overlay arrow",
+    icon: "Triangle",
   }),
   // ADR-255: RAC TooltipTrigger — a trigger and its Tooltip (the Tooltip origin's root, as the
   //   DialogTrigger is the Dialog · Popover origins'). Not placed on its own.

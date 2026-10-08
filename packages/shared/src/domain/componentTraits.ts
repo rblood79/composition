@@ -134,6 +134,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   },
   Popover: { families: ["freeContentHost"] },
   Tooltip: { families: ["freeContentHost"] },
+  // ADR-256 Phase 8a: RAC OverlayArrow — placed from its overlay's trigger (RAC's
+  //   `OverlayArrowContext`, the Popover's · Tooltip's).
+  OverlayArrow: { owners: ["Popover", "Tooltip"] },
 
   // ── 텍스트 ──
   Text: { families: ["textHost"] },

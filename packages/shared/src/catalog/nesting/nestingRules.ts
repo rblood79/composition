@@ -205,6 +205,8 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "SliderThumb",
   "SliderOutput",
   "SliderFill",
+  // ADR-256 Phase 8a: the arrow's svg is the binding's (the reference starter's).
+  "OverlayArrow",
   "MeterValue",
   // (MeterTrack — ADR-256 Phase 7b: the track holds the fill and free content.)
   "MeterFill",

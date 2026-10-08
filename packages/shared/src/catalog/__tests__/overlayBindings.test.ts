@@ -68,7 +68,7 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     }
   });
 
-  it("overlay binding 은 internal source. shadow/arrow 패턴 보유 overlay 만 skiaPrimitive", () => {
+  it("overlay binding 은 internal source. arrow 는 노드 — skiaPrimitive 없음", () => {
     for (const type of OVERLAY_TYPES) {
       const binding = getPrimitiveBinding(type);
       expect(binding?.source.kind, `${type} source`).toBe("internal");
@@ -81,14 +81,11 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
       ).toBeUndefined();
     }
     // ADR-166 Phase 4 (2026-07-25): shadow primitive 2건 은퇴 — 그림자는 catalog
-    //   `containerStyles.boxShadow` 단일 채널. arrow/backdrop 만 primitive 로 남는다
-    //   (box-shadow 로 표현 불가한 형상이라 존치가 정당).
-    expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toEqual([
-      "popover_arrow",
-    ]);
+    //   `containerStyles.boxShadow` 단일 채널. ADR-256 Phase 8a: 화살표는 `OverlayArrow` 노드라
+    //   Popover · Tooltip 의 arrow primitive 도 뗐다.
+    expect(getPrimitiveBinding("Popover")?.skiaPrimitive).toBeUndefined();
     expect(getPrimitiveBinding("Dialog")?.skiaPrimitive).toBeUndefined();
-    // Tooltip — V-arrow(showArrow=true 한정) append escape (단계 5 (1b)).
-    expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBe("tooltip_arrow");
+    expect(getPrimitiveBinding("Tooltip")?.skiaPrimitive).toBeUndefined();
   });
 
   it("Toast 는 순수 box-shell catalog cutover (R7 G1-c, RAC 정본 — accent bar 없음)", () => {
@@ -112,12 +109,12 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     expect(result.isDismissable).toBe(true);
   });
 
-  it("toRacProps: Popover hideArrow 통과 + size default", () => {
+  it("toRacProps: Popover size default · 화살표 prop 없음 (OverlayArrow 노드)", () => {
     const result = toRacProps(
-      { id: "pop1", type: "Popover", props: { hideArrow: true } },
+      { id: "pop1", type: "Popover", props: {} },
       getPrimitiveBinding("Popover")!,
     );
-    expect(result.hideArrow).toBe(true);
+    expect(result.hideArrow).toBeUndefined();
     expect(result["data-size"]).toBe("md");
   });
 });

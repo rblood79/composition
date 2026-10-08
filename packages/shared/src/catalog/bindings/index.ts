@@ -27,6 +27,7 @@ import { colorSwatchBinding } from "./ColorSwatch.binding";
 import { colorSwatchPickerBinding } from "./ColorSwatchPicker.binding";
 import { colorSwatchPickerItemBinding } from "./ColorSwatchPickerItem.binding";
 import { selectionIndicatorBinding } from "./SelectionIndicator.binding";
+import { overlayArrowBinding } from "./OverlayArrow.binding";
 import { colorWheelBinding } from "./ColorWheel.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
@@ -171,6 +172,7 @@ export * from "./ColorSwatch.binding";
 export * from "./ColorSwatchPicker.binding";
 export * from "./ColorSwatchPickerItem.binding";
 export * from "./SelectionIndicator.binding";
+export * from "./OverlayArrow.binding";
 export * from "./ColorWheel.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
@@ -396,6 +398,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ColorSwatchPickerItem: colorSwatchPickerItemBinding,
   // ADR-256 Phase 5e: the selected item's mark (RAC SelectionIndicator — a Tab's bar).
   SelectionIndicator: selectionIndicatorBinding,
+  // ADR-256 Phase 8a: a Popover's · Tooltip's arrow (RAC OverlayArrow — placed from the trigger).
+  OverlayArrow: overlayArrowBinding,
   TailSwatch: tailSwatchBinding,
   Form: formBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part

@@ -252,9 +252,14 @@ function expectSinceConversion(
 ) {
   const alertSize = authored.size ?? "md";
   // ADR-255: a Popover · Tooltip origin is its trigger and its overlay — the parts sit one level
-  // down (in the overlay, `__overlay`, after the trigger Button).
+  // down (in the overlay, `__overlay`, after the trigger Button). ADR-256 Phase 8a: after the
+  // overlay's first child, its OverlayArrow.
   const moved = type === "popover" || type === "tooltip";
-  const pathNow = (path: string) => (moved ? `/1${path}` : path);
+  const pathNow = (path: string) => {
+    if (!moved) return path;
+    const [first, ...rest] = path.slice(1).split("/");
+    return `/1/${Number(first) + 1}${rest.map((step) => `/${step}`).join("")}`;
+  };
   expect(Object.keys(now.records)).toEqual(
     Object.keys(before.records).map(pathNow),
   );

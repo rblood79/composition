@@ -1226,7 +1226,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "size": "string",
-      "hideArrow": "boolean",
       "placement": "string",
       "offset": "number",
       "crossOffset": "number",
@@ -1235,7 +1234,6 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     },
     "defaults": {
       "size": "md",
-      "hideArrow": false,
       "placement": "bottom",
       "offset": 8,
       "crossOffset": 0,
@@ -4434,9 +4432,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-select__listbox"
     ],
-    "props": {
-      "hideArrow": true
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -4682,9 +4678,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-combobox__listbox"
     ],
-    "props": {
-      "hideArrow": true
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5644,9 +5638,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-datepicker__3"
     ],
-    "props": {
-      "hideArrow": true
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5778,9 +5770,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-daterangepicker__3"
     ],
-    "props": {
-      "hideArrow": true
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -6082,12 +6072,12 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-popover__overlay",
     "definitionId": "lib:definition:type-Popover",
     "children": [
+      "lib:template:component-popover__arrow",
       "lib:template:component-popover__1",
       "lib:template:component-popover__2"
     ],
     "props": {
       "size": "{size}",
-      "hideArrow": "{hideArrow}",
       "placement": "{placement}",
       "offset": "{offset}",
       "crossOffset": "{crossOffset}",
@@ -6097,6 +6087,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {
       "width": "240px"
     }
+  },
+  {
+    "id": "lib:template:component-popover__arrow",
+    "definitionId": "lib:definition:type-OverlayArrow",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-popover__1",
@@ -6147,6 +6144,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tooltip__overlay",
     "definitionId": "lib:definition:type-Tooltip",
     "children": [
+      "lib:template:component-tooltip__arrow",
       "lib:template:component-tooltip__1"
     ],
     "props": {
@@ -6158,6 +6156,13 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "shouldFlip": "{shouldFlip}",
       "containerPadding": "{containerPadding}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tooltip__arrow",
+    "definitionId": "lib:definition:type-OverlayArrow",
+    "children": [],
+    "props": {},
     "visual": {}
   },
   {

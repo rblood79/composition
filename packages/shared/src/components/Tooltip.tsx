@@ -13,6 +13,11 @@ export type TooltipProps = AriaTooltipProps & {
    * @default 'md'
    */
   size?: ComponentSize;
+  /**
+   * 화살표 숨김 여부 — catalog DOM 은 화살표를 `OverlayArrow` 자식 노드로 그린다 (ADR-256 Phase 8a)
+   * @default false
+   */
+  hideArrow?: boolean;
 };
 
 /**
@@ -41,18 +46,25 @@ export type TooltipProps = AriaTooltipProps & {
  *   </Tooltip>
  * </TooltipTrigger>
  */
-export function Tooltip({ size = "md", children, ...props }: TooltipProps) {
+export function Tooltip({
+  size = "md",
+  hideArrow = false,
+  children,
+  ...props
+}: TooltipProps) {
   const tooltipClassName = composeRenderProps(props.className, (className) =>
     className ? `react-aria-Tooltip ${className}` : "react-aria-Tooltip",
   );
 
   return (
     <AriaTooltip {...props} className={tooltipClassName} data-size={size}>
-      <OverlayArrow>
-        <svg width={8} height={8} viewBox="0 0 8 8">
-          <path d="M0 0 L4 4 L8 0" />
-        </svg>
-      </OverlayArrow>
+      {!hideArrow && (
+        <OverlayArrow>
+          <svg width={8} height={8} viewBox="0 0 8 8">
+            <path d="M0 0 L4 4 L8 0" />
+          </svg>
+        </OverlayArrow>
+      )}
       {children as React.ReactNode}
     </AriaTooltip>
   );

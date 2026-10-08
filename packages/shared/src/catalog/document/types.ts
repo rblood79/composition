@@ -56,9 +56,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * (`component-meter__2` `{valueText}` · `__3_1` `MeterFill`, Label `presentWhen`). 26 — ADR-256
  * Phase 7c: a Slider's track holds a RAC `SliderFill` (`component-slider__3_2`) before its thumb and
  * takes no value of its own; its SliderOutput has no text (RAC writes the value); Label `presentWhen`.
+ * 27 — ADR-256 Phase 8a: a Popover's · Tooltip's arrow is an `OverlayArrow` node
+ * (`component-popover__arrow` · `component-tooltip__arrow`); no Popover `hideArrow` (origin accepts ·
+ * the picker Popovers).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 26 as const;
+export const LIBRARY_CONTRACT_VERSION = 27 as const;
 
 export type EntryKind =
   | "project"

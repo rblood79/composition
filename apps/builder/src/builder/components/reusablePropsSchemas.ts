@@ -155,7 +155,7 @@ const OVERLAY_POSITION_KEYS = [
 export const POPOVER_PROPS_SCHEMA = overlayOriginSchema(
   "DialogTrigger",
   "Popover",
-  ["size", "hideArrow", ...OVERLAY_POSITION_KEYS],
+  ["size", ...OVERLAY_POSITION_KEYS],
   { size: ["sm", "md", "lg"] },
 );
 export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8a — Popover · Tooltip 의 화살표 = OverlayArrow 노드] - 2026-10-08
+
+### Changed
+
+- **Popover · Tooltip 의 화살표가 노드다** (ADR-256 Phase 8a — react-aria.adobe.com Popover · Tooltip 예제의 `OverlayArrow`):
+  - 원본 = `Popover > OverlayArrow + Heading + Description` · `Tooltip > OverlayArrow + Description` — Preview 는 RAC `OverlayArrow` (레퍼런스 starter 의 svg — Popover 12 · Tooltip 8) 를 그 자리에 그리고, RAC 가 trigger 기준으로 놓는다
+  - 화살표를 빼려면 그 노드를 지운다 — Popover 의 `Hide Arrow` 속성은 없어졌다 (picker 4종의 Popover 도 노드가 없어 화살표 없음, 전과 같음)
+  - 메뉴 하위 메뉴 (SubmenuTrigger) 의 Popover 는 이제 Preview 에 화살표가 없다 (레퍼런스와 같음 — 전에는 공용 Popover 가 그렸다)
+  - Canvas 는 열린 overlay 를 그리지 않으므로 화살표 상자도 없다 (화면 변화 0). 그려지지 않던 Skia 화살표 primitive 연결을 뗐다
+  - 저장 형식 contract 27 — 옛 개발용 프로젝트는 열리지 않는다
+  - 위치: `catalog/bindings/OverlayArrow.binding.ts` · `catalog/runtime/domBinding.tsx` (`overlayarrow` · overlay 의 자기 화살표 끔) · `catalog/runtime/presence.ts` · `components/Tooltip.tsx` (`hideArrow`) · `catalog/document/generated/reusableOriginLibrary.ts` (`component-popover` · `component-tooltip`)
+
 ## [문서·메모리 낡은 심볼 정리 — `pnpm docs:stale-symbols` 게이트 · ADR-248 이전 문서 38개 legacy 이동] - 2026-10-08
 
 ### Tests

@@ -376,6 +376,9 @@ const bindings: Readonly<Record<string, Binding>> = {
   colorswatchpickeritem: containerWithAuthoredPaint,
   // ADR-256 Phase 5e: the Tab's bar (its fill is the Tab part rule's).
   selectionindicator: containerWithAuthoredPaint,
+  // ADR-256 Phase 8a: an overlay's arrow — hidden on the Canvas (RAC places it from the trigger;
+  // the Canvas draws no open overlay).
+  overlayarrow: containerWithAuthoredPaint,
   // ADR-256 Phase 5g: RAC SubmenuTrigger has no element of its own (a layout box only — in a Menu
   // it rests in the closed popover).
   submenutrigger: container,

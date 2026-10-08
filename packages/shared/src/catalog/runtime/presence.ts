@@ -471,6 +471,9 @@ export function catalogHiddenAtRest(
   )
     return true;
   if (catalogAbsentByValue(node)) return true;
+  // ADR-256 Phase 8a: RAC places an overlay's arrow from its trigger (`data-placement`) — the Canvas
+  // draws no open overlay, so the arrow has no box there.
+  if (node.bindingId === "overlayarrow") return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
@@ -1199,6 +1202,12 @@ function ownDerivedProps(
   typeOf: CatalogTypeOf,
   locale?: string,
 ): Readonly<Record<string, string | number | boolean>> | undefined {
+  // ADR-256 Phase 8a: an overlay arrow's svg is its overlay's (the reference starter's — Tooltip 8,
+  // Popover 12); the DOM binding draws it at that size.
+  if (node.bindingId === "overlayarrow") {
+    const overlay = catalogPartParent(node, get, typeOf);
+    return { _arrowSize: overlay && typeOf(overlay) === "Tooltip" ? 8 : 12 };
+  }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
   // A SearchField's `value` is its input's initial value (the renderer's `defaultValue`): the

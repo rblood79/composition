@@ -315,7 +315,7 @@ function submenuEntries(chevron: (item: string) => NodeEntry[]): NodeEntry[] {
     node(
       "project:node:submenu-popover",
       "lib:definition:type-Popover",
-      { hideArrow: true, offset: -2, crossOffset: -4 },
+      { offset: -2, crossOffset: -4 },
       ["project:node:submenu-menu"],
     ),
     node("project:node:submenu-menu", "lib:definition:type-Menu", {}, [

@@ -1,10 +1,10 @@
 /**
  * ADR-142 family ⑥(overlays) — Tooltip primitive 의 `PrimitiveBinding`.
  *
- * inventory(§2-1) primitive. composition wrapper(`Tooltip.tsx`)가 RAC Tooltip + OverlayArrow(svg)
- * 합성(internal source). 자식 Description 은 canonical children(SHELL_ONLY). bg+text 는
- * buildCatalogShapes generic, arrow(showArrow=true 시) 는 `tooltip_arrow` skiaPrimitive(append)
- * 로 재현(ADR-912 단계 5 (1b) — skiaLegacy 제거).
+ * inventory(§2-1) primitive. composition wrapper(`Tooltip.tsx`)가 RAC Tooltip 을 그리고 자식 노드
+ * (OverlayArrow · Description) 를 순서대로 담는다 (SHELL_ONLY). bg+text 는 buildCatalogShapes
+ * generic. 화살표는 자식 `OverlayArrow` 노드다 (ADR-256 Phase 8a — 옛 Skia `tooltip_arrow`
+ * primitive 는 뗐다: 읽던 `showArrow` 가 accepts 에 없어 Canvas 에 그려진 적이 없다).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -14,9 +14,6 @@ export const tooltipBinding: PrimitiveBinding = {
     kind: "internal",
     renderer: "tooltip",
   },
-  // ADR-912 단계 5 (1b): bg+text 는 buildCatalogShapes generic, V-arrow(showArrow=true 한정)는
-  // tooltip_arrow skiaPrimitive(append) 합성. showArrow 미설정 시 draw fn 이 null → arrow 미렌더.
-  skiaPrimitive: "tooltip_arrow",
   props: {
     accepts: {
       // design-data 감사 (2026-08-20): D3 rules table 에 variants 4종
