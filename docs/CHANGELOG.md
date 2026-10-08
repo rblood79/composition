@@ -11,6 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Checkbox 선택 · indeterminate · indicator 모서리 — Canvas 와 Preview 가 Properties Options 를 따른다] - 2026-10-09
+
+### Fixed
+
+- **팔레트 Checkbox 의 Options「Selected」를 끄고 켜면 Canvas 와 Preview 가 따라간다** (종전: Canvas 는 늘 체크, Preview 는 처음 값 그대로).
+  - **Why (Canvas)**: 원본 루트의 표시 상태 (`displayState: selected`) 가 칠 상태를 계속 selected 로 강제했고, 증분 record 갱신도 옛 record 의 표시 상태를 들고 있었다. 이제 인스턴스가 그 상태의 prop (`isSelected`) 을 반대로 작성하면 그 자리의 표시 상태가 끝나고, 증분 갱신이 새 해석의 표시 상태를 읽는다.
+  - **Why (Preview)**: DOM binding 이 선택을 RAC `defaultSelected` (uncontrolled) 로만 넘겨, 마운트된 Preview 가 이후 편집을 무시했다. 작성 기본값이 바뀌면 다시 그린다 (Tabs 의 default key 와 같은 방식 — Preview 클릭 토글은 그대로).
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts` · `packages/shared/src/catalog/runtime/compositionRoot.ts` · `packages/shared/src/catalog/runtime/delegatedDom.tsx`
+- **Indeterminate 를 켜면 Preview 에 가로선이 보이고, Canvas 는 채운 상자에 가로선을 그린다** (선택이 꺼져 있어도).
+  - **Why**: `Checkbox.css` 의 `[data-indeterminate] svg { stroke: none; fill }` 이 선으로 그리는 lucide `Minus` 를 지웠다 (Builder UI 의 Checkbox 도 같은 시트). Canvas 는 indeterminate 를 선택 칠로 보지 않아 선택이 꺼진 상자에 흰 선을 흰 바탕에 그렸다 — DOM 시트처럼 `[data-selected], [data-indeterminate]` 를 같은 칠로 본다.
+  - 위치: `packages/shared/src/components/styles/Checkbox.css` · `packages/shared/src/catalog/runtime/rulePaint.ts`
+- **Canvas 의 checkbox 상자 모서리가 Preview 와 같다** (4px — 종전 Canvas 0).
+  - **Why**: `checkbox` primitive 가 toggle root 의 `borderRadius` (size `{radius.none}`) 를 상자에 써서 rule 의 `size.indicator.boxRadius` 를 덮었다. DOM 은 root 모서리를 root 요소에 건다.
+  - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts`
+- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/toggleIndicatorNode.test.ts` (Canvas 상태 3 · 모서리 · 마운트된 DOM · 시트) · live `apps/builder/scripts/checkbox-state-radius-live.mjs` (실제 Options 칩 클릭, Canvas Skia 데이터 ↔ Preview computed style).
+
+## [ADR-256 후속 4 · 6 — Menu 를 MenuTrigger > Button + Popover > Menu 로 · 하위 메뉴 넣기] - 2026-10-09
+
+### Changed
+
+- **팔레트 Menu 가 레퍼런스 구조 `MenuTrigger > Button + Popover > Menu` 로 바뀌었다** (ADR-256 후속 4, library contract 30): trigger 는 Button 노드라 글자 · 모양을 Button 처럼 편집하고, Menu 노드는 어디에 있든 RAC `Menu` (목록) 다. 놓은 Menu 의 Properties 에서 Size · Selection Mode 를 바꾸면 안쪽 Menu 에 닿는다.
+  - **Why**: Menu 노드 하나가 trigger 버튼과 닫힌 목록을 함께 맡아 (Preview 는 공용 `MenuButton`, Canvas 는 Menu rule 의 버튼 모양), Autocomplete 안에 열린 목록으로 둘 수 없었다.
+  - contract 29 문서는 열리지 않는다 (옛 contract 와 같은 정책).
+  - 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `bindings/MenuTrigger.binding.ts` · `components/MenuTrigger.tsx` · `catalog/runtime/delegatedDom.tsx` (`menu`) · `presence.ts` · `componentRulesTable.ts` (Menu = 목록 · MenuTrigger)
+
+### Added
+
+- **Autocomplete 안 Menu** (G0 예제 4): Canvas · Preview 모두 열린 목록이고 입력값이 항목을 거른다.
+- **Design "+" 로 하위 메뉴 넣기** (ADR-256 후속 6): Menu 의 항목 목록에 SubmenuTrigger 가 있다 — `SubmenuTrigger > MenuItem + Popover > Menu > MenuItem` 을 한 번에 넣고, Preview 에서 그 항목이 하위 메뉴를 연다.
+
+### Fixed
+
+- **Menu 의 "+" 로 넣은 MenuItem 이 실패하지 않고, 이름만 보인다**: MenuItem 이 RAC key (`id`) 를 받지 못해 넣기가 거부됐고, 채우지 않은 `{shortcut}` 자리표시 글자가 그대로 보였다. MenuItem 의 작성자 HTML id 도 더는 RAC key 를 덮지 않는다.
+  - 위치: `domain/componentTraits.ts` (MenuItem = static collection item) · Builder `catalogRuntime/itemInsert.ts`
+- **MenuItem 안에 MenuItem 을 넣는 옛 "+" 를 지웠다** (하위 메뉴가 아니다 — 하위 메뉴는 SubmenuTrigger). 위치: `catalog/commands/collections.ts`
+
 ## [ADR-256 후속 3 · 5 · 7 — Select 다중 선택 · detach 뒤 Preview 오류 · 선택 상태 원본] - 2026-10-09
 
 ### Fixed

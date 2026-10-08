@@ -37,6 +37,8 @@ export const RAC_REQUIRED_PARTS: Readonly<
   Radio: [["RadioButton"]],
   DialogTrigger: [["Button"], ["Dialog", "Popover", "Modal"]],
   TooltipTrigger: [["Button"], ["Tooltip"]],
+  // ADR-256 후속 4: RAC MenuTrigger — its Button and its Popover (the Menu inside).
+  MenuTrigger: [["Button"], ["Popover"]],
   Table: [["TableHeader"]],
   TableView: [["TableHeader"]],
 };

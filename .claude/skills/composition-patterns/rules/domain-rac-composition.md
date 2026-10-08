@@ -68,6 +68,12 @@ Popover·Tooltip 팔레트 원본은 trigger 조합이다. 루트 타입을 이�
   처리한다. 끊긴 명시 주체를 다른 조상으로 fallback하지 않으며 `STATE_OWNER_UNLINKED`를 확인한다.
 - DOM은 `runtime/stateFrames.tsx`의 RAC render props frame을 읽는다. Canvas는 displayState와
   파생 값으로 판정한다. hover·pressed·focus-visible의 실제 상호작용은 Preview에서 검증한다.
+- displayState 는 원본의 표시용 상태다. 인스턴스가 그 상태의 prop (`DISPLAY_STATE_PROPS`) 을
+  반대로 작성하면 그 자리에서 끝나고 (`resolver.ts`), 증분 record 갱신도 새 해석의 displayState 를
+  읽는다 (`compositionRoot.ts`). RAC 가 uncontrolled 로 드는 값 (`defaultSelected` ·
+  `defaultSelectedKey`) 은 작성 기본값이 바뀌면 key 로 다시 그린다 (Tabs · Checkbox).
+  Why: 2026-10-09 Checkbox — selected 원본 instance 의 Selected 해제가 Canvas (표시 상태 고정) 와
+  Preview (uncontrolled 유지) 어디에도 닿지 않았다.
 - `{{ variable }}` 상태 변수, 원본의 `{prop}` 치환, RAC render props 값 바인딩은 별개 경로다.
   지원되지 않는 값을 임의 표현식 언어로 확장하지 않는다.
 - owner 값 변경 시 `compositionRoot.ts`의 `refreshState` · `catalogStateDependents` ·

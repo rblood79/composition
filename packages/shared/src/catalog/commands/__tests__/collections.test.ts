@@ -67,7 +67,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 29,
+    contractVersion: 30,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -151,7 +151,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 29,
+    libraryContractVersion: 30,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",

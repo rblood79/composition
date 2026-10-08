@@ -572,6 +572,36 @@ export function approvedStatePaint(
   );
 }
 
+/**
+ * A root whose own paint moved to a child node (the root draws nothing now, the child the old
+ * look at its own size): the root's whole box is that approved paint difference — geometry still
+ * arbitrates, and the child keeps the Canvas ↔ DOM leg.
+ */
+export interface ApprovedRootPaint {
+  id: string;
+  class: ApprovedDifferenceClass;
+  owners: readonly string[];
+  reason: string;
+}
+
+export const APPROVED_ROOT_PAINT: readonly ApprovedRootPaint[] = [
+  {
+    // ADR-256 후속 4 (사용자 2026-10-09 「3~7번도 수정해」): the Menu origin is the reference's
+    //   MenuTrigger > Button + Popover > Menu — the MenuTrigger box paints nothing, its Button
+    //   node the trigger (the closed Popover draws nothing on either side). old: the Menu node
+    //   painted its trigger over its whole box.
+    id: "menu-origin-trigger-paint",
+    class: "decided",
+    owners: ["Menu"],
+    reason:
+      "Menu origin = MenuTrigger > Button + Popover > Menu (ADR-256 후속 4 — old: the Menu node painted its trigger over its own box)",
+  },
+];
+
+export function approvedRootPaint(owner: string): ApprovedRootPaint | undefined {
+  return APPROVED_ROOT_PAINT.find((rule) => rule.owners.includes(owner));
+}
+
 /** The approving rule of one over-1px pair, or undefined. */
 export function approvedDifference(
   owner: string,
@@ -609,6 +639,17 @@ export interface ApprovedUnpaired {
 }
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
+  {
+    // ADR-256 후속 4: the Menu origin's trigger is a Button node inside the MenuTrigger (old: the
+    //   Menu node itself — its box pairs with the new root).
+    id: "menu-origin-trigger-button",
+    class: "decided",
+    owners: ["Menu"],
+    side: "new",
+    nodes: ["Button"],
+    reason:
+      "the Menu origin's trigger is its Button node (ADR-256 후속 4 — old: the Menu node drew it)",
+  },
   {
     // 2026-10-06 `f9746eda4`: CardView 의 Card 가 Card 원본의 네 영역을 갖는다 (old: 영역을 끈 빈 상자).
     id: "cardview-card-areas",

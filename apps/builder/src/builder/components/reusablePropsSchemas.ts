@@ -168,6 +168,18 @@ export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
   },
 );
 
+/**
+ * ADR-256 후속 4 — the Menu origin (MenuTrigger > Button + Popover > Menu): the instance edits the
+ * trigger's props and the Menu's `size` · `selectionMode` (template bindings to the Menu node —
+ * `size` also to the Button and the Popover).
+ */
+export const MENU_PROPS_SCHEMA = overlayOriginSchema(
+  "MenuTrigger",
+  "Menu",
+  ["size", "selectionMode"],
+  { size: ["sm", "md", "lg", "xl"] },
+);
+
 /** Reusable id → its declared edit contract. */
 export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-iconbutton": ICONBUTTON_PROPS_SCHEMA,
@@ -175,4 +187,5 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-popover": POPOVER_PROPS_SCHEMA,
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
+  "component-menu": MENU_PROPS_SCHEMA,
 };

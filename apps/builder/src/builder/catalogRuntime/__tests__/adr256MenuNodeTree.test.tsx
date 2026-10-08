@@ -72,7 +72,38 @@ afterEach(() => {
   for (const cleanup of cleanups.splice(0).reverse()) cleanup();
 });
 
-async function open(entries: NodeEntry[], rootId: string) {
+/**
+ * ADR-256 후속 4: a Menu stands in the reference's `MenuTrigger > Button + Popover > Menu` — the
+ * top-level Menu's `label` becomes its trigger Button's text.
+ */
+function triggered(entries: NodeEntry[], rootId: string) {
+  const menu = entries.find((entry) => entry.id === rootId)!;
+  const { label, ...props } = menu.props as Record<string, unknown>;
+  const trigger = `${rootId}-trigger`;
+  return {
+    rootId: trigger,
+    entries: [
+      node(trigger, "lib:definition:type-MenuTrigger", {}, [
+        `${rootId}-button`,
+        `${rootId}-popover`,
+      ]),
+      node(
+        `${rootId}-button`,
+        "lib:definition:origin-component-button",
+        {},
+        [],
+        { props: { children: label ?? set("Menu") } } as unknown as Partial<NodeEntry>,
+      ),
+      node(`${rootId}-popover`, "lib:definition:type-Popover", {}, [rootId]),
+      ...entries.map((entry) =>
+        entry === menu ? ({ ...menu, props } as NodeEntry) : entry,
+      ),
+    ],
+  };
+}
+
+async function open(menuEntries: NodeEntry[], menuId: string) {
+  const { entries, rootId } = triggered(menuEntries, menuId);
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -197,7 +228,11 @@ async function openMenu(
   root: Parameters<typeof renderCatalogDom>[0],
   id: string,
 ) {
-  const view = render(renderCatalogDom(root, id));
+  // (The Menu's MenuTrigger — its Button opens it.)
+  let at = root.domInputs.get(id);
+  while (at && root.typeOf(at) !== "MenuTrigger")
+    at = root.domInputs.get(at.parentId);
+  const view = render(renderCatalogDom(root, at?.id ?? id));
   cleanups.push(() => view.unmount());
   fireEvent.click(view.getByRole("button", { name: "Edit" }));
   await waitFor(() => expect(view.queryByRole("menu")).not.toBeNull());
@@ -361,8 +396,9 @@ function itemStructure(menu: Element): string {
 describe("ADR-256 Phase 5g — a submenu is the reference's SubmenuTrigger > MenuItem + Popover > Menu", () => {
   it("the item opens its Popover's Menu; only the trigger item shows the chevron (hasSubmenu)", async () => {
     const { root, record, of } = await open(submenuEntries(chevronNode), MENU);
-    // (The Canvas: the submenu rests in the menu's closed popover.)
-    expect(of("SubmenuTrigger").every((r) => r.hidden === true)).toBe(true);
+    // (The Canvas: the submenu rests in the menu's closed popover — its MenuTrigger's.)
+    expect(of("SubmenuTrigger")).toHaveLength(1);
+    expect(record(`${MENU}-popover`).hidden).toBe(true);
     const reference = render(
       createElement(
         Menu,

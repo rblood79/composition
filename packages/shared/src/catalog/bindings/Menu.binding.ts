@@ -1,8 +1,8 @@
 /**
  * ADR-142 family ④(collections) — Menu primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`Menu.tsx`/MenuButton)가 useCollectionData(dataBinding → items)로 채우고
- * RAC Menu + MenuItem 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * RAC `Menu` — the list (`delegatedDom` `menu`): in a MenuTrigger's · SubmenuTrigger's Popover, or
+ * open in an Autocomplete (ADR-256 후속 4). Its items are its MenuItem nodes.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -40,13 +40,8 @@ export const menuBinding: PrimitiveBinding = {
           allowSections: true,
         },
       },
-      label: { kind: "string", label: "Trigger Label", section: "content" },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "primary",
-      },
+      // ADR-256 후속 4: the trigger (its label · variant) is the MenuTrigger's Button node — a
+      //   Menu node is RAC's list.
       size: {
         kind: "size",
         label: "Size",

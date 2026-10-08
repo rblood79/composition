@@ -263,22 +263,21 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     });
   });
 
-  describe("menu — 트리거 박스 containerStyles (ADR-151 B7, 2026-07-16 사용자 결정)", () => {
-    it("empty parentStyle → display/alignItems/width(fit-content) 반환 — 목록 panel 메트릭 아님", () => {
+  describe("menu — 목록 panel containerStyles (ADR-256 후속 4, 2026-10-09)", () => {
+    it("empty parentStyle → 목록 panel 9필드 (generated Menu.css 와 같은 값)", () => {
       const fb = resolveContainerStylesFallback("menu", {});
-      // ADR-151 B7: 캔버스 Menu 표현 = 트리거 버튼 통일. 구 목록 panel 8필드(flex/column/
-      // gap/padding/width:100%/maxH/overflow/outline)는 Skia 만 소비해 390px 전폭 바 발산.
-      // DOM 목록 panel 규칙은 structure 채널(generated Menu.css) 유지.
-      // 2026-10-06: 트리거 상자의 padding (DOM = 공용 Button 의 md 4 · 12) — 종전에는 size 축
-      // padding 이 목록 panel 의 `structure.containerStyles.padding` 에 가려 0 이었다.
+      // ADR-256 후속 4: Menu 노드 = RAC `Menu` (목록) — trigger 는 MenuTrigger 의 Button 노드.
+      //   종전 (ADR-151 B7 · 2026-10-06) 은 Menu 노드가 trigger 상자였다 (inline-flex · Button padding).
       expect(fb).toEqual({
-        display: "inline-flex",
-        alignItems: "center",
-        width: "fit-content",
-        paddingTop: 4,
-        paddingBottom: 4,
-        paddingLeft: 12,
-        paddingRight: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: 4,
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+        borderWidth: 1,
       });
     });
   });
@@ -424,15 +423,17 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       });
     });
 
-    it("menu → 트리거 박스 3필드 + Button padding (ADR-151 B7 — 목록 panel 메트릭에서 전환)", () => {
+    it("menu → 목록 panel 9필드 (ADR-256 후속 4 — trigger 상자에서 목록으로)", () => {
       expect(resolveContainerStylesFallback("menu", {})).toEqual({
-        display: "inline-flex",
-        alignItems: "center",
-        width: "fit-content",
-        paddingTop: 4,
-        paddingBottom: 4,
-        paddingLeft: 12,
-        paddingRight: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        padding: 4,
+        width: "100%",
+        maxHeight: "300px",
+        overflow: "auto",
+        outline: "none",
+        borderWidth: 1,
       });
     });
 

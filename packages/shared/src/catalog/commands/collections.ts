@@ -44,7 +44,7 @@ interface CollectionFamily {
   list: string | null;
   item: string;
   section?: string;
-  /** Items hold items (TreeItem, MenuItem). */
+  /** Items hold items (TreeItem). */
   recursive?: boolean;
   /** Tabs: each Tab pairs with a TabPanel by key. */
   panels?: boolean;
@@ -69,7 +69,8 @@ export const COLLECTION_FAMILIES: readonly CollectionFamily[] = [
     list: null,
     item: "MenuItem",
     section: "MenuSection",
-    recursive: true,
+    // (No `recursive`: a MenuItem in a MenuItem is not a submenu — the reference's submenu is a
+    // `SubmenuTrigger`, ADR-256 후속 6.)
   },
   { owner: "Breadcrumbs", list: null, item: "Breadcrumb" },
   // (A Select · ComboBox holds its items in its ListBox — an instance of the ListBox origin,

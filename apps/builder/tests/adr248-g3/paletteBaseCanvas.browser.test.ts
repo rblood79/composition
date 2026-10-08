@@ -90,6 +90,7 @@ import {
   switchIndicatorPaintPair,
   approvedSectionDifference,
   SECTION_SUPPLEMENT_HASH,
+  approvedRootPaint,
   approvedStatePaint,
   approvedUnpaired,
   SUBPIXEL_INTRINSIC_WIDTH_CEIL,
@@ -623,7 +624,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 29,
+    libraryContractVersion: 30,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -1711,6 +1712,16 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
           old: "",
           rule: statePaint.id,
           class: statePaint.class,
+          whole: true,
+        });
+      // A root whose paint moved to a child node (ADR-256 후속 4 — the Menu's trigger Button).
+      const rootPaint = approvedRootPaint(row.type);
+      if (rootPaint)
+        approved.push({
+          new: rootInput.id,
+          old: "",
+          rule: rootPaint.id,
+          class: rootPaint.class,
           whole: true,
         });
       const menuPresence = entry.menuPresence as

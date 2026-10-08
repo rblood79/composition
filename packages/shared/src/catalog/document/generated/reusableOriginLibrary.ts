@@ -665,8 +665,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-menu",
     "name": "Menu",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "size": "string",
+      "selectionMode": "string"
+    },
+    "defaults": {
+      "size": "md",
+      "selectionMode": "none"
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-menu"
@@ -3435,6 +3441,37 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-menu",
+    "definitionId": "lib:definition:type-MenuTrigger",
+    "children": [
+      "lib:template:component-menu__trigger",
+      "lib:template:component-menu__popover"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [],
+    "props": {
+      "children": "Menu",
+      "size": "{size}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-menu__menu"
+    ],
+    "props": {
+      "size": "{size}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu__menu",
     "definitionId": "lib:definition:type-Menu",
     "children": [
       "lib:template:component-menu__item-1",
@@ -3442,10 +3479,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-menu__item-3"
     ],
     "props": {
-      "label": "Menu",
-      "variant": "primary",
-      "size": "md",
-      "selectionMode": "none"
+      "size": "{size}",
+      "selectionMode": "{selectionMode}"
     },
     "visual": {}
   },

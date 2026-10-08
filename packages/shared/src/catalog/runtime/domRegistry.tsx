@@ -19,6 +19,7 @@ import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 import { TooltipTrigger } from "@composition/shared/components/TooltipTrigger";
+import { MenuTrigger } from "@composition/shared/components/MenuTrigger";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
 import { FileUpload } from "@composition/shared/components/FileUpload";
@@ -134,6 +135,7 @@ export const INTERNAL_RENDERERS: Readonly<
   tooltip: Tooltip,
   // ADR-255: the Tooltip origin's root.
   tooltiptrigger: TooltipTrigger,
+  menutrigger: MenuTrigger,
   dropzone: DropZone,
   fileupload: FileUpload,
   calendar: Calendar,

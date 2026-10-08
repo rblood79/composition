@@ -8,6 +8,8 @@ import {
   insertTableRow,
 } from "../../../../../packages/shared/src/catalog/commands/collections";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import { insertNodes } from "../../../../../packages/shared/src/catalog/commands/structure";
+import { catalogTypeDefinitionId } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
@@ -117,6 +119,8 @@ function itemTypesOf(
     if (family.section === type) types.add(family.item);
     if (family.recursive && family.item === type) types.add(family.item);
   }
+  // ADR-256 후속 6: a submenu (the reference's `SubmenuTrigger > MenuItem + Popover > Menu`).
+  if (type === "Menu" || type === "MenuSection") types.add("SubmenuTrigger");
   return [...types];
 }
 
@@ -128,6 +132,8 @@ function itemTypesOf(
 const PICKER_LIST: Readonly<Record<string, string>> = {
   Select: "ListBox",
   ComboBox: "ListBox",
+  // ADR-256 후속 4: a MenuTrigger's items are its Popover's Menu's.
+  MenuTrigger: "Menu",
 };
 
 export function catalogItemInsertChoices(
@@ -138,7 +144,7 @@ export function catalogItemInsertChoices(
   const type = typeOf(graph, position.definitionId);
   if (PICKER_LIST[type]) {
     // (A Select's · ComboBox's list is in its Popover — ADR-256 Phase 6c · 6d, the reference's
-    // `Popover > ListBox`.)
+    // `Popover > ListBox`; a MenuTrigger's Menu the same — 후속 4.)
     const rows = readModel.childRows(position);
     const list = [
       ...rows,
@@ -205,6 +211,7 @@ export function catalogItemInsertChoices(
   const placeholderFill = (
     definitionId: NodeEntry["definitionId"],
     itemType: string,
+    named?: string,
   ): {
     props: Record<string, unknown>;
     patches: (nodeId: NodeId) => DescendantOverride[];
@@ -219,12 +226,16 @@ export function catalogItemInsertChoices(
       (row) => typeOf(graph, row.definitionId) === itemType,
     ).length;
     // A Tab or Tag reads like its siblings ("Tab 3"); other items "Item <n>".
-    const label = `${itemType === "Tab" || itemType === "Tag" ? itemType : "Item"} ${count + 1}`;
+    const label =
+      named ??
+      `${itemType === "Tab" || itemType === "Tag" ? itemType : "Item"} ${count + 1}`;
     const fieldOf = (props: Readonly<Record<string, unknown>> | undefined) => {
       for (const key of ["children", "iconName"]) {
         const match =
           typeof props?.[key] === "string"
-            ? /^\{(label|description|icon)\}$/.exec(props[key] as string)
+            ? /^\{(label|description|icon|shortcut)\}$/.exec(
+                props[key] as string,
+              )
             : null;
         if (match) return { key, field: match[1] };
       }
@@ -259,7 +270,48 @@ export function catalogItemInsertChoices(
     };
   };
 
+  /** A MenuItem with its row fields filled (a new key, the label `named` or "Item <n>"). */
+  const menuItem = (named?: string): NodeEntry => {
+    const definition = definitionFor("MenuItem");
+    const fill = placeholderFill(definition, "MenuItem", named);
+    const created = entry(definition, "MenuItem", {
+      id: crypto.randomUUID(),
+      ...fill.props,
+    });
+    return { ...created, descendantOverrides: fill.patches(created.id) };
+  };
+
   const build = (itemType: string): CatalogCommand => {
+    if (itemType === "SubmenuTrigger") {
+      // ADR-256 후속 6: RAC reads the trigger's first child (the item) and second (the Popover).
+      // (The parts are the types — the palette's Menu · Popover are trigger origins.)
+      const item = menuItem("Submenu");
+      const inner = menuItem("Item 1");
+      const menu = entry(
+        catalogTypeDefinitionId("Menu"),
+        "Menu",
+        undefined,
+        [inner.id],
+      );
+      const popover = entry(
+        catalogTypeDefinitionId("Popover"),
+        "Popover",
+        undefined,
+        [menu.id],
+      );
+      const trigger = entry(
+        catalogTypeDefinitionId("SubmenuTrigger"),
+        "SubmenuTrigger",
+        undefined,
+        [item.id, popover.id],
+      );
+      return insertNodes({
+        parent,
+        entries: [trigger, item, popover, menu, inner],
+        rootIds: [trigger.id],
+        newId,
+      });
+    }
     if (itemType === "Column") {
       const columnDefinition = definitionFor("Column", COLUMN_ORIGIN);
       return insertTableColumns({

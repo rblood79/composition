@@ -962,6 +962,14 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "menu",
     icon: "Menu",
   }),
+  // ADR-256 후속 4: RAC MenuTrigger — a Button and its Popover's Menu (the Menu origin's root, as
+  //   the DialogTrigger is the Popover origin's). Not placed on its own.
+  primitiveEntry("MenuTrigger", "collections", FAMILY_4_CUTOVER, {
+    category: "buttons",
+    label: "menu trigger",
+    icon: "Menu",
+    placeable: false,
+  }),
   // SubmenuTrigger — ADR-256 Phase 5g: a menu item that opens a submenu (RAC SubmenuTrigger >
   //   MenuItem + Popover > Menu). Put into a Menu through its insert list, not the palette.
   primitiveEntry("SubmenuTrigger", "collections", FAMILY_4_CUTOVER, {

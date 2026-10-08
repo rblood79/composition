@@ -62,10 +62,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * (`component-dialog__modal` — `DialogTrigger > Button + Modal > Dialog`); `isDismissable` is the
  * Modal's. 29 — ADR-256 Phase 8c: a Disclosure is `Heading > Button[slot=trigger] > (Icon + Text)`
  * + `DisclosurePanel > Text` (`component-disclosure__heading` … `__content`; no DisclosureHeader ·
- * DisclosureChevron · DisclosureContent).
+ * DisclosureChevron · DisclosureContent). 30 — ADR-256 후속 4: a Menu is `MenuTrigger > Button +
+ * Popover > Menu` (`component-menu__trigger` · `__popover` · `__menu`; the origin accepts `size` ·
+ * `selectionMode`) — the Menu node is RAC's list, its trigger the Button node.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 29 as const;
+export const LIBRARY_CONTRACT_VERSION = 30 as const;
 
 export type EntryKind =
   | "project"

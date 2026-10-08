@@ -6434,43 +6434,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Menu: {
-    defaultVariant: "primary",
+    defaultVariant: "default",
     defaultSize: "md",
+    // ADR-256 후속 4 (2026-10-09): a Menu node is RAC's `Menu` — the list — wherever it stands (in
+    //   its MenuTrigger's Popover, open in an Autocomplete). The trigger is the MenuTrigger's
+    //   Button node (its look the Button's): the top level is the list panel, the same values as
+    //   `structure` (ListBox 동형). 종전 (ADR-151 B7 · 2026-10-06) top level 은 trigger 버튼
+    //   (variant 색 · Button padding) 이었다 — Menu 노드가 trigger 와 목록을 같이 맡던 때.
     variants: {
-      accent: {
+      default: {
         fill: {
           default: {
-            base: "{color.accent}",
-            hover: "{color.accent-hover}",
-            pressed: "{color.accent-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.accent}",
-          borderHover: "{color.accent-hover}",
-        },
-      },
-      primary: {
-        fill: {
-          default: {
-            base: "{color.neutral}",
-            hover: "{color.neutral-hover}",
-            pressed: "{color.neutral-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.base}",
-          border: "{color.neutral}",
-          borderHover: "{color.neutral-hover}",
-        },
-      },
-      secondary: {
-        fill: {
-          default: {
-            base: "{color.layer-1}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
+            base: "{color.raised}",
+            hover: "{color.raised}",
+            pressed: "{color.raised}",
           },
         },
         colors: {
@@ -6478,104 +6455,41 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      negative: {
-        fill: {
-          default: {
-            base: "{color.negative}",
-            hover: "{color.negative-hover}",
-            pressed: "{color.negative-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.on-negative}",
-          border: "{color.negative}",
-          borderHover: "{color.negative-hover}",
-        },
-      },
-      premium: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple-hover}",
-            pressed: "{color.purple-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.purple}",
-          borderHover: "{color.purple-hover}",
-        },
-      },
-      genai: {
-        fill: {
-          default: {
-            base: "{color.purple}",
-            hover: "{color.purple-hover}",
-            pressed: "{color.purple-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.white}",
-          border: "{color.purple}",
-          borderHover: "{color.purple-hover}",
-        },
-      },
     },
-    // ADR-912 단계5 step4 (2026-06-17): Menu.spec.containerStyles 의 layout primitive 8필드 이관
-    //   (ListBox 동형). Menu.spec 은 별도 세션(a53cc0f5c)에서 삭제됐으나 rule containerStyles 보충이
-    //   누락 → resolveContainerStylesFallback("menu") 가 {} 반환 → column-flex 붕괴(Skia/Taffy 만,
-    //   DOM 은 generated Menu.css 정상 = 비대칭 회귀). builder resolveContainerStylesFallback 의
-    //   LOWERCASE_COMPONENT_RULE_CONTAINER catalog 합성이 본 필드를 layout 보강으로 읽음. 색상
-    //   (background/border)은 fallback KEYS 비대상 → Skia render shell variant 담당. gap 은
-    //   spec `{spacing.2xs}`(=2), padding 은 `{spacing.xs}`(=4). CSS emit 무관(STRUCTURE_META Menu
-    //   entry 의 containerStyles 만 emit → generated Menu.css diff-0).
-    // ADR-151 B7 (2026-07-16 사용자 결정): 캔버스 Menu 표현 = 트리거 버튼 통일 — top-level
-    //   containerStyles(layout 채널)를 구 목록 panel 메트릭(flex/column/gap2/pad4/width:100%/
-    //   maxH300/overflow)에서 트리거 박스(fit-content)로 전환. DOM 목록 panel 규칙은 structure
-    //   채널(generated Menu.css)이라 무변. DOM 캔버스 표현은 MenuTrigger 버튼(fit-content×30).
     containerStyles: {
-      display: "inline-flex",
-      alignItems: "center",
-      width: "fit-content",
+      display: "flex",
+      flexDirection: "column",
+      gap: "{spacing.2xs}",
+      padding: "{spacing.xs}",
+      width: "100%",
+      maxHeight: "300px",
+      overflow: "auto",
+      outline: "none",
+      borderWidth: "{border.width.thin}",
     },
-    // The trigger box's metrics (2026-10-06): the DOM trigger is the shared Button at the same
-    //   `data-size`, so paddingX/paddingY are the Button's. The list panel's own padding is
-    //   `structure.containerStyles.padding` — the generated Menu.css emits no size padding.
     sizes: {
       sm: {
-        paddingX: 8,
-        paddingY: 2,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.md}",
         height: 0,
       },
       md: {
-        paddingX: 12,
-        paddingY: 4,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        borderWidth: "{border.width.thin}",
         height: 0,
       },
       lg: {
-        paddingX: 16,
-        paddingY: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.lg}",
-        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.md}",
         height: 0,
       },
       xl: {
-        paddingX: 24,
-        paddingY: 12,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
-        borderRadius: "{radius.xl}",
-        borderWidth: "{border.width.thin}",
+        borderRadius: "{radius.md}",
         height: 0,
       },
     },
@@ -6611,7 +6525,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   틀 없는 wrapper, 목록 틀 (배경 · 테두리 · 모서리 · 여백 = 위 containerStyles) 과 그림자는 Menu 한 겹이다.
       //   종전: 일반 Popover 틀 (padding 16 · border · 배경) 안에 Menu 틀이 한 겹 더 (하위 메뉴 · 최상위 메뉴 모두).
       //   `[data-size]` = composition Menu 가 싣는 표식 — builder 크롬 메뉴 (자기 className · data-size 없음) 는 대상 밖.
-      //   Canvas 는 트리거만 그린다 (popover 대칭 대상 없음 — 목록은 DOM consumer 하나).
+      //   Canvas 는 닫힌 popover 를 그리지 않는다 (MenuTrigger 의 Popover — 열린 목록은 Autocomplete 안 Menu).
       composition: {
         delegation: [],
         externalStyles: [
@@ -13215,6 +13129,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   // ADR-255: the Tooltip origin's root — the same layout box as DialogTrigger (the trigger shows,
   //   the closed Tooltip does not take a box on either side).
+  // ADR-256 후속 4: RAC MenuTrigger's layout box (the shared component's `div.react-aria-MenuTrigger`
+  //   — DialogTrigger · TooltipTrigger 동형). Its Popover rests closed: the box is the Button's.
+  MenuTrigger: {
+    defaultSize: "md",
+    variants: {},
+    sizes: {
+      md: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "12px",
+        width: "fit-content",
+      },
+    },
+  },
   TooltipTrigger: {
     defaultSize: "md",
     variants: {},

@@ -199,7 +199,15 @@ describe("componentTraits — 파생 집합 == 옛 리터럴", () => {
 
   it("staticCollectionItem (구 CanonicalNodeRenderer STATIC_ITEM_TYPES)", () => {
     expect(sorted(componentTypeSet("staticCollectionItem"))).toEqual(
-      literal(["Tab", "Tag", "ListBoxItem", "GridListItem", "Breadcrumb"]),
+      // (ADR-256 후속 4 · 6: + MenuItem — its `id` is RAC's key.)
+      literal([
+        "Tab",
+        "Tag",
+        "ListBoxItem",
+        "GridListItem",
+        "Breadcrumb",
+        "MenuItem",
+      ]),
     );
   });
 

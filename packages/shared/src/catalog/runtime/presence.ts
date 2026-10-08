@@ -43,14 +43,9 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     DateRangePicker: new Set(["Popover"]),
     Select: new Set(["Popover"]),
     ComboBox: new Set(["Popover"]),
-    // RAC MenuTrigger: the items live in the closed Popover; only the trigger button shows.
-    Menu: new Set([
-      "MenuItem",
-      "SubmenuTrigger",
-      "MenuSection",
-      "Separator",
-      "Popover",
-    ]),
+    // ADR-256 후속 4: RAC MenuTrigger — the Menu lives in the closed Popover; the Button shows.
+    // (A Menu node is RAC's open list wherever it stands — an Autocomplete's shows its items.)
+    MenuTrigger: new Set(["Popover"]),
     // ADR-256 Phase 5g: the submenu lives in the trigger item's closed Popover.
     SubmenuTrigger: new Set(["Popover"]),
   };

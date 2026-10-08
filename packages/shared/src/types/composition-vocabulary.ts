@@ -143,6 +143,7 @@ export type ComponentTag =
   | "Toolbar"
   | "Tooltip"
   | "TooltipTrigger"
+  | "MenuTrigger"
   | "Tree"
   // ── pencil 공용 구조 타입 3개 ──
   | "ref"

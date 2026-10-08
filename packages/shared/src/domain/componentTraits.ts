@@ -255,7 +255,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     children: ["Header", "MenuItem", "SubmenuTrigger"],
     owners: ["Menu"],
   },
-  MenuItem: { owners: ["Menu"] },
+  // ADR-256 후속 4 · 6: a static collection item — its `id` is RAC's key (selection, `onAction`).
+  MenuItem: { families: ["staticCollectionItem"], owners: ["Menu"] },
   // ADR-256 Phase 5g: RAC SubmenuTrigger — its item (the first child) and the Popover holding the
   // submenu's Menu (RAC reads `children[0]` · `children[1]`).
   SubmenuTrigger: {

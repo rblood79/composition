@@ -415,11 +415,10 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         borderWidth: 1,
         backgroundColor: "var(--bg-raised)",
       });
-      // top-level display 는 ADR-151 B7 (2026-07-16 사용자 결정) 에서 목록 panel 메트릭 →
-      // 트리거 박스(inline-flex / fit-content) 로 전환. flexDirection:column 은 fallback
-      // 병합 tier 로 유지되어 그대로 통과.
+      // ADR-256 후속 4: Menu 노드 = 목록 (top level = structure 와 같은 flex column) — trigger 는
+      // MenuTrigger 의 Button 노드. 종전 (ADR-151 B7) 은 trigger 상자 inline-flex 였다.
       expect(resolveLayoutSpecPreset("Menu", undefined)).toMatchObject({
-        display: "inline-flex",
+        display: "flex",
         flexDirection: "column",
       });
     });

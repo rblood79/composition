@@ -82,7 +82,6 @@ import {
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
 import { Menu as AriaMenu } from "react-aria-components/Menu";
-import { MenuButton } from "../../components/Menu";
 import { TABLEVIEW_CHILD_STYLE } from "./tableViewChildStyle";
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
 import { resolveStaticItemKey } from "../slotRoles";
@@ -371,6 +370,11 @@ function treeItemElements(
 
 const ownsAll = () => true;
 /** A Menu's RAC collection children (ADR-256 Phase 5g: + SubmenuTrigger). */
+/** The triggers whose Popover holds a Menu (RAC `MenuTrigger` · `SubmenuTrigger`). */
+const MENU_TRIGGER_TYPES: ReadonlySet<string> = new Set([
+  "MenuTrigger",
+  "SubmenuTrigger",
+]);
 const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
   "MenuItem",
   "SubmenuTrigger",
@@ -1200,64 +1204,43 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   },
   menu: {
-    // Items live in the closed menu popover; the static DOM is the trigger (Preview renderMenu).
+    // ADR-256 후속 4: a Menu node is RAC's `Menu` — the list — wherever it stands: in a
+    // MenuTrigger's or a SubmenuTrigger's Popover (the trigger names it and opens it — RAC's
+    // `MenuContext` · `PopoverContext`, Phase 5g), or open in an Autocomplete (its filter — RAC's
+    // `SelectableCollectionContext`, G0 example 4).
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      const items = () =>
-        renderAll(
+      const popover = input.root.domInputs.get(input.node.parentId);
+      const trigger = popover && input.root.domInputs.get(popover.parentId);
+      const triggered =
+        !!popover &&
+        !!trigger &&
+        catalogTypeName(input.root, popover) === "Popover" &&
+        MENU_TRIGGER_TYPES.has(catalogTypeName(input.root, trigger));
+      return createElement(
+        AriaMenu as ElementType,
+        {
+          key: input.node.id,
+          "data-catalog-id": input.node.id,
+          className: "react-aria-Menu",
+          "data-size": props.size || "md",
+          style: input.style,
+          // (RAC needs a name: in a trigger the trigger's; open, the author's or "Menu".)
+          ...(typeof props["aria-label"] === "string"
+            ? { "aria-label": props["aria-label"] }
+            : triggered
+              ? {}
+              : { "aria-label": "Menu" }),
+          ...(props.selectionMode && props.selectionMode !== "none"
+            ? { selectionMode: props.selectionMode }
+            : {}),
+        },
+        ...renderAll(
           input,
           children(input).filter((child) =>
             MENU_CHILD_TYPES.has(catalogTypeName(input.root, child)),
           ),
-        );
-      // ADR-256 Phase 5g: a submenu (`SubmenuTrigger > MenuItem + Popover > Menu`) is the RAC Menu
-      // alone — its SubmenuTrigger is the trigger (RAC's `MenuContext` · the Popover's).
-      const popover = input.root.domInputs.get(input.node.parentId);
-      const trigger = popover && input.root.domInputs.get(popover.parentId);
-      if (
-        popover &&
-        trigger &&
-        catalogTypeName(input.root, popover) === "Popover" &&
-        catalogTypeName(input.root, trigger) === "SubmenuTrigger"
-      )
-        return createElement(
-          AriaMenu as ElementType,
-          {
-            key: input.node.id,
-            "data-catalog-id": input.node.id,
-            className: "react-aria-Menu",
-            "data-size": props.size || "md",
-            style: input.style,
-            ...(typeof props["aria-label"] === "string"
-              ? { "aria-label": props["aria-label"] }
-              : {}),
-            ...(props.selectionMode
-              ? { selectionMode: props.selectionMode }
-              : {}),
-          },
-          ...items(),
-        );
-      return markerWrap(
-        input,
-        createElement(
-          MenuButton as ElementType,
-          {
-            key: input.node.id,
-            style: input.style,
-            label: resolveTextSourceText(
-              "Menu",
-              props as Record<string, unknown>,
-            ),
-            "aria-label":
-              typeof props["aria-label"] === "string"
-                ? props["aria-label"]
-                : undefined,
-            variant: props.variant || "primary",
-            size: props.size || "md",
-            selectionMode: props.selectionMode,
-          },
-          ...items(),
         ),
       );
     },
@@ -1756,7 +1739,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           catalogTypeName(input.root, host),
         );
       return createElement(RacSlotScope, {
-        key: input.node.id,
+        // RAC holds the selection (a Preview press toggles it): an authored change of the default
+        // starts the element over, as the Tabs binding does with its default key (2026-10-09).
+        key: `${input.node.id}:${bool(props.isSelected)}`,
         context: "Checkbox",
         authored: props.slot,
         render: (resolution) =>

@@ -34,36 +34,62 @@ it("keeps a MenuSection hidden at rest but renders its items when the Preview me
       autosaveSchedule: () => {},
     },
   );
-  const host: NodeEntry = {
-    kind: "node",
-    id: "project:node:menu",
-    definitionId: "lib:definition:type-Menu",
-    children: ["project:node:section"],
+  // ADR-256 후속 4: the reference's `MenuTrigger > Button + Popover > Menu` (the Menu node is
+  // RAC's list; its trigger the Button node).
+  const blank = {
     props: {},
     visual: {},
     sizing: {},
     descendantOverrides: [],
   };
+  const host: NodeEntry = {
+    kind: "node",
+    id: "project:node:trigger",
+    definitionId: "lib:definition:type-MenuTrigger",
+    children: ["project:node:button", "project:node:popover"],
+    ...blank,
+  };
+  const button: NodeEntry = {
+    kind: "node",
+    id: "project:node:button",
+    definitionId: "lib:definition:origin-component-button",
+    children: [],
+    ...blank,
+    props: { children: { kind: "set", value: "Menu" } },
+  };
+  const popover: NodeEntry = {
+    kind: "node",
+    id: "project:node:popover",
+    definitionId: "lib:definition:type-Popover",
+    children: ["project:node:menu"],
+    ...blank,
+  };
+  const menu: NodeEntry = {
+    kind: "node",
+    id: "project:node:menu",
+    definitionId: "lib:definition:type-Menu",
+    children: ["project:node:section"],
+    ...blank,
+  };
   const section: NodeEntry = {
-    ...host,
+    kind: "node",
     id: "project:node:section",
     definitionId: "lib:definition:origin-component-menu-section",
     children: [],
+    ...blank,
   };
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" },
-      entries: [host, section],
+      entries: [host, button, popover, menu, section],
       rootIds: [host.id],
       newId: workspace.newId,
     }),
   );
   const record = workspace.root.recordsOfSource(host.id)[0]!;
-  expect(workspace.root.canvasInputs.get(record)?.props.variant).toBe(
-    "primary",
-  );
-  const sectionRecord = workspace.root.recordsOfSource(section.id)[0]!;
-  expect(workspace.root.canvasInputs.get(sectionRecord)?.hidden).toBe(true);
+  const popoverRecord = workspace.root.recordsOfSource(popover.id)[0]!;
+  expect(workspace.root.canvasInputs.get(popoverRecord)?.hidden).toBe(true);
+  // (The section rests in the hidden Popover — not drawn.)
   const view = render(renderCatalogDom(workspace.root, record));
   try {
     expect(screen.queryByRole("menuitem")).toBeNull();
@@ -79,7 +105,7 @@ it("keeps a MenuSection hidden at rest but renders its items when the Preview me
       code: "Escape",
     });
     await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
-    expect(workspace.root.canvasInputs.get(sectionRecord)?.hidden).toBe(true);
+    expect(workspace.root.canvasInputs.get(popoverRecord)?.hidden).toBe(true);
   } finally {
     view.unmount();
     act(() => workspace.dispose());

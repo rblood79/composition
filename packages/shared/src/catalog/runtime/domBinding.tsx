@@ -1259,6 +1259,7 @@ function dialogTitleOf(
 
 /** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d · 6e). */
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
+  "MenuTrigger",
   "SubmenuTrigger",
   "Select",
   "ComboBox",

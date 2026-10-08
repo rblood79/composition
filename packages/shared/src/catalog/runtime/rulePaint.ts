@@ -186,8 +186,6 @@ export function catalogRulePaint(
   if (SHELL_ONLY_TYPES.has(type)) props._hasChildren = true;
   else if (
     type !== "TreeItem" &&
-    // A Menu's children are its popover's items: the trigger paints its own label.
-    type !== "Menu" &&
     !CHILD_PROP_MERGE_TYPES.has(type) &&
     node.children.length > 0
   )

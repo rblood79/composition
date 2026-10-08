@@ -36,6 +36,7 @@ import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogTriggerBinding } from "./DialogTrigger.binding";
 import { tooltipTriggerBinding } from "./TooltipTrigger.binding";
+import { menuTriggerBinding } from "./MenuTrigger.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
@@ -514,6 +515,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DialogTrigger: dialogTriggerBinding,
   // ADR-255: the Tooltip origin's root (trigger + Tooltip).
   TooltipTrigger: tooltipTriggerBinding,
+  MenuTrigger: menuTriggerBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part
   //   (palette 미노출, factory 자동 생성). spec(render.shapes []) childSpecs 경로 → catalog generic
   //   box shell. footer layout=factory props.style SSOT. DOM=generic(KNOWN_HTML footer), Skia=shell.
