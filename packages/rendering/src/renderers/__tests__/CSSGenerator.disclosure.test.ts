@@ -114,8 +114,10 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
     const { spec } = virtualSpecFor("Disclosure");
     const css = generateCSS(spec);
     expect(css).toContain(".react-aria-Button[slot='trigger'] > .react-aria-Icon");
+    // (The expanded trigger itself — any depth below the Disclosure — turns the chevron glyph
+    // only: Phase 8 판독 M1 · M3.)
     expect(css).toMatch(
-      /\[data-expanded\] > \.react-aria-Heading > \.react-aria-Button\[slot='trigger'\] > \.react-aria-Icon svg \{\s*rotate:\s*90deg/,
+      /\.react-aria-Button\[slot='trigger'\]\[aria-expanded='true'\] \.react-aria-Icon\[data-icon='chevron-right'\] svg \{\s*rotate:\s*90deg/,
     );
   });
 

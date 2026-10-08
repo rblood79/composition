@@ -565,13 +565,16 @@ export function resolveCatalogNode(
         cursor = structuralParent(cursor.parent);
       return cursor;
     };
+    // (A Disclosure's sheet is descendant selectors too — `.react-aria-Disclosure .react-aria-Heading`,
+    // `… .react-aria-Button[slot='trigger']`: a frame around its Heading passes them, Phase 8 판독 M1.)
     const toggleFamily = (context: ParentContext | undefined) => {
       const name = context && lookupDefinition(context.definitionId).name;
       return (
         !!name &&
         (OWNER_DRAWN_PART_HOSTS[name] !== undefined ||
           Object.values(OWNER_DRAWN_PART_HOSTS).includes(name) ||
-          name === "TreeItemContent")
+          name === "TreeItemContent" ||
+          name === "Disclosure")
       );
     };
     const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;

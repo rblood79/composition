@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8 판독 수리 — Disclosure 그룹 소속 · frame 안 Heading · trigger 속성 · chevron 회전] - 2026-10-08
+
+### Fixed
+
+- **DisclosureGroup 안에서 다른 요소 (frame · Card) 아래에 둔 Disclosure 가 그룹을 따른다**: Preview 에서 접힌 채 눌러도 열리지 않던 문제 — 이제 Canvas · Preview 모두 그룹의 펼침 (`allowsMultipleExpanded`) 을 따른다 (RAC 그룹 context 와 같이 깊이 무관). 위치: `catalog/runtime/presence.ts` (`catalogDisclosureGroupOf` · `catalogGroupDisclosures`) · `catalog/runtime/delegatedDom.tsx`
+- **Disclosure 의 Heading 을 frame 으로 감싸도 trigger 모양 · chevron 회전이 남는다** (Canvas trigger 의 투명 바탕 · 여백 · 글자 크기, Preview 의 펼침 회전). 위치: `catalog/resolution/resolver.ts` · `componentRulesTable.ts` (회전 = trigger 의 `aria-expanded`)
+- **Disclosure trigger 에 쓴 `isDisabled` · 글자가 Preview 에 반영된다**. 위치: `catalog/runtime/domBinding.tsx`
+- **trigger 의 Icon 을 다른 glyph 로 바꾸면 Preview 에서도 돌지 않는다** (chevron-right 만 돈다 — Canvas 와 같음). 위치: `catalog/runtime/domBinding.tsx` (Icon `data-icon`) · `componentRulesTable.ts`
+
 ## [ADR-256 Phase 8e — 쓰이지 않게 된 Disclosure · 화살표 코드 삭제] - 2026-10-08
 
 ### Removed

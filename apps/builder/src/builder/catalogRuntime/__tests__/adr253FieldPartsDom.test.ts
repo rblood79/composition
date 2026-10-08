@@ -397,7 +397,7 @@ const ITEM_OPTION = /<option value=[^ >]+>([^<]*)<\/>/g;
 const withoutGlyphs = (structure: string) =>
   structure
     .replace(/<svg [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/g, "")
-    .replace(/<div class=react-aria-Icon><\/>/g, "")
+    .replace(/<div class=react-aria-Icon(?: data-icon=[\w-]+)?><\/>/g, "")
     // (A SearchField's leading glyph: the component's own wrapper before, the Icon node now.)
     .replace(/<span aria-hidden=true class=search-icon><\/>/g, "")
     // (A Select's trigger glyph: the component's own chevron wrapper before, the Icon node now.)

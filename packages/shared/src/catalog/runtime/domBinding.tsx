@@ -432,6 +432,8 @@ const glyph =
     createElement(Icon, {
       key: node.id,
       "data-catalog-id": node.id,
+      // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
+      "data-icon": String(node.props.iconName ?? fallbackName),
       iconName: String(node.props.iconName ?? fallbackName),
       strokeWidth: Number(node.props.strokeWidth ?? 2),
       style: {
@@ -969,9 +971,15 @@ function buttonElement(
       {
         "data-catalog-id": node.id,
         slot: resolution.slot,
+        // (What the document says, as below — Phase 8 판독 M2.)
+        ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+        ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
         style,
       } as Parameters<typeof RAC.Button>[0],
       ...children,
+      ...(node.props.children === undefined || node.props.children === ""
+        ? []
+        : [String(node.props.children)]),
     );
   return createElement(
     Button,
@@ -1762,12 +1770,16 @@ const CatalogDomNode = memo(function CatalogDomNode({
     readParent,
     readParent,
   );
+  const watches =
+    node && CATALOG_DELEGATED_DOM[node.bindingId ?? ""]?.watchesChildren;
   useWatchedChildren(
     root,
     runtime,
-    node && CATALOG_DELEGATED_DOM[node.bindingId ?? ""]?.watchesChildren
-      ? node.children
-      : NO_CHILDREN,
+    !node || !watches
+      ? NO_CHILDREN
+      : watches === true
+        ? node.children
+        : watches(node, root),
   );
   // A Column's row-header default reads its sibling columns (`columnIsRowHeader` — RAC throws
   // when an edit to another column leaves the table without one, ADR-256 Phase 5 Round 12).

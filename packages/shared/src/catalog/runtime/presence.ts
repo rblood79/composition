@@ -106,6 +106,47 @@ export function catalogDisclosureOfTriggerPart(
 }
 
 /**
+ * The DisclosureGroup whose state a Disclosure follows: RAC's group context reaches every
+ * Disclosure below the group — through any element and a Disclosure's panel — up to a nested
+ * group (ADR-256 Phase 8 판독 H1).
+ */
+export function catalogDisclosureGroupOf(
+  disclosure: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (let cursor = get(disclosure.parentId); cursor; ) {
+    if (typeOf(cursor) === "DisclosureGroup") return cursor;
+    cursor = get(cursor.parentId);
+  }
+  return undefined;
+}
+
+/**
+ * A DisclosureGroup's Disclosures in document order (those whose `catalogDisclosureGroupOf` is it)
+ * and the containers they sit in — a change to either can move the group's expanded keys.
+ */
+export function catalogGroupDisclosures(
+  group: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { disclosures: CatalogConsumerNode[]; containers: CatalogConsumerNode[] } {
+  const disclosures: CatalogConsumerNode[] = [];
+  const containers: CatalogConsumerNode[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of childrenOf(node, get)) {
+      const type = typeOf(child);
+      if (type === "DisclosureGroup") continue;
+      if (type === "Disclosure") disclosures.push(child);
+      else if (child.children.length) containers.push(child);
+      visit(child);
+    }
+  };
+  visit(group);
+  return { disclosures, containers };
+}
+
+/**
  * Whether RAC shows a Disclosure's panel: its own `isExpanded` (absent = expanded), or inside a
  * DisclosureGroup the group's expanded keys (`isDisclosureExpandedInContext`, the DOM binding's).
  */
@@ -119,12 +160,12 @@ export function catalogDisclosureExpanded(
     type: typeOf(record),
     props: record.props as Record<string, unknown>,
   });
-  const parent = get(disclosure.parentId);
+  const group = catalogDisclosureGroupOf(disclosure, get, typeOf);
   return isDisclosureExpandedInContext(
     node(disclosure),
-    parent ? node(parent) : null,
-    parent && typeOf(parent) === "DisclosureGroup"
-      ? childrenOf(parent, get).map(node)
+    group ? node(group) : null,
+    group
+      ? catalogGroupDisclosures(group, get, typeOf).disclosures.map(node)
       : undefined,
   );
 }
@@ -676,10 +717,8 @@ export function catalogPresenceScope(
     const owner = get(node.parentId);
     if (owner && typeOf(owner) === "Breadcrumbs") return owner;
   }
-  if (typeOf(node) === "Disclosure") {
-    const parent = get(node.parentId);
-    return parent && typeOf(parent) === "DisclosureGroup" ? parent : node;
-  }
+  if (typeOf(node) === "Disclosure")
+    return catalogDisclosureGroupOf(node, get, typeOf) ?? node;
   let cursor: CatalogConsumerNode | undefined = node;
   for (let depth = 0; cursor && depth < 3; depth++) {
     const type = typeOf(cursor);
@@ -724,9 +763,7 @@ export function catalogPresenceDependents(
     return (
       typeOf(scope) === "Disclosure"
         ? [scope]
-        : childrenOf(scope, get).filter(
-            (child) => typeOf(child) === "Disclosure",
-          )
+        : catalogGroupDisclosures(scope, get, typeOf).disclosures
     ).flatMap((disclosure) =>
       partChildrenOf(disclosure, get, typeOf).filter(
         (child) => typeOf(child) === "DisclosurePanel",
@@ -1278,7 +1315,7 @@ function ownDerivedProps(
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
   // ADR-256 Phase 8c: the Disclosure trigger's chevron turns with the expansion (the sheet's
-  // `[data-expanded] > … > .react-aria-Icon svg { rotate: 90deg }`) — the Canvas draws the turned
+  // `[aria-expanded='true'] .react-aria-Icon[data-icon='chevron-right'] svg`) — the Canvas draws the turned
   // glyph, as the Tree chevron's.
   if (node.bindingId === "icon") {
     const owner = catalogDisclosureOfTriggerPart(node, get, typeOf);
@@ -1493,15 +1530,12 @@ function derivedDependents(
   // A Disclosure's header turns its chevron with the expansion — inside a DisclosureGroup every
   // sibling's (the group's expanded keys).
   if (type === "Disclosure" || type === "DisclosureGroup") {
-    const parent = get(owner.parentId);
     const group =
       type === "DisclosureGroup"
         ? owner
-        : parent && typeOf(parent) === "DisclosureGroup"
-          ? parent
-          : undefined;
+        : catalogDisclosureGroupOf(owner, get, typeOf);
     const disclosures = group
-      ? childrenOf(group, get).filter((child) => typeOf(child) === "Disclosure")
+      ? catalogGroupDisclosures(group, get, typeOf).disclosures
       : [owner];
     // (ADR-256 Phase 8c: its trigger's chevron Icon.)
     return disclosures.flatMap((disclosure) =>

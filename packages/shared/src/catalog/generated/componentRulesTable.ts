@@ -4418,10 +4418,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           ".react-aria-Button[slot='trigger'] > .react-aria-Icon": {
             "flex-shrink": "0",
           },
-          ".react-aria-Button[slot='trigger'] > .react-aria-Icon svg": {
+          ".react-aria-Button[slot='trigger'] .react-aria-Icon svg": {
             rotate: "0deg",
             transition: "rotate 200ms",
           },
+          // The expanded trigger (RAC's `aria-expanded` on the trigger itself — any depth below the
+          //   Disclosure, a nested Disclosure keeps its own) turns the chevron glyph; the Canvas
+          //   draws the turned glyph (`chevron-down`), so only `chevron-right` turns (Phase 8 판독 M1 · M3).
+          ".react-aria-Button[slot='trigger'][aria-expanded='true'] .react-aria-Icon[data-icon='chevron-right'] svg":
+            {
+              rotate: "90deg",
+            },
           // 패널 콘텐츠 div — starter `.react-aria-DisclosurePanel div { padding }` 정합.
           //   starter 8px 16px = composition --spacing-sm --spacing-lg.
           ".react-aria-DisclosurePanel > div": {
@@ -4434,17 +4441,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             "font-size": "inherit",
             "line-height": "inherit",
             color: "inherit",
-          },
-        },
-        rootSelectors: {
-          "&[data-expanded]": {
-            nested: {
-              // (Child combinators: a Disclosure nested in this one's panel keeps its own turn.)
-              "> .react-aria-Heading > .react-aria-Button[slot='trigger'] > .react-aria-Icon svg":
-                {
-                  rotate: "90deg",
-                },
-            },
           },
         },
         // generateCompositionCSS 가 comp.delegation 을 무조건 iterate (CSSGenerator:1218) —

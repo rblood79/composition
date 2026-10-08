@@ -87,6 +87,8 @@ import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer
 import { resolveStaticItemKey } from "../slotRoles";
 import {
   catalogDisclosureExpanded,
+  catalogDisclosureGroupOf,
+  catalogGroupDisclosures,
   catalogTabsSelection,
   catalogTreeItemExpanded,
 } from "./presence";
@@ -148,8 +150,16 @@ export interface DelegatedDomInput {
 }
 export interface DelegatedDomBinding {
   render(input: DelegatedDomInput): ReactElement;
-  /** Renders from its children's values: it renders again when a child changes. */
-  watchesChildren?: boolean;
+  /**
+   * Renders from its children's values: it renders again when a child changes (or, as a function,
+   * when one of the records it names changes).
+   */
+  watchesChildren?:
+    | boolean
+    | ((
+        node: CatalogConsumerNode,
+        root: CatalogCompositionRoot,
+      ) => readonly string[]);
   ownsChild?(
     child: CatalogConsumerNode,
     parent: CatalogConsumerNode,
@@ -856,6 +866,17 @@ const markerWrap = (input: DelegatedDomInput, element: ReactElement) =>
   );
 
 // ── bindings ───────────────────────────────────────────────────────────
+/** A DisclosureGroup's Disclosures (any depth — RAC context) over the DOM inputs. */
+const groupDisclosures = (
+  group: CatalogConsumerNode,
+  root: CatalogCompositionRoot,
+) =>
+  catalogGroupDisclosures(
+    group,
+    (id) => root.domInputs.get(id),
+    (record) => catalogTypeName(root, record),
+  );
+
 const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 5e-2: Tabs draws its node tree — the reference `Tabs > (… TabList …) + TabPanels >
   // TabPanel`, with free content anywhere (a frame around the TabList, buttons beside it). Each part
@@ -2101,9 +2122,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   disclosure: {
     render: (input) => {
       const props = input.node.props;
-      const parent = input.root.domInputs.get(input.node.parentId);
-      const inGroup =
-        !!parent && catalogTypeName(input.root, parent) === "DisclosureGroup";
+      // (RAC's group context reaches it through any element — Phase 8 판독 H1.)
+      const inGroup = !!catalogDisclosureGroupOf(
+        input.node,
+        (id) => input.root.domInputs.get(id),
+        (record) => catalogTypeName(input.root, record),
+      );
       const expanded = Boolean(props.isExpanded ?? true);
       // In the Preview the user's expansion is a runtime prop of the record (ADR-250); a static
       // render shows the declared state.
@@ -2155,14 +2179,19 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
   },
   disclosuregroup: {
-    // Its expansion is its Disclosures' `isExpanded` (declared, or the Preview's runtime value).
-    watchesChildren: true,
+    // Its expansion is its Disclosures' `isExpanded` (declared, or the Preview's runtime value) —
+    // every Disclosure its RAC context reaches, at any depth (Phase 8 판독 H1).
+    watchesChildren: (node, root) => {
+      const { disclosures, containers } = groupDisclosures(node, root);
+      return [node, ...containers, ...disclosures].map((record) => record.id);
+    },
     render: (input) => {
       const props = input.node.props;
       const list = children(input);
+      const { disclosures } = groupDisclosures(input.node, input.root);
       const expanded = resolveGroupExpandedDisclosureIds(
         props as Record<string, unknown>,
-        list.map((child) => ({
+        disclosures.map((child) => ({
           id: child.id,
           type: catalogTypeName(input.root, child),
           props: {
@@ -2170,9 +2199,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...input.runtimeProps?.(child.id),
           },
         })),
-      );
-      const disclosures = list.filter(
-        (child) => catalogTypeName(input.root, child) === "Disclosure",
       );
       const keys = disclosures
         .filter((child) => expanded.has(child.id))

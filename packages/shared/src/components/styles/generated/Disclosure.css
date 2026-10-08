@@ -117,9 +117,13 @@
     flex-shrink: 0;
   }
 
-  .react-aria-Disclosure .react-aria-Button[slot='trigger'] > .react-aria-Icon svg {
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] .react-aria-Icon svg {
     rotate: 0deg;
     transition: rotate 200ms;
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][aria-expanded='true'] .react-aria-Icon[data-icon='chevron-right'] svg {
+    rotate: 90deg;
   }
 
   .react-aria-Disclosure .react-aria-DisclosurePanel > div {
@@ -131,11 +135,6 @@
     font-size: inherit;
     line-height: inherit;
     color: inherit;
-  }
-
-
-  .react-aria-Disclosure[data-expanded] > .react-aria-Heading > .react-aria-Button[slot='trigger'] > .react-aria-Icon svg {
-    rotate: 90deg;
   }
 
 
