@@ -843,8 +843,8 @@ src/builder/panels/properties/editors/
 
 ### Documentation
 
-- [LAYOUT_PRESET_SYSTEM.md](../features/completed/LAYOUT_PRESETS.md)
-- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../features/completed/LAYOUT_SLOTS.md)
+- [LAYOUT_PRESET_SYSTEM.md](LAYOUT_PRESETS.md)
+- [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](LAYOUT_SLOTS.md)
 
 ---
 
@@ -899,7 +899,7 @@ src/preview/
 
 ### Documentation
 
-- [PREVIEW_RUNTIME_ISOLATION.md](../features/completed/CANVAS_ISOLATION.md)
+- [PREVIEW_RUNTIME_ISOLATION.md](CANVAS_ISOLATION.md)
 
 ---
 
@@ -976,7 +976,7 @@ const params = useRouteParams();
 
 ### Documentation
 
-- [DATA_PANEL_SYSTEM.md](../features/completed/DATA_PANEL.md)
+- [DATA_PANEL_SYSTEM.md](DATA_PANEL.md)
 
 ---
 
@@ -1067,7 +1067,7 @@ renderTree(pages, getLabel, onClick, onDelete, null, 0);
 
 ### Documentation
 
-- [NESTED_ROUTES_SLUG_SYSTEM.md](../features/completed/NESTED_ROUTES.md)
+- [NESTED_ROUTES_SLUG_SYSTEM.md](NESTED_ROUTES.md)
 
 ---
 

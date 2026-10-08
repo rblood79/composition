@@ -1,5 +1,8 @@
 # Worker 소유 WebGL surface 독립 검증
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **최종 상태 — 2026-09-07 실제 Builder 적용 후 철회.** 메인 부트 차단은 줄었으나 실제 휠 입력→제출이 악화되어 사용자 유지 조건을 충족하지 못했다. Worker 연결 및 앞 단계의 도입 전용 코드/테스트는 모두 제거했다. 아래 독립 실험·구현1~3은 당시의 이력이며 현재 제품 구현을 뜻하지 않는다. 최종 근거는 문서 끝의 “실제 제품 경로 A/B와 철회”를 참조한다.
 
 ## 판정
@@ -201,7 +204,7 @@ Worker 요청에는 생성 시점의 projectId, boot/session generation, request
 
 ### 재현 파일과 검증
 
-[최종 수치](evidence/worker-assets-20260907/result.json), [진단 source](evidence/worker-assets-20260907/probe.ts.txt), [Vite config](evidence/worker-assets-20260907/vite.config.mts.txt)를 보존했다. source/config를 각각 `.agent/worker-assets-probe.ts`, `.agent/worker-assets.config.mts`로 복사한 뒤 root에서 `pnpm -F @composition/builder exec vite build --config ../../.agent/worker-assets.config.mts`를 실행한다. config의 절대 경로는 로컬 checkout에 맞춘다. 출력 probe.js를 `.agent/worker-assets-bundle.js`로 복사하고 표시 중 Builder에서 해당 `/@fs/` module의 `runProbe(location.origin, 동일 module URL)`을 호출한다. HMR reload가 끝난 후 실행하고 품질 게이트와 측정은 겹치지 않게 한다. fixture는 사용자 문서를 변경하지 않는다. 실행 중 생성한 .agent 파일들은 제거했다.
+[최종 수치](../migrations/evidence/worker-assets-20260907/result.json), [진단 source](../migrations/evidence/worker-assets-20260907/probe.ts.txt), [Vite config](../migrations/evidence/worker-assets-20260907/vite.config.mts.txt)를 보존했다. source/config를 각각 `.agent/worker-assets-probe.ts`, `.agent/worker-assets.config.mts`로 복사한 뒤 root에서 `pnpm -F @composition/builder exec vite build --config ../../.agent/worker-assets.config.mts`를 실행한다. config의 절대 경로는 로컬 checkout에 맞춘다. 출력 probe.js를 `.agent/worker-assets-bundle.js`로 복사하고 표시 중 Builder에서 해당 `/@fs/` module의 `runProbe(location.origin, 동일 module URL)`을 호출한다. HMR reload가 끝난 후 실행하고 품질 게이트와 측정은 겹치지 않게 한다. fixture는 사용자 문서를 변경하지 않는다. 실행 중 생성한 .agent 파일들은 제거했다.
 
 - focused6파일103tests PASS; `codex:preflight` PASS; `gate:visual-parity` smoke101 PASS.
 - Spec/catalog/CSS/Preview 변경 없음. 이번 검증은 Worker와 동일 main 실행기의 정합성이며 DOM↔Canvas 모든 효과 정합성을 새로 입증하지 않는다.

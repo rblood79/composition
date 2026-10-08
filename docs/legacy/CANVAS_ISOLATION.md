@@ -1,5 +1,8 @@
 # Canvas Runtime Isolation
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 **Status**: ✅ Phase 1 Complete (2025-11-27)
 
 ## Overview
@@ -293,6 +296,6 @@ export type PreviewStoreState = RuntimeStoreState;
 
 ## Related Documentation
 
-- [CLAUDE.md - Canvas Runtime](../../../CLAUDE.md#canvas-runtime-iframe)
-- [PERFORMANCE_REPORT.md](../../legacy/PERFORMANCE_REPORT.md)
+- [CLAUDE.md - Canvas Runtime](../../CLAUDE.md#canvas-runtime-iframe)
+- [PERFORMANCE_REPORT.md](PERFORMANCE_REPORT.md)
 - [PROPERTIES_PANEL_OPTIMIZATION.md](PROPERTIES_PANEL.md)

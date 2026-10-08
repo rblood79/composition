@@ -100,3 +100,36 @@
 | REACT_ARIA_1.13.md | 현재 react-aria-components 는 pnpm catalog 기준 `^1.21.0`. 1.13.0 업데이트 계획 문서라 여덟 마이너 뒤처짐                                                                              |
 | STYLE_SYSTEM.md    | Phase 2~4 미구현 설계안. `styleStore.ts`, `tokenResolver.ts`, `atomicCssGenerator.ts`, `cssVariableGenerator.ts` 미존재. 현재 Zustand 섹션 훅 + themeStore와 catalog D3 SSOT로 운영 중 |
 | SKELETON_SYSTEM.md | 핵심인 `withSkeleton` HOC · `useSkeleton` 훅 미구현. `packages/shared/src/components/Skeleton.tsx` 와 catalog binding 만 존재                                                          |
+
+## ADR-248 이전 구조 기록 (2026-10-08 이동)
+
+> 낡은 심볼 스캔 (LIVE 인용 ≥ 30% · 마지막 수정 < 2026-10-03) 으로 골라 이동. 현행 정본은 `.claude/rules/` 와 ADR-248.
+
+| 파일 | 레거시 사유 |
+| --- | --- |
+| 2026-05-19-adr143-token-field-inventory.md | VariablesSnapshot 등 ADR-143 당시 인벤토리 (원위치 `docs/reference/audits/2026-05-19-adr143-token-field-inventory.md`) |
+| 2026-08-21-nodes-panel-tree-item-interaction-states.md | 옛 Nodes 패널 감사 (원위치 `docs/reference/audits/2026-08-21-nodes-panel-tree-item-interaction-states.md`) |
+| BENCHMARK_TEMPLATE.md | useFPSMonitor 등 삭제된 훅 — perf:baseline 하니스로 대체 (원위치 `docs/how-to/development/BENCHMARK_TEMPLATE.md`) |
+| BORDER_RADIUS_HANDLES.md | Pixi 시절 드래그 핸들 (원위치 `docs/reference/components/BORDER_RADIUS_HANDLES.md`) |
+| CANVAS_INTERACTIONS.md | BuilderCanvas hover/selection — CatalogCanvas · canvasPick/canvasGesture 로 대체 (원위치 `docs/reference/components/CANVAS_INTERACTIONS.md`) |
+| CANVAS_ISOLATION.md | iframe 메시지 상수 (UPDATE_ELEMENTS …) — CATALOG_DELTA/SNAPSHOT 로 대체 (원위치 `docs/features/completed/CANVAS_ISOLATION.md`) |
+| DATA_ARCHITECTURE.md | 옛 store 데이터 계층 (원위치 `docs/explanation/architecture/DATA_ARCHITECTURE.md`) |
+| DATA_PANEL.md | 옛 데이터 패널 설계 — ADR-132/152 로 대체 (원위치 `docs/features/completed/DATA_PANEL.md`) |
+| DRAG_DROP_DESIGN.md | 옛 LayerTree DnD — catalog Navigator 로 대체 (원위치 `docs/explanation/architecture/DRAG_DROP_DESIGN.md`) |
+| INSPECTOR_STYLE.md | 옛 Inspector 동기화 플래그 (원위치 `docs/features/completed/INSPECTOR_STYLE.md`) |
+| LAYOUT_PRESETS.md | 옛 preset 적용 경로 (원위치 `docs/features/completed/LAYOUT_PRESETS.md`) |
+| LAYOUT_SLOTS.md | ComponentCreationContext — creationContract 로 대체 (원위치 `docs/features/completed/LAYOUT_SLOTS.md`) |
+| NESTED_ROUTES.md | 옛 라우트 스키마 (원위치 `docs/features/completed/NESTED_ROUTES.md`) |
+| PAGE_TYPES.md | UnifiedPage — catalog PageEntry 로 대체 (원위치 `docs/explanation/architecture/PAGE_TYPES.md`) |
+| PROPERTIES_PANEL.md | useSyncChildProp 등 옛 패널 경로 (원위치 `docs/features/completed/PROPERTIES_PANEL.md`) |
+| RATE_LIMIT.md | fetchElements 등 옛 API 서비스 (원위치 `docs/how-to/troubleshooting/RATE_LIMIT.md`) |
+| SAVESERVICE.md | SaveService/SyncService — CatalogAutosave · CatalogStorage 로 대체 (원위치 `docs/reference/components/SAVESERVICE.md`) |
+| STRUCTURE_HOOKS.md | 옛 store hook 목록 (원위치 `docs/reference/architecture/STRUCTURE_HOOKS.md`) |
+| STRUCTURE_STORE.md | Zustand elements store — ADR-248 Phase 4 로 catalog runtime 에 흡수 (원위치 `docs/reference/architecture/STRUCTURE_STORE.md`) |
+| TOGGLEBUTTONGROUP.md | PixiToggleButtonGroup — Skia catalog 로 대체 (원위치 `docs/features/completed/TOGGLEBUTTONGROUP.md`) |
+| builder-performance-external-audit-20260907.md | 2026-09-07 외부 감사 기록 (원위치 `docs/migrations/builder-performance-external-audit-20260907.md`) |
+| builder-performance-priorities-20260907.md | 2026-09-07 우선순위 기록 — BUILDER_PERF_BASELINE_2026-09 가 현행 (원위치 `docs/migrations/builder-performance-priorities-20260907.md`) |
+| cold-picture-preparation-20260907.md | prepareColdPictures (삭제됨) (원위치 `docs/migrations/cold-picture-preparation-20260907.md`) |
+| react-skia-zustand-frame-performance-guide.md | 옛 프레임 파이프라인 (renderFrameCore) (원위치 `docs/migrations/react-skia-zustand-frame-performance-guide.md`) |
+| styles-panel-raf-20260907.md | 옛 Styles 패널 RAF 분석 (원위치 `docs/migrations/styles-panel-raf-20260907.md`) |
+| worker-webgl-surface-20260907.md | RenderCommandRuntime 워커 설계 (미채택) (원위치 `docs/migrations/worker-webgl-surface-20260907.md`) |

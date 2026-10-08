@@ -4928,7 +4928,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
 - IndexedDB v21에서 변경된 canonical 노드만 저장하고 transaction 완료 후 성공 처리한다. 구 문서 전환·급감 가드·백업·복원 계약을 유지한다. 큰 저장 준비에는 transaction 밖의 task yield를 적용했다.
 - 카메라만 바뀌면 콘텐츠 준비를 재사용한다. 이미지 캐시는 RGBA 추정 128 MiB 예산을 적용하며 살아 있는 참조는 보호한다.
 - Monitor의 FID를 Google web-vitals INP로 교체하고 INP/LoAF·환경 정보를 로컬 JSON으로 내보낸다.
-- production 3쌍에서 edit CPU 중앙값 219.013→189.546ms/s(-13.45%). pan -0.77%, zoom +0.15%로 zoom CPU 개선은 확인하지 못했다. [구현·수치·저장 버전 호환성·한계](migrations/builder-performance-priorities-20260907.md).
+- production 3쌍에서 edit CPU 중앙값 219.013→189.546ms/s(-13.45%). pan -0.77%, zoom +0.15%로 zoom CPU 개선은 확인하지 못했다. [구현·수치·저장 버전 호환성·한계](legacy/builder-performance-priorities-20260907.md).
 
 ## [줌 표시의 React 갱신 제거] - 2026-09-07
 

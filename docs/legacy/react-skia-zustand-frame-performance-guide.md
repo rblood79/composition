@@ -1,5 +1,8 @@
 # React · Zustand · Skia 프레임 성능 최적화 가이드
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 - 작성일: 2026-09-04
 - 대상: Composition Builder
 - 범위: React 렌더링, Zustand 상태 전파, CanvasKit/Skia CPU·GPU 병목, RAF scheduling, 측정 방법

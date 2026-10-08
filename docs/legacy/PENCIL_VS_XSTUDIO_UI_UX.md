@@ -602,6 +602,6 @@ Pencil 소스 코드의 `SnapManager`, 클립보드 직렬화 패턴은 남은 �
 **관련 문서:**
 
 - [ADR-003: Canvas Rendering](../adr/completed/003-canvas-rendering.md) — 캔버스 아키텍처
-- [CANVAS_INTERACTIONS.md](../reference/components/CANVAS_INTERACTIONS.md) — 줌/팬 인터랙션
+- [CANVAS_INTERACTIONS.md](CANVAS_INTERACTIONS.md) — 줌/팬 인터랙션
 
 **최종 업데이트:** 2026-02-14

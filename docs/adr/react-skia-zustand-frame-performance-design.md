@@ -4,7 +4,7 @@
 - 상태: 레퍼런스 기반 P2 구현·전후 비교 및 P3 문서화 완료·채택. 환경별 미검증 항목은 §10/evidence에 명시 (2026-09-06).
 - 코드 기준: 설계 `b5ad1fbc4`, 착수 `4ae4ff43b`, 작업 중 외부 commit `4d3345e1c` 보존. 성능 A/B는 고정 정적 artifact의 manifest로 식별한다.
 - 재검증 기준: `d0f31008d` + GPU reset/context-loss 수리. 새 artifact와 source override SHA는 [재검증 증거](evidence/frame-performance-remeasurement-20260906.md)에 기록한다.
-- 입력: [React · Zustand · Skia 프레임 성능 분석자료](../migrations/react-skia-zustand-frame-performance-guide.md)
+- 입력: [React · Zustand · Skia 프레임 성능 분석자료](../legacy/react-skia-zustand-frame-performance-guide.md)
 - 목적: 공식 레퍼런스의 event-driven RAF를 기존 retained rendering·presentation 경계에 적용하고 현재 P1과 전후 비교한다.
 
 ## 0. 레퍼런스 기반 실행 정정 (2026-09-06)

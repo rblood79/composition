@@ -1,5 +1,8 @@
 # Builder 외부 성능 자료 대조 — 2026-09-07
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 기준: `becb855ba`, 조사 시작 clean. 요청 범위는 외부 자료와 현재 코드의 대조이며 제품 수정·새 성능 측정·기기 일반화는 수행하지 않았다. 아래 우선순위는 구현 차이와 이전 증거를 바탕으로 한 다음 검증 순서이지, 예상 개선율이나 확정된 병목 순위가 아니다.
 
 ## 1. 저장 경로의 전체 문서 읽기·복제·쓰기 — 우선 검증

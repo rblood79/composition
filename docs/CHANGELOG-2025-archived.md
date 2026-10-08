@@ -5761,7 +5761,7 @@ slotContent = pageElements
 
 #### Related Documentation
 
-- [Layout/Slot System Plan V2](features/completed/LAYOUT_SLOTS.md) - 전체 구현 계획
+- [Layout/Slot System Plan V2](legacy/LAYOUT_SLOTS.md) - 전체 구현 계획
 
 ---
 
@@ -5926,8 +5926,8 @@ slotContent = pageElements
 
 ## Related Documentation
 
-- [Inspector Style System](features/completed/INSPECTOR_STYLE.md) - Comprehensive guide to style management
-- [ToggleButtonGroup Indicator](features/completed/TOGGLEBUTTONGROUP.md) - Indicator implementation details
+- [Inspector Style System](legacy/INSPECTOR_STYLE.md) - Comprehensive guide to style management
+- [ToggleButtonGroup Indicator](legacy/TOGGLEBUTTONGROUP.md) - Indicator implementation details
 - [CLAUDE.md](../CLAUDE.md) - Development guidelines and architecture
 
 ## Breaking Changes

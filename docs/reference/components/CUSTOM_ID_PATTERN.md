@@ -392,7 +392,7 @@ export function PropertyCustomId({ value, elementId, label, placeholder }: Props
 
 - **[TYPESCRIPT_ERROR_FIXES.md](../../legacy/TYPESCRIPT_ERRORS_FIX.md)** - TypeScript 에러 수정 전체 내역
 - **[CLAUDE.md](../../../CLAUDE.md)** - TypeScript 코딩 규칙 (Common Error Patterns #1)
-- **[PAGE_TYPE_SEPARATION.md](../../explanation/architecture/PAGE_TYPES.md)** - Page 타입 아키텍처
+- **[PAGE_TYPE_SEPARATION.md](../../legacy/PAGE_TYPES.md)** - Page 타입 아키텍처
 
 ---
 

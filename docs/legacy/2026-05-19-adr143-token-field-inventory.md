@@ -1,6 +1,9 @@
 # ADR-143 Phase 0 — Canonical 토큰 필드 정명 inventory
 
-> ADR-143 [breakdown §4 Phase 0](../../adr/design/143-canonical-token-field-realignment-breakdown.md) 산출물.
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
+> ADR-143 [breakdown §4 Phase 0](../adr/design/143-canonical-token-field-realignment-breakdown.md) 산출물.
 > Gate G0 — rename 대상 심볼/사용처 baseline 고정 + ThemeStudio 정리 scope 결정.
 > 작성: 2026-05-19. 전수 grep 기준 (`packages/` + `apps/builder/src/`).
 

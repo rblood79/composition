@@ -1,5 +1,8 @@
 # NodesPanel tree item 인터랙션 상태 감사 — hover vs selected 판정
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > 작성: 2026-08-21
 > 대상: `apps/builder/src/builder/panels/nodes/NodesPanel.css` (498줄) ↔ `tree/LayerTree/LayerTreeItemContent.tsx` / `tree/LayerTree/LayerTree.tsx` / `builder/stores/selection.ts`
 > 계기: "NodesPanel tree item 에 hover 효과를 넣는 것이 맞는가, 아니면 선택 시에만 active 를 표시하는 것이 맞는가" — UI/UX 관점 판정 + 타 빌더/디자인 시스템 상태 모델 리서치 요청

@@ -1,5 +1,8 @@
 # Inspector Style Management System
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 5개는 현재 저장소에 없다.
 > 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
 > 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
@@ -537,7 +540,7 @@ export function mapElementToSelected(element: Element) {
 
 ## 참고 자료
 
-- [CLAUDE.md - Inspector Style Management System](../../../CLAUDE.md#inspector-style-management-system)
+- [CLAUDE.md - Inspector Style Management System](../../CLAUDE.md#inspector-style-management-system)
 - [React: style prop documentation](https://react.dev/reference/react-dom/components/common#applying-css-styles)
 - [MDN: getComputedStyle()](https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle)
 - [CSS Flexbox Guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)

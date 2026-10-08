@@ -96,5 +96,5 @@ pnpm wasm:build:engine
 
 - SSOT 3-Domain 분할: [.claude/rules/ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md)
 - 컴포넌트 정본: [components/COMPONENT_SPEC.md](../components/COMPONENT_SPEC.md)
-- 스토어 구조: [STRUCTURE_STORE.md](STRUCTURE_STORE.md) · 훅 구조: [STRUCTURE_HOOKS.md](STRUCTURE_HOOKS.md)
+- 스토어 구조: [STRUCTURE_STORE.md](../../legacy/STRUCTURE_STORE.md) · 훅 구조: [STRUCTURE_HOOKS.md](../../legacy/STRUCTURE_HOOKS.md)
 - 문서 체계: [../DOCUMENT_STRUCTURE.md](../DOCUMENT_STRUCTURE.md)

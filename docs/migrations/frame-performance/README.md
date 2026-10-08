@@ -27,6 +27,6 @@ pnpm perf:baseline -- --lane leak|frame     # apps/builder/scripts/perf-baseline
 ## 원시 경로를 언급하는 문서
 
 `docs/adr/evidence/frame-performance-*.md` 8건과
-[builder-performance-priorities-20260907.md](../builder-performance-priorities-20260907.md) 는 본문에
+[builder-performance-priorities-20260907.md](../../legacy/builder-performance-priorities-20260907.md) 는 본문에
 `docs/migrations/evidence/frame-performance/<run>/` 경로를 적고 있다. 그 디렉토리는 더 이상 없다 —
 각 문서에 남은 수치와 결론이 그 자리의 정본이다.

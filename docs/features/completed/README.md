@@ -16,8 +16,8 @@
 
 ### 핵심 시스템
 
-- [**Canvas Isolation**](CANVAS_ISOLATION.md) — Preview Runtime 격리
-- [**Data Panel**](DATA_PANEL.md) — DataTable 패널 (현행 위치 `builder/panels/datatable/`)
+- [**Canvas Isolation**](../../legacy/CANVAS_ISOLATION.md) — Preview Runtime 격리
+- [**Data Panel**](../../legacy/DATA_PANEL.md) — DataTable 패널 (현행 위치 `builder/panels/datatable/`)
 - [**Collection Data Binding**](COLLECTION_DATA_BINDING.md) — 컬렉션 바인딩
 - [**DataTable Presets**](DATATABLE_PRESETS.md) — DataTable 프리셋
 - [**Inspector Refactoring**](INSPECTOR_REFACTORING.md) — Inspector 구조 정리
@@ -29,19 +29,19 @@
 - [**Multi Select**](MULTI_SELECT.md) — 다중 선택
 - [**Nodes Panel Design**](NODES_PANEL_DESIGN.md) — 트리 패널 설계 (현행 이름 Navigator)
 - [**Panel Modal**](PANEL_MODAL.md) — 패널 표시 모드
-- [**Properties Panel**](PROPERTIES_PANEL.md) — 속성 패널
-- [**ToggleButtonGroup**](TOGGLEBUTTONGROUP.md) — 토글 버튼 그룹
+- [**Properties Panel**](../../legacy/PROPERTIES_PANEL.md) — 속성 패널
+- [**ToggleButtonGroup**](../../legacy/TOGGLEBUTTONGROUP.md) — 토글 버튼 그룹
 
 ### 레이아웃 · 라우팅
 
-- [**Layout Presets**](LAYOUT_PRESETS.md) — 레이아웃 프리셋
-- [**Layout Slots**](LAYOUT_SLOTS.md) — 레이아웃 슬롯
-- [**Nested Routes**](NESTED_ROUTES.md) — 중첩 라우팅
+- [**Layout Presets**](../../legacy/LAYOUT_PRESETS.md) — 레이아웃 프리셋
+- [**Layout Slots**](../../legacy/LAYOUT_SLOTS.md) — 레이아웃 슬롯
+- [**Nested Routes**](../../legacy/NESTED_ROUTES.md) — 중첩 라우팅
 
 ### 스타일
 
 - [**CSS Architecture**](CSS_ARCHITECTURE.md) — ITCSS 기반 CSS 아키텍처
-- [**Inspector Style**](INSPECTOR_STYLE.md) — 스타일 패널
+- [**Inspector Style**](../../legacy/INSPECTOR_STYLE.md) — 스타일 패널
 
 ---
 

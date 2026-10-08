@@ -726,7 +726,7 @@ npm run build     # ✅ Build successful
 
 - API Layer와 Store Layer 명확한 분리
 - 타입 변환 함수 패턴 확립
-- **아키텍처 문서**: [PAGE_TYPE_SEPARATION.md](../explanation/architecture/PAGE_TYPES.md)
+- **아키텍처 문서**: [PAGE_TYPE_SEPARATION.md](PAGE_TYPES.md)
 
 ### 3. 타입 안정성 강화
 
@@ -773,7 +773,7 @@ npm run type-check  # package.json에 스크립트 추가 필요
 
 1. **CLAUDE.md** - TypeScript 에러 패턴 10가지 추가 (2025-11-15)
 2. **[PROPERTY_CUSTOM_ID_PATTERN.md](../reference/components/CUSTOM_ID_PATTERN.md)** - PropertyCustomId 사용 가이드
-3. **[PAGE_TYPE_SEPARATION.md](../explanation/architecture/PAGE_TYPES.md)** - Page 타입 아키텍처
+3. **[PAGE_TYPE_SEPARATION.md](PAGE_TYPES.md)** - Page 타입 아키텍처
 4. **[CHANGELOG.md](../CHANGELOG.md)** - 프로젝트 변경 이력
 
 ---

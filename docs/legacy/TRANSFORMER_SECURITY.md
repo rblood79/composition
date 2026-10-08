@@ -815,7 +815,7 @@ const result = await executeTransformer(transformerId, inputData);
 
 - [CLAUDE.md](../../CLAUDE.md) - Project guidelines (Dataset Component section)
 - [PLANNED_FEATURES.md](STATUS_PLANNED-2025-12.md) - Dataset Component details
-- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](../explanation/architecture/DATA_ARCHITECTURE.md) - Data architecture
+- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](DATA_ARCHITECTURE.md) - Data architecture
 
 ### External Resources
 

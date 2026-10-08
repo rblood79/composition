@@ -1,5 +1,8 @@
 # Styles 패널 RAF 조사 이력 — 추정 최적화 철회
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > 2026-09-07 사용자 지시에 따라 이 문서의 Styles/단축키/팔레트 변경은 원복했다. 아래는 조사 이력이며 현재 적용 상태가 아니다. 폰트 이름 조회 수정은 유지했고 빌트인 CanvasKit 폰트는 TTF로 변경했다.
 
 ## 판정

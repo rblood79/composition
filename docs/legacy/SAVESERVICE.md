@@ -1,5 +1,8 @@
 # SaveService 리팩토링
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 **날짜**: 2025-10-09
 **최종 업데이트**: 2025-12-29
 **작업**: 서비스 레이어 구조 개선 및 로컬 우선 아키텍처 전환
@@ -153,8 +156,8 @@ window.saveServiceUtils.resetMetrics();
 
 ## 관련 문서
 
-- [CHANGELOG.md](../../CHANGELOG.md) - 변경 이력
-- [DATA_ARCHITECTURE.md](../../explanation/architecture/DATA_ARCHITECTURE.md) - 데이터 아키텍처
+- [CHANGELOG.md](../CHANGELOG.md) - 변경 이력
+- [DATA_ARCHITECTURE.md](DATA_ARCHITECTURE.md) - 데이터 아키텍처
 
 ## 마이그레이션 가이드
 

@@ -1,5 +1,8 @@
 # Builder 외부 레퍼런스 우선순위 1–5 실행
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 2026-09-07. 기준 HEAD `be8276506` (직전 `becb855ba` 대비 외부 감사 문서만 추가되어 제품 소스는 동일). 사용자 승인 범위는 [외부 감사](builder-performance-external-audit-20260907.md)의 우선순위 1–5 전체이다.
 
 ## 적용한 방법

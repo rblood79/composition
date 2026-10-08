@@ -24,7 +24,7 @@ docs/
 ├── how-to/                 # 실용 가이드 — development · troubleshooting
 ├── tutorials/              # 학습 중심 실습 가이드
 ├── design/                 # /design 캔버스 (canvas.json + *.dc.html) — 주제별 디렉토리
-├── legacy/                 # 폐기·역사 문서 (48 + README, 각 파일에 폐기 사유 배너)
+├── legacy/                 # 폐기·역사 문서 (74 + README, 각 파일에 폐기 사유 배너)
 ├── migrations/             # 마이그레이션 기록 · frame-performance/ 분석 노트
 ├── pencil-copy/            # Pencil 호환성 dossier (clean-room)
 ├── CHANGELOG.md            # 변경 이력 (2026-09~)
@@ -71,9 +71,7 @@ docs/
 
 - [기여 가이드](how-to/development/CONTRIBUTING.md)
 - [README 작성 가이드](how-to/development/README_WRITING.md)
-- [벤치마크 템플릿](how-to/development/BENCHMARK_TEMPLATE.md)
 - [AI 로컬 엔드포인트](how-to/development/ai-local-endpoint.md)
-- [Rate Limit 해결](how-to/troubleshooting/RATE_LIMIT.md)
 
 ## Reference
 
@@ -87,8 +85,6 @@ docs/
 
 - [모노레포 구조](reference/architecture/MONOREPO.md)
 - [Multi-Page 렌더링](reference/architecture/MULTIPAGE.md)
-- [Hooks 구조](reference/architecture/STRUCTURE_HOOKS.md)
-- [Store 구조](reference/architecture/STRUCTURE_STORE.md)
 
 ### Components
 
@@ -99,10 +95,7 @@ docs/
 - [패널 시스템](reference/components/PANEL_SYSTEM.md)
 - [React Aria 라이브러리 통합](reference/components/REACT_ARIA_LIBRARIES.md)
 - [Custom ID 패턴](reference/components/CUSTOM_ID_PATTERN.md)
-- [SaveService](reference/components/SAVESERVICE.md)
-- [Canvas Interactions](reference/components/CANVAS_INTERACTIONS.md)
 - [Canvas Scrollbar](reference/components/CANVAS_SCROLLBAR.md)
-- [Border Radius Handles](reference/components/BORDER_RADIUS_HANDLES.md)
 - [Drag & Drop Layer](reference/components/DRAG_DROP_LAYER.md)
 
 ### 기타 참조
@@ -129,9 +122,6 @@ Properties Panel · ToggleButtonGroup
 
 ### Architecture
 
-- [페이지 타입 분리](explanation/architecture/PAGE_TYPES.md)
-- [데이터 아키텍처](explanation/architecture/DATA_ARCHITECTURE.md)
-- [Drag & Drop 설계](explanation/architecture/DRAG_DROP_DESIGN.md)
 
 ### Research
 
@@ -190,7 +180,7 @@ Properties Panel · ToggleButtonGroup
 
 ## Legacy
 
-폐기·역사 문서 48건. 각 파일 상단에 **폐기 사유 배너**, 대체 정본은 [legacy/README.md](legacy/README.md) 표 참조.
+폐기·역사 문서 74건. 각 파일 상단에 **폐기 사유 배너**, 대체 정본은 [legacy/README.md](legacy/README.md) 표 참조.
 
 ---
 

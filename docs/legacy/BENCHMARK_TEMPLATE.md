@@ -1,5 +1,8 @@
 # 스타일 패널 성능 벤치마크 기준선
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > 이 문서는 스타일 패널 최적화의 성능 기준선(baseline)을 기록합니다.
 > Phase 0에서 측정된 값을 기준으로 이후 최적화 효과를 비교합니다.
 

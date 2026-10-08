@@ -1,5 +1,8 @@
 # Canvas Interactions
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 2개는 현재 저장소에 없다.
 > 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
 > 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
@@ -538,7 +541,7 @@ updateThumb() — DOM 직접 조작 (transform, width/height)
 | `ResizeObserver(track)`                  | 창 리사이즈, 패널 애니메이션             |
 | `useStore.subscribe(panelLayout)`        | 패널 열림/닫힘 → 오프셋 재측정           |
 
-> 상세 설계: [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md)
+> 상세 설계: [CANVAS_SCROLLBAR.md](../reference/components/CANVAS_SCROLLBAR.md)
 
 ---
 
@@ -592,9 +595,9 @@ CSS transform 제거 + WebGL resize(1160px)
 
 **관련 문서:**
 
-- [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
-- [CANVAS_RUNTIME_ISOLATION.md](../../features/completed/CANVAS_ISOLATION.md) - 캔버스 런타임 격리
-- [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
+- [CANVAS_SCROLLBAR.md](../reference/components/CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
+- [CANVAS_RUNTIME_ISOLATION.md](CANVAS_ISOLATION.md) - 캔버스 런타임 격리
+- [RENDERING_ARCHITECTURE.md](RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
 - Phase 10 B1.4 - 줌/팬 구현 스펙
 
 ---
@@ -669,9 +672,9 @@ Grid와 Snap이 동일한 씬 좌표계를 사용하여 시각적 정합성을 �
 
 **관련 문서:**
 
-- [CANVAS_SCROLLBAR.md](CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
-- [CANVAS_RUNTIME_ISOLATION.md](../../features/completed/CANVAS_ISOLATION.md) - 캔버스 런타임 격리
-- [RENDERING_ARCHITECTURE.md](../../legacy/RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
+- [CANVAS_SCROLLBAR.md](../reference/components/CANVAS_SCROLLBAR.md) - 캔버스 스크롤바 설계
+- [CANVAS_RUNTIME_ISOLATION.md](CANVAS_ISOLATION.md) - 캔버스 런타임 격리
+- [RENDERING_ARCHITECTURE.md](RENDERING_ARCHITECTURE.md) - CanvasKit/Skia 렌더링 아키텍처
 - Phase 10 B1.4 - 줌/팬 구현 스펙
 
 **최종 업데이트:** 2026-02-12

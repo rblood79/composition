@@ -1,3 +1,5 @@
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · spec 파일 · 옛 TS 레이아웃) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
 > 2026-09-07 철회: 타이머 분할과 전용 준비 경로를 제거했다. WOFF2 반복 native 파싱이 확인되어 CanvasKit 빌트인 입력을 동일 Variable TTF로 변경했다. 아래는 과거 구현 기록이다.
 
 # 최초 Skia Picture 준비 분할 — 2026-09-07
