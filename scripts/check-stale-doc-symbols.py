@@ -151,11 +151,16 @@ def scan(files: list[str], corpus: str):
         for i, line in enumerate(lines):
             for m in SYMBOL.finditer(line):
                 s = m.group(1)
-                if s in seen or not looks_like_symbol(s) or s in corpus:
+                if not looks_like_symbol(s) or s in corpus:
+                    continue
+                tag = "HIST" if ledger or HIST.search(hist_context(lines, i)) else "LIVE"
+                if s in seen:
+                    # 같은 심볼을 파일 어딘가 (예: 끝의 정정 노트) 에서 이력으로 표시했으면 통과
+                    if tag == "HIST" and seen[s][0] == "LIVE":
+                        seen[s] = ("HIST", seen[s][1], seen[s][2])
                     continue
                 j = line.find(s)
                 ex = line[max(0, j - 60): j + len(s) + 40]
-                tag = "HIST" if ledger or HIST.search(hist_context(lines, i)) else "LIVE"
                 seen[s] = (tag, i + 1, ex.strip())
         if seen:
             result[rel] = seen
