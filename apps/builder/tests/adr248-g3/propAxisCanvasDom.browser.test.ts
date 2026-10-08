@@ -228,6 +228,76 @@ const CASES: Array<{
         }),
       ),
   },
+  // ADR-256 Phase 5i: a Table drawn from its node tree (the reference's TableHeader > Column ·
+  // TableBody > Row > Cell) — two columns, two rows.
+  {
+    key: "Table-nodes",
+    type: "Table",
+    props: { heightMode: "auto" },
+    edit: (subject) => {
+      const at = (part: string) => ({
+        kind: "descendant" as const,
+        ownerId: subject,
+        address: {
+          instances: [subject],
+          templatePath: ["lib:template:component-table", part],
+        } as unknown as InstanceAddress,
+      });
+      const node = (
+        id: string,
+        type: string,
+        children: string[] = [],
+        text?: string,
+      ) =>
+        ({
+          kind: "node",
+          id: `project:node:axis-table-${id}` as NodeEntry["id"],
+          definitionId: `lib:definition:type-${type}`,
+          children: children.map((child) => `project:node:axis-table-${child}`),
+          props:
+            text === undefined
+              ? {}
+              : { children: { kind: "set", value: text } },
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        }) as NodeEntry;
+      const newId = ((kind: string) =>
+        `project:${kind}:axis-${(axisIds += 1)}`) as never;
+      return [
+        insertNodes({
+          parent: at("lib:template:component-table__1"),
+          index: 0,
+          entries: [
+            node("c1", "Column", [], "Name"),
+            node("c2", "Column", [], "Type"),
+          ],
+          rootIds: [
+            "project:node:axis-table-c1",
+            "project:node:axis-table-c2",
+          ] as NodeEntry["id"][],
+          newId,
+        }),
+        insertNodes({
+          parent: at("lib:template:component-table__2"),
+          index: 0,
+          entries: [
+            node("r1", "Row", ["r1a", "r1b"]),
+            node("r1a", "Cell", [], "Games"),
+            node("r1b", "Cell", [], "Folder"),
+            node("r2", "Row", ["r2a", "r2b"]),
+            node("r2a", "Cell", [], "Documents"),
+            node("r2b", "Cell", [], "File"),
+          ],
+          rootIds: [
+            "project:node:axis-table-r1",
+            "project:node:axis-table-r2",
+          ] as NodeEntry["id"][],
+          newId,
+        }),
+      ];
+    },
+  },
 ];
 let axisIds = 0;
 

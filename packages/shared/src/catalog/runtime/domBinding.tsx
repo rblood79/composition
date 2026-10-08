@@ -928,7 +928,7 @@ export const CATALOG_DOM_CHILD_OWNING_BINDINGS: ReadonlySet<string> = new Set([
   // Shared components that compose from their own props and never read `children`.
   "datepicker",
   "daterangepicker",
-  "table",
+  // (A Table draws its node tree — ADR-256 Phase 5i.)
 ]);
 
 /**
@@ -1091,6 +1091,26 @@ const AUTHORED_CSS: Readonly<
   ),
 };
 
+/** Whether a Column is a row header: its own `isRowHeader`, else the first of a header with none. */
+function columnIsRowHeader(
+  root: CatalogCompositionRoot,
+  column: CatalogConsumerNode,
+): boolean {
+  if (typeof column.props.isRowHeader === "boolean")
+    return column.props.isRowHeader;
+  const header = root.domInputs.get(column.parentId);
+  const columns = (header?.children ?? [])
+    .map((id) => root.domInputs.get(id))
+    .filter(
+      (child): child is CatalogConsumerNode =>
+        !!child && catalogTypeName(root, child) === "Column",
+    );
+  return (
+    !columns.some((child) => child.props.isRowHeader === true) &&
+    columns[0]?.id === column.id
+  );
+}
+
 /** A Dialog's title: a Heading below it with RAC's `title` slot (not one of a nested Dialog). */
 function dialogTitleOf(
   root: CatalogCompositionRoot,
@@ -1115,8 +1135,11 @@ function dialogTitleOf(
   return undefined;
 }
 
-/** Registered components that drop DOM rest props (the shared Table takes `data-element-id` only). */
-const MARKER_WRAPPED_RULE_TYPES: ReadonlySet<string> = new Set(["Table"]);
+/**
+ * Registered components that drop DOM rest props: the marker is a `display: contents` wrapper.
+ * (None now — the shared data Table was the one; the catalog Table is RAC's, ADR-256 Phase 5i.)
+ */
+const MARKER_WRAPPED_RULE_TYPES: ReadonlySet<string> = new Set<string>();
 
 /**
  * DOM for a rule-backed node without a type binding: the registered RAC component
@@ -1242,6 +1265,11 @@ function ruleDom(
               ? { "data-selection-mark": "" }
               : {}),
           }
+        : {}),
+      // ADR-256 Phase 5i: a RAC Table names each row by its row header columns' cells — RAC throws
+      // without one, so a header with none set makes its first column the row header.
+      ...(lower === "column"
+        ? { isRowHeader: columnIsRowHeader(root, node) }
         : {}),
       ...(STATIC_ITEM_TYPES.has(type)
         ? {

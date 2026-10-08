@@ -1,5 +1,19 @@
-import { createElement, type ElementType, type HTMLAttributes } from "react";
+import {
+  createElement,
+  type CSSProperties,
+  type ElementType,
+  type HTMLAttributes,
+} from "react";
+import { tableBinding } from "../bindings/Table.binding";
 import { Keyboard } from "react-aria-components/Keyboard";
+import {
+  Cell as RacCell,
+  Column as RacColumn,
+  Row as RacRow,
+  Table as RacTable,
+  TableBody as RacTableBody,
+  TableHeader as RacTableHeader,
+} from "react-aria-components/Table";
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
@@ -29,7 +43,6 @@ import { Popover } from "@composition/shared/components/Popover";
 import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Select } from "@composition/shared/components/Select";
 import { Skeleton } from "@composition/shared/components/Skeleton";
-import Table from "@composition/shared/components/Table";
 import { Tab, Tabs } from "@composition/shared/components/Tabs";
 import { Tag, TagGroup } from "@composition/shared/components/TagGroup";
 import { Tooltip } from "@composition/shared/components/Tooltip";
@@ -44,8 +57,42 @@ import {
  * (its id, the item's `aria-describedby`). RAC sets no class of its own; the rule's sheet reads
  * `.react-aria-Keyboard`.
  */
+/**
+ * ADR-256 Phase 5i — the node tree's RAC Table (`[data-node-table]` — `Table.css`). `heightMode`
+ * "fixed" (the binding default) keeps its `height` (default 400) inside its border and scrolls when
+ * the author set no height, as the Canvas sizes it (`catalogTableHeight` — a `<table>` is
+ * `box-sizing: border-box`); the other modes follow the rows.
+ */
+function CatalogTable({
+  heightMode,
+  height,
+  style,
+  ...props
+}: Record<string, unknown> & { style?: CSSProperties }) {
+  const accepts = tableBinding.props.accepts;
+  const mode = heightMode ?? accepts.heightMode?.default;
+  const fixed = typeof height === "number" ? height : accepts.height?.default;
+  // (`Table.css` `border: 1px solid` when the document writes none.)
+  const border = Number.parseFloat(String(style?.borderWidth ?? 1)) || 0;
+  return createElement(RacTable as ElementType, {
+    "aria-label": "Table",
+    ...props,
+    // (An authored height wins, as on the Canvas — `catalogTableHeight` is the height when none.)
+    style:
+      mode === "fixed" &&
+      typeof fixed === "number" &&
+      style?.height === undefined
+        ? { ...style, height: fixed + border * 2 }
+        : style,
+    "data-node-table": "",
+  });
+}
+
 function CatalogKeyboard(props: HTMLAttributes<HTMLElement>) {
-  return createElement(Keyboard, { className: "react-aria-Keyboard", ...props });
+  return createElement(Keyboard, {
+    className: "react-aria-Keyboard",
+    ...props,
+  });
 }
 
 export const INTERNAL_RENDERERS: Readonly<
@@ -78,7 +125,14 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-237 Phase 3 — Breadcrumbs 정적 자식 (Breadcrumb instance). RAC Breadcrumb + Link, render props 를 받는다.
   breadcrumb: Breadcrumb,
   tree: Tree,
-  table: Table,
+  // ADR-256 Phase 5i: RAC Table from its node tree (the reference's `Table > TableHeader > Column`,
+  // `TableBody > Row > Cell`); a bound Table's rows are its projected records (`catalogBoundRows`).
+  table: CatalogTable,
+  tableheader: RacTableHeader,
+  column: RacColumn,
+  tablebody: RacTableBody,
+  row: RacRow,
+  cell: RacCell,
   dialog: Dialog,
   dialogtrigger: DialogTrigger,
   modal: Modal,

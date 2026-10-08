@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5i-1 — Table 이 노드 트리를 그린다] - 2026-10-09
+
+### Fixed
+
+- **Preview 의 Table 이 항상 비어 있던 것** — Preview 는 Table 을 shared 데이터 표 (가상 스크롤) 로 그렸는데, 그 표는 Column · Row · Cell 노드도 데이터 바인딩도 받지 않아 열 · 행을 넣어도 빈 격자 (`aria-rowcount 0`) 였다. 이제 react-aria.adobe.com Table 처럼 RAC `Table > TableHeader > Column` · `TableBody > Row > Cell` 을 노드에서 그린다 — 열 이름 · 행 · 칸 글자가 Preview 에 나오고, Canvas 는 같은 자리에 그린다 (Canvas↔Preview 오차 0). 데이터 바인딩 Table 은 데이터 행 (Canvas 와 같은 투영 행) 을 그린다
+- **Table 에 행을 넣을 수 없던 것** — Design 의 「Insert Row」 가 TableView 에만 있었다. 이제 Table 의 body 도 행 (열 수만큼 칸) 을 받는다. 데이터 바인딩 Table 은 행이 데이터의 것이라 받지 않는다
+
+### Changed
+
+- **Column 의 `isRowHeader` (행 이름 열)** — RAC · RSP 의 prop. 그 열의 칸이 행의 이름이 된다. 지정한 열이 없으면 첫 열이 행 이름이다 (RAC 는 행 이름 열이 없으면 동작하지 않는다)
+- **고정 높이 (`heightMode` fixed · `height`)** 는 노드 표에도 그대로 — 높이는 테두리 안쪽, 넘치면 스크롤
+- 위치: `catalog/runtime/domRegistry.tsx` (`CatalogTable` · RAC 표 부품) · `domBinding.tsx` (`columnIsRowHeader`) · `catalog/commands/collections.ts` (`TABLE_OWNERS`) · `components/styles/Table.css` (`[data-node-table]`) · `catalog/bindings/Column.binding.ts`
+
 ## [ADR-256 Phase 5h-2 — Tree 선택 체크박스 = Checkbox[selection] 노드 · Preview 선택] - 2026-10-09
 
 ### Fixed

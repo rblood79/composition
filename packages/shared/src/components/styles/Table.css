@@ -43,6 +43,35 @@
     }
   }
 
+  /* ========== Node tree Table (ADR-256 Phase 5i) ==========
+     The catalog Table's RAC `<table data-node-table>` (no virtualizer). Its parts carry their
+     catalog box inline (the Canvas reads the same rule values); the sheet lays the header row out
+     and leaves the data table's absolute rows, separators and header paint below to that one. */
+  .react-aria-Table[data-node-table] {
+    overflow: auto;
+
+    .react-aria-TableHeader {
+      background: transparent;
+      color: inherit;
+
+      > tr {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+    }
+
+    .react-aria-TableHeader .react-aria-Column,
+    .react-aria-Cell {
+      border: none;
+    }
+
+    .react-aria-TableBody .react-aria-Row {
+      position: static;
+      border-bottom: none;
+    }
+  }
+
   /* ========== Virtual Scrolling ========== */
   .react-aria-TableVirtualizer {
     overflow: auto;

@@ -642,12 +642,17 @@ function columnKey(
   if (typeof id === "string" && id) return id;
   return `column${index + 1}`;
 }
+/**
+ * Tables whose header and body hold the column and row nodes: S2 `TableView` and RAC `Table` (ADR-256
+ * Phase 5i — RAC throws when a row's cell count differs from the column count).
+ */
+const TABLE_OWNERS: ReadonlySet<string> = new Set(["TableView", "Table"]);
 function tableBodyOf(
   draft: CommandDraft,
   header: NodeParent,
 ): NodeParent | undefined {
   const owner = parentOf(draft, header);
-  if (!owner || positionType(draft, owner) !== "TableView") return undefined;
+  if (!owner || !TABLE_OWNERS.has(positionType(draft, owner))) return undefined;
   return childPositions(draft, owner).find(
     (child) => positionType(draft, child) === "TableBody",
   );
@@ -809,7 +814,7 @@ export const insertTableColumns =
     };
   };
 
-/** Add a row to a TableView body: a Row with one cell per column (rows must be aligned). */
+/** Add a row to a table's body: a Row with one cell per column (rows must be aligned). */
 export const insertTableRow =
   (input: {
     body: NodeParent;
@@ -823,8 +828,11 @@ export const insertTableRow =
     if (positionType(draft, input.body) !== "TableBody")
       fail("NOT_A_TABLE_BODY", positionId(input.body));
     const owner = parentOf(draft, input.body);
-    if (!owner || positionType(draft, owner) !== "TableView")
+    if (!owner || !TABLE_OWNERS.has(positionType(draft, owner)))
       fail("NOT_A_TABLE_VIEW", positionId(input.body));
+    // A bound table's rows are its data's (the projected rows hide its own) — it takes none.
+    if (owner!.kind === "node" && draft.node(owner!.id).binding)
+      fail("TABLE_ROWS_FROM_DATA", positionId(input.body));
     const header = childPositions(draft, owner!).find(
       (child) => positionType(draft, child) === "TableHeader",
     );

@@ -212,12 +212,20 @@ describe("ADR-248 4e item insert ('+')", () => {
     workspace.dispose();
   });
 
-  it("a Table's header adds a column; its data body takes no rows (the old rule: TableView only)", async () => {
+  it("a Table's header adds a column and its body a row with a cell per column (ADR-256 Phase 5i — the node tree RAC Table)", async () => {
     const workspace = await open("Table");
     const columns = childTypes(workspace, "TableHeader").length;
     add(workspace, "TableHeader", "Column");
     expect(childTypes(workspace, "TableHeader")).toHaveLength(columns + 1);
-    expect(choicesOf(workspace, "TableBody")).toEqual([]);
+    expect(
+      choicesOf(workspace, "TableBody").map((choice) => choice.type),
+    ).toEqual(["Row"]);
+    add(workspace, "TableBody", "Row");
+    const rows = recordOf(workspace, "TableBody").children;
+    expect(rows).toHaveLength(1);
+    expect(workspace.root.domInputs.get(rows[0]!)!.children).toHaveLength(
+      columns + 1,
+    );
     workspace.dispose();
   });
 

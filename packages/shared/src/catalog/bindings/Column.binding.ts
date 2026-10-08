@@ -24,8 +24,9 @@ import type { PrimitiveBinding } from "../types";
  *     (react-aria-starter `.column-header{font-weight:600}` 정본) + padding 8px(`{spacing.sm}`).
  *     Skia generic(box+text) ↔ DOM renderTableView div 시각 대칭.
  *
- * source.renderer "column" 은 DOM 에서 호출되지 않는다(부모 renderTableView self-compose) —
- * primitiveEntry 의 getPrimitiveBinding 타입 계약 충족용. DELEGATING 등록 불요.
+ * **ADR-256 Phase 5i**: RAC Table (catalog `Table`) 안에서는 DOM 이 RAC `Column` 이다 (`domRegistry`
+ *   `column` — 노드 트리 그리기). `isRowHeader` (RAC · RSP TableView 의 prop) — 그 열의 칸이 행의 이름이다.
+ *   RAC 는 row header 열이 하나도 없으면 throw 하므로, 지정이 없으면 첫 열이 row header 다 (`ruleDom`).
  */
 export const columnBinding: PrimitiveBinding = {
   source: {
@@ -35,6 +36,7 @@ export const columnBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
+      isRowHeader: { kind: "boolean", label: "Row header", section: "content" },
       size: {
         kind: "size",
         label: "Size",
