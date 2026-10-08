@@ -688,15 +688,15 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "DateRangePicker = Group [start, separator, end, FieldButton] (ADR-253 — old: one DateInput for the pair, a glyph node)",
   },
   {
-    // ADR-256 Phase 7a: a ProgressBar's fill is a node in its track (the reference `div.track >
-    //   div.fill`) — old: the track painted the fill in its own box (`value_fill_bar`).
+    // ADR-256 Phase 7a · 7b: a ProgressBar's · Meter's fill is a node in its track (the reference
+    //   `div.track > div.fill`) — old: the track painted the fill in its own box (`value_fill_bar`).
     id: "progress-fill-node",
     class: "decided",
-    owners: ["ProgressBar", "FileUpload"],
+    owners: ["ProgressBar", "FileUpload", "Meter"],
     side: "new",
-    nodes: ["ProgressBarFill"],
+    nodes: ["ProgressBarFill", "MeterFill"],
     reason:
-      "ProgressBar track = [fill node] (ADR-256 Phase 7a — the reference ProgressBar; old: the track painted the fill in its own box)",
+      "ProgressBar · Meter track = [fill node] (ADR-256 Phase 7a · 7b — the reference ProgressBar; old: the track painted the fill in its own box)",
   },
   {
     id: "tree-item-chevron-node",

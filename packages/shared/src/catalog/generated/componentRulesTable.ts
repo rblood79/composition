@@ -7076,6 +7076,76 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 Phase 7b: the filled part of a Meter's track (`div.fill`). It takes its owner's variant
+  //   (`catalogDerivedProps`); its color is the owner's DOM `--fill-color` (Meter `composition`
+  //   variant block — informative · positive · notice · negative).
+  MeterFill: {
+    defaultVariant: "informative",
+    defaultSize: "md",
+    variants: {
+      informative: {
+        fill: {
+          default: {
+            base: "{color.informative}",
+            hover: "{color.informative}",
+            pressed: "{color.informative}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      positive: {
+        fill: {
+          default: {
+            base: "{color.positive}",
+            hover: "{color.positive}",
+            pressed: "{color.positive}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      warning: {
+        fill: {
+          default: {
+            base: "{color.notice}",
+            hover: "{color.notice}",
+            pressed: "{color.notice}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      critical: {
+        fill: {
+          default: {
+            base: "{color.negative}",
+            hover: "{color.negative}",
+            pressed: "{color.negative}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      sm: { borderRadius: "{radius.none}" },
+      md: { borderRadius: "{radius.none}" },
+      lg: { borderRadius: "{radius.none}" },
+      xl: { borderRadius: "{radius.none}" },
+    },
+    structure: {
+      archetype: "progress",
+      element: "div",
+      containerStyles: {
+        display: "block",
+      },
+    },
+  },
   MeterTrack: {
     defaultVariant: "informative",
     defaultSize: "md",

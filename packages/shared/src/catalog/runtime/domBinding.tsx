@@ -657,26 +657,31 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // ADR-256 Phase 7a: a ProgressBar's parts in its RAC children — the reference's value text and
   // `div.track > div.fill`, with the classes the ProgressBar sheet styles (`.value` · `.bar` ·
   // `.fill`). Their bound text · width are the owner's render props (`valueBindings.ts`).
-  progressbarvalue: (node, style) =>
-    createElement(
-      "span",
-      { key: node.id, "data-catalog-id": node.id, className: "value", style },
-      String(node.props.children ?? ""),
-    ),
+  progressbarvalue: (node, style) => progressPart(node, style, "span", "value"),
   progressbartrack: (node, style, children) =>
-    createElement(
-      "div",
-      { key: node.id, "data-catalog-id": node.id, className: "bar", style },
-      ...children,
-    ),
-  progressbarfill: (node, style) =>
-    createElement("div", {
-      key: node.id,
-      "data-catalog-id": node.id,
-      className: "fill",
-      style,
-    }),
+    progressPart(node, style, "div", "bar", children),
+  progressbarfill: (node, style) => progressPart(node, style, "div", "fill"),
+  // ADR-256 Phase 7b: a Meter's parts — the same elements (the Meter sheet's `.value` · `.bar` · `.fill`).
+  metervalue: (node, style) => progressPart(node, style, "span", "value"),
+  metertrack: (node, style, children) =>
+    progressPart(node, style, "div", "bar", children),
+  meterfill: (node, style) => progressPart(node, style, "div", "fill"),
 };
+
+/** A progress part's element (a ProgressBar's · Meter's value text, track and fill). */
+function progressPart(
+  node: CatalogConsumerNode,
+  style: CSSProperties,
+  tag: "span" | "div",
+  className: string,
+  children: ReactElement[] = [],
+): ReactElement {
+  return createElement(
+    tag,
+    { key: node.id, "data-catalog-id": node.id, className, style },
+    ...(tag === "span" ? [String(node.props.children ?? "")] : children),
+  );
+}
 
 /** RAC `Autocomplete` with the reference's filter (`useFilter({sensitivity: "base"}).contains`). */
 function CatalogAutocomplete(

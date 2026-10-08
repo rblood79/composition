@@ -318,6 +318,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SliderThumb: ["SliderTrack"],
       MeterTrack: ["Meter"],
       MeterValue: ["Meter"],
+      MeterFill: ["MeterTrack"],
       ProgressBarTrack: ["ProgressBar"],
       ProgressBarValue: ["ProgressBar"],
       ProgressBarFill: ["ProgressBarTrack"],

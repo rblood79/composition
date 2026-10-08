@@ -52,10 +52,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * reference's `.column-name`); a TableView's columns are plain Columns (its own grid).
  * 24 — ADR-256 Phase 7a: a ProgressBar's value text binds RAC's `{valueText}`
  * (`component-progressbar__2`) and its track holds a `ProgressBarFill` (`__3_1`, width
- * `{percentage}%`); its Label carries `presentWhen`.
+ * `{percentage}%`); its Label carries `presentWhen`. 25 — ADR-256 Phase 7b: a Meter the same
+ * (`component-meter__2` `{valueText}` · `__3_1` `MeterFill`, Label `presentWhen`).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 24 as const;
+export const LIBRARY_CONTRACT_VERSION = 25 as const;
 
 export type EntryKind =
   | "project"

@@ -86,6 +86,7 @@ export type ComponentTag =
   | "Menu"
   | "MenuItem"
   | "Meter"
+  | "MeterFill"
   | "MeterTrack"
   | "MeterValue"
   | "Modal"

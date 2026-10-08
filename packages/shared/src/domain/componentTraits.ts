@@ -351,6 +351,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Meter: {},
   MeterTrack: { owners: ["Meter"] },
   MeterValue: { owners: ["Meter"] },
+  // ADR-256 Phase 7b: the fill (its width the Meter's `{percentage}`) — in the track.
+  MeterFill: { owners: ["MeterTrack"] },
   ProgressBar: {},
   ProgressBarTrack: { owners: ["ProgressBar"] },
   ProgressBarValue: { owners: ["ProgressBar"] },

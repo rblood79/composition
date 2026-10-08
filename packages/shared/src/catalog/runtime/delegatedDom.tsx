@@ -29,6 +29,7 @@ import { CheckboxGroup as AriaCheckboxGroup } from "react-aria-components/Checkb
 import { FieldError as AriaFieldError } from "react-aria-components/FieldError";
 import { TextField as AriaTextField } from "react-aria-components/TextField";
 import { ProgressBar as AriaProgressBar } from "react-aria-components/ProgressBar";
+import { Meter as AriaMeter } from "react-aria-components/Meter";
 import { ColorField as AriaColorField } from "react-aria-components/ColorField";
 import { DateField as AriaDateField } from "react-aria-components/DateField";
 import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
@@ -95,7 +96,6 @@ import { Disclosure } from "../../components/Disclosure";
 import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
-import { Meter } from "../../components/Meter";
 import { RangeCalendar } from "../../components/RangeCalendar";
 import { Slider } from "../../components/Slider";
 import { ToggleButton } from "../../components/ToggleButton";
@@ -1558,27 +1558,30 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-256 Phase 7b: the Meter is RAC's, its children in order — `Label` + value text
+  // (`{valueText}`) + track > fill (`width: {percentage}%`) and anything the author put in; its
+  // render props are the frame the bound parts read (Decision 12).
   meter: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return createElement(Meter as ElementType, {
-        ...marker(input),
-        style: input.style,
-        label: fieldLabel(
-          input,
-          propagatedText(input.root, props.label, childOf(input, "Label")),
-        ),
-        value: Number(props.value || 0),
-        minValue: props.minValue !== undefined ? Number(props.minValue) : 0,
-        maxValue: props.maxValue !== undefined ? Number(props.maxValue) : 100,
-        variant: props.variant || "informative",
-        size: props.size || "md",
-        showValueLabel: props.showValueLabel !== false,
-        valueLabel: opt(props.valueLabel),
-        locale: opt(props.locale),
-        labelPosition: props.labelPosition || "top",
-      });
+      return withI18n(
+        createElement(AriaMeter as ElementType, {
+          ...marker(input),
+          style: input.style,
+          className: "react-aria-Meter",
+          "data-variant": str(props.variant) || "informative",
+          "data-size": str(props.size) || "md",
+          "data-label-position": str(props.labelPosition) || "top",
+          value: num(props.value) ?? 0,
+          minValue: num(props.minValue) ?? 0,
+          maxValue: num(props.maxValue) ?? 100,
+          valueLabel: opt(props.valueLabel),
+          // (No visible label: RAC needs a name — the type's own.)
+          "aria-label": str(props.label).trim() ? undefined : "Meter",
+          children: catalogStateChildren(input.node.id, () => renderAll(input)),
+        }),
+        props.locale,
+      );
     },
   },
   // ADR-256 Phase 3: the Switch is RAC `SwitchField` — its children in order (the SwitchButton, a

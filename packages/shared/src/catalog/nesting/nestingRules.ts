@@ -140,7 +140,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
     wrappers: true,
   },
   SliderTrack: { children: ["SliderThumb"], wrappers: true },
-  Meter: { children: ["Label", "MeterValue", "MeterTrack"], wrappers: true },
+  // (Meter — ADR-256 Phase 7b: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // overlay · disclosure — Phase 8. Disclosure trigger 버튼의 내용 — chevron 노드와 제목 Text.
   DisclosureGroup: { children: ["Disclosure"], wrappers: true },
@@ -210,7 +210,8 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "SliderThumb",
   "SliderOutput",
   "MeterValue",
-  "MeterTrack",
+  // (MeterTrack — ADR-256 Phase 7b: the track holds the fill and free content.)
+  "MeterFill",
   "ProgressBarValue",
   // (ProgressBarTrack — ADR-256 Phase 7a: the reference `div.track` holds the fill and free content.)
   "ProgressBarFill",

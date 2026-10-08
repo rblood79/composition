@@ -942,7 +942,11 @@ const PROGRESS_TRACKS: Readonly<Record<string, string>> = {
 /** ADR-256 Phase 7a — a progress owner's fill node (in its track — the reference `div.track > div.fill`). */
 const PROGRESS_FILLS: Readonly<Record<string, string>> = {
   ProgressBar: "ProgressBarFill",
+  Meter: "MeterFill",
 };
+const PROGRESS_FILL_TYPES: ReadonlySet<string> = new Set(
+  Object.values(PROGRESS_FILLS),
+);
 
 /** The ProgressBar a fill node fills (its nearest progress ancestor, past the track and any frame). */
 export function catalogProgressFillOwner(
@@ -950,8 +954,9 @@ export function catalogProgressFillOwner(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  const type = typeOf(node);
-  if (!Object.values(PROGRESS_FILLS).includes(type)) return undefined;
+  // (A rule-backed record names its type — no type lookup for every record.)
+  const type = node.ruleId ?? typeOf(node);
+  if (!PROGRESS_FILL_TYPES.has(type)) return undefined;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
     if (PROGRESS_TRACKS[typeOf(cursor)])
       return PROGRESS_FILLS[typeOf(cursor)] === type ? cursor : undefined;
@@ -963,6 +968,9 @@ const PROGRESS_VALUES: Readonly<Record<string, string>> = {
   ProgressBar: "ProgressBarValue",
   Meter: "MeterValue",
 };
+const PROGRESS_VALUE_TYPES: ReadonlySet<string> = new Set(
+  Object.values(PROGRESS_VALUES),
+);
 
 /**
  * ADR-256 Phase 7a — a ProgressBar's · Meter's value text while its owner's `showValueLabel` is
@@ -973,8 +981,8 @@ export function catalogProgressValueHidden(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): boolean {
-  const type = typeOf(node);
-  if (!Object.values(PROGRESS_VALUES).includes(type)) return false;
+  const type = node.ruleId ?? typeOf(node);
+  if (!PROGRESS_VALUE_TYPES.has(type)) return false;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
     if (PROGRESS_VALUES[typeOf(cursor)])
       return (

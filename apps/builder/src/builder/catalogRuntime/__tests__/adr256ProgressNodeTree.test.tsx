@@ -3,7 +3,7 @@ import "fake-indexeddb/auto";
 import { act, render } from "@testing-library/react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Label, ProgressBar } from "react-aria-components";
+import { Label, Meter, ProgressBar } from "react-aria-components";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   insertNodes,
@@ -39,7 +39,7 @@ afterEach(() => {
   for (const cleanup of cleanups.splice(0).reverse()) cleanup();
 });
 
-async function open(props: Record<string, unknown>) {
+async function open(props: Record<string, unknown>, origin = "progressbar") {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -62,7 +62,7 @@ async function open(props: Record<string, unknown>) {
         {
           kind: "node",
           id: BAR,
-          definitionId: "lib:definition:origin-component-progressbar",
+          definitionId: `lib:definition:origin-component-${origin}`,
           children: [],
           props: Object.fromEntries(
             Object.entries(props).map(([key, value]) => [key, set(value)]),
@@ -299,5 +299,91 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     )!;
     expect(note.parentId).toBe(bar().id);
     expect(root.getGeometry([note.id]).get(note.id)!.width).toBeGreaterThan(0);
+  });
+});
+
+describe("ADR-256 Phase 7b — Meter draws its node tree", () => {
+  it("has the reference structure: Meter > Label + span.value {valueText} + div.track > div.fill (Decision 11)", async () => {
+    const { root, bar } = await open({ label: "Storage", value: 75 }, "meter");
+    const actual = renderToStaticMarkup(renderCatalogDom(root, bar().id));
+    // react-aria.adobe.com Meter (the ProgressBar example's anatomy — Meter gives the same values).
+    const reference = renderToStaticMarkup(
+      createElement(Meter, {
+        value: 75,
+        children: ({ percentage, valueText }) => [
+          createElement(Label, { key: "l" }, "Storage"),
+          createElement("span", { key: "v", className: "value" }, valueText),
+          createElement(
+            "div",
+            { key: "t", className: "track inset" },
+            createElement("div", {
+              className: "fill",
+              style: { width: `${percentage}%` },
+            }),
+          ),
+        ],
+      }),
+    );
+    expect(structure(actual)).toBe(structure(reference));
+  });
+
+  it("the value text and the fill width follow the value on both consumers", async () => {
+    const { root, part, draw, edit } = await open(
+      { label: "Storage", value: 75 },
+      "meter",
+    );
+    expect(draw().querySelector(".value")?.textContent).toBe("75%");
+    expect(part("MeterValue")!.props.children).toBe("75%");
+    edit({ value: 20, maxValue: 40 });
+    const element = draw();
+    expect(element.querySelector(".value")?.textContent).toBe("50%");
+    expect((element.querySelector(".fill") as HTMLElement).style.width).toBe(
+      "50%",
+    );
+    expect(part("MeterValue")!.props.children).toBe("50%");
+    const geometry = root.getGeometry([
+      part("MeterTrack")!.id,
+      part("MeterFill")!.id,
+    ]);
+    expect(geometry.get(part("MeterFill")!.id)!.width).toBeCloseTo(
+      geometry.get(part("MeterTrack")!.id)!.width * 0.5,
+      1,
+    );
+  });
+
+  it("the Preview's run value (a runtime override of the Meter only) reaches the bound parts", async () => {
+    const { root, bar } = await open({ label: "Storage", value: 75 }, "meter");
+    const owner = bar().id;
+    const runtime = {
+      revisionOf: () => 0,
+      handlersOf: () => ({}),
+      overrideOf: (id: string) => (id === owner ? { value: 10 } : undefined),
+      subscribe: () => () => {},
+    };
+    const view = render(renderCatalogDom(root, owner, { runtime }));
+    cleanups.push(() => view.unmount());
+    const element = view.container.firstElementChild as HTMLElement;
+    expect(element.querySelector(".value")?.textContent).toBe("10%");
+    expect((element.querySelector(".fill") as HTMLElement).style.width).toBe(
+      "10%",
+    );
+  });
+
+  it("the fill paints the Meter's variant: four colors, none the track's", async () => {
+    const colors: string[] = [];
+    for (const variant of ["informative", "positive", "warning", "critical"]) {
+      const { root, part, draw } = await open(
+        { label: "Storage", value: 50, variant },
+        "meter",
+      );
+      expect(draw().getAttribute("data-variant")).toBe(variant);
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      cleanups.push(() => canvas.dispose());
+      const fill = getSkiaNode(part("MeterFill")!.id)?.box?.fillColor;
+      const track = getSkiaNode(part("MeterTrack")!.id)?.box?.fillColor;
+      expect(Array.from(fill!)).not.toEqual(Array.from(track!));
+      colors.push(Array.from(fill!).join(","));
+    }
+    expect(new Set(colors).size).toBe(4);
   });
 });

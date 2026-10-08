@@ -361,14 +361,15 @@ const datePickerNodeTreeMarkup = (
     );
 };
 /**
- * ADR-256 Phase 7a: a ProgressBar draws its node tree in RAC's ProgressBar — the same parts, and a
- * bar without a visible label is named (RAC needs a label or an `aria-label` — before, it had none).
+ * ADR-256 Phase 7a · 7b: a ProgressBar · Meter draws its node tree in RAC's component — the same
+ * parts, and one without a visible label is named (RAC needs a label or an `aria-label` — before,
+ * it had none).
  */
-const progressBarNodeTreeMarkup = (markup: string, name: string) =>
+const progressNodeTreeMarkup = (markup: string, name: string, label: string) =>
   name === "no label"
     ? markup.replace(
         /^<div aria-labelledby (aria-valuemax)/,
-        "<div aria-label=Progress $1",
+        `<div aria-label=${label} $1`,
       )
     : markup;
 /**
@@ -563,8 +564,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                     ? searchFieldGroupMarkup(fixed)
                     : type === "select"
                       ? selectNodeTreeMarkup(fixed)
-                      : type === "progressbar"
-                        ? progressBarNodeTreeMarkup(fixed, name)
+                      : type === "progressbar" || type === "meter"
+                        ? progressNodeTreeMarkup(
+                            fixed,
+                            name,
+                            type === "meter" ? "Meter" : "Progress",
+                          )
                       : type === "combobox"
                         ? comboBoxGroupMarkup(fixed, name === "quiet")
                         : type === "datepicker"

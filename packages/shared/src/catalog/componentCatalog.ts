@@ -735,6 +735,12 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "meter track",
     icon: "BarChart3",
   }),
+  // ADR-256 Phase 7b: the filled part of a Meter's track (`div.fill`, its width `{percentage}%`).
+  primitiveEntry("MeterFill", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "meter fill",
+    icon: "BarChart3",
+  }),
   // ADR-912 SliderTrack value-fill (value-fill 4 완결, 2026-06-08): Slider compound 의 트랙.
   //   palette 미노출(ComponentList 가 Slider 부모만 등록) — catalog 등록은 Skia generic 경로
   //   (slider_fill_bar escape, replace) 진입용. DOM 은 부모 RAC Slider 가 track self-compose.

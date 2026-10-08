@@ -72,6 +72,7 @@ import { listBoxBinding } from "./ListBox.binding";
 import { listBoxItemBinding } from "./ListBoxItem.binding";
 import { menuBinding } from "./Menu.binding";
 import { meterBinding } from "./Meter.binding";
+import { meterFillBinding } from "./MeterFill.binding";
 import { meterTrackBinding } from "./MeterTrack.binding";
 import { meterValueBinding } from "./MeterValue.binding";
 import { modalBinding } from "./Modal.binding";
@@ -208,6 +209,7 @@ export * from "./ListBox.binding";
 export * from "./ListBoxItem.binding";
 export * from "./Menu.binding";
 export * from "./Meter.binding";
+export * from "./MeterFill.binding";
 export * from "./MeterTrack.binding";
 export * from "./Modal.binding";
 export * from "./Nav.binding";
@@ -461,6 +463,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ProgressBarFill: progressBarFillBinding,
   // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
   MeterTrack: meterTrackBinding,
+  // ADR-256 Phase 7b: the fill in a Meter's track (its width `{percentage}%`).
+  MeterFill: meterFillBinding,
   // ADR-912 value-label (2026-06-11): 부모 compound 의 현재 값 텍스트 leaf (buildCatalogShapes text,
   //   value_fill_* escape 없음). DOM=부모 RAC self-compose 흡수. binding 필수 — 누락 시
   //   resolveEditContract value 선택 크래시(entry.binding.props.accepts).

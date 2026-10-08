@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 7b — Meter 를 노드 트리로 · 값 글자 · 채움 폭 = RAC 의 값] - 2026-10-09
+
+### Changed
+
+- **Meter 가 ProgressBar 와 같은 구조를 따른다** (ADR-256 Phase 7b):
+  - 원본 = `Meter > Label + 값 글자 + track > fill` — Preview 는 RAC Meter 가 자식 노드를 순서대로 그린다
+  - 값 글자 · 채움 폭은 RAC Meter 의 `valueText` · `percentage` 에 묶인다 — Canvas 에서도 실제 값 (전에는 고정 글자 「75%」), 최솟값 · 최댓값이 있으면 범위 안의 자리로
+  - 채움은 track 안의 노드 (`MeterFill`) — 칠은 Meter 의 variant 4색
+  - 보이는 label 이 없으면 Preview 의 Meter 에 이름 (`aria-label` 「Meter」) 이 붙는다
+  - 저장 형식 contract 25 — 옛 개발용 프로젝트는 열리지 않는다
+  - 위치: `catalog/runtime/delegatedDom.tsx` (`meter`) · `catalog/runtime/domBinding.tsx` · `catalog/runtime/presence.ts` · `catalog/document/generated/reusableOriginLibrary.ts` (`component-meter`)
+
 ## [ADR-256 Phase 7a — ProgressBar 를 노드 트리로 · 값 글자 · 채움 폭 = RAC 의 값] - 2026-10-09
 
 ### Changed

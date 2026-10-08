@@ -5042,6 +5042,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -5049,7 +5050,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-MeterValue",
     "children": [],
     "props": {
-      "children": "75%",
+      "children": "{valueText}",
       "size": "md"
     },
     "visual": {
@@ -5066,7 +5067,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-meter__3",
     "definitionId": "lib:definition:type-MeterTrack",
-    "children": [],
+    "children": [
+      "lib:template:component-meter__3_1"
+    ],
     "props": {
       "size": "md"
     },
@@ -5078,6 +5081,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "gridColumnEnd": "3",
       "gridRowStart": "2",
       "gridRowEnd": "3"
+    }
+  },
+  {
+    "id": "lib:template:component-meter__3_1",
+    "definitionId": "lib:definition:type-MeterFill",
+    "children": [],
+    "props": {
+      "size": "md"
+    },
+    "visual": {
+      "width": "{percentage}%"
     }
   },
   {
