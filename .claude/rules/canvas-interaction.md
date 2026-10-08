@@ -86,7 +86,7 @@ paths:
 
 | 계층                                                | 내용                                       | 갱신 시점                           |
 | --------------------------------------------------- | ------------------------------------------ | ----------------------------------- |
-| hover state (`hoveredElementId` / `hoveredLeafIds`) | **구조적** — childrenMap 만으로 산출       | hover context 변경 시 (pointermove) |
+| hover state (옛 `hoveredElementId` / `hoveredLeafIds` → 지금 `CatalogCanvas.tsx` `hoverLeaves`) | **구조적** — childrenMap 만으로 산출       | hover context 변경 시 (pointermove) |
 | overlay target (`buildHoverHighlightTargets`)       | **기하** — `hitBoundsMap` 으로 가시성 판정 | 프레임마다                          |
 
 - `collectLeafDescendants` 는 bounds 로 거르지 않는다. 가시성(클립/스크롤)은 프레임마다 달라지는데 hover state 는 context 가 그대로면 재계산되지 않으므로, 여기서 걸러 캐시하면 **최초 가시 집합이 고착**된다.

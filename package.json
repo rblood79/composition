@@ -12,6 +12,7 @@
     "build:specs": "pnpm generate:palette && pnpm generate:css",
     "dev:specs": "pnpm -F @composition/rendering exec tsc --noEmit --watch",
     "gate:catalog-errors": "node apps/builder/scripts/catalog-error-sweep.mjs",
+    "docs:stale-symbols": "python3 -I scripts/check-stale-doc-symbols.py",
     "cache:clean": "rm -rf .turbo/cache",
     "generate:css": "pnpm -F @composition/rendering generate:css",
     "generate:palette": "pnpm -F @composition/rendering generate:palette",
