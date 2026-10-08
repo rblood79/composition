@@ -138,8 +138,8 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // (Meter — ADR-256 Phase 7b: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // overlay · disclosure — Phase 8. (Disclosure — 8c: 레퍼런스 `Heading > Button[trigger]` + `DisclosurePanel`
-  // 노드 트리로 그린다. 옛 DisclosureHeader 행은 그 type 이 남는 동안만 — 삭제는 8e.)
-  DisclosureGroup: { children: ["Disclosure"], wrappers: true },
+  // 노드 트리로 그린다. DisclosureGroup — 8d: 자유 내용 (RAC 가 children 을 그대로 그린다), 행 삭제.
+  // 옛 DisclosureHeader 행은 그 type 이 남는 동안만 — 삭제는 8e.)
   DisclosureHeader: { children: ["DisclosureChevron", "Text"] },
   // calendar — Phase 9
   Calendar: { children: ["CalendarHeader", "CalendarGrid"], wrappers: true },

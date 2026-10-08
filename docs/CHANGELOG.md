@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8d — DisclosureGroup 이 자유 내용을 받는다] - 2026-10-08
+
+### Changed
+
+- **DisclosureGroup 안에 Disclosure 밖의 노드도 넣을 수 있다** (ADR-256 Phase 8d — RAC DisclosureGroup 은 children 을 그대로 그린다): 넣은 노드는 Canvas · Preview 양쪽에 그 자리에 보이고, 펼침 (`allowsMultipleExpanded`) 은 RAC 가 Disclosure 들 사이에서 정한다. 위치: `catalog/nesting/nestingRules.ts` (미전환 제한 행 삭제) · `catalog/runtime/delegatedDom.tsx` (`disclosuregroup` = RAC DisclosureGroup)
+
 ## [ADR-256 Phase 8c — Disclosure 를 노드 트리로 · trigger = RAC Button · 펼침 패널 = DisclosurePanel] - 2026-10-08
 
 ### Changed

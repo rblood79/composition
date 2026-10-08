@@ -95,7 +95,7 @@ import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
 import { ColorSwatchPicker } from "../../components/ColorSwatchPicker";
 import { Disclosure as RacDisclosure } from "react-aria-components/Disclosure";
-import { DisclosureGroup } from "../../components/DisclosureGroup";
+import { DisclosureGroup as RacDisclosureGroup } from "react-aria-components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
 import { RangeCalendar } from "../../components/RangeCalendar";
@@ -2193,8 +2193,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // static render shows the declared state.
       const setRuntime = input.setRuntimeProps;
       const multiple = allowsMultipleExpanded(props as Record<string, unknown>);
+      // ADR-256 Phase 8d: RAC DisclosureGroup around its children as they are (free content — G0 ②).
       return createElement(
-        DisclosureGroup as ElementType,
+        RacDisclosureGroup as ElementType,
         {
           ...marker(input),
           key: `${input.node.id}:${multiple}`,
