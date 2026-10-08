@@ -12,6 +12,7 @@ import * as RAC from "react-aria-components";
 import {
   cloneElement,
   createElement,
+  Fragment,
   isValidElement,
   memo,
   useCallback,
@@ -624,11 +625,13 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   // ADR-256 Phase 5g: RAC `SubmenuTrigger` — no element of its own; it reads its item (the first
   // child — RAC gives it `aria-haspopup`) and the Popover holding the submenu (the second).
   submenutrigger: (node, _style, children) =>
-    createElement(
-      RAC.SubmenuTrigger as ElementType,
-      { key: node.id },
-      ...children,
-    ),
+    children.length < 2
+      ? createElement(Fragment, { key: node.id }, ...children)
+      : createElement(
+          RAC.SubmenuTrigger as ElementType,
+          { key: node.id },
+          ...children,
+        ),
   // ADR-256 Phase 5h: RAC `TreeItemContent` — no element of its own; its children are the row's
   // (RAC gives them the row's chevron `Button` and selection `Checkbox` contexts).
   treeitemcontent: (node, _style, children) =>
@@ -1091,13 +1094,16 @@ const AUTHORED_CSS: Readonly<
   ),
 };
 
-/** Whether a Column is a row header: its own `isRowHeader`, else the first of a header with none. */
+/**
+ * Whether a Column is a row header: a column marked `isRowHeader`, else the first named column not
+ * marked `false` (Round 12 — RAC throws without one, so a header whose columns are all marked
+ * `false` still has its first named column name the rows).
+ */
 function columnIsRowHeader(
   root: CatalogCompositionRoot,
   column: CatalogConsumerNode,
 ): boolean {
-  if (typeof column.props.isRowHeader === "boolean")
-    return column.props.isRowHeader;
+  if (column.props.isRowHeader === true) return true;
   const header = root.domInputs.get(column.parentId);
   const columns = (header?.children ?? [])
     .map((id) => root.domInputs.get(id))
@@ -1117,10 +1123,31 @@ function columnIsRowHeader(
         );
       }),
   );
-  return (
-    !columns.some((child) => child.props.isRowHeader === true) &&
-    named[0]?.id === column.id
-  );
+  if (columns.some((child) => child.props.isRowHeader === true)) return false;
+  const first =
+    named.find((child) => child.props.isRowHeader !== false) ??
+    named[0] ??
+    columns[0];
+  return first?.id === column.id;
+}
+
+/**
+ * A SubmenuTrigger's children as RAC reads them — its item, then the Popover holding the submenu
+ * (`children[0]` · `children[1]`), whatever the authored order (ADR-256 Phase 5 Round 12). Without
+ * a Popover yet the item alone is drawn, as a plain item.
+ */
+function submenuTriggerChildren(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): readonly string[] {
+  const first = (type: string) =>
+    node.children.find((id) => {
+      const child = root.domInputs.get(id);
+      return !!child && catalogTypeName(root, child) === type;
+    });
+  const item = first("MenuItem");
+  const popover = first("Popover");
+  return item ? (popover ? [item, popover] : [item]) : [];
 }
 
 /** A Dialog's title: a Heading below it with RAC's `title` slot (not one of a nested Dialog). */
@@ -1650,6 +1677,28 @@ const CatalogDomNode = memo(function CatalogDomNode({
       ? node.children
       : NO_CHILDREN,
   );
+  // A Column's row-header default reads its sibling columns (`columnIsRowHeader` — RAC throws
+  // when an edit to another column leaves the table without one, ADR-256 Phase 5 Round 12).
+  const columnHeaderId = node?.ruleId === "Column" ? node.parentId : undefined;
+  const readColumns = useCallback(
+    () =>
+      (columnHeaderId && root.domInputs.get(columnHeaderId)?.children) ||
+      NO_CHILDREN,
+    [root, columnHeaderId],
+  );
+  useWatchedChildren(
+    root,
+    runtime,
+    useSyncExternalStore(
+      useCallback(
+        (notify: () => void) =>
+          columnHeaderId ? root.subscribeDom(columnHeaderId, notify) : () => {},
+        [root, columnHeaderId],
+      ),
+      readColumns,
+      readColumns,
+    ),
+  );
   // A removed node disappears through its parent's children delta; until then it renders nothing.
   if (!node) return null;
   context.onNodeRender?.(id);
@@ -1819,7 +1868,10 @@ function renderNode(
     : undefined;
   const children: ReactElement[] = owning
     ? []
-    : node.children.flatMap((childId) => {
+    : (node.bindingId === "submenutrigger"
+        ? submenuTriggerChildren(root, node)
+        : node.children
+      ).flatMap((childId) => {
         const child = root.domInputs.get(childId);
         // A part its owner draws has no element of its own — but a toggle indicator in a layout
         // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).

@@ -470,3 +470,59 @@ describe("ADR-256 Phase 5g — a submenu is the reference's SubmenuTrigger > Men
     expect(glyphs(share!)).toBe(1);
   });
 });
+
+/**
+ * ADR-256 Phase 5 Round 12 (Codex read m5) — RAC's SubmenuTrigger reads `children[0]` as its item
+ * and `children[1]` as the submenu's Popover: an authored order the other way (a move, a paste)
+ * broke the whole menu. The DOM gives RAC its item and Popover in that order; without a Popover
+ * yet (the author is still assembling), the item is a plain item.
+ */
+describe("ADR-256 Phase 5 Round 12 — a SubmenuTrigger whatever its children's order", () => {
+  const withSubmenuChildren = (children: string[]) =>
+    submenuEntries(chevronNode).map((entry) =>
+      entry.id === "project:node:submenu"
+        ? ({ ...entry, children: children as NodeId[] } as NodeEntry)
+        : entry,
+    );
+
+  it("Popover first: the item still opens its submenu", async () => {
+    const { root, record } = await open(
+      withSubmenuChildren([
+        "project:node:submenu-popover",
+        "project:node:share",
+      ]),
+      MENU,
+    );
+    const view = await openMenu(root, record(MENU).id);
+    const share = view.getAllByRole("menuitem")[1]!;
+    expect(share.textContent).toContain("Share");
+    expect(share.getAttribute("aria-haspopup")).toBe("menu");
+    fireEvent.click(share);
+    await waitFor(() =>
+      expect(
+        document.querySelector(`[role=menu][aria-labelledby="${share.id}"]`),
+      ).not.toBeNull(),
+    );
+  });
+
+  it("no Popover yet: the item is drawn as a plain item", async () => {
+    const { root, record } = await open(
+      withSubmenuChildren(["project:node:share"]).filter(
+        (entry) =>
+          ![
+            "project:node:submenu-popover",
+            "project:node:submenu-menu",
+            "project:node:sms",
+            "project:node:sms-label",
+            "project:node:instagram",
+            "project:node:instagram-label",
+          ].includes(entry.id),
+      ),
+      MENU,
+    );
+    const view = await openMenu(root, record(MENU).id);
+    const items = view.getAllByRole("menuitem");
+    expect(items.map((item) => item.textContent)).toEqual(["Cut", "Share"]);
+    expect(items[1]!.hasAttribute("aria-haspopup")).toBe(false);
+  });
+});

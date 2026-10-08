@@ -807,7 +807,8 @@ export function catalogTreeChevronButtonItem(
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button" || node.props.slot !== "chevron")
     return undefined;
-  const content = get(node.parentId);
+  // (Through the author's layout frames — RAC context passes any element, Round 12.)
+  const content = catalogPartParent(node, get, typeOf);
   if (!content || typeOf(content) !== "TreeItemContent") return undefined;
   const item = get(content.parentId);
   return item && typeOf(item) === "TreeItem" ? item : undefined;
@@ -824,7 +825,7 @@ export function catalogTreeChevronGlyphItem(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Icon") return undefined;
-  const button = get(node.parentId);
+  const button = catalogPartParent(node, get, typeOf);
   return button ? catalogTreeChevronButtonItem(button, get, typeOf) : undefined;
 }
 
@@ -850,11 +851,11 @@ export function catalogTreeChevrons(
   if (typeOf(node) !== "TreeItem") return [];
   const content = catalogTreeItemContent(node, get, typeOf);
   if (!content) return [];
-  return childrenOf(content, get)
+  return partChildrenOf(content, get, typeOf)
     .filter((child) => catalogTreeChevronButtonItem(child, get, typeOf))
     .flatMap((button) => [
       button,
-      ...childrenOf(button, get).filter((glyph) =>
+      ...partChildrenOf(button, get, typeOf).filter((glyph) =>
         catalogTreeChevronGlyphItem(glyph, get, typeOf),
       ),
     ]);

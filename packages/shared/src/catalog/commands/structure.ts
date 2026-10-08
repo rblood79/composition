@@ -38,7 +38,7 @@ import {
 } from "./context";
 import { ensureChildList, type NewId } from "./materialize";
 import {
-  tableAlignmentIn,
+  tableAlignedIn,
   tableColumnCells,
   tableColumnOrder,
 } from "./collections";
@@ -289,7 +289,7 @@ function holdsRacTable(reader: CatalogReader): boolean {
  * nodes the command took away, moved or released, and the parents it placed under — their Table
  * ancestors are judged. A command that touches no table part pays one type read per id.
  */
-function assertTablesAligned(
+export function assertTablesAligned(
   draft: CommandDraft,
   near: readonly string[],
 ): void {
@@ -310,14 +310,84 @@ function assertTablesAligned(
     }
   }
   for (const tableId of tables) {
-    const after = tableAlignmentIn(draft, tableId);
-    if (!after || after.rows.every((cells) => cells === after.columns))
-      continue;
-    const before = tableAlignmentIn(new CommandDraft(reader), tableId);
-    if (before && before.rows.some((cells) => cells !== before.columns))
-      continue;
+    if (tableAlignedIn(draft, tableId) !== false) continue;
+    if (tableAlignedIn(new CommandDraft(reader), tableId) === false) continue;
     fail("TABLE_CELLS_NOT_ALIGNED", tableId);
   }
+}
+
+/**
+ * The cells the RAC Table columns among `targets` take along (deleted or hidden with them — G0 ⑨),
+ * not already targets. A command without a Column pays one type read per owned target.
+ */
+function tableColumnCellTargets(
+  reader: CatalogReader,
+  draft: CommandDraft,
+  targets: readonly EditTarget[],
+): EditTarget[] {
+  if (!holdsRacTable(reader)) return [];
+  const key = (target: EditTarget) =>
+    target.kind === "node"
+      ? target.id
+      : `${target.ownerId}|${target.address.instances.join(",")}|${target.address.templatePath.join(",")}`;
+  const taken = new Set(targets.map(key));
+  const cells: EditTarget[] = [];
+  for (const target of targets) {
+    if (target.kind === "node" && revisionType(reader, target.id) !== "Column")
+      continue;
+    for (const cell of tableColumnCells(draft, target)) {
+      if (cell.kind === "page" || taken.has(key(cell))) continue;
+      taken.add(key(cell));
+      cells.push(cell);
+    }
+  }
+  return cells;
+}
+
+/**
+ * ADR-256 Phase 5 Round 12 — the targets of a hiding edit (`enabled` · responsive `visibility`) in
+ * a RAC Table: a column's cells are hidden and shown with it, and an edit that leaves a row with
+ * a cell count other than the column count at some breakpoint is refused (RAC throws — G0 ⑨).
+ */
+export function tableHidingTargets(
+  reader: CatalogReader,
+  targets: readonly EditTarget[],
+  field: "enabled" | "visibility",
+  value: NodeEntry["enabled"] | NodeEntry["visibility"],
+): readonly EditTarget[] {
+  if (!holdsRacTable(reader)) return targets;
+  const draft = new CommandDraft(reader);
+  const all = [...targets, ...tableColumnCellTargets(reader, draft, targets)];
+  for (const target of all) {
+    if (target.kind === "node") {
+      const { [field]: _old, ...rest } = draft.node(target.id);
+      draft.write(
+        value === undefined ? (rest as NodeEntry) : { ...rest, [field]: value },
+      );
+      continue;
+    }
+    const owner = draft.node(target.ownerId);
+    const current = overrideAt(owner, target.address);
+    const patch =
+      current?.kind === "patch"
+        ? current
+        : { kind: "patch" as const, address: target.address };
+    const { [field]: _old, ...rest } = patch;
+    draft.write({
+      ...owner,
+      descendantOverrides: [
+        ...owner.descendantOverrides.filter(
+          (item) => !sameAddress(item.address, target.address),
+        ),
+        value === undefined ? rest : { ...rest, [field]: value },
+      ] as NodeEntry["descendantOverrides"],
+    });
+  }
+  assertTablesAligned(
+    draft,
+    all.map((target) => (target.kind === "node" ? target.id : target.ownerId)),
+  );
+  return all;
 }
 
 /**
@@ -730,19 +800,17 @@ export const removeTargets =
   (input: RemoveInput): CatalogCommand =>
   (reader) => {
     const draft = new CommandDraft(reader);
-    const picked = input.targets.flatMap((target) =>
+    // ADR-256 Phase 5i-3: a RAC Table column takes its cell in every aligned row along (G0 ⑨ —
+    // one transaction, as a new column gives every row a cell). A reusable row's template cell is
+    // hidden there, as a deleted template position is (Round 12).
+    const targets = [
+      ...input.targets,
+      ...tableColumnCellTargets(reader, draft, input.targets),
+    ];
+    const picked = targets.flatMap((target) =>
       target.kind === "node" ? [target.id] : [],
     );
-    // ADR-256 Phase 5i-3: a RAC Table column takes its cell in every aligned row along (G0 ⑨ —
-    // one transaction, as a new column gives every row a cell).
-    const nodeIds = topLevel(reader, [
-      ...picked,
-      ...picked.flatMap((id) =>
-        holdsRacTable(reader) && revisionType(reader, id) === "Column"
-          ? tableColumnCells(draft, id as NodeId)
-          : [],
-      ),
-    ]);
+    const nodeIds = topLevel(reader, picked);
     const removed: NodeId[] = [];
     for (const id of nodeIds) {
       const ownerId = reader.ownerOf(id);
@@ -773,7 +841,7 @@ export const removeTargets =
       }
       removed.push(...subtree(draft, id));
     }
-    for (const target of input.targets) {
+    for (const target of targets) {
       if (target.kind !== "descendant") continue;
       if (removed.includes(target.ownerId)) continue;
       // A part the owner draws (a toggle's indicator, a TreeItem's chevron) is the owner RAC
@@ -809,7 +877,7 @@ export const removeTargets =
     assertRequiredPartsKept(draft, nodeIds);
     assertTablesAligned(draft, [
       ...nodeIds,
-      ...input.targets.flatMap((target) =>
+      ...targets.flatMap((target) =>
         target.kind === "descendant" ? [target.ownerId] : [],
       ),
     ]);

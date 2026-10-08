@@ -28,6 +28,7 @@ import {
   type EditTarget,
 } from "./context";
 import { requiredPartOwner } from "../nesting/requiredParts";
+import { tableHidingTargets } from "./structure";
 
 /**
  * ADR-248 Phase 4b field commands: the Properties, Style and Fill panels' edits on owned nodes
@@ -74,10 +75,7 @@ function mergeLayer<T>(
  * property paste, AI), not only hidden in the panel. The owners of a slot-reading required part
  * (Select · ComboBox · pickers' Button) give a context without names, so only the detach cuts it.
  */
-function assertRequiredSlotKept(
-  draft: CommandDraft,
-  target: EditTarget,
-): void {
+function assertRequiredSlotKept(draft: CommandDraft, target: EditTarget): void {
   const types =
     target.kind === "node"
       ? parentAncestorTypes(draft, { kind: "node", id: target.id })
@@ -221,7 +219,17 @@ export const setWholeField =
   ): CatalogCommand =>
   (reader) => {
     const ops: CatalogOperation[] = [];
-    for (const target of input.targets) {
+    // ADR-256 Phase 5 Round 12: hiding in a RAC Table keeps a cell per shown column (G0 ⑨).
+    const targets =
+      input.field === "enabled" || input.field === "visibility"
+        ? tableHidingTargets(
+            reader,
+            input.targets,
+            input.field,
+            input.value as NodeEntry["enabled"] | NodeEntry["visibility"],
+          )
+        : input.targets;
+    for (const target of targets) {
       if (target.kind === "node") {
         const node = reader.getEntry(target.id);
         if (node?.kind !== "node") return fail("NODE_REQUIRED", target.id);

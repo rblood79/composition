@@ -538,7 +538,9 @@ export function resolveCatalogNode(
     if (!near) return;
     // A toggle's part rules are descendant selectors (`.react-aria-Checkbox .react-aria-CheckboxButton`,
     // `.react-aria-CheckboxButton … .checkbox`): a layout frame the author put inside the toggle
-    // passes them through (ADR-256 Phase 3 review m1). Other owners' rules stop at the frame.
+    // passes them through (ADR-256 Phase 3 review m1). So does a TreeItem's chevron rule
+    // (`.react-aria-TreeItem .react-aria-Button[slot="chevron"]` — Phase 5 Round 12). Other
+    // owners' rules stop at the frame.
     const pastFrames = (context: ParentContext | undefined) => {
       let cursor = context;
       while (cursor && lookupDefinition(cursor.definitionId).name === "frame")
@@ -550,7 +552,8 @@ export function resolveCatalogNode(
       return (
         !!name &&
         (OWNER_DRAWN_PART_HOSTS[name] !== undefined ||
-          Object.values(OWNER_DRAWN_PART_HOSTS).includes(name))
+          Object.values(OWNER_DRAWN_PART_HOSTS).includes(name) ||
+          name === "TreeItemContent")
       );
     };
     const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;

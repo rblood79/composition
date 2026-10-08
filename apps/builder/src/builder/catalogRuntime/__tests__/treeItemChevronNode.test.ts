@@ -15,6 +15,7 @@ import "fake-indexeddb/auto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  groupNodes,
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
@@ -250,6 +251,80 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
     const [turned] = glyphs(getSkiaNode(icon.id));
     expect(JSON.stringify(turned.iconPath?.paths)).not.toBe(before);
     canvas.dispose();
+    workspace.dispose();
+  });
+
+  it("a chevron Button the author wraps in a frame stays the item's chevron (Round 12 — RAC context passes the frame)", async () => {
+    const node = (
+      id: string,
+      type: string,
+      children: string[],
+      props: Record<string, unknown> = {},
+    ) => nodeEntry(id, catalogTypeDefinitionId(type), children, props);
+    const row = (key: string, items: string[] = []) => [
+      node(
+        `project:node:${key}`,
+        "TreeItem",
+        [`project:node:${key}-c`, ...items],
+        {
+          id: key,
+        },
+      ),
+      node(`project:node:${key}-c`, "TreeItemContent", [
+        `project:node:${key}-b`,
+        `project:node:${key}-t`,
+      ]),
+      node(`project:node:${key}-b`, "Button", [`project:node:${key}-i`], {
+        slot: "chevron",
+        size: "sm",
+        children: "",
+      }),
+      node(`project:node:${key}-i`, "Icon", [], {
+        iconName: "chevron-right",
+        size: "xs",
+      }),
+      node(`project:node:${key}-t`, "Text", [], { children: key }),
+    ];
+    const workspace = await openWorkspace(() => [
+      node(OWNER, "Tree", ["project:node:a", "project:node:b"]),
+      ...row("a", ["project:node:a1"]),
+      ...row("a1"),
+      ...row("b"),
+    ]);
+    const root = workspace.root;
+    const record = (sourceId: string) =>
+      [...root.layoutInputs.values()].find(
+        (entry) => entry.sourceId === sourceId,
+      )!;
+    const before = rectIn(
+      root,
+      record("project:node:b-b").id,
+      record("project:node:b").id,
+    );
+    workspace.execute(
+      groupNodes({
+        ids: ["project:node:b-b" as NodeId],
+        group: nodeEntry("project:node:wrap", "lib:definition:type-frame"),
+        newId: workspace.newId,
+      }),
+    );
+    const button = record("project:node:b-b");
+    const icon = record("project:node:b-i");
+    // A leaf item's chevron rests hidden; its box is the chevron box (size — the frame moves it).
+    expect(icon.hidden).toBe(true);
+    expect(
+      rectIn(root, button.id, record("project:node:b").id).slice(2),
+    ).toEqual(before.slice(2));
+    // The DOM button is the bare RAC chevron (Tree.css), not a Button box with inline sizes.
+    const html = renderToStaticMarkup(renderCatalogDom(root, record(OWNER).id));
+    const tagOf = (id: string) =>
+      html.match(new RegExp(`<button[^>]*data-catalog-id="${id}"[^>]*>`))![0];
+    const tag = tagOf(button.id);
+    const style = (t: string) => t.match(/style="([^"]*)"/)?.[1];
+    expect(tag).toContain('slot="chevron"');
+    expect(tag).not.toContain("button-base");
+    // (The same box as an unwrapped chevron's — not the Button type's `min-width: 50px`.)
+    expect(style(tag)).toBe(style(tagOf(record("project:node:a-b").id)));
     workspace.dispose();
   });
 

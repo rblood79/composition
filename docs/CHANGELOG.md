@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5 판독 수리 (Round 12) — Table · Tree · 하위 메뉴가 깨지는 편집 5건] - 2026-10-09
+
+### Fixed
+
+- **재사용 행 (컴포넌트로 만든 Row) 이 있는 표** — 그 행의 칸은 컴포넌트 쪽에 있어 표 검사가 칸 0개로 읽었다: 열을 넣으면 **모든 행에** 칸이 안 붙고, 열을 지우면 그 행의 칸이 남아 Preview 표가 멈췄다. 이제 그 행의 칸도 세고, 새 열은 그 행에도 칸을 붙이고, 열을 지우면 그 행의 칸을 그 표에서 숨긴다. 그 행의 칸 단독 삭제는 거부, 그 행이 있는 표의 열 순서 바꾸기는 거부 (컴포넌트의 칸 순서는 다른 표와 같이 쓰므로)
+- **칸 하나 숨기기 (반응형 표시 · 레이어 눈) 가 표를 멈추던 것** — 숨기기도 표 검사를 거친다 (breakpoint 마다). 칸 하나만 숨기면 거부, **열을 숨기면 각 행의 그 칸도 같이 숨고 다시 보이면 같이 보인다**. 숨긴 열이 있는 표에 행을 넣으면 그 자리 칸도 숨긴 채로 만든다
+- **첫 열을 행 이름 열에서 빼면 (`isRowHeader` 끔) 표가 멈추던 것** — 다음 열이 행 이름을 맡는다. 띄워 둔 Preview 에서 첫 열을 지우거나 다른 열의 `isRowHeader` 를 바꿔도 행 이름 열이 따라간다 (다른 열이 다시 그려지지 않아 행 이름 열이 없어지던 것)
+- **Tree 의 chevron 버튼을 frame 으로 묶으면** Canvas 에서 잎 항목의 glyph 가 보이고 버튼이 Button 기본 크기 (50) 가 되던 것 — chevron 판정 · 모양이 frame 을 건넌다 (RAC context 와 `Tree.css` 자손 선택자처럼)
+- **하위 메뉴 (`SubmenuTrigger`) 의 Popover 를 항목보다 앞에 두면 메뉴 전체가 열리지 않던 것** — Preview 는 항목 · Popover 를 RAC 가 읽는 순서로 넘긴다. Popover 를 아직 넣지 않은 하위 메뉴는 항목만 보통 항목으로 그린다 (전에는 항목이 사라졌다)
+- 위치: `catalog/commands/{collections,structure,fields}.ts` (`tableAlignedIn` · `tableHidingTargets` · `partChildren`) · `catalog/runtime/domBinding.tsx` (`columnIsRowHeader` · 열 형제 구독 · `submenuTriggerChildren`) · `catalog/runtime/presence.ts` · `catalog/resolution/resolver.ts`
+
 ## [ADR-256 Phase 5i-3 — Table 의 행은 열마다 칸 하나] - 2026-10-09
 
 ### Changed

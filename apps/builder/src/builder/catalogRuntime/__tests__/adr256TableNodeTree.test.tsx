@@ -13,12 +13,14 @@ import {
 } from "react-aria-components/Table";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  createComponent,
   insertNodes,
   insertTableColumns,
   insertTableRow,
   moveNodes,
   removeTargets,
   setFields,
+  setWholeField,
 } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
@@ -650,5 +652,196 @@ describe("ADR-256 Phase 5i-3 — Column count = Cell count", () => {
         ),
       ),
     ).toBe("TABLE_CELLS_NOT_ALIGNED");
+  });
+});
+
+/**
+ * ADR-256 Phase 5 Round 12 (Codex read) — RAC's Table needs a cell per column in every row (G0 ⑨)
+ * and a row header (RAC throws without one): a reusable Row (a component instance — its cells are
+ * its template's), a hidden cell (responsive `visibility` · `enabled`) and an author's
+ * `isRowHeader: false` on the first column reached that state.
+ */
+describe("ADR-256 Phase 5 Round 12 — the Table stays one RAC can draw", () => {
+  const refusal = (run: () => void) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as { code?: unknown }).code;
+    }
+    return undefined;
+  };
+  const cellsOf = (grid: Element) =>
+    [...grid.querySelectorAll("tbody [role=row]")].map((row) =>
+      [...row.children].map((cell) => cell.textContent),
+    );
+
+  /** Row 0 made a component (Assets): an instance takes its place, its cells are the template's. */
+  async function openWithReusableRow() {
+    const opened = await open();
+    const { workspace } = opened;
+    workspace.execute(
+      createComponent({
+        id: "project:node:r0" as NodeId,
+        name: "File row",
+        newId: workspace.newId,
+      }),
+    );
+    const { root } = opened;
+    const cell = (text: string) =>
+      [...root.domInputs.values()].find(
+        (r) => root.typeOf(r) === "Cell" && r.props.children === text,
+      )!;
+    return { ...opened, cell };
+  }
+
+  it("h1 — a reusable row's cells count: deleting a column hides its cell there too", async () => {
+    const { workspace, record, draw } = await openWithReusableRow();
+    expect(cellsOf(draw())[0]).toEqual(["Games", "File folder"]);
+    workspace.execute(
+      removeTargets({
+        targets: [
+          workspace.positionOfRecord(record("project:node:name").id)!.target,
+        ],
+      }),
+    );
+    expect(cellsOf(draw())).toEqual([
+      ["File folder"],
+      ["File folder"],
+      ["System file"],
+    ]);
+  });
+
+  it("h1 — a reusable row's own cell cannot be deleted alone, and its template cells cannot follow a column move", async () => {
+    const { workspace, record, cell } = await openWithReusableRow();
+    expect(
+      refusal(() =>
+        workspace.execute(
+          removeTargets({
+            targets: [workspace.positionOfRecord(cell("Games").id)!.target],
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    expect(
+      refusal(() =>
+        workspace.execute(
+          moveNodes({
+            ids: [record("project:node:type").sourceId as NodeId],
+            parent: workspace.positionOfRecord(
+              record("project:node:header").id,
+            )!.target as never,
+            index: 0,
+            newId: workspace.newId,
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+  });
+
+  it("h1 — a new column gives the reusable row a cell too", async () => {
+    const { workspace, record, draw } = await openWithReusableRow();
+    workspace.execute(
+      insertTableColumns({
+        header: workspace.positionOfRecord(record("project:node:header").id)!
+          .target,
+        buildColumn: () => {
+          const column = node(workspace.newId("node"), "Column", {
+            children: "",
+          });
+          return { entries: [column], rootId: column.id as NodeId };
+        },
+        buildCell: () => {
+          const c = node(workspace.newId("node"), "Cell", { children: "+" });
+          return { entries: [c], rootId: c.id as NodeId };
+        },
+        newId: workspace.newId,
+      }),
+    );
+    expect(cellsOf(draw())).toEqual([
+      ["Games", "File folder", "+"],
+      ["Program Files", "File folder", "+"],
+      ["bootmgr", "System file", "+"],
+    ]);
+  });
+
+  it("h2 — a cell alone cannot be hidden (a breakpoint or the layer's eye); hiding a column hides its cells", async () => {
+    const { workspace, record, draw } = await open();
+    const at = (id: string) =>
+      workspace.positionOfRecord(record(id).id)!.target;
+    expect(
+      refusal(() =>
+        workspace.execute(
+          setWholeField({
+            targets: [at("project:node:r0c1")],
+            field: "visibility",
+            value: { tablet: false },
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    expect(
+      refusal(() =>
+        workspace.execute(
+          setWholeField({
+            targets: [at("project:node:r0c1")],
+            field: "enabled",
+            value: false,
+          }),
+        ),
+      ),
+    ).toBe("TABLE_CELLS_NOT_ALIGNED");
+    workspace.execute(
+      setWholeField({
+        targets: [at("project:node:name")],
+        field: "visibility",
+        value: { mobile: false },
+      }),
+    );
+    const entry = (id: string) =>
+      workspace.runtime.graph.getEntry(id as NodeId) as NodeEntry;
+    expect(
+      [0, 1, 2].map((r) => entry(`project:node:r${r}c0`).visibility),
+    ).toEqual([{ mobile: false }, { mobile: false }, { mobile: false }]);
+    workspace.execute(
+      setWholeField({
+        targets: [at("project:node:name")],
+        field: "enabled",
+        value: false,
+      }),
+    );
+    expect(cellsOf(draw())).toEqual([
+      ["File folder"],
+      ["File folder"],
+      ["System file"],
+    ]);
+    // (Showing the column again shows its cells again.)
+    workspace.execute(
+      setWholeField({
+        targets: [{ kind: "node", id: "project:node:name" as NodeId }],
+        field: "enabled",
+        value: undefined,
+      }),
+    );
+    expect(cellsOf(draw())[0]).toEqual(["Games", "File folder"]);
+  });
+
+  it("m3 — the first column marked not a row header leaves the next one naming the rows (a mounted table too)", async () => {
+    const { workspace, record, draw } = await open();
+    // (Drawn first: the other column re-renders with the edit — it reads its siblings.)
+    const mounted = draw();
+    workspace.execute(
+      setFields({
+        targets: [
+          workspace.positionOfRecord(record("project:node:name").id)!.target,
+        ],
+        props: { isRowHeader: set(false) },
+      }),
+    );
+    for (const grid of [mounted, draw()])
+      expect(
+        [...grid.querySelectorAll("[role=rowheader]")].map(
+          (cell) => cell.textContent,
+        ),
+      ).toEqual(["File folder", "File folder", "System file"]);
   });
 });

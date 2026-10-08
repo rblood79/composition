@@ -1,5 +1,6 @@
 import type {
   AuthoredValue,
+  BreakpointName,
   CatalogReader,
   NodeEntry,
   NodeId,
@@ -8,6 +9,7 @@ import type {
   WriteValue,
 } from "../document/types";
 import { readPropSource } from "../resolution/fieldSource";
+import { catalogNodeVisibleAt } from "../resolution/resolver";
 import type { CatalogOperation } from "../transactions/transaction";
 import type { CatalogCommand } from "./compose";
 import {
@@ -16,6 +18,7 @@ import {
   CommandDraft,
   definitionTypeName,
   fail,
+  overrideAt,
   setChildList,
   templateDefinitionId,
   type EditTarget,
@@ -703,27 +706,96 @@ function headerPositionIn(
   return undefined;
 }
 
-/** Shown positions (a node the author hid — `enabled: false` — is not there). */
-function shownPositions(
+/** A composite instance's template root position — its template children show before its own. */
+function compositeRootOf(
   draft: CommandDraft,
-  positions: readonly NodeParent[],
-): NodeParent[] {
-  return positions.filter(
-    (position) =>
-      position.kind !== "node" || draft.node(position.id).enabled !== false,
-  );
+  position: NodeParent,
+): NodeParent | undefined {
+  if (position.kind !== "node") return undefined;
+  const { definitionId } = draft.node(position.id);
+  const definition = definitionId.startsWith("lib:")
+    ? draft.reader.library.definitions.get(
+        definitionId as `lib:definition:${string}`,
+      )
+    : draft.reader.getEntry(definitionId);
+  const rootId =
+    definition && "templateRootId" in definition
+      ? (definition.templateRootId as TemplateId | undefined)
+      : undefined;
+  return rootId
+    ? {
+        kind: "descendant",
+        ownerId: position.id,
+        address: { instances: [position.id], templatePath: [rootId] },
+      }
+    : undefined;
 }
+/**
+ * The positions a table part shows as children, hidden ones included: a component instance's
+ * (a reusable Row — ADR-256 Phase 5 Round 12) template children, then its own.
+ */
+function partChildren(draft: CommandDraft, position: NodeParent): NodeParent[] {
+  const root = compositeRootOf(draft, position);
+  return [
+    ...(root ? childPositions(draft, root) : []),
+    ...childPositions(draft, position),
+  ];
+}
+function positionKey(position: NodeParent): string {
+  return position.kind === "descendant"
+    ? `${position.ownerId}|${position.address.instances.join(",")}|${position.address.templatePath.join(",")}`
+    : position.id;
+}
+/** The hiding fields at a position: its own (a node) or its patch over its template's. */
+function hidingAt(
+  draft: CommandDraft,
+  position: NodeParent,
+): Pick<NodeEntry, "enabled" | "visibility"> {
+  if (position.kind === "page") return {};
+  if (position.kind === "node") {
+    const { enabled, visibility } = draft.node(position.id);
+    return { enabled, visibility };
+  }
+  const override = overrideAt(draft.node(position.ownerId), position.address);
+  const patch = override?.kind === "patch" ? override : undefined;
+  const templateId = position.address.templatePath.at(-1)!;
+  const template = (
+    templateId.startsWith("lib:")
+      ? draft.reader.library.templates.get(
+          templateId as `lib:template:${string}`,
+        )
+      : draft.read(templateId)
+  ) as Pick<NodeEntry, "enabled" | "visibility"> | undefined;
+  return {
+    enabled: patch?.enabled ?? template?.enabled,
+    visibility: patch?.visibility ?? template?.visibility,
+  };
+}
+/** Whether a position shows at a breakpoint (the resolver's `enabled` and `visibility`). */
+function shownAt(
+  draft: CommandDraft,
+  position: NodeParent,
+  breakpoint: BreakpointName,
+): boolean {
+  const hiding = hidingAt(draft, position);
+  return hiding.enabled !== false && catalogNodeVisibleAt(hiding, breakpoint);
+}
+const TABLE_BREAKPOINTS: readonly BreakpointName[] = [
+  "desktop",
+  "tablet",
+  "mobile",
+];
 
 /**
- * ADR-256 Phase 5i-3 — a RAC Table's alignment (G0 ⑨: RAC throws when a row's cell count differs
- * from the column count): its shown column count and each shown row's cell count, read from
- * `draft` (a command's result). Undefined for any node that is not a RAC Table (a TableView draws
- * its own grid).
+ * ADR-256 Phase 5i-3 — whether a RAC Table is aligned (G0 ⑨: RAC throws when a row's cell count
+ * differs from the column count): at every breakpoint, each shown row shows as many cells as the
+ * header shows columns (`enabled` · `visibility` — Round 12), read from `draft` (a command's
+ * result). Undefined for any node that is not a RAC Table (a TableView draws its own grid).
  */
-export function tableAlignmentIn(
+export function tableAlignedIn(
   draft: CommandDraft,
   tableId: NodeId,
-): { columns: number; rows: number[] } | undefined {
+): boolean | undefined {
   const table = draft.read(tableId);
   if (
     table?.kind !== "node" ||
@@ -733,66 +805,32 @@ export function tableAlignmentIn(
   const header = headerPositionIn(draft, tableId);
   if (!header) return undefined;
   const body = tableBodyOf(draft, header);
-  return {
-    columns: shownPositions(draft, childPositions(draft, header)).length,
-    rows: body
-      ? shownPositions(draft, childPositions(draft, body)).map(
-          (row) => shownPositions(draft, childPositions(draft, row)).length,
-        )
-      : [],
-  };
-}
-
-/**
- * ADR-256 Phase 5i-3 — the cells a RAC Table column takes along when it is deleted: the cell at
- * the column's place in every row that is aligned with the header (G0 ⑨ — one transaction).
- * Empty for a node that is not an owned Column of a RAC Table.
- */
-export function tableColumnCells(
-  draft: CommandDraft,
-  columnId: NodeId,
-): NodeId[] {
-  const column = draft.read(columnId);
-  if (
-    column?.kind !== "node" ||
-    definitionTypeName(draft.reader, column.definitionId) !== "Column"
-  )
-    return [];
-  const header = parentOf(draft, { kind: "node", id: columnId });
-  const table = header ? parentOf(draft, header) : undefined;
-  if (
-    !header ||
-    !table ||
-    positionType(draft, header) !== "TableHeader" ||
-    positionType(draft, table) !== "Table"
-  )
-    return [];
-  const columns = shownPositions(draft, childPositions(draft, header));
-  const index = columns.findIndex(
-    (position) => position.kind === "node" && position.id === columnId,
-  );
-  const body = tableBodyOf(draft, header);
-  if (index < 0 || !body) return [];
-  return shownPositions(draft, childPositions(draft, body)).flatMap((row) => {
-    const cells = shownPositions(draft, childPositions(draft, row));
-    const cell = cells[index];
-    return cells.length === columns.length && cell?.kind === "node"
-      ? [cell.id]
-      : [];
+  const columns = partChildren(draft, header);
+  const rows = body
+    ? partChildren(draft, body).map((row) => ({
+        row,
+        cells: partChildren(draft, row),
+      }))
+    : [];
+  return TABLE_BREAKPOINTS.every((breakpoint) => {
+    const shown = (position: NodeParent) =>
+      shownAt(draft, position, breakpoint);
+    const count = shown(header) ? columns.filter(shown).length : 0;
+    return (
+      !body ||
+      !shown(body) ||
+      rows.every(
+        ({ row, cells }) => !shown(row) || cells.filter(shown).length === count,
+      )
+    );
   });
 }
 
-/**
- * ADR-256 Phase 5i-3 — a RAC Table header's column order and its aligned rows' cells, before a
- * command reorders the columns: `follow` (after the command's writes) gives every such row its
- * cells in the header's new column order — RAC pairs a row's cells with the columns by place.
- * Undefined when `columnId` is not an owned Column of a RAC Table.
- */
-export function tableColumnOrder(
-  draft: CommandDraft,
-  columnId: NodeId,
-): { follow(): void } | undefined {
-  const header = parentOf(draft, { kind: "node", id: columnId });
+/** A RAC Table column's header and the rows aligned with it (as many cells as columns). */
+function tableColumnGrid(draft: CommandDraft, column: NodeParent) {
+  if (column.kind === "page" || positionType(draft, column) !== "Column")
+    return undefined;
+  const header = parentOf(draft, column);
   const table = header ? parentOf(draft, header) : undefined;
   if (
     !header ||
@@ -801,31 +839,85 @@ export function tableColumnOrder(
     positionType(draft, table) !== "Table"
   )
     return undefined;
-  const columnIds = (positions: readonly NodeParent[]) =>
-    positions.map((position) => positionId(position));
-  const before = columnIds(childPositions(draft, header));
+  const columns = partChildren(draft, header);
   const body = tableBodyOf(draft, header);
-  const rows = (body ? childPositions(draft, body) : []).flatMap((row) =>
-    row.kind === "node" && draft.node(row.id).children.length === before.length
-      ? [{ id: row.id, cells: [...draft.node(row.id).children] }]
-      : [],
+  const rows = (body ? partChildren(draft, body) : []).flatMap((row) => {
+    const cells = partChildren(draft, row);
+    return cells.length === columns.length ? [{ row, cells }] : [];
+  });
+  return { header, columns, rows };
+}
+
+/**
+ * ADR-256 Phase 5i-3 — the cells a RAC Table column takes along when it is deleted or hidden: the
+ * cell at the column's place in every row aligned with the header (G0 ⑨ — one transaction). A
+ * reusable row's template cell is a position (Round 12). Empty for a non-Column.
+ */
+export function tableColumnCells(
+  draft: CommandDraft,
+  column: NodeParent,
+): NodeParent[] {
+  const grid = tableColumnGrid(draft, column);
+  if (!grid) return [];
+  const index = grid.columns.findIndex(
+    (position) => positionKey(position) === positionKey(column),
   );
+  return index < 0 ? [] : grid.rows.map(({ cells }) => cells[index]!);
+}
+
+/**
+ * ADR-256 Phase 5i-3 — a RAC Table header's column order and its aligned rows' cells, before a
+ * command reorders the columns: `follow` (after the command's writes) gives every such row its
+ * cells in the header's new column order — RAC pairs a row's cells with the columns by place. A
+ * reusable row's template cells cannot be reordered in one table: such a reorder is refused
+ * (Round 12). Undefined when `columnId` is not a Column of a RAC Table.
+ */
+export function tableColumnOrder(
+  draft: CommandDraft,
+  columnId: NodeId,
+): { follow(): void } | undefined {
+  const grid = tableColumnGrid(draft, { kind: "node", id: columnId });
+  if (!grid) return undefined;
+  const { header } = grid;
+  const before = grid.columns.map(positionKey);
+  const rows = grid.rows.map(({ row, cells }) => ({
+    id: row.kind === "node" ? row.id : undefined,
+    cells: cells.every((cell) => cell.kind === "node")
+      ? cells.map((cell) => positionId(cell) as NodeId)
+      : undefined,
+  }));
   return {
     follow() {
-      const after = columnIds(childPositions(draft, header));
+      const after = partChildren(draft, header).map(positionKey);
       if (
         after.length !== before.length ||
-        after.every((id, index) => id === before[index])
+        after.every((key, index) => key === before[index])
       )
         return;
       for (const row of rows) {
+        if (!row.id || !row.cells) {
+          fail("TABLE_CELLS_NOT_ALIGNED", positionId(header));
+          return;
+        }
         const node = draft.node(row.id);
         draft.write({
           ...node,
-          children: after.map((id) => row.cells[before.indexOf(id)]!),
+          children: after.map((key) => row.cells![before.indexOf(key)]!),
         });
       }
     },
+  };
+}
+
+/** The hiding a new cell under `column` copies (a hidden column's cells are hidden — Round 12). */
+export function tableColumnHiding(
+  draft: CommandDraft,
+  column: NodeParent,
+): Pick<NodeEntry, "enabled" | "visibility"> {
+  const { enabled, visibility } = hidingAt(draft, column);
+  return {
+    ...(enabled === false ? { enabled } : {}),
+    ...(visibility ? { visibility } : {}),
   };
 }
 
@@ -924,8 +1016,11 @@ export const insertTableColumns =
     const body = input.replace ? undefined : tableBodyOf(draft, input.header);
     if (body) {
       const rows = ensureChildList(draft, body, input.newId);
+      // (A reusable row's cells are its template's, then its own — Round 12; a new cell is its own.)
       const aligned = rows.every(
-        (row) => draft.node(row).children.length === current.length,
+        (row) =>
+          partChildren(draft, { kind: "node", id: row }).length ===
+          current.length,
       );
       if (rows.length && aligned)
         for (const rowId of rows) {
@@ -968,17 +1063,29 @@ export const insertTableRow =
     const header = childPositions(draft, owner!).find(
       (child) => positionType(draft, child) === "TableHeader",
     );
-    const columnCount = header
-      ? childPositions(draft, header).filter(
-          (child) =>
-            child.kind !== "node" || draft.node(child.id).enabled !== false,
-        ).length
-      : 0;
+    // A cell per column, hidden ones included: a hidden column's cell is hidden as it is (Round 12
+    // — RAC needs the shown counts equal at every breakpoint).
+    const columns = header ? partChildren(draft, header) : [];
+    const columnCount = columns.length;
     const rows = ensureChildList(draft, input.body, input.newId);
-    if (!rows.every((row) => draft.node(row).children.length === columnCount))
+    if (
+      !rows.every(
+        (row) =>
+          partChildren(draft, { kind: "node", id: row }).length === columnCount,
+      )
+    )
       fail("TABLE_ROWS_NOT_ALIGNED", positionId(input.body));
     const built = input.buildRow(columnCount);
-    for (const entry of built.entries) draft.create(entry);
+    const cellIds =
+      built.entries.find((entry) => entry.id === built.rootId)?.children ?? [];
+    for (const entry of built.entries) {
+      const index = cellIds.indexOf(entry.id);
+      draft.create(
+        index >= 0 && columns[index]
+          ? { ...entry, ...tableColumnHiding(draft, columns[index]) }
+          : entry,
+      );
+    }
     setChildList(draft, input.body, [...rows, built.rootId]);
     return {
       label: input.label ?? "Add row",
