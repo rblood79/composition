@@ -27,7 +27,8 @@ export const RAC_REQUIRED_PARTS: Readonly<
   Slider: [["SliderTrack"], ["SliderThumb"]],
   Calendar: [["CalendarGrid"]],
   RangeCalendar: [["CalendarGrid"]],
-  Disclosure: [["DisclosureHeader"]],
+  // ADR-256 Phase 8c (G0 ⑨): a Disclosure without its trigger Button has no way to expand.
+  Disclosure: [["Button"]],
   Tabs: [["TabList"]],
   TagGroup: [["TagList"]],
   // ADR-256 Phase 3 (G0 ⑨): CheckboxField without its CheckboxButton has no checkbox input.

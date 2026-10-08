@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 28,
+    libraryContractVersion: 29,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -554,6 +554,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + MeterFill (ADR-256 Phase 7b).
     // + SliderFill (ADR-256 Phase 7c).
     // + OverlayArrow (ADR-256 Phase 8a).
-    expect(types.length).toBe(149);
+    // + DisclosurePanel (ADR-256 Phase 8c).
+    expect(types.length).toBe(150);
   }, 120_000);
 });

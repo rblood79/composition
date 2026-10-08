@@ -470,7 +470,9 @@ describe("ADR-256 Decision 5 — required parts", () => {
       ).toBe("ok");
     });
 
-    it("ungrouping a Disclosure's header is refused; ungrouping a frame around it is not", async () => {
+    // ADR-256 Phase 8c: a Disclosure's required part is its trigger Button (G0 ⑨ — `Heading >
+    // Button[slot=trigger]`); its header Heading is a wrapper around it.
+    it("ungrouping a Disclosure's trigger is refused; ungrouping its header or a frame around it is not", async () => {
       const { workspace } = await open();
       const id = (name: string) => `project:node:${name}` as NodeId;
       workspace.execute(
@@ -481,9 +483,13 @@ describe("ADR-256 Decision 5 — required parts", () => {
               id("wrap"),
             ]),
             node(id("wrap"), "lib:definition:type-frame", [id("header")]),
-            node(id("header"), "lib:definition:type-DisclosureHeader", [
-              id("title"),
-            ]),
+            node(id("header"), "lib:definition:heading", [id("trigger")]),
+            {
+              ...node(id("trigger"), "lib:definition:type-Button", [
+                id("title"),
+              ]),
+              props: { slot: { kind: "set", value: "trigger" } },
+            } as NodeEntry,
             node(id("title"), "lib:definition:text"),
           ],
           rootIds: [id("disclosure")],
@@ -496,7 +502,8 @@ describe("ADR-256 Decision 5 — required parts", () => {
             ungroupNodes({ ids: [id(name)], newId: workspace.newId }),
           ),
         );
-      expect(ungroup("header")).toBe("REQUIRED_PART_NOT_REMOVABLE");
+      expect(ungroup("trigger")).toBe("REQUIRED_PART_NOT_REMOVABLE");
+      expect(ungroup("header")).toBe("ok");
       expect(ungroup("wrap")).toBe("ok");
     });
   });

@@ -137,6 +137,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ADR-256 Phase 8a: RAC OverlayArrow — placed from its overlay's trigger (RAC's
   //   `OverlayArrowContext`, the Popover's · Tooltip's).
   OverlayArrow: { owners: ["Popover", "Tooltip"] },
+  // ADR-256 Phase 8c: RAC DisclosurePanel — its Disclosure's context (throws outside it, G0 ⑧).
+  DisclosurePanel: { owners: ["Disclosure"] },
 
   // ── 텍스트 ──
   Text: { families: ["textHost"] },

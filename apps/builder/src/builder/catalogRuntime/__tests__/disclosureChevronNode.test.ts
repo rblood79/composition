@@ -1,14 +1,11 @@
 // @vitest-environment jsdom
 /**
- * Disclosure chevron node (2026-10-07, user「Disclosure header 도 switch · checkbox 처럼 indicator 와 label 이
- * 분리」 — the toggle indicator / TreeItemChevron pattern): a Disclosure's header holds its chevron as a
- * `DisclosureChevron` child and its title as a `Text` child (`{title}`), as the reference trigger
- * `<Button slot="trigger"><ChevronRight /><span>{children}</span></Button>`.
- *
- * Oracle: the DOM trigger (`Disclosure.css` — `padding: 8px 12px`, `gap: 4px`, `.disclosure-chevron`
- * 18px, `flex-shrink: 0`): the chevron box at x 12, the title at x 34. Before the nodes the Canvas
- * drew the glyph at cx 43 and the title at 56 (the header's 34px inset and the rule's leading-icon
- * shift both applied), and it never turned the glyph (the header had no expansion value).
+ * Disclosure chevron (ADR-256 Phase 8c — rewritten from the 2026-10-07 DisclosureChevron node): the
+ * chevron is the trigger's Icon node, the reference `<Button slot="trigger"><ChevronRight />
+ * <span>{children}</span></Button>` (the Tree chevron's way, Phase 5h). The Canvas paints the glyph in
+ * the Icon's own box (18px, the trigger's `--icon-size`) in the trigger's text color — the DOM glyph's
+ * `currentColor` (the old header rule painted it `neutral-subdued`) — and turns it with the
+ * expansion; the Heading and the trigger Button paint no glyph of their own.
  */
 import "fake-indexeddb/auto";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -21,7 +18,6 @@ import {
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import {
   buildCodeCatalogLibrary,
-  catalogTypeDefinitionId,
 } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   CatalogLibrary,
@@ -32,7 +28,7 @@ import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import type { SkiaNodeData } from "../../workspace/canvas/skia/nodeRendererTypes";
 import { bindCatalogCanvas } from "../canvasBinding";
 import type { CatalogTextMeasure } from "../compositionRoot";
-import { catalogDomRendersNode, renderCatalogDom } from "../domBinding";
+import { renderCatalogDom } from "../domBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -126,76 +122,45 @@ function glyphs(data: SkiaNodeData | undefined): SkiaNodeData[] {
   ];
 }
 
-describe("Disclosure chevron node", () => {
-  it.each([
-    ["sm", 34, 8, 12],
-    ["md", 36, 9, 14],
-    ["lg", 38.857, 10.429, 16],
-  ] as const)(
-    "the header holds the chevron and the title Text; the trigger row places them as the DOM (%s)",
-    async (size, height, chevronY, fontSize) => {
-      const { workspace, root, kids, ofBinding } = await openPalette(
-        "Disclosure",
-        { size },
-      );
-      const [header] = ofBinding("disclosureheader");
-      const [chevron, title] = kids(header.id);
-      expect([chevron.bindingId, title.bindingId]).toEqual([
-        "disclosurechevron",
-        "text",
-      ]);
-      expect(title.props.children).toBe("Section Title");
-      const geometry = root.getGeometry([header.id, chevron.id, title.id]);
-      expect(geometry.get(header.id)!.height).toBeCloseTo(height, 2);
-      const box = geometry.get(chevron.id)!;
-      expect(box.x).toBe(12);
-      expect(box.y).toBeCloseTo(chevronY, 2);
-      expect([box.width, box.height]).toEqual([18, 18]);
-      expect(geometry.get(title.id)!.x).toBe(34);
-      // The title takes the trigger's font (size per Disclosure size, weight 600).
-      expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
-      workspace.dispose();
-    },
+/** The trigger parts of the first Disclosure: its Heading, trigger Button, chevron Icon, title Text. */
+function triggerOf(
+  root: Awaited<ReturnType<typeof openPalette>>["root"],
+  ofBinding: (binding: string) => ReturnType<
+    Awaited<ReturnType<typeof openPalette>>["ofBinding"]
+  >,
+  index = 0,
+) {
+  const heading = ofBinding("heading")[index]!;
+  const trigger = root.layoutInputs.get(heading.children[0]!)!;
+  const [chevron, title] = trigger.children.map(
+    (id) => root.layoutInputs.get(id)!,
   );
+  return { heading, trigger, chevron, title };
+}
 
-  it("the DOM absorbs the chevron node and draws the title Text inside the RAC trigger", async () => {
-    const { workspace, root, kids, ofBinding } =
-      await openPalette("Disclosure");
-    const [disclosure] = ofBinding("disclosure");
-    const [header] = ofBinding("disclosureheader");
-    const [chevron, title] = kids(header.id);
-    const html = renderToStaticMarkup(renderCatalogDom(root, disclosure.id));
-    expect(html).not.toContain(`data-catalog-id="${chevron.id}"`);
-    expect(catalogDomRendersNode(root, chevron.id)).toBe(false);
-    const trigger = /<button[^>]*slot="trigger"[^>]*>(.*?)<\/button>/.exec(
-      html,
-    )?.[1];
-    expect(trigger).toMatch(
-      new RegExp(
-        // (RAC Text in the trigger's context — ADR-256 Decision 4; attribute order is RAC's.)
-        `^<svg[^>]*class="disclosure-chevron".*</svg><span (?=[^>]*class="react-aria-Text")(?=[^>]*data-catalog-id="${title.id.replace(/[/:]/g, "\\$&")}")[^>]*>Section Title</span>$`,
-      ),
-    );
-    // The title takes the trigger's color (its hover color too): no inline rest color.
-    const span =
-      /<span [^>]*data-catalog-id[^>]*>/.exec(trigger ?? "")?.[0] ?? "";
-    expect(span).not.toMatch(/[;"]color:/);
+describe("Disclosure chevron (the trigger's Icon node)", () => {
+  it("the Icon paints the glyph in its own 18px box in the trigger's text color; the header and trigger paint none", async () => {
+    const { workspace, root, ofBinding } = await openPalette("Disclosure");
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    const { heading, trigger, chevron, title } = triggerOf(root, ofBinding);
+    const [glyph] = glyphs(getSkiaNode(chevron.id));
+    expect(glyph.iconPath).toMatchObject({ cx: 9, cy: 9, size: 18 });
+    // (The trigger's text color — the title's: the DOM glyph is `currentColor`.)
+    const hex = String(title.visual.color);
+    expect(
+      [...glyph.iconPath!.strokeColor].slice(0, 3).map((c) => Math.round(c * 255)),
+    ).toEqual([1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16)));
+    expect(glyphs(getSkiaNode(heading.id))).toHaveLength(0);
+    expect(glyphs(getSkiaNode(trigger.id))).toHaveLength(0);
+    canvas.dispose();
     workspace.dispose();
   });
 
-  it("the chevron node paints the header's leading icon in its box; the header paints none; the expansion turns it", async () => {
-    const { workspace, root, kids, ofBinding } =
-      await openPalette("Disclosure");
+  it("the expansion turns the glyph (a delta update)", async () => {
+    const { workspace, root, ofBinding } = await openPalette("Disclosure");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-    const [header] = ofBinding("disclosureheader");
-    const [chevron] = kids(header.id);
-    const painted = getSkiaNode(chevron.id)!;
-    expect(painted.elementId).toBe(chevron.id);
-    const [glyph] = glyphs(painted);
-    expect(glyph.iconPath).toMatchObject({ cx: 9, cy: 9, size: 18 });
-    expect(glyphs(getSkiaNode(header.id))).toHaveLength(0);
-    // Expanded (the default) draws the turned glyph; collapsing turns it back on a delta update.
-    const expanded = JSON.stringify(glyph.iconPath?.paths);
+    const { chevron } = triggerOf(root, ofBinding);
+    const expanded = JSON.stringify(glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths);
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: OWNER }],
@@ -203,26 +168,21 @@ describe("Disclosure chevron node", () => {
       }),
     );
     canvas.update();
-    const [collapsed] = glyphs(getSkiaNode(chevron.id));
-    expect(JSON.stringify(collapsed.iconPath?.paths)).not.toBe(expanded);
+    const collapsed = JSON.stringify(glyphs(getSkiaNode(chevron.id))[0].iconPath?.paths);
+    expect(collapsed).not.toBe(expanded);
     canvas.dispose();
     workspace.dispose();
   });
 
-  it("a DisclosureGroup's sections carry their own titles and their headers follow the group's expansion", async () => {
-    const { workspace, root, kids, ofBinding } =
-      await openPalette("DisclosureGroup");
-    const headers = ofBinding("disclosureheader");
-    expect(headers.map((header) => kids(header.id)[1].props.children)).toEqual([
-      "Section 1",
-      "Section 2",
-    ]);
-    const expanded = () =>
-      ofBinding("disclosureheader").map(
-        (header) => root.canvasInputs.get(header.id)!.derivedProps?.isExpanded,
+  it("a DisclosureGroup's chevrons follow the group's expansion", async () => {
+    const { workspace, root, ofBinding } = await openPalette("DisclosureGroup");
+    const turned = () =>
+      [0, 1].map(
+        (index) =>
+          root.canvasInputs.get(triggerOf(root, ofBinding, index).chevron.id)!
+            .derivedProps?.iconName === "chevron-down",
       );
-    const before = expanded();
-    expect(before.every((value) => typeof value === "boolean")).toBe(true);
+    const before = turned();
     const disclosures = ofBinding("disclosure");
     workspace.execute(
       setFields({
@@ -230,55 +190,22 @@ describe("Disclosure chevron node", () => {
         props: { isExpanded: { kind: "set", value: !before[1] } },
       }),
     );
-    expect(expanded()[1]).toBe(!before[1]);
+    expect(turned()[1]).toBe(!before[1]);
     workspace.dispose();
   });
 
-  it("a header with no chevron node (made before it) keeps its own leading icon at the trigger's place", async () => {
-    const node = (
-      id: string,
-      type: string,
-      children: string[],
-      props: Record<string, unknown> = {},
-    ) => nodeEntry(id, catalogTypeDefinitionId(type), children, props);
-    const workspace = await openWorkspace(() => [
-      node(OWNER, "Disclosure", ["project:node:h", "project:node:c"], {
-        title: "Old",
-      }),
-      node("project:node:h", "DisclosureHeader", [], { children: "Old" }),
-      node("project:node:c", "DisclosureContent", [], { children: "Body" }),
-    ]);
-    const root = workspace.root;
-    const header = [...root.layoutInputs.values()].find(
-      (entry) => entry.sourceId === "project:node:h",
-    )!;
-    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
-    const painted = getSkiaNode(header.id)!;
-    const [glyph] = glyphs(painted);
-    expect(glyph.iconPath).toMatchObject({ cx: 21, cy: 18, size: 18 });
-    const text = (painted.children ?? []).find(
-      (child) => child.type === "text",
+  it("the chevron is the author's content: removing it removes the glyph from both consumers", async () => {
+    const { workspace, root, ofBinding } = await openPalette("Disclosure");
+    const { trigger, chevron } = triggerOf(root, ofBinding);
+    workspace.execute(
+      removeTargets({ targets: [workspace.positionOfRecord(chevron.id)!.target] }),
     );
-    expect(text?.text?.paddingLeft).toBe(34);
-    canvas.dispose();
-    workspace.dispose();
-  });
-
-  it("the chevron position is not removable", async () => {
-    const { workspace, kids, ofBinding } = await openPalette("Disclosure");
-    const [header] = ofBinding("disclosureheader");
-    const [chevron] = kids(header.id);
-    let code: unknown;
-    try {
-      workspace.execute(
-        removeTargets({
-          targets: [workspace.positionOfRecord(chevron.id)!.target],
-        }),
-      );
-    } catch (error) {
-      code = (error as { code?: unknown }).code;
-    }
-    expect(code).toBe("OWNER_DRAWN_PART_NOT_REMOVABLE");
+    expect(root.layoutInputs.get(trigger.id)!.children).toHaveLength(1);
+    const html = renderToStaticMarkup(
+      renderCatalogDom(root, ofBinding("disclosure")[0]!.id),
+    );
+    expect(html).not.toContain("react-aria-Icon");
+    expect(html).toContain("Section Title");
     workspace.dispose();
   });
 });

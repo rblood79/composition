@@ -94,7 +94,7 @@ import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
 import { ColorSwatchPicker } from "../../components/ColorSwatchPicker";
-import { Disclosure } from "../../components/Disclosure";
+import { Disclosure as RacDisclosure } from "react-aria-components/Disclosure";
 import { DisclosureGroup } from "../../components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
@@ -2106,28 +2106,13 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-256 Phase 8c: RAC Disclosure draws its node tree in order — the reference
+  // `Heading > Button[slot=trigger] > (chevron + title)` + `DisclosurePanel` (the starter's; RAC's
+  // contexts link the trigger and the panel). Its expansion: the declared state, the Preview's runtime
+  // value (ADR-250), or its DisclosureGroup's.
   disclosure: {
-    ownsChild: (child, _parent, root) =>
-      ["DisclosureHeader", "Heading"].includes(catalogTypeName(root, child)),
     render: (input) => {
       const props = input.node.props;
-      const header = childOf(input, "DisclosureHeader", "Heading");
-      // The header's content nodes (its title Text — the chevron node is the trigger's own svg):
-      // drawn as they are inside the RAC trigger button, as the reference's `<span>{children}</span>`.
-      const headerContent =
-        header && catalogTypeName(input.root, header) === "DisclosureHeader"
-          ? childrenOf(input.root, header)
-          : [];
-      const title: ReactNode = headerContent.length
-        ? headerContent.map((child) => input.renderChild(child.id))
-        : header && catalogTypeName(input.root, header) === "DisclosureHeader"
-          ? propagatedText(input.root, props.title, header)
-          : header
-            ? resolveTextSourceText(
-                catalogTypeName(input.root, header),
-                header.props as Record<string, unknown>,
-              )
-            : "";
       const parent = input.root.domInputs.get(input.node.parentId);
       const inGroup =
         !!parent && catalogTypeName(input.root, parent) === "DisclosureGroup";
@@ -2155,7 +2140,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         );
       return frame(
         createElement(
-          Disclosure as ElementType,
+          RacDisclosure as ElementType,
           {
             ...marker(input),
             key:
@@ -2164,8 +2149,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 : `${input.node.id}:${expanded}`,
             id: input.node.id,
             style: input.style,
-            title,
-            size: props.size || "md",
+            "data-size": str(props.size || "md"),
             isDisabled: bool(props.isDisabled),
             ...(inGroup
               ? {}
@@ -2177,15 +2161,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                   }
                 : { defaultExpanded: expanded }),
           },
-          ...renderAll(
-            input,
-            children(input).filter(
-              (child) =>
-                !["DisclosureHeader", "Heading"].includes(
-                  catalogTypeName(input.root, child),
-                ),
-            ),
-          ),
+          ...renderAll(input, children(input)),
         ),
       );
     },

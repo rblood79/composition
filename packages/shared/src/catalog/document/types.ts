@@ -60,10 +60,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * (`component-popover__arrow` · `component-tooltip__arrow`); no Popover `hideArrow` (origin accepts ·
  * the picker Popovers). 28 — ADR-256 Phase 8b: a Dialog opens in its `Modal` node
  * (`component-dialog__modal` — `DialogTrigger > Button + Modal > Dialog`); `isDismissable` is the
- * Modal's.
+ * Modal's. 29 — ADR-256 Phase 8c: a Disclosure is `Heading > Button[slot=trigger] > (Icon + Text)`
+ * + `DisclosurePanel > Text` (`component-disclosure__heading` … `__content`; no DisclosureHeader ·
+ * DisclosureChevron · DisclosureContent).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 28 as const;
+export const LIBRARY_CONTRACT_VERSION = 29 as const;
 
 export type EntryKind =
   | "project"

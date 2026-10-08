@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8c — Disclosure 를 노드 트리로 · trigger = RAC Button · 펼침 패널 = DisclosurePanel] - 2026-10-08
+
+### Changed
+
+- **Disclosure 가 레퍼런스 구조를 따른다** (ADR-256 Phase 8c — react-aria.adobe.com Disclosure):
+  - 원본 = `Disclosure > Heading > Button[slot=trigger] > (chevron Icon + 제목 Text) + DisclosurePanel > 내용 Text` — Preview 는 RAC Disclosure 가 자식 노드를 순서대로 그린다 (전에는 공용 Disclosure 컴포넌트가 제목만 받아 trigger · chevron · 패널을 스스로 만들었다)
+  - chevron 은 trigger 안 Icon 노드 — 지우거나 바꿀 수 있고, 펼치면 Preview 는 90° 돌고 Canvas 는 아래쪽 glyph 를 그린다. Canvas chevron 색이 trigger 글자색 (Preview 와 같음 — 전에는 Canvas 만 흐린 회색)
+  - 접은 Disclosure 에서 Canvas 가 숨기는 것은 DisclosurePanel 뿐이다 (그 밖에 둔 노드는 RAC 처럼 보인다)
+  - Disclosure size 가 trigger · 패널 글자에 그대로 닿는다 (Canvas · Preview)
+  - 저장 형식 contract 29 — 옛 개발용 프로젝트는 열리지 않는다
+  - 위치: `catalog/runtime/delegatedDom.tsx` (`disclosure`) · `catalog/runtime/domBinding.tsx` (`disclosurepanel` · Heading 자식 · trigger Button) · `catalog/runtime/presence.ts` · `catalog/document/rulePartRules.ts` · `catalog/resolution/resolver.ts` (Disclosure 의 Heading 을 건너는 part rule) · `componentRulesTable.ts` (Disclosure sheet) · `catalog/bindings/DisclosurePanel.binding.ts`
+
 ## [ADR-256 Phase 8b — Dialog 가 Modal 노드 안에서 열린다] - 2026-10-08
 
 ### Changed

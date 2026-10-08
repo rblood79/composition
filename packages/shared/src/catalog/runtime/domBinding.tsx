@@ -47,6 +47,9 @@ import {
   catalogStateValue,
   catalogTreeChevronButtonItem,
   catalogTreeChevronGlyphItem,
+  catalogDisclosureOfHeading,
+  catalogDisclosureOfTrigger,
+  catalogDisclosureOfTriggerPart,
 } from "./presence";
 import {
   catalogShowWhenGate,
@@ -64,7 +67,8 @@ import {
 } from "./valueBindings";
 import { racSlotProps, type RacSlotResolution } from "./racSlot";
 import { RacSlotScope } from "./racSlotScope";
-import type { StateName } from "../document/types";
+import type { DefinitionId, StateName, TokenId } from "../document/types";
+import { catalogTokenValue } from "../document/themedToken";
 import { withCatalogStateStyles, type CatalogStateStyles } from "./stateStyles";
 import {
   authoredInvalid,
@@ -535,7 +539,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     }),
   // (`slot`: a Dialog's title — RAC connects it as the dialog's name, ADR-254. A slot the Heading
   // context does not provide renders detached instead of throwing — ADR-256 Decision 4.)
-  heading: (node, style) =>
+  heading: (node, style, children) =>
     createElement(RacSlotScope, {
       key: node.id,
       context: "Heading",
@@ -548,7 +552,12 @@ const bindings: Readonly<Record<string, DomBinding>> = {
             ...racSlotProps(resolution),
             style,
           } as Parameters<typeof Heading>[0],
-          String(node.props.children ?? ""),
+          // (Its element children after its text — a Disclosure's header holds its trigger Button,
+          // ADR-256 Phase 8c.)
+          ...(children.length && !node.props.children
+            ? []
+            : [String(node.props.children ?? "")]),
+          ...children,
         ),
     }),
   // (`children`: what its field appends to the Label — the necessity indicator, ADR-253.)
@@ -708,6 +717,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ),
     );
   },
+  // ADR-256 Phase 8c: RAC `DisclosurePanel` around the starter's content `div`, which is the
+  // node's box (the Disclosure sheet's `.react-aria-DisclosurePanel > div` padding).
+  disclosurepanel: (node, style, children) =>
+    createElement(
+      RAC.DisclosurePanel as ElementType,
+      { key: node.id, "data-catalog-id": node.id },
+      createElement("div", { style }, ...children),
+    ),
   // (A thumb's `index` is its place among its track's thumbs — `renderNode` gives it.)
   sliderthumb: (node, style) =>
     createElement(RAC.SliderThumb as ElementType, {
@@ -941,7 +958,12 @@ function buttonElement(
   // A TreeItem's expand button (RAC's `chevron` slot — ADR-256 Phase 5h): the reference's plain
   // RAC Button, which `Tree.css` styles (`.react-aria-Button[slot=chevron] { all: unset }`) — the
   // filled `.button-base` paint of a later layer stays off.
-  if (resolution.kind === "named" && resolution.slot === "chevron")
+  // A Disclosure's trigger (RAC's `trigger` slot — ADR-256 Phase 8c) is the reference's plain RAC
+  // Button too: the Disclosure sheet styles it (`.react-aria-Button[slot='trigger']`).
+  if (
+    resolution.kind === "named" &&
+    (resolution.slot === "chevron" || resolution.slot === "trigger")
+  )
     return createElement(
       RAC.Button,
       {
@@ -2127,7 +2149,12 @@ function renderNode(
     bound &&
     (node.bindingId === "selectvalue" ||
       (node.bindingId === "text" &&
-        parentInput?.bindingId === "disclosureheader")) &&
+        (parentInput?.bindingId === "disclosureheader" ||
+          catalogDisclosureOfTriggerPart(
+            node,
+            (id) => root.domInputs.get(id),
+            (entry) => catalogTypeName(root, entry),
+          ) !== undefined))) &&
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;
@@ -2186,24 +2213,27 @@ function renderNode(
   // A TreeItem's chevron button (ADR-256 Phase 5h) is the reference's plain RAC Button: `Tree.css`
   // gives its box (`all: unset` · 20px · the level indent), so only what the document wrote goes
   // inline — not the Button type's resolved box, which would override the sheet.
-  const sheetBox =
-    node.bindingId === "button" &&
-    catalogTreeChevronButtonItem(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    )
+  // So are a Disclosure's header Heading and trigger Button (ADR-256 Phase 8c — the Disclosure
+  // sheet's `.react-aria-Heading` · `.react-aria-Button[slot='trigger']`; the Canvas reads the same
+  // values from the Disclosure's part rules).
+  const domGet = (id: string) => root.domInputs.get(id);
+  const domType = (entry: CatalogConsumerNode) => catalogTypeName(root, entry);
+  const disclosureOwner =
+    catalogDisclosureOfTrigger(node, domGet, domType) ??
+    catalogDisclosureOfHeading(node, domGet, domType);
+  const sheetBox = disclosureOwner
+    ? authoredStyle(root, withoutOwnerPartValues(root, node, disclosureOwner))
+    : node.bindingId === "button" &&
+        catalogTreeChevronButtonItem(node, domGet, domType)
       ? authoredStyle(root, node)
       : undefined;
   // Its glyph takes the button's color (`all: unset` inherits the row's — selected, disabled), so
   // the Canvas resting color (the item's, `derivedOf`) does not go inline.
+  // (A Disclosure trigger's chevron takes the trigger's color — hover included — the same way.)
   const sheetColored =
     node.bindingId === "icon" &&
-    catalogTreeChevronGlyphItem(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    )
+    (catalogTreeChevronGlyphItem(node, domGet, domType) ||
+      catalogDisclosureOfTriggerPart(node, domGet, domType))
       ? {
           ...node,
           visual: { ...node.visual, color: undefined },
@@ -2226,6 +2256,40 @@ function renderNode(
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
       : rendered,
   );
+}
+
+/**
+ * ADR-256 Phase 8c — `node` without the values its owner's part rules give it: the owner's sheet
+ * draws those in the DOM (a Disclosure's `.react-aria-Heading` · `.react-aria-Button[slot='trigger']`
+ * — inline, the trigger's transparent rest fill would cover the sheet's hover background). A value
+ * the document wrote over a part rule's stays.
+ */
+function withoutOwnerPartValues(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  owner: CatalogConsumerNode,
+): CatalogConsumerNode {
+  const graph = root.runtime.graph;
+  const definition = graph.getDefinition(owner.definitionId as DefinitionId);
+  const rules =
+    definition && "partRules" in definition ? (definition.partRules ?? []) : [];
+  const value = (raw: unknown) =>
+    raw && typeof raw === "object" && "tokenId" in raw
+      ? (() => {
+          const token = graph.getToken((raw as { tokenId: TokenId }).tokenId);
+          return token && catalogTokenValue(token, root.colorMode);
+        })()
+      : raw;
+  const visual: Record<string, unknown> = { ...node.visual };
+  const layout: Record<string, string> = { ...node.layout };
+  for (const rule of rules) {
+    if (rule.child.definitionId !== node.definitionId) continue;
+    for (const [key, raw] of Object.entries(rule.visual ?? {}))
+      if (Object.is(visual[key], value(raw))) delete visual[key];
+    for (const [key, raw] of Object.entries(rule.layout ?? {}))
+      if (layout[key] === raw) delete layout[key];
+  }
+  return { ...node, visual: visual as typeof node.visual, layout };
 }
 
 /** Explicit state keys survive even when equal to rest (the rule sheet can change rest paint). */

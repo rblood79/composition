@@ -113,15 +113,11 @@
     outline: var(--focus-ring-width) solid var(--focus-ring);
   }
 
-  .react-aria-Disclosure .disclosure-chevron {
-    width: var(--icon-size);
-    height: var(--icon-size);
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] > .react-aria-Icon {
     flex-shrink: 0;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+  }
+
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] > .react-aria-Icon svg {
     rotate: 0deg;
     transition: rotate 200ms;
   }
@@ -131,8 +127,14 @@
     color: var(--fg);
   }
 
+  .react-aria-Disclosure .react-aria-DisclosurePanel > div > .react-aria-Text {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
 
-  .react-aria-Disclosure[data-expanded] .disclosure-chevron {
+
+  .react-aria-Disclosure[data-expanded] > .react-aria-Heading > .react-aria-Button[slot='trigger'] > .react-aria-Icon svg {
     rotate: 90deg;
   }
 

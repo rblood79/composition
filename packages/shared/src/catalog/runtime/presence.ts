@@ -54,11 +54,56 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     SubmenuTrigger: new Set(["Popover"]),
   };
 
-/** Disclosure children rendered as its trigger, not inside its RAC DisclosurePanel. */
-const DISCLOSURE_TRIGGER_TYPES: ReadonlySet<string> = new Set([
-  "DisclosureHeader",
-  "Heading",
-]);
+/**
+ * ADR-256 Phase 8c — a Disclosure's trigger parts, the reference `Disclosure > Heading >
+ * Button[slot=trigger] > (chevron + title)` (layout frames skipped, `catalogPartParent`). The
+ * binding id filters first: these run for every record.
+ */
+export function catalogDisclosureOfHeading(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (node.bindingId !== "heading") return undefined;
+  const owner = catalogPartParent(node, get, typeOf);
+  return owner && typeOf(owner) === "Disclosure" ? owner : undefined;
+}
+/** The Disclosure whose trigger Button `node` is. */
+export function catalogDisclosureOfTrigger(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (node.bindingId !== "button" || node.props.slot !== "trigger")
+    return undefined;
+  const heading = catalogPartParent(node, get, typeOf);
+  return heading ? catalogDisclosureOfHeading(heading, get, typeOf) : undefined;
+}
+/** A Disclosure's trigger chevron Icons (`Heading > Button[slot=trigger] > Icon`). */
+function catalogDisclosureTriggerIcons(
+  disclosure: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return partChildrenOf(disclosure, get, typeOf)
+    .filter((heading) => heading.bindingId === "heading")
+    .flatMap((heading) => partChildrenOf(heading, get, typeOf))
+    .filter(
+      (button) => button.bindingId === "button" && button.props.slot === "trigger",
+    )
+    .flatMap((button) => partChildrenOf(button, get, typeOf))
+    .filter((child) => child.bindingId === "icon");
+}
+/** The Disclosure whose trigger holds `node` (its chevron Icon · its title Text). */
+export function catalogDisclosureOfTriggerPart(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (node.bindingId !== "icon" && node.bindingId !== "text") return undefined;
+  const trigger = catalogPartParent(node, get, typeOf);
+  return trigger ? catalogDisclosureOfTrigger(trigger, get, typeOf) : undefined;
+}
 
 /**
  * Whether RAC shows a Disclosure's panel: its own `isExpanded` (absent = expanded), or inside a
@@ -509,8 +554,13 @@ export function catalogHiddenAtRest(
   // `visibility: hidden` — the box stays, the glyph is not drawn).
   const chevronItem = catalogTreeChevronGlyphItem(node, get, typeOf);
   if (chevronItem) return !treeItemHasChildItems(chevronItem, get, typeOf);
-  if (parentType === "Disclosure" && !DISCLOSURE_TRIGGER_TYPES.has(type))
-    return !catalogDisclosureExpanded(parent, get, typeOf);
+  // RAC shows a Disclosure's panel while it is expanded (ADR-256 Phase 8c — its other children,
+  // the trigger Heading among them, stay).
+  if (type === "DisclosurePanel") {
+    const disclosure = catalogPartParent(node, get, typeOf);
+    if (disclosure && typeOf(disclosure) === "Disclosure")
+      return !catalogDisclosureExpanded(disclosure, get, typeOf);
+  }
   if (type === "TabPanel" && parentType === "TabPanels") {
     const tabs = catalogPartParent(parent, get, typeOf);
     if (!tabs || typeOf(tabs) !== "Tabs") return false;
@@ -678,8 +728,8 @@ export function catalogPresenceDependents(
             (child) => typeOf(child) === "Disclosure",
           )
     ).flatMap((disclosure) =>
-      childrenOf(disclosure, get).filter(
-        (child) => !DISCLOSURE_TRIGGER_TYPES.has(typeOf(child)),
+      partChildrenOf(disclosure, get, typeOf).filter(
+        (child) => typeOf(child) === "DisclosurePanel",
       ),
     );
   if (FIELD_HINT_OWNERS.has(typeOf(scope)))
@@ -1227,6 +1277,17 @@ function ownDerivedProps(
   const level = catalogTreeLevel(node, get, typeOf);
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
+  // ADR-256 Phase 8c: the Disclosure trigger's chevron turns with the expansion (the sheet's
+  // `[data-expanded] > … > .react-aria-Icon svg { rotate: 90deg }`) — the Canvas draws the turned
+  // glyph, as the Tree chevron's.
+  if (node.bindingId === "icon") {
+    const owner = catalogDisclosureOfTriggerPart(node, get, typeOf);
+    if (owner)
+      return node.props.iconName === "chevron-right" &&
+        catalogDisclosureExpanded(owner, get, typeOf)
+        ? { iconName: "chevron-down" }
+        : undefined;
+  }
   // RAC Disclosure: `data-expanded` turns the trigger's chevron (the header rule's `leadingIcon`,
   // painted in the header's DisclosureChevron node or, without one, by the header itself).
   const disclosure = get(node.parentId);
@@ -1451,11 +1512,13 @@ function derivedDependents(
     const disclosures = group
       ? childrenOf(group, get).filter((child) => typeOf(child) === "Disclosure")
       : [owner];
-    return disclosures.flatMap((disclosure) =>
-      childrenOf(disclosure, get).filter(
+    return disclosures.flatMap((disclosure) => [
+      ...childrenOf(disclosure, get).filter(
         (child) => typeOf(child) === "DisclosureHeader",
       ),
-    );
+      // ADR-256 Phase 8c: its trigger's chevron Icon.
+      ...catalogDisclosureTriggerIcons(disclosure, get, typeOf),
+    ]);
   }
   const parent = get(owner.parentId);
   return type === "TreeItem" && parent && typeOf(parent) === "TreeItem"

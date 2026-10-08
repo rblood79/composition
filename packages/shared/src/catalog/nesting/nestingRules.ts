@@ -137,7 +137,8 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // (range · progress — ADR-256 Phase 7: Slider · Meter · ProgressBar 는 노드 트리로 그린다, 행 삭제.)
   // (Meter — ADR-256 Phase 7b: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
-  // overlay · disclosure — Phase 8. Disclosure trigger 버튼의 내용 — chevron 노드와 제목 Text.
+  // overlay · disclosure — Phase 8. (Disclosure — 8c: 레퍼런스 `Heading > Button[trigger]` + `DisclosurePanel`
+  // 노드 트리로 그린다. 옛 DisclosureHeader 행은 그 type 이 남는 동안만 — 삭제는 8e.)
   DisclosureGroup: { children: ["Disclosure"], wrappers: true },
   DisclosureHeader: { children: ["DisclosureChevron", "Text"] },
   // calendar — Phase 9

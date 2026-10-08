@@ -3084,7 +3084,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-disclosure",
-          "lib:template:component-disclosure__2"
+          "lib:template:component-disclosure__panel",
+          "lib:template:component-disclosure__content"
         ],
         "props": {
           "children": "Content 1"
@@ -3104,7 +3105,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-disclosure",
-          "lib:template:component-disclosure__2"
+          "lib:template:component-disclosure__panel",
+          "lib:template:component-disclosure__content"
         ],
         "props": {
           "children": "Content 2"
@@ -3116,39 +3118,46 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-disclosure",
     "definitionId": "lib:definition:type-Disclosure",
     "children": [
-      "lib:template:component-disclosure__1",
-      "lib:template:component-disclosure__2"
+      "lib:template:component-disclosure__heading",
+      "lib:template:component-disclosure__panel"
     ],
     "props": {},
     "visual": {}
   },
   {
-    "id": "lib:template:component-disclosure__1",
-    "definitionId": "lib:definition:type-DisclosureHeader",
+    "id": "lib:template:component-disclosure__heading",
+    "definitionId": "lib:definition:heading",
     "children": [
-      "lib:template:component-disclosure__1__chevron",
-      "lib:template:component-disclosure__1__title"
+      "lib:template:component-disclosure__trigger"
     ],
-    "props": {},
-    "visual": {
-      "width": "100%"
-    },
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row",
-      "justifyContent": "flex-start",
-      "alignItems": "center"
-    }
-  },
-  {
-    "id": "lib:template:component-disclosure__1__chevron",
-    "definitionId": "lib:definition:type-DisclosureChevron",
-    "children": [],
     "props": {},
     "visual": {}
   },
   {
-    "id": "lib:template:component-disclosure__1__title",
+    "id": "lib:template:component-disclosure__trigger",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-disclosure__chevron",
+      "lib:template:component-disclosure__title"
+    ],
+    "props": {
+      "slot": "trigger",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-disclosure__chevron",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-right",
+      "size": "sm"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-disclosure__title",
     "definitionId": "lib:definition:text",
     "children": [],
     "props": {
@@ -3157,8 +3166,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
-    "id": "lib:template:component-disclosure__2",
-    "definitionId": "lib:definition:type-DisclosureContent",
+    "id": "lib:template:component-disclosure__panel",
+    "definitionId": "lib:definition:type-DisclosurePanel",
+    "children": [
+      "lib:template:component-disclosure__content"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-disclosure__content",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
       "children": "Section content goes here."

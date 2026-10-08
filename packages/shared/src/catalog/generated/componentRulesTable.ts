@@ -4413,16 +4413,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           ".react-aria-Button[slot='trigger'][data-focus-visible]": {
             outline: "var(--focus-ring-width) solid var(--focus-ring)",
           },
-          // chevron rotate (ADR-141 — 삭제된 spec composition.staticSelectors 복원).
-          ".disclosure-chevron": {
-            width: "var(--icon-size)",
-            height: "var(--icon-size)",
+          // chevron — ADR-256 Phase 8c: the trigger's Icon node (the reference `<ChevronRight />`):
+          //   a fixed box in the flex row; its glyph turns with the expansion (below).
+          ".react-aria-Button[slot='trigger'] > .react-aria-Icon": {
             "flex-shrink": "0",
-            fill: "none",
-            stroke: "currentColor",
-            "stroke-width": "2",
-            "stroke-linecap": "round",
-            "stroke-linejoin": "round",
+          },
+          ".react-aria-Button[slot='trigger'] > .react-aria-Icon svg": {
             rotate: "0deg",
             transition: "rotate 200ms",
           },
@@ -4432,13 +4428,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             padding: "var(--spacing-sm) var(--spacing-lg)",
             color: "var(--fg)",
           },
+          // ADR-256 Phase 8c: the panel's content Text takes the Disclosure's size font and the
+          //   panel color, as the old content div did (`.react-aria-Text` declares its own).
+          ".react-aria-DisclosurePanel > div > .react-aria-Text": {
+            "font-size": "inherit",
+            "line-height": "inherit",
+            color: "inherit",
+          },
         },
         rootSelectors: {
           "&[data-expanded]": {
             nested: {
-              ".disclosure-chevron": {
-                rotate: "90deg",
-              },
+              // (Child combinators: a Disclosure nested in this one's panel keeps its own turn.)
+              "> .react-aria-Heading > .react-aria-Button[slot='trigger'] > .react-aria-Icon svg":
+                {
+                  rotate: "90deg",
+                },
             },
           },
         },

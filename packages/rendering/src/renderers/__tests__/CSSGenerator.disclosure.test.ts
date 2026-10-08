@@ -110,11 +110,13 @@ describe("Disclosure 군 catalog rule structure → generated CSS (3경로 SSOT)
     expect(css).toContain(".react-aria-DisclosurePanel > div");
   });
 
-  it("Disclosure CSS: chevron rotate selector + data-expanded 90deg", () => {
+  it("Disclosure CSS: the trigger's chevron Icon turns 90deg while expanded (ADR-256 Phase 8c)", () => {
     const { spec } = virtualSpecFor("Disclosure");
     const css = generateCSS(spec);
-    expect(css).toContain(".disclosure-chevron");
-    expect(css).toMatch(/\[data-expanded\][\s\S]*?rotate:\s*90deg/);
+    expect(css).toContain(".react-aria-Button[slot='trigger'] > .react-aria-Icon");
+    expect(css).toMatch(
+      /\[data-expanded\] > \.react-aria-Heading > \.react-aria-Button\[slot='trigger'\] > \.react-aria-Icon svg \{\s*rotate:\s*90deg/,
+    );
   });
 
   it("Disclosure CSS: 루트는 leaf padding(4px 12px) 이 아니라 block 컨테이너", () => {

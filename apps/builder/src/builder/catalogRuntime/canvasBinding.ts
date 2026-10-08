@@ -379,6 +379,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   // ADR-256 Phase 8a: an overlay's arrow — hidden on the Canvas (RAC places it from the trigger;
   // the Canvas draws no open overlay).
   overlayarrow: containerWithAuthoredPaint,
+  // ADR-256 Phase 8c: a Disclosure's panel (its box = the content div — the Disclosure's part rule).
+  disclosurepanel: containerWithAuthoredPaint,
   // ADR-256 Phase 5g: RAC SubmenuTrigger has no element of its own (a layout box only — in a Menu
   // it rests in the closed popover).
   submenutrigger: container,

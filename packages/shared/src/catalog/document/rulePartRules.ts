@@ -103,10 +103,13 @@ const SUBPART_TOKENS: Readonly<
   TextField: { Input: [".react-aria-Input"] },
   TextArea: { Input: [".react-aria-TextArea", ".react-aria-Input"] },
   ColorField: { Input: [".react-aria-Input"] },
-  // Whole selectors (matched as written): the trigger button and the panel's content box.
+  // Whole selectors (matched as written): the header Heading, its trigger Button and the panel's
+  // content box (ADR-256 Phase 8c — the reference `Heading > Button[slot=trigger]` +
+  // `DisclosurePanel > div`).
   Disclosure: {
-    DisclosureHeader: [".react-aria-Button[slot='trigger']"],
-    DisclosureContent: [".react-aria-DisclosurePanel > div"],
+    Heading: [".react-aria-Heading"],
+    Button: [".react-aria-Button[slot='trigger']"],
+    DisclosurePanel: [".react-aria-DisclosurePanel > div"],
   },
 };
 /** DOM selectors of a typed child inside an owner's self-composed DOM (`SUBPART_TOKENS`). */
@@ -129,7 +132,10 @@ export function catalogSubpartDomSelectors(
  */
 const SUBPART_CHILD_PROPS: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, Scalar>>>>>
-> = {};
+> = {
+  // ADR-256 Phase 8c: the Disclosure's trigger is the Button in RAC's `trigger` slot.
+  Disclosure: { ".react-aria-Button[slot='trigger']": { slot: "trigger" } },
+};
 /**
  * `… svg` tokens size the glyph (`iconSize`). `box`: the glyph's wrapper has no size of its own
  * (`.search-icon` flex span), so the svg size is also the child's box.
@@ -153,7 +159,11 @@ export function catalogSubpartDomUnion(
  * The node an owner's wrapped parts sit under (`via`): the control `Group` of a field that has one
  * (ADR-256 Phase 6b), a Select's trigger Button (ADR-253 — RAC's trigger is the Button itself).
  */
-const SUBPART_WRAPPERS: Readonly<Record<string, string>> = { Select: "Button" };
+const SUBPART_WRAPPERS: Readonly<Record<string, string>> = {
+  Select: "Button",
+  // ADR-256 Phase 8c: a Disclosure's trigger Button sits in its header Heading.
+  Disclosure: "Heading",
+};
 /**
  * ADR-256 Phase 3 — the RAC button a toggle's indicator sits in (`CheckboxField > CheckboxButton >
  * indicator`, `OWNER_DRAWN_PART_HOSTS`): toggle type → its button type.
@@ -914,12 +924,18 @@ function tokenRuleBasePartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
- * Disclosure's trigger (the typed header) renders the chevron (`.disclosure-chevron`,
- * `var(--icon-size)`, `flex-shrink: 0`) and the title Text, separated by the trigger's gap
- * (`DisclosureChevron` · `Text` nodes, 2026-10-07 — the flex row lays them out). The title Text
- * takes the trigger's font (`… > .react-aria-Text` inherits size, line height and color; its weight
- * is the trigger's 600). A header saved before the nodes is a text leaf: its own rule's
- * `leadingIcon` shifts the text past the chevron (`buildCatalogShapes`).
+ * ADR-256 Phase 8c — a Disclosure's trigger content and panel content: the reference
+ * `Heading > Button[slot=trigger] > (ChevronRight + span)` and `DisclosurePanel > div > children`.
+ * The trigger (`.react-aria-Button[slot='trigger']` — padding, gap, flex row: the selector reaches
+ * the Button through `SUBPART_TOKENS`) is RAC's plain button, so the Button rule's own paint and
+ * box give way (transparent, no border, no minimum width). Its line height is the `.react-aria-Button`
+ * base's (default size, a unitless ratio) while `font-size: inherit` takes the Disclosure's size
+ * font. Its chevron is a fixed box of the trigger's `--icon-size` (the Button sheet's default size —
+ * the element carries no `data-size`); its title Text takes the trigger's font, weight 600 and color
+ * (`… > .react-aria-Text` inherits them). The panel's content Text takes the Disclosure's size font
+ * and line height, weight 400, the panel color (`.react-aria-DisclosurePanel > div > .react-aria-Text`).
+ * The chevron and title rules reach through the header (`via` the trigger Button — the resolver
+ * passes a Disclosure's header Heading, `PART_RULE_PASS_HOSTS`).
  */
 function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "Disclosure") return [];
@@ -928,61 +944,82 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   ];
   const trigger = (
     rule.structure?.composition as
-      { staticSelectors?: Record<string, Record<string, string>> } | undefined
+      | { staticSelectors?: Record<string, Record<string, string>> }
+      | undefined
   )?.staticSelectors?.[".react-aria-Button[slot='trigger']"];
-  // (The trigger's padding and gap reach the header through its selector — `compileRulePartRules`.)
   if (!trigger) return [];
-  // The chevron reads the nearest `--icon-size`: the trigger's own `.react-aria-Button` sheet at
-  // its default size (the element carries no `data-size`).
   const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
     .Button;
-  const buttonIcon = button?.defaultSize
-    ? button.sizes[button.defaultSize]?.iconSize
+  const buttonSize = button?.defaultSize
+    ? button.sizes[button.defaultSize]
     : undefined;
+  const buttonIcon = buttonSize?.iconSize;
   const px = (value: unknown) => {
     const resolved =
       typeof value === "string" ? resolveToken(value as TokenRef) : value;
     return typeof resolved === "number" ? resolved : undefined;
   };
-  // The trigger is a `.react-aria-Button`: its generated base `line-height` (default size, a
-  // unitless ratio) stays while `font-size: inherit` takes the Disclosure's size font.
-  const buttonSize = button?.defaultSize
-    ? button.sizes[button.defaultSize]
-    : undefined;
   const buttonFont = px(buttonSize?.fontSize);
   const buttonLine = px(buttonSize?.lineHeight);
   const lineHeight =
     buttonFont && buttonLine ? buttonLine / buttonFont : undefined;
-  const titleWeight = Number(trigger?.["font-weight"]);
+  const titleWeight = Number(trigger["font-weight"]);
+  const neutral = "{color.neutral}";
   return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
     const icon = buttonIcon ?? rule.sizes[size]?.iconSize;
     const fontSize =
-      trigger?.["font-size"] === "inherit"
+      trigger["font-size"] === "inherit"
         ? px(rule.sizes[size]?.fontSize)
         : undefined;
     const font = {
       ...(fontSize !== undefined ? { fontSize } : {}),
       ...(lineHeight !== undefined ? { lineHeight } : {}),
     };
+    const sizeLine = px(rule.sizes[size]?.lineHeight);
+    const panelFont = {
+      ...(fontSize !== undefined ? { fontSize } : {}),
+      ...(fontSize && sizeLine ? { lineHeight: sizeLine / fontSize } : {}),
+    };
     return typeof icon === "number"
       ? [
-          { childType: "DisclosureHeader", size, layout: {}, visual: font },
           {
-            childType: "DisclosureChevron",
-            via: "DisclosureHeader",
+            childType: "Button",
+            via: "Heading",
+            childProps: { slot: "trigger" },
+            size,
+            layout: {},
+            visual: {
+              ...font,
+              fill: "transparent",
+              borderWidth: 0,
+              minWidth: 0,
+            },
+          },
+          {
+            childType: "Icon",
+            via: "Button",
             size,
             layout: { flexShrink: "0" },
-            visual: { width: icon, height: icon },
+            // (Its glyph is `currentColor` — the trigger's text color, not the Button rule's.)
+            visual: { width: icon, height: icon, color: neutral },
           },
           {
             childType: "Text",
-            via: "DisclosureHeader",
+            via: "Button",
             size,
             layout: {},
             visual: {
               ...font,
               ...(titleWeight > 0 ? { fontWeight: titleWeight } : {}),
+              color: neutral,
             },
+          },
+          {
+            childType: "Text",
+            via: "DisclosurePanel",
+            size,
+            layout: {},
+            visual: { ...panelFont, fontWeight: 400, color: neutral },
           },
         ]
       : [];

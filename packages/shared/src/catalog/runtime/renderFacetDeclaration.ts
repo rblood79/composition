@@ -101,7 +101,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "disclosure",
     kind: "delegating-internal",
     reason:
-      "renderDisclosure 가 자식 DisclosureHeader/Heading children 을 title 로 추출 + 나머지를 contentChildren 으로 분리해 RAC Disclosure self-compose. generic 재귀로는 title 추출/콘텐츠 분리 깨짐.",
+      "ADR-256 Phase 8c: RAC Disclosure 가 자식 노드 (Heading > Button[trigger] · DisclosurePanel) 를 순서대로 그리고 펼침 (선언 값 · Preview 실행 값 · DisclosureGroup) 을 넘긴다 — generic 경로는 펼침 · state frame 을 모른다.",
   },
   {
     key: "disclosuregroup",

@@ -363,6 +363,12 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure content",
     icon: "AlignLeft",
   }),
+  // ADR-256 Phase 8c: RAC DisclosurePanel — a Disclosure's panel (palette 미노출).
+  primitiveEntry("DisclosurePanel", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "disclosure panel",
+    icon: "Rows3",
+  }),
   // ADR-912 (B+icon) CalendarHeader 발효 (inline_icon_text replace, 2026-06-08): Calendar 네비게이션
   //   헤더 leaf(좌 chevron + 중앙 월/년 text + 우 chevron). DisclosureHeader 의 leading_icon(append)
   //   확장 — "좌 icon + center text + 우 icon" 은 다른 레이아웃 가정이라 별도 `inline_icon_text`

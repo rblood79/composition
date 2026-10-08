@@ -206,6 +206,13 @@ export interface CatalogResolutionSelection {
   ) => readonly NodeId[] | undefined;
 }
 type Values = Record<string, Scalar>;
+/**
+ * ADR-256 Phase 8c — hosts a part rule's `via` reaches through to their owner: a Disclosure's
+ * header Heading (the trigger Button's content is styled from the Disclosure's sheet).
+ */
+const PART_RULE_PASS_HOSTS: Readonly<Record<string, ReadonlySet<string>>> = {
+  Heading: new Set(["Disclosure"]),
+};
 /** Resolved props: scalars and structured values (string lists, item lists). */
 type Props = Record<string, PropValue>;
 /** The resolving node's parent (and its parent: `via` part rules reach through one wrapper). */
@@ -542,6 +549,16 @@ export function resolveCatalogNode(
     // passes them through (ADR-256 Phase 3 review m1). So does a TreeItem's chevron rule
     // (`.react-aria-TreeItem .react-aria-Button[slot="chevron"]` — Phase 5 Round 12). Other
     // owners' rules stop at the frame.
+    const passHostOwner = (
+      context: ParentContext,
+    ): ParentContext | undefined => {
+      const owners = PART_RULE_PASS_HOSTS[lookupDefinition(context.definitionId).name];
+      if (!owners) return undefined;
+      const above = pastFrames(structuralParent(context.parent));
+      return above && owners.has(lookupDefinition(above.definitionId).name)
+        ? above
+        : undefined;
+    };
     const pastFrames = (context: ParentContext | undefined) => {
       let cursor = context;
       while (cursor && lookupDefinition(cursor.definitionId).name === "frame")
@@ -559,9 +576,14 @@ export function resolveCatalogNode(
     };
     const owner = toggleFamily(pastFrames(near)) ? pastFrames(near)! : near;
     const grandNear = structuralParent(owner.parent);
-    const grand = toggleFamily(pastFrames(grandNear))
+    const grandHost = toggleFamily(pastFrames(grandNear))
       ? pastFrames(grandNear)
       : grandNear;
+    // ADR-256 Phase 8c: a Disclosure's header Heading passes its owner's rules to its trigger's
+    // content (`.react-aria-Button[slot='trigger'] > .react-aria-Text` — the sheet reaches through
+    // the Heading): the grandparent of the trigger's chevron and title is the Disclosure.
+    const passedOwner = grandHost && passHostOwner(grandHost);
+    const grand = passedOwner ?? grandHost;
     // The parent's own rules, then the grandparent's `via` rules (through this node's parent): a
     // selector reaching through the wrapper from its owner is the more specific one in the sheet.
     const owners: Array<{ owner: ParentContext; via?: DefinitionId }> = [

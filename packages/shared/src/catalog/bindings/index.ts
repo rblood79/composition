@@ -40,6 +40,7 @@ import { dialogBinding } from "./Dialog.binding";
 import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
 import { disclosureContentBinding } from "./DisclosureContent.binding";
+import { disclosurePanelBinding } from "./DisclosurePanel.binding";
 import { disclosureGroupBinding } from "./DisclosureGroup.binding";
 import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
@@ -182,6 +183,7 @@ export * from "./Description.binding";
 export * from "./Dialog.binding";
 export * from "./DialogFooter.binding";
 export * from "./DisclosureContent.binding";
+export * from "./DisclosurePanel.binding";
 export * from "./DisclosureGroup.binding";
 export * from "./DisclosureHeader.binding";
 export * from "./DropZone.binding";
@@ -331,6 +333,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   해소 — padding 단일 source = element.props.style(DOM renderDisclosureContent ↔ Skia buildCatalogShapes).
   //   DOM=renderDisclosureContent 위임(부모 renderDisclosure contentChildren 재귀, 독립 노드 유지).
   DisclosureContent: disclosureContentBinding,
+  // ADR-256 Phase 8c: RAC DisclosurePanel (the reference `Disclosure > Heading + DisclosurePanel`).
+  DisclosurePanel: disclosurePanelBinding,
   ToggleButton: toggleButtonBinding,
   ToggleButtonGroup: toggleButtonGroupBinding,
   Toolbar: toolbarBinding,

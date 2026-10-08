@@ -304,6 +304,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ColorSwatchPickerItem: ["ColorSwatchPicker"],
       SelectionIndicator: ["Tab"],
       OverlayArrow: ["Popover", "Tooltip"],
+      DisclosurePanel: ["Disclosure"],
       Radio: ["RadioGroup"],
       RadioItems: ["RadioGroup"],
       CheckboxItems: ["CheckboxGroup"],
