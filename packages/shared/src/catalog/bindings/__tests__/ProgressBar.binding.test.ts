@@ -11,9 +11,8 @@ import { toRacProps } from "../../outputs/toRacProps";
 /**
  * ADR-912 진로 1번 ProgressBar proof slice (value-fill compound catalog 발효, 2026-06-07).
  *
- * ProgressBar 는 factory 3자식(Label/ProgressBarValue/ProgressBarTrack) compound → DOM 은
- * rendererMap.renderProgressBar 위임(DELEGATING_INTERNAL_RENDERERS, Tabs 선례). Skia 는
- * shell-only + 자식 ProgressBarTrack value_fill_bar escape(선행-2 발효). 본 test 는 binding
+ * ProgressBar 는 노드 트리 (ADR-256 Phase 7a — RAC ProgressBar 가 자식 노드를 그리고, Canvas 는
+ * track · fill 노드가 각자 칠한다). 본 test 는 binding
  * 등록 정합 + cutover 게이트 진입 + toRacProps prop 투영을 고정한다.
  */
 describe("ProgressBar binding — value-fill compound (internal wrapper 위임)", () => {
@@ -27,7 +26,7 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     ).toBe("progressbar");
   });
 
-  it("부모 자체 skiaPrimitive 없음 (자식 ProgressBarTrack value_fill_bar 담당)", () => {
+  it("부모 자체 skiaPrimitive 없음 (track · fill 노드가 칠한다)", () => {
     expect(progressBarBinding.skiaPrimitive).toBeUndefined();
   });
 

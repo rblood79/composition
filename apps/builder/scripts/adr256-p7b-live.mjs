@@ -200,6 +200,7 @@ const probe = () =>
         track: rect(el(track)),
         fill: rect(domFill),
         fillColor: domFill ? getComputedStyle(domFill).backgroundColor : null,
+        trackColor: el(track) ? getComputedStyle(el(track)).backgroundColor : null,
         fillAnimation: domFill ? getComputedStyle(domFill).animationName : null,
       },
     };
@@ -280,6 +281,14 @@ record(
     s5.dom.fillColor === s4.dom.fillColor,
   s5,
 );
+{
+  const gray = /^rgb\((\d+), \1, \1\)$/.test(s5.dom.trackColor ?? "");
+  record(
+    "L-7 the Preview track is gray (the Meter sheet's --bg-muted — user decision 2026-10-09, the Canvas MeterTrack's neutral-subtle)",
+    gray,
+    { trackColor: s5.dom.trackColor },
+  );
+}
 record("L-6 no page errors", errors.length === 0, { errors });
 writeFileSync(`${OUT}/results.json`, JSON.stringify({ results, errors }, null, 2));
 await browser.close();

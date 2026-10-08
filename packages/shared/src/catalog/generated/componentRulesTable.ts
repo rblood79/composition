@@ -6976,7 +6976,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             height: "var(--spacing-sm)",
             "border-radius": "var(--radius-sm)",
             overflow: "hidden",
-            background: "var(--accent-subtle)",
+            // (사용자 판정 2026-10-09: Meter track 은 회색 — MeterTrack rule 의 neutral-subtle 과 같은 값.)
+            background: "var(--bg-muted)",
           },
           ".fill": {
             background: "var(--fill-color)",
@@ -7150,8 +7151,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "informative",
     defaultSize: "md",
     variants: {
-      // ADR-912 선행-2: track 배경(fill.base = neutral-subtle) 위에 value_fill_bar escape 가
-      //   variant 별 fillBar 색으로 진행 막대를 덧그린다(Meter 상태 색 — METER_FILL_COLORS 정합).
+      // The track's own box (neutral-subtle — the Meter sheet's `.bar` --bg-muted); its fill is the
+      //   MeterFill node (ADR-256 Phase 7b).
       informative: {
         fill: {
           default: {
@@ -7163,7 +7164,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.informative}",
       },
       positive: {
         fill: {
@@ -7176,7 +7176,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.positive}",
       },
       warning: {
         fill: {
@@ -7189,7 +7188,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.notice}",
       },
       critical: {
         fill: {
@@ -7202,7 +7200,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.negative}",
       },
     },
     sizes: {
@@ -8242,7 +8239,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // The track takes its owner's variant (`catalogDerivedProps`). Colors mirror the owner's DOM
       //   custom properties (ProgressBar `composition`): `.bar` = `--track-color`, `.fill` =
       //   `--fill-color` — default · accent: accent-subtle / accent, neutral: neutral-subtle /
-      //   neutral-subdued. `fillBar` is read by the `value_fill_bar` escape.
+      //   neutral-subdued (the fill is the ProgressBarFill node — ADR-256 Phase 7a).
       default: {
         fill: {
           default: {
@@ -8254,7 +8251,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.accent}",
       },
       accent: {
         fill: {
@@ -8267,7 +8263,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.accent}",
       },
       neutral: {
         fill: {
@@ -8280,7 +8275,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
         },
-        fillBar: "{color.neutral-subdued}",
       },
     },
     sizes: {
@@ -10220,10 +10214,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     variants: {
-      // ADR-912 SliderTrack value-fill: track 배경(fill.base = neutral-subtle) 위에
-      //   slider_fill_bar escape 가 value 채움 막대(fillBar) + thumb 핸들을 그린다.
-      //   thumb 색 = fillBar(accent, SLIDER_FILL_COLORS.default.handle 정합). thumb border 는
-      //   escape 가 {color.base} 하드코딩(spec 정합). ProgressBarTrack 동형 + thumb 채널.
+      // The bar (neutral-subtle — the generated `--bg-muted`).
       default: {
         fill: {
           default: {

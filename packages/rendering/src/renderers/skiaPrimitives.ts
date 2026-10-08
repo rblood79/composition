@@ -2069,272 +2069,6 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
 };
 
 /**
- * `value_fill_bar` — 진행/미터/슬라이더의 value 비례 수평 채움 막대 (append 모드).
- *
- * track box(buildCatalogShapes 가 그림) **위에** 덧그리는 fill rect. 컴포넌트 식별 없이
- * props 데이터로만 분기(no-classification):
- * - `props.value` 가 배열 → range 채움(`v0%~v1%`), 단일 숫자 → `0~v%` 채움.
- * - `props.minValue`/`maxValue` → 정규화(slider). 없으면 0~100(progress/meter).
- * - `props.isIndeterminate` → 정적 20%~50% 막대(애니메이션은 CSS, Skia 는 정적 표현).
- * - `props._hasChildren` → 부모(ProgressBar/Meter)는 자식 Track 이 fill 담당 → `[]` (위임).
- *   Track 노드는 자식 없음 → 직접 그림. thumb 은 SliderThumb 자식 element 가 담당(여기 미생성).
- *
- * 색: `style.color`(사용자 override) → `visual.fillBar`(variant 별 rule 색) → `{color.accent}`.
- */
-const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
-  // 부모(ProgressBar/Meter) standalone 이 아니면(자식 Track 보유) fill 은 자식이 담당.
-  if ((props as Record<string, unknown>)._hasChildren) return [];
-
-  const width =
-    typeof props._containerWidth === "number" &&
-    (props._containerWidth as number) > 0
-      ? (props._containerWidth as number)
-      : (typeof style?.width === "number" ? (style.width as number) : 0) || 240;
-  const height = size.height ?? 8;
-
-  const barRadius = parsePxValue(
-    style?.borderRadius as string | number | undefined,
-    typeof size.borderRadius === "number" ? size.borderRadius : height / 2,
-  );
-
-  // staticColor(over background, §2-F 2026-08-21): fill 은 solid static — 사용자 style.color
-  //   가 항상 우선, 그 다음 static, 마지막 variant(fillBar). track wash(0.25)는
-  //   buildCatalogShapes(box)가 담당 — DOM ProgressBar.css [data-static-color] 대칭.
-  // value fill은 root 3채널로 환원되지 않는 subpart다(Phase 0 inventory §2-2).
-  // root track wash 메타와 별개로 propagated staticColor를 직접 유지한다.
-  const staticFill =
-    props.staticColor === "white"
-      ? "#ffffff"
-      : props.staticColor === "black"
-        ? "#000000"
-        : undefined;
-  const barColor =
-    (style?.color as string | undefined) ??
-    staticFill ??
-    visual?.fillBar ??
-    ("{color.accent}" as TokenRef);
-
-  // indeterminate: 정적 20%~50% 위치 막대 (progress 류만 — isIndeterminate 데이터)
-  if (props.isIndeterminate) {
-    return [
-      {
-        type: "roundRect",
-        x: width * 0.2,
-        y: 0,
-        width: width * 0.3,
-        height,
-        radius: barRadius,
-        fill: barColor,
-      },
-    ];
-  }
-
-  const min = typeof props.minValue === "number" ? props.minValue : 0;
-  const max = typeof props.maxValue === "number" ? props.maxValue : 100;
-  const span = max - min || 1;
-  const raw = props.value ?? 0;
-  const values = Array.isArray(raw) ? (raw as number[]) : [raw as number];
-  const percents = values.map((v) =>
-    Math.max(0, Math.min(100, ((v - min) / span) * 100)),
-  );
-
-  const shapes: Shape[] = [];
-  if (percents.length >= 2) {
-    // range: value[0]~value[1] 구간 채움
-    const x0 = (width * percents[0]) / 100;
-    const x1 = (width * percents[1]) / 100;
-    const w = x1 - x0;
-    if (w > 0) {
-      shapes.push({
-        type: "roundRect",
-        x: x0,
-        y: 0,
-        width: w,
-        height,
-        radius: barRadius,
-        fill: barColor,
-      });
-    }
-  } else {
-    // single: 0~value 채움
-    const w = (width * percents[0]) / 100;
-    if (w > 0) {
-      shapes.push({
-        type: "roundRect",
-        x: 0,
-        y: 0,
-        width: w,
-        height,
-        radius: barRadius,
-        fill: barColor,
-      });
-    }
-  }
-  return shapes;
-};
-
-/**
- * `slider_fill_bar` — 슬라이더 트랙 (track 배경 + value 채움 + thumb 핸들, replace 모드).
- *
- * `value_fill_bar`(Progress/Meter, append)와 다른 점:
- * - **thumb(핸들 원 + border)** 를 percent 위치에 그린다 — single 1개 / range 2개.
- * - thumb 지름(`size.thumbSize`)이 trackHeight 보다 커서 layout box 가 thumbSize(implicitStyles
- *   ADR-086 P2) 라 box 좌표계(y:0, height:auto)와 spec track(y=trackY 세로 중앙)이 어긋난다 →
- *   **replace 모드**(track box 도 자체 생성, buildCatalogShapes box 대체). `value_fill_bar`(leaf,
- *   box=trackHeight 정확)는 append 였지만 SliderTrack 은 thumb 컨테이너라 replace.
- * - SliderThumb 자식 element 의 spec.render.shapes 는 `[]`(hitbox 만) → thumb 를 여기서 그려도
- *   이중 렌더 0 (calendar_grid escape 동형). `_hasChildren` 체크 없음(SliderThumb 자식이라 항상
- *   true → value_fill_bar 의 `_hasChildren` early-return 에 걸리는 dead 분기를 본 primitive 가 우회).
- *
- * 좌표: layout box height = trackHeight(8, ProgressBarTrack 동일).
- *   트랙은 box 전체(trackY=0, height=trackHeight). thumb 은 box 세로 중앙(trackHeight/2) 기준
- *   ±thumbSize/2 로 box 밖으로 그린다 (DOM 의 thumb position:absolute 와 동형 — box layout 제외).
- *   thumb 중심 = (width*p/100, trackHeight/2) — CSS `.react-aria-SliderThumb{top:50%}` +
- *   RAC inline `left:${p}%; transform:translate(-50%,-50%)` 와 동일 좌표.
- *
- * **thumb 렌더 소유권 (2026-07-14 복귀)**: 2026-06-10 에 SliderThumb element 로 이관했으나,
- *   그 전제인 `position:absolute + left:%` 배치가 engine(Rust)에서 성립하지 않는다
- *   (inset_* 미소비 / Position::Absolute 부재 → thumb box 가 원점 고정 → x 가 value 를 따라가지
- *   않고 y 도 트랙 중앙에서 벗어남). `_containerWidth` 를 아는 본 escape 로 되돌려 DOM 정합 회복.
- * 색: track 배경 = `style.backgroundColor` → `visual.fill.default.base`(neutral-subtle).
- *     fill = `style.color` → `visual.fillBar` → `{color.accent}`. thumb = fill 과 동색(handle=accent).
- *     thumb border = `{color.base}` 2px(spec 정합).
- */
-const sliderFillBar: SkiaPrimitiveDrawFn = ({
-  props,
-  size,
-  visual,
-  paint,
-  style,
-}) => {
-  const width =
-    typeof props._containerWidth === "number" &&
-    (props._containerWidth as number) > 0
-      ? (props._containerWidth as number)
-      : (typeof style?.width === "number" ? (style.width as number) : 0) || 200;
-
-  const trackHeight =
-    typeof size.height === "number" && size.height > 0 ? size.height : 8;
-  // layout box height = trackHeight(ProgressBarTrack 동일) → 트랙은 box 전체.
-  //   thumb 핸들은 SliderThumb element 가 자체 렌더(렌더 소유권 이전, 2026-06-10).
-  const trackY = 0;
-  const trackRadius = trackHeight / 2;
-
-  const trackBgColor =
-    paint.backgroundColor ?? ("{color.neutral-subtle}" as TokenRef);
-  const fillColor =
-    (style?.color as string | undefined) ??
-    visual?.fillBar ??
-    ("{color.accent}" as TokenRef);
-
-  const min = typeof props.minValue === "number" ? props.minValue : 0;
-  const max = typeof props.maxValue === "number" ? props.maxValue : 100;
-  const span = max - min || 1;
-  const raw = props.value ?? 50;
-  const values = Array.isArray(raw) ? (raw as number[]) : [raw as number];
-  const percents = values.map((v) =>
-    Math.max(0, Math.min(100, ((v - min) / span) * 100)),
-  );
-  const isRange = percents.length >= 2;
-
-  const shapes: Shape[] = [
-    // track 배경 (세로 중앙)
-    {
-      id: "track",
-      presentationRole: "background-fill",
-      type: "roundRect",
-      x: 0,
-      y: trackY,
-      width,
-      height: trackHeight,
-      radius: trackRadius,
-      fill: trackBgColor,
-    },
-  ];
-
-  // value 채움 (single: 0~value / range: value[0]~value[1])
-  if (isRange) {
-    const x0 = (width * percents[0]) / 100;
-    const x1 = (width * percents[1]) / 100;
-    const w = x1 - x0;
-    if (w > 0) {
-      shapes.push({
-        id: "fill",
-        type: "roundRect",
-        x: x0,
-        y: trackY,
-        width: w,
-        height: trackHeight,
-        radius: trackRadius,
-        fill: fillColor,
-      });
-    }
-  } else {
-    const w = (width * percents[0]) / 100;
-    if (w > 0) {
-      shapes.push({
-        id: "fill",
-        type: "roundRect",
-        x: 0,
-        y: trackY,
-        width: w,
-        height: trackHeight,
-        radius: trackRadius,
-        fill: fillColor,
-      });
-    }
-  }
-
-  // ── thumb 핸들 (2026-07-14 렌더 소유권 복귀) ────────────────────────────────
-  // 2026-06-10 에 thumb 렌더를 SliderThumb element 로 넘겼으나, 그 전제("SliderThumb 이
-  //   left:percent% 로 배치된다")가 **레이아웃 엔진에서 성립하지 않는다**:
-  //   engine(Rust)은 `position:absolute` / `inset_*` 를 레이아웃에 **반영하지 않는다**
-  //   (Style.inset_* 필드는 tree.rs 에 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도
-  //   읽지 않으며 Position::Absolute 개념 자체가 없음). 그래서 implicitStyles 가 주입한
-  //   `left:"50%" + top + marginLeft` 가 전량 무시되어 SliderThumb box 가 항상 컨테이너
-  //   원점(0,0)에 고정 → thumb 이 value 와 무관하게 트랙 좌측 끝에 그려지고(x 발산),
-  //   세로도 트랙 중앙이 아니었다(y 발산). CSS(RAC useSliderThumb: left:%+translate(-50%,-50%))
-  //   와 정면 발산.
-  //
-  // 본 escape 는 `_containerWidth`(=트랙 실폭) + value 를 이미 정확히 알고 replace 모드로
-  //   트랙 box 전체를 소유하므로, thumb 을 여기서 그리면 엔진의 absolute 미지원과 무관하게
-  //   DOM 과 동일한 좌표가 나온다. (SliderThumb element 는 selection/hit box 전용으로 잔존 —
-  //   그 box 의 위치 정합은 엔진의 absolute 지원 없이는 불가능하므로 별도 과제.)
-  //
-  // 좌표 (DOM 대칭): thumb 중심 = (width * p, trackHeight/2)
-  //   ← CSS `.react-aria-SliderThumb{top:50%}` + RAC inline `left:${p*100}%; translate(-50%,-50%)`
-  //   trackHeight/2 는 트랙 box 세로 중앙 → thumb 이 트랙보다 커서 box 위아래로 넘침(정상).
-  const thumbSize =
-    typeof size.thumbSize === "number" && size.thumbSize > 0
-      ? size.thumbSize
-      : 18;
-  const thumbRadius = thumbSize / 2;
-  const thumbCenterY = trackHeight / 2;
-
-  percents.forEach((p, i) => {
-    const cx = (width * p) / 100;
-    shapes.push({
-      id: `thumb-${i}`,
-      type: "circle",
-      x: cx,
-      y: thumbCenterY,
-      radius: thumbRadius,
-      fill: fillColor,
-    });
-    // border 2px {color.base} — CSS `.react-aria-SliderThumb{border:2px solid var(--bg)}` 정합.
-    shapes.push({
-      type: "border",
-      target: `thumb-${i}`,
-      borderWidth: 2,
-      color: "{color.base}" as TokenRef,
-      radius: thumbRadius,
-    });
-  });
-
-  return shapes;
-};
-
-/**
  * `value_fill_arc` — 원형 진행률의 value 비례 호 (append 모드, ProgressCircle).
  *
  * track arc(buildCatalogShapes box 위 — 단, ProgressCircle 은 box 대신 arc track 을
@@ -3525,13 +3259,9 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   calendar_month_grid: calendarMonthGrid,
   datefield_trigger: datefieldTrigger,
   datefield_segments: datefieldSegments,
-  // ADR-912 선행-2 value-fill escape:
-  //   value_fill_bar = append (track box 위 value 막대 — Progress/Meter)
-  //   value_fill_arc = replace (자체 track arc + indicator arc — ProgressCircle, box 무의미)
-  //   slider_fill_bar = replace (자체 track + value 막대 + thumb — SliderTrack, thumb 컨테이너 box)
-  value_fill_bar: valueFillBar,
+  // ADR-912 선행-2 value-fill escape: value_fill_arc = replace (자체 track arc + indicator arc —
+  //   ProgressCircle, box 무의미). (ProgressBar · Meter · Slider 의 채움은 ADR-256 Phase 7 부터 노드.)
   value_fill_arc: valueFillArc,
-  slider_fill_bar: sliderFillBar,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — placeholder+heading+description)
   illustrated_message: illustratedMessage,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — dot circle + label text)
@@ -3581,13 +3311,7 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   overlay_backdrop: "prepend",
   tooltip_arrow: "append",
   popover_arrow: "append",
-  // ADR-912 선행-2: value_fill_bar 는 track box 위 막대 → append.
-  //   value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).
-  value_fill_bar: "append",
-  // ADR-912 SliderTrack: slider_fill_bar 는 track + value 막대 + thumb 자체 생성, box+text 대체
-  //   → replace. layout box=thumbSize(thumb 컨테이너)라 buildCatalogShapes box(y:0,height:auto)와
-  //   spec track(y=trackY 세로 중앙)이 어긋남 → 자체 track box 생성. 미등록=replace 지만 의도 명시.
-  slider_fill_bar: "replace",
+  // (value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).)
   // ADR-912 SliderThumb: slider_thumb 는 circle 핸들이 전체 외형 → base box 무의미 → replace
   //   (avatar/radio 동형). 미등록=replace 지만 의도 명시.
   slider_thumb: "replace",
@@ -3657,7 +3381,6 @@ const PRESENTATION_FILL_CAPABILITIES: Readonly<
   dot: (props) => props.isDot === true,
   gridlist_card: () => true,
   listbox_item: () => true,
-  slider_fill_bar: () => true,
   status_light: () => true,
   value_fill_arc: (_props, context) => context.hasChildren !== true,
 };

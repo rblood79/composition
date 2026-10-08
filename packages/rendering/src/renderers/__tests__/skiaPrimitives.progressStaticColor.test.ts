@@ -10,7 +10,8 @@ import type { Shape, SizeSpec, ComponentVisual } from "../../types";
  * Button 형(bg 반전) 스킴이 아니라 value-fill 2채널 스킴:
  *   track = static 25% wash / fill·indicator = solid static.
  * DOM(수동 ProgressBar.css var 재정의 / ProgressCircle.tsx 인라인)과 동일 상수(0.25)를
- * Skia 3지점(value_fill_bar / value_fill_arc / buildCatalogShapes track wash)에 고정한다.
+ * Skia 2지점(value_fill_arc / buildCatalogShapes track wash)에 고정한다. (ProgressBar 의 채움은
+ * ADR-256 Phase 7a 부터 ProgressBarFill 노드 — `value_fill_bar` 는 2026-10-09 삭제.)
  */
 
 const sizeMd: SizeSpec = {
@@ -20,39 +21,6 @@ const sizeMd: SizeSpec = {
   fontSize: "{typography.text-sm}" as never,
   borderRadius: "{radius.none}" as never,
 } as SizeSpec;
-
-describe("value_fill_bar staticColor (§2-F)", () => {
-  const draw = getSkiaPrimitive("value_fill_bar")!;
-  const bar = (props: Record<string, unknown>) =>
-    (
-      draw({
-        props: { value: 50, _containerWidth: 200, ...props },
-        size: sizeMd,
-        visual: { fillBar: "{color.accent}" } as never,
-        style: undefined,
-      } as never) as Shape[]
-    )[0] as { fill?: unknown };
-
-  it("white → fill 막대 #ffffff solid (variant fillBar 대체)", () => {
-    expect(bar({ staticColor: "white" }).fill).toBe("#ffffff");
-  });
-
-  it("black → #000000 / auto·미지정 → variant fillBar 유지", () => {
-    expect(bar({ staticColor: "black" }).fill).toBe("#000000");
-    expect(bar({ staticColor: "auto" }).fill).toBe("{color.accent}");
-    expect(bar({}).fill).toBe("{color.accent}");
-  });
-
-  it("사용자 style.color 는 static 보다 우선", () => {
-    const shapes = draw({
-      props: { value: 50, _containerWidth: 200, staticColor: "white" },
-      size: sizeMd,
-      visual: { fillBar: "{color.accent}" } as never,
-      style: { color: "#123456" },
-    } as never) as Shape[];
-    expect((shapes[0] as { fill?: unknown }).fill).toBe("#123456");
-  });
-});
 
 describe("value_fill_arc staticColor (§2-F)", () => {
   const draw = getSkiaPrimitive("value_fill_arc")!;

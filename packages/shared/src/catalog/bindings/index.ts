@@ -457,28 +457,23 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SliderTrack: sliderTrackBinding,
   SliderFill: sliderFillBinding,
   SliderThumb: sliderThumbBinding,
-  // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape)
+  // ADR-256 Phase 7: a ProgressBar's · Meter's track (`div.bar`) and fill (`div.fill`) nodes.
   ProgressBarTrack: progressBarTrackBinding,
   // ADR-256 Phase 7a: the fill in a ProgressBar's track (its width `{percentage}%`).
   ProgressBarFill: progressBarFillBinding,
-  // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part, value_fill_bar escape, variant 4색)
   MeterTrack: meterTrackBinding,
   // ADR-256 Phase 7b: the fill in a Meter's track (its width `{percentage}%`).
   MeterFill: meterFillBinding,
-  // ADR-912 value-label (2026-06-11): 부모 compound 의 현재 값 텍스트 leaf (buildCatalogShapes text,
-  //   value_fill_* escape 없음). DOM=부모 RAC self-compose 흡수. binding 필수 — 누락 시
-  //   resolveEditContract value 선택 크래시(entry.binding.props.accepts).
+  // 값 글자 leaf (ADR-256 Phase 7 — ProgressBar · Meter 는 `{valueText}`, SliderOutput 은 RAC 의 값 글자).
+  //   binding 필수 — 누락 시 resolveEditContract value 선택 크래시(entry.binding.props.accepts).
   MeterValue: meterValueBinding,
   ProgressBarValue: progressBarValueBinding,
   SliderOutput: sliderOutputBinding,
   // ADR-912 진로 1번: 원형 진행률 internal leaf (value_fill_arc escape, replace — arc 미generic).
   //   leaf(children:[]) + value/size props → DOM=INTERNAL_RENDERERS["progresscircle"](SVG ring).
   ProgressCircle: progressCircleBinding,
-  // ADR-912 진로 1번: 진행률 compound (factory 3자식) — DOM=rendererMap.renderProgressBar 위임
-  //   (DELEGATING_INTERNAL_RENDERERS, Tabs 선례). Skia=shell-only + 자식 ProgressBarTrack value_fill_bar.
+  // ProgressBar · Meter — ADR-256 Phase 7a · 7b: 노드 트리 (RAC ProgressBar · Meter 가 자식 노드를 그린다).
   ProgressBar: progressBarBinding,
-  // ADR-912 진로 1번: 측정값 compound (factory 3자식, ProgressBar 동형) — DOM=rendererMap.renderMeter
-  //   위임. Skia=shell-only + 자식 MeterTrack value_fill_bar(variant 4색). isIndeterminate 부재.
   Meter: meterBinding,
   // family ④ collections (internal source — composition wrapper + useCollectionData)
   ListBox: listBoxBinding,

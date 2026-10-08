@@ -60,9 +60,8 @@ export const progressBarBinding: PrimitiveBinding = {
       },
       // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
       //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + fill=solid +
-      //   label/value 텍스트=static. DOM = 수동 ProgressBar.css [data-static-color] var 재정의 /
-      //   Skia = propagation(staticColor → Track, 텍스트는 style.color) + value_fill_bar·
-      //   buildCatalogShapes track wash (0.25 대칭).
+      //   label/value 텍스트=static. DOM = 수동 ProgressBar.css [data-static-color] var 재정의.
+      //   (Canvas 는 아직 칠하지 않는다 — ADR-256 Phase 7a 범위 밖 기록, 전부터.)
       staticColor: {
         kind: "enum",
         label: "Static Color",

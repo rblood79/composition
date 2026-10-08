@@ -5,8 +5,7 @@
  * 토큰(테마 연동)으로 표현 불가라 수동 CSS — Button.css [data-static-color] 선례 동형.
  * Button 형(bg 반전)이 아니라 value-fill 2채널 스킴:
  *   track = static 25% wash / fill·label·value 텍스트 = solid static.
- * Skia 대칭: buildCatalogShapes track wash(0.25) + value_fill_bar solid +
- * propagation(Label/ProgressBarValue style.color) — 동일 상수.
+ * Skia: 아직 칠하지 않는다 (ADR-256 Phase 7a 범위 밖 기록).
  *
  * generated ProgressBar.css 는 @layer components 안이므로 본 unlayered 규칙이 variant
  * var 재정의를 항상 이긴다 (cascade layer 규칙 — 의도된 우선).

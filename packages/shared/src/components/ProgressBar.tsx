@@ -61,7 +61,7 @@ export interface ProgressBarProps extends AriaProgressBarProps {
   isLoading?: boolean;
   /**
    * RSP S2 "over background" — 유색/이미지 배경 위 고정 흑백 스킴.
-   * track = static 25% wash / fill·label·value = solid static (Skia value_fill_bar 0.25 대칭).
+   * track = static 25% wash / fill·label·value = solid static.
    * @default 'auto'
    */
   staticColor?: "auto" | "white" | "black";

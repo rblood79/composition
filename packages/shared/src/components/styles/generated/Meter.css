@@ -140,7 +140,7 @@
     height: var(--spacing-sm);
     border-radius: var(--radius-sm);
     overflow: hidden;
-    background: var(--accent-subtle);
+    background: var(--bg-muted);
   }
 
   .react-aria-Meter .fill {

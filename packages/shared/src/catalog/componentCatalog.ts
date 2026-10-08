@@ -692,28 +692,20 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "slider",
     icon: "SlidersHorizontal",
   }),
-  // ADR-912 진로 1번 ProgressBar proof slice (value-fill compound, 2026-06-07): 진행률 표시.
-  //   factory 3자식(Label/ProgressBarValue/ProgressBarTrack) → _hasChildren=true. DOM 은
-  //   rendererMap.renderProgressBar 위임(DELEGATING_INTERNAL_RENDERERS, Tabs 선례 — 자식 Label
-  //   children 추출 → 자기완결 RAC ProgressBar). Skia 는 shell-only + 자식 ProgressBarTrack
-  //   value_fill_bar escape(선행-2 발효). DOM/Skia 비대칭이나 시각 결과(value 비례 막대) 대칭.
+  // ProgressBar — 진행률 표시. ADR-256 Phase 7a: 노드 트리 (Label + 값 글자 {valueText} + track >
+  //   fill {percentage}%) — DOM 은 RAC ProgressBar 가 자식 노드를 순서대로, Canvas 는 부품이 각자 칠.
   primitiveEntry("ProgressBar", "selection", FAMILY_3_CUTOVER, {
     category: "content",
     label: "progress bar",
     icon: "BarChart3",
   }),
-  // ADR-912 진로 1번 Meter 확장 (value-fill compound, ProgressBar 동형, 2026-06-08): 측정값 표시.
-  //   factory 3자식(Label/MeterValue/MeterTrack) → _hasChildren=true. DOM 은 rendererMap.renderMeter
-  //   위임(DELEGATING_INTERNAL_RENDERERS). Skia 는 shell-only + 자식 MeterTrack value_fill_bar escape
-  //   (선행-2 발효, variant 4색 fillBar). ProgressBar 와 차이는 variant 4색·isIndeterminate 부재.
+  // Meter — 측정값 표시. ADR-256 Phase 7b: ProgressBar 와 같은 노드 트리 (variant 4색 · indeterminate 없음).
   primitiveEntry("Meter", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "meter",
     icon: "Gauge",
   }),
-  // ADR-912 선행-2: ProgressBar compound 의 value 채움 막대 (Skia-전용 sub-part).
-  //   palette 미노출(ComponentList 가 ProgressBar 부모만 등록) — catalog 등록은 Skia
-  //   generic 경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC ProgressBar 가 track 담당.
+  // ProgressBar 의 track (ADR-256 Phase 7a — DOM `div.bar`, fill 노드와 자유 내용을 담는다). palette 미노출.
   primitiveEntry("ProgressBarTrack", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "progress bar track",
@@ -726,10 +718,7 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress bar fill",
     icon: "BarChart3",
   }),
-  // ADR-912 선행-2: Meter compound 의 value 채움 막대 (Skia-전용 sub-part).
-  //   palette 미노출(ComponentList 가 Meter 부모만 등록) — catalog 등록은 Skia generic
-  //   경로(value_fill_bar escape) 진입용. DOM 은 부모 RAC Meter 가 track 담당.
-  //   ProgressBarTrack 동형, 차이는 variant 4종(informative/positive/warning/critical) fillBar 색.
+  // Meter 의 track (ADR-256 Phase 7b — DOM `div.bar`, fill 노드와 자유 내용). palette 미노출.
   primitiveEntry("MeterTrack", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "meter track",
@@ -741,28 +730,19 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     label: "meter fill",
     icon: "BarChart3",
   }),
-  // ADR-912 SliderTrack value-fill (value-fill 4 완결, 2026-06-08): Slider compound 의 트랙.
-  //   palette 미노출(ComponentList 가 Slider 부모만 등록) — catalog 등록은 Skia generic 경로
-  //   (slider_fill_bar escape, replace) 진입용. DOM 은 부모 RAC Slider 가 track self-compose.
-  //   ProgressBarTrack 동형 + thumb 채널(단일 1 / range 2). layout box=thumbSize(thumb 컨테이너).
+  // Slider 의 track (ADR-256 Phase 7c — RAC SliderTrack, 자기 상자가 막대 · SliderFill + SliderThumb 를 담는다). palette 미노출.
   primitiveEntry("SliderTrack", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "slider track",
     icon: "SlidersHorizontal",
   }),
-  // ADR-912 SliderThumb catalog cutover (2026-06-16, 마지막 collection sub-part 동형): Slider compound
-  //   의 핸들. palette 미노출(ComponentList 가 Slider 부모만 등록) — catalog 등록은 Skia generic 경로
-  //   (slider_thumb escape, replace — circle + border) 진입용. DOM 은 부모 RAC Slider 가 thumb
-  //   self-compose(Slider 가 DELEGATING_RAC_RENDERERS → 자식 재귀 skip, DOM no-op). slider_fill_bar 는
-  //   track + value 막대만, thumb 핸들은 본 escape 담당(렌더 소유권 2026-06-10 이전 정합). Track/value
-  //   sub-part 동형 — spec 삭제 후 isCatalogSkiaCutover 게이트(buildSpecNodeData.ts:965) 통과로 thumb
-  //   circle Skia 보존(미발효 시 return null → thumb 소실).
   // ADR-256 Phase 7c: RAC SliderFill — the filled part of a Slider's track (palette 미노출).
   primitiveEntry("SliderFill", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "slider fill",
     icon: "SlidersHorizontal",
   }),
+  // Slider 의 핸들 (ADR-256 Phase 7c — RAC SliderThumb, Canvas 는 `slider_thumb` 로 자기 상자에 원 + 링). palette 미노출.
   primitiveEntry("SliderThumb", "selection", FAMILY_3_CUTOVER, {
     category: "forms",
     label: "slider thumb",

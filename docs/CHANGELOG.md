@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 7d — Meter track 색 정리 · 쓰지 않는 코드 삭제] - 2026-10-09
+
+### Fixed
+
+- **Meter 의 track 이 Preview 에서 Canvas 와 같은 회색이다** — 전에는 Preview 가 연한 accent (유색 테마에서 푸름), Canvas 가 회색이었다. 회색이 정본 (사용자 판정). 위치: `catalog/generated/componentRulesTable.ts` (Meter `.bar`)
+
+### Removed
+
+- 공용 `components/Meter.tsx` (Preview 가 RAC Meter 를 직접 그린다) 와 Canvas primitive `value_fill_bar` · `slider_fill_bar` (채움은 노드) — 사용자 승인
+
 ## [ADR-256 Phase 7c — Slider 를 노드 트리로 · 채움 = RAC SliderFill · 값 글자 = RAC 의 값] - 2026-10-09
 
 ### Changed

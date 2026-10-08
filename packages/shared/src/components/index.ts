@@ -89,7 +89,6 @@ export { Icon } from "./Icon";
 // Feedback Components
 export { Badge } from "./Badge";
 export { ProgressBar } from "./ProgressBar";
-export { Meter } from "./Meter";
 export { Skeleton } from "./Skeleton";
 export { IllustratedMessage } from "./IllustratedMessage";
 export { Chart } from "./Chart";

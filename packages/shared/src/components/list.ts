@@ -23,7 +23,6 @@ export * from "./TagGroup";
 export * from "./Menu";
 export * from "./Tooltip";
 export * from "./ProgressBar";
-export * from "./Meter";
 export * from "./Toolbar";
 export * from "./Separator";
 export * from "./Group";

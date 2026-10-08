@@ -11,9 +11,8 @@ import { toRacProps } from "../../outputs/toRacProps";
 /**
  * ADR-912 진로 1번 Meter 확장 (value-fill compound catalog 발효, ProgressBar 동형, 2026-06-08).
  *
- * Meter 는 factory 3자식(Label/MeterValue/MeterTrack) compound → DOM 은 rendererMap.renderMeter
- * 위임(DELEGATING_INTERNAL_RENDERERS, ProgressBar/Tabs 선례). Skia 는 shell-only + 자식 MeterTrack
- * value_fill_bar escape(선행-2 발효, variant 4색). ProgressBar 와 차이 = variant 4색·isIndeterminate
+ * Meter 는 노드 트리 (ADR-256 Phase 7b — ProgressBar 와 같은 길, fill 은 variant 4색).
+ * ProgressBar 와 차이 = variant 4색·isIndeterminate
  * 부재. 본 test 는 binding 등록 정합 + cutover 게이트 진입 + toRacProps prop 투영 + isIndeterminate
  * 부재를 고정한다.
  */
@@ -28,7 +27,7 @@ describe("Meter binding — value-fill compound (ProgressBar 동형, internal wr
     ).toBe("meter");
   });
 
-  it("부모 자체 skiaPrimitive 없음 (자식 MeterTrack value_fill_bar 담당)", () => {
+  it("부모 자체 skiaPrimitive 없음 (track · fill 노드가 칠한다)", () => {
     expect(meterBinding.skiaPrimitive).toBeUndefined();
   });
 
