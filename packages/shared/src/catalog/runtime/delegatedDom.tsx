@@ -1477,6 +1477,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // Select is named by its placeholder (RAC needs a label or an `aria-label`).
   select: nodeTreeField(AriaSelect, "Select", (props) => ({
     placeholder: opt(props.placeholder),
+    // Single (RAC's default) or Multiple — its ListBox and SelectValue follow RAC's state.
+    selectionMode: props.selectionMode === "multiple" ? "multiple" : undefined,
     "aria-label": str(props.label).trim()
       ? undefined
       : (opt(props.placeholder) ?? "Select an option"),
@@ -1621,7 +1623,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-variant": str(props.variant) || "default",
           "data-size": str(props.size) || "md",
           "data-label-position": str(props.labelPosition) || "top",
-          "data-indeterminate": bool(props.isIndeterminate) ? "true" : undefined,
+          "data-indeterminate": bool(props.isIndeterminate)
+            ? "true"
+            : undefined,
           "data-static-color":
             staticColor === "white" || staticColor === "black"
               ? staticColor
@@ -1880,7 +1884,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-radio-size": size,
           "data-size": size,
           "data-label-position": str(props.labelPosition) || "top",
-          defaultValue: value,
+          // (No value is `null` — RAC reads `""` as a chosen value and takes every Radio out of
+          // the Tab order; ADR-256 후속 7.)
+          defaultValue: value || null,
           orientation: str(props.orientation) || "vertical",
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
@@ -2465,9 +2471,7 @@ function calendarProps(
     locale: props.locale,
     calendarSystem: props.calendarSystem,
     "aria-label":
-      typeof props["aria-label"] === "string"
-        ? props["aria-label"]
-        : own(name),
+      typeof props["aria-label"] === "string" ? props["aria-label"] : own(name),
     isDisabled: own(bool(props.isDisabled)),
     isReadOnly: own(bool(props.isReadOnly)),
     isInvalid: own(bool(props.isInvalid)),

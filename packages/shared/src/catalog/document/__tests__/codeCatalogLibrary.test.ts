@@ -502,7 +502,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
                     "lib:template:component-radiogroup__2__radio-1",
                   ],
                 },
-                props: { isSelected: { kind: "set", value: false } },
+                props: { isSelected: { kind: "set", value: true } },
               },
             ],
           ),
@@ -518,9 +518,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       at.children.forEach(walk);
     };
     walk(resolveCatalogNode(graph, groupId));
+    // Inside its RadioGroup the display state is not forced (the group's value — ADR-256 후속 7):
+    // the authored Radio is selected, the other is not.
     expect(radios.map((radio) => radio.props.isSelected)).toEqual([
-      false,
       true,
+      false,
     ]);
   });
 });

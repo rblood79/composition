@@ -719,7 +719,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       createElement(
         "svg",
         { width: size, height: size, viewBox: `0 0 ${size} ${size}` },
-        createElement("path", { d: `M0 0 L${size / 2} ${size / 2} L${size} 0` }),
+        createElement("path", {
+          d: `M0 0 L${size / 2} ${size / 2} L${size} 0`,
+        }),
       ),
     );
   },
@@ -1030,7 +1032,6 @@ function detachedSlot(resolution: RacSlotResolution): boolean {
 export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
   Object.keys(bindings),
 );
-
 
 /**
  * RAC overlays render nothing while closed (D1): a Tooltip/Popover/Modal without an open trigger,
@@ -1834,23 +1835,26 @@ const CatalogDomNode = memo(function CatalogDomNode({
   // owner's frame); the record holds the record's value where no frame passes it.
   const template = shown.valueTemplate;
   const element = template
-    ? catalogValueGate(id, catalogDomValueOwners(root, shown, template), (read) =>
-        draw({
-          ...shown,
-          ...catalogBoundValues(shown, template, (key) => {
-            const frame = read(key);
-            if (frame.found) return { linked: true, value: frame.value };
-            const owner = catalogValueOwner(
-              shown,
-              key,
-              (ownerId) => root.domInputs.get(ownerId),
-              (entry) => catalogTypeName(root, entry),
-            );
-            return owner
-              ? { linked: true, value: catalogRenderValue(owner, key) }
-              : { linked: false, value: undefined };
+    ? catalogValueGate(
+        id,
+        catalogDomValueOwners(root, shown, template),
+        (read) =>
+          draw({
+            ...shown,
+            ...catalogBoundValues(shown, template, (key) => {
+              const frame = read(key);
+              if (frame.found) return { linked: true, value: frame.value };
+              const owner = catalogValueOwner(
+                shown,
+                key,
+                (ownerId) => root.domInputs.get(ownerId),
+                (entry) => catalogTypeName(root, entry),
+              );
+              return owner
+                ? { linked: true, value: catalogRenderValue(owner, key) }
+                : { linked: false, value: undefined };
+            }),
           }),
-        }),
       )
     : draw(shown);
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names — its owners'
@@ -2014,22 +2018,22 @@ function renderNode(
       ? submenuTriggerChildren(root, node)
       : node.children
   ).flatMap((childId) => {
-        const child = root.domInputs.get(childId);
-        // A part its owner draws has no element of its own — but a toggle indicator in a layout
-        // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).
-        if (child && catalogOwnerDrawnPart(root, child)) {
-          const indicator = catalogToggleIndicatorElement(root, child);
-          return indicator ? [indicator] : [];
-        }
-        return [
-          createElement(CatalogDomNode, {
-            key: childId,
-            root,
-            id: childId,
-            context,
-          }),
-        ];
-      });
+    const child = root.domInputs.get(childId);
+    // A part its owner draws has no element of its own — but a toggle indicator in a layout
+    // frame inside its button is drawn there by the button's state (ADR-256 Phase 3 review m1).
+    if (child && catalogOwnerDrawnPart(root, child)) {
+      const indicator = catalogToggleIndicatorElement(root, child);
+      return indicator ? [indicator] : [];
+    }
+    return [
+      createElement(CatalogDomNode, {
+        key: childId,
+        root,
+        id: childId,
+        context,
+      }),
+    ];
+  });
   if (node.bindingId === "label") {
     const necessity = catalogFieldLabelNecessity(root, node);
     if (isValidElement(necessity))
@@ -2394,7 +2398,19 @@ function withHtmlId(
   // a TabPanel with its Tab by it: the author's HTML id would change the key, not the element id.
   // ADR-256 Phase 5e-2 — a detached Tabs' panel lost its Tab.)
   const type = catalogTypeName(root, node);
-  if (node.htmlId && !STATIC_ITEM_TYPES.has(type) && type !== "TabPanel")
+  // (RAC gives a Select's `id` to its trigger: with the Select's own id the trigger Button's would
+  // be a second id for one element — RAC's id merging then swaps the two forever, ADR-256 후속 5.)
+  const parent = root.domInputs.get(node.parentId);
+  const selectTrigger =
+    node.bindingId === "button" &&
+    parent?.bindingId === "select" &&
+    Boolean(parent.htmlId);
+  if (
+    node.htmlId &&
+    !selectTrigger &&
+    !STATIC_ITEM_TYPES.has(type) &&
+    type !== "TabPanel"
+  )
     patch.id = node.htmlId;
   if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
   const authored = node.className;

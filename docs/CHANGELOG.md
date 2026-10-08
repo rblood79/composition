@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 후속 3 · 5 · 7 — Select 다중 선택 · detach 뒤 Preview 오류 · 선택 상태 원본] - 2026-10-09
+
+### Fixed
+
+- **Select 의 Selection Mode `Multiple` 이 Preview 에 반영된다**: 여러 옵션을 고를 수 있고 trigger 가 고른 것을 나열한다.
+  - **Why**: DOM binding 이 `selectionMode` 를 RAC `Select` 에 넘기지 않았다 (Properties 에는 있었다).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx`
+- **Preview 를 연 채 Select 를 detach 해도 Preview 에 오류가 쌓이지 않는다** (React `Maximum update depth exceeded` 가 초당 수십 건).
+  - **Why**: RAC 는 Select 의 `id` 를 trigger 의 id 로 쓴다. detach 로 trigger Button 이 작성자 노드가 되며 자기 HTML id 를 받아 한 요소에 id 둘이 겹쳤고, RAC 의 id 병합이 둘 사이를 계속 오갔다. 이제 Select 에 id 가 있으면 그것이 trigger 의 id 다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.tsx` (`withHtmlId`)
+- **선택 상태로 보이는 기본 원본 (팔레트 Checkbox · Switch · ToggleButton · Tree 항목) 을 detach 할 수 있다** — 보이던 선택 그대로 (`isSelected: true`) 남는다.
+  - **Why**: 원본 루트의 표시 상태 (`displayState: selected`) 를 소유 노드가 담을 곳이 없어 detach 가 거부됐다. 이제 그 상태가 뜻하는 prop 으로 옮긴다.
+  - 위치: `packages/shared/src/catalog/commands/materialize.ts`
+- **CheckboxGroup · RadioGroup · ToggleButtonGroup 안 항목이 Canvas 에서 전부 선택으로 그려지지 않는다**: 그룹의 값을 따른다 (기본 = 선택 없음, Canvas · Preview · Properties 같음). 선택이 없는 RadioGroup 의 Radio 가 Tab 순서에 들어간다.
+  - **Why**: 항목 원본의 선택 표시 상태를 collection 항목은 무시했지만 그룹 항목은 강제했다 (Canvas 는 RadioGroup 항목 전부, Preview 는 첫 Radio 만 선택). 값 없는 RadioGroup 은 RAC 에 `""` 를 넘겨 모든 Radio 가 Tab 에서 빠졌다 (전에는 강제 선택에 가려졌다).
+  - 위치: `packages/shared/src/catalog/document/collectionItems.ts` (`isInOwnGroup`) · `catalog/resolution/resolver.ts` · `fieldSource.ts` · `catalog/runtime/delegatedDom.tsx`
+
 ## [Codex 검증 하니스 보완 — 범위 선택 · 최신 증거 · 비수정 preflight] - 2026-10-09
 
 ### Infrastructure

@@ -344,7 +344,8 @@ describe("ADR-256 Phase 3 — Switch · Radio are *Field > *Button", () => {
     const reference = renderToStaticMarkup(
       createElement(
         RadioGroup,
-        { defaultValue: radios[0] },
+        // (ADR-256 후속 7: the group's value — none by default.)
+        null,
         createElement(Label, null, "Size"),
         createElement(
           "div",

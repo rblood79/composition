@@ -273,6 +273,20 @@ const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
     ],
   };
 /**
+ * ADR-256 후속 7: a group's items show the group's value — none by default (before, each item's
+ * template showed the palette Checkbox's / Radio's `selected` display state, every box checked
+ * and the first Radio picked). Applied to the fixture: the selection marks go, and with no Radio
+ * chosen every Radio is in the Tab order (RAC `useRadio`).
+ */
+const groupItemsUnselected = (type: string, text: string) =>
+  type === "checkboxgroup" || type === "radiogroup"
+    ? (type === "radiogroup" ? text.replace(/tabindex=-1/g, "tabindex=0") : text)
+        .replace(/ data-selected=true/g, "")
+        .replace(/data-selected=true /g, "")
+        .replace(/ checked=/g, "")
+        .replace(/<svg aria-hidden=true class=lucide lucide-check [^>]*><path [^>]*><\/><\/>/g, "")
+    : text;
+/**
  * A field's control Group that only places its parts (ADR-256 Phase 6b — a RAC Group carries no
  * fill, border or padding of its own; before, a `plain` SelectTrigger zeroed them).
  */
@@ -566,9 +580,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           const glyphless = WRAPPED_TYPES.includes(type)
             ? withoutGlyphs
             : (text: string) => text;
-          const fixed = (DATE_PART_MARKUP[type] ?? []).reduce(
-            (text, [before, after]) => text.replaceAll(before, after),
-            fixture[`${type}/${name}`],
+          const fixed = groupItemsUnselected(
+            type,
+            (DATE_PART_MARKUP[type] ?? []).reduce(
+              (text, [before, after]) => text.replaceAll(before, after),
+              fixture[`${type}/${name}`],
+            ),
           );
           const expected =
             type === "checkboxgroup"

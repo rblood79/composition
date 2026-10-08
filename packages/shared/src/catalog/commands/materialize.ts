@@ -5,6 +5,7 @@ import {
   mapShowWhenLocal,
   mapShowWhenNodeIds,
 } from "../document/stateOwnerRefs";
+import { DISPLAY_STATE_PROPS } from "../resolution/resolver";
 import type {
   DescendantOverride,
   EntryId,
@@ -228,8 +229,10 @@ export interface Materializer {
  * Copies an instance's template positions into owned nodes that show what the instance showed:
  * the template values, the enclosing library patches, and the owner's patch / replace / fillSlot
  * / nested-instance overrides at those positions. A `{key}` template binding needs `bindings`
- * (detach freezes the composite's values); without them, and for a display state (an owned node
- * has no display state), it fails explicitly.
+ * (detach freezes the composite's values); without them it fails explicitly. An owned node has no
+ * display state: a position's (a state origin's root — the palette Checkbox shows `selected`)
+ * becomes the accepted props it stands for (`isSelected: true`, the resolver's
+ * `DISPLAY_STATE_PROPS`), so the copy shows what the instance showed (ADR-256 후속 7).
  */
 export function createMaterializer(
   draft: CommandDraft,
@@ -315,7 +318,6 @@ export function createMaterializer(
     const template = readTemplate(draft, templateId);
     if (template.hasBinding && !bindings)
       fail("POSITION_HAS_TEMPLATE_BINDING", templateId);
-    if (template.displayState) fail("POSITION_HAS_DISPLAY_STATE", templateId);
     const id = fixedId ?? newId("node");
     placed.set(key(path), id);
     placedByTemplate.set(templateId, id);
@@ -325,7 +327,11 @@ export function createMaterializer(
       id,
       definitionId: template.definitionId,
       children: [],
-      props: bindings ? bindProps(template.props, bindings) : template.props,
+      props: withDisplayState(
+        draft,
+        template,
+        bindings ? bindProps(template.props, bindings) : template.props,
+      ),
       visual: template.visual,
       sizing: template.sizing ?? {},
       descendantOverrides: (template.overrides ?? []).map((item) => ({
@@ -535,6 +541,26 @@ export function ensureChildList(
   setChildList(draft, parent, ids);
   materializer.reanchorInteractions();
   return ids;
+}
+
+/** A template position's display state as the accepted boolean props it sets (an owned node's). */
+function withDisplayState(
+  draft: CommandDraft,
+  template: ReturnType<typeof readTemplate>,
+  props: PropWrites,
+): PropWrites {
+  const shown = template.displayState
+    ? DISPLAY_STATE_PROPS[template.displayState]
+    : undefined;
+  if (!shown) return props;
+  const accepts =
+    draft.reader.library.definitions.get(
+      template.definitionId as `lib:definition:${string}`,
+    )?.accepts ?? {};
+  const out = { ...props };
+  for (const [key, value] of Object.entries(shown))
+    if (accepts[key] === "boolean") out[key] = { kind: "set", value };
+  return out;
 }
 
 /**

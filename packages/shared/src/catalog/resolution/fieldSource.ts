@@ -12,6 +12,10 @@ import type {
   WriteValue,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
+import {
+  isInOwnCollection,
+  isInOwnGroup,
+} from "../document/collectionItems";
 import { DISPLAY_STATE_PROPS } from "./resolver";
 
 /**
@@ -77,6 +81,7 @@ function readDefinition(reader: CatalogReader, id: DefinitionId) {
   if (!definition || ("kind" in definition && definition.kind !== "definition"))
     throw new CatalogValidationError("DANGLING_DEFINITION", id);
   return definition as {
+    name: string;
     mode: string;
     templateRootId?: TemplateId;
     accepts: Readonly<Record<string, unknown>>;
@@ -140,9 +145,15 @@ function templateChain(
   libraryPatch: PropLayer | undefined,
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
+  ancestors: readonly string[] = [],
 ): PropLayer[] {
   const template = readTemplate(reader, templateId);
-  const state = outerState ?? template.displayState;
+  const state = ownedSelection(
+    reader,
+    template.definitionId,
+    outerState ?? template.displayState,
+    ancestors,
+  );
   const layers: PropLayer[] = [];
   const own = templateLayer(template.props[key]);
   // The state sets the node's own accepted boolean props (a composite accepts its schema; its
@@ -156,7 +167,14 @@ function templateChain(
   if (libraryPatch) layers.push(libraryPatch);
   if (own !== ABSENT) layers.push({ source: "template", value: own });
   layers.push(
-    ...definitionChain(reader, template.definitionId, key, seen, state),
+    ...definitionChain(
+      reader,
+      template.definitionId,
+      key,
+      seen,
+      state,
+      ancestors,
+    ),
   );
   return layers;
 }
@@ -167,6 +185,7 @@ function definitionChain(
   key: string,
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
+  ancestors: readonly string[] = [],
 ): PropLayer[] {
   const definition = readDefinition(reader, definitionId);
   const composite =
@@ -187,6 +206,7 @@ function definitionChain(
         undefined,
         new Set([...seen, definitionId]),
         outerState,
+        ancestors,
       ),
     );
   return layers;
@@ -254,7 +274,14 @@ function propLayers(
         : own?.kind === "mask"
           ? [{ source: "own" as const, value: undefined }]
           : []),
-      ...definitionChain(reader, node.definitionId, key),
+      ...definitionChain(
+        reader,
+        node.definitionId,
+        key,
+        new Set(),
+        undefined,
+        nodeAncestors(reader, node.id),
+      ),
     ];
   }
   const owner = reader.getEntry(target.ownerId);
@@ -319,9 +346,65 @@ function propLayers(
       libraryPatch,
       new Set(),
       enclosingState,
+      positionAncestors(reader, owner, target.address),
     ),
   );
   return layers;
+}
+
+/**
+ * A selection display state the node's RAC collection (its keys) or group (its value) owns is not
+ * forced — as the resolver (ADR-256 후속 7): `ancestors` are the node's ancestor type names,
+ * nearest first.
+ */
+function ownedSelection(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+  state: TemplateRecord["displayState"],
+  ancestors: readonly string[],
+): TemplateRecord["displayState"] {
+  if (state !== "selected" && state !== "unselected") return state;
+  const name = readDefinition(reader, definitionId).name;
+  return isInOwnCollection(name, ancestors) || isInOwnGroup(name, ancestors)
+    ? undefined
+    : state;
+}
+/** A document node's ancestor type names, nearest first. */
+function nodeAncestors(reader: CatalogReader, id: string): string[] {
+  const names: string[] = [];
+  for (
+    let at = reader.ownerOf(id);
+    at !== undefined;
+    at = reader.ownerOf(at)
+  ) {
+    const entry = reader.getEntry(at);
+    if (entry?.kind !== "node") break;
+    names.push(readDefinition(reader, entry.definitionId).name);
+  }
+  return names;
+}
+/**
+ * A template position's ancestor type names, nearest first: the positions above it in its
+ * template, then those above each enclosing instance position, then the owner and its ancestors.
+ */
+function positionAncestors(
+  reader: CatalogReader,
+  owner: NodeEntry,
+  address: InstanceAddress,
+): string[] {
+  const names: string[] = [];
+  let at = address;
+  for (;;) {
+    for (const templateId of at.templatePath.slice(0, -1).reverse())
+      names.push(
+        readDefinition(reader, readTemplate(reader, templateId).definitionId)
+          .name,
+      );
+    if (at.instances.length <= 1) break;
+    at = enclosingAddress(reader, owner, at.instances);
+  }
+  names.push(readDefinition(reader, owner.definitionId).name);
+  return [...names, ...nodeAncestors(reader, owner.id)];
 }
 
 /** Where a target's prop value comes from (see the module comment). */

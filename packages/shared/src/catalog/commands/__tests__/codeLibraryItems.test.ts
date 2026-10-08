@@ -141,10 +141,11 @@ describe("ADR-248 Phase 4b item commands on code library origins", () => {
   it("a new selected Radio clears the radios a `selected` state origin shows", () => {
     const group = id("group");
     const graph = graphWith([node("group", ORIGIN("radiogroup"))]);
-    // The Radio origin template displays `selected`: both template radios show selected.
+    // The Radio origin template displays `selected`, but inside its RadioGroup a Radio's selection
+    // is the group's value (ADR-256 후속 7): none shows selected.
     expect(
       ofType(graph, group, "Radio").map((radio) => radio.props.isSelected),
-    ).toEqual([true, true]);
+    ).toEqual([false, false]);
     run(
       graph,
       insertGroupItem({

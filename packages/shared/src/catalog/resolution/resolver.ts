@@ -28,7 +28,10 @@ import type {
 } from "../document/types";
 import { FIELD_CONTROL_GROUP_HOSTS } from "../../domain/componentTraits";
 import { CatalogGraph } from "../document/graph";
-import { isInOwnCollection } from "../document/collectionItems";
+import {
+  isInOwnCollection,
+  isInOwnGroup,
+} from "../document/collectionItems";
 import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_STEP,
@@ -1163,14 +1166,14 @@ export function resolveCatalogNode(
     const shownState =
       root?.displayState ??
       (!("kind" in template) ? template.displayState : undefined);
-    // Inside its RAC collection an item's selection is the collection's (its keys), so a
-    // selection display state of the item template (a selected state origin) is not forced there.
+    // Inside its RAC collection (its keys) or group (its value) an item's selection is the
+    // owner's, so a selection display state of the item template (a selected state origin) is not
+    // forced there (ADR-256 후속 7 — the groups).
+    const itemName = lookupDefinition(template.definitionId).name;
     const displayState =
       (shownState === "selected" || shownState === "unselected") &&
-      isInOwnCollection(
-        lookupDefinition(template.definitionId).name,
-        ancestorTypes(parent),
-      )
+      (isInOwnCollection(itemName, ancestorTypes(parent)) ||
+        isInOwnGroup(itemName, ancestorTypes(parent)))
         ? undefined
         : shownState;
     // A display state replaces the template's own default; a value the instance authored for

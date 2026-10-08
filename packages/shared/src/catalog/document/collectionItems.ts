@@ -31,3 +31,26 @@ export function isInOwnCollection(
   }
   return false;
 }
+
+/**
+ * RAC group item types → their group (ADR-256 후속 7). RAC's group context reaches an item through
+ * any element (`CheckboxGroupStateContext` · `RadioGroupStateContext` · `ToggleGroupStateContext`),
+ * and inside the group the item's selection is the group's value — as a collection item's is its
+ * collection's keys — not the item template's display state.
+ */
+const GROUP_ITEM_OWNERS: Readonly<Record<string, string>> = {
+  Checkbox: "CheckboxGroup",
+  Radio: "RadioGroup",
+  ToggleButton: "ToggleButtonGroup",
+};
+
+/** Whether `itemType`, under the ancestor types (nearest first), sits inside its RAC group. */
+export function isInOwnGroup(
+  itemType: string,
+  ancestorTypes: Iterable<string>,
+): boolean {
+  const group = GROUP_ITEM_OWNERS[itemType];
+  if (!group) return false;
+  for (const type of ancestorTypes) if (type === group) return true;
+  return false;
+}
