@@ -346,9 +346,6 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   //   Checkbox). RAC 는 TreeItem 밖에서도 throw 하지 않지만 행 context 는 TreeItem 이 준다.
   TreeItemContent: { owners: ["TreeItem"] },
   DisclosureGroup: {},
-  DisclosureHeader: { owners: ["Disclosure"] },
-  // Disclosure trigger 의 chevron 노드 — 자기 부모 DisclosureHeader 안에만 (부모 Disclosure DOM 이 흡수).
-  DisclosureChevron: { owners: ["DisclosureHeader"] },
   Slider: {},
   SliderOutput: { owners: ["Slider"] },
   SliderTrack: { owners: ["Slider"] },

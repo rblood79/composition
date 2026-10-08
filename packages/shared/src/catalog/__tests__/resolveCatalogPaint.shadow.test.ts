@@ -268,7 +268,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // ADR-256 Phase 7a: + ProgressBarFill (default · accent · neutral) 8,352 → 8,460 (+108). diffs 0 유지.
     // ADR-256 Phase 7b: + MeterFill (4 variants) 8,460 → 8,604 (+144). diffs 0 유지.
     // ADR-256 Phase 7c: + SliderFill (1 variant) 8,604 → 8,640 (+36). diffs 0 유지.
-    expect(compared).toBe(8_640);
+    // ADR-256 Phase 8e: − DisclosureHeader · DisclosureContent (1 variant each) 8,640 → 8,568 (−72).
+    expect(compared).toBe(8_568);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

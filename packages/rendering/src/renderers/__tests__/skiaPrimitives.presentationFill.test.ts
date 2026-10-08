@@ -8,7 +8,11 @@ describe("Skia presentation fill capability", () => {
       canMaterializeSkiaPresentationFill(undefined, {}, genericContext),
     ).toBe(true);
     expect(
-      canMaterializeSkiaPresentationFill("tooltip_arrow", {}, genericContext),
+      canMaterializeSkiaPresentationFill(
+        "table_row_divider",
+        {},
+        genericContext,
+      ),
     ).toBe(true);
     expect(
       canMaterializeSkiaPresentationFill(
@@ -82,7 +86,7 @@ describe("Skia presentation fill capability", () => {
 
   it("rejects a mixed binding when any replace primitive cannot materialize", () => {
     expect(
-      canMaterializeSkiaPresentationFill(["tooltip_arrow", "radio"], {}),
+      canMaterializeSkiaPresentationFill(["table_row_divider", "radio"], {}),
     ).toBe(false);
   });
 });

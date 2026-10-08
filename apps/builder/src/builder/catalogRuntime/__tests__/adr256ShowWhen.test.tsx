@@ -208,10 +208,10 @@ describe("ADR-256 Phase 4a — showWhen: the state owner", () => {
    */
   const groups = (a: boolean, b: boolean, showWhen: CatalogShowWhen) => [
     node("a", "Disclosure", ["a-header", "b"], { isExpanded: true, isDisabled: a }),
-    node("a-header", "DisclosureHeader", ["a-title"]),
+    node("a-header", "heading", ["a-title"]),
     node("a-title", "text", [], { children: "A" }),
     node("b", "Disclosure", ["b-header"], { isExpanded: true, isDisabled: b }),
-    node("b-header", "DisclosureHeader", ["b-title", "text"]),
+    node("b-header", "heading", ["b-title", "text"]),
     node("b-title", "text", [], { children: "B" }),
     node("text", "text", [], { children: "Off" }, showWhen),
   ];
@@ -312,7 +312,7 @@ describe("ADR-256 Phase 4a — showWhen: Disclosure expansion", () => {
       const { canvas, drawn } = await open(
         [
           node("d", "Disclosure", ["d-header"], { isExpanded: expanded }),
-          node("d-header", "DisclosureHeader", ["open-icon", "d-title"]),
+          node("d-header", "heading", ["open-icon", "d-title"]),
           node(
             "open-icon",
             "Icon",
@@ -360,7 +360,7 @@ describe("ADR-256 Phase 4b — a stored state owner stays linked (breakdown §1-
   /** Disclosure A > [header > title, Text ⟵ isDisabled from A's address (A's panel)]; a frame F beside A. */
   const tree = () => [
     node("a", "Disclosure", ["a-header", "mark"], { isExpanded: true, isDisabled: true }),
-    node("a-header", "DisclosureHeader", ["a-title"]),
+    node("a-header", "heading", ["a-title"]),
     node("a-title", "text", [], { children: "A" }),
     node("mark", "text", [], { children: "Off" }, {
       all: ["isDisabled"],

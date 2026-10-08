@@ -61,7 +61,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   //   로드 전환했고, 나머지 미로드 3 (AvatarGroup · ButtonGroup · CardView)은 기존 판정을 유지한다.
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
-  DisclosureHeader: "E container — NavigationComponents.ts 인라인",
   Image: "E leaf — DisplayComponents.ts 인라인 width/height, generic <img>",
   // F. ADR-238 Phase 2 — 목록 section 층. DOM 은 RAC `<section>` 을 UA block 그대로 두고 section 간격은 수동
   //   `ListBox.css` (`.react-aria-ListBoxSection:not(:first-child)`) 가 맡는다 — 생성 base (font-size 등) 를 실으면 이관
@@ -169,14 +168,15 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-09-24 — DialogTrigger (`3f50bcf6c`, index 로드) 가 집계를 안 고쳐 96/73 으로 어긋나 있던 것도 같이 맞춘다.
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 106 · index 80 · 모듈 0 · 미로드 26 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
-    expect(generated.length).toBe(106);
+  it("인벤토리 집계 — 생성 105 · index 80 · 모듈 0 · 미로드 25 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+    // (ADR-256 Phase 8e: − DisclosureHeader.)
+    expect(generated.length).toBe(105);
     expect(indexImported.size).toBe(80);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(26);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
   });
 });

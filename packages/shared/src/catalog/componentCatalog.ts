@@ -329,40 +329,6 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "progress circle",
     icon: "CircleDashed",
   }),
-  // ADR-912 (B+icon) DisclosureHeader proof slice (leadingIcon append, 2026-06-08): Disclosure
-  //   헤더 leaf(leading chevron + title). Skia 는 buildCatalogShapes box+text + skiaPrimitive
-  //   "leading_icon" escape(append — base text 위 좌측 chevron, text 는 iconSize 만큼 우측 shift),
-  //   DOM 은 부모 Disclosure(catalog 미등록 legacy rendererMap)가 self-compose(renderDisclosure
-  //   가 title 흡수 + contentChildren 제외) → DisclosureHeader DOM 독립 노드 0(catalog 등록 후에도
-  //   DOM 변화 없음, Skia spec.render.shapes fallback 제거가 목적). palette 비노출(ComponentList
-  //   별도 목록 — Disclosure 자식, 단독 배치 안 함). leading_icon 채널은 후속 CalendarHeader 가
-  //   trailing param 으로 확장.
-  primitiveEntry("DisclosureHeader", "primitives", FAMILY_1_CUTOVER, {
-    category: "structure",
-    label: "disclosure header",
-    icon: "ChevronRight",
-  }),
-  // DisclosureChevron — Disclosure trigger 의 chevron (2026-10-07, toggle indicator 노드 동형). DisclosureHeader
-  //   template 의 첫 자식, DOM 은 부모 Disclosure (`svg.disclosure-chevron`) 가 그린다. palette 비노출.
-  primitiveEntry("DisclosureChevron", "primitives", FAMILY_1_CUTOVER, {
-    category: "structure",
-    label: "disclosure chevron",
-    icon: "ChevronRight",
-    placeable: false,
-  }),
-  // ADR-912 box+text 변환 군 DisclosureContent 발효 (2026-06-10): Disclosure 패널 콘텐츠 leaf
-  //   (inline text container div). catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는
-  //   buildCatalogShapes box+text generic(rule DisclosureContent: fontSize+lineHeight+textWeight 400,
-  //   paddingX 미정의=0), DOM 은 부모 renderDisclosure contentChildren 재귀 → renderDisclosureContent
-  //   `<div style>`. **padding 단일 source = element.props.style** — spec sizes.paddingX(md 12)가
-  //   Skia text x 에만 적용되던 "padding Skia-only" 비대칭(사용자 보고 2026-06-10) 해소. Description
-  //   동형(inline text leaf, height:0). palette 비노출(Disclosure 자식, ComponentList 미등록 — 단독
-  //   배치 안 함, DisclosureHeader 동형).
-  primitiveEntry("DisclosureContent", "primitives", FAMILY_1_CUTOVER, {
-    category: "structure",
-    label: "disclosure content",
-    icon: "AlignLeft",
-  }),
   // ADR-256 Phase 8c: RAC DisclosurePanel — a Disclosure's panel (palette 미노출).
   primitiveEntry("DisclosurePanel", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
@@ -1088,7 +1054,7 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
  * ADR-142 family ⑥(overlays) cutover 상태. Dialog/Modal/Popover/Tooltip/DropZone 5개.
  * **전부 Skia generic 발효 완료 (skiaLegacy 0건)**: Dialog/Modal/Popover/Tooltip 는
  * buildCatalogShapes(box+text) + skiaPrimitive(backdrop/shadow/arrow 합성), DropZone 는 box.
- * Tooltip 은 ADR-912 단계 5 (1b) 에서 마지막 발효(bg+text generic + tooltip_arrow append).
+ * Tooltip 은 ADR-912 단계 5 (1b) 에서 마지막 발효(bg+text generic — 화살표는 ADR-256 Phase 8a 부터 OverlayArrow 노드).
  * Toast 는 ADR-912 R7 G1-c (2026-06-15) 에서 box-shell catalog cutover — 아래 FAMILY_6_ENTRIES
  * 에 등록. (구 주석 "placeable 노드 아님 → catalog 제외" 는 stale: RAC Toast 는 imperative API 지만
  * factory createToastDefinition + dedicated renderToast 가 등록되어 element 로 배치되면 TAG_SPEC_MAP

@@ -555,6 +555,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + SliderFill (ADR-256 Phase 7c).
     // + OverlayArrow (ADR-256 Phase 8a).
     // + DisclosurePanel (ADR-256 Phase 8c).
-    expect(types.length).toBe(150);
+    // − DisclosureHeader · DisclosureChevron · DisclosureContent (ADR-256 Phase 8e).
+    expect(types.length).toBe(147);
   }, 120_000);
 });

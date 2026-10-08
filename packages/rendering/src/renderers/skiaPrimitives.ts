@@ -1272,234 +1272,11 @@ const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 // (dispatch 가 SKIA_PRIMITIVE_MODES 로 판정). 기존 6 primitive 는 replace(box+text 대체).
 // ===========================================================================
 
-/**
- * Tooltip arrow maxWidth (size 별 Skia escape 데이터). ADR-912 단계5 step4 (2026-06-16):
- * Tooltip.spec.ts 삭제에 맞춰 TOOLTIP_MAX_WIDTH 를 skiaPrimitives 내부로 인라인 미러 이관
- * (ProgressCircle PROGRESSCIRCLE_DIAMETER 선례 — utils.ts). arrow maxWidth 는 Skia escape
- * 전용(generated CSS emit 무관, ComponentRuleSize 미수용) → rule 이관 대신 인라인 보존.
+/*
+ * ADR-256 Phase 8a — `tooltip_arrow` / `popover_arrow` 제거됨 (사용자 승인 2026-10-08, 8e): overlay 의
+ * 화살표는 `OverlayArrow` 노드다. Canvas 는 열린 overlay 를 그리지 않아 그 상자가 없다 (binding 연결은
+ * 8a 에서 뗐고, 읽던 `showArrow` 는 accepts 에 없어 그 전부터 그려지지 않았다).
  */
-const TOOLTIP_ARROW_MAX_WIDTH: Record<string, number> = {
-  sm: 120,
-  md: 150,
-  lg: 200,
-};
-
-function markPresentationBackground(shapes: Shape[]): Shape[] {
-  return shapes.map((shape) => ({
-    ...shape,
-    presentationRole: "background-fill" as const,
-  }));
-}
-
-/**
- * `tooltip_arrow` — Tooltip V-arrow(placement 기반 2-line). showArrow===true 일 때만 적용.
- * 좌표식은 (구) TooltipSpec.render.shapes 1:1 이식(회귀 0). 색 = bg fill(style/visual).
- */
-const tooltipArrow: SkiaPrimitiveDrawFn = ({ props, paint }) => {
-  if (props.showArrow !== true) return null;
-  const arrowSize = 6;
-  const placement = (props.placement as string | undefined) ?? "top";
-  const sizeName = (props.size as string | undefined) ?? "md";
-  const maxWidth = TOOLTIP_ARROW_MAX_WIDTH[sizeName] ?? 150;
-  const approxHeight = 24;
-  const centerX = maxWidth / 2;
-  // bg 색: style.backgroundColor → variant fill base (= legacy bgColor). dispatch 에서 visual
-  // 항상 주입되므로 transparent fallback 은 타입 만족용(도달 안 함).
-  const stroke: TokenRef = (paint.backgroundColor ??
-    "{color.transparent}") as TokenRef;
-
-  if (placement === "top") {
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: centerX - arrowSize,
-        y1: approxHeight,
-        x2: centerX,
-        y2: approxHeight + arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: centerX + arrowSize,
-        y1: approxHeight,
-        x2: centerX,
-        y2: approxHeight + arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  if (placement === "bottom") {
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: centerX - arrowSize,
-        y1: 0,
-        x2: centerX,
-        y2: -arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: centerX + arrowSize,
-        y1: 0,
-        x2: centerX,
-        y2: -arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  if (placement === "right") {
-    const midY = approxHeight / 2;
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: 0,
-        y1: midY - arrowSize,
-        x2: -arrowSize,
-        y2: midY,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: 0,
-        y1: midY + arrowSize,
-        x2: -arrowSize,
-        y2: midY,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  // left
-  const midY = approxHeight / 2;
-  return markPresentationBackground([
-    {
-      type: "line",
-      x1: maxWidth,
-      y1: midY - arrowSize,
-      x2: maxWidth + arrowSize,
-      y2: midY,
-      stroke,
-      strokeWidth: 2,
-    },
-    {
-      type: "line",
-      x1: maxWidth,
-      y1: midY + arrowSize,
-      x2: maxWidth + arrowSize,
-      y2: midY,
-      stroke,
-      strokeWidth: 2,
-    },
-  ]);
-};
-
-/**
- * `popover_arrow` — Popover V-arrow(placement 기반 2-line). !showArrow 일 때(기본 표시).
- * 좌표식은 PopoverSpec.render.shapes(L267-365) 1:1 이식(cx=cy=80 고정, arrowSize=8). 색 = bg fill.
- */
-const popoverArrow: SkiaPrimitiveDrawFn = ({ props, paint }) => {
-  if (props.showArrow) return null;
-  const arrowSize = 8;
-  const placement = (props.placement as string | undefined) ?? "bottom";
-  const cx = 80;
-  const cy = 80;
-  const stroke: TokenRef = (paint.backgroundColor ??
-    "{color.transparent}") as TokenRef;
-
-  if (placement === "bottom") {
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: cx - arrowSize,
-        y1: 0,
-        x2: cx,
-        y2: -arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: cx + arrowSize,
-        y1: 0,
-        x2: cx,
-        y2: -arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  if (placement === "top") {
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: cx - arrowSize,
-        y1: cy,
-        x2: cx,
-        y2: cy + arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: cx + arrowSize,
-        y1: cy,
-        x2: cx,
-        y2: cy + arrowSize,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  if (placement === "right") {
-    return markPresentationBackground([
-      {
-        type: "line",
-        x1: 0,
-        y1: cy - arrowSize,
-        x2: -arrowSize,
-        y2: cy,
-        stroke,
-        strokeWidth: 2,
-      },
-      {
-        type: "line",
-        x1: 0,
-        y1: cy + arrowSize,
-        x2: -arrowSize,
-        y2: cy,
-        stroke,
-        strokeWidth: 2,
-      },
-    ]);
-  }
-  // left
-  return markPresentationBackground([
-    {
-      type: "line",
-      x1: cx,
-      y1: cy - arrowSize,
-      x2: cx + arrowSize,
-      y2: cy,
-      stroke,
-      strokeWidth: 2,
-    },
-    {
-      type: "line",
-      x1: cx,
-      y1: cy + arrowSize,
-      x2: cx + arrowSize,
-      y2: cy,
-      stroke,
-      strokeWidth: 2,
-    },
-  ]);
-};
 
 /*
  * ADR-166 Phase 4 (2026-07-25) — `dialog_shadow` / `popover_shadow` 제거됨.
@@ -3249,8 +3026,6 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // ADR-912 collection sub-part cutover (SliderThumb): circle 핸들 + border(replace, radio 동형).
   slider_thumb: sliderThumb,
   // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
-  tooltip_arrow: tooltipArrow,
-  popover_arrow: popoverArrow,
   // ADR-166 Phase 4: dialog_shadow / popover_shadow 제거 (catalog boxShadow 단일 채널)
   overlay_backdrop: overlayBackdrop,
   // ADR-912 단계 5 (1b) date escape (replace 모드 — box+text 대체)
@@ -3309,8 +3084,6 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   //   전체 자체 생성(buildCatalogShapes box+single-text 로 재현 불가) → replace.
   listbox_item: "replace",
   overlay_backdrop: "prepend",
-  tooltip_arrow: "append",
-  popover_arrow: "append",
   // (value_fill_arc 는 자체 track+indicator arc 라 box+text 대체 → replace(기본, 미등록).)
   // ADR-912 SliderThumb: slider_thumb 는 circle 핸들이 전체 외형 → base box 무의미 → replace
   //   (avatar/radio 동형). 미등록=replace 지만 의도 명시.

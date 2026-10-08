@@ -119,7 +119,7 @@ export interface CatalogRuleShapeInput {
   readonly paintProps?: Readonly<Record<string, unknown>>;
   /**
    * A primitive of the rule a child node paints in its own box (`canvasBinding` owner-drawn parts —
-   * a toggle's `*Indicator`, a DisclosureHeader's `DisclosureChevron`): the node skips it, and a `replace`
+   * a toggle's `*Indicator`; a TreeItem's row content its chevron): the node skips it, and a `replace`
    * primitive leaves the node unpainted.
    */
   readonly childPrimitive?: string;

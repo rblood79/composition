@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8e — 쓰이지 않게 된 Disclosure · 화살표 코드 삭제] - 2026-10-08
+
+### Removed
+
+- **옛 Disclosure type 3종 · 공용 Disclosure 컴포넌트 · Skia 화살표 primitive 삭제** (ADR-256 Phase 8e — 사용자 승인): `DisclosureHeader` · `DisclosureChevron` · `DisclosureContent` (8c 부터 Heading · Button · Icon · DisclosurePanel 노드), `packages/shared` 의 `Disclosure` · `DisclosureGroup` export (8c · 8d 부터 RAC 를 직접 그린다), `popover_arrow` · `tooltip_arrow` primitive (8a 부터 OverlayArrow 노드). 화면 변화 0. 위치: `catalog/bindings/` · `components/index.ts` · `components/list.ts` · `rendering/src/renderers/skiaPrimitives.ts`
+
 ## [ADR-256 Phase 8d — DisclosureGroup 이 자유 내용을 받는다] - 2026-10-08
 
 ### Changed

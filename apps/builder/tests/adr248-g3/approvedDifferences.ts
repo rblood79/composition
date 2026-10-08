@@ -226,7 +226,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     class: "decided",
     owners: ["Disclosure", "DisclosureGroup"],
     // (ADR-256 Phase 8c: the header is the reference's Heading around the trigger Button.)
-    nodes: ["DisclosureHeader", "Heading", "Disclosure"],
+    nodes: ["Heading", "Disclosure"],
     axes: ["width", "height", "y"],
     reason: "⑧ Disclosure chevron 18 · gap 4 inside the header padding",
   },
@@ -453,7 +453,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     class: "oldDefect",
     owners: ["Disclosure", "DisclosureGroup"],
     // (ADR-256 Phase 8c: the content box is the reference's DisclosurePanel content div.)
-    nodes: ["DisclosureContent", "DisclosurePanel"],
+    nodes: ["DisclosurePanel"],
     axes: ["height", "y", "width"],
     reason: "old: staticSelector padding 8 not consumed",
   },
@@ -714,7 +714,7 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     class: "decided",
     owners: ["Disclosure", "DisclosureGroup"],
     side: "new",
-    nodes: ["DisclosureChevron", "Text", "Button", "Icon"],
+    nodes: ["Text", "Button", "Icon"],
     reason:
       "Disclosure = Heading > Button[slot=trigger] > [chevron Icon, title Text] + DisclosurePanel > content Text (ADR-256 Phase 8c — the reference Disclosure; 2026-10-07 user the chevron node; old: the header painted both in its own box, the content was a leaf)",
   },

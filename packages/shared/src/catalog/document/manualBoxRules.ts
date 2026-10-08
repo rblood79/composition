@@ -380,9 +380,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // `generated/DisclosureHeader.css` is not loaded (`UNLOADED_GENERATED_CSS` E): the header is the
-  // Disclosure's trigger button, as tall as its content (Disclosure part rules).
-  DisclosureHeader: () => ({ omit: ["height"] }),
   // `generated/CalendarHeader.css` is not loaded (`UNLOADED_GENERATED_CSS` D): the header row is
   // the Calendar's own `<header>` composition — nav buttons and heading at the Calendar's size
   // (`catalogCalendarHeaderParts`, read through the owner).

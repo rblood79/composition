@@ -39,10 +39,8 @@ import { tooltipTriggerBinding } from "./TooltipTrigger.binding";
 import { dialogBinding } from "./Dialog.binding";
 import { dialogFooterBinding } from "./DialogFooter.binding";
 import { disclosureBinding } from "./Disclosure.binding";
-import { disclosureContentBinding } from "./DisclosureContent.binding";
 import { disclosurePanelBinding } from "./DisclosurePanel.binding";
 import { disclosureGroupBinding } from "./DisclosureGroup.binding";
-import { disclosureHeaderBinding } from "./DisclosureHeader.binding";
 import { dropZoneBinding } from "./DropZone.binding";
 import { fieldBinding } from "./Field.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
@@ -99,7 +97,6 @@ import { radioButtonBinding } from "./RadioButton.binding";
 import { radioIndicatorBinding } from "./RadioIndicator.binding";
 import { switchIndicatorBinding } from "./SwitchIndicator.binding";
 import { treeItemContentBinding } from "./TreeItemContent.binding";
-import { disclosureChevronBinding } from "./DisclosureChevron.binding";
 import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
@@ -182,10 +179,8 @@ export * from "./DateRangePicker.binding";
 export * from "./Description.binding";
 export * from "./Dialog.binding";
 export * from "./DialogFooter.binding";
-export * from "./DisclosureContent.binding";
 export * from "./DisclosurePanel.binding";
 export * from "./DisclosureGroup.binding";
-export * from "./DisclosureHeader.binding";
 export * from "./DropZone.binding";
 export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
@@ -237,7 +232,6 @@ export * from "./RadioButton.binding";
 export * from "./RadioIndicator.binding";
 export * from "./SwitchIndicator.binding";
 export * from "./TreeItemContent.binding";
-export * from "./DisclosureChevron.binding";
 export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Section.binding";
@@ -324,15 +318,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Label: labelBinding,
   // ADR-912 위험군 해소(선행-6): compound 보조 설명 leaf (TEXT_LEAF 동형, 부모 변형 0, weight 400)
   Description: descriptionBinding,
-  // ADR-912 (B+icon): Disclosure 헤더 leaf (leading chevron + title, leading_icon append escape).
-  //   DOM 은 부모 Disclosure self-compose(독립 노드 0), Skia generic box+text + leading_icon.
-  DisclosureHeader: disclosureHeaderBinding,
-  // ADR-912 box+text 변환 군 (2026-06-10): Disclosure 패널 콘텐츠 leaf (internal source, renderer=
-  //   "disclosurecontent"). inline text(rule height:0, paddingX 미정의=0) → buildCatalogShapes
-  //   box+text generic parity. spec sizes.paddingX(12) 가 Skia 에만 적용되던 "padding Skia-only" 비대칭
-  //   해소 — padding 단일 source = element.props.style(DOM renderDisclosureContent ↔ Skia buildCatalogShapes).
-  //   DOM=renderDisclosureContent 위임(부모 renderDisclosure contentChildren 재귀, 독립 노드 유지).
-  DisclosureContent: disclosureContentBinding,
   // ADR-256 Phase 8c: RAC DisclosurePanel (the reference `Disclosure > Heading + DisclosurePanel`).
   DisclosurePanel: disclosurePanelBinding,
   ToggleButton: toggleButtonBinding,
@@ -458,8 +443,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SwitchIndicator: switchIndicatorBinding,
   // ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — no element of its own).
   TreeItemContent: treeItemContentBinding,
-  // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모 Disclosure DOM 이 흡수, 자기 rule 없음 — 값은 DisclosureHeader rule).
-  DisclosureChevron: disclosureChevronBinding,
   Slider: sliderBinding,
   // ADR-256 Phase 7c: a Slider's parts are RAC's — SliderTrack (its bar) > SliderFill + SliderThumb.
   SliderTrack: sliderTrackBinding,

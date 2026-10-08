@@ -2094,18 +2094,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
-  disclosurecontent: {
-    render: (input) => {
-      const list = children(input);
-      return createElement(
-        "div",
-        { ...marker(input), style: input.style },
-        ...(list.length
-          ? renderAll(input, list)
-          : [str(input.node.props.children)]),
-      );
-    },
-  },
   // ADR-256 Phase 8c: RAC Disclosure draws its node tree in order — the reference
   // `Heading > Button[slot=trigger] > (chevron + title)` + `DisclosurePanel` (the starter's; RAC's
   // contexts link the trigger and the panel). Its expansion: the declared state, the Preview's runtime

@@ -41,8 +41,6 @@ export type { Key } from "react-aria-components/Collection";
 export * from "./Form";
 export * from "./RangeCalendar";
 export * from "./Pagination";
-export * from "./Disclosure";
-export * from "./DisclosureGroup";
 
 // Color 컴포넌트
 export * from "./ColorArea";

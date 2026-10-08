@@ -121,12 +121,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     reason:
       "renderTableView 가 childrenByParent 로 자식(TableHeader/TableBody/Column/Row/Cell)을 받아 role=grid div 안에 재귀 렌더. disclosuregroup/nav 동형 — generic 위임(binding.source.renderer 구 'div')은 childrenByParent 보강 없어 shell 만 렌더(Skia 는 자식 generic box → 비대칭). 자식 Column/Cell 은 TableView 조상일 때만 renderColumn/renderCell 이 div 렌더(Table 데이터 경로는 null 유지).",
   },
-  {
-    key: "disclosurecontent",
-    kind: "delegating-internal",
-    reason:
-      "renderDisclosureContent 가 childrenByParent 로 자식 element 렌더. props.children 텍스트 fallback 있어 텍스트는 generic 으로도 표시되나, 자식 element 시 누락 → 안전망 DELEGATING.",
-  },
+
   {
     key: "field",
     kind: "delegating-internal",

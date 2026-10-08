@@ -99,10 +99,7 @@ const CONSUMER_OF_TYPE: Readonly<Record<string, RacSlotContextKey>> = {
 };
 
 /** Catalog types whose children render where a RAC part (named in the table) provides. */
-const PROVIDER_ALIAS: Readonly<Record<string, string>> = {
-  DisclosureContent: "DisclosurePanel",
-  DisclosureHeader: "Disclosure",
-};
+const PROVIDER_ALIAS: Readonly<Record<string, string>> = {};
 
 export function catalogRacSlotConsumer(
   type: string,

@@ -269,13 +269,6 @@ export const INLINE_BLOCK_TAG_CLASSIFICATION: Readonly<
     reason:
       "텍스트 leaf 측정 (텍스트 fallback). catalog structure inline-flex = DOM Tab.css",
   },
-  disclosureheader: {
-    measure: true,
-    role: "B",
-    display: "catalog",
-    reason:
-      "합성 leaf (chevron + text) 측정 — R5 선례 073751610 (미등록 시 width 0). catalog structure flex = block-level (B)",
-  },
   calendarheader: {
     measure: true,
     role: "B",

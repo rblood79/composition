@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { resolveToken, type TokenRef } from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
+import { compileRulePartRules } from "../document/rulePartRules";
 
 /**
  * Disclosure trigger 헤더가 **부모 size 의 font-size 를 상속**하는지 (2026-07-15, 사용자 적발:
@@ -50,28 +52,34 @@ describe("Disclosure trigger 헤더 font-size 상속 체인", () => {
   });
 
   /**
-   * 상속이 **올바른 값**을 나르는지 — `Disclosure.sizes.fontSize`(상속 source)와
-   * `DisclosureHeader.sizes.fontSize`(Skia 가 그리는 값)가 size 별로 같아야 대칭이 성립한다.
-   * 둘이 갈리면 inherit 는 DOM 을 "변하게" 만들 뿐 Skia 와 맞추지는 못한다.
+   * 상속이 **올바른 값**을 나르는지 — `Disclosure.sizes.fontSize`(상속 source)와 Canvas 가 trigger 에
+   * 주는 값 (ADR-256 Phase 8c — Disclosure part rule 의 `Button[slot=trigger]` via Heading · 제목 Text
+   * via Button) 이 size 별로 같아야 대칭이 성립한다. (옛 비교 대상 `DisclosureHeader` rule 은 8e 에서 삭제.)
    */
-  it("상속 source(Disclosure.sizes) = Skia source(DisclosureHeader.sizes) fontSize", () => {
+  it("상속 source(Disclosure.sizes) = Skia source(Disclosure part rule) fontSize", () => {
     const disclosure = COMPONENT_RULES_TABLE.Disclosure as unknown as {
       sizes: Record<string, { fontSize?: string }>;
     };
-    const header = COMPONENT_RULES_TABLE.DisclosureHeader as unknown as {
-      sizes: Record<string, { fontSize?: string }>;
-    };
-
+    const parts = compileRulePartRules("Disclosure", () => undefined);
     const sizes = ["sm", "md", "lg"] as const;
+    const fontOf = (childType: string, via: string, size: string) =>
+      parts.find(
+        (part) =>
+          part.childType === childType &&
+          part.via === via &&
+          part.size === size &&
+          part.visual.fontSize !== undefined,
+      )?.visual.fontSize;
     for (const size of sizes) {
-      expect(
-        disclosure.sizes[size]?.fontSize,
-        `Disclosure.sizes.${size}.fontSize`,
-      ).toBe(header.sizes[size]?.fontSize);
+      const source = resolveToken(
+        disclosure.sizes[size]!.fontSize as TokenRef,
+      );
+      expect(fontOf("Button", "Heading", size), `trigger ${size}`).toBe(source);
+      expect(fontOf("Text", "Button", size), `title ${size}`).toBe(source);
     }
 
     // 세 size 가 실제로 **서로 다른** 값이어야 한다 (전부 같으면 이 계약이 무의미).
-    const distinct = new Set(sizes.map((s) => header.sizes[s]?.fontSize));
+    const distinct = new Set(sizes.map((s) => fontOf("Button", "Heading", s)));
     expect(distinct.size, "size 별 fontSize 가 실제로 갈린다").toBe(3);
   });
 

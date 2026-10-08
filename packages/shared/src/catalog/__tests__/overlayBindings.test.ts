@@ -11,9 +11,9 @@ import { toRacProps } from "../outputs/toRacProps";
  * overlay 는 composition wrapper(OverlayArrow / focus trap / drop 영역 합성, internal source).
  *
  * **ADR-912 단계 5 (1b) + step 1 (2026-06-04) — 5 overlay 전부 Skia generic 전환 (skiaLegacy 0건)**:
- * Popover bg/border buildCatalogShapes + V-arrow skiaPrimitive(popover_arrow),
+ * Popover bg/border buildCatalogShapes (화살표는 ADR-256 Phase 8a 부터 OverlayArrow 노드),
  * Dialog bg(본문), Modal transparent shell(primitive 없음),
- * DropZone variant+dashed border 보편 D3 속성, Tooltip bg+text generic + arrow(tooltip_arrow, append).
+ * DropZone variant+dashed border 보편 D3 속성, Tooltip bg+text generic (화살표 = OverlayArrow 노드).
  * Toast 는 imperative API → 제외.
  *
  * **ADR-166 Phase 4 (2026-07-25)**: shadow primitive 2건(`popover_shadow`/`dialog_shadow`) 은퇴.

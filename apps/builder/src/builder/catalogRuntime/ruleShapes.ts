@@ -233,49 +233,6 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
   return composeCatalogShapes(base, prepend, append);
 }
 
-/**
- * A part node that holds its owner's leading icon (a DisclosureHeader's `DisclosureChevron`): the
- * owner's `leading_icon` primitive — glyph, expanded turn, color — centered in the part's box.
- * `input` is the owner's.
- */
-export function catalogLeadingIconPartNodeData(
-  input: CatalogRuleShapeInput,
-): SkiaNodeData {
-  const { rect } = input;
-  const {
-    ctx: { props, visual, paint, size: sizeSpec, style: mergedStyle },
-    theme,
-  } = ruleShapeContext(input);
-  const fontSize = resolveSpecFontSize(
-    (mergedStyle.fontSize as string | number | undefined) ?? sizeSpec.fontSize,
-    14,
-  );
-  // The part is the slot alone: no row indent ahead of it.
-  const partProps: Record<string, unknown> = {
-    ...props,
-    _treeLevel: undefined,
-  };
-  const slot = resolveLeadingSlot(visual, partProps, sizeSpec, fontSize);
-  const iconSize = slot?.kind === "icon" ? slot.size : 0;
-  const shapes =
-    getSkiaPrimitive("leading_icon")?.({
-      props: partProps,
-      size: { ...sizeSpec, height: rect.height },
-      visual,
-      paint,
-      style: {
-        ...mergedStyle,
-        paddingLeft: (rect.width - iconSize) / 2,
-      },
-    }) ?? [];
-  return specShapesToSkia(
-    shapes,
-    theme,
-    rect.width,
-    rect.height,
-    input.node.id,
-  );
-}
 
 /** Every text of `data` paints an ellipsis at its box and clips there. */
 function ellipsize(data: SkiaNodeData): void {

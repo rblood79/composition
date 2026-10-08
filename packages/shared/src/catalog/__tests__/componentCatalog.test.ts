@@ -137,11 +137,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "body",
         "Section",
         "Nav",
-        // ADR-912 (B+icon) (2026-06-08): Disclosure/Calendar 헤더 leaf (leading/inline icon escape).
-        //   이전 slice 에서 catalog 등록됐으나 본 oracle 미갱신 stale → §2-5 Disclosure slice 와 함께 정합.
-        "DisclosureHeader",
-        // 2026-10-07: Disclosure trigger 의 chevron 노드 (부모가 그리는 part, palette 비노출).
-        "DisclosureChevron",
+        // ADR-912 (B+icon) (2026-06-08): Calendar 헤더 leaf (leading/inline icon escape). (옛 Disclosure 헤더 ·
+        //   chevron 은 ADR-256 Phase 8e 에서 삭제.)
         "CalendarHeader",
         // ADR-912 (A/2D) (2026-06-08): Calendar grid + DateField input leaf (calendar_month_grid /
         //   datefield_segments replace escape). 동일 stale 정합.
@@ -152,7 +149,6 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Disclosure",
         // ADR-912 Disclosure 군 일괄 cutover (2026-06-10, f0ad8d03a): 패널 콘텐츠 leaf +
         //   그룹 컨테이너. catalog 등록됐으나 본 oracle 미갱신 stale → T1 Field slice 와 함께 정합.
-        "DisclosureContent",
         // ADR-256 Phase 8c: RAC DisclosurePanel (the reference `Disclosure > Heading + DisclosurePanel`).
         "DisclosurePanel",
         "DisclosureGroup",

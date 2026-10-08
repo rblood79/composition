@@ -1288,15 +1288,6 @@ function ownDerivedProps(
         ? { iconName: "chevron-down" }
         : undefined;
   }
-  // RAC Disclosure: `data-expanded` turns the trigger's chevron (the header rule's `leadingIcon`,
-  // painted in the header's DisclosureChevron node or, without one, by the header itself).
-  const disclosure = get(node.parentId);
-  if (
-    typeOf(node) === "DisclosureHeader" &&
-    disclosure &&
-    typeOf(disclosure) === "Disclosure"
-  )
-    return { isExpanded: catalogDisclosureExpanded(disclosure, get, typeOf) };
   // RAC Breadcrumbs draws its last crumb as the current one (no separator, current paint); the
   // crumb's label Text inherits the current Link's weight.
   if (typeOf(node) === "Breadcrumb")
@@ -1512,13 +1503,10 @@ function derivedDependents(
     const disclosures = group
       ? childrenOf(group, get).filter((child) => typeOf(child) === "Disclosure")
       : [owner];
-    return disclosures.flatMap((disclosure) => [
-      ...childrenOf(disclosure, get).filter(
-        (child) => typeOf(child) === "DisclosureHeader",
-      ),
-      // ADR-256 Phase 8c: its trigger's chevron Icon.
-      ...catalogDisclosureTriggerIcons(disclosure, get, typeOf),
-    ]);
+    // (ADR-256 Phase 8c: its trigger's chevron Icon.)
+    return disclosures.flatMap((disclosure) =>
+      catalogDisclosureTriggerIcons(disclosure, get, typeOf),
+    );
   }
   const parent = get(owner.parentId);
   return type === "TreeItem" && parent && typeOf(parent) === "TreeItem"

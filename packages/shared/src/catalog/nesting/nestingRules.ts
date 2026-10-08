@@ -139,8 +139,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
   // overlay · disclosure — Phase 8. (Disclosure — 8c: 레퍼런스 `Heading > Button[trigger]` + `DisclosurePanel`
   // 노드 트리로 그린다. DisclosureGroup — 8d: 자유 내용 (RAC 가 children 을 그대로 그린다), 행 삭제.
-  // 옛 DisclosureHeader 행은 그 type 이 남는 동안만 — 삭제는 8e.)
-  DisclosureHeader: { children: ["DisclosureChevron", "Text"] },
+  // 옛 DisclosureHeader · DisclosureChevron · DisclosureContent type 은 8e 에서 삭제.)
   // calendar — Phase 9
   Calendar: { children: ["CalendarHeader", "CalendarGrid"], wrappers: true },
   RangeCalendar: {
@@ -236,8 +235,6 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "CheckboxButton",
   "SwitchButton",
   "RadioButton",
-  // DisclosureHeader 는 부모 Disclosure 가 `<Heading><Button slot="trigger">` 로
-  // self-compose 한다 (binding 주석) — 루트가 button 이 아니라 host 가 아니다.
 ]);
 
 /** HTML interactive content 또는 labelable control 로 렌더되는 타입. */
@@ -286,7 +283,6 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "TabList",
   "Tab",
   "Disclosure",
-  "DisclosureHeader",
   "Tree",
   "Table",
   "TableView",

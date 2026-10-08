@@ -79,9 +79,7 @@ export { Toolbar } from "./Toolbar";
 export { Heading, Text as ContentText } from "./Content";
 export { Card } from "./Card";
 export { Slot } from "./Slot";
-export { Disclosure } from "./Disclosure";
 export { DisclosurePanel } from "react-aria-components/Disclosure";
-export { DisclosureGroup } from "./DisclosureGroup";
 
 // Icon Component
 export { Icon } from "./Icon";

@@ -61,7 +61,6 @@ export type ComponentTag =
   | "DialogTrigger"
   | "Disclosure"
   | "DisclosureGroup"
-  | "DisclosureHeader"
   | "DropZone"
   | "Field"
   | "FieldError"

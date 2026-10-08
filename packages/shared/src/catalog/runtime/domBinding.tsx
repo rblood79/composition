@@ -2149,12 +2149,11 @@ function renderNode(
     bound &&
     (node.bindingId === "selectvalue" ||
       (node.bindingId === "text" &&
-        (parentInput?.bindingId === "disclosureheader" ||
-          catalogDisclosureOfTriggerPart(
-            node,
-            (id) => root.domInputs.get(id),
-            (entry) => catalogTypeName(root, entry),
-          ) !== undefined))) &&
+        catalogDisclosureOfTriggerPart(
+          node,
+          (id) => root.domInputs.get(id),
+          (entry) => catalogTypeName(root, entry),
+        ) !== undefined)) &&
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;

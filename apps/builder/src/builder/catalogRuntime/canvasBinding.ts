@@ -19,7 +19,6 @@ import { catalogNodeState } from "../../../../../packages/shared/src/catalog/res
 import type { CatalogConsumerNode } from "./compositionRoot";
 import {
   catalogDateInputPaintProps,
-  catalogLeadingIconPartNodeData,
   catalogRuleNodeData,
 } from "./ruleShapes";
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
@@ -397,7 +396,6 @@ const bindings: Readonly<Record<string, Binding>> = {
   autocomplete: container,
   // ADR-256 Phase 5h: RAC TreeItemContent has no element (a layout box for the row's flex line).
   treeitemcontent: container,
-  disclosurechevron: container,
   box,
   icon: glyph,
   selecticon: glyph,
@@ -531,13 +529,12 @@ const RULE_UNPAINTED_TEXT_KEYS = [
 /**
  * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation
  * itself is `OWNER_DRAWN_PART_OWNERS`): a toggle's `*Indicator` runs the toggle's replace
- * primitive, a DisclosureHeader's `DisclosureChevron` its `leading_icon`.
+ * primitive. (A Disclosure's chevron is its trigger's Icon node — ADR-256 Phase 8c.)
  */
 const OWNER_DRAWN_PART_PRIMITIVES: Readonly<Record<string, string>> = {
   CheckboxIndicator: "checkbox",
   RadioIndicator: "radio",
   SwitchIndicator: "switch_toggle",
-  DisclosureChevron: "leading_icon",
 };
 const OWNER_DRAWN_PART_OWNER_TYPES: ReadonlySet<string> = new Set(
   Object.values(OWNER_DRAWN_PART_OWNERS),
@@ -584,8 +581,7 @@ function ownerDrawnPart(
  * A part node its owner draws: the owner's rule primitive in the part's own box — the owner's
  * props, display state, variant and authored paint decide it, as they decide the DOM element. A
  * replace primitive (checkbox box · radio circle · switch track, `size.indicator`) is the owner's
- * whole rule paint; the `leading_icon` (Disclosure chevron) is the glyph alone, centered in the
- * part's box.
+ * whole rule paint.
  */
 function ownerDrawnPartNodeData(
   root: CatalogCompositionRoot,
@@ -612,8 +608,6 @@ function ownerDrawnPartNodeData(
   let data: SkiaNodeData;
   if (getSkiaPrimitiveMode(primitive) === "replace")
     data = catalogRuleNodeData(input);
-  else if (primitive === "leading_icon")
-    data = catalogLeadingIconPartNodeData(input);
   else
     throw new Error(`CATALOG_CANVAS_PART_PRIMITIVE_UNSUPPORTED:${primitive}`);
   return { ...data, elementId: node.id, x: rect.x, y: rect.y };
