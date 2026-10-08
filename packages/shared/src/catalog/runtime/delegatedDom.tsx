@@ -71,6 +71,7 @@ import {
   Breadcrumb as AriaBreadcrumb,
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
+import { Menu as AriaMenu } from "react-aria-components/Menu";
 import { MenuButton } from "../../components/Menu";
 import { TABLEVIEW_CHILD_STYLE } from "./tableViewChildStyle";
 import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
@@ -320,6 +321,13 @@ function treeItemElements(
 }
 
 const ownsAll = () => true;
+/** A Menu's RAC collection children (ADR-256 Phase 5g: + SubmenuTrigger). */
+const MENU_CHILD_TYPES: ReadonlySet<string> = new Set([
+  "MenuItem",
+  "SubmenuTrigger",
+  "MenuSection",
+  "Separator",
+]);
 const container =
   (
     tag: string,
@@ -1048,6 +1056,38 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
+      const items = () =>
+        renderAll(
+          input,
+          children(input).filter((child) =>
+            MENU_CHILD_TYPES.has(catalogTypeName(input.root, child)),
+          ),
+        );
+      // ADR-256 Phase 5g: a submenu (`SubmenuTrigger > MenuItem + Popover > Menu`) is the RAC Menu
+      // alone — its SubmenuTrigger is the trigger (RAC's `MenuContext` · the Popover's).
+      const popover = input.root.domInputs.get(input.node.parentId);
+      const trigger = popover && input.root.domInputs.get(popover.parentId);
+      if (
+        popover &&
+        trigger &&
+        catalogTypeName(input.root, popover) === "Popover" &&
+        catalogTypeName(input.root, trigger) === "SubmenuTrigger"
+      )
+        return createElement(
+          AriaMenu as ElementType,
+          {
+            key: input.node.id,
+            "data-catalog-id": input.node.id,
+            className: "react-aria-Menu",
+            "data-size": props.size || "md",
+            style: input.style,
+            ...(typeof props["aria-label"] === "string"
+              ? { "aria-label": props["aria-label"] }
+              : {}),
+            ...(props.selectionMode ? { selectionMode: props.selectionMode } : {}),
+          },
+          ...items(),
+        );
       return markerWrap(
         input,
         createElement(
@@ -1067,14 +1107,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             size: props.size || "md",
             selectionMode: props.selectionMode,
           },
-          ...renderAll(
-            input,
-            children(input).filter((child) =>
-              ["MenuItem", "MenuSection", "Separator"].includes(
-                catalogTypeName(input.root, child),
-              ),
-            ),
-          ),
+          ...items(),
         ),
       );
     },

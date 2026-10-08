@@ -63,6 +63,7 @@ import { inlineAlertBinding } from "./InlineAlert.binding";
 import { inputBinding } from "./Input.binding";
 import { kbdBinding } from "./Kbd.binding";
 import { keyboardBinding } from "./Keyboard.binding";
+import { submenuTriggerBinding } from "./SubmenuTrigger.binding";
 import { labelBinding } from "./Label.binding";
 import { linkBinding } from "./Link.binding";
 import { listBoxBinding } from "./ListBox.binding";
@@ -196,6 +197,7 @@ export * from "./IllustratedMessage.binding";
 export * from "./InlineAlert.binding";
 export * from "./Kbd.binding";
 export * from "./Keyboard.binding";
+export * from "./SubmenuTrigger.binding";
 export * from "./Label.binding";
 export * from "./Link.binding";
 export * from "./ListBox.binding";
@@ -300,6 +302,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Kbd: kbdBinding,
   // ADR-256 Phase 5g: a keyboard shortcut (RAC Keyboard — a MenuItem's shortcut).
   Keyboard: keyboardBinding,
+  // ADR-256 Phase 5g: a menu item that opens a submenu (RAC SubmenuTrigger).
+  SubmenuTrigger: submenuTriggerBinding,
   // ADR-912 위험군 해소(선행-6): field/form 라벨 leaf (부모 의존 4단계 변형은 dispatch 직교)
   Label: labelBinding,
   // ADR-912 위험군 해소(선행-6): compound 보조 설명 leaf (TEXT_LEAF 동형, 부모 변형 0, weight 400)

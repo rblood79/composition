@@ -33,10 +33,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * label Text has no slot name. 15 — ADR-256 Phase 5f: the Checkbox origin takes `slot` (a
  * collection item's `Checkbox[slot=selection]`) and its label carries `presentWhen`. 16 — ADR-256
  * Phase 5g: a MenuItem's shortcut is a RAC `Keyboard` (`component-menu-item-default__shortcut`,
- * `presentWhen`) in place of a `Text[slot=shortcut]`.
+ * `presentWhen`) in place of a `Text[slot=shortcut]`. 17 — ADR-256 Phase 5g: a MenuItem holds the
+ * submenu chevron (`component-menu-item-default__chevron`, `showWhen: { all: ["hasSubmenu"] }`).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 16 as const;
+export const LIBRARY_CONTRACT_VERSION = 17 as const;
 
 export type EntryKind =
   | "project"

@@ -40,7 +40,15 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     Select: new Set(["ListBox", "ListBoxItem", "ListBoxSection", "Popover"]),
     ComboBox: new Set(["ListBox", "ListBoxItem", "ListBoxSection", "Popover"]),
     // RAC MenuTrigger: the items live in the closed Popover; only the trigger button shows.
-    Menu: new Set(["MenuItem", "MenuSection", "Separator", "Popover"]),
+    Menu: new Set([
+      "MenuItem",
+      "SubmenuTrigger",
+      "MenuSection",
+      "Separator",
+      "Popover",
+    ]),
+    // ADR-256 Phase 5g: the submenu lives in the trigger item's closed Popover.
+    SubmenuTrigger: new Set(["Popover"]),
   };
 
 /** Disclosure children rendered as its trigger, not inside its RAC DisclosurePanel. */

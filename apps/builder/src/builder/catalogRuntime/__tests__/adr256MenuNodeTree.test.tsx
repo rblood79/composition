@@ -3,7 +3,14 @@ import "fake-indexeddb/auto";
 import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Keyboard, Menu, MenuItem, Text } from "react-aria-components/Menu";
+import {
+  Keyboard,
+  Menu,
+  MenuItem,
+  SubmenuTrigger,
+  Text,
+} from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   insertNodes,
@@ -62,7 +69,7 @@ const ROWS = [
 
 const cleanups: Array<() => void> = [];
 afterEach(() => {
-  for (const cleanup of cleanups.splice(0)) cleanup();
+  for (const cleanup of cleanups.splice(0).reverse()) cleanup();
 });
 
 async function open(entries: NodeEntry[], rootId: string) {
@@ -274,5 +281,192 @@ describe("ADR-256 Phase 5g — MenuItem parts are the reference's (example 2)", 
       expect(items()[0]!.getAttribute("aria-checked")).toBe("true"),
     );
     expect(marked()).not.toBeNull();
+  });
+});
+
+/**
+ * The reference's submenu (react-aria.adobe.com Menu, Submenus): `SubmenuTrigger > MenuItem + Popover
+ * > Menu`, the item showing `ChevronRight` while it has a submenu.
+ */
+function submenuEntries(chevron: (item: string) => NodeEntry[]): NodeEntry[] {
+  const item = (id: string, label: string, extra: NodeEntry[] = []) => [
+    node(id, "lib:definition:type-MenuItem", {}, [
+      `${id}-label`,
+      ...extra.map((entry) => entry.id),
+    ]),
+    node(`${id}-label`, "lib:definition:text", {
+      slot: "label",
+      children: label,
+    }),
+    ...extra,
+  ];
+  const share = "project:node:share";
+  return [
+    node(MENU, "lib:definition:type-Menu", { label: "Edit" }, [
+      "project:node:cut",
+      "project:node:submenu",
+    ]),
+    ...item("project:node:cut", "Cut", chevron("project:node:cut")),
+    node("project:node:submenu", "lib:definition:type-SubmenuTrigger", {}, [
+      share,
+      "project:node:submenu-popover",
+    ]),
+    ...item(share, "Share", chevron(share)),
+    node(
+      "project:node:submenu-popover",
+      "lib:definition:type-Popover",
+      { hideArrow: true, offset: -2, crossOffset: -4 },
+      ["project:node:submenu-menu"],
+    ),
+    node("project:node:submenu-menu", "lib:definition:type-Menu", {}, [
+      "project:node:sms",
+      "project:node:instagram",
+    ]),
+    ...item("project:node:sms", "SMS"),
+    ...item("project:node:instagram", "Instagram"),
+  ];
+}
+const chevronNode = (item: string): NodeEntry[] => [
+  node(
+    `${item}-chevron`,
+    "lib:definition:type-Icon",
+    { iconName: "chevron-right", size: "xs" },
+    [],
+    { showWhen: { all: ["hasSubmenu"] } } as Partial<NodeEntry>,
+  ),
+];
+
+/** A menu's own structure (not its submenus' popovers): tag · role · aria-haspopup · text. */
+function itemStructure(menu: Element): string {
+  const walk = (element: Element): string => {
+    if (element.matches("div.react-aria-Icon"))
+      return [...element.children].map(walk).join("");
+    const attributes = [...element.attributes]
+      .filter((attribute) => /^(role|slot|aria-haspopup)$/.test(attribute.name))
+      .map((attribute) => `${attribute.name}=${attribute.value}`)
+      .sort();
+    const content =
+      element.tagName === "svg"
+        ? []
+        : [...element.childNodes].map((child) =>
+            child.nodeType === 1
+              ? walk(child as Element)
+              : (child.textContent ?? "").trim(),
+          );
+    return `<${element.tagName.toLowerCase()} ${attributes.join(" ")}>${content.join("")}</>`;
+  };
+  return [...menu.children].map(walk).join("");
+}
+
+describe("ADR-256 Phase 5g — a submenu is the reference's SubmenuTrigger > MenuItem + Popover > Menu", () => {
+  it("the item opens its Popover's Menu; only the trigger item shows the chevron (hasSubmenu)", async () => {
+    const { root, record, of } = await open(submenuEntries(chevronNode), MENU);
+    // (The Canvas: the submenu rests in the menu's closed popover.)
+    expect(of("SubmenuTrigger").every((r) => r.hidden === true)).toBe(true);
+    const reference = render(
+      createElement(
+        Menu,
+        { "aria-label": "Edit" },
+        createElement(
+          MenuItem,
+          { id: "cut", textValue: "Cut" },
+          createElement(Text, { slot: "label" }, "Cut"),
+        ),
+        createElement(
+          SubmenuTrigger,
+          null,
+          createElement(
+            MenuItem,
+            { id: "share", textValue: "Share" },
+            createElement(Text, { slot: "label" }, "Share"),
+            createElement("svg", { "aria-hidden": "true" }),
+          ),
+          createElement(
+            Popover,
+            null,
+            createElement(
+              Menu,
+              { "aria-label": "Share" },
+              createElement(
+                MenuItem,
+                { id: "sms", textValue: "SMS" },
+                createElement(Text, { slot: "label" }, "SMS"),
+              ),
+              createElement(
+                MenuItem,
+                { id: "instagram", textValue: "Instagram" },
+                createElement(Text, { slot: "label" }, "Instagram"),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    cleanups.push(() => reference.unmount());
+    const referenceMenu = itemStructure(reference.getByRole("menu"));
+    const referenceShare = reference.getAllByRole("menuitem")[1]!;
+    fireEvent.click(referenceShare);
+    const submenuOf = async (item: Element) => {
+      let found: Element | null = null;
+      await waitFor(() => {
+        found = document.querySelector(
+          `[role=menu][aria-labelledby="${item.id}"]`,
+        );
+        expect(found).not.toBeNull();
+      });
+      return found! as Element;
+    };
+    const referenceOpened = await submenuOf(referenceShare);
+    const referenceSubmenu = itemStructure(referenceOpened);
+    // (RAC's SubmenuTrigger places it: `end top` — the reference passes no placement.)
+    const referencePlacement = referenceOpened
+      .closest(".react-aria-Popover")
+      ?.getAttribute("data-placement");
+    reference.unmount();
+
+    const view = await openMenu(root, record(MENU).id);
+    expect(itemStructure(view.getByRole("menu"))).toBe(referenceMenu);
+    const share = view.getAllByRole("menuitem")[1]!;
+    expect(share.getAttribute("aria-haspopup")).toBe("menu");
+    fireEvent.click(share);
+    // (RAC names the submenu by its trigger item.)
+    const submenu = await submenuOf(share);
+    expect(itemStructure(submenu)).toBe(referenceSubmenu);
+    expect(
+      submenu.closest(".react-aria-Popover")?.getAttribute("data-placement"),
+    ).toBe(referencePlacement);
+    expect(referencePlacement).toBeTruthy();
+  });
+
+  it("the MenuItem origin holds the chevron: shown in a SubmenuTrigger, absent in a plain item", async () => {
+    const entries = submenuEntries(() => []).map((entry) =>
+      entry.id === "project:node:share" || entry.id === "project:node:cut"
+        ? ({
+            ...entry,
+            definitionId: "lib:definition:origin-component-menu-item-default",
+            children: [],
+          } as NodeEntry)
+        : entry,
+    );
+    const { root, record, of } = await open(
+      entries.filter(
+        (entry) =>
+          entry.id !== "project:node:share-label" &&
+          entry.id !== "project:node:cut-label",
+      ),
+      MENU,
+    );
+    const chevrons = of("Icon").filter(
+      (icon) => icon.props.iconName === "chevron-right",
+    );
+    expect(chevrons).toHaveLength(2);
+    const view = await openMenu(root, record(MENU).id);
+    const [cut, share] = view.getAllByRole("menuitem");
+    const glyphs = (item: Element) =>
+      item.querySelectorAll(
+        chevrons.map((c) => `[data-catalog-id="${c.id}"]`).join(","),
+      ).length;
+    expect(glyphs(cut!)).toBe(0);
+    expect(glyphs(share!)).toBe(1);
   });
 });

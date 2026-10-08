@@ -210,14 +210,28 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Menu: {
     container: "collection",
     families: ["itemSlotCollection"],
-    children: ["MenuItem", "MenuSection", "Section", "Separator", "Header"],
+    children: [
+      "MenuItem",
+      "SubmenuTrigger",
+      "MenuSection",
+      "Section",
+      "Separator",
+      "Header",
+    ],
   },
   MenuSection: {
     container: "collection",
-    children: ["Header", "MenuItem"],
+    children: ["Header", "MenuItem", "SubmenuTrigger"],
     owners: ["Menu"],
   },
   MenuItem: { owners: ["Menu"] },
+  // ADR-256 Phase 5g: RAC SubmenuTrigger — its item (the first child) and the Popover holding the
+  // submenu's Menu (RAC reads `children[0]` · `children[1]`).
+  SubmenuTrigger: {
+    container: "collection",
+    children: ["MenuItem", "Popover"],
+    owners: ["Menu"],
+  },
   GridList: {
     container: "collection",
     families: ["itemSlotCollection", "disablingGroup"],

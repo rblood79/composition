@@ -2126,7 +2126,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-menu-item-default__icon",
       "lib:template:component-menu-item-default__label",
       "lib:template:component-menu-item-default__shortcut",
-      "lib:template:component-menu-item-default__description"
+      "lib:template:component-menu-item-default__description",
+      "lib:template:component-menu-item-default__chevron"
     ],
     "props": {},
     "visual": {}
@@ -2170,6 +2171,21 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "{description}"
     },
     "presentWhen": "nonEmptyText",
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-menu-item-default__chevron",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-right",
+      "size": "xs"
+    },
+    "showWhen": {
+      "all": [
+        "hasSubmenu"
+      ]
+    },
     "visual": {}
   },
   {

@@ -990,6 +990,14 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "menu",
     icon: "Menu",
   }),
+  // SubmenuTrigger — ADR-256 Phase 5g: a menu item that opens a submenu (RAC SubmenuTrigger >
+  //   MenuItem + Popover > Menu). Put into a Menu through its insert list, not the palette.
+  primitiveEntry("SubmenuTrigger", "collections", FAMILY_4_CUTOVER, {
+    category: "collections",
+    label: "submenu trigger",
+    icon: "ChevronRight",
+    placeable: false,
+  }),
 ];
 
 /**

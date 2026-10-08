@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5g-2 — Menu 의 하위 메뉴 = SubmenuTrigger 노드] - 2026-10-09
+
+### Added
+
+- **새 요소 `SubmenuTrigger` (하위 메뉴)** — react-aria.adobe.com Menu 예제의 `SubmenuTrigger > MenuItem + Popover > Menu`. Menu (또는 MenuSection) 안에 두고, 첫 자식 MenuItem 이 하위 메뉴를 여는 항목, 둘째 자식 Popover 안의 Menu 가 하위 메뉴다. Preview 는 RAC `SubmenuTrigger` 로 그린다 — 항목을 누르거나 오른쪽 화살표로 열고, RAC 가 하위 메뉴를 그 항목 이름으로 부르며 항목 오른쪽 (`end top`) 에 놓는다. Canvas 는 종전처럼 Menu 의 버튼만 그린다 (하위 메뉴는 닫힌 팝오버 안)
+
+### Changed
+
+- **Menu 항목 원본에 하위 메뉴 표시 (chevron) 노드** — 「하위 메뉴가 있을 때만」 (`showWhen hasSubmenu`) 보이는 오른쪽 화살표 아이콘. 하위 메뉴가 없는 항목에는 보이지 않는다 (기본 Menu 화면 변화 없음)
+- **Popover 안의 Menu 가 하위 메뉴일 때는 RAC Menu 만 그린다** (트리거 버튼 없이) · 하위 메뉴 Popover 는 Popover 의 기본 자리 (`bottom`) 가 아니라 RAC 가 정하는 자리를 쓴다
+- 위치: `catalog/bindings/SubmenuTrigger.binding.ts` · `domain/componentTraits.ts` · `catalog/runtime/delegatedDom.tsx` `menu` · `domBinding.tsx` `submenutrigger`
+- **저장 형식 contract 17**
+
 ## [ADR-256 Phase 5g-1 — Menu 항목의 단축키 = Keyboard 노드 · 선택 표시 노드] - 2026-10-09
 
 ### Added

@@ -619,6 +619,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       "data-catalog-id": node.id,
       style,
     } as Parameters<typeof RAC.SelectionIndicator>[0]),
+  // ADR-256 Phase 5g: RAC `SubmenuTrigger` — no element of its own; it reads its item (the first
+  // child — RAC gives it `aria-haspopup`) and the Popover holding the submenu (the second).
+  submenutrigger: (node, _style, children) =>
+    createElement(
+      RAC.SubmenuTrigger as ElementType,
+      { key: node.id },
+      ...children,
+    ),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
   // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
   select: (node, style, _children, _context, parts) =>
@@ -1117,6 +1125,14 @@ function ruleDom(
   // (A picker's control: the part node elements inside its Group — ADR-253.)
   if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
+  // ADR-256 Phase 5g: a submenu's Popover takes its place from RAC's SubmenuTrigger (`end top`, its
+  // `PopoverContext`) — the type's default `placement` would override it (the reference passes none).
+  if (
+    lower === "popover" &&
+    catalogTypeName(root, root.domInputs.get(node.parentId)!) ===
+      "SubmenuTrigger"
+  )
+    delete rest.placement;
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
   // without a title (and without the author's name) keeps the fallback name. RAC drops the title
   // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.
