@@ -159,19 +159,16 @@ export function TagGroup<T extends object>({
   // Build className with variant and size (재사용을 위해 최상위에 선언)
   const tagGroupClassName = "react-aria-TagGroup";
 
-  // maxRows: S2 패턴 — 숨겨진 미러 DOM에서 측정, 실제 DOM에서 슬라이스
-  // 핵심: 미러 DOM은 항상 전체 태그 렌더 (상태 무관) → 무한 루프 방지
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const hiddenRef = useRef<HTMLDivElement>(null);
-  // 실제 chip 배치 컨테이너(.tag-list-wrapper) — 미러 측정 폭 동기화용.
-  //   **Why (side-label maxRows 접힘 과다 버그, 2026-07-02)**: 미러 DOM 은 `<AriaTagGroup>` 밖의
-  //   형제(position:relative 최상위 div 자식, width:100%)라 side-label 의 좁아진 폭(Label 차감)을
-  //   못 받는다. side 에서 실제 wrapper 는 flex-direction:row 로 Label 옆 남은 폭(전체−Label−gap)에서
-  //   chip 을 wrap 하나, 미러는 전체 폭으로 측정 → 행당 chip 과다 → visibleTagCount 과다 →
-  //   실제 배치에서 maxRows 초과(라이브: 미러 348 → 10칩 2줄에 8개, 실제 wrapper 276 → 그 8개가 3줄).
-  //   측정 직전에 실제 wrapper clientWidth 를 미러 width 에 주입해 폭을 일치시킨다.
-  const tagListWrapperRef = useRef<HTMLDivElement>(null);
-  const [visibleTagCount, setVisibleTagCount] = useState<number>(Infinity);
+  // maxRows: S2 패턴 — 숨겨진 미러 DOM에서 측정, 실제 DOM에서 슬라이스 (`useTagMaxRows`).
+  const {
+    hiddenRef,
+    wrapperRef: tagListWrapperRef,
+    hasMaxRows,
+    isCollapsed,
+    setIsCollapsed,
+    showCollapsed,
+    visibleTagCount,
+  } = useTagMaxRows(maxRows);
   // ADR-256 Phase 5d: the reference's `onRemove` for authored tags — a removed tag leaves the list
   // (Preview run state; the document keeps it). RAC shows a tag's remove button only with one.
   const [removedStatic, setRemovedStatic] = useState<ReadonlySet<Key>>(
@@ -200,71 +197,6 @@ export function TagGroup<T extends object>({
               ]),
           )
       : undefined);
-
-  const hasMaxRows = maxRows != null && maxRows > 0;
-  const showCollapsed = hasMaxRows && isCollapsed;
-
-  const computeVisibleTagCount = useCallback(() => {
-    if (!hiddenRef.current || !maxRows) return;
-    // 미러 폭을 실제 chip 배치 컨테이너 폭과 동기화 (side-label Label 차감 폭 반영).
-    //   실제 wrapper 가 아직 없으면(측정 초기) width:100% fallback 유지.
-    const actualWidth = tagListWrapperRef.current?.clientWidth;
-    if (actualWidth != null && actualWidth > 0) {
-      hiddenRef.current.style.width = `${actualWidth}px`;
-    }
-    const items = hiddenRef.current.children;
-    if (items.length === 0) return;
-
-    let currY = -Infinity;
-    let rowCount = 0;
-    let index = 0;
-    for (let i = 0; i < items.length; i++) {
-      const { y } = items[i].getBoundingClientRect();
-      if (y !== currY) {
-        currY = y;
-        rowCount++;
-      }
-      if (rowCount > maxRows) break;
-      index++;
-    }
-
-    flushSync(() => {
-      setVisibleTagCount(index);
-    });
-  }, [maxRows]);
-
-  // 초기 측정 + 컬렉션 변경 시 재측정
-  useEffect(() => {
-    if (hasMaxRows && isCollapsed) {
-      // microtask로 DOM 렌더 완료 후 측정
-      queueMicrotask(computeVisibleTagCount);
-    }
-  }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
-
-  // ResizeObserver: 컨테이너 크기 변경 시 재측정
-  //   최상위 relative div(미러 부모) + 실제 chip 배치 컨테이너(.tag-list-wrapper) 양쪽 관찰.
-  //   **Why wrapper 도 관찰**: side-label 에서 실제 wrap 폭 = 전체 − Label − gap 이라 Label 텍스트
-  //   변경 시 relative div(고정) 는 안 바뀌어도 wrapper 폭은 바뀐다. 미러 측정 폭 동기화(위
-  //   computeVisibleTagCount)가 wrapper clientWidth 를 읽으므로, wrapper resize 도 재측정 trigger.
-  useEffect(() => {
-    if (!hasMaxRows || !hiddenRef.current) return;
-    const parentEl = hiddenRef.current.parentElement;
-    const wrapperEl = tagListWrapperRef.current;
-    if (!parentEl && !wrapperEl) return;
-    const observer = new ResizeObserver(() => {
-      if (isCollapsed) computeVisibleTagCount();
-    });
-    if (parentEl) observer.observe(parentEl);
-    if (wrapperEl) observer.observe(wrapperEl);
-    return () => observer.disconnect();
-  }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      setIsCollapsed(true);
-      setVisibleTagCount(Infinity);
-    });
-  }, [maxRows]);
 
   // ADR-912 영역 B Task 2-B: collection source acquisition 단일화.
   //   useCollectionData 직접 호출(이중 source)을 제거하고 useResolvedCollectionItems 단일 진입점으로 통일.
@@ -648,18 +580,16 @@ export function TagGroup<T extends object>({
     [filteredRows, removedItemIds],
   );
 
-  const totalChildCount =
-    liveStaticItems
-      ? liveStaticItems.length
-      : hasResolvedRows
-        ? resolvedTagItems.length
-        : tagTexts.length;
+  const totalChildCount = liveStaticItems
+    ? liveStaticItems.length
+    : hasResolvedRows
+      ? resolvedTagItems.length
+      : tagTexts.length;
 
   // 실제 렌더링할 children: static children 경로(외부 JSX)에서만 collapsed 슬라이스 적용.
-  const staticNodes =
-    liveStaticItems
-      ? liveStaticItems.map((entry) => entry.node)
-      : null;
+  const staticNodes = liveStaticItems
+    ? liveStaticItems.map((entry) => entry.node)
+    : null;
   const displayChildren = staticNodes
     ? showCollapsed
       ? staticNodes.slice(0, visibleTagCount)
@@ -680,38 +610,14 @@ export function TagGroup<T extends object>({
     <div style={{ position: "relative", ...style }}>
       {/* S2 패턴: 숨겨진 미러 DOM — 항상 전체 태그를 span으로 렌더 (측정 전용) */}
       {hasMaxRows && (
-        <div
-          ref={hiddenRef}
-          inert
-          aria-hidden="true"
-          className="react-aria-TagList"
-          data-tag-size={size}
-          data-label-position={labelPosition}
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            // chip 간 gap 정본 = TagList catalog rule (lg=6, 그 외 4). 실제 wrapper(.tag-list-wrapper)
-            //   의 size 별 gap 과 동일해야 maxRows wrap 측정이 정확. Skia resolveTagListGap 과 정합.
-            gap: size === "lg" ? "6px" : "var(--spacing-xs)",
-            position: "absolute",
-            visibility: "hidden",
-            overflow: "hidden",
-            opacity: 0,
-            pointerEvents: "none",
-            width: "100%",
-          }}
-        >
-          {tagTexts.map((entry, i) => (
-            <span key={i} className="react-aria-Tag" style={chipStyle(false)}>
-              {/* 미러는 실제 chip 의 **정확한 폭 대체**여야 한다 — 좌측 슬롯(icon/avatar)을
-                  빼면 슬롯 있는 chip 이 실제보다 좁게 측정돼 행당 개수가 과다 산출된다
-                  (같은 축의 과거 결함: chip size CSS 미적용 / side-label 폭 미차감).
-                  ADR-229: template style · slot gating 도 실제 chip 과 같은 값으로. */}
-              {renderTagLeadingSlot(entry, chipComposition(false))}
-              {entry.text}
-            </span>
-          ))}
-        </div>
+        <TagMaxRowsMirror
+          hiddenRef={hiddenRef}
+          size={size}
+          labelPosition={labelPosition}
+          entries={tagTexts}
+          chipStyle={chipStyle(false)}
+          composition={chipComposition(false)}
+        />
       )}
       <AriaTagGroup
         {...props}
@@ -794,6 +700,177 @@ export function TagGroup<T extends object>({
         {renderFieldDescription(description)}
         {renderTagGroupError(errorMessage)}
       </AriaTagGroup>
+    </div>
+  );
+}
+
+/**
+ * maxRows (S2 패턴): 숨겨진 미러 DOM 에서 행을 세고 실제 목록은 앞에서 자른다. 미러는 항상 전체 태그를
+ * 그린다 (상태 무관) → 무한 루프 방지. `wrapperRef` = 실제 chip 배치 상자 (`.tag-list-wrapper`).
+ */
+export interface TagRowsState {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+  visibleTagCount: number;
+  setVisibleTagCount: (count: number) => void;
+}
+/** The collapse state of a maxRows list (held above RAC's TagGroup — see `useTagMaxRows`). */
+export function useTagRowsState(): TagRowsState {
+  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [visibleTagCount, setVisibleTagCount] = useState<number>(Infinity);
+  return { isCollapsed, setIsCollapsed, visibleTagCount, setVisibleTagCount };
+}
+/**
+ * `shared`: the state of a list RAC also renders a copy of (its collection is built from a hidden
+ * `<template>` render of the TagGroup's children — a copy with its own state would keep every tag);
+ * only the copy with layout measures.
+ */
+export function useTagMaxRows(
+  maxRows: number | undefined,
+  shared?: TagRowsState,
+) {
+  const own = useTagRowsState();
+  const { isCollapsed, setIsCollapsed, visibleTagCount, setVisibleTagCount } =
+    shared ?? own;
+  const hiddenRef = useRef<HTMLDivElement>(null);
+  // 실제 chip 배치 컨테이너(.tag-list-wrapper) — 미러 측정 폭 동기화용.
+  //   **Why (side-label maxRows 접힘 과다 버그, 2026-07-02)**: 미러 DOM 은 `<AriaTagGroup>` 밖의
+  //   형제(position:relative 최상위 div 자식, width:100%)라 side-label 의 좁아진 폭(Label 차감)을
+  //   못 받는다. side 에서 실제 wrapper 는 flex-direction:row 로 Label 옆 남은 폭(전체−Label−gap)에서
+  //   chip 을 wrap 하나, 미러는 전체 폭으로 측정 → 행당 chip 과다 → visibleTagCount 과다 →
+  //   실제 배치에서 maxRows 초과(라이브: 미러 348 → 10칩 2줄에 8개, 실제 wrapper 276 → 그 8개가 3줄).
+  //   측정 직전에 실제 wrapper clientWidth 를 미러 width 에 주입해 폭을 일치시킨다.
+  const tagListWrapperRef = useRef<HTMLDivElement>(null);
+  const hasMaxRows = maxRows != null && maxRows > 0;
+  const showCollapsed = hasMaxRows && isCollapsed;
+
+  const computeVisibleTagCount = useCallback(() => {
+    if (!hiddenRef.current || !maxRows) return;
+    // (RAC's hidden collection copy — inside a `<template>`, no layout — does not measure.)
+    if (hiddenRef.current.closest("template")) return;
+    // 미러 폭을 실제 chip 배치 컨테이너 폭과 동기화 (side-label Label 차감 폭 반영).
+    //   실제 wrapper 가 아직 없으면(측정 초기) width:100% fallback 유지.
+    const actualWidth = tagListWrapperRef.current?.clientWidth;
+    if (actualWidth != null && actualWidth > 0) {
+      hiddenRef.current.style.width = `${actualWidth}px`;
+    }
+    const items = hiddenRef.current.children;
+    if (items.length === 0) return;
+
+    let currY = -Infinity;
+    let rowCount = 0;
+    let index = 0;
+    for (let i = 0; i < items.length; i++) {
+      const { y } = items[i].getBoundingClientRect();
+      if (y !== currY) {
+        currY = y;
+        rowCount++;
+      }
+      if (rowCount > maxRows) break;
+      index++;
+    }
+
+    flushSync(() => {
+      setVisibleTagCount(index);
+    });
+  }, [maxRows, setVisibleTagCount]);
+
+  // 초기 측정 + 컬렉션 변경 시 재측정
+  useEffect(() => {
+    if (hasMaxRows && isCollapsed) {
+      // microtask로 DOM 렌더 완료 후 측정
+      queueMicrotask(computeVisibleTagCount);
+    }
+  }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
+
+  // ResizeObserver: 컨테이너 크기 변경 시 재측정
+  //   최상위 relative div(미러 부모) + 실제 chip 배치 컨테이너(.tag-list-wrapper) 양쪽 관찰.
+  //   **Why wrapper 도 관찰**: side-label 에서 실제 wrap 폭 = 전체 − Label − gap 이라 Label 텍스트
+  //   변경 시 relative div(고정) 는 안 바뀌어도 wrapper 폭은 바뀐다. 미러 측정 폭 동기화(위
+  //   computeVisibleTagCount)가 wrapper clientWidth 를 읽으므로, wrapper resize 도 재측정 trigger.
+  useEffect(() => {
+    if (!hasMaxRows || !hiddenRef.current) return;
+    const parentEl = hiddenRef.current.parentElement;
+    const wrapperEl = tagListWrapperRef.current;
+    if (!parentEl && !wrapperEl) return;
+    const observer = new ResizeObserver(() => {
+      if (isCollapsed) computeVisibleTagCount();
+    });
+    if (parentEl) observer.observe(parentEl);
+    if (wrapperEl) observer.observe(wrapperEl);
+    return () => observer.disconnect();
+  }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setIsCollapsed(true);
+      setVisibleTagCount(Infinity);
+    });
+  }, [maxRows, setIsCollapsed, setVisibleTagCount]);
+
+  return {
+    hiddenRef,
+    wrapperRef: tagListWrapperRef,
+    hasMaxRows,
+    isCollapsed,
+    setIsCollapsed,
+    showCollapsed,
+    visibleTagCount,
+  };
+}
+
+/** The maxRows measuring mirror: every tag as a plain chip (`useTagMaxRows` counts its rows). */
+export function TagMaxRowsMirror({
+  hiddenRef,
+  size,
+  labelPosition,
+  entries,
+  chipStyle,
+  composition,
+}: {
+  hiddenRef: React.RefObject<HTMLDivElement | null>;
+  size: string;
+  labelPosition: string;
+  entries: ReadonlyArray<{
+    text: string;
+    icon: string | null;
+    avatar: string | null;
+  }>;
+  chipStyle?: React.CSSProperties;
+  composition?: TagItemTemplate["composition"];
+}): JSX.Element {
+  return (
+    <div
+      ref={hiddenRef}
+      inert
+      aria-hidden="true"
+      className="react-aria-TagList"
+      data-tag-size={size}
+      data-label-position={labelPosition}
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        // chip 간 gap 정본 = TagList catalog rule (lg=6, 그 외 4). 실제 wrapper(.tag-list-wrapper)
+        //   의 size 별 gap 과 동일해야 maxRows wrap 측정이 정확. Skia resolveTagListGap 과 정합.
+        gap: size === "lg" ? "6px" : "var(--spacing-xs)",
+        position: "absolute",
+        visibility: "hidden",
+        overflow: "hidden",
+        opacity: 0,
+        pointerEvents: "none",
+        width: "100%",
+      }}
+    >
+      {entries.map((entry, i) => (
+        <span key={i} className="react-aria-Tag" style={chipStyle}>
+          {/* 미러는 실제 chip 의 **정확한 폭 대체**여야 한다 — 좌측 슬롯(icon/avatar)을
+              빼면 슬롯 있는 chip 이 실제보다 좁게 측정돼 행당 개수가 과다 산출된다
+              (같은 축의 과거 결함: chip size CSS 미적용 / side-label 폭 미차감).
+              ADR-229: template style · slot gating 도 실제 chip 과 같은 값으로. */}
+          {renderTagLeadingSlot(entry, composition)}
+          {entry.text}
+        </span>
+      ))}
     </div>
   );
 }

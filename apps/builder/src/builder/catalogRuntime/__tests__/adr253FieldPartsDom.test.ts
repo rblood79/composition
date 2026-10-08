@@ -196,6 +196,22 @@ function toggleFieldMarkup(text: string, type: "Checkbox" | "Radio"): string {
  * and the Tag is named by it (`textValue` → RAC's `aria-label` · `aria-labelledby`).
  */
 function tagGroupMarkup(text: string): string {
+  // Codex Round 20 H1: no styled outer div — the RAC TagGroup is the node's box — and the maxRows
+  // measuring mirror sits in the TagList node's chip box.
+  const outer = text.match(
+    /^<div >(<div aria-hidden=true class=react-aria-TagList [^>]*>(?:<span class=react-aria-Tag>[^<]*<\/>)*<\/>)?<template ><\/>([\s\S]*)<\/>$/,
+  );
+  if (outer)
+    text = `<template ></>\n${outer[2]!.replace(
+      "<div class=tag-list-wrapper>",
+      `<div class=tag-list-wrapper>${outer[1] ?? ""}`,
+    )}`;
+  // (Without a visible label the group is named — RAC needs a name, as the other fields.)
+  if (!text.includes("class=react-aria-Label"))
+    text = text.replace(
+      "aria-describedby aria-labelledby aria-live=off",
+      "aria-describedby aria-label=Tag group aria-live=off",
+    );
   return text.replace(
     /<div aria-selected=(\w+) class=react-aria-Tag ([^>]*)><div aria-colindex=1 role=gridcell><span class=react-aria-Text data-size=(\w+) slot=label>([^<]*)</g,
     (_match, selected, rest, size, label) =>
@@ -280,11 +296,17 @@ const DATE_PART_MARKUP: Record<string, readonly (readonly [string, string])[]> =
  */
 const groupItemsUnselected = (type: string, text: string) =>
   type === "checkboxgroup" || type === "radiogroup"
-    ? (type === "radiogroup" ? text.replace(/tabindex=-1/g, "tabindex=0") : text)
+    ? (type === "radiogroup"
+        ? text.replace(/tabindex=-1/g, "tabindex=0")
+        : text
+      )
         .replace(/ data-selected=true/g, "")
         .replace(/data-selected=true /g, "")
         .replace(/ checked=/g, "")
-        .replace(/<svg aria-hidden=true class=lucide lucide-check [^>]*><path [^>]*><\/><\/>/g, "")
+        .replace(
+          /<svg aria-hidden=true class=lucide lucide-check [^>]*><path [^>]*><\/><\/>/g,
+          "",
+        )
     : text;
 /**
  * A field's control Group that only places its parts (ADR-256 Phase 6b — a RAC Group carries no
@@ -349,11 +371,15 @@ const datePickerNodeTreeMarkup = (
   type: string,
   name: string,
 ) => {
-  const root = new RegExp(`(<div class=react-aria-${type}[^>]*?) data-necessity-indicator=\\w+`);
+  const root = new RegExp(
+    `(<div class=react-aria-${type}[^>]*?) data-necessity-indicator=\\w+`,
+  );
   const tree = markup.replace(root, "$1");
   if (name === "quiet")
     return tree.replace(
-      new RegExp(`(<div class=react-aria-${type}[^>]*data-label-position=\\w+)`),
+      new RegExp(
+        `(<div class=react-aria-${type}[^>]*data-label-position=\\w+)`,
+      ),
       "$1 data-quiet=true",
     );
   if (name !== "no label") return tree;
@@ -392,7 +418,9 @@ const progressNodeTreeMarkup = (markup: string, name: string, label: string) =>
  * `.slider-fill` div), and a Slider without a visible label is named (`aria-label`).
  */
 const sliderNodeTreeMarkup = (markup: string, name: string) => {
-  const disabled = /class=react-aria-Slider [^>]*data-disabled=true/.test(markup);
+  const disabled = /class=react-aria-Slider [^>]*data-disabled=true/.test(
+    markup,
+  );
   const tree = markup
     .replace(/<div class=slider-track-bg[^>]*><\/>/, "")
     .replace(
@@ -400,7 +428,10 @@ const sliderNodeTreeMarkup = (markup: string, name: string) => {
       `<div class=react-aria-SliderFill ${disabled ? "data-disabled=true " : ""}data-orientation=horizontal data-rac=></>`,
     );
   return name === "no label"
-    ? tree.replace(/^<div aria-labelledby (class=react-aria-Slider)/, "<div aria-label=Slider $1")
+    ? tree.replace(
+        /^<div aria-labelledby (class=react-aria-Slider)/,
+        "<div aria-label=Slider $1",
+      )
     : tree;
 };
 /**
@@ -579,7 +610,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           if (placeholder) expect(structure).toContain(placeholder);
           const glyphless = WRAPPED_TYPES.includes(type)
             ? withoutGlyphs
-            : (text: string) => text;
+            : type === "taggroup"
+              ? // (React's `useId` follows the tree: without the outer div RAC's collection id moves.)
+                (text: string) =>
+                  text.replace(/react-aria-_R_\w+_/g, "react-aria-_R_")
+              : (text: string) => text;
           const fixed = groupItemsUnselected(
             type,
             (DATE_PART_MARKUP[type] ?? []).reduce(
@@ -600,23 +635,27 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                       ? selectNodeTreeMarkup(fixed)
                       : type === "slider"
                         ? sliderNodeTreeMarkup(fixed, name)
-                      : type === "progressbar" || type === "meter"
-                        ? progressNodeTreeMarkup(
-                            fixed,
-                            name,
-                            type === "meter" ? "Meter" : "Progress",
-                          )
-                      : type === "combobox"
-                        ? comboBoxGroupMarkup(fixed, name === "quiet")
-                        : type === "datepicker"
-                          ? datePickerNodeTreeMarkup(fixed, "DatePicker", name)
-                          : type === "daterangepicker"
-                            ? datePickerNodeTreeMarkup(
-                                fixed,
-                                "DateRangePicker",
-                                name,
-                              )
-                            : fixed;
+                        : type === "progressbar" || type === "meter"
+                          ? progressNodeTreeMarkup(
+                              fixed,
+                              name,
+                              type === "meter" ? "Meter" : "Progress",
+                            )
+                          : type === "combobox"
+                            ? comboBoxGroupMarkup(fixed, name === "quiet")
+                            : type === "datepicker"
+                              ? datePickerNodeTreeMarkup(
+                                  fixed,
+                                  "DatePicker",
+                                  name,
+                                )
+                              : type === "daterangepicker"
+                                ? datePickerNodeTreeMarkup(
+                                    fixed,
+                                    "DateRangePicker",
+                                    name,
+                                  )
+                                : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,
@@ -1581,9 +1620,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         const children = (id: string) =>
           records.get(id)!.children.map((child) => records.get(child)!);
         const wrapper = () =>
-          children(field.id).find(
-            (child) => typeOf(child.id) === "Group",
-          )!;
+          children(field.id).find((child) => typeOf(child.id) === "Group")!;
         const host = () => {
           const element = document.createElement("div");
           element.innerHTML = renderToStaticMarkup(

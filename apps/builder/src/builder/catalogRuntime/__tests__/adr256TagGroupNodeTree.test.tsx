@@ -108,14 +108,15 @@ async function open(props: Record<string, string | boolean> = {}) {
 /**
  * Decision 11 structure: tag · role · slot · aria links as positions · text. Known differences
  * collapsed here: our Icon is `div.react-aria-Icon > svg` (the reference's glyph is the svg); the
- * shared TagGroup's `maxRows` box (`div.tag-list-wrapper` around the TagList, no role) and its
- * hidden measuring mirror outside the RAC TagGroup.
+ * TagList node's chip box (`div.tag-list-wrapper` around RAC's TagList, no role) and its `maxRows`
+ * measuring mirror inside it (`inert`, hidden).
  */
 function structure(html: string): string {
   const host = document.createElement("div");
   host.innerHTML = html;
   for (const icon of [...host.querySelectorAll("div.react-aria-Icon")])
     icon.replaceWith(...icon.childNodes);
+  for (const mirror of [...host.querySelectorAll("[inert]")]) mirror.remove();
   for (const box of [...host.querySelectorAll("div.tag-list-wrapper")])
     box.replaceWith(...box.childNodes);
   for (const svg of [...host.querySelectorAll("svg")]) svg.innerHTML = "";

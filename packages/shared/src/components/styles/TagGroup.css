@@ -15,11 +15,8 @@
 
   /* ADR-234 Phase 3c — Tag instance 의 label Text 는 Tag 글자 (크기 · 굵기 · 줄 높이 · 상태별 색) 를 상속한다
      (TabsIndicator.css 의 Tab 규칙과 같은 이유 · Canvas 는 `itemLabelInheritance.ts`). */
-  /* The RAC TagGroup fills the styled outer div (`TagGroup.tsx`), so the chip wrapper's catalog
-     `height: 100%` resolves (4e-11). A Table cell's tag group keeps its content height. */
-  .react-aria-TagGroup:not(.table-cell-tag-group) {
-    height: 100%;
-  }
+  /* (The RAC TagGroup is the TagGroup node's styled box — Codex Round 20 H1 — so the chip wrapper's
+     catalog `height: 100%` resolves against its height; no outer box to fill.) */
 
   .react-aria-Tag .react-aria-Text.react-aria-Text {
     font-size: inherit;

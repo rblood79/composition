@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Codex Round 20 — TagGroup 노드 트리 · Group 으로 감싼 그룹 항목 · TagGroup 선택] - 2026-10-09
+
+### Fixed
+
+- **TagGroup 이 작성한 노드 구조대로 그려진다** — 지운 Label 이 Preview 에 다시 생기지 않고 (저장 · 새로고침 뒤도), Label 을 목록 뒤로 옮기면 Preview 도 뒤에 그리며, TagGroup 안에 자유 Text 를 넣을 수 있다 (종전: 넣기 거부 `NESTING_NOT_ALLOWED`).
+  - **Why**: TagGroup 만 공용 합성 컴포넌트가 Label · Description · 정적 Tag 를 prop 에서 골라 정해진 순서로 다시 조립하고 있었다 (ADR-256 Phase 5d 는 지우기 버튼만 노드로 바꿨다). 이제 RAC `TagGroup` 이 자식을 순서대로 그리고, TagList 노드가 chip 상자 (`div.tag-list-wrapper`) 를 맡는다. 보이는 Label 이 없으면 목록 이름은 `label` 값 (없으면 "Tag group").
+  - `maxRows` 접기 (Show all) 는 그대로 — 접기 상태를 TagGroup 이 들어, RAC 가 collection 을 만드는 숨은 사본도 같은 값을 본다 (수리 중 live 에서 찾은 결함: 사본이 측정하지 않아 모든 Tag 가 보였다).
+  - 빈 label 의 TagGroup 은 Canvas 에도 Label 상자가 없다 (원본 Label 에 `presentWhen: nonEmptyText` — TextField 등과 같다).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`taggroup` · `taglist`) · `components/TagGroup.tsx` (`useTagMaxRows` · `TagMaxRowsMirror`) · `nesting/nestingRules.ts` (제한 행 삭제) · `styles/TagGroup.css` (높이 규칙 삭제)
+- **TagGroup 의 Single · Multiple 선택이 Preview 에서 동작한다** (종전: 눌러도 선택 0 — `selectedKeys: []` 고정).
+- **CheckboxGroup · RadioGroup · ToggleButtonGroup 의 항목을 RAC Group 으로 감싸도 그룹 항목으로 남는다** — 선택 · 그룹의 disabled 등이 Canvas · Preview 에 그대로 (종전: Canvas 는 선택, Preview 는 미선택). 열린 Preview 에서 감싼 항목의 선택을 바꿔도 따라온다.
+  - **Why**: RAC 의 그룹 context 는 그룹 아래 어디든 닿는데, DOM · Canvas 는 그룹 소속을 직계 부모 (frame 만 건넘) 로 판정했다. 판정을 "가장 가까운 같은 종류의 그룹 조상" 하나 (`presence.ts` `catalogToggleGroupOf` · `catalogToggleGroupItems`) 로 모았다.
+- 회귀: `adr256TagGroupAuthoredTree.test.tsx` 6 · `adr256GroupWrappedToggles.test.tsx` 6 (원복 RED 11) · live `apps/builder/scripts/adr256-round20-live.mjs` 11/11 · G3 63 PASS + 1 UNVERIFIED · parity 811
+
 ## [Select id 변경 — 열린 Preview 의 trigger 가 새 id 를 바로 따른다] - 2026-10-09
 
 ### Fixed

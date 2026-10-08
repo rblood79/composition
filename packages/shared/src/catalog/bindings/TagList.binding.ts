@@ -17,23 +17,15 @@ import type { PrimitiveBinding } from "../types";
  *   chip wrap 은 rowsGroup 의 flexWrap:wrap(Taffy 배치)이 전담 — TagList.spec.containerStyles 는
  *   Skia 에서 dead. buildSpecNodeData 가 `isCatalogCutover("TagList")` → transparent box shell.
  *
- * **DOM = 부모 TagGroup self-compose**: renderTagGroup(useResolvedCollectionItems / items[] SSOT)이
- *   RAC `<TagGroup>` > `.tag-list-wrapper`(수동 CSS, display:flex/flex-wrap) > `<TagList
- *   className="react-aria-TagList">`(display:contents) 합성. TagList 의 wrap 은 수동 TagGroup.css 의
- *   .tag-list-wrapper 가 담당(display:contents passthrough). catalog 등록 후에도 DOM 변화 0
- *   (사용자 결정 2026-06-15: starter 구조는 catalog/spec 정의만, DOM .tag-list-wrapper 불변 —
- *   surface 최소). 발효 가치는 Skia 대칭(spec 의존 끊기 = spec 물리 삭제 안전) 한정.
+ * **DOM = TagList 노드 자신 (Codex Round 20 H1, 2026-10-09)**: `delegatedDom` `taglist` 가 chip 상자
+ *   `div.tag-list-wrapper` (노드의 marker · style — 수동 TagGroup.css 의 flex-wrap · gap · min-height) 안에
+ *   RAC `<TagList className="react-aria-TagList">` (display: contents) 와 Tag 노드를 그린다. 부모 TagGroup 은
+ *   RAC `<TagGroup>` 이고 작성 자식을 순서대로 그린다 — TagGroup 의 `maxRows` (측정 거울 · Show all) 와
+ *   지운 Tag 는 context 로 받는다.
  *
- * D1: composition — DOM 은 RAC `<TagGroup>`/`<TagList>` 가 self-compose + ARIA(role=grid/row).
- *     RAC D1/ARIA 권위 보존.
- * D2: size 편집 surface(컨테이너는 projection owner 라 편집 surface 최소).
- * D3: 시각(없음 — chip 컨테이너 shell)은 transparent box. layout(flex/row/wrap)은 factory
- *     props.style SSOT(ADR-907 Layer B / [[feedback-container-layout-via-factory-props-style]]) +
- *     Taffy resolveContainerStylesFallback 이전. Skia transparent generic ↔ DOM RAC self-compose 대칭.
- *
- * source.renderer "taglist" 은 DOM 에서 호출되지 않는다(부모 TagGroup self-compose) — primitiveEntry 의
- * getPrimitiveBinding 타입 계약 충족용. canonical TagList element 는 존재하나(factory 생성, 빈 children)
- * 자식 chip 은 items[] projection 이라 DOM 재귀 자식 없음 → DELEGATING 등록 불요.
+ * D1: RAC `<TagGroup>`/`<TagList>` 의 DOM · ARIA (role=grid/row) 그대로.
+ * D2: size 편집 surface.
+ * D3: 시각 (없음 — chip 컨테이너 shell) 은 transparent box. 배치는 catalog TagList rule.
  */
 export const tagListBinding: PrimitiveBinding = {
   source: {

@@ -553,16 +553,14 @@ describe("standalone collection items — item slot roles", () => {
 
 /**
  * taglist-wrapper: the catalog TagList is `height: 100%` (사용자 지시 2026-09-24) — the chip
- * wrapper fills what the TagGroup leaves under its label. The DOM wrapper's percentage resolved
- * against the RAC TagGroup, rendered at auto height inside the styled outer div, so it never
- * applied. The RAC TagGroup fills that div; the Canvas TagList takes the same 100%.
+ * wrapper fills what the TagGroup leaves under its label. The RAC TagGroup is the TagGroup node's
+ * styled box (Codex Round 20 H1 — no outer div), so the wrapper's percentage resolves against the
+ * authored height; the Canvas TagList takes the same 100%.
  */
 describe("TagList — the catalog 100% height", () => {
-  it("TagGroup.css lets the RAC TagGroup fill its outer box", () => {
+  it("TagGroup.css does not stretch the RAC TagGroup (it is the node's own box)", () => {
     const css = readFileSync(resolve(GENERATED, "../TagGroup.css"), "utf8");
-    expect(css).toMatch(
-      /\.react-aria-TagGroup:not\(\.table-cell-tag-group\) \{[^}]*height: 100%;/,
-    );
+    expect(css).not.toMatch(/\.react-aria-TagGroup[^{]*\{[^}]*height: 100%;/);
   });
 
   it("a 130-tall TagGroup's TagList fills the space under its label", async () => {

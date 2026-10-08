@@ -64,6 +64,8 @@ import {
   catalogFieldNecessityIndicator,
   catalogPartParent,
   catalogSliderRange,
+  catalogToggleGroupItems,
+  catalogToggleGroupOf,
 } from "./presence";
 import {
   type NecessityIndicator,
@@ -71,7 +73,17 @@ import {
 } from "../../components/FieldNecessityIndicator";
 import { Tabs, TabList, TabPanel } from "../../components/Tabs";
 import { TabPanels as AriaTabPanels } from "react-aria-components/Tabs";
-import { TagGroup } from "../../components/TagGroup";
+import {
+  TagMaxRowsMirror,
+  useTagMaxRows,
+  useTagRowsState,
+  type TagRowsState,
+} from "../../components/TagGroup";
+import {
+  TagGroup as AriaTagGroup,
+  TagList as AriaTagList,
+} from "react-aria-components/TagGroup";
+import type { Key } from "react-aria-components/Collection";
 import { ListBox } from "../../components/ListBox";
 import { GridList } from "../../components/GridList";
 import { Tree, TreeItem } from "../../components/Tree";
@@ -747,26 +759,44 @@ function toggleButton(
   };
 }
 /**
- * A CheckboxGroup's / RadioGroup's items in order: the toggles in the group's RAC context — under the
- * group, its items wrapper or a layout frame in them (as an item judges itself in the group,
- * `catalogDomPartParent`), not in a nested group.
+ * A CheckboxGroup's / RadioGroup's items in order: the toggles in the group's RAC context — any
+ * depth, not in a nested group (`catalogToggleGroupItems` — as an item judges itself in the group).
  */
 function groupItems(
   input: DelegatedDomInput,
   itemType: string,
-  itemsType: string,
 ): CatalogConsumerNode[] {
-  const visit = (node: CatalogConsumerNode): CatalogConsumerNode[] =>
-    childrenOf(input.root, node).flatMap((child) => {
-      const type = catalogTypeName(input.root, child);
-      return type === itemType
-        ? [child]
-        : type === itemsType || type === "frame"
-          ? visit(child)
-          : [];
-    });
-  return visit(input.node);
+  return catalogToggleGroupItems(
+    input.node,
+    itemType,
+    domGet(input.root),
+    (record) => catalogTypeName(input.root, record),
+  ).items;
 }
+/** A group's items and the containers between — a change to either can move its value. */
+const groupWatched = (
+  group: CatalogConsumerNode,
+  root: CatalogCompositionRoot,
+  itemType: string,
+) => {
+  const { items, containers } = catalogToggleGroupItems(
+    group,
+    itemType,
+    domGet(root),
+    (record) => catalogTypeName(root, record),
+  );
+  return [...containers, ...items].map((record) => record.id);
+};
+/** The group a toggle's DOM input belongs to (`catalogToggleGroupOf` over the DOM inputs). */
+const domToggleGroupOf = (
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+) =>
+  catalogToggleGroupOf(node, domGet(root), (record) =>
+    catalogTypeName(root, record),
+  );
+const domGet = (root: CatalogCompositionRoot) => (id: string) =>
+  root.domInputs.get(id);
 /**
  * A ToggleButton outside a group: its selection held here (RAC's uncontrolled state, made
  * controlled), passed down as its state frame (ADR-256 Decision 7).
@@ -897,28 +927,174 @@ const markerWrap = (input: DelegatedDomInput, element: ReactElement) =>
     element,
   );
 
+/** What a TagGroup gives its TagList: its `maxRows` · size · label position and its removed tags. */
+const TagGroupRunContext = createContext<{
+  readonly maxRows: number | undefined;
+  readonly size: string;
+  readonly labelPosition: string;
+  readonly removed: ReadonlySet<Key>;
+  /** (Held here: RAC also renders the TagList in its hidden collection copy — `useTagMaxRows`.) */
+  readonly rows: TagRowsState;
+} | null>(null);
+/** A Tag node's RAC key (as its binding gives it). */
+const tagKey = (tag: CatalogConsumerNode) =>
+  resolveStaticItemKey(tag.props as Record<string, unknown>, tag.id);
+/** The author's DOM attributes `withHtmlId` puts on a renderer's element (id · class · aria-label). */
+type AuthoredDomAttributes = Readonly<Record<string, unknown>>;
+function TagGroupRun({
+  input,
+  ...authored
+}: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
+  const props = input.node.props;
+  // (The reference's `onRemove` — a removed tag leaves the list: Preview run state, the document
+  // keeps it. RAC shows a tag's remove button only with one.)
+  const [removed, setRemoved] = useState<ReadonlySet<Key>>(() => new Set());
+  const rows = useTagRowsState();
+  const label = str(props.label).trim();
+  const named =
+    !!label &&
+    childrenOf(input.root, input.node).some(
+      (child) => catalogTypeName(input.root, child) === "Label",
+    );
+  const size = str(props.size) || "md";
+  const labelPosition = str(props.labelPosition) || "top";
+  const allTags = () =>
+    [...input.root.domInputs.values()]
+      .filter(
+        (record) =>
+          catalogTypeName(input.root, record) === "Tag" &&
+          catalogDomPartParent(input.root, record)?.parentId === input.node.id,
+      )
+      .map(tagKey);
+  return createElement(
+    TagGroupRunContext.Provider,
+    {
+      value: {
+        maxRows:
+          typeof props.maxRows === "number" && props.maxRows > 0
+            ? props.maxRows
+            : undefined,
+        size,
+        labelPosition,
+        removed,
+        rows,
+      },
+    },
+    createElement(
+      AriaTagGroup as ElementType,
+      {
+        ...marker(input),
+        style: input.style,
+        className: "react-aria-TagGroup",
+        "data-tag-variant": str(props.variant) || "default",
+        "data-tag-size": size,
+        "data-label-position": labelPosition,
+        // (Without a visible label the group is named by its `label` — RAC needs a name.)
+        "aria-label": named ? undefined : label || "Tag group",
+        selectionMode: props.selectionMode ?? "none",
+        selectionBehavior: props.selectionBehavior || "toggle",
+        disallowEmptySelection: bool(props.disallowEmptySelection),
+        onRemove: bool(props.allowsRemoving)
+          ? (keys: "all" | Iterable<Key>) =>
+              setRemoved(
+                (previous) =>
+                  new Set([
+                    ...previous,
+                    ...(keys === "all" ? allTags() : keys),
+                  ]),
+              )
+          : undefined,
+        ...authored,
+      },
+      ...renderAll(input),
+    ),
+  );
+}
+function TagListRun({
+  input,
+  ...authored
+}: { input: DelegatedDomInput } & AuthoredDomAttributes): ReactElement {
+  const run = useContext(TagGroupRunContext);
+  const tags = childrenOf(input.root, input.node).filter(
+    (child) =>
+      catalogTypeName(input.root, child) === "Tag" &&
+      !run?.removed.has(tagKey(child)),
+  );
+  const size = run?.size ?? (str(input.node.props.size) || "md");
+  const labelPosition = run?.labelPosition ?? "top";
+  const {
+    hiddenRef,
+    wrapperRef,
+    hasMaxRows,
+    isCollapsed,
+    setIsCollapsed,
+    showCollapsed,
+    visibleTagCount,
+  } = useTagMaxRows(run?.maxRows, run?.rows);
+  const shown = showCollapsed ? tags.slice(0, visibleTagCount) : tags;
+  const showButton = (label: string, collapse: boolean) =>
+    createElement(
+      "button",
+      {
+        className: "tag-show-all-btn",
+        type: "button",
+        onClick: () => setIsCollapsed(collapse),
+      },
+      label,
+    );
+  return createElement(
+    "div",
+    {
+      ...marker(input),
+      ref: wrapperRef,
+      style: input.style,
+      ...authored,
+      // (The chip box's class and the author's — not RAC's `react-aria-TagList`, which is the
+      // `display: contents` list inside.)
+      className: ["tag-list-wrapper", input.node.className]
+        .filter(Boolean)
+        .join(" "),
+    },
+    hasMaxRows
+      ? createElement(TagMaxRowsMirror, {
+          hiddenRef,
+          size,
+          labelPosition,
+          entries: tags.map((tag) => ({
+            text: childrenOf(input.root, tag)
+              .filter((kid) => catalogTypeName(input.root, kid) === "Text")
+              .map((kid) => str(kid.props.children))
+              .join(" "),
+            icon: null,
+            avatar: null,
+          })),
+        })
+      : null,
+    createElement(
+      AriaTagList as ElementType,
+      { className: "react-aria-TagList" },
+      ...shown.map((tag) => input.renderChild(tag.id)),
+    ),
+    showCollapsed && visibleTagCount < tags.length
+      ? showButton(`Show all (${tags.length})`, false)
+      : null,
+    hasMaxRows && !isCollapsed ? showButton("Show less", true) : null,
+  );
+}
+
 // ── bindings ───────────────────────────────────────────────────────────
-/** A ToggleButtonGroup's ToggleButtons — its children and those inside layout frames. */
+/** A ToggleButtonGroup's ToggleButtons (any depth — RAC context) and the containers between. */
 function groupToggleButtons(
   group: CatalogConsumerNode,
   root: CatalogCompositionRoot,
 ): { buttons: CatalogConsumerNode[]; frames: CatalogConsumerNode[] } {
-  const buttons: CatalogConsumerNode[] = [];
-  const frames: CatalogConsumerNode[] = [];
-  const visit = (node: CatalogConsumerNode) => {
-    for (const id of node.children) {
-      const child = root.domInputs.get(id);
-      if (!child) continue;
-      const type = catalogTypeName(root, child);
-      if (type === "ToggleButton") buttons.push(child);
-      else if (type === "frame") {
-        frames.push(child);
-        visit(child);
-      }
-    }
-  };
-  visit(group);
-  return { buttons, frames };
+  const { items, containers } = catalogToggleGroupItems(
+    group,
+    "ToggleButton",
+    domGet(root),
+    (record) => catalogTypeName(root, record),
+  );
+  return { buttons: items, frames: containers };
 }
 
 /** A DisclosureGroup's Disclosures (any depth — RAC context) over the DOM inputs. */
@@ -1009,54 +1185,17 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // Codex Round 20 H1: the reference's tree — `TagGroup > Label + TagList > Tag… +
+  // Text[description] + Text[errorMessage]` and free content, each child its own node in the
+  // author's order (a deleted Label is not drawn again from the `label` prop). Its selection is
+  // RAC's (Preview run state — M1); removed tags leave the list (`TagGroupRun`).
   taggroup: {
-    ownsChild: (child, _parent, root) =>
-      !["TagList", "Tag"].includes(catalogTypeName(root, child)),
-    absorbsChild: (child, _parent, root) =>
-      catalogTypeName(root, child) === "TagList",
-    render: (input) => {
-      const props = input.node.props;
-      const list = childOf(input, "TagList");
-      const tags = childrenOf(input.root, list ?? input.node).filter(
-        (child) => catalogTypeName(input.root, child) === "Tag",
-      );
-      // ADR-256 Phase 5d: the reference's `Text[description]` · `Text[errorMessage]` are the
-      // Description · FieldError part nodes (each shown while it has text — `presentWhen`).
-      const hint = (type: string) => {
-        const node = childOf(input, type);
-        return node ? input.renderChild(node.id) : undefined;
-      };
-      return createElement(TagGroup as ElementType, {
-        ...marker(input),
-        style: input.style,
-        variant: str(props.variant || "default"),
-        label: fieldLabel(input, str(props.label)),
-        description: hint("Description"),
-        errorMessage: hint("FieldError"),
-        allowsRemoving: bool(props.allowsRemoving),
-        selectionMode: props.selectionMode ?? "none",
-        selectionBehavior: props.selectionBehavior || "toggle",
-        selectedKeys: [],
-        isDisabled: bool(props.isDisabled),
-        disallowEmptySelection: bool(props.disallowEmptySelection),
-        size: props.size || "md",
-        labelPosition: props.labelPosition || "top",
-        maxRows: typeof props.maxRows === "number" ? props.maxRows : undefined,
-        staticItems: tags.length
-          ? tags.map((tag) => ({
-              text: childrenOf(input.root, tag)
-                .filter((kid) => catalogTypeName(input.root, kid) === "Text")
-                .map((kid) => str(kid.props.children))
-                .join(" "),
-              node: input.renderChild(tag.id),
-              id: resolveStaticItemKey(
-                tag.props as Record<string, unknown>,
-                tag.id,
-              ),
-            }))
-          : undefined,
-      });
-    },
+    render: (input) => createElement(TagGroupRun, { input }),
+  },
+  // The TagList node is the chip box (`div.tag-list-wrapper` — RAC's TagList is `display: contents`)
+  // with the TagGroup's `maxRows` (a measuring mirror · Show all).
+  taglist: {
+    render: (input) => createElement(TagListRun, { input }),
   },
   listbox: {
     ownsChild: (child, _parent, root) =>
@@ -1732,12 +1871,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   checkbox: {
     render: (input) => {
       const props = input.node.props;
-      const host = catalogDomPartParent(input.root, input.node);
-      const inGroup =
-        host !== undefined &&
-        ["CheckboxItems", "CheckboxGroup"].includes(
-          catalogTypeName(input.root, host),
-        );
+      const inGroup = !!domToggleGroupOf(input.root, input.node);
       return createElement(RacSlotScope, {
         // RAC holds the selection (a Preview press toggles it): an authored change of the default
         // starts the element over, as the Tabs binding does with its default key (2026-10-09).
@@ -1797,9 +1931,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // items wrapper, a Description, a FieldError, anything the author put in). Its value is the
   // selected items' record ids (each item is a `CheckboxField` with its record id — `checkbox`).
   checkboxgroup: {
+    // (Its value is its items' `isSelected` — through any element between: Codex Round 20 H2.)
+    watchesChildren: (node, root) => groupWatched(node, root, "Checkbox"),
     render: (input) => {
       const props = input.node.props;
-      const boxes = groupItems(input, "Checkbox", "CheckboxItems");
+      const boxes = groupItems(input, "Checkbox");
       const selected = boxes
         .filter((box) => box.props.isSelected === true)
         .map((box) => box.id);
@@ -1849,9 +1985,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // ADR-256 Phase 3: a RadioGroup is RAC `RadioGroup` — its children in order. Its value is the
   // first selected item's (each item is a `RadioField` with its `value` — `radio`), else its own.
   radiogroup: {
+    watchesChildren: (node, root) => groupWatched(node, root, "Radio"),
     render: (input) => {
       const props = input.node.props;
-      const radios = groupItems(input, "Radio", "RadioItems");
+      const radios = groupItems(input, "Radio");
       const selected = radios.find((radio) => radio.props.isSelected === true);
       const value =
         selected?.props.value !== undefined
@@ -1886,10 +2023,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   togglebutton: {
     render: (input) => {
       const props = input.node.props;
-      // (A frame between keeps it in the group's RAC context.)
-      const parent = catalogDomPartParent(input.root, input.node);
-      const inGroup =
-        !!parent && catalogTypeName(input.root, parent) === "ToggleButtonGroup";
+      // (An element between keeps it in the group's RAC context.)
+      const inGroup = !!domToggleGroupOf(input.root, input.node);
       // Outside a group its selection is its own (RAC state): tracked so the `showWhen` nodes inside
       // read it (ADR-256 Decision 7 — the shared ToggleButton draws children, not RAC's function).
       if (!inGroup)

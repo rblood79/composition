@@ -6889,6 +6889,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {

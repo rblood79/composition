@@ -85,7 +85,8 @@ function catalogDisclosureTriggerIcons(
     .filter((heading) => heading.bindingId === "heading")
     .flatMap((heading) => partChildrenOf(heading, get, typeOf))
     .filter(
-      (button) => button.bindingId === "button" && button.props.slot === "trigger",
+      (button) =>
+        button.bindingId === "button" && button.props.slot === "trigger",
     )
     .flatMap((button) => partChildrenOf(button, get, typeOf))
     .filter((child) => child.bindingId === "icon");
@@ -111,7 +112,7 @@ export function catalogDisclosureGroupOf(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  for (let cursor = get(disclosure.parentId); cursor; ) {
+  for (let cursor = get(disclosure.parentId); cursor;) {
     if (typeOf(cursor) === "DisclosureGroup") return cursor;
     cursor = get(cursor.parentId);
   }
@@ -1558,9 +1559,7 @@ function fieldSubparts(
 ): CatalogConsumerNode[] {
   return partChildrenOf(owner, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "Group"
-        ? partChildrenOf(child, get, typeOf)
-        : [child],
+      typeOf(child) === "Group" ? partChildrenOf(child, get, typeOf) : [child],
     )
     .filter(
       (child) =>
@@ -2009,12 +2008,65 @@ const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> =
     Radio: new Set(["isDisabled", "isReadOnly", "isInvalid", "isRequired"]),
     Tag: new Set(["allowsRemoving"]),
   };
-/** The CheckboxGroup / RadioGroup / TagGroup an item sits in (through its items wrapper and frames). */
+/** A toggle type → the RAC group whose state context it reads. */
+const TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
+  Checkbox: "CheckboxGroup",
+  Radio: "RadioGroup",
+  ToggleButton: "ToggleButtonGroup",
+};
+/**
+ * The group a toggle belongs to: RAC's group state context (`CheckboxGroupStateContext` ·
+ * `RadioGroupStateContext` · `ToggleGroupStateContext` — set only by the group itself, RAC 1.21.0)
+ * reaches every toggle below the group through any element (an items wrapper, a frame, a RAC
+ * `Group`) — the nearest group of its type (Codex Round 20 H2).
+ */
+export function catalogToggleGroupOf(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const groupType = TOGGLE_GROUP_OF[typeOf(item)];
+  if (!groupType) return undefined;
+  for (let cursor = get(item.parentId); cursor; cursor = get(cursor.parentId))
+    if (typeOf(cursor) === groupType) return cursor;
+  return undefined;
+}
+/**
+ * A group's toggles of `itemType` in document order (those whose `catalogToggleGroupOf` is it — a
+ * nested group of the same type keeps its own) and the containers they sit in: a change to either
+ * can move the group's value.
+ */
+export function catalogToggleGroupItems(
+  group: CatalogConsumerNode,
+  itemType: string,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { items: CatalogConsumerNode[]; containers: CatalogConsumerNode[] } {
+  const groupType = typeOf(group);
+  const items: CatalogConsumerNode[] = [];
+  const containers: CatalogConsumerNode[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of childrenOf(node, get)) {
+      const type = typeOf(child);
+      if (type === groupType) continue;
+      if (type === itemType) items.push(child);
+      else if (catalogChildKind(type).kind !== "leaf") {
+        containers.push(child);
+        visit(child);
+      }
+    }
+  };
+  visit(group);
+  return { items, containers };
+}
+/** The CheckboxGroup / RadioGroup / TagGroup an item sits in (a Tag through its TagList). */
 function catalogItemGroup(
   owner: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
+  if (TOGGLE_GROUP_OF[typeOf(owner)])
+    return catalogToggleGroupOf(owner, get, typeOf);
   const groupType = GROUP_OF_ITEM[typeOf(owner)];
   if (!groupType) return undefined;
   let cursor = catalogPartParent(owner, get, typeOf);
@@ -2028,16 +2080,7 @@ function catalogRadioGroupValue(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): string {
-  const radios: CatalogConsumerNode[] = [];
-  const visit = (node: CatalogConsumerNode) => {
-    for (const child of childrenOf(node, get)) {
-      const type = typeOf(child);
-      if (type === "Radio") radios.push(child);
-      else if (GROUP_ITEMS_TYPES.has(type) || PART_FRAME_TYPES.has(type))
-        visit(child);
-    }
-  };
-  visit(group);
+  const radios = catalogToggleGroupItems(group, "Radio", get, typeOf).items;
   const selected = radios.find((radio) => radio.props.isSelected === true);
   return selected?.props.value !== undefined
     ? String(selected.props.value)
