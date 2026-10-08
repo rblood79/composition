@@ -15,6 +15,7 @@ import type {
 } from "../document/types";
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
 import { isFieldControlGroup } from "../../domain/componentTraits";
+import { catalogChildKind } from "../nesting/nestingRules";
 export { catalogStateKeysOf };
 
 /**
@@ -138,7 +139,8 @@ export function catalogGroupDisclosures(
       const type = typeOf(child);
       if (type === "DisclosureGroup") continue;
       if (type === "Disclosure") disclosures.push(child);
-      else if (child.children.length) containers.push(child);
+      // (An empty frame too: a Disclosure put into it later joins the group — Round 19 LOW.)
+      else if (catalogChildKind(type).kind !== "leaf") containers.push(child);
       visit(child);
     }
   };

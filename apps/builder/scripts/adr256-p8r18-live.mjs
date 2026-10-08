@@ -2,7 +2,7 @@
 // Mode opens the Preview): L-1 · L-2 a Disclosure in a frame inside a DisclosureGroup follows the
 // group (H1) · L-3 a frame around the Heading keeps the trigger's box and the turned chevron (M1) ·
 // L-4 the trigger's authored isDisabled · text (M2) · L-5 a replaced Icon does not turn (M3) · L-6 no
-// errors.
+// errors · L-7 a Tree's replaced chevron Icon does not turn either.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-p8r18-live.mjs <out>
 import { chromium } from "playwright";
@@ -297,6 +297,38 @@ record(
   { r5, canvasIcon: icon5.props.iconName, derived: icon5.derived, dom: t5?.rotate },
 );
 await page.screenshot({ path: `${OUT}/m-series.png` });
+
+// ── Round 18 범위 밖 (Tree, Phase 5h): an expanded item's replaced chevron Icon does not turn
+await newProject(`adr256-p8r18-c-${Date.now()}`);
+await compareOn();
+await addFromPalette("Tree");
+await page.waitForTimeout(1500);
+const treeTurn = () =>
+  preview((doc) => {
+    const button = doc.querySelector(".react-aria-TreeItem button[slot='chevron']");
+    const icon = button?.querySelector(".react-aria-Icon");
+    const svg = icon?.querySelector("svg");
+    return svg && { glyph: icon.getAttribute("data-icon"), rotate: getComputedStyle(svg).rotate, expanded: button.closest(".react-aria-TreeItem").getAttribute("aria-expanded") };
+  });
+await press(".react-aria-TreeItem button[slot='chevron']");
+const t7a = await treeTurn();
+const chevronIcon = await page.evaluate(() => {
+  const root = window.__COMPOSITION_CATALOG__.workspace.root;
+  const r = [...root.canvasInputs.values()].find((x) => root.typeOf(x) === "Icon" && x.props.iconName === "chevron-right");
+  return r.id;
+});
+const r7 = await exec(
+  (c, ws, id) => c.setFields({ targets: [ws.positionOfRecord(id).target], props: { iconName: { kind: "set", value: "arrow-up" } } }),
+  chevronIcon,
+);
+await page.waitForTimeout(1200);
+const t7b = await treeTurn();
+record(
+  "L-7 Tree: the expanded chevron-right turns 90deg · replaced by arrow-up it does not (Canvas draws arrow-up too)",
+  t7a?.expanded === "true" && t7a?.rotate === "90deg" && r7.ok && t7b?.glyph === "arrow-up" && t7b?.rotate !== "90deg",
+  { before: t7a, r7, after: t7b },
+);
+errorsAt.push(["L-7", errors.length]);
 record("L-6 no page errors", errors.length === 0, { errorsAt, errors: errors.slice(0, 3) });
 writeFileSync(`${OUT}/results.json`, JSON.stringify({ results, errors }, null, 2));
 await browser.close();

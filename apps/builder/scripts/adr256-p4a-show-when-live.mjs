@@ -112,8 +112,10 @@ await page.evaluate(
           }),
           node("dash", t("Icon"), [], { iconName: "minus" }, { all: ["isIndeterminate"] }),
           node("text", t("Label"), [], { children: "Subscribe" }),
-          node("d", t("Disclosure"), ["d-header"], { isExpanded: false }),
-          node("d-header", t("DisclosureHeader"), ["open", "d-title"]),
+          // (ADR-256 Phase 8c: the reference tree — Disclosure > Heading > Button[slot=trigger].)
+          node("d", t("Disclosure"), ["d-heading"], { isExpanded: false }),
+          node("d-heading", "lib:definition:heading", ["d-trigger"]),
+          node("d-trigger", t("Button"), ["open", "d-title"], { slot: "trigger", children: "" }),
           node("open", t("Icon"), [], { iconName: "chevron-down" }, { all: ["isExpanded"] }),
           node("d-title", "lib:definition:text", [], { children: "Details" }),
         ],

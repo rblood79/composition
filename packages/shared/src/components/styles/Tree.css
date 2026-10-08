@@ -109,7 +109,13 @@
       visibility: visible;
     }
 
-    &[data-expanded] .react-aria-Button[slot="chevron"] svg {
+    /* The expanded item turns its chevron glyph only — the Canvas draws the turned glyph
+       (`chevron-right` → `chevron-down`), so a replaced Icon keeps its glyph on both
+       (ADR-256 Phase 8 판독 범위 밖 수리, as the Disclosure trigger's). */
+    &[data-expanded]
+      .react-aria-Button[slot="chevron"]
+      .react-aria-Icon[data-icon="chevron-right"]
+      svg {
       rotate: 90deg;
     }
 

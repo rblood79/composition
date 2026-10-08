@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **검증 증거의 최신성 확인**: 최신 결과가 PASS이고 기록한 HEAD·범위·파일 내용이 현재와 같을 때만 live/cross-check 증거를 재사용한다. **Why:** 이후 FAIL이나 소스 변경에도 과거 PASS가 통과 근거로 남던 조건을 제거했다. 위치: `scripts/agent/evidence-state.mjs`, `scripts/agent/run-ledger.sh`
 - **포맷 검사와 수정 분리**: preflight는 `codex:format:check`를 사용한다. 명시적 포맷과 hook은 `.prettierignore`를 공유해 typed 원본과 생성 CSS의 전체 재포맷을 피한다. snapshot은 현행 권한 계약과 관련 지침 링크만 안내한다.
 
+## [ADR-256 Phase 8 후속 — Tree chevron 회전 · DisclosureGroup 빈 frame] - 2026-10-09
+
+### Fixed
+
+- **Tree 항목의 chevron Icon 을 다른 glyph 로 바꾸면 Preview 에서도 돌지 않는다** (펼침 회전은 `chevron-right` 만 — Canvas 와 같음, Disclosure 와 같은 규칙). 위치: `components/styles/Tree.css`
+- **DisclosureGroup 안 빈 frame 에 나중에 넣은 Disclosure 도 그룹 펼침을 따른다**. 위치: `catalog/runtime/presence.ts` (`catalogGroupDisclosures`)
+
 ## [ADR-256 Phase 8 판독 수리 — Disclosure 그룹 소속 · frame 안 Heading · trigger 속성 · chevron 회전] - 2026-10-08
 
 ### Fixed

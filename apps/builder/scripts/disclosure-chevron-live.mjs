@@ -1,9 +1,10 @@
-// Live: a Disclosure's header holds its chevron (DisclosureChevron) and its title (Text) as nodes
-// (2026-10-07). Canvas boxes of both, relative to the Disclosure, equal the Preview DOM's
-// (`svg.disclosure-chevron` · the trigger's `span.react-aria-Text`); collapsing turns the Canvas
-// chevron (header `isExpanded`) as RAC turns the DOM one; a title edit reaches both; the Layers
-// panel lists the chevron without a delete button. Real Builder (Compare Mode), headed Chrome,
-// saved auth session.
+// Live: a Disclosure's trigger holds its chevron (an Icon node) and its title (Text) — the
+// reference tree `Disclosure > Heading > Button[slot=trigger] > Icon + Text` (ADR-256 Phase 8c,
+// which replaced the 2026-10-07 DisclosureHeader · DisclosureChevron types). Canvas boxes of both,
+// relative to the Disclosure, equal the Preview DOM's (the trigger's `.react-aria-Icon` ·
+// `span.react-aria-Text`); collapsing turns the Canvas glyph (`chevron-down` → `chevron-right`) as
+// RAC turns the DOM one; a title edit reaches both; the Layers panel lists the chevron Icon. Real
+// Builder (Compare Mode), headed Chrome, saved auth session.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/disclosure-chevron-live.mjs <out>
 import { chromium } from "playwright";
@@ -66,9 +67,9 @@ const read = () =>
     const records = [...ws.root.canvasInputs.values()];
     const of = (type) => records.find((r) => ws.root.typeOf(r) === type);
     const disclosure = of("Disclosure");
-    const header = of("DisclosureHeader");
-    const chevron = of("DisclosureChevron");
-    const title = header?.children
+    const triggerRecord = of("Button");
+    const chevron = of("Icon");
+    const title = triggerRecord?.children
       .map((id) => ws.root.canvasInputs.get(id))
       .find((r) => r && ws.root.typeOf(r) === "Text");
     const box = (r) => (r ? handle.canvas.boundsOf(r.id) : undefined);
@@ -80,7 +81,8 @@ const read = () =>
     const doc = document.querySelector("#previewFrame")?.contentDocument;
     const root = doc?.querySelector(".react-aria-Disclosure");
     const trigger = root?.querySelector(".react-aria-Button[slot='trigger']");
-    const svg = trigger?.querySelector(".disclosure-chevron");
+    const glyph = trigger?.querySelector(".react-aria-Icon");
+    const svg = glyph?.querySelector("svg");
     const span = trigger?.querySelector(".react-aria-Text");
     const r0 = root?.getBoundingClientRect();
     const domRel = (el) => {
@@ -94,10 +96,10 @@ const read = () =>
         chevron: rel(box(chevron)),
         title: rel(box(title)),
         titleText: title?.props.children,
-        expanded: header?.derivedProps?.isExpanded,
+        glyph: chevron?.derivedProps?.iconName ?? chevron?.props.iconName,
       },
       dom: {
-        chevron: domRel(svg),
+        chevron: domRel(glyph),
         title: domRel(span),
         titleText: span?.textContent,
         rotate: svg ? getComputedStyle(svg).rotate : null,
@@ -134,7 +136,7 @@ record(
   "expanded",
   near(open.canvas.chevron, open.dom.chevron) &&
     near(open.canvas.title, open.dom.title) &&
-    open.canvas.expanded === true &&
+    open.canvas.glyph === "chevron-down" &&
     open.dom.rotate === "90deg" &&
     open.dom.titleFont === open.dom.triggerFont,
   open,
@@ -145,7 +147,7 @@ const closed = await read();
 writeFileSync(`${OUT}/collapsed.png`, await page.screenshot());
 record(
   "collapsed",
-  closed.canvas.expanded === false &&
+  closed.canvas.glyph === "chevron-right" &&
     closed.dom.rotate === "0deg" &&
     near(closed.canvas.chevron, closed.dom.chevron),
   closed,
@@ -189,11 +191,11 @@ record(
   hover.hovered === true && hover.title === hover.trigger && hover.title !== "rgb(23, 23, 23)",
   hover,
 );
-// Layers: the chevron row under the header, with no delete button.
+// Layers: the chevron Icon row in the trigger.
 await page.evaluate(() => {
   const ws = window.__COMPOSITION_CATALOG__.workspace;
   const r = [...ws.root.canvasInputs.values()].find(
-    (x) => ws.root.typeOf(x) === "DisclosureChevron",
+    (x) => ws.root.typeOf(x) === "Icon",
   );
   ws.session.select([ws.itemOfRecord(r.id)]);
 });
@@ -205,7 +207,7 @@ const layers = await page.evaluate(() => {
   const tree = document.querySelector("[aria-label='Layers']");
   const rows = [...(tree?.querySelectorAll("[role=row], [role=treeitem]") ?? [])];
   const label = (row) => row.querySelector(".elementItemLabelText")?.textContent?.trim() ?? "";
-  const chevronRow = rows.find((row) => /DisclosureChevron|disclosure chevron/i.test(label(row)));
+  const chevronRow = rows.find((row) => /^Icon$/i.test(label(row)));
   return {
     open: Boolean(tree),
     hasChevron: Boolean(chevronRow),
@@ -216,7 +218,7 @@ const layers = await page.evaluate(() => {
   };
 });
 writeFileSync(`${OUT}/layers.png`, await page.screenshot());
-record("layers", layers.hasChevron && layers.chevronDelete === false, layers);
+record("layers", layers.hasChevron, layers);
 writeFileSync(`${OUT}/results.json`, JSON.stringify({ results, errors }, null, 2));
 process.stdout.write(`errors: ${errors.length}\n${errors.join("\n")}\n`);
 await browser.close();

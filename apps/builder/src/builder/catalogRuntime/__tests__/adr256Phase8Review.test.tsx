@@ -73,7 +73,7 @@ afterEach(async () => {
 
 /** A palette Disclosure · DisclosureGroup on the page, detached (its parts are the author's). */
 async function open(
-  type: "disclosure" | "disclosuregroup",
+  type: "disclosure" | "disclosuregroup" | "tree",
   props: Record<string, unknown> = {},
 ) {
   const graph = new CatalogGraph(
@@ -271,5 +271,72 @@ describe("ADR-256 Phase 8 판독 M3 — only the chevron turns (Canvas and DOM)"
     for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
     host = await mount();
     expect(host.querySelector("svg")!.matches(TURN)).toBe(false);
+  });
+});
+
+describe("ADR-256 Phase 8 판독 후속 — Round 18 범위 밖 · Round 19 LOW", () => {
+  it("Tree: only the chevron-right glyph turns (Tree.css) — a replaced Icon keeps its glyph name on the DOM", async () => {
+    const css = readFileSync(
+      resolve(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../../../../packages/shared/src/components/styles/Tree.css",
+      ),
+      "utf8",
+    );
+    const turn = /&\[data-expanded\]([^{}]+)\{\s*rotate:\s*90deg;/.exec(css);
+    expect(turn?.[1]).toContain('.react-aria-Icon[data-icon="chevron-right"]');
+    const { workspace, all, mount } = await open("tree");
+    const chevron = all("Icon").find(
+      (record) => record.props.iconName === "chevron-right",
+    )!;
+    let host = await mount();
+    const glyphs = () =>
+      [...host.querySelectorAll('button[slot="chevron"] .react-aria-Icon')].map(
+        (icon) => icon.getAttribute("data-icon"),
+      );
+    expect(glyphs()).toContain("chevron-right");
+    workspace.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(chevron.id)!.target],
+        props: { iconName: set("arrow-up") } as never,
+      }),
+    );
+    for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+    host = await mount();
+    expect(glyphs()).toContain("arrow-up");
+  });
+
+  it("a Disclosure put into an empty frame of the group after the DOM mounted joins the group", async () => {
+    const { workspace, all, placed, mount } = await open("disclosuregroup");
+    const box = workspace.newId("node") as string;
+    workspace.execute(
+      insertNodes({
+        parent: workspace.positionOfRecord(placed().id)!.target,
+        entries: [node(box, "lib:definition:type-frame")],
+        rootIds: [box as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    const host = await mount(true);
+    expect(expanded(host)).toEqual([true, true]);
+    const frameRecord = all("frame").find((record) => record.sourceId === box)!;
+    const added = workspace.newId("node") as string;
+    await act(async () => {
+      workspace.execute(
+        insertNodes({
+          parent: workspace.positionOfRecord(frameRecord.id)!.target,
+          entries: [
+            node(added, "lib:definition:origin-component-disclosure", {
+              props: { title: set("Section 3") } as never,
+            }),
+          ],
+          rootIds: [added as NodeId],
+          newId: workspace.newId,
+        }),
+      );
+    });
+    expect(expanded(host)).toEqual([true, true, true]);
+    await press(host.querySelectorAll<HTMLElement>('button[slot="trigger"]')[2]!);
+    expect(expanded(host)).toEqual([true, true, false]);
   });
 });
