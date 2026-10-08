@@ -18,7 +18,7 @@ Implemented — 2026-07-16
 
 ADR-912(spec→catalog cutover, Implemented 2026-06-18)로 컴포넌트 편집 prop 정의가 `packages/specs`(124 spec 파일)에서 `packages/shared/src/catalog/bindings`(115 binding 파일)의 `props.accepts`로 이전됐다. cutover는 **메커니즘 전환**이 목표였고 prop 축소를 의도하지 않았으나, 이전 과정에서 각 컴포넌트의 편집 가능 prop 집합이 **공식(RAC/React Spectrum) 대비 축소**됐다. 사용자 보고: "컴포넌트 프로퍼티 대량 소실".
 
-전수 감사([docs/reference/adr-912-prop-parity-audit.md](../../reference/adr-912-prop-parity-audit.md))로 소실이 두 층위임을 확인:
+전수 감사([docs/reference/adr-912-prop-parity-audit.md](../../reference/audits/2026-06-25-adr-912-prop-parity-audit.md))로 소실이 두 층위임을 확인:
 
 - **층위 A** — field kind 렌더러 누락(`binding`/`items-manager`). 커밋 `1419a5773`/`24f38b75b`로 이미 복원. 정의 11종 ↔ 처리 11종 일치.
 - **층위 B** — `accepts` 자체의 prop 누락. field kind 검사로 안 잡힘. 본 ADR 대상.

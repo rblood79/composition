@@ -1,5 +1,8 @@
 # composition Keyboard Shortcuts System
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **2026-10-04 ADR-252 (Design 패널 통합)**: Properties · Styles 패널이 Design 패널 하나 (id `properties`) 의 탭이 됐다. scope `panel:styles` 는 없어지고 스타일 탭 명령 (`copyStyles` · `pasteStyles` · `toggleFocusMode` · `toggleSections`) 도 `panel:properties` 다. ⌥5 (`toggleProperties`) = Design 토글, ⌥6 (`toggleStyles`) = Design 을 Layout 탭으로 열기 (이미 Layout 탭이면 닫기). ⌘⌥C / ⌘⌥V 는 활성 탭으로 갈린다 — 활성 탭의 쌍만 등록한다 (같은 scope 의 첫 매치에서 dispatcher 가 멈추므로). 아래 본문의 Properties / Styles 패널 서술은 통합 전 기록이다. 정본: `apps/builder/src/builder/config/keyboardShortcuts.ts` · `panels/design/DesignPanel.tsx`.
 >
 > **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 11개는 현재 저장소에 없다.

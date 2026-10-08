@@ -133,3 +133,15 @@
 | react-skia-zustand-frame-performance-guide.md | 옛 프레임 파이프라인 (renderFrameCore) (원위치 `docs/migrations/react-skia-zustand-frame-performance-guide.md`) |
 | styles-panel-raf-20260907.md | 옛 Styles 패널 RAF 분석 (원위치 `docs/migrations/styles-panel-raf-20260907.md`) |
 | worker-webgl-surface-20260907.md | RenderCommandRuntime 워커 설계 (미채택) (원위치 `docs/migrations/worker-webgl-surface-20260907.md`) |
+| COMPONENT_SPEC.md | 「현행」 제목이지만 publish 자체 ComponentRegistry · TAG_SPEC_MAP · propagation spec 기준 — ADR-248 로 전부 삭제 (원위치 `docs/reference/components/COMPONENT_SPEC.md`) |
+| CUSTOM_ID_PATTERN.md | PropertyCustomId 컴포넌트 (삭제됨) (원위치 `docs/reference/components/CUSTOM_ID_PATTERN.md`) |
+| DRAG_DROP_LAYER.md | moveElementToCanonicalTarget — moveNodes 명령으로 대체 (원위치 `docs/reference/components/DRAG_DROP_LAYER.md`) |
+| HISTORY_PANEL.md | historyOperationInProgress 가드 — CatalogHistoryStore 로 대체 (원위치 `docs/features/completed/HISTORY_PANEL.md`) |
+| INDEXDB.md | 옛 스토어 스키마 — 현행은 composition-catalog-projects-v1 (heads · entries, storage.ts) (원위치 `docs/reference/schemas/INDEXDB.md`) |
+| INSPECTOR_REFACTORING.md | isUpdatingFromBuilder 플래그 — Design 패널 (ADR-252) 로 대체 (원위치 `docs/features/completed/INSPECTOR_REFACTORING.md`) |
+| KEYBOARD_SHORTCUTS.md | useCanvasHandlers 등 옛 훅 설계 — catalogRuntime/shortcuts.ts 가 현행 (원위치 `docs/features/completed/KEYBOARD_SHORTCUTS.md`) |
+| MULTIPAGE.md | PageContainer · ElementsLayer (Pixi/BuilderCanvas 시절) (원위치 `docs/reference/architecture/MULTIPAGE.md`) |
+| MULTI_SELECT.md | selectedElementIdsSet · enterEditingContext — CatalogSession 으로 대체 (원위치 `docs/features/completed/MULTI_SELECT.md`) |
+| NODES_PANEL_DESIGN.md | 옛 Nodes 패널 설계 — catalog Navigator 가 현행 (원위치 `docs/features/completed/NODES_PANEL_DESIGN.md`) |
+| REUSABLE_SLOT_DESIGN.md | InstanceForkBadge · canonicalPreviewRefSlot — catalog origin view 로 대체 (ADR-228/248) (원위치 `docs/reference/components/REUSABLE_SLOT_DESIGN.md`) |
+| SPEC_CSS_BOUNDARY.md | spec 파일 ↔ 수동 CSS 경계 — spec 파일 자체가 없음 (ADR-142/248) (원위치 `docs/reference/components/SPEC_CSS_BOUNDARY.md`) |

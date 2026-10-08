@@ -1035,7 +1035,7 @@ case 'image': {
 }
 ```
 
-#### M-4: CSS variable 실시간 캐시
+#### M-4: CSS variable 실시간 캐시 (해소 · 기록 — `cssVariableReader.ts` 는 ADR-248 Phase 4e 에서 삭제, 테마 값은 catalog theme/tokens root collection 이 정본)
 
 `cssVariableReader.ts`(4,470줄)가 하드코딩 fallback에 의존. 테마 변경 시 캔버스에 미반영.
 

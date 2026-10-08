@@ -73,7 +73,7 @@ EXCLUDE = re.compile(
 SYMBOL = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*)`")
 HIST = re.compile(
     r"옛|삭제|제거|deleted|removed|legacy|이전|폐기|대체|→|당시|소멸|정정|기록|실측|"
-    r"Superseded|superseded|Phase 4e|없다|없음|사라|확증|20\d\d-\d\d-\d\d"
+    r"Superseded|superseded|Phase 4e|없다|없음|사라|확증|존재하지 않|해소|20\d\d-\d\d-\d\d"
 )
 LEDGER_MARK = "<!-- stale-symbols: ledger -->"  # 파일 전체가 실측 · 이력 기록 — 전부 HIST
 

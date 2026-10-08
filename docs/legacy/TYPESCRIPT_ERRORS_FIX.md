@@ -720,7 +720,7 @@ npm run build     # ✅ Build successful
 
 - Inspector state를 통한 자체 상태 관리
 - onChange prop 제거로 단순화
-- **가이드 문서**: [PROPERTY_CUSTOM_ID_PATTERN.md](../reference/components/CUSTOM_ID_PATTERN.md)
+- **가이드 문서**: [PROPERTY_CUSTOM_ID_PATTERN.md](CUSTOM_ID_PATTERN.md)
 
 ### 2. Page 타입 아키텍처 정립
 
@@ -772,7 +772,7 @@ npm run type-check  # package.json에 스크립트 추가 필요
 ## 📚 관련 문서
 
 1. **CLAUDE.md** - TypeScript 에러 패턴 10가지 추가 (2025-11-15)
-2. **[PROPERTY_CUSTOM_ID_PATTERN.md](../reference/components/CUSTOM_ID_PATTERN.md)** - PropertyCustomId 사용 가이드
+2. **[PROPERTY_CUSTOM_ID_PATTERN.md](CUSTOM_ID_PATTERN.md)** - PropertyCustomId 사용 가이드
 3. **[PAGE_TYPE_SEPARATION.md](PAGE_TYPES.md)** - Page 타입 아키텍처
 4. **[CHANGELOG.md](../CHANGELOG.md)** - 프로젝트 변경 이력
 

@@ -2,7 +2,7 @@
 
 > 본 문서는 [ADR-148](../completed/148-reusable-slot-system-unification.md) 의 구현 상세(Phase, 파일 경계,
 > Gate 매핑, 체크리스트)다. 결정/위험/대안은 ADR 본문, **아키텍처 상세(스키마 계약·인덱스
-> 구조·propsSchema·렌더 계약)는 [REUSABLE_SLOT_DESIGN.md](../../reference/components/REUSABLE_SLOT_DESIGN.md)
+> 구조·propsSchema·렌더 계약)는 [REUSABLE_SLOT_DESIGN.md](../../legacy/REUSABLE_SLOT_DESIGN.md)
 > §1~§5** 를 정본으로 참조한다. 실측 근거: [audits/2026-07-07-reusable-slot-landscape.md](../../reference/audits/2026-07-07-reusable-slot-landscape.md).
 
 ## §1. Fork checkpoint lock-in (adr-writing.md 4질문) + 통합 동기 분류

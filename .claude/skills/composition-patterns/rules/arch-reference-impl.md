@@ -25,7 +25,7 @@ tags: [architecture, reference, patterns]
 | 그림자 토큰           | `specs/src/primitives/shadows.ts`                                    | 그림자 토큰 정의                                         |
 | Skia Shape 변환기     | `(apps/builder) builder/workspace/canvas/skia/specShapeConverter.ts` | Shape[] → SkiaNodeData 변환                              |
 
-자세한 설계는 `docs/reference/components/COMPONENT_SPEC.md` 참조.
+옛 설계 기록은 `docs/legacy/COMPONENT_SPEC.md` (ADR-248 이전 — 2026-10-08 legacy 이동). 현행 구조는 `.claude/rules/ssot-hierarchy.md` 와 `state-management.md`.
 
 ## 컴포넌트 패턴
 

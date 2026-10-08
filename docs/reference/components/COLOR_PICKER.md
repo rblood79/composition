@@ -417,7 +417,7 @@ export type ColorInputMode = "rgba" | "hex" | "css" | "hsl" | "hsb";
 
 > **구현 상태 (2026-09-09)**: 타입은 `fill.types.ts:151-169` 에 실재하고 `Element.border?` (`unified.types.ts:108`) 로 연결돼 있으나, **이 값을 읽는 UI·렌더 코드는 없다.** 소비처는 직렬화 pass-through 2곳뿐이다 (`adapters/canonical/legacyElementSanitizer.ts:46`·`:103`).
 >
-> **이름 충돌 주의**: `workspace/canvas/utils/borderUtils.ts:33` 에 **동명의 다른 `BorderConfig`** 가 있다. 그쪽은 CSS `border*` 문자열을 파싱한 Skia 테두리 렌더용 구조체(`parseBorderConfig`, `:85`)이며 이 문서의 `BorderConfig` 와 무관하다.
+> **이름 충돌 주의 (기록)**: 옛 `workspace/canvas/utils/borderUtils.ts` 에 동명의 다른 `BorderConfig` (CSS `border*` 문자열을 파싱한 Skia 테두리 구조체, `parseBorderConfig`) 가 있었다 — ADR-248 Phase 4e 에서 삭제. 이 문서의 `BorderConfig` 와 무관하다.
 >
 > **웹 빌더 컨텍스트**: Pencil의 Stroke 개념을 CSS border로 매핑.
 > CSS는 이미 개별 변 borderWidth, borderStyle, borderColor를 지원하므로 이를 활용.

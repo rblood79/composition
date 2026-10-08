@@ -1,5 +1,8 @@
 # composition IndexedDB Schema Documentation
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **Version**: 18
 > **Last Updated**: 2026-05-13 (ADR-132 Phase 5 + Phase 7)
 > **Primary DB**: `composition`

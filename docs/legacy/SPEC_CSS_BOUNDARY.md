@@ -1,9 +1,12 @@
 # Spec과 수동 CSS의 경계
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 **날짜:** 2026-03-18 (초판)
 **대상 독자:** composition 컴포넌트 개발에 처음 합류한 개발자
 
-> ⚠️ **STALE (2026-07-08)** — [ADR-142](../../adr/completed/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 D3 시각 SSOT가 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됨. 본 문서의 "Spec CSS 자동 생성 52개 / 수동 CSS 43개" 분류 테이블은 spec 시대(2026-03) 기준이며 현재 실체와 다르다 — 잔존 spec은 Frame/Group/Slot 3개 한정, 나머지는 catalog binding 경로. [ADR-036](../../adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142. 레이아웃 엔진도 "Taffy WASM"에서 자체 Rust 엔진(`packages/engine`, [ADR-916](../../adr/completed/916-unified-rust-engine.md))으로 대체됐다. 개념(Spec="What" 토큰 / 수동 CSS="How" 구조)은 catalog 전환 후에도 구조상 유효하나, 파일 경로·컴포넌트 목록은 재검증 필요.
+> ⚠️ **STALE (2026-07-08)** — [ADR-142](../adr/completed/142-starter-spec-component-system-cutover.md)(Implemented 2026-06-02)로 D3 시각 SSOT가 컴포넌트당 spec 파일에서 **catalog(`COMPONENT_RULES_TABLE`) + theme/tokens root collection**으로 전환됨. 본 문서의 "Spec CSS 자동 생성 52개 / 수동 CSS 43개" 분류 테이블은 spec 시대(2026-03) 기준이며 현재 실체와 다르다 — 잔존 spec은 Frame/Group/Slot 3개 한정, 나머지는 catalog binding 경로. [ADR-036](../adr/completed/036-spec-first-single-source.md)은 Superseded by ADR-142. 레이아웃 엔진도 "Taffy WASM"에서 자체 Rust 엔진(`packages/engine`, [ADR-916](../adr/completed/916-unified-rust-engine.md))으로 대체됐다. 개념(Spec="What" 토큰 / 수동 CSS="How" 구조)은 catalog 전환 후에도 구조상 유효하나, 파일 경로·컴포넌트 목록은 재검증 필요.
 
 ---
 
@@ -45,7 +48,7 @@ Store의 상태(width, height, padding 등)를 CSS와 Taffy가 **독립적으로
 
 ### 예외 — Collection/self-render 컨테이너 (ADR-907)
 
-collection 계열 (`Breadcrumbs, ComboBox, GridList, ListBox, Menu, Select, Tabs, TagGroup, Table, Toolbar, Tree`) 은 `element.props.style` 의 **padding/gap/borderWidth/fontSize** 를 Preview DOM / Skia `render.shapes()` / Layout `calculateContentHeight()` **3경로 모두** 에 동일하게 반영해야 한다 (structure 가 아니라 spacing SSOT). 이는 parity 가 아니라 **동일 값 소비**의 문제이므로 4-layer SSOT (Layer A parser / Layer B `resolveContainerSpacing` / Layer C renderer root style 계약 / Layer D spec metric SSOT) 로 통합 관리한다. 상세: [ADR-907](../../adr/completed/907-collection-container-style-pipeline.md) + `.claude/rules/canvas-rendering.md` §2.6.
+collection 계열 (`Breadcrumbs, ComboBox, GridList, ListBox, Menu, Select, Tabs, TagGroup, Table, Toolbar, Tree`) 은 `element.props.style` 의 **padding/gap/borderWidth/fontSize** 를 Preview DOM / Skia `render.shapes()` / Layout `calculateContentHeight()` **3경로 모두** 에 동일하게 반영해야 한다 (structure 가 아니라 spacing SSOT). 이는 parity 가 아니라 **동일 값 소비**의 문제이므로 4-layer SSOT (Layer A parser / Layer B `resolveContainerSpacing` / Layer C renderer root style 계약 / Layer D spec metric SSOT) 로 통합 관리한다. 상세: [ADR-907](../adr/completed/907-collection-container-style-pipeline.md) + `.claude/rules/canvas-rendering.md` §2.6.
 
 ---
 
@@ -263,8 +266,8 @@ indicator 자체의 시각적 속성 — 체크박스의 테두리/모서리, �
 
 ## 관련 문서
 
-- [ADR-036: Spec-First Single Source](../../adr/completed/036-spec-first-single-source.md) — CSS 자동 생성 아키텍처 결정 배경
-- [CSS_ARCHITECTURE.md](../../features/completed/CSS_ARCHITECTURE.md) — ITCSS 레이어 구조
+- [ADR-036: Spec-First Single Source](../adr/completed/036-spec-first-single-source.md) — CSS 자동 생성 아키텍처 결정 배경
+- [CSS_ARCHITECTURE.md](../features/completed/CSS_ARCHITECTURE.md) — ITCSS 레이어 구조
 - `packages/specs/src/types/spec.types.ts` — `ComponentSpec` 인터페이스 (`skipCSSGeneration`, `archetype`)
 - `packages/specs/src/renderers/CSSGenerator.ts` — CSS 생성기 구현
 - `packages/specs/scripts/generate-css.ts` — 빌드 스크립트

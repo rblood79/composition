@@ -1,9 +1,12 @@
 # 컴포넌트 시스템 구조 (현행)
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **검증일**: 2026-09-09
 > **검증 방법**: 아래 모든 서술은 이 저장소의 코드를 직접 읽어 확인했다. 각 항목에 `경로:라인` 을 병기한다. 개수는 해당 파일을 스크립트로 센 값이며 세는 방법을 함께 적었다. 실행 검증(live builder / 브라우저)은 하지 않았다 — 정적 코드 사실만 담는다.
 > **다루는 범위**: 컴포넌트 1개가 정의·등록·렌더되는 자리와 그 SSOT. 다루지 않는 것: 레이아웃 엔진(`packages/engine`), 상태 파이프라인, 테마/토큰 편집 UI, publish 배포 절차.
-> **이 문서가 정본이 아닌 것**: SSOT 3-Domain 규칙의 정본은 [`.claude/rules/ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) 다. 본 문서는 그 규칙이 코드의 어느 파일로 구현돼 있는지를 짚는 지도다.
+> **이 문서가 정본이 아닌 것**: SSOT 3-Domain 규칙의 정본은 [`.claude/rules/ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md) 다. 본 문서는 그 규칙이 코드의 어느 파일로 구현돼 있는지를 짚는 지도다.
 
 ---
 
@@ -195,7 +198,7 @@ DOM 쪽 인라인 style 은 **override 전용**이다 — base 시각값은 위 
 
 ## 4. 3-Domain 경계 (요약)
 
-정본은 [`.claude/rules/ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) — 아래는 그 요약과 코드 대응이다.
+정본은 [`.claude/rules/ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md) — 아래는 그 요약과 코드 대응이다.
 
 | Domain             | 권위                                           | 코드 자리                                                                     |
 | ------------------ | ---------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -208,7 +211,7 @@ DOM 쪽 인라인 style 은 **override 전용**이다 — base 시각값은 위 
 - **금지**: catalog/spec 이 DOM 구조나 ARIA 지정 (D1 침범) · RSP 미규정 prop 도입 (D2) · SSOT 파생이 아닌 수동 CSS (D3) · `@sync` 주석으로 consumer↔consumer 참조 · Skia 전용 시각 효과 · **일반 컴포넌트에 컴포넌트당 spec 파일 신규 생성** (§5 참조).
 - 검증 수단: `/cross-check` (단일 컴포넌트 시각 대칭) · `pnpm -F @composition/builder test:parity` (browser vitest, `apps/builder/package.json:18`) · `pnpm gate:visual-parity` (시각 smoke, `package.json:50`).
 
-공식 결정: [ADR-063](../../adr/completed/063-ssot-chain-charter.md) (SSOT charter) · [ADR-142](../../adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의, Implemented 2026-06-02). 관련: [ADR-130](../../adr/completed/130-layer3-canonical-vocabulary-alignment.md) (Group↔frame 분리) · [ADR-148](../../adr/completed/148-reusable-slot-system-unification.md) (reusable) · [ADR-912](../../adr/completed/912-rac-pencil-rebuild-cutover.md) (cutover 실행) · [ADR-914](../../adr/completed/914-component-entry-universe-collapse.md) (entry universe).
+공식 결정: [ADR-063](../adr/completed/063-ssot-chain-charter.md) (SSOT charter) · [ADR-142](../adr/completed/142-starter-spec-component-system-cutover.md) (D3 SSOT 재정의, Implemented 2026-06-02). 관련: [ADR-130](../adr/completed/130-layer3-canonical-vocabulary-alignment.md) (Group↔frame 분리) · [ADR-148](../adr/completed/148-reusable-slot-system-unification.md) (reusable) · [ADR-912](../adr/completed/912-rac-pencil-rebuild-cutover.md) (cutover 실행) · [ADR-914](../adr/completed/914-component-entry-universe-collapse.md) (entry universe).
 
 ---
 
@@ -223,7 +226,7 @@ DOM 쪽 인라인 style 은 **override 전용**이다 — base 시각값은 위 
 - `generate-rules.ts`(spec → rules table 생성기)도 삭제됐다 (`componentRulesTable.ts:7-9`).
 - 남은 것은 §1.5 의 3개뿐이며, **일반 컴포넌트에 spec 파일을 새로 만드는 것은 금지**다 (`ssot-hierarchy.md` §6).
 
-2026-03 시점 문서 전문은 **[`docs/legacy/COMPONENT_SPEC-2026-03-snapshot.md`](../../legacy/COMPONENT_SPEC-2026-03-snapshot.md)** (325KB / 7,658줄, append-only — 본 분리 시 prettier 포맷만 적용, 내용 무변경) 에 그대로 보존돼 있다. 그 문서의 Phase 0~6 구현 상세·`ElementSprite`·PixiJS·`SPEC_RENDERS_ALL_TAGS`·`CHILD_COMPOSITION_EXCLUDE_TAGS` 서술은 전부 현행과 다르다 — **의사결정 맥락(Why)을 되짚을 때만** 열고, 코드 레퍼런스로는 쓰지 않는다.
+2026-03 시점 문서 전문은 **[`docs/legacy/COMPONENT_SPEC-2026-03-snapshot.md`](COMPONENT_SPEC-2026-03-snapshot.md)** (325KB / 7,658줄, append-only — 본 분리 시 prettier 포맷만 적용, 내용 무변경) 에 그대로 보존돼 있다. 그 문서의 Phase 0~6 구현 상세·`ElementSprite`·PixiJS·`SPEC_RENDERS_ALL_TAGS`·`CHILD_COMPOSITION_EXCLUDE_TAGS` 서술은 전부 현행과 다르다 — **의사결정 맥락(Why)을 되짚을 때만** 열고, 코드 레퍼런스로는 쓰지 않는다.
 
 스냅샷의 부록 B(React Aria DOM 구조 레퍼런스)·부록 C(ARIA Role 매핑 총표)는 D1 영역이라 성격상 오래 버티는 내용이지만, **D1 정본은 RAC upstream 자체**다. 참조할 일이 생기면 설치된 `react-aria-components@^1.21.0` 을 본다 (starter 스냅샷은 2026-09-29 제거).
 
@@ -244,8 +247,8 @@ DOM 쪽 인라인 style 은 **override 전용**이다 — base 시각값은 위 
 
 | 용도                | 경로                                                                                                    |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| SSOT 3-Domain 정본  | [`.claude/rules/ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md)                           |
-| 코드 패턴 인덱스    | [`.claude/skills/composition-patterns/SKILL.md`](../../../.claude/skills/composition-patterns/SKILL.md) |
-| Canvas 렌더 규칙    | [`.claude/rules/canvas-rendering.md`](../../../.claude/rules/canvas-rendering.md)                       |
-| ADR 현황            | [`docs/adr/README.md`](../../adr/README.md)                                                             |
-| 2026-03 시점 스냅샷 | [`docs/legacy/COMPONENT_SPEC-2026-03-snapshot.md`](../../legacy/COMPONENT_SPEC-2026-03-snapshot.md)     |
+| SSOT 3-Domain 정본  | [`.claude/rules/ssot-hierarchy.md`](../../.claude/rules/ssot-hierarchy.md)                           |
+| 코드 패턴 인덱스    | [`.claude/skills/composition-patterns/SKILL.md`](../../.claude/skills/composition-patterns/SKILL.md) |
+| Canvas 렌더 규칙    | [`.claude/rules/canvas-rendering.md`](../../.claude/rules/canvas-rendering.md)                       |
+| ADR 현황            | [`docs/adr/README.md`](../adr/README.md)                                                             |
+| 2026-03 시점 스냅샷 | [`docs/legacy/COMPONENT_SPEC-2026-03-snapshot.md`](COMPONENT_SPEC-2026-03-snapshot.md)     |

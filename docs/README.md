@@ -24,7 +24,7 @@ docs/
 ├── how-to/                 # 실용 가이드 — development · troubleshooting
 ├── tutorials/              # 학습 중심 실습 가이드
 ├── design/                 # /design 캔버스 (canvas.json + *.dc.html) — 주제별 디렉토리
-├── legacy/                 # 폐기·역사 문서 (74 + README, 각 파일에 폐기 사유 배너)
+├── legacy/                 # 폐기·역사 문서 (86 + README, 각 파일에 폐기 사유 배너)
 ├── migrations/             # 마이그레이션 기록 · frame-performance/ 분석 노트
 ├── pencil-copy/            # Pencil 호환성 dossier (clean-room)
 ├── CHANGELOG.md            # 변경 이력 (2026-09~)
@@ -43,7 +43,6 @@ docs/
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SSOT 3-Domain | [.claude/rules/ssot-hierarchy.md](../.claude/rules/ssot-hierarchy.md) · [ADR-063](adr/completed/063-ssot-chain-charter.md) · [ADR-142](adr/completed/142-starter-spec-component-system-cutover.md) |
 | 모노레포 구조 | [reference/architecture/MONOREPO.md](reference/architecture/MONOREPO.md)                                                                                                                           |
-| 컴포넌트 정본 | [reference/components/COMPONENT_SPEC.md](reference/components/COMPONENT_SPEC.md)                                                                                                                   |
 | Skia 렌더링   | [ADR-900](adr/completed/900-unified-skia-rendering-engine.md)                                                                                                                                      |
 | 레이아웃 엔진 | [ADR-916](adr/completed/916-unified-rust-engine.md) · [CSS 지원 현황](reference/CSS_SUPPORT_MATRIX.md)                                                                                             |
 | AI 기능       | [ADR-011](adr/completed/011-ai-assistant-design.md)                                                                                                                                                |
@@ -78,30 +77,23 @@ docs/
 ### API · Schemas
 
 - [API 엔드포인트](reference/api/ENDPOINTS.md)
-- [IndexedDB 스키마](reference/schemas/INDEXDB.md) — 현행
 - [ADR 리뷰 Layer 0 스키마](reference/schemas/ADR_REVIEW_LAYER0.md)
 
 ### Architecture
 
 - [모노레포 구조](reference/architecture/MONOREPO.md)
-- [Multi-Page 렌더링](reference/architecture/MULTIPAGE.md)
 
 ### Components
 
-- [컴포넌트 정본 (catalog D3 SSOT)](reference/components/COMPONENT_SPEC.md)
 - [컬러 피커 + Fill 시스템](reference/components/COLOR_PICKER.md)
-- [Spec ↔ CSS 경계](reference/components/SPEC_CSS_BOUNDARY.md)
-- [재사용 Slot 설계](reference/components/REUSABLE_SLOT_DESIGN.md)
 - [패널 시스템](reference/components/PANEL_SYSTEM.md)
 - [React Aria 라이브러리 통합](reference/components/REACT_ARIA_LIBRARIES.md)
-- [Custom ID 패턴](reference/components/CUSTOM_ID_PATTERN.md)
 - [Canvas Scrollbar](reference/components/CANVAS_SCROLLBAR.md)
-- [Drag & Drop Layer](reference/components/DRAG_DROP_LAYER.md)
 
 ### 기타 참조
 
 - [CSS 속성 지원 체크리스트](reference/CSS_SUPPORT_MATRIX.md)
-- [ADR-912 prop parity 감사](reference/adr-912-prop-parity-audit.md)
+- [ADR-912 prop parity 감사](reference/audits/2026-06-25-adr-912-prop-parity-audit.md)
 - [감사 기록](reference/audits/) — 날짜별 1회성 조사
 
 ---
@@ -180,7 +172,7 @@ Properties Panel · ToggleButtonGroup
 
 ## Legacy
 
-폐기·역사 문서 74건. 각 파일 상단에 **폐기 사유 배너**, 대체 정본은 [legacy/README.md](legacy/README.md) 표 참조.
+폐기·역사 문서 86건. 각 파일 상단에 **폐기 사유 배너**, 대체 정본은 [legacy/README.md](legacy/README.md) 표 참조.
 
 ---
 

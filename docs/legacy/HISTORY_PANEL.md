@@ -1,5 +1,8 @@
 # 히스토리 패널 설계/구현 메모
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 Photoshop Web 벤치마크 기반으로 정리한 히스토리 패널의 설계와 현재 구현(로컬 변경 기준)을 문서화합니다.
 이번 보완에는 공개 자료(Photoshop Desktop 중심) 참고 내용을 포함합니다. Web 전용 차이는 추가 검증이 필요합니다.
 

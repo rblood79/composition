@@ -216,4 +216,4 @@ collection/self-render 컨테이너 (`Breadcrumbs, ComboBox, GridList, ListBox, 
 ## 상세 레퍼런스
 
 - [Canvas 렌더링 구현 상세](../skills/composition-patterns/reference/canvas-details.md)
-- [SPEC_CSS_BOUNDARY.md](../../docs/reference/components/SPEC_CSS_BOUNDARY.md)
+- [SPEC_CSS_BOUNDARY.md](../../docs/legacy/SPEC_CSS_BOUNDARY.md)

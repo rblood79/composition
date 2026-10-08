@@ -1,5 +1,8 @@
 # PropertyCustomId Component Pattern Guide
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 > **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 2개는 현재 저장소에 없다.
 > 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
 > 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
@@ -390,9 +393,9 @@ export function PropertyCustomId({ value, elementId, label, placeholder }: Props
 
 ## 🔗 관련 문서
 
-- **[TYPESCRIPT_ERROR_FIXES.md](../../legacy/TYPESCRIPT_ERRORS_FIX.md)** - TypeScript 에러 수정 전체 내역
-- **[CLAUDE.md](../../../CLAUDE.md)** - TypeScript 코딩 규칙 (Common Error Patterns #1)
-- **[PAGE_TYPE_SEPARATION.md](../../legacy/PAGE_TYPES.md)** - Page 타입 아키텍처
+- **[TYPESCRIPT_ERROR_FIXES.md](TYPESCRIPT_ERRORS_FIX.md)** - TypeScript 에러 수정 전체 내역
+- **[CLAUDE.md](../../CLAUDE.md)** - TypeScript 코딩 규칙 (Common Error Patterns #1)
+- **[PAGE_TYPE_SEPARATION.md](PAGE_TYPES.md)** - Page 타입 아키텍처
 
 ---
 

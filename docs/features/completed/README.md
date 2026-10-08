@@ -20,14 +20,14 @@
 - [**Data Panel**](../../legacy/DATA_PANEL.md) — DataTable 패널 (현행 위치 `builder/panels/datatable/`)
 - [**Collection Data Binding**](COLLECTION_DATA_BINDING.md) — 컬렉션 바인딩
 - [**DataTable Presets**](DATATABLE_PRESETS.md) — DataTable 프리셋
-- [**Inspector Refactoring**](INSPECTOR_REFACTORING.md) — Inspector 구조 정리
-- [**History Panel**](HISTORY_PANEL.md) — 히스토리 패널
+- [**Inspector Refactoring**](../../legacy/INSPECTOR_REFACTORING.md) — Inspector 구조 정리
+- [**History Panel**](../../legacy/HISTORY_PANEL.md) — 히스토리 패널
 
 ### UI/UX 기능
 
-- [**Keyboard Shortcuts**](KEYBOARD_SHORTCUTS.md) — 키보드 단축키
-- [**Multi Select**](MULTI_SELECT.md) — 다중 선택
-- [**Nodes Panel Design**](NODES_PANEL_DESIGN.md) — 트리 패널 설계 (현행 이름 Navigator)
+- [**Keyboard Shortcuts**](../../legacy/KEYBOARD_SHORTCUTS.md) — 키보드 단축키
+- [**Multi Select**](../../legacy/MULTI_SELECT.md) — 다중 선택
+- [**Nodes Panel Design**](../../legacy/NODES_PANEL_DESIGN.md) — 트리 패널 설계 (현행 이름 Navigator)
 - [**Panel Modal**](PANEL_MODAL.md) — 패널 표시 모드
 - [**Properties Panel**](../../legacy/PROPERTIES_PANEL.md) — 속성 패널
 - [**ToggleButtonGroup**](../../legacy/TOGGLEBUTTONGROUP.md) — 토글 버튼 그룹

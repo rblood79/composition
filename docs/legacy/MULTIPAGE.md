@@ -1,5 +1,8 @@
 # Multi-Page Canvas Rendering (Frame-like)
 
+> **Legacy (2026-10-08)**: ADR-248 Phase 4 (2026-10-03) 이전 구조 (Zustand store · BuilderCanvas · spec 파일 · publish 자체 registry) 기준 기록이다. 인용된 심볼 다수가 소스에 없다. 현행 정본은 `.claude/rules/` (state-management · canvas-rendering · canvas-interaction · layout-engine · ssot-hierarchy) 와 `docs/adr/completed/248-*.md`.
+
+
 ## 개요
 
 composition의 빌더 캔버스에서 모든 페이지를 Pencil의 Frame처럼 동시에 렌더링한다. 프리뷰(iframe)는 기존대로 현재 페이지 1개만 유지한다.

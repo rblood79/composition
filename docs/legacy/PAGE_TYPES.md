@@ -603,7 +603,7 @@ describe("Page Conversion Utilities", () => {
 
 - **[TYPESCRIPT_ERROR_FIXES.md](TYPESCRIPT_ERRORS_FIX.md)** - TypeScript 에러 수정 전체 내역
 - **[CLAUDE.md](../../CLAUDE.md)** - TypeScript 코딩 규칙 (Common Error Patterns #2)
-- **[PROPERTY_CUSTOM_ID_PATTERN.md](../reference/components/CUSTOM_ID_PATTERN.md)** - PropertyCustomId 패턴 가이드
+- **[PROPERTY_CUSTOM_ID_PATTERN.md](CUSTOM_ID_PATTERN.md)** - PropertyCustomId 패턴 가이드
 
 ---
 

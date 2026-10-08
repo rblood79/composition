@@ -1,7 +1,7 @@
 # ADR-915 구현 상세 — catalog binding.accepts prop parity 복원
 
 > ADR 본문: [915-catalog-prop-parity-restoration.md](../completed/915-catalog-prop-parity-restoration.md)
-> 감사 근거: [docs/reference/adr-912-prop-parity-audit.md](../../reference/adr-912-prop-parity-audit.md)
+> 감사 근거: [docs/reference/adr-912-prop-parity-audit.md](../../reference/audits/2026-06-25-adr-912-prop-parity-audit.md)
 
 ## §1. base/응용 분류 lock-in (adr-writing.md 4 질문)
 
