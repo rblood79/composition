@@ -67,7 +67,7 @@ const NAMES = [
 ] as const;
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 17,
+    contractVersion: 18,
     revision: "phase4b-collections",
     bindingIds: [...NAMES.map(([name]) => name.toLowerCase()), "box"],
     actionOpCodes: [],
@@ -151,7 +151,7 @@ function graphOf(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 17,
+    libraryContractVersion: 18,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -352,7 +352,9 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
         node("r2", "Radio", [], { value: "option2" }),
         node("choice", "Choice"),
         node("swatches", "ColorSwatchPicker", ["s1"]),
-        node("s1", "ColorSwatchPickerItem", ["s1-swatch"], { color: "#ff0000" }),
+        node("s1", "ColorSwatchPickerItem", ["s1-swatch"], {
+          color: "#ff0000",
+        }),
         node("s1-swatch", "ColorSwatch", []),
       ],
       ["group", "choice", "swatches"],
@@ -410,8 +412,11 @@ describe("ADR-248 Phase 4b component-aware item insertion", () => {
         entries: [node("s2", "ColorSwatchPickerItem")],
         rootId: "project:node:s2",
         // (Its own ids: the item's new ColorSwatch takes one.)
-        newId: ((next = allocator()) => (kind: EntryKind) =>
-          `${next(kind)}-swatch` as never)(),
+        newId: (
+          (next = allocator()) =>
+          (kind: EntryKind) =>
+            `${next(kind)}-swatch` as never
+        )(),
       }),
     );
     expect(childProps(graph, "project:node:swatches", "color")).toEqual([

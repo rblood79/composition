@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 17,
+    libraryContractVersion: 18,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -208,37 +208,40 @@ describe("ADR-256 — the RAC slot scope keeps the element's own style", () => {
     "lib:definition:origin-component-heading",
     "lib:definition:origin-component-description",
     "lib:definition:origin-component-button",
-  ])("%s: the authored style and the hover variables both reach the element", async (definitionId) => {
-    const workspace = await openOwner("", {}, "lib:definition:type-frame");
-    const set = <T>(value: T) => ({ kind: "set" as const, value });
-    workspace.execute(
-      insertNodes({
-        parent: { kind: "node", id: "project:node:home-body" },
-        entries: [
-          {
-            kind: "node",
-            id: "project:node:styled",
-            definitionId: definitionId as DefinitionId,
-            children: [],
-            props: {},
-            visual: { fontSize: set(31) },
-            sizing: { width: set(234) },
-            stateRules: { hover: { color: set("#abcdef") } },
-            descendantOverrides: [],
-          } as NodeEntry,
-        ],
-        rootIds: ["project:node:styled" as NodeId],
-        newId: workspace.newId,
-      }),
-    );
-    const record = [...workspace.root.domInputs.values()].find(
-      (item) => item.sourceId === "project:node:styled",
-    )!;
-    const html = renderToStaticMarkup(
-      renderCatalogDom(workspace.root, record.id),
-    );
-    expect(html).toContain("--catalog-hover-color:#abcdef");
-    expect(html).toContain("width:234px");
-    expect(html).toContain("font-size:31px");
-  });
+  ])(
+    "%s: the authored style and the hover variables both reach the element",
+    async (definitionId) => {
+      const workspace = await openOwner("", {}, "lib:definition:type-frame");
+      const set = <T>(value: T) => ({ kind: "set" as const, value });
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: "project:node:home-body" },
+          entries: [
+            {
+              kind: "node",
+              id: "project:node:styled",
+              definitionId: definitionId as DefinitionId,
+              children: [],
+              props: {},
+              visual: { fontSize: set(31) },
+              sizing: { width: set(234) },
+              stateRules: { hover: { color: set("#abcdef") } },
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: ["project:node:styled" as NodeId],
+          newId: workspace.newId,
+        }),
+      );
+      const record = [...workspace.root.domInputs.values()].find(
+        (item) => item.sourceId === "project:node:styled",
+      )!;
+      const html = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, record.id),
+      );
+      expect(html).toContain("--catalog-hover-color:#abcdef");
+      expect(html).toContain("width:234px");
+      expect(html).toContain("font-size:31px");
+    },
+  );
 });

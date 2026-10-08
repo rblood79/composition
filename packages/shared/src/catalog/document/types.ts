@@ -35,9 +35,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Phase 5g: a MenuItem's shortcut is a RAC `Keyboard` (`component-menu-item-default__shortcut`,
  * `presentWhen`) in place of a `Text[slot=shortcut]`. 17 — ADR-256 Phase 5g: a MenuItem holds the
  * submenu chevron (`component-menu-item-default__chevron`, `showWhen: { all: ["hasSubmenu"] }`).
+ * 18 — ADR-256 Phase 5h: a TreeItem's row is a RAC `TreeItemContent`
+ * (`component-tree-item-default__content`) holding the chevron `Button[slot=chevron] > Icon` and the
+ * label, in place of a `TreeItemChevron` and the label as the item's children.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 17 as const;
+export const LIBRARY_CONTRACT_VERSION = 18 as const;
 
 export type EntryKind =
   | "project"
@@ -87,12 +90,7 @@ export type AuthoredValue = Scalar | TokenUse | StructuredValue;
  * context). The three are different values in storage and validation.
  */
 export type ValueType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "string[]"
-  | "items"
-  | "slot";
+  "string" | "number" | "boolean" | "string[]" | "items" | "slot";
 /** Resolved prop value: a scalar or a structured value. */
 export type PropValue = Scalar | StructuredValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";

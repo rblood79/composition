@@ -174,9 +174,7 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
   ColorSwatchPicker: { children: ["ColorSwatchPickerItem"] },
   TableView: { children: ["TableHeader", "TableBody"] },
-  Tree: { children: ["TreeItem"] },
-  // ADR-239 — 역할 자식 Label (Text) 은 RAC TreeItemContent 의 자유 자식 (DOM 렌더러가 행 글자로 그린다).
-  TreeItem: { children: ["TreeItemChevron", "TreeItem", "Text"] },
+  // (Tree — ADR-256 Phase 5h: 노드 트리로 그린다 — TreeItem > TreeItemContent (자유 내용) + TreeItem, 행 삭제.)
   // range · progress — Phase 7
   Slider: {
     children: ["Label", "SliderOutput", "SliderTrack"],

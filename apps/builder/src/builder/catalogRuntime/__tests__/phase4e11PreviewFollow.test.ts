@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 17,
+    libraryContractVersion: 18,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -416,11 +416,16 @@ describe("TreeItem chevron — Tree.css width in every host", () => {
     const item = [...root.layoutInputs.values()].find(
       (record) => record.bindingId === "treeitem" && !record.hidden,
     )!;
-    const label = item.children
+    // (The label sits in the row content — RAC TreeItemContent, ADR-256 Phase 5h.)
+    const content = item.children
+      .map((id) => root.layoutInputs.get(id)!)
+      .find((record) => record.bindingId === "treeitemcontent")!;
+    const label = content.children
       .map((id) => root.layoutInputs.get(id)!)
       .find((record) => record.bindingId === "text")!;
-    // Geometry is parent-relative: the label's x is its inset in the row.
-    const inset = root.getGeometry([label.id]).get(label.id)!.x;
+    // Geometry is parent-relative: the label's x in the content plus the content's in the row.
+    const geometry = root.getGeometry([content.id, label.id]);
+    const inset = geometry.get(content.id)!.x + geometry.get(label.id)!.x;
     return { workspace, root, inset };
   };
 

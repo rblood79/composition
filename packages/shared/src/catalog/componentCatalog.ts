@@ -1043,6 +1043,14 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     icon: "ChevronRight",
     placeable: false,
   }),
+  // TreeItemContent — ADR-256 Phase 5h: a TreeItem's row content (RAC TreeItemContent — the
+  //   reference's chevron Button · text inside, nested items after it). palette 비노출.
+  primitiveEntry("TreeItemContent", "tree-table", FAMILY_5_CUTOVER, {
+    category: "collections",
+    label: "tree item content",
+    icon: "ListTree",
+    placeable: false,
+  }),
   // ADR-912 단계 4 C1 (2026-06-03): Table Skia generic 발효 (skiaLegacy 제거). 2D grid
   //   (header/row/cell)는 Table projected tree(appendTableRowProjection → TableRow/TableCell.
   //   spec.render.shapes)가 렌더, 컨테이너 shell 은 buildCatalogShapes(rule fill {color.base} +

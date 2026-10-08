@@ -36,11 +36,13 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
     });
     // 전환된 family (ADR-256 Phase 2b) 는 RAC 의 종류 — field 는 자유 내용.
     expect(catalogChildKind("TextField")).toEqual({ kind: "free" });
-    // RAC TreeItem 의 항목은 TreeItem · TreeItemContent 지만 노드 구조가 아직 다르다.
+    // 전환된 family (ADR-256 Phase 5h) — TreeItem 은 RAC 의 항목 (TreeItemContent · TreeItem),
+    // 행 내용 TreeItemContent 는 자유 내용.
     expect(catalogChildKind("TreeItem")).toEqual({
       kind: "items",
-      items: ["TreeItemChevron", "TreeItem", "Text"],
+      items: ["TreeItem", "TreeItemContent"],
     });
+    expect(catalogChildKind("TreeItemContent")).toEqual({ kind: "free" });
   });
 });
 

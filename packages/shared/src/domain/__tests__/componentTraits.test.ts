@@ -311,6 +311,7 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       SwitchButton: ["Switch"],
       SwitchIndicator: ["SwitchButton"],
       TreeItemChevron: ["TreeItem"],
+      TreeItemContent: ["TreeItem"],
       SliderOutput: ["Slider"],
       SliderTrack: ["Slider"],
       SliderThumb: ["SliderTrack"],

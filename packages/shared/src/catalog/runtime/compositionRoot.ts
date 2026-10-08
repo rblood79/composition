@@ -90,6 +90,7 @@ import {
   catalogPresenceDependents,
   catalogStateDependents,
   catalogItemRemoveGlyphItem,
+  catalogTreeChevronGlyphItem,
   catalogSelectionIndicatorLayout,
   catalogPresenceScope,
   catalogBreadcrumbItems,
@@ -1810,8 +1811,11 @@ export class CatalogCompositionRoot {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
     }
-    // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d.)
-    const glyphItem = catalogItemRemoveGlyphItem(record, get, this.typeOf);
+    // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
+    // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)
+    const glyphItem =
+      catalogItemRemoveGlyphItem(record, get, this.typeOf) ??
+      catalogTreeChevronGlyphItem(record, get, this.typeOf);
     const item = glyphItem ?? get(record.parentId);
     if (
       !item?.ruleId ||

@@ -273,8 +273,16 @@ const results: unknown[] = [];
 
 /** Part nodes the owner draws (2026-10-04): no old node held them. */
 const OWNER_DRAWN_PART_TYPES = Object.keys(OWNER_DRAWN_PART_OWNERS);
-/** New row hosts between a toggle and its parts (ADR-256 Phase 3 — RAC `CheckboxButton`). */
-const NEW_ROW_HOST_TYPES = ["CheckboxButton", "SwitchButton", "RadioButton"];
+/**
+ * New row hosts between an owner and its parts: a toggle's RAC button (ADR-256 Phase 3 —
+ * `CheckboxButton`), a TreeItem's row content (Phase 5h — RAC `TreeItemContent`).
+ */
+const NEW_ROW_HOST_TYPES = [
+  "CheckboxButton",
+  "SwitchButton",
+  "RadioButton",
+  "TreeItemContent",
+];
 
 /** Set when the local G0 baseline is absent (a fresh clone). */
 let baselineAbsent = false;
@@ -608,7 +616,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 17,
+    libraryContractVersion: 18,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -1118,12 +1126,20 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         // A part node the owner draws (2026-10-04 — a toggle's indicator, a TreeItem's chevron)
         // has no old node: the old owner painted it in its own box. It stays out of the order
         // pairing (APPROVED_UNPAIRED).
-        const newKids = shownKids.filter(
-          (child) =>
-            !OWNER_DRAWN_PART_TYPES.includes(
-              root.typeOf(root.canvasInputs.get(child)!),
-            ),
-        );
+        // (So has a TreeItem's chevron Button in its row content — ADR-256 Phase 5h: the old item
+        // painted its chevron.)
+        const newKids = shownKids.filter((child) => {
+          const record = root.canvasInputs.get(child)!;
+          return (
+            !OWNER_DRAWN_PART_TYPES.includes(root.typeOf(record)) &&
+            !(
+              root.typeOf(record) === "Button" &&
+              record.props.slot === "chevron" &&
+              root.typeOf(root.canvasInputs.get(record.parentId)!) ===
+                "TreeItemContent"
+            )
+          );
+        });
         for (const child of shownKids)
           if (!newKids.includes(child)) unpaired.push(`new:${child}`);
         const oldKids = oldChildren(

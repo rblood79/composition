@@ -105,7 +105,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 17,
+    libraryContractVersion: 18,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -368,7 +368,10 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(shownIndicators(tab)).toEqual([true]);
     // The bar along the bottom edge, full width (its geometry: `adr256TabsNodeTree.test.tsx`).
     const bar = tab.byType("SelectionIndicator")[0];
-    expect(bar.layout).toMatchObject({ position: "absolute", insetBottom: "0px" });
+    expect(bar.layout).toMatchObject({
+      position: "absolute",
+      insetBottom: "0px",
+    });
     expect(bar.visual).toMatchObject({ width: "100%", height: 3 });
     const tabHover = await open(
       "lib:definition:origin-component-tab-item-default--hover" as DefinitionId,
@@ -483,10 +486,16 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(nested.length).toBeGreaterThan(0);
     for (const item of items)
       expect(item.hidden === true).toBe(nested.includes(item));
+    // (A leaf item's chevron glyph rests hidden too — `Tree.css` hides the button of an item
+    // without child items, ADR-256 Phase 5h.)
+    const hiddenGlyphs = tree
+      .byType("Icon")
+      .filter((icon) => icon.hidden === true);
+    expect(hiddenGlyphs.length).toBeGreaterThan(0);
     const nestedHandleStyles = [...tree.engine.styles.values()].filter(
       (style) => style.display === "none",
     );
-    expect(nestedHandleStyles.length).toBe(nested.length);
+    expect(nestedHandleStyles.length).toBe(nested.length + hiddenGlyphs.length);
 
     const select = await open(
       "lib:definition:origin-component-select" as DefinitionId,

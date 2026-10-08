@@ -522,9 +522,44 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   // `Tree.css` row (`:where(.react-aria-Tree[data-composition-tree]) .react-aria-TreeItem`): flex,
   // centered, `gap: --spacing-2xs`, `min-height: 32px`, `padding: --spacing-xs --spacing-sm`. Its
   // chevron button is an owner-composed part (`catalogComposedParts`).
-  TreeItem: () => ({
+  TreeItem: (): ManualBoxRule => ({
     layout: { display: "flex", flexDirection: "row", alignItems: "center" },
     visual: { gap: 2, minHeight: 32, paddingY: 4, paddingX: 8 },
+    parts: [
+      // ADR-256 Phase 5h: the row content (RAC `TreeItemContent` — no element: its children sit in
+      // the row's `display: contents` cell, so they are the row's flex items). The Canvas lays it
+      // out as that flex line: the row's remaining width, its `gap` and centering, and the row's
+      // height when that is definite (the chevron's `height: 100%` reads the row's, as in the DOM).
+      {
+        childType: "TreeItemContent",
+        layout: {
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          flexGrow: "1",
+          flexShrink: "1",
+        },
+        visual: { gap: 2, minWidth: 0, height: "100%" },
+      },
+      // Its chevron button: the sheet's `.react-aria-Button[slot=chevron]` (`all: unset` — a bare
+      // box around the svg). Its width and level indent are `catalogTreeChevronLayout` on the
+      // Canvas and the sheet's in the DOM.
+      {
+        childType: "Button",
+        via: "TreeItemContent",
+        childProps: { slot: "chevron" },
+        layout: {},
+        visual: {
+          minWidth: 0,
+          minHeight: 0,
+          paddingRight: 0,
+          paddingY: 0,
+          borderWidth: 0,
+          radius: 0,
+          fill: "transparent",
+        },
+      },
+    ],
   }),
   // The Switch's text (a Label node in its RAC SwitchButton — ADR-256 Phase 3) takes the
   // `Switch.css` size font the old `label.react-aria-Switch` gave its own `children` text.

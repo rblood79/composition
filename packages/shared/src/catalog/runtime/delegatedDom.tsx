@@ -66,6 +66,7 @@ import { TagGroup } from "../../components/TagGroup";
 import { ListBox } from "../../components/ListBox";
 import { GridList } from "../../components/GridList";
 import { Tree, TreeItem } from "../../components/Tree";
+import { TreeItem as AriaTreeItem } from "react-aria-components/Tree";
 import { Breadcrumbs } from "../../components/Breadcrumbs";
 import {
   Breadcrumb as AriaBreadcrumb,
@@ -290,6 +291,39 @@ function treeItemElements(
     const others = kids.filter(
       (kid) => catalogTypeName(input.root, kid) !== "TreeItem",
     );
+    const id = resolveStaticItemKey(
+      item.props as Record<string, unknown>,
+      item.id,
+    );
+    // ADR-256 Phase 5h — an item whose row is its `TreeItemContent` is the reference's RAC
+    // `TreeItem`: the content node (RAC `TreeItemContent` — its chevron `Button`, text …) then the
+    // child items.
+    const content = others.find(
+      (kid) => catalogTypeName(input.root, kid) === "TreeItemContent",
+    );
+    if (content) {
+      const text = childrenOf(input.root, content).find(
+        (kid) => catalogTypeName(input.root, kid) === "Text",
+      );
+      return createElement(
+        AriaTreeItem as ElementType,
+        {
+          key: item.id,
+          "data-catalog-id": item.id,
+          ...(item.id === input.node.id ? { style: input.style } : {}),
+          id,
+          textValue: text
+            ? resolveTextSourceText(
+                "Text",
+                text.props as Record<string, unknown>,
+              )
+            : "",
+          isDisabled: item.props.isDisabled === true,
+        },
+        ...others.map((kid) => input.renderChild(kid.id)),
+        ...treeItemElements(input, childItems),
+      );
+    }
     const title = others.length
       ? ""
       : resolveTextSourceText(
@@ -304,7 +338,7 @@ function treeItemElements(
       "data-catalog-id": item.id,
       // A standalone item is the node itself: its authored inline style (the Tree's items take none).
       ...(item.id === input.node.id ? { style: input.style } : {}),
-      id: resolveStaticItemKey(item.props as Record<string, unknown>, item.id),
+      id,
       title,
       textValue: label
         ? resolveTextSourceText("Text", label.props as Record<string, unknown>)
@@ -1084,7 +1118,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...(typeof props["aria-label"] === "string"
               ? { "aria-label": props["aria-label"] }
               : {}),
-            ...(props.selectionMode ? { selectionMode: props.selectionMode } : {}),
+            ...(props.selectionMode
+              ? { selectionMode: props.selectionMode }
+              : {}),
           },
           ...items(),
         );

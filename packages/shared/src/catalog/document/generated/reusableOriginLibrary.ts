@@ -5180,6 +5180,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tree-item-default",
+          "lib:template:component-tree-item-default__content",
           "lib:template:component-tree-item-default__label"
         ],
         "props": {
@@ -5200,6 +5201,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tree-item-default",
+          "lib:template:component-tree-item-default__content",
           "lib:template:component-tree-item-default__label"
         ],
         "props": {
@@ -5220,6 +5222,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       {
         "templatePath": [
           "lib:template:component-tree-item-default",
+          "lib:template:component-tree-item-default__content",
           "lib:template:component-tree-item-default__label"
         ],
         "props": {
@@ -6876,18 +6879,43 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-tree-item-default",
     "definitionId": "lib:definition:type-TreeItem",
     "children": [
-      "lib:template:component-tree-item-default__chevron",
-      "lib:template:component-tree-item-default__label"
+      "lib:template:component-tree-item-default__content"
     ],
     "props": {},
     "visual": {},
     "displayState": "selected"
   },
   {
-    "id": "lib:template:component-tree-item-default__chevron",
-    "definitionId": "lib:definition:type-TreeItemChevron",
-    "children": [],
+    "id": "lib:template:component-tree-item-default__content",
+    "definitionId": "lib:definition:type-TreeItemContent",
+    "children": [
+      "lib:template:component-tree-item-default__chevron",
+      "lib:template:component-tree-item-default__label"
+    ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tree-item-default__chevron",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-tree-item-default__chevron__icon"
+    ],
+    "props": {
+      "slot": "chevron",
+      "size": "sm",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-tree-item-default__chevron__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-right",
+      "size": "xs"
+    },
     "visual": {}
   },
   {

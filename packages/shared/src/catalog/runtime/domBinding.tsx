@@ -42,6 +42,8 @@ import {
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
+  catalogTreeChevronButtonItem,
+  catalogTreeChevronGlyphItem,
 } from "./presence";
 import {
   catalogShowWhenGate,
@@ -627,6 +629,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       { key: node.id },
       ...children,
     ),
+  // ADR-256 Phase 5h: RAC `TreeItemContent` — no element of its own; its children are the row's
+  // (RAC gives them the row's chevron `Button` and selection `Checkbox` contexts).
+  treeitemcontent: (node, _style, children) =>
+    createElement(
+      RAC.TreeItemContent as ElementType,
+      { key: node.id },
+      ...children,
+    ),
   // RAC owns the trigger/input, value, icon and option DOM. The typed child IDs remain in the
   // graph and Canvas scene; `catalogDomOwnerTarget` maps a SelectTrigger ID to the RAC region.
   select: (node, style, _children, _context, parts) =>
@@ -849,6 +859,19 @@ function buttonElement(
   children: ReactElement[],
   resolution: RacSlotResolution,
 ): ReactElement {
+  // A TreeItem's expand button (RAC's `chevron` slot — ADR-256 Phase 5h): the reference's plain
+  // RAC Button, which `Tree.css` styles (`.react-aria-Button[slot=chevron] { all: unset }`) — the
+  // filled `.button-base` paint of a later layer stays off.
+  if (resolution.kind === "named" && resolution.slot === "chevron")
+    return createElement(
+      RAC.Button,
+      {
+        "data-catalog-id": node.id,
+        slot: resolution.slot,
+        style,
+      } as Parameters<typeof RAC.Button>[0],
+      ...children,
+    );
   return createElement(
     Button,
     {
@@ -1861,14 +1884,14 @@ function renderNode(
           partParent &&
           catalogTypeName(root, partParent) === "TagGroup"
         ? tagGroupErrorBinding
-      : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
-        // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
-        // would take the group's label context).
-        node.bindingId === "label" &&
-          partParent &&
-          OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
-        ? toggleTextBinding
-        : bindingOf(node);
+        : // A toggle's text in its RAC button (ADR-256 Phase 3 — the reference's button children): an
+          // element of its own, not RAC's `Label` (a label inside the button's `label`; in a group it
+          // would take the group's label context).
+          node.bindingId === "label" &&
+            partParent &&
+            OWNER_DRAWN_PART_HOSTS[catalogTypeName(root, partParent)]
+          ? toggleTextBinding
+          : bindingOf(node);
   const bound = binding
     ? catalogDomStyle(
         node,
@@ -1941,10 +1964,37 @@ function renderNode(
     } else if (fieldDisabled && node.props.isDisabled !== true)
       bound.opacity = 1;
   }
+  // A TreeItem's chevron button (ADR-256 Phase 5h) is the reference's plain RAC Button: `Tree.css`
+  // gives its box (`all: unset` · 20px · the level indent), so only what the document wrote goes
+  // inline — not the Button type's resolved box, which would override the sheet.
+  const sheetBox =
+    node.bindingId === "button" &&
+    catalogTreeChevronButtonItem(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+      ? authoredStyle(root, node)
+      : undefined;
+  // Its glyph takes the button's color (`all: unset` inherits the row's — selected, disabled), so
+  // the Canvas resting color (the item's, `derivedOf`) does not go inline.
+  const sheetColored =
+    node.bindingId === "icon" &&
+    catalogTreeChevronGlyphItem(
+      node,
+      (id) => root.domInputs.get(id),
+      (entry) => catalogTypeName(root, entry),
+    )
+      ? {
+          ...node,
+          visual: { ...node.visual, color: undefined },
+          derivedProps: { ...node.derivedProps, color: undefined },
+        }
+      : undefined;
   const rendered = binding
     ? binding(
-        node,
-        styleOverride ? { ...bound, ...styleOverride } : bound!,
+        (sheetColored as CatalogConsumerNode | undefined) ?? node,
+        sheetBox ?? (styleOverride ? { ...bound, ...styleOverride } : bound!),
         children,
         context,
         parts,

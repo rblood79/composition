@@ -423,6 +423,10 @@ export function catalogHiddenAtRest(
     return true;
   if (type === "TreeItem" && parentType === "TreeItem")
     return !catalogTreeItemExpanded(parent, get, typeOf);
+  // ADR-256 Phase 5h: an item without child items hides its chevron button (`Tree.css`
+  // `visibility: hidden` — the box stays, the glyph is not drawn).
+  const chevronItem = catalogTreeChevronGlyphItem(node, get, typeOf);
+  if (chevronItem) return !treeItemHasChildItems(chevronItem, get, typeOf);
   if (parentType === "Disclosure" && !DISCLOSURE_TRIGGER_TYPES.has(type))
     return !catalogDisclosureExpanded(parent, get, typeOf);
   if (type === "TabPanel" && parentType === "TabPanels") {
@@ -552,7 +556,10 @@ export function catalogPresenceDependents(
   if (typeOf(scope) === "Tabs") {
     const { panels, tabs } = catalogTabsSelection(scope, get, typeOf);
     // (and the Tabs' selection indicators — ADR-256 Phase 5e)
-    return [...panels, ...tabs.flatMap((tab) => catalogSelectionIndicators(tab, get, typeOf))];
+    return [
+      ...panels,
+      ...tabs.flatMap((tab) => catalogSelectionIndicators(tab, get, typeOf)),
+    ];
   }
   // Which crumb is current moves with the crumb list: the conditioned nodes in every crumb
   // (`showWhen` — the reference's separator `!isCurrent`) are judged again.
@@ -591,7 +598,13 @@ export function catalogPresenceDependents(
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get))
       if (typeOf(child) === "TreeItem") {
-        items.push(child);
+        // (and its chevron glyph — shown while the item has child items, ADR-256 Phase 5h)
+        items.push(
+          child,
+          ...catalogTreeChevrons(child, get, typeOf).filter((glyph) =>
+            catalogTreeChevronGlyphItem(glyph, get, typeOf),
+          ),
+        );
         visit(child);
       }
   };
@@ -688,6 +701,8 @@ function treeChevronStyle(level: number): Record<string, string | number> {
   const padding = treeChevronIndent(level);
   return {
     display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     width: `${TREE_CHEVRON_WIDTH + padding}px`,
     height: "100%",
     minHeight: `${TREE_CHEVRON_ICON}px`,
@@ -696,9 +711,65 @@ function treeChevronStyle(level: number): Record<string, string | number> {
   };
 }
 
+/** ADR-256 Phase 5h — a TreeItem's row content (its RAC `TreeItemContent` child). */
+export function catalogTreeItemContent(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(item) !== "TreeItem") return undefined;
+  for (const id of item.children) {
+    const child = get(id);
+    if (child && typeOf(child) === "TreeItemContent") return child;
+  }
+  return undefined;
+}
+
 /**
- * A TreeItem's `TreeItemChevron` child (the chevron button as a document node, 2026-10-04): at
- * most one, as a list like the other re-plan dependents.
+ * ADR-256 Phase 5h — the TreeItem whose chevron button `node` is: a `Button[slot=chevron]` in the
+ * item's `TreeItemContent` (RAC `ButtonContext` gives the slot the item's expand button props).
+ */
+export function catalogTreeChevronButtonItem(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Button" || node.props.slot !== "chevron")
+    return undefined;
+  const content = get(node.parentId);
+  if (!content || typeOf(content) !== "TreeItemContent") return undefined;
+  const item = get(content.parentId);
+  return item && typeOf(item) === "TreeItem" ? item : undefined;
+}
+
+/**
+ * ADR-256 Phase 5h — the TreeItem whose chevron glyph `node` is (an Icon in its chevron button):
+ * `Tree.css` hides the button of an item without child items (`visibility: hidden` — the glyph is
+ * not drawn, its box stays) and turns the svg 90° on an expanded item.
+ */
+export function catalogTreeChevronGlyphItem(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Icon") return undefined;
+  const button = get(node.parentId);
+  return button ? catalogTreeChevronButtonItem(button, get, typeOf) : undefined;
+}
+
+/** Whether a TreeItem has child items (RAC `hasChildItems` — `data-has-child-items`). */
+function treeItemHasChildItems(
+  item: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return childrenOf(item, get).some((child) => typeOf(child) === "TreeItem");
+}
+
+/**
+ * A TreeItem's chevron button records — its `TreeItemChevron` child (2026-10-04) or the
+ * `Button[slot=chevron]` in its `TreeItemContent` (ADR-256 Phase 5h) — and their glyphs: the
+ * re-plan dependents of the item (level indent, child items, expansion).
  */
 export function catalogTreeChevrons(
   node: CatalogConsumerNode,
@@ -710,17 +781,28 @@ export function catalogTreeChevrons(
     const child = get(id);
     if (child && typeOf(child) === "TreeItemChevron") return [child];
   }
-  return [];
+  const content = catalogTreeItemContent(node, get, typeOf);
+  if (!content) return [];
+  return childrenOf(content, get)
+    .filter((child) => catalogTreeChevronButtonItem(child, get, typeOf))
+    .flatMap((button) => [
+      button,
+      ...childrenOf(button, get).filter((glyph) =>
+        catalogTreeChevronGlyphItem(glyph, get, typeOf),
+      ),
+    ]);
 }
 
-/** A `TreeItemChevron` record's TreeItem level; undefined for any other node. */
+/** A chevron button record's TreeItem level; undefined for any other node. */
 function treeChevronLevel(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): number | undefined {
-  if (typeOf(node) !== "TreeItemChevron") return undefined;
-  const item = get(node.parentId);
+  const item =
+    typeOf(node) === "TreeItemChevron"
+      ? get(node.parentId)
+      : catalogTreeChevronButtonItem(node, get, typeOf);
   return item ? catalogTreeLevel(item, get, typeOf) : undefined;
 }
 
@@ -749,14 +831,19 @@ export function catalogTreeChevronInset(
 
 /**
  * Parts a record's DOM owner composes before its children: a TreeItem row's chevron button when
- * the item has no `TreeItemChevron` child to hold it.
+ * the item has neither a `TreeItemChevron` child nor a `TreeItemContent` (ADR-256 Phase 5h — the
+ * content holds its own chevron button, or none) to hold it.
  */
 export function catalogComposedParts(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): readonly CatalogComposedPart[] {
-  if (catalogTreeChevrons(node, get, typeOf).length) return [];
+  if (
+    catalogTreeChevrons(node, get, typeOf).length ||
+    catalogTreeItemContent(node, get, typeOf)
+  )
+    return [];
   const level = catalogTreeLevel(node, get, typeOf);
   if (level === undefined) return [];
   return [{ id: `${node.id}::part:chevron`, style: treeChevronStyle(level) }];
@@ -927,6 +1014,15 @@ function ownDerivedProps(
   const searchValue = catalogSearchFieldOfInput(node, get, typeOf)?.props.value;
   if (typeof searchValue === "string" && searchValue !== "")
     return { placeholder: searchValue };
+  // ADR-256 Phase 5h: an expanded item's chevron glyph turns (`Tree.css` `[data-expanded]
+  // .react-aria-Button[slot=chevron] svg { rotate: 90deg }`) — the Canvas draws the turned glyph
+  // (`chevron-right` 90° = `chevron-down`), as the item rule's `leading_icon` does.
+  const chevronItem = catalogTreeChevronGlyphItem(node, get, typeOf);
+  if (chevronItem)
+    return node.props.iconName === "chevron-right" &&
+      catalogTreeItemExpanded(chevronItem, get, typeOf)
+      ? { iconName: "chevron-down" }
+      : undefined;
   const level = catalogTreeLevel(node, get, typeOf);
   // RAC TreeItem: `data-has-child-items` shows the chevron, `data-expanded` turns it (the rule's
   // `leadingIcon`), the level indents it.
@@ -1051,12 +1147,17 @@ export function catalogDerivedPropsDependents(
       ...catalogSelectionIndicators(item, get, typeOf),
       // (its selection checkboxes — the item's selection and selectability, Phase 5f)
       ...catalogSelectionCheckboxes(item, get, typeOf),
+      // (its chevron glyph — the item's expansion turns it, Phase 5h)
+      ...catalogTreeChevrons(item, get, typeOf).filter((glyph) =>
+        catalogTreeChevronGlyphItem(glyph, get, typeOf),
+      ),
       // (and its remove button's glyph — `catalogItemRemoveGlyphItem`)
       ...(MANUAL_ITEM_LABEL_COLORS[typeOf(item)]
         ? childrenOf(item, get)
             .flatMap((button) => childrenOf(button, get))
             .filter(
-              (glyph) => catalogItemRemoveGlyphItem(glyph, get, typeOf) === item,
+              (glyph) =>
+                catalogItemRemoveGlyphItem(glyph, get, typeOf) === item,
             )
         : []),
     ]),
@@ -1393,7 +1494,6 @@ const INTERACTION_KEYS: ReadonlySet<CatalogStateKey> = new Set([
   "isFocusVisible",
 ]);
 
-
 /** One `showWhen` condition, normalized: its key, negation and own state owner. */
 export interface CatalogStateCondition {
   readonly key: CatalogStateKey;
@@ -1439,7 +1539,10 @@ function isStateOwner(
   get: CatalogRecordLookup,
 ): boolean {
   // (A composite instance's record is also its collapsed template root's — `collapsedIds`.)
-  const ids = (node: CatalogConsumerNode) => [node.id, ...(node.collapsedIds ?? [])];
+  const ids = (node: CatalogConsumerNode) => [
+    node.id,
+    ...(node.collapsedIds ?? []),
+  ];
   return ids(record).some((recordId) => {
     const { path, own } = recordAddress(recordId);
     if ("nodeId" in ref) return own === ref.nodeId;
@@ -1505,11 +1608,12 @@ const GROUP_ITEMS_TYPES: ReadonlySet<string> = new Set([
  * RadioGroup's state; a Checkbox disabled · read-only · invalid from the CheckboxGroup's, its
  * `isRequired` its own prop (`Checkbox.mjs` — `props.isRequired`).
  */
-const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> = {
-  Checkbox: new Set(["isDisabled", "isReadOnly", "isInvalid"]),
-  Radio: new Set(["isDisabled", "isReadOnly", "isInvalid", "isRequired"]),
-  Tag: new Set(["allowsRemoving"]),
-};
+const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> =
+  {
+    Checkbox: new Set(["isDisabled", "isReadOnly", "isInvalid"]),
+    Radio: new Set(["isDisabled", "isReadOnly", "isInvalid", "isRequired"]),
+    Tag: new Set(["allowsRemoving"]),
+  };
 /** The CheckboxGroup / RadioGroup / TagGroup an item sits in (through its items wrapper and frames). */
 function catalogItemGroup(
   owner: CatalogConsumerNode,
@@ -1586,7 +1690,10 @@ export function catalogStateValue(
       if (state === "selected") return true;
       if (state === "unselected") return false;
       if (group && typeOf(owner) === "Radio")
-        return catalogRadioGroupValue(group, get, typeOf) === String(props.value ?? "");
+        return (
+          catalogRadioGroupValue(group, get, typeOf) ===
+          String(props.value ?? "")
+        );
       return (props.isSelected ?? props.defaultSelected) === true;
     }
     case "isIndeterminate":

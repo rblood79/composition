@@ -313,6 +313,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   SwitchIndicator: { owners: ["SwitchButton"] },
   // TreeItem 의 chevron 버튼 노드 — 자기 부모 TreeItem 안에만 (부모 Tree DOM 이 흡수).
   TreeItemChevron: { owners: ["TreeItem"] },
+  // ADR-256 Phase 5h: TreeItem 의 행 내용 (RAC TreeItemContent — 자유 내용: chevron Button · 글자 · 선택
+  //   Checkbox). RAC 는 TreeItem 밖에서도 throw 하지 않지만 행 context 는 TreeItem 이 준다.
+  TreeItemContent: { owners: ["TreeItem"] },
   DisclosureGroup: {},
   DisclosureHeader: { owners: ["Disclosure"] },
   // Disclosure trigger 의 chevron 노드 — 자기 부모 DisclosureHeader 안에만 (부모 Disclosure DOM 이 흡수).

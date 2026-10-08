@@ -22,7 +22,11 @@ import {
   catalogLeadingIconPartNodeData,
   catalogRuleNodeData,
 } from "./ruleShapes";
-import { catalogPartParent, catalogTreeChevronInset } from "./presence";
+import {
+  catalogPartParent,
+  catalogTreeChevronInset,
+  catalogTreeItemContent,
+} from "./presence";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
@@ -388,6 +392,8 @@ const bindings: Readonly<Record<string, Binding>> = {
   radioindicator: container,
   switchindicator: container,
   treeitemchevron: container,
+  // ADR-256 Phase 5h: RAC TreeItemContent has no element (a layout box for the row's flex line).
+  treeitemcontent: container,
   disclosurechevron: container,
   box,
   icon: glyph,
@@ -632,7 +638,17 @@ function ruleShapeInput(
     node.bindingId === "dateinput"
       ? catalogDateInputPaintProps(root, node)
       : undefined;
-  const childPrimitive = ownerDrawnPart(root, node)?.primitive;
+  // (A TreeItem whose row is its `TreeItemContent` — ADR-256 Phase 5h — leaves its chevron to the
+  // content's `Button[slot=chevron]`, or to none.)
+  const childPrimitive =
+    ownerDrawnPart(root, node)?.primitive ??
+    (catalogTreeItemContent(
+      node,
+      (id) => root.canvasInputs.get(id),
+      root.typeOf,
+    )
+      ? "leading_icon"
+      : undefined);
   return {
     node: node.derivedProps
       ? { ...node, props: { ...node.props, ...node.derivedProps } }

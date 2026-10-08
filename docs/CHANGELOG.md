@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5h-1 — Tree 항목 = TreeItemContent 층 · chevron 은 Button[slot=chevron]] - 2026-10-09
+
+### Changed
+
+- **Tree 항목의 노드 구조가 react-aria.adobe.com Tree 와 같아졌다** — `TreeItem > TreeItemContent > Button[slot=chevron] > Icon + 글자`, 하위 항목은 `TreeItemContent` 다음에 둔다. 새 요소 `TreeItemContent` (항목의 행 내용 — RAC `TreeItemContent`, 자기 DOM 요소 없음) 는 자유 내용을 받는다. chevron 은 RAC 가 항목의 펼치기 버튼 속성 (이름 「펼치기 · 접기」 · 탭 순서 제외) 을 주는 일반 Button 노드이고, 그 안의 Icon 이 glyph 다 — 작성자가 지우거나 바꿀 수 있다. 종전의 `TreeItemChevron` 노드와 shared Tree 가 붙이던 chevron · 정보 버튼은 이 구조에서 쓰지 않는다
+- **Preview 의 chevron 버튼은 레퍼런스처럼 RAC Button 그대로** — `Tree.css` 가 모양을 정한다 (채운 버튼 칠 `.button-base` · Button 상자 값 inline 없음). glyph 는 행 글자색을 따르므로 선택 · 비활성 행에서 함께 바뀐다
+- **Canvas 는 같은 자리에 같은 모양으로** — 버튼 상자 · 글자 위치는 종전과 같다 (Canvas↔Preview 오차 0). 하위 항목이 없는 항목의 glyph 는 숨고 (`visibility: hidden`), 펼친 항목의 glyph 는 돌아간 모양 (`chevron-down`) 으로 그린다. glyph 색은 항목 글자색 (Preview 와 같음 — 종전 Canvas 는 옅은 회색)
+- 위치: `catalog/bindings/TreeItemContent.binding.ts` · `catalog/runtime/presence.ts` (`catalogTreeChevronButtonItem` · `catalogTreeChevronGlyphItem`) · `catalog/document/manualBoxRules.ts` TreeItem · `catalog/runtime/delegatedDom.tsx` `treeItemElements` · `domBinding.tsx` (`treeitemcontent` · chevron Button) · `components/styles/Tree.css`
+- **저장 형식 contract 18**
+
 ## [ADR-256 Phase 5g-2 — Menu 의 하위 메뉴 = SubmenuTrigger 노드] - 2026-10-09
 
 ### Added
