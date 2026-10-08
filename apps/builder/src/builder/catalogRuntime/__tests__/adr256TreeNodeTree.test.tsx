@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { act } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Button } from "react-aria-components/Button";
+import { CheckboxButton, CheckboxField } from "react-aria-components/Checkbox";
 import { Tree, TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -137,6 +138,19 @@ function structure(tree: Element): string {
   return [...tree.children].map(walk).join("");
 }
 
+/** The reference's selection checkbox (the starter `<Checkbox slot="selection" />`). */
+let withCheckbox = false;
+const checkbox = () =>
+  createElement(
+    CheckboxField,
+    { key: "selection", slot: "selection" },
+    createElement(
+      CheckboxButton,
+      null,
+      createElement("div", { className: "indicator" }),
+    ),
+  );
+
 /** The reference's item (the starter `TreeItem` with a `title`). */
 const item = (
   id: string,
@@ -151,6 +165,7 @@ const item = (
       createElement(TreeItemContent, {
         key: "content",
         children: [
+          ...(withCheckbox ? [checkbox()] : []),
           createElement(
             Button,
             { key: "chevron", slot: "chevron" },
@@ -163,14 +178,20 @@ const item = (
     ],
   });
 
-const reference = (expandedKeys: string[]) =>
+const reference = (
+  expandedKeys: string[],
+  selection: { mode: string; behavior: string } = {
+    mode: "single",
+    behavior: "replace",
+  },
+) =>
   renderToStaticMarkup(
     createElement(
       Tree,
       {
         "aria-label": "Tree",
-        selectionMode: "single",
-        selectionBehavior: "replace",
+        selectionMode: selection.mode as "single",
+        selectionBehavior: selection.behavior as "replace",
         expandedKeys,
       },
       item("item-1", "Node 1", item("item-1-1", "Node 1.1")),
@@ -247,5 +268,139 @@ describe("ADR-256 Phase 5h — TreeItem is the reference's node tree", () => {
     expect(root.canvasInputs.get(label.id)!.props.children).toBe("Docs");
     const rows = [...treeOf(html()).querySelectorAll("[role=row]")];
     expect(rows.map((row) => row.textContent)).toEqual(["Node 1", "Docs"]);
+  });
+});
+
+/**
+ * ADR-256 Phase 5h-2 — a TreeItem's selection checkbox is the author's `Checkbox[slot=selection]` in
+ * its row content (the reference's `<Checkbox slot="selection" />` — G0 ④-1b: no `selectionMode`
+ * condition, the author puts it in). RAC's TreeItem connects it to the item's selection
+ * (`CheckboxFieldContext` slot `selection`); no item draws one of its own.
+ */
+describe("ADR-256 Phase 5h-2 — a TreeItem's selection checkbox is a Checkbox[selection] node", () => {
+  const MULTIPLE = { selectionMode: "multiple", selectionStyle: "checkbox" };
+  /** The author's edit: a selection Checkbox first in each item's row content. */
+  const addCheckboxes = (
+    workspace: Awaited<ReturnType<typeof open>>["workspace"],
+    contents: readonly { id: string }[],
+  ) => {
+    for (const content of contents) {
+      const box = workspace.newId("node") as NodeId;
+      workspace.root.execute(
+        insertNodes({
+          parent: workspace.positionOfRecord(content.id)!.target as never,
+          index: 0,
+          entries: [
+            {
+              kind: "node",
+              id: box,
+              definitionId: "lib:definition:origin-component-checkbox",
+              children: [],
+              props: { children: set(""), slot: set("selection") },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as unknown as NodeEntry,
+          ],
+          rootIds: [box],
+          newId: workspace.newId,
+        }),
+      );
+    }
+  };
+
+  it("without the node no row has a checkbox (the item does not add one)", async () => {
+    const { html } = await open(MULTIPLE);
+    expect(treeOf(html()).querySelector("[slot=selection]")).toBeNull();
+  });
+
+  it("the author's Checkbox[selection] node: the reference structure, connected to the item", async () => {
+    const { workspace, html, of } = await open({
+      ...MULTIPLE,
+      expandedKeys: ["item-1"],
+    });
+    addCheckboxes(workspace, of("TreeItemContent"));
+    withCheckbox = true;
+    try {
+      expect(structure(treeOf(html()))).toBe(
+        structure(
+          treeOf(
+            reference(["item-1"], { mode: "multiple", behavior: "toggle" }),
+          ),
+        ),
+      );
+    } finally {
+      withCheckbox = false;
+    }
+  });
+
+  it("on the Canvas it is drawn in the row content, as the item is selected and selectable — and follows the Tree's selectionMode", async () => {
+    const { workspace, root, of } = await open(MULTIPLE);
+    addCheckboxes(workspace, of("TreeItemContent"));
+    // (One per row content — the collapsed child item's too, in its hidden subtree.)
+    const boxes = () => of("Checkbox");
+    expect(boxes()).toHaveLength(3);
+    for (const box of boxes()) {
+      expect(root.typeOf(root.canvasInputs.get(box.parentId)!)).toBe(
+        "TreeItemContent",
+      );
+      expect(box.derivedProps?._isSelected).toBe(false);
+      expect(box.derivedProps?.isDisabled).toBeUndefined();
+    }
+    // A Tree that selects nothing: the checkboxes are disabled (RAC `canSelectItem`) — re-derived
+    // through the row content on the Tree's edit.
+    const tree = of("Tree")[0];
+    workspace.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(tree.id)!.target],
+        props: { selectionMode: set("none") },
+      }),
+    );
+    expect(boxes().every((box) => box.derivedProps?.isDisabled === true)).toBe(
+      true,
+    );
+  });
+
+  it("in the Preview it selects its row (RAC's selection — the Tree's run state), and the row press follows the Tree's selectionStyle", async () => {
+    const rowsSelected = (container: HTMLElement) =>
+      [...container.querySelectorAll("[role=row]")].map(
+        (row) => row.getAttribute("aria-selected") === "true",
+      );
+    for (const [style, afterRows] of [
+      ["checkbox", [true, true]],
+      ["highlight", [false, true]],
+    ] as const) {
+      const { workspace, root, tree, of } = await open({
+        selectionMode: "multiple",
+        selectionStyle: style,
+      });
+      addCheckboxes(workspace, of("TreeItemContent"));
+      const view = render(renderCatalogDom(root, tree.id));
+      cleanups.push(() => view.unmount());
+      const boxes = [
+        ...view.container.querySelectorAll("[role=row] input[type=checkbox]"),
+      ];
+      expect(boxes).toHaveLength(2);
+      fireEvent.click(boxes[0]!);
+      expect(rowsSelected(view.container)).toEqual([true, false]);
+      fireEvent.click(boxes[0]!);
+      expect(rowsSelected(view.container)).toEqual([false, false]);
+      // A row press: a checkbox Tree toggles each row (RAC `toggle`), a highlight Tree replaces.
+      const rows = [...view.container.querySelectorAll("[role=row]")];
+      for (const row of rows) {
+        fireEvent.pointerDown(row, {
+          pointerType: "mouse",
+          button: 0,
+          pointerId: 1,
+        });
+        fireEvent.pointerUp(row, {
+          pointerType: "mouse",
+          button: 0,
+          pointerId: 1,
+        });
+        fireEvent.click(row, { detail: 1 });
+      }
+      expect(rowsSelected(view.container), style).toEqual(afterRows);
+    }
   });
 });

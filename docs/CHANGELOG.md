@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5h-2 — Tree 선택 체크박스 = Checkbox[selection] 노드 · Preview 선택] - 2026-10-09
+
+### Fixed
+
+- **Preview 의 Tree 에서 항목을 선택할 수 없던 것** — DOM renderer 가 선택을 빈 값으로 고정 (`selectedKeys: []`) 해 행 · 체크박스를 눌러도 선택이 바뀌지 않았다. 이제 GridList 처럼 Preview 실행 상태로 선택된다 (문서에 쓰지 않음)
+- **Tree 의 「선택 표시 방식」 (`selectionStyle`) 이 Preview 에 닿지 않던 것** — renderer 가 값을 넘기지 않아 checkbox 를 골라도 항상 highlight 동작 (행 누르기가 선택을 바꿈) 이었다. 이제 checkbox 는 행 누르기가 선택을 더하고 빼며 (RAC `toggle`), highlight 는 바꾼다 (`replace`)
+
+### Changed
+
+- **Tree 항목의 선택 체크박스 = 작성자의 `Checkbox[slot=selection]` 노드** (react-aria.adobe.com Tree 의 `<Checkbox slot="selection" />`) — 항목의 `TreeItemContent` 안에 넣고 Design 의 slot 에서 `selection` 을 고른다. RAC 가 항목의 선택 · 이름에 잇는다 (체크박스를 누르면 그 행이 선택된다). 항목이 스스로 체크박스를 붙이지 않는다. Canvas 는 같은 자리에 그리고 항목이 선택될 수 없으면 (Tree 의 선택 모드 none) 비활성으로 그린다 — Tree 를 고치면 바로 따라간다
+- 위치: `catalog/runtime/presence.ts` (`catalogSelectionCheckboxes` — 행 내용 안까지) · `catalog/runtime/delegatedDom.tsx` `tree`
+
 ## [ADR-256 Phase 5h-1 — Tree 항목 = TreeItemContent 층 · chevron 은 Button[slot=chevron]] - 2026-10-09
 
 ### Changed

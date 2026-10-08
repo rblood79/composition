@@ -183,6 +183,51 @@ const CASES: Array<{
         }),
       ),
   },
+  // ADR-256 Phase 5h-2: a TreeItem's selection checkbox — the author's Checkbox[selection] first in
+  // each row content (a checkbox-style multiple-selection Tree, the reference's).
+  {
+    key: "Tree-selection",
+    type: "Tree",
+    props: { selectionMode: "multiple", selectionStyle: "checkbox" },
+    edit: (subject) =>
+      ["1", "2"].map((index) =>
+        insertNodes({
+          parent: {
+            kind: "descendant",
+            ownerId: subject,
+            address: {
+              instances: [
+                subject,
+                `lib:template:component-tree__item-${index}`,
+              ],
+              templatePath: [
+                "lib:template:component-tree-item-default",
+                "lib:template:component-tree-item-default__content",
+              ],
+            } as unknown as InstanceAddress,
+          },
+          index: 0,
+          entries: [
+            {
+              kind: "node",
+              id: `project:node:axis-tree-box-${index}` as NodeEntry["id"],
+              definitionId: "lib:definition:origin-component-checkbox",
+              children: [],
+              props: {
+                slot: { kind: "set", value: "selection" },
+                children: { kind: "set", value: "" },
+              },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [`project:node:axis-tree-box-${index}` as NodeEntry["id"]],
+          newId: ((kind: string) =>
+            `project:${kind}:axis-${(axisIds += 1)}`) as never,
+        }),
+      ),
+  },
 ];
 let axisIds = 0;
 

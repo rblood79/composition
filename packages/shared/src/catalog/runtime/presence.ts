@@ -259,16 +259,25 @@ function catalogSelectionCheckboxDisabled(
   return typeof mode !== "string" || mode === "none";
 }
 
-/** The selection checkboxes of an item (`catalogSelectionCheckboxItem`), through frames. */
+/**
+ * The selection checkboxes of an item (`catalogSelectionCheckboxItem`), through frames and a
+ * TreeItem's row content (RAC's TreeItem gives its contexts through `TreeItemContent` — Phase 5h).
+ */
 function catalogSelectionCheckboxes(
   item: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   if (!RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox) return [];
-  return partChildrenOf(item, get, typeOf).filter(
-    (child) => catalogSelectionCheckboxItem(child, get, typeOf) === item,
-  );
+  return partChildrenOf(item, get, typeOf)
+    .flatMap((child) =>
+      typeOf(child) === "TreeItemContent"
+        ? partChildrenOf(child, get, typeOf)
+        : [child],
+    )
+    .filter(
+      (child) => catalogSelectionCheckboxItem(child, get, typeOf) === item,
+    );
 }
 
 function catalogCollectionOfItem(

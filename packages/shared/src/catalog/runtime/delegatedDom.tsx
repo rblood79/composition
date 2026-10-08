@@ -1175,7 +1175,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
           selectionMode: props.selectionMode ?? "single",
           disallowEmptySelection: bool(props.disallowEmptySelection),
-          selectionBehavior: props.selectionBehavior || "replace",
+          // RSP `selectionStyle` (checkbox → RAC `toggle`, highlight → `replace`): the shared Tree
+          // converts it (`resolveSelectionBehavior`, highlight when unset).
+          selectionStyle: props.selectionStyle,
           expandedKeys: treeKeys(props.expandedKeys),
           // In the Preview the user's expansion is a runtime prop of the record (ADR-250); the
           // declared keys stay in the document.
@@ -1190,7 +1192,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           defaultExpandedKeys: Array.isArray(props.defaultExpandedKeys)
             ? props.defaultExpandedKeys
             : [],
-          selectedKeys: [],
+          // The selection is the Preview's run state (RAC's own, as GridList's): a pressed row ·
+          // selection checkbox selects it (ADR-256 Phase 5h-2 — a pinned empty selection left the
+          // checkbox inert).
           defaultSelectedKeys: [],
         },
         ...items(
