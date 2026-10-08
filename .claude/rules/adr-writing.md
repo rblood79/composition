@@ -112,6 +112,7 @@ design breakdown 의 phase 실행 중 다음은 통상 구현 판단이다. 질�
 
 - 선택된 대안에 HIGH 위험이 남아있으면 Gate 테이블 필수
 - HIGH 위험이 없으면 "잔존 HIGH 위험 없음" 명시
+- 집행 수단은 저장소 git 정책과 양립해야 한다 — 로컬 pre-push 게이트 또는 `push: main` 워크플로. `PR` / `pull request` / `status check` 는 이 저장소에 존재하지 않는 수단이라 그 Gate 는 vacuous 다 (ADR-198 G5 사례, 메모리 `feedback-adr-gate-wording-must-match-no-pr-policy`)
 - Gate 테이블 형식:
 
 | Gate | 시점 | 통과 조건 | 실패 시 대안 |
