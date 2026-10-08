@@ -116,14 +116,18 @@ const markupOf = (
   root: CatalogConsumerNode,
   type: string,
 ) => {
-  const id =
-    type === "dialog"
-      ? root.children.find(
-          (child) =>
-            workspace.root.domInputs.get(child)?.bindingId === "dialog",
-        )!
-      : root.id;
+  const id = type === "dialog" ? dialogOf(workspace, root) : root.id;
   return renderToStaticMarkup(renderCatalogDom(workspace.root, id));
+};
+/** The placed Dialog origin's Dialog — in its Modal (ADR-256 Phase 8b). */
+const dialogOf = (workspace: CatalogWorkspace, root: CatalogConsumerNode) => {
+  const records = workspace.root.domInputs;
+  const modal = root.children.find(
+    (child) => records.get(child)?.bindingId === "modal",
+  )!;
+  return records
+    .get(modal)!
+    .children.find((child) => records.get(child)?.bindingId === "dialog")!;
 };
 
 describe("ADR-254 Phase 2 — the containers' parts are origin instances", () => {
@@ -173,9 +177,7 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
   /** G2: RAC names the open Dialog by its title (a real mount — RAC links them in an effect). */
   it("names the Dialog by its title, and falls back without one", async () => {
     const { workspace, root } = await place(origin("dialog"));
-    const dialogId = root().children.find(
-      (child) => workspace.root.domInputs.get(child)?.bindingId === "dialog",
-    )!;
+    const dialogId = dialogOf(workspace, root());
     const host = document.createElement("div");
     document.body.append(host);
     const mount = createRoot(host);

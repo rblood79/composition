@@ -96,17 +96,18 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
     expect(getPrimitiveBinding("Toast")?.skiaPrimitive).toBeUndefined();
   });
 
-  it("toRacProps: Dialog size data-* + isDismissable 통과", () => {
-    const result = toRacProps(
-      {
-        id: "dlg1",
-        type: "Dialog",
-        props: { size: "lg", isDismissable: true },
-      },
+  it("toRacProps: Dialog size data-* · Modal isDismissable 통과 (ADR-256 Phase 8b — 밖 누르기 닫기는 Modal 의 것)", () => {
+    const dialog = toRacProps(
+      { id: "dlg1", type: "Dialog", props: { size: "lg", isDismissable: true } },
       getPrimitiveBinding("Dialog")!,
     );
-    expect(result["data-size"]).toBe("lg");
-    expect(result.isDismissable).toBe(true);
+    expect(dialog["data-size"]).toBe("lg");
+    expect(dialog.isDismissable).toBeUndefined();
+    const modal = toRacProps(
+      { id: "mdl1", type: "Modal", props: { isDismissable: true } },
+      getPrimitiveBinding("Modal")!,
+    );
+    expect(modal.isDismissable).toBe(true);
   });
 
   it("toRacProps: Popover size default · 화살표 prop 없음 (OverlayArrow 노드)", () => {

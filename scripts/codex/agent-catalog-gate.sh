@@ -247,7 +247,9 @@ fi
 # Codex도 skill description으로 선택한다. router는 수동 호환 진입점만 검사한다.
 section "8. prompt router — scripts/codex/route-prompt.sh (Claude 라우터는 2026-09-09 제거)"
 XR="scripts/codex/route-prompt.sh"
-XR_REFS=$(grep 'add_hint' "$XR" | grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+' | sort -u || true)
+# 완전한 ASCII 식별자 단위로 추출한 뒤 스킬 집합과 교차한다.
+# review/evaluate도 포함하되 review-adr · preview · review_helper의 부분 문자열은 세지 않는다.
+XR_REFS=$(grep -E '^[[:space:]]+add_hint "' "$XR" | grep -oE '[a-zA-Z_][a-zA-Z0-9_-]*' | sort -u || true)
 XR_SKILLS=$(comm -12 <(norm "$XR_REFS") <(norm "$SKILLS"))
 ok "codex router skill 커버리지 — $(norm "$XR_SKILLS" | wc -l | tr -d ' ')개 (Claude 는 상시 context 가 대신)"
 info "라우팅되지 않는 skill (codex): $(set_minus "$SKILLS" "$XR_SKILLS" | tr '\n' ' ')"

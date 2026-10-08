@@ -256,6 +256,8 @@ function expectSinceConversion(
   // overlay's first child, its OverlayArrow.
   const moved = type === "popover" || type === "tooltip";
   const pathNow = (path: string) => {
+    // ADR-256 Phase 8b: the Dialog origin's Dialog is in its Modal (`/1` → `/1/0`).
+    if (type === "dialog") return `/1/0${path.slice(2)}`;
     if (!moved) return path;
     const [first, ...rest] = path.slice(1).split("/");
     return `/1/${Number(first) + 1}${rest.map((step) => `/${step}`).join("")}`;

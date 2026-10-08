@@ -5,6 +5,7 @@ import {
 } from "react-aria-components/Modal";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { ContentFocusScope } from "./ContentFocusScope";
+import { DialogTriggerScope } from "./DialogTrigger";
 import type { ComponentSize } from "../types";
 
 export interface ModalProps extends ModalOverlayProps {
@@ -80,7 +81,10 @@ export function Modal({
         autoFocus={autoFocus}
         restoreFocus={restoreFocus}
       >
-        {children as React.ReactNode}
+        {/* (A Dialog in the Modal opens in it — it makes no overlay of its own, ADR-256 Phase 8b.) */}
+        <DialogTriggerScope.Provider value={false}>
+          {children as React.ReactNode}
+        </DialogTriggerScope.Provider>
       </ContentFocusScope>
     </RACModal>
   );

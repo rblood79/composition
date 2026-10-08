@@ -47,7 +47,9 @@
     "gate:perf-ratchet": "node apps/builder/scripts/perf-ratchet-gate.mjs --run",
     "perf:adr248-followup": "node apps/builder/scripts/adr248-structural-actionbar-perf.mjs",
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs",
-    "gate:catalog-runtime": "pnpm -F @composition/builder exec node scripts/adr248-runtime-boundary.mjs"
+    "gate:catalog-runtime": "pnpm -F @composition/builder exec node scripts/adr248-runtime-boundary.mjs",
+    "codex:skills:validate": "node scripts/codex/validate-skills.mjs",
+    "codex:skills:test": "node --test scripts/codex/skills.test.mjs"
   },
   "devDependencies": {
     "gray-matter": "^4.0.3",

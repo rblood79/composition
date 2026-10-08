@@ -5938,9 +5938,21 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-DialogTrigger",
     "children": [
       "lib:template:component-dialog__1",
-      "lib:template:component-dialog__2"
+      "lib:template:component-dialog__modal"
     ],
     "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-dialog__modal",
+    "definitionId": "lib:definition:type-Modal",
+    "children": [
+      "lib:template:component-dialog__2"
+    ],
+    "props": {
+      "size": "md",
+      "isDismissable": false
+    },
     "visual": {}
   },
   {
@@ -5961,8 +5973,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-dialog__2_3"
     ],
     "props": {
-      "size": "md",
-      "isDismissable": false
+      "size": "md"
     },
     "visual": {}
   },

@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ⑥(overlays) — Modal primitive 의 `PrimitiveBinding`.
  *
- * inventory(§2-1) primitive. composition wrapper(`Modal.tsx`)가 RAC ModalOverlay/Modal +
- * focus trap 합성(internal source). 자식(Dialog 등)은 canonical children.
+ * inventory(§2-1) primitive. composition wrapper(`Modal.tsx`)가 RAC Modal (RAC 가 ModalOverlay 를
+ * 만든다) + focus trap 합성(internal source). 자식(Dialog 등)은 canonical children — Dialog origin 의
+ * `DialogTrigger > Button + Modal > Dialog` (ADR-256 Phase 8b, 레퍼런스 Modal 예제).
  *
  * **Skia generic 발효 (ADR-142 Inc3, 2026-06-01)**: render.shapes=[] (portal 시각 없음).
  * buildCatalogShapes 가 variant fill transparent shell 만 그림 — 시각 무해(안 보임), legacy []
@@ -35,6 +36,13 @@ export const modalBinding: PrimitiveBinding = {
        * 하지 않는 현행 동작을 그대로 보존한다.
        */
       isOpen: { kind: "boolean", label: "Open", section: "state" },
+      // ADR-256 Phase 8b: an outside press closes the overlay (RAC `ModalOverlayProps` — the
+      // reference `<Modal isDismissable>`; a Dialog in it has no such prop of its own).
+      isDismissable: {
+        kind: "boolean",
+        label: "Dismissable",
+        section: "state",
+      },
       trapFocus: {
         kind: "boolean",
         label: "Trap Focus",

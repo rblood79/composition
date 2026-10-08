@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 8b — Dialog 가 Modal 노드 안에서 열린다] - 2026-10-08
+
+### Changed
+
+- **Dialog 가 레퍼런스 구조를 따른다** (ADR-256 Phase 8b — react-aria.adobe.com Modal 예제):
+  - 원본 = `DialogTrigger > Button + Modal > Dialog` — Preview 는 RAC Modal (RAC 가 ModalOverlay 를 만든다) 안에 Dialog 를 그린다. 전에는 Dialog 컴포넌트가 노드에 없는 Modal 을 스스로 만들었다
+  - 밖을 눌러 닫기 (`Dismissable`) 는 Modal 의 속성이다 (RAC `isDismissable` — Dialog 의 같은 속성은 없어졌다)
+  - Canvas 는 전처럼 trigger 버튼만 그린다 (닫힌 overlay)
+  - 저장 형식 contract 28 — 옛 개발용 프로젝트는 열리지 않는다
+  - 위치: `catalog/document/generated/reusableOriginLibrary.ts` (`component-dialog__modal`) · `catalog/bindings/{Dialog,Modal}.binding.ts` · `components/Modal.tsx` (안의 Dialog 는 자기 overlay 를 만들지 않음) · `components/Dialog.tsx`
+
 ## [ADR-256 Phase 8a — Popover · Tooltip 의 화살표 = OverlayArrow 노드] - 2026-10-08
 
 ### Changed
