@@ -41,7 +41,6 @@ import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
 import { Breadcrumb } from "@composition/shared/components/Breadcrumb";
 import { Popover } from "@composition/shared/components/Popover";
 import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
-import { Select } from "@composition/shared/components/Select";
 import { Skeleton } from "@composition/shared/components/Skeleton";
 import { Tab, Tabs } from "@composition/shared/components/Tabs";
 import { Tag, TagGroup } from "@composition/shared/components/TagGroup";
@@ -111,7 +110,6 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-234 Phase 3 — ListBox 정적 자식 (ListBoxItem instance).
   listboxitem: ListBoxItem,
   menu: MenuButton,
-  select: Select,
   combobox: ComboBox,
   tabs: Tabs,
   // ADR-234 Phase 3 — TabList 정적 자식 (Tab instance). RAC Tab 이라 render props 를 받는다.

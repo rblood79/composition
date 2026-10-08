@@ -66,8 +66,8 @@ export interface ComponentTraits {
   readonly owners?: readonly string[];
 }
 
-// SelectTrigger 래퍼를 쓰는 필드 전부가 소유자다 — 팩토리 오라클이 DatePicker · DateRangePicker ·
-// NumberField 의 트리거 안 SelectIcon/SelectValue 를 실증했다.
+// 트리거 상자 (옛 SelectTrigger 래퍼 — ADR-256 Phase 6b 부터 RAC Group) 를 쓰는 필드 전부가 소유자다 —
+// 팩토리 오라클이 DatePicker · DateRangePicker · NumberField 의 트리거 안 SelectIcon/SelectValue 를 실증했다.
 const SELECT_TRIGGER_OWNERS = [
   "Select",
   "ComboBox",
@@ -208,7 +208,6 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   DateInput: {
     owners: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
   },
-  SelectTrigger: { owners: SELECT_TRIGGER_OWNERS },
   SelectValue: { owners: SELECT_TRIGGER_OWNERS },
   SelectIcon: { owners: SELECT_TRIGGER_OWNERS },
 

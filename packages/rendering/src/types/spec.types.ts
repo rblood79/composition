@@ -1051,7 +1051,7 @@ export interface SizeSpec {
    * 컨텐츠 박스 높이 (optional, px) — ADR-091 Phase 3.
    *
    * `height - 2*paddingY - 2*borderWidth` 파생값을 미리 spec 에 선언하여
-   * layout 경로에서 계산 없이 직접 lookup. SelectTrigger/ComboBoxWrapper 가
+   * layout 경로에서 계산 없이 직접 lookup. field 의 trigger 상자가
    * border-box 기준 content 영역 metric 을 표면화할 때 사용.
    */
   contentHeight?: number;

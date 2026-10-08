@@ -137,7 +137,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "select",
     kind: "delegating-internal",
     reason:
-      "renderSelect 가 childrenByParent 로 SelectTrigger→SelectValue 를 찾아 자기완결 RAC Select self-compose. 자식 sub-part 가 catalog cutover 라 generic 재귀 시 소문자 raw tag → unknown-tag 경고 + RAC controller 깨짐.",
+      "Select 는 delegatedDom `select` 노드 트리 binding 이 RAC Select 안에서 자식을 순서대로 그린다 (ADR-256 Phase 6c). generic ruleDom 은 RAC Select context 를 만들지 않아 Button · SelectValue · Popover 가 Select 와 끊긴다.",
   },
   {
     key: "combobox",

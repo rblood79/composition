@@ -291,7 +291,6 @@ export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "SearchField",
   "ComboBox",
   "Select",
-  "SelectTrigger",
   "DatePicker",
   "DateRangePicker",
   "DateField",

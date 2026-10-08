@@ -297,7 +297,6 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     class: "oldDefect",
     owners: [...FIELD_OWNERS, "Form"],
     nodes: [
-      "SelectTrigger",
       "SelectValue",
       "Input",
       "DateInput",

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6 정리 — SelectTrigger type · 공용 Select 컴포넌트 삭제] - 2026-10-09
+
+### Removed
+
+- **`SelectTrigger` type** (binding · rule · 문서 정의 · 수동 part rule · 중첩 · traits · 어휘 type · 기본 props · Canvas binding) — field 의 입력 상자는 ADR-256 Phase 6b 부터 RAC `Group` 노드라 쓰는 원본이 없었다 (사용자 승인)
+- **공용 `Select` 컴포넌트** (`components/Select.tsx`) — Select 는 Phase 6c 부터 노드 트리로 그린다 (사용자 승인). 그것을 쓰던 공용 데이터 `Table` 의 행 수 선택은 RAC `Select` 를 레퍼런스대로 직접 조립한다 (`Button > SelectValue` · `Popover > ListBox`)
+- 위치: `catalog/bindings` · `catalog/generated/componentRulesTable.ts` · `catalog/document/{codeCatalogLibrary,manualBoxRules}.ts` · `catalog/nesting/nestingRules.ts` · `domain/componentTraits.ts` · `types/composition-vocabulary.ts` · `catalog/runtime/{domRegistry,renderFacetDeclaration}.ts(x)` · `components/{index,list,Table}.ts(x)` · `builder/catalogRuntime/{canvasBinding,ruleShapes}.ts` · `types/builder/unified.types.ts`
+
+### Tests
+
+- parity `adr248CatalogRealDom` 의 낡은 기대값 3건 (Select trigger 소유 · ComboBox 상자 테두리 위치 · 비활성 Group 흐림 0.38) 을 6a · 6b · 6c 동작에 맞췄다 — 그 sub-phase 에서 이 browser 파일을 돌리지 않아 남아 있던 것
+
 ## [ADR-256 Phase 6c — Select 를 노드 트리로 그린다] - 2026-10-09
 
 ### Changed

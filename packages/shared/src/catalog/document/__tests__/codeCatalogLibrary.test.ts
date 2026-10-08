@@ -283,21 +283,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         expect.objectContaining({ kind: "token" }),
       );
     }
-    const trigger = library.definitions.get(
-      "lib:definition:type-SelectTrigger",
-    )!;
-    expect(trigger.defaults).toEqual({ variant: "default", size: "md" });
-    expect(trigger.layout).toEqual({ display: "flex", flexDirection: "row" });
-    // The rule's `sizes[*].height` is read by no stylesheet (no generated CSS, no DOM element with
-    // the class — `manualBoxRules` `omit`): the wrapper is as tall as its content.
-    expect(trigger.propVisualRules?.size?.md).not.toHaveProperty("height");
-    expect(trigger.propVisualRules?.size?.md).toMatchObject({
-      paddingX: COMPONENT_RULES_TABLE.SelectTrigger.sizes.md.paddingX,
-      paddingY: COMPONENT_RULES_TABLE.SelectTrigger.sizes.md.paddingY,
-      borderWidth: sourceValue(
-        COMPONENT_RULES_TABLE.SelectTrigger.sizes.md.borderWidth,
-      ),
-    });
+    // (The field trigger box `SelectTrigger` is a RAC Group node — ADR-256 Phase 6b; the type is
+    // gone, 2026-10-09.)
+    expect(library.definitions.has("lib:definition:type-SelectTrigger")).toBe(
+      false,
+    );
     const selectValue = library.definitions.get(
       "lib:definition:type-SelectValue",
     )!;

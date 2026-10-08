@@ -326,14 +326,6 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       CardPreview: ["Card"],
       DisclosureHeader: ["Disclosure"],
       DisclosureChevron: ["DisclosureHeader"],
-      SelectTrigger: [
-        "Select",
-        "ComboBox",
-        "SearchField",
-        "NumberField",
-        "DatePicker",
-        "DateRangePicker",
-      ],
       SelectValue: [
         "Select",
         "ComboBox",

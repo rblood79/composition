@@ -848,16 +848,10 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "select",
     icon: "ChevronDown",
   }),
-  // ADR-912 R1 Select family rebuild (2026-06-12): field-trigger 공용 sub-part 3종 발효.
-  //   Select/ComboBox/NumberField/SearchField 의 trigger box / value text / icon glyph.
-  //   기존 synthetic 7 alias(ComboBoxWrapper/Input/Trigger + Search* 4)는 factory retype 으로
-  //   본 3 type 에 합류 → BUILDER_ALIAS_MAP 해체 + SelectTrigger/Value/Icon spec 삭제.
-  //   palette 비노출(PALETTE_ORDER 비포함 sub-part). Skia=generic box/text + icon_font escape.
-  primitiveEntry("SelectTrigger", "collections", FAMILY_4_CUTOVER, {
-    category: "forms",
-    label: "select trigger",
-    icon: "ChevronDown",
-  }),
+  // ADR-912 R1 Select family rebuild (2026-06-12): field-trigger 공용 sub-part — value text /
+  //   icon glyph. palette 비노출(PALETTE_ORDER 비포함 sub-part). Skia=generic text + icon_font
+  //   escape. (trigger 상자 `SelectTrigger` 는 ADR-256 Phase 6b 에서 RAC `Group` 노드로 바뀌고
+  //   type 은 2026-10-09 삭제 — 사용자 승인.)
   primitiveEntry("SelectValue", "collections", FAMILY_4_CUTOVER, {
     category: "forms",
     label: "select value",
@@ -1146,7 +1140,7 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // DialogFooter — ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 버튼 영역 슬롯
   //   컨테이너 sub-part. Dialog factory 자동 생성(palette 미노출 — PALETTE_ORDER 비포함,
-  //   SelectTrigger/SelectValue/Field 동형). spec(render.shapes []) 의 childSpecs(ADR-094
+  //   SelectValue/Field 동형). spec(render.shapes []) 의 childSpecs(ADR-094
   //   expandChildSpecs) 경로 → catalog generic box shell 로 cutover. 시각 shell-only(투명 fill
   //   없음 — footer 시각은 자식 버튼 Element). footer layout(flex/justifyContent/gap)은 factory
   //   props.style SSOT(ADR-907 Layer B). DOM=generic(KNOWN_HTML DialogFooter→footer), Skia=

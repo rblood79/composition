@@ -311,7 +311,7 @@ const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
   "slider",
 ]);
 // ADR-912 R1 후속 (2026-06-12): Select family 도 동일 케이스 — `sizes[size].height`(md=30)
-//   는 SelectTrigger(입력 trigger 행) 높이이지 컨테이너(Label 행 + gap + Trigger 행 = 54) 전체
+//   는 입력 trigger 행 높이이지 컨테이너(Label 행 + gap + Trigger 행 = 54) 전체
 //   높이가 아니다. archetype 미보유라 type 기반 set 으로 height 축 제외 → 컨테이너 height "auto"
 //   표시 (실제 layout 54 와 일치, 30 오표시 제거).
 //   Label 추가 (사용자 요청 2026-06-12): Label 의 height 는 텍스트 line-height(content-driven,
@@ -330,7 +330,7 @@ const TRACK_HEIGHT_ARCHETYPES: ReadonlySet<string> = new Set([
 //       소비 안 되는 dead 값(grep 0). 컨테이너는 자식 합산 auto. → 패널 제외로 오표시 제거.
 //   DatePicker/DateRangePicker 는 catalog 에서 height 키 자체를 제거(2026-06-23 선행 작업)했으므로
 //   specStyle.height=undefined → 패널 미표시 → 본 set 에 넣을 필요 없음(중복 방지). 입력 box height 는
-//   SelectTrigger.sizes.height SSOT 에서 읽음(implicitStyles 2034).
+//   control Group 안 부품의 높이로 정해진다 (ADR-256 Phase 6b).
 const TRACK_HEIGHT_TYPES: ReadonlySet<string> = new Set([
   "Select",
   "ComboBox",

@@ -33,10 +33,7 @@ import type {
 } from "./types";
 
 /** Native types whose typed definitions the test entry composes until their catalog port. */
-const NATIVE_TEST_ENTRY_TYPES: ReadonlySet<string> = new Set([
-  "frame",
-  "Slot",
-]);
+const NATIVE_TEST_ENTRY_TYPES: ReadonlySet<string> = new Set(["frame", "Slot"]);
 
 /** Text leaves with a source-derived visual contract and a shared Canvas text painter. */
 export const CODE_CATALOG_SUPPORTED_TYPES = [
@@ -386,74 +383,6 @@ function glyphDefinition(
   };
 }
 
-/** Field trigger paint and size from the registered SelectTrigger rule. */
-function selectTriggerDefinition(
-  theme: "light" | "dark",
-  tokens: Map<LibraryTokenId, LibraryToken>,
-): LibraryDefinition {
-  const registration = componentCatalog.find(
-    (entry) => entry.type === "SelectTrigger" && entry.kind === "primitive",
-  );
-  if (
-    registration?.kind !== "primitive" ||
-    registration.binding.source.kind !== "internal" ||
-    registration.binding.source.renderer !== "selecttrigger"
-  )
-    throw new Error("CODE_CATALOG_SELECT_TRIGGER_BINDING_UNSUPPORTED");
-  const rule = COMPONENT_RULES_TABLE.SelectTrigger;
-  const variants: Record<string, VisualValues> = {};
-  for (const [variant, paint] of Object.entries(rule.variants)) {
-    if (!paint.fill.default.base || !paint.colors?.border || !paint.colors.text)
-      throw new Error(
-        `CODE_CATALOG_SELECT_TRIGGER_VARIANT_UNSUPPORTED:${variant}`,
-      );
-    variants[variant] = {
-      fill: sourceToken(paint.fill.default.base, "color", theme, tokens),
-      borderColor: sourceToken(paint.colors.border, "color", theme, tokens),
-      color: sourceToken(paint.colors.text, "color", theme, tokens),
-    };
-  }
-  const sizes: Record<string, VisualValues> = {};
-  for (const [size, values] of Object.entries(rule.sizes))
-    sizes[size] = {
-      fontSize: sourceToken(values.fontSize, "fontSize", theme, tokens),
-      radius: sourceToken(values.borderRadius, "radius", theme, tokens),
-      height: values.height,
-      iconSize: values.iconSize,
-      paddingX: values.paddingX,
-      paddingY: values.paddingY,
-      borderWidth: sourcePixels(values.borderWidth, theme),
-    };
-  return {
-    id: catalogTypeDefinitionId("SelectTrigger"),
-    name: "SelectTrigger",
-    mode: "primitive",
-    bindingId: "selecttrigger",
-    accepts: { variant: "string", size: "string" },
-    defaults: {
-      variant: rule.defaultVariant ?? "default",
-      size: rule.defaultSize ?? "md",
-    },
-    propChoices: {
-      variant: Object.keys(variants),
-      size: Object.keys(sizes),
-    },
-    visual: {},
-    // SelectionComponents factory uses a flex row for this structural sub-part. The new typed
-    // definition owns that layout while the existing Builder factory remains untouched.
-    layout: { display: "flex", flexDirection: "row" },
-    propVisualRules: { variant: variants, size: sizes },
-    // ADR-253: `plain` only places its parts — the box is the Input / DateInput instance inside.
-    conditionalRules: [
-      {
-        when: { variant: "plain" },
-        visual: { paddingX: 0, paddingY: 0, borderWidth: 0, radius: 0 },
-      },
-    ],
-    stateRules: {},
-  };
-}
-
 /** Parent-owned SelectValue text still has its own graph and Canvas identity. */
 function selectValueDefinition(
   theme: "light" | "dark",
@@ -690,11 +619,6 @@ function handOrRuleDefinition(type: string): LibraryDefinition {
       "light",
       new Map<LibraryTokenId, LibraryToken>(),
     );
-  if (type === "SelectTrigger")
-    return selectTriggerDefinition(
-      "light",
-      new Map<LibraryTokenId, LibraryToken>(),
-    );
   if (type === "SelectValue")
     return selectValueDefinition(
       "light",
@@ -735,13 +659,11 @@ export async function buildCodeCatalogLibrary(
       const type = id.slice("lib:definition:type-".length);
       return type === "Button"
         ? buttonDefinition(theme, tokens)
-        : type === "SelectTrigger"
-          ? selectTriggerDefinition(theme, tokens)
-          : type === "SelectValue"
-            ? selectValueDefinition(theme, tokens)
-            : type === "Icon" || type === "SelectIcon"
-              ? glyphDefinition(type, theme, tokens)
-              : ruleTypeDefinition(type, theme, tokens);
+        : type === "SelectValue"
+          ? selectValueDefinition(theme, tokens)
+          : type === "Icon" || type === "SelectIcon"
+            ? glyphDefinition(type, theme, tokens)
+            : ruleTypeDefinition(type, theme, tokens);
     });
   const sourceDefinitions = withRuleParts(
     [

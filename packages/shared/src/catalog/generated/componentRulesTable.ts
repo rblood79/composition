@@ -3460,11 +3460,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES) 의 gap 을 rule 로 이관
     //   (DatePicker.spec 삭제 시 virtual STRUCTURE_META 가 rule.sizes 에서 gap emit). Calendar/Section 동일 패턴.
-    // height 키 제거 (2026-06-23): DatePicker 는 컨테이너(Label 행 + gap + 입력 box[SelectTrigger>DateInput]
+    // height 키 제거 (2026-06-23): DatePicker 는 컨테이너(Label 행 + gap + 입력 box[Group>DateInput]
     //   + Calendar)라 height 는 자식 합산 auto(md=54) 여야 한다 — CSS preview 동일(.react-aria-DatePicker
     //   height 미지정 → 54). 기존 height(30) 는 입력 box height 인 척하던 잘못된 결합으로, 입력 box height 는
-    //   SelectTrigger.sizes.height(md=30) 가 SSOT(implicitStyles datepicker 분기가 specSizeField("selecttrigger")
-    //   로 읽음). Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
+    //   입력 box (field 의 control Group, 옛 SelectTrigger — ADR-256 Phase 6b) 안 부품의 높이로 정해진다. Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
@@ -3720,7 +3719,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
-    //   SelectTrigger.sizes.height(md=30) SSOT. 상세는 DatePicker entry 주석 참조.
+    //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
     sizes: {
       xs: {
         fontSize: "{typography.text-2xs}",
@@ -9548,92 +9547,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.none}",
         height: 28,
         iconSize: 28,
-      },
-    },
-  },
-  SelectTrigger: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-1}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-          borderHover: "{color.border-hover}",
-        },
-      },
-      // ADR-253: a wrapper that only places its parts (a field whose box is its Input / DateInput
-      //   instance): no paint, no padding, no border.
-      plain: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-          borderHover: "{color.transparent}",
-        },
-      },
-    },
-    sizes: {
-      // ADR-912 R1 (2026-06-12): paddingX/paddingY/borderWidth — SelectTrigger.spec.sizes 이전.
-      //   layout contentHeight 유도(height - paddingY*2 - borderWidth*2)가 rule 만으로 가능해야
-      //   spec 삭제 후 utils.ts/implicitStyles 가 rule 단일 source 로 측정.
-      xs: {
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.xs}",
-        height: 20,
-        iconSize: 14,
-        paddingX: 4,
-        paddingY: 1,
-        borderWidth: "{border.width.thin}",
-      },
-      sm: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
-        height: 22,
-        iconSize: 16,
-        paddingX: 8,
-        paddingY: 2,
-        borderWidth: "{border.width.thin}",
-      },
-      md: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 30,
-        iconSize: 18,
-        paddingX: 12,
-        paddingY: 4,
-        borderWidth: "{border.width.thin}",
-      },
-      lg: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: 42,
-        iconSize: 22,
-        paddingX: 16,
-        paddingY: 8,
-        borderWidth: "{border.width.thin}",
-      },
-      xl: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.xl}",
-        height: 54,
-        iconSize: 28,
-        paddingX: 24,
-        paddingY: 12,
-        borderWidth: "{border.width.thin}",
       },
     },
   },

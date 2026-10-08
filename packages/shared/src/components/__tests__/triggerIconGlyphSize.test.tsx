@@ -6,7 +6,6 @@ import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTab
 import { ComboBox } from "../ComboBox";
 import { DatePicker } from "../DatePicker";
 import { DateRangePicker } from "../DateRangePicker";
-import { Select } from "../Select";
 
 /**
  * 트리거 아이콘 **glyph** 크기가 size 를 따른다 (2026-07-14, DatePicker 적발 → 전수 확장).
@@ -46,8 +45,9 @@ const TARGETS = [
     Comp: DateRangePicker,
     props: { showCalendarIcon: true },
   },
-  { name: "Select", Comp: Select, props: {} },
   { name: "ComboBox", Comp: ComboBox, props: {} },
+  // (Select · SearchField draw their glyph from their Icon node — ADR-256 Phase 6c · 2: the shared
+  // components are gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
   // (SearchField draws its glyph from its Icon node — the Canvas glyph, ADR-256 Phase 2: the
   // shared component is gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
 ] as const;

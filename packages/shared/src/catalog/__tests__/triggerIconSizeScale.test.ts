@@ -114,7 +114,6 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
    *
    * 대상 4종은 모두 같은 SelectIcon 자식을 그린다:
    *  - `SelectIcon.iconSize`   → Skia glyph 크기 (icon_font primitive)
-   *  - `SelectTrigger.iconSize` → Skia SelectIcon **레이아웃 박스** (implicitStyles)
    *  - `Select` / `ComboBox`   → 같은 트리거 계열 (동일 스케일 유지)
    */
   const ICON_SCALE_NUM: Record<string, number> = {
@@ -125,7 +124,7 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     xl: 28,
   };
 
-  it.each(["SelectIcon", "SelectTrigger", "Select", "ComboBox"])(
+  it.each(["SelectIcon", "Select", "ComboBox"])(
     "%s.sizes[*].iconSize 가 아이콘 스케일과 5개 size 전부 일치 (DOM↔Skia 대칭)",
     (type) => {
       const sizes = (COMPONENT_RULES_TABLE[type]?.sizes ?? {}) as Record<

@@ -393,7 +393,6 @@ const bindings: Readonly<Record<string, Binding>> = {
   box,
   icon: glyph,
   selecticon: glyph,
-  selecttrigger: box,
   select: containerWithAuthoredPaint,
   combobox: containerWithAuthoredPaint,
   text: (node, rect, parent, wraps, suffix = "") => {

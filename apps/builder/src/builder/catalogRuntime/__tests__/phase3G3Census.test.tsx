@@ -547,6 +547,8 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + Keyboard · SubmenuTrigger (ADR-256 Phase 5g — a MenuItem's shortcut · a submenu).
     // + TreeItemContent (ADR-256 Phase 5h — a TreeItem's row content; its chevron is an authored
     //   Button — the TreeItemChevron node of 2026-10-04 is deleted).
-    expect(types.length).toBe(145);
+    // − SelectTrigger (the field trigger box is a RAC Group node since ADR-256 Phase 6b; the type
+    //   is deleted, 2026-10-09).
+    expect(types.length).toBe(144);
   }, 120_000);
 });

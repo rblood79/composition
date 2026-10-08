@@ -11,7 +11,7 @@ import {
  * ADR-912 R1 Select family rebuild (2026-06-12) — DELEGATING 위임 멤버십 회귀 가드.
  *
  * **회귀 근본**: Select/ComboBox/NumberField/SearchField 는 FAMILY_4 catalog cutover 라
- * generic `cutoverPrimitives` 경로로 들어간다. 이들은 자식(SelectTrigger/SelectValue/SelectIcon)
+ * generic `cutoverPrimitives` 경로로 들어간다. 이들은 자식(옛 SelectTrigger/SelectValue/SelectIcon)
  * 을 RAC `<Select>`/`<ComboBox>`/`<NumberField>`/`<SearchField>` controller 로 self-compose 하는
  * renderer(rendererMap)를 가진 wrapper 다. DELEGATING Set 에 등록되지 않으면 generic 자식 재귀가
  * 켜져, spec 삭제된 자식이 `<selecttrigger>`/`<selectvalue>`/`<selecticon>` **소문자 raw tag** 로
@@ -63,10 +63,10 @@ describe("domRegistry — ADR-912 R1 Select family DELEGATING 위임", () => {
     ).toBe(true);
   });
 
-  it("Select family sub-part 3종은 catalog binding 보유 (Skia generic box/text/icon source)", () => {
-    // 자식은 DOM 에서 부모 self-compose 로 흡수되지만, Skia 는 자기 노드를 generic 으로 그린다.
-    // binding 누락 시 resolveEditContract(Inspector) 가 크래시(MeterValue 회귀 선례).
-    for (const type of ["SelectTrigger", "SelectValue", "SelectIcon"]) {
+  it("Select family sub-part 2종은 catalog binding 보유 (Skia generic text/icon source)", () => {
+    // binding 누락 시 resolveEditContract(Inspector) 가 크래시(MeterValue 회귀 선례). (트리거 상자
+    // `SelectTrigger` 는 ADR-256 Phase 6b 에서 RAC Group 노드로 바뀌고 2026-10-09 type 삭제.)
+    for (const type of ["SelectValue", "SelectIcon"]) {
       const binding = getPrimitiveBinding(type);
       expect(binding, `${type} binding`).toBeTruthy();
       expect(binding?.props.accepts, `${type} accepts`).toBeTruthy();

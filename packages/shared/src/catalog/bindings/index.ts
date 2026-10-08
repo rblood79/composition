@@ -99,7 +99,6 @@ import { rangeCalendarBinding } from "./RangeCalendar.binding";
 import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
 import { selectBinding } from "./Select.binding";
-import { selectTriggerBinding } from "./SelectTrigger.binding";
 import { selectValueBinding } from "./SelectValue.binding";
 import { selectIconBinding } from "./SelectIcon.binding";
 import { separatorBinding } from "./Separator.binding";
@@ -232,7 +231,6 @@ export * from "./RangeCalendar.binding";
 export * from "./SearchField.binding";
 export * from "./Section.binding";
 export * from "./Select.binding";
-export * from "./SelectTrigger.binding";
 export * from "./SelectValue.binding";
 export * from "./SelectIcon.binding";
 export * from "./Separator.binding";
@@ -479,7 +477,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   ComboBoxWrapper/Input/Trigger + Search* synthetic 7 alias 를 factory retype 으로 합류 →
   //   BUILDER_ALIAS_MAP 해체. DOM=부모 RAC self-compose(독립 노드 0), Skia=generic box/text +
   //   icon_font escape (MeterValue 동형 비대칭).
-  SelectTrigger: selectTriggerBinding,
   SelectValue: selectValueBinding,
   SelectIcon: selectIconBinding,
   ComboBox: comboBoxBinding,

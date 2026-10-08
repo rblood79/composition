@@ -107,7 +107,6 @@ export type ComponentTag =
   | "Section"
   | "Select"
   | "SelectIcon"
-  | "SelectTrigger"
   | "SelectValue"
   | "Separator"
   | "Skeleton"

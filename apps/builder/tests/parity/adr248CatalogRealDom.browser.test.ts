@@ -100,7 +100,9 @@ afterAll(() => {
 });
 
 describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
-  it("keeps Select and ComboBox trigger IDs in Canvas while their RAC parents own DOM and hit regions", async () => {
+  // (A Select draws its node tree — its trigger is its own Button element, ADR-256 Phase 6c; a
+  // ComboBox's control Group is drawn by the shared component until 6d.)
+  it("keeps the ComboBox control Group ID in Canvas while its RAC parent owns DOM and hit regions", async () => {
     await browserPage.viewport(1440, 900);
     const library = await buildCodeCatalogLibrary();
     const { document } = createG1Fixture();
@@ -108,16 +110,7 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       CatalogEntry,
       { kind: "page" }
     >;
-    const ids = {
-      select: "project:node:select",
-      selectTrigger: "project:node:select-trigger",
-      selectValue: "project:node:select-value",
-      selectIcon: "project:node:select-icon",
-      combo: "project:node:combo",
-      comboTrigger: "project:node:combo-trigger",
-      comboValue: "project:node:combo-value",
-      comboIcon: "project:node:combo-icon",
-    } as const;
+    const ids = { combo: "project:node:combo" } as const;
     const node = (
       id: NodeEntry["id"],
       definitionId: NodeEntry["definitionId"],
@@ -140,62 +133,15 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
         ...document,
         entries: {
           [document.projectId]: document.entries[document.projectId],
-          [page.id]: { ...page, children: [ids.select, ids.combo] },
-          [ids.select]: node(
-            ids.select,
-            "lib:definition:type-Select",
-            [ids.selectTrigger],
-            {
-              label: { kind: "set", value: "Select" },
-              placeholder: { kind: "set", value: "Choose an option..." },
-            },
-            {},
-            { width: { kind: "set", value: 240 } },
-          ),
-          [ids.selectTrigger]: node(
-            ids.selectTrigger,
-            "lib:definition:type-SelectTrigger",
-            [ids.selectValue, ids.selectIcon],
-          ),
-          [ids.selectValue]: node(
-            ids.selectValue,
-            "lib:definition:type-SelectValue",
-            [],
-            {
-              children: { kind: "set", value: "Choose an option..." },
-            },
-          ),
-          [ids.selectIcon]: node(
-            ids.selectIcon,
-            "lib:definition:type-SelectIcon",
-          ),
+          [page.id]: { ...page, children: [ids.combo] },
+          // The ComboBox origin: `Label + Group(Input + Button) + … + ListBox`.
           [ids.combo]: node(
             ids.combo,
-            "lib:definition:type-ComboBox",
-            [ids.comboTrigger],
-            {
-              label: { kind: "set", value: "Combo Box" },
-              placeholder: { kind: "set", value: "Type or select..." },
-            },
+            "lib:definition:origin-component-combobox",
+            [],
+            {},
             {},
             { width: { kind: "set", value: 240 } },
-          ),
-          [ids.comboTrigger]: node(
-            ids.comboTrigger,
-            "lib:definition:type-SelectTrigger",
-            [ids.comboValue, ids.comboIcon],
-          ),
-          [ids.comboValue]: node(
-            ids.comboValue,
-            "lib:definition:type-SelectValue",
-            [],
-            {
-              children: { kind: "set", value: "Type or select..." },
-            },
-          ),
-          [ids.comboIcon]: node(
-            ids.comboIcon,
-            "lib:definition:type-SelectIcon",
           ),
         },
       },
@@ -215,20 +161,20 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       catalogTextMeasure,
     );
     const owners = [...root.domInputs.values()].filter(
-      (input) => input.bindingId === "select" || input.bindingId === "combobox",
+      (input) => input.bindingId === "combobox",
     );
-    expect(owners).toHaveLength(2);
+    expect(owners).toHaveLength(1);
     const triggerInputs = [...root.domInputs.values()].filter(
       (input) =>
-        input.bindingId === "selecttrigger" &&
+        input.bindingId === "group" &&
         owners.some((owner) => owner.id === input.parentId),
     );
-    expect(triggerInputs).toHaveLength(2);
+    expect(triggerInputs).toHaveLength(1);
     reactRoot.render(
       React.createElement(
         "div",
         null,
-        ...[ids.select, ids.combo].map((id) => {
+        ...[ids.combo].map((id) => {
           const owner = [...root.domInputs.values()].find(
             (input) => input.sourceId === id,
           )!;
@@ -258,27 +204,15 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
           1,
         );
         expect(bound.stream.hitBoundsMap.has(trigger.id)).toBe(true);
-        expect(
-          bound.stream.commands.some(
-            (command) =>
-              command.type === 1 && command.skiaData.elementId === trigger.id,
-          ),
-        ).toBe(true);
-        expect(getComputedStyle(domRegion).borderTopWidth).toBe("1px");
-        expect(getComputedStyle(domRegion).borderTopStyle).toBe("solid");
-        if (
-          trigger.parentId ===
-          owners.find((input) => input.bindingId === "select")?.id
-        ) {
-          // RAC useSelect → useMenuTrigger({ type: "listbox" }): implicit button role + haspopup.
-          expect(domRegion.tagName).toBe("BUTTON");
-          expect(domRegion.getAttribute("role")).toBeNull();
-          expect(domRegion.getAttribute("aria-haspopup")).toBe("listbox");
-        } else {
-          expect(domRegion.querySelector("input")?.getAttribute("role")).toBe(
-            "combobox",
-          );
-        }
+        // (The Group paints no box of its own on the Canvas — a ComboBox's box is its Input
+        // instance, ADR-253 · ADR-256 Phase 6b.)
+        // (The box border is the Input's — the container only places the parts.)
+        const input = domRegion.querySelector("input")!;
+        expect(getComputedStyle(input).borderTopWidth).toBe("1px");
+        expect(getComputedStyle(input).borderTopStyle).toBe("solid");
+        expect(domRegion.querySelector("input")?.getAttribute("role")).toBe(
+          "combobox",
+        );
       } finally {
         bound.dispose();
       }
@@ -1396,7 +1330,9 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       expect(dom("group").getAttribute("aria-label")).toBe("Actions");
       expect(dom("group").getAttribute("data-group-label")).toBe("Toolbar");
       expect(dom("group").getAttribute("data-disabled")).not.toBeNull();
-      expect(getComputedStyle(dom("group")).opacity).toBe("0.38");
+      // (A disabled RAC Group does not fade in the Preview — the Canvas does not either, ADR-256
+      // Phase 6a removed the layout group's opacity.)
+      expect(getComputedStyle(dom("group")).opacity).toBe("1");
       const slotEntry = graph.getEntry("project:node:slot") as NodeEntry;
       const fillId = "project:node:slotFill" as NodeEntry["id"];
       root.dispatch("fill Slot", [

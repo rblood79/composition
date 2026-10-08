@@ -380,12 +380,6 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // No generated CSS (no `structure`) and no DOM element with its class: the field's trigger wrapper
-  // is the owner's delegation box (`.react-aria-Group` / `.combobox-container` /
-  // `.searchfield-container` / Select's `.react-aria-Button`) and the value is the owner's input or
-  // `SelectValue` span. Their height is the content line box plus the owner's padding; the rule's
-  // `sizes[*].height` is read by no stylesheet.
-  SelectTrigger: () => ({ omit: ["height"] }),
   // `generated/DisclosureHeader.css` is not loaded (`UNLOADED_GENERATED_CSS` E): the header is the
   // Disclosure's trigger button, as tall as its content (Disclosure part rules).
   DisclosureHeader: () => ({ omit: ["height"] }),

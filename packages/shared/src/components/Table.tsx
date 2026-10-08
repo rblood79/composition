@@ -19,7 +19,14 @@ import {
   TagList as AriaTagList,
 } from "react-aria-components/TagGroup";
 import { classifyTableCellDisplay } from "../collections/cellValue";
-import { Button, Select, SelectItem } from "./list";
+import { Button as AriaButton } from "react-aria-components/Button";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
+import {
+  Select as AriaSelect,
+  SelectValue,
+} from "react-aria-components/Select";
+import { Button } from "./list";
 import type {
   ComponentSize,
   DataBinding,
@@ -39,6 +46,52 @@ import {
 } from "lucide-react";
 import { Skeleton } from "./Skeleton";
 import { useComponentStrings } from "../i18n";
+
+/** Rows per page a table offers. */
+const PAGE_SIZES = [5, 10, 20, 50, 100] as const;
+
+/**
+ * The table's rows-per-page picker: RAC's Select as the reference composes it
+ * (`Button > SelectValue` · `Popover > ListBox`).
+ */
+function PageSizeSelect({
+  value,
+  isDisabled,
+  onChange,
+}: {
+  value: number;
+  isDisabled?: boolean;
+  onChange: (key: React.Key) => void;
+}) {
+  return (
+    <AriaSelect
+      id="page-size-select"
+      aria-label="Select an option"
+      selectedKey={value.toString()}
+      onSelectionChange={(key) => key !== null && onChange(key)}
+      isDisabled={isDisabled}
+      className="react-aria-Select react-aria-PageSizeSelect"
+    >
+      <AriaButton className="react-aria-Button">
+        <SelectValue />
+        <ChevronDown size={16} aria-hidden="true" />
+      </AriaButton>
+      <Popover className="react-aria-Popover">
+        <ListBox className="react-aria-ListBox">
+          {PAGE_SIZES.map((size) => (
+            <ListBoxItem
+              key={size}
+              id={size.toString()}
+              className="react-aria-ListBoxItem"
+            >
+              {size.toString()}
+            </ListBoxItem>
+          ))}
+        </ListBox>
+      </Popover>
+    </AriaSelect>
+  );
+}
 
 /**
  * API Fetcher 타입 (DI용)
@@ -1831,10 +1884,10 @@ export default React.memo(function Table<T extends { id: string | number }>(
 
                 {/* 페이지 크기 선택 */}
                 <div className="react-aria-PageSizeSelector">
-                  <Select
-                    id="page-size-select"
-                    selectedKey={currentItemsPerPage.toString()}
-                    onSelectionChange={async (key) => {
+                  <PageSizeSelect
+                    value={currentItemsPerPage}
+                    isDisabled={loading}
+                    onChange={async (key) => {
                       const newPageSize = Number(key);
                       setCurrentItemsPerPage(newPageSize); // 내부 상태 업데이트
                       const { items, total } = await fetchPage(0, newPageSize);
@@ -1848,22 +1901,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                         onItemsPerPageChange(newPageSize);
                       }
                     }}
-                    isDisabled={loading}
-                    className="react-aria-PageSizeSelect"
-                    items={[
-                      { value: 5, label: "5" },
-                      { value: 10, label: "10" },
-                      { value: 20, label: "20" },
-                      { value: 50, label: "50" },
-                      { value: 100, label: "100" },
-                    ]}
-                  >
-                    {(item: { value: number; label: string }) => (
-                      <SelectItem key={item.value} id={item.value.toString()}>
-                        {item.label}
-                      </SelectItem>
-                    )}
-                  </Select>
+                  />
                 </div>
 
                 {loading && (
@@ -1997,10 +2035,9 @@ export default React.memo(function Table<T extends { id: string | number }>(
 
                 {/* 페이지 크기 선택 */}
                 <div className="react-aria-PageSizeSelector">
-                  <Select
-                    id="page-size-select"
-                    selectedKey={currentItemsPerPage.toString()}
-                    onSelectionChange={(key) => {
+                  <PageSizeSelect
+                    value={currentItemsPerPage}
+                    onChange={(key) => {
                       const newPageSize = Number(key);
                       setCurrentItemsPerPage(newPageSize);
                       setClientPageIndex(0);
@@ -2009,21 +2046,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                         onItemsPerPageChange(newPageSize);
                       }
                     }}
-                    className="react-aria-PageSizeSelect"
-                    items={[
-                      { value: 5, label: "5" },
-                      { value: 10, label: "10" },
-                      { value: 20, label: "20" },
-                      { value: 50, label: "50" },
-                      { value: 100, label: "100" },
-                    ]}
-                  >
-                    {(item: { value: number; label: string }) => (
-                      <SelectItem key={item.value} id={item.value.toString()}>
-                        {item.label}
-                      </SelectItem>
-                    )}
-                  </Select>
+                  />
                 </div>
               </>
             ) : null}

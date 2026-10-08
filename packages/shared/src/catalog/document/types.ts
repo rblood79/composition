@@ -323,7 +323,7 @@ export interface ConditionalRule {
 export interface PartRule {
   /**
    * `via`: the rule targets the matching children of a direct child of `via` (a descendant
-   * selector through a sub-part wrapper, e.g. `Select > SelectTrigger > SelectValue`).
+   * selector through a sub-part wrapper, e.g. `NumberField > Group > Input`).
    */
   child: {
     definitionId: LibraryDefinitionId;

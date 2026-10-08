@@ -1,7 +1,7 @@
 /**
  * Button-family height primitives
  *
- * Input / Select / SelectTrigger 가 Button 과 동일한 높이 metric 을 사용한다.
+ * Input / Select 의 trigger 가 Button 과 동일한 높이 metric 을 사용한다.
  * SSOT: ButtonSpec.sizes 에서 파생. (ADR-105-a, ADR-091 Class C 패턴)
  *
  * height = lineHeight + paddingY×2 + borderWidth×2

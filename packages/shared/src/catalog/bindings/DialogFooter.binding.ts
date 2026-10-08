@@ -3,7 +3,7 @@ import type { PrimitiveBinding } from "../types";
 /**
  * DialogFooter — Dialog 액션 버튼 영역 슬롯 컨테이너 (composition 자체 추상, RAC/starter 전용
  * 컴포넌트 없음). Dialog factory(`OverlayComponents.ts`)가 Dialog 생성 시 Heading/Description 과
- * 함께 자동 생성한다. palette 미노출 sub-part(SelectTrigger/SelectValue/Field 동형).
+ * 함께 자동 생성한다. palette 미노출 sub-part(SelectValue/Field 동형).
  *
  * **ADR-912 childSpec→catalog cutover (2026-06-15)**:
  *   DialogFooter 는 `DialogFooter.spec.ts`(render.shapes:()=>[], skipCSSGeneration:true) 가 부모

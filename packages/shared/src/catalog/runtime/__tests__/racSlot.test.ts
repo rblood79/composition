@@ -58,7 +58,7 @@ describe("predictRacSlot — the generated provider table", () => {
       provision: { slots: ["label", "description"], hasDefault: true },
     });
     expect(
-      predictRacSlot("Button", ["SelectTrigger", "NumberField"], "increment"),
+      predictRacSlot("Button", ["Group", "NumberField"], "increment"),
     ).toMatchObject({
       kind: "named",
       slot: "increment",
