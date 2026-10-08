@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 5i-2 — Table 의 선택 열 = Checkbox[selection] 노드] - 2026-10-09
+
+### Changed
+
+- **Table 의 선택 열은 작성자가 넣는 노드** (react-aria.adobe.com Table 의 선택 열) — 열 (Column) 안의 `Checkbox[slot=selection]` 은 「모두 선택」, 각 행의 칸 (Cell) 안의 `Checkbox[slot=selection]` 은 그 행의 선택이다. 팔레트 Checkbox 를 열 · 칸에 넣고 Design 의 slot 에서 `selection` 을 고른다. Preview 는 RAC 가 잇는다 — 행 체크박스는 그 행의 이름으로 불리고 누르면 그 행이 선택되며, 「모두 선택」 은 모든 행을 고른다. 선택 열은 행 이름 열이 되지 않는다 (지정 없으면 체크박스 없는 첫 열)
+- **Canvas 도 같은 상태로 그린다** — 행 체크박스는 행의 선택을, 「모두 선택」 은 Table 이 다중 선택이고 행이 있을 때만 쓸 수 있게 (RAC 와 같은 조건) 그린다. Table 의 선택 모드를 바꾸면 바로 따라간다. 칸 안 체크박스 자리는 Canvas · Preview 같음 (오차 0)
+- 위치: `catalog/runtime/presence.ts` (`catalogTableSelectAllCheckboxes` · 선택 체크박스 판정) · `catalog/document/collectionItems.ts` (Row) · `catalog/runtime/domBinding.tsx` (`columnIsRowHeader`) · `components/styles/Table.css`
+
 ## [ADR-256 Phase 5i-1 — Table 이 노드 트리를 그린다] - 2026-10-09
 
 ### Fixed

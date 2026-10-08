@@ -4,13 +4,18 @@
  * (RAC `data-selected` from the collection's keys), not the item template's display state.
  */
 export const COLLECTION_ITEM_OWNERS: Readonly<
-  Record<string, { readonly owner: string; readonly through: readonly string[] }>
+  Record<
+    string,
+    { readonly owner: string; readonly through: readonly string[] }
+  >
 > = {
   Tab: { owner: "Tabs", through: ["TabList"] },
   Tag: { owner: "TagGroup", through: ["TagList"] },
   ListBoxItem: { owner: "ListBox", through: ["ListBoxSection"] },
   GridListItem: { owner: "GridList", through: ["GridListSection"] },
   TreeItem: { owner: "Tree", through: ["TreeItem"] },
+  // ADR-256 Phase 5i-2: a RAC Table's row (its selection checkbox shows the row's selection).
+  Row: { owner: "Table", through: ["TableBody"] },
 };
 
 /** Whether `itemType`, under the ancestor types (nearest first), sits inside its collection. */

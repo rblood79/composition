@@ -1105,9 +1105,21 @@ function columnIsRowHeader(
       (child): child is CatalogConsumerNode =>
         !!child && catalogTypeName(root, child) === "Column",
     );
+  // (Not a selection column — its `Checkbox[slot=selection]` names no row, ADR-256 Phase 5i-2.)
+  const named = columns.filter(
+    (child) =>
+      !child.children.some((id) => {
+        const box = root.domInputs.get(id);
+        return (
+          !!box &&
+          catalogTypeName(root, box) === "Checkbox" &&
+          box.props.slot === "selection"
+        );
+      }),
+  );
   return (
     !columns.some((child) => child.props.isRowHeader === true) &&
-    columns[0]?.id === column.id
+    named[0]?.id === column.id
   );
 }
 

@@ -70,6 +70,12 @@
       position: static;
       border-bottom: none;
     }
+
+    /* A selection Checkbox in a cell (ADR-256 Phase 5i-2 — the reference's selection column) sits
+       at the top of the cell's line, as the Canvas places it — not on the text baseline. */
+    :is(.react-aria-Column, .react-aria-Cell) > .react-aria-Checkbox {
+      vertical-align: top;
+    }
   }
 
   /* ========== Virtual Scrolling ========== */

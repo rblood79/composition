@@ -254,6 +254,16 @@ function catalogSelectionCheckboxDisabled(
   typeOf: CatalogTypeOf,
 ): boolean {
   if (catalogStateValue(item, "isDisabled", get, typeOf)) return true;
+  // A Column's checkbox selects every row (RAC `useTableSelectAllCheckbox` — a multiple-selection
+  // Table with rows; ADR-256 Phase 5i-2).
+  if (typeOf(item) === "Column") {
+    const table = catalogTableOfColumn(item, get, typeOf);
+    return (
+      !table ||
+      table.props.selectionMode !== "multiple" ||
+      catalogTableRows(table, get, typeOf).length === 0
+    );
+  }
   const collection = catalogCollectionOfItem(item, get, typeOf);
   const mode = collection?.props.selectionMode;
   return typeof mode !== "string" || mode === "none";
@@ -271,13 +281,65 @@ function catalogSelectionCheckboxes(
   if (!RAC_SLOT_PROVIDERS[typeOf(item)]?.Checkbox) return [];
   return partChildrenOf(item, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "TreeItemContent"
+      // (A Row's checkbox sits in its Cell — the reference's selection column.)
+      typeOf(child) === "TreeItemContent" || typeOf(child) === "Cell"
         ? partChildrenOf(child, get, typeOf)
         : [child],
     )
     .filter(
       (child) => catalogSelectionCheckboxItem(child, get, typeOf) === item,
     );
+}
+
+/** ADR-256 Phase 5i-2 — the RAC Table a Column heads (through its TableHeader). */
+function catalogTableOfColumn(
+  column: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const header = get(column.parentId);
+  const table =
+    header && typeOf(header) === "TableHeader"
+      ? get(header.parentId)
+      : undefined;
+  return table && typeOf(table) === "Table" ? table : undefined;
+}
+
+/** A RAC Table's rows (its TableBody's). */
+function catalogTableRows(
+  table: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(table, get)
+    .filter((child) => typeOf(child) === "TableBody")
+    .flatMap((body) =>
+      childrenOf(body, get).filter((row) => typeOf(row) === "Row"),
+    );
+}
+
+/**
+ * The select-all checkboxes of a RAC Table (its Columns' `Checkbox[slot=selection]`): they follow
+ * the Table's selection mode and row count — `table` is the Table, its TableBody or a Row.
+ */
+function catalogTableSelectAllCheckboxes(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  let table: CatalogConsumerNode | undefined = node;
+  while (
+    table &&
+    typeOf(table) !== "Table" &&
+    ["TableBody", "Row"].includes(typeOf(table))
+  )
+    table = get(table.parentId);
+  if (!table || typeOf(table) !== "Table") return [];
+  return childrenOf(table, get)
+    .filter((child) => typeOf(child) === "TableHeader")
+    .flatMap((header) => childrenOf(header, get))
+    .filter((column) => typeOf(column) === "Column")
+    .flatMap((column) => catalogSelectionCheckboxes(column, get, typeOf));
 }
 
 function catalogCollectionOfItem(
@@ -1123,6 +1185,8 @@ export function catalogDerivedPropsDependents(
   const items = [
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
+    // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
+    ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
     // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),

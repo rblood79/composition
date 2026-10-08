@@ -298,6 +298,82 @@ const CASES: Array<{
       ];
     },
   },
+  // ADR-256 Phase 5i-2: the Table's selection column — a Column with the select-all
+  // Checkbox[selection] and a Cell per row with the row's.
+  {
+    key: "Table-selection",
+    type: "Table",
+    props: { heightMode: "auto", selectionMode: "multiple" },
+    edit: (subject) => {
+      const at = (part: string) => ({
+        kind: "descendant" as const,
+        ownerId: subject,
+        address: {
+          instances: [subject],
+          templatePath: ["lib:template:component-table", part],
+        } as unknown as InstanceAddress,
+      });
+      const id = (name: string) =>
+        `project:node:axis-tsel-${name}` as NodeEntry["id"];
+      const node = (
+        name: string,
+        type: string,
+        children: string[] = [],
+        props: Record<string, unknown> = {},
+        definitionId = `lib:definition:type-${type}`,
+      ) =>
+        ({
+          kind: "node",
+          id: id(name),
+          definitionId,
+          children: children.map(id),
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value },
+            ]),
+          ),
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        }) as NodeEntry;
+      const box = (name: string) =>
+        node(
+          name,
+          "Checkbox",
+          [],
+          { slot: "selection", children: "" },
+          "lib:definition:origin-component-checkbox",
+        );
+      const newId = ((kind: string) =>
+        `project:${kind}:axis-${(axisIds += 1)}`) as never;
+      return [
+        insertNodes({
+          parent: at("lib:template:component-table__1"),
+          index: 0,
+          entries: [
+            node("cs", "Column", ["csb"], { children: "" }),
+            box("csb"),
+            node("c1", "Column", [], { children: "Name" }),
+          ],
+          rootIds: [id("cs"), id("c1")],
+          newId,
+        }),
+        insertNodes({
+          parent: at("lib:template:component-table__2"),
+          index: 0,
+          entries: [
+            node("r1", "Row", ["r1s", "r1a"]),
+            node("r1s", "Cell", ["r1sb"], { children: "" }),
+            box("r1sb"),
+            node("r1a", "Cell", [], { children: "Games" }),
+          ],
+          rootIds: [id("r1")],
+          newId,
+        }),
+      ];
+    },
+  },
 ];
 let axisIds = 0;
 

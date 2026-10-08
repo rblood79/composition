@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { act, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { createElement } from "react";
+import { CheckboxButton, CheckboxField } from "react-aria-components/Checkbox";
 import {
   Cell,
   Column,
@@ -310,5 +311,154 @@ describe("ADR-256 Phase 5i-1 — Table draws its node tree", () => {
       code = (error as { code?: unknown }).code;
     }
     expect(code).toBe("TABLE_ROWS_FROM_DATA");
+  });
+});
+
+/**
+ * ADR-256 Phase 5i-2 — the selection column is the author's nodes (G0 example 11): a Column holding
+ * `Checkbox[slot=selection]` (RAC's select-all) and a Cell per row holding one (the row's). G0 ④:
+ * no `selectionMode` condition — the author puts them in.
+ */
+describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[selection] nodes", () => {
+  const box = (id: string) =>
+    ({
+      ...node(id, "Checkbox", { children: "", slot: "selection" }),
+      definitionId: "lib:definition:origin-component-checkbox",
+    }) as NodeEntry;
+  /** The selection column first: a Column and one Cell per row, each with its Checkbox. */
+  async function openSelection(selectionMode = "multiple") {
+    const opened = await open({ selectionMode });
+    const { workspace, record } = opened;
+    workspace.root.execute(
+      insertNodes({
+        parent: workspace.positionOfRecord(record("project:node:header").id)!
+          .target as never,
+        index: 0,
+        entries: [
+          node("project:node:select", "Column", { children: "" }, [
+            "project:node:select-box",
+          ]),
+          box("project:node:select-box"),
+        ],
+        rootIds: ["project:node:select" as NodeId],
+        newId: workspace.newId,
+      }),
+    );
+    ROWS.forEach((_, r) =>
+      workspace.root.execute(
+        insertNodes({
+          parent: workspace.positionOfRecord(record(`project:node:r${r}`).id)!
+            .target as never,
+          index: 0,
+          entries: [
+            node(`project:node:r${r}s`, "Cell", { children: "" }, [
+              `project:node:r${r}s-box`,
+            ]),
+            box(`project:node:r${r}s-box`),
+          ],
+          rootIds: [`project:node:r${r}s` as NodeId],
+          newId: workspace.newId,
+        }),
+      ),
+    );
+    return opened;
+  }
+  const checkbox = () =>
+    createElement(
+      CheckboxField,
+      { slot: "selection" },
+      createElement(
+        CheckboxButton,
+        null,
+        createElement("div", { className: "indicator" }),
+      ),
+    );
+  function selectionReference(): Element {
+    const view = render(
+      createElement(
+        Table,
+        { "aria-label": "Table", selectionMode: "multiple" },
+        createElement(
+          TableHeader,
+          null,
+          createElement(Column, null, checkbox()),
+          createElement(Column, { isRowHeader: true }, "Name"),
+          createElement(Column, null, "Type"),
+        ),
+        createElement(
+          TableBody,
+          null,
+          ...ROWS.map((cells, r) =>
+            createElement(
+              Row,
+              { key: r },
+              createElement(Cell, null, checkbox()),
+              ...cells.map((text, c) => createElement(Cell, { key: c }, text)),
+            ),
+          ),
+        ),
+      ),
+    );
+    cleanups.push(() => view.unmount());
+    return view.container.querySelector("[role=grid]")!;
+  }
+
+  it("the reference structure: select-all in the column, the row's checkbox in its cell — the Name column still names the rows", async () => {
+    const { draw } = await openSelection();
+    expect(structure(draw())).toBe(structure(selectionReference()));
+  });
+
+  it("on the Canvas: unchecked as the rows are, selectable in a multiple-selection Table; select-all needs multiple selection and rows", async () => {
+    const { workspace, root, record } = await openSelection();
+    const boxes = () =>
+      [...root.canvasInputs.values()].filter(
+        (entry) => root.typeOf(entry) === "Checkbox",
+      );
+    expect(boxes()).toHaveLength(4);
+    for (const entry of boxes()) {
+      expect(entry.derivedProps?._isSelected).toBe(false);
+      expect(entry.derivedProps?.isDisabled).toBeUndefined();
+    }
+    workspace.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(record(OWNER).id)!.target],
+        props: { selectionMode: set("single") },
+      }),
+    );
+    const selectAll = boxes().find(
+      (entry) =>
+        root.typeOf(root.canvasInputs.get(entry.parentId)!) === "Column",
+    )!;
+    expect(selectAll.derivedProps?.isDisabled).toBe(true);
+    expect(
+      boxes()
+        .filter((entry) => entry.id !== selectAll.id)
+        .every((entry) => entry.derivedProps?.isDisabled === undefined),
+    ).toBe(true);
+    // A Table that selects nothing: every row's checkbox too (re-derived through its Cell).
+    workspace.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(record(OWNER).id)!.target],
+        props: { selectionMode: set("none") },
+      }),
+    );
+    expect(
+      boxes().every((entry) => entry.derivedProps?.isDisabled === true),
+    ).toBe(true);
+  });
+
+  it("in the Preview a row's checkbox selects its row and select-all every row (RAC)", async () => {
+    const { draw } = await openSelection();
+    const grid = draw();
+    const inputs = () => [...grid.querySelectorAll("input[type=checkbox]")];
+    const selected = () =>
+      [...grid.querySelectorAll("tbody [role=row]")].map(
+        (row) => row.getAttribute("aria-selected") === "true",
+      );
+    expect(inputs()).toHaveLength(4);
+    fireEvent.click(inputs()[1]!);
+    expect(selected()).toEqual([true, false, false]);
+    fireEvent.click(inputs()[0]!);
+    expect(selected()).toEqual([true, true, true]);
   });
 });
