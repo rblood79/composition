@@ -64,7 +64,6 @@ import {
   catalogFieldHintNodes,
   catalogFieldLabelNecessity,
   catalogFieldControlNodes,
-  catalogPickerListNode,
   catalogFieldLabelNode,
   catalogDomPartParent,
   catalogPartField,
@@ -76,7 +75,6 @@ import { Heading, Label, Text } from "react-aria-components";
 import { Button } from "../../components/Button";
 import { Icon } from "../../components/Icon";
 import { Group } from "../../components/Group";
-import { ComboBox } from "../../components/ComboBox";
 import { Slot } from "../../components/Slot";
 import {
   CATALOG_BINDING_VISUAL_KEYS,
@@ -134,8 +132,6 @@ interface FieldPartElements {
   error?: ReactElement;
   /** The part node elements inside the field's control wrapper, in order (ADR-253). */
   control?: ReactElement[];
-  /** A picker's option list: its ListBox node's element (ADR-253 Phase 4). */
-  list?: ReactElement;
 }
 type DomBinding = (
   node: CatalogConsumerNode,
@@ -646,37 +642,14 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       { key: node.id },
       ...children,
     ),
-  // RAC owns the input, value, icon and option DOM. The typed child IDs remain in the graph and
-  // Canvas scene. (A Select draws its node tree — `delegatedDom` `select`, ADR-256 Phase 6c.)
-  combobox: (node, style, _children, _context, parts) =>
-    createElement(ComboBox, {
-      key: node.id,
-      "data-catalog-id": node.id,
-      label:
-        parts?.label ??
-        (typeof node.props.label === "string" ? node.props.label : undefined),
-      description: parts?.description,
-      errorMessage: parts?.error,
-      controlElements: parts?.control,
-      listElement: parts?.list,
-      placeholder:
-        typeof node.props.placeholder === "string"
-          ? node.props.placeholder
-          : undefined,
-      size: typeof node.props.size === "string" ? node.props.size : "md",
-      ...labelLayout(node),
-      isDisabled: node.props.isDisabled === true,
-      isInvalid: authoredInvalid(node.props),
-      isReadOnly: node.props.isReadOnly === true,
-      isRequired: node.props.isRequired === true,
-      style,
-    } as Parameters<typeof ComboBox>[0]),
+  // (A Select · ComboBox draws its node tree — `delegatedDom` `select` · `combobox`, ADR-256 Phase
+  // 6c · 6d.)
 };
 
 /**
  * The element of a node-tree field's control Group, by the field's binding (ADR-256 Phase 2c ·
- * 6b): RAC's `Group` — a SearchField's also carries its container class (the SearchField rule's
- * selector for the box).
+ * 6b · 6d): RAC's `Group` — a SearchField's · ComboBox's also carries its container class (the
+ * field rule's selector for the box · the parts' row).
  */
 const NODE_TREE_CONTROL_WRAPPERS: Readonly<
   Record<
@@ -699,6 +672,17 @@ const NODE_TREE_CONTROL_WRAPPERS: Readonly<
         key: node.id,
         "data-catalog-id": node.id,
         className: "react-aria-Group searchfield-container",
+      } as Parameters<typeof RAC.Group>[0],
+      ...children,
+    ),
+  // (RAC's ComboBox takes this Group as its Popover's trigger — `GroupContext` ref.)
+  combobox: (node, children) =>
+    createElement(
+      RAC.Group,
+      {
+        key: node.id,
+        "data-catalog-id": node.id,
+        className: "react-aria-Group combobox-container",
       } as Parameters<typeof RAC.Group>[0],
       ...children,
     ),
@@ -912,8 +896,7 @@ export const CATALOG_DOM_BINDING_IDS: ReadonlySet<string> = new Set(
  * graph and Canvas identity but render no DOM element of their own.
  */
 export const CATALOG_DOM_CHILD_OWNING_BINDINGS: ReadonlySet<string> = new Set([
-  // (A Select draws its node tree — ADR-256 Phase 6c.)
-  "combobox",
+  // (A Select · ComboBox draws its node tree — ADR-256 Phase 6c · 6d.)
   // Shared components that compose from their own props and never read `children`.
   "datepicker",
   "daterangepicker",
@@ -981,22 +964,6 @@ export function catalogDomRendersNode(
     parentId = parent.parentId;
   }
   return true;
-}
-
-/**
- * DOM target owned by a shared RAC parent for a field's control Group the shared component draws
- * itself (a ComboBox's container — ADR-256 Phase 6b).
- */
-export function catalogDomOwnerTarget(
-  root: CatalogCompositionRoot,
-  id: string,
-): { ownerId: string; selector: string } | undefined {
-  const node = root.domInputs.get(id);
-  if (node?.bindingId !== "group") return undefined;
-  const parent = root.domInputs.get(node.parentId);
-  if (parent?.bindingId === "combobox")
-    return { ownerId: parent.id, selector: ".combobox-container" };
-  return undefined;
 }
 
 /** Authored visual writes → inline CSS for rule-backed nodes (library values are class CSS). */
@@ -1161,10 +1128,11 @@ function dialogTitleOf(
   return undefined;
 }
 
-/** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c). */
+/** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d). */
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
   "SubmenuTrigger",
   "Select",
+  "ComboBox",
 ]);
 
 /**
@@ -1203,9 +1171,9 @@ function ruleDom(
   // (A picker's control: the part node elements inside its Group — ADR-253.)
   if (parts?.control) rest.controlElements = parts.control;
   const lower = type.toLowerCase();
-  // ADR-256 Phase 5g · 6c: a submenu's · Select's Popover takes its place from RAC's SubmenuTrigger ·
-  // Select (`end top` · `bottom start`, their `PopoverContext`) — the type's default `placement`
-  // would override it (the reference passes none).
+  // ADR-256 Phase 5g · 6c · 6d: a submenu's · Select's · ComboBox's Popover takes its place from
+  // RAC's SubmenuTrigger · Select · ComboBox (`end top` · `bottom start`, their `PopoverContext`) —
+  // the type's default `placement` would override it (the reference passes none).
   if (
     lower === "popover" &&
     CONTEXT_PLACED_POPOVER_PARENTS.has(
@@ -1856,9 +1824,6 @@ function renderNode(
                 partElement(part)!,
               ),
             }
-          : {}),
-        ...(catalogPickerListNode(root, node)
-          ? { list: partElement(catalogPickerListNode(root, node)) }
           : {}),
       }
     : undefined;

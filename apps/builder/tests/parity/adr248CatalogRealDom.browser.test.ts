@@ -21,10 +21,7 @@ import { CatalogCompositionRoot } from "@/builder/catalogRuntime/compositionRoot
 import { catalogTextMeasure } from "@/builder/catalogRuntime/textMeasure";
 import { CatalogRuntime } from "@/builder/catalogRuntime/controller";
 import { CatalogStorage } from "@/builder/catalogRuntime/storage";
-import {
-  catalogDomOwnerTarget,
-  renderCatalogDom,
-} from "@/builder/catalogRuntime/domBinding";
+import { renderCatalogDom } from "@/builder/catalogRuntime/domBinding";
 import { bindCatalogCanvas } from "@/builder/catalogRuntime/canvasBinding";
 import slotMatrixExpected from "../../../../docs/adr/design/248-phase3-slot-matrix-dom.json";
 import slotDomPaintBounds from "../../../../docs/adr/design/248-phase3-slot-dom-paint-bounds.json";
@@ -100,9 +97,9 @@ afterAll(() => {
 });
 
 describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
-  // (A Select draws its node tree — its trigger is its own Button element, ADR-256 Phase 6c; a
-  // ComboBox's control Group is drawn by the shared component until 6d.)
-  it("keeps the ComboBox control Group ID in Canvas while its RAC parent owns DOM and hit regions", async () => {
+  // (A Select · ComboBox draws its node tree — the trigger · control Group is its own element,
+  // ADR-256 Phase 6c · 6d.)
+  it("draws the ComboBox control Group as its own RAC Group element, as tall as the Canvas box", async () => {
     await browserPage.viewport(1440, 900);
     const library = await buildCodeCatalogLibrary();
     const { document } = createG1Fixture();
@@ -134,7 +131,7 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
         entries: {
           [document.projectId]: document.entries[document.projectId],
           [page.id]: { ...page, children: [ids.combo] },
-          // The ComboBox origin: `Label + Group(Input + Button) + … + ListBox`.
+          // The ComboBox origin: `Label + Group(Input + Button) + … + Popover > ListBox`.
           [ids.combo]: node(
             ids.combo,
             "lib:definition:origin-component-combobox",
@@ -186,19 +183,17 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       requestAnimationFrame(() => requestAnimationFrame(() => done())),
     );
     for (const trigger of triggerInputs) {
-      const mapping = catalogDomOwnerTarget(root, trigger.id)!;
-      const owner = host.querySelector<HTMLElement>(
-        `[data-catalog-id="${mapping.ownerId}"]`,
+      // The Group node's own element: RAC's Group with the ComboBox rule's container class.
+      const domRegion = host.querySelector<HTMLElement>(
+        `[data-catalog-id="${trigger.id}"]`,
       )!;
-      const domRegion = owner.querySelector<HTMLElement>(mapping.selector)!;
       const bound = bindCatalogCanvas(root, [trigger.id]);
       try {
         const geometry = root.getGeometry([trigger.id]).get(trigger.id)!;
         const domRect = domRegion.getBoundingClientRect();
         expect(domRegion).not.toBeNull();
-        expect(
-          host.querySelector(`[data-catalog-id="${trigger.id}"]`),
-        ).toBeNull();
+        expect(domRegion.className).toBe("react-aria-Group combobox-container");
+        expect(domRegion.getAttribute("role")).toBe("group");
         expect(geometry.height).toBe(30);
         expect(Math.abs(domRect.height - geometry.height)).toBeLessThanOrEqual(
           1,

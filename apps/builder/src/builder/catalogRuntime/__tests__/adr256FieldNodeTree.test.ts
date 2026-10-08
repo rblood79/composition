@@ -4,6 +4,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   Button,
+  ComboBox,
   FieldError,
   Form,
   Group,
@@ -169,8 +170,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     const actual = renderToStaticMarkup(
       renderCatalogDom(workspace.root, field().id),
     );
-    const glyph = () =>
-      createElement("svg", { "aria-hidden": "true" });
+    const glyph = () => createElement("svg", { "aria-hidden": "true" });
     // react-aria.adobe.com NumberField (G0 example 6).
     const reference = renderToStaticMarkup(
       createElement(
@@ -234,7 +234,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     );
     expect(structure(actual)).toBe(structure(reference));
     // Its parts are its own elements (the G3 harness measures them); the closed Popover has none.
-    const kids = field().children.map((id) => workspace.root.domInputs.get(id)!);
+    const kids = field().children.map((id) =>
+      workspace.root.domInputs.get(id)!,
+    );
     expect(
       kids.map((kid) => [
         workspace.root.typeOf(kid),
@@ -243,6 +245,66 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     ).toEqual([
       ["Label", true],
       ["Button", true],
+      ["Description", true],
+      ["FieldError", true],
+      ["Popover", false],
+    ]);
+  });
+
+  it("ComboBox has the reference example's structure: Group(Input + Button) · Popover > ListBox (ADR-256 Phase 6d)", async () => {
+    const { workspace, field } = await open("combobox", {
+      label: "Animal",
+      description: "Pick one",
+    });
+    const actual = renderToStaticMarkup(
+      renderCatalogDom(workspace.root, field().id),
+    );
+    // react-aria.adobe.com ComboBox (API anatomy): Label · Group > Input + Button(glyph) ·
+    // Text[description] · FieldError · Popover[hideArrow] > ListBox (closed — RAC's collection
+    // gathers the items in its hidden template).
+    const reference = renderToStaticMarkup(
+      createElement(
+        ComboBox,
+        null,
+        createElement(Label, null, "Animal"),
+        createElement(
+          Group,
+          null,
+          createElement(Input, { placeholder: "Type or select..." }),
+          createElement(
+            Button,
+            null,
+            createElement("svg", { "aria-hidden": "true" }),
+          ),
+        ),
+        createElement(Text, { slot: "description" }, "Pick one"),
+        createElement(FieldError),
+        createElement(
+          Popover,
+          null,
+          createElement(
+            ListBox,
+            null,
+            ...["Aardvark", "Cat", "Dog", "Kangaroo"].map((name) =>
+              createElement(ListBoxItem, { key: name, id: name }, name),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(structure(actual)).toBe(structure(reference));
+    // Its parts are its own elements (the G3 harness measures them); the closed Popover has none.
+    const kids = field().children.map((id) =>
+      workspace.root.domInputs.get(id)!,
+    );
+    expect(
+      kids.map((kid) => [
+        workspace.root.typeOf(kid),
+        catalogDomRendersNode(workspace.root, kid.id),
+      ]),
+    ).toEqual([
+      ["Label", true],
+      ["Group", true],
       ["Description", true],
       ["FieldError", true],
       ["Popover", false],
@@ -267,8 +329,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     "colorfield",
     "datefield",
     "timefield",
-    // ADR-256 Phase 6c: a Select draws its node tree too.
+    // ADR-256 Phase 6c · 6d: a Select · ComboBox draws its node tree too.
     "select",
+    "combobox",
   ])(
     "%s: a free child the author puts in is drawn in its place (Canvas and DOM)",
     async (type) => {
@@ -321,52 +384,55 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     },
   );
 
-  it("Select: a ListBox the author puts beside the Popover shows on both sides — RAC draws it in the Select's context (ADR-256 Phase 6c)", async () => {
-    const { workspace, field } = await open("select", { label: "Field" });
-    workspace.execute(
-      detachInstances({ ids: [FIELD], newId: workspace.newId }),
-    );
-    const list = "project:node:free-list" as NodeId;
-    workspace.execute(
-      insertNodes({
-        parent: { kind: "node", id: FIELD },
-        entries: [
-          {
-            kind: "node",
-            id: list,
-            definitionId: "lib:definition:origin-component-listbox",
-            children: [],
-            props: {},
-            visual: {},
-            sizing: {},
-            descendantOverrides: [],
-          } as NodeEntry,
-        ],
-        rootIds: [list],
-        newId: workspace.newId,
-      }),
-    );
-    const html = renderToStaticMarkup(
-      renderCatalogDom(workspace.root, field().id),
-    ).replace(/<template>[\s\S]*?<\/template>/g, "");
-    const host = document.createElement("div");
-    host.innerHTML = html;
-    const drawn = [...host.querySelectorAll('[role="listbox"]')].map((element) =>
-      element.getAttribute("data-catalog-id"),
-    );
-    expect(drawn.some((id) => id?.endsWith(list))).toBe(true);
-    const record = [...workspace.root.canvasInputs.values()].find(
-      (item) => item.sourceId === list,
-    );
-    expect(record && !record.hidden).toBe(true);
-    // The Popover's own list stays closed on the Canvas.
-    const popover = [...workspace.root.canvasInputs.values()].find(
-      (item) =>
-        item.parentId === field().id &&
-        workspace.root.typeOf(item) === "Popover",
-    );
-    expect(popover?.hidden).toBe(true);
-  });
+  it.each(["select", "combobox"])(
+    "%s: a ListBox the author puts beside the Popover shows on both sides — RAC draws it in the picker's context (ADR-256 Phase 6c · 6d)",
+    async (type) => {
+      const { workspace, field } = await open(type, { label: "Field" });
+      workspace.execute(
+        detachInstances({ ids: [FIELD], newId: workspace.newId }),
+      );
+      const list = "project:node:free-list" as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: FIELD },
+          entries: [
+            {
+              kind: "node",
+              id: list,
+              definitionId: "lib:definition:origin-component-listbox",
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [list],
+          newId: workspace.newId,
+        }),
+      );
+      const html = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, field().id),
+      ).replace(/<template>[\s\S]*?<\/template>/g, "");
+      const host = document.createElement("div");
+      host.innerHTML = html;
+      const drawn = [...host.querySelectorAll('[role="listbox"]')].map(
+        (element) => element.getAttribute("data-catalog-id"),
+      );
+      expect(drawn.some((id) => id?.endsWith(list))).toBe(true);
+      const record = [...workspace.root.canvasInputs.values()].find(
+        (item) => item.sourceId === list,
+      );
+      expect(record && !record.hidden).toBe(true);
+      // The Popover's own list stays closed on the Canvas.
+      const popover = [...workspace.root.canvasInputs.values()].find(
+        (item) =>
+          item.parentId === field().id &&
+          workspace.root.typeOf(item) === "Popover",
+      );
+      expect(popover?.hidden).toBe(true);
+    },
+  );
 
   it("an empty authored error message leaves RAC's validation message", async () => {
     const { workspace, field } = await open("textfield", {

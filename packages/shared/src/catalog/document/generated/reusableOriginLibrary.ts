@@ -4533,7 +4533,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-combobox__2",
       "lib:template:component-combobox__description",
       "lib:template:component-combobox__error",
-      "lib:template:component-combobox__listbox"
+      "lib:template:component-combobox__popover"
     ],
     "props": {
       "label": "Combo Box",
@@ -4555,6 +4555,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{label}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -4596,6 +4597,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "{description}"
     },
+    "presentWhen": "nonEmptyText",
     "visual": {}
   },
   {
@@ -4604,6 +4606,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{errorMessage}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-combobox__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-combobox__listbox"
+    ],
+    "props": {
+      "hideArrow": true
     },
     "visual": {}
   },

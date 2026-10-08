@@ -143,7 +143,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "combobox",
     kind: "delegating-internal",
     reason:
-      "renderComboBox — select 동형. childrenByParent 로 self-compose, 자식 sub-part catalog cutover 라 generic 재귀 시 raw tag 누수.",
+      "ComboBox 는 delegatedDom `combobox` 노드 트리 binding 이 RAC ComboBox 안에서 자식을 순서대로 그린다 (ADR-256 Phase 6d). generic ruleDom 은 RAC ComboBox context 를 만들지 않아 Input · Button · Group · Popover 가 ComboBox 와 끊긴다.",
   },
   {
     key: "tree",

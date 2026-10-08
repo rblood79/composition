@@ -8,7 +8,6 @@ export * from "./Field";
 export * from "./FieldNecessityIndicator";
 export * from "./Radio";
 export * from "./RadioGroup";
-export * from "./ComboBox";
 export * from "./Checkbox";
 export * from "./CheckboxGroup";
 export * from "./ListBox";

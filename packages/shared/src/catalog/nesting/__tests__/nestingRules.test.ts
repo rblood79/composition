@@ -75,11 +75,11 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     ).toMatchObject({ layer: "rac-composition", allowedChildren: ["Button"] });
     expect(
       resolveNestingViolation({
-        parentType: "ComboBox",
-        childType: "ComboBox",
+        parentType: "DatePicker",
+        childType: "DatePicker",
       }),
-    ).toMatchObject({ layer: "rac-composition", parentType: "ComboBox" });
-    expect(canNest("ComboBox", "frame")).toBe(false);
+    ).toMatchObject({ layer: "rac-composition", parentType: "DatePicker" });
+    expect(canNest("DatePicker", "frame")).toBe(false);
     expect(canNest("TextField", "Label", ["TextField", "body"])).toBe(true);
     expect(canNest("TextField", "FieldError", ["TextField", "body"])).toBe(
       true,
@@ -87,7 +87,7 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("ButtonGroup", "Button")).toBe(true);
     expect(canNest("AvatarGroup", "Avatar")).toBe(true);
     expect(canNest("AvatarGroup", "Button")).toBe(false);
-    expect(canNest("ComboBox", "ComboBox")).toBe(false);
+    expect(canNest("DatePicker", "DatePicker")).toBe(false);
     // ADR-256 Phase 3: a Checkbox is RAC `CheckboxField` (a `div` — free content, the reference's
     // Description); its pressable `CheckboxButton` is a `<label>` that holds no other control.
     expect(canNest("Checkbox", "Description")).toBe(true);
@@ -118,26 +118,30 @@ describe("nestingRules — 층 2 RAC 합성", () => {
   });
 
   it("ADR-256 Phase 6b — picker 의 control 상자는 RAC Group 이다 (옛 SelectTrigger 는 받지 않는다)", () => {
-    for (const picker of ["ComboBox", "DatePicker", "DateRangePicker"]) {
+    for (const picker of ["ComboBox", "DatePicker", "DateRangePicker"])
       expect(canNest(picker, "Group", [picker, "body"])).toBe(true);
+    // (ComboBox 는 6d 부터 자유 내용 — 미전환 picker 만 목록 밖 type 을 거부한다.)
+    for (const picker of ["DatePicker", "DateRangePicker"])
       expect(canNest(picker, "SelectTrigger", [picker, "body"])).toBe(false);
-    }
   });
 
-  it("ADR-256 Phase 6c — Select 는 노드 트리: Popover > ListBox 를 받고, 항목은 ListBox 안에서만", () => {
-    expect(canNest("Select", "Popover", ["Select", "body"])).toBe(true);
-    expect(canNest("Popover", "ListBox", ["Popover", "Select", "body"])).toBe(
-      true,
-    );
-    expect(
-      canNest("ListBox", "ListBoxItem", ["ListBox", "Popover", "Select"]),
-    ).toBe(true);
-    // RAC 의 항목은 ListBox 안에서만 collection 이다 — Select 바로 아래 항목은 그리지 않는다.
-    expect(canNest("Select", "ListBoxItem", ["Select", "body"])).toBe(false);
-    expect(canNest("Popover", "ListBoxItem", ["Popover", "Select"])).toBe(
-      false,
-    );
-  });
+  it.each(["Select", "ComboBox"])(
+    "ADR-256 Phase 6c · 6d — %s 는 노드 트리: Popover > ListBox 를 받고, 항목은 ListBox 안에서만",
+    (picker) => {
+      expect(canNest(picker, "Popover", [picker, "body"])).toBe(true);
+      expect(canNest("Popover", "ListBox", ["Popover", picker, "body"])).toBe(
+        true,
+      );
+      expect(
+        canNest("ListBox", "ListBoxItem", ["ListBox", "Popover", picker]),
+      ).toBe(true);
+      // RAC 의 항목은 ListBox 안에서만 collection 이다 — picker 바로 아래 항목은 그리지 않는다.
+      expect(canNest(picker, "ListBoxItem", [picker, "body"])).toBe(false);
+      expect(canNest("Popover", "ListBoxItem", ["Popover", picker])).toBe(
+        false,
+      );
+    },
+  );
 
   it("DOM void/self-contained 타입은 자식을 가질 수 없다", () => {
     expect(

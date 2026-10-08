@@ -7,9 +7,8 @@
  * the same type stays allowed. Collection items are not here — RAC allows an empty collection; an
  * item's tie to its collection is the nesting owners check (`RAC_SUBPART_OWNER_TYPES`).
  *
- * Keys are catalog types as the document holds them today (a family not converted yet keeps its own
- * shape — a ComboBox's ListBox sits in the ComboBox, not in a Popover node; a Select's is in its
- * Popover, ADR-256 Phase 6c — the part is found below the owner, at any depth).
+ * Keys are catalog types as the document holds them today (a Select's · ComboBox's ListBox is in
+ * its Popover, ADR-256 Phase 6c · 6d — the part is found below the owner, at any depth).
  */
 export const RAC_REQUIRED_PARTS: Readonly<
   Record<string, readonly (readonly string[])[]>

@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ④(collections) — ComboBox primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`ComboBox.tsx`)가 useResolvedCollectionItems(dataBinding|items → rows)로 채우고
- * RAC ComboBox + Label/Input/Button/Popover/ListBox 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * Preview 는 노드 트리 — RAC ComboBox 안에서 자식 (Label · Group > Input + Button · Description ·
+ * FieldError · Popover > ListBox) 을 순서대로 그린다 (`delegatedDom` `combobox`, ADR-256 Phase 6d —
+ * 옛 공용 `ComboBox.tsx` 는 삭제). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -138,9 +139,8 @@ export const comboBoxBinding: PrimitiveBinding = {
       },
     },
     toRacProps: "default",
-    // size 를 ComboBox.tsx 가 React prop 으로 소비 + 자기 `data-size` 를 재작성
-    //   → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size 를 덮어씀
-    //   (DateField.binding 과 동일 근거, 2026-07-14 전수 확장).
+    // size 는 노드 트리 root 의 `data-size` (`nodeTreeField`) — 부품에는 Group 을 건너 전파된다
+    //   (ADR-256 Phase 6b · 6d).
     propPassthrough: ["size"],
   },
 };

@@ -30,13 +30,14 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
   });
 
   it("미전환 family 는 지금 renderer 가 그리는 목록이 이긴다", () => {
-    expect(catalogChildKind("ComboBox")).toEqual({
+    expect(catalogChildKind("DatePicker")).toEqual({
       kind: "items",
-      items: ["Label", "Group", "Description", "FieldError", "ListBox"],
+      items: ["Label", "Group", "Calendar", "Description", "FieldError"],
     });
-    // 전환된 family (ADR-256 Phase 2b · 6c) 는 RAC 의 종류 — field 는 자유 내용.
+    // 전환된 family (ADR-256 Phase 2b · 6c · 6d) 는 RAC 의 종류 — field 는 자유 내용.
     expect(catalogChildKind("TextField")).toEqual({ kind: "free" });
     expect(catalogChildKind("Select")).toEqual({ kind: "free" });
+    expect(catalogChildKind("ComboBox")).toEqual({ kind: "free" });
     // 전환된 family (ADR-256 Phase 5h) — TreeItem 은 RAC 의 항목 (TreeItemContent · TreeItem),
     // 행 내용 TreeItemContent 는 자유 내용.
     expect(catalogChildKind("TreeItem")).toEqual({
@@ -67,10 +68,11 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
   });
 
   it("미전환 family: wrappers 행은 레이아웃 래퍼를 받고, 아닌 행은 받지 않는다", () => {
-    expect(canNest("ComboBox", "frame")).toBe(false);
-    expect(canNest("ComboBox", "Icon")).toBe(false);
-    // 전환된 field (Phase 2b · 6c) 는 자유 자식을 받는다 (레퍼런스: field 안 아이콘).
+    expect(canNest("DatePicker", "frame")).toBe(false);
+    expect(canNest("DatePicker", "Icon")).toBe(false);
+    // 전환된 field (Phase 2b · 6c · 6d) 는 자유 자식을 받는다 (레퍼런스: field 안 아이콘).
     expect(canNest("Select", "frame")).toBe(true);
+    expect(canNest("ComboBox", "frame")).toBe(true);
     expect(canNest("TextField", "frame")).toBe(true);
     expect(canNest("TextField", "Icon")).toBe(true);
     // 전환된 Tabs (ADR-256 Phase 5e-2) 도 — 레퍼런스: Tabs 안 자유 div, TabPanels 안 자유 내용.

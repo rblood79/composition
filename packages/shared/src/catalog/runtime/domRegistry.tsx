@@ -17,7 +17,6 @@ import {
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
-import { ComboBox } from "@composition/shared/components/ComboBox";
 import { DatePicker } from "@composition/shared/components/DatePicker";
 import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
@@ -110,7 +109,6 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-234 Phase 3 — ListBox 정적 자식 (ListBoxItem instance).
   listboxitem: ListBoxItem,
   menu: MenuButton,
-  combobox: ComboBox,
   tabs: Tabs,
   // ADR-234 Phase 3 — TabList 정적 자식 (Tab instance). RAC Tab 이라 render props 를 받는다.
   tab: Tab,

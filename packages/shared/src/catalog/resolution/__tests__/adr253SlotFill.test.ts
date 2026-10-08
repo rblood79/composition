@@ -112,8 +112,8 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
   for (const type of ["select", "combobox"]) {
     const LIST = T(`${type}__listbox`);
     const ITEMS = [1, 2, 3, 4].map((n) => T(`${type}__item-${n}`));
-    // ADR-256 Phase 6c: a Select's ListBox is in its Popover (`Popover > ListBox`).
-    const VIA = type === "select" ? [T("select__popover")] : [];
+    // ADR-256 Phase 6c · 6d: a picker's ListBox is in its Popover (`Popover > ListBox`).
+    const VIA = [T(`${type}__popover`)];
     const listRow = (graph: CatalogGraph) =>
       childPositions(
         graph,
@@ -337,7 +337,7 @@ describe("ADR-253 Phase 4 — library validation of a slot fill", () => {
     extra: LibraryTemplateNode[] = [],
   ) =>
     buildCatalogLibrary({
-      contractVersion: 20,
+      contractVersion: 21,
       revision: "adr253-slot-fill",
       bindingIds: ["box", "text"],
       actionOpCodes: [],

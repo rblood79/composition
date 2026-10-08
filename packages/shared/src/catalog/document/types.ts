@@ -41,10 +41,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 19 — ADR-256 Phase 6b: a field's control wrapper (NumberField · SearchField · ComboBox ·
  * DatePicker · DateRangePicker `__2`) is a RAC `Group` in place of a `SelectTrigger`. 20 —
  * ADR-256 Phase 6c: a Select's ListBox sits in its Popover (`component-select__popover`,
- * `hideArrow`) — `Select > Label + Button + Description + FieldError + Popover > ListBox`.
+ * `hideArrow`) — `Select > Label + Button + Description + FieldError + Popover > ListBox`. 21 —
+ * ADR-256 Phase 6d: a ComboBox's ListBox sits in its Popover (`component-combobox__popover`,
+ * `hideArrow`) — `ComboBox > Label + Group(Input + Button) + Description + FieldError + Popover >
+ * ListBox`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 20 as const;
+export const LIBRARY_CONTRACT_VERSION = 21 as const;
 
 export type EntryKind =
   | "project"

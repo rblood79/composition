@@ -616,7 +616,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 20,
+    libraryContractVersion: 21,
     revision: 0,
     projectId,
     rootId: projectId,

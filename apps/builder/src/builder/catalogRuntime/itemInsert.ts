@@ -122,7 +122,7 @@ function itemTypesOf(
 
 /**
  * ADR-253 Phase 4 — pickers whose items sit in their ListBox (an instance of the ListBox origin,
- * hidden on the Canvas while the picker is closed — a Select's inside its Popover): the picker's
+ * hidden on the Canvas while the picker is closed — inside its Popover): the picker's
  * "+" adds the item there.
  */
 const PICKER_LIST: Readonly<Record<string, string>> = {
@@ -137,7 +137,8 @@ export function catalogItemInsertChoices(
   const { graph, readModel, newId } = host;
   const type = typeOf(graph, position.definitionId);
   if (PICKER_LIST[type]) {
-    // (A Select's list is in its Popover — ADR-256 Phase 6c, the reference's `Popover > ListBox`.)
+    // (A Select's · ComboBox's list is in its Popover — ADR-256 Phase 6c · 6d, the reference's
+    // `Popover > ListBox`.)
     const rows = readModel.childRows(position);
     const list = [
       ...rows,

@@ -34,6 +34,7 @@ import { TimeField as AriaTimeField } from "react-aria-components/TimeField";
 import { NumberField as AriaNumberField } from "react-aria-components/NumberField";
 import { SearchField as AriaSearchField } from "react-aria-components/SearchField";
 import { Select as AriaSelect } from "react-aria-components/Select";
+import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
 import { Time } from "@internationalized/date";
 import { safeParseDateString } from "../../utils/core/dateUtils";
 import { ListBox as AriaListBox } from "react-aria-components/ListBox";
@@ -488,24 +489,15 @@ export function catalogFieldControlNodes(
     ? parts.filter((part) => catalogTypeName(root, part) !== "Button")
     : parts;
 }
-/**
- * A ComboBox's option list (ADR-253 Phase 4): its ListBox node — an instance of the ListBox origin
- * holding the items, drawn inside the picker's Popover. (A Select draws its node tree — its
- * Popover node holds the ListBox, ADR-256 Phase 6c.)
- */
-export function catalogPickerListNode(
-  root: CatalogCompositionRoot,
-  field: CatalogConsumerNode,
-): CatalogConsumerNode | undefined {
-  if (field.bindingId !== "combobox") return undefined;
-  return childrenOf(root, field).find(
-    (child) => catalogTypeName(root, child) === "ListBox",
-  );
-}
+/** Pickers whose ListBox takes their RAC `ListBoxContext` (ADR-253 Phase 4 · ADR-256 Phase 6c · 6d). */
+const LIST_PICKER_BINDINGS: ReadonlySet<string> = new Set([
+  "select",
+  "combobox",
+]);
 /**
  * The picker whose RAC `ListBoxContext` a ListBox node takes (its name, selection and focus — D1):
- * a ComboBox's list node, or a ListBox in a Select — in its Popover, the reference's `Popover >
- * ListBox` (ADR-256 Phase 6c), or its direct child (RAC's context reaches it there too).
+ * a ListBox in a Select · ComboBox — in its Popover, the reference's `Popover > ListBox` (ADR-256
+ * Phase 6c · 6d), or its direct child (RAC's context reaches it there too).
  */
 export function catalogListPicker(
   root: CatalogCompositionRoot,
@@ -513,12 +505,11 @@ export function catalogListPicker(
 ): CatalogConsumerNode | undefined {
   const parent = root.domInputs.get(list.parentId);
   if (!parent) return undefined;
-  if (catalogPickerListNode(root, parent) === list) return parent;
   const host =
     catalogTypeName(root, parent) === "Popover"
       ? root.domInputs.get(parent.parentId)
       : parent;
-  return host?.bindingId === "select" ? host : undefined;
+  return LIST_PICKER_BINDINGS.has(host?.bindingId ?? "") ? host : undefined;
 }
 /**
  * A part node's parent with the layout frames it sits in skipped (`catalogPartParent` — ADR-256
@@ -961,7 +952,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // focus (their context), and its sheet reads the picker's size.
       const picker = catalogListPicker(input.root, input.node);
       const inPicker = !!picker;
-      // (RAC's ListBox itself, as the shared Select · ComboBox compose it: the shared ListBox's
+      // (RAC's ListBox itself, as the reference's pickers compose it: the shared ListBox's
       // variant marks are the standalone list's.)
       return createElement(
         (inPicker ? AriaListBox : ListBox) as ElementType,
@@ -1375,6 +1366,17 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // Select is named by its placeholder (RAC needs a label or an `aria-label`).
   select: nodeTreeField(AriaSelect, "Select", (props) => ({
     placeholder: opt(props.placeholder),
+    "aria-label": str(props.label).trim()
+      ? undefined
+      : (opt(props.placeholder) ?? "Select an option"),
+  })),
+  // ADR-256 Phase 6d: the reference's tree — `ComboBox > Label + Group(Input + Button) +
+  // Text[description] + FieldError + Popover > ListBox`, each part in RAC's ComboBox context (its
+  // Popover takes the Group as trigger and its place — `PopoverContext`). Without a visible label
+  // the ComboBox is named by its placeholder (RAC needs a label or an `aria-label`).
+  combobox: nodeTreeField(AriaComboBox, "ComboBox", (props) => ({
+    allowsCustomValue: bool(props.allowsCustomValue),
+    menuTrigger: opt(props.menuTrigger),
     "aria-label": str(props.label).trim()
       ? undefined
       : (opt(props.placeholder) ?? "Select an option"),

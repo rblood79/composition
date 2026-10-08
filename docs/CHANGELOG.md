@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 6d — ComboBox 를 노드 트리로 그린다] - 2026-10-09
+
+### Changed
+
+- **ComboBox 원본 = react-aria.adobe.com 의 구조** — `ComboBox > Label + Group(Input + Button) + Description + FieldError + Popover > ListBox`. 목록은 ComboBox 바로 아래가 아니라 **Popover 노드** 안에 있다 (레퍼런스대로 `hideArrow`). 닫힌 목록은 종전대로 Canvas 에 그리지 않는다
+- **Preview 가 ComboBox 의 자식을 순서대로 RAC ComboBox 안에서 그린다** — 옛 공용 `ComboBox` 컴포넌트가 정해진 부품만 받아 조립하던 것을 걷었다. 입력 상자는 Group 노드 자신의 요소 (RAC `Group` · `.combobox-container`) 이고, RAC 가 그 Group 을 목록의 기준으로 삼아 Popover 를 상자의 시작 가장자리 아래 · 상자 폭으로 연다. 작성자가 ComboBox 안에 넣은 자유 자식도 제자리에 그려진다
+- **ComboBox 의 `allowsCustomValue` · `menuTrigger` · `isQuiet` 가 Preview 에 닿는다** — 옛 공용 binding 은 이 셋을 넘기지 않아 Properties 에서 바꿔도 Preview 동작이 그대로였다 (원본 기본값 `allowsCustomValue: true`)
+- ComboBox 의 「+」 (항목 넣기) 는 Popover 안 ListBox 에 넣는다 · 항목은 ListBox 안에서만 받는다 · Label · 도움말 자리에 다른 field 와 같은 `presentWhen`
+- 저장 형식 contract 21 — 옛 개발용 프로젝트는 열리지 않는다 (ADR-256 Decision 10)
+- 위치: `catalog/document/generated/reusableOriginLibrary.ts` · `catalog/runtime/{delegatedDom,domBinding,presence,renderFacetDeclaration}.ts(x)` · `catalog/nesting/{nestingRules,requiredParts}.ts` · `domain/componentTraits.ts` · `catalogRuntime/itemInsert.ts`
+
+### Removed
+
+- **공용 `ComboBox` 컴포넌트** (`components/ComboBox.tsx` · `ComboBoxItem`) — catalog 경로에서 쓰이지 않게 됐다 (사용자 승인). `domRegistry` 등록과 `components/{index,list}` export 도 걷었다
+- **`components/listBoxItemSlotContent.tsx`** (+ 시험 `selectPopoverItemSlots`) — 옛 공용 Select · ComboBox 의 항목 행 조립 helper. 두 picker 의 항목은 이제 ListBoxItem 노드가 그린다 (사용자 승인)
+
 ## [ADR-256 Phase 6 정리 — SelectTrigger type · 공용 Select 컴포넌트 삭제] - 2026-10-09
 
 ### Removed

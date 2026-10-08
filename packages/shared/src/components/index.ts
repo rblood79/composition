@@ -25,7 +25,6 @@ export { Radio } from "./Radio";
 export { RadioGroup } from "./RadioGroup";
 export { Switch } from "./Switch";
 export { Slider } from "./Slider";
-export { ComboBox, ComboBoxItem } from "./ComboBox";
 export { Form } from "./Form";
 export {
   Label,

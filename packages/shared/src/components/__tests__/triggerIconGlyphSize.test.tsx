@@ -3,7 +3,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
-import { ComboBox } from "../ComboBox";
 import { DatePicker } from "../DatePicker";
 import { DateRangePicker } from "../DateRangePicker";
 
@@ -45,9 +44,8 @@ const TARGETS = [
     Comp: DateRangePicker,
     props: { showCalendarIcon: true },
   },
-  { name: "ComboBox", Comp: ComboBox, props: {} },
-  // (Select · SearchField draw their glyph from their Icon node — ADR-256 Phase 6c · 2: the shared
-  // components are gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
+  // (Select · ComboBox · SearchField draw their glyph from their Icon node — ADR-256 Phase 6c · 6d ·
+  // 2: the shared components are gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
   // (SearchField draws its glyph from its Icon node — the Canvas glyph, ADR-256 Phase 2: the
   // shared component is gone; `adr253FieldPartsDom.test.ts` asserts the node glyph.)
 ] as const;

@@ -285,16 +285,34 @@ const expectPaintsNothing = (visual: Readonly<Record<string, unknown>>) => {
  * ADR-256 Phase 6b: a SearchField's control box is a RAC Group node (its container class kept for
  * the SearchField rule's selector) — RAC's SearchField gives it the field's disabled · invalid.
  */
-const searchFieldGroupMarkup = (markup: string) => {
-  const root = /^<div [^>]*>/.exec(markup)?.[0] ?? "";
+const fieldGroupMarkup = (markup: string, container: string) => {
+  // (The field's root — after a RAC collection's hidden `<template>` line, if any.)
+  const root = /^<div [^>]*>/m.exec(markup)?.[0] ?? "";
   const state = ["data-disabled=true", "data-invalid=true"]
     .filter((attribute) => root.includes(` ${attribute}`))
     .map((attribute) => ` ${attribute}`)
     .join("");
   return markup.replace(
-    "<div class=searchfield-container>",
-    `<div class=react-aria-Group searchfield-container${state} data-rac= role=group>`,
+    `<div class=${container}>`,
+    `<div class=react-aria-Group ${container}${state} data-rac= role=group>`,
   );
+};
+const searchFieldGroupMarkup = (markup: string) =>
+  fieldGroupMarkup(markup, "searchfield-container");
+/**
+ * ADR-256 Phase 6d: a ComboBox draws its node tree in RAC's ComboBox — its control box is its RAC
+ * Group node (the ComboBox rule's container class kept), RAC's ComboBox gives it the field's
+ * disabled · invalid; a quiet ComboBox's root carries `data-quiet` as every node-tree field's does
+ * (the shared component's binding dropped `isQuiet`). The closed Popover draws nothing.
+ */
+const comboBoxGroupMarkup = (markup: string, quiet: boolean) => {
+  const grouped = fieldGroupMarkup(markup, "combobox-container");
+  return quiet
+    ? grouped.replace(
+        /(<div class=react-aria-ComboBox[^>]*data-label-position=\w+)/,
+        "$1 data-quiet=true",
+      )
+    : grouped;
 };
 /**
  * ADR-256 Phase 6c: a Select draws its node tree in RAC's Select — the shared component's own
@@ -497,7 +515,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                     ? searchFieldGroupMarkup(fixed)
                     : type === "select"
                       ? selectNodeTreeMarkup(fixed)
-                      : fixed;
+                      : type === "combobox"
+                        ? comboBoxGroupMarkup(fixed, name === "quiet")
+                        : fixed;
           expect(
             glyphless(
               placeholder ? structure.replace(placeholder, "") : structure,
