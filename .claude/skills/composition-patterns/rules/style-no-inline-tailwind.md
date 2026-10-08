@@ -33,20 +33,13 @@ semantic classes + @layer + CSS 토큰 변수를 사용하세요.
 ## Correct
 
 ```tsx
-// ✅ tv() + semantic class names
-import { tv } from 'tailwind-variants';
+// ✅ semantic class + data 속성 — 값은 catalog rule 이 생성한 CSS 가 선택자로 읽는다
+// (tailwind-variants · tv() 는 이 프로젝트 의존성이 아니다)
+import { Button } from "react-aria-components";
 
-const button = tv({
-  base: 'react-aria-Button',
-  variants: {
-    variant: { primary: 'primary', outline: 'outline' },
-    size: { sm: 'sm', md: 'md', lg: 'lg' }
-  }
-});
-
-<Button className={button({ variant: 'primary', size: 'md' })}>
+<Button className="react-aria-Button" data-variant="primary" data-size="md">
   Submit
-</Button>
+</Button>;
 ```
 
 ```css
@@ -55,7 +48,9 @@ const button = tv({
   .react-aria-Button {
     font-weight: var(--font-weight-medium);
     border-radius: var(--radius-lg);
-    transition: color 150ms, background-color 150ms;
+    transition:
+      color 150ms,
+      background-color 150ms;
   }
 
   .react-aria-Button.primary {

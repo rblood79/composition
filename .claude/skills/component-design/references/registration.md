@@ -7,7 +7,9 @@
 3. **정의·원본·삽입** — `document/ruleDefinition.ts` · `codeCatalogLibrary.ts`의 타입 정의와, 합성이라면 `document/generated/reusableOriginLibrary.ts`의 origin 정의·template을 확인한다. 이 파일은 일회 변환 후 유지하는 typed library 코드 정본이다. 헤더의 옛 변환 테스트·seed는 삭제됐으므로 생성기로 사용하지 않는다. template 변경은 [원본 편집 절차](../../composition-patterns/reference/compositional-architecture.md#원본-template-편집검증)에 따른다. 팔레트는 `catalogPaletteDefinitionId` → `catalogPaletteInsertPlan` (`apps/builder/src/builder/catalogRuntime/paletteInsert.ts`) → `insertNodes` → `workspace.execute`로 넣는다. 원본 구조·저장 버전 계약은 [구조 변경 감사](../../composition-patterns/rules/domain-structure-change-audit.md)를 따른다.
 4. **Preview** — `packages/shared/src/catalog/runtime/domBinding.tsx`의 `bindings`와 `delegatedDom.tsx`의 `CATALOG_DELEGATED_DOM`에서 해당 RAC context 안에 작성된 자식을 순서대로 렌더한다. 미전환 family의 제한과 자식 소유 처리는 현재 구현에서 확인하며, 부모가 고정 자식을 재조립하는 옛 패턴을 신규 기본값으로 삼지 않는다.
 5. **Skia** — catalog 경로 1차: `buildCatalogShapes` (`packages/rendering/src/renderers/buildCatalogShapes.ts`) + builder 측 rule 주입 `resolveSkiaVisualRule.ts`. 옛 `TAG_SPEC_MAP` 경로는 삭제됐다 — Canvas 는 `catalogRuntime/canvasBinding.ts` 의 bindings 표 또는 `node.ruleId` 로만 그린다
-6. **Property Editor** — 스타일 패널 에디터 추가 (필요 시)
+6. **조립 계약 (ADR-256)** — ① `packages/shared/src/domain/componentTraits.ts` 에 children 종류 (`leaf` · `items` · `free`) 와 부품의 `owners` 선언 ② 필수 짝은 `packages/shared/src/catalog/nesting/requiredParts.ts` ③ RAC slot 제공자 표 `catalog/generated/racSlotProviders.ts` 는 `node apps/builder/scripts/adr256-gen-rac-slots.mjs` 생성물 — 손으로 편집하지 않는다 ④ template 안 상태 표시 · 값 바인딩은 `showWhen` · `presentWhen` · `{valueText}` 류 (RAC 조립 계약) ⑤ template 구조가 바뀌면 `LIBRARY_CONTRACT_VERSION` (`catalog/document/types.ts`) +1 (옛 개발 프로젝트 거부 · 변환 없음)
+7. **노출** — 팔레트 · Components page 노출은 `apps/builder/src/builder/panels/components/paletteItems.ts` 의 `PALETTE_ORDER` 가 정본이다 (catalog 등록만으로는 팔레트에 보이지 않는다).
+8. **Design 패널 에디터** — 속성 · 스타일 편집기는 `apps/builder/src/builder/panels/design/DesignPanel.tsx` (ADR-252 로 Properties · Styles 통합) 에 추가한다 (필요 시).
 
 children·RAC slot·필수 부품·상태 주체·값 바인딩은 [RAC 조립 계약](../../composition-patterns/rules/domain-rac-composition.md)을 적용한다.
 

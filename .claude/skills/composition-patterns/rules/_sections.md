@@ -14,7 +14,7 @@
 | 8    | `postmessage-` | HIGH~CRITICAL | PostMessage 통신 규칙                                                          |
 | 9    | `inspector-`   | HIGH          | 패널 (Inspector) 편집 · 히스토리 연동 규칙                                     |
 | 10   | `perf-`        | MEDIUM        | 성능 최적화 규칙                                                               |
-| 11   | `test-`        | MEDIUM        | 테스트/Storybook 규칙                                                          |
+| 11   | `test-`        | MEDIUM        | 테스트 규칙 (현재 파일 없음 — Storybook 미사용)                                |
 | 12   | `arch-`        | HIGH          | 참조 구현 위치                                                                 |
 
 > **Note**: 위 표는 섹션별 기본 영향도입니다.

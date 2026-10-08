@@ -95,7 +95,7 @@ tags: [architecture, reference, patterns]
 
 // 예: 새 Dialog 컴포넌트
 // 참조: builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx
-// 규칙: react-aria-hooks-required, style-tv-variants
+// 규칙: react-aria-hooks-required, style-no-inline-tailwind
 ```
 
 ## ADR 참조
