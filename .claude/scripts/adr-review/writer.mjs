@@ -31,6 +31,7 @@ const VALID_CATEGORY = [
   "alternative-strawman",
   "risk-4axis-incomplete",
   "adr-structure-violation",
+  "correctness", // phase 구현 판독 — 구현이 Decision · Gate 와 어긋남 (2026-10-08, ADR-256 R4·5)
   "other",
 ];
 const VALID_OUTCOME = ["fixed", "deferred", "rejected", "pending"];

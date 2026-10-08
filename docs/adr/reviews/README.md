@@ -1,6 +1,6 @@
 # ADR Review Logs — Layer 0 Observation Store
 
-> This directory stores structured review results for ADRs in `docs/adr/`. Written by `review-adr` skill Phase 4.5 (Layer 0); consumed by future Layer 1 pattern-extraction agents.
+> This directory stores structured review results for ADRs in `docs/adr/`. Written by the `review-adr` skill at its record step (Layer 0) — 설계 리뷰 · phase 구현 판독 · 수리 검증 모두 같은 파일의 다음 round; consumed by future Layer 1 pattern-extraction agents.
 >
 > **Schema SSOT**: this file. Design rationale: [docs/reference/schemas/ADR_REVIEW_LAYER0.md](../../reference/schemas/ADR_REVIEW_LAYER0.md).
 > **Writer**: `.claude/scripts/adr-review/writer.mjs` | **Validator**: `.claude/scripts/adr-review/validate.mjs`
@@ -31,13 +31,13 @@ reviews: # (required) array, accumulates per round
         root_cause: "..." # (optional) why
         outcome: fixed # (optional) fixed|deferred|rejected|pending, default "pending"
         addressed_in: "commit sha or ADR-NNN" # (optional) resolution reference
-    hate: # (optional, 2026-08-28) review-adr Phase 3-H — root 1 + first nail
+    hate: # (optional, 2026-08-28) review-adr 가정 반증 (옛 3-H) — root 1 + first nail
       assumption: "..." # load-bearing 가정
       root: "..." # 반론 1개
       axis: "..." # 공격 축
       first_nail: "..." # 가장 싼 반증 검사
       verdict: "G0 커버 | issue:m1"
-    prism: # (optional) Phase 3-P — HIGH ≥1 또는 phase ≥3 인 ADR 만
+    prism: # (optional) 다관점 (옛 3-P) — HIGH ≥1 또는 phase ≥3 인 ADR 만
       lenses:
         - { lens: "cost", verdict: "unclear", reason: "..." } # verdict: pass|fail|unclear
       convergence: "일치 | 다른 이유로 일치 | 불일치"
@@ -45,19 +45,20 @@ reviews: # (required) array, accumulates per round
 ---
 ```
 
-## Taxonomy (9 fixed)
+## Taxonomy (10 fixed)
 
-| 키                            | 설명                                                            |
-| ----------------------------- | --------------------------------------------------------------- |
-| `evidence-missing`            | 코드 경로/파일/함수 grep 근거 부재                              |
-| `generator-extension-gap`     | Spec Generator 확장 미지원 → 수동 CSS debt                      |
-| `migration-cost-unquantified` | BC 영향 범위/비율 미수식화                                      |
-| `phase-split-late`            | HIGH 누적 후 Phase 분리 후행                                    |
-| `ssot-violation`              | D1/D2/D3 경계 침범                                              |
-| `alternative-strawman`        | 대안 기각 사유 부실, 이관 비용 없음                             |
-| `risk-4axis-incomplete`       | 4축 평가 일부 축 누락/편중                                      |
-| `adr-structure-violation`     | 스캐폴딩/Status 전이/README 동기화 위반                         |
-| `other`                       | 상위 8개에 매칭 안 됨 — `Pending Categories` 섹션에서 주기 검토 |
+| 키                            | 설명                                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `evidence-missing`            | 코드 경로/파일/함수 grep 근거 부재                                                                                                        |
+| `generator-extension-gap`     | catalog rule → `generate-css` 미지원 → 수동 CSS debt (옛 이름 Spec Generator — specs 패키지는 ADR-248 에서 삭제, 키는 기록 호환으로 유지) |
+| `migration-cost-unquantified` | BC 영향 범위/비율 미수식화                                                                                                                |
+| `phase-split-late`            | HIGH 누적 후 Phase 분리 후행                                                                                                              |
+| `ssot-violation`              | D1/D2/D3 경계 침범                                                                                                                        |
+| `alternative-strawman`        | 대안 기각 사유 부실, 이관 비용 없음                                                                                                       |
+| `risk-4axis-incomplete`       | 4축 평가 일부 축 누락/편중                                                                                                                |
+| `adr-structure-violation`     | 스캐폴딩/Status 전이/README 동기화 위반                                                                                                   |
+| `correctness`                 | phase 구현 판독 — 구현이 ADR Decision · Gate · breakdown 완료 기준과 어긋남 (2026-10-08 추가, ADR-256 round 4 · 5 의 7건이 선례)          |
+| `other`                       | 상위 9개에 매칭 안 됨 — `Pending Categories` 섹션에서 주기 검토                                                                           |
 
 **변경 정책**: taxonomy 변경은 design spec 수정 + 이 README 갱신 + `writer.mjs`/`validate.mjs` 동일 상수 수정 3곳 동시. 운영 중 신규 패턴은 `other` 로 저장하고 아래 섹션에 축적.
 
@@ -100,4 +101,4 @@ node .claude/scripts/adr-review/validate.mjs
 
 - Design spec: [ADR_REVIEW_LAYER0.md](../../reference/schemas/ADR_REVIEW_LAYER0.md)
 - Checklist seed: `.claude/rules/adr-writing.md` (§반복 패턴 선차단)
-- Skill: `.claude/skills/review-adr/SKILL.md` (Phase 4.5)
+- Skill: `.claude/skills/review-adr/SKILL.md` (결과와 기록 절)

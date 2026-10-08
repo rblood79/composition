@@ -1,6 +1,6 @@
 ## ADR 리뷰 기록
 
-리뷰 결과를 작성한 후, 아래 JSON payload 를 stdin 으로 writer 에 전달하여 `docs/adr/reviews/NNN.md` 에 저장합니다. **Fail-soft** — writer 실패해도 Phase 4 사용자 출력은 영향 받지 않습니다.
+리뷰 결과를 작성한 후, 아래 JSON payload 를 stdin 으로 writer 에 전달하여 `docs/adr/reviews/NNN.md` 에 저장합니다. **Fail-soft** — writer 실패해도 사용자에게 보고한 리뷰 결과는 영향 받지 않습니다.
 
 ### 호출 방법
 
@@ -14,14 +14,14 @@ cat <<'EOF' | node .claude/scripts/adr-review/writer.mjs
   "issues": [
     {
       "severity": "CRITICAL | HIGH | MEDIUM | LOW",
-      "category": "<.claude/scripts/adr-review/ 9-taxonomy>",
+      "category": "<.claude/scripts/adr-review/ 10-taxonomy>",
       "summary": "<한 줄 요약>",
       "evidence": "<파일:line>",
       "root_cause": "<...>",
       "outcome": "<기록 시점 실제 상태: pending | fixed | deferred | rejected>"
     }
   ],
-  "bodyMd": "<Phase 4 마크다운 본문>",
+  "bodyMd": "<리뷰 결과 마크다운 본문>",
   "hate": { "assumption": "<load-bearing 가정>", "root": "<반론 1개>", "axis": "<공격 축>", "first_nail": "<가장 싼 반증>", "verdict": "<G{n} 커버 | issue:{id}>" },
   "prism": { "lenses": [ { "lens": "<failure mode>", "verdict": "pass|fail|unclear", "reason": "<이유 1개>" } ], "convergence": "<일치|다른 이유로 일치|불일치>", "question": "<해결 질문 1 | 없음>" }
 }
@@ -38,9 +38,9 @@ EOF
 
 ### 출력 처리
 
-- **성공**: `→ saved to docs/adr/reviews/NNN.md (round N)` 한 줄을 Phase 4 결과 끝에 추가. exit 0.
+- **성공**: `→ saved to docs/adr/reviews/NNN.md (round N)` 한 줄을 리뷰 결과 끝에 추가. exit 0.
 - **Malformed 복구**: `→ saved (malformed recovery) to NNN.{ts}.md` 한 줄 추가. exit 1 무시 (data preserved).
-- **Fatal (required 필드 누락, IO 실패)**: `writer: <error>` warning 만 출력. Phase 1~4 정상 완료.
+- **Fatal (required 필드 누락, IO 실패)**: `writer: <error>` warning 만 출력. 리뷰 자체는 정상 완료.
 
 ### 스키마 / taxonomy
 
