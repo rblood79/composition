@@ -146,12 +146,13 @@ describe("ADR-256 후속 3 — a Select's selectionMode reaches RAC", () => {
  * id is the trigger's; the Button's own applies only while the Select has none.
  */
 describe("ADR-256 후속 5 — a detached Select in an open view", () => {
-  it("detach, then the Select's id cleared and set again: no update loop; the trigger keeps the Select's id", async () => {
+  it("detach, then the Select's id cleared and set again: no update loop; the trigger follows the Select's id", async () => {
     const library = await buildCodeCatalogLibrary();
     const workspace = new CatalogWorkspace(
       new CatalogGraph(
         newCatalogProjectDocument({
-          projectId: "project:project:adr256-select-detach" as EntryId<"project">,
+          projectId:
+            "project:project:adr256-select-detach" as EntryId<"project">,
           name: "Select detach",
         }),
         library,
@@ -209,23 +210,28 @@ describe("ADR-256 후속 5 — a detached Select in an open view", () => {
       if (String(message).includes("Maximum update depth")) loops.push("loop");
     });
     const settle = () => new Promise((resolve) => setTimeout(resolve, 600));
-    const trigger = () => host.querySelector<HTMLElement>(".react-aria-Select button")!;
+    const trigger = () =>
+      host.querySelector<HTMLElement>(".react-aria-Select button")!;
     const buttonId = () =>
       [...root.domInputs.values()].find(
         (record) =>
           root.typeOf(record) === "Button" &&
           root.domInputs.get(record.parentId)?.sourceId === FIELD,
       )!;
-    workspace.execute(detachInstances({ ids: [FIELD], newId: workspace.newId }));
+    workspace.execute(
+      detachInstances({ ids: [FIELD], newId: workspace.newId }),
+    );
     reactRoot.render(renderCatalogDom(root, body.id));
     await settle();
     expect(buttonId().htmlId).toBeTruthy();
     expect(trigger().id).toBe("animal");
     workspace.execute(setHtmlId({ id: FIELD, htmlId: "" }));
     await settle();
-    // (RAC keeps the field id it mounted with — later id edits must only not loop.)
+    // (Without the Select's id the trigger is the Button's own.)
+    expect(trigger().id).toBe(buttonId().htmlId);
     workspace.execute(setHtmlId({ id: FIELD, htmlId: "pet" }));
     await settle();
+    expect(trigger().id).toBe("pet");
     spy.mockRestore();
     expect(loops).toEqual([]);
     reactRoot.unmount();

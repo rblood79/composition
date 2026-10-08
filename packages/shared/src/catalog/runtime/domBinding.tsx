@@ -2411,8 +2411,13 @@ function withHtmlId(
     !selectTrigger &&
     !STATIC_ITEM_TYPES.has(type) &&
     type !== "TabPanel"
-  )
+  ) {
     patch.id = node.htmlId;
+    // (RAC's `useLabel` keeps the id it mounted with in `useId` state — a Select's trigger kept the
+    // first id — so a new author id remounts the RAC component.)
+    if (typeof element.type !== "string")
+      patch.key = `${element.key ?? ""}#${node.htmlId}`;
+  }
   if (node.ariaLabel) patch["aria-label"] = node.ariaLabel;
   const authored = node.className;
   if (authored) {

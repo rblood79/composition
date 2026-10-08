@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Select id 변경 — 열린 Preview 의 trigger 가 새 id 를 바로 따른다] - 2026-10-09
+
+### Fixed
+
+- **Design 패널에서 Select 의 ID 를 바꾸면 열린 Preview 의 trigger 버튼 id 가 바로 바뀐다** (종전: Preview 를 다시 열 때까지 처음 id 그대로 · ID 를 지워도 trigger Button 자신의 id 로 돌아가지 않음 — ADR-256 후속 5 에서 남긴 차이).
+  - **Why**: RAC `useLabel` 이 field id 를 `useId(props.id)` 의 state 로 들고 있어, 처음 mount 때의 값을 계속 쓴다. 작성자 id 가 바뀌면 그 RAC 요소를 key 로 다시 mount 한다 (id 를 편집할 때만 — 평소 렌더에는 영향 없음).
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.tsx` (`withHtmlId`)
+- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/adr256FollowupsSelect.test.tsx` (detach 뒤 id 지움 → Button id · 새 id → trigger — 원복 RED) · live `apps/builder/scripts/select-id-change-live.mjs` 5/5 (Design 패널 ID 칸에 직접 입력 — `animal` → `pet` → detach 뒤 `species` → 지움 = `button_1`, 오류 0)
+
 ## [Radio 선택 indicator — Canvas 가 Preview 와 같은 두꺼운 링 · 흰 가운데로] - 2026-10-09
 
 ### Fixed
