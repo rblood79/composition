@@ -12,6 +12,10 @@
  * Switch sm · xl.
  */
 import "fake-indexeddb/auto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { act } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
@@ -239,6 +243,163 @@ describe("toggle indicator node", () => {
       workspace.dispose();
     },
   );
+
+  it("Checkbox: the indicator follows isSelected · isIndeterminate and paints the rule's indicator radius", async () => {
+    // (2026-10-09) The origin shows the selected display state: an instance that authors
+    // `isSelected` paints what it authored, as RAC does in the DOM; indeterminate paints the
+    // selected box with its dash (`Checkbox.css` `[data-selected], [data-indeterminate]`); the box
+    // radius is `size.indicator.boxRadius` (DOM `.checkbox` `--radius-sm`), not the toggle's own.
+    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+    const indicator = kids[0];
+    const set = (key: string, value: boolean) => {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
+          props: { [key]: { kind: "set", value } },
+        }),
+      );
+      canvas.update();
+      const data = getSkiaNode(indicator.id)!;
+      return {
+        fill: JSON.stringify(data.box?.fillColor),
+        lines:
+          data.children?.filter((child) => child.type === "line").length ?? 0,
+        radius: data.box?.borderRadius,
+      };
+    };
+    const selected = set("isSelected", true);
+    expect(selected.lines).toBe(2);
+    expect(selected.radius).toBe(4);
+    const unselected = set("isSelected", false);
+    expect(unselected.lines).toBe(0);
+    expect(unselected.fill).not.toBe(selected.fill);
+    const indeterminate = set("isIndeterminate", true);
+    expect(indeterminate.lines).toBe(1);
+    expect(indeterminate.fill).toBe(selected.fill);
+    expect(set("isSelected", true).lines).toBe(1);
+    canvas.dispose();
+    workspace.dispose();
+  });
+
+  it.each([
+    ["sm", 16],
+    ["md", 20],
+    ["lg", 24],
+    ["xl", 30],
+  ] as const)(
+    "Checkbox %s: the check and the dash are the DOM's lucide glyphs in the box's content area",
+    async (size, box) => {
+      // (2026-10-09) The DOM draws lucide `Check` (`M20 6 9 17l-5-5`) · `Minus` (`M5 12h14`),
+      // viewBox 24, stroke 4, round caps, in the `.checkbox` content box: the 2px border inset, a
+      // (box − 4) square (live: svg x 2 · width box − 4 · height box, `meet`).
+      const { workspace, root, kids } = await openToggle("Checkbox", size);
+      const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+      const k = (box - 4) / 24;
+      const at = ([x, y]: readonly [number, number]) => [2 + x * k, 2 + y * k];
+      const lines = () =>
+        (getSkiaNode(kids[0].id)!.children ?? [])
+          .filter((child) => child.type === "line")
+          .map((child) => {
+            const line = child.line!;
+            return {
+              from: [line.x1, line.y1],
+              to: [line.x2, line.y2],
+              width: line.strokeWidth,
+              cap: line.strokeCap,
+            };
+          });
+      const expectLines = (
+        expected: readonly (readonly [number, number])[][],
+      ) => {
+        const actual = lines();
+        expect(actual).toHaveLength(expected.length);
+        actual.forEach((line, index) => {
+          const [from, to] = expected[index].map(at);
+          [...line.from, ...line.to].forEach((value, i) =>
+            expect(value).toBeCloseTo([...from, ...to][i], 3),
+          );
+          expect(line.width).toBeCloseTo(4 * k, 3);
+          expect(line.cap).toBe("round");
+        });
+      };
+      expectLines([
+        [
+          [20, 6],
+          [9, 17],
+        ],
+        [
+          [9, 17],
+          [4, 12],
+        ],
+      ]);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
+          props: { isIndeterminate: { kind: "set", value: true } },
+        }),
+      );
+      canvas.update();
+      expectLines([
+        [
+          [5, 12],
+          [19, 12],
+        ],
+      ]);
+      canvas.dispose();
+      workspace.dispose();
+    },
+  );
+
+  it("Checkbox: a mounted DOM (the Preview) follows an isSelected edit", async () => {
+    // RAC holds the selection uncontrolled (a Preview press toggles it): an authored change of the
+    // default starts the element over, as the Tabs binding does with its default key (2026-10-09).
+    const { workspace, root } = await openToggle("Checkbox", "md");
+    const host = document.createElement("div");
+    document.body.append(host);
+    const mounted = createRoot(host);
+    const render = () =>
+      act(async () =>
+        mounted.render(
+          renderCatalogDom(
+            root,
+            [...root.domInputs.values()].find(
+              (record) => record.sourceId === "project:node:owner",
+            )!.id,
+          ),
+        ),
+      );
+    const selected = () =>
+      host.querySelector(".react-aria-Checkbox")!.hasAttribute("data-selected");
+    await render();
+    expect(selected()).toBe(true);
+    for (const value of [false, true]) {
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: "project:node:owner" as NodeId }],
+          props: { isSelected: { kind: "set", value } },
+        }),
+      );
+      await render();
+      expect(selected()).toBe(value);
+    }
+    act(() => mounted.unmount());
+    host.remove();
+    workspace.dispose();
+  });
+
+  it("Checkbox.css keeps the indeterminate dash (a stroked lucide Minus) stroked", () => {
+    const sheet = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/Checkbox.css",
+      ),
+      "utf8",
+    );
+    expect(sheet).not.toMatch(
+      /\[data-indeterminate\]\s+svg\s*\{[^}]*stroke:\s*none/,
+    );
+  });
 
   it("the indicator position is not removable; the Label still is (hidden)", async () => {
     const { workspace, root, kids } = await openToggle("Checkbox", "md");

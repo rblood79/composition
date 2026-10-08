@@ -108,13 +108,11 @@
     }
 
     &[data-pressed] .checkbox,
-
     & .react-aria-CheckboxButton[data-pressed] .checkbox {
       border-color: var(--border-pressed);
     }
 
     &[data-focus-visible] .checkbox,
-
     & .react-aria-CheckboxButton[data-focus-visible] .checkbox {
       outline: 2px solid var(--focus-ring);
       outline-offset: 2px;
@@ -128,7 +126,6 @@
       }
 
       &[data-pressed] .checkbox,
-
       & .react-aria-CheckboxButton[data-pressed] .checkbox {
         border-color: color-mix(in srgb, var(--selected-color) 75%, black);
         background: color-mix(in srgb, var(--selected-color) 75%, black);
@@ -139,10 +136,8 @@
       }
     }
 
-    &[data-indeterminate] svg {
-      stroke: none;
-      fill: var(--checkmark-color);
-    }
+    /* The indeterminate dash is a stroked lucide `Minus` (as the check): no fill-only override —
+       `stroke: none` erased it (2026-10-09). */
 
     &[data-invalid] {
       .checkbox {
@@ -151,7 +146,6 @@
       }
 
       &[data-pressed] .checkbox,
-
       & .react-aria-CheckboxButton[data-pressed] .checkbox {
         border-color: color-mix(in srgb, var(--negative) 75%, black);
       }
@@ -163,7 +157,6 @@
         }
 
         &[data-pressed] .checkbox,
-
         & .react-aria-CheckboxButton[data-pressed] .checkbox {
           background: color-mix(in srgb, var(--negative) 75%, black);
         }

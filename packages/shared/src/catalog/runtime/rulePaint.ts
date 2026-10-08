@@ -90,6 +90,11 @@ const SELECTION_STATES: ReadonlySet<StateName> = new Set([
   "selectedPressed",
 ]);
 /**
+ * Rules whose indeterminate paints as selected — `Checkbox.css` `[data-selected], [data-indeterminate]`
+ * (the glyph — check or dash — is the primitive's, by `isIndeterminate`).
+ */
+const INDETERMINATE_SELECTED_TYPES: ReadonlySet<string> = new Set(["Checkbox"]);
+/**
  * States a rule-backed node's own rule paint answers (`resolveCatalogPaint` interaction and RAC
  * selection). Other states reach it only through typed rules (disabled opacity) — the G3 census
  * classifies registered state axes by this set.
@@ -174,7 +179,8 @@ export function catalogRulePaint(
   const ownerSelected =
     typeof props._isSelected === "boolean" ? props._isSelected : undefined;
   const selected =
-    ownerSelected ?? (state !== undefined && SELECTION_STATES.has(state));
+    (ownerSelected ?? (state !== undefined && SELECTION_STATES.has(state))) ||
+    (INDETERMINATE_SELECTED_TYPES.has(type) && props.isIndeterminate === true);
   if (selected) {
     props.isSelected = true;
     props._isSelected = true;

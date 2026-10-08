@@ -25,7 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Canvas 의 checkbox 상자 모서리가 Preview 와 같다** (4px — 종전 Canvas 0).
   - **Why**: `checkbox` primitive 가 toggle root 의 `borderRadius` (size `{radius.none}`) 를 상자에 써서 rule 의 `size.indicator.boxRadius` 를 덮었다. DOM 은 root 모서리를 root 요소에 건다.
   - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts`
-- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/toggleIndicatorNode.test.ts` (Canvas 상태 3 · 모서리 · 마운트된 DOM · 시트) · live `apps/builder/scripts/checkbox-state-radius-live.mjs` (실제 Options 칩 클릭, Canvas Skia 데이터 ↔ Preview computed style).
+- **Canvas 의 체크 · 가로선이 Preview 의 lucide 아이콘과 같은 모양 · 굵기다** (md: 선 2.67px · round cap — 종전 Canvas 는 상자 비율 0.2/0.4/0.8 의 임의 꺾은선 · 2.5px 고정이라 세로로 길고 얇았다).
+  - **Why**: DOM 은 lucide `Check` (`M20 6 9 17l-5-5`) · `Minus` (`M5 12h14`) 를 viewBox 24 · stroke 4 로 `.checkbox` content box (border 안쪽 `boxSize − 4` 정사각형) 에 그린다. Canvas primitive 는 그 path 와 상관없는 비율을 하드코딩했다. 이제 같은 path 를 같은 영역 (border 만큼 안쪽, 배율 `(boxSize − 2·border)/24`) 에 굵기 `4 × 배율` · round cap 으로 그린다.
+  - 위치: `packages/rendering/src/renderers/skiaPrimitives.ts` (`checkbox`)
+- 회귀: `apps/builder/src/builder/catalogRuntime/__tests__/toggleIndicatorNode.test.ts` (Canvas 상태 3 · 모서리 · 크기별 glyph 4 · 마운트된 DOM · 시트) · live `apps/builder/scripts/checkbox-state-radius-live.mjs` (실제 Options 칩 클릭, Canvas Skia 데이터 ↔ Preview computed style · svg 실측 frame 의 glyph 좌표).
 
 ## [ADR-256 후속 4 · 6 — Menu 를 MenuTrigger > Button + Popover > Menu 로 · 하위 메뉴 넣기] - 2026-10-09
 

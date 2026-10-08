@@ -28,10 +28,7 @@ import type {
 } from "../document/types";
 import { FIELD_CONTROL_GROUP_HOSTS } from "../../domain/componentTraits";
 import { CatalogGraph } from "../document/graph";
-import {
-  isInOwnCollection,
-  isInOwnGroup,
-} from "../document/collectionItems";
+import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_STEP,
@@ -555,7 +552,8 @@ export function resolveCatalogNode(
     const passHostOwner = (
       context: ParentContext,
     ): ParentContext | undefined => {
-      const owners = PART_RULE_PASS_HOSTS[lookupDefinition(context.definitionId).name];
+      const owners =
+        PART_RULE_PASS_HOSTS[lookupDefinition(context.definitionId).name];
       if (!owners) return undefined;
       const above = pastFrames(structuralParent(context.parent));
       return above && owners.has(lookupDefinition(above.definitionId).name)
@@ -1170,7 +1168,7 @@ export function resolveCatalogNode(
     // owner's, so a selection display state of the item template (a selected state origin) is not
     // forced there (ADR-256 후속 7 — the groups).
     const itemName = lookupDefinition(template.definitionId).name;
-    const displayState =
+    const offeredState =
       (shownState === "selected" || shownState === "unselected") &&
       (isInOwnCollection(itemName, ancestorTypes(parent)) ||
         isInOwnGroup(itemName, ancestorTypes(parent)))
@@ -1182,6 +1180,19 @@ export function resolveCatalogNode(
       ...Object.keys(root?.props ?? {}),
       ...(change?.kind === "patch" ? Object.keys(change.props ?? {}) : []),
     ]);
+    // An authored value against the state's own prop (an instance of the selected origin set
+    // unselected) ends the state at this position: RAC draws the authored value in the DOM, and the
+    // state would keep the Canvas on the origin's paint (2026-10-09 Checkbox).
+    const displayState = Object.entries(
+      (offeredState && DISPLAY_STATE_PROPS[offeredState]) ?? {},
+    ).some(
+      ([key, value]) =>
+        definition.accepts[key] === "boolean" &&
+        instanceAuthored.has(key) &&
+        props[key] !== value,
+    )
+      ? undefined
+      : offeredState;
     if (displayState)
       for (const [key, value] of Object.entries(
         DISPLAY_STATE_PROPS[displayState] ?? {},

@@ -1560,7 +1560,10 @@ export class CatalogCompositionRoot {
       );
       const valued = catalogWithValues(
         valueTemplate?.visual
-          ? { ...unbound, visual: { ...unbound.visual, ...valueTemplate.visual } }
+          ? {
+              ...unbound,
+              visual: { ...unbound.visual, ...valueTemplate.visual },
+            }
           : unbound,
         get,
         this.typeOf,
@@ -1583,9 +1586,18 @@ export class CatalogCompositionRoot {
     const read = (key: string) => refreshed.get(key) ?? this.records.get(key);
     // ADR-256 Decision 12: an owner's new values reach the parts bound to them (`{valueText}`).
     for (const record of [...refreshed.values()])
-      for (const dependent of catalogValueDependents(record, read, this.typeOf)) {
+      for (const dependent of catalogValueDependents(
+        record,
+        read,
+        this.typeOf,
+      )) {
         const current = read(dependent.id)!;
-        const valued = catalogWithValues(current, read, this.typeOf, this.locale);
+        const valued = catalogWithValues(
+          current,
+          read,
+          this.typeOf,
+          this.locale,
+        );
         const next =
           valued.presentWhen === undefined
             ? valued
@@ -3185,6 +3197,8 @@ export class CatalogCompositionRoot {
         stateVisual: _stateVisual,
         // (ADR-256 Decision 12 — the bindings are read again from the new written values below.)
         valueTemplate: _valueTemplate,
+        // (An authored prop can end the display state — `resolveCatalogNode`, 2026-10-09.)
+        displayState: _displayState,
         ...kept
       } = before;
       const resolvedRecord: CatalogConsumerNode = {
@@ -3213,6 +3227,9 @@ export class CatalogCompositionRoot {
         name: top.name ?? resolved.name,
         regions: top.regions ?? resolved.regions,
         placeholder: top.placeholder ?? resolved.placeholder,
+        ...(resolved.displayState
+          ? { displayState: resolved.displayState }
+          : {}),
       };
       const record = catalogWithValues(
         this.withState(

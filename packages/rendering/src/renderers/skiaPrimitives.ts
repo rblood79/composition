@@ -1038,10 +1038,9 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const boxSize = size.indicator?.boxSize ?? 20;
   const isChecked = props.isSelected === true;
 
-  const borderRadius = parsePxValue(
-    style?.borderRadius,
-    size.indicator?.boxRadius ?? 4,
-  );
+  // 상자 radius 는 indicator 자기 값 (DOM `.checkbox` `--radius-sm`). `style.borderRadius` 는 toggle
+  //   root 의 것 (size `{radius.none}`) — DOM 은 root 요소에 걸고 상자에는 안 건다 (2026-10-09).
+  const borderRadius = size.indicator?.boxRadius ?? 4;
   const borderWidth = parseBorderWidth(style?.borderWidth, 2);
 
   // checked 시각 = 보편 상태축: bg=fill.default.selected, border=selectedBorder.
@@ -1071,40 +1070,27 @@ const checkbox: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     },
   ];
 
-  if (isChecked && !props.isIndeterminate) {
-    const pad = boxSize * 0.2;
-    shapes.push(
-      {
-        type: "line",
-        x1: pad,
-        y1: boxSize * 0.5,
-        x2: boxSize * 0.4,
-        y2: boxSize - pad,
-        stroke: "{color.white}" as TokenRef,
-        strokeWidth: 2.5,
-      },
-      {
-        type: "line",
-        x1: boxSize * 0.4,
-        y1: boxSize - pad,
-        x2: boxSize - pad,
-        y2: pad,
-        stroke: "{color.white}" as TokenRef,
-        strokeWidth: 2.5,
-      },
-    );
-  } else if (props.isIndeterminate) {
-    const pad = boxSize * 0.25;
-    shapes.push({
-      type: "line",
-      x1: pad,
-      y1: boxSize / 2,
-      x2: boxSize - pad,
-      y2: boxSize / 2,
-      stroke: "{color.white}" as TokenRef,
-      strokeWidth: 2.5,
-    });
-  }
+  // glyph = DOM 의 lucide `Check` (`M20 6 9 17l-5-5`) · `Minus` (`M5 12h14`) — viewBox 24 · stroke 4 ·
+  //   round cap/join. DOM svg 는 `.checkbox` content box (border 안쪽) 에 `meet` 으로 들어가므로
+  //   그림 영역 = border 만큼 들어간 (boxSize − 2·border) 정사각형 (live 실측 2026-10-09: md svg x 2 ·
+  //   폭 16 · 높이 20). 두 선의 round cap 이 꺾이는 점의 round join 을 만든다.
+  const glyph = (boxSize - borderWidth * 2) / 24;
+  const glyphLine = (
+    [x1, y1]: readonly [number, number],
+    [x2, y2]: readonly [number, number],
+  ): Shape => ({
+    type: "line",
+    x1: borderWidth + x1 * glyph,
+    y1: borderWidth + y1 * glyph,
+    x2: borderWidth + x2 * glyph,
+    y2: borderWidth + y2 * glyph,
+    stroke: "{color.white}" as TokenRef,
+    strokeWidth: 4 * glyph,
+    strokeCap: "round",
+  });
+  if (props.isIndeterminate) shapes.push(glyphLine([5, 12], [19, 12]));
+  else if (isChecked)
+    shapes.push(glyphLine([20, 6], [9, 17]), glyphLine([9, 17], [4, 12]));
 
   return shapes;
 };
