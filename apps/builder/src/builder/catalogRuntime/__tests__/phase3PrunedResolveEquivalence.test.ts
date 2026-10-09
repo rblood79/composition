@@ -97,7 +97,7 @@ function documentOf(roots: NodeEntry[], nested: NodeEntry[]): CatalogDocument {
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 31,
+    libraryContractVersion: 32,
     revision: 0,
     projectId,
     rootId: projectId,

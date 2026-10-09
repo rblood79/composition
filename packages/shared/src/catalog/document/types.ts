@@ -66,10 +66,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Popover > Menu` (`component-menu__trigger` · `__popover` · `__menu`; the origin accepts `size` ·
  * `selectionMode`) — the Menu node is RAC's list, its trigger the Button node. 31 — a Tag has no
  * `variant` (RAC · S2 Tag has none): a selected Tag is its TagGroup's selection — the Tag's
- * `isSelected` (Selected) gives the group's `defaultSelectedKeys` (2026-10-09).
+ * `isSelected` (Selected) gives the group's `defaultSelectedKeys` (2026-10-09). 32 — a collection
+ * (TagGroup · ListBox · GridList · Menu · Select · ComboBox) takes no `items` (the old items-manager
+ * array): its items are its child nodes (RAC static collection) or its data binding (RAC dynamic
+ * collection — the rows with the item node as their template) (2026-10-09).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 31 as const;
+export const LIBRARY_CONTRACT_VERSION = 32 as const;
 
 export type EntryKind =
   | "project"

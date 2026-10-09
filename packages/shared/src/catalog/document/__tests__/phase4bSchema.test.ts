@@ -15,7 +15,7 @@ import { CatalogValidationError, validateCatalogEntry } from "../validation";
  */
 const library = () =>
   buildCatalogLibrary({
-    contractVersion: 31,
+    contractVersion: 32,
     revision: "phase4b-schema",
     bindingIds: ["listbox", "item", "text"],
     actionOpCodes: [],
@@ -85,7 +85,7 @@ function graph(nodes: NodeEntry[], roots: string[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 31,
+    libraryContractVersion: 32,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -297,7 +297,8 @@ describe("ADR-248 Phase 4b-1 schema", () => {
   });
 
   it("types the registered structured prop kinds (items-manager · string-array)", () => {
-    expect(catalogTypeDefinition("ListBox").accepts.items).toBe("items");
+    // (A collection's items are its child nodes or its data binding — no `items` prop, 2026-10-09.)
+    expect(catalogTypeDefinition("ListBox").accepts.items).toBeUndefined();
     const chart = catalogTypeDefinition("Chart").accepts;
     expect(chart.valueFields).toBe("string[]");
     expect(chart.seriesConfig).toBe("items");

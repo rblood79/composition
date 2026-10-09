@@ -15,28 +15,9 @@ export const gridListBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B Task 5: 정적 items[](StoredGridListItem[]).
-      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 정적 카드 소실).
-      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
-      //   Inspector 정적 items 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
-      items: {
-        kind: "items-manager",
-        label: "Items",
-        section: "content",
-        itemsManager: {
-          itemsKey: "items",
-          itemTypeName: "GridListItem",
-          defaultItem: { id: "", label: "Item", isDisabled: false },
-          itemSchema: [
-            { key: "label", type: "string", label: "Label" },
-            { key: "textValue", type: "string", label: "Text Value" },
-            { key: "description", type: "string", label: "Description" },
-            { key: "isDisabled", type: "boolean", label: "Disabled" },
-          ],
-          labelKey: "label",
-          allowSections: true,
-        },
-      },
+      // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
+      //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
+      //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).
       variant: {
         kind: "variant",
         label: "Variant",
@@ -89,7 +70,7 @@ export const gridListBinding: PrimitiveBinding = {
       },
       // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
       //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
-      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 items-manager itemSchema 에 있다.
+      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 항목 노드 자신의 isDisabled 다.
       // RSP ListView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
       //   선택을 무엇으로 표시하는가 — checkbox(행 체크박스) | highlight(배경 강조만).
       //   RAC 는 같은 축을 `selectionBehavior`("toggle"|"replace") 로 부르고, 변환은

@@ -269,7 +269,6 @@ export const chartBinding: PrimitiveBinding = {
        * accepts 에 있는 키만 투영하므로, 선언을 빠뜨리면 DOM 경로에서 `data` 가 조용히
        * 사라지고 Preview 가 "No data" 만 그린다 (2026-09-08 live 에서 실제로 그랬다.
        * Skia 는 scene-node props 를 직접 읽어 멀쩡했던 **한쪽만 깨지는** 형태).
-       * ListBox `items` 주석이 같은 함정을 기록해 두고 있다.
        */
       data: {
         kind: "items-manager",

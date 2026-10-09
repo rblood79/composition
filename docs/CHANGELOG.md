@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컬렉션 항목 = slot 과 data binding 만 — 옛 items 목록 삭제 · contract 32] - 2026-10-09
+
+### Removed
+
+- **TagGroup · ListBox · GridList · Menu · Select · ComboBox 의 Design 패널에서 옛 항목 목록 ("Add Tag" · "Add Option" · "Add ListBoxItem" … 과 Total 개수) 을 지웠다** — 항목은 Slot 의 "+" (항목 노드 — RAC 정적 collection) 또는 Data binding (collection 행 + 항목 노드 template — RAC 동적 collection) 으로만 넣는다 (사용자 「slot 방식과 data binding 방식만 사용하는것이 레퍼런스에 맞는 방법이지 않나」 → 「진행해」).
+  - **Why**: react-aria.adobe.com/collections 는 정적 (JSX 자식) · 동적 (`items` + 그리는 함수) 두 가지만 정의한다. 옛 목록은 `props.items` 인라인 배열이었고, ADR-256 노드 트리 전환 뒤 Canvas · Preview 어느 쪽도 읽지 않아 눌러도 화면이 바뀌지 않았다.
+  - library contract 31 → 32 — 이전 contract 의 문서는 열지 않는다 (종전 규약).
+  - Chart 의 Sample Rows · Series · Reference Lines 편집기는 차트 데이터라 그대로 둔다.
+  - 위치: `packages/shared/src/catalog/bindings/{TagGroup,ListBox,GridList,Menu,Select,ComboBox}.binding.ts` · `packages/shared/src/catalog/document/types.ts`
+- 회귀: `deadSurfaceRemoval.test.ts` (원복 RED 7) · `collectionBindings.test.ts` · `phase4ePropertySections.test.tsx` · live `apps/builder/scripts/collection-items-source-live.mjs` 8/8 (6종 선택 → 항목 목록 없음 · "+" 로 항목 노드 하나씩 Canvas · Preview · 노드 자리에 Data · Chart Sample Rows 유지) · G3 79 · parity 811
+
 ## [Tabs · TagGroup · Table 자신의 "+" 로 항목 추가 · Preview maxRows 재측정] - 2026-10-09
 
 ### Fixed

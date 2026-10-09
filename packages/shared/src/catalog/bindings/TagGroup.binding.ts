@@ -15,37 +15,9 @@ export const tagGroupBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B (A 후속, 2026-06-05): 정적 items[] SSOT(ADR-097 P2).
-      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 빈 TagList placeholder).
-      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
-      //   Inspector 정적 tag 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
-      //   Skia 경로는 appendTagRowProjection 이 canonical props.items 를 직접 읽어 무관.
-      items: {
-        kind: "items-manager",
-        label: "Tags",
-        section: "content",
-        itemsManager: {
-          itemsKey: "items",
-          itemTypeName: "Tag",
-          defaultItem: { id: "", label: "New Tag", isDisabled: false },
-          itemSchema: [
-            { key: "label", type: "string", label: "Label" },
-            // 항목별 leading icon (2026-08-21) — Select/ComboBox itemSchema 와 같은 `icon` 채널.
-            //   DOM 은 chip 안 glyph, Skia 는 Tag rule 의 `leadingIcon.nameProp:"icon"` 이 소비.
-            { key: "icon", type: "icon", label: "Icon" },
-            // 항목별 avatar 이미지 URL (2026-08-21) — icon 과 같은 좌측 슬롯이며 둘 다
-            //   있으면 avatar 가 이긴다. Skia 는 Tag rule `leadingAvatar.srcProp:"avatar"`.
-            { key: "avatar", type: "string", label: "Avatar URL" },
-            { key: "isDisabled", type: "boolean", label: "Disabled" },
-            {
-              key: "allowsRemoving",
-              type: "boolean",
-              label: "Allows Removing",
-            },
-          ],
-          labelKey: "label",
-        },
-      },
+      // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
+      //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
+      //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).
       label: { kind: "string", label: "Label", section: "content" },
       description: {
         kind: "string",
@@ -103,7 +75,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       },
       // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
       //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
-      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 items-manager itemSchema 에 있다.
+      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 항목 노드 자신의 isDisabled 다.
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderTagGroup 기소비.
       disallowEmptySelection: {
         kind: "boolean",

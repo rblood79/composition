@@ -15,31 +15,9 @@ export const menuBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B Task 3: 정적 items[] SSOT(RuntimeMenuItem[]).
-      //   toRacProps 가 props.items pass-through 를 보장(미선언 시 static children placeholder).
-      //   kind:"items-manager" 는 비-DATA_ATTR_KIND → out[key]=value 통과 유지 +
-      //   Inspector 정적 menu item 추가/제거 UI(ItemsManager) 렌더(RSP Dynamic collections).
-      items: {
-        kind: "items-manager",
-        label: "Menu Items",
-        section: "content",
-        itemsManager: {
-          itemsKey: "items",
-          itemTypeName: "MenuItem",
-          defaultItem: { id: "", label: "New Item" },
-          itemSchema: [
-            { key: "label", type: "string", label: "Label" },
-            { key: "value", type: "string", label: "Value" },
-            { key: "href", type: "string", label: "URL" },
-            { key: "isDisabled", type: "boolean", label: "Disabled" },
-            { key: "icon", type: "icon", label: "Icon" },
-            { key: "shortcut", type: "string", label: "Shortcut" },
-            { key: "description", type: "string", label: "Description" },
-          ],
-          labelKey: "label",
-          allowSections: true,
-        },
-      },
+      // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
+      //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
+      //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).
       // ADR-256 후속 4: the trigger (its label · variant) is the MenuTrigger's Button node — a
       //   Menu node is RAC's list.
       size: {

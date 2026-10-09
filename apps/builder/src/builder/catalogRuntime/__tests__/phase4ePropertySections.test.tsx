@@ -46,8 +46,7 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
  * ADR-248 Phase 4e-4 Properties sections: the author DOM id stays unique (a taken id is refused,
- * the check assigns `base_N`); the shared items manager edits a collection's items through
- * `editItems` (one step per edit) when the catalog items source is provided.
+ * the check assigns `base_N`); a collection's items are its child nodes or its data binding.
  */
 const PROJECT = "project:project:sections" as EntryId<"project">;
 const BODY = "project:node:home-body" as NodeId;
@@ -117,54 +116,19 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
     expect(graph.getEntry(id("a"))).not.toHaveProperty("metadata.htmlId");
   });
 
-  it("the shared items manager edits a collection's items through editItems", async () => {
+  it("a collection offers no items manager — its items are child nodes or its data binding", async () => {
+    // 2026-10-09 (사용자 「slot 방식과 data binding 방식만 사용하는것이 레퍼런스에 맞는 방법」): RAC's
+    // static collection is its JSX children (the slot "+"), its dynamic one `items` with a render
+    // function (the data binding's rows with the item node as template). The old inline `items`
+    // array (no renderer read it since ADR-256) is gone; the items manager stays for Chart data.
     const { workspace } = await open();
-    const target = { kind: "node", id: id("list") } as const;
-    const record = workspace.root.recordsOfSource(id("list"))[0];
     const fields = catalogEditContract(
       workspace.runtime.graph,
       workspace.readModel,
-      target,
-    ).fields.filter((field) => field.kind === "items-manager");
-    expect(fields.length).toBeGreaterThan(0);
-    const items = () =>
-      workspace.readModel.propSource(target, fields[0].key).value as
-        { id: string; type?: string; label?: string }[] | undefined;
-    const before = items()?.length ?? 0;
-    render(
-      <I18nProvider initialLocale="en-US">
-        <CatalogWorkspaceProvider workspace={workspace}>
-          <FieldValueSourceContext.Provider value={CATALOG_FIELD_VALUE_SOURCE}>
-            <ItemsSourceContext.Provider value={CATALOG_ITEMS_SOURCE}>
-              <GenericFieldRenderer
-                fields={fields}
-                onSemanticUpdate={() => {}}
-                onStyleUpdate={() => {}}
-                elementId={record}
-              />
-            </ItemsSourceContext.Provider>
-          </FieldValueSourceContext.Provider>
-        </CatalogWorkspaceProvider>
-      </I18nProvider>,
-    );
-    const revision = workspace.runtime.graph.revision;
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^Add ListBoxItem/ }));
-    });
-    expect(items()).toHaveLength(before + 1);
-    expect(workspace.runtime.graph.revision).toBe(revision + 1);
-    expect(items()!.at(-1)).toMatchObject({ label: expect.any(String) });
-    const added = items()!.at(-1)!.id;
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^Add Section/ }));
-    });
-    expect(items()!.at(-1)).toMatchObject({ type: "section", items: [] });
-    await act(async () => {
-      workspace.undo();
-      workspace.undo();
-    });
-    expect(items()?.length ?? 0).toBe(before);
-    expect(items()?.some((item) => item.id === added) ?? false).toBe(false);
+      { kind: "node", id: id("list") },
+    ).fields;
+    expect(fields.some((field) => field.kind === "items-manager")).toBe(false);
+    expect(fields.some((field) => field.kind === "binding")).toBe(true);
   });
 
   it("the catalog Properties panel shows a Chart's own controls and writes through them", async () => {

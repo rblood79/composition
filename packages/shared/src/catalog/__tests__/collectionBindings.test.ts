@@ -104,43 +104,23 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     expect(result.dataBinding).toEqual({ source: "c", name: "countries" });
   });
 
-  it("Select: 정적 items[](StoredSelectItem[]) pass-through (ADR-912 Task 6)", () => {
-    // items 미선언 시 toRacProps 가 props.items 를 drop → wrapper 가 정적 source 못 봄.
-    // Select.binding.ts items accepts 추가로 GridList/ListBox 와 동형 통과 검증.
-    const items = [
-      { id: "a", label: "A" },
-      { id: "b", label: "B" },
-    ];
-    const result = toRacProps(
-      {
-        id: "sel2",
-        type: "Select",
-        props: { items, placeholder: "Pick" },
-      },
-      getPrimitiveBinding("Select")!,
-    );
-    expect(result.items).toEqual(items);
-    expect(result.placeholder).toBe("Pick");
-  });
-
-  it("ComboBox: 정적 items[](StoredComboBoxItem[]) pass-through (ADR-912 Task 7)", () => {
-    // items 미선언 시 toRacProps 가 props.items 를 drop → wrapper 가 정적 source 못 봄.
-    // ComboBox.binding.ts items accepts 추가로 Select/GridList/ListBox 와 동형 통과 검증.
-    const items = [
-      { id: "x", label: "X" },
-      { id: "y", label: "Y" },
-    ];
-    const result = toRacProps(
-      {
-        id: "cb1",
-        type: "ComboBox",
-        props: { items, placeholder: "Search" },
-      },
-      getPrimitiveBinding("ComboBox")!,
-    );
-    expect(result.items).toEqual(items);
-    expect(result.placeholder).toBe("Search");
-  });
+  it.each(["Select", "ComboBox"])(
+    "%s: 옛 정적 items[] 는 통과하지 않는다 — 항목은 slot 노드 또는 dataBinding (2026-10-09)",
+    (type) => {
+      // 사용자 「slot 방식과 data binding 방식만 사용하는것이 레퍼런스에 맞는 방법」: RAC collection
+      //   은 정적 (JSX 자식) · 동적 (items + 그리는 함수) 둘뿐 — 옛 inline items-manager 는 삭제.
+      const result = toRacProps(
+        {
+          id: "c1",
+          type,
+          props: { items: [{ id: "a", label: "A" }], placeholder: "Pick" },
+        },
+        getPrimitiveBinding(type)!,
+      );
+      expect(result).not.toHaveProperty("items");
+      expect(result.placeholder).toBe("Pick");
+    },
+  );
 
   it("Tabs: orientation/variant data-* 라우팅", () => {
     const result = toRacProps(

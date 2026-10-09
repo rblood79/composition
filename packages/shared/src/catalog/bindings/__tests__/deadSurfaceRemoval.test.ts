@@ -14,6 +14,11 @@ import { getPrimitiveBinding } from "../index";
  * - CardView.columns: renderCardView 는 gap 만 읽는다. S2 CardView 에도 columns 축 없음.
  * - ListBox/GridList/Tree/TagGroup.isDisabled (컬렉션 전체): RAC/RSP 컬렉션은 `disabledKeys`·항목별
  *   isDisabled 만 둔다. wrapper 가 안 읽고 Skia 항목 투영에도 부모 상태가 없어 두 leg 모두 dead 였다.
+ * - TagGroup/ListBox/GridList/Menu/Select/ComboBox.items (items-manager, 2026-10-09 사용자 「slot 방식과
+ *   data binding 방식만 사용하는것이 레퍼런스에 맞는 방법이지 않나」): RAC collection 은 정적 = JSX
+ *   자식 (composition 의 slot 노드), 동적 = `items` + 그리는 함수 (dataBinding 의 collection 행 +
+ *   항목 노드 template) 둘뿐이다. 옛 `props.items` 인라인 배열은 ADR-256 노드 트리 전환 뒤 어느
+ *   renderer 도 읽지 않았다. 항목별 Disabled 는 항목 노드 자신의 `isDisabled`.
  */
 const REMOVED: Record<string, readonly string[]> = {
   Link: ["isExternal", "showExternalIcon"],
@@ -21,10 +26,13 @@ const REMOVED: Record<string, readonly string[]> = {
   Breadcrumbs: ["showRoot", "isMultiline"],
   TableView: ["allowsResizingColumns"],
   CardView: ["columns"],
-  ListBox: ["isDisabled"],
-  GridList: ["isDisabled"],
+  ListBox: ["isDisabled", "items"],
+  GridList: ["isDisabled", "items"],
   Tree: ["isDisabled"],
-  TagGroup: ["isDisabled"],
+  TagGroup: ["isDisabled", "items"],
+  Menu: ["items"],
+  Select: ["items"],
+  ComboBox: ["items"],
 };
 
 describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
@@ -49,11 +57,32 @@ describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
     );
   });
 
-  it("항목별 Disabled 는 items-manager itemSchema 에 남아 있다", () => {
-    for (const type of ["ListBox", "GridList", "TagGroup"]) {
-      const items = getPrimitiveBinding(type)!.props.accepts.items;
-      const keys = items?.itemsManager?.itemSchema.map((f) => f.key) ?? [];
-      expect(keys, type).toContain("isDisabled");
+  it("항목별 Disabled 는 항목 노드 자신의 isDisabled 다", () => {
+    for (const type of ["ListBoxItem", "GridListItem", "Tag"])
+      expect(getPrimitiveBinding(type)!.props.accepts, type).toHaveProperty(
+        "isDisabled",
+      );
+  });
+
+  it("컬렉션은 slot (자식 노드) 과 dataBinding 만 — items-manager 는 Chart 데이터에만", () => {
+    for (const type of [
+      "TagGroup",
+      "ListBox",
+      "GridList",
+      "Menu",
+      "Select",
+      "ComboBox",
+    ]) {
+      const accepts = getPrimitiveBinding(type)!.props.accepts;
+      expect(
+        Object.values(accepts).some((field) => field.kind === "items-manager"),
+        type,
+      ).toBe(false);
     }
+    expect(
+      Object.values(getPrimitiveBinding("Chart")!.props.accepts).some(
+        (field) => field.kind === "items-manager",
+      ),
+    ).toBe(true);
   });
 });
