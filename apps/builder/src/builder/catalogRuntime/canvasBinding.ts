@@ -1,5 +1,10 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
-import { getIconData, getSkiaPrimitiveMode } from "@composition/rendering";
+import {
+  getIconData,
+  getSkiaPrimitiveMode,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import {
   OWNER_DRAWN_PART_HOSTS,
   OWNER_DRAWN_PART_OWNERS,
@@ -16,11 +21,8 @@ import {
 } from "../workspace/canvas/skia/useSkiaNode";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { catalogNodeState } from "../../../../../packages/shared/src/catalog/resolution/resolver";
-import type { CatalogConsumerNode } from "./compositionRoot";
-import {
-  catalogDateInputPaintProps,
-  catalogRuleNodeData,
-} from "./ruleShapes";
+import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
+import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
@@ -860,6 +862,35 @@ function chromeText(
   };
 }
 
+/**
+ * A collapsed TagList's "Show all (N)" box (`CatalogCompositionRoot.settleTagRows` — the DOM's
+ * `.tag-show-all-btn`: the Tag's padding and font, accent text, no fill or visible border).
+ */
+function tagShowAllData(showAll: CatalogTagShowAll, rect: Rect): SkiaNodeData {
+  const inset = (value: number) => value + showAll.borderWidth;
+  return {
+    type: "text",
+    elementId: showAll.id,
+    ...rect,
+    visible: true,
+    box: { fillColor: rgba(undefined), borderRadius: showAll.radius },
+    text: {
+      content: showAll.text,
+      fontFamilies: ["Pretendard"],
+      fontSize: showAll.fontSize,
+      lineHeight: showAll.fontSize * showAll.lineHeight,
+      // (The theme's accent in the bind's color mode — the sheet's `var(--accent)`.)
+      color: rgba(
+        resolveToken("{color.accent}" as TokenRef, colorMode) as string,
+      ),
+      paddingLeft: inset(showAll.paddingX),
+      paddingTop: inset(showAll.paddingY),
+      maxWidth: rect.width - 2 * inset(showAll.paddingX),
+      whiteSpace: "nowrap",
+    },
+  };
+}
+
 /** Result of applying the subscribed per-node deltas to the bound command stream. */
 export type CatalogCanvasUpdate =
   | {
@@ -1043,7 +1074,9 @@ function bindInColorMode(
       layoutMap.set(node.id, { ...rect, elementId: node.id });
       registerSkiaNode(
         node.id,
-        node.hidden || catalogRowSampleHidden(root, node)
+        node.hidden ||
+          catalogRowSampleHidden(root, node) ||
+          root.tagRowCollapsed(node.id)
           ? hiddenNode(node, rect)
           : bindingId === "slot" && context.slotMode === "page"
             ? container(node, rect)
@@ -1174,12 +1207,31 @@ function bindInColorMode(
           children.map((id) => sceneNodes.get(id)!),
         );
       }
+    for (const showAll of root.tagShowAllInputs.values()) {
+      const rect = root.getGeometry([showAll.id]).get(showAll.id);
+      if (!rect) throw new Error(`TAG_SHOW_ALL_LAYOUT_REQUIRED:${showAll.id}`);
+      sceneNodes.set(showAll.id, {
+        id: showAll.id,
+        type: "text",
+        props: {},
+        parentId: showAll.listId,
+        pageId: pageShell?.id ?? null,
+        layoutId: showAll.id,
+      } as CanvasSceneNode);
+      layoutMap.set(showAll.id, { ...rect, elementId: showAll.id });
+      registerSkiaNode(showAll.id, tagShowAllData(showAll, rect));
+      registeredIds.add(showAll.id);
+      childrenMap.set(showAll.id, []);
+    }
     for (const node of root.canvasInputs.values()) {
       const chrome = root.slotChromeInputs.get(node.id);
-      const childIds =
-        chrome && context.slotMode !== "page"
+      const showAll = root.tagShowAllInputs.get(node.id);
+      const childIds = [
+        ...(chrome && context.slotMode !== "page"
           ? [...node.children, chrome.id]
-          : node.children;
+          : node.children),
+        ...(showAll ? [showAll.id] : []),
+      ];
       const children = childIds.map((id) => sceneNodes.get(id));
       if (children.some((child) => !child))
         throw new Error(`CATALOG_CANVAS_CHILD_REQUIRED:${node.id}`);
@@ -1236,6 +1288,22 @@ function bindInColorMode(
       );
     }
     let revision = stream.presentationRevision;
+    /**
+     * The TagGroup `maxRows` collapse the stream was built with (`settleTagRows`): its Show all
+     * boxes (text and rect) and collapsed tags. A change rebinds — the box is no record.
+     */
+    const tagRowsState = () =>
+      JSON.stringify(
+        [...root.tagShowAllInputs.values()].map((showAll) => [
+          showAll.id,
+          showAll.text,
+          root.getGeometry([showAll.id]).get(showAll.id),
+          root.canvasInputs
+            .get(showAll.listId)
+            ?.children.filter((id) => root.tagRowCollapsed(id)),
+        ]),
+      );
+    const boundTagRows = tagRowsState();
     const update = (): CatalogCanvasUpdate => {
       let geometryQueries = 0;
       const rebind = (id: string, reason: string): CatalogCanvasUpdate => ({
@@ -1243,6 +1311,8 @@ function bindInColorMode(
         id,
         reason,
       });
+      if (tagRowsState() !== boundTagRows)
+        return rebind("tag-rows", "tag-rows");
       const input = (id: string) => root.canvasInputs.get(id);
       // A part node paints from its owner (`ownerDrawnPartNodeData`): it repaints with it, though
       // its own record is unchanged.
@@ -1514,7 +1584,9 @@ function bindInColorMode(
         const rect = layoutMap.get(id)!;
         registerSkiaNode(
           id,
-          node.hidden || catalogRowSampleHidden(root, node)
+          node.hidden ||
+            catalogRowSampleHidden(root, node) ||
+            root.tagRowCollapsed(node.id)
             ? hiddenNode(node, rect)
             : withScrollbar(
                 node,

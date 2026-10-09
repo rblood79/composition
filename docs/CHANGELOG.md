@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup Max Rows — Canvas 도 접고 Show all (N) 을 그린다] - 2026-10-09
+
+### Fixed
+
+- **TagGroup 의 Max Rows 가 Canvas 에서도 동작한다** — 지정한 행을 넘는 Tag 는 그리지 않고 "Show all (N)" 상자를 accent 글자로 그린다 (종전: Preview 만 접고 Canvas 는 Tag 를 전부 그려, 폭 140 · Max Rows 1 에서 높이 156 ↔ Preview 88).
+  - **Why**: 옛 TS 레이아웃 (`fullTreeLayout` Step 4.5b, 2026-09-21) 이 하던 Canvas 접힘이 2026-10-05 옛 파이프라인 삭제 때 catalog runtime 으로 옮겨지지 않았다. 이제 `compositionRoot` 가 배치 뒤 Tag 를 전부 펼친 배치에서 행을 세고 (Preview 의 `useTagMaxRows` 와 같은 규칙), 넘친 Tag 를 흐름에서 빼고 Show all 상자 (Tag 의 padding · 글자 크기) 를 TagList 끝에 세워 다시 배치한다. Canvas 는 그 상자를 칠하고, 접힘이 바뀌면 다시 바인딩한다. 폭 · Max Rows 변경과 드래그 미리보기에도 따른다. 접힌 Tag 는 Canvas 에 없으니 Layers 로 고른다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`settleTagRows` · `tagShowAllInputs` · `tagRowCollapsed`) · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+- 회귀: `tagGroupMaxRowsCanvas.test.ts` 4 (원복 RED 3) · live `apps/builder/scripts/tag-group-maxrows-live.mjs` 7/7 (폭 140 · Max Rows 1 · 2 · 3 · 0 에서 Canvas = Preview — 보이는 Tag 수 · Show all · 높이 88 / 122 / 156 · Design 패널 Max Rows · 새로고침) · G3 63 PASS + 1 UNVERIFIED · parity 811
+
 ## [Tag · Tab 글자와 Tag X 가 Preview 의 선택을 따른다] - 2026-10-09
 
 ### Fixed

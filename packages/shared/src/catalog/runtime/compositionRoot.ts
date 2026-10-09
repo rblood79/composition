@@ -1160,6 +1160,29 @@ function sameRecord(
 }
 
 /** Test-entry-only assembly. Consumer maps are inputs, not G3 visual parity results. */
+/**
+ * The "Show all (N)" box of a TagGroup's collapsed TagList on the Canvas (the DOM's
+ * `.tag-show-all-btn` — `TagGroup.css`): a layout leaf after the shown tags, chip-sized (the Tag's
+ * padding, border box and font), the accent text without a fill.
+ */
+export interface CatalogTagShowAll {
+  readonly id: string;
+  readonly listId: string;
+  readonly text: string;
+  readonly fontSize: number;
+  readonly lineHeight: number;
+  readonly paddingX: number;
+  readonly paddingY: number;
+  readonly borderWidth: number;
+  readonly radius: number;
+  readonly style: Readonly<Record<string, string | number>>;
+}
+/** A TagList's `maxRows` collapse: the tags past the rows and the Show all box (`settleTagRows`). */
+interface TagRowsCollapse {
+  readonly hidden: readonly string[];
+  readonly showAll: CatalogTagShowAll;
+}
+
 export class CatalogCompositionRoot {
   private readonly layout: PersistentLayoutTree;
   /** Active breakpoint (desktop-first cascade); a switch builds a new root (cold path). */
@@ -1224,6 +1247,8 @@ export class CatalogCompositionRoot {
     string,
     readonly CatalogComposedPart[]
   >();
+  /** Collapsed TagLists (`settleTagRows`). */
+  private readonly tagRows = new Map<string, TagRowsCollapse>();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
   /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
@@ -1297,6 +1322,17 @@ export class CatalogCompositionRoot {
   }
   get slotChromeInputs(): ReadonlyMap<string, SlotChromeInput> {
     return this.slotChrome;
+  }
+  /** The Show all box of every collapsed TagList (by TagList id — `settleTagRows`). */
+  get tagShowAllInputs(): ReadonlyMap<string, CatalogTagShowAll> {
+    return new Map(
+      [...this.tagRows].map(([listId, collapse]) => [listId, collapse.showAll]),
+    );
+  }
+  /** Whether a Tag is past its TagGroup's `maxRows` rows (the Canvas does not draw it). */
+  tagRowCollapsed(id: string): boolean {
+    const record = this.records.get(id);
+    return !!record && !!this.tagRows.get(record.parentId)?.hidden.includes(id);
   }
   /** The records (drawn positions) of one node or template: one source can be drawn many times. */
   recordsOfSource(sourceId: string): readonly string[] {
@@ -1946,6 +1982,9 @@ export class CatalogCompositionRoot {
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
       this.records.get(id),
   ): Record<string, unknown> {
+    // (A tag past its group's `maxRows` rows leaves the flow — `settleTagRows`.)
+    if (this.tagRows.get(record.parentId)?.hidden.includes(record.id))
+      return { display: "none" };
     const frame = this.pageFrameStyle(record);
     const style = styleOf(
       record,
@@ -2219,6 +2258,154 @@ export class CatalogCompositionRoot {
    * wrapped height becomes their `contentHeight` and layout is recomputed once (Rust has no
    * measure callback). `candidates` bounds the check to the edited subtrees.
    */
+  /** A TagList's engine children: its records, composed parts, slot chrome and Show all box. */
+  private tagListEngineChildren(record: CatalogConsumerNode): string[] {
+    const children = layoutChildrenOf(
+      record.children,
+      this.composedParts.get(record.id) ?? [],
+      this.slotChrome.get(record.id)?.id,
+      this.childOrder(record),
+    );
+    const showAll = this.tagRows.get(record.id)?.showAll;
+    return showAll ? [...children, showAll.id] : children;
+  }
+  /** The Show all box of a list of `total` tags, sized as its first tag (`TagGroup.css`). */
+  private tagShowAll(
+    list: CatalogConsumerNode,
+    tag: CatalogConsumerNode,
+    total: number,
+  ): CatalogTagShowAll {
+    const num = (value: unknown, fallback = 0) =>
+      typeof value === "number" && Number.isFinite(value) ? value : fallback;
+    const fontSize = num(tag.visual.fontSize, 14);
+    const lineHeight = num(tag.visual.lineHeight, 1.4285714285714286);
+    const paddingX = num(tag.visual.paddingX);
+    const paddingY = num(tag.visual.paddingY);
+    const borderWidth = num(tag.visual.borderWidth);
+    const text = `Show all (${total})`;
+    const textWidth = this.textMeasure
+      ? (this.textMeasure(text, { fontSize, fontWeight: 400, lineHeight })
+          .exactWidth ??
+        this.textMeasure(text, { fontSize, fontWeight: 400, lineHeight }).width)
+      : 0;
+    const height = num(
+      tag.visual.height,
+      fontSize * lineHeight + 2 * (paddingY + borderWidth),
+    );
+    return {
+      id: `${list.id}::show-all`,
+      listId: list.id,
+      text,
+      fontSize,
+      lineHeight,
+      paddingX,
+      paddingY,
+      borderWidth,
+      radius: num(tag.visual.radius),
+      style: {
+        display: "block",
+        width: `${Math.ceil(textWidth) + 2 * (paddingX + borderWidth)}px`,
+        height: `${height}px`,
+        flexShrink: 0,
+      },
+    };
+  }
+  /**
+   * TagGroup `maxRows` on the Canvas (the DOM's `useTagMaxRows`): with every tag laid out, the
+   * tags past the group's `maxRows` rows leave the flow and a "Show all (N)" box follows the rest.
+   * Runs after each layout: a collapsed list is opened first (the rows are counted with every tag,
+   * as the DOM's mirror), then collapsed again. Returns the records whose collapse changed (the
+   * lists and their tags — their Canvas paint changes).
+   */
+  private settleTagRows(): string[] {
+    const get = (key: string) => this.records.get(key);
+    const lists: Array<[CatalogConsumerNode, number]> = [];
+    for (const record of this.records.values()) {
+      if (record.hidden || this.typeOf(record) !== "TagList") continue;
+      const group = get(record.parentId);
+      const maxRows =
+        group && this.typeOf(group) === "TagGroup"
+          ? Number(group.props.maxRows ?? 0)
+          : 0;
+      if (maxRows > 0 || this.tagRows.has(record.id))
+        lists.push([record, maxRows > 0 ? Math.floor(maxRows) : 0]);
+    }
+    if (!lists.length) return [];
+    const before = new Map(
+      lists.map(([list]) => [list.id, this.tagRows.get(list.id)]),
+    );
+    // Every tag laid out (the DOM counts its mirror of every tag).
+    let opened = false;
+    for (const [list] of lists) {
+      const collapse = this.tagRows.get(list.id);
+      if (!collapse) continue;
+      this.keep(this.tagRows, list.id);
+      this.tagRows.delete(list.id);
+      this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
+      this.layout.removeNode(collapse.showAll.id);
+      for (const id of collapse.hidden) {
+        const tag = get(id);
+        if (tag) this.layout.updateNodeStyle(id, this.styleFor(tag));
+      }
+      opened = true;
+    }
+    if (opened)
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    // Rows by the tags' y (`computeVisibleTagCount`): the tags past `maxRows` rows go.
+    let collapsed = false;
+    for (const [list, maxRows] of lists) {
+      if (!maxRows) continue;
+      const tags = list.children
+        .map(get)
+        .filter(
+          (tag): tag is CatalogConsumerNode =>
+            !!tag && !tag.hidden && this.typeOf(tag) === "Tag",
+        );
+      const rects = this.layout.getLayoutsForIds(tags.map((tag) => tag.id));
+      let rowY = -Infinity;
+      let rows = 0;
+      let shown = 0;
+      for (const tag of tags) {
+        const rect = rects.get(tag.id);
+        if (!rect) continue;
+        if (Math.abs(rect.y - rowY) > 0.5) {
+          rowY = rect.y;
+          rows++;
+        }
+        if (rows > maxRows) break;
+        shown++;
+      }
+      if (shown >= tags.length) continue;
+      const collapse: TagRowsCollapse = {
+        hidden: tags.slice(shown).map((tag) => tag.id),
+        showAll: this.tagShowAll(list, tags[0]!, tags.length),
+      };
+      this.keep(this.tagRows, list.id);
+      this.tagRows.set(list.id, collapse);
+      for (const id of collapse.hidden)
+        this.layout.updateNodeStyle(id, { display: "none" });
+      this.layout.addNode(collapse.showAll.id, { ...collapse.showAll.style });
+      this.layout.updateChildren(list.id, this.tagListEngineChildren(list));
+      collapsed = true;
+    }
+    if (collapsed)
+      this.layout.computeLayout(this.viewport.width, this.viewport.height);
+    const changed: string[] = [];
+    for (const [list] of lists) {
+      const was = before.get(list.id);
+      const now = this.tagRows.get(list.id);
+      if (
+        was?.showAll.text === now?.showAll.text &&
+        sameList(was?.hidden ?? [], now?.hidden ?? [])
+      )
+        continue;
+      changed.push(
+        list.id,
+        ...new Set([...(was?.hidden ?? []), ...(now?.hidden ?? [])]),
+      );
+    }
+    return changed;
+  }
   private rewrap(candidates: Iterable<string>): void {
     if (!this.textMeasure) return;
     let changed = false;
@@ -2482,6 +2669,8 @@ export class CatalogCompositionRoot {
   }
   /** Build the whole layout tree from the current records (post-order, roots in page order). */
   private buildLayout(): void {
+    // (A whole build lays every tag out: the collapse is counted again after it.)
+    this.tagRows.clear();
     const batch: PersistentBatchNode[] = [];
     const childIds = new Map<string, string[]>();
     const indexes = new Map<string, number>();
@@ -2541,6 +2730,7 @@ export class CatalogCompositionRoot {
     this.layout.buildFull("catalog:root", batch, childIds);
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.records.keys());
+    this.settleTagRows();
   }
 
   /**
@@ -2681,6 +2871,16 @@ export class CatalogCompositionRoot {
     this.layout.computeLayout(this.viewport.width, this.viewport.height);
     this.rewrap(this.rewrapScope([id]));
     const errors: unknown[] = [];
+    // (A resized TagGroup can collapse or open its tags: they and the list repaint too.)
+    for (const changed of this.settleTagRows())
+      if (changed !== id)
+        for (const callback of [...(this.canvasListeners.get(changed) ?? [])]) {
+          try {
+            callback(this.records.get(changed)!);
+          } catch (error) {
+            errors.push(error);
+          }
+        }
     for (const callback of [...(this.canvasListeners.get(id) ?? [])]) {
       try {
         callback(shown);
@@ -3875,6 +4075,10 @@ export class CatalogCompositionRoot {
       this.layoutTouched = true;
       this.layout.computeLayout(this.viewport.width, this.viewport.height);
       this.rewrap(this.rewrapScope(updated, parentRects));
+      for (const id of this.settleTagRows()) {
+        const record = this.records.get(id);
+        if (record) notices.push({ id, record });
+      }
     }
     this.currentMetrics = {
       ...plan.metrics,

@@ -58,11 +58,10 @@ export const tagGroupBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      // RSP TagGroup maxRows — 지정 행 수를 넘는 tag 는 접고 "Show all" 로 펼침.
-      //   DOM(TagGroup.tsx)은 숨겨진 미러 DOM 측정 + collapse 슬라이스로 구현(동작 중).
-      //   본 accepts 추가로 Property 패널 Max Rows 편집 UI 노출 (factory default maxRows:2,
-      //   GroupComponents.ts). 0 또는 미설정 시 전체 표시. Skia projection 의 chip 접힘 +
-      //   "Show all" chip 시각 정합은 후속 작업(계산된 height 는 이미 접힘 반영).
+      // RSP TagGroup maxRows — 지정 행 수를 넘는 tag 는 접고 "Show all" 로 펼침. 0 또는 미설정 시 전체.
+      //   DOM: `delegatedDom.tsx` TagListRun — 측정 거울 (`useTagMaxRows`) + Show all / Show less.
+      //   Canvas: `compositionRoot.ts` `settleTagRows` — 같은 규칙 (tag 전부 배치한 행 수) 으로 넘친 tag 를
+      //   흐름에서 빼고 "Show all (N)" 상자를 세운다 (2026-10-09 — 옛 TS 레이아웃 Step 4.5b 의 이식).
       maxRows: {
         kind: "number",
         label: "Max Rows",
