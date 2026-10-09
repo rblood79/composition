@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Slider trackStyle · thumbStyle · fillOffset] - 2026-10-10
+
+### Added
+
+- **Slider `trackStyle`** (S2 1.8.0 `thin` · `thick`): Thick 는 16px 바 + S2 sm 모서리 (4px — S2 trackStyling). 트랙 노드가 파생 `trackStyle` 로 받는다 — Canvas 는 `styleOf` 높이 + SliderTrack rule 의 top-level `containerVariants` radius (`rulePaint` 소비 채널), DOM 은 트랙 inline (`CATALOG_SLIDER_THICK_TRACK` 한 값). Thin (기본) 은 지금까지의 per-size 바 (S 4 · M 8 · L 12 · XL 16).
+- **Slider `thumbStyle`** (S2 `default` · `precise`): Precise 는 좁은 막대 썸 (폭 6 · 높이 size+2 — S2 thumb). 썸 배치 (`catalogSliderThumbLayout`) 와 DOM 썸 inline 이 같은 값.
+- **Slider `fillOffset`** (S2 number): 채움이 이 값에서 시작한다 — DOM 은 RAC `SliderFill` 의 `offset` prop (파생 `_fillOffset`), Canvas 는 `catalogSliderFillLayout` 이 같은 식 (범위로 clamp, 값과의 사이 구간).
+- 확인: live — 팔레트 Slider 400px: 기본 8px 바 → Thick 16px + 4px 모서리 (Preview computed = Canvas geometry · Skia radius), Precise 6×20 썸 (양 consumer), Value 30 + Fill Offset 50 → 채움 30%→50% (양 consumer 비율 동일), 오류 0 (`apps/builder/scripts/slider-s2-styles-live.mjs` 6/6).
+
 ## [S2 InlineAlert fillStyle — Border · Subtle Fill · Bold Fill] - 2026-10-10
 
 ### Added

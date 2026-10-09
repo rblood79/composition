@@ -958,13 +958,19 @@ export function catalogSliderFillLayout(
   if (!track || !slider || typeOf(track) !== "SliderTrack") return undefined;
   if (typeOf(slider) !== "Slider") return undefined;
   const { min, max, value } = catalogSliderRange(slider);
-  const ratio =
-    max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
+  const ratio = (at: number): number =>
+    max > min ? Math.min(1, Math.max(0, (at - min) / (max - min))) : 0;
+  // S2 `fillOffset` — the fill runs between the offset and the value (RAC `SliderFill` clamps
+  // the offset to the range; absent = the minimum).
+  const raw = Number(slider.props.fillOffset);
+  const offset = Number.isFinite(raw) ? Math.min(Math.max(raw, min), max) : min;
+  const start = Math.min(ratio(offset), ratio(value));
+  const end = Math.max(ratio(offset), ratio(value));
   return {
     position: "absolute",
-    insetLeft: "0%",
+    insetLeft: `${start * 100}%`,
     insetTop: "0px",
-    width: `${ratio * 100}%`,
+    width: `${(end - start) * 100}%`,
     height: "100%",
   };
 }
@@ -990,16 +996,31 @@ export function catalogSliderThumbLayout(
   const ratio =
     max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) : 0;
   const size = number(node.visual.height ?? node.visual.width, 18);
-  const trackHeight = number(track.visual.height, size);
+  // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall — S2 Slider.tsx thumb).
+  const precise = slider.props.thumbStyle === "precise";
+  const width = precise ? 6 : size;
+  const height = precise ? size + 2 : size;
+  const trackHeight =
+    slider.props.trackStyle === "thick"
+      ? CATALOG_SLIDER_THICK_TRACK.height
+      : number(track.visual.height, height);
   return {
     position: "absolute",
     insetLeft: `${ratio * 100}%`,
-    insetTop: `${(trackHeight - size) / 2}px`,
-    marginLeft: `${-size / 2}px`,
-    width: `${size}px`,
-    height: `${size}px`,
+    insetTop: `${(trackHeight - height) / 2}px`,
+    marginLeft: `${-width / 2}px`,
+    width: `${width}px`,
+    height: `${height}px`,
   };
 }
+
+/**
+ * S2 1.8.0 Slider `trackStyle: 'thick'` (2026-10-10): the bar is 16px with the S2 sm corner (S2
+ * `trackStyling` — thin 4 · thick 16, radius sm). The Canvas height (`styleOf`) and the DOM
+ * track inline (`domBinding`) read this one value; the Canvas paint radius is the SliderTrack
+ * rule's `containerVariants["track-style"]` (the same 4px).
+ */
+export const CATALOG_SLIDER_THICK_TRACK = { height: 16, radius: 4 } as const;
 
 /**
  * A box the owner's DOM renderer composes with no catalog node of its own (the chevron button of a
@@ -1609,13 +1630,35 @@ function ownDerivedProps(
   }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
+  // S2 Slider `trackStyle: thick` — the track bar is 16px with the S2 sm corner
+  // (`CATALOG_SLIDER_THICK_TRACK`): the Canvas height (`styleOf`) and the DOM inline read the
+  // derived value; the paint radius is the SliderTrack rule's `containerVariants`.
+  if ((node.ruleId ?? typeOf(node)) === "SliderTrack") {
+    const owner = catalogPartParent(node, get, typeOf);
+    if (
+      owner &&
+      typeOf(owner) === "Slider" &&
+      owner.props.trackStyle === "thick"
+    )
+      return { trackStyle: "thick" };
+  }
   // S2 Slider `isEmphasized`: its fill and thumb take their rules' `emphasized` variant (the DOM's
-  // `data-emphasized` · the SliderFill's `data-variant`).
+  // `data-emphasized` · the SliderFill's `data-variant`). `fillOffset` rides to the fill (RAC
+  // SliderFill `offset`), `thumbStyle: precise` to the thumb (its layout).
   const slider = catalogSliderOfTrackPart(node, get, typeOf);
-  if (slider)
-    return slider.props.isEmphasized === true
-      ? { variant: "emphasized" }
-      : undefined;
+  if (slider) {
+    const derived: Record<string, string | number | boolean> = {};
+    if (slider.props.isEmphasized === true) derived.variant = "emphasized";
+    const offset = Number(slider.props.fillOffset);
+    if (
+      (node.ruleId ?? typeOf(node)) === "SliderFill" &&
+      Number.isFinite(offset)
+    )
+      derived._fillOffset = offset;
+    if (typeOf(node) === "SliderThumb" && slider.props.thumbStyle === "precise")
+      derived.thumbStyle = "precise";
+    return Object.keys(derived).length ? derived : undefined;
+  }
   // A SearchField's · NumberField's `value` is its input's initial value (the renderer's
   // `defaultValue`): the Canvas draws it in the Input's text, where the DOM input shows it over
   // the placeholder.
@@ -2024,13 +2067,15 @@ export function catalogSliderThumbs(
 ): CatalogConsumerNode[] {
   if (typeOf(slider) !== "Slider") return [];
   // (and its fill — ADR-256 Phase 7c: RAC's SliderFill follows the same values)
+  // (The track itself follows the Slider's `trackStyle` — the derived thick bar.)
   return partChildrenOf(slider, get, typeOf)
     .filter((child) => typeOf(child) === "SliderTrack")
-    .flatMap((track) =>
-      partChildrenOf(track, get, typeOf).filter((child) =>
+    .flatMap((track) => [
+      track,
+      ...partChildrenOf(track, get, typeOf).filter((child) =>
         ["SliderThumb", "SliderFill"].includes(typeOf(child)),
       ),
-    );
+    ]);
 }
 
 /**

@@ -10295,6 +10295,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SliderTrack: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 1.8.0 Slider trackStyle thick (2026-10-10): 트랙 radius 는 S2 sm (4px — thin 은 full).
+    //   Canvas rule 집행기가 파생 trackStyle 로 읽는다 (`rulePaint.ts` containerVariantPaint);
+    //   높이 16px 는 `CATALOG_SLIDER_THICK_TRACK` (presence.ts — styleOf · DOM inline 동일 값).
+    containerVariants: {
+      "track-style": {
+        thick: { styles: { "border-radius": "4px" } },
+      },
+    },
     variants: {
       // The bar (neutral-subtle — the generated `--bg-muted`).
       default: {

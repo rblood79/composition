@@ -111,6 +111,38 @@ export const sliderBinding: PrimitiveBinding = {
         label: "Emphasized",
         section: "appearance",
       },
+      // S2 1.8.0 trackStyle (2026-10-10): thin (기본 — per-size 바) · thick (16px 바 + S2 sm
+      //   모서리, S2 trackStyling). 트랙 노드가 파생 trackStyle 로 받는다 (`presence.ts`) —
+      //   Canvas 는 styleOf 높이 + SliderTrack rule containerVariants 의 radius, DOM 은 inline.
+      trackStyle: {
+        kind: "enum",
+        label: "Track Style",
+        section: "appearance",
+        default: "thin",
+        options: [
+          { value: "thin", label: "Thin" },
+          { value: "thick", label: "Thick" },
+        ],
+      },
+      // S2 1.8.0 thumbStyle: default (원형) · precise (좁은 막대 — S2 width 6 · height size+2).
+      //   썸 배치가 읽는다 (`presence.ts` catalogSliderThumbLayout).
+      thumbStyle: {
+        kind: "enum",
+        label: "Thumb Style",
+        section: "appearance",
+        default: "default",
+        options: [
+          { value: "default", label: "Default" },
+          { value: "precise", label: "Precise" },
+        ],
+      },
+      // S2 1.8.0 fillOffset: 채움이 이 값에서 시작한다 (RAC SliderFill `offset` — DOM 은 RAC
+      //   계산, Canvas 는 `catalogSliderFillLayout` 같은 식).
+      fillOffset: {
+        kind: "number",
+        label: "Fill Offset",
+        section: "content",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

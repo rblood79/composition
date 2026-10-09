@@ -48,6 +48,7 @@ import {
   catalogProgressValueHidden,
   catalogSkeletonIdle,
   catalogStepperHidden,
+  CATALOG_SLIDER_THICK_TRACK,
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
@@ -724,7 +725,19 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       key: node.id,
       "data-catalog-id": node.id,
       "data-size": String(node.props.size ?? "M"),
-      style,
+      // S2 `trackStyle: thick` — the 16px bar with the S2 sm corner (the Canvas reads the same
+      // values: `CATALOG_SLIDER_THICK_TRACK` in `styleOf`, the rule's containerVariants radius).
+      ...(node.derivedProps?.trackStyle === "thick"
+        ? { "data-track-style": "thick" }
+        : {}),
+      style:
+        node.derivedProps?.trackStyle === "thick"
+          ? {
+              ...style,
+              height: CATALOG_SLIDER_THICK_TRACK.height,
+              borderRadius: CATALOG_SLIDER_THICK_TRACK.radius,
+            }
+          : style,
       children: catalogStateChildren(node.id, () => children),
     }),
   sliderfill: (node, style) =>
@@ -734,6 +747,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       // (S2 `isEmphasized` — the SliderFill sheet's variant, derived from the Slider.)
       "data-variant":
         node.derivedProps?.variant === "emphasized" ? "emphasized" : undefined,
+      // (S2 `fillOffset` — RAC's own fill placement starts there; derived from the Slider.)
+      ...(typeof node.derivedProps?._fillOffset === "number"
+        ? { offset: node.derivedProps._fillOffset }
+        : {}),
       style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
         ...withoutRacPlacement(style),
         ...defaultStyle,
@@ -764,13 +781,20 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       createElement("div", { style }, ...children),
     ),
   // (A thumb's `index` is its place among its track's thumbs — `renderNode` gives it.)
-  sliderthumb: (node, style) =>
-    createElement(RAC.SliderThumb as ElementType, {
+  sliderthumb: (node, style) => {
+    // S2 `thumbStyle: precise` — a narrow bar (width 6, size + 2 tall; the Canvas layout's values).
+    const size = Number(node.visual.height ?? node.visual.width ?? 18);
+    const precise = node.derivedProps?.thumbStyle === "precise";
+    return createElement(RAC.SliderThumb as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
+      ...(precise ? { "data-thumb-style": "precise" } : {}),
       index: Number(node.props._thumbIndex ?? 0),
-      style: withoutRacPlacement(style),
-    }),
+      style: precise
+        ? { ...withoutRacPlacement(style), width: 6, height: size + 2 }
+        : withoutRacPlacement(style),
+    });
+  },
 };
 
 /** Keys RAC's SliderFill · SliderThumb place by the Slider's state (`useSliderThumb` · `SliderFill`). */

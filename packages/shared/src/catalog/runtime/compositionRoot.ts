@@ -106,6 +106,7 @@ import {
   catalogDerivedProps,
   catalogDerivedPropsDependents,
   type CatalogComposedPart,
+  CATALOG_SLIDER_THICK_TRACK,
   catalogHiddenAtRest,
   catalogInlineAlertBoldText,
   catalogPresenceDependents,
@@ -1022,6 +1023,11 @@ function styleOf(
     // values win (`itemLayout` comes after).
     ...(node.derivedProps?._justified === true
       ? { flexGrow: 1, flexBasis: "0px" }
+      : {}),
+    // S2 Slider `trackStyle: thick` — the track bar's 16px (the DOM track inline reads the same
+    // value, `CATALOG_SLIDER_THICK_TRACK`).
+    ...(node.derivedProps?.trackStyle === "thick"
+      ? { height: `${CATALOG_SLIDER_THICK_TRACK.height}px` }
       : {}),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
