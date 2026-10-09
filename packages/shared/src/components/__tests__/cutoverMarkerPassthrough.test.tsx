@@ -10,7 +10,7 @@
  * 이 결함이었고, 본 테스트는 비위임 internal leaf 전수를 lock 한다.
  *
  * 대상 = INTERNAL_RENDERERS(domRegistry.tsx) 중 DELEGATING 집합
- * (renderFacetDeclaration.ts)에 없는 leaf 7종. delegating renderer 는 wrapper div 가
+ * (renderFacetDeclaration.ts)에 없는 leaf 6종 (IllustratedMessage 는 2026-10-09 노드 트리 전환으로 제외). delegating renderer 는 wrapper div 가
  * marker 를 보유하므로 대상 아님.
  */
 
@@ -22,7 +22,6 @@ import { Icon } from "../Icon";
 import { Badge } from "../Badge";
 import { ProgressBar } from "../ProgressBar";
 import { Skeleton } from "../Skeleton";
-import { IllustratedMessage } from "../IllustratedMessage";
 import { StatusLight } from "../StatusLight";
 import { Avatar } from "../Avatar";
 import { ProgressCircle } from "../ProgressCircle";
@@ -51,11 +50,6 @@ const NON_DELEGATING_INTERNAL_LEAVES: Array<{
     name: "skeleton (multi-line 분기)",
     component: Skeleton as AnyComponent,
     props: { lines: 3 },
-  },
-  {
-    name: "illustrated",
-    component: IllustratedMessage as AnyComponent,
-    props: { heading: "h" },
   },
   {
     name: "statuslight",

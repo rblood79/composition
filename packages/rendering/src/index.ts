@@ -227,16 +227,6 @@ export type { CatalogResolvedPaint } from "./renderers";
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./renderers";
 export type { LayoutToken } from "./renderers";
 
-export {
-  ILLUSTRATED_MESSAGE_BOX,
-  resolveIllustratedMessageMetric,
-  resolveIllustratedMessageText,
-} from "./renderers/utils/illustratedMessageMetrics";
-export type {
-  IllustratedMessageMetric,
-  IllustratedMessageSizeLike,
-} from "./renderers/utils/illustratedMessageMetrics";
-
 export { resolveListBoxSpacingMetric } from "./renderers/utils/collectionItemMetrics";
 export type {
   ListBoxSpacingInput,

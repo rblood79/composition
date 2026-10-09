@@ -764,7 +764,7 @@ export function renderText(
       // nowrap 은 위(:566)에서 paragraph 를 intrinsic 폭으로 재layout 하므로 paragraph
       // 내부 align 이 무효가 된다 (폭 == 글자 폭) — CSS 는 white-space:nowrap 이어도
       // text-align 을 유지하므로 밴드 내 외부 offset 으로 정렬을 복원한다.
-      // (IllustratedMessage placeholder ○ glyph 가 박스 좌측에 붙던 원인 — DOM 은
+      // (발견 사례: 옛 IllustratedMessage placeholder ○ glyph 가 박스 좌측에 붙었다 — DOM 은
       // flex center. calendar 요일 등 nowrap+center escape 전반 동일 계열.)
       const band = node.text.maxWidth;
       if (

@@ -325,6 +325,7 @@ export interface ComponentRuleSize {
    * (CSSGenerator.generateChildFontStyles 가 `size.headingFontSize` 소비). alert archetype
    * (일러스트 + heading + description)의 heading 크기를 D3 SSOT(rule)에 귀속 — 이전엔
    * IllustratedMessageSpec.sizes.headingFontSize 에만 존재. TokenRef(`{typography.text-lg}`).
+   * (2026-10-09: IllustratedMessage 의 제목은 Heading 노드 — 이 값을 선언하는 rule 이 없다.)
    */
   headingFontSize?: number | string;
   /**

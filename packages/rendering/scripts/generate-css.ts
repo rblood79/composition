@@ -188,7 +188,8 @@ function ruleSizeToSizeSpec(
     ...(s.iconGap !== undefined ? { iconGap: s.iconGap as number } : {}),
     // ADR-912 단계5 step4 (2026-06-16): IllustratedMessage 의 `.alert-heading` 자식 CSS 가
     //   rule.sizes.headingFontSize 에서 emit 되도록 변환에 포함 (CSSGenerator.generateChildFontStyles
-    //   가 size.headingFontSize 소비). 미정의 leaf 는 미emit.
+    //   가 size.headingFontSize 소비). 미정의 leaf 는 미emit. (2026-10-09: IllustratedMessage 가 노드
+    //   트리로 바뀌어 이 값을 선언하는 rule 이 없다.)
     ...(s.headingFontSize !== undefined
       ? { headingFontSize: s.headingFontSize as SizeSpec["headingFontSize"] }
       : {}),

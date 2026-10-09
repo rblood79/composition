@@ -17,7 +17,6 @@
 
 import {
   parseBorderWidth,
-  parsePadding4Way,
   parsePxValue,
   parseShadow,
 } from "../primitives";
@@ -73,10 +72,6 @@ import type {
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveBorderWidthPx } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
-import {
-  resolveIllustratedMessageMetric,
-  resolveIllustratedMessageText,
-} from "./utils/illustratedMessageMetrics";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import {
@@ -84,10 +79,7 @@ import {
   resolveLeadingSlot,
   resolveTreeIndent,
 } from "./buildCatalogShapes";
-import {
-  measureSpecTextWidth,
-  measureSpecWrappedTextHeight,
-} from "./utils/measureText";
+import { measureSpecTextWidth } from "./utils/measureText";
 
 /**
  * skiaPrimitive draw module 1개의 시그니처 — props/size/visual/resolved paint에서 Shape[] 생성.
@@ -2346,169 +2338,6 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
 };
 
 /**
- * `illustrated_message` — 빈 상태(empty state) escape. placeholder roundRect + heading text +
- * description text 3 shape 를 자체 생성한다(append 모드 — rule fill transparent base box 위).
- *
- * **ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes
- *   box+text 는 단일 box + 단일 text 만 가능 → nested placeholder + 2-text 표현 불가. spec.render.shapes
- *   (IllustratedMessage.spec.ts:104-187) 의 시각 로직을 escape 로 이전(spec 의존 0 — seam 제거).
- *   heading/description 은 props(자식 Element 아님, factory children:[]). DOM(IllustratedMessage.tsx)
- *   인라인 style 과 시각 대칭.
- *
- *   metric(box/padding/gap/heading·desc 폰트/line height/전체 높이)은
- *   `resolveIllustratedMessageMetric`(illustratedMessageMetrics.ts — DOM/layout 과 공유 SSOT,
- *   catalog rule sizes read-through) 단일 산식. 텍스트 색은 visual.text.
- *
- * **ADR-151 후속 (2026-07-17) 기하 정렬**: 구 escape 는 top-left(0,0) 고정 + padding/정렬
- *   배치 부재 + layout 높이 분기 부재로 박스(48)를 넘쳐 그렸다 (DOM 240 vs Skia 48).
- *   DOM(flex column + factory style: padding/gap/alignItems) 과 동일 기하로 재작성 —
- *   padding/gap/alignItems 는 element style 우선 (longhand → shorthand → metric fallback,
- *   style-ssot 규칙), 가로 폭은 `_containerWidth`(CONTAINER_DIMENSION_TAGS 주입) 기준.
- *   style 부재 시 center — catalog `structure.containerStyles.alignItems` (2026-10-09 S2 대로
- *   center, 그전 flex-start 는 Preview 만 좌측 정렬) 와 같다.
- */
-const illustratedMessage: SkiaPrimitiveDrawFn = ({
-  props,
-  size,
-  paint,
-  style,
-}) => {
-  // 자식 보유 시(미래 확장) escape skip — props 기반 단독 leaf 만 그린다.
-  if ((props as Record<string, unknown>)._hasChildren) return [];
-
-  const sizeName = (props.size as string) ?? "md";
-  // fontSize 는 size(rule) 만 — merged style map 의 fontSize 는 base 가 항상 채워져
-  // override 판정 불능 (feedback-merged-style-map-kills-override-detection). DOM 도
-  // heading/desc 에 metric fs 를 명시해 root fontSize 를 상속하지 않는다.
-  const m = resolveIllustratedMessageMetric(sizeName, size);
-
-  // element style 소비 (store longhand 정책: longhand → shorthand → metric fallback).
-  const padding = parsePadding4Way({
-    padding: style?.padding ?? `${m.paddingY}px ${m.paddingX}px`,
-    paddingTop: style?.paddingTop,
-    paddingRight: style?.paddingRight,
-    paddingBottom: style?.paddingBottom,
-    paddingLeft: style?.paddingLeft,
-  });
-  const padTop = padding.top;
-  const padLeft = padding.left;
-  const padRight = padding.right;
-  const gap = parsePxValue(
-    (style?.rowGap ?? style?.gap) as string | number | undefined,
-    m.gap,
-  );
-  const alignItems = (style?.alignItems as string | undefined) ?? "center";
-
-  const containerWidth =
-    typeof props._containerWidth === "number" && props._containerWidth > 0
-      ? (props._containerWidth as number)
-      : m.box + padLeft + padRight;
-  const contentX = padLeft;
-  const contentW = Math.max(0, containerWidth - padLeft - padRight);
-  const boxX =
-    alignItems === "flex-start"
-      ? contentX
-      : alignItems === "flex-end"
-        ? contentX + contentW - m.box
-        : contentX + (contentW - m.box) / 2;
-  const textAlign =
-    alignItems === "flex-start"
-      ? ("left" as const)
-      : alignItems === "flex-end"
-        ? ("right" as const)
-        : ("center" as const);
-
-  const ff = (style?.fontFamily as string) || fontFamily.sans;
-  const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
-
-  // ADR-923 r19m1 — 텍스트 원천 단일 지점 (부재 → 기본 글자, "" → 줄 자체를 접는다; Preview div
-  //   미렌더 · layout illustratedmessage 높이 차감과 동일).
-  const { heading, description } = resolveIllustratedMessageText(props);
-  const headingHeight =
-    measureSpecWrappedTextHeight(
-      heading,
-      m.headingFs,
-      600,
-      ff,
-      contentW,
-      m.headingLine,
-    ) ?? m.headingLine;
-
-  const shapes: Shape[] = [];
-
-  // 일러스트 placeholder 영역 — DOM `--bg-muted` solid ({color.neutral-subtle}).
-  shapes.push({
-    id: "illustration",
-    type: "roundRect" as const,
-    x: boxX,
-    y: padTop,
-    width: m.box,
-    height: m.box,
-    radius: 12,
-    fill: "{color.neutral-subtle}" as TokenRef,
-  });
-
-  // placeholder 중앙 ○ glyph — DOM `&#9675;` fontSize 48 / --fg-muted 미러.
-  shapes.push({
-    id: "illustration-glyph",
-    type: "text" as const,
-    x: boxX,
-    y: padTop + m.box / 2,
-    text: "○",
-    fontSize: 48,
-    fontFamily: ff,
-    fill: "{color.neutral-subdued}" as TokenRef,
-    align: "center" as const,
-    baseline: "middle" as const,
-    maxWidth: m.box,
-    whiteSpace: "nowrap" as const,
-  });
-
-  // "" 줄은 shape 도 세로 자리도 없다 (r19m1) — cursorY 로 gap + line 을 조건부 누적.
-  let cursorY = padTop + m.box;
-
-  // Heading 텍스트 — DOM fontWeight 600 / var(--fg), lineHeight 1.5 밴드 세로 중앙.
-  if (heading !== "") {
-    cursorY += gap;
-    shapes.push({
-      id: "heading",
-      type: "text" as const,
-      x: contentX,
-      y: cursorY + m.headingLine / 2,
-      text: heading,
-      fontSize: m.headingFs,
-      fontFamily: ff,
-      fontWeight: 600,
-      fill: textColor,
-      align: textAlign,
-      baseline: "middle" as const,
-      maxWidth: contentW,
-    });
-    cursorY += headingHeight;
-  }
-
-  // Description 텍스트 — DOM var(--fg-muted), lineHeight 1.5 밴드 세로 중앙.
-  if (description !== "") {
-    cursorY += gap;
-    shapes.push({
-      id: "description",
-      type: "text" as const,
-      x: contentX,
-      y: cursorY + m.descLine / 2,
-      text: description,
-      fontSize: m.descFs,
-      fontFamily: ff,
-      fill: "{color.neutral-subdued}" as TokenRef,
-      align: textAlign,
-      baseline: "middle" as const,
-      maxWidth: contentW,
-    });
-  }
-
-  return shapes;
-};
-
-/**
  * `status_light` — 상태 표시 dot(circle) + 라벨 text. escape(append 모드).
  *
  * **ADR-912 진로 1번 StatusLight proof slice (2026-06-06)**: catalog 등록 시 buildCatalogShapes
@@ -3046,7 +2875,6 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   //   ProgressCircle, box 무의미). (ProgressBar · Meter · Slider 의 채움은 ADR-256 Phase 7 부터 노드.)
   value_fill_arc: valueFillArc,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — placeholder+heading+description)
-  illustrated_message: illustratedMessage,
   // ADR-912 진로 1번 internal leaf escape (append 모드 — dot circle + label text)
   status_light: statusLight,
   // ADR-912 진로 1번 internal leaf escape (replace 모드 — circle bg + image|initials)
@@ -3096,8 +2924,6 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // ADR-912 SliderThumb: slider_thumb 는 circle 핸들이 전체 외형 → base box 무의미 → replace
   //   (avatar/radio 동형). 미등록=replace 지만 의도 명시.
   slider_thumb: "replace",
-  // ADR-912 진로 1번: illustrated_message 는 rule fill transparent base box 위 placeholder+text → append.
-  illustrated_message: "append",
   // ADR-912 진로 1번: status_light 는 dot+text 자체 생성, box 무의미 → replace.
   //   rule fill base 는 dot 색(variant status). base box 로 칠하면 box 전체가 status 색 →
   //   DOM(dot 만 색) 과 비대칭. replace 로 base box 미생성, escape 가 dot circle + text 만 그림.
