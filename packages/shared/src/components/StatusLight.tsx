@@ -86,7 +86,9 @@ export function StatusLight({
     <div
       {...rest}
       style={{
-        display: "flex",
+        // The rule's `inline-flex` (`COMPONENT_RULES_TABLE.StatusLight` — the Canvas box fits its
+        // dot and label; a block `flex` took the parent's width).
+        display: "inline-flex",
         flexDirection: "row",
         alignItems: "center",
         gap: 8,

@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
 
+## [Canvas ↔ Preview 상자 크기 — StatusLight 폭 · IllustratedMessage 높이] - 2026-10-09
+
+### Fixed
+
+- **StatusLight 의 Preview 상자가 부모 폭 전체를 차지하던 것** (Canvas 75 / Preview 1920) — Preview 컴포넌트가 `display: flex` 를 박아 넣었다. rule 의 `inline-flex` 로 맞췄다 (Canvas 와 같이 점 + 글자 폭).
+- **IllustratedMessage 가 Canvas 에서 padding 높이만 갖던 것** (md 48 / Preview 240) — 2026-10-05 옛 TS 레이아웃을 지우면서 그림 · 제목 · 설명 열의 높이 측정이 catalog 레이아웃 (`styleOf`) 으로 옮겨지지 않았다. Preview 컴포넌트와 같은 metric (`resolveIllustratedMessageMetric`) 의 content 높이를 엔진에 준다.
+- 확인 (사용자 「의심된 Preview class · data-size 누락 먼저 확인하고 수정」): ButtonGroup · AvatarGroup · CardView · Avatar · ProgressCircle 등의 Preview 루트에 `react-aria-<Type>` class · `data-size` 가 없지만, 그 생성 CSS 는 Preview 문서에 실려 있지 않고 (stylesheet 규칙 0) renderer 가 상자를 inline 으로 준다 — class 를 붙여도 계산된 스타일 변화 0, 상자 크기 Canvas = Preview. 결함 아님.
+- 위치: `packages/shared/src/components/StatusLight.tsx` · `packages/shared/src/catalog/runtime/compositionRoot.ts`
+- 회귀: `previewCanvasBox.test.tsx` 4 (구현 전 RED 4) · live `apps/builder/scripts/preview-canvas-box-live.mjs` 8/8 (7종 Canvas 상자 = Preview 상자 ±1px · class 추가 시 변화 0 · 오류 0) · builder 5000 · shared 1588 · rendering 1337 · G3 79 · parity 811
+
 ## [binding 주석 정리 — 지워진 renderer · factory · spec 인용 제거] - 2026-10-09
 
 ### Changed

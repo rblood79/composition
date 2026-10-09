@@ -50,7 +50,12 @@ import {
   catalogCalendarGridSize,
   catalogCalendarHeaderParts,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
-import { resolveTextSourceText } from "@composition/rendering";
+import { resolveComponentRule } from "../resolvers/resolveComponentRule";
+import {
+  resolveIllustratedMessageMetric,
+  resolveTextSourceText,
+  type IllustratedMessageSizeLike,
+} from "@composition/rendering";
 import { applyTextTransform } from "./textTransform";
 import {
   catalogAspectRatio,
@@ -849,6 +854,13 @@ function styleOf(
       : undefined;
   // A DropZone's content box is its composed icon · label · description column.
   const dropZone = measure ? catalogDropZoneContent(node, measure) : undefined;
+  // An IllustratedMessage draws its illustration · heading · description from its props (no child
+  // nodes): its content box is the column the Preview component lays out — the shared metric
+  // (`resolveIllustratedMessageMetric`, the rule's size), padding excluded.
+  const illustrated =
+    node.bindingId === "illustratedmessage" && node.children.length === 0
+      ? illustratedContentHeight(node)
+      : undefined;
   // A glyph leaf's content box is its icon square (the DOM svg at `--icon-size`).
   const glyph =
     glyphBindings.has(node.bindingId ?? "") && node.children.length === 0
@@ -976,6 +988,7 @@ function styleOf(
         }
       : {}),
     ...(headerRow ?? {}),
+    ...(illustrated !== undefined ? { contentHeight: illustrated } : {}),
     // A table never lays out narrower than its columns (CSS table width ≥ min-content), and an
     // auto-width table is not stretched by its flex column (it keeps its columns' width).
     ...(table
@@ -4117,4 +4130,15 @@ export class CatalogCompositionRoot {
     };
     return errors;
   }
+}
+
+/** An IllustratedMessage's content-box height (the Preview component's metric for its size). */
+function illustratedContentHeight(node: CatalogConsumerNode): number {
+  const size = String(node.props.size ?? "md");
+  return resolveIllustratedMessageMetric(
+    size,
+    resolveComponentRule("IllustratedMessage")?.sizes?.[size] as
+      | IllustratedMessageSizeLike
+      | undefined,
+  ).contentHeight;
 }
