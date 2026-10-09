@@ -803,11 +803,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "label": "string",
+      "placeholder": "string",
       "description": "string",
       "errorMessage": "string"
     },
     "defaults": {
       "label": "Color",
+      "placeholder": "",
       "description": "",
       "errorMessage": ""
     },
@@ -4086,6 +4088,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Color",
+      "placeholder": "",
       "labelPosition": "top",
       "isDisabled": false
     },
@@ -4106,7 +4109,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "placeholder": "#000000"
+      "placeholder": "{placeholder}"
     },
     "visual": {}
   },

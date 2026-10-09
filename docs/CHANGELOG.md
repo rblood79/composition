@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 ColorField placeholder] - 2026-10-10
+
+### Added
+
+- **ColorField `placeholder`** (S2 1.8.0 `Pick<InputProps, 'placeholder'>`, 기본값 없음 — 조사 문서 6.1 다): Design 패널의 Placeholder. 원본 ColorField 가 이 값을 Input 에 묶는다 (`{placeholder}` — TextField · NumberField 와 같음). Canvas 와 Preview 가 같은 글자를 그린다.
+  - 위치: `packages/shared/src/catalog/bindings/ColorField.binding.ts` · `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (component-colorfield)
+
+### Changed
+
+- **새 ColorField 의 입력칸에 `#000000` 이 보이지 않는다**: 전에는 Input 에 고정 placeholder `#000000` 이 있어 작성자가 바꿀 수 없었다. S2 처럼 기본값이 없다.
+- 확인: live — 새 ColorField 는 Canvas · Preview 모두 빈칸 (입력칸 높이 30 = 30), Placeholder `#FF0000` → 둘 다 표시, 지우면 둘 다 빈칸, 오류 0 (`apps/builder/scripts/colorfield-placeholder-live.mjs` 4/4).
+
 ## [S2 ProgressCircle staticColor — S2 값으로] - 2026-10-10
 
 ### Changed

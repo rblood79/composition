@@ -152,13 +152,6 @@ const INPUT_ORIGIN =
 /** Fields whose control is their Input node (an instance of the Input origin). */
 const INPUT_TYPES = ["textfield", "textarea", "colorfield"] as const;
 /**
- * The ColorField's Input node has a placeholder (`#000000`, drawn on the Canvas); the Preview's
- * own composition left it out. The node's element shows it.
- */
-const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
-  colorfield: " placeholder=#000000",
-};
-/**
  * S2 NumberField (2026-10-10): without a value the input is empty, not 0 (RAC `NaN`) — and RAC's
  * decrement no longer stops at the minimum 0 (from empty both steppers move: `canDecrement`). A
  * disabled or read-only field's steppers stay disabled.
@@ -626,8 +619,6 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         const structure = markup.replace(ITEM_OPTION, "");
         const shown = SHOWN_SINCE[`${type}/${name}`];
         if (!shown) {
-          const placeholder = INPUT_PLACEHOLDER_SINCE[type];
-          if (placeholder) expect(structure).toContain(placeholder);
           const glyphless = WRAPPED_TYPES.includes(type)
             ? withoutGlyphs
             : type === "taggroup"
@@ -678,11 +669,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                                     name,
                                   )
                                 : fixed;
-          expect(
-            glyphless(
-              placeholder ? structure.replace(placeholder, "") : structure,
-            ),
-          ).toBe(glyphless(expected));
+          expect(glyphless(structure)).toBe(glyphless(expected));
           return;
         }
         // The hint the Preview left out before: the part node's element, described to the control.
