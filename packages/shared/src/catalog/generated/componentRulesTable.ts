@@ -10131,12 +10131,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               nested: [
                 {
-                  // S2 labelAlign (2026-10-10): the side label is the fields' label column
-                  //   (`--form-label-width`) — its text at `--form-label-align` (the fields' block).
+                  // S2 labelAlign (2026-10-10): the side label's text at `--form-label-align` (the
+                  //   fields' block). Its width is its text (S2 side label column `auto`, as Meter ·
+                  //   ProgressBar) — the track / list takes the rest.
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
@@ -12012,12 +12011,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           nested: [
             {
-              // S2 labelAlign (2026-10-10): the side label is the fields' label column
-              //   (`--form-label-width`) — its text at `--form-label-align` (the fields' block).
+              // S2 labelAlign (2026-10-10): the side label's text at `--form-label-align` (the
+              //   fields' block). Its width is its text (S2 side label column `auto`, as Meter ·
+              //   ProgressBar) — the track / list takes the rest.
               selector: "> .react-aria-Label",
               styles: {
-                width: "var(--form-label-width, 11rem)",
-                "flex-shrink": "0",
                 "text-align": "var(--form-label-align, start)",
                 "justify-content": "var(--form-label-align, start)",
               },

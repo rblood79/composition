@@ -61,8 +61,8 @@ export const tagGroupBinding: PrimitiveBinding = {
       // S2 1.8.0 labelAlign (start · end — S2 `Alignment`, 2026-10-10): the side label column's text
       //   alignment, as the fields take it — DOM `data-label-align` → the rule's `label-align` block
       //   (`--form-label-align`), the Canvas reads the same block (`rulePartRules.ts` `LABEL_ALIGN_AXIS`).
-      //   The side label is the fields' column (`--form-label-width`). A Form's value fills it
-      //   (`formContext.ts`).
+      //   The side label is its text's width (S2 side label column `auto`). A Form's value fills
+      //   it (`formContext.ts`).
       labelAlign: {
         kind: "enum",
         label: "Label Align",

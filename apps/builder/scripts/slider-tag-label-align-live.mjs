@@ -1,8 +1,9 @@
-// S2 Slider · TagGroup labelAlign live (2026-10-10, 조사 문서 6.1 다): real Builder (headed Chrome,
-// Compare Mode). For each: Label Position Side from the Design panel → the side label is the fields'
-// column (176 on both sides) and a Label Align field offers Start · End; End → the Preview owner
-// carries data-label-align="end", the label text sits at the column's end (text right edge = label
-// box right edge), and the Canvas label record paints text-align end; no errors.
+// S2 Slider · TagGroup labelAlign live (2026-10-10, 조사 문서 6.1 다 · 사용자 「slider 는 label width 가
+// fit content 가 정상 적용되지 않고있다」): real Builder (headed Chrome, Compare Mode). For each:
+// Label Position Side from the Design panel → the side label is its text's width (as Meter ·
+// ProgressBar — Canvas = Preview, under the fields' 176 column) and the track / tag list takes the
+// rest (Canvas = Preview); a Label Align field offers Start · End; End → the Preview owner carries
+// data-label-align="end" and the Canvas label record paints text-align end; no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/slider-tag-label-align-live.mjs <out>
 import { chromium } from "playwright";
@@ -97,6 +98,12 @@ const read = (type) =>
     const doc = document.querySelector("#previewFrame").contentDocument;
     const el = doc.querySelector(`.react-aria-${type}`);
     const labelEl = el?.querySelector(":scope > .react-aria-Label");
+    const fillerEl = el?.querySelector(
+      ":scope > .react-aria-SliderTrack, .react-aria-TagList",
+    );
+    const filler = node.children
+      .map((id) => root.canvasInputs.get(id))
+      .find((r) => ["SliderTrack", "TagList"].includes(root.typeOf(r)));
     let textRight = null;
     if (labelEl?.firstChild) {
       const range = doc.createRange();
@@ -115,6 +122,10 @@ const read = (type) =>
       canvasTextAlign: label?.visual.textAlign ?? null,
       canvasLabelWidth: label
         ? root.getGeometry([label.id]).get(label.id)?.width
+        : null,
+      previewFillerWidth: fillerEl?.getBoundingClientRect().width ?? null,
+      canvasFillerWidth: filler
+        ? root.getGeometry([filler.id]).get(filler.id)?.width
         : null,
     };
   }, type);
@@ -183,17 +194,18 @@ for (const [type, paletteLabel, expected] of [
   await pick("Label Align", "End");
   const end = await read(type);
   record(
-    `${type}: End → Preview data-label-align end · label text at the column end · Canvas text-align end (start before) · column 176 on both`,
-    Math.round(start.previewLabelWidth) === 176 &&
-      Math.round(start.canvasLabelWidth) === 176 &&
+    `${type}: End → Preview data-label-align end · label text at the column end · Canvas text-align end (start before) · side label = its text (Canvas = Preview) · track / list fills the rest (Canvas = Preview)`,
+    start.previewLabelWidth > 0 &&
+      start.previewLabelWidth < 176 &&
+      Math.abs(start.canvasLabelWidth - start.previewLabelWidth) <= 1 &&
+      Math.abs(start.canvasFillerWidth - start.previewFillerWidth) <= 1 &&
       start.previewTextAlign === "start" &&
       start.canvasTextAlign === "start" &&
       end.labelAlign === "end" &&
       end.dataLabelAlign === "end" &&
       end.previewTextAlign === "end" &&
-      Math.abs(end.previewTextRight - end.previewLabelRight) <= 1 &&
       end.canvasTextAlign === "end" &&
-      Math.round(end.canvasLabelWidth) === Math.round(end.previewLabelWidth),
+      Math.abs(end.canvasLabelWidth - end.previewLabelWidth) <= 1,
     { start, end },
   );
   await page.screenshot({ path: `${OUT}/${type}-end.png` });

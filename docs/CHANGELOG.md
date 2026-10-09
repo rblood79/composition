@@ -30,8 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Slider · TagGroup 의 side 라벨 = field 라벨 열** — 다른 side 라벨 field 13종처럼 `--form-label-width` (11rem, 176px) 폭이다 (전: 글자 폭). side TagGroup 의 Tag 목록은 남은 폭을 채운다 (S2 side field 의 입력 영역 `1fr` — 전에는 줄바꿈될 때 Canvas 168 · Preview 240 으로 갈렸다).
-- 확인: live — Slider · TagGroup 각각 Label Position Side → Label Align (Start · End) 표시, 라벨 열 Canvas = Preview 176, End → Preview 글자 끝 = 라벨 끝 · Canvas text-align end (`apps/builder/scripts/slider-tag-label-align-live.mjs` 5/5).
+- **side TagGroup 의 Tag 목록은 남은 폭을 채운다** (S2 side field 의 입력 영역 `1fr`).
+- side 라벨 폭은 글자 폭이다 (S2 side 라벨 열 `auto` — Meter · ProgressBar 와 같음). 처음 커밋 (`67c048b10`) 은 Slider · TagGroup side 라벨을 field 라벨 열 176px 로 바꿨는데, 사용자 확인 「slider 는 label width 가 fit content 가 정상 적용되지 않고있다」 로 같은 날 되돌렸다. 글자 폭 라벨이라 Label Align 은 Form 등에서 라벨이 넓어질 때 보인다.
+- 확인: live — Slider · TagGroup 각각 Label Position Side → 라벨 = 글자 폭 (Slider 36.4 · TagGroup 66.8, Canvas = Preview), track · Tag 목록이 나머지 (1834.9 · 1849, Canvas = Preview), Label Align (Start · End) 표시, End → Preview `data-label-align` · Canvas text-align end (`apps/builder/scripts/slider-tag-label-align-live.mjs` 5/5).
 
 ## [S2 Meter · ProgressBar staticColor — S2 값으로] - 2026-10-10
 

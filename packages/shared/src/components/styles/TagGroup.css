@@ -13,10 +13,9 @@
       align-items: flex-start;
     }
 
-    /* S2 labelAlign (2026-10-10): the side label is the fields' label column, its text aligned in it. */
+    /* S2 labelAlign (2026-10-10): the side label's text alignment. Its width is its text (S2 side
+       label column `auto`) — the list takes the rest. */
     &[data-label-position="side"] > .react-aria-Label {
-      width: var(--form-label-width, 11rem);
-      flex-shrink: 0;
       text-align: var(--form-label-align, start);
       justify-content: var(--form-label-align, start);
     }
