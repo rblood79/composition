@@ -118,6 +118,59 @@ describe("skiaPrimitive 'divider' — Separator catalog-only 검증 (ADR-912, 20
     expect(shapes[0].fill).toBe("{color.neutral}");
   });
 
+  // S2 1.8.0 Divider `staticColor` (2026-10-09): over a color background the line is white or
+  // black at the S2 `transparent-white-200` opacity (0.14) — size L `-800` (0.85). The DOM sheet
+  // (`Separator.css` `[data-static-color]`) declares the same.
+  it.each([
+    ["white", "M", "#ffffff", 0.14],
+    ["black", "S", "#000000", 0.14],
+    ["white", "L", "#ffffff", 0.85],
+    ["black", "L", "#000000", 0.85],
+  ])(
+    "staticColor %s · size %s — fill %s at %s",
+    (staticColor, sizeName, fill, alpha) => {
+      const shapes = draw({
+        props: {
+          variant: "default",
+          orientation: "horizontal",
+          staticColor,
+          size: sizeName,
+        },
+        size: makeSize("md"),
+        visual: makeVisual("default"),
+        style: undefined,
+      })!;
+      expect(shapes[0]).toMatchObject({ fill, fillAlpha: alpha });
+    },
+  );
+
+  it("staticColor auto keeps the variant line; an authored line color still wins", () => {
+    const auto = draw({
+      props: {
+        variant: "default",
+        orientation: "horizontal",
+        staticColor: "auto",
+      },
+      size: makeSize("md"),
+      visual: makeVisual("default"),
+      style: undefined,
+    })!;
+    expect(auto[0].fill).toBe("{color.border}");
+    expect(auto[0].fillAlpha).toBeUndefined();
+    const authored = draw({
+      props: {
+        variant: "default",
+        orientation: "horizontal",
+        staticColor: "white",
+      },
+      size: makeSize("md"),
+      visual: makeVisual("default"),
+      style: { borderColor: "#ff0000" },
+    })!;
+    expect(authored[0].fill).toBe("#ff0000");
+    expect(authored[0].fillAlpha).toBeUndefined();
+  });
+
   it("style.borderColor 가 visual.border 보다 우선", () => {
     const shapes = draw({
       props: { variant: "default", orientation: "horizontal" },

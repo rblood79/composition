@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 전용 prop 2순위 — Separator staticColor] - 2026-10-09
+
+### Added
+
+- **Separator `staticColor` (auto · white · black)** — S2 1.8.0 Divider (조사 문서 4.2 목록 D):
+  - 유색 배경 위에서 선을 흰색 · 검은색으로 그린다. 값은 S2 `transparent-white-200` · `transparent-black-200` 의 투명도 0.14, size L 은 `-800` 의 0.85. 작성한 선색 (Styles) 이 이기고, 테두리로 그리는 dashed · dotted 는 S2 에 없어 그대로 둔다.
+  - Preview 는 `data-static-color` → `Separator.css`, Canvas 는 `divider` primitive 가 같은 값을 그린다.
+  - 확인: live — Static Color Black → Preview 선 `rgba(0, 0, 0, 0.14)` (전 `rgb(229, 229, 229)`), 높이 2 = 2, Size L → `rgba(0, 0, 0, 0.85)` · 높이 4 = 4, White → `rgba(255, 255, 255, 0.85)` (`apps/builder/scripts/separator-static-color-live.mjs` 4/4). Canvas 의 칠은 `separatorStaticColor.test.ts` 가 실제 Canvas node 의 색 (흰 · 검정, 0.14 · 0.85) 으로 확인한다.
+  - 위치: `packages/shared/src/catalog/bindings/Separator.binding.ts` · `packages/shared/src/components/styles/Separator.css` · `packages/rendering/src/renderers/skiaPrimitives.ts` (`divider`)
+
 ## [S2 전용 prop 2순위 — Switch · TagGroup 상태 축] - 2026-10-09
 
 ### Added

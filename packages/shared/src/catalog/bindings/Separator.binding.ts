@@ -55,6 +55,20 @@ export const separatorBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 Divider `staticColor` (2026-10-09) — over a color background the line is white or
+      //   black (S2 `transparent-*-200` 0.14, size L `-800` 0.85). DOM `data-static-color`
+      //   (`toRacProps`) → `Separator.css`; Canvas `divider` primitive reads the same value.
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
+        ],
+      },
     },
     toRacProps: "default",
   },

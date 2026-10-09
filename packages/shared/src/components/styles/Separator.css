@@ -138,4 +138,28 @@
   .react-aria-Separator[data-size="L"][data-variant="dotted"] {
     border-width: 4px;
   }
+
+  /* S2 1.8.0 Divider staticColor (2026-10-09) — over a color background: white · black at the S2
+     transparent-*-200 opacity (0.14), size L -800 (0.85). The Canvas divider primitive draws the
+     same values. Dashed · dotted (borders, not in S2) keep their line. */
+  .react-aria-Separator[data-static-color="white"]:not([data-variant="dashed"]):not(
+      [data-variant="dotted"]
+    ) {
+    background-color: rgb(255 255 255 / 0.14);
+  }
+  .react-aria-Separator[data-static-color="black"]:not([data-variant="dashed"]):not(
+      [data-variant="dotted"]
+    ) {
+    background-color: rgb(0 0 0 / 0.14);
+  }
+  .react-aria-Separator[data-static-color="white"][data-size="L"]:not(
+      [data-variant="dashed"]
+    ):not([data-variant="dotted"]) {
+    background-color: rgb(255 255 255 / 0.85);
+  }
+  .react-aria-Separator[data-static-color="black"][data-size="L"]:not(
+      [data-variant="dashed"]
+    ):not([data-variant="dotted"]) {
+    background-color: rgb(0 0 0 / 0.85);
+  }
 }

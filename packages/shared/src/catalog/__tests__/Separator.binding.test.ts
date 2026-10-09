@@ -18,6 +18,7 @@ describe("Separator binding → toRacProps", () => {
       orientation: "vertical",
       "data-variant": "accent",
       "data-size": "L",
+      "data-static-color": "auto",
     });
   });
 
@@ -30,6 +31,7 @@ describe("Separator binding → toRacProps", () => {
       orientation: "horizontal",
       "data-variant": "default",
       "data-size": "M",
+      "data-static-color": "auto",
     });
   });
 
