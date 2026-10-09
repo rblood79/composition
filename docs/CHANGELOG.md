@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Codex Round 22 m1 을 반영해 전용 `calendar-duration` 타입·Inspector kind·accepts/default 생성·문서/graph/library 검증을 선행 작업으로 추가했다. 단위 하나·양의 안전 정수 검증과 원자적 편집, undo/redo·저장/로드 보존을 완료 기준에 포함했다. 설계 누락 수리이며 제품 구현은 별도다.
 
+- Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
+
 ## [Design 패널 값이 Preview 에 닿지 않던 prop 연결 — ButtonGroup Disabled · FileTrigger 형식 · GridList 선택 방식 · InlineAlert role] - 2026-10-09
 
 ### Fixed
