@@ -2030,9 +2030,9 @@ export function catalogToggleGroupOf(
 }
 /**
  * A group's toggles of `itemType` in document order (those whose `catalogToggleGroupOf` is it — a
- * nested group of the same type keeps its own; a toggle inside another item is one too, as RAC's
- * context reaches it — Codex Round 21) and the containers they sit in: a change to either can move
- * the group's value.
+ * nested group of the same type keeps its own; a toggle is never inside another of its type —
+ * `nestingRules.ts` `NO_SELF_NESTING_TYPES`) and the containers they sit in: a change to either can
+ * move the group's value.
  */
 export function catalogToggleGroupItems(
   group: CatalogConsumerNode,
@@ -2047,10 +2047,8 @@ export function catalogToggleGroupItems(
     for (const child of childrenOf(node, get)) {
       const type = typeOf(child);
       if (type === groupType) continue;
-      if (type === itemType) {
-        items.push(child);
-        visit(child);
-      } else if (catalogChildKind(type).kind !== "leaf") {
+      if (type === itemType) items.push(child);
+      else if (catalogChildKind(type).kind !== "leaf") {
         containers.push(child);
         visit(child);
       }

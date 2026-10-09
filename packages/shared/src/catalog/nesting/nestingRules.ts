@@ -234,6 +234,19 @@ export const HTML_INTERACTIVE_HOST_TYPES: ReadonlySet<string> = new Set([
   "RadioButton",
 ]);
 
+/**
+ * 같은 type 을 자손으로 받지 않는 부품 (사용자 2026-10-09 「checkbox, radio 안에도 동일한
+ * checkbox, radio 를 넣으면 안되는게 맞다」 — button 안 button 과 같다). 바깥 루트가 `div` 라 HTML 은
+ * 막지 않지만, 선택 하나를 나타내는 부품 안에 같은 부품을 두면 그룹 값 · size 가 어느 항목의
+ * 것인지 갈린다 (Codex Round 21). Tag 는 TagList 의 항목 하나 (`role=row`) 다.
+ */
+export const NO_SELF_NESTING_TYPES: ReadonlySet<string> = new Set([
+  "Checkbox",
+  "Radio",
+  "Switch",
+  "Tag",
+]);
+
 /** HTML interactive content 또는 labelable control 로 렌더되는 타입. */
 export const HTML_INTERACTIVE_TYPES: ReadonlySet<string> = new Set([
   "Button",
@@ -426,6 +439,16 @@ export function resolveNestingViolation(
         owners,
       };
     }
+  }
+
+  // 층 2 — RAC 합성 (c): 선택 하나를 나타내는 부품은 같은 부품을 자손으로 받지 않는다 (조상 전체).
+  if (NO_SELF_NESTING_TYPES.has(childType) && ancestors.includes(childType)) {
+    return {
+      layer: "rac-composition",
+      parentType: childType,
+      childType,
+      reason: `${childType} cannot be a descendant of another ${childType}`,
+    };
   }
 
   // 층 3 — HTML 의미: interactive ⊄ button/a (조상 전체).

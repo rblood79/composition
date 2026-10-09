@@ -676,7 +676,7 @@ export function resolveCatalogNode(
   ): void => {
     const definition = lookupDefinition(definitionId);
     // (A toggle takes its group's size wherever it sits in the group — the nearest group of its
-    // type, as its values do: inside another item too — Codex Round 21.)
+    // type, as its values do: straight in the group, not only in its items box — Codex Round 21.)
     const groupType = CATALOG_TOGGLE_GROUP_OF[definition.name];
     if (groupType && definition.accepts.size === "string") {
       let cursor = structuralParent(parent);

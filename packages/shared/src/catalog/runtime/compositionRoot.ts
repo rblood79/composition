@@ -3266,7 +3266,7 @@ export class CatalogCompositionRoot {
               : [childId];
           });
         const reached = sized ? through(record.children) : [];
-        // (A toggle group's size reaches every toggle of its own — inside another item too.)
+        // (A toggle group's size reaches every toggle of its own — at any depth in the group.)
         const itemType = Object.keys(CATALOG_TOGGLE_GROUP_OF).find(
           (item) => CATALOG_TOGGLE_GROUP_OF[item] === this.typeOf(record),
         );

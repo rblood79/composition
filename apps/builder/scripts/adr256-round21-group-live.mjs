@@ -1,8 +1,9 @@
 // Codex Round 21 live (사용자 2026-10-09 「범위 밖으로 둔 것 체크하고 오류라면 수정 시작해」) — real
 // Builder (headed Chrome, Compare Mode): a CheckboxGroup's size reaches an item the author wraps in a
-// RAC Group (Canvas record · box = Preview `data-size` · box, and a later size change) · a selected
-// Checkbox placed inside another Checkbox is one of the group's values (Canvas · Preview) and takes
-// the group's size (사용자 「사용자에게 일관된 경험」) · after a reload the same · no errors.
+// RAC Group (Canvas record · box = Preview `data-size` · box, and a later size change) · a
+// palette add with an item selected puts no item inside another of its type (Checkbox · Button) and
+// with a group selected puts it in the group (CheckboxGroup · ButtonGroup) · after a reload the same ·
+// no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-round21-group-live.mjs <out>
 import { chromium } from "playwright";
@@ -215,57 +216,109 @@ record(
 );
 await page.screenshot({ path: `${OUT}/group-size.png` });
 
-// a selected Checkbox inside the sibling Checkbox (RAC's group context reaches it)
-const nested = await page.evaluate(() =>
-  window.__COMPOSITION_CATALOG__.workspace.newId("node"),
-);
-const inserted = await exec(
-  (c, ws, arg) => {
-    const outer = [...ws.root.canvasInputs.values()].find(
-      (x) => x.sourceId === arg.sibling,
+// palette: a selected item takes no item of its own type (it goes to the nearest ancestor that takes
+// it — 사용자 「checkbox, radio 안에도 동일한 checkbox, radio 를 넣으면 안되는게 맞다」), a selected
+// group takes its items (「buttongroup 안에 button 은 넣을 수 있지」)
+const select = (type, n = 0) =>
+  page.evaluate(
+    ({ type, n }) => {
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const r = [...ws.root.canvasInputs.values()].filter(
+        (x) => ws.root.typeOf(x) === type,
+      )[n];
+      ws.session.select([
+        { identity: r.id, target: ws.positionOfRecord(r.id).target },
+      ]);
+    },
+    { type, n },
+  );
+const placed = (type) =>
+  page.evaluate((type) => {
+    const root = window.__COMPOSITION_CATALOG__.workspace.root;
+    const all = [...root.canvasInputs.values()].filter(
+      (x) => root.typeOf(x) === type,
     );
-    return c.insertNodes({
-      parent: ws.positionOfRecord(outer.id).target,
-      entries: [
-        {
-          kind: "node",
-          id: arg.nested,
-          definitionId: "lib:definition:origin-component-checkbox",
-          children: [],
-          props: {
-            isSelected: { kind: "set", value: true },
-            value: { kind: "set", value: "nested" },
-          },
-          visual: {},
-          sizing: {},
-          descendantOverrides: [],
-        },
-      ],
-      rootIds: [arg.nested],
-      newId: ws.newId,
-    });
-  },
-  { sibling, nested },
-);
-const inner = await view(nested);
+    const ancestors = (r) => {
+      const out = [];
+      for (
+        let c = root.canvasInputs.get(r.parentId);
+        c;
+        c = root.canvasInputs.get(c.parentId)
+      )
+        out.push(root.typeOf(c));
+      return out;
+    };
+    const doc = document.querySelector("#previewFrame").contentDocument;
+    return all.map((r) => ({
+      sourceId: r.sourceId,
+      parent: root.typeOf(root.canvasInputs.get(r.parentId)),
+      ancestors: ancestors(r),
+      inPreview: !!doc.querySelector(`[data-catalog-id="${r.id}"]`),
+    }));
+  }, type);
+const added = (before, after) =>
+  after.filter((r) => !before.some((b) => b.sourceId === r.sourceId));
+
+let before = await placed("Checkbox");
+await select("Checkbox", 1);
+await addFromPalette("checkbox");
+let fresh = added(before, await placed("Checkbox"));
 record(
-  "a selected Checkbox inside another Checkbox is selected (Canvas · Preview)",
-  inserted.ok && inner.previewChecked === true && inner.canvasSelected,
-  { inserted, inner },
+  "palette with a Checkbox selected: the new Checkbox is not inside it — it joins the group (Preview too)",
+  fresh.length === 1 &&
+    !fresh[0].ancestors.includes("Checkbox") &&
+    fresh[0].ancestors.includes("CheckboxGroup") &&
+    fresh[0].inPreview,
+  fresh,
 );
+before = await placed("Checkbox");
+await select("CheckboxGroup");
+await addFromPalette("checkbox");
+fresh = added(before, await placed("Checkbox"));
 record(
-  "the nested Checkbox takes the group's size sm, not its own md (Canvas = Preview)",
-  inner.canvasSize === "sm" && inner.previewSize === "sm",
-  inner,
+  "palette with the CheckboxGroup selected: the new Checkbox is in the group (Preview too)",
+  fresh.length === 1 &&
+    fresh[0].ancestors.includes("CheckboxGroup") &&
+    fresh[0].inPreview,
+  fresh,
 );
-await setGroup({ size: "lg" });
-const innerLg = await view(nested);
+const straight = await view(fresh[0].sourceId);
 record(
-  "a later group size lg reaches the nested Checkbox (Canvas = Preview)",
-  innerLg.canvasSize === "lg" && innerLg.previewSize === "lg",
-  innerLg,
+  "the Checkbox put straight in the group takes the group's size sm (Canvas = Preview)",
+  straight.canvasSize === "sm" &&
+    straight.previewSize === "sm" &&
+    sameBox(straight),
+  straight,
 );
-await page.screenshot({ path: `${OUT}/nested-item.png` });
+await page.evaluate(() =>
+  window.__COMPOSITION_CATALOG__.workspace.session.clearSelection(),
+);
+await addFromPalette("button group");
+before = await placed("Button");
+await select("ButtonGroup");
+await addFromPalette("button");
+fresh = added(before, await placed("Button"));
+record(
+  "palette with a ButtonGroup selected: the new Button is in the group (Preview too)",
+  fresh.length === 1 && fresh[0].parent === "ButtonGroup" && fresh[0].inPreview,
+  fresh,
+);
+before = await placed("Button");
+const groupButton = (await placed("Button")).findIndex(
+  (r) => r.parent === "ButtonGroup",
+);
+await select("Button", groupButton);
+await addFromPalette("button");
+fresh = added(before, await placed("Button"));
+record(
+  "palette with a Button in the group selected: the new Button is not inside it",
+  fresh.length === 1 &&
+    !fresh[0].ancestors.includes("Button") &&
+    fresh[0].inPreview,
+  fresh,
+);
+const checkboxCount = (await placed("Checkbox")).length;
+await page.screenshot({ path: `${OUT}/palette-items.png` });
 
 await page.waitForTimeout(1500);
 await page.reload();
@@ -277,15 +330,16 @@ await page.waitForFunction(
 );
 await page.waitForTimeout(2500);
 await compareOn();
-const after = { wrapped: await view(wrapped), nested: await view(nested) };
+const after = {
+  wrapped: await view(wrapped),
+  checkboxes: (await placed("Checkbox")).length,
+};
 record(
-  "reload: the wrapped item and the nested Checkbox keep the group's lg, the nested one stays selected",
-  after.wrapped.canvasSize === "lg" &&
-    after.wrapped.previewSize === "lg" &&
+  "reload: the wrapped item keeps the group's sm, the added Checkboxes stay",
+  after.wrapped.canvasSize === "sm" &&
+    after.wrapped.previewSize === "sm" &&
     sameBox(after.wrapped) &&
-    after.nested.canvasSize === "lg" &&
-    after.nested.previewSize === "lg" &&
-    after.nested.previewChecked === true,
+    after.checkboxes === checkboxCount,
   after,
 );
 record("no errors", errors.length === 0, { errors: errors.slice(0, 6) });

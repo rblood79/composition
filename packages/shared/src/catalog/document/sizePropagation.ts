@@ -84,8 +84,9 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
 /**
  * A toggle's group (RAC's group state context — set only by the group, reaching every toggle below
  * it): the nearest ancestor of this type is the toggle's group — for its values (`presence.ts`
- * `catalogToggleGroupOf`) and its size, so a toggle anywhere in the group (inside another item, in
- * a Group) takes the group's size like every item (Codex Round 21, 2026-10-09).
+ * `catalogToggleGroupOf`) and its size, so a toggle anywhere in the group takes the group's size
+ * like every item — one the palette puts straight in a CheckboxGroup · RadioGroup (not its items box)
+ * too (Codex Round 21, 2026-10-09 — 사용자 「사용자에게 일관된 경험」).
  */
 export const CATALOG_TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
   Checkbox: "CheckboxGroup",
