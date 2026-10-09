@@ -41,7 +41,7 @@ import { Select as AriaSelect } from "react-aria-components/Select";
 import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
 import { DatePicker as AriaDatePicker } from "react-aria-components/DatePicker";
 import { DateRangePicker as AriaDateRangePicker } from "react-aria-components/DateRangePicker";
-import { Time } from "@internationalized/date";
+import { Time, toCalendarDateTime } from "@internationalized/date";
 import { safeParseDateString } from "../../utils/core/dateUtils";
 import { ListBox as AriaListBox } from "react-aria-components/ListBox";
 import { Text as AriaText } from "react-aria-components/Text";
@@ -898,6 +898,19 @@ const firstDayOfWeek = (value: unknown) =>
   typeof value === "string" && DAYS_OF_WEEK.includes(value)
     ? (value as "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat")
     : undefined;
+/**
+ * A placeholder date the document wrote as text (`2030-03-15`), at the field's granularity: RAC
+ * throws on a date-only value at a time granularity (`Invalid granularity minute for value …` —
+ * the Preview went blank), so a time field's placeholder is that day at midnight.
+ */
+const placeholderDate = (value: unknown, granularity: unknown) => {
+  const date =
+    typeof value === "string" ? safeParseDateString(value) : undefined;
+  if (!date) return undefined;
+  return ["hour", "minute", "second"].includes(String(granularity))
+    ? toCalendarDateTime(date)
+    : date;
+};
 /** A date prop the document wrote as text (`2026-10-08`), parsed for RAC. */
 const dateValue = (value: unknown) =>
   typeof value === "string" ? safeParseDateString(value) : value;
@@ -916,6 +929,8 @@ const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
   pageBehavior: props.pageBehavior === "single" ? "single" : undefined,
   // (RAC hands it to the picker's calendar — `calendarProps`.)
   firstDayOfWeek: firstDayOfWeek(props.firstDayOfWeek),
+  // No value of its own: the date its calendar opens on (as DateField's).
+  placeholderValue: placeholderDate(props.placeholderValue, props.granularity),
   validationBehavior: props.validationBehavior || undefined,
 });
 /** A time prop the document wrote as text (`HH:MM(:SS)`), parsed for RAC. */
@@ -1684,6 +1699,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     "DatePicker",
     (props) => ({
       ...datePickerProps(props),
+      hourCycle: num(props.hourCycle),
       "aria-label": str(props.label).trim() ? undefined : "Date Picker",
     }),
     (props) => [props.locale, props.calendarSystem],
@@ -1717,10 +1733,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       minValue: dateValue(props.minValue),
       maxValue: dateValue(props.maxValue),
       // No value of its own: the empty segments (RAC · RSP — the Canvas draws the same).
-      placeholderValue:
-        typeof props.placeholderValue === "string"
-          ? safeParseDateString(props.placeholderValue)
-          : undefined,
+      placeholderValue: placeholderDate(
+        props.placeholderValue,
+        props.granularity,
+      ),
       granularity: ["day", "hour", "minute", "second"].includes(
         String(props.granularity),
       )

@@ -27,6 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: S2 의 네 컴포넌트가 받는 prop 인데 우리는 받지 않았다. Canvas 격자는 요일 시작을 일요일로 고정해, 월요일로 시작하는 locale (de-DE 등) 에서는 이미 Preview 와 달랐다 — 같은 계산으로 함께 맞췄다.
   - 확인: live — Calendar 를 Wednesday 로 바꾸면 Preview 머리 「수 목 금 토 일 월 화」, Canvas `_weekStart` 3, 격자 높이 200 = Preview 표 200. DatePicker 를 Friday 로 바꾸고 Preview 에서 열면 「금」 부터 (`apps/builder/scripts/first-day-of-week-live.mjs` 4/4, 브라우저 locale ko-KR).
   - 위치: `packages/shared/src/catalog/bindings/dateLocaleProps.ts` · `packages/shared/src/catalog/bindings/{Calendar,RangeCalendar,DatePicker,DateRangePicker}.binding.ts` · `packages/shared/src/catalog/runtime/{delegatedDom.tsx,presence.ts,compositionRoot.ts}` · `packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts` (`catalogWeekStart`) · `packages/rendering/src/renderers/skiaPrimitives.ts` (`calendar_month_grid`)
+- **DatePicker `hourCycle` · DatePicker · DateRangePicker `placeholderValue`** — DateField 와 같은 계약:
+  - Hour Cycle (12 · 24, 시간 granularity 에서만 보임) 과 Placeholder Value (ISO 날짜 — 빈 picker 의 달력이 열리는 달) 를 Design 패널에서 고친다. DateRangePicker 는 Hour Cycle 이 이미 있었다.
+  - Canvas 의 DateInput 세그먼트는 이미 picker 의 `hourCycle` 을 읽었다 — DOM 만 넘기지 않았다.
+
+### Fixed
+
+- **날짜만 적은 Placeholder Value + 시간 granularity 에서 Preview 가 통째로 비던 문제** (DateField · DatePicker · DateRangePicker):
+  - **Why**: RAC 는 시간 granularity 에 날짜만 있는 값을 받으면 `Invalid granularity minute for value 2030-03-15` 를 던진다. 문서는 Placeholder Value 를 `2030-03-15` 로 저장하고 DOM 은 그대로 `CalendarDate` 로 넘겼다.
+  - 수정: 시간 granularity 면 그 날 자정 (`toCalendarDateTime`) 으로 넘긴다.
+  - 확인: live — DatePicker Granularity Minute · Hour Cycle 24 → Canvas = Preview 세그먼트 「연도.월.일.––:––」, 12 → 둘 다 「오전」, Placeholder Value 2030-03-15 → 열린 달력 「2030년 3월」, 오류 0 (`apps/builder/scripts/picker-time-props-live.mjs` 4/4). 수정 전에는 같은 단계에서 Preview 가 비었다.
+  - 위치: `packages/shared/src/catalog/bindings/{DatePicker,DateRangePicker}.binding.ts` · `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`placeholderDate`)
 
 ## [size 이름 S2 정렬 — XS · S · M · L · XL] - 2026-10-09
 

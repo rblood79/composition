@@ -91,6 +91,20 @@ export const datePickerBinding: PrimitiveBinding = {
           { value: "second", label: "Second" },
         ],
       },
+      // S2 · RAC `hourCycle` (DateField · DateRangePicker 와 같은 계약 — 2026-10-09).
+      hourCycle: {
+        kind: "enum",
+        label: "Hour Cycle",
+        section: "locale",
+        options: [
+          { value: "12", label: "12" },
+          { value: "24", label: "24" },
+        ],
+        visibleWhen: {
+          key: "granularity",
+          oneOf: ["hour", "minute", "second"],
+        },
+      },
       errorMessage: {
         kind: "string",
         label: "Error Message",
@@ -98,6 +112,13 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
+      // S2 · RAC `placeholderValue`: the date the empty picker's calendar opens on (ISO text, as
+      //   DateField's — 2026-10-09).
+      placeholderValue: {
+        kind: "string",
+        label: "Placeholder Value",
+        section: "content",
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `datePickerProps` 가 소비 —
       //   RAC/RSP DatePicker 공식 prop. hideTimeZone/shouldForceLeadingZeros/
       //   shouldCloseOnSelect 는 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
