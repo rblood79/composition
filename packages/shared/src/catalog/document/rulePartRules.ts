@@ -1095,6 +1095,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Record<string, Readonly<Record<string, string>>>
 > = {
   IllustratedMessage: { orientation: "orientation" },
+  // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)
+  AvatarGroup: { size: "size" },
 };
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {
   return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };

@@ -2,7 +2,8 @@
 // Builder (headed Chrome, Compare Mode): the palette's AvatarGroup is `Avatar × 3 + Text {label}`; for
 // xs · sm · md · lg · xl the Canvas boxes (root + children, relative to the root) equal the Preview's
 // (±1px) and the label font is the Preview span's; the Preview root is `role="group"` named by the
-// label; an origin `label` edit reaches both; no errors.
+// label; the first avatar sits at the group's start and each next one overlaps by a quarter of the
+// avatar size (S2); an origin `label` edit reaches both; no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/avatar-group-label-live.mjs <out>
 import { chromium } from "playwright";
@@ -175,10 +176,18 @@ for (const size of ["xs", "sm", "md", "lg", "xl"]) {
     s.canvas.every((c, i) =>
       ["x", "y", "w", "h"].every((k) => Math.abs(c[k] - s.dom[i][k]) <= 1),
     );
+  // S2: the first avatar at the group's start, each next one overlapping by a quarter of its size.
+  const avatars = s.canvas.slice(1, 4);
+  const overlap =
+    avatars[0].x === 0 &&
+    avatars
+      .slice(1)
+      .every((a, i) => a.x - (avatars[i].x + avatars[i].w) === -a.w / 4);
   record(
-    `${size}: Canvas boxes = Preview boxes (root + Avatar × 3 + label) · label font ${s.font.canvas}px`,
+    `${size}: Canvas boxes = Preview boxes (root + Avatar × 3 + label) · first avatar at 0 · overlap ${avatars[0].w / 4} · label font ${s.font.canvas}px`,
     result.ok &&
       same &&
+      overlap &&
       s.font.canvas === s.font.dom &&
       s.canvas[4].type === "Text",
     { result, canvas: s.canvas, dom: s.dom, font: s.font },

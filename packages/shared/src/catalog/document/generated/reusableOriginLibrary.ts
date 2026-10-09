@@ -2767,10 +2767,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-avatar",
     "children": [],
     "props": {},
-    "visual": {},
-    "layout": {
-      "marginLeft": "-8px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-avatargroup__2",
@@ -2779,10 +2776,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "initials": "B"
     },
-    "visual": {},
-    "layout": {
-      "marginLeft": "-8px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-avatargroup__3",
@@ -2791,10 +2785,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "initials": "C"
     },
-    "visual": {},
-    "layout": {
-      "marginLeft": "-8px"
-    }
+    "visual": {}
   },
   {
     "id": "lib:template:component-avatargroup__label",

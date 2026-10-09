@@ -12,63 +12,32 @@
     box-sizing: border-box;
     font-family: var(--font-sans);
 
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
   /* Default size */
-  height: 32px;
-  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-  background: transparent;
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
 .react-aria-AvatarGroup[data-size="xs"] {
-  height: 24px;
-  padding: 0px 0px;
   font-size: var(--text-2xs);
   border-radius: var(--radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="sm"] {
-  height: 28px;
-  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="md"] {
-  height: 32px;
-  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="lg"] {
-  height: 40px;
-  padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-full);
 }
 
 .react-aria-AvatarGroup[data-size="xl"] {
-  height: 48px;
-  padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
 }
@@ -83,6 +52,49 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-AvatarGroup[data-size="xs"] {
+  padding: 0 0 0 6px;
+}
+
+.react-aria-AvatarGroup[data-size="xs"] > .react-aria-Avatar {
+  margin-inline-start: -6px;
+}
+
+.react-aria-AvatarGroup[data-size="sm"] {
+  padding: 0 0 0 7px;
+}
+
+.react-aria-AvatarGroup[data-size="sm"] > .react-aria-Avatar {
+  margin-inline-start: -7px;
+}
+
+.react-aria-AvatarGroup[data-size="md"] {
+  padding: 0 0 0 8px;
+}
+
+.react-aria-AvatarGroup[data-size="md"] > .react-aria-Avatar {
+  margin-inline-start: -8px;
+}
+
+.react-aria-AvatarGroup[data-size="lg"] {
+  padding: 0 0 0 10px;
+}
+
+.react-aria-AvatarGroup[data-size="lg"] > .react-aria-Avatar {
+  margin-inline-start: -10px;
+}
+
+.react-aria-AvatarGroup[data-size="xl"] {
+  padding: 0 0 0 12px;
+}
+
+.react-aria-AvatarGroup[data-size="xl"] > .react-aria-Avatar {
+  margin-inline-start: -12px;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-AvatarGroup {

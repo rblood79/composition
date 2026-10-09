@@ -27,6 +27,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 확인: 실제 Builder Compare Mode 에서 size 5단계의 Canvas 상자 (그룹 · 아바타 3 · 라벨) = Preview 상자, 라벨 글자 크기 같음, `label` 편집이 양쪽 · 그룹 이름에 반영 (`apps/builder/scripts/avatar-group-label-live.mjs` 7/7).
   - 위치: `packages/shared/src/catalog/{document/generated/reusableOriginLibrary.ts,bindings/AvatarGroup.binding.ts,document/sizePropagation.ts,runtime/delegatedDom.tsx}` · `apps/builder/src/builder/components/reusablePropsSchemas.ts`
 
+### Fixed
+
+- **AvatarGroup 아바타 겹침 = S2** (사용자 「첫 아바타 margin 이랑 겹침 폭도 S2 에 맞춰」):
+  - 첫 아바타가 그룹 왼쪽 끝에 붙고, 다음 아바타는 아바타 크기의 1/4 만큼 겹친다 (xs 6 · sm 7 · md 8 · lg 10 · xl 12px). 나중에 넣은 아바타도 같다.
+  - **Why**: template 의 아바타마다 `marginLeft: -8px` 이 박혀 있어 첫 아바타가 그룹 밖으로 8px 나갔고, 겹침이 size 와 무관하게 8px 이었다 (S2 `marginStart: calc(var(--size) / -4)`, `:first-child: 0`).
+  - 수정: AvatarGroup rule 의 size 블록이 아바타에 `-size/4` 를, 그룹에 같은 시작 padding 을 준다 — 첫 아바타의 margin 0 과 같은 상자 (Canvas part rule 은 형제 위치를 보지 않는다).
+  - 확인: live size 5단계 — 첫 아바타 x 0 · 겹침 1/4 · Canvas 상자 = Preview 상자.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (AvatarGroup `composition.containerVariants.size`) · `document/rulePartRules.ts` (`TYPE_CONTAINER_VARIANT_AXES.AvatarGroup`)
+
 ## [ToggleButtonGroup staticColor 의 Canvas 반영 — 자식 ToggleButton 파생 값] - 2026-10-09
 
 ### Fixed

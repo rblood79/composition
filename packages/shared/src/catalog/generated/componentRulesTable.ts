@@ -153,6 +153,63 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           opacity: 0.38,
         },
       },
+      // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `avatar`): each avatar overlaps the
+      //   one before by a quarter of its size (`marginStart: calc(var(--size) / -4)`), the first
+      //   none (`:first-child: 0`). Here every avatar takes the overlap and the group's start
+      //   padding gives the first one's back — the same boxes, with no position condition (the
+      //   Canvas part rules match by type and props).
+      composition: {
+        containerVariants: {
+          size: {
+          xs: {
+            styles: { padding: "0 0 0 6px" },
+            nested: [
+              {
+                selector: "> .react-aria-Avatar",
+                styles: { "margin-inline-start": "-6px" },
+              },
+            ],
+          },
+          sm: {
+            styles: { padding: "0 0 0 7px" },
+            nested: [
+              {
+                selector: "> .react-aria-Avatar",
+                styles: { "margin-inline-start": "-7px" },
+              },
+            ],
+          },
+          md: {
+            styles: { padding: "0 0 0 8px" },
+            nested: [
+              {
+                selector: "> .react-aria-Avatar",
+                styles: { "margin-inline-start": "-8px" },
+              },
+            ],
+          },
+          lg: {
+            styles: { padding: "0 0 0 10px" },
+            nested: [
+              {
+                selector: "> .react-aria-Avatar",
+                styles: { "margin-inline-start": "-10px" },
+              },
+            ],
+          },
+          xl: {
+            styles: { padding: "0 0 0 12px" },
+            nested: [
+              {
+                selector: "> .react-aria-Avatar",
+                styles: { "margin-inline-start": "-12px" },
+              },
+            ],
+          },
+          },
+        },
+        delegation: [],
+      },
     },
   },
   Badge: {

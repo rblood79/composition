@@ -137,6 +137,35 @@ describe("AvatarGroup — the S2 label is a Text node", () => {
     },
   );
 
+  it.each([
+    ["xs", 24],
+    ["sm", 28],
+    ["md", 32],
+    ["lg", 40],
+    ["xl", 48],
+  ])(
+    "size %s: the first avatar at the group's start, each next one overlapping it by %i / 4 (S2)",
+    async (size, avatar) => {
+      const { workspace, root, kids, rect } = await open();
+      const groupId = kids()[0]!.parentId!;
+      workspace.execute(
+        setFields({
+          targets: [workspace.positionOfRecord(groupId)!.target],
+          props: { size: set(size) },
+        }),
+      );
+      const avatars = kids()
+        .filter((r) => root.typeOf(r) === "Avatar")
+        .map((r) => rect(r.id));
+      expect(avatars.map((a) => a.width)).toEqual([avatar, avatar, avatar]);
+      expect(avatars[0]!.x).toBe(rect(groupId).x);
+      for (let i = 1; i < avatars.length; i += 1)
+        expect(avatars[i]!.x - (avatars[i - 1]!.x + avatar)).toBe(
+          -avatar / 4,
+        );
+    },
+  );
+
   it("Canvas paints the label text", async () => {
     const { root, kids } = await open();
     const binding = bindCatalogCanvas(root, root.pageRootRecords());

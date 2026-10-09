@@ -500,6 +500,16 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     reason:
       "old trigger right padding = size paddingX 12; catalog `--dp-group-padding` / `--drp-group-padding` right = spacing-xs 4 (md)",
   },
+  {
+    // 2026-10-09 (사용자 「첫 아바타 margin 이랑 겹침 폭도 S2 에 맞춰」).
+    id: "avatar-group-first-avatar-start",
+    class: "oldDefect",
+    owners: ["AvatarGroup"],
+    nodes: ["Avatar"],
+    axes: ["x"],
+    reason:
+      "old: every avatar (the first too) had marginLeft -8, so the first sat 8px left of the group; S2 `marginStart: calc(var(--size) / -4)` with `:first-child: 0` (the group's start padding gives it back)",
+  },
 ];
 
 /**
