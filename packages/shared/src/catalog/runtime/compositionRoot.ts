@@ -2,6 +2,7 @@ import {
   CATALOG_FORM_CONTEXT_KEYS,
   CATALOG_FORM_FIELDS,
 } from "../document/formContext";
+import { catalogDisclosureBorders } from "./disclosureBorders";
 import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
@@ -807,6 +808,21 @@ function catalogStatusLightLead(node: CatalogConsumerNode): number {
   return (size?.indicator?.dotSize ?? 10) + (Number.isFinite(gap) ? gap : 8);
 }
 
+/** A Disclosure's top · bottom border for the engine (`catalogDisclosureBorders`). */
+function disclosureEngineBorders(
+  node: CatalogConsumerNode,
+): Record<string, string> {
+  const props = { ...node.props, ...node.derivedProps };
+  const borders = catalogDisclosureBorders({
+    quiet: props.isQuiet === true,
+    inGroup: props._inGroup === true,
+    last: props._lastChild === true,
+  });
+  return borders
+    ? { borderTop: `${borders.top}px`, borderBottom: `${borders.bottom}px` }
+    : {};
+}
+
 function styleOf(
   node: CatalogConsumerNode,
   measure: CatalogTextMeasure | undefined,
@@ -940,6 +956,8 @@ function styleOf(
           paddingLeft: px(box.padding.left),
         }
       : {}),
+    // S2 Disclosure: its top · bottom border (`catalogDisclosureBorders`); an authored width wins.
+    ...(typeName === "Disclosure" ? disclosureEngineBorders(node) : {}),
     ...(box.borderWidth !== undefined
       ? {
           borderTop: px(box.borderWidth),

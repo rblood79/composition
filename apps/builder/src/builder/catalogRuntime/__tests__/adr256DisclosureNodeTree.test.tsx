@@ -247,9 +247,10 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     expect(box.y).toBeCloseTo((geometry.get(trigger.id)!.height - 18) / 2, 1);
     expect(geometry.get(title.id)!.x).toBe(34);
     expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
-    // (The old header's — the chevron 18 or the line, plus the 8px padding.)
+    // (S2's regular trigger height — 2026-10-10: the old header's was the chevron 18 or the line,
+    // plus the 8px padding.)
     expect(geometry.get(trigger.id)!.height).toBeCloseTo(
-      { S: 34, M: 36, L: 38.857 }[size]!,
+      { S: 24, M: 32, L: 40 }[size]!,
       2,
     );
     // The panel content takes the Disclosure's size font (the old DisclosureContent's).

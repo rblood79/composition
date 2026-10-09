@@ -1405,7 +1405,28 @@ export function catalogDerivedProps(
       catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)) ||
     (typeOf(node) === "Button" &&
       catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
-  return disabled ? { ...withSelection, isDisabled: true } : withSelection;
+  const result = disabled
+    ? { ...withSelection, isDisabled: true }
+    : withSelection;
+  // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
+  // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
+  const grouped = catalogDisclosureGroupPosition(node, get, typeOf);
+  return grouped ? { ...result, ...grouped } : result;
+}
+
+/**
+ * A Disclosure inside a DisclosureGroup (any depth — RAC's group context): `_inGroup` and whether
+ * it is its parent's last child (`_lastChild` — the sheet's `:last-child`). Undefined otherwise.
+ */
+function catalogDisclosureGroupPosition(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { _inGroup: true; _lastChild: boolean } | undefined {
+  if (typeOf(node) !== "Disclosure") return undefined;
+  if (!catalogDisclosureGroupOf(node, get, typeOf)) return undefined;
+  const siblings = get(node.parentId)?.children ?? [];
+  return { _inGroup: true, _lastChild: siblings.at(-1) === node.id };
 }
 
 /** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
@@ -1682,6 +1703,12 @@ export function catalogDerivedPropsDependents(
     // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
+    ),
+    // (Its grouped Disclosures: which one is its last child — `catalogDisclosureGroupPosition`.)
+    ...childrenOf(owner, get).filter(
+      (child) =>
+        typeOf(child) === "Disclosure" &&
+        !!catalogDisclosureGroupOf(child, get, typeOf),
     ),
   ];
   return [

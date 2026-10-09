@@ -12,7 +12,7 @@ import type { PrimitiveBinding } from "../types";
  *   showWhen state frame 을 넘기므로 delegating 등록이 필요하다.
  *
  * D1: RAC Disclosure · Heading · Button[trigger] · DisclosurePanel 그대로 (D1/ARIA 권위 보존).
- * D2: title(children) + isExpanded + size 편집 surface.
+ * D2: title(children) + isExpanded + size + density · isQuiet (S2) 편집 surface.
  * D3: 시각(헤더 폰트/크기/패딩, 컨테이너 radius/border)은 theme rule
  *     (COMPONENT_RULES_TABLE.Disclosure.sizes). Skia generic shell ↔ DOM RAC self-compose 시각 대칭.
  */
@@ -37,6 +37,21 @@ export const disclosureBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 Disclosure (2026-10-10): `density` — the trigger's height (compact · regular ·
+      // spacious), `isQuiet` — no top · bottom border, a rounded trigger. The DOM's `data-density` ·
+      // `data-quiet`; the sheet and the Canvas read the rule's `containerVariants` · `rootSelectors`.
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — delegatedDom `disclosure` 가 RAC 에 넘긴다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

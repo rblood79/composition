@@ -2452,6 +2452,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             id: input.node.id,
             style: input.style,
             "data-size": str(props.size || "M"),
+            // S2 density · quiet · `isInGroup` (the sheet's trigger height, borders — 2026-10-10).
+            "data-density": opt(props.density),
+            "data-quiet": bool(props.isQuiet) || undefined,
+            "data-in-group": inGroup || undefined,
             isDisabled: bool(props.isDisabled),
             ...(inGroup
               ? {}

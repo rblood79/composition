@@ -4376,23 +4376,24 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   의 것 — B22 전제 착오). DOM 정본 = flex 부모에서 fit-content (실측 168.2 vs Skia
     //   강제 350 역방향 발산). block 부모 정합은 §5.5 IFC 주입이 담당 (390=390 유지).
     variants: {},
-    // 테두리 없음 (starter Disclosure.css 정합 — 루트는 블록 컨테이너). borderWidth 1 은 variant 가 없어
-    //   생성 CSS 에 border-style/color 가 안 실리는 dead 값이었고 Skia layout 만 1px 을 읽어 w/h Δ2
-    //   (2026-09-18, `catalogComponentBox` Disclosure 케이스).
+    // 테두리 (S2 1.8.0 Disclosure, 2026-10-10 사용자 결정 「S2 처럼 기본 Disclosure 에 위아래 테두리」): 위 · 아래
+    //   1px (`composition.containerStyles` 의 `border-top` · `border-bottom`, S2 `gray-200`), quiet 와
+    //   DisclosureGroup 안의 마지막이 아닌 항목의 아래는 없다 (`rootSelectors`). sizes 에 borderWidth 를 두지
+    //   않는다 — `[data-size]` 의 `border-width` 가 위아래 테두리를 덮는다. Canvas 는 같은 선언을
+    //   `catalogDisclosureBorders` 로 읽어 레이아웃 (변별 border) 과 칠 (`strokeWidths`) 에 쓴다.
+    //   루트 모서리는 없다 (S2 — 둥근 모서리면 위아래 선 양 끝이 휜다).
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
-        borderRadius: "{radius.sm}",
-        borderWidth: "{border.width.none}",
+        borderRadius: "{radius.none}",
         height: 0,
         iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
-        borderRadius: "{radius.md}",
-        borderWidth: "{border.width.none}",
+        borderRadius: "{radius.none}",
         height: 0,
         // chevron 18 (사용자 결정 2026-09-29 — M 기준 18, DisclosureHeader.sizes.iconSize 와 같은 값).
         iconSize: 18,
@@ -4400,8 +4401,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
-        borderRadius: "{radius.lg}",
-        borderWidth: "{border.width.none}",
+        borderRadius: "{radius.none}",
         height: 0,
         iconSize: 20,
       },
@@ -4433,6 +4433,102 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         containerStyles: {
           display: "block",
+          "border-top": "1px solid var(--border)",
+          "border-bottom": "1px solid var(--border)",
+        },
+        // S2 `isQuiet` 는 위아래 테두리를 없애고, DisclosureGroup 안에서는 마지막 항목만 아래 테두리를
+        //   남긴다 (S2 `isInGroup` · `:last-child`). `data-in-group` 은 DisclosureGroup 안의 Disclosure 에
+        //   DOM 이 붙인다 (RAC 그룹 context 가 닿는 깊이 — `catalogDisclosureGroupOf`).
+        rootSelectors: {
+          // (`="true"`: the field boxes' `&[data-quiet]` is their own quiet paint — `catalogQuietStyles`.)
+          '&[data-quiet="true"]': {
+            styles: {
+              "border-top-width": "0",
+              "border-bottom-width": "0",
+            },
+          },
+          "&[data-in-group]:not(:last-child)": {
+            styles: {
+              "border-bottom-width": "0",
+            },
+          },
+        },
+        // S2 density · quiet (2026-10-10): trigger 높이 = S2 `minHeight` (size × density — S 18/24/32 ·
+        //   M 24/32/40 · L 32/40/48) — `min-height` 와, 한 줄 내용 (S chevron 18 · M 줄 20 · L 줄 22.857)
+        //   을 그 높이 안 가운데에 두는 세로 padding (S2 `centerPadding` — 내림, 남는 몫은 min-height).
+        //   regular 는 static trigger 의 `--disclosure-trigger-*`, compact · spacious 는 아래 블록이
+        //   바꾼다. quiet trigger 는 둥글다 (S2 `borderRadius.isQuiet`).
+        containerVariants: {
+          size: {
+            S: {
+              styles: {
+                "--disclosure-trigger-h": "24px",
+                "--disclosure-trigger-py": "3px",
+                "--disclosure-trigger-h-compact": "18px",
+                "--disclosure-trigger-py-compact": "0px",
+                "--disclosure-trigger-h-spacious": "32px",
+                "--disclosure-trigger-py-spacious": "7px",
+              },
+            },
+            M: {
+              styles: {
+                "--disclosure-trigger-h": "32px",
+                "--disclosure-trigger-py": "6px",
+                "--disclosure-trigger-h-compact": "24px",
+                "--disclosure-trigger-py-compact": "2px",
+                "--disclosure-trigger-h-spacious": "40px",
+                "--disclosure-trigger-py-spacious": "10px",
+              },
+            },
+            L: {
+              styles: {
+                "--disclosure-trigger-h": "40px",
+                "--disclosure-trigger-py": "8px",
+                "--disclosure-trigger-h-compact": "32px",
+                "--disclosure-trigger-py-compact": "4px",
+                "--disclosure-trigger-h-spacious": "48px",
+                "--disclosure-trigger-py-spacious": "12px",
+              },
+            },
+          },
+          density: {
+            compact: {
+              nested: [
+                {
+                  selector: ".react-aria-Button[slot='trigger']",
+                  styles: {
+                    "min-height": "var(--disclosure-trigger-h-compact)",
+                    "padding-top": "var(--disclosure-trigger-py-compact)",
+                    "padding-bottom": "var(--disclosure-trigger-py-compact)",
+                  },
+                },
+              ],
+            },
+            spacious: {
+              nested: [
+                {
+                  selector: ".react-aria-Button[slot='trigger']",
+                  styles: {
+                    "min-height": "var(--disclosure-trigger-h-spacious)",
+                    "padding-top": "var(--disclosure-trigger-py-spacious)",
+                    "padding-bottom": "var(--disclosure-trigger-py-spacious)",
+                  },
+                },
+              ],
+            },
+          },
+          quiet: {
+            true: {
+              nested: [
+                {
+                  selector: ".react-aria-Button[slot='trigger']",
+                  styles: {
+                    "border-radius": "var(--radius-md)",
+                  },
+                },
+              ],
+            },
+          },
         },
         staticSelectors: {
           ".react-aria-Heading": {
@@ -4471,8 +4567,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   (둘 다 text-xs/text-sm/text-base) → inherit 값이 Skia 가 읽는 값과 일치.
             "font-size": "inherit",
             gap: "var(--spacing-xs)",
-            padding: "var(--spacing-sm) var(--spacing-md)",
-            "border-radius": "var(--radius-md)",
+            // 높이 = size · density 별 S2 trigger 높이 (`containerVariants` 의 변수).
+            "min-height": "var(--disclosure-trigger-h)",
+            padding: "var(--disclosure-trigger-py) var(--spacing-md)",
+            // S2: 모서리는 quiet 와 keyboard focus 에서만 둥글다.
+            "border-radius": "0",
             transition: "all 200ms",
             outline: "none",
           },
@@ -4495,6 +4594,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           ".react-aria-Button[slot='trigger'][data-focus-visible]": {
             outline: "var(--focus-ring-width) solid var(--focus-ring)",
+            "border-radius": "var(--radius-md)",
           },
           // chevron — ADR-256 Phase 8c: the trigger's Icon node (the reference `<ChevronRight />`):
           //   a fixed box in the flex row; its glyph turns with the expansion (below).

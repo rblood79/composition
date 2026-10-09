@@ -530,15 +530,25 @@ function withRuleParts(
       )
         return [];
       const ownerAccepts = definition.accepts;
+      // (A boolean axis's attribute value — `[data-quiet="true"]` — is the owner's boolean prop.)
+      const ownerProps = Object.fromEntries(
+        Object.entries(part.ownerProps ?? {}).map(([prop, value]) => [
+          prop,
+          ownerAccepts[prop] === "boolean" &&
+          (value === "true" || value === "false")
+            ? value === "true"
+            : value,
+        ]),
+      );
       if (
-        Object.entries(part.ownerProps ?? {}).some(
+        Object.entries(ownerProps).some(
           ([prop, value]) => !scalarFitsType(value, ownerAccepts[prop]),
         )
       )
         return [];
       const when = {
         ...(part.size && sized ? { size: part.size } : {}),
-        ...part.ownerProps,
+        ...ownerProps,
       };
       const viaAccepts = via ? byId.get(via)!.accepts : {};
       if (

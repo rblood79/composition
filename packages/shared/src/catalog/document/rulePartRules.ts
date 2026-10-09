@@ -566,6 +566,27 @@ function compileDeclarations(
 }
 
 /**
+ * Owners whose part blocks' `border-radius` reaches the Canvas part (its `radius`). Opt-in: the
+ * other rules' child `border-radius` declarations are not read on the Canvas yet (their children
+ * draw their own rule's radius). S2 Disclosure (2026-10-10): a square trigger, rounded when quiet.
+ */
+const RADIUS_PART_OWNERS: ReadonlySet<string> = new Set(["Disclosure"]);
+/** `visual` with the block's `border-radius` (`RADIUS_PART_OWNERS`). */
+function withPartRadius(
+  parentType: string,
+  declarations: Readonly<Record<string, string>>,
+  variables: Readonly<Record<string, string>>,
+  visual: Record<string, Scalar>,
+): Record<string, Scalar> {
+  const raw = declarations["border-radius"];
+  if (!RADIUS_PART_OWNERS.has(parentType) || typeof raw !== "string")
+    return visual;
+  const value = substitute(raw, variables);
+  const px = value === "0" ? 0 : value ? lengthPx(value) : undefined;
+  return px === undefined ? visual : { ...visual, radius: px };
+}
+
+/**
  * Variables the owner declares on its own element (`composition.containerStyles` and
  * `containerVariants.size[*].styles`, e.g. RadioGroup `--label-font-size`) reach every descendant
  * by custom-property inheritance; a child whose stylesheet consumes them (`CONSUMED_VARIABLES`)
@@ -1097,6 +1118,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   IllustratedMessage: { orientation: "orientation" },
   // (S2 AvatarGroup: the avatar overlap is a quarter of the group size.)
   AvatarGroup: { size: "size" },
+  // S2 Disclosure (2026-10-10): its trigger's height per density, its rounded quiet trigger.
+  Disclosure: { density: "density", quiet: "isQuiet" },
 };
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {
   return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };
@@ -1210,7 +1233,11 @@ function containerVariantPartRules(
       for (const entry of block.nested ?? []) {
         const selector = entry.selector.trim().replace(/^>\s*/, "");
         const excluded = /^:not\((.*)\)$/.exec(selector)?.[1];
-        const targets: Array<{ childType: string; via?: string }> = excluded
+        const targets: Array<{
+          childType: string;
+          via?: string;
+          childProps?: Readonly<Record<string, Scalar>>;
+        }> = excluded
           ? [
               ...FIELD_CONTROL_TYPES,
               // A group's items wrapper (ADR-251) is its content beside a side label.
@@ -1227,12 +1254,22 @@ function containerVariantPartRules(
               })
               .map((childType) => ({ childType }))
           : selectorList(selector).flatMap((part) => {
-              const simple = parseSimple(part);
+              // (A whole sub-part selector — a Disclosure's trigger `Button[slot='trigger']` — as
+              // the static blocks match it, with the props that pick the child.)
+              const whole = Object.values(
+                SUBPART_TOKENS[parentType] ?? {},
+              ).some((tokens) => tokens.includes(part));
+              const simple = whole
+                ? { token: part, conditions: [] }
+                : parseSimple(part);
               const target =
                 simple && !simple.conditions.length
                   ? childTypeOf(parentType, simple.token)
                   : undefined;
-              return target ? [target] : [];
+              const childProps = SUBPART_CHILD_PROPS[parentType]?.[part];
+              return target
+                ? [{ ...target, ...(childProps ? { childProps } : {}) }]
+                : [];
             });
         for (const target of targets) {
           const compile = (
@@ -1250,6 +1287,12 @@ function containerVariantPartRules(
               entry.styles ?? {},
               variables,
               undefined,
+            );
+            compiled.visual = withPartRadius(
+              parentType,
+              entry.styles ?? {},
+              variables,
+              compiled.visual,
             );
             // The side label column's text alignment (`text-align: var(--form-label-align, start)`):
             // read here only — the label is a text leaf, which paints its alignment.
@@ -1281,6 +1324,7 @@ function containerVariantPartRules(
             out.push({
               childType: target.childType,
               ...(target.via ? { via: target.via } : {}),
+              ...(target.childProps ? { childProps: target.childProps } : {}),
               ...(size ? { size } : {}),
               ownerProps: {
                 [prop]: value,
@@ -1440,11 +1484,23 @@ export function compileRulePartRules(
       const compiled = sizes.map((size) => {
         const areas = resolveCatalogRuleCanvasBox(parentType, size)
           .gridTemplateAreas as string | undefined;
+        // (The owner's own custom properties reach its descendants — `containerVariants.size`'s
+        // per-size `--disclosure-trigger-py`, as the generated `[data-size]` block declares them.)
+        const variables = {
+          ...compositionVariables(rule, size),
+          ...((size && rootVariables[size]) || {}),
+        };
         const compiledBlock = compileDeclarations(
           target.childType,
           block.declarations,
-          (size && rootVariables[size]) || {},
+          variables,
           areas,
+        );
+        compiledBlock.visual = withPartRadius(
+          parentType,
+          block.declarations,
+          variables,
+          compiledBlock.visual,
         );
         const glyph = whole ? GLYPH_TOKENS[part] : undefined;
         if (glyph && typeof compiledBlock.visual.width === "number") {

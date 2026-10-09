@@ -1,4 +1,5 @@
 import type { CanvasSceneNode } from "../workspace/canvas/scene/canvasSceneNodeTypes";
+import { catalogDisclosureBorders } from "../../../../../packages/shared/src/catalog/runtime/disclosureBorders";
 import {
   getIconData,
   getSkiaPrimitiveMode,
@@ -788,22 +789,58 @@ function paintedNodeData(
       node,
       applyCatalogAuthoredPaint(
         node,
-        OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
-          ? ownerDrawnPartNodeData(root, node, rect)
-          : binding
-            ? binding(
-                node,
-                rect,
-                parent,
-                root.textWraps(node.id),
-                root.labelSuffix(node.id),
-              )
-            : ruleNodeData(root, node, rect),
+        withDisclosureBorders(
+          root,
+          node,
+          OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
+            ? ownerDrawnPartNodeData(root, node, rect)
+            : binding
+              ? binding(
+                  node,
+                  rect,
+                  parent,
+                  root.textWraps(node.id),
+                  root.labelSuffix(node.id),
+                )
+              : ruleNodeData(root, node, rect),
+        ),
         rect,
         root.colorMode,
       ),
     ),
   );
+}
+
+/**
+ * S2 Disclosure: its top · bottom border as the box's side strokes (`catalogDisclosureBorders` —
+ * the sheet's `border-top` · `border-bottom`; the engine lays them out, `styleOf`). An authored
+ * border paints over it (`applyCatalogAuthoredPaint`).
+ */
+function withDisclosureBorders(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  data: SkiaNodeData,
+): SkiaNodeData {
+  if (root.typeOf(node) !== "Disclosure") return data;
+  const props = { ...node.props, ...node.derivedProps };
+  const borders = catalogDisclosureBorders({
+    quiet: props.isQuiet === true,
+    inGroup: props._inGroup === true,
+    last: props._lastChild === true,
+  });
+  if (!borders || (!borders.top && !borders.bottom)) return data;
+  return {
+    ...data,
+    box: {
+      fillColor: Float32Array.of(0, 0, 0, 0),
+      borderRadius: 0,
+      ...data.box,
+      strokeColor: rgba(cssVarColor(borders.color, root.colorMode)),
+      strokeWidth: Math.max(borders.top, borders.bottom),
+      strokeWidths: [borders.top, 0, borders.bottom, 0],
+      strokeStyle: "solid",
+    },
+  };
 }
 
 /**

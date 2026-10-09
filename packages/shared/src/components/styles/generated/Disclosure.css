@@ -12,39 +12,37 @@
     box-sizing: border-box;
     font-family: var(--font-sans);
     display: block;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: block;
 
   /* Default size */
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-none);
   line-height: var(--text-sm--line-height);
-  border-width: var(--border-width-none);
   --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="S"] {
   font-size: var(--text-xs);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-none);
   line-height: var(--text-xs--line-height);
-  border-width: var(--border-width-none);
   --icon-size: 14px;
 }
 
 .react-aria-Disclosure[data-size="M"] {
   font-size: var(--text-sm);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-none);
   line-height: var(--text-sm--line-height);
-  border-width: var(--border-width-none);
   --icon-size: 18px;
 }
 
 .react-aria-Disclosure[data-size="L"] {
   font-size: var(--text-base);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-none);
   line-height: var(--text-base--line-height);
-  border-width: var(--border-width-none);
   --icon-size: 20px;
 }
 
@@ -60,6 +58,49 @@
 }
 
 /* ── Tier 2: Composite Delegation ── */
+
+.react-aria-Disclosure[data-size="S"] {
+  --disclosure-trigger-h: 24px;
+  --disclosure-trigger-py: 3px;
+  --disclosure-trigger-h-compact: 18px;
+  --disclosure-trigger-py-compact: 0px;
+  --disclosure-trigger-h-spacious: 32px;
+  --disclosure-trigger-py-spacious: 7px;
+}
+
+.react-aria-Disclosure[data-size="M"] {
+  --disclosure-trigger-h: 32px;
+  --disclosure-trigger-py: 6px;
+  --disclosure-trigger-h-compact: 24px;
+  --disclosure-trigger-py-compact: 2px;
+  --disclosure-trigger-h-spacious: 40px;
+  --disclosure-trigger-py-spacious: 10px;
+}
+
+.react-aria-Disclosure[data-size="L"] {
+  --disclosure-trigger-h: 40px;
+  --disclosure-trigger-py: 8px;
+  --disclosure-trigger-h-compact: 32px;
+  --disclosure-trigger-py-compact: 4px;
+  --disclosure-trigger-h-spacious: 48px;
+  --disclosure-trigger-py-spacious: 12px;
+}
+
+.react-aria-Disclosure[data-density="compact"] .react-aria-Button[slot='trigger'] {
+  min-height: var(--disclosure-trigger-h-compact);
+  padding-top: var(--disclosure-trigger-py-compact);
+  padding-bottom: var(--disclosure-trigger-py-compact);
+}
+
+.react-aria-Disclosure[data-density="spacious"] .react-aria-Button[slot='trigger'] {
+  min-height: var(--disclosure-trigger-h-spacious);
+  padding-top: var(--disclosure-trigger-py-spacious);
+  padding-bottom: var(--disclosure-trigger-py-spacious);
+}
+
+.react-aria-Disclosure[data-quiet="true"] .react-aria-Button[slot='trigger'] {
+  border-radius: var(--radius-md);
+}
 
 
 @media (forced-colors: active) {
@@ -87,8 +128,9 @@
     justify-content: flex-start;
     font-size: inherit;
     gap: var(--spacing-xs);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
+    min-height: var(--disclosure-trigger-h);
+    padding: var(--disclosure-trigger-py) var(--spacing-md);
+    border-radius: 0;
     transition: all 200ms;
     outline: none;
   }
@@ -111,6 +153,7 @@
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-focus-visible] {
     outline: var(--focus-ring-width) solid var(--focus-ring);
+    border-radius: var(--radius-md);
   }
 
   .react-aria-Disclosure .react-aria-Button[slot='trigger'] > .react-aria-Icon {
@@ -135,6 +178,16 @@
     font-size: inherit;
     line-height: inherit;
     color: inherit;
+  }
+
+
+  .react-aria-Disclosure[data-quiet="true"] {
+    border-top-width: 0;
+    border-bottom-width: 0;
+  }
+
+  .react-aria-Disclosure[data-in-group]:not(:last-child) {
+    border-bottom-width: 0;
   }
 
 

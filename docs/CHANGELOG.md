@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Disclosure — 위아래 테두리 · isQuiet · density] - 2026-10-10
+
+### Added
+
+- **Disclosure `isQuiet` · `density`** (S2 1.8.0 Disclosure — 사용자 결정 「S2 처럼 기본 Disclosure 에 위아래 테두리를 넣고, isQuiet 로 없애게」):
+  - `isQuiet`: 위아래 테두리를 없애고 제목 버튼 모서리를 둥글게 한다 (S2 `borderRadius.isQuiet`).
+  - `density`: 제목 버튼 높이 — compact · regular · spacious (S2 `minHeight`: S 18 · 24 · 32, M 24 · 32 · 40, L 32 · 40 · 48). `min-height` 와 한 줄을 가운데에 두는 세로 padding 으로 그린다.
+  - Preview 는 Disclosure 의 `data-quiet` · `data-density` · `data-in-group` 와 생성 CSS (`containerVariants` · `rootSelectors`), Canvas 는 같은 rule 선언을 읽는다 — 테두리는 `catalogDisclosureBorders` (엔진의 위아래 border · 상자의 변별 stroke), 제목 버튼은 part rule (정적 trigger 선택자가 size 별 루트 변수를 읽고, density · quiet 블록이 trigger 를 고른다).
+  - 위치: `packages/shared/src/catalog/bindings/Disclosure.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Disclosure) · `packages/shared/src/catalog/runtime/{disclosureBorders.ts,compositionRoot.ts,presence.ts,delegatedDom.tsx}` · `packages/shared/src/catalog/document/{rulePartRules.ts,codeCatalogLibrary.ts}` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+
+### Changed
+
+- **Disclosure 의 기본 모양** (S2): 위아래 1px 테두리 (`var(--border)`) 가 생기고, DisclosureGroup 안에서는 마지막 항목만 아래 테두리를 남긴다 (S2 `isInGroup` · `:last-child`). 루트 모서리와 제목 버튼 모서리는 각지고 (전: 6px), 제목 버튼 높이가 S2 regular 값이 된다 (S 34 → 24 · M 36 → 32 · L 38.9 → 40).
+- 확인: live — 기본 위아래 1px · 각진 버튼, Quiet → 테두리 없음 · 둥근 버튼 · 2px 낮아짐, Density compact · regular · spacious → 버튼 24 · 32 · 40, Size S · L · M → min-height 24 · 40 · 32 와 padding 3 · 8 · 6, 팔레트 DisclosureGroup → 마지막 항목만 아래 테두리 — 매 단계 Canvas = Preview (`apps/builder/scripts/disclosure-s2-live.mjs` 11/11).
+
 ## [S2 시각 축 — Slider · TagGroup isEmphasized, Avatar isOverBackground] - 2026-10-10
 
 ### Added
