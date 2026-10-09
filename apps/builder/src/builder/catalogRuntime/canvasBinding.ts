@@ -30,7 +30,10 @@ import {
   cssVarColor,
   type CatalogRuleShapeInput,
 } from "./rulePaint";
-import { catalogAuthoredVisual } from "./libraryVisual";
+import {
+  catalogAuthoredVisual,
+  catalogDerivedConditionalVisual,
+} from "./libraryVisual";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
   CatalogCompositionRoot,
@@ -252,10 +255,17 @@ function container(node: CatalogConsumerNode, rect: Rect): SkiaNodeData {
  * the same value (`catalogDomStyle`, generated `[data-disabled]` CSS).
  */
 function withOpacity(
+  root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   data: SkiaNodeData,
 ): SkiaNodeData {
-  const opacity = Number(node.visual.opacity ?? 1);
+  // (An authored opacity wins; else the dimming an owner-derived state turns on — a Button in a
+  // disabled ButtonGroup, as RAC's `[data-disabled]` does in the DOM.)
+  const opacity = Number(
+    node.visual.opacity ??
+      catalogDerivedConditionalVisual(root, node).opacity ??
+      1,
+  );
   if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1)
     throw new Error(`CATALOG_CANVAS_OPACITY_UNSUPPORTED:${node.id}`);
   return opacity < 1 && data.visible
@@ -774,6 +784,7 @@ function paintedNodeData(
   return withOverflowClip(
     node,
     withOpacity(
+      root,
       node,
       applyCatalogAuthoredPaint(
         node,

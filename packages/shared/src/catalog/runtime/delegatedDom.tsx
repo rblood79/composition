@@ -261,6 +261,14 @@ const opt = (value: unknown) =>
 const num = (value: unknown) =>
   value === undefined ? undefined : Number(value);
 const bool = (value: unknown) => Boolean(value);
+/** RAC `acceptedFileTypes` from the panel's comma-separated text (`image/png, .pdf`). */
+const fileTypes = (value: unknown) => {
+  const types = String(value ?? "")
+    .split(",")
+    .map((type) => type.trim())
+    .filter(Boolean);
+  return types.length ? types : undefined;
+};
 /** Nearest ancestor Form's field layout props (Preview `resolveInheritedFormFieldProps`). */
 function inheritedForm(input: DelegatedDomInput) {
   for (
@@ -1297,6 +1305,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           layout: props.layout || "grid",
           columns: Number(props.columns) || 2,
           selectionMode: props.selectionMode ?? "none",
+          selectionStyle: props.selectionStyle || undefined,
+          disallowEmptySelection: bool(props.disallowEmptySelection),
           defaultSelectedKeys: [],
         },
         ...renderAll(
@@ -1557,6 +1567,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             allowsMultiple: bool(props.allowsMultiple),
             acceptDirectory: bool(props.acceptDirectory),
             defaultCamera: props.defaultCamera,
+            acceptedFileTypes: fileTypes(props.acceptedFileTypes),
           },
           ...(list.length
             ? renderAll(input, list)
@@ -1597,6 +1608,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         allowsMultiple: props.allowsMultiple,
         acceptDirectory: props.acceptDirectory,
         autoProceed: props.autoProceed,
+        retryDelays: Array.isArray(props.retryDelays)
+          ? props.retryDelays
+          : undefined,
         showPreview: props.showPreview,
         isDisabled: bool(props.isDisabled),
         variant: props.variant,
@@ -1733,6 +1747,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       defaultValue: opt(props.defaultValue),
       channel: props.channel,
       colorSpace: props.colorSpace,
+      isWheelDisabled: bool(props.isWheelDisabled),
     }),
     undefined,
     "start",

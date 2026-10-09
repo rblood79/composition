@@ -958,6 +958,10 @@ function fieldDateInputBinding(
   );
 }
 
+/** A Button's own `isDisabled`, or its ButtonGroup's (S2 — every Button in the group, `presence.ts`). */
+const buttonDisabled = (node: CatalogConsumerNode) =>
+  node.props.isDisabled === true || node.derivedProps?.isDisabled === true;
+
 /** A Button node's element (its RAC slot resolved in the parent's Button context). */
 function buttonElement(
   node: CatalogConsumerNode,
@@ -980,7 +984,7 @@ function buttonElement(
         "data-catalog-id": node.id,
         slot: resolution.slot,
         // (What the document says, as below — Phase 8 판독 M2.)
-        ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+        ...(buttonDisabled(node) ? { isDisabled: true } : {}),
         ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
         style,
       } as Parameters<typeof RAC.Button>[0],
@@ -1000,7 +1004,7 @@ function buttonElement(
       type: node.props.type,
       // Only what the document says (ADR-253 Decision 5): RAC puts an explicit prop over its
       // parent's context, so a default `false` would undo a field's disabled stepper.
-      ...(node.props.isDisabled === true ? { isDisabled: true } : {}),
+      ...(buttonDisabled(node) ? { isDisabled: true } : {}),
       ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
       // RAC's named slot of the parent this Button belongs to (a NumberField's steppers) —
       // ADR-256 Decision 4: the slot the context resolves to (`null` = detached).
@@ -1362,6 +1366,8 @@ function ruleDom(
         "data-catalog-id": node.id,
         className: `react-aria-${isBodyType(type) ? "Body" : type}`,
         ...dataAttrs,
+        // The type's fixed ARIA (InlineAlert `role="alert"` — a plain box carries the D1 role).
+        ...binding?.staticAttrs,
         style,
       },
       ...content,
@@ -1383,6 +1389,7 @@ function ruleDom(
     {
       key: node.id,
       "data-catalog-id": node.id,
+      ...binding?.staticAttrs,
       ...rest,
       ...(lower === "menuitem"
         ? {

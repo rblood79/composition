@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Calendar 표시 기간·월/연도 picker 계획 — ADR-256 Phase 9] - 2026-10-09
+
+### Documentation
+
+- 사용자 지시로 Calendar · RangeCalendar 의 Month and year pickers 와 `visibleDuration` 수량 + Day · Week · Month Select 조합을 [Phase 9 계획](adr/design/256-rac-composition-level-breakdown.md#3-1-phase-9-추가-계약-2026-10-09-사용자-지시)에 포함했다. 월 전용 `maxVisibleMonths` 계약 전환, Canvas · Preview 정합, pagination 및 저장 후 재열기를 완료 기준에 명시했다. 제품 구현·Gate 통과·ADR 상태 승격은 포함하지 않는다.
+
+- Codex Round 22 m1 을 반영해 전용 `calendar-duration` 타입·Inspector kind·accepts/default 생성·문서/graph/library 검증을 선행 작업으로 추가했다. 단위 하나·양의 안전 정수 검증과 원자적 편집, undo/redo·저장/로드 보존을 완료 기준에 포함했다. 설계 누락 수리이며 제품 구현은 별도다.
+
+## [Design 패널 값이 Preview 에 닿지 않던 prop 연결 — ButtonGroup Disabled · FileTrigger 형식 · GridList 선택 방식 · InlineAlert role] - 2026-10-09
+
+### Fixed
+
+- 속성 감사 (사용자 「다른 프로퍼티도 레퍼런스와 맞지 않거나 레거시 옵션들이 남아 있는지 검증」 → 「1번 결함 수리」) 에서 찾은, 레퍼런스에 있고 패널에서 바꿀 수 있지만 Preview 에 전달되지 않던 값.
+  - **ButtonGroup 의 Disabled 가 안의 Button 을 전부 끈다** (S2 「all the Buttons are disabled」) — Canvas 도 흐리게 그린다. 종전에는 아무 곳도 읽지 않았다. Button 은 가장 가까운 ButtonGroup 의 값을 파생 값으로 받고 (`presence.ts` `catalogButtonGroupOf`), Canvas 흐림은 파생 값이 켜는 조건 rule 을 읽는다 (`libraryVisual.ts` `catalogDerivedConditionalVisual` — resolver 는 작성된 props 로만 조건 rule 을 평가한다).
+  - **FileTrigger 의 Accepted File Types** 가 file input 의 `accept` 가 된다 (쉼표로 나눈 목록 → RAC `acceptedFileTypes`). 종전에는 형식 제한이 적용되지 않았다.
+  - **GridList 의 Selection Style · Disallow Empty Selection** 이 RAC 에 닿는다 (종전: 늘 toggle).
+  - **FileUpload 의 Retry Delays · ColorField 의 Wheel Disabled** 가 업로드 · RAC ColorField 에 닿는다.
+  - **InlineAlert 가 `role="alert"` · `aria-live="polite"`** 를 갖는다 (S2 InlineAlert 와 같다) — binding 의 `staticAttrs` 를 아무도 읽지 않았다 (`domBinding.tsx` ruleDom).
+  - 위치: `packages/shared/src/catalog/runtime/{delegatedDom.tsx,domBinding.tsx,presence.ts,libraryVisual.ts}` · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+- 회귀: `propertyWiring.test.tsx` 6 (구현 전 RED 7 · Canvas 흐림 원복 RED) · `adr254ContainerParts` 의 InlineAlert DOM 기대값에 role 추가 · live `apps/builder/scripts/property-wiring-live.mjs` 5/5 (ButtonGroup Design 패널 Disabled → Canvas · Preview 의 Button 전부 disabled · FileTrigger accept · GridList 두 번 누름 checkbox 2 / highlight 1 · InlineAlert role) · builder 4997 · shared 1383 · G3 79 · parity 811
+
 ## [컬렉션 항목 = slot 과 data binding 만 — 옛 items 목록 삭제 · contract 32] - 2026-10-09
 
 ### Removed

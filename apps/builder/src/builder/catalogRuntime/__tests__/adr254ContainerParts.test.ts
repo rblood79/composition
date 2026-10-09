@@ -317,10 +317,17 @@ function expectSinceConversion(
       : type === "inline-alert"
         ? // ADR-256 Decision 4 ④: S2 InlineAlert gives its title a plain Heading context, which
           // takes the template's slot name as is (the template's `label` goes in Phase 10).
-          structureOf(before.dom).replace(
-            "<h3 class=react-aria-Heading>",
-            "<h3 class=react-aria-Heading slot=label>",
-          )
+          // Its root carries S2's alert role (`staticAttrs`, 2026-10-09 — the oracle's build
+          // dropped the binding's `role="alert"` · `aria-live`).
+          structureOf(before.dom)
+            .replace(
+              "<h3 class=react-aria-Heading>",
+              "<h3 class=react-aria-Heading slot=label>",
+            )
+            .replace(
+              /^<div (class=react-aria-InlineAlert [^>]*) id>/,
+              "<div aria-live=polite $1 id role=alert>",
+            )
         : structureOf(before.dom);
   expect(structureOf(now.dom!)).toBe(expected);
   // Each part element inlines its record's values (the Canvas draws the same record).

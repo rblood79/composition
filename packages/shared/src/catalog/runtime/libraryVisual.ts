@@ -56,6 +56,29 @@ export function catalogLibraryVisual(
 }
 
 /**
+ * The definition's resting conditional visuals a node's owner-derived values turn on but its own
+ * props do not (a Button its ButtonGroup disables: the `isDisabled` dimming). The resolver reads
+ * the authored props only; the DOM gets these from RAC's state (`[data-disabled]`).
+ */
+export function catalogDerivedConditionalVisual(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): Record<string, unknown> {
+  const derived = node.derivedProps;
+  if (!derived) return {};
+  const own = catalogLibraryVisual(root, node, true);
+  const withDerived = catalogLibraryVisual(
+    root,
+    { ...node, props: { ...node.props, ...derived } },
+    true,
+  );
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(withDerived))
+    if (!Object.is(own[key], value)) out[key] = value;
+  return out;
+}
+
+/**
  * Resolved visual values of a rule-backed node that differ from what its definition declares:
  * the authored writes (project override, template, instance, path, state rules). The rule-backed
  * executors layer only these on the rule — Canvas as style overrides, DOM as inline style over

@@ -1313,10 +1313,40 @@ export function catalogDerivedProps(
     selected === undefined ? own : { ...own, _isSelected: selected };
   // (A selection checkbox is disabled while its item cannot be selected — RAC's context value.)
   const checkboxItem = catalogSelectionCheckboxItem(node, get, typeOf);
-  return checkboxItem &&
-    catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)
-    ? { ...withSelection, isDisabled: true }
-    : withSelection;
+  // (A Button in a disabled ButtonGroup — S2 `isDisabled`: "all the Buttons are disabled".)
+  const disabled =
+    (!!checkboxItem &&
+      catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)) ||
+    (typeOf(node) === "Button" &&
+      catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
+  return disabled ? { ...withSelection, isDisabled: true } : withSelection;
+}
+
+/** The nearest ButtonGroup above a Button (through any element — S2's `ButtonContext`). */
+export function catalogButtonGroupOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (let parent = get(node.parentId); parent; parent = get(parent.parentId))
+    if (typeOf(parent) === "ButtonGroup") return parent;
+  return undefined;
+}
+
+/** The Buttons whose nearest ButtonGroup is `group` (its `isDisabled` disables them). */
+function buttonGroupButtons(
+  group: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return childrenOf(group, get).flatMap((child) =>
+    typeOf(child) === "ButtonGroup"
+      ? []
+      : [
+          ...(typeOf(child) === "Button" ? [child] : []),
+          ...buttonGroupButtons(child, get, typeOf),
+        ],
+  );
 }
 
 /**
@@ -1598,6 +1628,7 @@ function derivedDependents(
       : tracks;
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
+  if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
   const items = catalogCollectionItems(owner, get, typeOf);
   if (items.length) return items;
   // A Tab's `isDisabled` can move the default selection (the first enabled Tab) to a sibling.
@@ -2155,6 +2186,8 @@ export function catalogStateValue(
         state === "disabled" ||
         props.isDisabled === true ||
         derived._fieldDisabled === true ||
+        // (A Button its ButtonGroup disables — `catalogDerivedProps`.)
+        derived.isDisabled === true ||
         (!!checkboxItem &&
           catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf))
       );
