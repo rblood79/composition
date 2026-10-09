@@ -56,12 +56,13 @@ describe("resolveCatalogContainerBase (Δ2 merge precedence)", () => {
 });
 
 describe("resolveCatalogContainerVariants (Δ3 plain-data 재작성)", () => {
-  it("TextField labelPosition=side → flex-row + align-items flex-start", () => {
+  // (2026-10-10: S2 `field()` 의 grid — 그전 flex-row)
+  it("TextField labelPosition=side → grid + align-items start", () => {
     const { styles } = resolveCatalogContainerVariants("TextField", {
       labelPosition: "side",
     });
-    expect(styles["flex-direction"]).toBe("row");
-    expect(styles["align-items"]).toBe("flex-start");
+    expect(styles.display).toBe("grid");
+    expect(styles["align-items"]).toBe("start");
   });
 
   it("TextField labelPosition=top (또는 미지정) → side override 없음", () => {

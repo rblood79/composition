@@ -21,6 +21,11 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * 같은 x 에 도움말 · 오류 문구). 종전 제외는 옛 Skia 의 「width 강제 없음」 과 ColorField 의 Skia side
  * 처리 부재가 근거였고, 지금은 Canvas 가 같은 rule 을 읽는다. 두 그룹의 `labelAlign` 은 S2 1.8.0 그대로
  * start · end 만이라 (S2 `Alignment`, 2026-10-09) `label-align` variant 도 end 블록 하나다.
+ *
+ * 2026-10-10 (사용자 「모든 field · picker 의 side label width 가 fit content 가 아니다 — slider 와 같은
+ * 패턴」): 라벨 열은 고정 176px 가 아니라 S2 `field()` 의 grid `auto 1fr` — 라벨은 1열 (글자 폭), 내용 ·
+ * 도움말 · 오류 문구는 2열 (도움말이 내용 아래 같은 x). 폭 변수 `--form-label-width` 는 side Form 이
+ * 바로 아래 field 에만 준다 (fallback 없음 — 없으면 width auto).
  */
 
 const SIDE_LABEL_COLUMN_FAMILIES = [
@@ -73,14 +78,14 @@ function labelAlignVariant(component: string) {
 
 describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
   it.each(SIDE_LABEL_COLUMN_FAMILIES)(
-    "%s: side 모드 라벨이 --form-label-width 컬럼 + --form-label-align 정렬을 받는다",
+    "%s: side 모드 라벨이 1열 (Form 이 준 --form-label-width, 없으면 글자 폭) + --form-label-align 정렬을 받는다",
     (component) => {
       const labelRule = sideLabelNested(component).find((n) =>
         n.selector.includes(".react-aria-Label"),
       );
       expect(labelRule, `${component} side label nested rule`).toBeDefined();
-      expect(labelRule!.styles.width).toBe("var(--form-label-width, 11rem)");
-      expect(labelRule!.styles["flex-shrink"]).toBe("0");
+      expect(labelRule!.styles.width).toBe("var(--form-label-width)");
+      expect(labelRule!.styles["grid-column"]).toBe("1");
       expect(labelRule!.styles["text-align"]).toBe(
         "var(--form-label-align, start)",
       );
@@ -116,8 +121,16 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
   it.each(
     SIDE_LABEL_COLUMN_FAMILIES.filter((component) => component !== "TextArea"),
   )(
-    "%s: side 의 도움말 · 오류 문구는 내용 아래 줄, 라벨 열 + gap 만큼 들여쓴다",
+    "%s: side 는 grid auto · 나머지 두 열 — 도움말 · 오류 문구는 내용과 같은 2열 (내용 아래 줄)",
     (component) => {
+      const rule = COMPONENT_RULES_TABLE[component];
+      const side = (
+        rule?.structure?.composition?.containerVariants as
+          | Record<string, Record<string, { styles?: Record<string, string> }>>
+          | undefined
+      )?.["label-position"]?.side?.styles;
+      expect(side?.display).toBe("grid");
+      expect(side?.["grid-template-columns"]).toBe("auto minmax(0, 1fr)");
       for (const selector of [
         "> .react-aria-FieldError",
         '> [slot="description"]',
@@ -126,10 +139,7 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
           (n) => n.selector === selector,
         );
         expect(hint, `${component} ${selector}`).toBeDefined();
-        expect(hint!.styles["flex-basis"]).toBe("100%");
-        expect(hint!.styles["margin-inline-start"]).toMatch(
-          /^calc\(var\(--form-label-width, 11rem\) \+ var\(--[\w-]+-gap\)\)$/,
-        );
+        expect(hint!.styles["grid-column"]).toBe("2");
       }
     },
   );

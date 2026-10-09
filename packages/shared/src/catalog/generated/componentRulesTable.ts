@@ -2162,12 +2162,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   spec-only 라 side variant(flex-direction:row) 가 Skia layout 에서 회귀했다(side variant
     //   test FAIL). catalog fallback 메커니즘 + 본 필드로 복구. CSS 변수(--cb-items-gap)/orientation
     //   nested 는 DOM generated CSS 전용(Skia 무관)이라 이관 제외 — Skia 가 읽는 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -2212,20 +2214,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
-              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
-              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
-              //   delegation `--cbg-side-gap` (sizes 파생).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
@@ -2234,24 +2241,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--cbg-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--cbg-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -2294,16 +2297,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-          {
-            // side 라벨 배치 — 크기별 gap 을 root 에 `--cbg-side-gap` 으로 (sizes 파생, `variables:
-            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "cbg-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
-        ],
+        delegation: [],
       },
     },
   },
@@ -2471,12 +2465,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
     //   TimeField/TextField/NumberField/SearchField/TextArea 동형). field family side SSOT 일원화
     //   (generate-css.ts STRUCTURE_META 도 동시 flex-row 전환). Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -2512,20 +2508,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
-              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
-              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
-              //   delegation `--cf-side-gap` (sizes 파생).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
@@ -2534,24 +2536,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--cf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--cf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -2571,14 +2569,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         delegation: [
-          {
-            // side 라벨 배치 — 크기별 gap 을 root 에 `--cf-side-gap` 으로 (sizes 파생, `variables:
-            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "cf-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
           {
             // 배치만 (ADR-253): 입력칸의 최대 폭. 모양 (padding · 글꼴 · 모서리) 은 Input rule 이 정한다.
             childSelector: ".react-aria-Input",
@@ -2941,13 +2931,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/TimeField 동형
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[4]). generated
     //   ComboBox.css:326-329 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -2981,56 +2972,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--combo-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--combo-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--combo-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -3124,14 +3107,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "margin-inline-start": "var(--combo-btn-offset)",
             },
           },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--combo-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "combo-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
         ],
       },
     },
@@ -3176,13 +3151,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   label-position:side Skia 복구 — spec 삭제 회귀. DatePicker/TimeField 동형
     //   (flex-direction:row). resolveActiveContainerVariants 가 spec→catalog fallback 으로 읽음.
     //   Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -3216,56 +3192,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--df-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--df-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--df-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -3311,14 +3279,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               width: "100%",
               "min-width": "var(--df-input-min-width)",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--df-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "df-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },
@@ -3598,13 +3558,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): DatePicker.spec.composition.containerVariants 의
     //   label-position:side Skia 복구 — spec 삭제(daaae6b82) 회귀. TagGroup/Checkbox 동형
     //   (flex-direction:row, Group 보정은 datepicker 분기 별도). Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -3640,56 +3601,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--dp-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--dp-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--dp-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -3804,14 +3757,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "margin-inline-start": "var(--dp-btn-offset)",
             },
           },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--dp-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "dp-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
         ],
       },
     },
@@ -3859,13 +3804,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   (measure gap[9]/gap[10] — 두 컴포넌트 rule 비대칭). generated DateRangePicker.css:370-373
     //   side 블록과 byte-identical. Skia sideMode 트리거 styles 만 — quiet nested(.react-aria-Group)
     //   는 DOM generated CSS 전용 제외.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -3901,56 +3847,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--drp-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--drp-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--drp-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -4139,14 +4077,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               height: "var(--drp-btn-size)",
               "min-width": "0",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--drp-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "drp-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },
@@ -5181,6 +5111,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         containerVariants: {
           "label-position": {
+            // side: 안의 field 들이 한 라벨 열을 쓴다 (S2 Form 의 subgrid 와 같은 정렬 — 2026-10-10). 변수는
+            //   상속이라 깊이와 무관하게 가장 가까운 Form 의 값 (S2 Form context 와 같은 범위). Canvas 는
+            //   `formFieldLabelPartRules` 가 같은 값을 가장 가까운 Form 에서 읽는다.
             side: {
               styles: {
                 "--form-label-width": "11rem",
@@ -7595,13 +7528,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   로 grid selector 를 이겨 실제로는 양쪽 다 column 으로 무력화). flex-row 로 통일하면 generated
     //   CSS = Skia(getSideLabelParentStyle) 대칭 + Label fit-content 옆 정렬. Skia 는 styles 만 사용
     //   (nested DOM selector 는 generated CSS 전용 제외).
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -7638,56 +7572,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--nf-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--nf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--nf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -7743,14 +7669,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "min-width": "0",
               "margin-inline-start": "-1px",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--nf-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "nf-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },
@@ -8792,12 +8710,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): RadioGroup.spec.composition.containerVariants 의
     //   label-position:side Skia 복구 — CheckboxGroup 동형(spec 삭제 91c2be0dd 로 side variant 회귀).
     //   catalog fallback 메커니즘 + 본 필드. CSS 변수/orientation nested 는 DOM generated CSS 전용.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -8842,20 +8762,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side 라벨 (2026-10-07, ADR-253 후속): TextField 의 side 와 같은 모양 — RSP side 라벨은 라벨 열 옆에
-              //   내용, 그 아래 줄에 도움말 · 오류 문구를 내용과 같은 x 에 둔다. 종전엔 라벨이 글자 폭이고
-              //   도움말이 내용 오른쪽 같은 줄이었다 (Canvas · Preview 같은 모양으로). gap 은 아래
-              //   delegation `--rg-side-gap` (sizes 파생).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
+              //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
@@ -8864,24 +8789,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--rg-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--rg-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -8924,16 +8845,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-          {
-            // side 라벨 배치 — 크기별 gap 을 root 에 `--rg-side-gap` 으로 (sizes 파생, `variables:
-            //   "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다 (TextField `--tf-side-gap` 과 같다).
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "rg-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
-        ],
+        delegation: [],
       },
     },
   },
@@ -9078,13 +8990,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   TimeField/NumberField 동형). 기존 grid 는 CSS 전용이고 Skia getSideLabelParentStyle 은 flex-row
     //   라 비대칭 + factory inline flexDirection:column 이 grid selector 를 specificity 로 이겨 무력화.
     //   flex-row 통일로 generated CSS = Skia 대칭 복원. Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -9118,56 +9031,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--sf-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--sf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--sf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -9291,14 +9196,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "min-width": "0",
               "margin-inline-start": "var(--sf-btn-offset)",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--sf-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "sf-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },
@@ -9504,56 +9401,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--select-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--select-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--select-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -9741,14 +9630,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             bridges: {
               display: "none",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--select-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "select-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },
@@ -12231,13 +12112,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-913 후속 fix (2026-06-19): label-position:side 를 grid → flex-row 로 통일 (DateField/
     //   TimeField/TextField/NumberField/SearchField/ColorField 동형). field family side SSOT
     //   일원화 (generate-css.ts STRUCTURE_META 도 동시 flex-row). Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -12272,25 +12154,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
@@ -12380,13 +12263,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   경로 → data-label-position DOM 미emit → side selector 영원히 미매칭)도 함께 수정됨
     //   (domRegistry DELEGATING_RAC_RENDERERS 등록). flex-row 통일로 emit 복원 후 generated
     //   CSS = Skia(getSideLabelParentStyle) 대칭. Skia sideMode 트리거 styles 만(nested DOM 제외).
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -12422,59 +12306,69 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           width: "100%",
         },
         containerVariants: {
+          // A TextArea's side label offset (2026-10-10 사용자 「Text Area 는 세로 가운데 정렬이 되면 안된다
+          //   side 일때 상단 위치해야하지만 여백은 가져야 한다」): S2 aligns the label with the control's
+          //   first text line (`alignItems: 'baseline'`) — the textarea's border + top padding (Input
+          //   rule per size: S 2 · M 4 · L 8 · XL 12, border 1). A one-line control's middle is the same line.
+          size: {
+            S: { styles: { "--tf-side-label-offset": "3px" } },
+            M: { styles: { "--tf-side-label-offset": "5px" } },
+            L: { styles: { "--tf-side-label-offset": "9px" } },
+            XL: { styles: { "--tf-side-label-offset": "13px" } },
+          },
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
+                  // (a TextArea: the label at the textarea's first line, not its middle)
+                  selector: "> .react-aria-Label:has(~ .react-aria-TextArea)",
+                  styles: {
+                    "align-self": "start",
+                    "margin-top": "var(--tf-side-label-offset)",
+                  },
+                },
+                {
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--tf-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--tf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--tf-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -12493,16 +12387,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
-        delegation: [
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--tf-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "tf-side",
-            variables: "auto",
-            autoKeys: ["gap"],
-          },
-        ],
+        delegation: [],
       },
     },
   },
@@ -12541,13 +12426,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-913 slice 2 (2026-06-18): label-position:side Skia 복구 — DateField/ComboBox 동형
     //   (flex-direction:row). ADR-912 단계5 step4 누락분(measure gap[7], breakdown §5 lock-in).
     //   generated TimeField.css:237-240 side 블록과 byte-identical. Skia sideMode 트리거 styles 만.
+    // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
-            "flex-direction": "row",
-            "align-items": "flex-start",
-            "flex-wrap": "wrap",
+            display: "grid",
+            "grid-template-columns": "auto minmax(0, 1fr)",
+            "align-items": "start",
           },
         },
       },
@@ -12581,56 +12467,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "label-position": {
             side: {
               styles: {
-                "flex-direction": "row",
-                "align-items": "flex-start",
-                "flex-wrap": "wrap",
+                display: "grid",
+                "grid-template-columns": "auto minmax(0, 1fr)",
+                "align-items": "start",
               },
-              // side label 컬럼 (2026-08-21, design-data 감사 §1-2 축①): Skia 는 이미
-              //   injectSideLabelLabelAndWrapperStyles / ...AndContentStyles 로 Label 에
-              //   176px(=11rem) 고정폭 + flex-shrink 0 을 주입하는데 DOM 에는 대응 rule 이 없어
-              //   라벨이 자연폭이었다 (D3 비대칭 — Skia 만 정렬된 라벨 컬럼).
-              //   `--form-label-width` 는 Form 이 side 모드에서 정의(11rem)하고, 단독 field 는
-              //   fallback 11rem 으로 같은 값에 도달한다.
-              //   text-align 은 `--form-label-align`(아래 label-align variant 또는 Form 상속) 소비 —
-              //   labelAlign 이 시각으로 나타나는 유일한 지점이다 (라벨 박스가 텍스트보다 넓어야 의미).
+              // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
+              //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
+              //   `auto 1fr` 두 열, 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x).
+              //   라벨 세로 위치: S2 는 baseline (입력칸 글자와 같은 줄) — 엔진에 grid baseline 이 없어 입력칸
+              //   행의 가운데 (한 줄 입력칸에서 같은 자리). 그룹 (CheckboxGroup · RadioGroup) 은 위 — 첫 항목 줄.
+              //   종전엔 라벨이 176px 고정 열이었다. side Form 은 안의 field 에 `--form-label-width` 를 주어
+              //   라벨 열을 맞춘다 (S2 subgrid). Form 밖에서는 변수가 없고 top Form 은 auto — 글자 폭.
+              //   text-align 은 `--form-label-align`(label-align variant 또는 Form 상속) 소비.
               //   자식 결합자(`>`)로 한정 — DatePicker popover 안 Calendar 라벨까지 매칭 방지.
               nested: [
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    width: "var(--form-label-width, 11rem)",
-                    "flex-shrink": "0",
+                    "grid-column": "1",
+                    width: "var(--form-label-width)",
+                    "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
                     "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
-                  // side: 라벨 옆 내용 (입력칸 · 트리거 · 그룹) 은 남은 폭을 채우고 줄어들 수 있다 — 줄바꿈이 켜져도
-                  //   라벨과 한 줄에 남는다 (Canvas `injectSideLabelLabelAnd*Styles` 의 flex 1 · minWidth 0 과 같은 값).
                   selector:
                     '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
                   styles: {
-                    flex: "1 1 0%",
+                    "grid-column": "2",
                     "min-width": "0",
                   },
                 },
                 {
-                  // side: 오류 문구 · 도움말은 입력칸 아래 줄, 입력칸과 같은 x (라벨 폭 + 크기별 gap) — RSP
-                  //   side 라벨과 같은 모양 (ADR-236 후속 2026-09-26). 종전엔 Canvas 만 이 배치를 주입했고 DOM 은
-                  //   nowrap 세 번째 item 으로 입력칸을 줄였다. gap 은 아래 delegation `--time-field-side-gap` (sizes 파생).
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--time-field-side-gap))",
+                    "grid-column": "2",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "flex-basis": "100%",
-                    "margin-inline-start":
-                      "calc(var(--form-label-width, 11rem) + var(--time-field-side-gap))",
+                    "grid-column": "2",
                   },
                 },
               ],
@@ -12676,14 +12554,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               width: "100%",
               "min-width": "var(--time-field-input-min-width)",
             },
-          },
-          {
-            // side 라벨 배치 (ADR-236 후속 2026-09-26) — 크기별 gap 을 root 에 `--time-field-side-gap` 으로 (sizes
-            //   파생, `variables: "auto"`). side 변형의 오류 문구 · 도움말 들여쓰기가 읽는다.
-            childSelector: ':is(.react-aria-FieldError, [slot="description"])',
-            prefix: "time-field-side",
-            variables: "auto",
-            autoKeys: ["gap"],
           },
         ],
       },

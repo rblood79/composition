@@ -3,25 +3,19 @@ import { describe, expect, it } from "vitest";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 
 /**
- * ADR-913 후속 fix (2026-06-19) — field family labelPosition="side" CSS↔Skia 대칭 회귀 가드.
+ * field family labelPosition="side" — 최상위 `containerVariants` 거울 ↔ `structure.composition` 정본 가드.
  *
- * **배경**: TextField/NumberField/SearchField/TextArea/ColorField 의 catalog rule
- * `containerVariants["label-position"].side.styles` 가 `display: grid` + grid-template-columns 로
- * 정의돼 있었다. 그러나:
- *   1. Skia layout(implicitStyles.getSideLabelParentStyle)은 grid 미지원 → flex-row 시뮬레이션
- *      → CSS(grid) ↔ Skia(flex-row) 비대칭.
- *   2. factory inline `flexDirection:column`(NumberField/SearchField)이 CSS specificity(1-0-0)로
- *      generated CSS grid selector(0-2-0)를 이겨 실제로는 양쪽 다 column 으로 무력화 → Label 항상 top.
- *   3. (TextField 는 별도 — DELEGATING 미등록으로 data-label-position DOM 미emit, selectFamily.test 가드.)
+ * **2026-10-10 (사용자 「모든 field · picker 의 side label width 가 fit content 가 아니다 — slider 와 같은
+ * 패턴」)**: side 는 S2 `field()` 의 grid (`auto minmax(0, 1fr)`) 다 — 라벨 열이 글자 폭, 내용 · 도움말 ·
+ * 오류 문구가 2열. 그전 (ADR-913 후속 2026-06-19 ~) 은 flex-row + 176px 라벨 열이었다. 그때 grid 를 막은
+ * 이유는 옛 Skia 레이아웃 (`implicitStyles.getSideLabelParentStyle`) 이 grid 를 못 그렸기 때문인데, 지금은
+ * Canvas 가 같은 rule 을 엔진의 grid 로 그린다 (live: Canvas = Preview — `field-side-label-live.mjs`).
  *
- * **수정**: 5 field 의 side styles 를 DateField/TimeField 와 동일한 flex-row 로 통일
- * (catalog componentRulesTable + generate-css.ts STRUCTURE_META 동시). generated CSS = Skia 대칭 복원.
- *
- * **본 test 의 불변식**: 모든 field family 컴포넌트의 side variant styles 는 flex-row 로 통일돼야 한다.
- * grid 재도입(display:"grid")은 CSS↔Skia 비대칭 회귀이므로 금지.
+ * **본 test 의 불변식**: field family 의 side root styles 는 grid 하나로 같고, 최상위 거울 (Style 패널의
+ * preset 이 읽는다) 은 정본 (`structure.composition.containerVariants`) 과 같다.
  */
 
-/** label-position:side 를 가지는 field family 컴포넌트 (DateField/TimeField = 기준 정본 포함). */
+/** label-position:side 를 가지는 field family 컴포넌트. */
 const FIELD_FAMILY = [
   "TextField",
   "TextArea",
@@ -32,66 +26,35 @@ const FIELD_FAMILY = [
   "TimeField",
 ] as const;
 
-describe("ADR-913 후속 — field family labelPosition='side' flex-row 통일 가드", () => {
+const CANONICAL = {
+  display: "grid",
+  "grid-template-columns": "auto minmax(0, 1fr)",
+  "align-items": "start",
+};
+
+type SideStyles = Record<string, string> | undefined;
+const sideOf = (variants: unknown): SideStyles =>
+  (
+    variants as
+      | { "label-position"?: { side?: { styles?: Record<string, string> } } }
+      | undefined
+  )?.["label-position"]?.side?.styles;
+
+describe("field family labelPosition='side' — S2 grid", () => {
   it.each(FIELD_FAMILY)(
-    "%s 의 catalog side variant 는 flex-row (grid 비대칭 회귀 차단)",
+    "%s 의 side styles 는 grid auto · 나머지 (정본 = 최상위 거울)",
     (type) => {
       const rule = COMPONENT_RULES_TABLE[type] as
-        { containerVariants?: Record<string, unknown> } | undefined;
-      const side = (
-        rule?.containerVariants as
-          | {
-              "label-position"?: {
-                side?: { styles?: Record<string, string> };
-              };
-            }
-          | undefined
-      )?.["label-position"]?.side?.styles;
-
-      expect(
-        side,
-        `${type} containerVariants["label-position"].side.styles`,
-      ).toBeTruthy();
-      // flex-row 통일 — display:"grid" / grid-template-columns 재도입 금지 (CSS↔Skia 비대칭 회귀)
-      expect(side?.["flex-direction"], `${type} side flex-direction`).toBe(
-        "row",
+        | {
+            containerVariants?: unknown;
+            structure?: { composition?: { containerVariants?: unknown } };
+          }
+        | undefined;
+      const composed = sideOf(rule?.structure?.composition?.containerVariants);
+      expect(composed, `${type} structure side styles`).toEqual(CANONICAL);
+      expect(sideOf(rule?.containerVariants), `${type} mirror`).toEqual(
+        CANONICAL,
       );
-      expect(side?.["align-items"], `${type} side align-items`).toBe(
-        "flex-start",
-      );
-      expect(side?.display, `${type} side display (grid 금지)`).toBeUndefined();
-      expect(
-        side?.["grid-template-columns"],
-        `${type} side grid-template-columns (grid 금지)`,
-      ).toBeUndefined();
     },
   );
-
-  it("7 field 의 side styles 가 모두 byte-identical (DateField 정본 1:1 통일)", () => {
-    // flex-wrap (ADR-236 후속 2026-09-26): 오류 문구 · 도움말 다음 줄 배치
-    const canonical = {
-      "flex-direction": "row",
-      "align-items": "flex-start",
-      "flex-wrap": "wrap",
-    };
-    for (const type of FIELD_FAMILY) {
-      const rule = COMPONENT_RULES_TABLE[type] as
-        { containerVariants?: Record<string, unknown> } | undefined;
-      const side = (
-        rule?.containerVariants as
-          | {
-              "label-position"?: {
-                side?: { styles?: Record<string, string> };
-              };
-            }
-          | undefined
-      )?.["label-position"]?.side?.styles;
-      // ColorField 는 top 에서도 가로 배치인 별도 설계 (라벨 폭 컬럼 · 문구 들여쓰기 규칙 없음) — 줄바꿈 없음.
-      expect(side, `${type} side styles == DateField 정본`).toEqual(
-        type === "ColorField"
-          ? { "flex-direction": "row", "align-items": "flex-start" }
-          : canonical,
-      );
-    }
-  });
 });

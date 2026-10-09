@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [field side 라벨 — S2 grid, 글자 폭 라벨 열] - 2026-10-10
+
+### Fixed
+
+- **field · picker 의 Label Position Side 라벨이 글자 폭이 아니라 176px 고정 열이었다** (사용자 「text, number, search, date, time, color, date picker, date range 모든 field · picker … label width 가 fit content 로 지정되지 않았다 — slider 와 같은 패턴」): TextField · TextArea · NumberField · SearchField · ColorField · DateField · TimeField · DatePicker · DateRangePicker · Select · ComboBox · CheckboxGroup · RadioGroup.
+  - **Why**: side 배치가 flex-row + 라벨 `width: var(--form-label-width, 11rem)` 이라 Form 밖에서도 176px 였고, 도움말 · 오류 문구의 들여쓰기도 그 176 에 기대고 있었다.
+  - 수정: S2 `field()` 처럼 side 는 grid (`auto minmax(0, 1fr)`) — 라벨은 1열 (글자 폭), 입력칸 · 도움말 · 오류 문구는 2열 (도움말이 입력칸 아래 같은 x). 크기별 `--*-side-gap` 들여쓰기 변수는 지웠다.
+  - side Form 안에서는 종전처럼 라벨 열이 176px 로 맞는다 (`--form-label-width` — 상속이라 깊이와 무관, 가장 가까운 Form). Canvas 는 Form → field → Label 규칙 (`formFieldLabelPartRules`) 을 가장 가까운 Form 에서 읽는다 — 종전엔 Form 원본 instance 에 넣은 field 가 Form type 의 규칙을 못 찾았다 (`ruleDefinitionOf`).
+- **side 라벨의 세로 위치** (사용자 「RSC 에는 가운데 정렬이다」): 한 줄 입력칸 field 는 입력칸 행의 가운데 (S2 baseline 과 같은 줄 — 엔진에 grid baseline 이 없어 `align-self: center`), TextArea 는 위 + 첫 줄 높이 여백 (사용자 「Text Area 는 상단 위치해야 하지만 여백은 가져야 한다」 — 크기별 `--tf-side-label-offset` S 3 · M 5 · L 9 · XL 13), CheckboxGroup · RadioGroup 은 첫 항목 줄 (위).
+- **TextArea placeholder · 글자가 Canvas 에서 상자 가운데였다** (사용자 「textarea placeholder 텍스트가 상단이 아니라 가운데 — css 와 비교」): `<textarea>` 는 위 padding 에서 시작한다. 옛 Skia 투영이 주던 `verticalAlign: "top"` 을 catalog 경로가 잃었다 — TextArea 의 Input part rule 이 다시 준다.
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (field 13종 side 블록 · 최상위 거울) · `packages/shared/src/catalog/document/rulePartRules.ts` · `packages/shared/src/catalog/resolution/resolver.ts` · `packages/shared/src/catalog/runtime/{rulePaint,compositionRoot}.ts`
+- 확인: live — 13종 각각 Label Position Side + Description → 라벨 = 글자 폭 (< 176), 세로 위치 (가운데 · TextArea 첫 줄 · 그룹 위), 입력칸 x · 폭, 도움말 x · y 가 Canvas = Preview, side Form 안 field 라벨 176 (Canvas = Preview), 오류 0 (`apps/builder/scripts/field-side-label-live.mjs` 15/15). TextArea placeholder 는 스크린샷으로 Canvas · Preview 모두 위쪽.
+
 ## [S2 ColorField placeholder] - 2026-10-10
 
 ### Added

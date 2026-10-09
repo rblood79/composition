@@ -428,6 +428,21 @@ export function resolveCatalogNode(
     return definition;
   };
   /** The type a template position shows (its definition, through composite template roots). */
+  /**
+   * The definition whose part rules a context owns: a composite instance's are its template root's
+   * (the consumer tree draws the two as one element — an author's child of a Form instance sits in
+   * the Form's element, which its sheet's selectors reach). 2026-10-10: a side Form's label column
+   * (Form → field → Label, `via`).
+   */
+  const ruleDefinitionOf = (definitionId: DefinitionId) => {
+    const definition = lookupDefinition(definitionId);
+    if (definition.mode !== "composite" || !definition.templateRootId)
+      return definition;
+    const template = library.templates.get(
+      definition.templateRootId as `lib:template:${string}`,
+    );
+    return template ? lookupDefinition(template.definitionId) : definition;
+  };
   const templateTypeName = (templateId: TemplateId): string => {
     const template = templateId.startsWith("lib:")
       ? library.templates.get(templateId as `lib:template:${string}`)
@@ -595,12 +610,26 @@ export function resolveCatalogNode(
     const grand = passedOwner ?? grandHost;
     // The parent's own rules, then the grandparent's `via` rules (through this node's parent): a
     // selector reaching through the wrapper from its owner is the more specific one in the sheet.
+    // A side Form's label column reaches its fields at any depth (`formFieldLabelPartRules` — the
+    // sheet's `--form-label-width` is inherited, as S2's Form context): the nearest Form's `via`
+    // rules through the field (2026-10-10).
+    let form: ParentContext | undefined;
+    if (CATALOG_FORM_FIELDS.has(lookupDefinition(owner.definitionId).name)) {
+      form = structuralParent(owner.parent);
+      while (form && ruleDefinitionOf(form.definitionId).name !== "Form")
+        form = structuralParent(form.parent);
+    }
     const owners: Array<{ owner: ParentContext; via?: DefinitionId }> = [
       { owner },
       ...(grand ? [{ owner: grand, via: owner.definitionId }] : []),
+      ...(form && form !== grand
+        ? [{ owner: form, via: owner.definitionId }]
+        : []),
     ];
     for (const { owner: ruleOwner, via } of owners) {
-      const ownerDefinition = lookupDefinition(ruleOwner.definitionId);
+      const ownerDefinition = via
+        ? ruleDefinitionOf(ruleOwner.definitionId)
+        : lookupDefinition(ruleOwner.definitionId);
       if (!("partRules" in ownerDefinition)) continue;
       for (const rule of ownerDefinition.partRules ?? [])
         if (

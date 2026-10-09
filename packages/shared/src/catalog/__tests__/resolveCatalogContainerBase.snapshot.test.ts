@@ -199,16 +199,16 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
     ["ComboBox"],
     ["Select"],
   ])(
-    "%s side → flex-direction:row + align-items:flex-start + flex-wrap:wrap",
+    "%s side → grid auto · minmax(0, 1fr) + align-items:start",
     (type) => {
       const v = resolveCatalogContainerVariants(type, {
         labelPosition: "side",
       });
-      // flex-wrap (ADR-236 후속 2026-09-26): 오류 문구 · 도움말이 입력칸 아래 줄로 (nested flex-basis 100%)
+      // S2 `field()` (2026-10-10): 라벨 열 auto (글자 폭) · 내용 열 — 도움말 · 오류 문구는 내용 아래 같은 열
       expect(v.styles).toEqual({
-        "flex-direction": "row",
-        "align-items": "flex-start",
-        "flex-wrap": "wrap",
+        display: "grid",
+        "grid-template-columns": "auto minmax(0, 1fr)",
+        "align-items": "start",
       });
     },
   );

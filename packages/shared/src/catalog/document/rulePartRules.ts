@@ -28,6 +28,7 @@ import {
   OWNER_DRAWN_PART_HOSTS,
 } from "../resolvers/resolveDelegatedChildFontSize";
 import type { ComponentRule } from "../../types/catalog-style.types";
+import { CATALOG_FORM_FIELDS } from "./formContext";
 import { manualBoxRule } from "./manualBoxRules";
 import type { LayoutField, Scalar, VisualField } from "./types";
 
@@ -898,7 +899,7 @@ function fieldValuePartRules(parentType: string): CompiledPartRule[] {
   );
 }
 
-/** TextArea's value box: `<textarea rows>` height per owner size and `rows` (1–12). */
+/** TextArea's value box: `<textarea rows>` height per owner size and `rows` (1–12), its text at the top. */
 const TEXT_AREA_ROWS = Array.from({ length: 12 }, (_, index) => index + 1);
 function textAreaPartRules(parentType: string): CompiledPartRule[] {
   if (parentType !== "TextArea") return [];
@@ -916,7 +917,10 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
               size,
               // No `rows` value: the shared default (3 rows).
               ...(rows === undefined ? {} : { ownerProps: { rows } }),
-              layout: {},
+              // A `<textarea>` starts its text at its top padding, not its rows box's middle —
+              // the shape builder's `verticalAlign: "top"` (2026-10-10 사용자 「textarea placeholder
+              // 텍스트가 상단이 아니라 가운데」 — the old Skia projection gave it, the catalog path lost it).
+              layout: { verticalAlign: "top" },
               visual: { height },
             },
           ];
@@ -1142,6 +1146,14 @@ function compositionVariables(
       if (key.startsWith("--") && typeof value === "string") out[key] = value;
   return out;
 }
+/**
+ * Field types by the DOM control a `:has(~ …)` block names: a TextArea is RAC `TextField` (the
+ * TextField sheet) with a `.react-aria-TextArea` control — its side label sits at the control's
+ * first line, not its middle (2026-10-10).
+ */
+const SIBLING_CONTROL_TYPES: Readonly<Record<string, string>> = {
+  ".react-aria-TextArea": "TextArea",
+};
 /** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
 const LABEL_ALIGN_AXIS = {
   attribute: "label-align",
@@ -1212,6 +1224,78 @@ export function catalogContainerVariantRootRules(type: string): Array<{
 }
 
 /**
+ * A side Form's shared label column (2026-10-10 — S2 Form's subgrid): the Form declares
+ * `--form-label-width` (`[data-label-position="side"]`), inherited by every field inside, and a side
+ * field's label reads it (`width: var(--form-label-width)` — without it the label is its text's
+ * width). The Canvas reads the field's label block again with the Form's variables: Form → field
+ * (`via`, in the field's own label position) → Label. The resolver gives these rules to the field
+ * from its nearest Form at any depth (the variable's inheritance — `formOwnerOf`).
+ */
+function formFieldLabelPartRules(parentType: string): CompiledPartRule[] {
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    domStyleRuleType(parentType)
+  ];
+  const variants = rule ? containerVariantsOf(rule) : undefined;
+  if (!variants) return [];
+  const out: CompiledPartRule[] = [];
+  for (const [attribute, prop] of Object.entries(
+    containerVariantAxes(parentType),
+  ))
+    for (const [value, block] of Object.entries(variants[attribute] ?? {})) {
+      const variables = blockVariables(block);
+      const names = Object.keys(variables);
+      if (!names.length) continue;
+      for (const fieldType of CATALOG_FORM_FIELDS) {
+        const fieldRule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+          domStyleRuleType(fieldType)
+        ];
+        const fieldVariants = fieldRule
+          ? containerVariantsOf(fieldRule)
+          : undefined;
+        for (const [fieldAttribute, fieldProp] of Object.entries(
+          containerVariantAxes(fieldType),
+        ))
+          for (const [fieldValue, fieldBlock] of Object.entries(
+            fieldVariants?.[fieldAttribute] ?? {},
+          ))
+            for (const entry of fieldBlock.nested ?? []) {
+              if (
+                entry.selector.trim().replace(/^>\s*/, "") !==
+                ".react-aria-Label"
+              )
+                continue;
+              const declarations = Object.fromEntries(
+                Object.entries(entry.styles ?? {}).filter(([, declared]) =>
+                  names.some((name) => declared.includes(`var(${name}`)),
+                ),
+              );
+              if (!Object.keys(declarations).length) continue;
+              const compiled = compileDeclarations(
+                "Label",
+                declarations,
+                variables,
+                undefined,
+              );
+              if (
+                !Object.keys(compiled.layout).length &&
+                !Object.keys(compiled.visual).length
+              )
+                continue;
+              out.push({
+                childType: "Label",
+                via: fieldType,
+                viaProps: { [fieldProp]: fieldValue },
+                ownerProps: { [prop]: value },
+                layout: compiled.layout,
+                visual: compiled.visual,
+              });
+            }
+      }
+    }
+  return out;
+}
+
+/**
  * Child values of the prop-driven container variants (`[data-label-position="side"] > .react-aria-Label`
  * …), per owner size (the blocks read per-size gap variables) and label alignment. Emitted after
  * every other part rule: the attribute selector is the more specific one in the sheet.
@@ -1231,7 +1315,16 @@ function containerVariantPartRules(
   ))
     for (const [value, block] of Object.entries(variants[attribute] ?? {}))
       for (const entry of block.nested ?? []) {
-        const selector = entry.selector.trim().replace(/^>\s*/, "");
+        // A block for a field whose control is a given DOM element (`:has(~ .react-aria-TextArea)`):
+        // the type that renders that control (`SIBLING_CONTROL_TYPES`), else skipped.
+        const sibling = /^(.*):has\(~\s*([^)]+)\)$/.exec(
+          entry.selector.trim().replace(/^>\s*/, ""),
+        );
+        if (sibling && SIBLING_CONTROL_TYPES[sibling[2].trim()] !== parentType)
+          continue;
+        const selector = sibling
+          ? sibling[1]
+          : entry.selector.trim().replace(/^>\s*/, "");
         const excluded = /^:not\((.*)\)$/.exec(selector)?.[1];
         const targets: Array<{
           childType: string;
@@ -1540,6 +1633,7 @@ export function compileRulePartRules(
     }
   }
   out.push(...containerVariantPartRules(parentType, rule, rootVariables));
+  out.push(...formFieldLabelPartRules(parentType));
   // Generated `[data-size]` selectors never match a root without that attribute: only the default
   // size's values apply, for every size (manual parts keep their real size keys).
   if (manual?.rootSizeAttribute !== undefined)

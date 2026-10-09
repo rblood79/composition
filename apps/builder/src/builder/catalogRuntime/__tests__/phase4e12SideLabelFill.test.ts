@@ -92,15 +92,18 @@ const side = {
 } as Partial<NodeEntry>;
 
 describe("ADR-248 4e-12 labelPosition side", () => {
-  it("a side TextField puts its 11rem label column beside the input (one row)", async () => {
+  it("a side TextField puts its label column (its text's width) beside the input (one row)", async () => {
     const { owner, child, box } = await openOwner("TextField", side);
     const label = box(child("Label").id);
     const input = box(child("Input").id);
-    // `[data-label-position="side"] > .react-aria-Label { width: var(--form-label-width, 11rem) }`.
-    expect(label.width).toBe(176);
-    expect(input.y).toBe(label.y);
+    // `[data-label-position="side"]` is a grid `auto minmax(0, 1fr)` (S2 `field()`, 2026-10-10):
+    // the label column is its text's width (no Form gives `--form-label-width`), in the middle of
+    // the input's row.
+    expect(label.width).toBeGreaterThan(0);
+    expect(label.width).toBeLessThan(176);
+    expect(label.y + label.height / 2).toBeCloseTo(input.y + input.height / 2, 0);
     expect(input.x).toBeGreaterThan(label.x + label.width);
-    // `> :not(.react-aria-Label, …) { flex: 1 1 0% }`: the input takes the rest of the row.
+    // `> :not(.react-aria-Label, …) { grid-column: 2 }`: the input takes the rest of the row.
     expect(input.x + input.width).toBeCloseTo(box(owner.id).width, 0);
   });
 

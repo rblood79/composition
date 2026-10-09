@@ -111,52 +111,31 @@
   margin-inline-start: -1px;
 }
 
-.react-aria-NumberField[data-size="XS"] {
-  --nf-side-gap: 2px;
-}
-
-.react-aria-NumberField[data-size="S"] {
-  --nf-side-gap: 4px;
-}
-
-.react-aria-NumberField[data-size="M"] {
-  --nf-side-gap: 6px;
-}
-
-.react-aria-NumberField[data-size="L"] {
-  --nf-side-gap: 8px;
-}
-
-.react-aria-NumberField[data-size="XL"] {
-  --nf-side-gap: 10px;
-}
-
 .react-aria-NumberField[data-label-position="side"] {
-  flex-direction: row;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
 }
 
 .react-aria-NumberField[data-label-position="side"] > .react-aria-Label {
-  width: var(--form-label-width, 11rem);
-  flex-shrink: 0;
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
   text-align: var(--form-label-align, start);
   justify-content: var(--form-label-align, start);
 }
 
 .react-aria-NumberField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
-  flex: 1 1 0%;
+  grid-column: 2;
   min-width: 0;
 }
 
 .react-aria-NumberField[data-label-position="side"] > .react-aria-FieldError {
-  flex-basis: 100%;
-  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--nf-side-gap));
+  grid-column: 2;
 }
 
 .react-aria-NumberField[data-label-position="side"] > [slot="description"] {
-  flex-basis: 100%;
-  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--nf-side-gap));
+  grid-column: 2;
 }
 
 .react-aria-NumberField[data-label-align="center"] {

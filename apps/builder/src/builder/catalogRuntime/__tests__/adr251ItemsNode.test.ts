@@ -33,8 +33,8 @@ const measure: CatalogTextMeasure = (text, font) => ({
 
 /**
  * G0 per size: item gap, item height (indicator), item Label x, items top (label top). Side: the
- * items sit right of the side label column (`--form-label-width` 176 + the group size's gap — the
- * side label of every field, 2026-10-07 ADR-253 follow-up; G0 had the label at its text width).
+ * items sit right of the side label column (its text's width + the group size's gap — S2 `field()`
+ * `auto 1fr`, 2026-10-10; the 176px column of 2026-10-07 is gone, as G0 had the label).
  * xl `topY` 48 (ADR-253): the group Label is sized by the Label rule at the group's size — its xl
  * line is the token's 28px (the group rule declared no xl line height: 18 × 20/14 = 25.71 before).
  */
@@ -180,8 +180,12 @@ describe("ADR-251 RadioItems · CheckboxItems node", () => {
         expect(box.x + first.x).toBeCloseTo(0, 3);
         expect(box.y + first.y).toBeCloseTo(g0.topY, 3);
       } else {
+        const groupLabel = root.getGeometry([kids[0].id]).get(kids[0].id)!;
+        expect(groupLabel.width).toBeLessThan(176);
         expect(box.x + first.x).toBeCloseTo(
-          176 + Number(COMPONENT_RULES_TABLE[owner].sizes[size].gap),
+          groupLabel.x +
+            groupLabel.width +
+            Number(COMPONENT_RULES_TABLE[owner].sizes[size].gap),
           3,
         );
         expect(box.y + first.y).toBeCloseTo(0, 3);

@@ -152,6 +152,9 @@ export function catalogRulePaint(
         ? cssVarColor(value, theme)
         : value;
   }
+  // A box whose text starts at its top (a TextArea's Input — `textAreaPartRules`): the shape
+  // builder's `verticalAlign: "top"` puts it at the top padding, as the `<textarea>` does.
+  if (node.layout.verticalAlign === "top") style.verticalAlign = "top";
   // A side padding the document wrote (a field rule's room for its glyph or button on an Input —
   // the DOM's inline `padding-left` / `padding-right`) places the text: both resolved sides go
   // out together, since the shape builder reads a lone side as both.

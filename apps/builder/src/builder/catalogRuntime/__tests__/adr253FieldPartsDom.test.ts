@@ -232,18 +232,19 @@ function tagGroupMarkup(text: string): string {
   );
 }
 /** Side label hint indent at md: the label column (11rem = 176) + the field's own md gap. */
-const SIDE_INDENT: Record<string, number> = {
-  textfield: 182,
-  textarea: 182,
-  numberfield: 182,
-  searchfield: 184,
-  select: 182,
-  combobox: 182,
-  datefield: 182,
-  timefield: 182,
-  datepicker: 180,
-  daterangepicker: 180,
-};
+/** Side label fields (their hints sit in the control's column — S2 `field()` grid, 2026-10-10). */
+const SIDE_FIELDS = [
+  "textfield",
+  "textarea",
+  "numberfield",
+  "searchfield",
+  "select",
+  "combobox",
+  "datefield",
+  "timefield",
+  "datepicker",
+  "daterangepicker",
+] as const;
 /** Fields whose Description · FieldError are part nodes. */
 const HINT_TYPES = [
   "textfield",
@@ -2165,14 +2166,14 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
   });
 
   /**
-   * A side label field places its hints under the control: the label column's width plus the
-   * field's gap, as the field's rule declares (`margin-inline-start: calc(label width + gap)`).
-   * The Canvas lays the part out with it and the DOM element carries it (the text reset would
-   * otherwise win over the field's stylesheet).
+   * A side label field places its hints under the control: the field is a grid (S2 `field()` —
+   * `auto 1fr`, 2026-10-10) and its hints are in the control's column (`grid-column: 2`), as the
+   * field's rule declares. The Canvas lays the part out with it and the DOM element carries it.
+   * (Before: `margin-inline-start: calc(176px label column + gap)`.)
    */
-  for (const [type, indent] of Object.entries(SIDE_INDENT))
+  for (const type of SIDE_FIELDS)
     it.skipIf(write)(
-      `${type} — side label: its hints are indented under the control`,
+      `${type} — side label: its hints are in the control's column`,
       async () => {
         const { workspace, field } = (await render(type, {
           labelPosition: "side",
@@ -2188,14 +2189,16 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             .get(field.id)!
             .children.map((id) => workspace.root.canvasInputs.get(id)!)
             .find((child) => child.bindingId === binding)!;
-          expect(part.layout.marginLeft).toBe(`${indent}px`);
-          expect(part.layout.flexBasis).toBe("100%");
+          expect(part.layout.gridColumnStart).toBe("2");
+          expect(part.layout.marginLeft).toBeUndefined();
           const id = part.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          expect(html).toMatch(
-            new RegExp(
-              `<span[^>]*data-catalog-id="${id}"[^>]*style="[^"]*margin-left:${indent}px`,
-            ),
-          );
+          const tag =
+            new RegExp(`<span[^>]*data-catalog-id="${id}"[^>]*>`).exec(
+              html,
+            )?.[0] ?? "";
+          expect(tag).not.toBe("");
+          // (no indent; the sheet's `grid-column: 2` is not reset inline)
+          expect(tag).not.toMatch(/margin-left:[1-9]|grid-column/);
         }
       },
     );

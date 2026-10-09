@@ -161,7 +161,8 @@ describe("S2 Form context", () => {
       value: "side",
       source: "form",
     });
-    // The side label column (176) on the Canvas, its text at the end.
+    // The side Form's label column (176 — `--form-label-width`, through the frame: the variable is
+    // inherited, the nearest Form's) on the Canvas, its text at the end.
     expect(box(part(TEXT, "Label").id).width).toBe(176);
     expect(part(TEXT, "Label").visual.textAlign).toBe("end");
     expect(html()).toMatch(

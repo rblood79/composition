@@ -72,52 +72,52 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-TextField[data-size="XS"] {
-  --tf-side-gap: 2px;
-}
-
 .react-aria-TextField[data-size="S"] {
-  --tf-side-gap: 4px;
+  --tf-side-label-offset: 3px;
 }
 
 .react-aria-TextField[data-size="M"] {
-  --tf-side-gap: 6px;
+  --tf-side-label-offset: 5px;
 }
 
 .react-aria-TextField[data-size="L"] {
-  --tf-side-gap: 8px;
+  --tf-side-label-offset: 9px;
 }
 
 .react-aria-TextField[data-size="XL"] {
-  --tf-side-gap: 10px;
+  --tf-side-label-offset: 13px;
 }
 
 .react-aria-TextField[data-label-position="side"] {
-  flex-direction: row;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
 }
 
 .react-aria-TextField[data-label-position="side"] > .react-aria-Label {
-  width: var(--form-label-width, 11rem);
-  flex-shrink: 0;
+  grid-column: 1;
+  width: var(--form-label-width);
+  align-self: center;
   text-align: var(--form-label-align, start);
   justify-content: var(--form-label-align, start);
 }
 
+.react-aria-TextField[data-label-position="side"] > .react-aria-Label:has(~ .react-aria-TextArea) {
+  align-self: start;
+  margin-top: var(--tf-side-label-offset);
+}
+
 .react-aria-TextField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
-  flex: 1 1 0%;
+  grid-column: 2;
   min-width: 0;
 }
 
 .react-aria-TextField[data-label-position="side"] > .react-aria-FieldError {
-  flex-basis: 100%;
-  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--tf-side-gap));
+  grid-column: 2;
 }
 
 .react-aria-TextField[data-label-position="side"] > [slot="description"] {
-  flex-basis: 100%;
-  margin-inline-start: calc(var(--form-label-width, 11rem) + var(--tf-side-gap));
+  grid-column: 2;
 }
 
 .react-aria-TextField[data-label-align="center"] {

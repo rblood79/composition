@@ -3548,6 +3548,19 @@ export class CatalogCompositionRoot {
             ) {
               queued.add(childId);
               queue.push(childId);
+              // (Its Label too: the Form's label column is a rule through the field —
+              // `formFieldLabelPartRules` — even when the field's own props stay.)
+              for (const partId of child.children) {
+                const part = this.records.get(partId);
+                if (
+                  part &&
+                  this.typeOf(part) === "Label" &&
+                  !queued.has(partId)
+                ) {
+                  queued.add(partId);
+                  queue.push(partId);
+                }
+              }
             }
             visit(child.children);
           }

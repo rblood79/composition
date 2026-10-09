@@ -580,12 +580,13 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       expect(top.flexDirection).toBe("column");
     });
 
-    it("TextField labelPosition=side → flexDirection=row + alignItems=flex-start (top-level containerVariants)", () => {
+    // (2026-10-10: a side field is S2 `field()`'s grid — `auto 1fr` — not a flex row.)
+    it("TextField labelPosition=side → display=grid + alignItems=start (top-level containerVariants)", () => {
       const side = resolveLayoutSpecPreset("TextField", "M", {
         labelPosition: "side",
       });
-      expect(side.flexDirection).toBe("row");
-      expect(side.alignItems).toBe("flex-start");
+      expect(side.display).toBe("grid");
+      expect(side.alignItems).toBe("start");
     });
 
     it("TagGroup labelPosition=side → flexDirection=row (top-level containerVariants)", () => {
@@ -599,12 +600,12 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // nested(structure.composition.containerVariants) fallback 복원 검증 — Select/Form/Toolbar 류는
     //   variant 를 nested 에만 보유. resolveCatalogContainerVariants 의 top-level ?? nested fallback 으로
     //   Style Panel(+implicitStyles)에 반영. spec 삭제 cutover 로 누락됐던 것을 Phase 4 에서 복원.
-    it("Select labelPosition=side → flexDirection=row (nested containerVariants fallback)", () => {
+    it("Select labelPosition=side → display=grid (nested containerVariants fallback)", () => {
       const side = resolveLayoutSpecPreset("Select", "M", {
         labelPosition: "side",
       });
-      expect(side.flexDirection).toBe("row");
-      expect(side.alignItems).toBe("flex-start");
+      expect(side.display).toBe("grid");
+      expect(side.alignItems).toBe("start");
     });
 
     it("Toolbar orientation=vertical → flexDirection=column (nested containerVariants fallback)", () => {
