@@ -11,7 +11,6 @@ import {
   setAssetUrlResolver,
   type FontRegistryV2,
 } from "@composition/shared";
-import { ToastProvider } from "@composition/shared/components";
 import { buildCodeCatalogLibrary } from "../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type { CatalogPreviewSession } from "../../../packages/shared/src/catalog/runtime/catalogPreviewSession";
 import {
@@ -19,6 +18,7 @@ import {
   CatalogPreviewView,
   CatalogPreviewDataProvider,
   CatalogPreviewToasts,
+  CatalogToastProvider,
   catalogPreviewRuntime,
   catalogPreviewLinkClick,
 } from "../../../packages/shared/src/catalog/runtime/domView";
@@ -126,7 +126,7 @@ function PublishedView({
         })
       : [];
   return (
-    <ToastProvider position="bottom-right">
+    <CatalogToastProvider session={session}>
       <CatalogPreviewToasts toast={toast} />
       <div className="publish-layout">
         <PageNav
@@ -144,7 +144,7 @@ function PublishedView({
           )}
         </div>
       </div>
-    </ToastProvider>
+    </CatalogToastProvider>
   );
 }
 

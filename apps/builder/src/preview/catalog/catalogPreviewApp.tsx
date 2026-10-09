@@ -1,4 +1,3 @@
-import { ToastProvider } from "@composition/shared/components";
 import { createRoot } from "react-dom/client";
 import { buildCodeCatalogLibrary } from "../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { NullLayoutEngine } from "../../builder/catalogRuntime/nullLayoutEngine";
@@ -10,6 +9,7 @@ import {
   CatalogPreviewView,
   CatalogPreviewDataProvider,
   CatalogPreviewToasts,
+  CatalogToastProvider,
   catalogPreviewRuntime,
   catalogPreviewLinkClick,
 } from "../../../../../packages/shared/src/catalog/runtime/domView";
@@ -81,12 +81,12 @@ export async function startCatalogPreview(): Promise<void> {
   );
   createRoot(document.body).render(
     <PreviewLocale>
-      <ToastProvider position="bottom-right">
+      <CatalogToastProvider session={session}>
         <CatalogPreviewToasts toast={toast} />
         <CatalogPreviewDataProvider session={session}>
           <CatalogPreviewView session={session} runtime={runtime} />
         </CatalogPreviewDataProvider>
-      </ToastProvider>
+      </CatalogToastProvider>
     </PreviewLocale>,
   );
   window.parent.postMessage({ type: "PREVIEW_READY" }, origin);

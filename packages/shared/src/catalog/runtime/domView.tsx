@@ -5,7 +5,8 @@ import {
   type ReactNode,
 } from "react";
 import { CollectionDataContext } from "@composition/shared";
-import { useToast } from "@composition/shared/components";
+import { ToastProvider, useToast } from "@composition/shared/components";
+import type { CatalogToastPlacement } from "../document/types";
 import type { CatalogThemeState } from "./theme";
 import type { CatalogCompositionRoot } from "./compositionRoot";
 import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
@@ -89,6 +90,46 @@ export function CatalogPreviewDataProvider({
     <CollectionDataContext.Provider value={session.dataServices}>
       {children}
     </CollectionDataContext.Provider>
+  );
+}
+
+/**
+ * S2 1.8.0 `ToastPlacement` → the toast region's place (`end` is the right of a left-to-right
+ * page). Absent = `bottom end` — the region's place before the project chose one.
+ */
+export function catalogToastPosition(
+  placement: CatalogToastPlacement | undefined,
+): "top-center" | "top-right" | "bottom-center" | "bottom-right" {
+  switch (placement) {
+    case "top":
+      return "top-center";
+    case "top end":
+      return "top-right";
+    case "bottom":
+      return "bottom-center";
+    default:
+      return "bottom-right";
+  }
+}
+
+/** The app's toast region, where the project places it (S2 `ToastContainer` `placement`). */
+export function CatalogToastProvider({
+  session,
+  children,
+}: {
+  session: CatalogPreviewSession;
+  children: ReactNode;
+}) {
+  useSyncExternalStore(session.subscribe, session.getVersion);
+  const project = session.graph?.getEntry(session.graph.projectId);
+  return (
+    <ToastProvider
+      position={catalogToastPosition(
+        project?.kind === "project" ? project.toastPlacement : undefined,
+      )}
+    >
+      {children}
+    </ToastProvider>
   );
 }
 

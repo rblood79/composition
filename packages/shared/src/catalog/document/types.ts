@@ -433,7 +433,20 @@ export interface ProjectEntry {
   assetIds: readonly EntryId<"asset">[];
   activeThemeId?: EntryId<"theme">;
   pageLayout?: PageLayoutDeclaration;
+  /**
+   * Where the app's toasts show (S2 1.8.0 `ToastContainer` `placement` — one region per app). Absent
+   * = `bottom end`, the region's place before (S2's own default is `bottom`).
+   */
+  toastPlacement?: CatalogToastPlacement;
 }
+/** S2 1.8.0 `ToastPlacement`. */
+export type CatalogToastPlacement = "top" | "top end" | "bottom" | "bottom end";
+export const CATALOG_TOAST_PLACEMENTS: readonly CatalogToastPlacement[] = [
+  "top",
+  "top end",
+  "bottom",
+  "bottom end",
+];
 /** Breakpoints below desktop: desktop is the node's base layer (desktop-first cascade). */
 export type ResponsiveBreakpointName = Exclude<BreakpointName, "desktop">;
 /**

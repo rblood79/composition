@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 토스트 위치 — 프로젝트 설정 toastPlacement] - 2026-10-10
+
+### Added
+
+- **프로젝트의 토스트 위치** (S2 1.8.0 `ToastContainer` `placement` — `top` · `top end` · `bottom` · `bottom end`, 앱에 영역 하나): Settings 패널의 App 절에 Toast Placement (위쪽 · 아래쪽) · Toast Align (가운데 · 끝). 값은 프로젝트 문서의 `toastPlacement` 하나 (S2 값 그대로) 이고, Preview 와 Publish 의 토스트 영역이 그 자리에 선다. 한 번 바꿀 때마다 히스토리 한 단계.
+  - 사용자 결정: S2 의 ToastContainer 에 해당하는 노드가 없어 프로젝트 설정에 둔다 (Toast 노드는 페이지 안의 상자라 대상이 아님).
+  - 기본값은 지금까지의 자리인 아래쪽 끝 (S2 자체 기본은 아래쪽 가운데).
+  - 패널은 두 토글로 나눴다 — 네 이름이 패널 한 줄에 들어가지 않고, S2 Toast 도 안에서 placement + align 으로 나눠 읽는다.
+  - 위치: `packages/shared/src/catalog/document/{types,validation}.ts` (`toastPlacement` · `INVALID_TOAST_PLACEMENT`) · `packages/shared/src/catalog/commands/project.ts` (`setToastPlacement`) · `packages/shared/src/catalog/runtime/domView.tsx` (`CatalogToastProvider`) · `apps/builder/src/builder/panels/settings/{SettingsPanel.tsx,useCatalogToastPlacement.ts}` · `apps/builder/src/preview/catalog/catalogPreviewApp.tsx` · `apps/publish/src/App.tsx`
+- 확인: live — Button 의 press 규칙이 토스트를 띄우는 문서에서 Settings 기본 Bottom · End, 토스트가 Preview 창의 아래쪽 끝 · Top/Center → 위쪽 가운데 · Top/End → 위쪽 끝 · Bottom/Center → 아래쪽 가운데 (창 가장자리 기준 1px 안), 되돌리기 → 아래쪽 끝, 오류 0 (`apps/builder/scripts/toast-placement-live.mjs` 7/7).
+
 ## [S2 메뉴 위치 — Select · ComboBox · MenuTrigger direction · align · menuWidth] - 2026-10-10
 
 ### Added

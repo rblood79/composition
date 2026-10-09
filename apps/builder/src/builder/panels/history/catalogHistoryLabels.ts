@@ -85,6 +85,7 @@ const LABELS: Readonly<Record<string, readonly [string, IconKind]>> = {
   "Page route": ["pageRoute", "page"],
   "Parent page": ["parentPage", "page"],
   "Page layout": ["pageLayout", "pagePosition"],
+  "Toast placement": ["toastPlacement", "page"],
   "Add layout": ["addLayout", "layout"],
   "Delete layout": ["deleteLayout", "layout"],
   "Apply layout preset": ["applyLayoutPreset", "layout"],

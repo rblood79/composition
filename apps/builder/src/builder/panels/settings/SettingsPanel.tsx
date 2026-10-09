@@ -29,6 +29,8 @@ import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
 import { useCatalogPageLayout } from "./useCatalogPageLayout";
+import { useCatalogToastPlacement } from "./useCatalogToastPlacement";
+import type { CatalogToastPlacement } from "../../../../../../packages/shared/src/catalog/document/types";
 
 function SettingsContent() {
   const { sendDarkMode } = useThemeMessenger();
@@ -52,6 +54,29 @@ function SettingsContent() {
   const effectiveDirection = layoutView?.direction ?? "horizontal";
   // auto 는 값 칸에 키워드로 싣는다 — 실제 열 수는 뷰포트에서 나오므로 여기 숫자를 쓰지 않는다.
   const columnsFieldValue = layoutView ? String(layoutView.columns) : "";
+
+  // S2 ToastContainer placement — the open project's app (Preview · Publish) toast region. S2's
+  // one value (`top` · `top end` · `bottom` · `bottom end`) is two fields here, as S2's Toast reads
+  // it (`placement` + `align`) — four labels do not fit one row of the panel.
+  const toastPlacement = useCatalogToastPlacement();
+  const toastVertical = toastPlacement?.value.startsWith("top")
+    ? "top"
+    : "bottom";
+  const toastAlign = toastPlacement?.value.endsWith("end") ? "end" : "center";
+  const changeToast = (vertical: string, align: string) =>
+    toastPlacement?.change(
+      (align === "end"
+        ? `${vertical} end`
+        : vertical) as CatalogToastPlacement,
+    );
+  const toastPlacementOptions = [
+    { id: "top", label: t("settings.toastPlacementTop") },
+    { id: "bottom", label: t("settings.toastPlacementBottom") },
+  ];
+  const toastAlignOptions = [
+    { id: "center", label: t("settings.toastAlignCenter") },
+    { id: "end", label: t("settings.toastAlignEnd") },
+  ];
 
   // UI 설정 (글로벌 uiStore에서 가져옴)
   const themeMode = useUiStore((state) => state.themeMode);
@@ -212,6 +237,28 @@ function SettingsContent() {
             className="settings-page-layout-toggle"
           />
         </PropertySection>
+
+        {/* App 절 — the project's app (S2 ToastContainer placement) */}
+        {toastPlacement && (
+          <PropertySection title={t("settings.app")}>
+            <div className="fieldset-row settings-row">
+              <PropertySizeToggle
+                label={t("settings.toastPlacement")}
+                value={toastVertical}
+                onChange={(value: string) => changeToast(value, toastAlign)}
+                options={toastPlacementOptions}
+                className="settings-toast-placement-toggle"
+              />
+              <PropertySizeToggle
+                label={t("settings.toastAlign")}
+                value={toastAlign}
+                onChange={(value: string) => changeToast(toastVertical, value)}
+                options={toastAlignOptions}
+                className="settings-toast-align-toggle"
+              />
+            </div>
+          </PropertySection>
+        )}
 
         {/* Appearance 절 (종전 Theme & Appearance) */}
         <PropertySection title={t("settings.themeAppearance")}>

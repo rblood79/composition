@@ -1,6 +1,7 @@
 import { cloneNodeSubgraph } from "../document/clone";
 import type {
   CatalogReader,
+  CatalogToastPlacement,
   DefinitionEntry,
   EntryId,
   InstanceAddress,
@@ -252,6 +253,23 @@ export const setPageLayoutSettings =
       input.pageLayout ? { ...project, pageLayout: input.pageLayout } : project,
     );
     return { label: input.label ?? "Page layout", ops: draft.ops() };
+  };
+
+/** Where the app's toasts show (S2 `ToastContainer` `placement`); `undefined` restores the default. */
+export const setToastPlacement =
+  (input: {
+    placement: CatalogToastPlacement | undefined;
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    const { toastPlacement: _placement, ...project } = draft.project();
+    draft.write(
+      input.placement
+        ? { ...project, toastPlacement: input.placement }
+        : project,
+    );
+    return { label: input.label ?? "Toast placement", ops: draft.ops() };
   };
 
 // ── Reusable page layouts ──────────────────────────────────────────────────

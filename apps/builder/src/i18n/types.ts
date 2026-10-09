@@ -276,6 +276,7 @@ export interface TranslationKeys {
       pageRoute: string;
       parentPage: string;
       pageLayout: string;
+      toastPlacement: string;
       addLayout: string;
       applyLayoutPreset: string;
       layoutSlot: string;
@@ -1278,6 +1279,14 @@ export interface TranslationKeys {
     uiScaleSmall: string;
     uiScaleDefault: string;
     uiScaleLarge: string;
+    /** S2 ToastContainer placement — 앱 (Preview · Publish) 의 토스트 위치. */
+    app: string;
+    toastPlacement: string;
+    toastPlacementTop: string;
+    toastPlacementBottom: string;
+    toastAlign: string;
+    toastAlignCenter: string;
+    toastAlignEnd: string;
   };
   /** ADR-249 전체 메뉴 — 기존 어휘에 없는 분류 · 도움말 자리 항목만 (나머지는 재사용) */
   headerMenu: {

@@ -55,6 +55,7 @@ export {
   setActiveTheme,
   setNodeInteractions,
   setPageLayoutSettings,
+  setToastPlacement,
   setThemeToken,
   updatePage,
   updateRecord,

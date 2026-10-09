@@ -6,7 +6,9 @@ import {
   type CatalogEntry,
   CATALOG_PRESENT_WHEN,
   CATALOG_STATE_KEYS,
+  CATALOG_TOAST_PLACEMENTS,
   type CatalogStateKey,
+  type CatalogToastPlacement,
   type CatalogPresentWhen,
   DISPLAY_STATE_NAMES,
   type DisplayStateName,
@@ -977,6 +979,7 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
           "assetIds",
           "activeThemeId",
           "pageLayout",
+          "toastPlacement",
         ],
         "entry",
       );
@@ -996,6 +999,13 @@ export function validateCatalogEntry(value: unknown): CatalogEntry {
         id(item.activeThemeId, "project:theme:", "entry.activeThemeId");
       if (item.pageLayout !== undefined)
         pageLayout(item.pageLayout, "entry.pageLayout");
+      if (
+        item.toastPlacement !== undefined &&
+        !CATALOG_TOAST_PLACEMENTS.includes(
+          item.toastPlacement as CatalogToastPlacement,
+        )
+      )
+        invalid("INVALID_TOAST_PLACEMENT", "entry.toastPlacement");
       break;
     case "page":
       exact(
