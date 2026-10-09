@@ -73,6 +73,7 @@ export type ComponentTag =
   | "Heading"
   | "Icon"
   | "IllustratedMessage"
+  | "Illustration"
   | "Image"
   | "InlineAlert"
   | "Input"

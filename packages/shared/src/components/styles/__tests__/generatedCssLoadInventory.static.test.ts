@@ -54,6 +54,8 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
     "D renderer 인라인 style, class 미방출 — binding 머리말: 시각 분기 없는 빈 셸",
   CardView:
     "D renderer 인라인 style, class 미방출 — binding 머리말: 빈 셸 (AvatarGroup 동형)",
+  Illustration:
+    "D Icon glyph 로 그린다 (`domBinding.tsx` `illustration` — class react-aria-Icon) — 크기는 rule iconSize 인라인",
   // E. container layout 채널 = props.style 인라인 (ADR-907 Layer B) — 로드하면 DOM 전용 스타일로 갈린다
   //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 (archetype `container` —
   //   CSSGenerator ARCHETYPE_BASE_STYLES 주석 · CHANGELOG; 오라클 catalogComponentBox). ADR-223 (2026-09-18)
@@ -169,15 +171,15 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
   // 2026-10-09 — ADR-256 후속 4 MenuTrigger (index 로드, TooltipTrigger 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 106 · index 81 · 모듈 0 · 미로드 25 (Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+  it("인벤토리 집계 — 생성 107 · index 81 · 모듈 0 · 미로드 26 (Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader.)
-    expect(generated.length).toBe(106);
+    expect(generated.length).toBe(107);
     expect(indexImported.size).toBe(81);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(26);
   });
 });

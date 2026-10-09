@@ -6,7 +6,10 @@ import { describe, expect, it } from "vitest";
 import { resolveIllustratedMessageMetric } from "@composition/rendering";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
-import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import {
+  buildCodeCatalogLibrary,
+  catalogTypeDefinitionId,
+} from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   EntryId,
   NodeEntry,
@@ -54,7 +57,11 @@ async function open(type: string, props: Record<string, string> = {}) {
         {
           kind: "node",
           id: ROOT,
-          definitionId: catalogPaletteDefinitionId(library, type),
+          // (A type outside the palette — the Illustration — by its type definition.)
+          definitionId:
+            type === "Illustration"
+              ? catalogTypeDefinitionId(type)
+              : catalogPaletteDefinitionId(library, type),
           children: [],
           props: Object.fromEntries(
             Object.entries(props).map(([key, value]) => [
@@ -114,6 +121,34 @@ describe("Canvas box = Preview box", () => {
     await act(async () => reactRoot.unmount());
     host.remove();
   });
+
+  // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「(a) 로 진행」): the S2
+  // Illustration — S 48 · M 96 · L 160 (`@react-spectrum/s2/src/Icon.tsx` `illustrationStyles`).
+  it.each([
+    ["sm", 48],
+    ["md", 96],
+    ["lg", 160],
+  ])(
+    "Illustration %s: the Canvas glyph box = the Preview svg (%ipx)",
+    async (size, px) => {
+      const { root, record } = await open("Illustration", { size });
+      (
+        globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+      ).IS_REACT_ACT_ENVIRONMENT = true;
+      const host = document.body.appendChild(document.createElement("div"));
+      const reactRoot = createRoot(host);
+      const id = [...root.domInputs.values()].find(
+        (r) => r.sourceId === ROOT,
+      )!.id;
+      await act(async () => reactRoot.render(renderCatalogDom(root, id)));
+      const svg = host.querySelector("svg")!;
+      expect(svg.getAttribute("width")).toBe(String(px));
+      const geometry = root.getGeometry([record.id]).get(record.id)!;
+      expect([geometry.width, geometry.height]).toEqual([px, px]);
+      await act(async () => reactRoot.unmount());
+      host.remove();
+    },
+  );
 
   // 2026-10-09 (사용자 「정렬 먼저 맞춰」): the Preview centred nothing — the rule's
   // `alignItems: flex-start` put the illustration · heading · description on the left, while the

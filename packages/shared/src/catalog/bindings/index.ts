@@ -60,6 +60,7 @@ import { gridListItemBinding } from "./GridListItem.binding";
 import { headingBinding } from "./Heading.binding";
 import { iconBinding } from "./Icon.binding";
 import { illustratedMessageBinding } from "./IllustratedMessage.binding";
+import { illustrationBinding } from "./Illustration.binding";
 import { inlineAlertBinding } from "./InlineAlert.binding";
 import { inputBinding } from "./Input.binding";
 import { kbdBinding } from "./Kbd.binding";
@@ -198,6 +199,7 @@ export * from "./GridListItem.binding";
 export * from "./Heading.binding";
 export * from "./Icon.binding";
 export * from "./IllustratedMessage.binding";
+export * from "./Illustration.binding";
 export * from "./InlineAlert.binding";
 export * from "./Kbd.binding";
 export * from "./Group.binding";
@@ -293,6 +295,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Button: buttonBinding,
   Icon: iconBinding,
   IllustratedMessage: illustratedMessageBinding,
+  Illustration: illustrationBinding,
   Link: linkBinding,
   Separator: separatorBinding,
   // ADR-238 Phase 2 — 목록 section 층 (RAC section + Header).

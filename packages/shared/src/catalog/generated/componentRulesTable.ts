@@ -5602,6 +5602,56 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       states: {},
     },
   },
+  // 2026-10-09 — the S2 IllustratedMessage's svg picture (`@react-spectrum/s2/src/Icon.tsx`
+  //   `illustrationStyles` size S 48 · M 96 · L 160, `--iconPrimary` neutral). `height === iconSize`:
+  //   the glyph is its box (Icon · SelectIcon 동형).
+  Illustration: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      sm: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 48,
+        iconSize: 48,
+      },
+      md: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 96,
+        iconSize: 96,
+      },
+      lg: {
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+        height: 160,
+        iconSize: 160,
+      },
+    },
+    structure: {
+      archetype: "simple",
+      element: "span",
+      containerStyles: {
+        display: "inline-flex",
+        alignItems: "center",
+      },
+      states: {},
+    },
+  },
   Image: {
     defaultVariant: "default",
     defaultSize: "md",

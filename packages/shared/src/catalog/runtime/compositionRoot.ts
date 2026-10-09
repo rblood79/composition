@@ -489,7 +489,7 @@ const requiredTextBindings = new Set(["button", "label"]);
  */
 const heightOnlyTextTypes = new Set(["Input", "SelectValue", "TextArea"]);
 /** Icon-font glyph bindings (Skia `icon_font`). */
-const glyphBindings = new Set(["icon", "selecticon"]);
+const glyphBindings = new Set(["icon", "selecticon", "illustration"]);
 
 /**
  * Layout text measurement (CanvasKit paragraph metrics). Without `maxWidth`: single-line

@@ -270,7 +270,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // ADR-256 Phase 7c: + SliderFill (1 variant) 8,604 → 8,640 (+36). diffs 0 유지.
     // ADR-256 Phase 8e: − DisclosureHeader · DisclosureContent (1 variant each) 8,640 → 8,568 (−72).
     // (ADR-256 후속 4: Menu 의 trigger variant 6 → 목록 1 — −180.)
-    expect(compared).toBe(8_388);
+    // 2026-10-09: + Illustration (IllustratedMessage 의 그림, 1 variant) 8,388 → 8,424 (+36). diffs 0 유지.
+    expect(compared).toBe(8_424);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

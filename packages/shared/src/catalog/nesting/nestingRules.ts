@@ -193,6 +193,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "Input",
   "DateInput",
   "SelectIcon",
+  "Illustration",
   "SelectValue",
   "ColorSwatch",
   "ColorArea",

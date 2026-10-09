@@ -628,6 +628,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     } as Parameters<typeof RAC.SelectValue>[0]),
   icon: glyph("circle", 24),
   selecticon: glyph("chevron-down", 18),
+  illustration: glyph("image", 96),
   // ADR-256 Phase 5e: RAC `SelectionIndicator` in its item's context (there while the item is
   // selected); its box is the item sheet's (`.react-aria-Tab .react-aria-SelectionIndicator`).
   selectionindicator: (node, style) =>

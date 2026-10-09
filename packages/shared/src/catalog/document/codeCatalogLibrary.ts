@@ -329,9 +329,9 @@ function buttonDefinition(
   };
 }
 
-/** Shared Lucide glyph contract for Icon and SelectIcon source registrations. */
+/** Shared Lucide glyph contract for Icon, SelectIcon and Illustration source registrations. */
 function glyphDefinition(
-  type: "Icon" | "SelectIcon",
+  type: "Icon" | "SelectIcon" | "Illustration",
   theme: "light" | "dark",
   tokens: Map<LibraryTokenId, LibraryToken>,
 ): LibraryDefinition {
@@ -606,7 +606,7 @@ export function catalogTypeDefinition(type: string): LibraryDefinition {
 function handOrRuleDefinition(type: string): LibraryDefinition {
   if (type === "Button")
     return buttonDefinition("light", new Map<LibraryTokenId, LibraryToken>());
-  if (type === "Icon" || type === "SelectIcon")
+  if (type === "Icon" || type === "SelectIcon" || type === "Illustration")
     return glyphDefinition(
       type,
       "light",
@@ -661,7 +661,7 @@ export async function buildCodeCatalogLibrary(
         ? buttonDefinition(theme, tokens)
         : type === "SelectValue"
           ? selectValueDefinition(theme, tokens)
-          : type === "Icon" || type === "SelectIcon"
+          : type === "Icon" || type === "SelectIcon" || type === "Illustration"
             ? glyphDefinition(type, theme, tokens)
             : ruleTypeDefinition(type, theme, tokens);
     });

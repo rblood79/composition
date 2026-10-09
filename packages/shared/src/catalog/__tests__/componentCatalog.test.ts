@@ -125,6 +125,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "InlineAlert",
         // ADR-912 진로 1번 (2026-06-06): 빈 상태(empty state) internal leaf (skiaPrimitive escape)
         "IllustratedMessage",
+        // 2026-10-09: IllustratedMessage 의 그림 (S2 Illustration — Icon 계열 glyph)
+        "Illustration",
         // ADR-912 진로 1번 (2026-06-06): 상태 표시 dot+label internal leaf (status_light escape)
         "StatusLight",
         // ADR-912 진로 1번 (2026-06-06): 사용자 아바타 circle+image internal leaf (avatar escape)

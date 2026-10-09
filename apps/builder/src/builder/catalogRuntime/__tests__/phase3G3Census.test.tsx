@@ -557,6 +557,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + DisclosurePanel (ADR-256 Phase 8c).
     // − DisclosureHeader · DisclosureChevron · DisclosureContent (ADR-256 Phase 8e).
     // + MenuTrigger (ADR-256 후속 4 — the Menu origin's root).
-    expect(types.length).toBe(148);
+    // + Illustration (the IllustratedMessage's svg picture, 2026-10-09).
+    expect(types.length).toBe(149);
   }, 120_000);
 });

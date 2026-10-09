@@ -302,7 +302,11 @@ const glyph: Binding = (node, rect) => {
   const name = String(
     node.derivedProps?.iconName ??
       node.props.iconName ??
-      (node.bindingId === "selecticon" ? "chevron-down" : "circle"),
+      (node.bindingId === "selecticon"
+        ? "chevron-down"
+        : node.bindingId === "illustration"
+          ? "image"
+          : "circle"),
   );
   const data = getIconData(name);
   if (!data)
@@ -411,6 +415,7 @@ const bindings: Readonly<Record<string, Binding>> = {
   box,
   icon: glyph,
   selecticon: glyph,
+  illustration: glyph,
   select: containerWithAuthoredPaint,
   combobox: containerWithAuthoredPaint,
   text: (node, rect, parent, wraps, suffix = "") => {

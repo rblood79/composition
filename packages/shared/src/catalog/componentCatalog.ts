@@ -305,6 +305,15 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   Skia 는 skiaPrimitive "status_light" escape(dot circle + text, replace — box 무의미),
   //   DOM 은 INTERNAL_RENDERERS["statuslight"](StatusLight.tsx, props.variant/size/children 소비).
   //   기존 dot primitive(isDot gate, Checkbox/Radio)와 별개 escape.
+  // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「(a) 로 진행」): the S2
+  //   IllustratedMessage's svg picture — an Icon-family glyph (`Illustration.binding.ts`). Not in
+  //   the palette: the IllustratedMessage origin holds one.
+  primitiveEntry("Illustration", "primitives", FAMILY_1_CUTOVER, {
+    category: "content",
+    label: "illustration",
+    icon: "ImageIcon",
+    placeable: false,
+  }),
   primitiveEntry("StatusLight", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "status light",
