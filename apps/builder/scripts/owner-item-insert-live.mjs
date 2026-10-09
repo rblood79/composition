@@ -1,7 +1,7 @@
 // Owner "+" live (사용자 2026-10-09 「Tabs 의 경우 컴퍼넌트 상단 프러퍼티에 "+" 가 없고 tablist 에 slot "+"
 // 가 있다, Taggroup 도 Tags 에 "+" 가 있다」) — real Builder (headed Chrome, Compare Mode): a selected
 // Tabs' · TagGroup's Design panel offers "+" for its items (Insert Tab · Insert Tag); pressing it adds
-// one in its TabList · TagList — on the Canvas and in the Preview (a Tab with its TabPanel; a TagGroup
+// one in its TabList · TagList (a Table's "+" a column in its TableHeader and a row in its TableBody) — on the Canvas and in the Preview (a Tab with its TabPanel; a TagGroup
 // with maxRows counts the new Tag again — no stale Show all) · no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/owner-item-insert-live.mjs <out>
@@ -190,6 +190,75 @@ for (const [palette, owner, item, list, selector] of [
       after.parents.length === 1 &&
       after.parents[0] === list &&
       (item !== "Tab" || after.panels === before.panels + 1),
+    { offered, before, after },
+  );
+}
+// Table · TableView: the owner's "+" adds a column (TableHeader) and a row (TableBody)
+const tableCounts = () =>
+  page.evaluate(() => {
+    const root = window.__COMPOSITION_CATALOG__.workspace.root;
+    const count = (type) =>
+      [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type)
+        .length;
+    const doc = document.querySelector("#previewFrame").contentDocument;
+    return {
+      canvas: { columns: count("Column"), rows: count("Row") },
+      preview: {
+        columns: doc.querySelectorAll('.react-aria-Table [role="columnheader"]')
+          .length,
+        rows: doc.querySelectorAll(
+          '.react-aria-Table [role="row"]:not(:has([role="columnheader"]))',
+        ).length,
+      },
+    };
+  });
+for (const [palette, owner] of [["table", "Table"]]) {
+  await page.evaluate(() =>
+    window.__COMPOSITION_CATALOG__.workspace.session.clearSelection(),
+  );
+  await addFromPalette(palette);
+  await page.waitForTimeout(800);
+  const before = await tableCounts();
+  await selectType(owner);
+  await page.waitForTimeout(800);
+  const column = page
+    .getByRole("button", { name: "Insert Column", exact: true })
+    .first();
+  if (!(await column.isVisible().catch(() => false))) {
+    await page
+      .getByRole("button", { name: /^Design/ })
+      .first()
+      .click()
+      .catch(() => {});
+    await page.waitForTimeout(1000);
+  }
+  const offered = {
+    column: await column.isVisible().catch(() => false),
+    row: await page
+      .getByRole("button", { name: "Insert Row", exact: true })
+      .first()
+      .isVisible()
+      .catch(() => false),
+  };
+  if (offered.column) await column.click();
+  await page.waitForTimeout(1000);
+  await selectType(owner);
+  await page.waitForTimeout(600);
+  if (offered.row)
+    await page
+      .getByRole("button", { name: "Insert Row", exact: true })
+      .first()
+      .click();
+  await page.waitForTimeout(1200);
+  const after = await tableCounts();
+  record(
+    `${owner} selected: "+" Insert Column · Insert Row add a column and a row (Canvas · Preview)`,
+    offered.column &&
+      offered.row &&
+      after.canvas.columns === before.canvas.columns + 1 &&
+      after.canvas.rows === before.canvas.rows + 1 &&
+      after.preview.columns === before.preview.columns + 1 &&
+      after.preview.rows === before.preview.rows + 1,
     { offered, before, after },
   );
 }

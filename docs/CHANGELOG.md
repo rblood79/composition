@@ -11,17 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Tabs · TagGroup 자신의 "+" 로 항목 추가 · Preview maxRows 재측정] - 2026-10-09
+## [Tabs · TagGroup · Table 자신의 "+" 로 항목 추가 · Preview maxRows 재측정] - 2026-10-09
 
 ### Fixed
 
+- **Table · TableView 를 선택해도 "+" (Insert Column · Insert Row) 가 나온다** — 열은 TableHeader 에, 행은 TableBody 에 추가된다 (사용자 「Table 도 같은 방식으로 맞춰」). 종전에는 TableHeader · TableBody 를 선택해야만 있었다.
 - **Tabs · TagGroup 을 선택해도 Design 패널 Slot 섹션에 "+" (Insert Tab · Insert Tag) 가 나온다** — 누르면 TabList · TagList 에 추가된다 (Tab 은 TabPanel 과 함께). 종전에는 안쪽 TabList · TagList 를 선택해야만 "+" 가 있었다 (CheckboxGroup · RadioGroup · Select · ComboBox 는 컴포넌트에서 바로 추가).
   - **Why**: 목록 노드가 따로 있는 컬렉션은 "+" 를 목록에만 붙였다. 컴포넌트가 안쪽 목록으로 전달하는 표 (`PICKER_LIST`) 에 Tabs → TabList · TagGroup → TagList 를 더했다. 목록 자신의 "+" 는 그대로.
   - 위치: `apps/builder/src/builder/catalogRuntime/itemInsert.ts`
 - **열린 Preview 에서 Tag 를 추가하면 maxRows 를 다시 센다** (종전: 한 줄에 다 들어가도 새 Tag 가 "Show all (5)" 뒤에 숨었다 — Canvas 는 5개).
   - **Why**: `useTagMaxRows` 가 처음 · maxRows 변경 · 크기 변경 때만 측정했다. 측정 거울의 chip (글자) 이 바뀌면 다시 잰다 (`itemsKey`) — 추가 · 삭제 · 글자 변경.
   - 위치: `packages/shared/src/components/TagGroup.tsx` · `packages/shared/src/catalog/runtime/delegatedDom.tsx`
-- 회귀: `ownerItemInsert.test.ts` 2 · `adr256TagGroupAuthoredTree.test.tsx` +1 (원복 RED 2) · live `apps/builder/scripts/owner-item-insert-live.mjs` 3/3 (Tabs · TagGroup 선택 → "+" → Canvas · Preview 하나씩 늘고 Show all 없음) · G3 63 PASS + 1 UNVERIFIED · parity 811
+- 회귀: `ownerItemInsert.test.ts` 4 · `adr256TagGroupAuthoredTree.test.tsx` +1 (원복 RED 3) · live `apps/builder/scripts/owner-item-insert-live.mjs` 4/4 (Tabs · TagGroup 선택 → "+" → Canvas · Preview 하나씩 늘고 Show all 없음 · Table 선택 → Insert Column · Insert Row → 열 · 행 하나씩) · G3 63 PASS + 1 UNVERIFIED · parity 811
 
 ## [TagGroup Max Rows — Canvas 도 접고 Show all (N) 을 그린다] - 2026-10-09
 

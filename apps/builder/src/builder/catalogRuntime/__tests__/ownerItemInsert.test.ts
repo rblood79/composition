@@ -103,3 +103,43 @@ describe("owner '+' — a Tabs · TagGroup adds its items in its list", () => {
     },
   );
 });
+
+describe("owner '+' — a Table · TableView adds columns and rows", () => {
+  it.each([
+    ["table", "Table"],
+    ["tableview", "TableView"],
+  ])(
+    "%s: the owner offers Insert Column (TableHeader) and Insert Row (TableBody)",
+    async (origin, owner) => {
+      const { workspace, of, choices } = await open(origin);
+      expect(choices(owner).map((choice) => choice.type)).toEqual([
+        ...choices("TableHeader").map((choice) => choice.type),
+        ...choices("TableBody").map((choice) => choice.type),
+      ]);
+      expect(choices(owner).map((choice) => choice.type)).toEqual([
+        "Column",
+        "Row",
+      ]);
+      const columns = of("Column").length;
+      const rows = of("Row").length;
+      for (const type of ["Column", "Row"])
+        workspace.execute(
+          choices(owner)
+            .find((choice) => choice.type === type)!
+            .build(),
+        );
+      expect([of("Column").length, of("Row").length]).toEqual([
+        columns + 1,
+        rows + 1,
+      ]);
+      const parentType = (type: string) =>
+        workspace.root.typeOf(
+          workspace.root.canvasInputs.get(of(type).at(-1)!.parentId)!,
+        );
+      expect([parentType("Column"), parentType("Row")]).toEqual([
+        "TableHeader",
+        "TableBody",
+      ]);
+    },
+  );
+});

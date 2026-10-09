@@ -129,16 +129,19 @@ function itemTypesOf(
  * (the list's own "+" too). A picker's ListBox is an instance of the ListBox origin, hidden on the
  * Canvas while the picker is closed — inside its Popover.
  */
-const PICKER_LIST: Readonly<Record<string, string>> = {
-  Select: "ListBox",
-  ComboBox: "ListBox",
+const PICKER_LIST: Readonly<Record<string, readonly string[]>> = {
+  Select: ["ListBox"],
+  ComboBox: ["ListBox"],
   // ADR-256 후속 4: a MenuTrigger's items are its Popover's Menu's.
-  MenuTrigger: "Menu",
+  MenuTrigger: ["Menu"],
   // (2026-10-09 사용자 「Tabs 의 경우 컴퍼넌트 상단 프러퍼티에 "+" 가 없고 tablist 에 slot "+" 가 있다」:
   // a Tabs adds its Tabs — with their TabPanels — in its TabList, a TagGroup its Tags in its
-  // TagList, as a CheckboxGroup adds in its items wrapper.)
-  Tabs: "TabList",
-  TagGroup: "TagList",
+  // TagList, as a CheckboxGroup adds in its items wrapper; 「Table 도 같은 방식으로」: a Table ·
+  // TableView its columns in its TableHeader and its rows in its TableBody.)
+  Tabs: ["TabList"],
+  TagGroup: ["TagList"],
+  Table: ["TableHeader", "TableBody"],
+  TableView: ["TableHeader", "TableBody"],
 };
 
 export function catalogItemInsertChoices(
@@ -151,13 +154,18 @@ export function catalogItemInsertChoices(
     // (A Select's · ComboBox's list is in its Popover — ADR-256 Phase 6c · 6d, the reference's
     // `Popover > ListBox`; a MenuTrigger's Menu the same — 후속 4.)
     const rows = readModel.childRows(position);
-    const list = [
+    const reachable = [
       ...rows,
       ...rows
         .filter((row) => typeOf(graph, row.definitionId) === "Popover")
         .flatMap((row) => readModel.childRows(row)),
-    ].find((row) => typeOf(graph, row.definitionId) === PICKER_LIST[type]);
-    return list ? catalogItemInsertChoices(host, list) : [];
+    ];
+    return PICKER_LIST[type].flatMap((listType) => {
+      const list = reachable.find(
+        (row) => typeOf(graph, row.definitionId) === listType,
+      );
+      return list ? catalogItemInsertChoices(host, list) : [];
+    });
   }
   const types = itemTypesOf(graph, type, position);
   if (!types.length) return [];
@@ -292,12 +300,9 @@ export function catalogItemInsertChoices(
       // (The parts are the types — the palette's Menu · Popover are trigger origins.)
       const item = menuItem("Submenu");
       const inner = menuItem("Item 1");
-      const menu = entry(
-        catalogTypeDefinitionId("Menu"),
-        "Menu",
-        undefined,
-        [inner.id],
-      );
+      const menu = entry(catalogTypeDefinitionId("Menu"), "Menu", undefined, [
+        inner.id,
+      ]);
       const popover = entry(
         catalogTypeDefinitionId("Popover"),
         "Popover",
