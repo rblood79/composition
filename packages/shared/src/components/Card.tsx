@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-aria-components";
 import type { CardVariant, ComponentSizeSubset } from "../types";
 import { normalizeCardVariant } from "../types";
 import { Skeleton } from "./Skeleton";
@@ -156,7 +157,17 @@ export function Card({
     }
   };
 
-  const CardElement = href ? "a" : "div";
+  // S2 (`@react-spectrum/s2/src/Card.tsx`): a standalone Card with an `href` is a RAC `Link` — RAC
+  // gives it the link's focus · keyboard · press (no hand-written role / tabIndex here).
+  const dataProps = {
+    "data-variant": variant,
+    "data-card-type": cardType !== "default" ? cardType : undefined,
+    "data-size": size,
+    "data-orientation": orientation,
+    "data-quiet": isQuiet || undefined,
+    "data-selected": isSelected || undefined,
+    "data-focused": isFocused || undefined,
+  };
 
   const elementProps = {
     id,
@@ -164,25 +175,18 @@ export function Card({
     style,
     onClick: handleClick,
     onKeyDown: handleKeyDown,
-    role: role || (isSelectable ? "button" : href ? "link" : undefined),
-    tabIndex: isDisabled ? -1 : isSelectable || onClick || href ? 0 : undefined,
+    role: role || (isSelectable ? "button" : undefined),
+    tabIndex: isDisabled ? -1 : isSelectable || onClick ? 0 : undefined,
     "aria-disabled": isDisabled,
     "aria-selected": isSelectable ? isSelected : undefined,
-    "data-variant": variant,
-    "data-card-type": cardType !== "default" ? cardType : undefined,
-    "data-size": size,
-    "data-orientation": orientation,
-    "data-quiet": isQuiet || undefined,
+    ...dataProps,
     "data-disabled": isDisabled || undefined,
     "data-selectable": isSelectable || undefined,
-    "data-selected": isSelected || undefined,
-    "data-focused": isFocused || undefined,
-    ...(href ? { href, target } : {}),
     ...props,
   };
 
-  return (
-    <CardElement {...elementProps}>
+  const content = (
+    <>
       {/* Asset Section (for gallery/file variants) */}
       {asset && (
         <div className="card-asset">
@@ -244,8 +248,32 @@ export function Card({
           <span className="selection-checkmark">✓</span>
         </div>
       )}
-    </CardElement>
+    </>
   );
+
+  if (href)
+    return (
+      <Link
+        id={id}
+        className={
+          className ? `react-aria-Card ${className}` : "react-aria-Card"
+        }
+        style={style}
+        href={href}
+        target={target}
+        isDisabled={isDisabled}
+        onPress={() => {
+          onClick?.();
+          onPress?.();
+        }}
+        {...dataProps}
+        {...props}
+      >
+        {content}
+      </Link>
+    );
+
+  return <div {...elementProps}>{content}</div>;
 }
 
 export { Card as MyCard };

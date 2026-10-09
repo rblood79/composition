@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Card href — S2 링크 Card (RAC Link)] - 2026-10-09
+
+### Added
+
+- **Card 의 Link · Target** (사용자 「Card href 진행해」):
+  - 놓은 Card 의 Properties 에 Link (`href`) · Target 이 생겼다. 값이 있으면 Preview · publish 의 Card 가 RAC `Link` (`a.react-aria-Card`) 로 그려진다 — S2 standalone Card 와 같다 (`@react-spectrum/s2/src/Card.tsx`). 비우면 다시 `div`.
+  - 링크 Card 도 글자 모양은 그대로다 (S2 `textDecoration: 'none'` — Card rule `rootSelectors["&"]`). Canvas 는 링크 칠이 없어 바뀌지 않는다.
+  - **Why**: Card type 은 `href` · `target` 을 받았지만 원본의 편집 계약에 없어 놓은 Card 에서 고칠 수 없었고, DOM 도 그 값을 넘기지 않았다. 옛 `<a>` 경로는 `role="link"` · `tabIndex` 를 손으로 붙였다 (RAC Link 로 교체).
+  - 확인: 실제 Builder Compare Mode 에서 href · target 설정 → `a.react-aria-Card` · 밑줄 없음 · 색 같음 · Canvas 상자 = Preview 상자, 비우면 `div` (`apps/builder/scripts/card-href-live.mjs` 6/6).
+  - S2 와 같이 링크 Card 안의 버튼 등 상호작용 요소는 막지 않는다 (S2 문서 주의 사항 — "the card must not contain interactive elements").
+  - 위치: `packages/shared/src/components/Card.tsx` · `packages/shared/src/catalog/runtime/delegatedDom.tsx` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `apps/builder/src/builder/components/reusablePropsSchemas.ts`
+
 ## [AvatarGroup 라벨 노드 — S2 label = Text 노드 · contract 35] - 2026-10-09
 
 ### Breaking Changes

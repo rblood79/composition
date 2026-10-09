@@ -2246,6 +2246,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           isSelected: bool(props.isSelected),
           isDisabled: bool(props.isDisabled),
           isFocused: bool(props.isFocused),
+          // S2: a standalone Card with an `href` is a RAC Link (`Card.tsx`).
+          href: opt(props.href),
+          target: opt(props.target),
           ...(structural ? { structuralChildren: true } : {}),
         },
         ...(structural || typeof props.children !== "string"

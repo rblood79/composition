@@ -1721,6 +1721,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           "&": {
             styles: {
               cursor: "pointer",
+              // S2 Card `textDecoration: 'none'` — a link Card (`href` → RAC Link `<a>`) keeps its
+              //   text undecorated (the UA underline would reach every line inside). The Canvas draws
+              //   no decoration either.
+              "text-decoration": "none",
             },
           },
         },

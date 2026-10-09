@@ -99,13 +99,16 @@ describe("ADR-223 archetype 미지정 base = 중립 상자", () => {
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
   });
 
-  it("Card: rootSelectors['&'] 가 cursor:pointer 만 emit — user-select/transition 은 사라진다", () => {
+  it("Card: rootSelectors['&'] 가 cursor:pointer · text-decoration:none 만 emit — user-select/transition 은 사라진다", () => {
     const css = cssFor("Card");
     const root = rootBlock(css, "Card");
     for (const re of BUTTON_VOCABULARY) expect(root).not.toMatch(re);
     // rootSelectors 규칙 = 같은 selector 의 뒤 블록 (base 뒤에 emit → cascade 승)
     const after = css.slice(root.length);
-    expect(after).toMatch(/\.react-aria-Card \{\s*cursor: pointer;\s*\}/);
+    // (text-decoration: S2 Card — a link Card's `<a>` keeps its text undecorated, 2026-10-09.)
+    expect(after).toMatch(
+      /\.react-aria-Card \{\s*cursor: pointer;\s*text-decoration: none;\s*\}/,
+    );
     expect(css).not.toMatch(/user-select:\s*none/);
     expect(css).not.toMatch(/transition:\s*background 0\.15s ease/);
   });

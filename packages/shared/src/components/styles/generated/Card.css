@@ -178,6 +178,7 @@
 
   .react-aria-Card {
     cursor: pointer;
+    text-decoration: none;
   }
 
 

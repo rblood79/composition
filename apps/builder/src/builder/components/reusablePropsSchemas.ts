@@ -59,7 +59,8 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
 
 /**
  * Card 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/variant/size 재사용).
- * `title`/`description` 은 템플릿 바인딩 키, `variant`/`size` 는 root props passthrough.
+ * `title`/`description` 은 템플릿 바인딩 키, `variant`/`size` · `href`/`target` 은 root props
+ * passthrough (S2 standalone Card 의 `href` — 링크 Card, 2026-10-09).
  */
 export const CARD_PROPS_SCHEMA: PropsSchema = {
   title: {
@@ -86,6 +87,8 @@ export const CARD_PROPS_SCHEMA: PropsSchema = {
     default: "md",
     section: "appearance",
   },
+  href: getPrimitiveBinding("Card")!.props.accepts!.href!,
+  target: getPrimitiveBinding("Card")!.props.accepts!.target!,
 };
 
 /**
