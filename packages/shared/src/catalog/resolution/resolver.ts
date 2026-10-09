@@ -35,6 +35,7 @@ import {
   CATALOG_SIZE_STEP,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
+import { CATALOG_BOOLEAN_VARIANTS } from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
@@ -793,6 +794,25 @@ export function resolveCatalogNode(
       if (value !== undefined) props[key] = value;
     }
   };
+  /**
+   * S2 강조 · quiet boolean 축 (`CATALOG_BOOLEAN_VARIANTS`, 2026-10-10): 공개 prop 은 boolean
+   * (`isEmphasized`) 이고 rule 변형은 내부 운반 값 (`editorHidden` variant) 이다 — 여기서
+   * 파생하므로 Canvas rule paint 와 DOM 이 종전 record 그대로 읽는다. 작성자 variant 는 이제
+   * 패널에 없다 — 남은 값은 옛 문서의 것으로, 로드 전환이 지웠거나 기본값이다.
+   */
+  const applyBooleanVariant = (
+    definitionId: DefinitionId,
+    props: Props,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const mapping = CATALOG_BOOLEAN_VARIANTS[definition.name];
+    if (!mapping) return;
+    if (
+      props[mapping.prop] === true &&
+      (props.variant === undefined || props.variant === "default")
+    )
+      props.variant = mapping.variant;
+  };
   const applyPropVisualRules = (
     definitionId: DefinitionId,
     props: Props,
@@ -854,6 +874,7 @@ export function resolveCatalogNode(
     );
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
+    applyBooleanVariant(node.definitionId, props);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
     applyWrites(visual, node.visual);
@@ -1049,6 +1070,7 @@ export function resolveCatalogNode(
       Object.assign(props, own);
       applyOwnerSize(definitionId, props, parent);
       applyOwnerDensity(definitionId, props, parent);
+      applyBooleanVariant(definitionId, props);
       applyPropVisualRules(definitionId, props, visual);
       applyTypedRules(definitionId, props, visual, layout, parent);
       return {
@@ -1317,6 +1339,7 @@ export function resolveCatalogNode(
       ]),
     );
     applyOwnerSize(template.definitionId, props, parent);
+    applyBooleanVariant(template.definitionId, props);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(
       template.definitionId,

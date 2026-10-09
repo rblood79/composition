@@ -22,6 +22,7 @@ import {
   CatalogValidationError,
 } from "./validation";
 import { validateInstanceAddress } from "../resolution/address";
+import { migrateCatalogEntriesS2 } from "./s2PropAlignment";
 import { assertCatalogLibrary, instanceContract } from "./library";
 import { catalogChildKind } from "../nesting/nestingRules";
 
@@ -1177,5 +1178,12 @@ export function createCatalogGraph(
   value: unknown,
   library: CatalogLibrary,
 ): CatalogGraph {
-  return new CatalogGraph(validateCatalogDocument(value), library);
+  const document = validateCatalogDocument(value);
+  // 로드 시 1회 S2 prop 전환 (2026-10-10) — storage 로드 · import · publish · preview snapshot 이
+  // 전부 이 길을 지난다. 다음 변경의 autosave 가 전환된 형태를 저장한다.
+  migrateCatalogEntriesS2(
+    document.entries as Record<string, CatalogEntry>,
+    library,
+  );
+  return new CatalogGraph(document, library);
 }

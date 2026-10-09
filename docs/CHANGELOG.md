@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 강조 축 전환 1 — Checkbox · Switch isEmphasized + 로드 시 1회 전환] - 2026-10-10
+
+### Breaking Changes
+
+- **Checkbox · Switch `variant` (default · emphasized) 제거 → `isEmphasized` boolean** (S2 1.8.0 — 조사 §4.2 B). 저장된 옛 문서는 **로드 시 1회 전환** (사용자 결정 2026-10-10): `variant: "emphasized"` → `isEmphasized: true`, 그 밖의 variant write 는 삭제 — `createCatalogGraph` 가 적용하므로 Builder 로드 · import · publish · preview snapshot 이 한 길로 지난다 (`packages/shared/src/catalog/document/s2PropAlignment.ts`).
+
+### Added
+
+- **Checkbox · Switch `isEmphasized`**: 선택 표시 (indicator · track) 가 accent 가 된다. rule 의 emphasized 변형은 그대로 두고 resolver 가 내부 `variant` 를 파생한다 (`CATALOG_BOOLEAN_VARIANTS` — binding 의 variant 는 `editorHidden` 운반 값). Canvas (rule paint) · DOM (`data-emphasized` 수동 시트) 코드가 종전 record 를 그대로 읽는다.
+- **stale 변형 폴백**: rule 에 더 없는 variant 값을 가진 옛 record 는 기본 변형으로 그린다 (`resolveCatalogVariantName` — 아무것도 안 그리는 공백 방지).
+- 확인: live — 팔레트 Checkbox · Switch: Emphasized 토글에서 Preview indicator 색 neutral→accent (computed), Canvas indicator Skia fill neutral→accent, 파생 variant emphasized; `variant: "emphasized"` 로 저장한 문서가 reload 에서 1회 전환 (`isEmphasized: true` + variant write 소거), 오류 0 (`apps/builder/scripts/s2-emphasis-toggle-live.mjs` 7/7).
+
 ## [S2 Table isQuiet — 바깥 틀 제거] - 2026-10-10
 
 ### Added

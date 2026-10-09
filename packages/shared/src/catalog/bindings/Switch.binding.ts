@@ -45,11 +45,20 @@ export const switchBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
+      // S2 1.8.0 `isEmphasized` (2026-10-10 — 조사 §4.2 B): 켜진 track 이 accent 가 된다. rule 의
+      //   emphasized 변형이 그 모양이고, 내부 `variant` 는 resolver 가 파생하는 운반 값
+      //   (`CATALOG_BOOLEAN_VARIANTS`) — 옛 variant prop 은 로드 시 1회 전환.
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
+        section: "appearance",
+      },
       variant: {
         kind: "variant",
         label: "Variant",
         section: "appearance",
         default: "default",
+        editorHidden: true,
       },
       size: {
         kind: "size",

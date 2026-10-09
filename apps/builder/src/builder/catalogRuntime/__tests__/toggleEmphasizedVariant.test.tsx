@@ -18,16 +18,16 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * 2026-10-09 (사용자 「Checkbox · Switch variant ↔ isEmphasized 진행해」): Checkbox · Switch take
- * `variant` (default · emphasized — the rule's variants, which the Canvas paints) and their DOM set
- * `data-emphasized` (the sheet's accent selected colour) from `isEmphasized`, which they do not
- * accept — an emphasized toggle was accent on the Canvas and neutral in the Preview. The DOM now
- * reads the `variant` it accepts.
+ * 2026-10-09 (사용자 「Checkbox · Switch variant ↔ isEmphasized 진행해」): DOM 의 `data-emphasized`
+ * 가 받지 않는 prop 을 읽어 Canvas(accent) ↔ Preview(neutral) 로 갈리던 결함의 회귀 가드.
+ * 2026-10-10 S2 강조 축 전환 뒤 공개 prop 은 `isEmphasized` 이고 `variant` 는 resolver 가
+ * 파생하는 내부 운반 값 — 저장된 옛 `variant` 는 로드 시 1회 전환되므로, 이 가드는 새 표면이
+ * 두 consumer 에 같은 축으로 닿는지를 지킨다 (`s2EmphasisToggle.test.tsx` 가 전환 자체를 본다).
  */
 const BODY = "project:node:home-body" as NodeId;
 const ROOT = "project:node:root" as NodeId;
 
-async function rootHtml(type: string, props: Record<string, string>) {
+async function rootHtml(type: string, props: Record<string, unknown>) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -76,14 +76,14 @@ async function rootHtml(type: string, props: Record<string, string>) {
   return /^<[a-z]+[^>]*>/.exec(html)![0];
 }
 
-describe("Checkbox · Switch — the DOM's emphasis is the `variant` they accept", () => {
+describe("Checkbox · Switch — the DOM's emphasis is the `isEmphasized` they accept", () => {
   it.each(["Checkbox", "Switch"])(
-    "%s variant emphasized → data-emphasized; default → none",
+    "%s isEmphasized → data-emphasized; off → none",
     async (type) => {
-      expect(await rootHtml(type, { variant: "emphasized" })).toContain(
+      expect(await rootHtml(type, { isEmphasized: true })).toContain(
         "data-emphasized",
       );
-      expect(await rootHtml(type, { variant: "default" })).not.toContain(
+      expect(await rootHtml(type, { isEmphasized: false })).not.toContain(
         "data-emphasized",
       );
       expect(await rootHtml(type, {})).not.toContain("data-emphasized");

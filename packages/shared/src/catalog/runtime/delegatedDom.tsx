@@ -1898,8 +1898,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         style: input.style,
         className: "react-aria-Switch",
         "data-size": str(props.size) || "M",
-        // (The `variant` it accepts — the rule's emphasized variant, which the Canvas paints.)
-        "data-emphasized": props.variant === "emphasized" || undefined,
+        // (S2 `isEmphasized` — the rule's emphasized variant, which the Canvas paints.)
+        "data-emphasized": bool(props.isEmphasized) || undefined,
         defaultSelected: bool(props.isSelected),
         isDisabled: bool(props.isDisabled),
         isReadOnly: bool(props.isReadOnly),
@@ -1985,8 +1985,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             style: input.style,
             className: "react-aria-Checkbox",
             "data-size": str(props.size) || "M",
-            // (The `variant` it accepts — the rule's emphasized variant, which the Canvas paints.)
-            "data-emphasized": props.variant === "emphasized" || undefined,
+            // (S2 `isEmphasized` — the rule's emphasized variant, which the Canvas paints.)
+            "data-emphasized": bool(props.isEmphasized) || undefined,
             ...(resolution.kind === "named"
               ? {}
               : {

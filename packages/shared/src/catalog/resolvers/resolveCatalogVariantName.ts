@@ -15,7 +15,12 @@ export function resolveCatalogVariantName(
   props: Readonly<Record<string, unknown>>,
 ): string | undefined {
   const explicit = props.variant;
-  if (typeof explicit === "string" && explicit) return explicit;
+  if (typeof explicit === "string" && explicit) {
+    // (옛 문서가 적은, rule 에 더 없는 변형 — S2 prop 전환이 지운 축: 아무것도 안 그리는 대신
+    // 기본 변형으로. 2026-10-10)
+    if (!rule || rule.variants[explicit]) return explicit;
+    return rule.defaultVariant;
+  }
   if (isSelectedProps(props) && rule?.variants.selected) return "selected";
   return rule?.defaultVariant;
 }
