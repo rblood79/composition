@@ -1890,6 +1890,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         defaultSelected: bool(props.isSelected),
         isDisabled: bool(props.isDisabled),
         isReadOnly: bool(props.isReadOnly),
+        isRequired: bool(props.isRequired),
+        isInvalid: authoredInvalid(props),
         name: opt(props.name),
         value: opt(props.value),
         autoFocus: bool(props.autoFocus),

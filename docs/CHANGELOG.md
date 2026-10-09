@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 전용 prop 2순위 — Switch · TagGroup 상태 축] - 2026-10-09
+
+### Added
+
+- **Switch `isRequired` · `isInvalid`** (S2 1.8.0 · RAC `SwitchField`):
+  - Design 패널 State 에 Required · Invalid. Invalid 면 Error Message 가 Preview · Canvas 에 함께 보이고 (template 의 FieldError), Required 면 Preview input 이 `required` 다. S2 처럼 트랙 모양은 바꾸지 않는다.
+  - **Why**: Switch 는 Error Message 를 받는데 Invalid 를 받지 않아, 문구를 적어도 어디에도 보이지 않았다.
+  - 확인: live — Error Message 만 적으면 양쪽 다 숨김, Invalid → Preview `data-invalid` · 문구 「Turn it on」 · Canvas 오류 높이 16 = Preview 16 · 트랙 그대로, Required → Preview input `required` (`apps/builder/scripts/switch-invalid-required-live.mjs` 4/4).
+  - 위치: `packages/shared/src/catalog/bindings/Switch.binding.ts` · `packages/shared/src/catalog/runtime/delegatedDom.tsx`
+- **TagGroup `isInvalid` · Error Message 패널 항목** (S2 1.8.0 TagGroup `HelpText`):
+  - Design 패널 State 에 Error Message · Invalid. 오류 문구는 Invalid 일 때만 보인다.
+
+### Changed
+
+- **TagGroup 오류 문구는 Invalid 일 때만** — 종전에는 문구가 있으면 늘 보였다 (S2 는 invalid 일 때만 보인다). RAC TagGroup 에는 검증이 없어 Canvas 와 Preview 가 같은 판정 (`catalogFieldHintShown`) 을 읽는다.
+  - 확인: live — Error Message 「Too many」 만 적으면 양쪽 숨김, Invalid → Preview 문구 · Canvas 높이 16 = 16, 다시 끄면 양쪽 숨김 (`apps/builder/scripts/taggroup-invalid-live.mjs` 4/4).
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts` · `packages/shared/src/catalog/runtime/{presence.ts,domBinding.tsx}`
+
 ## [S2 전용 prop 2순위 — 그룹 labelAlign · side 라벨 정렬 수정] - 2026-10-09
 
 ### Added

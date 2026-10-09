@@ -14,12 +14,14 @@ import {
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
+  DefinitionId,
   EntryId,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { renderCatalogDom } from "../domBinding";
+import { catalogSemanticContracts } from "../editContract";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -166,6 +168,7 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
     const { html } = await open({
       allowsRemoving: true,
       description: "Pick flavors",
+      isInvalid: true,
       errorMessage: "Too many",
     });
     const reference = renderToStaticMarkup(
@@ -240,11 +243,38 @@ describe("ADR-256 Phase 5d — TagGroup is the reference's node tree", () => {
     expect(hints().every((hint) => hint.hidden === true)).toBe(true);
     expect(html()).not.toContain('slot="description"');
     expect(html()).not.toContain('slot="errorMessage"');
-    edit({ description: "Pick", errorMessage: "Wrong" });
+    edit({ description: "Pick", errorMessage: "Wrong", isInvalid: true });
     expect(hints().every((hint) => hint.hidden !== true)).toBe(true);
     expect(html()).toContain('slot="description"');
     expect(html()).toMatch(
       /<span[^>]*class="react-aria-FieldError"[^>]*slot="errorMessage"[^>]*>Wrong<\/span>/,
     );
+  });
+
+  // S2 1.8.0 TagGroup `isInvalid` · `errorMessage` (2026-10-09): the error text shows while the
+  // group is invalid — a message alone is not there (S2 `HelpText`; RAC's TagGroup has no
+  // validation of its own).
+  it("the error message shows only while the TagGroup is invalid (Canvas and DOM)", async () => {
+    const { html, of, edit } = await open({ errorMessage: "Too many" });
+    const error = () => of("FieldError")[0];
+    expect(error().hidden).toBe(true);
+    expect(html()).not.toContain('slot="errorMessage"');
+    edit({ isInvalid: true });
+    expect(error().hidden).not.toBe(true);
+    expect(html()).toMatch(/slot="errorMessage"[^>]*>Too many</);
+    edit({ isInvalid: false });
+    expect(error().hidden).toBe(true);
+    expect(html()).not.toContain('slot="errorMessage"');
+  });
+
+  it("the Design panel offers Error Message and Invalid", async () => {
+    expect(
+      Object.keys(
+        catalogSemanticContracts(
+          "lib:definition:origin-component-taggroup" as DefinitionId,
+          "TagGroup",
+        ),
+      ),
+    ).toEqual(expect.arrayContaining(["errorMessage", "isInvalid"]));
   });
 });

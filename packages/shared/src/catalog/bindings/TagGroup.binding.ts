@@ -83,6 +83,15 @@ export const tagGroupBinding: PrimitiveBinding = {
         label: "Disallow Empty Selection",
         section: "state",
       },
+      // S2 1.8.0 TagGroup `isInvalid` · `errorMessage` (2026-10-09): the error text (the template's
+      //   FieldError `{errorMessage}`) shows while the group is invalid — S2 `HelpText`; RAC's TagGroup
+      //   has no validation, so the Canvas and the DOM read the same predicate (`catalogFieldHintShown`).
+      errorMessage: {
+        kind: "string",
+        label: "Error Message",
+        section: "state",
+      },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
     },
     toRacProps: "default",
   },

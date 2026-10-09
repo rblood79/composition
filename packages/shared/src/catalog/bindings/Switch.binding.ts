@@ -21,9 +21,14 @@ export const switchBinding: PrimitiveBinding = {
     primitive: "Switch",
     parts: ["switch", "indicator", "label"],
     slots: [],
-    states: ["isSelected", "isDisabled"],
-    renderProps: ["isSelected", "isDisabled"],
-    dataAttributes: ["data-selected", "data-disabled"],
+    states: ["isSelected", "isDisabled", "isInvalid", "isRequired"],
+    renderProps: ["isSelected", "isDisabled", "isInvalid", "isRequired"],
+    dataAttributes: [
+      "data-selected",
+      "data-disabled",
+      "data-invalid",
+      "data-required",
+    ],
   },
   props: {
     accepts: {
@@ -57,6 +62,10 @@ export const switchBinding: PrimitiveBinding = {
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Switch 공식 prop —
       //   `delegatedDom.tsx` `switch` 가 isReadOnly/name/value/autoFocus 를 RAC SwitchField 로 전달.
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
+      // S2 1.8.0 Switch `isRequired` · `isInvalid` (RAC `SwitchField`, 2026-10-09): invalid shows the
+      //   FieldError (S2 leaves the track as it is), required is the input's (RAC form validation).
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       name: { kind: "string", label: "Name", section: "content" },
       value: { kind: "string", label: "Value", section: "content" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

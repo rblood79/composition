@@ -232,6 +232,31 @@ describe("ADR-256 Phase 3 — Checkbox is CheckboxField > CheckboxButton", () =>
     );
   });
 
+  // S2 1.8.0 Switch `isInvalid` · `isRequired` (RAC `SwitchField`): invalid shows the error text
+  // only — S2 does not change the track — and required is the input's (2026-10-09).
+  it("an invalid Switch shows its error; a required one marks its input (Canvas and DOM)", async () => {
+    const quiet = await open("switch", { errorMessage: "Turn it on" });
+    expect(quiet.part("FieldError").hidden).toBe(true);
+    expect(quiet.html()).not.toContain("react-aria-FieldError");
+    const invalid = await open("switch", {
+      isInvalid: true,
+      isRequired: true,
+      errorMessage: "Turn it on",
+    });
+    expect(invalid.field().props).toMatchObject({
+      isInvalid: true,
+      isRequired: true,
+    });
+    expect(invalid.part("FieldError").hidden).toBeFalsy();
+    expect(invalid.html()).toMatch(
+      /class="react-aria-FieldError"[^>]*>Turn it on</,
+    );
+    expect(invalid.html()).toMatch(
+      /class="react-aria-Switch"[^>]*data-invalid="true"/,
+    );
+    expect(invalid.html()).toMatch(/<input[^>]*required=""/);
+  });
+
   it("a free child in the button is drawn in its place (Canvas and DOM)", async () => {
     const { workspace, id, html } = await authored();
     const icon = id("free-icon");

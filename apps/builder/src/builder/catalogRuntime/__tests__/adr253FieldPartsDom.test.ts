@@ -120,6 +120,12 @@ const SHOWN_SINCE: Record<
     text: "Help text",
     node: /component-radiogroup__description$/,
   },
+  // (A TagGroup takes S2 `isInvalid` since 2026-10-09 — no such document before.)
+  "taggroup/invalid": {
+    selector: '[slot="errorMessage"]',
+    text: "Not valid",
+    node: /component-taggroup__error$/,
+  },
 };
 /** Fields with `isQuiet`, and whether their box is a part instance (a range picker's is its Group). */
 const QUIET_BOX_PARTS: Record<string, boolean> = {

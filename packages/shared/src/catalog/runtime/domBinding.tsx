@@ -40,6 +40,7 @@ import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
+  catalogFieldHintShown,
   catalogProgressValueHidden,
   catalogStateConditions,
   catalogStateOwner,
@@ -2020,6 +2021,17 @@ function renderNode(
   const id = node.id;
   // ADR-256 Decision 7: an optional text part with nothing to say is not there.
   if (catalogAbsentByValue(node)) return null;
+  // (A TagGroup's error text while the group is not invalid — the Canvas's predicate, S2.)
+  if (
+    partParent &&
+    catalogTypeName(root, partParent) === "TagGroup" &&
+    catalogFieldHintShown(
+      catalogTypeName(root, node),
+      partParent,
+      "TagGroup",
+    ) === false
+  )
+    return null;
   // (A ProgressBar's · Meter's value text while `showValueLabel` is false — the Canvas's predicate.)
   if (
     catalogProgressValueHidden(

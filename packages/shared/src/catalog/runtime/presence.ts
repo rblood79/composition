@@ -519,12 +519,25 @@ export const FIELD_HINT_OWNERS: ReadonlySet<string> = new Set([
   // RAC `RadioField` (+ Description — the reference Radio has no FieldError).
   "Radio",
 ]);
+/**
+ * Owners whose error part follows their `isInvalid` — the fields, and the S2 TagGroup (its error
+ * text is the S2 `HelpText`'s, shown while invalid; RAC's TagGroup has no validation — 2026-10-09).
+ */
+const ERROR_HINT_OWNERS: ReadonlySet<string> = new Set([
+  ...FIELD_HINT_OWNERS,
+  "TagGroup",
+]);
 /** Whether a field's hint part (`Description` · `FieldError`) shows; `undefined` = not one. */
 export function catalogFieldHintShown(
   type: string,
   field: CatalogConsumerNode,
   fieldType: string,
 ): boolean | undefined {
+  if (fieldType === "TagGroup")
+    return type === "FieldError"
+      ? field.props.isInvalid === true &&
+          !!String(field.props.errorMessage ?? "")
+      : undefined;
   if (!FIELD_HINT_OWNERS.has(fieldType)) return undefined;
   if (type === "Description")
     return NODE_TREE_FIELDS.has(fieldType)
@@ -710,7 +723,7 @@ export function catalogPresenceScope(
     const type = typeOf(cursor);
     if (type === "Tabs" || type === "SearchField") return cursor;
     // A field's hint parts follow its `description` · `isInvalid` · `errorMessage`.
-    if (depth === 0 && FIELD_HINT_OWNERS.has(type)) return cursor;
+    if (depth === 0 && ERROR_HINT_OWNERS.has(type)) return cursor;
     if (!TABS_SELECTION_TYPES.has(type)) break;
     // (A frame around the TabList inside Tabs passes — ADR-256 Phase 5e-2.)
     cursor = catalogPartParent(cursor, get, typeOf);
@@ -755,7 +768,7 @@ export function catalogPresenceDependents(
         (child) => typeOf(child) === "DisclosurePanel",
       ),
     );
-  if (FIELD_HINT_OWNERS.has(typeOf(scope)))
+  if (ERROR_HINT_OWNERS.has(typeOf(scope)))
     return [
       ...partChildrenOf(scope, get, typeOf).filter((child) =>
         ["Description", "FieldError"].includes(typeOf(child)),
