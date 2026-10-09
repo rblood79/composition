@@ -157,7 +157,20 @@ const INPUT_TYPES = ["textfield", "textarea", "colorfield"] as const;
  */
 const INPUT_PLACEHOLDER_SINCE: Record<string, string> = {
   colorfield: " placeholder=#000000",
-  numberfield: " placeholder=0",
+};
+/**
+ * S2 NumberField (2026-10-10): without a value the input is empty, not 0 (RAC `NaN`) — and RAC's
+ * decrement no longer stops at the minimum 0 (from empty both steppers move: `canDecrement`). A
+ * disabled or read-only field's steppers stay disabled.
+ */
+const numberFieldEmptyMarkup = (markup: string) => {
+  const withoutZero = markup.replace(" value=0>", " value=>");
+  return /data-disabled=true[^>]*slot=increment/.test(withoutZero)
+    ? withoutZero
+    : withoutZero.replace(
+        "class=react-aria-Button data-disabled=true data-rac= data-react-aria-pressable=true disabled= id slot=decrement",
+        "class=react-aria-Button data-rac= data-react-aria-pressable=true id slot=decrement",
+      );
 };
 /**
  * ADR-256 Phase 3 — a Checkbox · Radio is RAC `CheckboxField` · `RadioField` around a
@@ -638,6 +651,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
                   ? tagGroupMarkup(fixed)
                   : type === "searchfield"
                     ? searchFieldGroupMarkup(fixed)
+                    : type === "numberfield"
+                      ? numberFieldEmptyMarkup(fixed)
                     : type === "select"
                       ? selectNodeTreeMarkup(fixed)
                       : type === "slider"
@@ -1118,8 +1133,18 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(button.getAttribute("style") ?? "").not.toMatch(
           /background-color|border-color|(^|;)color:/,
         );
-      // RAC's context reaches them (nothing the document did not write is passed): the value 0 is
-      // the minimum — decrease is disabled, increase is not; a disabled field disables both.
+      // RAC's context reaches them (nothing the document did not write is passed): without a value
+      // both move (S2 — an empty input); the value 0 is the minimum — decrease is disabled,
+      // increase is not; a disabled field disables both.
+      expect(
+        stepperElements().map((button) => button.hasAttribute("disabled")),
+      ).toEqual([false, false]);
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: FIELD }],
+          props: { value: set("0") as never },
+        }),
+      );
       expect(
         stepperElements().map((button) => button.hasAttribute("disabled")),
       ).toEqual([true, false]);

@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [NumberField 빈 값 — 값이 없으면 빈칸과 placeholder (S2)] - 2026-10-10
+
+### Changed
+
+- **새 NumberField 가 「0」 대신 빈칸으로 시작한다** (S2 1.8.0 NumberField — 값이 없으면 빈 입력칸):
+  - 전에는 Preview 가 값이 없어도 RAC 를 0 으로 시작했고 (`Number(props.value || 0)`), Canvas 는 원본 Input 에 고정된 placeholder `"0"` 을 그렸다. 이제 Value 가 비어 있으면 양쪽 모두 빈칸이고, 지우면 다시 빈칸이 된다.
+  - 값이 있으면 양쪽이 RAC 가 처음 보이는 글자를 그린다 — 범위 · step 에 맞춘 값 (`useNumberFieldState` 의 snap — 원본 범위 0–100 이면 150 → 100) 을 locale 숫자 형식으로 (1234.5 → `1,234.5`). 전에는 Canvas 가 값을 그리지 않았다 (늘 `"0"`).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`numberfield`) · `packages/shared/src/catalog/runtime/presence.ts` (`catalogNumberFieldValue` · `catalogNumberFieldText` — Input 의 파생 글자)
+
+### Added
+
+- **NumberField `placeholder`** (S2 `Pick<InputProps, 'placeholder'>`, 기본값 없음): 원본 `component-numberfield` 가 받아 Input 에 묶는다 (`{placeholder}` — TextField 와 같은 방식). 값이 비어 있는 동안 양쪽에 보인다.
+  - 확인: live — 팔레트 NumberField 가 Canvas · Preview 모두 빈칸 (입력칸 높이 30 = 30), Placeholder `Amount` → 양쪽 `Amount`, Value 42 → 양쪽 `42`, 150 → 양쪽 `100`, Value 지움 → 양쪽 빈칸 + `Amount` (`apps/builder/scripts/numberfield-empty-live.mjs` 6/6). 소수 step · 천 단위 형식은 `numberFieldEmptyValue.test.tsx`.
+  - 위치: `packages/shared/src/catalog/bindings/NumberField.binding.ts` · `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`
+
 ## [Form context — Form 의 값이 안의 field 에 닿게] - 2026-10-10
 
 ### Fixed

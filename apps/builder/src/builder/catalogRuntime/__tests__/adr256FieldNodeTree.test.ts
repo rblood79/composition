@@ -182,8 +182,8 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       createElement(
         NumberField,
         {
-          // The same state as the catalog field (its document writes these).
-          defaultValue: 0,
+          // The same state as the catalog field (its document writes these — no value: S2 empty
+          // input, 2026-10-10).
           minValue: field().props.minValue as number | undefined,
           isDisabled: false,
         },

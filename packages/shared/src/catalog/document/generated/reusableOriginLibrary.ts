@@ -745,11 +745,13 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "mode": "composite",
     "accepts": {
       "label": "string",
+      "placeholder": "string",
       "errorMessage": "string",
       "description": "string"
     },
     "defaults": {
       "label": "Number",
+      "placeholder": "",
       "errorMessage": "",
       "description": ""
     },
@@ -3801,6 +3803,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "label": "Number",
       "name": "",
+      "placeholder": "",
       "minValue": 0,
       "maxValue": 100,
       "step": 1,
@@ -3842,7 +3845,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-input",
     "children": [],
     "props": {
-      "placeholder": "0"
+      "placeholder": "{placeholder}"
     },
     "visual": {
       "radiusTopRight": 0,

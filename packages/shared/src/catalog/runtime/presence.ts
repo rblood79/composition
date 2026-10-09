@@ -644,8 +644,8 @@ export function catalogIsFieldControlGroup(
   return isFieldControlGroup("Group", field ? typeOf(field) : undefined);
 }
 
-/** The SearchField that owns `node` as the Input in its control wrapper. */
-function catalogSearchFieldOfInput(
+/** The field (SearchField · NumberField) that owns `node` as the Input in its control wrapper. */
+function catalogFieldOfInput(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
@@ -654,7 +654,8 @@ function catalogSearchFieldOfInput(
   const trigger = catalogPartParent(node, get, typeOf);
   if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
   const field = catalogPartParent(trigger!, get, typeOf);
-  return field && typeOf(field) === "SearchField" ? field : undefined;
+  const type = field && typeOf(field);
+  return type === "SearchField" || type === "NumberField" ? field : undefined;
 }
 
 /**
@@ -814,9 +815,10 @@ function roundToStepPrecision(value: number, step: number): number {
 }
 
 /**
- * RAC's `snapValueToStep` (react-stately `utils/number`, which `useSliderState` applies to the
- * value): the nearest step from the minimum (half up), inside the range — past the maximum, the
- * last step that fits.
+ * RAC's `snapValueToStep` (react-stately `utils/number`, which `useSliderState` and
+ * `useNumberFieldState` apply to the value): the nearest step from the minimum (half up — from 0
+ * without one), inside the range — past the maximum, the last step that fits. An unset bound is
+ * `NaN` (RAC `Number(undefined)`).
  */
 function snapValueToStep(
   value: number,
@@ -824,18 +826,65 @@ function snapValueToStep(
   max: number,
   step: number,
 ): number {
-  const remainder = (value - min) % step;
+  const remainder = (value - (Number.isNaN(min) ? 0 : min)) % step;
   let snapped = roundToStepPrecision(
     Math.abs(remainder) * 2 >= step
       ? value + Math.sign(remainder) * (step - Math.abs(remainder))
       : value - remainder,
     step,
   );
-  if (snapped < min) snapped = min;
-  else if (snapped > max)
-    snapped =
-      min + Math.floor(roundToStepPrecision((max - min) / step, step)) * step;
+  if (!Number.isNaN(min)) {
+    if (snapped < min) snapped = min;
+    else if (!Number.isNaN(max) && snapped > max)
+      snapped =
+        min + Math.floor(roundToStepPrecision((max - min) / step, step)) * step;
+  } else if (!Number.isNaN(max) && snapped > max)
+    snapped = Math.floor(roundToStepPrecision(max / step, step)) * step;
   return roundToStepPrecision(snapped, step);
+}
+
+/**
+ * A NumberField's document value as a number — `undefined` when empty or not a number (S2: no
+ * value is an empty input, RAC `NaN`). The Value prop is text in the Design panel.
+ */
+export function catalogNumberFieldValue(value: unknown): number | undefined {
+  const number =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim() !== ""
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(number) ? number : undefined;
+}
+
+/**
+ * The text RAC's NumberField starts its input with (`useNumberFieldState`): the value snapped to
+ * the range and step (`commitBehavior` 'snap' — only clamped without a step), in the locale's number
+ * format (`NumberFormatter` — no `formatOptions`). Empty without a value.
+ */
+export function catalogNumberFieldText(
+  field: CatalogConsumerNode,
+  locale?: string,
+): string {
+  const value = catalogNumberFieldValue(field.props.value);
+  if (value === undefined) return "";
+  const bound = (key: string) => {
+    const raw = field.props[key];
+    return typeof raw === "number" && Number.isFinite(raw) ? raw : Number.NaN;
+  };
+  const min = bound("minValue");
+  const max = bound("maxValue");
+  const step = bound("step");
+  const snapped = !Number.isNaN(step)
+    ? snapValueToStep(value, min, max, step)
+    : Math.min(
+        Number.isNaN(max) ? Infinity : max,
+        Math.max(Number.isNaN(min) ? -Infinity : min, value),
+      );
+  const own = typeof field.props.locale === "string" ? field.props.locale : "";
+  return new Intl.NumberFormat(
+    own || locale || globalThis.navigator?.language || "en-US",
+  ).format(snapped);
 }
 
 /**
@@ -1411,15 +1460,21 @@ function ownDerivedProps(
   }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
-  // A SearchField's `value` is its input's initial value (the renderer's `defaultValue`): the
-  // Canvas draws it in the Input's text, where the DOM input shows it over the placeholder.
-  const searchField = catalogSearchFieldOfInput(node, get, typeOf);
-  const searchValue = searchField?.props.value;
+  // A SearchField's · NumberField's `value` is its input's initial value (the renderer's
+  // `defaultValue`): the Canvas draws it in the Input's text, where the DOM input shows it over
+  // the placeholder.
+  const valueField = catalogFieldOfInput(node, get, typeOf);
+  // (A NumberField's input shows RAC's text — snapped, in the locale's format.)
+  if (valueField && typeOf(valueField) === "NumberField") {
+    const text = catalogNumberFieldText(valueField, locale);
+    return text ? { placeholder: text } : undefined;
+  }
+  const searchValue = valueField?.props.value;
   // (A password SearchField's input masks it — S2 `type`: the same count of bullets.)
   if (typeof searchValue === "string" && searchValue !== "")
     return {
       placeholder:
-        searchField?.props.type === "password"
+        valueField?.props.type === "password"
           ? "•".repeat([...searchValue].length)
           : searchValue,
     };
@@ -1608,7 +1663,7 @@ export function catalogDerivedPropsDependents(
 
 /**
  * A field's box and trigger parts whose derived values read the field (`fieldSubpartProps` · an
- * Input's quiet state and a SearchField's value), direct or inside its control Group.
+ * Input's quiet state and a SearchField's · NumberField's value), direct or inside its control Group.
  */
 function fieldSubparts(
   owner: CatalogConsumerNode,

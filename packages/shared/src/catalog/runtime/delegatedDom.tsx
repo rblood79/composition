@@ -63,6 +63,7 @@ import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
   catalogFieldNecessityIndicator,
+  catalogNumberFieldValue,
   catalogPartParent,
   catalogSliderRange,
   catalogToggleGroupItems,
@@ -1665,8 +1666,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     maxLength: num(props.maxLength),
     minLength: num(props.minLength),
   })),
+  // S2: no value is an empty input (RAC `NaN`) that shows the placeholder — not 0.
   numberfield: nodeTreeField(AriaNumberField, "NumberField", (props) => ({
-    defaultValue: Number(props.value || 0),
+    defaultValue: catalogNumberFieldValue(props.value),
     minValue: num(props.minValue),
     maxValue: num(props.maxValue),
     step: num(props.step),

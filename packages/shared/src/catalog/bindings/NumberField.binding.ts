@@ -4,7 +4,7 @@
  * inventory(§2-1) RAC-controller-backed primitive. RAC `<NumberField>` 가 Label/Group/Input/
  * stepper Button slot 합성(D1). leaf binding — TextField 와 동형 + number 고유 props.
  *
- * D2: label/description + size/labelPosition/isQuiet + min/max/step(formatOptions 는 미노출,
+ * D2: label/description/placeholder + size/labelPosition/isQuiet + min/max/step(formatOptions 는 미노출,
  *     locale-dependent 라 후속) + state.
  * D3: 자식 Input 이 배경, 부모는 빈 box shell(`_hasChildren`). skiaPrimitive 불필요.
  */
@@ -37,6 +37,13 @@ export const numberFieldBinding: PrimitiveBinding = {
       description: {
         kind: "string",
         label: "Description",
+        section: "content",
+      },
+      // S2 NumberField `placeholder` (`Pick<InputProps, 'placeholder'>`, no default) — the origin binds
+      //   it to its Input (`{placeholder}`); it shows while the value is empty (2026-10-10).
+      placeholder: {
+        kind: "string",
+        label: "Placeholder",
         section: "content",
       },
       size: {
@@ -78,7 +85,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       minValue: { kind: "number", label: "Min Value", section: "content" },
       maxValue: { kind: "number", label: "Max Value", section: "content" },
       step: { kind: "number", label: "Step", section: "content", min: 0 },
-      // form binding props
+      // form binding props — empty = no value (S2: an empty input, the placeholder shows; RAC NaN)
       value: { kind: "string", label: "Value", section: "content" },
       name: { kind: "string", label: "Name", section: "content" },
       errorMessage: {
