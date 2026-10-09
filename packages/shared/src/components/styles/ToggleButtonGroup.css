@@ -53,4 +53,13 @@
       color: var(--color-white, #fff);
     }
   }
+
+  /* S2 1.8.0 isJustified (2026-10-10): 버튼들이 그룹 폭을 같은 몫으로 나눈다 (S2 ActionButton
+     flexGrow 1 · flexBasis 0 — context). Canvas 는 같은 값을 각 버튼의 파생 `_justified` 로
+     엔진에 준다 (presence.ts · compositionRoot styleOf). */
+  .react-aria-ToggleButtonGroup[data-justified] > .react-aria-ToggleButton {
+    flex-grow: 1;
+    flex-basis: 0;
+  }
+
 }

@@ -46,6 +46,7 @@ import {
   catalogAbsentByValue,
   catalogFieldHintShown,
   catalogProgressValueHidden,
+  catalogStepperHidden,
   catalogStateConditions,
   catalogStateOwner,
   catalogStateValue,
@@ -2103,6 +2104,15 @@ function renderNode(
       partParent,
       "TagGroup",
     ) === false
+  )
+    return null;
+  // (A NumberField's stepper Buttons while `hideStepper` — the Canvas's predicate, S2.)
+  if (
+    catalogStepperHidden(
+      node,
+      (recordId) => root.domInputs.get(recordId),
+      (entry) => catalogTypeName(root, entry),
+    )
   )
     return null;
   // (A ProgressBar's · Meter's value text while `showValueLabel` is false — the Canvas's predicate.)

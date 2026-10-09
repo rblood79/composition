@@ -34,7 +34,11 @@ import type {
 } from "../transactions/transaction";
 import { catalogNodeState, resolveCatalogNode } from "../resolution/resolver";
 import { catalogAuthoredVisual } from "./libraryVisual";
-import { catalogRuleTextColor } from "./rulePaint";
+import {
+  catalogContainerVariantPaint,
+  catalogRuleTextColor,
+} from "./rulePaint";
+import { resolveComponentRule } from "../resolvers/resolveComponentRule";
 import {
   isComponentsView,
   ORIGIN_VIEW_NODE,
@@ -628,13 +632,27 @@ function textLeaf(
   const current =
     (typeName === "Breadcrumb" || typeName === "Text" || typeName === "Link") &&
     node.derivedProps?._isLast === true;
+  // S2 Link `isStandalone` — the rule's standalone weight (its containerVariants, the value the
+  // paint reads too); an authored weight (≠ the rule's 400) wins, as the DOM inline style wins.
+  const visualWeight = Number(node.visual.fontWeight ?? 400);
+  const standaloneWeight =
+    typeName === "Link" && node.props.isStandalone === true
+      ? Number(
+          catalogContainerVariantPaint(
+            resolveComponentRule("Link") ?? { variants: {}, sizes: {} },
+            node.props,
+          ).fontWeight,
+        )
+      : undefined;
   return {
     text,
     font: {
       fontSize,
       fontWeight: current
         ? (catalogCurrentTextWeight("Breadcrumb") ?? 600)
-        : Number(node.visual.fontWeight ?? 400),
+        : standaloneWeight && visualWeight === 400
+          ? standaloneWeight
+          : visualWeight,
       lineHeight: lineHeight > 0 ? lineHeight : 0,
       ...(typography.fontFamily !== undefined
         ? { fontFamily: typography.fontFamily }
@@ -998,6 +1016,12 @@ function styleOf(
       ? { overflowX: node.visual.overflow, overflowY: node.visual.overflow }
       : {}),
     ...containerTracks(node, measure),
+    // S2 ToggleButtonGroup `isJustified`: its buttons divide the group's width equally (the
+    // derived `_justified` — the DOM sheet's `flex-grow: 1 · flex-basis: 0`). Authored flex
+    // values win (`itemLayout` comes after).
+    ...(node.derivedProps?._justified === true
+      ? { flexGrow: 1, flexBasis: "0px" }
+      : {}),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
     ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined
@@ -3693,11 +3717,10 @@ export class CatalogCompositionRoot {
           this.typeOf,
           this.locale,
         );
-        // (A value-conditioned part follows the final text its owner's value gives it — Decision 7.)
-        const current =
-          valued.presentWhen === undefined
-            ? valued
-            : withHidden(valued, get, this.typeOf);
+        // A dependent's presence follows the owner too (a value-conditioned part's final text —
+        // Decision 7; an owner-hidden part — a NumberField's steppers under `hideStepper`): its
+        // hidden is judged against the planned records, not only at its own edits.
+        const current = withHidden(valued, get, this.typeOf);
         const derivedProps = this.derivedOf(current, get);
         const inheritedText = inheritedTextOf(current, get);
         const fillLayout =

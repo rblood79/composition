@@ -2210,6 +2210,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           indicator: bool(props.indicator),
           isEmphasized: bool(props.isEmphasized),
           isQuiet: bool(props.isQuiet),
+          // S2 isJustified (2026-10-10): the sheet's `[data-justified]` grows each button.
+          isJustified: bool(props.isJustified),
           staticColor: props.staticColor || "auto",
           size: props.size || "M",
           density: props.density || "regular",

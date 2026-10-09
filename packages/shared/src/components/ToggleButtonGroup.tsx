@@ -54,6 +54,12 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
    * @default 'auto'
    */
   staticColor?: StaticColor;
+  /**
+   * S2 isJustified — 버튼들이 그룹 폭을 같은 몫으로 나눈다 (시트의 `[data-justified]` 가
+   * 각 버튼에 flex-grow 1 · flex-basis 0, ToggleButtonGroup.css).
+   * @default false
+   */
+  isJustified?: boolean;
   dataBinding?: DataBinding | DataBindingValue;
   columnMapping?: ColumnMapping;
 }
@@ -65,6 +71,7 @@ export function ToggleButtonGroup({
   size = "M",
   density = "regular",
   staticColor = "auto",
+  isJustified = false,
   dataBinding,
   columnMapping,
   children,
@@ -115,6 +122,7 @@ export function ToggleButtonGroup({
       data-size={size}
       data-density={density}
       data-static-color={staticColor}
+      data-justified={isJustified || undefined}
       className={toggleButtonGroupClassName}
       isDisabled={isDisabled || props.isDisabled}
     >

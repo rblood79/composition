@@ -72,6 +72,7 @@ const GEOMETRY_STYLE_KEYS: Readonly<Record<string, string>> = {
  */
 const CONTAINER_VARIANT_PAINT_KEYS: Readonly<Record<string, string>> = {
   "border-radius": "borderRadius",
+  "font-weight": "fontWeight",
 };
 
 /** `var(--radius-x)` · `Npx` · `N` of a containerVariants geometry value → px number. */
@@ -88,7 +89,7 @@ function containerVariantLength(value: string): number {
 }
 
 /** The matched `containerVariants` paint styles of a rule for these props (geometry whitelist). */
-function containerVariantPaint(
+export function catalogContainerVariantPaint(
   rule: Readonly<ComponentRule>,
   props: Readonly<Record<string, unknown>>,
 ): Record<string, unknown> {
@@ -107,7 +108,11 @@ function containerVariantPaint(
     const propKey = dataAttr.replace(/-([a-z])/g, (_m, ch: string) =>
       ch.toUpperCase(),
     );
-    const raw = props[propKey];
+    // Boolean visual props drop their `is` prefix in the data attribute (the house rule —
+    // `isStandalone` → `data-standalone`): the variant key follows the attribute.
+    const raw =
+      props[propKey] ??
+      props[`is${propKey[0].toUpperCase()}${propKey.slice(1)}`];
     if (raw == null) continue;
     const styles = valueMap[String(raw)]?.styles;
     if (!styles) continue;
@@ -202,7 +207,7 @@ export function catalogRulePaint(
   // supplies everything else — the same order as `props.style` over the rule table. Under them,
   // the rule's own prop-conditional geometry (`containerVariants` — the generated `[data-*]`
   // sheet blocks, S2 ColorSwatch `rounding`).
-  const style: Record<string, unknown> = containerVariantPaint(
+  const style: Record<string, unknown> = catalogContainerVariantPaint(
     rule,
     node.props,
   );

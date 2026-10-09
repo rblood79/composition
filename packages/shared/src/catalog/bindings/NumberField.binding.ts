@@ -81,6 +81,14 @@ export const numberFieldBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // S2 1.8.0 NumberField `hideStepper` (2026-10-10): the increment · decrement buttons are
+      //   not rendered (S2 `{!hideStepper && …}`). Ours: the template's slot "increment" ·
+      //   "decrement" Buttons hide in both consumers (`presence.ts` catalogHiddenAtRest).
+      hideStepper: {
+        kind: "boolean",
+        label: "Hide Stepper",
+        section: "appearance",
+      },
       // RAC NumberField props
       minValue: { kind: "number", label: "Min Value", section: "content" },
       maxValue: { kind: "number", label: "Max Value", section: "content" },

@@ -71,6 +71,8 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
  */
 const DATA_ATTR_BOOLEAN_KEYS: ReadonlyMap<string, string> = new Map([
   ["isQuiet", "data-quiet"],
+  // S2 Link `isStandalone` (2026-10-10) — RAC prop 아님. Link.css `[data-standalone]` 가 소비.
+  ["isStandalone", "data-standalone"],
 ]);
 
 /** camelCase → kebab-case. data-* 속성명 변환용. 예: `fillStyle` → `fill-style`. */

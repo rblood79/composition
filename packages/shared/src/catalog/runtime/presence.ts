@@ -293,9 +293,7 @@ function catalogTagOfEmphasizedGroup(
   if (typeOf(node) !== "Tag") return false;
   const owner = catalogCollectionOfItem(node, get, typeOf);
   return (
-    !!owner &&
-    typeOf(owner) === "TagGroup" &&
-    owner.props.isEmphasized === true
+    !!owner && typeOf(owner) === "TagGroup" && owner.props.isEmphasized === true
   );
 }
 
@@ -597,6 +595,7 @@ export function catalogHiddenAtRest(
   // draws no open overlay, so the arrow has no box there.
   if (node.bindingId === "overlayarrow") return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
+  if (catalogStepperHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -1264,6 +1263,25 @@ const PROGRESS_VALUE_TYPES: ReadonlySet<string> = new Set(
 );
 
 /**
+ * S2 1.8.0 NumberField `hideStepper` (2026-10-10): its increment · decrement Buttons are not
+ * there (S2 renders no stepper). The nearest NumberField owner decides — the buttons sit in its
+ * control Group. The Canvas (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one
+ * predicate.
+ */
+export function catalogStepperHidden(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (node.props.slot !== "increment" && node.props.slot !== "decrement")
+    return false;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
+    if (typeOf(cursor) === "NumberField")
+      return cursor.props.hideStepper === true;
+  return false;
+}
+
+/**
  * ADR-256 Phase 7a — a ProgressBar's · Meter's value text while its owner's `showValueLabel` is
  * false (RSP): not there. The Canvas and the DOM read this one predicate.
  */
@@ -1598,12 +1616,19 @@ function ownDerivedProps(
   // S2 ActionButtonGroup's `staticColor` is its buttons' (`ToggleButtonGroupStaticColorContext` —
   // a button's own non-`auto` value wins, `ToggleButton.tsx` `effectiveStaticColor`).
   if (typeOf(node) === "ToggleButton") {
+    const group = catalogToggleGroupOf(node, get, typeOf);
     const own = node.props.staticColor;
-    const group = catalogToggleGroupOf(node, get, typeOf)?.props.staticColor;
-    return (own === undefined || own === "auto") &&
-      (group === "white" || group === "black")
-      ? { staticColor: group }
-      : undefined;
+    const groupColor = group?.props.staticColor;
+    const derived: Record<string, string | boolean> = {};
+    if (
+      (own === undefined || own === "auto") &&
+      (groupColor === "white" || groupColor === "black")
+    )
+      derived.staticColor = groupColor;
+    // S2 ToggleButtonGroup `isJustified` (2026-10-10): each button grows equally
+    // (`flexGrow: 1 · flexBasis: 0` — `styleOf` turns this into the engine values).
+    if (group?.props.isJustified === true) derived._justified = true;
+    return Object.keys(derived).length ? derived : undefined;
   }
   // RAC Breadcrumbs draws its last crumb as the current one (no separator, current paint); the
   // crumb's label Text inherits the current Link's weight.
@@ -1811,6 +1836,21 @@ function derivedDependents(
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
+  // (A NumberField's stepper Buttons follow its `hideStepper` — `catalogStepperHidden`.)
+  if (type === "NumberField") {
+    const steppers: CatalogConsumerNode[] = [];
+    const visit = (record: CatalogConsumerNode) => {
+      for (const child of childrenOf(record, get))
+        if (
+          child.props.slot === "increment" ||
+          child.props.slot === "decrement"
+        )
+          steppers.push(child);
+        else visit(child);
+    };
+    visit(owner);
+    if (steppers.length) return steppers;
+  }
   // (A ToggleButtonGroup's `staticColor` is its ToggleButtons' — at any depth in the group.)
   if (type === "ToggleButtonGroup")
     return catalogToggleGroupItems(owner, "ToggleButton", get, typeOf).items;

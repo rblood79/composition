@@ -77,6 +77,15 @@ export const linkBinding: PrimitiveBinding = {
         ],
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // S2 1.8.0 Link `isStandalone` (2026-10-10): 문단 밖 단독 링크 — S2 는 UI font + medium
+      //   weight (Link.tsx `fontWeight: { isStandalone: 'medium' }`). DOM = `data-standalone`
+      //   (toRacProps) + Link.css, Canvas = 같은 weight 를 rule top-level
+      //   containerVariants.standalone 에서 (`rulePaint.ts` · `styleOf` 측정).
+      isStandalone: {
+        kind: "boolean",
+        label: "Standalone",
+        section: "appearance",
+      },
       // RAC Link / anchor props
       href: { kind: "string", label: "URL", section: "content" },
       target: {

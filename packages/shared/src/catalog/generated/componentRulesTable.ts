@@ -6376,6 +6376,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Link: {
     defaultVariant: "primary",
     defaultSize: "M",
+    // S2 1.8.0 Link `isStandalone` (2026-10-10): 문단 밖 단독 링크 = medium weight (S2 Link.tsx
+    //   `fontWeight: { isStandalone: 'medium' }`). Canvas 가 읽는 top-level 변형
+    //   (`rulePaint.ts` catalogContainerVariantPaint — 작성한 weight 가 이김) 이고, DOM 은 수동
+    //   `Link.css` 의 `[data-standalone]` 블록이 같은 값. 밑줄 축은 우리 Link 가 이미 rest 에서
+    //   없음 (hover 에만) 이라 바뀌는 것이 weight 뿐이다.
+    containerVariants: {
+      standalone: {
+        true: { styles: { "font-weight": "500" } },
+      },
+    },
     variants: {
       primary: {
         fill: {

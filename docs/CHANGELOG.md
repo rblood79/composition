@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 boolean 시각 — NumberField hideStepper · ToggleButtonGroup isJustified · Link isStandalone] - 2026-10-10
+
+### Added
+
+- **NumberField `hideStepper`** (S2 1.8.0): 증감 버튼을 없앤다. 템플릿의 slot `increment` · `decrement` Button 이 양 consumer 에서 숨는다 — 판정은 `presence.ts` `catalogStepperHidden` 하나 (Canvas `catalogHiddenAtRest` · DOM `renderNode`).
+- **ToggleButtonGroup `isJustified`** (S2 1.8.0): 버튼들이 그룹 폭을 같은 몫으로 나눈다 (S2 ActionButton `flexGrow 1 · flexBasis 0`). DOM 은 `[data-justified]` 시트 (`ToggleButtonGroup.css`), Canvas 는 각 버튼의 파생 `_justified` 를 엔진 flex 값으로 (`presence.ts` · `styleOf`).
+- **Link `isStandalone`** (S2 1.8.0): 문단 밖 단독 링크 = medium weight (500). DOM 은 `data-standalone` + `Link.css`, Canvas 는 rule top-level `containerVariants.standalone` 을 rule 집행기와 글자 측정이 같이 읽는다. 밑줄 축은 우리 Link 가 rest 에서 이미 없어 바뀌지 않는다.
+
+### Fixed
+
+- **owner prop 으로 숨는 부품이 prop 토글 때 Canvas 에 남음**: 파생 의존 재계획이 `presentWhen` 이 있는 노드만 hidden 을 다시 판정했다 — hideStepper 토글 후 Preview 는 버튼이 사라지는데 Canvas record 는 hidden=false (live 실측). 재계획되는 의존 노드는 항상 hidden 을 다시 판정한다 (`compositionRoot.ts` withHidden).
+  - **Why**: hidden 재판정이 자기 입력 변경 경로에만 있었고, owner 프로프 기반 숨김 축 (showValueLabel 등) 은 DOM 쪽 자체 술어로만 가려져 있었다.
+- 확인: live — NumberField 추가 → Hide Stepper 토글 (Preview 버튼 0 · Canvas hidden) · TBG 600px → Justified (양 consumer 296/296) · Link → Standalone (양 consumer 400→500), 오류 0 (`apps/builder/scripts/s2-boolean-visual-live.mjs` 8/8).
+
 ## [S2 색 geometry — ColorSwatch rounding · ColorWheel size] - 2026-10-10
 
 ### Added

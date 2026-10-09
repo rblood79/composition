@@ -53,6 +53,15 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
         section: "appearance",
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // S2 1.8.0 ToggleButtonGroup `isJustified` (2026-10-10): the buttons divide the group's
+      //   width equally (S2 ActionButton `flexGrow: 1 · flexBasis: 0` — context). DOM =
+      //   `data-justified` 시트 (shared ToggleButtonGroup + ToggleButtonGroup.css), Canvas =
+      //   각 버튼의 파생 `_justified` 가 엔진 flex 값으로 (`presence.ts` · `styleOf`).
+      isJustified: {
+        kind: "boolean",
+        label: "Justified",
+        section: "appearance",
+      },
       // RSP S2 staticColor (2026-08-21 채택) — ActionButtonGroup 은 staticColor 를 자체
       //   시각이 아니라 **자식 상속**으로 정의한다. 그룹 자신의 fill 은 transparent 라
       //   시각 변화가 없고, 채널은 자식 ToggleButton 으로 내려간다:
