@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [AvatarGroup 라벨 노드 — S2 label = Text 노드 · contract 35] - 2026-10-09
+
+### Breaking Changes
+
+- **library contract 34 → 35** — AvatarGroup type 의 `label` prop 이 사라지고 원본의 Text 자식 노드가 된다. 이전 contract 의 문서는 열지 않는다 (종전 규약).
+
+### Changed
+
+- **AvatarGroup 의 라벨이 보인다** (사용자 「AvatarGroup label 노드 전환 진행해」):
+  - 원본 `component-avatargroup` = `AvatarGroup > Avatar × 3 + Text {label}` (`@react-spectrum/s2/src/AvatarGroup.tsx` — 아바타 뒤 `span`, `marginStart: 8`). 원본의 `label` (Properties 의 Label) 이 그 Text 의 글자다.
+  - 라벨 글자 크기는 그룹 size 를 따른다: xs 14 · sm 16 · md 18 · lg 20 · xl 24px (S2 `ui` · `ui-lg` · `ui-xl` · `ui-3xl` 22 → Text xl 20, 48 은 S2 에 없어 2xl).
+  - Preview 의 그룹은 `role="group"` 이고 라벨 글자가 그 이름이다 (S2 `useLabel`).
+  - **Why**: `label` 이 type prop 이라 Canvas · Preview 어디에도 그려지지 않았다.
+  - 확인: 실제 Builder Compare Mode 에서 size 5단계의 Canvas 상자 (그룹 · 아바타 3 · 라벨) = Preview 상자, 라벨 글자 크기 같음, `label` 편집이 양쪽 · 그룹 이름에 반영 (`apps/builder/scripts/avatar-group-label-live.mjs` 7/7).
+  - 위치: `packages/shared/src/catalog/{document/generated/reusableOriginLibrary.ts,bindings/AvatarGroup.binding.ts,document/sizePropagation.ts,runtime/delegatedDom.tsx}` · `apps/builder/src/builder/components/reusablePropsSchemas.ts`
+
 ## [ToggleButtonGroup staticColor 의 Canvas 반영 — 자식 ToggleButton 파생 값] - 2026-10-09
 
 ### Fixed

@@ -80,9 +80,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * one-choice variants / sizes. 34 — the S2 IllustratedMessage is a node tree (2026-10-09):
  * `IllustratedMessage > Illustration + Heading + Description` (origin `component-illustratedmessage`,
  * `{title}` · `{description}`) with `orientation`; its `heading` · `description` props are gone.
+ * 35 — the S2 AvatarGroup's `label` is a Text node after the avatars (2026-10-09): origin
+ * `component-avatargroup` accepts `label` (`__label` — `{label}`); the type has no `label` prop.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 34 as const;
+export const LIBRARY_CONTRACT_VERSION = 35 as const;
 
 export type EntryKind =
   | "project"

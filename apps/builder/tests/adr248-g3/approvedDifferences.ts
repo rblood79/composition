@@ -598,7 +598,9 @@ export const APPROVED_ROOT_PAINT: readonly ApprovedRootPaint[] = [
   },
 ];
 
-export function approvedRootPaint(owner: string): ApprovedRootPaint | undefined {
+export function approvedRootPaint(
+  owner: string,
+): ApprovedRootPaint | undefined {
   return APPROVED_ROOT_PAINT.find((rule) => rule.owners.includes(owner));
 }
 
@@ -650,6 +652,18 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     nodes: ["Illustration", "Heading", "Description"],
     reason:
       "IllustratedMessage = [Illustration, Heading, Description] nodes (S2 — old: a placeholder box and prop text drawn by the message)",
+  },
+  {
+    // 2026-10-09 (사용자 「AvatarGroup label 노드 전환 진행해」): the S2 AvatarGroup draws its `label`
+    //   as a visible span after the avatars — a Text node (`{label}`; old: the `label` prop, drawn
+    //   nowhere).
+    id: "avatar-group-s2-label",
+    class: "decided",
+    owners: ["AvatarGroup"],
+    side: "new",
+    nodes: ["Text"],
+    reason:
+      "AvatarGroup = [Avatar…, Text {label}] (S2 — old: the `label` prop was not drawn)",
   },
   {
     // ADR-256 후속 4: the Menu origin's trigger is a Button node inside the MenuTrigger (old: the

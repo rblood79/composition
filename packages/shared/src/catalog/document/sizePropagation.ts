@@ -55,7 +55,7 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   TagList: ["Tag"],
   // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
   // buttons inside).
-  AvatarGroup: ["Avatar"],
+  AvatarGroup: ["Avatar", "Text"],
   ButtonGroup: ["Button"],
   // A calendar composes its header and month grid at its own size (the DOM draws both from the
   // calendar's `data-size`): the typed children are painted at it too.
@@ -116,6 +116,12 @@ export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
 > = {
   InlineAlert: { Description: { sm: "md", md: "lg", lg: "xl" } },
+  // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `text`): the label font follows the
+  //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text xl 20); 48 has
+  //   no S2 size (Text 2xl 24).
+  AvatarGroup: {
+    Text: { xs: "sm", sm: "md", md: "lg", lg: "xl", xl: "2xl" },
+  },
   // S2 IllustratedMessage (`@react-spectrum/s2/src/IllustratedMessage.tsx`): the picture is M for
   //   S · M and L for L (96 · 96 · 160); the heading `title` · `title-xl` · `title-2xl` (16 · 20 ·
   //   22 — the Heading's 16 · 20 · 24); the content `body-xs` · `body-sm` · `body-sm` (12 · 14 · 14).

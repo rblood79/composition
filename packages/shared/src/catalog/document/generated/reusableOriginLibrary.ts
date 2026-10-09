@@ -373,8 +373,12 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "id": "lib:definition:origin-component-avatargroup",
     "name": "AvatarGroup",
     "mode": "composite",
-    "accepts": {},
-    "defaults": {},
+    "accepts": {
+      "label": "string"
+    },
+    "defaults": {
+      "label": "Team"
+    },
     "visual": {},
     "stateRules": {},
     "templateRootId": "lib:template:component-avatargroup"
@@ -2745,11 +2749,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [
       "lib:template:component-avatargroup__1",
       "lib:template:component-avatargroup__2",
-      "lib:template:component-avatargroup__3"
+      "lib:template:component-avatargroup__3",
+      "lib:template:component-avatargroup__label"
     ],
     "props": {
-      "size": "md",
-      "label": "Team"
+      "size": "md"
     },
     "visual": {},
     "layout": {
@@ -2790,6 +2794,18 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {},
     "layout": {
       "marginLeft": "-8px"
+    }
+  },
+  {
+    "id": "lib:template:component-avatargroup__label",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "{label}"
+    },
+    "visual": {},
+    "layout": {
+      "marginLeft": "8px"
     }
   },
   {

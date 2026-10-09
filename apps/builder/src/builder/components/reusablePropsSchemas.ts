@@ -149,6 +149,20 @@ export const ILLUSTRATED_MESSAGE_PROPS_SCHEMA: PropsSchema = {
 };
 
 /**
+ * S2 AvatarGroup (2026-10-09) — `label` is the template binding (the Text after the avatars), the
+ * rest the root's props (passthrough — the type's own contract).
+ */
+export const AVATAR_GROUP_PROPS_SCHEMA: PropsSchema = {
+  label: {
+    kind: "string",
+    label: "Label",
+    default: "Team",
+    section: "content",
+  },
+  ...getPrimitiveBinding("AvatarGroup")?.props.accepts,
+};
+
+/**
  * ADR-255 — an overlay origin whose root is its trigger (Popover = DialogTrigger > Button +
  * Popover, Tooltip = TooltipTrigger > Button + Tooltip): the instance edits the trigger's props
  * (root passthrough) and the overlay's (template bindings `{placement}` … to the overlay node) —
@@ -221,6 +235,7 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-card": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
   "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,
+  "component-avatargroup": AVATAR_GROUP_PROPS_SCHEMA,
   "component-popover": POPOVER_PROPS_SCHEMA,
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,

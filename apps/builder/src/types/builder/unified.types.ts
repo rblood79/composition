@@ -2044,7 +2044,6 @@ export function createDefaultAvatarProps(): BaseElementProps {
 export function createDefaultAvatarGroupProps(): BaseElementProps {
   return {
     size: "md",
-    label: "Team",
     style: { display: "flex", flexDirection: "row", alignItems: "center" },
   };
 }

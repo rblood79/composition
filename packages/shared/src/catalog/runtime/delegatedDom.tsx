@@ -2200,12 +2200,21 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // S2 AvatarGroup: a `role="group"` named by its label — the Text node after the avatars
+  // (`useLabel`; the label text is the same name).
   avatargroup: {
     render: (input) =>
       createElement(
         "div",
         {
           ...marker(input),
+          role: "group",
+          "aria-label":
+            str(
+              children(input).find(
+                (child) => catalogTypeName(input.root, child) === "Text",
+              )?.props.children,
+            ).trim() || undefined,
           style: {
             display: "flex",
             flexDirection: "row",
