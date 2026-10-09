@@ -1,9 +1,10 @@
 /**
  * ADR-912 — ColorSwatchPicker container catalog cutover.
  *
- * Factory children(ColorSwatch[]) own the visible swatches. DOM rendering delegates to the
- * existing rendererMap path so ColorSwatch children are wrapped as RAC ColorSwatchPickerItem.
- * Skia uses the componentRulesTable generic shell and independent child ColorSwatch nodes.
+ * The origin template's child nodes own the visible swatches. DOM = `CATALOG_DELEGATED_DOM.colorswatchpicker`:
+ * the shared ColorSwatchPicker draws its ColorSwatchPickerItem children (each a RAC
+ * ColorSwatchPickerItem — `colorswatchpickeritem` — with its ColorSwatch inside, ADR-256 Phase 5b).
+ * Skia uses the componentRulesTable generic shell and the independent child nodes.
  */
 
 import type { PrimitiveBinding } from "../types";

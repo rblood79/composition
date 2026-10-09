@@ -55,7 +55,7 @@ export const switchBinding: PrimitiveBinding = {
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Switch 공식 prop —
-      //   isReadOnly/name 은 renderSwitch 기소비, value/autoFocus 는 배선 동반.
+      //   `delegatedDom.tsx` `switch` 가 isReadOnly/name/value/autoFocus 를 RAC SwitchField 로 전달.
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       name: { kind: "string", label: "Name", section: "content" },
       value: { kind: "string", label: "Value", section: "content" },

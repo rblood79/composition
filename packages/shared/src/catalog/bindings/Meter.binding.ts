@@ -58,10 +58,11 @@ export const meterBinding: PrimitiveBinding = {
         label: "Show Value Label",
         section: "appearance",
       },
-      // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 Meter wrapper 가 <span class="value"> 로 직접
-      //   렌더. labelPosition(top/side) 은 D3 구현 완료로 재노출 — CSS(catalog structure.composition.
-      //   containerVariants["label-position"].side → generated Meter.css) + Skia(implicitStyles
-      //   자식 order 재배치). side = label · track · value 가로 배치.
+      // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 delegatedDom `meter` 가 RAC `Meter` 에 넘기고,
+      //   값 글자는 MeterValue 노드 (`{valueText}`) 가 그린다. labelPosition(top/side) 은 D3 구현
+      //   완료로 재노출 — CSS(catalog structure.composition.containerVariants["label-position"].side →
+      //   generated Meter.css) + Canvas(같은 containerVariants — `rulePartRules.ts`
+      //   `CONTAINER_VARIANT_AXES`). side = label · track · value 가로 배치.
       labelPosition: {
         kind: "enum",
         label: "Label Position",

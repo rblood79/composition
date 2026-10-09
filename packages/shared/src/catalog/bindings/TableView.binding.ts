@@ -3,31 +3,31 @@ import type { PrimitiveBinding } from "../types";
 /**
  * TableView — 강화된 Table 컨테이너 (정렬/리사이즈/밀도 조절, Table 자식 트리 묶음). composition
  * 자체 추상 + S2 참조(`react-spectrum.adobe.com/TableView`) — RAC/starter 에 `TableView` 없음
- * (S2 전용). factory(`DisplayComponents.ts::createTableViewDefinition`)가 Table 자식 트리를 자동 생성.
+ * (S2 전용). origin template(`reusableOriginLibrary.ts`)이 `TableHeader > Column…` +
+ * `TableBody > Row > Cell…` 자식 트리를 둔다.
  *
  * **ADR-912 R7 G1-b (container shell catalog cutover + S2 variant 재설계, 2026-06-15)**:
- *   구 `TableView.spec.ts`(render.shapes: bg roundRect + border, skipCSSGeneration:false → 자체
- *   generated/TableView.css)는 `isQuiet` boolean 분기로 border on/off 를 제어했다 — S2 정본
+ *   옛 spec(render.shapes: bg roundRect + border, 자체 generated/TableView.css)은 `isQuiet`
+ *   boolean 분기로 border on/off 를 제어했다 — S2 정본
  *   variant 모델(default/quiet)을 따르지 않은 자체 변형. generate-css virtual 전환으로 DOM CSS
  *   source 를 `COMPONENT_RULES_TABLE.TableView`(variants default/quiet, byte-identical diff 0)로
  *   이전했고, 본 catalog 등록에서 **isQuiet boolean → `variant:"quiet"` 흡수**(R6 Card 동형 —
  *   feedback-catalog-unrepresentable-is-nonstandard-variant). quiet variant 는 transparent base +
  *   transparent border 라 isQuiet=true 의 "border 없음"을 catalog rule 의 2축(variants×fill)으로
- *   확장 없이 재현. Skia catalog 경로(buildSpecNodeData:853 `props.variant ?? rule.defaultVariant`)도
- *   variant prop 으로 default/quiet 시각을 그려 DOM 과 대칭(구 isQuiet boolean 은 Skia 미해석 →
- *   비대칭이었음).
+ *   확장 없이 재현. Canvas 도 variant prop 으로 default/quiet 시각을 그려 DOM 과 대칭(구 isQuiet
+ *   boolean 은 Skia 미해석 → 비대칭이었음).
  *
  * **시각 = generic shell(자식 Table 트리가 내용 렌더) + catalog layout baseline**: TableView 는
- *   컨테이너이므로 buildCatalogShapes 가 `_hasChildren` shell(variant 별 bg+border)을 그리고 자식
- *   Table/Header/Row/Cell Element 가 표 내용을 담당한다. factory/default props 에 중복하던
- *   container layout(`display:flex` / `flexDirection:column` / `width`)은
+ *   컨테이너이므로 Canvas 는 `_hasChildren` shell(variant 별 bg+border, `rulePaint.ts`)을 그리고 자식
+ *   TableHeader/Column/TableBody/Row/Cell 노드가 표 내용을 담당한다. container layout
+ *   (`display:flex` / `flexDirection:column` / `width`)은
  *   `COMPONENT_RULES_TABLE.TableView.containerStyles` 가 공급한다.
  *
- * **D2 BC (사용자 명시 승인 2026-06-15)**: `isQuiet` boolean → `variant: "quiet"` 정규화. factory
- *   기본값 isQuiet:false → variant:default 이므로 신규 TableView 영향 0. isQuiet:true 토글한 기존
- *   TableView 는 renderTableView/factory 정규화로 variant:quiet 매핑(시각 동일 — border none).
+ * **D2 BC (사용자 명시 승인 2026-06-15)**: `isQuiet` boolean → `variant: "quiet"` 정규화. origin
+ *   기본값은 variant:default 이므로 신규 TableView 영향 0. isQuiet:true 인 기존 TableView 는
+ *   `delegatedDom.tsx` `tableview` 가 `data-variant="quiet"` 로 매핑(시각 동일 — border none).
  *
- * D1: composition `<div>` (internal source, generic DOM). role="grid" 는 전용 renderTableView 부여.
+ * D1: composition `<div>` (internal source). role="grid" 는 `delegatedDom.tsx` `tableview` 가 부여.
  * D2: variant/density(appearance) + selectionMode/allowsSorting(state) surface.
  *     allowsResizingColumns 는 2026-09-10 제거 — 소비처 0 (미구현 surface).
  * D3: 시각(variant default: layer-1+border / quiet: transparent)은 theme rule
@@ -37,13 +37,11 @@ import type { PrimitiveBinding } from "../types";
 export const tableViewBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    // 2026-06-25: "div" → "tableview". TableView 는 자식(TableHeader/Column/TableBody/Row/Cell)을
-    //   `context.childrenByParent` 로 받아 재귀 렌더하는 self-compose 컨테이너다(disclosuregroup/nav
-    //   동형). renderer:"div" 는 domRegistry DELEGATING_INTERNAL_RENDERERS 매칭
-    //   (binding.source.renderer 기준)을 못 타 generic div 경로로 빠지고, flattenNodeChildrenByParent
-    //   보강을 못 받아 자식이 통째로 미렌더됐다(Preview shell 만, Skia 는 자식 generic box 렌더 → 비대칭).
-    //   고유 renderer id 부여 + renderFacetDeclaration delegating-internal 등록으로 renderTableView
-    //   위임 경로 활성화.
+    // 2026-06-25: "div" → "tableview". TableView 는 자식(TableHeader/Column/TableBody/Row/Cell)
+    //   노드를 직접 그리는 컨테이너다(disclosuregroup/nav 동형). renderer:"div" 는 domRegistry
+    //   DELEGATING_INTERNAL_RENDERERS 매칭(binding.source.renderer 기준)을 못 타 generic div 경로로
+    //   빠지고 자식이 통째로 미렌더됐다(Preview shell 만 → Skia 와 비대칭). 고유 renderer id +
+    //   renderFacetDeclaration delegating-internal 등록으로 `delegatedDom.tsx` `tableview` 를 탄다.
     renderer: "tableview",
   },
   props: {

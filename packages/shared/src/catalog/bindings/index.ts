@@ -122,8 +122,8 @@ import { tableCellBinding } from "./TableCell.binding";
 import { tableRowBinding } from "./TableRow.binding";
 import { tableViewBinding } from "./TableView.binding";
 // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25):
-//   TableView factory 가 생성하는 canonical 자식 5종. catalog 등록으로 isCatalogCutover → Skia
-//   buildCatalogShapes box+text. DOM 은 renderTableView self-compose(독립 노드 0). PALETTE 비노출.
+//   Table 가족의 자식 노드 5종. Canvas 는 rule box+text. DOM 은 RAC Table 안에서 INTERNAL_RENDERERS
+//   (RAC 부품), TableView 안에서 delegatedDom `tableview` 의 div. PALETTE 비노출.
 import { columnBinding } from "./Column.binding";
 import { cellBinding } from "./Cell.binding";
 import { rowBinding } from "./Row.binding";
@@ -327,7 +327,7 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic)
   FileTrigger: fileTriggerBinding,
   // ADR-201 Phase 3 (2026-09-17): 대용량 파일 업로드 compound. internal source (RAC 에 없음),
-  //   renderer "fileupload". 자식 DropZone/FileTrigger/frame(Text+ProgressBar) 는 factory 가 만든다.
+  //   renderer "fileupload". 자식 DropZone/FileTrigger/frame(Text+ProgressBar) 는 origin template 의 자식 노드다.
   FileUpload: fileUploadBinding,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   Skeleton: skeletonBinding,
@@ -344,28 +344,27 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   body: bodyBinding,
   Section: sectionBinding,
   Nav: navBinding,
-  // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너 (internal source, generic box shell). factory
-  //   가 자식 Button×5 자동 생성 → 런타임 항상 _hasChildren=true → standalone 버튼군 dead, 컨테이너
+  // ADR-912 R7 G1-c (2026-06-15): 페이지네이션 컨테이너 (internal source, generic box shell). origin
+  //   template 의 자식 Button×5 노드 → 런타임 항상 _hasChildren=true → standalone 버튼군 dead, 컨테이너
   //   box(flex row)만 live (AvatarGroup/CardView/TableView 동형). staticSelectors 7개는 generate-css
-  //   TEXT_LEAF_META.composition 으로 전달(Link rootSelectors 선례). variant/size/totalPages/currentPage accepts.
+  //   TEXT_LEAF_META.composition 으로 전달(Link rootSelectors 선례). variant/size accepts.
   Pagination: paginationBinding,
-  // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너 (internal source, 투명 generic shell). factory
-  //   가 자식 Button×2(Cancel/Save) 자동 생성 → 런타임 항상 _hasChildren=true → standalone box 분기
+  // ADR-912 R7 G1-c (2026-06-15): 버튼 묶음 컨테이너 (internal source, 투명 generic shell). origin
+  //   template 의 자식 Button×2(Cancel/Save) 노드 → 런타임 항상 _hasChildren=true → standalone box 분기
   //   dead, 자식 Button self-draw (AvatarGroup/Pagination 동형). variant default 전부 transparent →
-  //   투명 box shell. layout(flex/gap)은 factory props.style SSOT. size/orientation/align/isDisabled accepts.
+  //   투명 box shell. layout(flex/gap)은 origin template 의 layout · visual. size/orientation/align/isDisabled accepts.
   ButtonGroup: buttonGroupBinding,
   // ADR-912 internal 4 slice (2026-06-04): 인라인 알림 box leaf (internal source, generic box+border
   //   시각, staticAttrs role="alert"). render.shapes shell-only → buildCatalogShapes box+border parity.
   InlineAlert: inlineAlertBinding,
   // ADR-912 §2-5 collapse proof (2026-06-10): Disclosure 컨테이너 (internal source, renderer=
-  //   "disclosure"). SHELL_ONLY → spec.render.shapes `[]` → Skia generic 빈 shell parity (variant
-  //   없음, hasVisibleBg=false). DOM=rendererMap.renderDisclosure 위임(DELEGATING_INTERNAL_RENDERERS,
-  //   self-compose title 추출 + expand/collapse 보존). ProgressBar/Tabs 동형 위임 패턴.
+  //   "disclosure"). Canvas 는 빈 shell (variant 없음, hasVisibleBg=false). DOM=delegatedDom
+  //   `disclosure` 위임(DELEGATING_INTERNAL_RENDERERS — RAC Disclosure 안에 자식 노드, 펼침 상태).
   Disclosure: disclosureBinding,
   // ADR-912 Disclosure 군 일괄 cutover (2026-06-10): 디스클로저 그룹 컨테이너 (사용자 "Accordion"
-  //   통칭, Accordion type 은 중복으로 제거됨 2026-06-10). SHELL_ONLY → buildCatalogShapes generic
-  //   box+border(rule COMPONENT_RULES_TABLE.DisclosureGroup). DOM=renderDisclosureGroup generic
-  //   자식 재귀(DELEGATING 불필요). allowsMultipleExpanded/variant/size 는 accepts → toRacProps.
+  //   통칭, Accordion type 은 중복으로 제거됨 2026-06-10). Canvas 는 box+border shell(rule
+  //   COMPONENT_RULES_TABLE.DisclosureGroup). DOM=delegatedDom `disclosuregroup` 위임 (RAC
+  //   DisclosureGroup 안에 자식 노드). allowsMultipleExpanded/variant/size 는 그 렌더러가 넘긴다.
   DisclosureGroup: disclosureGroupBinding,
   // family ② fields
   TextField: textFieldBinding,
@@ -376,8 +375,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DateField: dateFieldBinding,
   TimeField: timeFieldBinding,
   ColorField: colorFieldBinding,
-  // ADR-912 Color cutover: leaf 5종은 box-only, container 2종은 factory child UI 를 보존하는
-  //   shell-only container 로 catalog 등록. ColorPicker/ColorSwatchPicker DOM 은 rendererMap 위임.
+  // ADR-912 Color cutover: leaf 5종은 box-only, container 2종은 origin template 의 자식 노드를 그리는
+  //   shell-only container 로 catalog 등록. ColorPicker/ColorSwatchPicker DOM 은 delegatedDom 위임.
   ColorPicker: colorPickerBinding,
   ColorSwatch: colorSwatchBinding,
   ColorArea: colorAreaBinding,
@@ -393,20 +392,20 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   TailSwatch: tailSwatchBinding,
   Form: formBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
-  //   (DialogFooter 동형 — 두 번째 childSpec 제거). internal/div shell, layout 은 factory props.style.
+  //   (DialogFooter 동형 — 두 번째 childSpec 제거). internal/div shell, layout 은 origin template 의 layout · visual.
   FormField: formFieldBinding,
   // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. variant=primary/secondary/
   //   tertiary/quiet(구 cardType/isQuiet 흡수). internal/div shell + variant 별 배경/테두리.
   Card: cardBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 sub-part 일괄
-  //   (FormField/DialogFooter 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 factory
-  //   props.style(ADR-092 가 spec containerStyles 로 이관했던 것을 catalog cutover 로 factory 복귀).
+  //   (FormField/DialogFooter 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 origin
+  //   template 의 layout · visual.
   CardHeader: cardHeaderBinding,
   CardContent: cardContentBinding,
   CardFooter: cardFooterBinding,
   CardPreview: cardPreviewBinding,
   // ADR-912 R7 G1-b (2026-06-15): Card 그리드/워터폴 컬렉션 컨테이너 (AvatarGroup 동형 — 빈 셸,
-  //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 factory props.style.
+  //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 origin template 의 layout · visual.
   CardView: cardViewBinding,
   // ADR-194 (2026-09-08): 데이터 시각화 leaf. internal source(RAC 에 chart primitive 없음) +
   //   skiaPrimitive "chart_scene". 기하는 packages/rendering/src/chart 의 computeChartScene 단일
@@ -418,10 +417,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 위험군 해소(선행-6): field 입력 영역 자식 leaf (rac source — RAC <Input> 이 부모 TextField
   //   controller slot 소비, generic box+text 시각). createInput 단독 factory 없음(자식 sub-part 전용).
   Input: inputBinding,
-  // ADR-912 6 registry collapse T1 (2026-06-11): 데이터 매핑 internal leaf (render.shapes []→Skia 0).
-  //   palette 미노출(데이터 매핑, PALETTE_ORDER 비포함). DOM=rendererMap.Field=renderDataField 위임
-  //   (DELEGATING_INTERNAL_RENDERERS — self-compose: 부모 value lookup + childrenByParent). Skia 는
-  //   catalog 게이트 통과 후 빈 노드(shapes []). escape 불필요(특수 shape 0).
+  // ADR-912 6 registry collapse T1 (2026-06-11): 데이터 매핑 internal leaf (Canvas 시각 0).
+  //   palette 미노출(데이터 매핑, PALETTE_ORDER 비포함). DOM=delegatedDom `field` 위임
+  //   (`DataField`). Canvas 는 빈 노드. escape 불필요(특수 shape 0).
   Field: fieldBinding,
   // family ③ selection
   Checkbox: checkboxBinding,
@@ -498,13 +496,12 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   TableCell: tableCellBinding,
   TableRow: tableRowBinding,
   // ADR-912 R7 G1-b (2026-06-15): 강화 Table 컨테이너 (S2 variant default/quiet — 구 isQuiet
-  //   boolean 흡수). internal/div shell + variant 별 border, layout 은 factory props.style.
+  //   boolean 흡수). internal/div shell + variant 별 border, layout 은 origin template 의 layout · visual.
   TableView: tableViewBinding,
-  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
-  //   생성하는 canonical 자식 5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell).
-  //   catalog 등록으로 isCatalogCutover → Skia buildCatalogShapes box+text(이전엔 buildSpecNodeData:994
-  //   !spec && !isCatalogCutover → null 로 버려져 Skia 미렌더). DOM=renderTableView self-compose
-  //   (독립 노드 0). PALETTE_ORDER 미포함(TableCell/TableRow 동형 — 단독 배치 불가).
+  // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): Table 가족의 자식 노드
+  //   5종(Column/Cell=text leaf, TableHeader/TableBody/Row=container shell). Canvas 는 rule box+text.
+  //   DOM 은 RAC Table 안에서 INTERNAL_RENDERERS (RAC 부품), TableView 안에서 delegatedDom
+  //   `tableview` 의 div. PALETTE_ORDER 미포함(단독 배치 불가).
   TableHeader: tableHeaderBinding,
   TableBody: tableBodyBinding,
   Column: columnBinding,
@@ -517,8 +514,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   TooltipTrigger: tooltipTriggerBinding,
   MenuTrigger: menuTriggerBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part
-  //   (palette 미노출, factory 자동 생성). spec(render.shapes []) childSpecs 경로 → catalog generic
-  //   box shell. footer layout=factory props.style SSOT. DOM=generic(KNOWN_HTML footer), Skia=shell.
+  //   (palette 미노출, Dialog origin template 의 자식 노드). Canvas=rule box shell, layout=template
+  //   노드의 layout. DOM=`ruleDom` fallback `div.react-aria-DialogFooter`.
   DialogFooter: dialogFooterBinding,
   Modal: modalBinding,
   Popover: popoverBinding,
@@ -529,14 +526,14 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // family ⑦ date/color (internal source — composition wrapper, 날짜 grid/portal + color shells).
   Calendar: calendarBinding,
   // ADR-912 (B+icon): CalendarHeader leaf (inline_icon_text replace — 좌 chevron + center text + 우 chevron).
-  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효.
+  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Canvas 만 자기 노드를 그린다.
   CalendarHeader: calendarHeaderBinding,
   // ADR-912 (A/2D): CalendarGrid leaf (calendar_month_grid replace — 요일 헤더 + 날짜 셀 + today circle).
-  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Skia 만 자기 노드 발효. nav 는 CalendarHeader 담당.
+  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Canvas 만 자기 노드를 그린다. nav 는 CalendarHeader 담당.
   CalendarGrid: calendarGridBinding,
   // ADR-912 deletion-risk(date): DateInput leaf (datefield_segments replace — input box + border +
-  //   세그먼트 placeholder text + picker icon). DOM 은 부모 DateField/TimeField/DatePicker self-compose
-  //   (독립 노드 0, INTERNAL_RENDERERS 미등록 → cutover generic skip), Skia 만 자기 노드 발효.
+  //   세그먼트 placeholder text + picker icon). DOM 은 date field 안에서 RAC DateInput
+  //   (`domBinding.tsx` `fieldDateInputBinding`, ADR-253).
   DateInput: dateInputBinding,
   RangeCalendar: rangeCalendarBinding,
   DatePicker: datePickerBinding,

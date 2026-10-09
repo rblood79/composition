@@ -58,9 +58,9 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 rulePartRules.ts 가 같은 `label-align`
+      //   블록을 Label part rule 의 textAlign 으로 컴파일해 읽는다. Form 조상 값은 조상 walk 로
+      //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -114,7 +114,7 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderDateField 기소비 —
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.datefield 가 소비 —
       //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
       hourCycle: {
         kind: "enum",

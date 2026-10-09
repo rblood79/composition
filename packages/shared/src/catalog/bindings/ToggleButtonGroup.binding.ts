@@ -56,8 +56,8 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
       // RSP S2 staticColor (2026-08-21 채택) — ActionButtonGroup 은 staticColor 를 자체
       //   시각이 아니라 **자식 상속**으로 정의한다. 그룹 자신의 fill 은 transparent 라
       //   시각 변화가 없고, 채널은 자식 ToggleButton 으로 내려간다:
-      //   DOM = ToggleButtonGroupStaticColorContext → 자식 data-static-color,
-      //   Skia = buildSpecNodeData.resolveToggleGroupContext 주입 (둘 다 자식 명시값 우선).
+      //   DOM = `delegatedDom.tsx` `togglebuttongroup` → shared ToggleButtonGroup 의
+      //   ToggleButtonGroupStaticColorContext → 자식 data-static-color.
       staticColor: {
         kind: "enum",
         label: "Static Color",
@@ -92,7 +92,7 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC/RSP 공식 prop —
-      //   renderToggleButtonGroup 배선 동반 (세그먼트 컨트롤의 빈 선택 차단).
+      //   `delegatedDom.tsx` `togglebuttongroup` 가 전달 (세그먼트 컨트롤의 빈 선택 차단).
       disallowEmptySelection: {
         kind: "boolean",
         label: "Disallow Empty Selection",

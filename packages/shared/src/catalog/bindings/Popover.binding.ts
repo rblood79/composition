@@ -37,9 +37,8 @@ export const popoverBinding: PrimitiveBinding = {
         // RAC FocusScope 가 담당 (RSP 에 없는 prop) — 패널에서 숨김 (2026-09-15)
         editorHidden: true,
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Popover 공식 배치 prop —
-      //   placement/crossOffset/shouldFlip/containerPadding 은 renderPopover 기소비,
-      //   offset 은 배선 동반.
+      // RAC Popover 공식 배치 prop — `ruleDom` 이 `toRacProps` 로 shared `Popover`
+      //   (`domRegistry` `INTERNAL_RENDERERS.popover`) 에 넘긴다.
       placement: {
         kind: "enum",
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)

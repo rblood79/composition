@@ -1,21 +1,14 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * TagList — TagGroup projection 의 chip 컨테이너 shell (시각 없음).
+ * TagList — TagGroup 안의 chip 컨테이너 shell (시각 없음).
  *
- * **ADR-912 collection sub-part cutover (2026-06-15, TabList 동형)**: TagList 는 catalog 미등록
- *   상태에서 `TagList.spec`(render.shapes:()=>[] shell + containerStyles display:flex/row/wrap)이
- *   Skia 진입 게이트(buildSpecNodeData `if(!spec) return null`)를 통과시키는 유일 근거였다.
- *   catalog 등록으로 rule(`COMPONENT_RULES_TABLE.TagList`: variants default transparent + sizes.md
- *   {height/fontSize/borderRadius}) + buildCatalogShapes generic(transparent box shell)으로 이전.
- *   chip 시각은 이미 catalog cutover 된 Tag(`appendTagRowProjection` → Tag SceneNode, buildCatalogShapes
- *   box+text + remove X SelectIcon)가 단독 담당 → TagList 자체는 escape 불요(divider/indicator 없음).
+ * **노드 트리**: TagGroup origin template 의 `Tags` slot 이다 (`reusableOriginLibrary.ts` —
+ *   `TagGroup > Label + TagList > Tag… + Description + FieldError`).
  *
- * **Skia = transparent box shell (chip 은 rowsGroup 자식 projection)**: TagList SceneNode 는 자식
- *   chip projection 의 owner 다. `appendTagRowProjection` 이 TagList 아래 `rowsGroup`(type:"Rows",
- *   style display:flex/flexWrap:wrap/width:100%, 코드 직접 생성) → chip(Tag) 노드 배열을 전개한다.
- *   chip wrap 은 rowsGroup 의 flexWrap:wrap(Taffy 배치)이 전담 — TagList.spec.containerStyles 는
- *   Skia 에서 dead. buildSpecNodeData 가 `isCatalogCutover("TagList")` → transparent box shell.
+ * **Canvas**: rule(`COMPONENT_RULES_TABLE.TagList`: variants default transparent + sizes
+ *   {height/minHeight/gap}) 의 transparent 상자 — chip 시각은 Tag 노드가 담당한다. 엔진 자식은
+ *   Tag 노드와 Show all 상자다 (`compositionRoot.ts` `tagListEngineChildren` · `settleTagRows`).
  *
  * **DOM = TagList 노드 자신 (Codex Round 20 H1, 2026-10-09)**: `delegatedDom` `taglist` 가 chip 상자
  *   `div.tag-list-wrapper` (노드의 marker · style — 수동 TagGroup.css 의 flex-wrap · gap · min-height) 안에

@@ -3,7 +3,7 @@
  *
  * Preview 는 노드 트리 — RAC ComboBox 안에서 자식 (Label · Group > Input + Button · Description ·
  * FieldError · Popover > ListBox) 을 순서대로 그린다 (`delegatedDom` `combobox`, ADR-256 Phase 6d —
- * 옛 공용 `ComboBox.tsx` 는 삭제). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * 옛 공용 `ComboBox.tsx` 는 삭제). Skia generic 전환(skiaLegacy 제거, ADR-912 단계 4).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -49,9 +49,9 @@ export const comboBoxBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 rulePartRules.ts 가 같은 `label-align`
+      //   블록을 Label part rule 의 textAlign 으로 컴파일해 읽는다. Form 조상 값은 조상 walk 로
+      //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -66,7 +66,7 @@ export const comboBoxBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderComboBox 전부 기소비 —
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.combobox 가 소비 —
       //   RAC/RSP ComboBox 공식 prop. menuTrigger 는 popover 열림 시점 제어.
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },

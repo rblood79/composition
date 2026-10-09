@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ④(collections) — Tabs primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`Tabs.tsx`)가 useCollectionData(dataBinding → tab items)로 채우고
- * RAC Tabs + TabList/Tab/TabPanel 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * DOM 은 `delegatedDom.tsx` `tabs` 가 shared `components/Tabs` 의 Tabs 를 그리고 그 안의 노드 트리
+ * (TabList > Tab… · TabPanels > TabPanel) 를 순서대로 그린다. Canvas 시각은 catalog rule
+ * (`COMPONENT_RULES_TABLE.Tabs`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -37,7 +38,7 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
         ],
       },
-      // live consumer: LayoutRenderers.tsx renderTabs line 143/167 (Tabs + TabList)
+      // live consumer: `delegatedDom.tsx` `tabs` · `tablist` (Tabs + TabList)
       density: {
         kind: "enum",
         label: "Density",

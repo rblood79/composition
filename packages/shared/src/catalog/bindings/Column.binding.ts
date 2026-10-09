@@ -3,26 +3,19 @@ import type { PrimitiveBinding } from "../types";
 /**
  * Column — TableView 헤더 셀 leaf (헤더 텍스트 1개).
  *
- * **ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25)**: Column 은 canonical
- *   element 가 실재한다(`createTableViewDefinition` 이 TableHeader 아래 Column×N 생성, props.children
- *   = 컬럼명). catalog 미등록 상태에서는 `buildSpecNodeData:994`(`!spec && !isCatalogCutover` →
- *   `return null`)에서 Skia scene node 가 통째로 버려져 **Skia 에 헤더 텍스트가 안 그려졌다**(Preview
- *   는 renderTableView 가 직접 div 로 그림 → CSS↔Skia 비대칭). catalog 등록으로
- *   `isCatalogCutover("Column")` → `buildCatalogShapesOrPrimitive`(box+text) 진입,
- *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.md.fontWeight 600)
- *   + `buildCatalogShapes` 의 text 분기(`props.children` → text shape)로 헤더 텍스트 렌더.
+ * **ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25)**: Column 은 TableView origin
+ *   template 의 TableHeader 아래 자식 노드다 (props.children = 컬럼명). Canvas 는
+ *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.md.fontWeight 600) 의
+ *   box + `props.children` text 로 헤더 텍스트를 그린다.
  *
- * **DOM = 부모 renderTableView self-compose (renderCatalogDom 위임 경유 안 함)**: TableView
- *   Preview 는 `renderTableView`(LayoutRenderers.tsx)가 자식 트리를 `renderTableViewSubtree` 로
- *   직접 generic div 렌더한다(renderTabs 패턴). canonical Column element 는 존재하지만 DOM 재귀는
- *   부모가 직접 그리므로 Column 독립 cutover 렌더 경로는 타지 않는다 → DOM 변화 0, Skia 대칭만 추가.
- *   PALETTE_ORDER 미포함(단독 배치 불가 — TableView factory 전용 자식, TableCell/TableRow 동형).
+ * **DOM (TableView)**: `CATALOG_DELEGATED_DOM.tableview` 가 Column 을 role=columnheader div 로 직접
+ *   그린다(`TABLEVIEW_CHILD_STYLE`). PALETTE_ORDER 미포함(단독 배치 불가).
  *
- * D1: composition — DOM 은 부모 renderTableView 가 role=columnheader div 로 self-compose.
- * D2: children(컬럼 헤더 텍스트) + size. 편집 surface 최소(TableView factory 생성 자식).
+ * D1: TableView — role=columnheader div / Table — RAC `Column`.
+ * D2: children(컬럼 헤더 텍스트) + isRowHeader + size.
  * D3: 시각(헤더 텍스트 색/크기/굵기)은 theme rule(COMPONENT_RULES_TABLE.Column) — fontWeight 600
  *     (react-aria-starter `.column-header{font-weight:600}` 정본) + padding 8px(`{spacing.sm}`).
- *     Skia generic(box+text) ↔ DOM renderTableView div 시각 대칭.
+ *     Skia generic(box+text) ↔ DOM div 시각 대칭.
  *
  * **ADR-256 Phase 5i**: RAC Table (catalog `Table`) 안에서는 DOM 이 RAC `Column` 이다 (`domRegistry`
  *   `column` — 노드 트리 그리기). `isRowHeader` (RAC · RSP TableView 의 prop) — 그 열의 칸이 행의 이름이다.

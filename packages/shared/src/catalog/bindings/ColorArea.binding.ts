@@ -28,9 +28,8 @@ export const colorAreaBinding: PrimitiveBinding = {
   props: {
     accepts: {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // RAC/RSP 정합 감사 (2026-07-15) 판정: colorSpace/xChannel/yChannel 은 RAC 공식이나
-      //   renderColorArea 가 정적 gradient div (실 RAC ColorArea 미사용) 라 소비 경로 부재 —
-      //   dead 편집 UI 방지를 위해 미추가 (TagGroup orientation 제거와 동일 근거).
+      // colorSpace/xChannel/yChannel 은 RAC 공식 prop 이고 DOM 은 `ruleDom` 이 RAC ColorArea 를
+      //   그리지만, Canvas 는 box 만 그려 (위 D3 — 의도적 손실) 두 쪽이 갈리므로 아직 두지 않는다.
     },
     toRacProps: "default",
   },

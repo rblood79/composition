@@ -86,7 +86,7 @@ export const formBinding: PrimitiveBinding = {
           { value: "aria", label: "ARIA" },
         ],
       },
-      // form HTML attributes — live consumer: FormRenderers.tsx renderForm
+      // form HTML attributes — live consumer: delegatedDom `form`
       action: { kind: "string", label: "Action", section: "state" },
       method: {
         kind: "enum",

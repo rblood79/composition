@@ -29,9 +29,9 @@ export const colorSliderBinding: PrimitiveBinding = {
   props: {
     accepts: {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): orientation 은 renderColorSlider
-      //   기소비 (가로/세로 치수 전환). channel/colorSpace 는 RAC 공식이나 renderColorSlider
-      //   가 정적 gradient div 라 소비 경로 부재 — dead 편집 UI 방지를 위해 미추가.
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): orientation 은 toRacProps 로 RAC
+      //   ColorSlider 에 닿는다 (domBinding.tsx `ruleDom`). channel/colorSpace 는 RAC 공식이나
+      //   아직 accepts 에 없다.
       orientation: {
         kind: "enum",
         label: "Orientation",

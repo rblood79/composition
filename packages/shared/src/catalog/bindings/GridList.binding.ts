@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ④(collections) — GridList primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`GridList.tsx`)가 useResolvedCollectionItems(dataBinding|items → rows)로 채우고
- * RAC GridList + GridListItem 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4 C1).
+ * delegatedDom `gridlist` 가 composition wrapper(`GridList.tsx`, RAC GridList) 안에 GridListItem /
+ * GridListSection 자식 노드를 그린다(internal source). Canvas 는 rule 로 그린다(skiaLegacy 제거,
+ * ADR-912 단계 4 C1).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -54,7 +55,7 @@ export const gridListBinding: PrimitiveBinding = {
         ],
       },
       // ADR-923 r24m1 — 기본값 "single" 은 어느 표면에도 없던 값이었다. RAC 기본은 "none",
-      //   `renderGridList` 도 `props.selectionMode || "none"` 로 렌더한다 (delegating 렌더러라
+      //   delegatedDom `gridlist` 도 `props.selectionMode ?? "none"` 로 렌더한다 (delegating 렌더러라
       //   toRacProps 를 거치지 않아 이 default 가 Preview 에 도달하지 않았다). Inspector 만
       //   contract.default 를 "현재값" 으로 보여 주어 패널 "Single" ↔ DOM none 이 갈렸다.
       selectionMode: {
@@ -86,7 +87,7 @@ export const gridListBinding: PrimitiveBinding = {
           { value: "highlight", label: "Highlight" },
         ],
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderGridList 기소비.
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — delegatedDom `gridlist` 가 넘긴다.
       disallowEmptySelection: {
         kind: "boolean",
         label: "Disallow Empty Selection",

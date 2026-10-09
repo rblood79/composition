@@ -9,13 +9,12 @@ import type { PrimitiveBinding } from "../types";
  *   module(Icon.binding 동형, replace 모드)이 단일 shape 로 그림. 크기는 rule sizes.iconSize,
  *   색은 rule colors.text({color.neutral-subdued}).
  *
- * **DOM 부모 흡수**: 부모 renderer 가 RAC chevron/stepper 버튼 self-compose — 자식은
- *   iconName data 로만 소비. renderer="selecticon" 은 INTERNAL_RENDERERS 미등록 →
- *   cutover generic skip.
+ * **DOM**: `domBinding.tsx` 의 `selecticon` 이 glyph 로 그린다 (기본 `chevron-down`). 기본 origin
+ *   template 은 이 type 을 쓰지 않는다 (type 등록은 `componentCatalog.ts` 에 남아 있다).
  *
- * D1: composition — DOM 은 부모 RAC self-compose.
- * D2: iconName + size 편집 surface (부모/조부모 iconName 위임은 buildSpecNodeData
- *     resolveIconDelegation 유지).
+ * D1: composition — DOM 은 `domBinding.tsx` `selecticon` glyph.
+ * D2: iconName + size 편집 surface (field control Group 안에서는 trigger owner 의 iconName 을
+ *     받는다 — `presence.ts` `fieldSubpartProps`).
  * D3: 시각은 rule sizes.iconSize + colors.text — icon_font glyph 단일.
  */
 export const selectIconBinding: PrimitiveBinding = {

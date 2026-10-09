@@ -75,8 +75,9 @@ export const radioGroupBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly/necessityIndicator 는
-      //   renderRadioGroup 기소비, errorMessage 는 배선 동반 (RadioGroup.tsx FieldError).
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 delegatedDom `radiogroup` 이
+      //   RAC RadioGroup 에 넘기고, necessityIndicator 는 Label 노드에 덧붙는다
+      //   (`catalogFieldNecessityIndicator`). errorMessage 는 FieldError 노드의 `{errorMessage}` 바인딩.
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       necessityIndicator: {
         kind: "enum",

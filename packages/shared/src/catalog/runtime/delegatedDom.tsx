@@ -1507,7 +1507,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       ),
   },
   tableview: {
-    // The parts are composition divs drawn by the TableView itself (Preview renderTableView).
+    // The parts are composition divs drawn by the TableView itself (`TABLEVIEW_CHILD_STYLE`).
     render: (input) => {
       const props = input.node.props;
       const density = props.density as string | undefined;

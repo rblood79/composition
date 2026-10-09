@@ -66,9 +66,9 @@ export const textFieldBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 같은 블록을 Label part rule 로 읽는다
+      //   (`rulePartRules.ts` `LABEL_ALIGN_AXIS`). DOM 은 자신 값이 없으면 Form 조상 값을 쓴다
+      //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -166,13 +166,12 @@ export const textFieldBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 길이/패턴 검증 + 포커스 —
-      //   RAC TextField 공식 prop. renderTextField 가 shared TextField(AriaTextFieldProps
-      //   extends)로 전달.
+      //   RAC TextField 공식 prop. `delegatedDom.tsx` `textfield` 가 RAC TextField 로 전달.
       maxLength: { kind: "number", label: "Max Length", section: "state" },
       minLength: { kind: "number", label: "Min Length", section: "state" },
       pattern: { kind: "string", label: "Pattern", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      // RSP 표준 required 표시 방식 — renderTextField 기소비 (icon "*" / label "(required)")
+      // RSP 표준 required 표시 방식 — Label 노드가 그린다 (icon "*" / label "(required)")
       necessityIndicator: {
         kind: "enum",
         label: "Necessity Indicator",

@@ -70,8 +70,9 @@ export const checkboxGroupBinding: PrimitiveBinding = {
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly/necessityIndicator 는
-      //   renderCheckboxGroup 기소비, errorMessage 는 배선 동반 (CheckboxGroup.tsx FieldError).
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): isReadOnly 는 CATALOG_DELEGATED_DOM.checkboxgroup
+      //   이 RAC CheckboxGroup 에 넘긴다. necessityIndicator 는 Label 노드의 필수 표시, errorMessage 는
+      //   FieldError 노드가 그린다 (presence.ts).
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       necessityIndicator: {
         kind: "enum",

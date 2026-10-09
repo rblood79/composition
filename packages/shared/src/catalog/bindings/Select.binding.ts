@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ④(collections) — Select primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`Select.tsx`)가 useResolvedCollectionItems(dataBinding|items → rows)로 채우고
- * RAC Select + Label/Button/Popover/ListBox 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * DOM 은 `delegatedDom.tsx` `select` 가 RAC Select 안에 노드 트리 (`Label + Button(SelectValue + Icon) +
+ * Text[description] + FieldError + Popover > ListBox`) 를 그린다 (ADR-256 Phase 6c). Canvas 시각은
+ * catalog rule (`COMPONENT_RULES_TABLE.Select`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -47,9 +48,9 @@ export const selectBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 같은 블록을 Label part rule 로 읽는다
+      //   (`rulePartRules.ts` `LABEL_ALIGN_AXIS`). DOM 은 자신 값이 없으면 Form 조상 값을 쓴다
+      //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -74,8 +75,8 @@ export const selectBinding: PrimitiveBinding = {
         ],
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderSelect 전부 기소비 —
-      //   RAC Select / RSP Picker 공식 prop.
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Select / RSP Picker 공식 prop —
+      //   `delegatedDom.tsx` `select` (`fieldBase`) 가 RAC Select 로 전달.
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
@@ -99,9 +100,8 @@ export const selectBinding: PrimitiveBinding = {
       },
     },
     toRacProps: "default",
-    // size 를 Select.tsx 가 React prop 으로 소비 (chevron/trigger/popover 크기 결정) + 자기
-    //   `data-size` 를 재작성 → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size
-    //   를 덮어씀 (DateField.binding 과 동일 근거, 2026-07-14 전수 확장).
+    // size 를 data-attr 가 아니라 prop 그대로 통과 (DateField.binding 과 동일 근거, 2026-07-14
+    //   전수 확장). 지금 Select DOM 은 `delegatedDom.tsx` `select` 가 `data-size` 를 직접 쓴다.
     propPassthrough: ["size"],
   },
 };

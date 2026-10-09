@@ -57,9 +57,9 @@ export const numberFieldBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 같은 rule 블록 (`rulePartRules.ts`
+      //   `LABEL_ALIGN_AXIS`). Form 조상 값은 상속하고 (DOM `fieldBase` — `inheritedForm`)
+      //   자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -91,14 +91,14 @@ export const numberFieldBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC NumberField 공식 prop —
-      //   renderNumberField 가 shared NumberField(AriaNumberFieldProps extends)로 전달.
+      //   delegatedDom `numberfield` (`nodeTreeField` · `fieldBase`) 가 RAC NumberField 로 전달.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       isWheelDisabled: {
         kind: "boolean",
         label: "Wheel Disabled",
         section: "state",
       },
-      // RSP 표준 required 표시 방식 — renderNumberField 기소비
+      // RSP 표준 required 표시 방식 — field 가 Label 노드에 덧붙인다 (`catalogFieldNecessityIndicator`)
       necessityIndicator: {
         kind: "enum",
         label: "Necessity Indicator",
@@ -110,16 +110,13 @@ export const numberFieldBinding: PrimitiveBinding = {
           { value: "label", label: "Label" },
         ],
       },
-      // ADR-915 P1-g (2026-07-16): RAC NumberField 공식 locale — renderNumberField
-      //   (FormRenderers:273) 가 `element.props.locale` 를 RAC NumberField 로 전달(숫자 포맷
-      //   로케일). form-common 4종 중 유일하게 DOM-live 인 셀(labelAlign/validationBehavior 는
-      //   개별 field 미소비, 나머지 locale 은 Date/NumberField 외 dead — 감사 후 잔여).
+      // ADR-915 P1-g (2026-07-16): RAC NumberField 공식 locale — delegatedDom `numberfield` 가
+      //   `props.locale` 를 RAC NumberField 로 전달(숫자 포맷 로케일).
       locale: { kind: "string", label: "Locale", section: "content" },
     },
     toRacProps: "default",
-    // size 를 NumberField.tsx 가 React prop 으로 소비 (stepper 버튼 + 입력 크기 결정) + 자기
-    //   `data-size` 를 재작성 → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size
-    //   를 덮어씀 (DateField.binding 과 동일 근거, 2026-07-14 전수 확장).
+    // size 는 DOM 에서 delegatedDom `numberfield` (`nodeTreeField`) 가 `data-size` 로 싣는다
+    //   (DateField.binding 과 같은 선언, 2026-07-14 전수 확장).
     propPassthrough: ["size"],
   },
 };

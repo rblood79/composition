@@ -74,7 +74,7 @@ export const colorFieldBinding: PrimitiveBinding = {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderColorField 기소비 —
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.colorfield 가 소비 —
       //   RAC ColorField 공식 prop (channel/colorSpace 는 hex 외 채널 편집 모드).
       errorMessage: {
         kind: "string",
@@ -130,7 +130,7 @@ export const colorFieldBinding: PrimitiveBinding = {
           { value: "label", label: "Label" },
         ],
       },
-      // RAC 공식 — 스크롤 휠 값 변경 차단 (renderColorField 배선 동반 추가)
+      // RAC 공식 — 스크롤 휠 값 변경 차단 (CATALOG_DELEGATED_DOM.colorfield 가 RAC 에 넘긴다)
       isWheelDisabled: {
         kind: "boolean",
         label: "Wheel Disabled",

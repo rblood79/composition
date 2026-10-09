@@ -1,8 +1,9 @@
 /**
  * ADR-142 family ④(collections) — TagGroup primitive 의 `PrimitiveBinding`.
  *
- * composition wrapper(`TagGroup.tsx`)가 useCollectionData(dataBinding → tag items)로 채우고
- * RAC TagGroup + Label/TagList/Tag 합성(internal source). Skia generic 발효(skiaLegacy 제거, ADR-912 단계 4).
+ * DOM 은 `delegatedDom.tsx` `taggroup` (`TagGroupRun`) 이 RAC TagGroup 안에 작성 자식 (Label ·
+ * TagList > Tag… · Description · FieldError) 을 순서대로 그린다. 바인딩된 TagList 는 Tag 자리를 행마다
+ * 반복한다 (resolver `CATALOG_ROW_ITEM_TYPES`). Canvas 시각은 catalog rule (`COMPONENT_RULES_TABLE.TagGroup`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -44,7 +45,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       //   DOM(RAC)은 무시하고 Skia 만 vertical 반영해 CSS↔Skia 비대칭 + Property 패널에 dead
       //   편집 UI 노출 → D2 위반. 그룹↔라벨 배치는 RSP 표준 labelPosition(top/side)이 담당.
       // labelPosition(그룹↔라벨 top/side): 렌더 인프라 이미 갖춰짐 —
-      //   TagGroup.tsx wrapper 가 data-label-position emit / 수동 TagGroup.css
+      //   `delegatedDom.tsx` `TagGroupRun` 이 data-label-position emit / 수동 TagGroup.css
       //   [data-label-position="side"]{flex-direction:row} / catalog rule
       //   containerVariants["label-position"].side(Skia). (다른 field 와 표기 정합.)
       labelPosition: {
@@ -76,7 +77,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
       //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
       //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 항목 노드 자신의 isDisabled 다.
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderTagGroup 기소비.
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — `delegatedDom.tsx` `TagGroupRun` 이 전달.
       disallowEmptySelection: {
         kind: "boolean",
         label: "Disallow Empty Selection",

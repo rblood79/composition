@@ -68,9 +68,9 @@ export const textAreaBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 같은 블록을 Label part rule 로 읽는다
+      //   (`rulePartRules.ts` `LABEL_ALIGN_AXIS`). DOM 은 자신 값이 없으면 Form 조상 값을 쓴다
+      //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -96,11 +96,11 @@ export const textAreaBinding: PrimitiveBinding = {
       minLength: { kind: "number", label: "Min Length", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       // design-data 감사 §1-3 (2026-08-22) — TextField 와의 형제 비대칭 해소.
-      //   아래 7개는 **이미 소비되고 있었는데 편집 표면만 없었다**:
-      //     errorMessage / necessityIndicator → `renderTextArea` 가 그대로 shared
-      //       TextArea 에 넘기고 있었다 (FieldError / renderNecessityIndicator).
+      //   아래 7개는 편집 표면만 없었다:
+      //     errorMessage / necessityIndicator → FieldError · Label 노드가 그린다
+      //       (`presence.ts` `CATALOG_LABEL_NODE_FIELDS`).
       //     입력 힌트 5종 → ADR-915 P1.5-b 가 TextField/SearchField 에만 채택했던 것.
-      //       `renderTextArea` 에 `resolveInputHintProps` 전개를 같이 추가했다.
+      //       `delegatedDom.tsx` `textarea` 가 `inputHints` 로 RAC 에 전달한다.
       //   `value` 는 여기 없다 — 표시 채널이 따로 필요해 별도 단계에서 다룬다.
       errorMessage: {
         kind: "string",

@@ -3,11 +3,8 @@ import type { PrimitiveBinding } from "../types";
 /**
  * ProgressCircle — 원형 진행률 leaf (track arc + value 비례 indicator arc).
  *
- * **ADR-912 진로 1번 ProgressCircle proof slice (value-fill internal leaf catalog 발효, 2026-06-06)**:
- *   ProgressCircle 은 catalog 미등록 상태에서 spec.render.shapes(ProgressCircle.spec.ts:125-235)가
- *   Skia 시각 source 였고, DOM 은 rendererMap.renderProgressCircle(LayoutRenderers.tsx:1717) inline
- *   함수가 SVG `<circle stroke-dasharray>` 로 담당했다. factory `children: []`(leaf, 자식 Element 아님,
- *   DisplayComponents.ts:530) + value/size/isIndeterminate 는 props.
+ * **ADR-912 진로 1번 ProgressCircle proof slice (value-fill internal leaf catalog 등록, 2026-06-06)**:
+ *   leaf (자식 노드 없음) — value/size/isIndeterminate 는 props.
  *
  *   **Skia escape 필요 (value-fill 군 — buildCatalogShapes 한계)**: `skiaPrimitive: "value_fill_arc"`
  *   escape(skiaPrimitives.ts:938-1007, **replace** 모드 — SKIA_PRIMITIVE_MODES 미등록 = replace 기본).

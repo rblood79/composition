@@ -39,8 +39,8 @@ export const sliderBinding: PrimitiveBinding = {
       //   labelPosition="side" 시 Label · Track · Value 가로 배치 (RSP Slider labelPosition
       //   레퍼런스 정합, ProgressBar/Meter side 선례 동형). D3 구현 3중:
       //   CSS(catalog structure.composition.containerVariants["label-position"] → generated
-      //   Slider.css) + Skia(top-level containerVariants + implicitStyles 자식 재정렬) +
-      //   DOM(shared Slider data-label-position emit / renderSlider forward).
+      //   Slider.css) + Canvas(같은 블록 — 자식 order 는 `rulePartRules.ts`
+      //   `containerVariantPartRules`) + DOM(`delegatedDom.tsx` `slider` 의 data-label-position).
       labelPosition: {
         kind: "enum",
         label: "Label Position",
@@ -73,12 +73,12 @@ export const sliderBinding: PrimitiveBinding = {
         section: "content",
         min: 0,
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — renderSlider 가
-      //   uncontrolled defaultValue 로 기소비 (드래그 상호작용 보존).
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — `delegatedDom.tsx` `slider` 가
+      //   uncontrolled defaultValue 로 전달 (드래그 상호작용 보존).
       value: { kind: "number", label: "Value", section: "content" },
       // ADR-915 P1.5-d (2026-07-16): 값 라벨(SliderOutput) 표시 여부 (RSP showValueLabel).
-      //   Skia(buildSpecNodeData:800)/layout(utils:2608, implicitStyles:1827)/factory
-      //   (FormComponents:499 default true) 기소비. renderSlider→shared Slider DOM forward 동반.
+      //   false 면 SliderOutput 노드가 없다 — Canvas 와 DOM 이 같은 술어
+      //   (`presence.ts` `catalogProgressValueHidden`) 를 읽는다.
       showValueLabel: {
         kind: "boolean",
         label: "Show Value Label",

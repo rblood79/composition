@@ -56,9 +56,9 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 같은 블록을 Label part rule 로 읽는다
+      //   (`rulePartRules.ts` `LABEL_ALIGN_AXIS`). DOM 은 자신 값이 없으면 Form 조상 값을 쓴다
+      //   (`delegatedDom.tsx` `inheritedForm`).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -96,7 +96,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         label: "Granularity",
         section: "content",
         // "day" 제거 (§1-3 2026-08-21): 시각 필드에 근거 없는 옵션 — RAC TimeField
-        //   granularity 는 hour/minute/second 뿐이고 renderTimeField 도 그 3종만 수용.
+        //   granularity 는 hour/minute/second 뿐이고 `delegatedDom.tsx` `timefield` 도 그 3종만 수용.
         options: [
           { value: "hour", label: "Hour" },
           { value: "minute", label: "Minute" },
@@ -104,7 +104,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         ],
       },
       // 형제 대칭 (§1-3 2026-08-21): DateField minValue/maxValue 동형 — "HH:mm(:ss)"
-      //   문자열, TimeField.tsx 가 Time 으로 파싱 (renderTimeField 전달 배선 포함).
+      //   문자열, `delegatedDom.tsx` `timefield` 가 Time 으로 파싱 (`timeValue`).
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
@@ -116,7 +116,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderTimeField 기소비 —
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): `delegatedDom.tsx` `timefield` 가 전달 —
       //   RAC TimeField 공식 prop. placeholderValue 는 "HH:mm" 문자열로 렌더러가 파싱.
       //   hideTimeZone 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
       hideTimeZone: {

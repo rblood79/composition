@@ -3,8 +3,9 @@
  * (ADR-912 단계 5 선행-1: catalog 미등록 leaf 등록 — RAC source, generic box+text 커버.)
  *
  * RAC `<FileTrigger>` 는 파일 선택 trigger wrapper(숨은 `<input type=file>` + 자식 Button).
- * composition 에서는 button-like leaf 로 렌더 — FileTrigger.spec 이 roundRect+border+text
- * (Button 동형 box+text leaf, value-dependent 시각 없음 → skiaPrimitive 불필요).
+ * composition 에서는 button-like leaf 로 렌더 — 자식 노드가 없으면 delegatedDom `filetrigger` 가
+ * RAC Button 하나를 그리고, Canvas 는 rule 로 roundRect+border+text (Button 동형 box+text leaf,
+ * value-dependent 시각 없음 → skiaPrimitive 불필요).
  *
  * D1: RAC `FileTrigger` → 파일 입력 trigger. RAC 가 파일 선택/접근성 권위.
  * D2: children(label text)/variant/size + acceptedFileTypes/allowsMultiple/acceptDirectory +
@@ -44,7 +45,7 @@ export const fileTriggerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      // live consumer: FormRenderers.tsx renderFileTrigger line 872
+      // live consumer: delegatedDom `filetrigger` (`fileTypes`)
       acceptedFileTypes: {
         kind: "string",
         label: "Accepted File Types",
@@ -60,7 +61,7 @@ export const fileTriggerBinding: PrimitiveBinding = {
         label: "Accept Directory",
         section: "state",
       },
-      // live consumer: FormRenderers.tsx renderFileTrigger line 877
+      // live consumer: delegatedDom `filetrigger`
       defaultCamera: {
         kind: "enum",
         label: "Default Camera",

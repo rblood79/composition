@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
 
+## [binding 주석 정리 — 지워진 renderer · factory · spec 인용 제거] - 2026-10-09
+
+### Changed
+
+- 속성 감사 (사용자 「5번 주석 정리」): binding 88개의 주석이 지워진 renderer (`renderTableView` 등) · factory (`LayoutComponents.ts` 등) · spec 파일 · 옛 파이프라인 (`buildSpecNodeData` · `append*RowProjection` · `KNOWN_HTML` …) 을 지금 쓰이는 것처럼 인용하던 343곳을 지금의 소비자 (`delegatedDom.tsx` · `domBinding.tsx` `ruleDom` · catalog rule · `presence.ts` · origin template 노드) 로 고치거나 지웠다. 동작 변경 없음 (주석 아닌 줄 0).
+- 재발 게이트: `bindings/__tests__/staleCommentSymbols.static.test.ts` — binding 주석이 그 이름들을 다시 인용하면 실패한다 (정리 전 RED 88 → 143 GREEN).
+
 ## [노드가 대신하거나 아무도 읽지 않던 prop 삭제 · contract 33] - 2026-10-09
 
 ### Removed

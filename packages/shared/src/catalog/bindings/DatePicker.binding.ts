@@ -15,7 +15,7 @@ export const datePickerBinding: PrimitiveBinding = {
     renderer: "datepicker",
   },
   // ADR-912 단계 5 (1b): trigger field(input box + display text + calendar icon) Skia 시각을
-  // `datefield_trigger` skiaPrimitive(replace)로 이전. skiaLegacy 제거 → isCatalogSkiaCutover=true.
+  // `datefield_trigger` skiaPrimitive(replace)로 이전.
   skiaPrimitive: "datefield_trigger",
   props: {
     accepts: {
@@ -48,9 +48,9 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       // RSP labelAlign (2026-08-21, design-data 감사 §1-2 축①) — side 라벨 컬럼 안에서의
       //   라벨 텍스트 정렬. DOM 은 `data-label-align` → catalog nested rule 의
-      //   `text-align: var(--form-label-align)`, Skia 는 buildSpecNodeData.resolveLabelAlignment
-      //   (start|center|end → left|center|right 매핑). Form 조상 값은 renderer/조상 walk 로 상속하고
-      //   자신이 지정하면 자신이 우선 (nearest-wins, 양 경로 동일).
+      //   `text-align: var(--form-label-align)`, Canvas 는 rulePartRules.ts 가 같은 `label-align`
+      //   블록을 Label part rule 의 textAlign 으로 컴파일해 읽는다. Form 조상 값은 조상 walk 로
+      //   상속하고 자신이 지정하면 자신이 우선 (nearest-wins).
       labelAlign: {
         kind: "enum",
         label: "Label Align",
@@ -94,7 +94,7 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       minValue: { kind: "string", label: "Min Value", section: "state" },
       maxValue: { kind: "string", label: "Max Value", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderDatePicker 기소비 —
+      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `datePickerProps` 가 소비 —
       //   RAC/RSP DatePicker 공식 prop. hideTimeZone/shouldForceLeadingZeros/
       //   shouldCloseOnSelect 는 렌더러 기본값이 true (`!== false`) 라 default: true 명시.
       //   (hourCycle 은 custom timeFormat("12h"/"24h") 채널이 이미 담당 — 중복 미추가.)
