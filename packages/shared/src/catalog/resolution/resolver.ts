@@ -32,6 +32,7 @@ import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_STEP,
+  CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
 import { CatalogValidationError } from "../document/validation";
 import { OWNER_DRAWN_PART_HOSTS } from "../resolvers/resolveDelegatedChildFontSize";
@@ -673,6 +674,25 @@ export function resolveCatalogNode(
     props: Props,
     parent: ParentContext | undefined,
   ): void => {
+    const definition = lookupDefinition(definitionId);
+    // (A toggle takes its group's size wherever it sits in the group — the nearest group of its
+    // type, as its values do: inside another item too — Codex Round 21.)
+    const groupType = CATALOG_TOGGLE_GROUP_OF[definition.name];
+    if (groupType && definition.accepts.size === "string") {
+      let cursor = structuralParent(parent);
+      while (cursor && lookupDefinition(cursor.definitionId).name !== groupType)
+        cursor = structuralParent(cursor.parent);
+      const groupSize = cursor?.props.size;
+      if (typeof groupSize === "string") {
+        const choices =
+          "propChoices" in definition
+            ? definition.propChoices?.size
+            : undefined;
+        if (!choices || choices.map(String).includes(groupSize))
+          props.size = groupSize;
+        return;
+      }
+    }
     let owner = structuralParent(parent);
     // (A Group · frame between takes no size — the owner's reaches through it, as RAC's context:
     // a field's control Group (ADR-256 Phase 6b), a Group around a group's item (Round 21).)
@@ -683,7 +703,6 @@ export function resolveCatalogNode(
       owner = structuralParent(owner.parent);
     const ownerSize = owner?.props.size;
     if (typeof ownerSize !== "string") return;
-    const definition = lookupDefinition(definitionId);
     const ownerName = lookupDefinition(owner!.definitionId).name;
     if (
       !CATALOG_SIZE_PROPAGATION[ownerName]?.includes(definition.name) ||

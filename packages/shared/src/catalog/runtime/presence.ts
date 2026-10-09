@@ -3,6 +3,7 @@ import { isDisclosureExpandedInContext } from "../../utils/disclosureGroupExpans
 import { resolveStaticItemKey } from "../slotRoles";
 import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
 import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
+import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import { catalogCalendarTitle } from "../resolvers/resolveCatalogRuleCanvasBox";
@@ -2009,11 +2010,7 @@ const GROUP_STATE_KEYS: Readonly<Record<string, ReadonlySet<CatalogStateKey>>> =
     Tag: new Set(["allowsRemoving"]),
   };
 /** A toggle type → the RAC group whose state context it reads. */
-const TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
-  Checkbox: "CheckboxGroup",
-  Radio: "RadioGroup",
-  ToggleButton: "ToggleButtonGroup",
-};
+const TOGGLE_GROUP_OF = CATALOG_TOGGLE_GROUP_OF;
 /**
  * The group a toggle belongs to: RAC's group state context (`CheckboxGroupStateContext` ·
  * `RadioGroupStateContext` · `ToggleGroupStateContext` — set only by the group itself, RAC 1.21.0)

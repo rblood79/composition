@@ -1,8 +1,8 @@
 // Codex Round 21 live (사용자 2026-10-09 「범위 밖으로 둔 것 체크하고 오류라면 수정 시작해」) — real
 // Builder (headed Chrome, Compare Mode): a CheckboxGroup's size reaches an item the author wraps in a
 // RAC Group (Canvas record · box = Preview `data-size` · box, and a later size change) · a selected
-// Checkbox placed inside another Checkbox is one of the group's values (Canvas · Preview) · after a
-// reload the same · no errors.
+// Checkbox placed inside another Checkbox is one of the group's values (Canvas · Preview) and takes
+// the group's size (사용자 「사용자에게 일관된 경험」) · after a reload the same · no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/adr256-round21-group-live.mjs <out>
 import { chromium } from "playwright";
@@ -253,6 +253,18 @@ record(
   inserted.ok && inner.previewChecked === true && inner.canvasSelected,
   { inserted, inner },
 );
+record(
+  "the nested Checkbox takes the group's size sm, not its own md (Canvas = Preview)",
+  inner.canvasSize === "sm" && inner.previewSize === "sm",
+  inner,
+);
+await setGroup({ size: "lg" });
+const innerLg = await view(nested);
+record(
+  "a later group size lg reaches the nested Checkbox (Canvas = Preview)",
+  innerLg.canvasSize === "lg" && innerLg.previewSize === "lg",
+  innerLg,
+);
 await page.screenshot({ path: `${OUT}/nested-item.png` });
 
 await page.waitForTimeout(1500);
@@ -267,10 +279,12 @@ await page.waitForTimeout(2500);
 await compareOn();
 const after = { wrapped: await view(wrapped), nested: await view(nested) };
 record(
-  "reload: the wrapped item keeps sm, the nested Checkbox stays selected",
-  after.wrapped.canvasSize === "sm" &&
-    after.wrapped.previewSize === "sm" &&
+  "reload: the wrapped item and the nested Checkbox keep the group's lg, the nested one stays selected",
+  after.wrapped.canvasSize === "lg" &&
+    after.wrapped.previewSize === "lg" &&
     sameBox(after.wrapped) &&
+    after.nested.canvasSize === "lg" &&
+    after.nested.previewSize === "lg" &&
     after.nested.previewChecked === true,
   after,
 );

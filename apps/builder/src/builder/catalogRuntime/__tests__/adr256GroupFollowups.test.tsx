@@ -213,3 +213,51 @@ describe("Codex Round 21 — a toggle inside another item is one of the group's"
     },
   );
 });
+
+describe("Codex Round 21 — a toggle inside another item takes the group's size", () => {
+  it.each([
+    ["checkboxgroup", "CheckboxGroup", "Checkbox", "checkbox"],
+    ["radiogroup", "RadioGroup", "Radio", "radio"],
+  ])(
+    "%s: the nested item follows the group's size (not its own), and its change",
+    async (origin, groupType, part, childOrigin) => {
+      const { workspace, root, of, target } = await open(origin);
+      const groupSize = (size: string) =>
+        workspace.execute(
+          setFields({
+            targets: [target(of(groupType)[0]!.id)],
+            props: { size: set(size) },
+          }),
+        );
+      groupSize("lg");
+      const childId = workspace.newId("node");
+      workspace.execute(
+        insertNodes({
+          parent: target(of(part)[0]!.id),
+          entries: [
+            {
+              kind: "node",
+              id: childId,
+              definitionId: `lib:definition:origin-component-${childOrigin}`,
+              children: [],
+              // (Its own size loses to the group's, as every item's does.)
+              props: { size: set("sm") },
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            } as NodeEntry,
+          ],
+          rootIds: [childId],
+          newId: workspace.newId,
+        }),
+      );
+      const sizes = () => {
+        const canvas = of(part).find((r) => r.sourceId === childId)!;
+        return [canvas.props.size, root.domInputs.get(canvas.id)!.props.size];
+      };
+      expect(sizes()).toEqual(["lg", "lg"]);
+      groupSize("xl");
+      expect(sizes()).toEqual(["xl", "xl"]);
+    },
+  );
+});

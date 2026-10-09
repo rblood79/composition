@@ -82,6 +82,18 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
 };
 
 /**
+ * A toggle's group (RAC's group state context — set only by the group, reaching every toggle below
+ * it): the nearest ancestor of this type is the toggle's group — for its values (`presence.ts`
+ * `catalogToggleGroupOf`) and its size, so a toggle anywhere in the group (inside another item, in
+ * a Group) takes the group's size like every item (Codex Round 21, 2026-10-09).
+ */
+export const CATALOG_TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
+  Checkbox: "CheckboxGroup",
+  Radio: "RadioGroup",
+  ToggleButton: "ToggleButtonGroup",
+};
+
+/**
  * Layout containers an owner's size reaches through (Codex Round 21, 2026-10-09): RAC's contexts
  * pass a RAC `Group` and a frame, so an item the author wraps in one keeps its group's size (and a
  * field's control Group — ADR-256 Phase 6b — is one of them). Neither type takes a size itself.

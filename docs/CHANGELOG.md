@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CheckboxGroup · RadioGroup · ToggleButtonGroup 의 size 가 Group · frame 으로 감싼 항목에도 적용된다** (종전: 감싼 항목만 md 로 돌아감 — Canvas · Preview 둘 다).
   - **Why**: 부모 size 를 받는 자식을 바로 아래 자식만으로 판정했다 (field 의 control Group 만 예외). 이제 Group · frame 을 건너 owner 를 찾는다 (`CATALOG_SIZE_PASS_THROUGH`), 그룹 size 를 나중에 바꿔도 감싼 항목까지 다시 계산한다.
   - 위치: `packages/shared/src/catalog/document/sizePropagation.ts` · `resolution/resolver.ts` (`applyOwnerSize`) · `runtime/compositionRoot.ts`
+- **다른 Checkbox · Radio 안에 넣은 Checkbox · Radio 도 그룹 size 를 따른다** (종전: 자기 size — 기본 md — 로 그려져 그룹 안에서 홀로 크기가 달랐다).
+  - **Why**: 바깥 항목은 size 를 자기 부품에만 넘긴다. 이제 toggle 은 가장 가까운 같은 종류 그룹에서 size 를 받는다 — 그룹 값과 같은 판정 (`CATALOG_TOGGLE_GROUP_OF`).
 - **다른 Checkbox · Radio 안에 넣은 선택 항목이 Preview 에서도 선택으로 보인다** (종전: Canvas 는 선택, Preview 는 미선택).
   - **Why**: 그룹 값을 모을 때 항목 안으로 내려가지 않았다 — RAC 의 그룹 context 는 그 항목에도 닿는다.
   - 위치: `packages/shared/src/catalog/runtime/presence.ts` (`catalogToggleGroupItems`)

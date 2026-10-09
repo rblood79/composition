@@ -1,6 +1,7 @@
 import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
+  CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -98,6 +99,7 @@ import {
   catalogHiddenAtRest,
   catalogPresenceDependents,
   catalogStateDependents,
+  catalogToggleGroupItems,
   catalogItemRemoveGlyphItem,
   catalogTreeChevronGlyphItem,
   catalogSelectionIndicatorLayout,
@@ -3264,11 +3266,25 @@ export class CatalogCompositionRoot {
               : [childId];
           });
         const reached = sized ? through(record.children) : [];
+        // (A toggle group's size reaches every toggle of its own — inside another item too.)
+        const itemType = Object.keys(CATALOG_TOGGLE_GROUP_OF).find(
+          (item) => CATALOG_TOGGLE_GROUP_OF[item] === this.typeOf(record),
+        );
+        if (itemType)
+          for (const item of catalogToggleGroupItems(
+            record,
+            itemType,
+            (key) => this.records.get(key),
+            this.typeOf,
+          ).items)
+            if (!reached.includes(item.id)) reached.push(item.id);
         for (const childId of reached) {
           const child = this.records.get(childId);
           if (
             child &&
-            sized!.includes(this.typeOf(child)) &&
+            (sized?.includes(this.typeOf(child)) ||
+              CATALOG_TOGGLE_GROUP_OF[this.typeOf(child)] ===
+                this.typeOf(record)) &&
             !queued.has(childId)
           ) {
             queued.add(childId);
