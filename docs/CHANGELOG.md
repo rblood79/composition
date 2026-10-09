@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tag · Tab 글자와 Tag X 가 Preview 의 선택을 따른다] - 2026-10-09
+
+### Fixed
+
+- **Preview 에서 Tag 를 눌러 선택 · 해제하면 글자와 지우기 X 도 chip 색을 따른다** (종전: Behavior 의 Selected 로 선택해 둔 Tag 를 Preview 에서 해제해도 글자가 흰색으로 남고, Preview 에서 누른 Tag 는 accent 배경에 어두운 글자 — 두 선택이 다르게 보였다). Tab 글자도 같다.
+  - **Why**: Canvas 가 칠하는 item 글자색 (`derivedOf` — 작성된 선택 기준) 이 DOM 에도 inline 으로 나가, 시트의 `color: inherit` 를 덮었다. Preview 의 선택은 RAC 실행 상태라 그 색은 작성 시점에 고정됐다. Disclosure 제목 · Select 값처럼 작성한 색이 없으면 DOM 은 inline 색을 싣지 않는다. 지우기 버튼은 `.button-base` 가 `--button-text` 로 칠하므로 그 값을 `currentColor` (Tag 색) 로 둔다.
+  - 위치: `packages/shared/src/catalog/runtime/domBinding.tsx` · `packages/shared/src/components/styles/TagGroup.css`
+- 회귀: `tagGroupSelection.test.tsx` 5 (원복 RED 2) · live `apps/builder/scripts/tag-group-selection-live.mjs` 6/6 (작성 선택 Tag 해제 · 다른 Tag 선택 → 각 글자 · X 가 chip 색) · Tabs Preview 클릭 확인 · G3 63 PASS + 1 UNVERIFIED · parity 811
+
 ## [Tag 선택 = TagGroup 의 선택 — Tag variant 삭제 (레퍼런스) · contract 31] - 2026-10-09
 
 ### Breaking Changes

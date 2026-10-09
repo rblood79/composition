@@ -142,6 +142,17 @@ const view = () =>
           accentChip:
             !!el &&
             doc.defaultView.getComputedStyle(el).backgroundColor === accent,
+          chipText: el && doc.defaultView.getComputedStyle(el).color,
+          labelText:
+            el &&
+            doc.defaultView.getComputedStyle(
+              el.querySelector(".react-aria-Text"),
+            ).color,
+          glyph: el?.querySelector('[slot="remove"] svg')
+            ? doc.defaultView.getComputedStyle(
+                el.querySelector('[slot="remove"] svg'),
+              ).color
+            : null,
         };
       }),
     };
@@ -194,6 +205,41 @@ record(
   { before: before.tags, on: on.tags },
 );
 await page.screenshot({ path: `${OUT}/tag-selected.png` });
+// Preview presses (RAC's run selection): the label and the remove X take the chip's colour —
+// deselecting the authored Tag returns its text to the default, selecting another whitens it
+await exec((c, ws) => {
+  const g = [...ws.root.canvasInputs.values()].find(
+    (r) => ws.root.typeOf(r) === "TagGroup",
+  );
+  return c.setFields({
+    targets: [ws.positionOfRecord(g.id).target],
+    props: { allowsRemoving: { kind: "set", value: true } },
+  });
+});
+const pressRow = async (index) => {
+  await page
+    .frameLocator("#previewFrame")
+    .locator('.react-aria-TagList [role="row"]')
+    .nth(index)
+    .dispatchEvent("click");
+  await page.waitForTimeout(600);
+};
+await pressRow(0);
+await pressRow(1);
+const pressed = await view();
+const follows = (t) =>
+  t.labelText === t.chipText && (t.glyph === null || t.glyph === t.chipText);
+record(
+  "Preview presses: the authored Tag deselects, another selects — each label and X takes its chip's colour",
+  !pressed.tags[0].preview &&
+    !pressed.tags[0].accentChip &&
+    pressed.tags[1].preview &&
+    pressed.tags[1].accentChip &&
+    pressed.tags.every(follows) &&
+    pressed.tags[0].labelText !== pressed.tags[1].labelText,
+  pressed.tags,
+);
+await page.screenshot({ path: `${OUT}/tag-pressed.png` });
 const setGroup = (value) =>
   exec((c, ws, arg) => {
     const g = [...ws.root.canvasInputs.values()].find(

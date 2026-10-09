@@ -203,6 +203,10 @@
        (part-rule layout reaches the DOM through the sheet, as `[slot=avatar]`). */
     .react-aria-Button[slot="remove"] {
       flex-shrink: 0;
+      /* Its X takes the Tag's color — RAC's run selection recolors it (the Canvas: the item color,
+         `derivedOf`). The button sheet (`.button-base`, utilities layer) colors by `--button-text`:
+         `currentColor` there is the inherited (the Tag's) color. */
+      --button-text: currentColor;
     }
 
     &[data-selected] {

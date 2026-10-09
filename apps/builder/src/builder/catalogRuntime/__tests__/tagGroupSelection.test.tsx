@@ -184,3 +184,36 @@ describe("Tag selection — the TagGroup's (no Tag variant)", () => {
     await dom.close();
   });
 });
+
+describe("Tag selection — a Tag's label and remove X follow the Preview's selection", () => {
+  it("their colour is the Tag's (sheet `color: inherit`), not the authored selection inline", async () => {
+    const { workspace, root, of, target, select } = await open({
+      selectionMode: "multiple",
+    });
+    workspace.execute(
+      setFields({
+        targets: [target(of("TagGroup")[0]!.id)],
+        props: { allowsRemoving: set(true) },
+      }),
+    );
+    select(0, true);
+    const dom = await mount(root);
+    const inline = () =>
+      [...document.querySelectorAll('[role="row"]')].map((row) => ({
+        label: (row.querySelector(".react-aria-Text") as HTMLElement | null)
+          ?.style.color,
+        glyph: (
+          row.querySelector(
+            '[slot="remove"] .react-aria-Icon',
+          ) as HTMLElement | null
+        )?.style.color,
+      }));
+    // (The Canvas still paints them the item's colour — the derived value stays.)
+    const label = of("Text").find(
+      (text) => root.typeOf(root.canvasInputs.get(text.parentId)!) === "Tag",
+    )!;
+    expect(label.derivedProps?.color).toBeDefined();
+    for (const row of inline()) expect(row).toEqual({ label: "", glyph: "" });
+    await dom.close();
+  });
+});

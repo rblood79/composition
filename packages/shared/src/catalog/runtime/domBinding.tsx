@@ -46,6 +46,8 @@ import {
   catalogStateOwner,
   catalogStateValue,
   catalogTreeChevronButtonItem,
+  catalogItemLabels,
+  catalogItemRemoveGlyphItem,
   catalogTreeChevronGlyphItem,
   catalogDisclosureOfHeading,
   catalogDisclosureOfTrigger,
@@ -2165,16 +2167,30 @@ function renderNode(
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
   // A Disclosure's title Text takes its trigger's color the same way (`… > .react-aria-Text
-  // { color: inherit }` — the trigger's hover color reaches it).
+  // { color: inherit }` — the trigger's hover color reaches it), and so does a Tab's · Tag's label
+  // (`.react-aria-Tag .react-aria-Text { color: inherit }`): RAC's run selection recolors the item
+  // in the Preview, and the Canvas's item color (`derivedOf`) is the authored state's (2026-10-09).
+  const itemOfLabel = () => {
+    const item = root.domInputs.get(node.parentId);
+    return (
+      item &&
+      catalogItemLabels(
+        item,
+        (id) => root.domInputs.get(id),
+        (entry) => catalogTypeName(root, entry),
+      ).some((label) => label.id === node.id)
+    );
+  };
   if (
     bound &&
     (node.bindingId === "selectvalue" ||
       (node.bindingId === "text" &&
-        catalogDisclosureOfTriggerPart(
+        (catalogDisclosureOfTriggerPart(
           node,
           (id) => root.domInputs.get(id),
           (entry) => catalogTypeName(root, entry),
-        ) !== undefined)) &&
+        ) !== undefined ||
+          itemOfLabel()))) &&
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;
@@ -2253,7 +2269,9 @@ function renderNode(
   const sheetColored =
     node.bindingId === "icon" &&
     (catalogTreeChevronGlyphItem(node, domGet, domType) ||
-      catalogDisclosureOfTriggerPart(node, domGet, domType))
+      catalogDisclosureOfTriggerPart(node, domGet, domType) ||
+      // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
+      catalogItemRemoveGlyphItem(node, domGet, domType))
       ? {
           ...node,
           visual: { ...node.visual, color: undefined },
