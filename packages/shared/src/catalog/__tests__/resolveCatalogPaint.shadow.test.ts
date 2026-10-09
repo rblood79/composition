@@ -82,6 +82,8 @@ function resolveLegacySemantic(
   props: Readonly<Record<string, unknown>>,
   size: ComponentRuleSize | undefined,
   interactionState: CatalogInteractionState,
+  // (the rule's static paint opacity — S2 transparent-overlay, 2026-10-10; not a legacy visual field)
+  staticAlpha = 1,
 ) {
   const style = props.style as Readonly<Record<string, unknown>> | undefined;
   const fill = visual.fill;
@@ -190,7 +192,7 @@ function resolveLegacySemantic(
     color,
     borderColor,
     backgroundAlpha: hasVisibleBoxPaint
-      ? catalogAlpha * (staticTrackWash ? 0.25 : 1)
+      ? catalogAlpha * (staticOnOpaqueBackground ? staticAlpha : 1)
       : undefined,
     staticTrackWash,
     hasVisibleBoxPaint,
@@ -227,6 +229,7 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
               props,
               ruleSize,
               interactionState,
+              variant.staticAlpha,
             );
             const resolvedSemantic = {
               backgroundColor: resolved.hasVisibleBoxPaint

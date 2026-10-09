@@ -3,44 +3,59 @@
  *
  * design-data 감사 §2-F: 유색/이미지 배경 위 고정 흑백 스킴. 고정 흑백은 catalog
  * 토큰(테마 연동)으로 표현 불가라 수동 CSS — Button.css [data-static-color] 선례 동형.
- * Button 형(bg 반전)이 아니라 value-fill 2채널 스킴:
- *   track = static 25% wash / fill·label·value 텍스트 = solid static.
- * Skia: 아직 칠하지 않는다 (ADR-256 Phase 7a 범위 밖 기록).
+ * Button 형(bg 반전)이 아니라 value-fill 스킴 — S2 1.8.0 `bar-utils.ts` (2026-10-10 「Static Color 일
+ * 때 S2와 동일하게」): track = static 색 0.17 (`transparent-overlay-300`), fill = 0.94 (`-900`),
+ * label · value 글자 = static 색 (`-1000`). Meter 도 같은 스킴 (S2 Meter · ProgressBar 공통).
+ * Skia: 같은 값을 rule `staticAlpha` (track · fill) 와 label · value 노드의 파생 `staticColor` 로 그린다.
  *
  * generated ProgressBar.css 는 @layer components 안이므로 본 unlayered 규칙이 variant
  * var 재정의를 항상 이긴다 (cascade layer 규칙 — 의도된 우선).
  */
 
 .react-aria-ProgressBar[data-static-color="white"] {
-  --fill-color: var(--color-white, #fff);
-  --track-color: rgb(255 255 255 / 0.25);
-  color: var(--color-white, #fff);
+  --fill-color: rgb(255 255 255 / 0.94);
+  --track-color: rgb(255 255 255 / 0.17);
+  color: rgb(255 255 255);
 }
 
 .react-aria-ProgressBar[data-static-color="black"] {
-  --fill-color: var(--color-black, #000);
-  --track-color: rgb(0 0 0 / 0.25);
-  color: var(--color-black, #000);
+  --fill-color: rgb(0 0 0 / 0.94);
+  --track-color: rgb(0 0 0 / 0.17);
+  color: rgb(0 0 0);
 }
 
-/*
- * S2 1.8.0 Meter staticColor (2026-10-10) — ProgressBar 와 같은 스킴 (S2 Meter · ProgressBar 가
- * 같은 fill/track 규칙). Meter 의 track 은 `--track-color` 가 아니라 `.bar` 의 배경이다.
- */
+/* Meter 의 track 은 `--track-color` 가 아니라 `.bar` 의 배경이다. */
 .react-aria-Meter[data-static-color="white"] {
-  --fill-color: var(--color-white, #fff);
-  color: var(--color-white, #fff);
+  --fill-color: rgb(255 255 255 / 0.94);
+  color: rgb(255 255 255);
 }
 
 .react-aria-Meter[data-static-color="white"] .bar {
-  background: rgb(255 255 255 / 0.25);
+  background: rgb(255 255 255 / 0.17);
 }
 
 .react-aria-Meter[data-static-color="black"] {
-  --fill-color: var(--color-black, #000);
-  color: var(--color-black, #000);
+  --fill-color: rgb(0 0 0 / 0.94);
+  color: rgb(0 0 0);
 }
 
 .react-aria-Meter[data-static-color="black"] .bar {
-  background: rgb(0 0 0 / 0.25);
+  background: rgb(0 0 0 / 0.17);
+}
+
+/* label · value 글자 — 각자 rule 의 색 (`--fg` · `--fg-muted`) 대신 static 색. */
+.react-aria-ProgressBar[data-static-color="white"] :is(.react-aria-Label, .value) {
+  color: rgb(255 255 255);
+}
+
+.react-aria-ProgressBar[data-static-color="black"] :is(.react-aria-Label, .value) {
+  color: rgb(0 0 0);
+}
+
+.react-aria-Meter[data-static-color="white"] :is(.react-aria-Label, .value) {
+  color: rgb(255 255 255);
+}
+
+.react-aria-Meter[data-static-color="black"] :is(.react-aria-Label, .value) {
+  color: rgb(0 0 0);
 }

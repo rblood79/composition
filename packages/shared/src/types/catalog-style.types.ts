@@ -156,6 +156,12 @@ export interface ComponentRuleVariant {
    */
   fillBar?: string;
   /**
+   * staticColor (white · black) 로 칠할 때 그 색의 불투명도 — S2 `transparent-overlay-N` 의 투명도
+   * (예: value-fill track 은 `-300` 0.17, 채움은 `-900` 0.94 — S2 `bar-utils.ts`). 미지정이면 1.
+   * `resolveCatalogPaint` 가 static 칠의 `backgroundAlpha` 로 쓴다.
+   */
+  staticAlpha?: number;
+  /**
    * leading icon (텍스트 좌측 아이콘 — DisclosureHeader chevron 등 보편 D3 속성, ADR-912 (B+icon)).
    * box+text generic 경로에서 `leading_icon` skiaPrimitive(append 모드)가 본 필드로 chevron 을
    * 그리고, buildCatalogShapes 가 `size.iconSize` 존재 시 text x 를 `iconSize + gap` 만큼 우측

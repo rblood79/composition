@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 /**
- * S2 1.8.0 Meter `staticColor` (2026-10-10, 조사 문서 목록 D): over a color background the fill is
- * white · black (S2 `fillStyles` `isStaticColor` — the variant is not read) and the track a wash
- * of it — the ProgressBar's scheme (S2 Meter and ProgressBar share it). DOM: the root's
- * `data-static-color` and the manual sheet's `--fill-color` · `--track-color`; Canvas: the track ·
- * fill take the Meter's `staticColor` (`presence.ts`) and `resolveCatalogPaint` paints it.
+ * S2 1.8.0 Meter · ProgressBar `staticColor` (2026-10-10, 조사 문서 목록 D · 사용자 「Static Color 일
+ * 때 S2와 동일하게」): over a color background S2 paints both bars with one scheme (`bar-utils.ts`
+ * `track` · `fillStyles` · `fieldLabel`) — the track `transparent-overlay-300` (the static color at
+ * 0.17), the fill `transparent-overlay-900` (0.94 — the variant is not read), the label and the value
+ * text `transparent-overlay-1000` (the static color). DOM: the root's `data-static-color` and the
+ * manual `ProgressBar.css`; Canvas: the parts take the owner's `staticColor` (`presence.ts`) and the
+ * rules' `staticAlpha` (`resolveCatalogPaint`).
  */
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
@@ -13,14 +15,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { COMPONENT_RULES_TABLE } from "../../../../../../packages/shared/src/catalog/generated/componentRulesTable";
-import { resolveCatalogPaint } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogPaint";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
+import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import { catalogSemanticContracts } from "../editContract";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
@@ -29,30 +31,63 @@ import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
-const OWNER = "project:node:meter" as NodeId;
+const OWNER = "project:node:bar" as NodeId;
 const SHEET = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../../../../../packages/shared/src/components/styles/ProgressBar.css",
 );
+const PARTS = {
+  Meter: { track: "MeterTrack", fill: "MeterFill", value: "MeterValue" },
+  ProgressBar: {
+    track: "ProgressBarTrack",
+    fill: "ProgressBarFill",
+    value: "ProgressBarValue",
+  },
+} as const;
 
-async function open(props: Record<string, unknown>) {
+type Painted = {
+  box?: { fillColor?: Record<string, number> };
+  text?: { color?: Record<string, number> };
+  children?: Painted[];
+};
+const rgba = (color: Record<string, number> | undefined) =>
+  color
+    ? [
+        ...[color[0], color[1], color[2]].map((value) =>
+          Math.round(value! * 255),
+        ),
+        Math.round(color[3]! * 100) / 100,
+      ]
+    : undefined;
+/** The first text color painted in a node's subtree. */
+const textColor = (node: Painted | undefined): number[] | undefined => {
+  if (!node) return undefined;
+  if (node.text?.color) return rgba(node.text.color);
+  for (const child of node.children ?? []) {
+    const found = textColor(child);
+    if (found) return found;
+  }
+  return undefined;
+};
+
+async function open(type: keyof typeof PARTS, props: Record<string, unknown>) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
-        projectId: "project:project:meter-static" as const,
-        name: "Meter static color",
+        projectId: "project:project:bar-static" as const,
+        name: "Bar static color",
       }),
       library,
     ),
-    new CatalogStorage(indexedDB, `meter-static-${Math.random()}`),
+    new CatalogStorage(indexedDB, `bar-static-${Math.random()}`),
     {
       engine: await nodeLayoutEngine(),
       viewport: { width: 1000, height: 800 },
       autosaveSchedule: () => {},
     },
   );
-  const definitionId = catalogPaletteDefinitionId(library, "Meter");
+  const definitionId = catalogPaletteDefinitionId(library, type);
   workspace.execute(
     insertNodes({
       parent: { kind: "node", id: "project:node:home-body" as NodeId },
@@ -63,10 +98,9 @@ async function open(props: Record<string, unknown>) {
           definitionId,
           children: [],
           props: Object.fromEntries(
-            Object.entries(props).map(([key, value]) => [
-              key,
-              { kind: "set", value },
-            ]),
+            Object.entries({ label: "Storage", ...props }).map(
+              ([key, value]) => [key, { kind: "set", value }],
+            ),
           ),
           visual: {},
           sizing: {},
@@ -83,85 +117,95 @@ async function open(props: Record<string, unknown>) {
     (item) => item.sourceId === OWNER,
   )!;
   const tag =
-    /<div[^>]*class="react-aria-Meter"[^>]*>/.exec(
+    new RegExp(`<div[^>]*class="react-aria-${type}"[^>]*>`).exec(
       renderToStaticMarkup(renderCatalogDom(root, owner.id)),
     )?.[0] ?? "";
-  /** The Canvas paint of the Meter's track · fill (their rule, with the derived owner values). */
-  const paint = (type: "MeterTrack" | "MeterFill") => {
-    const record = records.find((item) => root.typeOf(item) === type)!;
-    const rule = (
-      COMPONENT_RULES_TABLE as Record<
-        string,
-        { variants: Record<string, unknown>; defaultVariant: string }
-      >
-    )[type]!;
-    return {
-      derived: record.derivedProps?.staticColor,
-      ...resolveCatalogPaint({
-        variant: rule.variants[
-          String(record.derivedProps?.variant ?? rule.defaultVariant)
-        ] as never,
-        size: undefined as never,
-        props: { ...record.props, ...record.derivedProps } as never,
-      } as never),
-    };
+  const canvas = bindCatalogCanvas(root, root.pageRootRecords());
+  const node = (partType: string) =>
+    getSkiaNode(
+      records.find((item) => root.typeOf(item) === partType)!.id,
+    ) as unknown as Painted;
+  const shown = {
+    tag,
+    track: rgba(node(PARTS[type].track).box?.fillColor),
+    fill: rgba(node(PARTS[type].fill).box?.fillColor),
+    label: textColor(node("Label")),
+    value: textColor(node(PARTS[type].value)),
   };
-  return { definitionId, tag, paint };
+  canvas.dispose();
+  return { definitionId, ...shown };
 }
 
-describe("S2 Meter staticColor", () => {
-  it("the Design panel offers Static Color (auto · white · black)", async () => {
-    const { definitionId } = await open({});
-    const contract = catalogSemanticContracts(definitionId, "Meter")
-      .staticColor as { kind: string; options?: Array<{ value: string }> };
-    expect(contract).toMatchObject({ kind: "enum" });
-    expect(contract.options?.map((option) => option.value)).toEqual([
-      "auto",
-      "white",
-      "black",
-    ]);
-  });
-
-  it("auto: no static attribute · the variant fill", async () => {
-    const { tag, paint } = await open({});
-    expect(tag).not.toContain("data-static-color");
-    expect(paint("MeterFill").backgroundColor).not.toBe("#ffffff");
-  });
-
-  for (const [color, hex] of [
-    ["white", "#ffffff"],
-    ["black", "#000000"],
-  ] as const)
-    it(`${color}: the fill in the static color · the track a 25% wash of it — both consumers`, async () => {
-      const { tag, paint } = await open({
-        staticColor: color,
-        variant: "positive",
-      });
-      expect(tag).toContain(`data-static-color="${color}"`);
-      const fill = paint("MeterFill");
-      expect(fill.derived).toBe(color);
-      expect(fill.backgroundColor).toBe(hex);
-      const track = paint("MeterTrack");
-      expect(track.backgroundColor).toBe(hex);
-      expect(track.backgroundAlpha).toBeCloseTo(0.25);
+for (const type of ["Meter", "ProgressBar"] as const)
+  describe(`S2 ${type} staticColor`, () => {
+    it("the Design panel offers Static Color (auto · white · black)", async () => {
+      const { definitionId } = await open(type, {});
+      const contract = catalogSemanticContracts(definitionId, type)
+        .staticColor as { kind: string; options?: Array<{ value: string }> };
+      expect(contract).toMatchObject({ kind: "enum" });
+      expect(contract.options?.map((option) => option.value)).toEqual([
+        "auto",
+        "white",
+        "black",
+      ]);
     });
 
-  it("the sheet gives a static Meter the same fill · track (over its variant)", () => {
+    it("auto: no static attribute · the variant fill · the theme text", async () => {
+      const shown = await open(type, {});
+      expect(shown.tag).not.toContain("data-static-color");
+      expect(shown.fill?.slice(0, 3)).not.toEqual([255, 255, 255]);
+      expect(shown.label?.slice(0, 3)).not.toEqual([255, 255, 255]);
+    });
+
+    for (const [color, rgb] of [
+      ["white", [255, 255, 255]],
+      ["black", [0, 0, 0]],
+    ] as const)
+      it(`${color}: S2's track 17% · fill 94% · label and value in the static color`, async () => {
+        const shown = await open(type, {
+          staticColor: color,
+          showValueLabel: true,
+          ...(type === "Meter" ? { variant: "positive" } : {}),
+        });
+        expect(shown.tag).toContain(`data-static-color="${color}"`);
+        expect(shown.track).toEqual([...rgb, 0.17]);
+        expect(shown.fill).toEqual([...rgb, 0.94]);
+        expect(shown.label).toEqual([...rgb, 1]);
+        expect(shown.value).toEqual([...rgb, 1]);
+      });
+  });
+
+describe("the sheet", () => {
+  it("gives a static Meter · ProgressBar S2's track · fill · text", () => {
     const sheet = readFileSync(SHEET, "utf8");
-    for (const [color, fill, track] of [
-      ["white", "var\\(--color-white, #fff\\)", "rgb\\(255 255 255 \\/ 0\\.25\\)"],
-      ["black", "var\\(--color-black, #000\\)", "rgb\\(0 0 0 \\/ 0\\.25\\)"],
+    for (const [color, rgb] of [
+      ["white", "255 255 255"],
+      ["black", "0 0 0"],
     ]) {
+      const at = (alpha: string) =>
+        `rgb\\(${rgb} \\/ ${alpha.replace(".", "\\.")}\\)`;
+      for (const type of ["ProgressBar", "Meter"])
+        expect(sheet).toMatch(
+          new RegExp(
+            `\\.react-aria-${type}\\[data-static-color="${color}"\\] \\{\\s*--fill-color: ${at("0.94")};`,
+          ),
+        );
       expect(sheet).toMatch(
         new RegExp(
-          `\\.react-aria-Meter\\[data-static-color="${color}"\\] \\{\\s*--fill-color: ${fill};`,
+          `\\.react-aria-ProgressBar\\[data-static-color="${color}"\\] \\{[^}]*--track-color: ${at("0.17")};`,
         ),
       );
       expect(sheet).toMatch(
         new RegExp(
-          `\\.react-aria-Meter\\[data-static-color="${color}"\\] \\.bar \\{\\s*background: ${track};`,
+          `\\.react-aria-Meter\\[data-static-color="${color}"\\] \\.bar \\{\\s*background: ${at("0.17")};`,
         ),
       );
+      for (const type of ["ProgressBar", "Meter"])
+        expect(sheet).toMatch(
+          new RegExp(
+            `\\.react-aria-${type}\\[data-static-color="${color}"\\] :is\\(\\.react-aria-Label, \\.value\\) \\{\\s*color: rgb\\(${rgb}\\);`,
+          ),
+        );
     }
   });
 });

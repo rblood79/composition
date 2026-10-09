@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Meter · ProgressBar staticColor — S2 값으로] - 2026-10-10
+
+### Changed
+
+- **Meter · ProgressBar `staticColor` 가 S2 1.8.0 과 같은 색으로 그려진다** (사용자 「Static Color 일 때 S2와 동일하게」 — S2 `bar-utils.ts` · `fieldLabel`):
+  - track: static 색 25% → **17%** (`transparent-overlay-300`).
+  - 채움: 불투명 → **94%** (`transparent-overlay-900`).
+  - 라벨 · 값 글자: 테마색 그대로였다 → **static 색** (`transparent-overlay-1000`). 작성한 글자색은 그대로 이긴다.
+  - Preview 는 수동 `ProgressBar.css` (`--fill-color` · `--track-color` · Meter `.bar` · `:is(.react-aria-Label, .value)`), Canvas 는 rule variant 의 새 채널 `staticAlpha` (track 0.17 · fill 0.94 — `resolveCatalogPaint` 가 static 칠의 투명도로 쓴다) 와 라벨 · 값 노드가 받는 owner 의 `staticColor` (`presence.ts` `catalogProgressStaticText`, 라벨 글자색은 `compositionRoot.ts` `derivedOf`).
+  - 위치: `packages/shared/src/types/catalog-style.types.ts` · `packages/shared/src/catalog/resolvers/resolveCatalogPaint.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (ProgressBarTrack · ProgressBarFill · MeterTrack · MeterFill) · `packages/shared/src/catalog/runtime/{presence.ts,compositionRoot.ts}` · `packages/shared/src/components/styles/ProgressBar.css`
+- 확인: live — Meter · ProgressBar 각각 Design 패널 White · Black → Preview track `rgba(…, 0.17)` · 채움 `rgba(…, 0.94)` · 라벨 · 값 흰색 / 검정, Canvas track · 채움 · 라벨 · 값도 같은 색, Auto → 둘 다 테마색으로 복귀, 높이 Canvas = Preview (`apps/builder/scripts/meter-static-color-live.mjs` 7/7).
+
 ## [S2 Meter staticColor] - 2026-10-10
 
 ### Added

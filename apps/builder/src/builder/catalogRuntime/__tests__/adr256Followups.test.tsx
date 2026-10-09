@@ -206,7 +206,7 @@ describe("ADR-256 후속 B — 진행 막대 · Slider · Swatch", () => {
       );
   });
 
-  it("11: a static ProgressBar paints its fill in the static color and its track as a 25% wash of it", async () => {
+  it("11: a static ProgressBar paints its fill and its track in the static color (S2 overlay 0.94 · 0.17)", async () => {
     const { workspace, all } = await place("progressbar");
     edit(workspace, { staticColor: "white" });
     const paint = (name: "ProgressBarTrack" | "ProgressBarFill") => {
@@ -219,10 +219,12 @@ describe("ADR-256 후속 B — 진행 막대 · Slider · Swatch", () => {
       } as never);
     };
     expect(all("ProgressBarFill")[0]!.derivedProps?.staticColor).toBe("white");
-    expect(paint("ProgressBarFill").backgroundColor).toBe("#ffffff");
+    const fill = paint("ProgressBarFill");
+    expect(fill.backgroundColor).toBe("#ffffff");
+    expect(fill.backgroundAlpha).toBeCloseTo(0.94);
     const track = paint("ProgressBarTrack");
     expect(track.backgroundColor).toBe("#ffffff");
-    expect(track.backgroundAlpha).toBeCloseTo(0.25);
+    expect(track.backgroundAlpha).toBeCloseTo(0.17);
   });
 
   it("12: the Canvas Slider value snaps to its step as RAC's does (fill · thumb · output)", async () => {

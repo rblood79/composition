@@ -110,7 +110,7 @@ describe("resolveCatalogPaint", () => {
     });
   });
 
-  it("opaque staticColor는 역상 text를 쓰고 value-fill track은 25% wash를 보존한다", () => {
+  it("opaque staticColor는 역상 text를 쓰고 rule 의 staticAlpha (S2 overlay 투명도) 로 칠한다", () => {
     expect(resolve({ staticColor: "black" })).toMatchObject({
       backgroundColor: "#000000",
       color: "#ffffff",
@@ -119,18 +119,24 @@ describe("resolveCatalogPaint", () => {
       staticTrackWash: false,
     });
 
-    expect(
-      resolve({ staticColor: "white" }, "default", {
-        ...BUTTON_VARIANT,
-        fillBar: "value-fill",
-      }),
-    ).toMatchObject({
+    // (a value-fill track — S2 `transparent-overlay-300`: its text keeps the static color)
+    const track = resolve({ staticColor: "white" }, "default", {
+      ...BUTTON_VARIANT,
+      fillBar: "value-fill",
+      staticAlpha: 0.17,
+    });
+    expect(track).toMatchObject({
       backgroundColor: "#ffffff",
       color: "#ffffff",
       borderColor: "#ffffff",
-      backgroundAlpha: 0.2,
       staticTrackWash: true,
     });
+    expect(track.backgroundAlpha).toBeCloseTo(0.8 * 0.17);
+    // (staticAlpha 는 static 칠에만 — auto 는 rule 의 alpha 그대로)
+    expect(
+      resolve({}, "default", { ...BUTTON_VARIANT, staticAlpha: 0.17 })
+        .backgroundAlpha,
+    ).toBe(0.8);
   });
 
   it("text-only/transparent variant에서 staticColor가 새 border나 opaque box를 만들지 않는다", () => {

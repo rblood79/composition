@@ -1,7 +1,9 @@
-// S2 Meter staticColor live (2026-10-10, 조사 문서 목록 D): real Builder (headed Chrome, Compare
-// Mode). A Meter: Static Color White from the Design panel → the Preview fill is white and its track
-// a 25% white wash; the Canvas track · fill take the Meter's staticColor (their paint:
-// `meterStaticColor.test.ts`); Black → black; Auto → the variant fill again; no errors.
+// S2 Meter · ProgressBar staticColor live (2026-10-10, 조사 문서 목록 D · 사용자 「Static Color 일 때
+// S2와 동일하게」): real Builder (headed Chrome, Compare Mode). For a Meter and a ProgressBar: Static
+// Color White from the Design panel → Preview track 0.17 · fill 0.94 · label and value text white
+// (S2 transparent-overlay-300 · -900 · -1000); the Canvas track · fill · label · value take the
+// owner's staticColor (their paint: `meterStaticColor.test.ts`); Black → black; Auto → the theme
+// colors again; no errors.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/meter-static-color-live.mjs <out>
 import { chromium } from "playwright";
@@ -74,43 +76,67 @@ const pick = async (label, option) => {
   }
   await page.waitForTimeout(1500);
 };
-const read = () =>
-  page.evaluate(() => {
-    const ws = window.__COMPOSITION_CATALOG__.workspace;
-    const root = ws.root;
-    const records = [...root.canvasInputs.values()];
-    const of = (type) => records.find((r) => root.typeOf(r) === type);
-    const meter = of("Meter");
-    const doc = document.querySelector("#previewFrame").contentDocument;
-    const el = doc.querySelector(".react-aria-Meter");
-    const css = (selector, key) => {
-      const target = el?.querySelector(selector);
-      return target ? doc.defaultView.getComputedStyle(target)[key] : null;
-    };
-    const height = (record) =>
-      record ? (root.getGeometry([record.id]).get(record.id)?.height ?? null) : null;
-    return {
-      staticColor: meter.props.staticColor ?? null,
-      fillDerived: of("MeterFill")?.derivedProps?.staticColor ?? null,
-      trackDerived: of("MeterTrack")?.derivedProps?.staticColor ?? null,
-      dataStaticColor: el?.getAttribute("data-static-color") ?? null,
-      previewFill: css(".fill", "backgroundColor"),
-      previewTrack: css(".bar", "backgroundColor"),
-      previewLabel: css(".react-aria-Label", "color"),
-      previewValue: css(".value", "color"),
-      canvasHeight: height(meter),
-      previewHeight: el?.getBoundingClientRect().height ?? null,
-    };
-  });
-const selectMeter = () =>
-  page.evaluate(() => {
+const PARTS = {
+  Meter: { track: "MeterTrack", fill: "MeterFill", value: "MeterValue", bar: ".bar" },
+  ProgressBar: {
+    track: "ProgressBarTrack",
+    fill: "ProgressBarFill",
+    value: "ProgressBarValue",
+    bar: ".bar",
+  },
+};
+const read = (type) =>
+  page.evaluate(
+    ({ type, parts }) => {
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      const root = ws.root;
+      const records = [...root.canvasInputs.values()];
+      const owner = records.find((r) => root.typeOf(r) === type);
+      const under = (partType) =>
+        records.find((r) => {
+          if (root.typeOf(r) !== partType) return false;
+          for (let c = root.canvasInputs.get(r.parentId); c; c = root.canvasInputs.get(c.parentId))
+            if (c.id === owner.id) return true;
+          return false;
+        });
+      const doc = document.querySelector("#previewFrame").contentDocument;
+      const el = doc.querySelector(`.react-aria-${type}`);
+      const css = (selector, key) => {
+        const target = el?.querySelector(selector);
+        return target ? doc.defaultView.getComputedStyle(target)[key] : null;
+      };
+      const height = (record) =>
+        record ? (root.getGeometry([record.id]).get(record.id)?.height ?? null) : null;
+      return {
+        staticColor: owner.props.staticColor ?? null,
+        canvas: {
+          track: under(parts.track)?.derivedProps?.staticColor ?? null,
+          fill: under(parts.fill)?.derivedProps?.staticColor ?? null,
+          label: under("Label")?.derivedProps?.color ?? null,
+          value: under(parts.value)?.derivedProps?.staticColor ?? null,
+        },
+        preview: {
+          attr: el?.getAttribute("data-static-color") ?? null,
+          track: css(parts.bar, "backgroundColor"),
+          fill: css(".fill", "backgroundColor"),
+          label: css(".react-aria-Label", "color"),
+          value: css(".value", "color"),
+        },
+        canvasHeight: height(owner),
+        previewHeight: el?.getBoundingClientRect().height ?? null,
+      };
+    },
+    { type, parts: PARTS[type] },
+  );
+const select = (type) =>
+  page.evaluate((type) => {
     const ws = window.__COMPOSITION_CATALOG__.workspace;
     const root = ws.root;
     const node = [...root.canvasInputs.values()].find(
-      (r) => root.typeOf(r) === "Meter",
+      (r) => root.typeOf(r) === type,
     );
     ws.selectRecords([node.id]);
-  });
+  }, type);
 
 await page.goto(`${BASE}/dashboard`);
 await page
@@ -118,7 +144,7 @@ await page
   .first()
   .click();
 await page.waitForTimeout(300);
-await page.keyboard.type("Meter static color");
+await page.keyboard.type("Bar static color");
 await page.keyboard.press("Enter");
 await page.waitForURL(/\/builder\//, { timeout: 30000 });
 await page.waitForSelector(".app:not(.builder-booting)", { timeout: 30000 });
@@ -134,49 +160,64 @@ const compare = page
 if (await compare.isVisible().catch(() => false)) await compare.click();
 await page.waitForTimeout(1500);
 
-await addFromPalette("meter");
-await page.waitForTimeout(1500);
-await selectMeter();
-await page.waitForTimeout(1000);
-for (let i = 0; i < 3; i++) {
-  if (await field("Static Color").isVisible().catch(() => false)) break;
-  await page.getByRole("button", { name: "Design", exact: true }).first().click();
-  await page.waitForTimeout(1200);
+const s2 = (rgb) => ({
+  track: `rgba(${rgb}, 0.17)`,
+  fill: `rgba(${rgb}, 0.94)`,
+  text: `rgb(${rgb})`,
+});
+const PALETTE = { Meter: "meter", ProgressBar: "progress bar" };
+for (const type of ["Meter", "ProgressBar"]) {
+  await page.evaluate(() =>
+    window.__COMPOSITION_CATALOG__.workspace.selectRecords([]),
+  );
+  await addFromPalette(PALETTE[type]);
+  await page.waitForTimeout(1500);
+  await select(type);
+  await page.waitForTimeout(1000);
+  for (let i = 0; i < 3; i++) {
+    if (await field("Static Color").isVisible().catch(() => false)) break;
+    await page.getByRole("button", { name: "Design", exact: true }).first().click();
+    await page.waitForTimeout(1200);
+  }
+  const before = await read(type);
+  for (const [option, value, rgb, hex] of [
+    ["White", "white", "255, 255, 255", "#ffffff"],
+    ["Black", "black", "0, 0, 0", "#000000"],
+  ]) {
+    await pick("Static Color", option);
+    const shown = await read(type);
+    const want = s2(rgb);
+    record(
+      `${type} ${option}: Preview track 0.17 · fill 0.94 · label · value ${value} = Canvas track · fill · label · value ${value} · height Canvas = Preview`,
+      shown.staticColor === value &&
+        shown.preview.attr === value &&
+        shown.preview.track === want.track &&
+        shown.preview.fill === want.fill &&
+        shown.preview.label === want.text &&
+        shown.preview.value === want.text &&
+        shown.canvas.track === value &&
+        shown.canvas.fill === value &&
+        shown.canvas.label === hex &&
+        shown.canvas.value === value &&
+        shown.canvasHeight === shown.previewHeight,
+      option === "White" ? { before, shown } : shown,
+    );
+  }
+  await pick("Static Color", "Auto");
+  const auto = await read(type);
+  record(
+    `${type} Auto: the theme colors again on both`,
+    auto.preview.attr === null &&
+      auto.preview.track === before.preview.track &&
+      auto.preview.fill === before.preview.fill &&
+      auto.preview.label === before.preview.label &&
+      auto.preview.value === before.preview.value &&
+      auto.canvas.label === before.canvas.label &&
+      auto.canvas.value === before.canvas.value,
+    auto,
+  );
+  await page.keyboard.press("Escape");
 }
-const before = await read();
-await pick("Static Color", "White");
-const white = await read();
-record(
-  "White from the panel: Preview fill white · track 25% white · Canvas track · fill take white · height Canvas = Preview",
-  white.staticColor === "white" &&
-    white.dataStaticColor === "white" &&
-    white.fillDerived === "white" &&
-    white.trackDerived === "white" &&
-    white.previewFill === "rgb(255, 255, 255)" &&
-    white.previewTrack === "rgba(255, 255, 255, 0.25)" &&
-    white.canvasHeight === white.previewHeight,
-  { before, white },
-);
-await pick("Static Color", "Black");
-const black = await read();
-record(
-  "Black: Preview fill black · track 25% black · Canvas black",
-  black.fillDerived === "black" &&
-    black.trackDerived === "black" &&
-    black.previewFill === "rgb(0, 0, 0)" &&
-    black.previewTrack === "rgba(0, 0, 0, 0.25)",
-  black,
-);
-await pick("Static Color", "Auto");
-const auto = await read();
-record(
-  "Auto: the variant fill again on both",
-  auto.dataStaticColor === null &&
-    auto.previewFill === before.previewFill &&
-    auto.previewTrack === before.previewTrack &&
-    (auto.fillDerived === null || auto.fillDerived === "auto"),
-  auto,
-);
 
 record("no errors", errors.length === 0, errors.slice(0, 5));
 writeFileSync(

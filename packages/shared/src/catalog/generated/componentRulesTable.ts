@@ -7145,6 +7145,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       informative: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.informative}",
@@ -7157,6 +7159,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       positive: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.positive}",
@@ -7169,6 +7173,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       warning: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.notice}",
@@ -7181,6 +7187,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       critical: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.negative}",
@@ -7216,8 +7224,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // The track's own box (neutral-subtle — the Meter sheet's `.bar` --bg-muted); its fill is the
       //   MeterFill node (ADR-256 Phase 7b).
       informative: {
-        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.informative}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7230,8 +7239,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       positive: {
-        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.positive}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7244,8 +7254,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       warning: {
-        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.notice}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7258,8 +7269,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       critical: {
-        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.negative}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -8313,8 +8325,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   `--fill-color` — default · accent: accent-subtle / accent, neutral: neutral-subtle /
       //   neutral-subdued (the fill is the ProgressBarFill node — ADR-256 Phase 7a).
       default: {
-        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.accent}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.accent-subtle}",
@@ -8327,8 +8340,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       accent: {
-        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.accent}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.accent-subtle}",
@@ -8341,8 +8355,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       neutral: {
-        // (A value-fill track: a static color paints it as a 25% wash — ADR-256 후속 11.)
+        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.neutral-subdued}",
+        staticAlpha: 0.17,
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -8404,6 +8419,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.accent}",
@@ -8416,6 +8433,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       accent: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.accent}",
@@ -8428,6 +8447,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       neutral: {
+        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
+        staticAlpha: 0.94,
         fill: {
           default: {
             base: "{color.neutral-subdued}",

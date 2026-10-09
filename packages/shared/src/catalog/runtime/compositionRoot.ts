@@ -1960,6 +1960,18 @@ export class CatalogCompositionRoot {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
     }
+    // A static ProgressBar · Meter's label (S2 `FieldLabel staticColor` — `catalogProgressStaticText`):
+    // the static color, unless the label authors its own color (the DOM's inline style wins over
+    // the sheet's). A rule-backed value text paints it from its own rule (`resolveCatalogPaint`).
+    if (
+      !record.ruleId &&
+      (derived?.staticColor === "white" || derived?.staticColor === "black") &&
+      catalogAuthoredVisual(this, record).color === undefined
+    )
+      return {
+        ...derived,
+        color: derived.staticColor === "white" ? "#ffffff" : "#000000",
+      };
     // (A Tag's remove glyph takes the item color too — ADR-256 Phase 5d; so does a TreeItem's
     // chevron glyph — `Tree.css` `all: unset` on its button, the row's color — Phase 5h.)
     const glyphItem =

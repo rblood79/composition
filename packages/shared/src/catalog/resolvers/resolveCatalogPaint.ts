@@ -157,7 +157,10 @@ export function resolveCatalogPaint({
     backgroundColor,
     color,
     borderColor,
-    backgroundAlpha: catalogAlpha * (staticTrackWash ? 0.25 : 1),
+    // (a static paint at the rule's S2 overlay opacity — a value-fill track 0.17, its fill 0.94)
+    backgroundAlpha:
+      catalogAlpha *
+      (staticOnOpaqueBackground ? (variant?.staticAlpha ?? 1) : 1),
     staticTrackWash,
     hasVisibleBoxPaint,
     hasOpaqueCatalogBackground,

@@ -74,10 +74,11 @@ export const meterBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
-      // S2 1.8.0 Meter `staticColor` (2026-10-10): over a color background the fill is white ·
-      //   black and the track a 25% wash of it — ProgressBar 와 같은 스킴 (S2 `fillStyles`
-      //   `isStaticColor`, variant 는 읽지 않는다). DOM = 수동 ProgressBar.css `[data-static-color]`,
-      //   Canvas = track · fill 이 Meter 의 값을 받아 (`presence.ts`) `resolveCatalogPaint` 가 칠한다.
+      // S2 1.8.0 Meter `staticColor` (2026-10-10): over a color background the track is the
+      //   static color at 0.17, the fill at 0.94 (variant 는 읽지 않는다), the label and value text
+      //   the static color — ProgressBar 와 같은 스킴 (S2 `bar-utils.ts`). DOM = 수동
+      //   ProgressBar.css `[data-static-color]`, Canvas = track · fill rule `staticAlpha` 와 label ·
+      //   value 노드의 파생 `staticColor` (`presence.ts`).
       staticColor: {
         kind: "enum",
         label: "Static Color",

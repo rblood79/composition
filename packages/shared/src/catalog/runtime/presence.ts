@@ -1411,7 +1411,32 @@ export function catalogDerivedProps(
   // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
   // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
   const grouped = catalogDisclosureGroupPosition(node, get, typeOf);
-  return grouped ? { ...result, ...grouped } : result;
+  const placed = grouped ? { ...result, ...grouped } : result;
+  // (S2 Meter · ProgressBar `staticColor`: the label and the value text in the static color.)
+  const staticText = catalogProgressStaticText(node, get, typeOf);
+  return staticText ? { ...placed, staticColor: staticText } : placed;
+}
+
+/**
+ * S2 1.8.0 Meter · ProgressBar `staticColor` (2026-10-10): its label (`FieldLabel staticColor`) and
+ * its value text (`isStaticColor`) are `transparent-overlay-1000` — the static color itself. The
+ * label · value node of a static ProgressBar · Meter takes its `staticColor` (its paint:
+ * `resolveCatalogPaint`'s static text color). Undefined otherwise.
+ */
+function catalogProgressStaticText(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): "white" | "black" | undefined {
+  const type = node.ruleId ?? typeOf(node);
+  if (type !== "Label" && !PROGRESS_VALUE_TYPES.has(type)) return undefined;
+  const owner = get(node.parentId);
+  if (!owner) return undefined;
+  const ownerType = typeOf(owner);
+  if (!PROGRESS_TRACKS[ownerType]) return undefined;
+  if (type !== "Label" && PROGRESS_VALUES[ownerType] !== type) return undefined;
+  const color = owner.props.staticColor;
+  return color === "white" || color === "black" ? color : undefined;
 }
 
 /**
@@ -1675,7 +1700,7 @@ function ownDerivedProps(
         : 0,
     isIndeterminate: owner.props.isIndeterminate === true,
   };
-  // (`staticColor`: the sheet's static `--track-color` — a 25% wash of it.)
+  // (`staticColor`: the sheet's static track — the static color at the rule's `staticAlpha`.)
   for (const key of ["variant", "size", "staticColor"])
     if (typeof owner.props[key] === "string")
       out[key] = owner.props[key] as string;
@@ -1767,16 +1792,22 @@ function derivedDependents(
     const tracks = childrenOf(owner, get).filter(
       (child) => typeOf(child) === track,
     );
+    // (its label and value text — their `staticColor`, `catalogProgressStaticText`)
+    const texts = childrenOf(owner, get).filter(
+      (child) =>
+        typeOf(child) === "Label" || typeOf(child) === PROGRESS_VALUES[type],
+    );
     // (and the fill in each track — ADR-256 Phase 7a)
     const fill = PROGRESS_FILLS[type];
     return fill
       ? [
           ...tracks,
+          ...texts,
           ...tracks.flatMap((part) =>
             childrenOf(part, get).filter((child) => typeOf(child) === fill),
           ),
         ]
-      : tracks;
+      : [...tracks, ...texts];
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);

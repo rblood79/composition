@@ -59,9 +59,10 @@ export const progressBarBinding: PrimitiveBinding = {
         default: "M",
       },
       // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
-      //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + fill=solid +
-      //   label/value 텍스트=static. DOM = 수동 ProgressBar.css [data-static-color] var 재정의.
-      //   (Canvas 는 아직 칠하지 않는다 — ADR-256 Phase 7a 범위 밖 기록, 전부터.)
+      //   고정 흑백 스킴 — S2 1.8.0 `bar-utils.ts` 값 (2026-10-10): track = static 색 0.17 ·
+      //   fill = 0.94 · label/value 글자 = static 색. DOM = 수동 ProgressBar.css
+      //   [data-static-color], Canvas = track · fill rule `staticAlpha` 와 label · value 노드의 파생
+      //   `staticColor` (`presence.ts`).
       staticColor: {
         kind: "enum",
         label: "Static Color",
