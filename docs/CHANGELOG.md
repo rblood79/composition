@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 전용 prop 2순위 — 그룹 labelAlign · side 라벨 정렬 수정] - 2026-10-09
+
+### Added
+
+- **CheckboxGroup · RadioGroup `labelAlign` (start · end, 기본 start)** — 사용자 「6.1 분류 고치고 ②로 넘어가」 (조사 문서 `S2_PROP_ALIGNMENT_2026-10.md` 6.1 「다」 의 작은 축):
+  - Label Position 이 Side 일 때 Design 패널 Appearance 에 Label Align 이 보인다. 값은 S2 1.8.0 `Alignment` 그대로 start · end (다른 field 는 종전대로 center 도 있다).
+  - 그룹 rule 의 `label-align` 블록이 `--form-label-align` 을 정하고, Preview 는 그룹 요소의 `data-label-align`, Canvas 는 같은 블록을 Label part rule 로 읽는다.
+  - 위치: `packages/shared/src/catalog/bindings/{CheckboxGroup,RadioGroup}.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/catalog/runtime/delegatedDom.tsx`
+
+### Fixed
+
+- **side 라벨의 Label Align 이 Preview 에서 글자를 옮기지 못하던 문제** (TextField 등 side 라벨 열을 쓰는 field 13종):
+  - Label Align 을 End 로 바꾸면 Canvas 는 라벨 글자를 열 끝에 그리는데 Preview 글자는 열 시작에 남았다.
+  - **Why**: Label 은 `inline-flex` (Label rule · `Label.css`) 라 글자가 익명 flex item 이 되고, `text-align` 은 그 item 을 옮기지 않는다. side 라벨 블록은 `text-align` 만 선언했다.
+  - 수정: side 라벨 블록에 `justify-content: var(--form-label-align, start)` 를 같이 선언한다.
+  - 확인: live — CheckboxGroup · RadioGroup · TextField 각각 Side → Label Align End: Preview 글자 오른쪽 끝 = 라벨 상자 오른쪽 끝 (수정 전 CheckboxGroup 106.7 vs 176), Canvas Label `textAlign` end, 라벨 폭 176 = 176, 오류 0 (`apps/builder/scripts/group-label-align-live.mjs` 7/7).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` (side 라벨 블록 13곳) · `packages/shared/src/components/styles/generated/*.css`
+
 ## [S2 전용 prop 1순위 — RAC 가 동작을 주는 prop] - 2026-10-09
 
 ### Added

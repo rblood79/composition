@@ -2037,6 +2037,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-checkbox-size": size,
           "data-size": size,
           "data-label-position": str(props.labelPosition) || "top",
+          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
           defaultValue: selected,
           isDisabled: bool(props.isDisabled),
           isInvalid: authoredInvalid(props),
@@ -2092,6 +2094,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-radio-size": size,
           "data-size": size,
           "data-label-position": str(props.labelPosition) || "top",
+          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
           // (No value is `null` — RAC reads `""` as a chosen value and takes every Radio out of
           // the Tab order; ADR-256 후속 7.)
           defaultValue: value || null,

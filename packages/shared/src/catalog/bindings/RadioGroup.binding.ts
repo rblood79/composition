@@ -65,6 +65,20 @@ export const radioGroupBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // S2 1.8.0 labelAlign (start · end — S2 `Alignment`) — the side label column's text alignment,
+      //   as the fields take it: DOM `data-label-align` → the rule's `label-align` block
+      //   (`--form-label-align`), the Canvas reads the same block (`rulePartRules.ts` `LABEL_ALIGN_AXIS`).
+      labelAlign: {
+        kind: "enum",
+        label: "Label Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+        visibleWhen: { key: "labelPosition", equals: "side" },
+      },
       // form binding props
       // value = "어느 Radio 가 선택됐는가" — RAC value(string)는 자식 <Radio value> 집합으로
       //   제약(reference). 자유입력 시 오타로 선택 깨짐 → 자식 Radio value 기반 select.

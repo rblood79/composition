@@ -65,6 +65,20 @@ export const checkboxGroupBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // S2 1.8.0 labelAlign (start · end — S2 `Alignment`) — the side label column's text alignment,
+      //   as the fields take it: DOM `data-label-align` → the rule's `label-align` block
+      //   (`--form-label-align`), the Canvas reads the same block (`rulePartRules.ts` `LABEL_ALIGN_AXIS`).
+      labelAlign: {
+        kind: "enum",
+        label: "Label Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+        visibleWhen: { key: "labelPosition", equals: "side" },
+      },
       // form binding props
       name: { kind: "string", label: "Name", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },

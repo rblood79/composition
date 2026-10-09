@@ -19,8 +19,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  * ColorField · CheckboxGroup · RadioGroup 도 같은 컬럼이다 (2026-10-07 — ADR-253 후속, 사용자 지시
  * 「레퍼런스 기준」: RSP 의 side 라벨은 field 종류와 무관하게 라벨 열 옆에 내용, 그 아래 줄 내용과
  * 같은 x 에 도움말 · 오류 문구). 종전 제외는 옛 Skia 의 「width 강제 없음」 과 ColorField 의 Skia side
- * 처리 부재가 근거였고, 지금은 Canvas 가 같은 rule 을 읽는다. 두 그룹은 `labelAlign` 을 받지 않아
- * 정렬 계약 (`label-align` variant) 은 받는 field 만이다.
+ * 처리 부재가 근거였고, 지금은 Canvas 가 같은 rule 을 읽는다. 두 그룹의 `labelAlign` 은 S2 1.8.0 그대로
+ * start · end 만이라 (S2 `Alignment`, 2026-10-09) `label-align` variant 도 end 블록 하나다.
  */
 
 const SIDE_LABEL_COLUMN_FAMILIES = [
@@ -39,7 +39,10 @@ const SIDE_LABEL_COLUMN_FAMILIES = [
   "RadioGroup",
 ] as const;
 
-/** Side-column fields that take RSP `labelAlign` (the groups do not). */
+/** The groups take S2 `labelAlign` start · end only. */
+const GROUP_FAMILIES = ["CheckboxGroup", "RadioGroup"] as const;
+
+/** Side-column fields that take `labelAlign` with center (the groups: start · end). */
 const LABEL_ALIGN_FAMILIES = SIDE_LABEL_COLUMN_FAMILIES.filter(
   (component) => component !== "CheckboxGroup" && component !== "RadioGroup",
 );
@@ -81,6 +84,12 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
       expect(labelRule!.styles["text-align"]).toBe(
         "var(--form-label-align, start)",
       );
+      // The Label is `inline-flex` (Label.css · rule): its text is an anonymous flex item, which
+      // `text-align` does not move — the column places it with `justify-content` (2026-10-09 live:
+      // Preview text stayed at the start while the Canvas painted it at the end).
+      expect(labelRule!.styles["justify-content"]).toBe(
+        "var(--form-label-align, start)",
+      );
     },
   );
 
@@ -89,6 +98,15 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
     (component) => {
       const variant = labelAlignVariant(component);
       expect(variant?.center?.styles?.["--form-label-align"]).toBe("center");
+      expect(variant?.end?.styles?.["--form-label-align"]).toBe("end");
+    },
+  );
+
+  it.each(GROUP_FAMILIES)(
+    "%s: labelAlign end 가 --form-label-align 을 정의한다 (S2 start · end)",
+    (component) => {
+      const variant = labelAlignVariant(component);
+      expect(Object.keys(variant ?? {})).toEqual(["end"]);
       expect(variant?.end?.styles?.["--form-label-align"]).toBe("end");
     },
   );

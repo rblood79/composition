@@ -200,6 +200,7 @@
   width: var(--form-label-width, 11rem);
   flex-shrink: 0;
   text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
 }
 
 .react-aria-SearchField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {

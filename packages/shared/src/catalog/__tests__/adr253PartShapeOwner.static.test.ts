@@ -31,6 +31,8 @@ const PLACEMENT_KEYS: ReadonlySet<string> = new Set([
   "align-self",
   "justify-self",
   "text-align",
+  // (The side column's alignment of the inline-flex Label's text — `text-align`'s twin.)
+  "justify-content",
   "margin",
   "margin-top",
   "margin-bottom",

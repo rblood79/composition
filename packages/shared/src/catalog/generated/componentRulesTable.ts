@@ -2227,6 +2227,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -2254,6 +2255,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
               ],
+            },
+          },
+          // S2 labelAlign (2026-10-09): the side label column's text alignment — the label's
+          //   `text-align: var(--form-label-align, start)` above reads it (as the fields' block).
+          "label-align": {
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           orientation: {
@@ -2517,6 +2527,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -2990,6 +3001,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -3224,6 +3236,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -3647,6 +3660,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -3907,6 +3921,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -7525,6 +7540,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -8714,6 +8730,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -8741,6 +8758,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
               ],
+            },
+          },
+          // S2 labelAlign (2026-10-09): the side label column's text alignment — the label's
+          //   `text-align: var(--form-label-align, start)` above reads it (as the fields' block).
+          "label-align": {
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
           orientation: {
@@ -8985,6 +9011,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -9370,6 +9397,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -12021,6 +12049,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
               ],
@@ -12173,6 +12202,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
@@ -12328,6 +12358,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                     width: "var(--form-label-width, 11rem)",
                     "flex-shrink": "0",
                     "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
                   },
                 },
                 {
