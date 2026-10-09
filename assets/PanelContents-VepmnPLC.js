@@ -1,0 +1,1 @@
+import{t as e}from"./jsx-runtime-DREnUpxT.js";import{t}from"./panelContentsUtils-DAN1u_WZ.js";var n=e();function r({children:e,className:r,"data-testid":i}){return(0,n.jsx)(`div`,{className:t(r),"data-testid":i,children:e})}export{r as t};
