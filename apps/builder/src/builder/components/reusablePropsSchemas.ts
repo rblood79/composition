@@ -114,6 +114,19 @@ export const INLINE_ALERT_PROPS_SCHEMA: PropsSchema = {
     default: "info",
     section: "appearance",
   },
+  // S2 1.8.0 fillStyle (2026-10-10): S2 border · subtleFill · boldFill — house 값은
+  //   outline · subtle · bold (라벨이 S2 이름, InlineAlert.binding.ts 와 같은 계약).
+  fillStyle: {
+    kind: "fillStyle",
+    label: "Fill Style",
+    default: "outline",
+    section: "appearance",
+    options: [
+      { value: "outline", label: "Border" },
+      { value: "subtle", label: "Subtle Fill" },
+      { value: "bold", label: "Bold Fill" },
+    ],
+  },
 };
 
 /**

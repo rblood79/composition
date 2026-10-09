@@ -288,12 +288,14 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "accepts": {
       "title": "string",
       "description": "string",
-      "variant": "string"
+      "variant": "string",
+      "fillStyle": "string"
     },
     "defaults": {
       "title": "Alert Heading",
       "description": "There was an error processing your request. Please try again.",
-      "variant": "info"
+      "variant": "info",
+      "fillStyle": "outline"
     },
     "visual": {},
     "stateRules": {},
@@ -2460,7 +2462,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-inline-alert__description"
     ],
     "props": {
-      "variant": "info"
+      "variant": "info",
+      "fillStyle": "outline"
     },
     "visual": {}
   },

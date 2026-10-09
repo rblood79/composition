@@ -5882,69 +5882,116 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   InlineAlert: {
     defaultVariant: "info",
     defaultSize: "M",
+    // S2 1.8.0 fillStyle (2026-10-10 — S2 border · subtleFill · boldFill 를 house 축
+    //   outline · subtle · bold 로): outline = 바탕 배경 + variant 색 테두리 (S2 기본 'border' —
+    //   종전 기본은 subtle 배경 + 색 테두리였다: 배경만 바탕색으로 이동), subtle = variant-subtle
+    //   배경 (생성 CSS 가 테두리 transparent — S2), bold = variant 본색 배경 + 흰 글자 (notice 는
+    //   검정, neutral 의 본색은 neutral-subdued — S2 InlineAlert.tsx). colors.text 는 bold
+    //   (default 분기) 의 글자색이고 subtleText · outlineText 가 나머지를 준다. 제목 · 설명
+    //   자식의 bold 글자색은 파생 color (`presence.ts` catalogInlineAlertBoldText).
     variants: {
       neutral: {
         fill: {
           default: {
+            base: "{color.neutral-subdued}",
+            hover: "{color.neutral-subdued}",
+            pressed: "{color.neutral-subdued}",
+          },
+          outline: {
+            base: "{color.base}",
+          },
+          subtle: {
             base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
           border: "{color.neutral-subdued}",
         },
       },
       info: {
         fill: {
           default: {
+            base: "{color.informative}",
+            hover: "{color.informative}",
+            pressed: "{color.informative}",
+          },
+          outline: {
+            base: "{color.base}",
+          },
+          subtle: {
             base: "{color.informative-subtle}",
-            hover: "{color.informative-subtle}",
-            pressed: "{color.informative-subtle}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
           border: "{color.informative}",
         },
       },
       positive: {
         fill: {
           default: {
+            base: "{color.positive}",
+            hover: "{color.positive}",
+            pressed: "{color.positive}",
+          },
+          outline: {
+            base: "{color.base}",
+          },
+          subtle: {
             base: "{color.positive-subtle}",
-            hover: "{color.positive-subtle}",
-            pressed: "{color.positive-subtle}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
           border: "{color.positive}",
         },
       },
       notice: {
         fill: {
           default: {
+            base: "{color.notice}",
+            hover: "{color.notice}",
+            pressed: "{color.notice}",
+          },
+          outline: {
+            base: "{color.base}",
+          },
+          subtle: {
             base: "{color.notice-subtle}",
-            hover: "{color.notice-subtle}",
-            pressed: "{color.notice-subtle}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.black}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
           border: "{color.notice}",
         },
       },
       negative: {
         fill: {
           default: {
+            base: "{color.negative}",
+            hover: "{color.negative}",
+            pressed: "{color.negative}",
+          },
+          outline: {
+            base: "{color.base}",
+          },
+          subtle: {
             base: "{color.negative-subtle}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
           },
         },
         colors: {
-          text: "{color.neutral}",
+          text: "{color.white}",
+          subtleText: "{color.neutral}",
+          outlineText: "{color.neutral}",
           border: "{color.negative}",
         },
       },

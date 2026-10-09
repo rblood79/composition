@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 InlineAlert fillStyle — Border · Subtle Fill · Bold Fill] - 2026-10-10
+
+### Added
+
+- **InlineAlert `fillStyle`** (S2 1.8.0 `border` · `subtleFill` · `boldFill` — house 값 `outline` · `subtle` · `bold`, 라벨은 S2 이름): Border (기본 — S2 자체 기본): 바탕 배경 + variant 색 테두리 · Subtle Fill: variant subtle 배경, 테두리 없음 · Bold Fill: variant 본색 배경 (neutral 은 S2 대로 neutral-subdued), 제목 · 설명 글자가 흰색 (notice 는 검정).
+  - 칠은 rule variants 의 fill 3축 (ADR-908 스키마 그대로 — 생성 CSS `[data-fill-style]` 블록 + Canvas `resolveCatalogPaint`). bold 의 제목 · 설명 글자색은 파생 `color` 로 양 consumer 에 닿는다 (`presence.ts` `catalogInlineAlertBoldText` → `derivedProps.color`; 작성한 색이 이김).
+  - 원본 라이브러리: definition accepts · defaults 와 template root 에 `fillStyle: "outline"` (publish 등 schema 없는 consumer 의 기본값).
+
+### Changed
+
+- **InlineAlert 기본 외형**: 종전 subtle 배경 + variant 색 테두리 → 바탕 배경 + variant 색 테두리 (S2 'border'). 종전 모양은 Subtle Fill + 색 테두리 조합이 S2 에 없어 S2 축으로 정렬 — 종전 배경은 Subtle Fill 로 고를 수 있다.
+- 확인: live — 팔레트 추가 → 기본 Border (Preview bg 흰색 + 파랑 테두리 = Canvas fill), Subtle Fill (연파랑 + 테두리 없음), Bold Fill (본색 + Heading 흰 글자 — Preview computed = Canvas text color), 오류 0 (`apps/builder/scripts/inline-alert-fillstyle-live.mjs` 5/5, 스크린샷 확인).
+
 ## [S2 Skeleton isLoading · DropZone isFilled · replaceMessage] - 2026-10-10
 
 ### Added

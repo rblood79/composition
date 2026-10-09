@@ -107,6 +107,7 @@ import {
   catalogDerivedPropsDependents,
   type CatalogComposedPart,
   catalogHiddenAtRest,
+  catalogInlineAlertBoldText,
   catalogPresenceDependents,
   catalogStateDependents,
   catalogToggleGroupItems,
@@ -2008,6 +2009,11 @@ export class CatalogCompositionRoot {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
     }
+    // S2 InlineAlert `fillStyle: bold` — its title · content texts go white (black on notice),
+    // unless the text authors its own color (the DOM's inline style wins over the sheet's).
+    const alertText = catalogInlineAlertBoldText(record, get, this.typeOf);
+    if (alertText && catalogAuthoredVisual(this, record).color === undefined)
+      return { ...derived, color: alertText };
     // A static ProgressBar · Meter's label (S2 `FieldLabel staticColor` — `catalogProgressStaticText`):
     // the static color, unless the label authors its own color (the DOM's inline style wins over
     // the sheet's). A rule-backed value text paints it from its own rule (`resolveCatalogPaint`).

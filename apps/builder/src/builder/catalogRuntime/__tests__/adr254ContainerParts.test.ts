@@ -326,6 +326,11 @@ function expectSinceConversion(
               /^<div (class=react-aria-InlineAlert [^>]*) id>/,
               "<div aria-live=polite $1 id role=alert>",
             )
+            // S2 fillStyle (2026-10-10): the template root carries the default outline.
+            .replace(
+              "class=react-aria-InlineAlert data-size",
+              "class=react-aria-InlineAlert data-fill-style=outline data-size",
+            )
         : structureOf(before.dom);
   expect(structureOf(now.dom!)).toBe(expected);
   // Each part element inlines its record's values (the Canvas draws the same record).

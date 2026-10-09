@@ -1263,6 +1263,37 @@ const PROGRESS_VALUE_TYPES: ReadonlySet<string> = new Set(
   Object.values(PROGRESS_VALUES),
 );
 
+/** Text nodes inside an InlineAlert whose bold fill turns their color (S2 heading · content). */
+const INLINE_ALERT_TEXT_TYPES: ReadonlySet<string> = new Set([
+  "Heading",
+  "Description",
+  "Text",
+  "Paragraph",
+  "Label",
+]);
+
+/**
+ * S2 1.8.0 InlineAlert `fillStyle: bold` (2026-10-10): the title and the content go white (black
+ * on notice — S2 InlineAlert.tsx heading · content color). The derived `color` wins over the
+ * node's definition color in both consumers (`derivedProps.color`); an authored color wins over
+ * it (`derivedOf` checks).
+ */
+export function catalogInlineAlertBoldText(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): string | undefined {
+  if (!INLINE_ALERT_TEXT_TYPES.has(typeOf(node))) return undefined;
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
+    if (typeOf(cursor) === "InlineAlert")
+      return cursor.props.fillStyle === "bold"
+        ? cursor.props.variant === "notice"
+          ? "#000000"
+          : "#ffffff"
+        : undefined;
+  return undefined;
+}
+
 /**
  * S2 1.8.0 Skeleton `isLoading` (2026-10-10): the placeholder is only there while loading — S2
  * draws the skeleton only when `isLoading`; our Skeleton is the placeholder itself. The Canvas
@@ -1849,6 +1880,18 @@ function derivedDependents(
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
+  // (An InlineAlert's texts follow its bold fill — `catalogInlineAlertBoldText`.)
+  if (type === "InlineAlert") {
+    const texts: CatalogConsumerNode[] = [];
+    const visit = (record: CatalogConsumerNode) => {
+      for (const child of childrenOf(record, get)) {
+        if (INLINE_ALERT_TEXT_TYPES.has(typeOf(child))) texts.push(child);
+        visit(child);
+      }
+    };
+    visit(owner);
+    if (texts.length) return texts;
+  }
   // (A NumberField's stepper Buttons follow its `hideStepper` — `catalogStepperHidden`.)
   if (type === "NumberField") {
     const steppers: CatalogConsumerNode[] = [];

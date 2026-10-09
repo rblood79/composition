@@ -1453,6 +1453,9 @@ function ruleDom(
     for (const key of ["size", "variant", "orientation"] as const)
       if (typeof node.props[key] === "string")
         dataAttrs[`data-${key}`] = String(node.props[key]);
+    // (S2 InlineAlert `fillStyle` — the generated `[data-fill-style]` blocks.)
+    if (typeof node.props.fillStyle === "string")
+      dataAttrs["data-fill-style"] = String(node.props.fillStyle);
     return createElement(
       "div",
       {

@@ -22,8 +22,8 @@
   align-items: flex-start;
 
   /* Default variant */
-  background: var(--informative-subtle);
-  color: var(--fg);
+  background: var(--informative);
+  color: var(--color-white);
   border: var(--border-width-thin) solid var(--informative);
 
   /* Default size */
@@ -35,73 +35,128 @@
 }
 
 .react-aria-InlineAlert[data-variant="neutral"] {
-  background: var(--bg-muted);
-  color: var(--fg);
+  background: var(--fg-muted);
+  color: var(--color-white);
   border-color: var(--fg-muted);
 
   &[data-hovered] {
-    background: var(--bg-muted);
+    background: var(--fg-muted);
   }
 
   &[data-pressed] {
-    background: var(--bg-muted);
+    background: var(--fg-muted);
   }
+}
+
+.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="outline"] {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="subtle"] {
+  background: var(--bg-muted);
+  color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-variant="info"] {
-  background: var(--informative-subtle);
-  color: var(--fg);
+  background: var(--informative);
+  color: var(--color-white);
   border-color: var(--informative);
 
   &[data-hovered] {
-    background: var(--informative-subtle);
+    background: var(--informative);
   }
 
   &[data-pressed] {
-    background: var(--informative-subtle);
+    background: var(--informative);
   }
+}
+
+.react-aria-InlineAlert[data-variant="info"][data-fill-style="outline"] {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert[data-variant="info"][data-fill-style="subtle"] {
+  background: var(--informative-subtle);
+  color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-variant="positive"] {
-  background: var(--positive-subtle);
-  color: var(--fg);
+  background: var(--positive);
+  color: var(--color-white);
   border-color: var(--positive);
 
   &[data-hovered] {
-    background: var(--positive-subtle);
+    background: var(--positive);
   }
 
   &[data-pressed] {
-    background: var(--positive-subtle);
+    background: var(--positive);
   }
+}
+
+.react-aria-InlineAlert[data-variant="positive"][data-fill-style="outline"] {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert[data-variant="positive"][data-fill-style="subtle"] {
+  background: var(--positive-subtle);
+  color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-variant="notice"] {
-  background: var(--notice-subtle);
-  color: var(--fg);
+  background: var(--notice);
+  color: var(--color-black);
   border-color: var(--notice);
 
   &[data-hovered] {
-    background: var(--notice-subtle);
+    background: var(--notice);
   }
 
   &[data-pressed] {
-    background: var(--notice-subtle);
+    background: var(--notice);
   }
 }
 
-.react-aria-InlineAlert[data-variant="negative"] {
-  background: var(--negative-subtle);
+.react-aria-InlineAlert[data-variant="notice"][data-fill-style="outline"] {
+  background: var(--bg);
   color: var(--fg);
+}
+
+.react-aria-InlineAlert[data-variant="notice"][data-fill-style="subtle"] {
+  background: var(--notice-subtle);
+  color: var(--fg);
+  border-color: transparent;
+}
+
+.react-aria-InlineAlert[data-variant="negative"] {
+  background: var(--negative);
+  color: var(--color-white);
   border-color: var(--negative);
 
   &[data-hovered] {
-    background: var(--negative-subtle);
+    background: var(--negative);
   }
 
   &[data-pressed] {
-    background: var(--negative-subtle);
+    background: var(--negative);
   }
+}
+
+.react-aria-InlineAlert[data-variant="negative"][data-fill-style="outline"] {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.react-aria-InlineAlert[data-variant="negative"][data-fill-style="subtle"] {
+  background: var(--negative-subtle);
+  color: var(--fg);
+  border-color: transparent;
 }
 
 .react-aria-InlineAlert[data-size="S"] {
