@@ -114,4 +114,26 @@ describe("Canvas box = Preview box", () => {
     await act(async () => reactRoot.unmount());
     host.remove();
   });
+
+  // 2026-10-09 (사용자 「정렬 먼저 맞춰」): the Preview centred nothing — the rule's
+  // `alignItems: flex-start` put the illustration · heading · description on the left, while the
+  // Canvas (the primitive's default) and S2 centre them.
+  it("IllustratedMessage: the Preview centres its content as the Canvas does", async () => {
+    const { root } = await open("IllustratedMessage");
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    const id = [...root.domInputs.values()].find(
+      (r) => r.sourceId === ROOT,
+    )!.id;
+    await act(async () => reactRoot.render(renderCatalogDom(root, id)));
+    const el = host.querySelector<HTMLElement>(
+      `[data-catalog-id="${id}"]`,
+    )!;
+    expect(el.style.alignItems).toBe("center");
+    await act(async () => reactRoot.unmount());
+    host.remove();
+  });
 });

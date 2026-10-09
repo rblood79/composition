@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
 
+## [IllustratedMessage 가운데 정렬 — Preview 를 Canvas · S2 와 같게] - 2026-10-09
+
+### Fixed
+
+- **Preview 의 IllustratedMessage 가 그림 · 제목 · 설명을 왼쪽에 붙이던 것** — Canvas 와 S2 는 가운데 정렬이다.
+  - **Why**: catalog rule `structure.containerStyles.alignItems` 가 `flex-start` 였고, Preview 만 그 값을 읽었다. Canvas primitive 는 이 값을 받지 않아 기본값 center 로 그렸다.
+  - 수정: rule 을 `center` 로 바꾸고 생성 CSS 를 다시 만들었다 (`generate:css`).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/components/styles/generated/IllustratedMessage.css`
+- 회귀: `previewCanvasBox.test.tsx` +1 (구현 전 RED) · live `preview-canvas-box-live.mjs` 9/9 (Preview 자식 3개의 가운데 오프셋 0 · 상자 7종 Canvas = Preview · 오류 0) · builder 5001 · shared 1588 · rendering 1337 · G3 79 · parity 811
+
 ## [Canvas ↔ Preview 상자 크기 — StatusLight 폭 · IllustratedMessage 높이] - 2026-10-09
 
 ### Fixed

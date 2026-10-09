@@ -4,7 +4,8 @@
 // also adds the class · data-size · data-variant to the Preview root and records what changed
 // (`withClass` — empty: those generated sheets are not in the Preview, the renderers inline their
 // box). Found 2026-10-09: StatusLight width (Canvas 75 / Preview 1920) and IllustratedMessage
-// height (48 / 240) — fixed.
+// height (48 / 240) — fixed; then (「정렬 먼저 맞춰」) the IllustratedMessage content the Preview
+// put on the left (rule `alignItems: flex-start`) — centred, as the Canvas and S2.
 //
 //   BUILDER_URL=http://localhost:5173 node apps/builder/scripts/preview-canvas-box-live.mjs <out>
 import { chromium } from "playwright";
@@ -191,6 +192,12 @@ for (const [palette, type] of TYPES) {
       sheetRules: rules.length,
       sample: rules.slice(0, 3),
       inline: el.getAttribute("style")?.slice(0, 160),
+      // (Each child's centre off the root's centre — the Canvas centres them, S2 too.)
+      childOffsets: [...el.children].map((child) => {
+        const box = el.getBoundingClientRect();
+        const r = child.getBoundingClientRect();
+        return Math.round((r.left + r.width / 2 - (box.left + box.width / 2)) * 10) / 10;
+      }),
     };
   }, type);
   const same =
@@ -198,6 +205,13 @@ for (const [palette, type] of TYPES) {
     Math.abs(result.canvas.w - result.dom.w) <= 1 &&
     Math.abs(result.canvas.h - result.dom.h) <= 1;
   record(`${type}: Canvas box = Preview box`, same, { added, ...result });
+  if (type === "IllustratedMessage")
+    record(
+      "IllustratedMessage: the Preview centres its illustration · heading · description (as the Canvas)",
+      result.childOffsets?.length >= 3 &&
+        result.childOffsets.every((offset) => Math.abs(offset) <= 1),
+      { childOffsets: result.childOffsets },
+    );
   await page.screenshot({ path: `${OUT}/${type}.png` });
 }
 record("no errors", errors.length === 0, { errors: errors.slice(0, 6) });

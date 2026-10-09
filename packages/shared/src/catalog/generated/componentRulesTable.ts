@@ -5595,7 +5595,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-        alignItems: "flex-start",
+        // S2 IllustratedMessage centres its illustration · heading · description.
+        alignItems: "center",
         width: "100%",
       },
       states: {},

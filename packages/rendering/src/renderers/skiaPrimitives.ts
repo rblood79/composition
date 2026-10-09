@@ -2364,8 +2364,8 @@ const inlineIconText: SkiaPrimitiveDrawFn = ({
  *   DOM(flex column + factory style: padding/gap/alignItems) 과 동일 기하로 재작성 —
  *   padding/gap/alignItems 는 element style 우선 (longhand → shorthand → metric fallback,
  *   style-ssot 규칙), 가로 폭은 `_containerWidth`(CONTAINER_DIMENSION_TAGS 주입) 기준.
- *   factory 기본 style 이 alignItems:flex-start (catalog structure.containerStyles 미러) 라
- *   기본 렌더는 좌측 정렬 — style 부재 시 컴포넌트 내부 기본(center)과 동일하게 center.
+ *   style 부재 시 center — catalog `structure.containerStyles.alignItems` (2026-10-09 S2 대로
+ *   center, 그전 flex-start 는 Preview 만 좌측 정렬) 와 같다.
  */
 const illustratedMessage: SkiaPrimitiveDrawFn = ({
   props,
