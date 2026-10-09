@@ -10,7 +10,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: RAC `<Meter role="meter progressbar">` 그대로.
  * D2: value · minValue · maxValue · label · variant (informative · positive · warning · critical) ·
- *     size · showValueLabel · valueLabel · labelPosition. isIndeterminate 없음 (RAC Meter 에 없다).
+ *     size · showValueLabel · valueLabel · labelPosition · staticColor. isIndeterminate 없음 (RAC
+ *     Meter 에 없다).
  * D3: catalog Meter rule (`.bar` · `.value` · `.fill`) + MeterTrack · MeterFill rule.
  */
 export const meterBinding: PrimitiveBinding = {
@@ -71,6 +72,21 @@ export const meterBinding: PrimitiveBinding = {
         options: [
           { value: "top", label: "Top" },
           { value: "side", label: "Side" },
+        ],
+      },
+      // S2 1.8.0 Meter `staticColor` (2026-10-10): over a color background the fill is white ·
+      //   black and the track a 25% wash of it — ProgressBar 와 같은 스킴 (S2 `fillStyles`
+      //   `isStaticColor`, variant 는 읽지 않는다). DOM = 수동 ProgressBar.css `[data-static-color]`,
+      //   Canvas = track · fill 이 Meter 의 값을 받아 (`presence.ts`) `resolveCatalogPaint` 가 칠한다.
+      staticColor: {
+        kind: "enum",
+        label: "Static Color",
+        section: "appearance",
+        default: "auto",
+        options: [
+          { value: "auto", label: "Auto" },
+          { value: "white", label: "White" },
+          { value: "black", label: "Black" },
         ],
       },
       valueLabel: {

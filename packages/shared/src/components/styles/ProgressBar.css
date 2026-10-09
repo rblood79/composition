@@ -22,3 +22,25 @@
   --track-color: rgb(0 0 0 / 0.25);
   color: var(--color-black, #000);
 }
+
+/*
+ * S2 1.8.0 Meter staticColor (2026-10-10) — ProgressBar 와 같은 스킴 (S2 Meter · ProgressBar 가
+ * 같은 fill/track 규칙). Meter 의 track 은 `--track-color` 가 아니라 `.bar` 의 배경이다.
+ */
+.react-aria-Meter[data-static-color="white"] {
+  --fill-color: var(--color-white, #fff);
+  color: var(--color-white, #fff);
+}
+
+.react-aria-Meter[data-static-color="white"] .bar {
+  background: rgb(255 255 255 / 0.25);
+}
+
+.react-aria-Meter[data-static-color="black"] {
+  --fill-color: var(--color-black, #000);
+  color: var(--color-black, #000);
+}
+
+.react-aria-Meter[data-static-color="black"] .bar {
+  background: rgb(0 0 0 / 0.25);
+}

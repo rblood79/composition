@@ -7216,6 +7216,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // The track's own box (neutral-subtle — the Meter sheet's `.bar` --bg-muted); its fill is the
       //   MeterFill node (ADR-256 Phase 7b).
       informative: {
+        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        fillBar: "{color.informative}",
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7228,6 +7230,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       positive: {
+        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        fillBar: "{color.positive}",
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7240,6 +7244,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       warning: {
+        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        fillBar: "{color.notice}",
         fill: {
           default: {
             base: "{color.neutral-subtle}",
@@ -7252,6 +7258,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       critical: {
+        // (A value-fill track: a static color paints it as a 25% wash — S2 Meter `staticColor`.)
+        fillBar: "{color.negative}",
         fill: {
           default: {
             base: "{color.neutral-subtle}",

@@ -1859,6 +1859,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   meter: {
     render: (input) => {
       const props = input.node.props;
+      const staticColor = props.staticColor;
       return withI18n(
         createElement(AriaMeter as ElementType, {
           ...marker(input),
@@ -1867,6 +1868,10 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-variant": str(props.variant) || "informative",
           "data-size": str(props.size) || "M",
           "data-label-position": str(props.labelPosition) || "top",
+          "data-static-color":
+            staticColor === "white" || staticColor === "black"
+              ? staticColor
+              : undefined,
           value: num(props.value) ?? 0,
           minValue: num(props.minValue) ?? 0,
           maxValue: num(props.maxValue) ?? 100,

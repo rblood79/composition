@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Meter staticColor] - 2026-10-10
+
+### Added
+
+- **Meter `staticColor`** (S2 1.8.0 Meter — 조사 문서 목록 D 의 마지막 항목):
+  - auto · white · black. 유색 배경 위에서 채움을 흰색 · 검정으로, track 을 그 색의 25% 로 칠한다 (S2 `fillStyles` `isStaticColor` — variant 색은 읽지 않는다). ProgressBar `staticColor` 와 같은 스킴이다.
+  - Preview 는 Meter 의 `data-static-color` 와 수동 `ProgressBar.css` (`--fill-color` · `.bar` 배경), Canvas 는 MeterTrack · MeterFill 이 Meter 의 값을 받아 (`presence.ts`) `resolveCatalogPaint` 가 칠한다 — MeterTrack variant 에 value-fill track 표시 (`fillBar`) 를 넣었다.
+  - 위치: `packages/shared/src/catalog/bindings/Meter.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (MeterTrack) · `packages/shared/src/catalog/runtime/delegatedDom.tsx` · `packages/shared/src/components/styles/ProgressBar.css`
+- 확인: live — Design 패널 Static Color White → Preview 채움 흰색 · track `rgba(255, 255, 255, 0.25)` · Canvas track · fill 흰색, Black → 검정, Auto → variant 색으로 복귀, 높이 Canvas = Preview 32 (`apps/builder/scripts/meter-static-color-live.mjs` 4/4).
+
 ## [S2 Disclosure — 위아래 테두리 · isQuiet · density] - 2026-10-10
 
 ### Added
