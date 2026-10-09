@@ -39,6 +39,16 @@ export const skeletonBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 Skeleton `isLoading` (2026-10-10): S2 는 isLoading 일 때만 children 을
+      //   skeleton 으로 그린다 — placeholder leaf 인 우리 Skeleton 은 false 면 그릴 것이 없다.
+      //   양 consumer 가 한 술어로 숨긴다 (`presence.ts` catalogSkeletonIdle). 기본 true
+      //   (지금까지의 모양 — S2 는 기본값 없는 필수 prop).
+      isLoading: {
+        kind: "boolean",
+        label: "Loading",
+        section: "state",
+        default: true,
+      },
     },
     toRacProps: "default",
   },

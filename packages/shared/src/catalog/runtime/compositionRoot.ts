@@ -3637,10 +3637,10 @@ export class CatalogCompositionRoot {
       ))
         presence.set(panel.id, panel);
     // A value-conditioned part (ADR-256 Decision 7) follows its own final text; a state-conditioned
-    // one (`showWhen`) its own condition and its state owners' values.
+    // one (`showWhen`) its own condition and its state owners' values. Every updated record's own
+    // presence is judged again too — a prop of its own can hide it (a Skeleton's `isLoading`, S2).
     for (const update of updates) {
-      if (update.record.presentWhen || update.record.showWhen)
-        presence.set(update.id, update.record);
+      presence.set(update.id, update.record);
       for (const dependent of catalogStateDependents(
         update.record,
         get,

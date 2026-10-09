@@ -33,6 +33,16 @@ export const dropZoneBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 DropZone `isFilled` · `replaceMessage` (2026-10-10): 채워진 영역 위로 끌 때
+      //   교체 배너 (S2 `renderProps.isDropTarget && props.isFilled`). 배너는 DOM 에 상주하고
+      //   RAC `data-drop-target` 시트 (rule rootSelectors) 가 끄는 동안만 보인다 — Canvas 는
+      //   끄는 중 상태를 그리지 않는다.
+      isFilled: { kind: "boolean", label: "Filled", section: "state" },
+      replaceMessage: {
+        kind: "string",
+        label: "Replace Message",
+        section: "content",
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — `DropZone.tsx` 가 RAC DropZone 에 넘긴다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

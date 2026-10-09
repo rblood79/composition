@@ -596,6 +596,7 @@ export function catalogHiddenAtRest(
   if (node.bindingId === "overlayarrow") return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
+  if (catalogSkeletonIdle(node, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -1261,6 +1262,18 @@ const PROGRESS_VALUES: Readonly<Record<string, string>> = {
 const PROGRESS_VALUE_TYPES: ReadonlySet<string> = new Set(
   Object.values(PROGRESS_VALUES),
 );
+
+/**
+ * S2 1.8.0 Skeleton `isLoading` (2026-10-10): the placeholder is only there while loading — S2
+ * draws the skeleton only when `isLoading`; our Skeleton is the placeholder itself. The Canvas
+ * (`catalogHiddenAtRest`) and the DOM (`renderNode`) read this one predicate.
+ */
+export function catalogSkeletonIdle(
+  node: CatalogConsumerNode,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return typeOf(node) === "Skeleton" && node.props.isLoading === false;
+}
 
 /**
  * S2 1.8.0 NumberField `hideStepper` (2026-10-10): its increment · decrement Buttons are not

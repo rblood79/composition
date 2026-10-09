@@ -46,6 +46,7 @@ import {
   catalogAbsentByValue,
   catalogFieldHintShown,
   catalogProgressValueHidden,
+  catalogSkeletonIdle,
   catalogStepperHidden,
   catalogStateConditions,
   catalogStateOwner,
@@ -2105,6 +2106,9 @@ function renderNode(
       "TagGroup",
     ) === false
   )
+    return null;
+  // (A Skeleton after loading — `isLoading: false`, the Canvas's predicate, S2.)
+  if (catalogSkeletonIdle(node, (entry) => catalogTypeName(root, entry)))
     return null;
   // (A NumberField's stepper Buttons while `hideStepper` — the Canvas's predicate, S2.)
   if (

@@ -119,9 +119,29 @@
 }
 
 
+  .react-aria-DropZone {
+    position: relative;
+  }
+
   .react-aria-DropZone[data-drop-target] {
     background: var(--bg-inset);
     color: var(--accent);
+  }
+
+  .react-aria-DropZone .dropzone-replace {
+    display: none;
+  }
+
+  .react-aria-DropZone[data-drop-target] .dropzone-replace {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-overlay);
+    color: var(--accent);
+    font-weight: 700;
+    border-radius: inherit;
   }
 
 

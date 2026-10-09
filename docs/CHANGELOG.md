@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Skeleton isLoading · DropZone isFilled · replaceMessage] - 2026-10-10
+
+### Added
+
+- **Skeleton `isLoading`** (S2 1.8.0, 기본 true): 로딩이 끝나면 (false) placeholder 가 양 consumer 에서 사라진다 — 판정은 `presence.ts` `catalogSkeletonIdle` 하나 (Canvas `catalogHiddenAtRest` · DOM `renderNode`). 상태 변수에 묶으면 로딩 UI 를 만들 수 있다.
+- **DropZone `isFilled` · `replaceMessage`** (S2 1.8.0): 채워진 영역 위로 끌 때 교체 배너. 배너는 `isFilled` 일 때 DOM 에 상주하고 (`DropZone.tsx`, 기본 문구 "Drop file to replace"), rule `rootSelectors` 의 `[data-drop-target] .dropzone-replace` 생성 블록이 끄는 동안만 보인다 — Canvas 는 끄는 중 상태를 그리지 않는다.
+
+### Fixed
+
+- **자기 prop 으로 숨는 노드가 prop 토글 때 남음**: 값 편집 재계획이 `presentWhen` · `showWhen` 보유 노드만 presence 를 다시 판정했다 — Skeleton 의 isLoading 토글이 반영되지 않음. 갱신된 record 는 항상 자기 presence 를 다시 판정한다 (`compositionRoot.ts`).
+- 확인: live — Skeleton 추가 → Loading 토글 (Preview 요소 제거 + Canvas hidden), DropZone → Filled + "Drop to swap" → 배너 rest 에 display none → dragenter/dragover 시뮬레이션에서 flex + 문구, 오류 0 (`apps/builder/scripts/s2-skeleton-dropzone-live.mjs` 7/7).
+
 ## [S2 boolean 시각 — NumberField hideStepper · ToggleButtonGroup isJustified · Link isStandalone] - 2026-10-10
 
 ### Added

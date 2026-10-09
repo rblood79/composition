@@ -68,6 +68,9 @@ export type ComponentSkeletonVariant =
   | "disclosure";
 
 export interface SkeletonProps {
+  /** S2 — the placeholder is only there while loading (the catalog path hides the node). */
+  isLoading?: boolean;
+
   /** Base shape variant */
   variant?: SkeletonVariant;
 
@@ -186,6 +189,9 @@ export function Skeleton({
   index,
   "aria-label": ariaLabel = "Loading...",
   "data-testid": testId = "skeleton",
+  // S2 isLoading (2026-10-10): false 는 catalog 경로가 노드 자체를 그리지 않는다 (presence) —
+  // 여기서는 DOM 으로 새지 않게 흡수만 한다.
+  isLoading: _isLoading,
   ...rest
 }: SkeletonProps) {
   // Component-specific variants render their own structure

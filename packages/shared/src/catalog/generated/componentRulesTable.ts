@@ -4742,10 +4742,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         rootSelectors: {
+          "&": {
+            // S2 isFilled 배너의 absolute 기준 (끄는 중에만 보이는 DOM 전용 상태 — Canvas 비소비).
+            styles: {
+              position: "relative",
+            },
+          },
           "&[data-drop-target]": {
             styles: {
               background: "var(--bg-inset)",
               color: "var(--accent)",
+            },
+          },
+          // S2 1.8.0 isFilled · replaceMessage (2026-10-10): 채워진 영역 위로 끌 때의 교체 배너.
+          //   배너 요소는 DropZone.tsx 가 isFilled 일 때 상주시키고, 여기서 drag 상태에만 보인다.
+          "& .dropzone-replace": {
+            styles: {
+              display: "none",
+            },
+          },
+          "&[data-drop-target] .dropzone-replace": {
+            styles: {
+              display: "flex",
+              position: "absolute",
+              inset: "0",
+              "align-items": "center",
+              "justify-content": "center",
+              background: "var(--bg-overlay)",
+              color: "var(--accent)",
+              "font-weight": "700",
+              "border-radius": "inherit",
             },
           },
         },
