@@ -32,7 +32,7 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
   size: {
     kind: "size",
     label: "Size",
-    default: "md",
+    default: "M",
     section: "appearance",
   },
   // design-data 감사 §2-A (2026-08-21): Button root binding 은 staticColor/isDisabled 를
@@ -84,7 +84,7 @@ export const CARD_PROPS_SCHEMA: PropsSchema = {
   size: {
     kind: "size",
     label: "Size",
-    default: "md",
+    default: "M",
     section: "appearance",
   },
   href: getPrimitiveBinding("Card")!.props.accepts!.href!,
@@ -136,7 +136,7 @@ export const ILLUSTRATED_MESSAGE_PROPS_SCHEMA: PropsSchema = {
   size: {
     kind: "size",
     label: "Size",
-    default: "md",
+    default: "M",
     section: "appearance",
   },
   orientation: {
@@ -208,7 +208,7 @@ export const POPOVER_PROPS_SCHEMA = overlayOriginSchema(
   "DialogTrigger",
   "Popover",
   ["size", ...OVERLAY_POSITION_KEYS],
-  { size: ["sm", "md", "lg"] },
+  { size: ["S", "M", "L"] },
 );
 export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
   "TooltipTrigger",
@@ -216,7 +216,7 @@ export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
   ["variant", "size", ...OVERLAY_POSITION_KEYS],
   {
     variant: ["neutral", "info", "positive", "negative"],
-    size: ["sm", "md", "lg"],
+    size: ["S", "M", "L"],
   },
 );
 
@@ -229,7 +229,7 @@ export const MENU_PROPS_SCHEMA = overlayOriginSchema(
   "MenuTrigger",
   "Menu",
   ["size", "selectionMode"],
-  { size: ["sm", "md", "lg", "xl"] },
+  { size: ["S", "M", "L", "XL"] },
 );
 
 /** Reusable id → its declared edit contract. */

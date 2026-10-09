@@ -22,7 +22,7 @@ export interface SliderProps<T> extends AriaSliderProps<T> {
   isEmphasized?: boolean;
   /**
    * Size of the slider
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -70,7 +70,7 @@ export function Slider<T extends number | number[]>({
   label,
   thumbLabels,
   isEmphasized = false,
-  size = "md",
+  size = "M",
   locale = "ko-KR",
   formatOptions,
   customFormatter,

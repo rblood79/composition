@@ -30,7 +30,7 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       labelPosition: {
         kind: "enum",
@@ -186,7 +186,7 @@ export const dateRangePickerBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
     // size 는 DateRangePicker.tsx 가 React prop 으로 직접 소비 + 자기 `data-size` 를 다시 emit
-    //   → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size 를 덮어씀
+    //   → passthrough 없으면 default("M") 고정 + toRacProps 의 data-size 를 덮어씀
     //   (DatePicker.binding 과 동일 근거, ProgressCircle/Avatar/StatusLight 선례).
     //   labelPosition · labelAlign 도 같다: wrapper 가 `data-label-position={labelPosition}` ·
     //   `data-label-align` 를 다시 써서 side 가 항상 top 으로 덮였다 (ADR-248 4e-12, 2026-10-03).

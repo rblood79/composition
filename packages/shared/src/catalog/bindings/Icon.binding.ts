@@ -14,7 +14,7 @@
  * **propPassthrough: ["size"] (2026-07-14, 사용자 적발 — "md 를 제외하고 정합 불일치")**:
  * `Icon.tsx` 는 size 를 **React prop 으로 소비**해 `ICON_SIZE_MAP[size]` → `<svg width>` 를
  * 계산한다. SVG width 는 **속성**이라 `data-size` CSS 로는 도달 불가 — passthrough 가 없으면
- * size 가 `undefined` → default `"md"` → **DOM 이 영원히 24px 고정**이다. Skia 는 store 의
+ * size 가 `undefined` → default `"M"` → **DOM 이 영원히 24px 고정**이다. Skia 는 store 의
  * `props.size` 를 직접 읽어 정상(16/18/24/36/48) → **md 에서만 우연히 24 로 일치**하고 나머지
  * 4 size 는 전부 비대칭. Avatar / ProgressCircle / StatusLight 선례와 동일 root-cause.
  */
@@ -32,7 +32,7 @@ export const iconBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       strokeWidth: {
         kind: "number",

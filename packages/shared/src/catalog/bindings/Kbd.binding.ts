@@ -27,7 +27,7 @@ export const kbdBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "sm",
+        default: "S",
       },
     },
     toRacProps: "default",

@@ -14,7 +14,7 @@ describe("Button binding → toRacProps", () => {
           type: "submit",
           isDisabled: true,
           variant: "secondary",
-          size: "lg",
+          size: "L",
         },
       },
       buttonBinding,
@@ -24,7 +24,7 @@ describe("Button binding → toRacProps", () => {
       type: "submit",
       isDisabled: true,
       "data-variant": "secondary",
-      "data-size": "lg",
+      "data-size": "L",
       // fillStyle default "fill" → 항상 emit (base style, [data-fill-style="outline"] 미매칭)
       "data-fill-style": "fill",
       // staticColor default "auto" → data-* 만 emit (raw prop 누출 차단, CSS 는 black/white 만 매칭)
@@ -47,7 +47,7 @@ describe("Button binding → toRacProps", () => {
       children: "OK",
       type: "button",
       "data-variant": "primary",
-      "data-size": "md",
+      "data-size": "M",
       "data-fill-style": "fill",
       "data-static-color": "auto",
     });

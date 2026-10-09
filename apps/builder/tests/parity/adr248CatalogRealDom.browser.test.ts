@@ -54,18 +54,42 @@ interface G0Scenario {
  * The frozen G0 scenarios (`docs/adr/design/248-baseline/`) are kept local only (user decision
  * 2026-09-30): an eager glob is empty in a checkout without them, and the tests reading them skip.
  */
-const baseline = Object.values(
-  import.meta.glob<G0Scenario>(
-    "../../../../docs/adr/design/248-baseline/baseline.json",
-    { eager: true, import: "default" },
-  ),
-)[0];
-const nativeBaseline = Object.values(
-  import.meta.glob<G0Scenario>(
-    "../../../../docs/adr/design/248-baseline/native-state-pinned/baseline.json",
-    { eager: true, import: "default" },
-  ),
-)[0];
+/** The frozen baselines record the sizes before they took the S2 names (2026-10-09). */
+const S2_SIZE: Record<string, string> = {
+  xs: "XS",
+  sm: "S",
+  md: "M",
+  lg: "L",
+  xl: "XL",
+};
+const withS2Size = (scenario: G0Scenario | undefined): G0Scenario | undefined =>
+  scenario && {
+    ...scenario,
+    scenario: {
+      ...scenario.scenario,
+      operations: scenario.scenario.operations.map((operation) =>
+        operation.size
+          ? { ...operation, size: S2_SIZE[operation.size] ?? operation.size }
+          : operation,
+      ),
+    },
+  };
+const baseline = withS2Size(
+  Object.values(
+    import.meta.glob<G0Scenario>(
+      "../../../../docs/adr/design/248-baseline/baseline.json",
+      { eager: true, import: "default" },
+    ),
+  )[0],
+);
+const nativeBaseline = withS2Size(
+  Object.values(
+    import.meta.glob<G0Scenario>(
+      "../../../../docs/adr/design/248-baseline/native-state-pinned/baseline.json",
+      { eager: true, import: "default" },
+    ),
+  )[0],
+);
 
 /**
  * Regenerates the Slot DOM expectations (PNG + JSON) from the product DOM binding:
@@ -517,6 +541,8 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
       CatalogEntry,
       { kind: "page" }
     >;
+    // The stored expectations name the sizes as recorded (sm · md · lg); the node takes the S2
+    //   names (2026-10-09).
     const sizes = ["sm", "md", "lg"] as const;
     const states = ["empty", "filled", "description"] as const;
     const scenario = {
@@ -581,7 +607,7 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
           slot: { name: "content", required: true },
           children: filled ? [textId] : [],
           props: {
-            size: { kind: "set", value: size },
+            size: { kind: "set", value: S2_SIZE[size] },
             ...(state === "description"
               ? {
                   description: {
@@ -1138,7 +1164,7 @@ describe("ADR-248 test-entry isolated RAC DOM consumer", () => {
         )!;
         const actual = second.getBoundingClientRect();
         const parent = group.getBoundingClientRect();
-        const expectedGap = operation.size === "sm" ? 6 : 12;
+        const expectedGap = operation.size === "S" ? 6 : 12;
         expect(node.visual.gap).toBe(expectedGap);
         expect(getComputedStyle(group).gap).toBe(`${expectedGap}px`);
         expect(getComputedStyle(group).backgroundColor).toBe(

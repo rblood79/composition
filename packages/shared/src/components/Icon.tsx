@@ -9,17 +9,17 @@ import { memo } from "react";
 import { getIconData } from "@composition/rendering";
 
 const ICON_SIZE_MAP: Record<string, number> = {
-  xs: 16,
-  sm: 18,
-  md: 24,
-  lg: 36,
-  xl: 48,
+  XS: 16,
+  S: 18,
+  M: 24,
+  L: 36,
+  XL: 48,
 };
 
 export interface IconComponentProps {
   iconName?: string;
   iconFontFamily?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   strokeWidth?: number;
   style?: React.CSSProperties;
   className?: string;
@@ -29,7 +29,7 @@ export interface IconComponentProps {
 
 export const Icon = memo(function Icon({
   iconName = "circle",
-  size = "md",
+  size = "M",
   strokeWidth = 2,
   style,
   className,

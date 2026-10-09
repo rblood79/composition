@@ -24,25 +24,25 @@
   gap: 12px;
 }
 
-.react-aria-RadioGroup[data-size="sm"] {
+.react-aria-RadioGroup[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
   gap: 8px;
 }
 
-.react-aria-RadioGroup[data-size="md"] {
+.react-aria-RadioGroup[data-size="M"] {
   font-size: var(--text-base);
   border-radius: var(--radius-none);
   gap: 12px;
 }
 
-.react-aria-RadioGroup[data-size="lg"] {
+.react-aria-RadioGroup[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
   gap: 16px;
 }
 
-.react-aria-RadioGroup[data-size="xl"] {
+.react-aria-RadioGroup[data-size="XL"] {
   font-size: var(--text-xl);
   border-radius: var(--radius-none);
   gap: 20px;
@@ -61,27 +61,27 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-RadioGroup[data-size="sm"] {
+.react-aria-RadioGroup[data-size="S"] {
   --rg-side-gap: 8px;
 }
 
-.react-aria-RadioGroup[data-size="md"] {
+.react-aria-RadioGroup[data-size="M"] {
   --rg-side-gap: 12px;
 }
 
-.react-aria-RadioGroup[data-size="lg"] {
+.react-aria-RadioGroup[data-size="L"] {
   --rg-side-gap: 16px;
 }
 
-.react-aria-RadioGroup[data-size="xl"] {
+.react-aria-RadioGroup[data-size="XL"] {
   --rg-side-gap: 20px;
 }
 
-.react-aria-RadioGroup[data-size="sm"] {
+.react-aria-RadioGroup[data-size="S"] {
   --radio-items-gap: 8px;
 }
 
-.react-aria-RadioGroup[data-size="lg"] {
+.react-aria-RadioGroup[data-size="L"] {
   --radio-items-gap: 16px;
 }
 

@@ -12,7 +12,7 @@ import type { ComponentSize } from "../types";
 export interface DropZoneProps extends AriaDropZoneProps {
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -40,7 +40,7 @@ export interface DropZoneProps extends AriaDropZoneProps {
  * </DropZone>
  */
 export function DropZone({
-  size = "md",
+  size = "M",
   label,
   description,
   children,

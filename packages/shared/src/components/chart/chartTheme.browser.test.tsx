@@ -50,7 +50,7 @@ for (const theme of ["light", "dark"] as const)
             _containerHeight: size.height,
           },
           // chart_scene의 기존 dispatch와 같은 catalog size 객체를 전달한다.
-          size: rule.sizes.md as SizeSpec,
+          size: rule.sizes.M as SizeSpec,
           visual: undefined,
           paint: {
             backgroundColor: "{color.layer-1}",
@@ -69,7 +69,7 @@ for (const theme of ["light", "dark"] as const)
         document.body.append(host);
         root = createRoot(host);
         root.render(
-          <Chart {...props} size="md" isAnimationActive={false} style={size} />,
+          <Chart {...props} size="M" isAnimationActive={false} style={size} />,
         );
         await vi.waitFor(() =>
           expect(host.querySelector(".recharts-surface")).toBeTruthy(),

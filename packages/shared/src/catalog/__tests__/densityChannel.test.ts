@@ -71,7 +71,7 @@ describe("density 채널 — TableView(Column/Cell)", () => {
 
   it("행 높이가 Spectrum medium 계열(32/40/48)로 떨어진다 — 텍스트 24 + paddingY×2", () => {
     const rowHeight = (density: string) => {
-      const lineHeight = COMPONENT_RULES_TABLE.Cell?.sizes.md?.lineHeight ?? 0;
+      const lineHeight = COMPONENT_RULES_TABLE.Cell?.sizes.M?.lineHeight ?? 0;
       const paddingY = resolveCatalogDensityField("Cell", density, "paddingY");
       return (lineHeight as number) + (paddingY as number) * 2;
     };
@@ -80,12 +80,12 @@ describe("density 채널 — TableView(Column/Cell)", () => {
     expect(rowHeight("spacious")).toBe(48);
   });
 
-  it("기본값 regular 는 기존 sizes.md.paddingY 와 같다 — 미지정 프로젝트 회귀 0", () => {
+  it("기본값 regular 는 기존 sizes.M.paddingY 와 같다 — 미지정 프로젝트 회귀 0", () => {
     for (const type of ["Column", "Cell"] as const) {
       const rule = COMPONENT_RULES_TABLE[type];
       expect(rule?.defaultDensity).toBe("regular");
       expect(resolveCatalogDensityField(type, undefined, "paddingY")).toBe(
-        rule?.sizes.md?.paddingY,
+        rule?.sizes.M?.paddingY,
       );
     }
   });

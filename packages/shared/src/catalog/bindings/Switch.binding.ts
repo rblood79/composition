@@ -50,7 +50,7 @@ export const switchBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

@@ -22,35 +22,35 @@
   --icon-size: 18px;
 }
 
-.react-aria-Select[data-size="xs"] {
+.react-aria-Select[data-size="XS"] {
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   gap: 2px;
   --icon-size: 14px;
 }
 
-.react-aria-Select[data-size="sm"] {
+.react-aria-Select[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 4px;
   --icon-size: 16px;
 }
 
-.react-aria-Select[data-size="md"] {
+.react-aria-Select[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 6px;
   --icon-size: 18px;
 }
 
-.react-aria-Select[data-size="lg"] {
+.react-aria-Select[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   gap: 8px;
   --icon-size: 22px;
 }
 
-.react-aria-Select[data-size="xl"] {
+.react-aria-Select[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   gap: 10px;
@@ -70,23 +70,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Select[data-size="xs"] {
+.react-aria-Select[data-size="XS"] {
   --select-btn-pad-end: 2px;
 }
 
-.react-aria-Select[data-size="sm"] {
+.react-aria-Select[data-size="S"] {
   --select-btn-pad-end: 4px;
 }
 
-.react-aria-Select[data-size="md"] {
+.react-aria-Select[data-size="M"] {
   --select-btn-pad-end: 8px;
 }
 
-.react-aria-Select[data-size="lg"] {
+.react-aria-Select[data-size="L"] {
   --select-btn-pad-end: 12px;
 }
 
-.react-aria-Select[data-size="xl"] {
+.react-aria-Select[data-size="XL"] {
   --select-btn-pad-end: 16px;
 }
 
@@ -97,23 +97,23 @@
   gap: var(--spacing-xs);
 }
 
-.react-aria-Select[data-size="xs"] {
+.react-aria-Select[data-size="XS"] {
   --select-value-font-size: var(--text-2xs);
 }
 
-.react-aria-Select[data-size="sm"] {
+.react-aria-Select[data-size="S"] {
   --select-value-font-size: var(--text-xs);
 }
 
-.react-aria-Select[data-size="md"] {
+.react-aria-Select[data-size="M"] {
   --select-value-font-size: var(--text-sm);
 }
 
-.react-aria-Select[data-size="lg"] {
+.react-aria-Select[data-size="L"] {
   --select-value-font-size: var(--text-base);
 }
 
-.react-aria-Select[data-size="xl"] {
+.react-aria-Select[data-size="XL"] {
   --select-value-font-size: var(--text-lg);
 }
 
@@ -137,23 +137,23 @@
   display: none;
 }
 
-.react-aria-Select[data-size="xs"] {
+.react-aria-Select[data-size="XS"] {
   --select-side-gap: 2px;
 }
 
-.react-aria-Select[data-size="sm"] {
+.react-aria-Select[data-size="S"] {
   --select-side-gap: 4px;
 }
 
-.react-aria-Select[data-size="md"] {
+.react-aria-Select[data-size="M"] {
   --select-side-gap: 6px;
 }
 
-.react-aria-Select[data-size="lg"] {
+.react-aria-Select[data-size="L"] {
   --select-side-gap: 8px;
 }
 
-.react-aria-Select[data-size="xl"] {
+.react-aria-Select[data-size="XL"] {
   --select-side-gap: 10px;
 }
 

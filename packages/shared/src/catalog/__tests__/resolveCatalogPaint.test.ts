@@ -237,7 +237,7 @@ describe("resolveCatalogPaint", () => {
  */
 describe("resolveCatalogPaint — catalog Link (§9 매트릭스 행)", () => {
   const rule = COMPONENT_RULES_TABLE.Link;
-  const size = rule.sizes[rule.defaultSize ?? "md"];
+  const size = rule.sizes[rule.defaultSize ?? "M"];
 
   function link(
     props: Readonly<Record<string, unknown>>,

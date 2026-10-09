@@ -82,9 +82,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `{title}` · `{description}`) with `orientation`; its `heading` · `description` props are gone.
  * 35 — the S2 AvatarGroup's `label` is a Text node after the avatars (2026-10-09): origin
  * `component-avatargroup` accepts `label` (`__label` — `{label}`); the type has no `label` prop.
+ * 36 — sizes take the S2 names (2026-10-09, D2 = S2 1.8.0): `XS` · `S` · `M` · `L` · `XL` (and
+ * `XXL` · `XXXL` for the text types) in place of `xs` · `sm` · `md` · `lg` · `xl` · `2xl` · `3xl`
+ * — a node's `size`, the origins' defaults, the rule size keys and the DOM `data-size`.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 35 as const;
+export const LIBRARY_CONTRACT_VERSION = 36 as const;
 
 export type EntryKind =
   | "project"

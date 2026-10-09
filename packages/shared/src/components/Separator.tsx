@@ -26,7 +26,7 @@ export interface SeparatorProps extends AriaSeparatorProps {
 
   /**
    * Size/thickness of the separator
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
 }
@@ -40,7 +40,7 @@ export function Separator(props: SeparatorProps) {
   const {
     orientation = "horizontal",
     variant = "default",
-    size = "md",
+    size = "M",
     className,
     ...restProps
   } = props;

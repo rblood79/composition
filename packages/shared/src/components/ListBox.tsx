@@ -353,7 +353,7 @@ export function ListBox<T extends object>({
         aria-label="Loading list..."
       >
         {Array.from({ length: skeletonCount }).map((_, i) => (
-          <Skeleton key={i} componentVariant="list-item" size="md" index={i} />
+          <Skeleton key={i} componentVariant="list-item" size="M" index={i} />
         ))}
       </div>
     );
@@ -368,7 +368,7 @@ export function ListBox<T extends object>({
           className={`react-aria-ListBox virtualized ${variant}`}
           style={{ height }}
         >
-          <CollectionLoadingState size="md" height={height} />
+          <CollectionLoadingState size="M" height={height} />
         </div>
       );
     }

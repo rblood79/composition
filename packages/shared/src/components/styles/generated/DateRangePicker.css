@@ -25,35 +25,35 @@
   --icon-size: 16px;
 }
 
-.react-aria-DateRangePicker[data-size="xs"] {
+.react-aria-DateRangePicker[data-size="XS"] {
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   gap: 2px;
   --icon-size: 10px;
 }
 
-.react-aria-DateRangePicker[data-size="sm"] {
+.react-aria-DateRangePicker[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 4px;
   --icon-size: 14px;
 }
 
-.react-aria-DateRangePicker[data-size="md"] {
+.react-aria-DateRangePicker[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 4px;
   --icon-size: 16px;
 }
 
-.react-aria-DateRangePicker[data-size="lg"] {
+.react-aria-DateRangePicker[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   gap: 4px;
   --icon-size: 20px;
 }
 
-.react-aria-DateRangePicker[data-size="xl"] {
+.react-aria-DateRangePicker[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   gap: 8px;
@@ -73,7 +73,7 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-DateRangePicker[data-size="xs"] {
+.react-aria-DateRangePicker[data-size="XS"] {
   --drp-group-radius: var(--radius-xs);
   --drp-group-padding: 1px 1px 1px var(--spacing-xs);
   --drp-group-font-size: var(--text-2xs);
@@ -81,7 +81,7 @@
   --drp-group-gap: var(--spacing-2xs);
 }
 
-.react-aria-DateRangePicker[data-size="sm"] {
+.react-aria-DateRangePicker[data-size="S"] {
   --drp-group-radius: var(--radius-sm);
   --drp-group-padding: 1px 1px 1px var(--spacing-sm);
   --drp-group-font-size: var(--text-xs);
@@ -89,7 +89,7 @@
   --drp-group-gap: var(--spacing-xs);
 }
 
-.react-aria-DateRangePicker[data-size="md"] {
+.react-aria-DateRangePicker[data-size="M"] {
   --drp-group-radius: var(--radius-md);
   --drp-group-padding: 3px 3px 3px var(--spacing-md);
   --drp-group-font-size: var(--text-sm);
@@ -97,7 +97,7 @@
   --drp-group-gap: var(--spacing-xs);
 }
 
-.react-aria-DateRangePicker[data-size="lg"] {
+.react-aria-DateRangePicker[data-size="L"] {
   --drp-group-radius: var(--radius-lg);
   --drp-group-padding: 3px 3px 3px var(--spacing-lg);
   --drp-group-font-size: var(--text-base);
@@ -105,7 +105,7 @@
   --drp-group-gap: var(--spacing-xs);
 }
 
-.react-aria-DateRangePicker[data-size="xl"] {
+.react-aria-DateRangePicker[data-size="XL"] {
   --drp-group-radius: var(--radius-xl);
   --drp-group-padding: 3px 3px 3px var(--spacing-xl);
   --drp-group-font-size: var(--text-lg);
@@ -172,23 +172,23 @@
   font-size: var(--drp-group-font-size);
 }
 
-.react-aria-DateRangePicker[data-size="xs"] {
+.react-aria-DateRangePicker[data-size="XS"] {
   --drp-btn-size: 16px;
 }
 
-.react-aria-DateRangePicker[data-size="sm"] {
+.react-aria-DateRangePicker[data-size="S"] {
   --drp-btn-size: 18px;
 }
 
-.react-aria-DateRangePicker[data-size="md"] {
+.react-aria-DateRangePicker[data-size="M"] {
   --drp-btn-size: 22px;
 }
 
-.react-aria-DateRangePicker[data-size="lg"] {
+.react-aria-DateRangePicker[data-size="L"] {
   --drp-btn-size: 34px;
 }
 
-.react-aria-DateRangePicker[data-size="xl"] {
+.react-aria-DateRangePicker[data-size="XL"] {
   --drp-btn-size: 46px;
 }
 
@@ -199,23 +199,23 @@
   min-width: 0;
 }
 
-.react-aria-DateRangePicker[data-size="xs"] {
+.react-aria-DateRangePicker[data-size="XS"] {
   --drp-side-gap: 2px;
 }
 
-.react-aria-DateRangePicker[data-size="sm"] {
+.react-aria-DateRangePicker[data-size="S"] {
   --drp-side-gap: 4px;
 }
 
-.react-aria-DateRangePicker[data-size="md"] {
+.react-aria-DateRangePicker[data-size="M"] {
   --drp-side-gap: 4px;
 }
 
-.react-aria-DateRangePicker[data-size="lg"] {
+.react-aria-DateRangePicker[data-size="L"] {
   --drp-side-gap: 4px;
 }
 
-.react-aria-DateRangePicker[data-size="xl"] {
+.react-aria-DateRangePicker[data-size="XL"] {
   --drp-side-gap: 8px;
 }
 

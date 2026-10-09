@@ -365,7 +365,7 @@ const chevronNode = (item: string): NodeEntry[] => [
   node(
     `${item}-chevron`,
     "lib:definition:type-Icon",
-    { iconName: "chevron-right", size: "xs" },
+    { iconName: "chevron-right", size: "XS" },
     [],
     { showWhen: { all: ["hasSubmenu"] } } as Partial<NodeEntry>,
   ),

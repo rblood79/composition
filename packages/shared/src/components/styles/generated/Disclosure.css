@@ -24,7 +24,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-Disclosure[data-size="sm"] {
+.react-aria-Disclosure[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
@@ -32,7 +32,7 @@
   --icon-size: 14px;
 }
 
-.react-aria-Disclosure[data-size="md"] {
+.react-aria-Disclosure[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   line-height: var(--text-sm--line-height);
@@ -40,7 +40,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-Disclosure[data-size="lg"] {
+.react-aria-Disclosure[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   line-height: var(--text-base--line-height);

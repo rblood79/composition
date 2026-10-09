@@ -27,7 +27,7 @@
   font-weight: 700;
 }
 
-.react-aria-Header[data-size="sm"] {
+.react-aria-Header[data-size="S"] {
   height: auto;
   padding: 4px 12px;
   font-size: var(--text-xs);
@@ -35,7 +35,7 @@
   font-weight: 700;
 }
 
-.react-aria-Header[data-size="md"] {
+.react-aria-Header[data-size="M"] {
   height: auto;
   padding: 6px 12px;
   font-size: var(--text-xs);
@@ -43,7 +43,7 @@
   font-weight: 700;
 }
 
-.react-aria-Header[data-size="lg"] {
+.react-aria-Header[data-size="L"] {
   height: auto;
   padding: 8px 16px;
   font-size: var(--text-sm);

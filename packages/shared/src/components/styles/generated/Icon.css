@@ -42,7 +42,7 @@
   }
 }
 
-.react-aria-Icon[data-size="xs"] {
+.react-aria-Icon[data-size="XS"] {
   height: 16px;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -50,7 +50,7 @@
   --icon-size: 16px;
 }
 
-.react-aria-Icon[data-size="sm"] {
+.react-aria-Icon[data-size="S"] {
   height: 18px;
   padding: 0px 0px;
   font-size: var(--text-lg);
@@ -58,7 +58,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-Icon[data-size="md"] {
+.react-aria-Icon[data-size="M"] {
   height: 24px;
   padding: 0px 0px;
   font-size: var(--text-2xl);
@@ -66,7 +66,7 @@
   --icon-size: 24px;
 }
 
-.react-aria-Icon[data-size="lg"] {
+.react-aria-Icon[data-size="L"] {
   height: 36px;
   padding: 0px 0px;
   font-size: var(--text-4xl);
@@ -74,7 +74,7 @@
   --icon-size: 36px;
 }
 
-.react-aria-Icon[data-size="xl"] {
+.react-aria-Icon[data-size="XL"] {
   height: 48px;
   padding: 0px 0px;
   font-size: var(--text-5xl);

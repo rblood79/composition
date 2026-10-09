@@ -26,7 +26,7 @@ interface CollectionErrorStateProps {
   /** 빈 상태 메시지 */
   emptyMessage?: string;
   /** 컴포넌트 크기 */
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   /** 커스텀 높이 */
   height?: number | string;
 }
@@ -35,7 +35,7 @@ interface CollectionErrorStateProps {
  * 로딩 상태 컴포넌트
  */
 export function CollectionLoadingState({
-  size = "md",
+  size = "M",
   height,
 }: Pick<CollectionErrorStateProps, "size" | "height">) {
   const t = useComponentStrings();
@@ -46,7 +46,7 @@ export function CollectionLoadingState({
     >
       <LoaderCircle
         className="collection-state-spinner"
-        size={size === "sm" ? 16 : size === "lg" ? 24 : 20}
+        size={size === "S" ? 16 : size === "L" ? 24 : 20}
       />
       <span className="collection-state-text">{t("loadingDataPlain")}</span>
     </div>
@@ -59,7 +59,7 @@ export function CollectionLoadingState({
 export function CollectionErrorDisplay({
   error,
   onRetry,
-  size = "md",
+  size = "M",
   height,
 }: Pick<CollectionErrorStateProps, "error" | "onRetry" | "size" | "height">) {
   const t = useComponentStrings();
@@ -69,7 +69,7 @@ export function CollectionErrorDisplay({
       style={height ? { height } : undefined}
     >
       <div className="collection-error-icon">
-        <CircleAlert size={size === "sm" ? 16 : size === "lg" ? 24 : 20} />
+        <CircleAlert size={size === "S" ? 16 : size === "L" ? 24 : 20} />
       </div>
       <div className="collection-error-content">
         <span className="collection-error-message">
@@ -95,11 +95,11 @@ export function CollectionErrorDisplay({
  */
 export function CollectionEmptyState({
   message,
-  size = "md",
+  size = "M",
   height,
 }: {
   message?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   height?: number | string;
 }) {
   const t = useComponentStrings();
@@ -108,7 +108,7 @@ export function CollectionEmptyState({
       className={`collection-state collection-empty ${size}`}
       style={height ? { height } : undefined}
     >
-      <Inbox size={size === "sm" ? 16 : size === "lg" ? 24 : 20} />
+      <Inbox size={size === "S" ? 16 : size === "L" ? 24 : 20} />
       <span className="collection-state-text">{message ?? t("emptyData")}</span>
     </div>
   );
@@ -127,7 +127,7 @@ export function CollectionState({
   onRetry,
   isEmpty,
   emptyMessage,
-  size = "md",
+  size = "M",
   height,
 }: CollectionErrorStateProps) {
   if (loading) {

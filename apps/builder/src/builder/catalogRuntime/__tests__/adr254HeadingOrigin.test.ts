@@ -54,7 +54,7 @@ const PROPS_BEFORE = [
   "opacity",
   "height",
 ];
-const SIZES = ["xs", "sm", "md", "lg", "xl", "2xl", "3xl"];
+const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 async function workspaceWith(props: Record<string, string>) {
   const library = await buildCodeCatalogLibrary();
@@ -147,7 +147,7 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
               op: "create_element",
               args: {
                 type: "Heading",
-                props: { children: "Title", size: "lg" },
+                props: { children: "Title", size: "L" },
               },
             },
           ],
@@ -165,7 +165,7 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
   it("creates the AI's Heading as an instance of the origin, sized by the Heading rule", async () => {
     const { definitionId, record } = await workspaceWith({
       children: "Title",
-      size: "lg",
+      size: "L",
     });
     expect(definitionId).toBe(HEADING_ORIGIN);
     expect(record().collapsedSourceIds).toEqual([

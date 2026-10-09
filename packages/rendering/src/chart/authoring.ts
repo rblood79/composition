@@ -251,7 +251,7 @@ export function createChartInitialProps(chartType?: ChartType): ChartProps & {
         }
       : {}),
     variant: "default",
-    size: "md",
+    size: "M",
     style: { width: 320 },
     data: (scatter ? scatterSample : legacySample)
       .filter((row) => !single || row.series === "A")

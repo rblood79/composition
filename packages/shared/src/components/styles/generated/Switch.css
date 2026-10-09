@@ -60,7 +60,7 @@
   }
 }
 
-.react-aria-Switch[data-size="sm"] {
+.react-aria-Switch[data-size="S"] {
   height: auto;
   padding: 4px 0px;
   font-size: var(--text-xs);
@@ -68,7 +68,7 @@
   gap: 8px;
 }
 
-.react-aria-Switch[data-size="md"] {
+.react-aria-Switch[data-size="M"] {
   height: auto;
   padding: 4px 0px;
   font-size: var(--text-sm);
@@ -76,7 +76,7 @@
   gap: 10px;
 }
 
-.react-aria-Switch[data-size="lg"] {
+.react-aria-Switch[data-size="L"] {
   height: auto;
   padding: 4px 0px;
   font-size: var(--text-base);
@@ -84,7 +84,7 @@
   gap: 12px;
 }
 
-.react-aria-Switch[data-size="xl"] {
+.react-aria-Switch[data-size="XL"] {
   height: auto;
   padding: 4px 0px;
   font-size: var(--text-lg);
@@ -105,19 +105,19 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Switch[data-size="sm"] {
+.react-aria-Switch[data-size="S"] {
   --sw-button-gap: 8px;
 }
 
-.react-aria-Switch[data-size="md"] {
+.react-aria-Switch[data-size="M"] {
   --sw-button-gap: 10px;
 }
 
-.react-aria-Switch[data-size="lg"] {
+.react-aria-Switch[data-size="L"] {
   --sw-button-gap: 12px;
 }
 
-.react-aria-Switch[data-size="xl"] {
+.react-aria-Switch[data-size="XL"] {
   --sw-button-gap: 14px;
 }
 

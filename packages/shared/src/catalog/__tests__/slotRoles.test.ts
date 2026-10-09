@@ -210,12 +210,12 @@ describe("resolveSlotComposition", () => {
     const composition = resolveSlotComposition([
       {
         type: "Text",
-        props: { slot: "label", children: "{label}", size: "3xl" },
+        props: { slot: "label", children: "{label}", size: "XXXL" },
         metadata: { slotRole: "label" },
       },
     ]);
 
-    // Text.sizes["3xl"].fontSize = {typography.text-3xl} = 30
+    // Text.sizes["XXXL"].fontSize = {typography.text-3xl} = 30
     expect(composition?.slots.label?.style?.fontSize).toBe(30);
   });
 
@@ -223,7 +223,7 @@ describe("resolveSlotComposition", () => {
     const composition = resolveSlotComposition([
       {
         type: "Text",
-        props: { slot: "label", size: "3xl", style: { fontSize: 12 } },
+        props: { slot: "label", size: "XXXL", style: { fontSize: 12 } },
         metadata: { slotRole: "label" },
       },
     ]);
@@ -241,12 +241,12 @@ describe("resolveSlotComposition", () => {
     const composition = resolveSlotComposition([
       {
         type: "Text",
-        props: { slot: "description", children: "{d}", size: "sm" },
+        props: { slot: "description", children: "{d}", size: "S" },
         metadata: { slotRole: "description" },
       },
     ]);
 
-    // Text.sizes["sm"].fontSize = {typography.text-sm} = 14
+    // Text.sizes["S"].fontSize = {typography.text-sm} = 14
     expect(composition?.slots.description?.style?.fontSize).toBe(14);
   });
 });

@@ -16,7 +16,7 @@ export const dialogBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // (Dismissing on an outside press is the Modal's — RAC `ModalOverlayProps.isDismissable`,
       // ADR-256 Phase 8b.)

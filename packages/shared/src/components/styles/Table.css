@@ -634,7 +634,7 @@
   }
 
   /* ========== Size Variants ========== */
-  .react-aria-Table[data-size="sm"] {
+  .react-aria-Table[data-size="S"] {
     font-size: var(--text-xs);
 
     .react-aria-TableHeader {
@@ -670,7 +670,7 @@
     }
   }
 
-  .react-aria-Table[data-size="md"] {
+  .react-aria-Table[data-size="M"] {
     font-size: var(--text-base);
 
     .react-aria-TableHeader {
@@ -706,7 +706,7 @@
     }
   }
 
-  .react-aria-Table[data-size="lg"] {
+  .react-aria-Table[data-size="L"] {
     font-size: var(--text-base);
 
     .react-aria-TableHeader {

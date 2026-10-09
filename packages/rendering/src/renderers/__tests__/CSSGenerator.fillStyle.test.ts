@@ -17,7 +17,7 @@ function makeFillStyleSpec(): ComponentSpec {
     archetype: "simple",
     element: "span",
     defaultVariant: "accent",
-    defaultSize: "sm",
+    defaultSize: "S",
     variants: {
       accent: {
         fill: {

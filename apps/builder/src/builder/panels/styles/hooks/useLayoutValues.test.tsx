@@ -32,7 +32,7 @@ describe("useLayoutValues", () => {
   beforeEach(async () => {
     await setTestElements([
       makeElement("el-1", "Button", {
-        size: "md",
+        size: "M",
         style: {
           display: "flex",
           flexDirection: "column",
@@ -79,9 +79,9 @@ describe("useLayoutValues", () => {
 describe("useLayoutValues — record fallback (display/flex keys)", () => {
   beforeEach(async () => {
     await setTestElements([
-      makeElement("el-record-only", "Card", { size: "md", style: {} }),
+      makeElement("el-record-only", "Card", { size: "M", style: {} }),
       makeElement("el-inline-wins", "Card", {
-        size: "md",
+        size: "M",
         style: { display: "grid", alignItems: "flex-end" },
       }),
     ]);
@@ -110,15 +110,15 @@ describe("useLayoutValues — record fallback (display/flex keys)", () => {
 describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way uniform fallback", () => {
   beforeEach(async () => {
     await setTestElements([
-      makeElement("el-uniform", "ListBox", { size: "md", style: {} }),
-      makeElement("el-nonuniform", "Button", { size: "md", style: {} }),
-      makeElement("el-no-padding", "TextField", { size: "md", style: {} }),
+      makeElement("el-uniform", "ListBox", { size: "M", style: {} }),
+      makeElement("el-nonuniform", "Button", { size: "M", style: {} }),
+      makeElement("el-no-padding", "TextField", { size: "M", style: {} }),
       makeElement("el-inline-pad", "ListBox", {
-        size: "md",
+        size: "M",
         style: { padding: "16px" },
       }),
       makeElement("el-inline-uniform-pad", "ListBox", {
-        size: "md",
+        size: "M",
         style: {
           paddingTop: 12,
           paddingRight: 12,
@@ -127,7 +127,7 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
         },
       }),
       makeElement("el-inline-uniform-margin", "ListBox", {
-        size: "md",
+        size: "M",
         style: {
           marginTop: 10,
           marginRight: 10,
@@ -231,7 +231,7 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   it("TextField.labelPosition=side variant 를 Panel layout 값으로 반영", async () => {
     await setTestElements([
       makeElement("el-side-textfield", "TextField", {
-        size: "md",
+        size: "M",
         labelPosition: "side",
         style: {},
       }),
@@ -249,7 +249,7 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   it("inline layout 값은 variant fallback 보다 우선", async () => {
     await setTestElements([
       makeElement("el-side-textfield-inline", "TextField", {
-        size: "md",
+        size: "M",
         labelPosition: "side",
         style: {
           display: "flex",
@@ -272,7 +272,7 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   it("TagGroup 기본 방향은 수동 CSS와 동일하게 column으로 표시", async () => {
     await setTestElements([
       makeElement("el-taggroup", "TagGroup", {
-        size: "md",
+        size: "M",
         labelPosition: "top",
         style: {},
       }),
@@ -286,7 +286,7 @@ describe("useLayoutValues — ADR-108 P3 variant-aware Panel fallback", () => {
   it("TagGroup.labelPosition=side variant 는 Direction 을 row로 표시", async () => {
     await setTestElements([
       makeElement("el-taggroup-side", "TagGroup", {
-        size: "md",
+        size: "M",
         labelPosition: "side",
         style: {},
       }),

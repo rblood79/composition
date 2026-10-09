@@ -16,7 +16,7 @@ export interface LinkProps extends RACLinkProps {
   variant?: LinkVariant;
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   isQuiet?: boolean;
@@ -57,14 +57,14 @@ export interface LinkProps extends RACLinkProps {
  * - Hover and pressed states
  *
  * @example
- * <Link variant="primary" size="md" href="/about">About</Link>
+ * <Link variant="primary" size="M" href="/about">About</Link>
  * <Link variant="secondary" isExternal href="https://example.com">External Link</Link>
  */
 export function Link(props: LinkProps) {
   const { focusProps, isFocusVisible } = useFocusRing();
   const {
     variant = "primary",
-    size = "md",
+    size = "M",
     isQuiet = false,
     staticColor = "auto",
     isExternal,

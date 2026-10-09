@@ -24,7 +24,7 @@ export const colorPickerBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       variant: {
         kind: "variant",

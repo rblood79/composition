@@ -17,27 +17,27 @@
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-size="xs"] {
+.react-aria-AvatarGroup[data-size="XS"] {
   font-size: var(--text-2xs);
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-size="sm"] {
+.react-aria-AvatarGroup[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-size="md"] {
+.react-aria-AvatarGroup[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-size="lg"] {
+.react-aria-AvatarGroup[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-full);
 }
 
-.react-aria-AvatarGroup[data-size="xl"] {
+.react-aria-AvatarGroup[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
 }
@@ -55,43 +55,43 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-AvatarGroup[data-size="xs"] {
+.react-aria-AvatarGroup[data-size="XS"] {
   padding: 0 0 0 6px;
 }
 
-.react-aria-AvatarGroup[data-size="xs"] > .react-aria-Avatar {
+.react-aria-AvatarGroup[data-size="XS"] > .react-aria-Avatar {
   margin-inline-start: -6px;
 }
 
-.react-aria-AvatarGroup[data-size="sm"] {
+.react-aria-AvatarGroup[data-size="S"] {
   padding: 0 0 0 7px;
 }
 
-.react-aria-AvatarGroup[data-size="sm"] > .react-aria-Avatar {
+.react-aria-AvatarGroup[data-size="S"] > .react-aria-Avatar {
   margin-inline-start: -7px;
 }
 
-.react-aria-AvatarGroup[data-size="md"] {
+.react-aria-AvatarGroup[data-size="M"] {
   padding: 0 0 0 8px;
 }
 
-.react-aria-AvatarGroup[data-size="md"] > .react-aria-Avatar {
+.react-aria-AvatarGroup[data-size="M"] > .react-aria-Avatar {
   margin-inline-start: -8px;
 }
 
-.react-aria-AvatarGroup[data-size="lg"] {
+.react-aria-AvatarGroup[data-size="L"] {
   padding: 0 0 0 10px;
 }
 
-.react-aria-AvatarGroup[data-size="lg"] > .react-aria-Avatar {
+.react-aria-AvatarGroup[data-size="L"] > .react-aria-Avatar {
   margin-inline-start: -10px;
 }
 
-.react-aria-AvatarGroup[data-size="xl"] {
+.react-aria-AvatarGroup[data-size="XL"] {
   padding: 0 0 0 12px;
 }
 
-.react-aria-AvatarGroup[data-size="xl"] > .react-aria-Avatar {
+.react-aria-AvatarGroup[data-size="XL"] > .react-aria-Avatar {
   margin-inline-start: -12px;
 }
 

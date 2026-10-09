@@ -728,7 +728,7 @@ export interface PropagationRule {
   /** 자식에 설정할 prop 키 (기본: parentProp과 동일) */
   childProp?: string;
 
-  /** 부모 값 → 자식 값 변환 (e.g., size "md" → fontSize 14) */
+  /** 부모 값 → 자식 값 변환 (e.g., size "M" → fontSize 14) */
   transform?: (
     parentValue: unknown,
     parentProps: Record<string, unknown>,

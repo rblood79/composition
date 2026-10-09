@@ -209,7 +209,7 @@ const DISPERSION_BASELINE: Array<{
     //        dotSize 만 layout-private const 유지(catalog 대응 키 부재).
     //     4. ProgressCircle diameter const → `progressCircleDiameter()` (catalog ProgressCircle.sizes.height).
     //        DisclosureHeader height/paddingX/iconSize 인라인 → `disclosureHeaderDims()` (catalog
-    //        DisclosureHeader.sizes.md). gap(=6)은 catalog 대응 키 부재라 layout-private 유지.
+    //        DisclosureHeader.sizes.M). gap(=6)은 catalog 대응 키 부재라 layout-private 유지.
     //     5. PHANTOM_INDICATOR_CONFIGS 의 `gaps` 축(Switch {8,10,12}/Checkbox·Radio {6,8,10} = catalog
     //        .sizes.*.gap byte 일치) → `phantomIndicatorGap()` (utils + implicitStyles 양 consumer).
     //        `gaps` 필드 삭제. `widths`/`heights`/`rowHeights` 는 catalog `.sizes` 에 indicator box/row

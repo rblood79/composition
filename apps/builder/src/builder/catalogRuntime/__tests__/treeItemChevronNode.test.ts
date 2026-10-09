@@ -278,12 +278,12 @@ describe("TreeItem chevron — Button[slot=chevron] in the row content", () => {
       ]),
       node(`project:node:${key}-b`, "Button", [`project:node:${key}-i`], {
         slot: "chevron",
-        size: "sm",
+        size: "S",
         children: "",
       }),
       node(`project:node:${key}-i`, "Icon", [], {
         iconName: "chevron-right",
-        size: "xs",
+        size: "XS",
       }),
       node(`project:node:${key}-t`, "Text", [], { children: key }),
     ];

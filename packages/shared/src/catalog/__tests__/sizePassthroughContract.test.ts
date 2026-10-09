@@ -15,17 +15,17 @@ import type { ComponentTag } from "../../types/composition-vocabulary";
  *  1. wrapper 가 `size` 를 **React prop 으로 직접 소비**한다 (하위 Label/Input/Button 크기 결정).
  *  2. wrapper 가 `{...props}` **뒤에** 자기 `data-size={size}` 를 **다시 쓴다**.
  *
- * → passthrough 가 없으면 **이중 실패**: wrapper 의 size 가 undefined → `default "md"` 고정,
- *   게다가 그 `"md"` 가 toRacProps 가 넣어준 `data-size="xl"` 를 **덮어써** CSS selector 가
+ * → passthrough 가 없으면 **이중 실패**: wrapper 의 size 가 undefined → `default "M"` 고정,
+ *   게다가 그 `"M"` 가 toRacProps 가 넣어준 `data-size="XL"` 를 **덮어써** CSS selector 가
  *   영원히 md 로 매칭된다. 즉 size 를 바꿔도 Preview 가 전혀 반응하지 않는다.
  *
  * DatePicker 에서 실제로 재현된 버그이며, 아래 field/collection 8종이 **구조적으로 동일**하다
- * (`size = "md"` default + 자기 `data-size` emit + DELEGATING 렌더).
+ * (`size = "M"` default + 자기 `data-size` emit + DELEGATING 렌더).
  *
  * **확장 (2026-07-14 2차, Icon 사용자 적발)**: 같은 root-cause 가 **INTERNAL_RENDERERS leaf**
  * (`source.kind: "internal"` React 컴포넌트)에도 있었다. 이쪽은 DELEGATING 이 아니라
  * `toRacProps` 결과를 **그대로 props 로 받는** 경로인데, 컴포넌트가 `size` 를 React prop 으로
- * 선언(`size = "md"`)하고 **크기 계산의 입력**으로 쓴다:
+ * 선언(`size = "M"`)하고 **크기 계산의 입력**으로 쓴다:
  *
  *   Icon:   `ICON_SIZE_MAP[size]` → `<svg width={pxSize}>` (SVG **속성** — CSS 로 도달 불가)
  *   Badge / Skeleton / StatusLight / Avatar / ProgressCircle: `data-size={size}` 재작성
@@ -40,7 +40,7 @@ import type { ComponentTag } from "../../types/composition-vocabulary";
 /**
  * size 를 React prop 으로 소비하는 컴포넌트 전수 (DELEGATING wrapper + INTERNAL leaf).
  *
- * 신규 추가 판정: 해당 컴포넌트 구현이 `size = "md"` 처럼 **default 를 가진 React prop** 으로
+ * 신규 추가 판정: 해당 컴포넌트 구현이 `size = "M"` 처럼 **default 를 가진 React prop** 으로
  * size 를 선언하고 (a) 크기 계산에 쓰거나 (b) 자기 `data-size` 를 재작성하면 → 여기 추가 필수.
  */
 const SIZE_PASSTHROUGH_TYPES = [
@@ -55,7 +55,7 @@ const SIZE_PASSTHROUGH_TYPES = [
   "NumberField",
   // INTERNAL_RENDERERS leaf — toRacProps 결과를 직접 props 로 받는 React 컴포넌트
   "Icon", // ICON_SIZE_MAP[size] → svg width/height (SVG 속성, CSS 도달 불가)
-  "Badge", // {...props} 뒤 data-size={size} 재작성 (default "sm")
+  "Badge", // {...props} 뒤 data-size={size} 재작성 (default "S")
   "StatusLight",
   "Avatar",
   "ProgressCircle",
@@ -84,15 +84,15 @@ describe("size propPassthrough 계약 — wrapper self-compose 컴포넌트", ()
     "%s toRacProps: size 가 React prop + data-size 를 **둘 다** emit",
     (type) => {
       const result = toRacProps(
-        { id: "n1", type, props: { size: "xl" } },
+        { id: "n1", type, props: { size: "XL" } },
         getPrimitiveBinding(type)!,
       ) as Record<string, unknown>;
 
-      // React prop — 이게 없으면 wrapper 가 default("md") 로 고정되고,
-      //   wrapper 가 그 "md" 로 data-size 를 덮어써 CSS 가 영원히 md 매칭.
-      expect(result.size, `${type} React size prop`).toBe("xl");
+      // React prop — 이게 없으면 wrapper 가 default("M") 로 고정되고,
+      //   wrapper 가 그 "M" 로 data-size 를 덮어써 CSS 가 영원히 md 매칭.
+      expect(result.size, `${type} React size prop`).toBe("XL");
       // data-* — CSS selector 매칭용
-      expect(result["data-size"], `${type} data-size`).toBe("xl");
+      expect(result["data-size"], `${type} data-size`).toBe("XL");
     },
   );
 });
@@ -114,7 +114,7 @@ const MULTI_AXIS_PASSTHROUGH: ReadonlyArray<{
     type: "Badge",
     axes: [
       { prop: "variant", value: "negative", dataAttr: "data-variant" },
-      { prop: "size", value: "xl", dataAttr: "data-size" },
+      { prop: "size", value: "XL", dataAttr: "data-size" },
       { prop: "fillStyle", value: "outline", dataAttr: "data-fill-style" },
     ],
   },
@@ -122,7 +122,7 @@ const MULTI_AXIS_PASSTHROUGH: ReadonlyArray<{
     type: "StatusLight",
     axes: [
       { prop: "variant", value: "negative", dataAttr: "data-variant" },
-      { prop: "size", value: "xl", dataAttr: "data-size" },
+      { prop: "size", value: "XL", dataAttr: "data-size" },
     ],
   },
 ];

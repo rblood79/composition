@@ -71,25 +71,25 @@ const EXPECTED: Record<
   >
 > = {
   Checkbox: {
-    sm: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    md: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
-    lg: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
+    S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
+    M: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
+    L: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
     // was height 28 · label y 0 (the 30px box overflowed the row)
-    xl: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
   },
   RadioGroup: {
-    sm: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
-    md: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
-    lg: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
-    xl: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
+    S: { box: [16, 16], height: 16, labelX: 22, labelY: 0, indicatorY: 0 },
+    M: { box: [20, 20], height: 20, labelX: 28, labelY: 0, indicatorY: 0 },
+    L: { box: [24, 24], height: 24, labelX: 34, labelY: 0, indicatorY: 0 },
+    XL: { box: [30, 30], height: 30, labelX: 42, labelY: 1, indicatorY: 0 },
   },
   Switch: {
     // was height 24 · label y 4 (the track painted at y 0, above the padding)
-    sm: { box: [32, 18], height: 26, labelX: 40, labelY: 5, indicatorY: 4 },
-    md: { box: [36, 20], height: 28, labelX: 46, labelY: 4, indicatorY: 4 },
-    lg: { box: [44, 24], height: 32, labelX: 56, labelY: 4, indicatorY: 4 },
+    S: { box: [32, 18], height: 26, labelX: 40, labelY: 5, indicatorY: 4 },
+    M: { box: [36, 20], height: 28, labelX: 46, labelY: 4, indicatorY: 4 },
+    L: { box: [44, 24], height: 32, labelX: 56, labelY: 4, indicatorY: 4 },
     // was height 36 · label y 4
-    xl: { box: [52, 30], height: 38, labelX: 66, labelY: 5, indicatorY: 4 },
+    XL: { box: [52, 30], height: 38, labelX: 66, labelY: 5, indicatorY: 4 },
   },
 };
 
@@ -146,7 +146,7 @@ async function openToggle(owner: keyof typeof TOGGLES, size: string) {
 }
 
 const CASES = (Object.keys(TOGGLES) as (keyof typeof TOGGLES)[]).flatMap(
-  (owner) => ["sm", "md", "lg", "xl"].map((size) => ({ owner, size })),
+  (owner) => ["S", "M", "L", "XL"].map((size) => ({ owner, size })),
 );
 
 describe("toggle indicator node", () => {
@@ -190,7 +190,7 @@ describe("toggle indicator node", () => {
   it.each(Object.keys(TOGGLES) as (keyof typeof TOGGLES)[])(
     "%s: the DOM absorbs the indicator node (one RAC indicator element, no record element)",
     async (owner) => {
-      const { workspace, root, kids } = await openToggle(owner, "md");
+      const { workspace, root, kids } = await openToggle(owner, "M");
       const dom = [...root.domInputs.values()].find(
         (record) => record.sourceId === "project:node:owner",
       )!;
@@ -212,7 +212,7 @@ describe("toggle indicator node", () => {
   it.each(Object.keys(TOGGLES) as (keyof typeof TOGGLES)[])(
     "%s: the indicator node paints the toggle's primitive; the toggle paints none",
     async (owner) => {
-      const { workspace, root, toggle, kids } = await openToggle(owner, "md");
+      const { workspace, root, toggle, kids } = await openToggle(owner, "M");
       const canvas = bindCatalogCanvas(root, root.pageRootRecords());
       const indicator = kids[0];
       const painted = getSkiaNode(indicator.id)!;
@@ -249,7 +249,7 @@ describe("toggle indicator node", () => {
     // `isSelected` paints what it authored, as RAC does in the DOM; indeterminate paints the
     // selected box with its dash (`Checkbox.css` `[data-selected], [data-indeterminate]`); the box
     // radius is `size.indicator.boxRadius` (DOM `.checkbox` `--radius-sm`), not the toggle's own.
-    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const { workspace, root, kids } = await openToggle("Checkbox", "M");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const indicator = kids[0];
     const set = (key: string, value: boolean) => {
@@ -285,7 +285,7 @@ describe("toggle indicator node", () => {
   it("Checkbox: invalid paints the box border — and a selected or indeterminate box — negative", async () => {
     // (2026-10-09) `Checkbox.css` `[data-invalid] .checkbox { border-color: var(--negative) }` and,
     // selected or indeterminate, `background: var(--negative)` (the check stays white).
-    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const { workspace, root, kids } = await openToggle("Checkbox", "M");
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     const set = (props: Record<string, boolean>) => {
       workspace.execute(
@@ -322,10 +322,10 @@ describe("toggle indicator node", () => {
   });
 
   it.each([
-    ["sm", 16],
-    ["md", 20],
-    ["lg", 24],
-    ["xl", 30],
+    ["S", 16],
+    ["M", 20],
+    ["L", 24],
+    ["XL", 30],
   ] as const)(
     "Checkbox %s: the check and the dash are the DOM's lucide glyphs in the box's content area",
     async (size, box) => {
@@ -393,7 +393,7 @@ describe("toggle indicator node", () => {
   it("Checkbox: a mounted DOM (the Preview) follows an isSelected edit", async () => {
     // RAC holds the selection uncontrolled (a Preview press toggles it): an authored change of the
     // default starts the element over, as the Tabs binding does with its default key (2026-10-09).
-    const { workspace, root } = await openToggle("Checkbox", "md");
+    const { workspace, root } = await openToggle("Checkbox", "M");
     const host = document.createElement("div");
     document.body.append(host);
     const mounted = createRoot(host);
@@ -441,7 +441,7 @@ describe("toggle indicator node", () => {
   });
 
   it("the indicator position is not removable; the Label still is (hidden)", async () => {
-    const { workspace, root, kids } = await openToggle("Checkbox", "md");
+    const { workspace, root, kids } = await openToggle("Checkbox", "M");
     const [indicator, label] = kids;
     const targetOf = (id: string) => workspace.positionOfRecord(id)!.target;
     let code: unknown;

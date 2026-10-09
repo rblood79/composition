@@ -79,23 +79,23 @@
 
     /* ===== Size Variants ===== */
 
-    &[data-size="xs"] {
+    &[data-size="XS"] {
       font-size: var(--text-2xs);
     }
 
-    &[data-size="sm"] {
+    &[data-size="S"] {
       font-size: var(--text-xs);
     }
 
-    &[data-size="md"] {
+    &[data-size="M"] {
       font-size: var(--text-sm);
     }
 
-    &[data-size="lg"] {
+    &[data-size="L"] {
       font-size: var(--text-base);
     }
 
-    &[data-size="xl"] {
+    &[data-size="XL"] {
       font-size: var(--text-lg);
     }
   }

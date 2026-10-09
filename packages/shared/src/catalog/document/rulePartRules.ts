@@ -1319,7 +1319,7 @@ export function compileRulePartRules(
   const composition = rule?.structure?.composition as
     | {
         staticSelectors?: Record<string, Record<string, string>>;
-        /** Per-size child selectors (`.X[data-size="lg"] .bar`), emitted after the static ones. */
+        /** Per-size child selectors (`.X[data-size="L"] .bar`), emitted after the static ones. */
         sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
         delegation?: Array<{
           childSelector?: string;

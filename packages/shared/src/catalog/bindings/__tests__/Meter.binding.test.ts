@@ -59,14 +59,14 @@ describe("Meter binding — value-fill compound (ProgressBar 동형, internal wr
     const node = {
       id: "x",
       type: "Meter",
-      props: { value: 60, size: "lg", variant: "positive", label: "M" },
+      props: { value: 60, size: "L", variant: "positive", label: "M" },
     };
     const rac = toRacProps(node as never, meterBinding);
     // value/label 은 React prop (renderMeter 가 소비)
     expect(rac.value).toBe(60);
     expect(rac.label).toBe("M");
     // variant/size 는 data-attr (RAC unstyled + generated CSS)
-    expect(rac["data-size"]).toBe("lg");
+    expect(rac["data-size"]).toBe("L");
     expect(rac["data-variant"]).toBe("positive");
   });
 });

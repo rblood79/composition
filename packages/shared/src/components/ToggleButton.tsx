@@ -28,7 +28,7 @@ export interface ToggleButtonExtendedProps extends ToggleButtonProps {
   isQuiet?: boolean;
   /**
    * Size of the toggle button
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -47,7 +47,7 @@ export interface ToggleButtonExtendedProps extends ToggleButtonProps {
 export function ToggleButton({
   isEmphasized = false,
   isQuiet = false,
-  size = "md",
+  size = "M",
   staticColor = "auto",
   children,
   ...props

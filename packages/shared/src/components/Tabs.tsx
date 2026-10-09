@@ -35,7 +35,7 @@ export interface TabsExtendedProps extends TabsProps {
   density?: "compact" | "regular";
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -68,7 +68,7 @@ export interface TabListExtendedProps<
   density?: "compact" | "regular";
   /**
    * Size variant (inherited from Tabs)
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -94,8 +94,8 @@ export interface TabListExtendedProps<
  * - DataBinding support for dynamic tabs
  *
  * @example
- * <Tabs density="regular" size="md">
- *   <TabList density="regular" size="md">
+ * <Tabs density="regular" size="M">
+ *   <TabList density="regular" size="M">
  *     <Tab>Tab 1</Tab>
  *     <Tab>Tab 2</Tab>
  *   </TabList>
@@ -105,7 +105,7 @@ export interface TabListExtendedProps<
  */
 export function Tabs({
   density = "regular",
-  size = "md",
+  size = "M",
   dataBinding,
   columnMapping,
   isLoading: externalLoading,
@@ -324,7 +324,7 @@ export function Tabs({
  */
 export function TabList<T extends object>({
   density = "regular",
-  size = "md",
+  size = "M",
   showIndicator = false,
   children,
   ...props

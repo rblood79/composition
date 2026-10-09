@@ -25,35 +25,35 @@
   --icon-size: 16px;
 }
 
-.react-aria-DatePicker[data-size="xs"] {
+.react-aria-DatePicker[data-size="XS"] {
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   gap: 2px;
   --icon-size: 10px;
 }
 
-.react-aria-DatePicker[data-size="sm"] {
+.react-aria-DatePicker[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 4px;
   --icon-size: 14px;
 }
 
-.react-aria-DatePicker[data-size="md"] {
+.react-aria-DatePicker[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 4px;
   --icon-size: 16px;
 }
 
-.react-aria-DatePicker[data-size="lg"] {
+.react-aria-DatePicker[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   gap: 4px;
   --icon-size: 20px;
 }
 
-.react-aria-DatePicker[data-size="xl"] {
+.react-aria-DatePicker[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   gap: 8px;
@@ -79,23 +79,23 @@
   width: 100%;
 }
 
-.react-aria-DatePicker[data-size="xs"] {
+.react-aria-DatePicker[data-size="XS"] {
   --dp-input-pad-end: 20px;
 }
 
-.react-aria-DatePicker[data-size="sm"] {
+.react-aria-DatePicker[data-size="S"] {
   --dp-input-pad-end: 26px;
 }
 
-.react-aria-DatePicker[data-size="md"] {
+.react-aria-DatePicker[data-size="M"] {
   --dp-input-pad-end: 34px;
 }
 
-.react-aria-DatePicker[data-size="lg"] {
+.react-aria-DatePicker[data-size="L"] {
   --dp-input-pad-end: 50px;
 }
 
-.react-aria-DatePicker[data-size="xl"] {
+.react-aria-DatePicker[data-size="XL"] {
   --dp-input-pad-end: 70px;
 }
 
@@ -104,27 +104,27 @@
   padding-right: var(--dp-input-pad-end);
 }
 
-.react-aria-DatePicker[data-size="xs"] {
+.react-aria-DatePicker[data-size="XS"] {
   --dp-btn-size: 16px;
   --dp-btn-offset: -18px;
 }
 
-.react-aria-DatePicker[data-size="sm"] {
+.react-aria-DatePicker[data-size="S"] {
   --dp-btn-size: 18px;
   --dp-btn-offset: -20px;
 }
 
-.react-aria-DatePicker[data-size="md"] {
+.react-aria-DatePicker[data-size="M"] {
   --dp-btn-size: 22px;
   --dp-btn-offset: -26px;
 }
 
-.react-aria-DatePicker[data-size="lg"] {
+.react-aria-DatePicker[data-size="L"] {
   --dp-btn-size: 34px;
   --dp-btn-offset: -38px;
 }
 
-.react-aria-DatePicker[data-size="xl"] {
+.react-aria-DatePicker[data-size="XL"] {
   --dp-btn-size: 46px;
   --dp-btn-offset: -50px;
 }
@@ -137,23 +137,23 @@
   margin-inline-start: var(--dp-btn-offset);
 }
 
-.react-aria-DatePicker[data-size="xs"] {
+.react-aria-DatePicker[data-size="XS"] {
   --dp-side-gap: 2px;
 }
 
-.react-aria-DatePicker[data-size="sm"] {
+.react-aria-DatePicker[data-size="S"] {
   --dp-side-gap: 4px;
 }
 
-.react-aria-DatePicker[data-size="md"] {
+.react-aria-DatePicker[data-size="M"] {
   --dp-side-gap: 4px;
 }
 
-.react-aria-DatePicker[data-size="lg"] {
+.react-aria-DatePicker[data-size="L"] {
   --dp-side-gap: 4px;
 }
 
-.react-aria-DatePicker[data-size="xl"] {
+.react-aria-DatePicker[data-size="XL"] {
   --dp-side-gap: 8px;
 }
 

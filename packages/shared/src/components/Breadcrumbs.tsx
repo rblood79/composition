@@ -143,7 +143,7 @@ export function Breadcrumbs<T extends object>({
                 gap: `${separatorIcon.gap}px`,
               }}
             >
-              <Skeleton componentVariant="breadcrumb" size="md" index={i} />
+              <Skeleton componentVariant="breadcrumb" size="M" index={i} />
               {i < skeletonCount - 1 && separator}
             </li>
           ))}

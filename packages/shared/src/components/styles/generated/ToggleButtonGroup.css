@@ -23,27 +23,27 @@
   border-radius: var(--radius-lg);
 }
 
-.react-aria-ToggleButtonGroup[data-size="xs"] {
+.react-aria-ToggleButtonGroup[data-size="XS"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ToggleButtonGroup[data-size="sm"] {
+.react-aria-ToggleButtonGroup[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
 }
 
-.react-aria-ToggleButtonGroup[data-size="md"] {
+.react-aria-ToggleButtonGroup[data-size="M"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
 }
 
-.react-aria-ToggleButtonGroup[data-size="lg"] {
+.react-aria-ToggleButtonGroup[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
 }
 
-.react-aria-ToggleButtonGroup[data-size="xl"] {
+.react-aria-ToggleButtonGroup[data-size="XL"] {
   font-size: var(--text-xl);
   border-radius: var(--radius-xl);
 }
@@ -61,23 +61,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ToggleButtonGroup[data-size="xs"] {
+.react-aria-ToggleButtonGroup[data-size="XS"] {
   --btn-border-radius: var(--radius-sm);
 }
 
-.react-aria-ToggleButtonGroup[data-size="sm"] {
+.react-aria-ToggleButtonGroup[data-size="S"] {
   --btn-border-radius: var(--radius-sm);
 }
 
-.react-aria-ToggleButtonGroup[data-size="md"] {
+.react-aria-ToggleButtonGroup[data-size="M"] {
   --btn-border-radius: var(--radius-md);
 }
 
-.react-aria-ToggleButtonGroup[data-size="lg"] {
+.react-aria-ToggleButtonGroup[data-size="L"] {
   --btn-border-radius: var(--radius-lg);
 }
 
-.react-aria-ToggleButtonGroup[data-size="xl"] {
+.react-aria-ToggleButtonGroup[data-size="XL"] {
   --btn-border-radius: var(--radius-lg);
 }
 

@@ -23,7 +23,7 @@ const buttonBinding: PrimitiveBinding = {
       children: { kind: "string", section: "content" },
       isDisabled: { kind: "boolean", section: "state" },
       variant: { kind: "variant", section: "appearance", default: "primary" },
-      size: { kind: "size", section: "appearance", default: "md" },
+      size: { kind: "size", section: "appearance", default: "M" },
     },
     toRacProps: "default",
   },
@@ -39,7 +39,7 @@ describe("toRacProps", () => {
           children: "OK",
           isDisabled: true,
           variant: "secondary",
-          size: "lg",
+          size: "L",
         },
       },
       buttonBinding,
@@ -48,7 +48,7 @@ describe("toRacProps", () => {
       children: "OK",
       isDisabled: true,
       "data-variant": "secondary",
-      "data-size": "lg",
+      "data-size": "L",
     });
   });
 
@@ -65,13 +65,13 @@ describe("toRacProps", () => {
     expect(result).toEqual({
       children: "OK",
       "data-variant": "primary",
-      "data-size": "md",
+      "data-size": "M",
     });
   });
 
   it("applies declared defaults when a node has no props at all", () => {
     const result = toRacProps({ id: "b3", type: "Button" }, buttonBinding);
-    expect(result).toEqual({ "data-variant": "primary", "data-size": "md" });
+    expect(result).toEqual({ "data-variant": "primary", "data-size": "M" });
   });
 });
 

@@ -88,11 +88,11 @@ describe("ADR-912 — componentRulesTable paddingX 데이터 갭 회귀 방지",
   it("Button parity — paddingX xs:4 / sm:8 / md:12 / lg:16 / xl:24 보존", () => {
     const button = COMPONENT_RULES_TABLE.Button;
     const expected: Record<string, number> = {
-      xs: 4,
-      sm: 8,
-      md: 12,
-      lg: 16,
-      xl: 24,
+      XS: 4,
+      S: 8,
+      M: 12,
+      L: 16,
+      XL: 24,
     };
     for (const [size, val] of Object.entries(expected)) {
       const px = (button?.sizes?.[size] as { paddingX?: unknown } | undefined)

@@ -53,7 +53,7 @@ function mount(rows: ReturnType<typeof rowsOf>) {
   root.render(
     <Chart
       {...createChartInitialProps("bar")}
-      size="md"
+      size="M"
       data={rows}
       dimension="category"
       metric="value"

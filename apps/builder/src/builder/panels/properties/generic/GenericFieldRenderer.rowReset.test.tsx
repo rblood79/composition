@@ -98,7 +98,7 @@ describe("GenericFieldRenderer — 행 reset 액션", () => {
   });
 
   it("반폭 두 필드 행은 바뀐 필드만 이름에 싣고 그것만 되돌린다", async () => {
-    await seed({ variant: "accent", size: "md" });
+    await seed({ variant: "accent", size: "M" });
     const { update } = renderFields([
       field("variant", "Variant", "primary", { kind: "variant" }),
       field("size", "Size", "md", {

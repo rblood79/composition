@@ -28,9 +28,9 @@ it("native Frame/Group은 CSS 생성을 생략하고 Slot의 최소 높이 계�
   expect(COMPONENT_RULES_TABLE.frame.structure?.skipCSSGeneration).toBe(true);
   expect(COMPONENT_RULES_TABLE.Group.structure?.skipCSSGeneration).toBe(true);
   for (const [size, height] of [
-    ["sm", 40],
-    ["md", 60],
-    ["lg", 80],
+    ["S", 40],
+    ["M", 60],
+    ["L", 80],
   ] as const) {
     expect(COMPONENT_RULES_TABLE.Slot.sizes[size].minHeight).toBe(height);
     expect(COMPONENT_RULES_TABLE.Slot.sizes[size].height).toBeUndefined();

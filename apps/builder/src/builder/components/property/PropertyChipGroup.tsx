@@ -67,7 +67,7 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
         onSelectionChange={handleChange}
       >
         {chips.map((chip) => (
-          <ToggleButton key={chip.key} id={chip.key} size="sm">
+          <ToggleButton key={chip.key} id={chip.key} size="S">
             {localize(chip.label)}
           </ToggleButton>
         ))}

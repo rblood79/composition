@@ -54,7 +54,7 @@ describe("TextArea sizes — field 패밀리 스케일 정렬", () => {
   it("fontSize / paddingX / borderRadius 가 TextField 와 같다", () => {
     const ta = table.TextArea.sizes;
     const tf = table.TextField.sizes;
-    for (const size of ["sm", "md", "lg", "xl"] as const) {
+    for (const size of ["S", "M", "L", "XL"] as const) {
       expect(
         {
           size,
@@ -79,23 +79,23 @@ describe("TextArea sizes — field 패밀리 스케일 정렬", () => {
     //   `rows × Input 줄 높이 + padding + border` 로 계산하고 (착수 2) DOM 은 브라우저가 `<textarea
     //   rows>` 로 계산한다. 다시 심으면 "여러 줄 상자 높이의 SSOT" 로 잘못 읽히므로 부재를 고정한다.
     const ta = table.TextArea.sizes;
-    for (const size of ["sm", "md", "lg", "xl"] as const) {
+    for (const size of ["S", "M", "L", "XL"] as const) {
       expect(ta[size].height, `TextArea.sizes.${size}.height`).toBeUndefined();
     }
     // 계산식의 입력은 Input rule 의 줄 높이다 (ADR-253: Input 의 높이도 내용 — 줄 높이 + padding +
     //   border — 이라 고정 height 를 두지 않는다).
-    expect(table.Input.sizes.md.lineHeight).toBe(
+    expect(table.Input.sizes.M.lineHeight).toBe(
       "{typography.text-sm--line-height}",
     );
-    expect(table.Input.sizes.md.height).toBe(0);
+    expect(table.Input.sizes.M.height).toBe(0);
   });
 
   it("xs 는 없다 — Spectrum text-area 는 s/m/l/xl 4종", () => {
     expect(Object.keys(table.TextArea.sizes).sort()).toEqual([
-      "lg",
-      "md",
-      "sm",
-      "xl",
+      "L",
+      "M",
+      "S",
+      "XL",
     ]);
   });
 });

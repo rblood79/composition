@@ -31,7 +31,7 @@ export const tooltipBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): `domRegistry.tsx` `INTERNAL_RENDERERS.tooltip` 이 전달 —
       //   RAC Tooltip 공식 배치 prop (placement/offset/crossOffset/shouldFlip/containerPadding).

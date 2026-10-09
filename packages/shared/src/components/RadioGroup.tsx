@@ -49,7 +49,7 @@ export interface RadioGroupProps extends Omit<AriaRadioGroupProps, "children"> {
   variant?: string;
   /**
    * Size for child Radio buttons
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   necessityIndicator?: NecessityIndicator;
@@ -65,7 +65,7 @@ export function RadioGroup({
   dataBinding,
   columnMapping,
   variant = "default",
-  size = "md",
+  size = "M",
   labelPosition = "top",
   ...props
 }: RadioGroupProps) {

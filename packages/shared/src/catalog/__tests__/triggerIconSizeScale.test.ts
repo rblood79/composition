@@ -57,11 +57,11 @@ function delegationSizes(
 
 /** 트리거 아이콘 스케일 정본 (Select `.select-chevron` = SelectIcon.iconSize 계열) */
 const ICON_SCALE: Record<string, string> = {
-  xs: "14px",
-  sm: "16px",
-  md: "18px",
-  lg: "22px",
-  xl: "28px",
+  XS: "14px",
+  S: "16px",
+  M: "18px",
+  L: "22px",
+  XL: "28px",
 };
 
 describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () => {
@@ -69,11 +69,11 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
   //   는 그 안의 Icon 노드이고 크기는 Button rule 의 glyph 단계다 — 부모 rule 에는 버튼 **상자** 크기만
   //   남는다. 세 부모가 같은 상자 단계를 쓴다 (control 안쪽 정사각형).
   const FIELD_BUTTON_BOX: Record<string, string> = {
-    xs: "16px",
-    sm: "18px",
-    md: "22px",
-    lg: "34px",
-    xl: "46px",
+    XS: "16px",
+    S: "18px",
+    M: "22px",
+    L: "34px",
+    XL: "46px",
   };
   const targets = [
     { type: "ComboBox", prefix: "combo-btn", vars: ["--combo-btn-size"] },
@@ -116,11 +116,11 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
    * 대상: `Select` / `ComboBox` — 같은 트리거 계열 (동일 스케일 유지).
    */
   const ICON_SCALE_NUM: Record<string, number> = {
-    xs: 14,
-    sm: 16,
-    md: 18,
-    lg: 22,
-    xl: 28,
+    XS: 14,
+    S: 16,
+    M: 18,
+    L: 22,
+    XL: 28,
   };
 
   it.each(["Select", "ComboBox"])(

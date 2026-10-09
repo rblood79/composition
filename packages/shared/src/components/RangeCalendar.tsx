@@ -25,7 +25,7 @@ export interface RangeCalendarProps<T extends DateValue> extends Omit<
 > {
   /** @default 'default' */
   variant?: "default" | "accent";
-  /** @default 'md' */
+  /** @default 'M' */
   size?: ComponentSize;
   errorMessage?: string;
   /** BCP 47 locale (e.g. "ko-KR", "en-US") */
@@ -50,7 +50,7 @@ export interface RangeCalendarProps<T extends DateValue> extends Omit<
 
 export function RangeCalendar<T extends DateValue>({
   variant = "default",
-  size = "md",
+  size = "M",
   errorMessage,
   locale,
   calendarSystem,

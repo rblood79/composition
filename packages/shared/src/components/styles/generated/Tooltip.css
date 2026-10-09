@@ -82,7 +82,7 @@
   }
 }
 
-.react-aria-Tooltip[data-size="sm"] {
+.react-aria-Tooltip[data-size="S"] {
   height: auto;
   padding: 4px 8px;
   font-size: var(--text-xs);
@@ -90,7 +90,7 @@
   max-width: 160px;
 }
 
-.react-aria-Tooltip[data-size="md"] {
+.react-aria-Tooltip[data-size="M"] {
   height: auto;
   padding: 6px 10px;
   font-size: var(--text-xs);
@@ -98,7 +98,7 @@
   max-width: 160px;
 }
 
-.react-aria-Tooltip[data-size="lg"] {
+.react-aria-Tooltip[data-size="L"] {
   height: auto;
   padding: 8px 12px;
   font-size: var(--text-sm);

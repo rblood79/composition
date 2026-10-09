@@ -71,7 +71,7 @@
   aspect-ratio: 1;
 }
 
-.react-aria-FileTrigger[data-size="sm"] {
+.react-aria-FileTrigger[data-size="S"] {
   height: 32px;
   padding: 0px 12px;
   font-size: var(--text-sm);
@@ -80,7 +80,7 @@
   --icon-size: 14px;
 }
 
-.react-aria-FileTrigger[data-size="md"] {
+.react-aria-FileTrigger[data-size="M"] {
   height: 40px;
   padding: 0px 24px;
   font-size: var(--text-sm);
@@ -89,7 +89,7 @@
   --icon-size: 16px;
 }
 
-.react-aria-FileTrigger[data-size="lg"] {
+.react-aria-FileTrigger[data-size="L"] {
   height: 48px;
   padding: 0px 32px;
   font-size: var(--text-lg);

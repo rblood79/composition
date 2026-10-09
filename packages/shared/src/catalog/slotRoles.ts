@@ -339,7 +339,7 @@ export function resolveItemTemplateRowBoxStyle(
       { defaultSize?: string; sizes?: Record<string, { height?: unknown }> }
     >
   )[ruleType];
-  const height = sizes?.sizes?.[sizeName ?? sizes.defaultSize ?? "md"]?.height;
+  const height = sizes?.sizes?.[sizeName ?? sizes.defaultSize ?? "M"]?.height;
   return typeof height === "number" && height > 0
     ? { height: "auto", minHeight: height }
     : { height: "auto" };

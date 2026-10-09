@@ -356,7 +356,7 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       containerStyles:
         meta.containerStyles as ComponentSpec<unknown>["containerStyles"],
       defaultVariant: rule.defaultVariant,
-      defaultSize: rule.defaultSize ?? "md",
+      defaultSize: rule.defaultSize ?? "M",
       variants,
       sizes,
       // states: 기본 hover/pressed/disabled(opacity)/focusVisible. meta.states 설정 시 override

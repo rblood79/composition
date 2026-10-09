@@ -361,7 +361,7 @@ describe("ADR-253 Phase 4 — a Select · ComboBox holds its items in its ListBo
       expect(popover.querySelector(".react-aria-OverlayArrow")).toBeNull();
       expect(list.getAttribute("data-catalog-id")).toBe(picker.dom().list.id);
       expect(list.className).toBe("react-aria-ListBox");
-      expect(list.getAttribute("data-size")).toBe("md");
+      expect(list.getAttribute("data-size")).toBe("M");
       expect(preview.options()).toEqual([...LABELS, "Item 5"]);
       expect(
         [...list.querySelectorAll('[role="option"]')].map((option) =>

@@ -16,7 +16,7 @@ export const TABS_SIZE_CONFIG: Record<
   string,
   { height: number; paddingX: number; paddingY: number }
 > = {
-  sm: { height: 21, paddingX: 8, paddingY: 2 },
-  md: { height: 29, paddingX: 12, paddingY: 4 },
-  lg: { height: 41, paddingX: 16, paddingY: 8 },
+  S: { height: 21, paddingX: 8, paddingY: 2 },
+  M: { height: 29, paddingX: 12, paddingY: 4 },
+  L: { height: 41, paddingX: 16, paddingY: 8 },
 } as const;

@@ -51,7 +51,7 @@
   }
 }
 
-.react-aria-Nav[data-size="sm"] {
+.react-aria-Nav[data-size="S"] {
   height: 48px;
   padding: 8px 12px;
   font-size: var(--text-sm);
@@ -59,7 +59,7 @@
   gap: 8px;
 }
 
-.react-aria-Nav[data-size="md"] {
+.react-aria-Nav[data-size="M"] {
   height: 56px;
   padding: 12px 16px;
   font-size: var(--text-base);
@@ -67,7 +67,7 @@
   gap: 12px;
 }
 
-.react-aria-Nav[data-size="lg"] {
+.react-aria-Nav[data-size="L"] {
   height: 64px;
   padding: 16px 20px;
   font-size: var(--text-lg);

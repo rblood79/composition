@@ -289,7 +289,7 @@ function chrome(input: DelegatedDomInput, type: string) {
   const rule = input.root.runtime.graph.library.rules.get(type);
   return {
     className: `react-aria-${type}`,
-    "data-size": str(input.node.props.size ?? rule?.defaultSize ?? "md"),
+    "data-size": str(input.node.props.size ?? rule?.defaultSize ?? "M"),
     "data-variant": str(
       input.node.props.variant ?? rule?.defaultVariant ?? "default",
     ),
@@ -878,7 +878,7 @@ function nodeTreeField(
         {
           ...base,
           className: `react-aria-${type}`,
-          "data-size": str(props.size) || "md",
+          "data-size": str(props.size) || "M",
           "data-label-position": labelPosition,
           "data-label-align": labelAlign ?? defaultLabelAlign,
           "data-quiet": isQuiet ? "true" : undefined,
@@ -993,7 +993,7 @@ function TagGroupRun({
   const rows = useTagRowsState();
   const label = str(props.label).trim();
   const named = tagGroupLabelled(input.root, input.node);
-  const size = str(props.size) || "md";
+  const size = str(props.size) || "M";
   const labelPosition = str(props.labelPosition) || "top";
   const tags = tagGroupTags(input.root, input.node);
   const allTags = () => tags.map(tagKey);
@@ -1060,7 +1060,7 @@ function TagListRun({
       catalogTypeName(input.root, child) === "Tag" &&
       !run?.removed.has(tagKey(child)),
   );
-  const size = run?.size ?? (str(input.node.props.size) || "md");
+  const size = run?.size ?? (str(input.node.props.size) || "M");
   const labelPosition = run?.labelPosition ?? "top";
   const {
     hiddenRef,
@@ -1175,7 +1175,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           defaultSelectedKey: props.defaultSelectedKey || undefined,
           density: props.density || "regular",
           orientation: props.orientation || "horizontal",
-          size: props.size || "md",
+          size: props.size || "M",
           isDisabled: bool(props.isDisabled),
         },
         ...renderAll(input),
@@ -1196,7 +1196,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ? { "aria-label": input.node.ariaLabel }
             : {}),
           density: props.density || "regular",
-          size: props.size || "md",
+          size: props.size || "M",
           // (The selected Tab's bar is its SelectionIndicator node — the sheet's `::before` bar stays
           // off. The old `showIndicator` prop is gone, 2026-10-09.)
           showIndicator: true,
@@ -1262,7 +1262,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...marker(input),
               style: input.style,
               className: "react-aria-ListBox",
-              "data-size": str(picker!.props.size || "md"),
+              "data-size": str(picker!.props.size || "M"),
             }
           : {
               ...marker(input),
@@ -1412,7 +1412,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: input.node.id,
           "data-catalog-id": input.node.id,
           className: "react-aria-Menu",
-          "data-size": props.size || "md",
+          "data-size": props.size || "M",
           style: input.style,
           // (RAC needs a name: in a trigger the trigger's; open, the author's or "Menu".)
           ...(typeof props["aria-label"] === "string"
@@ -1580,7 +1580,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                     key: "trigger",
                     className: "react-aria-FileTrigger",
                     "data-variant": str(props.variant || "default"),
-                    "data-size": str(props.size || "md"),
+                    "data-size": str(props.size || "M"),
                     isDisabled: bool(props.isDisabled),
                     style: input.style,
                   },
@@ -1766,7 +1766,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: `${input.node.id}:${value}`,
           style: input.style,
           className: "react-aria-Slider",
-          "data-size": str(props.size) || "md",
+          "data-size": str(props.size) || "M",
           "data-label-position": str(props.labelPosition) || "top",
           "data-emphasized": bool(props.isEmphasized) || undefined,
           defaultValue: value,
@@ -1795,7 +1795,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: input.style,
           className: "react-aria-ProgressBar",
           "data-variant": str(props.variant) || "default",
-          "data-size": str(props.size) || "md",
+          "data-size": str(props.size) || "M",
           "data-label-position": str(props.labelPosition) || "top",
           "data-indeterminate": bool(props.isIndeterminate)
             ? "true"
@@ -1829,7 +1829,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: input.style,
           className: "react-aria-Meter",
           "data-variant": str(props.variant) || "informative",
-          "data-size": str(props.size) || "md",
+          "data-size": str(props.size) || "M",
           "data-label-position": str(props.labelPosition) || "top",
           value: num(props.value) ?? 0,
           minValue: num(props.minValue) ?? 0,
@@ -1852,7 +1852,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...marker(input),
         style: input.style,
         className: "react-aria-Switch",
-        "data-size": str(props.size) || "md",
+        "data-size": str(props.size) || "M",
         // (The `variant` it accepts — the rule's emphasized variant, which the Canvas paints.)
         "data-emphasized": props.variant === "emphasized" || undefined,
         defaultSelected: bool(props.isSelected),
@@ -1876,7 +1876,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...marker(input),
         style: input.style,
         className: "react-aria-Radio",
-        "data-size": str(props.size) || "md",
+        "data-size": str(props.size) || "M",
         "data-variant": str(props.variant) || "default",
         value: str(props.value),
         isDisabled: bool(props.isDisabled),
@@ -1937,7 +1937,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             ...racSlotProps(resolution),
             style: input.style,
             className: "react-aria-Checkbox",
-            "data-size": str(props.size) || "md",
+            "data-size": str(props.size) || "M",
             // (The `variant` it accepts — the rule's emphasized variant, which the Canvas paints.)
             "data-emphasized": props.variant === "emphasized" || undefined,
             ...(resolution.kind === "named"
@@ -1993,7 +1993,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const selected = boxes
         .filter((box) => box.props.isSelected === true)
         .map((box) => box.id);
-      const size = str(props.size) || "md";
+      const size = str(props.size) || "M";
       return createElement(
         AriaCheckboxGroup as ElementType,
         {
@@ -2048,7 +2048,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         selected?.props.value !== undefined
           ? String(selected.props.value)
           : str(props.value);
-      const size = str(props.size) || "md";
+      const size = str(props.size) || "M";
       return createElement(
         AriaRadioGroup as ElementType,
         {
@@ -2100,7 +2100,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 isEmphasized: bool(props.isEmphasized),
                 isQuiet: bool(props.isQuiet),
                 staticColor: props.staticColor || "auto",
-                size: props.size || "md",
+                size: props.size || "M",
               },
               typeof props.children === "string" ? props.children : null,
               ...renderAll(input),
@@ -2121,7 +2121,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             isEmphasized: bool(props.isEmphasized),
             isQuiet: bool(props.isQuiet),
             staticColor: props.staticColor || "auto",
-            size: props.size || "md",
+            size: props.size || "M",
           },
           typeof props.children === "string" ? props.children : null,
           ...renderAll(input),
@@ -2160,7 +2160,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           isEmphasized: bool(props.isEmphasized),
           isQuiet: bool(props.isQuiet),
           staticColor: props.staticColor || "auto",
-          size: props.size || "md",
+          size: props.size || "M",
           density: props.density || "regular",
           defaultSelectedKeys: selected,
           // (Only when disabled — RAC writes `aria-disabled` for any boolean.)
@@ -2179,11 +2179,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         end: "flex-end",
       };
       const gap: Record<string, number> = {
-        xs: 4,
-        sm: 6,
-        md: 8,
-        lg: 10,
-        xl: 12,
+        XS: 4,
+        S: 6,
+        M: 8,
+        L: 10,
+        XL: 12,
       };
       return createElement(
         "div",
@@ -2193,7 +2193,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: {
             display: "flex",
             flexDirection: props.orientation === "vertical" ? "column" : "row",
-            gap: gap[str(props.size || "md")] ?? 8,
+            gap: gap[str(props.size || "M")] ?? 8,
             justifyContent: justify[str(props.align || "end")] ?? "flex-end",
             ...input.style,
           },
@@ -2243,7 +2243,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           "data-accent": opt(props.accentColor),
           cardType: props.cardType || undefined,
           variant: props.variant || undefined,
-          size: props.size || "md",
+          size: props.size || "M",
           isQuiet: bool(props.isQuiet),
           isSelected: bool(props.isSelected),
           isDisabled: bool(props.isDisabled),
@@ -2411,7 +2411,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 : `${input.node.id}:${expanded}`,
             id: input.node.id,
             style: input.style,
-            "data-size": str(props.size || "md"),
+            "data-size": str(props.size || "M"),
             isDisabled: bool(props.isDisabled),
             ...(inGroup
               ? {}
@@ -2465,7 +2465,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: `${input.node.id}:${multiple}`,
           style: input.style,
           "data-variant": str(props.variant || "default"),
-          "data-size": str(props.size || "md"),
+          "data-size": str(props.size || "M"),
           allowsMultipleExpanded: multiple,
           isDisabled: bool(props.isDisabled),
           ...(setRuntime
@@ -2490,7 +2490,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...marker(input),
           className: "react-aria-ColorPicker ",
-          "data-size": str(input.node.props.size ?? "md"),
+          "data-size": str(input.node.props.size ?? "M"),
           "data-variant": opt(input.node.props.variant),
           style: input.style,
         },
@@ -2648,7 +2648,7 @@ function calendarProps(
     style: input.style,
     headerStyle: calendarHeaderStyle(input),
     variant: props.variant || "default",
-    size: (picker ?? input.node).props.size || "md",
+    size: (picker ?? input.node).props.size || "M",
     locale: props.locale,
     calendarSystem: props.calendarSystem,
     "aria-label":

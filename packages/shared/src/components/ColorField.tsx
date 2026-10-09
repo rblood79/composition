@@ -28,7 +28,7 @@ import {
 export interface ColorFieldProps extends AriaColorFieldProps {
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   label?: string;
@@ -52,11 +52,11 @@ export interface ColorFieldProps extends AriaColorFieldProps {
  * - Error message display
  *
  * @example
- * <ColorField size="md" label="Background Color" />
+ * <ColorField size="M" label="Background Color" />
  * <ColorField isInvalid errorMessage="Invalid color" />
  */
 export function ColorField({
-  size = "md",
+  size = "M",
   label,
   description,
   errorMessage,

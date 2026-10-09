@@ -22,7 +22,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-SearchField[data-size="sm"] {
+.react-aria-SearchField[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   min-width: 66px;
@@ -30,7 +30,7 @@
   --icon-size: 14px;
 }
 
-.react-aria-SearchField[data-size="md"] {
+.react-aria-SearchField[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   min-width: 90px;
@@ -38,7 +38,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-SearchField[data-size="lg"] {
+.react-aria-SearchField[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   min-width: 126px;
@@ -46,7 +46,7 @@
   --icon-size: 22px;
 }
 
-.react-aria-SearchField[data-size="xl"] {
+.react-aria-SearchField[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   min-width: 162px;
@@ -73,31 +73,31 @@
   width: 100%;
 }
 
-.react-aria-SearchField[data-size="xs"] {
+.react-aria-SearchField[data-size="XS"] {
   --sf-icon-size: 10px;
   --sf-icon-inset: 4px;
   --sf-icon-pull: -14px;
 }
 
-.react-aria-SearchField[data-size="sm"] {
+.react-aria-SearchField[data-size="S"] {
   --sf-icon-size: 12px;
   --sf-icon-inset: 6px;
   --sf-icon-pull: -18px;
 }
 
-.react-aria-SearchField[data-size="md"] {
+.react-aria-SearchField[data-size="M"] {
   --sf-icon-size: 16px;
   --sf-icon-inset: 8px;
   --sf-icon-pull: -24px;
 }
 
-.react-aria-SearchField[data-size="lg"] {
+.react-aria-SearchField[data-size="L"] {
   --sf-icon-size: 18px;
   --sf-icon-inset: 12px;
   --sf-icon-pull: -30px;
 }
 
-.react-aria-SearchField[data-size="xl"] {
+.react-aria-SearchField[data-size="XL"] {
   --sf-icon-size: 22px;
   --sf-icon-inset: 16px;
   --sf-icon-pull: -38px;
@@ -115,23 +115,23 @@
   height: var(--sf-icon-size);
 }
 
-.react-aria-SearchField[data-size="xs"] {
+.react-aria-SearchField[data-size="XS"] {
   --sf-input-pad: 20px;
 }
 
-.react-aria-SearchField[data-size="sm"] {
+.react-aria-SearchField[data-size="S"] {
   --sf-input-pad: 24px;
 }
 
-.react-aria-SearchField[data-size="md"] {
+.react-aria-SearchField[data-size="M"] {
   --sf-input-pad: 32px;
 }
 
-.react-aria-SearchField[data-size="lg"] {
+.react-aria-SearchField[data-size="L"] {
   --sf-input-pad: 40px;
 }
 
-.react-aria-SearchField[data-size="xl"] {
+.react-aria-SearchField[data-size="XL"] {
   --sf-input-pad: 52px;
 }
 
@@ -141,27 +141,27 @@
   padding-right: var(--sf-input-pad);
 }
 
-.react-aria-SearchField[data-size="xs"] {
+.react-aria-SearchField[data-size="XS"] {
   --sf-btn-size: 12px;
   --sf-btn-offset: -16px;
 }
 
-.react-aria-SearchField[data-size="sm"] {
+.react-aria-SearchField[data-size="S"] {
   --sf-btn-size: 14px;
   --sf-btn-offset: -20px;
 }
 
-.react-aria-SearchField[data-size="md"] {
+.react-aria-SearchField[data-size="M"] {
   --sf-btn-size: 16px;
   --sf-btn-offset: -24px;
 }
 
-.react-aria-SearchField[data-size="lg"] {
+.react-aria-SearchField[data-size="L"] {
   --sf-btn-size: 20px;
   --sf-btn-offset: -32px;
 }
 
-.react-aria-SearchField[data-size="xl"] {
+.react-aria-SearchField[data-size="XL"] {
   --sf-btn-size: 24px;
   --sf-btn-offset: -40px;
 }
@@ -174,19 +174,19 @@
   margin-inline-start: var(--sf-btn-offset);
 }
 
-.react-aria-SearchField[data-size="sm"] {
+.react-aria-SearchField[data-size="S"] {
   --sf-side-gap: 6px;
 }
 
-.react-aria-SearchField[data-size="md"] {
+.react-aria-SearchField[data-size="M"] {
   --sf-side-gap: 8px;
 }
 
-.react-aria-SearchField[data-size="lg"] {
+.react-aria-SearchField[data-size="L"] {
   --sf-side-gap: 10px;
 }
 
-.react-aria-SearchField[data-size="xl"] {
+.react-aria-SearchField[data-size="XL"] {
   --sf-side-gap: 10px;
 }
 

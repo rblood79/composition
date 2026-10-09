@@ -106,7 +106,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 35,
+    libraryContractVersion: 36,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -709,7 +709,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         kind: "patchNodeProp",
         id: scene.nodeId,
         key: "size",
-        write: { kind: "set", value: "lg" },
+        write: { kind: "set", value: "L" },
       },
     ]);
     expect(new Map(root.canvasInputs)).toEqual(
@@ -1069,7 +1069,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         kind: "patchNodeProp",
         id: scene.nodeId,
         key: "size",
-        write: { kind: "set", value: "lg" },
+        write: { kind: "set", value: "L" },
       },
     ]);
     const root = new CatalogCompositionRoot(

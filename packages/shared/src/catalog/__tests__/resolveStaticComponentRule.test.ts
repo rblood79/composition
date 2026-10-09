@@ -18,7 +18,7 @@ describe("ADR-916 P2-CAT ① — resolveStaticComponentRule (조항 4)", () => {
   it("등록된 type 의 theme rule base 를 반환한다", () => {
     const rule = resolveStaticComponentRule("Avatar");
     expect(rule).toBeDefined();
-    expect(rule?.defaultSize).toBe("md");
+    expect(rule?.defaultSize).toBe("M");
   });
 
   it("build-time 테이블 값과 동일하다 (doc override 경로 부재)", () => {

@@ -24,7 +24,7 @@ describe("Link binding → toRacProps", () => {
         props: {
           children: "Docs",
           variant: "secondary",
-          size: "lg",
+          size: "L",
           href: "https://x.dev",
           target: "_blank",
         },
@@ -36,7 +36,7 @@ describe("Link binding → toRacProps", () => {
       href: "https://x.dev",
       target: "_blank",
       "data-variant": "secondary",
-      "data-size": "lg",
+      "data-size": "L",
     });
   });
 
@@ -46,7 +46,7 @@ describe("Link binding → toRacProps", () => {
       linkBinding,
     );
     expect(result["data-variant"]).toBe("primary");
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 });
 
@@ -56,14 +56,14 @@ describe("ToggleButton binding → toRacProps", () => {
       {
         id: "tb1",
         type: "ToggleButton",
-        props: { children: "Bold", isSelected: true, size: "sm" },
+        props: { children: "Bold", isSelected: true, size: "S" },
       },
       toggleButtonBinding,
     );
     expect(result).toMatchObject({
       children: "Bold",
       isSelected: true,
-      "data-size": "sm",
+      "data-size": "S",
     });
     // size 는 data-* (RAC props 아님)
     expect(result).not.toHaveProperty("size");
@@ -79,7 +79,7 @@ describe("ToggleButtonGroup binding → toRacProps (컨테이너, children-manag
         props: {
           orientation: "vertical",
           selectionMode: "multiple",
-          size: "lg",
+          size: "L",
           // items(children-manager)는 canonical children 트리로 흡수 → accepts 에 없음 → drop
           items: [{ id: "x" }],
         },
@@ -89,7 +89,7 @@ describe("ToggleButtonGroup binding → toRacProps (컨테이너, children-manag
     expect(result).toMatchObject({
       orientation: "vertical",
       selectionMode: "multiple",
-      "data-size": "lg",
+      "data-size": "L",
     });
     expect(result).not.toHaveProperty("items");
   });
@@ -108,7 +108,7 @@ describe("Toolbar binding → toRacProps (컨테이너)", () => {
     expect(result).toMatchObject({
       orientation: "vertical",
       "data-variant": "accent",
-      "data-size": "md",
+      "data-size": "M",
     });
   });
 });
@@ -126,7 +126,7 @@ describe("Badge binding → toRacProps (internal source leaf)", () => {
     expect(result).toMatchObject({
       children: "New",
       "data-variant": "positive",
-      "data-size": "sm",
+      "data-size": "S",
       "data-fill-style": "subtle",
     });
   });

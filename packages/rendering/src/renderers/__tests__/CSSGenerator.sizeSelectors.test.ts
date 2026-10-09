@@ -21,13 +21,13 @@ function makeSpec(
     archetype: "container",
     element: "div",
 
-    defaultSize: "md",
+    defaultSize: "M",
 
     sizes: {
-      md: {
+      M: {
         height: "8px",
       },
-      lg: {
+      L: {
         height: "16px",
       },
     },
@@ -50,22 +50,22 @@ describe("sizeSelectors emit (0-D.9)", () => {
     const css = generateCSS(
       makeSpec({
         sizeSelectors: {
-          sm: { ".bar": { height: "4px" } },
+          S: { ".bar": { height: "4px" } },
         },
       }),
     );
-    expect(css).toContain('.react-aria-TestBar[data-size="sm"] .bar');
+    expect(css).toContain('.react-aria-TestBar[data-size="S"] .bar');
     expect(css).toContain("height: 4px;");
   });
 
   it("sizeSelectors 는 @layer components 내부에 위치", () => {
     const css = generateCSS(
       makeSpec({
-        sizeSelectors: { sm: { ".bar": { height: "4px" } } },
+        sizeSelectors: { S: { ".bar": { height: "4px" } } },
       }),
     )!;
     const layerClose = css.indexOf("} /* @layer components */");
-    const sizeRule = css.indexOf('[data-size="sm"] .bar');
+    const sizeRule = css.indexOf('[data-size="S"] .bar');
     expect(sizeRule).toBeGreaterThan(-1);
     expect(sizeRule).toBeLessThan(layerClose);
   });
@@ -74,17 +74,17 @@ describe("sizeSelectors emit (0-D.9)", () => {
     const css = generateCSS(
       makeSpec({
         sizeSelectors: {
-          sm: {
+          S: {
             ".bar": { height: "4px" },
             ".fill": { "border-radius": "2px" },
           },
-          lg: { ".bar": { height: "16px" } },
+          L: { ".bar": { height: "16px" } },
         },
       }),
     )!;
-    expect(css).toContain('[data-size="sm"] .bar');
-    expect(css).toContain('[data-size="sm"] .fill');
-    expect(css).toContain('[data-size="lg"] .bar');
+    expect(css).toContain('[data-size="S"] .bar');
+    expect(css).toContain('[data-size="S"] .fill');
+    expect(css).toContain('[data-size="L"] .bar');
     expect(css).toContain("border-radius: 2px;");
   });
 
@@ -92,7 +92,7 @@ describe("sizeSelectors emit (0-D.9)", () => {
     const css = generateCSS(
       makeSpec({
         sizeSelectors: {
-          md: {
+          M: {
             ".content": {
               "font-size": "14px",
               "line-height": "1.5",
@@ -102,7 +102,7 @@ describe("sizeSelectors emit (0-D.9)", () => {
         },
       }),
     )!;
-    expect(css).toContain('[data-size="md"] .content {');
+    expect(css).toContain('[data-size="M"] .content {');
     expect(css).toContain("font-size: 14px;");
     expect(css).toContain("line-height: 1.5;");
     expect(css).toContain("padding: 8px;");
@@ -116,7 +116,7 @@ describe("staticSelectors emit", () => {
     return {
       name: "StaticBar",
       archetype: "container",
-      sizes: { md: {} },
+      sizes: { M: {} },
       composition: { layout: "flex-column", delegation: [], ...overrides },
     } as unknown as ComponentSpec;
   }

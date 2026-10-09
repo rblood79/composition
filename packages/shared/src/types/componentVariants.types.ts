@@ -16,13 +16,13 @@
  * Full size scale for components
  * Used by: Button, and potentially other interactive components
  */
-export type ComponentSize = "xs" | "sm" | "md" | "lg" | "xl";
+export type ComponentSize = "XS" | "S" | "M" | "L" | "XL";
 
 /**
  * Subset of sizes (3 options)
  * Used by: Separator, and components with limited size variations
  */
-export type ComponentSizeSubset = "sm" | "md" | "lg";
+export type ComponentSizeSubset = "S" | "M" | "L";
 
 /**
  * Density-based sizing for layouts
@@ -237,7 +237,7 @@ export interface VariantSizeProps<V = string, S = ComponentSize> {
 
   /**
    * Size of the component
-   * @default "sm"
+   * @default "S"
    */
   size?: S;
 }
@@ -251,7 +251,7 @@ export interface VariantSizeProps<V = string, S = ComponentSize> {
  */
 export function isComponentSize(value: unknown): value is ComponentSize {
   return (
-    typeof value === "string" && ["xs", "sm", "md", "lg", "xl"].includes(value)
+    typeof value === "string" && ["XS", "S", "M", "L", "XL"].includes(value)
   );
 }
 

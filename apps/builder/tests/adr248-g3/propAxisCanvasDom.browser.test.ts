@@ -101,7 +101,7 @@ const CASES: Array<{
   // `orientation` block — horizontal × label position × a non-default size (xl: the size without
   // its own `--radio-items-gap`, falling back to the root's).
   ...(["RadioGroup", "CheckboxGroup"] as const).flatMap((type): typeof CASES =>
-    ["sm", "xl"].flatMap((size) =>
+    ["S", "XL"].flatMap((size) =>
       ["top", "side"].map((labelPosition) => ({
         key: `${type}-horizontal-${labelPosition}-${size}`,
         type,
@@ -113,7 +113,7 @@ const CASES: Array<{
   // `.indicator`) and the label beside it, at every size — sm · xl are the sizes whose indicator is
   // taller than the label (the row centers the label against it, as the DOM's inline-flex row).
   ...(["Checkbox", "Switch"] as const).flatMap((type): typeof CASES =>
-    ["sm", "md", "lg", "xl"].map((size) => ({
+    ["S", "M", "L", "XL"].map((size) => ({
       key: `${type}-${size}`,
       type,
       props: { size },
@@ -405,7 +405,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 35,
+    libraryContractVersion: 36,
     revision: 0,
     projectId,
     rootId: projectId,

@@ -64,7 +64,7 @@ describe("useElementStyleContext", () => {
         {
           id: "button",
           type: "Button",
-          props: { size: "lg" },
+          props: { size: "L" },
           style: {
             paddingTop: "10px",
             boxShadow: "inset 0 10px 15px -3px #000",
@@ -84,7 +84,7 @@ describe("useElementStyleContext", () => {
       // instance 고유 키는 그대로
       expect(result.current.style?.width).toBe("100%");
       // props 축도 같은 병합 — size 는 catalog preset tier 선택에 쓰인다
-      expect(result.current.size).toBe("lg");
+      expect(result.current.size).toBe("L");
     });
 
     it("keeps the instance override winning over the component value", async () => {
@@ -92,20 +92,20 @@ describe("useElementStyleContext", () => {
         {
           id: "button",
           type: "Button",
-          props: { size: "lg" },
+          props: { size: "L" },
           style: { boxShadow: "none", paddingTop: "10px" },
         },
       ]);
       const instance = fixture.componentize("button", "Action");
       fixture.workspace.selectRecords([instance]);
-      fixture.host.updateProperty("size", "sm");
+      fixture.host.updateProperty("size", "S");
       fixture.host.updateStyle("boxShadow", "0 1px 2px 0 #000");
 
       const { result } = contextOf(fixture, instance);
 
       expect(result.current.style?.boxShadow).toBe("0 1px 2px 0 #000");
       expect(result.current.style?.paddingTop).toBe("10px");
-      expect(result.current.size).toBe("sm");
+      expect(result.current.size).toBe("S");
     });
 
     it("resolves each tier's breakpoint layer before merging", async () => {

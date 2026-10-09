@@ -24,17 +24,17 @@
   border-radius: 0;
 }
 
-.react-aria-IllustratedMessage[data-size="sm"] {
+.react-aria-IllustratedMessage[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: 0;
 }
 
-.react-aria-IllustratedMessage[data-size="md"] {
+.react-aria-IllustratedMessage[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: 0;
 }
 
-.react-aria-IllustratedMessage[data-size="lg"] {
+.react-aria-IllustratedMessage[data-size="L"] {
   font-size: var(--text-base);
   border-radius: 0;
 }
@@ -52,7 +52,7 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-IllustratedMessage[data-size="lg"] {
+.react-aria-IllustratedMessage[data-size="L"] {
   --im-illustration-gap: 8px;
 }
 

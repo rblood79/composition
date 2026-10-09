@@ -3,7 +3,7 @@
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "lg",
+    "size": "L",
     "text": "Dialog Title",
     "visual": {
      "color": "#171717",
@@ -19,7 +19,7 @@
    },
    "/1/1/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Dialog content goes here.",
     "visual": {
      "color": "#525252",
@@ -34,13 +34,13 @@
     }
    }
   },
-  "dom": "<section aria-label=Dialog class=react-aria-Dialog data-rac= data-size=md role=dialog tabindex=-1><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:600;line-height:1.5555555555555556>Dialog Title</><div style=box-sizing:border-box;display:flex;flex-direction:column;border-radius:0;row-gap:0;column-gap:0><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.4285714285714286>Dialog content goes here.</></><div class=react-aria-DialogFooter data-size=md style=row-gap:8px;column-gap:8px;display:flex;justify-content:flex-end><div style=box-sizing:border-box;display:flex;flex-direction:row;align-items:center;border-radius:0;row-gap:0;column-gap:8px></><button class=react-aria-Button button-base data-fill-style=fill data-rac= data-react-aria-pressable=true data-size=md data-static-color=auto data-variant=secondary id slot=close style=box-sizing:border-box;display:inline-flex;flex-direction:row;align-items:center;justify-content:center;min-width:68px;row-gap:8px;column-gap:8px;padding-top:4px;padding-right:12px;padding-bottom:4px;padding-left:12px;border-width:1px;border-style:solid;border-radius:6px;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:nowrap;font-weight:500;line-height:1.4285714285714286 tabindex=0 type=button>Close</></></>"
+  "dom": "<section aria-label=Dialog class=react-aria-Dialog data-rac= data-size=M role=dialog tabindex=-1><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:600;line-height:1.5555555555555556>Dialog Title</><div style=box-sizing:border-box;display:flex;flex-direction:column;border-radius:0;row-gap:0;column-gap:0><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.4285714285714286>Dialog content goes here.</></><div class=react-aria-DialogFooter data-size=M style=row-gap:8px;column-gap:8px;display:flex;justify-content:flex-end><div style=box-sizing:border-box;display:flex;flex-direction:row;align-items:center;border-radius:0;row-gap:0;column-gap:8px></><button class=react-aria-Button button-base data-fill-style=fill data-rac= data-react-aria-pressable=true data-size=M data-static-color=auto data-variant=secondary id slot=close style=box-sizing:border-box;display:inline-flex;flex-direction:row;align-items:center;justify-content:center;min-width:68px;row-gap:8px;column-gap:8px;padding-top:4px;padding-right:12px;padding-bottom:4px;padding-left:12px;border-width:1px;border-style:solid;border-radius:6px;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:14px;white-space:nowrap;font-weight:500;line-height:1.4285714285714286 tabindex=0 type=button>Close</></></>"
  },
  "popover/default": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "sm",
+    "size": "S",
     "text": "Popover Title",
     "visual": {
      "color": "#171717",
@@ -56,7 +56,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "text": "Popover content goes here.",
     "visual": {
      "color": "#525252",
@@ -76,7 +76,7 @@
   "records": {
    "/0": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "text": "Tooltip text",
     "visual": {
      "color": "#525252",
@@ -96,7 +96,7 @@
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -119,7 +119,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -134,13 +134,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=M data-variant=primary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/size sm": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -163,7 +163,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -178,13 +178,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=sm data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=S data-variant=primary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/size lg": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -207,7 +207,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -222,13 +222,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=lg data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=L data-variant=primary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/variant secondary": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -251,7 +251,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -266,13 +266,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=secondary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=M data-variant=secondary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/variant tertiary": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -295,7 +295,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -310,13 +310,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=tertiary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=M data-variant=tertiary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/variant quiet": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Card Title",
     "visual": {
      "color": "#171717",
@@ -339,7 +339,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Card description text goes here.",
     "visual": {
      "color": "#49454f",
@@ -354,13 +354,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=quiet id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Card description text goes here.</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=M data-variant=quiet id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Card Title</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Card description text goes here.</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "card/title, description": {
   "records": {
    "/1/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "text": "Ttl",
     "visual": {
      "color": "#171717",
@@ -383,7 +383,7 @@
    },
    "/2/0": {
     "binding": "description",
-    "size": "lg",
+    "size": "L",
     "text": "Desc",
     "visual": {
      "color": "#49454f",
@@ -398,13 +398,13 @@
     }
    }
   },
-  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=md data-variant=primary id><div class=react-aria-CardPreview data-size=md data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=md data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Ttl</></><div class=react-aria-CardContent data-size=md data-variant=default><div class=react-aria-Description card-description data-size=lg>Desc</></><div class=react-aria-CardFooter data-size=md data-variant=default style=padding-top:8px></></>"
+  "dom": "<div aria-disabled=false class=react-aria-Card data-orientation=vertical data-size=M data-variant=primary id><div class=react-aria-CardPreview data-size=M data-variant=default style=height:fit-content><div class=react-aria-Image style=height:200px;font-size:14px;border-radius:0;width:100%;display:block></></><div class=react-aria-CardHeader data-size=M data-variant=default><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;flex-grow:1;flex-shrink:1;flex-basis:0%;margin-top:0;margin-right:0;margin-bottom:0;margin-left:0;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:600;line-height:1.5>Ttl</></><div class=react-aria-CardContent data-size=M data-variant=default><div class=react-aria-Description card-description data-size=L>Desc</></><div class=react-aria-CardFooter data-size=M data-variant=default style=padding-top:8px></></>"
  },
  "inline-alert/default": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -425,7 +425,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -445,13 +445,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/size sm": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -472,7 +472,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -492,13 +492,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=sm data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:12px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=S data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:12px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/size lg": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -519,7 +519,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -539,13 +539,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=lg data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=L data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/variant neutral": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -566,7 +566,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -586,13 +586,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=neutral id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=neutral id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/variant positive": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -613,7 +613,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -633,13 +633,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=positive id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=positive id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/variant notice": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -660,7 +660,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -680,13 +680,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=notice id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=notice id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/variant negative": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Alert Heading",
     "visual": {
@@ -707,7 +707,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "There was an error processing your request. Please try again.",
     "visual": {
@@ -727,13 +727,13 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=negative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=negative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/title, description": {
   "records": {
    "/0": {
     "binding": "heading",
-    "size": "md",
+    "size": "M",
     "slot": "label",
     "text": "Ttl",
     "visual": {
@@ -754,7 +754,7 @@
    },
    "/1": {
     "binding": "description",
-    "size": "md",
+    "size": "M",
     "slot": "description",
     "text": "Desc",
     "visual": {
@@ -774,6 +774,6 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=md data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Ttl</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>Desc</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Ttl</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>Desc</></>"
  }
 }

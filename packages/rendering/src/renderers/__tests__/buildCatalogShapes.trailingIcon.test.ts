@@ -51,7 +51,7 @@ const tagVisual: ComponentVisualRule = {
   },
 };
 
-/** Tag rule sizes.md 미러 (iconSize 14 통일 후). */
+/** Tag rule sizes.M 미러 (iconSize 14 통일 후). */
 const sizeMd: SizeSpec = {
   fontSize: 14,
   lineHeight: 20,

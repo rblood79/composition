@@ -118,11 +118,11 @@ export const UNIVERSAL_STYLE_CONTRACTS: Record<string, PropContract> = {
  * 위해 복제(specs ← shared, builder 미import). 미정의 키는 `value.toUpperCase()` fallback.
  */
 const SIZE_DISPLAY_LABELS: Record<string, string> = {
-  xs: "XS",
-  sm: "S",
-  md: "M",
-  lg: "L",
-  xl: "XL",
+  XS: "XS",
+  S: "S",
+  M: "M",
+  L: "L",
+  XL: "XL",
 };
 
 /** variant 키 → 표시 라벨 (default→Default). 첫 글자만 대문자. */

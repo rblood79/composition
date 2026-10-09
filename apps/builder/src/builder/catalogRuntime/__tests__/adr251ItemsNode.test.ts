@@ -43,16 +43,16 @@ const G0: Record<
   Record<string, { gap: number; height: number; labelX: number; topY: number }>
 > = {
   RadioGroup: {
-    sm: { gap: 8, height: 16, labelX: 22, topY: 24 },
-    md: { gap: 12, height: 20, labelX: 28, topY: 32 },
-    lg: { gap: 16, height: 24, labelX: 34, topY: 40 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 48 },
+    S: { gap: 8, height: 16, labelX: 22, topY: 24 },
+    M: { gap: 12, height: 20, labelX: 28, topY: 32 },
+    L: { gap: 16, height: 24, labelX: 34, topY: 40 },
+    XL: { gap: 12, height: 30, labelX: 42, topY: 48 },
   },
   CheckboxGroup: {
-    sm: { gap: 8, height: 16, labelX: 22, topY: 24 },
-    md: { gap: 12, height: 20, labelX: 28, topY: 32 },
-    lg: { gap: 16, height: 24, labelX: 34, topY: 40 },
-    xl: { gap: 12, height: 30, labelX: 42, topY: 48 },
+    S: { gap: 8, height: 16, labelX: 22, topY: 24 },
+    M: { gap: 12, height: 20, labelX: 28, topY: 32 },
+    L: { gap: 16, height: 24, labelX: 34, topY: 40 },
+    XL: { gap: 12, height: 30, labelX: 42, topY: 48 },
   },
 };
 
@@ -102,7 +102,7 @@ async function openGroup(owner: string, props: Record<string, string>) {
 }
 
 const CASES = ["RadioGroup", "CheckboxGroup"].flatMap((owner) =>
-  ["sm", "md", "lg", "xl"].flatMap((size) =>
+  ["S", "M", "L", "XL"].flatMap((size) =>
     ["vertical", "horizontal"].flatMap((orientation) =>
       ["top", "side"].map((labelPosition) => ({
         owner,

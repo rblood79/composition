@@ -70,25 +70,25 @@
   }
 }
 
-.react-aria-ProgressBarTrack[data-size="sm"] {
+.react-aria-ProgressBarTrack[data-size="S"] {
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ProgressBarTrack[data-size="md"] {
+.react-aria-ProgressBarTrack[data-size="M"] {
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ProgressBarTrack[data-size="lg"] {
+.react-aria-ProgressBarTrack[data-size="L"] {
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
 }
 
-.react-aria-ProgressBarTrack[data-size="xl"] {
+.react-aria-ProgressBarTrack[data-size="XL"] {
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);

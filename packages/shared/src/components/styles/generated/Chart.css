@@ -87,21 +87,21 @@
   --chart-series-8: var(--border);
 }
 
-.react-aria-Chart[data-size="sm"] {
+.react-aria-Chart[data-size="S"] {
   height: 160px;
   padding: 8px 8px;
   font-size: var(--text-xs);
   border-radius: var(--radius-md);
 }
 
-.react-aria-Chart[data-size="md"] {
+.react-aria-Chart[data-size="M"] {
   height: 240px;
   padding: 12px 12px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
 }
 
-.react-aria-Chart[data-size="lg"] {
+.react-aria-Chart[data-size="L"] {
   height: 320px;
   padding: 16px 16px;
   font-size: var(--text-sm);

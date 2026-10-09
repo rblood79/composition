@@ -712,7 +712,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     createElement(RAC.SliderTrack as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
-      "data-size": String(node.props.size ?? "md"),
+      "data-size": String(node.props.size ?? "M"),
       style,
       children: catalogStateChildren(node.id, () => children),
     }),

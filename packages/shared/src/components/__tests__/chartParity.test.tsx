@@ -58,13 +58,13 @@ function skiaShapes(chartProps: ChartProps): Shape[] {
   const shapes = draw({
     props: {
       ...chartProps,
-      size: "md",
+      size: "M",
       data: ROWS,
       _containerWidth: SIZE.width,
       _containerHeight: SIZE.height,
       _chartRule: CHART_RULE.chart,
     },
-    size: CHART_RULE.sizes.md as never,
+    size: CHART_RULE.sizes.M as never,
     visual: undefined,
     paint: {
       backgroundColor: "{color.layer-1}",
@@ -433,13 +433,13 @@ describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 ·
     SKIA_PRIMITIVES.chart_scene!({
       props: {
         ...chartProps,
-        size: "md",
+        size: "M",
         data: TIME_ROWS,
         _containerWidth: SIZE.width,
         _containerHeight: SIZE.height,
         _chartRule: CHART_RULE.chart,
       },
-      size: CHART_RULE.sizes.md as never,
+      size: CHART_RULE.sizes.M as never,
       visual: undefined,
       paint: {
         backgroundColor: "{color.layer-1}",
@@ -612,13 +612,13 @@ describe("ADR-217 — 산점도 두 leg (Skia allowlist · 점 path d · 불투�
     SKIA_PRIMITIVES.chart_scene!({
       props: {
         ...chartProps,
-        size: "md",
+        size: "M",
         data: rows,
         _containerWidth: SIZE.width,
         _containerHeight: SIZE.height,
         _chartRule: CHART_RULE.chart,
       },
-      size: CHART_RULE.sizes.md as never,
+      size: CHART_RULE.sizes.M as never,
       visual: undefined,
       paint: {
         backgroundColor: "{color.layer-1}",

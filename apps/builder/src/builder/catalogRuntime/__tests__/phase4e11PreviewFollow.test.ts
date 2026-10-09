@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 35,
+    libraryContractVersion: 36,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -185,7 +185,7 @@ describe("field trigger buttons — no generic Button min-width", () => {
   it.each(["ComboBox", "DatePicker", "DateRangePicker"])(
     "%s Canvas trigger icon is the 18 icon box at md",
     async (owner) => {
-      const workspace = await openOwner(owner, { size: "md" });
+      const workspace = await openOwner(owner, { size: "M" });
       const root = workspace.root;
       // (The glyph is the Icon inside the FieldButton instance — ADR-253.)
       const icons = [...root.layoutInputs.values()].filter(
@@ -222,8 +222,8 @@ describe("Calendar nav buttons — no generic Button min-width", () => {
   });
 
   it("the Canvas header row reads the sized nav width (md 30 + 4)", () => {
-    expect(catalogCalendarHeaderParts("md")?.navWidth).toBe(34);
-    expect(catalogCalendarHeaderParts("sm")?.navWidth).toBe(28);
+    expect(catalogCalendarHeaderParts("M")?.navWidth).toBe(34);
+    expect(catalogCalendarHeaderParts("S")?.navWidth).toBe(28);
   });
 });
 
@@ -249,21 +249,21 @@ describe("group size reaches the items", () => {
   };
 
   it("ToggleButtonGroup lg sizes its ToggleButtons lg", async () => {
-    const workspace = await openOwner("ToggleButtonGroup", { size: "lg" });
+    const workspace = await openOwner("ToggleButtonGroup", { size: "L" });
     const items = sizeOf(workspace, "togglebutton");
     expect(items.length).toBe(2);
-    for (const item of items) expect(item).toEqual({ size: "lg", height: 42 });
+    for (const item of items) expect(item).toEqual({ size: "L", height: 42 });
     workspace.dispose();
   });
 
   it.each(["RadioGroup", "CheckboxGroup"])(
     "%s lg sizes its items and their labels lg",
     async (owner) => {
-      const workspace = await openOwner(owner, { size: "lg" });
+      const workspace = await openOwner(owner, { size: "L" });
       const item = owner === "RadioGroup" ? "radio" : "checkbox";
       const items = sizeOf(workspace, item);
       expect(items.length).toBeGreaterThan(0);
-      for (const entry of items) expect(entry.size).toBe("lg");
+      for (const entry of items) expect(entry.size).toBe("L");
       const root = workspace.root;
       // (An item's Label sits in its RAC button when it has one — ADR-256 Phase 3 CheckboxButton.)
       const labels = [...root.layoutInputs.values()].filter(
@@ -274,7 +274,7 @@ describe("group size reaches the items", () => {
           ),
       );
       expect(labels.length).toBeGreaterThan(0);
-      for (const label of labels) expect(label.props.size).toBe("lg");
+      for (const label of labels) expect(label.props.size).toBe("L");
       // The DOM items carry the same size (the group composes them).
       const group = [...root.domInputs.values()].find(
         (record) => record.sourceId === "project:node:owner",
@@ -288,12 +288,12 @@ describe("group size reaches the items", () => {
         ) ?? [];
       expect(tags.length).toBe(items.length);
       if (item === "checkbox")
-        for (const tag of tags) expect(tag).toContain('data-size="lg"');
+        for (const tag of tags) expect(tag).toContain('data-size="L"');
       // The group root carries `data-size` (the generated per-size blocks apply), and the Canvas
       // reads the same catalog size: lg items gap 16.
       expect(html).toMatch(
         new RegExp(
-          `class="react-aria-${owner}"[^>]*data-size="lg"|data-size="lg"[^>]*class="react-aria-${owner}"`,
+          `class="react-aria-${owner}"[^>]*data-size="L"|data-size="L"[^>]*class="react-aria-${owner}"`,
         ),
       );
       const boxes = [...root.layoutInputs.values()].filter(
@@ -314,8 +314,8 @@ describe("group size reaches the items", () => {
  */
 describe("Slider size reaches the track", () => {
   it.each([
-    ["sm", 4],
-    ["lg", 12],
+    ["S", 4],
+    ["L", 12],
   ])("Slider %s track is %d tall in both consumers", async (size, height) => {
     const workspace = await openOwner("Slider", { size });
     const root = workspace.root;
@@ -354,11 +354,11 @@ describe("NumberField group — per-size height", () => {
   });
 
   it.each([
-    ["xs", 20],
-    ["sm", 22],
-    ["md", 30],
-    ["lg", 42],
-    ["xl", 54],
+    ["XS", 20],
+    ["S", 22],
+    ["M", 30],
+    ["L", 42],
+    ["XL", 54],
   ])("NumberField %s trigger is %d tall", async (size, height) => {
     const workspace = await openOwner("NumberField", { size });
     const root = workspace.root;
@@ -610,7 +610,7 @@ describe("TagList — the catalog 100% height", () => {
 
 describe("TagGroup size reaches the chips", () => {
   it("a sm TagGroup's Tags are sm (22 tall)", async () => {
-    const workspace = await openOwner("TagGroup", { size: "sm" });
+    const workspace = await openOwner("TagGroup", { size: "S" });
     const root = workspace.root;
     const tags = [...root.layoutInputs.values()].filter(
       (record) => record.bindingId === "tag" && !record.hidden,
@@ -618,7 +618,7 @@ describe("TagGroup size reaches the chips", () => {
     expect(tags.length).toBeGreaterThan(0);
     const geometry = root.getGeometry(tags.map((record) => record.id));
     for (const tag of tags) {
-      expect(tag.props.size).toBe("sm");
+      expect(tag.props.size).toBe("S");
       expect(geometry.get(tag.id)!.height).toBe(22);
     }
     workspace.dispose();

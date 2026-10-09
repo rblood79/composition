@@ -117,7 +117,7 @@ export function MenuButton<T extends object>({
   columnMapping,
   items,
   variant = "primary",
-  size = "md",
+  size = "M",
   selectionMode,
   selectedKeys,
   onSelectionChange,
@@ -475,7 +475,7 @@ export function MenuButton<T extends object>({
  */
 export function MenuSubmenu({
   trigger,
-  size = "md",
+  size = "M",
   className,
   children,
 }: {

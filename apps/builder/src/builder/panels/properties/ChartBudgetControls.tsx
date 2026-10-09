@@ -92,7 +92,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
   //   크기는 리사이즈 드래그 동안 layout publish 마다 바뀌므로 갱신은 뒤로 미룬다 (deferred).
   const width = useDeferredValue(useLayoutValue(elementId, "width"));
   const height = useDeferredValue(useLayoutValue(elementId, "height"));
-  const sizeKey = String(props.size ?? "md").toLowerCase();
+  const sizeKey = String(props.size ?? "M").toUpperCase();
   const chartPropsKey = JSON.stringify(
     Object.fromEntries(
       Object.entries(props).filter(

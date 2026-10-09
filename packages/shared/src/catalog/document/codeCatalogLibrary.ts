@@ -117,7 +117,7 @@ function textDefinition(
   )
     throw new Error(`CODE_CATALOG_BINDING_UNSUPPORTED:${type}`);
   const rule = COMPONENT_RULES_TABLE[type];
-  if (!rule || rule.defaultVariant !== "default" || rule.defaultSize !== "md")
+  if (!rule || rule.defaultVariant !== "default" || rule.defaultSize !== "M")
     throw new Error(`CODE_CATALOG_RULE_UNSUPPORTED:${type}`);
   const variant = rule.variants.default;
   if (
@@ -299,7 +299,7 @@ function buttonDefinition(
   }
   const defaults: Record<string, string> = {
     variant: rule.defaultVariant ?? "primary",
-    size: rule.defaultSize ?? "md",
+    size: rule.defaultSize ?? "M",
   };
   for (const key of ["fillStyle", "staticColor", "type"] as const) {
     const value = registration.binding.props.accepts[key]?.default;
@@ -356,7 +356,7 @@ function glyphDefinition(
   }
   const accepts: Record<string, ValueType> = {};
   const defaults: Record<string, string | number> = {
-    size: rule.defaultSize ?? "md",
+    size: rule.defaultSize ?? "M",
   };
   for (const [key, contract] of Object.entries(
     registration.binding.props.accepts,
@@ -412,7 +412,7 @@ function selectValueDefinition(
     mode: "primitive",
     bindingId: "selectvalue",
     accepts: { children: "string", placeholder: "string", size: "string" },
-    defaults: { children: "", placeholder: "", size: rule.defaultSize ?? "md" },
+    defaults: { children: "", placeholder: "", size: rule.defaultSize ?? "M" },
     propChoices: { size: Object.keys(sizes) },
     visual: { color: sourceToken(text, "color", theme, tokens) },
     propVisualRules: { size: sizes },

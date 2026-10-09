@@ -13,14 +13,14 @@ const labelFont = (type: string, size: string) =>
 
 describe("item label font parts", () => {
   it("Tab md: 14px · root 1.5 · 500", () => {
-    expect(labelFont("Tab", "md")).toEqual({
+    expect(labelFont("Tab", "M")).toEqual({
       fontSize: 14,
       lineHeight: 1.5,
       fontWeight: 500,
     });
   });
   it("Tag md: 14px · 20px 줄 · 400", () => {
-    expect(labelFont("Tag", "md")).toEqual({
+    expect(labelFont("Tag", "M")).toEqual({
       fontSize: 14,
       lineHeight: 20 / 14,
       fontWeight: 400,

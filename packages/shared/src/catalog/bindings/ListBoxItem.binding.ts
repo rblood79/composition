@@ -7,7 +7,7 @@ import type { PrimitiveBinding } from "../types";
  *   이 icon · label · description 을 자식 노드로 둔다.
  *
  * **Canvas**: rule(`COMPONENT_RULES_TABLE.ListBoxItem`: variants.default.fill{base transparent /
- *   hover layer-1 / selected accent-subtle} + colors.text + textWeight 600 + sizes.md{paddingX 12/
+ *   hover layer-1 / selected accent-subtle} + colors.text + textWeight 600 + sizes.M{paddingX 12/
  *   paddingY 4/gap 2/iconSize 16/borderRadius radius.xs}) + `listbox_item` skiaPrimitive(replace 모드 —
  *   icon|label/description|check 의 multi-slot 행은 box+single-text 가정으로 재현 불가). 자식 노드가
  *   있으면 (`_hasChildren`) escape 는 shell(selection row-bg + check)만 그리고 내용은 자식 노드가
@@ -35,7 +35,7 @@ export const listBoxItemBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // ADR-237 Phase 2 — RAC/RSP 항목 `isDisabled`. Canvas 는 이미 읽는데 (상태 층 disabled) accepts 미선언이라
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.

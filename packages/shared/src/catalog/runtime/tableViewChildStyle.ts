@@ -7,7 +7,7 @@ import type React from "react";
  * TableView 자식 트리(TableHeader/TableBody/Column/Row/Cell)의 type별 시각 계약.
  *
  * **D3 대칭 SSOT (catalog `generated/componentRulesTable.ts`)**: 각 type 의 catalog
- * `containerStyles` / `sizes.md` 시각값을 DOM 의 generic div 인라인에 그대로 반영하여
+ * `containerStyles` / `sizes.M` 시각값을 DOM 의 generic div 인라인에 그대로 반영하여
  * Skia(buildCatalogShapes 가 같은 catalog rule 소비) ↔ Preview DOM 시각 대칭을 맞춘다.
  *   - TableHeader: flex row | TableBody: flex column | Row: flex row
  *   - Column: flex:1 + padding 8px(`{spacing.sm}`) + fontWeight 600

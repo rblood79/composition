@@ -22,35 +22,35 @@
   --icon-size: 26px;
 }
 
-.react-aria-ColorField[data-size="xs"] {
+.react-aria-ColorField[data-size="XS"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 6px;
   --icon-size: 18px;
 }
 
-.react-aria-ColorField[data-size="sm"] {
+.react-aria-ColorField[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   gap: 6px;
   --icon-size: 20px;
 }
 
-.react-aria-ColorField[data-size="md"] {
+.react-aria-ColorField[data-size="M"] {
   font-size: var(--text-base);
   border-radius: var(--radius-md);
   gap: 8px;
   --icon-size: 26px;
 }
 
-.react-aria-ColorField[data-size="lg"] {
+.react-aria-ColorField[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   gap: 10px;
   --icon-size: 32px;
 }
 
-.react-aria-ColorField[data-size="xl"] {
+.react-aria-ColorField[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   gap: 12px;
@@ -70,43 +70,43 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-ColorField[data-size="xs"] {
+.react-aria-ColorField[data-size="XS"] {
   --cf-side-gap: 6px;
 }
 
-.react-aria-ColorField[data-size="sm"] {
+.react-aria-ColorField[data-size="S"] {
   --cf-side-gap: 6px;
 }
 
-.react-aria-ColorField[data-size="md"] {
+.react-aria-ColorField[data-size="M"] {
   --cf-side-gap: 8px;
 }
 
-.react-aria-ColorField[data-size="lg"] {
+.react-aria-ColorField[data-size="L"] {
   --cf-side-gap: 10px;
 }
 
-.react-aria-ColorField[data-size="xl"] {
+.react-aria-ColorField[data-size="XL"] {
   --cf-side-gap: 12px;
 }
 
-.react-aria-ColorField[data-size="xs"] {
+.react-aria-ColorField[data-size="XS"] {
   --cf-input-max-width: 9ch;
 }
 
-.react-aria-ColorField[data-size="sm"] {
+.react-aria-ColorField[data-size="S"] {
   --cf-input-max-width: 10ch;
 }
 
-.react-aria-ColorField[data-size="md"] {
+.react-aria-ColorField[data-size="M"] {
   --cf-input-max-width: 12ch;
 }
 
-.react-aria-ColorField[data-size="lg"] {
+.react-aria-ColorField[data-size="L"] {
   --cf-input-max-width: 14ch;
 }
 
-.react-aria-ColorField[data-size="xl"] {
+.react-aria-ColorField[data-size="XL"] {
   --cf-input-max-width: 16ch;
 }
 

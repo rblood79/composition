@@ -45,11 +45,11 @@ function drawIcon(ctx: {
 
 /** catalog SelectIcon — iconSize(아이콘 스케일) 와 fontSize(typography) 가 **다른** 값. */
 const SELECT_ICON_SIZES = [
-  { size: "xs", iconSize: 14, ruleFontSize: 10 },
-  { size: "sm", iconSize: 16, ruleFontSize: 12 },
-  { size: "md", iconSize: 18, ruleFontSize: 16 },
-  { size: "lg", iconSize: 22, ruleFontSize: 18 },
-  { size: "xl", iconSize: 28, ruleFontSize: 20 },
+  { size: "XS", iconSize: 14, ruleFontSize: 10 },
+  { size: "S", iconSize: 16, ruleFontSize: 12 },
+  { size: "M", iconSize: 18, ruleFontSize: 16 },
+  { size: "L", iconSize: 22, ruleFontSize: 18 },
+  { size: "XL", iconSize: 28, ruleFontSize: 20 },
 ] as const;
 
 describe("icon_font — 크기 채널은 iconSize (merged base fontSize 아님)", () => {
@@ -118,9 +118,9 @@ const CALENDAR_DOM_CHEVRON_PX = 16;
 
 /** catalog Calendar sizes — fontSize(typography) 와 iconSize 가 **다른** 값. */
 const CALENDAR_SIZES = [
-  { size: "sm", fontSize: 12, iconSize: 20 },
-  { size: "md", fontSize: 14, iconSize: 26 },
-  { size: "lg", fontSize: 16, iconSize: 32 },
+  { size: "S", fontSize: 12, iconSize: 20 },
+  { size: "M", fontSize: 14, iconSize: 26 },
+  { size: "L", fontSize: 16, iconSize: 32 },
 ] as const;
 
 describe("calendar_grid nav chevron — DOM 고정 16 (fontSize 파생 금지)", () => {

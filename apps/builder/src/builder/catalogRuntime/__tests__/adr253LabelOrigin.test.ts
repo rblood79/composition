@@ -113,14 +113,14 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
 
   it("the field's `label` prop is the Label's text, and the field's size sizes the Label", async () => {
     const { workspace, label } = await open({
-      props: { label: set("Email"), size: set("lg") },
+      props: { label: set("Email"), size: set("L") },
     });
     expect(label().record.props.children).toBe("Email");
     const large = label().record.visual.fontSize;
     workspace.execute(
       setFields({
         targets: [{ kind: "node", id: FIELD }],
-        props: { label: set("Name"), size: set("sm") },
+        props: { label: set("Name"), size: set("S") },
       }),
     );
     expect(label().record.props.children).toBe("Name");
@@ -174,7 +174,7 @@ describe("ADR-253 Phase 2 — a TextField's Label is an instance of the Label or
       description: { description: "Help text" },
       invalid: { isInvalid: true, errorMessage: "Not valid" },
       "side label": { labelPosition: "side" },
-      "size xl": { size: "xl" },
+      "size xl": { size: "XL" },
       disabled: { isDisabled: true },
       "read only": { isReadOnly: true },
     };

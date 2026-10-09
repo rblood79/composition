@@ -161,7 +161,7 @@ function Toast({ toast, onDismiss }: ToastProps) {
         aria-label="Dismiss"
         onPress={onDismiss}
         variant="secondary"
-        size="sm"
+        size="S"
       >
         <X size={16} />
       </Button>

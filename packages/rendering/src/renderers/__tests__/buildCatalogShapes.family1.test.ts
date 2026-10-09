@@ -47,7 +47,7 @@ const linkPrimaryVisual: ComponentVisualRule = {
   textAlign: undefined,
 };
 
-// Link rule sizes.md 미러 (componentRulesTable.Link.sizes.md — height:0 inline, text-sm).
+// Link rule sizes.M 미러 (componentRulesTable.Link.sizes.M — height:0 inline, text-sm).
 const linkSizeMd: SizeSpec = {
   fontSize: 14,
   borderRadius: 0,

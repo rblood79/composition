@@ -226,12 +226,12 @@ describe("ADR-256 Phase 6e — a DatePicker · DateRangePicker draws its node tr
   it.each(TYPES)(
     "%s: the open calendar is at the picker's size and visible months (RSP `maxVisibleMonths`)",
     async (type) => {
-      const picker = await open(type, { size: "lg", maxVisibleMonths: 2 });
+      const picker = await open(type, { size: "L", maxVisibleMonths: 2 });
       await picker.press();
       const calendar = picker
         .dialog()!
         .querySelector(`[data-catalog-id="${picker.calendar.id}"]`)!;
-      expect(calendar.getAttribute("data-size")).toBe("lg");
+      expect(calendar.getAttribute("data-size")).toBe("L");
       expect(calendar.querySelectorAll("table")).toHaveLength(2);
       await picker.unmount();
     },

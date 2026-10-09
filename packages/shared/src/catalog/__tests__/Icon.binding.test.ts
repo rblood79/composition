@@ -28,7 +28,7 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
    * 이전 계약은 `size` 가 **`data-size` 로만** 나가는 것이었는데, 그게 곧 결함이었다.
    * `Icon.tsx` 는 size 를 **React prop 으로 소비**해 `ICON_SIZE_MAP[size]` → `<svg width>` 를
    * 계산한다. SVG width 는 **속성**이라 `[data-size]` CSS 로 도달할 수 없다 → React prop 이
-   * 안 오면 default `"md"` 고정 → **DOM 이 항상 24px**. Skia 는 store 의 props.size 를 직접
+   * 안 오면 default `"M"` 고정 → **DOM 이 항상 24px**. Skia 는 store 의 props.size 를 직접
    * 읽어 정상(16/18/24/36/48)이므로 **md 에서만 우연히 24 로 일치**하고 나머지는 전부 어긋났다.
    *
    * → `propPassthrough: ["size"]` 로 **React prop + data-\* 둘 다** emit 한다.
@@ -41,7 +41,7 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
         type: "Icon",
         props: {
           iconName: "star",
-          size: "lg",
+          size: "L",
           strokeWidth: 1.5,
         },
       },
@@ -51,8 +51,8 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
       iconName: "star",
       strokeWidth: 1.5,
       // Icon.tsx 가 React prop 으로 소비 → svg width/height 계산의 입력
-      size: "lg",
-      "data-size": "lg",
+      size: "L",
+      "data-size": "L",
     });
   });
 });

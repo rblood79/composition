@@ -42,7 +42,7 @@
   }
 }
 
-.react-aria-Illustration[data-size="sm"] {
+.react-aria-Illustration[data-size="S"] {
   height: 48px;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -50,7 +50,7 @@
   --icon-size: 48px;
 }
 
-.react-aria-Illustration[data-size="md"] {
+.react-aria-Illustration[data-size="M"] {
   height: 96px;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -58,7 +58,7 @@
   --icon-size: 96px;
 }
 
-.react-aria-Illustration[data-size="lg"] {
+.react-aria-Illustration[data-size="L"] {
   height: 160px;
   padding: 0px 0px;
   font-size: var(--text-base);

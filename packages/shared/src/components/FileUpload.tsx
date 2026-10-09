@@ -139,7 +139,7 @@ export function FileUpload({
   showPreview = false,
   isDisabled = false,
   variant = "default",
-  size = "md",
+  size = "M",
   dryRun: dryRunProp,
   loadEngine = loadUploadEngine,
   inputSurface,

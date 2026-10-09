@@ -10,7 +10,7 @@ import type { ComponentSize } from "../types";
 export type TooltipProps = AriaTooltipProps & {
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -41,13 +41,13 @@ export type TooltipProps = AriaTooltipProps & {
  * @example
  * <TooltipTrigger>
  *   <Button>Hover me</Button>
- *   <Tooltip variant="primary" size="md">
+ *   <Tooltip variant="primary" size="M">
  *     This is a tooltip
  *   </Tooltip>
  * </TooltipTrigger>
  */
 export function Tooltip({
-  size = "md",
+  size = "M",
   hideArrow = false,
   children,
   ...props

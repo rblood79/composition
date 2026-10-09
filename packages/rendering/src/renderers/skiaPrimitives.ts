@@ -108,7 +108,7 @@ export type SkiaPrimitiveDrawFn = (ctx: {
  * 은 override 전용이 아니라 **rule base ⊕ override 병합 map** 이다. base 에 rule 의 `fontSize`
  * (typography)와 `iconSize`(아이콘 스케일)가 **둘 다** 들어오므로, `style.fontSize != null` 로
  * override 를 판정하면 **항상 참** 이 되어 iconSize 가 죽는다. 옛 SelectIcon 은 두 축의 값이 달라
- * (lg: iconSize 22 vs text-lg 18, xl: 28 vs 20) glyph 가 박스보다 작게 그려졌다 — 박스는
+ * (L: iconSize 22 vs text-lg 18, XL: 28 vs 20) glyph 가 박스보다 작게 그려졌다 — 박스는
  * iconSize 로 배치되는데 glyph 만 typography 를 따라간 비대칭.
  *
  * Icon(일반) 이 멀쩡해 보였던 건 **우연**이다 — catalog Icon 은 fontSize 와 iconSize 가 값이
@@ -1670,10 +1670,10 @@ const datefieldTrigger: SkiaPrimitiveDrawFn = ({ props, size }) => {
 
   // sizeEntry 는 DATE_PICKER_SIZES(spec 공유 sizes) 에서 size 이름으로 조회 — ctx.size 의
   // calendar 류 base 가 아니라 date-picker 전용 height/padding/iconSize 가 필요하기 때문.
-  const sizeName = (props.size as string) || "md";
+  const sizeName = (props.size as string) || "M";
   const sizeEntry =
     (DATE_PICKER_SIZES as Record<string, Record<string, unknown>>)[sizeName] ??
-    (DATE_PICKER_SIZES as Record<string, Record<string, unknown>>).md ??
+    (DATE_PICKER_SIZES as Record<string, Record<string, unknown>>).M ??
     (size as unknown as Record<string, unknown>);
 
   return buildDatePickerShapes({
@@ -1704,7 +1704,7 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const p = props as Record<string, unknown>;
   const style = (p.style as Record<string, unknown> | undefined) ?? undefined;
 
-  const sizeName = (p.size as string) || "md";
+  const sizeName = (p.size as string) || "M";
   const parentTag = (p._parentTag as string) || "DateField";
   const granularity =
     (p._granularity as string) ||
@@ -1713,30 +1713,30 @@ const datefieldSegments: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const locale = (p._locale as string) || "en-US";
 
   const DF_HEIGHT: Record<string, number> = {
-    xs: 20,
-    sm: 22,
-    md: 30,
-    lg: 42,
-    xl: 54,
+    XS: 20,
+    S: 22,
+    M: 30,
+    L: 42,
+    XL: 54,
   };
   const DF_PADDING_X: Record<string, number> = {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 24,
+    XS: 4,
+    S: 8,
+    M: 12,
+    L: 16,
+    XL: 24,
   };
   const DF_RADIUS: Record<string, number> = {
-    xs: 4,
-    sm: 6,
-    md: 8,
-    lg: 10,
-    xl: 12,
+    XS: 4,
+    S: 6,
+    M: 8,
+    L: 10,
+    XL: 12,
   };
 
-  const inputHeight = DF_HEIGHT[sizeName] ?? DF_HEIGHT.md;
-  const paddingX = DF_PADDING_X[sizeName] ?? DF_PADDING_X.md;
-  const borderRadius = DF_RADIUS[sizeName] ?? DF_RADIUS.md;
+  const inputHeight = DF_HEIGHT[sizeName] ?? DF_HEIGHT.M;
+  const paddingX = DF_PADDING_X[sizeName] ?? DF_PADDING_X.M;
+  const borderRadius = DF_RADIUS[sizeName] ?? DF_RADIUS.M;
   const fontSize = resolveSpecFontSize(
     (style?.fontSize as string | number | undefined) ??
       (size.fontSize as string | number | undefined),
@@ -2570,10 +2570,10 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     props._containerHeight,
     typeof size.height === "number" ? size.height : 0,
   );
-  const sizeKey = (props.size as string | undefined) ?? "md";
+  const sizeKey = (props.size as string | undefined) ?? "M";
   const metrics = resolveChartMetrics(
     channel,
-    String(sizeKey).toLowerCase(),
+    String(sizeKey).toUpperCase(),
     style,
   );
 

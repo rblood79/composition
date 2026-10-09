@@ -79,12 +79,12 @@ describe("family ⑤ Tree·Table — catalog 등록 + cutover gate", () => {
       {
         id: "tbl1",
         type: "Table",
-        props: { dataBinding, size: "lg", selectionMode: "multiple" },
+        props: { dataBinding, size: "L", selectionMode: "multiple" },
       },
       getPrimitiveBinding("Table")!,
     );
     expect(result.dataBinding).toEqual(dataBinding);
     expect(result.selectionMode).toBe("multiple");
-    expect(result["data-size"]).toBe("lg");
+    expect(result["data-size"]).toBe("L");
   });
 });

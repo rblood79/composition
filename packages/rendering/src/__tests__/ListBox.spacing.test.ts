@@ -34,7 +34,7 @@ describe("resolveListBoxSpacingMetric — defaults", () => {
     // 2026-07-22 라이브 실측: label 은 container/item fontSize 미상속 (react-aria-Text 기본 16) →
     //   getTextLineHeight(16)=24 → itemHeight pad4*2+24=32 (과거 29 는 label 14 기준 stale).
     expect(m.itemHeight).toBe(32); // paddingY(4) * 2 + label line box(24)
-    expect(m.itemPaddingX).toBe(12); // ListBoxItemSpec.sizes.md.paddingX
+    expect(m.itemPaddingX).toBe(12); // ListBoxItemSpec.sizes.M.paddingX
   });
 
   it("fontSize 14 → header metric (headerHeight=25, headerFontSize=12, sectionTopPad=7)", () => {

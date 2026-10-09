@@ -32,7 +32,7 @@ export const tabBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // ADR-237 Phase 2 — RAC/RSP 항목 `isDisabled`. Canvas 는 이미 읽는데 (상태 층 disabled) accepts 미선언이라
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.

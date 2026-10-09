@@ -73,7 +73,7 @@ export const buttonBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // visual-enum (fixed options) → data-fill-style 라우팅 (theme/Skia 가 시각 적용)
       fillStyle: {

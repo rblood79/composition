@@ -40,7 +40,7 @@
     }
 
     /* ===== Size ===== */
-    &[data-size="sm"] {
+    &[data-size="S"] {
       /* spec.sizes.sm: paddingX=10, gap=8
        * @spec-align: --cp-dialog-padding: 12px ⚠️ (spec paddingX=10 과 불일치 — 의도적 확장?)
        * @spec-align: --cp-dialog-gap: 6px ⚠️ (spec gap=8 과 불일치)
@@ -53,7 +53,7 @@
       --cp-dialog-gap: 6px;
       --cp-dialog-min-width: 160px;
     }
-    &[data-size="md"] {
+    &[data-size="M"] {
       /* spec.sizes.md: paddingX=14, gap=10
        * @spec-align: --cp-dialog-padding: 14px ✅
        * @spec-align: --cp-dialog-gap: 10px ✅
@@ -66,7 +66,7 @@
       --cp-dialog-gap: 10px;
       --cp-dialog-min-width: 192px;
     }
-    &[data-size="lg"] {
+    &[data-size="L"] {
       /* spec.sizes.lg: paddingX=18, gap=10
        * @spec-align: --cp-dialog-padding: 18px ✅
        * @spec-align: --cp-dialog-gap: 10px ✅

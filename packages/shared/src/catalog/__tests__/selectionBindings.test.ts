@@ -68,7 +68,7 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
     expect(result.children).toBe("Agree");
     expect(result.isSelected).toBe(true);
     expect(result["data-variant"]).toBe("emphasized");
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   it("Slider: minValue/maxValue/step + labelPosition 통과", () => {
@@ -95,7 +95,7 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
     //   Slider 실렌더는 renderSlider(delegating)가 담당하므로 projection 계약만 반영.
     expect(result["data-label-position"]).toBe("side");
     expect(result.labelPosition).toBeUndefined();
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   it("Switch: isSelected boolean 통과 + size default emit", () => {
@@ -104,6 +104,6 @@ describe("family ③ selection — toRacProps 변환 계약", () => {
       getPrimitiveBinding("Switch")!,
     );
     expect(result.isSelected).toBe(true);
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 });

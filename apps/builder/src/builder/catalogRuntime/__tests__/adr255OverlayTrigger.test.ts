@@ -235,7 +235,7 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
         ]),
     ).toEqual([
       ["variant", ["neutral", "info", "positive", "negative"]],
-      ["size", ["sm", "md", "lg"]],
+      ["size", ["S", "M", "L"]],
     ]);
     for (const [type, placement] of [
       ["popover", "bottom"],
@@ -248,11 +248,11 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: PLACED }],
-          props: { placement: set("right"), size: set("lg") },
+          props: { placement: set("right"), size: set("L") },
         }),
       );
       expect(overlay().props.placement).toBe("right");
-      expect(overlay().props.size).toBe("lg");
+      expect(overlay().props.size).toBe("L");
     }
   });
 });

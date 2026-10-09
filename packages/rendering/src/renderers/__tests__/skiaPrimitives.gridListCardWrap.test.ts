@@ -18,7 +18,7 @@ import type { Shape, SizeSpec } from "../../types";
  * 대비 단순). 미주입 시 단일 줄 fallback = 기존 동작(BC).
  */
 
-// GridListItem rule.sizes.md 미러 (paddingY 12, gap 2). label/description 기본 fontSize 16
+// GridListItem rule.sizes.M 미러 (paddingY 12, gap 2). label/description 기본 fontSize 16
 //   (react-aria-Text 기본, GridList slot override 없음) → getTextLineHeight(16)=24.
 const sizeMd: SizeSpec = {
   height: 0,

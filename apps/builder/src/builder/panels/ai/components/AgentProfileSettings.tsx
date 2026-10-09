@@ -87,7 +87,7 @@ export function AgentProfileSettings() {
               key={preset.id}
               className="control-button"
               variant="secondary"
-              size="sm"
+              size="S"
               onPress={() => applyPreset(preset.id)}
             >
               {preset.labelKey ? t(preset.labelKey) : "Anthropic"}

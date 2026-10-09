@@ -98,10 +98,10 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
 
   it("toRacProps: Dialog size data-* · Modal isDismissable 통과 (ADR-256 Phase 8b — 밖 누르기 닫기는 Modal 의 것)", () => {
     const dialog = toRacProps(
-      { id: "dlg1", type: "Dialog", props: { size: "lg", isDismissable: true } },
+      { id: "dlg1", type: "Dialog", props: { size: "L", isDismissable: true } },
       getPrimitiveBinding("Dialog")!,
     );
-    expect(dialog["data-size"]).toBe("lg");
+    expect(dialog["data-size"]).toBe("L");
     expect(dialog.isDismissable).toBeUndefined();
     const modal = toRacProps(
       { id: "mdl1", type: "Modal", props: { isDismissable: true } },
@@ -116,6 +116,6 @@ describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
       getPrimitiveBinding("Popover")!,
     );
     expect(result.hideArrow).toBeUndefined();
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 });

@@ -38,35 +38,35 @@
   }
 }
 
-.react-aria-ButtonGroup[data-size="xs"] {
+.react-aria-ButtonGroup[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ButtonGroup[data-size="sm"] {
+.react-aria-ButtonGroup[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
 }
 
-.react-aria-ButtonGroup[data-size="md"] {
+.react-aria-ButtonGroup[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-md);
 }
 
-.react-aria-ButtonGroup[data-size="lg"] {
+.react-aria-ButtonGroup[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
 }
 
-.react-aria-ButtonGroup[data-size="xl"] {
+.react-aria-ButtonGroup[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xl);

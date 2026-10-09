@@ -151,7 +151,7 @@ export interface ButtonElementProps extends BaseElementProps {
   variant?:
     "accent" | "primary" | "secondary" | "negative" | "premium" | "genai";
   fillStyle?: "bold" | "subtle" | "outline";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   /** Lucide 아이콘 이름 */
   iconName?: string;
   /** 아이콘 위치: start(왼쪽) / end(오른쪽) */
@@ -179,7 +179,7 @@ export interface LinkElementProps extends BaseElementProps {
   children?: React.ReactNode;
   href?: string;
   variant?: "primary" | "secondary";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   isQuiet?: boolean;
   staticColor?: "auto" | "black" | "white";
   isDisabled?: boolean;
@@ -188,7 +188,7 @@ export interface LinkElementProps extends BaseElementProps {
 }
 
 export interface TextFieldElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -226,7 +226,7 @@ export interface TextFieldElementProps extends BaseElementProps {
 
 export interface CheckboxElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   isSelected?: boolean;
   defaultSelected?: boolean;
   isIndeterminate?: boolean;
@@ -252,7 +252,7 @@ export interface RadioElementProps extends BaseElementProps {
 
 export interface ToggleButtonElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   isEmphasized?: boolean;
   isQuiet?: boolean;
   isSelected?: boolean;
@@ -268,7 +268,7 @@ export interface ToggleButtonElementProps extends BaseElementProps {
 
 export interface ToggleButtonGroupElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   isEmphasized?: boolean;
   isQuiet?: boolean;
   value?: string[];
@@ -281,7 +281,7 @@ export interface ToggleButtonGroupElementProps extends BaseElementProps {
 
 export interface CheckboxGroupElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -300,7 +300,7 @@ export interface CheckboxGroupElementProps extends BaseElementProps {
 
 export interface RadioGroupElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -319,7 +319,7 @@ export interface RadioGroupElementProps extends BaseElementProps {
 
 export interface SelectElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -346,7 +346,7 @@ export interface SelectElementProps extends BaseElementProps {
 
 export interface ComboBoxElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   variant?: "default" | "accent" | "negative";
   label?: string;
   description?: string;
@@ -375,7 +375,7 @@ export interface ComboBoxElementProps extends BaseElementProps {
 }
 
 export interface SliderElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   value?: number;
   defaultValue?: number;
@@ -519,7 +519,7 @@ export interface DateRangePickerElementProps extends BaseElementProps {
 
 export interface SwitchElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   isSelected?: boolean;
   defaultSelected?: boolean;
   isDisabled?: boolean;
@@ -543,7 +543,7 @@ export interface TableElementProps extends BaseElementProps {
   selectedKeys?: string[];
   onSelectionChange?: (keys: string[]) => void;
   variant?: "default" | "striped" | "bordered"; // Table variant 추가
-  size?: "sm" | "md" | "lg"; // Table size 추가
+  size?: "S" | "M" | "L"; // Table size 추가
   headerVariant?: "default" | "dark" | "accent"; // headerVariant 추가
   cellVariant?: "default" | "striped"; // cellVariant 추가
   enableAsyncLoading?: boolean; // 비동기 로딩 활성화 여부 추가
@@ -621,7 +621,7 @@ export interface CardElementProps extends BaseElementProps {
   children?: React.ReactNode;
   variant?: "primary" | "secondary" | "tertiary" | "quiet";
   cardType?: "default" | "asset" | "user" | "product";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   density?: "compact" | "regular" | "spacious";
   orientation?: "horizontal" | "vertical";
   title?: string;
@@ -661,7 +661,7 @@ export interface BadgeElementProps extends BaseElementProps {
     | "fuchsia"
     | "magenta";
   fillStyle?: "bold" | "subtle" | "outline";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   isDot?: boolean;
   isPulsing?: boolean;
 }
@@ -669,7 +669,7 @@ export interface BadgeElementProps extends BaseElementProps {
 export interface TagGroupElementProps extends BaseElementProps {
   children?: React.ReactNode;
   variant?: "default" | "accent" | "neutral" | "negative";
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -757,7 +757,7 @@ export interface FieldElementProps extends BaseElementProps {
 export interface GridListElementProps extends BaseElementProps {
   children?: React.ReactNode;
   variant?: "default" | "accent";
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -793,7 +793,7 @@ export interface GridListItemElementProps extends BaseElementProps {
   isDisabled?: boolean;
 }
 
-export type TextSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
+export type TextSize = "XS" | "S" | "M" | "L" | "XL" | "XXL" | "XXXL";
 
 export interface TextElementProps extends BaseElementProps {
   children?: React.ReactNode;
@@ -820,7 +820,7 @@ export interface IconElementProps extends BaseElementProps {
   /** 아이콘 라이브러리 (기본: 'lucide') */
   iconFontFamily?: string;
   /** 아이콘 크기 프리셋 */
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   /** 선 두께 (기본: 2) */
   strokeWidth?: number;
 }
@@ -837,7 +837,7 @@ export interface SlotElementProps extends BaseElementProps {
 
 // === NumberField Element Props ===
 export interface NumberFieldElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -864,7 +864,7 @@ export interface NumberFieldElementProps extends BaseElementProps {
 
 // === SearchField Element Props ===
 export interface SearchFieldElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -897,7 +897,7 @@ export interface SearchFieldElementProps extends BaseElementProps {
 
 // === ProgressBar Element Props ===
 export interface ProgressBarElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   variant?: "default" | "accent" | "neutral";
   label?: string;
   value?: number;
@@ -911,7 +911,7 @@ export interface ProgressBarElementProps extends BaseElementProps {
 
 // === Meter Element Props ===
 export interface MeterElementProps extends BaseElementProps {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   variant?: "informative" | "positive" | "warning" | "critical";
   label?: string;
   value?: number;
@@ -940,7 +940,7 @@ export interface FormElementProps extends BaseElementProps {
 // === Disclosure Element Props ===
 export interface DisclosureElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   title?: string;
   isExpanded?: boolean;
   defaultExpanded?: boolean;
@@ -957,7 +957,7 @@ export interface DisclosureGroupElementProps extends BaseElementProps {
 // === DropZone Element Props ===
 export interface DropZoneElementProps extends BaseElementProps {
   children?: React.ReactNode;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   label?: string;
   description?: string;
   isDisabled?: boolean;
@@ -1064,7 +1064,7 @@ export interface RangeCalendarElementProps extends BaseElementProps {
 // === Color Component Element Props ===
 export interface ColorFieldElementProps extends BaseElementProps {
   variant?: "default" | "accent" | "neutral" | "error" | "filled";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   label?: string;
   description?: string;
   errorMessage?: string;
@@ -1176,7 +1176,7 @@ export type ComponentElementProps =
 export function createDefaultTextFieldProps(): TextFieldElementProps {
   return {
     name: "",
-    size: "md",
+    size: "M",
     type: "text",
     isRequired: false,
     isDisabled: false,
@@ -1191,7 +1191,7 @@ export function createDefaultCheckboxProps(): CheckboxElementProps {
     children: "Checkbox",
     name: "",
     variant: "default",
-    size: "md",
+    size: "M",
     isSelected: false,
     isDisabled: false,
     isInvalid: false,
@@ -1209,7 +1209,7 @@ export function createDefaultRadioProps(): RadioElementProps {
   return {
     name: "",
     variant: "default",
-    size: "md",
+    size: "M",
     isSelected: false,
     isDisabled: false,
     // ADR-083 Phase 3 (R5): alignItems:"center" 는 RadioSpec.containerStyles SSOT 로 이관.
@@ -1222,7 +1222,7 @@ export function createDefaultRadioProps(): RadioElementProps {
 
 export function createDefaultToggleButtonGroupProps(): ToggleButtonGroupElementProps {
   return {
-    size: "md",
+    size: "M",
     isEmphasized: false,
     value: [],
     isDisabled: false,
@@ -1234,7 +1234,7 @@ export function createDefaultToggleButtonGroupProps(): ToggleButtonGroupElementP
 export function createDefaultCheckboxGroupProps(): CheckboxGroupElementProps {
   return {
     name: "",
-    size: "md",
+    size: "M",
     value: [],
     isDisabled: false,
     isInvalid: false,
@@ -1245,7 +1245,7 @@ export function createDefaultCheckboxGroupProps(): CheckboxGroupElementProps {
 export function createDefaultRadioGroupProps(): RadioGroupElementProps {
   return {
     name: "",
-    size: "md",
+    size: "M",
     value: "",
     isDisabled: false,
     isInvalid: false,
@@ -1256,7 +1256,7 @@ export function createDefaultRadioGroupProps(): RadioGroupElementProps {
 export function createDefaultSelectProps(): SelectElementProps {
   return {
     name: "",
-    size: "md",
+    size: "M",
     isDisabled: false,
     isInvalid: false,
     selectionMode: "single",
@@ -1267,7 +1267,7 @@ export function createDefaultSelectProps(): SelectElementProps {
 export function createDefaultComboBoxProps(): ComboBoxElementProps {
   return {
     name: "",
-    size: "md",
+    size: "M",
     isDisabled: false,
     isInvalid: false,
     allowsCustomValue: false,
@@ -1403,7 +1403,7 @@ export function createDefaultSwitchProps(): SwitchElementProps {
     children: "Switch",
     name: "",
     variant: "default",
-    size: "md",
+    size: "M",
     isSelected: false,
     isDisabled: false,
     // ADR-083 Phase 3 (R5): alignItems:"center" 는 SwitchSpec.containerStyles SSOT 로 이관.
@@ -1421,7 +1421,7 @@ export function createDefaultTableProps(): TableElementProps {
     selectionMode: "none",
     selectedKeys: [],
     variant: "default", // 기본값 추가
-    size: "sm", // 기본값 추가
+    size: "S", // 기본값 추가
     headerVariant: "default", // 기본값 추가
     cellVariant: "default", // 기본값 추가
     // 페이지네이션 모드 기본값
@@ -1496,7 +1496,7 @@ export function createDefaultCellProps(): CellElementProps {
 export function createDefaultCardProps(): CardElementProps {
   return {
     variant: "primary",
-    size: "md",
+    size: "M",
     orientation: "vertical",
     title: "Card Title",
     description: "Card description text goes here.",
@@ -1577,7 +1577,7 @@ export function createDefaultLabelProps(): BaseElementProps {
 export function createDefaultTagGroupProps(): TagGroupElementProps {
   return {
     variant: "default",
-    size: "md",
+    size: "M",
     label: "Tag Group",
     items: [],
     selectedKeys: [],
@@ -1643,7 +1643,7 @@ export function createDefaultFieldProps(): FieldElementProps {
 export function createDefaultGridListProps(): GridListElementProps {
   return {
     variant: "default",
-    size: "md",
+    size: "M",
     // 2026-07-29: 기본값 stack → grid (catalog `GridList.binding.ts` layout.default 정합).
     layout: "grid",
     columns: 2,
@@ -1692,7 +1692,7 @@ export function createDefaultNavProps(): NavElementProps {
     // nav 태그는 링크 목록을 수평으로 배열하는 탐색 영역
     //   rowGap/columnGap/padding 은 factory(NavigationComponents) props.style 미러 — store longhand
     //   정책상 factory 가 longhand 로 주입(rowGap/columnGap=12, padding 4-way) → baseline 도 동일해야
-    //   false dirty 없음 (2026-06-23 전수 정정, catalog sizes.md gap=12/paddingX=16/paddingY=12 정합).
+    //   false dirty 없음 (2026-06-23 전수 정정, catalog sizes.M gap=12/paddingX=16/paddingY=12 정합).
     style: {
       display: "flex",
       flexDirection: "row",
@@ -1891,7 +1891,7 @@ export function createDefaultDropZoneProps(): DropZoneElementProps {
       justifyContent: "center",
       // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): _hasChildren 컨테이너 layout SSOT
       //   = factory props.style (ADR-907 Layer B — layout 엔진은 catalog rule import 0건).
-      //   md 기본값 미러(rule.sizes.md paddingX/Y 24 / gap 12). store longhand 정책(style-ssot.md):
+      //   md 기본값 미러(rule.sizes.M paddingX/Y 24 / gap 12). store longhand 정책(style-ssot.md):
       //   padding 4-way + rowGap/columnGap. DOM 은 generated CSS(rule.sizes)가 size 추종, Skia/레이아웃 엔진
       //   컨테이너 배치는 본 props.style 에서만 읽음(Nav/Pagination 선례 동형).
       paddingTop: "24px",
@@ -2030,7 +2030,7 @@ export function createDefaultAvatarProps(): BaseElementProps {
     src: "",
     alt: "Avatar",
     initials: "A",
-    size: "md",
+    size: "M",
     isDisabled: false,
     // width/height inline 금지 (2026-07-14): factory(createAvatarDefinition) 와 동형.
     //   정원형 leaf 의 크기는 catalog `COMPONENT_RULES_TABLE.Avatar.sizes.{xs..xl}.height`
@@ -2043,14 +2043,14 @@ export function createDefaultAvatarProps(): BaseElementProps {
 
 export function createDefaultAvatarGroupProps(): BaseElementProps {
   return {
-    size: "md",
+    size: "M",
     style: { display: "flex", flexDirection: "row", alignItems: "center" },
   };
 }
 
 export function createDefaultButtonGroupProps(): BaseElementProps {
   return {
-    size: "md",
+    size: "M",
     orientation: "horizontal",
     align: "end",
     style: {
@@ -2065,7 +2065,7 @@ export function createDefaultButtonGroupProps(): BaseElementProps {
 export function createDefaultCardViewProps(): BaseElementProps {
   return {
     layout: "grid",
-    size: "md",
+    size: "M",
     density: "regular",
     columns: 3,
     gap: 16,
@@ -2089,7 +2089,7 @@ export function createDefaultColorSwatchPickerProps(): BaseElementProps {
 export function createDefaultIllustratedMessageProps(): BaseElementProps {
   // (2026-10-09: 그림 · 제목 · 설명은 원본 `component-illustratedmessage` 의 자식 노드.)
   return {
-    size: "md",
+    size: "M",
     orientation: "vertical",
   };
 }
@@ -2111,7 +2111,7 @@ export function createDefaultPaginationProps(): BaseElementProps {
 export function createDefaultProgressCircleProps(): BaseElementProps {
   return {
     value: 75,
-    size: "md",
+    size: "M",
     isIndeterminate: false,
     isDisabled: false,
     // 공통 기본 스타일은 catalog에서 파생한다.
@@ -2121,7 +2121,7 @@ export function createDefaultProgressCircleProps(): BaseElementProps {
 export function createDefaultRangeCalendarProps(): BaseElementProps {
   return {
     variant: "default",
-    size: "md",
+    size: "M",
     defaultToday: true,
     isDisabled: false,
     isReadOnly: false,
@@ -2132,7 +2132,7 @@ export function createDefaultStatusLightProps(): BaseElementProps {
   return {
     variant: "positive",
     children: "Available",
-    size: "md",
+    size: "M",
     style: {
       // catalog(D3 SSOT)·factory definition(2026-06-23 정정)과 동일한 inline-flex.
       // 종전 flex 는 factory 정정에서 누락된 이중 default 소스 — palette 단순 경로

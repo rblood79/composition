@@ -187,19 +187,19 @@
   }
 
   /* ========== Size Variants ========== */
-  .react-aria-Popover[data-size="sm"] {
+  .react-aria-Popover[data-size="S"] {
     max-width: 200px;
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
   }
 
-  .react-aria-Popover[data-size="md"] {
+  .react-aria-Popover[data-size="M"] {
     max-width: 250px;
     border-radius: var(--radius-lg);
     font-size: var(--text-base);
   }
 
-  .react-aria-Popover[data-size="lg"] {
+  .react-aria-Popover[data-size="L"] {
     max-width: 320px;
     border-radius: var(--radius-xl);
     font-size: var(--text-lg);

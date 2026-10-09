@@ -42,7 +42,7 @@
   column-gap: 16px;
 }
 
-.react-aria-Slider[data-size="sm"] {
+.react-aria-Slider[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
   line-height: var(--text-xs--line-height);
@@ -50,7 +50,7 @@
   column-gap: 16px;
 }
 
-.react-aria-Slider[data-size="md"] {
+.react-aria-Slider[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
   line-height: var(--text-sm--line-height);
@@ -58,7 +58,7 @@
   column-gap: 16px;
 }
 
-.react-aria-Slider[data-size="lg"] {
+.react-aria-Slider[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-full);
   line-height: var(--text-base--line-height);
@@ -66,7 +66,7 @@
   column-gap: 20px;
 }
 
-.react-aria-Slider[data-size="xl"] {
+.react-aria-Slider[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-full);
   line-height: var(--text-lg--line-height);
@@ -110,46 +110,46 @@
 }
 
 
-  .react-aria-Slider[data-size="sm"] .react-aria-Label {
+  .react-aria-Slider[data-size="S"] .react-aria-Label {
     font-size: var(--text-xs);
   }
 
-  .react-aria-Slider[data-size="sm"] .react-aria-SliderOutput {
+  .react-aria-Slider[data-size="S"] .react-aria-SliderOutput {
     font-size: var(--text-xs);
   }
 
-  .react-aria-Slider[data-size="md"] .react-aria-Label {
+  .react-aria-Slider[data-size="M"] .react-aria-Label {
     font-size: var(--text-sm);
   }
 
-  .react-aria-Slider[data-size="md"] .react-aria-SliderOutput {
+  .react-aria-Slider[data-size="M"] .react-aria-SliderOutput {
     font-size: var(--text-sm);
   }
 
-  .react-aria-Slider[data-size="lg"] .react-aria-Label {
+  .react-aria-Slider[data-size="L"] .react-aria-Label {
     font-size: var(--text-base);
   }
 
-  .react-aria-Slider[data-size="lg"] .react-aria-SliderOutput {
+  .react-aria-Slider[data-size="L"] .react-aria-SliderOutput {
     font-size: var(--text-base);
   }
 
-  .react-aria-Slider[data-size="xl"] .react-aria-Label {
+  .react-aria-Slider[data-size="XL"] .react-aria-Label {
     font-size: var(--text-lg);
   }
 
-  .react-aria-Slider[data-size="xl"] .react-aria-SliderOutput {
+  .react-aria-Slider[data-size="XL"] .react-aria-SliderOutput {
     font-size: var(--text-lg);
   }
 
 
-  .react-aria-Slider[data-size="sm"] .react-aria-SliderThumb { width: 14px; height: 14px; }
+  .react-aria-Slider[data-size="S"] .react-aria-SliderThumb { width: 14px; height: 14px; }
 
-  .react-aria-Slider[data-size="md"] .react-aria-SliderThumb { width: 18px; height: 18px; }
+  .react-aria-Slider[data-size="M"] .react-aria-SliderThumb { width: 18px; height: 18px; }
 
-  .react-aria-Slider[data-size="lg"] .react-aria-SliderThumb { width: 22px; height: 22px; }
+  .react-aria-Slider[data-size="L"] .react-aria-SliderThumb { width: 22px; height: 22px; }
 
-  .react-aria-Slider[data-size="xl"] .react-aria-SliderThumb { width: 26px; height: 26px; }
+  .react-aria-Slider[data-size="XL"] .react-aria-SliderThumb { width: 26px; height: 26px; }
 
 
 } /* @layer components */

@@ -21,7 +21,7 @@ export interface DialogExtendedProps extends DialogProps {
 }
 
 export function Dialog({
-  size = "md",
+  size = "M",
   isDismissable,
   ...props
 }: DialogExtendedProps) {

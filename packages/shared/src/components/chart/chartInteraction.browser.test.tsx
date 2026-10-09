@@ -40,7 +40,7 @@ for (const descriptor of CHART_DESCRIPTORS)
       const render = (rows: typeof props.data) => (
         <Chart
           {...props}
-          size="md"
+          size="M"
           data={rows}
           isAnimationActive={active}
           animationBegin={0}
@@ -88,7 +88,7 @@ it("wrapper, Area 외곽/점 토큰과 native 키보드 tooltip", async () => {
       showTooltip
       isAnimationActive={false}
       variant="default"
-      size="lg"
+      size="L"
       className="user-chart"
       style={{
         width: 480,
@@ -143,7 +143,7 @@ it("숨김과 0 크기에서는 렌더하지 않고 표시·resize 후 실측 �
     root.render(
       <Chart
         {...createChartInitialProps("bar")}
-        size="md"
+        size="M"
         isAnimationActive={false}
         style={{ width, height: 240, display }}
       />,

@@ -654,7 +654,7 @@ export function CatalogBuilderCore() {
             <span>{state.message}</span>
             <Button
               variant="primary"
-              size="sm"
+              size="S"
               onPress={() => reopen(openPageRef.current)}
             >
               {t("canvas.reload")}

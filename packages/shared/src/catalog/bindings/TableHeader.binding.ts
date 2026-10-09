@@ -28,7 +28,7 @@ export const tableHeaderBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
     },
     toRacProps: "default",

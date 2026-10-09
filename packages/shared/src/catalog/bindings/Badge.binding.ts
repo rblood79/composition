@@ -13,7 +13,7 @@
  *
  * **propPassthrough (2026-07-14, Icon 전수 감사 동행)**: `Badge.tsx` 은 `{...props}` **뒤에**
  * 자기 `data-variant` / `data-size` / `data-fill-style` 를 다시 쓴다. passthrough 가 없으면 React
- * prop 이 `undefined` → default(`variant:"accent"` / `size:"sm"` / `fillStyle:undefined`) 가
+ * prop 이 `undefined` → default(`variant:"accent"` / `size:"S"` / `fillStyle:undefined`) 가
  * **toRacProps 가 넣어준 data-* 를 덮어써** CSS 가 영원히 default 매칭이다(fillStyle 은 아예 속성
  * 소실). StatusLight 선례와 동일 root-cause — internal leaf 의 semantic prop 을 data-attr 라우팅이
  * 차단하는 구조.
@@ -39,7 +39,7 @@ export const badgeBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "sm",
+        default: "S",
       },
       // visual-enum → data-fill-style (Badge fillStyle: bold/subtle/outline)
       fillStyle: {

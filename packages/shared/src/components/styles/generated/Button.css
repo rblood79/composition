@@ -136,7 +136,7 @@
   aspect-ratio: 1;
 }
 
-.react-aria-Button[data-size="xs"] {
+.react-aria-Button[data-size="XS"] {
   height: auto;
   padding: 1px 4px;
   font-size: var(--text-2xs);
@@ -150,7 +150,7 @@
   --icon-gap: 4px;
 }
 
-.react-aria-Button[data-size="sm"] {
+.react-aria-Button[data-size="S"] {
   height: auto;
   padding: 2px 8px;
   font-size: var(--text-xs);
@@ -164,7 +164,7 @@
   --icon-gap: 6px;
 }
 
-.react-aria-Button[data-size="md"] {
+.react-aria-Button[data-size="M"] {
   height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
@@ -178,7 +178,7 @@
   --icon-gap: 8px;
 }
 
-.react-aria-Button[data-size="lg"] {
+.react-aria-Button[data-size="L"] {
   height: auto;
   padding: 8px 16px;
   font-size: var(--text-base);
@@ -192,7 +192,7 @@
   --icon-gap: 10px;
 }
 
-.react-aria-Button[data-size="xl"] {
+.react-aria-Button[data-size="XL"] {
   height: auto;
   padding: 12px 24px;
   font-size: var(--text-lg);

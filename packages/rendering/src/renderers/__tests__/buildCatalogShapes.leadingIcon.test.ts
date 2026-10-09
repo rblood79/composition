@@ -51,7 +51,7 @@ const visualNoLeadingIcon: ComponentVisualRule = {
   leadingIcon: undefined,
 };
 
-// DisclosureHeader rule sizes.md 미러 (componentRulesTable.DisclosureHeader.sizes.md).
+// DisclosureHeader rule sizes.M 미러 (componentRulesTable.DisclosureHeader.sizes.M).
 //   iconSize 18 = DOM chevron 실측 정본 (2026-07-02): trigger Button 기본 --icon-size 18px
 //   (Button.css:40)이 Disclosure size 반응 값을 덮음 → 전 size 18 고정. 구 15 → 18.
 const sizeMd: SizeSpec = {

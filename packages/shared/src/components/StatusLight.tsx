@@ -28,7 +28,7 @@ export interface StatusLightProps {
   /** 상태 색 variant (rule table 의 20 variant) */
   variant?: string;
   /** 크기 */
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "S" | "M" | "L" | "XL";
   /** 라벨 텍스트 */
   children?: React.ReactNode;
   /** disabled dim — generated CSS class 미부여 outlier 라 인라인 적용 (Avatar 동형, catalog 0.38) */
@@ -45,8 +45,8 @@ export interface StatusLightProps {
 }
 
 // size → dot/font px (StatusLight.spec.ts sizes 와 정합 — rule sizes 에 dotSize 미보유).
-const DOT_SIZE: Record<string, number> = { sm: 8, md: 10, lg: 12, xl: 14 };
-const FONT_SIZE: Record<string, number> = { sm: 12, md: 14, lg: 16, xl: 18 };
+const DOT_SIZE: Record<string, number> = { S: 8, M: 10, L: 12, XL: 14 };
+const FONT_SIZE: Record<string, number> = { S: 12, M: 14, L: 16, XL: 18 };
 
 /**
  * StatusLight — 상태 dot + 라벨.
@@ -57,14 +57,14 @@ const FONT_SIZE: Record<string, number> = { sm: 12, md: 14, lg: 16, xl: 18 };
  */
 export function StatusLight({
   variant = "neutral",
-  size = "md",
+  size = "M",
   children,
   isDisabled,
   style,
   className,
   ...rest
 }: StatusLightProps): React.ReactElement {
-  const sizeKey = String(size).toLowerCase();
+  const sizeKey = String(size).toUpperCase();
   const fontSize = FONT_SIZE[sizeKey] ?? 14;
 
   // dot 색 = rule fill base (20 variant) → CSS. Skia escape 와 같은 source.

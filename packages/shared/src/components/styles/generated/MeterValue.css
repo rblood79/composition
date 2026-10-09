@@ -84,28 +84,28 @@
   }
 }
 
-.react-aria-MeterValue[data-size="sm"] {
+.react-aria-MeterValue[data-size="S"] {
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
   line-height: 16px;
 }
 
-.react-aria-MeterValue[data-size="md"] {
+.react-aria-MeterValue[data-size="M"] {
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
   line-height: 20px;
 }
 
-.react-aria-MeterValue[data-size="lg"] {
+.react-aria-MeterValue[data-size="L"] {
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
   line-height: 24px;
 }
 
-.react-aria-MeterValue[data-size="xl"] {
+.react-aria-MeterValue[data-size="XL"] {
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);

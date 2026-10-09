@@ -133,7 +133,7 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
 
   it("a parent prop reaches its sub-parts at read time (no child writes)", async () => {
     const { workspace, field, patch } = await open();
-    expect(field(on("field"), "size").currentValue).toBe("md");
+    expect(field(on("field"), "size").currentValue).toBe("M");
     const root = () =>
       workspace.root.domInputs.get(
         workspace.root.recordsOfSource(id("field"))[0],
@@ -141,7 +141,7 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
     const labelSize = () =>
       workspace.root.domInputs.get(root().children[0])!.visual.fontSize;
     const before = labelSize();
-    const { result } = workspace.execute(patch([on("field")], { size: "lg" })!);
+    const { result } = workspace.execute(patch([on("field")], { size: "L" })!);
     // Only the instance changed; its Label shows the larger size.
     expect([...result.changedIds]).toEqual([id("field")]);
     expect(labelSize()).not.toBe(before);

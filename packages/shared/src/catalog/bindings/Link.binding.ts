@@ -63,7 +63,7 @@ export const linkBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       staticColor: {
         kind: "enum",

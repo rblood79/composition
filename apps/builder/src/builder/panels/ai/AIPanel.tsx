@@ -246,7 +246,7 @@ function ChatContainer({
               <Button
                 className="ai-suggestion"
                 variant="secondary"
-                size="sm"
+                size="S"
                 onPress={onOpenAdvanced}
               >
                 <Sparkles size={iconProps.size} aria-hidden="true" />
@@ -295,7 +295,7 @@ function ChatContainer({
                         key={suggestion.request}
                         className="ai-suggestion"
                         variant="secondary"
-                        size="sm"
+                        size="S"
                         onPress={() =>
                           suggestion.execution
                             ? onSendMessage(

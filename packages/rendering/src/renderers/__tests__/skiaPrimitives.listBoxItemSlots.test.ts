@@ -16,7 +16,7 @@ import type { Shape, SizeSpec } from "../../types";
  * 스택 순서**를 소비한다. `_slots` 부재 = legacy 문서 → 기존 flat-props 동작(BC).
  */
 
-// ListBoxItem rule.sizes.md 근사 미러 (escape 는 숫자 fallback 보유).
+// ListBoxItem rule.sizes.M 근사 미러 (escape 는 숫자 fallback 보유).
 const sizeMd: SizeSpec = {
   height: 0,
   paddingX: 12,

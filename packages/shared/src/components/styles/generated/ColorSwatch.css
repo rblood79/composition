@@ -56,21 +56,21 @@
   }
 }
 
-.react-aria-ColorSwatch[data-size="sm"] {
+.react-aria-ColorSwatch[data-size="S"] {
   height: 20px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
-.react-aria-ColorSwatch[data-size="md"] {
+.react-aria-ColorSwatch[data-size="M"] {
   height: 28px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
-.react-aria-ColorSwatch[data-size="lg"] {
+.react-aria-ColorSwatch[data-size="L"] {
   height: 36px;
   padding: 0px 0px;
   font-size: var(--text-base);

@@ -224,7 +224,7 @@ describe("useTransformAuxiliary — Transform Spec default inference", () => {
       {
         id: "avatar-1",
         type: "Avatar",
-        props: { size: "md" },
+        props: { size: "M" },
       } as Element,
     ]);
 

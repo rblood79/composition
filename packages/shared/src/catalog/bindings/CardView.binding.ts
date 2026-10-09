@@ -49,7 +49,7 @@ export const cardViewBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       density: {
         kind: "enum",

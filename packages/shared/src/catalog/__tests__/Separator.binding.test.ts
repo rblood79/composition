@@ -9,7 +9,7 @@ describe("Separator binding → toRacProps", () => {
       {
         id: "sep1",
         type: "Separator",
-        props: { orientation: "vertical", variant: "accent", size: "lg" },
+        props: { orientation: "vertical", variant: "accent", size: "L" },
       },
       separatorBinding,
     );
@@ -17,7 +17,7 @@ describe("Separator binding → toRacProps", () => {
       // orientation 은 RAC props (RAC 가 aria-orientation 자동 매핑, D1)
       orientation: "vertical",
       "data-variant": "accent",
-      "data-size": "lg",
+      "data-size": "L",
     });
   });
 
@@ -29,7 +29,7 @@ describe("Separator binding → toRacProps", () => {
     expect(result).toEqual({
       orientation: "horizontal",
       "data-variant": "default",
-      "data-size": "md",
+      "data-size": "M",
     });
   });
 

@@ -20,7 +20,7 @@ function makeSpec(
     archetype: "container",
     element: "div",
 
-    defaultSize: "md",
+    defaultSize: "M",
 
     sizes: {
       md: {},

@@ -59,7 +59,7 @@
   }
 }
 
-.react-aria-Checkbox[data-size="sm"] {
+.react-aria-Checkbox[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -67,7 +67,7 @@
   gap: 6px;
 }
 
-.react-aria-Checkbox[data-size="md"] {
+.react-aria-Checkbox[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -75,7 +75,7 @@
   gap: 8px;
 }
 
-.react-aria-Checkbox[data-size="lg"] {
+.react-aria-Checkbox[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
@@ -83,7 +83,7 @@
   gap: 10px;
 }
 
-.react-aria-Checkbox[data-size="xl"] {
+.react-aria-Checkbox[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xl);
@@ -104,19 +104,19 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Checkbox[data-size="sm"] {
+.react-aria-Checkbox[data-size="S"] {
   --cb-button-gap: 6px;
 }
 
-.react-aria-Checkbox[data-size="md"] {
+.react-aria-Checkbox[data-size="M"] {
   --cb-button-gap: 8px;
 }
 
-.react-aria-Checkbox[data-size="lg"] {
+.react-aria-Checkbox[data-size="L"] {
   --cb-button-gap: 10px;
 }
 
-.react-aria-Checkbox[data-size="xl"] {
+.react-aria-Checkbox[data-size="XL"] {
   --cb-button-gap: 12px;
 }
 

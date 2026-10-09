@@ -233,7 +233,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "label": "Button",
       "icon": "star",
       "variant": "primary",
-      "size": "md",
+      "size": "M",
       "staticColor": "auto",
       "isDisabled": false
     },
@@ -329,7 +329,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "title": "Card Title",
       "description": "Card description text goes here.",
       "variant": "primary",
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "stateRules": {},
@@ -690,7 +690,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "selectionMode": "string"
     },
     "defaults": {
-      "size": "md",
+      "size": "M",
       "selectionMode": "none"
     },
     "visual": {},
@@ -1259,7 +1259,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "containerPadding": "number"
     },
     "defaults": {
-      "size": "md",
+      "size": "M",
       "placement": "bottom",
       "offset": 8,
       "crossOffset": 0,
@@ -1285,7 +1285,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     },
     "defaults": {
       "variant": "neutral",
-      "size": "md",
+      "size": "M",
       "placement": "top",
       "offset": 0,
       "crossOffset": 0,
@@ -2225,7 +2225,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "iconName": "chevron-right",
-      "size": "xs"
+      "size": "XS"
     },
     "showWhen": {
       "all": [
@@ -2288,7 +2288,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Action 1",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -2298,7 +2298,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Action 2",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -2320,7 +2320,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Action 3",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -2382,7 +2382,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "primary",
-      "size": "md",
+      "size": "M",
       "staticColor": "auto",
       "isDisabled": false
     },
@@ -2395,7 +2395,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "icon",
       "iconName": "{icon}",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "fontSize": 18,
@@ -2409,7 +2409,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "slot": "label",
       "children": "{label}",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "fontSize": 14,
@@ -2489,7 +2489,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-illustratedmessage__description"
     ],
     "props": {
-      "size": "md",
+      "size": "M",
       "orientation": "vertical"
     },
     "visual": {}
@@ -2533,7 +2533,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "primary",
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -2581,7 +2581,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{title}",
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -2613,7 +2613,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{description}",
-      "size": "lg"
+      "size": "L"
     },
     "visual": {
       "width": "100%",
@@ -2639,7 +2639,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "variant": "accent",
-      "size": "sm",
+      "size": "S",
       "fillStyle": "bold",
       "children": "Badge",
       "isDot": false,
@@ -2659,7 +2659,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Progress",
       "value": 50,
       "showValueLabel": true,
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -2683,7 +2683,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{valueText}",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "fit-content"
@@ -2703,7 +2703,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-progressbar__3_1"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "100%"
@@ -2720,7 +2720,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-ProgressBarFill",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "{percentage}%"
@@ -2734,7 +2734,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "src": "",
       "alt": "Avatar",
       "initials": "A",
-      "size": "md",
+      "size": "M",
       "isDisabled": false
     },
     "visual": {}
@@ -2753,7 +2753,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-avatargroup__label"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -2806,7 +2806,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "variant": "positive",
       "children": "Available",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "gap": 8
@@ -2823,7 +2823,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "value": 75,
-      "size": "md",
+      "size": "M",
       "isIndeterminate": false
     },
     "visual": {}
@@ -2957,7 +2957,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "variant": "primary",
-      "size": "md",
+      "size": "M",
       "staticColor": "auto",
       "children": "Link",
       "href": "#",
@@ -3075,7 +3075,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "←",
       "variant": "secondary",
       "fillStyle": "outline",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3086,7 +3086,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "1",
       "variant": "accent",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3098,7 +3098,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "2",
       "variant": "secondary",
       "fillStyle": "outline",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3110,7 +3110,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "3",
       "variant": "secondary",
       "fillStyle": "outline",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3122,7 +3122,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "children": "→",
       "variant": "secondary",
       "fillStyle": "outline",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3220,7 +3220,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "iconName": "chevron-right",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {}
   },
@@ -3275,7 +3275,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "layout": "grid",
-      "size": "md",
+      "size": "M",
       "density": "regular"
     },
     "visual": {
@@ -3320,7 +3320,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "variant": "primary",
-      "size": "md",
+      "size": "M",
       "fillStyle": "fill",
       "staticColor": "auto",
       "type": "button",
@@ -3367,7 +3367,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-ToggleButton",
     "children": [],
     "props": {
-      "size": "md",
+      "size": "M",
       "staticColor": "auto",
       "children": "Toggle Button",
       "isEmphasized": false,
@@ -3430,7 +3430,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-togglebuttongroup__2"
     ],
     "props": {
-      "size": "md",
+      "size": "M",
       "orientation": "horizontal",
       "selectionMode": "single"
     },
@@ -3466,7 +3466,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-buttongroup__2"
     ],
     "props": {
-      "size": "md",
+      "size": "M",
       "orientation": "horizontal",
       "align": "end"
     },
@@ -3679,7 +3679,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "placeholder": "Enter text...",
       "value": "",
       "type": "text",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "isRequired": false,
       "isDisabled": false,
@@ -5064,7 +5064,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "minValue": 0,
       "maxValue": 100,
       "step": 1,
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "isDisabled": false,
       "showValueLabel": true
@@ -5088,7 +5088,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SliderOutput",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "fit-content"
@@ -5102,7 +5102,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-slider__3_1"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "100%"
@@ -5113,7 +5113,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SliderThumb",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -5122,7 +5122,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SliderFill",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -5141,7 +5141,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "maxValue": 100,
       "showValueLabel": true,
       "variant": "informative",
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -5165,7 +5165,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "{valueText}",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "fit-content"
@@ -5185,7 +5185,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-meter__3_1"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "100%"
@@ -5202,7 +5202,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-MeterFill",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "{percentage}%"
@@ -5262,7 +5262,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "label": "Drop files here",
       "description": "or use the button below to select files",
-      "size": "md"
+      "size": "M"
     },
     "visual": {
       "width": "100%",
@@ -5279,7 +5279,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "children": "Select files",
       "variant": "default",
-      "size": "md",
+      "size": "M",
       "allowsMultiple": true
     },
     "visual": {
@@ -5318,7 +5318,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "selectionMode": "none",
       "variant": "default",
-      "size": "sm",
+      "size": "S",
       "height": 400
     },
     "visual": {}
@@ -5606,7 +5606,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "legendPosition": "bottom",
       "color": "series",
       "variant": "default",
-      "size": "md",
+      "size": "M",
       "isAnimationActive": true,
       "animationBegin": 0,
       "animationDuration": 600,
@@ -5625,7 +5625,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "default",
-      "size": "md",
+      "size": "M",
       "maxVisibleMonths": 1,
       "isDisabled": false,
       "isReadOnly": false,
@@ -5639,7 +5639,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -5657,7 +5657,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "defaultToday": true,
       "variant": "default",
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -5673,7 +5673,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Date Picker",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "maxVisibleMonths": 1,
       "hideTimeZone": true,
@@ -5771,7 +5771,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Date Range",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "maxVisibleMonths": 1,
       "hideTimeZone": true,
@@ -5902,7 +5902,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Date Field",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "hideTimeZone": true,
       "shouldForceLeadingZeros": true,
@@ -5959,7 +5959,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Time",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "granularity": "minute",
       "hideTimeZone": true,
@@ -6015,7 +6015,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "default",
-      "size": "md",
+      "size": "M",
       "isDisabled": false,
       "isReadOnly": false,
       "locale": "{locale}",
@@ -6028,7 +6028,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -6039,7 +6039,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "defaultToday": true,
       "variant": "default",
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -6082,7 +6082,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-dialog__2_3"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -6092,7 +6092,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Dialog Title",
-      "size": "lg",
+      "size": "L",
       "slot": "title"
     },
     "visual": {},
@@ -6121,7 +6121,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Dialog content goes here.",
-      "size": "lg"
+      "size": "L"
     },
     "visual": {},
     "layout": {
@@ -6221,7 +6221,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Popover Title",
-      "size": "sm"
+      "size": "S"
     },
     "visual": {},
     "layout": {
@@ -6234,7 +6234,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Popover content goes here.",
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -6291,7 +6291,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Tooltip text",
-      "size": "md"
+      "size": "M"
     },
     "visual": {},
     "layout": {
@@ -6926,7 +6926,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "label": "Tag Group",
-      "size": "md",
+      "size": "M",
       "labelPosition": "top",
       "maxRows": 2,
       "allowsRemoving": false,
@@ -6980,7 +6980,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-taggroup__2__tag-4"
     ],
     "props": {
-      "size": "md"
+      "size": "M"
     },
     "visual": {}
   },
@@ -7140,7 +7140,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "slot": "chevron",
-      "size": "sm",
+      "size": "S",
       "children": ""
     },
     "visual": {}
@@ -7151,7 +7151,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "iconName": "chevron-right",
-      "size": "xs"
+      "size": "XS"
     },
     "visual": {}
   },

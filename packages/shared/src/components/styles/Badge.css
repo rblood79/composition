@@ -16,19 +16,19 @@
   .react-aria-Badge[data-badge][data-dot] {
     padding: 0;
 
-    &[data-size="sm"] {
+    &[data-size="S"] {
       width: 8px;
       height: 8px;
       min-width: 8px;
     }
 
-    &[data-size="md"] {
+    &[data-size="M"] {
       width: 10px;
       height: 10px;
       min-width: 10px;
     }
 
-    &[data-size="lg"] {
+    &[data-size="L"] {
       width: 12px;
       height: 12px;
       min-width: 12px;

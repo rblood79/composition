@@ -26,7 +26,7 @@ export interface ProgressBarProps extends AriaProgressBarProps {
   variant?: string;
   /**
    * Size of the progress bar
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -75,7 +75,7 @@ export interface ProgressBarProps extends AriaProgressBarProps {
 export function ProgressBar({
   label,
   variant = "default",
-  size = "md",
+  size = "M",
   locale = "ko-KR",
   formatOptions,
   showValueLabel = true,

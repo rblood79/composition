@@ -24,7 +24,7 @@
   line-height: 20px;
 }
 
-.react-aria-SliderOutput[data-size="sm"] {
+.react-aria-SliderOutput[data-size="S"] {
   height: 16px;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -32,7 +32,7 @@
   line-height: 16px;
 }
 
-.react-aria-SliderOutput[data-size="md"] {
+.react-aria-SliderOutput[data-size="M"] {
   height: 20px;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -40,7 +40,7 @@
   line-height: 20px;
 }
 
-.react-aria-SliderOutput[data-size="lg"] {
+.react-aria-SliderOutput[data-size="L"] {
   height: 24px;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -48,7 +48,7 @@
   line-height: 24px;
 }
 
-.react-aria-SliderOutput[data-size="xl"] {
+.react-aria-SliderOutput[data-size="XL"] {
   height: 28px;
   padding: 0px 0px;
   font-size: var(--text-lg);

@@ -23,25 +23,25 @@
   gap: 16px;
 }
 
-.react-aria-Form[data-size="sm"] {
+.react-aria-Form[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 12px;
 }
 
-.react-aria-Form[data-size="md"] {
+.react-aria-Form[data-size="M"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   gap: 16px;
 }
 
-.react-aria-Form[data-size="lg"] {
+.react-aria-Form[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   gap: 20px;
 }
 
-.react-aria-Form[data-size="xl"] {
+.react-aria-Form[data-size="XL"] {
   font-size: var(--text-xl);
   border-radius: var(--radius-2xl);
   gap: 24px;

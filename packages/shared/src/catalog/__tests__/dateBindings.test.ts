@@ -78,12 +78,12 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
       {
         id: "cal1",
         type: "Calendar",
-        props: { variant: "accent", size: "lg" },
+        props: { variant: "accent", size: "L" },
       },
       getPrimitiveBinding("Calendar")!,
     );
     expect(result["data-variant"]).toBe("accent");
-    expect(result["data-size"]).toBe("lg");
+    expect(result["data-size"]).toBe("L");
   });
 
   it("toRacProps: DatePicker label 통과 + size default (showCalendarIcon 은 Button 노드 — 2026-10-09 삭제)", () => {
@@ -97,7 +97,7 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     );
     expect(result.label).toBe("Birthday");
     expect(result).not.toHaveProperty("showCalendarIcon");
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   // 회귀 방지 (2026-07-14, 사용자 적발): DatePicker size 를 바꿔도 **CSS(Preview) 가 미반영**.
@@ -105,8 +105,8 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
   //   DatePicker/DateRangePicker 는 source=internal — composition wrapper(DatePicker.tsx)가
   //   **size 를 React prop 으로 직접 소비**하고(하위 Label/DateInput/Button 크기 결정)
   //   `{...props}` **뒤에** 자기 `data-size={size}` 를 다시 쓴다. 따라서 passthrough 가 없으면
-  //   (1) wrapper 의 size 가 undefined → default "md" 고정, (2) 그 "md" 가 toRacProps 의
-  //   `data-size="lg"` 까지 **덮어써** CSS selector 가 영원히 md 로 매칭된다.
+  //   (1) wrapper 의 size 가 undefined → default "M" 고정, (2) 그 "M" 가 toRacProps 의
+  //   `data-size="L"` 까지 **덮어써** CSS selector 가 영원히 md 로 매칭된다.
   //   ProgressCircle/Avatar/StatusLight 선례 동형.
   describe("size passthrough — wrapper 가 size 를 React prop 으로 소비하는 internal 컴포넌트", () => {
     const PASSTHROUGH_TYPES = ["DatePicker", "DateRangePicker"] as const;
@@ -123,13 +123,13 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
       "%s toRacProps: size 가 React prop + data-size 둘 다 emit",
       (type) => {
         const result = toRacProps(
-          { id: "n1", type, props: { size: "xl" } },
+          { id: "n1", type, props: { size: "XL" } },
           getPrimitiveBinding(type)!,
         );
-        // React prop — wrapper 가 이걸 못 받으면 default("md") 로 고정된다
-        expect(result.size).toBe("xl");
-        // data-* — CSS selector(.react-aria-DatePicker[data-size="xl"]) 매칭용
-        expect(result["data-size"]).toBe("xl");
+        // React prop — wrapper 가 이걸 못 받으면 default("M") 로 고정된다
+        expect(result.size).toBe("XL");
+        // data-* — CSS selector(.react-aria-DatePicker[data-size="XL"]) 매칭용
+        expect(result["data-size"]).toBe("XL");
       },
     );
   });

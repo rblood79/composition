@@ -12,7 +12,7 @@ const ORIGINS: Record<string, LegacyNodeFixture> = {
     name: "ToggleButton",
     reusable: true,
     props: {
-      size: "md",
+      size: "M",
       staticColor: "auto",
       children: "Toggle Button",
       isEmphasized: false,
@@ -61,7 +61,7 @@ const ORIGINS: Record<string, LegacyNodeFixture> = {
     reusable: true,
     props: {
       variant: "primary",
-      size: "md",
+      size: "M",
       fillStyle: "fill",
       staticColor: "auto",
       type: "button",
@@ -83,7 +83,7 @@ const ORIGINS: Record<string, LegacyNodeFixture> = {
     reusable: true,
     props: {
       variant: "primary",
-      size: "md",
+      size: "M",
       staticColor: "auto",
       children: "Link",
       href: "#",

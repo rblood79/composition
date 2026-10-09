@@ -68,9 +68,9 @@ const checkboxVisual = (
 describe("skiaPrimitive 'checkbox' — Checkbox indicator (rule 미러 절대값)", () => {
   // 구 Checkbox.spec.sizes: sm(16/4) md(20/4) lg(24/6)
   const sizes = {
-    sm: checkboxSize(16, 4),
-    md: checkboxSize(20, 4),
-    lg: checkboxSize(24, 6),
+    S: checkboxSize(16, 4),
+    M: checkboxSize(20, 4),
+    L: checkboxSize(24, 6),
   } as const;
 
   for (const [name, size] of Object.entries(sizes)) {
@@ -127,7 +127,7 @@ describe("skiaPrimitive 'checkbox' — Checkbox indicator (rule 미러 절대값
         isIndeterminate: true,
         _hasChildren: true,
       },
-      size: sizes.md,
+      size: sizes.M,
       visual: checkboxVisual("default"),
       style: undefined,
     });
@@ -205,10 +205,10 @@ const RADIO_VISUALS: Record<string, ComponentVisualRule> = {
 describe("skiaPrimitive 'radio' — Radio indicator (rule 미러 절대값)", () => {
   // Radio rule sizes: sm(16/6) md(20/8) lg(24/10) xl(30/14) — dotSize = boxSize − 2 × 선택 테두리 (5/6/7/8)
   const sizes = {
-    sm: radioSize(16, 6),
-    md: radioSize(20, 8),
-    lg: radioSize(24, 10),
-    xl: radioSize(30, 14),
+    S: radioSize(16, 6),
+    M: radioSize(20, 8),
+    L: radioSize(24, 10),
+    XL: radioSize(30, 14),
   } as const;
   const variants = ["default", "accent", "neutral", "negative"] as const;
 
@@ -299,9 +299,9 @@ const switchVisual = (variant: "default" | "emphasized"): ComponentVisualRule =>
 describe("skiaPrimitive 'switch_toggle' — Switch indicator (rule 미러 절대값)", () => {
   // 구 Switch.spec.sizes: sm(32/18/14) md(36/20/16) lg(44/24/20)
   const sizes = {
-    sm: switchSize(32, 18, 14),
-    md: switchSize(36, 20, 16),
-    lg: switchSize(44, 24, 20),
+    S: switchSize(32, 18, 14),
+    M: switchSize(36, 20, 16),
+    L: switchSize(44, 24, 20),
   } as const;
 
   for (const [name, size] of Object.entries(sizes)) {

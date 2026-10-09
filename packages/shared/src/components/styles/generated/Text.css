@@ -42,7 +42,7 @@
   }
 }
 
-.react-aria-Text[data-size="xs"] {
+.react-aria-Text[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -50,7 +50,7 @@
   line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Text[data-size="sm"] {
+.react-aria-Text[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -58,7 +58,7 @@
   line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Text[data-size="md"] {
+.react-aria-Text[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -66,7 +66,7 @@
   line-height: var(--text-base--line-height);
 }
 
-.react-aria-Text[data-size="lg"] {
+.react-aria-Text[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
@@ -74,7 +74,7 @@
   line-height: var(--text-lg--line-height);
 }
 
-.react-aria-Text[data-size="xl"] {
+.react-aria-Text[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xl);
@@ -82,7 +82,7 @@
   line-height: var(--text-xl--line-height);
 }
 
-.react-aria-Text[data-size="2xl"] {
+.react-aria-Text[data-size="XXL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-2xl);
@@ -90,7 +90,7 @@
   line-height: var(--text-2xl--line-height);
 }
 
-.react-aria-Text[data-size="3xl"] {
+.react-aria-Text[data-size="XXXL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-3xl);

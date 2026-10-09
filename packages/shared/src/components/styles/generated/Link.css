@@ -73,7 +73,7 @@
   aspect-ratio: 1;
 }
 
-.react-aria-Link[data-size="xs"] {
+.react-aria-Link[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-2xs);
@@ -82,7 +82,7 @@
   font-weight: 400;
 }
 
-.react-aria-Link[data-size="sm"] {
+.react-aria-Link[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -91,7 +91,7 @@
   font-weight: 400;
 }
 
-.react-aria-Link[data-size="md"] {
+.react-aria-Link[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -100,7 +100,7 @@
   font-weight: 400;
 }
 
-.react-aria-Link[data-size="lg"] {
+.react-aria-Link[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -109,7 +109,7 @@
   font-weight: 400;
 }
 
-.react-aria-Link[data-size="xl"] {
+.react-aria-Link[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);

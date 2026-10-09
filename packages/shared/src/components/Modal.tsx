@@ -11,7 +11,7 @@ import type { ComponentSize } from "../types";
 export interface ModalProps extends ModalOverlayProps {
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -54,7 +54,7 @@ export interface ModalProps extends ModalOverlayProps {
  * - ARIA attributes: Proper role and aria-modal
  *
  * @example
- * <Modal variant="primary" size="md" trapFocus autoFocus restoreFocus>
+ * <Modal variant="primary" size="M" trapFocus autoFocus restoreFocus>
  *   <Dialog>
  *     <Heading>Modal Title</Heading>
  *     <p>Modal content</p>
@@ -63,7 +63,7 @@ export interface ModalProps extends ModalOverlayProps {
  * </Modal>
  */
 export function Modal({
-  size = "md",
+  size = "M",
   trapFocus = true,
   autoFocus = true,
   restoreFocus = true,

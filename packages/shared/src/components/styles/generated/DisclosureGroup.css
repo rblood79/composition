@@ -22,19 +22,19 @@
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup[data-size="sm"] {
+.react-aria-DisclosureGroup[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup[data-size="md"] {
+.react-aria-DisclosureGroup[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   border-width: var(--border-width-none);
 }
 
-.react-aria-DisclosureGroup[data-size="lg"] {
+.react-aria-DisclosureGroup[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   border-width: var(--border-width-none);

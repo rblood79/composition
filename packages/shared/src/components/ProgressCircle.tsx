@@ -41,7 +41,7 @@ export interface ProgressCircleProps {
   /** 최대값 (기본 100) */
   maxValue?: number;
   /** 크기 */
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   /** 불결정 모드 (75% 정적 호 + CSS 회전 애니메이션) */
   isIndeterminate?: boolean;
   /** 비활성 */
@@ -74,9 +74,9 @@ export interface ProgressCircleProps {
 
 // size → 지름 px (rule sizes.height 정합). strokeWidth 는 별도(아래 STROKE_WIDTH 참조).
 const DIAMETER: Record<string, number> = {
-  sm: 24,
-  md: 32,
-  lg: 64,
+  S: 24,
+  M: 32,
+  L: 64,
 };
 // strokeWidth 3 uniform — rule(ComponentRuleSize)에 strokeWidth 필드 없음 → Skia value_fill_arc 가
 // 기본값 3 으로 해소. DOM 도 같은 base(3)로 대칭(spec lg=4 는 rule 미이전 잔재, 3 uniform 이 정본).
@@ -93,7 +93,7 @@ export function ProgressCircle({
   value = 0,
   minValue = 0,
   maxValue = 100,
-  size = "md",
+  size = "M",
   isIndeterminate,
   isDisabled,
   staticColor,
@@ -101,8 +101,8 @@ export function ProgressCircle({
   className,
   ...rest
 }: ProgressCircleProps): React.ReactElement {
-  const sizeKey = String(size).toLowerCase();
-  const diameter = DIAMETER[sizeKey] ?? DIAMETER.md;
+  const sizeKey = String(size).toUpperCase();
+  const diameter = DIAMETER[sizeKey] ?? DIAMETER.M;
   const strokeWidth = STROKE_WIDTH;
 
   const radius = (diameter - strokeWidth) / 2;

@@ -280,7 +280,7 @@ describe("ADR-210 P3 · T10 — columns + 시리즈 설정 + 통화의 DOM/scene
           _containerWidth: size.width,
           _containerHeight: size.height,
         },
-        size: rule.sizes.md as SizeSpec,
+        size: rule.sizes.M as SizeSpec,
         visual: undefined,
         paint: {
           backgroundColor: "{color.layer-1}",
@@ -309,7 +309,7 @@ describe("ADR-210 P3 · T10 — columns + 시리즈 설정 + 통화의 DOM/scene
       host = document.createElement("div");
       document.body.append(host);
       root = createRoot(host);
-      root.render(<Chart {...props} data={wide} size="md" style={size} />);
+      root.render(<Chart {...props} data={wide} size="M" style={size} />);
       await vi.waitFor(() =>
         expect(
           host.querySelectorAll(".recharts-bar-rectangle path").length,
@@ -373,7 +373,7 @@ describe("ADR-210 P3 · T11 — UI 언어 ≠ 값 locale · 키보드 tooltip ·
         <Chart
           {...props}
           data={rows}
-          size="md"
+          size="M"
           style={{ width: 480, height: 300 }}
         />,
       );
@@ -454,7 +454,7 @@ describe("ADR-210 P3 · T11 — UI 언어 ≠ 값 locale · 키보드 tooltip ·
       <Chart
         {...props}
         data={rows}
-        size="md"
+        size="M"
         style={{ width: 320, height: 240 }}
       />,
     );

@@ -45,7 +45,7 @@ function mount(extra: Partial<ChartProps> = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("bar")}
-      size="md"
+      size="M"
       data={rows}
       dimension="category"
       metric="value"

@@ -12,7 +12,7 @@ const spec: ComponentSpec<{ variant?: string }> = {
   archetype: "text",
   element: "div",
   defaultVariant: "default",
-  defaultSize: "md",
+  defaultSize: "M",
   variants: {
     default: {
       fill: { default: { base: "{color.layer-1}" as TokenRef } },

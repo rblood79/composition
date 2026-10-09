@@ -17,7 +17,7 @@ import type { Shape, SizeSpec } from "../../types";
  * borderWidth 사용자 편집 우선 보존.
  */
 
-// GridListItem rule.sizes.md 미러.
+// GridListItem rule.sizes.M 미러.
 const sizeMd: SizeSpec = {
   height: 0,
   paddingX: 16,

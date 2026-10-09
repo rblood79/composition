@@ -536,7 +536,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
     async (type, calendarType) => {
       const { workspace, field } = await open(type, {
         label: "Field",
-        size: "lg",
+        size: "L",
         isDisabled: true,
       });
       workspace.execute(
@@ -580,7 +580,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       // RAC's calendar context (the picker's disabled state — the node does not override it to
       // false), the picker's size and visible months.
       expect(drawn!.hasAttribute("data-disabled")).toBe(true);
-      expect(drawn!.getAttribute("data-size")).toBe("lg");
+      expect(drawn!.getAttribute("data-size")).toBe("L");
       expect(drawn!.querySelectorAll("table")).toHaveLength(2);
       const record = [...workspace.root.canvasInputs.values()].find(
         (item) => item.sourceId === calendar,

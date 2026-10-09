@@ -34,7 +34,7 @@ export const listBoxBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // ADR-923 r24m1 — 기본값 "single" 은 어느 표면에도 없던 값이었다. RAC 기본은 "none",
       //   delegatedDom `listbox` 도 `props.selectionMode ?? "none"` 로 렌더한다 (delegating 렌더러라

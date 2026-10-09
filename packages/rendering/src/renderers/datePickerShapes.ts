@@ -14,29 +14,29 @@ import type { Shape, TokenRef } from "../types";
 import { fontFamily } from "../primitives/typography";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 
-/** DateInput 높이 metric (sm/md/lg). DateInputSpec.sizes[size].height 와 동일 값 (ADR-091 Phase 3에서 검증됨). */
+/** DateInput 높이 metric (S/M/L). DateInputSpec.sizes[size].height 와 동일 값 (ADR-091 Phase 3에서 검증됨). */
 export const DATE_PICKER_INPUT_HEIGHT: Record<string, number> = {
-  sm: 22,
-  md: 30,
-  lg: 42,
+  S: 22,
+  M: 30,
+  L: 42,
 };
 export const DATE_PICKER_INPUT_PADDING: Record<
   string,
   { top: number; right: number; left: number }
 > = {
-  sm: { top: 2, right: 2, left: 8 },
-  md: { top: 4, right: 4, left: 12 },
-  lg: { top: 8, right: 8, left: 16 },
+  S: { top: 2, right: 2, left: 8 },
+  M: { top: 4, right: 4, left: 12 },
+  L: { top: 8, right: 8, left: 16 },
 };
 export const DATE_PICKER_BORDER_RADIUS: Record<string, number> = {
-  sm: 6,
-  md: 8,
-  lg: 10,
+  S: 6,
+  M: 8,
+  L: 10,
 };
 export const DATE_PICKER_ICON_SIZE: Record<string, number> = {
-  sm: 14,
-  md: 16,
-  lg: 20,
+  S: 14,
+  M: 16,
+  L: 20,
 };
 
 /** locale 기반 날짜 placeholder */
@@ -110,14 +110,14 @@ export function buildDatePickerShapes(input: DatePickerShapesInput): Shape[] {
   const { props, sizeEntry, displayText, hasValue } = input;
   const defaultCW = input.defaultContainerWidth ?? 200;
 
-  const sizeName = (props.size as string) || "md";
+  const sizeName = (props.size as string) || "M";
   const inputHeight =
-    DATE_PICKER_INPUT_HEIGHT[sizeName] ?? DATE_PICKER_INPUT_HEIGHT.md;
+    DATE_PICKER_INPUT_HEIGHT[sizeName] ?? DATE_PICKER_INPUT_HEIGHT.M;
   const pad =
-    DATE_PICKER_INPUT_PADDING[sizeName] ?? DATE_PICKER_INPUT_PADDING.md;
+    DATE_PICKER_INPUT_PADDING[sizeName] ?? DATE_PICKER_INPUT_PADDING.M;
   const borderRadius =
-    DATE_PICKER_BORDER_RADIUS[sizeName] ?? DATE_PICKER_BORDER_RADIUS.md;
-  const iconSz = DATE_PICKER_ICON_SIZE[sizeName] ?? DATE_PICKER_ICON_SIZE.md;
+    DATE_PICKER_BORDER_RADIUS[sizeName] ?? DATE_PICKER_BORDER_RADIUS.M;
+  const iconSz = DATE_PICKER_ICON_SIZE[sizeName] ?? DATE_PICKER_ICON_SIZE.M;
   const gap = 4;
 
   const containerWidth =
@@ -194,7 +194,7 @@ export function buildDatePickerShapes(input: DatePickerShapesInput): Shape[] {
 
 /** DatePicker/DateRangePicker 공유 sizes (Skia size oracle — rule table 과 값 동일). */
 export const DATE_PICKER_SIZES = {
-  xs: {
+  XS: {
     height: 20,
     paddingX: 4,
     paddingY: 1,
@@ -203,7 +203,7 @@ export const DATE_PICKER_SIZES = {
     iconSize: 10,
     gap: 2,
   },
-  sm: {
+  S: {
     height: 22,
     paddingX: 8,
     paddingY: 2,
@@ -212,7 +212,7 @@ export const DATE_PICKER_SIZES = {
     iconSize: 14,
     gap: 4,
   },
-  md: {
+  M: {
     height: 30,
     paddingX: 12,
     paddingY: 4,
@@ -221,7 +221,7 @@ export const DATE_PICKER_SIZES = {
     iconSize: 16,
     gap: 4,
   },
-  lg: {
+  L: {
     height: 42,
     paddingX: 16,
     paddingY: 8,
@@ -230,7 +230,7 @@ export const DATE_PICKER_SIZES = {
     iconSize: 20,
     gap: 4,
   },
-  xl: {
+  XL: {
     height: 52,
     paddingX: 20,
     paddingY: 12,

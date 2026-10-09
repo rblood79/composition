@@ -42,7 +42,7 @@ export interface CheckboxGroupProps extends Omit<
   columnMapping?: ColumnMapping;
   /**
    * Size for child Checkbox buttons
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   necessityIndicator?: NecessityIndicator;
@@ -57,7 +57,7 @@ export function CheckboxGroup({
   orientation = "vertical",
   dataBinding,
   columnMapping,
-  size = "md",
+  size = "M",
   labelPosition = "top",
   ...props
 }: CheckboxGroupProps) {

@@ -35,7 +35,7 @@ export interface AvatarProps {
   /** 이니셜 텍스트 (src 없을 때 표시) */
   initials?: string;
   /** 크기 */
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "XS" | "S" | "M" | "L" | "XL";
   /** 비활성 */
   isDisabled?: boolean;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
@@ -51,19 +51,19 @@ export interface AvatarProps {
 
 // size → 지름 px (rule COMPONENT_RULES_TABLE.Avatar sizes height 와 정합).
 const DIAMETER: Record<string, number> = {
-  xs: 24,
-  sm: 28,
-  md: 32,
-  lg: 40,
-  xl: 48,
+  XS: 24,
+  S: 28,
+  M: 32,
+  L: 40,
+  XL: 48,
 };
 // size → 이니셜 fontSize px (rule Avatar sizes fontSize = typography text-2xs..text-lg).
 const FONT_SIZE: Record<string, number> = {
-  xs: 10,
-  sm: 12,
-  md: 14,
-  lg: 16,
-  xl: 18,
+  XS: 10,
+  S: 12,
+  M: 14,
+  L: 16,
+  XL: 18,
 };
 
 /**
@@ -77,13 +77,13 @@ export function Avatar({
   src,
   alt,
   initials,
-  size = "md",
+  size = "M",
   isDisabled,
   style,
   className,
   ...rest
 }: AvatarProps): React.ReactElement {
-  const sizeKey = String(size).toLowerCase();
+  const sizeKey = String(size).toUpperCase();
   const diameter = DIAMETER[sizeKey] ?? 32;
   const fontSize = FONT_SIZE[sizeKey] ?? 14;
 

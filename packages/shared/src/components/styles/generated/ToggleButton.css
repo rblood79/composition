@@ -79,7 +79,7 @@
   aspect-ratio: 1;
 }
 
-.react-aria-ToggleButton[data-size="xs"] {
+.react-aria-ToggleButton[data-size="XS"] {
   height: auto;
   padding: 1px 4px;
   font-size: var(--text-2xs);
@@ -91,7 +91,7 @@
   --icon-size: 14px;
 }
 
-.react-aria-ToggleButton[data-size="sm"] {
+.react-aria-ToggleButton[data-size="S"] {
   height: auto;
   padding: 2px 8px;
   font-size: var(--text-xs);
@@ -103,7 +103,7 @@
   --icon-size: 16px;
 }
 
-.react-aria-ToggleButton[data-size="md"] {
+.react-aria-ToggleButton[data-size="M"] {
   height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
@@ -115,7 +115,7 @@
   --icon-size: 18px;
 }
 
-.react-aria-ToggleButton[data-size="lg"] {
+.react-aria-ToggleButton[data-size="L"] {
   height: auto;
   padding: 8px 16px;
   font-size: var(--text-base);
@@ -127,7 +127,7 @@
   --icon-size: 24px;
 }
 
-.react-aria-ToggleButton[data-size="xl"] {
+.react-aria-ToggleButton[data-size="XL"] {
   height: auto;
   padding: 12px 24px;
   font-size: var(--text-lg);

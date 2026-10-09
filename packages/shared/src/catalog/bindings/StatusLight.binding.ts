@@ -43,7 +43,7 @@ export const statusLightBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // design-data 감사 §2-F (2026-08-21): D3 states.disabled 준비·binding 미노출 결손.
       //   DOM = StatusLight.tsx 인라인 dim (generated CSS class 미부여 outlier — Avatar 동형).

@@ -25,7 +25,7 @@ export interface ColorPickerProps extends Omit<
 > {
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   label?: string;
@@ -43,13 +43,13 @@ export interface ColorPickerProps extends Omit<
  * - Customizable color sliders and area
  *
  * @example
- * <ColorPicker size="md" />
+ * <ColorPicker size="M" />
  * <ColorPicker>
  *   <ColorArea colorSpace="rgb" xChannel="red" yChannel="green" />
  * </ColorPicker>
  */
 export function ColorPicker({
-  size = "md",
+  size = "M",
   children,
   className,
   ...props

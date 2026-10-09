@@ -25,35 +25,35 @@
   --icon-size: 18px;
 }
 
-.react-aria-NumberField[data-size="xs"] {
+.react-aria-NumberField[data-size="XS"] {
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   gap: 2px;
   --icon-size: 10px;
 }
 
-.react-aria-NumberField[data-size="sm"] {
+.react-aria-NumberField[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   gap: 4px;
   --icon-size: 14px;
 }
 
-.react-aria-NumberField[data-size="md"] {
+.react-aria-NumberField[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   gap: 6px;
   --icon-size: 18px;
 }
 
-.react-aria-NumberField[data-size="lg"] {
+.react-aria-NumberField[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   gap: 8px;
   --icon-size: 22px;
 }
 
-.react-aria-NumberField[data-size="xl"] {
+.react-aria-NumberField[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-xl);
   gap: 10px;
@@ -83,23 +83,23 @@
   min-width: 0;
 }
 
-.react-aria-NumberField[data-size="xs"] {
+.react-aria-NumberField[data-size="XS"] {
   --nf-btn-size: 20px;
 }
 
-.react-aria-NumberField[data-size="sm"] {
+.react-aria-NumberField[data-size="S"] {
   --nf-btn-size: 22px;
 }
 
-.react-aria-NumberField[data-size="md"] {
+.react-aria-NumberField[data-size="M"] {
   --nf-btn-size: 30px;
 }
 
-.react-aria-NumberField[data-size="lg"] {
+.react-aria-NumberField[data-size="L"] {
   --nf-btn-size: 42px;
 }
 
-.react-aria-NumberField[data-size="xl"] {
+.react-aria-NumberField[data-size="XL"] {
   --nf-btn-size: 54px;
 }
 
@@ -111,23 +111,23 @@
   margin-inline-start: -1px;
 }
 
-.react-aria-NumberField[data-size="xs"] {
+.react-aria-NumberField[data-size="XS"] {
   --nf-side-gap: 2px;
 }
 
-.react-aria-NumberField[data-size="sm"] {
+.react-aria-NumberField[data-size="S"] {
   --nf-side-gap: 4px;
 }
 
-.react-aria-NumberField[data-size="md"] {
+.react-aria-NumberField[data-size="M"] {
   --nf-side-gap: 6px;
 }
 
-.react-aria-NumberField[data-size="lg"] {
+.react-aria-NumberField[data-size="L"] {
   --nf-side-gap: 8px;
 }
 
-.react-aria-NumberField[data-size="xl"] {
+.react-aria-NumberField[data-size="XL"] {
   --nf-side-gap: 10px;
 }
 

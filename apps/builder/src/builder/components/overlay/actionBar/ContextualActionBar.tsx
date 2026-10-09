@@ -90,7 +90,7 @@ const ActionButton = memo(function ActionButton({
   const button = (
     <Button
       variant="ghost"
-      size="sm"
+      size="S"
       className="contextual-action-bar-item"
       aria-label={label}
       preventFocusOnPress
@@ -132,7 +132,7 @@ function AlignPopover({
     <MenuTrigger>
       <Button
         variant="ghost"
-        size="sm"
+        size="S"
         className="contextual-action-bar-item"
         data-context="multi"
         aria-label={label}
@@ -181,7 +181,7 @@ const OptionsMenu = memo(function OptionsMenu({
     <MenuTrigger>
       <Button
         variant="ghost"
-        size="sm"
+        size="S"
         className="contextual-action-bar-item"
         aria-label={t("actionBar.options")}
         preventFocusOnPress
@@ -322,7 +322,7 @@ export function ActionBarView({
         )}
         <Button
           variant="ghost"
-          size="sm"
+          size="S"
           className="contextual-action-bar-item"
           aria-label={t("actionBar.more")}
           preventFocusOnPress

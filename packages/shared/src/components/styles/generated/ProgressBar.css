@@ -33,7 +33,7 @@
   gap: 4px;
 }
 
-.react-aria-ProgressBar[data-size="sm"] {
+.react-aria-ProgressBar[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
@@ -42,7 +42,7 @@
   gap: 4px;
 }
 
-.react-aria-ProgressBar[data-size="md"] {
+.react-aria-ProgressBar[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   line-height: var(--text-sm--line-height);
@@ -51,7 +51,7 @@
   gap: 4px;
 }
 
-.react-aria-ProgressBar[data-size="lg"] {
+.react-aria-ProgressBar[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-md);
   line-height: var(--text-base--line-height);
@@ -60,7 +60,7 @@
   gap: 4px;
 }
 
-.react-aria-ProgressBar[data-size="xl"] {
+.react-aria-ProgressBar[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-md);
   line-height: var(--text-lg--line-height);
@@ -169,55 +169,55 @@
   }
 
 
-  .react-aria-ProgressBar[data-size="sm"] .bar {
+  .react-aria-ProgressBar[data-size="S"] .bar {
     height: var(--spacing-xs);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-ProgressBar[data-size="sm"] .fill {
+  .react-aria-ProgressBar[data-size="S"] .fill {
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-ProgressBar[data-size="sm"] .value {
+  .react-aria-ProgressBar[data-size="S"] .value {
     font-size: var(--text-xs);
   }
 
-  .react-aria-ProgressBar[data-size="md"] .bar {
+  .react-aria-ProgressBar[data-size="M"] .bar {
     height: var(--spacing-sm);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-ProgressBar[data-size="md"] .fill {
+  .react-aria-ProgressBar[data-size="M"] .fill {
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-ProgressBar[data-size="md"] .value {
+  .react-aria-ProgressBar[data-size="M"] .value {
     font-size: var(--text-sm);
   }
 
-  .react-aria-ProgressBar[data-size="lg"] .bar {
+  .react-aria-ProgressBar[data-size="L"] .bar {
     height: var(--spacing-md);
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-ProgressBar[data-size="lg"] .fill {
+  .react-aria-ProgressBar[data-size="L"] .fill {
     border-radius: var(--radius-md);
   }
 
-  .react-aria-ProgressBar[data-size="lg"] .value {
+  .react-aria-ProgressBar[data-size="L"] .value {
     font-size: var(--text-base);
   }
 
-  .react-aria-ProgressBar[data-size="xl"] .bar {
+  .react-aria-ProgressBar[data-size="XL"] .bar {
     height: var(--spacing-lg);
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-ProgressBar[data-size="xl"] .fill {
+  .react-aria-ProgressBar[data-size="XL"] .fill {
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-ProgressBar[data-size="xl"] .value {
+  .react-aria-ProgressBar[data-size="XL"] .value {
     font-size: var(--text-lg);
   }
 

@@ -85,7 +85,7 @@
   }
 }
 
-.react-aria-Radio[data-size="sm"] {
+.react-aria-Radio[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -93,7 +93,7 @@
   gap: 6px;
 }
 
-.react-aria-Radio[data-size="md"] {
+.react-aria-Radio[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
@@ -101,7 +101,7 @@
   gap: 8px;
 }
 
-.react-aria-Radio[data-size="lg"] {
+.react-aria-Radio[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
@@ -109,7 +109,7 @@
   gap: 10px;
 }
 
-.react-aria-Radio[data-size="xl"] {
+.react-aria-Radio[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xl);
@@ -130,19 +130,19 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-Radio[data-size="sm"] {
+.react-aria-Radio[data-size="S"] {
   --radio-button-gap: 6px;
 }
 
-.react-aria-Radio[data-size="md"] {
+.react-aria-Radio[data-size="M"] {
   --radio-button-gap: 8px;
 }
 
-.react-aria-Radio[data-size="lg"] {
+.react-aria-Radio[data-size="L"] {
   --radio-button-gap: 10px;
 }
 
-.react-aria-Radio[data-size="xl"] {
+.react-aria-Radio[data-size="XL"] {
   --radio-button-gap: 12px;
 }
 

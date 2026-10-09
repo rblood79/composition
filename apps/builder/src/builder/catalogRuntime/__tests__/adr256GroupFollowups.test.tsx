@@ -111,7 +111,7 @@ describe("Codex Round 21 — the group's size through a Group around its item", 
       workspace.execute(
         setFields({
           targets: [target(of(groupType)[0]!.id)],
-          props: { size: set("lg") },
+          props: { size: set("L") },
         }),
       );
       const source = of(part)[0]!.sourceId;
@@ -130,14 +130,14 @@ describe("Codex Round 21 — the group's size through a Group around its item", 
           )!,
         ),
       ).toBe("Group");
-      expect(sizes()).toEqual(["lg", "lg"]);
+      expect(sizes()).toEqual(["L", "L"]);
       workspace.execute(
         setFields({
           targets: [target(of(groupType)[0]!.id)],
-          props: { size: set("sm") },
+          props: { size: set("S") },
         }),
       );
-      expect(sizes()).toEqual(["sm", "sm"]);
+      expect(sizes()).toEqual(["S", "S"]);
     },
   );
 
@@ -146,7 +146,7 @@ describe("Codex Round 21 — the group's size through a Group around its item", 
     workspace.execute(
       setFields({
         targets: [target(of("CheckboxGroup")[0]!.id)],
-        props: { size: set("lg") },
+        props: { size: set("L") },
       }),
     );
     const source = of("Checkbox")[0]!.sourceId;
@@ -156,7 +156,7 @@ describe("Codex Round 21 — the group's size through a Group around its item", 
       "lib:definition:type-frame",
     );
     expect(of("Checkbox").find((r) => r.sourceId === source)!.props.size).toBe(
-      "lg",
+      "L",
     );
   });
 });
@@ -266,7 +266,7 @@ describe("Codex Round 21 — an item put straight in its group takes the group's
             props: { size: set(size) },
           }),
         );
-      groupSize("lg");
+      groupSize("L");
       const childId = workspace.newId("node");
       workspace.execute(
         insertNodes({
@@ -295,9 +295,9 @@ describe("Codex Round 21 — an item put straight in its group takes the group's
           root.domInputs.get(canvas.id)!.props.size,
         ];
       };
-      expect(sizes()).toEqual([groupType, "lg", "lg"]);
-      groupSize("sm");
-      expect(sizes()).toEqual([groupType, "sm", "sm"]);
+      expect(sizes()).toEqual([groupType, "L", "L"]);
+      groupSize("S");
+      expect(sizes()).toEqual([groupType, "S", "S"]);
     },
   );
 });
@@ -338,7 +338,7 @@ describe("Codex Round 21 — the group's size change reaches an item in another 
       const canvas = of("Checkbox").find((r) => r.sourceId === childId)!;
       return [canvas.props.size, root.domInputs.get(canvas.id)!.props.size];
     };
-    for (const value of ["lg", "sm"]) {
+    for (const value of ["L", "S"]) {
       workspace.execute(
         setFields({
           targets: [target(of("CheckboxGroup")[0]!.id)],

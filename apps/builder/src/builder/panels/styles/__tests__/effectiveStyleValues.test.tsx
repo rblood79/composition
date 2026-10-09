@@ -24,7 +24,7 @@ let fixture: StylesFixture;
 beforeAll(async () => {
   fixture = await openStylesFixture([
     { id: "cb", type: "Checkbox" },
-    { id: "cbxl", type: "Checkbox", props: { size: "xl" } },
+    { id: "cbxl", type: "Checkbox", props: { size: "XL" } },
     { id: "rg", type: "RadioGroup" },
     { id: "sw", type: "Switch" },
     { id: "tf", type: "TextField" },

@@ -233,7 +233,7 @@ describe("ADR-256 Phase 8 판독 H1 — a Disclosure below another element in a 
 
 describe("ADR-256 Phase 8 판독 M1 — a frame around the Heading keeps the Disclosure's sheet", () => {
   it("the Canvas trigger keeps its part-rule box and font; the DOM chevron still turns", async () => {
-    const { all, frame, mount } = await open("disclosure", { size: "lg" });
+    const { all, frame, mount } = await open("disclosure", { size: "L" });
     const trigger = () => all("Button")[0]!;
     const before = { ...trigger().visual };
     frame(all("Heading")[0]!.sourceId!);

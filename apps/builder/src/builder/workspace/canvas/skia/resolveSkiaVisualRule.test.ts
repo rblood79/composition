@@ -29,11 +29,11 @@ describe("resolveComponentRule — Button size source = theme rule table (ADR-91
     expect(rule).toBeDefined();
     // 5 size 전부 paddingX 존재 (spec.sizes 4/8/12/16/24 이전).
     const expected: Record<string, number> = {
-      xs: 4,
-      sm: 8,
-      md: 12,
-      lg: 16,
-      xl: 24,
+      XS: 4,
+      S: 8,
+      M: 12,
+      L: 16,
+      XL: 24,
     };
     for (const [size, px] of Object.entries(expected)) {
       expect(rule?.sizes[size]?.paddingX).toBe(px);

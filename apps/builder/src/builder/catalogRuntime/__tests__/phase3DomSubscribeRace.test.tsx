@@ -102,7 +102,7 @@ function scene(name: string, roots: NodeEntry[], nested: NodeEntry[]) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 35,
+    libraryContractVersion: 36,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -226,7 +226,7 @@ describe("ADR-248 Phase 3 DOM binding render→subscribe gap", () => {
           kind: "patchNodeProp",
           id: slot.id,
           key: "size",
-          write: { kind: "set", value: "sm" },
+          write: { kind: "set", value: "S" },
         },
       ],
     );

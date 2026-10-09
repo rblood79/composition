@@ -45,28 +45,28 @@
   }
 }
 
-.react-aria-ProgressBarValue[data-size="sm"] {
+.react-aria-ProgressBarValue[data-size="S"] {
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
   line-height: 16px;
 }
 
-.react-aria-ProgressBarValue[data-size="md"] {
+.react-aria-ProgressBarValue[data-size="M"] {
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
   line-height: 20px;
 }
 
-.react-aria-ProgressBarValue[data-size="lg"] {
+.react-aria-ProgressBarValue[data-size="L"] {
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
   line-height: 24px;
 }
 
-.react-aria-ProgressBarValue[data-size="xl"] {
+.react-aria-ProgressBarValue[data-size="XL"] {
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);

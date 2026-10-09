@@ -8,7 +8,7 @@
  * 이유: base.css의 --label-font-size CSS 변수 상속 메커니즘 보존
  *   base.css에서 `.react-aria-Label { font-size: var(--label-font-size, var(--text-sm)); }` 를 선언.
  *   부모 컴포넌트(TextField/Checkbox/RadioGroup 등 22개+)가 --label-font-size CSS 변수를 주입.
- *   만약 generated CSS가 `.react-aria-Label[data-size="md"] { font-size: var(--text-sm); }` 를 emit하면,
+ *   만약 generated CSS가 `.react-aria-Label[data-size="M"] { font-size: var(--text-sm); }` 를 emit하면,
  *   CSS specificity로 base.css의 var(--label-font-size) 상속 패턴을 파괴
  *   → 부모 주입 font-size 무시됨 (CSSGenerator 구조적 미지원).
  *

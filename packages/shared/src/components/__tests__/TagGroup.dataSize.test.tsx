@@ -10,7 +10,7 @@ import { TagGroup, Tag } from "../TagGroup";
  * **버그**: TagGroup 의 size/variant prop 을 편집해도 chip(.react-aria-Tag) 시각이 안 바뀐다.
  *   root cause = TagGroup.tsx 가 size/variant 를 `data-type-size`/`data-type-variant` 로 emit 하는데,
  *   매칭 CSS(packages/shared/src/components/styles/TagGroup.css)는 chip 시각을 부모 후손 선택자
- *   `.react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag { font-size/padding... }` 로 적용한다.
+ *   `.react-aria-TagGroup[data-tag-size="L"] .react-aria-Tag { font-size/padding... }` 로 적용한다.
  *   `data-type-size` ≠ `data-tag-size` → 선택자 매칭 실패 → chip 이 항상 기본(md) 시각으로 고정.
  *
  *   regression 출처: 36b397279 (2026-06-05, ADR-912 영역 B "TagGroup source 단일화") 가 TSX 의
@@ -26,7 +26,7 @@ import { TagGroup, Tag } from "../TagGroup";
 
 /** static children 기반 TagGroup root 의 HTML 을 렌더 (data-binding 없는 외부 사용 경로). */
 function renderTagGroupHtml(props: {
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   variant?: string;
   labelPosition?: "top" | "side";
 }): string {
@@ -54,9 +54,9 @@ function rootAttr(html: string, attr: string): string | null {
 
 describe("TagGroup — size/variant DOM attribute = CSS 후손 선택자 정본(data-tag-*)", () => {
   it("size → data-tag-size emit (CSS `.react-aria-TagGroup[data-tag-size]` 매칭, data-type-size 회귀 가드)", () => {
-    const html = renderTagGroupHtml({ size: "lg" });
+    const html = renderTagGroupHtml({ size: "L" });
     // CSS 가 chip 시각을 적용하는 attribute 이름. 회귀(data-type-size) 시 null → FAIL.
-    expect(rootAttr(html, "data-tag-size")).toBe("lg");
+    expect(rootAttr(html, "data-tag-size")).toBe("L");
     // data-type-size 는 CSS 매칭이 없는 dead attribute — 존재하면 회귀.
     expect(rootAttr(html, "data-type-size")).toBeNull();
   });
@@ -74,7 +74,7 @@ describe("TagGroup — size/variant DOM attribute = CSS 후손 선택자 정본(
 
   it("size 기본값(md) 도 data-tag-size emit", () => {
     const html = renderTagGroupHtml({});
-    expect(rootAttr(html, "data-tag-size")).toBe("md");
+    expect(rootAttr(html, "data-tag-size")).toBe("M");
   });
 });
 

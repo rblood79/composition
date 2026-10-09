@@ -74,8 +74,8 @@ const CASES: Record<string, Record<string, string | boolean>> = {
   description: { description: "Help text" },
   invalid: { isInvalid: true, errorMessage: "Not valid" },
   "side label": { labelPosition: "side" },
-  "size sm": { size: "sm" },
-  "size xl": { size: "xl" },
+  "size sm": { size: "S" },
+  "size xl": { size: "XL" },
   disabled: { isDisabled: true },
   "read only": { isReadOnly: true },
   quiet: { isQuiet: true },
@@ -709,11 +709,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
   /** The Label rule sizes the Label at its field's size (no field rule declares a Label font). */
   for (const type of TYPES)
     it.skipIf(write)(`${type} — its size sizes its Label`, async () => {
-      const large = await render(type, { size: "lg" });
+      const large = await render(type, { size: "L" });
       const label = large!.field.children
         .map((id) => large!.workspace.root.canvasInputs.get(id)!)
         .find((child) => child.bindingId === "label")!;
-      expect(label.props.size).toBe("lg");
+      expect(label.props.size).toBe("L");
       expect(label.visual.fontSize).toBe(16);
       expect(
         Number(label.visual.lineHeight) * Number(label.visual.fontSize),
@@ -832,10 +832,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(part("fielderror").props.children).toBe("Not valid");
         // Each is sized by its own rule at the field's size (md = text-xs).
         for (const binding of ["description", "fielderror"]) {
-          expect(part(binding).props.size).toBe("md");
+          expect(part(binding).props.size).toBe("M");
           expect(part(binding).visual.fontSize).toBe(12);
         }
-        write({ size: "lg" });
+        write({ size: "L" });
         for (const binding of ["description", "fielderror"])
           expect(part(binding).visual.fontSize).toBe(14);
         // The origins are the one place their style comes from; the part's own style stays on top.
@@ -924,12 +924,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       // rule's sheet — no resolved box inline.
       const control = element(html());
       expect(control.tagName).toBe(type === "textarea" ? "TEXTAREA" : "INPUT");
-      expect(control.getAttribute("data-size")).toBe("md");
+      expect(control.getAttribute("data-size")).toBe("M");
       expect(control.getAttribute("style") ?? "").not.toMatch(
         /padding|border|background|font-size/,
       );
       // The Input rule sizes it at the field's size (no field rule declares an Input shape).
-      expect(input().props.size).toBe("md");
+      expect(input().props.size).toBe("M");
       expect(input().visual).toMatchObject({
         paddingY: 4,
         paddingX: 12,
@@ -940,10 +940,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
-          props: { size: set("lg") },
+          props: { size: set("L") },
         }),
       );
-      expect(input().props.size).toBe("lg");
+      expect(input().props.size).toBe("L");
       expect(input().visual).toMatchObject({
         paddingY: 8,
         paddingX: 16,
@@ -953,7 +953,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         Number(input().visual.lineHeight) * Number(input().visual.fontSize),
       ).toBeCloseTo(24, 5);
-      expect(element(html()).getAttribute("data-size")).toBe("lg");
+      expect(element(html()).getAttribute("data-size")).toBe("L");
       // The Input origin is the one place its style comes from — a second edit as well — and it
       // reaches the element as inline style over the sheet.
       for (const color of ["#ff0000", "#0000ff"]) {
@@ -1062,7 +1062,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         expect(rect(stepper.id)).toMatchObject({ width: 30, height: 30 });
         expect(stepper.props).toMatchObject({
           variant: "secondary",
-          size: "md",
+          size: "M",
         });
         const glyph = records.get(stepper.children[0]!)!;
         expect(typeOf(glyph.id)).toBe("Icon");
@@ -1103,7 +1103,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ]);
       for (const button of stepperElements()) {
         expect(button.getAttribute("data-variant")).toBe("secondary");
-        expect(button.getAttribute("data-size")).toBe("md");
+        expect(button.getAttribute("data-size")).toBe("M");
         expect(button.querySelector(".react-aria-Icon svg")).not.toBeNull();
       }
       // Their paint is the Button rule's sheet (hover · pressed · disabled change it): no rest
@@ -1152,13 +1152,13 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
-          props: { size: set("xl"), isDisabled: set(false) },
+          props: { size: set("XL"), isDisabled: set(false) },
         }),
       );
       expect(parts().map((part) => part.props.size)).toEqual([
-        "xl",
-        "xl",
-        "xl",
+        "XL",
+        "XL",
+        "XL",
       ]);
       expect(rect(parts()[1]!.id)).toMatchObject({ width: 54, height: 54 });
       expect(records.get(parts()[1]!.children[0]!)!.visual.iconSize).toBe(28);
@@ -1313,7 +1313,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       const inputElement = container.querySelector("input")!;
       expect(inputElement.getAttribute("role")).toBe("combobox");
       expect(inputElement.getAttribute("placeholder")).toBe("Pick one");
-      expect(inputElement.getAttribute("data-size")).toBe("md");
+      expect(inputElement.getAttribute("data-size")).toBe("M");
       const buttonElement = container.querySelector("button")!;
       expect(buttonElement.getAttribute("aria-haspopup")).toBe("listbox");
       const style = buttonElement.getAttribute("style")!;
@@ -1326,10 +1326,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
-          props: { size: set("xl") },
+          props: { size: set("XL") },
         }),
       );
-      expect(parts().map((part) => part.props.size)).toEqual(["xl", "xl"]);
+      expect(parts().map((part) => part.props.size)).toEqual(["XL", "XL"]);
       expect(rect(parts()[1]!.id)).toMatchObject({
         width: 46,
         height: 46,
@@ -1560,10 +1560,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
-          props: { size: set("xl") },
+          props: { size: set("XL") },
         }),
       );
-      expect(trigger().props.size).toBe("xl");
+      expect(trigger().props.size).toBe("XL");
       expect(trigger().visual).toMatchObject({
         paddingX: 24,
         paddingRight: 16,
@@ -1690,7 +1690,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           .host()
           .querySelector(".react-aria-DateInput:not(template *)")!;
         expect(element.getAttribute("data-catalog-id")).toBe(input().id);
-        expect(element.getAttribute("data-size")).toBe("md");
+        expect(element.getAttribute("data-size")).toBe("M");
         expect(element.getAttribute("role")).toBe("group");
         expect(element.className).toBe("react-aria-DateInput");
         expect(element.getAttribute("style")).not.toMatch(
@@ -1700,8 +1700,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           element.querySelectorAll(".react-aria-DateSegment").length,
         ).toBeGreaterThan(2);
         // The field's size reaches it.
-        setField(scene.workspace, { size: "xl" });
-        expect(input().props.size).toBe("xl");
+        setField(scene.workspace, { size: "XL" });
+        expect(input().props.size).toBe("XL");
         expect(input().visual).toMatchObject({ paddingX: 24, minWidth: 220 });
         // The DateInput origin is where its shape comes from.
         scene.workspace.execute(
@@ -1838,12 +1838,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "–",
       );
       // The field's size reaches the Group and through it the parts.
-      setField(range.workspace, { size: "xl" });
+      setField(range.workspace, { size: "XL" });
       expect(rangeParts().map((part) => part.props.size)).toEqual([
-        "xl",
-        "xl",
-        "xl",
-        "xl",
+        "XL",
+        "XL",
+        "XL",
+        "XL",
       ]);
       expect(range.rect(rangeParts()[3]!.id)).toMatchObject({
         width: 46,
@@ -2004,10 +2004,10 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       workspace.execute(
         setFields({
           targets: [{ kind: "node", id: FIELD }],
-          props: { size: set("xl") },
+          props: { size: set("XL") },
         }),
       );
-      expect(parts()[1]!.props.size).toBe("xl");
+      expect(parts()[1]!.props.size).toBe("XL");
       expect(parts()[1]!.visual).toMatchObject({
         paddingLeft: 52,
         paddingRight: 52,

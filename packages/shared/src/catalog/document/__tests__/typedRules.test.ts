@@ -17,10 +17,10 @@ const parent: LibraryDefinition = {
   mode: "primitive",
   bindingId: "field",
   accepts: { size: "string", isQuiet: "boolean", fillStyle: "string" },
-  defaults: { size: "md" },
+  defaults: { size: "M" },
   visual: { fill: "#ffffff", paddingX: 8, paddingY: 2, minWidth: 40 },
   layout: { display: "flex", flexDirection: "column" },
-  propVisualRules: { size: { lg: { paddingX: 12 } } },
+  propVisualRules: { size: { L: { paddingX: 12 } } },
   conditionalRules: [
     { when: { fillStyle: "outline" }, visual: { fill: "transparent" } },
     { when: {}, state: "hover", visual: { fill: "#eeeeee" } },
@@ -34,7 +34,7 @@ const parent: LibraryDefinition = {
   partRules: [
     {
       child: { definitionId: "lib:definition:part" },
-      when: { size: "lg" },
+      when: { size: "L" },
       visual: { fontSize: 18 },
     },
     {
@@ -69,7 +69,7 @@ const templates: LibraryTemplateNode[] = [
     id: "lib:template:root",
     definitionId: "lib:definition:field",
     children: ["lib:template:label", "lib:template:hint"],
-    props: { size: "lg" },
+    props: { size: "L" },
     visual: {},
   },
   {
@@ -90,7 +90,7 @@ const templates: LibraryTemplateNode[] = [
 ];
 const library = (definitions = [parent, part, composite]) =>
   buildCatalogLibrary({
-    contractVersion: 35,
+    contractVersion: 36,
     revision: "typed-rules",
     bindingIds: ["field", "part"],
     actionOpCodes: [],
@@ -113,7 +113,7 @@ function graph(nodes: NodeEntry[], nested: NodeEntry[] = []) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 35,
+    libraryContractVersion: 36,
     revision: 0,
     projectId: "project:project:p",
     rootId: "project:project:p",
@@ -153,7 +153,7 @@ describe("ADR-248 typed layout, conditional and part rules", () => {
       node("outline", {
         props: {
           fillStyle: { kind: "set", value: "outline" },
-          size: { kind: "set", value: "lg" },
+          size: { kind: "set", value: "L" },
           isQuiet: { kind: "set", value: true },
         },
       }),
@@ -178,7 +178,7 @@ describe("ADR-248 typed layout, conditional and part rules", () => {
       [
         node("instance", { definitionId: "lib:definition:composite" }),
         node("authored", {
-          props: { size: { kind: "set", value: "lg" } },
+          props: { size: { kind: "set", value: "L" } },
           children: ["project:node:child"],
         }),
       ],
@@ -213,7 +213,7 @@ describe("ADR-248 typed layout, conditional and part rules", () => {
     );
     reject({ ...parent, layout: { display: "table" } }, "INVALID_LAYOUT_VALUE");
     reject(
-      { ...parent, conditionalRules: [{ when: { size: "lg" } }] },
+      { ...parent, conditionalRules: [{ when: { size: "L" } }] },
       "EMPTY_RULE_OUTPUT",
     );
     reject(

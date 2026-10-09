@@ -29,7 +29,7 @@ export const tagGroupBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // RSP TagGroup maxRows — 지정 행 수를 넘는 tag 는 접고 "Show all" 로 펼침. 0 또는 미설정 시 전체.
       //   DOM: `delegatedDom.tsx` TagListRun — 측정 거울 (`useTagMaxRows`) + Show all / Show less.

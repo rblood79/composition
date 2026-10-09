@@ -53,14 +53,14 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     const node = {
       id: "x",
       type: "ProgressBar",
-      props: { value: 60, size: "lg", variant: "accent", label: "P" },
+      props: { value: 60, size: "L", variant: "accent", label: "P" },
     };
     const rac = toRacProps(node as never, progressBarBinding);
     // value/label 은 React prop (renderProgressBar 가 소비)
     expect(rac.value).toBe(60);
     expect(rac.label).toBe("P");
     // variant/size 는 data-attr (RAC unstyled + generated CSS)
-    expect(rac["data-size"]).toBe("lg");
+    expect(rac["data-size"]).toBe("L");
     expect(rac["data-variant"]).toBe("accent");
   });
 });

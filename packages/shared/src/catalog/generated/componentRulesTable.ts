@@ -19,10 +19,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
   //   its children are its parent's items; its own box is their union, for selection only).
   Autocomplete: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -39,7 +39,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Avatar: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -55,27 +55,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.full}",
         height: 24,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 28,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 32,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 40,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 48,
@@ -101,7 +101,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   AvatarGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -118,27 +118,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.full}",
         height: 24,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 28,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 32,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 40,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 48,
@@ -161,7 +161,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         containerVariants: {
           size: {
-          xs: {
+          XS: {
             styles: { padding: "0 0 0 6px" },
             nested: [
               {
@@ -170,7 +170,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             ],
           },
-          sm: {
+          S: {
             styles: { padding: "0 0 0 7px" },
             nested: [
               {
@@ -179,7 +179,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             ],
           },
-          md: {
+          M: {
             styles: { padding: "0 0 0 8px" },
             nested: [
               {
@@ -188,7 +188,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             ],
           },
-          lg: {
+          L: {
             styles: { padding: "0 0 0 10px" },
             nested: [
               {
@@ -197,7 +197,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
             ],
           },
-          xl: {
+          XL: {
             styles: { padding: "0 0 0 12px" },
             nested: [
               {
@@ -214,7 +214,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Badge: {
     defaultVariant: "accent",
-    defaultSize: "sm",
+    defaultSize: "S",
     variants: {
       accent: {
         fill: {
@@ -768,7 +768,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
@@ -779,7 +779,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 1,
         gap: 2,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
@@ -790,7 +790,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 2,
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
@@ -801,7 +801,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 4,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
@@ -812,7 +812,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 8,
         gap: 6,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
@@ -847,7 +847,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   "Body" 키 참조 코드 0건(BodySpec 심볼만 PascalCase, element.type 미사용).
   body: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // 페이지 body 기본 overflow = auto (스크롤). D3 SSOT 단일 기본값 source — 시스템 페이지
     //   Body factory는 Canvas 스크롤 runtime을 위해 raw overflow:auto만 보존한다. catalog는
     //   패널/Canvas layout fallback을 공급하고 structure mirror가 DOM generated CSS를 공급한다.
@@ -870,7 +870,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-md}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1032,7 +1032,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Button: {
     defaultVariant: "primary",
-    defaultSize: "md",
+    defaultSize: "M",
     // top-level containerStyles — Skia layout fallback(resolveContainerStylesFallback 경로 A,
     //   rule.containerStyles 직접 조회) + dirty baseline(resolveCatalogContainerBase line 3 last-wins)
     //   + 스타일 패널 Layout Direction(useLayoutValues specPreset.display) 양쪽이 읽는 단일 layout
@@ -1163,7 +1163,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   짧은 라벨("OK" 등) 버튼의 식별 가능 형태 보장 — Spectrum Button "min-width = 2.25× height".
     //   DOM 은 generate-css `min-width` emit, Skia 는 implicitStyles 주입 → 엔진 min_width clamp.
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 500,
@@ -1177,7 +1177,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 4,
         iconGap: 4,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 500,
@@ -1191,7 +1191,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconGap: 6,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 500,
@@ -1205,7 +1205,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconGap: 8,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 500,
@@ -1219,7 +1219,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         iconGap: 10,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 500,
@@ -1262,7 +1262,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ButtonGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -1279,27 +1279,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -1318,7 +1318,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Calendar: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -1369,7 +1369,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
       //   Calendar.spec.ts 삭제 대비 generated Calendar.css(padding NNpx NNpx / gap NNpx) diff-0 유지.
       //   값은 (구) CalendarSpec.sizes 와 동일 (paddingX==paddingY, gap sm:4/md:6/lg:8).
-      sm: {
+      S: {
         paddingX: 4,
         paddingY: 4,
         gap: 4,
@@ -1378,7 +1378,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 20,
       },
-      md: {
+      M: {
         paddingX: 8,
         paddingY: 8,
         gap: 6,
@@ -1387,7 +1387,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 26,
       },
-      lg: {
+      L: {
         paddingX: 12,
         paddingY: 12,
         gap: 8,
@@ -1420,7 +1420,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   CalendarGrid: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -1450,21 +1450,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
         iconSize: 20,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         iconSize: 26,
         gap: 6,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1475,7 +1475,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   CalendarHeader: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // ADR-912 (B+icon): inline_icon_text replace — 좌 chevron + center text + 우 chevron.
       //   leadingIcon/trailingIcon name 은 spec render.shapes 의 chevron-left/right 보존, color 는
@@ -1523,7 +1523,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       // ADR-912 (B+icon): iconSize/gap 은 spec CALENDAR_HEADER_DIMS(sm{20,4}/md{26,6}/lg{32,8}) 동형.
       //   cellSize = iconSize + 4 (inline_icon_text 좌표 base). gap 은 width 폴백(cellSize*7+gap*6)용.
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 24,
@@ -1531,7 +1531,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 4,
         paddingX: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 30,
@@ -1539,7 +1539,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         paddingX: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 36,
@@ -1578,7 +1578,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   (ADR-907 Layer B) — sizes 의 paddingX/gap 은 DOM base fallback + Skia shell 메트릭.
   Card: {
     defaultVariant: "primary",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // primary — 기본 표면(구 spec 의 비-quiet 기본값 보존: layer-2/layer-1/neutral-subtle).
       primary: {
@@ -1648,7 +1648,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       // paddingX=paddingY 균일(구 Card.spec.sizes 보존). layout 실 SSOT 는 factory props.style
       //   (ADR-907 Layer B) — rule padding 은 DOM base fallback + Skia shell 메트릭.
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         paddingX: 4,
@@ -1657,7 +1657,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         paddingX: 8,
@@ -1666,7 +1666,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         paddingX: 16,
@@ -1675,7 +1675,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         paddingX: 24,
@@ -1684,7 +1684,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         paddingX: 32,
@@ -1703,7 +1703,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   명시로 generate-css 가 flex/column/width:100% 재생성 → CSS=Skia=factory 3자 정합.
       // overflow:hidden — S2 Card 정본(root overflow:clip + radius.lg 가 자식을 단일 radius 로 clip).
       //   CardPreview 상단 모서리를 root clip 이 처리 → CardPreview 자체 borderRadius 불필요(2026-06-24).
-      //   sizes.md.borderRadius={radius.lg}=12px 과 결합해 CSS Preview 가 둥근 상단 이미지 clip.
+      //   sizes.M.borderRadius={radius.lg}=12px 과 결합해 CSS Preview 가 둥근 상단 이미지 clip.
       containerStyles: {
         display: "flex",
         flexDirection: "column",
@@ -1733,30 +1733,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   CardContent: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1777,30 +1777,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   CardFooter: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1824,30 +1824,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   CardHeader: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1867,30 +1867,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   CardPreview: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -1918,7 +1918,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   CardView: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -1934,17 +1934,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: "auto",
@@ -1963,7 +1963,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Checkbox: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive(checkbox indicator) measurement 를 generic
     //   (buildCatalogShapes) 으로 전환하기 위해 label fontWeight 를 rule variant 에 명시한다.
     //   Checkbox.spec.render.shapes 의 label text 는 fontWeight 미emit(→ 측정 fallback 400)
@@ -2012,7 +2012,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   size.indicator.{boxSize,boxRadius} 를 읽으나 catalog 부재로 전 size 20px 고정이었다
       //   (DOM Checkbox.css --cb-box-size 16/20/24 와 비대칭). boxSize 는 CSS 미러
       //   (--text-base/xl/2xl/3xl = 16/20/24/30). xl 은 Radio 형제 미러 (Spectrum 4단계 규정).
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -2021,7 +2021,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         indicator: { boxSize: 16, boxRadius: 4 },
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -2030,7 +2030,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         indicator: { boxSize: 20, boxRadius: 4 },
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -2039,7 +2039,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         indicator: { boxSize: 24, boxRadius: 4 },
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -2100,7 +2100,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   CheckboxGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2131,26 +2131,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
       //   재생성용 (CheckboxGroup.spec.sizes 미러). 자식 .checkbox-items gap 은 composition
       //   containerVariants.size 의 --cb-items-gap 별도 경로. padding 미emit(ownsContainerBox).
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 8,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 12,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 16,
       },
       // xl (2026-08-21, design-data 감사 §1-3): Checkbox xl 채택 동반 — RadioGroup xl(gap 20) 미러.
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -2198,12 +2198,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         containerVariants: {
           size: {
-            sm: {
+            S: {
               styles: {
                 "--cb-items-gap": "8px",
               },
             },
-            lg: {
+            L: {
               styles: {
                 "--cb-items-gap": "16px",
               },
@@ -2299,7 +2299,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Code: {
     defaultVariant: "default",
-    defaultSize: "sm",
+    defaultSize: "S",
     variants: {
       default: {
         fill: {
@@ -2320,28 +2320,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.xs}",
         height: 18,
       },
-      sm: {
+      S: {
         paddingX: 6,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 22,
       },
-      md: {
+      M: {
         paddingX: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.sm}",
         height: 26,
       },
-      lg: {
+      L: {
         paddingX: 10,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
@@ -2360,7 +2360,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorArea: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2390,19 +2390,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 120,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 180,
         iconSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 240,
@@ -2411,13 +2411,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ColorField: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (ColorField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
-      xs: {
+      XS: {
         paddingX: 6,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -2425,7 +2425,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 18,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
@@ -2433,7 +2433,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 20,
       },
-      md: {
+      M: {
         paddingX: 10,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
@@ -2441,7 +2441,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconSize: 26,
       },
-      lg: {
+      L: {
         paddingX: 12,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
@@ -2449,7 +2449,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         iconSize: 32,
       },
-      xl: {
+      XL: {
         paddingX: 14,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
@@ -2573,19 +2573,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Input",
             prefix: "cf-input",
             variables: {
-              xs: {
+              XS: {
                 "--cf-input-max-width": "9ch",
               },
-              sm: {
+              S: {
                 "--cf-input-max-width": "10ch",
               },
-              md: {
+              M: {
                 "--cf-input-max-width": "12ch",
               },
-              lg: {
+              L: {
                 "--cf-input-max-width": "14ch",
               },
-              xl: {
+              XL: {
                 "--cf-input-max-width": "16ch",
               },
             },
@@ -2600,7 +2600,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorPicker: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2643,17 +2643,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -2662,7 +2662,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorSlider: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2679,19 +2679,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 16,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 20,
         iconSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 24,
@@ -2701,7 +2701,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorSwatch: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2735,17 +2735,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   (정사각 box → 완전한 원형/pill). 기존 {radius.sm}/{radius.md} 는 둥근 사각 → 형태 범주 발산.
       //   {radius.full}(=9999) 는 Skia 측 nodeRendererClip 의 `Math.min(borderRadius, min(w,h)/2)` clamp 로
       //   box half-size 까지 자동 축소 → CSS border-radius:9999px 와 동일 시각(양방향 자동, segmented radius 동형).
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 20,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 28,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 36,
@@ -2787,7 +2787,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorSwatchPicker: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // ADR-256 후속 13: the picker paints nothing — its DOM sheet (`ColorSwatchPicker.css`) is a
       //   flex row with no frame. A variant border put a 1px box on the Canvas only (it moved the
@@ -2820,19 +2820,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 0,
         iconSize: 20,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
         height: 0,
         iconSize: 28,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -2842,7 +2842,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ColorWheel: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -2859,19 +2859,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 120,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 180,
         iconSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 240,
@@ -2880,13 +2880,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   ComboBox: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): ComboBoxSpec.spec 삭제 대비 — generate-css virtual emit 이
     //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(Select 동형). paddingY 는
     //   미보충(padding 은 composition.delegation .combobox-container --combo-container-padding 가 담당).
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
@@ -2894,7 +2894,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 14,
         gap: 2,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -2902,7 +2902,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 16,
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
@@ -2910,7 +2910,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 18,
         gap: 6,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
@@ -2918,7 +2918,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 22,
         gap: 8,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
@@ -3082,11 +3082,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Input",
             prefix: "combo-input",
             variables: {
-              xs: { "--combo-input-pad-end": "20px" },
-              sm: { "--combo-input-pad-end": "26px" },
-              md: { "--combo-input-pad-end": "34px" },
-              lg: { "--combo-input-pad-end": "50px" },
-              xl: { "--combo-input-pad-end": "70px" },
+              XS: { "--combo-input-pad-end": "20px" },
+              S: { "--combo-input-pad-end": "26px" },
+              M: { "--combo-input-pad-end": "34px" },
+              L: { "--combo-input-pad-end": "50px" },
+              XL: { "--combo-input-pad-end": "70px" },
             },
             bridges: {
               "min-width": "0",
@@ -3098,11 +3098,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "combo-btn",
             variables: {
-              xs: { "--combo-btn-size": "16px", "--combo-btn-offset": "-18px" },
-              sm: { "--combo-btn-size": "18px", "--combo-btn-offset": "-20px" },
-              md: { "--combo-btn-size": "22px", "--combo-btn-offset": "-26px" },
-              lg: { "--combo-btn-size": "34px", "--combo-btn-offset": "-38px" },
-              xl: { "--combo-btn-size": "46px", "--combo-btn-offset": "-50px" },
+              XS: { "--combo-btn-size": "16px", "--combo-btn-offset": "-18px" },
+              S: { "--combo-btn-size": "18px", "--combo-btn-offset": "-20px" },
+              M: { "--combo-btn-size": "22px", "--combo-btn-offset": "-26px" },
+              L: { "--combo-btn-size": "34px", "--combo-btn-offset": "-38px" },
+              XL: { "--combo-btn-size": "46px", "--combo-btn-offset": "-50px" },
             },
             bridges: {
               flex: "0 0 auto",
@@ -3128,31 +3128,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계5 step4 (2026-06-17): DateField.spec.ts 삭제 — gap 은 base/size block byte-identical
     //   (composition flex-column → CSSGenerator size.gap emit), intrinsicHeight 는 layout-only
     //   (CSS 미emit, utils.ts calculateContentHeight datefield 분기가 resolveSkiaRule read-through).
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: 22,
         gap: 4,
         intrinsicHeight: 32,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: 30,
         gap: 6,
         intrinsicHeight: 40,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: 0,
         height: 42,
         gap: 8,
         intrinsicHeight: 48,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: 0,
         height: 54,
@@ -3278,19 +3278,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-DateInput",
             prefix: "df-input",
             variables: {
-              xs: {
+              XS: {
                 "--df-input-min-width": "100px",
               },
-              sm: {
+              S: {
                 "--df-input-min-width": "120px",
               },
-              md: {
+              M: {
                 "--df-input-min-width": "150px",
               },
-              lg: {
+              L: {
                 "--df-input-min-width": "180px",
               },
-              xl: {
+              XL: {
                 "--df-input-min-width": "220px",
               },
             },
@@ -3313,7 +3313,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   DateInput: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -3362,7 +3362,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   instance 를 쓴다). 크기 단계는 Input rule 과 같다 — 한 form 안의 입력 상자가 같은 높이 · padding ·
     //   모서리를 갖는다. 높이는 내용 (줄 높이 + padding + border) 이다.
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
@@ -3371,7 +3371,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 4,
         paddingY: 1,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -3380,7 +3380,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         paddingY: 2,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -3389,7 +3389,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 12,
         paddingY: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -3398,7 +3398,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 16,
         paddingY: 8,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
@@ -3542,7 +3542,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   DatePicker: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES) 의 gap 을 rule 로 이관
     //   (DatePicker.spec 삭제 시 virtual STRUCTURE_META 가 rule.sizes 에서 gap emit). Calendar/Section 동일 패턴.
@@ -3551,31 +3551,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   height 미지정 → 54). 기존 height(30) 는 입력 box height 인 척하던 잘못된 결합으로, 입력 box height 는
     //   입력 box (field 의 control Group, 옛 SelectTrigger — ADR-256 Phase 6b) 안 부품의 높이로 정해진다. Select/ComboBox/NumberField/SearchField 가 TRACK_HEIGHT_TYPES 로 패널 height 축 제외된 것과 동형.
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         iconSize: 10,
         gap: 2,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         iconSize: 14,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         iconSize: 16,
         gap: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         iconSize: 20,
         gap: 4,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         iconSize: 24,
@@ -3735,19 +3735,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-DateInput",
             prefix: "dp-input",
             variables: {
-              xs: {
+              XS: {
                 "--dp-input-pad-end": "20px",
               },
-              sm: {
+              S: {
                 "--dp-input-pad-end": "26px",
               },
-              md: {
+              M: {
                 "--dp-input-pad-end": "34px",
               },
-              lg: {
+              L: {
                 "--dp-input-pad-end": "50px",
               },
-              xl: {
+              XL: {
                 "--dp-input-pad-end": "70px",
               },
             },
@@ -3761,23 +3761,23 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "dp-btn",
             variables: {
-              xs: {
+              XS: {
                 "--dp-btn-size": "16px",
                 "--dp-btn-offset": "-18px",
               },
-              sm: {
+              S: {
                 "--dp-btn-size": "18px",
                 "--dp-btn-offset": "-20px",
               },
-              md: {
+              M: {
                 "--dp-btn-size": "22px",
                 "--dp-btn-offset": "-26px",
               },
-              lg: {
+              L: {
                 "--dp-btn-size": "34px",
                 "--dp-btn-offset": "-38px",
               },
-              xl: {
+              XL: {
                 "--dp-btn-size": "46px",
                 "--dp-btn-offset": "-50px",
               },
@@ -3803,37 +3803,37 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   DateRangePicker: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): gap 보강 — spec.sizes(DATE_PICKER_SIZES 공유) 의 gap 이관 (DatePicker 동일).
     // height 키 제거 (2026-06-23): DatePicker 동형 — 컨테이너 height 는 자식 합산 auto, 입력 box height 는
     //   control Group 안 부품의 높이. 상세는 DatePicker entry 주석 참조.
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
         iconSize: 10,
         gap: 2,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         iconSize: 14,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         iconSize: 16,
         gap: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         iconSize: 20,
         gap: 4,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         iconSize: 24,
@@ -3991,35 +3991,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Group",
             prefix: "drp-group",
             variables: {
-              xs: {
+              XS: {
                 "--drp-group-radius": "var(--radius-xs)",
                 "--drp-group-padding": "1px 1px 1px var(--spacing-xs)",
                 "--drp-group-font-size": "var(--text-2xs)",
                 "--drp-group-line-height": "var(--text-2xs--line-height)",
                 "--drp-group-gap": "var(--spacing-2xs)",
               },
-              sm: {
+              S: {
                 "--drp-group-radius": "var(--radius-sm)",
                 "--drp-group-padding": "1px 1px 1px var(--spacing-sm)",
                 "--drp-group-font-size": "var(--text-xs)",
                 "--drp-group-line-height": "var(--text-xs--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
-              md: {
+              M: {
                 "--drp-group-radius": "var(--radius-md)",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-md)",
                 "--drp-group-font-size": "var(--text-sm)",
                 "--drp-group-line-height": "var(--text-sm--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
-              lg: {
+              L: {
                 "--drp-group-radius": "var(--radius-lg)",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-lg)",
                 "--drp-group-font-size": "var(--text-base)",
                 "--drp-group-line-height": "var(--text-base--line-height)",
                 "--drp-group-gap": "var(--spacing-xs)",
               },
-              xl: {
+              XL: {
                 "--drp-group-radius": "var(--radius-xl)",
                 "--drp-group-padding": "3px 3px 3px var(--spacing-xl)",
                 "--drp-group-font-size": "var(--text-lg)",
@@ -4102,19 +4102,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "drp-btn",
             variables: {
-              xs: {
+              XS: {
                 "--drp-btn-size": "16px",
               },
-              sm: {
+              S: {
                 "--drp-btn-size": "18px",
               },
-              md: {
+              M: {
                 "--drp-btn-size": "22px",
               },
-              lg: {
+              L: {
                 "--drp-btn-size": "34px",
               },
-              xl: {
+              XL: {
                 "--drp-btn-size": "46px",
               },
             },
@@ -4139,7 +4139,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Description: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
     //   layout 이 미소비 (flex 부모에서 fit-content 80 vs CSS 350 실측). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -4172,31 +4172,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
       //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
       //   reference's hint size (one step under the field's text).
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
@@ -4213,10 +4213,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   DialogTrigger: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -4236,7 +4236,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Dialog: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4258,7 +4258,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // 2026-06-22 reference 정합(ADR-914 Tier1): reference Dialog.css:8 `padding: var(--spacing-10)`
       //   = 40px(단일). composition size variant 체계는 보존하되 md(default)를 reference 40px 에 정합,
       //   xs~xl 을 비례 재설정(16/24/40/48/56). 기존 2~16px 은 dialog content inset 이 5배 부족했음.
-      xs: {
+      XS: {
         paddingX: 16,
         paddingY: 16,
         gap: 4,
@@ -4266,7 +4266,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 0,
       },
-      sm: {
+      S: {
         paddingX: 24,
         paddingY: 24,
         gap: 8,
@@ -4274,7 +4274,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 0,
       },
-      md: {
+      M: {
         paddingX: 40,
         paddingY: 40,
         gap: 12,
@@ -4282,7 +4282,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.xl}",
         height: 0,
       },
-      lg: {
+      L: {
         paddingX: 48,
         paddingY: 48,
         gap: 16,
@@ -4290,7 +4290,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.2xl}",
         height: 0,
       },
-      xl: {
+      XL: {
         paddingX: 56,
         paddingY: 56,
         gap: 20,
@@ -4319,30 +4319,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   DialogFooter: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -4355,7 +4355,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Disclosure: {
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 Phase 6 정정 (2026-07-16): B22 가 추가했던 containerStyles.width="100%" 철회 —
     //   generated Disclosure.css 에는 base width 규칙이 없다 (width:100% 는 DisclosureHeader
     //   의 것 — B22 전제 착오). DOM 정본 = flex 부모에서 fit-content (실측 168.2 vs Skia
@@ -4365,7 +4365,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   생성 CSS 에 border-style/color 가 안 실리는 dead 값이었고 Skia layout 만 1px 을 읽어 w/h Δ2
     //   (2026-09-18, `catalogComponentBox` Disclosure 케이스).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -4373,7 +4373,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -4382,7 +4382,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // chevron 18 (사용자 결정 2026-09-29 — M 기준 18, DisclosureHeader.sizes.iconSize 와 같은 값).
         iconSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -4519,7 +4519,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   DisclosureGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 Phase 6 정정 (2026-07-16): B22 의 containerStyles.width="100%" 철회 —
     //   generated DisclosureGroup.css 에 base width 규칙 없음 (Disclosure 동형 착오).
     //   DOM 정본 = flex 부모에서 fit-content (실측 106.9 vs Skia 강제 350 역방향 발산).
@@ -4555,19 +4555,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   없으면 Skia generic shell 이 기본 thin (1px) 로 variant border 색을 그렸고, 생성 CSS 는
     //   border-style 이 없어 DOM 은 `0px none` — Skia 에만 테두리가 보였다 (2026-09-24 Compare Mode 실측).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         borderWidth: "{border.width.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         borderWidth: "{border.width.none}",
@@ -4604,7 +4604,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   DropZone: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4630,7 +4630,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   props.style 이 SSOT(ADR-907 Layer B — layout 엔진 rule import 0건), rule 의 paddingY/gap 은
     //   generated CSS emit 전용(Nav 동형).
     sizes: {
-      sm: {
+      S: {
         paddingX: 16,
         paddingY: 16,
         gap: 8,
@@ -4640,7 +4640,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 80,
         iconSize: 24,
       },
-      md: {
+      M: {
         paddingX: 24,
         paddingY: 24,
         gap: 12,
@@ -4650,7 +4650,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 120,
         iconSize: 32,
       },
-      lg: {
+      L: {
         paddingX: 32,
         paddingY: 32,
         gap: 16,
@@ -4727,7 +4727,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Field: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4743,7 +4743,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 32,
@@ -4752,7 +4752,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   FieldError: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4786,31 +4786,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-253: the part's own size steps (xs · xl added) — the field's size reaches it
       //   (`CATALOG_SIZE_PROPAGATION`); no field rule declares its font. md = text-xs, the
       //   reference's hint size (one step under the field's text).
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
@@ -4834,7 +4834,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   generated CSS emit 전용.
   FileUpload: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4851,7 +4851,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -4878,7 +4878,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   FileTrigger: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -4911,7 +4911,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (FileTrigger.spec.sizes 미러). iconSize 는 이미 존재. height · paddingX 는 트리거
       //   button 의 상자 (ADR-248 4e-10 — composition.containerStyles 제거로 두 소비자가 emit).
-      sm: {
+      S: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
@@ -4919,7 +4919,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 14,
       },
-      md: {
+      M: {
         paddingX: 24,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
@@ -4927,7 +4927,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconSize: 16,
       },
-      lg: {
+      L: {
         paddingX: 32,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
@@ -4983,7 +4983,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Form: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5015,28 +5015,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (Form.spec.sizes 미러). padding 은 composition.layout=flex-column + containerStyles
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
-      sm: {
+      S: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         gap: 12,
       },
-      md: {
+      M: {
         paddingX: 20,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
         gap: 16,
       },
-      lg: {
+      L: {
         paddingX: 28,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
         gap: 20,
       },
-      xl: {
+      XL: {
         paddingX: 36,
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.2xl}",
@@ -5092,10 +5092,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   frame: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -5131,7 +5131,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       width: "100%",
     },
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5159,7 +5159,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: 0,
@@ -5171,11 +5171,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
      소비. DOM(builder GridList.css [data-selected] accent 2px)과 대칭. schema 기존 보유. */
   GridListItem: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-912 Phase 3-A-3b (2026-06-20): collection-item base-axis 를 catalog SSOT 로 도달.
     //   카드 컨테이너 flex-column layout(권위 source = starter GridList.css:112
     //   `.react-aria-GridListItem { display:flex; flex-direction:column; min-width:0 }`).
-    //   gap 은 sizes.md.gap(2) 경유라 containerStyles 에 중복 미선언. implicitStyles
+    //   gap 은 sizes.M.gap(2) 경유라 containerStyles 에 중복 미선언. implicitStyles
     //   gridlistitem 분기 인라인(display/flexDirection/minWidth)을 본 source 로 대체.
     structure: {
       archetype: "default",
@@ -5250,13 +5250,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.lg}",
         // height 0 = content-fit (카드 시각 = label + description 합산 + padding).
         height: 0,
-        // spec.sizes.md 이전: paddingX 16 / paddingY 12 (수동 CSS spacing-md/lg 정합).
+        // spec.sizes.M 이전: paddingX 16 / paddingY 12 (수동 CSS spacing-md/lg 정합).
         paddingX: 16,
         paddingY: 12,
         // label↔description 수직 간격 (spec gap 2 + descGap, card_description 이 소비).
@@ -5267,7 +5267,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Group: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5295,17 +5295,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -5323,10 +5323,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-238 Phase 2 — ListBoxSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
   //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
   ListBoxSection: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -5340,10 +5340,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-238 Phase 2 — MenuSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
   //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
   MenuSection: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -5357,10 +5357,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-238 Phase 2 — GridListSection: 목록 묶음 층 (투명 — 상자 시각 없음). display 는 archetype container 기본 (block) —
   //   DOM `<section>` 과 같은 block flow 에 Header (inline-flex) · 항목 (block) 이 쌓인다.
   GridListSection: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -5372,10 +5372,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Header: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -5383,7 +5383,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         fontWeight: 700,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -5391,7 +5391,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 6,
         fontWeight: 700,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -5417,7 +5417,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Heading: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
     //   layout 이 미소비 (flex 부모에서 Skia 80 vs CSS 350 실측). layout fallback
     //   채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -5446,43 +5446,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         lineHeight: "{typography.text-xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "2xl": {
+      XXL: {
         fontSize: "{typography.text-2xl}",
         lineHeight: "{typography.text-2xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "3xl": {
+      XXXL: {
         fontSize: "{typography.text-3xl}",
         lineHeight: "{typography.text-3xl--line-height}",
         borderRadius: "{radius.none}",
@@ -5500,7 +5500,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Icon: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5516,31 +5516,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 16,
         iconSize: 16,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 18,
         iconSize: 18,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-2xl}",
         borderRadius: "{radius.none}",
         height: 24,
         iconSize: 24,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-4xl}",
         borderRadius: "{radius.none}",
         height: 36,
         iconSize: 36,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-5xl}",
         borderRadius: "{radius.none}",
         height: 48,
@@ -5566,7 +5566,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   IllustratedMessage: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5588,17 +5588,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   `orientation` blocks below (`rulePartRules.ts` reads them for the Canvas, the generated sheet
     //   for the Preview).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: "auto",
@@ -5621,7 +5621,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         containerVariants: {
           size: {
-            lg: {
+            L: {
               styles: {
                 "--im-illustration-gap": "8px",
               },
@@ -5710,7 +5710,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   the glyph is its box (Icon 동형).
   Illustration: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5726,19 +5726,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 48,
         iconSize: 48,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 96,
         iconSize: 96,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 160,
@@ -5757,7 +5757,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Image: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5773,17 +5773,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 120,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 200,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 320,
@@ -5792,7 +5792,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   InlineAlert: {
     defaultVariant: "info",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       neutral: {
         fill: {
@@ -5881,7 +5881,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   ADR-254: 제목 · 설명의 글자 (종전 headingFontSize/Weight · descFontSize/Weight) 는
       //   Heading · Description 원본의 instance 가 자기 rule 로 그린다 — InlineAlert 의 size 를
       //   받아서 (`CATALOG_SIZE_PROPAGATION` · `CATALOG_SIZE_STEP`, 설명은 한 단계 위).
-      sm: {
+      S: {
         paddingX: 8,
         paddingY: 8,
         gap: 8,
@@ -5889,7 +5889,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: "auto",
       },
-      md: {
+      M: {
         paddingX: 16,
         paddingY: 16,
         gap: 12,
@@ -5897,7 +5897,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: "auto",
       },
-      lg: {
+      L: {
         paddingX: 24,
         paddingY: 24,
         gap: 16,
@@ -5920,7 +5920,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Input: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -5970,7 +5970,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   rules declare none). Its height is its content — line height + paddingY×2 + border×2
       //   (md 20 + 8 + 2 = 30) — so the same block sizes the `<textarea>` of a TextArea, whose
       //   height is its `rows`.
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.xs}",
@@ -5979,7 +5979,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 4,
         paddingY: 1,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -5988,7 +5988,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 8,
         paddingY: 2,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -5997,7 +5997,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 12,
         paddingY: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -6006,7 +6006,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 16,
         paddingY: 8,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
@@ -6121,7 +6121,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Kbd: {
     defaultVariant: "default",
-    defaultSize: "sm",
+    defaultSize: "S",
     variants: {
       default: {
         fill: {
@@ -6143,7 +6143,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
@@ -6151,7 +6151,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 18,
       },
-      sm: {
+      S: {
         paddingX: 6,
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
@@ -6159,7 +6159,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 22,
       },
-      md: {
+      M: {
         paddingX: 8,
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
@@ -6167,7 +6167,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderWidth: "{border.width.thin}",
         height: 26,
       },
-      lg: {
+      L: {
         paddingX: 10,
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
@@ -6190,7 +6190,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   small radius, a subtle fill and border, the item's font (not mono — unlike Kbd).
   Keyboard: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -6208,7 +6208,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         paddingX: 4,
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
@@ -6240,7 +6240,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Label: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -6259,31 +6259,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
@@ -6312,7 +6312,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Link: {
     defaultVariant: "primary",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       primary: {
         fill: {
@@ -6349,35 +6349,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       // ADR-151 B4 (2026-07-16): lineHeight 토큰 pair 명시 — 미정의 시 DOM 은 상속 1.5(md 21px),
       //   Skia layout 은 estimateTextHeight fallback(md 16px) 으로 3자 발산. Description/Button 동형.
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: "{typography.text-2xs--line-height}",
         fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         fontWeight: 400,
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         fontWeight: 400,
@@ -6414,7 +6414,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ListBox: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -6473,7 +6473,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       borderWidth: "{border.width.thin}",
     },
     sizes: {
-      md: {
+      M: {
         paddingX: 4,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
@@ -6514,7 +6514,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ListBoxItem: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-912 collection sub-part cutover (2026-06-14, gridlist_card escape 선례 동형):
     //   ListBoxItem.spec.render.shapes(selection/hover row-bg + icon + label fw600 +
     //   description neutral-subdued + check)를 rule + listbox_item skiaPrimitive(replace)로
@@ -6537,7 +6537,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.xs}",
@@ -6548,11 +6548,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   (label+description) 아래로 축소·겹치고 scrollHeight 가 clientHeight 를 못 넘겨 스크롤이 안 생김.
         //   Skia resolveListBoxItemRowHeight 는 element style.minHeight ?? 20 을 읽어(catalog 미참조)
         //   무회귀. min-content(≥ line-height 20)가 이미 하한 역할이라 명시 floor 불필요.
-        // label 두께 (spec.sizes.md.fontWeight 600 — semibold). generate-css virtual 이
+        // label 두께 (spec.sizes.M.fontWeight 600 — semibold). generate-css virtual 이
         //   `font-weight: 600` emit (기존 generated childSpec block 동형 복원). 수동 ListBox.css
         //   `[slot="label"] { font-weight: 600 }` 와 중복이나 description slot 상속분까지 보장.
         fontWeight: 600,
-        // spec.sizes.md 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
+        // spec.sizes.M 이전: paddingX 12 / paddingY 4 (수동 CSS spacing-md/sm 정합).
         paddingX: 12,
         paddingY: 4,
         // label↔description 수직 간격 (spec gap 2).
@@ -6589,7 +6589,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Menu: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-256 후속 4 (2026-10-09): a Menu node is RAC's `Menu` — the list — wherever it stands (in
     //   its MenuTrigger's Popover, open in an Autocomplete). The trigger is the MenuTrigger's
     //   Button node (its look the Button's): the top level is the list panel, the same values as
@@ -6622,25 +6622,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       borderWidth: "{border.width.thin}",
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
@@ -6720,10 +6720,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   MenuItem: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -6732,7 +6732,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 2,
         gap: 6,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
@@ -6741,7 +6741,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         gap: 8,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
@@ -6750,7 +6750,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 8,
         gap: 10,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.xl}",
@@ -6783,7 +6783,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Meter: {
     defaultVariant: "informative",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
     //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
     containerVariants: {
@@ -6848,28 +6848,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
         height: 4,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
         height: 8,
         gap: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
         height: 12,
         gap: 4,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.lg}",
@@ -6983,7 +6983,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         sizeSelectors: {
-          sm: {
+          S: {
             ".bar": {
               height: "var(--spacing-xs)",
               "border-radius": "var(--radius-sm)",
@@ -6992,7 +6992,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-xs)",
             },
           },
-          md: {
+          M: {
             ".bar": {
               height: "var(--spacing-sm)",
               "border-radius": "var(--radius-sm)",
@@ -7001,7 +7001,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-sm)",
             },
           },
-          lg: {
+          L: {
             ".bar": {
               height: "var(--spacing-md)",
               "border-radius": "var(--radius-lg)",
@@ -7010,7 +7010,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-base)",
             },
           },
-          xl: {
+          XL: {
             ".bar": {
               height: "var(--spacing-lg)",
               "border-radius": "var(--radius-lg)",
@@ -7029,7 +7029,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   variant block — informative · positive · notice · negative).
   MeterFill: {
     defaultVariant: "informative",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       informative: {
         fill: {
@@ -7083,10 +7083,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-256 후속 11: the track's corners (the DOM fill is clipped by the rounded `.bar`; the Canvas
     //   clips to a rectangle, so the fill takes the track radius — a partial fill's end is rounded).
     sizes: {
-      sm: { borderRadius: "{radius.sm}" },
-      md: { borderRadius: "{radius.sm}" },
-      lg: { borderRadius: "{radius.lg}" },
-      xl: { borderRadius: "{radius.lg}" },
+      S: { borderRadius: "{radius.sm}" },
+      M: { borderRadius: "{radius.sm}" },
+      L: { borderRadius: "{radius.lg}" },
+      XL: { borderRadius: "{radius.lg}" },
     },
     structure: {
       archetype: "progress",
@@ -7098,7 +7098,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   MeterTrack: {
     defaultVariant: "informative",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // The track's own box (neutral-subtle — the Meter sheet's `.bar` --bg-muted); its fill is the
       //   MeterFill node (ADR-256 Phase 7b).
@@ -7153,22 +7153,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 8,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 12,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 16,
@@ -7193,7 +7193,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   MeterValue: {
     defaultVariant: "informative",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       informative: {
         fill: {
@@ -7245,25 +7245,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.none}",
         height: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.none}",
         height: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.none}",
         height: 24,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.none}",
@@ -7280,7 +7280,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Modal: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -7296,7 +7296,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         paddingX: 24,
         // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
         //   `padding: 24px 24px` + `gap: 8px` 재생성용 (ruleSizeToSizeSpec paddingY 기본 0/gap 미emit
@@ -7341,7 +7341,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Nav: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -7369,7 +7369,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         paddingX: 12,
         paddingY: 8,
         gap: 8,
@@ -7377,7 +7377,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 48,
       },
-      md: {
+      M: {
         paddingX: 16,
         paddingY: 12,
         gap: 12,
@@ -7385,7 +7385,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 56,
       },
-      lg: {
+      L: {
         paddingX: 20,
         paddingY: 16,
         gap: 16,
@@ -7409,13 +7409,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   NumberField: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (NumberField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
@@ -7423,7 +7423,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 2,
         iconSize: 10,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -7431,7 +7431,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 4,
         iconSize: 14,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
@@ -7439,7 +7439,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 18,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
@@ -7447,7 +7447,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconSize: 22,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
@@ -7596,11 +7596,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "nf-btn",
             variables: {
-              xs: { "--nf-btn-size": "20px" },
-              sm: { "--nf-btn-size": "22px" },
-              md: { "--nf-btn-size": "30px" },
-              lg: { "--nf-btn-size": "42px" },
-              xl: { "--nf-btn-size": "54px" },
+              XS: { "--nf-btn-size": "20px" },
+              S: { "--nf-btn-size": "22px" },
+              M: { "--nf-btn-size": "30px" },
+              L: { "--nf-btn-size": "42px" },
+              XL: { "--nf-btn-size": "54px" },
             },
             bridges: {
               flex: "0 0 auto",
@@ -7624,7 +7624,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Pagination: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -7654,17 +7654,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 28,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 36,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 44,
@@ -7731,7 +7731,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Paragraph: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 B22 잔여 (2026-07-16): Text 동형 — generated CSS base `width: 100%` 를
     //   layout 이 미소비 (flex 부모에서 fit-content 80 vs CSS 350 실측). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -7756,43 +7756,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         lineHeight: "{typography.text-xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "2xl": {
+      XXL: {
         fontSize: "{typography.text-2xl}",
         lineHeight: "{typography.text-2xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "3xl": {
+      XXXL: {
         fontSize: "{typography.text-3xl}",
         lineHeight: "{typography.text-3xl--line-height}",
         borderRadius: "{radius.none}",
@@ -7810,7 +7810,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Popover: {
     defaultVariant: "surface",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       accent: {
         fill: {
@@ -7856,7 +7856,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 Popover 단건 (2026-06-16): paddingY/gap 보강 —
       //   Popover.spec.ts 삭제 대비 generated Popover.css(padding: NNpx NNpx / gap: NNpx) diff-0 유지.
       //   값은 (구) PopoverSpec.sizes 와 동일 (paddingX==paddingY, gap sm:8/md:12/lg:16).
-      sm: {
+      S: {
         paddingX: 12,
         paddingY: 12,
         gap: 8,
@@ -7864,7 +7864,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 0,
       },
-      md: {
+      M: {
         paddingX: 16,
         paddingY: 16,
         gap: 12,
@@ -7872,7 +7872,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 0,
       },
-      lg: {
+      L: {
         paddingX: 20,
         paddingY: 20,
         gap: 16,
@@ -7903,7 +7903,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ProgressBar: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-913 동형: label-position:side (Skia resolveActiveContainerVariants 소비 — 부모 flex-row).
     //   CSS 대칭 = structure.composition.containerVariants["label-position"], 자식 order 는 implicitStyles.
     containerVariants: {
@@ -7956,7 +7956,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
@@ -7965,7 +7965,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         maxWidth: 768,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.sm}",
@@ -7974,7 +7974,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         maxWidth: 768,
         gap: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.md}",
@@ -7983,7 +7983,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         maxWidth: 768,
         gap: 4,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.md}",
@@ -8114,7 +8114,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
         },
         sizeSelectors: {
-          sm: {
+          S: {
             ".bar": {
               height: "var(--spacing-xs)",
               "border-radius": "var(--radius-sm)",
@@ -8126,7 +8126,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-xs)",
             },
           },
-          md: {
+          M: {
             ".bar": {
               height: "var(--spacing-sm)",
               "border-radius": "var(--radius-sm)",
@@ -8138,7 +8138,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-sm)",
             },
           },
-          lg: {
+          L: {
             ".bar": {
               height: "var(--spacing-md)",
               "border-radius": "var(--radius-lg)",
@@ -8150,7 +8150,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-base)",
             },
           },
-          xl: {
+          XL: {
             ".bar": {
               height: "var(--spacing-lg)",
               "border-radius": "var(--radius-lg)",
@@ -8184,7 +8184,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ProgressBarTrack: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // The track takes its owner's variant (`catalogDerivedProps`). Colors mirror the owner's DOM
       //   custom properties (ProgressBar `composition`): `.bar` = `--track-color`, `.fill` =
@@ -8235,22 +8235,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 8,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 12,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 16,
@@ -8279,7 +8279,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   (radius · height) is the ProgressBar sheet's `.fill` (part rule), its width `{percentage}%`.
   ProgressBarFill: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -8320,10 +8320,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     // ADR-256 후속 11: the corners of the ProgressBar · Meter sheet's `.bar` · `.fill` (per size).
     sizes: {
-      sm: { borderRadius: "{radius.sm}" },
-      md: { borderRadius: "{radius.sm}" },
-      lg: { borderRadius: "{radius.md}" },
-      xl: { borderRadius: "{radius.lg}" },
+      S: { borderRadius: "{radius.sm}" },
+      M: { borderRadius: "{radius.sm}" },
+      L: { borderRadius: "{radius.md}" },
+      XL: { borderRadius: "{radius.lg}" },
     },
     structure: {
       archetype: "progress",
@@ -8335,7 +8335,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ProgressBarValue: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -8351,25 +8351,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.none}",
         height: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.none}",
         height: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.none}",
         height: 24,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.none}",
@@ -8386,7 +8386,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ProgressCircle: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -8402,17 +8402,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 24,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 32,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 64,
@@ -8428,7 +8428,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Radio: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
     //   (Radio.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
@@ -8505,7 +8505,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   size.indicator.{boxSize,dotSize} 를 읽으나 catalog 부재로 전 size 20/8 고정이었다.
       //   boxSize = Radio.css :before (--text-base/xl/2xl/3xl), dotSize = boxSize - 2×selected
       //   border-width (5/6/7/8) 미러.
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -8514,7 +8514,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         indicator: { boxSize: 16, dotSize: 6 },
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -8523,7 +8523,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         indicator: { boxSize: 20, dotSize: 8 },
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -8532,7 +8532,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         indicator: { boxSize: 24, dotSize: 10 },
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -8590,7 +8590,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   RadioGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -8621,25 +8621,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
       //   재생성용 (RadioGroup.spec.sizes 미러). 자식 .radio-items gap 은 composition
       //   containerVariants.size 의 --radio-items-gap 별도 경로. padding 미emit(ownsContainerBox).
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 8,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 12,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 0,
         gap: 16,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -8685,12 +8685,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         containerVariants: {
           size: {
-            sm: {
+            S: {
               styles: {
                 "--radio-items-gap": "8px",
               },
             },
-            lg: {
+            L: {
               styles: {
                 "--radio-items-gap": "16px",
               },
@@ -8786,7 +8786,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   RangeCalendar: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -8832,7 +8832,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   RangeCalendar.spec(=...CalendarSpec spread) 삭제 대비 generated RangeCalendar.css
       //   (padding NNpx NNpx / gap NNpx) diff-0 유지. 값은 (구) CalendarSpec.sizes 와 동일
       //   (RangeCalendar 는 시각 = Calendar — selector 이름만 차이).
-      sm: {
+      S: {
         paddingX: 4,
         paddingY: 4,
         gap: 4,
@@ -8841,7 +8841,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 20,
       },
-      md: {
+      M: {
         paddingX: 8,
         paddingY: 8,
         gap: 6,
@@ -8850,7 +8850,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 26,
       },
-      lg: {
+      L: {
         paddingX: 12,
         paddingY: 12,
         gap: 8,
@@ -8882,13 +8882,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   SearchField: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (SearchField.spec.sizes 미러). paddingY 는 composition.layout=flex-column root 가
       //   ownsContainerBox → padding 미emit 이라 보강 불요(gap 만).
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 22,
@@ -8896,7 +8896,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 30,
@@ -8904,7 +8904,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 42,
@@ -8912,7 +8912,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         iconSize: 22,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 54,
@@ -9062,27 +9062,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".searchfield-container > .react-aria-Icon",
             prefix: "sf-icon",
             variables: {
-              xs: {
+              XS: {
                 "--sf-icon-size": "10px",
                 "--sf-icon-inset": "4px",
                 "--sf-icon-pull": "-14px",
               },
-              sm: {
+              S: {
                 "--sf-icon-size": "12px",
                 "--sf-icon-inset": "6px",
                 "--sf-icon-pull": "-18px",
               },
-              md: {
+              M: {
                 "--sf-icon-size": "16px",
                 "--sf-icon-inset": "8px",
                 "--sf-icon-pull": "-24px",
               },
-              lg: {
+              L: {
                 "--sf-icon-size": "18px",
                 "--sf-icon-inset": "12px",
                 "--sf-icon-pull": "-30px",
               },
-              xl: {
+              XL: {
                 "--sf-icon-size": "22px",
                 "--sf-icon-inset": "16px",
                 "--sf-icon-pull": "-38px",
@@ -9107,11 +9107,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Input",
             prefix: "sf-input",
             variables: {
-              xs: { "--sf-input-pad": "20px" },
-              sm: { "--sf-input-pad": "24px" },
-              md: { "--sf-input-pad": "32px" },
-              lg: { "--sf-input-pad": "40px" },
-              xl: { "--sf-input-pad": "52px" },
+              XS: { "--sf-input-pad": "20px" },
+              S: { "--sf-input-pad": "24px" },
+              M: { "--sf-input-pad": "32px" },
+              L: { "--sf-input-pad": "40px" },
+              XL: { "--sf-input-pad": "52px" },
             },
             bridges: {
               "min-width": "0",
@@ -9124,11 +9124,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "sf-btn",
             variables: {
-              xs: { "--sf-btn-size": "12px", "--sf-btn-offset": "-16px" },
-              sm: { "--sf-btn-size": "14px", "--sf-btn-offset": "-20px" },
-              md: { "--sf-btn-size": "16px", "--sf-btn-offset": "-24px" },
-              lg: { "--sf-btn-size": "20px", "--sf-btn-offset": "-32px" },
-              xl: { "--sf-btn-size": "24px", "--sf-btn-offset": "-40px" },
+              XS: { "--sf-btn-size": "12px", "--sf-btn-offset": "-16px" },
+              S: { "--sf-btn-size": "14px", "--sf-btn-offset": "-20px" },
+              M: { "--sf-btn-size": "16px", "--sf-btn-offset": "-24px" },
+              L: { "--sf-btn-size": "20px", "--sf-btn-offset": "-32px" },
+              XL: { "--sf-btn-size": "24px", "--sf-btn-offset": "-40px" },
             },
             bridges: {
               flex: "0 0 auto",
@@ -9152,7 +9152,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Section: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -9232,7 +9232,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): paddingY/gap 보강 — spec 삭제 후 generated CSS
       //   `padding: Ypx Xpx` + `gap: Npx` 재생성용 (Section.spec.sizes 미러, Nav/DropZone 선례).
-      sm: {
+      S: {
         paddingX: 12,
         paddingY: 12,
         gap: 8,
@@ -9240,7 +9240,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.sm}",
         height: 0,
       },
-      md: {
+      M: {
         paddingX: 16,
         paddingY: 16,
         gap: 12,
@@ -9248,7 +9248,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         height: 0,
       },
-      lg: {
+      L: {
         paddingX: 24,
         paddingY: 24,
         gap: 16,
@@ -9272,7 +9272,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   Select: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     // ADR-912 단계5 step4 (2026-06-17): SelectSpec.spec 삭제 대비 — generate-css virtual emit 이
     //   base/size block 의 `gap: Npx` 를 byte-identical 재현하려면 gap 필수(CSSGenerator.ts:983 size.gap
@@ -9280,7 +9280,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   box 가 ownsContainerBox=true → skipPadding, padding 은 composition.delegation --select-btn-padding
     //   가 담당, base block 미emit). Input 과 달리 padding 은 delegation 위임이라 paddingY 불요.
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.xs}",
@@ -9288,7 +9288,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 14,
         gap: 2,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -9296,7 +9296,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 16,
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
@@ -9304,7 +9304,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 18,
         gap: 6,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
@@ -9312,7 +9312,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 22,
         gap: 8,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
@@ -9517,19 +9517,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-Button",
             prefix: "select-btn",
             variables: {
-              xs: {
+              XS: {
                 "--select-btn-pad-end": "2px",
               },
-              sm: {
+              S: {
                 "--select-btn-pad-end": "4px",
               },
-              md: {
+              M: {
                 "--select-btn-pad-end": "8px",
               },
-              lg: {
+              L: {
                 "--select-btn-pad-end": "12px",
               },
-              xl: {
+              XL: {
                 "--select-btn-pad-end": "16px",
               },
             },
@@ -9547,19 +9547,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-SelectValue",
             prefix: "select-value",
             variables: {
-              xs: {
+              XS: {
                 "--select-value-font-size": "var(--text-2xs)",
               },
-              sm: {
+              S: {
                 "--select-value-font-size": "var(--text-xs)",
               },
-              md: {
+              M: {
                 "--select-value-font-size": "var(--text-sm)",
               },
-              lg: {
+              L: {
                 "--select-value-font-size": "var(--text-base)",
               },
-              xl: {
+              XL: {
                 "--select-value-font-size": "var(--text-lg)",
               },
             },
@@ -9601,7 +9601,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   SelectValue: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -9617,27 +9617,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.none}",
         height: 14,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 24,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 28,
@@ -9646,7 +9646,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Separator: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -9751,21 +9751,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // paddingY 4/8/16 → 0 (2026-07-14): 간격은 margin(수동 Separator.css + Skia
       //   implicitStyles sep_margin) 소관 — padding 으로 emit 되면 border-box 하한이
       //   높이(1px)를 이겨 DOM 이 18px box 로 렌더 (Skia 390x1 과 발산 근본).
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 1, // Spectrum divider S=1px
         paddingX: 0,
         paddingY: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 2, // Spectrum divider M=2px (두께 축, 2026-08-21)
         paddingX: 0,
         paddingY: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 4, // Spectrum divider L=4px
@@ -9785,7 +9785,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Skeleton: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -9813,17 +9813,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
         height: 24,
@@ -9849,7 +9849,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   track/thumb metric 재생성 (ruleSizeToSizeSpec passthrough) + implicitStyles specSizeField rule
   //   fallback (columnGap/indicator.thumbSize). Slider.spec.ts:100-160 SSOT 1:1 미러.
   Slider: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     containerStyles: {
       display: "grid",
@@ -9871,7 +9871,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.full}",
@@ -9880,7 +9880,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         columnGap: 16,
         indicator: { trackHeight: 4, thumbSize: 14 },
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.full}",
@@ -9889,7 +9889,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         columnGap: 16,
         indicator: { trackHeight: 8, thumbSize: 18 },
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.full}",
@@ -9898,7 +9898,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         columnGap: 20,
         indicator: { trackHeight: 12, thumbSize: 22 },
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.full}",
@@ -9930,7 +9930,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
       composition: {
         sizeSelectors: {
-          sm: {
+          S: {
             ".react-aria-Label": {
               "font-size": "var(--text-xs)",
             },
@@ -9938,7 +9938,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-xs)",
             },
           },
-          md: {
+          M: {
             ".react-aria-Label": {
               "font-size": "var(--text-sm)",
             },
@@ -9946,7 +9946,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-sm)",
             },
           },
-          lg: {
+          L: {
             ".react-aria-Label": {
               "font-size": "var(--text-base)",
             },
@@ -9954,7 +9954,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "font-size": "var(--text-base)",
             },
           },
-          xl: {
+          XL: {
             ".react-aria-Label": {
               "font-size": "var(--text-lg)",
             },
@@ -9996,7 +9996,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   radius (as the old track primitive's fill).
   SliderFill: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10010,19 +10010,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
       },
@@ -10033,28 +10033,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   SliderOutput: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.none}",
         height: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.none}",
         height: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.none}",
         height: 24,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.none}",
@@ -10076,7 +10076,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   spec(SliderThumb.spec.sizes 14/18/22/26)과 불일치였음 → SSOT 정합 + xl 추가.
   SliderThumb: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10090,22 +10090,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 22,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 26,
@@ -10116,7 +10116,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   consumers); its fill is the SliderFill node, its thumbs the SliderThumb nodes.
   SliderTrack: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // The bar (neutral-subtle — the generated `--bg-muted`).
       default: {
@@ -10135,25 +10135,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // height = trackHeight (visual 트랙 두께) / thumbSize = 핸들 지름 (layout box 높이, thumb 수용).
     //   Slider.spec.sizes.*.indicator SSOT 미러 (trackHeight 4/8/12/16, thumbSize 14/18/22/26).
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 4,
         thumbSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 8,
         thumbSize: 18,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 12,
         thumbSize: 22,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 16,
@@ -10187,10 +10187,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   Transform Height 가 inline 부재 시 catalog 로 fallback 하면서 **실제 1024px 인 슬롯을
   //   60px 로 표시**했다. 빈 슬롯이 보이게 하는 하한은 프리셋의 `minHeight` 가 담당한다.
   Slot: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      sm: {
+      S: {
         minHeight: 40,
         paddingX: 8,
         paddingY: 8,
@@ -10198,7 +10198,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         gap: 4,
       },
-      md: {
+      M: {
         minHeight: 60,
         paddingX: 12,
         paddingY: 12,
@@ -10206,7 +10206,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.md}",
         gap: 8,
       },
-      lg: {
+      L: {
         minHeight: 80,
         paddingX: 16,
         paddingY: 16,
@@ -10256,7 +10256,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   StatusLight: {
     defaultVariant: "neutral",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       neutral: {
         fill: {
@@ -10490,28 +10490,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // `indicator.dotSize`: the dot diameter (DOM inline style · Skia `status_light` · the Canvas
     //   content width) — not emitted to CSS.
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 20,
         gap: 8,
         indicator: { dotSize: 8 },
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 24,
         gap: 8,
         indicator: { dotSize: 10 },
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 28,
         gap: 8,
         indicator: { dotSize: 12 },
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.none}",
         height: 32,
@@ -10535,7 +10535,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Switch: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
     //   (Switch.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
@@ -10578,7 +10578,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   size.indicator.{trackWidth,trackHeight,thumbSize,thumbOffset} 를 읽으나 catalog
       //   부재로 전 size 36/20/16/2(md) 고정이었다. 값은 Switch.css indicator 미러 —
       //   track 32/36/44/52 × 18/20/24/30, thumb 14/16/20/24, offset = (track높이-thumb)/2.
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
         height: 0,
@@ -10592,7 +10592,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           thumbOffset: 2,
         },
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
         height: 0,
@@ -10606,7 +10606,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           thumbOffset: 2,
         },
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
         height: 0,
@@ -10620,7 +10620,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           thumbOffset: 2,
         },
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.full}",
         height: 0,
@@ -10687,7 +10687,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // 자체가 hydration 으로 ToggleButtonGroup 변환되어 Switcher rule 소비 0).
   Tab: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10704,7 +10704,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 21,
@@ -10712,7 +10712,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 2,
         fontWeight: 500,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 29,
@@ -10720,7 +10720,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         fontWeight: 500,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 41,
@@ -10769,7 +10769,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TabList: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     // density (2026-08-21) — Spectrum 규칙 채택: 폰트(size 축)는 유지하고 **탭 항목 사이
     //   간격만** 바꾼다 (design-data tabs tokenBindings `tab-item-to-tab-item-compact-
@@ -10783,17 +10783,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       regular: { gap: 8 },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 21,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 29,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 41,
@@ -10820,7 +10820,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TabPanel: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10850,21 +10850,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       flexDirection: "column",
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         paddingX: 8,
         paddingY: 8,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         paddingX: 12,
         paddingY: 12,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
@@ -10892,7 +10892,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TabPanels: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10911,21 +10911,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   직계 — `.react-aria-TabPanels` 는 어느 DOM 에도 없다). 종전 12 는 Skia 만 읽어 TabPanel 이 (12,12) 에
     //   놓이고 Tabs 가 DOM 보다 24 컸다. 패널 padding 은 TabPanel 자기 sizes 가 정본.
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         paddingX: 0,
         paddingY: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
@@ -10950,7 +10950,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TableHeader: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10967,7 +10967,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {},
+      M: {},
     },
     containerStyles: {
       display: "flex",
@@ -10976,7 +10976,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TableBody: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -10993,7 +10993,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {},
+      M: {},
     },
     containerStyles: {
       display: "flex",
@@ -11002,7 +11002,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Row: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11019,7 +11019,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {},
+      M: {},
     },
     containerStyles: {
       display: "flex",
@@ -11028,7 +11028,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Column: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11051,7 +11051,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontWeight: 600,
         // fontSize/lineHeight: CSS Preview(renderTableViewSubtree generic div)는 fontSize 미명시 →
         //   부모 body 상속 16px + line-height normal 24px. Skia 셀 height(calculateContentHeight)와
@@ -11093,7 +11093,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Cell: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11112,7 +11112,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         // fontSize/lineHeight 16/24: Column 과 동형 — CSS Preview 상속값(16px/24px)과 Skia 텍스트·
         //   셀 height 정합(calculateContentHeight estimateTextHeight(16,24)=24 + paddingY*2=40).
         fontSize: 16,
@@ -11138,7 +11138,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Table: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
     //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -11190,19 +11190,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 36,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 44,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
@@ -11216,7 +11216,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   0건이라(2026-08-27 실측) 어느 대안을 골랐어도 팔레트는 자체 정의였다.
   Chart: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11246,21 +11246,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
         height: 160,
         paddingX: 8,
         paddingY: 8,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 240,
         paddingX: 12,
         paddingY: 12,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 320,
@@ -11314,9 +11314,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
       metrics: {
-        sm: { padding: 8, fontSize: 10 },
-        md: { padding: 12, fontSize: 11 },
-        lg: { padding: 16, fontSize: 12 },
+        S: { padding: 8, fontSize: 10 },
+        M: { padding: 12, fontSize: 11 },
+        L: { padding: 16, fontSize: 12 },
       },
       // ADR-211 표시 예산 — P0 실측 확정값 (docs/adr/evidence/211-p0-spike.md). light/dark 동일.
       budget: {
@@ -11345,7 +11345,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TableView: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11375,7 +11375,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: "auto",
@@ -11406,7 +11406,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Tabs: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         // ADR-912 단계 4 C2 (rule fill 정렬, 2026-06-03): 컨테이너 `colors.border` 제거.
@@ -11427,19 +11427,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.none}",
         height: 21,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 29,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -11469,15 +11469,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           {
             childSelector: ".react-aria-Tab",
             variables: {
-              sm: {
+              S: {
                 "--tab-padding": "var(--spacing-2xs) var(--spacing-sm)",
                 "--tab-font-size": "var(--text-xs)",
               },
-              md: {
+              M: {
                 "--tab-padding": "var(--spacing-xs) var(--spacing-md)",
                 "--tab-font-size": "var(--text-sm)",
               },
-              lg: {
+              L: {
                 "--tab-padding": "var(--spacing-sm) var(--spacing-lg)",
                 "--tab-font-size": "var(--text-base)",
               },
@@ -11489,7 +11489,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Tag: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11602,7 +11602,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 (2026-06-17): paddingY 보강 — layout TAG_SIZE_CONFIG 가 spec.sizes 대신
       //   ruleSizesToSizeSpecMap("Tag") 파생으로 이관(deriveSizeConfig 가 paddingY 소비 — allowsRemoving
       //   우측 패딩 축소 계산). Tag.spec paddingY(xs1/sm2/md4/lg8/xl12 = (height-lineHeight)/2 동일값) 이전.
-      xs: {
+      XS: {
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
@@ -11612,7 +11612,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 1,
         iconSize: 14,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
         borderRadius: "{radius.sm}",
@@ -11622,7 +11622,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 2,
         iconSize: 14,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
         borderRadius: "{radius.md}",
@@ -11632,7 +11632,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 4,
         iconSize: 14,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         lineHeight: 24,
         borderRadius: "{radius.lg}",
@@ -11642,7 +11642,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingY: 8,
         iconSize: 14,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
         borderRadius: "{radius.lg}",
@@ -11656,7 +11656,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TagGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         // ADR-912 단계 4 C2 (rule fill 정렬, 2026-06-03): 컨테이너 fill base→transparent + `colors.border`
@@ -11716,19 +11716,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 24,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 32,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
@@ -11764,7 +11764,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   //   variant 는 Tag chip semantic 이라 컨테이너 rule 에 dead → 단일 transparent default 로 정리.
   TagList: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -11790,27 +11790,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   borderRadius/height)는 Tag rule 에 존재 — utils.ts calculateContentHeight 가 chip 치수=
     //   Tag rule, gap=본 TagList rule 로 분리 read. 값 보존: sm/md=4, lg=6.
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
-        // minHeight = Tag.sizes.sm.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        // minHeight = Tag.sizes.S.height (chip border-box) — 빈 목록 틀의 기본 높이.
         minHeight: 22,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
-        // minHeight = Tag.sizes.md.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        // minHeight = Tag.sizes.M.height (chip border-box) — 빈 목록 틀의 기본 높이.
         minHeight: 30,
         gap: 4,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 32,
-        // minHeight = Tag.sizes.lg.height (chip border-box) — 빈 목록 틀의 기본 높이.
+        // minHeight = Tag.sizes.L.height (chip border-box) — 빈 목록 틀의 기본 높이.
         minHeight: 42,
         gap: 6,
       },
@@ -11818,7 +11818,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Text: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
     //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.
@@ -11844,43 +11844,43 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         lineHeight: "{typography.text-lg--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         lineHeight: "{typography.text-xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "2xl": {
+      XXL: {
         fontSize: "{typography.text-2xl}",
         lineHeight: "{typography.text-2xl--line-height}",
         borderRadius: "{radius.none}",
         height: 0,
       },
-      "3xl": {
+      XXXL: {
         fontSize: "{typography.text-3xl}",
         lineHeight: "{typography.text-3xl--line-height}",
         borderRadius: "{radius.none}",
@@ -11897,7 +11897,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TextArea: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
@@ -11920,25 +11920,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   계산한다 — **이 값은 어느 쪽도 읽지 않았다**. 전 표면 변이 대조로 확인 (64/80/120/160 →
       //   641/801/1201/1601: parity 1090 · builder 5246 · shared 972 중 반응한 것은 이 값을 고정하던
       //   테스트 하나뿐). 남겨두면 "여러 줄 상자 높이의 SSOT" 로 잘못 읽힌다.
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         gap: 6,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         gap: 8,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
@@ -12044,13 +12044,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TextField: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TextField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만).
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         borderRadius: "{radius.sm}",
@@ -12058,7 +12058,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 27, // Spectrum 1.5×height — 식별성 하한 (design-data 감사 §1-4, 2026-08-21)
         gap: 2,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
@@ -12066,7 +12066,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 33,
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
@@ -12074,7 +12074,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 45,
         gap: 6,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
@@ -12082,7 +12082,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         minWidth: 63,
         gap: 8,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
@@ -12222,31 +12222,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TimeField: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
       //   재생성용 (TimeField.spec.sizes 미러). padding 은 composition.layout=flex-column root
       //   ownsContainerBox → 미emit 이라 보강 불요(gap 만). borderRadius:0 은 spec 일치.
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: 22,
         gap: 4,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: 30,
         gap: 6,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: 0,
         height: 42,
         gap: 8,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: 0,
         height: 54,
@@ -12370,19 +12370,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             childSelector: ".react-aria-DateInput",
             prefix: "time-field-input",
             variables: {
-              xs: {
+              XS: {
                 "--time-field-input-min-width": "100px",
               },
-              sm: {
+              S: {
                 "--time-field-input-min-width": "120px",
               },
-              md: {
+              M: {
                 "--time-field-input-min-width": "150px",
               },
-              lg: {
+              L: {
                 "--time-field-input-min-width": "180px",
               },
-              xl: {
+              XL: {
                 "--time-field-input-min-width": "220px",
               },
             },
@@ -12405,7 +12405,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Toast: {
     defaultVariant: "info",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       // design-data 감사 (2026-08-20): info 가 fill/border 모두 neutral 과 완전
       //   동일값이라 informative 시맨틱이 죽어 있었다 (positive/negative 는 자기
@@ -12466,19 +12466,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 40,
         iconSize: 16,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 48,
         iconSize: 20,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
         height: 56,
@@ -12498,7 +12498,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ToggleButton: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // top-level containerStyles — Button 과 같은 발산 이력 (종전 Skia `INLINE_BLOCK_TAGS`("togglebutton")
     //   → block, 2026-06-27; 그 목록은 ADR-923 Phase 5 에서 삭제). display 는 DOM 과 같은 `inline-flex`
     //   (ADR-923 Phase 5 — Button 과 같은 사유, Direction selector 는 Phase 4 부터 inner 기준). gap=sizes[size].
@@ -12540,7 +12540,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         paddingX: 4,
         fontSize: "{typography.text-2xs}",
         lineHeight: 16,
@@ -12552,7 +12552,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 4,
         iconSize: 14,
       },
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-xs}",
         lineHeight: 16,
@@ -12564,7 +12564,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 6,
         iconSize: 16,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-sm}",
         lineHeight: 20,
@@ -12576,7 +12576,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 8,
         iconSize: 18,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-base}",
         lineHeight: 24,
@@ -12588,7 +12588,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         gap: 10,
         iconSize: 24,
       },
-      xl: {
+      XL: {
         paddingX: 24,
         fontSize: "{typography.text-lg}",
         lineHeight: 28,
@@ -12629,7 +12629,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   ToggleButtonGroup: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-913 slice 1 (2026-06-18): Skia layout fallback (resolveContainerStylesFallback →
     //   LOWERCASE_COMPONENT_RULE_CONTAINER) 이 본 필드를 읽어 display:flex 주입. ADR-912 cutover 가
     //   STRUCTURE_META(generate-css 전용) 에만 containerStyles 를 넣고 rule entry 에는 누락시켜,
@@ -12673,27 +12673,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      xs: {
+      XS: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.sm}",
         height: 0,
       },
-      sm: {
+      S: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
       },
-      md: {
+      M: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.lg}",
         height: 0,
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.xl}",
         height: 0,
       },
-      xl: {
+      XL: {
         fontSize: "{typography.text-xl}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -12724,19 +12724,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             //   lg/xl→lg) — segmented containerVariants 의 first/last-child 코너가 이 변수를
             //   참조하여 size 분기 없이 size별 radius 정합(2026-06-22 segmented 추가).
             variables: {
-              xs: {
+              XS: {
                 "--btn-border-radius": "var(--radius-sm)",
               },
-              sm: {
+              S: {
                 "--btn-border-radius": "var(--radius-sm)",
               },
-              md: {
+              M: {
                 "--btn-border-radius": "var(--radius-md)",
               },
-              lg: {
+              L: {
                 "--btn-border-radius": "var(--radius-lg)",
               },
-              xl: {
+              XL: {
                 "--btn-border-radius": "var(--radius-lg)",
               },
             },
@@ -12964,7 +12964,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Toolbar: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       default: {
         fill: {
@@ -12997,21 +12997,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS [data-size]
       //   `gap: Npx` 재생성용 (Toolbar.spec.sizes 미러). base gap:8px 는 composition.containerStyles
       //   별도 경로. padding 미emit(ownsContainerBox).
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 0,
         gap: 4,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 0,
         gap: 8,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.lg}",
@@ -13086,7 +13086,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Tooltip: {
     defaultVariant: "neutral",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       neutral: {
         fill: {
@@ -13141,7 +13141,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 (2026-06-16): paddingY 보강 — generated CSS 의 `padding: {Y}px {X}px`
       //   Y값(sm:4/md:6/lg:8)이 rule 에서 emit 되도록(TooltipSpec.sizes.paddingY 미러). spec 삭제
       //   후 STRUCTURE_META virtual override 가 동일 padding 재생성 → diff 0. paddingX 와 대칭.
-      sm: {
+      S: {
         paddingX: 8,
         paddingY: 4,
         fontSize: "{typography.text-xs}",
@@ -13149,7 +13149,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         maxWidth: 160, // Spectrum 스키마 maxWidth (2026-08-21)
       },
-      md: {
+      M: {
         paddingX: 10,
         paddingY: 6,
         fontSize: "{typography.text-xs}",
@@ -13157,7 +13157,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         maxWidth: 160,
       },
-      lg: {
+      L: {
         paddingX: 12,
         paddingY: 8,
         fontSize: "{typography.text-sm}",
@@ -13194,10 +13194,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 후속 4: RAC MenuTrigger's layout box (the shared component's `div.react-aria-MenuTrigger`
   //   — DialogTrigger · TooltipTrigger 동형). Its Popover rests closed: the box is the Button's.
   MenuTrigger: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -13216,10 +13216,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   TooltipTrigger: {
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {},
     sizes: {
-      md: {
+      M: {
         height: 0,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
@@ -13239,7 +13239,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   Tree: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-913 slice 4 (2026-06-19): ListBox/Menu/TagGroup 동형 collection cutover 멤버인데
     //   ADR-912 단계5 step4 배치에서 containerStyles 이관 누락 → spec 삭제 후 Skia layout
     //   fallback(resolveContainerStylesFallback → LOWERCASE_COMPONENT_RULE_CONTAINER)이 빈
@@ -13295,21 +13295,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         paddingX: 8,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.sm}",
         height: 28,
         iconSize: 14,
       },
-      md: {
+      M: {
         paddingX: 12,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.md}",
         height: 36,
         iconSize: 16,
       },
-      lg: {
+      L: {
         paddingX: 16,
         fontSize: "{typography.text-lg}",
         borderRadius: "{radius.md}",
@@ -13320,7 +13320,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   TreeItem: {
     defaultVariant: "default",
-    defaultSize: "md",
+    defaultSize: "M",
     // ADR-239 Phase 1 (2026-09-25): 행 안 역할 자식 (Label Text · Icon · Description) 의 가로 배치 — layout fallback
     //   채널 (CSS 는 수동 `Tree.css` `.react-aria-TreeItem { display:flex; align-items:center; gap: var(--spacing-2xs) }`
     //   그대로). 왼쪽 여백 (chevron 앞까지 · 들여쓰기) · 최소 높이는 깊이에 따라 implicitStyles 가 채운다.
@@ -13354,7 +13354,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      sm: {
+      S: {
         fontSize: "{typography.text-xs}",
         // height 24 = spec rowHeight(fontSize 12 + paddingY 6*2). box(height>0) → text
         //   baseline:middle + leading icon y=height/2 (DisclosureHeader parity). 이전 height:0
@@ -13367,7 +13367,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         indentPerLevel: 16,
         borderRadius: "{radius.none}",
       },
-      md: {
+      M: {
         // DOM(starter Tree.css)은 size 변형 없는 고정 메트릭: min-height 32(= paddingY 4*2 +
         //   line box 24) + font-size text-base(16) + chevron svg 16. 구 28/text-sm/15 는
         //   spec rowHeight 산술 잔존으로 CSS 실측 대비 -4~-8 drift (2026-07-14 sweep).
@@ -13378,7 +13378,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         indentPerLevel: 16,
         borderRadius: "{radius.none}",
       },
-      lg: {
+      L: {
         fontSize: "{typography.text-base}",
         height: 32,
         paddingX: 12,

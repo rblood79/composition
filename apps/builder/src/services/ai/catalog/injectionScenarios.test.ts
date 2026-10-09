@@ -52,7 +52,7 @@ const SCENARIOS: readonly Scenario[] = [
     id: "s3",
     request: "버튼을 제일 크게 만들어줘",
     selectedType: "Button",
-    needs: [{ type: "Button", props: ["size"], values: { size: "xl" } }],
+    needs: [{ type: "Button", props: ["size"], values: { size: "XL" } }],
   },
   {
     id: "s4",

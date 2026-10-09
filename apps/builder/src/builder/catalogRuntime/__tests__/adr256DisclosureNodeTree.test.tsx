@@ -232,9 +232,9 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
   });
 
   it.each([
-    ["sm", 12],
-    ["md", 14],
-    ["lg", 16],
+    ["S", 12],
+    ["M", 14],
+    ["L", 16],
   ])("Canvas %s: the trigger's old geometry — chevron 18 at x 12, title at x 34 in the size font", async (size, fontSize) => {
     const { root, part } = await place("disclosure", { size });
     const trigger = part("Button")!;
@@ -249,7 +249,7 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
     // (The old header's — the chevron 18 or the line, plus the 8px padding.)
     expect(geometry.get(trigger.id)!.height).toBeCloseTo(
-      { sm: 34, md: 36, lg: 38.857 }[size]!,
+      { S: 34, M: 36, L: 38.857 }[size]!,
       2,
     );
     // The panel content takes the Disclosure's size font (the old DisclosureContent's).

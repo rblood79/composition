@@ -164,7 +164,7 @@ function CatalogHistoryContent() {
                   >
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="S"
                       onPress={() => history.goTo(index)}
                       className="history-item-btn"
                       aria-current={isActive ? "step" : undefined}

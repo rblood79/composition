@@ -14,7 +14,7 @@ describe("resolveSpecPreset", () => {
   beforeEach(() => clearSpecPresetCache());
 
   it("returns numeric width/height for Kbd size=md", () => {
-    const preset = resolveSpecPreset("Kbd", "md");
+    const preset = resolveSpecPreset("Kbd", "M");
     expect(typeof preset.width === "number" || preset.width === undefined).toBe(
       true,
     );
@@ -26,7 +26,7 @@ describe("resolveSpecPreset", () => {
   });
 
   it("returns {} for unknown tag", () => {
-    expect(resolveSpecPreset("UnknownTag", "md")).toEqual({});
+    expect(resolveSpecPreset("UnknownTag", "M")).toEqual({});
   });
 
   it("returns {} for null element type", () => {
@@ -34,14 +34,14 @@ describe("resolveSpecPreset", () => {
   });
 
   it("caches by (type, size) — same input returns same reference", () => {
-    const a = resolveSpecPreset("Kbd", "md");
-    const b = resolveSpecPreset("Kbd", "md");
+    const a = resolveSpecPreset("Kbd", "M");
+    const b = resolveSpecPreset("Kbd", "M");
     expect(a).toBe(b);
   });
 
   it("different size returns different cached entry", () => {
-    const md = resolveSpecPreset("Kbd", "md");
-    const lg = resolveSpecPreset("Kbd", "lg");
+    const md = resolveSpecPreset("Kbd", "M");
+    const lg = resolveSpecPreset("Kbd", "L");
     expect(md).not.toBe(lg);
   });
 
@@ -49,7 +49,7 @@ describe("resolveSpecPreset", () => {
   it("returns {} gracefully when spec has no sizes object (flat-spec fallback)", () => {
     // 일부 spec(ToggleButton/TagGroup 등)은 flat 구조일 수 있음
     // resolveSpecPreset은 sizes[size] 미존재 시 빈 객체 반환해야 한다
-    const preset = resolveSpecPreset("ToggleButton", "md");
+    const preset = resolveSpecPreset("ToggleButton", "M");
     // 존재하지 않거나 sizes 미보유 시에도 throw 없이 객체 반환
     expect(preset).toEqual(expect.any(Object));
   });
@@ -85,7 +85,7 @@ describe("resolveSpecPreset", () => {
   ])(
     "%s 는 height 축을 preset 에서 제외 (컨테이너 height=auto, 입력/track 행 고정값 오표시 방지)",
     (type) => {
-      const preset = resolveSpecPreset(type, "md");
+      const preset = resolveSpecPreset(type, "M");
       expect(
         preset.height,
         `${type}.height 가 preset 에 노출되면 패널이 입력/track 행 높이를 컨테이너 높이로 오표시`,
@@ -100,7 +100,7 @@ describe("resolveSpecPreset", () => {
   // Label 은 sizes.height 가 0 이라 행 높이가 새지 않고, height 는 catalog containerStyles 의
   //   `fit-content` 선언 그대로 (사용자 결정 2026-09-29 — 손 CSS 에만 있던 값을 catalog 로).
   it("Label height preset = containerStyles 선언 fit-content", () => {
-    const preset = resolveSpecPreset("Label", "md");
+    const preset = resolveSpecPreset("Label", "M");
     expect(preset.height).toBe("fit-content");
     expect(preset.minHeight).toBeUndefined();
     expect(preset.maxHeight).toBeUndefined();
@@ -108,7 +108,7 @@ describe("resolveSpecPreset", () => {
 
   it("progress/slider archetype 의 height 축 제외는 유지 (회귀 0)", () => {
     // 기존 TRACK_HEIGHT_ARCHETYPES 동작 보존 — type 기반 set 추가가 archetype 경로를 깨지 않음
-    const progress = resolveSpecPreset("ProgressBar", "md");
+    const progress = resolveSpecPreset("ProgressBar", "M");
     expect(progress.height).toBeUndefined();
   });
 });
@@ -121,7 +121,7 @@ describe("resolveLayoutSpecPreset", () => {
   });
 
   it("returns {} for unknown tag", () => {
-    expect(resolveLayoutSpecPreset("UnknownTag", "md")).toEqual({});
+    expect(resolveLayoutSpecPreset("UnknownTag", "M")).toEqual({});
   });
 
   it("returns {} for absent size key", () => {
@@ -131,8 +131,8 @@ describe("resolveLayoutSpecPreset", () => {
   });
 
   it("caches by (type, size) — same input returns same reference", () => {
-    const a = resolveLayoutSpecPreset("Dialog", "md");
-    const b = resolveLayoutSpecPreset("Dialog", "md");
+    const a = resolveLayoutSpecPreset("Dialog", "M");
+    const b = resolveLayoutSpecPreset("Dialog", "M");
     expect(a).toBe(b);
   });
 
@@ -140,14 +140,14 @@ describe("resolveLayoutSpecPreset", () => {
     // gap/padding*/margin* 중 spec에 정의된 것만 number로 포함 — 미정의는 undefined
     // ADR-083 Phase 11: Kbd 이 containerStyles 보유로 display(string) 포함됨.
     // 본 테스트는 sizes-only numeric 추출 검증이므로 Modal 사용.
-    const preset = resolveLayoutSpecPreset("Modal", "md");
+    const preset = resolveLayoutSpecPreset("Modal", "M");
     for (const k of Object.keys(preset) as (keyof typeof preset)[]) {
       expect(typeof preset[k]).toBe("number");
     }
   });
 
   it("returns object gracefully for flat-spec components", () => {
-    const preset = resolveLayoutSpecPreset("ToggleButton", "md");
+    const preset = resolveLayoutSpecPreset("ToggleButton", "M");
     expect(preset).toEqual(expect.any(Object));
   });
 });
@@ -178,18 +178,18 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).
     // normalization 없으면 Panel Layout 이 0 으로 표시됨.
-    it("Button.sizes.md (paddingX/Y) → 4-way padding 축 정규화", () => {
-      // ButtonSpec.sizes.md = { paddingX: 12, paddingY: 4 }
-      const preset = resolveLayoutSpecPreset("Button", "md");
+    it("Button.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
+      // ButtonSpec.sizes.M = { paddingX: 12, paddingY: 4 }
+      const preset = resolveLayoutSpecPreset("Button", "M");
       expect(preset.paddingLeft).toBe(12);
       expect(preset.paddingRight).toBe(12);
       expect(preset.paddingTop).toBe(4);
       expect(preset.paddingBottom).toBe(4);
     });
 
-    it("Badge.sizes.md (paddingX/Y) → 4-way padding 축 정규화", () => {
-      // BadgeSpec.sizes.md 가 paddingX/Y 사용
-      const preset = resolveLayoutSpecPreset("Badge", "md");
+    it("Badge.sizes.M (paddingX/Y) → 4-way padding 축 정규화", () => {
+      // BadgeSpec.sizes.M 가 paddingX/Y 사용
+      const preset = resolveLayoutSpecPreset("Badge", "M");
       expect(preset.paddingLeft).toBeGreaterThan(0);
       expect(preset.paddingRight).toBe(preset.paddingLeft);
       expect(preset.paddingTop).toBeGreaterThanOrEqual(0);
@@ -205,18 +205,18 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     //   **CSS 값**을 돌려줘야 한다 — TokenRef 를 그대로 흘리면 Box Shadow Select 가
     //   프리셋 키를 못 찾아 `{shadow.md}` 를 "custom" 항목으로 표시한다.
     it("Popover.containerStyles → Appearance preset boxShadow (TokenRef 해석 후 CSS 값)", () => {
-      const preset = resolveAppearanceSpecPreset("Popover", "md");
+      const preset = resolveAppearanceSpecPreset("Popover", "M");
       expect(preset.boxShadow).toBe(lightShadows.md);
       expect(preset.boxShadow).not.toMatch(/^\{shadow\./);
     });
 
     it("Tooltip.containerStyles → Appearance preset boxShadow (Popover 보다 약한 elevation)", () => {
-      const preset = resolveAppearanceSpecPreset("Tooltip", "md");
+      const preset = resolveAppearanceSpecPreset("Tooltip", "M");
       expect(preset.boxShadow).toBe(lightShadows.sm);
     });
 
     it("Modal.containerStyles → Appearance preset boxShadow (elevation 서열 최상단)", () => {
-      const preset = resolveAppearanceSpecPreset("Modal", "md");
+      const preset = resolveAppearanceSpecPreset("Modal", "M");
       expect(preset.boxShadow).toBe(lightShadows.lg);
     });
 
@@ -232,8 +232,8 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     // Popover 는 containerStyles 가 boxShadow만 보유하므로 variant 색상 emit이 살아 있다.
     // Style Panel도 generated CSS의 default variant 색상을 같은 catalog source에서 읽는다.
     it("Popover.containerStyles의 비색상 필드가 default variant 색상 해석을 막지 않는다", () => {
-      const preset = resolveAppearanceSpecPreset("Popover", "md");
-      const paint = resolveStylePanelCatalogPaint("Popover", "md", undefined, {
+      const preset = resolveAppearanceSpecPreset("Popover", "M");
+      const paint = resolveStylePanelCatalogPaint("Popover", "M", undefined, {
         ...preset,
       });
       expect(paint?.backgroundColor).toBe("{color.layer-2}");
@@ -251,9 +251,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   });
 
   describe("Composite composition.* (ADR-036 Phase 3a 스키마) — sizes 우선, composition 은 sizes 없을 때만 반영", () => {
-    it("Select.sizes.md.gap=6 이 composition.gap=4 를 override (회귀 0 보장)", () => {
-      // SelectSpec.sizes.md.gap = 6 우선 반영, composition.gap="var(--spacing-xs)"=4 는 fallback 만
-      const preset = resolveLayoutSpecPreset("Select", "md");
+    it("Select.sizes.M.gap=6 이 composition.gap=4 를 override (회귀 0 보장)", () => {
+      // SelectSpec.sizes.M.gap = 6 우선 반영, composition.gap="var(--spacing-xs)"=4 는 fallback 만
+      const preset = resolveLayoutSpecPreset("Select", "M");
       expect(preset.gap).toBe(6);
     });
 
@@ -271,9 +271,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
   describe("fallback 우선순위 — sizes 가 최우선 (회귀 0)", () => {
     it("sizes 값이 있으면 containerStyles/composition 덮어씀", () => {
-      // Button 은 sizes.md 에 숫자 필드 있음 + composition 없음 → sizes 반환 유지
-      const preset = resolveAppearanceSpecPreset("Button", "md");
-      // Button.sizes.md.borderRadius 가 있으면 그 값 우선
+      // Button 은 sizes.M 에 숫자 필드 있음 + composition 없음 → sizes 반환 유지
+      const preset = resolveAppearanceSpecPreset("Button", "M");
+      // Button.sizes.M.borderRadius 가 있으면 그 값 우선
       if (typeof preset.borderRadius === "number") {
         expect(preset.borderRadius).toBeGreaterThanOrEqual(0);
       }
@@ -329,7 +329,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     it("containerStyles 미보유 Spec → 레이아웃 키 undefined (기존 기본값 경로 유지)", () => {
       // ADR-083 Phase 11 이후: Kbd 가 containerStyles 보유. 미보유 대표 샘플로
       // Modal(layout containerStyles 없음) 사용.
-      const preset = resolveLayoutSpecPreset("Modal", "md");
+      const preset = resolveLayoutSpecPreset("Modal", "M");
       expect(preset.display).toBeUndefined();
       expect(preset.flexDirection).toBeUndefined();
       expect(preset.alignItems).toBeUndefined();
@@ -349,31 +349,31 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
   });
 
   describe("ADR-082 P3 fix — sizes 경로 TokenRef 해석 (pickNumeric → resolveToNumber)", () => {
-    it("Badge.sizes.md.borderRadius = '{radius.full}' → 9999 로 resolve", () => {
+    it("Badge.sizes.M.borderRadius = '{radius.full}' → 9999 로 resolve", () => {
       // Badge 는 sizes 전체가 `"{radius.full}"` TokenRef 사용 → 기존 typeof number 필터로
       //   전부 skip 되던 버그 수정. ADR-912 후속 Phase 4에서 bold/subtle/outline 전환 시
       //   DOM box footprint를 고정하기 위해 transparent border 1px을 catalog 계약으로 복원했다.
-      const preset = resolveAppearanceSpecPreset("Badge", "md");
+      const preset = resolveAppearanceSpecPreset("Badge", "M");
       expect(preset.borderRadius).toBe(9999);
       expect(preset.borderWidth).toBe(1);
     });
 
-    it("InlineAlert.sizes.md.borderRadius = '{radius.lg}' → 8 로 resolve", () => {
+    it("InlineAlert.sizes.M.borderRadius = '{radius.lg}' → 8 로 resolve", () => {
       // InlineAlert 는 borderWidth 필드 자체 없음 → undefined 유지 (sizes 미정의 = 기본값 0)
-      const preset = resolveAppearanceSpecPreset("InlineAlert", "md");
+      const preset = resolveAppearanceSpecPreset("InlineAlert", "M");
       expect(preset.borderRadius).toBe(8);
       expect(preset.borderWidth).toBeUndefined();
     });
 
-    it("Button.sizes.md.borderRadius = '{radius.md}' → 6 로 resolve", () => {
+    it("Button.sizes.M.borderRadius = '{radius.md}' → 6 로 resolve", () => {
       // 가장 사용 빈도 높은 spec — 기존 숫자 필터에서 skip 되던 회귀 복구
-      const preset = resolveAppearanceSpecPreset("Button", "md");
+      const preset = resolveAppearanceSpecPreset("Button", "M");
       expect(preset.borderRadius).toBe(6);
     });
 
-    it("숫자 그대로 저장된 sizes 필드는 회귀 없이 통과 (Kbd.sizes.md.height)", () => {
-      // Kbd.sizes.md.height = 26 (숫자) — resolveToNumber 가 숫자 통과
-      const preset = resolveSpecPreset("Kbd", "md");
+    it("숫자 그대로 저장된 sizes 필드는 회귀 없이 통과 (Kbd.sizes.M.height)", () => {
+      // Kbd.sizes.M.height = 26 (숫자) — resolveToNumber 가 숫자 통과
+      const preset = resolveSpecPreset("Kbd", "M");
       expect(preset.height).toBe(26);
     });
   });
@@ -403,8 +403,8 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
         gap: 2,
         paddingTop: 4,
       });
-      // Typography: ListBoxSpec.sizes.md.fontSize='{typography.text-sm}'=14
-      expect(resolveTypographySpecPreset("ListBox", "md")).toMatchObject({
+      // Typography: ListBoxSpec.sizes.M.fontSize='{typography.text-sm}'=14
+      expect(resolveTypographySpecPreset("ListBox", "M")).toMatchObject({
         fontSize: 14,
       });
     });
@@ -433,14 +433,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
       });
     });
 
-    it("Select (Composite composition.gap) — sizes.md.gap=6 우선, undefined size 시 composition fallback", () => {
-      expect(resolveLayoutSpecPreset("Select", "md").gap).toBe(6);
+    it("Select (Composite composition.gap) — sizes.M.gap=6 우선, undefined size 시 composition fallback", () => {
+      expect(resolveLayoutSpecPreset("Select", "M").gap).toBe(6);
       expect(resolveLayoutSpecPreset("Select", "xxl").gap).toBe(4);
     });
 
-    it("ComboBox (Composite composition.gap) — sizes.md.gap=6 우선", () => {
+    it("ComboBox (Composite composition.gap) — sizes.M.gap=6 우선", () => {
       // ComboBox 도 Select 와 동일 sizes.*.gap 구조 + composition.gap="var(--spacing-xs)"
-      expect(resolveLayoutSpecPreset("ComboBox", "md").gap).toBe(6);
+      expect(resolveLayoutSpecPreset("ComboBox", "M").gap).toBe(6);
       expect(resolveLayoutSpecPreset("ComboBox", "xxl").gap).toBe(4);
     });
 
@@ -486,9 +486,9 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("Button (sizes 전용 — 기존 회귀 경로 보존)", () => {
-      // sizes.md.borderRadius='{radius.md}'=6 → Appearance.borderRadius
-      expect(resolveAppearanceSpecPreset("Button", "md").borderRadius).toBe(6);
-      const layout = resolveLayoutSpecPreset("Button", "md");
+      // sizes.M.borderRadius='{radius.md}'=6 → Appearance.borderRadius
+      expect(resolveAppearanceSpecPreset("Button", "M").borderRadius).toBe(6);
+      const layout = resolveLayoutSpecPreset("Button", "M");
       // catalog Button.containerStyles.display 는 DOM 과 같은 `inline-flex` (ADR-923 Phase 5,
       // 2026-09-02). 2026-06-27 에 `flex` 로 바꿨던 이유 (Direction selector 가 inline-flex 를
       // block 으로 오표시) 는 Phase 4 가 패널 판정을 inner 기준 (flex | inline-flex) 으로 고쳐
@@ -556,11 +556,11 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     it("containerStyles 미보유 Spec → string 필드 undefined (기존 기본값 경로 유지)", () => {
       // ADR-083 Phase 11 이후: Kbd 가 containerStyles 보유. 미보유 대표 샘플로
       // Modal(layout containerStyles 없음) 사용.
-      const preset = resolveSpecPreset("Modal", "md");
+      const preset = resolveSpecPreset("Modal", "M");
       expect(
         typeof preset.height === "number" || preset.height === undefined,
       ).toBe(true);
-      // width 는 Modal.sizes.md 에 미정의 → undefined
+      // width 는 Modal.sizes.M 에 미정의 → undefined
       expect(preset.width).toBeUndefined();
     });
   });
@@ -573,7 +573,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
 
     // breakdown §2-5 TextField 기대값표: top → column(override 없음) / side → row + flex-start.
     it("TextField labelPosition=top → base column 유지 (variant override 없음)", () => {
-      const top = resolveLayoutSpecPreset("TextField", "md", {
+      const top = resolveLayoutSpecPreset("TextField", "M", {
         labelPosition: "top",
       });
       expect(top.display).toBe("flex");
@@ -581,7 +581,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("TextField labelPosition=side → flexDirection=row + alignItems=flex-start (top-level containerVariants)", () => {
-      const side = resolveLayoutSpecPreset("TextField", "md", {
+      const side = resolveLayoutSpecPreset("TextField", "M", {
         labelPosition: "side",
       });
       expect(side.flexDirection).toBe("row");
@@ -589,7 +589,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("TagGroup labelPosition=side → flexDirection=row (top-level containerVariants)", () => {
-      const side = resolveLayoutSpecPreset("TagGroup", "md", {
+      const side = resolveLayoutSpecPreset("TagGroup", "M", {
         labelPosition: "side",
       });
       expect(side.flexDirection).toBe("row");
@@ -600,7 +600,7 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     //   variant 를 nested 에만 보유. resolveCatalogContainerVariants 의 top-level ?? nested fallback 으로
     //   Style Panel(+implicitStyles)에 반영. spec 삭제 cutover 로 누락됐던 것을 Phase 4 에서 복원.
     it("Select labelPosition=side → flexDirection=row (nested containerVariants fallback)", () => {
-      const side = resolveLayoutSpecPreset("Select", "md", {
+      const side = resolveLayoutSpecPreset("Select", "M", {
         labelPosition: "side",
       });
       expect(side.flexDirection).toBe("row");
@@ -608,14 +608,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("Toolbar orientation=vertical → flexDirection=column (nested containerVariants fallback)", () => {
-      const vertical = resolveLayoutSpecPreset("Toolbar", "md", {
+      const vertical = resolveLayoutSpecPreset("Toolbar", "M", {
         orientation: "vertical",
       });
       expect(vertical.flexDirection).toBe("column");
     });
 
     it("props 미전달 시 variant override 없음 (base 경로만)", () => {
-      const base = resolveLayoutSpecPreset("TextField", "md");
+      const base = resolveLayoutSpecPreset("TextField", "M");
       // labelPosition props 없음 → base column 유지
       expect(base.flexDirection).toBe("column");
     });

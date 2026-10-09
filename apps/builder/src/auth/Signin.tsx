@@ -191,7 +191,7 @@ const Signin = () => {
           <Button
             type="submit"
             variant="accent"
-            size="md"
+            size="M"
             className="auth-submit"
             isDisabled={!canSubmit}
             isLoading={verifying}

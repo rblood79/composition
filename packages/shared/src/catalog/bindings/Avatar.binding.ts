@@ -56,7 +56,7 @@ export const avatarBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // design-data 감사 §2-F (2026-08-21): Avatar.tsx 는 isDisabled 소비(opacity 0.38
       //   인라인)를 기보유 — binding 노출만 결손이던 축. Skia 는 componentState generic.

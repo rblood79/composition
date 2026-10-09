@@ -37,7 +37,7 @@ const blockOf = (css: string, selector: string) => {
 describe("FileTrigger — rule box on the trigger button", () => {
   it("generated CSS carries the size box and the variant paint", () => {
     const css = readFileSync(`${GENERATED}/FileTrigger.css`, "utf8");
-    const md = blockOf(css, '.react-aria-FileTrigger[data-size="md"]');
+    const md = blockOf(css, '.react-aria-FileTrigger[data-size="M"]');
     expect(md).toContain("height: 40px;");
     expect(md).toContain("padding: 0px 24px;");
     expect(css).toContain('.react-aria-FileTrigger[data-variant="default"]');
@@ -190,7 +190,7 @@ describe("DateRangePicker — the end input's catalog grow", () => {
               "DateRangePicker",
             ),
             children: [],
-            props: { size: { kind: "set", value: "xs" } },
+            props: { size: { kind: "set", value: "XS" } },
             visual: {},
             sizing: { width: { kind: "set", value: 400 } },
             descendantOverrides: [],

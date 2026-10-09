@@ -41,7 +41,7 @@ function mount(extra: Partial<ChartProps> = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("line")}
-      size="md"
+      size="M"
       data={rows}
       dimension="date"
       metric="value"

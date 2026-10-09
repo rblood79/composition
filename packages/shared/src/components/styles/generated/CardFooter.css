@@ -27,35 +27,35 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="xs"] {
+.react-aria-CardFooter[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="sm"] {
+.react-aria-CardFooter[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="md"] {
+.react-aria-CardFooter[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="lg"] {
+.react-aria-CardFooter[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="xl"] {
+.react-aria-CardFooter[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);

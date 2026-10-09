@@ -39,17 +39,17 @@
     min-height: 30px;
   }
 
-  .react-aria-TagGroup[data-tag-size="sm"] .tag-list-wrapper {
+  .react-aria-TagGroup[data-tag-size="S"] .tag-list-wrapper {
     min-height: 22px;
   }
 
-  .react-aria-TagGroup[data-tag-size="md"] .tag-list-wrapper {
+  .react-aria-TagGroup[data-tag-size="M"] .tag-list-wrapper {
     min-height: 30px;
   }
 
   /* lg: catalog TagList.sizes.lg.gap = 6 (--spacing-xs 4 / --spacing-sm 8 사이, 대응 토큰 없어 직접 지정).
      Skia projection resolveTagListGap("lg") = 6 과 정합. */
-  .react-aria-TagGroup[data-tag-size="lg"] .tag-list-wrapper {
+  .react-aria-TagGroup[data-tag-size="L"] .tag-list-wrapper {
     gap: 6px;
     min-height: 42px;
   }
@@ -264,23 +264,23 @@
    * update here too. (ADR-106-b — formerly @sync F4 annotation) */
 
   /* Label font-size delegation (LabelSpec sizes: sm=text-xs, md=text-sm, lg=text-md) */
-  .react-aria-TagGroup[data-tag-size="xs"] {
+  .react-aria-TagGroup[data-tag-size="XS"] {
     --label-font-size: var(--text-2xs);
   }
 
-  .react-aria-TagGroup[data-tag-size="sm"] {
+  .react-aria-TagGroup[data-tag-size="S"] {
     --label-font-size: var(--text-xs);
   }
 
-  .react-aria-TagGroup[data-tag-size="md"] {
+  .react-aria-TagGroup[data-tag-size="M"] {
     --label-font-size: var(--text-sm);
   }
 
-  .react-aria-TagGroup[data-tag-size="lg"] {
+  .react-aria-TagGroup[data-tag-size="L"] {
     --label-font-size: var(--text-base);
   }
 
-  .react-aria-TagGroup[data-tag-size="xl"] {
+  .react-aria-TagGroup[data-tag-size="XL"] {
     --label-font-size: var(--text-lg);
   }
 
@@ -290,8 +290,8 @@
      미러 chip 이 기본(md 근사) 크기로 측정 → 실제(lg 등) 배치와 행 수 불일치 → computeVisibleTagCount
      오산 → 접힘 수렴 실패(lg maxRows 무시 버그). `.react-aria-TagList[data-tag-size]` 를 병기해
      미러 chip 도 실제와 동일 size 로 측정. (실제 표시 TagList 는 data-tag-size 없음 → 미러만 매칭.) */
-  .react-aria-TagGroup[data-tag-size="xs"] .react-aria-Tag,
-  .react-aria-TagList[data-tag-size="xs"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="XS"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="XS"] .react-aria-Tag {
     padding: var(--spacing-3xs) var(--spacing-xs);
     font-size: var(--text-2xs);
     line-height: var(--text-2xs--line-height);
@@ -302,8 +302,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="sm"] .react-aria-Tag,
-  .react-aria-TagList[data-tag-size="sm"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="S"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="S"] .react-aria-Tag {
     padding: var(--spacing-2xs) var(--spacing-sm);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
@@ -314,8 +314,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="md"] .react-aria-Tag,
-  .react-aria-TagList[data-tag-size="md"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="M"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="M"] .react-aria-Tag {
     padding: var(--spacing-xs) var(--spacing-md);
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
@@ -326,8 +326,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="lg"] .react-aria-Tag,
-  .react-aria-TagList[data-tag-size="lg"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="L"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="L"] .react-aria-Tag {
     padding: var(--spacing-sm) var(--spacing-lg);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
@@ -338,8 +338,8 @@
     }
   }
 
-  .react-aria-TagGroup[data-tag-size="xl"] .react-aria-Tag,
-  .react-aria-TagList[data-tag-size="xl"] .react-aria-Tag {
+  .react-aria-TagGroup[data-tag-size="XL"] .react-aria-Tag,
+  .react-aria-TagList[data-tag-size="XL"] .react-aria-Tag {
     padding: var(--spacing-md) var(--spacing-xl);
     font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);
@@ -381,35 +381,35 @@
   }
 
   /* Size-aware: Show all 버튼도 Tag size에 맞춤 */
-  .react-aria-TagGroup[data-tag-size="xs"] .tag-show-all-btn {
+  .react-aria-TagGroup[data-tag-size="XS"] .tag-show-all-btn {
     padding: var(--spacing-3xs) var(--spacing-xs);
     font-size: var(--text-2xs);
     line-height: var(--text-2xs--line-height);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-TagGroup[data-tag-size="sm"] .tag-show-all-btn {
+  .react-aria-TagGroup[data-tag-size="S"] .tag-show-all-btn {
     padding: var(--spacing-2xs) var(--spacing-sm);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-TagGroup[data-tag-size="md"] .tag-show-all-btn {
+  .react-aria-TagGroup[data-tag-size="M"] .tag-show-all-btn {
     padding: var(--spacing-xs) var(--spacing-md);
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     border-radius: var(--radius-md);
   }
 
-  .react-aria-TagGroup[data-tag-size="lg"] .tag-show-all-btn {
+  .react-aria-TagGroup[data-tag-size="L"] .tag-show-all-btn {
     padding: var(--spacing-sm) var(--spacing-lg);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-TagGroup[data-tag-size="xl"] .tag-show-all-btn {
+  .react-aria-TagGroup[data-tag-size="XL"] .tag-show-all-btn {
     padding: var(--spacing-md) var(--spacing-xl);
     font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);

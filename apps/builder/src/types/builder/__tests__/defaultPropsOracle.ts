@@ -25,7 +25,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     props: {
       // catalog base
       variant: "primary",
-      size: "md",
+      size: "M",
       fillStyle: "fill", // catalog bindingOnly — factory 누락분 보강(옵션 B)
       type: "button", // catalog bindingOnly — factory 누락분 보강(옵션 B)
       staticColor: "auto", // catalog bindingOnly — RSP S2 staticColor 채택(2026-08-20)
@@ -40,7 +40,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     type: "Badge",
     props: {
       variant: "accent",
-      size: "sm",
+      size: "S",
       fillStyle: "bold", // catalog bindingOnly 보강
       children: "Badge",
       isDot: false,
@@ -51,7 +51,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     type: "Link",
     props: {
       variant: "primary",
-      size: "md",
+      size: "M",
       staticColor: "auto", // catalog bindingOnly 보강
       children: "Link",
       href: "#",
@@ -61,7 +61,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
   {
     type: "ToggleButton",
     props: {
-      size: "md",
+      size: "M",
       children: "Toggle Button",
       isEmphasized: false,
       isQuiet: false,
@@ -73,7 +73,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
   {
     type: "Text",
     props: {
-      size: "md",
+      size: "M",
       children: "Text",
     },
   },
@@ -81,7 +81,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
     type: "Icon",
     props: {
       // (variant — 선택지 하나뿐이라 2026-10-09 삭제)
-      size: "md",
+      size: "M",
       strokeWidth: 2,
       iconFontFamily: "lucide",
       // iconName 은 random → nonDeterministicKeys

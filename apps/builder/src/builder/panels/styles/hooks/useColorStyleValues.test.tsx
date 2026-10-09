@@ -77,7 +77,7 @@ describe("Style Panel catalog color values", () => {
   it("tint 변경(themeVersion 증가)을 같은 theme 문자열에서도 다시 해석한다", async () => {
     // resolveToken 은 lightColors 전역 객체를 읽고 setTint 는 그 객체를 제자리 mutation 한다.
     // theme("light") 와 accentColor 는 그대로라 themeVersion 이 유일한 재계산 신호다.
-    await setButton({ size: "md", variant: "accent", fillStyle: "fill" });
+    await setButton({ size: "M", variant: "accent", fillStyle: "fill" });
     const appearance = hookOf(useAppearanceValues, "button-1");
     const before = appearance.result.current?.backgroundColor;
     expect(before).toBe(lightColors.accent);
@@ -93,7 +93,7 @@ describe("Style Panel catalog color values", () => {
   });
 
   it("신규 Button의 variant 배경/텍스트/테두리 색을 catalog와 동일하게 표시한다", async () => {
-    await setButton({ size: "md", variant: "primary", fillStyle: "fill" });
+    await setButton({ size: "M", variant: "primary", fillStyle: "fill" });
 
     const appearance = hookOf(useAppearanceValues, "button-1");
     const typography = hookOf(useTypographyValues, "button-1");
@@ -106,7 +106,7 @@ describe("Style Panel catalog color values", () => {
   });
 
   it("Button outline의 투명 배경과 outline 전용 텍스트/테두리 색을 표시한다", async () => {
-    await setButton({ size: "md", variant: "accent", fillStyle: "outline" });
+    await setButton({ size: "M", variant: "accent", fillStyle: "outline" });
 
     const appearance = hookOf(useAppearanceValues, "button-1");
     const typography = hookOf(useTypographyValues, "button-1");
@@ -120,7 +120,7 @@ describe("Style Panel catalog color values", () => {
 
   it("premium catalog 색상을 현재 dark theme의 picker 입력값으로 해석한다", async () => {
     useThemeConfigStore.setState({ darkMode: "dark", themeVersion: 1 });
-    await setButton({ size: "md", variant: "premium", fillStyle: "fill" });
+    await setButton({ size: "M", variant: "premium", fillStyle: "fill" });
 
     const appearance = hookOf(useAppearanceValues, "button-1");
     const typography = hookOf(useTypographyValues, "button-1");
@@ -134,7 +134,7 @@ describe("Style Panel catalog color values", () => {
 
   it("inline color override는 catalog variant보다 우선한다", async () => {
     await setButton(
-      { size: "md", variant: "primary" },
+      { size: "M", variant: "primary" },
       { backgroundColor: "#112233", borderColor: "#445566", color: "#778899" },
     );
 
@@ -198,7 +198,7 @@ describe("Style Panel catalog color values", () => {
         const actual = [];
         for (const fillStyle of ["bold", "subtle", "outline"] as const) {
           await setElements([
-            makeElement("badge-1", "Badge", { size: "sm", variant, fillStyle }),
+            makeElement("badge-1", "Badge", { size: "S", variant, fillStyle }),
           ]);
           actual.push(readColorValues("badge-1"));
         }
@@ -225,7 +225,7 @@ describe("Style Panel catalog color values", () => {
 
     it("D2 Button staticColor=black의 고정색과 역상 text를 표시한다", async () => {
       await setButton({
-        size: "md",
+        size: "M",
         variant: "accent",
         fillStyle: "fill",
         staticColor: "black",
@@ -241,7 +241,7 @@ describe("Style Panel catalog color values", () => {
     it("D3 ToggleButton selected+emphasized paint를 표시한다", async () => {
       await setElements([
         makeElement("toggle-1", "ToggleButton", {
-          size: "md",
+          size: "M",
           isSelected: true,
           isEmphasized: true,
         }),
@@ -263,7 +263,7 @@ describe("Style Panel catalog color values", () => {
         const accent = resolveAccentColorTokens("red", "light");
         await setElements([
           makeElement("card-1", "Card", {
-            size: "md",
+            size: "M",
             variant: "primary",
             accentColor: "red",
             isSelectable: true,
@@ -284,7 +284,7 @@ describe("Style Panel catalog color values", () => {
       const button = makeElement(
         "button-1",
         "Button",
-        { size: "md", variant: "accent", fillStyle: "fill" },
+        { size: "M", variant: "accent", fillStyle: "fill" },
         card.id,
       );
       await setElements([card, button]);
@@ -309,13 +309,13 @@ describe("Style Panel catalog color values", () => {
       const redButton = makeElement(
         "red-button",
         "Button",
-        { size: "md", variant: "accent", fillStyle: "fill" },
+        { size: "M", variant: "accent", fillStyle: "fill" },
         redParent.id,
       );
       const blueButton = makeElement(
         "blue-button",
         "Button",
-        { size: "md", variant: "accent", fillStyle: "fill" },
+        { size: "M", variant: "accent", fillStyle: "fill" },
         blueParent.id,
       );
       await setElements([redParent, redButton, blueParent, blueButton]);
@@ -335,12 +335,12 @@ describe("Style Panel catalog color values", () => {
     it("같은 catalog key의 요소를 왕복 선택해도 이전 resolved paint가 남지 않는다", async () => {
       await setElements([
         makeElement("button-default", "Button", {
-          size: "md",
+          size: "M",
           variant: "accent",
           fillStyle: "fill",
         }),
         makeElement("button-static", "Button", {
-          size: "md",
+          size: "M",
           variant: "accent",
           fillStyle: "fill",
           staticColor: "black",

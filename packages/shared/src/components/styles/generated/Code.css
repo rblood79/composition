@@ -42,7 +42,7 @@
   }
 }
 
-.react-aria-Code[data-size="xs"] {
+.react-aria-Code[data-size="XS"] {
   height: 18px;
   padding: 0px 4px;
   font-size: var(--text-xs);
@@ -50,7 +50,7 @@
   line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Code[data-size="sm"] {
+.react-aria-Code[data-size="S"] {
   height: 22px;
   padding: 0px 6px;
   font-size: var(--text-sm);
@@ -58,7 +58,7 @@
   line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Code[data-size="md"] {
+.react-aria-Code[data-size="M"] {
   height: 26px;
   padding: 0px 8px;
   font-size: var(--text-base);
@@ -66,7 +66,7 @@
   line-height: var(--text-base--line-height);
 }
 
-.react-aria-Code[data-size="lg"] {
+.react-aria-Code[data-size="L"] {
   height: 32px;
   padding: 0px 10px;
   font-size: var(--text-lg);

@@ -109,9 +109,9 @@ describe("Canvas box = Preview box", () => {
   // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「(a) 로 진행」): the S2
   // Illustration — S 48 · M 96 · L 160 (`@react-spectrum/s2/src/Icon.tsx` `illustrationStyles`).
   it.each([
-    ["sm", 48],
-    ["md", 96],
-    ["lg", 160],
+    ["S", 48],
+    ["M", 96],
+    ["L", 160],
   ])(
     "Illustration %s: the Canvas glyph box = the Preview svg (%ipx)",
     async (size, px) => {

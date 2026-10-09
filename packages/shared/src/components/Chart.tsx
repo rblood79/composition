@@ -91,7 +91,7 @@ export interface ChartProps {
   // ── ADR-217 — 값 축 기준선 (선택적 배열, bar/line/area). 미설정 = 현행.
   referenceLines?: SpecChartProps["referenceLines"];
   variant?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
   data?: readonly ChartRow[];
   /**
@@ -212,7 +212,7 @@ export function Chart({
   referenceLines,
   palette,
   variant = "default",
-  size = "md",
+  size = "M",
   data,
   dataBinding,
   style,
@@ -222,7 +222,7 @@ export function Chart({
 }: ChartProps): React.ReactElement {
   const ref = React.useRef<HTMLDivElement>(null);
   const rule = resolveComponentRule("Chart");
-  const sizeKey = String(size).toLowerCase();
+  const sizeKey = String(size).toUpperCase();
   const box = useBoxSize(ref);
 
   const chartSize = React.useMemo(

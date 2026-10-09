@@ -650,17 +650,17 @@ describe("ADR-248 4e library origin view", () => {
     const sized = (origin: string, size: string) =>
       `project:node:sized-${origin}-${size}` as NodeId;
     const sizedPairs = [
-      ...["sm", "md", "lg"].map((size) => ["progresscircle", size] as const),
+      ...["S", "M", "L"].map((size) => ["progresscircle", size] as const),
       ...[
         "select",
         "combobox",
         "datepicker",
         "daterangepicker",
         "numberfield",
-      ].flatMap((origin) => [[origin, "xs"] as const, [origin, "xl"] as const]),
-      ["avatargroup", "xl"] as const,
-      ["buttongroup", "xs"] as const,
-      ["calendar", "sm"] as const,
+      ].flatMap((origin) => [[origin, "XS"] as const, [origin, "XL"] as const]),
+      ["avatargroup", "XL"] as const,
+      ["buttongroup", "XS"] as const,
+      ["calendar", "S"] as const,
     ];
     workspace.execute(
       insertNodes({
@@ -681,9 +681,9 @@ describe("ADR-248 4e library origin view", () => {
     );
     // A ProgressCircle is its diameter square (the `progress` archetype drops a bar's height).
     for (const [key, diameter] of [
-      ["sm", 24],
-      ["md", 32],
-      ["lg", 64],
+      ["S", 24],
+      ["M", 32],
+      ["L", 64],
     ] as const) {
       const rect = rectOf(sized("progresscircle", key));
       expect([rect.width, rect.height]).toEqual([diameter, diameter]);
@@ -700,25 +700,25 @@ describe("ADR-248 4e library origin view", () => {
       "datepicker",
       "daterangepicker",
     ]) {
-      expect(buttonGlyphs(origin, "xs")).toEqual([14]);
-      expect(buttonGlyphs(origin, "xl")).toEqual([28]);
+      expect(buttonGlyphs(origin, "XS")).toEqual([14]);
+      expect(buttonGlyphs(origin, "XL")).toEqual([28]);
     }
     // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
-    expect(buttonGlyphs("numberfield", "xs")).toEqual([14, 14]);
-    expect(buttonGlyphs("numberfield", "xl")).toEqual([28, 28]);
+    expect(buttonGlyphs("numberfield", "XS")).toEqual([14, 14]);
+    expect(buttonGlyphs("numberfield", "XL")).toEqual([28, 28]);
     // A group's size reaches its members; a calendar's its header and grid.
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(
         (record) => inputOf(record).props.size,
       );
-    expect(sizesUnder("avatargroup", "xl", "avatar")).toEqual([
-      "xl",
-      "xl",
-      "xl",
+    expect(sizesUnder("avatargroup", "XL", "avatar")).toEqual([
+      "XL",
+      "XL",
+      "XL",
     ]);
-    expect(sizesUnder("buttongroup", "xs", "button")).toEqual(["xs", "xs"]);
-    expect(sizesUnder("calendar", "sm", "calendargrid")).toEqual(["sm"]);
-    expect(sizesUnder("calendar", "sm", "calendarheader")).toEqual(["sm"]);
+    expect(sizesUnder("buttongroup", "XS", "button")).toEqual(["XS", "XS"]);
+    expect(sizesUnder("calendar", "S", "calendargrid")).toEqual(["S"]);
+    expect(sizesUnder("calendar", "S", "calendarheader")).toEqual(["S"]);
     // A Card placed on a page: its regions are slots — the one it leaves empty (the footer) is
     // hatched at its own box, the filled ones are not marked.
     const CARD = "project:node:card-placed" as NodeId;

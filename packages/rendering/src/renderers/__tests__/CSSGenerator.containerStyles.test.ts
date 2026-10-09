@@ -98,7 +98,7 @@ describe("generateCSS — containerStyles S3 semantic (ADR-071)", () => {
     archetype: "collection",
     element: "div",
     defaultVariant: "primary",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       primary: {
         fill: {

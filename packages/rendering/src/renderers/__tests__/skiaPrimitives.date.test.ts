@@ -44,7 +44,7 @@ const calendarVisual = {
 
 // rule-mirror sizes (componentRulesTable.Calendar.sizes — paddingX/paddingY/gap/iconSize 보강 후).
 const ruleSizes: Record<string, SizeSpec> = {
-  sm: {
+  S: {
     height: 0,
     paddingX: 4,
     paddingY: 4,
@@ -53,7 +53,7 @@ const ruleSizes: Record<string, SizeSpec> = {
     borderRadius: "{radius.md}",
     iconSize: 20,
   } as unknown as SizeSpec,
-  md: {
+  M: {
     height: 0,
     paddingX: 8,
     paddingY: 8,
@@ -62,7 +62,7 @@ const ruleSizes: Record<string, SizeSpec> = {
     borderRadius: "{radius.lg}",
     iconSize: 26,
   } as unknown as SizeSpec,
-  lg: {
+  L: {
     height: 0,
     paddingX: 12,
     paddingY: 12,
@@ -83,7 +83,7 @@ function only(shapes: Shape[], ...types: string[]): Shape[] {
 
 describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", () => {
   const draw = getSkiaPrimitive("calendar_grid");
-  const sizes = ["sm", "md", "lg"] as const;
+  const sizes = ["S", "M", "L"] as const;
 
   it("registry 에 replace 모드로 등록되어 있다(box+text 대체)", () => {
     expect(draw).toBeDefined();
@@ -121,10 +121,10 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
   }
 
   it("_hasChildren=true — shell(bg+border)만, grid 미렌더", () => {
-    const props = { size: "md", _hasChildren: true } as Record<string, unknown>;
+    const props = { size: "M", _hasChildren: true } as Record<string, unknown>;
     const shapes = draw!({
       props,
-      size: ruleSizes.md,
+      size: ruleSizes.M,
       visual: calendarVisual,
       style: undefined,
     });
@@ -136,7 +136,7 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
 
 describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity", () => {
   const draw = getSkiaPrimitive("datefield_trigger");
-  const sizes = ["sm", "md", "lg"] as const;
+  const sizes = ["S", "M", "L"] as const;
 
   it("registry 에 replace 모드로 등록되어 있다(box+text 대체)", () => {
     expect(draw).toBeDefined();
@@ -167,11 +167,11 @@ describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity"
 
   it("DateRangePicker — range trigger(폭 320 + 'start – end') parity", () => {
     const props = {
-      size: "md",
+      size: "M",
       locale: "en-US",
       _dateRange: true,
     } as Record<string, unknown>;
-    const sizeSpec = DATE_PICKER_SIZES.md;
+    const sizeSpec = DATE_PICKER_SIZES.M;
     // DateRangePicker render.shapes wrapper 재현: displayText = range placeholder, defaultContainerWidth 320.
     const rangePlaceholder = `${buildDatePlaceholder("en-US")} – ${buildDatePlaceholder("en-US")}`;
     const legacy = buildDatePickerShapes({
@@ -194,10 +194,10 @@ describe("skiaPrimitive 'datefield_trigger' — DatePicker trigger field parity"
   });
 
   it("_hasChildren=true — 투명 컨테이너(빈 배열)", () => {
-    const props = { size: "md", _hasChildren: true } as Record<string, unknown>;
+    const props = { size: "M", _hasChildren: true } as Record<string, unknown>;
     const shapes = draw!({
       props,
-      size: DATE_PICKER_SIZES.md as unknown as SizeSpec,
+      size: DATE_PICKER_SIZES.M as unknown as SizeSpec,
       visual: undefined,
       style: undefined,
     });

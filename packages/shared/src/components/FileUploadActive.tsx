@@ -194,7 +194,7 @@ export function FileUploadActive({
               showValueLabel
               isIndeterminate={item.status === "creating"}
               variant="default"
-              size="md"
+              size="M"
               style={{ width: "100%" }}
             />
             {item.lastError ? (

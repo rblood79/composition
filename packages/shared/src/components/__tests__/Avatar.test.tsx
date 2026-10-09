@@ -102,14 +102,14 @@ describe("Avatar — image | initials 분기", () => {
 
 describe("Avatar — size → 지름·fontSize (rule sizes 정합)", () => {
   it("size md → width/height 32px, fontSize 14px", () => {
-    const html = renderToStaticMarkup(<Avatar size="md" initials="AB" />);
+    const html = renderToStaticMarkup(<Avatar size="M" initials="AB" />);
     expect(html).toMatch(/width:32px/);
     expect(html).toMatch(/height:32px/);
     expect(html).toMatch(/font-size:14px/);
   });
 
   it("size xl → width/height 48px, fontSize 18px", () => {
-    const html = renderToStaticMarkup(<Avatar size="xl" initials="AB" />);
+    const html = renderToStaticMarkup(<Avatar size="XL" initials="AB" />);
     expect(html).toMatch(/width:48px/);
     expect(html).toMatch(/height:48px/);
     expect(html).toMatch(/font-size:18px/);
@@ -138,24 +138,24 @@ describe("Avatar — cutover DOM 경로 (toRacProps propPassthrough)", () => {
   }
 
   it("toRacProps 가 size 를 prop + data-size 둘 다 emit (propPassthrough)", () => {
-    const node = { id: "x", type: "Avatar", props: { size: "xl" } };
+    const node = { id: "x", type: "Avatar", props: { size: "XL" } };
     const racProps = toRacProps(node as never, avatarBinding);
-    expect(racProps.size).toBe("xl"); // ← prop (회귀 방지 핵심)
-    expect(racProps["data-size"]).toBe("xl"); // ← data-* 도 보존
+    expect(racProps.size).toBe("XL"); // ← prop (회귀 방지 핵심)
+    expect(racProps["data-size"]).toBe("XL"); // ← data-* 도 보존
   });
 
   it("cutover 경로에서 size 변경이 지름에 반영 (xl → 48px, default 32px 고정 아님)", () => {
-    expect(cutoverHtml("xl", { initials: "AB" })).toMatch(/width:48px/);
+    expect(cutoverHtml("XL", { initials: "AB" })).toMatch(/width:48px/);
     // 버그였다면 size prop undefined → 항상 32px
-    expect(cutoverHtml("xl", { initials: "AB" })).not.toMatch(/width:32px/);
+    expect(cutoverHtml("XL", { initials: "AB" })).not.toMatch(/width:32px/);
   });
 
   it("cutover 경로에서 data-size 가 root 에 passthrough (CSS/debug marker 보존)", () => {
-    expect(cutoverHtml("xl", { initials: "AB" })).toContain('data-size="xl"');
+    expect(cutoverHtml("XL", { initials: "AB" })).toContain('data-size="XL"');
   });
 
   it("cutover 경로에서 src image 렌더 (initials 분기 정상)", () => {
-    const html = cutoverHtml("md", { src: "https://x.com/a.png", alt: "U" });
+    const html = cutoverHtml("M", { src: "https://x.com/a.png", alt: "U" });
     expect(html).toContain("<img");
     expect(html).toContain("object-fit:cover");
   });
@@ -167,7 +167,7 @@ describe("Avatar — isDisabled 인라인 dim (§2-F, 2026-08-21)", () => {
     const node = {
       id: "x",
       type: "Avatar",
-      props: { size: "md", initials: "AB", isDisabled: true },
+      props: { size: "M", initials: "AB", isDisabled: true },
     };
     const rest = toRacProps(node as never, avatarBinding);
     const html = renderToStaticMarkup(

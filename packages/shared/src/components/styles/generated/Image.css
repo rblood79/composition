@@ -41,21 +41,21 @@
   }
 }
 
-.react-aria-Image[data-size="sm"] {
+.react-aria-Image[data-size="S"] {
   height: 120px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
-.react-aria-Image[data-size="md"] {
+.react-aria-Image[data-size="M"] {
   height: 200px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-Image[data-size="lg"] {
+.react-aria-Image[data-size="L"] {
   height: 320px;
   padding: 0px 0px;
   font-size: var(--text-base);

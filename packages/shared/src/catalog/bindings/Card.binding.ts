@@ -60,7 +60,7 @@ export const cardBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // live consumer: CATALOG_DELEGATED_DOM.card (data-accent attr)
       accentColor: {

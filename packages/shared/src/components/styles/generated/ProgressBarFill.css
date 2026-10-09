@@ -70,25 +70,25 @@
   }
 }
 
-.react-aria-ProgressBarFill[data-size="sm"] {
+.react-aria-ProgressBarFill[data-size="S"] {
   padding: 0px 0px;
   font-size: ;
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ProgressBarFill[data-size="md"] {
+.react-aria-ProgressBarFill[data-size="M"] {
   padding: 0px 0px;
   font-size: ;
   border-radius: var(--radius-sm);
 }
 
-.react-aria-ProgressBarFill[data-size="lg"] {
+.react-aria-ProgressBarFill[data-size="L"] {
   padding: 0px 0px;
   font-size: ;
   border-radius: var(--radius-md);
 }
 
-.react-aria-ProgressBarFill[data-size="xl"] {
+.react-aria-ProgressBarFill[data-size="XL"] {
   padding: 0px 0px;
   font-size: ;
   border-radius: var(--radius-lg);

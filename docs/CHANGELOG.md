@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [size 이름 S2 정렬 — XS · S · M · L · XL] - 2026-10-09
+
+### Breaking Changes
+
+- **size 값 이름이 S2 표기로 바뀌었다 — library contract 36**:
+  - 바뀐 이름: `xs` · `sm` · `md` · `lg` · `xl` → `XS` · `S` · `M` · `L` · `XL`. 글자 type (Heading · Paragraph · Text) 의 `2xl` · `3xl` 은 S2 Heading 처럼 `XXL` · `XXXL` 이다.
+  - contract 35 로 저장한 프로젝트는 열리지 않는다 (지난 contract 변경과 같은 방침 — 거부하고 다시 매핑하지 않는다).
+  - 사용자 지시: 「size 는 S2기준에 XS추가해서 XS/S/M/L/XL 로 맞춰 진행해」 · 범위 질문에 「표기만 변경」.
+
+### Changed
+
+- **표기만 바꿨다** — 각 type 이 받는 size 범위 (5단계 30 · S~~XL 25 · S~~L 34 · M 하나 9) 와 시각 값은 그대로다:
+  - **Why**: D2 정본이 S2 1.8.0 이다 (2026-10-09 결정). S2 의 size 값은 `S` · `M` · `L` · `XL` (일부 `XS`) 인데 우리는 Tailwind 식 소문자 (`sm` · `md`) 를 썼고, Breadcrumbs 만 이미 `S` · `M` · `L` 이라 한 프로젝트 안에서도 두 표기가 섞여 있었다.
+  - 바꾼 곳: rule 의 size 키 · `defaultSize`, binding 기본값, 원본 library 의 size, size 전파 단계표 (`CATALOG_SIZE_STEP`), DOM `data-size` · `data-tag-size` · `data-checkbox-size` · `data-radio-size` 와 생성 CSS 선택자, Canvas · shared 컴포넌트의 size 표, Design 패널의 Size 버튼 값.
+  - 토큰 이름 (`--spacing-sm` · `--radius-md` · `--text-xl` …) 은 size 가 아니므로 그대로다. DateRangePicker Group 의 모서리는 size 이름을 토큰 이름으로 쓰던 것을 rule delegation 변수 (`--drp-group-radius`) 를 읽도록 바꿨다.
+  - 확인: live — 새 Button 의 size `M`, Design Size 필드 `XS · S · M · L · XL`, L 을 고르면 Canvas · Preview 모두 42px · `data-size="L"`, TextField `XL` · Text `XXL` (24px) 도 Canvas 높이 = Preview 높이 (`apps/builder/scripts/size-s2-names-live.mjs` 6/6).
+  - 위치: `packages/shared/src/catalog/generated/componentRulesTable.ts` · `packages/shared/src/catalog/bindings/*.binding.ts` · `packages/shared/src/catalog/document/{generated/reusableOriginLibrary,sizePropagation,manualBoxRules,types}.ts` · `packages/shared/src/components/styles/**` · `packages/rendering/src/{primitives,renderers}/**`
+
 ## [Checkbox · Switch emphasized — Preview 가 variant 를 읽는다] - 2026-10-09
 
 ### Fixed

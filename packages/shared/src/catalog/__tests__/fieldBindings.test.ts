@@ -78,7 +78,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
           description: "Enter email",
           placeholder: "you@example.com",
           type: "email",
-          size: "lg",
+          size: "L",
           labelPosition: "side",
           isRequired: true,
         },
@@ -90,7 +90,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       description: "Enter email",
       placeholder: "you@example.com",
       type: "email",
-      "data-size": "lg",
+      "data-size": "L",
       // labelPosition 은 RAC/DOM prop 이 아니라 label-layout hint → data-* 라우팅.
       //   raw prop 으로 통과하면 RAC primitive 가 `<div>`/`<form>` DOM 에 흘려 React
       //   "does not recognize the labelPosition prop" 경고 + theme `[data-label-position]`
@@ -108,12 +108,12 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result.labelPosition).toBeUndefined();
   });
 
-  it("size 미지정 시 default 'md' → data-size emit (theme 매칭)", () => {
+  it("size 미지정 시 default 'M' → data-size emit (theme 매칭)", () => {
     const result = toRacProps(
       { id: "tf2", type: "TextField", props: { label: "Name" } },
       textFieldBinding,
     );
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   it("NumberField: minValue/maxValue/step number prop 통과", () => {
@@ -128,7 +128,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result.minValue).toBe(0);
     expect(result.maxValue).toBe(100);
     expect(result.step).toBe(5);
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   it("Form: variant → data-variant 라우팅 + validationBehavior 통과", () => {
@@ -142,7 +142,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     );
     expect(result["data-variant"]).toBe("outlined");
     expect(result.validationBehavior).toBe("aria");
-    expect(result["data-size"]).toBe("md");
+    expect(result["data-size"]).toBe("M");
   });
 
   it("Form: labelPosition/labelAlign/necessityIndicator → data-* (raw prop 누출 없음)", () => {
@@ -185,7 +185,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       ["ColorField", colorFieldBinding],
     ] as const) {
       const result = toRacProps({ id: `${type}-1`, type }, binding);
-      expect(result["data-size"], `${type} data-size`).toBe("md");
+      expect(result["data-size"], `${type} data-size`).toBe("M");
     }
   });
 

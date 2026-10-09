@@ -35,7 +35,7 @@ import { measureSpecWrappedTextHeight } from "./measureText";
  * label 에는 여전히 origin/CSS(3xl→45)와 어긋나 instance 행만 짧게 렌더됐다. Text line box =
  * 1.5×fs 로 3경로(origin·instance·CSS) 통일.
  *
- * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.md 와 동일.
+ * 기본값(paddingX 12 / paddingY 4 / gap 2)은 componentRulesTable.ListBoxItem.sizes.M 와 동일.
  *
  * **2026-07-22 라이브 실측 정합**: label 은 react-aria-Text 기본 16 (item/container fontSize
  * 미상속 — preview iframe 실측: item fontSize 14 여도 label 16/24) → getTextLineHeight(16)=24.
@@ -60,7 +60,7 @@ export function resolveListBoxItemMetric(_fontSize: number): {
    */
   itemHeightWithDescription: number;
 } {
-  // componentRulesTable.ListBoxItem.sizes.md 정합 (paddingX 12 / paddingY 4 / gap 2).
+  // componentRulesTable.ListBoxItem.sizes.M 정합 (paddingX 12 / paddingY 4 / gap 2).
   const paddingX = 12;
   const paddingY = 4;
   const gap = 2;
@@ -352,7 +352,7 @@ export const COLLECTION_TEXT_DEFAULT_FONT_SIZE = 16;
  * (2026-07-22 라이브 실측). 과거 4/6 은 CSS 와 불일치(카드 +2 drift)라 전 size 2 로 통일 —
  * --spacing-2xs 는 size 무관 고정값이므로 분기하지 않는다.
  * 기본값(fontSize=14 기준: paddingX 16 / paddingY 12 / borderRadius 8)은
- * componentRulesTable.GridListItem.sizes.md 와 동일.
+ * componentRulesTable.GridListItem.sizes.M 와 동일.
  */
 export function resolveGridListItemMetric(fontSize: number): {
   cardPaddingX: number;
@@ -362,7 +362,7 @@ export function resolveGridListItemMetric(fontSize: number): {
   descGap: number;
   selectionBoxSize: number;
 } {
-  // cardBorderWidth = componentRulesTable.GridListItem.sizes.md.borderWidth(1) — 카드 border-box
+  // cardBorderWidth = componentRulesTable.GridListItem.sizes.M.borderWidth(1) — 카드 border-box
   //   높이 산출용(부모 GridList §1.55c). colors.border 로 실제 렌더되는 1px 테두리를 반영해야
   //   컨테이너 높이가 projected 카드(content+padding+border) 와 정합한다(누락 시 카드당 -2px).
   //   border 는 size 무관 고정(catalog 정의 md 단일)이라 분기하지 않는다.
@@ -377,7 +377,7 @@ export function resolveGridListItemMetric(fontSize: number): {
       selectionBoxSize: 20,
     };
   }
-  // fontSize>12: medium 카드 (16/12/8) — rule sizes.md 기본값 매칭
+  // fontSize>12: medium 카드 (16/12/8) — rule sizes.M 기본값 매칭
   if (fontSize > 12) {
     return {
       cardPaddingX: 16,

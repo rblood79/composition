@@ -32,25 +32,25 @@
   line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Menu[data-size="sm"] {
+.react-aria-Menu[data-size="S"] {
   height: auto;
   font-size: var(--text-xs);
   line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Menu[data-size="md"] {
+.react-aria-Menu[data-size="M"] {
   height: auto;
   font-size: var(--text-sm);
   line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Menu[data-size="lg"] {
+.react-aria-Menu[data-size="L"] {
   height: auto;
   font-size: var(--text-base);
   line-height: var(--text-base--line-height);
 }
 
-.react-aria-Menu[data-size="xl"] {
+.react-aria-Menu[data-size="XL"] {
   height: auto;
   font-size: var(--text-lg);
   line-height: var(--text-lg--line-height);

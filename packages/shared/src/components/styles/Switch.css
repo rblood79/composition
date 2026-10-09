@@ -101,7 +101,7 @@
 
   /* ===== Size Variants ===== */
 
-  .react-aria-Switch[data-size="sm"] {
+  .react-aria-Switch[data-size="S"] {
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
     --label-font-size: var(--text-xs);
@@ -121,7 +121,7 @@
     }
   }
 
-  .react-aria-Switch[data-size="md"] {
+  .react-aria-Switch[data-size="M"] {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     --label-font-size: var(--text-sm);
@@ -141,7 +141,7 @@
     }
   }
 
-  .react-aria-Switch[data-size="lg"] {
+  .react-aria-Switch[data-size="L"] {
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     --label-font-size: var(--text-base);
@@ -164,7 +164,7 @@
   /* xl (2026-08-21, design-data 감사 §1-3) — catalog Switch.sizes.xl 은 기존재했으나
      본 수동 CSS xl 블록 부재로 xl 선택 시 md 기본값으로 렌더되던 결손 보수.
      track 52×30 / thumb 24 — Skia indicator {52,30,24,3} 대칭. */
-  .react-aria-Switch[data-size="xl"] {
+  .react-aria-Switch[data-size="XL"] {
     font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);
     --label-font-size: var(--text-lg);

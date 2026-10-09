@@ -12,9 +12,9 @@
  * xl: 28 + 12×2 + 1×2 = 54
  */
 export const BUTTON_FAMILY_HEIGHTS: Record<string, number> = {
-  xs: 20,
-  sm: 22,
-  md: 30,
-  lg: 42,
-  xl: 54,
+  XS: 20,
+  S: 22,
+  M: 30,
+  L: 42,
+  XL: 54,
 } as const;

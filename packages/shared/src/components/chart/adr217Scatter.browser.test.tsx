@@ -42,7 +42,7 @@ function mount(extra: Partial<ChartProps> & { data?: unknown } = {}) {
   root.render(
     <Chart
       {...createChartInitialProps("scatter")}
-      size="md"
+      size="M"
       data={rows}
       dimension="x"
       metric="y"

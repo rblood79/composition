@@ -35,7 +35,7 @@ export const gridListBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // RAC 공식 prop(react-aria.adobe.com/GridList) — 항목 배치 방식(수직 stack ↔ 카드 grid).
       //   GridList.tsx 가 `layout={layout}` 소비 → RAC GridList `data-layout` 방출 →

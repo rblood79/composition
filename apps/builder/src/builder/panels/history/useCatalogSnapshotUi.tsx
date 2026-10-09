@@ -231,7 +231,7 @@ export function useCatalogSnapshotUi(
                 ) : (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="S"
                     onPress={() => requestRestore(snapshot)}
                     isDisabled={busy}
                     className="history-item-btn history-snapshot-btn"

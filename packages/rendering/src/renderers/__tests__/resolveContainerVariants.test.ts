@@ -17,7 +17,7 @@ function makeSpec<P>(overrides: Partial<ComponentSpec<P>>): ComponentSpec<P> {
     archetype: "collection",
     element: "div",
     defaultVariant: "primary",
-    defaultSize: "md",
+    defaultSize: "M",
     variants: {
       primary: { background: "{color.neutral}" },
     },

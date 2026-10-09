@@ -71,7 +71,7 @@ function virtualSpecFor(name: string): {
     element: meta.element as ComponentSpec<unknown>["element"],
     containerStyles: meta.containerStyles,
     defaultVariant: rule.defaultVariant,
-    defaultSize: rule.defaultSize ?? "md",
+    defaultSize: rule.defaultSize ?? "M",
     variants,
     sizes,
     states: meta.states ?? {

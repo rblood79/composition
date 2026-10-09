@@ -30,7 +30,7 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
   variant?: string;
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -80,7 +80,7 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
  * - Data binding support (Static, API)
  *
  * @example
- * <Tree variant="primary" size="md">
+ * <Tree variant="primary" size="M">
  *   <TreeItem title="Folder 1">
  *     <TreeItem title="File 1.1" />
  *     <TreeItem title="File 1.2" />
@@ -90,7 +90,7 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
 export function Tree<T extends object>(props: MyTreeProps<T>) {
   const {
     variant = "primary",
-    size = "md",
+    size = "M",
     dataBinding,
     isLoading: externalLoading,
     skeletonNodeCount = 3,

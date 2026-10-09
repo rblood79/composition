@@ -30,28 +30,28 @@
   gap: 4px;
 }
 
-.react-aria-Meter[data-size="sm"] {
+.react-aria-Meter[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-sm);
   line-height: var(--text-xs--line-height);
   gap: 4px;
 }
 
-.react-aria-Meter[data-size="md"] {
+.react-aria-Meter[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-sm);
   line-height: var(--text-sm--line-height);
   gap: 4px;
 }
 
-.react-aria-Meter[data-size="lg"] {
+.react-aria-Meter[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-md);
   line-height: var(--text-base--line-height);
   gap: 4px;
 }
 
-.react-aria-Meter[data-size="xl"] {
+.react-aria-Meter[data-size="XL"] {
   font-size: var(--text-lg);
   border-radius: var(--radius-lg);
   line-height: var(--text-lg--line-height);
@@ -151,39 +151,39 @@
   }
 
 
-  .react-aria-Meter[data-size="sm"] .bar {
+  .react-aria-Meter[data-size="S"] .bar {
     height: var(--spacing-xs);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-Meter[data-size="sm"] .value {
+  .react-aria-Meter[data-size="S"] .value {
     font-size: var(--text-xs);
   }
 
-  .react-aria-Meter[data-size="md"] .bar {
+  .react-aria-Meter[data-size="M"] .bar {
     height: var(--spacing-sm);
     border-radius: var(--radius-sm);
   }
 
-  .react-aria-Meter[data-size="md"] .value {
+  .react-aria-Meter[data-size="M"] .value {
     font-size: var(--text-sm);
   }
 
-  .react-aria-Meter[data-size="lg"] .bar {
+  .react-aria-Meter[data-size="L"] .bar {
     height: var(--spacing-md);
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-Meter[data-size="lg"] .value {
+  .react-aria-Meter[data-size="L"] .value {
     font-size: var(--text-base);
   }
 
-  .react-aria-Meter[data-size="xl"] .bar {
+  .react-aria-Meter[data-size="XL"] .bar {
     height: var(--spacing-lg);
     border-radius: var(--radius-lg);
   }
 
-  .react-aria-Meter[data-size="xl"] .value {
+  .react-aria-Meter[data-size="XL"] .value {
     font-size: var(--text-lg);
   }
 

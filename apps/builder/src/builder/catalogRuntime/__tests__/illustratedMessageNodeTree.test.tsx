@@ -103,9 +103,9 @@ describe("IllustratedMessage — the S2 node tree", () => {
   });
 
   it.each([
-    ["sm", 96, 16, 12, 12],
-    ["md", 96, 20, 14, 12],
-    ["lg", 160, 24, 14, 8],
+    ["S", 96, 16, 12, 12],
+    ["M", 96, 20, 14, 12],
+    ["L", 160, 24, 14, 8],
   ])(
     "vertical %s: illustration %i · heading %ipx · content %ipx, centred, gaps %i / 4",
     async (size, picture, heading, content, gap) => {
@@ -183,7 +183,7 @@ describe("IllustratedMessage — the S2 node tree", () => {
     await act(async () => reactRoot.render(renderCatalogDom(root, id)));
     const el = host.querySelector<HTMLElement>(`[data-catalog-id="${id}"]`)!;
     expect(el.className).toBe("react-aria-IllustratedMessage");
-    expect(el.dataset.size).toBe("md");
+    expect(el.dataset.size).toBe("M");
     expect(el.dataset.orientation).toBe("horizontal");
     const [picture, heading, description] = [...el.children] as HTMLElement[];
     expect(picture.classList.contains("react-aria-Illustration")).toBe(true);

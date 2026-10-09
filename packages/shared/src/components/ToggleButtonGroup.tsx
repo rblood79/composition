@@ -36,7 +36,7 @@ export interface ToggleButtonGroupExtendedProps extends ToggleButtonGroupProps {
   isQuiet?: boolean;
   /**
    * Size for child ToggleButton buttons
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -62,7 +62,7 @@ export function ToggleButtonGroup({
   indicator = false,
   isEmphasized = false,
   isQuiet = false,
-  size = "md",
+  size = "M",
   density = "regular",
   staticColor = "auto",
   dataBinding,

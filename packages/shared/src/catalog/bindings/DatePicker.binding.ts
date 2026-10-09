@@ -29,7 +29,7 @@ export const datePickerBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // ADR-913 slice 2 (2026-06-18): labelPosition D2 노출 (measure gap[8]). DatePicker.tsx:84/119/186
       //   이 이미 prop 수용 + data-label-position emit, DatePicker entry 는 containerVariants(label-
@@ -175,8 +175,8 @@ export const datePickerBinding: PrimitiveBinding = {
     // size 는 DatePicker.tsx(INTERNAL_RENDERERS 어댑터)가 **React prop 으로 직접 소비**한다
     //   (Label/DateInput/Button 하위 크기 결정 + 자기 `data-size` emit). catalog 의 size kind 는
     //   기본 data-attr 라우팅(`data-size`)이라 그대로 두면 DatePicker.tsx 의 size 가 undefined →
-    //   **항상 default("md") 고정**, 게다가 wrapper 가 `{...props}` 뒤에 `data-size={size}` 를 다시
-    //   써서 toRacProps 가 넣어준 `data-size="lg"` 까지 **덮어쓴다** → Preview 가 size 변경을 전혀
+    //   **항상 default("M") 고정**, 게다가 wrapper 가 `{...props}` 뒤에 `data-size={size}` 를 다시
+    //   써서 toRacProps 가 넣어준 `data-size="L"` 까지 **덮어쓴다** → Preview 가 size 변경을 전혀
     //   반영 못 함 (2026-07-14 사용자 적발). ProgressCircle/Avatar/StatusLight 선례 동형.
     //   labelPosition · labelAlign 도 같다: wrapper 가 `data-label-position={labelPosition}` ·
     //   `data-label-align` 를 다시 써서 side 가 항상 top 으로 덮였다 (ADR-248 4e-12, 2026-10-03).

@@ -149,7 +149,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         paddingRight: 16,
         rowGap: 2,
         columnGap: 2,
-        // ADR-923 r22m1 sweep — catalog `sizes.md.borderWidth` 축 (생성 CSS
+        // ADR-923 r22m1 sweep — catalog `sizes.M.borderWidth` 축 (생성 CSS
         //   `.react-aria-GridListItem { border: 1px solid var(--border); border-width: 1px }`).
         borderWidth: 1,
       });
@@ -163,7 +163,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   B(structure.composition) 둘 다 미도달 → {} 반환 → getElementDisplay block 라우팅 → 자식
   //   flex 속성 유실(DOM=flex-column 비대칭). top-level rule.containerStyles 승격으로 경로 A 도달.
   // ADR-171 Phase 3-b (2026-07-29): padding 4-way 12 추가. TabPanel 은 `structure.composition`
-  //   부재라 생성기가 sizes padding 을 **emit 한다**(`.react-aria-TabPanel[data-size="md"]
+  //   부재라 생성기가 sizes padding 을 **emit 한다**(`.react-aria-TabPanel[data-size="M"]
   //   { padding: 12px 12px }`). Phase 3 의 size 축 게이트가 "top-level containerStyles 보유"
   //   를 기준으로 삼아 그 값을 막고 있었다 — 실측 DOM 대비 자식 x/y 각 12, 컨테이너 24 발산
   //   (`catalogComponentBox.browser.test.ts`, 지금은 CASES 로 승격돼 GREEN).
@@ -209,7 +209,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       // ADR-151 B1 (2026-07-16): borderWidth "1px" 추가 — generated CSS border 1px 의
       //   layout 미반영 2px 발산 보정 (fallback allowlist 에 borderWidth 편입).
       // ADR-171 Phase 3-b (2026-07-29): sizes padding 8 + gap 6 추가 — 생성 CSS
-      //   `.react-aria-Calendar[data-size="md"] { padding: 8px 8px; gap: 6px }` 실측 정합
+      //   `.react-aria-Calendar[data-size="M"] { padding: 8px 8px; gap: 6px }` 실측 정합
       //   (`composition` 부재라 생성기가 emit 한다). store longhand 정책상 4-way + rowGap/
       //   columnGap 으로 낸다.
       expect(fb).toEqual({
@@ -495,7 +495,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
     // ADR-171 Phase 3-b (2026-07-29): sizes gap 4 / columnGap 16 추가. Slider 는
     //   `composition` 보유(ownsContainerBox) 라 height 는 여전히 skip 되지만, gap 은
     //   `structure.containerStyles.gap` 이 없어 생성기가 emit 한다 — 생성 CSS
-    //   `.react-aria-Slider[data-size="md"] { gap: 4px; column-gap: 16px }` 정합.
+    //   `.react-aria-Slider[data-size="M"] { gap: 4px; column-gap: 16px }` 정합.
     it("slider → display:grid + gridTemplateAreas/Columns + sizes gap (grid 경로)", () => {
       expect(resolveContainerStylesFallback("slider", {})).toEqual({
         display: "grid",

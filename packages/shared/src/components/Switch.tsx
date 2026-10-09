@@ -25,7 +25,7 @@ export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
   isEmphasized?: boolean;
   /**
    * Size of the switch
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -44,7 +44,7 @@ export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
 export function Switch({
   children,
   isEmphasized = false,
-  size = "md",
+  size = "M",
   isLoading,
   ...props
 }: SwitchProps) {

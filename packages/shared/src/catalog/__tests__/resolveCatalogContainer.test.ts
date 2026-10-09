@@ -80,21 +80,21 @@ describe("resolveCatalogContainerVariants (Δ3 plain-data 재작성)", () => {
 });
 
 describe("resolveCatalogSizeField (Δ4 size-value 단일 진입)", () => {
-  it("ProgressBarTrack height (md) → catalog sizes.md.height", () => {
-    const h = resolveCatalogSizeField("ProgressBarTrack", "md", "height");
+  it("ProgressBarTrack height (md) → catalog sizes.M.height", () => {
+    const h = resolveCatalogSizeField("ProgressBarTrack", "M", "height");
     expect(typeof h).toBe("number");
-    expect(h).toBe(8); // VALUE_FILL_TRACK_HEIGHT.md mirror 와 byte 일치
+    expect(h).toBe(8); // VALUE_FILL_TRACK_HEIGHT.M mirror 와 byte 일치
   });
 
-  it("Checkbox gap (md) → catalog sizes.md.gap", () => {
-    const g = resolveCatalogSizeField("Checkbox", "md", "gap");
+  it("Checkbox gap (md) → catalog sizes.M.gap", () => {
+    const g = resolveCatalogSizeField("Checkbox", "M", "gap");
     expect(typeof g).toBe("number");
-    expect(g).toBe(8); // INDICATOR_SIZES.md.gap mirror 와 byte 일치
+    expect(g).toBe(8); // INDICATOR_SIZES.M.gap mirror 와 byte 일치
   });
 
   it("unknown type/field → undefined", () => {
     expect(
-      resolveCatalogSizeField("NotARealComponent", "md", "height"),
+      resolveCatalogSizeField("NotARealComponent", "M", "height"),
     ).toBeUndefined();
   });
 });

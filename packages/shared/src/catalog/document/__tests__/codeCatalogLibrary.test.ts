@@ -206,7 +206,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     const repeated = await buildCodeCatalogLibrary();
     expect(library.revision).toMatch(/^[a-f0-9]{64}$/);
     expect(repeated.revision).toBe(library.revision);
-    expect(library.contractVersion).toBe(35);
+    expect(library.contractVersion).toBe(36);
     for (const type of CODE_CATALOG_SUPPORTED_TYPES) {
       const registration = componentCatalog.find(
         (entry) => entry.type === type && entry.kind === "primitive",
@@ -222,9 +222,9 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         source.variants.default.textWeight,
       );
       expect(definition.propChoices?.size).toEqual(Object.keys(source.sizes));
-      expect(definition.propVisualRules?.size?.md?.lineHeight).toBe(
-        Number(sourceValue(source.sizes.md.lineHeight)) /
-          Number(sourceValue(source.sizes.md.fontSize)),
+      expect(definition.propVisualRules?.size?.M?.lineHeight).toBe(
+        Number(sourceValue(source.sizes.M.lineHeight)) /
+          Number(sourceValue(source.sizes.M.fontSize)),
       );
       expect(Object.isFrozen(definition)).toBe(true);
     }
@@ -263,7 +263,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     expect(button.propChoices?.variant).toEqual(
       Object.keys(buttonSource.variants),
     );
-    expect(button.propVisualRules?.size?.md?.fontSize).toEqual(
+    expect(button.propVisualRules?.size?.M?.fontSize).toEqual(
       expect.objectContaining({ kind: "token" }),
     );
     expect(button.conditionalRules).toEqual(
@@ -276,8 +276,8 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
     for (const type of ["Icon", "Illustration"] as const) {
       const glyph = library.definitions.get(catalogTypeDefinitionId(type))!;
       expect(glyph.bindingId).toBe(type.toLowerCase());
-      expect(glyph.propVisualRules?.size?.md?.iconSize).toBe(
-        COMPONENT_RULES_TABLE[type].sizes.md.iconSize,
+      expect(glyph.propVisualRules?.size?.M?.iconSize).toBe(
+        COMPONENT_RULES_TABLE[type].sizes.M.iconSize,
       );
       expect(glyph.visual.color).toEqual(
         expect.objectContaining({ kind: "token" }),
@@ -295,7 +295,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       COMPONENT_RULES_TABLE.SelectValue.defaultSize,
     );
     // Same as the trigger: the value is the owner's input/span, sized by its line box.
-    expect(selectValue.propVisualRules?.size?.md).not.toHaveProperty("height");
+    expect(selectValue.propVisualRules?.size?.M).not.toHaveProperty("height");
     for (const definition of REUSABLE_ORIGIN_DEFINITIONS)
       expect(library.definitions.get(definition.id)?.mode).toBe("composite");
     expect(library.definitions.size).toBe(
@@ -341,7 +341,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       definitionId: "lib:definition:heading",
       props: {
         children: { kind: "set", value: "Source Heading" },
-        size: { kind: "set", value: "lg" },
+        size: { kind: "set", value: "L" },
       },
     };
     const inserted = applyCatalogTransaction(graph, {
@@ -364,11 +364,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       color: sourceValue(
         COMPONENT_RULES_TABLE.Text.variants.default.colors?.text,
       ),
-      fontSize: sourceValue(COMPONENT_RULES_TABLE.Text.sizes.md.fontSize),
+      fontSize: sourceValue(COMPONENT_RULES_TABLE.Text.sizes.M.fontSize),
       fontWeight: COMPONENT_RULES_TABLE.Text.variants.default.textWeight,
     });
     expect(headingResolved.visual).toMatchObject({
-      fontSize: sourceValue(COMPONENT_RULES_TABLE.Heading.sizes.lg.fontSize),
+      fontSize: sourceValue(COMPONENT_RULES_TABLE.Heading.sizes.L.fontSize),
       fontWeight: COMPONENT_RULES_TABLE.Heading.variants.default.textWeight,
     });
     const edited = applyCatalogTransaction(graph, {
@@ -422,12 +422,12 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
           [page.id]: { ...page, children: [buttonId, glyphId] },
           [buttonId]: node(buttonId, "lib:definition:type-Button", {
             variant: { kind: "set", value: "accent" },
-            size: { kind: "set", value: "lg" },
+            size: { kind: "set", value: "L" },
             fillStyle: { kind: "set", value: "outline" },
             children: { kind: "set", value: "Save" },
           }),
           [glyphId]: node(glyphId, "lib:definition:type-Icon", {
-            size: { kind: "set", value: "xs" },
+            size: { kind: "set", value: "XS" },
           }),
         },
       },
@@ -441,11 +441,11 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       borderColor: sourceValue(
         COMPONENT_RULES_TABLE.Button.variants.accent.colors?.outlineBorder,
       ),
-      fontSize: sourceValue(COMPONENT_RULES_TABLE.Button.sizes.lg.fontSize),
-      paddingX: COMPONENT_RULES_TABLE.Button.sizes.lg.paddingX,
+      fontSize: sourceValue(COMPONENT_RULES_TABLE.Button.sizes.L.fontSize),
+      paddingX: COMPONENT_RULES_TABLE.Button.sizes.L.paddingX,
     });
     expect(resolveCatalogNode(graph, glyphId).visual).toMatchObject({
-      iconSize: COMPONENT_RULES_TABLE.Icon.sizes.xs.iconSize,
+      iconSize: COMPONENT_RULES_TABLE.Icon.sizes.XS.iconSize,
       color: sourceValue(
         COMPONENT_RULES_TABLE.Icon.variants.default.colors?.text,
       ),

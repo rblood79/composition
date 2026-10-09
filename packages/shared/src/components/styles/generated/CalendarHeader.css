@@ -58,7 +58,7 @@
   }
 }
 
-.react-aria-CalendarHeader[data-size="sm"] {
+.react-aria-CalendarHeader[data-size="S"] {
   height: 24px;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -67,7 +67,7 @@
   --icon-size: 20px;
 }
 
-.react-aria-CalendarHeader[data-size="md"] {
+.react-aria-CalendarHeader[data-size="M"] {
   height: 30px;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -76,7 +76,7 @@
   --icon-size: 26px;
 }
 
-.react-aria-CalendarHeader[data-size="lg"] {
+.react-aria-CalendarHeader[data-size="L"] {
   height: 36px;
   padding: 0px 0px;
   font-size: var(--text-base);

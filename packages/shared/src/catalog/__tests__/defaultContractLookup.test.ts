@@ -132,9 +132,9 @@ describe("selection helper — source identity (r27m1)", () => {
 
 describe("resolveComponentRuleByTag — lowercase 태그 rule 조회", () => {
   it("Badge / Select 의 defaultSize 를 casing 무관하게 준다", () => {
-    expect(resolveComponentRuleByTag("badge")?.defaultSize).toBe("sm");
-    expect(resolveComponentRuleByTag("Badge")?.defaultSize).toBe("sm");
-    expect(resolveComponentRuleByTag("select")?.defaultSize).toBe("md");
+    expect(resolveComponentRuleByTag("badge")?.defaultSize).toBe("S");
+    expect(resolveComponentRuleByTag("Badge")?.defaultSize).toBe("S");
+    expect(resolveComponentRuleByTag("select")?.defaultSize).toBe("M");
   });
 
   it("테이블 전 타입에서 lowercase 조회가 Pascal 조회와 같은 rule", () => {

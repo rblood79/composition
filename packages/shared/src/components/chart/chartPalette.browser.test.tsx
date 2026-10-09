@@ -71,7 +71,7 @@ for (const theme of ["light", "dark"] as const)
           _containerWidth: 320,
           _containerHeight: 240,
         },
-        size: rule.sizes.md as SizeSpec,
+        size: rule.sizes.M as SizeSpec,
         visual: undefined,
         paint: {
           backgroundColor: "{color.layer-1}",
@@ -95,7 +95,7 @@ for (const theme of ["light", "dark"] as const)
       root.render(
         <Chart
           {...props}
-          size="md"
+          size="M"
           isAnimationActive={false}
           style={{ width: 320, height: 240 }}
         />,

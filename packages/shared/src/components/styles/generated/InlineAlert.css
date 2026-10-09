@@ -104,7 +104,7 @@
   }
 }
 
-.react-aria-InlineAlert[data-size="sm"] {
+.react-aria-InlineAlert[data-size="S"] {
   height: auto;
   padding: 8px 8px;
   font-size: var(--text-sm);
@@ -112,7 +112,7 @@
   gap: 8px;
 }
 
-.react-aria-InlineAlert[data-size="md"] {
+.react-aria-InlineAlert[data-size="M"] {
   height: auto;
   padding: 16px 16px;
   font-size: var(--text-base);
@@ -120,7 +120,7 @@
   gap: 12px;
 }
 
-.react-aria-InlineAlert[data-size="lg"] {
+.react-aria-InlineAlert[data-size="L"] {
   height: auto;
   padding: 24px 24px;
   font-size: var(--text-lg);

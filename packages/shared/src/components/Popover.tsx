@@ -12,7 +12,7 @@ export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
   children: React.ReactNode;
   /**
    * Size variant
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSize;
   /**
@@ -62,14 +62,14 @@ export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
  * @example
  * <DialogTrigger>
  *   <Button>Open Popover</Button>
- *   <Popover variant="primary" size="md">
+ *   <Popover variant="primary" size="M">
  *     <p>Popover content</p>
  *   </Popover>
  * </DialogTrigger>
  */
 export function Popover({
   children,
-  size = "md",
+  size = "M",
   hideArrow = false,
   containFocus = false,
   autoFocus = true,

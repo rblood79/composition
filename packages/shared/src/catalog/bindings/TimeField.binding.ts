@@ -42,7 +42,7 @@ export const timeFieldBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       labelPosition: {
         kind: "enum",
@@ -159,7 +159,7 @@ export const timeFieldBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
     // size 를 TimeField.tsx 가 React prop 으로 소비 + 자기 `data-size` 를 재작성
-    //   → passthrough 없으면 default("md") 고정 + toRacProps 의 data-size 를 덮어씀
+    //   → passthrough 없으면 default("M") 고정 + toRacProps 의 data-size 를 덮어씀
     //   (DateField.binding 과 동일 근거, 2026-07-14 전수 확장).
     propPassthrough: ["size"],
   },

@@ -26,7 +26,7 @@ export interface CheckboxProps extends Omit<AriaCheckboxProps, "children"> {
   isEmphasized?: boolean;
   /**
    * Size of the checkbox
-   * @default 'md'
+   * @default 'M'
    */
   size?: ComponentSizeSubset;
   /**
@@ -47,7 +47,7 @@ export function MyCheckbox(props: CheckboxProps) {
     children,
     isTreeItemChild = false,
     isEmphasized = false,
-    size = "md",
+    size = "M",
     isLoading,
     ...restProps
   } = props;

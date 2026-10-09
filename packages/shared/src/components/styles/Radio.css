@@ -95,23 +95,23 @@
   /* ===== Size delegation from RadioGroup ===== */
 
   /* Group Label font-size */
-  .react-aria-RadioGroup[data-radio-size="sm"] {
+  .react-aria-RadioGroup[data-radio-size="S"] {
     --label-font-size: var(--text-xs);
   }
 
-  .react-aria-RadioGroup[data-radio-size="md"] {
+  .react-aria-RadioGroup[data-radio-size="M"] {
     --label-font-size: var(--text-sm);
   }
 
-  .react-aria-RadioGroup[data-radio-size="lg"] {
+  .react-aria-RadioGroup[data-radio-size="L"] {
     --label-font-size: var(--text-base);
   }
 
-  .react-aria-RadioGroup[data-radio-size="xl"] {
+  .react-aria-RadioGroup[data-radio-size="XL"] {
     --label-font-size: var(--text-lg);
   }
 
-  .react-aria-RadioGroup[data-radio-size="sm"] .react-aria-Radio {
+  .react-aria-RadioGroup[data-radio-size="S"] .react-aria-Radio {
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     --label-font-size: var(--text-xs);
@@ -128,7 +128,7 @@
     }
   }
 
-  .react-aria-RadioGroup[data-radio-size="md"] .react-aria-Radio {
+  .react-aria-RadioGroup[data-radio-size="M"] .react-aria-Radio {
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
     --label-font-size: var(--text-sm);
@@ -145,7 +145,7 @@
     }
   }
 
-  .react-aria-RadioGroup[data-radio-size="lg"] .react-aria-Radio {
+  .react-aria-RadioGroup[data-radio-size="L"] .react-aria-Radio {
     font-size: var(--text-lg);
     line-height: var(--text-lg--line-height);
     --label-font-size: var(--text-base);
@@ -165,7 +165,7 @@
   /* xl (2026-08-21, design-data 감사 §1-3) — catalog Radio.sizes.xl 은 기존재했으나
      본 수동 CSS xl 블록 부재로 xl 선택 시 md 기본값으로 렌더되던 결손 보수.
      Skia indicator boxSize 30 / dotSize 14 (= 30 - 2×8 border) 대칭. */
-  .react-aria-RadioGroup[data-radio-size="xl"] .react-aria-Radio {
+  .react-aria-RadioGroup[data-radio-size="XL"] .react-aria-Radio {
     font-size: var(--text-xl);
     line-height: var(--text-xl--line-height);
     --label-font-size: var(--text-lg);

@@ -23,25 +23,25 @@
   gap: 6px;
 }
 
-.react-aria-DateField[data-size="sm"] {
+.react-aria-DateField[data-size="S"] {
   font-size: var(--text-sm);
   border-radius: 0;
   gap: 4px;
 }
 
-.react-aria-DateField[data-size="md"] {
+.react-aria-DateField[data-size="M"] {
   font-size: var(--text-base);
   border-radius: 0;
   gap: 6px;
 }
 
-.react-aria-DateField[data-size="lg"] {
+.react-aria-DateField[data-size="L"] {
   font-size: var(--text-lg);
   border-radius: 0;
   gap: 8px;
 }
 
-.react-aria-DateField[data-size="xl"] {
+.react-aria-DateField[data-size="XL"] {
   font-size: var(--text-xl);
   border-radius: 0;
   gap: 10px;
@@ -60,23 +60,23 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-DateField[data-size="xs"] {
+.react-aria-DateField[data-size="XS"] {
   --df-input-min-width: 100px;
 }
 
-.react-aria-DateField[data-size="sm"] {
+.react-aria-DateField[data-size="S"] {
   --df-input-min-width: 120px;
 }
 
-.react-aria-DateField[data-size="md"] {
+.react-aria-DateField[data-size="M"] {
   --df-input-min-width: 150px;
 }
 
-.react-aria-DateField[data-size="lg"] {
+.react-aria-DateField[data-size="L"] {
   --df-input-min-width: 180px;
 }
 
-.react-aria-DateField[data-size="xl"] {
+.react-aria-DateField[data-size="XL"] {
   --df-input-min-width: 220px;
 }
 
@@ -85,19 +85,19 @@
   min-width: var(--df-input-min-width);
 }
 
-.react-aria-DateField[data-size="sm"] {
+.react-aria-DateField[data-size="S"] {
   --df-side-gap: 4px;
 }
 
-.react-aria-DateField[data-size="md"] {
+.react-aria-DateField[data-size="M"] {
   --df-side-gap: 6px;
 }
 
-.react-aria-DateField[data-size="lg"] {
+.react-aria-DateField[data-size="L"] {
   --df-side-gap: 8px;
 }
 
-.react-aria-DateField[data-size="xl"] {
+.react-aria-DateField[data-size="XL"] {
   --df-side-gap: 10px;
 }
 

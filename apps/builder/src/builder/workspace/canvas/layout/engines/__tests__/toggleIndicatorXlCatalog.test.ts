@@ -32,15 +32,15 @@ const sizes = (type: string) =>
 
 describe("catalog xl 단계 (§1-3 Checkbox 계열 결손 보수)", () => {
   it("Checkbox: xl 존재 — fontSize text-xl / gap 12 (Radio 미러)", () => {
-    const xl = sizes("Checkbox").xl;
+    const xl = sizes("Checkbox").XL;
     expect(xl).toBeDefined();
     expect(xl.fontSize).toBe("{typography.text-xl}");
     expect(xl.gap).toBe(12);
   });
 
   it("CheckboxGroup: xl 존재 — gap 20 (RadioGroup 미러)", () => {
-    expect(sizes("CheckboxGroup").xl?.gap).toBe(20);
-    expect(sizes("RadioGroup").xl?.gap).toBe(20);
+    expect(sizes("CheckboxGroup").XL?.gap).toBe(20);
+    expect(sizes("RadioGroup").XL?.gap).toBe(20);
   });
 });
 
@@ -48,14 +48,14 @@ describe("catalog indicator 채널 배선 (Skia size 무관 고정 해소)", () 
   it("Checkbox: boxSize 16/20/24/30 (DOM --cb-box-size 미러)", () => {
     const s = sizes("Checkbox");
     expect(
-      (["sm", "md", "lg", "xl"] as const).map((k) => s[k].indicator?.boxSize),
+      (["S", "M", "L", "XL"] as const).map((k) => s[k].indicator?.boxSize),
     ).toEqual([16, 20, 24, 30]);
   });
 
   it("Radio: boxSize 16/20/24/30 + dotSize 6/8/10/14 (= box - 2×border)", () => {
     const s = sizes("Radio");
     expect(
-      (["sm", "md", "lg", "xl"] as const).map((k) => [
+      (["S", "M", "L", "XL"] as const).map((k) => [
         s[k].indicator?.boxSize,
         s[k].indicator?.dotSize,
       ]),
@@ -70,7 +70,7 @@ describe("catalog indicator 채널 배선 (Skia size 무관 고정 해소)", () 
   it("Switch: track 32~52 × 18~30 / thumb 14~24 (Switch.css 미러)", () => {
     const s = sizes("Switch");
     expect(
-      (["sm", "md", "lg", "xl"] as const).map((k) => [
+      (["S", "M", "L", "XL"] as const).map((k) => [
         s[k].indicator?.trackWidth,
         s[k].indicator?.trackHeight,
         s[k].indicator?.thumbSize,

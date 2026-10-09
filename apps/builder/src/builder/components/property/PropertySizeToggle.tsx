@@ -22,17 +22,17 @@ interface PropertySizeToggleProps {
 }
 
 const SIZE_3 = [
-  { id: "sm", label: "S" },
-  { id: "md", label: "M" },
-  { id: "lg", label: "L" },
+  { id: "S", label: "S" },
+  { id: "M", label: "M" },
+  { id: "L", label: "L" },
 ];
 
 const SIZE_5 = [
-  { id: "xs", label: "XS" },
-  { id: "sm", label: "S" },
-  { id: "md", label: "M" },
-  { id: "lg", label: "L" },
-  { id: "xl", label: "XL" },
+  { id: "XS", label: "XS" },
+  { id: "S", label: "S" },
+  { id: "M", label: "M" },
+  { id: "L", label: "L" },
+  { id: "XL", label: "XL" },
 ];
 
 export const PropertySizeToggle = memo(function PropertySizeToggle({

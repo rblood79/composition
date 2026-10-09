@@ -30,7 +30,7 @@ export const tableBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       selectionMode: {
         kind: "enum",

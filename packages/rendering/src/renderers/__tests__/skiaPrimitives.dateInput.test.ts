@@ -17,7 +17,7 @@ import type { Shape, SizeSpec } from "../../types";
  * 좌표/text = DateInput.spec.ts:218-331 render.shapes 1:1 이식(spec-free).
  */
 
-// DateInput rule.sizes.md 미러 (height 30, fontSize text-sm).
+// DateInput rule.sizes.M 미러 (height 30, fontSize text-sm).
 const sizeMd: SizeSpec = {
   height: 30,
   paddingX: 12,

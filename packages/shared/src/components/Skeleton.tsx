@@ -11,7 +11,7 @@
  * <Skeleton variant="rectangular" width={200} height={100} />
  *
  * // Component-specific variants
- * <Skeleton componentVariant="button" size="md" />
+ * <Skeleton componentVariant="button" size="M" />
  * <Skeleton componentVariant="input" />
  * <Skeleton componentVariant="card" />
  *
@@ -180,7 +180,7 @@ export function Skeleton({
   lastLineWidth = "60%",
   lineGap,
   componentVariant,
-  size = "md",
+  size = "M",
   className,
   style,
   index,

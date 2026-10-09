@@ -85,7 +85,7 @@ export function Card({
   style,
   variant: rawVariant = "primary",
   cardType = "default",
-  size = "md",
+  size = "M",
   orientation = "vertical",
   isQuiet = false,
   isDisabled = false,

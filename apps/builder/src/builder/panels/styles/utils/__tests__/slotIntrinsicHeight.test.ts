@@ -23,7 +23,7 @@ describe("레이아웃 컨테이너의 intrinsic height", () => {
   );
 
   it("Slot 은 size 를 바꿔도 height 를 공급하지 않는다", () => {
-    for (const size of ["sm", "md", "lg"]) {
+    for (const size of ["S", "M", "L"]) {
       expect(resolveSpecPreset("Slot", size).height).toBeUndefined();
     }
   });
@@ -31,8 +31,8 @@ describe("레이아웃 컨테이너의 intrinsic height", () => {
   it("고유 높이가 있는 컴포넌트는 종전대로 공급한다 (과잉 차단 방지)", () => {
     // 이 단언이 없으면 "전부 undefined" 로 망가뜨려도 위 테스트가 통과한다.
     //   Avatar/Tag 는 자기 박스 높이를 catalog 가 정하는 leaf — 실측으로 고른 대조군이다.
-    expect(resolveSpecPreset("Avatar", "md").height).toBe(32);
+    expect(resolveSpecPreset("Avatar", "M").height).toBe(32);
     // Tag md 30 = DOM chip border-box (lineHeight 20 + paddingY 4×2 + border 1×2, 2026-09-21).
-    expect(resolveSpecPreset("Tag", "md").height).toBe(30);
+    expect(resolveSpecPreset("Tag", "M").height).toBe(30);
   });
 });

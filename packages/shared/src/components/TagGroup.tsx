@@ -58,7 +58,7 @@ export interface TagGroupProps<T>
   removedItemIds?: string[];
   // Tag 스타일 제어
   variant?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "S" | "M" | "L";
   /**
    * React Aria 1.13.0: 커스텀 필터 함수
    * @example filter={(item) => item.status === 'active'}
@@ -127,7 +127,7 @@ export function TagGroup<T extends object>({
   columnMapping,
   removedItemIds = [],
   variant = "default",
-  size = "md",
+  size = "M",
   maxRows,
   filter,
   filterText,
@@ -857,7 +857,7 @@ export function TagMaxRowsMirror({
         flexWrap: "wrap",
         // chip 간 gap 정본 = TagList catalog rule (lg=6, 그 외 4). 실제 wrapper(.tag-list-wrapper)
         //   의 size 별 gap 과 동일해야 maxRows wrap 측정이 정확. Skia resolveTagListGap 과 정합.
-        gap: size === "lg" ? "6px" : "var(--spacing-xs)",
+        gap: size === "L" ? "6px" : "var(--spacing-xs)",
         position: "absolute",
         visibility: "hidden",
         overflow: "hidden",

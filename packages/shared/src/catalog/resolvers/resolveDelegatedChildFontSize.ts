@@ -3,7 +3,7 @@
  * selector 에 size 별로 선언한 **font-size 변수** 를 px 로 돌려주는 단일 진입점.
  *
  * generated CSS (CSSGenerator Tier 2) 는 같은 항목에서
- *   `.react-aria-{Parent}[data-size="md"] .react-aria-FieldError { --tf-hint-size: var(--text-sm); }`
+ *   `.react-aria-{Parent}[data-size="M"] .react-aria-FieldError { --tf-hint-size: var(--text-sm); }`
  *   `.react-aria-{Parent} .react-aria-FieldError { --error-font-size: var(--tf-hint-size); }`
  * 를 emit 하고 base.css 의 `.react-aria-FieldError { font-size: var(--error-font-size, var(--text-xs)) }`
  * 가 그것을 읽는다 — DOM 의 computed font-size 원천이 이 delegation 이다. Canvas 도 같은 항목을
@@ -458,7 +458,7 @@ export function resolveDelegatedChildFontSize(
   const sizeVars =
     (size ? bySize[size] : undefined) ??
     (defaultSize ? bySize[defaultSize] : undefined) ??
-    bySize.md;
+    bySize.M;
   if (!sizeVars) return undefined;
 
   // font-size 변수 이름: bridges 가 `--error-font-size`/`font-size` 로 재노출하는 변수가 있으면 그것,
@@ -516,7 +516,7 @@ export function resolveDelegatedChildMaxWidth(
   const sizeVars =
     (size ? bySize[size] : undefined) ??
     (defaultSize ? bySize[defaultSize] : undefined) ??
-    bySize.md;
+    bySize.M;
   const raw = sizeVars?.[maxVar];
   if (typeof raw !== "string") return undefined;
   const m = /^(\d+(?:\.\d+)?)(ch|px)$/.exec(raw.trim());

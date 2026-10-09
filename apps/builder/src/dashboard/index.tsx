@@ -343,7 +343,7 @@ function CreateProjectTile({
           type="button"
           variant="secondary"
           fillStyle="outline"
-          size="sm"
+          size="S"
           onPress={onCancel}
           isDisabled={isBusy}
         >
@@ -352,7 +352,7 @@ function CreateProjectTile({
         <Button
           type="submit"
           variant="accent"
-          size="sm"
+          size="S"
           isDisabled={isBusy || !value.trim()}
           isLoading={isBusy}
         >
@@ -783,7 +783,7 @@ function Dashboard() {
               <Button
                 className="dashboard-create-button"
                 variant="accent"
-                size="md"
+                size="M"
                 isDisabled={loading}
                 onPress={startCreating}
               >
@@ -795,7 +795,7 @@ function Dashboard() {
 
           {error && (
             <div className="dashboard-error">
-              <Badge variant="negative" size="md" fillStyle="subtle">
+              <Badge variant="negative" size="M" fillStyle="subtle">
                 {error.message}
               </Badge>
             </div>
@@ -819,7 +819,7 @@ function Dashboard() {
               <Button
                 className="dashboard-create-button"
                 variant="accent"
-                size="md"
+                size="M"
                 onPress={startCreating}
               >
                 <AddIcon size={16} aria-hidden />

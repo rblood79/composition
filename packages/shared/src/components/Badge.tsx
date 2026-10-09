@@ -10,7 +10,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
   /**
    * Size variant
-   * @default 'sm'
+   * @default 'S'
    */
   size?: ComponentSize;
   /**
@@ -52,14 +52,14 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Sizes: sm, md, lg
  *
  * @example
- * <Badge variant="accent" size="sm">New</Badge>
- * <Badge variant="negative" size="md">5</Badge>
+ * <Badge variant="accent" size="S">New</Badge>
+ * <Badge variant="negative" size="M">5</Badge>
  * <Badge variant="positive" fillStyle="subtle">Active</Badge>
  * <Badge variant="informative" isDot isPulsing />
  */
 export function Badge({
   variant = "accent",
-  size = "sm",
+  size = "S",
   isDot = false,
   isPulsing = false,
   fillStyle,

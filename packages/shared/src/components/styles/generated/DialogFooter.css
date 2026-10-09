@@ -19,35 +19,35 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-DialogFooter[data-size="xs"] {
+.react-aria-DialogFooter[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
-.react-aria-DialogFooter[data-size="sm"] {
+.react-aria-DialogFooter[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-DialogFooter[data-size="md"] {
+.react-aria-DialogFooter[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
 }
 
-.react-aria-DialogFooter[data-size="lg"] {
+.react-aria-DialogFooter[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
 }
 
-.react-aria-DialogFooter[data-size="xl"] {
+.react-aria-DialogFooter[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);

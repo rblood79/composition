@@ -12,7 +12,11 @@
  * generated `[data-size="…"]` blocks never match — every size resolves the generated values of the
  * default size. Size facts keyed on the real attribute are declared in `parts` with `size`.
  */
-import { resolveToken, type TokenRef } from "@composition/rendering";
+import {
+  cssVarToTokenRef,
+  resolveToken,
+  type TokenRef,
+} from "@composition/rendering";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import type { CompiledPartRule } from "./rulePartRules";
@@ -49,21 +53,29 @@ const TAG_REMOVE_PADDING_RIGHT = 4;
 
 const sizesOf = (type: string) =>
   (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[type]?.sizes ?? {};
+/** The DateRangePicker rule's `.react-aria-Group` delegation variables, by size. */
+const DATE_RANGE_GROUP_VARIABLES = () =>
+  (
+    (COMPONENT_RULES_TABLE as Record<string, ComponentRule>).DateRangePicker
+      ?.structure?.composition?.delegation as
+      Array<{ prefix?: string; variables?: unknown }> | undefined
+  )?.find((entry) => entry.prefix === "drp-group")?.variables as
+    Record<string, Record<string, unknown> | undefined> | undefined;
 
 /** `Separator.css` size margins (`--spacing-xs/sm/lg`) on the axis across the line. */
 const SEPARATOR_MARGIN: Readonly<Record<string, number>> = {
-  sm: 4,
-  md: 8,
-  lg: 16,
+  S: 4,
+  M: 8,
+  L: 16,
 };
 
 /** `renderButtonGroup` inline style (`LayoutRenderers.tsx`): gap by size, justify by align. */
 const BUTTON_GROUP_GAP: Readonly<Record<string, number>> = {
-  xs: 4,
-  sm: 6,
-  md: 8,
-  lg: 10,
-  xl: 12,
+  XS: 4,
+  S: 6,
+  M: 8,
+  L: 10,
+  XL: 12,
 };
 const BUTTON_GROUP_JUSTIFY: Readonly<Record<string, string>> = {
   start: "flex-start",
@@ -162,10 +174,10 @@ const itemLabelFontParts = (itemType: string): CompiledPartRule[] => {
  * reaches the item (`CATALOG_SIZE_PROPAGATION`), so the item's own rule gives the same offset.
  */
 const GROUP_ITEM_INDICATORS: Readonly<Record<string, string>> = {
-  sm: "text-base",
-  md: "text-xl",
-  lg: "text-2xl",
-  xl: "text-3xl",
+  S: "text-base",
+  M: "text-xl",
+  L: "text-2xl",
+  XL: "text-3xl",
 };
 const groupItemIndicatorParts = (
   itemType: string,
@@ -397,23 +409,31 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   }),
   // ADR-256 Phase 6b — a range picker's control Group paints the box (`DateRangePicker` rule
   // delegation `.react-aria-Group`: `background: var(--bg-inset)` · `border: … var(--border)` ·
-  // `border-radius: var(--drp-group-radius)` = the size's radius token). The part rule compiler
-  // carries only its box geometry (padding · border width); the paint is stated here with the same
-  // values (`adr256FieldControlGroup` checks the bridges still say so).
+  // `border-radius: var(--drp-group-radius)` = the size's radius token, read from the same
+  // delegation's `variables`). The part rule compiler carries only its box geometry (padding ·
+  // border width); the paint is stated here with the same values (`adr256FieldControlGroup` checks
+  // the bridges still say so).
   DateRangePicker: () => ({
     parts: Object.keys(sizesOf("DateRangePicker")).map(
-      (name): CompiledPartRule => ({
-        childType: "Group",
-        size: name,
-        layout: {},
-        visual: {
-          fill: DATE_RANGE_GROUP_PAINT.fill,
-          borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
-          ...(px(`{radius.${name}}`) !== undefined
-            ? { radius: px(`{radius.${name}}`)! }
-            : {}),
-        },
-      }),
+      (name): CompiledPartRule => {
+        const radius = px(
+          cssVarToTokenRef(
+            String(
+              DATE_RANGE_GROUP_VARIABLES()?.[name]?.["--drp-group-radius"],
+            ),
+          ),
+        );
+        return {
+          childType: "Group",
+          size: name,
+          layout: {},
+          visual: {
+            fill: DATE_RANGE_GROUP_PAINT.fill,
+            borderColor: DATE_RANGE_GROUP_PAINT.borderColor,
+            ...(radius !== undefined ? { radius } : {}),
+          },
+        };
+      },
     ),
   }),
   // The crumb's own sheet is not loaded (below): its text inherits the Breadcrumbs size font.
@@ -599,7 +619,13 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
           flexDirection: "row",
           alignItems: "center",
         },
-        visual: { gap: 2, minWidth: 0, minHeight: 32, paddingY: 4, paddingX: 8 },
+        visual: {
+          gap: 2,
+          minWidth: 0,
+          minHeight: 32,
+          paddingY: 4,
+          paddingX: 8,
+        },
       },
       // Its chevron button: the sheet's `.react-aria-Button[slot=chevron]` (`all: unset` — a bare
       // box around the svg). Its width and level indent are `catalogTreeChevronLayout` on the
@@ -627,10 +653,10 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
     parts: ownerTextParts(
       "Label",
       {
-        sm: "text-xs",
-        md: "text-sm",
-        lg: "text-base",
-        xl: "text-lg",
+        S: "text-xs",
+        M: "text-sm",
+        L: "text-base",
+        XL: "text-lg",
       },
       "SwitchButton",
     ),

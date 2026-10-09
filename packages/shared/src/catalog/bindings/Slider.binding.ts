@@ -33,7 +33,7 @@ export const sliderBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // 2026-07-16: orientation 패널 항목 제거 → labelPosition 으로 대체 (사용자 명세).
       //   labelPosition="side" 시 Label · Track · Value 가로 배치 (RSP Slider labelPosition

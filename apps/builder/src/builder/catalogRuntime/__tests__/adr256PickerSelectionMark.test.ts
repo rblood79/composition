@@ -102,7 +102,7 @@ async function open(type: (typeof TYPES)[number]) {
             id: MARK,
             definitionId: "lib:definition:type-Icon",
             children: [],
-            props: { iconName: set("check"), size: set("xs") },
+            props: { iconName: set("check"), size: set("XS") },
             visual: {},
             sizing: {},
             descendantOverrides: [],

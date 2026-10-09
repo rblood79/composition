@@ -51,8 +51,8 @@ const CASES: Record<string, Record<string, Record<string, string>>> = {
   tooltip: { default: {} },
   card: {
     default: {},
-    "size sm": { size: "sm" },
-    "size lg": { size: "lg" },
+    "size sm": { size: "S" },
+    "size lg": { size: "L" },
     "variant secondary": { variant: "secondary" },
     "variant tertiary": { variant: "tertiary" },
     "variant quiet": { variant: "quiet" },
@@ -60,8 +60,8 @@ const CASES: Record<string, Record<string, Record<string, string>>> = {
   },
   "inline-alert": {
     default: {},
-    "size sm": { size: "sm" },
-    "size lg": { size: "lg" },
+    "size sm": { size: "S" },
+    "size lg": { size: "L" },
     "variant neutral": { variant: "neutral" },
     "variant positive": { variant: "positive" },
     "variant notice": { variant: "notice" },
@@ -225,9 +225,9 @@ const INLINE_ALERT_LINE_HEIGHT: Record<
   string,
   { heading: number; description: number }
 > = {
-  sm: { heading: 20 / 14, description: 16 / 12 },
-  md: { heading: 24 / 16, description: 20 / 14 },
-  lg: { heading: 28 / 18, description: 24 / 16 },
+  S: { heading: 20 / 14, description: 16 / 12 },
+  M: { heading: 24 / 16, description: 20 / 14 },
+  L: { heading: 28 / 18, description: 24 / 16 },
 };
 const MARGINS = ["marginTop", "marginRight", "marginBottom", "marginLeft"];
 /** A markup without inline style (the structure — the values are asserted on their own). */
@@ -250,7 +250,7 @@ function expectSinceConversion(
   now: PartsOf,
   before: PartsOf,
 ) {
-  const alertSize = authored.size ?? "md";
+  const alertSize = authored.size ?? "M";
   // ADR-255: a Popover · Tooltip origin is its trigger and its overlay — the parts sit one level
   // down (in the overlay, `__overlay`, after the trigger Button). ADR-256 Phase 8a: after the
   // overlay's first child, its OverlayArrow.
@@ -276,9 +276,7 @@ function expectSinceConversion(
       expect(part.size).toBe(
         heading
           ? alertSize
-          : ({ sm: "md", md: "lg", lg: "xl" } as Record<string, string>)[
-              alertSize
-            ],
+          : ({ S: "M", M: "L", L: "XL" } as Record<string, string>)[alertSize],
       );
       expect(Number(part.visual.fontWeight)).toBe(heading ? 600 : 400);
       expect(part.visual.lineHeight).toBeCloseTo(

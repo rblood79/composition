@@ -41,35 +41,35 @@
   }
 }
 
-.react-aria-Avatar[data-size="xs"] {
+.react-aria-Avatar[data-size="XS"] {
   height: 24px;
   padding: 0px 0px;
   font-size: var(--text-2xs);
   border-radius: var(--radius-full);
 }
 
-.react-aria-Avatar[data-size="sm"] {
+.react-aria-Avatar[data-size="S"] {
   height: 28px;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-full);
 }
 
-.react-aria-Avatar[data-size="md"] {
+.react-aria-Avatar[data-size="M"] {
   height: 32px;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-full);
 }
 
-.react-aria-Avatar[data-size="lg"] {
+.react-aria-Avatar[data-size="L"] {
   height: 40px;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-full);
 }
 
-.react-aria-Avatar[data-size="xl"] {
+.react-aria-Avatar[data-size="XL"] {
   height: 48px;
   padding: 0px 0px;
   font-size: var(--text-lg);

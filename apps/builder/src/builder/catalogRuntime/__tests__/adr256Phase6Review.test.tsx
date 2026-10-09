@@ -139,14 +139,14 @@ describe("ADR-256 Phase 6 판독 — picker 노드 트리 편집", () => {
   it("m1: a Calendar in a frame inside the picker's Popover keeps the picker's calendar context (size · visible months)", async () => {
     const picker = await open("datepicker");
     picker.frame("Calendar");
-    picker.edit(FIELD, { size: "lg", maxVisibleMonths: 2 });
+    picker.edit(FIELD, { size: "L", maxVisibleMonths: 2 });
     const host = await picker.mount();
     await act(async () =>
       host.querySelector<HTMLElement>(".react-aria-Group button")!.click(),
     );
     const calendar = popover()!.querySelector(".react-aria-Calendar")!;
     expect(calendar.querySelectorAll("table")).toHaveLength(2);
-    expect(calendar.getAttribute("data-size")).toBe("lg");
+    expect(calendar.getAttribute("data-size")).toBe("L");
   });
 
   it("m2: a field's control Group passes RAC's state to its `showWhen` nodes and the author's role", async () => {

@@ -14,13 +14,13 @@
    "origin": "semantic",
    "kind": "size",
    "values": [
-    "xs",
-    "sm",
-    "md",
-    "lg",
-    "xl",
-    "2xl",
-    "3xl"
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "XXL",
+    "XXXL"
    ]
   },
   {

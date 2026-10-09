@@ -47,7 +47,7 @@ async function open() {
     children: [],
     props: {
       children: { kind: "set", value: "Save" },
-      size: { kind: "set", value: "lg" },
+      size: { kind: "set", value: "L" },
     },
     visual: {},
     sizing: {},
@@ -82,7 +82,7 @@ describe("ADR-248 Phase 4e-4 Button children", () => {
     expect(button.props.children).toBe(undefined);
     expect((graph.getEntry(on.iconId!) as NodeEntry).props.size).toEqual({
       kind: "set",
-      value: "lg",
+      value: "L",
     });
 
     // The children draw at the Button's scale (the old read-time Button → Icon/Text propagation):
@@ -90,7 +90,7 @@ describe("ADR-248 Phase 4e-4 Button children", () => {
     const visualOf = (source: string) =>
       workspace.root.domInputs.get(workspace.root.recordsOfSource(source)[0])
         ?.visual;
-    const lg = COMPONENT_RULES_TABLE.Button.sizes.lg;
+    const lg = COMPONENT_RULES_TABLE.Button.sizes.L;
     expect(visualOf(on.iconId!)).toMatchObject({ iconSize: lg.iconSize });
     expect(visualOf(on.textId!)?.fontSize).toEqual(visualOf(BUTTON)?.fontSize);
     expect(visualOf(on.textId!)?.lineHeight).toEqual(

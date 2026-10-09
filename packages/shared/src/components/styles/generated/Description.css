@@ -42,7 +42,7 @@
   }
 }
 
-.react-aria-Description[data-size="xs"] {
+.react-aria-Description[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-2xs);
@@ -50,7 +50,7 @@
   line-height: var(--text-2xs--line-height);
 }
 
-.react-aria-Description[data-size="sm"] {
+.react-aria-Description[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -58,7 +58,7 @@
   line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Description[data-size="md"] {
+.react-aria-Description[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
@@ -66,7 +66,7 @@
   line-height: var(--text-xs--line-height);
 }
 
-.react-aria-Description[data-size="lg"] {
+.react-aria-Description[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
@@ -74,7 +74,7 @@
   line-height: var(--text-sm--line-height);
 }
 
-.react-aria-Description[data-size="xl"] {
+.react-aria-Description[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);

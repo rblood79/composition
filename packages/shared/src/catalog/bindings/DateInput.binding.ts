@@ -42,7 +42,7 @@ export const dateInputBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
         editorHidden: true,
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

@@ -105,7 +105,7 @@
   }
 }
 
-.react-aria-Section[data-size="sm"] {
+.react-aria-Section[data-size="S"] {
   height: auto;
   padding: 12px 12px;
   font-size: var(--text-sm);
@@ -113,7 +113,7 @@
   gap: 8px;
 }
 
-.react-aria-Section[data-size="md"] {
+.react-aria-Section[data-size="M"] {
   height: auto;
   padding: 16px 16px;
   font-size: var(--text-base);
@@ -121,7 +121,7 @@
   gap: 12px;
 }
 
-.react-aria-Section[data-size="lg"] {
+.react-aria-Section[data-size="L"] {
   height: auto;
   padding: 24px 24px;
   font-size: var(--text-lg);

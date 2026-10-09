@@ -456,7 +456,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 
 ## 6. 결정이 필요한 것
 
-1. **`size` 표기와 범위** — 39개 type. S2 `S/M/L/XL` 로 맞출지, `xs` 단계와 일부 `xl` 을 어떻게 할지.
+1. **`size` 표기와 범위** — 39개 type. **결정 (2026-10-09)**: 표기만 S2 로 — `XS` · `S` · `M` · `L` · `XL` (글자 type 은 `XXL` · `XXXL` 까지), 범위는 type 마다 그대로 (library contract 36). 이 문서의 표는 바꾸기 전 값 (`xs` · `sm` …) 으로 적혀 있다.
 2. **S2 에만 있는 시각 · 내용 prop 도입 범위** — 130개. `contextualHelp` (16) · `isEmphasized` (7) · `prefix` (5) · `labelAlign` · `formatOptions` · `firstDayOfWeek` · `overflowMode` (각 4) 순.
 3. **4.2 의 F 묶음** — 어디에도 없는 `variant` 를 확장으로 남길지 지울지 (항목별).
 4. **B · C 의 contract 변경** — 한 번의 contract 변경으로 묶을지.

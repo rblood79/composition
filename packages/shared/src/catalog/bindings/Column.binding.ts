@@ -5,7 +5,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25)**: Column 은 TableView origin
  *   template 의 TableHeader 아래 자식 노드다 (props.children = 컬럼명). Canvas 는
- *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.md.fontWeight 600) 의
+ *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.M.fontWeight 600) 의
  *   box + `props.children` text 로 헤더 텍스트를 그린다.
  *
  * **DOM (TableView)**: `CATALOG_DELEGATED_DOM.tableview` 가 Column 을 role=columnheader div 로 직접
@@ -34,7 +34,7 @@ export const columnBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
     },
     toRacProps: "default",

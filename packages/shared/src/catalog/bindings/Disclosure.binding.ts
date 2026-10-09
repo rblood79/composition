@@ -35,7 +35,7 @@ export const disclosureBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — delegatedDom `disclosure` 가 RAC 에 넘긴다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

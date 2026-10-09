@@ -16,7 +16,7 @@ import { buildCatalogShapes, resolveTreeIndent } from "./catalogPaintFixture";
 import type { ComponentVisualRule } from "../utils/resolveComponentVisual";
 import type { SizeSpec } from "../../types";
 
-// COMPONENT_RULES_TABLE.TreeItem.sizes.md 미러 (indentPerLevel 16, paddingX 8, iconSize 15).
+// COMPONENT_RULES_TABLE.TreeItem.sizes.M 미러 (indentPerLevel 16, paddingX 8, iconSize 15).
 const TREE_SIZE_MD: SizeSpec = {
   height: 28,
   paddingX: 8,

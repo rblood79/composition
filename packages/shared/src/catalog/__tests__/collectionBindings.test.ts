@@ -76,14 +76,14 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
       {
         id: "lb1",
         type: "ListBox",
-        props: { dataBinding, size: "lg", selectionMode: "multiple" },
+        props: { dataBinding, size: "L", selectionMode: "multiple" },
       },
       getPrimitiveBinding("ListBox")!,
     );
     // dataBinding 은 RAC props 아님(kind:binding) → 그대로 통과(wrapper useCollectionData 소비)
     expect(result.dataBinding).toEqual(dataBinding);
     expect(result.selectionMode).toBe("multiple");
-    expect(result["data-size"]).toBe("lg");
+    expect(result["data-size"]).toBe("L");
   });
 
   it("Select: label/placeholder 통과 + dataBinding 통과", () => {

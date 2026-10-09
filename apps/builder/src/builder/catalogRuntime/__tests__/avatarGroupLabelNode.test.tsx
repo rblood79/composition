@@ -117,11 +117,11 @@ describe("AvatarGroup — the S2 label is a Text node", () => {
   });
 
   it.each([
-    ["xs", 14],
-    ["sm", 16],
-    ["md", 18],
-    ["lg", 20],
-    ["xl", 24],
+    ["XS", 14],
+    ["S", 16],
+    ["M", 18],
+    ["L", 20],
+    ["XL", 24],
   ])(
     "size %s: the label is %ipx (S2 `ui` · `ui-lg` · `ui-xl` … by the avatar size)",
     async (size, fontSize) => {
@@ -138,11 +138,11 @@ describe("AvatarGroup — the S2 label is a Text node", () => {
   );
 
   it.each([
-    ["xs", 24],
-    ["sm", 28],
-    ["md", 32],
-    ["lg", 40],
-    ["xl", 48],
+    ["XS", 24],
+    ["S", 28],
+    ["M", 32],
+    ["L", 40],
+    ["XL", 48],
   ])(
     "size %s: the first avatar at the group's start, each next one overlapping it by %i / 4 (S2)",
     async (size, avatar) => {

@@ -22,17 +22,17 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-TabList[data-size="sm"] {
+.react-aria-TabList[data-size="S"] {
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
-.react-aria-TabList[data-size="md"] {
+.react-aria-TabList[data-size="M"] {
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-TabList[data-size="lg"] {
+.react-aria-TabList[data-size="L"] {
   font-size: var(--text-base);
   border-radius: var(--radius-none);
 }

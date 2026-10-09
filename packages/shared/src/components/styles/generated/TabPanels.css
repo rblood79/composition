@@ -41,21 +41,21 @@
   }
 }
 
-.react-aria-TabPanels[data-size="sm"] {
+.react-aria-TabPanels[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-TabPanels[data-size="md"] {
+.react-aria-TabPanels[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-TabPanels[data-size="lg"] {
+.react-aria-TabPanels[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);

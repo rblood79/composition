@@ -218,14 +218,22 @@ it.skipIf(G0_BASELINE_ABSENT)(
     );
     const head = baselineCompatibleHead(repo, old.head);
     expect(old.scenario.viewport).toEqual({ width: 1440, height: 900 });
-    const operations = old.scenario.operations.filter(
-      (operation: { op: string }) => operation.op === "insertGroupWithChildren",
-    ) as Array<{
+    // The baseline was recorded before sizes took S2 names (sm → S, lg → L, 2026-10-09).
+    const s2Size = { sm: "S", lg: "L" } as Record<string, string>;
+    const operations = old.scenario.operations
+      .filter(
+        (operation: { op: string }) =>
+          operation.op === "insertGroupWithChildren",
+      )
+      .map((operation: { size: string }) => ({
+        ...operation,
+        size: s2Size[operation.size] ?? operation.size,
+      })) as Array<{
       id: string;
       x: number;
       y: number;
       orientation: "horizontal" | "vertical";
-      size: "sm" | "lg";
+      size: "S" | "L";
     }>;
     expect(operations.map((operation) => operation.id)).toEqual([
       "group-horizontal",

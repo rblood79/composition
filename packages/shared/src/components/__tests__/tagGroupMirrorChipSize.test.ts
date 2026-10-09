@@ -29,7 +29,7 @@ const tagGroupCss = readFileSync(
 /** 공백/줄바꿈 정규화로 selector 매칭 안정화. */
 const normalized = tagGroupCss.replace(/\s+/g, " ");
 
-const SIZES = ["xs", "sm", "md", "lg", "xl"] as const;
+const SIZES = ["XS", "S", "M", "L", "XL"] as const;
 
 describe("TagGroup 미러 DOM chip size CSS 계약", () => {
   it.each(SIZES)(

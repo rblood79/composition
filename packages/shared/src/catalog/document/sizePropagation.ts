@@ -109,25 +109,25 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
 /**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
  * the same look one step apart (ADR-254): an InlineAlert's description is one step above its own
- * size (sm/md/lg → Description md/lg/xl = 12/14/16px — the values the alert's rule declared). An
+ * size (S/M/L → Description M/L/XL = 12/14/16px — the values the alert's rule declared). An
  * owner size missing here passes as is.
  */
 export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
 > = {
-  InlineAlert: { Description: { sm: "md", md: "lg", lg: "xl" } },
+  InlineAlert: { Description: { S: "M", M: "L", L: "XL" } },
   // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `text`): the label font follows the
-  //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text xl 20); 48 has
-  //   no S2 size (Text 2xl 24).
+  //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text XL 20); 48 has
+  //   no S2 size (Text XXL 24).
   AvatarGroup: {
-    Text: { xs: "sm", sm: "md", md: "lg", lg: "xl", xl: "2xl" },
+    Text: { XS: "S", S: "M", M: "L", L: "XL", XL: "XXL" },
   },
   // S2 IllustratedMessage (`@react-spectrum/s2/src/IllustratedMessage.tsx`): the picture is M for
   //   S · M and L for L (96 · 96 · 160); the heading `title` · `title-xl` · `title-2xl` (16 · 20 ·
   //   22 — the Heading's 16 · 20 · 24); the content `body-xs` · `body-sm` · `body-sm` (12 · 14 · 14).
   IllustratedMessage: {
-    Illustration: { sm: "md", md: "md", lg: "lg" },
-    Heading: { sm: "md", md: "xl", lg: "2xl" },
-    Description: { sm: "md", md: "lg", lg: "lg" },
+    Illustration: { S: "M", M: "M", L: "L" },
+    Heading: { S: "M", M: "XL", L: "XXL" },
+    Description: { S: "M", M: "L", L: "L" },
   },
 };

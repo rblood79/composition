@@ -684,7 +684,7 @@
   border-color: transparent;
 }
 
-.react-aria-Badge[data-size="xs"] {
+.react-aria-Badge[data-size="XS"] {
   height: auto;
   padding: 1px 4px;
   font-size: var(--text-2xs);
@@ -695,7 +695,7 @@
   gap: 2px;
 }
 
-.react-aria-Badge[data-size="sm"] {
+.react-aria-Badge[data-size="S"] {
   height: auto;
   padding: 2px 8px;
   font-size: var(--text-xs);
@@ -706,7 +706,7 @@
   gap: 4px;
 }
 
-.react-aria-Badge[data-size="md"] {
+.react-aria-Badge[data-size="M"] {
   height: auto;
   padding: 4px 12px;
   font-size: var(--text-sm);
@@ -717,7 +717,7 @@
   gap: 4px;
 }
 
-.react-aria-Badge[data-size="lg"] {
+.react-aria-Badge[data-size="L"] {
   height: auto;
   padding: 8px 16px;
   font-size: var(--text-base);
@@ -728,7 +728,7 @@
   gap: 6px;
 }
 
-.react-aria-Badge[data-size="xl"] {
+.react-aria-Badge[data-size="XL"] {
   height: auto;
   padding: 12px 24px;
   font-size: var(--text-lg);

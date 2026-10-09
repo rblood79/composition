@@ -61,10 +61,10 @@ export function createPencilFixtureLibrary() {
           isInvalid: "boolean",
           isReadOnly: "boolean",
         },
-        defaults: { orientation: "vertical", size: "md" },
+        defaults: { orientation: "vertical", size: "M" },
         visual: { gap: 8 },
         propVisualRules: {
-          size: { sm: { gap: 6 }, md: { gap: 8 }, lg: { gap: 12 } },
+          size: { S: { gap: 6 }, M: { gap: 8 }, L: { gap: 12 } },
         },
         stateRules: {},
       },
@@ -74,8 +74,8 @@ export function createPencilFixtureLibrary() {
         mode: "native",
         bindingId: "slot",
         accepts: { size: "string", description: "string" },
-        propChoices: { size: ["sm", "md", "lg"] },
-        defaults: { size: "md" },
+        propChoices: { size: ["S", "M", "L"] },
+        defaults: { size: "M" },
         visual: {
           minHeight: 60,
           padding: 12,
@@ -93,9 +93,9 @@ export function createPencilFixtureLibrary() {
         },
         propVisualRules: {
           size: {
-            sm: { minHeight: 40, padding: 8, gap: 4, fontSize: 12, radius: 6 },
-            md: { minHeight: 60, padding: 12, gap: 8, fontSize: 14, radius: 6 },
-            lg: {
+            S: { minHeight: 40, padding: 8, gap: 4, fontSize: 12, radius: 6 },
+            M: { minHeight: 60, padding: 12, gap: 8, fontSize: 14, radius: 6 },
+            L: {
               minHeight: 80,
               padding: 16,
               gap: 12,

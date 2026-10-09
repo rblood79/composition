@@ -97,19 +97,19 @@ describe("ProgressCircle — size → 지름(rule height) + strokeWidth 3 unifor
   // strokeWidth 3 uniform: rule(ComponentRuleSize)에 strokeWidth 필드 없음 → Skia value_fill_arc
   //   기본값 3 으로 해소 → DOM 도 3 으로 대칭(spec lg=4 는 rule 미이전 잔재).
   it("size sm → diameter 24, strokeWidth 3", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="sm" value={50} />);
+    const html = renderToStaticMarkup(<ProgressCircle size="S" value={50} />);
     expect(html).toMatch(/width="24"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 
   it("size md → diameter 32, strokeWidth 3", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="md" value={50} />);
+    const html = renderToStaticMarkup(<ProgressCircle size="M" value={50} />);
     expect(html).toMatch(/width="32"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
 
   it("size lg → diameter 64, strokeWidth 3 (rule base 정합 — lg=4 spec 잔재 미적용)", () => {
-    const html = renderToStaticMarkup(<ProgressCircle size="lg" value={50} />);
+    const html = renderToStaticMarkup(<ProgressCircle size="L" value={50} />);
     expect(html).toMatch(/width="64"/);
     expect(html).toMatch(/stroke-width="3"/);
   });
@@ -133,10 +133,10 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
   }
 
   it("toRacProps 가 size 를 prop + data-size 둘 다 emit (propPassthrough)", () => {
-    const node = { id: "x", type: "ProgressCircle", props: { size: "lg" } };
+    const node = { id: "x", type: "ProgressCircle", props: { size: "L" } };
     const racProps = toRacProps(node as never, progressCircleBinding);
-    expect(racProps.size).toBe("lg"); // ← prop (회귀 방지 핵심)
-    expect(racProps["data-size"]).toBe("lg"); // ← data-* 도 보존
+    expect(racProps.size).toBe("L"); // ← prop (회귀 방지 핵심)
+    expect(racProps["data-size"]).toBe("L"); // ← data-* 도 보존
   });
 
   it("toRacProps 가 value 를 React prop 으로 통과 (number kind, data-attr 아님)", () => {
@@ -151,13 +151,13 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
   });
 
   it("cutover 경로에서 size 변경이 지름에 반영 (lg → 64px, default 32px 고정 아님)", () => {
-    expect(cutoverHtml({ size: "lg", value: 50 })).toMatch(/width="64"/);
+    expect(cutoverHtml({ size: "L", value: 50 })).toMatch(/width="64"/);
     // 버그였다면 size prop undefined → 항상 32px
-    expect(cutoverHtml({ size: "lg", value: 50 })).not.toMatch(/width="32"/);
+    expect(cutoverHtml({ size: "L", value: 50 })).not.toMatch(/width="32"/);
   });
 
   it("cutover 경로에서 value 변경이 indicator 에 반영", () => {
-    const html = cutoverHtml({ size: "md", value: 75 });
+    const html = cutoverHtml({ size: "M", value: 75 });
     expect(html).toContain("stroke-dashoffset");
   });
 });

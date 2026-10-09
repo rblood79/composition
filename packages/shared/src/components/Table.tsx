@@ -295,7 +295,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
     tableHeaderElementId,
 
     variant = "primary",
-    size = "md",
+    size = "M",
 
     dataBinding,
     // Note: columnMapping is available in props but not destructured until needed
@@ -1709,7 +1709,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={pageIndex === 0 || loading}
                     className="react-aria-PageButton"
                     aria-label="First page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronFirst size={16} />
                   </Button>
@@ -1727,7 +1727,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={pageIndex === 0 || loading}
                     className="react-aria-PageButton"
                     aria-label="Previous page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronLeft size={16} />
                   </Button>
@@ -1769,7 +1769,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                             className={`react-aria-PageButton ${
                               i === currentPage ? "active" : ""
                             }`}
-                            size="sm"
+                            size="S"
                           >
                             {i}
                           </Button>,
@@ -1797,7 +1797,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     }
                     className="react-aria-PageButton"
                     aria-label="Next page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronRight size={16} />
                   </Button>
@@ -1817,7 +1817,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     }
                     className="react-aria-PageButton"
                     aria-label="Last page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronLast size={16} />
                   </Button>
@@ -1876,7 +1876,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     }}
                     isDisabled={loading}
                     className="react-aria-GoToPageButton"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronLast size={16} />
                   </Button>
@@ -1928,7 +1928,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={clientPageIndex === 0}
                     className="react-aria-PageButton"
                     aria-label="First page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronFirst size={16} />
                   </Button>
@@ -1940,7 +1940,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={clientPageIndex === 0}
                     className="react-aria-PageButton"
                     aria-label="Previous page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronLeft size={16} />
                   </Button>
@@ -1973,7 +1973,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                             className={`react-aria-PageButton ${
                               i === currentPage ? "active" : ""
                             }`}
-                            size="sm"
+                            size="S"
                           >
                             {i}
                           </Button>,
@@ -1992,7 +1992,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={clientPageIndex >= clientTotalPages - 1}
                     className="react-aria-PageButton"
                     aria-label="Next page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronRight size={16} />
                   </Button>
@@ -2002,7 +2002,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                     isDisabled={clientPageIndex >= clientTotalPages - 1}
                     className="react-aria-PageButton"
                     aria-label="Last page"
-                    size="sm"
+                    size="S"
                   >
                     <ChevronLast size={16} />
                   </Button>

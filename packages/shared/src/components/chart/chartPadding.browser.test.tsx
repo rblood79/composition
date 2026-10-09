@@ -86,7 +86,7 @@ for (const kind of Object.keys(selectors) as Array<keyof typeof selectors>) {
           _containerWidth: size.width,
           _containerHeight: size.height,
         },
-        size: rule.sizes.md as SizeSpec,
+        size: rule.sizes.M as SizeSpec,
         visual: undefined,
         paint: {
           backgroundAlpha: 1,
@@ -116,7 +116,7 @@ for (const kind of Object.keys(selectors) as Array<keyof typeof selectors>) {
             }),
           );
       }
-      root.render(<Chart {...props} size="md" style={{ ...size, ...style }} />);
+      root.render(<Chart {...props} size="M" style={{ ...size, ...style }} />);
       await vi.waitFor(() => {
         const paths = Array.from(
           host.querySelectorAll<SVGPathElement>(selectors[kind]),

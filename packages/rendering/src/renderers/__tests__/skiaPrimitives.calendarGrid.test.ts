@@ -18,7 +18,7 @@ import type { Shape, SizeSpec } from "../../types";
  *   today circle x=cellCenter, y=cy+cellSize/2-4, radius:3.
  */
 
-// CalendarGrid rule.sizes.md 미러 (iconSize 26 / gap 6 → cellSize 30).
+// CalendarGrid rule.sizes.M 미러 (iconSize 26 / gap 6 → cellSize 30).
 const sizeMd: SizeSpec = {
   height: 0,
   iconSize: 26,

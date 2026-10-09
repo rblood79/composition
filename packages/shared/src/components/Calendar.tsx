@@ -22,7 +22,7 @@ export interface CalendarProps<T extends DateValue> extends Omit<
 > {
   /** @default 'default' */
   variant?: "default" | "accent";
-  /** @default 'md' */
+  /** @default 'M' */
   size?: ComponentSize;
   errorMessage?: string;
   /** BCP 47 locale (e.g. "ko-KR", "en-US") */
@@ -57,7 +57,7 @@ export interface CalendarProps<T extends DateValue> extends Omit<
 
 export function Calendar<T extends DateValue>({
   variant = "default",
-  size = "md",
+  size = "M",
   errorMessage,
   locale,
   calendarSystem,

@@ -181,12 +181,12 @@ function createResolver<T extends object>(
   const empty = Object.freeze({}) as T;
   return (type, size) => {
     if (!type) return empty;
-    const key = `${type}:${size ?? "md"}`;
+    const key = `${type}:${size ?? "M"}`;
     const cached = cache.get(key);
     if (cached) return cached;
     const spec = catalogSpecShape(type);
 
-    const sizeEntry = spec?.sizes?.[size ?? "md"];
+    const sizeEntry = spec?.sizes?.[size ?? "M"];
     const sizesPreset = sizeEntry
       ? sizesExtractor(sizeEntry, spec, type)
       : ({} as T);

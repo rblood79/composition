@@ -82,7 +82,7 @@
   /* ========== Size-Responsive Inner Elements ========== */
 
   /* --- sm --- */
-  .react-aria-RangeCalendar[data-size="sm"] {
+  .react-aria-RangeCalendar[data-size="S"] {
     header .react-aria-Heading {
       font-size: var(--text-xs);
     }
@@ -107,7 +107,7 @@
   }
 
   /* --- md --- */
-  .react-aria-RangeCalendar[data-size="md"] {
+  .react-aria-RangeCalendar[data-size="M"] {
     header .react-aria-Heading {
       font-size: var(--text-sm);
     }
@@ -132,7 +132,7 @@
   }
 
   /* --- lg --- */
-  .react-aria-RangeCalendar[data-size="lg"] {
+  .react-aria-RangeCalendar[data-size="L"] {
     header .react-aria-Heading {
       font-size: var(--text-base);
     }

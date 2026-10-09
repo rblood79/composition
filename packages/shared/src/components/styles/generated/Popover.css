@@ -71,7 +71,7 @@
   }
 }
 
-.react-aria-Popover[data-size="sm"] {
+.react-aria-Popover[data-size="S"] {
   height: auto;
   padding: 12px 12px;
   font-size: var(--text-sm);
@@ -79,7 +79,7 @@
   gap: 8px;
 }
 
-.react-aria-Popover[data-size="md"] {
+.react-aria-Popover[data-size="M"] {
   height: auto;
   padding: 16px 16px;
   font-size: var(--text-base);
@@ -87,7 +87,7 @@
   gap: 12px;
 }
 
-.react-aria-Popover[data-size="lg"] {
+.react-aria-Popover[data-size="L"] {
   height: auto;
   padding: 20px 20px;
   font-size: var(--text-lg);

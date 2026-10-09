@@ -33,7 +33,7 @@ export const tagBinding: PrimitiveBinding = {
         kind: "size",
         label: "Size",
         section: "appearance",
-        default: "md",
+        default: "M",
       },
       // A selected Tag is its TagGroup's selection (RAC · S2 Tag has no `variant` — 2026-10-09):
       //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's

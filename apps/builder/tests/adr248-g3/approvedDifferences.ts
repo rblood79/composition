@@ -395,7 +395,7 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     axes: ["x", "y", "height"],
     noDomBox: true,
     reason:
-      "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.lg.gap` 6); the wrapper height follows the label line box",
+      "the chip wrapper fills its catalog 100% height (4e-11); its wrapped lines stretch (CSS `align-content: normal`) and center the chips in each line — old packs the lines at the top and keeps the md chip gap 4 at lg (catalog `TagList.sizes.L.gap` 6); the wrapper height follows the label line box",
   },
   {
     id: "checkboxgroup-items-width",
