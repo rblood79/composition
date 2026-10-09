@@ -10131,6 +10131,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               },
               nested: [
                 {
+                  // S2 labelAlign (2026-10-10): the side label is the fields' label column
+                  //   (`--form-label-width`) — its text at `--form-label-align` (the fields' block).
+                  selector: "> .react-aria-Label",
+                  styles: {
+                    width: "var(--form-label-width, 11rem)",
+                    "flex-shrink": "0",
+                    "text-align": "var(--form-label-align, start)",
+                    "justify-content": "var(--form-label-align, start)",
+                  },
+                },
+                {
                   selector: ".react-aria-SliderTrack",
                   styles: { order: "1", flex: "1" },
                 },
@@ -10139,6 +10150,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   styles: { order: "2" },
                 },
               ],
+            },
+          },
+          // S2 labelAlign (2026-10-10): the side label's text alignment in its column.
+          "label-align": {
+            end: {
+              styles: {
+                "--form-label-align": "end",
+              },
             },
           },
         },
@@ -11990,6 +12009,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           styles: {
             "flex-direction": "row",
             "align-items": "flex-start",
+          },
+          nested: [
+            {
+              // S2 labelAlign (2026-10-10): the side label is the fields' label column
+              //   (`--form-label-width`) — its text at `--form-label-align` (the fields' block).
+              selector: "> .react-aria-Label",
+              styles: {
+                width: "var(--form-label-width, 11rem)",
+                "flex-shrink": "0",
+                "text-align": "var(--form-label-align, start)",
+                "justify-content": "var(--form-label-align, start)",
+              },
+            },
+            {
+              // (S2 side field: the input area is the rest of the row — `1fr`.)
+              selector: "> .react-aria-TagList",
+              styles: {
+                flex: "1 1 0%",
+                "min-width": "0",
+              },
+            },
+          ],
+        },
+      },
+      // S2 labelAlign (2026-10-10): the side label's text alignment in its column.
+      "label-align": {
+        end: {
+          styles: {
+            "--form-label-align": "end",
           },
         },
       },

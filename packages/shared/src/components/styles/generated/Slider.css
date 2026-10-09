@@ -94,6 +94,13 @@
   align-items: center;
 }
 
+.react-aria-Slider[data-label-position="side"] > .react-aria-Label {
+  width: var(--form-label-width, 11rem);
+  flex-shrink: 0;
+  text-align: var(--form-label-align, start);
+  justify-content: var(--form-label-align, start);
+}
+
 .react-aria-Slider[data-label-position="side"] .react-aria-SliderTrack {
   order: 1;
   flex: 1;
@@ -101,6 +108,10 @@
 
 .react-aria-Slider[data-label-position="side"] .react-aria-SliderOutput {
   order: 2;
+}
+
+.react-aria-Slider[data-label-align="end"] {
+  --form-label-align: end;
 }
 
 

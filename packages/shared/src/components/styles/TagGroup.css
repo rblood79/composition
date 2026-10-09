@@ -6,10 +6,29 @@
     font-size: var(--text-sm);
     color: var(--fg);
 
-    /* MIRROR: packages/specs/src/components/TagGroup.spec.ts composition.containerVariants['label-position'].side - skipCSSGeneration:true 동안 수동 동기화 */
+    /* MIRROR: catalog TagGroup rule `containerVariants` (`label-position` · `label-align`) — TagGroup
+       has no generated sheet; the Canvas reads the rule. */
     &[data-label-position="side"] {
       flex-direction: row;
       align-items: flex-start;
+    }
+
+    /* S2 labelAlign (2026-10-10): the side label is the fields' label column, its text aligned in it. */
+    &[data-label-position="side"] > .react-aria-Label {
+      width: var(--form-label-width, 11rem);
+      flex-shrink: 0;
+      text-align: var(--form-label-align, start);
+      justify-content: var(--form-label-align, start);
+    }
+
+    /* (S2 side field: the input area is the rest of the row — `1fr`.) */
+    &[data-label-position="side"] > .react-aria-TagList {
+      flex: 1 1 0%;
+      min-width: 0;
+    }
+
+    &[data-label-align="end"] {
+      --form-label-align: end;
     }
   }
 

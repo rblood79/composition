@@ -1059,6 +1059,8 @@ function TagGroupRun({
         // (S2 `isEmphasized` — its selected Tags are accent: `TagGroup.css`.)
         "data-emphasized": bool(props.isEmphasized) || undefined,
         "data-label-position": labelPosition,
+        // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+        "data-label-align": props.labelAlign === "end" ? "end" : undefined,
         key: `selected:${selectedKeys.join(",")}`,
         defaultSelectedKeys: selectedKeys,
         // (Without a visible label the group is named by its `label` — RAC needs a name.)
@@ -1804,6 +1806,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           className: "react-aria-Slider",
           "data-size": str(props.size) || "M",
           "data-label-position": str(props.labelPosition) || "top",
+          // (S2 start · end — start is the sheet's default, so only end is an attribute.)
+          "data-label-align": props.labelAlign === "end" ? "end" : undefined,
           "data-emphasized": bool(props.isEmphasized) || undefined,
           defaultValue: value,
           minValue: min,

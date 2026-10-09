@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Slider · TagGroup labelAlign] - 2026-10-10
+
+### Added
+
+- **Slider · TagGroup `labelAlign`** (S2 1.8.0 — start · end, 조사 문서 6.1 다): side 라벨 열 안에서 라벨 글자 정렬. Label Position 이 Side 일 때 Design 패널에 나온다. Form 의 Label Align 도 받는다 (`formContext.ts`).
+  - Preview 는 `data-label-align` 와 rule 의 `label-align` 블록 (`--form-label-align`), Canvas 는 같은 블록을 Label part rule 로 읽는다.
+  - 위치: `packages/shared/src/catalog/bindings/{Slider,TagGroup}.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Slider · TagGroup) · `packages/shared/src/catalog/runtime/delegatedDom.tsx` · `packages/shared/src/components/styles/TagGroup.css`
+
+### Changed
+
+- **Slider · TagGroup 의 side 라벨 = field 라벨 열** — 다른 side 라벨 field 13종처럼 `--form-label-width` (11rem, 176px) 폭이다 (전: 글자 폭). side TagGroup 의 Tag 목록은 남은 폭을 채운다 (S2 side field 의 입력 영역 `1fr` — 전에는 줄바꿈될 때 Canvas 168 · Preview 240 으로 갈렸다).
+- 확인: live — Slider · TagGroup 각각 Label Position Side → Label Align (Start · End) 표시, 라벨 열 Canvas = Preview 176, End → Preview 글자 끝 = 라벨 끝 · Canvas text-align end (`apps/builder/scripts/slider-tag-label-align-live.mjs` 5/5).
+
 ## [S2 Meter · ProgressBar staticColor — S2 값으로] - 2026-10-10
 
 ### Changed

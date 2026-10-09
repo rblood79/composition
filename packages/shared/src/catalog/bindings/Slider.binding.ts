@@ -51,6 +51,22 @@ export const sliderBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
+      // S2 1.8.0 labelAlign (start · end — S2 `Alignment`, 2026-10-10): the side label column's text
+      //   alignment, as the fields take it — DOM `data-label-align` → the rule's `label-align` block
+      //   (`--form-label-align`), the Canvas reads the same block (`rulePartRules.ts` `LABEL_ALIGN_AXIS`).
+      //   The side label is the fields' column (`--form-label-width`). A Form's value fills it
+      //   (`formContext.ts`).
+      labelAlign: {
+        kind: "enum",
+        label: "Label Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+        visibleWhen: { key: "labelPosition", equals: "side" },
+      },
       minValue: {
         kind: "number",
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
