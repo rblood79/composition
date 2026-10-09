@@ -26,10 +26,10 @@ import type {
   VisualWrites,
   WriteValue,
 } from "../document/types";
-import { FIELD_CONTROL_GROUP_HOSTS } from "../../domain/componentTraits";
 import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import {
+  CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_STEP,
 } from "../document/sizePropagation";
@@ -674,15 +674,13 @@ export function resolveCatalogNode(
     parent: ParentContext | undefined,
   ): void => {
     let owner = structuralParent(parent);
-    // (ADR-256 Phase 6b — a field's control Group takes no size: the field's reaches its parts.)
-    if (owner && lookupDefinition(owner.definitionId).name === "Group") {
-      const field = structuralParent(owner.parent);
-      if (
-        field &&
-        FIELD_CONTROL_GROUP_HOSTS.has(lookupDefinition(field.definitionId).name)
-      )
-        owner = field;
-    }
+    // (A Group · frame between takes no size — the owner's reaches through it, as RAC's context:
+    // a field's control Group (ADR-256 Phase 6b), a Group around a group's item (Round 21).)
+    while (
+      owner &&
+      CATALOG_SIZE_PASS_THROUGH.has(lookupDefinition(owner.definitionId).name)
+    )
+      owner = structuralParent(owner.parent);
     const ownerSize = owner?.props.size;
     if (typeof ownerSize !== "string") return;
     const definition = lookupDefinition(definitionId);

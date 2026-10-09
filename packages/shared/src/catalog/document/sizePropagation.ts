@@ -82,6 +82,16 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
 };
 
 /**
+ * Layout containers an owner's size reaches through (Codex Round 21, 2026-10-09): RAC's contexts
+ * pass a RAC `Group` and a frame, so an item the author wraps in one keeps its group's size (and a
+ * field's control Group — ADR-256 Phase 6b — is one of them). Neither type takes a size itself.
+ */
+export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
+  "Group",
+  "frame",
+]);
+
+/**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
  * the same look one step apart (ADR-254): an InlineAlert's description is one step above its own
  * size (sm/md/lg → Description md/lg/xl = 12/14/16px — the values the alert's rule declared). An

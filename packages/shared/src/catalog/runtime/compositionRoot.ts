@@ -1,4 +1,7 @@
-import { CATALOG_SIZE_PROPAGATION } from "../document/sizePropagation";
+import {
+  CATALOG_SIZE_PASS_THROUGH,
+  CATALOG_SIZE_PROPAGATION,
+} from "../document/sizePropagation";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
@@ -3251,16 +3254,16 @@ export class CatalogCompositionRoot {
       // resolve again with it (and their own children after them).
       if (before.props.size !== record.props.size) {
         const sized = CATALOG_SIZE_PROPAGATION[this.typeOf(record)];
-        // (ADR-256 Phase 6b — through a field's control Group, which takes no size, to its parts.)
-        const reached = sized
-          ? record.children.flatMap((childId) => {
-              const child = this.records.get(childId);
-              return child &&
-                isFieldControlGroup(this.typeOf(child), this.typeOf(record))
-                ? child.children
-                : [childId];
-            })
-          : [];
+        // (Through the Group · frame between, which take no size — `CATALOG_SIZE_PASS_THROUGH`:
+        // a field's control Group, a Group around a group's item.)
+        const through = (ids: readonly string[]): string[] =>
+          ids.flatMap((childId) => {
+            const child = this.records.get(childId);
+            return child && CATALOG_SIZE_PASS_THROUGH.has(this.typeOf(child))
+              ? through(child.children)
+              : [childId];
+          });
+        const reached = sized ? through(record.children) : [];
         for (const childId of reached) {
           const child = this.records.get(childId);
           if (
