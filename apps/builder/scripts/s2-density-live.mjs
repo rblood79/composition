@@ -89,6 +89,14 @@ const openDesign = async (label) => {
   }
   return field(label).isVisible().catch(() => false);
 };
+const panelToggleQuiet = async () => {
+  await page
+    .locator(".panel-wrapper[data-panel='properties']")
+    .getByText("Quiet", { exact: true })
+    .first()
+    .click();
+  await page.waitForTimeout(1500);
+};
 const select = (kind) =>
   page.evaluate((kind) => {
     const ws = window.__COMPOSITION_CATALOG__.workspace;
@@ -211,6 +219,40 @@ record(
     near(tSpacious.domCell, 48) &&
     String(tSpacious.canvasPaddings) === "12",
   { tRegular, tCompact, tSpacious },
+);
+
+// ── Table isQuiet ──
+const quietRead = (id) =>
+  page.evaluate((id) => {
+    const doc = document.querySelector("#previewFrame").contentDocument;
+    const el = doc.querySelector(`[data-catalog-id="${id}"]`);
+    const styles = el ? doc.defaultView.getComputedStyle(el) : null;
+    const node = window.__composition_SKIA_DEBUG__?.getSkiaNode(id);
+    const radius = node?.box?.borderRadius;
+    const fill = node?.box?.fillColor;
+    return {
+      quiet: el?.getAttribute("data-quiet") ?? null,
+      domBorder: styles?.borderTopColor ?? null,
+      domRadius: styles?.borderTopLeftRadius ?? null,
+      domBg: styles?.backgroundColor ?? null,
+      canvasRadius: Array.isArray(radius) ? radius[0] : (radius ?? null),
+      canvasFillAlpha: fill ? [...fill][3] : null,
+    };
+  }, id);
+const framed = await quietRead(table.id);
+await panelToggleQuiet();
+const quiet = await quietRead(table.id);
+await page.screenshot({ path: `${OUT}/table-quiet.png` });
+record(
+  "Quiet: transparent frame, square corners, in both consumers",
+  framed.domBorder !== "rgba(0, 0, 0, 0)" &&
+    quiet.quiet === "true" &&
+    quiet.domBorder === "rgba(0, 0, 0, 0)" &&
+    quiet.domRadius === "0px" &&
+    quiet.domBg === "rgba(0, 0, 0, 0)" &&
+    quiet.canvasRadius === 0 &&
+    quiet.canvasFillAlpha === 0,
+  { framed, quiet },
 );
 
 record("no errors", errors.length === 0, errors.slice(0, 5));

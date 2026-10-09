@@ -70,16 +70,21 @@ function CatalogTable({
   const fixed = typeof height === "number" ? height : accepts.height?.default;
   // (`Table.css` `border: 1px solid` when the document writes none.)
   const border = Number.parseFloat(String(style?.borderWidth ?? 1)) || 0;
+  // S2 `isQuiet` — square corners: the rule's radius rides the inline style, which would beat
+  // the `[data-quiet]` sheet block (the Canvas reads the rule's containerVariants.quiet).
+  const quiet =
+    (props as Record<string, unknown>)["data-quiet"] === "true"
+      ? { borderRadius: 0 }
+      : undefined;
+  const sized =
+    mode === "fixed" && typeof fixed === "number" && style?.height === undefined
+      ? { height: fixed + border * 2 }
+      : undefined;
   return createElement(RacTable as ElementType, {
     "aria-label": "Table",
     ...props,
     // (An authored height wins, as on the Canvas — `catalogTableHeight` is the height when none.)
-    style:
-      mode === "fixed" &&
-      typeof fixed === "number" &&
-      style?.height === undefined
-        ? { ...style, height: fixed + border * 2 }
-        : style,
+    style: quiet || sized ? { ...style, ...sized, ...quiet } : style,
     "data-node-table": "",
   });
 }

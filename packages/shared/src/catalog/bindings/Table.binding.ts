@@ -32,6 +32,9 @@ export const tableBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 Table `isQuiet` (2026-10-10): 바깥 틀 없음 — 배경 · 테두리 색을 지우고
+      //   radius 0 (rule fill.quiet + containerVariants.quiet; DOM 은 Table.css [data-quiet]).
+      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // S2 1.8.0 Table `density` (2026-10-10): 안의 Column · Cell 로 전파돼 (resolver
       //   `CATALOG_DENSITY_PROPAGATION`) 그들의 densities 채널이 paddingY 를 바꾼다
       //   (행 높이 compact 32 · regular 40 · spacious 48).

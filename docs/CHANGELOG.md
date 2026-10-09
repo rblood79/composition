@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Table isQuiet — 바깥 틀 제거] - 2026-10-10
+
+### Added
+
+- **Table `isQuiet`** (S2 1.8.0 TableView): 바깥 틀이 없다 — 배경 transparent (rule `fill.quiet`), 테두리 색 지움 + 모서리 직각 (rule top-level `containerVariants.quiet` — Canvas 는 rule 집행기의 containerVariantPaint 가 border-color · border-radius 를 읽고, DOM 은 `Table.css` 의 `[data-quiet]` 블록 + 테이블 요소의 inline radius 교정). 테두리는 색만 지워 1px border-box 기하를 유지한다 (S2 는 width 0 — 우리 `catalogTableHeight` 가 테두리를 기하에 더해 폭을 지우면 양 consumer 높이가 달라진다).
+  - containerVariantPaint 에 색 whitelist (border-color · background · color — 쓴 그대로 paint 로) 추가.
+- 확인: live — Quiet 토글에서 Preview computed border · radius · 배경과 Canvas Skia box radius · fill alpha 가 같이 꺼짐 (`apps/builder/scripts/s2-density-live.mjs` 4/4 — density 3종과 같은 실행), 오류 0.
+
 ## [S2 Table density — Column · Cell 전파] - 2026-10-10
 
 ### Added

@@ -74,6 +74,13 @@ const CONTAINER_VARIANT_PAINT_KEYS: Readonly<Record<string, string>> = {
   "border-radius": "borderRadius",
   "font-weight": "fontWeight",
 };
+/** Color keys pass as written (`transparent` · `var(--x)` — the paint resolves them). */
+const CONTAINER_VARIANT_COLOR_KEYS: Readonly<Record<string, string>> = {
+  "border-color": "borderColor",
+  background: "backgroundColor",
+  "background-color": "backgroundColor",
+  color: "color",
+};
 
 /** `var(--radius-x)` · `Npx` · `N` of a containerVariants geometry value → px number. */
 function containerVariantLength(value: string): number {
@@ -119,6 +126,8 @@ export function catalogContainerVariantPaint(
     for (const [cssKey, value] of Object.entries(styles)) {
       const styleKey = CONTAINER_VARIANT_PAINT_KEYS[cssKey];
       if (styleKey) out[styleKey] = containerVariantLength(value);
+      const colorKey = CONTAINER_VARIANT_COLOR_KEYS[cssKey];
+      if (colorKey) out[colorKey] = value;
     }
   }
   return out;

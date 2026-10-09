@@ -756,3 +756,14 @@
   flex-wrap: nowrap;
   gap: 4px;
 }
+
+/* S2 1.8.0 isQuiet (2026-10-10): 바깥 틀 없음 — 값의 정본은 catalog Table rule (fill.quiet +
+   containerVariants.quiet, Canvas 가 같은 값을 rule 집행기에서 읽는다). 테두리는 색만 지워
+   기하(1px border-box 높이)를 유지한다 (S2 는 width 0). variant 블록과 같은 특이도라 뒤에 둔다. */
+@layer components {
+  .react-aria-Table[data-quiet] {
+    border-color: transparent;
+    border-radius: 0;
+    background: transparent;
+  }
+}

@@ -11350,6 +11350,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       width: "100%",
       minHeight: "40px",
     },
+    // S2 1.8.0 Table `isQuiet` (2026-10-10): 바깥 틀이 없다 — 배경 transparent (fill.quiet) ·
+    //   테두리 transparent · radius 0 (아래 containerVariants.quiet — Canvas 는 rule 집행기의
+    //   containerVariantPaint, DOM 은 수동 Table.css 의 `[data-quiet]` 블록이 같은 값). 테두리는
+    //   폭을 지우지 않고 색만 지운다 — 양 consumer 의 기하 (border-box 높이) 가 그대로다
+    //   (S2 는 width 0 이지만 우리 catalogTableHeight 가 1px 테두리를 기하에 더한다).
+    containerVariants: {
+      quiet: {
+        true: {
+          styles: {
+            "border-color": "transparent",
+            "border-radius": "0",
+          },
+        },
+      },
+    },
     variants: {
       default: {
         fill: {
@@ -11357,6 +11372,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             base: "{color.base}",
             hover: "{color.layer-2}",
             pressed: "{color.layer-1}",
+          },
+          quiet: {
+            base: "{color.transparent}",
           },
         },
         colors: {
