@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ToggleButtonGroup staticColor 의 Canvas 반영 — 자식 ToggleButton 파생 값] - 2026-10-09
+
+### Fixed
+
+- **ToggleButtonGroup 의 `staticColor` 가 Canvas 에 보이지 않던 문제** (사용자 「canvas 에 반영되게 수정해」):
+  - 그룹에 White · Black 을 주면 Preview 의 버튼은 흑백 스킴으로 바뀌는데 Canvas 의 버튼은 기본 칠 그대로였다.
+  - **Why**: S2 ActionButtonGroup 의 `staticColor` 는 그룹의 칠이 아니라 자식 버튼에게 가는 값이다. DOM 은 `ToggleButtonGroupStaticColorContext` 로 자식의 `data-static-color` 를 정했지만, Canvas 는 버튼 자신의 `staticColor` 만 읽었다.
+  - 수정: 그룹 안 ToggleButton 이 그룹 값을 파생 값으로 받는다 (버튼 자신의 값이 `auto` 가 아니면 버튼 값 — DOM 과 같은 우선순위). 그룹을 편집하면 그 버튼들이 다시 계산된다.
+  - 확인: 실제 Builder Compare Mode 에서 White · Black 의 Canvas 버튼 칠 · 테두리 · 글자색 = Preview 계산값, Auto 로 되돌리면 원래 칠 (`apps/builder/scripts/toggle-group-static-color-live.mjs` 4/4).
+  - 위치: `packages/shared/src/catalog/runtime/presence.ts` (`ownDerivedProps` · `derivedDependents`)
+
 ## [Calendar 표시 기간·월/연도 picker 계획 — ADR-256 Phase 9] - 2026-10-09
 
 ### Documentation

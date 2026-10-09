@@ -1411,6 +1411,16 @@ function ownDerivedProps(
         ? { iconName: "chevron-down" }
         : undefined;
   }
+  // S2 ActionButtonGroup's `staticColor` is its buttons' (`ToggleButtonGroupStaticColorContext` —
+  // a button's own non-`auto` value wins, `ToggleButton.tsx` `effectiveStaticColor`).
+  if (typeOf(node) === "ToggleButton") {
+    const own = node.props.staticColor;
+    const group = catalogToggleGroupOf(node, get, typeOf)?.props.staticColor;
+    return (own === undefined || own === "auto") &&
+      (group === "white" || group === "black")
+      ? { staticColor: group }
+      : undefined;
+  }
   // RAC Breadcrumbs draws its last crumb as the current one (no separator, current paint); the
   // crumb's label Text inherits the current Link's weight.
   if (typeOf(node) === "Breadcrumb")
@@ -1597,6 +1607,9 @@ function derivedDependents(
   }
   if (type === "Tabs") return catalogTabsSelection(owner, get, typeOf).tabs;
   if (type === "ButtonGroup") return buttonGroupButtons(owner, get, typeOf);
+  // (A ToggleButtonGroup's `staticColor` is its ToggleButtons' — at any depth in the group.)
+  if (type === "ToggleButtonGroup")
+    return catalogToggleGroupItems(owner, "ToggleButton", get, typeOf).items;
   const items = catalogCollectionItems(owner, get, typeOf);
   if (items.length) return items;
   // A Tab's `isDisabled` can move the default selection (the first enabled Tab) to a sibling.
