@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Form context — Form 의 값이 안의 field 에 닿게] - 2026-10-10
+
+### Fixed
+
+- **Form 의 Label Position · Label Align · Necessity Indicator 가 안의 field 에 닿지 않던 문제** (Canvas · Preview 둘 다):
+  - Form 을 Side 로 바꿔도 안의 TextField 는 양쪽 다 top 이었다.
+  - **Why**: field 원본이 자기 `labelPosition: "top"` 을 갖고 있어 DOM 의 Form 상속 (`inheritedForm` — 값이 없을 때만) 이 늘 가려졌고, Canvas 에는 Form 값을 읽는 길이 아예 없었다 (necessityIndicator 만 예외).
+  - 수정: S2 `useFormProps` 와 같이 — field 가 **작성하지 않은** 키만 가장 가까운 Form 값으로 채운다. resolver (`applyFormContext`) 가 하므로 Canvas 와 DOM 이 같은 record 를 읽고, Form 을 고치면 안의 field 가 다시 해석된다. CheckboxGroup → Checkbox 상태와 같은 「위 노드의 값이 아래에 닿는」 축이다.
+  - Design 패널도 그 값의 출처를 「form」 으로 읽는다 (`fieldSource` — resolver 와 같은 순서: 작성값 · 상태 > Form > template · 기본값).
+  - 위치: `packages/shared/src/catalog/document/formContext.ts` (키 · field 목록) · `packages/shared/src/catalog/resolution/{resolver.ts,fieldSource.ts}` · `packages/shared/src/catalog/runtime/compositionRoot.ts`
+
+### Added
+
+- **Form `isRequired` · `isDisabled`** (S2 1.8.0 Form context): 안의 field 가 자기 값이 없으면 받는다. Form 상자 자신은 흐려지지 않는다 — Form rule 의 쓰이지 않던 disabled 투명도 (Canvas 만 칠해 field 와 두 번 흐려졌을 값) 를 지웠다.
+  - 확인: live — 팔레트 Form (TextField 2개) 에서 Label Position Side → 두 field 모두 라벨 열 176 = Preview 176 (전 top), Label Align End → 라벨 글자 끝 정렬 (양쪽), Disabled → Preview input disabled · field 투명도 0.38 = Canvas 0.38 · Form 상자 1 = 1, 끄면 원래대로 (`apps/builder/scripts/form-context-live.mjs` 6/6). field 자기 값이 이기는 것 · Required 전달 · Design 패널 출처는 `formContext.test.ts`.
+  - 위치: `packages/shared/src/catalog/bindings/Form.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Form `states`)
+
 ## [S2 전용 prop 2순위 — Separator staticColor] - 2026-10-09
 
 ### Added

@@ -35,6 +35,10 @@ import {
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
 import { CatalogValidationError } from "../document/validation";
+import {
+  CATALOG_FORM_CONTEXT_KEYS,
+  CATALOG_FORM_FIELDS,
+} from "../document/formContext";
 import { OWNER_DRAWN_PART_HOSTS } from "../resolvers/resolveDelegatedChildFontSize";
 import { catalogTokenValue } from "../document/themedToken";
 import {
@@ -717,6 +721,29 @@ export function resolveCatalogNode(
     if (choices && !choices.map(String).includes(size)) return;
     props.size = size;
   };
+  /**
+   * S2 Form context (`formContext.ts`): a field takes the nearest Form's value for each context
+   * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
+   * any element between (React context), the nearest Form wins.
+   */
+  const applyFormContext = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+    authored: ReadonlySet<string>,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    if (!CATALOG_FORM_FIELDS.has(definition.name)) return;
+    let form = structuralParent(parent);
+    while (form && lookupDefinition(form.definitionId).name !== "Form")
+      form = structuralParent(form.parent);
+    if (!form) return;
+    for (const key of CATALOG_FORM_CONTEXT_KEYS) {
+      if (authored.has(key) || !(key in definition.accepts)) continue;
+      const value = form.props[key];
+      if (value !== undefined) props[key] = value;
+    }
+  };
   const applyPropVisualRules = (
     definitionId: DefinitionId,
     props: Props,
@@ -767,6 +794,15 @@ export function resolveCatalogNode(
       Object.assign(visual, inherited.visual);
     }
     applyWrites(props, node.props);
+    applyFormContext(
+      node.definitionId,
+      props,
+      parent,
+      new Set([
+        ...Object.keys(inherited?.props ?? {}),
+        ...Object.keys(node.props),
+      ]),
+    );
     applyOwnerSize(node.definitionId, props, parent);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
@@ -1217,6 +1253,18 @@ export function resolveCatalogNode(
         if (definition.accepts[key] === "boolean" && !instanceAuthored.has(key))
           props[key] = value;
     const nodeState = catalogNodeState(displayState, state);
+    // (A display state's values stay over the Form context — as the authored ones.)
+    applyFormContext(
+      template.definitionId,
+      props,
+      parent,
+      new Set([
+        ...instanceAuthored,
+        ...Object.keys(
+          (displayState && DISPLAY_STATE_PROPS[displayState]) ?? {},
+        ),
+      ]),
+    );
     applyOwnerSize(template.definitionId, props, parent);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(

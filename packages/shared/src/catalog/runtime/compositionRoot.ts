@@ -1,4 +1,8 @@
 import {
+  CATALOG_FORM_CONTEXT_KEYS,
+  CATALOG_FORM_FIELDS,
+} from "../document/formContext";
+import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
@@ -3495,6 +3499,30 @@ export class CatalogCompositionRoot {
             queue.push(childId);
           }
         }
+      }
+      // A Form's context values reach its fields at any depth (S2 `FormContext` — the resolver's
+      // `applyFormContext`): they resolve again with them.
+      if (
+        this.typeOf(record) === "Form" &&
+        CATALOG_FORM_CONTEXT_KEYS.some(
+          (key) => before.props[key] !== record.props[key],
+        )
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (
+              CATALOG_FORM_FIELDS.has(this.typeOf(child)) &&
+              !queued.has(childId)
+            ) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
       }
       updates.push(this.planRecord(id, record, rootId));
       roots.add(rootId);

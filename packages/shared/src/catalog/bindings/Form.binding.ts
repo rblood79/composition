@@ -76,6 +76,10 @@ export const formBinding: PrimitiveBinding = {
           { value: "label", label: "Label" },
         ],
       },
+      // S2 1.8.0 Form `isRequired` · `isDisabled` (2026-10-09): the Form context — every field
+      //   inside that sets none takes it (`formContext.ts`, the resolver). The form itself draws none.
+      isRequired: { kind: "boolean", label: "Required", section: "state" },
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       validationBehavior: {
         kind: "enum",
         label: "Validation Behavior",

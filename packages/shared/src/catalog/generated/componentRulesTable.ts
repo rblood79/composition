@@ -5063,13 +5063,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       archetype: "default",
       element: "form",
       containerStyles: undefined,
+      // (No disabled state — S2 Form draws none: its `isDisabled` is the Form context its fields
+      //   take, each dimming itself — 2026-10-09. Before, nothing set it.)
       states: {
         hover: {},
         pressed: {},
-        disabled: {
-          opacity: 0.38,
-          pointerEvents: "none",
-        },
         focusVisible: {},
       },
       composition: {

@@ -12,11 +12,12 @@ import type {
   WriteValue,
 } from "../document/types";
 import { CatalogValidationError } from "../document/validation";
-import {
-  isInOwnCollection,
-  isInOwnGroup,
-} from "../document/collectionItems";
+import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import { DISPLAY_STATE_PROPS } from "./resolver";
+import {
+  CATALOG_FORM_CONTEXT_KEYS,
+  CATALOG_FORM_FIELDS,
+} from "../document/formContext";
 
 /**
  * ADR-248 Phase 4c — where a prop value an edit target shows comes from, in the resolver's
@@ -32,6 +33,8 @@ export type PropSource =
   | "own"
   | "instance"
   | "state"
+  // (The nearest Form's value — S2 Form context, `formContext.ts`.)
+  | "form"
   | "library-patch"
   | "template"
   | "project-default"
@@ -146,6 +149,7 @@ function templateChain(
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
   ancestors: Ancestors = NO_ANCESTORS,
+  context?: PropLayer,
 ): PropLayer[] {
   const template = readTemplate(reader, templateId);
   const state = ownedSelection(
@@ -164,6 +168,8 @@ function templateChain(
       ? DISPLAY_STATE_PROPS[state]?.[key]
       : undefined;
   if (forced !== undefined) layers.push({ source: "state", value: forced });
+  // (The Form context: under the authored values and the display state, over the template's.)
+  if (context) layers.push(context);
   if (libraryPatch) layers.push(libraryPatch);
   if (own !== ABSENT) layers.push({ source: "template", value: own });
   layers.push(
@@ -186,6 +192,7 @@ function definitionChain(
   seen: ReadonlySet<string> = new Set(),
   outerState?: TemplateRecord["displayState"],
   ancestors: Ancestors = NO_ANCESTORS,
+  context?: PropLayer,
 ): PropLayer[] {
   const definition = readDefinition(reader, definitionId);
   const composite =
@@ -193,10 +200,12 @@ function definitionChain(
       ? definition.templateRootId
       : undefined;
   // A composite's own defaults are its schema's (template bindings); other keys are its root's.
-  const layers =
-    !composite || key in definition.accepts
+  const layers = [
+    ...(context && !composite ? [context] : []),
+    ...(!composite || key in definition.accepts
       ? defaultLayers(reader, definitionId, key)
-      : [];
+      : []),
+  ];
   if (composite && !seen.has(definitionId))
     layers.push(
       ...templateChain(
@@ -207,6 +216,7 @@ function definitionChain(
         new Set([...seen, definitionId]),
         outerState,
         ancestors,
+        context,
       ),
     );
   return layers;
@@ -281,6 +291,7 @@ function propLayers(
         new Set(),
         undefined,
         lazy(() => nodeAncestors(reader, node.id)),
+        formContextLayer(reader, target, node.definitionId, key),
       ),
     ];
   }
@@ -347,9 +358,104 @@ function propLayers(
       new Set(),
       enclosingState,
       lazy(() => positionAncestors(reader, owner, target.address)),
+      formContextLayer(
+        reader,
+        target,
+        readTemplate(reader, templatePath[templatePath.length - 1])
+          .definitionId,
+        key,
+      ),
     ),
   );
   return layers;
+}
+
+/** The definition a definition draws: a composite's root template's, else its own. */
+function shownDefinition(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+  seen: ReadonlySet<string> = new Set(),
+): ReturnType<typeof readDefinition> {
+  const definition = readDefinition(reader, definitionId);
+  return definition.mode === "composite" &&
+    definition.templateRootId &&
+    !seen.has(definitionId)
+    ? shownDefinition(
+        reader,
+        readTemplate(reader, definition.templateRootId).definitionId,
+        new Set([...seen, definitionId]),
+      )
+    : definition;
+}
+/**
+ * The edit targets above a target, nearest first — the positions above it in its template, then
+ * above each enclosing instance position, then the owner and its ancestors (`positionAncestors`).
+ */
+function* targetsAbove(
+  reader: CatalogReader,
+  target: EditTarget,
+): Generator<{ target: EditTarget; definitionId: DefinitionId }> {
+  let ownerId: NodeId = target.kind === "node" ? target.id : target.ownerId;
+  if (target.kind === "descendant") {
+    const owner = reader.getEntry(target.ownerId);
+    if (owner?.kind !== "node") return;
+    let at = target.address;
+    for (;;) {
+      for (let length = at.templatePath.length - 1; length >= 1; length--) {
+        const templatePath = at.templatePath.slice(0, length);
+        yield {
+          target: {
+            kind: "descendant",
+            ownerId: target.ownerId,
+            address: { instances: at.instances, templatePath },
+          },
+          definitionId: readTemplate(reader, templatePath[length - 1])
+            .definitionId,
+        };
+      }
+      if (at.instances.length <= 1) break;
+      at = enclosingAddress(reader, owner, at.instances);
+    }
+    yield {
+      target: { kind: "node", id: owner.id },
+      definitionId: owner.definitionId,
+    };
+    ownerId = owner.id;
+  }
+  for (
+    let at = reader.ownerOf(ownerId);
+    at !== undefined;
+    at = reader.ownerOf(at)
+  ) {
+    const entry = reader.getEntry(at);
+    if (entry?.kind !== "node") break;
+    yield {
+      target: { kind: "node", id: entry.id },
+      definitionId: entry.definitionId,
+    };
+  }
+}
+/**
+ * The S2 Form context layer of a field's prop (`formContext.ts` — the resolver's
+ * `applyFormContext`): the nearest Form's value of a context key the field accepts.
+ */
+function formContextLayer(
+  reader: CatalogReader,
+  target: EditTarget,
+  definitionId: DefinitionId,
+  key: string,
+): PropLayer | undefined {
+  if (!(CATALOG_FORM_CONTEXT_KEYS as readonly string[]).includes(key))
+    return undefined;
+  const shown = shownDefinition(reader, definitionId);
+  if (!CATALOG_FORM_FIELDS.has(shown.name) || !(key in shown.accepts))
+    return undefined;
+  for (const above of targetsAbove(reader, target))
+    if (shownDefinition(reader, above.definitionId).name === "Form") {
+      const value = readPropSource(reader, above.target, key).value;
+      return value === undefined ? undefined : { source: "form", value };
+    }
+  return undefined;
 }
 
 /**
@@ -365,8 +471,7 @@ function ownedSelection(
 ): TemplateRecord["displayState"] {
   if (state !== "selected" && state !== "unselected") return state;
   const name = readDefinition(reader, definitionId).name;
-  return isInOwnCollection(name, ancestors()) ||
-    isInOwnGroup(name, ancestors())
+  return isInOwnCollection(name, ancestors()) || isInOwnGroup(name, ancestors())
     ? undefined
     : state;
 }
@@ -380,11 +485,7 @@ function lazy(walk: () => readonly string[]): Ancestors {
 /** A document node's ancestor type names, nearest first. */
 function nodeAncestors(reader: CatalogReader, id: string): string[] {
   const names: string[] = [];
-  for (
-    let at = reader.ownerOf(id);
-    at !== undefined;
-    at = reader.ownerOf(at)
-  ) {
+  for (let at = reader.ownerOf(id); at !== undefined; at = reader.ownerOf(at)) {
     const entry = reader.getEntry(at);
     if (entry?.kind !== "node") break;
     names.push(readDefinition(reader, entry.definitionId).name);
