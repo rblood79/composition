@@ -463,7 +463,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 
 ### 6.1 S2 에만 있는 prop — 도입 범위 정리 (2026-10-09)
 
-2번 (S2 에만 있는 시각 · 내용 prop 65종 130건) 을 도입 비용으로 나눴다. 우리 accepts (`ours.json`) · RAC 1.21 prop (`racprops.json`) 과 대조했다. 아직 아무것도 바꾸지 않았다.
+2번 (S2 에만 있는 시각 · 내용 prop 65종 130건) 을 도입 비용으로 나눴다. 우리 accepts (`ours.json`) · RAC 1.21 prop (`racprops.json`) 과 대조했다. 「나」 묶음은 2026-10-09 진행했다 (아래 결과 열).
 
 **가. 다른 자리가 이미 맡는다 — 새 prop 없음**
 
@@ -474,17 +474,27 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - `label` — AvatarGroup 은 원본 accept + Text 노드 (contract 35), ColorSlider · Tag · DisclosurePanel 은 Label · Text 노드.
 - Disclosure `defaultExpanded` → `isExpanded` (문서의 초기값).
 
-**나. RAC 가 동작을 이미 준다 — D3 작업이 거의 없음 (1순위 권장)**
+**나. RAC 가 동작을 이미 준다 — D3 작업이 거의 없음 (1순위)**
 
-| prop                                                                             | type                                                    | 뜻                            |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------- |
-| `level`                                                                          | Heading                                                 | h1~h6 — 접근성 · 문서 구조    |
-| `formatOptions`                                                                  | NumberField · Meter · ProgressBar · Slider              | 통화 · 퍼센트 · 단위          |
-| `firstDayOfWeek`                                                                 | Calendar · RangeCalendar · DatePicker · DateRangePicker | 주 시작 요일                  |
-| `hourCycle` · `placeholderValue`                                                 | DatePicker (· DateRangePicker)                          | 12/24시간 · 빈 칸의 기준 날짜 |
-| `width` · `defaultWidth` · `minWidth` · `maxWidth` · `allowsSorting` · `colSpan` | Column · Cell                                           | 표 열 폭 · 정렬 · 셀 합치기   |
-| `xChannel` · `yChannel` · `colorSpace` · `channel` · `colorName`                 | ColorArea · ColorSlider · ColorSwatch                   | 색 계열 축                    |
-| `type` · `isDisabled` · `selectionAlignment`                                     | SearchField · Row · Calendar                            | —                             |
+2026-10-09 진행 결과. 처음 표에 있던 표 열 · 색 축은 확인해 보니 RAC 가 동작을 다 주지 않아 아래로 옮겼다.
+
+| prop                             | type                                                    | 뜻                              | 결과                                                                                                                              |
+| -------------------------------- | ------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `level`                          | Heading                                                 | h1~h6 — 접근성 · 문서 구조      | 도입 (`bda420db2`) — Canvas 높이는 `size` 가 정한다                                                                               |
+| `firstDayOfWeek`                 | Calendar · RangeCalendar · DatePicker · DateRangePicker | 주 시작 요일                    | 도입 (`c6164ca5a`) — 비우면 locale 기본, Canvas 달력 격자도 같은 계산                                                             |
+| `hourCycle` · `placeholderValue` | DatePicker (`hourCycle`) · DatePicker · DateRangePicker | 12/24시간 · 빈 칸의 기준 날짜   | 도입 (`69bf65361`)                                                                                                                |
+| `type`                           | SearchField                                             | 입력 종류 (password 면 점)      | 도입 (`61157eb1f`)                                                                                                                |
+| `isDisabled`                     | Row                                                     | 행 비활성                       | 도입 (`61157eb1f`) — 투명도 0.38                                                                                                  |
+| `formatOptions`                  | NumberField · Meter · ProgressBar · Slider              | 통화 · 퍼센트 · 단위            | 보류 — 값이 객체 (`Intl.NumberFormatOptions`) 인데 문서 값 타입에 객체가 없다. 객체 값 타입 신설 vs 평평한 확장 prop 중 결정 대기 |
+| `selectionAlignment`             | Calendar                                                | 여러 달 표시에서 선택 달의 자리 | ADR-256 Phase 9 (여러 달 표시 재설계) 로 넘김                                                                                     |
+
+**나에서 옮김 — RAC 가 동작을 다 주지 않음 (2026-10-09 확인)**
+
+- Column `width` · `defaultWidth` · `minWidth` · `maxWidth`: RAC 는 `ResizableTableContainer` 안에서만 적용한다. 우리 Table 은 그 컨테이너를 쓰지 않고, 열 폭은 Styles 패널이 이미 맡는다.
+- Column `allowsSorting`: RAC 는 정렬 상태 (`data-allows-sorting` · `sortDescriptor`) 만 주고 데이터 정렬은 앱 몫이다.
+- Cell `colSpan`: 우리 행은 flex 배치 (`Table.css` 셀 `flex: 1`) 라 효과가 없다.
+- → 셋 다 Table 배치 방식 (table 레이아웃 · 데이터 정렬) 부터 바꿔야 해서 다의 「표 · 목록」 과 함께 다룬다.
+- ColorArea `xChannel` · `yChannel` · `colorSpace`, ColorSlider `channel` · `colorSpace`, ColorSwatch `colorName`: 축을 바꾸면 Canvas 그라데이션을 새로 그려야 한다 (D3 대칭). 다의 「개별」 로 옮긴다.
 
 **다. S2 시각 축 — D3 (catalog rule · CSS · Canvas) 값을 새로 정해야 함**
 
@@ -492,7 +502,8 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - Checkbox · Switch · CheckboxGroup · RadioGroup · Form `isEmphasized` — Checkbox · Switch 는 지금 `variant` (default · emphasized), S2 는 `isEmphasized`. 4번 (B · C contract 변경) 과 같이 정한다.
 - 이미 있는 축 넓히기 (작음): `labelAlign` (CheckboxGroup · RadioGroup · Slider · TagGroup — 다른 field 는 있음), 상태 축 (Switch `isRequired` · `isInvalid`, TagGroup `isInvalid` · `errorMessage`, Form `isRequired` · `isDisabled`), ColorField · NumberField `placeholder` (TextField 와 같은 길).
 - overlay 위치: ComboBox · Select · MenuTrigger `align` · `direction` · `menuWidth`, Toast `placement`.
-- 표 · 목록: Column · Cell `align` · `showDivider`, Cell `isSticky`, Table `selectionStyle`, Badge · GridList · Table `overflowMode`.
+- 표 · 목록: Column `width` 류 · `allowsSorting`, Cell `colSpan` (나에서 옮김), Column · Cell `align` · `showDivider`, Cell `isSticky`, Table `selectionStyle`, Badge · GridList · Table `overflowMode`.
+- 색 축 (나에서 옮김): ColorArea `xChannel` · `yChannel` · `colorSpace`, ColorSlider `channel` · `colorSpace`, ColorSwatch `colorName`.
 - 개별: Slider `trackStyle` · `thumbStyle` · `fillOffset`, ColorSwatch `rounding`, ColorWheel `size`, ToggleButtonGroup `isJustified`, Link `isStandalone`, NumberField `hideStepper`, CardView `orientation`, InlineAlert `fillStyle` (5.1 의 InlineAlert variant 와 묶음), DropZone `isFilled` · `replaceMessage`, Skeleton `isLoading`.
 
 **라. 새 부품이 필요 — 별도 ADR 규모**
@@ -507,7 +518,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - 상태 (105): controlled / default 쌍 — 문서는 초기값 하나를 저장하므로 도입하지 않는다. `disabledKeys` 등 키 목록은 항목 노드 `isDisabled` 가 맡는다.
 - 동작 (255): 대부분 함수 · ref · render prop · form 연결이라 노코드로 작성할 수 없다. 작성 가능한 후보만: `excludeFromTabOrder` · `escapeKeyBehavior` · `keyboardActivation` · `shouldCloseOnSelect` · `isNonModal` · `isKeyboardDismissDisabled` · `increment/decrementAriaLabel`.
 
-**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR.
+**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출 — 2026-10-09 완료, `formatOptions` 만 보류) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR.
 
 ## 7. 데이터와 재현
 
