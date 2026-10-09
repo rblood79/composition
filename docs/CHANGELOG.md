@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Tag variant Selected — Preview 도 선택 chip 으로] - 2026-10-09
+
+### Fixed
+
+- **TagGroup 안 Tag 의 Variant 를 Selected 로 두면 Preview 도 accent 배경 · 흰 글자 · 흰 X 의 선택 chip 으로 그린다** (종전: Canvas 는 선택 chip, Preview 는 기본 chip 배경 그대로).
+  - **Why**: Tag 는 생성 CSS 가 없고 (수동 `TagGroup.css`), 그 시트는 RAC 선택 (`[data-selected]`) 만 칠했다. 작성한 `variant="selected"` 는 DOM 에 `data-variant="selected"` 로 닿았지만 받는 규칙이 없었다. 이제 같은 블록이 Tag rule 의 selected 색 (fill `{color.accent}` · text `{color.on-accent}` · border `{color.accent}`) 을 준다.
+  - 위치: `packages/shared/src/components/styles/TagGroup.css`
+- 회귀: `tagSelectedVariant.test.ts` (rule ↔ 시트 값, 원복 RED) · live `apps/builder/scripts/tag-selected-variant-live.mjs` 4/4 · G3 63 PASS + 1 UNVERIFIED · parity 811
+
 ## [그룹 size 가 그룹 안 모든 항목에 · 같은 종류 toggle 중첩 금지 — ADR-256 Round 21 범위 밖 2건] - 2026-10-09
 
 ### Fixed
