@@ -309,18 +309,6 @@ function sizeVisual(
 }
 
 /**
- * Insertion content the existing palette factory authors without a binding default
- * (`createIllustratedMessageDefinition`). The typed definition owns these values so the existing
- * binding, and through it the current Preview/panel defaults, stays unchanged.
- */
-const INSERTION_DEFAULTS: Readonly<Record<string, Record<string, Scalar>>> = {
-  IllustratedMessage: {
-    heading: "No results",
-    description: "Try another search term.",
-  },
-};
-
-/**
  * Collection keys the old element props carried outside the registration props contract: an
  * item's RAC key (`id` — a static collection item, `resolveStaticItemKey`; a TreeItem, the tree's
  * expansion key), a TabPanel's pairing key (`itemId`), a table column's key (`key`, ADR-241), and
@@ -391,8 +379,6 @@ export function ruleTypeDefinition(
     ...COLLECTION_KEY_ACCEPTS[type],
   }))
     accepts[key] ??= valueType;
-  for (const [key, value] of Object.entries(INSERTION_DEFAULTS[type] ?? {}))
-    if (key in accepts) defaults[key] = value;
   const definition: {
     -readonly [K in keyof LibraryDefinition]: LibraryDefinition[K];
   } = {

@@ -28,7 +28,6 @@ import {
   GridListItem,
 } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
-import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { StatusLight } from "@composition/shared/components/StatusLight";
 import { Avatar } from "@composition/shared/components/Avatar";
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
@@ -100,7 +99,6 @@ export const INTERNAL_RENDERERS: Readonly<
   chart: Chart,
   badge: Badge,
   skeleton: Skeleton,
-  illustrated: IllustratedMessage,
   statuslight: StatusLight,
   avatar: Avatar,
   progresscircle: ProgressCircle,

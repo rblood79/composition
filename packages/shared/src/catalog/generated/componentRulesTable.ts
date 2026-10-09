@@ -5556,50 +5556,128 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
-    // ADR-912 단계5 step4 (2026-06-16): IllustratedMessage.spec.ts catalog cutover 삭제 대비 —
-    //   paddingX/paddingY/gap (root padding + 자식 간격) + headingFontSize (.alert-heading 자식 CSS)
-    //   를 rule.sizes 로 보강. alert archetype(composition 없음 → padding emit). generate-css virtual
-    //   이 spec.sizes 대신 본 rule 에서 동일 CSS 재생성 (diff 0).
+    // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
+    //   진행해, orientation 도 같이 넣어」): S2 `@react-spectrum/s2/src/IllustratedMessage.tsx` — no
+    //   padding, no box; the picture · heading · content are child nodes (Illustration · Heading ·
+    //   Description), their sizes from this size (`CATALOG_SIZE_STEP`). The parts' places are the
+    //   `orientation` blocks below (`rulePartRules.ts` reads them for the Canvas, the generated sheet
+    //   for the Preview).
     sizes: {
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
-        paddingX: 16,
-        paddingY: 16,
-        gap: 8,
-        headingFontSize: "{typography.text-base}",
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: 0,
         height: "auto",
-        paddingX: 24,
-        paddingY: 24,
-        gap: 12,
-        headingFontSize: "{typography.text-lg}",
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: 0,
         height: "auto",
-        paddingX: 32,
-        paddingY: 32,
-        gap: 16,
-        headingFontSize: "{typography.text-xl}",
       },
     },
     structure: {
-      archetype: "alert",
+      archetype: "container",
       element: "div",
       containerStyles: {
         display: "flex",
         flexDirection: "column",
-        // S2 IllustratedMessage centres its illustration · heading · description.
         alignItems: "center",
         width: "100%",
       },
       states: {},
+      composition: {
+        // S2 vertical rows: picture → heading 12 (L 8), heading → content 4.
+        containerStyles: {
+          "--im-illustration-gap": "12px",
+        },
+        containerVariants: {
+          size: {
+            lg: {
+              styles: {
+                "--im-illustration-gap": "8px",
+              },
+            },
+          },
+          orientation: {
+            // S2 vertical: centred column, `textAlign: center` (on the text parts — the Canvas
+            //   paints a text leaf's alignment, not a container's), max width 380.
+            vertical: {
+              styles: {
+                display: "flex",
+                "flex-direction": "column",
+                "align-items": "center",
+                "max-width": "380px",
+              },
+              nested: [
+                {
+                  selector: "> .react-aria-Illustration",
+                  styles: {
+                    "margin-bottom": "var(--im-illustration-gap)",
+                  },
+                },
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    "margin-bottom": "4px",
+                    "text-align": "center",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "text-align": "center",
+                  },
+                },
+              ],
+            },
+            // S2 horizontal: the picture spans the rows left of the heading (row end) and the
+            //   content (row start), 12 apart, 4 between them; max width 528, start-aligned text.
+            horizontal: {
+              styles: {
+                display: "grid",
+                "grid-template-columns": "auto 1fr",
+                "grid-template-rows": "1fr 1fr",
+                "column-gap": "12px",
+                "row-gap": "4px",
+                "max-width": "528px",
+              },
+              nested: [
+                {
+                  selector: "> .react-aria-Illustration",
+                  styles: {
+                    "grid-column": "1",
+                    "grid-row": "1 / 3",
+                    "align-self": "center",
+                  },
+                },
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    "grid-column": "2",
+                    "grid-row": "1",
+                    "align-self": "end",
+                    "text-align": "start",
+                  },
+                },
+                {
+                  selector: '> [slot="description"]',
+                  styles: {
+                    "grid-column": "2",
+                    "grid-row": "2",
+                    "align-self": "start",
+                    "text-align": "start",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        delegation: [],
+      },
     },
   },
   // 2026-10-09 — the S2 IllustratedMessage's svg picture (`@react-spectrum/s2/src/Icon.tsx`

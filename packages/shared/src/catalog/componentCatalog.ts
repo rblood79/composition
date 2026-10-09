@@ -291,15 +291,14 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     icon: "AlertTriangle",
     placeable: false,
   }),
-  // ADR-912 진로 1번 IllustratedMessage proof slice (2026-06-06): 빈 상태(empty state) internal leaf.
-  //   catalog 등록으로 spec.render.shapes Skia fallback 제거 — Skia 는 skiaPrimitive
-  //   "illustrated_message" escape(placeholder+heading+description, append), DOM 은 INTERNAL_RENDERERS
-  //   ["illustrated"](IllustratedMessage.tsx, props.heading/description 직접 소비). heading/description
-  //   이 자식 Element 아닌 props(factory children:[]) → generic fallback 미적용, 어댑터 필수.
+  // IllustratedMessage — S2 빈 상태 컨테이너. 2026-10-09 부터 그림 · 제목 · 설명은 자식 노드
+  //   (Illustration · Heading · Description — 원본 `component-illustratedmessage`, 아래 reusable
+  //   entry 가 palette). 이 entry 는 원본 루트의 type (placeable:false — InlineAlert 동형).
   primitiveEntry("IllustratedMessage", "primitives", FAMILY_1_CUTOVER, {
     category: "content",
     label: "illustrated message",
     icon: "ImageIcon",
+    placeable: false,
   }),
   // ADR-912 진로 1번 StatusLight proof slice (2026-06-06): 상태 표시 dot+label internal leaf.
   //   Skia 는 skiaPrimitive "status_light" escape(dot circle + text, replace — box 무의미),
@@ -1344,6 +1343,13 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
     category: "content",
     label: "inline alert",
     icon: "AlertTriangle",
+  }),
+  // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」): the S2 node tree
+  //   `IllustratedMessage > Illustration + Heading + Description` (origin `{title}` · `{description}`).
+  reusableEntry("IllustratedMessage", "primitives", "component-illustratedmessage", {
+    category: "content",
+    label: "illustrated message",
+    icon: "ImageIcon",
   }),
   reusableEntry("Card", "primitives", "component-card", {
     category: "layout",

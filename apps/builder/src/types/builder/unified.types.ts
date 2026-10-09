@@ -2105,11 +2105,10 @@ export function createDefaultColorSwatchPickerProps(): BaseElementProps {
 }
 
 export function createDefaultIllustratedMessageProps(): BaseElementProps {
+  // (2026-10-09: 그림 · 제목 · 설명은 원본 `component-illustratedmessage` 의 자식 노드.)
   return {
     size: "md",
-    heading: "No results",
-    description: "Try another search term.",
-    // 공통 기본 스타일은 catalog에서 파생한다.
+    orientation: "vertical",
   };
 }
 

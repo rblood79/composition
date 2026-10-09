@@ -92,7 +92,8 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "AvatarGroup",
   "ButtonGroup",
   "Breadcrumbs",
-  "IllustratedMessage",
+  // (2026-10-09: IllustratedMessage 는 reusable composite origin (`component-illustratedmessage`)
+  //   전환 → COMPLEX 제외 — InlineAlert 동형.)
   "RangeCalendar",
   // ADR-201 (2026-09-17): FileUpload compound — factory 가 DropZone/FileTrigger/샘플 행 자식을 만든다.
   "FileUpload",

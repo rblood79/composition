@@ -486,6 +486,28 @@ function compileDeclarations(
       if (value === "relative" || value === "static") layout.position = value;
     } else if (key === "grid-area") {
       Object.assign(layout, areaLines(ownerAreas, value) ?? {});
+    } else if (key === "grid-row" || key === "grid-column") {
+      // `a` · `a / b` · `a / span n` (line numbers — the engine's placement fields).
+      const [start, end] = value.split("/").map((part) => part.trim());
+      const axis = key === "grid-row" ? "Row" : "Column";
+      if (/^-?\d+$/.test(start)) {
+        layout[`grid${axis}Start` as LayoutField] = start;
+        if (end && /^(-?\d+|span \d+)$/.test(end))
+          layout[`grid${axis}End` as LayoutField] = end;
+      }
+    } else if (
+      key === "grid-template-columns" ||
+      key === "grid-template-rows"
+    ) {
+      layout[
+        key === "grid-template-columns"
+          ? "gridTemplateColumns"
+          : "gridTemplateRows"
+      ] = value;
+    } else if (key === "row-gap" || key === "column-gap") {
+      const px = lengthPx(value);
+      if (px !== undefined)
+        layout[key === "row-gap" ? "rowGap" : "columnGap"] = `${px}px`;
     } else if (key === "width" || key === "height") {
       const px = lengthPx(value);
       if (px !== undefined) visual[key] = px;
@@ -1128,6 +1150,37 @@ type ContainerVariants = Record<string, Record<string, ContainerVariantBlock>>;
 const CONTAINER_VARIANT_AXES: Readonly<Record<string, string>> = {
   "label-position": "labelPosition",
 };
+/**
+ * Axes one type adds (its root renders the attribute — `ruleDom`'s fallback `data-orientation`).
+ * Not shared: the group rules' `orientation` blocks have their own readers (`itemsWrapperPartRules`).
+ * 2026-10-09: the S2 IllustratedMessage's `orientation` places its picture · heading · content.
+ */
+const TYPE_CONTAINER_VARIANT_AXES: Readonly<
+  Record<string, Readonly<Record<string, string>>>
+> = {
+  IllustratedMessage: { orientation: "orientation" },
+};
+function containerVariantAxes(type: string): Readonly<Record<string, string>> {
+  return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };
+}
+/** The owner's own custom properties (`composition.containerStyles` · `containerVariants.size`). */
+function compositionVariables(
+  rule: ComponentRule,
+  size: string | undefined,
+): Record<string, string> {
+  const composition = rule.structure?.composition as
+    | { containerStyles?: Record<string, string> }
+    | undefined;
+  const variants = containerVariantsOf(rule);
+  const out: Record<string, string> = {};
+  for (const source of [
+    composition?.containerStyles,
+    size ? variants?.size?.[size]?.styles : undefined,
+  ])
+    for (const [key, value] of Object.entries(source ?? {}))
+      if (key.startsWith("--") && typeof value === "string") out[key] = value;
+  return out;
+}
 /** The side label column's alignment axis: its blocks only declare `--form-label-align`. */
 const LABEL_ALIGN_AXIS = {
   attribute: "label-align",
@@ -1180,7 +1233,7 @@ export function catalogContainerVariantRootRules(type: string): Array<{
   const variants = rule ? containerVariantsOf(rule) : undefined;
   if (!variants) return [];
   const out: ReturnType<typeof catalogContainerVariantRootRules> = [];
-  for (const [attribute, prop] of Object.entries(CONTAINER_VARIANT_AXES))
+  for (const [attribute, prop] of Object.entries(containerVariantAxes(type)))
     for (const [value, block] of Object.entries(variants[attribute] ?? {})) {
       const compiled = compileDeclarations(
         type,
@@ -1212,7 +1265,9 @@ function containerVariantPartRules(
   const aligns = variants[LABEL_ALIGN_AXIS.attribute] ?? {};
   const sizes = sizeNames(rule).length ? sizeNames(rule) : [undefined];
   const out: CompiledPartRule[] = [];
-  for (const [attribute, prop] of Object.entries(CONTAINER_VARIANT_AXES))
+  for (const [attribute, prop] of Object.entries(
+    containerVariantAxes(parentType),
+  ))
     for (const [value, block] of Object.entries(variants[attribute] ?? {}))
       for (const entry of block.nested ?? []) {
         const selector = entry.selector.trim().replace(/^>\s*/, "");
@@ -1247,6 +1302,7 @@ function containerVariantPartRules(
             align: string | undefined,
           ) => {
             const variables = {
+              ...compositionVariables(rule, size),
               ...((size && rootVariables[size]) || {}),
               ...blockVariables(block),
               ...(align ? blockVariables(aligns[align]) : {}),

@@ -4581,6 +4581,9 @@ impl LayoutTree {
         // 행별 content 기여. **블록 축은 min-content == max-content** 로 둔다 — 높이는 폭이
         // 정해진 뒤의 내용 크기 하나뿐이라 두 값이 갈리지 않는다 (인라인 축과 다른 점).
         let mut row_intrinsic: Vec<f32> = vec![0.0; row_count];
+        // 미결정 축 전용 — 한 행 아이템의 기여만 (`row_spanning` 은 따로 §12.5.1 · §12.7.1).
+        let mut row_single: Vec<f32> = vec![0.0; row_count];
+        let mut row_spanning: Vec<(usize, usize, f32)> = Vec::new();
         // 자식별 측정 폭 (grid area 폭) — 최종 셀 solve 의 stale 캐시 판정이 이 값과 비교한다.
         let mut measured_w: Vec<f32> = vec![container_w; children.len()];
         if needs_row_measure && !children.is_empty() {
@@ -4627,6 +4630,12 @@ impl LayoutTree {
                 if row < row_intrinsic.len() {
                     row_intrinsic[row] = row_intrinsic[row].max(ch);
                 }
+                let span = placed_cells.get(i).map_or(1, |p| p.2.max(1));
+                if span > 1 {
+                    row_spanning.push((row, span, ch));
+                } else if row < row_single.len() {
+                    row_single[row] = row_single[row].max(ch);
+                }
             }
         }
 
@@ -4640,12 +4649,13 @@ impl LayoutTree {
         // 블록 축 트랙 extent — 미결정 축에서는 이것이 곧 컨테이너 높이다.
         let mut row_extent: Option<f32> = None;
         template_rows = if block_indefinite {
-            let sizes = grid_intrinsic_track_sizes(
+            let mut sizes = grid_intrinsic_track_sizes(
                 &row_tokens,
-                &row_intrinsic,
-                &row_intrinsic,
+                &row_single,
+                &row_single,
                 IntrinsicMode::Max,
             );
+            grow_tracks_for_spanning_items(&row_tokens, &mut sizes, &row_spanning, row_gap);
             row_extent =
                 Some(sizes.iter().sum::<f32>() + row_gap * (row_count as f32 - 1.0).max(0.0));
             sizes
@@ -5881,6 +5891,80 @@ fn grid_intrinsic_track_sizes(
             None => limit[i],
         })
         .collect()
+}
+
+/// 여러 트랙을 걸친 아이템의 기여 (CSS-GRID-1 §12.5.1 · §12.7.1) — 미결정 축의 트랙 크기에.
+///
+/// `sizes` 는 한 트랙 아이템만으로 세운 값 (`grid_intrinsic_track_sizes`). 걸친 아이템은
+/// - fr 트랙을 지나지 않으면 (§12.5.1): 걸친 트랙 + gap 이 기여보다 작을 때 모자란 만큼을 걸친
+///   트랙에 균등 분배한다 (Chrome `auto auto` · gap 4 · 24 / 16 + 걸친 96 → 50 / 42).
+/// - fr 트랙을 지나면 (§12.7.1): `(기여 − 고정 트랙 − gap) ÷ Σfr` 가 fr 크기 후보다 — 모든 fr
+///   트랙이 같은 fr 크기로 다시 선다 (Chrome `1fr 1fr` · gap 4 + 걸친 96 → 46 / 46).
+/// 종전엔 걸친 아이템을 시작 트랙 하나의 기여로 넣어 fr 크기가 아이템 전체 (96) 가 됐다 (196).
+fn grow_tracks_for_spanning_items(
+    tokens: &[String],
+    sizes: &mut [f32],
+    spanning: &[(usize, usize, f32)],
+    gap: f32,
+) {
+    let flex: Vec<Option<f32>> = tokens
+        .iter()
+        .map(|t| match split_track_sizing(t).1 {
+            SizingFn::Definite(d) => parse_fr(&d),
+            _ => None,
+        })
+        .collect();
+    let n = sizes.len();
+    let crossed = |start: usize, span: usize| start.min(n)..(start + span).min(n);
+    // §12.5.1 — fr 를 지나지 않는 아이템 (작은 span 부터).
+    let mut plain: Vec<&(usize, usize, f32)> = spanning
+        .iter()
+        .filter(|(s, span, _)| crossed(*s, *span).all(|i| flex[i].is_none()))
+        .collect();
+    plain.sort_by_key(|(_, span, _)| *span);
+    for &&(start, span, contribution) in &plain {
+        let range = crossed(start, span);
+        let count = range.len();
+        if count == 0 {
+            continue;
+        }
+        let have: f32 = sizes[range.clone()].iter().sum::<f32>() + gap * (count as f32 - 1.0);
+        let extra = contribution - have;
+        if extra > 0.0 {
+            for i in range {
+                sizes[i] += extra / count as f32;
+            }
+        }
+    }
+    // §12.7.1 — fr 를 지나는 아이템: 지금 fr 크기와 아이템 후보 중 큰 값으로 fr 트랙을 다시 세운다.
+    let mut fraction: f32 = 0.0;
+    for (i, f) in flex.iter().enumerate() {
+        if let Some(fr) = f {
+            fraction = fraction.max(sizes[i] / fr.max(f32::EPSILON));
+        }
+    }
+    let mut grew = false;
+    for &(start, span, contribution) in spanning {
+        let range = crossed(start, span);
+        let factors: f32 = range.clone().filter_map(|i| flex[i]).sum();
+        if factors <= 0.0 {
+            continue;
+        }
+        let fixed: f32 = range.clone().filter(|&i| flex[i].is_none()).map(|i| sizes[i]).sum();
+        let gaps = gap * (range.len() as f32 - 1.0).max(0.0);
+        let candidate = (contribution - fixed - gaps).max(0.0) / factors.max(1.0);
+        if candidate > fraction {
+            fraction = candidate;
+            grew = true;
+        }
+    }
+    if grew {
+        for (i, f) in flex.iter().enumerate() {
+            if let Some(fr) = f {
+                sizes[i] = sizes[i].max(fr * fraction);
+            }
+        }
+    }
 }
 
 /// `"80px"` → `Some(80.0)`. px 이외(%/calc)는 `None` — 호출부가 폴백을 정한다.
@@ -9419,6 +9503,31 @@ mod tests {
         assert_eq!(tree.get_layout(handles[2]).height, 8.0, "row1 track = 8");
         // track y = row0 height 20.
         assert_eq!(tree.get_layout(handles[2]).y, 20.0, "row1 y = row0 20");
+    }
+
+    /// 여러 행을 걸친 아이템 — 높이 미정 grid (2026-10-09, S2 IllustratedMessage horizontal:
+    /// 그림이 `1fr 1fr` 두 행을 걸침). §12.7.1: fr 트랙을 지나는 아이템은 `(기여 − 고정 트랙 −
+    /// gap) ÷ Σfr` 로 fr 크기를 정한다 — Chrome 96 = 46 + 4 + 46 (종전: 시작 행에 96 통째 →
+    /// fr 96 → 196). §12.5.1: fr 이 없는 auto 행은 모자란 만큼 걸친 행에 균등 분배 — 24·16 +
+    /// gap 4 에 그림 96 → 26 씩 → 50 · 42.
+    #[test]
+    fn grid_spanning_item_rows_indefinite_height() {
+        for (rows, second_y) in [(r#"["1fr","1fr"]"#, 50.0), (r#"["auto","auto"]"#, 54.0)] {
+            let mut tree = LayoutTree::new();
+            let json = format!(
+                r#"[
+                {{"style":{{"width":"96px","height":"96px","gridColumnStart":"1","gridColumnEnd":"2","gridRowStart":"1","gridRowEnd":"3"}},"children":[]}},
+                {{"style":{{"height":"24px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"1","gridRowEnd":"2","alignSelf":"end"}},"children":[]}},
+                {{"style":{{"height":"16px","gridColumnStart":"2","gridColumnEnd":"3","gridRowStart":"2","gridRowEnd":"3","alignSelf":"start"}},"children":[]}},
+                {{"style":{{"display":"grid","width":"400px","gridTemplateColumns":["auto","1fr"],"gridTemplateRows":{rows},"columnGap":"12px","rowGap":"4px"}},"children":[0,1,2]}}
+            ]"#
+            );
+            let handles = tree.build_tree_batch(&json).unwrap();
+            let root = handles[3];
+            tree.compute_layout(root, 400.0, -1.0);
+            assert_eq!(tree.get_layout(root).height, 96.0, "{rows}: container = the spanning item");
+            assert_eq!(tree.get_layout(handles[2]).y, second_y, "{rows}: second row y");
+        }
     }
 
     /// auto 트랙 기여값은 자식 **자신의 min/max** 로 clamp 된다 (CSS-GRID-1 §12.5).

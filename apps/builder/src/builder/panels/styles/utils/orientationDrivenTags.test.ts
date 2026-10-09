@@ -11,8 +11,11 @@ import {
 
 describe("orientationDrivenTags", () => {
   describe("대상 집합", () => {
-    it("ORIENTATION_DRIVEN_TAGS = ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
+    // (2026-10-09: + IllustratedMessage — S2 `orientation` places its picture beside or above the
+    //   text; the Direction toggle writes it.)
+    it("ORIENTATION_DRIVEN_TAGS = IllustratedMessage / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
       expect([...ORIENTATION_DRIVEN_TAGS].sort()).toEqual([
+        "illustratedmessage",
         "togglebuttongroup",
         "toolbar",
       ]);

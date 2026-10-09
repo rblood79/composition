@@ -624,7 +624,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 33,
+    libraryContractVersion: 34,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -673,6 +673,12 @@ function route(
       ? { library: code, definitionId: id, source: "code-composite" }
       : undefined;
   }
+  // A plain type the palette now inserts as its origin (2026-10-09 IllustratedMessage — S2 node
+  // tree): the new leg is that origin instance, as the palette places it.
+  const origin =
+    `lib:definition:origin-component-${row.type.toLowerCase()}` as DefinitionId;
+  if (code.definitions.has(origin as never))
+    return { library: code, definitionId: origin, source: "code-composite" };
   for (const id of [
     `lib:definition:${row.type.toLowerCase()}`,
     `lib:definition:type-${row.type}`,

@@ -66,7 +66,6 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "ListBox",
   "ColorField",
   "Skeleton",
-  "IllustratedMessage",
   "TagList",
   "CalendarHeader",
   "DateInput",

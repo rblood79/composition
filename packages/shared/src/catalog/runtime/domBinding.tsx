@@ -428,11 +428,16 @@ const labelLayout = (node: CatalogConsumerNode) => ({
     : {}),
 });
 const glyph =
-  (fallbackName: string, fallbackSize: number): DomBinding =>
+  (
+    fallbackName: string,
+    fallbackSize: number,
+    className?: string,
+  ): DomBinding =>
   (node, style) =>
     createElement(Icon, {
       key: node.id,
       "data-catalog-id": node.id,
+      ...(className ? { className } : {}),
       // (Its glyph name: a sheet turns the chevron only — the Disclosure trigger's, Phase 8 판독 M3.)
       "data-icon": String(node.props.iconName ?? fallbackName),
       iconName: String(node.props.iconName ?? fallbackName),
@@ -628,7 +633,17 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     } as Parameters<typeof RAC.SelectValue>[0]),
   icon: glyph("circle", 24),
   selecticon: glyph("chevron-down", 18),
-  illustration: glyph("image", 96),
+  // The S2 IllustratedMessage's picture: its own class (the owner sheet places it) and its glyph
+  // box (the Icon sheet's `.react-aria-Icon` height is the Icon scale's).
+  illustration: (node, style, children, context) => {
+    const size = catalogGlyphSize(node) ?? 96;
+    return glyph("image", 96, "react-aria-Illustration")(
+      node,
+      { ...style, width: size, height: size },
+      children,
+      context,
+    );
+  },
   // ADR-256 Phase 5e: RAC `SelectionIndicator` in its item's context (there while the item is
   // selected); its box is the item sheet's (`.react-aria-Tab .react-aria-SelectionIndicator`).
   selectionindicator: (node, style) =>
@@ -1356,7 +1371,7 @@ function ruleDom(
   if (!Component) {
     // No registered component: the generated class CSS still owns the box (Preview fallback).
     const dataAttrs: Record<string, string> = {};
-    for (const key of ["size", "variant"] as const)
+    for (const key of ["size", "variant", "orientation"] as const)
       if (typeof node.props[key] === "string")
         dataAttrs[`data-${key}`] = String(node.props[key]);
     return createElement(

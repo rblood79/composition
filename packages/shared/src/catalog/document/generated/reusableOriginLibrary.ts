@@ -300,6 +300,22 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-inline-alert"
   },
   {
+    "id": "lib:definition:origin-component-illustratedmessage",
+    "name": "IllustratedMessage",
+    "mode": "composite",
+    "accepts": {
+      "title": "string",
+      "description": "string"
+    },
+    "defaults": {
+      "title": "No results",
+      "description": "Try another search term."
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-illustratedmessage"
+  },
+  {
     "id": "lib:definition:origin-component-card",
     "name": "Card",
     "mode": "composite",
@@ -2452,6 +2468,48 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   },
   {
     "id": "lib:template:component-inline-alert__description",
+    "definitionId": "lib:definition:origin-component-description",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "{description}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-illustratedmessage",
+    "definitionId": "lib:definition:type-IllustratedMessage",
+    "children": [
+      "lib:template:component-illustratedmessage__illustration",
+      "lib:template:component-illustratedmessage__title",
+      "lib:template:component-illustratedmessage__description"
+    ],
+    "props": {
+      "size": "md",
+      "orientation": "vertical"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-illustratedmessage__illustration",
+    "definitionId": "lib:definition:type-Illustration",
+    "children": [],
+    "props": {
+      "iconName": "image"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-illustratedmessage__title",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "children": "{title}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-illustratedmessage__description",
     "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {

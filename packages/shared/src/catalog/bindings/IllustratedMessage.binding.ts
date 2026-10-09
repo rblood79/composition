@@ -1,56 +1,47 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * IllustratedMessage — 빈 상태(empty state) 표시 leaf (일러스트 placeholder + Heading + Description).
+ * IllustratedMessage — the S2 empty-state container (`@react-spectrum/s2/src/IllustratedMessage.tsx`):
+ * `IllustratedMessage > Illustration + Heading + Content (+ ButtonGroup)`.
  *
- * **ADR-912 진로 1번 IllustratedMessage proof slice (internal leaf catalog 등록, 2026-06-06)**:
- *   heading/description 은 자식 노드가 아니라 props 다. placeholder roundRect + heading text +
- *   description text 3 shape 는 buildCatalogShapes box+text(단일 box+단일 text)로 표현 불가.
+ * 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
+ * 진행해, orientation 도 같이 넣어」): the picture, the heading and the content are child nodes — an
+ * `Illustration` and instances of the Heading · Description origins (the origin's `{title}` ·
+ * `{description}`, `component-illustratedmessage`). The old props `heading` · `description` and the
+ * Canvas escape / Preview component that drew them are gone.
  *
- *   **Skia**: `skiaPrimitive: "illustrated_message"` escape(skiaPrimitives.ts, append 모드)가 placeholder+
- *   heading+description 자체 생성. rule fill transparent base box 위에 합성.
+ * **DOM**: `ruleDom`'s fallback `div.react-aria-IllustratedMessage` (+ `data-size` ·
+ *   `data-orientation`) — the generated sheet places the parts (`orientation` blocks).
+ * **Canvas**: the rule's box; the parts are laid out by the same rule (`rulePartRules.ts` container
+ *   variants — `orientation`). The size reaches the parts (`CATALOG_SIZE_PROPAGATION` · `_STEP`).
  *
- *   **DOM**: source.renderer="illustrated" → INTERNAL_RENDERERS["illustrated"](IllustratedMessage.tsx
- *   React 컴포넌트). heading/description 이 props 라 `ruleDom` 의 fallback 으로는 안 그려진다(자식
- *   children 0) → INTERNAL_RENDERERS 어댑터 필수.
- *
- * D1: composition `<div role="status">` (internal source, INTERNAL_RENDERERS 어댑터).
- * D2: heading + description + variant(default) + size(sm/md/lg) 편집.
- * D3: 시각(placeholder dim + text 색)은 Skia escape + DOM 인라인 style 시각 대칭.
- *     theme rule(COMPONENT_RULES_TABLE.IllustratedMessage)이 fontSize/text 색 base.
+ * D1: S2 — a plain `div` (no role). D2: S2 `size` (S · M · L) · `orientation` (vertical · horizontal).
+ * D3: rule `COMPONENT_RULES_TABLE.IllustratedMessage`.
  */
 export const illustratedMessageBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    renderer: "illustrated",
-  },
-  staticAttrs: {
-    role: "status",
+    renderer: "illustratedmessage",
   },
   props: {
     accepts: {
-      heading: {
-        kind: "string",
-        label: "Heading",
-        section: "content",
-      },
-      description: {
-        kind: "string",
-        label: "Description",
-        section: "content",
-      },
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
         default: "md",
       },
+      orientation: {
+        kind: "enum",
+        label: "Orientation",
+        section: "appearance",
+        default: "vertical",
+        options: [
+          { value: "vertical", label: "Vertical" },
+          { value: "horizontal", label: "Horizontal" },
+        ],
+      },
     },
     toRacProps: "default",
-    // ADR-151 후속 (2026-07-17): size 는 DOM 컴포넌트의 metric 계산 semantic input —
-    //   data-attr 가 아니라 React prop 으로 통과 (StatusLight/Avatar 선례 동형). 미통과 시
-    //   IllustratedMessage.tsx 가 md 고정으로 렌더되어 Skia escape(sm/lg 반응)와 비대칭.
-    propPassthrough: ["size"],
   },
-  skiaPrimitive: "illustrated_message",
 };

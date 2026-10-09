@@ -79,6 +79,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-254: an InlineAlert's title and description are instances of the Heading · Description
   //   origins, sized by their own rules at the alert's size (`CATALOG_SIZE_STEP` maps the step).
   InlineAlert: ["Heading", "Description"],
+  // 2026-10-09: an S2 IllustratedMessage sizes its picture, heading and content (its contexts).
+  IllustratedMessage: ["Illustration", "Heading", "Description"],
 };
 
 /**
@@ -114,4 +116,12 @@ export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
 > = {
   InlineAlert: { Description: { sm: "md", md: "lg", lg: "xl" } },
+  // S2 IllustratedMessage (`@react-spectrum/s2/src/IllustratedMessage.tsx`): the picture is M for
+  //   S · M and L for L (96 · 96 · 160); the heading `title` · `title-xl` · `title-2xl` (16 · 20 ·
+  //   22 — the Heading's 16 · 20 · 24); the content `body-xs` · `body-sm` · `body-sm` (12 · 14 · 14).
+  IllustratedMessage: {
+    Illustration: { sm: "md", md: "md", lg: "lg" },
+    Heading: { sm: "md", md: "xl", lg: "2xl" },
+    Description: { sm: "md", md: "lg", lg: "lg" },
+  },
 };

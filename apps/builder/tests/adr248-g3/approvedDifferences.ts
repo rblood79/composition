@@ -640,6 +640,18 @@ export interface ApprovedUnpaired {
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
   {
+    // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
+    //   진행」): the S2 IllustratedMessage is `Illustration + Heading + Description` child nodes (old:
+    //   the message drew a gray placeholder box and its heading · description props in its own box).
+    id: "illustrated-message-s2-parts",
+    class: "decided",
+    owners: ["IllustratedMessage"],
+    side: "new",
+    nodes: ["Illustration", "Heading", "Description"],
+    reason:
+      "IllustratedMessage = [Illustration, Heading, Description] nodes (S2 — old: a placeholder box and prop text drawn by the message)",
+  },
+  {
     // ADR-256 후속 4: the Menu origin's trigger is a Button node inside the MenuTrigger (old: the
     //   Menu node itself — its box pairs with the new root).
     id: "menu-origin-trigger-button",

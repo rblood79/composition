@@ -556,7 +556,9 @@ export function catalogHiddenAtRest(
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
   // `Icon` renders nothing for it (as the old Skia icon shape drew nothing), so no box either.
   if (
-    (node.bindingId === "icon" || node.bindingId === "selecticon") &&
+    (node.bindingId === "icon" ||
+      node.bindingId === "selecticon" ||
+      node.bindingId === "illustration") &&
     node.props.iconName !== undefined &&
     !getIconData(String(node.props.iconName))
   )

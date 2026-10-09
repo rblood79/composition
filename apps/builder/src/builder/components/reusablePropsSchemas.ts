@@ -114,6 +114,41 @@ export const INLINE_ALERT_PROPS_SCHEMA: PropsSchema = {
 };
 
 /**
+ * S2 IllustratedMessage (2026-10-09) — `title` · `description` are the template bindings (Heading ·
+ * Description), `size` · `orientation` the root's props (passthrough).
+ */
+export const ILLUSTRATED_MESSAGE_PROPS_SCHEMA: PropsSchema = {
+  title: {
+    kind: "string",
+    label: "Title",
+    default: "No results",
+    section: "content",
+  },
+  description: {
+    kind: "string",
+    label: "Description",
+    default: "Try another search term.",
+    section: "content",
+  },
+  size: {
+    kind: "size",
+    label: "Size",
+    default: "md",
+    section: "appearance",
+  },
+  orientation: {
+    kind: "enum",
+    label: "Orientation",
+    default: "vertical",
+    section: "appearance",
+    options: [
+      { value: "vertical", label: "Vertical" },
+      { value: "horizontal", label: "Horizontal" },
+    ],
+  },
+};
+
+/**
  * ADR-255 — an overlay origin whose root is its trigger (Popover = DialogTrigger > Button +
  * Popover, Tooltip = TooltipTrigger > Button + Tooltip): the instance edits the trigger's props
  * (root passthrough) and the overlay's (template bindings `{placement}` … to the overlay node) —
@@ -185,6 +220,7 @@ export const REUSABLE_PROPS_SCHEMAS: Readonly<Record<string, PropsSchema>> = {
   "component-iconbutton": ICONBUTTON_PROPS_SCHEMA,
   "component-card": CARD_PROPS_SCHEMA,
   "component-inline-alert": INLINE_ALERT_PROPS_SCHEMA,
+  "component-illustratedmessage": ILLUSTRATED_MESSAGE_PROPS_SCHEMA,
   "component-popover": POPOVER_PROPS_SCHEMA,
   "component-tooltip": TOOLTIP_PROPS_SCHEMA,
   "component-menu": MENU_PROPS_SCHEMA,

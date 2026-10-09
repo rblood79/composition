@@ -21,6 +21,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
 
+## [IllustratedMessage S2 노드 트리 — 그림 · 제목 · 설명 노드 · orientation · contract 34] - 2026-10-09
+
+### Breaking Changes
+
+- **library contract 33 → 34** — IllustratedMessage 의 `heading` · `description` prop 이 사라지고 원본의 자식 노드가 된다. 이전 contract 의 문서는 열지 않는다 (종전 규약).
+
+### Changed
+
+- **IllustratedMessage = S2 구조** (사용자 「제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로 진행해, orientation 도 같이 넣어」):
+  - 원본 `component-illustratedmessage` = `IllustratedMessage > Illustration + Heading {title} + Description {description}` (`@react-spectrum/s2/src/IllustratedMessage.tsx` 의 `Illustration + Heading + Content`). palette 는 이 원본을 넣는다.
+  - 회색 placeholder 상자 · ○ · padding 을 지웠다 — S2 에 없다. 그림은 새 `Illustration` type (Icon 계열 svg, 크기 48 / 96 / 160 — S2 `illustrationStyles`).
+  - size 는 S2 context 대로 자식에 간다: 그림 96 · 96 · 160, 제목 16 · 20 · 24px (S2 16 · 20 · 22), 설명 12 · 14 · 14px (`CATALOG_SIZE_STEP`).
+  - **`orientation`** (S2 prop) 추가 — vertical: 가운데 열 · 그림 아래 12 (L 8) · 제목 아래 4 · 최대 폭 380. horizontal: grid 2열, 그림이 두 줄을 차지하고 간격 12 · 최대 폭 528. Styles 의 Direction 토글이 이 값을 쓴다.
+  - **Why**: 제목 · 설명이 prop 글자라 Heading · Description 원본을 바꿔도 따라오지 않았고, 레퍼런스에 없는 placeholder 상자를 그렸다.
+  - Preview 는 생성 CSS (`IllustratedMessage.css` — 이제 로드) 가 배치하고, Canvas 는 같은 rule 의 `orientation` 블록을 part rule 로 읽는다 (`rulePartRules.ts` — type 별 container variant 축 · `grid-row` · `grid-column` · `grid-template-*` · `row-gap` · `column-gap` 해석 추가).
+  - 위치: `packages/shared/src/catalog/{bindings/IllustratedMessage.binding.ts,bindings/Illustration.binding.ts,generated/componentRulesTable.ts,document/generated/reusableOriginLibrary.ts,document/rulePartRules.ts,document/sizePropagation.ts}`
+
+### Fixed
+
+- **엔진: 높이 미정 grid 에서 여러 행을 걸친 아이템이 행마다 통째로 기여하던 것** — `1fr 1fr` 두 행을 걸친 96 그림이 컨테이너를 196 으로 만들었다 (Chrome 96 = 46 + 4 + 46).
+  - **Why**: 행 기여가 시작 행 하나에만 들어가 fr 크기가 아이템 전체였다. §12.7.1 (fr 을 지나면 `(기여 − 고정 트랙 − gap) ÷ Σfr`) · §12.5.1 (fr 이 없으면 모자란 만큼 균등 분배 — `auto auto` 50 / 42) 로 고쳤다.
+  - 위치: `packages/engine/src/tree.rs` `grow_tracks_for_spanning_items`
+
+### Tests
+
+- `illustratedMessageNodeTree.test.tsx` 8 (구현 전 RED 6 · orientation 축 원복 시 RED 6) · Rust `grid_spanning_item_rows_indefinite_height` (RED 196) · `previewCanvasBox.test.tsx` Illustration DOM 상자 높이
+- G3: 옛 palette 행 (단독 type) 을 원본 instance 로 잰다 + 새 부품 3종 `decided` 승인 (`illustrated-message-s2-parts`)
+- live `apps/builder/scripts/illustrated-message-live.mjs` 8/8 — vertical · horizontal × sm · md · lg 에서 Canvas 상자 = Preview 상자 (루트 + 부품 3, 차이 0) · 원본 title · description 편집이 두 화면에 반영 · 오류 0
+- engine 445 · shared 1589 · builder 5008 · rendering 1337 · publish 11 · type-check · G3 79 · parity 811
+
 ## [IllustratedMessage 가운데 정렬 — Preview 를 Canvas · S2 와 같게] - 2026-10-09
 
 ### Fixed

@@ -35,7 +35,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   Avatar: "C 런타임 인라인 (Avatar.tsx)",
   StatusLight: "C 런타임 인라인 (StatusLight.tsx — 머리말이 outlier 로 명시)",
   ProgressCircle: "C 런타임 인라인 (ProgressCircle.tsx)",
-  IllustratedMessage: "C 런타임 인라인 (IllustratedMessage.tsx)",
   // D. DOM 이 `.react-aria-X` 를 방출하지 않음 (RAC self-compose 자식 · 제거된 추상 · 다른 class)
   // ADR-256 Phase 7b: a Meter's parts the same (the Meter sheet's `.bar` · `.value` · `.fill`).
   MeterTrack: "D 부모 Meter sheet `.bar` 가 상자 (ADR-256 Phase 7b)",
@@ -171,15 +170,15 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
   // 2026-10-09 — ADR-256 후속 4 MenuTrigger (index 로드, TooltipTrigger 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 107 · index 81 · 모듈 0 · 미로드 26 (Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+  it("인벤토리 집계 — 생성 107 · index 82 · 모듈 0 · 미로드 25 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader.)
     expect(generated.length).toBe(107);
-    expect(indexImported.size).toBe(81);
+    expect(indexImported.size).toBe(82);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(26);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
   });
 });

@@ -77,10 +77,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * states, InlineAlert `heading` · `children`, Card `footer` · `orientation` · `isSelectable`, Toast
  * `defaultTitle` · `defaultDescription` · `timeout`, the calendar parts' `locale` ·
  * `calendarSystem` · header `children`, FileUpload's file options (its FileTrigger's), and
- * one-choice variants / sizes.
+ * one-choice variants / sizes. 34 — the S2 IllustratedMessage is a node tree (2026-10-09):
+ * `IllustratedMessage > Illustration + Heading + Description` (origin `component-illustratedmessage`,
+ * `{title}` · `{description}`) with `orientation`; its `heading` · `description` props are gone.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 33 as const;
+export const LIBRARY_CONTRACT_VERSION = 34 as const;
 
 export type EntryKind =
   | "project"
