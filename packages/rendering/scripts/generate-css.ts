@@ -186,30 +186,6 @@ function ruleSizeToSizeSpec(
     //   CSS 변수가 rule.sizes.iconSize/iconGap 에서 emit 되도록 변환에 포함. 미정의 leaf 는 미emit.
     ...(s.iconSize !== undefined ? { iconSize: s.iconSize as number } : {}),
     ...(s.iconGap !== undefined ? { iconGap: s.iconGap as number } : {}),
-    // ADR-912 단계5 step4 (2026-06-16): IllustratedMessage 의 `.alert-heading` 자식 CSS 가
-    //   rule.sizes.headingFontSize 에서 emit 되도록 변환에 포함 (CSSGenerator.generateChildFontStyles
-    //   가 size.headingFontSize 소비). 미정의 leaf 는 미emit. (2026-10-09: IllustratedMessage 가 노드
-    //   트리로 바뀌어 이 값을 선언하는 rule 이 없다.)
-    ...(s.headingFontSize !== undefined
-      ? { headingFontSize: s.headingFontSize as SizeSpec["headingFontSize"] }
-      : {}),
-    // ADR-912 단계5 step4 (2026-06-17): InlineAlert 의 `.alert-heading` font-weight +
-    //   `.react-aria-Description` font-size/weight 자식 CSS 가 rule.sizes 에서 emit 되도록 변환에 포함
-    //   (CSSGenerator.generateChildFontStyles 가 size.headingFontWeight/descFontSize/descFontWeight 소비).
-    //   IllustratedMessage(headingFontSize 만)와 달리 InlineAlert 는 heading weight + description 2축까지 emit.
-    //   미정의 leaf 는 미emit.
-    ...(s.headingFontWeight !== undefined
-      ? {
-          headingFontWeight:
-            s.headingFontWeight as SizeSpec["headingFontWeight"],
-        }
-      : {}),
-    ...(s.descFontSize !== undefined
-      ? { descFontSize: s.descFontSize as SizeSpec["descFontSize"] }
-      : {}),
-    ...(s.descFontWeight !== undefined
-      ? { descFontWeight: s.descFontWeight as SizeSpec["descFontWeight"] }
-      : {}),
     // ADR-912 단계5 step4 (2026-06-17): Slider 의 column-gap (Label↔SliderOutput 가로 간격) 이
     //   rule.sizes.columnGap 에서 emit 되도록 변환에 포함 (CSSGenerator 가 size.columnGap 소비).
     //   sm/md 16 · lg/xl 20. gap(row 축)은 기존 처리. 미정의 leaf 는 미emit.

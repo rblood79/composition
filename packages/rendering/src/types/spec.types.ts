@@ -1071,18 +1071,6 @@ export interface SizeSpec {
   /** 도트 크기 (optional, px) — StatusLight */
   dotSize?: number;
 
-  /** 헤딩 폰트 크기 (optional) — 2026-10-09 기준 선언하는 rule 없음 (IllustratedMessage · InlineAlert 는 Heading 노드) */
-  headingFontSize?: TokenRef | number;
-
-  /** 헤딩 폰트 굵기 (optional, px) — InlineAlert */
-  headingFontWeight?: number;
-
-  /** 설명 폰트 크기 (optional, px) — InlineAlert */
-  descFontSize?: number;
-
-  /** 설명 폰트 굵기 (optional, px) — InlineAlert */
-  descFontWeight?: number;
-
   /** 액센트 바 너비 (optional, px) — InlineAlert */
   accentWidth?: number;
 

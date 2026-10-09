@@ -599,9 +599,6 @@ export function generateCSS<Props>(
     lines.push("");
   }
 
-  // Child element font styles (headingFontSize/Weight, descFontSize/Weight)
-  lines.push(...generateChildFontStyles(spec));
-
   // 상태 스타일
   lines.push(...generateStateStyles(spec));
 
@@ -1102,97 +1099,6 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
 }
 
 // ─── Child Font Styles (heading/description) ─────────────────────────────────
-
-/**
- * spec sizes에 headingFontSize/descFontSize 등이 있으면
- * .alert-heading / .react-aria-Description 자식 CSS를 자동 생성
- */
-function generateChildFontStyles<Props>(spec: ComponentSpec<Props>): string[] {
-  const lines: string[] = [];
-  const defaultSize =
-    spec.sizes[spec.defaultSize] ?? Object.values(spec.sizes)[0];
-  if (!defaultSize) return lines;
-
-  const ds = defaultSize as unknown as Record<string, unknown>;
-  const hasHeading = ds.headingFontSize != null || ds.headingFontWeight != null;
-  const hasDesc = ds.descFontSize != null || ds.descFontWeight != null;
-  if (!hasHeading && !hasDesc) return lines;
-
-  const cls = `.react-aria-${spec.name}`;
-
-  // Heading — base
-  if (hasHeading) {
-    lines.push(`/* Heading */`);
-    lines.push(`${cls} .alert-heading {`);
-    lines.push(`  margin: 0;`);
-    if (ds.headingFontSize != null) {
-      lines.push(
-        `  font-size: ${typeof ds.headingFontSize === "number" ? `${ds.headingFontSize}px` : tokenToCSSVar(ds.headingFontSize as TokenRef)};`,
-      );
-    }
-    if (ds.headingFontWeight != null)
-      lines.push(`  font-weight: ${ds.headingFontWeight};`);
-    lines.push(`  line-height: 1.4;`);
-    lines.push(`}`);
-    lines.push(``);
-  }
-
-  // Description — base
-  if (hasDesc) {
-    lines.push(`/* Description */`);
-    lines.push(`${cls} .react-aria-Description {`);
-    lines.push(`  margin: 0;`);
-    lines.push(`  width: 100%;`);
-    if (ds.descFontSize != null)
-      lines.push(`  font-size: ${ds.descFontSize}px;`);
-    if (ds.descFontWeight != null)
-      lines.push(`  font-weight: ${ds.descFontWeight};`);
-    lines.push(`  line-height: 1.5;`);
-    lines.push(`}`);
-    lines.push(``);
-  }
-
-  // Size별 heading/description 오버라이드
-  for (const [sizeName, sizeSpec] of Object.entries(spec.sizes)) {
-    const ss = sizeSpec as unknown as Record<string, unknown>;
-
-    if (
-      hasHeading &&
-      (ss.headingFontSize != null || ss.headingFontWeight != null)
-    ) {
-      const sizeLines: string[] = [];
-      if (ss.headingFontSize != null) {
-        sizeLines.push(
-          `  font-size: ${typeof ss.headingFontSize === "number" ? `${ss.headingFontSize}px` : tokenToCSSVar(ss.headingFontSize as TokenRef)};`,
-        );
-      }
-      if (ss.headingFontWeight != null)
-        sizeLines.push(`  font-weight: ${ss.headingFontWeight};`);
-      if (sizeLines.length > 0) {
-        lines.push(`${cls}[data-size="${sizeName}"] .alert-heading {`);
-        lines.push(...sizeLines);
-        lines.push(`}`);
-        lines.push(``);
-      }
-    }
-
-    if (hasDesc && (ss.descFontSize != null || ss.descFontWeight != null)) {
-      const sizeLines: string[] = [];
-      if (ss.descFontSize != null)
-        sizeLines.push(`  font-size: ${ss.descFontSize}px;`);
-      if (ss.descFontWeight != null)
-        sizeLines.push(`  font-weight: ${ss.descFontWeight};`);
-      if (sizeLines.length > 0) {
-        lines.push(`${cls}[data-size="${sizeName}"] .react-aria-Description {`);
-        lines.push(...sizeLines);
-        lines.push(`}`);
-        lines.push(``);
-      }
-    }
-  }
-
-  return lines;
-}
 
 // ─── State Styles ───────────────────────────────────────────────────────────
 

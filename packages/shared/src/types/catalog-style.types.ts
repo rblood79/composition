@@ -320,35 +320,6 @@ export interface ComponentRuleSize {
    */
   indentPerLevel?: number | string;
   /**
-   * 자식 heading 폰트 크기 base (ADR-912 단계5 step4 — IllustratedMessage catalog cutover).
-   * generate-css virtual 이 size 별 `.alert-heading { font-size: ... }` 자식 CSS 를 emit
-   * (CSSGenerator.generateChildFontStyles 가 `size.headingFontSize` 소비). alert archetype
-   * (일러스트 + heading + description)의 heading 크기를 D3 SSOT(rule)에 귀속 — 이전엔
-   * IllustratedMessageSpec.sizes.headingFontSize 에만 존재. TokenRef(`{typography.text-lg}`).
-   * (2026-10-09: IllustratedMessage 의 제목은 Heading 노드 — 이 값을 선언하는 rule 이 없다.)
-   */
-  headingFontSize?: number | string;
-  /**
-   * 자식 heading 폰트 두께 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
-   * generate-css virtual 이 size 별 `.alert-heading { font-weight: ... }` 자식 CSS 를 emit
-   * (CSSGenerator.generateChildFontStyles 가 `size.headingFontWeight` 소비). InlineAlert heading 은
-   * 700(bold) 고정 — IllustratedMessage(headingFontSize 만)와 달리 weight 까지 D3 SSOT(rule)에 귀속.
-   * (당시 layout consumer implicitStyles/StoreRenderBridge/fullTreeLayout 는 삭제됨.)
-   */
-  headingFontWeight?: number | string;
-  /**
-   * 자식 description 폰트 크기 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
-   * generate-css virtual 이 size 별 `.react-aria-Description { font-size: ... }` 자식 CSS 를 emit
-   * (CSSGenerator.generateChildFontStyles 가 `size.descFontSize` 소비). sm:12 / md:14 / lg:16.
-   */
-  descFontSize?: number | string;
-  /**
-   * 자식 description 폰트 두께 base (ADR-912 단계5 step4 — InlineAlert catalog cutover).
-   * generate-css virtual 이 size 별 `.react-aria-Description { font-weight: ... }` 자식 CSS 를 emit
-   * (CSSGenerator.generateChildFontStyles 가 `size.descFontWeight` 소비). 400(regular) 고정.
-   */
-  descFontWeight?: number | string;
-  /**
    * composite field 전체 intrinsic 높이 base (ADR-912 단계5 step4 — DateField catalog cutover).
    * Label + gap + DateInput 합산 파생값으로, CSS 로는 emit 되지 않는 **layout 전용** 필드
    * (DateField.css 에 intrinsic-height 출력 없음 — ruleSizeToSizeSpec 변환·CSSGenerator 무관).

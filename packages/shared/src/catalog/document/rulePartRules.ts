@@ -1049,67 +1049,6 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
- * The generator's heading/description child blocks (`CSSGenerator.generateChildFontStyles`):
- * `sizes.headingFontSize/Weight` → `.alert-heading` (margin 0, line-height 1.4) and
- * `sizes.descFontSize/Weight` → `.react-aria-Description` (margin 0, width 100%, line-height 1.5).
- */
-function childFontPartRules(parentType: string): CompiledPartRule[] {
-  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-    parentType
-  ];
-  if (!rule?.structure) return [];
-  const zeroMargin = {
-    marginTop: "0px",
-    marginRight: "0px",
-    marginBottom: "0px",
-    marginLeft: "0px",
-  };
-  return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
-    const values = rule.sizes[size] as Record<string, unknown>;
-    const px = (value: unknown) =>
-      typeof value === "number"
-        ? value
-        : typeof value === "string"
-          ? (() => {
-              const resolved = resolveToken(value as TokenRef);
-              return typeof resolved === "number" ? resolved : undefined;
-            })()
-          : undefined;
-    const out: CompiledPartRule[] = [];
-    const headingSize = px(values.headingFontSize);
-    if (headingSize !== undefined || values.headingFontWeight != null)
-      out.push({
-        childType: "Heading",
-        size,
-        layout: zeroMargin,
-        visual: {
-          ...(headingSize !== undefined ? { fontSize: headingSize } : {}),
-          ...(typeof values.headingFontWeight === "number"
-            ? { fontWeight: values.headingFontWeight }
-            : {}),
-          lineHeight: 1.4,
-        },
-      });
-    const descSize = px(values.descFontSize);
-    if (descSize !== undefined || values.descFontWeight != null)
-      out.push({
-        childType: "Description",
-        size,
-        layout: zeroMargin,
-        visual: {
-          width: "100%",
-          ...(descSize !== undefined ? { fontSize: descSize } : {}),
-          ...(typeof values.descFontWeight === "number"
-            ? { fontWeight: values.descFontWeight }
-            : {}),
-          lineHeight: 1.5,
-        },
-      });
-    return out;
-  });
-}
-
-/**
  * Child blocks of the rule's archetype base CSS (`ARCHETYPE_BASE_STYLES`, nested under the root
  * selector in every generated sheet of that archetype — e.g. slider `.react-aria-Label { grid-area:
  * label }`), as selector → declarations.
@@ -1457,7 +1396,6 @@ export function compileRulePartRules(
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
-    ...childFontPartRules(parentType),
     ...itemsWrapperPartRules(parentType),
     ...manualParts,
   ];
