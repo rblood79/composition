@@ -11337,6 +11337,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Table: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 1.8.0 Table `density` (2026-10-10): 값은 Table 의 prop 하나 — 그 안의 Column · Cell 로
+    //   전파돼 (resolver `CATALOG_DENSITY_PROPAGATION`) 각자의 densities 채널 (paddingY 4 · 8 ·
+    //   12 → 행 높이 32 · 40 · 48) 이 적용된다. Table 자체 여백 채널은 없어 densities 를 두지
+    //   않는다.
     // ADR-151 B22 (2026-07-16): generated/수동 CSS 의 base `width: 100%` 를 layout 이
     //   미소비 — flex 부모에서 fit-content 붕괴 (block 부모는 IFC 주입이 가림). layout
     //   fallback 채널(top-level)로 공급. CSS 는 기존 규칙 그대로 — generated CSS diff 0.

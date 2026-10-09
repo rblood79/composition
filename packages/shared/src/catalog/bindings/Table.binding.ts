@@ -32,6 +32,20 @@ export const tableBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 Table `density` (2026-10-10): 안의 Column · Cell 로 전파돼 (resolver
+      //   `CATALOG_DENSITY_PROPAGATION`) 그들의 densities 채널이 paddingY 를 바꾼다
+      //   (행 높이 compact 32 · regular 40 · spacious 48).
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        default: "regular",
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

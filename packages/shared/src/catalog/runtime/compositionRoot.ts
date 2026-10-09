@@ -4,6 +4,7 @@ import {
 } from "../document/formContext";
 import { catalogDisclosureBorders } from "./disclosureBorders";
 import {
+  CATALOG_DENSITY_PROPAGATION_OWNER,
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
@@ -3589,6 +3590,32 @@ export class CatalogCompositionRoot {
             queue.push(childId);
           }
         }
+      }
+      // S2 Table `density` reaches the Columns · Cells in it
+      // (`CATALOG_DENSITY_PROPAGATION_OWNER` — the resolver's `applyOwnerDensity`): they resolve
+      // again with it.
+      if (
+        before.props.density !== record.props.density &&
+        Object.values(CATALOG_DENSITY_PROPAGATION_OWNER).includes(
+          this.typeOf(record),
+        )
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (
+              CATALOG_DENSITY_PROPAGATION_OWNER[this.typeOf(child)] ===
+                this.typeOf(record) &&
+              !queued.has(childId)
+            ) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
       }
       // A Form's context values reach its fields at any depth (S2 `FormContext` — the resolver's
       // `applyFormContext`): they resolve again with them.

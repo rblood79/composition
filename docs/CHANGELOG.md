@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Table density — Column · Cell 전파] - 2026-10-10
+
+### Added
+
+- **Table `density`** (S2 1.8.0 TableView — compact · regular · spacious): Design 패널의 Density. 값은 Table 의 prop 하나이고 그 안의 모든 Column · Cell 로 전파된다 (resolver `applyOwnerDensity` — 새 `CATALOG_DENSITY_PROPAGATION_OWNER` 표). Column · Cell 의 기존 densities 채널 (paddingY 4 · 8 · 12) 이 적용돼 행 높이가 32 · 40 · 48 이 된다. prop 변경은 재해석 큐로 그 부품들을 다시 해석한다 (size 전파 동형).
+  - Column · Cell binding 의 density 는 내부 운반 값 (`editorHidden`) — 패널 미노출.
+  - **Card 의 density 는 보류**: Card S2 재편 (CardHeader 제거, 사용자 결정 2026-09-29 — ADR-248 뒤 별도 ADR) 에 묶여 있어 그 작업과 함께 간다 — Card 는 양 consumer 의 padding 채널이 재편 대상이라 지금 얹으면 한쪽 (Canvas) 만 움직인다 (live 실측).
+- 확인: live — 노드 트리 Table (2열 1행): Density Regular → Compact → Spacious 에서 Preview 행 높이 40 → 32 → 48, Canvas 의 Column · Cell record padding 8 → 4 → 12, 오류 0 (`apps/builder/scripts/s2-density-live.mjs` 3/3).
+
 ## [S2 Slider trackStyle · thumbStyle · fillOffset] - 2026-10-10
 
 ### Added

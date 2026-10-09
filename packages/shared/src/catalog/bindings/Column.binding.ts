@@ -28,6 +28,19 @@ export const columnBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // S2 Table `density` 내부 운반 값 (2026-10-10): Table 에서 전파된다 (resolver) — 패널
+      //   미노출. densities 채널 (paddingY 4 · 8 · 12) 이 propVisualRules 로 적용된다.
+      density: {
+        kind: "enum",
+        label: "Density",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "compact", label: "Compact" },
+          { value: "regular", label: "Regular" },
+          { value: "spacious", label: "Spacious" },
+        ],
+      },
       children: { kind: "string", label: "Text", section: "content" },
       isRowHeader: { kind: "boolean", label: "Row header", section: "content" },
       size: {

@@ -30,6 +30,7 @@ import { CatalogGraph } from "../document/graph";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import {
   CATALOG_SIZE_PASS_THROUGH,
+  CATALOG_DENSITY_PROPAGATION_OWNER,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_SIZE_STEP,
   CATALOG_TOGGLE_GROUP_OF,
@@ -751,6 +752,25 @@ export function resolveCatalogNode(
     props.size = size;
   };
   /**
+   * S2 density context (2026-10-10): a Table's `density` reaches the Columns · Cells in it
+   * (`CATALOG_DENSITY_PROPAGATION_OWNER` — S2 TableView density rows every cell). The owner wins:
+   * the parts carry no editable density (`editorHidden`), so nothing authored competes.
+   */
+  const applyOwnerDensity = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const ownerType = CATALOG_DENSITY_PROPAGATION_OWNER[definition.name];
+    if (!ownerType || definition.accepts.density !== "string") return;
+    let owner = structuralParent(parent);
+    while (owner && lookupDefinition(owner.definitionId).name !== ownerType)
+      owner = structuralParent(owner.parent);
+    const density = owner?.props.density;
+    if (typeof density === "string") props.density = density;
+  };
+  /**
    * S2 Form context (`formContext.ts`): a field takes the nearest Form's value for each context
    * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
    * any element between (React context), the nearest Form wins.
@@ -833,6 +853,7 @@ export function resolveCatalogNode(
       ]),
     );
     applyOwnerSize(node.definitionId, props, parent);
+    applyOwnerDensity(node.definitionId, props, parent);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
     applyWrites(visual, node.visual);
@@ -1027,6 +1048,7 @@ export function resolveCatalogNode(
       const { props, visual, layout } = base(definitionId);
       Object.assign(props, own);
       applyOwnerSize(definitionId, props, parent);
+      applyOwnerDensity(definitionId, props, parent);
       applyPropVisualRules(definitionId, props, visual);
       applyTypedRules(definitionId, props, visual, layout, parent);
       return {
