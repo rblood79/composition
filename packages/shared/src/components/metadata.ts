@@ -351,18 +351,6 @@ export const componentMetadata: ComponentMeta[] = [
     },
   },
   {
-    type: "TailSwatch",
-    label: "Color Picker",
-    category: "Forms",
-    icon: "🎨",
-    inspector: {
-      hasCustomEditor: false,
-      dataBindingType: "value",
-      // Custom component: onChange, onFocus, onBlur
-      supportedEvents: ["onChange", "onFocus", "onBlur"],
-    },
-  },
-  {
     type: "FileTrigger",
     label: "File Trigger",
     category: "Forms",

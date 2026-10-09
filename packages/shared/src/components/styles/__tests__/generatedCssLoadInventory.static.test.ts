@@ -45,10 +45,8 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   ProgressBarTrack: "D 부모 ProgressBar sheet `.bar` 가 상자 (ADR-256 Phase 7a)",
   ProgressBarValue: "D 부모 ProgressBar sheet `.value` 가 상자 (ADR-256 Phase 7a)",
   ProgressBarFill: "D 부모 ProgressBar sheet `.fill` 가 상자 (ADR-256 Phase 7a)",
-  FormField: "D 제거된 추상 (ADR-171 Phase 6)",
   CalendarHeader:
     "D Calendar self-compose — DOM header 는 CalendarCommon.css class",
-  TailSwatch: "D Tailwind 래퍼 (HC2: generated dead)",
   AvatarGroup:
     "D renderer 인라인 style, class 미방출 — binding 머리말: 시각 분기 없는 빈 셸",
   CardView:
@@ -170,15 +168,16 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-07 — ADR-255 TooltipTrigger (index 로드, DialogTrigger 와 같은 자리) +1 · +1.
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
   // 2026-10-09 — ADR-256 후속 4 MenuTrigger (index 로드, TooltipTrigger 옆) +1 · +1.
-  it("인벤토리 집계 — 생성 107 · index 82 · 모듈 0 · 미로드 25 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
+  // 2026-10-09 — FormField · TailSwatch type 삭제 (미로드 2) −2 · 미로드 −2.
+  it("인벤토리 집계 — 생성 105 · index 82 · 모듈 0 · 미로드 23 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader.)
-    expect(generated.length).toBe(107);
+    expect(generated.length).toBe(105);
     expect(indexImported.size).toBe(82);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(23);
   });
 });

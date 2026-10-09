@@ -25,10 +25,8 @@ export const RAC_KEYED_ITEM_TYPES: ReadonlySet<string> = new Set([
   "Tab",
   "Tag",
   "Row",
-  "TableRow",
   "Column",
   "Cell",
-  "TableCell",
   "ColorSwatch",
 ]);
 

@@ -11,7 +11,7 @@ import { installedBaseFontFamily } from "./themeMaps";
 export type CatalogLength = number | string;
 
 /**
- * A glyph's icon square (Icon · SelectIcon · Illustration): an authored `fontSize` overrides the size scale's
+ * A glyph's icon square (Icon · Illustration): an authored `fontSize` overrides the size scale's
  * `iconSize`, as the Preview `renderIcon` reads `style.fontSize` before the size map. Part rules
  * write `iconSize`, so a `fontSize` here is always the node's own authored value. The Rust input,
  * the Canvas icon paint and the DOM binding read this one value.

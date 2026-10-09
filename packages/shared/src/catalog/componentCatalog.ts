@@ -565,16 +565,6 @@ const FAMILY_2_ENTRIES: ComponentCatalogEntry[] = [
     label: "field",
     icon: "Tag",
   }),
-  // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
-  //   (DialogFooter 동형 — 두 번째 childSpec 제거). render.shapes `() => []`(Skia 0 shape) →
-  //   escape 불필요, generic 0 shape(shell). palette 미노출(sub-part — PALETTE_ORDER 비포함).
-  //   catalog 등록 목적 = isCatalogCutover 게이트 통과 → Form.spec.childSpecs 제거 후에도 Skia/Taffy
-  //   빈 노드 정상 처리. layout 은 factory props.style(FormComponents.ts:222-227, ADR-907 Layer B).
-  primitiveEntry("FormField", "fields", FAMILY_2_CUTOVER, {
-    category: "forms",
-    label: "form field",
-    icon: "Tag",
-  }),
 ];
 
 /**
@@ -843,11 +833,6 @@ const FAMILY_4_ENTRIES: ComponentCatalogEntry[] = [
     label: "select value",
     icon: "ChevronDown",
   }),
-  primitiveEntry("SelectIcon", "collections", FAMILY_4_CUTOVER, {
-    category: "forms",
-    label: "select icon",
-    icon: "ChevronDown",
-  }),
   primitiveEntry("ComboBox", "collections", FAMILY_4_CUTOVER, {
     category: "forms",
     label: "combo box",
@@ -1048,22 +1033,6 @@ const FAMILY_5_ENTRIES: ComponentCatalogEntry[] = [
     label: "table",
     icon: "TableProperties",
   }),
-  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableCell/TableRow catalog cutover.
-  //   Table 2D projection(appendTableRowProjection → TableRow/TableCell SceneNode)의 셀/행
-  //   self-render 가 spec.render.shapes 였다 → rule + buildCatalogShapes generic 으로 이전.
-  //   TableCell=text-only(box transparent), TableRow=bg box + table_row_divider(하단 line) append.
-  //   배경/굵기/정렬 분기는 projection 이 style 보편 D3 주입(ADR-142 §3). canonical 문서에 element
-  //   없음(projection 전용) → DOM 변화 0, Skia 대칭(spec 의존 끊기 = step 4 삭제 안전) 한정.
-  primitiveEntry("TableRow", "tree-table", FAMILY_5_CUTOVER, {
-    category: "collections",
-    label: "table row",
-    icon: "TableProperties",
-  }),
-  primitiveEntry("TableCell", "tree-table", FAMILY_5_CUTOVER, {
-    category: "collections",
-    label: "table cell",
-    icon: "TableProperties",
-  }),
 ];
 
 /**
@@ -1174,8 +1143,8 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
  * RAC 가 grid/field 자동 합성. nested 시 child CalendarGrid(non-catalog) 가 grid 담당, parent 는
  * shell/transparent. Popover 는 클릭 시 열리는 portal(정적 캔버스 미표시) → 정적 노드 무관.
  *
- * **color leaf 5종 box-only cutover (사용자 방침 2026-06-11)**: ColorSwatch/ColorArea/ColorWheel/
- * ColorSlider/TailSwatch 는 빌더 완성 후 제일 나중에 ProgressCircle 구조(react-aria.adobe.com/
+ * **color leaf box-only cutover (사용자 방침 2026-06-11)**: ColorSwatch/ColorArea/ColorWheel/
+ * ColorSlider 는 빌더 완성 후 제일 나중에 ProgressCircle 구조(react-aria.adobe.com/
  * ColorWheel 레퍼런스)로 진짜 구현 예정. 지금은 spec 제거 + catalog cutover 등록(6 registry collapse)
  * 만을 위해 **box 영역만** 가진 형태로 등록 — 동적 색/gradient/wheel/thumb 시각은 generic
  * buildCatalogShapes(box)로 재현 안 함(의도적 손실, escape 없음). 후속 작업에서 arc/wheel skiaPrimitive
@@ -1253,11 +1222,6 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     icon: "Palette",
     placeable: false,
   }),
-  primitiveEntry("TailSwatch", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
-    label: "tail swatch",
-    icon: "Palette",
-  }),
 ];
 
 /**
@@ -1303,7 +1267,7 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 5종(ColorSwatch/Area/Wheel/Slider/TailSwatch)
+ * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 4종(ColorSwatch/Area/Wheel/Slider)
  * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 2026-06-17
  * shell-only container slice 로 cutover.
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).

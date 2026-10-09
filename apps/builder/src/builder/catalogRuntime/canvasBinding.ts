@@ -298,15 +298,11 @@ function containerWithAuthoredPaint(
 
 const glyph: Binding = (node, rect) => {
   assertSupportedVisual(node);
-  // A trigger icon the owning field names (`catalogDerivedProps`) over its own value.
+  // A glyph the owner names (`catalogDerivedProps` — a Disclosure's open chevron) over its own value.
   const name = String(
     node.derivedProps?.iconName ??
       node.props.iconName ??
-      (node.bindingId === "selecticon"
-        ? "chevron-down"
-        : node.bindingId === "illustration"
-          ? "image"
-          : "circle"),
+      (node.bindingId === "illustration" ? "image" : "circle"),
   );
   const data = getIconData(name);
   if (!data)
@@ -414,7 +410,6 @@ const bindings: Readonly<Record<string, Binding>> = {
   treeitemcontent: container,
   box,
   icon: glyph,
-  selecticon: glyph,
   illustration: glyph,
   select: containerWithAuthoredPaint,
   combobox: containerWithAuthoredPaint,

@@ -107,7 +107,7 @@ export type SkiaPrimitiveDrawFn = (ctx: {
  * **fontSize 를 base 로 읽으면 안 된다 (2026-07-14 회귀)**: ADR-912 `toSkiaStyle` 이후 `style`
  * 은 override 전용이 아니라 **rule base ⊕ override 병합 map** 이다. base 에 rule 의 `fontSize`
  * (typography)와 `iconSize`(아이콘 스케일)가 **둘 다** 들어오므로, `style.fontSize != null` 로
- * override 를 판정하면 **항상 참** 이 되어 iconSize 가 죽는다. SelectIcon 은 두 축의 값이 달라
+ * override 를 판정하면 **항상 참** 이 되어 iconSize 가 죽는다. 옛 SelectIcon 은 두 축의 값이 달라
  * (lg: iconSize 22 vs text-lg 18, xl: 28 vs 20) glyph 가 박스보다 작게 그려졌다 — 박스는
  * iconSize 로 배치되는데 glyph 만 typography 를 따라간 비대칭.
  *

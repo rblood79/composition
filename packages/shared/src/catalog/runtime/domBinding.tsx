@@ -632,7 +632,6 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       style,
     } as Parameters<typeof RAC.SelectValue>[0]),
   icon: glyph("circle", 24),
-  selecticon: glyph("chevron-down", 18),
   // The S2 IllustratedMessage's picture: its own class (the owner sheet places it) and its glyph
   // box (the Icon sheet's `.react-aria-Icon` height is the Icon scale's).
   illustration: (node, style, children, context) => {

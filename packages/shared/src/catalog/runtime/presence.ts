@@ -556,9 +556,7 @@ export function catalogHiddenAtRest(
   // A glyph whose icon name has no path data (an origin's unfilled `{icon}` placeholder): the DOM
   // `Icon` renders nothing for it (as the old Skia icon shape drew nothing), so no box either.
   if (
-    (node.bindingId === "icon" ||
-      node.bindingId === "selecticon" ||
-      node.bindingId === "illustration") &&
+    (node.bindingId === "icon" || node.bindingId === "illustration") &&
     node.props.iconName !== undefined &&
     !getIconData(String(node.props.iconName))
   )
@@ -1215,8 +1213,7 @@ function triggerOwner(
 /**
  * The owner's DOM renders a field sub-part from the owner's props, not the typed child's: a date
  * field's DateInput segments (`_parentTag` — a picker's trigger draws the box, a range shows the
- * start/end pair — granularity, hour cycle and locale, the locale as the layout measures it), and
- * a trigger icon the owner names (`DatePicker.tsx` `<Icon iconName={iconName}>`).
+ * start/end pair — granularity, hour cycle and locale, the locale as the layout measures it).
  */
 function fieldSubpartProps(
   node: CatalogConsumerNode,
@@ -1225,15 +1222,10 @@ function fieldSubpartProps(
   locale?: string,
 ): Record<string, string | number | boolean> | undefined {
   const type = typeOf(node);
-  if (type !== "DateInput" && type !== "SelectIcon") return undefined;
+  if (type !== "DateInput") return undefined;
   const wrapper = catalogPartParent(node, get, typeOf);
   const owner = triggerOwner(node, get, typeOf);
   if (!wrapper || !owner) return undefined;
-  if (type === "SelectIcon")
-    return catalogIsFieldControlGroup(wrapper, get, typeOf) &&
-      typeof owner.props.iconName === "string"
-      ? { iconName: owner.props.iconName }
-      : undefined;
   const ownerType = typeOf(owner);
   if (!DATE_INPUT_OWNERS.has(ownerType)) return undefined;
   const prop = (key: string) => node.props[key] ?? owner.props[key];

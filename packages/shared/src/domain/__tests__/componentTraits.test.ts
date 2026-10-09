@@ -347,14 +347,6 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "DatePicker",
         "DateRangePicker",
       ],
-      SelectIcon: [
-        "Select",
-        "ComboBox",
-        "SearchField",
-        "NumberField",
-        "DatePicker",
-        "DateRangePicker",
-      ],
       DateInput: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
       FieldError: [
         "TextField",

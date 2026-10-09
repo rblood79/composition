@@ -27,7 +27,6 @@ import {
   isDelegatedSubpartChild,
   OWNER_DRAWN_PART_HOSTS,
 } from "../resolvers/resolveDelegatedChildFontSize";
-import { resolveTriggerIconSize } from "../resolvers/resolveTriggerIconSize";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { manualBoxRule } from "./manualBoxRules";
 import type { LayoutField, Scalar, VisualField } from "./types";
@@ -127,8 +126,7 @@ export function catalogSubpartDomSelectors(
 }
 /**
  * Owner sub-part tokens that address one of several same-type children: the typed child's props
- * that pick it (SearchField's leading search glyph and trailing clear button, both `SelectIcon`
- * in the template, told apart by their `iconName`).
+ * that pick it (a Disclosure's trigger Button, told apart from other Buttons by its `slot`).
  */
 const SUBPART_CHILD_PROPS: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, Scalar>>>>>
@@ -185,7 +183,6 @@ function wrapperOf(parentType: string, childType: string): string | undefined {
 }
 const WRAPPED_BY_TRIGGER: ReadonlySet<string> = new Set([
   "SelectValue",
-  "SelectIcon",
   "DateInput",
   // ADR-253: the parts a field's wrapper holds — instances of their origins, a field's glyph,
   // a range picker's separator.

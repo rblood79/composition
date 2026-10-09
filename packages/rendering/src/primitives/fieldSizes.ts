@@ -2,7 +2,6 @@
  * Field-family size primitives
  *
  * ComboBox / Select / NumberField 가 동일한 크기 metric 을 사용한다.
- * SelectIcon.iconSize 도 이 값에서 파생된다.
  * SSOT: 세 컴포넌트의 합의된 시각 크기. (ADR-105-b)
  *
  * height = lineHeight + paddingY×2 + borderWidth×2

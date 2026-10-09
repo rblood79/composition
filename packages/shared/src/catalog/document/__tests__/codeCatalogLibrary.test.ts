@@ -273,7 +273,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
         }),
       ]),
     );
-    for (const type of ["Icon", "SelectIcon"] as const) {
+    for (const type of ["Icon", "Illustration"] as const) {
       const glyph = library.definitions.get(catalogTypeDefinitionId(type))!;
       expect(glyph.bindingId).toBe(type.toLowerCase());
       expect(glyph.propVisualRules?.size?.md?.iconSize).toBe(
@@ -426,7 +426,7 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
             fillStyle: { kind: "set", value: "outline" },
             children: { kind: "set", value: "Save" },
           }),
-          [glyphId]: node(glyphId, "lib:definition:type-SelectIcon", {
+          [glyphId]: node(glyphId, "lib:definition:type-Icon", {
             size: { kind: "set", value: "xs" },
           }),
         },
@@ -445,9 +445,9 @@ describe("ADR-248 Phase 3 source-derived immutable code library", () => {
       paddingX: COMPONENT_RULES_TABLE.Button.sizes.lg.paddingX,
     });
     expect(resolveCatalogNode(graph, glyphId).visual).toMatchObject({
-      iconSize: COMPONENT_RULES_TABLE.SelectIcon.sizes.xs.iconSize,
+      iconSize: COMPONENT_RULES_TABLE.Icon.sizes.xs.iconSize,
       color: sourceValue(
-        COMPONENT_RULES_TABLE.SelectIcon.variants.default.colors?.text,
+        COMPONENT_RULES_TABLE.Icon.variants.default.colors?.text,
       ),
     });
   });

@@ -392,14 +392,6 @@ export interface SliderElementProps extends BaseElementProps {
   onChange?: (value: number) => void;
 }
 
-export interface TailSwatchElementProps extends BaseElementProps {
-  value?: string; // Color value (hex, rgb, hsl)
-  defaultValue?: string;
-  onChange?: (value: string) => void;
-  colorSpace?: "rgb" | "hsl" | "hsb";
-  isDisabled?: boolean;
-}
-
 export interface TabsElementProps extends BaseElementProps {
   children?: React.ReactNode;
   selectedKey?: string;
@@ -1117,7 +1109,6 @@ export type ComponentElementProps =
   | SelectElementProps
   | ComboBoxElementProps
   | SliderElementProps
-  | TailSwatchElementProps
   | TabsElementProps
   | TabElementProps
   | PanelElementProps
@@ -1303,14 +1294,6 @@ export function createDefaultSliderProps(): SliderElementProps {
       height: 8,
       maxWidth: 300,
     },
-  };
-}
-
-export function createDefaultTailSwatchProps(): TailSwatchElementProps {
-  return {
-    value: "#3b82f6", // Default blue-500
-    colorSpace: "hsb",
-    isDisabled: false,
   };
 }
 
@@ -2233,7 +2216,6 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   Select: createDefaultSelectProps,
   ComboBox: createDefaultComboBoxProps,
   Slider: createDefaultSliderProps,
-  TailSwatch: createDefaultTailSwatchProps,
   Tabs: createDefaultTabsProps,
   Tab: createDefaultTabProps,
   TabList: createDefaultTabListProps,

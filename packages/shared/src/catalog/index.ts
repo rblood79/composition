@@ -27,7 +27,6 @@ export * from "./resolvers/resolveCatalogVariantName";
 // ADR-227 — 테마 snapshot 의 DOM 의미 변수 이름을 같은 표에서 읽는다
 export { colorTokenToCss } from "./resolvers/colorTokenToCss";
 // 트리거 아이콘 glyph 크기 — DOM wrapper 와 Skia icon_font 가 공유하는 단일 SSOT
-export * from "./resolvers/resolveTriggerIconSize";
 // ADR-923 Phase 5 후속 — parent delegation 의 자식 font-size (FieldError hint) — layout·Skia·CSS 공통 원천
 export * from "./resolvers/resolveDelegatedChildFontSize";
 // ADR-912 catalog SSOT collapse — 컨테이너 base/variant/structure/size-value 단일 진입 (specs import 0)

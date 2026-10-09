@@ -17,7 +17,8 @@ import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
  *
  * **불변식**:
  *  1. dp-btn / drp-btn / select-chevron 의 size 별 값이 **동일**하다.
- *  2. 그 값이 `SelectIcon.sizes[*].iconSize`(Skia 소비) 와 md/lg/xl 에서 일치한다.
+ *  2. 그 값이 Select · ComboBox 의 `sizes[*].iconSize` 와 일치한다 (옛 `SelectIcon` type 은
+ *     2026-10-09 삭제 — 어떤 원본도 쓰지 않았다).
  *  3. 어느 것도 `var(--text-*)` (typography 토큰) 을 크기로 쓰지 않는다.
  */
 
@@ -112,9 +113,7 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
    * 변경은 DOM 에 영향이 없다(폭발 반경 확인 완료). 따라서 catalog 를 DOM 아이콘
    * 스케일(14/16)로 수렴시켜 **5개 size 전부** 한 숫자를 공유하게 한다.
    *
-   * 대상 4종은 모두 같은 SelectIcon 자식을 그린다:
-   *  - `SelectIcon.iconSize`   → Skia glyph 크기 (icon_font primitive)
-   *  - `Select` / `ComboBox`   → 같은 트리거 계열 (동일 스케일 유지)
+   * 대상: `Select` / `ComboBox` — 같은 트리거 계열 (동일 스케일 유지).
    */
   const ICON_SCALE_NUM: Record<string, number> = {
     xs: 14,
@@ -124,7 +123,7 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     xl: 28,
   };
 
-  it.each(["SelectIcon", "Select", "ComboBox"])(
+  it.each(["Select", "ComboBox"])(
     "%s.sizes[*].iconSize 가 아이콘 스케일과 5개 size 전부 일치 (DOM↔Skia 대칭)",
     (type) => {
       const sizes = (COMPONENT_RULES_TABLE[type]?.sizes ?? {}) as Record<
@@ -139,15 +138,4 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
     },
   );
 
-  it("SelectIcon 은 height === iconSize (glyph 자체가 박스 — 넘침 차단)", () => {
-    const sizes = (COMPONENT_RULES_TABLE.SelectIcon?.sizes ?? {}) as Record<
-      string,
-      { iconSize?: number; height?: number }
-    >;
-    for (const size of Object.keys(ICON_SCALE_NUM)) {
-      expect(sizes[size]?.height, `SelectIcon.${size}.height`).toBe(
-        sizes[size]?.iconSize,
-      );
-    }
-  });
 });

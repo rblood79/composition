@@ -54,7 +54,6 @@ import { cardHeaderBinding } from "./CardHeader.binding";
 import { cardPreviewBinding } from "./CardPreview.binding";
 import { cardViewBinding } from "./CardView.binding";
 import { formBinding } from "./Form.binding";
-import { formFieldBinding } from "./FormField.binding";
 import { gridListBinding } from "./GridList.binding";
 import { gridListItemBinding } from "./GridListItem.binding";
 import { headingBinding } from "./Heading.binding";
@@ -104,7 +103,6 @@ import { searchFieldBinding } from "./SearchField.binding";
 import { sectionBinding } from "./Section.binding";
 import { selectBinding } from "./Select.binding";
 import { selectValueBinding } from "./SelectValue.binding";
-import { selectIconBinding } from "./SelectIcon.binding";
 import { separatorBinding } from "./Separator.binding";
 import { headerBinding } from "./Header.binding";
 import { listBoxSectionBinding } from "./ListBoxSection.binding";
@@ -119,8 +117,6 @@ import { sliderTrackBinding } from "./SliderTrack.binding";
 import { statusLightBinding } from "./StatusLight.binding";
 import { switchBinding } from "./Switch.binding";
 import { tableBinding } from "./Table.binding";
-import { tableCellBinding } from "./TableCell.binding";
-import { tableRowBinding } from "./TableRow.binding";
 import { tableViewBinding } from "./TableView.binding";
 // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25):
 //   Table 가족의 자식 노드 5종. Canvas 는 rule box+text. DOM 은 RAC Table 안에서 INTERNAL_RENDERERS
@@ -136,7 +132,6 @@ import { tabListBinding } from "./TabList.binding";
 import { tagBinding } from "./Tag.binding";
 import { tagListBinding } from "./TagList.binding";
 import { tagGroupBinding } from "./TagGroup.binding";
-import { tailSwatchBinding } from "./TailSwatch.binding";
 import { textAreaBinding } from "./TextArea.binding";
 import { textBinding } from "./Text.binding";
 import { textFieldBinding } from "./TextField.binding";
@@ -193,7 +188,6 @@ export * from "./CardHeader.binding";
 export * from "./CardPreview.binding";
 export * from "./CardView.binding";
 export * from "./Form.binding";
-export * from "./FormField.binding";
 export * from "./GridList.binding";
 export * from "./GridListItem.binding";
 export * from "./Heading.binding";
@@ -240,7 +234,6 @@ export * from "./SearchField.binding";
 export * from "./Section.binding";
 export * from "./Select.binding";
 export * from "./SelectValue.binding";
-export * from "./SelectIcon.binding";
 export * from "./Separator.binding";
 export * from "./Header.binding";
 export * from "./ListBoxSection.binding";
@@ -253,8 +246,6 @@ export * from "./SliderFill.binding";
 export * from "./StatusLight.binding";
 export * from "./Switch.binding";
 export * from "./Table.binding";
-export * from "./TableCell.binding";
-export * from "./TableRow.binding";
 export * from "./TableView.binding";
 export * from "./Column.binding";
 export * from "./Cell.binding";
@@ -266,7 +257,6 @@ export * from "./Tab.binding";
 export * from "./TabList.binding";
 export * from "./Tag.binding";
 export * from "./TagGroup.binding";
-export * from "./TailSwatch.binding";
 export * from "./TextArea.binding";
 export * from "./Text.binding";
 export * from "./TextField.binding";
@@ -392,11 +382,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   SelectionIndicator: selectionIndicatorBinding,
   // ADR-256 Phase 8a: a Popover's · Tooltip's arrow (RAC OverlayArrow — placed from the trigger).
   OverlayArrow: overlayArrowBinding,
-  TailSwatch: tailSwatchBinding,
   Form: formBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Form 필드 그룹 슬롯 컨테이너 sub-part
   //   (DialogFooter 동형 — 두 번째 childSpec 제거). internal/div shell, layout 은 origin template 의 layout · visual.
-  FormField: formFieldBinding,
   // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover. variant=primary/secondary/
   //   tertiary/quiet(구 cardType/isQuiet 흡수). internal/div shell + variant 별 배경/테두리.
   Card: cardBinding,
@@ -478,7 +466,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   //   BUILDER_ALIAS_MAP 해체. DOM=부모 RAC self-compose(독립 노드 0), Skia=generic box/text +
   //   icon_font escape (MeterValue 동형 비대칭).
   SelectValue: selectValueBinding,
-  SelectIcon: selectIconBinding,
   ComboBox: comboBoxBinding,
   Tabs: tabsBinding,
   // ADR-912 projection 3 cutover (2026-06-15): Tab/TabList projection sub-part (TableCell/TableRow
@@ -496,8 +483,6 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Tree: treeBinding,
   TreeItem: treeItemBinding,
   Table: tableBinding,
-  TableCell: tableCellBinding,
-  TableRow: tableRowBinding,
   // ADR-912 R7 G1-b (2026-06-15): 강화 Table 컨테이너 (S2 variant default/quiet — 구 isQuiet
   //   boolean 흡수). internal/div shell + variant 별 border, layout 은 origin template 의 layout · visual.
   TableView: tableViewBinding,

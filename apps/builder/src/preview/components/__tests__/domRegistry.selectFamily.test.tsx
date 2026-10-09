@@ -63,15 +63,12 @@ describe("domRegistry — ADR-912 R1 Select family DELEGATING 위임", () => {
     ).toBe(true);
   });
 
-  it("Select family sub-part 2종은 catalog binding 보유 (Skia generic text/icon source)", () => {
+  it("Select family sub-part SelectValue 는 catalog binding 보유 (Skia generic text source)", () => {
     // binding 누락 시 resolveEditContract(Inspector) 가 크래시(MeterValue 회귀 선례). (트리거 상자
-    // `SelectTrigger` 는 ADR-256 Phase 6b 에서 RAC Group 노드로 바뀌고 2026-10-09 type 삭제.)
-    for (const type of ["SelectValue", "SelectIcon"]) {
-      const binding = getPrimitiveBinding(type);
-      expect(binding, `${type} binding`).toBeTruthy();
-      expect(binding?.props.accepts, `${type} accepts`).toBeTruthy();
-    }
-    // SelectIcon 은 icon_font escape (box+text 아님 — Icon 동형)
-    expect(getPrimitiveBinding("SelectIcon")?.skiaPrimitive).toBe("icon_font");
+    // `SelectTrigger` 는 ADR-256 Phase 6b 에서 RAC Group 노드로 바뀌고 2026-10-09 type 삭제. 트리거
+    // 글리프는 Icon 노드 — 옛 `SelectIcon` type 도 2026-10-09 삭제.)
+    const binding = getPrimitiveBinding("SelectValue");
+    expect(binding, "SelectValue binding").toBeTruthy();
+    expect(binding?.props.accepts, "SelectValue accepts").toBeTruthy();
   });
 });

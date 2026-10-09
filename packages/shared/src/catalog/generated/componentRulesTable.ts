@@ -5030,42 +5030,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  FormField: {
-    defaultSize: "md",
-    variants: {},
-    sizes: {
-      xs: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      sm: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      xl: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "simple",
-      element: "div",
-      containerStyles: undefined,
-    },
-  },
   frame: {
     defaultSize: "md",
     variants: {},
@@ -5682,7 +5646,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   },
   // 2026-10-09 — the S2 IllustratedMessage's svg picture (`@react-spectrum/s2/src/Icon.tsx`
   //   `illustrationStyles` size S 48 · M 96 · L 160, `--iconPrimary` neutral). `height === iconSize`:
-  //   the glyph is its box (Icon · SelectIcon 동형).
+  //   the glyph is its box (Icon 동형).
   Illustration: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -9574,60 +9538,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  SelectIcon: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
-          },
-        },
-        colors: {
-          text: "{color.neutral-subdued}",
-        },
-      },
-    },
-    // 아이콘 스케일 = 14/16/18/22/28 (Select `.select-chevron` / DatePicker `--dp-btn-*` 와 동일).
-    //   `height === iconSize` 가 불변식 — SelectIcon 은 glyph 자체가 박스다.
-    //   **2026-07-14 정정**: xs/sm 이 10/14 로 DOM(14/16)과 어긋나 있었다. `iconSize` 는 Skia 전용
-    //   (`--icon-size` CSS 변수는 Disclosure 만 소비) 이라 DOM 폭발 반경 없음 → catalog 를 DOM 스케일로 수렴.
-    sizes: {
-      xs: {
-        fontSize: "{typography.text-2xs}",
-        borderRadius: "{radius.none}",
-        height: 14,
-        iconSize: 14,
-      },
-      sm: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 16,
-        iconSize: 16,
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 18,
-        iconSize: 18,
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 22,
-        iconSize: 22,
-      },
-      xl: {
-        fontSize: "{typography.text-xl}",
-        borderRadius: "{radius.none}",
-        height: 28,
-        iconSize: 28,
-      },
-    },
-  },
   SelectValue: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -11845,44 +11755,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  TailSwatch: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-    },
-    sizes: {
-      md: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 32,
-      },
-    },
-    structure: {
-      archetype: "simple",
-      element: "div",
-      containerStyles: {
-        // ADR-923 Phase 5 후속 HC2 전환 (2026-09-03): inline-flex → block. DOM 실효값은 preview rendererMap
-        //   `renderTailSwatch` (FormRenderers.tsx) 의 래퍼 div (class 없음 → UA block, live 실측) 이고
-        //   generated/TailSwatch.css 는 로드되지 않는다 — Canvas (resolveDefaultDisplay) 가 같은 outer 를 읽도록
-        //   catalog 를 DOM 에 맞춘다. evidence/923-phase5-followup-hc2-conversion.md.
-        display: "block",
-        alignItems: "center",
-      },
-      states: {},
-    },
-  },
   Text: {
     defaultVariant: "default",
     defaultSize: "md",
@@ -13451,92 +13323,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         paddingX: 12,
         iconSize: 18,
         indentPerLevel: 16,
-        borderRadius: "{radius.none}",
-      },
-    },
-  },
-  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableCell catalog cutover.
-  //   spec.render.shapes(header fw600 / data fw400 cell text) → rule + buildCatalogShapes generic(text).
-  //   배경은 부모 TableRow 가 담당 → 셀 fill transparent(text-only). header/data 굵기·정렬은
-  //   projection(appendTableRowProjection)이 style.fontWeight/textAlign 보편 D3 주입 → buildCatalogShapes
-  //   보편 경로(컴포넌트 식별 분기 0, ADR-142 §3). 시각값 = TableCell.spec.sizes 이전.
-  TableCell: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        paddingX: 8,
-        height: 36,
-        borderRadius: "{radius.none}",
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        paddingX: 12,
-        height: 44,
-        borderRadius: "{radius.none}",
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        paddingX: 16,
-        height: 52,
-        borderRadius: "{radius.none}",
-      },
-    },
-  },
-  // ADR-912 Pattern B (collection sub-part, 2026-06-13): TableRow catalog cutover.
-  //   spec.render.shapes(행 배경 rect + 하단 line) → rule fill base {color.base} + colors.border +
-  //   buildCatalogShapes generic(bg box) + table_row_divider skiaPrimitive(append 하단 line).
-  //   배경 분기(header/striped/selected)는 projection 이 style.backgroundColor 보편 D3 주입 →
-  //   buildCatalogShapes style.backgroundColor 우선 경로(행 종류 모름, ADR-142 §3). rule fill base
-  //   {color.base} 는 projection 미주입 시 fallback. divider 선색 = colors.border({color.border}).
-  TableRow: {
-    defaultVariant: "default",
-    defaultSize: "md",
-    variants: {
-      // colors.border 미선언: spec TableRow.render.shapes 는 행 box 테두리를 그리지 않고
-      //   하단 구분선(line)만 그린다. colors.border 를 두면 buildCatalogShapes 가 bg box 에
-      //   border 를 덧그려 spec 비대칭(행 전체 테두리) → 미선언. 하단 line 선색은
-      //   table_row_divider skiaPrimitive 가 style.borderColor → visual.border → `{color.border}`
-      //   fallback 순으로 읽으므로 colors.border 없이도 `{color.border}` 로 정상 렌더된다.
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            // Spectrum: 행 hover 상시 피드백 (design-data 감사 §1-4, 2026-08-21).
-            //   DOM 소비 = 수동 Table.css `[data-hovered]` 미러 (Table 은 manual-CSS 컨테이너).
-            //   Skia 는 hover 를 그리지 않는다 (runtime interaction = Preview/D1 영역) — 무표현 정합.
-            hover: "{color.neutral-subtle}",
-          },
-        },
-      },
-    },
-    sizes: {
-      sm: {
-        fontSize: "{typography.text-sm}",
-        height: 36,
-        borderRadius: "{radius.none}",
-      },
-      md: {
-        fontSize: "{typography.text-base}",
-        height: 44,
-        borderRadius: "{radius.none}",
-      },
-      lg: {
-        fontSize: "{typography.text-lg}",
-        height: 52,
         borderRadius: "{radius.none}",
       },
     },

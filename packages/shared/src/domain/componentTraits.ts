@@ -218,7 +218,6 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     owners: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
   },
   SelectValue: { owners: SELECT_TRIGGER_OWNERS },
-  SelectIcon: { owners: SELECT_TRIGGER_OWNERS },
 
   // ── 컬렉션 ──
   // ADR-238 Phase 2 — section 층 (RAC `ListBoxSection` · `MenuSection` · `GridListSection` + `Header`).
