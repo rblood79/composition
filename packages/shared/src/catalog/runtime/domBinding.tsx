@@ -1296,6 +1296,48 @@ const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * S2 1.8.0 Picker · ComboBox · MenuTrigger place their Popover from their own `direction` + `align`
+ * (S2 `placement={`${direction} ${align}`}`, defaults bottom · start — RAC's `bottom start`). A
+ * MenuTrigger's sideways direction (`left` · `right` · `start` · `end`) takes its other half from
+ * `align`: start → top, end → bottom (S2 `MenuTrigger`).
+ */
+const S2_OVERLAY_POSITION_OWNERS: ReadonlySet<string> = new Set([
+  "Select",
+  "ComboBox",
+  "MenuTrigger",
+]);
+export function catalogS2OverlayPlacement(
+  props: Readonly<Record<string, unknown>>,
+): string {
+  const direction =
+    typeof props.direction === "string" ? props.direction : "bottom";
+  const align = props.align === "end" ? "end" : "start";
+  if (["left", "right", "start", "end"].includes(direction))
+    return `${direction} ${align === "end" ? "bottom" : "top"}`;
+  return `${direction === "top" ? "top" : "bottom"} ${align}`;
+}
+
+/**
+ * S2 1.8.0 `menuWidth` (px): a Picker's Popover takes it as its width (not when quiet — the trigger
+ * width stays its minimum; the Popover sheet's size cap gives way, S2's Popover stops only at the
+ * window), a ComboBox's as `--trigger-width` (its width and minimum — its sheet has no cap).
+ */
+function s2MenuWidthStyle(
+  ownerType: string,
+  props: Readonly<Record<string, unknown>>,
+): CSSProperties | undefined {
+  const width = props.menuWidth;
+  if (typeof width !== "number" || !(width > 0)) return undefined;
+  if (ownerType === "Select")
+    return props.isQuiet === true
+      ? undefined
+      : { width: `${width}px`, maxWidth: "none" };
+  if (ownerType === "ComboBox")
+    return { "--trigger-width": `${width}px` } as CSSProperties;
+  return undefined;
+}
+
+/**
  * Registered components that drop DOM rest props: the marker is a `display: contents` wrapper.
  * (None now — the shared data Table was the one; the catalog Table is RAC's, ADR-256 Phase 5i.)
  */
@@ -1320,7 +1362,7 @@ function ruleDom(
       : binding?.source.kind === "rac" && DELEGATING_RAC_RENDERERS.has(type);
   if (delegating)
     throw new Error(`CATALOG_DOM_BINDING_REQUIRED:${node.definitionId}`);
-  const style = authoredStyle(root, node);
+  let style = authoredStyle(root, node);
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
@@ -1332,12 +1374,26 @@ function ruleDom(
   // found through layout frames (RAC's context reaches the Popover there).
   const placementOwner =
     lower === "popover" ? catalogDomPartParent(root, node) : undefined;
+  const placementOwnerType =
+    placementOwner && catalogTypeName(root, placementOwner);
   if (
     placementOwner &&
-    CONTEXT_PLACED_POPOVER_PARENTS.has(catalogTypeName(root, placementOwner)) &&
+    placementOwnerType &&
+    CONTEXT_PLACED_POPOVER_PARENTS.has(placementOwnerType) &&
     rest.placement === binding?.props.accepts.placement?.default
-  )
-    delete rest.placement;
+  ) {
+    // S2 Picker · ComboBox · MenuTrigger: the owner's `direction` · `align` (the Popover's own
+    // placement, when chosen, still wins).
+    if (S2_OVERLAY_POSITION_OWNERS.has(placementOwnerType))
+      rest.placement = catalogS2OverlayPlacement(placementOwner.props);
+    else delete rest.placement;
+  }
+  // S2 `menuWidth` — the Popover's own authored width wins.
+  const menuWidth =
+    placementOwner &&
+    placementOwnerType &&
+    s2MenuWidthStyle(placementOwnerType, placementOwner.props);
+  if (menuWidth) style = { ...menuWidth, ...style };
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
   // without a title (and without the author's name) keeps the fallback name. RAC drops the title
   // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 메뉴 위치 — Select · ComboBox · MenuTrigger direction · align · menuWidth] - 2026-10-10
+
+### Added
+
+- **Select · ComboBox · MenuTrigger 의 `direction` · `align`, Select · ComboBox 의 `menuWidth`** (S2 1.8.0 Picker · ComboBox · MenuTrigger — 조사 문서 「overlay 위치」): Design 패널의 Direction · Align · Menu Width. Preview 의 메뉴가 이 값대로 열린다.
+  - placement = S2 와 같이 `${direction} ${align}` (기본 bottom · start — RAC 의 `bottom start` 그대로). MenuTrigger 의 옆 방향 (left · right · start · end) 은 align start → top, end → bottom.
+  - Menu Width (px): Select 는 메뉴 폭 (trigger 폭이 최소값, quiet 이면 적용 안 함 — S2), ComboBox 는 `--trigger-width` (폭과 최소값). Select 메뉴에서는 Popover 시트의 크기별 최대 폭 (M 250) 을 풀어 S2 처럼 화면 폭까지 둔다.
+  - Popover 노드에 직접 고른 placement · 폭이 있으면 그것이 이긴다.
+  - Canvas 는 닫힌 메뉴를 그리지 않아 바뀌는 그림이 없다.
+  - 위치: `packages/shared/src/catalog/bindings/{Select,ComboBox,MenuTrigger}.binding.ts` · `packages/shared/src/catalog/runtime/domBinding.tsx` (`catalogS2OverlayPlacement`) · `packages/shared/src/components/MenuTrigger.tsx`
+- 확인: live — 세 컴포넌트를 팔레트에서 추가해 Design 패널에 Direction · Align (· Menu Width) 표시, 기본은 trigger 아래 시작 끝 · trigger 폭, Direction Top · Align End · Menu Width 320 → trigger 위 · 끝 맞춤 · 320 폭 (Select · ComboBox), Menu Direction End · Align End → 오른쪽 · 아래 끝 맞춤, Canvas 의 닫힌 메뉴 숨김 유지, 오류 0 (`apps/builder/scripts/overlay-position-live.mjs` 13/13).
+
 ## [field side 라벨 — S2 grid, 글자 폭 라벨 열] - 2026-10-10
 
 ### Fixed

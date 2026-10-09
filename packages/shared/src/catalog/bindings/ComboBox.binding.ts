@@ -72,6 +72,30 @@ export const comboBoxBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
+      // S2 1.8.0 Picker · ComboBox — where the menu opens: `direction` + `align` are its Popover's
+      //   placement (`domBinding.tsx` `catalogS2OverlayPlacement`; a placement chosen on the Popover
+      //   node wins), `menuWidth` its width in px (the trigger width when unset).
+      direction: {
+        kind: "enum",
+        label: "Direction",
+        section: "appearance",
+        default: "bottom",
+        options: [
+          { value: "bottom", label: "Bottom" },
+          { value: "top", label: "Top" },
+        ],
+      },
+      align: {
+        kind: "enum",
+        label: "Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+      },
+      menuWidth: { kind: "number", label: "Menu Width", section: "appearance" },
       allowsCustomValue: {
         kind: "boolean",
         label: "Allow Custom Value",

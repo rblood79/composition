@@ -25,6 +25,33 @@ export const menuTriggerBinding: PrimitiveBinding = {
           { value: "longPress", label: "Long Press" },
         ],
       },
+      // S2 1.8.0 MenuTrigger — where the menu opens: `direction` + `align` are its Popover's
+      //   placement (`domBinding.tsx` `catalogS2OverlayPlacement` — a sideways direction takes top
+      //   for start, bottom for end; a placement chosen on the Popover node wins).
+      direction: {
+        kind: "enum",
+        label: "Direction",
+        section: "appearance",
+        default: "bottom",
+        options: [
+          { value: "bottom", label: "Bottom" },
+          { value: "top", label: "Top" },
+          { value: "left", label: "Left" },
+          { value: "right", label: "Right" },
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+      },
+      align: {
+        kind: "enum",
+        label: "Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "end", label: "End" },
+        ],
+      },
     },
     toRacProps: "default",
   },
