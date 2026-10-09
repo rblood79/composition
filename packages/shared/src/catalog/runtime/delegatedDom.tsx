@@ -2332,7 +2332,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         {
           ...marker(input),
           ...chrome(input, "Nav"),
-          "aria-label": str(input.node.props.label || "Navigation"),
+          // The `<nav>` name is the `aria-label` it accepts (no `label` — HTML · RSP have none);
+          // the Attributes axis (metadata `ariaLabel`) still overrides it (`domBinding.tsx` `withHtmlId`).
+          "aria-label": str(input.node.props["aria-label"] || "Navigation"),
           style: { display: "flex", alignItems: "center", ...input.style },
         },
         ...renderAll(input),

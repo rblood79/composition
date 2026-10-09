@@ -8,7 +8,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * **DOM = delegatedDom `nav` (delegating 등록)**: `<nav>` 안에 자식 노드를 그대로 담는다.
  *   `react-aria-Nav` + data-size/data-variant (`chrome`) 로 generated CSS(Nav.css) 가 매칭된다.
- *   aria-label 은 delegatedDom `nav` 가 직접 부여(`props.label`, 기본 "Navigation" — rule/CSS 영역 외 D1).
+ *   aria-label 은 delegatedDom `nav` 가 직접 부여(`props["aria-label"]`, 기본 "Navigation" — rule/CSS
+ *   영역 외 D1). Properties 의 Attributes 절 (metadata `ariaLabel`) 이 쓰면 그 값이 이긴다.
  *
  * D1: composition `<nav>` (internal source, delegatedDom `nav`).
  * D2: variant(default/accent) + size(sm/md/lg) + aria-label 편집 surface.

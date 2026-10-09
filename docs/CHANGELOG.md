@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Nav 이름 — aria-label prop 을 읽는다] - 2026-10-09
+
+### Fixed
+
+- **Nav 의 `aria-label` 이 Preview `<nav>` 에 닿지 않던 문제** (사용자 「Nav aria-label vs label 진행해」):
+  - Nav 는 `aria-label` 을 받지만 (HTML · RSP 에 `label` 은 없다) DOM 은 아무도 쓰지 않는 `label` 을 읽어, AI · 가져오기가 넣은 `aria-label` 이 무시되고 늘 "Navigation" 이었다.
+  - **Why**: binding accepts (`aria-label`) 와 renderer 의 읽는 키 (`label`) 가 달랐다.
+  - 수정: `<nav>` 이름 = `aria-label` prop, 없으면 "Navigation". Properties 의 Attributes 절 (metadata `ariaLabel`, 전 요소 공통) 은 종전대로 둘보다 이긴다.
+  - 확인: live — 기본 `Navigation`, `aria-label` "Main" → Preview `<nav aria-label="Main">` (`apps/builder/scripts/nav-aria-label-live.mjs` 3/3).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`nav`)
+
 ## [Card href — S2 링크 Card (RAC Link)] - 2026-10-09
 
 ### Added
