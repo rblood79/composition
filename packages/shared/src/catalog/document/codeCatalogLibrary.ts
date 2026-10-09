@@ -108,12 +108,15 @@ function textDefinition(
   if (!registration || registration.kind !== "primitive")
     throw new Error(`CODE_CATALOG_REGISTRATION_MISSING:${type}`);
   const props = registration.binding.props.accepts;
+  // A Heading also takes its S2 `level` (the heading element — `<h1>`~`<h6>`, no visual).
+  const keys = type === "Heading" ? "children,level,size" : "children,size";
   if (
     registration.binding.source.kind !== "internal" ||
     registration.binding.source.renderer !== type.toLowerCase() ||
-    Object.keys(props).sort().join(",") !== "children,size" ||
+    Object.keys(props).sort().join(",") !== keys ||
     props.children.kind !== "string" ||
-    props.size.kind !== "size"
+    props.size.kind !== "size" ||
+    (type === "Heading" && props.level?.kind !== "number")
   )
     throw new Error(`CODE_CATALOG_BINDING_UNSUPPORTED:${type}`);
   const rule = COMPONENT_RULES_TABLE[type];
@@ -144,7 +147,11 @@ function textDefinition(
     name: type,
     mode: "primitive",
     bindingId: registration.binding.source.renderer,
-    accepts: { children: props.children.kind, size: "string" },
+    accepts: {
+      children: props.children.kind,
+      size: "string",
+      ...(props.level ? { level: "number" as const } : {}),
+    },
     defaults: { size: rule.defaultSize },
     propChoices: { size: Object.keys(sizes) },
     visual: {

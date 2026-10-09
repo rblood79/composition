@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 전용 prop 1순위 — RAC 가 동작을 주는 prop] - 2026-10-09
+
+### Added
+
+- **Heading `level` (1–6, 기본 3)** — 사용자 「①부터 진행해」 (조사 문서 `S2_PROP_ALIGNMENT_2026-10.md` 6.1 「나」 묶음):
+  - Design 패널 Content 에 Level (슬라이더 + 값 칸). Preview 는 RAC `Heading` 에 넘겨 `<h1>`~`<h6>` 를 그린다. 지정하지 않으면 지금처럼 `h3`.
+  - **Why**: S2 1.8.0 Heading 은 `level` 로 문서 구조 (제목 단계) 를 정하는데, 우리 Heading 은 이 prop 을 받지 않아 Dialog · Disclosure · Card 제목이 늘 `h3` 이었다.
+  - 글자 크기는 `size` 가 정한다 (S2 와 같음) — level 을 바꿔도 Canvas 상자는 그대로다.
+  - 확인: live — Disclosure 제목 Heading 에서 Level 3 표시 → 2 로 바꾸면 Preview `h2`, Canvas 높이 36 = Preview 36 그대로, undo 로 `h3` (`apps/builder/scripts/heading-level-live.mjs` 5/5).
+  - 위치: `packages/shared/src/catalog/bindings/Heading.binding.ts` · `packages/shared/src/catalog/document/codeCatalogLibrary.ts` (`textDefinition` 이 Heading 의 `level` 을 받는다) · `packages/shared/src/catalog/runtime/domBinding.tsx`
+
 ## [size 이름 S2 정렬 — XS · S · M · L · XL] - 2026-10-09
 
 ### Breaking Changes

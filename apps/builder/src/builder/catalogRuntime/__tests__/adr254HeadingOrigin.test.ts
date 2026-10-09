@@ -44,6 +44,8 @@ const set = <T>(value: T) => ({ kind: "set" as const, value });
 const PROPS_BEFORE = [
   "children",
   "size",
+  // S2 `level` (2026-10-09 — added after the origin).
+  "level",
   "fontSize",
   "lineHeight",
   "color",
@@ -127,8 +129,18 @@ describe("ADR-254 Phase 1 — the Heading origin", () => {
     const heading = readCompilerState().manifest.components.find(
       (component) => component.type === "Heading",
     )!;
+    // (Plus the S2 `level` prop, 2026-10-09 — after `size`.)
+    const props = [...(before.props as Array<{ name: string }>)];
+    props.splice(props.findIndex((prop) => prop.name === "size") + 1, 0, {
+      kind: "number",
+      max: 6,
+      min: 1,
+      name: "level",
+      origin: "semantic",
+    } as never);
     expect(heading).toEqual({
       ...before,
+      props,
       kind: "reusable",
       creationMode: "reusable",
       reusableId: "component-heading",

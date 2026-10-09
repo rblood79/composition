@@ -13,8 +13,9 @@ import type { PrimitiveBinding } from "../types";
  * **Skia = box+text generic**: skiaPrimitive 없음. height=0 TEXT_LEAF + textWeight:700(제목 굵기).
  *   buildCatalogShapes lineHeight + textWeight push 로 fontSize*1.5 / 500 fallback drift 해소.
  *
- * D1: composition `<h1-6>` (level prop, internal source, generic DOM).
- * D2: children/size/level 편집 surface.
+ * D1: RAC `Heading` — `level` 이 `<h1>`~`<h6>` 를 고른다 (미설정 = RAC 기본 3).
+ * D2: children/size/level 편집 surface. `level` = S2 1.8.0 Heading `level` (1–6, 기본 3) —
+ *   문서 구조만 정하고 글자 크기는 `size` 가 정한다 (S2 와 같음, 2026-10-09).
  * D3: 시각(텍스트 색/크기/lineHeight/weight 700)은 theme rule(COMPONENT_RULES_TABLE.Heading).
  */
 export const headingBinding: PrimitiveBinding = {
@@ -30,6 +31,15 @@ export const headingBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "M",
+      },
+      level: {
+        kind: "number",
+        label: "Level",
+        section: "content",
+        default: 3,
+        min: 1,
+        max: 6,
+        step: 1,
       },
     },
     toRacProps: "default",

@@ -562,6 +562,10 @@ const bindings: Readonly<Record<string, DomBinding>> = {
           {
             "data-catalog-id": node.id,
             ...racSlotProps(resolution),
+            // S2 `level` — the heading element (unset = RAC's 3).
+            ...(typeof node.props.level === "number"
+              ? { level: node.props.level }
+              : {}),
             style,
           } as Parameters<typeof Heading>[0],
           // (Its element children after its text — a Disclosure's header holds its trigger Button,
