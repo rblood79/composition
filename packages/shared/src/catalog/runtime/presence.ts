@@ -1400,9 +1400,16 @@ function ownDerivedProps(
   if (subpart) return subpart;
   // A SearchField's `value` is its input's initial value (the renderer's `defaultValue`): the
   // Canvas draws it in the Input's text, where the DOM input shows it over the placeholder.
-  const searchValue = catalogSearchFieldOfInput(node, get, typeOf)?.props.value;
+  const searchField = catalogSearchFieldOfInput(node, get, typeOf);
+  const searchValue = searchField?.props.value;
+  // (A password SearchField's input masks it — S2 `type`: the same count of bullets.)
   if (typeof searchValue === "string" && searchValue !== "")
-    return { placeholder: searchValue };
+    return {
+      placeholder:
+        searchField?.props.type === "password"
+          ? "•".repeat([...searchValue].length)
+          : searchValue,
+    };
   // ADR-256 Phase 5h: an expanded item's chevron glyph turns (`Tree.css` `[data-expanded]
   // .react-aria-Button[slot=chevron] svg { rotate: 90deg }`) — the Canvas draws the turned glyph
   // (`chevron-right` 90° = `chevron-down`), as the item rule's `leading_icon` does.

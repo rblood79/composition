@@ -191,8 +191,9 @@
       }
     }
 
+    /* S2 Row isDisabled — the Row rule's disabled opacity (catalog, Canvas reads the same).
+       (A 38% text color under it dimmed the text twice — 14% — 2026-10-09.) */
     &[data-disabled] {
-      color: color-mix(in srgb, var(--fg) 38%, transparent);
       opacity: 0.38;
     }
   }

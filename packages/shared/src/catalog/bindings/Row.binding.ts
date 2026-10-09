@@ -30,6 +30,8 @@ export const rowBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 · RAC Row `isDisabled` (2026-10-09): RAC's disabled row; the Row rule's disabled opacity.
+      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

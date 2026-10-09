@@ -49,6 +49,21 @@ export const searchFieldBinding: PrimitiveBinding = {
         label: "Placeholder",
         section: "content",
       },
+      // S2 1.8.0 SearchField `type` — RAC gives it to the input (unset = `search`, 2026-10-09).
+      type: {
+        kind: "enum",
+        label: "Input Type",
+        section: "content",
+        default: "search",
+        options: [
+          { value: "search", label: "Search" },
+          { value: "text", label: "Text" },
+          { value: "url", label: "URL" },
+          { value: "tel", label: "Tel" },
+          { value: "email", label: "Email" },
+          { value: "password", label: "Password" },
+        ],
+      },
       size: {
         kind: "size",
         label: "Size",

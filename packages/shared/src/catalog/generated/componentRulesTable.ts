@@ -11025,6 +11025,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "row",
     },
+    // A disabled row (S2 Row `isDisabled`) — the DOM's is `Table.css` `.react-aria-Row[data-disabled]`
+    // (the sheet owns the row, so no generated CSS — ADR-223: a new entry names its archetype).
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      states: {
+        disabled: {
+          opacity: 0.38,
+        },
+      },
+    },
   },
   Column: {
     defaultVariant: "default",

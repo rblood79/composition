@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hour Cycle (12 · 24, 시간 granularity 에서만 보임) 과 Placeholder Value (ISO 날짜 — 빈 picker 의 달력이 열리는 달) 를 Design 패널에서 고친다. DateRangePicker 는 Hour Cycle 이 이미 있었다.
   - Canvas 의 DateInput 세그먼트는 이미 picker 의 `hourCycle` 을 읽었다 — DOM 만 넘기지 않았다.
 
+- **SearchField `type`** (search · text · url · tel · email · password, 기본 search):
+  - RAC SearchField 가 input 에 넘긴다. password 면 값이 가려진다 — Preview 의 input 점, Canvas 는 Input 글자를 같은 수의 `•` 로 그린다.
+- **Row `isDisabled`** (Table 의 행):
+  - RAC 의 비활성 행 (`data-disabled`). 모양은 Row rule 의 disabled opacity 0.38 — Canvas 는 rule 을, DOM 은 `Table.css` 를 읽는다.
+  - `Table.css` 의 비활성 행은 opacity 0.38 에 글자색 38% 를 더해 글자가 두 번 흐려졌다 (약 14%). 글자색 줄을 빼 다른 컴포넌트의 disabled 와 같게 했다.
+- 확인: live — SearchField Input Type Email → Preview input `type="email"`, Value 「secret」 + Password → Preview password input · Canvas 「••••••」, Table 행 Disabled → Preview `data-disabled` · opacity 0.38 = Canvas 0.38 (`apps/builder/scripts/searchfield-type-row-disabled-live.mjs` 5/5).
+- 위치: `packages/shared/src/catalog/bindings/{SearchField,Row}.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (Row `structure.states.disabled`) · `packages/shared/src/catalog/runtime/{delegatedDom.tsx,presence.ts}` · `packages/shared/src/components/styles/Table.css`
+- **이번에 넣지 않은 것 — Calendar `selectionAlignment`**: 여러 달 표시에서만 의미가 있어, ADR-256 Phase 9 (`visibleDuration` · `CalendarMonth` 반복) 와 함께 다룬다. `firstDayOfWeek` 는 Phase 9 설계의 계약 (picker 소유 · 미설정 = locale) 과 같게 넣었고, picker 안 Calendar 를 고를 때 그 값을 picker 소유로 안내하는 일은 Phase 9 에 남는다.
+
 ### Fixed
 
 - **날짜만 적은 Placeholder Value + 시간 granularity 에서 Preview 가 통째로 비던 문제** (DateField · DatePicker · DateRangePicker):
@@ -38,6 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 수정: 시간 granularity 면 그 날 자정 (`toCalendarDateTime`) 으로 넘긴다.
   - 확인: live — DatePicker Granularity Minute · Hour Cycle 24 → Canvas = Preview 세그먼트 「연도.월.일.––:––」, 12 → 둘 다 「오전」, Placeholder Value 2030-03-15 → 열린 달력 「2030년 3월」, 오류 0 (`apps/builder/scripts/picker-time-props-live.mjs` 4/4). 수정 전에는 같은 단계에서 Preview 가 비었다.
   - 위치: `packages/shared/src/catalog/bindings/{DatePicker,DateRangePicker}.binding.ts` · `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`placeholderDate`)
+
+- **TextField · SearchField · NumberField 의 Value 편집이 열린 Preview 에 닿지 않던 문제**:
+  - Design 패널에서 Value 를 바꾸면 Canvas 는 바로 바뀌는데 Preview input 은 다시 열 때까지 그대로였다.
+  - **Why**: DOM 은 Value 를 RAC 의 `defaultValue` (실행 상태의 초기값) 로 넘긴다. 이미 그려진 input 은 초기값이 바뀌어도 따라가지 않는다.
+  - 수정: field 요소의 key 에 그 값을 넣어 문서가 값을 바꾸면 다시 시작한다 — Slider 가 이미 쓰는 방식 (`nodeTreeField`).
+  - 확인: live — SearchField Value 「secret」 이 열린 Preview input 에 바로 들어간다 (수정 전 빈 값).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx`
 
 ## [size 이름 S2 정렬 — XS · S · M · L · XL] - 2026-10-09
 

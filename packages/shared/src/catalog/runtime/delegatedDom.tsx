@@ -873,6 +873,7 @@ function nodeTreeField(
         isQuiet,
         ...base
       } = fieldBase(input);
+      const ownProps = own(props);
       const element = createElement(
         component,
         {
@@ -882,7 +883,12 @@ function nodeTreeField(
           "data-label-position": labelPosition,
           "data-label-align": labelAlign ?? defaultLabelAlign,
           "data-quiet": isQuiet ? "true" : undefined,
-          ...own(props),
+          ...ownProps,
+          // (RAC's value is the run state — `defaultValue`; a document edit of the value starts it
+          // again, as the Slider's does. Before, a mounted Preview input kept its old value.)
+          ...("defaultValue" in ownProps
+            ? { key: `${input.node.id}:${String(ownProps.defaultValue)}` }
+            : {}),
         },
         ...renderAll(input),
       );
@@ -1719,6 +1725,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   ),
   searchfield: nodeTreeField(AriaSearchField, "SearchField", (props) => ({
     ...inputHints(props),
+    // S2 `type` — RAC's SearchField gives it to its input (unset = `search`).
+    type: opt(props.type),
     defaultValue: str(props.value),
     maxLength: num(props.maxLength),
     minLength: num(props.minLength),
