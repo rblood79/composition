@@ -1893,8 +1893,9 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({
   const cy = outerRadius;
   const trackRadius = outerRadius - strokeWidth / 2;
 
-  // staticColor(over background, §2-F 2026-08-21): track=static 25% wash / indicator=solid.
-  //   사용자 style.backgroundColor/color 가 항상 우선. DOM ProgressCircle.tsx 동일 상수(0.25).
+  // staticColor(over background, §2-F 2026-08-21): S2 1.8.0 `ProgressCircle` (2026-10-10) — track =
+  //   static 색 0.17 (`transparent-overlay-300`) / indicator = 0.94 (`-900`). 사용자
+  //   style.backgroundColor/color 가 항상 우선. DOM ProgressCircle.tsx 동일 상수.
   const staticArc =
     props.staticColor === "white"
       ? "#ffffff"
@@ -1904,7 +1905,9 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({
   const trackColor =
     paint.backgroundColor ?? ("{color.neutral-subtle}" as TokenRef);
   const trackAlpha =
-    staticArc != null && style?.backgroundColor == null ? 0.25 : undefined;
+    staticArc != null && style?.backgroundColor == null ? 0.17 : undefined;
+  const indicatorAlpha =
+    staticArc != null && style?.color == null ? 0.94 : undefined;
   const indicatorColor =
     (style?.color as string | undefined) ??
     staticArc ??
@@ -1937,6 +1940,7 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({
       sweepAngle: 270,
       strokeWidth,
       stroke: indicatorColor,
+      ...(indicatorAlpha != null ? { strokeAlpha: indicatorAlpha } : {}),
       strokeCap: "round",
     });
   } else {
@@ -1959,6 +1963,7 @@ const valueFillArc: SkiaPrimitiveDrawFn = ({
         sweepAngle: fraction * 360,
         strokeWidth,
         stroke: indicatorColor,
+        ...(indicatorAlpha != null ? { strokeAlpha: indicatorAlpha } : {}),
         strokeCap: "round",
       });
     }

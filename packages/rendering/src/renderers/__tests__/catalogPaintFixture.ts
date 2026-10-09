@@ -128,7 +128,12 @@ function resolveFixturePaint(
     backgroundColor,
     color,
     borderColor,
-    backgroundAlpha: catalogAlpha * (staticTrackWash ? 0.25 : 1),
+    // (shared resolveCatalogPaint 거울: static 칠은 rule 의 staticAlpha — S2 overlay 투명도)
+    backgroundAlpha:
+      catalogAlpha *
+      (staticOnOpaqueBackground
+        ? ((visual as { staticAlpha?: number } | undefined)?.staticAlpha ?? 1)
+        : 1),
     staticTrackWash,
     hasVisibleBoxPaint:
       style?.backgroundColor != null ||

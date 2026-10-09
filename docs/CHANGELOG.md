@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 ProgressCircle staticColor — S2 값으로] - 2026-10-10
+
+### Changed
+
+- **ProgressCircle `staticColor` 가 S2 1.8.0 과 같은 색으로 그려진다** (사용자 「ProgressCircle 도 S2와 동일하게」 — S2 `ProgressCircle` `track` · `fill`): track 은 static 색 25% → **17%** (`transparent-overlay-300`), 진행 호는 불투명 → **94%** (`-900`). Meter · ProgressBar 와 같은 값이다.
+  - Preview 는 `ProgressCircle.tsx` 의 SVG stroke, Canvas 는 `value_fill_arc` 의 호 `strokeAlpha` — 같은 상수. 작성한 색이 있으면 그 색이 이긴다.
+  - 위치: `packages/shared/src/components/ProgressCircle.tsx` · `packages/rendering/src/renderers/skiaPrimitives.ts` (`value_fill_arc`)
+- 확인: live — Design 패널 Black → Preview track `rgba(0, 0, 0, 0.17)` · 호 `rgba(0, 0, 0, 0.94)`, Canvas 화면 픽셀에도 0.94 검정 (≈15) 과 0.17 track (≈212) 이 생기고 순검정은 없다 (Preview 와 같음), White → Preview 흰색 0.17 · 0.94, Auto → 테마색 (`apps/builder/scripts/progress-circle-static-live.mjs` 4/4).
+
 ## [S2 Slider · TagGroup labelAlign] - 2026-10-10
 
 ### Added

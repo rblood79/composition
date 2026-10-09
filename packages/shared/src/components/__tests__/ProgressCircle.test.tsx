@@ -164,7 +164,8 @@ describe("ProgressCircle — cutover DOM 경로 (toRacProps propPassthrough)", (
 
 /**
  * design-data 감사 §2-F "over background" (2026-08-21) — staticColor DOM leg.
- * track = static 25% wash / indicator = solid static (Skia value_fill_arc 동일 상수).
+ * S2 1.8.0 `ProgressCircle` (2026-10-10 사용자 「ProgressCircle 도 S2와 동일하게」): track =
+ * static 색 0.17 (`transparent-overlay-300`) / indicator = 0.94 (`-900`) — Skia value_fill_arc 동일 상수.
  */
 describe("ProgressCircle — staticColor over background (§2-F, 2026-08-21)", () => {
   function cutoverHtml(props: Record<string, unknown>) {
@@ -175,15 +176,19 @@ describe("ProgressCircle — staticColor over background (§2-F, 2026-08-21)", (
     );
   }
 
-  it("white → track rgb(255 255 255 / 0.25) + indicator var(--color-white)", () => {
-    const html = cutoverHtml({ value: 50, staticColor: "white" });
-    expect(html).toContain("rgb(255 255 255 / 0.25)");
-    expect(html).toContain("var(--color-white");
+  it.each([
+    ["white", "255 255 255"],
+    ["black", "0 0 0"],
+  ])("%s → track 0.17 + indicator 0.94 (S2)", (staticColor, rgb) => {
+    const html = cutoverHtml({ value: 50, staticColor });
+    expect(html).toContain(`rgb(${rgb} / 0.17)`);
+    expect(html).toContain(`rgb(${rgb} / 0.94)`);
   });
 
-  it("auto/미지정 → variant 경로 유지 (wash 부재)", () => {
+  it("auto/미지정 → variant 경로 유지 (static 색 없음)", () => {
     const html = cutoverHtml({ value: 50, staticColor: "auto" });
-    expect(html).not.toContain("/ 0.25)");
+    expect(html).not.toContain("/ 0.17)");
+    expect(html).not.toContain("/ 0.94)");
   });
 
   /**
