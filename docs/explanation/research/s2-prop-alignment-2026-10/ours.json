@@ -1,0 +1,3983 @@
+{
+ "Button": {
+  "slot": {
+   "kind": "string",
+   "hidden": true
+  },
+  "children": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "primary"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "fillStyle": {
+   "kind": "fillStyle",
+   "options": [
+    "fill",
+    "outline"
+   ],
+   "default": "fill"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  },
+  "type": {
+   "kind": "enum",
+   "options": [
+    "button",
+    "submit",
+    "reset"
+   ],
+   "default": "button"
+  },
+  "isPending": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "ToggleButton": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isEmphasized": {
+   "kind": "boolean"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "ToggleButtonGroup": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  },
+  "isEmphasized": {
+   "kind": "boolean"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  },
+  "density": {
+   "kind": "enum",
+   "options": [
+    "compact",
+    "regular"
+   ],
+   "default": "regular"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "single",
+    "multiple"
+   ],
+   "default": "single"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "disallowEmptySelection": {
+   "kind": "boolean"
+  }
+ },
+ "ButtonGroup": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  },
+  "align": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "end"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Toolbar": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  }
+ },
+ "Link": {
+  "children": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "primary"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "href": {
+   "kind": "string"
+  },
+  "target": {
+   "kind": "enum",
+   "options": [
+    "_self",
+    "_blank",
+    "_parent",
+    "_top"
+   ]
+  },
+  "rel": {
+   "kind": "string"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "Separator": {
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Icon": {
+  "iconName": {
+   "kind": "icon"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "strokeWidth": {
+   "kind": "number",
+   "default": 2
+  }
+ },
+ "Badge": {
+  "children": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "accent"
+  },
+  "size": {
+   "kind": "size",
+   "default": "sm"
+  },
+  "fillStyle": {
+   "kind": "fillStyle",
+   "options": [
+    "bold",
+    "subtle",
+    "outline"
+   ],
+   "default": "bold"
+  },
+  "isDot": {
+   "kind": "boolean"
+  },
+  "isPulsing": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Text": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Heading": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Paragraph": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Code": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "sm"
+  }
+ },
+ "Kbd": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "sm"
+  }
+ },
+ "Keyboard": {
+  "children": {
+   "kind": "string"
+  }
+ },
+ "Label": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Description": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "FieldError": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Input": {
+  "placeholder": {
+   "kind": "string"
+  },
+  "type": {
+   "kind": "enum",
+   "options": [
+    "text",
+    "email",
+    "password",
+    "search",
+    "tel",
+    "url",
+    "number"
+   ],
+   "default": "text"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "FileTrigger": {
+  "children": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "acceptedFileTypes": {
+   "kind": "string"
+  },
+  "allowsMultiple": {
+   "kind": "boolean"
+  },
+  "acceptDirectory": {
+   "kind": "boolean"
+  },
+  "defaultCamera": {
+   "kind": "enum",
+   "options": [
+    "user",
+    "environment"
+   ]
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "FileUpload": {
+  "endpoint": {
+   "kind": "string"
+  },
+  "chunkSize": {
+   "kind": "number",
+   "default": 8388608
+  },
+  "parallelUploads": {
+   "kind": "number",
+   "default": 1
+  },
+  "retryDelays": {
+   "kind": "string-array",
+   "default": [
+    "0",
+    "1000",
+    "3000",
+    "5000"
+   ]
+  },
+  "maxFileSize": {
+   "kind": "number",
+   "default": 0
+  },
+  "autoProceed": {
+   "kind": "boolean",
+   "default": true
+  },
+  "showPreview": {
+   "kind": "boolean",
+   "default": false
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Skeleton": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "body": {},
+ "Section": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Nav": {
+  "aria-label": {
+   "kind": "string",
+   "hidden": true
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Pagination": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Disclosure": {
+  "title": {
+   "kind": "string"
+  },
+  "isExpanded": {
+   "kind": "boolean",
+   "default": true
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "DisclosureGroup": {
+  "allowsMultipleExpanded": {
+   "kind": "boolean",
+   "default": true
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "InlineAlert": {
+  "variant": {
+   "kind": "variant",
+   "default": "info"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "IllustratedMessage": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "vertical",
+    "horizontal"
+   ],
+   "default": "vertical"
+  }
+ },
+ "Illustration": {
+  "iconName": {
+   "kind": "icon",
+   "default": "image"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "StatusLight": {
+  "children": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "neutral"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Avatar": {
+  "src": {
+   "kind": "string"
+  },
+  "alt": {
+   "kind": "string"
+  },
+  "initials": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ProgressCircle": {
+  "value": {
+   "kind": "number",
+   "default": 0
+  },
+  "minValue": {
+   "kind": "number",
+   "default": 0
+  },
+  "maxValue": {
+   "kind": "number",
+   "default": 100
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isIndeterminate": {
+   "kind": "boolean"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  }
+ },
+ "DisclosurePanel": {},
+ "CalendarHeader": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "CalendarGrid": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  },
+  "defaultToday": {
+   "kind": "boolean",
+   "hidden": true
+  },
+  "dayOffset": {
+   "kind": "number",
+   "hidden": true
+  },
+  "totalDays": {
+   "kind": "number",
+   "hidden": true
+  },
+  "todayDate": {
+   "kind": "number",
+   "hidden": true
+  }
+ },
+ "DateInput": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "slot": {
+   "kind": "string",
+   "hidden": true
+  }
+ },
+ "Card": {
+  "title": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "primary"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "accentColor": {
+   "kind": "string"
+  },
+  "href": {
+   "kind": "string"
+  },
+  "target": {
+   "kind": "enum",
+   "options": [
+    "_self",
+    "_blank"
+   ]
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "CardHeader": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "CardContent": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "CardFooter": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "CardPreview": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "AvatarGroup": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "CardView": {
+  "layout": {
+   "kind": "enum",
+   "options": [
+    "grid",
+    "waterfall"
+   ],
+   "default": "grid"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "density": {
+   "kind": "enum",
+   "options": [
+    "compact",
+    "regular",
+    "spacious"
+   ],
+   "default": "regular"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "selectionStyle": {
+   "kind": "enum",
+   "options": [
+    "checkbox",
+    "highlight"
+   ],
+   "default": "checkbox"
+  }
+ },
+ "TableView": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "density": {
+   "kind": "enum",
+   "options": [
+    "compact",
+    "regular",
+    "spacious"
+   ],
+   "default": "regular"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "allowsSorting": {
+   "kind": "boolean"
+  }
+ },
+ "Chart": {
+  "chartType": {
+   "kind": "enum",
+   "options": [
+    "bar",
+    "line",
+    "area",
+    "pie",
+    "radar",
+    "radial",
+    "scatter"
+   ],
+   "default": "bar",
+   "hidden": true
+  },
+  "dimension": {
+   "kind": "string",
+   "default": "category"
+  },
+  "metric": {
+   "kind": "string",
+   "default": "value"
+  },
+  "color": {
+   "kind": "string"
+  },
+  "dataMode": {
+   "kind": "enum",
+   "options": [
+    "group",
+    "columns"
+   ],
+   "default": "group",
+   "hidden": true
+  },
+  "valueFields": {
+   "kind": "string-array",
+   "hidden": true
+  },
+  "seriesConfig": {
+   "kind": "items-manager",
+   "hidden": true
+  },
+  "valueFormat": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "decimal",
+    "currency",
+    "percent"
+   ],
+   "default": "auto",
+   "hidden": true
+  },
+  "valueLocale": {
+   "kind": "enum",
+   "options": [
+    "en-US",
+    "ko-KR"
+   ],
+   "hidden": true
+  },
+  "valueFractionDigits": {
+   "kind": "number",
+   "hidden": true
+  },
+  "valueCurrency": {
+   "kind": "string",
+   "hidden": true
+  },
+  "valuePercentUnit": {
+   "kind": "enum",
+   "options": [
+    "ratio",
+    "percentagePoints"
+   ],
+   "hidden": true
+  },
+  "budgetOverflow": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "window",
+    "aggregate",
+    "extrema",
+    "others"
+   ],
+   "default": "auto",
+   "hidden": true
+  },
+  "budgetAggregate": {
+   "kind": "enum",
+   "options": [
+    "sum",
+    "mean",
+    "max",
+    "min"
+   ],
+   "default": "sum",
+   "hidden": true
+  },
+  "budgetAxis": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "category",
+    "ordinal"
+   ],
+   "default": "auto",
+   "hidden": true
+  },
+  "budgetOthersLabel": {
+   "kind": "string",
+   "hidden": true
+  },
+  "dimensionScale": {
+   "kind": "enum",
+   "options": [
+    "category",
+    "time"
+   ],
+   "default": "category",
+   "hidden": true
+  },
+  "dimensionFormat": {
+   "kind": "string",
+   "hidden": true
+  },
+  "dimensionLabelFormat": {
+   "kind": "string",
+   "hidden": true
+  },
+  "referenceLines": {
+   "kind": "items-manager",
+   "hidden": true
+  },
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "data": {
+   "kind": "items-manager"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "vertical",
+    "horizontal"
+   ],
+   "default": "vertical"
+  },
+  "stackType": {
+   "kind": "enum",
+   "options": [
+    "dodged",
+    "stacked",
+    "expand"
+   ],
+   "default": "dodged"
+  },
+  "curve": {
+   "kind": "enum",
+   "options": [
+    "linear",
+    "monotone",
+    "step"
+   ],
+   "default": "linear"
+  },
+  "showDots": {
+   "kind": "boolean",
+   "default": false
+  },
+  "showValueLabels": {
+   "kind": "boolean",
+   "default": false
+  },
+  "labelKey": {
+   "kind": "enum",
+   "options": [
+    "value",
+    "category"
+   ],
+   "default": "value"
+  },
+  "palette": {
+   "kind": "enum",
+   "options": [
+    "categorical",
+    "mono"
+   ],
+   "default": "categorical"
+  },
+  "colorBy": {
+   "kind": "enum",
+   "options": [
+    "series",
+    "category"
+   ],
+   "default": "series"
+  },
+  "innerRadius": {
+   "kind": "number",
+   "default": 0
+  },
+  "gridType": {
+   "kind": "enum",
+   "options": [
+    "polygon",
+    "circle"
+   ],
+   "default": "polygon"
+  },
+  "startAngle": {
+   "kind": "number",
+   "default": 0
+  },
+  "endAngle": {
+   "kind": "number",
+   "default": 360
+  },
+  "showTotal": {
+   "kind": "boolean",
+   "default": false
+  },
+  "showSpokes": {
+   "kind": "boolean",
+   "default": true
+  },
+  "gridRings": {
+   "kind": "number",
+   "default": 0
+  },
+  "fillGrid": {
+   "kind": "boolean",
+   "default": false
+  },
+  "fillArea": {
+   "kind": "boolean",
+   "default": true
+  },
+  "showTooltip": {
+   "kind": "boolean",
+   "default": false
+  },
+  "showAxis": {
+   "kind": "boolean",
+   "default": true
+  },
+  "showGrid": {
+   "kind": "boolean",
+   "default": false
+  },
+  "showLegend": {
+   "kind": "boolean",
+   "default": false
+  },
+  "legendPosition": {
+   "kind": "enum",
+   "options": [
+    "bottom",
+    "top",
+    "left",
+    "right"
+   ],
+   "default": "bottom"
+  },
+  "isAnimationActive": {
+   "kind": "boolean",
+   "default": false
+  },
+  "animationBegin": {
+   "kind": "number",
+   "default": 0
+  },
+  "animationDuration": {
+   "kind": "number",
+   "default": 600
+  },
+  "animationEasing": {
+   "kind": "enum",
+   "options": [
+    "linear",
+    "ease",
+    "ease-in",
+    "ease-out",
+    "ease-in-out"
+   ],
+   "default": "ease-out"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "TableHeader": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "TableBody": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Column": {
+  "children": {
+   "kind": "string"
+  },
+  "isRowHeader": {
+   "kind": "boolean"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Row": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Cell": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "TextField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "placeholder": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "type": {
+   "kind": "enum",
+   "options": [
+    "text",
+    "email",
+    "password",
+    "search",
+    "tel",
+    "url",
+    "number"
+   ],
+   "default": "text"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "autoComplete": {
+   "kind": "string"
+  },
+  "autoCorrect": {
+   "kind": "enum",
+   "options": [
+    "on",
+    "off"
+   ]
+  },
+  "inputMode": {
+   "kind": "enum",
+   "options": [
+    "text",
+    "numeric",
+    "decimal",
+    "tel",
+    "url",
+    "email",
+    "search",
+    "none"
+   ]
+  },
+  "enterKeyHint": {
+   "kind": "enum",
+   "options": [
+    "enter",
+    "done",
+    "go",
+    "next",
+    "previous",
+    "search",
+    "send"
+   ]
+  },
+  "spellCheck": {
+   "kind": "enum",
+   "options": [
+    "true",
+    "false"
+   ]
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "maxLength": {
+   "kind": "number"
+  },
+  "minLength": {
+   "kind": "number"
+  },
+  "pattern": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  }
+ },
+ "TextArea": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "placeholder": {
+   "kind": "string"
+  },
+  "rows": {
+   "kind": "number"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "maxLength": {
+   "kind": "number"
+  },
+  "minLength": {
+   "kind": "number"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "autoComplete": {
+   "kind": "string"
+  },
+  "autoCorrect": {
+   "kind": "enum",
+   "options": [
+    "on",
+    "off"
+   ]
+  },
+  "inputMode": {
+   "kind": "enum",
+   "options": [
+    "text",
+    "numeric",
+    "decimal",
+    "tel",
+    "url",
+    "email",
+    "search",
+    "none"
+   ]
+  },
+  "enterKeyHint": {
+   "kind": "enum",
+   "options": [
+    "enter",
+    "done",
+    "go",
+    "next",
+    "previous",
+    "search",
+    "send"
+   ]
+  },
+  "spellCheck": {
+   "kind": "enum",
+   "options": [
+    "true",
+    "false"
+   ]
+  }
+ },
+ "NumberField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "minValue": {
+   "kind": "number"
+  },
+  "maxValue": {
+   "kind": "number"
+  },
+  "step": {
+   "kind": "number"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "isWheelDisabled": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "locale": {
+   "kind": "string"
+  }
+ },
+ "SearchField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "placeholder": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "autoComplete": {
+   "kind": "string"
+  },
+  "autoCorrect": {
+   "kind": "enum",
+   "options": [
+    "on",
+    "off"
+   ]
+  },
+  "inputMode": {
+   "kind": "enum",
+   "options": [
+    "text",
+    "numeric",
+    "decimal",
+    "tel",
+    "url",
+    "email",
+    "search",
+    "none"
+   ]
+  },
+  "enterKeyHint": {
+   "kind": "enum",
+   "options": [
+    "enter",
+    "done",
+    "go",
+    "next",
+    "previous",
+    "search",
+    "send"
+   ]
+  },
+  "spellCheck": {
+   "kind": "enum",
+   "options": [
+    "true",
+    "false"
+   ]
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "maxLength": {
+   "kind": "number"
+  },
+  "minLength": {
+   "kind": "number"
+  },
+  "pattern": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  }
+ },
+ "Autocomplete": {
+  "defaultInputValue": {
+   "kind": "string"
+  },
+  "disableAutoFocusFirst": {
+   "kind": "boolean"
+  },
+  "disableVirtualFocus": {
+   "kind": "boolean"
+  }
+ },
+ "DateField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "hideTimeZone": {
+   "kind": "boolean"
+  },
+  "shouldForceLeadingZeros": {
+   "kind": "boolean"
+  },
+  "granularity": {
+   "kind": "enum",
+   "options": [
+    "day",
+    "hour",
+    "minute",
+    "second"
+   ],
+   "default": "day"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "hourCycle": {
+   "kind": "enum",
+   "options": [
+    "12",
+    "24"
+   ]
+  },
+  "name": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  },
+  "placeholderValue": {
+   "kind": "string"
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  },
+  "calendarSystem": {
+   "kind": "enum",
+   "options": [
+    "",
+    "gregory",
+    "buddhist",
+    "ethiopic",
+    "ethioaa",
+    "coptic",
+    "hebrew",
+    "indian",
+    "islamic-civil",
+    "islamic-tbla",
+    "islamic-umalqura",
+    "japanese",
+    "persian",
+    "roc"
+   ]
+  }
+ },
+ "TimeField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "hourCycle": {
+   "kind": "enum",
+   "options": [
+    "12",
+    "24"
+   ],
+   "default": "24"
+  },
+  "shouldForceLeadingZeros": {
+   "kind": "boolean"
+  },
+  "granularity": {
+   "kind": "enum",
+   "options": [
+    "hour",
+    "minute",
+    "second"
+   ],
+   "default": "minute"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "hideTimeZone": {
+   "kind": "boolean",
+   "default": true
+  },
+  "name": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  },
+  "placeholderValue": {
+   "kind": "string"
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  }
+ },
+ "ColorField": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "channel": {
+   "kind": "enum",
+   "options": [
+    "hue",
+    "saturation",
+    "brightness",
+    "lightness",
+    "red",
+    "green",
+    "blue",
+    "alpha"
+   ]
+  },
+  "colorSpace": {
+   "kind": "enum",
+   "options": [
+    "rgb",
+    "hsl",
+    "hsb"
+   ]
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "isWheelDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Form": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "default": "native"
+  },
+  "action": {
+   "kind": "string"
+  },
+  "method": {
+   "kind": "enum",
+   "options": [
+    "get",
+    "post"
+   ],
+   "default": "get"
+  },
+  "encType": {
+   "kind": "enum",
+   "options": [
+    "application/x-www-form-urlencoded",
+    "multipart/form-data",
+    "text/plain"
+   ]
+  },
+  "target": {
+   "kind": "enum",
+   "options": [
+    "_self",
+    "_blank",
+    "_parent",
+    "_top"
+   ]
+  }
+ },
+ "Field": {
+  "key": {
+   "kind": "string"
+  },
+  "label": {
+   "kind": "string"
+  },
+  "type": {
+   "kind": "enum",
+   "options": [
+    "string",
+    "number",
+    "email",
+    "url",
+    "date",
+    "boolean",
+    "image"
+   ],
+   "default": "string"
+  }
+ },
+ "Checkbox": {
+  "children": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isIndeterminate": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "CheckboxGroup": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "vertical",
+    "horizontal"
+   ],
+   "default": "vertical"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "errorMessage": {
+   "kind": "string"
+  }
+ },
+ "CheckboxItems": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "RadioItems": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "CheckboxButton": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "CheckboxIndicator": {},
+ "RadioButton": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "RadioIndicator": {},
+ "SwitchButton": {},
+ "SwitchIndicator": {},
+ "Radio": {
+  "children": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "RadioGroup": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "vertical",
+    "horizontal"
+   ],
+   "default": "vertical"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "value": {
+   "kind": "enum"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "errorMessage": {
+   "kind": "string"
+  }
+ },
+ "Switch": {
+  "children": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "value": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  }
+ },
+ "Slider": {
+  "label": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "minValue": {
+   "kind": "number",
+   "default": 0
+  },
+  "maxValue": {
+   "kind": "number",
+   "default": 100
+  },
+  "step": {
+   "kind": "number",
+   "default": 1
+  },
+  "value": {
+   "kind": "number"
+  },
+  "showValueLabel": {
+   "kind": "boolean",
+   "default": true
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ProgressBar": {
+  "value": {
+   "kind": "number",
+   "default": 50
+  },
+  "minValue": {
+   "kind": "number",
+   "default": 0
+  },
+  "maxValue": {
+   "kind": "number",
+   "default": 100
+  },
+  "label": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "staticColor": {
+   "kind": "enum",
+   "options": [
+    "auto",
+    "white",
+    "black"
+   ],
+   "default": "auto"
+  },
+  "isIndeterminate": {
+   "kind": "boolean"
+  },
+  "showValueLabel": {
+   "kind": "boolean"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "valueLabel": {
+   "kind": "string"
+  }
+ },
+ "Meter": {
+  "value": {
+   "kind": "number",
+   "default": 75
+  },
+  "minValue": {
+   "kind": "number",
+   "default": 0
+  },
+  "maxValue": {
+   "kind": "number",
+   "default": 100
+  },
+  "label": {
+   "kind": "string"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "informative"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "showValueLabel": {
+   "kind": "boolean"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "valueLabel": {
+   "kind": "string"
+  }
+ },
+ "ProgressBarTrack": {
+  "variant": {
+   "kind": "variant",
+   "default": "default",
+   "hidden": true
+  },
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "ProgressBarFill": {
+  "variant": {
+   "kind": "variant",
+   "default": "default",
+   "hidden": true
+  },
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "MeterTrack": {
+  "variant": {
+   "kind": "variant",
+   "default": "informative",
+   "hidden": true
+  },
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "MeterFill": {
+  "variant": {
+   "kind": "variant",
+   "default": "informative",
+   "hidden": true
+  },
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "SliderTrack": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "SliderFill": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "SliderThumb": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "MeterValue": {
+  "variant": {
+   "kind": "variant",
+   "default": "informative"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "children": {
+   "kind": "string",
+   "default": ""
+  }
+ },
+ "ProgressBarValue": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "children": {
+   "kind": "string",
+   "default": ""
+  }
+ },
+ "SliderOutput": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "children": {
+   "kind": "string",
+   "default": ""
+  }
+ },
+ "ListBox": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "disallowEmptySelection": {
+   "kind": "boolean"
+  }
+ },
+ "ListBoxItem": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ListBoxSection": {},
+ "MenuSection": {},
+ "GridListSection": {},
+ "Header": {
+  "children": {
+   "kind": "string"
+  }
+ },
+ "Select": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "placeholder": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "single",
+    "multiple"
+   ],
+   "default": "single"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  }
+ },
+ "SelectValue": {
+  "children": {
+   "kind": "string",
+   "default": ""
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "ComboBox": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "placeholder": {
+   "kind": "string"
+  },
+  "iconName": {
+   "kind": "icon"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "allowsCustomValue": {
+   "kind": "boolean"
+  },
+  "menuTrigger": {
+   "kind": "enum",
+   "options": [
+    "input",
+    "focus",
+    "manual"
+   ],
+   "default": "input"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  }
+ },
+ "Tabs": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  },
+  "density": {
+   "kind": "enum",
+   "options": [
+    "compact",
+    "regular"
+   ],
+   "default": "regular"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Tab": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "SelectionIndicator": {},
+ "TabList": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "TagGroup": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "maxRows": {
+   "kind": "number"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "allowsRemoving": {
+   "kind": "boolean"
+  },
+  "disallowEmptySelection": {
+   "kind": "boolean"
+  }
+ },
+ "TagList": {
+  "size": {
+   "kind": "size",
+   "default": "md",
+   "hidden": true
+  }
+ },
+ "Tag": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isSelected": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "GridList": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "layout": {
+   "kind": "enum",
+   "options": [
+    "stack",
+    "grid"
+   ],
+   "default": "grid"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "selectionStyle": {
+   "kind": "enum",
+   "options": [
+    "checkbox",
+    "highlight"
+   ],
+   "default": "checkbox"
+  },
+  "disallowEmptySelection": {
+   "kind": "boolean"
+  }
+ },
+ "GridListItem": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Breadcrumbs": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "size": {
+   "kind": "size",
+   "default": "M"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Breadcrumb": {
+  "children": {
+   "kind": "string"
+  },
+  "href": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "M"
+  }
+ },
+ "Menu": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  }
+ },
+ "MenuTrigger": {
+  "isOpen": {
+   "kind": "boolean"
+  },
+  "defaultOpen": {
+   "kind": "boolean"
+  },
+  "trigger": {
+   "kind": "enum",
+   "options": [
+    "press",
+    "longPress"
+   ],
+   "default": "press"
+  }
+ },
+ "SubmenuTrigger": {},
+ "Tree": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "single"
+  },
+  "selectionStyle": {
+   "kind": "enum",
+   "options": [
+    "checkbox",
+    "highlight"
+   ],
+   "default": "highlight"
+  },
+  "disallowEmptySelection": {
+   "kind": "boolean"
+  }
+ },
+ "TreeItem": {
+  "children": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "Group": {
+  "role": {
+   "kind": "enum",
+   "options": [
+    "group",
+    "region",
+    "presentation"
+   ],
+   "default": "group"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  }
+ },
+ "TreeItemContent": {},
+ "Table": {
+  "dataBinding": {
+   "kind": "binding"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "none",
+    "single",
+    "multiple"
+   ],
+   "default": "none"
+  },
+  "heightMode": {
+   "kind": "enum",
+   "options": [
+    "fixed",
+    "auto",
+    "viewport",
+    "full"
+   ],
+   "default": "fixed"
+  },
+  "height": {
+   "kind": "number",
+   "default": 400
+  }
+ },
+ "DialogTrigger": {
+  "isOpen": {
+   "kind": "boolean"
+  },
+  "defaultOpen": {
+   "kind": "boolean"
+  }
+ },
+ "Dialog": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "role": {
+   "kind": "enum",
+   "options": [
+    "dialog",
+    "alertdialog"
+   ],
+   "default": "dialog"
+  }
+ },
+ "Modal": {
+  "isOpen": {
+   "kind": "boolean"
+  },
+  "isDismissable": {
+   "kind": "boolean"
+  },
+  "trapFocus": {
+   "kind": "boolean",
+   "hidden": true
+  },
+  "autoFocus": {
+   "kind": "boolean",
+   "hidden": true
+  }
+ },
+ "Popover": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "containFocus": {
+   "kind": "boolean",
+   "hidden": true
+  },
+  "placement": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "bottom",
+    "left",
+    "right",
+    "top start",
+    "top end",
+    "bottom start",
+    "bottom end"
+   ],
+   "default": "bottom"
+  },
+  "offset": {
+   "kind": "number",
+   "default": 8
+  },
+  "crossOffset": {
+   "kind": "number",
+   "default": 0
+  },
+  "shouldFlip": {
+   "kind": "boolean",
+   "default": true
+  },
+  "containerPadding": {
+   "kind": "number",
+   "default": 12
+  }
+ },
+ "Tooltip": {
+  "variant": {
+   "kind": "variant",
+   "default": "neutral"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "placement": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "bottom",
+    "left",
+    "right",
+    "top start",
+    "top end",
+    "bottom start",
+    "bottom end"
+   ],
+   "default": "top"
+  },
+  "offset": {
+   "kind": "number",
+   "default": 0
+  },
+  "crossOffset": {
+   "kind": "number",
+   "default": 0
+  },
+  "shouldFlip": {
+   "kind": "boolean",
+   "default": true
+  },
+  "containerPadding": {
+   "kind": "number",
+   "default": 12
+  }
+ },
+ "OverlayArrow": {},
+ "TooltipTrigger": {
+  "isOpen": {
+   "kind": "boolean"
+  },
+  "defaultOpen": {
+   "kind": "boolean"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "delay": {
+   "kind": "number",
+   "default": 1500
+  },
+  "closeDelay": {
+   "kind": "number",
+   "default": 500
+  },
+  "trigger": {
+   "kind": "enum",
+   "options": [
+    "hover",
+    "focus"
+   ],
+   "default": "hover"
+  }
+ },
+ "DropZone": {
+  "label": {
+   "kind": "string",
+   "default": "Drop files here"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "DialogFooter": {
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Toast": {
+  "variant": {
+   "kind": "variant",
+   "default": "info"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "Calendar": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "pageBehavior": {
+   "kind": "enum",
+   "options": [
+    "visible",
+    "single"
+   ],
+   "default": "visible"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "maxVisibleMonths": {
+   "kind": "number",
+   "default": 1
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  },
+  "calendarSystem": {
+   "kind": "enum",
+   "options": [
+    "",
+    "gregory",
+    "buddhist",
+    "ethiopic",
+    "ethioaa",
+    "coptic",
+    "hebrew",
+    "indian",
+    "islamic-civil",
+    "islamic-tbla",
+    "islamic-umalqura",
+    "japanese",
+    "persian",
+    "roc"
+   ]
+  }
+ },
+ "RangeCalendar": {
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "pageBehavior": {
+   "kind": "enum",
+   "options": [
+    "visible",
+    "single"
+   ],
+   "default": "visible"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "maxVisibleMonths": {
+   "kind": "number",
+   "default": 1
+  },
+  "allowsNonContiguousRanges": {
+   "kind": "boolean"
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  },
+  "calendarSystem": {
+   "kind": "enum",
+   "options": [
+    "",
+    "gregory",
+    "buddhist",
+    "ethiopic",
+    "ethioaa",
+    "coptic",
+    "hebrew",
+    "indian",
+    "islamic-civil",
+    "islamic-tbla",
+    "islamic-umalqura",
+    "japanese",
+    "persian",
+    "roc"
+   ]
+  }
+ },
+ "DatePicker": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "iconName": {
+   "kind": "icon",
+   "default": "calendar"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "granularity": {
+   "kind": "enum",
+   "options": [
+    "day",
+    "hour",
+    "minute",
+    "second"
+   ],
+   "default": "day"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "name": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "isQuiet": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "hideTimeZone": {
+   "kind": "boolean",
+   "default": true
+  },
+  "pageBehavior": {
+   "kind": "enum",
+   "options": [
+    "visible",
+    "single"
+   ],
+   "default": "visible"
+  },
+  "shouldForceLeadingZeros": {
+   "kind": "boolean",
+   "default": true
+  },
+  "shouldCloseOnSelect": {
+   "kind": "boolean",
+   "default": true
+  },
+  "maxVisibleMonths": {
+   "kind": "number",
+   "default": 1
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  },
+  "calendarSystem": {
+   "kind": "enum",
+   "options": [
+    "",
+    "gregory",
+    "buddhist",
+    "ethiopic",
+    "ethioaa",
+    "coptic",
+    "hebrew",
+    "indian",
+    "islamic-civil",
+    "islamic-tbla",
+    "islamic-umalqura",
+    "japanese",
+    "persian",
+    "roc"
+   ]
+  }
+ },
+ "DateRangePicker": {
+  "label": {
+   "kind": "string"
+  },
+  "description": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "labelPosition": {
+   "kind": "enum",
+   "options": [
+    "top",
+    "side"
+   ],
+   "default": "top"
+  },
+  "labelAlign": {
+   "kind": "enum",
+   "options": [
+    "start",
+    "center",
+    "end"
+   ],
+   "default": "start"
+  },
+  "iconName": {
+   "kind": "icon",
+   "default": "calendar"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "isReadOnly": {
+   "kind": "boolean"
+  },
+  "granularity": {
+   "kind": "enum",
+   "options": [
+    "day",
+    "hour",
+    "minute",
+    "second"
+   ],
+   "default": "day"
+  },
+  "errorMessage": {
+   "kind": "string"
+  },
+  "minValue": {
+   "kind": "string"
+  },
+  "maxValue": {
+   "kind": "string"
+  },
+  "startName": {
+   "kind": "string"
+  },
+  "endName": {
+   "kind": "string"
+  },
+  "isRequired": {
+   "kind": "boolean"
+  },
+  "isInvalid": {
+   "kind": "boolean"
+  },
+  "autoFocus": {
+   "kind": "boolean"
+  },
+  "necessityIndicator": {
+   "kind": "enum",
+   "options": [
+    "icon",
+    "label"
+   ],
+   "default": "icon"
+  },
+  "hourCycle": {
+   "kind": "enum",
+   "options": [
+    "12",
+    "24"
+   ]
+  },
+  "hideTimeZone": {
+   "kind": "boolean",
+   "default": true
+  },
+  "pageBehavior": {
+   "kind": "enum",
+   "options": [
+    "visible",
+    "single"
+   ],
+   "default": "visible"
+  },
+  "shouldForceLeadingZeros": {
+   "kind": "boolean",
+   "default": true
+  },
+  "shouldCloseOnSelect": {
+   "kind": "boolean",
+   "default": true
+  },
+  "maxVisibleMonths": {
+   "kind": "number",
+   "default": 1
+  },
+  "allowsNonContiguousRanges": {
+   "kind": "boolean"
+  },
+  "validationBehavior": {
+   "kind": "enum",
+   "options": [
+    "native",
+    "aria"
+   ],
+   "hidden": true
+  },
+  "locale": {
+   "kind": "enum",
+   "options": [
+    "",
+    "ar-AE",
+    "bg-BG",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-GB",
+    "en-US",
+    "es-ES",
+    "et-EE",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hr-HR",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "lt-LT",
+    "lv-LV",
+    "nb-NO",
+    "nl-NL",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sk-SK",
+    "sl-SI",
+    "sr-SP",
+    "sv-SE",
+    "th-TH",
+    "tr-TR",
+    "uk-UA",
+    "zh-CN",
+    "zh-TW"
+   ]
+  },
+  "calendarSystem": {
+   "kind": "enum",
+   "options": [
+    "",
+    "gregory",
+    "buddhist",
+    "ethiopic",
+    "ethioaa",
+    "coptic",
+    "hebrew",
+    "indian",
+    "islamic-civil",
+    "islamic-tbla",
+    "islamic-umalqura",
+    "japanese",
+    "persian",
+    "roc"
+   ]
+  }
+ },
+ "ColorSwatch": {
+  "color": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  }
+ },
+ "ColorArea": {
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ColorWheel": {
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ColorSlider": {
+  "isDisabled": {
+   "kind": "boolean"
+  },
+  "orientation": {
+   "kind": "enum",
+   "options": [
+    "horizontal",
+    "vertical"
+   ],
+   "default": "horizontal"
+  }
+ },
+ "ColorPicker": {
+  "defaultValue": {
+   "kind": "string"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  }
+ },
+ "ColorSwatchPicker": {
+  "defaultValue": {
+   "kind": "string"
+  },
+  "layout": {
+   "kind": "enum",
+   "options": [
+    "grid",
+    "stack"
+   ],
+   "default": "grid"
+  },
+  "density": {
+   "kind": "enum",
+   "options": [
+    "compact",
+    "regular",
+    "spacious"
+   ],
+   "default": "regular"
+  },
+  "rounding": {
+   "kind": "enum",
+   "options": [
+    "default",
+    "none",
+    "full"
+   ],
+   "default": "default"
+  },
+  "size": {
+   "kind": "size",
+   "default": "md"
+  },
+  "variant": {
+   "kind": "variant",
+   "default": "default"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ },
+ "ColorSwatchPickerItem": {
+  "color": {
+   "kind": "string"
+  },
+  "isDisabled": {
+   "kind": "boolean"
+  }
+ }
+}

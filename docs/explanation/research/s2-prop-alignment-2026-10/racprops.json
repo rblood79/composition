@@ -1,0 +1,4110 @@
+{
+ "Autocomplete": {
+  "filter": {
+   "type": "((textValue: string, inputValue: string, node: Node<T>) => boolean) | undefined",
+   "src": "aria"
+  },
+  "disableAutoFocusFirst": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disableVirtualFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "inputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "defaultInputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  }
+ },
+ "Breadcrumbs": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"ol\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Breadcrumb": {
+  "render": {
+   "type": "DOMRenderFunction<\"li\", BreadcrumbRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Button": {
+  "isPending": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "\"button\" | \"submit\" | \"reset\" | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formAction": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "aria"
+  },
+  "formEncType": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formMethod": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formNoValidate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "formTarget": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"button\", ButtonRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Calendar": {
+  "visibleDuration": {
+   "type": "DateDuration | undefined",
+   "src": "RAC"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "CalendarValueType<T | null, M> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "M | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "defaultFocusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "selectionAlignment": {
+   "type": "\"start\" | \"center\" | \"end\" | undefined",
+   "src": "aria"
+  },
+  "weeksInMonth": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "CalendarValueType<T | null, M> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", CalendarRenderProps<M>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarGrid": {
+  "offset": {
+   "type": "DateDuration | undefined",
+   "src": "RAC"
+  },
+  "weekdayStyle": {
+   "type": "\"narrow\" | \"short\" | \"long\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"table\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarGridHeader": {
+  "render": {
+   "type": "DOMRenderFunction<\"thead\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarGridBody": {
+  "render": {
+   "type": "DOMRenderFunction<\"tbody\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarHeaderCell": {
+  "render": {
+   "type": "DOMRenderFunction<\"th\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarCell": {
+  "date": {
+   "type": "CalendarDate",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", CalendarCellRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "RangeCalendar": {
+  "visibleDuration": {
+   "type": "DateDuration | undefined",
+   "src": "RAC"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue, anchorDate: CalendarDate | null) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "defaultFocusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "selectionAlignment": {
+   "type": "\"start\" | \"center\" | \"end\" | undefined",
+   "src": "aria"
+  },
+  "weeksInMonth": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "commitBehavior": {
+   "type": "\"reset\" | \"clear\" | \"select\" | undefined",
+   "src": "aria"
+  },
+  "allowsNonContiguousRanges": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", RangeCalendarRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CalendarMonthPicker": {
+  "format": {
+   "type": "\"narrow\" | \"short\" | \"long\" | \"numeric\" | \"2-digit\" | undefined",
+   "src": "aria"
+  }
+ },
+ "CalendarYearPicker": {
+  "visibleYears": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "format": {
+   "type": "CalendarYearPickerFormatOptions | undefined",
+   "src": "aria"
+  }
+ },
+ "CalendarHeading": {
+  "offset": {
+   "type": "DateDuration | undefined",
+   "src": "aria"
+  },
+  "format": {
+   "type": "CalendarHeadingFormatOptions | undefined",
+   "src": "aria"
+  },
+  "level": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"h1\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Checkbox": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: boolean) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"label\", CheckboxRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CheckboxGroup": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string[] | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string[] | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string[]) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", CheckboxGroupRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CheckboxField": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: boolean) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", CheckboxFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "CheckboxButton": {
+  "render": {
+   "type": "DOMRenderFunction<\"label\", CheckboxButtonRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorArea": {
+  "xName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "yName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "aria"
+  },
+  "xChannel": {
+   "type": "ColorChannel | undefined",
+   "src": "aria"
+  },
+  "yChannel": {
+   "type": "ColorChannel | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorAreaRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorField": {
+  "channel": {
+   "type": "ColorChannel | undefined",
+   "src": "RAC"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | null | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | null | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: Color | null) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "isWheelDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorPicker": {
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  }
+ },
+ "ColorSlider": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "aria"
+  },
+  "channel": {
+   "type": "ColorChannel",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorSliderRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorSwatch": {
+  "color": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "colorName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorSwatchRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorSwatchPicker": {
+  "layout": {
+   "type": "\"grid\" | \"stack\" | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorSwatchPickerRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorSwatchPickerItem": {
+  "color": {
+   "type": "string | Color",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorSwatchPickerItemRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorThumb": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorThumbRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorWheel": {
+  "outerRadius": {
+   "type": "number",
+   "src": "aria"
+  },
+  "innerRadius": {
+   "type": "number",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorWheelRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorWheelTrack": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColorWheelTrackRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ComboBox": {
+  "defaultFilter": {
+   "type": "((textValue: string, inputValue: string) => boolean) | undefined",
+   "src": "RAC"
+  },
+  "formValue": {
+   "type": "\"text\" | \"key\" | undefined",
+   "src": "RAC"
+  },
+  "allowsEmptyCollection": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "M | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: ComboBoxValidationValue<M>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "shouldFocusWrap": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultItems": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "selectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "inputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "defaultInputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "allowsCustomValue": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "menuTrigger": {
+   "type": "MenuTriggerAction | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ComboBoxRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ComboBoxValue": {
+  "placeholder": {
+   "type": "ReactNode",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ComboBoxValueRenderProps<T>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Provider": {
+  "values": {
+   "type": "ProviderValues<A, B, C, D, E, F, G, H, I, J, K, L, M>",
+   "src": "RAC"
+  }
+ },
+ "DateField": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedDateValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "12 | 24 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DateFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DateInput": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DateInputRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DateSegment": {
+  "segment": {
+   "type": "DateSegment",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"span\", DateSegmentRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TimeField": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "TimeValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "TimeValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedTimeValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "12 | 24 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "\"hour\" | \"minute\" | \"second\" | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DateFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DatePicker": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedDateValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "12 | 24 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | (() => boolean) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DatePickerRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DateRangePicker": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue, anchorDate: CalendarDate | null) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "allowsNonContiguousRanges": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: RangeValue<MappedDateValue<T>>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "12 | 24 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "startName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "endName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | (() => boolean) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DateRangePickerRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DialogTrigger": {
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "Dialog": {
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"section\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Disclosure": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isExpanded": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultExpanded": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DisclosureRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DisclosureGroup": {
+  "allowsMultipleExpanded": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DisclosureGroupRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DisclosurePanel": {
+  "role": {
+   "type": "\"group\" | \"region\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DisclosurePanelRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "labelElementType": {
+   "type": "ElementType | undefined",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  }
+ },
+ "DropZone": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "getDropOperation": {
+   "type": "((types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DropZoneRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "FieldError": {
+  "elementType": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", FieldErrorRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "FileTrigger": {
+  "acceptedFileTypes": {
+   "type": "readonly string[] | undefined",
+   "src": "RAC"
+  },
+  "allowsMultiple": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "defaultCamera": {
+   "type": "\"user\" | \"environment\" | undefined",
+   "src": "RAC"
+  },
+  "acceptDirectory": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "Form": {
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "validationErrors": {
+   "type": "ValidationErrors | undefined",
+   "src": "aria"
+  },
+  "action": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "aria"
+  },
+  "encType": {
+   "type": "\"application/x-www-form-urlencoded\" | \"multipart/form-data\" | \"text/plain\" | undefined",
+   "src": "aria"
+  },
+  "method": {
+   "type": "\"dialog\" | \"get\" | \"post\" | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "\"_blank\" | \"_self\" | \"_parent\" | \"_top\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "\"off\" | \"on\" | undefined",
+   "src": "aria"
+  },
+  "autoCapitalize": {
+   "type": "\"off\" | \"on\" | \"none\" | \"sentences\" | \"words\" | \"characters\" | undefined",
+   "src": "aria"
+  },
+  "role": {
+   "type": "\"search\" | \"presentation\" | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"form\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "GridListLoadMoreItem": {
+  "isLoading": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "scrollOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "GridList": {
+  "disallowTypeAhead": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "renderEmptyState": {
+   "type": "((props: GridListRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "layout": {
+   "type": "\"grid\" | \"stack\" | undefined",
+   "src": "RAC"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_focusOnEntry": {
+   "type": "\"first\" | \"last\" | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", GridListRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "GridListItem": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", GridListItemRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "GridListHeader": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "GridListSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Group": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "role": {
+   "type": "\"group\" | \"region\" | \"presentation\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", GroupRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Header": {
+  "render": {
+   "type": "DOMRenderFunction<\"header\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Heading": {
+  "level": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"h1\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Input": {
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"input\", InputRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Section": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  }
+ },
+ "Collection": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "aria"
+  },
+  "idScope": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "addIdAndValue": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "CollectionBuilder": {
+  "content": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "createCollection": {
+   "type": "(() => C) | undefined",
+   "src": "aria"
+  }
+ },
+ "Keyboard": {
+  "render": {
+   "type": "DOMRenderFunction<\"kbd\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Label": {
+  "elementType": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"label\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Link": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: LinkRenderProps) => ReactElement<unknown, string…",
+   "src": "RAC"
+  }
+ },
+ "PreviewTrigger": {
+  "delay": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "closeDelay": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "ListBoxLoadMoreItem": {
+  "isLoading": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "scrollOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ListBox": {
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "renderEmptyState": {
+   "type": "((props: ListBoxRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "layout": {
+   "type": "\"grid\" | \"stack\" | undefined",
+   "src": "RAC"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "shouldFocusWrap": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "shouldFocusOnHover": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ListBoxRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ListBoxItem": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: ListBoxItemRenderProps) => ReactElement<unknown, s…",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "ListBoxSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"section\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Menu": {
+  "renderEmptyState": {
+   "type": "(() => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "shouldFocusWrap": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", MenuRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "MenuItem": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: MenuItemRenderProps) => ReactElement<unknown, stri…",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "MenuLoadMoreItem": {
+  "isLoading": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "scrollOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "MenuTrigger": {
+  "trigger": {
+   "type": "MenuTriggerType | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "MenuSection": {
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"section\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SubmenuTrigger": {
+  "delay": {
+   "type": "number | undefined",
+   "src": "RAC"
+  }
+ },
+ "Meter": {
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "valueLabel": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", MeterRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Modal": {
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isExiting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "isDismissable": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnInteractOutside": {
+   "type": "((element: Element) => boolean) | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ModalRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ModalOverlay": {
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isExiting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "isDismissable": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnInteractOutside": {
+   "type": "((element: Element) => boolean) | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ModalRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "NumberField": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "commitBehavior": {
+   "type": "\"validate\" | \"snap\" | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: number) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "isWheelDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "step": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "decrementAriaLabel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "incrementAriaLabel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", NumberFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "OverlayArrow": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", OverlayArrowRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Popover": {
+  "trigger": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "triggerRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "RAC"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isExiting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "shouldSkipAnimation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "offset": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "placement": {
+   "type": "Placement | undefined",
+   "src": "aria"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnInteractOutside": {
+   "type": "((element: Element) => boolean) | undefined",
+   "src": "aria"
+  },
+  "boundaryElement": {
+   "type": "Element | undefined",
+   "src": "aria"
+  },
+  "arrowRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "aria"
+  },
+  "scrollRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "aria"
+  },
+  "shouldUpdatePosition": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "maxHeight": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "arrowBoundaryOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "getTargetRect": {
+   "type": "((target: Element) => DOMRect | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "isNonModal": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", PopoverRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ProgressBar": {
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "valueLabel": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ProgressBarRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "RadioGroup": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | null | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", RadioGroupRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Radio": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"label\", RadioRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "RadioField": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", RadioFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "RadioButton": {
+  "render": {
+   "type": "DOMRenderFunction<\"label\", RadioButtonRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SearchField": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "\"text\" | \"search\" | (string & {}) | \"url\" | \"tel\" | \"email\" | \"password\" | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "minLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "pattern": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "inputMode": {
+   "type": "\"numeric\" | \"text\" | \"search\" | \"none\" | \"url\" | \"tel\" | \"email\" | \"decimal\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "autoCorrect": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "spellCheck": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "enterKeyHint": {
+   "type": "\"search\" | \"enter\" | \"done\" | \"go\" | \"next\" | \"previous\" | \"send\" | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SearchFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Select": {
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "M | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: ValidationType<M>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "selectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "allowsEmptyCollection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SelectRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SelectValue": {
+  "render": {
+   "type": "DOMRenderFunction<\"span\", SelectValueRenderProps<T>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SelectionIndicator": {
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SharedElementRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Separator": {
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "elementType": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"hr\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SharedElement": {
+  "name": {
+   "type": "string",
+   "src": "RAC"
+  },
+  "isVisible": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SharedElementRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Slider": {
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "step": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SliderRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SliderOutput": {
+  "render": {
+   "type": "DOMRenderFunction<\"output\", SliderRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SliderTrack": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SliderTrackRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SliderThumb": {
+  "inputRef": {
+   "type": "RefObject<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "index": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SliderThumbRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SliderFill": {
+  "offset": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SliderFillRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Switch": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"label\", SwitchRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SwitchField": {
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: boolean) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SwitchFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SwitchButton": {
+  "render": {
+   "type": "DOMRenderFunction<\"label\", SwitchButtonRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TableLoadMoreItem": {
+  "isLoading": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "direction": {
+   "type": "\"start\" | \"end\" | undefined",
+   "src": "aria"
+  },
+  "scrollOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"tr\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Table": {
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "RAC"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "treeColumn": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "sortDescriptor": {
+   "type": "SortDescriptor | undefined",
+   "src": "aria"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"table\", TableRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Row": {
+  "columns": {
+   "type": "Iterable<T> | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "RAC"
+  },
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"tr\", RowRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "Cell": {
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "colSpan": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"cell\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"td\", CellRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Column": {
+  "allowsSorting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isRowHeader": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "width": {
+   "type": "ColumnSize | null | undefined",
+   "src": "RAC"
+  },
+  "defaultWidth": {
+   "type": "ColumnSize | null | undefined",
+   "src": "RAC"
+  },
+  "minWidth": {
+   "type": "ColumnStaticSize | null | undefined",
+   "src": "RAC"
+  },
+  "maxWidth": {
+   "type": "ColumnStaticSize | null | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"cell\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"th\", ColumnRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColumnResizer": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ColumnResizerRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TableHeader": {
+  "columns": {
+   "type": "Iterable<T> | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"thead\", TableHeaderRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TableBody": {
+  "renderEmptyState": {
+   "type": "((props: TableBodyRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\" | \"tbody\", TableBodyRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ResizableTableContainer": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TableFooter": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tabs": {
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "selectedKey": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "keyboardActivation": {
+   "type": "\"manual\" | \"automatic\" | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TabsRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TabList": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TabListRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "TabPanels": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TabPanel": {
+  "shouldForceMount": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TabPanelRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tab": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: TabRenderProps) => ReactElement<unknown, string | …",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "TagGroup": {
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TagList": {
+  "renderEmptyState": {
+   "type": "((props: TagListRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TagListRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tag": {
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TagRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "Text": {
+  "elementType": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<any, any> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TextArea": {
+  "render": {
+   "type": "DOMRenderFunction<\"textarea\", InputRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TextField": {
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "\"text\" | \"search\" | (string & {}) | \"url\" | \"tel\" | \"email\" | \"password\" | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "minLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "pattern": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "inputMode": {
+   "type": "\"numeric\" | \"text\" | \"search\" | \"none\" | \"url\" | \"tel\" | \"email\" | \"decimal\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "autoCorrect": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "spellCheck": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "enterKeyHint": {
+   "type": "\"search\" | \"enter\" | \"done\" | \"go\" | \"next\" | \"previous\" | \"send\" | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TextFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TokenField": {
+  "role": {
+   "type": "\"textbox\" | \"searchbox\" | \"combobox\" | undefined",
+   "src": "aria"
+  },
+  "allowsNewlines": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TokenFieldRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TokenInput": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TokenInputRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Token": {
+  "render": {
+   "type": "DOMRenderFunction<\"span\", TokenRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "UNSTABLE_Toast": {
+  "toast": {
+   "type": "QueuedToast<T>",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ToastRenderProps<T>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "UNSTABLE_ToastList": {
+  "render": {
+   "type": "DOMRenderFunction<\"ol\", ToastRegionRenderProps<T>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "UNSTABLE_ToastRegion": {
+  "queue": {
+   "type": "ToastQueue<T>",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ToastRegionRenderProps<T>> | undefined",
+   "src": "RAC"
+  }
+ },
+ "UNSTABLE_ToastContent": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ToggleButton": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"button\", ToggleButtonRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "ToggleButtonGroup": {
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "\"single\" | \"multiple\" | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ToggleButtonGroupRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Toolbar": {
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", ToolbarRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TooltipTrigger": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "delay": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "closeDelay": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "trigger": {
+   "type": "\"focus\" | \"hover\" | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "Tooltip": {
+  "triggerRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "RAC"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isExiting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "placement": {
+   "type": "Placement | undefined",
+   "src": "RAC"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "offset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "arrowBoundaryOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TooltipRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "NavigationTree": {
+  "selectedRoute": {
+   "type": "string | null | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", NavigationTreeRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "NavigationTreeItem": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", NavigationTreeItemRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "NavigationTreeSection": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "NavigationTreeHeader": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TreeLoadMoreItem": {
+  "isLoading": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "scrollOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TreeLoadMoreItemRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tree": {
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "RAC"
+  },
+  "renderEmptyState": {
+   "type": "((props: TreeEmptyStateRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"none\" | \"clearSelection\" | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TreeRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  }
+ },
+ "TreeItem": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", TreeItemRenderProps> | undefined",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "aria"
+  },
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "TreeHeader": {
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TreeSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", undefined> | undefined",
+   "src": "RAC"
+  }
+ },
+ "DropIndicator": {
+  "target": {
+   "type": "DropTarget",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", DropIndicatorRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Virtualizer": {
+  "layout": {
+   "type": "LayoutClass<O> | ILayout<O>",
+   "src": "RAC"
+  },
+  "layoutOptions": {
+   "type": "O | undefined",
+   "src": "RAC"
+  },
+  "shouldObserveItemSize": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "RouterProvider": {
+  "navigate": {
+   "type": "(path: string, routerOptions: undefined) => void",
+   "src": "aria"
+  },
+  "useHref": {
+   "type": "((href: string) => string) | undefined",
+   "src": "aria"
+  }
+ },
+ "I18nProvider": {
+  "locale": {
+   "type": "string | undefined",
+   "src": "aria"
+  }
+ },
+ "Pressable": {
+  "isPressed": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCancelOnPointerExit": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "allowTextSelectionOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "Focusable": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "VisuallyHidden": {
+  "elementType": {
+   "type": "string | JSXElementConstructor<any> | undefined",
+   "src": "aria"
+  },
+  "isFocusable": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "role": {
+   "type": "AriaRole | undefined",
+   "src": "aria"
+  },
+  "tabIndex": {
+   "type": "number | undefined",
+   "src": "aria"
+  }
+ }
+}

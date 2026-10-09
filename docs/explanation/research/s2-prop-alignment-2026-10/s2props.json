@@ -1,0 +1,5340 @@
+{
+ "Accordion": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "allowsMultipleExpanded": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "S2"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "S2"
+  }
+ },
+ "AccordionItem": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isExpanded": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "defaultExpanded": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "AccordionItemTitle": {
+  "level": {
+   "type": "number | undefined",
+   "src": "S2"
+  }
+ },
+ "AccordionItemPanel": {
+  "role": {
+   "type": "\"group\" | \"region\" | undefined",
+   "src": "S2"
+  }
+ },
+ "ActionBar": {
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "selectedItemCount": {
+   "type": "number | \"all\" | undefined",
+   "src": "S2"
+  },
+  "scrollRef": {
+   "type": "RefObject<HTMLElement | null> | undefined",
+   "src": "S2"
+  }
+ },
+ "ActionButton": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "\"button\" | \"submit\" | \"reset\" | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formAction": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "aria"
+  },
+  "formEncType": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formMethod": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formNoValidate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "formTarget": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isPending": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "ActionButtonGroup": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isJustified": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "\"horizontal\" | \"vertical\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "ActionMenu": {
+  "menuSize": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | undefined",
+   "src": "S2"
+  },
+  "direction": {
+   "type": "\"start\" | \"end\" | \"bottom\" | \"top\" | \"left\" | \"right\" | undefined",
+   "src": "S2"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  }
+ },
+ "AlertDialog": {
+  "variant": {
+   "type": "\"confirmation\" | \"information\" | \"destructive\" | \"error\" | \"warning\" | undefined",
+   "src": "S2"
+  },
+  "title": {
+   "type": "string",
+   "src": "S2"
+  },
+  "cancelLabel": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "primaryActionLabel": {
+   "type": "string",
+   "src": "S2"
+  },
+  "secondaryActionLabel": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "isPrimaryActionDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isSecondaryActionDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "autoFocusButton": {
+   "type": "\"cancel\" | \"primary\" | \"secondary\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Avatar": {
+  "alt": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "src": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "16 | 20 | 24 | 28 | 32 | 36 | 40 | 44 | 48 | 56 | 64 | 80 | 96 | 112 | (number & {}) | `${number}lh` | undefined",
+   "src": "S2"
+  },
+  "isOverBackground": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "AvatarGroup": {
+  "label": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "16 | 20 | 24 | 28 | 32 | 36 | 40 | undefined",
+   "src": "S2"
+  }
+ },
+ "Badge": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "variant": {
+   "type": "\"accent\" | \"informative\" | \"neutral\" | \"positive\" | \"notice\" | \"negative\" | \"gray\" | \"red\" | \"orange\" | \"yellow\" | \"chartreuse\" | \"celery\" | \"green\" | \"seafoam\" | \"cyan\" | \"blue\" | \"indigo\" | \"purple\" | \"fuchsia\" | \"magenta\" | \"pink\" | \"turquoise\" | \"brown\" | \"cinnamon\" | \"silver\" | undefined",
+   "src": "S2"
+  },
+  "fillStyle": {
+   "type": "\"bold\" | \"subtle\" | \"outline\" | undefined",
+   "src": "S2"
+  },
+  "overflowMode": {
+   "type": "\"wrap\" | \"truncate\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Breadcrumbs": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "size": {
+   "type": "\"M\" | \"L\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Breadcrumb": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "Button": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "\"button\" | \"submit\" | \"reset\" | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formAction": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "aria"
+  },
+  "formEncType": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formMethod": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "formNoValidate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "formTarget": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isPending": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"accent\" | \"negative\" | \"premium\" | \"genai\" | undefined",
+   "src": "S2"
+  },
+  "fillStyle": {
+   "type": "\"outline\" | \"fill\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  }
+ },
+ "LinkButton": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"accent\" | \"negative\" | \"premium\" | \"genai\" | undefined",
+   "src": "S2"
+  },
+  "fillStyle": {
+   "type": "\"outline\" | \"fill\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  }
+ },
+ "ButtonGroup": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "\"horizontal\" | \"vertical\" | undefined",
+   "src": "S2"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Calendar": {
+  "errorMessage": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "visibleMonths": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "CalendarValueType<T | null, M> | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "M | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "defaultFocusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "selectionAlignment": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "CalendarValueType<T | null, M> | undefined",
+   "src": "aria"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  }
+ },
+ "Card": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"tertiary\" | \"quiet\" | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "AssetCard": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"tertiary\" | \"quiet\" | undefined",
+   "src": "S2"
+  }
+ },
+ "UserCard": {
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"tertiary\" | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "ProductCard": {
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"tertiary\" | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "CardView": {
+  "layout": {
+   "type": "\"grid\" | \"waterfall\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | \"tertiary\" | \"quiet\" | undefined",
+   "src": "S2"
+  },
+  "selectionStyle": {
+   "type": "\"checkbox\" | \"highlight\" | undefined",
+   "src": "S2"
+  },
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "renderActionBar": {
+   "type": "((selectedKeys: \"all\" | Set<Key>) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
+   "src": "S2"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "renderEmptyState": {
+   "type": "((props: GridListRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowTypeAhead": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_focusOnEntry": {
+   "type": "\"first\" | \"last\" | undefined",
+   "src": "RAC"
+  }
+ },
+ "Checkbox": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: boolean) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "CheckboxGroup": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string[] | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string[] | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string[]) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "CloseButton": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "ColorArea": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "xName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "yName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "aria"
+  },
+  "xChannel": {
+   "type": "ColorChannel | undefined",
+   "src": "aria"
+  },
+  "yChannel": {
+   "type": "ColorChannel | undefined",
+   "src": "aria"
+  }
+ },
+ "ColorField": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "prefix": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | null | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: Color | null) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "RAC"
+  },
+  "isWheelDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "channel": {
+   "type": "ColorChannel | undefined",
+   "src": "RAC"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "ColorSlider": {
+  "label": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "colorSpace": {
+   "type": "ColorSpace | undefined",
+   "src": "aria"
+  },
+  "channel": {
+   "type": "ColorChannel",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  }
+ },
+ "ColorSwatch": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "rounding": {
+   "type": "\"none\" | \"default\" | \"full\" | undefined",
+   "src": "S2"
+  },
+  "color": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "colorName": {
+   "type": "string | undefined",
+   "src": "aria"
+  }
+ },
+ "ColorSwatchPicker": {
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "rounding": {
+   "type": "\"none\" | \"default\" | \"full\" | undefined",
+   "src": "S2"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  }
+ },
+ "ColorWheel": {
+  "size": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | Color | undefined",
+   "src": "aria"
+  }
+ },
+ "ComboBox": {
+  "direction": {
+   "type": "\"bottom\" | \"top\" | undefined",
+   "src": "S2"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | undefined",
+   "src": "S2"
+  },
+  "menuWidth": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "shouldFocusWrap": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: ComboBoxValidationValue<\"single\">) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "defaultItems": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "inputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "defaultInputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "allowsCustomValue": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "menuTrigger": {
+   "type": "MenuTriggerAction | undefined",
+   "src": "aria"
+  },
+  "formValue": {
+   "type": "\"text\" | \"key\" | undefined",
+   "src": "RAC"
+  },
+  "selectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "prefix": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "ComboBoxItem": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "ComboBoxSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "ContextualHelp": {
+  "placement": {
+   "type": "Placement | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "offset": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "variant": {
+   "type": "\"info\" | \"help\" | undefined",
+   "src": "S2"
+  }
+ },
+ "ContextualHelpPopover": {
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "placement": {
+   "type": "Placement | undefined",
+   "src": "aria"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "offset": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "triggerRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "RAC"
+  },
+  "getTargetRect": {
+   "type": "((target: Element) => DOMRect | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "hideArrow": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "padding": {
+   "type": "\"none\" | \"default\" | undefined",
+   "src": "S2"
+  }
+ },
+ "DateField": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedDateValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "24 | 12 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "DatePicker": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "maxVisibleMonths": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | (() => boolean) | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedDateValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "24 | 12 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "DateRangePicker": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "maxVisibleMonths": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | (() => boolean) | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue, anchorDate: CalendarDate | null) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: RangeValue<MappedDateValue<T>>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "24 | 12 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "Granularity | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "allowsNonContiguousRanges": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "startName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "endName": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  },
+  "commitBehavior": {
+   "type": "\"reset\" | \"clear\" | \"select\" | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "Disclosure": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isExpanded": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultExpanded": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "DisclosurePanel": {
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "role": {
+   "type": "\"group\" | \"region\" | undefined",
+   "src": "RAC"
+  },
+  "labelElementType": {
+   "type": "ElementType | undefined",
+   "src": "aria"
+  }
+ },
+ "DisclosureTitle": {
+  "level": {
+   "type": "number | undefined",
+   "src": "S2"
+  }
+ },
+ "Heading": {
+  "level": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "Header": {
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "Content": {
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "Footer": {
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "Text": {
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "Keyboard": {
+  "isHidden": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemScope": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "itemType": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemID": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "itemRef": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "Dialog": {
+  "isDismissible": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "CustomDialog": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"fullscreen\" | \"fullscreenTakeover\" | undefined",
+   "src": "S2"
+  },
+  "isDismissible": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "padding": {
+   "type": "\"none\" | \"default\" | undefined",
+   "src": "S2"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "FullscreenDialog": {
+  "variant": {
+   "type": "\"fullscreen\" | \"fullscreenTakeover\" | undefined",
+   "src": "S2"
+  },
+  "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "DialogTrigger": {
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "Divider": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "\"horizontal\" | \"vertical\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  }
+ },
+ "DropZone": {
+  "isFilled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "replaceMessage": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "getDropOperation": {
+   "type": "((types: DragTypes, allowedOperations: DropOperation[]) => DropOperation) | undefined",
+   "src": "aria"
+  }
+ },
+ "Form": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "\"_self\" | \"_blank\" | \"_parent\" | \"_top\" | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "autoComplete": {
+   "type": "\"off\" | \"on\" | undefined",
+   "src": "aria"
+  },
+  "autoCapitalize": {
+   "type": "\"none\" | \"off\" | \"on\" | \"sentences\" | \"words\" | \"characters\" | undefined",
+   "src": "aria"
+  },
+  "role": {
+   "type": "\"search\" | \"presentation\" | undefined",
+   "src": "aria"
+  },
+  "validationErrors": {
+   "type": "ValidationErrors | undefined",
+   "src": "aria"
+  },
+  "action": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "aria"
+  },
+  "encType": {
+   "type": "\"application/x-www-form-urlencoded\" | \"multipart/form-data\" | \"text/plain\" | undefined",
+   "src": "aria"
+  },
+  "method": {
+   "type": "\"dialog\" | \"get\" | \"post\" | undefined",
+   "src": "aria"
+  }
+ },
+ "IllustratedMessage": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "\"horizontal\" | \"vertical\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Image": {
+  "src": {
+   "type": "string | ImageSource[] | undefined",
+   "src": "S2"
+  },
+  "alt": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "crossOrigin": {
+   "type": "\"anonymous\" | \"use-credentials\" | undefined",
+   "src": "S2"
+  },
+  "decoding": {
+   "type": "\"auto\" | \"async\" | \"sync\" | undefined",
+   "src": "S2"
+  },
+  "fetchPriority": {
+   "type": "\"auto\" | \"high\" | \"low\" | undefined",
+   "src": "S2"
+  },
+  "loading": {
+   "type": "\"eager\" | \"lazy\" | undefined",
+   "src": "S2"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "S2"
+  },
+  "width": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "height": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "renderError": {
+   "type": "(() => ReactNode) | undefined",
+   "src": "S2"
+  },
+  "group": {
+   "type": "ImageGroup | undefined",
+   "src": "S2"
+  },
+  "itemProp": {
+   "type": "string | undefined",
+   "src": "S2"
+  }
+ },
+ "ImageCoordinator": {
+  "timeout": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "group": {
+   "type": "ImageGroup | undefined",
+   "src": "S2"
+  }
+ },
+ "InlineAlert": {
+  "autoFocus": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "variant": {
+   "type": "\"informative\" | \"neutral\" | \"positive\" | \"notice\" | \"negative\" | undefined",
+   "src": "S2"
+  },
+  "fillStyle": {
+   "type": "\"border\" | \"subtleFill\" | \"boldFill\" | undefined",
+   "src": "S2"
+  }
+ },
+ "LabeledValue": {
+  "value": {
+   "type": "string | number | ZonedDateTime | CalendarDate | CalendarDateTime | string[] | RangeValue<number> | Date | Time | RangeValue<DateTime> | ReactElement<unknown, string | JSXElementConstructor<any>>",
+   "src": "S2"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | DateTimeFormatOptions | ListFormatOptions | undefined",
+   "src": "S2"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Link": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "variant": {
+   "type": "\"primary\" | \"secondary\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "isStandalone": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "ListView": {
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "renderActionBar": {
+   "type": "((selectedKeys: \"all\" | Set<Key>) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
+   "src": "S2"
+  },
+  "hideLinkOutIcon": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "renderEmptyState": {
+   "type": "((props: GridListRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disallowTypeAhead": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_focusOnEntry": {
+   "type": "\"first\" | \"last\" | undefined",
+   "src": "RAC"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "selectionStyle": {
+   "type": "\"checkbox\" | \"highlight\" | undefined",
+   "src": "S2"
+  },
+  "overflowMode": {
+   "type": "\"wrap\" | \"truncate\" | undefined",
+   "src": "S2"
+  }
+ },
+ "ListViewItem": {
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "DragPreview": {
+  "items": {
+   "type": "DragItem[]",
+   "src": "S2"
+  },
+  "overflowMode": {
+   "type": "\"wrap\" | \"truncate\" | undefined",
+   "src": "S2"
+  }
+ },
+ "MenuItem": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "MenuTrigger": {
+  "align": {
+   "type": "\"start\" | \"end\" | undefined",
+   "src": "S2"
+  },
+  "direction": {
+   "type": "\"start\" | \"end\" | \"bottom\" | \"top\" | \"left\" | \"right\" | undefined",
+   "src": "S2"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "trigger": {
+   "type": "MenuTriggerType | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "Menu": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "hideLinkOutIcon": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "isVirtualized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "shouldFocusWrap": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "MenuSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "UnavailableMenuItemTrigger": {
+  "isUnavailable": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "Meter": {
+  "label": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "valueLabel": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "variant": {
+   "type": "\"informative\" | \"positive\" | \"notice\" | \"negative\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "S2"
+  }
+ },
+ "NotificationBadge": {
+  "value": {
+   "type": "number | null | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  }
+ },
+ "NumberField": {
+  "hideStepper": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "prefix": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: number) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "isWheelDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "step": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "commitBehavior": {
+   "type": "\"validate\" | \"snap\" | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "decrementAriaLabel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "incrementAriaLabel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "Picker": {
+  "direction": {
+   "type": "\"bottom\" | \"top\" | undefined",
+   "src": "S2"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | undefined",
+   "src": "S2"
+  },
+  "menuWidth": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "renderValue": {
+   "type": "((selectedItems: T[]) => ReactNode) | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnSelect": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "M | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "ValueType<M> | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: ValidationType<M>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "selectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | null | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "PickerItem": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "PickerSection": {
+  "value": {
+   "type": "T | undefined",
+   "src": "RAC"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "Popover": {
+  "padding": {
+   "type": "\"none\" | \"default\" | undefined",
+   "src": "S2"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "placement": {
+   "type": "Placement | undefined",
+   "src": "aria"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "offset": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "triggerRef": {
+   "type": "RefObject<Element | null> | undefined",
+   "src": "RAC"
+  },
+  "getTargetRect": {
+   "type": "((target: Element) => DOMRect | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "isNonModal": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "hideArrow": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
+  },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "ProgressBar": {
+  "label": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "aria"
+  },
+  "valueLabel": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "S2"
+  }
+ },
+ "ProgressCircle": {
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "isIndeterminate": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Provider": {
+  "locale": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "router": {
+   "type": "Router | undefined",
+   "src": "S2"
+  },
+  "colorScheme": {
+   "type": "ColorScheme | undefined",
+   "src": "S2"
+  },
+  "background": {
+   "type": "\"base\" | \"layer-1\" | \"layer-2\" | undefined",
+   "src": "S2"
+  },
+  "elementType": {
+   "type": "keyof IntrinsicElements | undefined",
+   "src": "S2"
+  }
+ },
+ "RadioGroup": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "Radio": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string",
+   "src": "aria"
+  },
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  }
+ },
+ "RangeCalendar": {
+  "errorMessage": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "visibleMonths": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "autoFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "isDateUnavailable": {
+   "type": "((date: DateValue, anchorDate: CalendarDate | null) => boolean) | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "defaultFocusedValue": {
+   "type": "DateValue | null | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "pageBehavior": {
+   "type": "PageBehavior | undefined",
+   "src": "aria"
+  },
+  "firstDayOfWeek": {
+   "type": "\"sun\" | \"mon\" | \"tue\" | \"wed\" | \"thu\" | \"fri\" | \"sat\" | undefined",
+   "src": "aria"
+  },
+  "selectionAlignment": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "RangeValue<T> | null | undefined",
+   "src": "aria"
+  },
+  "createCalendar": {
+   "type": "((identifier: CalendarIdentifier) => Calendar) | undefined",
+   "src": "RAC"
+  },
+  "allowsNonContiguousRanges": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "commitBehavior": {
+   "type": "\"reset\" | \"clear\" | \"select\" | undefined",
+   "src": "aria"
+  }
+ },
+ "RangeSlider": {
+  "startName": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "endName": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "RangeValue<number> | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "RangeValue<number> | undefined",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "step": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "RAC"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "trackStyle": {
+   "type": "\"thin\" | \"thick\" | undefined",
+   "src": "S2"
+  },
+  "thumbStyle": {
+   "type": "\"default\" | \"precise\" | undefined",
+   "src": "S2"
+  }
+ },
+ "SearchField": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "(string & {}) | \"text\" | \"search\" | \"url\" | \"tel\" | \"email\" | \"password\" | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "minLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "pattern": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "inputMode": {
+   "type": "\"none\" | \"text\" | \"search\" | \"url\" | \"tel\" | \"email\" | \"numeric\" | \"decimal\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "autoCorrect": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "spellCheck": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "enterKeyHint": {
+   "type": "\"search\" | \"enter\" | \"done\" | \"go\" | \"next\" | \"previous\" | \"send\" | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "SegmentedControl": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isJustified": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "selectedKey": {
+   "type": "Key | null | undefined",
+   "src": "S2"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | undefined",
+   "src": "S2"
+  }
+ },
+ "SegmentedControlItem": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "SelectBox": {
+  "textValue": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "SelectBoxGroup": {
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "S2"
+  },
+  "selectionMode": {
+   "type": "\"single\" | \"multiple\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  }
+ },
+ "SideNav": {
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "selectedRoute": {
+   "type": "string | null | undefined",
+   "src": "RAC"
+  }
+ },
+ "SideNavItem": {
+  "textValue": {
+   "type": "string",
+   "src": "S2"
+  },
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "aria"
+  }
+ },
+ "SideNavSection": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "SideNavPanel": {
+  "isCollapsed": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "defaultCollapsed": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "Slider": {
+  "fillOffset": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "minValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "step": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "formatOptions": {
+   "type": "NumberFormatOptions | undefined",
+   "src": "RAC"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "trackStyle": {
+   "type": "\"thin\" | \"thick\" | undefined",
+   "src": "S2"
+  },
+  "thumbStyle": {
+   "type": "\"default\" | \"precise\" | undefined",
+   "src": "S2"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  }
+ },
+ "Skeleton": {
+  "isLoading": {
+   "type": "boolean",
+   "src": "S2"
+  }
+ },
+ "StatusLight": {
+  "role": {
+   "type": "\"status\" | undefined",
+   "src": "S2"
+  },
+  "variant": {
+   "type": "\"informative\" | \"neutral\" | \"positive\" | \"notice\" | \"negative\" | \"yellow\" | \"chartreuse\" | \"celery\" | \"seafoam\" | \"cyan\" | \"indigo\" | \"purple\" | \"fuchsia\" | \"magenta\" | \"pink\" | \"turquoise\" | \"brown\" | \"cinnamon\" | \"silver\" | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  }
+ },
+ "Switch": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: boolean) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "inputRef": {
+   "type": "Ref<HTMLInputElement | null> | undefined",
+   "src": "RAC"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "TableView": {
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "RAC"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks | undefined",
+   "src": "RAC"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "treeColumn": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "sortDescriptor": {
+   "type": "SortDescriptor | undefined",
+   "src": "aria"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | \"spacious\" | undefined",
+   "src": "S2"
+  },
+  "overflowMode": {
+   "type": "\"wrap\" | \"truncate\" | undefined",
+   "src": "S2"
+  },
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  },
+  "renderActionBar": {
+   "type": "((selectedKeys: \"all\" | Set<Key>) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
+   "src": "S2"
+  },
+  "selectionStyle": {
+   "type": "\"checkbox\" | \"highlight\" | undefined",
+   "src": "S2"
+  }
+ },
+ "TableHeader": {
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "columns": {
+   "type": "Iterable<T> | undefined",
+   "src": "RAC"
+  }
+ },
+ "TableBody": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "renderEmptyState": {
+   "type": "((props: TableBodyRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "Row": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "columns": {
+   "type": "Iterable<T> | undefined",
+   "src": "RAC"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "Cell": {
+  "isSticky": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"cell\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "colSpan": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "S2"
+  },
+  "showDivider": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "Column": {
+  "showDivider": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "allowsResizing": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "S2"
+  },
+  "menuItems": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"cell\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "width": {
+   "type": "ColumnSize | null | undefined",
+   "src": "RAC"
+  },
+  "allowsSorting": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isRowHeader": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "defaultWidth": {
+   "type": "ColumnSize | null | undefined",
+   "src": "RAC"
+  },
+  "minWidth": {
+   "type": "ColumnStaticSize | null | undefined",
+   "src": "RAC"
+  },
+  "maxWidth": {
+   "type": "ColumnStaticSize | null | undefined",
+   "src": "RAC"
+  }
+ },
+ "EditableCell": {
+  "renderEditing": {
+   "type": "() => ReactNode",
+   "src": "S2"
+  },
+  "isSaving": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "action": {
+   "type": "string | ((formData: FormData) => void | Promise<void>) | undefined",
+   "src": "S2"
+  },
+  "align": {
+   "type": "\"start\" | \"end\" | \"center\" | undefined",
+   "src": "S2"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"cell\" | undefined",
+   "src": "RAC"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "colSpan": {
+   "type": "number | undefined",
+   "src": "RAC"
+  },
+  "showDivider": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "TableFooter": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tabs": {
+  "density": {
+   "type": "\"compact\" | \"regular\" | undefined",
+   "src": "S2"
+  },
+  "labelBehavior": {
+   "type": "\"show\" | \"hide\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "orientation": {
+   "type": "Orientation | undefined",
+   "src": "aria"
+  },
+  "selectedKey": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKey": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "keyboardActivation": {
+   "type": "\"manual\" | \"automatic\" | undefined",
+   "src": "aria"
+  }
+ },
+ "TabList": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  }
+ },
+ "Tab": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  }
+ },
+ "TabPanel": {
+  "shouldForceMount": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ },
+ "TagGroup": {
+  "description": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | undefined",
+   "src": "S2"
+  },
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "renderEmptyState": {
+   "type": "(() => ReactNode) | undefined",
+   "src": "S2"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "errorMessage": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "maxRows": {
+   "type": "number | undefined",
+   "src": "S2"
+  },
+  "groupActionLabel": {
+   "type": "string | undefined",
+   "src": "S2"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "selectionBehavior": {
+   "type": "SelectionBehavior | undefined",
+   "src": "aria"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  }
+ },
+ "Tag": {
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  }
+ },
+ "TextArea": {
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "defaultValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "minLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "inputMode": {
+   "type": "\"none\" | \"text\" | \"search\" | \"url\" | \"tel\" | \"email\" | \"numeric\" | \"decimal\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "autoCorrect": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "spellCheck": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "enterKeyHint": {
+   "type": "\"search\" | \"enter\" | \"done\" | \"go\" | \"next\" | \"previous\" | \"send\" | undefined",
+   "src": "aria"
+  },
+  "prefix": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  }
+ },
+ "TextField": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "prefix": {
+   "type": "ReactNode",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "type": {
+   "type": "(string & {}) | \"text\" | \"search\" | \"url\" | \"tel\" | \"email\" | \"password\" | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "defaultValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: string) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "minLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "maxLength": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "pattern": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "inputMode": {
+   "type": "\"none\" | \"text\" | \"search\" | \"url\" | \"tel\" | \"email\" | \"numeric\" | \"decimal\" | undefined",
+   "src": "aria"
+  },
+  "autoComplete": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "autoCorrect": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "spellCheck": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "enterKeyHint": {
+   "type": "\"search\" | \"enter\" | \"done\" | \"go\" | \"next\" | \"previous\" | \"send\" | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  },
+  "placeholder": {
+   "type": "string | undefined",
+   "src": "RAC"
+  }
+ },
+ "TimeField": {
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "form": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "name": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "value": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "minValue": {
+   "type": "TimeValue | null | undefined",
+   "src": "aria"
+  },
+  "maxValue": {
+   "type": "TimeValue | null | undefined",
+   "src": "aria"
+  },
+  "isReadOnly": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isInvalid": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultValue": {
+   "type": "T | null | undefined",
+   "src": "aria"
+  },
+  "validationBehavior": {
+   "type": "\"native\" | \"aria\" | undefined",
+   "src": "RAC"
+  },
+  "isRequired": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "validate": {
+   "type": "((value: MappedTimeValue<T>) => true | ValidationError | null | undefined) | undefined",
+   "src": "aria"
+  },
+  "placeholderValue": {
+   "type": "T | undefined",
+   "src": "aria"
+  },
+  "hourCycle": {
+   "type": "24 | 12 | undefined",
+   "src": "aria"
+  },
+  "granularity": {
+   "type": "\"hour\" | \"minute\" | \"second\" | undefined",
+   "src": "aria"
+  },
+  "hideTimeZone": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldForceLeadingZeros": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "labelPosition": {
+   "type": "LabelPosition | undefined",
+   "src": "aria"
+  },
+  "labelAlign": {
+   "type": "Alignment | undefined",
+   "src": "aria"
+  },
+  "necessityIndicator": {
+   "type": "NecessityIndicator | undefined",
+   "src": "aria"
+  },
+  "contextualHelp": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "label": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "description": {
+   "type": "ReactNode",
+   "src": "aria"
+  },
+  "errorMessage": {
+   "type": "ReactNode | ((v: ValidationResult) => ReactNode)",
+   "src": "aria"
+  }
+ },
+ "ToastContainer": {
+  "placement": {
+   "type": "ToastPlacement | undefined",
+   "src": "S2"
+  }
+ },
+ "ToggleButton": {
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "preventFocusOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "excludeFromTabOrder": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isSelected": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  }
+ },
+ "ToggleButtonGroup": {
+  "isEmphasized": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "size": {
+   "type": "\"S\" | \"M\" | \"L\" | \"XL\" | \"XS\" | undefined",
+   "src": "S2"
+  },
+  "density": {
+   "type": "\"compact\" | \"regular\" | undefined",
+   "src": "S2"
+  },
+  "isQuiet": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "isJustified": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "staticColor": {
+   "type": "\"black\" | \"white\" | \"auto\" | undefined",
+   "src": "S2"
+  },
+  "orientation": {
+   "type": "\"horizontal\" | \"vertical\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "selectionMode": {
+   "type": "\"single\" | \"multiple\" | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  }
+ },
+ "TooltipTrigger": {
+  "placement": {
+   "type": "\"start\" | \"end\" | \"bottom\" | \"top\" | \"left\" | \"right\" | undefined",
+   "src": "S2"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "trigger": {
+   "type": "\"focus\" | \"hover\" | undefined",
+   "src": "aria"
+  },
+  "delay": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnPress": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldFlip": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "containerPadding": {
+   "type": "number | undefined",
+   "src": "aria"
+  },
+  "crossOffset": {
+   "type": "number | undefined",
+   "src": "aria"
+  }
+ },
+ "TreeView": {
+  "autoFocus": {
+   "type": "boolean | FocusStrategy | undefined",
+   "src": "aria"
+  },
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "disabledKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "renderEmptyState": {
+   "type": "((props: TreeEmptyStateRenderProps) => ReactNode) | undefined",
+   "src": "RAC"
+  },
+  "escapeKeyBehavior": {
+   "type": "\"clearSelection\" | \"none\" | undefined",
+   "src": "aria"
+  },
+  "selectionMode": {
+   "type": "SelectionMode | undefined",
+   "src": "aria"
+  },
+  "disallowEmptySelection": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "selectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "defaultSelectedKeys": {
+   "type": "Iterable<Key> | \"all\" | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "RAC"
+  },
+  "keyboardNavigationBehavior": {
+   "type": "\"arrow\" | \"tab\" | undefined",
+   "src": "aria"
+  },
+  "disabledBehavior": {
+   "type": "DisabledBehavior | undefined",
+   "src": "RAC"
+  },
+  "shouldSelectOnPressUp": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "dragAndDropHooks": {
+   "type": "DragAndDropHooks<NoInfer<T>> | undefined",
+   "src": "RAC"
+  },
+  "expandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "defaultExpandedKeys": {
+   "type": "Iterable<Key> | undefined",
+   "src": "aria"
+  },
+  "renderActionBar": {
+   "type": "((selectedKeys: \"all\" | Set<Key>) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
+   "src": "S2"
+  },
+  "selectionStyle": {
+   "type": "\"checkbox\" | \"highlight\" | undefined",
+   "src": "S2"
+  }
+ },
+ "TreeViewItem": {
+  "hasChildItems": {
+   "type": "boolean | undefined",
+   "src": "S2"
+  },
+  "href": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "target": {
+   "type": "HTMLAttributeAnchorTarget | undefined",
+   "src": "aria"
+  },
+  "rel": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "isDisabled": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "value": {
+   "type": "object | undefined",
+   "src": "RAC"
+  },
+  "hrefLang": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "download": {
+   "type": "string | boolean | undefined",
+   "src": "aria"
+  },
+  "ping": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "referrerPolicy": {
+   "type": "HTMLAttributeReferrerPolicy | undefined",
+   "src": "aria"
+  },
+  "routerOptions": {
+   "type": "undefined",
+   "src": "aria"
+  },
+  "textValue": {
+   "type": "string",
+   "src": "RAC"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "aria"
+  },
+  "allowsArrowNavigation": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "TreeViewLoadMoreItem": {
+  "loadingState": {
+   "type": "LoadingState | undefined",
+   "src": "S2"
+  }
+ },
+ "CenterBaseline": {
+  "role": {
+   "type": "AriaRole | undefined",
+   "src": "aria"
+  },
+  "tabIndex": {
+   "type": "number | undefined",
+   "src": "aria"
+  }
+ },
+ "Autocomplete": {
+  "filter": {
+   "type": "((textValue: string, inputValue: string, node: Node<T>) => boolean) | undefined",
+   "src": "aria"
+  },
+  "disableAutoFocusFirst": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "disableVirtualFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "inputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  },
+  "defaultInputValue": {
+   "type": "string | undefined",
+   "src": "aria"
+  }
+ },
+ "Collection": {
+  "items": {
+   "type": "Iterable<T> | undefined",
+   "src": "aria"
+  },
+  "dependencies": {
+   "type": "readonly any[] | undefined",
+   "src": "aria"
+  },
+  "idScope": {
+   "type": "Key | undefined",
+   "src": "aria"
+  },
+  "addIdAndValue": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "FileTrigger": {
+  "acceptedFileTypes": {
+   "type": "readonly string[] | undefined",
+   "src": "RAC"
+  },
+  "allowsMultiple": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "defaultCamera": {
+   "type": "\"user\" | \"environment\" | undefined",
+   "src": "RAC"
+  },
+  "acceptDirectory": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  }
+ }
+}

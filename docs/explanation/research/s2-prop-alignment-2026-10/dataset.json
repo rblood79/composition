@@ -1,0 +1,4302 @@
+[
+ {
+  "type": "Autocomplete",
+  "s2": "Autocomplete",
+  "same": [
+   "defaultInputValue",
+   "disableAutoFocusFirst",
+   "disableVirtualFocus"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "inputValue"
+  ],
+  "s2behav": [
+   "filter"
+  ]
+ },
+ {
+  "type": "Avatar",
+  "s2": "Avatar",
+  "same": [
+   "src",
+   "alt",
+   "size"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [
+   "isDisabled"
+  ],
+  "own": [
+   "initials"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isOverBackground"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "AvatarGroup",
+  "s2": "AvatarGroup",
+  "same": [
+   "size"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "isDisabled"
+  ],
+  "editor": [],
+  "s2vis": [
+   "label"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Badge",
+  "s2": "Badge",
+  "same": [
+   "variant",
+   "fillStyle"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "isDot",
+   "isPulsing",
+   "isDisabled"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "overflowMode"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Breadcrumb",
+  "s2": "Breadcrumb",
+  "same": [
+   "href"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [
+   "size"
+  ],
+  "own": [],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [
+   "hrefLang",
+   "target",
+   "rel",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Breadcrumbs",
+  "s2": "Breadcrumbs",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "S",
+     "M",
+     "L"
+    ],
+    "s2": [
+     "L",
+     "M"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "items",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "Button",
+  "s2": "Button",
+  "same": [
+   "variant",
+   "fillStyle",
+   "staticColor",
+   "type",
+   "isPending",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "slot",
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": [
+   "preventFocusOnPress",
+   "form",
+   "formAction",
+   "formEncType",
+   "formMethod",
+   "formNoValidate",
+   "formTarget",
+   "name",
+   "excludeFromTabOrder"
+  ]
+ },
+ {
+  "type": "ButtonGroup",
+  "s2": "ButtonGroup",
+  "same": [
+   "orientation",
+   "align",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Calendar",
+  "s2": "Calendar",
+  "same": [
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "autoFocus",
+   "pageBehavior",
+   "minValue",
+   "maxValue",
+   "errorMessage"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "maxVisibleMonths",
+   "locale",
+   "calendarSystem"
+  ],
+  "editor": [],
+  "s2vis": [
+   "visibleMonths",
+   "selectionMode",
+   "firstDayOfWeek",
+   "selectionAlignment"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "focusedValue",
+   "defaultFocusedValue",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "isDateUnavailable",
+   "createCalendar"
+  ]
+ },
+ {
+  "type": "CalendarGrid",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "defaultToday",
+   "dayOffset",
+   "totalDays",
+   "todayDate"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarHeader",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Card",
+  "s2": "Card",
+  "same": [
+   "variant",
+   "href",
+   "target",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "title",
+   "description",
+   "accentColor",
+   "isSelected"
+  ],
+  "editor": [],
+  "s2vis": [
+   "density"
+  ],
+  "s2link": [
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": [
+   "textValue",
+   "focusMode",
+   "allowsArrowNavigation"
+  ]
+ },
+ {
+  "type": "CardContent",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CardFooter",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CardHeader",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CardPreview",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CardView",
+  "s2": "CardView",
+  "same": [
+   "layout",
+   "density",
+   "selectionMode",
+   "selectionStyle"
+  ],
+  "diff": [
+   {
+    "prop": "variant",
+    "ours": [
+     "default"
+    ],
+    "s2": [
+     "primary",
+     "quiet",
+     "secondary",
+     "tertiary"
+    ]
+   },
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "orientation"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": [
+   "loadingState",
+   "renderActionBar",
+   "autoFocus",
+   "items",
+   "renderEmptyState",
+   "escapeKeyBehavior",
+   "disallowEmptySelection",
+   "dependencies",
+   "disabledBehavior",
+   "shouldSelectOnPressUp",
+   "disallowTypeAhead",
+   "dragAndDropHooks",
+   "UNSTABLE_focusOnEntry"
+  ]
+ },
+ {
+  "type": "Cell",
+  "s2": "Cell",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "isSticky",
+   "colSpan",
+   "align",
+   "showDivider"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "textValue",
+   "focusMode",
+   "allowsArrowNavigation"
+  ]
+ },
+ {
+  "type": "Chart",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "chartType",
+   "dimension",
+   "metric",
+   "color",
+   "dataMode",
+   "valueFields",
+   "seriesConfig",
+   "valueFormat",
+   "valueLocale",
+   "valueFractionDigits",
+   "valueCurrency",
+   "valuePercentUnit",
+   "budgetOverflow",
+   "budgetAggregate",
+   "budgetAxis",
+   "budgetOthersLabel",
+   "dimensionScale",
+   "dimensionFormat",
+   "dimensionLabelFormat",
+   "referenceLines",
+   "data",
+   "orientation",
+   "stackType",
+   "curve",
+   "showDots",
+   "showValueLabels",
+   "labelKey",
+   "palette",
+   "colorBy",
+   "innerRadius",
+   "gridType",
+   "startAngle",
+   "endAngle",
+   "showTotal",
+   "showSpokes",
+   "gridRings",
+   "fillGrid",
+   "fillArea",
+   "showTooltip",
+   "showAxis",
+   "showGrid",
+   "showLegend",
+   "legendPosition",
+   "isAnimationActive",
+   "animationBegin",
+   "animationDuration",
+   "animationEasing",
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Checkbox",
+  "s2": "Checkbox",
+  "same": [
+   "description",
+   "isSelected",
+   "isIndeterminate",
+   "isDisabled",
+   "isInvalid",
+   "errorMessage",
+   "isReadOnly",
+   "isRequired",
+   "name",
+   "value"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "isEmphasized"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultSelected"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validationBehavior",
+   "validate",
+   "inputRef"
+  ]
+ },
+ {
+  "type": "CheckboxButton",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CheckboxGroup",
+  "s2": "CheckboxGroup",
+  "same": [
+   "label",
+   "description",
+   "orientation",
+   "labelPosition",
+   "name",
+   "isRequired",
+   "isDisabled",
+   "isInvalid",
+   "isReadOnly",
+   "necessityIndicator",
+   "errorMessage"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isEmphasized",
+   "labelAlign",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "validationBehavior",
+   "validate"
+  ]
+ },
+ {
+  "type": "CheckboxIndicator",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CheckboxItems",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Code",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ColorArea",
+  "s2": "ColorArea",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "xName",
+   "yName",
+   "colorSpace",
+   "xChannel",
+   "yChannel"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form"
+  ]
+ },
+ {
+  "type": "ColorField",
+  "s2": "ColorField",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "errorMessage",
+   "name",
+   "channel",
+   "colorSpace",
+   "validationBehavior",
+   "necessityIndicator",
+   "isWheelDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "prefix",
+   "contextualHelp",
+   "placeholder"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validate"
+  ]
+ },
+ {
+  "type": "ColorPicker",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "defaultValue"
+  ],
+  "v3": [
+   "size"
+  ],
+  "own": [
+   "variant"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ColorSlider",
+  "s2": "ColorSlider",
+  "same": [
+   "isDisabled",
+   "orientation"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "label",
+   "colorSpace",
+   "channel",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "name"
+  ]
+ },
+ {
+  "type": "ColorSwatch",
+  "s2": "ColorSwatch",
+  "same": [
+   "color"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "rounding",
+   "colorName"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ColorSwatchPicker",
+  "s2": "ColorSwatchPicker",
+  "same": [
+   "defaultValue",
+   "density",
+   "rounding"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [
+   "layout"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "isDisabled"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": []
+ },
+ {
+  "type": "ColorSwatchPickerItem",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "color",
+   "isDisabled"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ColorWheel",
+  "s2": "ColorWheel",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "size"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "name"
+  ]
+ },
+ {
+  "type": "Column",
+  "s2": "Column",
+  "same": [
+   "isRowHeader"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "showDivider",
+   "allowsResizing",
+   "align",
+   "width",
+   "allowsSorting",
+   "defaultWidth",
+   "minWidth",
+   "maxWidth"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "menuItems",
+   "textValue",
+   "focusMode",
+   "allowsArrowNavigation"
+  ]
+ },
+ {
+  "type": "ComboBox",
+  "s2": "ComboBox",
+  "same": [
+   "label",
+   "description",
+   "placeholder",
+   "labelPosition",
+   "labelAlign",
+   "isDisabled",
+   "isRequired",
+   "isReadOnly",
+   "isInvalid",
+   "allowsCustomValue",
+   "menuTrigger",
+   "name",
+   "errorMessage",
+   "necessityIndicator",
+   "validationBehavior"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "iconName"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "direction",
+   "align",
+   "menuWidth",
+   "prefix",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "defaultItems",
+   "inputValue",
+   "defaultInputValue",
+   "selectedKey",
+   "defaultSelectedKey"
+  ],
+  "s2behav": [
+   "loadingState",
+   "form",
+   "items",
+   "shouldFocusWrap",
+   "validate",
+   "formValue",
+   "dependencies",
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "DateField",
+  "s2": "DateField",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "hideTimeZone",
+   "shouldForceLeadingZeros",
+   "granularity",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "errorMessage",
+   "minValue",
+   "maxValue",
+   "hourCycle",
+   "name",
+   "necessityIndicator",
+   "validationBehavior",
+   "placeholderValue"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "locale",
+   "calendarSystem"
+  ],
+  "editor": [],
+  "s2vis": [
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "isDateUnavailable",
+   "validate",
+   "autoComplete"
+  ]
+ },
+ {
+  "type": "DateInput",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size",
+   "isDisabled"
+  ],
+  "editor": [
+   "slot"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "DatePicker",
+  "s2": "DatePicker",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "isDisabled",
+   "isReadOnly",
+   "granularity",
+   "errorMessage",
+   "minValue",
+   "maxValue",
+   "name",
+   "isRequired",
+   "isInvalid",
+   "necessityIndicator",
+   "hideTimeZone",
+   "pageBehavior",
+   "shouldForceLeadingZeros",
+   "shouldCloseOnSelect",
+   "maxVisibleMonths",
+   "validationBehavior"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "iconName",
+   "locale",
+   "calendarSystem"
+  ],
+  "editor": [],
+  "s2vis": [
+   "firstDayOfWeek",
+   "placeholderValue",
+   "hourCycle",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "isOpen",
+   "defaultOpen",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "isDateUnavailable",
+   "validate",
+   "autoComplete",
+   "createCalendar",
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "DateRangePicker",
+  "s2": "DateRangePicker",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "isDisabled",
+   "isReadOnly",
+   "granularity",
+   "errorMessage",
+   "minValue",
+   "maxValue",
+   "startName",
+   "endName",
+   "isRequired",
+   "isInvalid",
+   "necessityIndicator",
+   "hourCycle",
+   "hideTimeZone",
+   "pageBehavior",
+   "shouldForceLeadingZeros",
+   "shouldCloseOnSelect",
+   "maxVisibleMonths",
+   "allowsNonContiguousRanges",
+   "validationBehavior"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "iconName",
+   "locale",
+   "calendarSystem"
+  ],
+  "editor": [],
+  "s2vis": [
+   "firstDayOfWeek",
+   "placeholderValue",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "isOpen",
+   "defaultOpen",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "isDateUnavailable",
+   "validate",
+   "createCalendar",
+   "commitBehavior",
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "Description",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Dialog",
+  "s2": "Dialog",
+  "same": [
+   "role"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "isDismissible"
+  ],
+  "s2link": [],
+  "s2state": [
+   "isEntering"
+  ],
+  "s2behav": [
+   "isKeyboardDismissDisabled"
+  ]
+ },
+ {
+  "type": "DialogFooter",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "DialogTrigger",
+  "s2": "DialogTrigger",
+  "same": [
+   "isOpen",
+   "defaultOpen"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Disclosure",
+  "s2": "Disclosure",
+  "same": [
+   "isExpanded",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "title"
+  ],
+  "editor": [],
+  "s2vis": [
+   "density",
+   "isQuiet",
+   "defaultExpanded"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "DisclosureGroup",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "allowsMultipleExpanded",
+   "isDisabled"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "DisclosurePanel",
+  "s2": "DisclosurePanel",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "label"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "role",
+   "labelElementType"
+  ]
+ },
+ {
+  "type": "DropZone",
+  "s2": "DropZone",
+  "same": [],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [
+   "isDisabled"
+  ],
+  "v3": [],
+  "own": [
+   "label",
+   "description"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isFilled",
+   "replaceMessage"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "getDropOperation"
+  ]
+ },
+ {
+  "type": "Field",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [
+   "label"
+  ],
+  "own": [
+   "key",
+   "type"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "FieldError",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "FileTrigger",
+  "s2": "FileTrigger",
+  "same": [
+   "acceptedFileTypes",
+   "allowsMultiple",
+   "acceptDirectory",
+   "defaultCamera"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "isDisabled"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "FileUpload",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "endpoint",
+   "chunkSize",
+   "parallelUploads",
+   "retryDelays",
+   "maxFileSize",
+   "autoProceed",
+   "showPreview",
+   "isDisabled"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Form",
+  "s2": "Form",
+  "same": [
+   "labelPosition",
+   "labelAlign",
+   "necessityIndicator",
+   "validationBehavior",
+   "action",
+   "encType",
+   "target"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   },
+   {
+    "prop": "method",
+    "ours": [
+     "get",
+     "post"
+    ],
+    "s2": [
+     "dialog",
+     "get",
+     "post"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isDisabled",
+   "isEmphasized",
+   "isRequired"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "autoComplete",
+   "autoCapitalize",
+   "role",
+   "validationErrors"
+  ]
+ },
+ {
+  "type": "GridList",
+  "s2": "ListView",
+  "same": [
+   "isQuiet",
+   "selectionMode",
+   "selectionStyle",
+   "disallowEmptySelection"
+  ],
+  "diff": [],
+  "rac": [
+   "layout"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "hideLinkOutIcon",
+   "overflowMode"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": [
+   "loadingState",
+   "renderActionBar",
+   "autoFocus",
+   "items",
+   "renderEmptyState",
+   "escapeKeyBehavior",
+   "dependencies",
+   "keyboardNavigationBehavior",
+   "disabledBehavior",
+   "shouldSelectOnPressUp",
+   "disallowTypeAhead",
+   "dragAndDropHooks",
+   "UNSTABLE_focusOnEntry"
+  ]
+ },
+ {
+  "type": "GridListItem",
+  "s2": "ListViewItem",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [
+   "href",
+   "target",
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": [
+   "hasChildItems",
+   "textValue",
+   "focusMode",
+   "allowsArrowNavigation"
+  ]
+ },
+ {
+  "type": "GridListSection",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Group",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "role",
+   "isDisabled",
+   "isInvalid",
+   "isReadOnly"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Header",
+  "s2": "Header",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
+  "type": "Heading",
+  "s2": "Heading",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "level"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef",
+   "isHidden"
+  ]
+ },
+ {
+  "type": "Icon",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [
+   "size"
+  ],
+  "own": [
+   "iconName",
+   "strokeWidth"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "IllustratedMessage",
+  "s2": "IllustratedMessage",
+  "same": [
+   "orientation"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Illustration",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "iconName",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "InlineAlert",
+  "s2": "InlineAlert",
+  "same": [],
+  "diff": [
+   {
+    "prop": "variant",
+    "ours": [
+     "neutral",
+     "info",
+     "positive",
+     "notice",
+     "negative"
+    ],
+    "s2": [
+     "informative",
+     "negative",
+     "neutral",
+     "notice",
+     "positive"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [
+   "fillStyle"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "autoFocus"
+  ]
+ },
+ {
+  "type": "Input",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "placeholder"
+  ],
+  "v3": [],
+  "own": [
+   "type",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Kbd",
+  "s2": "Keyboard",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
+  "type": "Keyboard",
+  "s2": "Keyboard",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
+  "type": "Label",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Link",
+  "s2": "Link",
+  "same": [
+   "variant",
+   "staticColor",
+   "isQuiet",
+   "href",
+   "target",
+   "rel"
+  ],
+  "diff": [],
+  "rac": [
+   "isDisabled",
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "isStandalone"
+  ],
+  "s2link": [
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ListBox",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "selectionMode",
+   "disallowEmptySelection"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ListBoxItem",
+  "s2": "PickerItem",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [
+   "href",
+   "target",
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": [
+   "textValue"
+  ]
+ },
+ {
+  "type": "ListBoxSection",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Menu",
+  "s2": "Menu",
+  "same": [
+   "selectionMode"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "hideLinkOutIcon"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": [
+   "loadingState",
+   "isVirtualized",
+   "autoFocus",
+   "items",
+   "shouldCloseOnSelect",
+   "escapeKeyBehavior",
+   "shouldFocusWrap",
+   "disallowEmptySelection",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "MenuSection",
+  "s2": "MenuSection",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "selectionMode"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": [
+   "items",
+   "shouldCloseOnSelect",
+   "disallowEmptySelection",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "MenuTrigger",
+  "s2": "MenuTrigger",
+  "same": [
+   "isOpen",
+   "defaultOpen",
+   "trigger"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "align",
+   "direction"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "Meter",
+  "s2": "Meter",
+  "same": [
+   "value",
+   "minValue",
+   "maxValue",
+   "label",
+   "labelPosition",
+   "valueLabel"
+  ],
+  "diff": [
+   {
+    "prop": "variant",
+    "ours": [
+     "informative",
+     "positive",
+     "warning",
+     "critical"
+    ],
+    "s2": [
+     "informative",
+     "negative",
+     "notice",
+     "positive"
+    ]
+   },
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "showValueLabel"
+  ],
+  "editor": [],
+  "s2vis": [
+   "formatOptions",
+   "staticColor"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "MeterFill",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "MeterTrack",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "MeterValue",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Modal",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "isOpen",
+   "isDismissable",
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "trapFocus"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Nav",
+  "s2": "SideNav",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "aria-label"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "expandedKeys",
+   "defaultExpandedKeys",
+   "selectedRoute"
+  ],
+  "s2behav": [
+   "autoFocus",
+   "items",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "NumberField",
+  "s2": "NumberField",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "minValue",
+   "maxValue",
+   "step",
+   "value",
+   "name",
+   "errorMessage",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "isWheelDisabled",
+   "necessityIndicator"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "locale"
+  ],
+  "editor": [],
+  "s2vis": [
+   "hideStepper",
+   "prefix",
+   "formatOptions",
+   "contextualHelp",
+   "placeholder"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "validationBehavior",
+   "validate",
+   "commitBehavior",
+   "decrementAriaLabel",
+   "incrementAriaLabel"
+  ]
+ },
+ {
+  "type": "OverlayArrow",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Pagination",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Paragraph",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Popover",
+  "s2": "Popover",
+  "same": [
+   "placement",
+   "offset",
+   "crossOffset",
+   "shouldFlip",
+   "containerPadding"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "containFocus"
+  ],
+  "editor": [],
+  "s2vis": [
+   "padding",
+   "hideArrow"
+  ],
+  "s2link": [],
+  "s2state": [
+   "isOpen",
+   "triggerRef",
+   "isEntering"
+  ],
+  "s2behav": [
+   "getTargetRect",
+   "isNonModal",
+   "role"
+  ]
+ },
+ {
+  "type": "ProgressBar",
+  "s2": "ProgressBar",
+  "same": [
+   "value",
+   "minValue",
+   "maxValue",
+   "label",
+   "staticColor",
+   "isIndeterminate",
+   "labelPosition",
+   "valueLabel"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [
+   "variant",
+   "showValueLabel"
+  ],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "formatOptions"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ProgressBarFill",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ProgressBarTrack",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ProgressBarValue",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ProgressCircle",
+  "s2": "ProgressCircle",
+  "same": [
+   "value",
+   "minValue",
+   "maxValue",
+   "isIndeterminate",
+   "staticColor"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Radio",
+  "s2": "Radio",
+  "same": [
+   "description",
+   "value",
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "isSelected"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "inputRef"
+  ]
+ },
+ {
+  "type": "RadioButton",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "RadioGroup",
+  "s2": "RadioGroup",
+  "same": [
+   "label",
+   "description",
+   "orientation",
+   "labelPosition",
+   "value",
+   "name",
+   "isRequired",
+   "isDisabled",
+   "isInvalid",
+   "isReadOnly",
+   "necessityIndicator",
+   "errorMessage"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isEmphasized",
+   "labelAlign",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "validationBehavior",
+   "validate"
+  ]
+ },
+ {
+  "type": "RadioIndicator",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "RadioItems",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "RangeCalendar",
+  "s2": "RangeCalendar",
+  "same": [
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "autoFocus",
+   "pageBehavior",
+   "minValue",
+   "maxValue",
+   "errorMessage",
+   "allowsNonContiguousRanges"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "maxVisibleMonths",
+   "locale",
+   "calendarSystem"
+  ],
+  "editor": [],
+  "s2vis": [
+   "visibleMonths",
+   "firstDayOfWeek",
+   "selectionAlignment"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "focusedValue",
+   "defaultFocusedValue",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "isDateUnavailable",
+   "createCalendar",
+   "commitBehavior"
+  ]
+ },
+ {
+  "type": "Row",
+  "s2": "Row",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isDisabled"
+  ],
+  "s2link": [
+   "href",
+   "hrefLang",
+   "target",
+   "rel",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [],
+  "s2behav": [
+   "dependencies",
+   "textValue",
+   "columns"
+  ]
+ },
+ {
+  "type": "SearchField",
+  "s2": "SearchField",
+  "same": [
+   "label",
+   "description",
+   "placeholder",
+   "labelPosition",
+   "labelAlign",
+   "value",
+   "name",
+   "errorMessage",
+   "autoComplete",
+   "autoCorrect",
+   "inputMode",
+   "enterKeyHint",
+   "spellCheck",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "maxLength",
+   "minLength",
+   "pattern",
+   "necessityIndicator"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "type",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validationBehavior",
+   "validate"
+  ]
+ },
+ {
+  "type": "Section",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Select",
+  "s2": "Picker",
+  "same": [
+   "label",
+   "description",
+   "placeholder",
+   "labelPosition",
+   "labelAlign",
+   "selectionMode",
+   "isDisabled",
+   "isRequired",
+   "isInvalid",
+   "isQuiet",
+   "name",
+   "errorMessage",
+   "necessityIndicator"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "direction",
+   "align",
+   "menuWidth",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "isOpen",
+   "defaultOpen",
+   "disabledKeys",
+   "defaultValue",
+   "selectedKey",
+   "defaultSelectedKey"
+  ],
+  "s2behav": [
+   "loadingState",
+   "renderValue",
+   "form",
+   "excludeFromTabOrder",
+   "shouldCloseOnSelect",
+   "validationBehavior",
+   "validate",
+   "autoComplete",
+   "items",
+   "dependencies",
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "SelectValue",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "SelectionIndicator",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Separator",
+  "s2": "Divider",
+  "same": [
+   "orientation"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [],
+  "s2vis": [
+   "staticColor"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Skeleton",
+  "s2": "Skeleton",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isLoading"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Slider",
+  "s2": "Slider",
+  "same": [
+   "label",
+   "labelPosition",
+   "minValue",
+   "maxValue",
+   "step",
+   "value",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [
+   "showValueLabel"
+  ],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "fillOffset",
+   "contextualHelp",
+   "labelAlign",
+   "formatOptions",
+   "isEmphasized",
+   "trackStyle",
+   "thumbStyle"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultValue"
+  ],
+  "s2behav": [
+   "name",
+   "form"
+  ]
+ },
+ {
+  "type": "SliderFill",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "SliderOutput",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "SliderThumb",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "SliderTrack",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "StatusLight",
+  "s2": "StatusLight",
+  "same": [
+   "variant"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [
+   "isDisabled"
+  ],
+  "own": [],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "role"
+  ]
+ },
+ {
+  "type": "SubmenuTrigger",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Switch",
+  "s2": "Switch",
+  "same": [
+   "description",
+   "errorMessage",
+   "isSelected",
+   "isDisabled",
+   "isReadOnly",
+   "name",
+   "value"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [
+   "variant"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "isInvalid",
+   "isRequired",
+   "isEmphasized"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultSelected"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validationBehavior",
+   "validate",
+   "inputRef"
+  ]
+ },
+ {
+  "type": "SwitchButton",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "SwitchIndicator",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Tab",
+  "s2": "Tab",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [
+   "href",
+   "target",
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "TabList",
+  "s2": "TabList",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "items",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "Table",
+  "s2": "TableView",
+  "same": [
+   "selectionMode"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size",
+   "heightMode",
+   "height"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "isQuiet",
+   "density",
+   "overflowMode",
+   "selectionStyle"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys",
+   "expandedKeys",
+   "defaultExpandedKeys",
+   "sortDescriptor"
+  ],
+  "s2behav": [
+   "escapeKeyBehavior",
+   "disallowEmptySelection",
+   "keyboardNavigationBehavior",
+   "disabledBehavior",
+   "shouldSelectOnPressUp",
+   "dragAndDropHooks",
+   "treeColumn",
+   "loadingState",
+   "renderActionBar"
+  ]
+ },
+ {
+  "type": "TableBody",
+  "s2": "TableBody",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "items",
+   "renderEmptyState",
+   "dependencies"
+  ]
+ },
+ {
+  "type": "TableHeader",
+  "s2": "TableHeader",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "dependencies",
+   "columns"
+  ]
+ },
+ {
+  "type": "TableView",
+  "s2": "TableView",
+  "same": [
+   "density",
+   "selectionMode"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "allowsSorting"
+  ],
+  "editor": [],
+  "s2vis": [
+   "isQuiet",
+   "overflowMode",
+   "selectionStyle"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys",
+   "expandedKeys",
+   "defaultExpandedKeys",
+   "sortDescriptor"
+  ],
+  "s2behav": [
+   "escapeKeyBehavior",
+   "disallowEmptySelection",
+   "keyboardNavigationBehavior",
+   "disabledBehavior",
+   "shouldSelectOnPressUp",
+   "dragAndDropHooks",
+   "treeColumn",
+   "loadingState",
+   "renderActionBar"
+  ]
+ },
+ {
+  "type": "Tabs",
+  "s2": "Tabs",
+  "same": [
+   "orientation",
+   "density",
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKey",
+   "defaultSelectedKey"
+  ],
+  "s2behav": [
+   "labelBehavior",
+   "keyboardActivation"
+  ]
+ },
+ {
+  "type": "Tag",
+  "s2": "Tag",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size",
+   "isSelected"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [
+   "label"
+  ],
+  "s2link": [
+   "href",
+   "target",
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [],
+  "s2behav": [
+   "textValue"
+  ]
+ },
+ {
+  "type": "TagGroup",
+  "s2": "TagGroup",
+  "same": [
+   "label",
+   "description",
+   "maxRows",
+   "labelPosition",
+   "selectionMode",
+   "disallowEmptySelection"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "allowsRemoving"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [
+   "isEmphasized",
+   "isInvalid",
+   "errorMessage",
+   "contextualHelp",
+   "labelAlign"
+  ],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": [
+   "renderEmptyState",
+   "groupActionLabel",
+   "escapeKeyBehavior",
+   "selectionBehavior",
+   "shouldSelectOnPressUp",
+   "items"
+  ]
+ },
+ {
+  "type": "TagList",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Text",
+  "s2": "Text",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
+  "type": "TextArea",
+  "s2": "TextArea",
+  "same": [
+   "label",
+   "description",
+   "placeholder",
+   "labelPosition",
+   "labelAlign",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "name",
+   "maxLength",
+   "minLength",
+   "errorMessage",
+   "necessityIndicator",
+   "autoComplete",
+   "autoCorrect",
+   "inputMode",
+   "enterKeyHint",
+   "spellCheck"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "rows"
+  ],
+  "editor": [],
+  "s2vis": [
+   "prefix",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validationBehavior",
+   "validate"
+  ]
+ },
+ {
+  "type": "TextField",
+  "s2": "TextField",
+  "same": [
+   "label",
+   "description",
+   "placeholder",
+   "labelPosition",
+   "labelAlign",
+   "value",
+   "name",
+   "errorMessage",
+   "autoComplete",
+   "autoCorrect",
+   "inputMode",
+   "enterKeyHint",
+   "spellCheck",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "maxLength",
+   "minLength",
+   "pattern",
+   "necessityIndicator"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   },
+   {
+    "prop": "type",
+    "ours": [
+     "text",
+     "email",
+     "password",
+     "search",
+     "tel",
+     "url",
+     "number"
+    ],
+    "s2": [
+     "email",
+     "password",
+     "search",
+     "tel",
+     "text",
+     "url"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "prefix",
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "excludeFromTabOrder",
+   "validationBehavior",
+   "validate"
+  ]
+ },
+ {
+  "type": "TimeField",
+  "s2": "TimeField",
+  "same": [
+   "label",
+   "description",
+   "labelPosition",
+   "labelAlign",
+   "hourCycle",
+   "shouldForceLeadingZeros",
+   "granularity",
+   "minValue",
+   "maxValue",
+   "isRequired",
+   "isDisabled",
+   "isReadOnly",
+   "isInvalid",
+   "errorMessage",
+   "hideTimeZone",
+   "name",
+   "necessityIndicator",
+   "validationBehavior",
+   "placeholderValue"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [
+   "isQuiet"
+  ],
+  "own": [
+   "locale"
+  ],
+  "editor": [],
+  "s2vis": [
+   "contextualHelp"
+  ],
+  "s2link": [],
+  "s2state": [
+   "value",
+   "defaultValue"
+  ],
+  "s2behav": [
+   "form",
+   "validate"
+  ]
+ },
+ {
+  "type": "Toast",
+  "s2": "ToastContainer",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [
+   "variant"
+  ],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [
+   "placement"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ToggleButton",
+  "s2": "ToggleButton",
+  "same": [
+   "isEmphasized",
+   "isQuiet",
+   "staticColor",
+   "isSelected",
+   "isDisabled"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [
+   "autoFocus"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "defaultSelected"
+  ],
+  "s2behav": [
+   "preventFocusOnPress",
+   "excludeFromTabOrder"
+  ]
+ },
+ {
+  "type": "ToggleButtonGroup",
+  "s2": "ToggleButtonGroup",
+  "same": [
+   "orientation",
+   "isEmphasized",
+   "isQuiet",
+   "staticColor",
+   "density",
+   "selectionMode",
+   "isDisabled",
+   "disallowEmptySelection"
+  ],
+  "diff": [
+   {
+    "prop": "size",
+    "ours": [
+     "xs",
+     "sm",
+     "md",
+     "lg",
+     "xl"
+    ],
+    "s2": [
+     "L",
+     "M",
+     "S",
+     "XL",
+     "XS"
+    ]
+   }
+  ],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "isJustified"
+  ],
+  "s2link": [],
+  "s2state": [
+   "selectedKeys",
+   "defaultSelectedKeys"
+  ],
+  "s2behav": []
+ },
+ {
+  "type": "Toolbar",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "orientation"
+  ],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "Tooltip",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "placement",
+   "offset",
+   "crossOffset",
+   "shouldFlip",
+   "containerPadding"
+  ],
+  "v3": [
+   "variant"
+  ],
+  "own": [
+   "size"
+  ],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "TooltipTrigger",
+  "s2": "TooltipTrigger",
+  "same": [
+   "isOpen",
+   "defaultOpen",
+   "isDisabled",
+   "delay",
+   "trigger"
+  ],
+  "diff": [],
+  "rac": [
+   "closeDelay"
+  ],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [
+   "placement",
+   "containerPadding",
+   "crossOffset"
+  ],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "shouldCloseOnPress",
+   "shouldFlip"
+  ]
+ },
+ {
+  "type": "Tree",
+  "s2": "TreeView",
+  "same": [
+   "selectionMode",
+   "selectionStyle",
+   "disallowEmptySelection"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "variant",
+   "size"
+  ],
+  "editor": [
+   "dataBinding"
+  ],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [
+   "disabledKeys",
+   "selectedKeys",
+   "defaultSelectedKeys",
+   "expandedKeys",
+   "defaultExpandedKeys"
+  ],
+  "s2behav": [
+   "autoFocus",
+   "items",
+   "renderEmptyState",
+   "escapeKeyBehavior",
+   "dependencies",
+   "keyboardNavigationBehavior",
+   "disabledBehavior",
+   "shouldSelectOnPressUp",
+   "dragAndDropHooks",
+   "renderActionBar"
+  ]
+ },
+ {
+  "type": "TreeItem",
+  "s2": "TreeViewItem",
+  "same": [
+   "isDisabled"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [
+   "size"
+  ],
+  "editor": [
+   "children"
+  ],
+  "s2vis": [],
+  "s2link": [
+   "href",
+   "target",
+   "rel",
+   "hrefLang",
+   "download",
+   "ping",
+   "referrerPolicy",
+   "routerOptions"
+  ],
+  "s2state": [
+   "value"
+  ],
+  "s2behav": [
+   "hasChildItems",
+   "textValue",
+   "focusMode",
+   "allowsArrowNavigation"
+  ]
+ },
+ {
+  "type": "TreeItemContent",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "body",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "editor": [],
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ }
+]

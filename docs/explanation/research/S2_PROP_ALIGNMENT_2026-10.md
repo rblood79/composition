@@ -1,0 +1,476 @@
+# S2 프로퍼티 정렬 조사 — 2026-10
+
+> 조사일 2026-10-09. 기준: `@react-spectrum/s2` 1.8.0 · `react-aria-components` 1.21.0 (설치본) · `@adobe/react-spectrum` 3.47.6 (v3) · spectrum-design-data 3.4.0. 대상: composition catalog binding 137개.
+>
+> 공유 페이지 (같은 데이터, 검색 · 필터): https://claude.ai/artifact/TSv2HqnoefeSpe2ENMDSUJ
+>
+> 이 문서는 조사 기록이다. 정본 규칙은 [`.claude/rules/ssot-hierarchy.md`](../../../.claude/rules/ssot-hierarchy.md) D2 절이고, prop 을 실제로 바꾸는 일은 별도 작업 (contract 변경 포함) 으로 진행한다.
+
+## 1. 배경과 결정
+
+- composition 은 테마를 바꿀 수 있도록 headless 인 RAC 를 채택했다 (D1). prop 개념은 React Spectrum 을 따랐는데, 기준이 "RSP 참조" 로만 적혀 있어 v3 와 S2 의 이름이 섞였다 (예: Meter `warning` · `critical` 은 v3, Checkbox `variant` 는 S2 · v3 의 `isEmphasized` 와 다름).
+- Adobe 의 층: Spectrum 디자인 시스템 (design-data) → React Aria / RAC (동작 기반, 시각 축 없음) → v3 (Spectrum 1 구현, react-aria hooks 기반) · S2 (Spectrum 2 구현, RAC 기반). v3 는 S2 의 상위가 아니다.
+- **사용자 결정 (2026-10-09)**: D2 (prop 이름 · 값) 정본 순서 = **S2 1.8.0 (고정) → design-data → v3 → composition 확장**. S2 는 RAC 위의 구현이라 동작 · 상태 prop 은 RAC 이름, 시각 prop 은 Spectrum 축이다. 시각 값은 D3 (catalog) 가 정본이다.
+
+## 2. 방법
+
+1. S2 1.8.0 을 격리 폴더에 설치하고 TypeScript 타입 검사기로 컴포넌트 125개의 props 타입을 상속까지 펼쳐 prop 이름과 타입을 뽑았다 (`s2props.json`).
+2. 같은 방법으로 설치된 RAC 1.21.0 의 컴포넌트 146개를 뽑았다 (`racprops.json`). S2 1.8.0 자체는 RAC 1.22.0 위에 있다.
+3. v3 는 `dist/types/src/**/*.d.ts` 174개에서 interface 가 선언한 prop 을 뽑았다 (상속분 제외).
+4. 우리 쪽은 `componentCatalog` 의 binding accepts (`ours.json`) 와 `COMPONENT_RULES_TABLE` 의 variant · size 이름 (`rules.json`).
+5. 비교에서 뺀 것: 전역 DOM · aria-* · 이벤트 핸들러 · `UNSAFE_*` · `styles` · `id` · `slot` · `children`. 우리 편집기 고유 축 (`children` · `slot` · `dataBinding` · `aria-label`) 은 "편집기 축" 으로 따로 셌다.
+6. 판정 순서: S2 에 같은 이름 → (enum 이면 값 집합 비교) → RAC 에 있음 → v3 에 있음 → 우리만.
+7. 이름 대응: Select→Picker · Separator→Divider · Tree(Item)→TreeView(Item) · GridList(Item)→ListView(Item) · Table→TableView · Toast→ToastContainer · Nav→SideNav · Kbd→Keyboard · ListBoxItem→PickerItem.
+
+한계: origin (원본) 의 template 바인딩 prop (Card `title`, AvatarGroup `label` 등) 은 비교하지 않았다 — S2 에서는 대부분 children 조립이다. S2 의 Tooltip · Toast 는 호출 가능한 컴포넌트 타입이 아니어서 prop 이 뽑히지 않았다 (Tooltip `variant` 는 v3 · design-data 로 판정).
+
+## 3. 요약
+
+| 분류 | 개수 | 뜻 |
+|---|---:|---|
+| S2 와 같음 | 400 | 이름이 같고, enum 이면 값 집합도 같음 |
+| 값이 다름 | 44 | 이름은 같고 값 집합이 다름 |
+| RAC 근거 | 43 | S2 에는 없지만 RAC 컴포넌트가 받는 prop (D1 근거) |
+| v3 근거 | 20 | S2 · RAC 에 없고 v3 에 있음 |
+| 우리만 | 203 | S2 · RAC · v3 어디에도 없음 |
+| (편집기 축) | 44 | `children` · `slot` · `dataBinding` · `aria-label` — 비교 제외 |
+| S2 에만 — 시각 · 내용 | 130 | 우리에 없는 S2 prop |
+| S2 에만 — 링크 · 상태 · 동작 | 66 · 105 · 255 | 노드 · interaction · 선택 상태가 대신 다루는 축 |
+
+비교한 우리 prop 710개 중 400개 (56%) 가 S2 와 같다. S2 에 대응 컴포넌트가 없는 우리 type 은 56개다 (부품 · 확장): CalendarGrid, CalendarHeader, CardContent, CardFooter, CardHeader, CardPreview, Chart, CheckboxButton, CheckboxIndicator, CheckboxItems, Code, ColorPicker, ColorSwatchPickerItem, DateInput, Description, DialogFooter, DisclosureGroup, Field, FieldError, FileUpload, GridListSection, Group, Icon, Illustration, Input, Label, ListBox, ListBoxSection, MeterFill, MeterTrack, MeterValue, Modal, OverlayArrow, Pagination, Paragraph, ProgressBarFill, ProgressBarTrack, ProgressBarValue, RadioButton, RadioIndicator, RadioItems, Section, SelectValue, SelectionIndicator, SliderFill, SliderOutput, SliderThumb, SliderTrack, SubmenuTrigger, SwitchButton, SwitchIndicator, TagList, Toolbar, Tooltip, TreeItemContent, body.
+
+## 4. 시각 축 조사 (variant · isEmphasized · fillStyle · staticColor · isQuiet · density)
+
+### 4.1 레퍼런스별 규칙
+
+- **RAC 1.21.0**: 본체 타입에 이 축이 하나도 없다 (unstyled). react-aria.adobe.com starter 예제만 자체 `variant` 를 둔다 (Button · ToggleButton `primary | secondary | quiet`, Link `primary | secondary`) — 권위 없음.
+- **S2 1.8.0**: 강조는 `isEmphasized` (Checkbox · CheckboxGroup · Switch · RadioGroup · Slider · TagGroup · ToggleButton(Group) · Form · ActionBar), 의미 · 색은 `variant` (Button · Badge · StatusLight · Card · Link · Meter · InlineAlert · Toast · AlertDialog), 칠 방식은 `fillStyle` (Button · Badge · InlineAlert), 유색 배경은 `staticColor`, 조용한 형태 `isQuiet` 는 Picker · Link · ActionButton · TableView · ListView · Disclosure · Accordion 에만.
+- **v3 3.47.6**: `isEmphasized` (Checkbox(Group) · Switch · RadioGroup · ToggleButton · Tabs · Form · ActionGroup · ListView), `isQuiet` 은 거의 모든 field, `variant` 값이 S2 와 일부 다름 (Meter `warning`/`critical`, InlineAlert · Tooltip `info`).
+- **design-data 3.4.0** (S2 에 없는 축 판정용): Checkbox · Radio button `isEmphasized`, Meter `informative/positive/notice/negative`, Tooltip `variant` neutral/informative/negative, Tree view `isEmphasized` · `size`, Table `isQuiet` · `density` ("Don't use zebra stripes"), In-line alert `style` bold/subtle/outline (S2 코드는 `fillStyle` border/subtleFill/boldFill — 디자인 정본과 S2 코드도 일부 다르다). text-field · combo-box · number-field · date-picker · search-field 에는 `isQuiet` 이 없다.
+
+### 4.2 새 기준으로 다시 나눈 시각 축
+
+| 묶음 | 대상 | 조치 |
+|---|---|---|
+| A. 그대로 | Button (`variant` · `fillStyle` · `staticColor`) · Badge · StatusLight · Card · Link · ToggleButton(Group) · ProgressCircle/ProgressBar `staticColor` · Toast · Select `isQuiet` · GridList `isQuiet` · ColorSwatchPicker · TableView · Tabs `density` | 없음 |
+| B. 이름 변경 | Checkbox · Switch `variant` → `isEmphasized` · CheckboxGroup · RadioGroup `variant` → `isEmphasized` (그룹이 자식에게) · Radio `variant` 삭제 · Form `variant` → `isEmphasized` · TableView `variant` quiet → `isQuiet` · Tree `variant` → `isEmphasized` (design-data) | contract 변경 |
+| C. 값 변경 | Meter `warning`/`critical` → `notice`/`negative` + `staticColor` · InlineAlert `info` → `informative` + `fillStyle` · CardView `variant` → primary/secondary/tertiary/quiet · Tooltip → neutral/informative/negative (design-data) | contract 변경 |
+| D. 추가 | Slider `isEmphasized` · TagGroup `isEmphasized` · Avatar `isOverBackground` · Disclosure `isQuiet` · `density` · Separator `staticColor` | 추가만 |
+| E. v3 근거 유지 | field `isQuiet` (TextField · TextArea · ComboBox · SearchField · NumberField · DateField · DatePicker · TimeField · ColorField) | S2 가 뺀 축임을 알고 유지 |
+| F. 어디에도 없음 | ProgressBar `variant` · Table `variant` striped/bordered · Separator `variant` · Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart `variant` | 확장 유지 / 삭제 결정 필요 |
+
+## 5. 전체 prop 대조
+
+### 5.1 값이 다름
+
+| type | prop | 우리 | S2 |
+|---|---|---|---|
+| Badge | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Breadcrumbs | `size` | S · M · L | L · M |
+| Button | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| ButtonGroup | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Card | `size` | xs · sm · md · lg · xl | L · M · S · XL · XS |
+| CardView | `variant` | default | primary · quiet · secondary · tertiary |
+| CardView | `size` | sm · md · lg | L · M · S · XL · XS |
+| Checkbox | `size` | sm · md · lg · xl | L · M · S · XL |
+| CheckboxGroup | `size` | sm · md · lg · xl | L · M · S · XL |
+| ColorField | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| ColorSwatch | `size` | sm · md · lg | L · M · S · XS |
+| ColorSwatchPicker | `size` | sm · md · lg | L · M · S · XS |
+| ComboBox | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| DateField | `size` | sm · md · lg · xl | L · M · S · XL |
+| DatePicker | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| DateRangePicker | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Dialog | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Disclosure | `size` | sm · md · lg | L · M · S · XL |
+| DropZone | `size` | sm · md · lg | L · M · S |
+| Form | `size` | sm · md · lg · xl | L · M · S · XL |
+| Form | `method` | get · post | dialog · get · post |
+| IllustratedMessage | `size` | sm · md · lg | L · M · S |
+| InlineAlert | `variant` | neutral · info · positive · notice · negative | informative · negative · neutral · notice · positive |
+| Menu | `size` | sm · md · lg · xl | L · M · S · XL |
+| Meter | `variant` | informative · positive · warning · critical | informative · negative · notice · positive |
+| Meter | `size` | sm · md · lg · xl | L · M · S · XL |
+| NumberField | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Popover | `size` | sm · md · lg | L · M · S |
+| ProgressBar | `size` | sm · md · lg · xl | L · M · S · XL |
+| ProgressCircle | `size` | sm · md · lg | L · M · S |
+| RadioGroup | `size` | sm · md · lg · xl | L · M · S · XL |
+| SearchField | `size` | sm · md · lg · xl | L · M · S · XL |
+| Select | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| Separator | `size` | sm · md · lg | L · M · S |
+| Slider | `size` | sm · md · lg · xl | L · M · S · XL |
+| StatusLight | `size` | sm · md · lg · xl | L · M · S · XL |
+| Switch | `size` | sm · md · lg · xl | L · M · S · XL |
+| TagGroup | `size` | sm · md · lg | L · M · S |
+| TextArea | `size` | sm · md · lg · xl | L · M · S · XL |
+| TextField | `size` | xs · sm · md · lg · xl | L · M · S · XL |
+| TextField | `type` | text · email · password · search · tel · url · number | email · password · search · tel · text · url |
+| TimeField | `size` | sm · md · lg · xl | L · M · S · XL |
+| ToggleButton | `size` | xs · sm · md · lg · xl | L · M · S · XL · XS |
+| ToggleButtonGroup | `size` | xs · sm · md · lg · xl | L · M · S · XL · XS |
+
+`size` 가 39개로 대부분이다. S2 는 `S · M · L · XL` (일부 `XS`), 우리는 `xs · sm · md · lg · xl` 이며 S2 에 없는 `xs` 단계가 여러 type 에 있다.
+
+### 5.2 v3 근거
+
+| prop | type |
+|---|---|
+| `isQuiet` | ColorField, ComboBox, DateField, DatePicker, NumberField, SearchField, TextArea, TextField, TimeField |
+| `size` | Breadcrumb, ColorPicker, Icon |
+| `variant` | ProgressBar, Toast, Tooltip |
+| `isDisabled` | Avatar, StatusLight |
+| `showValueLabel` | ProgressBar, Slider |
+| `label` | Field |
+
+### 5.3 RAC 근거 (S2 에는 없음)
+
+| prop | type |
+|---|---|
+| `autoFocus` | Button, Checkbox, ColorField, ComboBox, DateField, DatePicker, DateRangePicker, Link, Modal, NumberField, Radio, SearchField, Select, Switch, TextArea, TextField, TimeField, ToggleButton |
+| `isDisabled` | ColorSwatchPickerItem, DisclosureGroup, DropZone, Group, Link |
+| `layout` | ColorSwatchPicker, GridList |
+| `allowsMultipleExpanded` | DisclosureGroup |
+| `closeDelay` | TooltipTrigger |
+| `color` | ColorSwatchPickerItem |
+| `containerPadding` | Tooltip |
+| `crossOffset` | Tooltip |
+| `defaultValue` | ColorPicker |
+| `disallowEmptySelection` | ListBox |
+| `isDismissable` | Modal |
+| `isInvalid` | Group |
+| `isOpen` | Modal |
+| `isReadOnly` | Group |
+| `offset` | Tooltip |
+| `orientation` | Toolbar |
+| `placeholder` | Input |
+| `placement` | Tooltip |
+| `role` | Group |
+| `selectionMode` | ListBox |
+| `shouldFlip` | Tooltip |
+
+### 5.4 우리만 (S2 · RAC · v3 에 없음)
+
+부품 type 의 `size` (owner 가 주는 내부 값) · Chart · FileUpload (확장) · `locale` · `calendarSystem` (RAC 는 `I18nProvider` 로 받는다) 가 대부분이다.
+
+| prop | 개수 | type |
+|---|---:|---|
+| `size` | 65 | Calendar, CalendarGrid, CalendarHeader, CardContent, CardFooter, CardHeader, CardPreview, Cell, Chart, CheckboxButton, CheckboxItems, Code, Column, DateInput, Description, DialogFooter, DisclosureGroup, FieldError, FileTrigger, GridList, GridListItem, Heading, Illustration, InlineAlert, Input, Kbd, Label, Link, ListBox, ListBoxItem, MeterFill, MeterTrack, MeterValue, Nav, Pagination, Paragraph, ProgressBarFill, ProgressBarTrack, ProgressBarValue, Radio, RadioButton, RadioItems, RangeCalendar, Row, Section, SelectValue, Skeleton, SliderFill, SliderOutput, SliderThumb, SliderTrack, Tab, TabList, Table, TableBody, TableHeader, Tabs, Tag, TagList, Text, Toast, Toolbar, Tooltip, Tree, TreeItem |
+| `variant` | 31 | Calendar, CalendarGrid, Chart, Checkbox, CheckboxGroup, ColorPicker, ColorSwatchPicker, DisclosureGroup, FileTrigger, Form, GridList, ListBox, MeterFill, MeterTrack, MeterValue, Nav, Pagination, ProgressBarFill, ProgressBarTrack, Radio, RadioGroup, RangeCalendar, Section, Separator, Skeleton, Switch, Table, TableView, Tabs, Toolbar, Tree |
+| `locale` | 7 | Calendar, DateField, DatePicker, DateRangePicker, NumberField, RangeCalendar, TimeField |
+| `isDisabled` | 6 | AvatarGroup, Badge, ColorSwatchPicker, DateInput, FileTrigger, FileUpload |
+| `calendarSystem` | 5 | Calendar, DateField, DatePicker, DateRangePicker, RangeCalendar |
+| `iconName` | 5 | ComboBox, DatePicker, DateRangePicker, Icon, Illustration |
+| `isSelected` | 3 | Card, Radio, Tag |
+| `description` | 2 | Card, DropZone |
+| `maxVisibleMonths` | 2 | Calendar, RangeCalendar |
+| `title` | 2 | Card, Disclosure |
+| `type` | 2 | Field, Input |
+| `accentColor` | 1 | Card |
+| `allowsRemoving` | 1 | TagGroup |
+| `allowsSorting` | 1 | TableView |
+| `animationBegin` | 1 | Chart |
+| `animationDuration` | 1 | Chart |
+| `animationEasing` | 1 | Chart |
+| `autoProceed` | 1 | FileUpload |
+| `budgetAggregate` | 1 | Chart |
+| `budgetAxis` | 1 | Chart |
+| `budgetOthersLabel` | 1 | Chart |
+| `budgetOverflow` | 1 | Chart |
+| `chartType` | 1 | Chart |
+| `chunkSize` | 1 | FileUpload |
+| `color` | 1 | Chart |
+| `colorBy` | 1 | Chart |
+| `containFocus` | 1 | Popover |
+| `curve` | 1 | Chart |
+| `data` | 1 | Chart |
+| `dataMode` | 1 | Chart |
+| `dayOffset` | 1 | CalendarGrid |
+| `defaultToday` | 1 | CalendarGrid |
+| `dimension` | 1 | Chart |
+| `dimensionFormat` | 1 | Chart |
+| `dimensionLabelFormat` | 1 | Chart |
+| `dimensionScale` | 1 | Chart |
+| `endAngle` | 1 | Chart |
+| `endpoint` | 1 | FileUpload |
+| `fillArea` | 1 | Chart |
+| `fillGrid` | 1 | Chart |
+| `gridRings` | 1 | Chart |
+| `gridType` | 1 | Chart |
+| `height` | 1 | Table |
+| `heightMode` | 1 | Table |
+| `initials` | 1 | Avatar |
+| `innerRadius` | 1 | Chart |
+| `isAnimationActive` | 1 | Chart |
+| `isDot` | 1 | Badge |
+| `isPulsing` | 1 | Badge |
+| `key` | 1 | Field |
+| `label` | 1 | DropZone |
+| `labelKey` | 1 | Chart |
+| `legendPosition` | 1 | Chart |
+| `maxFileSize` | 1 | FileUpload |
+| `metric` | 1 | Chart |
+| `orientation` | 1 | Chart |
+| `palette` | 1 | Chart |
+| `parallelUploads` | 1 | FileUpload |
+| `referenceLines` | 1 | Chart |
+| `retryDelays` | 1 | FileUpload |
+| `rows` | 1 | TextArea |
+| `seriesConfig` | 1 | Chart |
+| `showAxis` | 1 | Chart |
+| `showDots` | 1 | Chart |
+| `showGrid` | 1 | Chart |
+| `showLegend` | 1 | Chart |
+| `showPreview` | 1 | FileUpload |
+| `showSpokes` | 1 | Chart |
+| `showTooltip` | 1 | Chart |
+| `showTotal` | 1 | Chart |
+| `showValueLabel` | 1 | Meter |
+| `showValueLabels` | 1 | Chart |
+| `stackType` | 1 | Chart |
+| `startAngle` | 1 | Chart |
+| `strokeWidth` | 1 | Icon |
+| `todayDate` | 1 | CalendarGrid |
+| `totalDays` | 1 | CalendarGrid |
+| `trapFocus` | 1 | Modal |
+| `valueCurrency` | 1 | Chart |
+| `valueFields` | 1 | Chart |
+| `valueFormat` | 1 | Chart |
+| `valueFractionDigits` | 1 | Chart |
+| `valueLocale` | 1 | Chart |
+| `valuePercentUnit` | 1 | Chart |
+
+### 5.5 S2 에만 — 시각 · 내용
+
+| prop | 개수 | type |
+|---|---:|---|
+| `contextualHelp` | 16 | CheckboxGroup, ColorField, ColorSlider, ComboBox, DateField, DatePicker, DateRangePicker, NumberField, RadioGroup, SearchField, Select, Slider, TagGroup, TextArea, TextField, TimeField |
+| `isEmphasized` | 7 | Checkbox, CheckboxGroup, Form, RadioGroup, Slider, Switch, TagGroup |
+| `align` | 5 | Cell, Column, ComboBox, MenuTrigger, Select |
+| `prefix` | 5 | ColorField, ComboBox, NumberField, TextArea, TextField |
+| `firstDayOfWeek` | 4 | Calendar, DatePicker, DateRangePicker, RangeCalendar |
+| `formatOptions` | 4 | Meter, NumberField, ProgressBar, Slider |
+| `label` | 4 | AvatarGroup, ColorSlider, DisclosurePanel, Tag |
+| `labelAlign` | 4 | CheckboxGroup, RadioGroup, Slider, TagGroup |
+| `overflowMode` | 4 | Badge, GridList, Table, TableView |
+| `density` | 3 | Card, Disclosure, Table |
+| `direction` | 3 | ComboBox, MenuTrigger, Select |
+| `isQuiet` | 3 | Disclosure, Table, TableView |
+| `colorSpace` | 2 | ColorArea, ColorSlider |
+| `hideLinkOutIcon` | 2 | GridList, Menu |
+| `isDisabled` | 2 | Form, Row |
+| `isInvalid` | 2 | Switch, TagGroup |
+| `isRequired` | 2 | Form, Switch |
+| `menuWidth` | 2 | ComboBox, Select |
+| `placeholder` | 2 | ColorField, NumberField |
+| `placeholderValue` | 2 | DatePicker, DateRangePicker |
+| `placement` | 2 | Toast, TooltipTrigger |
+| `selectionAlignment` | 2 | Calendar, RangeCalendar |
+| `selectionMode` | 2 | Calendar, MenuSection |
+| `selectionStyle` | 2 | Table, TableView |
+| `showDivider` | 2 | Cell, Column |
+| `staticColor` | 2 | Meter, Separator |
+| `visibleMonths` | 2 | Calendar, RangeCalendar |
+| `allowsResizing` | 1 | Column |
+| `allowsSorting` | 1 | Column |
+| `channel` | 1 | ColorSlider |
+| `colSpan` | 1 | Cell |
+| `colorName` | 1 | ColorSwatch |
+| `containerPadding` | 1 | TooltipTrigger |
+| `crossOffset` | 1 | TooltipTrigger |
+| `defaultExpanded` | 1 | Disclosure |
+| `defaultWidth` | 1 | Column |
+| `errorMessage` | 1 | TagGroup |
+| `fillOffset` | 1 | Slider |
+| `fillStyle` | 1 | InlineAlert |
+| `hideArrow` | 1 | Popover |
+| `hideStepper` | 1 | NumberField |
+| `hourCycle` | 1 | DatePicker |
+| `isDismissible` | 1 | Dialog |
+| `isFilled` | 1 | DropZone |
+| `isJustified` | 1 | ToggleButtonGroup |
+| `isLoading` | 1 | Skeleton |
+| `isOverBackground` | 1 | Avatar |
+| `isStandalone` | 1 | Link |
+| `isSticky` | 1 | Cell |
+| `level` | 1 | Heading |
+| `maxWidth` | 1 | Column |
+| `minWidth` | 1 | Column |
+| `orientation` | 1 | CardView |
+| `padding` | 1 | Popover |
+| `replaceMessage` | 1 | DropZone |
+| `rounding` | 1 | ColorSwatch |
+| `size` | 1 | ColorWheel |
+| `thumbStyle` | 1 | Slider |
+| `trackStyle` | 1 | Slider |
+| `type` | 1 | SearchField |
+| `width` | 1 | Column |
+| `xChannel` | 1 | ColorArea |
+| `xName` | 1 | ColorArea |
+| `yChannel` | 1 | ColorArea |
+| `yName` | 1 | ColorArea |
+
+### 5.6 컴포넌트별 전체 표
+
+S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · 동작 열은 S2 에만 있는 해당 prop 수.
+
+| type | S2 | 같음 | 값이 다름 | RAC 근거 | v3 근거 | 우리만 | S2 에만 (시각·내용) | S2 링크·상태·동작 |
+|---|---|---|---|---|---|---|---|---:|
+| Autocomplete | = | `defaultInputValue`, `disableAutoFocusFirst`, `disableVirtualFocus` |  |  |  |  |  | 2 |
+| Avatar | = | `src`, `alt`, `size` |  |  | `isDisabled` | `initials` | `isOverBackground` |  |
+| AvatarGroup | = | `size` |  |  |  | `isDisabled` | `label` |  |
+| Badge | = | `variant`, `fillStyle` | `size` |  |  | `isDot`, `isPulsing`, `isDisabled` | `overflowMode` |  |
+| Breadcrumb | = | `href` |  |  | `size` |  |  | 7 |
+| Breadcrumbs | = | `isDisabled` | `size` |  |  |  |  | 2 |
+| Button | = | `variant`, `fillStyle`, `staticColor`, `type`, `isPending`, `isDisabled` | `size` | `autoFocus` |  |  |  | 10 |
+| ButtonGroup | = | `orientation`, `align`, `isDisabled` | `size` |  |  |  |  |  |
+| Calendar | = | `isDisabled`, `isReadOnly`, `isInvalid`, `autoFocus`, `pageBehavior`, `minValue`, `maxValue`, `errorMessage` |  |  |  | `variant`, `size`, `maxVisibleMonths`, `locale`, `calendarSystem` | `visibleMonths`, `selectionMode`, `firstDayOfWeek`, `selectionAlignment` | 6 |
+| CalendarGrid | — |  |  |  |  | `variant`, `size`, `defaultToday`, `dayOffset`, `totalDays`, `todayDate` |  |  |
+| CalendarHeader | — |  |  |  |  | `size` |  |  |
+| Card | = | `variant`, `href`, `target`, `isDisabled` | `size` |  |  | `title`, `description`, `accentColor`, `isSelected` | `density` | 10 |
+| CardContent | — |  |  |  |  | `size` |  |  |
+| CardFooter | — |  |  |  |  | `size` |  |  |
+| CardHeader | — |  |  |  |  | `size` |  |  |
+| CardPreview | — |  |  |  |  | `size` |  |  |
+| CardView | = | `layout`, `density`, `selectionMode`, `selectionStyle` | `variant`; `size` |  |  |  | `orientation` | 16 |
+| Cell | = |  |  |  |  | `size` | `isSticky`, `colSpan`, `align`, `showDivider` | 3 |
+| Chart | — |  |  |  |  | `chartType`, `dimension`, `metric`, `color`, `dataMode`, `valueFields`, `seriesConfig`, `valueFormat`, `valueLocale`, `valueFractionDigits`, `valueCurrency`, `valuePercentUnit`, `budgetOverflow`, `budgetAggregate`, `budgetAxis`, `budgetOthersLabel`, `dimensionScale`, `dimensionFormat`, `dimensionLabelFormat`, `referenceLines`, `data`, `orientation`, `stackType`, `curve`, `showDots`, `showValueLabels`, `labelKey`, `palette`, `colorBy`, `innerRadius`, `gridType`, `startAngle`, `endAngle`, `showTotal`, `showSpokes`, `gridRings`, `fillGrid`, `fillArea`, `showTooltip`, `showAxis`, `showGrid`, `showLegend`, `legendPosition`, `isAnimationActive`, `animationBegin`, `animationDuration`, `animationEasing`, `variant`, `size` |  |  |
+| Checkbox | = | `description`, `isSelected`, `isIndeterminate`, `isDisabled`, `isInvalid`, `errorMessage`, `isReadOnly`, `isRequired`, `name`, `value` | `size` | `autoFocus` |  | `variant` | `isEmphasized` | 6 |
+| CheckboxButton | — |  |  |  |  | `size` |  |  |
+| CheckboxGroup | = | `label`, `description`, `orientation`, `labelPosition`, `name`, `isRequired`, `isDisabled`, `isInvalid`, `isReadOnly`, `necessityIndicator`, `errorMessage` | `size` |  |  | `variant` | `isEmphasized`, `labelAlign`, `contextualHelp` | 5 |
+| CheckboxIndicator | — |  |  |  |  |  |  |  |
+| CheckboxItems | — |  |  |  |  | `size` |  |  |
+| Code | — |  |  |  |  | `size` |  |  |
+| ColorArea | = | `isDisabled` |  |  |  |  | `xName`, `yName`, `colorSpace`, `xChannel`, `yChannel` | 3 |
+| ColorField | = | `label`, `description`, `labelPosition`, `labelAlign`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `errorMessage`, `name`, `channel`, `colorSpace`, `validationBehavior`, `necessityIndicator`, `isWheelDisabled` | `size` | `autoFocus` | `isQuiet` |  | `prefix`, `contextualHelp`, `placeholder` | 5 |
+| ColorPicker | — |  |  | `defaultValue` | `size` | `variant` |  |  |
+| ColorSlider | = | `isDisabled`, `orientation` |  |  |  |  | `label`, `colorSpace`, `channel`, `contextualHelp` | 4 |
+| ColorSwatch | = | `color` | `size` |  |  |  | `rounding`, `colorName` |  |
+| ColorSwatchPicker | = | `defaultValue`, `density`, `rounding` | `size` | `layout` |  | `variant`, `isDisabled` |  | 1 |
+| ColorSwatchPickerItem | — |  |  | `color`, `isDisabled` |  |  |  |  |
+| ColorWheel | = | `isDisabled` |  |  |  |  | `size` | 4 |
+| Column | = | `isRowHeader` |  |  |  | `size` | `showDivider`, `allowsResizing`, `align`, `width`, `allowsSorting`, `defaultWidth`, `minWidth`, `maxWidth` | 4 |
+| ComboBox | = | `label`, `description`, `placeholder`, `labelPosition`, `labelAlign`, `isDisabled`, `isRequired`, `isReadOnly`, `isInvalid`, `allowsCustomValue`, `menuTrigger`, `name`, `errorMessage`, `necessityIndicator`, `validationBehavior` | `size` | `autoFocus` | `isQuiet` | `iconName` | `direction`, `align`, `menuWidth`, `prefix`, `contextualHelp` | 14 |
+| DateField | = | `label`, `description`, `labelPosition`, `labelAlign`, `hideTimeZone`, `shouldForceLeadingZeros`, `granularity`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `errorMessage`, `minValue`, `maxValue`, `hourCycle`, `name`, `necessityIndicator`, `validationBehavior`, `placeholderValue` | `size` | `autoFocus` | `isQuiet` | `locale`, `calendarSystem` | `contextualHelp` | 6 |
+| DateInput | — |  |  |  |  | `size`, `isDisabled` |  |  |
+| DatePicker | = | `label`, `description`, `labelPosition`, `labelAlign`, `isDisabled`, `isReadOnly`, `granularity`, `errorMessage`, `minValue`, `maxValue`, `name`, `isRequired`, `isInvalid`, `necessityIndicator`, `hideTimeZone`, `pageBehavior`, `shouldForceLeadingZeros`, `shouldCloseOnSelect`, `maxVisibleMonths`, `validationBehavior` | `size` | `autoFocus` | `isQuiet` | `iconName`, `locale`, `calendarSystem` | `firstDayOfWeek`, `placeholderValue`, `hourCycle`, `contextualHelp` | 10 |
+| DateRangePicker | = | `label`, `description`, `labelPosition`, `labelAlign`, `isDisabled`, `isReadOnly`, `granularity`, `errorMessage`, `minValue`, `maxValue`, `startName`, `endName`, `isRequired`, `isInvalid`, `necessityIndicator`, `hourCycle`, `hideTimeZone`, `pageBehavior`, `shouldForceLeadingZeros`, `shouldCloseOnSelect`, `maxVisibleMonths`, `allowsNonContiguousRanges`, `validationBehavior` | `size` | `autoFocus` |  | `iconName`, `locale`, `calendarSystem` | `firstDayOfWeek`, `placeholderValue`, `contextualHelp` | 10 |
+| Description | — |  |  |  |  | `size` |  |  |
+| Dialog | = | `role` | `size` |  |  |  | `isDismissible` | 2 |
+| DialogFooter | — |  |  |  |  | `size` |  |  |
+| DialogTrigger | = | `isOpen`, `defaultOpen` |  |  |  |  |  |  |
+| Disclosure | = | `isExpanded`, `isDisabled` | `size` |  |  | `title` | `density`, `isQuiet`, `defaultExpanded` |  |
+| DisclosureGroup | — |  |  | `allowsMultipleExpanded`, `isDisabled` |  | `variant`, `size` |  |  |
+| DisclosurePanel | = |  |  |  |  |  | `label` | 2 |
+| DropZone | = |  | `size` | `isDisabled` |  | `label`, `description` | `isFilled`, `replaceMessage` | 1 |
+| Field | — |  |  |  | `label` | `key`, `type` |  |  |
+| FieldError | — |  |  |  |  | `size` |  |  |
+| FileTrigger | = | `acceptedFileTypes`, `allowsMultiple`, `acceptDirectory`, `defaultCamera` |  |  |  | `variant`, `size`, `isDisabled` |  |  |
+| FileUpload | — |  |  |  |  | `endpoint`, `chunkSize`, `parallelUploads`, `retryDelays`, `maxFileSize`, `autoProceed`, `showPreview`, `isDisabled` |  |  |
+| Form | = | `labelPosition`, `labelAlign`, `necessityIndicator`, `validationBehavior`, `action`, `encType`, `target` | `size`; `method` |  |  | `variant` | `isDisabled`, `isEmphasized`, `isRequired` | 4 |
+| GridList | ListView | `isQuiet`, `selectionMode`, `selectionStyle`, `disallowEmptySelection` |  | `layout` |  | `variant`, `size` | `hideLinkOutIcon`, `overflowMode` | 16 |
+| GridListItem | ListViewItem | `isDisabled` |  |  |  | `size` |  | 13 |
+| GridListSection | — |  |  |  |  |  |  |  |
+| Group | — |  |  | `role`, `isDisabled`, `isInvalid`, `isReadOnly` |  |  |  |  |
+| Header | = |  |  |  |  |  |  | 6 |
+| Heading | = |  |  |  |  | `size` | `level` | 6 |
+| Icon | — |  |  |  | `size` | `iconName`, `strokeWidth` |  |  |
+| IllustratedMessage | = | `orientation` | `size` |  |  |  |  |  |
+| Illustration | — |  |  |  |  | `iconName`, `size` |  |  |
+| InlineAlert | = |  | `variant` |  |  | `size` | `fillStyle` | 1 |
+| Input | — |  |  | `placeholder` |  | `type`, `size` |  |  |
+| Kbd | Keyboard |  |  |  |  | `size` |  | 6 |
+| Keyboard | = |  |  |  |  |  |  | 6 |
+| Label | — |  |  |  |  | `size` |  |  |
+| Link | = | `variant`, `staticColor`, `isQuiet`, `href`, `target`, `rel` |  | `isDisabled`, `autoFocus` |  | `size` | `isStandalone` | 5 |
+| ListBox | — |  |  | `selectionMode`, `disallowEmptySelection` |  | `variant`, `size` |  |  |
+| ListBoxItem | PickerItem | `isDisabled` |  |  |  | `size` |  | 10 |
+| ListBoxSection | — |  |  |  |  |  |  |  |
+| Menu | = | `selectionMode` | `size` |  |  |  | `hideLinkOutIcon` | 12 |
+| MenuSection | = |  |  |  |  |  | `selectionMode` | 7 |
+| MenuTrigger | = | `isOpen`, `defaultOpen`, `trigger` |  |  |  |  | `align`, `direction` | 1 |
+| Meter | = | `value`, `minValue`, `maxValue`, `label`, `labelPosition`, `valueLabel` | `variant`; `size` |  |  | `showValueLabel` | `formatOptions`, `staticColor` |  |
+| MeterFill | — |  |  |  |  | `variant`, `size` |  |  |
+| MeterTrack | — |  |  |  |  | `variant`, `size` |  |  |
+| MeterValue | — |  |  |  |  | `variant`, `size` |  |  |
+| Modal | — |  |  | `isOpen`, `isDismissable`, `autoFocus` |  | `trapFocus` |  |  |
+| Nav | SideNav |  |  |  |  | `variant`, `size` |  | 7 |
+| NumberField | = | `label`, `description`, `labelPosition`, `labelAlign`, `minValue`, `maxValue`, `step`, `value`, `name`, `errorMessage`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `isWheelDisabled`, `necessityIndicator` | `size` | `autoFocus` | `isQuiet` | `locale` | `hideStepper`, `prefix`, `formatOptions`, `contextualHelp`, `placeholder` | 7 |
+| OverlayArrow | — |  |  |  |  |  |  |  |
+| Pagination | — |  |  |  |  | `variant`, `size` |  |  |
+| Paragraph | — |  |  |  |  | `size` |  |  |
+| Popover | = | `placement`, `offset`, `crossOffset`, `shouldFlip`, `containerPadding` | `size` |  |  | `containFocus` | `padding`, `hideArrow` | 6 |
+| ProgressBar | = | `value`, `minValue`, `maxValue`, `label`, `staticColor`, `isIndeterminate`, `labelPosition`, `valueLabel` | `size` |  | `variant`, `showValueLabel` |  | `formatOptions` |  |
+| ProgressBarFill | — |  |  |  |  | `variant`, `size` |  |  |
+| ProgressBarTrack | — |  |  |  |  | `variant`, `size` |  |  |
+| ProgressBarValue | — |  |  |  |  | `size` |  |  |
+| ProgressCircle | = | `value`, `minValue`, `maxValue`, `isIndeterminate`, `staticColor` | `size` |  |  |  |  |  |
+| Radio | = | `description`, `value`, `isDisabled` |  | `autoFocus` |  | `variant`, `size`, `isSelected` |  | 1 |
+| RadioButton | — |  |  |  |  | `size` |  |  |
+| RadioGroup | = | `label`, `description`, `orientation`, `labelPosition`, `value`, `name`, `isRequired`, `isDisabled`, `isInvalid`, `isReadOnly`, `necessityIndicator`, `errorMessage` | `size` |  |  | `variant` | `isEmphasized`, `labelAlign`, `contextualHelp` | 4 |
+| RadioIndicator | — |  |  |  |  |  |  |  |
+| RadioItems | — |  |  |  |  | `size` |  |  |
+| RangeCalendar | = | `isDisabled`, `isReadOnly`, `isInvalid`, `autoFocus`, `pageBehavior`, `minValue`, `maxValue`, `errorMessage`, `allowsNonContiguousRanges` |  |  |  | `variant`, `size`, `maxVisibleMonths`, `locale`, `calendarSystem` | `visibleMonths`, `firstDayOfWeek`, `selectionAlignment` | 7 |
+| Row | = |  |  |  |  | `size` | `isDisabled` | 11 |
+| SearchField | = | `label`, `description`, `placeholder`, `labelPosition`, `labelAlign`, `value`, `name`, `errorMessage`, `autoComplete`, `autoCorrect`, `inputMode`, `enterKeyHint`, `spellCheck`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `maxLength`, `minLength`, `pattern`, `necessityIndicator` | `size` | `autoFocus` | `isQuiet` |  | `type`, `contextualHelp` | 5 |
+| Section | — |  |  |  |  | `variant`, `size` |  |  |
+| Select | Picker | `label`, `description`, `placeholder`, `labelPosition`, `labelAlign`, `selectionMode`, `isDisabled`, `isRequired`, `isInvalid`, `isQuiet`, `name`, `errorMessage`, `necessityIndicator` | `size` | `autoFocus` |  |  | `direction`, `align`, `menuWidth`, `contextualHelp` | 18 |
+| SelectValue | — |  |  |  |  | `size` |  |  |
+| SelectionIndicator | — |  |  |  |  |  |  |  |
+| Separator | Divider | `orientation` | `size` |  |  | `variant` | `staticColor` |  |
+| Skeleton | = |  |  |  |  | `variant`, `size` | `isLoading` |  |
+| Slider | = | `label`, `labelPosition`, `minValue`, `maxValue`, `step`, `value`, `isDisabled` | `size` |  | `showValueLabel` |  | `fillOffset`, `contextualHelp`, `labelAlign`, `formatOptions`, `isEmphasized`, `trackStyle`, `thumbStyle` | 3 |
+| SliderFill | — |  |  |  |  | `size` |  |  |
+| SliderOutput | — |  |  |  |  | `size` |  |  |
+| SliderThumb | — |  |  |  |  | `size` |  |  |
+| SliderTrack | — |  |  |  |  | `size` |  |  |
+| StatusLight | = | `variant` | `size` |  | `isDisabled` |  |  | 1 |
+| SubmenuTrigger | — |  |  |  |  |  |  |  |
+| Switch | = | `description`, `errorMessage`, `isSelected`, `isDisabled`, `isReadOnly`, `name`, `value` | `size` | `autoFocus` |  | `variant` | `isInvalid`, `isRequired`, `isEmphasized` | 6 |
+| SwitchButton | — |  |  |  |  |  |  |  |
+| SwitchIndicator | — |  |  |  |  |  |  |  |
+| Tab | = | `isDisabled` |  |  |  | `size` |  | 8 |
+| TabList | = |  |  |  |  | `size` |  | 2 |
+| Table | TableView | `selectionMode` |  |  |  | `variant`, `size`, `heightMode`, `height` | `isQuiet`, `density`, `overflowMode`, `selectionStyle` | 15 |
+| TableBody | = |  |  |  |  | `size` |  | 3 |
+| TableHeader | = |  |  |  |  | `size` |  | 2 |
+| TableView | = | `density`, `selectionMode` |  |  |  | `variant`, `allowsSorting` | `isQuiet`, `overflowMode`, `selectionStyle` | 15 |
+| Tabs | = | `orientation`, `density`, `isDisabled` |  |  |  | `variant`, `size` |  | 5 |
+| Tag | = | `isDisabled` |  |  |  | `size`, `isSelected` | `label` | 9 |
+| TagGroup | = | `label`, `description`, `maxRows`, `labelPosition`, `selectionMode`, `disallowEmptySelection` | `size` |  |  | `allowsRemoving` | `isEmphasized`, `isInvalid`, `errorMessage`, `contextualHelp`, `labelAlign` | 9 |
+| TagList | — |  |  |  |  | `size` |  |  |
+| Text | = |  |  |  |  | `size` |  | 6 |
+| TextArea | = | `label`, `description`, `placeholder`, `labelPosition`, `labelAlign`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `name`, `maxLength`, `minLength`, `errorMessage`, `necessityIndicator`, `autoComplete`, `autoCorrect`, `inputMode`, `enterKeyHint`, `spellCheck` | `size` | `autoFocus` | `isQuiet` | `rows` | `prefix`, `contextualHelp` | 6 |
+| TextField | = | `label`, `description`, `placeholder`, `labelPosition`, `labelAlign`, `value`, `name`, `errorMessage`, `autoComplete`, `autoCorrect`, `inputMode`, `enterKeyHint`, `spellCheck`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `maxLength`, `minLength`, `pattern`, `necessityIndicator` | `size`; `type` | `autoFocus` | `isQuiet` |  | `prefix`, `contextualHelp` | 5 |
+| TimeField | = | `label`, `description`, `labelPosition`, `labelAlign`, `hourCycle`, `shouldForceLeadingZeros`, `granularity`, `minValue`, `maxValue`, `isRequired`, `isDisabled`, `isReadOnly`, `isInvalid`, `errorMessage`, `hideTimeZone`, `name`, `necessityIndicator`, `validationBehavior`, `placeholderValue` | `size` | `autoFocus` | `isQuiet` | `locale` | `contextualHelp` | 4 |
+| Toast | ToastContainer |  |  |  | `variant` | `size` | `placement` |  |
+| ToggleButton | = | `isEmphasized`, `isQuiet`, `staticColor`, `isSelected`, `isDisabled` | `size` | `autoFocus` |  |  |  | 3 |
+| ToggleButtonGroup | = | `orientation`, `isEmphasized`, `isQuiet`, `staticColor`, `density`, `selectionMode`, `isDisabled`, `disallowEmptySelection` | `size` |  |  |  | `isJustified` | 2 |
+| Toolbar | — |  |  | `orientation` |  | `variant`, `size` |  |  |
+| Tooltip | — |  |  | `placement`, `offset`, `crossOffset`, `shouldFlip`, `containerPadding` | `variant` | `size` |  |  |
+| TooltipTrigger | = | `isOpen`, `defaultOpen`, `isDisabled`, `delay`, `trigger` |  | `closeDelay` |  |  | `placement`, `containerPadding`, `crossOffset` | 2 |
+| Tree | TreeView | `selectionMode`, `selectionStyle`, `disallowEmptySelection` |  |  |  | `variant`, `size` |  | 15 |
+| TreeItem | TreeViewItem | `isDisabled` |  |  |  | `size` |  | 13 |
+| TreeItemContent | — |  |  |  |  |  |  |  |
+| body | — |  |  |  |  |  |  |  |
+
+## 6. 결정이 필요한 것
+
+1. **`size` 표기와 범위** — 39개 type. S2 `S/M/L/XL` 로 맞출지, `xs` 단계와 일부 `xl` 을 어떻게 할지.
+2. **S2 에만 있는 시각 · 내용 prop 도입 범위** — 130개. `contextualHelp` (16) · `isEmphasized` (7) · `prefix` (5) · `labelAlign` · `formatOptions` · `firstDayOfWeek` · `overflowMode` (각 4) 순.
+3. **4.2 의 F 묶음** — 어디에도 없는 `variant` 를 확장으로 남길지 지울지 (항목별).
+4. **B · C 의 contract 변경** — 한 번의 contract 변경으로 묶을지.
+
+## 7. 데이터와 재현
+
+[`s2-prop-alignment-2026-10/`](s2-prop-alignment-2026-10/) 에 원본 데이터와 스크립트가 있다.
+
+| 파일 | 내용 |
+|---|---|
+| `s2props.json` · `racprops.json` | S2 1.8.0 · RAC 1.21.0 컴포넌트별 prop (이름 → 타입 문자열 · 선언 출처) |
+| `ours.json` · `rules.json` | catalog binding accepts · rule variant/size 이름 |
+| `dataset.json` | type 별 분류 결과 (이 문서와 공유 페이지의 입력) |
+| `probe-props.cjs` | TypeScript 검사기로 컴포넌트 props 를 펼치는 스크립트 |
+| `dataset.py` · `build_md.py` · `build_html.py` | 분류 · 이 문서 생성 · 공유 페이지 생성 |
+
+재현: S2 를 격리 폴더에 `npm install --ignore-scripts @react-spectrum/s2@1.8.0` 한 뒤 `export * from "@react-spectrum/s2";` 한 줄 entry 를 두고 `node probe-props.cjs <typescript 경로> <entry> <out.json>`. RAC 는 저장소 안에 같은 entry (`react-aria-components`) 를 두고 실행한다.
