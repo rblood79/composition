@@ -69,10 +69,18 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * `isSelected` (Selected) gives the group's `defaultSelectedKeys` (2026-10-09). 32 — a collection
  * (TagGroup · ListBox · GridList · Menu · Select · ComboBox) takes no `items` (the old items-manager
  * array): its items are its child nodes (RAC static collection) or its data binding (RAC dynamic
- * collection — the rows with the item node as their template) (2026-10-09).
+ * collection — the rows with the item node as their template) (2026-10-09). 33 — the props a
+ * node now carries or that nothing read are gone (2026-10-09 property audit): Breadcrumbs `items`,
+ * Tabs `showIndicator`, Tab `title`, Pagination `totalPages` · `currentPage`, Tag `allowsRemoving`
+ * (its TagGroup's), Menu `isDisabled`, CardView `gap` (Styles gap), SelectValue · DatePicker ·
+ * DateRangePicker `placeholder`, the pickers' `showCalendarIcon` (the Button node), Input's field
+ * states, InlineAlert `heading` · `children`, Card `footer` · `orientation` · `isSelectable`, Toast
+ * `defaultTitle` · `defaultDescription` · `timeout`, the calendar parts' `locale` ·
+ * `calendarSystem` · header `children`, FileUpload's file options (its FileTrigger's), and
+ * one-choice variants / sizes.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 32 as const;
+export const LIBRARY_CONTRACT_VERSION = 33 as const;
 
 export type EntryKind =
   | "project"

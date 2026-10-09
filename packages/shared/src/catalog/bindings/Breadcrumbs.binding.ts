@@ -20,12 +20,6 @@ export const breadcrumbsBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      // ADR-912 영역 B (A): 정적 items[] SSOT(StoredBreadcrumbItem) pass-through.
-      //   TagGroup 선례 동일 — cutover DOM 경로(toRacProps)는 accepts 선언 prop 만 통과시키므로
-      //   items 미선언 시 props.items 가 drop → renderBreadcrumbs 가 items=undefined 로 받아
-      //   fallback crumb 렌더. kind:"binding"(Inspector no-op, toRacProps 통과 전용).
-      //   Skia 경로는 appendBreadcrumbRowProjection 이 canonical props.items 를 직접 읽어 무관.
-      items: { kind: "binding", label: "Items", section: "content" },
       size: {
         kind: "size",
         label: "Size",

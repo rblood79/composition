@@ -20,16 +20,6 @@ export const colorSwatchPickerBinding: PrimitiveBinding = {
         label: "Default Value",
         section: "content",
       },
-      colorSpace: {
-        kind: "enum",
-        label: "Color Space",
-        section: "content",
-        options: [
-          { value: "rgb", label: "RGB" },
-          { value: "hsl", label: "HSL" },
-          { value: "hsb", label: "HSB" },
-        ],
-      },
       layout: {
         kind: "enum",
         label: "Layout",
@@ -61,15 +51,6 @@ export const colorSwatchPickerBinding: PrimitiveBinding = {
           { value: "none", label: "None" },
           { value: "full", label: "Full" },
         ],
-      },
-      columns: {
-        kind: "number",
-        label: "Columns",
-        section: "layout",
-        default: 6,
-        min: 1,
-        max: 12,
-        step: 1,
       },
       size: {
         kind: "size",

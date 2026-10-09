@@ -40,7 +40,6 @@ import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
-  catalogPickerOfButton,
   catalogProgressValueHidden,
   catalogStateConditions,
   catalogStateOwner,
@@ -2009,18 +2008,6 @@ function renderNode(
       (id) => root.domInputs.get(id),
       (entry) => catalogTypeName(root, entry),
     )
-  )
-    return null;
-  // A DatePicker's · DateRangePicker's calendar button is not there while `showCalendarIcon` is
-  // false — the Canvas hides the node the same way (`catalogPickerOfButton`; ADR-256 Phase 6e: the
-  // picker's Group draws its parts in order).
-  if (
-    node.bindingId === "button" &&
-    catalogPickerOfButton(
-      node,
-      (id) => root.domInputs.get(id),
-      (entry) => catalogTypeName(root, entry),
-    )?.props.showCalendarIcon === false
   )
     return null;
   const children: ReactElement[] = (

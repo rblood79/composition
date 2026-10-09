@@ -26,15 +26,6 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
-      // design-data 감사 (2026-08-20): DateRenderers `resolvePlaceholder` 가
-      //   placeholderValue → placeholder 순으로 읽어 renderDateRangePicker(304) 에서
-      //   이미 소비하는데 accepts 선언이 없어 편집 표면이 통째 결손이었다. DatePicker
-      //   binding 은 동일 채널을 노출 중 — 형제 대칭 회복.
-      placeholder: {
-        kind: "string",
-        label: "Placeholder",
-        section: "content",
-      },
       size: {
         kind: "size",
         label: "Size",
@@ -68,11 +59,6 @@ export const dateRangePickerBinding: PrimitiveBinding = {
         ],
         // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
         visibleWhen: { key: "labelPosition", equals: "side" },
-      },
-      showCalendarIcon: {
-        kind: "boolean",
-        label: "Show Calendar Icon",
-        section: "appearance",
       },
       // calendar 아이콘 이름 D2 (DatePicker 동형). SSOT=부모 props.iconName.
       iconName: {

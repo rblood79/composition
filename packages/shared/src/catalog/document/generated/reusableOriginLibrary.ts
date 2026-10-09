@@ -2471,8 +2471,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "primary",
-      "size": "md",
-      "orientation": "vertical"
+      "size": "md"
     },
     "visual": {}
   },
@@ -2996,8 +2995,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-pagination__5"
     ],
     "props": {
-      "totalPages": 5,
-      "currentPage": 1
     },
     "visual": {},
     "layout": {
@@ -3214,8 +3211,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {
       "layout": "grid",
       "size": "md",
-      "density": "regular",
-      "gap": 16
+      "density": "regular"
     },
     "visual": {
       "gap": 16,
@@ -4446,7 +4442,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SelectValue",
     "children": [],
     "props": {
-      "placeholder": "{placeholder}",
       "children": "{placeholder}"
     },
     "visual": {}
@@ -5187,7 +5182,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-fileupload__4"
     ],
     "props": {
-      "allowsMultiple": true,
       "chunkSize": 8388608,
       "parallelUploads": 1,
       "maxFileSize": 0,
@@ -5580,7 +5574,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [],
     "props": {
-      "children": "2026년 9월",
       "size": "md"
     },
     "visual": {},
@@ -5970,7 +5963,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-CalendarHeader",
     "children": [],
     "props": {
-      "children": "2026년 9월",
       "size": "md"
     },
     "visual": {}
@@ -6003,7 +5995,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-dialog__2"
     ],
     "props": {
-      "size": "md",
       "isDismissable": false
     },
     "visual": {}
@@ -6427,7 +6418,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-colorswatchpicker__6"
     ],
     "props": {
-      "columns": 6
     },
     "visual": {
       "gap": 4
@@ -6658,8 +6648,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-tabs__2"
     ],
     "props": {
-      "orientation": "horizontal",
-      "showIndicator": true
+      "orientation": "horizontal"
     },
     "visual": {
       "width": "100%"

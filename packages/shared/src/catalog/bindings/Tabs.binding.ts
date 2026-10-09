@@ -48,13 +48,6 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "regular", label: "Regular" },
         ],
       },
-      // live consumer: LayoutRenderers.tsx renderTabs line 171 (TabList showIndicator)
-      showIndicator: {
-        kind: "boolean",
-        label: "Show Indicator",
-        section: "appearance",
-        default: true,
-      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

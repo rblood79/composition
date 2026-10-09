@@ -49,23 +49,6 @@ export const fileUploadBinding: PrimitiveBinding = {
         label: "Endpoint",
         section: "content",
       },
-      // ── state — RAC FileTriggerProps ──
-      acceptedFileTypes: {
-        kind: "string-array",
-        label: "Accepted File Types",
-        section: "state",
-      },
-      allowsMultiple: {
-        kind: "boolean",
-        label: "Allow Multiple",
-        section: "state",
-        default: true,
-      },
-      acceptDirectory: {
-        kind: "boolean",
-        label: "Accept Directory",
-        section: "state",
-      },
       // ── state — 전송 옵션 (tus-js-client / Uppy) ──
       chunkSize: {
         kind: "number",

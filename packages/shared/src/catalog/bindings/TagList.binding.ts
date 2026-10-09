@@ -39,6 +39,7 @@ export const tagListBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "md",
+        editorHidden: true,
       },
     },
     toRacProps: "default",

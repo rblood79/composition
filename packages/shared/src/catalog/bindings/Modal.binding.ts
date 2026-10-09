@@ -19,12 +19,6 @@ export const modalBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "md",
-      },
       /**
        * ADR-158 Phase 3 (2026-08-16) — 등재 capability `Modal.open`/`close` 가
        * patch 하는 prop. `toRacProps` 는 `accepts` 에 선언된 키만 emit 하므로

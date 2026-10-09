@@ -46,11 +46,6 @@ export const tagBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      allowsRemoving: {
-        kind: "boolean",
-        label: "Allows Removing",
-        section: "state",
-      },
       // A selected Tag is its TagGroup's selection (RAC · S2 Tag has no `variant` — 2026-10-09):
       //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's
       //   `selected` variant paints it (Canvas `_isSelected` · DOM `[data-selected]`).

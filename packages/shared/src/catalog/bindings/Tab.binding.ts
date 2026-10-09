@@ -39,7 +39,6 @@ export const tabBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      title: { kind: "string", label: "Title", section: "content" },
       size: {
         kind: "size",
         label: "Size",

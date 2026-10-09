@@ -47,17 +47,12 @@ export const dateInputBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
         default: "md",
+        editorHidden: true,
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // ADR-253: RAC's named slot of a range picker's pair (`start` · `end`) — written on the

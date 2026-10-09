@@ -21,6 +21,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Round 24 리뷰를 반영해 Phase 9 설계를 보완했다: DatePicker · DateRangePicker 의 `maxVisibleMonths` 삭제와 안 Calendar 의 prop 소유 (`firstDayOfWeek` · `pageBehavior` = picker, `visibleDuration` · `weeksInMonth` = Calendar) · 여러 달 = `CalendarMonth` 한 달 블록 반복 (레퍼런스 starter 구조) · 레퍼런스 Display options 의 `firstDayOfWeek` · `weeksInMonth` 추가 · Preview 실행 중 보기 전환은 범위 밖 (Properties 작성만). 설계 수리이며 제품 구현은 별도다.
 
+## [노드가 대신하거나 아무도 읽지 않던 prop 삭제 · contract 33] - 2026-10-09
+
+### Removed
+
+- 속성 감사 (사용자 「2번 삭제」) — Design 패널에 있었지만 지금은 노드가 그 일을 하거나 Canvas · Preview 어느 쪽도 읽지 않던 prop 을 지웠다.
+  - 노드가 대신: Breadcrumbs `items` · Tabs `Show Indicator` (Tab 의 SelectionIndicator 노드) · Pagination `Total Pages` · `Current Page` (Button 노드) · Tag `Allows Removing` (TagGroup 의 것 — `Button[slot=remove]`) · DatePicker · DateRangePicker `Show Calendar Icon` (Button 노드) · InlineAlert `Heading` · `Description` (Heading · Description 노드) · Card `Footer` (CardFooter) · Toast `Default Title` · `Default Description` · FileUpload 의 파일 옵션 (자식 FileTrigger 의 것) · Input 의 값 · 상태 (field 가 준다) · CardView `Gap` (Styles 의 Gap).
+  - 아무도 읽지 않음: Tab `Title` · Menu `Disabled` · SelectValue · DatePicker · DateRangePicker `Placeholder` (RAC · S2 에 없다) · Card `Orientation` · `Selectable` · Toast `Default Timeout` · ColorPicker `Label` · `Disabled` · ColorSwatchPicker `Color Space` · `Columns` · ColorSlider `Label` · DateInput `Variant` · CalendarHeader `Locale` · `Calendar System` · `Month/Year` (Calendar 의 값) · CalendarGrid `Locale` · `Calendar System` · 선택지가 하나뿐인 `Variant` / `Size` (Icon · IllustratedMessage · Modal · SliderTrack · ProgressBarValue).
+  - owner 가 값을 주는 부품 prop 은 지우지 않고 패널에서 숨겼다 (`editorHidden` — 크기 전파 · 파생 값 경로는 그대로): ProgressBar · Meter 의 Fill · Track `Variant` · `Size`, CalendarHeader · CalendarGrid `Size`, CalendarGrid 의 날짜 배치 값, TagList · SliderTrack · DateInput `Size`.
+  - 같이 지운 읽기 코드: Toast `data-timeout` · Form 의 `autoFocus` · `restoreFocus` (2026-09-10 에 accepts 에서 지운 값) · 피커의 `catalogPickerOfButton`.
+  - library contract 32 → 33 — 이전 contract 의 문서는 열지 않는다 (종전 규약).
+- 회귀: `deadSurfaceRemoval.test.ts` (원복 RED 62) · 고정해 둔 테스트 9개 갱신 · live `apps/builder/scripts/property-removal-live.mjs` 7/7 (Tabs · Pagination · DatePicker · ProgressBar Fill · CalendarHeader · FileUpload 선택 → 지운 항목 없음 + 남은 항목 보임 · Preview 의 Tab 막대 1 · 페이지 버튼 5 · 달력 버튼 1 · 달 제목) · builder 4996 · shared 1445 · rendering 1337 · publish 11 · G3 79 · parity 811
+
 ## [Design 패널 값이 Preview 에 닿지 않던 prop 연결 — ButtonGroup Disabled · FileTrigger 형식 · GridList 선택 방식 · InlineAlert role] - 2026-10-09
 
 ### Fixed

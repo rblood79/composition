@@ -38,18 +38,12 @@ export const calendarHeaderBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Month/Year", section: "content" },
-      locale: { kind: "string", label: "Locale", section: "content" },
-      calendarSystem: {
-        kind: "string",
-        label: "Calendar System",
-        section: "content",
-      },
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
         default: "md",
+        editorHidden: true,
       },
     },
     toRacProps: "default",

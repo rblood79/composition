@@ -28,7 +28,6 @@ export const colorSliderBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      label: { kind: "string", label: "Label", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): orientation 은 renderColorSlider
       //   기소비 (가로/세로 치수 전환). channel/colorSpace 는 RAC 공식이나 renderColorSlider

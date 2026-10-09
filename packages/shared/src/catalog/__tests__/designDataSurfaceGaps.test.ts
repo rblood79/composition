@@ -38,11 +38,10 @@ describe("design-data 감사 §1-1 — 표면 단절 회귀 가드", () => {
     expect(variantKeys).toContain(rule?.defaultVariant);
   });
 
-  it("DatePicker/DateRangePicker: placeholder 편집 표면이 형제 대칭이다", () => {
+  it("DatePicker/DateRangePicker: 형제 대칭 — 둘 다 placeholder 가 없다 (RAC · S2 에 없음, 2026-10-09)", () => {
     for (const type of ["DatePicker", "DateRangePicker"] as const) {
       const accepts = getPrimitiveBinding(type)?.props?.accepts;
-      expect(accepts?.placeholder, `${type} accepts.placeholder`).toBeDefined();
-      expect(accepts?.placeholder?.kind).toBe("string");
+      expect(accepts?.placeholder, `${type} accepts.placeholder`).toBeUndefined();
     }
   });
 });

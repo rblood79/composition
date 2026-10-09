@@ -590,10 +590,6 @@ export function catalogHiddenAtRest(
   if (hint !== undefined) return !hint;
   const field = catalogSearchFieldOfClear(node, get, typeOf);
   if (field) return !field.props.value;
-  if (
-    catalogPickerOfButton(node, get, typeOf)?.props.showCalendarIcon === false
-  )
-    return true;
   if (type === "TreeItem" && parentType === "TreeItem")
     return !catalogTreeItemExpanded(parent, get, typeOf);
   // ADR-256 Phase 5h: an item without child items hides its chevron button (`Tree.css`
@@ -630,24 +626,6 @@ export function catalogIsFieldControlGroup(
   if (!node || typeOf(node) !== "Group") return false;
   const field = catalogPartParent(node, get, typeOf);
   return isFieldControlGroup("Group", field ? typeOf(field) : undefined);
-}
-
-/**
- * A picker's calendar button (the FieldButton instance in its Group — ADR-253): the shared pickers
- * draw it unless `showCalendarIcon` is false. Returns the owning picker for that node.
- */
-export function catalogPickerOfButton(
-  node: CatalogConsumerNode,
-  get: CatalogRecordLookup,
-  typeOf: CatalogTypeOf,
-): CatalogConsumerNode | undefined {
-  if (typeOf(node) !== "Button") return;
-  const trigger = catalogPartParent(node, get, typeOf);
-  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
-  const field = catalogPartParent(trigger!, get, typeOf);
-  return field && ["DatePicker", "DateRangePicker"].includes(typeOf(field))
-    ? field
-    : undefined;
 }
 
 /** The SearchField that owns `node` as the Input in its control wrapper. */
@@ -784,10 +762,6 @@ export function catalogPresenceDependents(
             .flatMap((trigger) => partChildrenOf(trigger, get, typeOf))
             .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf))
         : []),
-      // (A picker's calendar button follows its `showCalendarIcon`.)
-      ...partChildrenOf(scope, get, typeOf)
-        .flatMap((trigger) => partChildrenOf(trigger, get, typeOf))
-        .filter((button) => catalogPickerOfButton(button, get, typeOf)),
     ];
   const items: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {

@@ -26,12 +26,6 @@ export const selectValueBinding: PrimitiveBinding = {
         section: "content",
         default: "",
       },
-      placeholder: {
-        kind: "string",
-        label: "Placeholder",
-        section: "content",
-        default: "",
-      },
       size: {
         kind: "size",
         label: "Size",

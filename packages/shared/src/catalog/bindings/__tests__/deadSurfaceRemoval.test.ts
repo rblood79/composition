@@ -23,16 +23,52 @@ import { getPrimitiveBinding } from "../index";
 const REMOVED: Record<string, readonly string[]> = {
   Link: ["isExternal", "showExternalIcon"],
   Form: ["autoFocus", "restoreFocus"],
-  Breadcrumbs: ["showRoot", "isMultiline"],
   TableView: ["allowsResizingColumns"],
-  CardView: ["columns"],
   ListBox: ["isDisabled", "items"],
   GridList: ["isDisabled", "items"],
   Tree: ["isDisabled"],
   TagGroup: ["isDisabled", "items"],
-  Menu: ["items"],
+  Menu: ["items", "isDisabled"],
   Select: ["items"],
   ComboBox: ["items"],
+  // 2026-10-09 속성 감사 (사용자 「2번 삭제」): 노드가 대신하거나 아무도 읽지 않던 prop.
+  Breadcrumbs: ["showRoot", "isMultiline", "items"],
+  Tabs: ["showIndicator"],
+  Tab: ["title"],
+  Pagination: ["totalPages", "currentPage"],
+  Tag: ["allowsRemoving"],
+  CardView: ["columns", "gap"],
+  SelectValue: ["placeholder"],
+  DatePicker: ["placeholder", "showCalendarIcon"],
+  DateRangePicker: ["placeholder", "showCalendarIcon"],
+  DateInput: ["variant"],
+  ColorPicker: ["label", "isDisabled"],
+  ColorSwatchPicker: ["colorSpace", "columns"],
+  ColorSlider: ["label"],
+  FileUpload: ["acceptedFileTypes", "allowsMultiple", "acceptDirectory"],
+  Input: ["value", "variant", "isDisabled", "isReadOnly", "isInvalid"],
+  InlineAlert: ["heading", "children"],
+  Card: ["footer", "orientation", "isSelectable"],
+  Toast: ["defaultTitle", "defaultDescription", "timeout"],
+  IllustratedMessage: ["variant"],
+  Icon: ["variant"],
+  Modal: ["size"],
+  CalendarHeader: ["children", "locale", "calendarSystem"],
+  CalendarGrid: ["locale", "calendarSystem"],
+  SliderTrack: ["variant"],
+  ProgressBarValue: ["variant"],
+};
+/** Values the owner gives the part (size propagation · derived props): kept, not edited. */
+const HIDDEN: Record<string, readonly string[]> = {
+  ProgressBarFill: ["variant", "size"],
+  ProgressBarTrack: ["variant", "size"],
+  MeterFill: ["variant", "size"],
+  MeterTrack: ["variant", "size"],
+  CalendarHeader: ["size"],
+  CalendarGrid: ["size", "dayOffset", "totalDays", "todayDate", "defaultToday"],
+  TagList: ["size"],
+  SliderTrack: ["size"],
+  DateInput: ["size"],
 };
 
 describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
@@ -46,11 +82,19 @@ describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
     }
   }
 
+  for (const [type, keys] of Object.entries(HIDDEN))
+    for (const key of keys)
+      it(`${type}.${key} 는 owner 가 주는 값 — 패널에서 숨김`, () => {
+        expect(
+          getPrimitiveBinding(type)!.props.accepts[key]?.editorHidden,
+        ).toBe(true);
+      });
+
   it("같은 binding 의 살아있는 형제 surface 는 보존된다", () => {
     expect(getPrimitiveBinding("Link")!.props.accepts).toHaveProperty("target");
     expect(getPrimitiveBinding("Link")!.props.accepts).toHaveProperty("rel");
     expect(getPrimitiveBinding("CardView")!.props.accepts).toHaveProperty(
-      "gap",
+      "layout",
     );
     expect(getPrimitiveBinding("TableView")!.props.accepts).toHaveProperty(
       "allowsSorting",

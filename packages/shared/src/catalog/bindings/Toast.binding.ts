@@ -53,22 +53,6 @@ export const toastBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      defaultTitle: {
-        kind: "string",
-        label: "Default Title",
-        section: "content",
-      },
-      defaultDescription: {
-        kind: "string",
-        label: "Default Description",
-        section: "content",
-      },
-      timeout: {
-        kind: "number",
-        label: "Default Timeout (ms)",
-        section: "content",
-        default: 5000,
-      },
       variant: {
         kind: "variant",
         label: "Variant",

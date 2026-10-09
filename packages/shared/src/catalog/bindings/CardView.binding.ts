@@ -80,12 +80,6 @@ export const cardViewBinding: PrimitiveBinding = {
           { value: "spacious", label: "Spacious" },
         ],
       },
-      gap: {
-        kind: "number",
-        label: "Gap",
-        section: "appearance",
-        default: 16,
-      },
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

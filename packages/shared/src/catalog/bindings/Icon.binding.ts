@@ -28,13 +28,6 @@ export const iconBinding: PrimitiveBinding = {
   props: {
     accepts: {
       iconName: { kind: "icon", label: "Icon", section: "content" },
-      // 시각 차원 → data-variant / data-size (theme 가 값 집합 제공)
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

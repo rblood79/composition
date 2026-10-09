@@ -56,7 +56,6 @@ export const cardBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
-      footer: { kind: "string", label: "Footer", section: "content" },
       // appearance — S2 variant 모델(구 cardType/isQuiet 흡수).
       variant: {
         kind: "variant",
@@ -69,16 +68,6 @@ export const cardBinding: PrimitiveBinding = {
         label: "Size",
         section: "appearance",
         default: "md",
-      },
-      orientation: {
-        kind: "enum",
-        label: "Orientation",
-        section: "appearance",
-        default: "vertical",
-        options: [
-          { value: "vertical", label: "Vertical" },
-          { value: "horizontal", label: "Horizontal" },
-        ],
       },
       // live consumer: LayoutRenderers.tsx renderCard line 254/291 (data-accent attr)
       accentColor: {
@@ -97,16 +86,10 @@ export const cardBinding: PrimitiveBinding = {
           { value: "_blank", label: "Blank" },
         ],
       },
-      isSelectable: {
-        kind: "boolean",
-        label: "Selectable",
-        section: "state",
-      },
       isSelected: {
         kind: "boolean",
         label: "Selected",
         section: "state",
-        visibleWhen: { key: "isSelectable", equals: true },
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

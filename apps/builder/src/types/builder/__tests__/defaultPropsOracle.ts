@@ -80,7 +80,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
   {
     type: "Icon",
     props: {
-      variant: "default", // catalog bindingOnly 보강(factory 미설정)
+      // (variant — 선택지 하나뿐이라 2026-10-09 삭제)
       size: "md",
       strokeWidth: 2,
       iconFontFamily: "lucide",

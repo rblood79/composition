@@ -1460,9 +1460,9 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(value.visual.fontSize).toBe(14);
       // (The value keeps its own weight: it does not take the trigger Button's 500.)
       expect(value.visual.fontWeight).toBe(400);
-      // The field's `placeholder` and `iconName` reach the parts (template bindings).
+      // The field's `placeholder` and `iconName` reach the parts (template bindings — the value's
+      // text; its own `placeholder` prop went 2026-10-09: RAC reads the Select's).
       expect(value.props).toMatchObject({
-        placeholder: "Choose an option...",
         children: "Choose an option...",
       });
       expect(glyph.props.iconName).toBe("chevron-down");
@@ -1473,7 +1473,6 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         }),
       );
       expect(parts()[0]!.props).toMatchObject({
-        placeholder: "Pick one",
         children: "Pick one",
       });
       expect(parts()[1]!.props.iconName).toBe("search");
@@ -1776,13 +1775,8 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(
         pickerGroup().querySelector("button")!.getAttribute("aria-haspopup"),
       ).toBe("dialog");
-      // `showCalendarIcon: false`: no button on either side.
-      setField(picker.workspace, { showCalendarIcon: false });
-      expect(picker.hidden(pickerParts()[1]!.id)).toBe(true);
-      expect(pickerGroup().querySelector("button")).toBeNull();
-      setField(picker.workspace, { showCalendarIcon: true });
+      // (No `showCalendarIcon` — 2026-10-09: the calendar button is the Button node itself.)
       expect(picker.hidden(pickerParts()[1]!.id)).toBe(false);
-      expect(pickerGroup().querySelector("button")).not.toBeNull();
 
       // DateRangePicker: the Group is the box; the pair carries none.
       const range = await open("daterangepicker");

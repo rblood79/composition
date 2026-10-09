@@ -37,7 +37,6 @@ export const menuBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },

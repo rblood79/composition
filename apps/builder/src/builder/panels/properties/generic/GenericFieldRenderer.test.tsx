@@ -7,7 +7,7 @@ import { resolveTestEditContract as resolveEditContract } from "../../../catalog
  * 컬럼 존재 시 PropertyFieldTemplateInput(필드 피커)으로 렌더되는지 가드한다 —
  * P4a 최초 배선이 CatalogInspectorFields 에만 있어 live 미노출된 회귀의 재발 차단.
  */
-import { render } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { type ResolvedField } from "@composition/shared";
@@ -252,23 +252,24 @@ describe("GenericFieldRenderer — ADR-208 visibleWhen live 결선", () => {
  * 진짜로 돌려 seam 을 잇는다.
  */
 describe("GenericFieldRenderer — ADR-208 결선 seam (resolveEditContract → 렌더러)", () => {
-  const cardFields = (props: Record<string, unknown>): ResolvedField[] =>
+  const chartModeFields = (dataMode: string): ResolvedField[] =>
     resolveEditContract({
-      id: "card-1",
-      type: "Card",
-      props,
+      id: "chart-mode",
+      type: "Chart",
+      props: { dataMode },
     } as never).fields.filter((f) => f.origin === "semantic");
 
-  it("isSelectable=false → isSelected 가 화면에서 사라진다", () => {
+  it("equals 조건 — Chart dataMode=group 에서만 Value (metric) 가 나온다", () => {
     ownerColumnsMock.mockReturnValue(null);
-    const { container } = renderFields(cardFields({ isSelectable: false }));
-    expect(labels(container)).not.toContain("Selected");
-  });
-
-  it("isSelectable=true → isSelected 가 다시 나온다", () => {
-    ownerColumnsMock.mockReturnValue(null);
-    const { container } = renderFields(cardFields({ isSelectable: true }));
-    expect(labels(container)).toContain("Selected");
+    const controls = (container: HTMLElement): string[] =>
+      [...container.querySelectorAll("[aria-label]")].map(
+        (e) => e.getAttribute("aria-label") ?? "",
+      );
+    const group = renderFields(chartModeFields("group")).container;
+    expect([...labels(group), ...controls(group)]).toContain("Value");
+    cleanup();
+    const columns = renderFields(chartModeFields("columns")).container;
+    expect([...labels(columns), ...controls(columns)]).not.toContain("Value");
   });
 
   it("Chart bar → 극좌표 전용 항목이 안 보이고, radar 로 바꾸면 보인다", () => {

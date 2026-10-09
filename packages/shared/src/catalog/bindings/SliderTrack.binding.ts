@@ -14,17 +14,12 @@ export const sliderTrackBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "slidertrack" },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",
         section: "appearance",
         default: "md",
+        editorHidden: true,
       },
     },
     toRacProps: "default",

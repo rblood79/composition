@@ -42,13 +42,6 @@ export const illustratedMessageBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
-      // kind:"variant"/"size" 는 options 미보유 — 값 집합은 theme rule 동적 제공.
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

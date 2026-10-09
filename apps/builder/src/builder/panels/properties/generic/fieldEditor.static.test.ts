@@ -218,11 +218,6 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       type: "slider",
       max: 360,
     });
-    expect(editorOf("ColorSwatchPicker", "columns")).toMatchObject({
-      type: "slider",
-      min: 1,
-      max: 12,
-    });
     expect(editorOf("TextField", "maxLength").type).toBe("stepper");
     expect(editorOf("Popover", "offset").type).toBe("stepper");
     expect(editorOf("Slider", "minValue").type).toBe("stepper");

@@ -106,7 +106,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 32,
+    libraryContractVersion: 33,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -658,11 +658,8 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       {
         children: [id("header"), id("grid")],
         nodes: [
-          // The header child's own text/locale are what the old Canvas painted; RAC reads neither.
-          entry("header", "CalendarHeader", {
-            children: { kind: "set", value: "2026년 9월" },
-            locale: { kind: "set", value: "ko-KR" },
-          }),
+          // (The header takes no text or locale of its own — 2026-10-09: RAC reads the Calendar's.)
+          entry("header", "CalendarHeader"),
           entry("grid", "CalendarGrid"),
         ],
       },

@@ -25,11 +25,6 @@ export const datePickerBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
-      placeholder: {
-        kind: "string",
-        label: "Placeholder",
-        section: "content",
-      },
       size: {
         kind: "size",
         label: "Size",
@@ -68,11 +63,6 @@ export const datePickerBinding: PrimitiveBinding = {
         ],
         // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
         visibleWhen: { key: "labelPosition", equals: "side" },
-      },
-      showCalendarIcon: {
-        kind: "boolean",
-        label: "Show Calendar Icon",
-        section: "appearance",
       },
       // calendar 아이콘 이름 D2 (Select iconName 동형). SSOT=부모 DatePicker.props.iconName →
       //   toRacProps 로 Preview DatePicker.tsx 전달 + Skia SelectIcon 조부모 위임 → 양쪽 대칭.

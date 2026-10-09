@@ -16,12 +16,6 @@ export const progressBarValueBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "progressbarvalue" },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

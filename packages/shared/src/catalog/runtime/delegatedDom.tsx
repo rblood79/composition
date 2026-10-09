@@ -1197,7 +1197,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             : {}),
           density: props.density || "regular",
           size: props.size || "md",
-          showIndicator: props.showIndicator !== false,
+          // (The selected Tab's bar is its SelectionIndicator node — the sheet's `::before` bar stays
+          // off. The old `showIndicator` prop is gone, 2026-10-09.)
+          showIndicator: true,
         },
         ...renderAll(input),
       );
@@ -1605,8 +1607,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         chunkSize: props.chunkSize,
         parallelUploads: props.parallelUploads,
         maxFileSize: props.maxFileSize,
-        allowsMultiple: props.allowsMultiple,
-        acceptDirectory: props.acceptDirectory,
         autoProceed: props.autoProceed,
         retryDelays: Array.isArray(props.retryDelays)
           ? props.retryDelays
@@ -2300,7 +2300,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           style: {
             display: "flex",
             flexWrap: "wrap",
-            gap: Number(input.node.props.gap ?? 16),
             ...input.style,
           },
         },
@@ -2338,7 +2337,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           role: "alert",
           "data-position": str(props.position || "top-right"),
           "data-variant": str(props.variant || "info"),
-          "data-timeout": opt(props.timeout),
           "data-max-toasts": opt(props.maxToasts),
           "data-accent": opt(props.accentColor),
           style: input.style,
@@ -2346,10 +2344,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...(list.length
           ? renderAll(input, list)
           : [
-              (props.defaultTitle as ReactNode) ||
-                (props.defaultDescription as ReactNode) ||
-                (props.children as ReactNode) ||
-                "Toast",
+              (props.children as ReactNode) || "Toast",
             ]),
       );
     },
@@ -2586,8 +2581,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           method: props.method || undefined,
           encType: props.encType || undefined,
           target: props.target || undefined,
-          autoFocus: bool(props.autoFocus),
-          restoreFocus: bool(props.restoreFocus),
           validationBehavior: props.validationBehavior || undefined,
           labelPosition: props.labelPosition || undefined,
           labelAlign: props.labelAlign || undefined,

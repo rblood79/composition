@@ -14,11 +14,11 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
     expect(iconBinding.rac).toBeUndefined();
   });
 
-  it("accepts: iconName(icon)/size(size)/variant(variant)/strokeWidth(number)", () => {
+  it("accepts: iconName(icon)/size(size)/strokeWidth(number) — no variant (one choice, 2026-10-09)", () => {
     const accepts = iconBinding.props.accepts;
     expect(accepts.iconName.kind).toBe("icon");
     expect(accepts.size.kind).toBe("size");
-    expect(accepts.variant.kind).toBe("variant");
+    expect(accepts.variant).toBeUndefined();
     expect(accepts.strokeWidth.kind).toBe("number");
   });
 
@@ -34,7 +34,7 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
    * → `propPassthrough: ["size"]` 로 **React prop + data-\* 둘 다** emit 한다.
    *   (data-* 는 CSS/디버그 마커용으로 계속 유지 — 둘 중 하나를 고르는 게 아니다.)
    */
-  it("toRacProps: size 는 React prop + data-size 둘 다 emit (variant 는 data-* 만)", () => {
+  it("toRacProps: size 는 React prop + data-size 둘 다 emit", () => {
     const result = toRacProps(
       {
         id: "icon1",
@@ -42,7 +42,6 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
         props: {
           iconName: "star",
           size: "lg",
-          variant: "default",
           strokeWidth: 1.5,
         },
       },
@@ -54,8 +53,6 @@ describe("Icon binding (non-RAC leaf primitive)", () => {
       // Icon.tsx 가 React prop 으로 소비 → svg width/height 계산의 입력
       size: "lg",
       "data-size": "lg",
-      // variant 는 색상만 바꾸고 CSS `[data-variant]` 가 처리 → data-* 만으로 충분
-      "data-variant": "default",
     });
   });
 });

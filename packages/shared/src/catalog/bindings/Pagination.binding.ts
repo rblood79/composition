@@ -65,18 +65,6 @@ export const paginationBinding: PrimitiveBinding = {
         section: "appearance",
         default: "md",
       },
-      totalPages: {
-        kind: "number",
-        label: "Total Pages",
-        section: "content",
-        default: 5,
-      },
-      currentPage: {
-        kind: "number",
-        label: "Current Page",
-        section: "content",
-        default: 1,
-      },
     },
     toRacProps: "default",
   },

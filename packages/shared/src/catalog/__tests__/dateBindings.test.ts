@@ -86,7 +86,7 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     expect(result["data-size"]).toBe("lg");
   });
 
-  it("toRacProps: DatePicker label/showCalendarIcon 통과 + size default", () => {
+  it("toRacProps: DatePicker label 통과 + size default (showCalendarIcon 은 Button 노드 — 2026-10-09 삭제)", () => {
     const result = toRacProps(
       {
         id: "dp1",
@@ -96,7 +96,7 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
       getPrimitiveBinding("DatePicker")!,
     );
     expect(result.label).toBe("Birthday");
-    expect(result.showCalendarIcon).toBe(true);
+    expect(result).not.toHaveProperty("showCalendarIcon");
     expect(result["data-size"]).toBe("md");
   });
 

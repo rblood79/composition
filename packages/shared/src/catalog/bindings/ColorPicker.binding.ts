@@ -15,7 +15,6 @@ export const colorPickerBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      label: { kind: "string", label: "Label", section: "content" },
       defaultValue: {
         kind: "string",
         label: "Default Value",
@@ -33,7 +32,6 @@ export const colorPickerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "default",
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",
   },
