@@ -277,7 +277,8 @@ export function catalogTabsSelection(
 /**
  * RAC `data-selected` of an item inside its collection: the collection's selection state decides
  * (the DOM binding's keys — Tabs' selected key, else its first enabled Tab; ListBox's
- * `selectedKey`; TagGroup/GridList/Tree none), not the item template's display state. Undefined
+ * `selectedKey`; a TagGroup's selected Tags while it selects — RAC selects nothing in
+ * `selectionMode` none; GridList/Tree none), not the item template's display state. Undefined
  * outside a collection (a state origin shows its own display state).
  */
 function catalogCollectionItemSelected(
@@ -302,6 +303,11 @@ function catalogCollectionItemSelected(
     node.props as Record<string, unknown>,
     node.id,
   );
+  if (typeOf(owner) === "TagGroup")
+    return (
+      node.props.isSelected === true &&
+      String(owner.props.selectionMode ?? "none") !== "none"
+    );
   return typeOf(owner) === "ListBox" &&
     typeof owner.props.selectedKey === "string"
     ? owner.props.selectedKey === key

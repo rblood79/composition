@@ -26,7 +26,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition — DOM 은 RAC `<TagGroup>`/`<Tag>` 가 self-compose + ARIA(role=row/gridcell,
  *     aria-selected). RAC D1/ARIA 권위 보존.
- * D2: children(label) + size + variant + allowsRemoving 편집 surface.
+ * D2: children(label) + size + allowsRemoving + isSelected (그룹 선택 — RAC TagGroup
+ *     `defaultSelectedKeys`, Tag 자체 variant 없음 2026-10-09) 편집 surface.
  * D3: 시각(box+text 색/크기/형태 + remove X)은 theme rule(COMPONENT_RULES_TABLE.Tag) —
  *     variants{default/selected}.fill + sizes{fontSize/lineHeight/borderRadius/height/paddingX}.
  *     Skia generic(box+text) + SelectIcon "x" 자식 ↔ DOM RAC self-compose 시각 대칭.
@@ -39,12 +40,6 @@ export const tagBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Label", section: "content" },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",
@@ -56,6 +51,10 @@ export const tagBinding: PrimitiveBinding = {
         label: "Allows Removing",
         section: "state",
       },
+      // A selected Tag is its TagGroup's selection (RAC · S2 Tag has no `variant` — 2026-10-09):
+      //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's
+      //   `selected` variant paints it (Canvas `_isSelected` · DOM `[data-selected]`).
+      isSelected: { kind: "boolean", label: "Selected", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

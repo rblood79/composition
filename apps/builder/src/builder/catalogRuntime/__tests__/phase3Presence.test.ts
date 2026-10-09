@@ -106,7 +106,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 30,
+    libraryContractVersion: 31,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -343,12 +343,14 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
           (shape.type === "rect" || shape.type === "roundRect") &&
           (shape as { fill?: unknown }).fill === "{color.accent}",
       );
-    // Tag: the typed `variant: "default"` is not an authored choice; DOM `[data-selected]` wins.
+    // Tag: no `variant` (RAC · S2 Tag has none — 2026-10-09); the selected state origin is its
+    // selection (`isSelected`), painted as DOM `[data-selected]`.
     const tag = await open(
       "lib:definition:origin-component-tag-item-default" as DefinitionId,
       "tag-selected",
     );
-    expect(tag.byType("Tag")[0].props.variant).toBe("default");
+    expect(tag.byType("Tag")[0].props.variant).toBeUndefined();
+    expect(tag.byType("Tag")[0].props.isSelected).toBe(true);
     expect(accentRect(shapesOf(tag, "Tag")).length).toBeGreaterThan(0);
     const tagUnselected = await open(
       "lib:definition:origin-component-tag-item-default--unselected" as DefinitionId,

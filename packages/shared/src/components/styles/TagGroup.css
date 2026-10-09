@@ -104,11 +104,7 @@
       outline-offset: 2px;
     }
 
-    /* The Tag rule's `selected` variant (fill {color.accent} · text {color.on-accent} · border
-       {color.accent}) — RAC's selection and the authored `variant="selected"` (`data-variant`) alike.
-       The Tag has no generated CSS (2026-10-09: the variant reached only the label's colour). */
-    &[data-selected],
-    &[data-variant="selected"] {
+    &[data-selected] {
       --tag-color: var(--accent);
       --tag-text: var(--fg-on-accent);
       --tag-border: var(--accent);

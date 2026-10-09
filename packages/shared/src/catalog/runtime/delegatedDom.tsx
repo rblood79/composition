@@ -956,6 +956,16 @@ function tagGroupLabelled(
     return LABEL_PASS_THROUGH_TYPES.has(type) && tagGroupLabelled(root, child);
   });
 }
+/** A TagGroup's Tag records (in its TagList — RAC's collection). */
+const tagGroupTags = (
+  root: CatalogCompositionRoot,
+  group: CatalogConsumerNode,
+): CatalogConsumerNode[] =>
+  [...root.domInputs.values()].filter(
+    (record) =>
+      catalogTypeName(root, record) === "Tag" &&
+      catalogDomPartParent(root, record)?.parentId === group.id,
+  );
 /** The author's DOM attributes `withHtmlId` puts on a renderer's element (id · class · aria-label). */
 type AuthoredDomAttributes = Readonly<Record<string, unknown>>;
 function TagGroupRun({
@@ -971,14 +981,15 @@ function TagGroupRun({
   const named = tagGroupLabelled(input.root, input.node);
   const size = str(props.size) || "md";
   const labelPosition = str(props.labelPosition) || "top";
-  const allTags = () =>
-    [...input.root.domInputs.values()]
-      .filter(
-        (record) =>
-          catalogTypeName(input.root, record) === "Tag" &&
-          catalogDomPartParent(input.root, record)?.parentId === input.node.id,
-      )
-      .map(tagKey);
+  const tags = tagGroupTags(input.root, input.node);
+  const allTags = () => tags.map(tagKey);
+  // A selected Tag is the group's selection (RAC · S2 Tag has no `variant`): its Selected
+  // (`isSelected`) hands RAC the key (`defaultSelectedKeys` — RAC selects only in a selection
+  // mode, as the Canvas `catalogCollectionItemSelected`). A changed authored set remounts RAC's
+  // group (its uncontrolled selection), as ToggleButtonGroup.
+  const selectedKeys = tags
+    .filter((tag) => tag.props.isSelected === true)
+    .map(tagKey);
   return createElement(
     TagGroupRunContext.Provider,
     {
@@ -1002,6 +1013,8 @@ function TagGroupRun({
         "data-tag-variant": str(props.variant) || "default",
         "data-tag-size": size,
         "data-label-position": labelPosition,
+        key: `selected:${selectedKeys.join(",")}`,
+        defaultSelectedKeys: selectedKeys,
         // (Without a visible label the group is named by its `label` — RAC needs a name.)
         "aria-label": named ? undefined : label || "Tag group",
         selectionMode: props.selectionMode ?? "none",
@@ -1203,6 +1216,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // author's order (a deleted Label is not drawn again from the `label` prop). Its selection is
   // RAC's (Preview run state — M1); removed tags leave the list (`TagGroupRun`).
   taggroup: {
+    // (Its selection is its Tags' Selected — a Tag's change reaches the group's keys.)
+    watchesChildren: (node, root) =>
+      tagGroupTags(root, node).flatMap((tag) => [tag.id, tag.parentId]),
     render: (input) => createElement(TagGroupRun, { input }),
   },
   // The TagList node is the chip box (`div.tag-list-wrapper` — RAC's TagList is `display: contents`)
