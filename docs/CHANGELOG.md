@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Checkbox · Switch emphasized — Preview 가 variant 를 읽는다] - 2026-10-09
+
+### Fixed
+
+- **강조 (emphasized) Checkbox · Switch 가 Preview 에서 중립색이던 문제** (사용자 「Checkbox · Switch variant ↔ isEmphasized 진행해」):
+  - Variant 를 Emphasized 로 두고 선택하면 Canvas 는 accent 로 칠하는데 Preview 는 검정 (중립) 이었다.
+  - **Why**: 둘은 `variant` (default · emphasized) 를 받고 Canvas 는 rule 의 emphasized variant 로 칠하지만, DOM 은 받지 않는 `isEmphasized` 로 `data-emphasized` (sheet 의 accent 선택색) 를 정했다.
+  - 수정: DOM 의 `data-emphasized` = `variant === "emphasized"`.
+  - 확인: live — Checkbox · Switch 선택 + emphasized 의 Canvas indicator 칠 = Preview indicator = accent, default 는 양쪽 모두 중립 (`apps/builder/scripts/toggle-emphasized-live.mjs` 5/5).
+  - 위치: `packages/shared/src/catalog/runtime/delegatedDom.tsx` (`checkbox` · `switch`)
+
 ## [Nav 이름 — aria-label prop 을 읽는다] - 2026-10-09
 
 ### Fixed
