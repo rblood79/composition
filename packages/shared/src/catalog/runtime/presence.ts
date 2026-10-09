@@ -6,7 +6,10 @@ import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
-import { catalogCalendarTitle } from "../resolvers/resolveCatalogRuleCanvasBox";
+import {
+  catalogCalendarTitle,
+  catalogWeekStart,
+} from "../resolvers/resolveCatalogRuleCanvasBox";
 import { racFieldHourCycle } from "../document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type {
@@ -1112,6 +1115,18 @@ export function catalogComposedParts(
 
 /** RAC Calendar owners (their header child's heading is the owner's visible-range title). */
 const CALENDAR_TYPES = new Set(["Calendar", "RangeCalendar"]);
+const PICKER_TYPES = new Set(["DatePicker", "DateRangePicker"]);
+/** The picker a calendar opens from: `DatePicker > Popover > Calendar` (ADR-256 Phase 6e). */
+function calendarPicker(
+  calendar: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const popover = get(calendar.parentId);
+  if (!popover || typeOf(popover) !== "Popover") return undefined;
+  const picker = get(popover.parentId);
+  return picker && PICKER_TYPES.has(typeOf(picker)) ? picker : undefined;
+}
 
 /** RAC ProgressBar/Meter and the track sub-part whose fill they own. */
 const PROGRESS_TRACKS: Readonly<Record<string, string>> = {
@@ -1467,12 +1482,20 @@ function ownDerivedProps(
   ) {
     const own = calendar.props.locale;
     const system = calendar.props.calendarSystem;
+    const resolved =
+      typeof own === "string" && own
+        ? own
+        : (locale ?? globalThis.navigator?.language ?? "en-US");
+    // (S2 `firstDayOfWeek`: in a picker the picker's — RAC's calendar context, the calendar's own
+    // stays unset in the DOM.)
+    const picker = calendarPicker(calendar, get, typeOf);
     return {
-      locale:
-        typeof own === "string" && own
-          ? own
-          : (locale ?? globalThis.navigator?.language ?? "en-US"),
+      locale: resolved,
       calendarSystem: typeof system === "string" ? system : "",
+      _weekStart: catalogWeekStart(
+        resolved,
+        (picker ?? calendar).props.firstDayOfWeek,
+      ),
     };
   }
   if (level !== undefined)
@@ -1627,6 +1650,17 @@ function derivedDependents(
     return childrenOf(owner, get).filter((child) =>
       ["CalendarHeader", "CalendarGrid"].includes(typeOf(child)),
     );
+  // A picker's first day is its calendar grid's (`calendarPicker`).
+  if (PICKER_TYPES.has(type))
+    return childrenOf(owner, get)
+      .filter((popover) => typeOf(popover) === "Popover")
+      .flatMap((popover) => childrenOf(popover, get))
+      .filter((calendar) => CALENDAR_TYPES.has(typeOf(calendar)))
+      .flatMap((calendar) =>
+        childrenOf(calendar, get).filter(
+          (child) => typeOf(child) === "CalendarGrid",
+        ),
+      );
   // A Disclosure's header turns its chevron with the expansion — inside a DisclosureGroup every
   // sibling's (the group's expanded keys).
   if (type === "Disclosure" || type === "DisclosureGroup") {

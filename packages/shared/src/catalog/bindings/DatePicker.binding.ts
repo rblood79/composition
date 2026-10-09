@@ -7,7 +7,11 @@
  */
 
 import type { PrimitiveBinding } from "../types";
-import { DATE_CALENDAR_SYSTEM_PROP, DATE_LOCALE_PROP } from "./dateLocaleProps";
+import {
+  DATE_CALENDAR_SYSTEM_PROP,
+  DATE_LOCALE_PROP,
+  FIRST_DAY_OF_WEEK_PROP,
+} from "./dateLocaleProps";
 
 export const datePickerBinding: PrimitiveBinding = {
   source: {
@@ -170,6 +174,7 @@ export const datePickerBinding: PrimitiveBinding = {
       // react-aria.adobe.com "International calendars": unset = the browser's locale.
       locale: DATE_LOCALE_PROP,
       calendarSystem: DATE_CALENDAR_SYSTEM_PROP,
+      firstDayOfWeek: FIRST_DAY_OF_WEEK_PROP,
     },
     toRacProps: "default",
     // size 는 DatePicker.tsx(INTERNAL_RENDERERS 어댑터)가 **React prop 으로 직접 소비**한다

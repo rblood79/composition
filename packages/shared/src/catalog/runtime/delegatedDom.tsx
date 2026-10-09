@@ -892,6 +892,12 @@ function nodeTreeField(
     },
   };
 }
+/** S2 `firstDayOfWeek` — one of RAC's day names, else unset (the locale's own first day). */
+const DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const firstDayOfWeek = (value: unknown) =>
+  typeof value === "string" && DAYS_OF_WEEK.includes(value)
+    ? (value as "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat")
+    : undefined;
 /** A date prop the document wrote as text (`2026-10-08`), parsed for RAC. */
 const dateValue = (value: unknown) =>
   typeof value === "string" ? safeParseDateString(value) : value;
@@ -908,6 +914,8 @@ const datePickerProps = (props: CatalogConsumerNode["props"]) => ({
   shouldForceLeadingZeros: props.shouldForceLeadingZeros !== false,
   shouldCloseOnSelect: props.shouldCloseOnSelect !== false,
   pageBehavior: props.pageBehavior === "single" ? "single" : undefined,
+  // (RAC hands it to the picker's calendar — `calendarProps`.)
+  firstDayOfWeek: firstDayOfWeek(props.firstDayOfWeek),
   validationBehavior: props.validationBehavior || undefined,
 });
 /** A time prop the document wrote as text (`HH:MM(:SS)`), parsed for RAC. */
@@ -2359,9 +2367,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         },
         ...(list.length
           ? renderAll(input, list)
-          : [
-              (props.children as ReactNode) || "Toast",
-            ]),
+          : [(props.children as ReactNode) || "Toast"]),
       );
     },
   },
@@ -2659,6 +2665,7 @@ function calendarProps(
     maxVisibleMonths:
       Number((picker ?? input.node).props.maxVisibleMonths) || 1,
     pageBehavior: own(props.pageBehavior === "single" ? "single" : "visible"),
+    firstDayOfWeek: own(firstDayOfWeek(props.firstDayOfWeek)),
     defaultToday: props.defaultToday === true,
     minValue: own(props.minValue),
     maxValue: own(props.maxValue),

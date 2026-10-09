@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 글자 크기는 `size` 가 정한다 (S2 와 같음) — level 을 바꿔도 Canvas 상자는 그대로다.
   - 확인: live — Disclosure 제목 Heading 에서 Level 3 표시 → 2 로 바꾸면 Preview `h2`, Canvas 높이 36 = Preview 36 그대로, undo 로 `h3` (`apps/builder/scripts/heading-level-live.mjs` 5/5).
   - 위치: `packages/shared/src/catalog/bindings/Heading.binding.ts` · `packages/shared/src/catalog/document/codeCatalogLibrary.ts` (`textDefinition` 이 Heading 의 `level` 을 받는다) · `packages/shared/src/catalog/runtime/domBinding.tsx`
+- **`firstDayOfWeek` — Calendar · RangeCalendar · DatePicker · DateRangePicker**:
+  - Design 패널 Locale 에 First Day of Week (Locale default · Sunday ~ Saturday). Preview 는 RAC 에 넘기고, picker 의 값은 RAC 가 picker 안 달력에 준다.
+  - Canvas 달력 격자도 같은 요일부터 그린다 — 요일 머리 · 날짜 칸 · 줄 수 (`_weekStart`, 일요일 = 0). 지정하지 않으면 locale 의 첫 요일 (RAC 와 같은 `@internationalized/date` 계산).
+  - **Why**: S2 의 네 컴포넌트가 받는 prop 인데 우리는 받지 않았다. Canvas 격자는 요일 시작을 일요일로 고정해, 월요일로 시작하는 locale (de-DE 등) 에서는 이미 Preview 와 달랐다 — 같은 계산으로 함께 맞췄다.
+  - 확인: live — Calendar 를 Wednesday 로 바꾸면 Preview 머리 「수 목 금 토 일 월 화」, Canvas `_weekStart` 3, 격자 높이 200 = Preview 표 200. DatePicker 를 Friday 로 바꾸고 Preview 에서 열면 「금」 부터 (`apps/builder/scripts/first-day-of-week-live.mjs` 4/4, 브라우저 locale ko-KR).
+  - 위치: `packages/shared/src/catalog/bindings/dateLocaleProps.ts` · `packages/shared/src/catalog/bindings/{Calendar,RangeCalendar,DatePicker,DateRangePicker}.binding.ts` · `packages/shared/src/catalog/runtime/{delegatedDom.tsx,presence.ts,compositionRoot.ts}` · `packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts` (`catalogWeekStart`) · `packages/rendering/src/renderers/skiaPrimitives.ts` (`calendar_month_grid`)
 
 ## [size 이름 S2 정렬 — XS · S · M · L · XL] - 2026-10-09
 

@@ -826,7 +826,11 @@ function styleOf(
   // The calendar table's own box (7 day columns × the shown month's weeks).
   const table =
     node.bindingId === "calendargrid"
-      ? catalogCalendarGridSize(calendarSize)
+      ? catalogCalendarGridSize(
+          calendarSize,
+          undefined,
+          Number(node.derivedProps?._weekStart) || 0,
+        )
       : undefined;
   const headerRow =
     node.bindingId === "calendarheader" ? calendarHeader : undefined;
@@ -4118,4 +4122,3 @@ export class CatalogCompositionRoot {
     return errors;
   }
 }
-

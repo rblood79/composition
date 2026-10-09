@@ -22,6 +22,7 @@ import type {
   ComponentRuleSize,
   ComponentRuleStructure,
 } from "../../types/catalog-style.types";
+import { CalendarDate, getDayOfWeek } from "@internationalized/date";
 import { resolveCatalogContainerBase } from "./resolveCatalogContainer";
 import { resolveComponentRule } from "./resolveComponentRule";
 
@@ -232,6 +233,7 @@ export function catalogTextAreaInputHeight(
 export function catalogCalendarGridSize(
   sizeName: string | undefined,
   month: Date = new Date(),
+  weekStart = 0,
 ): { width: number; height: number } | undefined {
   const rule = resolveComponentRule("CalendarGrid");
   const sizes = rule?.sizes as Record<string, ComponentRuleSize> | undefined;
@@ -240,10 +242,36 @@ export function catalogCalendarGridSize(
     (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
   if (typeof size?.iconSize !== "number") return undefined;
   const cell = size.iconSize + 4;
-  const offset = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
+  // (The first day's column counts from the week's first day — `catalogWeekStart`.)
+  const offset =
+    (new Date(month.getFullYear(), month.getMonth(), 1).getDay() -
+      weekStart +
+      7) %
+    7;
   const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   const rows = Math.ceil((days + offset) / 7);
   return { width: (cell + 4) * 7, height: cell + rows * (cell + 4) };
+}
+
+const DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+/**
+ * The day a calendar's week starts on (Sunday = 0): S2 `firstDayOfWeek` when set, else the
+ * locale's own first day — what RAC `useCalendarGrid` lays out (`@internationalized/date`
+ * `getDayOfWeek`). The Canvas grid's weekday header, day columns and rows count from it.
+ */
+export function catalogWeekStart(
+  locale: string,
+  firstDayOfWeek?: unknown,
+): number {
+  const day = DAYS_OF_WEEK.find((name) => name === firstDayOfWeek);
+  // (2024-01-07 is a Sunday: its column in the week is how far Sunday sits from the start.)
+  let sunday: number;
+  try {
+    sunday = getDayOfWeek(new CalendarDate(2024, 1, 7), locale, day);
+  } catch {
+    sunday = getDayOfWeek(new CalendarDate(2024, 1, 7), "en-US", day);
+  }
+  return (7 - sunday) % 7;
 }
 
 /**

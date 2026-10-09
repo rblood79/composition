@@ -89,3 +89,24 @@ export const DATE_CALENDAR_SYSTEM_PROP: PropContract = {
     ...CALENDAR_SYSTEMS.map(([value, label]) => ({ value, label })),
   ],
 };
+
+/**
+ * S2 `firstDayOfWeek` (Calendar · RangeCalendar · DatePicker · DateRangePicker — 1.8.0): the week's
+ * first column. Unset = the locale's own first day (RAC `useCalendarGrid`); a picker hands its
+ * value to its calendar through RAC's calendar context.
+ */
+export const FIRST_DAY_OF_WEEK_PROP: PropContract = {
+  kind: "enum",
+  label: "First Day of Week",
+  section: "locale",
+  options: [
+    { value: "", label: "Locale default" },
+    { value: "sun", label: "Sunday" },
+    { value: "mon", label: "Monday" },
+    { value: "tue", label: "Tuesday" },
+    { value: "wed", label: "Wednesday" },
+    { value: "thu", label: "Thursday" },
+    { value: "fri", label: "Friday" },
+    { value: "sat", label: "Saturday" },
+  ],
+};

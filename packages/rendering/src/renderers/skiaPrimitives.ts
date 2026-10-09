@@ -15,11 +15,7 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3 (`skiaPrimitive`)
  */
 
-import {
-  parseBorderWidth,
-  parsePxValue,
-  parseShadow,
-} from "../primitives";
+import { parseBorderWidth, parsePxValue, parseShadow } from "../primitives";
 import {
   fontFamily,
   getTextLineHeight,
@@ -1545,9 +1541,13 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const gridStartY = cellSize;
 
   const now = new Date();
+  // S2 `firstDayOfWeek` / the locale's first day (Sunday = 0 — `catalogWeekStart`): the first
+  // column of the weekday header and of the day rows.
+  const weekStart = Number(props._weekStart) || 0;
   const dayOffset =
     (props.dayOffset as number | undefined) ??
-    new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+    (new Date(now.getFullYear(), now.getMonth(), 1).getDay() - weekStart + 7) %
+      7;
   const totalDays =
     (props.totalDays as number | undefined) ??
     new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -1562,13 +1562,14 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
     ? `${props.locale || "en-US"}-u-ca-${props.calendarSystem}`
     : (props.locale as string) || "en-US";
   const weekdays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(2024, 0, 7 + i); // 2024-01-07 = Sunday
+    const day = (weekStart + i) % 7;
+    const d = new Date(2024, 0, 7 + day); // 2024-01-07 = Sunday
     try {
       return new Intl.DateTimeFormat(effectiveLocale, {
         weekday: "short",
       }).format(d);
     } catch {
-      return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][i];
+      return ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][day];
     }
   });
   for (let col = 0; col < 7; col++) {

@@ -180,4 +180,25 @@ describe("skiaPrimitive 'calendar_month_grid' — CalendarGrid value-fill (ADR-9
     // weekday 7 + day 28 = 35 text.
     expect(texts(shapes)).toHaveLength(35);
   });
+
+  it("S2 firstDayOfWeek — `_weekStart` (Sunday = 0) rotates the weekday header and the day columns", () => {
+    const shapes = draw({
+      // The week starts on Wednesday (3); the grid shows the current month.
+      props: { _weekStart: 3, locale: "en-US" },
+      size: sizeMd,
+      visual,
+      style: undefined,
+    })!;
+    const header = texts(shapes)
+      .slice(0, 7)
+      .map((shape) => (shape as { text?: string }).text);
+    expect(header).toEqual(["Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue"]);
+    // Day 1's column counts from Wednesday: x = column × cellBox (34) + CELL_PAD (2).
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+    const day1 = texts(shapes).find(
+      (shape) => (shape as { text?: string }).text === "1",
+    ) as { x?: number };
+    expect(day1.x).toBe(((first - 3 + 7) % 7) * 34 + 2);
+  });
 });
