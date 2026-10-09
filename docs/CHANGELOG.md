@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 색 geometry — ColorSwatch rounding · ColorWheel size] - 2026-10-10
+
+### Added
+
+- **ColorSwatch `rounding`** (S2 1.8.0 — `default` · `none` · `full`): Design 패널의 Rounding. 모서리를 S2 값대로 — Default 는 4px (S2 sm), None 은 직각, Full 은 지금까지의 원 (기본값 — S2 자체 기본은 default). DOM 은 `data-rounding` 시트 블록, Canvas 는 rule 의 top-level `containerVariants.rounding` 을 rule 집행기가 읽는다 (`rulePaint.ts` containerVariantPaint — 새 소비 채널).
+  - 변형을 `structure.composition` 에 두면 `catalogSizeAxisSkip` 의 ownsContainerBox 가 뒤집혀 per-size height 공급이 끊긴다 (live 실측 2×2 swatch) — top-level + 수동 시트 조합 (CheckboxGroup 선례).
+  - 위치: `packages/shared/src/catalog/bindings/ColorSwatch.binding.ts` · `packages/shared/src/catalog/outputs/toRacProps.ts` (`data-rounding`) · `packages/shared/src/catalog/runtime/rulePaint.ts` · `packages/shared/src/components/styles/ColorSwatch.css`
+- **ColorWheel `size`** (S2 1.8.0 — 바깥 지름 px, 175 floor): Design 패널의 Size. 기본 180 (종전 Canvas M 상자 — S2 자체 기본은 192). Canvas 상자와 DOM 상자가 같은 정사각이 되고, catalog DOM 경로가 RAC 필수 radii (`outerRadius` · `innerRadius`) 를 처음으로 넘긴다 (종전엔 없어서 RAC 가 0 크기 track 을 그렸다).
+  - 위치: `packages/shared/src/catalog/bindings/ColorWheel.binding.ts` · `packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox.ts` (`catalogColorWheelDiameter`) · `packages/shared/src/catalog/runtime/{compositionRoot.ts,domBinding.tsx}`
+
+### Fixed
+
+- **ColorSwatch 가 Canvas 에서 2px 세로줄**: 수동 시트의 고정 `width: 28px` 는 DOM 에만 닿고 Canvas 는 폭 공급이 없었다 (S · L 은 DOM 도 직사각). swatch 는 정사각 (S2 size × size) — DOM 은 `aspect-ratio: 1`, Canvas 는 `styleOf` 가 rule height 를 폭으로 같이 공급.
+  - **Why**: color 계열 box-only cutover (2026-06-11) 때 수동 CSS 폭이 한쪽 consumer 에만 남았다.
+- 확인: live — swatch 기본 28×28 원 (양 consumer), Rounding None → 0 · Default → 4px (DOM computed · Skia box radius 동일), wheel 기본 180 → Size 240 → 240 · 100 → 175 (양 consumer 동일), 오류 0 (`apps/builder/scripts/color-geometry-live.mjs` 9/9).
+
 ## [S2 토스트 위치 — 프로젝트 설정 toastPlacement] - 2026-10-10
 
 ### Added

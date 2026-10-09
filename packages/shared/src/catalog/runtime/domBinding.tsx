@@ -38,6 +38,10 @@ import {
 } from "./domRegistry";
 import { catalogAuthoredLayout, catalogAuthoredVisual } from "./libraryVisual";
 import {
+  CATALOG_COLOR_WHEEL_TRACK,
+  catalogColorWheelDiameter,
+} from "../resolvers/resolveCatalogRuleCanvasBox";
+import {
   FIELD_HINT_OWNERS,
   catalogAbsentByValue,
   catalogFieldHintShown,
@@ -1402,6 +1406,16 @@ function ruleDom(
   // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
   // draws none of its own.
   if (lower === "popover" || lower === "tooltip") rest.hideArrow = true;
+  // S2 ColorWheel `size` → RAC's required radii (outer = half the diameter, inner = outer − the
+  // track) — the raw number must not reach the DOM element. The box is the diameter square (S2
+  // sets width/height itself); the authored style wins.
+  if (lower === "colorwheel") {
+    const diameter = catalogColorWheelDiameter(node.props.size);
+    rest.outerRadius = diameter / 2;
+    rest.innerRadius = diameter / 2 - CATALOG_COLOR_WHEEL_TRACK;
+    delete rest.size;
+    style = { width: diameter, height: diameter, ...style };
+  }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
   const ownChildren = children;
   const content =

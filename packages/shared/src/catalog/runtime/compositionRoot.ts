@@ -51,6 +51,7 @@ import type { LayoutResult } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
 import {
   catalogBreadcrumbSeparatorIcon,
+  catalogColorWheelDiameter,
   catalogCurrentTextWeight,
   catalogCalendarGridSize,
   catalogCalendarHeaderParts,
@@ -878,6 +879,19 @@ function styleOf(
     glyphBindings.has(node.bindingId ?? "") && node.children.length === 0
       ? catalogGlyphSize(node)
       : undefined;
+  // A ColorWheel is its diameter square (S2 `size`; the DOM wheel sizes itself from the radii).
+  const wheel =
+    node.bindingId === "colorwheel"
+      ? catalogColorWheelDiameter(node.props.size)
+      : undefined;
+  // A ColorSwatch is square too (S2 size × size — the DOM sheet's `aspect-ratio: 1`): its rule
+  // height doubles as the width.
+  const swatchSquare =
+    node.bindingId === "colorswatch" &&
+    box.width === undefined &&
+    Number(node.visual.height) > 0
+      ? Number(node.visual.height)
+      : undefined;
   const contentText =
     measure && leaf
       ? (() => {
@@ -993,6 +1007,16 @@ function styleOf(
     ...(glyph !== undefined
       ? { contentMinWidth: glyph, contentMaxWidth: glyph, contentHeight: glyph }
       : {}),
+    ...(wheel !== undefined
+      ? {
+          contentMinWidth: wheel,
+          contentMaxWidth: wheel,
+          contentHeight: wheel,
+          ...(box.width === undefined ? { width: `${wheel}px` } : {}),
+          ...(box.height === undefined ? { height: `${wheel}px` } : {}),
+        }
+      : {}),
+    ...(swatchSquare !== undefined ? { width: `${swatchSquare}px` } : {}),
     ...(segments ?? {}),
     ...(dropZone
       ? {

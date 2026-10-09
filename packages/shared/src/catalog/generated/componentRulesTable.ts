@@ -2703,6 +2703,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ColorSwatch: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 1.8.0 ColorSwatch `rounding` (2026-10-10): default → sm · none → 0 (S2 ColorSwatch.tsx
+    //   borderRadius) — full 은 base 의 {radius.full} 그대로. Canvas 가 읽는 top-level 변형이다
+    //   (`rulePaint.ts` containerVariantPaint); DOM 은 수동 `ColorSwatch.css` 의 `[data-rounding]`
+    //   블록이 같은 값을 적는다. structure.composition 에 두면 `catalogSizeAxisSkip` 의
+    //   ownsContainerBox 가 뒤집혀 per-size height 공급이 끊긴다 (live 실측 2×2 — CheckboxGroup
+    //   의 top-level 선례와 같은 배치).
+    containerVariants: {
+      rounding: {
+        default: { styles: { "border-radius": "var(--radius-sm)" } },
+        none: { styles: { "border-radius": "0" } },
+      },
+    },
     variants: {
       default: {
         fill: {
@@ -2859,23 +2871,28 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // S2 1.8.0 ColorWheel `size` (2026-10-10): 지름은 숫자 prop 하나다 (S2 — size enum 아님).
+    //   size 블록의 height 는 content-fit(0) 으로 두고, 지름 기본 180 (종전 M height) 과 175 floor 는
+    //   `catalogColorWheelDiameter` (resolveCatalogRuleCanvasBox.ts) 가 Canvas (`styleOf`) · DOM
+    //   (`domBinding` RAC outerRadius/innerRadius + 상자 width/height) 양쪽에 공급한다.
+    //   종전 S/L height (120 · 240) 는 binding 에 size enum 이 없어 닿지 않는 dead 값이었다.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.full}",
-        height: 120,
+        height: 0,
         iconSize: 14,
       },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.full}",
-        height: 180,
+        height: 0,
         iconSize: 18,
       },
       L: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.full}",
-        height: 240,
+        height: 0,
         iconSize: 22,
       },
     },

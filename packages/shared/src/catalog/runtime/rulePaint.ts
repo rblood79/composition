@@ -63,6 +63,62 @@ const GEOMETRY_STYLE_KEYS: Readonly<Record<string, string>> = {
   fontWeight: "fontWeight",
 };
 
+/**
+ * Root geometry a rule's `containerVariants` block may set on the node's own box — the Canvas
+ * side of the generated `[data-*]` sheet blocks (S2 ColorSwatch `rounding`, 2026-10-10). Layout
+ * keys in those blocks stay with the layout consumers (`implicitStyles` · part rules); only the
+ * keys here reach the rule executor's paint style. The authored visual wins over them, as the
+ * document's inline style wins over the sheet.
+ */
+const CONTAINER_VARIANT_PAINT_KEYS: Readonly<Record<string, string>> = {
+  "border-radius": "borderRadius",
+};
+
+/** `var(--radius-x)` · `Npx` · `N` of a containerVariants geometry value → px number. */
+function containerVariantLength(value: string): number {
+  const token = /^var\(--radius-([a-z0-9]+)\)$/.exec(value);
+  if (token) {
+    const resolved = resolveToken(`{radius.${token[1]}}` as TokenRef, "light");
+    if (typeof resolved === "number") return resolved;
+  }
+  const px = Number.parseFloat(value);
+  if (!Number.isFinite(px))
+    throw new Error(`CATALOG_CONTAINER_VARIANT_LENGTH_UNSUPPORTED:${value}`);
+  return px;
+}
+
+/** The matched `containerVariants` paint styles of a rule for these props (geometry whitelist). */
+function containerVariantPaint(
+  rule: Readonly<ComponentRule>,
+  props: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const variants =
+    (rule as { containerVariants?: unknown }).containerVariants ??
+    (rule.structure?.composition as { containerVariants?: unknown } | undefined)
+      ?.containerVariants;
+  if (!variants) return {};
+  const out: Record<string, unknown> = {};
+  for (const [dataAttr, valueMap] of Object.entries(
+    variants as Record<
+      string,
+      Record<string, { styles?: Record<string, string> }>
+    >,
+  )) {
+    const propKey = dataAttr.replace(/-([a-z])/g, (_m, ch: string) =>
+      ch.toUpperCase(),
+    );
+    const raw = props[propKey];
+    if (raw == null) continue;
+    const styles = valueMap[String(raw)]?.styles;
+    if (!styles) continue;
+    for (const [cssKey, value] of Object.entries(styles)) {
+      const styleKey = CONTAINER_VARIANT_PAINT_KEYS[cssKey];
+      if (styleKey) out[styleKey] = containerVariantLength(value);
+    }
+  }
+  return out;
+}
+
 /** `var(--name)` theme color (the CSS form of `{color.name}`) → its token value. */
 export function cssVarColor(value: unknown, theme: "light" | "dark"): unknown {
   const match =
@@ -143,8 +199,13 @@ export function catalogRulePaint(
   const { node, rule, type, authoredVisual, state } = input;
   const theme = input.theme ?? "light";
   // Authored writes (project override, template, instance, path) layer on the rule, which
-  // supplies everything else — the same order as `props.style` over the rule table.
-  const style: Record<string, unknown> = {};
+  // supplies everything else — the same order as `props.style` over the rule table. Under them,
+  // the rule's own prop-conditional geometry (`containerVariants` — the generated `[data-*]`
+  // sheet blocks, S2 ColorSwatch `rounding`).
+  const style: Record<string, unknown> = containerVariantPaint(
+    rule,
+    node.props,
+  );
   for (const [key, value] of Object.entries(authoredVisual)) {
     const styleKey = PAINT_STYLE_KEYS[key] ?? GEOMETRY_STYLE_KEYS[key];
     if (styleKey)

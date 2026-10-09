@@ -47,6 +47,9 @@ const DATA_ATTR_ENUM_KEYS: ReadonlySet<string> = new Set([
   // [data-static-color] 로 소비 (Button.css/Link.css). raw prop 누출 시 React
   // unknown-prop 경고 + CSS 미적용 (labelPosition 과 동일 결함 축).
   "staticColor",
+  // S2 ColorSwatch `rounding` (2026-10-10) — RAC prop 아님. 생성 sheet 의
+  // `[data-rounding]` (rule containerVariants) 가 소비.
+  "rounding",
 ]);
 
 /**

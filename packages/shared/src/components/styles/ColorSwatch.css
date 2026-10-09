@@ -2,8 +2,10 @@
 
 @layer components {
   .react-aria-ColorSwatch {
-    width: 28px;
-    height: 28px;
+    /* S2 swatch 는 정사각 (size × size) — 높이는 생성 CSS 의 per-size height, 폭은 그 비율.
+       (종전 고정 width/height 28px 는 S/L 에서 직사각이었다, 2026-10-10.) Canvas 는 같은
+       정사각을 `styleOf` 가 공급한다 (compositionRoot.ts). */
+    aspect-ratio: 1 / 1;
     border-radius: var(--radius-md);
     /* 경계 링 — elevation 이 아니다 (2026-07-25 복원). RAC starter `ColorSwatch.css` 원본은
        `inset 0 0 0 1px rgba(0,0,0,.1)`, 즉 임의 색상 견본 위에 얹는 1px 테두리다. 이전의
@@ -12,5 +14,18 @@
        색만 `color-mix(--fg N%)` 로 바꿔 다크 스와치에서도 링이 보이게 한다.
        elevation 이 아니므로 catalog `containerStyles.boxShadow` 이관 대상 아님. */
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent);
+  }
+
+  /* S2 1.8.0 `rounding` (2026-10-10): default → sm · none → 0 — full 은 생성 CSS 의
+     {radius.full} 그대로. 값의 정본은 catalog ColorSwatch rule 의 top-level
+     containerVariants.rounding (Canvas 가 같은 블록을 읽는다 — rulePaint.ts). nested
+     composition 에 두면 catalogSizeAxisSkip 이 per-size height 공급을 끊어 수동 sheet 로 적는다.
+     [data-size] 를 겹쳐 생성 size 블록(동일 특이도, 뒤 순서)의 radius-full 을 이긴다. */
+  .react-aria-ColorSwatch[data-size][data-rounding="default"] {
+    border-radius: var(--radius-sm);
+  }
+
+  .react-aria-ColorSwatch[data-size][data-rounding="none"] {
+    border-radius: 0;
   }
 }

@@ -35,6 +35,23 @@ export const colorSwatchBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // S2 1.8.0 ColorSwatch `rounding` ('default' | 'none' | 'full', 2026-10-10): the corner —
+      //   S2 maps default → sm, none → 0, full → circle (ColorSwatch.tsx borderRadius). Our box
+      //   was a circle (2026-06-22 reference 정합), so our default keeps it: "full" (S2's own
+      //   default is "default"). DOM `data-rounding` (toRacProps DATA_ATTR_ENUM_KEYS) → the
+      //   rule's `containerVariants.rounding` sheet blocks; Canvas reads the same blocks
+      //   (`rulePaint.ts` container-variant paint).
+      rounding: {
+        kind: "enum",
+        label: "Rounding",
+        section: "appearance",
+        default: "full",
+        options: [
+          { value: "full", label: "Full" },
+          { value: "default", label: "Default" },
+          { value: "none", label: "None" },
+        ],
+      },
     },
     toRacProps: "default",
   },
