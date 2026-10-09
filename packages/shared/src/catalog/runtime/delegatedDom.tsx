@@ -956,6 +956,12 @@ function tagGroupLabelled(
     return LABEL_PASS_THROUGH_TYPES.has(type) && tagGroupLabelled(root, child);
   });
 }
+/** A Tag's chip text (its label Texts) — what the maxRows mirror measures. */
+const tagChipText = (root: CatalogCompositionRoot, tag: CatalogConsumerNode) =>
+  childrenOf(root, tag)
+    .filter((kid) => catalogTypeName(root, kid) === "Text")
+    .map((kid) => str(kid.props.children))
+    .join(" ");
 /** A TagGroup's Tag records (in its TagList — RAC's collection). */
 const tagGroupTags = (
   root: CatalogCompositionRoot,
@@ -1056,7 +1062,12 @@ function TagListRun({
     setIsCollapsed,
     showCollapsed,
     visibleTagCount,
-  } = useTagMaxRows(run?.maxRows, run?.rows);
+  } = useTagMaxRows(
+    run?.maxRows,
+    run?.rows,
+    // (The chips the mirror measures — a Tag added, removed or relabelled is counted again.)
+    tags.map((tag) => tagChipText(input.root, tag)).join("\u0000"),
+  );
   const shown = showCollapsed ? tags.slice(0, visibleTagCount) : tags;
   const showButton = (label: string, collapse: boolean) =>
     createElement(
@@ -1087,10 +1098,7 @@ function TagListRun({
           size,
           labelPosition,
           entries: tags.map((tag) => ({
-            text: childrenOf(input.root, tag)
-              .filter((kid) => catalogTypeName(input.root, kid) === "Text")
-              .map((kid) => str(kid.props.children))
-              .join(" "),
+            text: tagChipText(input.root, tag),
             icon: null,
             avatar: null,
           })),

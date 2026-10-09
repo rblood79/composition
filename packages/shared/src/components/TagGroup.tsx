@@ -728,6 +728,11 @@ export function useTagRowsState(): TagRowsState {
 export function useTagMaxRows(
   maxRows: number | undefined,
   shared?: TagRowsState,
+  /**
+   * The measured chips (their texts): a change counts the rows again — a tag added to an open
+   * list, removed or relabelled (2026-10-09 — a fifth tag stayed behind Show all).
+   */
+  itemsKey?: string,
 ) {
   const own = useTagRowsState();
   const { isCollapsed, setIsCollapsed, visibleTagCount, setVisibleTagCount } =
@@ -775,13 +780,13 @@ export function useTagMaxRows(
     });
   }, [maxRows, setVisibleTagCount]);
 
-  // 초기 측정 + 컬렉션 변경 시 재측정
+  // 초기 측정 + 컬렉션 변경 시 재측정 (`itemsKey` — 미러 chip 이 바뀌면)
   useEffect(() => {
     if (hasMaxRows && isCollapsed) {
       // microtask로 DOM 렌더 완료 후 측정
       queueMicrotask(computeVisibleTagCount);
     }
-  }, [hasMaxRows, isCollapsed, computeVisibleTagCount]);
+  }, [hasMaxRows, isCollapsed, computeVisibleTagCount, itemsKey]);
 
   // ResizeObserver: 컨테이너 크기 변경 시 재측정
   //   최상위 relative div(미러 부모) + 실제 chip 배치 컨테이너(.tag-list-wrapper) 양쪽 관찰.

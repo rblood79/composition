@@ -217,3 +217,26 @@ describe("Tag selection — a Tag's label and remove X follow the Preview's sele
     await dom.close();
   });
 });
+
+describe("TagGroup — an open Preview shows a Tag added with '+'", () => {
+  it.each(["TagGroup", "TagList"])(
+    "the %s '+': the new Tag renders in the mounted Preview",
+    async (host) => {
+      const { workspace, root, of } = await open({ selectionMode: "none" });
+      const dom = await mount(root);
+      const { catalogItemInsertChoices } = await import("../itemInsert");
+      const choice = catalogItemInsertChoices(
+        {
+          graph: workspace.runtime.graph,
+          readModel: workspace.readModel,
+          newId: workspace.newId,
+        },
+        workspace.positionOfRecord(of(host)[0]!.id)!,
+      ).find((item) => item.type === "Tag")!;
+      await act(async () => workspace.execute(choice.build()));
+      expect(of("Tag")).toHaveLength(5);
+      expect(dom.domSelected()).toHaveLength(5);
+      await dom.close();
+    },
+  );
+});

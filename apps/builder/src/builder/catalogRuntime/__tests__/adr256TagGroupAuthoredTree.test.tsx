@@ -316,3 +316,71 @@ describe("Codex Round 20 H1 — maxRows collapses the list", () => {
     }
   });
 });
+
+describe("maxRows — a Tag added to an open Preview is counted again", () => {
+  it("every chip on one row: a fifth Tag shows too (no Show all)", async () => {
+    const { workspace, root, of, groupId } = await open();
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    const originalObserver = (globalThis as { ResizeObserver?: unknown })
+      .ResizeObserver;
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver = class {
+      constructor(private callback: () => void) {}
+      observe() {
+        setTimeout(() => this.callback(), 0);
+      }
+      unobserve() {}
+      disconnect() {}
+    };
+    const originalRect = Element.prototype.getBoundingClientRect;
+    // (A wide list: every mirror chip on the first row.)
+    Element.prototype.getBoundingClientRect = function () {
+      return {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        toJSON() {},
+      } as DOMRect;
+    };
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    const settle = () =>
+      act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    try {
+      await act(async () =>
+        reactRoot.render(renderCatalogDom(root, groupId())),
+      );
+      await settle();
+      const chips = () => host.querySelectorAll('[role="row"]').length;
+      const button = () =>
+        host.querySelector(".tag-show-all-btn")?.textContent ?? null;
+      expect([chips(), button()]).toEqual([4, null]);
+      const { catalogItemInsertChoices } = await import("../itemInsert");
+      const choice = catalogItemInsertChoices(
+        {
+          graph: workspace.runtime.graph,
+          readModel: workspace.readModel,
+          newId: workspace.newId,
+        },
+        workspace.positionOfRecord(of("TagList")[0]!.id)!,
+      ).find((item) => item.type === "Tag")!;
+      await act(async () => workspace.execute(choice.build()));
+      await settle();
+      expect([chips(), button()]).toEqual([5, null]);
+      await act(async () => reactRoot.unmount());
+    } finally {
+      Element.prototype.getBoundingClientRect = originalRect;
+      (globalThis as { ResizeObserver?: unknown }).ResizeObserver =
+        originalObserver;
+      host.remove();
+    }
+  });
+});

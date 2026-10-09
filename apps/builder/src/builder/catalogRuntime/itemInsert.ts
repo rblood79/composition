@@ -125,15 +125,20 @@ function itemTypesOf(
 }
 
 /**
- * ADR-253 Phase 4 — pickers whose items sit in their ListBox (an instance of the ListBox origin,
- * hidden on the Canvas while the picker is closed — inside its Popover): the picker's
- * "+" adds the item there.
+ * ADR-253 Phase 4 — owners whose items sit in a list node: the owner's "+" adds the item there
+ * (the list's own "+" too). A picker's ListBox is an instance of the ListBox origin, hidden on the
+ * Canvas while the picker is closed — inside its Popover.
  */
 const PICKER_LIST: Readonly<Record<string, string>> = {
   Select: "ListBox",
   ComboBox: "ListBox",
   // ADR-256 후속 4: a MenuTrigger's items are its Popover's Menu's.
   MenuTrigger: "Menu",
+  // (2026-10-09 사용자 「Tabs 의 경우 컴퍼넌트 상단 프러퍼티에 "+" 가 없고 tablist 에 slot "+" 가 있다」:
+  // a Tabs adds its Tabs — with their TabPanels — in its TabList, a TagGroup its Tags in its
+  // TagList, as a CheckboxGroup adds in its items wrapper.)
+  Tabs: "TabList",
+  TagGroup: "TagList",
 };
 
 export function catalogItemInsertChoices(
