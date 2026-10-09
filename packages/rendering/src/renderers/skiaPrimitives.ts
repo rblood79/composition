@@ -2464,9 +2464,29 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       fill: bgColor,
     },
   ];
+  // S2 `isOverBackground`: a solid outline in the background color outside the circle — 1px, 2px
+  // over 64px (S2 `imageStyles` `isLarge`); the DOM's `outline` (`Avatar.tsx`). Drawn last, over
+  // the image or the initials it does not touch.
+  const outline = props.isOverBackground === true ? (diameter > 64 ? 2 : 1) : 0;
+  const withOutline = (list: Shape[]): Shape[] =>
+    outline
+      ? [
+          ...list,
+          {
+            type: "circle" as const,
+            x: radius,
+            y: radius,
+            radius: radius + outline / 2,
+            fill: "transparent",
+            stroke: "{color.base}" as TokenRef,
+            strokeWidth: outline,
+          },
+        ]
+      : list;
 
   // 자식 보유(미래 확장) 시 shell(circle bg)만 — 내용은 자식이 담당.
-  if ((props as Record<string, unknown>)._hasChildren) return shapes;
+  if ((props as Record<string, unknown>)._hasChildren)
+    return withOutline(shapes);
 
   // 이미지가 있으면 image shape (specShapeConverter 가 fit cover 로 원 안에 채움)
   if (props.src) {
@@ -2479,7 +2499,7 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       src: props.src as string,
       radius,
     });
-    return shapes;
+    return withOutline(shapes);
   }
 
   // 이니셜 텍스트 (src 없을 때) — initials || alt 첫 2글자 || "?"
@@ -2519,7 +2539,7 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     baseline: "middle" as const,
   });
 
-  return shapes;
+  return withOutline(shapes);
 };
 
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */

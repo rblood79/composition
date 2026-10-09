@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 시각 축 — Slider · TagGroup isEmphasized, Avatar isOverBackground] - 2026-10-10
+
+### Added
+
+- **Slider `isEmphasized`** (S2 1.8.0 — 조사 문서 목록 D):
+  - 채워진 트랙과 thumb 가 기본은 neutral, 강조면 accent 다 (S2 `gray-700` · `accent-900`, 우리 Checkbox · Switch 선택 색과 같은 짝).
+  - Preview 는 Slider 의 `data-emphasized` 와 SliderFill 의 `data-variant` (`SliderFill.css` · 생성기 slider archetype 의 thumb), Canvas 는 SliderFill · SliderThumb rule 의 `emphasized` variant (Slider 에서 파생 — `presence.ts`).
+  - 위치: `packages/shared/src/catalog/bindings/Slider.binding.ts` · `packages/shared/src/catalog/generated/componentRulesTable.ts` (SliderFill · SliderThumb) · `packages/rendering/src/renderers/CSSGenerator.ts` · `packages/shared/src/catalog/runtime/{presence.ts,domBinding.tsx}`
+- **TagGroup `isEmphasized`**: 선택된 Tag 가 기본은 neutral (글자 흰색), 강조면 accent 다 (S2 `TagGroupContext`). Preview 는 TagGroup 의 `data-emphasized` (`TagGroup.css`), Canvas 는 Tag rule 의 `selectedEmphasized` (Tag 의 `_emphasized` — `rulePaint.ts` 가 `selected` 대신 고른다).
+  - 위치: `packages/shared/src/catalog/bindings/TagGroup.binding.ts` · `packages/shared/src/components/styles/TagGroup.css` · `packages/shared/src/catalog/runtime/{rulePaint.ts,presence.ts,delegatedDom.tsx}`
+- **Avatar `isOverBackground`**: 원 바깥에 배경색 1px 외곽선 (64px 초과 2px — S2 `imageStyles`). Preview 는 `Avatar.tsx` 의 `outline`, Canvas 는 `avatar` primitive 가 원 바깥에 같은 링을 그린다. 팔레트 AvatarGroup 의 아바타 3개는 켜져 있다 (S2 AvatarGroup 이 안의 Avatar 에 주는 값).
+  - 위치: `packages/shared/src/catalog/bindings/Avatar.binding.ts` · `packages/shared/src/components/Avatar.tsx` · `packages/rendering/src/renderers/skiaPrimitives.ts` (`avatar`) · `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`
+
+### Changed
+
+- **Slider 의 채움 · thumb, 선택된 Tag 의 기본 색이 accent → neutral**: S2 에서 accent 는 강조 (`isEmphasized`) 일 때의 색이다. 기존 Slider · TagGroup 은 Emphasized 를 켜야 전과 같은 파란색이 된다.
+- 확인: live — Slider 기본 채움 · thumb `rgb(23,23,23)` = Preview, Emphasized → `rgb(54,96,240)` = Preview / TagGroup 선택 Tag 기본 23 = Preview, Emphasized → accent = Preview / Avatar Over Background → Canvas 링 1px 흰색 = Preview `outline 1px solid` 흰색 (전에는 없음) / 팔레트 AvatarGroup 아바타 3개 모두 링 (`apps/builder/scripts/s2-emphasis-live.mjs` 7/7).
+
 ## [NumberField 빈 값 — 값이 없으면 빈칸과 placeholder (S2)] - 2026-10-10
 
 ### Changed

@@ -13,7 +13,7 @@
     font-family: var(--font-sans);
 
   /* Default variant */
-  background: var(--accent);
+  background: var(--fg);
   color: var(--fg);
   border: none;
 
@@ -25,6 +25,17 @@
 }
 
 .react-aria-SliderFill[data-variant="default"] {
+  background: var(--fg);
+  color: var(--fg);
+
+  &[data-hovered] {
+  }
+
+  &[data-pressed] {
+  }
+}
+
+.react-aria-SliderFill[data-variant="emphasized"] {
   background: var(--accent);
   color: var(--fg);
 

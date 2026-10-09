@@ -38,6 +38,8 @@ export interface AvatarProps {
   size?: "XS" | "S" | "M" | "L" | "XL";
   /** 비활성 */
   isDisabled?: boolean;
+  /** S2 `isOverBackground` — 배경색 외곽선 (1px, 64px 초과 2px) */
+  isOverBackground?: boolean;
   /** 인라인 style override (cutover 경로의 toReactStyle 결과) */
   style?: React.CSSProperties;
   /** 추가 className */
@@ -70,7 +72,7 @@ const FONT_SIZE: Record<string, number> = {
  * Avatar — circle bg + image | initials.
  *
  * cutover DOM 경로(renderCatalogDom)가 marker props/style 을 주입하므로,
- * 본 컴포넌트는 src/alt/initials/size/isDisabled + style/className 만 소비한다.
+ * 본 컴포넌트는 src/alt/initials/size/isDisabled/isOverBackground + style/className 만 소비한다.
  * circle bg/이니셜 색은 theme rule(resolveComponentRule)의 variant fill base / text.
  */
 export function Avatar({
@@ -79,6 +81,7 @@ export function Avatar({
   initials,
   size = "M",
   isDisabled,
+  isOverBackground,
   style,
   className,
   ...rest
@@ -98,6 +101,12 @@ export function Avatar({
   const textColor = colorTokenToCss(variant?.colors?.text, "var(--fg)");
 
   const label = initials || alt?.slice(0, 2).toUpperCase() || "?";
+  // S2 `isOverBackground`: a solid outline in the background color — 2px over 64px (S2
+  // `imageStyles` `isLarge`); the Canvas `avatar` primitive's ring.
+  const drawn = typeof style?.width === "number" ? style.width : diameter;
+  const outline = isOverBackground
+    ? `${drawn > 64 ? 2 : 1}px solid var(--bg)`
+    : undefined;
 
   // ADR-235 — `asset:` 참조 해석 (준비 전이면 이니셜 표시)
   const resolvedSrc = src ? resolveAssetUrl(src) : null;
@@ -117,6 +126,7 @@ export function Avatar({
         fontSize,
         fontWeight: 500,
         flexShrink: 0,
+        ...(outline ? { outline } : {}),
         ...(isDisabled ? { opacity: 0.38, pointerEvents: "none" } : {}),
         ...style,
       }}

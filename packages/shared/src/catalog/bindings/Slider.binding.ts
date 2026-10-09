@@ -85,6 +85,16 @@ export const sliderBinding: PrimitiveBinding = {
         section: "appearance",
         default: true,
       },
+      // S2 1.8.0 Slider `isEmphasized` (2026-10-10): the filled track — neutral, accent when
+      //   emphasized (S2 `gray-700` · `accent-900`; our Checkbox · Switch selected pair). The thumb
+      //   follows. DOM `data-emphasized` (`delegatedDom.tsx` `slider`) + the SliderFill's
+      //   `data-variant`; Canvas the SliderFill · SliderThumb rules' `emphasized` variant
+      //   (`presence.ts` — derived from the Slider).
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
+        section: "appearance",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

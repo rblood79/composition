@@ -10023,8 +10023,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SliderFill: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 Slider `isEmphasized` (2026-10-10): neutral, accent when the Slider is emphasized (the
+    //   variant is derived from the Slider — `presence.ts`).
     variants: {
       default: {
+        fill: {
+          default: {
+            base: "{color.neutral}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      emphasized: {
         fill: {
           default: {
             base: "{color.accent}",
@@ -10103,8 +10115,20 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   SliderThumb: {
     defaultVariant: "default",
     defaultSize: "M",
+    // S2 Slider `isEmphasized` (2026-10-10): neutral, accent when the Slider is emphasized (the
+    //   variant is derived from the Slider — `presence.ts`).
     variants: {
       default: {
+        fill: {
+          default: {
+            base: "{color.neutral}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      emphasized: {
         fill: {
           default: {
             base: "{color.accent}",
@@ -11581,7 +11605,53 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           insetRight: 3,
         },
       },
+      // S2 TagGroup (2026-10-10): a selected Tag is neutral (`baseColor('neutral')`, text
+      //   `gray-25`) — accent only when the group is emphasized (`selectedEmphasized`).
       selected: {
+        fill: {
+          default: {
+            base: "{color.neutral}",
+            hover: "{color.neutral}",
+            pressed: "{color.neutral}",
+          },
+        },
+        colors: {
+          text: "{color.base}",
+          border: "{color.neutral}",
+        },
+        textWeight: 400,
+        // selected variant: remove X color = base (text 와 동일).
+        // leading icon (2026-08-21, design-data 감사 §2-? Tag avatar/icon 슬롯):
+        //   chip 아이콘은 **항목별 데이터**라 rule 에 정적 이름을 둘 수 없다 → `nameProp` 으로
+        //   `props.icon`(itemSchema 의 icon 필드)을 읽는다. 값이 없는 chip 은 아이콘도, 텍스트
+        //   shift 도 없다(폭 = 라벨 + padding 그대로). trailingIcon 의 `showProp` 과 같은
+        //   데이터-게이팅 idiom — 컴포넌트 식별 분기 아님(ADR-142 §3).
+        //   크기는 `sizes[*].iconSize`(전 size 14 — DOM 고정 14px glyph 컨벤션과 대칭).
+        leadingIcon: {
+          nameProp: "icon",
+          gap: 4,
+          color: "{color.base}",
+        },
+        // leading avatar (2026-08-21) — default variant 와 같은 채널. 선택 chip 만 아바타가
+        //   사라지면 안 되므로 양 variant 에 동일 배선(폭 계약 테스트가 불일치를 잡는다).
+        //   fallback 원은 accent 배경 위라 layer-1(밝은 자리표시).
+        leadingAvatar: {
+          srcProp: "avatar",
+          size: 16,
+          gap: 4,
+          fallbackFill: "{color.layer-1}",
+        },
+        trailingIcon: {
+          name: "x",
+          gap: 2,
+          color: "{color.base}",
+          showProp: "allowsRemoving",
+          insetRight: 3,
+        },
+      },
+      // S2 TagGroup `isEmphasized` (2026-10-10): a selected Tag of an emphasized group (the Tag's
+      //   `_emphasized` — `rulePaint.ts` picks it over `selected`).
+      selectedEmphasized: {
         fill: {
           default: {
             base: "{color.accent}",

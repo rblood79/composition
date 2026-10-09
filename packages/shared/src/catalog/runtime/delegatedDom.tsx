@@ -1056,6 +1056,8 @@ function TagGroupRun({
         className: "react-aria-TagGroup",
         "data-tag-variant": str(props.variant) || "default",
         "data-tag-size": size,
+        // (S2 `isEmphasized` — its selected Tags are accent: `TagGroup.css`.)
+        "data-emphasized": bool(props.isEmphasized) || undefined,
         "data-label-position": labelPosition,
         key: `selected:${selectedKeys.join(",")}`,
         defaultSelectedKeys: selectedKeys,

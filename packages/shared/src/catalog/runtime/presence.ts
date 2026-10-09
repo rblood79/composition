@@ -284,6 +284,21 @@ export function catalogTabsSelection(
  * `selectionMode` none; GridList/Tree none), not the item template's display state. Undefined
  * outside a collection (a state origin shows its own display state).
  */
+/** Whether `node` is a Tag of an emphasized TagGroup (S2 `isEmphasized`). */
+function catalogTagOfEmphasizedGroup(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(node) !== "Tag") return false;
+  const owner = catalogCollectionOfItem(node, get, typeOf);
+  return (
+    !!owner &&
+    typeOf(owner) === "TagGroup" &&
+    owner.props.isEmphasized === true
+  );
+}
+
 function catalogCollectionItemSelected(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -910,6 +925,23 @@ export function catalogSliderRange(slider: CatalogConsumerNode): {
 }
 
 /**
+ * The Slider whose track holds `node` — a SliderFill or SliderThumb (past the layout frames the
+ * author puts around a part — `catalogPartParent`).
+ */
+function catalogSliderOfTrackPart(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const type = node.ruleId ?? typeOf(node);
+  if (type !== "SliderFill" && type !== "SliderThumb") return undefined;
+  const track = catalogPartParent(node, get, typeOf);
+  if (!track || typeOf(track) !== "SliderTrack") return undefined;
+  const slider = catalogPartParent(track, get, typeOf);
+  return slider && typeOf(slider) === "Slider" ? slider : undefined;
+}
+
+/**
  * ADR-256 Phase 7c — RAC SliderFill placement (D1 behavior, `Slider.mjs` `SliderFill`): absolutely
  * placed in its track from the range's start (`offset` — the minimum) to the thumb's value
  * (`insetInlineStart: start%`, `width: (end − start)%`, `height: 100%`). Undefined for any other node.
@@ -1354,8 +1386,17 @@ export function catalogDerivedProps(
       }
     : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
+  // (S2 TagGroup `isEmphasized`: its selected Tags paint the accent pair — `rulePaint.ts`.)
+  const emphasized =
+    selected !== undefined && catalogTagOfEmphasizedGroup(node, get, typeOf);
   const withSelection =
-    selected === undefined ? own : { ...own, _isSelected: selected };
+    selected === undefined
+      ? own
+      : {
+          ...own,
+          _isSelected: selected,
+          ...(emphasized ? { _emphasized: true } : {}),
+        };
   // (A selection checkbox is disabled while its item cannot be selected — RAC's context value.)
   const checkboxItem = catalogSelectionCheckboxItem(node, get, typeOf);
   // (A Button in a disabled ButtonGroup — S2 `isDisabled`: "all the Buttons are disabled".)
@@ -1460,6 +1501,13 @@ function ownDerivedProps(
   }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
+  // S2 Slider `isEmphasized`: its fill and thumb take their rules' `emphasized` variant (the DOM's
+  // `data-emphasized` · the SliderFill's `data-variant`).
+  const slider = catalogSliderOfTrackPart(node, get, typeOf);
+  if (slider)
+    return slider.props.isEmphasized === true
+      ? { variant: "emphasized" }
+      : undefined;
   // A SearchField's · NumberField's `value` is its input's initial value (the renderer's
   // `defaultValue`): the Canvas draws it in the Input's text, where the DOM input shows it over
   // the placeholder.

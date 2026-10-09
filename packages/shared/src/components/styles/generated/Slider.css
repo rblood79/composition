@@ -24,10 +24,11 @@
     .react-aria-SliderThumb {
       top: 50%;
       border-radius: var(--radius-full);
-      background: var(--accent);
+      background: var(--fg);
       border: 2px solid var(--bg);
       box-sizing: border-box;
     }
+    &[data-emphasized] .react-aria-SliderThumb { background: var(--accent); }
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   display: grid;

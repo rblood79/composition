@@ -337,12 +337,16 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
         authoredVisual: {},
         state: catalogNodeState(input.displayState),
       });
-    const accentRect = (shapes: ReturnType<typeof catalogRuleShapes>) =>
-      shapes.filter(
-        (shape) =>
-          (shape.type === "rect" || shape.type === "roundRect") &&
-          (shape as { fill?: unknown }).fill === "{color.accent}",
-      );
+    const filledRect =
+      (fill: string) => (shapes: ReturnType<typeof catalogRuleShapes>) =>
+        shapes.filter(
+          (shape) =>
+            (shape.type === "rect" || shape.type === "roundRect") &&
+            (shape as { fill?: unknown }).fill === fill,
+        );
+    const accentRect = filledRect("{color.accent}");
+    // (A selected Tag is neutral — accent only in an emphasized TagGroup: S2, 2026-10-10.)
+    const selectedTagRect = filledRect("{color.neutral}");
     // Tag: no `variant` (RAC · S2 Tag has none — 2026-10-09); the selected state origin is its
     // selection (`isSelected`), painted as DOM `[data-selected]`.
     const tag = await open(
@@ -351,12 +355,12 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     );
     expect(tag.byType("Tag")[0].props.variant).toBeUndefined();
     expect(tag.byType("Tag")[0].props.isSelected).toBe(true);
-    expect(accentRect(shapesOf(tag, "Tag")).length).toBeGreaterThan(0);
+    expect(selectedTagRect(shapesOf(tag, "Tag")).length).toBeGreaterThan(0);
     const tagUnselected = await open(
       "lib:definition:origin-component-tag-item-default--unselected" as DefinitionId,
       "tag-unselected",
     );
-    expect(accentRect(shapesOf(tagUnselected, "Tag"))).toEqual([]);
+    expect(selectedTagRect(shapesOf(tagUnselected, "Tag"))).toEqual([]);
     // Tab state origin: selected → its SelectionIndicator node is there (the 3px bottom bar —
     // ADR-256 Phase 5e; the Tab itself paints none); its hover variant is a hovered, unselected Tab.
     const tab = await open(

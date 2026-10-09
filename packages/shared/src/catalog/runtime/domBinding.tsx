@@ -725,6 +725,9 @@ const bindings: Readonly<Record<string, DomBinding>> = {
     createElement(RAC.SliderFill as ElementType, {
       key: node.id,
       "data-catalog-id": node.id,
+      // (S2 `isEmphasized` — the SliderFill sheet's variant, derived from the Slider.)
+      "data-variant":
+        node.derivedProps?.variant === "emphasized" ? "emphasized" : undefined,
       style: ({ defaultStyle }: { defaultStyle: CSSProperties }) => ({
         ...withoutRacPlacement(style),
         ...defaultStyle,

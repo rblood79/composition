@@ -61,6 +61,15 @@ export const avatarBinding: PrimitiveBinding = {
       // design-data 감사 §2-F (2026-08-21): Avatar.tsx 는 isDisabled 소비(opacity 0.38
       //   인라인)를 기보유 — binding 노출만 결손이던 축. Skia 는 componentState generic.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // S2 1.8.0 Avatar `isOverBackground` (2026-10-10): a solid outline in the background color
+      //   around the circle (1px, 2px over 64px — S2 `imageStyles`), so an avatar over a color or
+      //   another avatar keeps its edge. DOM `Avatar.tsx` `outline`; Canvas the `avatar` primitive's
+      //   ring outside the circle. The AvatarGroup origin's avatars have it (S2 `AvatarContext`).
+      isOverBackground: {
+        kind: "boolean",
+        label: "Over Background",
+        section: "appearance",
+      },
     },
     toRacProps: "default",
     // size 는 Avatar.tsx(INTERNAL_RENDERERS 어댑터)의 크기·fontSize 계산 input → data-attr 가 아니라

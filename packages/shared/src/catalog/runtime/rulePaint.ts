@@ -200,11 +200,17 @@ export function catalogRulePaint(
   // The DOM styles selection by `[data-selected]` over `data-variant`: a selected node of a rule
   // with a `selected` variant paints it unless another (non-default) variant is authored. The typed
   // `variant` default is not an authored choice (`resolveCatalogVariantName` reads any value as one).
+  // (An emphasized owner's selection — S2 TagGroup `isEmphasized`, the item's `_emphasized` —
+  // paints the rule's `selectedEmphasized` where it has one.)
+  const selectedName =
+    props._emphasized === true && rule.variants.selectedEmphasized
+      ? "selectedEmphasized"
+      : "selected";
   const variantName =
     props.isSelected === true &&
     rule.variants.selected &&
     (props.variant === undefined || props.variant === rule.defaultVariant)
-      ? "selected"
+      ? selectedName
       : resolveCatalogVariantName(rule, props);
   const variant = variantName ? rule.variants[variantName] : undefined;
   const sizeName = (props.size as string | undefined) ?? rule.defaultSize;
@@ -213,7 +219,7 @@ export function catalogRulePaint(
     (rule.defaultSize ? rule.sizes[rule.defaultSize] : undefined) ??
     {};
   const paintProps =
-    variantName === "selected" && props.isSelected === true
+    variantName === selectedName && props.isSelected === true
       ? { ...props, isSelected: false }
       : props;
   const paint = resolveCatalogPaint({

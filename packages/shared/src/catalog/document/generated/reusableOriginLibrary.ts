@@ -2768,7 +2768,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-avatargroup__1",
     "definitionId": "lib:definition:origin-component-avatar",
     "children": [],
-    "props": {},
+    "props": {
+      "isOverBackground": true
+    },
     "visual": {}
   },
   {
@@ -2776,7 +2778,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-avatar",
     "children": [],
     "props": {
-      "initials": "B"
+      "initials": "B",
+      "isOverBackground": true
     },
     "visual": {}
   },
@@ -2785,7 +2788,8 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-avatar",
     "children": [],
     "props": {
-      "initials": "C"
+      "initials": "C",
+      "isOverBackground": true
     },
     "visual": {}
   },

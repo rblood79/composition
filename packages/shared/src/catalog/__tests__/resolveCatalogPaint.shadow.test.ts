@@ -273,7 +273,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     // 2026-10-09: + Illustration (IllustratedMessage 의 그림, 1 variant) 8,388 → 8,424 (+36). diffs 0 유지.
     // 2026-10-09: − SelectIcon · TableRow · TableCell · TailSwatch (1 variant each — 원본이 쓰지 않던
     //   type 삭제) 8,424 → 8,280 (−144). diffs 0 유지.
-    expect(compared).toBe(8_280);
+    // 2026-10-10: + SliderFill · SliderThumb `emphasized`, Tag `selectedEmphasized` (S2 isEmphasized)
+    //   8,280 → 8,388 (+108). diffs 0 유지.
+    expect(compared).toBe(8_388);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

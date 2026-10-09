@@ -104,10 +104,12 @@
       outline-offset: 2px;
     }
 
+    /* S2 TagGroup (2026-10-10): a selected Tag is neutral — accent when the group is emphasized
+       (below). The Tag rule's `selected` · `selectedEmphasized` (the Canvas). */
     &[data-selected] {
-      --tag-color: var(--accent);
-      --tag-text: var(--fg-on-accent);
-      --tag-border: var(--accent);
+      --tag-color: var(--fg);
+      --tag-text: var(--bg);
+      --tag-border: var(--fg);
     }
 
     /* chip leading icon (2026-08-21) — itemSchema 의 `icon`.
@@ -227,6 +229,13 @@
   }
 
   /* ===== Parent-delegated Color Variants ===== */
+
+  /* S2 `isEmphasized`: the group's selected Tags take the accent pair. */
+  .react-aria-TagGroup[data-emphasized] .react-aria-Tag[data-selected] {
+    --tag-color: var(--accent);
+    --tag-text: var(--fg-on-accent);
+    --tag-border: var(--accent);
+  }
 
   .react-aria-TagGroup[data-tag-variant="primary"] .react-aria-Tag {
     --tag-color: var(--accent);
