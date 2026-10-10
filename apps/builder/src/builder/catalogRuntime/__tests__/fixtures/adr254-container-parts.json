@@ -445,7 +445,7 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=informative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/size sm": {
   "records": {
@@ -492,7 +492,7 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=S data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:12px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=S data-variant=informative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:12px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/size lg": {
   "records": {
@@ -539,7 +539,7 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=L data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=L data-variant=informative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:18px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Alert Heading</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>There was an error processing your request. Please try again.</></>"
  },
  "inline-alert/variant neutral": {
   "records": {
@@ -774,6 +774,6 @@
     }
    }
   },
-  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=info id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Ttl</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>Desc</></>"
+  "dom": "<div class=react-aria-InlineAlert data-size=M data-variant=informative id><h3 class=react-aria-Heading style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:16px;white-space:normal;color:#171717;font-weight:700;line-height:1.4>Ttl</><span class=react-aria-Text slot=description style=box-sizing:border-box;display:block;width:100%;border-radius:0;margin-top:0px;margin-right:0px;margin-bottom:0px;margin-left:0px;font-family:Pretendard, sans-serif;font-size:14px;white-space:normal;color:#525252;font-weight:400;line-height:1.5>Desc</></>"
  }
 }

@@ -234,7 +234,8 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
           field.options?.map((option) => option.value),
         ]),
     ).toEqual([
-      ["variant", ["neutral", "info", "positive", "negative"]],
+      // (S2 값 정렬 2026-10-10 — design-data Tooltip: info → informative, positive 삭제.)
+      ["variant", ["neutral", "informative", "negative"]],
       ["size", ["S", "M", "L"]],
     ]);
     for (const [type, placement] of [

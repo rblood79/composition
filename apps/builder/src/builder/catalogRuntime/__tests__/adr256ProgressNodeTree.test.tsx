@@ -371,7 +371,8 @@ describe("ADR-256 Phase 7b — Meter draws its node tree", () => {
 
   it("the fill paints the Meter's variant: four colors, none the track's", async () => {
     const colors: string[] = [];
-    for (const variant of ["informative", "positive", "warning", "critical"]) {
+    // (S2 값 정렬 2026-10-10: warning → notice, critical → negative.)
+    for (const variant of ["informative", "positive", "notice", "negative"]) {
       const { root, part, draw } = await open(
         { label: "Storage", value: 50, variant },
         "meter",

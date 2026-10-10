@@ -129,7 +129,8 @@ export type LinkVariant = "primary" | "secondary";
  * - notice: 주의 상태
  * - negative: 오류/위험 상태
  */
-export type MeterVariant = "informative" | "positive" | "warning" | "critical";
+// S2 1.8.0 값 정렬 (2026-10-10): warning → notice, critical → negative.
+export type MeterVariant = "informative" | "positive" | "notice" | "negative";
 
 // ============================================================================
 // Static Color

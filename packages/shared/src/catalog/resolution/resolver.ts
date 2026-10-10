@@ -38,6 +38,7 @@ import {
 import {
   CATALOG_BOOLEAN_VARIANTS,
   CATALOG_EMPHASIS_FROM_GROUP,
+  CATALOG_VARIANT_FROM_OWNER,
 } from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
 import {
@@ -819,6 +820,25 @@ export function resolveCatalogNode(
     else delete props.isEmphasized;
   };
   /**
+   * S2 CardView context (`CATALOG_VARIANT_FROM_OWNER`, 2026-10-10): CardView 의 `variant` 를
+   * 안의 Card 중 자기 값을 안 적은 것이 입는다 (S2 `ctx = {size, variant}` — 작성 값이 이긴다).
+   */
+  const applyOwnerVariant = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+    authored: ReadonlySet<string>,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const ownerType = CATALOG_VARIANT_FROM_OWNER[definition.name];
+    if (!ownerType || authored.has("variant")) return;
+    let owner = structuralParent(parent);
+    while (owner && lookupDefinition(owner.definitionId).name !== ownerType)
+      owner = structuralParent(owner.parent);
+    const variant = owner?.props.variant;
+    if (typeof variant === "string") props.variant = variant;
+  };
+  /**
    * S2 강조 · quiet boolean 축 (`CATALOG_BOOLEAN_VARIANTS`, 2026-10-10): 공개 prop 은 boolean
    * (`isEmphasized`) 이고 rule 변형은 내부 운반 값 (`editorHidden` variant) 이다 — 여기서
    * 파생하므로 Canvas rule paint 와 DOM 이 종전 record 그대로 읽는다. 작성자 variant 는 이제
@@ -899,6 +919,15 @@ export function resolveCatalogNode(
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
+    applyOwnerVariant(
+      node.definitionId,
+      props,
+      parent,
+      new Set([
+        ...Object.keys(inherited?.props ?? {}),
+        ...Object.keys(node.props),
+      ]),
+    );
     applyBooleanVariant(node.definitionId, props);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
@@ -1096,6 +1125,7 @@ export function resolveCatalogNode(
       applyOwnerSize(definitionId, props, parent);
       applyOwnerDensity(definitionId, props, parent);
       applyOwnerEmphasis(definitionId, props, parent);
+      applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
       applyBooleanVariant(definitionId, props);
       applyPropVisualRules(definitionId, props, visual);
       applyTypedRules(definitionId, props, visual, layout, parent);
@@ -1366,6 +1396,7 @@ export function resolveCatalogNode(
     );
     applyOwnerSize(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);
+    applyOwnerVariant(template.definitionId, props, parent, instanceAuthored);
     applyBooleanVariant(template.definitionId, props);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(

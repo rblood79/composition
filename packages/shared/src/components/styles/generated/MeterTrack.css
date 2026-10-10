@@ -57,7 +57,7 @@
   }
 }
 
-.react-aria-MeterTrack[data-variant="warning"] {
+.react-aria-MeterTrack[data-variant="notice"] {
   background: var(--bg-muted);
   color: var(--fg);
 
@@ -70,7 +70,7 @@
   }
 }
 
-.react-aria-MeterTrack[data-variant="critical"] {
+.react-aria-MeterTrack[data-variant="negative"] {
   background: var(--bg-muted);
   color: var(--fg);
 

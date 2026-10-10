@@ -94,11 +94,11 @@
   --fill-color: var(--positive);
 }
 
-.react-aria-Meter[data-variant="warning"] {
+.react-aria-Meter[data-variant="notice"] {
   --fill-color: var(--notice);
 }
 
-.react-aria-Meter[data-variant="critical"] {
+.react-aria-Meter[data-variant="negative"] {
   --fill-color: var(--negative);
 }
 

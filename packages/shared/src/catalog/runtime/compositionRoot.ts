@@ -9,7 +9,10 @@ import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
-import { CATALOG_EMPHASIS_FROM_GROUP } from "../document/s2PropAlignment";
+import {
+  CATALOG_EMPHASIS_FROM_GROUP,
+  CATALOG_VARIANT_FROM_OWNER,
+} from "../document/s2PropAlignment";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
@@ -3611,6 +3614,29 @@ export class CatalogCompositionRoot {
             queued.add(item.id);
             queue.push(item.id);
           }
+      }
+      // S2 CardView `variant` reaches the Cards in it (`CATALOG_VARIANT_FROM_OWNER` — the
+      // resolver's `applyOwnerVariant`, filling only unset ones): they resolve again with it.
+      if (
+        before.props.variant !== record.props.variant &&
+        Object.values(CATALOG_VARIANT_FROM_OWNER).includes(this.typeOf(record))
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (
+              CATALOG_VARIANT_FROM_OWNER[this.typeOf(child)] ===
+                this.typeOf(record) &&
+              !queued.has(childId)
+            ) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
       }
       // S2 Table `density` reaches the Columns · Cells in it
       // (`CATALOG_DENSITY_PROPAGATION_OWNER` — the resolver's `applyOwnerDensity`): they resolve

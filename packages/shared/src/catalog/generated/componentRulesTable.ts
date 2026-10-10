@@ -1917,10 +1917,48 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   CardView: {
-    defaultVariant: "default",
+    defaultVariant: "primary",
     defaultSize: "M",
     variants: {
-      default: {
+      // S2 1.8.0 값 정렬 (2026-10-10): primary · secondary · tertiary · quiet — view 상자는
+      //   전부 투명 (S2 CardView 는 variant 를 안의 Card 로 전달한다 — resolver 가 채운다).
+      primary: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      secondary: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      tertiary: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+      quiet: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -5855,7 +5893,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
   },
   InlineAlert: {
-    defaultVariant: "info",
+    defaultVariant: "informative",
     defaultSize: "M",
     // S2 1.8.0 fillStyle (2026-10-10 — S2 border · subtleFill · boldFill 를 house 축
     //   outline · subtle · bold 로): outline = 바탕 배경 + variant 색 테두리 (S2 기본 'border' —
@@ -5886,7 +5924,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.neutral-subdued}",
         },
       },
-      info: {
+      // S2 1.8.0 값 정렬 (2026-10-10): info → informative.
+      informative: {
         fill: {
           default: {
             base: "{color.informative}",
@@ -6943,7 +6982,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      warning: {
+      // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
+      notice: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -6955,7 +6995,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      critical: {
+      // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
+      negative: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -7082,12 +7123,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "--fill-color": "var(--positive)",
               },
             },
-            warning: {
+            // S2 1.8.0 값 정렬 (2026-10-10): warning → notice, critical → negative.
+            notice: {
               styles: {
                 "--fill-color": "var(--notice)",
               },
             },
-            critical: {
+            negative: {
               styles: {
                 "--fill-color": "var(--negative)",
               },
@@ -7180,7 +7222,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      warning: {
+      // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
+      notice: {
         // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
         staticAlpha: 0.94,
         fill: {
@@ -7194,7 +7237,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      critical: {
+      // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
+      negative: {
         // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
         staticAlpha: 0.94,
         fill: {
@@ -7261,7 +7305,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      warning: {
+      // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
+      notice: {
         // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.notice}",
         staticAlpha: 0.17,
@@ -7276,7 +7321,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      critical: {
+      // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
+      negative: {
         // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.negative}",
         staticAlpha: 0.17,
@@ -7360,7 +7406,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      warning: {
+      // S2 1.8.0 값 정렬 (2026-10-10): warning → notice.
+      notice: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -7372,7 +7419,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      critical: {
+      // S2 1.8.0 값 정렬 (2026-10-10): critical → negative.
+      negative: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -13319,24 +13367,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      info: {
+      // S2 값 정렬 (2026-10-10 — design-data Tooltip): info → informative, positive 삭제.
+      informative: {
         fill: {
           default: {
             base: "{color.informative-subtle}",
             hover: "{color.informative-subtle}",
             pressed: "{color.informative-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      positive: {
-        fill: {
-          default: {
-            base: "{color.positive-subtle}",
-            hover: "{color.positive-subtle}",
-            pressed: "{color.positive-subtle}",
           },
         },
         colors: {

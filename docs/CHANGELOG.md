@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 값 정렬 — Meter · InlineAlert · Tooltip · CardView] - 2026-10-10
+
+### Breaking Changes
+
+- **Meter `variant` 값 `warning` → `notice`, `critical` → `negative`** (S2 1.8.0 — Meter · MeterFill · MeterTrack · MeterValue rule 과 생성 CSS, `MeterVariant` 타입). 색은 종전 그대로 (옛 키가 이미 notice · negative 토큰을 쓰고 있었다 — 이름만 v3 잔재). 옛 문서는 로드 시 1회 전환.
+- **InlineAlert `variant` 값 `info` → `informative`** (S2 1.8.0 — 기본값 포함). 로드 시 1회 전환.
+- **Tooltip `variant` 집합 `neutral · info · positive · negative` → `neutral · informative · negative`** (design-data Tooltip — S2 코드에는 Tooltip variant 가 없어 design-data 가 정본, D2 순서). `positive` 는 삭제 — 옛 값은 로드 시 기본 (neutral) 으로.
+- **CardView `variant` 집합 `default` → `primary · secondary · tertiary · quiet`** (S2 1.8.0, 기본 primary): CardView 의 variant 는 안의 Card 들이 입는다 (S2 `ctx = {size, variant}` — resolver `applyOwnerVariant`, 자기 값을 적은 Card 가 이김 + 재해석 큐). 옛 `default` 는 로드 시 삭제.
+
+### Added
+
+- 확인: live — Meter Notice · Negative 에서 Preview `--fill-color` 와 Canvas MeterFill Skia 칠이 같이 바뀜 (주황 · 빨강), InlineAlert 기본 informative (record + `data-variant`), CardView Quiet 에서 안의 Card 3개가 재해석되어 record · Preview 모두 quiet, 오류 0 (`apps/builder/scripts/s2-value-alignment-live.mjs` 5/5 — Tooltip 집합은 닫힌 overlay 라 live 표면이 없어 rule · 계약 테스트가 고정).
+
 ## [S2 강조 축 전환 3 — Tree isEmphasized · TableView isQuiet] - 2026-10-10
 
 ### Breaking Changes

@@ -58,7 +58,7 @@
   }
 }
 
-.react-aria-MeterValue[data-variant="warning"] {
+.react-aria-MeterValue[data-variant="notice"] {
   background: transparent;
   color: var(--fg);
 
@@ -71,7 +71,7 @@
   }
 }
 
-.react-aria-MeterValue[data-variant="critical"] {
+.react-aria-MeterValue[data-variant="negative"] {
   background: transparent;
   color: var(--fg);
 

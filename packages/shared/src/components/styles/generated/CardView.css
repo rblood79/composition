@@ -24,7 +24,46 @@
   border-radius: 0;
 }
 
-.react-aria-CardView[data-variant="default"] {
+.react-aria-CardView[data-variant="primary"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-CardView[data-variant="secondary"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-CardView[data-variant="tertiary"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
+    background: transparent;
+  }
+
+  &[data-pressed] {
+    background: transparent;
+  }
+}
+
+.react-aria-CardView[data-variant="quiet"] {
   background: transparent;
   color: var(--fg);
 

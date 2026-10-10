@@ -9,7 +9,7 @@ import type { PrimitiveBinding } from "../types";
  * Canvas: 부모는 빈 상자, track · fill 노드가 각자 rule 로 칠한다 (fill 은 variant 4색).
  *
  * D1: RAC `<Meter role="meter progressbar">` 그대로.
- * D2: value · minValue · maxValue · label · variant (informative · positive · warning · critical) ·
+ * D2: value · minValue · maxValue · label · variant (informative · positive · notice · negative — S2 1.8.0, 2026-10-10 값 정렬) ·
  *     size · showValueLabel · valueLabel · labelPosition · staticColor. isIndeterminate 없음 (RAC
  *     Meter 에 없다).
  * D3: catalog Meter rule (`.bar` · `.value` · `.fill`) + MeterTrack · MeterFill rule.

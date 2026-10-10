@@ -43,7 +43,7 @@
   }
 }
 
-.react-aria-Tooltip[data-variant="info"] {
+.react-aria-Tooltip[data-variant="informative"] {
   background: var(--informative-subtle);
   color: var(--fg);
 
@@ -53,19 +53,6 @@
 
   &[data-pressed] {
     background: var(--informative-subtle);
-  }
-}
-
-.react-aria-Tooltip[data-variant="positive"] {
-  background: var(--positive-subtle);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--positive-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--positive-subtle);
   }
 }
 

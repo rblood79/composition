@@ -57,7 +57,7 @@
   }
 }
 
-.react-aria-MeterFill[data-variant="warning"] {
+.react-aria-MeterFill[data-variant="notice"] {
   background: var(--notice);
   color: var(--fg);
 
@@ -70,7 +70,7 @@
   }
 }
 
-.react-aria-MeterFill[data-variant="critical"] {
+.react-aria-MeterFill[data-variant="negative"] {
   background: var(--negative);
   color: var(--fg);
 

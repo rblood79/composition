@@ -111,7 +111,8 @@ export const INLINE_ALERT_PROPS_SCHEMA: PropsSchema = {
   variant: {
     kind: "variant",
     label: "Variant",
-    default: "info",
+    // S2 1.8.0 (2026-10-10): info → informative.
+    default: "informative",
     section: "appearance",
   },
   // S2 1.8.0 fillStyle (2026-10-10): S2 border · subtleFill · boldFill — house 값은
@@ -228,7 +229,8 @@ export const TOOLTIP_PROPS_SCHEMA = overlayOriginSchema(
   "Tooltip",
   ["variant", "size", ...OVERLAY_POSITION_KEYS],
   {
-    variant: ["neutral", "info", "positive", "negative"],
+    // design-data Tooltip (2026-10-10): neutral · informative · negative — positive 삭제.
+    variant: ["neutral", "informative", "negative"],
     size: ["S", "M", "L"],
   },
 );

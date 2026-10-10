@@ -59,7 +59,7 @@
   border-color: transparent;
 }
 
-.react-aria-InlineAlert[data-variant="info"] {
+.react-aria-InlineAlert[data-variant="informative"] {
   background: var(--informative);
   color: var(--color-white);
   border-color: var(--informative);
@@ -73,12 +73,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="info"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="informative"][data-fill-style="outline"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="info"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="informative"][data-fill-style="subtle"] {
   background: var(--informative-subtle);
   color: var(--fg);
   border-color: transparent;

@@ -15,7 +15,7 @@ import type { PrimitiveBinding } from "../types";
  *   `ruleDom` 이 staticAttrs 의 role="alert"/aria-live="polite" 를 싣는다 — 스크린리더 alert 접근성 보존.
  *
  * D1: composition `<div role="alert">` (internal source, `ruleDom` fallback + staticAttrs).
- * D2: variant(5종 neutral/info/positive/notice/negative) + size(sm/md/lg) 편집.
+ * D2: variant(5종 neutral/informative/positive/notice/negative — S2 1.8.0, 2026-10-10 info→informative) + size(sm/md/lg) 편집.
  * D3: 시각(variant 별 배경/테두리/패딩)은 theme rule(COMPONENT_RULES_TABLE.InlineAlert).
  */
 export const inlineAlertBinding: PrimitiveBinding = {
@@ -34,7 +34,7 @@ export const inlineAlertBinding: PrimitiveBinding = {
         kind: "variant",
         label: "Variant",
         section: "appearance",
-        default: "info",
+        default: "informative",
       },
       size: {
         kind: "size",

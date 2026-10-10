@@ -43,7 +43,9 @@ export const cardViewBinding: PrimitiveBinding = {
         kind: "variant",
         label: "Variant",
         section: "appearance",
-        default: "default",
+        // S2 1.8.0 (2026-10-10): primary · secondary · tertiary · quiet — 안의 Card 들이 입는다
+        //   (resolver `applyOwnerVariant`, 빈 자리만). 옛 default 는 로드 시 삭제 → primary.
+        default: "primary",
       },
       size: {
         kind: "size",

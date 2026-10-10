@@ -62,6 +62,15 @@ const quietOf: PropValueMigration = (value) => {
   return DROP;
 };
 
+/** 값 개명 — 표에 있는 값은 새 이름으로, 없는 값은 그대로 둔다 (rename 전환). */
+const renameOf =
+  (renames: Readonly<Record<string, string>>): PropValueMigration =>
+  (value) => ({
+    variant: typeof value === "string" ? (renames[value] ?? value) : value,
+  });
+
+const meterOf = renameOf({ warning: "notice", critical: "negative" });
+
 /**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
  * type → 옛 prop → 새 값들 ({} = 축 삭제). `createCatalogGraph` 가 적용하므로 storage 로드 ·
@@ -81,6 +90,31 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   Form: { variant: dropOf },
   Tree: { variant: accentOf },
   TableView: { variant: quietOf },
+  // 값 변경 (조사 §4.2 C — 2026-10-10): Meter 계열 warning/critical → notice/negative,
+  // InlineAlert info → informative, Tooltip 은 design-data 집합 (neutral · informative ·
+  // negative — positive 는 삭제 → 기본 neutral), CardView 의 옛 default 는 삭제 → 기본 primary.
+  Meter: { variant: meterOf },
+  MeterFill: { variant: meterOf },
+  MeterTrack: { variant: meterOf },
+  MeterValue: { variant: meterOf },
+  InlineAlert: { variant: renameOf({ info: "informative" }) },
+  Tooltip: {
+    variant: (value) => {
+      if (value === "info") return { variant: "informative" };
+      if (value === "positive") return DROP;
+      return { variant: value };
+    },
+  },
+  CardView: { variant: dropOf },
+};
+
+/**
+ * S2 CardView context (2026-10-10 — `CardView.tsx` `ctx = {size, variant}`): CardView 의
+ * `variant` 는 안의 Card 들이 입는다. 자기 값을 적은 Card 가 이긴다 (빈 자리만 채움 —
+ * resolver `applyOwnerVariant` + 재해석 큐).
+ */
+export const CATALOG_VARIANT_FROM_OWNER: Readonly<Record<string, string>> = {
+  Card: "CardView",
 };
 
 type MutablePropWrites = Record<string, PropWrites[string]>;
