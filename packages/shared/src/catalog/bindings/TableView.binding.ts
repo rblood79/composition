@@ -46,12 +46,20 @@ export const tableViewBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      // appearance — S2 variant 모델(구 isQuiet boolean 흡수: quiet=transparent+no border).
+      // S2 1.8.0 `isQuiet` (2026-10-10 — 2026-06-15 「isQuiet → variant:quiet 흡수」 의 역전환):
+      //   공개 축은 S2 TableView 의 boolean 이고, quiet 변형은 resolver 가 파생하는 내부
+      //   `variant` 운반 값 — 옛 variant prop 은 로드 시 1회 전환.
+      isQuiet: {
+        kind: "boolean",
+        label: "Quiet",
+        section: "appearance",
+      },
       variant: {
         kind: "variant",
         label: "Variant",
         section: "appearance",
         default: "default",
+        editorHidden: true,
       },
       density: {
         kind: "enum",

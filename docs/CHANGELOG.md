@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 강조 축 전환 3 — Tree isEmphasized · TableView isQuiet] - 2026-10-10
+
+### Breaking Changes
+
+- **Tree `variant` (default · accent) 제거 → `isEmphasized`** (design-data Tree view — S2 TreeView 에 없는 축은 design-data 가 정본, D2 순서): rule 의 accent 변형은 emphasized 로 개명되어 내부 운반 값으로 남는다. 옛 `accent` 는 로드 시 1회 전환으로 `isEmphasized: true`.
+- **TableView `variant` (default · quiet) 제거 → `isQuiet`** (S2 1.8.0 — 2026-06-15 「isQuiet → variant:quiet 흡수」 의 역전환): quiet 시각 (transparent + 테두리 없음) 은 그대로, 공개 축만 S2 boolean 으로. 옛 `quiet` 는 로드 시 1회 전환으로 `isQuiet: true`.
+
+### Added
+
+- 확인: live — Tree Emphasized 토글: 파생 emphasized 변형이 record 에 (Canvas rule paint — DOM Tree 시트는 종전부터 variant 시각이 없음, 기존 상태 유지); TableView Quiet 토글: 파생 quiet 변형이 record 와 Preview `data-variant` 에, 오류 0 (`apps/builder/scripts/s2-tree-tableview-live.mjs` 5/5).
+
 ## [S2 강조 축 전환 2 — 그룹 · Radio · Form] - 2026-10-10
 
 ### Breaking Changes

@@ -13499,7 +13499,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
+      // S2 강조 축 (2026-10-10): accent → emphasized — 공개 prop 은 isEmphasized.
+      emphasized: {
         fill: {
           default: {
             base: "{color.base}",

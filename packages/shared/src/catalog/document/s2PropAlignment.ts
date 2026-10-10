@@ -20,6 +20,9 @@ export const CATALOG_BOOLEAN_VARIANTS: Readonly<
   Checkbox: { prop: "isEmphasized", variant: "emphasized" },
   Switch: { prop: "isEmphasized", variant: "emphasized" },
   Radio: { prop: "isEmphasized", variant: "emphasized" },
+  Tree: { prop: "isEmphasized", variant: "emphasized" },
+  // 2026-06-15 의 역전환: isQuiet boolean → variant "quiet" 흡수를 S2 표면 (isQuiet) 으로 되돌린다.
+  TableView: { prop: "isQuiet", variant: "quiet" },
 };
 
 /**
@@ -53,6 +56,12 @@ const accentOf: PropValueMigration = (value) => {
 
 const dropOf: PropValueMigration = () => DROP;
 
+/** TableView 의 옛 quiet 변형 — S2 의 isQuiet. */
+const quietOf: PropValueMigration = (value) => {
+  if (value === "quiet") return { isQuiet: true };
+  return DROP;
+};
+
 /**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
  * type → 옛 prop → 새 값들 ({} = 축 삭제). `createCatalogGraph` 가 적용하므로 storage 로드 ·
@@ -70,6 +79,8 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   // 를 자식 field 에 전달하는 context 소유자).
   Radio: { variant: dropOf },
   Form: { variant: dropOf },
+  Tree: { variant: accentOf },
+  TableView: { variant: quietOf },
 };
 
 type MutablePropWrites = Record<string, PropWrites[string]>;

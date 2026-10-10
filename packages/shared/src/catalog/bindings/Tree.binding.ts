@@ -19,11 +19,20 @@ export const treeBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
+      // S2 강조 축 (2026-10-10 — design-data Tree view `isEmphasized`, S2 TreeView 에는 없는
+      //   축): 선택 줄 강조. rule 의 emphasized 변형 (옛 accent) 은 resolver 가 파생하는 내부
+      //   `variant` 운반 값 — 옛 variant prop 은 로드 시 1회 전환.
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
+        section: "appearance",
+      },
       variant: {
         kind: "variant",
         label: "Variant",
         section: "appearance",
         default: "default",
+        editorHidden: true,
       },
       size: {
         kind: "size",
