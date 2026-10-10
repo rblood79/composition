@@ -106,6 +106,9 @@ export const CATALOG_TOGGLE_GROUP_OF: Readonly<Record<string, string>> = {
 export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   "Group",
   "frame",
+  // ADR-256 Phase 10: S2 `Content` — an InlineAlert's body section (its Description reads the
+  //   alert's size one step up, as before the section).
+  "Content",
 ]);
 
 /**

@@ -2656,10 +2656,6 @@ function renderNode(
             id: childId,
             context,
           }),
-        childStyle: (childId) => {
-          const child = root.domInputs.get(childId);
-          return child ? catalogDomStyle(child, node) : {};
-        },
         ...(context.runtime
           ? {
               runtimeProps: (recordId: string) =>

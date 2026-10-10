@@ -115,7 +115,7 @@ export function resolveCatalogContextEntry(
  * The record a double click edits the text of, when it enters nothing (`resolveCatalogContextEntry`
  * is `undefined`): the click target when it has its own text, else the text drawn under the
  * pointer inside it. The second case is a container the double click cannot enter — a template
- * position of an instance (a Card's CardHeader: a context is a document node, and the template id
+ * position of an instance (a Card's Content: a context is a document node, and the template id
  * names that position in every Card), so its text (the Card's title) is edited from there.
  * `undefined` = no text to edit.
  */

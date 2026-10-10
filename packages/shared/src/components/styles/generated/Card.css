@@ -176,6 +176,90 @@
 }
 
 
+  .react-aria-Card > .react-aria-Content {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .react-aria-Card > .react-aria-Footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+
+  .react-aria-Card .react-aria-Text[slot="title"] {
+    font-weight: 700;
+  }
+
+  .react-aria-Card .react-aria-Text[slot="description"] {
+    font-weight: 400;
+  }
+
+
+  .react-aria-Card[data-size="XS"] > .react-aria-Content {
+    gap: 4px;
+  }
+
+  .react-aria-Card[data-size="XS"] .react-aria-Text[slot="title"] {
+    font-size: 12px;
+  }
+
+  .react-aria-Card[data-size="XS"] .react-aria-Text[slot="description"] {
+    font-size: 11px;
+  }
+
+  .react-aria-Card[data-size="S"] > .react-aria-Content {
+    gap: 4px;
+  }
+
+  .react-aria-Card[data-size="S"] .react-aria-Text[slot="title"] {
+    font-size: 12px;
+  }
+
+  .react-aria-Card[data-size="S"] .react-aria-Text[slot="description"] {
+    font-size: 11px;
+  }
+
+  .react-aria-Card[data-size="M"] > .react-aria-Content {
+    gap: 6px;
+  }
+
+  .react-aria-Card[data-size="M"] .react-aria-Text[slot="title"] {
+    font-size: 14px;
+  }
+
+  .react-aria-Card[data-size="M"] .react-aria-Text[slot="description"] {
+    font-size: 12px;
+  }
+
+  .react-aria-Card[data-size="L"] > .react-aria-Content {
+    gap: 6px;
+  }
+
+  .react-aria-Card[data-size="L"] .react-aria-Text[slot="title"] {
+    font-size: 16px;
+  }
+
+  .react-aria-Card[data-size="L"] .react-aria-Text[slot="description"] {
+    font-size: 14px;
+  }
+
+  .react-aria-Card[data-size="XL"] > .react-aria-Content {
+    gap: 8px;
+  }
+
+  .react-aria-Card[data-size="XL"] .react-aria-Text[slot="title"] {
+    font-size: 18px;
+  }
+
+  .react-aria-Card[data-size="XL"] .react-aria-Text[slot="description"] {
+    font-size: 16px;
+  }
+
+
   .react-aria-Card {
     cursor: pointer;
     text-decoration: none;

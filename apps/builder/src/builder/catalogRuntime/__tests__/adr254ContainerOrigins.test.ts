@@ -42,7 +42,9 @@ const HEADING_ORIGIN =
 const DESCRIPTION_ORIGIN =
   "lib:definition:origin-component-description" as LibraryDefinitionId;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
-const CONTAINERS = ["dialog", "popover", "card", "inline-alert", "tooltip"];
+// (Not the Card — ADR-256 Phase 10, 사용자 결정 「S2 그대로」: its title · description are Text nodes
+// in its S2 Content — `adr256CardS2.test.tsx`.)
+const CONTAINERS = ["dialog", "popover", "inline-alert", "tooltip"];
 
 async function place(definitionId: string) {
   const library = await buildCodeCatalogLibrary();
@@ -132,10 +134,9 @@ const dialogOf = (workspace: CatalogWorkspace, root: CatalogConsumerNode) => {
 
 describe("ADR-254 Phase 2 — the containers' parts are origin instances", () => {
   /**
-   * G1: an edit of the Heading origin reaches the four titles, of the Description origin the five
+   * G1: an edit of the Heading origin reaches the three titles, of the Description origin the four
    * descriptions — on the Canvas record and, for the containers that render DOM (an open Dialog ·
-   * Card · InlineAlert), inline in the DOM. A second edit as well (a value-only step). The Card's
-   * description keeps its own color (the position's patch over the origin's).
+   * InlineAlert), inline in the DOM. A second edit as well (a value-only step).
    */
   for (const type of CONTAINERS)
     it(`${type} — follows the Heading · Description origins`, async () => {
@@ -164,7 +165,7 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
             );
         }
         for (const description of descriptions()) {
-          const expected = type === "card" ? "#49454f" : "#00aa00";
+          const expected = "#00aa00";
           expect(description.visual.color).toBe(expected);
           if (dom)
             expect(markupOf(workspace, root(), type)).toContain(
@@ -205,8 +206,6 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
 describe("ADR-254 Decision 5 — a bound text has one source", () => {
   /** The bound part of each case: the container, the part's binding, the container's prop. */
   const CASES = [
-    { type: "card", binding: "heading", prop: "title" },
-    { type: "card", binding: "description", prop: "description" },
     { type: "inline-alert", binding: "heading", prop: "title" },
     { type: "inline-alert", binding: "description", prop: "description" },
     { type: "textfield", binding: "label", prop: "label" },
@@ -219,7 +218,7 @@ describe("ADR-254 Decision 5 — a bound text has one source", () => {
       const graph = workspace.runtime.graph;
       const key = catalogTextKey(part())!;
       expect(key).toBe("children");
-      // Found through the container's wrappers (a Card's CardHeader · CardContent).
+      // Found through the container's wrappers (an InlineAlert's Content — ADR-256 Phase 10).
       const found = catalogTextBinding(
         graph.library,
         workspace.root.domInputs,
@@ -236,11 +235,7 @@ describe("ADR-254 Decision 5 — a bound text has one source", () => {
           part().id,
           "all",
         ),
-      ).toBe(
-        { card: "Card", "inline-alert": "InlineAlert", textfield: "TextField" }[
-          type
-        ],
-      );
+      ).toBe({ "inline-alert": "InlineAlert", textfield: "TextField" }[type]);
       const edit = (before: string, after: string) =>
         workspace.execute(
           catalogBoundTextCommand(

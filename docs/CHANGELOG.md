@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 10 — S2 Card · CardView · 그룹] - 2026-10-11
+
+### Added
+
+- **Card 의 Content 에 자유 내용** (S2 Card): 놓은 Card 의 Content 에 Button 등 다른 요소를 넣을 수 있다 (Design 패널 slot 넣기 목록 — 전에는 제목 · 설명이 Card prop 에 묶여 비어 있었다). 넣으면 제목 · 설명 뒤에 온다.
+- **CardView 선택** (S2 CardView = RAC GridList): `selectionMode` 가 있으면 Card 의 `isSelected` 가 처음 선택이 되고 (Canvas · Preview 같음), Preview 에서 카드를 누르면 RAC 가 선택한다. 카드는 RAC 행 (`role=row`) 이고 이름은 제목 글자다.
+- **ButtonGroup · AvatarGroup 에 자유 내용**: Button · Avatar 밖의 요소 (예: Text) 도 넣을 수 있다 — Preview 가 자식을 순서대로 다 그린다. 같은 그룹 안에 같은 그룹은 넣지 않는다.
+
+### Changed
+
+- **Card 의 구조가 S2 와 같다**: `Card > CardPreview + Content (Text[slot=title] + Text[slot=description]) + Footer`. 제목 · 설명은 Content 안 Text 노드의 글자이고 (캔버스 더블클릭 · Text 선택으로 편집), 모양은 S2 Card 의 값이다 — 크기별 제목 12 / 12 / 14 / 16 / 18 (bold) · 설명 11 / 11 / 12 / 14 / 16 · 사이 간격 4 / 4 / 6 / 6 / 8 (XS ~ XL). 제목과 설명 사이가 좁아졌다 (M: 12 → 6).
+- **InlineAlert = Heading + Content** (S2): 설명이 `Content` 안에 있다 — 화면은 같다.
+- **Card 부품 type 이 S2 이름**: CardContent · CardFooter → `Content` · `Footer` (Card · InlineAlert 공용 — 배치는 부모 rule 이 준다).
+
+### Removed
+
+- **Card 의 `title` · `description` prop** (Design 패널 Title · Description 칸): S2 Card 에 없다 — 사용자 결정 2026-10-11 「S2 그대로」.
+- **CardHeader type**: S2 Card 에 없다.
+- **공용 `Card` 컴포넌트의 옛 prop 경로** (`@composition/shared/components` — `title` · `description` · `heading` · `footer` · `asset` · `preview` · `isSelectable` · `isLoading` 등을 스스로 그리던 부분, 사용자 승인 2026-10-11): Card 는 자식 노드만 그린다.
+
+### BREAKING
+
+- **문서 contract 38**: 이전 contract 의 프로젝트는 열리지 않는다 (ADR-256 사용자 결정 — 변환 없음).
+  - 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` (Card · InlineAlert template) · `catalog/generated/componentRulesTable.ts` (Card `staticSelectors` · `sizeSelectors`) · `catalog/runtime/delegatedDom.tsx` (Card 의 S2 `TextContext` · CardView = RAC GridList) · `catalog/runtime/racSlot.ts` (`S2_SLOT_PROVIDERS`).
+  - 검증: G2 `adr256CardS2.test.tsx` 10 · G3 Card · InlineAlert · CardView PASS · live `adr256-p10a-live.mjs` 9/9 · `adr256-p10b-live.mjs` 6/6.
+
 ## [ADR-256 Phase 9 — Calendar 노드 트리 · 표시 기간] - 2026-10-11
 
 ### Added

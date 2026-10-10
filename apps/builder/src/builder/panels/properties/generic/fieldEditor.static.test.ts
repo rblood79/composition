@@ -220,6 +220,10 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
     });
     expect(editorOf("TextField", "maxLength").type).toBe("stepper");
     expect(editorOf("Popover", "offset").type).toBe("stepper");
+    // RAC `weeksInMonth` 는 기본값이 없다 (없음 = locale 의 그 달 주 수) — 슬라이더는 빈 값을
+    //   그리지 못해 min 1 을 값처럼 보였다. 빈 칸이 되는 스텝퍼.
+    expect(editorOf("Calendar", "weeksInMonth").type).toBe("stepper");
+    expect(editorOf("RangeCalendar", "weeksInMonth").type).toBe("stepper");
     expect(editorOf("Slider", "minValue").type).toBe("stepper");
     // value 는 형제 min/max 에 묶인 슬라이더 (Slider · Meter · ProgressBar · ProgressCircle)
     expect(editorOf("Slider", "value")).toMatchObject({

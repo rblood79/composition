@@ -165,10 +165,10 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "DisclosureGroup",
         // ADR-912 R5 childSpec→catalog 컨테이너 cutover (2026-06-15): Card 4 자식 슬롯 sub-part
         //   (R5 가 FAMILY_1 추가했으나 본 oracle 미갱신 stale).
-        "CardHeader",
-        "CardContent",
-        "CardFooter",
         "CardPreview",
+        // ADR-256 Phase 10: S2 Content · Footer (were CardContent · CardFooter; CardHeader removed).
+        "Content",
+        "Footer",
         // ADR-912 R6 (2026-06-15): Card 본체 S2 재설계 catalog cutover.
         "Card",
         // ADR-912 R7 G1-a/b (2026-06-15): container shell 3종 catalog cutover (AvatarGroup/

@@ -875,13 +875,12 @@ describe("ADR-248 4e library origin view", () => {
         filled.height,
       ]);
     }
-    // A Card's regions are its slots (pen.dev's Card master: header, content, actions): the
-    // origin hatches all four, the instance beside it only the footer it leaves empty.
+    // A Card's regions are its slots (S2 Card — ADR-256 Phase 10: preview, content, footer): the
+    // origin hatches all three, the instance beside it only the footer it leaves empty.
     const slotNames = (record: string) =>
       marksUnder(record).map((mark) => inputOf(mark.identity).slot?.name);
     expect(slotNames(recordOf(originSampleId(lib("card"))))).toEqual([
       "Preview",
-      "Header",
       "Content",
       "Footer",
     ]);

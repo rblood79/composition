@@ -91,14 +91,15 @@
 /* Standalone Components (base.css only) */
 /* canonical page root. infrastructure class와 기본 box는 renderer + catalog-generated CSS가 소유한다. */
 @import "./generated/Body.css";
-@import "./generated/Card.css";
-/* ADR-171 Phase 6 2a — Card 슬롯 4종. 파일은 ADR-912 cutover 때부터 있었으나 미import 였고,
+/* ADR-171 Phase 6 2a — Card 슬롯. 파일은 ADR-912 cutover 때부터 있었으나 미import 였고,
    렌더러가 kebab 클래스를 emit 해 selector 도 미매칭이라 이중으로 죽어 있었다. 클래스 회귀를
-   고치면서 함께 잇는다 (Phase 2 의 "dead CSS" 판정은 이 회귀의 결과였다). */
+   고치면서 함께 잇는다 (Phase 2 의 "dead CSS" 판정은 이 회귀의 결과였다).
+   ADR-256 Phase 10 — S2 Content · Footer (Card · InlineAlert 공용). Card.css 앞에 둔다: Card 의
+   `.react-aria-Card .react-aria-Footer` 등 배치 선언이 부품 자신의 같은 우선순위 선언 뒤에 와야 한다. */
 @import "./generated/CardPreview.css";
-@import "./generated/CardHeader.css";
-@import "./generated/CardContent.css";
-@import "./generated/CardFooter.css";
+@import "./generated/Content.css";
+@import "./generated/Footer.css";
+@import "./generated/Card.css";
 /* Section 컨테이너 (catalog primitive, element "section" · class react-aria-Section). 생성 파일은
    ADR-912 cutover 때부터 있었으나 preview/publish 번들에 미import — DOM 은 catalog md padding 16 /
    gap 12 없이 그려지고 Skia 는 catalog 를 주입해 자식 폭이 28px 갈렸다 (2026-09-17 실측 321 vs 293).

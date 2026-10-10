@@ -67,12 +67,14 @@ describe("nestingRules — 층 2 RAC 합성", () => {
   });
 
   it("self-compose 컨테이너는 인식하는 sub-part 만 — 자기 자신도 래퍼도 불가 (2026-09-08 재현)", () => {
+    // ADR-256 Phase 10: S2 ButtonGroup · AvatarGroup take free content — never their own kind.
     expect(
       resolveNestingViolation({
         parentType: "ButtonGroup",
         childType: "ButtonGroup",
+        ancestorTypes: ["ButtonGroup", "body"],
       }),
-    ).toMatchObject({ layer: "rac-composition", allowedChildren: ["Button"] });
+    ).toMatchObject({ layer: "rac-composition", parentType: "ButtonGroup" });
     expect(
       resolveNestingViolation({
         parentType: "Toast",
@@ -86,7 +88,10 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     );
     expect(canNest("ButtonGroup", "Button")).toBe(true);
     expect(canNest("AvatarGroup", "Avatar")).toBe(true);
-    expect(canNest("AvatarGroup", "Button")).toBe(false);
+    expect(canNest("AvatarGroup", "Text")).toBe(true);
+    expect(canNest("AvatarGroup", "AvatarGroup", ["AvatarGroup", "body"])).toBe(
+      false,
+    );
     expect(canNest("Toast", "Toast")).toBe(false);
     // ADR-256 Phase 3: a Checkbox is RAC `CheckboxField` (a `div` — free content, the reference's
     // Description); its pressable `CheckboxButton` is a `<label>` that holds no other control.

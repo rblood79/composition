@@ -188,7 +188,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     reason:
       "rendererMap 이 factory child tree 를 받아 RAC ColorSwatchPickerItem 합성 유지.",
   },
-  // ── Card 패밀리 (2026-06-24) — renderCard/renderCard{Preview,Header,Content,Footer} 가
+  // ── Card 패밀리 (2026-06-24 · ADR-256 Phase 10 개편) — renderCard/renderCard{Preview,Header,Content,Footer} 가
   //   childrenByParent 로 슬롯 자식을 self-compose. DELEGATING 미등록이라 canonical Preview 경로에서
   //   childrenByParent 보강(flattenNodeChildrenByParent)을 못 받아 renderCard 의 hasStructuralChildren
   //   =false → props(title/description) 경로로만 렌더, CardPreview/Image/CardFooter 누락 → Skia(자식
@@ -197,7 +197,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     key: "card",
     kind: "delegating-internal",
     reason:
-      "renderCard 가 childrenByParent 로 CardPreview/CardHeader/CardContent/CardFooter 슬롯을 받아 hasStructuralChildren 분기로 self-compose. 미등록 시 childrenByParent 빈 배열 → props(title/description) 경로로만 렌더, 자식 슬롯(이미지 포함) 누락 → Skia 비대칭.",
+      "shared Card.tsx 가 variant/size/상태 상자를 그리고 자식 노드 (CardPreview · Content · Footer) 를 순서대로 그 안에 그린다. S2 Card 의 TextContext (slot title · description) 를 자식에 준다 (ADR-256 Phase 10).",
   },
   {
     key: "cardpreview",
@@ -205,23 +205,18 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     reason:
       "renderCardPreview 가 childrenByParent 로 자식(Image)을 렌더하는 self-compose. 미등록 시 Image 누락.",
   },
+  // ADR-256 Phase 10: S2 Content · Footer (were CardContent · CardFooter, CardHeader removed).
   {
-    key: "cardheader",
+    key: "s2content",
     kind: "delegating-internal",
     reason:
-      "renderCardHeader 가 childrenByParent 로 자식(Heading)을 렌더. 미등록 시 자식 element 누락.",
+      "S2 Content — div.react-aria-Content 안에 자식 노드를 순서대로 그린다 (Card 의 제목 · 설명 · 자유 내용, InlineAlert 의 본문).",
   },
   {
-    key: "cardcontent",
+    key: "s2footer",
     kind: "delegating-internal",
     reason:
-      "renderCardContent 가 childrenByParent 로 자식(Description)을 렌더. 미등록 시 자식 element 누락.",
-  },
-  {
-    key: "cardfooter",
-    kind: "delegating-internal",
-    reason:
-      "renderCardFooter 가 childrenByParent 로 자식(action button 등)을 렌더. 미등록 시 자식 누락.",
+      "S2 Footer — div.react-aria-Footer 안에 자식 노드 (action button 등) 를 순서대로 그린다.",
   },
   // ── ButtonGroup (2026-06-27) — renderButtonGroup 이 childrenByParent 로 자식 Button×2(factory
   //   자동 생성: Cancel outline / Save accent)를 <div role="group"> 안에 self-compose. binding renderer

@@ -162,6 +162,8 @@ const SUBPART_WRAPPERS: Readonly<Record<string, string>> = {
   Select: "Button",
   // ADR-256 Phase 8c: a Disclosure's trigger Button sits in its header Heading.
   Disclosure: "Heading",
+  // ADR-256 Phase 10: a Card's title · description Text nodes sit in its S2 Content.
+  Card: "Content",
 };
 /**
  * ADR-256 Phase 3 — the RAC button a toggle's indicator sits in (`CheckboxField > CheckboxButton >
@@ -1595,7 +1597,11 @@ export function compileRulePartRules(
     ...manualParts,
   ];
   for (const block of blocks) {
-    for (const part of selectorList(block.selector)) {
+    // (A leading `>` names the owner's own child — what a part rule without `via` reaches: the S2
+    // Card's sections, ADR-256 Phase 10 판독 M1.)
+    for (const part of selectorList(block.selector).map((selector) =>
+      selector.replace(/^>\s*/, ""),
+    )) {
       const whole = Object.values(SUBPART_TOKENS[parentType] ?? {}).some(
         (tokens) => tokens.includes(part),
       );

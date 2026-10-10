@@ -222,6 +222,32 @@ export const APPROVED_DIFFERENCES: readonly ApprovedDifference[] = [
     reason: "④ Select trigger gap 4",
   },
   {
+    // ADR-256 Phase 10 (사용자 결정 2026-10-11 「S2 그대로」 · 「범용 Content · Footer」 — G0 ⑤ 「Card:
+    //   CardHeader 삭제 · 제목 · 설명 간격」): the S2 Card is `CardPreview + Content (Text[slot=title] +
+    //   Text[slot=description]) + Footer` — the title · description sizes and their gap are S2's
+    //   (Card rule `[slot]` selectors). Old: `Preview + Header > Title + Content > Description + Footer`.
+    //   Canvas = DOM (the row's DOM leg).
+    id: "card-s2-structure",
+    class: "decided",
+    owners: ["Card"],
+    nodes: ["CardPreview", "Image", "Content", "Text", "Footer"],
+    axes: ALL,
+    reason:
+      "Card = CardPreview + Content (Text title + Text description) + Footer (S2 — old: Preview + Header > Title + Content > Description + Footer)",
+  },
+  {
+    // ADR-256 Phase 10 (G0 ⑤ 「InlineAlert: Description → Content」): the S2 InlineAlert's body is a
+    //   Content around its Description — the Content pairs with the old Description box (its line
+    //   height already the Description rule's, `inline-alert-parts-rule-line-height`).
+    id: "inline-alert-s2-content",
+    class: "decided",
+    owners: ["InlineAlert"],
+    nodes: ["Content"],
+    axes: ["y", "height"],
+    reason:
+      "InlineAlert = Heading + Content > Description (S2 — old: the Description straight in the alert)",
+  },
+  {
     id: "disclosure-chevron",
     class: "decided",
     owners: ["Disclosure", "DisclosureGroup"],
@@ -677,6 +703,36 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
       "IllustratedMessage = [Illustration, Heading, Description] nodes (S2 — old: a placeholder box and prop text drawn by the message)",
   },
   {
+    // ADR-256 Phase 10: the S2 Card's description Text (new) and the old Header · Content wrappers'
+    //   leftovers (old) — `card-s2-structure`.
+    id: "card-s2-structure-unpaired-new",
+    class: "decided",
+    owners: ["Card"],
+    side: "new",
+    nodes: ["Text"],
+    reason:
+      "Card = CardPreview + Content (Text title + Text description) + Footer (S2 — old: Preview + Header > Title + Content > Description + Footer)",
+  },
+  {
+    id: "card-s2-structure-unpaired-old",
+    class: "decided",
+    owners: ["Card"],
+    side: "old",
+    oldPath: /^(Content\/Description|Footer)$/,
+    reason:
+      "Card = CardPreview + Content (Text title + Text description) + Footer (S2 — old: Preview + Header > Title + Content > Description + Footer)",
+  },
+  {
+    // ADR-256 Phase 10: the InlineAlert's Description sits in its S2 Content — `inline-alert-s2-content`.
+    id: "inline-alert-s2-content-description",
+    class: "decided",
+    owners: ["InlineAlert"],
+    side: "new",
+    nodes: ["Description"],
+    reason:
+      "InlineAlert = Heading + Content > Description (S2 — old: the Description straight in the alert)",
+  },
+  {
     // 2026-10-09 (사용자 「AvatarGroup label 노드 전환 진행해」): the S2 AvatarGroup draws its `label`
     //   as a visible span after the avatars — a Text node (`{label}`; old: the `label` prop, drawn
     //   nowhere).
@@ -705,7 +761,8 @@ export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
     class: "decided",
     owners: ["CardView"],
     side: "new",
-    nodes: ["CardPreview", "CardHeader", "CardContent", "CardFooter"],
+    // (ADR-256 Phase 10: the S2 areas — CardPreview · Content · Footer, the title · description Text.)
+    nodes: ["CardPreview", "Content", "Footer", "Text"],
     reason:
       "CardView's cards keep the Card origin's four areas (f9746eda4 — old: every area turned off)",
   },

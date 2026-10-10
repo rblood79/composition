@@ -58,23 +58,12 @@ export const ICONBUTTON_PROPS_SCHEMA: PropsSchema = {
 };
 
 /**
- * Card 편집 계약 — 신규 InspectorFieldKind 0 (기존 string/variant/size 재사용).
- * `title`/`description` 은 템플릿 바인딩 키, `variant`/`size` · `href`/`target` 은 root props
- * passthrough (S2 standalone Card 의 `href` — 링크 Card, 2026-10-09).
+ * Card 편집 계약 — 신규 InspectorFieldKind 0 (기존 variant/size 재사용). `variant`/`size` ·
+ * `href`/`target` 은 root props passthrough (S2 standalone Card 의 `href` — 링크 Card, 2026-10-09).
+ * ADR-256 Phase 10 (사용자 결정 「S2 그대로」): S2 Card 에 title · description prop 이 없다 — 제목 ·
+ * 설명은 Content 안 Text 노드의 글자 (캔버스 더블클릭 · Text 선택으로 편집).
  */
 export const CARD_PROPS_SCHEMA: PropsSchema = {
-  title: {
-    kind: "string",
-    label: "Title",
-    default: "Card Title",
-    section: "content",
-  },
-  description: {
-    kind: "string",
-    label: "Description",
-    default: "Card description text goes here.",
-    section: "content",
-  },
   variant: {
     kind: "variant",
     label: "Variant",

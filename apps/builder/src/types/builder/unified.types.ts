@@ -1498,8 +1498,7 @@ export function createDefaultCardProps(): CardElementProps {
     variant: "primary",
     size: "M",
     orientation: "vertical",
-    title: "Card Title",
-    description: "Card description text goes here.",
+    // (ADR-256 Phase 10: S2 Card has no title · description props — its Content's Text nodes.)
     // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
@@ -1527,17 +1526,13 @@ export function createDefaultCardPreviewProps(): BaseElementProps {
     },
   };
 }
-export function createDefaultCardHeaderProps(): BaseElementProps {
+// ADR-256 Phase 10: S2 Content · Footer (were CardContent · CardFooter; CardHeader removed).
+export function createDefaultContentProps(): BaseElementProps {
   return {
     // 공통 기본 스타일은 catalog에서 파생한다.
   };
 }
-export function createDefaultCardContentProps(): BaseElementProps {
-  return {
-    // 공통 기본 스타일은 catalog에서 파생한다.
-  };
-}
-export function createDefaultCardFooterProps(): BaseElementProps {
+export function createDefaultFooterProps(): BaseElementProps {
   return {
     style: {
       paddingTop: "8px",
@@ -2284,9 +2279,8 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   SliderOutput: createDefaultSliderOutputProps,
   SliderTrack: createDefaultSliderTrackProps,
   CardPreview: createDefaultCardPreviewProps,
-  CardHeader: createDefaultCardHeaderProps,
-  CardContent: createDefaultCardContentProps,
-  CardFooter: createDefaultCardFooterProps,
+  Content: createDefaultContentProps,
+  Footer: createDefaultFooterProps,
   ColorArea: createDefaultColorAreaProps,
   ColorSlider: createDefaultColorSliderProps,
   DialogFooter: createDefaultDialogFooterProps,

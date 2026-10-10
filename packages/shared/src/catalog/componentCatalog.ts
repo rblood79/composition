@@ -431,19 +431,16 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
   //   복귀(ADR-092 가 spec containerStyles 로 이관했던 것 — Skia/Taffy 직접 read). FormField/
   //   DialogFooter 동형. DisclosureHeader/Content sub-part 선례 동일 — category "structure", palette
   //   비노출(Card 자식, ComponentList 미등록 → 단독 배치 안 함).
-  primitiveEntry("CardHeader", "primitives", FAMILY_1_CUTOVER, {
+  // ADR-256 Phase 10 (2026-10-11): S2 `Content` · `Footer` — shared sections (a Card's body and
+  //   action row, an InlineAlert's body); were CardContent · CardFooter, CardHeader removed.
+  primitiveEntry("Content", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
-    label: "card header",
-    icon: "PanelTop",
-  }),
-  primitiveEntry("CardContent", "primitives", FAMILY_1_CUTOVER, {
-    category: "structure",
-    label: "card content",
+    label: "content",
     icon: "AlignLeft",
   }),
-  primitiveEntry("CardFooter", "primitives", FAMILY_1_CUTOVER, {
+  primitiveEntry("Footer", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
-    label: "card footer",
+    label: "footer",
     icon: "PanelBottom",
   }),
   primitiveEntry("CardPreview", "primitives", FAMILY_1_CUTOVER, {

@@ -149,9 +149,9 @@ describe("ADR-256 G1 — slot insert list = children kind", () => {
     }
     expect(positions).toBeGreaterThanOrEqual(10);
     expect(report).toEqual([]);
-    // The Card's header · content are bound to the card's title · description (F3) — nothing can
-    // open them until the Card takes the S2 structure (ADR-256 Phase 10).
-    expect(empty).toEqual(["card CardHeader", "card CardContent"]);
+    // ADR-256 Phase 10: the Card takes the S2 structure — its Content holds its title · description
+    // Text nodes (no binding to the card's props), so every slot position opens (F3 closed).
+    expect(empty).toEqual([]);
   });
 
   // ADR-256 F4 — the slot on an origin's root (ListBox · Toolbar · Form …) fills from the instance.

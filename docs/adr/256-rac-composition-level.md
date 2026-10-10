@@ -38,6 +38,8 @@ Proposed — 2026-10-07
 
 > **2026-10-11 Phase 9 구현** (`/execute-adr ADR-256 Phase 9 Calendar`, [breakdown §5](design/256-rac-composition-level-breakdown.md)): 9a 문서 값 `calendarDuration` + Display options (`visibleDuration` 수량 · Days/Weeks/Months · `weeksInMonth`, picker 의 `maxVisibleMonths` 삭제 — 로드 시 전환) · 9b Calendar · RangeCalendar 노드 트리 = 레퍼런스 starter (`frame > CalendarMonth` 반복 > header (Button[previous] · CalendarHeading · Button[next]) + CalendarGrid > CalendarCell) · 9c CalendarMonthPicker · CalendarYearPicker · 9d 요일 칸 · DateSegment 반복 template (Decision 13 — 명시 제한 없이 구현). contract 37. G2 (starter 구조 비교) · G3 Calendar 계열 PASS · G4 ratchet A 0 · live 12/12. 판독 1 + 수리 검증 1 (MEDIUM 2 수리, HIGH 0) → 닫힘.
 
+> **2026-10-11 Phase 10 구현** (`/execute-adr ADR-256 Phase 10`, [breakdown §5](design/256-rac-composition-level-breakdown.md)): 사용자 결정 2건 (같은 날) — ① Card 는 「S2 그대로」: `title` · `description` prop 삭제, 글자는 `Content` 안 `Text[slot=title]` · `Text[slot=description]` 노드 (Card 가 S2 `TextContext` slot 을 준다) ② CardContent · CardFooter → 범용 S2 `Content` · `Footer` (Card · InlineAlert 공용 — 배치는 부모 rule), CardHeader 삭제. 10a Card · InlineAlert (`Heading + Content > Description`) S2 구조 · 10b CardView = RAC GridList (Card = GridListItem, 선택은 RAC) · ButtonGroup · AvatarGroup 제한 행 삭제 (자유 내용, 자기 중첩 금지). Decision 9 의 Card `Content` 자유 내용 (F3) 이 열렸다. contract 38. G2 `adr256CardS2.test.tsx` 11 · G3 Card · InlineAlert · CardView PASS · G4 ratchet A 0 · live 9/9 · 6/6. 판독 1 (MEDIUM 1 수리) + 수리 검증 1 (HIGH 0) → 닫힘. 제한 표 남은 행 (ColorSwatchPicker · TableView · Pagination · Toast · ColorPicker) 은 Phase 11.
+
 ## Context
 
 ### 목표

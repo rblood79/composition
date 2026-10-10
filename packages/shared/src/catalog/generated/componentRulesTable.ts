@@ -1735,11 +1735,63 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             },
           },
         },
+        // ADR-256 Phase 10 (2026-10-11): S2 Card gives its sections their arrangement and its title ·
+        //   description their text (`@react-spectrum/s2/src/Card.tsx` `content` · `footer` · `title` ·
+        //   `description` — the Card's `ContentContext` · `FooterContext` · `TextContext`). Content
+        //   stacks its title over its description; Footer is the right-aligned action row. Title =
+        //   `title` font (bold), description = `body` font; per-size sizes below (desktop scale —
+        //   title-xs 12 · title-sm 14 · title 16 · title-lg 18, body-2xs 11 · body-xs 12 · body-sm 14 ·
+        //   body 16).
+        staticSelectors: {
+          // (Its own sections only — `>`: a Content deeper in the Card (an InlineAlert's) keeps its
+          //   own arrangement, as the Canvas part rules reach the Card's children only. 판독 M1.)
+          "> .react-aria-Content": {
+            display: "flex",
+            "flex-direction": "column",
+            "align-items": "stretch",
+          },
+          "> .react-aria-Footer": {
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+            "justify-content": "flex-end",
+            gap: "4px",
+          },
+          '.react-aria-Text[slot="title"]': { "font-weight": "700" },
+          '.react-aria-Text[slot="description"]': { "font-weight": "400" },
+        },
+        sizeSelectors: {
+          XS: {
+            "> .react-aria-Content": { gap: "4px" },
+            '.react-aria-Text[slot="title"]': { "font-size": "12px" },
+            '.react-aria-Text[slot="description"]': { "font-size": "11px" },
+          },
+          S: {
+            "> .react-aria-Content": { gap: "4px" },
+            '.react-aria-Text[slot="title"]': { "font-size": "12px" },
+            '.react-aria-Text[slot="description"]': { "font-size": "11px" },
+          },
+          M: {
+            "> .react-aria-Content": { gap: "6px" },
+            '.react-aria-Text[slot="title"]': { "font-size": "14px" },
+            '.react-aria-Text[slot="description"]': { "font-size": "12px" },
+          },
+          L: {
+            "> .react-aria-Content": { gap: "6px" },
+            '.react-aria-Text[slot="title"]': { "font-size": "16px" },
+            '.react-aria-Text[slot="description"]': { "font-size": "14px" },
+          },
+          XL: {
+            "> .react-aria-Content": { gap: "8px" },
+            '.react-aria-Text[slot="title"]': { "font-size": "18px" },
+            '.react-aria-Text[slot="description"]': { "font-size": "16px" },
+          },
+        },
         delegation: [],
       },
     },
   },
-  CardContent: {
+  Content: {
     defaultSize: "M",
     variants: {},
     sizes: {
@@ -1778,59 +1830,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         // ADR-171 Phase 6 2b: CardPreview 와 같은 사유 — archetype base 의 center 를 덮는다.
         alignItems: "stretch",
         width: "100%",
-        // origin 인라인에서 이관
-        gap: "8px",
+        // (ADR-256 Phase 10: its gap is its owner's — the Card rule's `sizeSelectors`.)
       },
     },
   },
-  CardFooter: {
-    defaultSize: "M",
-    variants: {},
-    sizes: {
-      XS: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      S: {
-        fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      M: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      L: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-      XL: {
-        fontSize: "{typography.text-lg}",
-        borderRadius: "{radius.none}",
-        height: 0,
-      },
-    },
-    structure: {
-      archetype: "simple",
-      element: "div",
-      containerStyles: {
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        width: "100%",
-        // ADR-171 Phase 6 2b: origin 인라인에서 이관
-        gap: "4px",
-        // paddingTop: "8px" 는 **이관 불가** — allowlist 에 4-way padding 키가 없고(shorthand
-        //   `padding` 만 지원), 있더라도 뒤따르는 sizes 블록의 `padding: 0px 0px` 가 덮는다.
-        //   CardPreview `height` 와 같은 사유로 인라인 존치.
-      },
-    },
-  },
-  CardHeader: {
+  Footer: {
     defaultSize: "M",
     variants: {},
     sizes: {
@@ -1868,8 +1872,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         flexDirection: "row",
         alignItems: "center",
         width: "100%",
-        // ADR-171 Phase 6 2b: origin 인라인에서 이관 (gap 4px — 제목과 action 사이)
-        gap: "4px",
+        // (ADR-256 Phase 10: its alignment and gap are its owner's — the Card rule's
+        //   `staticSelectors`. A Card's footer `paddingTop: 8px` stays the template's inline value:
+        //   the sizes block below writes `padding: 0px 0px` at the owner selector's specificity.)
       },
     },
   },

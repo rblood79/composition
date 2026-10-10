@@ -16,6 +16,8 @@ export const COLLECTION_ITEM_OWNERS: Readonly<
   TreeItem: { owner: "Tree", through: ["TreeItem"] },
   // ADR-256 Phase 5i-2: a RAC Table's row (its selection checkbox shows the row's selection).
   Row: { owner: "Table", through: ["TableBody"] },
+  // ADR-256 Phase 10: an S2 CardView's Card (its RAC GridListItem).
+  Card: { owner: "CardView", through: [] },
 };
 
 /** Whether `itemType`, under the ancestor types (nearest first), sits inside its collection. */

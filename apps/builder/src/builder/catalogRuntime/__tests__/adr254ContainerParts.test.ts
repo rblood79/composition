@@ -49,15 +49,8 @@ const CASES: Record<string, Record<string, Record<string, string>>> = {
   dialog: { default: {} },
   popover: { default: {} },
   tooltip: { default: {} },
-  card: {
-    default: {},
-    "size sm": { size: "S" },
-    "size lg": { size: "L" },
-    "variant secondary": { variant: "secondary" },
-    "variant tertiary": { variant: "tertiary" },
-    "variant quiet": { variant: "quiet" },
-    "title, description": { title: "Ttl", description: "Desc" },
-  },
+  // (Not the Card — ADR-256 Phase 10, 사용자 결정 「S2 그대로」: its title · description are Text nodes
+  // in its S2 Content, no longer Heading · Description instances — `adr256CardS2.test.tsx`.)
   "inline-alert": {
     default: {},
     "size sm": { size: "S" },
@@ -72,7 +65,6 @@ const CASES: Record<string, Record<string, Record<string, string>>> = {
 /** The containers whose title / description renders DOM, and the record their markup is. */
 const DOM_ROOT: Record<string, (root: CatalogConsumerNode) => boolean> = {
   dialog: (record) => record.bindingId === "dialog",
-  card: () => true,
   "inline-alert": () => true,
 };
 /** A title or a description record. */
@@ -258,6 +250,8 @@ function expectSinceConversion(
   const pathNow = (path: string) => {
     // ADR-256 Phase 8b: the Dialog origin's Dialog is in its Modal (`/1` → `/1/0`).
     if (type === "dialog") return `/1/0${path.slice(2)}`;
+    // ADR-256 Phase 10: the InlineAlert's description is in its S2 Content (`/1` → `/1/0`).
+    if (type === "inline-alert") return path === "/1" ? "/1/0" : path;
     if (!moved) return path;
     const [first, ...rest] = path.slice(1).split("/");
     return `/1/${Number(first) + 1}${rest.map((step) => `/${step}`).join("")}`;
@@ -313,14 +307,15 @@ function expectSinceConversion(
             "<h2 class=react-aria-Heading id slot=title>Dialog Title</>",
           )
       : type === "inline-alert"
-        ? // ADR-256 Decision 4 ④: S2 InlineAlert gives its title a plain Heading context, which
-          // takes the template's slot name as is (the template's `label` goes in Phase 10).
+        ? // ADR-256 Phase 10: S2 `InlineAlert > Heading + Content` — the description sits in a
+          // Content (`div.react-aria-Content`); the template's slot names without a provider
+          // (`label` · `description`) are gone (the Description's own default slot stays).
           // Its root carries S2's alert role (`staticAttrs`, 2026-10-09 — the oracle's build
           // dropped the binding's `role="alert"` · `aria-live`).
           structureOf(before.dom)
             .replace(
-              "<h3 class=react-aria-Heading>",
-              "<h3 class=react-aria-Heading slot=label>",
+              /(<span class=react-aria-Text slot=description>.*?<\/>)/,
+              "<div class=react-aria-Content data-size=M data-variant=default>$1</>",
             )
             .replace(
               /^<div (class=react-aria-InlineAlert [^>]*) id>/,

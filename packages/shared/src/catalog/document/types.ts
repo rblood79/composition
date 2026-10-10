@@ -92,9 +92,13 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * of `maxVisibleMonths`. The grid's weekday cell (`__weekday` — CalendarHeaderCell) and a date input's
  * segment (`component-dateinput__segment` — DateSegment) are repeat templates too (Decision 13); the
  * month · year pickers (CalendarMonthPicker · CalendarYearPicker) are origins of their own.
+ * 38 — ADR-256 Phase 10: the S2 Card — `Card > CardPreview + Content (Text[slot=title] +
+ * Text[slot=description]) + Footer` (CardHeader gone; CardContent · CardFooter are the shared S2
+ * types `Content` · `Footer`); the Card origin takes no `title` · `description` (its Text nodes hold
+ * them). An InlineAlert's description sits in a `Content` (`component-inline-alert__content`).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 37 as const;
+export const LIBRARY_CONTRACT_VERSION = 38 as const;
 
 export type EntryKind =
   | "project"

@@ -140,9 +140,9 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // (calendar — ADR-256 Phase 9: 레퍼런스 starter 의 `div.month > header (Button + CalendarHeading +
   // Button) + CalendarGrid > CalendarCell` 노드 트리로 그린다 — 한 달 블록 반복, 행 삭제.)
   // S2 · 범위 밖 — Phase 10 (RSP 계약: ButtonGroup `children: ReactElement<ButtonProps>[]` …)
-  ButtonGroup: { children: ["Button"] },
-  AvatarGroup: { children: ["Avatar"] },
-  CardView: { children: ["Card"] },
+  // (CardView — ADR-256 Phase 10: RAC GridList of its Cards, a collection — `componentTraits`, 행 삭제.
+  // ButtonGroup · AvatarGroup — Phase 10: Preview 가 자식을 순서대로 다 그린다 (G0 ② 자유 내용 — S2
+  // 는 Button · Avatar 를 크기 · 비활성 context 로 묶는다: `CATALOG_SIZE_PROPAGATION`), 행 삭제.)
   Pagination: { children: ["Button"] },
   Toast: { children: ["Heading", "Description"] },
   ColorPicker: {
@@ -240,6 +240,10 @@ export const NO_SELF_NESTING_TYPES: ReadonlySet<string> = new Set([
   "Radio",
   "Switch",
   "Tag",
+  // ADR-256 Phase 10: an S2 ButtonGroup · AvatarGroup holds free content now (the limit rows are
+  // gone), but a group inside its own kind would split whose size · disabled context its members take.
+  "ButtonGroup",
+  "AvatarGroup",
 ]);
 
 /** HTML interactive content 또는 labelable control 로 렌더되는 타입. */

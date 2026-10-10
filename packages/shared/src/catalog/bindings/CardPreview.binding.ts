@@ -7,7 +7,7 @@ import type { PrimitiveBinding } from "../types";
  *
  * **ADR-912 childSpec→catalog cutover (2026-06-15)**: 시각 source =
  *   rule(`COMPONENT_RULES_TABLE.CardPreview`) + generic box(shell).
- *   CardHeader/CardContent/CardFooter 동형 일괄.
+ *   (ADR-256 Phase 10: 형제 영역은 S2 Content · Footer — CardHeader 삭제.)
  *
  * **시각 = shell + rule layout**: layout(`display:flex` / `flexDirection:column` …)은 rule
  *   `structure.containerStyles` 가 정본이다. Canvas 는 shell 만 그리고

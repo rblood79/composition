@@ -31,9 +31,6 @@ export type ComponentTag =
   | "CalendarGrid"
   | "CalendarHeader"
   | "Card"
-  | "CardContent"
-  | "CardFooter"
-  | "CardHeader"
   // ADR-148 Phase 4 정정: 실존 컴포넌트(catalog rule + renderer + Card origin 자식)인데
   //   유니온에서 누락 — cardTemplateOrigins(Phase 3) 가 canonical 자식 type 으로 사용.
   | "CardPreview"
@@ -52,6 +49,8 @@ export type ComponentTag =
   | "ColorSwatchPicker"
   | "ColorWheel"
   | "ComboBox"
+  // ADR-256 Phase 10: S2 `Content` · `Footer` (a Card's sections, an InlineAlert's body).
+  | "Content"
   | "DateField"
   | "DateInput"
   | "DatePicker"
@@ -65,6 +64,7 @@ export type ComponentTag =
   | "Field"
   | "FieldError"
   | "FileTrigger"
+  | "Footer"
   | "Form"
   | "GridList"
   | "GridListItem"

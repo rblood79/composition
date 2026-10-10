@@ -39,7 +39,7 @@ export const SLOT_ROLES = [
   "content",
   "footer",
   "preview",
-  // P3 액션 영역 (DialogFooter/CardFooter 자식)
+  // P3 액션 영역 (DialogFooter/Footer 자식)
   "action",
   // P4 value-compound (Meter/ProgressBar)
   "value",

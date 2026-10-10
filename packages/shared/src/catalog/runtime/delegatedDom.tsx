@@ -12,7 +12,7 @@ import {
 } from "react";
 import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatchPickerItem as AriaColorSwatchPickerItem } from "react-aria-components/ColorSwatchPicker";
-import { I18nProvider } from "react-aria-components";
+import { DEFAULT_SLOT, I18nProvider, TextContext } from "react-aria-components";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ToggleGroupStateContext } from "react-aria-components/ToggleButtonGroup";
 import {
@@ -49,6 +49,10 @@ import {
   ListBox as AriaListBox,
   ListBoxItem as AriaListBoxItem,
 } from "react-aria-components/ListBox";
+import {
+  GridList as AriaGridList,
+  GridListItem as AriaGridListItem,
+} from "react-aria-components/GridList";
 import { CatalogCalendarPickerContext } from "./calendarPickerContext";
 import {
   catalogBindValueText,
@@ -153,11 +157,6 @@ export interface DelegatedDomInput {
   /** Authored inline style (library visuals come from the class CSS). */
   readonly style: CSSProperties;
   readonly renderChild: (id: string) => ReactElement;
-  /**
-   * A child record's resolved inline style (what its own binding inlines — `catalogDomStyle`): for
-   * a child the renderer composes itself in place of the child's element (a Card's Description).
-   */
-  readonly childStyle?: (id: string) => CSSProperties;
   /**
    * A running Preview's runtime props (ADR-250): the component's own state (expansion) goes here
    * and comes back as the node's props; absent = a static render of the declared state.
@@ -304,6 +303,32 @@ function chrome(input: DelegatedDomInput, type: string) {
       input.node.props.variant ?? rule?.defaultVariant ?? "default",
     ),
   };
+}
+/**
+ * S2 Card's `TextContext` (`@react-spectrum/s2/src/Card.tsx`): the default slot and the `title` ·
+ * `description` slots its Content's Text nodes take (ADR-256 Phase 10 — `racSlot.ts`
+ * `S2_SLOT_PROVIDERS.Card` predicts the same table).
+ */
+const CARD_TEXT_SLOTS = {
+  slots: { [DEFAULT_SLOT]: {}, title: {}, description: {} },
+};
+/** A Card's title text — its `Text[slot=title]` node's, at any depth (the S2 Card's name in a CardView). */
+function cardTitleText(input: DelegatedDomInput): string {
+  const stack = [...children(input)];
+  while (stack.length) {
+    const node = stack.shift()!;
+    if (
+      catalogTypeName(input.root, node) === "Text" &&
+      node.props.slot === "title"
+    )
+      return String(node.props.children ?? "");
+    stack.unshift(
+      ...node.children
+        .map((id) => input.root.domInputs.get(id))
+        .filter((child): child is CatalogConsumerNode => !!child),
+    );
+  }
+  return "";
 }
 const marker = (input: DelegatedDomInput) => ({
   key: input.node.id,
@@ -2362,98 +2387,114 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         ...renderAll(input),
       ),
   },
+  // S2 Card (ADR-256 Phase 10): the shared Card box around its child nodes in order — CardPreview ·
+  // Content · Footer. Like S2's Card it gives its descendants the `TextContext` slots `title` ·
+  // `description` (`@react-spectrum/s2/src/Card.tsx` — the Content's two Text nodes; the Card rule's
+  // `[slot]` selectors style them). In a CardView it is the RAC `GridListItem` of the view's RAC
+  // GridList (S2 `InternalCardViewContext` — its row; RAC's gridcell is `display: contents`), named
+  // by its title text.
   card: {
     render: (input) => {
       const props = input.node.props;
-      const structural = children(input).some((child) =>
-        ["CardHeader", "CardContent", "CardPreview", "CardFooter"].includes(
-          catalogTypeName(input.root, child),
-        ),
+      const content = createElement(
+        TextContext.Provider,
+        { value: CARD_TEXT_SLOTS },
+        ...renderAll(input),
       );
+      const parent = input.root.domInputs.get(input.node.parentId);
+      if (parent && catalogTypeName(input.root, parent) === "CardView")
+        return createElement(
+          AriaGridListItem as ElementType,
+          {
+            ...marker(input),
+            id: resolveStaticItemKey(
+              props as Record<string, unknown>,
+              input.node.id,
+            ),
+            textValue: cardTitleText(input) || undefined,
+            className: "react-aria-Card",
+            style: input.style,
+            "data-accent": opt(props.accentColor),
+            "data-variant": str(props.variant || "primary"),
+            "data-size": str(props.size || "M"),
+            href: opt(props.href),
+            target: opt(props.target),
+          },
+          content,
+        );
       return createElement(
         Card as ElementType,
         {
           ...marker(input),
           style: input.style,
           "data-accent": opt(props.accentColor),
-          cardType: props.cardType || undefined,
           variant: props.variant || undefined,
           size: props.size || "M",
-          isQuiet: bool(props.isQuiet),
           isSelected: bool(props.isSelected),
           isDisabled: bool(props.isDisabled),
-          isFocused: bool(props.isFocused),
           // S2: a standalone Card with an `href` is a RAC Link (`Card.tsx`).
           href: opt(props.href),
           target: opt(props.target),
-          ...(structural ? { structuralChildren: true } : {}),
         },
-        ...(structural || typeof props.children !== "string"
-          ? []
-          : [props.children]),
-        ...renderAll(input),
+        content,
       );
     },
   },
   cardpreview: {
     render: container("div", (input) => chrome(input, "CardPreview")),
   },
-  cardheader: {
-    render: container("div", (input) => chrome(input, "CardHeader")),
+  // ADR-256 Phase 10: S2 Content · Footer — plain sections; their owner arranges them. (Keyed by the
+  // type's binding id; their renderer ids are `s2content` · `s2footer` — a DialogFooter's generic
+  // `footer` element renderer has that id.)
+  content: {
+    render: container("div", (input) => chrome(input, "Content")),
   },
-  cardfooter: {
-    render: container("div", (input) => chrome(input, "CardFooter")),
+  footer: {
+    render: container("div", (input) => chrome(input, "Footer")),
   },
-  cardcontent: {
-    // A Description child is a plain `div.react-aria-Description` (no RAC slot context in a card),
-    // drawn with the Description node's own style — an instance of the Description origin
-    // (ADR-254), so the origin's edits and the card's patch reach it as on the Canvas.
-    render: (input) =>
-      createElement(
-        "div",
-        {
-          ...marker(input),
-          ...chrome(input, "CardContent"),
-          style: input.style,
-        },
-        ...children(input).map((child) =>
-          catalogTypeName(input.root, child) === "Description"
-            ? createElement(
-                "div",
-                {
-                  key: child.id,
-                  "data-catalog-id": child.id,
-                  className: "react-aria-Description card-description",
-                  "data-size": opt(child.props.size),
-                  "data-variant": opt(child.props.variant),
-                  style: input.childStyle?.(child.id),
-                },
-                typeof child.props.children === "string"
-                  ? child.props.children
-                  : typeof child.props.text === "string"
-                    ? child.props.text
-                    : null,
-              )
-            : input.renderChild(child.id),
-        ),
-      ),
-  },
+  // S2 CardView (ADR-256 Phase 10): a RAC GridList of its Cards (`@react-spectrum/s2/src/CardView.tsx`
+  // — its cards are GridListItems). Its selection is RAC's: the Cards' `isSelected` start it while it
+  // selects (`selectionMode` — as a TagGroup's Tags), their `isDisabled` disable the item.
   cardview: {
-    render: (input) =>
-      createElement(
-        "div",
+    ownsChild: (child, _parent, root) => catalogTypeName(root, child) !== "Card",
+    render: (input) => {
+      const props = input.node.props;
+      const cards = children(input).filter(
+        (child) => catalogTypeName(input.root, child) === "Card",
+      );
+      const key = (card: CatalogConsumerNode) =>
+        resolveStaticItemKey(card.props as Record<string, unknown>, card.id);
+      const selectionMode = str(props.selectionMode || "none");
+      const selected =
+        selectionMode === "none"
+          ? []
+          : cards.filter((card) => card.props.isSelected === true).map(key);
+      return createElement(
+        AriaGridList as ElementType,
         {
           ...marker(input),
-          role: "grid",
-          "aria-label": "Card collection",
+          // (A changed authored selection remounts RAC's uncontrolled state — as a TagGroup's.)
+          key: `${input.node.id}:${selectionMode}:${selected.join(",")}`,
+          className: "react-aria-CardView",
+          "aria-label": str(props["aria-label"] || "Card view"),
+          layout: "grid",
+          "data-size": str(props.size || "M"),
+          "data-variant": str(props.variant || "primary"),
+          "data-density": str(props.density || "regular"),
+          selectionMode,
+          defaultSelectedKeys: selected,
+          disabledKeys: cards
+            .filter((card) => card.props.isDisabled === true)
+            .map(key),
           style: {
             display: "flex",
             flexWrap: "wrap",
             ...input.style,
           },
         },
-        ...renderAll(input),
-      ),
+        ...renderAll(input, cards),
+      );
+    },
   },
   pagination: {
     render: container("nav", (input) => ({

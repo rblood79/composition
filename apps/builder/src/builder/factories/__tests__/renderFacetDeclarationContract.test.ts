@@ -76,7 +76,9 @@ import {
 // (ADR-256 Phase 8e: − disclosurecontent.)
 // internal 33 → 32 (2026-10-10): ADR-257 Phase 5 tableview 제거 — TableView 는 S2 처럼 RAC Table
 //   (`domRegistry` `CatalogTableView`) 이고 부품은 Table 과 같은 ruleDom 경로로 그린다.
-const INVENTORY = { delegatingInternal: 32, delegatingRac: 16 } as const;
+// internal 32 → 31 (2026-10-11): ADR-256 Phase 10 — cardheader · cardcontent · cardfooter 제거,
+//   S2 Content · Footer (s2content · s2footer) 추가.
+const INVENTORY = { delegatingInternal: 31, delegatingRac: 16 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == domRegistry DELEGATING_INTERNAL (멤버 + 순서)", () => {

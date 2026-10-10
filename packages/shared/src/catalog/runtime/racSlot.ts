@@ -101,6 +101,18 @@ const CONSUMER_OF_TYPE: Readonly<Record<string, RacSlotContextKey>> = {
 /** Catalog types whose children render where a RAC part (named in the table) provides. */
 const PROVIDER_ALIAS: Readonly<Record<string, string>> = {};
 
+/**
+ * S2-only parts that provide a consumer context (`@react-spectrum/s2` 1.8.0 source — not installed,
+ * so not in the generated RAC table): a Card gives its descendants S2's `TextContext` with the
+ * default slot and `title` · `description` (`Card.tsx`; ADR-256 Phase 10 — the DOM's
+ * `delegatedDom.tsx` `CARD_TEXT_SLOTS`).
+ */
+const S2_SLOT_PROVIDERS: Readonly<
+  Record<string, Readonly<Partial<Record<RacSlotContextKey, RacSlotProvision>>>>
+> = {
+  Card: { Text: { slots: ["title", "description"], hasDefault: true } },
+};
+
 export function catalogRacSlotConsumer(
   type: string,
 ): RacSlotContextKey | undefined {
@@ -125,7 +137,8 @@ export function catalogRacSlotProvider(
   if (!key) return undefined;
   for (const ancestor of ancestorTypes) {
     const provider = PROVIDER_ALIAS[ancestor] ?? ancestor;
-    const provision = RAC_SLOT_PROVIDERS[provider]?.[key];
+    const provision =
+      RAC_SLOT_PROVIDERS[provider]?.[key] ?? S2_SLOT_PROVIDERS[provider]?.[key];
     if (!provision) continue;
     return provision.cleared ? undefined : { provider, provision };
   }

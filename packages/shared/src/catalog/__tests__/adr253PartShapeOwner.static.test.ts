@@ -246,12 +246,13 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
     const PART_SELECTOR =
       /react-aria-Heading|alert-heading|react-aria-Description|card-description|slot="description"/;
     const found: string[] = [];
+    // (Not the Card — ADR-256 Phase 10, 사용자 결정 「S2 그대로」: its title · description are Text
+    // nodes in its S2 Content, styled by the Card's `TextContext` as S2's — the Card rule's `[slot]`
+    // selectors, not Heading · Description instances.)
     for (const type of [
       "Dialog",
       "Popover",
-      "Card",
-      "CardHeader",
-      "CardContent",
+      "Content",
       "InlineAlert",
       "Tooltip",
     ]) {

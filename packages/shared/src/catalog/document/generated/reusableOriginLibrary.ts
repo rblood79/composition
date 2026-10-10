@@ -322,14 +322,10 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "name": "Card",
     "mode": "composite",
     "accepts": {
-      "title": "string",
-      "description": "string",
       "variant": "string",
       "size": "string"
     },
     "defaults": {
-      "title": "Card Title",
-      "description": "Card description text goes here.",
       "variant": "primary",
       "size": "M"
     },
@@ -2479,7 +2475,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-InlineAlert",
     "children": [
       "lib:template:component-inline-alert__title",
-      "lib:template:component-inline-alert__description"
+      "lib:template:component-inline-alert__content"
     ],
     "props": {
       "variant": "informative",
@@ -2492,9 +2488,17 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-heading",
     "children": [],
     "props": {
-      "slot": "label",
       "children": "{title}"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-inline-alert__content",
+    "definitionId": "lib:definition:type-Content",
+    "children": [
+      "lib:template:component-inline-alert__description"
+    ],
+    "props": {},
     "visual": {}
   },
   {
@@ -2502,7 +2506,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:origin-component-description",
     "children": [],
     "props": {
-      "slot": "description",
       "children": "{description}"
     },
     "visual": {}
@@ -2554,7 +2557,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-Card",
     "children": [
       "lib:template:component-card__preview",
-      "lib:template:component-card__header",
       "lib:template:component-card__content",
       "lib:template:component-card__footer"
     ],
@@ -2590,66 +2592,44 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     }
   },
   {
-    "id": "lib:template:component-card__header",
-    "definitionId": "lib:definition:type-CardHeader",
-    "slot": {
-      "name": "Header",
-      "required": false
-    },
-    "children": [
-      "lib:template:component-card__title"
-    ],
-    "props": {},
-    "visual": {}
-  },
-  {
-    "id": "lib:template:component-card__title",
-    "definitionId": "lib:definition:origin-component-heading",
-    "children": [],
-    "props": {
-      "children": "{title}",
-      "size": "M"
-    },
-    "visual": {},
-    "layout": {
-      "marginTop": "0",
-      "marginRight": "0",
-      "marginBottom": "0",
-      "marginLeft": "0",
-      "flexGrow": "1",
-      "flexShrink": "1",
-      "flexBasis": "0%"
-    }
-  },
-  {
     "id": "lib:template:component-card__content",
-    "definitionId": "lib:definition:type-CardContent",
+    "definitionId": "lib:definition:type-Content",
     "slot": {
       "name": "Content",
       "required": false
     },
     "children": [
+      "lib:template:component-card__title",
       "lib:template:component-card__description"
     ],
     "props": {},
     "visual": {}
   },
   {
-    "id": "lib:template:component-card__description",
-    "definitionId": "lib:definition:origin-component-description",
+    "id": "lib:template:component-card__title",
+    "definitionId": "lib:definition:text",
     "children": [],
     "props": {
-      "children": "{description}",
-      "size": "L"
+      "slot": "title",
+      "children": "Card Title"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-card__description",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "slot": "description",
+      "children": "Card description text goes here."
     },
     "visual": {
-      "width": "100%",
       "color": "#49454f"
     }
   },
   {
     "id": "lib:template:component-card__footer",
-    "definitionId": "lib:definition:type-CardFooter",
+    "definitionId": "lib:definition:type-Footer",
     "slot": {
       "name": "Footer",
       "required": false

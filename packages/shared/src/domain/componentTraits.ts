@@ -111,17 +111,14 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Autocomplete: { families: ["freeContentHost"] },
   Section: { container: "structural", families: ["freeContentHost"] },
   Card: { container: "structural" },
-  CardHeader: {
+  // ADR-256 Phase 10: S2 `Content` · `Footer` — free content in their owner (S2 gives them their
+  //   owner's context: a Card's body · action row, an InlineAlert's body).
+  Content: {
     container: "structural",
     families: ["freeContentHost"],
-    owners: ["Card"],
+    owners: ["Card", "InlineAlert"],
   },
-  CardContent: {
-    container: "structural",
-    families: ["freeContentHost"],
-    owners: ["Card"],
-  },
-  CardFooter: {
+  Footer: {
     container: "structural",
     families: ["freeContentHost"],
     owners: ["Card"],
@@ -317,6 +314,9 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     children: ["Cell"],
   },
   Tree: { container: "collection", children: ["TreeItem"] },
+  // ADR-256 Phase 10: S2 CardView is a RAC GridList whose items are its Cards
+  //   (`@react-spectrum/s2/src/CardView.tsx`).
+  CardView: { container: "collection", children: ["Card"] },
   TreeItem: {
     container: "collection",
     children: ["TreeItem", "TreeItemContent"],

@@ -1,9 +1,15 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * Card — 카드 컨테이너 (CardPreview / CardHeader / CardContent / CardFooter 슬롯 묶음).
- * composition 자체 추상 + S2 참조(`react-spectrum.adobe.com/Card`) — RAC/starter 에 `Card`
- * 컴포넌트 없음(S2 전용). origin template 이 자식 4 슬롯 노드를 둔다 (reusableOriginLibrary.ts).
+ * Card — 카드 컨테이너. S2 `Card` 구조 (`react-spectrum.adobe.com/Card`) — `Card > CardPreview +
+ * Content (Text[slot=title] + Text[slot=description] + 자유 내용) + Footer`. RAC/starter 에 `Card`
+ * 컴포넌트 없음(S2 전용). origin template 이 세 영역 노드를 둔다 (reusableOriginLibrary.ts).
+ *
+ * **ADR-256 Phase 10 (2026-10-11, 사용자 결정 「S2 그대로」)**: CardHeader 삭제 · title /
+ *   description prop 삭제 — S2 Card 처럼 제목 · 설명은 Content 안 Text 노드의 글자다 (Card 가 S2 의
+ *   `TextContext` slot `title` · `description` 을 준다 — delegatedDom `card`). 글자 모양 (size 별
+ *   글꼴 · 간격) 은 Card rule 의 `staticSelectors` · `sizeSelectors` (S2 `Card.tsx` title ·
+ *   description · content 값).
  *
  * **ADR-912 R6 (Card 본체 S2 재설계 catalog cutover, 2026-06-15)**:
  *   옛 spec 시각(bg roundRect + isSelected 2px accent border)은 비표준 자체 변형이었다 —
@@ -21,15 +27,11 @@ import type { PrimitiveBinding } from "../types";
  *   base transparent → hover 시만 배경. container layout(`display:flex` / `flexDirection:column` …)은
  *   rule `structure.containerStyles` 가 정본이다.
  *
- * **부모→자식 전달**: title · description 은 origin template 의 `{title}` · `{description}` 바인딩으로
- *   Heading · Description 자식에 닿는다(ADR-254).
- *
  * **DOM = `CATALOG_DELEGATED_DOM.card` (delegatedDom.tsx)**: shared `Card.tsx` 에 variant/size/상태를
- *   넘기고 자식 노드를 그 안에 그린다(CardHeader/CardContent/CardPreview/CardFooter 자식이 있으면
- *   `structuralChildren`).
+ *   넘기고 자식 노드를 순서대로 그 안에 그린다.
  *
  * D1: composition `<div>` (internal source, shared `Card.tsx`).
- * D2: content(title/description) + variant/size/accentColor + interaction(href/target) + 상태 편집 surface.
+ * D2: variant/size/accentColor + interaction(href/target) + 상태 편집 surface (S2 Card 에 title prop 없음).
  * D3: 시각(variant 별 배경/테두리 + radius)은 theme rule(COMPONENT_RULES_TABLE.Card). Skia generic
  *     box shell ↔ DOM `react-aria-Card[data-variant]` 시각 대칭.
  */
@@ -41,14 +43,6 @@ export const cardBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      // content — origin template 바인딩 `{title}` · `{description}` 으로 Heading · Description
-      //   자식에 닿는다.
-      title: { kind: "string", label: "Title", section: "content" },
-      description: {
-        kind: "string",
-        label: "Description",
-        section: "content",
-      },
       // appearance — S2 variant 모델(구 cardType/isQuiet 흡수).
       variant: {
         kind: "variant",

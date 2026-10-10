@@ -55,11 +55,10 @@ import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
 import { fileUploadBinding } from "./FileUpload.binding";
 import { cardBinding } from "./Card.binding";
-import { cardContentBinding } from "./CardContent.binding";
-import { cardFooterBinding } from "./CardFooter.binding";
-import { cardHeaderBinding } from "./CardHeader.binding";
 import { cardPreviewBinding } from "./CardPreview.binding";
 import { cardViewBinding } from "./CardView.binding";
+import { contentBinding } from "./Content.binding";
+import { footerBinding } from "./Footer.binding";
 import { formBinding } from "./Form.binding";
 import { gridListBinding } from "./GridList.binding";
 import { gridListItemBinding } from "./GridListItem.binding";
@@ -196,11 +195,10 @@ export * from "./DropZone.binding";
 export * from "./FieldError.binding";
 export * from "./FileTrigger.binding";
 export * from "./Card.binding";
-export * from "./CardContent.binding";
-export * from "./CardFooter.binding";
-export * from "./CardHeader.binding";
 export * from "./CardPreview.binding";
 export * from "./CardView.binding";
+export * from "./Content.binding";
+export * from "./Footer.binding";
 export * from "./Form.binding";
 export * from "./GridList.binding";
 export * from "./GridListItem.binding";
@@ -405,10 +403,11 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 childSpec→catalog cutover (2026-06-15): Card 4 자식 슬롯 컨테이너 sub-part 일괄
   //   (FormField/DialogFooter 동형 — Card.spec.childSpecs 제거). internal/div shell, layout 은 origin
   //   template 의 layout · visual.
-  CardHeader: cardHeaderBinding,
-  CardContent: cardContentBinding,
-  CardFooter: cardFooterBinding,
   CardPreview: cardPreviewBinding,
+  // ADR-256 Phase 10 (2026-10-11): S2 `Content` · `Footer` — the Card's sections (were CardContent ·
+  //   CardFooter; CardHeader removed) and the InlineAlert's body. Shared types; the owner arranges them.
+  Content: contentBinding,
+  Footer: footerBinding,
   // ADR-912 R7 G1-b (2026-06-15): Card 그리드/워터폴 컬렉션 컨테이너 (AvatarGroup 동형 — 빈 셸,
   //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 origin template 의 layout · visual.
   CardView: cardViewBinding,

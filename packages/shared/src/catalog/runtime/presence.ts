@@ -330,7 +330,9 @@ function catalogCollectionItemSelected(
     node.props as Record<string, unknown>,
     node.id,
   );
-  if (typeOf(owner) === "TagGroup")
+  // (A CardView's Card — ADR-256 Phase 10: its `isSelected` starts RAC's selection while the view
+  // selects, as a TagGroup's Tag.)
+  if (typeOf(owner) === "TagGroup" || typeOf(owner) === "CardView")
     return (
       node.props.isSelected === true &&
       String(owner.props.selectionMode ?? "none") !== "none"

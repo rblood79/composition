@@ -1,24 +1,22 @@
 /* ============================================================
- * AUTO-GENERATED from catalog CardFooter — DO NOT EDIT MANUALLY
+ * AUTO-GENERATED from catalog Footer — DO NOT EDIT MANUALLY
  * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
  * Archetype: simple
  * ============================================================ */
 
 @layer components {
 
-.react-aria-CardFooter {
+.react-aria-Footer {
   /* Base styles — archetype: simple */
     display: inline-flex;
     align-items: center;
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  gap: 4px;
   width: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
 
   /* Default size */
   height: auto;
@@ -27,54 +25,54 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="XS"] {
+.react-aria-Footer[data-size="XS"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="S"] {
+.react-aria-Footer[data-size="S"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="M"] {
+.react-aria-Footer[data-size="M"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="L"] {
+.react-aria-Footer[data-size="L"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-size="XL"] {
+.react-aria-Footer[data-size="XL"] {
   height: auto;
   padding: 0px 0px;
   font-size: var(--text-lg);
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardFooter[data-focus-visible] {
+.react-aria-Footer[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
 
-.react-aria-CardFooter[data-disabled] {
+.react-aria-Footer[data-disabled] {
   opacity: 0.38;
   cursor: not-allowed;
   pointer-events: none;
 }
 
 @media (forced-colors: active) {
-  .react-aria-CardFooter {
+  .react-aria-Footer {
     forced-color-adjust: auto;
   }
 }

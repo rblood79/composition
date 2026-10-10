@@ -20,6 +20,7 @@ import {
 import { resolveCatalogNode, type ResolvedCatalogNode } from "../resolver";
 import {
   CATALOG_DENSITY_PROPAGATION_OWNER,
+  CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_OVERFLOW_MODE_OWNERS,
 } from "../../document/sizePropagation";
@@ -59,7 +60,11 @@ function resolvedByIdentity(): Map<string, ResolvedCatalogNode> {
     if (owner && name && CATALOG_SIZE_PROPAGATION[owner]?.includes(name))
       ownerSized.add(identity(node));
     const composite = rootOf(node.definitionId) !== undefined;
-    node.children.forEach((child) => walk(child, composite ? owner : name));
+    // (A Group · frame · Content between passes the owner's size — `CATALOG_SIZE_PASS_THROUGH`.)
+    const passes = !!name && CATALOG_SIZE_PASS_THROUGH.has(name);
+    node.children.forEach((child) =>
+      walk(child, composite || passes ? owner : name),
+    );
   };
   for (const position of pagePositions(graph, PAGE))
     walk(resolveCatalogNode(graph, position.sourceId as never));

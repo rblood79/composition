@@ -71,22 +71,23 @@ async function placedCard() {
     records,
     hasText,
     card: bySource("node:card"),
-    header: bySource("component-card__header"),
+    // (ADR-256 Phase 10: the S2 Card's title sits in its Content.)
+    content: bySource("component-card__content"),
     title: bySource("component-card__title"),
     footer: bySource("component-card__footer"),
   };
 }
 
 describe("a double click edits the text it cannot enter further", () => {
-  it("inside a Card: the CardHeader is not entered, its title is edited", async () => {
-    const { records, hasText, card, header, title } = await placedCard();
-    // In the Card (context = the Card node), the click target under the title is the CardHeader,
+  it("inside a Card: the Content is not entered, its title is edited", async () => {
+    const { records, hasText, card, content, title } = await placedCard();
+    // In the Card (context = the Card node), the click target under the title is the Content,
     // and a double click enters nothing: a template position is no context.
     expect(
       resolveCatalogContextEntry(records, title.id, card.sourceId),
     ).toBeUndefined();
     expect(
-      resolveCatalogTextEditRecord(records, title.id, header.id, hasText),
+      resolveCatalogTextEditRecord(records, title.id, content.id, hasText),
     ).toBe(title.id);
   });
 
@@ -98,7 +99,7 @@ describe("a double click edits the text it cannot enter further", () => {
   });
 
   it("no text below the target, or a text outside it: nothing to edit", async () => {
-    const { records, hasText, header, title, footer } = await placedCard();
+    const { records, hasText, content, title, footer } = await placedCard();
     // The pointer is on the footer (no text).
     expect(
       resolveCatalogTextEditRecord(records, footer.id, footer.id, hasText),
@@ -109,7 +110,7 @@ describe("a double click edits the text it cannot enter further", () => {
     ).toBeUndefined();
     // A container without text picked as itself.
     expect(
-      resolveCatalogTextEditRecord(records, header.id, header.id, hasText),
+      resolveCatalogTextEditRecord(records, content.id, content.id, hasText),
     ).toBeUndefined();
   });
 });

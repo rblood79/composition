@@ -41,8 +41,8 @@ export function catalogSubpartOwnerType(
   if (axis === "style") return resolveSubpartStyleOwnerType(...types);
   const owner = resolveDelegatedSubpartOwnerType(...types);
   if (owner) return owner;
-  // A text its template binds to the instance's prop (ADR-254 Decision 5 — a Card's title through
-  // its CardHeader, an InlineAlert's description): the instance owns it, wherever it sits.
+  // A text its template binds to the instance's prop (ADR-254 Decision 5 — an InlineAlert's
+  // description through its Content): the instance owns it, wherever it sits.
   const key = catalogTextKey(record);
   const binding = key
     ? catalogTextBinding(graph.library, records, record, key)
