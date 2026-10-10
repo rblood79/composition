@@ -504,6 +504,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - overlay 위치: ComboBox · Select · MenuTrigger `align` · `direction` · `menuWidth`, Toast `placement`.
 - 표 · 목록: Column `width` 류 · `allowsSorting`, Cell `colSpan` (나에서 옮김), Column · Cell `align` · `showDivider`, Cell `isSticky`, Table `selectionStyle`, Badge · GridList · Table `overflowMode`.
 - 색 축 (나에서 옮김): ColorArea `xChannel` · `yChannel` · `colorSpace`, ColorSlider `channel` · `colorSpace`, ColorSwatch `colorName`.
+  - 2026-10-11 진행: ColorSwatch `colorName` 도입 — RAC 의 접근성 이름 (`aria-label`) 이라 화면 변화가 없다 (Canvas 무변경). 나머지 넷은 Color 계열 보류 방침 (2026-06-11 「빌더 완성 후 제일 나중에 진짜 구현」 — Canvas 는 그라데이션 없이 상자만) 과 충돌해 사용자에게 물었고, 사용자 결정 「Canvas 그라데이션까지 구현」 (방침을 앞당김). ColorArea · ColorSlider (· ColorWheel) 의 Canvas 그라데이션 · thumb 와 함께 넣는다 — 규모상 ADR (`/create-adr`, 사용자 전용).
 - 개별: Slider `trackStyle` · `thumbStyle` · `fillOffset`, ColorSwatch `rounding`, ColorWheel `size`, ToggleButtonGroup `isJustified`, Link `isStandalone`, NumberField `hideStepper`, CardView `orientation`, InlineAlert `fillStyle` (5.1 의 InlineAlert variant 와 묶음), DropZone `isFilled` · `replaceMessage`, Skeleton `isLoading`.
 
 **라. 새 부품이 필요 — 별도 ADR 규모**

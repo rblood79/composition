@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 ColorSwatch colorName] - 2026-10-11
+
+### Added
+
+- **ColorSwatch `colorName`** (S2 1.8.0 / RAC): 견본의 접근성 이름 (예: "Pantone 7621 C") — 비우면 RAC 가 색 값으로 설명한다. Design 패널 Property 탭 「Color Name」. 화면 (Canvas · Preview) 은 바뀌지 않는다.
+
 ## [ADR-257 후속 — GridList · Badge overflowMode] - 2026-10-10
 
 ### Added

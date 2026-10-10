@@ -29,6 +29,10 @@ export const colorSwatchBinding: PrimitiveBinding = {
   props: {
     accepts: {
       color: { kind: "string", label: "Color Value", section: "content" },
+      // S2 1.8.0 / RAC ColorSwatch `colorName` (2026-10-11): the swatch's accessible color name
+      //   (RAC `aria-label` — "Pantone 7621 C"; empty = RAC describes the value). Not painted:
+      //   D1 only, Canvas unchanged.
+      colorName: { kind: "string", label: "Color Name", section: "content" },
       size: {
         kind: "size",
         label: "Size",

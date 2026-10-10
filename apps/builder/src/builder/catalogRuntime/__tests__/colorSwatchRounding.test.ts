@@ -124,3 +124,18 @@ describe("S2 ColorSwatch rounding", () => {
     },
   );
 });
+
+describe("S2 ColorSwatch colorName (2026-10-11)", () => {
+  it("the Design panel offers Color Name; the DOM swatch's accessible name is it (RAC aria-label), the Canvas box unchanged", async () => {
+    const plain = await open({ color: "#ff0000" });
+    const named = await open({ color: "#ff0000", colorName: "Pantone 7621 C" });
+    expect(
+      catalogSemanticContracts(named.definitionId, "ColorSwatch").colorName,
+    ).toMatchObject({ kind: "string" });
+    expect(named.html).toContain('aria-label="Pantone 7621 C"');
+    expect(plain.html).not.toContain("Pantone");
+    expect(named.html).not.toMatch(/colorname=/i);
+    expect(named.geometry).toEqual(plain.geometry);
+    expect(radiusOf(named.painted)).toBe(radiusOf(plain.painted));
+  });
+});
