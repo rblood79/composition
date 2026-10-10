@@ -1,9 +1,12 @@
 # 모델과 reasoning은 전역 Codex 기본값을 상속합니다.
 
-# 기존 사용자 권한 정책 유지. 자율 진행 지침은 AGENTS.md에서 관리.
+# 작업 디렉터리와 임시 경로만 쓰기 허용. 추가 권한은 요청 시 승인한다.
 approval_policy = "on-request"
-sandbox_mode = "danger-full-access"
+sandbox_mode = "workspace-write"
 web_search = "live"
+
+[sandbox_workspace_write]
+network_access = false
 
 [features]
 hooks = true

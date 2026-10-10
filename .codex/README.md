@@ -4,7 +4,9 @@
 있으므로 이 문서에 모델명을 고정하지 않습니다. 모델·reasoning은 전역 설정에서,
 새 CLI 세션에 들어가는 지침과 skill 목록은 `codex debug prompt-input "환경 확인"`으로
 확인합니다.
-프로젝트의 `on-request`, `danger-full-access`, `web_search = "live"`는 유지합니다.
+프로젝트는 `on-request`, `workspace-write`, `web_search = "live"`를 사용합니다.
+일반 shell 명령의 네트워크 접근은 제한하며, 추가 경로 쓰기와 네트워크가 필요한
+명령은 승인 경로로 실행합니다. 웹 검색과 MCP 연결은 별도 접근 경로입니다.
 컨텍스트 크기나 compaction 임계값을 임의로 강제하지 않습니다.
 
 ## 지침과 스킬
