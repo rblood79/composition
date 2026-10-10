@@ -4,7 +4,7 @@
  * inventory(§2-1) RAC-controller-backed primitive. RAC `<Form>` 은 자식 field(TextField 등)를
  * 담는 **컨테이너**(SHELL_ONLY) — `<form>` element + validation 흐름(D1). leaf binding.
  *
- * D2: variant(default·outlined)/size + labelPosition/labelAlign/necessityIndicator(자식 field
+ * D2: isEmphasized(S2 Form context)/size + labelPosition/labelAlign/necessityIndicator(자식 field
  *     상속 hint, data-* 라우팅) + validationBehavior.
  * D3: container 배경(variant)은 theme/tokens data-* rules. Skia 는 `_hasChildren` shell —
  *     자식 field 가 canonical children 트리. skiaPrimitive 불필요(보편 box frame).
@@ -29,11 +29,14 @@ export const formBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
+      // S2 1.8.0 `isEmphasized` (2026-10-10): Form context — isEmphasized 를 받는 자식 field
+      //   (Checkbox · Switch · 그룹 · Slider · TagGroup) 중 자기 값을 안 적은 것에 채워진다
+      //   (`CATALOG_FORM_CONTEXT_KEYS`). 옛 variant (default · outlined) 는 S2 에 없어 로드 시
+      //   1회 전환이 지운다 (outlined 테두리는 Styles 로 작성).
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
         section: "appearance",
-        default: "default",
       },
       size: {
         kind: "size",

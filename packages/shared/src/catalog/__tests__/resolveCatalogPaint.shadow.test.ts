@@ -278,7 +278,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     //   type 삭제) 8,424 → 8,280 (−144). diffs 0 유지.
     // 2026-10-10: + SliderFill · SliderThumb `emphasized`, Tag `selectedEmphasized` (S2 isEmphasized)
     //   8,280 → 8,388 (+108). diffs 0 유지.
-    expect(compared).toBe(8_388);
+    // 2026-10-10 강조 축 전환 2: − Radio neutral · negative, CheckboxGroup · RadioGroup accent,
+    //   Form outlined (S2 에 없는 변형 — 공개 축은 isEmphasized) 8,388 → 8,208 (−180). diffs 0 유지.
+    expect(compared).toBe(8_208);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

@@ -9,6 +9,7 @@ import {
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
+import { CATALOG_EMPHASIS_FROM_GROUP } from "../document/s2PropAlignment";
 import { isFieldControlGroup } from "../../domain/componentTraits";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
@@ -3590,6 +3591,26 @@ export class CatalogCompositionRoot {
             queue.push(childId);
           }
         }
+      }
+      // A toggle group's `isEmphasized` reaches the Checkboxes · Radios in it (S2 group context
+      // wins over the toggle's own — the resolver's `applyOwnerEmphasis`): they resolve again.
+      if (
+        before.props.isEmphasized !== record.props.isEmphasized &&
+        Object.values(CATALOG_EMPHASIS_FROM_GROUP).includes(this.typeOf(record))
+      ) {
+        const emphasisItemType = Object.keys(CATALOG_EMPHASIS_FROM_GROUP).find(
+          (item) => CATALOG_EMPHASIS_FROM_GROUP[item] === this.typeOf(record),
+        )!;
+        for (const item of catalogToggleGroupItems(
+          record,
+          emphasisItemType,
+          (key) => this.records.get(key),
+          this.typeOf,
+        ).items)
+          if (!queued.has(item.id)) {
+            queued.add(item.id);
+            queue.push(item.id);
+          }
       }
       // S2 Table `density` reaches the Columns · Cells in it
       // (`CATALOG_DENSITY_PROPAGATION_OWNER` — the resolver's `applyOwnerDensity`): they resolve

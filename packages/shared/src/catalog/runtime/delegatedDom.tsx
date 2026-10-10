@@ -1925,6 +1925,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         className: "react-aria-Radio",
         "data-size": str(props.size) || "M",
         "data-variant": str(props.variant) || "default",
+        // (S2 context — the group's `isEmphasized`, which the resolver put on this record.)
+        "data-emphasized": bool(props.isEmphasized) || undefined,
         value: str(props.value),
         isDisabled: bool(props.isDisabled),
         autoFocus: bool(props.autoFocus),
@@ -2105,7 +2107,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           key: `${input.node.id}:${value}`,
           style: input.style,
           className: "react-aria-RadioGroup",
-          "data-radio-variant": str(props.variant) || "default",
           "data-radio-size": size,
           "data-size": size,
           "data-label-position": str(props.labelPosition) || "top",

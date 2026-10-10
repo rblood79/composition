@@ -19,6 +19,18 @@ export const CATALOG_BOOLEAN_VARIANTS: Readonly<
 > = {
   Checkbox: { prop: "isEmphasized", variant: "emphasized" },
   Switch: { prop: "isEmphasized", variant: "emphasized" },
+  Radio: { prop: "isEmphasized", variant: "emphasized" },
+};
+
+/**
+ * S2 toggle 강조 context (`CheckboxGroup.tsx` `CheckboxContext` · RadioGroup 의 `FormContext`):
+ * 그룹 안의 toggle 은 **그룹의** `isEmphasized` 를 쓴다 — S2 는 그룹 값이 toggle 자신의 prop 을
+ * 이긴다 (`isInCheckboxGroup ? ctx?.isEmphasized : props.isEmphasized`). Radio 는 S2 에서 공개
+ * prop 이 없는 context 전용 값이라 그룹으로만 켜진다. resolver `applyOwnerEmphasis`.
+ */
+export const CATALOG_EMPHASIS_FROM_GROUP: Readonly<Record<string, string>> = {
+  Checkbox: "CheckboxGroup",
+  Radio: "RadioGroup",
 };
 
 type PropValueMigration = (
@@ -33,6 +45,14 @@ const emphasizedOf: PropValueMigration = (value) => {
   return DROP;
 };
 
+/** 그룹 · Tree 의 옛 accent 변형 — S2 의 강조. */
+const accentOf: PropValueMigration = (value) => {
+  if (value === "accent") return { isEmphasized: true };
+  return DROP;
+};
+
+const dropOf: PropValueMigration = () => DROP;
+
 /**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
  * type → 옛 prop → 새 값들 ({} = 축 삭제). `createCatalogGraph` 가 적용하므로 storage 로드 ·
@@ -43,6 +63,13 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
 > = {
   Checkbox: { variant: emphasizedOf },
   Switch: { variant: emphasizedOf },
+  CheckboxGroup: { variant: accentOf },
+  RadioGroup: { variant: accentOf },
+  // Radio 의 강조는 S2 에서 그룹의 것 (context 전용) — per-Radio variant (accent · neutral ·
+  // negative) 는 S2 에 없는 축이라 삭제. Form 의 outlined 도 S2 에 없다 (Form 은 isEmphasized
+  // 를 자식 field 에 전달하는 context 소유자).
+  Radio: { variant: dropOf },
+  Form: { variant: dropOf },
 };
 
 type MutablePropWrites = Record<string, PropWrites[string]>;

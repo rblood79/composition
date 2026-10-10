@@ -9,7 +9,13 @@
 
 @layer components {
   .react-aria-Radio {
-    --radio-color: var(--accent);
+    /* Default (non-emphasized): neutral ring when selected — S2 1.8.0 */
+    --radio-color: var(--fg);
+
+    /* Emphasized (the group's S2 `isEmphasized`): accent ring */
+    &[data-emphasized] {
+      --radio-color: var(--accent);
+    }
 
     position: relative;
     font-size: var(--text-base);

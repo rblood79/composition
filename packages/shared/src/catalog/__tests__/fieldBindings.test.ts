@@ -131,7 +131,7 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result["data-size"]).toBe("M");
   });
 
-  it("Form: variant → data-variant 라우팅 + validationBehavior 통과", () => {
+  it("Form: validationBehavior 통과 — variant 는 더 받지 않는다 (S2 isEmphasized 전환 2026-10-10)", () => {
     const result = toRacProps(
       {
         id: "f1",
@@ -140,7 +140,8 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       },
       formBinding,
     );
-    expect(result["data-variant"]).toBe("outlined");
+    // 옛 문서의 variant 는 accepts 밖이라 DOM 에 안 싣는다 (로드 시 1회 전환이 지운다).
+    expect(result["data-variant"]).toBeUndefined();
     expect(result.validationBehavior).toBe("aria");
     expect(result["data-size"]).toBe("M");
   });

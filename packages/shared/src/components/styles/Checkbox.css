@@ -172,13 +172,6 @@
     }
   }
 
-  /* ===== Parent CheckboxGroup delegation ===== */
-
-  .react-aria-CheckboxGroup[data-checkbox-emphasized] .react-aria-Checkbox {
-    --selected-color: var(--accent);
-    --checkmark-color: var(--fg-on-accent);
-  }
-
   /* ===== Size delegation from CheckboxGroup ===== */
 
   /* Group Label font-size */

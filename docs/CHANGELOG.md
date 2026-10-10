@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 강조 축 전환 2 — 그룹 · Radio · Form] - 2026-10-10
+
+### Breaking Changes
+
+- **CheckboxGroup · RadioGroup `variant` (default · accent) 제거 → `isEmphasized`**: 그룹 값이 안의 모든 Checkbox · Radio 에 닿는다 (S2 1.8.0 CheckboxContext — 그룹 값이 toggle 자신의 것을 **이긴다**, resolver `applyOwnerEmphasis` + 재해석 큐). 옛 `accent` 는 로드 시 1회 전환으로 `isEmphasized: true`.
+- **Radio `variant` (accent · neutral · negative) 제거**: S2 Radio 의 강조는 그룹의 context 전용 값 — per-Radio 색 축이 없다. 옛 값은 로드 시 삭제.
+- **Form `variant` (default · outlined) 제거 → `isEmphasized`**: S2 Form context — `isEmphasized` 를 받는 자식 field (Checkbox · Switch · 그룹 · Slider · TagGroup) 중 자기 값을 안 적은 것에 채워진다 (`CATALOG_FORM_CONTEXT_KEYS`). outlined 는 S2 에 없어 삭제 (테두리는 Styles 로 작성).
+
+### Changed
+
+- **Radio 기본 선택 고리 accent → 중립** (S2 1.8.0 — 기본 Radio 는 gray-800, `isEmphasized` 그룹만 accent). **Why**: 종전엔 변형과 무관하게 항상 accent 고리 (`Radio.css --radio-color`) 라 S2 의 기본 · 강조 구분이 없었다 — Checkbox · Switch 의 기본 (중립) 과도 어긋났다. rule 의 default 변형 · 시트 기본을 중립으로 맞추고 `[data-emphasized]` 에서만 accent.
+
+### Added
+
+- 확인: live — RadioGroup Emphasized 토글: 안의 Radio 2개가 재해석되어 파생 emphasized + Preview `data-emphasized`; CheckboxGroup: `--selected-color` #171717 → accent (computed); Form Emphasized: 자기 값 없는 안의 Checkbox 에 채움, 오류 0 (`apps/builder/scripts/s2-emphasis-groups-live.mjs` 6/6).
+
 ## [S2 강조 축 전환 1 — Checkbox · Switch isEmphasized + 로드 시 1회 전환] - 2026-10-10
 
 ### Breaking Changes

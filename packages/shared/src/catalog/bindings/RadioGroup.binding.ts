@@ -33,11 +33,13 @@ export const radioGroupBinding: PrimitiveBinding = {
         label: "Description",
         section: "content",
       },
-      variant: {
-        kind: "variant",
-        label: "Variant",
+      // S2 1.8.0 `isEmphasized` (2026-10-10): 그룹 안 모든 Radio 의 선택 고리가 accent 가
+      //   된다 — S2 는 RadioGroup 이 context 로 내려보낸다 (resolver `applyOwnerEmphasis`).
+      //   옛 variant (default · accent) 는 로드 시 1회 전환.
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
         section: "appearance",
-        default: "default",
       },
       size: {
         kind: "size",

@@ -36,11 +36,22 @@ export const radioBinding: PrimitiveBinding = {
       },
       // RAC Radio 는 group 안에서 value 로 식별
       value: { kind: "string", label: "Value", section: "content" },
+      // S2 1.8.0: Radio 의 강조는 그룹의 context 전용 값 (RadioGroup `isEmphasized` — resolver
+      //   `applyOwnerEmphasis` 가 싣는다, 패널 미노출). 내부 `variant` 는 그 운반 값
+      //   (`CATALOG_BOOLEAN_VARIANTS`) — 옛 per-Radio variant (accent · neutral · negative) 는
+      //   S2 에 없어 로드 시 1회 전환이 지운다.
+      isEmphasized: {
+        kind: "boolean",
+        label: "Emphasized",
+        section: "appearance",
+        editorHidden: true,
+      },
       variant: {
         kind: "variant",
         label: "Variant",
         section: "appearance",
         default: "default",
+        editorHidden: true,
       },
       size: {
         kind: "size",

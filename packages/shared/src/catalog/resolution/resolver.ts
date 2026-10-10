@@ -35,7 +35,10 @@ import {
   CATALOG_SIZE_STEP,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
-import { CATALOG_BOOLEAN_VARIANTS } from "../document/s2PropAlignment";
+import {
+  CATALOG_BOOLEAN_VARIANTS,
+  CATALOG_EMPHASIS_FROM_GROUP,
+} from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
@@ -795,6 +798,27 @@ export function resolveCatalogNode(
     }
   };
   /**
+   * S2 toggle 강조 context (`CATALOG_EMPHASIS_FROM_GROUP`, 2026-10-10): 그룹 안의 Checkbox ·
+   * Radio 는 가장 가까운 자기 그룹의 `isEmphasized` 를 쓴다 — S2 는 그룹 값이 toggle 자신의
+   * prop 을 **이긴다** (`isInCheckboxGroup ? ctx?.isEmphasized : props.isEmphasized`), 그룹이
+   * 안 켰으면 toggle 의 것도 꺼진다.
+   */
+  const applyOwnerEmphasis = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const groupType = CATALOG_EMPHASIS_FROM_GROUP[definition.name];
+    if (!groupType) return;
+    let group = structuralParent(parent);
+    while (group && lookupDefinition(group.definitionId).name !== groupType)
+      group = structuralParent(group.parent);
+    if (!group) return;
+    if (group.props.isEmphasized === true) props.isEmphasized = true;
+    else delete props.isEmphasized;
+  };
+  /**
    * S2 강조 · quiet boolean 축 (`CATALOG_BOOLEAN_VARIANTS`, 2026-10-10): 공개 prop 은 boolean
    * (`isEmphasized`) 이고 rule 변형은 내부 운반 값 (`editorHidden` variant) 이다 — 여기서
    * 파생하므로 Canvas rule paint 와 DOM 이 종전 record 그대로 읽는다. 작성자 variant 는 이제
@@ -874,6 +898,7 @@ export function resolveCatalogNode(
     );
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
+    applyOwnerEmphasis(node.definitionId, props, parent);
     applyBooleanVariant(node.definitionId, props);
     applyPropVisualRules(node.definitionId, props, visual);
     applyTypedRules(node.definitionId, props, visual, layout, parent);
@@ -1070,6 +1095,7 @@ export function resolveCatalogNode(
       Object.assign(props, own);
       applyOwnerSize(definitionId, props, parent);
       applyOwnerDensity(definitionId, props, parent);
+      applyOwnerEmphasis(definitionId, props, parent);
       applyBooleanVariant(definitionId, props);
       applyPropVisualRules(definitionId, props, visual);
       applyTypedRules(definitionId, props, visual, layout, parent);
@@ -1339,6 +1365,7 @@ export function resolveCatalogNode(
       ]),
     );
     applyOwnerSize(template.definitionId, props, parent);
+    applyOwnerEmphasis(template.definitionId, props, parent);
     applyBooleanVariant(template.definitionId, props);
     applyPropVisualRules(template.definitionId, props, visual);
     applyTypedRules(

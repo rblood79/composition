@@ -2114,18 +2114,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
     },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS root `gap: Npx`
@@ -5083,19 +5071,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral}",
-        },
-      },
-      outlined: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
     },
@@ -8593,23 +8568,25 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     // ADR-912 단계 5 step 2: replace-primitive measurement generic 전환 — variant.textWeight=400
     //   (Radio.spec label fontWeight 미emit → 측정 fallback 400 정합). [[Checkbox 참조]]
     variants: {
+      // S2 1.8.0 강조 축 (2026-10-10): 기본 선택 고리는 중립 (S2 gray-800), emphasized 가
+      //   accent — 옛 accent · neutral · negative 변형은 S2 에 없어 삭제 (로드 시 1회 전환).
       default: {
         fill: {
           default: {
             base: "{color.base}",
             hover: "{color.layer-2}",
             pressed: "{color.layer-1}",
-            selected: "{color.accent}",
+            selected: "{color.neutral}",
           },
         },
         colors: {
           text: "{color.neutral}",
           border: "{color.border-hover}",
-          selectedBorder: "{color.accent}",
+          selectedBorder: "{color.neutral}",
         },
         textWeight: 400,
       },
-      accent: {
+      emphasized: {
         fill: {
           default: {
             base: "{color.base}",
@@ -8622,38 +8599,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
           border: "{color.border-hover}",
           selectedBorder: "{color.accent}",
-        },
-        textWeight: 400,
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-            selected: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border-hover}",
-          selectedBorder: "{color.neutral-subtle}",
-        },
-        textWeight: 400,
-      },
-      negative: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.negative-subtle}",
-            pressed: "{color.negative-subtle}",
-            selected: "{color.negative}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.negative}",
-          selectedBorder: "{color.negative}",
         },
         textWeight: 400,
       },
@@ -8754,18 +8699,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
         fill: {
           default: {
             base: "{color.base}",

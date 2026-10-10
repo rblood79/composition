@@ -638,38 +638,43 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             type === "checkboxgroup"
               ? toggleFieldMarkup(fixed, "Checkbox")
               : type === "radiogroup"
-                ? toggleFieldMarkup(fixed, "Radio")
+                ? // (S2 강조 축 전환 2026-10-10: 그룹 variant 삭제 — `data-radio-variant` 는
+                  // shared 컴포넌트 (Builder UI) 만의 attr 이 됐다.)
+                  toggleFieldMarkup(fixed, "Radio").replace(
+                    " data-radio-variant=default",
+                    "",
+                  )
                 : type === "taggroup"
                   ? tagGroupMarkup(fixed)
                   : type === "searchfield"
                     ? searchFieldGroupMarkup(fixed)
                     : type === "numberfield"
                       ? numberFieldEmptyMarkup(fixed)
-                    : type === "select"
-                      ? selectNodeTreeMarkup(fixed)
-                      : type === "slider"
-                        ? sliderNodeTreeMarkup(fixed, name)
-                        : type === "progressbar" || type === "meter"
-                          ? progressNodeTreeMarkup(
-                              fixed,
-                              name,
-                              type === "meter" ? "Meter" : "Progress",
-                            )
-                          : type === "combobox"
-                            ? comboBoxGroupMarkup(fixed, name === "quiet")
-                            : type === "datepicker"
-                              ? datePickerNodeTreeMarkup(
-                                  fixed,
-                                  "DatePicker",
-                                  name,
-                                )
-                              : type === "daterangepicker"
+                      : type === "select"
+                        ? selectNodeTreeMarkup(fixed)
+                        : type === "slider"
+                          ? sliderNodeTreeMarkup(fixed, name)
+                          : type === "progressbar" || type === "meter"
+                            ? progressNodeTreeMarkup(
+                                fixed,
+                                name,
+                                type === "meter" ? "Meter" : "Progress",
+                              )
+                            : type === "combobox"
+                              ? comboBoxGroupMarkup(fixed, name === "quiet")
+                              : type === "datepicker"
                                 ? datePickerNodeTreeMarkup(
                                     fixed,
-                                    "DateRangePicker",
+                                    "DatePicker",
                                     name,
                                   )
-                                : fixed;
+                                : type === "daterangepicker"
+                                  ? datePickerNodeTreeMarkup(
+                                      fixed,
+                                      "DateRangePicker",
+                                      name,
+                                    )
+                                  : fixed;
           expect(glyphless(structure)).toBe(glyphless(expected));
           return;
         }

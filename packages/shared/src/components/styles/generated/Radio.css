@@ -46,7 +46,7 @@
   }
 }
 
-.react-aria-Radio[data-variant="accent"] {
+.react-aria-Radio[data-variant="emphasized"] {
   background: var(--bg);
   color: var(--fg);
 
@@ -56,32 +56,6 @@
 
   &[data-pressed] {
     background: var(--bg-overlay);
-  }
-}
-
-.react-aria-Radio[data-variant="neutral"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
-}
-
-.react-aria-Radio[data-variant="negative"] {
-  background: var(--bg);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--negative-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--negative-subtle);
   }
 }
 
