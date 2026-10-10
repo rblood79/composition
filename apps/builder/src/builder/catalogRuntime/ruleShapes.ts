@@ -254,14 +254,17 @@ export function catalogRuleNodeData(
   ] as Record<string, unknown> | undefined;
   normalizeMiddleBaselineTextLineHeight(shapes, size ?? {});
   // Table cells and columns follow their Table's S2 `overflowMode` (ADR-257 Phase 3 — the rule's
-  // block in the record: truncate = one line cut at the box with an ellipsis, wrap = `normal`). A
-  // leaf the layout kept on one line is one line at its fractional max-content box.
+  // block in the record: truncate = one line cut at the box with an ellipsis, wrap = `normal`); a
+  // Badge its own (ADR-257 후속 — S2 default wrap). A leaf the layout kept on one line is one line
+  // at its fractional max-content box.
   const tableText = input.type === "Cell" || input.type === "Column";
   const tableWraps = tableText && input.node.visual.whiteSpace === "normal";
+  const badgeTruncates =
+    input.type === "Badge" && input.node.visual.whiteSpace === "nowrap";
   if (
     input.singleLine ||
     input.type === "Tag" ||
-    input.type === "Badge" ||
+    badgeTruncates ||
     (tableText && !tableWraps)
   )
     for (const shape of shapes)
@@ -274,7 +277,7 @@ export function catalogRuleNodeData(
     input.rect.height,
     input.node.id,
   );
-  if (tableText && !tableWraps) ellipsize(data);
+  if ((tableText && !tableWraps) || badgeTruncates) ellipsize(data);
   if (tableText) alignTableText(data, input.node.visual.textAlign);
   return data;
 }

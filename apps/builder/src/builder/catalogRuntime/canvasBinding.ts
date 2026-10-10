@@ -556,6 +556,8 @@ const TABLE_CELL_CARRIED_TEXT = new Set([
 const RULE_CARRIED_TEXT_KEYS: Readonly<Record<string, ReadonlySet<string>>> = {
   Cell: TABLE_CELL_CARRIED_TEXT,
   Column: TABLE_CELL_CARRIED_TEXT,
+  // ADR-257 후속 — S2 Badge `overflowMode`: the rule painter reads them (`catalogRuleNodeData`).
+  Badge: new Set(["whiteSpace", "textOverflow"]),
 };
 /**
  * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation

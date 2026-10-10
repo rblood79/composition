@@ -40,6 +40,19 @@ export const gridListItemBinding: PrimitiveBinding = {
       // ADR-237 Phase 2 — RAC/RSP 항목 `isDisabled`. Canvas 는 이미 읽는데 (상태 층 disabled) accepts 미선언이라
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView), carried here by the resolver
+      //   (`CATALOG_OVERFLOW_MODE_OWNERS`) for the label · description Text inside — not edited on
+      //   the item.
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
     },
     toRacProps: "default",
   },

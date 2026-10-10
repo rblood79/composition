@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-10 ADR-257 후속 완료 (GridList · Badge `overflowMode`)**: 사용자 지시. S2 기본값 그대로 — GridList (ListView) truncate: 항목의 label · description Text 가 한 줄 · 말줄임 (wrap 이면 카드가 자란다), Badge wrap: 글자가 폭에서 줄을 바꾸고 truncate 면 한 줄 말줄임 (종전 `nowrap` 고정 → Changed). Canvas · Preview 같은 상자, live 6/6. 남은 것: G6 총비용 A/B — Implemented 승격 전.
+
 > **2026-10-10 ADR-257 Phase 5 완료 (TableView 를 S2 처럼 RAC Table 위로)**: 사용자 지시. Preview TableView = RAC `ResizableTableContainer` > RAC Table (S2 `TableView.tsx`), 부품은 Table 과 같은 경로 — RAC 선택 · 정렬 · 크기 조절이 붙는다. 감싼 표에서 Builder 폭 편집이 Preview 에 안 닿던 결함도 수리. live 21/21.
 
 > **2026-10-10 ADR-257 Phase 4 완료 (Preview 정렬 · 열 크기 조절)**: 사용자 결정 4 = 바운드 + 정적 모두 · 5 = 끝난 폭은 문서에 안 씀. Column `allowsSorting` · `allowsResizing` (S2) — 정렬은 Preview 실행 상태 (작성한 행은 칸 글자, 바운드 행은 resolver 가 전체를 값으로 정렬한 뒤 높이만큼), 크기 조절은 RAC `ResizableTableContainer` + RAC px 트랙. Canvas · 문서 무변경. live 18/18. 미룸: TableView 의 두 조작 (S2 TableView 는 RAC Table 위의 구현인데 우리 Preview 는 composition div) · GridList · Badge `overflowMode`.
@@ -251,7 +253,7 @@
 
 #### [257](257-table-column-tracks.md) — Table 열 배치 (Column 이 열 트랙 · 모든 행이 같은 grid 트랙) + 표·목록 S2 prop
 
-- **상태**: Accepted — 2026-10-10 (사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격 · 사용자 결정 1 · 2 · 3 권장안 확정. **Phase 0 완료 2026-10-10** — 영향 집단 0 · 엔진 실측 GREEN (`tree.rs` `adr257_*`). **Phase 1 완료 2026-10-10** — 트랙 목록 (RAC oracle · live 6/6, G6 부분). **Phase 2 완료 2026-10-10** — colSpan (live G2 3/3). **Phase 3 완료 2026-10-10** — 칸 값 · 표 단위 값 (결정 6 · 7 = S2 대로, live 14/14 · GridList · Badge `overflowMode` 미룸). **Phase 4 완료 2026-10-10** — Preview 정렬 · 열 크기 조절 (결정 4 · 5, live 18/18). **Phase 5 완료 2026-10-10** — TableView 를 S2 처럼 RAC Table 위로 (사용자 지시, live 21/21). 이전: 사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
+- **상태**: Accepted — 2026-10-10 (사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격 · 사용자 결정 1 · 2 · 3 권장안 확정. **Phase 0 완료 2026-10-10** — 영향 집단 0 · 엔진 실측 GREEN (`tree.rs` `adr257_*`). **Phase 1 완료 2026-10-10** — 트랙 목록 (RAC oracle · live 6/6, G6 부분). **Phase 2 완료 2026-10-10** — colSpan (live G2 3/3). **Phase 3 완료 2026-10-10** — 칸 값 · 표 단위 값 (결정 6 · 7 = S2 대로, live 14/14 · GridList · Badge `overflowMode` 미룸). **Phase 4 완료 2026-10-10** — Preview 정렬 · 열 크기 조절 (결정 4 · 5, live 18/18). **Phase 5 완료 2026-10-10** — TableView 를 S2 처럼 RAC Table 위로 (사용자 지시, live 21/21). **후속 완료 2026-10-10** — GridList · Badge `overflowMode` (사용자 지시, live 6/6 · 남은 것 G6 총비용 A/B). 이전: 사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
 - **규모**: Phase 0 인벤토리 → 1 트랙 목록 (Table · TableView · 바운드) → 2 colSpan → 3 `align` · `showDivider` · `selectionStyle` · `overflowMode` → 4 Preview 정렬 · 열 크기 조절. breakdown: [design/257](design/257-table-column-tracks-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -284,7 +286,7 @@
 | 순위 | ADR                                                                                            | 착수 준비도                                                         | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 |  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제)      | 다음 Phase 6 picker                                                       |
-|  2   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 0 ~ 5 완료 (Phase 5 미커밋) · 남음: GridList · Badge `overflowMode` (미룸) | 256 Phase 5i 노드 Table 위 (충족)                                         |
+|  2   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 0 ~ 5 · 후속 (GridList · Badge `overflowMode`) 완료 (후속 미커밋) · 남음: G6 총비용 A/B | 256 Phase 5i 노드 Table 위 (충족)                                         |
 |  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)        | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                  | 각 항목의 재개 조건 발생 시                                               |

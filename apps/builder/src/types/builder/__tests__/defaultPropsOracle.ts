@@ -42,6 +42,7 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       variant: "accent",
       size: "S",
       fillStyle: "bold", // catalog bindingOnly 보강
+      overflowMode: "wrap", // ADR-257 후속 — S2 Badge 기본값
       children: "Badge",
       isDot: false,
       isPulsing: false,

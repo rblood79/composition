@@ -21,7 +21,7 @@ import { resolveCatalogNode, type ResolvedCatalogNode } from "../resolver";
 import {
   CATALOG_DENSITY_PROPAGATION_OWNER,
   CATALOG_SIZE_PROPAGATION,
-  CATALOG_TABLE_OVERFLOW_OWNERS,
+  CATALOG_OVERFLOW_MODE_OWNERS,
 } from "../../document/sizePropagation";
 
 /**
@@ -109,7 +109,7 @@ describe("ADR-248 Phase 4c prop sources", () => {
         if (
           typeName &&
           ((key === "density" && CATALOG_DENSITY_PROPAGATION_OWNER[typeName]) ||
-            (key === "overflowMode" && CATALOG_TABLE_OVERFLOW_OWNERS[typeName]))
+            (key === "overflowMode" && CATALOG_OVERFLOW_MODE_OWNERS[typeName]))
         )
           continue;
         const reading = readPropSource(graph, target, key);

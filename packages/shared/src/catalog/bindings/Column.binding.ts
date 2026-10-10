@@ -58,7 +58,7 @@ export const columnBinding: PrimitiveBinding = {
         ],
       },
       // ADR-257 Phase 3 — the Table's S2 `overflowMode`, carried here by the resolver
-      //   (`CATALOG_TABLE_OVERFLOW_OWNERS`) — not edited on the part.
+      //   (`CATALOG_OVERFLOW_MODE_OWNERS`) — not edited on the part.
       overflowMode: {
         kind: "enum",
         label: "Overflow",

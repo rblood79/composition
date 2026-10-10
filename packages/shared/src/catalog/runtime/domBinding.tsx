@@ -1206,13 +1206,15 @@ const TYPOGRAPHY_KEYS: ReadonlySet<string> = new Set([
 /**
  * ADR-257 Phase 3 — a Table cell's text box (the rule's S2 `align` · `overflowMode` blocks): the
  * Canvas paints these on a cell · column text leaf (`canvasBinding` `text`), so its DOM element
- * takes them inline too.
+ * takes them inline too. A Badge's (ADR-257 후속 — S2 `overflowMode`) the same way: its rule
+ * painter draws its text with them.
  */
-const TABLE_CELL_TEXT_BINDINGS: ReadonlySet<string> = new Set([
+const RULE_TEXT_BOX_BINDINGS: ReadonlySet<string> = new Set([
   "cell",
   "column",
+  "badge",
 ]);
-const TABLE_CELL_TEXT_CSS: Readonly<
+const RULE_TEXT_BOX_CSS: Readonly<
   Record<string, (value: unknown) => CSSProperties>
 > = {
   textAlign: (value) => ({
@@ -1952,8 +1954,8 @@ function authoredStyle(
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
     const css =
       AUTHORED_CSS[key] ??
-      (TABLE_CELL_TEXT_BINDINGS.has(node.bindingId ?? "")
-        ? TABLE_CELL_TEXT_CSS[key]
+      (RULE_TEXT_BOX_BINDINGS.has(node.bindingId ?? "")
+        ? RULE_TEXT_BOX_CSS[key]
         : undefined);
     if (!css) {
       // Typography on a rule executor is not painted by the Canvas yet: fail on both sides.

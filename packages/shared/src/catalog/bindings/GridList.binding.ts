@@ -87,6 +87,19 @@ export const gridListBinding: PrimitiveBinding = {
           { value: "highlight", label: "Highlight" },
         ],
       },
+      // ADR-257 후속 — S2 ListView `overflowMode` (default truncate): each item's label ·
+      //   description on one line with an ellipsis, or wrapped (the card grows). Carried to the
+      //   GridListItems (resolver), whose rule gives their Text children the text box.
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        default: "truncate",
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — delegatedDom `gridlist` 가 넘긴다.
       disallowEmptySelection: {
         kind: "boolean",

@@ -1124,13 +1124,17 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   // S2 Disclosure (2026-10-10): its trigger's height per density, its rounded quiet trigger.
   Disclosure: { density: "density", quiet: "isQuiet" },
   // ADR-257 Phase 3: S2 Column `align` · Cell `align` · `showDivider`, and the Table's
-  // `overflowMode` (carried to its Columns · Cells — `CATALOG_TABLE_OVERFLOW_OWNERS`).
+  // `overflowMode` (carried to its Columns · Cells — `CATALOG_OVERFLOW_MODE_OWNERS`).
   Column: { align: "align", "overflow-mode": "overflowMode" },
   Cell: {
     align: "align",
     "show-divider": "showDivider",
     "overflow-mode": "overflowMode",
   },
+  // ADR-257 후속: S2 Badge `overflowMode` (its own text) · ListView's (carried to the items —
+  // their label · description Text, `TEXT_BOX_VARIANT_AXIS`).
+  Badge: { "overflow-mode": "overflowMode" },
+  GridListItem: { "overflow-mode": "overflowMode" },
 };
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {
   return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };
@@ -1200,13 +1204,19 @@ function blockVariables(
 /**
  * ADR-257 Phase 3 — the rules whose root variant blocks also set their own text box: S2 Table's
  * cell content (`text-align` · `white-space` · truncation — S2 `cellContent`) and a Cell's divider
- * (`border-right-width`, its color the rule's border). Only these: the other rules' blocks do not
- * reach the Canvas text through here.
+ * (`border-right-width`, its color the rule's border); S2 Badge's text (ADR-257 후속). Only these:
+ * the other rules' blocks do not reach the Canvas text through here.
  */
-const CELL_TEXT_VARIANT_RULES: ReadonlySet<string> = new Set([
+const TEXT_VARIANT_RULES: ReadonlySet<string> = new Set([
   "Column",
   "Cell",
+  "Badge",
 ]);
+/**
+ * ADR-257 후속 — the axis whose nested blocks set their child text's box (S2 ListView `overflowMode`
+ * on an item's label · description Text): read here as the root blocks of `TEXT_VARIANT_RULES`.
+ */
+const TEXT_BOX_VARIANT_AXIS = "overflow-mode";
 function cellTextVisual(
   styles: Readonly<Record<string, string>>,
 ): Record<string, Scalar> {
@@ -1249,7 +1259,7 @@ export function catalogContainerVariantRootRules(type: string): Array<{
         {},
         undefined,
       );
-      const compiled = CELL_TEXT_VARIANT_RULES.has(type)
+      const compiled = TEXT_VARIANT_RULES.has(type)
         ? {
             ...declared,
             visual: {
@@ -1431,6 +1441,11 @@ function containerVariantPartRules(
               variables,
               compiled.visual,
             );
+            if (attribute === TEXT_BOX_VARIANT_AXIS)
+              Object.assign(
+                compiled.visual,
+                cellTextVisual(entry.styles ?? {}),
+              );
             // The side label column's text alignment (`text-align: var(--form-label-align, start)`):
             // read here only — the label is a text leaf, which paints its alignment.
             const textAlign = entry.styles?.["text-align"];

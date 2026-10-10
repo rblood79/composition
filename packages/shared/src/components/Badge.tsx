@@ -33,6 +33,12 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
    */
   fillStyle?: "bold" | "subtle" | "outline";
   /**
+   * S2 `overflowMode`: the text wraps at the badge width, or stays on one line cut with an
+   * ellipsis (`Badge.css` `[data-overflow-mode]`)
+   * @default 'wrap'
+   */
+  overflowMode?: "wrap" | "truncate";
+  /**
    * Show loading skeleton instead of content
    * @default false
    */
@@ -65,6 +71,7 @@ export function Badge({
   fillStyle,
   isLoading = false,
   isDisabled = false,
+  overflowMode = "wrap",
   className,
   children,
   ...props
@@ -93,8 +100,10 @@ export function Badge({
       data-pulsing={isPulsing || undefined}
       data-fill-style={fillStyle || undefined}
       data-disabled={isDisabled || undefined}
+      data-overflow-mode={isDot ? undefined : overflowMode}
     >
-      {!isDot && children}
+      {/* S2 wraps the text in its `Text` — the box that clips it with the ellipsis. */}
+      {!isDot && <span className="badge-text">{children}</span>}
     </span>
   );
 }

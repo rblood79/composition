@@ -8,8 +8,23 @@
 
 @layer components {
   .react-aria-Badge[data-badge]:not([data-dot]) {
-    white-space: nowrap;
     transition: all 200ms;
+  }
+
+  /* S2 `overflowMode` — the values of the rule's `overflow-mode` block (the Canvas reads that
+     block; this sheet is the DOM side, as ColorSwatch `rounding`). The text box is S2's Text:
+     it clips its line with the ellipsis. Its lines are centered — the rule painter's box text
+     (Canvas `buildCatalogShapes`); S2 starts a wrapped badge's lines (ADR-257 후속 편차). */
+  .react-aria-Badge[data-badge] > .badge-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+  }
+  .react-aria-Badge[data-badge][data-overflow-mode="wrap"] {
+    white-space: normal;
+  }
+  .react-aria-Badge[data-badge][data-overflow-mode="truncate"] {
+    white-space: nowrap;
   }
 
   /* Dot badge: indicator-only geometry is independent of text badge sizing. */

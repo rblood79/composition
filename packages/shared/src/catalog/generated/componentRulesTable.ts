@@ -215,6 +215,26 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Badge: {
     defaultVariant: "accent",
     defaultSize: "S",
+    // ADR-257 후속 — S2 Badge `overflowMode` (default wrap — S2 `Badge.tsx` Text style): the text
+    //   wraps at the badge width (`normal`), or stays on one line cut with an ellipsis. Canvas reads
+    //   this top-level block (resolver → record visual — layout measure · paint); the DOM sheet is
+    //   `Badge.css` `[data-overflow-mode]` (Badge.tsx writes the attribute), as ColorSwatch
+    //   `rounding` — structure.composition would emit it but flips the size axis box ownership.
+    containerVariants: {
+      "overflow-mode": {
+        truncate: {
+          styles: {
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+          },
+        },
+        wrap: {
+          styles: {
+            "white-space": "normal",
+          },
+        },
+      },
+    },
     variants: {
       accent: {
         fill: {
@@ -5274,6 +5294,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   GridListItem: {
     defaultVariant: "default",
     defaultSize: "M",
+    // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView — carried here by the resolver):
+    //   S2 `label` · `description` (DragPreview.tsx) truncate — one line, clipped with an ellipsis —
+    //   or wrap (`normal`, the card grows). The item's label · description are its Text children,
+    //   so the block gives them the text box (part rules → their records — Canvas text leaf and DOM
+    //   inline read the same values).
+    containerVariants: {
+      "overflow-mode": {
+        truncate: {
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: {
+                overflow: "hidden",
+                "white-space": "nowrap",
+                "text-overflow": "ellipsis",
+              },
+            },
+          ],
+        },
+        wrap: {
+          nested: [
+            {
+              selector: "> .react-aria-Text",
+              styles: { "white-space": "normal" },
+            },
+          ],
+        },
+      },
+    },
     // ADR-912 Phase 3-A-3b (2026-06-20): collection-item base-axis 를 catalog SSOT 로 도달.
     //   카드 컨테이너 flex-column layout(권위 source = starter GridList.css:112
     //   `.react-aria-GridListItem { display:flex; flex-direction:column; min-width:0 }`).

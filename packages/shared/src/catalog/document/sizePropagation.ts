@@ -146,13 +146,15 @@ export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
 };
 
 /**
- * ADR-257 Phase 3 — S2 Table `overflowMode` context: the owner types whose value reaches this part
- * type (S2 `InternalTableContext` — one value for every cell's content). Read by the resolver
- * (`applyOwnerOverflowMode`); the parts carry it without an editor of their own.
+ * ADR-257 Phase 3 — S2 `overflowMode` context: the owner types whose value reaches this part type
+ * (S2 `InternalTableContext` — one value for every cell's content; ListView's context for every
+ * item's label · description — ADR-257 후속). Read by the resolver (`applyOwnerOverflowMode`); the
+ * parts carry it without an editor of their own.
  */
-export const CATALOG_TABLE_OVERFLOW_OWNERS: Readonly<
+export const CATALOG_OVERFLOW_MODE_OWNERS: Readonly<
   Record<string, readonly string[]>
 > = {
   Column: ["Table", "TableView"],
   Cell: ["Table", "TableView"],
+  GridListItem: ["GridList"],
 };

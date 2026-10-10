@@ -53,6 +53,19 @@ export const badgeBinding: PrimitiveBinding = {
           { value: "outline", label: "Outline" },
         ],
       },
+      // ADR-257 후속 — S2 Badge `overflowMode` (default wrap): the text wraps at the badge width,
+      //   or stays on one line cut with an ellipsis. The rule's `overflow-mode` block is the value
+      //   (Canvas paint · layout); Badge.tsx writes `data-overflow-mode` for the sheet.
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        default: "wrap",
+        options: [
+          { value: "wrap", label: "Wrap" },
+          { value: "truncate", label: "Truncate" },
+        ],
+      },
       isDot: { kind: "boolean", label: "Dot Badge", section: "state" },
       isPulsing: { kind: "boolean", label: "Pulsing", section: "state" },
       // design-data 감사 §2-F (2026-08-21): D3 states.disabled(opacity 0.38)는 준비돼
@@ -64,6 +77,7 @@ export const badgeBinding: PrimitiveBinding = {
     // Badge.tsx 가 {...props} 뒤에 자기 data-variant/data-size/data-fill-style 를 재작성 →
     //   React prop 으로도 통과시켜야 default 덮어쓰기를 막는다 (data-* 도 함께 emit).
     propPassthrough: ["variant", "size", "fillStyle"],
+    // (`overflowMode` is a plain enum: toRacProps passes it as the React prop Badge.tsx reads.)
   },
   // isDot 모드는 비-DOM-trivial 원(circle) → skiaPrimitive "dot"(isDot 아니면 box+text fallback).
   skiaPrimitive: "dot",

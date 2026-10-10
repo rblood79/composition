@@ -6,7 +6,7 @@ import {
 import { catalogDisclosureBorders } from "./disclosureBorders";
 import {
   CATALOG_DENSITY_PROPAGATION_OWNER,
-  CATALOG_TABLE_OVERFLOW_OWNERS,
+  CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
@@ -3700,11 +3700,11 @@ export class CatalogCompositionRoot {
         visit(record.children);
       }
       // ADR-257 Phase 3 — a Table's · TableView's `overflowMode` reaches the Columns · Cells in
-      // it (`CATALOG_TABLE_OVERFLOW_OWNERS` — the resolver's `applyOwnerOverflowMode`): they
-      // resolve again with it.
+      // it, a GridList's its items (`CATALOG_OVERFLOW_MODE_OWNERS` — the resolver's
+      // `applyOwnerOverflowMode`): they resolve again with it.
       if (
         before.props.overflowMode !== record.props.overflowMode &&
-        Object.values(CATALOG_TABLE_OVERFLOW_OWNERS).some((owners) =>
+        Object.values(CATALOG_OVERFLOW_MODE_OWNERS).some((owners) =>
           owners.includes(this.typeOf(record)),
         )
       ) {
@@ -3713,7 +3713,7 @@ export class CatalogCompositionRoot {
             const child = this.records.get(childId);
             if (!child) continue;
             if (
-              CATALOG_TABLE_OVERFLOW_OWNERS[this.typeOf(child)] &&
+              CATALOG_OVERFLOW_MODE_OWNERS[this.typeOf(child)] &&
               !queued.has(childId)
             ) {
               queued.add(childId);

@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-257 후속 — GridList · Badge overflowMode] - 2026-10-10
+
+### Added
+
+- **GridList `overflowMode`** (S2 ListView, 기본 truncate): 항목의 label · description 이 한 줄에 말줄임으로 잘린다. Wrap 이면 카드 폭에서 줄을 바꾸고 카드가 자란다 (Canvas · Preview 같은 높이). Design 패널 Property 탭 「Overflow」.
+- **Badge `overflowMode`** (S2, 기본 wrap): Truncate 면 한 줄 말줄임.
+
+### Changed
+
+- **Badge 글자가 기본으로 줄을 바꾼다** (S2 기본 wrap): 종전에는 Canvas · Preview 모두 한 줄 고정이었다. 폭을 지정했거나 좁은 자리의 긴 Badge 는 여러 줄이 되고, 줄은 가운데 정렬이다 (S2 는 시작 정렬 — Canvas 의 box 글자 계약에 맞춤). 한 줄로 두려면 Overflow 를 Truncate 로.
+
 ## [ADR-257 Phase 5 — TableView 를 S2 처럼 RAC Table 위로] - 2026-10-10
 
 ### Changed

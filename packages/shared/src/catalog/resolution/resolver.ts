@@ -32,7 +32,7 @@ import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_DENSITY_PROPAGATION_OWNER,
   CATALOG_SIZE_PROPAGATION,
-  CATALOG_TABLE_OVERFLOW_OWNERS,
+  CATALOG_OVERFLOW_MODE_OWNERS,
   CATALOG_SIZE_STEP,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
@@ -783,8 +783,9 @@ export function resolveCatalogNode(
     if (typeof density === "string") props.density = density;
   };
   /**
-   * ADR-257 Phase 3 — S2 Table `overflowMode`: the nearest Table · TableView's value reaches its
-   * Columns · Cells (`CATALOG_TABLE_OVERFLOW_OWNERS`) — the parts have no editor for it.
+   * ADR-257 Phase 3 — S2 `overflowMode`: the nearest Table · TableView's value reaches its
+   * Columns · Cells, a GridList's its items (`CATALOG_OVERFLOW_MODE_OWNERS`) — the parts have no
+   * editor for it.
    */
   const applyOwnerOverflowMode = (
     definitionId: DefinitionId,
@@ -792,7 +793,7 @@ export function resolveCatalogNode(
     parent: ParentContext | undefined,
   ): void => {
     const definition = lookupDefinition(definitionId);
-    const owners = CATALOG_TABLE_OVERFLOW_OWNERS[definition.name];
+    const owners = CATALOG_OVERFLOW_MODE_OWNERS[definition.name];
     if (!owners || definition.accepts.overflowMode !== "string") return;
     let owner = structuralParent(parent);
     while (
