@@ -37,6 +37,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/shared/src/catalog/runtime/calendarModel.ts` (Canvas 의 날짜 계산 — RAC 와 같은 `@internationalized/date` 호출) · `catalog/document/valueType.ts` (`calendarDuration`) · `resolution/resolver.ts` (달 묶음 반복) · `runtime/domBinding.tsx` · `delegatedDom.tsx` (Preview = RAC 직접).
   - 검증: G2 레퍼런스 starter 구조 비교 · G3 Calendar 계열 PASS · live `adr256-p9-live.mjs` 12/12.
 
+## [ADR-258 설계 수리 — 채널 보존 key와 AI 정규화 경로] - 2026-10-11
+
+### Documentation
+
+- **ADR-258 Phase 1~3 계획 보완**: Preview 기본값 key를 원래 색 공간·채널·alpha tuple로 정하고, 패널·AI 수정·AI 생성의 정규화 호출 지점과 실제 catalog host 통합 검증을 명시했다.
+  - **Why:** hexa는 무채색 hue를 잃어 기본값 편집을 놓치며, AI는 패널 wrapper를 경유하지 않고 생성 props도 별도 경로로 쓴다.
+  - 위치: `docs/adr/258-color-controls-canvas-gradient.md`, `docs/adr/design/258-color-controls-canvas-gradient-breakdown.md`, `docs/adr/reviews/258.md`.
+  - 설계 문서 수리만 반영했다. 제품 구현·ADR 상태 승격·새 리뷰 round 없음; 실제 AI 호출과 브라우저 gate는 구현 시 검증한다.
+
 ## [S2 ColorSwatch colorName] - 2026-10-11
 
 ### Added
