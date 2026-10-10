@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-11 ADR-258 Proposed**: Color 조작기 (ColorArea · ColorSlider · ColorWheel) 의 Canvas 그라데이션 · thumb + S2 색 축 prop (사용자 `/create-adr Color 계열 Canvas 그라데이션 + S2 채널 · 색 공간 prop` — 2026-10-11 사용자 결정 「Canvas 그라데이션까지 구현」 으로 2026-06-11 「제일 나중」 보류를 앞당김). 실측: binding 에 `value` · `defaultValue` · 색 축이 없고 Canvas 는 generic 상자 (ColorWheel 은 속이 찬 원판), Preview 는 RAC 를 자식 없이 그려 thumb · track 이 없으며 **ColorSlider 는 설치 RAC 가 value 없이 던진다** (`renderToString` 실측), Skia 셰이더 · `GradientShape` 는 있으나 production 생산자 0, 세 type 은 팔레트 · 원본 밖. 채택 B + E1 — 설치 react-stately `Color` 로 RAC 와 같은 stop 문자열을 내는 공용 함수 하나 (`colorControlGradient.ts`) 를 resolver 가 record 에 싣고 Canvas 는 `skiaPrimitive` (rgb `Screen` · 투명 stop premul · wheel evenodd 고리) 로 그린다 · thumb · track 은 레퍼런스대로 노드 (`ColorThumb` · `ColorWheelTrack` 신설, ColorSlider = `Label + SliderOutput + SliderTrack > ColorThumb`, contract +1) · 수동 CSS 3 파일의 thumb 중복을 rule 로. A (prop 만 — 사용자 기각) · C (SkSL 정확 색 — Skia 전용) · D (Preview DOM 읽기) · E2 (owner-drawn) 기각. G1 = 설치 RAC inline 문자열 동일 (독립 oracle) · G2 = G3 하니스 픽셀 (premul 원복 RED). 사용자 결정 3건 (기존 노드 처리 · thumb/track 값 기준 · 팔레트 노출). 열림 4 (Proposed 2 · Accepted 2), 합계 285. breakdown: [design/258](design/258-color-controls-canvas-gradient-breakdown.md).
+
 > **2026-10-10 ADR-257 후속 완료 (GridList · Badge `overflowMode`)**: 사용자 지시. S2 기본값 그대로 — GridList (ListView) truncate: 항목의 label · description Text 가 한 줄 · 말줄임 (wrap 이면 카드가 자란다), Badge wrap: 글자가 폭에서 줄을 바꾸고 truncate 면 한 줄 말줄임 (종전 `nowrap` 고정 → Changed). Canvas · Preview 같은 상자, live 6/6. 남은 것: G6 총비용 A/B — Implemented 승격 전.
 
 > **2026-10-10 ADR-257 Phase 5 완료 (TableView 를 S2 처럼 RAC Table 위로)**: 사용자 지시. Preview TableView = RAC `ResizableTableContainer` > RAC Table (S2 `TableView.tsx`), 부품은 Table 과 같은 경로 — RAC 선택 · 정렬 · 크기 조절이 붙는다. 감싼 표에서 Builder 폭 편집이 Preview 에 안 닿던 결함도 수리. live 21/21.
@@ -227,11 +229,11 @@
 | ├ Superseded                  |      18 |
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
-| 열려 있는 것 (`adr/*.md`)     |       3 |
-| ├ Proposed                    |       1 |
+| 열려 있는 것 (`adr/*.md`)     |       4 |
+| ├ Proposed                    |       2 |
 | ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
-| **합계**                      | **284** |
+| **합계**                      | **285** |
 
 > 2026-09-26 파일 실측 (ADR-235 승격 때): `completed/` 파일 268 − 비-ADR 5 = ADR 263 · `adr/` 직속 ADR 5 (150 Accepted · 162 · 910 · 911 · 921 Proposed) — 직전 표의 열림 9 · 완료 259 는 이동 누락으로 어긋나 있었다. 완료 내역 4 줄의 합 (260) 은 263 과 3 차이 — 개별 Status 재대조는 다음 정리 때.
 >
@@ -255,6 +257,11 @@
 
 - **상태**: Accepted — 2026-10-10 (사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격 · 사용자 결정 1 · 2 · 3 권장안 확정. **Phase 0 완료 2026-10-10** — 영향 집단 0 · 엔진 실측 GREEN (`tree.rs` `adr257_*`). **Phase 1 완료 2026-10-10** — 트랙 목록 (RAC oracle · live 6/6, G6 부분). **Phase 2 완료 2026-10-10** — colSpan (live G2 3/3). **Phase 3 완료 2026-10-10** — 칸 값 · 표 단위 값 (결정 6 · 7 = S2 대로, live 14/14 · GridList · Badge `overflowMode` 미룸). **Phase 4 완료 2026-10-10** — Preview 정렬 · 열 크기 조절 (결정 4 · 5, live 18/18). **Phase 5 완료 2026-10-10** — TableView 를 S2 처럼 RAC Table 위로 (사용자 지시, live 21/21). **후속 완료 2026-10-10** — GridList · Badge `overflowMode` (사용자 지시, live 6/6 · 남은 것 G6 총비용 A/B). 이전: 사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
 - **규모**: Phase 0 인벤토리 → 1 트랙 목록 (Table · TableView · 바운드) → 2 colSpan → 3 `align` · `showDivider` · `selectionStyle` · `overflowMode` → 4 Preview 정렬 · 열 크기 조절. breakdown: [design/257](design/257-table-column-tracks-breakdown.md)
+
+#### [258](258-color-controls-canvas-gradient.md) — Color 조작기 (ColorArea · ColorSlider · ColorWheel) 의 Canvas 그라데이션 · thumb + S2 색 축 prop
+
+- **상태**: Proposed — 2026-10-11 (사용자 `/create-adr` · 사용자 결정 「Canvas 그라데이션까지 구현」 으로 2026-06-11 보류를 앞당김. 리뷰 round 1 (Codex) HIGH 2 · MEDIUM 2 → 같은 날 문서 수리, pending 0 (수리 검증 round 미실시) — 기본값 편집 · undo 가 Preview 를 다시 시작 (key) · 색 값 = RAC `parseColor` 구문만 · 색 공간 · 채널 한 명령 정규화 · ColorSlider 글자 = RAC 글자. 다음 `/execute-adr 258`. 사용자 결정 3건은 해당 Phase 착수 전 — 기존 노드 (thumb 자식 없음) 처리 · thumb/track 값 기준 (수동 CSS 유지 · react-aria.adobe.com · S2) · 팔레트 노출)
+- **규모**: Phase 0 인벤토리 · 설치 RAC oracle 고정 → 1 공용 그라데이션 함수 + D2 accepts (`colorSpace` · `xChannel` · `yChannel` · `channel` · `label` · `defaultValue`) → 2 노드 구조 (`ColorThumb` · `ColorWheelTrack` · 원본 3 · contract +1) · Canvas `skiaPrimitive` · 수동 CSS → rule → 3 live · 팔레트 · ratchet. breakdown: [design/258](design/258-color-controls-canvas-gradient-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -283,13 +290,14 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                         | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제)      | 다음 Phase 6 picker                                                       |
+| 순위 | ADR                                                                                            | 착수 준비도                                                                                              | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제)                                           | 다음 Phase 6 picker                                                       |
 |  2   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 0 ~ 5 · 후속 (GridList · Badge `overflowMode`) 완료 (후속 미커밋) · 남음: G6 총비용 A/B | 256 Phase 5i 노드 Table 위 (충족)                                         |
-|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)        | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                  | 각 항목의 재개 조건 발생 시                                               |
+|  3   | [258](258-color-controls-canvas-gradient.md)                                                   | Proposed 2026-10-11 — 리뷰 round 1 수리 (pending 0) · 다음 `/execute-adr 258`                            | 256 Phase 7 Slider 부품 type (충족) · 사용자 결정 3건                     |
+|  4   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)                                             | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                  | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                       | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
