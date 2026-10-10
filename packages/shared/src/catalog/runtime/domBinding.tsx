@@ -1455,17 +1455,19 @@ function ruleDom(
   const domGet = (recordId: string) => root.domInputs.get(recordId);
   const domType = (entry: CatalogConsumerNode) => catalogTypeName(root, entry);
   const operationsTable =
-    type === "Table"
+    type === "Table" || type === "TableView"
       ? node
       : type === "Column"
         ? domGet(domGet(node.parentId)?.parentId ?? "")
         : type === "TableHeader" || type === "Row"
           ? catalogTrackTableOf(node, domGet, domType)
           : undefined;
+  // (A TableView is always in RAC's container — S2, Phase 5.)
   const resizable =
     !!operationsTable &&
-    domType(operationsTable) === "Table" &&
-    catalogTableResizable(operationsTable, domGet, domType);
+    (domType(operationsTable) === "TableView" ||
+      (domType(operationsTable) === "Table" &&
+        catalogTableResizable(operationsTable, domGet, domType)));
   let style = {
     ...authoredStyle(root, node),
     ...catalogTableTrackStyle(node, resizable),
@@ -1627,10 +1629,22 @@ function ruleDom(
           })
           .join(",")
       : undefined;
+  // ADR-257 Phase 5: RAC's resizable container keeps the column widths it started with (a Column's
+  // document width is RAC's `defaultWidth` there) — a document change of a width builds the Table
+  // again (the widths a drag left are runtime state: they give way to the document's edit).
+  const widthKey =
+    resizable && (lower === "table" || lower === "tableview")
+      ? tableColumnWidthKey(root, node)
+      : undefined;
   const element = createElement(
     Component,
     {
-      key: rowSpans === undefined ? node.id : `${node.id}|${rowSpans}`,
+      key:
+        widthKey !== undefined
+          ? `${node.id}|${widthKey}`
+          : rowSpans === undefined
+            ? node.id
+            : `${node.id}|${rowSpans}`,
       "data-catalog-id": node.id,
       ...binding?.staticAttrs,
       ...rest,
@@ -1664,7 +1678,7 @@ function ruleDom(
         : {}),
       // ADR-257 Phase 4: RAC sorts through the Table (`onSortChange`) — the Preview's runtime
       // state (사용자 결정 4); a Column's resizing needs the Table in RAC's container.
-      ...(lower === "table"
+      ...(lower === "table" || lower === "tableview"
         ? {
             sortDescriptor: catalogTableSortOf(node.props.sortDescriptor),
             ...(context.runtime?.setRuntimeProps
@@ -2267,6 +2281,32 @@ function withRuntime(
         : handler;
   }
   return cloneElement(element, patch);
+}
+
+/** A Table's · TableView's Columns' document widths (their ids and S2 width props). */
+function tableColumnIds(
+  root: CatalogCompositionRoot,
+  table: CatalogConsumerNode,
+): string[] {
+  return table.children.flatMap((childId) => {
+    const child = root.domInputs.get(childId);
+    return child && catalogTypeName(root, child) === "TableHeader"
+      ? [childId, ...child.children]
+      : [];
+  });
+}
+function tableColumnWidthKey(
+  root: CatalogCompositionRoot,
+  table: CatalogConsumerNode,
+): string {
+  return tableColumnIds(root, table)
+    .map((id) => {
+      const column = root.domInputs.get(id);
+      if (!column || catalogTypeName(root, column) !== "Column") return "";
+      const { width, defaultWidth, minWidth, maxWidth } = column.props;
+      return `${id}:${String(width)}:${String(defaultWidth)}:${String(minWidth)}:${String(maxWidth)}`;
+    })
+    .join(";");
 }
 
 /**

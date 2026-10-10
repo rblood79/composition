@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-257 Phase 5 — TableView 를 S2 처럼 RAC Table 위로] - 2026-10-10
+
+### Changed
+
+- **Preview 의 TableView 가 RAC Table 이다** (S2 1.8.0 `TableView.tsx` 구조 — RAC `ResizableTableContainer` > RAC `Table`): 종전에는 role 만 붙인 div 라 행 선택이 되지 않았다. 이제 Table 과 같이 RAC 의 선택 · `selectionStyle` · Column 정렬 · 열 크기 조절이 동작한다. 칸 모양은 Canvas 와 같은 부품 값을 읽는다.
+
+### Fixed
+
+- 크기 조절 열이 있는 Table · TableView 에서 Builder 의 열 폭 편집이 새로고침 전까지 Preview 에 반영되지 않던 문제.
+
 ## [ADR-257 Phase 4 — Table Preview 정렬 · 열 크기 조절] - 2026-10-10
 
 ### Added

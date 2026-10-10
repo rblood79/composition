@@ -181,3 +181,15 @@
 - live: G4-1 ~ 4 (전체 18/18) — 칩 → Preview 머리글 누름 (pointer events) 으로 a · b9 · b10 / b10 · b9 · a, `aria-sort` · 아이콘, 히스토리 · Canvas 순서 그대로 · 감싼 직후 120 · 1798 그대로 · 드래그 1798 → 1738 (머리글 · 3 행 Cell = RAC px) · 새로고침 뒤 문서 순서 · 폭. Compare Mode 의 좌표 누름은 Builder overlay 가 받아 드래그도 iframe 안 pointer events 로 보냈다.
 - 회귀: shared 1574 · builder 5318 · parity 811 · G3 Table 2 · type-check 0.
 - 미룸: TableView 의 정렬 · 크기 조절 (TableView 는 RAC 에 없는 S2 (react-spectrum.adobe.com/TableView) 컴포넌트이고, S2 1.8.0 은 그것을 RAC `Table` 위에 만든다 (`TableView.tsx` — `ResizableTableContainer` > `Virtualizer` > RAC `Table`, 감싸기는 늘). 우리 Preview 는 그 구조가 아니라 composition div 로 그려 (선택도 없다) 두 조작을 붙일 RAC 상태가 없다 — S2 구조로 옮기는 별도 작업), GridList · Badge `overflowMode` (Phase 3).
+
+## 10. Phase 5 결과 (2026-10-10, 미커밋) — TableView 를 S2 처럼 RAC Table 위로
+
+사용자 지시 「TableView 를 S2 처럼 RAC Table 위로 옮겨라」 (Phase 4 미룸 ① — 이 ADR 안에서 닫음, scope 는 사용자 지시가 정함).
+
+- 레퍼런스: TableView 는 RAC 에 없는 S2 컴포넌트 (react-spectrum.adobe.com/TableView). S2 1.8.0 `TableView.tsx` 는 `ResizableTableContainer` (늘) > `Virtualizer` > RAC `Table` (`selectionBehavior` = `selectionStyle`).
+- DOM: `domRegistry.tsx` `CatalogTableView` — container 가 `.react-aria-TableView` (variant · density · 레코드 style · `overflow: hidden`), 안쪽 RAC Table 은 테두리 · 바탕 없이 행 배치만 (`RESIZABLE_TABLE_STYLE` · `data-node-table`). `INTERNAL_RENDERERS.tableview`. 옛 `delegatedDom` `tableview` (composition div + `TABLEVIEW_CHILD_STYLE`) 와 `renderFacetDeclaration` delegating 등록을 지웠다 (inventory 33 → 32). 부품은 Table 과 같은 `ruleDom` 경로 — 모양은 부품 record (Canvas 와 같은 값), 옛 손 미러 (`TABLEVIEW_CHILD_STYLE` padding 8 · font 16/24) 는 쓰이지 않는다.
+- `ruleDom`: TableView 는 늘 `resizable` (트랙 = `var(--table-resized-tracks, …)` · 문서 `width` → `defaultWidth` · 첫 Column 이 RAC 폭을 씀), Table 의 정렬 props (`sortDescriptor` · `onSortChange`) 를 TableView 에도. `Table.css` 의 resizer 규칙을 TableView container 와 공용으로.
+- 결함 수리: 감싼 Table · TableView 는 문서 열 폭이 RAC `defaultWidth` 라 Builder 편집이 Preview 에 닿지 않았다 (live G1-4 FAIL 로 발견, 새로고침하면 맞음 — Phase 4 의 크기 조절 Table 에도 있었다). `tableColumnWidthKey` (Column 들의 id · S2 폭 4종) 를 Table 요소 key 에 넣어 문서 폭이 바뀌면 다시 만든다.
+- 테스트: `adr257TableOperations` +3 (TableView 구조 · 선택 · 정렬 · resizer · 문서 폭 편집), `adr257TableTracks` TableView 항목을 RAC 구조로, `renderFacetDeclarationContract` inventory. 원복 RED: `tableview` 등록 · TableView 늘 resizable · width key · TableView 정렬 props 4건 RED. Table 이 Column 을 구독하는 코드는 단위 · live (21/21) 모두 GREEN 이라 지웠다 (Preview delta 에서 Table 이 이미 다시 그려진다).
+- live: G5-1 ~ 3 + G1-4 (전체 21/21). 회귀: shared 1574 · builder 5321 · parity 811 · G3 Table 2 · type-check 0.
+- 삭제: 쓰는 곳이 없어진 `tableViewChildStyle.ts` (`TABLEVIEW_CHILD_STYLE` · `catalogTableViewCellTextStyle`) — 사용자 승인 (2026-10-10). TableView 의 Table 단위 `allowsSorting` prop (S2 에 없는 옛 surface) 은 그대로.

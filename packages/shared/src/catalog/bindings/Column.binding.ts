@@ -8,10 +8,10 @@ import type { PrimitiveBinding } from "../types";
  *   `COMPONENT_RULES_TABLE.Column`(containerStyles flex:1+padding 8px / sizes.M.fontWeight 600) 의
  *   box + `props.children` text 로 헤더 텍스트를 그린다.
  *
- * **DOM (TableView)**: `CATALOG_DELEGATED_DOM.tableview` 가 Column 을 role=columnheader div 로 직접
- *   그린다(`TABLEVIEW_CHILD_STYLE`). PALETTE_ORDER 미포함(단독 배치 불가).
+ * **DOM**: Table · TableView 안에서 RAC `Column` (ADR-257 Phase 5 — S2 TableView 처럼 RAC Table). PALETTE_ORDER 미포함
+ *   (단독 배치 불가).
  *
- * D1: TableView — role=columnheader div / Table — RAC `Column`.
+ * D1: RAC `Column`.
  * D2: children(컬럼 헤더 텍스트) + isRowHeader + size.
  * D3: 시각(헤더 텍스트 색/크기/굵기)은 theme rule(COMPONENT_RULES_TABLE.Column) — fontWeight 600
  *     (react-aria-starter `.column-header{font-weight:600}` 정본) + padding 8px(`{spacing.sm}`).

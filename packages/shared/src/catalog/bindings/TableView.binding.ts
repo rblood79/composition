@@ -24,12 +24,16 @@ import type { PrimitiveBinding } from "../types";
  *   `COMPONENT_RULES_TABLE.TableView.containerStyles` 가 공급한다.
  *
  * **D2 BC (사용자 명시 승인 2026-06-15)**: `isQuiet` boolean → `variant: "quiet"` 정규화. origin
- *   기본값은 variant:default 이므로 신규 TableView 영향 0. isQuiet:true 인 기존 TableView 는
- *   `delegatedDom.tsx` `tableview` 가 `data-variant="quiet"` 로 매핑(시각 동일 — border none).
+ *   기본값은 variant:default 이므로 신규 TableView 영향 0. (quiet 변형은 resolver 가 `isQuiet` 에서
+ *   파생하는 `variant` — 2026-10-10 역전환.)
  *
- * D1: composition `<div>` (internal source). role="grid" 는 `delegatedDom.tsx` `tableview` 가 부여.
+ * D1 (ADR-257 Phase 5, 2026-10-10 — 사용자 「TableView 를 S2 처럼 RAC Table 위로 옮겨라」): S2 1.8.0
+ *   `TableView.tsx` 처럼 RAC `ResizableTableContainer` (늘) > RAC `Table` (`domRegistry`
+ *   `CatalogTableView` — container 가 `.react-aria-TableView` 상자, 부품은 Table 과 같은
+ *   `ruleDom` 경로). RAC 의 선택 · 정렬 · 열 크기 조절. S2 `Virtualizer` 는 쓰지 않는다 (부품이 노드).
  * D2: variant/density(appearance) + selectionMode/allowsSorting(state) surface.
- *     allowsResizingColumns 는 2026-09-10 제거 — 소비처 0 (미구현 surface).
+ *     allowsResizingColumns 는 2026-09-10 제거 — 소비처 0 (미구현 surface). 정렬 · 크기 조절은
+ *     S2 대로 Column 의 `allowsSorting` · `allowsResizing` 이다 (ADR-257 Phase 4).
  * D3: 시각(variant default: layer-1+border / quiet: transparent)은 theme rule
  *     (COMPONENT_RULES_TABLE.TableView). Skia generic box shell ↔ DOM `react-aria-TableView
  *     [data-variant]` 시각 대칭.
@@ -37,11 +41,8 @@ import type { PrimitiveBinding } from "../types";
 export const tableViewBinding: PrimitiveBinding = {
   source: {
     kind: "internal",
-    // 2026-06-25: "div" → "tableview". TableView 는 자식(TableHeader/Column/TableBody/Row/Cell)
-    //   노드를 직접 그리는 컨테이너다(disclosuregroup/nav 동형). renderer:"div" 는 domRegistry
-    //   DELEGATING_INTERNAL_RENDERERS 매칭(binding.source.renderer 기준)을 못 타 generic div 경로로
-    //   빠지고 자식이 통째로 미렌더됐다(Preview shell 만 → Skia 와 비대칭). 고유 renderer id +
-    //   renderFacetDeclaration delegating-internal 등록으로 `delegatedDom.tsx` `tableview` 를 탄다.
+    // ADR-257 Phase 5: `INTERNAL_RENDERERS.tableview` (`CatalogTableView` — RAC Table in RAC's
+    //   resizable container); its parts render as rule nodes like a Table's (no delegated render).
     renderer: "tableview",
   },
   props: {

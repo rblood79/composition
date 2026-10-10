@@ -74,7 +74,9 @@ import {
 // internal 31 → 32 (2026-09-17): ADR-201 fileupload 추가.
 // ADR-256 Phase 3 (2026-10-08): + Radio (RAC RadioField > RadioButton 노드 트리).
 // (ADR-256 Phase 8e: − disclosurecontent.)
-const INVENTORY = { delegatingInternal: 33, delegatingRac: 16 } as const;
+// internal 33 → 32 (2026-10-10): ADR-257 Phase 5 tableview 제거 — TableView 는 S2 처럼 RAC Table
+//   (`domRegistry` `CatalogTableView`) 이고 부품은 Table 과 같은 ruleDom 경로로 그린다.
+const INVENTORY = { delegatingInternal: 32, delegatingRac: 16 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == domRegistry DELEGATING_INTERNAL (멤버 + 순서)", () => {

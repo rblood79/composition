@@ -249,10 +249,16 @@ describe("ADR-257 Table column tracks", () => {
     const html = renderToStaticMarkup(
       renderCatalogDom(workspace.root, recordOf(workspace, "t").id),
     );
-    const grids = html.match(
-      /data-tableview-part="(TableHeader|Row)"[^>]*style="[^"]*display:grid;[^"]*grid-template-columns:90px minmax\(75px, 1fr\)/g,
-    );
-    expect(grids?.length).toBe(3);
+    // ADR-257 Phase 5: S2's TableView — RAC's Table in RAC's resizable container, its header row
+    // and Rows on RAC's column widths (the static tracks until RAC has measured).
+    expect(html).toMatch(/<div[^>]*class="react-aria-TableView"/);
+    expect(html).toMatch(/<table[^>]*data-node-table=""/);
+    const tracks = "var\\(--table-resized-tracks, 90px minmax\\(75px, 1fr\\)\\)";
+    expect(
+      html.match(new RegExp(`display:grid;grid-template-columns:${tracks}`, "g"))
+        ?.length,
+    ).toBe(2);
+    expect(html).toMatch(new RegExp(`--table-column-tracks:${tracks}`));
     const [head, r1] = columnBoxes(workspace, [
       ["c0", "c1"],
       ["r1d0", "r1d1"],

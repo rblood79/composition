@@ -658,7 +658,8 @@ const previewSort = () =>
     const doc = document.querySelector("#previewFrame")?.contentDocument;
     const th = doc?.querySelector(`[data-catalog-id="${CSS.escape(column)}"]`);
     return {
-      order: [...(doc?.querySelectorAll("[data-node-table] tbody [role='row']") ?? [])].map(
+      // (This Table's body — the page also has the TableView's.)
+      order: [...(th?.closest("table")?.querySelectorAll("tbody [role='row']") ?? [])].map(
         (row) => row.querySelector("[role='rowheader'], [role='gridcell']")?.textContent,
       ),
       ariaSort: th?.getAttribute("aria-sort") ?? null,
@@ -725,7 +726,9 @@ const previewWidths = () =>
         return el ? Math.round(el.getBoundingClientRect().width * 100) / 100 : null;
       };
       const root = window.__COMPOSITION_CATALOG__.workspace.root;
-      const table = doc?.querySelector("[data-node-table]");
+      const table = doc
+        ?.querySelector(`[data-catalog-id="${CSS.escape(columns[0])}"]`)
+        ?.closest("table");
       return {
         header: columns.map(width),
         rows: rows.map((row) => root.canvasInputs.get(row).children.map(width)),
@@ -834,6 +837,100 @@ record(
     near(reopened.header, wrapped0.header, 1) &&
     rowsOnHeader(reopened),
   { reopened, reopenedSort, wrapped0: wrapped0.header },
+);
+// ── G5: TableView on RAC's Table (Phase 5 — S2 TableView.tsx) ──
+const tvId = (await recordsOf("TableView", "TableView"))[0];
+await insertVia("TableBody", "Insert Row", 2, "TableView");
+await page.waitForTimeout(800);
+const tvColumns = await recordsOf("Column", "TableView");
+const tvRows = await recordsOf("Row", "TableView");
+const tvTexts = ["b10", "a", "b9"];
+for (let k = 0; k < tvRows.length && k < tvTexts.length; k++)
+  await setOn(await firstCellOf(tvRows[k]), { children: tvTexts[k] });
+await page.waitForTimeout(1200);
+const tvShape = await page.evaluate(
+  ({ id, rows }) => {
+    const doc = document.querySelector("#previewFrame")?.contentDocument;
+    const shell = doc?.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+    const root = window.__COMPOSITION_CATALOG__.workspace.root;
+    const rect = root.getGeometry([id]).get(id);
+    const box = shell?.getBoundingClientRect();
+    return {
+      shellClass: shell?.className ?? null,
+      table: shell?.querySelector(":scope > table[data-node-table]")?.getAttribute("role") ?? null,
+      canvas: [Math.round(rect.width * 100) / 100, Math.round(rect.height * 100) / 100],
+      dom: box ? [Math.round(box.width * 100) / 100, Math.round(box.height * 100) / 100] : null,
+      rows: rows.length,
+    };
+  },
+  { id: tvId, rows: tvRows },
+);
+const g5Lines = await measure("TableView");
+record(
+  "G5-1 TableView is RAC's Table in RAC's container (S2): the box and every column agree on the Canvas and in the Preview",
+  tvShape.shellClass === "react-aria-TableView" &&
+    tvShape.table === "grid" &&
+    tvShape.dom !== null &&
+    Math.abs(tvShape.canvas[0] - tvShape.dom[0]) <= 1 &&
+    Math.abs(tvShape.canvas[1] - tvShape.dom[1]) <= 1 &&
+    aligned(g5Lines, "canvas") &&
+    aligned(g5Lines, "dom") &&
+    agree(g5Lines),
+  { tvShape, header: g5Lines[0], row: g5Lines[1] },
+);
+await setOn(tvId, { selectionMode: "single" });
+await page.waitForTimeout(1200);
+const tvHistory = () =>
+  page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.history.getSnapshot().labels.length);
+await pressRow(tvRows[1]);
+await page.waitForTimeout(800);
+const tvSelected = await page.evaluate((rows) => {
+  const doc = document.querySelector("#previewFrame")?.contentDocument;
+  return rows.map((id) =>
+    doc?.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`)?.getAttribute("aria-selected") ?? null,
+  );
+}, tvRows);
+record(
+  "G5-2 TableView selection (RAC): a press selects the row in the Preview",
+  tvSelected[1] === "true" && tvSelected[0] !== "true",
+  { tvSelected },
+);
+await chip(tvColumns[0], "Allow Sorting");
+const tvBefore = await tvHistory();
+const tvSort = () =>
+  page.evaluate(
+    ({ column, rows }) => {
+      const doc = document.querySelector("#previewFrame")?.contentDocument;
+      const th = doc?.querySelector(`[data-catalog-id="${CSS.escape(column)}"]`);
+      const body = doc
+        ?.querySelector(`[data-catalog-id="${CSS.escape(rows[0])}"]`)
+        ?.closest("tbody");
+      return {
+        order: [...(body?.querySelectorAll("[role='row']") ?? [])].map(
+          (row) => row.querySelector("[role='rowheader'], [role='gridcell']")?.textContent,
+        ),
+        ariaSort: th?.getAttribute("aria-sort") ?? null,
+      };
+    },
+    { column: tvColumns[0], rows: tvRows },
+  );
+await pressPreview(tvColumns[0]);
+await page.waitForTimeout(800);
+const tvAscending = await tvSort();
+const tvCanvas = await page.evaluate((rows) => {
+  const root = window.__COMPOSITION_CATALOG__.workspace.root;
+  return rows.map((row) => root.canvasInputs.get(root.canvasInputs.get(row).children[0])?.props.children);
+}, tvRows);
+const expected = [...tvCanvas].sort((a, b) =>
+  String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" }),
+);
+record(
+  "G5-3 TableView sort (Design chip → Preview header press): rows by the cell text, aria-sort ascending; the Canvas keeps the document order, no history step",
+  JSON.stringify(tvAscending.order) === JSON.stringify(expected) &&
+    tvAscending.ariaSort === "ascending" &&
+    JSON.stringify(tvCanvas.slice(0, 3)) === JSON.stringify(tvTexts) &&
+    (await tvHistory()) === tvBefore,
+  { tvAscending, expected, tvCanvas },
 );
 await page.screenshot({ path: `${OUT}/compare.png` });
 record("G1-6 no page errors", errors.length === 0, { errors });

@@ -96,15 +96,6 @@ import {
   Breadcrumbs as AriaBreadcrumbs,
 } from "react-aria-components/Breadcrumbs";
 import { Menu as AriaMenu } from "react-aria-components/Menu";
-import {
-  TABLEVIEW_CHILD_STYLE,
-  catalogTableViewCellTextStyle,
-} from "./tableViewChildStyle";
-import {
-  catalogCellSpan,
-  catalogTableSelectionPartHidden,
-} from "./tableTracks";
-import { resolveCatalogDensityField } from "../resolvers/resolveCatalogContainer";
 import { resolveStaticItemKey } from "../slotRoles";
 import {
   catalogDisclosureExpanded,
@@ -1546,76 +1537,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         },
         ...treeItemElements(input, [input.node]),
       ),
-  },
-  tableview: {
-    // The parts are composition divs drawn by the TableView itself (`TABLEVIEW_CHILD_STYLE`).
-    render: (input) => {
-      const props = input.node.props;
-      const density = props.density as string | undefined;
-      const typeOf = (entry: CatalogConsumerNode) =>
-        catalogTypeName(input.root, entry);
-      const get = (id: string) => input.root.domInputs.get(id);
-      const part = (node: CatalogConsumerNode): ReactElement[] => {
-        const type = catalogTypeName(input.root, node);
-        // (A highlight TableView has no selection checkbox column — the Canvas's predicate, S2.)
-        if (catalogTableSelectionPartHidden(node, get, typeOf)) return [];
-        const spec = TABLEVIEW_CHILD_STYLE[type];
-        if (!spec) return [input.renderChild(node.id)];
-        const paddingY =
-          type === "Column" || type === "Cell"
-            ? resolveCatalogDensityField(type, density, "paddingY")
-            : undefined;
-        const kids = childrenOf(input.root, node);
-        // ADR-257: the header row · each Row is a grid on the Columns' shared tracks (as the
-        // Canvas `styleOf` — `catalogTableRowTracks`).
-        const tracks = node.derivedProps?._tableTracks;
-        return [
-          createElement(
-            "div",
-            {
-              key: node.id,
-              "data-catalog-id": node.id,
-              "data-tableview-part": type,
-              role: spec.role,
-              style: {
-                ...spec.style,
-                ...(type === "Column" || type === "Cell"
-                  ? catalogTableViewCellTextStyle(node)
-                  : {}),
-                ...(typeof tracks === "string"
-                  ? { display: "grid", gridTemplateColumns: tracks }
-                  : {}),
-                ...(type === "Cell" && catalogCellSpan(node) > 1
-                  ? { gridColumn: `span ${catalogCellSpan(node)}` }
-                  : {}),
-                ...(paddingY !== undefined
-                  ? { paddingTop: paddingY, paddingBottom: paddingY }
-                  : {}),
-              },
-            },
-            ...(kids.length
-              ? kids.flatMap(part)
-              : typeof node.props.children === "string"
-                ? [node.props.children]
-                : []),
-          ),
-        ];
-      };
-      return createElement(
-        "div",
-        {
-          ...marker(input),
-          className: "react-aria-TableView",
-          "data-variant": str(
-            props.variant ?? (props.isQuiet === true ? "quiet" : "default"),
-          ),
-          "data-density": opt(density),
-          role: "grid",
-          style: { overflow: "hidden", ...input.style },
-        },
-        ...children(input).flatMap(part),
-      );
-    },
   },
   filetrigger: {
     render: (input) => {

@@ -10,10 +10,10 @@ import type { PrimitiveBinding } from "../types";
  * **Canvas**: `COMPONENT_RULES_TABLE.Row`(containerStyles flex row, variant transparent) → shell
  *   box(자식 Cell 이 내용 담당). children/text 미보유 → shell-only.
  *
- * **DOM**: RAC Table 안에서는 `INTERNAL_RENDERERS.row` (RAC `Row`, ADR-256 Phase 5i). TableView 안에서는
- *   delegatedDom `tableview` 가 `role=row` div 로 그린다 (`TABLEVIEW_CHILD_STYLE.Row`).
+ * **DOM**: Table · TableView 안에서 `INTERNAL_RENDERERS.row` (RAC `Row`, ADR-256 Phase 5i)
+ *   (ADR-257 Phase 5 — S2 TableView 처럼 RAC Table).
  *
- * D1: RAC Table 안 RAC `Row` / TableView 안 composition `role=row` div.
+ * D1: RAC `Row`.
  * D2: 편집 surface 최소(컨테이너 — 자식 Cell 이 내용).
  * D3: 시각(행 배경 transparent + flex row 배치)은 theme rule(COMPONENT_RULES_TABLE.Row).
  */

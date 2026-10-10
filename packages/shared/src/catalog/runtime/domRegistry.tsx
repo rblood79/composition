@@ -130,6 +130,55 @@ function CatalogTable({
     : table;
 }
 
+/**
+ * ADR-257 Phase 5 — the TableView, as S2 1.8.0 builds it (`TableView.tsx`): RAC's
+ * `ResizableTableContainer` (always — S2 wraps every TableView) is the TableView's box (the
+ * `.react-aria-TableView` rule: variant · border · background · its record's style), and RAC's
+ * `Table` inside lays the node tree's parts out (the same parts as a Table — `TableHeader > Column`,
+ * `TableBody > Row > Cell`, drawn by `ruleDom`). Its rows take RAC's column widths as tracks
+ * (`--table-resized-tracks`, `tableOperationsDom`). S2's `Virtualizer` is not used: the parts are
+ * nodes (the Table's choice, ADR-256 Phase 5i).
+ */
+function CatalogTableView({
+  selectionStyle,
+  density,
+  overflowMode: _overflowMode,
+  allowsSorting: _allowsSorting,
+  tableResizable: _tableResizable,
+  style,
+  ...props
+}: Record<string, unknown> & { style?: CSSProperties }) {
+  const {
+    "data-variant": variant,
+    "data-quiet": _quiet,
+    "data-catalog-id": catalogId,
+    ...tableProps
+  } = props as Record<string, unknown>;
+  return createElement(
+    ResizableTableContainer as ElementType,
+    {
+      className: "react-aria-TableView",
+      "data-catalog-id": catalogId,
+      "data-variant": variant ?? "default",
+      "data-density": typeof density === "string" ? density : undefined,
+      style: { overflow: "hidden", ...style },
+    },
+    createElement(RacTable as ElementType, {
+      "aria-label": "Table",
+      ...tableProps,
+      // S2: `selectionStyle` highlight = RAC `selectionBehavior="replace"` (Phase 3).
+      selectionBehavior: resolveSelectionBehavior({
+        selectionStyle,
+        fallback: "toggle",
+      }),
+      "data-selection-style":
+        selectionStyle === "highlight" ? "highlight" : undefined,
+      style: RESIZABLE_TABLE_STYLE,
+      "data-node-table": "",
+    }),
+  );
+}
+
 function CatalogKeyboard(props: HTMLAttributes<HTMLElement>) {
   return createElement(Keyboard, {
     className: "react-aria-Keyboard",
@@ -167,6 +216,8 @@ export const INTERNAL_RENDERERS: Readonly<
   // ADR-256 Phase 5i: RAC Table from its node tree (the reference's `Table > TableHeader > Column`,
   // `TableBody > Row > Cell`); a bound Table's rows are its projected records (`catalogBoundRows`).
   table: CatalogTable,
+  // ADR-257 Phase 5: the TableView is RAC's Table in RAC's resizable container (S2).
+  tableview: CatalogTableView,
   tableheader: RacTableHeader,
   column: RacColumn,
   tablebody: RacTableBody,
