@@ -542,13 +542,6 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       workspace.execute(
         detachInstances({ ids: [FIELD], newId: workspace.newId }),
       );
-      // (The picker's visible months — RSP `maxVisibleMonths`, which RAC's context does not carry.)
-      workspace.execute(
-        setFields({
-          targets: [{ kind: "node", id: FIELD }],
-          props: { maxVisibleMonths: set(2) },
-        }),
-      );
       const calendar = "project:node:free-calendar" as NodeId;
       workspace.execute(
         insertNodes({
@@ -559,7 +552,8 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
               id: calendar,
               definitionId: `lib:definition:origin-component-${calendarType}`,
               children: [],
-              props: {},
+              // (Its own visible duration — ADR-256 Phase 9: RAC's picker context carries none.)
+              props: { visibleDuration: set({ months: 2 }) },
               visual: {},
               sizing: {},
               descendantOverrides: [],
@@ -578,7 +572,7 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       );
       expect(drawn).toBeDefined();
       // RAC's calendar context (the picker's disabled state — the node does not override it to
-      // false), the picker's size and visible months.
+      // false), the picker's size and the calendar's own visible duration.
       expect(drawn!.hasAttribute("data-disabled")).toBe(true);
       expect(drawn!.getAttribute("data-size")).toBe("L");
       expect(drawn!.querySelectorAll("table")).toHaveLength(2);

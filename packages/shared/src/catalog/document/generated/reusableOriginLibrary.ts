@@ -1151,6 +1151,26 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-calendar"
   },
   {
+    "id": "lib:definition:origin-component-calendarmonthpicker",
+    "name": "CalendarMonthPicker",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-calendarmonthpicker"
+  },
+  {
+    "id": "lib:definition:origin-component-calendaryearpicker",
+    "name": "CalendarYearPicker",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-calendaryearpicker"
+  },
+  {
     "id": "lib:definition:origin-component-datepicker",
     "name": "DatePicker",
     "mode": "composite",
@@ -5633,13 +5653,11 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-calendar",
     "definitionId": "lib:definition:type-Calendar",
     "children": [
-      "lib:template:component-calendar__1",
-      "lib:template:component-calendar__2"
+      "lib:template:component-calendar__months"
     ],
     "props": {
       "variant": "default",
       "size": "M",
-      "maxVisibleMonths": 1,
       "isDisabled": false,
       "isReadOnly": false,
       "locale": "{locale}",
@@ -5648,9 +5666,40 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
-    "id": "lib:template:component-calendar__1",
+    "id": "lib:template:component-calendar__months",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-calendar__month"
+    ],
+    "props": {},
+    "visual": {
+      "gap": 16
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row"
+    }
+  },
+  {
+    "id": "lib:template:component-calendar__month",
+    "definitionId": "lib:definition:type-CalendarMonth",
+    "children": [
+      "lib:template:component-calendar__header",
+      "lib:template:component-calendar__grid"
+    ],
+    "props": {
+      "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__header",
     "definitionId": "lib:definition:type-CalendarHeader",
-    "children": [],
+    "children": [
+      "lib:template:component-calendar__previous",
+      "lib:template:component-calendar__heading",
+      "lib:template:component-calendar__next"
+    ],
     "props": {
       "size": "M"
     },
@@ -5664,13 +5713,249 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     }
   },
   {
-    "id": "lib:template:component-calendar__2",
-    "definitionId": "lib:definition:type-CalendarGrid",
+    "id": "lib:template:component-calendar__previous",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-calendar__previous_icon"
+    ],
+    "props": {
+      "slot": "previous",
+      "children": ""
+    },
+    "showWhen": {
+      "all": [
+        "isFirstMonth"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__previous_icon",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
+    "props": {
+      "iconName": "chevron-left",
+      "size": "XS"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__heading",
+    "definitionId": "lib:definition:type-CalendarHeading",
+    "children": [],
+    "props": {
+      "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__next",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-calendar__next_icon"
+    ],
+    "props": {
+      "slot": "next",
+      "children": ""
+    },
+    "showWhen": {
+      "all": [
+        "isLastMonth"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__next_icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-right",
+      "size": "XS"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__grid",
+    "definitionId": "lib:definition:type-CalendarGrid",
+    "children": [
+      "lib:template:component-calendar__weekday",
+      "lib:template:component-calendar__cell"
+    ],
     "props": {
       "defaultToday": true,
       "variant": "default",
       "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__weekday",
+    "definitionId": "lib:definition:type-CalendarHeaderCell",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendar__cell",
+    "definitionId": "lib:definition:type-CalendarCell",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker",
+    "definitionId": "lib:definition:type-CalendarMonthPicker",
+    "children": [
+      "lib:template:component-calendarmonthpicker__select"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__select",
+    "definitionId": "lib:definition:type-Select",
+    "children": [
+      "lib:template:component-calendarmonthpicker__trigger",
+      "lib:template:component-calendarmonthpicker__popover"
+    ],
+    "props": {
+      "size": "S",
+      "placeholder": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-calendarmonthpicker__value",
+      "lib:template:component-calendarmonthpicker__icon"
+    ],
+    "props": {
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__value",
+    "definitionId": "lib:definition:type-SelectValue",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-down"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-calendarmonthpicker__listbox"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__listbox",
+    "definitionId": "lib:definition:type-ListBox",
+    "children": [
+      "lib:template:component-calendarmonthpicker__item"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendarmonthpicker__item",
+    "definitionId": "lib:definition:type-ListBoxItem",
+    "children": [],
+    "props": {
+      "children": "{formatted}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker",
+    "definitionId": "lib:definition:type-CalendarYearPicker",
+    "children": [
+      "lib:template:component-calendaryearpicker__select"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__select",
+    "definitionId": "lib:definition:type-Select",
+    "children": [
+      "lib:template:component-calendaryearpicker__trigger",
+      "lib:template:component-calendaryearpicker__popover"
+    ],
+    "props": {
+      "size": "S",
+      "placeholder": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-calendaryearpicker__value",
+      "lib:template:component-calendaryearpicker__icon"
+    ],
+    "props": {
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__value",
+    "definitionId": "lib:definition:type-SelectValue",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-down"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__popover",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-calendaryearpicker__listbox"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__listbox",
+    "definitionId": "lib:definition:type-ListBox",
+    "children": [
+      "lib:template:component-calendaryearpicker__item"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-calendaryearpicker__item",
+    "definitionId": "lib:definition:type-ListBoxItem",
+    "children": [],
+    "props": {
+      "children": "{formatted}"
     },
     "visual": {}
   },
@@ -5688,7 +5973,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Date Picker",
       "size": "M",
       "labelPosition": "top",
-      "maxVisibleMonths": 1,
       "hideTimeZone": true,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
@@ -5786,7 +6070,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "label": "Date Range",
       "size": "M",
       "labelPosition": "top",
-      "maxVisibleMonths": 1,
       "hideTimeZone": true,
       "shouldForceLeadingZeros": true,
       "isDisabled": false,
@@ -6023,8 +6306,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-rangecalendar",
     "definitionId": "lib:definition:type-RangeCalendar",
     "children": [
-      "lib:template:component-rangecalendar__1",
-      "lib:template:component-rangecalendar__2"
+      "lib:template:component-rangecalendar__months"
     ],
     "props": {
       "variant": "default",
@@ -6037,8 +6319,82 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
-    "id": "lib:template:component-rangecalendar__1",
+    "id": "lib:template:component-rangecalendar__months",
+    "definitionId": "lib:definition:type-frame",
+    "children": [
+      "lib:template:component-rangecalendar__month"
+    ],
+    "props": {},
+    "visual": {
+      "gap": 16
+    },
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row"
+    }
+  },
+  {
+    "id": "lib:template:component-rangecalendar__month",
+    "definitionId": "lib:definition:type-CalendarMonth",
+    "children": [
+      "lib:template:component-rangecalendar__header",
+      "lib:template:component-rangecalendar__grid"
+    ],
+    "props": {
+      "size": "M"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__header",
     "definitionId": "lib:definition:type-CalendarHeader",
+    "children": [
+      "lib:template:component-rangecalendar__previous",
+      "lib:template:component-rangecalendar__heading",
+      "lib:template:component-rangecalendar__next"
+    ],
+    "props": {
+      "size": "M"
+    },
+    "visual": {},
+    "layout": {
+      "display": "flex",
+      "flexDirection": "row",
+      "justifyContent": "space-between",
+      "alignItems": "center",
+      "verticalAlign": "middle"
+    }
+  },
+  {
+    "id": "lib:template:component-rangecalendar__previous",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-rangecalendar__previous_icon"
+    ],
+    "props": {
+      "slot": "previous",
+      "children": ""
+    },
+    "showWhen": {
+      "all": [
+        "isFirstMonth"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__previous_icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {
+      "iconName": "chevron-left",
+      "size": "XS"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__heading",
+    "definitionId": "lib:definition:type-CalendarHeading",
     "children": [],
     "props": {
       "size": "M"
@@ -6046,14 +6402,58 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "visual": {}
   },
   {
-    "id": "lib:template:component-rangecalendar__2",
-    "definitionId": "lib:definition:type-CalendarGrid",
+    "id": "lib:template:component-rangecalendar__next",
+    "definitionId": "lib:definition:type-Button",
+    "children": [
+      "lib:template:component-rangecalendar__next_icon"
+    ],
+    "props": {
+      "slot": "next",
+      "children": ""
+    },
+    "showWhen": {
+      "all": [
+        "isLastMonth"
+      ]
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__next_icon",
+    "definitionId": "lib:definition:type-Icon",
     "children": [],
+    "props": {
+      "iconName": "chevron-right",
+      "size": "XS"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__grid",
+    "definitionId": "lib:definition:type-CalendarGrid",
+    "children": [
+      "lib:template:component-rangecalendar__weekday",
+      "lib:template:component-rangecalendar__cell"
+    ],
     "props": {
       "defaultToday": true,
       "variant": "default",
       "size": "M"
     },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__weekday",
+    "definitionId": "lib:definition:type-CalendarHeaderCell",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-rangecalendar__cell",
+    "definitionId": "lib:definition:type-CalendarCell",
+    "children": [],
+    "props": {},
     "visual": {}
   },
   {
@@ -6388,6 +6788,15 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
   {
     "id": "lib:template:component-dateinput",
     "definitionId": "lib:definition:type-DateInput",
+    "children": [
+      "lib:template:component-dateinput__segment"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-dateinput__segment",
+    "definitionId": "lib:definition:type-DateSegment",
     "children": [],
     "props": {},
     "visual": {}

@@ -25,8 +25,11 @@ export const RAC_REQUIRED_PARTS: Readonly<
   DatePicker: [["DateInput"]],
   DateRangePicker: [["DateInput"]],
   Slider: [["SliderTrack"], ["SliderThumb"]],
-  Calendar: [["CalendarGrid"]],
-  RangeCalendar: [["CalendarGrid"]],
+  // ADR-256 Phase 9: a calendar shows its months in its month block (repeat template) — its grid,
+  //   and its grid's cell template (RAC draws the dates through it).
+  Calendar: [["CalendarMonth"], ["CalendarGrid"]],
+  RangeCalendar: [["CalendarMonth"], ["CalendarGrid"]],
+  CalendarGrid: [["CalendarCell"]],
   // ADR-256 Phase 8c (G0 ⑨): a Disclosure without its trigger Button has no way to expand.
   Disclosure: [["Button"]],
   Tabs: [["TabList"]],

@@ -1,10 +1,8 @@
 /**
  * ADR-142 family ⑦(date) — RangeCalendar primitive 의 `PrimitiveBinding`.
  *
- * inventory(§2-1) primitive. composition wrapper(`RangeCalendar.tsx`)가 RAC RangeCalendar +
- * grid 합성(internal source). 범위 선택 날짜 grid 는 Calendar 와 시각 동형 → Canvas 는 동일
- * `calendar_grid` skiaPrimitive(replace) escape 재사용
- * (ADR-912 단계 5 (1b) — skiaLegacy 제거).
+ * ADR-256 Phase 9: DOM = RAC `RangeCalendar` drawing its node tree — the same month blocks as a
+ * Calendar (`delegatedDom` `rangecalendar`); the Canvas shell is the Calendar's (`calendar_grid`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -12,6 +10,8 @@ import {
   DATE_CALENDAR_SYSTEM_PROP,
   DATE_LOCALE_PROP,
   FIRST_DAY_OF_WEEK_PROP,
+  VISIBLE_DURATION_PROP,
+  WEEKS_IN_MONTH_PROP,
 } from "./dateLocaleProps";
 
 export const rangeCalendarBinding: PrimitiveBinding = {
@@ -61,13 +61,8 @@ export const rangeCalendarBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
-      maxVisibleMonths: {
-        kind: "number",
-        label: "Max Visible Months",
-        section: "content",
-        min: 1,
-        default: 1,
-      },
+      visibleDuration: VISIBLE_DURATION_PROP,
+      weeksInMonth: WEEKS_IN_MONTH_PROP,
       allowsNonContiguousRanges: {
         kind: "boolean",
         label: "Non-contiguous Ranges",

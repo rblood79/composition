@@ -35,12 +35,13 @@ const RAC_DEFAULTS: ReadonlyArray<[type: string, key: string, value: unknown]> =
     ["TimeField", "granularity", "minute"],
     ["DatePicker", "granularity", "day"],
     ["DatePicker", "pageBehavior", "visible"],
-    ["DatePicker", "maxVisibleMonths", 1],
     ["DateRangePicker", "granularity", "day"],
     ["DateRangePicker", "pageBehavior", "visible"],
-    ["DateRangePicker", "maxVisibleMonths", 1],
     ["Calendar", "pageBehavior", "visible"],
     ["RangeCalendar", "pageBehavior", "visible"],
+    // ADR-256 Phase 9 — RAC `useCalendarState` 기본 visibleDuration
+    ["Calendar", "visibleDuration", { months: 1 }],
+    ["RangeCalendar", "visibleDuration", { months: 1 }],
     // field 가족 necessityIndicator 는 별도 커밋 (85cfa6701) — RSP 기본 icon
     ["TextField", "necessityIndicator", "icon"],
   ];

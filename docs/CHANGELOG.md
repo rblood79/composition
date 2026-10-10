@@ -11,6 +11,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 9 — Calendar 노드 트리 · 표시 기간] - 2026-10-11
+
+### Added
+
+- **Calendar · RangeCalendar `visibleDuration`** (S2 / RAC): 한 번에 보이는 기간 — 수량 + Days / Weeks / Months (Design 패널 Property 탭 「Visible Duration」). 일 · 주 보기는 한 묶음에 그 날짜 범위 (제목 = 날짜 범위), 달 보기는 달마다 묶음 하나 (넘김 버튼은 첫 묶음 왼쪽 · 끝 묶음 오른쪽).
+- **Calendar · RangeCalendar `weeksInMonth`**: 달 grid 의 주 행 수 (1 ~ 6, 비우면 그 달에 필요한 만큼).
+- **달 · 해 picker** (RAC `CalendarMonthPicker` · `CalendarYearPicker`): 달력 header 에 넣으면 제목 대신 달 · 해 Select 로 넘긴다 — Design "+" 의 header 넣기 목록.
+- **반복 template 노드**: 날짜 칸 (`CalendarCell`) · 요일 칸 (`CalendarHeaderCell`) · 날짜 조각 (`DateSegment`) 은 노드 하나를 RAC 가 날짜 · 요일 · 조각마다 그린다 (Preview). 칸 안에 노드를 더하면 Preview 의 모든 칸에 나온다.
+
+### Changed
+
+- **Calendar · RangeCalendar 의 구조가 레퍼런스 예제와 같다**: `Calendar > 달 묶음 (CalendarMonth) > header (이전 Button · CalendarHeading · 다음 Button) + CalendarGrid`. 넘김 버튼 · 제목 · grid 를 Layers 에서 고르고 Styles 로 바꿀 수 있다 (Canvas · Preview 같은 상자).
+- **DatePicker · DateRangePicker 안 Calendar**: 첫 요일 · 최소 / 최대 날짜 · 넘김 방식은 picker 의 것 — 안 Calendar 의 Design 패널은 그 prop 을 보이지 않고 안내한다.
+- **월요일 시작 + 6주처럼 달 밖 날만 있는 주 행**은 Canvas 에서도 접힌다 (Preview 와 같은 높이).
+
+### Removed
+
+- **공용 `Calendar` · `RangeCalendar` 컴포넌트** (`@composition/shared/components`) 와 Skia `inline_icon_text` primitive · CalendarHeader rule 의 chevron 아이콘 항목: Phase 9 부터 Calendar 는 노드 트리로 그려져 쓰이지 않았다.
+- **`maxVisibleMonths`** (Calendar · RangeCalendar · DatePicker · DateRangePicker): Calendar 의 값은 열 때 `visibleDuration` 의 달 수로 바뀐다. picker 의 값은 버린다 (보이는 달 수는 안 Calendar 의 `visibleDuration`).
+
+### BREAKING
+
+- **문서 contract 37**: 이전 contract 의 프로젝트는 열리지 않는다 (ADR-256 사용자 결정 — 변환 없음).
+  - 위치: `packages/shared/src/catalog/runtime/calendarModel.ts` (Canvas 의 날짜 계산 — RAC 와 같은 `@internationalized/date` 호출) · `catalog/document/valueType.ts` (`calendarDuration`) · `resolution/resolver.ts` (달 묶음 반복) · `runtime/domBinding.tsx` · `delegatedDom.tsx` (Preview = RAC 직접).
+  - 검증: G2 레퍼런스 starter 구조 비교 · G3 Calendar 계열 PASS · live `adr256-p9-live.mjs` 12/12.
+
 ## [S2 ColorSwatch colorName] - 2026-10-11
 
 ### Added

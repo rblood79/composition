@@ -66,7 +66,6 @@ import {
   catalogColorWheelDiameter,
   catalogCurrentTextWeight,
   catalogCalendarGridSize,
-  catalogCalendarHeaderParts,
 } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { resolveTextSourceText } from "@composition/rendering";
 import { applyTextTransform } from "./textTransform";
@@ -254,6 +253,8 @@ export interface CatalogConsumerNode {
   readonly fillLayout?: Readonly<Record<string, string | number>>;
   /** A data row's index on the row's record (`ResolvedCatalogNode.rowIndex`). */
   readonly rowIndex?: number;
+  /** A calendar month block copy's month offset (`ResolvedCatalogNode.monthIndex`). */
+  readonly monthIndex?: number;
   /** A row owner that grows with its rows: the collection's row count (`ResolvedCatalogNode.rowCount`). */
   readonly rowCount?: number;
 }
@@ -611,13 +612,6 @@ export interface CatalogTextFont {
   whiteSpace?: string;
 }
 
-/** Rust intrinsic content box of a calendar header row (`calendarHeaderBox`). */
-interface CatalogCalendarHeaderBox {
-  contentMinWidth: number;
-  contentMaxWidth: number;
-  contentHeight: number;
-}
-
 /**
  * A text leaf: a childless node with a text source (`resolveTextSourceText`, the Preview/Skia
  * contract) and a font size. Its measured content box is the Rust intrinsic input.
@@ -638,7 +632,11 @@ function textLeaf(
   if (node.children.length > 0) return undefined;
   const own = resolveTextSourceText(
     typeName,
-    node.props as Record<string, unknown>,
+    // (ADR-256 Phase 9: a text RAC writes — a calendar's heading, a calendar picker's value — is the
+    // record's derived `children`.)
+    (typeof node.derivedProps?.children === "string"
+      ? { ...node.props, children: node.derivedProps.children }
+      : node.props) as Record<string, unknown>,
   );
   const typography = catalogTextTypography(node);
   const text = own
@@ -739,17 +737,12 @@ function lineHeightInheritors(
 }
 
 /**
- * The size a calendar's header row / day table follows: the owning Calendar's (RAC composes both
- * inside the element carrying `data-size`; the typed sub-part's own size is not read by the DOM).
+ * The size a calendar's day table follows: its own, propagated from the calendar (ADR-256 Phase 9
+ * — `CATALOG_SIZE_PROPAGATION`; the DOM sheets read the calendar's `data-size`).
  */
-const calendarBindings = new Set(["calendargrid", "calendarheader"]);
-function calendarPartSize(
-  node: CatalogConsumerNode,
-  get: (id: string) => CatalogConsumerNode | undefined,
-): string | undefined {
-  if (!calendarBindings.has(node.bindingId ?? "")) return undefined;
-  const owner = get(node.parentId);
-  const size = owner?.props.size ?? node.props.size;
+function calendarPartSize(node: CatalogConsumerNode): string | undefined {
+  if (node.bindingId !== "calendargrid") return undefined;
+  const size = node.props.size;
   return typeof size === "string" ? size : undefined;
 }
 
@@ -853,6 +846,30 @@ function catalogStatusLightLead(node: CatalogConsumerNode): number {
   return (size?.indicator?.dotSize ?? 10) + (Number.isFinite(gap) ? gap : 8);
 }
 
+/**
+ * A grid record's model shape (`_calendarGrid` — `catalogCalendarGrid`): its day columns, week rows
+ * and the rows with no day shown (every cell `""`).
+ */
+function calendarGridShape(
+  value: unknown,
+): { columns: number; rows: number; emptyRows: number } | undefined {
+  if (typeof value !== "string") return undefined;
+  try {
+    const model = JSON.parse(value) as { weekdays?: unknown; rows?: unknown };
+    if (!Array.isArray(model.weekdays) || !Array.isArray(model.rows))
+      return undefined;
+    return {
+      columns: model.weekdays.length,
+      rows: model.rows.length,
+      emptyRows: model.rows.filter(
+        (row) => Array.isArray(row) && row.every((cell) => cell === ""),
+      ).length,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 /** A Disclosure's top · bottom border for the engine (`catalogDisclosureBorders`). */
 function disclosureEngineBorders(
   node: CatalogConsumerNode,
@@ -877,28 +894,27 @@ function styleOf(
   labelSuffix = "",
   inheritedLineHeight?: number,
   calendarSize?: string,
-  calendarHeader?: CatalogCalendarHeaderBox,
 ): Record<string, unknown> {
   if (node.hidden) return { display: "none" };
   const box = catalogBoxModel(node);
   const px = (value: CatalogLength | undefined): string | undefined =>
     typeof value === "number" ? `${value}px` : value;
-  // A calendar header's content box is its DOM composition (`calendarHeader`), not its own text.
-  const leaf =
-    measure && node.bindingId !== "calendarheader"
-      ? textLeaf(node, typeName, labelSuffix, inheritedLineHeight)
-      : undefined;
-  // The calendar table's own box (7 day columns × the shown month's weeks).
-  const table =
+  const leaf = measure
+    ? textLeaf(node, typeName, labelSuffix, inheritedLineHeight)
+    : undefined;
+  // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`).
+  const grid =
     node.bindingId === "calendargrid"
-      ? catalogCalendarGridSize(
-          calendarSize,
-          undefined,
-          Number(node.derivedProps?._weekStart) || 0,
-        )
+      ? calendarGridShape(node.derivedProps?._calendarGrid)
       : undefined;
-  const headerRow =
-    node.bindingId === "calendarheader" ? calendarHeader : undefined;
+  const table = grid
+    ? catalogCalendarGridSize(
+        calendarSize,
+        grid.columns,
+        grid.rows,
+        grid.emptyRows,
+      )
+    : undefined;
   // Date segments: the RAC segment row at the node's own font — each part is its own inline span
   // (editable parts padded), a range repeats the row around its separator with the trigger gap.
   const segments =
@@ -1092,7 +1108,6 @@ function styleOf(
           contentHeight: wrappedHeight ?? dropZone.height,
         }
       : {}),
-    ...(headerRow ?? {}),
     // A table never lays out narrower than its columns (CSS table width ≥ min-content), and an
     // auto-width table is not stretched by its flex column (it keeps its columns' width).
     ...(table
@@ -1250,6 +1265,7 @@ function sameRecord(
     left.presentWhen === right.presentWhen &&
     JSON.stringify(left.showWhen) === JSON.stringify(right.showWhen) &&
     left.rowIndex === right.rowIndex &&
+    left.monthIndex === right.monthIndex &&
     left.rowCount === right.rowCount &&
     sameFields(left.derivedProps ?? {}, right.derivedProps ?? {}) &&
     JSON.stringify(left.valueTemplate ?? null) ===
@@ -2049,6 +2065,8 @@ export class CatalogCompositionRoot {
     // to that sheet (`domBinding.tsx`), so the derived color is the Canvas's.
     if (
       record.bindingId === "selectvalue" &&
+      // (A calendar picker's Select shows its value — ADR-256 Phase 9.)
+      derived?.children === undefined &&
       catalogAuthoredVisual(this, record).color === undefined
     ) {
       const color = catalogSelectPlaceholderColor(this.colorMode);
@@ -2131,8 +2149,7 @@ export class CatalogCompositionRoot {
       this.segmentText(record, get),
       catalogLabelSuffix(record, get, this.typeOf),
       inheritedLineHeight(record, get),
-      calendarPartSize(record, get),
-      this.calendarHeaderBox(record, get),
+      calendarPartSize(record),
     );
     const thumb = record.hidden
       ? undefined
@@ -2162,61 +2179,6 @@ export class CatalogCompositionRoot {
             }px`,
           }
         : {}),
-    };
-  }
-  /**
-   * A calendar header row's content box: the DOM `<header>` flex row of two nav buttons and the
-   * heading (`flex: 1`, the owner's visible-range title — the record's derived `children`). Its
-   * width contribution is both buttons, the two gaps and the heading's min-content (a `0%` basis
-   * item contributes no more); its height is the taller of the buttons and the heading wrapped in
-   * the width left beside them (`rewrap`).
-   */
-  private calendarHeaderBox(
-    record: CatalogConsumerNode,
-    get: (id: string) => CatalogConsumerNode | undefined,
-  ): CatalogCalendarHeaderBox | undefined {
-    const heading = this.calendarHeading(record, get);
-    if (!heading) return undefined;
-    const size =
-      heading.text && this.textMeasure
-        ? this.textMeasure(heading.text, heading.font)
-        : undefined;
-    const row =
-      heading.beside +
-      (size ? (size.minWidth ?? size.exactWidth ?? size.width) : 0);
-    return {
-      contentMinWidth: row,
-      contentMaxWidth: row,
-      contentHeight: Math.max(
-        heading.navHeight,
-        this.wrapHeights.get(record.id) ?? size?.height ?? 0,
-      ),
-    };
-  }
-  /** A calendar header's heading: its text and font, and the width its nav buttons take beside it. */
-  private calendarHeading(
-    record: CatalogConsumerNode,
-    get: (id: string) => CatalogConsumerNode | undefined = (id) =>
-      this.records.get(id),
-  ):
-    | {
-        text: string;
-        font: { fontSize: number; fontWeight: number; lineHeight: number };
-        beside: number;
-        navHeight: number;
-      }
-    | undefined {
-    if (record.bindingId !== "calendarheader" || record.hidden)
-      return undefined;
-    const parts = catalogCalendarHeaderParts(calendarPartSize(record, get));
-    if (!parts) return undefined;
-    const title = record.derivedProps?.children;
-    const gap = catalogBoxModel(record).gap;
-    return {
-      text: typeof title === "string" ? title : "",
-      font: parts.heading,
-      beside: 2 * parts.navWidth + 2 * (typeof gap === "number" ? gap : 0),
-      navHeight: parts.navHeight,
     };
   }
   /**
@@ -2570,11 +2532,7 @@ export class CatalogCompositionRoot {
         changed = true;
         continue;
       }
-      // A calendar header wraps its heading in the width its nav buttons leave.
-      const heading = this.calendarHeading(record);
-      const leaf =
-        heading ??
-        textLeaf(
+      const leaf = textLeaf(
           record,
           this.typeOf(record),
           catalogLabelSuffix(
@@ -2588,12 +2546,11 @@ export class CatalogCompositionRoot {
       let next: number | undefined;
       if (
         leaf?.text &&
-        (heading ||
-          !(
-            catalogBindingKeepsOneLine(record) ||
-            ("singleLine" in leaf && leaf.singleLine) ||
-            heightOnlyTextTypes.has(this.typeOf(record))
-          ))
+        !(
+          catalogBindingKeepsOneLine(record) ||
+          ("singleLine" in leaf && leaf.singleLine) ||
+          heightOnlyTextTypes.has(this.typeOf(record))
+        )
       ) {
         const rect = this.layout.getLayoutsForIds([id]).get(id);
         if (!rect) continue;
@@ -2604,19 +2561,18 @@ export class CatalogCompositionRoot {
           rect.width -
           num(box.padding?.left) -
           num(box.padding?.right) -
-          2 * num(box.borderWidth) -
-          (heading?.beside ?? 0);
+          2 * num(box.borderWidth);
         const single = this.textMeasure(leaf.text, leaf.font);
         // CSS breaks lines only between words (`overflow-wrap: normal`): a word wider than the box
         // overflows on its own line instead of splitting. Lines are broken at no less than the
         // min-content width (the longest word), so a lone overflowing word stays one line — unless
         // the text may break inside a word (`catalogTextBreaksWords`).
         const breakWidth =
-          !heading && catalogTextBreaksWords(leaf.font as CatalogTextFont)
+          catalogTextBreaksWords(leaf.font as CatalogTextFont)
             ? contentWidth
             : Math.max(contentWidth, single.minWidth ?? 0);
         next =
-          (heading ? rect.width > 0 : contentWidth > 0) &&
+          contentWidth > 0 &&
           breakWidth + 0.5 < (single.exactWidth ?? single.width)
             ? this.textMeasure(leaf.text, leaf.font, breakWidth).height
             : undefined;
@@ -2764,6 +2720,7 @@ export class CatalogCompositionRoot {
         : {}),
       ...(target.stateVisual ? { stateVisual: target.stateVisual } : {}),
       ...(top.rowIndex !== undefined ? { rowIndex: top.rowIndex } : {}),
+      ...(top.monthIndex !== undefined ? { monthIndex: top.monthIndex } : {}),
       ...((target.rowCount ?? top.rowCount) !== undefined
         ? { rowCount: target.rowCount ?? top.rowCount }
         : {}),
@@ -3844,14 +3801,6 @@ export class CatalogCompositionRoot {
         ...(update.record.fillSizing || update.record.fillLayout
           ? [update.record]
           : []),
-        ...(this.records.get(update.id)?.props.size !== update.record.props.size
-          ? update.record.children
-              .map((id) => get(id))
-              .filter(
-                (child): child is CatalogConsumerNode =>
-                  !!child && calendarBindings.has(child.bindingId ?? ""),
-              )
-          : []),
         ...(update.record.derivedProps || this.derivedOf(update.record, get)
           ? [update.record]
           : []),
@@ -3930,6 +3879,11 @@ export class CatalogCompositionRoot {
         const entry = graph.getEntry(op.id);
         if (entry?.kind === "node" && entry.binding) return true;
       }
+    // ADR-256 Phase 9: a calendar's shown months decide how many month blocks it repeats (the
+    // resolver's copies — a structure change of its subtree).
+    for (const op of result.forward)
+      if (op.kind === "patchNodeProp" && op.key === "visibleDuration")
+        return true;
     return false;
   }
 

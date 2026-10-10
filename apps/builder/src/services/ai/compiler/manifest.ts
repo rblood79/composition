@@ -2,7 +2,10 @@
 import { validateCommandArgs } from "./commandArgs";
 import { programContract, type BuilderCommandProgram } from "./contracts";
 import { isBodyType } from "@composition/shared";
-import { catalogColumnSizeFits } from "../../../../../../packages/shared/src/catalog/document/valueType";
+import {
+  catalogCalendarDurationFits,
+  catalogColumnSizeFits,
+} from "../../../../../../packages/shared/src/catalog/document/valueType";
 
 export interface ManifestField {
   name: string;
@@ -88,11 +91,18 @@ function validateFields(
       !catalogColumnSizeFits(value, field.kind === "column-static-size")
     )
       return `invalid-column-size:${name}`;
+    // ADR-256 Phase 9 — a Calendar's visibleDuration: one of days · weeks · months, whole ≥ 1.
+    if (
+      field.kind === "calendar-duration" &&
+      !catalogCalendarDurationFits(value)
+    )
+      return `invalid-calendar-duration:${name}`;
     // 구조화 binding/items는 기존 데이터 dispatcher/에디터 계약을 써야 한다.
     if (
       ![
         "column-size",
         "column-static-size",
+        "calendar-duration",
         "css",
         "boolean",
         "number",

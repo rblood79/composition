@@ -39,6 +39,10 @@ import { CatalogRacSlotSection } from "./CatalogRacSlotSection";
 import { CatalogShowWhenSection } from "./CatalogShowWhenSection";
 import { catalogShowWhenApplies } from "./showWhenAncestors";
 import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
+import {
+  CATALOG_PICKER_CALENDAR_PROPS,
+  catalogCalendarPicker,
+} from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
 import { CatalogLayoutBodySection } from "./CatalogLayoutBodySection";
 import { CatalogStateSection } from "./CatalogStateSection";
 import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
@@ -247,6 +251,11 @@ export function CatalogPropertiesBody({
   );
 }
 
+const CALENDAR_TYPES: ReadonlySet<string> = new Set([
+  "Calendar",
+  "RangeCalendar",
+]);
+
 const CatalogFields = memo(function CatalogFields({
   elementId,
   targets,
@@ -254,6 +263,7 @@ const CatalogFields = memo(function CatalogFields({
   elementId: string;
   targets: readonly EditTarget[];
 }) {
+  const { t } = useI18n();
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
   const contract = useCatalogEditContract(targets[0]);
@@ -274,15 +284,29 @@ const CatalogFields = memo(function CatalogFields({
       buttonKey ? (JSON.parse(buttonKey) as CatalogButtonChildren) : undefined,
     [buttonKey],
   );
+  // ADR-256 Phase 9: a Calendar · RangeCalendar in a DatePicker · DateRangePicker takes the
+  // picker's state, bounds, paging and first day (RAC's calendar context) — edited on the picker.
+  // (Read only for a calendar selection — the root is not touched for the other types.)
+  const isCalendar = CALENDAR_TYPES.has(contract.type ?? "");
+  const calendarPicker = useSyncExternalStore(subscribeSteps, () => {
+    if (!isCalendar) return "";
+    const root = workspace.root;
+    const record = root.domInputs.get(elementId);
+    if (!record) return "";
+    const picker = catalogCalendarPicker(root, record);
+    return picker ? root.typeOf(picker) : "";
+  });
   const semanticFields = useMemo(() => {
     const fields = contract.fields.filter(
-      (field) => field.origin === "semantic",
+      (field) =>
+        field.origin === "semantic" &&
+        !(calendarPicker && CATALOG_PICKER_CALENDAR_PROPS.has(field.key)),
     );
     // An icon Button's label lives in its Text child (edited by the Text field instead).
     return buttonChildren?.iconId
       ? fields.filter((field) => field.key !== "children")
       : fields;
-  }, [buttonChildren, contract]);
+  }, [buttonChildren, calendarPicker, contract]);
   const bindingKeys = useMemo(
     () =>
       new Set(
@@ -334,6 +358,15 @@ const CatalogFields = memo(function CatalogFields({
     contentExtras:
       buttonNode && buttonChildren ? (
         <CatalogButtonChildFields nodeId={buttonNode} state={buttonChildren} />
+      ) : calendarPicker ? (
+        <p
+          className="item-origin-notice"
+          data-calendar-picker-notice={calendarPicker}
+        >
+          {t("propertiesPanel.calendarPickerNotice", {
+            picker: calendarPicker,
+          })}
+        </p>
       ) : undefined,
     onPatch: handlePatch,
     isRefInstance,

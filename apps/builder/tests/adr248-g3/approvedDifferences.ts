@@ -652,6 +652,19 @@ export interface ApprovedUnpaired {
 
 export const APPROVED_UNPAIRED: readonly ApprovedUnpaired[] = [
   {
+    // ADR-256 Phase 9 (사용자 지시 2026-10-09 — 레퍼런스 starter 의 한 달 블록): a calendar is
+    //   `frame (div.months) > CalendarMonth (div.month) > header + grid`, its header the author's
+    //   nodes — `Button[slot=previous] > Icon` · `CalendarHeading` · `Button[slot=next] > Icon` (old:
+    //   no wrappers; the header leaf drew the chevrons and the title itself).
+    id: "calendar-month-block-parts",
+    class: "decided",
+    owners: ["Calendar", "RangeCalendar"],
+    side: "new",
+    nodes: ["frame", "CalendarMonth", "Button", "CalendarHeading"],
+    reason:
+      "Calendar = frame > CalendarMonth > [CalendarHeader > (Button, CalendarHeading, Button), CalendarGrid] (reference starter — old: header + grid, the header leaf drew its chevrons and title)",
+  },
+  {
     // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」 → 「레퍼런스에 맞게」 → 「(a) 로
     //   진행」): the S2 IllustratedMessage is `Illustration + Heading + Description` child nodes (old:
     //   the message drew a gray placeholder box and its heading · description props in its own box).

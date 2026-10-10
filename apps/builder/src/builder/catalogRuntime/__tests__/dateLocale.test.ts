@@ -102,14 +102,15 @@ describe("date locale — one value on the component, read by the Canvas and the
   it("Calendar: header title, grid and DOM follow the Calendar's locale and calendar system", async () => {
     const { part, html, write } = await place("calendar");
     const canvas = () => ({
-      title: part("CalendarHeader").derivedProps?.children,
+      // (ADR-256 Phase 9: RAC's CalendarHeading writes its month — the header row holds it.)
+      title: part("CalendarHeading").derivedProps?.children,
       grid: {
         locale: part("CalendarGrid").derivedProps?.locale,
         calendarSystem: part("CalendarGrid").derivedProps?.calendarSystem,
       },
     });
     // The parts hold no locale of their own (the template bound a fixed `ko-KR` to them).
-    for (const name of ["CalendarHeader", "CalendarGrid"])
+    for (const name of ["CalendarHeader", "CalendarHeading", "CalendarGrid"])
       expect(part(name).props.locale).toBeUndefined();
     // Unset: the environment's locale on both sides.
     expect(canvas().grid).toEqual({ locale: "en-US", calendarSystem: "" });

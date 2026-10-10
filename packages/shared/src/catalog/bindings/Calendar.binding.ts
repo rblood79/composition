@@ -1,12 +1,12 @@
 /**
  * ADR-142 family ⑦(date) — Calendar primitive 의 `PrimitiveBinding`.
  *
- * inventory(§2-1) RAC-controller-backed primitive. DOM = `CATALOG_DELEGATED_DOM.calendar` →
- * composition `Calendar.tsx` 가 RAC Calendar + CalendarGrid/CalendarHeader/CalendarCell 합성(internal
- * source). 날짜 grid 는 비-box 시각(6주 × 7일 cell + 헤더) → DOM 은 RAC 가 grid 자동 합성, Skia 는 `calendar_grid`
- * skiaPrimitive(replace) escape 로 grid 시각 재현(ADR-912 단계 5 (1b) — skiaLegacy 제거).
- *
- * color 계열은 ADR-912 단계5에서 leaf/container 별도 slice 로 catalog cutover 완료.
+ * ADR-256 Phase 9: DOM = RAC `Calendar` drawing its node tree — the reference starter's
+ * `div.months > div.month (one per shown month) > header (Button[slot=previous] + CalendarHeading +
+ * Button[slot=next]) + CalendarGrid > CalendarCell` (`delegatedDom` `calendar` — RAC's values only).
+ * Display options (the reference's): `visibleDuration` (a count of days · weeks · months) ·
+ * `pageBehavior` · `firstDayOfWeek` · `weeksInMonth`. Skia: the calendar's own box is a shell
+ * (`calendar_grid`, Shell-only); its parts draw themselves.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -14,6 +14,8 @@ import {
   DATE_CALENDAR_SYSTEM_PROP,
   DATE_LOCALE_PROP,
   FIRST_DAY_OF_WEEK_PROP,
+  VISIBLE_DURATION_PROP,
+  WEEKS_IN_MONTH_PROP,
 } from "./dateLocaleProps";
 
 export const calendarBinding: PrimitiveBinding = {
@@ -42,7 +44,6 @@ export const calendarBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `calendarProps` 가 소비 —
       //   RAC Calendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱,
-      //   maxVisibleMonths 는 RSP visibleMonths 대응 (렌더러 기본 1).
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       pageBehavior: {
@@ -63,13 +64,8 @@ export const calendarBinding: PrimitiveBinding = {
         label: "Error Message",
         section: "state",
       },
-      maxVisibleMonths: {
-        kind: "number",
-        label: "Max Visible Months",
-        section: "content",
-        min: 1,
-        default: 1,
-      },
+      visibleDuration: VISIBLE_DURATION_PROP,
+      weeksInMonth: WEEKS_IN_MONTH_PROP,
       // react-aria.adobe.com "International calendars": unset = the browser's locale.
       locale: DATE_LOCALE_PROP,
       calendarSystem: DATE_CALENDAR_SYSTEM_PROP,

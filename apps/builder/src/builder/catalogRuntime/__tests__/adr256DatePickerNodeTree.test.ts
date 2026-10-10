@@ -36,6 +36,7 @@ const TYPES = ["datepicker", "daterangepicker"] as const;
 async function open(
   type: (typeof TYPES)[number],
   props: Record<string, unknown> = {},
+  calendarProps: Record<string, unknown> = {},
 ) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
@@ -94,6 +95,19 @@ async function open(
     popover.id,
     type === "datepicker" ? "Calendar" : "RangeCalendar",
   );
+  // (The calendar's own props — its template position in the picker instance.)
+  if (Object.keys(calendarProps).length)
+    workspace.execute(
+      setFields({
+        targets: [workspace.itemOfRecord(calendar.id)!.target],
+        props: Object.fromEntries(
+          Object.entries(calendarProps).map(([key, value]) => [
+            key,
+            set(value),
+          ]),
+        ) as never,
+      }),
+    );
   (
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -224,9 +238,13 @@ describe("ADR-256 Phase 6e — a DatePicker · DateRangePicker draws its node tr
   });
 
   it.each(TYPES)(
-    "%s: the open calendar is at the picker's size and visible months (RSP `maxVisibleMonths`)",
+    "%s: the open calendar is at the picker's size and its own visible duration (ADR-256 Phase 9 — RAC's picker context carries none)",
     async (type) => {
-      const picker = await open(type, { size: "L", maxVisibleMonths: 2 });
+      const picker = await open(
+        type,
+        { size: "L" },
+        { visibleDuration: { months: 2 } },
+      );
       await picker.press();
       const calendar = picker
         .dialog()!

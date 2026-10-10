@@ -85,9 +85,16 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 36 — sizes take the S2 names (2026-10-09, D2 = S2 1.8.0): `XS` · `S` · `M` · `L` · `XL` (and
  * `XXL` · `XXXL` for the text types) in place of `xs` · `sm` · `md` · `lg` · `xl` · `2xl` · `3xl`
  * — a node's `size`, the origins' defaults, the rule size keys and the DOM `data-size`.
+ * 37 — ADR-256 Phase 9: a Calendar · RangeCalendar is the reference starter's node tree — `frame >
+ * CalendarMonth > CalendarHeader (Button[slot=previous] (showWhen isFirstMonth) + CalendarHeading +
+ * Button[slot=next] (showWhen isLastMonth)) + CalendarGrid > CalendarCell` (`component-calendar__months`
+ * … `__cell`; the month block repeats per shown month); `visibleDuration` · `weeksInMonth` in place
+ * of `maxVisibleMonths`. The grid's weekday cell (`__weekday` — CalendarHeaderCell) and a date input's
+ * segment (`component-dateinput__segment` — DateSegment) are repeat templates too (Decision 13); the
+ * month · year pickers (CalendarMonthPicker · CalendarYearPicker) are origins of their own.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 36 as const;
+export const LIBRARY_CONTRACT_VERSION = 37 as const;
 
 export type EntryKind =
   | "project"
@@ -130,7 +137,20 @@ export type ItemValue = Readonly<Record<string, Scalar | readonly ItemRow[]>>;
  * item records (`items-manager` prop kind — RSP dynamic collection items, Chart series).
  */
 export type StructuredValue = readonly string[] | readonly ItemValue[];
-export type AuthoredValue = Scalar | TokenUse | StructuredValue;
+/**
+ * ADR-256 Phase 9 — a Calendar · RangeCalendar `visibleDuration` (RAC `DateDuration`, one unit with
+ * a whole count ≥ 1 — `catalogCalendarDurationFits`). Its own value type: never a token, never in a
+ * visual field, state variable or condition.
+ */
+export type CalendarDuration =
+  | { readonly days: number }
+  | { readonly weeks: number }
+  | { readonly months: number };
+export type AuthoredValue =
+  | Scalar
+  | TokenUse
+  | StructuredValue
+  | CalendarDuration;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -145,9 +165,11 @@ export type ValueType =
   | "slot"
   // ADR-257 — S2 Column widths (`ColumnSize` · `ColumnStaticSize`: a px number or "Nfr" · "N%").
   | "columnSize"
-  | "columnStaticSize";
-/** Resolved prop value: a scalar or a structured value. */
-export type PropValue = Scalar | StructuredValue;
+  | "columnStaticSize"
+  // ADR-256 Phase 9 — a Calendar's `visibleDuration` (`CalendarDuration`).
+  | "calendarDuration";
+/** Resolved prop value: a scalar, a structured value or a calendar duration. */
+export type PropValue = Scalar | StructuredValue | CalendarDuration;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:
@@ -604,6 +626,9 @@ export const CATALOG_STATE_KEYS = [
   "hasSubmenu",
   "allowsRemoving",
   "allowsSorting",
+  // ADR-256 Phase 9 — a calendar month block's place (composition keys, `catalogStateKeysOf`).
+  "isFirstMonth",
+  "isLastMonth",
 ] as const;
 export type CatalogStateKey = (typeof CATALOG_STATE_KEYS)[number];
 /**

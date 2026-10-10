@@ -373,6 +373,12 @@ const glyph: Binding = (node, rect) => {
   };
 };
 
+/** A text leaf's text: the one RAC writes (the record's derived `children`), else its own. */
+const textOf = (node: CatalogConsumerNode): unknown =>
+  typeof node.derivedProps?.children === "string"
+    ? node.derivedProps.children
+    : node.props.children;
+
 const bindings: Readonly<Record<string, Binding>> = {
   composite: containerWithAuthoredPaint,
   frame: containerWithAuthoredPaint,
@@ -394,6 +400,18 @@ const bindings: Readonly<Record<string, Binding>> = {
   overlayarrow: containerWithAuthoredPaint,
   // ADR-256 Phase 8c: a Disclosure's panel (its box = the content div — the Disclosure's part rule).
   disclosurepanel: containerWithAuthoredPaint,
+  // ADR-256 Phase 9: a calendar's month block (`div.month`) and its header row are layout boxes
+  // (no paint of their own — the calendar sheets give none); the cell template has no box (the grid
+  // draws the cells); RAC's heading is its month's text (the record's derived `children`).
+  calendarmonth: containerWithAuthoredPaint,
+  calendarheader: containerWithAuthoredPaint,
+  calendarcell: container,
+  calendarheadercell: container,
+  // (A date input's segment template: drawn by its DateInput — Decision 13.)
+  datesegment: container,
+  // (RAC's month · year pickers: no element — `display: contents`, their Select draws.)
+  calendarmonthpicker: container,
+  calendaryearpicker: container,
   // ADR-256 Phase 5g: RAC SubmenuTrigger has no element of its own (a layout box only — in a Menu
   // it rests in the closed popover).
   submenutrigger: container,
@@ -428,8 +446,10 @@ const bindings: Readonly<Record<string, Binding>> = {
       ...box(node, rect),
       type: "text",
       text: {
+        // (A text RAC writes — a calendar's heading, a calendar picker's value — is the record's
+        // derived `children`, ADR-256 Phase 9.)
         content: applyTextTransform(
-          `${String(node.props.children ?? "")}${node.props.children ? suffix : ""}`,
+          `${String(textOf(node) ?? "")}${textOf(node) ? suffix : ""}`,
           metrics.textTransform,
         ),
         fontFamilies: catalogFontFamilies(metrics.fontFamily),
@@ -510,6 +530,8 @@ const bindings: Readonly<Record<string, Binding>> = {
     };
   },
   heading: (node, rect, parent, wraps) =>
+    bindings.text(node, rect, parent, wraps),
+  calendarheading: (node, rect, parent, wraps) =>
     bindings.text(node, rect, parent, wraps),
   label: (node, rect, parent, wraps, suffix) =>
     bindings.text(node, rect, parent, wraps, suffix),

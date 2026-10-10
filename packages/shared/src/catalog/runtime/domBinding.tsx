@@ -25,11 +25,13 @@ import {
 import * as RAC from "react-aria-components";
 import {
   cloneElement,
+  createContext,
   createElement,
   Fragment,
   isValidElement,
   memo,
   useCallback,
+  useContext,
   useRef,
   useSyncExternalStore,
   type CSSProperties,
@@ -67,6 +69,8 @@ import {
   catalogStateOwner,
   catalogStateValue,
   catalogTreeChevronButtonItem,
+  catalogCalendarNavButton,
+  catalogCalendarNavButtonGlyph,
   catalogItemLabels,
   catalogItemRemoveGlyphItem,
   catalogTreeChevronGlyphItem,
@@ -90,6 +94,10 @@ import {
 } from "./valueBindings";
 import { racSlotProps, type RacSlotResolution } from "./racSlot";
 import { RacSlotScope } from "./racSlotScope";
+import {
+  type CatalogCalendarPickerAria,
+  CatalogCalendarPickerContext,
+} from "./calendarPickerContext";
 import type { DefinitionId, StateName, TokenId } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
 import { withCatalogStateStyles, type CatalogStateStyles } from "./stateStyles";
@@ -158,6 +166,140 @@ export interface CatalogDomContext {
   /** Observation hook: called once per node binding render (initial mount and each delta). */
   onNodeRender?: (id: string) => void;
 }
+/** ADR-256 Phase 9 — the month offset of a calendar month block's parts (the block's copy index). */
+const CalendarMonthOffset = createContext(0);
+/** ADR-256 Phase 9 — the weekday RAC's grid header draws a weekday cell template for. */
+const CalendarWeekday = createContext<string | null>(null);
+/** ADR-256 Phase 9 — the segment RAC's DateInput draws a segment template for. */
+const DateSegmentPart = createContext<
+  Parameters<typeof RAC.DateSegment>[0]["segment"] | null
+>(null);
+/** ADR-256 Phase 9 — the date RAC's grid draws a cell template for. */
+const CalendarCellDate = createContext<RAC.CalendarCellProps["date"] | null>(
+  null,
+);
+
+/** RAC `CalendarHeading` at its month block's offset (RAC writes the month · the day range). */
+function CatalogCalendarHeading({
+  node,
+  style,
+}: {
+  node: CatalogConsumerNode;
+  style: CSSProperties;
+}): ReactElement {
+  const offset = useContext(CalendarMonthOffset);
+  return createElement(RAC.CalendarHeading, {
+    "data-catalog-id": node.id,
+    ...(offset ? { offset: { months: offset } } : {}),
+    style,
+  } as RAC.CalendarHeadingProps);
+}
+
+/**
+ * RAC `CalendarGrid` at its month block's offset; its cell node is the template RAC draws per date
+ * (Decision 13 — RAC makes the dates; a grid without one draws RAC's plain cell).
+ */
+function CatalogCalendarGrid({
+  node,
+  style,
+  parts,
+}: {
+  node: CatalogConsumerNode;
+  style: CSSProperties;
+  parts: ReactElement[];
+}): ReactElement {
+  const offset = useContext(CalendarMonthOffset);
+  const cell = parts.find(
+    (part) => isValidElement(part) && part.type === CatalogCalendarCell,
+  );
+  const weekday = parts.find(
+    (part) => isValidElement(part) && part.type === CatalogCalendarHeaderCell,
+  );
+  const cellOf = (date: RAC.CalendarCellProps["date"]) =>
+    cell
+      ? createElement(CalendarCellDate.Provider, { value: date }, cell)
+      : createElement(RAC.CalendarCell, { date });
+  return createElement(RAC.CalendarGrid as ElementType, {
+    "data-catalog-id": node.id,
+    ...(offset ? { offset: { months: offset } } : {}),
+    style,
+    // (With a weekday template: RAC's header · body around the templates — the same DOM as RAC's
+    // own function form.)
+    children: weekday
+      ? [
+          createElement(RAC.CalendarGridHeader as ElementType, {
+            key: "header",
+            children: (day: string) =>
+              createElement(CalendarWeekday.Provider, { value: day }, weekday),
+          }),
+          createElement(RAC.CalendarGridBody as ElementType, {
+            key: "body",
+            children: cellOf,
+          }),
+        ]
+      : cellOf,
+  });
+}
+
+/** RAC `CalendarHeaderCell` for the weekday its grid draws it for (RAC's day name, or its children). */
+function CatalogCalendarHeaderCell({
+  node,
+  style,
+  cellChildren,
+}: {
+  node: CatalogConsumerNode;
+  style: CSSProperties;
+  cellChildren: ReactElement[];
+}): ReactElement | null {
+  const day = useContext(CalendarWeekday);
+  if (day === null) return null;
+  return createElement(
+    RAC.CalendarHeaderCell as ElementType,
+    { "data-catalog-id": node.id, style },
+    ...(cellChildren.length ? cellChildren : [day]),
+  );
+}
+
+/** RAC `DateSegment` for the segment its DateInput draws it for. */
+function CatalogDateSegment({
+  node,
+  style,
+}: {
+  node: CatalogConsumerNode;
+  style: CSSProperties;
+}): ReactElement | null {
+  const segment = useContext(DateSegmentPart);
+  if (!segment) return null;
+  return createElement(RAC.DateSegment as ElementType, {
+    "data-catalog-id": node.id,
+    segment,
+    style,
+  });
+}
+
+/** RAC `CalendarCell` for the date its grid draws it for; its children (if any) in RAC's frame. */
+function CatalogCalendarCell({
+  node,
+  style,
+  cellChildren,
+}: {
+  node: CatalogConsumerNode;
+  style: CSSProperties;
+  cellChildren: ReactElement[];
+}): ReactElement | null {
+  const date = useContext(CalendarCellDate);
+  // (Outside a grid's date — a cell drawn on its own — RAC has no date to show.)
+  if (!date) return null;
+  return createElement(RAC.CalendarCell, {
+    "data-catalog-id": node.id,
+    date,
+    style,
+    ...(cellChildren.length
+      ? { children: catalogStateChildren(node.id, () => cellChildren) }
+      : {}),
+  } as RAC.CalendarCellProps);
+}
+
 type DomBinding = (
   node: CatalogConsumerNode,
   style: CSSProperties,
@@ -809,6 +951,73 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       ),
     );
   },
+  // ADR-256 Phase 9: a calendar's parts (the reference starter's `div.month > header (Button[previous]
+  // + CalendarHeading + Button[next]) + CalendarGrid > CalendarCell`). A month block is one copy per
+  // shown month (the resolver's — its `monthIndex`); its heading · grid show the month at that offset.
+  calendarmonth: (node, style, children) =>
+    createElement(
+      CalendarMonthOffset.Provider,
+      { key: node.id, value: node.monthIndex ?? 0 },
+      createElement(
+        "div",
+        { "data-catalog-id": node.id, className: "month", style },
+        ...children,
+      ),
+    ),
+  calendarheader: (node, style, children) =>
+    createElement(
+      "header",
+      { key: node.id, "data-catalog-id": node.id, style },
+      ...children,
+    ),
+  calendarheading: (node, style) =>
+    createElement(CatalogCalendarHeading, { key: node.id, node, style }),
+  calendargrid: (node, style, children) =>
+    createElement(CatalogCalendarGrid, {
+      key: node.id,
+      node,
+      style,
+      parts: children,
+    }),
+  calendarcell: (node, style, children) =>
+    createElement(CatalogCalendarCell, {
+      key: node.id,
+      node,
+      style,
+      cellChildren: children,
+    }),
+  // The weekday cell · date segment templates (Decision 13): RAC draws them per day · segment.
+  calendarheadercell: (node, style, children) =>
+    createElement(CatalogCalendarHeaderCell, {
+      key: node.id,
+      node,
+      style,
+      cellChildren: children,
+    }),
+  datesegment: (node, style) =>
+    createElement(CatalogDateSegment, { key: node.id, node, style }),
+  // RAC's month · year pickers (no element): their render props reach their Select (its name,
+  // value and move) and its ListBox (the items — `CatalogCalendarPickerContext`).
+  calendarmonthpicker: (node, _style, children) =>
+    createElement(RAC.CalendarMonthPicker as ElementType, {
+      key: node.id,
+      children: (aria: CatalogCalendarPickerAria) =>
+        createElement(
+          CatalogCalendarPickerContext.Provider,
+          { value: { ownerId: node.id, aria } },
+          ...children,
+        ),
+    }),
+  calendaryearpicker: (node, _style, children) =>
+    createElement(RAC.CalendarYearPicker as ElementType, {
+      key: node.id,
+      children: (aria: CatalogCalendarPickerAria) =>
+        createElement(
+          CatalogCalendarPickerContext.Provider,
+          { value: { ownerId: node.id, aria } },
+          ...children,
+        ),
+    }),
   // ADR-256 Phase 8c: RAC `DisclosurePanel` around the starter's content `div`, which is the
   // node's box (the Disclosure sheet's `.react-aria-DisclosurePanel > div` padding).
   disclosurepanel: (node, style, children) =>
@@ -1027,7 +1236,12 @@ function fieldInputBinding(
 function fieldDateInputBinding(
   node: CatalogConsumerNode,
   style: CSSProperties,
+  children: ReactElement[] = [],
 ): ReactElement {
+  // ADR-256 Phase 9 (Decision 13): its segment node is the template RAC draws per segment.
+  const segment = children.find(
+    (child) => isValidElement(child) && child.type === CatalogDateSegment,
+  );
   return createElement(
     RAC.DateInput,
     {
@@ -1042,8 +1256,10 @@ function fieldDateInputBinding(
         : {}),
       style: quietStyle(node, style),
     } as unknown as Parameters<typeof RAC.DateInput>[0],
-    ((segment: Parameters<typeof RAC.DateSegment>[0]["segment"]) =>
-      createElement(RAC.DateSegment, { segment })) as never,
+    ((part: Parameters<typeof RAC.DateSegment>[0]["segment"]) =>
+      segment
+        ? createElement(DateSegmentPart.Provider, { value: part }, segment)
+        : createElement(RAC.DateSegment, { segment: part })) as never,
   );
 }
 
@@ -1063,9 +1279,15 @@ function buttonElement(
   // filled `.button-base` paint of a later layer stays off.
   // A Disclosure's trigger (RAC's `trigger` slot — ADR-256 Phase 8c) is the reference's plain RAC
   // Button too: the Disclosure sheet styles it (`.react-aria-Button[slot='trigger']`).
+  // A calendar's previous · next Buttons (RAC's `previous` · `next` slots — ADR-256 Phase 9) are the
+  // reference starter's plain RAC Buttons too: the calendar sheets style them
+  // (`.react-aria-Calendar .react-aria-Button`).
   if (
     resolution.kind === "named" &&
-    (resolution.slot === "chevron" || resolution.slot === "trigger")
+    (resolution.slot === "chevron" ||
+      resolution.slot === "trigger" ||
+      resolution.slot === "previous" ||
+      resolution.slot === "next")
   )
     return createElement(
       RAC.Button,
@@ -2493,6 +2715,7 @@ function renderNode(
       styleOverride
         ? { ...authoredStyle(root, node), ...styleOverride }
         : authoredStyle(root, node),
+      children,
     );
   // A field's FieldError node is a RAC FieldError inside the field's context (ADR-253): RAC shows
   // it while the field is invalid — the authored message, else what its validation raised.
@@ -2631,12 +2854,24 @@ function renderNode(
   const disclosureOwner =
     catalogDisclosureOfTrigger(node, domGet, domType) ??
     catalogDisclosureOfHeading(node, domGet, domType);
+  // (A calendar's nav Button: the header row's part rule gives its box on the Canvas —
+  // `.react-aria-Calendar .react-aria-Button` in the DOM, ADR-256 Phase 9.)
+  const calendarNavHeader =
+    node.bindingId === "button" &&
+    catalogCalendarNavButton(node, domGet, domType)
+      ? domGet(node.parentId)
+      : undefined;
   const sheetBox = disclosureOwner
     ? authoredStyle(root, withoutOwnerPartValues(root, node, disclosureOwner))
-    : node.bindingId === "button" &&
-        catalogTreeChevronButtonItem(node, domGet, domType)
-      ? authoredStyle(root, node)
-      : undefined;
+    : calendarNavHeader
+      ? authoredStyle(
+          root,
+          withoutOwnerPartValues(root, node, calendarNavHeader),
+        )
+      : node.bindingId === "button" &&
+          catalogTreeChevronButtonItem(node, domGet, domType)
+        ? authoredStyle(root, node)
+        : undefined;
   // Its glyph takes the button's color (`all: unset` inherits the row's — selected, disabled), so
   // the Canvas resting color (the item's, `derivedOf`) does not go inline.
   // (A Disclosure trigger's chevron takes the trigger's color — hover included — the same way.)
@@ -2644,6 +2879,8 @@ function renderNode(
     node.bindingId === "icon" &&
     (catalogTreeChevronGlyphItem(node, domGet, domType) ||
       catalogDisclosureOfTriggerPart(node, domGet, domType) ||
+      // (A calendar nav Button's chevron takes the Button's `--fg` — ADR-256 Phase 9.)
+      catalogCalendarNavButtonGlyph(node, domGet, domType) ||
       // (A Tag's remove X takes the Tag's color through its button — `TagGroup.css`.)
       catalogItemRemoveGlyphItem(node, domGet, domType))
       ? {

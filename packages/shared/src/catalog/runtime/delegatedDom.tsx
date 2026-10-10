@@ -1,6 +1,8 @@
 import {
+  cloneElement,
   createContext,
   createElement,
+  Fragment,
   useContext,
   useState,
   type CSSProperties,
@@ -43,8 +45,18 @@ import { DatePicker as AriaDatePicker } from "react-aria-components/DatePicker";
 import { DateRangePicker as AriaDateRangePicker } from "react-aria-components/DateRangePicker";
 import { Time, toCalendarDateTime } from "@internationalized/date";
 import { safeParseDateString } from "../../utils/core/dateUtils";
-import { ListBox as AriaListBox } from "react-aria-components/ListBox";
+import {
+  ListBox as AriaListBox,
+  ListBoxItem as AriaListBoxItem,
+} from "react-aria-components/ListBox";
+import { CatalogCalendarPickerContext } from "./calendarPickerContext";
+import {
+  catalogBindValueText,
+  catalogValueTemplateOf,
+} from "./valueBindings";
 import { Text as AriaText } from "react-aria-components/Text";
+import { Calendar as RacCalendar } from "react-aria-components/Calendar";
+import { RangeCalendar as RacRangeCalendar } from "react-aria-components/RangeCalendar";
 import {
   FILE_UPLOAD_INPUT_CHILD_TYPES,
   FileUpload,
@@ -104,7 +116,6 @@ import {
   catalogTabsSelection,
   catalogTreeItemExpanded,
 } from "./presence";
-import { Calendar } from "../../components/Calendar";
 import { Card } from "../../components/Card";
 import { CheckboxIndicatorBox } from "../../components/Checkbox";
 import { ColorSwatchPicker } from "../../components/ColorSwatchPicker";
@@ -112,7 +123,6 @@ import { Disclosure as RacDisclosure } from "react-aria-components/Disclosure";
 import { DisclosureGroup as RacDisclosureGroup } from "react-aria-components/DisclosureGroup";
 import { DataField } from "../../components/Field";
 import { Form } from "../../components/Form";
-import { RangeCalendar } from "../../components/RangeCalendar";
 import { ToggleButton } from "../../components/ToggleButton";
 import { ToggleButtonGroup } from "../../components/ToggleButtonGroup";
 import {
@@ -120,6 +130,7 @@ import {
   resolveGroupExpandedDisclosureIds,
 } from "../../utils/disclosureGroupExpansion";
 import type { DefinitionId } from "../document/types";
+import { catalogCalendarDurationFits } from "../document/valueType";
 import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
@@ -855,6 +866,97 @@ function GroupToggleFrame({
     children,
   );
 }
+/** ADR-256 Phase 9 — whether a Select record is a calendar month · year picker's child. */
+function isCalendarPicker(
+  input: DelegatedDomInput,
+  select: CatalogConsumerNode,
+): boolean {
+  const parent = input.root.domInputs.get(select.parentId);
+  const type = parent && catalogTypeName(input.root, parent);
+  return type === "CalendarMonthPicker" || type === "CalendarYearPicker";
+}
+/**
+ * ADR-256 Phase 9 — a calendar picker's Select takes RAC's render props (the reference's
+ * `<Select {...props}>`): its name, the focused month · year key and the move.
+ */
+function calendarPickerSelect(binding: DelegatedDomBinding): DelegatedDomBinding {
+  return {
+    ...binding,
+    render: (input) => {
+      const element = binding.render(input);
+      return isCalendarPicker(input, input.node)
+        ? createElement(CalendarPickerSelect, { key: input.node.id, element })
+        : element;
+    },
+  };
+}
+function CalendarPickerSelect({
+  element,
+}: {
+  element: ReactElement;
+}): ReactElement {
+  const picker = useContext(CatalogCalendarPickerContext);
+  return picker
+    ? cloneElement(element as ReactElement<Record<string, unknown>>, {
+        "aria-label": picker.aria["aria-label"],
+        value: picker.aria.value,
+        onChange: picker.aria.onChange,
+      })
+    : element;
+}
+/**
+ * ADR-256 Phase 9 — a calendar picker's ListBox: RAC's items (the picker's render props) drawn by
+ * the item node — `id` · `textValue` RAC's, its children under the picker's frame (`{formatted}`).
+ */
+function CalendarPickerList({
+  listProps,
+  itemId,
+  itemText,
+  renderItemChildren,
+}: {
+  listProps: Record<string, unknown>;
+  itemId: string | undefined;
+  itemText: string;
+  renderItemChildren: () => ReactElement[];
+}): ReactElement {
+  const picker = useContext(CatalogCalendarPickerContext);
+  return createElement(AriaListBox as ElementType, {
+    ...listProps,
+    items: picker?.aria.items ?? [],
+    children: (entry: { id: string | number; formatted: string }) =>
+      createElement(
+        AriaListBoxItem as ElementType,
+        {
+          id: entry.id,
+          textValue: entry.formatted,
+          "data-catalog-id": itemId,
+          className: "react-aria-ListBoxItem",
+        },
+        ...(() => {
+          const kids = renderItemChildren();
+          // (Its own text with RAC's `formatted` bound — the reference's plain item text.)
+          if (!kids.length)
+            return [
+              catalogBindValueText(itemText, (key) =>
+                key === "formatted"
+                  ? { linked: true, value: entry.formatted }
+                  : { linked: false, value: undefined },
+              ),
+            ];
+          return picker
+            ? [
+                catalogStateFrame(
+                  `${picker.ownerId}:${String(entry.id)}`,
+                  picker.ownerId,
+                  { formatted: entry.formatted },
+                  createElement(Fragment, null, ...kids),
+                ),
+              ]
+            : kids;
+        })(),
+      ),
+  });
+}
 function nodeTreeField(
   component: ElementType,
   type: string,
@@ -897,6 +999,11 @@ function nodeTreeField(
     },
   };
 }
+/** A whole count ≥ 1 (RAC `weeksInMonth`), else unset. */
+const wholeCount = (value: unknown) =>
+  typeof value === "number" && Number.isSafeInteger(value) && value >= 1
+    ? value
+    : undefined;
 /** S2 `firstDayOfWeek` — one of RAC's day names, else unset (the locale's own first day). */
 const DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const firstDayOfWeek = (value: unknown) =>
@@ -1285,6 +1392,33 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       // focus (their context), and its sheet reads the picker's size.
       const picker = catalogListPicker(input.root, input.node);
       const inPicker = !!picker;
+      // ADR-256 Phase 9: a calendar month · year picker's list — RAC makes the items (the
+      // picker's render props); the ListBoxItem node is the template drawn once per item.
+      if (picker && isCalendarPicker(input, picker)) {
+        const item = children(input).find(
+          (child) => catalogTypeName(input.root, child) === "ListBoxItem",
+        );
+        return createElement(CalendarPickerList, {
+          key: input.node.id,
+          listProps: {
+            "data-catalog-id": input.node.id,
+            style: input.style,
+            className: "react-aria-ListBox",
+            "data-size": str(picker.props.size || "M"),
+          },
+          itemId: item?.id,
+          // (The item's own text — the reference's `{item.formatted}` — or its child nodes.)
+          itemText: item
+            ? String(
+                catalogValueTemplateOf(item)?.props?.children ??
+                  item.props.children ??
+                  "",
+              )
+            : "{formatted}",
+          renderItemChildren: () =>
+            (item?.children ?? []).map((id) => input.renderChild(id)),
+        });
+      }
       // (RAC's ListBox itself, as the reference's pickers compose it: the shared ListBox's
       // variant marks are the standalone list's.)
       return createElement(
@@ -1630,14 +1764,14 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   // Text[description] + FieldError + Popover > ListBox`, each part in RAC's Select context (its
   // Popover takes the Select's trigger and place — `PopoverContext`). Without a visible label the
   // Select is named by its placeholder (RAC needs a label or an `aria-label`).
-  select: nodeTreeField(AriaSelect, "Select", (props) => ({
+  select: calendarPickerSelect(nodeTreeField(AriaSelect, "Select", (props) => ({
     placeholder: opt(props.placeholder),
     // Single (RAC's default) or Multiple — its ListBox and SelectValue follow RAC's state.
     selectionMode: props.selectionMode === "multiple" ? "multiple" : undefined,
     "aria-label": str(props.label).trim()
       ? undefined
       : (opt(props.placeholder) ?? "Select an option"),
-  })),
+  }))),
   // ADR-256 Phase 6d: the reference's tree — `ComboBox > Label + Group(Input + Button) +
   // Text[description] + FieldError + Popover > ListBox`, each part in RAC's ComboBox context (its
   // Popover takes the Group as trigger and its place — `PopoverContext`). Without a visible label
@@ -2609,23 +2743,23 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // ADR-256 Phase 9: RAC Calendar · RangeCalendar drawing their node tree — the reference
+  // starter's `div.months > div.month (repeated) > header (Button[previous] + CalendarHeading +
+  // Button[next]) + CalendarGrid > CalendarCell` (each part its own binding in RAC's calendar
+  // context), then the error text RAC names (`Text slot="errorMessage"`).
   calendar: {
-    ownsChild: ownsAll,
     render: (input) => {
       const props = input.node.props;
-      return createElement(Calendar as ElementType, {
-        ...calendarProps(input, "Calendar"),
+      return calendarElement(input, RacCalendar, "Calendar", {
         defaultValue: catalogCalendarPicker(input.root, input.node)
           ? undefined
-          : props.defaultValue,
+          : dateValue(props.defaultValue),
       });
     },
   },
   rangecalendar: {
-    ownsChild: ownsAll,
     render: (input) =>
-      createElement(RangeCalendar as ElementType, {
-        ...calendarProps(input, "Range Calendar"),
+      calendarElement(input, RacRangeCalendar, "Range Calendar", {
         allowsNonContiguousRanges: bool(
           input.node.props.allowsNonContiguousRanges,
         ),
@@ -2634,61 +2768,76 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
 };
 
 /**
- * A Calendar's · RangeCalendar's props. In a DatePicker · DateRangePicker (`catalogCalendarPicker`
- * — ADR-256 Phase 6e) RAC's calendar context gives its value, bounds, state, focus and paging: the
- * node's own values stay unset so they do not override it, and the picker's size and visible months
- * (RSP `maxVisibleMonths` — a picker prop the context does not carry) are the calendar's.
+ * A picker calendar's props RAC's calendar context gives (`calendarProps` leaves the node's own
+ * unset — `own`): the picker's state, bounds, paging and first day (ADR-256 Phase 9 — Properties
+ * edits them on the picker).
  */
-function calendarProps(
+export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
+  "isDisabled",
+  "isReadOnly",
+  "isInvalid",
+  "autoFocus",
+  "pageBehavior",
+  "firstDayOfWeek",
+  "minValue",
+  "maxValue",
+  "errorMessage",
+]);
+/**
+ * A Calendar's · RangeCalendar's RAC element. In a DatePicker · DateRangePicker
+ * (`catalogCalendarPicker` — ADR-256 Phase 6e) RAC's calendar context gives its value, bounds,
+ * state, focus, paging and first day: the node's own values stay unset so they do not override it,
+ * and the picker's size is the calendar's. Its `visibleDuration` · `weeksInMonth` stay the node's
+ * (ADR-256 Phase 9 — the context carries neither, `useDatePicker` `calendarProps`).
+ */
+function calendarElement(
   input: DelegatedDomInput,
+  Component: ElementType,
   name: string,
-): Record<string, unknown> {
+  extra: Record<string, unknown>,
+): ReactElement {
   const props = input.node.props;
   const picker = catalogCalendarPicker(input.root, input.node);
   const own = (value: unknown) => (picker ? undefined : value);
-  return {
-    ...marker(input),
-    style: input.style,
-    headerStyle: calendarHeaderStyle(input),
-    variant: props.variant || "default",
-    size: (picker ?? input.node).props.size || "M",
-    locale: props.locale,
-    calendarSystem: props.calendarSystem,
-    "aria-label":
-      typeof props["aria-label"] === "string" ? props["aria-label"] : own(name),
-    isDisabled: own(bool(props.isDisabled)),
-    isReadOnly: own(bool(props.isReadOnly)),
-    isInvalid: own(bool(props.isInvalid)),
-    maxVisibleMonths:
-      Number((picker ?? input.node).props.maxVisibleMonths) || 1,
-    pageBehavior: own(props.pageBehavior === "single" ? "single" : "visible"),
-    firstDayOfWeek: own(firstDayOfWeek(props.firstDayOfWeek)),
-    defaultToday: props.defaultToday === true,
-    minValue: own(props.minValue),
-    maxValue: own(props.maxValue),
-    defaultFocusedValue: own(props.defaultFocusedValue),
-    autoFocus: own(bool(props.autoFocus)),
-    errorMessage: own(str(props.errorMessage)),
-  };
-}
-
-/** Layout part of the CalendarHeader child's authored visual → `<header>` style (Preview B2). */
-function calendarHeaderStyle(
-  input: DelegatedDomInput,
-): CSSProperties | undefined {
-  const header = childOf(input, "CalendarHeader");
-  if (!header) return undefined;
-  const out: Record<string, unknown> = {};
-  for (const key of [
-    "display",
-    "flexDirection",
-    "justifyContent",
-    "alignItems",
-  ] as const)
-    if (header.layout[key] !== undefined) out[key] = header.layout[key];
-  for (const key of ["gap", "padding"] as const)
-    if (header.visual[key] !== undefined) out[key] = header.visual[key];
-  return Object.keys(out).length ? (out as CSSProperties) : undefined;
+  const errorMessage = picker ? "" : str(props.errorMessage);
+  const element = createElement(
+    Component,
+    {
+      ...marker(input),
+      style: input.style,
+      "data-variant": str(props.variant || "default"),
+      "data-size": str((picker ?? input.node).props.size || "M"),
+      "aria-label":
+        typeof props["aria-label"] === "string"
+          ? props["aria-label"]
+          : own(name),
+      isDisabled: own(bool(props.isDisabled)),
+      isReadOnly: own(bool(props.isReadOnly)),
+      isInvalid: own(bool(props.isInvalid)),
+      pageBehavior: own(props.pageBehavior === "single" ? "single" : "visible"),
+      firstDayOfWeek: own(firstDayOfWeek(props.firstDayOfWeek)),
+      minValue: own(dateValue(props.minValue)),
+      maxValue: own(dateValue(props.maxValue)),
+      defaultFocusedValue: own(dateValue(props.defaultFocusedValue)),
+      autoFocus: own(bool(props.autoFocus)),
+      visibleDuration: catalogCalendarDurationFits(props.visibleDuration)
+        ? props.visibleDuration
+        : undefined,
+      weeksInMonth: wholeCount(props.weeksInMonth),
+      ...extra,
+    },
+    ...renderAll(input),
+    ...(errorMessage
+      ? [
+          createElement(
+            AriaText as ElementType,
+            { key: `${input.node.id}:error`, slot: "errorMessage" },
+            errorMessage,
+          ),
+        ]
+      : []),
+  );
+  return withI18n(element, props.locale, props.calendarSystem);
 }
 
 /** The Tabs a part sits in (through the frames and free content around it). */

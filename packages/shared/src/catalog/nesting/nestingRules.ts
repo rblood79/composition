@@ -137,12 +137,8 @@ export const UNCONVERTED_FAMILY_LIMITS: Readonly<
   // overlay · disclosure — Phase 8. (Disclosure — 8c: 레퍼런스 `Heading > Button[trigger]` + `DisclosurePanel`
   // 노드 트리로 그린다. DisclosureGroup — 8d: 자유 내용 (RAC 가 children 을 그대로 그린다), 행 삭제.
   // 옛 DisclosureHeader · DisclosureChevron · DisclosureContent type 은 8e 에서 삭제.)
-  // calendar — Phase 9
-  Calendar: { children: ["CalendarHeader", "CalendarGrid"], wrappers: true },
-  RangeCalendar: {
-    children: ["CalendarHeader", "CalendarGrid"],
-    wrappers: true,
-  },
+  // (calendar — ADR-256 Phase 9: 레퍼런스 starter 의 `div.month > header (Button + CalendarHeading +
+  // Button) + CalendarGrid > CalendarCell` 노드 트리로 그린다 — 한 달 블록 반복, 행 삭제.)
   // S2 · 범위 밖 — Phase 10 (RSP 계약: ButtonGroup `children: ReactElement<ButtonProps>[]` …)
   ButtonGroup: { children: ["Button"] },
   AvatarGroup: { children: ["Avatar"] },
@@ -191,7 +187,7 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "Separator",
   "Skeleton",
   "Input",
-  "DateInput",
+  // (DateInput — ADR-256 Phase 9: it holds its segment template.)
   "Illustration",
   "SelectValue",
   "ColorSwatch",
@@ -209,8 +205,8 @@ export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
   "ProgressBarValue",
   // (ProgressBarTrack — ADR-256 Phase 7a: the reference `div.track` holds the fill and free content.)
   "ProgressBarFill",
-  "CalendarGrid",
-  "CalendarHeader",
+  // (CalendarGrid · CalendarHeader — ADR-256 Phase 9: the grid holds its cell template, the header
+  //  its nav Buttons and heading.)
 ]);
 
 // ─────────────────────────────────────────────────────────────────────────────

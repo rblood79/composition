@@ -22,7 +22,8 @@
 
   /* --- sm --- */
   .react-aria-Calendar[data-size="S"] {
-    header .react-aria-Heading {
+    header .react-aria-Heading,
+    header .react-aria-CalendarHeading {
       font-size: var(--text-xs);
     }
 
@@ -47,7 +48,8 @@
 
   /* --- md --- */
   .react-aria-Calendar[data-size="M"] {
-    header .react-aria-Heading {
+    header .react-aria-Heading,
+    header .react-aria-CalendarHeading {
       font-size: var(--text-sm);
     }
 
@@ -72,7 +74,8 @@
 
   /* --- lg --- */
   .react-aria-Calendar[data-size="L"] {
-    header .react-aria-Heading {
+    header .react-aria-Heading,
+    header .react-aria-CalendarHeading {
       font-size: var(--text-base);
     }
 

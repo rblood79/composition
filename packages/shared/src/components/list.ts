@@ -14,7 +14,6 @@ export * from "./ListBox";
 export * from "./GridList";
 export * from "./Tabs";
 export * from "./Tree";
-export * from "./Calendar";
 export * from "./Switch";
 export * from "./Table";
 export { default as Table } from "./Table";
@@ -39,7 +38,6 @@ export type { Key } from "react-aria-components/Collection";
 
 // Missing re-exports (index.tsx에는 있지만 list.ts에 누락됐던 항목)
 export * from "./Form";
-export * from "./RangeCalendar";
 export * from "./Pagination";
 
 // Color 컴포넌트

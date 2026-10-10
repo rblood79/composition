@@ -21,10 +21,26 @@
     --btn-padding: 0;
   }
 
-  /* ========== Header Layout ========== */
-  /* 2026-07-02: catalog rule CalendarHeader.structure.containerStyles 와 동일한 flex 기본값
-     (display:flex, flex-direction:row, justify-content:space-between, align-items:center) —
-     Style 패널 편집이 headerStyle(renderCalendar)로 override 하면 이 base 위에 얹힘. */
+  /* ========== Month block · Header Layout ========== */
+  /* ADR-256 Phase 9 — the reference starter's `div.month` (one per shown month): its header over its
+     grid, the calendar size's gap (`manualBoxRules` CalendarMonth — the Canvas reads the same). */
+  .react-aria-Calendar .month,
+  .react-aria-RangeCalendar .month {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .react-aria-Calendar[data-size="S"] .month,
+  .react-aria-RangeCalendar[data-size="S"] .month {
+    gap: 4px;
+  }
+  .react-aria-Calendar[data-size="L"] .month,
+  .react-aria-RangeCalendar[data-size="L"] .month {
+    gap: 8px;
+  }
+
+  /* The header row (the CalendarHeader node — `manualBoxRules` CalendarHeader): the author's nav
+     Buttons and heading in a flex row. */
   .react-aria-Calendar header,
   .react-aria-RangeCalendar header {
     display: flex;
@@ -33,13 +49,17 @@
     align-items: center;
   }
 
+  /* A plain Heading (RAC Calendar's visible-range title) or RAC's CalendarHeading (its month). */
   .react-aria-Calendar header .react-aria-Heading,
-  .react-aria-RangeCalendar header .react-aria-Heading {
+  .react-aria-RangeCalendar header .react-aria-Heading,
+  .react-aria-Calendar header .react-aria-CalendarHeading,
+  .react-aria-RangeCalendar header .react-aria-CalendarHeading {
     flex: 1;
     margin: 0;
     text-align: center;
     font-weight: var(--font-weight-bold);
     font-size: var(--text-sm);
+    line-height: var(--text-base--line-height);
     color: var(--fg);
   }
 
@@ -67,10 +87,11 @@
     }
   }
 
-  /* visibleMonths > 1: 복수 CalendarGrid 가로 배치 */
-  .calendar-grids {
-    display: flex;
-    gap: var(--spacing-lg);
+  /* ADR-256 Phase 9 — a nav Button's chevron Icon node: the glyph's own box (the Canvas draws it at
+     its icon size; the Icon sheet's default 24px height is a standalone icon's). */
+  .react-aria-Calendar .react-aria-Button > .react-aria-Icon,
+  .react-aria-RangeCalendar .react-aria-Button > .react-aria-Icon {
+    height: auto;
   }
 
   /* S2 패턴: table 기본 스타일 리셋 + stacking context */

@@ -198,7 +198,7 @@ const SLIDER_RANGE: Readonly<
   startAngle: { min: 0, max: 360, step: 1, unit: "°" },
   endAngle: { min: 0, max: 360, step: 1, unit: "°" },
   gridRings: { min: 0, max: 10, step: 1 },
-  maxVisibleMonths: { min: 1, max: 3, step: 1 },
+  weeksInMonth: { min: 1, max: 6, step: 1 },
   animationBegin: { min: 0, max: 3000, step: 50, unit: "ms" },
   animationDuration: { min: 0, max: 3000, step: 50, unit: "ms" },
   timeout: { min: 0, max: 20000, step: 500, unit: "ms" },

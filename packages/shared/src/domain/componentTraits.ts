@@ -215,8 +215,12 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
     ],
   },
   DateInput: {
+    // ADR-256 Phase 9 (Decision 13): its one child is the segment template RAC draws per segment.
+    container: "collection",
     owners: ["DateField", "TimeField", "DatePicker", "DateRangePicker"],
+    children: ["DateSegment"],
   },
+  DateSegment: { owners: ["DateInput"] },
   SelectValue: { owners: SELECT_TRIGGER_OWNERS },
 
   // ── 컬렉션 ──
@@ -364,8 +368,22 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   ProgressBarFill: { owners: ["ProgressBarTrack"] },
   Calendar: {},
   RangeCalendar: {},
-  CalendarGrid: { owners: ["Calendar", "RangeCalendar"] },
+  // ADR-256 Phase 9: its one child is the cell template RAC draws per date (Decision 13).
+  CalendarGrid: {
+    container: "collection",
+    owners: ["Calendar", "RangeCalendar"],
+    children: ["CalendarHeaderCell", "CalendarCell"],
+  },
   CalendarHeader: { owners: ["Calendar", "RangeCalendar"] },
+  // ADR-256 Phase 9: a month block (repeat template — its copies' index is the month offset), RAC's
+  //   heading (the calendar's state context) and RAC's cell (its grid's — the date RAC hands it).
+  CalendarMonth: { owners: ["Calendar", "RangeCalendar"] },
+  CalendarHeading: { owners: ["Calendar", "RangeCalendar"] },
+  CalendarCell: { owners: ["CalendarGrid"] },
+  CalendarHeaderCell: { owners: ["CalendarGrid"] },
+  // ADR-256 Phase 9: RAC's month · year pickers read the calendar's state context.
+  CalendarMonthPicker: { owners: ["Calendar", "RangeCalendar"] },
+  CalendarYearPicker: { owners: ["Calendar", "RangeCalendar"] },
 };
 
 export function getComponentTraits(

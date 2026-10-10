@@ -36,6 +36,8 @@ Proposed — 2026-10-07
 
 > **2026-10-09 Round 24 설계 수리** (사용자 「리뷰 결과대로 설계 보완해, firstDayOfWeek · weeksInMonth 도 포함」 — [reviews/256.md](reviews/256.md) Round 24 MEDIUM 3): ① DatePicker · DateRangePicker 안 Calendar 의 prop 소유를 RAC calendar context 와 같게 — `firstDayOfWeek` · `pageBehavior` 는 picker, `visibleDuration` · `weeksInMonth` 는 안 Calendar 노드, picker 의 `maxVisibleMonths` 삭제 ② 여러 달 표시 = 새 `CalendarMonth` 한 달 블록 (header + grid) 반복 template — 레퍼런스 starter 구조 ③ Preview 실행 중 보기 전환은 범위 밖 — 레퍼런스의 수량 + Days/Weeks/Months Select 는 문서 페이지의 prop 편집기이고 Builder 의 대응은 Properties ④ Display options 조작 패널의 `firstDayOfWeek` · `weeksInMonth` 추가 (Decision 14 · [breakdown §3-1](design/256-rac-composition-level-breakdown.md#3-1-phase-9-추가-계약-2026-10-09-사용자-지시)). 설계 수리이며 구현·Gate 통과 기록은 아니다.
 
+> **2026-10-11 Phase 9 구현** (`/execute-adr ADR-256 Phase 9 Calendar`, [breakdown §5](design/256-rac-composition-level-breakdown.md)): 9a 문서 값 `calendarDuration` + Display options (`visibleDuration` 수량 · Days/Weeks/Months · `weeksInMonth`, picker 의 `maxVisibleMonths` 삭제 — 로드 시 전환) · 9b Calendar · RangeCalendar 노드 트리 = 레퍼런스 starter (`frame > CalendarMonth` 반복 > header (Button[previous] · CalendarHeading · Button[next]) + CalendarGrid > CalendarCell) · 9c CalendarMonthPicker · CalendarYearPicker · 9d 요일 칸 · DateSegment 반복 template (Decision 13 — 명시 제한 없이 구현). contract 37. G2 (starter 구조 비교) · G3 Calendar 계열 PASS · G4 ratchet A 0 · live 12/12. 판독 1 + 수리 검증 1 (MEDIUM 2 수리, HIGH 0) → 닫힘.
+
 ## Context
 
 ### 목표

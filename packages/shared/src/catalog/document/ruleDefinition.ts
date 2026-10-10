@@ -1,4 +1,4 @@
-import { scalarFitsType } from "./valueType";
+import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
   type LayoutToken,
@@ -59,11 +59,13 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "items-manager": "items",
   "column-size": "columnSize",
   "column-static-size": "columnStaticSize",
+  "calendar-duration": "calendarDuration",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
 function propDefaultMatches(value: unknown, type: ValueType): boolean {
   if (type === "slot") return scalarFitsType(value, type);
+  if (type === "calendarDuration") return catalogCalendarDurationFits(value);
   if (type === "string[]")
     return (
       Array.isArray(value) && value.every((item) => typeof item === "string")
@@ -393,7 +395,18 @@ export function ruleTypeDefinition(
     visual: {},
     stateRules: {},
   };
-  if (!rule) return definition;
+  if (!rule) {
+    // (A part without a D3 rule whose box a manual stylesheet states — ADR-256 Phase 9 CalendarMonth.)
+    if (manualBoxRule(type)) {
+      const layout: Record<string, string> = {};
+      const visual: Record<string, VisualValues[keyof VisualValues]> = {};
+      applyManualBox(type, definition, layout, visual, {});
+      if (Object.keys(layout).length)
+        definition.layout = layout as LayoutValues;
+      definition.visual = visual as VisualValues;
+    }
+    return definition;
+  }
   definition.ruleId = type;
   const box = ruleRootBox(type, rule);
   const layout: Record<string, string> = { ...box.layout };

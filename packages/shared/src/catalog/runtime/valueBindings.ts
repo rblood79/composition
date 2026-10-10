@@ -15,10 +15,24 @@ import { catalogSliderRange } from "./presence";
 type Lookup = (id: string) => CatalogConsumerNode | undefined;
 type TypeOf = (node: CatalogConsumerNode) => string;
 
+/**
+ * ADR-256 Phase 9 — values a composition owner gives its item template from RAC's render props
+ * (not a RAC part's own `useRenderProps`): a calendar month · year picker's item text
+ * (`item.formatted` — the reference's `<SelectItem>{item.formatted}</SelectItem>`). The DOM passes
+ * each item's value as the picker's frame; the Canvas reads the picker record (its focused value).
+ */
+const COMPOSITION_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  CalendarMonthPicker: ["formatted"],
+  CalendarYearPicker: ["formatted"],
+};
+const valueKeysOf = (type: string): readonly string[] | undefined =>
+  RAC_VALUE_KEYS[type] ?? COMPOSITION_VALUE_KEYS[type];
+
 /** Every key a node may bind (`{key}`) to a RAC owner's render props value. */
-export const CATALOG_VALUE_KEYS: ReadonlySet<string> = new Set(
-  Object.values(RAC_VALUE_KEYS).flat(),
-);
+export const CATALOG_VALUE_KEYS: ReadonlySet<string> = new Set([
+  ...Object.values(RAC_VALUE_KEYS).flat(),
+  ...Object.values(COMPOSITION_VALUE_KEYS).flat(),
+]);
 const BINDING = /\{([a-zA-Z][a-zA-Z0-9_-]*)\}/g;
 
 /** The written props · visual values that hold a value binding (`record.props` / `visual` hold the values). */
@@ -64,7 +78,7 @@ export function catalogValueOwner(
   typeOf: TypeOf,
 ): CatalogConsumerNode | undefined {
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
-    if (RAC_VALUE_KEYS[typeOf(cursor)]?.includes(key)) return cursor;
+    if (valueKeysOf(typeOf(cursor))?.includes(key)) return cursor;
   return undefined;
 }
 
@@ -84,6 +98,11 @@ export function catalogRenderValue(
   locale?: string,
 ): string | number | undefined {
   const props = owner.props;
+  // (A calendar picker's focused month · year — its record's derived text, `presence.ts`.)
+  if (key === "formatted") {
+    const text = owner.derivedProps?._formatted;
+    return typeof text === "string" ? text : undefined;
+  }
   if (props.isIndeterminate === true) return undefined;
   const min = finite(props.minValue, 0);
   const max = finite(props.maxValue, 100);

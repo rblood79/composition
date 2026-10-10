@@ -8,7 +8,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { catalogCalendarHeaderParts } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -113,7 +112,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 36,
+    libraryContractVersion: 37,
     revision: 0,
     projectId,
     rootId: projectId,

@@ -106,7 +106,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 36,
+    libraryContractVersion: 37,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -640,17 +640,18 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(color("page-label")).toBe("var(--accent)");
   });
 
-  it("derives the calendar heading from the Calendar, not its header child, and lays the header out around it", async () => {
+  it("derives the calendar heading from the Calendar, and lays the header row out of its nodes (ADR-256 Phase 9)", async () => {
     const id = (name: string) => `project:node:${name}` as NodeId;
     const entry = (
       name: string,
       type: string,
+      children: NodeId[] = [],
       props: NodeEntry["props"] = {},
     ): NodeEntry => ({
       kind: "node",
       id: id(name),
       definitionId: `lib:definition:type-${type}` as DefinitionId,
-      children: [],
+      children,
       props,
       visual: {},
       sizing: {},
@@ -660,11 +661,24 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       "lib:definition:type-Calendar" as DefinitionId,
       "calendar-project",
       {
-        children: [id("header"), id("grid")],
+        children: [id("month")],
         nodes: [
-          // (The header takes no text or locale of its own — 2026-10-09: RAC reads the Calendar's.)
-          entry("header", "CalendarHeader"),
-          entry("grid", "CalendarGrid"),
+          // (The parts take no text or locale of their own — RAC reads the Calendar's.)
+          entry("month", "CalendarMonth", [id("header"), id("grid")]),
+          entry("header", "CalendarHeader", [
+            id("previous"),
+            id("heading"),
+            id("next"),
+          ]),
+          entry("previous", "Button", [], {
+            slot: { kind: "set", value: "previous" },
+          }),
+          entry("heading", "CalendarHeading"),
+          entry("next", "Button", [], {
+            slot: { kind: "set", value: "next" },
+          }),
+          entry("grid", "CalendarGrid", [id("cell")]),
+          entry("cell", "CalendarCell"),
         ],
       },
     );
@@ -690,24 +704,25 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       );
     const engine = new StyleLayoutEngine();
     const root = build(engine);
-    const header = () =>
+    const record = (name: string) =>
       [...root.canvasInputs.values()].find(
-        (input) => input.sourceId === id("header"),
+        (input) => input.sourceId === id(name),
       )!;
-    expect(header().derivedProps?.children).toBe(title("ja-JP"));
-    expect(measured).not.toContain("2026년 9월");
-    // Header row: two nav buttons (height + spacing-xs: md 34, lg 40 — 4e-11 resets the generic
-    // Button `min-width`) + two gaps + the heading's min-content, as tall as the buttons (md 30,
-    // lg 36) until the heading wraps.
-    const headerStyle = (height: number) =>
-      [...engine.styles.values()].filter(
-        (style) =>
-          style.contentHeight === height && style.contentMinWidth !== undefined,
-      );
-    const row = 2 * 34 + 2 * Number(header().visual.gap ?? 0) + 70;
-    expect(headerStyle(30)).toEqual([
-      expect.objectContaining({ contentMinWidth: row, contentMaxWidth: row }),
+    expect(record("heading").derivedProps?.children).toBe(title("ja-JP"));
+    expect(measured).toContain(title("ja-JP"));
+    // The nav Buttons are the calendar sheets' boxes (height + spacing-xs: md 34 × 30, lg 40 × 36),
+    // the heading fills the row between them (`flex: 1`) — the header row's part rules.
+    const nav = () => [record("previous").visual, record("next").visual];
+    expect(nav()).toEqual([
+      expect.objectContaining({ width: 34, height: 30, fill: "transparent" }),
+      expect.objectContaining({ width: 34, height: 30, fill: "transparent" }),
     ]);
+    expect(record("heading").layout).toEqual(
+      expect.objectContaining({ flexGrow: "1" }),
+    );
+    expect(record("heading").visual).toEqual(
+      expect.objectContaining({ fontSize: 14, fontWeight: 700 }),
+    );
     root.dispatch("calendar size", [
       {
         kind: "patchNodeProp",
@@ -719,14 +734,14 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(new Map(root.canvasInputs)).toEqual(
       new Map(build(new StyleLayoutEngine()).canvasInputs),
     );
-    const lgRow = 2 * 40 + 2 * Number(header().visual.gap ?? 0) + 70;
-    expect(headerStyle(36)).toEqual([
-      expect.objectContaining({
-        contentMinWidth: lgRow,
-        contentMaxWidth: lgRow,
-      }),
+    expect(nav()).toEqual([
+      expect.objectContaining({ width: 40, height: 36 }),
+      expect.objectContaining({ width: 40, height: 36 }),
     ]);
-    expect(header().derivedProps?.children).toBe(title("ja-JP"));
+    expect(record("heading").visual).toEqual(
+      expect.objectContaining({ fontSize: 16 }),
+    );
+    expect(record("heading").derivedProps?.children).toBe(title("ja-JP"));
   });
 
   it("lays a StatusLight out as its dot, gap and label (the DOM flex row), not the label alone", async () => {

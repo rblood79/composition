@@ -690,10 +690,21 @@ describe("ADR-248 4e library origin view", () => {
     }
     // A field's button is a FieldButton instance (ComboBox · DatePicker · DateRangePicker), a
     // Select's trigger a Button instance (ADR-253): the glyph is the Button's scale.
+    // (The field's own button — not the nav glyphs of a picker's calendar in its closed Popover,
+    // ADR-256 Phase 9.)
+    const inPopover = (record: string): boolean => {
+      for (
+        let cursor = inputOf(record).parentId;
+        cursor && inputOf(cursor);
+        cursor = inputOf(cursor).parentId
+      )
+        if (inputOf(cursor).bindingId === "popover") return true;
+      return false;
+    };
     const buttonGlyphs = (origin: string, size: string) =>
-      under(recordOf(sized(origin, size)), "icon").map(
-        (record) => inputOf(record).visual.iconSize,
-      );
+      under(recordOf(sized(origin, size)), "icon")
+        .filter((record) => !inPopover(record))
+        .map((record) => inputOf(record).visual.iconSize);
     for (const origin of [
       "combobox",
       "select",
@@ -719,6 +730,9 @@ describe("ADR-248 4e library origin view", () => {
     expect(sizesUnder("buttongroup", "XS", "button")).toEqual(["XS", "XS"]);
     expect(sizesUnder("calendar", "S", "calendargrid")).toEqual(["S"]);
     expect(sizesUnder("calendar", "S", "calendarheader")).toEqual(["S"]);
+    // (ADR-256 Phase 9: through its month block to the heading.)
+    expect(sizesUnder("calendar", "S", "calendarmonth")).toEqual(["S"]);
+    expect(sizesUnder("calendar", "S", "calendarheading")).toEqual(["S"]);
     // A Card placed on a page: its regions are slots — the one it leaves empty (the footer) is
     // hatched at its own box, the filled ones are not marked.
     const CARD = "project:node:card-placed" as NodeId;

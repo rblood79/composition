@@ -29,7 +29,10 @@ import {
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
-import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
+import {
+  catalogCalendarDurationFits,
+  catalogColumnSizeFits,
+} from "../../../../../../../packages/shared/src/catalog/document/valueType";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -578,6 +581,64 @@ const ColumnSizeField = memo(function ColumnSizeField({
   );
 });
 
+const DURATION_UNITS = ["days", "weeks", "months"] as const;
+type DurationUnit = (typeof DURATION_UNITS)[number];
+
+/**
+ * ADR-256 Phase 9 — a Calendar's `visibleDuration` (RAC, the reference's Display options): a count
+ * and its Days · Weeks · Months unit, one editor. Either change writes the whole duration once
+ * (`{weeks: 2}` — a unit change leaves no old key); a count that is not a whole ≥ 1 is not written.
+ */
+const CalendarDurationField = memo(function CalendarDurationField({
+  field,
+  value,
+  onChange,
+  unitLabel,
+}: {
+  field: ResolvedField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  unitLabel: string;
+}) {
+  const duration = catalogCalendarDurationFits(value)
+    ? (value as Readonly<Record<string, number>>)
+    : catalogCalendarDurationFits(field.baseValue)
+      ? (field.baseValue as Readonly<Record<string, number>>)
+      : { months: 1 };
+  const unit = (DURATION_UNITS.find((key) => key in duration) ??
+    "months") as DurationUnit;
+  const count = duration[unit] ?? 1;
+  const write = (next: Record<string, number>) => {
+    if (catalogCalendarDurationFits(next)) onChange(next);
+  };
+  return (
+    <>
+      <PropertyNumberInput
+        label={field.label}
+        value={count}
+        onChange={(next) => {
+          if (next !== undefined) write({ [unit]: next });
+        }}
+        min={1}
+        step={1}
+      />
+      <PropertySelect
+        label={unitLabel}
+        value={unit}
+        onChange={(next) => {
+          if ((DURATION_UNITS as readonly string[]).includes(next))
+            write({ [next]: count });
+        }}
+        options={[
+          { value: "days", label: "Days" },
+          { value: "weeks", label: "Weeks" },
+          { value: "months", label: "Months" },
+        ]}
+      />
+    </>
+  );
+});
+
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 const GenericField = memo(function GenericField({
   field,
@@ -748,6 +809,17 @@ const GenericField = memo(function GenericField({
           elementId={elementId}
           onChange={update}
           notApplied={t("propertiesPanel.columnSizeNotApplied")}
+        />
+      );
+
+    // ADR-256 Phase 9 — a count + Days · Weeks · Months, one object write.
+    case "calendar-duration":
+      return (
+        <CalendarDurationField
+          field={field}
+          value={value}
+          onChange={update}
+          unitLabel={t("propertiesPanel.durationUnit")}
         />
       );
 
@@ -1120,7 +1192,10 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           key={`${row[0]!.origin}:${row[0]!.key}`}
           className="fieldset-row"
           data-wide={
-            row.length === 1 && fieldSpan(row[0]!) === "wide"
+            // (A calendar duration fills its row with its own two halves — count · unit.)
+            row.length === 1 &&
+            fieldSpan(row[0]!) === "wide" &&
+            row[0]!.kind !== "calendar-duration"
               ? "true"
               : undefined
           }

@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { catalogCalendarHeaderParts } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import { manualBoxRule } from "../../../../../../packages/shared/src/catalog/document/manualBoxRules";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import type {
@@ -113,7 +113,7 @@ async function openStandalone(definitionId: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 36,
+    libraryContractVersion: 37,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -188,8 +188,18 @@ describe("field trigger buttons — no generic Button min-width", () => {
       const workspace = await openOwner(owner, { size: "M" });
       const root = workspace.root;
       // (The glyph is the Icon inside the FieldButton instance — ADR-253.)
+      // (Not the nav glyphs of a picker's calendar in its closed Popover — ADR-256 Phase 9.)
+      const inPopover = (record: { parentId: string }) => {
+        for (
+          let cursor = root.layoutInputs.get(record.parentId);
+          cursor;
+          cursor = root.layoutInputs.get(cursor.parentId)
+        )
+          if (cursor.bindingId === "popover") return true;
+        return false;
+      };
       const icons = [...root.layoutInputs.values()].filter(
-        (record) => record.bindingId === "icon",
+        (record) => record.bindingId === "icon" && !inPopover(record),
       );
       expect(icons.length).toBeGreaterThan(0);
       for (const icon of icons) {
@@ -222,8 +232,16 @@ describe("Calendar nav buttons — no generic Button min-width", () => {
   });
 
   it("the Canvas header row reads the sized nav width (md 30 + 4)", () => {
-    expect(catalogCalendarHeaderParts("M")?.navWidth).toBe(34);
-    expect(catalogCalendarHeaderParts("S")?.navWidth).toBe(28);
+    // (ADR-256 Phase 9: the nav Buttons are nodes — the header's part rules give their box.)
+    const nav = (size: string) =>
+      manualBoxRule("CalendarHeader")?.parts?.find(
+        (part) =>
+          part.childType === "Button" &&
+          part.size === size &&
+          part.childProps?.slot === "previous",
+      )?.visual.width;
+    expect(nav("M")).toBe(34);
+    expect(nav("S")).toBe(28);
   });
 });
 

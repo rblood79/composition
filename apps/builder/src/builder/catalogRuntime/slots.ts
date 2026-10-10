@@ -223,6 +223,13 @@ function positionTypeName(
  * choice passes the same nesting check the insert command runs (`assertNestable` at the list
  * position), so what is listed goes in.
  */
+/** ADR-256 Phase 9 — the parts a calendar's header takes beside its nav Buttons. */
+const CALENDAR_HEADER_PARTS = [
+  "CalendarHeading",
+  "CalendarMonthPicker",
+  "CalendarYearPicker",
+] as const;
+
 export function catalogSlotInsertOptions(
   graph: CatalogSlotReader,
   target: EditTarget,
@@ -271,6 +278,14 @@ export function catalogSlotInsertOptions(
         ...option,
         label: itemType === "frame" ? "Frame" : itemType,
       });
+    }
+    // ADR-256 Phase 9: a calendar header's parts — RAC's heading and its month · year pickers (their
+    // owners check keeps them to a position inside a Calendar · RangeCalendar).
+    for (const itemType of CALENDAR_HEADER_PARTS) {
+      const option = ofType(itemType);
+      if (!option || origins.has(option.definitionId)) continue;
+      origins.add(option.definitionId);
+      candidates.push(option);
     }
     const project = graph.getEntry(graph.projectId);
     const instanceDefinition =

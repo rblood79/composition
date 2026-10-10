@@ -73,6 +73,16 @@ const renameOf =
 const meterOf = renameOf({ warning: "notice", critical: "negative" });
 
 /**
+ * ADR-256 Phase 9: a Calendar's month-only `maxVisibleMonths` is its RAC `visibleDuration` in
+ * months (1 = the default, nothing written). A picker's is dropped — RAC's picker context does
+ * not carry a duration; its calendar node owns one.
+ */
+const visibleMonthsOf: PropValueMigration = (value) =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 1
+    ? { visibleDuration: { months: value } }
+    : DROP;
+
+/**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
  * type → 옛 prop → 새 값들 ({} = 축 삭제). `createCatalogGraph` 가 적용하므로 storage 로드 ·
  * import · publish · preview snapshot 이 한 길로 지난다 — 저장은 다음 변경의 autosave 가 한다.
@@ -107,6 +117,10 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
     },
   },
   CardView: { variant: dropOf },
+  Calendar: { maxVisibleMonths: visibleMonthsOf },
+  RangeCalendar: { maxVisibleMonths: visibleMonthsOf },
+  DatePicker: { maxVisibleMonths: dropOf },
+  DateRangePicker: { maxVisibleMonths: dropOf },
 };
 
 /**

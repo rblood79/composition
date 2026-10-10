@@ -71,7 +71,6 @@ import { resolveTextSourceText } from "./utils/textSource";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import type { CatalogResolvedPaint } from "./catalogPaint";
 import {
-  resolveLeadingIconName,
   resolveLeadingSlot,
   resolveTreeIndent,
 } from "./buildCatalogShapes";
@@ -1338,9 +1337,10 @@ const overlayBackdrop: SkiaPrimitiveDrawFn = () => [
  * 16px** 이다 (Calendar.tsx:122-126). Skia glyph 도 동일 16 으로 못 박아 CSS↔Skia 대칭 유지 —
  * rule `size.fontSize` 파생(가변) 금지. TagGroup remove X 축1 과 동형(DOM 고정-크기 아이콘 컨벤션).
  *
- * **두 경로가 공유한다**: `inline_icon_text`(CalendarHeader 자식이 있을 때) + `calendar_grid`
- * (standalone — 자식 없을 때 Calendar 가 직접 그리는 nav row). 과거 `calendar_grid` 만 `fontSize+2`
- * 로 남아 sm 14 / md 16 / lg 18 로 가변했다 — **md 만 우연히 DOM 16 과 일치**하고 sm/lg 는 어긋남.
+ * `calendar_grid` (standalone — 자식 없을 때 Calendar 가 직접 그리는 nav row) 가 쓴다. 과거
+ * `fontSize+2` 로 남아 sm 14 / md 16 / lg 18 로 가변했다 — **md 만 우연히 DOM 16 과 일치**하고
+ * sm/lg 는 어긋남. (CalendarHeader 의 `inline_icon_text` 는 ADR-256 Phase 9 에서 삭제 — header 는
+ * Button · CalendarHeading 노드.)
  */
 const CALENDAR_CHEVRON_DOM_PX = 16;
 
@@ -1535,6 +1535,29 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
  *   `<div className="calendar-grids"><CalendarGrid offset>{(date)=><CalendarCell/>}</CalendarGrid>`
  *   가 RAC self-compose → canonical CalendarGrid 자식은 DOM drop. 발효 가치 = Skia 대칭 한정.
  */
+/** The calendar model a grid record carries (`_calendarGrid` — JSON of `catalogCalendarGrid`). */
+function calendarGridModel(value: unknown):
+  | {
+      weekdays: string[];
+      rows: string[][];
+      today?: [number, number];
+    }
+  | undefined {
+  if (typeof value !== "string" || !value) return undefined;
+  try {
+    const parsed = JSON.parse(value) as {
+      weekdays?: unknown;
+      rows?: unknown;
+      today?: unknown;
+    };
+    if (!Array.isArray(parsed.weekdays) || !Array.isArray(parsed.rows))
+      return undefined;
+    return parsed as { weekdays: string[]; rows: string[][]; today?: [number, number] };
+  } catch {
+    return undefined;
+  }
+}
+
 const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const iconSize = (size.iconSize as unknown as number) ?? 26;
   const cellSize = iconSize + 4;
@@ -1554,9 +1577,65 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const weekdayY = cellSize / 2;
   const gridStartY = cellSize;
 
+  // ADR-256 Phase 9: the grid's weekday row and week rows from the calendar model (shared
+  // `calendarModel.ts` — RAC's date arithmetic for the calendar's duration, first day and weeks).
+  const model = calendarGridModel(props._calendarGrid);
+  if (model) {
+    const shapes: Shape[] = [];
+    model.weekdays.forEach((weekday, col) => {
+      shapes.push({
+        type: "text" as const,
+        x: col * cellBox + CELL_PAD,
+        y: weekdayY,
+        text: weekday,
+        fontSize,
+        fontFamily: ff,
+        fontWeight: 700,
+        fill: "{color.neutral-subdued}" as TokenRef,
+        align: "center" as const,
+        baseline: "middle" as const,
+        maxWidth: cellSize,
+        whiteSpace: "nowrap" as const,
+      });
+    });
+    const [todayRow, todayCol] =
+      props.defaultToday === true && model.today ? model.today : [-1, -1];
+    model.rows.forEach((cells, row) => {
+      cells.forEach((day, col) => {
+        if (!day) return;
+        const cellLeft = col * cellBox + CELL_PAD;
+        const cy = gridStartY + row * cellBox + CELL_PAD + cellSize / 2;
+        const isToday = row === todayRow && col === todayCol;
+        shapes.push({
+          type: "text" as const,
+          x: cellLeft,
+          y: cy,
+          text: day,
+          fontSize,
+          fontFamily: ff,
+          fontWeight: isToday ? 700 : 400,
+          fill: textColor,
+          align: "center" as const,
+          baseline: "middle" as const,
+          maxWidth: cellSize,
+          whiteSpace: "nowrap" as const,
+        });
+        if (isToday)
+          shapes.push({
+            type: "circle" as const,
+            x: cellLeft + cellSize / 2,
+            y: cy + cellSize / 2 - 4,
+            radius: 3,
+            fill: "{color.accent}" as TokenRef,
+          });
+      });
+    });
+    return shapes;
+  }
+
   const now = new Date();
-  // S2 `firstDayOfWeek` / the locale's first day (Sunday = 0 — `catalogWeekStart`): the first
-  // column of the weekday header and of the day rows.
+  // S2 `firstDayOfWeek` / the locale's first day (Sunday = 0): the first column of the weekday
+  // header and of the day rows (without a model — a bare primitive).
   const weekStart = Number(props._weekStart) || 0;
   const dayOffset =
     (props.dayOffset as number | undefined) ??
@@ -2114,245 +2193,6 @@ const leadingAvatar: SkiaPrimitiveDrawFn = ({
       height: diameter,
       src: slot.src,
       radius,
-    },
-  ];
-};
-
-/**
- * `inline_icon_text` — 좌측 icon + 중앙 text + 우측 icon (CalendarHeader 등, ADR-912 (B+icon), replace 모드).
- *
- * leading_icon(좌측 단일 icon + left-align text, append)과 **다른 레이아웃 가정** — 좌·우 icon 양측 +
- * center text 라 buildCatalogShapes 의 box+text(좌측/center 단일 text)로 표현 불가 → 별도 module 로
- * **전체 3-shape 자기 생성(replace)**. CalendarHeader.spec.ts render.shapes 의 좌표 공식과 1:1 대칭.
- *
- * 데이터 분기(컴포넌트 식별 없음 — ADR-142 §3):
- * - `visual.leadingIcon` && `visual.trailingIcon` 둘 다 존재해야 적용 → 미충족 시 `[]`(leading_icon
- *   단일 또는 일반 box+text 가 처리).
- * - cellSize = `size.iconSize + 4`(spec dims.iconSize + 4 과 동형). 좌 icon x = cellSize/2,
- *   text x = cellSize(align=center, maxWidth=width-cellSize*2), 우 icon x = width - cellSize/2.
- * - width = `_containerWidth`(CONTAINER_DIMENSION_TAGS 주입) ?? `style.width` ?? `cellSize*7 + gap*6` 폴백.
- * - text = props.locale/calendarSystem Intl(year long month) → props.children → "2024년 1월" fallback
- *   (spec render.shapes 동형).
- * - color = visual.text(좌우 icon 동일), textAlign = visual.textAlign ?? "center".
- */
-const inlineIconText: SkiaPrimitiveDrawFn = ({
-  props,
-  size,
-  visual,
-  paint,
-  style,
-}) => {
-  const li = visual?.leadingIcon;
-  const ti = visual?.trailingIcon;
-  // 좌·우 icon 둘 다 있어야 inline_icon_text 모델 — 아니면 leading_icon/box+text 가 처리.
-  //   leadingIcon 은 `nameProp`(행 데이터) 형태도 있어 name 이 없을 수 있다 — 좌우 대칭 배치
-  //   모델은 **정적 이름**을 전제하므로 그 경우도 본 module 대상이 아니다(2026-08-21).
-  if (!li || !ti) return null;
-  const leadingName = resolveLeadingIconName(li, props);
-  if (!leadingName) return null;
-
-  const fontSize = resolveSpecFontSize(
-    (style?.fontSize as string | number | undefined) ?? size.fontSize,
-    14,
-  );
-  const iconSize =
-    typeof size.iconSize === "number" && size.iconSize > 0
-      ? size.iconSize
-      : Math.round(fontSize * 1.1) + 12; // CalendarHeader dims.iconSize(md 26) 근사
-  const cellSize = iconSize + 4;
-  // chevron glyph 크기 = DOM `<ChevronLeft size={16}>`(Calendar/RangeCalendar) 고정 16 과 대칭.
-  //   layout iconSize(sm20/md26/lg32)는 cellSize/좌표 전용 — glyph 크기와 분리(과거 fontSize+2 는
-  //   size 별 가변 sm14/md16/lg18 → md 만 우연 일치, sm/lg CSS 16 과 어긋남). TagGroup remove X 축1
-  //   동형 판정(DOM 고정-크기 아이콘 컨벤션). rule.sizes 미주입 폴백은 기존 fontSize+2 유지.
-  const chevronGlyphSize =
-    typeof size.iconSize === "number" && size.iconSize > 0
-      ? CALENDAR_CHEVRON_DOM_PX
-      : fontSize + 2;
-  const specGap = typeof size.gap === "number" && size.gap > 0 ? size.gap : 6;
-  // height: _containerHeight(CONTAINER_DIMENSION 주입, 실제 노드 높이) 우선 → size.height(rule) →
-  //   30 폴백. width 가 _containerWidth 우선인 것과 대칭. cy(세로 중앙)를 실제 노드 높이 기준으로
-  //   잡아야 DOM `align-items:center`(header 세로 중앙) 와 정합 — size.height(rule 고정 30)만 쓰면
-  //   노드 높이가 30 과 다를 때(예: size lg / 명시 height) text·chevron 이 세로 중앙에서 벗어남.
-  const containerHeightInj =
-    (props._containerHeight as number | undefined) ?? 0;
-  const height =
-    containerHeightInj > 0
-      ? containerHeightInj
-      : typeof size.height === "number" && size.height > 0
-        ? size.height
-        : 30;
-  const cy = height / 2;
-
-  // width: _containerWidth(CONTAINER_DIMENSION 주입) > style.width > 폴백(cellSize*7 + gap*6).
-  const containerWidth = (props._containerWidth as number | undefined) ?? 0;
-  const rawStyleWidth = style?.width;
-  const styleWidth =
-    typeof rawStyleWidth === "number"
-      ? rawStyleWidth
-      : typeof rawStyleWidth === "string"
-        ? parseFloat(rawStyleWidth)
-        : 0;
-  const width =
-    containerWidth > 0
-      ? containerWidth
-      : styleWidth > 0
-        ? styleWidth
-        : cellSize * 7 + specGap * 6;
-
-  // ── B2 (2026-07-02): element.props.style layout 소비 (Style 패널 동기화) ──
-  //   CalendarHeader 는 chevron/text/chevron 3-shape 고정 leaf(자식 Element 아님)라, CheckboxGroup 처럼
-  //   컨테이너 flex 로 자식을 배치할 수 없다. 대신 primitive 가 element.props.style 의 padding/gap/
-  //   justifyContent 를 직접 읽어 flex-like 배치를 계산 → Style 패널 Layout 편집이 Skia 에 반영.
-  //   DOM 은 Calendar.tsx `<header>` inline style 로 동일 반영(대칭). 기본값(style 미지정)은 기존
-  //   space-between + text 중앙(회귀 0): paddingX 0, chevron↔text gap 0(chevron 슬롯 cellSize 흡수).
-  //   style-ssot 규칙: gap 은 columnGap/rowGap longhand 우선 → shorthand gap fallback.
-  const padLeft = parsePxValue(
-    (style?.paddingLeft ?? style?.padding) as string | number | undefined,
-    size.paddingX ?? 0,
-  );
-  const padRight = parsePxValue(
-    (style?.paddingRight ?? style?.padding) as string | number | undefined,
-    size.paddingX ?? 0,
-  );
-  // chevron 슬롯(cellSize)↔text 여백. 기본 0(기존 배치 유지) — style 로만 벌린다.
-  const itemGap = parsePxValue(
-    (style?.columnGap ?? style?.rowGap ?? style?.gap) as
-      string | number | undefined,
-    0,
-  );
-  const justify =
-    (style?.justifyContent as string | undefined) ?? "space-between";
-  const flexDirection = (style?.flexDirection as string | undefined) ?? "row";
-  const isColumn =
-    flexDirection === "column" || flexDirection === "column-reverse";
-  // center text 세로 정렬: element.props.style.verticalAlign(Style 패널 Typography Vertical Align)
-  //   우선, 미지정 시 기본 "middle"(DOM `<header>` align-items:center 대칭). specShapeConverter 가
-  //   node.text.verticalAlign 로 전달 → nodeRendererText computeDrawY 가 `(node.height-textHeight)/2`
-  //   진짜 세로 중앙. 미지정(top) 이면 위쪽 치우침이라 기본 middle 로 정합.
-  const textVerticalAlign =
-    (style?.verticalAlign as "top" | "middle" | "bottom" | undefined) ??
-    "middle";
-
-  const textColor = paint.color;
-  const iconColor = li.color ?? ti.color ?? textColor;
-  const textAlign = visual?.textAlign ?? "center";
-  const text =
-    typeof props.children === "string" && props.children
-      ? props.children
-      : "2024년 1월";
-
-  // ── flexDirection: column — chevron/text/chevron 을 세로로 쌓음 (Style 패널 동기화 후속) ──
-  //   DOM `<header>` 가 flex-direction:column 이면 자식(prev/heading/next)이 세로 배치되므로
-  //   Skia 도 대칭(위 chevron / 중앙 text / 아래 chevron, x 는 컨테이너 중앙). row 는 기존 좌표 유지.
-  if (isColumn) {
-    const colHeight =
-      containerHeightInj > 0 ? containerHeightInj : cellSize * 3 + itemGap * 2;
-    const cx = width / 2;
-    // 세로 3슬롯: 위 chevron cellSize/2, 중앙 text colHeight/2, 아래 chevron colHeight-cellSize/2.
-    return [
-      {
-        type: "icon_font",
-        iconName: leadingName,
-        x: cx,
-        y: padLeft > 0 ? padLeft + cellSize / 2 : cellSize / 2,
-        fontSize: chevronGlyphSize,
-        fill: iconColor,
-        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
-      },
-      {
-        type: "text",
-        x: 0,
-        // y=0 + baseline:middle → 컨테이너(colHeight) 세로 중앙 = 위/아래 chevron 사이 중앙.
-        //   y>0 은 lineHeight 근사 경로라 회피(row 동일 사유).
-        y: 0,
-        text,
-        fontSize,
-        fontFamily: fontFamily.sans,
-        fontWeight: 700,
-        fill: textColor,
-        align: "center",
-        baseline: "middle",
-        verticalAlign: textVerticalAlign,
-        maxWidth: width,
-      },
-      {
-        type: "icon_font",
-        iconName: ti.name,
-        x: cx,
-        y: colHeight - cellSize / 2,
-        fontSize: chevronGlyphSize,
-        fill: iconColor,
-        strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
-      },
-    ];
-  }
-
-  // 좌·우 chevron 중심 x + text 슬롯 [textLeft, textRight] 계산 (row).
-  //   space-between(기본): chevron 을 padding 안쪽 양끝에, text 는 그 사이 대칭 슬롯 center.
-  //   center: 3요소(chevron+gap+text+gap+chevron)를 컨테이너 중앙에 모음 — text 실측 폭 필요.
-  let leftIconX: number;
-  let rightIconX: number;
-  let textLeft: number;
-  let textRight: number;
-  if (justify === "center") {
-    const textW = measureSpecTextWidth(text, fontSize, fontFamily.sans);
-    const totalW = cellSize + itemGap + textW + itemGap + cellSize;
-    const startX = (width - totalW) / 2;
-    leftIconX = startX + cellSize / 2;
-    textLeft = startX + cellSize + itemGap;
-    textRight = textLeft + textW;
-    rightIconX = textRight + itemGap + cellSize / 2;
-  } else {
-    // space-between (기본) — chevron padding 안쪽 양끝, text 대칭 슬롯.
-    leftIconX = padLeft + cellSize / 2;
-    rightIconX = width - padRight - cellSize / 2;
-    textLeft = padLeft + cellSize + itemGap;
-    textRight = width - padRight - cellSize - itemGap;
-  }
-
-  return [
-    {
-      type: "icon_font",
-      iconName: leadingName,
-      x: leftIconX,
-      y: cy,
-      fontSize: chevronGlyphSize,
-      fill: iconColor,
-      strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
-    },
-    {
-      type: "text",
-      x: textLeft,
-      // y=0 + baseline:"middle" → specShapeConverter 가 `(containerHeight - textBlockHeight)/2`
-      //   (컨테이너 실제 높이 기준 진짜 세로 중앙)로 배치 = chevron(icon_font baseline:middle →
-      //   containerHeight/2)과 동일 경로. y>0(cy) 을 주면 text 는 `y - lineHeightPx/2` 경로를 타
-      //   lineHeight 근사에 의존해 chevron 과 어긋남(위쪽 치우침) → y=0 으로 컨테이너 중앙 위임.
-      y: 0,
-      text,
-      fontSize,
-      fontFamily: fontFamily.sans,
-      fontWeight: 700,
-      fill: textColor,
-      align: textAlign,
-      baseline: "middle",
-      // 세로 중앙: verticalAlign(기본 middle, style override) → specShapeConverter → computeDrawY
-      //   `(node.height-textHeight)/2`. baseline:"middle"(좌표)만으론 lineHeight 근사라 위쪽 치우침.
-      verticalAlign: textVerticalAlign,
-      // flex 중앙 정렬: text 는 [textLeft, textRight] 슬롯에서 center → 중심 = 슬롯 중앙.
-      //   space-between 기본 슬롯 [padLeft+cellSize, width-padRight-cellSize] → 중심 width/2.
-      //   ⚠️ whiteSpace:"nowrap" 금지 — nodeRendererText 가 nowrap 시 layoutMaxWidth=100000 으로
-      //   maxWidth 를 덮어 center 정렬 무력화 → text 가 textLeft 에서 왼쪽 정렬(왼쪽 치우침).
-      //   calendar_grid nav text(동형)도 nowrap 미지정. "2026년 7월"은 maxWidth 내라 wrap 안 됨.
-      maxWidth: Math.max(0, textRight - textLeft),
-    },
-    {
-      type: "icon_font",
-      iconName: ti.name,
-      x: rightIconX,
-      y: cy,
-      fontSize: chevronGlyphSize,
-      fill: iconColor,
-      strokeWidth: (props.strokeWidth as number | undefined) ?? 2,
     },
   ];
 };
@@ -2924,8 +2764,6 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   // 좌측 슬롯 이미지 표현 (append 모드 — Tag chip 아바타, 2026-08-21)
   leading_avatar: leadingAvatar,
   // 행 맨 앞 선택 체크박스 (append 모드 — Tree/컬렉션 행, 2026-08-21)
-  // ADR-912 (B+icon) inline icon text escape (replace 모드 — 좌 icon + center text + 우 icon, CalendarHeader)
-  inline_icon_text: inlineIconText,
 };
 
 /** draw module 합성 모드. dispatch(buildSpecNodeData) + composeCatalogShapes 가 분기에 사용. */
@@ -2977,9 +2815,6 @@ const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
   // 좌측 슬롯 이미지(2026-08-21): leading_icon 과 같은 합성 규칙 — base box+text 위 원+이미지.
   //   text 는 buildCatalogShapes 가 avatar 지름 + gap 만큼 우측 shift(동일 helper 판정).
   leading_avatar: "append",
-  // ADR-912 (B+icon): inline_icon_text 는 좌 icon + center text + 우 icon 자체 생성, box+text 대체
-  //   → replace. center text 가 buildCatalogShapes 의 좌측/center 단일 text 와 충돌하므로 base 미생성.
-  inline_icon_text: "replace",
   // ADR-912 (A/2D): calendar_month_grid 는 weekday + day cell 2D self-positioning + today circle 자체 생성,
   //   box+text 대체 → replace. 절대 좌표 grid 라 buildCatalogShapes box(y:0,height:auto)와 어긋남.
   calendar_month_grid: "replace",

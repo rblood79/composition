@@ -136,10 +136,14 @@ const popover = () =>
   document.body.querySelector<HTMLElement>(".react-aria-Popover");
 
 describe("ADR-256 Phase 6 판독 — picker 노드 트리 편집", () => {
-  it("m1: a Calendar in a frame inside the picker's Popover keeps the picker's calendar context (size · visible months)", async () => {
+  it("m1: a Calendar in a frame inside the picker's Popover keeps the picker's calendar context (size) and its own visible duration", async () => {
     const picker = await open("datepicker");
     picker.frame("Calendar");
-    picker.edit(FIELD, { size: "L", maxVisibleMonths: 2 });
+    picker.edit(FIELD, { size: "L" });
+    // (ADR-256 Phase 9: the calendar node's own — RAC's picker context carries no duration.)
+    picker.edit(picker.sourceOf("Calendar"), {
+      visibleDuration: { months: 2 },
+    });
     const host = await picker.mount();
     await act(async () =>
       host.querySelector<HTMLElement>(".react-aria-Group button")!.click(),

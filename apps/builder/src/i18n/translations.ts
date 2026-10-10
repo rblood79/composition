@@ -817,6 +817,9 @@ const koKR: TranslationKeys = {
     chipGroupFill: "채움",
     sizeOutOfRange: "Styles 패널에서 변경",
     columnSizeNotApplied: "이 폭과 함께는 적용되지 않음 (저장됨)",
+    durationUnit: "단위",
+    calendarPickerNotice:
+      "상태 · 범위 · 페이지 동작 · 첫 요일은 {picker} 에서 편집합니다",
     stateName: "이름",
     stateType: "유형",
     stateDefault: "기본값",
@@ -2961,6 +2964,9 @@ const enUS: TranslationKeys = {
     chipGroupFill: "Fill",
     sizeOutOfRange: "set in Styles",
     columnSizeNotApplied: "Not applied with this width (kept)",
+    durationUnit: "Unit",
+    calendarPickerNotice:
+      "State, bounds, page behavior and first day are edited on the {picker}",
     stateName: "Name",
     stateType: "Type",
     stateDefault: "Default value",
@@ -4633,7 +4639,11 @@ const semanticLabelTranslations: Record<
     "properties.second": "초",
     "properties.pageBehavior": "페이지 동작",
     "properties.visible": "보이는 만큼",
-    "properties.maxVisibleMonths": "최대 표시 개월",
+    "properties.visibleDuration": "표시 기간",
+    "properties.weeksInMonth": "월당 주 수",
+    "properties.days": "일",
+    "properties.weeks": "주",
+    "properties.months": "개월",
     "properties.closeOnSelect": "선택 시 닫기",
     "properties.leadingZeros": "앞자리 0",
     "properties.calendarIcon": "캘린더 아이콘",
@@ -5099,7 +5109,11 @@ const semanticLabelTranslations: Record<
     "properties.second": "Second",
     "properties.pageBehavior": "Page Behavior",
     "properties.visible": "Visible",
-    "properties.maxVisibleMonths": "Max Visible Months",
+    "properties.visibleDuration": "Visible Duration",
+    "properties.weeksInMonth": "Weeks in Month",
+    "properties.days": "Days",
+    "properties.weeks": "Weeks",
+    "properties.months": "Months",
     "properties.closeOnSelect": "Close On Select",
     "properties.leadingZeros": "Leading Zeros",
     "properties.calendarIcon": "Calendar Icon",
@@ -5364,6 +5378,8 @@ const formattedMessages: Record<
       `중복 ID — "${String(args?.id ?? "")}" 로 변경했습니다`,
     "propertiesPanel.idAssigned": (args) =>
       `ID "${String(args?.id ?? "")}" 를 지정했습니다`,
+    "propertiesPanel.calendarPickerNotice": (args) =>
+      `상태 · 범위 · 페이지 동작 · 첫 요일은 ${String(args?.picker ?? "")} 에서 편집합니다`,
     "propertiesPanel.resetField": (args) =>
       `${String(args?.labels ?? "")} 기본값으로`,
     "fonts.deleteFace": (args) =>
@@ -5876,6 +5892,8 @@ const formattedMessages: Record<
       `Duplicate ID — renamed to "${String(args?.id ?? "")}"`,
     "propertiesPanel.idAssigned": (args) =>
       `ID set to "${String(args?.id ?? "")}"`,
+    "propertiesPanel.calendarPickerNotice": (args) =>
+      `State, bounds, page behavior and first day are edited on the ${String(args?.picker ?? "")}`,
     "propertiesPanel.resetField": (args) =>
       `Reset ${String(args?.labels ?? "")} to default`,
     "fonts.deleteFace": (args) =>

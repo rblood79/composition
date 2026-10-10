@@ -17,7 +17,6 @@ import {
   TableHeader as RacTableHeader,
 } from "react-aria-components/Table";
 import { Badge } from "@composition/shared/components/Badge";
-import { Calendar } from "@composition/shared/components/Calendar";
 import { Chart } from "@composition/shared/components/Chart";
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 import { TooltipTrigger } from "@composition/shared/components/TooltipTrigger";
@@ -39,7 +38,6 @@ import { Modal } from "@composition/shared/components/Modal";
 import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
 import { Breadcrumb } from "@composition/shared/components/Breadcrumb";
 import { Popover } from "@composition/shared/components/Popover";
-import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
 import { Skeleton } from "@composition/shared/components/Skeleton";
 import { Tab, Tabs } from "@composition/shared/components/Tabs";
 import { Tag, TagGroup } from "@composition/shared/components/TagGroup";
@@ -233,8 +231,6 @@ export const INTERNAL_RENDERERS: Readonly<
   menutrigger: MenuTrigger,
   dropzone: DropZone,
   fileupload: FileUpload,
-  calendar: Calendar,
-  rangecalendar: RangeCalendar,
 };
 
 /**

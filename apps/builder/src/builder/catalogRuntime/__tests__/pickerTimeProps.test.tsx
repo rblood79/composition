@@ -135,7 +135,7 @@ describe("S2 picker hourCycle · placeholderValue", () => {
       );
       fireEvent.click(view.getAllByRole("button")[0]!);
       const heading = document.querySelector(
-        ".react-aria-Popover .react-aria-Heading",
+        ".react-aria-Popover .react-aria-CalendarHeading",
       );
       expect(heading?.textContent).toBe("March 2030");
       view.unmount();

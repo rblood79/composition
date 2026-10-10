@@ -1,5 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
-import { scalarFitsType } from "./valueType";
+import { catalogPropValueFits, scalarFitsType } from "./valueType";
 import type {
   CatalogLibrary,
   InteractionEntry,
@@ -265,7 +265,7 @@ export function buildCatalogLibrary(
           "PROP_NOT_ACCEPTED",
           `${definition.id}.${key}`,
         );
-      if (typeof value !== "object" && !scalarFitsType(value, expected))
+      if (!catalogPropValueFits(value, expected))
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",
           `${definition.id}.${key}`,
@@ -340,7 +340,7 @@ export function buildCatalogLibrary(
           );
         continue;
       }
-      if (typeof value !== "object" && !scalarFitsType(value, expected))
+      if (!catalogPropValueFits(value, expected))
         throw new CatalogValidationError(
           "PROP_TYPE_MISMATCH",
           `${node.id}.${key}`,
@@ -379,7 +379,7 @@ export function buildCatalogLibrary(
         const expected = targetContract.accepts[key];
         if (!expected)
           throw new CatalogValidationError("PROP_NOT_ACCEPTED", `${at}.${key}`);
-        if (typeof value !== "object" && !scalarFitsType(value, expected))
+        if (!catalogPropValueFits(value, expected))
           throw new CatalogValidationError(
             "PROP_TYPE_MISMATCH",
             `${at}.${key}`,

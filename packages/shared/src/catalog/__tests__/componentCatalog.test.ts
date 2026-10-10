@@ -145,6 +145,15 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         // ADR-912 (A/2D) (2026-06-08): Calendar grid + DateField input leaf (calendar_month_grid /
         //   datefield_segments replace escape). 동일 stale 정합.
         "CalendarGrid",
+        // ADR-256 Phase 9: a calendar's month block, RAC heading and cell template.
+        "CalendarMonth",
+        "CalendarHeading",
+        "CalendarCell",
+        // ADR-256 Phase 9c · 9d: RAC month · year pickers, the weekday cell and date segment templates.
+        "CalendarMonthPicker",
+        "CalendarYearPicker",
+        "CalendarHeaderCell",
+        "DateSegment",
         "DateInput",
         // ADR-912 §2-5 collapse 진입 proof (2026-06-10): Disclosure 컨테이너 shell entry.
         //   SHELL_ONLY → Skia generic 빈 shell, DOM=renderDisclosure 위임(DELEGATING).

@@ -13,9 +13,14 @@ import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
-  catalogCalendarTitle,
-  catalogWeekStart,
-} from "../resolvers/resolveCatalogRuleCanvasBox";
+  type CatalogCalendarModelInput,
+  catalogCalendarGrid,
+  catalogCalendarHeading,
+  catalogCalendarLocale,
+  catalogCalendarMonthCount,
+  catalogCalendarPickerText,
+  catalogCalendarRangeTitle,
+} from "./calendarModel";
 import { racFieldHourCycle } from "../document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import type {
@@ -582,6 +587,11 @@ export function catalogAbsentByValue(node: CatalogConsumerNode): boolean {
   );
 }
 
+const REPEAT_TEMPLATE_BINDINGS: ReadonlySet<string> = new Set([
+  "calendarcell",
+  "calendarheadercell",
+  "datesegment",
+]);
 /** Whether the node itself is not shown in the resting state (its subtree follows it). */
 export function catalogHiddenAtRest(
   node: CatalogConsumerNode,
@@ -600,6 +610,10 @@ export function catalogHiddenAtRest(
   // ADR-256 Phase 8a: RAC places an overlay's arrow from its trigger (`data-placement`) — the Canvas
   // draws no open overlay, so the arrow has no box there.
   if (node.bindingId === "overlayarrow") return true;
+  // ADR-256 Phase 9 (Decision 13): a calendar grid's cell · weekday cell and a date input's segment
+  // are the templates RAC draws per date · weekday · segment — the Canvas grid and date input draw
+  // them from the model, the template node has no box of its own.
+  if (node.bindingId && REPEAT_TEMPLATE_BINDINGS.has(node.bindingId)) return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
   if (catalogSkeletonIdle(node, typeOf)) return true;
@@ -1243,6 +1257,30 @@ export function catalogComposedParts(
 /** RAC Calendar owners (their header child's heading is the owner's visible-range title). */
 const CALENDAR_TYPES = new Set(["Calendar", "RangeCalendar"]);
 const PICKER_TYPES = new Set(["DatePicker", "DateRangePicker"]);
+/**
+ * What a calendar's model reads (ADR-256 Phase 9): its own duration, weeks and locale; in a picker
+ * the picker's first day and bounds (RAC's calendar context — the calendar's own stay unset in
+ * the DOM).
+ */
+function calendarModelInput(
+  calendar: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogCalendarModelInput {
+  const picker = calendarPicker(calendar, get, typeOf);
+  const own = (picker ?? calendar).props;
+  return {
+    visibleDuration: calendar.props.visibleDuration,
+    weeksInMonth: calendar.props.weeksInMonth,
+    locale: calendar.props.locale,
+    calendarSystem: calendar.props.calendarSystem,
+    firstDayOfWeek: own.firstDayOfWeek,
+    minValue: own.minValue,
+    maxValue: own.maxValue,
+    // (An empty picker's calendar opens on its placeholder — RAC's picker `focusedValue`.)
+    ...(picker ? { defaultFocusedValue: picker.props.placeholderValue } : {}),
+  };
+}
 /** The picker a calendar opens from: `DatePicker > Popover > Calendar` (ADR-256 Phase 6e). */
 function calendarPicker(
   calendar: CatalogConsumerNode,
@@ -1760,39 +1798,65 @@ function ownDerivedProps(
       // `.react-aria-Link { text-decoration: none }`; hover is the Preview's).
       ...(typeOf(node) === "Link" ? { _noUnderline: true } : {}),
     };
-  // RAC Calendar's header heading is its visible-range title from the Calendar's own props (the
-  // header child's authored `children` is not read by the DOM).
-  const calendar = get(node.parentId);
-  if (
-    typeOf(node) === "CalendarHeader" &&
-    calendar &&
-    CALENDAR_TYPES.has(typeOf(calendar))
-  )
-    return { children: catalogCalendarTitle(calendar.props, locale) };
-  // RAC Calendar's grid formats its weekdays and days in the Calendar's locale and calendar system
-  // (`I18nProvider` around the RAC Calendar): the Calendar's own, else the environment's.
-  if (
-    typeOf(node) === "CalendarGrid" &&
-    calendar &&
-    CALENDAR_TYPES.has(typeOf(calendar))
-  ) {
-    const own = calendar.props.locale;
-    const system = calendar.props.calendarSystem;
-    const resolved =
-      typeof own === "string" && own
-        ? own
-        : (locale ?? globalThis.navigator?.language ?? "en-US");
-    // (S2 `firstDayOfWeek`: in a picker the picker's — RAC's calendar context, the calendar's own
-    // stays unset in the DOM.)
-    const picker = calendarPicker(calendar, get, typeOf);
-    return {
-      locale: resolved,
-      calendarSystem: typeof system === "string" ? system : "",
-      _weekStart: catalogWeekStart(
-        resolved,
-        (picker ?? calendar).props.firstDayOfWeek,
-      ),
-    };
+  // ADR-256 Phase 9 — a calendar's parts show the month of their month block (the block's copy
+  // index — RAC's `offset`), from the calendar's own props (`calendarModel.ts`): the heading RAC's
+  // `CalendarHeading` text, the grid its weekday row and week rows in the calendar's locale and
+  // calendar system (`I18nProvider` around the RAC Calendar).
+  const partType = typeOf(node);
+  // (A plain Heading in a calendar's header takes RAC Calendar's `HeadingContext` — the visible
+  // range's title, `useVisibleRangeDescription`.)
+  if (partType === "Heading") {
+    const header = get(node.parentId);
+    const calendar =
+      header && typeOf(header) === "CalendarHeader"
+        ? catalogCalendarOf(header, get, typeOf)
+        : undefined;
+    if (calendar)
+      return {
+        children: catalogCalendarRangeTitle(
+          calendarModelInput(calendar, get, typeOf),
+          locale,
+        ),
+      };
+  }
+  // A calendar's month · year picker: RAC's focused month · year (its Select's value — the picker's
+  // `{formatted}` item text and the value its trigger shows).
+  if (partType === "CalendarMonthPicker" || partType === "CalendarYearPicker") {
+    const calendar = catalogCalendarOf(node, get, typeOf);
+    if (calendar)
+      return {
+        _formatted: catalogCalendarPickerText(
+          calendarModelInput(calendar, get, typeOf),
+          partType === "CalendarMonthPicker" ? "month" : "year",
+          locale,
+        ),
+      };
+  }
+  if (partType === "SelectValue") {
+    const picker = catalogCalendarPickerOfValue(node, get, typeOf);
+    const formatted = picker && ownDerivedProps(picker, get, typeOf, locale);
+    if (typeof formatted?._formatted === "string")
+      return { children: formatted._formatted };
+  }
+  if (partType === "CalendarHeading" || partType === "CalendarGrid") {
+    const calendar = catalogCalendarOf(node, get, typeOf);
+    if (calendar) {
+      const input = calendarModelInput(calendar, get, typeOf);
+      const month = catalogCalendarMonthOf(node, get, typeOf);
+      const offset = month ? catalogCalendarMonthIndex(month) : 0;
+      if (partType === "CalendarHeading")
+        return {
+          children: catalogCalendarHeading(input, offset, locale),
+        };
+      const system = calendar.props.calendarSystem;
+      return {
+        locale: catalogCalendarLocale({ locale: input.locale }, locale),
+        calendarSystem: typeof system === "string" ? system : "",
+        _calendarGrid: JSON.stringify(
+          catalogCalendarGrid(input, offset, locale),
+        ),
+      };
+    }
   }
   if (level !== undefined)
     return {
@@ -1983,21 +2047,15 @@ function derivedDependents(
       crumb,
       ...catalogBreadcrumbLabels(crumb, get, typeOf),
     ]);
-  if (CALENDAR_TYPES.has(type))
-    return childrenOf(owner, get).filter((child) =>
-      ["CalendarHeader", "CalendarGrid"].includes(typeOf(child)),
-    );
-  // A picker's first day is its calendar grid's (`calendarPicker`).
+  // ADR-256 Phase 9: a calendar's headings and grids show its months (in its month blocks).
+  if (CALENDAR_TYPES.has(type)) return calendarModelParts(owner, get, typeOf);
+  // A picker's first day and bounds are its calendar's (`calendarPicker`).
   if (PICKER_TYPES.has(type))
     return childrenOf(owner, get)
       .filter((popover) => typeOf(popover) === "Popover")
       .flatMap((popover) => childrenOf(popover, get))
       .filter((calendar) => CALENDAR_TYPES.has(typeOf(calendar)))
-      .flatMap((calendar) =>
-        childrenOf(calendar, get).filter(
-          (child) => typeOf(child) === "CalendarGrid",
-        ),
-      );
+      .flatMap((calendar) => calendarModelParts(calendar, get, typeOf));
   // A Disclosure's header turns its chevron with the expansion — inside a DisclosureGroup every
   // sibling's (the group's expanded keys).
   if (type === "Disclosure" || type === "DisclosureGroup") {
@@ -2569,7 +2627,143 @@ export function catalogStateValue(
       const parent = get(owner.parentId);
       return !!parent && typeOf(parent) === "SubmenuTrigger";
     }
+    // ADR-256 Phase 9: a month block's place among its calendar's shown months (its copy index).
+    case "isFirstMonth":
+      return catalogCalendarMonthIndex(owner) === 0;
+    case "isLastMonth":
+      return (
+        catalogCalendarMonthIndex(owner) ===
+        catalogCalendarMonthCount(
+          catalogCalendarOf(owner, get, typeOf)?.props.visibleDuration,
+        ) -
+          1
+      );
   }
+}
+
+/**
+ * ADR-256 Phase 9 — the parts of a calendar whose derived values read its model: its headings
+ * (RAC `CalendarHeading` · a plain Heading in a header) and grids, at any depth below it (not a
+ * nested calendar's).
+ */
+function calendarModelParts(
+  calendar: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  const out: CatalogConsumerNode[] = [];
+  const visit = (record: CatalogConsumerNode) => {
+    for (const child of childrenOf(record, get)) {
+      const type = typeOf(child);
+      if (CALENDAR_TYPES.has(type)) continue;
+      if (
+        type === "CalendarHeading" ||
+        type === "CalendarGrid" ||
+        type === "Heading" ||
+        type === "CalendarMonthPicker" ||
+        type === "CalendarYearPicker" ||
+        (type === "SelectValue" &&
+          !!catalogCalendarPickerOfValue(child, get, typeOf))
+      )
+        out.push(child);
+      visit(child);
+    }
+  };
+  visit(calendar);
+  return out;
+}
+
+/**
+ * ADR-256 Phase 9 — a calendar's previous · next Button (RAC's `previous` · `next` slots, in a
+ * calendar): the reference starter's plain RAC Button, whose box the calendar sheets give
+ * (`.react-aria-Calendar .react-aria-Button` — the Canvas reads the same values from the header's
+ * part rules).
+ */
+export function catalogCalendarNavButton(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return (
+    node.bindingId === "button" &&
+    (node.props.slot === "previous" || node.props.slot === "next") &&
+    !!catalogCalendarOf(node, get, typeOf)
+  );
+}
+
+/** ADR-256 Phase 9 — a glyph in a calendar's previous · next Button (it takes the Button's color). */
+export function catalogCalendarNavButtonGlyph(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (node.bindingId !== "icon") return false;
+  const button = get(node.parentId);
+  return !!button && catalogCalendarNavButton(button, get, typeOf);
+}
+
+/**
+ * ADR-256 Phase 9 — the calendar month · year picker whose Select a part belongs to (the picker's
+ * one child is its Select; the part sits in it — its SelectValue, its ListBox).
+ */
+export function catalogCalendarPickerOfValue(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (
+    let cursor = get(node.parentId);
+    cursor;
+    cursor = get(cursor.parentId)
+  ) {
+    const type = typeOf(cursor);
+    if (type !== "Select") continue;
+    const picker = get(cursor.parentId);
+    return picker &&
+      (typeOf(picker) === "CalendarMonthPicker" ||
+        typeOf(picker) === "CalendarYearPicker")
+      ? picker
+      : undefined;
+  }
+  return undefined;
+}
+
+/** ADR-256 Phase 9 — a month block's index among its calendar's shown months (its copy's). */
+export function catalogCalendarMonthIndex(month: CatalogConsumerNode): number {
+  return month.monthIndex ?? 0;
+}
+
+/** The Calendar · RangeCalendar a part sits in (the nearest — a part's own calendar). */
+export function catalogCalendarOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (
+    let cursor = get(node.parentId);
+    cursor;
+    cursor = get(cursor.parentId)
+  )
+    if (CALENDAR_TYPES.has(typeOf(cursor))) return cursor;
+  return undefined;
+}
+
+/** The month block a calendar part sits in (its offset — the block's index). */
+export function catalogCalendarMonthOf(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  for (
+    let cursor: CatalogConsumerNode | undefined = node;
+    cursor;
+    cursor = get(cursor.parentId)
+  ) {
+    const type = typeOf(cursor);
+    if (type === "CalendarMonth") return cursor;
+    if (CALENDAR_TYPES.has(type)) return undefined;
+  }
+  return undefined;
 }
 
 /**

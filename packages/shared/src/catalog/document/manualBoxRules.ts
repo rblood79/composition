@@ -62,6 +62,15 @@ const DATE_RANGE_GROUP_VARIABLES = () =>
   )?.find((entry) => entry.prefix === "drp-group")?.variables as
     Record<string, Record<string, unknown> | undefined> | undefined;
 
+/** ADR-256 Phase 9 — `Calendar.css` per size: the nav Button height token · the heading font token. */
+const CALENDAR_HEADER_SIZES: Readonly<
+  Record<string, { nav: string; font: string }>
+> = {
+  S: { nav: "text-2xl", font: "text-xs" },
+  M: { nav: "text-3xl", font: "text-sm" },
+  L: { nav: "text-4xl", font: "text-base" },
+};
+
 /** `Separator.css` size margins (`--spacing-xs/sm/lg`) on the axis across the line. */
 const SEPARATOR_MARGIN: Readonly<Record<string, number>> = {
   S: 4,
@@ -392,10 +401,96 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       },
     ],
   }),
-  // `generated/CalendarHeader.css` is not loaded (`UNLOADED_GENERATED_CSS` D): the header row is
-  // the Calendar's own `<header>` composition — nav buttons and heading at the Calendar's size
-  // (`catalogCalendarHeaderParts`, read through the owner).
-  CalendarHeader: () => ({ omit: ["height"] }),
+  // ADR-256 Phase 9 — a calendar month block's header row (`generated/CalendarHeader.css` is not
+  // loaded, `UNLOADED_GENERATED_CSS` D): `CalendarCommon.css` `.react-aria-Calendar header` — a flex
+  // row (space-between, centered; no gap, padding or height) around the author's parts. Its nav
+  // Buttons (`Button[slot=previous|next]` — plain RAC Buttons) are `Calendar.css`
+  // `[data-size] .react-aria-Button` boxes: `--text-2xl/3xl/4xl` tall, `+ --spacing-xs` wide, no
+  // padding, border or fill, `--fg` glyph. Its RAC `CalendarHeading` fills the rest (`flex: 1`) — the
+  // size's font, bold, centered, `--text-base--line-height` (`CalendarCommon.css`).
+  // ADR-256 Phase 9 — a calendar's month block (`CalendarCommon.css` `.month`): its header over its
+  // grid, the calendar size's gap (the block takes the calendar's size).
+  // ADR-256 Phase 9 — RAC's month · year pickers render no element: their Select is the header's
+  // item (`display: contents` — the engine lays their children out in the parent's flow).
+  CalendarMonthPicker: () => ({ replace: true, layout: { display: "contents" } }),
+  CalendarYearPicker: () => ({ replace: true, layout: { display: "contents" } }),
+  CalendarMonth: () => ({
+    replace: true,
+    layout: { display: "flex", flexDirection: "column" },
+    visual: { gap: 6 },
+    conditional: [
+      { when: { size: "S" }, visual: { gap: 4 } },
+      { when: { size: "L" }, visual: { gap: 8 } },
+    ],
+  }),
+  CalendarHeader: () => ({
+    replace: true,
+    layout: {
+      display: "flex",
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    visual: {},
+    parts: Object.entries(CALENDAR_HEADER_SIZES).flatMap(
+      ([size, { nav, font }]): CompiledPartRule[] => {
+        const navHeight = textPx(nav);
+        const fontSize = textPx(font);
+        const spacing = px("{spacing.xs}") ?? 4;
+        const ratio =
+          (px("{typography.text-base--line-height}") ?? 0) /
+          (textPx("text-base") ?? 1);
+        if (navHeight === undefined || fontSize === undefined) return [];
+        const button = (slot: string): CompiledPartRule => ({
+          childType: "Button",
+          childProps: { slot },
+          size,
+          layout: {},
+          visual: {
+            width: navHeight + spacing,
+            height: navHeight,
+            minWidth: 0,
+            paddingTop: 0,
+            paddingRight: 0,
+            paddingBottom: 0,
+            paddingLeft: 0,
+            fill: "transparent",
+            borderWidth: 0,
+            color: "{color.neutral}",
+          },
+        });
+        return [
+          button("previous"),
+          button("next"),
+          // (Their chevron Icon takes the Button's `--fg` — `currentColor`.)
+          {
+            childType: "Icon",
+            via: "Button",
+            size,
+            layout: { flexShrink: "0" },
+            visual: { color: "{color.neutral}" },
+          },
+          {
+            childType: "CalendarHeading",
+            size,
+            layout: {
+              display: "block",
+              flexGrow: "1",
+              flexShrink: "1",
+              flexBasis: "0%",
+            },
+            visual: {
+              fontSize,
+              fontWeight: 700,
+              ...(ratio > 0 ? { lineHeight: ratio } : {}),
+              textAlign: "center",
+              color: "{color.neutral}",
+            },
+          },
+        ];
+      },
+    ),
+  }),
   // `generated/ProgressBarValue.css` / `MeterValue.css` are not loaded (`UNLOADED_GENERATED_CSS`
   // D): the owner's `.value` span sets only its font size, so its line height is the root's
   // (inherited).

@@ -21,9 +21,22 @@ const RAC_PART_OF_TYPE: Readonly<Record<string, string>> = {
   TextArea: "TextField",
 };
 
+/**
+ * State keys of composition parts outside RAC's structure (ADR-256 Phase 9): a calendar month
+ * block's place among the shown months — the reference starter's `i === 0` · `i === months - 1`
+ * around its previous · next Buttons.
+ */
+const COMPOSITION_STATE_KEYS: Readonly<Record<string, readonly string[]>> = {
+  CalendarMonth: ["isFirstMonth", "isLastMonth"],
+};
+
 /** The state keys a type gives its children (`RAC_STATE_KEYS` — the installed RAC's run). */
 export function catalogStateKeysOf(type: string): readonly string[] {
-  return RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ?? [];
+  return (
+    COMPOSITION_STATE_KEYS[type] ??
+    RAC_STATE_KEYS[RAC_PART_OF_TYPE[type] ?? type] ??
+    []
+  );
 }
 
 /** Each condition's key and the owner reference it uses (its own `from`, else the whole `from`). */

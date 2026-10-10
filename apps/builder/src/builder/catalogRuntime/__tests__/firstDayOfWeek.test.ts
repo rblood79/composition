@@ -25,8 +25,8 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
  * S2 `firstDayOfWeek` (Calendar · RangeCalendar · DatePicker · DateRangePicker — RAC passes it to
  * the CalendarGrid; a picker's to its calendar through RAC's calendar context): the week's first
  * column. Unset = the locale's own first day (RAC `useCalendarGrid` — en-US Sunday, de-DE Monday).
- * The Canvas grid reads the same first day (`_weekStart`, Sunday = 0) for its weekday header, its
- * day columns and its rows.
+ * The Canvas grid reads the same first day (the calendar model — `_calendarGrid`) for its weekday
+ * header, its day columns and its rows.
  */
 const BODY = "project:node:home-body" as NodeId;
 const FIELD = "project:node:field" as NodeId;
@@ -123,44 +123,51 @@ describe("S2 firstDayOfWeek", () => {
   it("Calendar: the DOM header and the Canvas grid start the week on the same day", async () => {
     for (const type of ["calendar", "rangecalendar"]) {
       const { root, part, html, write } = await place(type);
-      const weekStart = () => part("CalendarGrid").derivedProps?._weekStart;
-      // The grid's rows count from the first day (a month can take 5 or 6 rows).
-      const rowsFollow = () => {
+      // The Canvas grid's model (ADR-256 Phase 9 — `calendarModel.ts`).
+      const model = () =>
+        JSON.parse(String(part("CalendarGrid").derivedProps?._calendarGrid)) as {
+          weekdays: string[];
+          rows: string[][];
+        };
+      // The Canvas weekday row is the DOM's, and the grid takes the model's rows (a month can take
+      // 5 or 6 rows).
+      const follows = () => {
+        expect(model().weekdays).toEqual(weekdays(html()));
         const grid = part("CalendarGrid");
         expect(root.getGeometry([grid.id]).get(grid.id)?.height).toBe(
-          catalogCalendarGridSize("M", new Date(), Number(weekStart()))!.height,
+          catalogCalendarGridSize("M", 7, model().rows.length)!.height,
         );
       };
       // Unset, en-US: Sunday.
       expect(weekdays(html()).slice(0, 2)).toEqual(["S", "M"]);
-      expect(weekStart()).toBe(0);
-      rowsFollow();
+      follows();
       write({ firstDayOfWeek: "wed" });
       expect(weekdays(html())[0]).toBe("W");
-      expect(weekStart()).toBe(3);
-      rowsFollow();
+      follows();
       write({ firstDayOfWeek: "mon" });
       expect(weekdays(html()).slice(0, 2)).toEqual(["M", "T"]);
-      expect(weekStart()).toBe(1);
       // Every first day: the rows the grid takes (some days give the month another row).
-      ["sun", "mon", "tue", "wed", "thu", "fri", "sat"].forEach(
-        (day, index) => {
-          write({ firstDayOfWeek: day });
-          expect(weekStart()).toBe(index);
-          rowsFollow();
-        },
-      );
+      for (const day of ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]) {
+        write({ firstDayOfWeek: day });
+        follows();
+      }
       // Unset again, de-DE: the locale's Monday.
       write({ firstDayOfWeek: "", locale: "de-DE" });
       expect(weekdays(html())[0]).toBe("M");
-      expect(weekStart()).toBe(1);
+      follows();
     }
   });
 
   it("DatePicker: its calendar's Canvas grid follows the picker's first day", async () => {
     const { part, write } = await place("datepicker");
-    expect(part("CalendarGrid").derivedProps?._weekStart).toBe(0);
+    const first = () =>
+      (
+        JSON.parse(String(part("CalendarGrid").derivedProps?._calendarGrid)) as {
+          weekdays: string[];
+        }
+      ).weekdays[0];
+    expect(first()).toBe("S");
     write({ firstDayOfWeek: "fri" });
-    expect(part("CalendarGrid").derivedProps?._weekStart).toBe(5);
+    expect(first()).toBe("F");
   });
 });

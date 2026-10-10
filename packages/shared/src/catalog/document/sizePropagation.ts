@@ -57,10 +57,12 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // buttons inside).
   AvatarGroup: ["Avatar", "Text"],
   ButtonGroup: ["Button"],
-  // A calendar composes its header and month grid at its own size (the DOM draws both from the
-  // calendar's `data-size`): the typed children are painted at it too.
-  Calendar: ["CalendarHeader", "CalendarGrid"],
-  RangeCalendar: ["CalendarHeader", "CalendarGrid"],
+  // A calendar's parts follow its size (the DOM sheets read the calendar's `data-size`): ADR-256
+  // Phase 9 — its month blocks (past their layout frame), their header and grid, the heading.
+  Calendar: ["CalendarMonth"],
+  RangeCalendar: ["CalendarMonth"],
+  CalendarMonth: ["CalendarHeader", "CalendarGrid"],
+  CalendarHeader: ["CalendarHeading"],
   // ADR-253: a field's parts (`FIELD_PARTS`).
   TextField: INPUT_FIELD_PARTS,
   TextArea: INPUT_FIELD_PARTS,

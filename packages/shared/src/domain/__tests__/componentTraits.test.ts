@@ -257,6 +257,10 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
         "Row",
         "Breadcrumbs",
         "ColorSwatchPicker",
+        // ADR-256 Phase 9: a calendar grid's children are its weekday · cell templates (RAC draws
+        // them per weekday · date), a date input's its segment template (per segment — 9d).
+        "CalendarGrid",
+        "DateInput",
       ]),
     );
   });
@@ -288,6 +292,8 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       Tree: ["TreeItem"],
       TreeItem: ["TreeItem", "TreeItemContent"],
       ColorSwatchPicker: ["ColorSwatchPickerItem"],
+      CalendarGrid: ["CalendarHeaderCell", "CalendarCell"],
+      DateInput: ["DateSegment"],
     });
     for (const type of Object.keys(componentContractMap("children")))
       expect(containerTypeSet("collection").has(type), type).toBe(true);
@@ -335,6 +341,13 @@ describe("componentTraits — nestingRules 층 2 파생", () => {
       ProgressBarFill: ["ProgressBarTrack"],
       CalendarGrid: ["Calendar", "RangeCalendar"],
       CalendarHeader: ["Calendar", "RangeCalendar"],
+      CalendarMonth: ["Calendar", "RangeCalendar"],
+      CalendarHeading: ["Calendar", "RangeCalendar"],
+      CalendarCell: ["CalendarGrid"],
+      CalendarHeaderCell: ["CalendarGrid"],
+      CalendarMonthPicker: ["Calendar", "RangeCalendar"],
+      CalendarYearPicker: ["Calendar", "RangeCalendar"],
+      DateSegment: ["DateInput"],
       CardHeader: ["Card"],
       CardContent: ["Card"],
       CardFooter: ["Card"],

@@ -22,6 +22,7 @@ import {
   type ValueType,
   type VisualField,
 } from "./types";
+import { catalogCalendarDurationFits } from "./valueType";
 
 export class CatalogValidationError extends Error {
   constructor(
@@ -252,6 +253,7 @@ const valueTypes = new Set<ValueType>([
   "slot",
   "columnSize",
   "columnStaticSize",
+  "calendarDuration",
 ]);
 /** State variables hold scalars only. */
 const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);
@@ -358,6 +360,12 @@ function authoredValue(
     return structuredValue(value, at);
   }
   if (typeof value !== "object" || value === null) return scalar(value, at);
+  // ADR-256 Phase 9: a prop's typed calendar duration (the accepts check is the graph's).
+  if (allowStructured && !("kind" in value)) {
+    if (!catalogCalendarDurationFits(value))
+      invalid("INVALID_CALENDAR_DURATION", at);
+    return;
+  }
   const ref = object(value, at);
   exact(ref, ["kind", "tokenId"], at);
   if (ref.kind !== "token") invalid("UNKNOWN_VALUE_KIND", at);

@@ -22,7 +22,6 @@ import type {
   ComponentRuleSize,
   ComponentRuleStructure,
 } from "../../types/catalog-style.types";
-import { CalendarDate, getDayOfWeek } from "@internationalized/date";
 import { resolveCatalogContainerBase } from "./resolveCatalogContainer";
 import { resolveComponentRule } from "./resolveComponentRule";
 
@@ -225,15 +224,18 @@ export function catalogTextAreaInputHeight(
 }
 
 /**
- * CalendarGrid's DOM table box (`CalendarCommon.css`): 7 columns of `cell + 4` (td padding 2px
- * each side) and a weekday header row of `cell` over one `cell + 4` row per week of the shown
- * month, `cell` = `sizes[size].iconSize + 4`. The month is `month` (default: the current one), as
- * RAC shows it without a value.
+ * CalendarGrid's DOM table box (`CalendarCommon.css`): `columns` columns of `cell + 4` (td padding
+ * 2px each side) and a weekday header row of `cell` over one `cell + 4` row per week row, `cell` =
+ * `sizes[size].iconSize + 4`. Columns · rows are the calendar model's (`calendarModel.ts`); a week
+ * row with no day shown (all outside the month — `[data-outside-month] { display: none }` — or past
+ * the calendar's first · last day) is its tds' padding only (`emptyRows`, the 6th row of a 5-week
+ * month at `weeksInMonth` 6).
  */
 export function catalogCalendarGridSize(
   sizeName: string | undefined,
-  month: Date = new Date(),
-  weekStart = 0,
+  columns: number,
+  rows: number,
+  emptyRows = 0,
 ): { width: number; height: number } | undefined {
   const rule = resolveComponentRule("CalendarGrid");
   const sizes = rule?.sizes as Record<string, ComponentRuleSize> | undefined;
@@ -242,108 +244,9 @@ export function catalogCalendarGridSize(
     (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
   if (typeof size?.iconSize !== "number") return undefined;
   const cell = size.iconSize + 4;
-  // (The first day's column counts from the week's first day — `catalogWeekStart`.)
-  const offset =
-    (new Date(month.getFullYear(), month.getMonth(), 1).getDay() -
-      weekStart +
-      7) %
-    7;
-  const days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  const rows = Math.ceil((days + offset) / 7);
-  return { width: (cell + 4) * 7, height: cell + rows * (cell + 4) };
-}
-
-const DAYS_OF_WEEK = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
-/**
- * The day a calendar's week starts on (Sunday = 0): S2 `firstDayOfWeek` when set, else the
- * locale's own first day — what RAC `useCalendarGrid` lays out (`@internationalized/date`
- * `getDayOfWeek`). The Canvas grid's weekday header, day columns and rows count from it.
- */
-export function catalogWeekStart(
-  locale: string,
-  firstDayOfWeek?: unknown,
-): number {
-  const day = DAYS_OF_WEEK.find((name) => name === firstDayOfWeek);
-  // (2024-01-07 is a Sunday: its column in the week is how far Sunday sits from the start.)
-  let sunday: number;
-  try {
-    sunday = getDayOfWeek(new CalendarDate(2024, 1, 7), locale, day);
-  } catch {
-    sunday = getDayOfWeek(new CalendarDate(2024, 1, 7), "en-US", day);
-  }
-  return (7 - sunday) % 7;
-}
-
-/**
- * The calendar header's heading text (RAC `useVisibleRangeDescription`): the shown month — a
- * month range for `maxVisibleMonths` > 1 — as `{ month: "long", year: "numeric" }` in the
- * Calendar's locale (`Calendar.tsx`: `locale` + `calendarSystem` → the `-u-ca-` extension;
- * without a locale, the rendering environment's — `fallbackLocale`, RAC's default being
- * `navigator.language`). The DOM reads these root props and not the CalendarHeader child's own
- * `children`/`locale`.
- */
-export function catalogCalendarTitle(
-  props: Readonly<Record<string, unknown>>,
-  fallbackLocale: string = globalThis.navigator?.language || "en-US",
-  month: Date = new Date(),
-): string {
-  const locale =
-    typeof props.locale === "string" && props.locale
-      ? props.locale
-      : fallbackLocale;
-  const system =
-    typeof props.calendarSystem === "string" ? props.calendarSystem : "";
-  const format = new Intl.DateTimeFormat(
-    system ? `${locale}-u-ca-${system}` : locale,
-    { month: "long", year: "numeric" },
-  );
-  const start = new Date(month.getFullYear(), month.getMonth(), 1);
-  const months = Math.max(1, Math.floor(Number(props.maxVisibleMonths) || 1));
-  if (months === 1) return format.format(start);
-  return format.formatRange(
-    start,
-    new Date(month.getFullYear(), month.getMonth() + months - 1, 1),
-  );
-}
-
-/**
- * The calendar header row's DOM composition (`Calendar.tsx` `<header>`: previous Button ·
- * Heading · next Button) at the owner's size. Each nav button is `Calendar.css` `height` ×
- * (`height` + `--spacing-xs`) wide (`CalendarCommon.css` resets the general `.react-aria-Button`
- * default `min-width` — the nav buttons carry no `data-size`). The heading is the size's `font-size` (`Calendar.css`) at
- * `--font-weight-bold`, `line-height` `--text-base--line-height` (`Heading.css`, a unitless ratio —
- * the text measure's `lineHeight` unit).
- */
-export function catalogCalendarHeaderParts(sizeName: string | undefined):
-  | {
-      navWidth: number;
-      navHeight: number;
-      heading: { fontSize: number; fontWeight: number; lineHeight: number };
-    }
-  | undefined {
-  const rule = resolveComponentRule("CalendarHeader");
-  const sizes = rule?.sizes as Record<string, ComponentRuleSize> | undefined;
-  const size =
-    sizes?.[sizeName ?? ""] ??
-    (rule?.defaultSize ? sizes?.[rule.defaultSize] : undefined);
-  const navHeight = size?.height;
-  const rawFont = size?.fontSize;
-  const fontSize =
-    typeof rawFont === "string" && isValidTokenRef(rawFont)
-      ? Number(resolveToken(rawFont))
-      : Number(rawFont);
-  if (typeof navHeight !== "number" || !(fontSize > 0)) return undefined;
-  const ratio =
-    Number(resolveToken("{typography.text-base--line-height}")) /
-    Number(resolveToken("{typography.text-base}"));
   return {
-    navWidth: navHeight + Number(resolveToken("{spacing.xs}")),
-    navHeight,
-    heading: {
-      fontSize,
-      fontWeight: fontWeight.bold,
-      lineHeight: ratio,
-    },
+    width: (cell + 4) * columns,
+    height: cell + (rows - emptyRows) * (cell + 4) + emptyRows * 4,
   };
 }
 

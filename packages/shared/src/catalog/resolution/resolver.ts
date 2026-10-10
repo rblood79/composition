@@ -27,6 +27,7 @@ import type {
   WriteValue,
 } from "../document/types";
 import { CatalogGraph } from "../document/graph";
+import { catalogCalendarDurationFits } from "../document/valueType";
 import { isInOwnCollection, isInOwnGroup } from "../document/collectionItems";
 import {
   CATALOG_SIZE_PASS_THROUGH,
@@ -113,6 +114,11 @@ export interface ResolvedCatalogNode {
   rowKey?: string;
   /** A data row's index (the delivered rows' order) on the row's root node. */
   rowIndex?: number;
+  /**
+   * ADR-256 Phase 9 — a calendar month block copy's month offset (not a data row: the Layers
+   * panel projects `rowIndex` nodes as row leaves).
+   */
+  monthIndex?: number;
   /**
    * On a bound ListBox/GridList, or a bound Table's body, that grows with its rows (no bounded
    * height — ADR-157 sample policy): the collection's row count. The Builder Canvas shows the first
@@ -478,6 +484,61 @@ export function resolveCatalogNode(
       definition = graph.getDefinition(root.definitionId);
     }
     return definition?.name ?? "";
+  };
+  /** ADR-256 Phase 9 — a calendar's shown months (the nearest Calendar · RangeCalendar context's). */
+  const calendarMonthCount = (context: ParentContext | undefined): number => {
+    for (let cursor = context; cursor; cursor = cursor.parent) {
+      const name = ruleDefinitionOf(cursor.definitionId).name;
+      if (name === "Calendar" || name === "RangeCalendar") {
+        const duration = cursor.props.visibleDuration;
+        return catalogCalendarDurationFits(duration) && "months" in duration
+          ? duration.months
+          : 1;
+      }
+    }
+    return 1;
+  };
+  /**
+   * An owned child into its parent's resolved children — every owned-children path (an owned
+   * node's children, a filled slot's) goes through here, so a month block repeats wherever it sits.
+   */
+  const pushOwnedChild = (
+    out: ResolvedCatalogNode[],
+    child: NodeEntry,
+    resolved: ResolvedCatalogNode | undefined,
+    context: ParentContext | undefined,
+  ): void => {
+    if (ruleDefinitionOf(child.definitionId).name === "CalendarMonth")
+      pushCalendarMonths(out, resolved, context);
+    else push(out, resolved);
+  };
+  /**
+   * ADR-256 Phase 9 — a calendar's month block is a repeat template (the reference starter's
+   * `Array.from({length: months}, (_, i) => <div className="month">…)`): one copy per shown month,
+   * each its own record (`rowKey`) whose index (`monthIndex`) is the month offset of the heading · grid
+   * in it. The copies edit the one template node.
+   */
+  const pushCalendarMonths = (
+    out: ResolvedCatalogNode[],
+    month: ResolvedCatalogNode | undefined,
+    context: ParentContext | undefined,
+  ): void => {
+    if (!month) return;
+    const count = calendarMonthCount(context);
+    for (let index = 0; index < count; index++)
+      out.push(
+        index === 0
+          ? { ...month, monthIndex: 0 }
+          : {
+              ...withRowKey(
+                month,
+                month.rowKey !== undefined
+                  ? `${month.rowKey}~month${index}`
+                  : `month${index}`,
+              ),
+              monthIndex: index,
+            },
+      );
   };
   const tokenValue = (value: AuthoredValue): PropValue => {
     if (typeof value !== "object" || !("kind" in value)) return value;
@@ -1039,7 +1100,12 @@ export function resolveCatalogNode(
       const child = graph.getEntry(childId);
       if (child?.kind !== "node")
         throw new CatalogValidationError("DANGLING_CHILD", childId);
-      push(children, resolveOwned(child, childPath, undefined, self));
+      pushOwnedChild(
+        children,
+        child,
+        resolveOwned(child, childPath, undefined, self),
+        self,
+      );
     }
     for (const rule of stateVisual(node.definitionId))
       applyWrites(visual, rule);
@@ -1546,20 +1612,20 @@ export function resolveCatalogNode(
           });
           continue;
         }
-        push(
-          out,
-          projectTemplate(
-            owner,
-            childId,
-            instancePath,
-            childPath,
-            childrenParent,
-            bindings,
-            undefined,
-            patches,
-            childRowing,
-          ),
+        const projected = projectTemplate(
+          owner,
+          childId,
+          instancePath,
+          childPath,
+          childrenParent,
+          bindings,
+          undefined,
+          patches,
+          childRowing,
         );
+        if (templateTypeName(childId) === "CalendarMonth")
+          pushCalendarMonths(out, projected, childrenParent);
+        else push(out, projected);
       }
       return out;
     };
@@ -1696,7 +1762,14 @@ export function resolveCatalogNode(
         const child = graph.getEntry(childId);
         if (child?.kind !== "node")
           throw new CatalogValidationError("DANGLING_CHILD", childId);
-        push(children, resolveOwned(child, childPath, undefined, self));
+        // (A filled slot's owned children repeat like any owned children — a month block put back
+        // in its calendar's frame, 판독 R1.)
+        pushOwnedChild(
+          children,
+          child,
+          resolveOwned(child, childPath, undefined, self),
+          self,
+        );
       }
     }
     for (const rule of stateVisual(template.definitionId, nodeState))

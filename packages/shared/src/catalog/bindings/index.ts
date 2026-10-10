@@ -12,11 +12,18 @@ import { breadcrumbBinding } from "./Breadcrumb.binding";
 import { buttonBinding } from "./Button.binding";
 import { buttonGroupBinding } from "./ButtonGroup.binding";
 import { calendarBinding } from "./Calendar.binding";
+import { calendarCellBinding } from "./CalendarCell.binding";
 import { calendarGridBinding } from "./CalendarGrid.binding";
 import { calendarHeaderBinding } from "./CalendarHeader.binding";
+import { calendarHeaderCellBinding } from "./CalendarHeaderCell.binding";
+import { calendarHeadingBinding } from "./CalendarHeading.binding";
+import { calendarMonthBinding } from "./CalendarMonth.binding";
+import { calendarMonthPickerBinding } from "./CalendarMonthPicker.binding";
+import { calendarYearPickerBinding } from "./CalendarYearPicker.binding";
 import { chartBinding } from "./Chart.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { dateInputBinding } from "./DateInput.binding";
+import { dateSegmentBinding } from "./DateSegment.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
 import { codeBinding } from "./Code.binding";
 import { colorAreaBinding } from "./ColorArea.binding";
@@ -153,9 +160,16 @@ export * from "./Breadcrumb.binding";
 export * from "./Button.binding";
 export * from "./ButtonGroup.binding";
 export * from "./Calendar.binding";
+export * from "./CalendarCell.binding";
 export * from "./CalendarGrid.binding";
 export * from "./CalendarHeader.binding";
+export * from "./CalendarHeaderCell.binding";
+export * from "./CalendarHeading.binding";
+export * from "./CalendarMonth.binding";
+export * from "./CalendarMonthPicker.binding";
+export * from "./CalendarYearPicker.binding";
 export * from "./DateInput.binding";
+export * from "./DateSegment.binding";
 export * from "./Checkbox.binding";
 export * from "./CheckboxGroup.binding";
 export * from "./Code.binding";
@@ -513,12 +527,21 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DropZone: dropZoneBinding,
   // family ⑦ date/color (internal source — composition wrapper, 날짜 grid/portal + color shells).
   Calendar: calendarBinding,
-  // ADR-912 (B+icon): CalendarHeader leaf (inline_icon_text replace — 좌 chevron + center text + 우 chevron).
-  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Canvas 만 자기 노드를 그린다.
+  // ADR-256 Phase 9: a calendar month block's `header` (its nav Buttons and CalendarHeading are nodes).
   CalendarHeader: calendarHeaderBinding,
-  // ADR-912 (A/2D): CalendarGrid leaf (calendar_month_grid replace — 요일 헤더 + 날짜 셀 + today circle).
-  //   DOM 은 부모 Calendar self-compose(독립 노드 0), Canvas 만 자기 노드를 그린다. nav 는 CalendarHeader 담당.
+  // ADR-256 Phase 9: RAC CalendarGrid at its month block's offset (its child = the cell template).
   CalendarGrid: calendarGridBinding,
+  // ADR-256 Phase 9: a Calendar's month block (repeat template), its RAC heading and RAC cell
+  //   (repeat template — the reference starter's `div.month > header + CalendarGrid > CalendarCell`).
+  CalendarMonth: calendarMonthBinding,
+  CalendarHeading: calendarHeadingBinding,
+  CalendarCell: calendarCellBinding,
+  // (Decision 13: the weekday cell and the date segment templates RAC draws per day · segment.)
+  CalendarHeaderCell: calendarHeaderCellBinding,
+  DateSegment: dateSegmentBinding,
+  // ADR-256 Phase 9: RAC's month · year pickers (no element — their Select is the header's item).
+  CalendarMonthPicker: calendarMonthPickerBinding,
+  CalendarYearPicker: calendarYearPickerBinding,
   // ADR-912 deletion-risk(date): DateInput leaf (datefield_segments replace — input box + border +
   //   세그먼트 placeholder text + picker icon). DOM 은 date field 안에서 RAC DateInput
   //   (`domBinding.tsx` `fieldDateInputBinding`, ADR-253).

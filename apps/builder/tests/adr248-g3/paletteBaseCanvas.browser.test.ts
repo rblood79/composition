@@ -290,6 +290,8 @@ const NEW_ROW_HOST_TYPES = [
   "SwitchButton",
   "RadioButton",
   "TreeItemContent",
+  // ADR-256 Phase 9: a calendar's month block (the reference starter's `div.month`).
+  "CalendarMonth",
 ];
 
 /** Set when the local G0 baseline is absent (a fresh clone). */
@@ -624,7 +626,7 @@ function documentFor(
   return {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 36,
+    libraryContractVersion: 37,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -1127,16 +1129,25 @@ describe("ADR-248 G3 palette-production-base old/new Canvas", () => {
         // ADR-256 Phase 3: a toggle's RAC button (CheckboxButton) is a new node between the toggle
         // and its row (old: the toggle held the row) — its children pair with the old toggle's; the
         // button itself stays unpaired (APPROVED_UNPAIRED `toggle-button-node`).
-        const shownKids = shownOf(newId).flatMap((child) => {
-          if (
-            !NEW_ROW_HOST_TYPES.includes(
-              root.typeOf(root.canvasInputs.get(child)!),
-            )
-          )
-            return [child];
+        // (ADR-256 Phase 9: a calendar's month block and the layout frame around the blocks are new
+        // nodes between the calendar and its header · grid — passed through like a row host.)
+        const isNewHost = (child: string): boolean => {
+          const record = root.canvasInputs.get(child)!;
+          const type = root.typeOf(record);
+          if (NEW_ROW_HOST_TYPES.includes(type)) return true;
+          const parent = root.canvasInputs.get(record.parentId);
+          return (
+            type === "frame" &&
+            !!parent &&
+            ["Calendar", "RangeCalendar"].includes(root.typeOf(parent))
+          );
+        };
+        const throughHosts = (child: string): string[] => {
+          if (!isNewHost(child)) return [child];
           unpaired.push(`new:${child}`);
-          return shownOf(child);
-        });
+          return shownOf(child).flatMap(throughHosts);
+        };
+        const shownKids = shownOf(newId).flatMap(throughHosts);
         // A part node the owner draws (2026-10-04 — a toggle's indicator, a TreeItem's chevron)
         // has no old node: the old owner painted it in its own box. It stays out of the order
         // pairing (APPROVED_UNPAIRED).

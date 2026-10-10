@@ -1,5 +1,5 @@
 import { LIBRARY_CONTRACT_VERSION } from "./types";
-import { scalarFitsType } from "./valueType";
+import { catalogPropValueFits } from "./valueType";
 import type {
   CatalogDocument,
   CatalogEntry,
@@ -156,27 +156,8 @@ function edgesOf(entry: CatalogEntry): Edge[] {
     edges.push({ type: "token", key: token, target: entry.id });
   return edges;
 }
-/**
- * A prop value against its declared type: a token reference (its token type is checked
- * separately), a string list, a list of flat item records, or a scalar of that type.
- */
-function propValueMatches(value: unknown, type: string): boolean {
-  if (type === "slot") return scalarFitsType(value, type);
-  if (type === "string[]")
-    return (
-      Array.isArray(value) && value.every((item) => typeof item === "string")
-    );
-  if (type === "items")
-    return (
-      Array.isArray(value) &&
-      value.every(
-        (item) => !!item && typeof item === "object" && !Array.isArray(item),
-      )
-    );
-  if (Array.isArray(value)) return false;
-  if (value && typeof value === "object") return "tokenId" in value;
-  return scalarFitsType(value, type);
-}
+/** A prop value against its declared type — the shared rule (`catalogPropValueFits`). */
+const propValueMatches = catalogPropValueFits;
 function edgeKey(edge: Edge): string {
   return `${edge.type}\0${edge.key}\0${edge.target}`;
 }

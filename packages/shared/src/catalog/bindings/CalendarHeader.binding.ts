@@ -1,35 +1,19 @@
 import type { PrimitiveBinding } from "../types";
 
 /**
- * CalendarHeader — Calendar 네비게이션 헤더 leaf (좌 chevron + 중앙 월/년 text + 우 chevron).
+ * CalendarHeader — a Calendar month block's `header` (ADR-256 Phase 9 — the reference starter's
+ * `<header>{previous Button} <CalendarHeading /> {next Button}</header>`). A container: its parts are
+ * the author's nodes — `Button[slot=previous]` · `CalendarHeading` (or the month · year pickers) ·
+ * `Button[slot=next]` — which can be reordered, wrapped or swapped. RAC gives the Buttons their
+ * paging through the Calendar's `ButtonContext` slots and the heading its text.
  *
- * **ADR-912 (B+icon) CalendarHeader 전환 (inline_icon_text generic replace, 2026-06-08)**:
- *   DisclosureHeader 의 leading_icon(append) 확장. DisclosureHeader 는 "좌측 single icon + left text"
- *   였지만 CalendarHeader 는 "좌 icon + center text + 우 icon" 으로 **다른 레이아웃 가정** →
- *   별도 `inline_icon_text` skiaPrimitive(replace 모드)로 전체 3-shape 자기 생성(buildCatalogShapes
- *   box+text 대체 — center text 가 좌측/center 단일 text 와 충돌하므로 base 미생성). recon 옵션 B
- *   채택(별도 module — leading_icon mode flag 확장 시 단일 책임 붕괴). 코드 변경 0 recon: inventory
- *   "CalendarHeader (B+icon) 확장 recon" 참조.
+ * (Before Phase 9 a leaf the Calendar composed itself — `inline_icon_text` drew the chevrons and the
+ * title; the Canvas now draws the parts as nodes, the nav Buttons' box from the Calendar's part
+ * rules.)
  *
- * **Skia = inline_icon_text replace**: `skiaPrimitive: "inline_icon_text"`(skiaPrimitives.ts, replace)가
- *   visual.leadingIcon(chevron-left) + center text(Intl 현재월) + visual.trailingIcon(chevron-right) 를
- *   함께 그린다. 우측 chevron 은 containerWidth 의존(ruleShapes.ts `BOX_SIZE_TYPES` 등록 →
- *   `_containerWidth` 주입). 색 = rule variant text({color.neutral}), 좌표 = cellSize=iconSize+4 /
- *   좌 cellSize/2 / text cellSize center / 우 width-cellSize/2.
- *   icon/text 데이터 분기만 — 컴포넌트별 if 없음(ADR-142 §3).
- *
- * **DOM = 부모 Calendar/RangeCalendar self-compose (독립 노드 0)**: `CATALOG_DELEGATED_DOM.calendar` ·
- *   `rangecalendar` 는 자식 노드를 모두 소유(`ownsChild: ownsAll`)하고 shared `Calendar.tsx` 가
- *   `<header><Button slot="previous"><Heading /><Button slot="next"></header>` 를 스스로 그린다 →
- *   CalendarHeader 노드는 DOM 에 따로 그려지지 않는다. source.renderer="calendarheader" 는 단독 배치
- *   edge case fallback 안전망(평시 미진입).
- *
- * D1: composition — DOM 은 부모 Calendar/RangeCalendar 가 `<header>` self-compose(독립 DOM 노드 없음).
- *     RAC Calendar D1/ARIA 권위 보존.
- * D2: size(editorHidden) 만.
- * D3: 시각(좌우 chevron + 월/년 text 색/크기/정렬)은 theme rule(COMPONENT_RULES_TABLE.CalendarHeader) —
- *     leadingIcon/trailingIcon{name/gap/color} + textAlign + sizes{fontSize/iconSize/gap/paddingX/height}.
- *     Skia generic(inline_icon_text replace) ↔ DOM 부모 self-compose 시각 대칭.
+ * D1: the starter's `header` (outside RAC's structure, no role — RAC unchanged).
+ * D2: `size` (carried from the calendar).
+ * D3: the CalendarHeader rule (a row: nav Buttons at the ends, heading between).
  */
 export const calendarHeaderBinding: PrimitiveBinding = {
   source: {
@@ -48,5 +32,4 @@ export const calendarHeaderBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
-  skiaPrimitive: "inline_icon_text",
 };

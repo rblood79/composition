@@ -24,6 +24,10 @@ export const STATE_KEYS = [
   "hasSubmenu",
   "allowsRemoving",
   "allowsSorting",
+  // ADR-256 Phase 9: a calendar month block's place — composition keys (no RAC part gives them, so
+  // the run adds none; `catalogStateKeysOf` reads them from its own table).
+  "isFirstMonth",
+  "isLastMonth",
 ];
 
 /**

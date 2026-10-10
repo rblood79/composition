@@ -110,3 +110,29 @@ export const FIRST_DAY_OF_WEEK_PROP: PropContract = {
     { value: "sat", label: "Saturday" },
   ],
 };
+
+/**
+ * ADR-256 Phase 9 — RAC `visibleDuration` (Calendar · RangeCalendar, the reference's Display
+ * options): how much the calendar shows — a count of days, weeks or months (`calendar-duration`,
+ * one unit, whole ≥ 1). Unset = one month (RAC's default). A picker's calendar keeps its own
+ * (RAC's picker context does not carry it — `useDatePicker` `calendarProps`).
+ */
+export const VISIBLE_DURATION_PROP: PropContract = {
+  kind: "calendar-duration",
+  label: "Visible Duration",
+  section: "content",
+  default: { months: 1 },
+};
+
+/**
+ * ADR-256 Phase 9 — RAC `weeksInMonth` (Calendar · RangeCalendar): a fixed number of week rows.
+ * Unset = the locale's count for the month (RAC `useCalendarState`). Not a picker prop — a
+ * picker's calendar keeps its own, like `visibleDuration`.
+ */
+export const WEEKS_IN_MONTH_PROP: PropContract = {
+  kind: "number",
+  label: "Weeks in Month",
+  section: "content",
+  min: 1,
+  step: 1,
+};

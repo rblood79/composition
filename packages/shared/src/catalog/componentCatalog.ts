@@ -343,33 +343,58 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "disclosure panel",
     icon: "Rows3",
   }),
-  // ADR-912 (B+icon) CalendarHeader 발효 (inline_icon_text replace, 2026-06-08): Calendar 네비게이션
-  //   헤더 leaf(좌 chevron + 중앙 월/년 text + 우 chevron). DisclosureHeader 의 leading_icon(append)
-  //   확장 — "좌 icon + center text + 우 icon" 은 다른 레이아웃 가정이라 별도 `inline_icon_text`
-  //   skiaPrimitive(replace, skiaPrimitives.ts)가 전체 3-shape 자기 생성(buildCatalogShapes box+text
-  //   대체 — center text 충돌). 우측 chevron containerWidth 의존 → CONTAINER_DIMENSION_TAGS 등록.
-  //   DOM 은 부모 Calendar/RangeCalendar(Calendar.tsx:113 self-compose `<header>`)가 흡수, children
-  //   미렌더 → CalendarHeader DOM 독립 노드 0(catalog 등록 후에도 DOM 변화 없음, Skia spec.render.shapes
-  //   fallback 제거가 목적). Calendar 의 calendar_grid escape 는 _hasChildren=true 시 bg shell 만
-  //   (line 657 return) → 자식 CalendarHeader/CalendarGrid 가 각자 렌더(이중 렌더 아님). palette
-  //   비노출(Calendar 자식, 단독 배치 안 함).
+  // ADR-256 Phase 9: a Calendar month block's `header` (container — the nav Buttons and the
+  //   CalendarHeading are its author nodes; palette 미노출).
   primitiveEntry("CalendarHeader", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
     label: "calendar header",
     icon: "ChevronsLeftRight",
   }),
-  // ADR-912 (A/2D): CalendarGrid leaf (calendar_month_grid replace — 요일 헤더 + 날짜 셀 + today circle).
-  //   recon(6축) 으로 즉시 차단 absent(day cell self-render, List ListItem NO_SPEC 같은 차단 없음) +
-  //   date state static props 자기충족 확정. CalendarHeader 동형 standalone replace escape. nav 는 없음
-  //   (nav = CalendarHeader 담당) → 부모 calendar_grid(nav 포함)와 별개 키. DOM 은 부모 Calendar/
-  //   RangeCalendar(Calendar.tsx:122 self-compose `<CalendarGrid>`)가 흡수, children 미렌더 →
-  //   CalendarGrid DOM 독립 노드 0(catalog 등록 후에도 DOM 변화 없음, Skia spec.render.shapes fallback
-  //   제거가 목적). Calendar calendar_grid escape 는 _hasChildren=true 시 shell 만 → 자식 CalendarGrid
-  //   가 grid 렌더(이중 렌더 아님). palette 비노출(Calendar 자식, 단독 배치 안 함).
+  // ADR-256 Phase 9: RAC CalendarGrid — its month block's grid (its child is the cell template RAC
+  //   draws per date); the Canvas grid primitive draws the cells from the calendar model (palette 미노출).
   primitiveEntry("CalendarGrid", "primitives", FAMILY_1_CUTOVER, {
     category: "structure",
     label: "calendar grid",
     icon: "CalendarDays",
+  }),
+  // ADR-256 Phase 9: a Calendar's month block (repeat template), its RAC CalendarHeading and the
+  //   grid's RAC CalendarCell (repeat template) — palette 미노출 (the Calendar origins hold them).
+  primitiveEntry("CalendarMonth", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar month",
+    icon: "CalendarRange",
+  }),
+  primitiveEntry("CalendarHeading", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar heading",
+    icon: "Heading",
+  }),
+  primitiveEntry("CalendarCell", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar cell",
+    icon: "Square",
+  }),
+  // ADR-256 Phase 9 (Decision 13): the weekday cell and date segment templates (palette 미노출).
+  primitiveEntry("CalendarHeaderCell", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar header cell",
+    icon: "Square",
+  }),
+  primitiveEntry("DateSegment", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "date segment",
+    icon: "Square",
+  }),
+  // ADR-256 Phase 9: RAC's month · year pickers (palette 밖 원본 — a calendar header's insert list).
+  primitiveEntry("CalendarMonthPicker", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar month picker",
+    icon: "CalendarDays",
+  }),
+  primitiveEntry("CalendarYearPicker", "primitives", FAMILY_1_CUTOVER, {
+    category: "structure",
+    label: "calendar year picker",
+    icon: "CalendarRange",
   }),
   // ADR-912 deletion-risk(date): DateInput leaf (datefield_segments replace — input box + border +
   //   세그먼트 placeholder text + picker icon). DateInput.spec render.shapes 가 유일 Skia source 였던
@@ -1444,6 +1469,10 @@ export const NESTED_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   //   swatch 모양은 ColorSwatch origin 하나에서.
   "ColorSwatchPicker",
   "ColorSwatch",
+  // ADR-256 Phase 9 — a calendar header's month · year pickers (RAC render props → their Select):
+  //   put in by the author from the header's insert list (owners: Calendar · RangeCalendar).
+  "CalendarMonthPicker",
+  "CalendarYearPicker",
 ];
 
 const NESTED_REUSABLE_ORIGIN_TYPE_SET: ReadonlySet<string> = new Set(

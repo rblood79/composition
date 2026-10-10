@@ -160,7 +160,7 @@ function run(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 36,
+    libraryContractVersion: 37,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -559,6 +559,9 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     // + MenuTrigger (ADR-256 후속 4 — the Menu origin's root).
     // + Illustration (the IllustratedMessage's svg picture, 2026-10-09).
     // − SelectIcon · FormField · TableRow · TableCell · TailSwatch (no origin used them, 2026-10-09).
-    expect(types.length).toBe(144);
+    // + CalendarMonth · CalendarHeading · CalendarCell (ADR-256 Phase 9 — the calendar node tree).
+    // + CalendarMonthPicker · CalendarYearPicker (Phase 9c) · CalendarHeaderCell · DateSegment
+    //   (Phase 9d — the weekday · segment repeat templates).
+    expect(types.length).toBe(151);
   }, 120_000);
 });
