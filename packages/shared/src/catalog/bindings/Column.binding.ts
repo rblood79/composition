@@ -43,6 +43,54 @@ export const columnBinding: PrimitiveBinding = {
       },
       children: { kind: "string", label: "Text", section: "content" },
       isRowHeader: { kind: "boolean", label: "Row header", section: "content" },
+      // ADR-257 Phase 3 — S2 `align` (start · center · end, S2 default start): this cell's own
+      //   text alignment (rule `containerVariants.align`). S2 does not pass a Column's to its
+      //   Cells (사용자 결정 7).
+      align: {
+        kind: "enum",
+        label: "Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "center", label: "Center" },
+          { value: "end", label: "End" },
+        ],
+      },
+      // ADR-257 Phase 3 — the Table's S2 `overflowMode`, carried here by the resolver
+      //   (`CATALOG_TABLE_OVERFLOW_OWNERS`) — not edited on the part.
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
+      // ADR-257 — S2 1.8.0 Column widths: the column's track in every row of its Table (the
+      // header row and each Row are grids with one shared track list — `tableTracks.ts`).
+      //   `width` · `defaultWidth` = `ColumnSize` (px number · "Nfr" · "N%"), `minWidth` ·
+      //   `maxWidth` = `ColumnStaticSize` (px number · "N%"). RAC defaults: 1fr over a 75px floor.
+      //   composition 제한: numbers only, no numeric strings (RAC's static width parse throws).
+      width: { kind: "column-size", label: "Width", section: "appearance" },
+      defaultWidth: {
+        kind: "column-size",
+        label: "Default width",
+        section: "appearance",
+        editorHidden: true,
+      },
+      minWidth: {
+        kind: "column-static-size",
+        label: "Min width",
+        section: "appearance",
+      },
+      maxWidth: {
+        kind: "column-static-size",
+        label: "Max width",
+        section: "appearance",
+      },
       size: {
         kind: "size",
         label: "Size",

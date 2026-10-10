@@ -60,6 +60,31 @@ export const tableBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
+      // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
+      //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
+      //   not there (`catalogTableSelectionPartHidden`).
+      selectionStyle: {
+        kind: "enum",
+        label: "Selection Style",
+        section: "state",
+        default: "checkbox",
+        options: [
+          { value: "checkbox", label: "Checkbox" },
+          { value: "highlight", label: "Highlight" },
+        ],
+      },
+      // ADR-257 Phase 3 — S2 `overflowMode` (default truncate): the cells' text on one line with
+      //   an ellipsis, or wrapped (the row grows). Carried to the Columns · Cells (resolver).
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        default: "truncate",
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
       // ADR-923 r21m1 (2026-09-02) — 높이 축. `heightMode`(fixed/auto/viewport/full) × `height` 로
       //   Table 높이를 정한다 — DOM 은 `domRegistry.tsx` `CatalogTable`, Canvas 는 `compositionRoot.ts`
       //   `catalogTableHeight` 가 같은 두 prop 을 읽는다. 여기 선언이 없으면 렌더러(`renderCatalogDom`)가

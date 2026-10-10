@@ -144,3 +144,15 @@ export const CATALOG_DENSITY_PROPAGATION_OWNER: Readonly<
   Column: "Table",
   Cell: "Table",
 };
+
+/**
+ * ADR-257 Phase 3 — S2 Table `overflowMode` context: the owner types whose value reaches this part
+ * type (S2 `InternalTableContext` — one value for every cell's content). Read by the resolver
+ * (`applyOwnerOverflowMode`); the parts carry it without an editor of their own.
+ */
+export const CATALOG_TABLE_OVERFLOW_OWNERS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  Column: ["Table", "TableView"],
+  Cell: ["Table", "TableView"],
+};

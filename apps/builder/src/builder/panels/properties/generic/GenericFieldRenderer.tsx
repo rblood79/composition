@@ -29,6 +29,8 @@ import {
 import { PropertyFieldTemplateInput } from "../../../components/property/PropertyFieldTemplateInput";
 import { PropertyIconPicker } from "../../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../../components/property/PropertyInput";
+import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
+import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
 import { Section as PropertySection } from "../../../components/panel/Section";
@@ -342,6 +344,13 @@ function fieldRank(field: ResolvedField): number {
       return 9;
   }
 }
+/** A typed Column width: "" → none, "120" · "120px" → 120, otherwise the trimmed text. */
+function parseColumnSizeInput(text: string): number | string | undefined {
+  const trimmed = text.trim();
+  if (trimmed === "") return undefined;
+  const px = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(trimmed);
+  return px ? Number(px[1]) : trimmed;
+}
 function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
   const ranked = fields
     .map((field, index) => ({ field, index, rank: fieldRank(field) }))
@@ -524,6 +533,51 @@ function BoundValueSlider({
   );
 }
 
+/**
+ * ADR-257 — a Column width field. A value that is not a column size is not written (the field
+ * shows the stored value again). A bound the column's track cannot express with its width
+ * (`Nfr` + max, a px width with a `%` bound, a `%` width with a px max — 사용자 결정 3 (a)) is
+ * kept and named as not applied.
+ */
+const ColumnSizeField = memo(function ColumnSizeField({
+  field,
+  value,
+  elementId,
+  onChange,
+  notApplied,
+}: {
+  field: ResolvedField;
+  value: unknown;
+  elementId: string | undefined;
+  onChange: (value: unknown) => void;
+  notApplied: string;
+}) {
+  const width = useFieldValue(elementId, field.origin, "width", undefined);
+  const minWidth = useFieldValue(elementId, field.origin, "minWidth", undefined);
+  const maxWidth = useFieldValue(elementId, field.origin, "maxWidth", undefined);
+  const ignored =
+    catalogColumnTrack({ props: { width, minWidth, maxWidth } }).ignored ?? [];
+  return (
+    <PropertyInput
+      label={field.label}
+      value={value == null ? "" : String(value)}
+      onChange={(text) => {
+        const parsed = parseColumnSizeInput(text);
+        if (parsed === undefined) return onChange(undefined);
+        if (catalogColumnSizeFits(parsed, field.kind === "column-static-size"))
+          onChange(parsed);
+      }}
+      afterControl={
+        (ignored as readonly string[]).includes(field.key) ? (
+          <span slot="description" role="status" data-column-size-not-applied="">
+            {notApplied}
+          </span>
+        ) : undefined
+      }
+    />
+  );
+});
+
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 const GenericField = memo(function GenericField({
   field,
@@ -681,6 +735,19 @@ const GenericField = memo(function GenericField({
           onChange={(v) => update(v === "" ? undefined : v)}
           // ADR-214 Phase 3 — `{{` 자동완성 (가시성 사슬의 변수 이름), style 축은 제외
           stateNames={field.origin === "style" ? undefined : stateNames}
+        />
+      );
+
+    // ADR-257 — S2 Column widths: a px number ("120" · "120px"), "Nfr" or "N%".
+    case "column-size":
+    case "column-static-size":
+      return (
+        <ColumnSizeField
+          field={field}
+          value={value}
+          elementId={elementId}
+          onChange={update}
+          notApplied={t("propertiesPanel.columnSizeNotApplied")}
         />
       );
 

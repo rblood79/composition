@@ -84,6 +84,31 @@ export const tableViewBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
+      // ADR-257 Phase 3 — S2 `selectionStyle` (default checkbox): highlight selects a row by its
+      //   background (RAC `selectionBehavior="replace"`) and the selection checkbox column is
+      //   not there (`catalogTableSelectionPartHidden`).
+      selectionStyle: {
+        kind: "enum",
+        label: "Selection Style",
+        section: "state",
+        default: "checkbox",
+        options: [
+          { value: "checkbox", label: "Checkbox" },
+          { value: "highlight", label: "Highlight" },
+        ],
+      },
+      // ADR-257 Phase 3 — S2 `overflowMode` (default truncate): the cells' text on one line with
+      //   an ellipsis, or wrapped (the row grows). Carried to the Columns · Cells (resolver).
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        default: "truncate",
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
       allowsSorting: {
         kind: "boolean",
         label: "Allow Sorting",

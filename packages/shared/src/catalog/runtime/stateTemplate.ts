@@ -62,7 +62,10 @@ function variableType(type: ValueType): VariableDefType {
     ? "array"
     : type === "slot"
       ? "string"
-      : type;
+      : // (ADR-257 Column widths are no variable type: a state variable is a scalar of its own.)
+        type === "columnSize" || type === "columnStaticSize"
+        ? "string"
+        : type;
 }
 
 function defaultOf(type: VariableDefType, value: unknown): unknown {

@@ -18,7 +18,11 @@ import {
   type CatalogPosition,
 } from "../positions";
 import { resolveCatalogNode, type ResolvedCatalogNode } from "../resolver";
-import { CATALOG_SIZE_PROPAGATION } from "../../document/sizePropagation";
+import {
+  CATALOG_DENSITY_PROPAGATION_OWNER,
+  CATALOG_SIZE_PROPAGATION,
+  CATALOG_TABLE_OVERFLOW_OWNERS,
+} from "../../document/sizePropagation";
 
 /**
  * ADR-248 Phase 4c — prop sources against the resolver: for every position of every code
@@ -98,6 +102,16 @@ describe("ADR-248 Phase 4c prop sources", () => {
       for (const [key, value] of Object.entries(record.props)) {
         if (!keep(key)) continue;
         if (key === "size" && ownerSized.has(identity(record))) continue;
+        // (A value its Table carries to it — `density` · `overflowMode`, no editor on the part.)
+        const typeName = library.definitions.get(
+          record.definitionId as never,
+        )?.name;
+        if (
+          typeName &&
+          ((key === "density" && CATALOG_DENSITY_PROPAGATION_OWNER[typeName]) ||
+            (key === "overflowMode" && CATALOG_TABLE_OVERFLOW_OWNERS[typeName]))
+        )
+          continue;
         const reading = readPropSource(graph, target, key);
         if (reading.layers.some((layer) => isBinding(layer.value))) continue;
         compared += 1;

@@ -26,7 +26,7 @@
 
 ### Phase 1 — 트랙 목록 (G1 · G5 · G6)
 
-착수 전 사용자 결정 1 · 2 · 3.
+사용자 결정 1 · 2 · 3 확정 (2026-10-10 권장안 — 기본 폭 `1fr` + 기존 바운드 열 `width: 150` 전환 · 기본 최소 폭 75px · checkbox 열 template `width: 40` · Column Styles 폭 → `width` · Cell Styles 폭 삭제 · 표현 못 하는 조합은 저장 · 미적용 · 안내). 기존 모양이 바뀌는 집단 (Phase 0 (a) · (c) · (f)) 은 집계 뒤 수와 함께 확정.
 
 - binding: Column accepts 에 `width` · `defaultWidth` (`ColumnSize` — 숫자 px · `"Nfr"` · `"N%"`), `minWidth` · `maxWidth` (`ColumnStaticSize` — 숫자 px · `"N%"`). 검증기: 숫자 문자열 거부 (S2/RAC 타입은 `` `${number}` `` 를 허용 — 표기만 좁히는 composition 제한으로 binding 머리말에 적는다) · min/max 의 fr 거부. `width` 가 `defaultWidth` 를 이긴다 (S2 의 controlled · 초기값 — 문서에는 둘 다 작성된 폭).
 - 트랙 함수 (shared, 순수): Column 목록 → 트랙 배열. px → `Npx` (px min/max 미리 clamp), fr → `minmax(<minWidth — px · `N%` 그대로, 없으면 기본 최소 폭 — 사용자 결정 1 (i): RAC/S2 75px 또는 0>, Nfr)`, % → `N%` (`%` min/max 미리 clamp), 없음 → 기본 (사용자 결정 1). 선택 checkbox 열 트랙은 사용자 결정 1 (ii) (S2 = 고정 40px). 사용자 결정 3 의 조합 처리.
@@ -92,4 +92,79 @@
 
 ## 5. Phase 0 결과
 
-(Phase 0 실행 때 기록)
+2026-10-10 실행 (G0 통과 — go).
+
+**영향 집단 (a ~ f)** — 저장된 문서에서 모두 0:
+
+| 출처                                                                                                                                              | Table · TableView | (a) Styles 폭                               | (b) 폭 없는 바운드 열 · 숫자 폭 | (c) TableView 긴 글자 칸 | (d) 숫자 문자열 · fr min/max | (e) 표현 못 하는 조합 | (f) 좁은 표 · checkbox 열 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------- | ------------------------------- | ------------------------ | ---------------------------- | --------------------- | ------------------------- |
+| 로컬 프로젝트 (사용자 Chrome IndexedDB `composition-catalog-projects-v1` — 프로젝트 1 · entry 4, 다른 IndexedDB 의 `Column`/`TableView` 문자열 0) | 0                 | 0                                           | 0                               | 0                        | 0                            | 0                     | 0                         |
+| `reusableOriginLibrary.ts` 원본 (`component-table` · `component-tableview` · `component-table-column` · `component-table-row`)                    | 원본 4            | 0 (`visual` 은 Column 글자 `fontWeight` 뿐) | 0                               | 0 (예시 글자 짧음)       | 0                            | 0                     | 0                         |
+| palette (`paletteItems.ts` — Table catalog · TableView overlay)                                                                                   | 원본 그대로       | 0                                           | 0                               | 0                        | 0                            | 0                     | 0                         |
+| seed (`tierSeedDefaults.ts` — Table 축 없음) · 로드 전환 (`s2PropAlignment.ts` — TableView `variant` 만)                                          | —                 | 0                                           | 0                               | 0                        | 0                            | 0                     | 0                         |
+
+- 사실: Column binding accepts 에 `width` · `minWidth` · `maxWidth` 가 **없다** (`Column.binding.ts` — `density` · `children` · `isRowHeader` · `size`). 바운드 열 폭은 지금 쓸 수 있는 길이 없어 늘 기본 150px 이다 (`resolveCollectionItems.ts:656`). 그래서 (b) 의 숫자 폭 · (d) · (e) 는 옛 문서에만 있을 수 있고, 로드 시 1회 전환은 그 경우를 위해 남긴다.
+- 사용자 결정 1 · 2 의 「집계 뒤 확정」 항목 (기본 최소 폭 75px · Cell Styles 폭 삭제 · TableView 긴 글자 칸): 기존 문서 대상 0 → **권장안대로 확정**. 바뀌는 것은 새로 만드는 표의 모양뿐이다 — palette TableView (열 3) 는 폭 < 225 이면 가로로 넘친다 (RAC/S2 와 같음).
+
+**열 index 판정이 닿을 경로 (d)**: ① 정적 Row — 노드 트리 (resolver 의 owned · template 경로, DOM `domRegistry.tsx:62` `CatalogTable` · Row · Cell), ② 바운드 투영 — `resolver.ts:1052-1212` `projectTableRows` (머리글 Column 과 칸 모두 `fixed()`), ③ TableView — `delegatedDom.tsx:1543` `tableview` + `tableViewChildStyle.ts:25` (Row · Column · Cell `flex`), ④ 선택 checkbox 열 — `presence.ts:334-440` (`Checkbox[slot=selection]` 의 행 · Table 판정 — 열 index 는 쓰지 않는다). 엔진 입력은 `persistentLayoutTree.ts:226` 이 바뀐 노드를 `updateStyleRaw` 로 보낸다 (아래 ① 과 같은 경로).
+
+**G3 기준선 (e)**: `propAxisCanvasDom.browser.test.ts` 의 `Table-nodes` · `Table-selection` PASS (Canvas ↔ DOM, 2026-10-10). `paletteBaseCanvas` 는 로컬 old leg 기준선이 없어 skip (ADR-248 G0 기준선 로컬 전용).
+
+**엔진 실측 (가설 1 + 반증 1)** — `packages/engine/src/tree.rs` 의 `adr257_*` 회귀 테스트 4건 (cargo test 449 PASS):
+
+| #   | 입력 (폭 300, 칸 `padding 0 8px` — 둘째 열은 `0 20px`)                                                                                                   | 엔진                                            | Chrome · RAC                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| ②   | `minmax(0,1fr) minmax(0,2fr)`, 행 3                                                                                                                      | 0·100 / 100·200 (모든 행)                       | 100 · 200                                                                    |
+| ②   | `repeat 3 × minmax(0,1fr)` + 첫 칸 `span 2`                                                                                                              | 200 · 100 (머리글 100·100·100)                  | 200 · 100                                                                    |
+| ②   | `minmax(75%,1fr) minmax(0,1fr)`                                                                                                                          | 225 · 75                                        | 225 · 75 (RAC `calculateColumnSizes`)                                        |
+| ②   | `120px minmax(75px,1fr) minmax(75px,2fr)`                                                                                                                | 120 · 75 · 105                                  | 120 · 75 · 105 (RAC 알고리즘 손계산 — 75 하한 고정 뒤 나머지, Chrome 미측정) |
+| ①   | 위 첫 표를 계산한 뒤 모든 행의 트랙을 `update_style` (wasm `updateStyleRaw` 와 같은 JSON) 로 `2fr 1fr` → `120px 1fr` → 열 추가 (`set_children` + 트랙 3) | 200·100 → 120·180 → 120·90·90, 새로 만들지 않고 | —                                                                            |
+
+- ① 가설 「2026-06 의 증분 트랙 붕괴가 엔진에 남아 있다」 → 반증 GREEN: 엔진 `update_style` 은 트랙 교체 · 열 추가를 새로고침 없이 따라간다. 엔진 수리 (breakdown Phase 1 의 조건부 항목) 는 하지 않는다. TS 쪽 (재해석 큐 → `updateStyleRaw` 가 실제로 모든 행에 닿는가) 은 Phase 1 의 G1 live 가 판정한다.
+
+## 6. Phase 1 결과 (2026-10-10, 미커밋)
+
+| 항목      | 위치                                                                                                                                                                                                                                                                                                           |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 값 타입   | `document/valueType.ts` `catalogColumnSizeFits` · `ValueType` `columnSize` · `columnStaticSize` (`types.ts` · `validation.ts` · `graph.ts` `propValueMatches`) · Inspector kind `column-size` · `column-static-size` (`catalog/types.ts` · `ruleDefinition.ts`) · AI 검증 (`services/ai/compiler/manifest.ts`) |
+| binding   | `Column.binding.ts` — `width` · `defaultWidth` (숨김) · `minWidth` · `maxWidth`                                                                                                                                                                                                                                |
+| 트랙 함수 | `runtime/tableTracks.ts` — `catalogColumnTrack` (RAC 기본 1fr · 최소 75 · 정적 폭 clamp · 선택 열 40) · `catalogTableRowTracks` · `catalogTableTrackDependents`                                                                                                                                                |
+| 파생      | `presence.ts` `catalogDerivedProps` → `_tableTracks` (TableHeader · Row), dependents 에 트랙 의존 · `compositionRoot.ts` 구조 변경 영역 밖 트랙 재파생                                                                                                                                                         |
+| Canvas    | `compositionRoot.ts` `styleOf` — `_tableTracks` → `display: grid` + `gridTemplateColumns`                                                                                                                                                                                                                      |
+| DOM       | `domBinding.tsx` `catalogTableTrackStyle` (catalogDomStyle · ruleDom) · `Table.css` 머리글 `tr` grid (`--table-column-tracks`) · `:last-child { flex: 1 }` 삭제 · TableView `delegatedDom.tsx` · `tableViewChildStyle.ts`                                                                                      |
+| rule      | `componentRulesTable.ts` Column · Cell `containerStyles.flex` 삭제 (python 치환)                                                                                                                                                                                                                               |
+| 바운드    | `resolver.ts` `projectTableRows` 의 `fixed()` 150px 삭제 (`resolveTableColumnEffectiveWidth` 는 production 미사용으로 남음)                                                                                                                                                                                    |
+| Styles 폭 | `catalogStylesHost.ts` — Column 의 Width · Min · Max → prop (`catalogColumnStyleValue`), 표시도 prop                                                                                                                                                                                                           |
+| 로드 전환 | `s2PropAlignment.ts` `migrateCatalogTableColumns` (Column Styles 폭 → prop · Cell Styles 폭 삭제 · 숫자 문자열 → 숫자) — `createCatalogGraph`                                                                                                                                                                  |
+| 안내      | `GenericFieldRenderer.tsx` `ColumnSizeField` + `PropertyInput.afterControl` · i18n `columnSizeNotApplied`                                                                                                                                                                                                      |
+
+- 테스트: `adr257ColumnTracks.test.ts` 16 (RAC oracle 12 · 표현 못 하는 조합 · 값 타입) · `adr257TableTracks.test.tsx` 8 (Canvas 정렬 · 편집 직후 · undo/redo · Insert Column · DOM · TableView · 선택 열 · 로드 전환 · Styles 값) · 기존 갱신 2 (`phase4eTableRows` — 바운드 150 → 1fr · `resolveContainerStylesFallback` — Column · Cell flex 없음). shared 1574 · builder 5296 (+1 갱신 뒤 전부 PASS) · parity 811 · G3 Table 2 · type-check 0.
+- live: `table-column-tracks-live.mjs` 6/6 — 120 · 1fr · 2fr 에서 머리글 · Cell (x, w) Canvas = Preview = (0,120) (120,599.33) (719.33,1198.67), Design 패널 Width 160 → (120,160) 모든 행, undo, TableView 90, 새로고침 뒤 같은 트랙, 오류 0.
+- G6 (부분): 엔진 단 A/B (300행 × 10열, 3쌍 중앙값) grid 9.4 ms ↔ flex 2.2 ms — 행당 31 ↔ 7 µs. 바운드 Table 은 행 window (기본 높이 400 → 12행 안팎) 라 재배치당 약 0.4 ms. 총비용 A/B · pre-push ratchet 은 커밋 뒤. 넘으면 실패 대안 (엔진 grid 캐시 — 같은 트랙 · 같은 행 폭이면 열 위치를 다시 풀지 않음).
+- 결정과 다르게 한 것: 본문 Status Phase 1 블록 ① ② (바운드 `width: 150` 전환 생략 · 선택 열 40px 는 트랙 기본값).
+
+## 7. Phase 2 결과 (2026-10-10, 미커밋)
+
+- binding: `Cell.binding.ts` `colSpan` (number, min 1, step 1, **기본 없음** — 기본 1 을 두면 모든 칸이 RAC 에 `colSpan=1` 을 넘겨 RAC 가 colIndex 를 따로 계산하고, 재사용 행 · 열 삭제 시험에서 `Cell count must match column count` 로 throw 했다).
+- 배치: `tableTracks.ts` `catalogCellSpan` → `compositionRoot.ts` `styleOf` `gridColumnStart: span k` · `domBinding.tsx` `catalogTableTrackStyle` `gridColumn` · TableView `delegatedDom.tsx`.
+- 명령 (`commands/collections.ts`): `cellSpanAt` · `spanSum` · `cellAtColumn` — `tableAlignedIn` · `tableColumnGrid` · `insertTableColumns` · `insertTableRow` 의 칸 수를 span 합으로. `tableColumnCells` 는 span 1 칸만, `tableColumnSpanningCells` 는 걸친 칸 (삭제 → `structure.ts` `removeTargets` 가 span − 1, 숨김 → `tableHidingTargets` 거부). `tableColumnOrder` · `dropTableColumnTemplateCells` 는 걸친 칸이 있는 행에서 거부. `setTableCellSpan` — 늘리면 오른쪽 칸 흡수 (합이 정확히 맞아야), 줄이면 빈 칸 생성 (`buildCell` · `newId` 필요).
+- 편집 경로: `editContract.ts` `catalogCellSpanCommand` (`catalogPropertiesPatchCommand` 의 `colSpan` — owned Cell 만, `newId` 는 `CatalogPropertiesPanel` 이 넘김).
+- Preview: `domBinding.tsx` `ruleDom` — Row 의 React key 에 칸 span 서명 (RAC 가 행 생성 때의 colIndex 를 유지해 span 이 줄면 throw — 원복 RED 확인).
+- 테스트: `adr257ColSpan.test.tsx` 7 (span 2 흡수 · 두 열 덮음 (minWidth 열 · padding 포함) · span 3 → 1 · 맞지 않는 span 거부 · DOM `grid-column` · `aria-colspan` · 걸친 열 삭제 span − 1 · Insert Column · Preview 재그림 · 순서 변경 거부). shared 1574 · builder 5304 · parity 811 · G3 Table 2 · type-check 0.
+- live: `table-column-tracks-live.mjs` G2-1 ~ 3 (전체 9/9).
+
+## 8. Phase 3 결과 (2026-10-10, 미커밋)
+
+사용자 결정 6 · 7 = 「S2 대로」 (ADR 본문 결정 줄).
+
+- binding: Column `align` · Cell `align` · `showDivider` (S2 기본 start · false), Column · Cell `overflowMode` (editorHidden — 전파 값), Table · TableView `selectionStyle` (checkbox · highlight, 기본 checkbox) · `overflowMode` (truncate · wrap, 기본 truncate).
+- rule (python 치환): Column · Cell `containerVariants` — `align` (center · end → text-align), `overflow-mode` (truncate = overflow hidden + nowrap + ellipsis, wrap = normal + ellipsis — S2 `cellContent`), Cell `show-divider.true` (border-right 1px solid `var(--border)`). Cell variant 에 `colors.border` 를 두면 rule 이 네 변 1px 테두리를 만든다 (`ruleRootBox` `variantBorder`) — 색은 블록에 둔다.
+- 컴파일: `rulePartRules.ts` `CELL_TEXT_VARIANT_RULES` (Column · Cell 만 — text-align · white-space · text-overflow · overflow · border-style · border-color · border-right-width) · `TYPE_CONTAINER_VARIANT_AXES` Column · Cell. `ruleDefinition.ts` 의 root variant 규칙이 boolean prop 블록 (`true` · `false`) 을 받는다.
+- 전파: `sizePropagation.ts` `CATALOG_TABLE_OVERFLOW_OWNERS` → resolver `applyOwnerOverflowMode` (owned · synthesize · **template** 세 경로) · `compositionRoot.ts` 재해석 큐. template 경로 (palette Table 의 Column · Cell) 에 `applyOwnerDensity` 도 없어 palette Table 의 density 가 칸에 닿지 않던 결함을 같이 고쳤다 (시험 `adr257CellValues` palette 항목).
+- Canvas: `catalogBindingKeepsOneLine` (cell · column 의 고정 한 줄이 `white-space: normal` 에 비킴 — 측정 · rewrap · 텍스트 binding), `ruleShapes.ts` `catalogRuleNodeData` (rule 도형 경로의 Cell 글자 — wrap 이면 nowrap · 말줄임 안 함, `alignTableText`), `canvasBinding.ts` `RULE_CARRIED_TEXT_KEYS` (자식을 가진 · 빈 Cell · Column 은 글자 키를 안쪽 글자에 상속만 — 거부하면 장면이 깨졌다, live 에서 발견).
+- DOM: `domBinding.tsx` `TABLE_CELL_TEXT_CSS` (rule 노드 inline 의 cell 글자 키) · `renderNode` 의 선택 열 숨김 · Row key 에 숨김 서명, `domRegistry.tsx` `CatalogTable` `selectionBehavior` (`resolveSelectionBehavior`) + `data-selection-style`, `tableViewChildStyle.ts` `catalogTableViewCellTextStyle` · `delegatedDom.tsx` TableView 부품 숨김. `Table.css` highlight 선택 행 (S2 `color-mix(… 10%)` · 묶음 둘레 inset 테두리 — 선택은 Preview 실행 상태라 Canvas 는 그리지 않는다).
+- 숨김 판정: `tableTracks.ts` `catalogTableSelectionPartHidden` · `catalogTableSelectionParts` → presence `catalogHiddenAtRest` · presence scope (Table · TableView) · 트랙 목록.
+- 패널: `labels.ts` · `translations.ts` (Divider · Truncate · Column span · Min width · Max width). boolean 은 칩 묶음이라 binding 라벨 `Show Divider` → 칩 「Divider」.
+- 테스트: `adr257CellValues.test.tsx` 9 (align · divider · truncate · wrap · TableView · highlight Table · highlight TableView · Canvas 장면 · palette Table). 원복 RED 14건 전부 RED · 복원 cmp 확인.
+- live: `table-column-tracks-live.mjs` G3-1 ~ 5 (전체 14/14) — truncate 한 줄 41 = 41, wrap 직후 행 137 = 137 (Canvas · Preview), align · Design 패널 Divider 칩, highlight 에서 마우스 누름이 선택을 바꿈 (한 행만).
+- 미룸: GridList · Badge `overflowMode` (G3 실패 시 대안 — 해당 축만 다음 Phase).

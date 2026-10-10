@@ -5,6 +5,7 @@ import {
 import { catalogDisclosureBorders } from "./disclosureBorders";
 import {
   CATALOG_DENSITY_PROPAGATION_OWNER,
+  CATALOG_TABLE_OVERFLOW_OWNERS,
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_SIZE_PROPAGATION,
   CATALOG_TOGGLE_GROUP_OF,
@@ -58,6 +59,7 @@ import {
 import type { LayoutEngineAPI } from "./layoutEngine";
 import type { LayoutResult } from "./engineTypes";
 import { parseGridTemplate } from "./gridStyleAdapter";
+import { catalogCellSpan, catalogTableTrackDependents } from "./tableTracks";
 import {
   catalogBreadcrumbSeparatorIcon,
   catalogColorWheelDiameter,
@@ -485,6 +487,20 @@ const noWrapTextBindings: ReadonlySet<string> = new Set([
   "cell",
   "column",
 ]);
+/**
+ * Whether a text leaf stays on one line by its binding (`noWrapTextBindings`). ADR-257 Phase 3: a
+ * Table cell's line follows its S2 `overflowMode` — the rule's `white-space` (`normal` = wrap).
+ */
+export function catalogBindingKeepsOneLine(node: {
+  readonly bindingId?: string;
+  readonly visual: Readonly<Record<string, unknown>>;
+}): boolean {
+  if (!noWrapTextBindings.has(node.bindingId ?? "")) return false;
+  return !(
+    (node.bindingId === "cell" || node.bindingId === "column") &&
+    node.visual.whiteSpace === "normal"
+  );
+}
 /**
  * Text bindings that paint one line (`white-space: nowrap`: the button label, `Label.css`, the
  * field value); every other text wraps at its box width (CSS `normal`), as the layout measures.
@@ -936,7 +952,7 @@ function styleOf(
               contentMaxWidth: width,
               contentHeight: wrappedHeight ?? size.height,
             };
-          if (noWrapTextBindings.has(node.bindingId ?? "") || leaf.singleLine)
+          if (catalogBindingKeepsOneLine(node) || leaf.singleLine)
             return {
               contentMinWidth: width,
               contentMaxWidth: width,
@@ -1023,6 +1039,18 @@ function styleOf(
       ? { overflowX: node.visual.overflow, overflowY: node.visual.overflow }
       : {}),
     ...containerTracks(node, measure),
+    // ADR-257: a Table's header row · Row is a grid on the Columns' shared tracks
+    // (`catalogTableRowTracks`) — every row has the same tracks, so a column lines up in all.
+    ...(typeof node.derivedProps?._tableTracks === "string"
+      ? {
+          display: "grid",
+          gridTemplateColumns: parseGridTemplate(node.derivedProps._tableTracks),
+        }
+      : {}),
+    // ADR-257 Phase 2: a Cell's `colSpan` takes that many of its row's tracks.
+    ...(node.bindingId === "cell" && catalogCellSpan(node) > 1
+      ? { gridColumnStart: `span ${catalogCellSpan(node)}` }
+      : {}),
     // S2 ToggleButtonGroup `isJustified`: its buttons divide the group's width equally (the
     // derived `_justified` — the DOM sheet's `flex-grow: 1 · flex-basis: 0`). Authored flex
     // values win (`itemLayout` comes after).
@@ -2556,7 +2584,7 @@ export class CatalogCompositionRoot {
         leaf?.text &&
         (heading ||
           !(
-            noWrapTextBindings.has(record.bindingId ?? "") ||
+            catalogBindingKeepsOneLine(record) ||
             ("singleLine" in leaf && leaf.singleLine) ||
             heightOnlyTextTypes.has(this.typeOf(record))
           ))
@@ -3664,6 +3692,31 @@ export class CatalogCompositionRoot {
         };
         visit(record.children);
       }
+      // ADR-257 Phase 3 — a Table's · TableView's `overflowMode` reaches the Columns · Cells in
+      // it (`CATALOG_TABLE_OVERFLOW_OWNERS` — the resolver's `applyOwnerOverflowMode`): they
+      // resolve again with it.
+      if (
+        before.props.overflowMode !== record.props.overflowMode &&
+        Object.values(CATALOG_TABLE_OVERFLOW_OWNERS).some((owners) =>
+          owners.includes(this.typeOf(record)),
+        )
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (
+              CATALOG_TABLE_OVERFLOW_OWNERS[this.typeOf(child)] &&
+              !queued.has(childId)
+            ) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
+      }
       // A Form's context values reach its fields at any depth (S2 `FormContext` — the resolver's
       // `applyFormContext`): they resolve again with them.
       if (
@@ -4164,18 +4217,32 @@ export class CatalogCompositionRoot {
           ))
             next.set(key, record);
         }
+        const lookup = (key: string) => next.get(key) ?? this.records.get(key);
+        // ADR-257: a structure change inside a Table (a column added · removed · moved, the
+        // selection checkbox placed in a Column) re-derives its header row's and Rows' tracks
+        // outside the changed region.
+        // (A row flattened in its own region read the header before this command's other regions
+        // — derive it again against the whole result.)
+        for (const record of [...next.values()])
+          for (const dependent of catalogTableTrackDependents(
+            record,
+            lookup,
+            this.typeOf,
+          )) {
+            const { derivedProps: _previous, ...rest } = dependent;
+            const derivedProps = this.derivedOf(rest as CatalogConsumerNode, lookup);
+            next.set(dependent.id, {
+              ...rest,
+              ...(derivedProps ? { derivedProps } : {}),
+            } as CatalogConsumerNode);
+          }
         const updates = [...next]
           .filter(([id, record]) => {
             const old = this.records.get(id);
             return !old || !sameRecord(old, record);
           })
           .map(([id, record]) =>
-            this.planRecord(
-              id,
-              record,
-              rootId,
-              (key) => next.get(key) ?? this.records.get(key),
-            ),
+            this.planRecord(id, record, rootId, lookup),
           );
         visits += updates.length;
         roots.push({

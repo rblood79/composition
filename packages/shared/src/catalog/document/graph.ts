@@ -22,7 +22,10 @@ import {
   CatalogValidationError,
 } from "./validation";
 import { validateInstanceAddress } from "../resolution/address";
-import { migrateCatalogEntriesS2 } from "./s2PropAlignment";
+import {
+  migrateCatalogEntriesS2,
+  migrateCatalogTableColumns,
+} from "./s2PropAlignment";
 import { assertCatalogLibrary, instanceContract } from "./library";
 import { catalogChildKind } from "../nesting/nestingRules";
 
@@ -172,7 +175,7 @@ function propValueMatches(value: unknown, type: string): boolean {
     );
   if (Array.isArray(value)) return false;
   if (value && typeof value === "object") return "tokenId" in value;
-  return typeof value === type;
+  return scalarFitsType(value, type);
 }
 function edgeKey(edge: Edge): string {
   return `${edge.type}\0${edge.key}\0${edge.target}`;
@@ -1182,6 +1185,11 @@ export function createCatalogGraph(
   // 로드 시 1회 S2 prop 전환 (2026-10-10) — storage 로드 · import · publish · preview snapshot 이
   // 전부 이 길을 지난다. 다음 변경의 autosave 가 전환된 형태를 저장한다.
   migrateCatalogEntriesS2(
+    document.entries as Record<string, CatalogEntry>,
+    library,
+  );
+  // ADR-257: a table Column's Styles width → its S2 width prop, a Cell's dropped.
+  migrateCatalogTableColumns(
     document.entries as Record<string, CatalogEntry>,
     library,
   );

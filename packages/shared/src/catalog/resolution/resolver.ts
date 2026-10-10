@@ -32,6 +32,7 @@ import {
   CATALOG_SIZE_PASS_THROUGH,
   CATALOG_DENSITY_PROPAGATION_OWNER,
   CATALOG_SIZE_PROPAGATION,
+  CATALOG_TABLE_OVERFLOW_OWNERS,
   CATALOG_SIZE_STEP,
   CATALOG_TOGGLE_GROUP_OF,
 } from "../document/sizePropagation";
@@ -53,7 +54,6 @@ import {
 } from "../../collections/fieldTemplate";
 import { ROW_TEMPLATE_BINDABLE_PROP_KEYS } from "../../collections/rowTemplateBindableProps";
 import {
-  resolveTableColumnEffectiveWidth,
   resolveTableColumnKey,
 } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
@@ -776,6 +776,27 @@ export function resolveCatalogNode(
     if (typeof density === "string") props.density = density;
   };
   /**
+   * ADR-257 Phase 3 — S2 Table `overflowMode`: the nearest Table · TableView's value reaches its
+   * Columns · Cells (`CATALOG_TABLE_OVERFLOW_OWNERS`) — the parts have no editor for it.
+   */
+  const applyOwnerOverflowMode = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const owners = CATALOG_TABLE_OVERFLOW_OWNERS[definition.name];
+    if (!owners || definition.accepts.overflowMode !== "string") return;
+    let owner = structuralParent(parent);
+    while (
+      owner &&
+      !owners.includes(lookupDefinition(owner.definitionId).name)
+    )
+      owner = structuralParent(owner.parent);
+    const mode = owner?.props.overflowMode;
+    if (typeof mode === "string") props.overflowMode = mode;
+  };
+  /**
    * S2 Form context (`formContext.ts`): a field takes the nearest Form's value for each context
    * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
    * any element between (React context), the nearest Form wins.
@@ -918,6 +939,7 @@ export function resolveCatalogNode(
     );
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
+    applyOwnerOverflowMode(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
     applyOwnerVariant(
       node.definitionId,
@@ -1067,31 +1089,11 @@ export function resolveCatalogNode(
     const columnNodes = (header?.children ?? []).filter(
       (child) => typeOf(child) === "Column",
     );
+    // (ADR-257: the columns' widths are the rows' shared grid tracks — `tableTracks.ts`, derived
+    // on the header row and every projected Row; a cell is its column's grid area.)
     const columns = columnNodes.map((column, index) => ({
       key: resolveTableColumnKey(column.props, index),
-      // TanStack's column size (`clamp(width ?? 150, minWidth, maxWidth)`) — the DOM's width.
-      width: resolveTableColumnEffectiveWidth(column.props),
     }));
-    /** A fixed-width table column box (the DOM column's), not a flex share. */
-    const fixed = (
-      node: ResolvedCatalogNode,
-      width: number,
-    ): ResolvedCatalogNode => ({
-      ...node,
-      sizing: { ...node.sizing, width },
-      layout: {
-        ...node.layout,
-        flexGrow: "0",
-        flexShrink: "0",
-        flexBasis: "auto",
-      },
-      // A composite column collapses onto its template root (its first child): the same box.
-      children:
-        lookupDefinition(node.definitionId).mode === "composite" &&
-        node.children.length > 0
-          ? [fixed(node.children[0]!, width), ...node.children.slice(1)]
-          : node.children,
-    });
     const heightMode =
       projected.props.heightMode ??
       tableBinding.props.accepts.heightMode?.default;
@@ -1124,6 +1126,7 @@ export function resolveCatalogNode(
       Object.assign(props, own);
       applyOwnerSize(definitionId, props, parent);
       applyOwnerDensity(definitionId, props, parent);
+      applyOwnerOverflowMode(definitionId, props, parent);
       applyOwnerEmphasis(definitionId, props, parent);
       applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
       applyBooleanVariant(definitionId, props);
@@ -1153,7 +1156,7 @@ export function resolveCatalogNode(
         props: rowProps,
         parent: bodyContext,
       };
-      const cells = columns.map(({ key, width }, index) => {
+      const cells = columns.map(({ key }, index) => {
         const display = classifyTableCellDisplay(row.values[key]);
         const text =
           display.kind === "text"
@@ -1169,10 +1172,7 @@ export function resolveCatalogNode(
         );
         // The text is one line with an ellipsis (the Cell rule's Canvas paint, as Table.css);
         // the box clips it.
-        return fixed(
-          { ...cell, visual: { ...cell.visual, overflow: "hidden" } },
-          width,
-        );
+        return { ...cell, visual: { ...cell.visual, overflow: "hidden" } };
       });
       return {
         ...synthesize(
@@ -1200,15 +1200,7 @@ export function resolveCatalogNode(
               ...(shown === rowSet ? { rowCount: rowCountOf(rowSet) } : {}),
               children: rowsOut,
             }
-          : child === header
-            ? {
-                ...header,
-                children: header.children.map((column) => {
-                  const at = columnNodes.indexOf(column);
-                  return at < 0 ? column : fixed(column, columns[at]!.width);
-                }),
-              }
-            : child,
+          : child,
       ),
     };
   };
@@ -1395,6 +1387,10 @@ export function resolveCatalogNode(
       ]),
     );
     applyOwnerSize(template.definitionId, props, parent);
+    // (A palette Table's Columns · Cells are its origin's template nodes — ADR-257 Phase 3: the
+    // Table's `density` · `overflowMode` reach them here too.)
+    applyOwnerDensity(template.definitionId, props, parent);
+    applyOwnerOverflowMode(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);
     applyOwnerVariant(template.definitionId, props, parent, instanceAuthored);
     applyBooleanVariant(template.definitionId, props);

@@ -38,6 +38,7 @@ import {
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
   CatalogCompositionRoot,
+  catalogBindingKeepsOneLine,
 } from "./compositionRoot";
 import type { SlotChromeInput } from "./slotChrome";
 import {
@@ -418,7 +419,9 @@ const bindings: Readonly<Record<string, Binding>> = {
     const metrics = catalogTextMetrics(node, parent);
     const fontSize = metrics.fontSize;
     const layoutWhiteSpace =
-      wraps && !CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "")
+      wraps &&
+      (!CATALOG_NOWRAP_TEXT_BINDINGS.has(node.bindingId ?? "") ||
+        !catalogBindingKeepsOneLine(node))
         ? "normal"
         : "nowrap";
     return {
@@ -539,6 +542,21 @@ const RULE_UNPAINTED_TEXT_KEYS = [
   "overflowWrap",
   "textOverflow",
 ];
+/**
+ * ADR-257 Phase 3 — text keys a rule node carries without painting text itself: a Table cell that
+ * holds child nodes (or none) passes its S2 `align` · `overflowMode` values to the text inside
+ * (`CATALOG_INHERITED_TEXT_KEYS` — the DOM cell's inherited CSS); its own text leaf paints them
+ * (`text`).
+ */
+const TABLE_CELL_CARRIED_TEXT = new Set([
+  "textAlign",
+  "whiteSpace",
+  "textOverflow",
+]);
+const RULE_CARRIED_TEXT_KEYS: Readonly<Record<string, ReadonlySet<string>>> = {
+  Cell: TABLE_CELL_CARRIED_TEXT,
+  Column: TABLE_CELL_CARRIED_TEXT,
+};
 /**
  * Part type → the owner rule primitive it paints in its own box (2026-10-04; the part relation
  * itself is `OWNER_DRAWN_PART_OWNERS`): a toggle's `*Indicator` runs the toggle's replace
@@ -671,7 +689,10 @@ function ruleNodeData(
   rect: Rect,
 ): SkiaNodeData {
   for (const key of RULE_UNPAINTED_TEXT_KEYS)
-    if (node.visual[key] !== undefined)
+    if (
+      node.visual[key] !== undefined &&
+      !RULE_CARRIED_TEXT_KEYS[root.typeOf(node)]?.has(key)
+    )
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
   const input = ruleShapeInput(root, node, rect);
   const data = catalogRuleNodeData(input);

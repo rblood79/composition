@@ -74,6 +74,7 @@ export {
   insertGroupItem,
   insertTableColumns,
   insertTableRow,
+  setTableCellSpan,
   tableHeaderColumns,
   tableHeaderPosition,
   type TableColumnSpec,

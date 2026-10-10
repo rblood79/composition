@@ -250,6 +250,8 @@ const valueTypes = new Set<ValueType>([
   "string[]",
   "items",
   "slot",
+  "columnSize",
+  "columnStaticSize",
 ]);
 /** State variables hold scalars only. */
 const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);

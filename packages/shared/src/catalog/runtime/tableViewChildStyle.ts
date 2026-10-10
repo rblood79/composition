@@ -10,8 +10,10 @@ import type React from "react";
  * `containerStyles` / `sizes.M` 시각값을 DOM 의 generic div 인라인에 그대로 반영하여
  * Skia(buildCatalogShapes 가 같은 catalog rule 소비) ↔ Preview DOM 시각 대칭을 맞춘다.
  *   - TableHeader: flex row | TableBody: flex column | Row: flex row
- *   - Column: flex:1 + padding 8px(`{spacing.sm}`) + fontWeight 600
- *   - Cell:   flex:1 + padding 8px(`{spacing.sm}`)
+ *   - Column: padding 8px(`{spacing.sm}`) + fontWeight 600
+ *   - Cell:   padding 8px(`{spacing.sm}`)
+ *   - 열 폭: TableHeader · Row 가 Column 들의 트랙 목록으로 grid (ADR-257 — `delegatedDom` 의
+ *     `_tableTracks`, Canvas `styleOf` 와 같은 값). Column · Cell 은 그 열의 grid 칸.
  * RAC Table.css 정본(`.react-aria-Cell,.react-aria-Column{padding:var(--spacing-2)}`=8px,
  * `.column-header{font-weight:600}`)과 동일.
  *
@@ -49,7 +51,6 @@ export const TABLEVIEW_CHILD_STYLE: Record<
     //   하면서 상속 의존이 깨져(행 37 vs Skia 40) 명시 미러로 전환. Skia
     //   calculateContentHeight(estimateTextHeight 16/24 + paddingY*2=40)와 동일 source.
     style: {
-      flex: "1",
       padding: 8,
       fontWeight: 600,
       textAlign: "left",
@@ -62,7 +63,6 @@ export const TABLEVIEW_CHILD_STYLE: Record<
     // textAlign left: catalog COMPONENT_RULES_TABLE.Cell.variants.default.textAlign 미러.
     // fontSize/lineHeight 16/24: Column 동형 — catalog Cell sizes 미러.
     style: {
-      flex: "1",
       padding: 8,
       textAlign: "left",
       fontSize: 16,
@@ -70,3 +70,37 @@ export const TABLEVIEW_CHILD_STYLE: Record<
     },
   },
 };
+
+/**
+ * ADR-257 Phase 3 — a TableView Column · Cell's own text box from its record: the rule's S2
+ * `align` · `showDivider` · `overflowMode` blocks (`containerVariants`) land in the record's
+ * `visual`, which the Canvas reads too. (The RAC Table's parts take the whole record inline —
+ * `domBinding` `authoredStyle`.)
+ */
+export function catalogTableViewCellTextStyle(node: {
+  readonly visual: Readonly<Record<string, unknown>>;
+}): React.CSSProperties {
+  const visual = node.visual;
+  const text = (key: string) =>
+    typeof visual[key] === "string" ? String(visual[key]) : undefined;
+  const divider = Number(visual.borderRightWidth ?? 0);
+  return {
+    ...(text("textAlign")
+      ? { textAlign: text("textAlign") as React.CSSProperties["textAlign"] }
+      : {}),
+    ...(text("whiteSpace")
+      ? { whiteSpace: text("whiteSpace") as React.CSSProperties["whiteSpace"] }
+      : {}),
+    ...(text("textOverflow") ? { textOverflow: text("textOverflow") } : {}),
+    ...(text("overflow")
+      ? { overflow: text("overflow") as React.CSSProperties["overflow"] }
+      : {}),
+    ...(divider > 0 && text("borderColor")
+      ? {
+          borderRightWidth: divider,
+          borderRightStyle: "solid",
+          borderRightColor: text("borderColor"),
+        }
+      : {}),
+  };
+}

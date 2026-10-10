@@ -1,4 +1,8 @@
 import { isBodyType } from "../../domain/predicates";
+import {
+  catalogCellSpan,
+  catalogTableSelectionPartHidden,
+} from "./tableTracks";
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
@@ -236,6 +240,22 @@ function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
   return css;
 }
 
+/**
+ * ADR-257: a Table's Row is a grid on the Columns' shared tracks (as `styleOf`). The header row is
+ * the `tr` RAC makes inside the TableHeader (no node of its own): the TableHeader carries the
+ * tracks as a variable its row reads (`Table.css` `.react-aria-TableHeader > tr`).
+ */
+function catalogTableTrackStyle(node: CatalogConsumerNode): CSSProperties {
+  // (Phase 2: a Cell's `colSpan` takes that many of its row's tracks.)
+  if (node.bindingId === "cell" && catalogCellSpan(node) > 1)
+    return { gridColumn: `span ${catalogCellSpan(node)}` };
+  const tracks = node.derivedProps?._tableTracks;
+  if (typeof tracks !== "string") return {};
+  return node.bindingId === "tableheader"
+    ? ({ "--table-column-tracks": tracks } as CSSProperties)
+    : { display: "grid", gridTemplateColumns: tracks };
+}
+
 /** Inline CSS from the shared box model plus resolved paint/text values. */
 export function catalogDomStyle(
   node: CatalogConsumerNode,
@@ -325,6 +345,7 @@ export function catalogDomStyle(
   // Item/placement layout, max sizes, aspect ratio and the fill projection: the Rust input's own
   // fields (`styleOf`), as CSS.
   Object.assign(style, catalogNodeLayoutCss(node));
+  Object.assign(style, catalogTableTrackStyle(node));
   if (
     !(borderWidth > 0) &&
     [
@@ -1166,6 +1187,26 @@ const TYPOGRAPHY_KEYS: ReadonlySet<string> = new Set([
   "overflowWrap",
   "textOverflow",
 ]);
+/**
+ * ADR-257 Phase 3 — a Table cell's text box (the rule's S2 `align` · `overflowMode` blocks): the
+ * Canvas paints these on a cell · column text leaf (`canvasBinding` `text`), so its DOM element
+ * takes them inline too.
+ */
+const TABLE_CELL_TEXT_BINDINGS: ReadonlySet<string> = new Set([
+  "cell",
+  "column",
+]);
+const TABLE_CELL_TEXT_CSS: Readonly<
+  Record<string, (value: unknown) => CSSProperties>
+> = {
+  textAlign: (value) => ({
+    textAlign: String(value) as CSSProperties["textAlign"],
+  }),
+  whiteSpace: (value) => ({
+    whiteSpace: String(value) as CSSProperties["whiteSpace"],
+  }),
+  textOverflow: (value) => ({ textOverflow: String(value) }),
+};
 const AUTHORED_CSS: Readonly<
   Record<string, (value: unknown) => CSSProperties>
 > = {
@@ -1392,7 +1433,7 @@ function ruleDom(
       : binding?.source.kind === "rac" && DELEGATING_RAC_RENDERERS.has(type);
   if (delegating)
     throw new Error(`CATALOG_DOM_BINDING_REQUIRED:${node.definitionId}`);
-  let style = authoredStyle(root, node);
+  let style = { ...authoredStyle(root, node), ...catalogTableTrackStyle(node) };
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
@@ -1505,10 +1546,29 @@ function ruleDom(
       },
       createElement(Component, { ...rest, style }, ...content),
     );
+  // ADR-257 Phase 2: RAC keeps a cell's column index from when its row was built — a row whose
+  // spans change (`colSpan`, a cell taken or left) is built again (RAC throws on a stale index).
+  // (A selection cell a highlight Table leaves out moves the others' indices too — Phase 3.)
+  const rowSpans =
+    lower === "row"
+      ? node.children
+          .map((childId) => {
+            const child = root.domInputs.get(childId);
+            if (!child) return 1;
+            return catalogTableSelectionPartHidden(
+              child,
+              (recordId) => root.domInputs.get(recordId),
+              (entry) => catalogTypeName(root, entry),
+            )
+              ? "-"
+              : catalogCellSpan(child);
+          })
+          .join(",")
+      : undefined;
   const element = createElement(
     Component,
     {
-      key: node.id,
+      key: rowSpans === undefined ? node.id : `${node.id}|${rowSpans}`,
       "data-catalog-id": node.id,
       ...binding?.staticAttrs,
       ...rest,
@@ -1785,7 +1845,11 @@ function authoredStyle(
   for (const [key, value] of Object.entries(
     noSheet ? node.visual : catalogAuthoredVisual(root, node),
   ).sort((a, b) => authoredRank(a) - authoredRank(b))) {
-    const css = AUTHORED_CSS[key];
+    const css =
+      AUTHORED_CSS[key] ??
+      (TABLE_CELL_TEXT_BINDINGS.has(node.bindingId ?? "")
+        ? TABLE_CELL_TEXT_CSS[key]
+        : undefined);
     if (!css) {
       // Typography on a rule executor is not painted by the Canvas yet: fail on both sides.
       if (noSheet && !TYPOGRAPHY_KEYS.has(key)) continue; // paint-only catalog value
@@ -2140,6 +2204,15 @@ function renderNode(
   // (A NumberField's stepper Buttons while `hideStepper` — the Canvas's predicate, S2.)
   if (
     catalogStepperHidden(
+      node,
+      (recordId) => root.domInputs.get(recordId),
+      (entry) => catalogTypeName(root, entry),
+    )
+  )
+    return null;
+  // (A highlight-selection Table's selection checkbox column — the Canvas's predicate, S2.)
+  if (
+    catalogTableSelectionPartHidden(
       node,
       (recordId) => root.domInputs.get(recordId),
       (entry) => catalogTypeName(root, entry),

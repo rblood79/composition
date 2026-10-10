@@ -1,3 +1,4 @@
+import { catalogColumnSizeFits } from "./valueType";
 import type {
   AuthoredValue,
   CatalogEntry,
@@ -185,6 +186,68 @@ export function migrateCatalogEntriesS2(
       if (rules)
         changed =
           migrateWrites(entry.defaults as MutablePropWrites, rules) || changed;
+    }
+  }
+  return changed;
+}
+
+const COLUMN_WIDTH_KEYS = ["width", "minWidth", "maxWidth"] as const;
+
+/**
+ * ADR-257 로드 시 1회 전환 (사용자 결정 2 — 2026-10-10): a table Column's Styles width · min · max
+ * is its S2 width prop now (the column's track in every row), a Cell's Styles width has no effect
+ * (the cell is its column's grid area) and is dropped, and a numeric-string width becomes its
+ * number (RAC's static width parse throws on one). Type judged by the library definition name
+ * only, as `migrateCatalogEntriesS2`. A written prop wins over the Styles value.
+ */
+export function migrateCatalogTableColumns(
+  entries: Record<string, CatalogEntry>,
+  library: CatalogLibrary,
+): boolean {
+  const nameOf = (definitionId: DefinitionId) =>
+    definitionId.startsWith("lib:definition:")
+      ? library.definitions.get(definitionId as LibraryDefinitionId)?.name
+      : undefined;
+  let changed = false;
+  for (const entry of Object.values(entries)) {
+    if (entry.kind !== "node") continue;
+    const name = nameOf(entry.definitionId);
+    if (name !== "Column" && name !== "Cell") continue;
+    const props = entry.props as MutablePropWrites;
+    const sizing = entry.sizing as Record<string, unknown>;
+    const visual = entry.visual as Record<string, unknown>;
+    if (name === "Column")
+      for (const key of [...COLUMN_WIDTH_KEYS, "defaultWidth"] as const) {
+        const write = props[key];
+        if (
+          write?.kind === "set" &&
+          typeof write.value === "string" &&
+          /^\d+(\.\d+)?$/.test(write.value)
+        ) {
+          props[key] = { kind: "set", value: Number(write.value) };
+          changed = true;
+        }
+      }
+    for (const key of COLUMN_WIDTH_KEYS) {
+      const fromSizing = sizing[key] as { kind?: string; value?: unknown } | undefined;
+      const fromVisual = visual[key] as { kind?: string; value?: unknown } | undefined;
+      if (!fromSizing && !fromVisual) continue;
+      delete sizing[key];
+      delete visual[key];
+      changed = true;
+      if (name !== "Column" || props[key]) continue;
+      const raw =
+        fromSizing?.kind === "set"
+          ? fromSizing.value
+          : fromVisual?.kind === "set"
+            ? fromVisual.value
+            : undefined;
+      const value =
+        typeof raw === "string" && /^\d+(\.\d+)?px$/.test(raw)
+          ? Number.parseFloat(raw)
+          : raw;
+      if (catalogColumnSizeFits(value, key !== "width"))
+        props[key] = { kind: "set", value: value as AuthoredValue };
     }
   }
   return changed;

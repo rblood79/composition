@@ -253,15 +253,16 @@ export function catalogRuleNodeData(
       ""
   ] as Record<string, unknown> | undefined;
   normalizeMiddleBaselineTextLineHeight(shapes, size ?? {});
-  // Table cells and columns are one line cut at their box with an ellipsis (Table.css
-  // `.react-aria-Cell, .react-aria-Column`: nowrap · hidden · ellipsis). A leaf the layout kept on
-  // one line is one line at its fractional max-content box.
+  // Table cells and columns follow their Table's S2 `overflowMode` (ADR-257 Phase 3 — the rule's
+  // block in the record: truncate = one line cut at the box with an ellipsis, wrap = `normal`). A
+  // leaf the layout kept on one line is one line at its fractional max-content box.
   const tableText = input.type === "Cell" || input.type === "Column";
+  const tableWraps = tableText && input.node.visual.whiteSpace === "normal";
   if (
     input.singleLine ||
     input.type === "Tag" ||
     input.type === "Badge" ||
-    tableText
+    (tableText && !tableWraps)
   )
     for (const shape of shapes)
       if (shape.type === "text" && shape.whiteSpace == null)
@@ -273,8 +274,16 @@ export function catalogRuleNodeData(
     input.rect.height,
     input.node.id,
   );
-  if (tableText) ellipsize(data);
+  if (tableText && !tableWraps) ellipsize(data);
+  if (tableText) alignTableText(data, input.node.visual.textAlign);
   return data;
+}
+
+/** ADR-257 Phase 3 — a cell's own S2 `align` (the rule's `align` block: center · right). */
+function alignTableText(data: SkiaNodeData, align: unknown): void {
+  if (align !== "center" && align !== "right") return;
+  if (data.text) data.text.align = align;
+  for (const child of data.children ?? []) alignTableText(child, align);
 }
 
 /**

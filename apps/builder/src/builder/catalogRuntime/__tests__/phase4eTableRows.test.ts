@@ -170,10 +170,14 @@ describe("ADR-248 4e bound Table rows", () => {
       geometry(firstColumn.id)!.width,
       0,
     );
-    // The DOM's boxes: fixed 400 viewport + border, 150 px columns, one-line rows.
+    // The DOM's boxes: fixed 400 viewport + border, one-line rows. ADR-257: the columns are the
+    // rows' shared tracks — no width written = S2/RAC `1fr` (the old 150px default is gone).
     expect(geometry(table)!.height).toBe(402);
-    expect(geometry(firstColumn.id)!.width).toBe(150);
-    expect(geometry(firstCell.id)!.width).toBe(150);
+    expect(records.get(firstCell.parentId)?.derivedProps?._tableTracks).toBe(
+      "minmax(75px, 1fr) minmax(75px, 1fr) minmax(75px, 1fr)",
+    );
+    expect(geometry(firstColumn.id)!.width).toBeGreaterThan(150);
+    expect(geometry(firstCell.id)!.width).toBe(geometry(firstColumn.id)!.width);
     const firstRow = all.find((record) => typeOf(workspace, record) === "Row")!;
     // One line like the header (this environment measures no text: both are padding only).
     expect(geometry(firstRow.id)!.height).toBe(

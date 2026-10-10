@@ -442,6 +442,13 @@ export const semanticLabelKeys: Record<string, string> = {
   "Selection Style": "properties.selectionStyle",
   Checkbox: "properties.checkbox",
   Highlight: "properties.highlight",
+  // ADR-257 — S2 Table Column · Cell · Table props.
+  // (A boolean chip reads without its "Show" — `fieldEditor` `chipLabel`.)
+  Divider: "properties.divider",
+  Truncate: "properties.truncate",
+  "Column span": "properties.columnSpan",
+  "Min width": "properties.minWidth",
+  "Max width": "properties.maxWidth",
   Title: "properties.title",
   Heading: "properties.heading",
   Indicator: "properties.indicator",

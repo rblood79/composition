@@ -2,6 +2,7 @@
 import { validateCommandArgs } from "./commandArgs";
 import { programContract, type BuilderCommandProgram } from "./contracts";
 import { isBodyType } from "@composition/shared";
+import { catalogColumnSizeFits } from "../../../../../../packages/shared/src/catalog/document/valueType";
 
 export interface ManifestField {
   name: string;
@@ -81,9 +82,17 @@ function validateFields(
       (!Array.isArray(value) || !value.every((v) => typeof v === "string"))
     )
       return `invalid-array:${name}`;
+    // ADR-257 — S2 Column widths (px number · "Nfr" · "N%"; the static kind takes no fr).
+    if (
+      (field.kind === "column-size" || field.kind === "column-static-size") &&
+      !catalogColumnSizeFits(value, field.kind === "column-static-size")
+    )
+      return `invalid-column-size:${name}`;
     // 구조화 binding/items는 기존 데이터 dispatcher/에디터 계약을 써야 한다.
     if (
       ![
+        "column-size",
+        "column-static-size",
         "css",
         "boolean",
         "number",

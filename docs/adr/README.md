@@ -149,6 +149,14 @@
 
 ## 현황
 
+> **2026-10-10 ADR-257 Phase 3 완료 (칸 값 · 표 단위 값)**: 사용자 결정 6 · 7 = S2 대로. Cell · Column `align` (Column 값은 머리글 칸만) · Cell `showDivider` · Table · TableView `overflowMode` (기본 truncate — wrap 이면 행이 글자를 따라 자란다, Canvas · Preview 같은 높이) · `selectionStyle` (highlight — RAC replace · 선택 checkbox 열 없음 · S2 highlight 행). live 14/14. GridList · Badge `overflowMode` 는 미룸. palette Table 의 칸에 `density` 가 닿지 않던 resolver 경로도 같이 수리. 다음 Phase 4 는 사용자 결정 4 · 5 뒤.
+
+> **2026-10-10 ADR-257 Phase 2 완료 (colSpan)**: Cell `colSpan` — 행 grid 트랙 k 개 (Canvas · DOM · `aria-colspan`), 칸 수 = span 합, 늘리면 오른쪽 칸 흡수 · 줄이면 빈 칸 · 걸친 열 삭제는 span − 1. live G2 3/3. 다음 Phase 3 은 사용자 결정 6 · 7 뒤.
+>
+> **2026-10-10 ADR-257 Phase 1 완료 (트랙 목록)**: 머리글 행 · 모든 Row 가 Column 들의 트랙 목록으로 grid — Column `width` · `minWidth` · `maxWidth` (S2) 가 열 전체를 움직인다 (Canvas · DOM · TableView · 바운드). RAC `calculateColumnSizes` oracle 12 입력 ≤ 1 px, live 6/6 (편집 직후 · Design 패널 · undo · 새로고침). G6 엔진 단 grid 행 비용 flex 의 약 4배 (행당 31 ↔ 7 µs) — 총비용 · ratchet 은 커밋 뒤. 다음 Phase 2 colSpan.
+>
+> **2026-10-10 ADR-257 Accepted · Phase 0 완료**: 사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격, 사용자 결정 1 · 2 · 3 권장안. G0 — 저장된 문서의 영향 집단 0 (로컬 프로젝트 1 · Table 0, 원본 · palette 열 폭 0). 엔진 실측 — 행마다 같은 트랙이면 100 · 200 · span 200 · `%` 하한 225 · 75, 트랙 증분 교체 · 열 추가를 새로고침 없이 따라감 (엔진 수리 없음). 다음 Phase 1 트랙 목록.
+>
 > **2026-10-10 ADR-257 Proposed (+ 리뷰 round 1 수리)**: Table 열 배치 — Column 이 열 트랙을 정하고 모든 행이 같은 트랙을 쓴다 (사용자 `/create-adr 표·목록 묶음 (Table 배치 ADR 선행)`). 실측: 정적 행은 Column · Cell 이 각자 `flex: 1` 이라 열이 맞는 것은 모든 칸이 같은 몫이라서일 뿐 (Column 하나에 폭을 주면 머리글 칸만 바뀐다), 바운드 행은 Column 숫자 폭 · 기본 150px 고정 (`resolveTableColumnEffectiveWidth`), TableView 는 인라인 `flex: 1` — 세 갈래. Codex round 1 (HIGH 3 · MEDIUM 4) 로 처음 채택한 flex 파생이 무너졌다 — flex 는 칸 padding 을 basis 밖에 더해 fr 비율 · colSpan 합을 지키지 못한다 (Chrome · 엔진 같은 값 300px 1fr:2fr = 105.33 · 194.67). 수리: **대안 C2 채택 — 행마다 같은 명시 트랙의 grid** (TableHeader · Row 가 각자 grid, 트랙 목록은 Table 하나 — Chrome 100 · 200 · span 200, Row 상자 유지 · subgrid 불필요). B (표 폭 측정 2-pass · 비공개 API) · C1 (Grid + Row `display: contents`) · D (엔진 table 레이아웃) · A (flex) 기각. `ColumnSize` · `ColumnStaticSize` 분리 · `align` · `showDivider` 는 S2 대로 Cell 자기 값 · 열 크기 조절은 트랙 목록 교체. 응용 Phase: colSpan · `selectionStyle` · `overflowMode` (Table · GridList · Badge) · Preview 정렬 · 열 크기 조절. S2 1.8.0 · RAC 1.21.0 레퍼런스 대조 6건 반영 (RAC 기본 최소 폭 75px · 선택 checkbox 열 40px 를 결정 1 에 · S2 TableView 는 늘 가상화 px 계산 · Cell `isSticky` 는 S2 `@private` 라 제외 · 크기 조절은 감싼 동안 내내 px 트랙 · 숫자 문자열 폭 거부는 composition 제한 · Badge `overflowMode` 기본 wrap). 사용자 결정 7건. 개수 표 정정: 열림 1 → 실측 2 였다 (256 Accepted 누락). 열림 3 (Proposed 2 · Accepted 1), 합계 284.
 
 > **2026-10-09 ADR-256 Phase 9 계획 보강** (사용자 지시): Calendar · RangeCalendar 의 CalendarMonthPicker · CalendarYearPicker 와 `visibleDuration` 수량 + Day · Week · Month Select 조합을 추가했다. 월 전용 `maxVisibleMonths` 계약 전환, Canvas · Preview 정합, 저장 후 재열기를 완료 기준에 포함한다. [상세 계획 §3-1](design/256-rac-composition-level-breakdown.md#3-1-phase-9-추가-계약-2026-10-09-사용자-지시). Codex Round 22 m1 설계 수리로 전용 duration 문서 값 타입·accepts 생성·검증 확장을 Phase 9 선행 작업에 포함했다. Round 24 설계 수리로 picker 의 `maxVisibleMonths` 삭제 · 안 Calendar prop 소유 · `CalendarMonth` 한 달 블록 반복 · `firstDayOfWeek` · `weeksInMonth` 추가 · 실행 중 보기 전환 범위 제외를 반영했다. 문서 반영이며 제품 구현·Gate 통과·ADR 상태 승격은 아니다.
@@ -214,8 +222,8 @@
 | ├ Deprecated                  |      13 |
 | └ 기타 보관 문서              |       2 |
 | 열려 있는 것 (`adr/*.md`)     |       3 |
-| ├ Proposed                    |       2 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Proposed                    |       1 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       0 |
 | **합계**                      | **284** |
 
@@ -239,7 +247,7 @@
 
 #### [257](257-table-column-tracks.md) — Table 열 배치 (Column 이 열 트랙 · 모든 행이 같은 grid 트랙) + 표·목록 S2 prop
 
-- **상태**: Proposed — 2026-10-10 (사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
+- **상태**: Accepted — 2026-10-10 (사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격 · 사용자 결정 1 · 2 · 3 권장안 확정. **Phase 0 완료 2026-10-10** — 영향 집단 0 · 엔진 실측 GREEN (`tree.rs` `adr257_*`). **Phase 1 완료 2026-10-10** — 트랙 목록 (RAC oracle · live 6/6, G6 부분). **Phase 2 완료 2026-10-10** — colSpan (live G2 3/3). **Phase 3 완료 2026-10-10** — 칸 값 · 표 단위 값 (결정 6 · 7 = S2 대로, live 14/14 · GridList · Badge `overflowMode` 미룸). 이전: 사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
 - **규모**: Phase 0 인벤토리 → 1 트랙 목록 (Table · TableView · 바운드) → 2 colSpan → 3 `align` · `showDivider` · `selectionStyle` · `overflowMode` → 4 Preview 정렬 · 열 크기 조절. breakdown: [design/257](design/257-table-column-tracks-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
@@ -269,13 +277,13 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                    | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------- |
-|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제) | 다음 Phase 6 picker                                                       |
-|  2   | [257](257-table-column-tracks.md)                                                              | Proposed — 리뷰 round 2 · pending 0 (마지막 수리 재검증 없음)  | 사용자 결정 1 · 2 · 3 (Phase 1 전) · 256 Phase 5i 노드 Table 위 (충족)    |
-|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)   | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                        | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                             | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                         | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 5 완료 2026-10-09 (사용자 원칙 — 빌더의 전제)      | 다음 Phase 6 picker                                                       |
+|  2   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 3 완료 (미커밋) · 다음 Phase 4 (사용자 결정 4 · 5) | 256 Phase 5i 노드 Table 위 (충족)                                         |
+|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)        | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                  | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 

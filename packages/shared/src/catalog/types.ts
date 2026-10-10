@@ -145,7 +145,10 @@ export type InspectorFieldKind =
   | "size"
   | "fillStyle"
   | "binding"
-  | "items-manager";
+  | "items-manager"
+  // ADR-257 — S2 Column widths: a px number, "Nfr" or "N%" (`column-static-size`: no fr).
+  | "column-size"
+  | "column-static-size";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.

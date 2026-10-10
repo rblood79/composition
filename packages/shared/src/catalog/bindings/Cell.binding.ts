@@ -39,6 +39,51 @@ export const cellBinding: PrimitiveBinding = {
         ],
       },
       children: { kind: "string", label: "Text", section: "content" },
+      // ADR-257 Phase 3 — S2 `align` (start · center · end, S2 default start): this cell's own
+      //   text alignment (rule `containerVariants.align`). S2 does not pass a Column's to its
+      //   Cells (사용자 결정 7).
+      align: {
+        kind: "enum",
+        label: "Align",
+        section: "appearance",
+        default: "start",
+        options: [
+          { value: "start", label: "Start" },
+          { value: "center", label: "Center" },
+          { value: "end", label: "End" },
+        ],
+      },
+      // ADR-257 Phase 3 — S2 Cell `showDivider` (default false): a 1px line at the cell's end
+      //   (rule `containerVariants["show-divider"]`).
+      showDivider: {
+        kind: "boolean",
+        label: "Show Divider",
+        section: "appearance",
+      },
+      // ADR-257 Phase 3 — the Table's S2 `overflowMode`, carried here by the resolver
+      //   (`CATALOG_TABLE_OVERFLOW_OWNERS`) — not edited on the part.
+      overflowMode: {
+        kind: "enum",
+        label: "Overflow",
+        section: "appearance",
+        editorHidden: true,
+        options: [
+          { value: "truncate", label: "Truncate" },
+          { value: "wrap", label: "Wrap" },
+        ],
+      },
+      // ADR-257 Phase 2 — S2 1.8.0 / RAC `Cell colSpan`: the cell takes that many columns of its
+      //   row's grid tracks (`grid-column: span k` — Canvas `styleOf` · DOM; RAC gives
+      //   `aria-colspan`). A change keeps the row aligned (`setTableCellSpan` — the cells to its
+      //   right are taken / new empty ones left).
+      colSpan: {
+        kind: "number",
+        label: "Column span",
+        section: "appearance",
+        // (No default: an unset span is RAC's own 1 — no `aria-colspan` on every cell.)
+        min: 1,
+        step: 1,
+      },
       size: {
         kind: "size",
         label: "Size",

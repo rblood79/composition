@@ -29,6 +29,8 @@ interface PropertyInputProps {
   /** `suffix` — legend·아이콘 없이 라벨을 상자 안 우측 (10 mono caps) 으로 (panel-ui 07). */
   labelMode?: "legend" | "suffix";
   suffixLabel?: string;
+  /** 컨트롤 아래 필드 상태 문구 (`<span slot="description">` — `PropertySelect.afterControl` 과 같은 자리). */
+  afterControl?: React.ReactNode;
 }
 
 const STATE_TRIGGER = /\{\{\s*([A-Za-z_$][\w$]*)?$/;
@@ -49,6 +51,7 @@ const PropertyInputControl = memo(
     stateNames,
     labelMode,
     suffixLabel,
+    afterControl,
   }: PropertyInputProps) {
     const selection = usePropertySelection();
     const selectedElementId = selection.useSelectedId();
@@ -272,6 +275,7 @@ const PropertyInputControl = memo(
           />
         )}
         {suggestionList}
+        {afterControl}
       </PropertyFieldset>
     );
   },
@@ -290,7 +294,8 @@ const PropertyInputControl = memo(
       prevProps.icon === nextProps.icon &&
       prevProps.stateNames === nextProps.stateNames &&
       prevProps.labelMode === nextProps.labelMode &&
-      prevProps.suffixLabel === nextProps.suffixLabel
+      prevProps.suffixLabel === nextProps.suffixLabel &&
+      prevProps.afterControl === nextProps.afterControl
     );
   },
 );

@@ -57,6 +57,8 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   fillStyle: "string",
   "string-array": "string[]",
   "items-manager": "items",
+  "column-size": "columnSize",
+  "column-static-size": "columnStaticSize",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
@@ -432,13 +434,7 @@ export function ruleTypeDefinition(
   if (Object.keys(choices).length) definition.propChoices = choices;
   const sizes: Record<string, VisualValues> = {};
   for (const [name, size] of Object.entries(rule.sizes))
-    sizes[name] = sizeVisual(
-      name,
-      size,
-      box,
-      theme,
-      tokens,
-    );
+    sizes[name] = sizeVisual(name, size, box, theme, tokens);
   // Circle leaves: the DOM renderer draws a square box of the size's height (Avatar also keeps it
   // from shrinking in a row). The height is set here too — a ProgressCircle's `progress`
   // archetype drops the size axis' height (a bar's track row), its DOM root is the diameter square.
@@ -526,13 +522,23 @@ export function ruleTypeDefinition(
   // Prop-driven container variants (`[data-label-position="side"]`): the root's own values.
   const variantRules: ConditionalRule[] = catalogContainerVariantRootRules(type)
     .filter((variant) =>
-      // (`slot` holds a slot name too — ADR-256: `[slot="description"]` rules key on it.)
-      Object.keys(variant.when).every(
-        (prop) => accepts[prop] === "string" || accepts[prop] === "slot",
+      // (`slot` holds a slot name too — ADR-256: `[slot="description"]` rules key on it. A
+      // boolean prop's block is its `true` · `false` — ADR-257 Cell `showDivider`.)
+      Object.entries(variant.when).every(
+        ([prop, value]) =>
+          accepts[prop] === "string" ||
+          accepts[prop] === "slot" ||
+          (accepts[prop] === "boolean" &&
+            (value === "true" || value === "false")),
       ),
     )
     .map((variant) => ({
-      when: variant.when,
+      when: Object.fromEntries(
+        Object.entries(variant.when).map(([prop, value]) => [
+          prop,
+          accepts[prop] === "boolean" ? value === "true" : value,
+        ]),
+      ),
       ...(Object.keys(variant.layout).length
         ? { layout: variant.layout as LayoutValues }
         : {}),

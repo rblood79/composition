@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
 import { replayFillEdit } from "./fillEdit";
 import {
   setFields,
@@ -194,6 +195,28 @@ function orientationOwnerTargetOf(
   return parent ? workspace.positionOfRecord(parent.id)?.target : undefined;
 }
 
+/** ADR-257: a Column's Styles keys that are its S2 width props. */
+const COLUMN_STYLE_PROPS: ReadonlySet<string> = new Set([
+  "width",
+  "minWidth",
+  "maxWidth",
+]);
+
+/**
+ * A Styles length as a Column width: "" · "auto" → none (undefined), "120" · "120px" → 120,
+ * "25%" · "2fr" (not for min / max — `staticOnly`) as they are; anything else → null (refused).
+ */
+export function catalogColumnStyleValue(
+  text: string,
+  staticOnly: boolean,
+): number | string | undefined | null {
+  const trimmed = text.trim();
+  if (trimmed === "" || trimmed === "auto") return undefined;
+  const px = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(trimmed);
+  const value = px ? Number(px[1]) : trimmed;
+  return catalogColumnSizeFits(value, staticOnly) ? value : null;
+}
+
 function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
   try {
     const contract = catalogEditContract(
@@ -307,10 +330,36 @@ export function createCatalogStylesHost(
       const placed =
         (left !== undefined || top !== undefined) &&
         targets.some((target) => own(target).placement);
-      const fields = placed ? rest : styles;
+      let fields = placed ? rest : styles;
       const commands: CatalogCommand[] = [];
       if (placed)
         commands.push(catalogPlacementEditCommand({ targets, own, left, top }));
+      // ADR-257 사용자 결정 2: a Column's Styles width · min · max is its S2 column width (the
+      // column's track in every row of its Table), not its own box.
+      if (
+        items.every((item) => propsOf(workspace, item.target).type === "Column")
+      ) {
+        const patch: Record<string, unknown> = {};
+        const others: Record<string, string> = {};
+        for (const [key, text] of Object.entries(fields)) {
+          if (!COLUMN_STYLE_PROPS.has(key)) {
+            others[key] = text;
+            continue;
+          }
+          const value = catalogColumnStyleValue(text, key !== "width");
+          if (value === null) throw new CatalogStyleValueError(key, text);
+          patch[key] = value;
+        }
+        if (Object.keys(patch).length) {
+          const command = catalogSemanticPatchCommand(
+            targets,
+            patch,
+            (key) => workspace.readModel.propSource(targets[0]!, key).value,
+          );
+          if (command) commands.push(command);
+        }
+        fields = others;
+      }
       if (Object.keys(fields).length) {
         const breakpoint = workspace.session.getSnapshot().breakpoint;
         commands.push(
@@ -386,6 +435,19 @@ export function createCatalogStylesHost(
         ...(master ? view(workspace.readModel.ownFields(master)) : {}),
         ...view(own),
         ...catalogPlacementStyle(own.placement),
+        // ADR-257: a Column's width fields show its S2 width props (what its Styles edit writes).
+        ...(owned.type === "Column"
+          ? Object.fromEntries(
+              [...COLUMN_STYLE_PROPS].flatMap((key) => {
+                const value = owned.props[key];
+                return typeof value === "number"
+                  ? [[key, `${value}px`]]
+                  : typeof value === "string"
+                    ? [[key, value]]
+                    : [];
+              }),
+            )
+          : {}),
       },
       effective: effectiveOf(workspace, first.identity),
     };

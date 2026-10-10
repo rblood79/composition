@@ -12348,4 +12348,151 @@ mod tests {
         assert_eq!(abs_rect(&tree, h[1]), (0.0, 12.0 + 8.0 + 50.0 + 8.0, 100.0, 30.0));
         assert_eq!(tree.get_layout(h[2]).height, 50.0 + 8.0 + 30.0);
     }
+
+    /// ADR-257 Phase 0 — a Table whose header row and body rows are each a grid with the same
+    /// explicit tracks (대안 C2): the columns line up whatever the cells' padding, and a span covers
+    /// exactly the columns it crosses. `rows` = tracks per row; `cells[r]` = (padding-x, span).
+    fn adr257_table(tracks: &[&str], cells: &[Vec<(f32, u8)>]) -> (LayoutTree, Vec<Vec<usize>>, Vec<usize>) {
+        let mut tree = LayoutTree::new();
+        let track_json = serde_json::to_string(tracks).unwrap();
+        let mut nodes: Vec<String> = Vec::new();
+        let mut cell_ids: Vec<Vec<usize>> = Vec::new();
+        let mut row_ids: Vec<usize> = Vec::new();
+        for row in cells {
+            let mut ids = Vec::new();
+            for &(pad, span) in row {
+                let start = if span > 1 { format!(r#","gridColumnStart":"span {span}""#) } else { String::new() };
+                nodes.push(format!(
+                    r#"{{"style":{{"height":"20px","paddingLeft":"{pad}px","paddingRight":"{pad}px"{start}}},"children":[]}}"#
+                ));
+                ids.push(nodes.len() - 1);
+            }
+            let children = serde_json::to_string(&ids).unwrap();
+            nodes.push(format!(
+                r#"{{"style":{{"display":"grid","gridTemplateColumns":{track_json}}},"children":{children}}}"#
+            ));
+            row_ids.push(nodes.len() - 1);
+            cell_ids.push(ids);
+        }
+        let rows = serde_json::to_string(&row_ids).unwrap();
+        nodes.push(format!(
+            r#"{{"style":{{"display":"flex","flexDirection":"column","width":"300px"}},"children":{rows}}}"#
+        ));
+        let handles = tree.build_tree_batch(&format!("[{}]", nodes.join(","))).unwrap();
+        let cells = cell_ids
+            .iter()
+            .map(|row| row.iter().map(|&i| handles[i]).collect())
+            .collect();
+        let rows = row_ids.iter().map(|&i| handles[i]).collect::<Vec<_>>();
+        let root = *handles.last().unwrap();
+        let mut out_rows = rows;
+        out_rows.push(root);
+        (tree, cells, out_rows)
+    }
+
+    fn adr257_columns(tree: &LayoutTree, row: &[usize]) -> Vec<(f32, f32)> {
+        row.iter()
+            .map(|&h| {
+                let l = tree.get_layout(h);
+                (l.x, l.width)
+            })
+            .collect()
+    }
+
+    #[test]
+    fn adr257_row_grids_share_explicit_tracks_whatever_the_padding() {
+        // 300 · 1fr:2fr — the second column's cells carry a wider padding than the first's.
+        let cells = vec![vec![(8.0, 1), (20.0, 1)]; 3];
+        let (mut tree, cells, rows) = adr257_table(&["minmax(0,1fr)", "minmax(0,2fr)"], &cells);
+        tree.compute_layout(*rows.last().unwrap(), 300.0, 400.0);
+        for row in &cells {
+            assert_eq!(adr257_columns(&tree, row), vec![(0.0, 100.0), (100.0, 200.0)]);
+        }
+    }
+
+    #[test]
+    fn adr257_span_covers_the_crossed_tracks() {
+        let cells = vec![
+            vec![(8.0, 1), (8.0, 1), (8.0, 1)],
+            vec![(8.0, 2), (8.0, 1)],
+        ];
+        let (mut tree, cells, rows) = adr257_table(
+            &["minmax(0,1fr)", "minmax(0,1fr)", "minmax(0,1fr)"],
+            &cells,
+        );
+        tree.compute_layout(*rows.last().unwrap(), 300.0, 400.0);
+        assert_eq!(
+            adr257_columns(&tree, &cells[0]),
+            vec![(0.0, 100.0), (100.0, 100.0), (200.0, 100.0)]
+        );
+        assert_eq!(adr257_columns(&tree, &cells[1]), vec![(0.0, 200.0), (200.0, 100.0)]);
+    }
+
+    #[test]
+    fn adr257_percent_floor_and_px_tracks() {
+        // RAC calculateColumnSizes: 1fr (minWidth 75%) + 1fr at 300 → 225 · 75.
+        let cells = vec![vec![(8.0, 1), (8.0, 1)]; 2];
+        let (mut tree, cells, rows) = adr257_table(&["minmax(75%,1fr)", "minmax(0,1fr)"], &cells);
+        tree.compute_layout(*rows.last().unwrap(), 300.0, 400.0);
+        assert_eq!(adr257_columns(&tree, &cells[1]), vec![(0.0, 225.0), (225.0, 75.0)]);
+        // A px column and the default 75px floor (RAC/S2 default min width).
+        let cells = vec![vec![(8.0, 1), (8.0, 1), (8.0, 1)]; 2];
+        let (mut tree, cells, rows) =
+            adr257_table(&["120px", "minmax(75px,1fr)", "minmax(75px,2fr)"], &cells);
+        tree.compute_layout(*rows.last().unwrap(), 300.0, 400.0);
+        assert_eq!(
+            adr257_columns(&tree, &cells[0]),
+            vec![(0.0, 120.0), (120.0, 75.0), (195.0, 105.0)]
+        );
+    }
+
+    /// R1 — 2026-06 「기존 grid 컨테이너의 트랙을 증분으로 바꾸면 한 줄로 무너지던 증상」: the
+    /// rows' tracks replaced through `update_style` (the wasm `updateStyleRaw` path) without a
+    /// rebuild — every row follows, and a column added through `set_children` + new tracks too.
+    #[test]
+    fn adr257_incremental_track_change_without_rebuild() {
+        let cells = vec![vec![(8.0, 1), (8.0, 1)]; 3];
+        let (mut tree, cells, rows) = adr257_table(&["minmax(0,1fr)", "minmax(0,2fr)"], &cells);
+        let root = *rows.last().unwrap();
+        tree.compute_layout(root, 300.0, 400.0);
+        let restyle = |tree: &mut LayoutTree, tracks: &[&str]| {
+            let json = format!(
+                r#"{{"display":"grid","gridTemplateColumns":{}}}"#,
+                serde_json::to_string(tracks).unwrap()
+            );
+            for &row in &rows[..rows.len() - 1] {
+                tree.update_style(row, serde_json::from_str(&json).unwrap());
+            }
+        };
+        restyle(&mut tree, &["minmax(0,2fr)", "minmax(0,1fr)"]);
+        tree.compute_layout(root, 300.0, 400.0);
+        for row in &cells {
+            assert_eq!(adr257_columns(&tree, row), vec![(0.0, 200.0), (200.0, 100.0)]);
+        }
+        restyle(&mut tree, &["120px", "minmax(0,1fr)"]);
+        tree.compute_layout(root, 300.0, 400.0);
+        for row in &cells {
+            assert_eq!(adr257_columns(&tree, row), vec![(0.0, 120.0), (120.0, 180.0)]);
+        }
+        // A third column: one new cell per row + three tracks.
+        let mut grown = Vec::new();
+        for (r, row) in cells.iter().enumerate() {
+            let extra = tree.create_node(
+                serde_json::from_str(r#"{"height":"20px","paddingLeft":"8px","paddingRight":"8px"}"#)
+                    .unwrap(),
+            );
+            let mut children = row.clone();
+            children.push(extra);
+            tree.set_children(rows[r], children.clone());
+            grown.push(children);
+        }
+        restyle(&mut tree, &["120px", "minmax(0,1fr)", "minmax(0,1fr)"]);
+        tree.compute_layout(root, 300.0, 400.0);
+        for row in &grown {
+            assert_eq!(
+                adr257_columns(&tree, row),
+                vec![(0.0, 120.0), (120.0, 90.0), (210.0, 90.0)]
+            );
+        }
+    }
 }

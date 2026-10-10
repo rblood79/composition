@@ -11265,9 +11265,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       regular: { paddingY: 8 },
       spacious: { paddingY: 12 },
     },
+    // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
-      flex: "1",
       padding: "{spacing.sm}",
+    },
+    // ADR-257 Phase 3: the header cell's own alignment (S2 Column `align` — not its Cells').
+    containerVariants: {
+      // ADR-257 Phase 3 — S2 `align` (start · center · end — S2 `cellContent` textAlign; start is
+      //   the variant's left).
+      align: {
+        center: { styles: { "text-align": "center" } },
+        end: { styles: { "text-align": "right" } },
+      },
+      // ADR-257 Phase 3 — the Table's S2 `overflowMode` (carried here by the resolver): S2
+      //   `cellContent` truncates (one line, ellipsis) or wraps (the row grows with the text).
+      "overflow-mode": {
+        truncate: {
+          styles: {
+            overflow: "hidden",
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+          },
+        },
+        wrap: {
+          styles: {
+            overflow: "hidden",
+            "white-space": "normal",
+            "text-overflow": "ellipsis",
+          },
+        },
+      },
     },
   },
   Cell: {
@@ -11310,9 +11337,47 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       regular: { paddingY: 8 },
       spacious: { paddingY: 12 },
     },
+    // ADR-257: no flex share — the column's width is its track in the row grid (`tableTracks.ts`).
     containerStyles: {
-      flex: "1",
       padding: "{spacing.sm}",
+    },
+    // ADR-257 Phase 3: the cell's own S2 `align` · `showDivider` (S2 Cell reads neither from its
+    //   Column — 사용자 결정 7) and the Table's `overflowMode`.
+    containerVariants: {
+      // ADR-257 Phase 3 — S2 `align` (start · center · end — S2 `cellContent` textAlign; start is
+      //   the variant's left).
+      align: {
+        center: { styles: { "text-align": "center" } },
+        end: { styles: { "text-align": "right" } },
+      },
+      // S2 `showDivider`: a 1px line at the cell's end, the border color (S2 `--borderColorGray`).
+      "show-divider": {
+        true: {
+          styles: {
+            "border-right-width": "1px",
+            "border-style": "solid",
+            "border-color": "var(--border)",
+          },
+        },
+      },
+      // ADR-257 Phase 3 — the Table's S2 `overflowMode` (carried here by the resolver): S2
+      //   `cellContent` truncates (one line, ellipsis) or wraps (the row grows with the text).
+      "overflow-mode": {
+        truncate: {
+          styles: {
+            overflow: "hidden",
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+          },
+        },
+        wrap: {
+          styles: {
+            overflow: "hidden",
+            "white-space": "normal",
+            "text-overflow": "ellipsis",
+          },
+        },
+      },
     },
   },
   Table: {

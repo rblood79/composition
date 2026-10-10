@@ -11,6 +11,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-257 Phase 3 — Table 칸 값 · 표 단위 값] - 2026-10-10
+
+### Added
+
+- **Cell · Column `align` · Cell `showDivider` · Table · TableView `overflowMode` · `selectionStyle`** (S2 1.8.0, ADR-257 Phase 3 — 사용자 결정 6 · 7 「S2 대로」):
+  - `align` (start · center · end): 그 칸 자신의 정렬. Column 의 값은 머리글 칸에만 적용되고 같은 열 Cell 로 물려주지 않는다 (S2).
+  - `showDivider`: 칸 끝 쪽 1px 구분선 (테두리 색). Design 패널 Show 칩 「Divider」.
+  - `overflowMode` (기본 truncate): 모든 칸 글자가 한 줄 + 말줄임. wrap 이면 열 폭에서 줄바꿈되고 행이 글자를 따라 자란다 (Canvas · Preview 같은 높이).
+  - `selectionStyle` (기본 checkbox): highlight 면 행을 눌러 선택을 바꾸고 (RAC `selectionBehavior="replace"`), 선택 checkbox 열이 Canvas · Preview · 열 트랙에서 빠지며, 선택 행은 S2 highlight 모양 (accent 10% 바탕 + 이어진 선택 묶음 둘레 테두리).
+  - 위치: `packages/shared/src/catalog/bindings/{Column,Cell,Table,TableView}.binding.ts` · `generated/componentRulesTable.ts` (Column · Cell `containerVariants`) · `runtime/tableTracks.ts` · `components/styles/Table.css`
+- 확인: live — truncate 한 줄 41 = 41 · wrap 직후 행 137 = 137 (Canvas · Preview) · align · Divider 칩 · highlight 에서 마우스 누름이 한 행만 선택 · 오류 0 (`apps/builder/scripts/table-column-tracks-live.mjs` 전체 14/14).
+
+### Fixed
+
+- **palette Table 의 `density` 가 칸에 닿지 않던 문제**: Table 의 density 를 바꿔도 Column · Cell 의 세로 여백이 그대로였다.
+  - **Why**: palette Table 의 Column · Cell 은 원본 template 노드로 해석되는데, 그 경로가 Table 값 전파를 부르지 않았다. `overflowMode` 를 같은 경로로 전달하면서 함께 고쳤다.
+  - 위치: `packages/shared/src/catalog/resolution/resolver.ts`
+- **Canvas · Preview 의 TableView 칸 넘침이 달랐던 것**: Canvas 는 한 줄 · 말줄임, Preview TableView 는 줄바꿈이었다 — 이제 둘 다 `overflowMode` 를 따른다.
+
+### Changed
+
+- **Badge 의 S2 기본 줄바꿈 · GridList `overflowMode` 는 이번에 넣지 않았다** — Canvas 그리기 경로가 Table 과 달라 (Badge 는 rule 도형, GridList 는 항목 안 Text) 다음 Phase 로 미뤘다.
+
+## [ADR-257 Phase 2 — Table Cell colSpan] - 2026-10-10
+
+### Added
+
+- **Cell `colSpan`** (S2 1.8.0 / RAC): 칸이 행 grid 트랙 k 개를 차지한다 (Canvas · DOM 같은 값, RAC 가 `aria-colspan`). Design 패널 Column span 을 늘리면 오른쪽 칸을 흡수하고 (합이 맞지 않으면 거부) 줄이면 빈 칸이 생긴다 — 행은 늘 열 수만큼의 칸을 갖는다 (RAC 는 다르면 throw). 걸친 열을 지우면 span 이 하나 준다. 걸친 열의 숨김 · 순서 변경은 거부한다.
+- 확인: live — span 2 칸이 Canvas · Preview 모두 두 열의 시작 · 끝과 같음, `aria-colspan="2"`, 걸친 열 삭제 뒤 모든 행 정렬 · 오류 0 (`apps/builder/scripts/table-column-tracks-live.mjs` G2 3/3).
+
+### Fixed
+
+- span 이 줄어든 행을 Preview 의 RAC 가 옛 열 index 로 세어 throw 하던 문제 — span 구성이 바뀐 행은 다시 만든다.
+
+## [ADR-257 Phase 1 — Table 열 트랙] - 2026-10-10
+
+### Breaking Changes
+
+- **Table · TableView 의 열 배치가 「칸마다 flex: 1」 에서 「행마다 같은 grid 트랙」 으로** (ADR-257 대안 C2): 머리글 행과 모든 Row 가 각자 grid 이고 트랙 목록은 Table 하나가 Column 들의 폭에서 만든다 (`tableTracks.ts`). Column 하나의 폭을 바꾸면 그 열 전체 (머리글 칸 · 모든 Cell) 가 같이 바뀐다 — 종전에는 머리글 칸만 바뀌어 열이 어긋났다. 칸 padding 과 무관하게 fr 비율이 RAC/S2 의미대로다.
+- **폭을 안 적은 열은 S2/RAC 기본 `1fr` · 최소 75px** (사용자 결정 1): 바운드 Table 의 옛 기본 150px 고정 · 정적 행의 최소 0 이 바뀐다. 좁은 표 (폭 < 75 × 열 수) 는 가로로 넘친다 (RAC 와 같음). 저장된 문서 중 해당 표 0 (Phase 0 집계).
+- **Column · Cell 의 Styles 폭**: 표 안 Column 의 Styles Width · Min · Max 편집은 Column 의 `width` · `minWidth` · `maxWidth` prop 으로 간다 (사용자 결정 2). 옛 문서의 Column Styles 폭은 로드 시 1회 그 prop 으로 옮기고 Cell 의 Styles 폭은 지운다 (칸은 열의 grid 칸).
+- TableView 의 긴 무공백 글자 칸이 더는 열을 넓히지 않는다 (트랙 최소가 고정 값).
+
+### Added
+
+- **Column `width` · `defaultWidth` · `minWidth` · `maxWidth`** (S2 1.8.0 `ColumnSize` · `ColumnStaticSize`): 숫자 px · `"Nfr"` · `"N%"` (min/max 는 fr 없음). 문서는 숫자만 둔다 — 숫자 문자열은 검증기가 거부하고 로드 시 숫자로 바꾼다 (S2 타입은 허용하나 RAC 정적 폭 파서가 throw). Design 패널 Property 탭에 Width · Min width · Max width 칸.
+- 트랙으로 표현 못 하는 조합 (`Nfr` + `maxWidth`, px 폭 + `%` min/max, `%` 폭 + px max) 은 값은 저장하고 적용하지 않으며 Design 패널이 그 칸 아래에 「적용되지 않음」 을 보인다 (사용자 결정 3 (a)).
+- 선택 checkbox 열 (`Checkbox[slot=selection]` 이 든 Column) 은 폭을 안 적으면 S2 의 고정 40px.
+- 확인: RAC `calculateColumnSizes` 를 독립 oracle 로 12 입력 (기본 · fr 비율 · `%` 하한 225/75 · 75 하한 고정 · 5열 넘침 · `%` · 선택 열 …) 에서 엔진 폭 ≤ 1 px · 엔진 회귀 `tree.rs` `adr257_*` 4 (padding 무관 · span · 증분 트랙 교체 · 열 추가) · live — 120 · 1fr · 2fr 에서 머리글 · 모든 Cell 의 x · 폭이 Canvas 와 Preview 에서 같음, Design 패널 Width 160 입력 직후 (새로고침 없이) 열 전체가 따라옴, undo, TableView, 새로고침 뒤 유지, 오류 0 (`apps/builder/scripts/table-column-tracks-live.mjs` 6/6).
+
 ## [S2 값 정렬 — Meter · InlineAlert · Tooltip · CardView] - 2026-10-10
 
 ### Breaking Changes

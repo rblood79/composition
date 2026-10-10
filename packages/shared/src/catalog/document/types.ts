@@ -137,7 +137,15 @@ export type AuthoredValue = Scalar | TokenUse | StructuredValue;
  * context). The three are different values in storage and validation.
  */
 export type ValueType =
-  "string" | "number" | "boolean" | "string[]" | "items" | "slot";
+  | "string"
+  | "number"
+  | "boolean"
+  | "string[]"
+  | "items"
+  | "slot"
+  // ADR-257 — S2 Column widths (`ColumnSize` · `ColumnStaticSize`: a px number or "Nfr" · "N%").
+  | "columnSize"
+  | "columnStaticSize";
 /** Resolved prop value: a scalar or a structured value. */
 export type PropValue = Scalar | StructuredValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";

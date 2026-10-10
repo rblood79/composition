@@ -7,7 +7,11 @@ import {
   type ResolvedField,
 } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
-import { setFields } from "../../../../../packages/shared/src/catalog/commands";
+import {
+  setFields,
+  setTableCellSpan,
+} from "../../../../../packages/shared/src/catalog/commands";
+import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import {
   composeCommands,
   type CatalogCommand,
@@ -33,6 +37,10 @@ import {
 } from "./dataBinding";
 import { catalogBindingCommand } from "./dataBindingCommand";
 import type { CatalogReadModel } from "./readModel";
+import {
+  catalogCreationProps,
+  catalogPaletteDefinitionId,
+} from "./paletteInsert";
 
 const ORIGIN_PREFIX = "lib:definition:origin-";
 
@@ -163,6 +171,61 @@ export function catalogSemanticPatchCommand(
 }
 
 /**
+ * ADR-257 Phase 2 — a table Cell's column span: the span command per owned Cell (the row keeps one
+ * cell per column — the cells to the right are taken, new empty ones left). Undefined when a
+ * target is not an owned Cell (the plain prop write).
+ */
+export function catalogCellSpanCommand(
+  graph: CatalogGraph,
+  targets: readonly EditTarget[],
+  value: unknown,
+  current: (key: string) => unknown,
+  newId?: NewId,
+): CatalogCommand | undefined {
+  if (!targets.length) return undefined;
+  const cells = targets.flatMap((target) => {
+    if (target.kind !== "node") return [];
+    const entry = graph.getEntry(target.id);
+    return entry?.kind === "node" &&
+      definitionTypeName(graph, entry.definitionId) === "Cell"
+      ? [target.id]
+      : [];
+  });
+  if (cells.length !== targets.length) return undefined;
+  const span = value === undefined ? 1 : Number(value);
+  if (JSON.stringify(current("colSpan") ?? 1) === JSON.stringify(span))
+    return undefined;
+  const buildCell = newId
+    ? () => {
+        const definitionId = catalogPaletteDefinitionId(graph.library, "Cell");
+        const cell = {
+          kind: "node" as const,
+          id: newId("node") as (typeof cells)[number],
+          definitionId,
+          children: [],
+          props: definitionId.startsWith("lib:")
+            ? catalogCreationProps(
+                graph.library,
+                definitionId as `lib:definition:${string}`,
+                "Cell",
+              )
+            : {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        };
+        return { entries: [cell], rootId: cell.id };
+      }
+    : undefined;
+  const commands = cells.map((cell) =>
+    setTableCellSpan({ cell, span, buildCell }),
+  );
+  return commands.length === 1
+    ? commands[0]
+    : () => composeCommands(graph, "Edit column span", commands);
+}
+
+/**
  * The Properties patch as one step: binding keys (`bindingKeys`, the contract's `binding` fields)
  * write the targets' typed binding, the rest their props. A picker value the document cannot hold
  * refuses the step (`UNSUPPORTED_BINDING`); `undefined` = nothing changes.
@@ -173,10 +236,19 @@ export function catalogPropertiesPatchCommand(
   patch: Readonly<Record<string, unknown>>,
   current: (key: string) => unknown,
   bindingKeys: ReadonlySet<string>,
+  /** New cells when a Cell's `colSpan` narrows (ADR-257 Phase 2) — refused without. */
+  newId?: NewId,
 ): CatalogCommand | undefined {
   const props: Record<string, unknown> = {};
   const commands: CatalogCommand[] = [];
+  // ADR-257 Phase 2: a table Cell's `colSpan` keeps its row aligned (`setTableCellSpan`).
+  const spanCommand =
+    "colSpan" in patch
+      ? catalogCellSpanCommand(graph, targets, patch.colSpan, current, newId)
+      : undefined;
+  if (spanCommand) commands.push(spanCommand);
   for (const [key, value] of Object.entries(patch)) {
+    if (key === "colSpan" && spanCommand) continue;
     if (!bindingKeys.has(key)) {
       props[key] = value;
       continue;

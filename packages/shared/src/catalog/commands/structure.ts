@@ -42,6 +42,7 @@ import {
   tableAlignedIn,
   tableColumnCells,
   tableColumnOrder,
+  tableColumnSpanningCells,
 } from "./collections";
 import {
   RAC_REQUIRED_PART_TYPES,
@@ -358,6 +359,17 @@ export function tableHidingTargets(
 ): readonly EditTarget[] {
   if (!holdsRacTable(reader)) return targets;
   const draft = new CommandDraft(reader);
+  // ADR-257 Phase 2: a column crossed by a cell spanning others cannot hide alone (the span would
+  // outgrow the shown columns at that breakpoint).
+  for (const target of targets)
+    if (
+      (target.kind !== "node" || revisionType(reader, target.id) === "Column") &&
+      tableColumnSpanningCells(draft, target).length
+    )
+      fail(
+        "TABLE_CELLS_NOT_ALIGNED",
+        target.kind === "node" ? target.id : target.ownerId,
+      );
   const all = [...targets, ...tableColumnCellTargets(reader, draft, targets)];
   for (const target of all) {
     if (target.kind === "node") {
@@ -814,8 +826,26 @@ export const removeTargets =
         if (
           target.kind !== "node" ||
           revisionType(reader, target.id) === "Column"
-        )
+        ) {
+          // ADR-257 Phase 2: a cell spanning the column with others narrows by one (it stays).
+          for (const { cell, span } of tableColumnSpanningCells(draft, target)) {
+            if (cell.kind !== "node")
+              return fail(
+                "TABLE_CELLS_NOT_ALIGNED",
+                cell.kind === "descendant" ? cell.ownerId : cell.id,
+              );
+            const node = draft.node(cell.id);
+            const { colSpan: _colSpan, ...props } = node.props;
+            draft.write({
+              ...node,
+              props:
+                span - 1 === 1
+                  ? props
+                  : { ...props, colSpan: { kind: "set", value: span - 1 } },
+            });
+          }
           dropTableColumnTemplateCells(draft, target, input.newId);
+        }
     const targets = [
       ...input.targets,
       ...tableColumnCellTargets(reader, draft, input.targets),

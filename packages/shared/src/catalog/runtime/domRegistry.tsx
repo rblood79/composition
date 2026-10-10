@@ -5,6 +5,7 @@ import {
   type HTMLAttributes,
 } from "react";
 import { tableBinding } from "../bindings/Table.binding";
+import { resolveSelectionBehavior } from "../../components/selectionStyle";
 import { Keyboard } from "react-aria-components/Keyboard";
 import {
   Cell as RacCell,
@@ -62,6 +63,7 @@ import {
 function CatalogTable({
   heightMode,
   height,
+  selectionStyle,
   style,
   ...props
 }: Record<string, unknown> & { style?: CSSProperties }) {
@@ -83,6 +85,14 @@ function CatalogTable({
   return createElement(RacTable as ElementType, {
     "aria-label": "Table",
     ...props,
+    // ADR-257 Phase 3 — S2 `selectionStyle` → RAC `selectionBehavior` (highlight = replace; the
+    // sheet's `[data-selection-style="highlight"]` paints the selected rows).
+    selectionBehavior: resolveSelectionBehavior({
+      selectionStyle,
+      fallback: "toggle",
+    }),
+    "data-selection-style":
+      selectionStyle === "highlight" ? "highlight" : undefined,
     // (An authored height wins, as on the Canvas — `catalogTableHeight` is the height when none.)
     style: quiet || sized ? { ...style, ...sized, ...quiet } : style,
     "data-node-table": "",

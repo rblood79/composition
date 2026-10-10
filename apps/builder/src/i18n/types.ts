@@ -642,6 +642,8 @@ export interface TranslationKeys {
     chipGroupShow: string;
     chipGroupFill: string;
     sizeOutOfRange: string;
+    /** ADR-257 — a Column width bound a grid track cannot express (stored, not applied). */
+    columnSizeNotApplied: string;
     stateName: string;
     stateType: string;
     stateDefault: string;

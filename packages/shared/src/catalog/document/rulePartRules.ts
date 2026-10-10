@@ -988,8 +988,7 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
   ];
   const trigger = (
     rule.structure?.composition as
-      | { staticSelectors?: Record<string, Record<string, string>> }
-      | undefined
+      { staticSelectors?: Record<string, Record<string, string>> } | undefined
   )?.staticSelectors?.[".react-aria-Button[slot='trigger']"];
   if (!trigger) return [];
   const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
@@ -1124,6 +1123,14 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   AvatarGroup: { size: "size" },
   // S2 Disclosure (2026-10-10): its trigger's height per density, its rounded quiet trigger.
   Disclosure: { density: "density", quiet: "isQuiet" },
+  // ADR-257 Phase 3: S2 Column `align` · Cell `align` · `showDivider`, and the Table's
+  // `overflowMode` (carried to its Columns · Cells — `CATALOG_TABLE_OVERFLOW_OWNERS`).
+  Column: { align: "align", "overflow-mode": "overflowMode" },
+  Cell: {
+    align: "align",
+    "show-divider": "showDivider",
+    "overflow-mode": "overflowMode",
+  },
 };
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {
   return { ...CONTAINER_VARIANT_AXES, ...TYPE_CONTAINER_VARIANT_AXES[type] };
@@ -1134,8 +1141,7 @@ function compositionVariables(
   size: string | undefined,
 ): Record<string, string> {
   const composition = rule.structure?.composition as
-    | { containerStyles?: Record<string, string> }
-    | undefined;
+    { containerStyles?: Record<string, string> } | undefined;
   const variants = containerVariantsOf(rule);
   const out: Record<string, string> = {};
   for (const source of [
@@ -1192,6 +1198,35 @@ function blockVariables(
 }
 
 /**
+ * ADR-257 Phase 3 — the rules whose root variant blocks also set their own text box: S2 Table's
+ * cell content (`text-align` · `white-space` · truncation — S2 `cellContent`) and a Cell's divider
+ * (`border-right-width`, its color the rule's border). Only these: the other rules' blocks do not
+ * reach the Canvas text through here.
+ */
+const CELL_TEXT_VARIANT_RULES: ReadonlySet<string> = new Set([
+  "Column",
+  "Cell",
+]);
+function cellTextVisual(
+  styles: Readonly<Record<string, string>>,
+): Record<string, Scalar> {
+  const out: Record<string, Scalar> = {};
+  for (const [key, value] of Object.entries(styles)) {
+    if (key === "text-align") out.textAlign = value;
+    else if (key === "white-space") out.whiteSpace = value;
+    else if (key === "text-overflow") out.textOverflow = value;
+    else if (key === "overflow") out.overflow = value;
+    else if (key === "border-style") out.borderStyle = value;
+    else if (key === "border-color") out.borderColor = value;
+    else if (key === "border-right-width") {
+      const px = lengthPx(value);
+      if (px !== undefined) out.borderRightWidth = px;
+    }
+  }
+  return out;
+}
+
+/**
  * Root values of rule `type`'s prop-driven container variants (`[data-label-position="side"]`):
  * one rule per axis value, applied when the owner's resolved prop has that value.
  */
@@ -1208,12 +1243,21 @@ export function catalogContainerVariantRootRules(type: string): Array<{
   const out: ReturnType<typeof catalogContainerVariantRootRules> = [];
   for (const [attribute, prop] of Object.entries(containerVariantAxes(type)))
     for (const [value, block] of Object.entries(variants[attribute] ?? {})) {
-      const compiled = compileDeclarations(
+      const declared = compileDeclarations(
         type,
         block.styles ?? {},
         {},
         undefined,
       );
+      const compiled = CELL_TEXT_VARIANT_RULES.has(type)
+        ? {
+            ...declared,
+            visual: {
+              ...declared.visual,
+              ...cellTextVisual(block.styles ?? {}),
+            },
+          }
+        : declared;
       if (
         Object.keys(compiled.layout).length ||
         Object.keys(compiled.visual).length
@@ -1246,9 +1290,9 @@ function formFieldLabelPartRules(parentType: string): CompiledPartRule[] {
       const names = Object.keys(variables);
       if (!names.length) continue;
       for (const fieldType of CATALOG_FORM_FIELDS) {
-        const fieldRule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
-          domStyleRuleType(fieldType)
-        ];
+        const fieldRule = (
+          COMPONENT_RULES_TABLE as Record<string, ComponentRule>
+        )[domStyleRuleType(fieldType)];
         const fieldVariants = fieldRule
           ? containerVariantsOf(fieldRule)
           : undefined;

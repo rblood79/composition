@@ -781,6 +781,39 @@ function shownAt(
   const hiding = hidingAt(draft, position);
   return hiding.enabled !== false && catalogNodeVisibleAt(hiding, breakpoint);
 }
+/**
+ * ADR-257 Phase 2 — a cell's column span (RAC `Cell colSpan`, a whole number ≥ 1; default 1),
+ * read from `draft` for an owned cell (a command's result), else from its template position.
+ */
+function cellSpanAt(draft: CommandDraft, cell: NodeParent): number {
+  let value: unknown;
+  if (cell.kind === "node") {
+    const write = draft.node(cell.id).props.colSpan;
+    value = write?.kind === "set" ? write.value : undefined;
+  } else value = readProp(draft.reader, cell, "colSpan");
+  return typeof value === "number" && Number.isInteger(value) && value >= 1
+    ? value
+    : 1;
+}
+/** The columns a row's cells take (RAC's `colIndex + colSpan` — the sum of their spans). */
+function spanSum(draft: CommandDraft, cells: readonly NodeParent[]): number {
+  return cells.reduce((sum, cell) => sum + cellSpanAt(draft, cell), 0);
+}
+/** The cell of `cells` covering column `index` (spans counted), and whether it spans others. */
+function cellAtColumn(
+  draft: CommandDraft,
+  cells: readonly NodeParent[],
+  index: number,
+): { cell: NodeParent; span: number } | undefined {
+  let start = 0;
+  for (const cell of cells) {
+    const span = cellSpanAt(draft, cell);
+    if (index < start + span) return { cell, span };
+    start += span;
+  }
+  return undefined;
+}
+
 const TABLE_BREAKPOINTS: readonly BreakpointName[] = [
   "desktop",
   "tablet",
@@ -821,7 +854,8 @@ export function tableAlignedIn(
       !body ||
       !shown(body) ||
       rows.every(
-        ({ row, cells }) => !shown(row) || cells.filter(shown).length === count,
+        ({ row, cells }) =>
+          !shown(row) || spanSum(draft, cells.filter(shown)) === count,
       )
     );
   });
@@ -844,7 +878,7 @@ function tableColumnGrid(draft: CommandDraft, column: NodeParent) {
   const body = tableBodyOf(draft, header);
   const rows = (body ? partChildren(draft, body) : []).flatMap((row) => {
     const cells = partChildren(draft, row);
-    return cells.length === columns.length ? [{ row, cells }] : [];
+    return spanSum(draft, cells) === columns.length ? [{ row, cells }] : [];
   });
   return { header, columns, rows };
 }
@@ -863,8 +897,101 @@ export function tableColumnCells(
   const index = grid.columns.findIndex(
     (position) => positionKey(position) === positionKey(column),
   );
-  return index < 0 ? [] : grid.rows.map(({ cells }) => cells[index]!);
+  if (index < 0) return [];
+  // (ADR-257 Phase 2: a cell spanning more columns stays — `tableColumnSpanningCells`.)
+  return grid.rows.flatMap(({ cells }) => {
+    const at = cellAtColumn(draft, cells, index);
+    return at && at.span === 1 ? [at.cell] : [];
+  });
 }
+
+/**
+ * ADR-257 Phase 2 — the cells spanning a RAC Table column together with others (`colSpan` > 1):
+ * a delete of the column narrows them by one (`colSpan − 1`) instead of taking them along.
+ */
+export function tableColumnSpanningCells(
+  draft: CommandDraft,
+  column: NodeParent,
+): { cell: NodeParent; span: number }[] {
+  const grid = tableColumnGrid(draft, column);
+  if (!grid) return [];
+  const index = grid.columns.findIndex(
+    (position) => positionKey(position) === positionKey(column),
+  );
+  if (index < 0) return [];
+  return grid.rows.flatMap(({ cells }) => {
+    const at = cellAtColumn(draft, cells, index);
+    return at && at.span > 1 ? [at] : [];
+  });
+}
+
+/**
+ * ADR-257 Phase 2 — a RAC Table cell's column span (`colSpan`) set with its row kept aligned (RAC
+ * throws when a row's spans do not add up to the column count — G0 ⑨): a wider span takes the
+ * cells to its right (their spans must fit exactly), a narrower one leaves new empty cells
+ * (`buildCell`, needs `newId`). Only an owned cell in an owned row list.
+ */
+export const setTableCellSpan =
+  (input: {
+    cell: NodeId;
+    span: number;
+    buildCell?: (rowId: string) => { entries: NodeEntry[]; rootId: NodeId };
+    label?: string;
+  }): CatalogCommand =>
+  (reader) => {
+    const draft = new CommandDraft(reader);
+    if (!Number.isInteger(input.span) || input.span < 1)
+      fail("PROP_TYPE_MISMATCH", `${input.cell}.colSpan`);
+    const rowId = reader.ownerOf(input.cell);
+    const row = rowId ? draft.read(rowId) : undefined;
+    if (
+      row?.kind !== "node" ||
+      definitionTypeName(reader, row.definitionId) !== "Row" ||
+      !row.children.includes(input.cell)
+    )
+      return fail("TABLE_CELLS_NOT_ALIGNED", input.cell);
+    const cellPosition: NodeParent = { kind: "node", id: input.cell };
+    const delta = input.span - cellSpanAt(draft, cellPosition);
+    let children = [...row.children];
+    const at = children.indexOf(input.cell);
+    if (delta > 0) {
+      let rest = delta;
+      const taken: NodeId[] = [];
+      for (const id of children.slice(at + 1)) {
+        if (rest === 0) break;
+        const span = cellSpanAt(draft, { kind: "node", id });
+        if (span > rest) break;
+        taken.push(id);
+        rest -= span;
+      }
+      if (rest !== 0) return fail("TABLE_CELLS_NOT_ALIGNED", input.cell);
+      children = children.filter((id) => !taken.includes(id));
+      draft.write({ ...draft.node(row.id), children });
+      removeWithReferrers(
+        draft,
+        taken.flatMap((id) => subtree(draft, id)),
+      );
+    } else if (delta < 0) {
+      if (!input.buildCell) return fail("TABLE_CELLS_NOT_ALIGNED", input.cell);
+      const added = Array.from({ length: -delta }, () =>
+        input.buildCell!(row.id),
+      );
+      for (const cell of added)
+        for (const entry of cell.entries) draft.create(entry);
+      children.splice(at + 1, 0, ...added.map((cell) => cell.rootId));
+      draft.write({ ...draft.node(row.id), children });
+    }
+    const cell = draft.node(input.cell);
+    const { colSpan: _colSpan, ...props } = cell.props;
+    draft.write({
+      ...cell,
+      props:
+        input.span === 1
+          ? props
+          : { ...props, colSpan: { kind: "set", value: input.span } },
+    });
+    return { label: input.label ?? "Edit column span", ops: draft.ops() };
+  };
 
 /**
  * ADR-256 Phase 5i-3 — a RAC Table header's column order and its aligned rows' cells, before a
@@ -892,8 +1019,12 @@ export function tableColumnOrder(
       )
         return;
       for (const row of rows) {
-        // (A row in an instance's template has no list of its own to reorder.)
-        if (row.kind !== "node") {
+        // (A row in an instance's template has no list of its own to reorder; ADR-257 Phase 2: a
+        // row with a cell spanning columns has no cell per column to move.)
+        if (
+          row.kind !== "node" ||
+          partChildren(draft, row).length !== before.length
+        ) {
           fail("TABLE_CELLS_NOT_ALIGNED", positionId(header));
           return;
         }
@@ -952,6 +1083,9 @@ export function dropTableColumnTemplateCells(
     const root = compositeRootOf(draft, row);
     if (!root || childList(draft, root) || !childPositions(draft, root).length)
       continue;
+    // (ADR-257 Phase 2: a template row's cells spanning columns are not one per column.)
+    if (partChildren(draft, row).length !== grid.columns.length)
+      fail("TABLE_CELLS_NOT_ALIGNED", positionId(row));
     ownTableRowCells(draft, row, newId);
     const ids = childList(draft, root)!;
     const dropped = ids[index];
@@ -1075,7 +1209,7 @@ export const insertTableColumns =
       // (A reusable row's cells are its template's, then its own — Round 12; a new cell is its own.)
       const aligned = rows.every(
         (row) =>
-          partChildren(draft, { kind: "node", id: row }).length ===
+          spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
           current.length,
       );
       if (rows.length && aligned)
@@ -1127,7 +1261,8 @@ export const insertTableRow =
     if (
       !rows.every(
         (row) =>
-          partChildren(draft, { kind: "node", id: row }).length === columnCount,
+          spanSum(draft, partChildren(draft, { kind: "node", id: row })) ===
+          columnCount,
       )
     )
       fail("TABLE_ROWS_NOT_ALIGNED", positionId(input.body));

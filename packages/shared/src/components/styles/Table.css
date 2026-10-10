@@ -54,8 +54,11 @@
       background: transparent;
       color: inherit;
 
+      /* ADR-257: the header row is a grid on the Columns' shared tracks — the TableHeader node
+         carries them (`--table-column-tracks`, `catalogDomStyle`), every Row has the same. */
       > tr {
-        display: flex;
+        display: grid;
+        grid-template-columns: var(--table-column-tracks, none);
         flex: 1 1 auto;
         min-width: 0;
       }
@@ -213,7 +216,6 @@
     border-right: 1px solid var(--border);
 
     &:last-child {
-      flex: 1;
       border-right: none;
     }
 
@@ -765,5 +767,38 @@
     border-color: transparent;
     border-radius: 0;
     background: transparent;
+  }
+}
+
+/* ADR-257 Phase 3 — S2 `selectionStyle="highlight"` (RAC `selectionBehavior="replace"`, 사용자 결정 6
+   「S2 대로」): a selected row is a light accent wash with its text unchanged, and each run of
+   selected rows has one accent outline (S2 `TableView.tsx` — `rowBackgroundColor.selectionStyle
+   .highlight.isSelected` `color-mix(gray-25, blue-900 10%)`, hovered 15%, and
+   `highlightSelectionBorder`). Selection is Preview runtime state — the Canvas draws none. */
+@layer components {
+  .react-aria-Table[data-selection-style="highlight"] .react-aria-Row {
+    &[data-selected] {
+      --row-highlight-top: inset 0 1px var(--accent);
+      --row-highlight-bottom: inset 0 -1px var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+      color: var(--fg);
+      box-shadow:
+        inset 1px 0 var(--accent),
+        inset -1px 0 var(--accent),
+        var(--row-highlight-top),
+        var(--row-highlight-bottom);
+    }
+
+    &[data-selected]:is([data-hovered], [data-pressed]) {
+      background: color-mix(in srgb, var(--accent) 15%, var(--bg));
+    }
+
+    &[data-selected]:has(+ [data-selected]) {
+      --row-highlight-bottom: 0 0 transparent;
+    }
+
+    &[data-selected] + [data-selected] {
+      --row-highlight-top: 0 0 transparent;
+    }
   }
 }

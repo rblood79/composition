@@ -545,14 +545,19 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "row",
       });
+      // ADR-257: no flex share — a column's width is its track in the row grid (`tableTracks.ts`).
       expect(resolveContainerStylesFallback("column", {})).toMatchObject({
-        flex: "1",
         padding: 8,
       });
+      expect(resolveContainerStylesFallback("column", {})).not.toHaveProperty(
+        "flex",
+      );
       expect(resolveContainerStylesFallback("cell", {})).toMatchObject({
-        flex: "1",
         padding: 8,
       });
+      expect(resolveContainerStylesFallback("cell", {})).not.toHaveProperty(
+        "flex",
+      );
     });
 
     it("body 페이지 기본 overflow=auto 를 catalog rule fallback 으로 공급 (2026-07-21)", () => {

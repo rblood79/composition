@@ -1,4 +1,10 @@
 import { getIconData } from "@composition/rendering";
+import {
+  catalogTableRowTracks,
+  catalogTableSelectionPartHidden,
+  catalogTableSelectionParts,
+  catalogTableTrackDependents,
+} from "./tableTracks";
 import { isDisclosureExpandedInContext } from "../../utils/disclosureGroupExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
@@ -597,6 +603,8 @@ export function catalogHiddenAtRest(
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
   if (catalogSkeletonIdle(node, typeOf)) return true;
+  // ADR-257 Phase 3: a highlight-selection Table has no selection checkbox column (S2).
+  if (catalogTableSelectionPartHidden(node, get, typeOf)) return true;
   // ADR-256 Decision 7: a node is there only in the states its `showWhen` names.
   if (node.showWhen && !catalogShowWhenHolds(node, get, typeOf)) return true;
   // ADR-256 Phase 5e: RAC's `SelectionIndicator` is there while its item is selected (its
@@ -724,6 +732,8 @@ export function catalogPresenceScope(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) === "DisclosureGroup") return node;
+  // A Table's selection column follows its `selectionStyle` (ADR-257 Phase 3).
+  if (typeOf(node) === "Table" || typeOf(node) === "TableView") return node;
   // A ProgressBar's · Meter's value text follows its `showValueLabel` (ADR-256 Phase 7a).
   if (PROGRESS_VALUES[typeOf(node)]) return node;
   // Which crumb is current (its separator hidden) follows the Breadcrumbs' crumb list.
@@ -755,6 +765,8 @@ export function catalogPresenceDependents(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
+  if (typeOf(scope) === "Table" || typeOf(scope) === "TableView")
+    return catalogTableSelectionParts(scope, get, typeOf);
   const valueType = PROGRESS_VALUES[typeOf(scope)];
   if (valueType)
     return partChildrenOf(scope, get, typeOf).filter(
@@ -1497,7 +1509,10 @@ export function catalogDerivedProps(
   const placed = grouped ? { ...result, ...grouped } : result;
   // (S2 Meter · ProgressBar `staticColor`: the label and the value text in the static color.)
   const staticText = catalogProgressStaticText(node, get, typeOf);
-  return staticText ? { ...placed, staticColor: staticText } : placed;
+  const colored = staticText ? { ...placed, staticColor: staticText } : placed;
+  // (ADR-257: a Table's header row · Row is a grid on its Table's shared column tracks.)
+  const tracks = catalogTableRowTracks(node, get, typeOf);
+  return tracks ? { ...colored, _tableTracks: tracks } : colored;
 }
 
 /**
@@ -1837,6 +1852,8 @@ export function catalogDerivedPropsDependents(
     ...fieldSubparts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
+    // (ADR-257: its Table's header row and Rows lay out on the Columns' tracks.)
+    ...catalogTableTrackDependents(owner, get, typeOf),
     // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),
