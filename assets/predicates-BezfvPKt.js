@@ -1,0 +1,1 @@
+function e(e){return e===`body`||typeof e==`string`&&e.length===4&&e.toLowerCase()===`body`}export{e as t};
