@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-257 Phase 4 — Table Preview 정렬 · 열 크기 조절] - 2026-10-10
+
+### Added
+
+- **Column `allowsSorting` · `allowsResizing`** (S2 1.8.0, ADR-257 Phase 4 — 사용자 결정 4 · 5): Design 패널 칩 「Allow Sorting」 · 「Allow Resizing」.
+  - 정렬: Preview 에서 머리글을 누르면 행이 오름차순 · 내림차순으로 바뀌고 (`aria-sort`, S2 정렬 아이콘), Canvas 와 문서는 작성한 순서 그대로다 — Preview 실행 상태. 작성한 행은 그 열 칸 글자 (숫자 인식), 데이터에 묶인 표는 전체 행을 값으로 정렬한 뒤 높이만큼 보인다.
+  - 크기 조절: 크기 조절 열이 있는 표는 Preview 에서 RAC `ResizableTableContainer` 안에 있고, 열 끝 손잡이 (hover 때 보임) 를 끌면 머리글과 모든 칸이 같이 움직인다. 끝난 폭은 Preview 실행 상태 — 새로고침하면 문서 폭.
+- 범위 밖: TableView 의 두 조작 — TableView 는 RAC 에 없는 S2 컴포넌트이고 S2 는 RAC `Table` 위에 만드는데, 우리 Preview 는 composition div 로 그린다.
+
 ## [ADR-257 Phase 3 — Table 칸 값 · 표 단위 값] - 2026-10-10
 
 ### Added

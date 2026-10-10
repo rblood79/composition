@@ -91,6 +91,19 @@ export const columnBinding: PrimitiveBinding = {
         label: "Max width",
         section: "appearance",
       },
+      // ADR-257 Phase 4 — S2 Column `allowsSorting` · `allowsResizing`: Preview operations. The
+      //   sort and the widths a drag leaves are the Preview's runtime state, never the document
+      //   (사용자 결정 4 · 5 — `tableSort.ts`); the Canvas keeps the document's order and widths.
+      allowsSorting: {
+        kind: "boolean",
+        label: "Allow Sorting",
+        section: "state",
+      },
+      allowsResizing: {
+        kind: "boolean",
+        label: "Allow Resizing",
+        section: "state",
+      },
       size: {
         kind: "size",
         label: "Size",

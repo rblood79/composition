@@ -608,6 +608,233 @@ record(
     /inset/.test(picked[1].shadow),
   { table, picked },
 );
+// ── G4: Preview operations (Phase 4 — 사용자 결정 4 · 5: runtime state, never the document) ──
+await setOn(tableId, { selectionMode: "none", selectionStyle: "checkbox" });
+await insertVia("TableBody", "Insert Row", 1);
+await page.waitForTimeout(800);
+const g4Columns = await recordsOf("Column");
+const g4Rows = await recordsOf("Row");
+const firstCellOf = async (row) =>
+  page.evaluate(
+    (row) => window.__COMPOSITION_CATALOG__.workspace.root.canvasInputs.get(row)
+      .children[0],
+    row,
+  );
+const firstCells = [];
+for (const row of g4Rows) firstCells.push(await firstCellOf(row));
+const texts = ["b10", "a", "b9"];
+for (let k = 0; k < firstCells.length; k++)
+  await setOn(firstCells[k], { children: texts[k] ?? `z${k}` });
+await page.waitForTimeout(1200);
+/** A boolean chip in the Design panel's Property tab of a record. */
+async function chip(id, label) {
+  await page.evaluate(
+    (id) => window.__COMPOSITION_CATALOG__.workspace.selectRecords([id]),
+    id,
+  );
+  await page.waitForTimeout(800);
+  await propertyTab.first().click().catch(() => {});
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: label, exact: true }).first().click();
+  await page.waitForTimeout(1500);
+}
+/** The document's history length and the Canvas's first-column texts in row order. */
+const builderState = () =>
+  page.evaluate((rows) => {
+    const ws = window.__COMPOSITION_CATALOG__.workspace;
+    const root = ws.root;
+    return {
+      history: ws.history.getSnapshot().labels.length,
+      canvasOrder: rows.map(
+        (row) =>
+          root.canvasInputs.get(root.canvasInputs.get(row).children[0])?.props
+            .children,
+      ),
+    };
+  }, g4Rows);
+/** The Preview's body rows' first-cell texts and the first column header's sort state. */
+const previewSort = () =>
+  page.evaluate((column) => {
+    const doc = document.querySelector("#previewFrame")?.contentDocument;
+    const th = doc?.querySelector(`[data-catalog-id="${CSS.escape(column)}"]`);
+    return {
+      order: [...(doc?.querySelectorAll("[data-node-table] tbody [role='row']") ?? [])].map(
+        (row) => row.querySelector("[role='rowheader'], [role='gridcell']")?.textContent,
+      ),
+      ariaSort: th?.getAttribute("aria-sort") ?? null,
+      icon: th?.querySelector(".sort-indicator")?.getAttribute("data-direction") ?? null,
+    };
+  }, g4Columns[0]);
+/** A real mouse press at the center of a Preview element (pointer events, as a user's). */
+const pressPreview = (id) =>
+  page.evaluate((id) => {
+    const frame = document.querySelector("#previewFrame");
+    const doc = frame?.contentDocument;
+    const view = frame?.contentWindow;
+    const el = doc?.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+    if (!el || !view) return;
+    const r = el.getBoundingClientRect();
+    const at = {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      clientX: r.left + r.width / 2,
+      clientY: r.top + r.height / 2,
+      button: 0,
+      pointerId: 1,
+      pointerType: "mouse",
+      isPrimary: true,
+      view,
+    };
+    el.dispatchEvent(new view.PointerEvent("pointerdown", { ...at, buttons: 1 }));
+    el.dispatchEvent(new view.MouseEvent("mousedown", { ...at, buttons: 1, detail: 1 }));
+    el.dispatchEvent(new view.PointerEvent("pointerup", { ...at, buttons: 0 }));
+    el.dispatchEvent(new view.MouseEvent("mouseup", { ...at, buttons: 0, detail: 1 }));
+    el.dispatchEvent(new view.MouseEvent("click", { ...at, buttons: 0, detail: 1 }));
+  }, id);
+await chip(g4Columns[0], "Allow Sorting");
+const sortBefore = await builderState();
+const atRest = await previewSort();
+await pressPreview(g4Columns[0]);
+await page.waitForTimeout(800);
+const ascending = await previewSort();
+await pressPreview(g4Columns[0]);
+await page.waitForTimeout(800);
+const descending = await previewSort();
+const sortAfter = await builderState();
+record(
+  "G4-1 sort (Design chip Allow Sorting → Preview header press): rows reorder by the cell text, aria-sort and the S2 icon follow; the Canvas keeps the document order, no history step",
+  JSON.stringify(atRest.order) === JSON.stringify(texts) &&
+    atRest.icon === null &&
+    JSON.stringify(ascending.order) === JSON.stringify(["a", "b9", "b10"]) &&
+    ascending.ariaSort === "ascending" &&
+    ascending.icon === "ascending" &&
+    JSON.stringify(descending.order) === JSON.stringify(["b10", "b9", "a"]) &&
+    descending.ariaSort === "descending" &&
+    sortAfter.history === sortBefore.history &&
+    JSON.stringify(sortAfter.canvasOrder) === JSON.stringify(texts),
+  { atRest, ascending, descending, sortBefore, sortAfter },
+);
+/** Header cells' DOM widths, RAC's px tracks on the table, and every row's cell widths. */
+const previewWidths = () =>
+  page.evaluate(
+    ({ columns, rows }) => {
+      const doc = document.querySelector("#previewFrame")?.contentDocument;
+      const width = (id) => {
+        const el = doc?.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+        return el ? Math.round(el.getBoundingClientRect().width * 100) / 100 : null;
+      };
+      const root = window.__COMPOSITION_CATALOG__.workspace.root;
+      const table = doc?.querySelector("[data-node-table]");
+      return {
+        header: columns.map(width),
+        rows: rows.map((row) => root.canvasInputs.get(row).children.map(width)),
+        tracks: table?.style.getPropertyValue("--table-resized-tracks") || null,
+        wrapped: !!doc?.querySelector("[data-node-table-container]"),
+        resizer: !!doc?.querySelector(".react-aria-ColumnResizer"),
+      };
+    },
+    { columns: g4Columns, rows: g4Rows },
+  );
+const canvasWidths = () =>
+  page.evaluate((columns) => {
+    const root = window.__COMPOSITION_CATALOG__.workspace.root;
+    const rects = root.getGeometry(columns);
+    return columns.map((id) => Math.round(rects.get(id).width * 100) / 100);
+  }, g4Columns);
+const unwrapped = await previewWidths();
+const canvasBefore = await canvasWidths();
+await chip(g4Columns[1], "Allow Resizing");
+const wrapped0 = await previewWidths();
+const near = (a, b, tolerance) =>
+  a.length === b.length && a.every((v, i) => v !== null && Math.abs(v - b[i]) <= tolerance);
+const pxOf = (tracks) => (tracks ?? "").split(" ").map((t) => Number.parseFloat(t));
+const rowsOnHeader = (m) => m.rows.every((row) => near(row, m.header, 0.5));
+record(
+  "G4-2 resizing wrap (Design chip Allow Resizing): RAC's container wraps the table; before any drag the columns keep their widths (≤ 1 px — no fr fold under min-content), and RAC's px tracks are the header's widths",
+  wrapped0.wrapped &&
+    wrapped0.resizer &&
+    near(wrapped0.header, unwrapped.header, 1) &&
+    near(wrapped0.header, pxOf(wrapped0.tracks), 0.5) &&
+    rowsOnHeader(wrapped0),
+  { unwrapped, wrapped0 },
+);
+// Drag the second column's resizer 60px to the left — mouse pointer events in the Preview (RAC
+// `useMove`; a coordinate press is taken by the Builder's overlay in Compare Mode).
+await page.evaluate(async (id) => {
+  const frame = document.querySelector("#previewFrame");
+  const doc = frame?.contentDocument;
+  const view = frame?.contentWindow;
+  const resizer = doc?.querySelector(
+    `[data-catalog-id="${CSS.escape(id)}"] .react-aria-ColumnResizer`,
+  );
+  if (!resizer || !view) return;
+  const r = resizer.getBoundingClientRect();
+  const th = resizer.closest("th").getBoundingClientRect();
+  const y = th.top + th.height / 2;
+  const at = (x, buttons) => ({
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    clientX: x,
+    clientY: y,
+    screenX: x,
+    screenY: y,
+    button: 0,
+    buttons,
+    pointerId: 1,
+    pointerType: "mouse",
+    isPrimary: true,
+    view,
+  });
+  const x0 = th.right;
+  resizer.dispatchEvent(new view.PointerEvent("pointerdown", at(x0, 1)));
+  resizer.dispatchEvent(new view.MouseEvent("mousedown", at(x0, 1)));
+  const wait = () => new Promise((resolve) => view.requestAnimationFrame(resolve));
+  for (let k = 1; k <= 6; k++) {
+    await wait();
+    view.dispatchEvent(new view.PointerEvent("pointermove", at(x0 - k * 10, 1)));
+    view.dispatchEvent(new view.MouseEvent("mousemove", at(x0 - k * 10, 1)));
+  }
+  await wait();
+  view.dispatchEvent(new view.PointerEvent("pointerup", at(x0 - 60, 0)));
+  view.dispatchEvent(new view.MouseEvent("mouseup", at(x0 - 60, 0)));
+  void r;
+}, g4Columns[1]);
+await page.waitForTimeout(800);
+const dragged = await previewWidths();
+const resizeAfter = await builderState();
+const canvasAfter = await canvasWidths();
+record(
+  "G4-3 resize drag: the column's width changes in the Preview, header cells · every Cell follow RAC's px tracks (≤ 0.5 px); the Canvas widths and the document are unchanged",
+  Math.abs(dragged.header[1] - wrapped0.header[1]) >= 20 &&
+    near(dragged.header, pxOf(dragged.tracks), 0.5) &&
+    rowsOnHeader(dragged) &&
+    near(canvasAfter, canvasBefore, 0.01) &&
+    resizeAfter.history === sortAfter.history + 1,
+  { wrapped0: wrapped0.header, dragged, canvasBefore, canvasAfter, resizeAfter },
+);
+await page.screenshot({ path: `${OUT}/g4-resized.png` });
+// Reopened: the Preview's sort and widths were runtime state — the document's come back.
+await page.reload();
+await ready().catch((error) => {
+  process.stdout.write(`BOOT-FAIL ${JSON.stringify(errors).slice(0, 3000)}\n`);
+  throw error;
+});
+await page.waitForTimeout(2500);
+await compareOn();
+const reopened = await previewWidths();
+const reopenedSort = await previewSort();
+record(
+  "G4-4 reopened: the document's order and widths (the Preview's sort · drag were not saved), still in RAC's container",
+  JSON.stringify(reopenedSort.order) === JSON.stringify(texts) &&
+    reopenedSort.ariaSort !== "ascending" &&
+    reopenedSort.ariaSort !== "descending" &&
+    reopened.wrapped &&
+    near(reopened.header, wrapped0.header, 1) &&
+    rowsOnHeader(reopened),
+  { reopened, reopenedSort, wrapped0: wrapped0.header },
+);
 await page.screenshot({ path: `${OUT}/compare.png` });
 record("G1-6 no page errors", errors.length === 0, { errors });
 writeFileSync(

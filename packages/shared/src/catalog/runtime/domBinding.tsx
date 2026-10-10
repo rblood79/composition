@@ -2,7 +2,17 @@ import { isBodyType } from "../../domain/predicates";
 import {
   catalogCellSpan,
   catalogTableSelectionPartHidden,
+  catalogTrackTableOf,
 } from "./tableTracks";
+import {
+  catalogTableResizable,
+  catalogTableSortedRows,
+  catalogTableSortOf,
+} from "./tableSort";
+import {
+  catalogColumnChildren,
+  catalogResizableTracks,
+} from "./tableOperationsDom";
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
 import {
   CATALOG_AUTHORED_PAINT_KEYS,
@@ -110,6 +120,7 @@ import {
 } from "./boxModel";
 import {
   CATALOG_NOWRAP_TEXT_BINDINGS,
+  CATALOG_ROW_SEPARATOR,
   type CatalogCompositionRoot,
   type CatalogConsumerNode,
 } from "./compositionRoot";
@@ -245,12 +256,17 @@ function catalogNodeLayoutCss(node: CatalogConsumerNode): CSSProperties {
  * the `tr` RAC makes inside the TableHeader (no node of its own): the TableHeader carries the
  * tracks as a variable its row reads (`Table.css` `.react-aria-TableHeader > tr`).
  */
-function catalogTableTrackStyle(node: CatalogConsumerNode): CSSProperties {
+function catalogTableTrackStyle(
+  node: CatalogConsumerNode,
+  resizable = false,
+): CSSProperties {
   // (Phase 2: a Cell's `colSpan` takes that many of its row's tracks.)
   if (node.bindingId === "cell" && catalogCellSpan(node) > 1)
     return { gridColumn: `span ${catalogCellSpan(node)}` };
-  const tracks = node.derivedProps?._tableTracks;
-  if (typeof tracks !== "string") return {};
+  const derived = node.derivedProps?._tableTracks;
+  if (typeof derived !== "string") return {};
+  // (Phase 4: in a resizable Table the tracks are RAC's column widths — `tableOperationsDom`.)
+  const tracks = resizable ? catalogResizableTracks(derived) : derived;
   return node.bindingId === "tableheader"
     ? ({ "--table-column-tracks": tracks } as CSSProperties)
     : { display: "grid", gridTemplateColumns: tracks };
@@ -1424,6 +1440,7 @@ function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
   children: ReactElement[],
+  context: CatalogDomContext,
 ): ReactElement {
   const type = node.ruleId!;
   const binding = getPrimitiveBinding(type);
@@ -1433,10 +1450,55 @@ function ruleDom(
       : binding?.source.kind === "rac" && DELEGATING_RAC_RENDERERS.has(type);
   if (delegating)
     throw new Error(`CATALOG_DOM_BINDING_REQUIRED:${node.definitionId}`);
-  let style = { ...authoredStyle(root, node), ...catalogTableTrackStyle(node) };
+  // ADR-257 Phase 4 — the RAC Table these parts belong to, and whether one of its Columns resizes
+  // (the Preview wraps it in RAC's `ResizableTableContainer` — the Canvas has no operations).
+  const domGet = (recordId: string) => root.domInputs.get(recordId);
+  const domType = (entry: CatalogConsumerNode) => catalogTypeName(root, entry);
+  const operationsTable =
+    type === "Table"
+      ? node
+      : type === "Column"
+        ? domGet(domGet(node.parentId)?.parentId ?? "")
+        : type === "TableHeader" || type === "Row"
+          ? catalogTrackTableOf(node, domGet, domType)
+          : undefined;
+  const resizable =
+    !!operationsTable &&
+    domType(operationsTable) === "Table" &&
+    catalogTableResizable(operationsTable, domGet, domType);
+  let style = {
+    ...authoredStyle(root, node),
+    ...catalogTableTrackStyle(node, resizable),
+  };
   const racProps = binding ? toRacProps({ props: node.props }, binding) : {};
   const { children: textChildren, ...rest } = racProps;
   const lower = type.toLowerCase();
+  // A resizable Column's document width is where its drag starts (S2 `width` is controlled — the
+  // widths a drag leaves are the Preview's, 사용자 결정 5).
+  if (lower === "column" && resizable) {
+    if (rest.width !== undefined) rest.defaultWidth = rest.width;
+    delete rest.width;
+  }
+  const columnOperations =
+    lower === "column" &&
+    (node.props.allowsSorting === true || resizable) &&
+    operationsTable
+      ? {
+          sortable: node.props.allowsSorting === true,
+          resizable: node.props.allowsResizing === true,
+          // (One Column of a resizable Table writes RAC's widths as the rows' tracks.)
+          writesTracks:
+            resizable &&
+            (domGet(node.parentId)?.children ?? []).find((columnId) => {
+              const column = domGet(columnId);
+              return (
+                !!column &&
+                domType(column) === "Column" &&
+                !catalogTableSelectionPartHidden(column, domGet, domType)
+              );
+            }) === node.id,
+        }
+      : undefined;
   // ADR-256 Phase 5g · 6c · 6d · 6e: a submenu's · picker's Popover takes its place from RAC's
   // SubmenuTrigger · Select · ComboBox · DatePicker · DateRangePicker (`end top` · `bottom start`,
   // their `PopoverContext`) — the type's default `placement` would override it (the reference
@@ -1593,7 +1655,28 @@ function ruleDom(
       // ADR-256 Phase 5i: a RAC Table names each row by its row header columns' cells — RAC throws
       // without one, so a header with none set makes its first column the row header.
       ...(lower === "column"
-        ? { isRowHeader: columnIsRowHeader(root, node) }
+        ? {
+            isRowHeader: columnIsRowHeader(root, node),
+            // ADR-257 Phase 4: the key RAC's sort names (`catalogTableColumnKey` — an author's HTML
+            // id takes its place, `withHtmlId`).
+            id: node.id,
+          }
+        : {}),
+      // ADR-257 Phase 4: RAC sorts through the Table (`onSortChange`) — the Preview's runtime
+      // state (사용자 결정 4); a Column's resizing needs the Table in RAC's container.
+      ...(lower === "table"
+        ? {
+            sortDescriptor: catalogTableSortOf(node.props.sortDescriptor),
+            ...(context.runtime?.setRuntimeProps
+              ? {
+                  onSortChange: (sortDescriptor: unknown) =>
+                    context.runtime!.setRuntimeProps!(node.id, {
+                      sortDescriptor: catalogTableSortOf(sortDescriptor),
+                    }),
+                }
+              : {}),
+            tableResizable: resizable,
+          }
         : {}),
       ...(STATIC_ITEM_TYPES.has(type)
         ? {
@@ -1630,7 +1713,15 @@ function ruleDom(
           // (RAC takes a render function as an item's children.)
           catalogStateChildren(node.id, () => content) as unknown as ReactNode,
         ]
-      : content),
+      : columnOperations
+        ? [
+            // (RAC's Column passes its sort direction to a render function.)
+            catalogColumnChildren(
+              content,
+              columnOperations,
+            ) as unknown as ReactNode,
+          ]
+        : content),
   );
   // Preview `hostOrphanRadio` / `hostOrphanCollectionItem`: RAC items need their host.
   if (lower === "radio" && collection !== "radiogroup")
@@ -1981,6 +2072,9 @@ const CatalogDomNode = memo(function CatalogDomNode({
         ? node.children
         : watches(node, root),
   );
+  // ADR-257 Phase 4: a TableBody orders its Rows by its Table's Preview sort (runtime props).
+  const sortTableId = node?.ruleId === "TableBody" ? node.parentId : undefined;
+  useWatchedChildren(root, runtime, sortTableId ? [sortTableId] : NO_CHILDREN);
   // A Column's row-header default reads its sibling columns (`columnIsRowHeader` — RAC throws
   // when an edit to another column leaves the table without one, ADR-256 Phase 5 Round 12).
   const columnHeaderId = node?.ruleId === "Column" ? node.parentId : undefined;
@@ -2175,6 +2269,30 @@ function withRuntime(
   return cloneElement(element, patch);
 }
 
+/**
+ * ADR-257 Phase 4 — an authored TableBody's Rows in its Table's Preview sort (the text of their
+ * cell in the sorted column). Data rows come sorted by value from the resolver (the rows a fixed
+ * height shows are the sorted data's first — `projectTableRows`).
+ */
+function tableBodyOrder(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  context: CatalogDomContext,
+): readonly string[] {
+  if (node.children.some((id) => id.includes(CATALOG_ROW_SEPARATOR)))
+    return node.children;
+  return (
+    catalogTableSortedRows(
+      node,
+      catalogTableSortOf(
+        context.runtime?.overrideOf(node.parentId)?.sortDescriptor,
+      ),
+      (recordId) => root.domInputs.get(recordId),
+      (entry) => catalogTypeName(root, entry),
+    ) ?? node.children
+  );
+}
+
 function renderNode(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -2231,7 +2349,9 @@ function renderNode(
   const children: ReactElement[] = (
     node.bindingId === "submenutrigger"
       ? submenuTriggerChildren(root, node)
-      : node.children
+      : node.ruleId === "TableBody"
+        ? tableBodyOrder(root, node, context)
+        : node.children
   ).flatMap((childId) => {
     const child = root.domInputs.get(childId);
     // A part its owner draws has no element of its own — but a toggle indicator in a layout
@@ -2497,7 +2617,7 @@ function renderNode(
         children,
         context,
       )
-    : ruleDom(root, node, children);
+    : ruleDom(root, node, children, context);
   const slot = itemSlotRole(root, node);
   return withHtmlId(
     root,

@@ -10,6 +10,7 @@ import { Keyboard } from "react-aria-components/Keyboard";
 import {
   Cell as RacCell,
   Column as RacColumn,
+  ResizableTableContainer,
   Row as RacRow,
   Table as RacTable,
   TableBody as RacTableBody,
@@ -60,10 +61,27 @@ import {
  * the author set no height, as the Canvas sizes it (`catalogTableHeight` — a `<table>` is
  * `box-sizing: border-box`); the other modes follow the rows.
  */
+/**
+ * ADR-257 Phase 4 — a resizable Table's `<table>` inside RAC's `ResizableTableContainer`: the
+ * container is the Table's box (its border, background, height and scroll — RAC measures it and
+ * gives the table `width: min-content`), the table only lays the rows out.
+ */
+const RESIZABLE_TABLE_STYLE: CSSProperties = {
+  border: "none",
+  borderRadius: 0,
+  background: "transparent",
+  boxShadow: "none",
+  margin: 0,
+  minHeight: 0,
+  maxWidth: "none",
+  overflow: "visible",
+};
+
 function CatalogTable({
   heightMode,
   height,
   selectionStyle,
+  tableResizable,
   style,
   ...props
 }: Record<string, unknown> & { style?: CSSProperties }) {
@@ -82,7 +100,8 @@ function CatalogTable({
     mode === "fixed" && typeof fixed === "number" && style?.height === undefined
       ? { height: fixed + border * 2 }
       : undefined;
-  return createElement(RacTable as ElementType, {
+  const boxStyle = quiet || sized ? { ...style, ...sized, ...quiet } : style;
+  const table = createElement(RacTable as ElementType, {
     "aria-label": "Table",
     ...props,
     // ADR-257 Phase 3 — S2 `selectionStyle` → RAC `selectionBehavior` (highlight = replace; the
@@ -94,9 +113,21 @@ function CatalogTable({
     "data-selection-style":
       selectionStyle === "highlight" ? "highlight" : undefined,
     // (An authored height wins, as on the Canvas — `catalogTableHeight` is the height when none.)
-    style: quiet || sized ? { ...style, ...sized, ...quiet } : style,
+    style: tableResizable ? RESIZABLE_TABLE_STYLE : boxStyle,
     "data-node-table": "",
   });
+  return tableResizable
+    ? createElement(
+        ResizableTableContainer as ElementType,
+        {
+          className: "react-aria-ResizableTableContainer",
+          "data-node-table-container": "",
+          "data-quiet": (props as Record<string, unknown>)["data-quiet"],
+          style: boxStyle,
+        },
+        table,
+      )
+    : table;
 }
 
 function CatalogKeyboard(props: HTMLAttributes<HTMLElement>) {

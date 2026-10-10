@@ -81,6 +81,83 @@
     }
   }
 
+  /* ADR-257 Phase 4 — S2 Column `allowsSorting`: the sort icon before the text while the column is
+     sorted (S2 `SortUpArrow` · `SortDownArrow`, 16px, 8px to the text — none at rest, as the
+     Canvas). */
+  .react-aria-Table[data-node-table] .react-aria-Column {
+    .sort-indicator {
+      display: inline-flex;
+      vertical-align: bottom;
+      margin-inline-end: 8px;
+      padding: 0;
+    }
+
+    .sort-indicator .react-aria-Icon {
+      display: inline-flex;
+    }
+  }
+
+  /* ADR-257 Phase 4 — S2 Column `allowsResizing`: RAC's `ResizableTableContainer` is the Table's
+     box (its border, background, height and scroll — `CatalogTable`), the table inside lays the
+     rows out at RAC's column widths. The values are `.react-aria-Table`'s. */
+  .react-aria-ResizableTableContainer[data-node-table-container] {
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 40px;
+    align-self: start;
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    word-break: break-word;
+    forced-color-adjust: none;
+
+    .react-aria-Column {
+      position: relative;
+    }
+
+    /* S2's resizer: a 12px handle over the column's end edge, shown while the column is hovered,
+       focused or resizing — a 1px line (2px while dragging, the informative color). */
+    .react-aria-ColumnResizer {
+      position: absolute;
+      top: 0;
+      inset-inline-end: -6px;
+      width: 12px;
+      height: 100%;
+      display: none;
+      z-index: 1;
+      background: none;
+      border: none;
+      cursor: col-resize;
+      touch-action: none;
+      outline: none;
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 6px;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background: var(--border-hover);
+      }
+
+      &[data-focus-visible]::before,
+      &[data-resizing]::before {
+        width: 2px;
+        background: var(--informative);
+      }
+    }
+
+    .react-aria-Column:hover .react-aria-ColumnResizer,
+    .react-aria-ColumnResizer[data-focus-visible],
+    .react-aria-ColumnResizer[data-resizing] {
+      display: block;
+    }
+  }
+
   /* ========== Virtual Scrolling ========== */
   .react-aria-TableVirtualizer {
     overflow: auto;

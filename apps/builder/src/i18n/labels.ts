@@ -492,6 +492,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Striped: "properties.striped",
   Bordered: "properties.bordered",
   "Allow Sorting": "properties.allowSorting",
+  "Allow Resizing": "properties.allowResizing",
   "Accept Directory": "properties.acceptDirectory",
   // ADR-201 FileUpload (2026-09-17)
   Endpoint: "properties.endpoint",

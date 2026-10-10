@@ -58,6 +58,11 @@ import {
 } from "../../collections/resolveCollectionItems";
 import { classifyTableCellDisplay } from "../../collections/cellValue";
 import { tableBinding } from "../bindings/Table.binding";
+import {
+  catalogTableColumnKey,
+  catalogTableSorted,
+  type CatalogTableSortSource,
+} from "../runtime/tableSort";
 
 export interface ResolvedCatalogNode {
   sourceId: NodeId | TemplateId;
@@ -388,6 +393,8 @@ export function resolveCatalogNode(
   tokenMode?: "light" | "dark",
   /** Data rows of bound collections (ADR-248 4e-4e); absent = bound collections show their template items. */
   rows?: CatalogRowSource,
+  /** ADR-257 Phase 4 — a bound Table's Preview sort (runtime state); absent = the data's order. */
+  tableSort?: CatalogTableSortSource,
 ): ResolvedCatalogNode {
   const library: CatalogLibrary = graph.library;
   const responsiveLayers = (node: NodeEntry): NodeResponsiveLayer[] =>
@@ -1021,6 +1028,7 @@ export function resolveCatalogNode(
             rowSet ? { rowSet } : records ? { records } : undefined,
           ),
           rowSet,
+          `${instancePath.join("/")}::${node.id}`,
         ),
       );
     for (const childId of selection?.ownedChildren?.(node.id, instancePath) ??
@@ -1074,6 +1082,8 @@ export function resolveCatalogNode(
   const projectTableRows = (
     projected: ResolvedCatalogNode | undefined,
     rowSet: readonly CatalogBoundRow[] | undefined,
+    /** The bound node's record identity (the instance — its template root collapses into it). */
+    tableId: string,
   ): ResolvedCatalogNode | undefined => {
     if (!projected || !rowSet) return projected;
     const typeOf = (resolved: ResolvedCatalogNode) =>
@@ -1093,7 +1103,21 @@ export function resolveCatalogNode(
     // on the header row and every projected Row; a cell is its column's grid area.)
     const columns = columnNodes.map((column, index) => ({
       key: resolveTableColumnKey(column.props, index),
+      // (Its RAC key — `catalogTableColumnKey` of its record.)
+      id: catalogTableColumnKey({
+        id: `${column.instancePath.join("/")}::${column.sourceId}`,
+        ...(column.htmlId ? { htmlId: column.htmlId } : {}),
+      }),
     }));
+    // ADR-257 Phase 4: the Preview's sort orders every data row by the column's field value
+    // before the rows its height shows are taken (사용자 결정 4 — the Canvas has no sort).
+    const sort = tableSort?.(tableId);
+    const sortKey =
+      sort && columns.find((column) => column.id === sort.column)?.key;
+    const ordered =
+      sort && sortKey !== undefined
+        ? catalogTableSorted(rowSet, sort.direction, (row) => row.values[sortKey])
+        : rowSet;
     const heightMode =
       projected.props.heightMode ??
       tableBinding.props.accepts.heightMode?.default;
@@ -1103,8 +1127,8 @@ export function resolveCatalogNode(
         : (tableBinding.props.accepts.height?.default as number | undefined);
     const shown =
       heightMode === "fixed" && typeof height === "number"
-        ? rowSet.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
-        : rowSet;
+        ? ordered.slice(0, Math.ceil(height / TABLE_MIN_ROW_HEIGHT) + 1)
+        : ordered;
     const tableContext: ParentContext = {
       definitionId: projected.definitionId,
       props: projected.props as Props,
@@ -1197,7 +1221,7 @@ export function resolveCatalogNode(
               // The rows past a fixed height are cut (the DOM's virtualizer scrolls them).
               visual: { ...body.visual, overflow: "hidden" },
               // The other modes grow with every row (the Builder samples them).
-              ...(shown === rowSet ? { rowCount: rowCountOf(rowSet) } : {}),
+              ...(shown === ordered ? { rowCount: rowCountOf(rowSet) } : {}),
               children: rowsOut,
             }
           : child,

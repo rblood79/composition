@@ -20,6 +20,7 @@ import {
 import { CatalogRuntime } from "./controller";
 import type { CatalogThemeState } from "./theme";
 import { catalogBoundRows } from "./dataBinding";
+import type { CatalogTableSort } from "./tableSort";
 import {
   createRuntimeState,
   type ApiEndpointDefinition,
@@ -91,6 +92,8 @@ export class CatalogPreviewSession {
   private shownPage: EntryId<"page"> | undefined;
   /** The Builder's collections: bound collections draw their rows from them. */
   private collections: readonly CollectionDataSource[] = [];
+  /** ADR-257 Phase 4 — each Table record's Preview sort (runtime state, never the document). */
+  private readonly tableSorts = new Map<string, CatalogTableSort>();
   /** The Builder's project variables (the data store's, H1). */
   private variables: readonly VariableDef[] = [];
   /**
@@ -286,6 +289,19 @@ export class CatalogPreviewSession {
       ? { ok: true }
       : { ok: false, reason: result.reason ?? "setState 실패" };
   };
+  /**
+   * ADR-257 Phase 4 — a Table's Preview sort (RAC `onSortChange`; undefined = the document's
+   * order). A bound Table's rows are sorted by the resolver before its height takes them, so the
+   * bound roots resolve again.
+   */
+  sortTable(tableId: string, sort: CatalogTableSort | undefined): void {
+    if (sort) this.tableSorts.set(tableId, sort);
+    else this.tableSorts.delete(tableId);
+    // (Only roots showing a binding resolve again — an authored Table's Rows are ordered by the
+    // DOM, `catalogTableSortedRows`.)
+    const errors = this.currentRoot?.refreshRows() ?? [];
+    if (errors.length) console.error("[CatalogPreview] sort:", ...errors);
+  }
   /** The record drawing `ownerId` on `recordId`'s chain (itself or an ancestor). */
   ownerRecord(recordId: string, ownerId: string): string | undefined {
     const root = this.currentRoot;
@@ -367,6 +383,7 @@ export class CatalogPreviewSession {
         breakpoint: this.breakpoint,
         rows: (binding, kind) =>
           catalogBoundRows(binding, this.collections, kind),
+        tableSort: (tableId) => this.tableSorts.get(tableId),
         state: {
           projectVariables: () => this.variables,
           read: (variableId, scope) => this.readState(variableId, scope),

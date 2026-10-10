@@ -160,6 +160,7 @@ export function catalogPreviewRuntime(
     showToast: (message) => toast.show(message),
     writeState: session.writeState,
     ownerRecord: (recordId, ownerId) => session.ownerRecord(recordId, ownerId),
+    sortTable: (tableId, sort) => session.sortTable(tableId, sort),
   });
 }
 

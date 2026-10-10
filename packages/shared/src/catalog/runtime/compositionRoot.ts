@@ -1,3 +1,4 @@
+import type { CatalogTableSortSource } from "./tableSort";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
   CATALOG_FORM_FIELDS,
@@ -542,6 +543,8 @@ export interface CatalogRootOptions {
   colorMode?: "light" | "dark";
   /** Data rows of bound collections (the data store); absent = template items only. */
   rows?: CatalogRowSource;
+  /** ADR-257 Phase 4 — the Preview's sort of a bound Table (runtime state); absent = none. */
+  tableSort?: CatalogTableSortSource;
   /**
    * The Builder's sample policy (ADR-157): a row owner that grows with its rows shows its first
    * `rowSample` rows; the later rows keep their layout box (the owner's height stays the DOM's)
@@ -1307,6 +1310,7 @@ export class CatalogCompositionRoot {
   /** Theme color mode (a switch builds a new root, like a breakpoint switch). */
   readonly colorMode: "light" | "dark";
   private readonly rows?: CatalogRowSource;
+  private readonly tableSort?: CatalogTableSortSource;
   /** `CatalogRootOptions.rowSample`. */
   readonly rowSample?: number;
   private readonly stateSource?: CatalogStateSource;
@@ -1404,6 +1408,7 @@ export class CatalogCompositionRoot {
     this.autoColumns = options.autoColumns;
     this.colorMode = options.colorMode ?? "light";
     this.rows = options.rows;
+    this.tableSort = options.tableSort;
     this.rowSample = options.rowSample;
     this.stateSource = options.state;
     this.definitionView = options.definitionView;
@@ -1982,6 +1987,7 @@ export class CatalogCompositionRoot {
       this.breakpoint,
       this.colorMode,
       this.rows,
+      this.tableSort,
     );
     const find = (
       node: ResolvedCatalogNode,
@@ -3503,6 +3509,7 @@ export class CatalogCompositionRoot {
         this.breakpoint,
         this.colorMode,
         this.rows,
+        this.tableSort,
       );
       const find = (
         node: ResolvedCatalogNode,
@@ -4282,6 +4289,7 @@ export class CatalogCompositionRoot {
             this.breakpoint,
             this.colorMode,
             this.rows,
+            this.tableSort,
           ),
         ),
       ),

@@ -14,6 +14,7 @@ import type {
 } from "../document/types";
 import type { CatalogCompositionRoot } from "./compositionRoot";
 import type { CatalogDomRuntime } from "./domBinding";
+import { catalogTableSortOf, type CatalogTableSort } from "./tableSort";
 
 /** The records an interaction's owner is drawn as (every row of a bound row template too). */
 function recordsOfOwner(
@@ -143,6 +144,8 @@ export interface CatalogPreviewInteractionsOptions {
   ownerRecord?: (recordId: string, ownerId: string) => string | undefined;
   /** A rule that could not run (the old Preview's warning — never a silent no-op). */
   report?: (rule: InteractionRule, reason: string) => void;
+  /** ADR-257 Phase 4 — a Table's sort set by RAC (`sortDescriptor` runtime prop): the session's. */
+  sortTable?: (tableId: string, sort: CatalogTableSort | undefined) => void;
 }
 
 /**
@@ -276,6 +279,8 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
       declared[key] = declaredKey(props?.[key]);
     this.declaredAt.set(id, declared);
     this.propOverrides.set(id, mergePatch(this.propOverrides.get(id), patch));
+    if ("sortDescriptor" in patch)
+      this.options.sortTable?.(id, catalogTableSortOf(patch.sortDescriptor));
     this.touch(id);
   }
   /** The record's runtime props still standing over their declarations. */
