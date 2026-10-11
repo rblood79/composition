@@ -147,10 +147,11 @@ function templatePathTypes(
 function nodeAncestorTypes(draft: CommandDraft, id: NodeId): string[] {
   const types: string[] = [];
   let cursor: string | undefined = id;
+  // (Each entry is read once: the owner read for the fill check is the next step's entry.)
+  let entry = draft.read(id);
   const seen = new Set<string>();
   while (cursor && !seen.has(cursor)) {
     seen.add(cursor);
-    const entry = draft.read(cursor);
     if (entry?.kind !== "node") break;
     types.push(definitionTypeName(draft.reader, entry.definitionId));
     const ownerId = draft.reader.ownerOf(cursor);
@@ -167,9 +168,11 @@ function nodeAncestorTypes(draft: CommandDraft, id: NodeId): string[] {
       types.push(...templatePathTypes(draft.reader, filled.address.templatePath));
       seen.add(ownerId!);
       cursor = draft.reader.ownerOf(ownerId!);
+      entry = cursor ? draft.read(cursor) : undefined;
       continue;
     }
     cursor = ownerId;
+    entry = owner;
   }
   return types;
 }
