@@ -2559,9 +2559,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         "div",
         {
           ...marker(input),
+          // The rule's class · size · variant: the generated `.react-aria-Toast` sheet sizes and
+          // paints it as the Canvas does (without the class an empty Toast was its text's height).
+          ...chrome(input, "Toast"),
           role: "alert",
           "data-position": str(props.position || "top-right"),
-          "data-variant": str(props.variant || "info"),
           "data-max-toasts": opt(props.maxToasts),
           "data-accent": opt(props.accentColor),
           style: input.style,

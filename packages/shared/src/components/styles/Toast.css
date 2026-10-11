@@ -66,6 +66,15 @@
 
 /* Individual Toast (런타임 region 내부 한정) */
 .react-aria-ToastRegion .react-aria-Toast {
+  /* 생성 sheet (`generated/Toast.css` — 문서의 Toast 노드용, 2026-10-12 부터 index.css 가 싣는다)
+     가 같은 class 에 주는 상자 값을 런타임 toast 의 종전 값으로 되돌린다: 가로 줄 · 내용 높이 ·
+     테두리 없음 · 상속 글자 크기 · content-box (min-width 280 이 내용 폭). */
+  flex-direction: row;
+  box-sizing: content-box;
+  width: auto;
+  height: auto;
+  border: none;
+  font-size: inherit;
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-sm, 8px);

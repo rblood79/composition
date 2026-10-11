@@ -53,6 +53,7 @@
 @import "./Link.css";
 @import "./Badge.css";
 @import "./Toast.css";
+@import "./generated/Toast.css"; /* 문서의 Toast 노드 (`delegatedDom.tsx` `toast` — class react-aria-Toast) 의 상자 · 칠. 수동 Toast.css 는 런타임 ToastRegion 안만 담당 (2026-10-12) */
 
 /* ============================================
    종전 index.css 순서 (theme 제외) — 아래는 2026-09-16 이전 파일 그대로

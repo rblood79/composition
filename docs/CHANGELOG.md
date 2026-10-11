@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Toast · ColorPicker — Canvas 와 Preview 상자 맞춤] - 2026-10-12
+
+### Fixed
+
+- **Toast 노드가 Preview 에서 글자 높이로만 그려짐** (Canvas 48 · Preview 24, 테두리 · 바탕 없음):
+  - **Why**: 문서의 Toast 노드를 그리는 DOM (`delegatedDom.tsx` `toast`) 에 rule class 가 없었고, catalog 가 만든 `generated/Toast.css` 는 어디서도 싣지 않았다. 생성 CSS 로드 인벤토리는 이 파일을 「수동 Toast.css 가 같은 class 담당」 으로 판정했지만, 수동 sheet 는 `854dbf2a0` 부터 런타임 `ToastRegion` 안만 담당한다.
+  - 수정: DOM 이 `react-aria-Toast` class 와 `data-size` · `data-variant` 를 싣고 (`chrome()`), Preview 번들 (`styles/index.css`) 이 생성 sheet 를 싣는다. 같은 class 를 쓰는 런타임 toast 에 새는 상자 값 (세로 줄 · 높이 · 테두리 · border-box · 글자 크기) 은 수동 `Toast.css` 런타임 블록이 종전 값으로 되돌린다 — 생성 sheet 를 끈 상태와 계산값 9개가 같다 (live).
+- **ColorPicker 둘레에 Canvas 만 1px 테두리 · 바탕**:
+  - **Why**: RAC ColorPicker 는 자기 요소가 없고 (자식에게 색 context 만 준다) DOM shell 도 상자를 그리지 않는데, rule 의 variant 칠 (바탕 · 테두리) 을 Canvas 만 그렸다.
+  - 수정: ColorPicker rule 의 세 variant 칠을 투명으로 (`componentRulesTable.ts`). variant 이름은 남긴다 (S2 · RAC 에 없는 `variant` 의 존폐는 별도 결정).
+  - 시험: `toastColorPickerShell.test.tsx` 2 (원복 RED 각 1) · live — 빈 Toast Canvas = Preview 1920 × 48 · ColorPicker 상자 같음 · 테두리 · 바탕 0.
+
 ## [ADR-257 Implemented — Table 열 트랙] - 2026-10-12
 
 ### Changed

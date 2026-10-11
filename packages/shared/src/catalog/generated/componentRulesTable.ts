@@ -2640,44 +2640,49 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   ColorPicker: {
     defaultVariant: "default",
     defaultSize: "M",
+    // RAC ColorPicker 는 자기 요소가 없다 (자식에게 색 context 만 준다 — react-aria.adobe.com
+    //   ColorPicker). composition 의 DOM shell 도 상자를 그리지 않는다 (`ColorPicker.css` —
+    //   `background: none; border: none`). 종전 variant 칠 (바탕 base · layer-2 + 테두리) 은
+    //   Canvas 만 그려 1px 테두리가 Preview 와 갈렸다 (2026-10-12) → 세 variant 모두 투명.
+    //   variant 이름은 남긴다 — S2 · RAC 에 없는 `variant` 의 존폐는 조사 §4.2 F 묶음 결정.
     variants: {
       default: {
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
+          border: "{color.transparent}",
         },
       },
       compact: {
         fill: {
           default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
+          border: "{color.transparent}",
         },
       },
       expanded: {
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border-hover}",
+          border: "{color.transparent}",
         },
       },
     },

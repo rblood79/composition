@@ -29,7 +29,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // B. 수동 CSS 가 같은 `.react-aria-X` 를 담당 (base.css/forms.css 또는 컴포넌트 모듈 import)
   FieldError: "B 수동 — base.css 등 61 규칙",
   Skeleton: "B 수동 — Skeleton.css (Skeleton.tsx import)",
-  Toast: "B 수동 — Toast.css (Toast.tsx import)",
   Breadcrumb: "B 수동 — Breadcrumbs.css (Breadcrumbs.tsx import)",
   // C. 컴포넌트가 resolveComponentRule 로 catalog 를 런타임 인라인 소비 (생성 CSS 는 설계상 dead)
   Avatar: "C 런타임 인라인 (Avatar.tsx)",
@@ -172,15 +171,16 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-09 — FormField · TailSwatch type 삭제 (미로드 2) −2 · 미로드 −2.
   // 2026-10-12 — ADR-256 G5: DialogTrigger · TooltipTrigger · MenuTrigger 는 요소가 없다 (RAC — `display:
   //   contents`, CSS 생성 안 함) −3 · index −3.
-  it("인벤토리 집계 — 생성 101 · index 78 · 모듈 0 · 미로드 23 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer)", () => {
-    // (ADR-256 Phase 8e: − DisclosureHeader.)
+  it("인벤토리 집계 — 생성 101 · index 79 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드)", () => {
+    // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
+    //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
     expect(generated.length).toBe(101);
-    expect(indexImported.size).toBe(78);
+    expect(indexImported.size).toBe(79);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(23);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(22);
   });
 });
