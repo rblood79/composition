@@ -2,12 +2,28 @@
 
 ## Status
 
+Implemented — 2026-10-12 (Phase 0 ~ 3 · G0 ~ G4 · G5 — 아래 Phase 3 인용과 `### Live Exercise`)
+
+Accepted — 2026-10-12 (사용자 `/execute-adr 258` · 리뷰 round 2 pending 0 · CRITICAL/HIGH 전부 fixed)
+
+> **Phase 0 (G0) 완료 — 2026-10-12**: 기존 노드 0 (저장소 · 사용자 로컬 프로젝트) · Preview 는 ColorSlider 하나로 화면 전체가 빈다 (R3 보다 넓음) · RAC oracle 444 행 (`apps/builder/tests/fixtures/adr258-rac-gradient.json`) · wheel 0° = 3시 시계 방향 (Skia sweep 과 회전 없이 같음) · Skia 는 다층 fill 있음 / 층 blend 는 노드 단위로 · premul flag · 고리 clip 은 확장. 상세: breakdown §5.
+>
+> **사용자 결정 1 · 2 — 2026-10-12**: (1) 기존 노드 = **contract 거부만** (대상 0 — 전환 코드 없음), (2) thumb · track 값 = **지금 수동 CSS 그대로** (화면 무변경 — 레퍼런스 · S2 값으로 바꾸지 않는다).
+
+> **Phase 1 (G1) 완료 — 2026-10-12**: 공용 함수 `runtime/colorControlGradient.ts` (그라데이션 · thumb · ColorSlider 글자 · key) + `document/colorValue.ts` (`racColor` 판정 · 폴백 props · 정규화 · 검증기 마지막 줄). D2 accepts (ColorSlider `label` 은 소비처인 Label 노드와 함께 Phase 2 — `deadSurfaceRemoval` 게이트). 쓰기 경로 — 패널 (`catalogColorControlPatchCommand`, 대상마다) · AI 수정 (`writeCommands`) · AI 생성 (`create` 초기 props) · compiler manifest `rac-color`. DOM 은 같은 폴백 props + Decision 7 key. G1: oracle 444 행 일치 · 색 구문 표 · 정규화 전수 · key · host 통합 5 · 원복 RED 7. live (headed Chrome · Compare Mode · Design 패널): Preview 세 요소 그려짐 (빈 화면 해소) · `red` field 오류 · revision 불변 · 채널 Red 한 번 = 공간 rgb 동반 · undo 한 번 · page error 0. resolver `_colorGradient` · thumb layout · 보류 서술 삭제는 소비처 (Canvas) 와 함께 Phase 2 로 옮겼다.
+
+> **Phase 2 (G2 · G4) 완료 — 2026-10-12**: 레퍼런스 노드 트리 — `ColorArea > ColorThumb` · `ColorSlider > Label {label} + SliderOutput + SliderTrack > ColorThumb` · `ColorWheel > ColorWheelTrack + ColorThumb` (새 type ColorThumb · ColorWheelTrack, 원본 3 · AI 생성도 원본, **contract 41** — 착수 시점 최신 40 + 1). Canvas — 파생 record 값 (`_colorGradient` · `_colorThumb`, `runtime/colorControlParts.ts`) 을 `skiaPrimitive` 4 (`color_area_fill` rgb `Screen` 층 · `color_slider_track` · `color_wheel_track` 고리 clip · `color_thumb`) 가 그리고, Skia 그라데이션은 premultiplied 보간 (CSS 와 같음), thumb 배치는 RAC 와 같은 자리 (`catalogColorPartLayout`). 수동 CSS → rule (값 그대로 — 사용자 결정 2): ColorArea · ColorSlider · ColorWheel · ColorThumb 생성 CSS (`skipStateStyles` — 기본 ring · disabled opacity 를 내지 않음), 옛 수동 sheet 3 은 builder chrome 전용으로 남김. G2 — live pixelmatch 0.1 · 16 fixture × 라이트 · 다크 = 32/32 (차이 비율 0 ~ 0.002 % ≤ 0.1 %, 모서리 3px L3e 별도 기록), premul flag 원복 RED (hsl · hsb 3 FAIL). G4 — G3 prop 축 하니스 60/60 (Slider 포함) · parity 811 · 원복 RED 6. 엔진 관찰 1 (grid item 의 stretch 폭이 absolute 자식 배치에 안 쓰임 — rule `width: 100%` 로 같은 결과, 별도 작업 후보). 상세: breakdown §5 Phase 2 결과.
+
+> **사용자 결정 3 — 2026-10-12**: 팔레트 = **(a) forms 의 ColorField 뒤** (ColorArea · ColorSlider · ColorWheel).
+
+> **Phase 3 (G3 · G5) 완료 — 2026-10-12**: 팔레트 Forms 에 ColorField 뒤 세 항목 (catalog category `forms` · 글리프 Blend · Rainbow · Disc3 — 같은 줄의 ColorField Palette 와 다르게) · `PALETTE_REUSABLE_ORIGIN_TYPES` 로 이동 (팔레트 원본 = Components page 에 ColorField 뒤로) · `paletteOracle` 재캡처. Phase 2 누락 1건 수리 — ColorSlider binding 에 S2 `label` accept (Design 패널 Label 필드 — 소비처 = 원본 Label 노드 `{label}`, `deadSurfaceRemoval` 표에서 뺌). G3 — live 하니스 `apps/builder/scripts/adr258-color-controls-live.mjs` 17/17 (팔레트 · Components page · prop 없는 ColorSlider · Design 패널 기본값 편집 + undo · redo · 새로고침 · Preview 끌기 revision 불변 · 끌기 중 · 뒤 비기본 prop 편집에 끌기 값 유지 · 끌기 → 기본값 편집 · undo · redo 재시작 · 무채색 hue · ColorSlider 채널 / ColorArea 축 한 번 선택 + undo 한 번 · `red` 거부 · Label 글자 · 다크 테마 · page error 0), 원복 RED (key 상수화 → 3 FAIL). G5 — 셰이더 생성 수 실측 (`adr258-shader-count-live.mjs`, Color 조작기 10개 문서): 정지 60 프레임 0 · 값 편집 1회 2 (편집한 hsl ColorArea 의 두 층 = 상자 하나) · 카메라 이동 0, 두 번 같은 값 (A 등급) — 다만 pre-push ratchet 의 seed 에 Color 조작기가 없어 이 카운트는 ratchet.json 에 넣지 않았다 (별도 작업 후보). initial 번들 (gzip) Builder 1,266,667 → 1,272,624 (+5,957) · Preview 288,326 → 289,750 (+1,424) — 상한 1,421,000 / 623,000 안. 상세: breakdown §5 Phase 3 결과.
+
 Proposed — 2026-10-11
 
 - 사용자 요청: `/create-adr Color 계열 Canvas 그라데이션 + S2 채널 · 색 공간 prop` (2026-10-11)
 - 방향을 정한 사용자 원문: 2026-10-11 S2 색 축 작업 중 「prop 만 넣으면 Preview (RAC) 그라데이션만 바뀌어 D3 대칭이 더 벌어진다」 는 질문에 사용자가 **「Canvas 그라데이션까지 구현」** 을 골랐다 — 「prop 만 넣는다」 와 「방침 유지 (보류)」 는 기각. 이것은 2026-06-11 방침 「Color 계열은 빌더 완성 후 제일 나중에 ProgressCircle 구조로 진짜 구현」 (`ColorArea.binding.ts:4` · `componentCatalog.ts:1146-1152`) 을 앞당긴 결정이다. 같은 날 ColorSwatch `colorName` (접근성 이름 — 화면 무변경) 은 별도로 넣었다 (`83eadc73a`).
 - 사용자가 이미 답한 확인 항목: D2 정본 = S2 1.8.0 고정 (2026-10-09 「S2 1.8.0 고정 우선」) · Skia 전용 시각 효과 금지 (작업 상태 guard — D3 대칭) · 저장 문서 전환은 로드 시 1회 전환 (2026-10-10) · Preview 의 조작 결과는 Preview 실행 상태이고 문서에 쓰지 않는다 (ADR-250) · 기본 요소의 값 차이는 react-aria.adobe.com 레퍼런스 예제 기준 (ADR-253).
-- 리뷰: round 1 (Codex, 2026-10-10 — [reviews/258.md](reviews/258.md)) HIGH 2 · MEDIUM 2 → **2026-10-11 문서 수리** (Decision 7 ~ 9 · R9 ~ R11 · G1 · G3 보강): h1 문서 `defaultValue` 편집 · undo 가 Preview RAC 상태를 다시 초기화 (Decision 7 — Slider `key` 선례) · h2 색 값 = 설치 `parseColor` 가 받는 구문만, transaction 전 거부 (Decision 1 · 값 타입 `racColor`) · m1 색 공간 · 채널 · 기본값을 한 명령에서 같이 정규화 (Decision 8) · m2 ColorSlider 의 Label · SliderOutput 글자 = RAC 가 쓰는 글자 (Decision 9). 수리 검증 round 2 (Codex) HIGH 1 · LOW deferred 1 → **2026-10-11 문서 수리**: r2-h1 은 색 공간 · 원래 채널 · alpha 의 수치 tuple key (Decision 7), r2-l1 은 AI 생성/수정의 별도 정규화 호출 지점과 host 통합 검증 (Decision 8 · G1/G3)을 명시했다. 두 항목의 설계 수리 완료 · pending 0, 추가 리뷰 round 없음. 제품 구현 · 실제 AI 호출/브라우저 gate 통과는 아직 미검증이다.
+- 리뷰: round 1 (Codex, 2026-10-10 — [reviews/258.md](../reviews/258.md)) HIGH 2 · MEDIUM 2 → **2026-10-11 문서 수리** (Decision 7 ~ 9 · R9 ~ R11 · G1 · G3 보강): h1 문서 `defaultValue` 편집 · undo 가 Preview RAC 상태를 다시 초기화 (Decision 7 — Slider `key` 선례) · h2 색 값 = 설치 `parseColor` 가 받는 구문만, transaction 전 거부 (Decision 1 · 값 타입 `racColor`) · m1 색 공간 · 채널 · 기본값을 한 명령에서 같이 정규화 (Decision 8) · m2 ColorSlider 의 Label · SliderOutput 글자 = RAC 가 쓰는 글자 (Decision 9). 수리 검증 round 2 (Codex) HIGH 1 · LOW deferred 1 → **2026-10-11 문서 수리**: r2-h1 은 색 공간 · 원래 채널 · alpha 의 수치 tuple key (Decision 7), r2-l1 은 AI 생성/수정의 별도 정규화 호출 지점과 host 통합 검증 (Decision 8 · G1/G3)을 명시했다. 두 항목의 설계 수리 완료 · pending 0, 추가 리뷰 round 없음. 제품 구현 · 실제 AI 호출/브라우저 gate 통과는 아직 미검증이다.
 - 범위 밖 (이 ADR 이 손대지 않는 것): ColorPicker (RAC `ColorPicker > DialogTrigger > Button + Popover > Dialog > …` 조립 — ADR-256 식 picker 전환은 별도) · ColorField (`channel` · `colorSpace` 이미 있음) · ColorSwatch · ColorSwatchPicker (ADR-239 · 256 Phase 5 완료) · S2 ColorSlider 의 체커보드 바탕 (alpha 채널 밑 `repeating-conic-gradient` — S2 전용 장식, RAC 레퍼런스에 없음).
 
 ## Context
@@ -115,7 +131,7 @@ Proposed — 2026-10-11
 
 **기각 사유**: A — 사용자가 기각했고 대칭 위반이 축마다 늘어난다. C — DOM 과 다른 색 (stop 보간 ≠ 정확 변환), Skia 전용 시각. D — Preview 없이는 Canvas 가 못 그리고 채널 방향이 거꾸로다. E2 — ADR-256 이 부품을 노드로 옮긴 방향을 되돌리고, Label · SliderOutput 은 어차피 노드여야 한다.
 
-> 구현 상세: [258-color-controls-canvas-gradient-breakdown.md](design/258-color-controls-canvas-gradient-breakdown.md)
+> 구현 상세: [258-color-controls-canvas-gradient-breakdown.md](../design/258-color-controls-canvas-gradient-breakdown.md)
 
 ### 사용자 결정 3건 (execute-adr 가 해당 Phase 에 닿을 때 묻는다)
 
@@ -156,7 +172,12 @@ HIGH 위험 R1 → G2, R2 → G1, R3 → G3, R9 → G1 · G3, R10 → G3 가 대
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 실제 builder 에서 exercise 한 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+2026-10-12 · 실행자 (Playwright headed Chrome · 저장된 인증 세션 · dev 5173 · Compare Mode) — 사용자 confirm 아님.
+
+- **G3 — `apps/builder/scripts/adr258-color-controls-live.mjs` 17/17**: 팔레트 검색 「color」 → Forms 의 color field · area · slider · wheel 순서 · 팔레트 클릭으로 세 원본 트리 (`ColorSlider > Label + SliderOutput + SliderTrack > ColorThumb` 등) · Components page 원본 순서 (ColorField 뒤) · prop 없는 ColorSlider 가 Preview 에 그려짐 (「색조」 · 「0°」 · 빨강 thumb = Canvas `#ff0000ff`) · Design 패널 Default Value `hsl(240, …)` → Preview 240° · Canvas thumb `#0000ffff` (한 step) · undo · redo 같이 · Preview thumb 끌기 → 90° · revision 불변 · 끌기 중 (pointer down) label 편집 + 뒤 패널 label · orientation · isDisabled 편집에 끌기 값 270° 유지 · 끌기 뒤 기본값 편집 → 60° 에서 재시작 · undo → 240° (끌기 값 아님) · redo → 60° · 무채색 `hsl(0, 0%, 50%) → hsl(120, 0%, 50%)` 0° → 120° (Canvas thumb `#00ff00ff`) · undo 0° · ColorSlider 채널 Red / ColorArea X Channel Red 한 번 선택 → `colorSpace: rgb` 같은 step · undo 한 번 · `red` 입력 field 오류 · revision 불변 · Label 비우면 RAC 채널 이름 (Preview · Canvas 같은 글자) · 새로고침 뒤 props · Preview 같음 · 다크 테마 → Preview thumb 테두리 rgb(255,255,255) → rgb(23,23,23) · Canvas 고리 픽셀 바뀜 · page error 0. 원복 RED — key 상수화 → L-5 · L-8 · L-9 FAIL (Canvas 는 따라가고 Preview 는 그대로), 복원 `cmp`.
+- **G2 — `apps/builder/scripts/adr258-color-parity-live.mjs`**: fixture 16 × 라이트 · 다크 = 32/32 (pixelmatch 0.1, 비율 0 ~ 0.002 %), premul 원복 RED 3 FAIL (Phase 2).
+- **G5 — `apps/builder/scripts/adr258-shader-count-live.mjs`**: Color 조작기 10개 · 정지 0 / 값 편집 2 / 카메라 이동 0 (두 번 같은 값).
+- Phase 1 live (Design 패널 색 필드 · `red` 거부 · 채널 Red 한 step · undo) — 위 Phase 1 인용.
 
 ## Consequences
 

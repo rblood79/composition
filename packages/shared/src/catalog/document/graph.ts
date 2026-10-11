@@ -1,3 +1,4 @@
+import { catalogColorControlPropsError } from "./colorValue";
 import { LIBRARY_CONTRACT_VERSION } from "./types";
 import { catalogPropValueFits } from "./valueType";
 import type {
@@ -751,6 +752,21 @@ export class CatalogGraph {
       const definition = { ...found, ...contractOf(found) };
       this.validatePropWrites(entry.props, definition.accepts, entry.id);
       this.validatePropChoices(entry.props, definition, get, entry.id);
+      // ADR-258 Decision 8 — the last line: a color space · channel combination RAC throws on
+      //   (the panel and the AI normalize before writing; import · paste · direct commands land here).
+      const colorError = catalogColorControlPropsError(
+        found.name.split("/")[0],
+        Object.fromEntries(
+          Object.entries(entry.props)
+            .filter(([, write]) => write.kind === "set")
+            .map(([key, write]) => [key, (write as { value?: unknown }).value]),
+        ),
+      );
+      if (colorError)
+        throw new CatalogValidationError(
+          "PROP_COMBINATION_MISMATCH",
+          `${entry.id}: ${colorError}`,
+        );
       this.validateTokenFields(entry.props, definition.accepts, get, entry.id);
       this.validateTokenFields(entry.visual, undefined, get, entry.id);
       this.validateStateTokenRules(entry.stateRules, get, entry.id);

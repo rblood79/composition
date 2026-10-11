@@ -44,7 +44,7 @@ const REMOVED: Record<string, readonly string[]> = {
   DateInput: ["variant"],
   ColorPicker: ["label", "isDisabled"],
   ColorSwatchPicker: ["colorSpace", "columns"],
-  ColorSlider: ["label"],
+  // (ColorSlider `label` 은 ADR-258 Phase 3 에 되살렸다 — 소비처 = 원본 Label 노드의 `{label}`, Phase 2.)
   FileUpload: ["acceptedFileTypes", "allowsMultiple", "acceptDirectory"],
   Input: ["value", "variant", "isDisabled", "isReadOnly", "isInvalid"],
   InlineAlert: ["heading", "children"],

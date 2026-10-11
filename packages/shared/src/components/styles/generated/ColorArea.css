@@ -1,0 +1,65 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog ColorArea — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorArea {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    width: 100%;
+    height: 180px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+    contain: layout style;
+    touch-action: none;
+
+  /* Default size */
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  --icon-size: 18px;
+}
+
+.react-aria-ColorArea[data-size="S"] {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  --icon-size: 14px;
+}
+
+.react-aria-ColorArea[data-size="M"] {
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  --icon-size: 18px;
+}
+
+.react-aria-ColorArea[data-size="L"] {
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  --icon-size: 22px;
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorArea {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ColorArea[data-disabled] {
+    background: gray !important;
+  }
+
+  .react-aria-ColorArea[data-disabled] .react-aria-ColorThumb {
+    background: gray !important;
+  }
+
+
+} /* @layer components */

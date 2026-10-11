@@ -150,7 +150,9 @@ export type InspectorFieldKind =
   | "column-size"
   | "column-static-size"
   // ADR-256 Phase 9 — a Calendar's `visibleDuration`: a count with a Days · Weeks · Months unit.
-  | "calendar-duration";
+  | "calendar-duration"
+  // ADR-258 — a Color control's color value: what RAC's `parseColor` accepts (`racColor`).
+  | "rac-color";
 
 /**
  * `kind:"items-manager"` 의 개별 항목 인라인 편집 스키마.

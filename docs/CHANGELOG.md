@@ -11,6 +11,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-258 Implemented — Color 조작기 팔레트 · live 검증] - 2026-10-12
+
+### Added
+
+- **팔레트 Forms 에 color area · color slider · color wheel** (ADR-258 Phase 3, 사용자 결정 3 「ColorField 뒤」): 클릭하면 레퍼런스 노드 트리 원본 (thumb · track 부품 포함) 이 들어간다. Components page 에도 ColorField 뒤에 세 원본이 보인다.
+- **ColorSlider 의 Label 필드** (Design 패널 Content): S2 `label` — 비우면 RAC 가 채널 이름을 쓴다 (Phase 2 에서 빠졌던 패널 필드).
+
+### Verified
+
+- G3 live 하니스 (`apps/builder/scripts/adr258-color-controls-live.mjs`) 17/17 — 패널 기본값 편집이 새로고침 없이 Canvas · Preview 에 같이 · undo · redo · 새로고침 유지 · Preview 끌기는 문서 revision 불변 · 끌기 중 · 뒤 label · orientation · disabled 편집에 끌기 값 유지 · 기본값 편집 · undo · redo 와 무채색 hue 편집은 Preview 를 문서 값에서 다시 시작 · 채널 / 축 한 번 선택에 색 공간 동반 · `red` 거부 · 다크 테마 thumb 고리 · page error 0.
+- G5 — Color 조작기 10개 문서의 셰이더 생성 수 (`adr258-shader-count-live.mjs`): 정지 0 · 값 편집 1회에 그 상자 하나 · 카메라 이동 0. initial 번들 gzip Builder +5,957 B · Preview +1,424 B (상한 안).
+
+## [ADR-258 Phase 2 — Color 조작기 Canvas 그라데이션 · thumb · 노드 트리] - 2026-10-12
+
+### Added
+
+- **Canvas 가 ColorArea · ColorSlider · ColorWheel 을 Preview 와 같게 그린다** (ADR-258 Phase 2): ColorArea 의 색 영역 (rgb 세 층 `screen` · hsl/hsb 두 층), ColorSlider 의 채널 막대, ColorWheel 의 색상 고리, 그리고 값 자리의 thumb (표시색 · 고리 · 그림자). 전에는 흰 상자 (ColorWheel 은 속이 찬 원판) 였다. 값 · 채널 · 색 공간 · disabled 를 바꾸면 새로고침 없이 따라온다.
+  - Skia 그라데이션이 CSS 처럼 premultiplied 로 보간한다 (투명 stop 이 섞인 hsl/hsb 층) · 고리 clip · 층 blend.
+  - 시험: G2 live pixelmatch — 16 fixture × 라이트 · 다크 32/32 (차이 0 ~ 0.002 %), premul 원복 RED.
+- **레퍼런스 노드 트리**: `ColorArea > ColorThumb`, `ColorSlider > Label + SliderOutput + SliderTrack > ColorThumb`, `ColorWheel > ColorWheelTrack + ColorThumb` (새 type ColorThumb · ColorWheelTrack, 원본 3). ColorSlider 의 Label 은 비워 두면 RAC 처럼 채널 이름, SliderOutput 은 채널 값이다. AI 가 넣는 Color 조작기도 이 원본이다.
+
+### Changed
+
+- **library contract 40 → 41** — 부품 노드 없는 ColorArea · ColorSlider · ColorWheel 문서는 열지 않는다 (사용자 결정 1 — 저장소 · 로컬 프로젝트에 해당 노드 0).
+- **thumb · track 의 모양이 catalog rule 로** — 값은 옛 수동 CSS 그대로 (16px · 테두리 4px · 그림자 · focus 20px · track 20px · 세로 150 × 20 · disabled 회색). Preview 는 생성 CSS 4 (ColorArea · ColorSlider · ColorWheel · ColorThumb) 를 읽고, 옛 수동 sheet 는 Builder 패널의 색 고르기 UI 전용으로 남는다.
+
+## [ADR-258 Phase 0 · 1 — Color 조작기 색 축 prop · 색 값 검사] - 2026-10-12
+
+### Added
+
+- **ColorArea · ColorSlider · ColorWheel 의 S2/RAC 색 축 prop** (ADR-258 Phase 1): ColorArea `colorSpace` · `xChannel` · `yChannel` · `xName` · `yName` · `defaultValue`, ColorSlider `channel` (기본 `hue`) · `colorSpace` · `defaultValue` (기본 `hsl(0, 100%, 50%)`), ColorWheel `defaultValue`. 이름 · 값 · 기본값은 S2 1.8.0 = RAC 1.21.0 그대로. Canvas 그라데이션 · thumb 는 Phase 2 (지금 Canvas 는 상자).
+- **색 값은 RAC 가 읽는 구문만** (`racColor`): `#rrggbb` · `#rgb(a)` · 쉼표 `rgb()` · `hsl()` · `hsb()` (+ alpha). `red` · `rgb(255 0 0)` · `oklch()` 는 Design 패널이 field 오류로 막고 (명령 없음), AI 도구 · 문서 검증기도 거부한다.
+- **색 공간 · 채널을 한 번에 맞춤**: 공간에 없는 채널을 고르면 공간이 같이 바뀐다 (hsl · hue ColorSlider 에서 Red → rgb) — Design 패널 · AI 수정 · AI 생성이 같은 규칙 (`normalizeColorControlPatch`) 으로 한 step, undo 한 번에 둘 다 돌아간다. 값만 바꿔 공간이 바뀌면 이전 공간을 같이 적어 보기가 그대로다.
+
+### Fixed
+
+- **ColorSlider 하나가 Preview 화면 전체를 비움**:
+  - **Why**: RAC ColorSlider 는 `value` · `defaultValue` 없이 던지는데 (`useColorSliderState requires a value or defaultValue`), binding 에 값 prop 이 없어 Preview 루트가 내려갔다 — 같은 페이지의 다른 요소도 사라졌다.
+  - 수정: binding 기본값 + DOM 이 Canvas 와 같은 폴백 props (`catalogColorControlProps` — 빈 값 · 손상 값은 기본값, 공간 밖 채널은 그 공간의 채널) 를 RAC 에 넘긴다. Preview 의 Color 조작기 key 는 문서 기본값의 원래 공간 · 채널 수치라 기본값 편집 · undo 가 Preview 를 다시 시작한다 (Decision 7).
+  - 시험: G1 — 설치 RAC oracle 444 행 (그라데이션 · thumb · ColorSlider 글자 en-US/ko-KR) 문자열 일치 · 색 구문 표 · 정규화 전수 (결과를 RAC 에 넣어 던지지 않음) · key · host 통합 5 (패널 · AI 수정 · AI 생성 · 검증기 거부 시 revision 불변). 원복 RED 7. live — Preview 세 요소 그려짐 · `red` 입력 거부 · 채널 Red 한 번 선택 = 공간 rgb 동반 · undo 한 번 · page error 0.
+
 ## [Toast · ColorPicker — Canvas 와 Preview 상자 맞춤] - 2026-10-12
 
 ### Fixed

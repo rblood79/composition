@@ -35,7 +35,9 @@ import { colorSwatchPickerBinding } from "./ColorSwatchPicker.binding";
 import { colorSwatchPickerItemBinding } from "./ColorSwatchPickerItem.binding";
 import { selectionIndicatorBinding } from "./SelectionIndicator.binding";
 import { overlayArrowBinding } from "./OverlayArrow.binding";
+import { colorThumbBinding } from "./ColorThumb.binding";
 import { colorWheelBinding } from "./ColorWheel.binding";
+import { colorWheelTrackBinding } from "./ColorWheelTrack.binding";
 import { comboBoxBinding } from "./ComboBox.binding";
 import { dateFieldBinding } from "./DateField.binding";
 import { datePickerBinding } from "./DatePicker.binding";
@@ -181,7 +183,9 @@ export * from "./ColorSwatchPicker.binding";
 export * from "./ColorSwatchPickerItem.binding";
 export * from "./SelectionIndicator.binding";
 export * from "./OverlayArrow.binding";
+export * from "./ColorThumb.binding";
 export * from "./ColorWheel.binding";
+export * from "./ColorWheelTrack.binding";
 export * from "./ComboBox.binding";
 export * from "./DateField.binding";
 export * from "./DatePicker.binding";
@@ -387,6 +391,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   ColorArea: colorAreaBinding,
   ColorWheel: colorWheelBinding,
   ColorSlider: colorSliderBinding,
+  // ADR-258 Phase 2: the Color controls' parts are RAC's — the handle (ColorArea · ColorSlider's
+  //   SliderTrack · ColorWheel) and the wheel's ring.
+  ColorThumb: colorThumbBinding,
+  ColorWheelTrack: colorWheelTrackBinding,
   ColorSwatchPicker: colorSwatchPickerBinding,
   // ADR-256 Phase 5b: the picker's item (RAC ColorSwatchPickerItem — the ColorSwatch inside).
   ColorSwatchPickerItem: colorSwatchPickerItemBinding,

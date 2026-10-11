@@ -329,6 +329,8 @@ const CatalogFields = memo(function CatalogFields({
         (changed) => workspace.readModel.propSource(first, changed).value,
         bindingKeys,
         workspace.newId,
+        (target, changed) =>
+          workspace.readModel.propSource(target, changed).value,
       );
       if (command) run(command);
     },

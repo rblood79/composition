@@ -379,6 +379,14 @@ export interface GradientShape {
       color: ColorValue;
     }>;
   };
+  /**
+   * ADR-258 (Color 조작기): premultiplied 보간 (CSS gradient 의 보간 — 투명 stop), 아래 층과의
+   * blend (rgb ColorArea 의 `background-blend-mode: screen`), 고리 clip (ColorWheelTrack — 상자 중앙의
+   * 바깥 · 안 반지름 evenodd).
+   */
+  premul?: boolean;
+  blendMode?: "screen";
+  ring?: { outer: number; inner: number };
 }
 
 /**

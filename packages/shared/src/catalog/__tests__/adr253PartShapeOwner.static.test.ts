@@ -302,8 +302,13 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
               selector.replace(/:not\([^)]*\)/g, "").includes(token),
             )
           )
-            for (const key of Object.keys(entry.styles ?? {}))
-              if (!PLACEMENT_KEYS.has(key))
+            for (const [key, value] of Object.entries(entry.styles ?? {}))
+              // (`display: none` takes the part out of the owner's flow — a vertical ColorSlider's
+              // Label · SliderOutput, ADR-258: placement, not shape.)
+              if (
+                !PLACEMENT_KEYS.has(key) &&
+                !(key === "display" && value === "none")
+              )
                 found.push(`${type} ${selector} { ${key} }`);
           visit(type, entry);
         }

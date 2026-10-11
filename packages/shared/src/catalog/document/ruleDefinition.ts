@@ -1,3 +1,4 @@
+import { isRacColorString } from "./colorValue";
 import { catalogCalendarDurationFits, scalarFitsType } from "./valueType";
 import {
   resolveToken,
@@ -60,12 +61,14 @@ export const PROP_KIND_VALUE_TYPE: Readonly<
   "column-size": "columnSize",
   "column-static-size": "columnStaticSize",
   "calendar-duration": "calendarDuration",
+  "rac-color": "racColor",
 };
 
 /** A registered prop default that fits its typed slot (structured kinds: an array of that shape). */
 function propDefaultMatches(value: unknown, type: ValueType): boolean {
   if (type === "slot") return scalarFitsType(value, type);
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
+  if (type === "racColor") return isRacColorString(value);
   if (type === "string[]")
     return (
       Array.isArray(value) && value.every((item) => typeof item === "string")

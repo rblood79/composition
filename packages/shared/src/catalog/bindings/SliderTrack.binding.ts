@@ -24,4 +24,7 @@ export const sliderTrackBinding: PrimitiveBinding = {
     },
     toRacProps: "default",
   },
+  // ADR-258 Phase 2: in a ColorSlider the track paints the channel gradient (`_colorGradient`); a
+  //   Slider's track has none and keeps its rule bar (the primitive returns nothing).
+  skiaPrimitive: "color_slider_track",
 };

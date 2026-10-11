@@ -601,8 +601,8 @@ export function generateCSS<Props>(
     lines.push("");
   }
 
-  // 상태 스타일
-  lines.push(...generateStateStyles(spec));
+  // 상태 스타일 (ADR-258: rootSelectors 가 상태 시각의 정본이면 기본 블록 없음)
+  if (!spec.skipStateStyles) lines.push(...generateStateStyles(spec));
 
   // ─── Phase 3a: Tier 2 Composite CSS (CompositionSpec) ───
   if (spec.composition) {

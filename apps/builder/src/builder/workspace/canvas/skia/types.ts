@@ -46,6 +46,11 @@ export interface LinearGradientFill {
   repeating?: boolean;
   /** 색상 보간 공간. "oklab"이면 지각적 균일 보간 적용. 기본값: "srgb" */
   interpolation?: "srgb" | "oklab";
+  /**
+   * ADR-258: 색을 premultiplied 로 보간한다 (Skia `kInterpolateColorsInPremul` — CSS gradient 의 보간).
+   * 투명 stop 이 섞인 그라데이션 (RAC Color 조작기의 `transparent`) 이 CSS 와 같아진다.
+   */
+  premul?: boolean;
 }
 
 export interface RadialGradientFill {
@@ -73,6 +78,8 @@ export interface AngularGradientFill {
   repeating?: boolean;
   /** 색상 보간 공간. "oklab"이면 지각적 균일 보간 적용. 기본값: "srgb" */
   interpolation?: "srgb" | "oklab";
+  /** ADR-258: premultiplied 보간 (`LinearGradientFill.premul` 과 같음). */
+  premul?: boolean;
 }
 
 export interface ImageFill {
@@ -391,10 +398,7 @@ export interface SharedSceneDerivedData {
   /** 실제 렌더 트리의 parent → children 맵. page-frame 합성/filtered layout 기준 */
   childrenMap: Map<string, CanvasSceneNode[]>;
   /** overflow 컨테이너 → 자식 bounds 정보 (ADR-050 Phase 3) */
-  overflowInfoMap: Map<
-    string,
-    import("./overlayTypes").OverflowContentInfo
-  >;
+  overflowInfoMap: Map<string, import("./overlayTypes").OverflowContentInfo>;
   /** 카메라 상태 */
   cameraX: number;
   cameraY: number;

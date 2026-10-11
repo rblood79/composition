@@ -13,8 +13,11 @@ describe("orientationDrivenTags", () => {
   describe("대상 집합", () => {
     // (2026-10-09: + IllustratedMessage — S2 `orientation` places its picture beside or above the
     //   text; the Direction toggle writes it.)
-    it("ORIENTATION_DRIVEN_TAGS = IllustratedMessage / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
+    // (ADR-258 Phase 2: + ColorSlider — its rule's `orientation` blocks lay the track out across or
+    //   along; the Direction toggle writes the S2 `orientation`.)
+    it("ORIENTATION_DRIVEN_TAGS = ColorSlider / IllustratedMessage / ToggleButtonGroup / Toolbar (소문자 정규화)", () => {
       expect([...ORIENTATION_DRIVEN_TAGS].sort()).toEqual([
+        "colorslider",
         "illustratedmessage",
         "togglebuttongroup",
         "toolbar",

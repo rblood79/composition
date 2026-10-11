@@ -1,12 +1,13 @@
 /**
- * ADR-142/912 — ColorSlider leaf RAC primitive 의 `PrimitiveBinding` (box-only cutover).
+ * ColorSlider — RAC `<ColorSlider>` + Label + SliderOutput + `<SliderTrack>` + `<ColorThumb>`.
  *
- * 사용자 방침(2026-06-11): Color 계열은 빌더 완성 후 제일 나중에 진짜 구현. 지금은 spec 제거 +
- * catalog cutover 등록(6 registry collapse)을 위해 box 영역만 등록한다.
- *
- * D1: RAC `<ColorSlider>` + Label + SliderOutput + `<SliderTrack>` + `<ColorThumb>` (grid 레이아웃).
- * D3: box-only — track gradient / thumb / output 텍스트는 generic buildCatalogShapes(box)로 재현
- *     안 함(의도적 손실).
+ * D2 (ADR-258, S2 1.8.0 = RAC 1.21.0 names): `channel` (RAC requires one — default `hue`, the
+ * reference's first example) · `colorSpace` · `defaultValue` (RAC color syntax — `racColor`; RAC has no default and
+ * throws without one — `hsl(0, 100%, 50%)`, the reference's) · `orientation`. The channel must be
+ * in the effective space (`alpha` is in every one) — see ColorArea's note. S2 `label` is the Label
+ * node's `{label}` (ADR-258 Phase 2 origin) — empty = RAC writes the channel's name.
+ * D3: the track gradient · thumb · Label · SliderOutput text are the document value's function
+ * (`runtime/colorControlGradient.ts`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -29,9 +30,39 @@ export const colorSliderBinding: PrimitiveBinding = {
   props: {
     accepts: {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): orientation 은 toRacProps 로 RAC
-      //   ColorSlider 에 닿는다 (domBinding.tsx `ruleDom`). channel/colorSpace 는 RAC 공식이나
-      //   아직 accepts 에 없다.
+      label: { kind: "string", label: "Label", section: "content" },
+      defaultValue: {
+        kind: "rac-color",
+        label: "Default Value",
+        section: "content",
+        default: "hsl(0, 100%, 50%)",
+      },
+      channel: {
+        kind: "enum",
+        label: "Channel",
+        section: "appearance",
+        default: "hue",
+        options: [
+          { value: "hue", label: "Hue" },
+          { value: "saturation", label: "Saturation" },
+          { value: "brightness", label: "Brightness" },
+          { value: "lightness", label: "Lightness" },
+          { value: "red", label: "Red" },
+          { value: "green", label: "Green" },
+          { value: "blue", label: "Blue" },
+          { value: "alpha", label: "Alpha" },
+        ],
+      },
+      colorSpace: {
+        kind: "enum",
+        label: "Color Space",
+        section: "appearance",
+        options: [
+          { value: "rgb", label: "RGB" },
+          { value: "hsl", label: "HSL" },
+          { value: "hsb", label: "HSB" },
+        ],
+      },
       orientation: {
         kind: "enum",
         label: "Orientation",

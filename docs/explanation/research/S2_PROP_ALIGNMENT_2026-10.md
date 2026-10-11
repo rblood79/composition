@@ -494,7 +494,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - Column `allowsSorting`: RAC 는 정렬 상태 (`data-allows-sorting` · `sortDescriptor`) 만 주고 데이터 정렬은 앱 몫이다.
 - Cell `colSpan`: 우리 행은 flex 배치 (`Table.css` 셀 `flex: 1`) 라 효과가 없다.
 - → 셋 다 Table 배치 방식 (table 레이아웃 · 데이터 정렬) 부터 바꿔야 해서 다의 「표 · 목록」 과 함께 다룬다.
-- ColorArea `xChannel` · `yChannel` · `colorSpace`, ColorSlider `channel` · `colorSpace`, ColorSwatch `colorName`: 축을 바꾸면 Canvas 그라데이션을 새로 그려야 한다 (D3 대칭). 다의 「개별」 로 옮긴다.
+- ColorArea `xChannel` · `yChannel` · `colorSpace`, ColorSlider `channel` · `colorSpace`, ColorSwatch `colorName`: 축을 바꾸면 Canvas 그라데이션을 새로 그려야 한다 (D3 대칭). 다의 「개별」 로 옮긴다. → **ADR-258 (2026-10-12)** 이 ColorArea · ColorSlider · ColorWheel 의 색 축 · 기본값 (`defaultValue`) 을 Canvas 그라데이션 · thumb 와 함께 도입했다 (ColorSlider `label` 은 원본의 Label 노드). ColorSwatch `colorName` 은 범위 밖.
 
 **다. S2 시각 축 — D3 (catalog rule · CSS · Canvas) 값을 새로 정해야 함**
 

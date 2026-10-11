@@ -6,6 +6,7 @@ import {
   catalogCalendarDurationFits,
   catalogColumnSizeFits,
 } from "../../../../../../packages/shared/src/catalog/document/valueType";
+import { isRacColorString } from "../../../../../../packages/shared/src/catalog/document/colorValue";
 
 export interface ManifestField {
   name: string;
@@ -97,12 +98,16 @@ function validateFields(
       !catalogCalendarDurationFits(value)
     )
       return `invalid-calendar-duration:${name}`;
+    // ADR-258 — a Color control's color: RAC's parseColor syntax only (the document's `racColor`).
+    if (field.kind === "rac-color" && !isRacColorString(value))
+      return `invalid-color:${name}`;
     // 구조화 binding/items는 기존 데이터 dispatcher/에디터 계약을 써야 한다.
     if (
       ![
         "column-size",
         "column-static-size",
         "calendar-duration",
+        "rac-color",
         "css",
         "boolean",
         "number",

@@ -1165,13 +1165,12 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
  * RAC 가 grid/field 자동 합성. nested 시 child CalendarGrid(non-catalog) 가 grid 담당, parent 는
  * shell/transparent. Popover 는 클릭 시 열리는 portal(정적 캔버스 미표시) → 정적 노드 무관.
  *
- * **color leaf box-only cutover (사용자 방침 2026-06-11)**: ColorSwatch/ColorArea/ColorWheel/
- * ColorSlider 는 빌더 완성 후 제일 나중에 ProgressCircle 구조(react-aria.adobe.com/
- * ColorWheel 레퍼런스)로 진짜 구현 예정. 지금은 spec 제거 + catalog cutover 등록(6 registry collapse)
- * 만을 위해 **box 영역만** 가진 형태로 등록 — 동적 색/gradient/wheel/thumb 시각은 generic
- * buildCatalogShapes(box)로 재현 안 함(의도적 손실, escape 없음). 후속 작업에서 arc/wheel skiaPrimitive
- * 로 복원. ColorPicker/ColorSwatchPicker(container)는 factory child UI 를 보존하는 shell-only
- * container slice 로 후속 cutover.
+ * **Color 조작기 (ADR-258, 2026-10-12)**: ColorArea · ColorSlider · ColorWheel 은 RAC 레퍼런스 구조의
+ * 노드 트리다 — `ColorArea > ColorThumb` · `ColorSlider > Label + SliderOutput + SliderTrack > ColorThumb`
+ * · `ColorWheel > ColorWheelTrack + ColorThumb` (원본 template). 그라데이션 · thumb 위치 · 표시색은 문서
+ * 값의 함수 (`runtime/colorControlGradient.ts`) 하나를 Canvas primitive (`color_area_fill` ·
+ * `color_slider_track` · `color_wheel_track` · `color_thumb`) 와 RAC (Preview) 가 같이 따른다.
+ * ColorSwatch 는 자기 색 상자. ColorPicker/ColorSwatchPicker(container)는 자식 노드를 그리는 shell.
  */
 const FAMILY_7_CUTOVER: CutoverState = "catalog";
 
@@ -1198,28 +1197,41 @@ const FAMILY_7_ENTRIES: ComponentCatalogEntry[] = [
     label: "date range picker",
     icon: "CalendarDays",
   }),
-  // ADR-912 Color leaf 5종 box-only cutover (2026-06-11): spec 제거 + catalog 등록(6 registry
-  //   collapse)을 위해 box 영역만. 동적 색/gradient/wheel/thumb 시각 손실은 의도적 — 빌더 완성 후
-  //   ProgressCircle 구조로 진짜 구현. binding 은 box-only 메타(props accepts)만, 시각은 generic.
   primitiveEntry("ColorSwatch", "date-color", FAMILY_7_CUTOVER, {
     category: "color",
     label: "color swatch",
     icon: "Palette",
   }),
+  // ADR-258 Phase 3 (사용자 결정 3 「forms 의 ColorField 뒤」): the palette shows the three controls
+  //   in Forms — each its own glyph (ColorField already has Palette).
   primitiveEntry("ColorArea", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
+    category: "forms",
     label: "color area",
-    icon: "Palette",
+    icon: "Blend",
   }),
   primitiveEntry("ColorWheel", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
+    category: "forms",
     label: "color wheel",
-    icon: "Circle",
+    icon: "Disc3",
   }),
   primitiveEntry("ColorSlider", "date-color", FAMILY_7_CUTOVER, {
-    category: "color",
+    category: "forms",
     label: "color slider",
-    icon: "Sliders",
+    icon: "Rainbow",
+  }),
+  // ADR-258 Phase 2: the handle of a ColorArea · ColorSlider · ColorWheel (RAC ColorThumb) and the
+  //   wheel's ring (RAC ColorWheelTrack) — their origin templates make them. palette 비노출.
+  primitiveEntry("ColorThumb", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color thumb",
+    icon: "Circle",
+    placeable: false,
+  }),
+  primitiveEntry("ColorWheelTrack", "date-color", FAMILY_7_CUTOVER, {
+    category: "color",
+    label: "color wheel track",
+    icon: "Circle",
+    placeable: false,
   }),
   // ADR-912 Color container cutover (2026-06-17): factory children(ColorArea/ColorSlider/ColorField)
   //   가 visible UI 를 소유하므로 parent 는 shell-only div container. DOM 은 rendererMap/fallback,
@@ -1289,9 +1301,8 @@ const FAMILY_8_ENTRIES: ComponentCatalogEntry[] = [
 
 /**
  * 컴포넌트 카탈로그 — 등록 SSOT. family cutover 진행 시 family 별 entry 가 누적된다.
- * 현재 family ①~⑧ 등록 — ⑦ date-color 에 color leaf 4종(ColorSwatch/Area/Wheel/Slider)
- * box-only cutover 포함(2026-06-11). ColorPicker/ColorSwatchPicker(container)는 2026-06-17
- * shell-only container slice 로 cutover.
+ * 현재 family ①~⑧ 등록 — ⑦ date-color 에 Color 계열 (ColorSwatch · Color 조작기 3종과 그 부품 —
+ * ADR-258) 과 ColorPicker/ColorSwatchPicker(container, 2026-06-17 shell-only).
  * ⑧ native(frame/Slot)는 metadata-only(cutover 게이트 미포함, canonical-native 렌더 유지).
  *   (MaskedFrame 은 2026-06-16 dead orphan 폐기)
  */
@@ -1332,11 +1343,16 @@ const REUSABLE_ENTRIES: ComponentCatalogEntry[] = [
   }),
   // 2026-10-09 (사용자 「IllustratedMessage 제목 · 설명 노드 전환」): the S2 node tree
   //   `IllustratedMessage > Illustration + Heading + Description` (origin `{title}` · `{description}`).
-  reusableEntry("IllustratedMessage", "primitives", "component-illustratedmessage", {
-    category: "content",
-    label: "illustrated message",
-    icon: "ImageIcon",
-  }),
+  reusableEntry(
+    "IllustratedMessage",
+    "primitives",
+    "component-illustratedmessage",
+    {
+      category: "content",
+      label: "illustrated message",
+      icon: "ImageIcon",
+    },
+  ),
   reusableEntry("Card", "primitives", "component-card", {
     category: "layout",
     label: "card",
@@ -1390,6 +1406,10 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "SearchField",
   "Autocomplete",
   "ColorField",
+  // ADR-258 Phase 3 — the Color controls (사용자 결정 3): after ColorField.
+  "ColorArea",
+  "ColorSlider",
+  "ColorWheel",
   "Checkbox",
   "CheckboxGroup",
   "RadioGroup",

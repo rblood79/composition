@@ -16,7 +16,7 @@
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo, useCallback, useMemo, type ReactNode } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/rendering";
@@ -33,6 +33,7 @@ import {
   catalogCalendarDurationFits,
   catalogColumnSizeFits,
 } from "../../../../../../../packages/shared/src/catalog/document/valueType";
+import { isRacColorString } from "../../../../../../../packages/shared/src/catalog/document/colorValue";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -556,8 +557,18 @@ const ColumnSizeField = memo(function ColumnSizeField({
   notApplied: string;
 }) {
   const width = useFieldValue(elementId, field.origin, "width", undefined);
-  const minWidth = useFieldValue(elementId, field.origin, "minWidth", undefined);
-  const maxWidth = useFieldValue(elementId, field.origin, "maxWidth", undefined);
+  const minWidth = useFieldValue(
+    elementId,
+    field.origin,
+    "minWidth",
+    undefined,
+  );
+  const maxWidth = useFieldValue(
+    elementId,
+    field.origin,
+    "maxWidth",
+    undefined,
+  );
   const ignored =
     catalogColumnTrack({ props: { width, minWidth, maxWidth } }).ignored ?? [];
   return (
@@ -572,8 +583,55 @@ const ColumnSizeField = memo(function ColumnSizeField({
       }}
       afterControl={
         (ignored as readonly string[]).includes(field.key) ? (
-          <span slot="description" role="status" data-column-size-not-applied="">
+          <span
+            slot="description"
+            role="status"
+            data-column-size-not-applied=""
+          >
             {notApplied}
+          </span>
+        ) : undefined
+      }
+    />
+  );
+});
+
+/**
+ * ADR-258 Decision 1 — a Color control's color value. The text is a draft until it commits (blur ·
+ * Enter); only a color RAC accepts (`isRacColorString` — `#rrggbb` · `rgb(r, g, b)` · `hsl(…)` ·
+ * `hsb(…)`, comma syntax) is written. Anything else (`red` · `rgb(255 0 0)` · a half-typed value)
+ * writes nothing and names the error in the field; empty clears to the binding default.
+ */
+const RacColorField = memo(function RacColorField({
+  field,
+  value,
+  onChange,
+  invalidMessage,
+}: {
+  field: ResolvedField;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  invalidMessage: string;
+}) {
+  const [invalid, setInvalid] = useState(false);
+  return (
+    <PropertyInput
+      label={field.label}
+      value={value == null ? "" : String(value)}
+      onChange={(text) => {
+        const next = text.trim();
+        if (next === "") {
+          setInvalid(false);
+          return onChange(undefined);
+        }
+        if (!isRacColorString(next)) return setInvalid(true);
+        setInvalid(false);
+        onChange(next);
+      }}
+      afterControl={
+        invalid ? (
+          <span slot="description" role="alert" data-rac-color-invalid="">
+            {invalidMessage}
           </span>
         ) : undefined
       }
@@ -809,6 +867,17 @@ const GenericField = memo(function GenericField({
           elementId={elementId}
           onChange={update}
           notApplied={t("propertiesPanel.columnSizeNotApplied")}
+        />
+      );
+
+    // ADR-258 — a RAC color string, written only when RAC accepts it.
+    case "rac-color":
+      return (
+        <RacColorField
+          field={field}
+          value={value}
+          onChange={update}
+          invalidMessage={t("propertiesPanel.racColorInvalid")}
         />
       );
 

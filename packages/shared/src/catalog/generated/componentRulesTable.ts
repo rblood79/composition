@@ -2400,37 +2400,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-258 Phase 2: the area is RAC's gradient (`color_area_fill` — the Canvas paints the same
+  //   layers, `colorAreaGradient`); the rule paints no box of its own. The box · disabled paint are the
+  //   former manual `ColorArea.css` values (사용자 결정 2 — 지금 값 그대로).
   ColorArea: {
-    defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
-    },
+    variants: {},
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -2449,6 +2424,31 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.lg}",
         height: 240,
         iconSize: 22,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // (RAC 의 상태 표시는 rootSelectors 가 정본 — 기본 ring · disabled opacity 없음.)
+      skipStateStyles: true,
+      composition: {
+        delegation: [],
+        containerStyles: {
+          width: "100%",
+          height: "180px",
+          "border-radius": "var(--radius-md)",
+          "flex-shrink": "0",
+          contain: "layout style",
+          "touch-action": "none",
+        },
+        rootSelectors: {
+          "&[data-disabled]": {
+            styles: { background: "gray !important" },
+          },
+          "&[data-disabled] .react-aria-ColorThumb": {
+            styles: { background: "gray !important" },
+          },
+        },
       },
     },
   },
@@ -2704,42 +2704,114 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-258 Phase 2: RAC's reference tree `ColorSlider > Label + SliderOutput + SliderTrack >
+  //   ColorThumb` — the grid (label · output over the track) and the track's box are this rule's (the
+  //   former manual `ColorSlider.css` values, 사용자 결정 2); the track's gradient is RAC's
+  //   (`color_slider_track` on the Canvas). The rule paints no box of its own.
   ColorSlider: {
-    defaultVariant: "default",
     defaultSize: "M",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
+    variants: {},
+    containerStyles: {
+      display: "grid",
+      gridTemplateAreas: '"label output" "track track"',
+      gridTemplateColumns: "1fr auto",
+      maxWidth: "300px",
     },
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.sm}",
-        height: 16,
-        iconSize: 14,
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: 4,
       },
       M: {
         fontSize: "{typography.text-sm}",
-        borderRadius: "{radius.md}",
-        height: 20,
-        iconSize: 18,
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: 4,
       },
       L: {
         fontSize: "{typography.text-base}",
-        borderRadius: "{radius.lg}",
-        height: 24,
-        iconSize: 22,
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: 4,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // (RAC 의 상태 표시는 rootSelectors 가 정본 — 기본 ring · disabled opacity 없음.)
+      skipStateStyles: true,
+      composition: {
+        delegation: [],
+        containerStyles: {
+          display: "grid",
+          "grid-template-areas": '"label output" "track track"',
+          "grid-template-columns": "1fr auto",
+          gap: "4px",
+          "max-width": "300px",
+          contain: "layout style",
+        },
+        staticSelectors: {
+          ".react-aria-Label": { "grid-area": "label" },
+          ".react-aria-SliderOutput": { "grid-area": "output" },
+          ".react-aria-SliderTrack": { "grid-area": "track" },
+        },
+        // (`[data-orientation]` on both: the track's own sheet sizes it per `data-size` — these
+        //  win by the attribute.)
+        containerVariants: {
+          orientation: {
+            horizontal: {
+              nested: [
+                {
+                  selector: ".react-aria-SliderTrack",
+                  styles: {
+                    width: "100%",
+                    height: "20px",
+                    "border-radius": "var(--radius-md)",
+                    "touch-action": "none",
+                  },
+                },
+              ],
+            },
+            vertical: {
+              styles: { height: "150px", display: "block" },
+              nested: [
+                {
+                  selector: ".react-aria-Label",
+                  styles: { display: "none" },
+                },
+                {
+                  selector: ".react-aria-SliderOutput",
+                  styles: { display: "none" },
+                },
+                {
+                  selector: ".react-aria-SliderTrack",
+                  styles: {
+                    width: "20px",
+                    height: "100%",
+                    "border-radius": "var(--radius-md)",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        // The thumb sits on the track's middle across it (RAC places it along); the disabled paint.
+        rootSelectors: {
+          '&[data-orientation="horizontal"] .react-aria-ColorThumb': {
+            styles: { top: "50%" },
+          },
+          '&[data-orientation="vertical"] .react-aria-ColorThumb': {
+            styles: { left: "50%" },
+          },
+          "&[data-disabled] .react-aria-SliderTrack": {
+            styles: { background: "gray !important" },
+          },
+          "&[data-disabled] .react-aria-ColorThumb": {
+            styles: { background: "gray !important", opacity: "0.5" },
+          },
+        },
       },
     },
   },
@@ -2896,29 +2968,54 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  ColorWheel: {
-    defaultVariant: "default",
+  // ADR-258 Phase 2: the handle of a ColorArea · ColorSlider · ColorWheel (RAC ColorThumb) — its
+  //   color is RAC's (the displayed color, inline); its box · ring · shadow · focus size are the
+  //   former manual sheets' (사용자 결정 2). The Canvas reads the same declarations
+  //   (`catalogColorThumbRing` → `color_thumb`).
+  ColorThumb: {
     defaultSize: "M",
-    variants: {
-      default: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
+    variants: {},
+    sizes: {
+      M: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.full}",
+        height: 16,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // (RAC 의 상태 표시는 rootSelectors 가 정본 — 기본 ring · disabled opacity 없음.)
+      skipStateStyles: true,
+      composition: {
+        delegation: [],
+        containerStyles: {
+          border: "4px solid var(--bg-raised)",
+          "box-shadow": "var(--shadow-sm)",
+          width: "16px",
+          height: "16px",
+          "border-radius": "50%",
+          "box-sizing": "border-box",
+          "will-change": "transform",
         },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
+        rootSelectors: {
+          "&[data-focus-visible]": {
+            styles: { width: "20px", height: "20px" },
+          },
         },
       },
     },
+  },
+  // ADR-258 Phase 2: RAC's reference tree `ColorWheel > ColorWheelTrack + ColorThumb` — the ring is
+  //   the ColorWheelTrack (RAC's conic sweep, `color_wheel_track` on the Canvas). The rule paints no
+  //   box of its own; the disabled paint is the former manual `ColorWheel.css` values.
+  ColorWheel: {
+    defaultSize: "M",
+    variants: {},
     // S2 1.8.0 ColorWheel `size` (2026-10-10): 지름은 숫자 prop 하나다 (S2 — size enum 아님).
     //   size 블록의 height 는 content-fit(0) 으로 두고, 지름 기본 180 (종전 M height) 과 175 floor 는
     //   `catalogColorWheelDiameter` (resolveCatalogRuleCanvasBox.ts) 가 Canvas (`styleOf`) · DOM
     //   (`domBinding` RAC outerRadius/innerRadius + 상자 width/height) 양쪽에 공급한다.
-    //   종전 S/L height (120 · 240) 는 binding 에 size enum 이 없어 닿지 않는 dead 값이었다.
     sizes: {
       S: {
         fontSize: "{typography.text-xs}",
@@ -2937,6 +3034,36 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         borderRadius: "{radius.full}",
         height: 0,
         iconSize: 22,
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      // (RAC 의 상태 표시는 rootSelectors 가 정본 — 기본 ring · disabled opacity 없음.)
+      skipStateStyles: true,
+      composition: {
+        delegation: [],
+        // (The box is the diameter square — `domBinding` inline · `styleOf`.)
+        containerStyles: {},
+        rootSelectors: {
+          "&[data-disabled] .react-aria-ColorWheelTrack": {
+            styles: { background: "gray !important" },
+          },
+          "&[data-disabled] .react-aria-ColorThumb": {
+            styles: { background: "gray !important", opacity: "0.5" },
+          },
+        },
+      },
+    },
+  },
+  // ADR-258 Phase 2: a ColorWheel's ring (RAC ColorWheelTrack — RAC sizes · paints · clips it).
+  ColorWheelTrack: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        fontSize: "{typography.text-sm}",
+        height: 0,
       },
     },
   },

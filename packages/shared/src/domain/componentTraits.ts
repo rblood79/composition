@@ -355,11 +355,17 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TreeItemContent: { owners: ["TreeItem"] },
   DisclosureGroup: {},
   Slider: {},
-  SliderOutput: { owners: ["Slider"] },
-  SliderTrack: { owners: ["Slider"] },
+  // ADR-258 Phase 2: a ColorSlider's parts are RAC's Slider parts (its context gives them the
+  //   channel's track · output).
+  SliderOutput: { owners: ["Slider", "ColorSlider"] },
+  SliderTrack: { owners: ["Slider", "ColorSlider"] },
   SliderThumb: { owners: ["SliderTrack"] },
   // ADR-256 Phase 7c: RAC's SliderFill — in the track (RAC throws outside a Slider's state).
   SliderFill: { owners: ["SliderTrack"] },
+  // ADR-258 Phase 2: RAC's ColorThumb reads its control's context (RAC throws outside one) — a
+  //   ColorArea's, a ColorSlider's (in its SliderTrack) or a ColorWheel's; the wheel's ring likewise.
+  ColorThumb: { owners: ["ColorArea", "ColorSlider", "ColorWheel"] },
+  ColorWheelTrack: { owners: ["ColorWheel"] },
   Meter: {},
   MeterTrack: { owners: ["Meter"] },
   MeterValue: { owners: ["Meter"] },

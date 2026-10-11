@@ -101,9 +101,14 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * its node id unless the author gives one.
  * 40 — ADR-256 Phase 11 (G5 example 5): the SearchField is the reference's `SearchField > Label +
  * Icon + Input + Button + Description + FieldError` — no control `Group` (its grid places them).
+ * 41 — ADR-258 Phase 2: the Color controls are the reference trees — `ColorArea > ColorThumb`,
+ * `ColorSlider > Label {label} + SliderOutput + SliderTrack > ColorThumb`, `ColorWheel >
+ * ColorWheelTrack + ColorThumb` (origins `component-colorarea` · `-colorslider` · `-colorwheel`; the
+ * new types ColorThumb · ColorWheelTrack). A ColorArea · ColorSlider · ColorWheel saved without
+ * those parts is a 40 document (사용자 결정 1 — refused, not converted).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 40 as const;
+export const LIBRARY_CONTRACT_VERSION = 41 as const;
 
 export type EntryKind =
   | "project"
@@ -156,10 +161,7 @@ export type CalendarDuration =
   | { readonly weeks: number }
   | { readonly months: number };
 export type AuthoredValue =
-  | Scalar
-  | TokenUse
-  | StructuredValue
-  | CalendarDuration;
+  Scalar | TokenUse | StructuredValue | CalendarDuration;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -176,7 +178,9 @@ export type ValueType =
   | "columnSize"
   | "columnStaticSize"
   // ADR-256 Phase 9 — a Calendar's `visibleDuration` (`CalendarDuration`).
-  | "calendarDuration";
+  | "calendarDuration"
+  // ADR-258 — a Color control's color string in RAC's `parseColor` syntax (`isRacColorString`).
+  | "racColor";
 /** Resolved prop value: a scalar, a structured value or a calendar duration. */
 export type PropValue = Scalar | StructuredValue | CalendarDuration;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";

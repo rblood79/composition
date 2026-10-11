@@ -93,7 +93,7 @@ class FaultLayoutEngine implements LayoutEngineAPI {
 }
 
 const library = buildCatalogLibrary({
-  contractVersion: 40,
+  contractVersion: 41,
   revision: "adr248-consumer-atomicity",
   bindingIds: ["frame", "label"],
   actionOpCodes: [],
@@ -177,7 +177,7 @@ async function scene(name: string) {
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 40,
+    libraryContractVersion: 41,
     revision: 0,
     projectId,
     rootId: projectId,

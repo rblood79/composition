@@ -282,7 +282,9 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
     //   Form outlined (S2 에 없는 변형 — 공개 축은 isEmphasized) 8,388 → 8,208 (−180). diffs 0 유지.
     // 2026-10-10 값 정렬: + CardView secondary · tertiary · quiet, − Tooltip positive (S2 ·
     //   design-data 집합) 8,208 → 8,280 (+72). diffs 0 유지.
-    expect(compared).toBe(8_280);
+    // ADR-258 Phase 2: − ColorArea default · accent, ColorSlider · ColorWheel default (the controls
+    //   paint no box — their gradient parts do) 8,280 → 8,136 (−144). diffs 0 유지.
+    expect(compared).toBe(8_136);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

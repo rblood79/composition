@@ -25,6 +25,12 @@ export const RAC_REQUIRED_PARTS: Readonly<
   DatePicker: [["DateInput"]],
   DateRangePicker: [["DateInput"]],
   Slider: [["SliderTrack"], ["SliderThumb"]],
+  // ADR-258 Phase 2: a Color control without its thumb has no input (RAC puts the range inputs in
+  //   the ColorThumb); a ColorSlider without its track · a ColorWheel without its ring has no
+  //   gradient to drag on.
+  ColorArea: [["ColorThumb"]],
+  ColorSlider: [["SliderTrack"], ["ColorThumb"]],
+  ColorWheel: [["ColorWheelTrack"], ["ColorThumb"]],
   // ADR-256 Phase 9: a calendar shows its months in its month block (repeat template) — its grid,
   //   and its grid's cell template (RAC draws the dates through it).
   Calendar: [["CalendarMonth"], ["CalendarGrid"]],

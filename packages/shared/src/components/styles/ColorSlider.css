@@ -1,7 +1,10 @@
+/* ADR-258 (2026-10-12): builder chrome 전용 (builder-components.css — 패널의 색 고르기).
+   Preview · Publish 의 ColorSlider · ColorThumb 는 catalog rule 의 생성 CSS (generated/ColorSlider.css · ColorThumb.css) 가 정본이다. */
 @layer components {
   .react-aria-ColorSlider {
     display: grid;
-    grid-template-areas: "label output"
+    grid-template-areas:
+      "label output"
       "track track";
     grid-template-columns: 1fr auto;
     gap: 4px;
@@ -21,7 +24,7 @@
       border-radius: var(--radius-md);
     }
 
-    &[data-orientation=horizontal] {
+    &[data-orientation="horizontal"] {
       .react-aria-SliderTrack {
         height: 20px;
         touch-action: none;
@@ -49,7 +52,7 @@
   }
 
   .react-aria-ColorSlider {
-    &[data-orientation=vertical] {
+    &[data-orientation="vertical"] {
       height: 150px;
       display: block;
 

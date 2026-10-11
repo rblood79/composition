@@ -817,6 +817,8 @@ const koKR: TranslationKeys = {
     chipGroupFill: "채움",
     sizeOutOfRange: "Styles 패널에서 변경",
     columnSizeNotApplied: "이 폭과 함께는 적용되지 않음 (저장됨)",
+    racColorInvalid:
+      "#rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%) 형식만 받습니다",
     durationUnit: "단위",
     calendarPickerNotice:
       "상태 · 범위 · 페이지 동작 · 첫 요일은 {picker} 에서 편집합니다",
@@ -2964,6 +2966,8 @@ const enUS: TranslationKeys = {
     chipGroupFill: "Fill",
     sizeOutOfRange: "set in Styles",
     columnSizeNotApplied: "Not applied with this width (kept)",
+    racColorInvalid:
+      "Use #rrggbb · rgb(r, g, b) · hsl(h, s%, l%) · hsb(h, s%, b%)",
     durationUnit: "Unit",
     calendarPickerNotice:
       "State, bounds, page behavior and first day are edited on the {picker}",

@@ -144,6 +144,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    * true 시 CSSGenerator가 이 Spec의 CSS 파일을 생성하지 않음.
    */
   skipCSSGeneration?: boolean;
+  /** ADR-258: 기본 상태 블록 (focus ring · disabled opacity) 을 내지 않는다 — rule `skipStateStyles`. */
+  skipStateStyles?: boolean;
   /**
    * Further RAC class names this spec's sheet styles as its own root (ADR-253): the Input rule is
    * also the `<textarea>` of a TextArea, which RAC classes `.react-aria-TextArea`. Every root

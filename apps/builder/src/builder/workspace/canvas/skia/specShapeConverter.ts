@@ -1076,6 +1076,7 @@ export function specShapesToSkia(
             ],
             colors,
             positions,
+            ...(shape.premul ? { premul: true } : {}),
           };
         } else if (shape.gradient.type === "conic") {
           // CSS conic-gradient 0°=12시 → CanvasKit MakeSweepGradient 0°=3시
@@ -1105,6 +1106,7 @@ export function specShapesToSkia(
             colors,
             positions,
             rotationMatrix,
+            ...(shape.premul ? { premul: true } : {}),
           };
         } else {
           fill = {
@@ -1126,6 +1128,19 @@ export function specShapesToSkia(
           height: h,
           visible: true,
           box: { fillColor: TRANSPARENT, fill, borderRadius: radius },
+          // ADR-258: a layer over the ones below (`screen`) · a ring (ColorWheelTrack).
+          ...(shape.blendMode ? { blendMode: shape.blendMode } : {}),
+          ...(shape.ring
+            ? {
+                clipPath: {
+                  type: "ring" as const,
+                  cx: w / 2,
+                  cy: h / 2,
+                  outer: shape.ring.outer,
+                  inner: shape.ring.inner,
+                },
+              }
+            : {}),
         };
 
         // Gradient can also be a background (same logic as roundRect/rect)
@@ -1137,6 +1152,9 @@ export function specShapesToSkia(
           shape.height === "auto" || shape.height === containerHeight;
         if (
           !bgExtracted &&
+          // (A blended or clipped layer keeps its own node — the bg box has neither.)
+          !shape.blendMode &&
+          !shape.ring &&
           shape.x === 0 &&
           shape.y === 0 &&
           isFullWidthG &&

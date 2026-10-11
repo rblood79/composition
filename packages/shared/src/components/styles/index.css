@@ -117,8 +117,8 @@
 @import "./ChatContainer.css"; /* 빌더 전용 */
 @import "./ChatInput.css"; /* 빌더 전용 */
 @import "./ChatMessage.css"; /* 빌더 전용 */
-@import "./ColorSlider.css"; /* Container — skipCSSGeneration, 수동 CSS */
-@import "./ColorWheel.css"; /* Container — skipCSSGeneration, 수동 CSS */
+@import "./generated/ColorSlider.css"; /* ADR-258: rule 정본 (옛 수동 ColorSlider.css 는 builder chrome 전용) */
+@import "./generated/ColorWheel.css"; /* ADR-258: rule 정본 (옛 수동 ColorWheel.css 는 builder chrome 전용) */
 @import "./generated/Pagination.css";
 @import "./generated/Separator.css";
 
@@ -145,7 +145,8 @@
 
 /* Color Components */
 @import "./generated/ColorSwatch.css";
-@import "./ColorArea.css"; /* Container — skipCSSGeneration, 수동 CSS */
+@import "./generated/ColorArea.css"; /* ADR-258: rule 정본 (옛 수동 ColorArea.css 는 builder chrome 전용) */
+@import "./generated/ColorThumb.css"; /* ADR-258: Color 조작기의 thumb */
 
 /* Calendar Components */
 @import "./generated/Calendar.css";

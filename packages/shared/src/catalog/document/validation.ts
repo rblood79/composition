@@ -254,6 +254,7 @@ const valueTypes = new Set<ValueType>([
   "columnSize",
   "columnStaticSize",
   "calendarDuration",
+  "racColor",
 ]);
 /** State variables hold scalars only. */
 const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);
@@ -1605,7 +1606,10 @@ function stateOwnerRef(value: unknown, at: string): void {
       ...local.templatePath,
     ].entries()) {
       const text = id(item, "", `${at}.ancestor.local[${index}]`);
-      if (!text.startsWith("project:node:") && !text.startsWith("lib:template:"))
+      if (
+        !text.startsWith("project:node:") &&
+        !text.startsWith("lib:template:")
+      )
         invalid("TEMPLATE_ID_REQUIRED", `${at}.ancestor.local`);
     }
   } else invalid("STATE_OWNER_REF_SHAPE", `${at}.ancestor`);

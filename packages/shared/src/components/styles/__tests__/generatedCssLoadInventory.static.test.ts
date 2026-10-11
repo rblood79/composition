@@ -41,9 +41,12 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   MeterFill: "D 부모 Meter sheet `.fill` 가 상자 (ADR-256 Phase 7b)",
   // ADR-256 Phase 7a: the parts are elements in RAC's ProgressBar children — the ProgressBar sheet's
   //   `.bar` · `.value` · `.fill` give their boxes (class `bar` · `value` · `fill`, no own class).
-  ProgressBarTrack: "D 부모 ProgressBar sheet `.bar` 가 상자 (ADR-256 Phase 7a)",
-  ProgressBarValue: "D 부모 ProgressBar sheet `.value` 가 상자 (ADR-256 Phase 7a)",
-  ProgressBarFill: "D 부모 ProgressBar sheet `.fill` 가 상자 (ADR-256 Phase 7a)",
+  ProgressBarTrack:
+    "D 부모 ProgressBar sheet `.bar` 가 상자 (ADR-256 Phase 7a)",
+  ProgressBarValue:
+    "D 부모 ProgressBar sheet `.value` 가 상자 (ADR-256 Phase 7a)",
+  ProgressBarFill:
+    "D 부모 ProgressBar sheet `.fill` 가 상자 (ADR-256 Phase 7a)",
   CalendarHeader:
     "D Calendar self-compose — DOM header 는 CalendarCommon.css class",
   AvatarGroup:
@@ -171,11 +174,13 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-09 — FormField · TailSwatch type 삭제 (미로드 2) −2 · 미로드 −2.
   // 2026-10-12 — ADR-256 G5: DialogTrigger · TooltipTrigger · MenuTrigger 는 요소가 없다 (RAC — `display:
   //   contents`, CSS 생성 안 함) −3 · index −3.
-  it("인벤토리 집계 — 생성 101 · index 79 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드)", () => {
+  // 2026-10-12 — ADR-258 Phase 2: ColorArea · ColorSlider · ColorWheel · ColorThumb (index 로드 — 옛 수동
+  //   sheet 는 builder chrome 전용) +4 · +4.
+  it("인벤토리 집계 — 생성 105 · index 83 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
-    expect(generated.length).toBe(101);
-    expect(indexImported.size).toBe(79);
+    expect(generated.length).toBe(105);
+    expect(indexImported.size).toBe(83);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

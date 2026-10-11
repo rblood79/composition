@@ -1,3 +1,4 @@
+import { colorSliderText } from "./colorControlGradient";
 import { RAC_VALUE_KEYS } from "../generated/racStateKeys";
 import type { CatalogConsumerNode } from "./compositionRoot";
 import { catalogSliderRange } from "./presence";
@@ -181,31 +182,48 @@ export function catalogBoundValues(
 }
 
 /**
- * ADR-256 Phase 7c — RAC parts that write their own text when the document gives none (`children`
- * empty): a SliderOutput shows its Slider's value (`Slider.mjs` `SliderOutput` —
- * `state.getThumbValueLabel`, the locale's number format). Its owner and that text, or undefined.
+ * RAC parts that write their own text when the document gives none (`children` empty), by part
+ * type → the owner types whose RAC state writes it:
+ * - ADR-256 Phase 7c — a SliderOutput shows its Slider's value (`Slider.mjs` `SliderOutput` —
+ *   `state.getThumbValueLabel`, the locale's number format).
+ * - ADR-258 Decision 9 — inside a ColorSlider, the SliderOutput shows the channel's value
+ *   (`formatChannelValue` — hue 120 → 「120°」) and the ColorSlider's own Label the channel's name
+ *   (`ColorSlider.mjs` — `getChannelName`). An authored label wins (the written text is not empty).
+ * The owner is the nearest Slider · ColorSlider ancestor (a Label: its parent only).
  */
-const RAC_TEXT_OWNERS: Readonly<Record<string, string>> = {
-  SliderOutput: "Slider",
+const RAC_TEXT_OWNERS: Readonly<Record<string, readonly string[]>> = {
+  SliderOutput: ["Slider", "ColorSlider"],
+  Label: ["ColorSlider"],
 };
+const RAC_TEXT_OWNER_TYPES = new Set(Object.values(RAC_TEXT_OWNERS).flat());
 function racOwnText(
   record: CatalogConsumerNode,
   get: Lookup,
   typeOf: TypeOf,
   locale?: string,
 ): { owner: CatalogConsumerNode; text: string } | undefined {
-  const ownerType = RAC_TEXT_OWNERS[record.ruleId ?? typeOf(record)];
-  if (!ownerType) return undefined;
+  const partType = record.ruleId ?? typeOf(record);
+  const ownerTypes = RAC_TEXT_OWNERS[partType];
+  if (!ownerTypes) return undefined;
   let owner = get(record.parentId);
-  while (owner && typeOf(owner) !== ownerType) owner = get(owner.parentId);
+  if (partType === "Label") {
+    if (!owner || !ownerTypes.includes(typeOf(owner))) return undefined;
+  } else
+    while (owner && !ownerTypes.includes(typeOf(owner)))
+      owner = get(owner.parentId);
   if (!owner) return undefined;
-  const { min, max, value } = catalogSliderRange(owner);
   const own = typeof owner.props.locale === "string" ? owner.props.locale : "";
+  const lang = own || locale || globalThis.navigator?.language || "en-US";
+  if (typeOf(owner) === "ColorSlider") {
+    const text = colorSliderText(owner.props, lang);
+    return { owner, text: partType === "Label" ? text.label : text.output };
+  }
+  const { min, max, value } = catalogSliderRange(owner);
   return {
     owner,
-    text: new Intl.NumberFormat(
-      own || locale || globalThis.navigator?.language || "en-US",
-    ).format(Math.min(max, Math.max(min, value))),
+    text: new Intl.NumberFormat(lang).format(
+      Math.min(max, Math.max(min, value)),
+    ),
   };
 }
 /** Whether a record's text is the one its RAC part writes (no text of its own — `racOwnText`). */
@@ -256,8 +274,9 @@ export function catalogValueDependents(
   typeOf: TypeOf,
 ): CatalogConsumerNode[] {
   const ownerType = typeOf(owner);
-  // (A part whose text RAC writes from this owner — a Slider's SliderOutput, ADR-256 Phase 7c.)
-  if (Object.values(RAC_TEXT_OWNERS).includes(ownerType)) {
+  // (A part whose text RAC writes from this owner — a Slider's SliderOutput, ADR-256 Phase 7c ·
+  //   a ColorSlider's Label · SliderOutput, ADR-258 Decision 9.)
+  if (RAC_TEXT_OWNER_TYPES.has(ownerType)) {
     const parts: CatalogConsumerNode[] = [];
     const visit = (id: string) => {
       const node = get(id);

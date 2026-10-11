@@ -570,6 +570,12 @@ export interface ComponentRuleStructure {
    */
   skipCSSGeneration?: boolean;
   /**
+   * ADR-258: 기본 상태 블록 (`[data-focus-visible]` ring · `[data-disabled]` opacity 0.38) 을 내지
+   * 않는다 — 상태 시각을 `composition.rootSelectors` 가 정본으로 선언하는 rule (Color 조작기 —
+   * disabled = 회색, 부모 opacity 없음). 생성기는 virtual spec 의 `skipStateStyles` 로 넘긴다.
+   */
+  skipStateStyles?: boolean;
+  /**
    * 이 rule 의 생성 sheet 가 root 로 같이 그리는 RAC class (ADR-253) — Input rule 은 TextArea 의
    * `<textarea>` (`.react-aria-TextArea`) 도 그린다. selector 는 `:is(.react-aria-Input,
    * .react-aria-TextArea)` 로 나간다 (특이도는 class 하나 그대로).

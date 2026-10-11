@@ -1,11 +1,14 @@
 /**
- * ADR-142/912 — ColorArea leaf RAC primitive 의 `PrimitiveBinding` (box-only cutover).
+ * ColorArea — RAC `<ColorArea>` + `<ColorThumb>` (2D gradient + thumb).
  *
- * 사용자 방침(2026-06-11): Color 계열은 빌더 완성 후 제일 나중에 ProgressCircle 구조로 진짜 구현.
- * 지금은 spec 제거 + catalog cutover 등록(6 registry collapse)을 위해 box 영역만 등록한다.
- *
- * D1: RAC `<ColorArea>` + `<ColorThumb>` (2D gradient + thumb).
- * D3: box-only — 2D gradient / thumb 는 generic buildCatalogShapes(box)로 재현 안 함(의도적 손실).
+ * D2 (ADR-258, S2 1.8.0 = RAC 1.21.0 names): `colorSpace` · `xChannel` · `yChannel` · `xName` ·
+ * `yName` · `defaultValue` (RAC color syntax — `racColor`, RAC's default `#ffffff`). The axes must
+ * be channels of the effective space (`colorSpace`, else the value's own) and differ — a
+ * composition restriction RAC throws on; the Design panel widens a pick to a valid combination in
+ * one write (`normalizeColorControlPatch`) and the validator refuses the rest. `value`
+ * (controlled) is not taken: the Preview runs uncontrolled from `defaultValue` (ADR-250).
+ * D3: the gradient · thumb are the document value's function (`runtime/colorControlGradient.ts`) —
+ * the Canvas draws them from the same function (ADR-258 Phase 2).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -28,9 +31,55 @@ export const colorAreaBinding: PrimitiveBinding = {
   props: {
     accepts: {
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
-      // colorSpace/xChannel/yChannel 은 RAC 공식 prop 이고 DOM 은 `ruleDom` 이 RAC ColorArea 를
-      //   그리지만, Canvas 는 box 만 그려 (위 D3 — 의도적 손실) 두 쪽이 갈리므로 아직 두지 않는다.
+      defaultValue: {
+        kind: "rac-color",
+        label: "Default Value",
+        section: "content",
+        default: "#ffffff",
+      },
+      colorSpace: {
+        kind: "enum",
+        label: "Color Space",
+        section: "appearance",
+        options: [
+          { value: "rgb", label: "RGB" },
+          { value: "hsl", label: "HSL" },
+          { value: "hsb", label: "HSB" },
+        ],
+      },
+      xChannel: {
+        kind: "enum",
+        label: "X Channel",
+        section: "appearance",
+        options: [
+          { value: "hue", label: "Hue" },
+          { value: "saturation", label: "Saturation" },
+          { value: "brightness", label: "Brightness" },
+          { value: "lightness", label: "Lightness" },
+          { value: "red", label: "Red" },
+          { value: "green", label: "Green" },
+          { value: "blue", label: "Blue" },
+        ],
+      },
+      yChannel: {
+        kind: "enum",
+        label: "Y Channel",
+        section: "appearance",
+        options: [
+          { value: "hue", label: "Hue" },
+          { value: "saturation", label: "Saturation" },
+          { value: "brightness", label: "Brightness" },
+          { value: "lightness", label: "Lightness" },
+          { value: "red", label: "Red" },
+          { value: "green", label: "Green" },
+          { value: "blue", label: "Blue" },
+        ],
+      },
+      xName: { kind: "string", label: "X Name", section: "content" },
+      yName: { kind: "string", label: "Y Name", section: "content" },
     },
     toRacProps: "default",
   },
+  // ADR-258 Phase 2: the area's gradient layers (`_colorGradient` — RAC's `useColorAreaGradient`).
+  skiaPrimitive: "color_area_fill",
 };

@@ -266,6 +266,8 @@ function withOpacity(
   const opacity = Number(
     node.visual.opacity ??
       catalogDerivedConditionalVisual(root, node).opacity ??
+      // (A disabled Color control's thumb — its owner rule's `opacity`, ADR-258.)
+      node.derivedProps?._opacity ??
       1,
   );
   if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1)

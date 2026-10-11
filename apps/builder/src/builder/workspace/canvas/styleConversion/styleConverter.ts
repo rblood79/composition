@@ -806,7 +806,9 @@ export type ClipPathShape =
     }
   | { type: "circle"; radius: number; cx: number; cy: number }
   | { type: "ellipse"; rx: number; ry: number; cx: number; cy: number }
-  | { type: "polygon"; points: Array<{ x: number; y: number }> };
+  | { type: "polygon"; points: Array<{ x: number; y: number }> }
+  /** ADR-258: 고리 (RAC ColorWheelTrack 의 `path(evenodd, 바깥 원, 안 원)`) — 생성자는 Color primitive 뿐. */
+  | { type: "ring"; cx: number; cy: number; outer: number; inner: number };
 
 /**
  * CSS clip-path 값을 파싱하여 ClipPathShape로 변환

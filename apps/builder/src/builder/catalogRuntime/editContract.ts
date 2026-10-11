@@ -29,6 +29,7 @@ import type {
   PropWrites,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
+import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
 import {
   catalogBindingRef,
@@ -225,6 +226,70 @@ export function catalogCellSpanCommand(
     : () => composeCommands(graph, "Edit column span", commands);
 }
 
+/** ADR-258 Decision 8 — the props a Color control's color space · channels · value live in. */
+const COLOR_CONTROL_KEYS = [
+  "colorSpace",
+  "channel",
+  "xChannel",
+  "yChannel",
+  "defaultValue",
+] as const;
+
+/**
+ * ADR-258 Decision 8 — a props patch on ColorArea · ColorSlider targets, widened per target
+ * (`normalizeColorControlPatch` against that target's own effective props) so one write keeps the
+ * color space and the channels a combination RAC accepts. Targets whose widened patch is the same
+ * share one command. `undefined` when no target is a Color control or the patch touches none of
+ * its keys (the plain patch).
+ */
+export function catalogColorControlPatchCommand(
+  graph: CatalogGraph,
+  targets: readonly EditTarget[],
+  patch: Readonly<Record<string, unknown>>,
+  currentOf: (target: EditTarget, key: string) => unknown,
+): CatalogCommand | undefined {
+  if (!COLOR_CONTROL_KEYS.some((key) => key in patch)) return undefined;
+  const types = targets.map((target) => {
+    if (target.kind !== "node") return "";
+    const entry = graph.getEntry(target.id);
+    if (entry?.kind !== "node") return "";
+    try {
+      return definitionTypeName(graph, entry.definitionId);
+    } catch {
+      return "";
+    }
+  });
+  if (!types.some((type) => type === "ColorArea" || type === "ColorSlider"))
+    return undefined;
+  const groups = new Map<
+    string,
+    { targets: EditTarget[]; patch: Record<string, unknown> }
+  >();
+  targets.forEach((target, index) => {
+    const props = Object.fromEntries(
+      COLOR_CONTROL_KEYS.map((key) => [key, currentOf(target, key)]),
+    );
+    const widened = normalizeColorControlPatch(types[index]!, props, patch);
+    const id = JSON.stringify(
+      Object.entries(widened).map(([key, value]) => [key, value ?? null]),
+    );
+    const group = groups.get(id) ?? { targets: [], patch: widened };
+    group.targets.push(target);
+    groups.set(id, group);
+  });
+  const commands = [...groups.values()].flatMap((group) => {
+    const first = group.targets[0]!;
+    const command = catalogSemanticPatchCommand(
+      group.targets,
+      group.patch,
+      (key) => currentOf(first, key),
+    );
+    return command ? [command] : [];
+  });
+  if (commands.length < 2) return commands[0];
+  return () => composeCommands(graph, "Edit properties", commands);
+}
+
 /**
  * The Properties patch as one step: binding keys (`bindingKeys`, the contract's `binding` fields)
  * write the targets' typed binding, the rest their props. A picker value the document cannot hold
@@ -238,6 +303,9 @@ export function catalogPropertiesPatchCommand(
   bindingKeys: ReadonlySet<string>,
   /** New cells when a Cell's `colSpan` narrows (ADR-257 Phase 2) — refused without. */
   newId?: NewId,
+  /** Each target's own effective prop (ADR-258 Decision 8 — the color patch is widened per target). */
+  currentOf: (target: EditTarget, key: string) => unknown = (_, key) =>
+    current(key),
 ): CatalogCommand | undefined {
   const props: Record<string, unknown> = {};
   const commands: CatalogCommand[] = [];
@@ -260,7 +328,9 @@ export function catalogPropertiesPatchCommand(
     if (JSON.stringify(before) === JSON.stringify(ref)) continue;
     commands.push(catalogBindingCommand(targets, ref));
   }
-  const propCommand = catalogSemanticPatchCommand(targets, props, current);
+  const propCommand =
+    catalogColorControlPatchCommand(graph, targets, props, currentOf) ??
+    catalogSemanticPatchCommand(targets, props, current);
   if (propCommand) commands.push(propCommand);
   if (commands.length < 2) return commands[0];
   return () => composeCommands(graph, "Edit properties", commands);

@@ -66,14 +66,11 @@ import type {
   TextMark,
 } from "../chart";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
-import { resolveBorderWidthPx } from "./utils/tokenResolver";
+import { resolveBorderWidthPx, resolveToken } from "./utils/tokenResolver";
 import { resolveTextSourceText } from "./utils/textSource";
 import type { ComponentVisualRule } from "./utils/resolveComponentVisual";
 import type { CatalogResolvedPaint } from "./catalogPaint";
-import {
-  resolveLeadingSlot,
-  resolveTreeIndent,
-} from "./buildCatalogShapes";
+import { resolveLeadingSlot, resolveTreeIndent } from "./buildCatalogShapes";
 import { measureSpecTextWidth } from "./utils/measureText";
 
 /**
@@ -93,6 +90,8 @@ export type SkiaPrimitiveDrawFn = (ctx: {
   visual: ComponentVisualRule | undefined;
   paint: CatalogResolvedPaint;
   style: Record<string, unknown> | undefined;
+  /** The Canvas theme (a primitive that resolves a theme-dependent token itself — a shadow). */
+  theme?: "light" | "dark";
 }) => Shape[] | null;
 
 /**
@@ -1270,6 +1269,238 @@ const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 };
 
 // ===========================================================================
+// ADR-258 Phase 2 — the Color controls' parts. Their values are derived record props (shared
+// `runtime/colorControlParts.ts` — the document value's function RAC's hooks compute for the
+// Preview): `_colorGradient` (the area · track · ring gradient, colors `#rrggbbaa`) and
+// `_colorThumb` (the handle's color, ring and shadow from the ColorThumb rule).
+// ===========================================================================
+
+type ColorGradientLayer = { to: "right" | "left" | "top"; stops: string[] };
+type ColorPaint =
+  | {
+      kind: "layers";
+      layers: ColorGradientLayer[];
+      base?: string;
+      blend?: "screen";
+    }
+  | {
+      kind: "wheel";
+      stops: string[];
+      fromDeg: number;
+      outerRadius: number;
+      innerRadius: number;
+    }
+  | {
+      kind: "solid";
+      color: string;
+      ring?: { outerRadius: number; innerRadius: number };
+    };
+
+function colorPaintOf(props: Record<string, unknown>): ColorPaint | undefined {
+  return typeof props._colorGradient === "string"
+    ? (JSON.parse(props._colorGradient) as ColorPaint)
+    : undefined;
+}
+
+/** The box a part draws in (`BOX_SIZE_TYPES` — the layout's). */
+function colorBox(props: Record<string, unknown>): { w: number; h: number } {
+  const w = Number(props._containerWidth);
+  const h = Number(props._containerHeight);
+  return { w: w > 0 ? w : 0, h: h > 0 ? h : 0 };
+}
+
+/** The converter's linear angle (0 = to bottom, 90 = to right) of a CSS `to <side>`. */
+const LINEAR_ANGLE: Readonly<Record<ColorGradientLayer["to"], number>> = {
+  right: 90,
+  left: 270,
+  top: 180,
+};
+
+const evenStops = (stops: readonly string[]) =>
+  stops.map((color, index) => ({
+    offset: stops.length > 1 ? index / (stops.length - 1) : 0,
+    color,
+  }));
+
+/** CSS `background: <layers…>, <base>` — bottom first; `premul` = CSS's gradient interpolation. */
+function colorLayerShapes(
+  paint: ColorPaint,
+  w: number,
+  h: number,
+  radius: number,
+): Shape[] {
+  if (paint.kind === "solid")
+    return [
+      paint.ring
+        ? {
+            type: "gradient",
+            x: 0,
+            y: 0,
+            width: w,
+            height: h,
+            radius,
+            gradient: {
+              type: "linear",
+              stops: [
+                { offset: 0, color: paint.color },
+                { offset: 1, color: paint.color },
+              ],
+            },
+            ring: {
+              outer: paint.ring.outerRadius,
+              inner: paint.ring.innerRadius,
+            },
+          }
+        : {
+            type: "roundRect",
+            x: 0,
+            y: 0,
+            width: w,
+            height: h,
+            radius,
+            fill: paint.color,
+          },
+    ];
+  if (paint.kind === "wheel")
+    return [
+      {
+        type: "gradient",
+        x: 0,
+        y: 0,
+        width: w,
+        height: h,
+        // CSS `conic-gradient(from 90deg …)` — the converter turns the CSS angle (0 = 12 o'clock)
+        // to Skia's sweep (0 = 3 o'clock): from 90deg needs no turn.
+        gradient: {
+          type: "conic",
+          angle: paint.fromDeg,
+          stops: evenStops(paint.stops),
+        },
+        premul: true,
+        ring: { outer: paint.outerRadius, inner: paint.innerRadius },
+      },
+    ];
+  const shapes: Shape[] = [];
+  if (paint.base)
+    shapes.push({
+      type: "roundRect",
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      radius,
+      fill: paint.base,
+    });
+  for (const layer of [...paint.layers].reverse())
+    shapes.push({
+      type: "gradient",
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      radius,
+      gradient: {
+        type: "linear",
+        angle: LINEAR_ANGLE[layer.to],
+        stops: evenStops(layer.stops),
+      },
+      premul: true,
+      // (rgb: every gradient layer screens the ones below — the base is the bottom layer.)
+      ...(paint.blend ? { blendMode: paint.blend } : {}),
+    });
+  return shapes;
+}
+
+function colorRadius(style: Record<string, unknown> | undefined): number {
+  const radius = Number(style?.borderRadius);
+  return Number.isFinite(radius) && radius > 0 ? radius : 0;
+}
+
+/** `color_area_fill` (replace) — a ColorArea's gradient layers in its rounded box. */
+const colorAreaFill: SkiaPrimitiveDrawFn = ({ props, style }) => {
+  const paint = colorPaintOf(props);
+  if (!paint) return null;
+  const { w, h } = colorBox(props);
+  return colorLayerShapes(paint, w, h, colorRadius(style));
+};
+
+/**
+ * `color_slider_track` (replace) — a ColorSlider's SliderTrack: its channel gradient in the track
+ * box. A Slider's track has no `_colorGradient` and keeps its rule box (null → the base shapes).
+ */
+const colorSliderTrack: SkiaPrimitiveDrawFn = ({ props, style }) => {
+  const paint = colorPaintOf(props);
+  if (!paint) return null;
+  const { w, h } = colorBox(props);
+  return colorLayerShapes(paint, w, h, colorRadius(style));
+};
+
+/** `color_wheel_track` (replace) — a ColorWheel's hue sweep in its ring. */
+const colorWheelTrack: SkiaPrimitiveDrawFn = ({ props }) => {
+  const paint = colorPaintOf(props);
+  if (!paint) return null;
+  const { w, h } = colorBox(props);
+  return colorLayerShapes(paint, w, h, 0);
+};
+
+/** A resolved shadow token's layers as shadow shapes on the thumb (the color as hex + alpha). */
+function thumbShadows(value: string): Shape[] {
+  return parseShadow(value).flatMap((layer): Shape[] => {
+    const rgb = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(layer.color);
+    if (!rgb || layer.inset) return [];
+    const hex = (value: string) => Number(value).toString(16).padStart(2, "0");
+    return [
+      {
+        type: "shadow",
+        target: "thumb",
+        offsetX: layer.offsetX,
+        offsetY: layer.offsetY,
+        blur: layer.blur,
+        ...(layer.spread ? { spread: layer.spread } : {}),
+        color: `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`,
+        alpha: layer.alpha,
+      },
+    ];
+  });
+}
+
+/**
+ * `color_thumb` (replace) — a ColorThumb: the displayed color in a ring of the rule's width and
+ * color, with the rule's shadow (the CSS `border-box` handle).
+ */
+const colorThumb: SkiaPrimitiveDrawFn = ({ props, theme }) => {
+  if (typeof props._colorThumb !== "string") return null;
+  const thumb = JSON.parse(props._colorThumb) as {
+    color: string;
+    size: number;
+    borderWidth: number;
+    borderColor: string;
+    shadow?: string;
+  };
+  const { w } = colorBox(props);
+  const radius = (w > 0 ? w : thumb.size) / 2;
+  const shadow =
+    thumb.shadow && thumb.shadow.startsWith("{")
+      ? resolveToken(thumb.shadow as TokenRef, theme ?? "light")
+      : thumb.shadow;
+  // One box, as the CSS handle: the color fills it (under the ring too — `background-clip:
+  // border-box`), the ring is its border over it, the shadow is the box's.
+  return [
+    {
+      id: "thumb",
+      type: "circle",
+      x: radius,
+      y: radius,
+      radius,
+      fill: thumb.color,
+      stroke: thumb.borderColor as TokenRef,
+      strokeWidth: thumb.borderWidth,
+    },
+    ...(typeof shadow === "string" ? thumbShadows(shadow) : []),
+  ];
+};
+
+// ===========================================================================
 // ADR-142 Inc3 family ⑥(overlays) — overlay 시각 패턴 draw module (append 모드).
 //
 // portal/overlay 의 비-box+text 시각(shadow / V-arrow / backdrop)을 그린다. 값은 module 내부
@@ -1552,7 +1783,11 @@ function calendarGridModel(value: unknown):
     };
     if (!Array.isArray(parsed.weekdays) || !Array.isArray(parsed.rows))
       return undefined;
-    return parsed as { weekdays: string[]; rows: string[][]; today?: [number, number] };
+    return parsed as {
+      weekdays: string[];
+      rows: string[][];
+      today?: [number, number];
+    };
   } catch {
     return undefined;
   }
@@ -2742,6 +2977,11 @@ export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   switch_toggle: switchToggle,
   // ADR-912 collection sub-part cutover (SliderThumb): circle 핸들 + border(replace, radio 동형).
   slider_thumb: sliderThumb,
+  // ADR-258 Phase 2: the Color controls' parts (replace — the gradient · handle is the whole look).
+  color_area_fill: colorAreaFill,
+  color_slider_track: colorSliderTrack,
+  color_wheel_track: colorWheelTrack,
+  color_thumb: colorThumb,
   // ADR-142 Inc3 overlays (append 모드 — SKIA_PRIMITIVE_MODES 참조)
   // ADR-166 Phase 4: dialog_shadow / popover_shadow 제거 (catalog boxShadow 단일 채널)
   overlay_backdrop: overlayBackdrop,

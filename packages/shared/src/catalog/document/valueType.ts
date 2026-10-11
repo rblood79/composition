@@ -1,3 +1,4 @@
+import { isRacColorString } from "./colorValue";
 import type { CalendarDuration, ValueType } from "./types";
 
 /**
@@ -13,6 +14,7 @@ export function scalarFitsType(
   if (type === "columnSize") return catalogColumnSizeFits(value, false);
   if (type === "columnStaticSize") return catalogColumnSizeFits(value, true);
   if (type === "calendarDuration") return false;
+  if (type === "racColor") return isRacColorString(value);
   return type !== undefined && typeof value === type;
 }
 
@@ -53,8 +55,7 @@ export const CALENDAR_DURATION_UNITS = ["days", "weeks", "months"] as const;
 export function catalogCalendarDurationFits(
   value: unknown,
 ): value is CalendarDuration {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    return false;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   if (Object.getPrototypeOf(value) !== Object.prototype) return false;
   const keys = Object.keys(value);
   if (keys.length !== 1) return false;
@@ -62,9 +63,7 @@ export function catalogCalendarDurationFits(
   if (!(CALENDAR_DURATION_UNITS as readonly string[]).includes(unit))
     return false;
   const count = (value as Record<string, unknown>)[unit];
-  return (
-    typeof count === "number" && Number.isSafeInteger(count) && count >= 1
-  );
+  return typeof count === "number" && Number.isSafeInteger(count) && count >= 1;
 }
 
 const COLUMN_FR = /^([1-9]\d*)fr$/;
@@ -82,7 +81,5 @@ export function catalogColumnSizeFits(
 ): boolean {
   if (typeof value === "number") return Number.isFinite(value) && value >= 0;
   if (typeof value !== "string") return false;
-  return (
-    COLUMN_PERCENT.test(value) || (!staticOnly && COLUMN_FR.test(value))
-  );
+  return COLUMN_PERCENT.test(value) || (!staticOnly && COLUMN_FR.test(value));
 }

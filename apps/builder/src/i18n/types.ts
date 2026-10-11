@@ -644,6 +644,7 @@ export interface TranslationKeys {
     sizeOutOfRange: string;
     /** ADR-257 — a Column width bound a grid track cannot express (stored, not applied). */
     columnSizeNotApplied: string;
+    racColorInvalid: string;
     durationUnit: string;
     calendarPickerNotice: string;
     stateName: string;

@@ -143,6 +143,15 @@ export function buildClipPath(
         path.addCircle(cx, cy, radius);
       });
     }
+    case "ring": {
+      // ADR-258: RAC ColorWheelTrack `clip-path: path(evenodd, 바깥 원 안 원)`.
+      const { cx, cy, outer, inner } = shape;
+      return buildPath(ck, (path) => {
+        path.addCircle(cx, cy, outer);
+        if (inner > 0) path.addCircle(cx, cy, inner);
+        path.setFillType(ck.FillType.EvenOdd);
+      });
+    }
     case "ellipse": {
       const { rx, ry, cx, cy } = shape;
       return buildPath(ck, (path) => {

@@ -47,7 +47,9 @@ export type ComponentTag =
   | "ColorSlider"
   | "ColorSwatch"
   | "ColorSwatchPicker"
+  | "ColorThumb"
   | "ColorWheel"
+  | "ColorWheelTrack"
   | "ComboBox"
   // ADR-256 Phase 10: S2 `Content` · `Footer` (a Card's sections, an InlineAlert's body).
   | "Content"

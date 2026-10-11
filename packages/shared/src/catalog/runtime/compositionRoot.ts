@@ -1,3 +1,4 @@
+import { catalogColorPartLayout } from "./colorControlParts";
 import type { CatalogTableSortSource } from "./tableSort";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
@@ -1068,7 +1069,9 @@ function styleOf(
     ...(typeof node.derivedProps?._tableTracks === "string"
       ? {
           display: "grid",
-          gridTemplateColumns: parseGridTemplate(node.derivedProps._tableTracks),
+          gridTemplateColumns: parseGridTemplate(
+            node.derivedProps._tableTracks,
+          ),
         }
       : {}),
     // ADR-257 Phase 2: a Cell's `colSpan` takes that many of its row's tracks.
@@ -2171,7 +2174,9 @@ export class CatalogCompositionRoot {
       ? undefined
       : (catalogSliderThumbLayout(record, get, this.typeOf) ??
         catalogSliderFillLayout(record, get, this.typeOf) ??
-        catalogProgressFillLayout(record, get, this.typeOf));
+        catalogProgressFillLayout(record, get, this.typeOf) ??
+        // ADR-258 Phase 2: a Color control's thumb (RAC's place) · a ColorWheel's ring square.
+        catalogColorPartLayout(record, get, this.typeOf));
     const chevron = record.hidden
       ? undefined
       : (catalogTreeChevronLayout(record, get, this.typeOf) ??
@@ -2574,15 +2579,11 @@ export class CatalogCompositionRoot {
         continue;
       }
       const leaf = textLeaf(
-          record,
-          this.typeOf(record),
-          catalogLabelSuffix(
-            record,
-            (key) => this.records.get(key),
-            this.typeOf,
-          ),
-          inheritedLineHeight(record, (key) => this.records.get(key)),
-        );
+        record,
+        this.typeOf(record),
+        catalogLabelSuffix(record, (key) => this.records.get(key), this.typeOf),
+        inheritedLineHeight(record, (key) => this.records.get(key)),
+      );
       // A leaf that no longer wraps (now single-line, emptied …) drops its old wrapped height.
       let next: number | undefined;
       if (
@@ -2608,10 +2609,9 @@ export class CatalogCompositionRoot {
         // overflows on its own line instead of splitting. Lines are broken at no less than the
         // min-content width (the longest word), so a lone overflowing word stays one line — unless
         // the text may break inside a word (`catalogTextBreaksWords`).
-        const breakWidth =
-          catalogTextBreaksWords(leaf.font as CatalogTextFont)
-            ? contentWidth
-            : Math.max(contentWidth, single.minWidth ?? 0);
+        const breakWidth = catalogTextBreaksWords(leaf.font as CatalogTextFont)
+          ? contentWidth
+          : Math.max(contentWidth, single.minWidth ?? 0);
         next =
           contentWidth > 0 &&
           breakWidth + 0.5 < (single.exactWidth ?? single.width)
@@ -4232,7 +4232,10 @@ export class CatalogCompositionRoot {
             this.typeOf,
           )) {
             const { derivedProps: _previous, ...rest } = dependent;
-            const derivedProps = this.derivedOf(rest as CatalogConsumerNode, lookup);
+            const derivedProps = this.derivedOf(
+              rest as CatalogConsumerNode,
+              lookup,
+            );
             next.set(dependent.id, {
               ...rest,
               ...(derivedProps ? { derivedProps } : {}),
@@ -4243,9 +4246,7 @@ export class CatalogCompositionRoot {
             const old = this.records.get(id);
             return !old || !sameRecord(old, record);
           })
-          .map(([id, record]) =>
-            this.planRecord(id, record, rootId, lookup),
-          );
+          .map(([id, record]) => this.planRecord(id, record, rootId, lookup));
         visits += updates.length;
         roots.push({
           rootId,

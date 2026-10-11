@@ -1501,6 +1501,40 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-colorswatch"
   },
   {
+    "id": "lib:definition:origin-component-colorarea",
+    "name": "ColorArea",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-colorarea"
+  },
+  {
+    "id": "lib:definition:origin-component-colorslider",
+    "name": "ColorSlider",
+    "mode": "composite",
+    "accepts": {
+      "label": "string"
+    },
+    "defaults": {
+      "label": ""
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-colorslider"
+  },
+  {
+    "id": "lib:definition:origin-component-colorwheel",
+    "name": "ColorWheel",
+    "mode": "composite",
+    "accepts": {},
+    "defaults": {},
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-colorwheel"
+  },
+  {
     "id": "lib:definition:origin-component-tab-item-default",
     "name": "Tab/Selected",
     "mode": "composite",
@@ -6859,6 +6893,89 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "props": {},
     "visual": {},
     "displayState": "focusVisible"
+  },
+  {
+    "id": "lib:template:component-colorarea",
+    "definitionId": "lib:definition:type-ColorArea",
+    "children": [
+      "lib:template:component-colorarea__thumb"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorarea__thumb",
+    "definitionId": "lib:definition:type-ColorThumb",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider",
+    "definitionId": "lib:definition:type-ColorSlider",
+    "children": [
+      "lib:template:component-colorslider__label",
+      "lib:template:component-colorslider__output",
+      "lib:template:component-colorslider__track"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider__label",
+    "definitionId": "lib:definition:origin-component-label",
+    "children": [],
+    "props": {
+      "children": "{label}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider__output",
+    "definitionId": "lib:definition:type-SliderOutput",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider__track",
+    "definitionId": "lib:definition:type-SliderTrack",
+    "children": [
+      "lib:template:component-colorslider__thumb"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorslider__thumb",
+    "definitionId": "lib:definition:type-ColorThumb",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorwheel",
+    "definitionId": "lib:definition:type-ColorWheel",
+    "children": [
+      "lib:template:component-colorwheel__track",
+      "lib:template:component-colorwheel__thumb"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorwheel__track",
+    "definitionId": "lib:definition:type-ColorWheelTrack",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-colorwheel__thumb",
+    "definitionId": "lib:definition:type-ColorThumb",
+    "children": [],
+    "props": {},
+    "visual": {}
   },
   {
     "id": "lib:template:component-colorswatchpicker",

@@ -63,7 +63,10 @@ function variableType(type: ValueType): VariableDefType {
     : type === "slot"
       ? "string"
       : // (ADR-257 Column widths are no variable type: a state variable is a scalar of its own.)
-        type === "columnSize" || type === "columnStaticSize"
+        type === "columnSize" ||
+          type === "columnStaticSize" ||
+          // (ADR-258: nor a RAC color — a state variable of its own is a string.)
+          type === "racColor"
         ? "string"
         : // (ADR-256 Phase 9: nor a calendar duration — an object of its own.)
           type === "calendarDuration"

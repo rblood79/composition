@@ -247,6 +247,25 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "color field",
     icon: "Palette",
   },
+  // 재캡처 2026-10-12 — ADR-258 Phase 3 (사용자 결정 3): Color 조작기 3 을 ColorField 뒤에.
+  {
+    type: "ColorArea",
+    category: "forms",
+    label: "color area",
+    icon: "Blend",
+  },
+  {
+    type: "ColorSlider",
+    category: "forms",
+    label: "color slider",
+    icon: "Rainbow",
+  },
+  {
+    type: "ColorWheel",
+    category: "forms",
+    label: "color wheel",
+    icon: "Disc3",
+  },
   {
     type: "Checkbox",
     category: "forms",

@@ -1,7 +1,8 @@
+/* ADR-258 (2026-10-12): builder chrome 전용 (builder-components.css — 패널의 색 고르기).
+   Preview · Publish 의 ColorArea · ColorThumb 는 catalog rule 의 생성 CSS (generated/ColorArea.css · ColorThumb.css) 가 정본이다. */
 /* Component imports removed - managed by index.css */
 
 @layer components {
-
   .react-aria-ColorArea {
     width: 100%;
     height: 180px;

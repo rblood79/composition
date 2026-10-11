@@ -12,6 +12,7 @@ import {
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
 import type {
   EditTarget,
   NodeEntry,
@@ -32,6 +33,7 @@ import { catalogFillItems, catalogFillLayers } from "./authoredStyle";
 import {
   catalogDefinitionPropKeys,
   catalogEditContract,
+  catalogColorControlPatchCommand,
   catalogSemanticPatchCommand,
 } from "./editContract";
 import {
@@ -338,6 +340,25 @@ export function createCatalogAiReadHost(
   };
 }
 
+/** A new node's own props before the AI's: the definition's defaults and its creation defaults. */
+function catalogStartingProps(
+  library: CatalogWorkspace["runtime"]["graph"]["library"],
+  definitionId: Parameters<typeof catalogCreationProps>[1],
+  type: string,
+): Record<string, unknown> {
+  const definition = library.definitions.get(definitionId) as
+    { defaults?: Readonly<Record<string, unknown>> } | undefined;
+  const creation = Object.fromEntries(
+    Object.entries(catalogCreationProps(library, definitionId, type)).flatMap(
+      ([key, write]) =>
+        write.kind === "set"
+          ? [[key, (write as { value: unknown }).value]]
+          : [],
+    ),
+  );
+  return { ...(definition?.defaults ?? {}), ...creation };
+}
+
 /** A write's commands on existing (or staged) targets: semantic props, CSS, fills. */
 function writeCommands(
   workspace: CatalogWorkspace,
@@ -353,13 +374,21 @@ function writeCommands(
   if (refused.length)
     throw new Error(`PROP_NOT_ACCEPTED: ${refused.join(", ")}`);
   const first = targets[0];
+  // ADR-258 Decision 8 — the AI's write does not pass the panel's wrapper: a Color control's color
+  //   space · channels are widened here, per target, before the semantic command.
   const propCommand =
     first &&
-    catalogSemanticPatchCommand(
+    (catalogColorControlPatchCommand(
+      workspace.runtime.graph,
       targets,
       props,
-      (key) => workspace.readModel.propSource(first, key).value,
-    );
+      (target, key) => workspace.readModel.propSource(target, key).value,
+    ) ??
+      catalogSemanticPatchCommand(
+        targets,
+        props,
+        (key) => workspace.readModel.propSource(first, key).value,
+      ));
   if (propCommand) commands.push(propCommand);
   const styles = Object.fromEntries(
     Object.entries(input.styles ?? {}).filter(
@@ -529,13 +558,20 @@ export function createCatalogAiWriteHost(
         };
         const target: EditTarget = { kind: "node", id: nodeId };
         const accepted = catalogDefinitionPropKeys(graph, definitionId);
-        const props = input.props ?? {};
-        const refused = Object.keys(props).filter((key) => !accepted.has(key));
+        const given = input.props ?? {};
+        const refused = Object.keys(given).filter((key) => !accepted.has(key));
         if (refused.length)
           return {
             ok: false,
             error: `PROP_NOT_ACCEPTED: ${refused.join(", ")}`,
           };
+        // ADR-258 Decision 8 — a new Color control's initial props are widened against the
+        //   definition's own starting props (its defaults · creation defaults), in the same insert.
+        const props = normalizeColorControlPatch(
+          input.type,
+          catalogStartingProps(graph.library, definitionId, input.type),
+          given,
+        );
         const commands: CatalogCommand[] = [
           insertNodes({
             parent: parentOf(parent.target),

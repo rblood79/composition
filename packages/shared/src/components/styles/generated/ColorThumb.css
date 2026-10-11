@@ -1,0 +1,44 @@
+/* ============================================================
+ * AUTO-GENERATED from catalog ColorThumb — DO NOT EDIT MANUALLY
+ * Source: packages/shared/src/catalog/generated/componentRulesTable.ts
+ * Archetype: container
+ * ============================================================ */
+
+@layer components {
+
+.react-aria-ColorThumb {
+  /* Base styles — archetype: container */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    border: 4px solid var(--bg-raised);
+    box-shadow: var(--shadow-sm);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-sizing: border-box;
+    will-change: transform;
+
+  /* Default size */
+  font-size: var(--text-sm);
+  border-radius: var(--radius-full);
+}
+
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-ColorThumb {
+    forced-color-adjust: auto;
+  }
+}
+
+
+  .react-aria-ColorThumb[data-focus-visible] {
+    width: 20px;
+    height: 20px;
+  }
+
+
+} /* @layer components */

@@ -106,7 +106,7 @@ async function open(
   const document: CatalogDocument = {
     format: "composition-catalog",
     schemaVersion: 1,
-    libraryContractVersion: 40,
+    libraryContractVersion: 41,
     revision: 0,
     projectId,
     rootId: projectId,
@@ -522,9 +522,7 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       const box = boxes.get(item.id) as { width: number; height: number };
       expect((box?.width ?? 0) * (box?.height ?? 0)).toBe(0);
     }
-    expect(select.byType("Group").every((node) => !node.hidden)).toBe(
-      true,
-    );
+    expect(select.byType("Group").every((node) => !node.hidden)).toBe(true);
   });
 
   it("re-derives panel presence on a value-only Tab edit (incremental path)", async () => {

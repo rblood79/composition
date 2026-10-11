@@ -1,3 +1,7 @@
+import {
+  catalogColorControlDerivedProps,
+  catalogColorControlParts,
+} from "./colorControlParts";
 import { getIconData } from "@composition/rendering";
 import {
   catalogTableRowTracks,
@@ -244,6 +248,15 @@ export function catalogStaticPartFrame(
 }
 
 /** A node's children with the layout frames among them opened (`PART_FRAME_TYPES`). */
+/** A record's part children, past the layout frames the author puts around them. */
+export function catalogPartChildren(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode[] {
+  return partChildrenOf(node, get, typeOf);
+}
+
 function partChildrenOf(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
@@ -1817,6 +1830,10 @@ function ownDerivedProps(
   }
   const subpart = fieldSubpartProps(node, get, typeOf, locale);
   if (subpart) return subpart;
+  // ADR-258 Phase 2: a Color control's gradient · thumb paint (its value's — the record diff
+  // repaints the part when the control's value changes).
+  const color = catalogColorControlDerivedProps(node, get, typeOf);
+  if (color) return color;
   // S2 Slider `trackStyle: thick` — the track bar is 16px with the S2 sm corner
   // (`CATALOG_SLIDER_THICK_TRACK`): the Canvas height (`styleOf`) and the DOM inline read the
   // derived value; the paint radius is the SliderTrack rule's `containerVariants`.
@@ -2069,6 +2086,8 @@ export function catalogDerivedPropsDependents(
   const items = [
     ...derivedDependents(owner, get, typeOf),
     ...fieldSubparts(owner, get, typeOf),
+    // (A Color control's gradient · thumb parts — ADR-258 Phase 2.)
+    ...catalogColorControlParts(owner, get, typeOf),
     // (A Table's select-all checkboxes follow its selection mode and its rows — Phase 5i-2.)
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
     // (ADR-257: its Table's header row and Rows lay out on the Columns' tracks.)

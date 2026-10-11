@@ -90,6 +90,9 @@ export function applyFill(
         flatColors,
         fillPositions,
         fill.repeating ? ck.TileMode.Repeat : ck.TileMode.Clamp,
+        undefined,
+        // ADR-258: CSS gradient 의 premultiplied 보간 (Skia `kInterpolateColorsInPremul` = 1).
+        fill.premul ? 1 : 0,
       );
       if (!shader) {
         if (process.env.NODE_ENV === "development") {
@@ -153,7 +156,7 @@ export function applyFill(
         fillPositions,
         fill.repeating ? ck.TileMode.Repeat : ck.TileMode.Clamp,
         fill.rotationMatrix ?? null, // localMatrix로 -90° 보정
-        0, // flags
+        fill.premul ? 1 : 0, // flags — ADR-258: premultiplied 보간
       );
       if (!shader) {
         if (process.env.NODE_ENV === "development") {

@@ -63,6 +63,10 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "Image",
   "Slider",
   "SliderTrack",
+  // ADR-258 Phase 2: the Color controls' gradient · ring · handle are drawn at the box.
+  "ColorArea",
+  "ColorWheelTrack",
+  "ColorThumb",
   "ListBox",
   "ColorField",
   "Skeleton",
@@ -104,6 +108,7 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
       ...resolveSize(size as Record<string, unknown>, theme),
       ...style,
     } as Record<string, unknown>,
+    theme,
   };
   return { ctx, theme };
 }
@@ -231,7 +236,6 @@ function ruleShapes(input: CatalogRuleShapeInput): Shape[] {
   }
   return composeCatalogShapes(base, prepend, append);
 }
-
 
 /** Every text of `data` paints an ellipsis at its box and clips there. */
 function ellipsize(data: SkiaNodeData): void {

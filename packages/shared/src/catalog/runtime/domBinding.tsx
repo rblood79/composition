@@ -1,3 +1,9 @@
+import {
+  CATALOG_COLOR_CONTROL_TYPES,
+  catalogColorControlProps,
+  catalogColorKey,
+  type CatalogColorControlType,
+} from "./colorControlGradient";
 import { isBodyType } from "../../domain/predicates";
 import {
   catalogCellSpan,
@@ -804,7 +810,8 @@ const bindings: Readonly<Record<string, DomBinding>> = {
       { key: node.id, "data-catalog-id": node.id, style } as Parameters<
         typeof Label
       >[0],
-      String(node.props.children ?? ""),
+      // (A ColorSlider's Label without its own text shows the channel's name — RAC's, ADR-258.)
+      ...(catalogRacOwnsText(node) ? [] : [String(node.props.children ?? "")]),
       ...children,
     ),
   description: (node, style) =>
@@ -1077,7 +1084,37 @@ const bindings: Readonly<Record<string, DomBinding>> = {
         : withoutRacPlacement(style),
     });
   },
+  // ADR-258 Phase 2: a Color control's parts are RAC's, in its context — RAC places the thumb at
+  // the value and paints it the displayed color, and sizes · paints · clips the wheel's ring (the
+  // node's own style never moves or repaints them — `RAC_COLOR_PART_KEYS`).
+  colorthumb: (node, style) =>
+    createElement(RAC.ColorThumb as ElementType, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      style: withoutRacColorPart(withoutRacPlacement(style)),
+    }),
+  colorwheeltrack: (node, style) =>
+    createElement(RAC.ColorWheelTrack as ElementType, {
+      key: node.id,
+      "data-catalog-id": node.id,
+      style: withoutRacColorPart(style),
+    }),
 };
+
+/** Keys RAC writes on a ColorThumb · ColorWheelTrack from the control's state (`useColorWheel` · `ColorThumb`). */
+const RAC_COLOR_PART_KEYS = [
+  "width",
+  "height",
+  "background",
+  "backgroundColor",
+  "backgroundImage",
+  "clipPath",
+] as const;
+function withoutRacColorPart(style: CSSProperties): CSSProperties {
+  const out = { ...style };
+  for (const key of RAC_COLOR_PART_KEYS) delete out[key];
+  return out;
+}
 
 /** Keys RAC's SliderFill · SliderThumb place by the Slider's state (`useSliderThumb` · `SliderFill`). */
 const RAC_PLACED_KEYS = [
@@ -1844,6 +1881,18 @@ function ruleDom(
     delete rest.size;
     style = { width: diameter, height: diameter, ...style };
   }
+  // ADR-258 Decision 1 · 8 — the Color controls get the props the Canvas reads
+  //   (`catalogColorControlProps`): a RAC color value (the binding default when empty or not one)
+  //   and channels of the effective space — one fallback for both consumers (RAC throws on the
+  //   rest; a ColorSlider without a value took the whole Preview down).
+  const colorType = CATALOG_COLOR_CONTROL_TYPES.has(type)
+    ? (type as CatalogColorControlType)
+    : undefined;
+  if (colorType) {
+    for (const key of ["colorSpace", "channel", "xChannel", "yChannel"])
+      delete rest[key];
+    Object.assign(rest, catalogColorControlProps(colorType, node.props));
+  }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
   const ownChildren = children;
   const content =
@@ -1956,10 +2005,15 @@ function ruleDom(
     STATIC_ITEM_TYPES.has(type) || lower === "menuitem"
       ? resolveStaticItemKey(node.props as Record<string, unknown>, node.id)
       : undefined;
+  // ADR-258 Decision 7 — RAC's Color state keeps its first `defaultValue`: a document edit of the
+  //   value (or its undo) starts the Preview again from the new one (the Slider's `key` rule). The
+  //   key part keeps the value's own space and exact channels (`catalogColorKey`) — no other prop.
   const ownKey =
     itemKey !== undefined && itemKey !== node.id
       ? `${node.id}#${itemKey}`
-      : node.id;
+      : colorType
+        ? `${node.id}:${catalogColorKey(colorType, node.props.defaultValue)}`
+        : node.id;
   const element = createElement(
     Component,
     {
