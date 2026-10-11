@@ -394,6 +394,8 @@ export async function canvasVsPreview(page, recordId, tolerance = 1.5) {
   const round = (box) => box?.map((v) => Math.round(v * 10) / 10);
   return {
     compared: compared.length,
+    // (Which boxes were compared — a part dropped from the comparison shows here, not only in a count.)
+    comparedTypes: compared.map((r) => r.type),
     off: off.map((r) => ({ type: r.type, canvas: round(r.box), dom: round(r.dom) })),
     unmatched: rows.filter((r) => !r.dom).map((r) => r.type),
   };

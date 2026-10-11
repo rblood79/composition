@@ -71,7 +71,7 @@ export function summarize(name, result, errors) {
   const lines = [`# ${name} edits=${JSON.stringify(result.edits)} reopened=${result.reopened}`];
   for (const o of result.out)
     lines.push(
-      `${o.label}: structure ${o.structure.pass ? "PASS" : "FAIL " + JSON.stringify(o.structure.d)} · controls ${o.controls.pass ? "PASS" : "FAIL " + JSON.stringify(o.controls)} · canvas ${o.canvas.compared} compared, off ${JSON.stringify(o.canvas.off)} unmatched ${JSON.stringify(o.canvas.unmatched)}`,
+      `${o.label}: structure ${o.structure.pass ? "PASS" : "FAIL " + JSON.stringify(o.structure.d)} · controls ${o.controls.pass ? "PASS" : "FAIL " + JSON.stringify(o.controls)} · canvas ${o.canvas.compared} compared ${JSON.stringify(o.canvas.comparedTypes)}, off ${JSON.stringify(o.canvas.off)} unmatched ${JSON.stringify(o.canvas.unmatched)}`,
     );
   lines.push(`errors ${JSON.stringify(errors.slice(0, 5))}`);
   return lines.join("\n");
