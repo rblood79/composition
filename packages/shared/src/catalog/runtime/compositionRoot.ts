@@ -137,6 +137,7 @@ import {
   catalogTreeItemLayout,
   catalogTreeChevrons,
 } from "./presence";
+import { catalogChildOrder } from "./calendarModel";
 import {
   catalogRecordVariables,
   catalogStateEnv,
@@ -1353,6 +1354,12 @@ export class CatalogCompositionRoot {
   private childOrder(
     record: CatalogConsumerNode | undefined,
   ): ((id: string) => number) | undefined {
+    // A derived show order (a calendar header's pickers in its locale order — `_childOrder`).
+    const shown = catalogChildOrder(record?.derivedProps);
+    if (shown) {
+      const at = new Map(shown.map((id, index) => [id, index]));
+      return (id) => at.get(id) ?? shown.length;
+    }
     if (!record || !/^(inline-)?(flex|grid)$/.test(record.layout.display ?? ""))
       return undefined;
     const orderOf = (id: string) =>

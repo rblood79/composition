@@ -15,11 +15,13 @@ import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
 import {
   type CatalogCalendarModelInput,
   catalogCalendarGrid,
+  catalogCalendarHeaderOrder,
   catalogCalendarHeading,
   catalogCalendarLocale,
   catalogCalendarMonthCount,
   catalogCalendarPickerText,
   catalogCalendarRangeTitle,
+  catalogCalendarYearFirst,
 } from "./calendarModel";
 import { racFieldHourCycle } from "../document/dateSegments";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -1837,6 +1839,25 @@ function ownDerivedProps(
         ),
       };
   }
+  // A calendar header's month · year pickers in the calendar's locale order (`_childOrder` — the
+  // Canvas engine's child order and the DOM's render order, composition extension).
+  if (partType === "CalendarHeader") {
+    const calendar = catalogCalendarOf(node, get, typeOf);
+    const order =
+      calendar &&
+      catalogCalendarHeaderOrder(
+        node.children,
+        (id) => {
+          const child = get(id);
+          return child ? typeOf(child) : undefined;
+        },
+        catalogCalendarYearFirst(
+          calendarModelInput(calendar, get, typeOf),
+          locale,
+        ),
+      );
+    if (order) return { _childOrder: JSON.stringify(order) };
+  }
   if (partType === "SelectValue") {
     const picker = catalogCalendarPickerOfValue(node, get, typeOf);
     const formatted = picker && ownDerivedProps(picker, get, typeOf, locale);
@@ -2675,6 +2696,7 @@ function calendarModelParts(
       if (CALENDAR_TYPES.has(type)) continue;
       if (
         type === "CalendarHeading" ||
+        type === "CalendarHeader" ||
         type === "CalendarGrid" ||
         type === "Heading" ||
         type === "CalendarMonthPicker" ||

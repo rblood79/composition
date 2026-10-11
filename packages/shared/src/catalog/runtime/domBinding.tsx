@@ -101,6 +101,7 @@ import {
 import {
   catalogCalendarMonthPickerFormat,
   catalogCalendarVisibleYears,
+  catalogChildOrder,
 } from "./calendarModel";
 import type { DefinitionId, StateName, TokenId } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
@@ -2621,7 +2622,8 @@ function renderNode(
       ? submenuTriggerChildren(root, node)
       : node.ruleId === "TableBody"
         ? tableBodyOrder(root, node, context)
-        : node.children
+        : // A derived show order (a calendar header's pickers in its locale order).
+          (catalogChildOrder(node.derivedProps) ?? node.children)
   ).flatMap((childId) => {
     const child = root.domInputs.get(childId);
     // A part its owner draws has no element of its own — but a toggle indicator in a layout

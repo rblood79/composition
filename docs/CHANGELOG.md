@@ -21,7 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Why**: slot 「Add content」 로 picker 를 하나씩 넣는 것은 레퍼런스가 코드로 조립하는 방식이라 빌더에서는 불편했다 (사용자 지적 2026-10-11).
   - 스위치 값은 헤더의 자식 구성이며 prop 이 아니다 (D2 신규 prop 0). 끈 picker 는 `enabled: false` 로 남아 다시 켜면 format · visibleYears 가 그대로다.
   - 위치: `apps/builder/src/builder/catalogRuntime/calendarHeader.ts` · `panels/properties/catalog/CatalogCalendarHeaderField.tsx`
-- 검증: `adr256CalendarHeaderMode.test.tsx` 5 (Calendar · RangeCalendar × instance · 문서 노드, 패널 필드) · live headed Chrome 7/7 (스위치 클릭 · Month Format Long · Visible Years 5 → Preview 연도 5개 · 끄기 · undo 한 단계 · 오류 0).
+- **월 · 연도 picker 가 Calendar 의 locale 순서로 보인다** (composition 확장 — RAC 는 작성 순서 그대로 그린다):
+  - ko · ja · zh 는 「2026년 ▾ 10월 ▾」, en · de 는 「Oct ▾ 2026 ▾」. Calendar 의 Locale 을 바꾸면 순서가 따라 바뀐다. 문서의 자식 순서 (Layers) 는 그대로다.
+  - **Why**: 처음에는 레퍼런스 예제처럼 월 · 연도 순서로 고정돼 있어 한국어에서 「10월 2026년」 으로 보였다 (사용자 지적 2026-10-12).
+  - Canvas (엔진 자식 순서) 와 DOM (렌더 순서) 이 같은 파생값 `_childOrder` 를 읽는다. 판정은 locale 의 연-월 패턴 (`Intl.DateTimeFormat` `formatToParts`) 이다.
+  - 위치: `packages/shared/src/catalog/runtime/calendarModel.ts` (`catalogCalendarYearFirst` · `catalogCalendarHeaderOrder`) · `presence.ts` · `compositionRoot.ts` `childOrder` · `domBinding.tsx` `renderNode`
+- 검증: `adr256CalendarHeaderMode.test.tsx` 6 (Calendar · RangeCalendar × instance · 문서 노드, 패널 필드, locale 순서 Canvas · DOM — 파생값을 끄면 실패하는 것 확인) · live headed Chrome 7/7 (스위치 클릭 · Month Format Long · Visible Years 5 → Preview 연도 5개 · 끄기 · undo 한 단계 · 오류 0) · live locale 5/5 (ko: Canvas · Preview 「2026년 · 10월」, en-US: 「Oct · 2026」).
 
 ## [Calendar Month · Year picker 넣기 · prop] - 2026-10-11
 

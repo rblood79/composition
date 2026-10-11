@@ -434,6 +434,66 @@ export function catalogCalendarVisibleYears(
 }
 
 /**
+ * Whether the calendar's locale writes the year before the month (its year-month pattern —
+ * `ko` · `ja` · `zh` 「2026년 10월」, `en` · `de` 「October 2026」).
+ */
+export function catalogCalendarYearFirst(
+  input: CatalogCalendarModelInput,
+  fallbackLocale?: string,
+): boolean {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat(
+      catalogCalendarLocale(input, fallbackLocale),
+      { year: "numeric", month: "long" },
+    ).formatToParts(new Date(2020, 0, 15));
+  } catch {
+    return false;
+  }
+  const year = parts.findIndex((part) => part.type === "year");
+  const month = parts.findIndex((part) => part.type === "month");
+  return year >= 0 && month >= 0 && year < month;
+}
+
+/**
+ * A calendar header's children with its month · year pickers in the locale's order (composition
+ * extension — RAC renders them in source order): the two pickers trade places when the source
+ * order differs from the locale's; `undefined` when it already matches or a picker is missing.
+ * Canvas (engine child order) and DOM (render order) read the same list (`_childOrder`).
+ */
+export function catalogCalendarHeaderOrder(
+  children: readonly string[],
+  typeOf: (id: string) => string | undefined,
+  yearFirst: boolean,
+): readonly string[] | undefined {
+  const month = children.findIndex(
+    (id) => typeOf(id) === "CalendarMonthPicker",
+  );
+  const year = children.findIndex((id) => typeOf(id) === "CalendarYearPicker");
+  if (month < 0 || year < 0 || year < month === yearFirst) return undefined;
+  const order = [...children];
+  order[month] = children[year]!;
+  order[year] = children[month]!;
+  return order;
+}
+
+/** A record's `_childOrder` (the order its children show in), when it has one. */
+export function catalogChildOrder(
+  derivedProps: Readonly<Record<string, unknown>> | undefined,
+): readonly string[] | undefined {
+  const value = derivedProps?._childOrder;
+  if (typeof value !== "string") return undefined;
+  try {
+    const order: unknown = JSON.parse(value);
+    return Array.isArray(order) && order.every((id) => typeof id === "string")
+      ? (order as string[])
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * RAC's month · year picker value text (`useCalendarMonthPicker` — the focused date's month in the
  * picker's `format`, `short` when unset; `useCalendarYearPicker` — its year, `numeric` with the BC
  * era where it applies): what the picker's Select shows as its value.
