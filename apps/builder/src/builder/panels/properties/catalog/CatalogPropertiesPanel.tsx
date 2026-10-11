@@ -25,6 +25,7 @@ import { FieldValueSourceContext } from "../generic/fieldValueSource";
 import { ItemsSourceContext } from "../generic/itemsSource";
 import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
+import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
 import { CatalogComponentSection } from "./CatalogComponentSection";
 import { CatalogItemInsertSection } from "./CatalogItemInsertSection";
 import { CatalogItemRolesSection } from "./CatalogItemRolesSection";
@@ -359,15 +360,20 @@ const CatalogFields = memo(function CatalogFields({
     contentExtras:
       buttonNode && buttonChildren ? (
         <CatalogButtonChildFields nodeId={buttonNode} state={buttonChildren} />
-      ) : calendarPicker ? (
-        <p
-          className="item-origin-notice"
-          data-calendar-picker-notice={calendarPicker}
-        >
-          {t("propertiesPanel.calendarPickerNotice", {
-            picker: calendarPicker,
-          })}
-        </p>
+      ) : isCalendar ? (
+        <>
+          {calendarPicker ? (
+            <p
+              className="item-origin-notice"
+              data-calendar-picker-notice={calendarPicker}
+            >
+              {t("propertiesPanel.calendarPickerNotice", {
+                picker: calendarPicker,
+              })}
+            </p>
+          ) : null}
+          <CatalogCalendarHeaderField elementId={elementId} />
+        </>
       ) : undefined,
     onPatch: handlePatch,
     isRefInstance,

@@ -484,6 +484,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Visible Duration": "properties.visibleDuration",
   "Weeks in Month": "properties.weeksInMonth",
   "Visible Years": "properties.visibleYears",
+  "Month and Year Pickers": "properties.monthYearPickers",
+  "Month Format": "properties.monthFormat",
   Format: "properties.format",
   "2-Digit": "properties.twoDigit",
   Long: "properties.long",

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Calendar 「Month and Year Pickers」 스위치 — Properties 한 번에] - 2026-10-11
+
+### Added
+
+- **Calendar · RangeCalendar Properties 의 「Month and Year Pickers」 스위치** (Content 섹션):
+  - 켜면 헤더의 CalendarHeading 자리에 CalendarMonthPicker · CalendarYearPicker 가 들어간다. 순서는 레퍼런스 (react-aria.adobe.com Calendar 「Month and year pickers」) 와 같은 `Button[previous] + 월 + 연도 + Button[next]` 이다. 끄면 heading 이 돌아온다. 어느 쪽이든 history 한 단계이고, 선택은 Calendar 에 남는다.
+  - 켠 동안 같은 자리에서 **Month Format** (RAC `format`) · **Visible Years** (RAC `visibleYears`) 를 편집한다. 값은 picker 노드에 저장된다.
+  - **Why**: slot 「Add content」 로 picker 를 하나씩 넣는 것은 레퍼런스가 코드로 조립하는 방식이라 빌더에서는 불편했다 (사용자 지적 2026-10-11).
+  - 스위치 값은 헤더의 자식 구성이며 prop 이 아니다 (D2 신규 prop 0). 끈 picker 는 `enabled: false` 로 남아 다시 켜면 format · visibleYears 가 그대로다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/calendarHeader.ts` · `panels/properties/catalog/CatalogCalendarHeaderField.tsx`
+- 검증: `adr256CalendarHeaderMode.test.tsx` 5 (Calendar · RangeCalendar × instance · 문서 노드, 패널 필드) · live headed Chrome 7/7 (스위치 클릭 · Month Format Long · Visible Years 5 → Preview 연도 5개 · 끄기 · undo 한 단계 · 오류 0).
+
 ## [Calendar Month · Year picker 넣기 · prop] - 2026-10-11
 
 ### Added
