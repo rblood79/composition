@@ -85,7 +85,11 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
       );
       expect(labelRule, `${component} side label nested rule`).toBeDefined();
       expect(labelRule!.styles.width).toBe("var(--form-label-width)");
-      expect(labelRule!.styles["grid-column"]).toBe("1");
+      // (SearchField: the reference's grid — glyph · Input · clear button columns after the label;
+      // both lines, so its top layout's `1 / 4` does not reach the side one. G5 example 5.)
+      expect(labelRule!.styles["grid-column"]).toBe(
+        component === "SearchField" ? "1 / 2" : "1",
+      );
       expect(labelRule!.styles["text-align"]).toBe(
         "var(--form-label-align, start)",
       );
@@ -129,8 +133,11 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
           | Record<string, Record<string, { styles?: Record<string, string> }>>
           | undefined
       )?.["label-position"]?.side?.styles;
+      const searchField = component === "SearchField";
       expect(side?.display).toBe("grid");
-      expect(side?.["grid-template-columns"]).toBe("auto minmax(0, 1fr)");
+      expect(side?.["grid-template-columns"]).toBe(
+        searchField ? "auto 0px minmax(0, 1fr) auto" : "auto minmax(0, 1fr)",
+      );
       for (const selector of [
         "> .react-aria-FieldError",
         '> [slot="description"]',
@@ -139,7 +146,7 @@ describe("side 라벨 컬럼 catalog 계약 (§1-2 축①)", () => {
           (n) => n.selector === selector,
         );
         expect(hint, `${component} ${selector}`).toBeDefined();
-        expect(hint!.styles["grid-column"]).toBe("2");
+        expect(hint!.styles["grid-column"]).toBe(searchField ? "2 / 5" : "2");
       }
     },
   );

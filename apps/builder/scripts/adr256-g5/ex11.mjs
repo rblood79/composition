@@ -51,8 +51,12 @@ export async function run(page, errors = []) {
     await edit(page, (c, ws, h, T) => {
       const columns = h.within(h.bySource(T).id, "Column");
       const steps = [c.removeTargets({ targets: [h.target(h.within(columns[0].id, "Group")[0].id)] })];
-      for (const col of columns.slice(1))
-        steps.push(c.groupNodes({ ids: [h.within(col.id, "Group")[0].sourceId], group: h.node(h.newId(), "lib:definition:type-frame"), newId: ws.newId }));
+      // (The frame is the reference's `.column-header`: `display: flex; align-items: center` — and
+      // it fills the cell, `flex-grow: 1` in a sortable column's row.)
+      for (const col of columns.slice(1)) {
+        const frame = { ...h.node(h.newId(), "lib:definition:type-frame"), layout: { display: h.set("flex"), alignItems: h.set("center"), flexGrow: h.set("1") } };
+        steps.push(c.groupNodes({ ids: [h.within(col.id, "Group")[0].sourceId], group: frame, newId: ws.newId }));
+      }
       return steps;
     }, T),
   );
@@ -65,6 +69,8 @@ export async function run(page, errors = []) {
       steps.push(h.insert(columns[0].id, [h.node(h.newId(), "lib:definition:origin-component-checkbox", { children: "", slot: "selection" })]));
       // (A detached column's label is its own Text — the column's `children` no longer reaches it.)
       COLUMNS.forEach((name, i) => {
+        // (The name Group is the reference's `.column-name`: `flex: 1`.)
+        steps.push(c.setFields({ targets: [h.target(h.within(columns[i + 1].id, "Group")[0].id)], layout: { flexGrow: h.set("1") } }));
         steps.push(h.props(columns[i + 1].id, { children: name, ...(i === 0 ? { isRowHeader: true } : {}) }));
         steps.push(h.props(h.within(columns[i + 1].id, "Text")[0].id, { children: name }));
       });

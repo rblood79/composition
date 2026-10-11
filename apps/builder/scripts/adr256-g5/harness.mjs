@@ -206,13 +206,34 @@ export async function press(page, selector) {
   await page.waitForTimeout(800);
 }
 
-/** The Preview element(s) of a record: its marker element (a `display: contents` marker → its children). */
+/** The record ids of a record's children (the Canvas record tree — the document's order). */
+export const childIds = (page, recordId) =>
+  page.evaluate(
+    (id) => [...(window.__COMPOSITION_CATALOG__.workspace.root.canvasInputs.get(id)?.children ?? [])],
+    recordId,
+  );
+
+/**
+ * The Preview element(s) of a record: its marker element (a `display: contents` marker → its
+ * children). A node with no element of its own (a RAC DialogTrigger · MenuTrigger · TooltipTrigger —
+ * G5 examples 2 · 9) is its children's elements, in order.
+ */
 export async function previewHtml(page, recordId) {
-  return previewFrame(page).evaluate((id) => {
+  const own = await previewFrame(page).evaluate((id) => {
     const el = document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
     if (!el) return null;
     return getComputedStyle(el).display === "contents" ? el.innerHTML : el.outerHTML;
   }, recordId);
+  if (own !== null) return own;
+  const parts = [];
+  for (const child of await childIds(page, recordId)) {
+    const html = await previewFrame(page).evaluate(
+      (id) => document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`)?.outerHTML ?? null,
+      child,
+    );
+    if (html !== null) parts.push(html);
+  }
+  return parts.length ? parts.join("") : null;
 }
 
 /**
@@ -322,14 +343,25 @@ export async function canvasVsPreview(page, recordId, tolerance = 1.5) {
       for (const k of r.children) visit(k);
     };
     visit(id);
-    const g = root.getGeometry(ids);
+    const g = root.getGeometry([...ids, root.canvasInputs.get(id)?.parentId].filter(Boolean));
     return ids
       .slice(1)
       .map((rid) => {
         const b = g.get(rid);
         const r = root.canvasInputs.get(rid);
         if (!b) return null;
-        return { id: rid, parentId: r.parentId, type: root.typeOf(r), box: [b.x, b.y, b.width, b.height] };
+        // (A parent with no element of its own — a RAC trigger, `display: contents` — is measured
+        // through to its parent: the box offset by the parent's.)
+        const p = root.canvasInputs.get(r.parentId);
+        const pb = g.get(r.parentId) ?? root.getGeometry([r.parentId]).get(r.parentId);
+        return {
+          id: rid,
+          parentId: r.parentId,
+          grandId: p?.parentId,
+          type: root.typeOf(r),
+          box: [b.x, b.y, b.width, b.height],
+          viaBox: pb ? [b.x + pb.x, b.y + pb.y, b.width, b.height] : null,
+        };
       })
       .filter(Boolean);
   }, recordId);
@@ -339,16 +371,21 @@ export async function canvasVsPreview(page, recordId, tolerance = 1.5) {
       while (el && getComputedStyle(el).display === "contents") el = el.firstElementChild;
       return el;
     };
-    return rows.map(({ id, parentId }) => {
+    return rows.map(({ id, parentId, grandId }) => {
       const el = at(id);
       const parent = at(parentId);
-      if (!el || !parent) return null;
+      const grand = !parent && grandId ? at(grandId) : null;
+      if (!el || !(parent || grand)) return null;
       const r = el.getBoundingClientRect();
-      const base = parent.getBoundingClientRect();
-      return [r.left - base.left, r.top - base.top, r.width, r.height];
+      const base = (parent ?? grand).getBoundingClientRect();
+      return { via: !parent, box: [r.left - base.left, r.top - base.top, r.width, r.height] };
     });
-  }, canvas.map(({ id, parentId }) => ({ id, parentId })));
-  const rows = canvas.map((c, i) => ({ ...c, dom: dom[i] }));
+  }, canvas.map(({ id, parentId, grandId }) => ({ id, parentId, grandId })));
+  const rows = canvas.map((c, i) => ({
+    ...c,
+    box: dom[i]?.via ? (c.viaBox ?? c.box) : c.box,
+    dom: dom[i]?.box ?? null,
+  }));
   // (A box empty on one side only is a difference — a fill the Canvas draws 0×0 — not a skip; only
   //  a box empty on both sides (nothing drawn) is left out.)
   const empty = (box) => box[2] * box[3] === 0;

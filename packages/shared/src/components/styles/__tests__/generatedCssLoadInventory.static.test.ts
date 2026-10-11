@@ -170,10 +170,12 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   // 2026-10-09 — ADR-256 Phase 5g Keyboard (index 로드, Kbd 옆) +1 · +1.
   // 2026-10-09 — ADR-256 후속 4 MenuTrigger (index 로드, TooltipTrigger 옆) +1 · +1.
   // 2026-10-09 — FormField · TailSwatch type 삭제 (미로드 2) −2 · 미로드 −2.
-  it("인벤토리 집계 — 생성 104 · index 81 · 모듈 0 · 미로드 23 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · DialogTrigger · TooltipTrigger · MenuTrigger · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer)", () => {
+  // 2026-10-12 — ADR-256 G5: DialogTrigger · TooltipTrigger · MenuTrigger 는 요소가 없다 (RAC — `display:
+  //   contents`, CSS 생성 안 함) −3 · index −3.
+  it("인벤토리 집계 — 생성 101 · index 78 · 모듈 0 · 미로드 23 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader.)
-    expect(generated.length).toBe(104);
-    expect(indexImported.size).toBe(81);
+    expect(generated.length).toBe(101);
+    expect(indexImported.size).toBe(78);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

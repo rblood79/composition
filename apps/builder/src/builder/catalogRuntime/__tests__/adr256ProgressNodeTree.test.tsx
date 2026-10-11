@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, render } from "@testing-library/react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -219,7 +221,7 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     expect(part("ProgressBarValue")!.hidden).toBe(true);
   });
 
-  it("indeterminate: no value text, no fill width — the sheet's moving bar · the Canvas still bar", async () => {
+  it("indeterminate: no value text, no fill width — the fill fills the track on both sides (G5 example 14: the reference's fill box stays put; only its paint moves)", async () => {
     const { root, part, draw } = await open({
       label: "Loading",
       value: 30,
@@ -238,8 +240,24 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     ]);
     const track = geometry.get(part("ProgressBarTrack")!.id)!;
     const fill = geometry.get(part("ProgressBarFill")!.id)!;
-    expect(fill.x - track.x).toBeCloseTo(track.width * 0.2, 1);
-    expect(fill.width).toBeCloseTo(track.width * 0.3, 1);
+    expect(fill.x - track.x).toBeCloseTo(0, 1);
+    expect(fill.width).toBeCloseTo(track.width, 1);
+    // The sheet: the same box (100 %), the motion in paint only — no transform moving the box.
+    const sheet = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/generated/ProgressBar.css",
+      ),
+      "utf8",
+    );
+    const indeterminate = sheet.slice(
+      sheet.indexOf('[data-indeterminate="true"] .fill {'),
+    );
+    expect(indeterminate.slice(0, indeterminate.indexOf("}"))).toMatch(
+      /width: 100%;/,
+    );
+    const keyframes = sheet.slice(sheet.indexOf("@keyframes ProgressBar-indeterminate"));
+    expect(keyframes.slice(0, keyframes.indexOf("\n}\n"))).not.toMatch(/transform/);
   });
 
   it("the fill paints the ProgressBar's variant (Canvas) — the sheet's --fill-color (DOM)", async () => {

@@ -33,7 +33,7 @@ const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 const set = <T>(value: T) => ({ kind: "set" as const, value });
 
-async function place(type: "popover" | "tooltip") {
+async function place(type: "popover" | "tooltip" | "dialog" | "menu") {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -132,13 +132,29 @@ describe("ADR-255 — Popover · Tooltip origins with their trigger", () => {
         renderCatalogDom(workspace.root, root().id),
       );
       expect(html).toContain(type === "popover" ? "Open Popover" : "Hover me");
-      expect(html).toMatch(
-        type === "popover"
-          ? /class="react-aria-DialogTrigger"/
-          : /class="react-aria-TooltipTrigger"/,
-      );
+      // (RAC DialogTrigger · TooltipTrigger render no element — the trigger is the first one.)
+      expect(html).toMatch(/^<button/);
+      expect(html).not.toMatch(/react-aria-(Dialog|Tooltip)Trigger/);
       expect(html).not.toContain("react-aria-Popover");
       expect(html).not.toContain('react-aria-Tooltip"');
+    }
+  });
+
+  it("G5 examples 2 · 9 — no trigger element: the Dialog · Menu trigger is the Button itself", async () => {
+    for (const type of ["dialog", "menu"] as const) {
+      const { workspace, root, child } = await place(type);
+      const html = renderToStaticMarkup(
+        renderCatalogDom(workspace.root, root().id),
+      );
+      expect(html).toMatch(/^<button/);
+      expect(html).not.toMatch(/react-aria-(Dialog|Menu)Trigger/);
+      // The Canvas lays the trigger out as its children's (`display: contents`) — the box is the
+      // Button's (the closed overlay takes none).
+      const trigger = child(root(), 0);
+      const geometry = workspace.root.getGeometry([root().id, trigger.id]);
+      const box = geometry.get(root().id)!;
+      const buttonBox = geometry.get(trigger.id)!;
+      expect([box.width, box.height]).toEqual([buttonBox.width, buttonBox.height]);
     }
   });
 

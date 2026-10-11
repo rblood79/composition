@@ -57,11 +57,13 @@ describe("resolveCatalogContainerBase — field류 base layout (kebab raw, gap=C
     expect(base).not.toHaveProperty("gap");
   });
 
-  it("SearchField → flex-column base + gap CSS-var + width:100%", () => {
+  // ADR-256 G5 (example 5): the reference's SearchField grid — no control Group; the glyph's empty
+  //   column, the Input, the clear button (its size block's `column-gap: 0`).
+  it("SearchField → grid base (0px · 1fr · auto) + gap CSS-var + width:100%", () => {
     expect(resolveCatalogContainerBase("SearchField")).toEqual({
-      display: "flex",
-      "flex-direction": "column",
-      "align-items": "flex-start",
+      display: "grid",
+      gridTemplateColumns: "0px minmax(0, 1fr) auto",
+      alignItems: "center",
       "box-sizing": "border-box",
       width: "100%",
       gap: "var(--spacing-xs)",
@@ -191,7 +193,6 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
   it.each([
     ["TextField"],
     ["TextArea"],
-    ["SearchField"],
     ["NumberField"],
     ["DateField"],
     ["TimeField"],
@@ -212,6 +213,17 @@ describe("resolveCatalogContainerVariants — labelPosition=side (kebab styles)"
       });
     },
   );
+
+  it("SearchField side → grid auto · glyph column · Input · clear button (the reference's grid)", () => {
+    const v = resolveCatalogContainerVariants("SearchField", {
+      labelPosition: "side",
+    });
+    expect(v.styles).toEqual({
+      display: "grid",
+      "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
+      "align-items": "center",
+    });
+  });
 
   // ADR-912 Phase 4 nested variant fallback 가드 — variant 를 nested(structure.composition.
   //   containerVariants)에만 보유한 컴포넌트가 top-level 부재로 silent 누락되지 않음을 회귀 차단.

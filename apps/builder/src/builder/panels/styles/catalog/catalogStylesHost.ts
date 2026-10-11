@@ -636,9 +636,15 @@ export function createCatalogStylesHost(
     useParentLayout(id) {
       const version = useCatalogLayoutVersion(workspace);
       return useMemo(() => {
-        const parent = parentRecordOf(workspace, id);
-        if (!parent) return { display: "block", flexDirection: "row" };
-        const box = catalogBoxModel(parent);
+        // (A `display: contents` parent — a RAC trigger · Autocomplete — has no box: its children
+        // are its own parent's items, as in CSS.)
+        let parent = parentRecordOf(workspace, id);
+        let box = parent && catalogBoxModel(parent);
+        while (parent && box?.display === "contents") {
+          parent = parentRecordOf(workspace, parent.id);
+          box = parent && catalogBoxModel(parent);
+        }
+        if (!parent || !box) return { display: "block", flexDirection: "row" };
         return {
           display: box.display,
           flexDirection: box.flexDirection ?? "row",

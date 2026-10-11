@@ -1,8 +1,7 @@
 @layer components {
   .react-aria-TextField,
   .react-aria-NumberField,
-  .react-aria-ColorField,
-  .react-aria-SearchField {
+  .react-aria-ColorField {
     display: flex;
     flex-direction: column;
     width: 100%;

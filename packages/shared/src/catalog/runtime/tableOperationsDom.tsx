@@ -1,16 +1,16 @@
 import {
+  createContext,
   createElement,
   useContext,
   useLayoutEffect,
   useRef,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
   ColumnResizer,
   TableColumnResizeStateContext,
 } from "react-aria-components/Table";
-import { Icon } from "../../components/Icon";
+import { getIconData } from "@composition/rendering";
 
 /**
  * ADR-257 Phase 4 — the RAC Table's Preview operations in the DOM (S2 Column `allowsSorting` ·
@@ -52,38 +52,75 @@ function CatalogTableResizeTracks(): ReactNode {
   return createElement("span", { ref: probe, hidden: true });
 }
 
-const SORT_ICON_STYLE: CSSProperties = { fontSize: 16 };
+/**
+ * The sort direction of the sortable Column being rendered (RAC's Column render props) — `null`
+ * outside one.
+ */
+const CatalogColumnSortContext = createContext<string | undefined | null>(null);
 
 /**
- * A RAC Column's children with its operations: S2's sort icon before the text while the column is
- * sorted (`SortUpArrow` · `SortDownArrow`, 16px — none at rest, as the Canvas), RAC's
- * `ColumnResizer` when it resizes, and (in one Column of a resizable Table) the track writer.
+ * G5 example 11 (2026-10-12) — the reference's sort indicator (react-aria.adobe.com Table.md
+ * `Column`): `span.sort-indicator` after the column's name Group, always in a sortable column — a
+ * 16px chevron up while ascending, down otherwise; `Table.css` hides it while the column is not
+ * sorted (`visibility: hidden` — its box stays, as the Canvas keeps it:
+ * `catalogColumnSortNameGroup`).
+ */
+export function CatalogSortIndicator(): ReactNode {
+  const direction = useContext(CatalogColumnSortContext);
+  if (direction === null) return null;
+  const glyph = getIconData(
+    direction === "ascending" ? "chevron-up" : "chevron-down",
+  );
+  return createElement(
+    "span",
+    { "aria-hidden": true, className: "sort-indicator" },
+    glyph &&
+      createElement(
+        "svg",
+        {
+          "aria-hidden": true,
+          width: 16,
+          height: 16,
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: 2,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+        },
+        ...glyph.paths.map((d: string, i: number) =>
+          createElement("path", { key: i, d }),
+        ),
+      ),
+  );
+}
+
+/**
+ * A RAC Column's children with its operations: the sort direction for its sort indicator (after
+ * the name Group — `CatalogSortIndicator`), RAC's `ColumnResizer` when it resizes, and (in one
+ * Column of a resizable Table) the track writer.
  */
 export function catalogColumnChildren(
   content: readonly ReactNode[],
   options: {
     readonly sortable: boolean;
+    /** A Column without a name Group: the indicator follows its content. */
+    readonly sortsAtEnd: boolean;
     readonly resizable: boolean;
     readonly writesTracks: boolean;
   },
 ): (values: { sortDirection?: string }) => ReactNode {
   return ({ sortDirection }) => [
-    options.sortable && sortDirection
+    options.sortable
       ? createElement(
-          "span",
-          {
-            key: "sort",
-            className: "sort-indicator",
-            "aria-hidden": true,
-            "data-direction": sortDirection,
-          },
-          createElement(Icon, {
-            iconName: sortDirection === "ascending" ? "arrow-up" : "arrow-down",
-            style: SORT_ICON_STYLE,
-          }),
+          CatalogColumnSortContext.Provider,
+          { key: "content", value: sortDirection },
+          ...content,
+          options.sortsAtEnd
+            ? createElement(CatalogSortIndicator, { key: "sort-indicator" })
+            : null,
         )
-      : null,
-    ...content,
+      : content,
     options.resizable
       ? createElement(ColumnResizer, {
           key: "resizer",

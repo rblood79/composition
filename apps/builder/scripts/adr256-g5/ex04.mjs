@@ -1,6 +1,6 @@
 // G5 example 4 — Autocomplete (CommandPalette): DialogTrigger > Button + Modal[isDismissable] > Dialog >
 // Autocomplete > SearchField[aria-label, no label] + Menu — react-aria.adobe.com Autocomplete.
-import { canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
+import { childIds, canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
 import { closeOverlays, dropAnchors, dumpTree, lastHtml, plus, refMount, typeInto, unwrapTrigger } from "./helpers-a.mjs";
 
 const ITEMS = ["News", "Travel", "Shopping", "Business", "Entertainment", "Food", "Technology", "Health", "Science"];
@@ -74,9 +74,12 @@ export async function run(page) {
   ], [searchSource, search, list, auto]));
   const r1 = await edit(page, (c, ws, h, search) => [h.ariaLabel(search, "Search commands")], search);
   edits.push(r1);
-  // The reference SearchField has no control wrapper — ungroup the field's Group (Builder Ungroup).
+  // The reference SearchField has no control wrapper — the SearchField original has none since
+  // G5 example 5 (contract 40); an older one's Group is ungrouped (Builder Ungroup).
   const [group] = await kids(page, search, "Group");
-  const ungroup = await edit(page, (c, ws, h, group) => c.ungroupNodes({ ids: [h.get(group).sourceId], newId: ws.newId }), group);
+  const ungroup = group
+    ? await edit(page, (c, ws, h, group) => c.ungroupNodes({ ids: [h.get(group).sourceId], newId: ws.newId }), group)
+    : { ok: true, steps: 0, note: "no Group (the reference's SearchField)" };
   const [menu] = await kids(page, auto, "Menu");
   // (The Design "+" on this fresh Menu adds a bare type-MenuItem — no label part, no sibling to copy;
   //  the MenuItem original is placed instead.)
@@ -98,7 +101,7 @@ export async function run(page) {
   const id = await recordOf(page, src);
   const out = [];
   out.push({ label: "closed", canvas: await canvasVsPreview(page, id), structure: { pass: null, note: "trigger only (see ex09)" } });
-  await press(page, `[data-catalog-id="${id}"] button`);
+  await press(page, `[data-catalog-id="${(await childIds(page, id))[0]}"]`); // (the trigger has no element — its Button)
   const opened = await lastHtml(page, ".react-aria-ModalOverlay");
   await typeInto(page, ".react-aria-ModalOverlay input", "te");
   await page.waitForTimeout(800);

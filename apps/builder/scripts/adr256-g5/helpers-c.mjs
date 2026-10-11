@@ -119,14 +119,14 @@ export async function plus(page, pick, itemType, count = 1) {
 
 /**
  * Known differences (regex → replacement on raw Preview HTML), each with its source:
- * - `image`: the catalog Image type is a placeholder box (`div.react-aria-Image`, accepts nothing —
- *   no `src` · `alt`), the reference an `<img alt="">` — not decided anywhere (reported as a gap).
+ * - `image`: an Image in an S2 Card's preview is S2's box around its `img` (G5 example 13); a RAC
+ *   example's plain `img` folds it (outside a CardPreview the Image is that `img` — example 10).
  * - `checkGlyph`: the toggle indicator box is the CheckboxIndicator node drawn by its owner, its glyph
  *   is the sheet's (user decision 2026-10-04 「1안」, ssot-hierarchy.md toggle indicator 절) — the
  *   reference's indicator holds an `svg`.
  */
 export const KNOWN = {
-  image: [`<div[^>]*class="react-aria-Image"[^>]*></div>`, `<img alt="">`],
+  image: [`<div[^>]*class="react-aria-Image"[^>]*>(<img[^>]*>)</div>`, `$1`],
   checkGlyph: [`(<div class="checkbox"[^>]*>)(</div>)`, `$1<svg aria-hidden="true"></svg>$2`],
 };
 

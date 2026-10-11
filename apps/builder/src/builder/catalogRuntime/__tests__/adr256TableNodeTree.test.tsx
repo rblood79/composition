@@ -190,7 +190,10 @@ function structure(grid: Element): string {
           : `${attribute.name}=${attribute.value}`,
       )
       .sort();
-    const content = [...element.childNodes].map((child) =>
+    // (A glyph's drawing is not structure — the reference's polyline, our lucide paths.)
+    const content = (
+      element.tagName.toLowerCase() === "svg" ? [] : [...element.childNodes]
+    ).map((child) =>
       child.nodeType === 1
         ? walk(child as Element)
         : (child.textContent ?? "").trim(),
@@ -357,7 +360,16 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
       createElement(
         CheckboxButton,
         null,
-        createElement("div", { className: "indicator" }),
+        createElement(
+          "div",
+          { className: "indicator" },
+          // (The reference's indicator always holds its svg — G5 examples 7 · 10 · 11.)
+          createElement(
+            "svg",
+            { viewBox: "0 0 18 18", "aria-hidden": "true" },
+            createElement("polyline", { points: "2 9 7 14 16 4" }),
+          ),
+        ),
       ),
     );
   function selectionReference(): Element {

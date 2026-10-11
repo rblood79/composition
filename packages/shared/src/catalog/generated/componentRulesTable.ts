@@ -161,51 +161,51 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         containerVariants: {
           size: {
-          XS: {
-            styles: { padding: "0 0 0 6px" },
-            nested: [
-              {
-                selector: "> .react-aria-Avatar",
-                styles: { "margin-inline-start": "-6px" },
-              },
-            ],
-          },
-          S: {
-            styles: { padding: "0 0 0 7px" },
-            nested: [
-              {
-                selector: "> .react-aria-Avatar",
-                styles: { "margin-inline-start": "-7px" },
-              },
-            ],
-          },
-          M: {
-            styles: { padding: "0 0 0 8px" },
-            nested: [
-              {
-                selector: "> .react-aria-Avatar",
-                styles: { "margin-inline-start": "-8px" },
-              },
-            ],
-          },
-          L: {
-            styles: { padding: "0 0 0 10px" },
-            nested: [
-              {
-                selector: "> .react-aria-Avatar",
-                styles: { "margin-inline-start": "-10px" },
-              },
-            ],
-          },
-          XL: {
-            styles: { padding: "0 0 0 12px" },
-            nested: [
-              {
-                selector: "> .react-aria-Avatar",
-                styles: { "margin-inline-start": "-12px" },
-              },
-            ],
-          },
+            XS: {
+              styles: { padding: "0 0 0 6px" },
+              nested: [
+                {
+                  selector: "> .react-aria-Avatar",
+                  styles: { "margin-inline-start": "-6px" },
+                },
+              ],
+            },
+            S: {
+              styles: { padding: "0 0 0 7px" },
+              nested: [
+                {
+                  selector: "> .react-aria-Avatar",
+                  styles: { "margin-inline-start": "-7px" },
+                },
+              ],
+            },
+            M: {
+              styles: { padding: "0 0 0 8px" },
+              nested: [
+                {
+                  selector: "> .react-aria-Avatar",
+                  styles: { "margin-inline-start": "-8px" },
+                },
+              ],
+            },
+            L: {
+              styles: { padding: "0 0 0 10px" },
+              nested: [
+                {
+                  selector: "> .react-aria-Avatar",
+                  styles: { "margin-inline-start": "-10px" },
+                },
+              ],
+            },
+            XL: {
+              styles: { padding: "0 0 0 12px" },
+              nested: [
+                {
+                  selector: "> .react-aria-Avatar",
+                  styles: { "margin-inline-start": "-12px" },
+                },
+              ],
+            },
           },
         },
         delegation: [],
@@ -4212,6 +4212,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-256 G5: RAC DialogTrigger has no element — `display: contents` (MenuTrigger 의 주석).
   DialogTrigger: {
     defaultSize: "M",
     variants: {},
@@ -4225,12 +4226,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      skipCSSGeneration: true,
       containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "12px",
-        width: "fit-content",
+        display: "contents",
       },
     },
   },
@@ -8319,13 +8317,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             true: {
               nested: [
                 {
+                  // ADR-256 G5 (example 14): the reference's indeterminate fill keeps its box (the
+                  //   whole track) and moves only its paint — the Canvas lays out the same box
+                  //   (`catalogProgressFillLayout`) and draws it still.
                   selector: ".fill",
                   styles: {
-                    width: "120px",
+                    width: "100%",
                     "border-radius": "inherit",
                     animation:
                       "ProgressBar-indeterminate 1.5s infinite ease-in-out",
-                    "will-change": "transform",
+                    "will-change": "opacity",
                   },
                 },
               ],
@@ -8394,11 +8395,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         animations: {
           indeterminate: {
             keyframes: {
-              from: {
-                transform: "translateX(-100%)",
+              "0%, 100%": {
+                opacity: "1",
               },
-              to: {
-                transform: "translateX(250px)",
+              "50%": {
+                opacity: "0.4",
               },
             },
             reducedMotion: {
@@ -9093,6 +9094,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 22,
         minWidth: 66, // Spectrum 3×height — 식별성 하한 (2026-08-21)
         gap: 6,
+        columnGap: 0,
         iconSize: 14,
       },
       M: {
@@ -9101,6 +9103,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 30,
         minWidth: 90,
         gap: 8,
+        columnGap: 0,
         iconSize: 18,
       },
       L: {
@@ -9109,6 +9112,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 42,
         minWidth: 126,
         gap: 10,
+        columnGap: 0,
         iconSize: 22,
       },
       XL: {
@@ -9117,6 +9121,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 54,
         minWidth: 162,
         gap: 10,
+        columnGap: 0,
         iconSize: 28,
       },
     },
@@ -9125,13 +9130,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   라 비대칭 + factory inline flexDirection:column 이 grid selector 를 specificity 로 이겨 무력화.
     //   flex-row 통일로 generated CSS = Skia 대칭 복원. Skia sideMode 트리거 styles 만.
     // 2026-10-10: side 는 S2 `field()` 의 grid (`auto 1fr`) — structure.composition 의 side 블록 거울.
+    // ADR-256 G5 (example 5): the reference's SearchField grid — no control Group. Columns `0px 1fr
+    //   auto`: the search glyph overflows its empty column over the Input's start, the clear button
+    //   sits over the Input's end. Rows are auto-placed (column numbers, not the reference's named
+    //   areas), so an absent Label · description takes no row and no gap.
     containerVariants: {
       "label-position": {
         side: {
           styles: {
             display: "grid",
-            "grid-template-columns": "auto minmax(0, 1fr)",
-            "align-items": "start",
+            "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
+            "align-items": "center",
           },
         },
       },
@@ -9139,7 +9148,11 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "div",
-      containerStyles: undefined,
+      containerStyles: {
+        display: "grid",
+        gridTemplateColumns: "0px minmax(0, 1fr) auto",
+        alignItems: "center",
+      },
       states: {
         hover: {},
         pressed: {},
@@ -9153,7 +9166,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
-        layout: "flex-column",
+        layout: "grid",
         gap: "var(--spacing-xs)",
         containerStyles: {
           // 2026-06-24: width fit-content → 100% (field 패밀리 정본, TextField 와 동형 정정).
@@ -9161,13 +9174,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           //   Style Panel false dirty 해소. CSS 재생성 시 .react-aria-SearchField width:100%.
           width: "100%",
         },
+        // The parts' columns (top label): the Label · description · error across, the glyph · the
+        // Input · the clear button in one row.
+        staticSelectors: {
+          // (The Label · error keep their own width, as in the field's column — not stretched.)
+          "> .react-aria-Label": {
+            "grid-column": "1 / 4",
+            "justify-self": "flex-start",
+          },
+          "> .react-aria-Icon": { "grid-column": "1" },
+          "> .react-aria-Input": { "grid-column": "2" },
+          "> .react-aria-Button": { "grid-column": "3" },
+          '> [slot="description"]': { "grid-column": "1 / 4" },
+          "> .react-aria-FieldError": {
+            "grid-column": "1 / 4",
+            "justify-self": "flex-start",
+          },
+        },
         containerVariants: {
           "label-position": {
             side: {
               styles: {
                 display: "grid",
-                "grid-template-columns": "auto minmax(0, 1fr)",
-                "align-items": "start",
+                "grid-template-columns": "auto 0px minmax(0, 1fr) auto",
+                "align-items": "center",
               },
               // side 라벨 열 (2026-10-10 사용자 「모든 field · picker 컴퍼넌트 Label Position - Side 의 label width 가
               //   fit content 가 아니다 — slider 와 같은 패턴」): S2 `field()` (`style-utils.ts`) 처럼 grid —
@@ -9182,7 +9212,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 {
                   selector: "> .react-aria-Label",
                   styles: {
-                    "grid-column": "1",
+                    // (Both lines — the top layout's `1 / 4` must not reach the side one.)
+                    "grid-column": "1 / 2",
+                    // (No column gap — the glyph's column starts at the Input; the label keeps its gap.)
+                    "margin-inline-end": "var(--sf-field-gap)",
                     width: "var(--form-label-width)",
                     "align-self": "center",
                     "text-align": "var(--form-label-align, start)",
@@ -9190,23 +9223,27 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                   },
                 },
                 {
-                  selector:
-                    '> :not(.react-aria-Label, .react-aria-FieldError, [slot="description"])',
-                  styles: {
-                    "grid-column": "2",
-                    "min-width": "0",
-                  },
+                  selector: "> .react-aria-Icon",
+                  styles: { "grid-column": "2 / 3" },
+                },
+                {
+                  selector: "> .react-aria-Input",
+                  styles: { "grid-column": "3 / 4", "min-width": "0" },
+                },
+                {
+                  selector: "> .react-aria-Button",
+                  styles: { "grid-column": "4 / 5" },
                 },
                 {
                   selector: "> .react-aria-FieldError",
                   styles: {
-                    "grid-column": "2",
+                    "grid-column": "2 / 5",
                   },
                 },
                 {
                   selector: '> [slot="description"]',
                   styles: {
-                    "grid-column": "2",
+                    "grid-column": "2 / 5",
                   },
                 },
               ],
@@ -9243,53 +9280,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         //   the Button origin laid over the end.
         delegation: [
           {
-            childSelector: ".searchfield-container",
-            bridges: {
-              display: "flex",
-              "align-items": "center",
-              width: "100%",
-            },
+            // The side label's gap (no column gap — sizes `columnGap: 0`): `--sf-field-gap`.
+            childSelector: "> .react-aria-Label",
+            prefix: "sf-field",
+            variables: "auto",
+            autoKeys: ["gap"],
           },
           {
-            // The search glyph: its own width is pulled back, so the Input starts under it.
-            childSelector: ".searchfield-container > .react-aria-Icon",
+            // The search glyph: in the empty first column, over the Input's start.
+            childSelector: "> .react-aria-Icon",
             prefix: "sf-icon",
             variables: {
-              XS: {
-                "--sf-icon-size": "10px",
-                "--sf-icon-inset": "4px",
-                "--sf-icon-pull": "-14px",
-              },
-              S: {
-                "--sf-icon-size": "12px",
-                "--sf-icon-inset": "6px",
-                "--sf-icon-pull": "-18px",
-              },
-              M: {
-                "--sf-icon-size": "16px",
-                "--sf-icon-inset": "8px",
-                "--sf-icon-pull": "-24px",
-              },
-              L: {
-                "--sf-icon-size": "18px",
-                "--sf-icon-inset": "12px",
-                "--sf-icon-pull": "-30px",
-              },
-              XL: {
-                "--sf-icon-size": "22px",
-                "--sf-icon-inset": "16px",
-                "--sf-icon-pull": "-38px",
-              },
+              XS: { "--sf-icon-size": "10px", "--sf-icon-inset": "4px" },
+              S: { "--sf-icon-size": "12px", "--sf-icon-inset": "6px" },
+              M: { "--sf-icon-size": "16px", "--sf-icon-inset": "8px" },
+              L: { "--sf-icon-size": "18px", "--sf-icon-inset": "12px" },
+              XL: { "--sf-icon-size": "22px", "--sf-icon-inset": "16px" },
             },
             bridges: {
-              flex: "0 0 auto",
               height: "auto",
               "margin-inline-start": "var(--sf-icon-inset)",
-              "margin-inline-end": "var(--sf-icon-pull)",
             },
           },
           {
-            childSelector: ".searchfield-container > .react-aria-Icon svg",
+            childSelector: "> .react-aria-Icon svg",
             bridges: {
               width: "var(--sf-icon-size)",
               height: "var(--sf-icon-size)",
@@ -9324,7 +9338,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               XL: { "--sf-btn-size": "24px", "--sf-btn-offset": "-40px" },
             },
             bridges: {
-              flex: "0 0 auto",
               width: "var(--sf-btn-size)",
               height: "var(--sf-btn-size)",
               "min-width": "0",
@@ -11329,6 +11342,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       align: {
         center: { styles: { "text-align": "center" } },
         end: { styles: { "text-align": "right" } },
+      },
+      // G5 example 11 (2026-10-12) — a sortable column is the reference's `.column-header`
+      //   (react-aria.adobe.com Table.md): its name Group and the sort indicator after it in one
+      //   row, the name taking the rest (`.column-name` `flex: 1`). The indicator is RAC render
+      //   output (`tableOperationsDom.tsx`) — the Canvas keeps its box beside the name
+      //   (`catalogColumnSortNameGroup`).
+      "allows-sorting": {
+        true: {
+          styles: { display: "flex", "align-items": "center" },
+          nested: [
+            {
+              selector: "> .react-aria-Group",
+              styles: { flex: "1", "min-width": "0" },
+            },
+          ],
+        },
       },
       // ADR-257 Phase 3 — the Table's S2 `overflowMode` (carried here by the resolver): S2
       //   `cellContent` truncates (one line, ellipsis) or wraps (the row grows with the text).
@@ -13563,10 +13592,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
-  // ADR-255: the Tooltip origin's root — the same layout box as DialogTrigger (the trigger shows,
-  //   the closed Tooltip does not take a box on either side).
-  // ADR-256 후속 4: RAC MenuTrigger's layout box (the shared component's `div.react-aria-MenuTrigger`
-  //   — DialogTrigger · TooltipTrigger 동형). Its Popover rests closed: the box is the Button's.
+  // ADR-256 G5 (examples 2 · 9): RAC DialogTrigger · MenuTrigger · TooltipTrigger have no element —
+  //   the reference's trigger is the Button itself. The Canvas lays them out as `display: contents`
+  //   (Autocomplete 동형 — their children are their parent's items, their box is the union, for
+  //   selection only). The closed overlay takes no box on either side.
   MenuTrigger: {
     defaultSize: "M",
     variants: {},
@@ -13580,12 +13609,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      skipCSSGeneration: true,
       containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "12px",
-        width: "fit-content",
+        display: "contents",
       },
     },
   },
@@ -13602,12 +13628,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "container",
       element: "div",
+      skipCSSGeneration: true,
       containerStyles: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "12px",
-        width: "fit-content",
+        display: "contents",
       },
     },
   },

@@ -1,6 +1,6 @@
 // G5 example 9 — Dialog: DialogTrigger > Button + Modal > Dialog > Heading slot=title + p + Form
 // (TextField ×2 + div > Button slot=close ×2) — react-aria.adobe.com Modal.
-import { canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
+import { childIds, canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
 import { closeOverlays, dropAnchors, dumpTree, lastHtml, refMount, unwrapTrigger } from "./helpers-a.mjs";
 
 const TEXT = "Enter your information to subscribe to our newsletter and receive updates about new features and announcements.";
@@ -81,7 +81,7 @@ export async function run(page) {
   const closedRef = await refMount(page, reference(false));
   out.push({ ...(await compare(page, "closed (as is)", closedHtml, closedRef)), canvas: await canvasVsPreview(page, id) });
   out.push(await compare(page, "closed (ADR-255 trigger wrapper out)", unwrapTrigger(closedHtml), closedRef));
-  await press(page, `[data-catalog-id="${id}"] button`);
+  await press(page, `[data-catalog-id="${(await childIds(page, id))[0]}"]`); // (the trigger has no element — its Button)
   const opened = await lastHtml(page, ".react-aria-ModalOverlay");
   await closeOverlays(page);
   out.push(await compare(page, "open", opened, await refMount(page, reference(true), { pick: pickOverlay })));

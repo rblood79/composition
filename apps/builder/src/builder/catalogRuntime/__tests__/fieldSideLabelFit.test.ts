@@ -128,7 +128,12 @@ async function open(type: string, inForm?: "side" | "top") {
   const children = owner.children.map((id) => root.canvasInputs.get(id)!);
   const of = (kind: string) =>
     children.find((record) => root.typeOf(record) === kind)!;
-  const control = children.find((record) => !HINTS.has(root.typeOf(record)))!;
+  // (A SearchField's control is its Input — its glyph and clear button sit over it in the
+  // reference's grid, G5 example 5.)
+  const control =
+    type === "SearchField"
+      ? of("Input")
+      : children.find((record) => !HINTS.has(root.typeOf(record)))!;
   const ids = [of("Label").id, control.id, of("Description").id, owner.id];
   const box = (id: string) =>
     root.getGeometry([id]).get(id) as {
@@ -214,14 +219,19 @@ describe("the sheets", () => {
           `${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
         ).exec(sheet)?.[1] ?? "";
       expect(block(side)).toMatch(/display: grid;/);
+      // (SearchField: the reference's grid — the glyph's empty column, the Input, the clear
+      // button after the label column; the hints span them — G5 example 5.)
+      const searchField = type === "SearchField";
       expect(block(side)).toMatch(
-        /grid-template-columns: auto minmax\(0, 1fr\);/,
+        searchField
+          ? /grid-template-columns: auto 0px minmax\(0, 1fr\) auto;/
+          : /grid-template-columns: auto minmax\(0, 1fr\);/,
       );
       const label = block(`${side} > .react-aria-Label`);
       expect(label).toMatch(/width: var\(--form-label-width\);/);
       expect(label).not.toMatch(/11rem|flex-shrink/);
       expect(block(`${side} > .react-aria-FieldError`)).toMatch(
-        /grid-column: 2;/,
+        searchField ? /grid-column: 2 \/ 5;/ : /grid-column: 2;/,
       );
       expect(sheet).not.toMatch(/side-gap/);
     },

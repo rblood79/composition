@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { act, type ReactElement } from "react";
+import { act, createElement, type ReactElement } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -134,6 +134,29 @@ function shape(element: Element): string {
   return children.length ? `${own}(${children.join(" + ")})` : own;
 }
 
+/** An element's tree for the oracle comparison: tag, `slot` · `role` · `aria-*` (not ids), text. */
+function structure(element: Element): string {
+  const attrs = [...element.attributes]
+    .filter(
+      (attr) =>
+        (attr.name === "slot" ||
+          attr.name === "role" ||
+          attr.name.startsWith("aria-")) &&
+        !/^aria-(labelledby|describedby|controls)$/.test(attr.name),
+    )
+    .map((attr) => ` ${attr.name}=${attr.value}`)
+    .sort()
+    .join("");
+  const inner = [...element.childNodes]
+    .map((child) =>
+      child.nodeType === 1
+        ? structure(child as Element)
+        : (child.textContent ?? "").trim(),
+    )
+    .join("");
+  return `<${element.tagName.toLowerCase()}${attrs}>${inner}</>`;
+}
+
 /** S2 `Card.tsx` per size (desktop): title · description font size, the Content's row gap. */
 const S2_CARD_TEXT: Record<
   string,
@@ -170,11 +193,94 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     const card = host.querySelector(".react-aria-Card")!;
     // The reference (S2 `Card > CardPreview > Image + Content > Text[slot=title] +
-    // Text[slot=description] + Footer`), each S2 section a `div`, S2 `Text` a `span`. (The template's
-    // Image has no source yet — the Image binding draws its placeholder box, not an `img`.)
+    // Text[slot=description] + Footer` — the S2 mount below): the CardPreview a `div[slot=preview]`
+    // around an inner `div`, the Image a box around its `img`, S2 `Text` a `span`, the Footer a
+    // `footer`.
     expect(shape(card)).toBe(
-      "div.react-aria-Card(div.react-aria-CardPreview(div.react-aria-Image) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + div.react-aria-Footer)",
+      "div.react-aria-Card(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer)",
     );
+  });
+
+  it("G5 example 13 — the Preview DOM is the S2 Card's (`@react-spectrum/s2` 1.8.0 mounted — the oracle)", async () => {
+    const { workspace, placed, slotText } = await place("card");
+    const host = await mount(renderCatalogDom(workspace.root, placed().id));
+    const ours = structure(host.querySelector(".react-aria-Card")!);
+    const s2 = await import("@react-spectrum/s2");
+    const h = createElement;
+    const reference = await mount(
+      h(
+        s2.Card,
+        null,
+        h(s2.CardPreview, null, h(s2.Image, { alt: "" })),
+        h(
+          s2.Content,
+          null,
+          h(s2.Text, {
+            slot: "title",
+            children: String(slotText("title").props.children),
+          }),
+          h(s2.Text, {
+            slot: "description",
+            children: String(slotText("description").props.children),
+          }),
+        ),
+        h(s2.Footer, null),
+      ),
+    );
+    expect(ours).toBe(structure(reference.firstElementChild!));
+    // (The G5 harness's oracle for example 13 — `ADR256_G5_S2_OUT=<file>`: the same S2 mount with
+    // the example's texts and Footer Button, its HTML written for the live comparison.)
+    const out = process.env.ADR256_G5_S2_OUT;
+    if (out) {
+      const example = await mount(
+        h(
+          s2.Card,
+          null,
+          h(s2.CardPreview, null, h(s2.Image, { alt: "" })),
+          h(
+            s2.Content,
+            null,
+            h(s2.Text, { slot: "title", children: "Command + R" }),
+            h(s2.Text, {
+              slot: "description",
+              children:
+                "Your all-in-one shortcut for apps, automations, and devices.",
+            }),
+          ),
+          h(s2.Footer, null, h(s2.Button, { variant: "primary", children: "Buy now" })),
+        ),
+      );
+      writeFileSync(out, example.innerHTML);
+    }
+  });
+
+  it("the S2 oracle stays test-only — no source outside tests imports `@react-spectrum/s2` (bundle 0)", () => {
+    const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = resolve(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name !== "node_modules" && entry.name !== "__tests__")
+            walk(path);
+        } else if (
+          /\.(ts|tsx)$/.test(entry.name) &&
+          !/\.test\.tsx?$/.test(entry.name) &&
+          /(from\s+|import\(\s*)["']@react-spectrum\/s2/.test(
+            readFileSync(path, "utf8"),
+          )
+        )
+          offenders.push(path);
+      }
+    };
+    for (const dir of [
+      "apps/builder/src",
+      "apps/publish/src",
+      "packages/shared/src",
+      "packages/rendering/src",
+    ])
+      walk(resolve(repo, dir));
+    expect(offenders).toEqual([]);
   });
 
   it("styles the title · description per size from the Card rule — the Canvas records and the sheet hold the same values", async () => {
@@ -362,7 +468,7 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
         "cell",
       ),
     ).toBe(
-      "cell(div.react-aria-CardPreview(div.react-aria-Image) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + div.react-aria-Footer)",
+      "cell(div.react-aria-CardPreview[slot=preview](div(div.react-aria-Image(img))) + div.react-aria-Content(span.react-aria-Text[slot=title] + span.react-aria-Text[slot=description]) + footer.react-aria-Footer)",
     );
     expect(
       (rows[0]!.querySelector('[role="gridcell"]') as HTMLElement).style

@@ -113,10 +113,10 @@
 }
 
 .react-aria-ProgressBar[data-indeterminate="true"] .fill {
-  width: 120px;
+  width: 100%;
   border-radius: inherit;
   animation: ProgressBar-indeterminate 1.5s infinite ease-in-out;
-  will-change: transform;
+  will-change: opacity;
 }
 
 .react-aria-ProgressBar[data-disabled="true"] {
@@ -225,11 +225,11 @@
 } /* @layer components */
 
 @keyframes ProgressBar-indeterminate {
-  from {
-    transform: translateX(-100%);
+  0%, 100% {
+    opacity: 1;
   }
-  to {
-    transform: translateX(250px);
+  50% {
+    opacity: 0.4;
   }
 }
 

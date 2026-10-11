@@ -1,14 +1,14 @@
-// G5 example 13 — (S2) ProductCard (react-spectrum.adobe.com/Card.md L112-131): `ProductCard >
-// CardPreview > Image[preview] + Image[thumbnail] + Content > (Text[title] + Text[description]) +
-// Footer > Button[primary]`. Builder: Card original → the Content's title · description texts → a
-// Button original in the Footer. The oracle (`@react-spectrum/s2` mounted — a test-only
-// devDependency per Decision 11) is not installed in this repository: the reference below is the S2
-// tree written by hand (each S2 section a `div`, S2 `Text` a `span`, as adr256CardS2.test.tsx encodes
-// it) — not an independent oracle. ProductCard's `Image slot="thumbnail"` has no Card slot here.
+// G5 example 13 — (S2) Card (react-spectrum.adobe.com/Card.md — the breakdown §4 row: CardPreview
+// Image · Content (title · description) · Footer Button). Builder: Card original → the Content's
+// title · description texts → a Button original in the Footer. The oracle is `@react-spectrum/s2`
+// 1.8.0 (a test-only devDependency, Decision 11) mounted by `adr256CardS2.test.tsx` — run it with
+// `ADR256_G5_S2_OUT=<file>` and pass the file here as `ADR256_G5_S2=<file>` (the dev server does not
+// pre-bundle S2, so the Preview frame cannot import it).
+// Named difference: the S2 Button wraps its label in a `Text` span; ours is the RAC Button (D1 —
+// its label is the button's text).
+import { readFileSync } from "node:fs";
 import { edit, place, reopen } from "./harness.mjs";
-import { compareCase, KNOWN, main, tree } from "./helpers-c.mjs";
-
-const HAND_S2 = `<div><div><img alt=""></div><div><span slot="title">Command + R</span><span slot="description">Your all-in-one shortcut for apps, automations, and devices.</span></div><div><button type="button">Buy now</button></div></div>`;
+import { compareCase, main, tree } from "./helpers-c.mjs";
 
 export async function run(page, errors = []) {
   const edits = [];
@@ -27,7 +27,14 @@ export async function run(page, errors = []) {
   );
   const reopened = await reopen(page);
   const atDefault = await tree(page, C);
-  const out = [await compareCase(page, C, "default (hand-written S2 tree)", { html: HAND_S2 }, { full: true, known: [KNOWN.image] })];
+  const reference = readFileSync(process.env.ADR256_G5_S2, "utf8");
+  const out = [
+    await compareCase(page, C, "default (S2 mounted)", { html: reference }, {
+      full: true,
+      // (The S2 Button's label span — our RAC Button's text is its own.)
+      known: [["(<button[^>]*>)([^<]+)(</button>)", "$1<span>$2</span>$3"]],
+    }),
+  ];
   return { edits, reopened, out, atDefault };
 }
 

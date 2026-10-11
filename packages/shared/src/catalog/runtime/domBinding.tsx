@@ -11,6 +11,7 @@ import {
 } from "./tableSort";
 import {
   catalogColumnChildren,
+  CatalogSortIndicator,
   catalogResizableTracks,
 } from "./tableOperationsDom";
 import { catalogAspectRatio, catalogLayoutCss } from "./fillLayout";
@@ -74,6 +75,8 @@ import {
   catalogItemLabels,
   catalogItemRemoveGlyphItem,
   catalogTreeChevronGlyphItem,
+  catalogColumnSortNameGroup,
+  catalogColumnSortsAtEnd,
   catalogDisclosureOfHeading,
   catalogDisclosureOfTrigger,
   catalogDisclosureOfTriggerPart,
@@ -1117,15 +1120,15 @@ function CatalogAutocomplete(
 
 /**
  * The element of a node-tree field's control Group, by the field's binding (ADR-256 Phase 2c ·
- * 6b · 6d): RAC's `Group` — a SearchField's · ComboBox's also carries its container class (the
- * field rule's selector for the box · the parts' row). Like any Group it passes the author's `role`
+ * 6b · 6d): RAC's `Group` — a ComboBox's also carries its container class (the field rule's
+ * selector for the box · the parts' row). (A SearchField has none — its parts are its own children,
+ * G5 example 5.) Like any Group it passes the author's `role`
  * and its render props as the state frame of the `showWhen` nodes inside (Decision 7); its states
  * go only when the author set them — `false` would override the field's own (RAC's `GroupContext`).
  */
 const NODE_TREE_CONTROL_CLASSES: Readonly<Record<string, string | undefined>> =
   {
     numberfield: undefined,
-    searchfield: "react-aria-Group searchfield-container",
     // (RAC's DatePicker · DateRangePicker · ComboBox take this Group as their Popover's trigger —
     // `GroupContext` ref, ADR-256 Phase 6d · 6e.)
     datepicker: undefined,
@@ -1710,6 +1713,18 @@ const MARKER_WRAPPED_RULE_TYPES: ReadonlySet<string> = new Set<string>();
  * generated class CSS applies. Components that compose their children from an element context
  * (the Preview's delegating renderers) need their own binding and fail here explicitly.
  */
+/**
+ * Whether an Image is in an S2 Card's `CardPreview` (layout frames skipped) — there it is S2's
+ * Image (a box around its `img`); elsewhere the RAC examples' plain `img`.
+ */
+function imageInS2CardPreview(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+): boolean {
+  const parent = catalogDomPartParent(root, node);
+  return !!parent && catalogTypeName(root, parent) === "CardPreview";
+}
+
 function ruleDom(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -1761,6 +1776,7 @@ function ruleDom(
     operationsTable
       ? {
           sortable: node.props.allowsSorting === true,
+          sortsAtEnd: catalogColumnSortsAtEnd(node, domGet, domType),
           resizable: node.props.allowsResizing === true,
           // (One Column of a resizable Table writes RAC's widths as the rows' tracks.)
           writesTracks:
@@ -1866,6 +1882,17 @@ function ruleDom(
     // (S2 InlineAlert `fillStyle` — the generated `[data-fill-style]` blocks.)
     if (typeof node.props.fillStyle === "string")
       dataAttrs["data-fill-style"] = String(node.props.fillStyle);
+    // An Image outside an S2 Card's preview is the RAC examples' plain `img` (G5 example 10 — the
+    // GridList item's photo): the element is the box (`alt=""` — no source, the placeholder fill).
+    if (type === "Image" && !imageInS2CardPreview(root, node))
+      return createElement("img", {
+        key: node.id,
+        "data-catalog-id": node.id,
+        className: "react-aria-Image",
+        alt: "",
+        ...dataAttrs,
+        style,
+      });
     return createElement(
       "div",
       {
@@ -1877,7 +1904,12 @@ function ruleDom(
         ...binding?.staticAttrs,
         style,
       },
-      ...content,
+      // In an S2 Card's preview the Image is S2's: a box around its `img` (`@react-spectrum/s2`
+      // 1.8.0 mounted — G5 example 13); with no source the `img` paints nothing (`alt=""`), the box
+      // keeps the placeholder fill.
+      ...(type === "Image"
+        ? [createElement("img", { key: "img", alt: "" })]
+        : content),
     );
   }
   if (MARKER_WRAPPED_RULE_TYPES.has(type))
@@ -2350,9 +2382,11 @@ const CatalogDomNode = memo(function CatalogDomNode({
             partParent?.bindingId === "group" &&
             catalogPartField(root, node) !== partParent
           ? catalogPartField(root, node)?.id
-          : // (A Select's trigger Button is the field's direct child.)
-            node?.bindingId === "button" && partParent?.bindingId === "select"
-            ? partParent.id
+          : // (A Select's trigger Button · a SearchField's clear Button is the field's direct child.)
+            node?.bindingId === "button" &&
+              (partParent?.bindingId === "select" ||
+                partParent?.bindingId === "searchfield")
+            ? partParent!.id
             : undefined;
   const readParent = useCallback(
     () => (watchedParentId ? root.domInputs.get(watchedParentId) : undefined),
@@ -2879,17 +2913,15 @@ function renderNode(
     const partField = catalogPartField(root, node);
     const fieldDisabled =
       partField !== undefined &&
-      (partField.id !== partParent?.id || partField.bindingId === "select") &&
+      (partField.id !== partParent?.id ||
+        partField.bindingId === "select" ||
+        partField.bindingId === "searchfield") &&
       partField.props.isDisabled === true;
     // (The sheet gives every Button a border: one the document removes is written out.)
     if (Number(node.visual.borderWidth) === 0) bound.borderWidth = 0;
-    // A SearchField's sheet hides its clear button while the input is empty (`[data-empty]`,
-    // RAC's run state): that Button's display stays the sheet's.
-    if (
-      partField?.bindingId === "searchfield" &&
-      partField.id !== partParent?.id
-    )
-      delete bound.display;
+    // A SearchField's sheet hides its clear button (its own child — G5 example 5) while the input
+    // is empty (`[data-empty]`, RAC's run state): that Button's display stays the sheet's.
+    if (partField?.bindingId === "searchfield") delete bound.display;
     if (node.props.isDisabled !== true && !fieldDisabled) {
       // A color the document wrote goes out as the sheet's own variable (`.button-base` reads
       // `--button-color` · `--button-border` · `--button-text`), so its hover and pressed colors
@@ -2973,13 +3005,23 @@ function renderNode(
       )
     : ruleDom(root, node, children, context);
   const slot = itemSlotRole(root, node);
-  return withHtmlId(
+  const element = withHtmlId(
     root,
     node,
     slot
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
       : rendered,
   );
+  // A sortable Column's sort indicator follows its name Group (G5 example 11 — the reference's
+  // `span.sort-indicator`, `catalogColumnSortNameGroup`).
+  return catalogColumnSortNameGroup(node, domGet, domType)
+    ? createElement(
+        Fragment,
+        { key: node.id },
+        element,
+        createElement(CatalogSortIndicator, { key: "sort-indicator" }),
+      )
+    : element;
 }
 
 /**

@@ -174,6 +174,9 @@ const numberFieldEmptyMarkup = (markup: string) => {
  * element (was the label's `::before`). The item's text is its own element — before, RAC's `Label`
  * took the group's label context (its id).
  */
+/** The checkbox indicator's check glyph (lucide `Check` — `CheckboxIndicatorBox`), normalized. */
+const CHECK_GLYPH =
+  "<svg aria-hidden=true class=lucide lucide-check fill=none height=16 stroke-linecap=round stroke-linejoin=round stroke-width=4 stroke=currentColor viewBox=0 0 24 24 width=16 xmlns=http://www.w3.org/2000/svg><path d=M20 6 9 17l-5-5></></>";
 const TOGGLE_FIELD_STATE =
   /^data-(disabled|indeterminate|invalid|readonly|required|selected)=/;
 function toggleFieldMarkup(text: string, type: "Checkbox" | "Radio"): string {
@@ -347,8 +350,34 @@ const fieldGroupMarkup = (markup: string, container: string) => {
     `<div class=react-aria-Group ${container}${state} data-rac= role=group>`,
   );
 };
-const searchFieldGroupMarkup = (markup: string) =>
-  fieldGroupMarkup(markup, "searchfield-container");
+/**
+ * ADR-256 G5 (example 5): the reference's SearchField has no control box — the glyph, the Input and
+ * the clear button are the field's own children (its grid places them). Applied to the fixture:
+ * the `searchfield-container` element goes, its children stay.
+ */
+function searchFieldGroupMarkup(markup: string): string {
+  const open = "<div class=searchfield-container>";
+  const start = markup.indexOf(open);
+  if (start < 0) return markup;
+  let depth = 1;
+  let at = start + open.length;
+  while (depth > 0 && at < markup.length) {
+    const close = markup.indexOf("</>", at);
+    const next = markup.slice(at).search(/<[a-z]/);
+    if (next >= 0 && at + next < close) {
+      depth++;
+      at += next + 2;
+    } else {
+      depth--;
+      at = close + 3;
+    }
+  }
+  return (
+    markup.slice(0, start) +
+    markup.slice(start + open.length, at - 3) +
+    markup.slice(at)
+  );
+}
 /**
  * ADR-256 Phase 6d: a ComboBox draws its node tree in RAC's ComboBox — its control box is its RAC
  * Group node (the ComboBox rule's container class kept), RAC's ComboBox gives it the field's
@@ -636,7 +665,12 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
           );
           const expected =
             type === "checkboxgroup"
-              ? toggleFieldMarkup(fixed, "Checkbox")
+              ? // (The reference's indicator always holds its svg — the unselected one too, hidden
+                // by the sheet: G5 examples 7 · 10 · 11.)
+                toggleFieldMarkup(fixed, "Checkbox").replaceAll(
+                  "<div class=checkbox></>",
+                  `<div class=checkbox>${CHECK_GLYPH}</>`,
+                )
               : type === "radiogroup"
                 ? // (S2 강조 축 전환 2026-10-10: 그룹 variant 삭제 — `data-radio-variant` 는
                   // shared 컴포넌트 (Builder UI) 만의 attr 이 됐다.)
@@ -1883,7 +1917,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
    * end. The clear button shows while the field has a value (RAC's `data-empty`).
    */
   it.skipIf(write)(
-    "searchfield — its container holds the glyph, an Input instance and a Button instance",
+    "searchfield — the field holds the glyph, an Input instance and a Button instance (the reference's grid, no control Group — G5 example 5)",
     async () => {
       const { workspace, field } = (await render("searchfield", {}))!;
       const records = workspace.root.canvasInputs;
@@ -1891,12 +1925,19 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         workspace.runtime.graph.getDefinition(
           records.get(id)!.definitionId as LibraryDefinitionId,
         )!.name;
-      const wrapper = () =>
+      const parts = () =>
         records
           .get(field.id)!
           .children.map((id) => records.get(id)!)
-          .find((child) => typeOf(child.id) === "Group")!;
-      const parts = () => wrapper().children.map((id) => records.get(id)!);
+          .filter((child) =>
+            ["Icon", "Input", "Button"].includes(typeOf(child.id)),
+          );
+      expect(
+        records
+          .get(field.id)!
+          .children.map((id) => typeOf(id))
+          .includes("Group"),
+      ).toBe(false);
       const host = () => {
         const element = document.createElement("div");
         element.innerHTML = renderToStaticMarkup(
@@ -1925,11 +1966,11 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       ]);
       const [glyph, input, clear] = parts();
       // Canvas: the Input is the whole control, rounded, with room at both ends; the glyph sits
-      // 8px inside its start, over it.
-      const group = rect(wrapper().id);
+      // 8px inside its start, over it (its empty first column).
+      const group = rect(input.id);
       expect(rect(input.id)).toMatchObject({
         x: 0,
-        width: group.width,
+        width: rect(field.id).width,
         height: 30,
       });
       expect(input.visual).toMatchObject({
@@ -1944,7 +1985,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       expect(rect(glyph.id)).toMatchObject({
         x: 8,
-        y: 7,
+        y: group.y + 7,
         width: 16,
         height: 16,
       });
@@ -1980,7 +2021,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(layoutRecord(shown.id).hidden).not.toBe(true);
       expect(rect(shown.id)).toMatchObject({
         x: group.width - 24,
-        y: 7,
+        y: group.y + 7,
         width: 16,
         height: 16,
       });
@@ -1991,13 +2032,15 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       });
       expect(records.get(shown.children[0]!)!.visual.iconSize).toBe(12);
       expect(parts()[1]!.props.placeholder).toBe("Find");
-      // DOM: the container's children are those nodes' elements; the Input is the searchbox RAC
-      // wires (its `type` is RAC's), the Button the clear button RAC labels.
-      const container = host().querySelector(".searchfield-container")!;
+      // DOM: the field's own children after its Label are those nodes' elements (no container —
+      // the reference); the Input is the searchbox RAC wires (its `type` is RAC's), the Button the
+      // clear button RAC labels.
+      const container = host().querySelector(".react-aria-SearchField")!;
+      expect(container.querySelector(".searchfield-container")).toBeNull();
       expect(
-        [...container.children].map((child) =>
-          child.getAttribute("data-catalog-id"),
-        ),
+        [...container.children]
+          .slice(1)
+          .map((child) => child.getAttribute("data-catalog-id")),
       ).toEqual(parts().map((part) => part.id));
       const inputElement = container.querySelector("input")!;
       expect(inputElement.getAttribute("type")).toBe("search");

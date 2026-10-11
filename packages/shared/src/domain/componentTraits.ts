@@ -84,7 +84,7 @@ const SELECT_TRIGGER_OWNERS = [
  */
 export const FIELD_CONTROL_GROUP_HOSTS: ReadonlySet<string> = new Set([
   "ComboBox",
-  "SearchField",
+  // (Not SearchField: the reference's parts are its own children — ADR-256 G5 example 5.)
   "NumberField",
   "DatePicker",
   "DateRangePicker",

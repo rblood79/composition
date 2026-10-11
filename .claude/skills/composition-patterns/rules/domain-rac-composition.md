@@ -18,10 +18,11 @@ Preview는 전환된 family의 작성 노드를 부모 RAC context 안에서 자
 RAC가 DOM 요소를 만들지 않는 부품에 임의 wrapper를 추가하지 않는다. binding은 RAC에 필요한
 collection id/textValue·상태·overlay 연결을 담당하며, 작성 자식을 고정 props로 재조립하지 않는다.
 
-전환 여부는 `catalog/nesting/nestingRules.ts`의 `UNCONVERTED_FAMILY_LIMITS`와 해당
-`runtime/domBinding.tsx` · `delegatedDom.tsx` 구현을 함께 확인한다. ADR-256은 진행 중이며
-제한 표의 행을 전환·검증 없이 지우거나 미전환 family의 옛 renderer를 새 기본 패턴으로 삼지 않는다.
-반복 template 등 후속 Phase의 설계를 현재 구현 완료로 가정하지 않는다.
+ADR-256 Phase 11 (2026-10-12) 에서 미전환 family 제한 표를 삭제했다 — 모든 family 가 노드 트리로
+그리고, 넣을 수 있는 자식은 `componentTraits.ts` 의 children 종류 (RAC 항목 목록 · 자유 내용) 하나가 정한다.
+새 family 도 이 경로로 추가한다: binding (`runtime/domBinding.tsx` · `delegatedDom.tsx`) 은 RAC 요구 값만
+넘기고, 작성 자식을 고정 props 로 재조립하는 renderer 를 새로 두지 않는다. 레퍼런스 예제와의 구조 비교는
+`apps/builder/scripts/adr256-g5/` 하니스로 확인한다.
 
 Popover·Tooltip 팔레트 원본은 trigger 조합이다. 루트 타입을 이름으로 추측하지 않는다.
 현재 Select·overlay 예시는 [합성 구조](../reference/compositional-architecture.md)에 있다.

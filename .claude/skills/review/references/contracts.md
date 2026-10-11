@@ -22,7 +22,7 @@ ADR-248 Phase 4 이전의 Zustand store · spec 경로 항목은 걷어냈습니
 - 기본 원본 라이브러리 (`codeCatalogLibrary.ts`) 구조를 바꾸면 `LIBRARY_CONTRACT_VERSION`
   을 올리고, 옛 개발 프로젝트 거부와 새 문서의 주소 보존을 함께 봅니다. 자동 이관을 추가하지 않습니다.
 - 자식·RAC slot·필수 부품·상태 주체·값 바인딩 변경은 [RAC 조립 계약](../../composition-patterns/rules/domain-rac-composition.md)을
-  적용합니다. 미전환 family 제한과 DOM 구조/시각 검증을 구분합니다.
+  적용합니다. 넣을 수 있는 자식 (children 종류) 판정과 DOM 구조/시각 검증을 구분합니다.
 - Builder 아이콘 버튼은 `ActionIconButton`, 패널 섹션은 기존 `Section` (`.claude/rules/panel-structure.md`).
 
 ## 상태·동기화 (`.claude/rules/state-management.md`)

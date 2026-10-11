@@ -61,14 +61,11 @@ const SUBPART_TOKENS: Readonly<
   ComboBox: { Group: [".combobox-container"] },
   // ADR-253: the Group holds an Input instance and two Button instances (their own class tokens).
   NumberField: { Group: [".react-aria-Group"] },
-  // ADR-253: the container holds the search glyph (an Icon — whole selectors: a direct child, not
-  // the clear button's own glyph), an Input instance and a Button instance.
+  // ADR-256 G5 (example 5): the field holds the search glyph (an Icon — its own child: the rule's
+  // `> .react-aria-Icon`, not the clear button's glyph), an Input instance and a Button instance —
+  // no control Group (the reference's grid).
   SearchField: {
-    Group: [".searchfield-container"],
-    Icon: [
-      ".searchfield-container > .react-aria-Icon",
-      ".searchfield-container > .react-aria-Icon svg",
-    ],
+    Icon: [".react-aria-Icon", ".react-aria-Icon svg"],
   },
   // ADR-253: the Group holds a DateInput instance and a FieldButton instance (their own tokens).
   DatePicker: { Group: [".react-aria-Group"] },
@@ -140,7 +137,7 @@ const SUBPART_CHILD_PROPS: Readonly<
  * (`.search-icon` flex span), so the svg size is also the child's box.
  */
 const GLYPH_TOKENS: Readonly<Record<string, { box: boolean }>> = {
-  ".searchfield-container > .react-aria-Icon svg": { box: true },
+  ".react-aria-Icon svg": { box: true },
 };
 /**
  * Typed children that stand for several owner-composed DOM parts (their box is the parts' union).
@@ -703,8 +700,7 @@ export function catalogNotFirstChildMarginTop(
       { structure?: { composition?: unknown } }
     >
   )[parentType]?.structure?.composition as
-    | { staticSelectors?: Record<string, Record<string, string>> }
-    | undefined;
+    { staticSelectors?: Record<string, Record<string, string>> } | undefined;
   const value =
     composition?.staticSelectors?.[
       `> .react-aria-${childType}:not(:first-child)`
@@ -1150,7 +1146,12 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   Disclosure: { density: "density", quiet: "isQuiet" },
   // ADR-257 Phase 3: S2 Column `align` · Cell `align` · `showDivider`, and the Table's
   // `overflowMode` (carried to its Columns · Cells — `CATALOG_OVERFLOW_MODE_OWNERS`).
-  Column: { align: "align", "overflow-mode": "overflowMode" },
+  // (and a sortable Column's row — the reference's `.column-header`, G5 example 11)
+  Column: {
+    align: "align",
+    "overflow-mode": "overflowMode",
+    "allows-sorting": "allowsSorting",
+  },
   Cell: {
     align: "align",
     "show-divider": "showDivider",
@@ -1200,7 +1201,7 @@ const LABEL_ALIGN_AXIS = {
  */
 const FIELD_CONTROL_TYPES = [
   "Input",
-  // (A picker / NumberField / SearchField control Group — ADR-256 Phase 6b.)
+  // (A picker / NumberField control Group — ADR-256 Phase 6b.)
   "Group",
   "DateInput",
   // (A Select's trigger — a Button instance, ADR-253.)

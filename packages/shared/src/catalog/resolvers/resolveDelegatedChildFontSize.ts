@@ -120,8 +120,8 @@ export const DELEGATED_SUBPART_CHILD_TOKENS: Readonly<
   //   자신이 정본이라 sub-part 가 아니다.)
   // (입력 상자 래퍼 — field 의 control `Group` — 는 아래 `ownsSubpartDirect` 가 field type 으로 판정한다
   //   (ADR-256 Phase 6b): 상자의 모양 · 배치는 field rule delegation 이 준다 — NumberField · DatePicker ·
-  //   DateRangePicker `.react-aria-Group`, ComboBox `.combobox-container`, SearchField
-  //   `.searchfield-container`. DOM 은 Group 노드의 style 을 읽지 않는다.)
+  //   DateRangePicker `.react-aria-Group`, ComboBox `.combobox-container` (SearchField 는 Group 없음 —
+  //   ADR-256 G5 예제 5). DOM 은 Group 노드의 style 을 읽지 않는다.)
 };
 
 /**
@@ -162,7 +162,8 @@ export const TEXT_ONLY_SUBPART_PARENTS: Readonly<
   //   정본이다. style 은 노드 자신이 정본이다 — DOM 이 그 노드를 직접 그린다 (ADR-253).
   SelectValue: ["Select"],
   // 입력칸: Input 원본의 instance. `placeholder` · `type` 은 parent 의 prop 이 정본이다.
-  //   NumberField · ComboBox · SearchField 의 입력칸은 래퍼 (Group · container) 안에 있다 — 래퍼를 건너 field 로 판정한다.
+  //   NumberField · ComboBox 의 입력칸은 래퍼 (Group · container) 안에 있다 — 래퍼를 건너 field 로 판정한다
+  //   (SearchField 는 field 의 직계 자식).
   Input: [
     "TextField",
     "TextArea",

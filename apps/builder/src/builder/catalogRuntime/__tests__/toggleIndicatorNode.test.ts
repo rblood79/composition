@@ -16,6 +16,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
@@ -29,6 +30,7 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { CheckboxIndicatorBox } from "../../../../../../packages/shared/src/components/Checkbox";
 import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
 import { bindCatalogCanvas } from "../canvasBinding";
 import type { CatalogTextMeasure } from "../compositionRoot";
@@ -455,5 +457,28 @@ describe("toggle indicator node", () => {
     workspace.execute(removeTargets({ targets: [targetOf(label.id)] }));
     expect(root.layoutInputs.has(label.id)).toBe(false);
     workspace.dispose();
+  });
+
+  it("G5 examples 7 · 10 · 11 — the checkbox indicator holds its svg in every state (the reference's `div.indicator > svg`; unselected, the sheet hides it)", () => {
+    for (const [isSelected, isIndeterminate] of [
+      [false, false],
+      [true, false],
+      [false, true],
+    ] as const) {
+      const html = renderToStaticMarkup(
+        createElement(CheckboxIndicatorBox, { isSelected, isIndeterminate }),
+      );
+      expect(html).toMatch(/^<div class="checkbox"><svg [^>]*aria-hidden="true"/);
+    }
+    const sheet = readFileSync(
+      resolve(
+        __dirname,
+        "../../../../../../packages/shared/src/components/styles/Checkbox.css",
+      ),
+      "utf8",
+    );
+    expect(sheet).toMatch(
+      /label:not\(\[data-selected\], \[data-indeterminate\]\) > \.checkbox > svg \{\s*visibility: hidden;/,
+    );
   });
 });

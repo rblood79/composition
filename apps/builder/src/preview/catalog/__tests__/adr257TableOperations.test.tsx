@@ -175,22 +175,28 @@ describe("ADR-257 Phase 4a — Preview sort (S2 Column allowsSorting)", () => {
     const history = workspace.history.getSnapshot().labels.length;
     expect(firstCells(view.container)).toEqual(["b10", "a", "b9", "C"]);
     const name = header(view.container, "Name");
-    // (At rest no sort icon — the Canvas has none.)
-    expect(name.querySelector(".sort-indicator")).toBeNull();
+    // (G5 example 11 — the reference's indicator is there at rest, after the name: a chevron the
+    // sheet hides while the column is not sorted, its box kept.)
+    const indicator = () => name.querySelector(".sort-indicator")!;
+    expect(indicator().getAttribute("aria-hidden")).toBe("true");
+    expect(name.hasAttribute("data-sort-direction")).toBe(false);
+    expect(name.lastElementChild).toBe(indicator());
+    const chevronDown = indicator().innerHTML;
     act(() => {
       fireEvent.click(name);
     });
     // Numeric-aware, case-insensitive text order (b9 before b10).
     expect(firstCells(view.container)).toEqual(["a", "b9", "b10", "C"]);
     expect(name.getAttribute("aria-sort")).toBe("ascending");
-    expect(
-      name.querySelector(".sort-indicator")?.getAttribute("data-direction"),
-    ).toBe("ascending");
+    // (A chevron up while ascending, down otherwise — the reference's ChevronUp · ChevronDown.)
+    expect(name.getAttribute("data-sort-direction")).toBe("ascending");
+    expect(indicator().innerHTML).not.toBe(chevronDown);
     act(() => {
       fireEvent.click(name);
     });
     expect(firstCells(view.container)).toEqual(["C", "b10", "b9", "a"]);
     expect(name.getAttribute("aria-sort")).toBe("descending");
+    expect(indicator().innerHTML).toBe(chevronDown);
     // Nothing reached the document: no history step, the Builder's rows in document order.
     expect(workspace.history.getSnapshot().labels.length).toBe(history);
     const body = workspace.root.domInputs.get(

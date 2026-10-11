@@ -2,19 +2,16 @@ import {
   TooltipTrigger as RACTooltipTrigger,
   type TooltipTriggerComponentProps,
 } from "react-aria-components/Tooltip";
-import type { HTMLAttributes } from "react";
 
 export interface TooltipTriggerProps
-  extends Omit<TooltipTriggerComponentProps, "children">,
-    Omit<HTMLAttributes<HTMLDivElement>, keyof TooltipTriggerComponentProps> {
+  extends Omit<TooltipTriggerComponentProps, "children"> {
   children?: TooltipTriggerComponentProps["children"];
 }
 
 /**
- * ADR-255 — RAC TooltipTrigger with the layout box DialogTrigger has (`div.react-aria-
- * TooltipTrigger`, no role): RAC gives the trigger its hover / focus through context
- * (`FocusableProvider`), so the box between them changes nothing — the Canvas and the DOM lay out
- * the same box.
+ * RAC TooltipTrigger — no element of its own (ADR-256 G5 · the reference): RAC gives the trigger
+ * its hover / focus through context (`FocusableProvider`). The Canvas lays the node out as
+ * `display: contents` (its rule).
  */
 export function TooltipTrigger({
   isOpen,
@@ -25,8 +22,6 @@ export function TooltipTrigger({
   closeDelay,
   trigger,
   children,
-  className,
-  ...props
 }: TooltipTriggerProps) {
   return (
     <RACTooltipTrigger
@@ -38,14 +33,7 @@ export function TooltipTrigger({
       closeDelay={closeDelay}
       trigger={trigger}
     >
-      <div
-        {...props}
-        className={["react-aria-TooltipTrigger", className]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {children}
-      </div>
+      {children}
     </RACTooltipTrigger>
   );
 }

@@ -92,14 +92,14 @@ export function MyCheckbox(props: CheckboxProps) {
 }
 
 /**
- * The indicator box and its glyph (`div.checkbox` — `Checkbox.css`): a check while selected, a dash
- * while indeterminate. This component and the catalog CheckboxButton (ADR-256 Phase 3 — the
+ * The indicator box and its glyph (`div.checkbox` — `Checkbox.css`): a check (shown while selected),
+ * a dash while indeterminate. This component and the catalog CheckboxButton (ADR-256 Phase 3 — the
  * CheckboxIndicator node's element) draw the same markup.
  */
 export function CheckboxIndicatorBox({
-  isSelected,
   isIndeterminate,
 }: {
+  /** (Its glyph shows by the sheet — RAC's `data-selected` on the label.) */
   isSelected: boolean;
   isIndeterminate: boolean;
 }) {
@@ -108,7 +108,8 @@ export function CheckboxIndicatorBox({
       {isIndeterminate ? (
         <Minus size={16} strokeWidth={4} />
       ) : (
-        isSelected && <CheckIcon size={16} strokeWidth={4} />
+        // (Unselected too — the reference's indicator always holds its svg; `Checkbox.css` hides it.)
+        <CheckIcon size={16} strokeWidth={4} />
       )}
     </div>
   );

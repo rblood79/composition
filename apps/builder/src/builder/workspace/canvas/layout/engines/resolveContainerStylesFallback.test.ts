@@ -348,8 +348,16 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb.width).toBe("100%");
     });
 
+    // ADR-256 G5 (예제 5): SearchField 는 레퍼런스 grid (Group 없음 — glyph 빈 열 · Input · 지우기 버튼).
+    it("searchfield → grid (0px · 1fr · auto) + size md 행 간격 8 · 열 간격 0", () => {
+      const fb = resolveContainerStylesFallback("searchfield", {});
+      expect(fb.display).toBe("grid");
+      expect(fb.gridTemplateColumns).toBe("0px minmax(0, 1fr) auto");
+      expect(fb.gap).toBe(8);
+      expect(fb.columnGap).toBe(0);
+    });
+
     it.each([
-      ["searchfield", 8],
       ["numberfield", 6],
       ["datefield", 6],
       ["timefield", 6],

@@ -73,7 +73,8 @@ export function Card({
       id={id}
       className={classes}
       style={style}
-      aria-disabled={isDisabled}
+      // (S2's standalone Card writes no aria-disabled — only a disabled one says so.)
+      aria-disabled={isDisabled || undefined}
       {...dataProps}
       data-disabled={isDisabled || undefined}
       {...props}

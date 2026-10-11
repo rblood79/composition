@@ -3967,7 +3967,9 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "definitionId": "lib:definition:type-SearchField",
     "children": [
       "lib:template:component-searchfield__1",
-      "lib:template:component-searchfield__2",
+      "lib:template:component-searchfield__2_1",
+      "lib:template:component-searchfield__2_2",
+      "lib:template:component-searchfield__2_3",
       "lib:template:component-searchfield__description",
       "lib:template:component-searchfield__error"
     ],
@@ -3992,21 +3994,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     },
     "presentWhen": "nonEmptyText",
     "visual": {}
-  },
-  {
-    "id": "lib:template:component-searchfield__2",
-    "definitionId": "lib:definition:type-Group",
-    "children": [
-      "lib:template:component-searchfield__2_1",
-      "lib:template:component-searchfield__2_2",
-      "lib:template:component-searchfield__2_3"
-    ],
-    "props": {},
-    "visual": {},
-    "layout": {
-      "display": "flex",
-      "flexDirection": "row"
-    }
   },
   {
     "id": "lib:template:component-searchfield__2_1",

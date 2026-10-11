@@ -152,6 +152,13 @@ export function resolveCatalogRuleCanvasBox(
         ? sizeRecord.gap
         : rawValue;
     assign(rawKey, value as string | number);
+    // (The size block's `column-gap` follows its `gap` — SearchField's grid columns, G5 example 5.)
+    if (
+      value !== rawValue &&
+      sizeRecord &&
+      typeof sizeRecord.columnGap === "number"
+    )
+      assign("columnGap", sizeRecord.columnGap);
   }
   if (!sizeRecord) return out;
   const has = (key: string): boolean => supplied(key) || out[key] !== undefined;

@@ -11,6 +11,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 11 — G5 남은 차이 레퍼런스대로] - 2026-10-12
+
+### Breaking Changes
+
+- **library contract 40**: SearchField 원본에 control `Group` 이 없다 (`SearchField > Label + Icon + Input + Button + Description + FieldError`). contract 39 문서는 거부된다 (전환 없음).
+
+### Changed
+
+사용자 지시 「레퍼런스에 맞게 고쳐」 (2026-10-12) — G5 판정 대기였던 차이를 레퍼런스 구조로 맞췄다.
+
+- **trigger 감싸는 요소 제거** (예제 2 · 9): DialogTrigger · MenuTrigger · TooltipTrigger 는 RAC 처럼 요소가 없다. trigger 는 Button 자신이다. Canvas 는 rule 의 `display: contents` 로 자식을 부모 흐름에 세운다 (Autocomplete 와 같은 길). 생성 CSS 3개는 더 만들지 않는다. Styles 패널의 「부모 배치」 는 `display: contents` 부모를 건너뛴다 (CSS 와 같음). 위치: `packages/shared/src/components/{DialogTrigger,MenuTrigger,TooltipTrigger}.tsx` · `componentRulesTable.ts` · `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts`
+- **SearchField 의 control Group 제거** (예제 5): 레퍼런스 grid 를 따른다. 열은 `0px 1fr auto` 이다. 글리프는 빈 첫 열에서 Input 앞쪽 위에 놓이고, 지우기 버튼은 Input 끝 위에 놓인다. 행은 자동 배치라 Label · 설명이 비면 행과 간격이 없다. side 라벨은 `auto 0px 1fr auto` 이다. Canvas 의 Input · 글리프 · 지우기 버튼 위치는 전과 같다 (크기 4종 · side · 설명 · 오류 실측 대조). 크기 블록의 `column-gap` 을 Canvas 도 읽는다. 위치: `componentRulesTable.ts` (SearchField) · `reusableOriginLibrary.ts` · `rulePartRules.ts` · `presence.ts` · `domBinding.tsx` · `resolveCatalogRuleCanvasBox.ts`
+- **Checkbox 아이콘** (예제 7 · 10 · 11): 레퍼런스처럼 표시 상자가 선택 여부와 상관없이 늘 `svg` 를 가진다. 선택되지 않았을 때는 `Checkbox.css` 가 숨긴다 (화면 변화 0). 위치: `components/Checkbox.tsx` (`CheckboxIndicatorBox`) · `components/styles/Checkbox.css`
+- **S2 Card · Image** (예제 13): `@react-spectrum/s2` 1.8.0 을 테스트 전용 devDependency 로 설치하고 S2 Card 를 실제로 마운트해 기준값으로 썼다 (손으로 쓴 트리 대체). 그 결과에 맞춘 것:
+  - Card 루트의 `aria-disabled="false"` 제거
+  - CardPreview = `div[slot=preview] > div`
+  - Footer = `footer` 요소
+  - Image = 상자 안 `img alt=""` (S2 Image) — S2 Card 의 CardPreview 안에서만 (아래 판정 2건)
+  - 위치: `components/Card.tsx` · `delegatedDom.tsx` (`cardpreview` · `footer`) · `domBinding.tsx`
+- **ProgressBar indeterminate** (예제 14): 레퍼런스처럼 채움 상자를 움직이지 않는다. 채움은 트랙 전체이고, 움직임은 칠 (불투명도) 만 바뀐다. Canvas 도 같은 상자를 그린다 (전에는 Canvas 40–60% 고정 · DOM 120px 이동). 위치: `componentRulesTable.ts` (ProgressBar `indeterminate`) · `presence.ts` (`catalogProgressFillLayout`)
+
+사용자 지시 「둘 다 레퍼런스대로 고쳐」 (2026-10-12) — 판정 대기 2건:
+
+- **Table 정렬 표시** (예제 11): 정렬 가능한 열 (`allowsSorting`) 의 정렬 표시가 레퍼런스의 `span.sort-indicator` 다. 이름 바로 뒤에 늘 있고, 정렬 전에는 보이지 않되 자리는 남는다. 오름차순이면 위 chevron, 그 밖에는 아래 chevron (16px, 좌우 2px). 정렬 가능한 열은 레퍼런스 `.column-header` 처럼 가로 줄이고 이름이 나머지 폭을 쓴다. Canvas 는 정렬 상태가 없어 표시를 그리지 않고 그 자리만 비운다. 전에는 S2 처럼 정렬됐을 때만 글자 앞에 화살표를 그렸다 (ADR-257 Phase 4). 위치: `tableOperationsDom.tsx` (`CatalogSortIndicator`) · `domBinding.tsx` · `presence.ts` (`catalogColumnSortNameGroup`) · `compositionRoot.ts` · `componentRulesTable.ts` (Column `allows-sorting`) · `Table.css`
+- **Image** (예제 10): S2 Card 의 CardPreview 밖에서는 RAC 예제처럼 맨 `img` 하나가 Image 상자다. CardPreview 안에서는 S2 Image (상자 안 `img`) 그대로. 위치: `domBinding.tsx` (`imageInS2CardPreview`)
+
+### Tests
+
+- `adr255OverlayTrigger` (trigger 요소 없음) · `toggleIndicatorNode` (아이콘 svg) · `adr256ProgressNodeTree` (indeterminate 상자) · `adr256CardS2` (S2 실물 마운트와 DOM 구조 같음 · S2 는 테스트 밖 import 0) · `adr253FieldPartsDom` · `fieldSideLabelFit` · side 라벨 계약 3종 (SearchField grid). 수정 전 RED 또는 원복 RED 확인.
+- 검증: type-check · shared 1579 · builder 5402 · rendering 1313 · parity 811.
+- live: G5 예제 15개를 다시 실행했다 (오류 0, 다시 열기 정상).
+  - 구조 통과 + Canvas = Preview: 예제 1 · 2 · 3 · 4 · 5 · 7 · 8 · 9 · 12 · 14 · 15. 예제 6 은 스크립트가 일부러 넣는 글자만 다르다.
+  - 정해진 차이로 접으면 통과: 예제 11 (Column 글자 span) · 13 (S2 Button 글자 span).
+  - 판정 2건 수리 뒤 다시 실행: 예제 10 은 접기 없이 구조 통과 + Canvas = Preview. 예제 11 정렬 가능 열은 글자 span 만 접으면 통과하고 Canvas 어긋남 0. Preview 에서 Price 를 누르면 표시가 열 끝에서 나타나고 방향대로 바뀐다. 예제 13 은 S2 Button 글자 span 만 남는다.
+- `adr256G5SortImage` (정렬 표시 위치 · Canvas 자리 · Image `img`, 고치기 전으로 되돌리면 4건 모두 실패) · `adr257TableOperations` 정렬 시험을 레퍼런스 동작으로 갱신.
+
 ## [ADR-256 Phase 11 후속 — G5 예제 결함 8–13] - 2026-10-12
 
 ### Fixed

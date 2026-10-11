@@ -2,11 +2,10 @@ import {
   MenuTrigger as RACMenuTrigger,
   type MenuTriggerProps as RACMenuTriggerProps,
 } from "react-aria-components/Menu";
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export interface MenuTriggerProps
-  extends Omit<RACMenuTriggerProps, "children">,
-    Omit<HTMLAttributes<HTMLDivElement>, keyof RACMenuTriggerProps> {
+  extends Omit<RACMenuTriggerProps, "children"> {
   children?: ReactNode;
   /** S2 — where the menu opens; its Popover reads it from this node (`catalogS2OverlayPlacement`). */
   direction?: "bottom" | "top" | "left" | "right" | "start" | "end";
@@ -15,10 +14,10 @@ export interface MenuTriggerProps
 }
 
 /**
- * ADR-256 후속 4 — RAC MenuTrigger with the layout box DialogTrigger · TooltipTrigger have
- * (`div.react-aria-MenuTrigger`, no role): RAC gives the trigger Button its press through context
- * (`PressResponder`) and the Popover · Menu theirs (`PopoverContext` · `MenuContext`), so the box
- * between them changes nothing — the Canvas and the DOM lay out the same box.
+ * RAC MenuTrigger — no element of its own (ADR-256 G5 · the reference: the trigger is the Button
+ * itself). RAC gives the trigger Button its press through context (`PressResponder`) and the
+ * Popover · Menu theirs (`PopoverContext` · `MenuContext`). The Canvas lays the node out as
+ * `display: contents` (its rule).
  */
 export function MenuTrigger({
   isOpen,
@@ -26,11 +25,9 @@ export function MenuTrigger({
   onOpenChange,
   trigger,
   children,
-  className,
-  // (The Popover node reads these from the record — not attributes of the layout box.)
+  // (The Popover node reads these from the record.)
   direction: _direction,
   align: _align,
-  ...props
 }: MenuTriggerProps) {
   return (
     <RACMenuTrigger
@@ -39,14 +36,7 @@ export function MenuTrigger({
       onOpenChange={onOpenChange}
       trigger={trigger}
     >
-      <div
-        {...props}
-        className={["react-aria-MenuTrigger", className]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        {children}
-      </div>
+      {children}
     </RACMenuTrigger>
   );
 }

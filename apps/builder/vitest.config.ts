@@ -48,6 +48,9 @@ export default defineConfig({
     exclude: ["**/node_modules/**", "**/*.browser.test.tsx"],
     environment: "jsdom",
     setupFiles: ["./src/test/rtlCleanup.ts"],
+    // ADR-256 G5 example 13: the S2 oracle (`@react-spectrum/s2`, a test-only devDependency) imports
+    // its compiled `.css` — Vite transforms it (inline) instead of Node loading it.
+    server: { deps: { inline: [/@react-spectrum\/s2/] } },
     include: [
       "src/**/__tests__/**/*.test.ts",
       "src/**/__tests__/**/*.test.tsx",

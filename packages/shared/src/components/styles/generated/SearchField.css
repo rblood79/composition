@@ -8,17 +8,21 @@
 
 .react-aria-SearchField {
   /* Base styles — archetype: default */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
     box-sizing: border-box;
     width: 100%;
+
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: grid;
+  align-items: center;
+  grid-template-columns: 0px minmax(0, 1fr) auto;
 
   /* Default size */
   font-size: var(--text-sm);
   border-radius: var(--radius-md);
   min-width: 90px;
   gap: 8px;
+  column-gap: 0px;
   --icon-size: 18px;
 }
 
@@ -27,6 +31,7 @@
   border-radius: var(--radius-sm);
   min-width: 66px;
   gap: 6px;
+  column-gap: 0px;
   --icon-size: 14px;
 }
 
@@ -35,6 +40,7 @@
   border-radius: var(--radius-md);
   min-width: 90px;
   gap: 8px;
+  column-gap: 0px;
   --icon-size: 18px;
 }
 
@@ -43,6 +49,7 @@
   border-radius: var(--radius-lg);
   min-width: 126px;
   gap: 10px;
+  column-gap: 0px;
   --icon-size: 22px;
 }
 
@@ -51,6 +58,7 @@
   border-radius: var(--radius-xl);
   min-width: 162px;
   gap: 10px;
+  column-gap: 0px;
   --icon-size: 28px;
 }
 
@@ -67,50 +75,53 @@
 
 /* ── Tier 2: Composite Delegation ── */
 
-.react-aria-SearchField .searchfield-container {
-  display: flex;
-  align-items: center;
-  width: 100%;
+.react-aria-SearchField[data-size="S"] {
+  --sf-field-gap: 6px;
+}
+
+.react-aria-SearchField[data-size="M"] {
+  --sf-field-gap: 8px;
+}
+
+.react-aria-SearchField[data-size="L"] {
+  --sf-field-gap: 10px;
+}
+
+.react-aria-SearchField[data-size="XL"] {
+  --sf-field-gap: 10px;
 }
 
 .react-aria-SearchField[data-size="XS"] {
   --sf-icon-size: 10px;
   --sf-icon-inset: 4px;
-  --sf-icon-pull: -14px;
 }
 
 .react-aria-SearchField[data-size="S"] {
   --sf-icon-size: 12px;
   --sf-icon-inset: 6px;
-  --sf-icon-pull: -18px;
 }
 
 .react-aria-SearchField[data-size="M"] {
   --sf-icon-size: 16px;
   --sf-icon-inset: 8px;
-  --sf-icon-pull: -24px;
 }
 
 .react-aria-SearchField[data-size="L"] {
   --sf-icon-size: 18px;
   --sf-icon-inset: 12px;
-  --sf-icon-pull: -30px;
 }
 
 .react-aria-SearchField[data-size="XL"] {
   --sf-icon-size: 22px;
   --sf-icon-inset: 16px;
-  --sf-icon-pull: -38px;
 }
 
-.react-aria-SearchField .searchfield-container > .react-aria-Icon {
-  flex: 0 0 auto;
+.react-aria-SearchField > .react-aria-Icon {
   height: auto;
   margin-inline-start: var(--sf-icon-inset);
-  margin-inline-end: var(--sf-icon-pull);
 }
 
-.react-aria-SearchField .searchfield-container > .react-aria-Icon svg {
+.react-aria-SearchField > .react-aria-Icon svg {
   width: var(--sf-icon-size);
   height: var(--sf-icon-size);
 }
@@ -167,7 +178,6 @@
 }
 
 .react-aria-SearchField .react-aria-Button {
-  flex: 0 0 auto;
   width: var(--sf-btn-size);
   height: var(--sf-btn-size);
   min-width: 0;
@@ -176,29 +186,38 @@
 
 .react-aria-SearchField[data-label-position="side"] {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
+  grid-template-columns: auto 0px minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .react-aria-SearchField[data-label-position="side"] > .react-aria-Label {
-  grid-column: 1;
+  grid-column: 1 / 2;
+  margin-inline-end: var(--sf-field-gap);
   width: var(--form-label-width);
   align-self: center;
   text-align: var(--form-label-align, start);
   justify-content: var(--form-label-align, start);
 }
 
-.react-aria-SearchField[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
-  grid-column: 2;
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Icon {
+  grid-column: 2 / 3;
+}
+
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Input {
+  grid-column: 3 / 4;
   min-width: 0;
 }
 
+.react-aria-SearchField[data-label-position="side"] > .react-aria-Button {
+  grid-column: 4 / 5;
+}
+
 .react-aria-SearchField[data-label-position="side"] > .react-aria-FieldError {
-  grid-column: 2;
+  grid-column: 2 / 5;
 }
 
 .react-aria-SearchField[data-label-position="side"] > [slot="description"] {
-  grid-column: 2;
+  grid-column: 2 / 5;
 }
 
 .react-aria-SearchField[data-label-align="center"] {
@@ -219,6 +238,33 @@
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-SearchField > .react-aria-Label {
+    grid-column: 1 / 4;
+    justify-self: flex-start;
+  }
+
+  .react-aria-SearchField > .react-aria-Icon {
+    grid-column: 1;
+  }
+
+  .react-aria-SearchField > .react-aria-Input {
+    grid-column: 2;
+  }
+
+  .react-aria-SearchField > .react-aria-Button {
+    grid-column: 3;
+  }
+
+  .react-aria-SearchField > [slot="description"] {
+    grid-column: 1 / 4;
+  }
+
+  .react-aria-SearchField > .react-aria-FieldError {
+    grid-column: 1 / 4;
+    justify-self: flex-start;
+  }
 
 
 } /* @layer components */

@@ -99,9 +99,11 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * 39 — ADR-256 Phase 11 (G5): the ListBox · GridList section origins' items carry no fixed `id`
  * (`item-1` · `item-2`) — two sections in one collection shared their RAC keys; an item's key is
  * its node id unless the author gives one.
+ * 40 — ADR-256 Phase 11 (G5 example 5): the SearchField is the reference's `SearchField > Label +
+ * Icon + Input + Button + Description + FieldError` — no control `Group` (its grid places them).
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 39 as const;
+export const LIBRARY_CONTRACT_VERSION = 40 as const;
 
 export type EntryKind =
   | "project"

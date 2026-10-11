@@ -184,7 +184,9 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
     expect(dir.current).toBe("row");
   });
 
-  it("Dialog 부모는 catalog 기본값 flex · column 을 읽는다 (2026-09-26 본문 스타일 catalog 이관)", async () => {
+  // ADR-256 G5 (예제 2 · 9): Dialog 원본의 루트는 RAC DialogTrigger 라 요소 · 상자가 없다
+  //   (`display: contents`) — 그 안 자식은 CSS 처럼 그 위 부모의 배치를 읽는다.
+  it("Dialog 원본 (루트 DialogTrigger — display: contents) 안 자식은 그 위 부모의 배치를 읽는다", async () => {
     await setTestElements([
       {
         id: "child-x",
@@ -199,9 +201,10 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
       } as Element,
     ]);
     const { result: display } = hookOf(fixture, useParentDisplay, "child-x");
-    expect(display.current).toBe("flex");
+    // (The body's — the fixture page's block flow; never the trigger's `contents`.)
+    expect(display.current).toBe("block");
     const { result: dir } = hookOf(fixture, useParentFlexDirection, "child-x");
-    expect(dir.current).toBe("column");
+    expect(dir.current).toBe("row");
   });
 });
 

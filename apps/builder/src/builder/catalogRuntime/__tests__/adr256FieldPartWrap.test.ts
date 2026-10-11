@@ -98,7 +98,8 @@ const CONTROL: Record<string, string> = {
   textfield: "Input",
   textarea: "Input",
   numberfield: "Group",
-  searchfield: "Group",
+  // (The reference's SearchField has no control Group — G5 example 5.)
+  searchfield: "Input",
   colorfield: "Input",
   datefield: "DateInput",
   timefield: "DateInput",

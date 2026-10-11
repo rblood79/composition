@@ -548,7 +548,7 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
   "combobox",
-  "searchfield",
+  // (Not searchfield: its parts are its own children — ADR-256 G5 example 5.)
   "datepicker",
   "daterangepicker",
 ]);
@@ -2455,8 +2455,25 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       );
     },
   },
+  // S2 CardPreview (`@react-spectrum/s2` 1.8.0 mounted — G5 example 13): `div[slot=preview]` around
+  // an inner `div` holding the media. The inner box does not lay out (`display: contents`) — the
+  // Canvas has one box, the CardPreview node's.
   cardpreview: {
-    render: container("div", (input) => chrome(input, "CardPreview")),
+    render: (input) =>
+      createElement(
+        "div",
+        {
+          ...marker(input),
+          ...chrome(input, "CardPreview"),
+          slot: "preview",
+          style: input.style,
+        },
+        createElement(
+          "div",
+          { style: { display: "contents" } },
+          ...renderAll(input),
+        ),
+      ),
   },
   // ADR-256 Phase 10: S2 Content · Footer — plain sections; their owner arranges them. (Keyed by the
   // type's binding id; their renderer ids are `s2content` · `s2footer` — a DialogFooter's generic
@@ -2464,8 +2481,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   content: {
     render: container("div", (input) => chrome(input, "Content")),
   },
+  // (S2 Footer is a `footer` element — the S2 mount, G5 example 13.)
   footer: {
-    render: container("div", (input) => chrome(input, "Footer")),
+    render: container("footer", (input) => chrome(input, "Footer")),
   },
   // S2 CardView (ADR-256 Phase 10): a RAC GridList of its Cards (`@react-spectrum/s2/src/CardView.tsx`
   // — its cards are GridListItems). Its selection is RAC's: the Cards' `isSelected` start it while it

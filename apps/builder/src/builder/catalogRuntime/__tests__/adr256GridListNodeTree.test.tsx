@@ -127,7 +127,10 @@ function gridStructure(html: string): string {
           : `${attribute.name}=${attribute.value}`,
       )
       .sort();
-    const content = [...element.childNodes].map((child) =>
+    // (A glyph's drawing is not structure — the reference's polyline, our lucide paths.)
+    const content = (
+      element.tagName.toLowerCase() === "svg" ? [] : [...element.childNodes]
+    ).map((child) =>
       child.nodeType === 1
         ? walk(child as Element)
         : (child.textContent ?? "").trim(),
@@ -160,7 +163,16 @@ function reference(withCheckbox: boolean): string {
                   createElement(
                     CheckboxButton,
                     null,
-                    createElement("div", { className: "indicator" }),
+                    createElement(
+                      "div",
+                      { className: "indicator" },
+                      // (The reference's indicator always holds its svg — G5 examples 7 · 10 · 11.)
+                      createElement(
+                        "svg",
+                        { viewBox: "0 0 18 18", "aria-hidden": "true" },
+                        createElement("polyline", { points: "2 9 7 14 16 4" }),
+                      ),
+                    ),
                   ),
                 ),
               ]
@@ -240,7 +252,11 @@ describe("ADR-256 Phase 5f — a GridList item's selection checkbox is a Checkbo
     addCheckboxes(null);
     expect(html()).not.toContain('slot="selection"');
     expect(html()).not.toContain('aria-label="Select"');
-    expect(of("Checkbox").every((box) => box.derivedProps?._isSelected === undefined)).toBe(true);
+    expect(
+      of("Checkbox").every(
+        (box) => box.derivedProps?._isSelected === undefined,
+      ),
+    ).toBe(true);
   });
 });
 

@@ -717,25 +717,28 @@ export function catalogIsFieldControlGroup(
   return isFieldControlGroup("Group", field ? typeOf(field) : undefined);
 }
 
-/** The field (SearchField · NumberField) that owns `node` as the Input in its control wrapper. */
+/**
+ * The field that owns `node` as its Input: a SearchField's own child (ADR-256 G5 example 5 — no
+ * control Group), a NumberField's in its control Group.
+ */
 function catalogFieldOfInput(
   node: CatalogConsumerNode,
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Input") return;
-  const trigger = catalogPartParent(node, get, typeOf);
-  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
-  const field = catalogPartParent(trigger!, get, typeOf);
-  const type = field && typeOf(field);
-  return type === "SearchField" || type === "NumberField" ? field : undefined;
+  const parent = catalogPartParent(node, get, typeOf);
+  if (parent && typeOf(parent) === "SearchField") return parent;
+  if (!catalogIsFieldControlGroup(parent, get, typeOf)) return;
+  const field = catalogPartParent(parent!, get, typeOf);
+  return field && typeOf(field) === "NumberField" ? field : undefined;
 }
 
 /**
- * SearchField's clear button (the Button instance in its control wrapper — ADR-253): RAC marks
- * the field `data-empty` while its value (`value`, the renderer's `defaultValue`) is empty and
- * the stylesheet hides the button (`[data-empty="true"] .react-aria-Button { display: none }`).
- * Returns the owning field for that node.
+ * SearchField's clear button (the Button instance among its own children — ADR-256 G5 example 5):
+ * RAC marks the field `data-empty` while its value (`value`, the renderer's `defaultValue`) is
+ * empty and the stylesheet hides the button (`[data-empty="true"] .react-aria-Button { display:
+ * none }`). Returns the owning field for that node.
  */
 function catalogSearchFieldOfClear(
   node: CatalogConsumerNode,
@@ -743,9 +746,7 @@ function catalogSearchFieldOfClear(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
   if (typeOf(node) !== "Button") return;
-  const trigger = catalogPartParent(node, get, typeOf);
-  if (!catalogIsFieldControlGroup(trigger, get, typeOf)) return;
-  const field = catalogPartParent(trigger!, get, typeOf);
+  const field = catalogPartParent(node, get, typeOf);
   return field && typeOf(field) === "SearchField" ? field : undefined;
 }
 
@@ -852,9 +853,9 @@ export function catalogPresenceDependents(
         ["Description", "FieldError"].includes(typeOf(child)),
       ),
       ...(typeOf(scope) === "SearchField"
-        ? partChildrenOf(scope, get, typeOf)
-            .flatMap((trigger) => partChildrenOf(trigger, get, typeOf))
-            .filter((icon) => catalogSearchFieldOfClear(icon, get, typeOf))
+        ? partChildrenOf(scope, get, typeOf).filter((button) =>
+            catalogSearchFieldOfClear(button, get, typeOf),
+          )
         : []),
     ];
   const items: CatalogConsumerNode[] = [];
@@ -1195,6 +1196,76 @@ export function catalogTreeChevronGlyphItem(
   return button ? catalogTreeChevronButtonItem(button, get, typeOf) : undefined;
 }
 
+/**
+ * The box of a sortable Column's sort indicator (G5 example 11 — the reference's
+ * `span.sort-indicator`: a 16px chevron, `padding: 0 2px`).
+ */
+export const CATALOG_COLUMN_SORT_INDICATOR_WIDTH = 20;
+
+/** A sortable Column in a Table's header (`allowsSorting` — RAC's sort operation). */
+function sortableTableColumn(
+  column: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (typeOf(column) !== "Column" || column.props.allowsSorting !== true)
+    return false;
+  const header = get(column.parentId);
+  const table = header && get(header.parentId);
+  return (
+    !!header &&
+    typeOf(header) === "TableHeader" &&
+    !!table &&
+    (typeOf(table) === "Table" || typeOf(table) === "TableView")
+  );
+}
+
+/** A Column's name Group — its first Group (layout frames skipped; the reference's `.column-name`). */
+export function catalogColumnNameGroup(
+  column: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  return typeOf(column) === "Column"
+    ? partChildrenOf(column, get, typeOf).find(
+        (child) => typeOf(child) === "Group",
+      )
+    : undefined;
+}
+
+/**
+ * G5 example 11 (2026-10-12) — the sortable Column whose name Group `node` is. The reference puts
+ * the sort indicator right after that Group, always — hidden while the column is not sorted
+ * (`visibility: hidden`, its box stays): the DOM renders it there (`tableOperationsDom.tsx`), the
+ * Canvas — never sorted — keeps its box beside the name (a Column without a name Group: at its
+ * end — `catalogColumnSortsAtEnd`).
+ */
+export function catalogColumnSortNameGroup(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Group") return undefined;
+  const column = catalogPartParent(node, get, typeOf);
+  return column &&
+    sortableTableColumn(column, get, typeOf) &&
+    catalogColumnNameGroup(column, get, typeOf)?.id === node.id
+    ? column
+    : undefined;
+}
+
+/** A sortable Column without a name Group: its sort indicator follows its content. */
+export function catalogColumnSortsAtEnd(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  return (
+    sortableTableColumn(node, get, typeOf) &&
+    !catalogColumnNameGroup(node, get, typeOf)
+  );
+}
+
 /** Whether a TreeItem has child items (RAC `hasChildItems` — `data-has-child-items`). */
 function treeItemHasChildItems(
   item: CatalogConsumerNode,
@@ -1454,9 +1525,10 @@ export function catalogProgressValueHidden(
 }
 
 /**
- * ADR-256 Phase 7a — an indeterminate ProgressBar's fill on the Canvas: the still bar the track
- * primitive drew (20 % → 50 % of the track — the DOM animates the sheet's 120px `.fill`, the Canvas
- * draws no motion). Its width binding has no value then (`{percentage}` — RAC gives none).
+ * ADR-256 Phase 7a — an indeterminate ProgressBar's fill on the Canvas: the whole track, the sheet's
+ * `.fill` box (G5 example 14 — the reference keeps the box and moves only its paint; the DOM pulses
+ * its opacity, the Canvas draws it still). Its width binding has no value then (`{percentage}` —
+ * RAC gives none).
  */
 export function catalogProgressFillLayout(
   node: CatalogConsumerNode,
@@ -1464,9 +1536,7 @@ export function catalogProgressFillLayout(
   typeOf: CatalogTypeOf,
 ): Record<string, string> | undefined {
   const owner = catalogProgressFillOwner(node, get, typeOf);
-  return owner?.props.isIndeterminate === true
-    ? { width: "30%", marginLeft: "20%" }
-    : undefined;
+  return owner?.props.isIndeterminate === true ? { width: "100%" } : undefined;
 }
 
 /** RAC date fields that compose their DateInput's segments from their own props. */
@@ -2003,6 +2073,12 @@ export function catalogDerivedPropsDependents(
     ...catalogTableSelectAllCheckboxes(owner, get, typeOf),
     // (ADR-257: its Table's header row and Rows lay out on the Columns' tracks.)
     ...catalogTableTrackDependents(owner, get, typeOf),
+    // (A Column's name Group keeps the sort indicator's box while it sorts — G5 example 11.)
+    ...(typeOf(owner) === "Column"
+      ? [catalogColumnNameGroup(owner, get, typeOf)].filter(
+          (group): group is CatalogConsumerNode => !!group,
+        )
+      : []),
     // The box a quiet field's own rule styles (`ownerStyledQuietBox`).
     ...childrenOf(owner, get).filter(
       (child) => QUIET_OWNER_BOXES[typeOf(owner)] === typeOf(child),

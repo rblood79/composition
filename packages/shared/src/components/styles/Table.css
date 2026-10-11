@@ -81,19 +81,20 @@
     }
   }
 
-  /* ADR-257 Phase 4 — S2 Column `allowsSorting`: the sort icon before the text while the column is
-     sorted (S2 `SortUpArrow` · `SortDownArrow`, 16px, 8px to the text — none at rest, as the
-     Canvas). */
+  /* G5 example 11 (2026-10-12) — the reference's sort indicator (react-aria.adobe.com Table.md):
+     after the column's name, a 16px chevron with 2px on each side, hidden while the column is not
+     sorted (its box stays — the Canvas keeps it beside the name). The row it sits in is the
+     Column rule's `allows-sorting` block (the reference's `.column-header`). */
   .react-aria-Table[data-node-table] .react-aria-Column {
     .sort-indicator {
+      padding: 0 2px;
       display: inline-flex;
-      vertical-align: bottom;
-      margin-inline-end: 8px;
-      padding: 0;
+      align-items: center;
+      justify-content: center;
     }
 
-    .sort-indicator .react-aria-Icon {
-      display: inline-flex;
+    &:not([data-sort-direction]) .sort-indicator {
+      visibility: hidden;
     }
   }
 

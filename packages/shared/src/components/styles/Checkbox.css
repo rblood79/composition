@@ -8,6 +8,12 @@
  */
 
 @layer components {
+  /* ADR-256 G5: the indicator always holds its svg (the reference's div.indicator > svg);
+     unselected it does not show. Both structures' RAC label carries the state. */
+  label:not([data-selected], [data-indeterminate]) > .checkbox > svg {
+    visibility: hidden;
+  }
+
   .react-aria-Checkbox {
     /* Default (non-emphasized): neutral color when selected */
     --selected-color: var(--fg);

@@ -1,5 +1,5 @@
 // G5 example 2 — Menu: (a) Text slots + Keyboard · (b) Submenus · (c) Separators (react-aria.adobe.com Menu).
-import { canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
+import { childIds, canvasVsPreview, diff, edit, launch, newProject, place, press, previewHtml, recordOf, reopen, structure } from "./harness.mjs";
 import { closeOverlays, dropAnchors, lastHtml, plus, refMount, unwrapTrigger } from "./helpers-a.mjs";
 
 const SLOTS = [["Copy", "Copy the selected text", "⌘C"], ["Cut", "Cut the selected text", "⌘X"], ["Paste", "Paste the copied text", "⌘V"]];
@@ -124,7 +124,7 @@ export async function run(page) {
     out.push({ ...(await compare(page, `${label} closed (as is)`, closedHtml, closedRef)), canvas: await canvasVsPreview(page, id) });
     out.push(await compare(page, `${label} closed (ADR-255 trigger wrapper out)`, unwrapTrigger(closedHtml), closedRef));
     // open: the menu's popover
-    await press(page, `[data-catalog-id="${id}"] button`);
+    await press(page, `[data-catalog-id="${(await childIds(page, id))[0]}"]`); // (the trigger has no element — its Button)
     const opened = await lastHtml(page, ".react-aria-Popover");
     let subs = [];
     if (label === "submenu") {

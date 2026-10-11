@@ -43,14 +43,14 @@ export async function run(page, errors = []) {
   const reopened = await reopen(page);
   const atDefault = await tree(page, G);
   const out = [];
-  out.push(await compareCase(page, G, "default", reference, { full: true, known: [KNOWN.image, KNOWN.checkGlyph] }));
+  out.push(await compareCase(page, G, "default", reference, { full: true, known: [KNOWN.checkGlyph] }));
   // Multiple selection: the first and third items' selection checkboxes pressed.
   await press(page, '[role="row"]:nth-child(1) input[type="checkbox"]');
   await press(page, '[role="row"]:nth-child(3) input[type="checkbox"]');
   out.push(
     await compareCase(page, G, "two selected (pressed)", reference, {
       noCanvas: true,
-      known: [KNOWN.image, KNOWN.checkGlyph],
+      known: [KNOWN.checkGlyph],
       full: true,
       act: `async (host) => { for (const i of [0, 2]) { host.querySelectorAll('[role="row"] input[type="checkbox"]')[i].click(); await new Promise((r) => setTimeout(r, 100)); } }`,
     }),
