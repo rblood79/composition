@@ -149,6 +149,8 @@
 
 ## 현황
 
+> **2026-10-12 ADR-256 Implemented**: 사용자 「Implemented 로 올려」 (G5 의 사용자 확인). Phase 1 ~ 11 완료 — G5 레퍼런스 예제 15개 중 13 은 구조 통과 + Canvas = Preview, 2 는 정해진 글자 span 차이만 (Column 글자 10-09 결정 · S2 Button). 마지막 판정 2건 (정렬 표시 `span.sort-indicator` · CardPreview 밖 Image 맨 `img`) 도 레퍼런스대로 (`6b6f7c175`). 본문 `completed/` 이동 · [Live Exercise](completed/256-rac-composition-level.md#live-exercise). 열림 −1, 완료 +1 (열림 3 — Proposed 2 · Accepted 1).
+
 > **2026-10-12 ADR-256 Phase 11 — 제한 표 삭제 · G5 차이 레퍼런스대로**: 미전환 family 제한 표 (`UNCONVERTED_FAMILY_LIMITS`) 삭제. 레퍼런스 예제 15개를 Builder UI 로 조립 · 재열기 · DOM 구조 비교 · Canvas = Preview 로 실행해 결함 13건 수리, 이어 사용자 「레퍼런스에 맞게 고쳐」 로 남은 차이 6건 (trigger 요소 · SearchField Group · Checkbox 아이콘 · S2 Card/Image · ProgressBar indeterminate) 을 레퍼런스대로 — S2 기준값은 `@react-spectrum/s2` 1.8.0 실물 마운트. contract 40. 판정 대기였던 2건도 사용자 「둘 다 레퍼런스대로 고쳐」 로 수리 — 정렬 가능 열의 정렬 표시는 레퍼런스 `span.sort-indicator` (이름 뒤 · 정렬 전엔 숨김, ADR-257 S2 방식 대체), Image 는 S2 Card 밖에서 맨 `img`. 통과 13 (+ 정해진 차이 2: 글자 span · S2 Button span). [breakdown §5](design/256-rac-composition-level-breakdown.md).
 
 > **2026-10-11 ADR-256 Phase 10 완료 (S2)**: `/execute-adr ADR-256 Phase 10`. 사용자 결정 2건 — Card 는 S2 그대로 (`title` · `description` prop 삭제, 글자 = `Content` 안 `Text[slot=title]` · `Text[slot=description]` 노드) · CardContent · CardFooter → 범용 S2 `Content` · `Footer` (CardHeader 삭제). Card 의 Content 에 자유 내용이 들어간다 (F3 해소). InlineAlert = `Heading + Content > Description`. CardView = RAC GridList (Card = GridListItem, 선택은 RAC). ButtonGroup · AvatarGroup · CardView 제한 행 삭제. contract 38 · G2 11 · G3 PASS (TableView 만 HEAD 부터 FAIL) · ratchet A 0 · live 9/9 · 6/6 · 판독 1 (MEDIUM 1 수리) + 수리 검증 1 → 닫힘. [breakdown §5](design/256-rac-composition-level-breakdown.md)
@@ -254,11 +256,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [256](256-rac-composition-level.md) — RAC 수준의 조립 (노드 트리를 RAC 부품 그대로 · 넣는 자리를 레퍼런스에서)
-
-- **상태**: Accepted — 2026-10-07 (G0 보고 뒤 사용자 「승인」. 사용자 확인 3건 완료 — contract 거부 허용 · `showWhen` 저장 필드 · Nav/Pagination/FileUpload/Chart 유지. 리뷰 round 3 HIGH 2 · MEDIUM 1 설계 수리 완료. **G0 인벤토리 고정 2026-10-07** — 설치 RAC 1.21.0 실행 표 ([evidence](evidence/256-g0-inventory.md)) · 본문 정정 6곳 · 예제 15개 원문 고정. **Phase 1 완료 2026-10-08** — 판정 하나 · 넣기 목록 · 원본 루트 slot · RAC slot 4 경로 · 필수 짝, G1 · G4 · live 16/16, 판독 Round 4 · 수리 검증 Round 5 닫힘. **Phase 2 완료 2026-10-08** — presentWhen (Label · Description 의 값 조건) · field 7종이 노드 트리로 그림 (자유 자식) · contract 8 · G2 · G3 하니스 70/70 · live 4/4. **Phase 3 완료 2026-10-08** — toggle (`*Field > *Button` · 그룹 3종) · contract 9 · 판독 Round 8 · 수리 검증 Round 9 닫힘. **Phase 4 완료 2026-10-09** — 노드 `showWhen` · 주소 참조 무결성 · Design 패널 표시 조건 (4c 값 바인딩은 Phase 7 로) · 판독 Round 10 · 11 닫힘. **Phase 5 완료 2026-10-09** — collection 9 family 가 노드 트리 (Breadcrumbs · ColorSwatchPicker · ListBox · TagGroup · Tabs · GridList · Menu + SubmenuTrigger · Keyboard · Tree + TreeItemContent · Table — 행 넣기 · `isRowHeader` · 열 수 = 칸 수) · 선택 표시 = 작성자 `Checkbox[slot=selection]` · contract 18 · G3 63 PASS + 1 UNVERIFIED · prop-axis 60/60 · 번들 Builder 1,240,932 · Preview 287,150 · 판독 Round 12 (HIGH 2 · MEDIUM 3) · 수리 검증 Round 13 (HIGH 1 수리) 닫힘 · Column 안 Group 은 Phase 6 으로. **Phase 9 완료 2026-10-11** — Calendar 노드 트리 (CalendarMonth 반복 · CalendarHeading · CalendarCell · 달 · 해 picker · 요일 칸 · DateSegment template) · `visibleDuration` 문서 값 · contract 37 · live 12/12 · 판독 닫힘. **Phase 10 완료 2026-10-11** — S2 Card (사용자 결정: title · description prop 삭제 · 범용 Content · Footer, CardHeader 삭제) · InlineAlert `Heading + Content` · CardView = RAC GridList · ButtonGroup · AvatarGroup 자유 내용 · contract 38 · live 9/9 · 6/6 · 판독 닫힘. **Phase 11 2026-10-12** — 제한 표 삭제 · G5 예제 15 실행 · 결함 13 수리 · 남은 차이 6건 레퍼런스대로 · contract 40 · 통과 13 + 정해진 차이 2 · 판정 2건 (정렬 표시 · Image) 레퍼런스대로 수리. 다음: Implemented 승격)
-- **규모**: Phase 0 인벤토리 → 1 판정 하나 → 2 ~ 10 family 전환 (field · toggle · 상태별 표시 · collection · picker · range · overlay · calendar · S2) → 11 종결 (레퍼런스 예제 15개 재현). breakdown: [design/256](design/256-rac-composition-level-breakdown.md)
-
 #### [257](257-table-column-tracks.md) — Table 열 배치 (Column 이 열 트랙 · 모든 행이 같은 grid 트랙) + 표·목록 S2 prop
 
 - **상태**: Accepted — 2026-10-10 (사용자 `/execute-adr 257` + 리뷰 pending 0 으로 승격 · 사용자 결정 1 · 2 · 3 권장안 확정. **Phase 0 완료 2026-10-10** — 영향 집단 0 · 엔진 실측 GREEN (`tree.rs` `adr257_*`). **Phase 1 완료 2026-10-10** — 트랙 목록 (RAC oracle · live 6/6, G6 부분). **Phase 2 완료 2026-10-10** — colSpan (live G2 3/3). **Phase 3 완료 2026-10-10** — 칸 값 · 표 단위 값 (결정 6 · 7 = S2 대로, live 14/14 · GridList · Badge `overflowMode` 미룸). **Phase 4 완료 2026-10-10** — Preview 정렬 · 열 크기 조절 (결정 4 · 5, live 18/18). **Phase 5 완료 2026-10-10** — TableView 를 S2 처럼 RAC Table 위로 (사용자 지시, live 21/21). **후속 완료 2026-10-10** — GridList · Badge `overflowMode` (사용자 지시, live 6/6 · 남은 것 G6 총비용 A/B). 이전: 사용자 `/create-adr`. Codex 리뷰 round 1 HIGH 3 · MEDIUM 4 → 같은 날 수리 → 수리 검증 round 2: round 1 전부 fixed · 새 이슈 2 (HIGH 1 · MEDIUM 1) 도 같은 날 문서 수리 (판독자 재검증 없음 — pending 0). 사용자 결정 7건은 해당 Phase 착수 전 — 기본 폭 · Styles 폭 · 표현 못 하는 조합 · 정렬 범위 · 열 크기 조절 · selectionStyle/overflowMode 값 · Column align 확장)
@@ -298,16 +295,15 @@
 
 | 순위 | ADR                                                                                            | 착수 준비도                                                                                              | 차단 · 선행                                                               |
 | :--: | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-|  1   | [256](256-rac-composition-level.md)                                                            | Accepted — Phase 11 2026-10-12 · G5 통과 13 / 15 + 정해진 차이 2 (사용자 원칙 — 빌더의 전제)             | Implemented 승격                                                          |
-|  2   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 0 ~ 5 · 후속 (GridList · Badge `overflowMode`) 완료 (후속 미커밋) · 남음: G6 총비용 A/B | 256 Phase 5i 노드 Table 위 (충족)                                         |
-|  3   | [258](258-color-controls-canvas-gradient.md)                                                   | Proposed 2026-10-11 — 리뷰 round 1 수리 (pending 0) · 다음 `/execute-adr 258`                            | 256 Phase 7 Slider 부품 type (충족) · 사용자 결정 3건                     |
-|  4   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)                                             | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  1   | [257](257-table-column-tracks.md)                                                              | Accepted — Phase 0 ~ 5 · 후속 (GridList · Badge `overflowMode`) 완료 (후속 미커밋) · 남음: G6 총비용 A/B | 256 Phase 5i 노드 Table 위 (충족)                                         |
+|  2   | [258](258-color-controls-canvas-gradient.md)                                                   | Proposed 2026-10-11 — 리뷰 round 1 수리 (pending 0) · 다음 `/execute-adr 258`                            | 256 Phase 7 Slider 부품 type (충족) · 사용자 결정 3건                     |
+|  3   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)                                             | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
 |  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                                                                  | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                                                       | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
-## 완료 ADR (276)
+## 완료 ADR (277)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -591,6 +587,7 @@
 | [251](completed/251-radio-checkbox-items-node-restore.md) | RadioGroup · CheckboxGroup 항목 묶음을 문서 노드로 복원 (RadioItems · CheckboxItems — TagGroup > TagList 동형). 그룹 rule 의 orientation 블록이 묶음 partRule · DOM 은 shared `div.*-items` 1개 · 「+」 는 묶음 안 · 묶음 Direction = 그룹 orientation · library contract 2 (ADR-912 Items 폐기를 뒤집음) | Implemented | 2026-10-03 |
 | [252](completed/252-design-panel-merge.md) | Properties · Styles 패널을 Design 패널 하나로 통합 — 탭 `Property | Layout | Style | Text | Screen` (Modified 제거) · id `properties` 유지 · `styles` 등록 해제 · ⌥6 = Layout 탭 · ⌘⌥C/V 는 활성 탭의 쌍만 등록 · 최소 폭 233 · ratchet 상한 +2 (RAC tabpanel tabIndex) | Implemented | 2026-10-04 |
 | [253](completed/253-base-ui-origin-reuse.md) | 기본 UI 원본의 재사용 — 원본에 쓴 스타일 · 상태별 값이 그 원본의 전 instance 에 닿음 · field 계열의 Label · Description · FieldError · Input · DateInput · Button 이 부품 원본의 instance (모양 정본 = 부품 rule, DOM 이 부품 노드를 RAC 로 직접 그림) · Select · ComboBox 의 항목 = ListBox 원본 instance 의 slot 채움 (library `slotFills`) · library contract 5 · 바탕 사슬 (Dialog · Popover) 은 미룸 | Implemented | 2026-10-07 |
+| [256](completed/256-rac-composition-level.md) | RAC 수준의 조립 — 노드 트리를 RAC 부품 그대로 그리고 넣는 자리를 레퍼런스 (react-aria.adobe.com · S2) 에서 가져온다. 넣기 판정 하나 (RAC children 종류) · `showWhen` · field · toggle · collection · picker · range · overlay · Calendar · S2 family 가 노드 트리 · 제한 표 삭제 · G5 레퍼런스 예제 15 (13 구조 통과 + Canvas = Preview, 2 는 정해진 글자 span) · contract 40 | Implemented | 2026-10-12 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

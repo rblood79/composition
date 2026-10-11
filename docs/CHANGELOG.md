@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Implemented — RAC 수준의 조립] - 2026-10-12
+
+### Changed
+
+- **ADR-256 Implemented** (사용자 「Implemented 로 올려」 — G5 의 사용자 확인): Phase 1 ~ 11 완료. 노드 트리를 RAC 부품 그대로 그리고, 넣는 자리를 레퍼런스 (react-aria.adobe.com · S2) 에서 가져온다. G5 레퍼런스 예제 15개 중 13 은 구조 통과 + Canvas = Preview, 2 는 정해진 글자 span 차이만 (Column 글자 — 10-09 결정 · S2 Button). 본문을 `docs/adr/completed/` 로 옮기고 `### Live Exercise` 를 적었다.
+
+### Fixed
+
+- `6b6f7c175` 에서 잘린 ADR-256 본문 (Status 아래 Context ~ Consequences) 을 `324d21603` 본문에서 복원했다 — Status 블록을 넣는 스크립트가 블록 뒤를 붙이지 않았다.
+
 ## [ADR-256 Phase 11 — G5 남은 차이 레퍼런스대로] - 2026-10-12
 
 ### Breaking Changes

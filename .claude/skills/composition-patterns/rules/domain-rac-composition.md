@@ -94,4 +94,4 @@ Popover·Tooltip 팔레트 원본은 trigger 조합이다. 루트 타입을 이�
   RAC DOM 구조 통과와 시각 하니스 통과를 서로 대체하지 않는다. 실제 사용자 흐름은
   [evaluate](../../evaluate/SKILL.md), 시각 비교는 [cross-check](../../cross-check/SKILL.md)를 따른다.
 - 실행하지 못한 family·상태·저장·DOM·시각 범위는 UNVERIFIED로 보고한다. 전체 ADR의
-  완료 판정은 [ADR-256](../../../../docs/adr/256-rac-composition-level.md)의 해당 gate를 따른다.
+  완료 판정은 [ADR-256](../../../../docs/adr/completed/256-rac-composition-level.md)의 해당 gate를 따른다.
