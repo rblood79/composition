@@ -157,6 +157,41 @@ export const catalogSlotCommands = {
     // The slot position stays selected (more content can follow); the palette selects new nodes.
     return (reader) => ({ label: "Fill slot", ops: insert(reader).ops });
   },
+  /**
+   * ADR-256 Decision 4: put a new node of a definition at the end of a position that declares no
+   * slot (its children kind takes it) — an instance's inner part or an owned node.
+   */
+  insert: (
+    target: Extract<EditTarget, { kind: "descendant" | "node" }>,
+    definitionId: DefinitionId,
+    newId: NewId,
+    props: NodeEntry["props"] = {},
+  ): CatalogCommand => {
+    const entry: NodeEntry = {
+      kind: "node",
+      id: newId("node") as NodeId,
+      definitionId,
+      children: [],
+      props,
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    };
+    return insertNodes({
+      parent:
+        target.kind === "node"
+          ? { kind: "node", id: target.id }
+          : {
+              kind: "descendant",
+              ownerId: target.ownerId,
+              address: target.address,
+            },
+      entries: [entry],
+      rootIds: [entry.id],
+      newId,
+      label: "Add content",
+    });
+  },
   restore:
     (target: Extract<EditTarget, { kind: "descendant" }>): CatalogCommand =>
     (reader) => {
@@ -258,15 +293,21 @@ export function catalogSlotInsertOptions(
       if (option) candidates.push(option);
     }
   } else {
-    const builtin = catalogBuiltinOrigins(library);
-    const origins = new Set<string>(builtin.map((item) => item.id));
-    candidates.push(
-      ...builtin.map((item) => ({
-        definitionId: item.id,
-        label: item.name,
-        type: item.name,
-      })),
-    );
+    const origins = new Set<string>();
+    // ADR-256 Phase 9: a calendar header's parts — RAC's heading and its month · year pickers (their
+    // owners check keeps them to a position inside a Calendar · RangeCalendar). Listed first: where
+    // they fit they are the position's own parts, not one of the 70 general choices below.
+    for (const itemType of CALENDAR_HEADER_PARTS) {
+      const option = ofType(itemType);
+      if (!option || origins.has(option.definitionId)) continue;
+      origins.add(option.definitionId);
+      candidates.push(option);
+    }
+    for (const item of catalogBuiltinOrigins(library)) {
+      if (origins.has(item.id)) continue;
+      origins.add(item.id);
+      candidates.push({ definitionId: item.id, label: item.name, type: item.name });
+    }
     // The palette's primitives (Text · Icon · Image · Separator · Frame …): no origin of their own.
     for (const item of getPaletteItems()) {
       const itemType = item.componentType ?? item.type;
@@ -278,14 +319,6 @@ export function catalogSlotInsertOptions(
         ...option,
         label: itemType === "frame" ? "Frame" : itemType,
       });
-    }
-    // ADR-256 Phase 9: a calendar header's parts — RAC's heading and its month · year pickers (their
-    // owners check keeps them to a position inside a Calendar · RangeCalendar).
-    for (const itemType of CALENDAR_HEADER_PARTS) {
-      const option = ofType(itemType);
-      if (!option || origins.has(option.definitionId)) continue;
-      origins.add(option.definitionId);
-      candidates.push(option);
     }
     const project = graph.getEntry(graph.projectId);
     const instanceDefinition =

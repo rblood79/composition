@@ -61,8 +61,13 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
             : id,
       };
     });
-    // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert.
-    const options = position ? catalogSlotInsertOptions(graph, target) : [];
+    // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert —
+    // a slot declaration only names the position, so a part with no slot (a Calendar's header, an
+    // instance's inner part or an owned node) has the list too.
+    const options =
+      position || target.kind === "descendant" || target.kind === "node"
+        ? catalogSlotInsertOptions(graph, target)
+        : [];
     return JSON.stringify({ declaration, position, filled, options });
   });
   const { declaration, position, filled, options } = JSON.parse(viewKey) as {
@@ -138,6 +143,33 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
     },
     [graph, run, target, workspace],
   );
+  // A position with no slot declared: the new node goes at its end.
+  const add = useCallback(
+    (value: string) => {
+      if (!value || (target.kind !== "descendant" && target.kind !== "node"))
+        return;
+      const option = catalogSlotInsertOptions(graph, target).find(
+        (item) => item.definitionId === value,
+      );
+      if (!option) return;
+      const definitionId = option.definitionId as DefinitionId;
+      run(
+        catalogSlotCommands.insert(
+          target,
+          definitionId,
+          workspace.newId,
+          option.type && definitionId.startsWith("lib:")
+            ? catalogCreationProps(
+                graph.library,
+                definitionId as Parameters<typeof catalogCreationProps>[1],
+                option.type,
+              )
+            : {},
+        ),
+      );
+    },
+    [graph, run, target, workspace],
+  );
   const restore = useCallback(() => {
     const slotTarget = catalogSlotTarget(graph, target);
     if (slotTarget) run(catalogSlotCommands.restore(slotTarget));
@@ -185,8 +217,6 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       </PropertySection>
     );
   }
-  if (!position) return null;
-
   const fillOptions = [
     { value: "", label: "Add content…" },
     ...options.map((option) => ({
@@ -194,6 +224,25 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       label: option.label,
     })),
   ];
+
+  // A position with no slot declared: the insert list only (nothing to restore — its content is
+  // the template's with the parts put in).
+  if (!position) {
+    if (!options.length) return null;
+    return (
+      <PropertySection title={t("propertiesPanel.slotSection")}>
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label="Add content"
+            value=""
+            options={fillOptions}
+            translateOptions={false}
+            onChange={add}
+          />
+        </div>
+      </PropertySection>
+    );
+  }
 
   return (
     <PropertySection title={t("propertiesPanel.slotSection")}>

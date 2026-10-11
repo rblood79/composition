@@ -10,13 +10,26 @@ import type { PrimitiveBinding } from "../types";
  * CalendarHeading.
  *
  * D1: RAC's `CalendarMonthPicker` (no element — its Select is the header's item).
- * D2: no props of its own.
+ * D2: RAC's `format` (the month names' form — unset = RAC's `short`, no default stored).
  * D3: none of its own (`display: contents` on the Canvas); its Select's rules.
  */
 export const calendarMonthPickerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "calendarmonthpicker" },
   props: {
-    accepts: {},
+    accepts: {
+      format: {
+        kind: "enum",
+        label: "Format",
+        section: "content",
+        options: [
+          { value: "numeric", label: "Numeric" },
+          { value: "2-digit", label: "2-Digit" },
+          { value: "long", label: "Long" },
+          { value: "short", label: "Short" },
+          { value: "narrow", label: "Narrow" },
+        ],
+      },
+    },
     toRacProps: "default",
   },
 };

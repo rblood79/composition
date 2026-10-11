@@ -374,4 +374,81 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       position.container.querySelectorAll(".frame-slot-fill .list-row"),
     ).toHaveLength(0);
   });
+
+  // ADR-256 Decision 4: what a position takes is its children kind — the template's `slot` is a name
+  // only. A Calendar's header declares no slot, yet its insert list offers the month · year pickers —
+  // as a template position and as an owned node (the calendar's month frame filled: its blocks are
+  // the document's own nodes then).
+  for (const owned of [false, true])
+    it(`a free-content position with no slot declared (a Calendar's header${owned ? ", owned" : ""}) has the insert list`, async () => {
+      const { workspace } = await open();
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [node("calendar", "lib:definition:origin-component-calendar")],
+          rootIds: [id("calendar")],
+          newId: workspace.newId,
+        }),
+      );
+      const root = workspace.root;
+      const recordOf = (type: string) =>
+        [...root.domInputs.values()].find((record) => root.typeOf(record) === type)!;
+      if (owned) {
+        const frame = [...root.domInputs.values()].find(
+          (record) =>
+            root.typeOf(record) === "frame" &&
+            root.typeOf(root.domInputs.get(record.parentId)!) === "Calendar",
+        )!;
+        const at = workspace.positionOfRecord(frame.id)!.target;
+        workspace.execute(
+          insertNodes({
+            parent:
+              at.kind === "descendant"
+                ? { kind: "descendant", ownerId: at.ownerId, address: at.address }
+                : { kind: "node", id: at.id },
+            entries: [node("note", "lib:definition:text")],
+            rootIds: [id("note")],
+            newId: workspace.newId,
+          }),
+        );
+      }
+      const target = workspace.positionOfRecord(recordOf("CalendarHeader").id)!.target;
+      expect(target.kind).toBe(owned ? "node" : "descendant");
+      expect(catalogSlotPosition(workspace.runtime.graph, target)).toBe(undefined);
+      const section = render(
+        <I18nProvider initialLocale="en-US">
+          <CatalogWorkspaceProvider workspace={workspace}>
+            <CatalogSlotSection target={target} />
+          </CatalogWorkspaceProvider>
+        </I18nProvider>,
+      );
+      const select = within(section.container).getByRole("button", {
+        name: /Add content/,
+      });
+      await act(async () => {
+        fireEvent.click(select);
+      });
+      // The header's own parts lead the list (not after the 70 general choices).
+      const listed = screen.getAllByRole("option").map((option) => option.textContent);
+      expect(listed.slice(1, 4)).toEqual([
+        "CalendarHeading",
+        "CalendarMonthPicker",
+        "CalendarYearPicker",
+      ]);
+      const month = screen
+        .getAllByRole("option")
+        .find((option) => option.textContent === "CalendarMonthPicker");
+      expect(month).toBeDefined();
+      await act(async () => {
+        fireEvent.click(month!);
+      });
+      // The picker joins the header after its parts (the heading and the nav Buttons stay).
+      const header = recordOf("CalendarHeader");
+      expect(
+        [...root.domInputs.values()]
+          .filter((r) => r.parentId === header.id)
+          .map((r) => root.typeOf(r)),
+      ).toEqual(["Button", "CalendarHeading", "Button", "CalendarMonthPicker"]);
+      section.unmount();
+    });
 });

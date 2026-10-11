@@ -10,13 +10,23 @@ import type { PrimitiveBinding } from "../types";
  * CalendarHeading.
  *
  * D1: RAC's `CalendarYearPicker` (no element — its Select is the header's item).
- * D2: no props of its own.
+ * D2: RAC's `visibleYears` (how many years the list holds — RAC's default 20). RAC's `format`
+ *     (`{year, era}` — an object) is not taken yet: no typed slot holds it.
  * D3: none of its own (`display: contents` on the Canvas); its Select's rules.
  */
 export const calendarYearPickerBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "calendaryearpicker" },
   props: {
-    accepts: {},
+    accepts: {
+      visibleYears: {
+        kind: "number",
+        label: "Visible Years",
+        section: "content",
+        default: 20,
+        min: 1,
+        step: 1,
+      },
+    },
     toRacProps: "default",
   },
 };

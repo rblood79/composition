@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Calendar Month · Year picker 넣기 · prop] - 2026-10-11
+
+### Added
+
+- **CalendarMonthPicker `format`** (RAC — Numeric · 2-Digit · Long · Short · Narrow, 미설정 = Short): 달 목록 글자 형식. Canvas 트리거 글자와 Preview 가 같은 값을 읽는다.
+- **CalendarYearPicker `visibleYears`** (RAC — 기본 20): 연도 목록 개수.
+- **Design 패널 「Add content」 목록**: slot 을 선언하지 않은 자리 (instance 안 부품 · 문서에 직접 있는 노드 — 예: CalendarHeader) 에도 넣기 목록이 나온다. Calendar · RangeCalendar 안에서는 CalendarHeading · CalendarMonthPicker · CalendarYearPicker 가 목록 맨 앞이다.
+
+### Fixed
+
+- **CalendarHeader 의 넣기 목록에서 picker 를 찾을 수 없음**:
+  - **Why**: 헤더 부품이 일반 항목 70여 개 뒤 맨 끝에 있어 목록을 스크롤해도 마우스로 닿지 않았다.
+  - 수정: 헤더 부품을 목록 맨 앞에 둔다. 위치: `apps/builder/src/builder/catalogRuntime/slots.ts` (`catalogSlotInsertOptions`)
+- **picker `format` 변경 뒤 Canvas 트리거 글자가 그대로**:
+  - **Why**: 글자는 picker 의 prop 으로 SelectValue 를 칠하는데, SelectValue 자신의 record 는 바뀌지 않아 다시 그리지 않았다.
+  - 수정: picker → 하위 SelectValue 를 dirty 확장 대상에 넣었다. 위치: `packages/shared/src/catalog/runtime/presence.ts` (`derivedDependents`)
+- **Calendar `weeksInMonth` 가 미설정인데 1 로 표시** (커밋 324d21603 에 포함):
+  - **Why**: 슬라이더가 값이 없을 때 min (1) 을 그렸다. 레퍼런스에는 초기값이 없다.
+  - 수정: 스텝퍼로 바꿨다. 위치: `apps/builder/src/builder/panels/properties/generic/fieldEditor.ts`
+
+### Tests
+
+- `adr256CalendarNodeTree.test.tsx` (picker prop 이 RAC · Canvas 에 닿음) · `phase4ePropertySections.test.tsx` (instance 부품 · 문서 노드 두 경우의 넣기 목록 순서와 넣기). live: headed Chrome 에서 마우스 클릭으로 두 picker 넣기 · Format · Visible Years 5 → Preview 연도 5개.
+
 ## [ADR-256 Phase 10 — S2 Card · CardView · 그룹] - 2026-10-11
 
 ### Added

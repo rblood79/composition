@@ -615,7 +615,8 @@ export function catalogHiddenAtRest(
   // ADR-256 Phase 9 (Decision 13): a calendar grid's cell · weekday cell and a date input's segment
   // are the templates RAC draws per date · weekday · segment — the Canvas grid and date input draw
   // them from the model, the template node has no box of its own.
-  if (node.bindingId && REPEAT_TEMPLATE_BINDINGS.has(node.bindingId)) return true;
+  if (node.bindingId && REPEAT_TEMPLATE_BINDINGS.has(node.bindingId))
+    return true;
   if (catalogProgressValueHidden(node, get, typeOf)) return true;
   if (catalogStepperHidden(node, get, typeOf)) return true;
   if (catalogSkeletonIdle(node, typeOf)) return true;
@@ -1831,6 +1832,8 @@ function ownDerivedProps(
           calendarModelInput(calendar, get, typeOf),
           partType === "CalendarMonthPicker" ? "month" : "year",
           locale,
+          undefined,
+          node.props.format,
         ),
       };
   }
@@ -2051,6 +2054,18 @@ function derivedDependents(
     ]);
   // ADR-256 Phase 9: a calendar's headings and grids show its months (in its month blocks).
   if (CALENDAR_TYPES.has(type)) return calendarModelParts(owner, get, typeOf);
+  // A calendar month · year picker's `format` is its Select's value text (the SelectValue).
+  if (type === "CalendarMonthPicker" || type === "CalendarYearPicker") {
+    const values: CatalogConsumerNode[] = [];
+    const visit = (record: CatalogConsumerNode) => {
+      for (const child of childrenOf(record, get)) {
+        if (typeOf(child) === "SelectValue") values.push(child);
+        visit(child);
+      }
+    };
+    visit(owner);
+    return values;
+  }
   // A picker's first day and bounds are its calendar's (`calendarPicker`).
   if (PICKER_TYPES.has(type))
     return childrenOf(owner, get)
@@ -2713,11 +2728,7 @@ export function catalogCalendarPickerOfValue(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  for (
-    let cursor = get(node.parentId);
-    cursor;
-    cursor = get(cursor.parentId)
-  ) {
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId)) {
     const type = typeOf(cursor);
     if (type !== "Select") continue;
     const picker = get(cursor.parentId);
@@ -2741,11 +2752,7 @@ export function catalogCalendarOf(
   get: CatalogRecordLookup,
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode | undefined {
-  for (
-    let cursor = get(node.parentId);
-    cursor;
-    cursor = get(cursor.parentId)
-  )
+  for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
     if (CALENDAR_TYPES.has(typeOf(cursor))) return cursor;
   return undefined;
 }

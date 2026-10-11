@@ -98,6 +98,10 @@ import {
   type CatalogCalendarPickerAria,
   CatalogCalendarPickerContext,
 } from "./calendarPickerContext";
+import {
+  catalogCalendarMonthPickerFormat,
+  catalogCalendarVisibleYears,
+} from "./calendarModel";
 import type { DefinitionId, StateName, TokenId } from "../document/types";
 import { catalogTokenValue } from "../document/themedToken";
 import { withCatalogStateStyles, type CatalogStateStyles } from "./stateStyles";
@@ -1001,6 +1005,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   calendarmonthpicker: (node, _style, children) =>
     createElement(RAC.CalendarMonthPicker as ElementType, {
       key: node.id,
+      format: catalogCalendarMonthPickerFormat(node.props.format),
       children: (aria: CatalogCalendarPickerAria) =>
         createElement(
           CatalogCalendarPickerContext.Provider,
@@ -1011,6 +1016,7 @@ const bindings: Readonly<Record<string, DomBinding>> = {
   calendaryearpicker: (node, _style, children) =>
     createElement(RAC.CalendarYearPicker as ElementType, {
       key: node.id,
+      visibleYears: catalogCalendarVisibleYears(node.props.visibleYears),
       children: (aria: CatalogCalendarPickerAria) =>
         createElement(
           CatalogCalendarPickerContext.Provider,

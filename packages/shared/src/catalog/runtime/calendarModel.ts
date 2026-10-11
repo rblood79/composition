@@ -407,16 +407,43 @@ export function catalogCalendarGrid(
   return { weekdays, rows, today: todayCell };
 }
 
+const MONTH_PICKER_FORMATS = [
+  "numeric",
+  "2-digit",
+  "long",
+  "short",
+  "narrow",
+] as const;
+export type CatalogCalendarMonthPickerFormat =
+  (typeof MONTH_PICKER_FORMATS)[number];
+
+/** RAC `CalendarMonthPicker` `format` — one of RAC's month forms, else unset (RAC's `short`). */
+export function catalogCalendarMonthPickerFormat(
+  value: unknown,
+): CatalogCalendarMonthPickerFormat | undefined {
+  return MONTH_PICKER_FORMATS.find((format) => format === value);
+}
+
+/** RAC `CalendarYearPicker` `visibleYears` — a whole count ≥ 1, else unset (RAC's 20). */
+export function catalogCalendarVisibleYears(
+  value: unknown,
+): number | undefined {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 1
+    ? value
+    : undefined;
+}
+
 /**
- * RAC's month · year picker value text (`useCalendarMonthPicker` — the focused date's month,
- * `short`; `useCalendarYearPicker` — its year, `numeric` with the BC era where it applies): what
- * the picker's Select shows as its value.
+ * RAC's month · year picker value text (`useCalendarMonthPicker` — the focused date's month in the
+ * picker's `format`, `short` when unset; `useCalendarYearPicker` — its year, `numeric` with the BC
+ * era where it applies): what the picker's Select shows as its value.
  */
 export function catalogCalendarPickerText(
   input: CatalogCalendarModelInput,
   picker: "month" | "year",
   fallbackLocale?: string,
   now?: Date,
+  monthFormat?: unknown,
 ): string {
   const ctx = context(input, fallbackLocale, now);
   const date = ctx.focused;
@@ -425,7 +452,7 @@ export function catalogCalendarPickerText(
       ? date.calendar.getFormattableMonth(date)
       : date;
     return new DateFormatter(ctx.locale, {
-      month: "short",
+      month: catalogCalendarMonthPickerFormat(monthFormat) ?? "short",
       calendar: date.calendar.identifier,
       timeZone: ctx.timeZone,
     }).format(display.toDate(ctx.timeZone));

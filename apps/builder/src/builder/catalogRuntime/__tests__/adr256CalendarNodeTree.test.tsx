@@ -369,11 +369,13 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         "CalendarYearPicker",
       ]),
     );
+    const pickers: Record<"month" | "year", NodeId> = {} as never;
     for (const [index, kind] of [
       [1, "month"],
       [2, "year"],
     ] as const) {
       const id = workspace.newId("node") as NodeId;
+      pickers[kind] = id;
       workspace.execute(
         insertNodes({
           parent:
@@ -402,14 +404,19 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         }),
       );
     }
-    return placed;
+    return { ...placed, pickers };
   }
 
   for (const range of [false, true])
     it(`${range ? "RangeCalendar" : "Calendar"}: month · year pickers in the header = the reference's`, async () => {
-      const { render } = await withPickers(range ? "rangecalendar" : "calendar");
+      const { render } = await withPickers(
+        range ? "rangecalendar" : "calendar",
+      );
       const ours = calendarOf(render(), range);
-      const reference = calendarOf(mount(<PickerStarter range={range} />), range);
+      const reference = calendarOf(
+        mount(<PickerStarter range={range} />),
+        range,
+      );
       expect(shape(ours)).toEqual(shape(reference));
     });
 
@@ -417,8 +424,9 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
     const { render, root } = await withPickers("calendar");
     const host = render();
     const now = new Date();
-    const triggers = () =>
-      [...host.querySelectorAll<HTMLElement>("header .react-aria-Select button")];
+    const triggers = () => [
+      ...host.querySelectorAll<HTMLElement>("header .react-aria-Select button"),
+    ];
     expect(triggers().map((trigger) => trigger.textContent)).toEqual([
       new Intl.DateTimeFormat("en-US", { month: "short" }).format(now),
       String(now.getFullYear()),
@@ -431,14 +439,57 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
     ).toEqual(triggers().map((trigger) => trigger.textContent));
     // Open the month picker and choose March: the grid shows March.
     act(() => triggers()[0]!.click());
-    const march = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
-      (option) => option.textContent === "Mar",
-    )!;
+    const march = [
+      ...document.querySelectorAll<HTMLElement>('[role="option"]'),
+    ].find((option) => option.textContent === "Mar")!;
     expect(march).toBeDefined();
     act(() => march.click());
     expect(triggers()[0]!.textContent).toBe("Mar");
     const grid = host.querySelector(".react-aria-CalendarGrid")!;
     expect(grid.getAttribute("aria-label")).toMatch(/March/);
+  });
+
+  it("the pickers' own props (RAC CalendarMonthPicker `format` · CalendarYearPicker `visibleYears`) reach RAC and the Canvas", async () => {
+    const { render, root, workspace, pickers } = await withPickers("calendar");
+    // The props the reference lists — editable on the picker (its accepts), no default stored.
+    const monthAccepts = workspace.runtime.graph.getDefinition(
+      "lib:definition:type-CalendarMonthPicker" as never,
+    ) as { accepts: Record<string, unknown> } | undefined;
+    expect(Object.keys(monthAccepts?.accepts ?? {})).toContain("format");
+    const yearAccepts = workspace.runtime.graph.getDefinition(
+      "lib:definition:type-CalendarYearPicker" as never,
+    ) as { accepts: Record<string, unknown> } | undefined;
+    expect(Object.keys(yearAccepts?.accepts ?? {})).toContain("visibleYears");
+    for (const [kind, props] of [
+      ["month", { format: "long" }],
+      ["year", { visibleYears: 5 }],
+    ] as const)
+      workspace.execute(
+        setFields({
+          targets: [{ kind: "node", id: pickers[kind] }],
+          props: Object.fromEntries(
+            Object.entries(props).map(([key, value]) => [key, set(value)]),
+          ) as never,
+        }),
+      );
+    const host = render();
+    const now = new Date();
+    const triggers = () => [
+      ...host.querySelectorAll<HTMLElement>("header .react-aria-Select button"),
+    ];
+    const longMonth = new Intl.DateTimeFormat("en-US", {
+      month: "long",
+    }).format(now);
+    expect(triggers()[0]!.textContent).toBe(longMonth);
+    // The Canvas trigger value follows the same format.
+    expect(
+      [...root.canvasInputs.values()]
+        .filter((record) => root.typeOf(record) === "SelectValue")
+        .map((record) => record.derivedProps?.children),
+    ).toEqual([longMonth, String(now.getFullYear())]);
+    // The year list holds `visibleYears` years.
+    act(() => triggers()[1]!.click());
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(5);
   });
 
   it("판독 R1: a node put beside the month blocks (the frame becomes a filled slot) keeps the blocks repeating", async () => {
@@ -455,7 +506,11 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
       insertNodes({
         parent:
           target.kind === "descendant"
-            ? { kind: "descendant", ownerId: target.ownerId, address: target.address }
+            ? {
+                kind: "descendant",
+                ownerId: target.ownerId,
+                address: target.address,
+              }
             : { kind: "node", id: target.id },
         entries: [
           {
@@ -491,8 +546,13 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         root.typeOf(root.domInputs.get(record.parentId)!) === "Calendar",
     )!;
     const months = frame.children.map((id) => root.domInputs.get(id)!);
-    expect(months.map((month) => month.rowIndex)).toEqual([undefined, undefined]);
-    expect(workspace.boundRowsOf(workspace.positionOfRecord(frame.id)!)).toBeUndefined();
+    expect(months.map((month) => month.rowIndex)).toEqual([
+      undefined,
+      undefined,
+    ]);
+    expect(
+      workspace.boundRowsOf(workspace.positionOfRecord(frame.id)!),
+    ).toBeUndefined();
   });
 
   it("a week row with no day shown (weeksInMonth past the month) is its tds' padding only — the DOM's height", async () => {
