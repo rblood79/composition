@@ -385,14 +385,18 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
       workspace.execute(
         insertNodes({
           parent: { kind: "node", id: BODY },
-          entries: [node("calendar", "lib:definition:origin-component-calendar")],
+          entries: [
+            node("calendar", "lib:definition:origin-component-calendar"),
+          ],
           rootIds: [id("calendar")],
           newId: workspace.newId,
         }),
       );
       const root = workspace.root;
       const recordOf = (type: string) =>
-        [...root.domInputs.values()].find((record) => root.typeOf(record) === type)!;
+        [...root.domInputs.values()].find(
+          (record) => root.typeOf(record) === type,
+        )!;
       if (owned) {
         const frame = [...root.domInputs.values()].find(
           (record) =>
@@ -404,7 +408,11 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
           insertNodes({
             parent:
               at.kind === "descendant"
-                ? { kind: "descendant", ownerId: at.ownerId, address: at.address }
+                ? {
+                    kind: "descendant",
+                    ownerId: at.ownerId,
+                    address: at.address,
+                  }
                 : { kind: "node", id: at.id },
             entries: [node("note", "lib:definition:text")],
             rootIds: [id("note")],
@@ -412,16 +420,34 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
           }),
         );
       }
-      const target = workspace.positionOfRecord(recordOf("CalendarHeader").id)!.target;
+      const target = workspace.positionOfRecord(
+        recordOf("CalendarHeader").id,
+      )!.target;
       expect(target.kind).toBe(owned ? "node" : "descendant");
-      expect(catalogSlotPosition(workspace.runtime.graph, target)).toBe(undefined);
+      expect(catalogSlotPosition(workspace.runtime.graph, target)).toBe(
+        undefined,
+      );
       const section = render(
         <I18nProvider initialLocale="en-US">
           <CatalogWorkspaceProvider workspace={workspace}>
-            <CatalogSlotSection target={target} />
+            <CatalogSlotSection target={target} type="CalendarHeader" />
           </CatalogWorkspaceProvider>
         </I18nProvider>,
       );
+      // Another part with no slot (the month frame) takes content from the palette: no list
+      // computed per selection (ADR-246 select counts).
+      const frame = render(
+        <I18nProvider initialLocale="en-US">
+          <CatalogWorkspaceProvider workspace={workspace}>
+            <CatalogSlotSection
+              target={workspace.positionOfRecord(recordOf("frame").id)!.target}
+              type="frame"
+            />
+          </CatalogWorkspaceProvider>
+        </I18nProvider>,
+      );
+      expect(frame.container.textContent).toBe("");
+      frame.unmount();
       const select = within(section.container).getByRole("button", {
         name: /Add content/,
       });
@@ -429,7 +455,9 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         fireEvent.click(select);
       });
       // The header's own parts lead the list (not after the 70 general choices).
-      const listed = screen.getAllByRole("option").map((option) => option.textContent);
+      const listed = screen
+        .getAllByRole("option")
+        .map((option) => option.textContent);
       expect(listed.slice(1, 4)).toEqual([
         "CalendarHeading",
         "CalendarMonthPicker",

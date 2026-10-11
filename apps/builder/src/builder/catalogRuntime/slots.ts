@@ -265,6 +265,16 @@ const CALENDAR_HEADER_PARTS = [
   "CalendarYearPicker",
 ] as const;
 
+/**
+ * ADR-256 Phase 9 — the parts with no slot whose own parts the palette doesn't offer (a calendar
+ * header's heading · month · year pickers): the slot section lists what goes in. Any other part
+ * with no slot takes content from the palette — the list is not computed per selection (ADR-246
+ * select counts).
+ */
+export const CATALOG_PART_INSERT_HOSTS: ReadonlySet<string> = new Set([
+  "CalendarHeader",
+]);
+
 export function catalogSlotInsertOptions(
   graph: CatalogSlotReader,
   target: EditTarget,
@@ -306,7 +316,11 @@ export function catalogSlotInsertOptions(
     for (const item of catalogBuiltinOrigins(library)) {
       if (origins.has(item.id)) continue;
       origins.add(item.id);
-      candidates.push({ definitionId: item.id, label: item.name, type: item.name });
+      candidates.push({
+        definitionId: item.id,
+        label: item.name,
+        type: item.name,
+      });
     }
     // The palette's primitives (Text · Icon · Image · Separator · Frame …): no origin of their own.
     for (const item of getPaletteItems()) {

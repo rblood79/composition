@@ -201,6 +201,7 @@ export function CatalogPropertiesBody({
           <CatalogSlotSection
             key={`slot:${targetKey(first.target)}`}
             target={first.target}
+            type={contract.type}
           />
         )}
         <CatalogItemInsertSection

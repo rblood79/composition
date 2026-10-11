@@ -11,6 +11,7 @@ import { removeTargets } from "../../../../../../../packages/shared/src/catalog/
 import { catalogCreationProps } from "../../../catalogRuntime/paletteInsert";
 import { useCatalogWorkspace } from "../../../catalogRuntime/react";
 import {
+  CATALOG_PART_INSERT_HOSTS,
   catalogSlotCommands,
   catalogSlotDeclaration,
   catalogSlotInsertOptions,
@@ -34,8 +35,11 @@ const DEFAULT_SLOT_NAME = "content";
  */
 export const CatalogSlotSection = memo(function CatalogSlotSection({
   target,
+  type,
 }: {
   target: EditTarget;
+  /** The selected part's type (the panel's contract) — no graph read per selection. */
+  type?: string;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
@@ -62,10 +66,10 @@ export const CatalogSlotSection = memo(function CatalogSlotSection({
       };
     });
     // ADR-256 Decision 4: the insert list is the position's children kind, checked like the insert —
-    // a slot declaration only names the position, so a part with no slot (a Calendar's header, an
-    // instance's inner part or an owned node) has the list too.
+    // a slot declaration only names the position, so a part with no slot whose parts the palette
+    // doesn't offer (a Calendar's header) has the list too.
     const options =
-      position || target.kind === "descendant" || target.kind === "node"
+      position || (type !== undefined && CATALOG_PART_INSERT_HOSTS.has(type))
         ? catalogSlotInsertOptions(graph, target)
         : [];
     return JSON.stringify({ declaration, position, filled, options });
