@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
+import {
+  catalogColorWheelDiameter,
+  catalogColorWheelSizeOfBox,
+} from "../../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { replayFillEdit } from "./fillEdit";
 import {
   setFields,
@@ -217,6 +221,34 @@ export function catalogColumnStyleValue(
   return catalogColumnSizeFits(value, staticOnly) ? value : null;
 }
 
+/**
+ * ADR-258 후속: a ColorWheel's box is its S2 `size` (S2 sets the wheel's width/height from it over
+ * any style) — its Styles width / height edit that prop. "" · "auto" → none (the default
+ * diameter), "240" · "240px" → 240; anything else (%, fit-content …) → null (refused).
+ */
+export function catalogColorWheelStyleValue(
+  text: string,
+): number | undefined | null {
+  const trimmed = text.trim();
+  if (trimmed === "" || trimmed === "auto") return undefined;
+  const px = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(trimmed);
+  return px
+    ? (catalogColorWheelSizeOfBox(Number(px[1]), undefined) ?? null)
+    : null;
+}
+
+/** ADR-258 후속: a ColorWheel's Styles keys that are its `size`. */
+const COLOR_WHEEL_STYLE_PROPS: ReadonlySet<string> = new Set([
+  "width",
+  "height",
+]);
+
+/** A ColorWheel shows its diameter as its width and height (the box both consumers draw). */
+const colorWheelStyle = (props: Record<string, unknown>) => {
+  const diameter = `${catalogColorWheelDiameter(props.size)}px`;
+  return { width: diameter, height: diameter };
+};
+
 function propsOf(workspace: CatalogWorkspace, target: EditTarget) {
   try {
     const contract = catalogEditContract(
@@ -360,6 +392,35 @@ export function createCatalogStylesHost(
         }
         fields = others;
       }
+      // ADR-258 후속: a ColorWheel's Styles width · height is its S2 `size` (the diameter).
+      if (
+        items.every(
+          (item) => propsOf(workspace, item.target).type === "ColorWheel",
+        )
+      ) {
+        const others: Record<string, string> = {};
+        const box: { width?: number; height?: number } = {};
+        let edited = false;
+        for (const [key, text] of Object.entries(fields)) {
+          if (!COLOR_WHEEL_STYLE_PROPS.has(key)) {
+            others[key] = text;
+            continue;
+          }
+          const value = catalogColorWheelStyleValue(text);
+          if (value === null) throw new CatalogStyleValueError(key, text);
+          box[key as "width" | "height"] = value;
+          edited = true;
+        }
+        if (edited) {
+          const command = catalogSemanticPatchCommand(
+            targets,
+            { size: catalogColorWheelSizeOfBox(box.width, box.height) },
+            (key) => workspace.readModel.propSource(targets[0]!, key).value,
+          );
+          if (command) commands.push(command);
+        }
+        fields = others;
+      }
       if (Object.keys(fields).length) {
         const breakpoint = workspace.session.getSnapshot().breakpoint;
         commands.push(
@@ -448,6 +509,7 @@ export function createCatalogStylesHost(
               }),
             )
           : {}),
+        ...(owned.type === "ColorWheel" ? colorWheelStyle(owned.props) : {}),
       },
       effective: effectiveOf(workspace, first.identity),
     };
@@ -503,6 +565,9 @@ export function createCatalogStylesHost(
                   ...view(master),
                   ...view(own),
                   ...(own ? catalogPlacementStyle(own.placement) : {}),
+                  ...(contract.type === "ColorWheel"
+                    ? colorWheelStyle(props)
+                    : {}),
                 }
               : undefined,
           effective,
@@ -659,6 +724,33 @@ export function createCatalogStylesHost(
       run(() => {
         const items = selection();
         if (!items.length || items[0].identity !== selectedId) return undefined;
+        // ADR-258 후속: a ColorWheel's width · height is its `size` — a length or a reset writes
+        // it; Fill has no meaning for the diameter square (refused, as S2 sizes it from `size`).
+        if (
+          items.every(
+            (item) => propsOf(workspace, item.target).type === "ColorWheel",
+          )
+        ) {
+          const value =
+            edit.mode === "reset"
+              ? undefined
+              : edit.mode === "css"
+                ? catalogColorWheelStyleValue(edit.value ?? "")
+                : null;
+          if (value === null)
+            throw new CatalogStyleValueError(
+              edit.axis,
+              edit.value ?? edit.mode,
+            );
+          const targets = items.map((item) => item.target);
+          return (
+            catalogSemanticPatchCommand(
+              targets,
+              { size: value },
+              (key) => workspace.readModel.propSource(targets[0]!, key).value,
+            ) ?? undefined
+          );
+        }
         return catalogSizingCommand({
           targets: items.map((item) => item.target),
           own: (target) => workspace.readModel.ownFields(target),

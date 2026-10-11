@@ -945,7 +945,8 @@ function styleOf(
     glyphBindings.has(node.bindingId ?? "") && node.children.length === 0
       ? catalogGlyphSize(node)
       : undefined;
-  // A ColorWheel is its diameter square (S2 `size`; the DOM wheel sizes itself from the radii).
+  // A ColorWheel is its diameter square (S2 `size`; the DOM wheel sizes itself from the radii) —
+  // whatever box sizing it has (S2 writes width/height from `size` over the style).
   const wheel =
     node.bindingId === "colorwheel"
       ? catalogColorWheelDiameter(node.props.size)
@@ -1108,8 +1109,10 @@ function styleOf(
           contentMinWidth: wheel,
           contentMaxWidth: wheel,
           contentHeight: wheel,
-          ...(box.width === undefined ? { width: `${wheel}px` } : {}),
-          ...(box.height === undefined ? { height: `${wheel}px` } : {}),
+          // S2 sets the wheel's width/height from `size` over any style (ColorWheel.tsx) — a box
+          // sizing never parts the box from its track (ADR-258 후속).
+          width: `${wheel}px`,
+          height: `${wheel}px`,
         }
       : {}),
     ...(swatchSquare !== undefined ? { width: `${swatchSquare}px` } : {}),

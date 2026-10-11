@@ -18,6 +18,7 @@ import {
 } from "../../../../../packages/shared/src/catalog/commands/compose";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
+import { catalogColorWheelSizeOfBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   BreakpointName,
@@ -845,11 +846,16 @@ export class CatalogCanvasGestures {
     }
     const { width, height, left, top } = gesture.request;
     const start = gesture.position;
+    // A ColorWheel previews its diameter square (the release writes `size` — `commandOf`).
+    const wheel = this.colorWheelSizeOf(gesture);
     this.host.reflow(this.reflowed, {
-      sizing: {
-        ...(width !== undefined ? { width } : {}),
-        ...(height !== undefined ? { height } : {}),
-      },
+      sizing:
+        wheel !== undefined
+          ? { width: wheel, height: wheel }
+          : {
+              ...(width !== undefined ? { width } : {}),
+              ...(height !== undefined ? { height } : {}),
+            },
       ...(start && (left !== undefined || top !== undefined)
         ? {
             placement: {
@@ -947,19 +953,29 @@ export class CatalogCanvasGestures {
     if (gesture.kind === "resize") {
       const { width, height, left, top } = gesture.request;
       if (width === undefined && height === undefined) return undefined;
-      const size = setFields({
-        targets: [gesture.item.target],
-        breakpoint,
-        sizing: {
-          ...(width !== undefined
-            ? { width: { kind: "set", value: width } }
-            : {}),
-          ...(height !== undefined
-            ? { height: { kind: "set", value: height } }
-            : {}),
-        },
-        label: "Resize",
-      });
+      // ADR-258 후속: a ColorWheel is its S2 `size` square (S2 sizes the wheel from it over any
+      // style) — a handle drag edits the diameter, so the track and thumb follow the box.
+      const wheel = this.colorWheelSizeOf(gesture);
+      const size =
+        wheel !== undefined
+          ? setFields({
+              targets: [gesture.item.target],
+              props: { size: { kind: "set", value: wheel } },
+              label: "Resize",
+            })
+          : setFields({
+              targets: [gesture.item.target],
+              breakpoint,
+              sizing: {
+                ...(width !== undefined
+                  ? { width: { kind: "set", value: width } }
+                  : {}),
+                ...(height !== undefined
+                  ? { height: { kind: "set", value: height } }
+                  : {}),
+              },
+              label: "Resize",
+            });
       const start = gesture.position;
       if (!start || (left === undefined && top === undefined)) return size;
       // A left/top handle of an absolutely placed node also moves it (the opposite edge stays).
@@ -1141,6 +1157,17 @@ export class CatalogCanvasGestures {
     if (!commands.length) return undefined;
     const graph = this.host.graph as CatalogGraph;
     return () => composeCommands(graph, "Duplicate", commands);
+  }
+
+  /** A ColorWheel resize's diameter (its S2 `size`); undefined for any other record. */
+  private colorWheelSizeOf(
+    gesture: Extract<Gesture, { kind: "resize" }>,
+  ): number | undefined {
+    if (this.typeOf(gesture.item.identity) !== "ColorWheel") return undefined;
+    return catalogColorWheelSizeOfBox(
+      gesture.request.width,
+      gesture.request.height,
+    );
   }
 
   /** A record's definition type name (the nesting rules' vocabulary). */

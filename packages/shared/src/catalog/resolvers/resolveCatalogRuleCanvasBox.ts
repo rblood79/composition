@@ -318,3 +318,16 @@ export function catalogColorWheelDiameter(size: unknown): number {
   // content-fit now — the diameter is this one prop's).
   return 180;
 }
+
+/**
+ * A resize of a ColorWheel's box (Styles width / height · a Canvas handle) as its S2 `size`: the
+ * wheel is its diameter square (S2 sets width/height from `size` over any style), so the box
+ * edit is the diameter — the larger side when both change. Undefined without a positive length.
+ */
+export function catalogColorWheelSizeOfBox(
+  width: number | undefined,
+  height: number | undefined,
+): number | undefined {
+  const side = Math.max(width ?? 0, height ?? 0);
+  return Number.isFinite(side) && side > 0 ? Math.round(side) : undefined;
+}

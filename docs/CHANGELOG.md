@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ColorWheel 크기 조절 — 상자와 고리가 같이] - 2026-10-12
+
+### Fixed
+
+- **ColorWheel 의 width · height 를 바꿔도 고리 (ColorWheelTrack) 가 그대로였던 결함** (ADR-258 후속): 지름은 S2 `size` 하나에서 나오는데 Styles 의 width · height 와 Canvas 크기 조절 핸들은 상자 크기만 바꿨다. 이제 그 편집이 `size` 를 쓴다 — 상자 · 고리 · thumb 반지름이 Canvas 와 Preview 에서 같이 바뀐다 (두 변이 다르면 큰 쪽, 비우면 기본 지름, Fill 은 거부). S2 처럼 상자는 늘 지름의 정사각형이라, 전에 넣어 둔 상자 크기는 쓰지 않는다. Styles 의 width · height 칸은 지름을 보여 준다 (ADR-257 Column 폭과 같은 길).
+  - 시험: `adr258ColorWheelResize.test.tsx` 3 (Styles · Size 섹션 · Canvas 핸들 · 옛 상자 크기), 원복 RED 4. live — 팔레트로 넣은 ColorWheel 의 핸들 드래그 → 240 · Styles width 300 · undo, Canvas · Preview 상자와 고리 같음.
+
 ## [ADR-258 Implemented — Color 조작기 팔레트 · live 검증] - 2026-10-12
 
 ### Added
