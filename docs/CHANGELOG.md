@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 · React Aria patch 업데이트] - 2026-10-12
+
+### Changed
+
+- `@react-spectrum/s2` 1.8.1, React Aria 3.53.1, React Aria Components 1.22.1로 갱신했다. ColorArea focus 접근성 patch를 3.53.1에 이식했고, RAC slot provider·state key 실행 표는 내용 변화 없이 1.22.1 버전으로 다시 만들었다.
+- 검증: shared 1,580 · Builder 5,441 테스트, 전체 type-check, production build 통과. 실제 Builder의 ColorArea/ColorSlider/ColorWheel 팔레트 추가·Canvas/Preview·끌기·편집·Undo/Redo·새로고침·다크 테마 17/17, page error 0.
+
 ## [Builder 호환 의존성 · React/RAC · 시각 라이브러리 업데이트] - 2026-10-12
 
 ### Changed
