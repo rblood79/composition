@@ -28,6 +28,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `packages/shared/src/catalog/runtime/calendarModel.ts` (`catalogCalendarYearFirst` · `catalogCalendarHeaderOrder`) · `presence.ts` · `compositionRoot.ts` `childOrder` · `domBinding.tsx` `renderNode`
 - 검증: `adr256CalendarHeaderMode.test.tsx` 6 (Calendar · RangeCalendar × instance · 문서 노드, 패널 필드, locale 순서 Canvas · DOM — 파생값을 끄면 실패하는 것 확인) · live headed Chrome 7/7 (스위치 클릭 · Month Format Long · Visible Years 5 → Preview 연도 5개 · 끄기 · undo 한 단계 · 오류 0) · live locale 5/5 (ko: Canvas · Preview 「2026년 · 10월」, en-US: 「Oct · 2026」).
 
+## [ADR-256 Phase 11 — 제한 표 삭제 · G5 예제 결함 수리] - 2026-10-12
+
+### Breaking Changes
+
+- **library contract 39**: ListBox · GridList section 원본의 항목이 고정 `id` (`item-1` · `item-2`) 를 갖지 않는다. contract 38 문서는 거부된다 (전환 없음).
+
+### Changed
+
+- **미전환 family 제한 표 삭제** (ADR-256 Phase 11): 마지막 5행을 지웠다. ColorSwatchPicker · TableView 는 RAC collection (항목만 받음), Pagination · Toast · ColorPicker 는 자유 내용을 받는다. Toast 안 Toast 는 계속 막는다. 위치: `packages/shared/src/catalog/nesting/nestingRules.ts` · `packages/shared/src/domain/componentTraits.ts`
+- **엔진 — `position: static` 부모의 absolute 자식** (ADR-164 재개): 부모가 `static` 을 명시하면 가장 가까운 positioned 조상이 containing block 이다 (CSS 2 §10.1). catalog 는 positioned 부품 상자 (SliderTrack 등) 안에서 부품을 감싼 layout frame 에만 `static` 을 싣는다. 위치 미지정 부모 (노드 `placement`) 는 종전대로 부모 기준. 위치: `packages/engine/src/tree.rs` (`place_static_descendant_absolutes`) · `packages/shared/src/catalog/runtime/presence.ts` (`catalogStaticPartFrame`)
+
+### Fixed
+
+- **Tabs 「+」 로 Tab 을 넣으면 모든 TabPanel 이 사라짐** (G5 예제 8):
+  - **Why**: 짝짓기가 키 있는 panel 이 하나라도 있으면 순서 짝을 통째로 껐는데, 「+」 는 새 짝에만 키를 준다.
+  - 수정: 키 있는 panel 은 키로, 키 없는 panel 은 남은 Tab 과 순서로 짝짓는다. 위치: `packages/shared/src/catalog/runtime/presence.ts` (`catalogTabsSelection`)
+- **같은 목록의 section 들이 Preview 에서 마지막 section 의 항목을 보여 줌** (G5 예제 1):
+  - **Why**: section 원본 항목의 고정 `id` 가 section 마다 같아 RAC 키가 겹쳤다.
+  - 수정: 원본에서 고정 `id` 를 지웠다 (키 = 노드 id). 위치: `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts`
+- **Calendar 날짜 칸 · 요일 칸 · DateSegment 에 넣은 내용이 Preview 에 안 나옴** (G5 예제 15):
+  - **Why**: grid 가 자식 element 의 type 으로 template 을 찾았는데 자식은 모두 `CatalogDomNode` 로 감싸져 있어 늘 못 찾고 RAC 기본 칸을 그렸다. 닿고 나니 두 가지가 더 드러났다 — 칸에 상자 기본값 `display: flex` 가 inline 으로 실려 요일 `th` 가 table cell 이 아니었고 (grid 높이 380 / Canvas 200), 칸 안 `{formattedDate}` 바인딩이 값 키 표에 없어 글자 그대로 나왔다.
+  - 수정: template 을 노드의 binding 으로 찾고, 반복 칸은 작성한 display 만 싣고, CalendarCell 의 `formattedDate` 를 값 키에 넣었다. 위치: `packages/shared/src/catalog/runtime/domBinding.tsx` (`repeatTemplatePart` · `REPEAT_TEMPLATE_BINDINGS`) · `valueBindings.ts`
+- **SliderFill 을 frame 으로 감싸면 Canvas 에서 채움이 0×0** (G5 예제 12):
+  - **Why**: 엔진이 containing block 을 직계 부모 (높이 0 인 frame) 로 고정했다. 또 Canvas 만 fill 에 `top: 0` 을 줘서 (RAC 는 `top` 없음 — static 위치) frame 안에서 4px 어긋났다.
+  - 수정: 위 엔진 변경 + fill 의 `insetTop` 제거. 위치: `presence.ts` (`catalogSliderFillLayout`)
+- **instance 안 ListBox (Select 의) 에 넣은 Section 에 항목을 넣을 수 없음** (G5 예제 3):
+  - **Why**: 조상 type 을 따라갈 때 fillSlot 에 놓인 노드는 owner instance 로 바로 건너뛰어 template 조상 (ListBox · Popover) 이 빠졌다.
+  - 수정: fillSlot 위치의 template 경로를 거쳐 올라간다. 위치: `packages/shared/src/catalog/commands/context.ts` (`nodeAncestorTypes`)
+- **Dialog 원본의 Close 버튼 · footer 를 숨길 수 없음** (G5 예제 9):
+  - **Why**: template 위치를 숨길 때 안에 Button 이 있으면 DialogTrigger 가 trigger 를 여전히 갖는지 보지 않고 거부했다.
+  - 수정: 숨긴 뒤 owner 가 같은 종류 부품을 아직 보이는지 본다. overlay · 목록 부품 (Modal · Popover · Dialog · Tooltip · ListBox) 안의 Button 은 trigger 로 세지 않는다. 위치: `packages/shared/src/catalog/commands/structure.ts` (`assertTemplatePartsKept` · `showsPart` · `partSearchStop`)
+- **instance 의 NumberField Group 등 `{key}` 바인딩이 있는 template 위치에 자식을 넣을 수 없음** (G5 예제 7):
+  - **Why**: 처음 자식을 넣으면 그 위치의 template 자식이 문서 노드로 복사되는데, 복사본이 `{placeholder}` 같은 바인딩을 따라갈 수 없어 `POSITION_HAS_TEMPLATE_BINDING` 으로 막아 두었다.
+  - 수정 (사용자 결정 2026-10-12 「A — 값 고정」): Detach 처럼 복사 순간 instance 의 현재 값을 복사본에 넣는다. 이후 instance 의 그 prop 을 바꿔도 복사본은 따라오지 않는다 (예: Group 에 자식을 넣은 뒤 NumberField 의 placeholder 를 바꿔도 Input 은 이전 값). 위치: `packages/shared/src/catalog/commands/materialize.ts` (`instanceBindings` — Detach 도 같은 함수)
+
+### Tests
+
+- `phase4eItemInsert` (Tabs 짝 · section 키 · Select 안 Section · NumberField Group 값 고정) · `structure` (picker 값 고정) · `adr256CalendarNodeTree` (반복 칸 · display · formattedDate · DateSegment) · `adr256RequiredParts` (Dialog) · `adr256Phase7Review` (frame 안 fill) · Rust `absolute_child_of_static_parent_*` 3. 원복 RED 9/9. live: fix-live (5 · 6 · 7 — 7 은 다시 열어 Preview input placeholder 「Amount」 유지 · Group 안 Text) · G5 예제 15개 재실행 (예제 1 · 15 구조 통과, 12 Canvas = Preview) · 결함 5 · 6 직접 실행 (`apps/builder/scripts/adr256-g5/fix-live.mjs`).
+
 ## [Calendar Month · Year picker 넣기 · prop] - 2026-10-11
 
 ### Added

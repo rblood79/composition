@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  canNest,
-  catalogChildKind,
-  UNCONVERTED_FAMILY_LIMITS,
-} from "../nestingRules";
+import { canNest, catalogChildKind } from "../nestingRules";
 
 // ADR-256 Decision 4 — 부품의 children 종류 하나를 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다.
 describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
@@ -29,10 +25,18 @@ describe("catalogChildKind — 부품이 받는 자식의 종류", () => {
       expect(catalogChildKind(type), type).toEqual({ kind: "leaf" });
   });
 
-  it("미전환 family 는 지금 renderer 가 그리는 목록이 이긴다", () => {
-    expect(catalogChildKind("Toast")).toEqual({
+  it("전환된 family 는 RAC 의 종류다 (ADR-256 Phase 11 — 미전환 제한 표 삭제)", () => {
+    // Phase 11: Preview 가 자식을 순서대로 다 그리는 Toast · Pagination · ColorPicker 는 자유 내용,
+    // ColorSwatchPicker · TableView 는 RAC collection 의 항목 목록 (componentTraits).
+    for (const type of ["Toast", "Pagination", "ColorPicker"])
+      expect(catalogChildKind(type), type).toEqual({ kind: "free" });
+    expect(catalogChildKind("ColorSwatchPicker")).toEqual({
       kind: "items",
-      items: ["Heading", "Description"],
+      items: ["ColorSwatchPickerItem"],
+    });
+    expect(catalogChildKind("TableView")).toEqual({
+      kind: "items",
+      items: ["TableHeader", "TableBody"],
     });
     // 전환된 family (ADR-256 Phase 2b · 6c · 6d · 6e) 는 RAC 의 종류 — field 는 자유 내용.
     expect(catalogChildKind("TextField")).toEqual({ kind: "free" });
@@ -72,9 +76,13 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("Popover", "Checkbox")).toBe(true);
   });
 
-  it("미전환 family: wrappers 행은 레이아웃 래퍼를 받고, 아닌 행은 받지 않는다", () => {
-    expect(canNest("Toast", "frame")).toBe(false);
-    expect(canNest("Toast", "Icon")).toBe(false);
+  it("자유 내용 · 항목 목록 판정 (ADR-256 Phase 11 — 제한 표 없이)", () => {
+    expect(canNest("Toast", "frame")).toBe(true);
+    expect(canNest("Toast", "Icon")).toBe(true);
+    expect(canNest("Pagination", "Text")).toBe(true);
+    expect(canNest("ColorPicker", "Text")).toBe(true);
+    expect(canNest("ColorSwatchPicker", "Text")).toBe(false);
+    expect(canNest("TableView", "Text")).toBe(false);
     // 전환된 field (Phase 2b · 6c · 6d · 6e) 는 자유 자식을 받는다 (레퍼런스: field 안 아이콘).
     expect(canNest("Select", "frame")).toBe(true);
     expect(canNest("ComboBox", "frame")).toBe(true);
@@ -86,12 +94,5 @@ describe("중첩 판정 — children 종류를 읽는다", () => {
     expect(canNest("Tabs", "frame")).toBe(true);
     expect(canNest("Tabs", "Button")).toBe(true);
     expect(canNest("TabPanels", "frame", ["TabPanels", "Tabs"])).toBe(true);
-  });
-
-  it("제한 표의 모든 행은 그 부품의 지금 자식을 허용한다 (표 자체가 막지 않는다)", () => {
-    for (const [type, limit] of Object.entries(UNCONVERTED_FAMILY_LIMITS)) {
-      expect(limit.children.length, type).toBeGreaterThan(0);
-      expect(catalogChildKind(type).kind, type).toBe("items");
-    }
   });
 });

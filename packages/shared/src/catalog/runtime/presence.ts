@@ -219,6 +219,29 @@ export function catalogPartParent(
   return parent;
 }
 
+/**
+ * ADR-164 재개 (ADR-256 G5 example 12): a layout frame the author put around a part inside a
+ * positioned part box (a SliderTrack's `relative` — the fill · thumbs are placed in it) is a static
+ * box, as its DOM `div`: the parts it holds are placed in the box around it (the engine's nearest
+ * positioned ancestor, `position: static`). A frame with an authored position, or a placed one,
+ * is positioned itself; a frame outside a positioned part keeps the parent-box placement (an
+ * authored `placement` is its parent's coordinates).
+ */
+export function catalogStaticPartFrame(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): boolean {
+  if (!PART_FRAME_TYPES.has(typeOf(node))) return false;
+  if (node.placement || node.layout.position !== undefined) return false;
+  const owner = catalogPartParent(node, get, typeOf);
+  return (
+    !!owner &&
+    (owner.layout.position === "relative" ||
+      owner.layout.position === "absolute")
+  );
+}
+
 /** A node's children with the layout frames among them opened (`PART_FRAME_TYPES`). */
 function partChildrenOf(
   node: CatalogConsumerNode,
@@ -272,17 +295,24 @@ export function catalogTabsSelection(
         (child) => typeOf(child) === "TabPanel",
       )
     : [];
-  const keyed = panels.some((panel) => panel.props.itemId !== undefined);
-  const pairs = tabs.map((tab, index) => {
+  // A keyed panel pairs with its Tab; the panels without a key pair in order with the Tabs no keyed
+  // panel names (G5 example 8 — "+" keys only the pair it adds, the template's pairs stay by order).
+  const keyed = tabs.map((tab) => {
     const key = resolveStaticItemKey(
       tab.props as Record<string, unknown>,
       tab.id,
     );
-    const panel =
-      panels.find((candidate) => candidate.props.itemId === key) ??
-      (keyed ? undefined : panels[index]);
-    return { key, tab, panel };
+    return {
+      key,
+      tab,
+      panel: panels.find((candidate) => candidate.props.itemId === key),
+    };
   });
+  const unkeyed = panels.filter((panel) => panel.props.itemId === undefined);
+  let next = 0;
+  const pairs = keyed.map((pair) =>
+    pair.panel ? pair : { ...pair, panel: unkeyed[next++] },
+  );
   const explicit = tabsNode.props.defaultSelectedKey;
   const firstEnabled =
     pairs.find((pair) => pair.tab.props.isDisabled !== true) ?? pairs[0];
@@ -997,10 +1027,11 @@ export function catalogSliderFillLayout(
   const offset = Number.isFinite(raw) ? Math.min(Math.max(raw, min), max) : min;
   const start = Math.min(ratio(offset), ratio(value));
   const end = Math.max(ratio(offset), ratio(value));
+  // (RAC `SliderFill` sets no `top` — the fill keeps its static position, the top of the box it
+  // sits in; G5 example 12: in a frame the track's top is not the frame's.)
   return {
     position: "absolute",
     insetLeft: `${start * 100}%`,
-    insetTop: "0px",
     width: `${(end - start) * 100}%`,
     height: "100%",
   };

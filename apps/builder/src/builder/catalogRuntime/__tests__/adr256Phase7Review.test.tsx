@@ -216,6 +216,25 @@ describe("ADR-256 Phase 7 판독 — 값 바인딩 노드 트리 편집", () => 
     );
   });
 
+  it("G5 example 12: a SliderFill in a plain frame (no position — a static DOM div) is placed in the track (the nearest positioned box — ADR-164 reopened)", async () => {
+    const { root, part, frame, edit } = await open(
+      "slider",
+      { label: "Volume", value: 30 },
+      { detach: true },
+    );
+    frame("SliderFill");
+    const box = (name: string) =>
+      root.getGeometry([part(name).id]).get(part(name).id)!;
+    const track = box("SliderTrack");
+    expect(track.width).toBeGreaterThan(0);
+    expect(box("SliderFill").width).toBeCloseTo(track.width * 0.3, 1);
+    expect(box("SliderFill").height).toBeCloseTo(track.height, 1);
+    // (RAC sets no `top`: the fill stands at its static position — the frame's top.)
+    expect(box("SliderFill").y).toBe(0);
+    edit(OWNER, { value: 70 });
+    expect(box("SliderFill").width).toBeCloseTo(track.width * 0.7, 1);
+  });
+
   it("M1: a SliderTrack in a frame keeps its fill and thumb on the Slider's value", async () => {
     const { root, part, frame, edit } = await open(
       "slider",

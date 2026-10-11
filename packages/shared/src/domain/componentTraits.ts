@@ -15,9 +15,8 @@
  *
  * ADR-256 Decision 4 — 부품의 children 종류: `children` 열이 있는 행 = **항목 목록** (RAC collection
  * — 항목이 아닌 자식은 RAC 가 버린다), 없는 행 = **자유 내용**. 두 값은 설치 RAC 를 마운트해 확인했다
- * (G0 ② — `apps/builder/scripts/adr256-g0-rac-inventory.mjs` 의 `childKind`). 우리 Preview renderer 가
- * 아직 노드 트리대로 그리지 못하는 부품의 제한은 이 표가 아니라 `UNCONVERTED_FAMILY_LIMITS`
- * (nestingRules) 에 둔다 — family 가 전환되면 그 행을 지운다.
+ * (G0 ② — `apps/builder/scripts/adr256-g0-rac-inventory.mjs` 의 `childKind`). 옛 미전환 family 제한 표
+ * (`UNCONVERTED_FAMILY_LIMITS`) 는 모든 family 가 노드 트리로 그려져 ADR-256 Phase 11 에서 삭제했다.
  */
 
 /**
@@ -298,6 +297,11 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   TabPanels: { owners: ["Tabs"] },
   TabPanel: { owners: ["Tabs"] },
   Table: { container: "collection", children: ["TableHeader", "TableBody"] },
+  // ADR-256 Phase 11: S2 TableView is a RAC Table in a ResizableTableContainer — the same items.
+  TableView: {
+    container: "collection",
+    children: ["TableHeader", "TableBody"],
+  },
   TableHeader: {
     container: "collection",
     families: ["tableItemHost"],

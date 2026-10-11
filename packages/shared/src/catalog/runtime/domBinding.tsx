@@ -200,6 +200,29 @@ function CatalogCalendarHeading({
   } as RAC.CalendarHeadingProps);
 }
 
+/** Bindings of the repeat templates RAC draws per day · date · segment (Decision 13). */
+const REPEAT_TEMPLATE_BINDINGS: ReadonlySet<string> = new Set([
+  "calendarcell",
+  "calendarheadercell",
+  "datesegment",
+]);
+
+/**
+ * The child element of a repeat template (Decision 13 — a grid's cell · weekday cell, a DateInput's
+ * segment): a child is its node's `CatalogDomNode` element, so it is found by the node's binding
+ * (G5 example 15 — an element-type match never saw it, and RAC drew its plain cells).
+ */
+function repeatTemplatePart(
+  parts: ReactElement[],
+  bindingId: string,
+): ReactElement | undefined {
+  return parts.find((part) => {
+    if (!isValidElement(part) || part.type !== CatalogDomNode) return false;
+    const { root, id } = part.props as CatalogDomNodeProps;
+    return root.domInputs.get(id)?.bindingId === bindingId;
+  });
+}
+
 /**
  * RAC `CalendarGrid` at its month block's offset; its cell node is the template RAC draws per date
  * (Decision 13 — RAC makes the dates; a grid without one draws RAC's plain cell).
@@ -214,12 +237,8 @@ function CatalogCalendarGrid({
   parts: ReactElement[];
 }): ReactElement {
   const offset = useContext(CalendarMonthOffset);
-  const cell = parts.find(
-    (part) => isValidElement(part) && part.type === CatalogCalendarCell,
-  );
-  const weekday = parts.find(
-    (part) => isValidElement(part) && part.type === CatalogCalendarHeaderCell,
-  );
+  const cell = repeatTemplatePart(parts, "calendarcell");
+  const weekday = repeatTemplatePart(parts, "calendarheadercell");
   const cellOf = (date: RAC.CalendarCellProps["date"]) =>
     cell
       ? createElement(CalendarCellDate.Provider, { value: date }, cell)
@@ -1246,9 +1265,7 @@ function fieldDateInputBinding(
   children: ReactElement[] = [],
 ): ReactElement {
   // ADR-256 Phase 9 (Decision 13): its segment node is the template RAC draws per segment.
-  const segment = children.find(
-    (child) => isValidElement(child) && child.type === CatalogDateSegment,
-  );
+  const segment = repeatTemplatePart(children, "datesegment");
   return createElement(
     RAC.DateInput,
     {
@@ -2795,6 +2812,16 @@ function renderNode(
     catalogAuthoredVisual(root, node).color === undefined
   )
     delete bound.color;
+  // The repeat templates RAC draws per day · date · segment (Decision 13) are RAC's `th` · cell ·
+  // segment: their display is the element's (a table cell, the sheet's) unless the document wrote
+  // one — the box default `flex` made every weekday `th` a flex box (G5 example 15: the grid 380
+  // tall, the Canvas's 200).
+  if (
+    bound &&
+    REPEAT_TEMPLATE_BINDINGS.has(node.bindingId ?? "") &&
+    node.authoredLayout?.display === undefined
+  )
+    delete bound.display;
   // A Button's paint is its rule's sheet (`data-variant` · `data-fill-style` …), which also
   // changes it by state (hover · pressed · disabled): the background, border color and text color
   // go inline only when the document wrote them (an origin override, the node's own value) —

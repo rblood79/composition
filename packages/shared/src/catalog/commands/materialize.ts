@@ -522,10 +522,17 @@ export function ensureChildList(
     fill ? fill.instances : parent.address.instances,
     newId,
     // (A composite position's root children take the position's values for their `{key}`
-    // placeholders — its item label — as a detach does.)
-    !fill && parent !== at && at.kind === "descendant"
-      ? positionBindings(draft, at.ownerId, at.address)
-      : undefined,
+    // placeholders — its item label — as a detach does. A position of the instance's own template
+    // takes the instance's current values: the copy keeps them and no longer follows the instance's
+    // props — user decision 2026-10-12 「A」, the NumberField Group's Input `{placeholder}`.)
+    fill
+      ? undefined
+      : parent !== at && at.kind === "descendant"
+        ? positionBindings(draft, at.ownerId, at.address)
+        : parent.address.instances.length === 1 &&
+            parent.address.instances[0] === parent.ownerId
+          ? instanceBindings(draft, parent.ownerId)
+          : undefined,
   );
   const ids = fill
     ? fill.childIds.map((childId) => materializer.node([...fill.path, childId]))
@@ -563,6 +570,54 @@ function withDisplayState(
   return out;
 }
 
+/** An authored value as a binding scalar (a token's value; a placeholder or a list is none). */
+function scalarValue(draft: CommandDraft, value: unknown): Scalar | undefined {
+  if (value === undefined || value === null || Array.isArray(value))
+    return undefined;
+  if (typeof value !== "object")
+    return typeof value === "string" && TEMPLATE_BINDING.test(value)
+      ? undefined
+      : (value as Scalar);
+  const tokenId = (value as { tokenId?: string }).tokenId;
+  const token = tokenId?.startsWith("lib:")
+    ? draft.reader.library.tokens.get(tokenId as `lib:token:${string}`)
+    : tokenId
+      ? draft.reader.getEntry(tokenId)
+      : undefined;
+  return token && "value" in token ? (token.value as Scalar) : undefined;
+}
+
+/**
+ * The values an instance gives its template's `{key}` placeholders (detach's bindings): its own
+ * value, else the composite's default.
+ */
+export function instanceBindings(
+  draft: CommandDraft,
+  instanceId: NodeId,
+): TemplateBindings {
+  const instance = draft.node(instanceId);
+  const id = instance.definitionId as string;
+  const definition = id.startsWith("lib:")
+    ? draft.reader.library.definitions.get(id as `lib:definition:${string}`)
+    : draft.reader.getEntry(id);
+  const accepts =
+    definition && "accepts" in definition ? definition.accepts : {};
+  const defaults =
+    definition && "defaults" in definition
+      ? (definition.defaults as Record<string, unknown>)
+      : {};
+  const bindings: Record<string, Scalar> = {};
+  for (const key of Object.keys(accepts)) {
+    const write = instance.props[key];
+    const value =
+      write?.kind === "set"
+        ? scalarValue(draft, write.value)
+        : scalarValue(draft, defaults[key]);
+    if (value !== undefined) bindings[key] = value;
+  }
+  return bindings;
+}
+
 /**
  * The values a composite template position gives its template's `{key}` placeholders (detach's
  * bindings at a position): the owner's patch there, else the position's own template value, else
@@ -580,21 +635,7 @@ function positionBindings(
     template.definitionId as `lib:definition:${string}`,
   );
   const patch = overrideAt(draft.node(ownerId), address);
-  const scalar = (value: unknown): Scalar | undefined => {
-    if (value === undefined || value === null || Array.isArray(value))
-      return undefined;
-    if (typeof value !== "object")
-      return typeof value === "string" && TEMPLATE_BINDING.test(value)
-        ? undefined
-        : (value as Scalar);
-    const tokenId = (value as { tokenId?: string }).tokenId;
-    const token = tokenId?.startsWith("lib:")
-      ? draft.reader.library.tokens.get(tokenId as `lib:token:${string}`)
-      : tokenId
-        ? draft.reader.getEntry(tokenId)
-        : undefined;
-    return token && "value" in token ? (token.value as Scalar) : undefined;
-  };
+  const scalar = (value: unknown) => scalarValue(draft, value);
   const bindings: Record<string, Scalar> = {};
   for (const key of Object.keys(definition?.accepts ?? {})) {
     const patched =

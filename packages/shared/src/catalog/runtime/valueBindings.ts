@@ -24,6 +24,11 @@ type TypeOf = (node: CatalogConsumerNode) => string;
 const COMPOSITION_VALUE_KEYS: Readonly<Record<string, readonly string[]>> = {
   CalendarMonthPicker: ["formatted"],
   CalendarYearPicker: ["formatted"],
+  // A calendar cell template's day text (RAC `CalendarCell` render props `formattedDate` — the
+  // reference RangeCalendar's `<CalendarCell>{({formattedDate}) => <span>{formattedDate}</span>}`,
+  // G5 example 15). The DOM passes each date's value as the cell's frame; the Canvas grid draws
+  // the days from the calendar model.
+  CalendarCell: ["formattedDate"],
 };
 const valueKeysOf = (type: string): readonly string[] | undefined =>
   RAC_VALUE_KEYS[type] ?? COMPOSITION_VALUE_KEYS[type];

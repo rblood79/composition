@@ -9,8 +9,13 @@ import type {
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import type { CatalogConsumerNode } from "../compositionRoot";
+import { resolveStaticItemKey } from "../../../../../../packages/shared/src/catalog/slotRoles";
+import { catalogTabsSelection } from "../../../../../../packages/shared/src/catalog/runtime/presence";
 import { catalogItemInsertChoices } from "../itemInsert";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
@@ -144,6 +149,132 @@ describe("ADR-248 4e item insert ('+')", () => {
     workspace.dispose();
   });
 
+  it("sections in one ListBox · GridList give every item its own key (G5 example 1)", async () => {
+    for (const [host, section, item] of [
+      ["ListBox", "ListBoxSection", "ListBoxItem"],
+      ["GridList", "GridListSection", "GridListItem"],
+    ] as const) {
+      const workspace = await open(host);
+      // (The section origins — a Header and two items each.)
+      const parent = recordOf(workspace, host).id;
+      for (let index = 0; index < 2; index++) {
+        const node: NodeEntry = {
+          kind: "node",
+          id: workspace.newId("node") as NodeId,
+          definitionId:
+            `lib:definition:origin-component-${host.toLowerCase()}-section` as DefinitionId,
+          children: [],
+          props: {},
+          visual: {},
+          sizing: {},
+          descendantOverrides: [],
+        };
+        workspace.execute(
+          insertNodes({
+            parent: workspace.positionOfRecord(parent)!.target,
+            entries: [node],
+            rootIds: [node.id],
+            newId: workspace.newId,
+          }),
+        );
+      }
+      expect(
+        childTypes(workspace, host).filter((type) => type === section),
+      ).toHaveLength(2);
+      const keys: string[] = [];
+      const visit = (id: string) => {
+        const record = workspace.root.domInputs.get(id)!;
+        if (typeOf(workspace, record) === item)
+          keys.push(
+            resolveStaticItemKey(
+              record.props as Record<string, unknown>,
+              record.id,
+            ),
+          );
+        record.children.forEach(visit);
+      };
+      visit(recordOf(workspace, host).id);
+      expect(keys.length).toBeGreaterThanOrEqual(4);
+      expect(new Set(keys).size).toBe(keys.length);
+      workspace.dispose();
+    }
+  });
+
+  it("a section put in an instance's ListBox (a Select's) takes items (G5 example 3 — its template ancestors count)", async () => {
+    const workspace = await open("Select");
+    const node = (definitionId: string): NodeEntry => ({
+      kind: "node",
+      id: workspace.newId("node") as NodeId,
+      definitionId: definitionId as DefinitionId,
+      children: [],
+      props: {},
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    });
+    const section = node("lib:definition:origin-component-listbox-section");
+    workspace.execute(
+      insertNodes({
+        parent: workspace.positionOfRecord(recordOf(workspace, "ListBox").id)!
+          .target,
+        entries: [section],
+        rootIds: [section.id],
+        newId: workspace.newId,
+      }),
+    );
+    const item = node("lib:definition:origin-component-listbox-item-default");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: section.id },
+        entries: [item],
+        rootIds: [item.id],
+        newId: workspace.newId,
+      }),
+    );
+    expect(childTypes(workspace, "ListBoxSection")).toContain("ListBoxItem");
+    workspace.dispose();
+  });
+
+  it("a NumberField's Group takes a child; its Input keeps the field's placeholder as a value (G5 example 7 — user decision 2026-10-12 「A」)", async () => {
+    const workspace = await open("NumberField");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: HOST }],
+        props: { placeholder: { kind: "set", value: "Amount" } },
+      }),
+    );
+    const text: NodeEntry = {
+      kind: "node",
+      id: workspace.newId("node") as NodeId,
+      definitionId: "lib:definition:text" as DefinitionId,
+      children: [],
+      props: { children: { kind: "set", value: "kg" } },
+      visual: {},
+      sizing: {},
+      descendantOverrides: [],
+    };
+    workspace.execute(
+      insertNodes({
+        parent: workspace.positionOfRecord(recordOf(workspace, "Group").id)!
+          .target,
+        entries: [text],
+        rootIds: [text.id],
+        newId: workspace.newId,
+      }),
+    );
+    expect(childTypes(workspace, "Group")).toContain("Text");
+    const placeholder = () => recordOf(workspace, "Input").props.placeholder;
+    expect(placeholder()).toBe("Amount");
+    workspace.execute(
+      setFields({
+        targets: [{ kind: "node", id: HOST }],
+        props: { placeholder: { kind: "set", value: "Weight" } },
+      }),
+    );
+    expect(placeholder()).toBe("Amount");
+    workspace.dispose();
+  });
+
   it("a TabList adds a Tab with its TabPanel", async () => {
     const workspace = await open("Tabs");
     const tabs = childTypes(workspace, "TabList").length;
@@ -161,6 +292,16 @@ describe("ADR-248 4e item insert ('+')", () => {
       .filter((value) => typeof value === "string");
     expect(texts).toContain(`Tab ${tabs + 1}`);
     expect(texts.some((text) => String(text).includes("{"))).toBe(false);
+    // G5 example 8: the template's pairs (no item keys — paired by order) keep their panels next
+    // to the new keyed pair.
+    const { pairs } = catalogTabsSelection(
+      recordOf(workspace, "Tabs"),
+      (id) => workspace.root.domInputs.get(id),
+      (record) => typeOf(workspace, record),
+    );
+    expect(pairs).toHaveLength(tabs + 1);
+    expect(pairs.every((pair) => pair.panel !== undefined)).toBe(true);
+    expect(new Set(pairs.map((pair) => pair.panel!.id)).size).toBe(tabs + 1);
     workspace.dispose();
   });
 

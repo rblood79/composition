@@ -101,61 +101,9 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
   Record<string, readonly string[]>
 > = componentContractMap("owners");
 
-export interface UnconvertedFamilyLimit {
-  /** 지금 Preview renderer 가 그리는 자식 type. */
-  readonly children: readonly string[];
-  /** 레이아웃 래퍼 (`NESTING_PASSTHROUGH_TYPES`) 도 받는다 — context 로 조립하는 renderer. */
-  readonly wrappers?: true;
-}
-
-/**
- * **미전환 family 의 제한** (ADR-256 Decision 4). RAC 는 이 부품들의 자식을 더 넓게 받지만, 지금
- * Preview renderer 가 자식을 노드 순서대로 그리지 않고 정해진 부품만 props 로 넘기거나 고른다
- * (ADR-256 F5 — `catalog/runtime/delegatedDom.tsx`). 여기 없는 자식은 Preview 에서 사라지고 Canvas 만
- * 그리므로 (비대칭) 막는다. 이 행이 있으면 RAC children 종류보다 이 행이 이긴다 — 노드 구조가
- * 아직 RAC 구조와 달라 (TreeItem 의 Text 는 RAC 에선 TreeItemContent 안) 교집합이 성립하지 않는다.
- * family Phase 가 renderer 를 노드 트리 그리기로 바꾸면 그 family 의 행을 지운다 — 끝에 0 행이 되면
- * 표를 삭제한다 (breakdown §2-3).
- */
-export const UNCONVERTED_FAMILY_LIMITS: Readonly<
-  Record<string, UnconvertedFamilyLimit>
-> = {
-  // field 가족 7종은 노드 트리로 그린다 (ADR-256 Phase 2 — 행 삭제). control wrapper 는 RAC
-  // `Group` 이다 (ADR-256 Phase 6b — 자유 내용, 옛 `SelectTrigger` 행 삭제). Select 도 노드 트리로
-  // 그린다 (ADR-256 Phase 6c — `Popover > ListBox`, 행 삭제). ComboBox 도 같다 (6d, 행 삭제).
-  // DatePicker · DateRangePicker 도 같다 (6e — `Popover > Calendar` / `RangeCalendar`, 행 삭제).
-  // (toggle — Phase 3 (2026-10-08): 노드 트리로 전환 — Checkbox · Switch · Radio · 그룹 · ToggleButtonGroup 행 없음.)
-  // collection — Phase 5 (Tabs · TabPanels 는 노드 트리로 그린다 — ADR-256 Phase 5e-2, 행 삭제)
-  // (TagGroup — Codex Round 20 H1: 노드 트리로 그린다 — Label + TagList > Tag + Description + FieldError + 자유 내용, 행 삭제.)
-  // ADR-256 Phase 5b: the reference's items (each holds its ColorSwatch).
-  ColorSwatchPicker: { children: ["ColorSwatchPickerItem"] },
-  TableView: { children: ["TableHeader", "TableBody"] },
-  // (Tree — ADR-256 Phase 5h: 노드 트리로 그린다 — TreeItem > TreeItemContent (자유 내용) + TreeItem, 행 삭제.)
-  // (range · progress — ADR-256 Phase 7: Slider · Meter · ProgressBar 는 노드 트리로 그린다, 행 삭제.)
-  // (Meter — ADR-256 Phase 7b: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
-  // (ProgressBar — ADR-256 Phase 7a: 노드 트리로 그린다 — Label + 값 글자 + track > fill (자유 내용), 행 삭제.)
-  // overlay · disclosure — Phase 8. (Disclosure — 8c: 레퍼런스 `Heading > Button[trigger]` + `DisclosurePanel`
-  // 노드 트리로 그린다. DisclosureGroup — 8d: 자유 내용 (RAC 가 children 을 그대로 그린다), 행 삭제.
-  // 옛 DisclosureHeader · DisclosureChevron · DisclosureContent type 은 8e 에서 삭제.)
-  // (calendar — ADR-256 Phase 9: 레퍼런스 starter 의 `div.month > header (Button + CalendarHeading +
-  // Button) + CalendarGrid > CalendarCell` 노드 트리로 그린다 — 한 달 블록 반복, 행 삭제.)
-  // S2 · 범위 밖 — Phase 10 (RSP 계약: ButtonGroup `children: ReactElement<ButtonProps>[]` …)
-  // (CardView — ADR-256 Phase 10: RAC GridList of its Cards, a collection — `componentTraits`, 행 삭제.
-  // ButtonGroup · AvatarGroup — Phase 10: Preview 가 자식을 순서대로 다 그린다 (G0 ② 자유 내용 — S2
-  // 는 Button · Avatar 를 크기 · 비활성 context 로 묶는다: `CATALOG_SIZE_PROPAGATION`), 행 삭제.)
-  Pagination: { children: ["Button"] },
-  Toast: { children: ["Heading", "Description"] },
-  ColorPicker: {
-    children: [
-      "ColorArea",
-      "ColorSlider",
-      "ColorWheel",
-      "ColorField",
-      "ColorSwatchPicker",
-      "ColorSwatch",
-    ],
-  },
-};
+// (ADR-256 Phase 11: the unconverted-family limit table (`UNCONVERTED_FAMILY_LIMITS`) is gone — every
+//  family draws its node tree. Its last rows: ColorSwatchPicker · TableView are RAC collections
+//  (`componentTraits` items), Pagination · Toast · ColorPicker draw their children in order.)
 
 /** 부품이 받는 자식의 종류 (ADR-256 Decision 4) — 중첩 판정 · 넣기 목록 · slot 표시가 같이 읽는다. */
 export type CatalogChildKind =
@@ -166,9 +114,6 @@ export type CatalogChildKind =
 export function catalogChildKind(type: string): CatalogChildKind {
   if (PEN_LEAF_TYPES.has(type) || DOM_LEAF_TYPES.has(type))
     return { kind: "leaf" };
-  const limit = UNCONVERTED_FAMILY_LIMITS[type];
-  // 미전환 family 는 지금 renderer 가 그리는 자식이 목록이다 (래퍼 허용 행도 목록은 같다).
-  if (limit) return { kind: "items", items: limit.children };
   const items = RAC_COLLECTION_CHILD_TYPES[type];
   return items ? { kind: "items", items } : { kind: "free" };
 }
@@ -244,6 +189,9 @@ export const NO_SELF_NESTING_TYPES: ReadonlySet<string> = new Set([
   // gone), but a group inside its own kind would split whose size · disabled context its members take.
   "ButtonGroup",
   "AvatarGroup",
+  // ADR-256 Phase 11: a Toast holds free content now (its limit row is gone), but an alert inside an
+  // alert would announce twice — the same rule the limit row gave.
+  "Toast",
 ]);
 
 /** HTML interactive content 또는 labelable control 로 렌더되는 타입. */
@@ -390,27 +338,8 @@ export function resolveNestingViolation(
     };
   }
 
-  // 층 2 — RAC 합성 (0): 미전환 family 는 지금 renderer 가 그리는 자식만 (ADR-256 Decision 4).
-  const limit =
-    parentType !== null && !isOpaque(parentType)
-      ? UNCONVERTED_FAMILY_LIMITS[parentType]
-      : undefined;
-  if (parentType !== null && limit) {
-    const passthrough =
-      limit.wrappers === true && NESTING_PASSTHROUGH_TYPES.has(childType);
-    if (!limit.children.includes(childType) && !passthrough) {
-      return {
-        layer: "rac-composition",
-        parentType,
-        childType,
-        reason: `${parentType} draws only ${limit.children.join(" · ")} until its family is converted (ADR-256 — other children never reach the DOM)`,
-        allowedChildren: limit.children,
-      };
-    }
-  }
-
   // 층 2 — RAC 합성 (a): 항목 목록 부품 (RAC collection) 은 항목만 받는다 — 래퍼도 RAC 가 버린다.
-  if (parentType !== null && !isOpaque(parentType) && !limit) {
+  if (parentType !== null && !isOpaque(parentType)) {
     const allowed = RAC_COLLECTION_CHILD_TYPES[parentType];
     if (allowed && !allowed.includes(childType)) {
       return {

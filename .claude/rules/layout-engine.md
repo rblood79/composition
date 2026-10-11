@@ -60,8 +60,8 @@ paths:
 
 - out-of-flow 배치는 **엔진 구현** (`tree.rs::place_absolute_children` + `resolve_abs_axis` — 양측 inset stretch / margin-auto 센터링 / 음수 inset·margin, 2026-07-14 `67ddfe899`). TS 에서 absolute 배치 보정 재도입 금지.
 - 양측 inset 으로 늘어난 auto 크기 absolute 상자는 **늘어난 상자로** 자기 absolute 자식을 다시 놓는다 (CSS 2 §10.1 — 2026-10-08 ADR-256 Phase 7 판독 M1: 늘이기 전 solve 는 absolute 자식만 가진 상자를 0 으로 봐 손자 `%` 가 0). Rust `absolute_stretched_container_places_its_children_in_the_stretched_box`
-- **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3):
-  - containing block **조상 체인** 탐색 (nearest positioned ancestor) — 직계 부모 고정. 재개 조건 = positioned ancestor 2단 이상 실사용 등장
+- **의도적 미지원 2건** (ADR-164 Phase 0 실측 — 실사용 0건 확인 후 종결, breakdown §7 0-3 — 첫째는 2026-10-12 재개):
+  - containing block **조상 체인** 탐색 (nearest positioned ancestor) — **2026-10-12 재개** (ADR-256 G5 예제 12: 작성자가 SliderFill 을 frame 으로 감싸 positioned ancestor 2단). 부모가 `position: static` 을 **명시**하면 그 absolute 자식은 가장 가까운 positioned (`relative` · `absolute` · `fixed` · `sticky`) 조상의 padding box 기준 (`tree.rs::place_static_descendant_absolutes`, 좌표는 여전히 직계 부모 기준). `static` 은 catalog 가 positioned 부품 상자 (SliderTrack 등 rule `position: relative`) 안에서 부품을 감싼 layout frame 에만 싣는다 (`presence.ts` `catalogStaticPartFrame` → `styleFor`) — 위치 미지정 부모는 종전대로 직계 부모 (노드 `placement` 는 부모 좌표). Rust `absolute_child_of_static_parent_*` 3 · `adr256Phase7Review` G5 예제 12
   - `position:fixed` viewport 기준 — absolute 근사. catalog 경로는 위치를 가진 상자를 `position:absolute` + `insetLeft/Top` px 로만 보낸다 (`styleOf`) — fixed 를 엔진에 보내는 경로가 없다. 렌더 층 sticky/fixed 좌표 보정 (`renderCommands.ts`) 은 별도 경로로 존속. 재개 조건 = 캔버스 viewport(=page frame) 기준 fixed 실사용 등장
 - 재개 시 절차: 위 재개 조건 발생 → ADR-164 §4 조건부 규칙에 따라 해당 축만 엔진 구현 + fixture (새 ADR 불요)
 

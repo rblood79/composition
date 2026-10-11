@@ -81,7 +81,8 @@ describe("nestingRules — 층 2 RAC 합성", () => {
         childType: "Toast",
       }),
     ).toMatchObject({ layer: "rac-composition", parentType: "Toast" });
-    expect(canNest("Toast", "frame")).toBe(false);
+    // ADR-256 Phase 11: a Toast takes free content (its div draws its children in order).
+    expect(canNest("Toast", "frame")).toBe(true);
     expect(canNest("TextField", "Label", ["TextField", "body"])).toBe(true);
     expect(canNest("TextField", "FieldError", ["TextField", "body"])).toBe(
       true,

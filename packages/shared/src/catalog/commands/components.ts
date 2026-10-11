@@ -8,7 +8,6 @@ import type {
   LibraryDefinitionId,
   NodeEntry,
   NodeId,
-  Scalar,
   StateName,
   WriteValue,
 } from "../document/types";
@@ -23,8 +22,8 @@ import {
 } from "./context";
 import {
   createMaterializer,
+  instanceBindings,
   type NewId,
-  type TemplateBindings,
 } from "./materialize";
 import { removeWithReferrers, subtree } from "./structure";
 
@@ -46,18 +45,6 @@ function definitionOf(reader: CatalogReader, id: DefinitionId): AnyDefinition {
     return fail("DANGLING_DEFINITION", id);
   return definition as AnyDefinition;
 }
-function scalarOf(
-  reader: CatalogReader,
-  value: AuthoredValue | undefined,
-): Scalar | undefined {
-  if (value === undefined || Array.isArray(value)) return undefined;
-  if (typeof value !== "object") return value;
-  const tokenId = (value as { tokenId: string }).tokenId;
-  const token = tokenId.startsWith("lib:")
-    ? reader.library.tokens.get(tokenId as `lib:token:${string}`)
-    : reader.getEntry(tokenId);
-  return token && "value" in token ? (token.value as Scalar) : undefined;
-}
 
 /**
  * The instance becomes the owned copy of its template root, keeping its ID (references and the
@@ -69,21 +56,12 @@ function detachInto(draft: CommandDraft, id: NodeId, newId: NewId): void {
   const definition = definitionOf(draft.reader, instance.definitionId);
   if (definition.mode !== "composite" || !definition.templateRootId)
     fail("NOT_AN_INSTANCE", id);
-  const bindings: Record<string, Scalar> = {};
-  for (const key of Object.keys(definition.accepts)) {
-    const write = instance.props[key];
-    const value =
-      write?.kind === "set"
-        ? scalarOf(draft.reader, write.value)
-        : scalarOf(draft.reader, definition.defaults[key]);
-    if (value !== undefined) bindings[key] = value;
-  }
   const materializer = createMaterializer(
     draft,
     id,
     [id],
     newId,
-    bindings as TemplateBindings,
+    instanceBindings(draft, id),
   );
   materializer.node([definition.templateRootId!], id);
   const root = draft.node(id);

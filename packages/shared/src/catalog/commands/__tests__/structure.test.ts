@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type {
+  EntryId,
+  EntryKind,
   InstanceAddress,
   NodeEntry,
   NodeId,
@@ -16,6 +18,7 @@ import {
   removeTargets,
   ungroupNodes,
 } from "../structure";
+import { setFields } from "../fields";
 import {
   PAGE,
   PROJECT,
@@ -464,7 +467,7 @@ describe("ADR-248 Phase 4b structure commands", () => {
     expect(snapshot(graph)).toBe(initial);
   });
 
-  it("carries a nested instance's overrides; refuses a position with a template binding", () => {
+  it("carries a nested instance's overrides; freezes a template binding into the owned copy", () => {
     const graph = graphOf(
       [
         node("panel", "lib:definition:panel", {
@@ -512,24 +515,44 @@ describe("ADR-248 Phase 4b structure commands", () => {
     );
     expect(JSON.stringify(after[0])).toContain("New!");
     expect(after[1]).toEqual(shown[1]);
-    // The picker root holds the `{label}` title: an owned copy could not follow the label.
-    expect(
-      code(() =>
-        insertNodes({
-          parent: {
-            kind: "descendant",
-            ownerId: "project:node:pick",
-            address: {
-              instances: ["project:node:pick"],
-              templatePath: ["lib:template:pickRoot"],
-            },
+    // The picker root holds the `{label}` title: the owned copy takes the instance's current label
+    // and keeps it — it no longer follows the label (user decision 2026-10-12 「A」, as a detach).
+    let frozen = 0;
+    run(
+      graph,
+      insertNodes({
+        parent: {
+          kind: "descendant",
+          ownerId: "project:node:pick",
+          address: {
+            instances: ["project:node:pick"],
+            templatePath: ["lib:template:pickRoot"],
           },
-          entries: [text("y", "y")],
-          rootIds: ["project:node:y"],
-          newId: allocator(),
-        })(graph),
-      ),
-    ).toBe("POSITION_HAS_TEMPLATE_BINDING");
+        },
+        entries: [text("y", "y")],
+        rootIds: ["project:node:y"],
+        newId: <K extends EntryKind>(kind: K) =>
+          `project:${kind}:frozen-${kind}-${++frozen}` as EntryId<K>,
+      }),
+    );
+    const titleOf = () =>
+      (
+        resolveCatalogNode(graph, "project:node:pick").children[0].children[0]
+          .props as Record<string, unknown>
+      ).children;
+    expect(titleOf()).toBe("Pick");
+    expect(JSON.stringify(pageView(graph)[1])).toContain('"y"');
+    run(
+      graph,
+      setFields({
+        targets: [{ kind: "node", id: "project:node:pick" }],
+        props: { label: { kind: "set", value: "Choose" } },
+      }),
+    );
+    expect(resolveCatalogNode(graph, "project:node:pick").props.label).toBe(
+      "Choose",
+    );
+    expect(titleOf()).toBe("Pick");
   });
 
   it("groups siblings in place and ungroups them back", () => {

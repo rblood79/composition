@@ -553,6 +553,36 @@ export function assertStateOwnersLinked(
   }
 }
 
+/** Owner parts RAC draws as their own scope (an overlay, a list): what is inside is not the owner's. */
+const PART_SCOPE_TYPES: ReadonlySet<string> = new Set([
+  "Dialog",
+  "Popover",
+  "Modal",
+  "Tooltip",
+  "ListBox",
+]);
+
+/**
+ * Where the search for an owner's part of `kinds` stops: a nearer owner of the same kind keeps what
+ * it holds, and the owner's overlay · list part is not this one (a Button in a DialogTrigger's
+ * Modal or a Select's ListBox is not its trigger — G5 example 9). A part inside another part (a
+ * Slider's thumb in its track) is found.
+ */
+function partSearchStop(
+  ownerType: string,
+  kinds: readonly string[],
+): (type: string) => boolean {
+  const others = (RAC_REQUIRED_PARTS[ownerType] ?? [])
+    .flat()
+    .filter((kind) => !kinds.includes(kind) && PART_SCOPE_TYPES.has(kind));
+  return (type) =>
+    others.includes(type) ||
+    (RAC_REQUIRED_PARTS[type]?.some((alternatives) =>
+      alternatives.some((kind) => kinds.includes(kind)),
+    ) ??
+      false);
+}
+
 /** Whether the owner holds a node of one of `kinds` (not under a nearer owner of that kind). */
 function holdsPart(
   reader: CatalogReader,
@@ -563,11 +593,8 @@ function holdsPart(
 ): boolean {
   const owner = read(ownerId);
   if (owner?.kind !== "node") return false;
-  // A nearer owner of the same kind keeps what it holds.
-  const nearer = (type: string) =>
-    RAC_REQUIRED_PARTS[type]?.some((alternatives) =>
-      alternatives.some((kind) => kinds.includes(kind)),
-    ) ?? false;
+  const ownerType = typeOf(owner.definitionId);
+  const nearer = partSearchStop(ownerType, kinds);
   // Its own nodes (children, fill-slot children, replacements) …
   const stack = ownedChildren(owner);
   while (stack.length) {
@@ -579,23 +606,52 @@ function holdsPart(
   }
   // … and, for an instance, the template positions it still shows (not hidden, not replaced).
   const rootId = definitionTemplateRoot(reader, owner.definitionId);
-  if (!rootId) return false;
-  const gone = owner.descendantOverrides
+  return rootId
+    ? showsPart(reader, read, owner, [rootId], ownerType, kinds, typeOf, false)
+    : false;
+}
+
+/**
+ * Whether an instance still shows a part of `kinds` under its template position `ownerPath` (the
+ * owner's own position — not hidden, not replaced) — in its template, and (`withFills`) in the
+ * nodes filling a position there (`partSearchStop`).
+ */
+function showsPart(
+  reader: CatalogReader,
+  read: (id: string) => CatalogEntry | undefined,
+  instance: NodeEntry,
+  ownerPath: readonly string[],
+  ownerType: string,
+  kinds: readonly string[],
+  typeOf: (definitionId: DefinitionId) => string,
+  withFills: boolean,
+): boolean {
+  const nearer = partSearchStop(ownerType, kinds);
+  const local = instance.descendantOverrides.filter(
+    (item) => item.address.instances.length === 1,
+  );
+  const gone = local
     .filter(
       (item) =>
-        item.address.instances.length === 1 &&
-        (item.kind === "replace" ||
-          (item.kind === "patch" && item.enabled === false)),
+        item.kind === "replace" ||
+        (item.kind === "patch" && item.enabled === false),
     )
     .map((item) => item.address.templatePath.join("\n"));
-  const positions: string[][] = templateChildren(reader, rootId).map(
-    (child) => [rootId, child],
-  );
+  const shown = (path: readonly string[]) => {
+    const key = path.join("\n");
+    return !gone.some(
+      (hidden) => key === hidden || key.startsWith(`${hidden}\n`),
+    );
+  };
+  const positions: string[][] = templateChildren(
+    reader,
+    ownerPath[ownerPath.length - 1]!,
+  ).map((child) => [...ownerPath, child]);
+  const reached: string[] = [];
   while (positions.length) {
     const path = positions.pop()!;
-    const key = path.join("\n");
-    if (gone.some((hidden) => key === hidden || key.startsWith(`${hidden}\n`)))
-      continue;
+    if (!shown(path)) continue;
+    reached.push(path.join("\n"));
     const id = path[path.length - 1]!;
     const type = definitionTypeName(reader, templateDefinitionId(reader, id));
     if (kinds.includes(type)) return true;
@@ -603,6 +659,20 @@ function holdsPart(
       positions.push(
         ...templateChildren(reader, id).map((child) => [...path, child]),
       );
+  }
+  if (!withFills) return false;
+  const stack = local.flatMap((item) =>
+    item.kind === "fillSlot" &&
+    reached.includes(item.address.templatePath.join("\n"))
+      ? [...item.childIds]
+      : [],
+  );
+  while (stack.length) {
+    const entry = read(stack.pop()!);
+    if (entry?.kind !== "node") continue;
+    const type = typeOf(entry.definitionId);
+    if (kinds.includes(type)) return true;
+    if (!nearer(type)) stack.push(...ownedChildren(entry));
   }
   return false;
 }
@@ -637,7 +707,9 @@ function templateChildren(reader: CatalogReader, id: string): string[] {
 
 /**
  * ADR-256 Decision 5 for an instance's template position: hiding it takes away every part in its
- * template subtree. Refused when one of them is a part whose nearest owner sits above the position.
+ * template subtree. Refused when one of them is a part whose nearest owner sits above the position
+ * and that owner shows no other part of the kind after the hide (G5 example 9 — a Dialog's Close
+ * button is not its DialogTrigger's trigger). Call after the hide is written.
  */
 function assertTemplatePartsKept(
   draft: CommandDraft,
@@ -664,10 +736,34 @@ function assertTemplatePartsKept(
       templatePath: target.address.templatePath.slice(0, -1),
     },
   });
+  const ownerPath = target.address.templatePath.slice(0, -1);
+  const instance = draft.read(target.ownerId);
   for (const part of carried) {
     if (requiredPartOwner(part.type, part.inner)) continue;
     const owner = requiredPartOwner(part.type, above);
-    if (owner) fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${part.type}`);
+    if (!owner) continue;
+    // The owner is a template position of this instance (`above` starts with the path's types,
+    // nearest first): it still shows another part of the kind → kept.
+    const depth = above.indexOf(owner);
+    if (
+      instance?.kind === "node" &&
+      target.address.instances.length === 1 &&
+      depth < ownerPath.length &&
+      showsPart(
+        reader,
+        (id) => draft.read(id),
+        instance,
+        ownerPath.slice(0, ownerPath.length - depth),
+        owner,
+        RAC_REQUIRED_PARTS[owner]!.find((kinds) =>
+          kinds.includes(part.type),
+        )!,
+        (definitionId) => definitionTypeName(reader, definitionId),
+        true,
+      )
+    )
+      continue;
+    fail("REQUIRED_PART_NOT_REMOVABLE", `${owner}>${part.type}`);
   }
 }
 
@@ -901,9 +997,6 @@ export const removeTargets =
         ]
       )
         fail("OWNER_DRAWN_PART_NOT_REMOVABLE", templateId!);
-      // ADR-256 Decision 5: a template position holding a part RAC needs (a Select's trigger …).
-      if (templateId && target.address.templatePath.length > 1)
-        assertTemplatePartsKept(draft, target, templateId);
       const owner = draft.node(target.ownerId);
       const current = overrideAt(owner, target.address);
       const overrides = owner.descendantOverrides.filter(
@@ -915,6 +1008,9 @@ export const removeTargets =
           : { kind: "patch", address: target.address, enabled: false },
       );
       draft.write({ ...owner, descendantOverrides: overrides });
+      // ADR-256 Decision 5: a template position holding a part RAC needs (a Select's trigger …).
+      if (templateId && target.address.templatePath.length > 1)
+        assertTemplatePartsKept(draft, target, templateId);
     }
     removeWithReferrers(draft, removed);
     assertRequiredPartsKept(draft, nodeIds);

@@ -128,7 +128,22 @@ export function templateDefinitionId(
     : fail("DANGLING_TEMPLATE", templateId);
 }
 
-/** Type names from a node up to its page (nearest first); a template owner ends the chain. */
+/** Type names of a template path, nearest first. */
+function templatePathTypes(
+  reader: CatalogReader,
+  path: readonly string[],
+): string[] {
+  return [...path]
+    .reverse()
+    .map((id) => definitionTypeName(reader, templateDefinitionId(reader, id)));
+}
+
+/**
+ * Type names from a node up to its page (nearest first); a template owner ends the chain. A node
+ * filling an instance's template position climbs that position's template path, then goes on from
+ * the instance's own parent (the instance collapses into its template root — G5 example 3: a
+ * section in a Select's ListBox is under the ListBox and the Popover).
+ */
 function nodeAncestorTypes(draft: CommandDraft, id: NodeId): string[] {
   const types: string[] = [];
   let cursor: string | undefined = id;
@@ -138,7 +153,23 @@ function nodeAncestorTypes(draft: CommandDraft, id: NodeId): string[] {
     const entry = draft.read(cursor);
     if (entry?.kind !== "node") break;
     types.push(definitionTypeName(draft.reader, entry.definitionId));
-    cursor = draft.reader.ownerOf(cursor);
+    const ownerId = draft.reader.ownerOf(cursor);
+    const owner = ownerId ? draft.read(ownerId) : undefined;
+    const filled =
+      owner?.kind === "node" && !owner.children.includes(cursor as NodeId)
+        ? owner.descendantOverrides.find(
+            (override) =>
+              override.kind === "fillSlot" &&
+              override.childIds.includes(cursor as NodeId),
+          )
+        : undefined;
+    if (filled) {
+      types.push(...templatePathTypes(draft.reader, filled.address.templatePath));
+      seen.add(ownerId!);
+      cursor = draft.reader.ownerOf(ownerId!);
+      continue;
+    }
+    cursor = ownerId;
   }
   return types;
 }
@@ -150,12 +181,10 @@ export function parentAncestorTypes(
 ): string[] {
   if (parent.kind === "page") return [];
   if (parent.kind === "node") return nodeAncestorTypes(draft, parent.id);
-  const path = parent.address.templatePath;
-  const templates = [...path]
-    .reverse()
-    .map((id) =>
-      definitionTypeName(draft.reader, templateDefinitionId(draft.reader, id)),
-    );
+  const templates = templatePathTypes(
+    draft.reader,
+    parent.address.templatePath,
+  );
   // The instance collapses into its template root: continue from the instance's own parent.
   const owner = draft.reader.ownerOf(parent.ownerId);
   const above =

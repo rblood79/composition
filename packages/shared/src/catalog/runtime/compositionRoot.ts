@@ -133,6 +133,7 @@ import {
   catalogProgressFillLayout,
   catalogSliderFillLayout,
   catalogSliderThumbs,
+  catalogStaticPartFrame,
   catalogTreeChevronLayout,
   catalogTreeItemLayout,
   catalogTreeChevrons,
@@ -2175,6 +2176,9 @@ export class CatalogCompositionRoot {
       : catalogItemSlotInset(record, get, this.typeOf);
     return {
       ...style,
+      ...(!record.hidden && catalogStaticPartFrame(record, get, this.typeOf)
+        ? { position: "static" }
+        : {}),
       ...frame,
       ...thumb,
       ...chevron,

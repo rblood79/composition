@@ -70,7 +70,7 @@ function mount(element: React.ReactElement): HTMLElement {
   return host;
 }
 
-async function place(type: "calendar" | "rangecalendar") {
+async function place(type: "calendar" | "rangecalendar" | "datefield") {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -263,6 +263,76 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
       act(() => host.querySelector<HTMLElement>('[slot="next"]')!.click());
       expect(headings(), pageBehavior).toEqual([month(step), month(step + 1)]);
     }
+  });
+
+  it("G5 example 15: the cell · weekday templates are what RAC draws per date · day (their nodes, not RAC's plain cells)", async () => {
+    for (const type of ["calendar", "rangecalendar"] as const) {
+      const { root, render } = await place(type);
+      const recordOf = (binding: string) =>
+        [...root.domInputs.values()].find(
+          (record) => record.bindingId === binding,
+        )!;
+      const host = render();
+      const cells = host.querySelectorAll(".react-aria-CalendarCell");
+      expect(cells.length).toBeGreaterThan(27);
+      for (const cell of cells)
+        expect(cell.getAttribute("data-catalog-id")).toBe(
+          recordOf("calendarcell").id,
+        );
+      const weekdays = host.querySelectorAll("th");
+      expect(weekdays).toHaveLength(7);
+      for (const weekday of weekdays) {
+        expect(weekday.getAttribute("data-catalog-id")).toBe(
+          recordOf("calendarheadercell").id,
+        );
+        // (RAC's `th` — a table cell, not the box default `flex`.)
+        expect((weekday as HTMLElement).style.display).toBe("");
+      }
+      for (const cell of cells)
+        expect((cell as HTMLElement).style.display).toBe("");
+    }
+    // (a cell template's own content binds RAC's day — the reference RangeCalendar's
+    // `<CalendarCell>{({formattedDate}) => <span>{formattedDate}</span>}`)
+    {
+      const range = await place("rangecalendar");
+      const cellRecord = [...range.root.domInputs.values()].find(
+        (record) => record.bindingId === "calendarcell",
+      )!;
+      const text: NodeEntry = {
+        kind: "node",
+        id: range.workspace.newId("node") as NodeId,
+        definitionId: "lib:definition:text" as NodeEntry["definitionId"],
+        children: [],
+        props: { children: { kind: "set", value: "{formattedDate}" } },
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      } as unknown as NodeEntry;
+      range.workspace.execute(
+        insertNodes({
+          parent: range.workspace.positionOfRecord(cellRecord.id)!.target,
+          entries: [text],
+          rootIds: [text.id],
+          newId: range.workspace.newId,
+        }),
+      );
+      const days = [
+        ...range
+          .render()
+          .querySelectorAll(".react-aria-CalendarCell:not([data-outside-month])"),
+      ].map((cell) => cell.textContent);
+      expect(days[0]).toBe("1");
+      expect(days.every((day) => /^\d+$/.test(day ?? ""))).toBe(true);
+    }
+    // (and a DateInput's segment template — RAC draws it per segment)
+    const { root, render } = await place("datefield");
+    const segment = [...root.domInputs.values()].find(
+      (record) => record.bindingId === "datesegment",
+    )!;
+    const segments = render().querySelectorAll(".react-aria-DateSegment");
+    expect(segments.length).toBeGreaterThan(2);
+    for (const element of segments)
+      expect(element.getAttribute("data-catalog-id")).toBe(segment.id);
   });
 
   it("selecting a date and a range works through the cell template", async () => {

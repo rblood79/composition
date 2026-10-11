@@ -2279,6 +2279,7 @@ impl LayoutTree {
                 self.place_absolute_children(handle, &abs_children, w_box, h_box, avail_w);
             }
             self.settle_contents_children(handle);
+            self.place_static_descendant_absolutes(handle, w_box, h_box, avail_w);
             if let Some(n) = self.get_mut(handle) {
                 n.last_solved = Some((w, h));
             }
@@ -2338,20 +2339,21 @@ impl LayoutTree {
         //   border-box: solver 반환은 명시 축이면 border-box, auto · 키워드 축이면 content-box 라 그 축만
         //   padding/border 를 더한다 (종전 반환값 그대로 넘겨 auto 높이 컨테이너의 `top: 50%` 가 padding
         //   만큼 위로 갔다 — ADR-234 3d).
+        let (box_w, box_h) = {
+            let ctx = self.ctx_for(avail_w);
+            let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+            let w_content = explicit_w <= 0.0 || keyword_content_w;
+            let h_content = explicit_h <= 0.0;
+            (
+                if w_content { cw + axis_pad_border(&style, &ctx, true) } else { cw },
+                if h_content { ch + axis_pad_border(&style, &ctx, false) } else { ch },
+            )
+        };
         if !abs_children.is_empty() {
-            let (box_w, box_h) = {
-                let ctx = self.ctx_for(avail_w);
-                let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
-                let w_content = explicit_w <= 0.0 || keyword_content_w;
-                let h_content = explicit_h <= 0.0;
-                (
-                    if w_content { cw + axis_pad_border(&style, &ctx, true) } else { cw },
-                    if h_content { ch + axis_pad_border(&style, &ctx, false) } else { ch },
-                )
-            };
             self.place_absolute_children(handle, &abs_children, box_w, box_h, avail_w);
         }
         self.settle_contents_children(handle);
+        self.place_static_descendant_absolutes(handle, box_w, box_h, avail_w);
         if let Some(n) = self.get_mut(handle) {
             n.last_solved = Some((cw, ch));
         }
@@ -2493,8 +2495,10 @@ impl LayoutTree {
     /// `position:absolute|fixed` 자식 배치 (CSS out-of-flow).
     ///
     /// **containing block**: 가장 가까운 positioned 조상의 **padding box**. 본 엔진은
-    /// 조상 체인을 거슬러 올라가지 않고 **직계 부모를 containing block 으로 간주**한다
-    /// (composition 의 실사용 패턴 — `position:relative` 부모 + absolute 자식이 전부).
+    /// 기본으로 **직계 부모를 containing block 으로 간주**한다 (catalog 는 흐름 상자에 position 을
+    /// 싣지 않는다 — `relative` 가 기본 흐름 상자). 부모가 `position: static` 을 **명시**하면 그
+    /// absolute 자식은 가장 가까운 positioned 조상이 다시 놓는다 (`place_static_descendant_absolutes`
+    /// — ADR-164 재개, ADR-256 G5 예제 12).
     ///
     /// 좌표계: 형제 in-flow 자식과 동일하게 **부모 border-box 원점 기준 상대 좌표**를
     /// 기록한다(`solve_flex/block/grid` 의 `x + off_x` 와 같은 공간).
@@ -2506,9 +2510,10 @@ impl LayoutTree {
     ///
     /// **의도적 미지원 (ADR-164 Phase 2 확정, 2026-07-25)** — Phase 0 실측
     /// (docs/adr/design/164-...-breakdown.md §7 0-3, 실사용 0건) 근거로 종결:
-    /// - **containing block 조상 체인** (nearest positioned ancestor 탐색): 직계 부모
-    ///   고정. factory absolute/fixed 기본값 0건 + Inspector position 편집 UI 미노출.
-    ///   재개 조건 = positioned ancestor 2단 이상 실사용 등장.
+    /// - **containing block 조상 체인** — 2026-10-12 재개 (ADR-256 G5 예제 12: 작성자가
+    ///   SliderFill 을 frame 으로 감싸면 positioned ancestor 2단). `position: static` 을 명시한
+    ///   부모에 한해 조상 체인을 탄다 (catalog 가 부품을 감싼 layout frame 에만 싣는다 —
+    ///   `catalogStaticPartFrame`). 위치 미지정 부모는 종전대로 직계 부모 (노드 `placement` 좌표).
     /// - **`fixed` 의 viewport 기준**: absolute 로 근사 — 상류 TS 도 fixed→absolute
     ///   로 보낸다 (catalog `styleOf` 는 위치 상자를 absolute + inset 로만 싣는다. 렌더 층의 sticky/fixed
     ///   좌표 보정은 별도 경로 — renderCommands.ts). 재개 조건 = 캔버스 viewport
@@ -2521,15 +2526,35 @@ impl LayoutTree {
         container_h: f32,
         avail_w: f32,
     ) {
-        let style = self.get(handle).map(|n| n.style.clone()).unwrap_or_default();
+        self.place_absolutes_in(handle, handle, abs_children, container_w, container_h, avail_w, (0.0, 0.0));
+    }
+
+    /// `place_absolute_children` 의 일반형 — containing block 은 `cb_owner` (border-box
+    /// `container_w × container_h`), 흐름 (static position) 과 기록 좌표는 직계 부모 `flow_parent` 기준.
+    /// `shift` = `flow_parent` border-box 원점의 `cb_owner` border-box 안 위치 (같으면 0).
+    #[allow(clippy::too_many_arguments)]
+    fn place_absolutes_in(
+        &mut self,
+        flow_parent: usize,
+        cb_owner: usize,
+        abs_children: &[usize],
+        container_w: f32,
+        container_h: f32,
+        avail_w: f32,
+        shift: (f32, f32),
+    ) {
+        let handle = flow_parent;
+        let style = self.get(cb_owner).map(|n| n.style.clone()).unwrap_or_default();
+        let flow_style = self.get(flow_parent).map(|n| n.style.clone()).unwrap_or_default();
         let parent_ctx = self.ctx_for(avail_w);
 
         // containing block = 부모 padding box (CSS 2 §10.1) — 원점은 border 안쪽 (padding 포함), 크기는
         //   border-box − border. static position 만 content 원점 (padding+border) 에서 시작한다.
         //   종전엔 원점 · 크기를 content box 로 잡아 padding 있는 부모의 inset 이 padding 만큼 밀렸다
         //   (ADR-234 3d: ListBoxItem icon `left: 12px` 가 padding-left 34 위로 46).
-        let pb_start_x = pad_border_start(&style, &parent_ctx, true);
-        let pb_start_y = pad_border_start(&style, &parent_ctx, false);
+        // static position 은 흐름 부모의 content 원점 (containing block 좌표로 옮겨 쓴다).
+        let pb_start_x = pad_border_start(&flow_style, &parent_ctx, true) + shift.0;
+        let pb_start_y = pad_border_start(&flow_style, &parent_ctx, false) + shift.1;
         let border_start_x = resolve_dimension(style.border_left.as_deref(), &parent_ctx);
         let border_start_y = resolve_dimension(style.border_top.as_deref(), &parent_ctx);
         let border_total_x =
@@ -2558,7 +2583,7 @@ impl LayoutTree {
                 static_pos.push((ch, pb_start_x, flow_bottom));
             } else {
                 let l = cnode.layout;
-                flow_bottom = (l.y + l.height).max(flow_bottom);
+                flow_bottom = (l.y + shift.1 + l.height).max(flow_bottom);
             }
         }
 
@@ -2683,7 +2708,7 @@ impl LayoutTree {
                 // out-of-flow: baseline 은 부모 전파에 참여하지 않지만 자식 자신의
                 // 값(자기 solve 기록)은 보존한다 (ADR-923 Phase 2).
                 let baseline = n.layout.baseline;
-                n.layout = NodeLayout { x, y, width: nw, height: nh, baseline };
+                n.layout = NodeLayout { x: x - shift.0, y: y - shift.1, width: nw, height: nh, baseline };
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
@@ -2708,6 +2733,67 @@ impl LayoutTree {
                 if !grand.is_empty() {
                     self.place_absolute_children(c, &grand, nw, nh, cb_w);
                 }
+                self.place_static_descendant_absolutes(c, nw, nh, cb_w);
+            }
+        }
+    }
+
+    /// ADR-164 재개 (ADR-256 G5 예제 12): `handle` 이 positioned (`relative` · `absolute` · `fixed` ·
+    /// `sticky`) 이면, `position: static` 을 명시한 흐름 자손 (작성자가 부품을 감싼 layout frame) 의
+    /// absolute 자식을 `handle` 의 padding box 기준으로 다시 놓는다 (CSS 2 §10.1 — nearest positioned
+    /// ancestor). 자손 탐색은 positioned 자손 · display:none · 위치 미지정 부모에서 멈춘다 — 위치를
+    /// 명시하지 않은 부모의 absolute 자식은 종전대로 그 부모 기준 (노드 `placement` 좌표).
+    /// `container_w × container_h` = `handle` 의 border-box.
+    fn place_static_descendant_absolutes(
+        &mut self,
+        handle: usize,
+        container_w: f32,
+        container_h: f32,
+        avail_w: f32,
+    ) {
+        let positioned = self
+            .get(handle)
+            .is_some_and(|n| style_is_positioned(n.style.position.as_deref()));
+        if !positioned {
+            return;
+        }
+        let mut stack: Vec<(usize, f32, f32)> = self
+            .get(handle)
+            .map(|n| n.children.clone())
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|c| self.get(c).map(|cn| (c, cn.layout.x, cn.layout.y)))
+            .collect();
+        while let Some((node, off_x, off_y)) = stack.pop() {
+            let Some(n) = self.get(node) else { continue };
+            if n.style.display.as_deref() == Some("none")
+                || n.style.position.as_deref().map(str::trim) != Some("static")
+            {
+                continue;
+            }
+            let children = n.children.clone();
+            let mut abs: Vec<usize> = Vec::new();
+            for &c in &children {
+                let Some(cn) = self.get(c) else { continue };
+                if cn.style.display.as_deref() == Some("none") {
+                    continue;
+                }
+                if is_out_of_flow(cn.style.position.as_deref()) {
+                    abs.push(c);
+                } else {
+                    stack.push((c, off_x + cn.layout.x, off_y + cn.layout.y));
+                }
+            }
+            if !abs.is_empty() {
+                self.place_absolutes_in(
+                    node,
+                    handle,
+                    &abs,
+                    container_w,
+                    container_h,
+                    avail_w,
+                    (off_x, off_y),
+                );
             }
         }
     }
@@ -6803,6 +6889,14 @@ fn is_out_of_flow(position: Option<&str>) -> bool {
     matches!(position, Some("absolute") | Some("fixed"))
 }
 
+/// positioned box (CSS 2 §9.3.1 — `static` 이 아닌 position) — absolute 자손의 containing block 후보.
+fn style_is_positioned(position: Option<&str>) -> bool {
+    matches!(
+        position.map(str::trim),
+        Some("relative") | Some("absolute") | Some("fixed") | Some("sticky")
+    )
+}
+
 /// absolute 배치 한 축의 (위치, 크기) 산출 (CSS §10.3.7 / §10.6.4 근사).
 ///
 /// - 양측 inset + 크기 auto → **stretch**: size = cb − start − end − margins (E11 ①).
@@ -10436,6 +10530,62 @@ mod tests {
         let fill = tree.get_layout(handles[0]);
         assert!((fill.width - 60.0).abs() < 0.01, "늘어난 상자의 30%: {}", fill.width);
         assert_eq!(fill.height, 8.0, "늘어난 상자의 100%");
+    }
+
+    /// ADR-164 재개 (ADR-256 G5 예제 12 — 「positioned ancestor 2단」): `position: static` 을 명시한
+    /// 부모 (작성자가 부품을 감싼 layout frame) 의 absolute 자식은 가장 가까운 positioned 조상의
+    /// padding box 가 containing block 이다 (CSS 2 §10.1). 좌표는 여전히 직계 부모 border-box 기준.
+    /// Chrome: SliderTrack (relative 200×8, padding-left 10) > div (static, margin-left 20, 높이 0) >
+    /// fill (absolute, left 25% · top 0 · width 50% · height 100%) → fill 은 track 기준 x 50 · 폭 100 ·
+    /// 높이 8, div 기준 x 50−(10+20) = 20.
+    #[test]
+    fn absolute_child_of_static_parent_uses_nearest_positioned_ancestor() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"absolute","insetLeft":"25%","insetTop":"0px","width":"50%","height":"100%"},"children":[]},
+            {"style":{"display":"block","position":"static","marginLeft":"20px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"8px","paddingLeft":"10px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let frame = tree.get_layout(handles[1]);
+        assert_eq!((frame.x, frame.height), (30.0, 0.0), "static frame: in-flow, 높이 0");
+        let fill = tree.get_layout(handles[0]);
+        assert!((fill.width - 100.0).abs() < 0.01, "track padding box 의 50%: {}", fill.width);
+        assert_eq!(fill.height, 8.0, "track 의 100%");
+        assert!((fill.x - 20.0).abs() < 0.01, "track 기준 50 → frame 기준 20: {}", fill.x);
+        assert_eq!(fill.y, 0.0);
+    }
+
+    /// 부모가 `static` 을 명시하지 않으면 (위치 미지정) 종전대로 직계 부모가 containing block 이다
+    /// (설계 도구식 좌표 배치 — 노드 `placement` 는 부모 기준).
+    #[test]
+    fn absolute_child_of_unmarked_parent_keeps_the_parent_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"absolute","insetLeft":"10px","insetTop":"0px","width":"50%","height":"100%"},"children":[]},
+            {"style":{"display":"block","width":"100px","height":"40px","marginLeft":"20px"},"children":[0]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"8px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let child = tree.get_layout(handles[0]);
+        assert_eq!((child.x, child.width, child.height), (10.0, 50.0, 40.0));
+    }
+
+    /// `static` 부모 위에 positioned 조상이 없으면 그 부모가 containing block 이다 (종전 그대로).
+    #[test]
+    fn absolute_child_of_static_parent_without_positioned_ancestor_keeps_the_parent_box() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","position":"absolute","insetLeft":"0px","insetTop":"0px","width":"50%","height":"100%"},"children":[]},
+            {"style":{"display":"block","position":"static","width":"100px","height":"40px"},"children":[0]},
+            {"style":{"display":"block","width":"200px","height":"8px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 400.0, 400.0);
+        let child = tree.get_layout(handles[0]);
+        assert_eq!((child.width, child.height), (50.0, 40.0));
     }
 
     /// E11 ②: inset 무지정 → 정상 흐름 위치(static position) 유지.

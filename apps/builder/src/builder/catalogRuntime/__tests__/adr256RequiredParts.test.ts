@@ -150,6 +150,44 @@ describe("ADR-256 Decision 5 — required parts", () => {
     ).toBe("ok");
   });
 
+  it("a Dialog instance's Close button · footer hide; its trigger does not (G5 example 9 — the owner keeps a part of the kind)", async () => {
+    const { workspace } = await open();
+    const hide = (path: string[]) => {
+      const id = workspace.newId("node") as NodeId;
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [node(id, "lib:definition:origin-component-dialog")],
+          rootIds: [id],
+          newId: workspace.newId,
+        }),
+      );
+      return code(() =>
+        workspace.execute(
+          removeTargets({
+            targets: [
+              {
+                kind: "descendant",
+                ownerId: id,
+                address: {
+                  instances: [id],
+                  templatePath: [
+                    "lib:template:component-dialog",
+                    ...path.map((part) => `lib:template:component-dialog__${part}`),
+                  ] as LibraryTemplateId[],
+                },
+              },
+            ],
+          }),
+        ),
+      );
+    };
+    expect(hide(["modal", "2", "2_3", "2_3_1"])).toBe("ok");
+    expect(hide(["modal", "2", "2_3"])).toBe("ok");
+    expect(hide(["1"])).toBe("REQUIRED_PART_NOT_REMOVABLE");
+    expect(hide(["modal"])).toBe("REQUIRED_PART_NOT_REMOVABLE");
+  });
+
   it("an owned required part is not deleted or moved out; it moves inside its owner", async () => {
     const { workspace } = await open();
     const id = (name: string) => `project:node:${name}` as NodeId;

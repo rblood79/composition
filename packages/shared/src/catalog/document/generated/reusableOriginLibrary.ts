@@ -7638,9 +7638,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-listbox-section__item-1",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {
-      "id": "item-1"
-    },
+    "props": {},
     "visual": {},
     "descendantPatches": [
       {
@@ -7672,9 +7670,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-listbox-section__item-2",
     "definitionId": "lib:definition:origin-component-listbox-item-default",
     "children": [],
-    "props": {
-      "id": "item-2"
-    },
+    "props": {},
     "visual": {},
     "descendantPatches": [
       {
@@ -7824,9 +7820,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-gridlist-section__item-1",
     "definitionId": "lib:definition:origin-component-gridlist-item-default",
     "children": [],
-    "props": {
-      "id": "item-1"
-    },
+    "props": {},
     "visual": {},
     "descendantPatches": [
       {
@@ -7851,9 +7845,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-gridlist-section__item-2",
     "definitionId": "lib:definition:origin-component-gridlist-item-default",
     "children": [],
-    "props": {
-      "id": "item-2"
-    },
+    "props": {},
     "visual": {},
     "descendantPatches": [
       {

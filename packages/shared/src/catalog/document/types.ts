@@ -96,9 +96,12 @@ export const CATALOG_SCHEMA_VERSION = 1 as const;
  * Text[slot=description]) + Footer` (CardHeader gone; CardContent · CardFooter are the shared S2
  * types `Content` · `Footer`); the Card origin takes no `title` · `description` (its Text nodes hold
  * them). An InlineAlert's description sits in a `Content` (`component-inline-alert__content`).
+ * 39 — ADR-256 Phase 11 (G5): the ListBox · GridList section origins' items carry no fixed `id`
+ * (`item-1` · `item-2`) — two sections in one collection shared their RAC keys; an item's key is
+ * its node id unless the author gives one.
  * An earlier contract's document is refused, never re-mapped.
  */
-export const LIBRARY_CONTRACT_VERSION = 38 as const;
+export const LIBRARY_CONTRACT_VERSION = 39 as const;
 
 export type EntryKind =
   | "project"
