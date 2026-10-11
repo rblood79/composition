@@ -1,6 +1,6 @@
 # ADR-257 breakdown — Table 열 트랙 · 표·목록 S2 prop
 
-> 본문: [ADR-257](../257-table-column-tracks.md). 이 문서는 Phase · 파일 경계 · 검증 순서를 둔다. 결정 · 기각 사유는 본문이 정본이다. 2026-10-10 리뷰 round 1 수리로 채택안이 flex 파생 → 행마다 같은 명시 트랙의 grid (대안 C2) 로 바뀌었다.
+> 본문: [ADR-257](../completed/257-table-column-tracks.md). 이 문서는 Phase · 파일 경계 · 검증 순서를 둔다. 결정 · 기각 사유는 본문이 정본이다. 2026-10-10 리뷰 round 1 수리로 채택안이 flex 파생 → 행마다 같은 명시 트랙의 grid (대안 C2) 로 바뀌었다.
 
 ## 1. 전제 기록
 
@@ -141,6 +141,7 @@
 - 테스트: `adr257ColumnTracks.test.ts` 16 (RAC oracle 12 · 표현 못 하는 조합 · 값 타입) · `adr257TableTracks.test.tsx` 8 (Canvas 정렬 · 편집 직후 · undo/redo · Insert Column · DOM · TableView · 선택 열 · 로드 전환 · Styles 값) · 기존 갱신 2 (`phase4eTableRows` — 바운드 150 → 1fr · `resolveContainerStylesFallback` — Column · Cell flex 없음). shared 1574 · builder 5296 (+1 갱신 뒤 전부 PASS) · parity 811 · G3 Table 2 · type-check 0.
 - live: `table-column-tracks-live.mjs` 6/6 — 120 · 1fr · 2fr 에서 머리글 · Cell (x, w) Canvas = Preview = (0,120) (120,599.33) (719.33,1198.67), Design 패널 Width 160 → (120,160) 모든 행, undo, TableView 90, 새로고침 뒤 같은 트랙, 오류 0.
 - G6 (부분): 엔진 단 A/B (300행 × 10열, 3쌍 중앙값) grid 9.4 ms ↔ flex 2.2 ms — 행당 31 ↔ 7 µs. 바운드 Table 은 행 window (기본 높이 400 → 12행 안팎) 라 재배치당 약 0.4 ms. 총비용 A/B · pre-push ratchet 은 커밋 뒤. 넘으면 실패 대안 (엔진 grid 캐시 — 같은 트랙 · 같은 행 폭이면 열 위치를 다시 풀지 않음).
+- G6 (종결, 2026-10-12): 총비용 A/B — `be0de3795` ↔ `104d935a9` 각 worktree · 자체 wasm, 바운드 Table 300행 (투영 14행 · 칸 140), 교대 3쌍. 스크롤 · 칸 편집 (머리글 칸 — 바운드 본문 칸은 편집 대상 없음) 노이즈 안 · 열 폭 편집 sync (commit + layout) 같음 · 총시간 약 +6 ms (모든 행의 칸이 움직여 Canvas 가 더 그림) → 사용자 「1번으로 진행해」 로 수용. 번들 gzip JS Builder 1,236,984 · Preview 273,120 (상한 안). 상세: 본문 [Live Exercise](../completed/257-table-column-tracks.md#live-exercise).
 - 결정과 다르게 한 것: 본문 Status Phase 1 블록 ① ② (바운드 `width: 150` 전환 생략 · 선택 열 40px 는 트랙 기본값).
 
 ## 7. Phase 2 결과 (2026-10-10, 미커밋)

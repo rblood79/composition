@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-257 Implemented — Table 열 트랙] - 2026-10-12
+
+### Changed
+
+- **ADR-257 Implemented** (사용자 「1번으로 진행해」): Phase 0 ~ 5 · 후속 (GridList · Badge `overflowMode`) 완료. Column 의 S2 폭 prop 이 열 트랙을 정하고 머리글 행 · 모든 Row 가 같은 grid 트랙을 쓴다. 남았던 G6 총비용 A/B — 전환 전 (`be0de3795`) ↔ ADR-257 (`104d935a9`) 를 각 worktree 에서 바운드 Table (투영 14행) 로 교대 측정: 스크롤 · 칸 편집은 노이즈 안, 열 폭 편집은 commit · layout 시간이 같고 화면 반영 총시간만 약 +6 ms (모든 행의 칸이 실제로 움직여 Canvas 가 더 그린다 — 전환 전에는 머리글 칸만 바뀌어 열이 어긋났다). 사용자 수용. 초기 번들 gzip JS Builder 1,236,984 · Preview 273,120 (상한 안). 본문을 `docs/adr/completed/` 로 옮기고 `### Live Exercise` 를 적었다.
+
 ## [ADR-256 Implemented — RAC 수준의 조립] - 2026-10-12
 
 ### Changed
