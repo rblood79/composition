@@ -1,0 +1,1 @@
+import{i as e}from"./rolldown-runtime-Dd_uD5pT.js";import{qo as t}from"./aria-runtime-Cgs4evEi.js";var n=e(t(),1),r=(0,n.createContext)(null),i=null;function a(){let e=(0,n.useContext)(r)??i;if(!e)throw Error(`Data usage host is not provided`);return e}export{a as n,r as t};
