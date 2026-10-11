@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getIconData, LUCIDE_ICON_NAMES } from "../lucideIcons";
 
 describe("Lucide generated icon registry", () => {
-  it("keeps the v1.46 icon data and layout direction icons", () => {
+  it("keeps the generated icon data and layout direction icons", () => {
     expect(LUCIDE_ICON_NAMES.length).toBeGreaterThan(1_800);
     expect(LUCIDE_ICON_NAMES).toContain("layout-arrow-right");
     expect(LUCIDE_ICON_NAMES).toContain("layout-arrow-down");

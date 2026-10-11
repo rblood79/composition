@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Builder 호환 의존성 · React/RAC · 시각 라이브러리 업데이트] - 2026-10-12
+
+### Changed
+
+- Builder runtime·개발 도구를 현재 호환 버전으로 갱신했다: React/React DOM 19.3, React Aria 3.53, React Aria Components 1.22, react-stately 3.51, React Router 8.4, Vite 8.3.4, Playwright 1.64, Three 0.186, Lucide React 1.55와 인접 패키지. React DOM의 DevTools getter 보호와 React Aria ColorArea focus 접근성 patch는 새 배포본에도 이식했다.
+- RAC 1.22 실행 결과로 slot provider·state key 표를 다시 만들었다. 계약 내용은 1.21과 같고 버전만 바뀌었다. Meter가 더는 무효한 `progressbar` boolean DOM 속성을 내보내지 않으며 `role="meter"` 접근성 계약은 그대로다. Lucide 생성 데이터는 1.55 아이콘 집합으로 갱신했다.
+
+### Verified
+
+- shared 1,580 · rendering 1,313 · Builder 5,441 테스트, 전체 type-check, Builder production build, preflight 통과. 실제 Builder에서 ColorArea/ColorSlider/ColorWheel 팔레트 추가·Canvas/Preview·끌기·편집·Undo/Redo·새로고침·다크 테마를 17/17 확인했고 page error는 0이었다.
+
 ## [ColorWheel 크기 조절 — 상자와 고리가 같이] - 2026-10-12
 
 ### Fixed

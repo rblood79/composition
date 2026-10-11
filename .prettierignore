@@ -2,3 +2,4 @@
 packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts
 # generator가 출력 형식을 소유한다. pnpm generate:css로 갱신한다.
 packages/shared/src/components/styles/generated/
+packages/rendering/src/icons/lucideIconData.generated.ts

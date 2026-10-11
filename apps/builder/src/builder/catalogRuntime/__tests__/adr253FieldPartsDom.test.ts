@@ -448,13 +448,21 @@ const datePickerNodeTreeMarkup = (
  * parts, and one without a visible label is named (RAC needs a label or an `aria-label` — before,
  * it had none).
  */
-const progressNodeTreeMarkup = (markup: string, name: string, label: string) =>
-  name === "no label"
-    ? markup.replace(
+const progressNodeTreeMarkup = (
+  markup: string,
+  name: string,
+  label: string,
+) => {
+  // RAC 1.22 stopped forwarding Meter's obsolete boolean `progressbar` DOM attribute.
+  const current =
+    label === "Meter" ? markup.replace(" progressbar>", ">") : markup;
+  return name === "no label"
+    ? current.replace(
         /^<div aria-labelledby (aria-valuemax)/,
         `<div aria-label=${label} $1`,
       )
-    : markup;
+    : current;
+};
 /**
  * ADR-256 Phase 7c: a Slider draws its node tree in RAC's Slider — the track is its own bar (no
  * `.slider-track-bg` element), the fill is RAC's `SliderFill` (was the shared component's

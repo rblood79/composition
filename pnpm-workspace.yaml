@@ -8,28 +8,28 @@ catalogs:
     '@internationalized/number': ^3.6.8
     '@react-aria/focus': ^3.22.1
     '@react-aria/i18n': ^3.13.1
-    '@react-aria/optimize-locales-plugin': ^2.0.2
+    '@react-aria/optimize-locales-plugin': ^2.1.0
     '@react-aria/utils': ^3.34.1
     '@tanstack/react-table': ^8.21.3
-    '@tanstack/react-virtual': ^3.14.10
+    '@tanstack/react-virtual': ^3.14.13
     '@types/node': 24.13.3
-    '@types/react': ^19.2.18
-    '@types/react-dom': ^19.2.4
-    '@vitejs/plugin-react': ^6.1.0
+    '@types/react': ^19.3.0
+    '@types/react-dom': ^19.3.0
+    '@vitejs/plugin-react': ^6.1.2
     cross-env: ^10.1.0
-    eslint: ^10.8.1
-    lucide-react: ^1.46.0
-    react: ^19.2.8
-    react-aria: ^3.52.0
-    react-aria-components: ^1.21.0
-    react-dom: ^19.2.8
-    react-router: ^8.3.0
-    react-stately: ^3.50.0
-    tailwind-merge: ^3.6.0
+    eslint: ^10.12.0
+    lucide-react: ^1.55.0
+    react: ^19.3.0
+    react-aria: ^3.53.0
+    react-aria-components: ^1.22.0
+    react-dom: ^19.3.0
+    react-router: ^8.4.0
+    react-stately: ^3.51.0
+    tailwind-merge: ^3.7.0
     typescript: ~5.9.3
-    vite: ^8.2.2
+    vite: ^8.3.4
     vitest: ^4.1.11
-    zod: ^4.4.3
+    zod: ^4.6.5
     zustand: ^5.0.15
 
 onlyBuiltDependencies:
@@ -37,7 +37,7 @@ onlyBuiltDependencies:
   - esbuild
 
 patchedDependencies:
-  react-aria@3.52.0: patches/react-aria@3.52.0.patch
-  # React 19.2 DEV render logger 가 props 의 getter 를 호출해 throw (react-aria CollectionNode.childNodes) →
+  react-aria@3.53.0: patches/react-aria@3.53.0.patch
+  # React DEV render logger 가 props 의 getter 를 호출해 throw (react-aria CollectionNode.childNodes) →
   # flushPassiveEffects 중단. React DevTools 가 있는 브라우저에서만 재현 (ProfileMode). React #35126 / #36430
-  react-dom@19.2.8: patches/react-dom@19.2.8.patch
+  react-dom@19.3.0: patches/react-dom@19.3.0.patch
