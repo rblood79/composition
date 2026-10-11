@@ -18,20 +18,17 @@
  *   - DnD / virtualized: state/media 미모델
  *   - forced-colors: Generator 가 base @media emit 하므로 중복 제거 후 수동 rule 제거
  *
- * data-empty / Section / Header 는 `:empty` / 자식 selector 필요 → 수동 유지
+ * data-empty / Header 는 `:empty` / 자식 selector 필요 → 수동 유지 (Section 사이 간격은 catalog
+ * ListBox rule 의 `staticSelectors` — Canvas 도 같은 값을 읽는다, 2026-10-12)
  */
 @layer components {
-  /* ========== ListBox :empty + Section/Header (Generator 커버 불가 — 자식 selector) ========== */
+  /* ========== ListBox :empty + Header (Generator 커버 불가 — 자식 selector) ========== */
   .react-aria-ListBox {
     &[data-empty] {
       align-items: center;
       justify-content: center;
       font-style: italic;
       color: var(--fg-muted);
-    }
-
-    .react-aria-ListBoxSection:not(:first-child) {
-      margin-top: var(--spacing-md);
     }
 
     .react-aria-Header {

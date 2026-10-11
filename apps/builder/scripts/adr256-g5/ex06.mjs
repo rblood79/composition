@@ -30,7 +30,6 @@ export async function run(page) {
   edits.push(await edit(page, (c, ws, h, source) => {
     const field = h.bySource(source);
     const group = h.within(field.id, "Group")[0];
-    const old = h.within(group.id, "Button").find((b) => b.props.slot === "increment");
     const button = h.newId();
     const icon = h.newId();
     return [
@@ -43,7 +42,13 @@ export async function run(page) {
         rootIds: [button],
         newId: ws.newId,
       }),
-      h.later(() => c.removeTargets({ targets: [h.target(old.id)] })),
+      // (Found again after the insert: the first child into the instance's Group copies its template
+      //  children to owned nodes — the old Button's record id changes.)
+      h.later(() => {
+        const group = h.within(h.bySource(source).id, "Group")[0];
+        const stale = h.within(group.id, "Button").find((b) => b.props.slot === "increment" && b.sourceId !== button);
+        return c.removeTargets({ targets: [h.target(stale.id)] });
+      }),
     ];
   }, placed[3]));
   // (Probe: any child into the instance's Group — Decision 3 free content.)

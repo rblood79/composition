@@ -235,6 +235,27 @@ describe("ADR-256 Phase 7 판독 — 값 바인딩 노드 트리 편집", () => 
     expect(box("SliderFill").width).toBeCloseTo(track.width * 0.7, 1);
   });
 
+  it("G5 example 12: a detached Slider's SliderOutput names its thumb input (`for`) — the Label's automatic id stays off", async () => {
+    const { root, part, owner } = await open(
+      "slider",
+      { label: "Volume", value: 30 },
+      { detach: true },
+    );
+    // (A detach gives the owned Label an automatic HTML id.)
+    expect(part("Label").htmlId).toBeTruthy();
+    (globalThis as { ResizeObserver?: unknown }).ResizeObserver ??= class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+    const view = render(renderCatalogDom(root, owner().id));
+    cleanups.push(() => view.unmount());
+    const output = view.container.querySelector("output")!;
+    const input = view.container.querySelector("input")!;
+    expect(output.htmlFor.value).not.toBe("");
+    expect(output.htmlFor.value).toBe(input.id);
+  });
+
   it("M1: a SliderTrack in a frame keeps its fill and thumb on the Slider's value", async () => {
     const { root, part, frame, edit } = await open(
       "slider",

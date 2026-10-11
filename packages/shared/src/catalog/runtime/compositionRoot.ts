@@ -1083,6 +1083,11 @@ function styleOf(
     ...(node.derivedProps?.trackStyle === "thick"
       ? { height: `${CATALOG_SLIDER_THICK_TRACK.height}px` }
       : {}),
+    // A section after another (its parent rule's `:not(:first-child)` top margin — the resolver's
+    // `_siblingMarginTop`); an authored margin wins.
+    ...(typeof node.derivedProps?._siblingMarginTop === "number"
+      ? { marginTop: `${node.derivedProps._siblingMarginTop}px` }
+      : {}),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
     ...(catalogAspectRatio(node.visual.aspectRatio) !== undefined

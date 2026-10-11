@@ -99,6 +99,7 @@ async function mounted(selectionMode?: string) {
     choose: (index: number) => act(async () => options()[index]!.click()),
     value: () =>
       host.querySelector(".react-aria-SelectValue")?.textContent ?? "",
+    valueElement: () => host.querySelector(".react-aria-SelectValue"),
     unmount: async () => {
       await act(async () => reactRoot.unmount());
       host.remove();
@@ -135,6 +136,10 @@ describe("ADR-256 후속 3 — a Select's selectionMode reaches RAC", () => {
     expect(
       view.options().map((option) => option.hasAttribute("data-selected")),
     ).toEqual([false, true, false, false]);
+    // G5 example 3: the chosen item's label renders in the trigger as RAC's Text with its `label`
+    // slot (SelectValue clears the Text context — RAC writes the slot as is).
+    const label = view.valueElement()!.querySelector(".react-aria-Text");
+    expect(label?.getAttribute("slot")).toBe("label");
     await view.unmount();
   });
 });
@@ -236,5 +241,68 @@ describe("ADR-256 후속 5 — a detached Select in an open view", () => {
     expect(loops).toEqual([]);
     reactRoot.unmount();
     host.remove();
+  });
+});
+
+/**
+ * G5 example 3: the Select rule places its value through the trigger (`.react-aria-Button` →
+ * `.react-aria-SelectValue` — `flex: 1`, a `via` part rule naming `type-Button`). A detached
+ * Select's trigger is an owned instance of the Button origin (`origin-component-button`): the rule
+ * reaches it as that type, so the Canvas value fills the trigger as the sheet's does.
+ */
+describe("G5 example 3 — a detached Select's value fills its trigger on the Canvas", () => {
+  it("the value spans the trigger before and after the detach", async () => {
+    const workspace = new CatalogWorkspace(
+      new CatalogGraph(
+        newCatalogProjectDocument({
+          projectId: "project:project:g5-select-detach" as EntryId<"project">,
+          name: "Select detach layout",
+        }),
+        await buildCodeCatalogLibrary(),
+      ),
+      new CatalogStorage(indexedDB, `g5-select-detach-${Math.random()}`),
+      {
+        engine: await nodeLayoutEngine(),
+        viewport: { width: 1200, height: 800 },
+        autosaveSchedule: () => {},
+      },
+    );
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [
+          {
+            kind: "node",
+            id: FIELD,
+            definitionId: "lib:definition:origin-component-select",
+            children: [],
+            props: {},
+            visual: {},
+            sizing: {},
+            descendantOverrides: [],
+          } as NodeEntry,
+        ],
+        rootIds: [FIELD],
+        newId: workspace.newId,
+      }),
+    );
+    const root = workspace.root;
+    const span = () => {
+      const value = [...root.canvasInputs.values()].find(
+        (record) => root.typeOf(record) === "SelectValue",
+      )!;
+      const trigger = root.canvasInputs.get(value.parentId)!;
+      const boxes = root.getGeometry([value.id, trigger.id]);
+      return {
+        value: boxes.get(value.id)!.width,
+        trigger: boxes.get(trigger.id)!.width,
+      };
+    };
+    const before = span();
+    expect(before.value).toBeGreaterThan(before.trigger / 2);
+    workspace.execute(detachInstances({ ids: [FIELD], newId: workspace.newId }));
+    const after = span();
+    expect(after.value).toBeGreaterThan(after.trigger / 2);
+    workspace.dispose();
   });
 });

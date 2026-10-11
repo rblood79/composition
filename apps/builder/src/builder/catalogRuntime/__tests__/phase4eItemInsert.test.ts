@@ -196,6 +196,28 @@ describe("ADR-248 4e item insert ('+')", () => {
       visit(recordOf(workspace, host).id);
       expect(keys.length).toBeGreaterThanOrEqual(4);
       expect(new Set(keys).size).toBe(keys.length);
+      if (host === "ListBox") {
+        // G5 example 1: a section after another starts `--spacing-md` lower on the Canvas too (the
+        // ListBoxSection rule's `&:not(:first-child)` margin — the sheet's).
+        const sections = recordOf(workspace, host)
+          .children.map((id) => workspace.root.domInputs.get(id)!)
+          .filter((record) => typeOf(workspace, record) === section);
+        // (The palette ListBox keeps its items first: no section is the first child.)
+        expect(sections.map((record) => record.derivedProps?._firstChild)).toEqual([
+          false,
+          false,
+        ]);
+        // (The gap above a section is the margin over the list's own gap between its items.)
+        const items = recordOf(workspace, host)
+          .children.map((id) => workspace.root.domInputs.get(id)!)
+          .filter((record) => typeOf(workspace, record) === item);
+        const ids = [...items, ...sections].map((record) => record.id);
+        const geometry = workspace.root.getGeometry(ids);
+        const box = (record: CatalogConsumerNode) => geometry.get(record.id)!;
+        const listGap = box(items[1]).y - (box(items[0]).y + box(items[0]).height);
+        const above = box(sections[1]).y - (box(sections[0]).y + box(sections[0]).height);
+        expect(above - listGap).toBe(12);
+      }
       workspace.dispose();
     }
   });

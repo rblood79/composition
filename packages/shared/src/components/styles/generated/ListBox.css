@@ -41,11 +41,19 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-ListBox {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-ListBox > .react-aria-ListBoxSection:not(:first-child) {
+    margin-top: var(--spacing-md);
+  }
 
 
 } /* @layer components */

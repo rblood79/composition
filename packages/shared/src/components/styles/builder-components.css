@@ -57,6 +57,7 @@
 @import "./ColorWheel.css";
 @import "../CollectionErrorState.css";
 @import "./ListBox.css";
+@import "./builder-listbox-section.css"; /* 옛 ListBox.css 의 section 간격 — 생성 CSS 로 옮긴 값 (2026-10-12) */
 @import "./GridList.css";
 @import "./generated/Menu.css";
 @import "./Menu.css";

@@ -330,10 +330,19 @@ function cardTitleText(input: DelegatedDomInput): string {
   }
   return "";
 }
-const marker = (input: DelegatedDomInput) => ({
-  key: input.node.id,
-  "data-catalog-id": input.node.id,
-});
+// (An item's RAC id is its key — `resolveStaticItemKey`: a new id remounts the item, RAC refuses an
+// item whose id changes in place — G5 example 8.)
+const marker = (input: DelegatedDomInput) => {
+  const itemKey = resolveStaticItemKey(
+    input.node.props as Record<string, unknown>,
+    input.node.id,
+  );
+  return {
+    key:
+      itemKey === input.node.id ? input.node.id : `${input.node.id}#${itemKey}`,
+    "data-catalog-id": input.node.id,
+  };
+};
 const renderAll = (input: DelegatedDomInput, list = children(input)) =>
   list.map((child) => input.renderChild(child.id));
 /**
@@ -378,7 +387,7 @@ function treeItemElements(
       return createElement(
         AriaTreeItem as ElementType,
         {
-          key: item.id,
+          key: id === item.id ? item.id : `${item.id}#${id}`,
           "data-catalog-id": item.id,
           ...(item.id === input.node.id ? { style: input.style } : {}),
           id,
@@ -404,7 +413,7 @@ function treeItemElements(
       (kid) => catalogTypeName(input.root, kid) === "Text",
     );
     return createElement(TreeItem as ElementType, {
-      key: item.id,
+      key: id === item.id ? item.id : `${item.id}#${id}`,
       "data-catalog-id": item.id,
       // A standalone item is the node itself: its authored inline style (the Tree's items take none).
       ...(item.id === input.node.id ? { style: input.style } : {}),
@@ -1597,6 +1606,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
         !!trigger &&
         catalogTypeName(input.root, popover) === "Popover" &&
         MENU_TRIGGER_TYPES.has(catalogTypeName(input.root, trigger));
+      // (In an Autocomplete RAC names the list — its collection props, "Suggestions" localized —
+      // and a given name wins over them: no fallback there, G5 example 4.)
+      const owner = catalogDomPartParent(input.root, input.node);
+      const autocompleted =
+        !!owner && catalogTypeName(input.root, owner) === "Autocomplete";
       return createElement(
         AriaMenu as ElementType,
         {
@@ -1605,10 +1619,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           className: "react-aria-Menu",
           "data-size": props.size || "M",
           style: input.style,
-          // (RAC needs a name: in a trigger the trigger's; open, the author's or "Menu".)
+          // (RAC needs a name: in a trigger the trigger's, in an Autocomplete RAC's; open, the
+          // author's or "Menu".)
           ...(typeof props["aria-label"] === "string"
             ? { "aria-label": props["aria-label"] }
-            : triggered
+            : triggered || autocompleted
               ? {}
               : { "aria-label": "Menu" }),
           ...(props.selectionMode && props.selectionMode !== "none"

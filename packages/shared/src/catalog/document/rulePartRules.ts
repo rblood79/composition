@@ -689,6 +689,29 @@ function sizeNames(rule: ComponentRule): string[] {
 }
 
 /**
+ * The top margin a parent's rule gives a child after a sibling (its `staticSelectors`
+ * `> .react-aria-{Child}:not(:first-child)` `margin-top`, px) — a ListBox's gap above a section
+ * after another (G5 example 1). Undefined when the parent's rule has none.
+ */
+export function catalogNotFirstChildMarginTop(
+  parentType: string,
+  childType: string,
+): number | undefined {
+  const composition = (
+    COMPONENT_RULES_TABLE as Record<
+      string,
+      { structure?: { composition?: unknown } }
+    >
+  )[parentType]?.structure?.composition as
+    | { staticSelectors?: Record<string, Record<string, string>> }
+    | undefined;
+  const value =
+    composition?.staticSelectors?.[
+      `> .react-aria-${childType}:not(:first-child)`
+    ]?.["margin-top"];
+  return value === undefined ? undefined : lengthPx(value);
+}
+/**
  * Inline padding of a DateInput's RAC date segments (the DateInput rule's `.react-aria-DateSegment`
  * bridge, `padding: 0 2px` — ADR-253: one definition for every date field): editable segments
  * carry it on both sides, literals do not (`[data-type="literal"] { padding: 0 }`).

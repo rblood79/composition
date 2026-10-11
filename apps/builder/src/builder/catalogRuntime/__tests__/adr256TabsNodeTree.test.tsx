@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { createElement } from "react";
+import { act, createElement } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Button } from "react-aria-components/Button";
 import {
@@ -157,6 +158,34 @@ describe("ADR-256 Phase 5e — a Tab's selection bar is its SelectionIndicator n
       ),
     );
     expect(tabListStructure(html())).toBe(tabListStructure(reference));
+  });
+
+  it("an open view takes a Tab's new id (RAC refuses an item's id change in place — G5 example 8)", async () => {
+    const { workspace, root, of } = await open();
+    (
+      globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+    ).IS_REACT_ACT_ENVIRONMENT = true;
+    // (jsdom has no Web Animations: RAC's SelectionIndicator reads them when it moves.)
+    (
+      Element.prototype as { getAnimations?: () => Animation[] }
+    ).getAnimations ??= () => [];
+    const host = document.body.appendChild(document.createElement("div"));
+    const reactRoot = createRoot(host);
+    const id = [...root.domInputs.values()].find((r) => r.sourceId === TABS)!.id;
+    await act(async () => reactRoot.render(renderCatalogDom(root, id)));
+    const tab = of("Tab")[0]!;
+    workspace.root.execute(
+      setFields({
+        targets: [workspace.positionOfRecord(tab.id)!.target],
+        props: { id: set("first") },
+      }),
+    );
+    await act(async () => reactRoot.render(renderCatalogDom(root, id)));
+    expect(host.querySelector('[role="tab"]')?.getAttribute("data-key")).toBe(
+      "first",
+    );
+    await act(async () => reactRoot.unmount());
+    host.remove();
   });
 
   it("on the Canvas only the selected Tab's indicator is there, and it follows the selection", async () => {

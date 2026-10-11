@@ -13,6 +13,7 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import {
   insertNodes,
+  removeTargets,
   setFields,
   setLibraryDefault,
 } from "../../../../../../packages/shared/src/catalog/commands";
@@ -200,6 +201,23 @@ describe("ADR-254 Phase 2 — the containers' parts are origin instances", () =>
     );
     expect(html).toMatch(/<section [^>]*aria-label="Dialog"/);
     expect(html).not.toContain("aria-labelledby");
+
+    // G5 example 4: in a DialogTrigger RAC names a titleless Dialog by its trigger — no fallback.
+    const triggered = await place(origin("dialog"));
+    const heading = triggered.parts("heading")[0];
+    triggered.workspace.execute(
+      removeTargets({
+        targets: [triggered.workspace.positionOfRecord(heading.id)!.target],
+      }),
+    );
+    expect(
+      renderToStaticMarkup(
+        renderCatalogDom(
+          triggered.workspace.root,
+          dialogOf(triggered.workspace, triggered.root()),
+        ),
+      ),
+    ).not.toContain('aria-label="Dialog"');
   });
 });
 

@@ -6711,6 +6711,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           focusRing: "{focus.ring.default}",
         },
       },
+      // G5 example 1 (2026-10-12): a section after another starts `--spacing-md` (12px) lower — once
+      //   only in the manual `ListBox.css`, which the Canvas does not read. The Canvas reads this
+      //   selector with the resolver's `_firstChild` (`catalogNotFirstChildMarginTop`). (The
+      //   section's own generated sheet stays unloaded — ADR-238: its base would change the DOM.)
+      composition: {
+        delegation: [],
+        staticSelectors: {
+          "> .react-aria-ListBoxSection:not(:first-child)": {
+            "margin-top": "var(--spacing-md)",
+          },
+        },
+      },
     },
   },
   ListBoxItem: {

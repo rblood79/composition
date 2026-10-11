@@ -705,10 +705,14 @@ export function resolveCatalogNode(
         ? ruleDefinitionOf(ruleOwner.definitionId)
         : lookupDefinition(ruleOwner.definitionId);
       if (!("partRules" in ownerDefinition)) continue;
+      // (The wrapper a `via` rule names is its type: an owned instance of the type's origin — a
+      // detached Select's trigger, `origin-component-button` — is that type, G5 example 3.)
+      const viaType = via && (ruleDefinitionOf(via) as { id?: string }).id;
       for (const rule of ownerDefinition.partRules ?? [])
         if (
           rule.child.definitionId === definitionId &&
-          rule.child.via === via &&
+          (rule.child.via === via ||
+            (viaType !== undefined && rule.child.via === viaType)) &&
           matches(rule.child.props, props) &&
           (!via || matches(rule.child.viaProps, owner.props)) &&
           matches(rule.when, ruleOwner.props) &&

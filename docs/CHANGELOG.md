@@ -11,6 +11,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-256 Phase 11 후속 — G5 예제 결함 8–13] - 2026-10-12
+
+### Fixed
+
+- **Detach 한 Slider 의 SliderOutput 이 thumb 와 끊김** (G5 예제 12 — 결함 8):
+  - **Why**: Detach 하면 Label 에 자동 HTML id 가 붙는다. RAC 는 그 id 로 label · output `for` 는 바꾸지만, thumb input 은 처음 마운트할 때의 id 를 유지한다 (`useId`). 그래서 `for` 가 없는 id 를 가리켰다.
+  - 수정: Slider 의 Label 에는 HTML id 를 싣지 않는다 (Select 트리거와 같은 예외). 위치: `packages/shared/src/catalog/runtime/domBinding.tsx` (`withHtmlId`)
+- **DialogTrigger 안 제목 없는 Dialog 의 이름이 「Dialog」 로 고정됨** (G5 예제 4 — 결함 9):
+  - **Why**: RAC 는 이 경우 트리거 버튼으로 이름을 붙이는데 (`aria-labelledby`), 우리 대체 이름 `aria-label` 이 그것을 덮었다.
+  - 수정: Modal · Popover 를 거쳐 DialogTrigger 안에 있으면 대체 이름을 넣지 않는다. 같은 패턴으로, Autocomplete 안 Menu 의 대체 이름 「Menu」 도 RAC 이름 (「제안」) 을 덮어서 함께 고쳤다. 위치: `domBinding.tsx` (`inDialogTrigger`) · `delegatedDom.tsx` (menu)
+- **Preview 실행 중 Tab 등 항목의 id 를 바꾸면 RAC 오류** (G5 예제 8 — 결함 10): 「Cannot change the id of an item」
+  - **Why**: 항목의 RAC id 가 바뀌어도 React 요소 key 는 그대로였다.
+  - 수정: 항목 id 가 key 에 들어가 바뀌면 다시 마운트한다 (collection 항목 · MenuItem · delegated 항목 · TreeItem). 위치: `domBinding.tsx` · `delegatedDom.tsx` (`marker`)
+- **Detach 한 Select 의 값 글자가 Canvas 에서 트리거를 채우지 않음** (G5 예제 3 — 결함 11):
+  - **Why**: Select rule 의 「Button 을 거친 SelectValue」 part rule 이 type 정의 (`type-Button`) 를 가리키는데, Detach 한 트리거는 Button 원본의 instance (`origin-component-button`) 라 매칭되지 않았다.
+  - 수정: `via` 를 원본이 가리키는 type 정의로도 맞춘다. 위치: `packages/shared/src/catalog/resolution/resolver.ts`
+- **Select 의 선택 값 글자에 `slot="label"` 이 빠짐** (G5 예제 3 — 결함 12):
+  - **Why**: RAC SelectValue 는 Text context 를 비우고, 그 안의 RAC Text 는 `slot` 을 그대로 쓴다. 우리 Text 는 그 경우 slot 을 버렸다.
+  - 수정: Text provider 가 없을 때도 작성한 slot 을 싣는다. 위치: `domBinding.tsx` (text)
+- **section 사이 간격 12px 이 Preview 에만 있음** (G5 예제 1 — 결함 13):
+  - **Why**: 값이 수동 `ListBox.css` 에만 있어 Canvas 가 읽지 못했다.
+  - 수정: ListBox rule 의 `staticSelectors` (`> .react-aria-ListBoxSection:not(:first-child)`) 로 옮겼다. 생성 `ListBox.css` 가 싣고, Canvas 는 resolver 파생값 `_siblingMarginTop` 으로 같은 값을 읽는다. Builder 화면 번들은 생성 CSS 를 싣지 않아, 같은 규칙을 `builder-listbox-section.css` 로 같은 자리에 두었다 (Builder 화면 변화 0). 위치: `componentRulesTable.ts` · `rulePartRules.ts` (`catalogNotFirstChildMarginTop`) · `presence.ts` · `compositionRoot.ts`
+
+### Tests
+
+- `adr256Phase7Review` (Slider output `for`) · `adr254ContainerOrigins` (트리거 안 Dialog) · `adr256MenuTrigger` (Autocomplete 안 Menu 이름) · `adr256TabsNodeTree` (마운트된 Tabs 의 Tab id 변경) · `adr256FollowupsSelect` (Detach 한 Select 값 폭 · SelectValue slot) · `phase4eItemInsert` (section 간격 Canvas). 각 수정을 되돌리면 실패하는 것을 확인했다 (7/7).
+- live: G5 예제 15개를 모두 재실행했다. 예제 1 · 3 · 4 · 8 · 12 · 15 는 구조 통과, Canvas = Preview. 예제 6 의 교체 절차는 7번 수정 뒤 처음 끝까지 실행되어 스크립트를 고쳤다 (넣은 뒤 record id 다시 찾기).
+
 ## [Calendar 「Month and Year Pickers」 스위치 — Properties 한 번에] - 2026-10-11
 
 ### Added

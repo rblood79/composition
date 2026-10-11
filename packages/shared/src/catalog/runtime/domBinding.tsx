@@ -748,6 +748,13 @@ const bindings: Readonly<Record<string, DomBinding>> = {
                 ...(resolution.kind === "unconnected" && resolution.slot
                   ? { slot: resolution.slot }
                   : {}),
+                // (No Text provider above — RAC's Text writes its `slot` as is: a selected item's
+                // label in a SelectValue, which clears the context — G5 example 3.)
+                ...(resolution.kind === "none" &&
+                typeof node.props.slot === "string" &&
+                node.props.slot !== ""
+                  ? { slot: node.props.slot }
+                  : {}),
               },
               text,
             )
@@ -1596,6 +1603,25 @@ function submenuTriggerChildren(
   return item ? (popover ? [item, popover] : [item]) : [];
 }
 
+/** The overlays between a Dialog and its DialogTrigger (RAC's trigger context reaches through). */
+const DIALOG_TRIGGER_OVERLAYS = new Set(["Modal", "ModalOverlay", "Popover"]);
+/** The Dialog sits in a DialogTrigger's overlay (layout frames skipped — `catalogDomPartParent`). */
+function inDialogTrigger(
+  root: CatalogCompositionRoot,
+  dialog: CatalogConsumerNode,
+): boolean {
+  for (
+    let parent = catalogDomPartParent(root, dialog);
+    parent;
+    parent = catalogDomPartParent(root, parent)
+  ) {
+    const type = catalogTypeName(root, parent);
+    if (type === "DialogTrigger") return true;
+    if (!type || !DIALOG_TRIGGER_OVERLAYS.has(type)) return false;
+  }
+  return false;
+}
+
 /** A Dialog's title: a Heading below it with RAC's `title` slot (not one of a nested Dialog). */
 function dialogTitleOf(
   root: CatalogCompositionRoot,
@@ -1779,8 +1805,15 @@ function ruleDom(
   if (menuWidth) style = { ...menuWidth, ...style };
   // A Dialog is named by its title (RAC `Heading slot="title"` → `aria-labelledby`, ADR-254); one
   // without a title (and without the author's name) keeps the fallback name. RAC drops the title
-  // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here.
-  if (lower === "dialog" && !node.ariaLabel && !dialogTitleOf(root, node))
+  // link whenever an `aria-label` is given (`useDialog`), so the fallback is decided here. In a
+  // DialogTrigger RAC names a titleless Dialog by its trigger (`aria-labelledby` = the trigger's
+  // id): no fallback there (G5 example 4).
+  if (
+    lower === "dialog" &&
+    !node.ariaLabel &&
+    !dialogTitleOf(root, node) &&
+    !inDialogTrigger(root, node)
+  )
     rest["aria-label"] = "Dialog";
   // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
   // draws none of its own.
@@ -1884,15 +1917,26 @@ function ruleDom(
     resizable && (lower === "table" || lower === "tableview")
       ? tableColumnWidthKey(root, node)
       : undefined;
+  // A collection item's RAC id is its key (`resolveStaticItemKey`); RAC refuses an item whose id
+  // changes in place ("Cannot change the id of an item" — an open Preview while the author sets a
+  // Tab's id, G5 example 8): the key remounts the item instead.
+  const itemKey =
+    STATIC_ITEM_TYPES.has(type) || lower === "menuitem"
+      ? resolveStaticItemKey(node.props as Record<string, unknown>, node.id)
+      : undefined;
+  const ownKey =
+    itemKey !== undefined && itemKey !== node.id
+      ? `${node.id}#${itemKey}`
+      : node.id;
   const element = createElement(
     Component,
     {
       key:
         widthKey !== undefined
-          ? `${node.id}|${widthKey}`
+          ? `${ownKey}|${widthKey}`
           : rowSpans === undefined
-            ? node.id
-            : `${node.id}|${rowSpans}`,
+            ? ownKey
+            : `${ownKey}|${rowSpans}`,
       "data-catalog-id": node.id,
       ...binding?.staticAttrs,
       ...rest,
@@ -3066,9 +3110,20 @@ function withHtmlId(
     node.bindingId === "button" &&
     parent?.bindingId === "select" &&
     Boolean(parent.htmlId);
+  // (A Slider's thumb input takes its id from the label's at mount (`getSliderThumbId` — RAC's
+  // `useId` keeps the first value): the author's label id would rename the label and the
+  // SliderOutput's `for` but not the input — the output lost its thumb. A detached Slider's Label
+  // has an automatic id — G5 example 12.)
+  const sliderLabel =
+    type === "Label" &&
+    (() => {
+      const owner = catalogDomPartParent(root, node);
+      return owner !== undefined && catalogTypeName(root, owner) === "Slider";
+    })();
   if (
     node.htmlId &&
     !selectTrigger &&
+    !sliderLabel &&
     !STATIC_ITEM_TYPES.has(type) &&
     type !== "TabPanel"
   ) {

@@ -248,6 +248,10 @@ describe("ADR-256 후속 4 — a Menu in an Autocomplete is the open list (G0 ex
     const items = () =>
       view.getAllByRole("menuitem").map((item) => item.textContent);
     expect(items()).toEqual(LABELS);
+    // (G5 example 4: RAC names the list in an Autocomplete — no "Menu" fallback over it.)
+    const name = view.getByRole("menu").getAttribute("aria-label");
+    expect(name).toBeTruthy();
+    expect(name).not.toBe("Menu");
     const input = view.container.querySelector("input")!;
     await act(async () => {
       fireEvent.change(input, { target: { value: "AR" } });

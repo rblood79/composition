@@ -1,0 +1,13 @@
+/*
+ * Builder 화면 전용 — section 사이 간격 (단위 입력 팝업 등 RAC ListBoxSection 을 쓰는 Builder UI).
+ * 같은 규칙이 공용 ListBox.css 에 있다가 2026-10-12 catalog ListBox rule 의 staticSelectors 로
+ * 옮겨졌다 (생성 ListBox.css — Preview/publish 가 싣고 Canvas 도 같은 값을 읽는다). builder 번들은
+ * 생성 CSS 를 싣지 않으므로 (builder-components.css 머리말) 그날의 규칙을 같은 자리에 둔다.
+ */
+@layer components {
+  .react-aria-ListBox {
+    .react-aria-ListBoxSection:not(:first-child) {
+      margin-top: var(--spacing-md);
+    }
+  }
+}
