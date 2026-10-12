@@ -77,7 +77,7 @@ git log --since="<위 날짜>" --oneline | wc -l
 
 - **굵은 제목 + 줄바꿈 + 들여쓴 하위 설명** 구조 (기존 2026-04-06 이전 엔트리와 동일)
 - ADR 관련 항목은 **반드시 ADR 번호 + Phase 명시** (예: `ADR-908 Phase 3-A — component spec shapes consumer 전환`)
-- 위치 정보는 **경로 명시** (예: `위치: packages/specs/src/primitives/fillTokens.ts`)
+- 위치 정보는 **경로 명시** (예: `위치: packages/rendering/src/utils/fillTokens.ts`)
 - 근본 원인 있는 버그는 **"Why:"** 한 줄 포함 — 단순 "X 가 Y 로 변경됨" 금지
 
 ```markdown

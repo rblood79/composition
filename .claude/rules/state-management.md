@@ -20,15 +20,15 @@ paths:
 
 ## 1. 무엇이 어디에 있나
 
-| 상태                                                  | 정본                                                                                                     | 읽기                                                                                                  |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| 문서 (페이지 · 노드 · 정의 · interaction · 상태 변수) | `CatalogGraph` (`packages/shared/src/catalog/document/graph.ts`) — `CatalogRuntime` (`controller.ts`) 안 | `graph.getEntry` · `ownerOf` · `CatalogReadModel` (`readModel.ts`) · `useCatalog*` hook (`react.tsx`) |
-| 요소 순서                                             | `NodeEntry.children` · `PageEntry.children` 배열 (ADR-118), 페이지 순서는 `ProjectEntry.pageIds`         | 같은 배열. `order_num` 은 없다 (옛 프로젝트 로드 때 걷어냄)                                           |
-| 선택 · hover · 편집 맥락 · breakpoint                 | `CatalogSession` (`session.ts`) — step 마다 `reconcile()` 로 사라진 대상을 뺀다                          | `useCatalogSession`                                                                                   |
-| 히스토리                                              | 프로젝트당 스택 하나 (`ProjectSession.undo/redo` — `controller.ts`)                                      | `CatalogHistoryStore` (`history.ts`, History 패널)                                                    |
-| 저장                                                  | IndexedDB `composition-catalog-projects-v1` (`storage.ts`) — `CatalogAutosave` (`autosave.ts`)           | —                                                                                                     |
-| 데이터 (collections · 프로젝트 변수 · API endpoint)   | `useDataStore` (`stores/data.ts`) — 문서 밖 (H1: 행은 문서에 들어가지 않는다)                            | `useDataStore` · Canvas 는 `catalogBoundRows` (`dataBinding.ts`)                                      |
-| UI (패널 배치 · 캔버스 설정)                          | `builderUiStore` (`stores/builderUiStore.ts`) 외 작은 store (toast · conversation · commandRegistry …)   | Zustand selector                                                                                      |
+| 상태                                                  | 정본                                                                                                     | 읽기                                                                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 문서 (페이지 · 노드 · 정의 · interaction · 상태 변수) | `CatalogGraph` (`packages/shared/src/catalog/document/graph.ts`) — `CatalogRuntime` (`controller.ts`) 안 | `graph.getEntry` · `ownerOf` · `CatalogReadModel` (`readModel.ts`) · `useCatalog*` hook (`react.runtime.ts`) |
+| 요소 순서                                             | `NodeEntry.children` · `PageEntry.children` 배열 (ADR-118), 페이지 순서는 `ProjectEntry.pageIds`         | 같은 배열. `order_num` 은 없다 (옛 프로젝트 로드 때 걷어냄)                                                  |
+| 선택 · hover · 편집 맥락 · breakpoint                 | `CatalogSession` (`session.ts`) — step 마다 `reconcile()` 로 사라진 대상을 뺀다                          | `useCatalogSession`                                                                                          |
+| 히스토리                                              | 프로젝트당 스택 하나 (`ProjectSession.undo/redo` — `controller.ts`)                                      | `CatalogHistoryStore` (`history.ts`, History 패널)                                                           |
+| 저장                                                  | IndexedDB `composition-catalog-projects-v1` (`storage.ts`) — `CatalogAutosave` (`autosave.ts`)           | —                                                                                                            |
+| 데이터 (collections · 프로젝트 변수 · API endpoint)   | `useDataStore` (`stores/data.ts`) — 문서 밖 (H1: 행은 문서에 들어가지 않는다)                            | `useDataStore` · Canvas 는 `catalogBoundRows` (`dataBinding.ts`)                                             |
+| UI (패널 배치 · 캔버스 설정)                          | `builderUiStore` (`stores/builderUiStore.ts`) 외 작은 store (toast · conversation · commandRegistry …)   | Zustand selector                                                                                             |
 
 요소 · 문서 Zustand store 는 없다. `useStore` · `elementsMap` · `childrenMap` 를 새로 만들지 않는다.
 

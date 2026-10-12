@@ -42,13 +42,13 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 ## 2. DOM 렌더 매핑
 
-| 심볼                                                | 위치                                                                                             | 내용                                                                                                                                                                              |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `domBinding.tsx`                                    | `packages/shared/src/catalog/runtime/` (Builder 쪽 `catalogRuntime/domBinding.tsx` 는 host 배선) | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)                                                                                                                          |
-| `catalogDomRendersNode` · `ownsChild`               | `packages/shared/src/catalog/runtime/domBinding.tsx` · `delegatedDom.tsx`                        | 자식이 자기 DOM 요소를 그리는지 — delegated binding 의 `ownsChild` 가 부모가 삼키는 자식을 말한다 (옛 `CATALOG_DOM_CHILD_OWNING_BINDINGS` 표는 ADR-256 Phase 6e `a49bf13af` 삭제) |
-| renderer registry                                   | `apps/builder/src/preview/components/canonicalRendererRegistry.ts`                               | 타입 → shared 컴포넌트 (`@composition/shared/components/*`)                                                                                                                       |
-| `RENDER_FACET_DELEGATIONS`                          | `apps/builder/src/preview/components/renderFacetDeclaration.ts`                                  | delegating 렌더 선언 (순수 데이터)                                                                                                                                                |
-| `ENTRY_DERIVED_DEFAULT_TYPES` · `DEFAULT_PROPS_MAP` | `types/builder/defaultPropsDerivation.ts` · `unified.types.ts`                                   | 기본 props — 신규는 catalog binding 파생 경로 우선                                                                                                                                |
+| 심볼                                                | 위치                                                                                            | 내용                                                                                                                                                                              |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `domBinding.runtime.ts`                             | `packages/shared/src/catalog/runtime/` (Builder 쪽 `catalogRuntime/domBinding.ts` 는 host 배선) | catalog consumer 노드 → React (Canvas 와 같은 해석 결과)                                                                                                                          |
+| `catalogDomRendersNode` · `ownsChild`               | `packages/shared/src/catalog/runtime/domBinding.runtime.ts` · `delegatedDom.runtime.ts`         | 자식이 자기 DOM 요소를 그리는지 — delegated binding 의 `ownsChild` 가 부모가 삼키는 자식을 말한다 (옛 `CATALOG_DOM_CHILD_OWNING_BINDINGS` 표는 ADR-256 Phase 6e `a49bf13af` 삭제) |
+| renderer registry                                   | `packages/shared/src/catalog/runtime/domRegistry.runtime.ts`                                    | `INTERNAL_RENDERERS` 등 catalog DOM의 shared 컴포넌트 연결                                                                                                                        |
+| `RENDER_FACET_DELEGATIONS`                          | `packages/shared/src/catalog/runtime/renderFacetDeclaration.ts`                                 | delegating 렌더 선언 (순수 데이터)                                                                                                                                                |
+| `ENTRY_DERIVED_DEFAULT_TYPES` · `DEFAULT_PROPS_MAP` | `types/builder/defaultPropsDerivation.ts` · `unified.types.ts`                                  | 기본 props — 신규는 catalog binding 파생 경로 우선                                                                                                                                |
 
 ---
 
@@ -66,7 +66,7 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 | `bindings` 표              | `canvasBinding.ts` |   ❌   | rule 대신 전용 binding 으로 그리는 키 (composite · frame · group · slot · box · icon · selecttrigger · 텍스트 계열 …) |
 | `TRIGGER_OVERLAY_CHILDREN` | `presence.ts`      |   ❌   | 닫힌 overlay 의 자식 — 레이아웃 상자 0, Canvas 미렌더 (옛 `POPOVER_CHILDREN_TAGS`)                                    |
 
-`_hasChildren` 3-branch 코드: `rulePaint.ts` — SHELL_ONLY → 항상 / TreeItem · Menu 명시 예외 / CHILD_PROP_MERGE → 차단 / 그 외 → `node.children.length > 0`. 판정 알고리즘은 정본 §2.5.
+`_hasChildren` 3-branch 코드: `rulePaint.ts` — SHELL_ONLY → 항상 / TreeItem 명시 예외 / CHILD_PROP_MERGE → 차단 / 그 외 → `node.children.length > 0`. 판정 알고리즘은 정본 §2.5.
 
 부모 · 자식 의존 재계획 (옛 `StoreRenderBridge` incrementalSync 확장의 현행 형태): `compositionRoot.ts` `planInstances` — `partRuleChildren` · presence dependents · breadcrumb items 를 같은 step 에 다시 계획한다.
 
@@ -76,9 +76,9 @@ Canvas 게이트: `canvasBinding.ts` — `bindingKey(node)` 가 bindings 표에 
 
 ### Spec/렌더 매핑
 
-| 심볼                                 | 위치                                                                | 내용                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `bindings` · `CATALOG_DELEGATED_DOM` | `packages/shared/src/catalog/runtime/{domBinding,delegatedDom}.tsx` | DOM binding 매핑 (옛 `rendererMap` · `@composition/shared/renderers` 는 2026-10-07 삭제) |
+| 심볼                                 | 위치                                                                       | 내용                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `bindings` · `CATALOG_DELEGATED_DOM` | `packages/shared/src/catalog/runtime/{domBinding,delegatedDom}.runtime.ts` | DOM binding 매핑 (옛 `rendererMap` · `@composition/shared/renderers` 는 2026-10-07 삭제) |
 
 ---
 

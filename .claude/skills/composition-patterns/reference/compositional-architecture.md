@@ -38,7 +38,7 @@ binding 없고 node.ruleId 있음 → ruleNodeData → catalogRuleNodeData / cat
 rule 이 table 에 없음 → throw CATALOG_CANVAS_RULE_REQUIRED:<ruleId>
 ```
 
-DOM (Preview) 은 `catalogRuntime/domBinding.tsx` 가 같은 해석 결과 (`CatalogConsumerNode`) 를 렌더한다 — 두 경로는 catalog 의 **대등한 symmetric consumer** (ssot-hierarchy.md D3).
+DOM (Preview) 은 `catalogRuntime/domBinding.ts` 가 같은 해석 결과 (`CatalogConsumerNode`) 를 렌더한다 — 두 경로는 catalog 의 **대등한 symmetric consumer** (ssot-hierarchy.md D3).
 
 ## 2. 대표 사례 — Select (템플릿 자식)
 
@@ -58,7 +58,7 @@ Select
 ```
 
 - 항목은 ListBox가 소유한다. Select 직계 자식으로 넣지 않는다. 실제 template은
-  `document/generated/reusableOriginLibrary.ts`, DOM 경로는 `runtime/delegatedDom.tsx`의 `select`다.
+  `document/generated/reusableOriginLibrary.ts`, DOM 경로는 `runtime/delegatedDom.runtime.ts`의 `select`다.
 - `{label}` 등 원본 prop 바인딩은 `resolution/resolver.ts`가 해석한다. 빈 문구의 존재 조건과
   RAC 값 바인딩은 [RAC 조립 계약](../rules/domain-rac-composition.md)을 따른다.
 - 시각값은 rule과 노드의 typed field에서 읽는다. 닫힌 Popover의 자식은 Canvas에서 숨긴다.

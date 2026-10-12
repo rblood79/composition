@@ -14,7 +14,7 @@ tags: [validation, security, boundary]
 
 - Builder 수신: `apps/builder/src/builder/workspace/canvas/catalog/CatalogPreviewFrame.tsx`의
   iframe `event.source`와 `event.origin` 검증을 유지한다.
-- Preview 수신: `apps/builder/src/preview/catalog/CatalogPreviewApp.tsx`에서
+- Preview 수신: `apps/builder/src/preview/catalog/catalogPreviewApp.ts`에서
   `event.origin === window.location.origin` 및 `event.source === window.parent`를 확인한 뒤
   `CatalogPreviewSession.receive(event.data)`에 넘긴다. 개발 모드도 검증한다.
 - `CATALOG_SNAPSHOT` · `CATALOG_DELTA` 등의 payload 판정은 기존 session/channel 경로를 쓴다.

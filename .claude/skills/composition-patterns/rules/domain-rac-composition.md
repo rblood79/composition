@@ -20,7 +20,7 @@ collection id/textValue·상태·overlay 연결을 담당하며, 작성 자식�
 
 ADR-256 Phase 11 (2026-10-12) 에서 미전환 family 제한 표를 삭제했다 — 모든 family 가 노드 트리로
 그리고, 넣을 수 있는 자식은 `componentTraits.ts` 의 children 종류 (RAC 항목 목록 · 자유 내용) 하나가 정한다.
-새 family 도 이 경로로 추가한다: binding (`runtime/domBinding.tsx` · `delegatedDom.tsx`) 은 RAC 요구 값만
+새 family 도 이 경로로 추가한다: binding (`runtime/domBinding.runtime.ts` · `delegatedDom.runtime.ts`) 은 RAC 요구 값만
 넘기고, 작성 자식을 고정 props 로 재조립하는 renderer 를 새로 두지 않는다. 레퍼런스 예제와의 구조 비교는
 `apps/builder/scripts/adr256-g5/` 하니스로 확인한다.
 
@@ -67,7 +67,7 @@ Popover·Tooltip 팔레트 원본은 trigger 조합이다. 루트 타입을 이�
 - 명시 주체는 표시명·조상 순번으로 대체하지 않는다. 복사·materialize·이동 시
   `CatalogStateOwnerRef`의 nodeId/instance address/local template 주소를 기존 명령 경로로
   처리한다. 끊긴 명시 주체를 다른 조상으로 fallback하지 않으며 `STATE_OWNER_UNLINKED`를 확인한다.
-- DOM은 `runtime/stateFrames.tsx`의 RAC render props frame을 읽는다. Canvas는 displayState와
+- DOM은 `runtime/stateFrames.ts`의 RAC render props frame을 읽는다. Canvas는 displayState와
   파생 값으로 판정한다. hover·pressed·focus-visible의 실제 상호작용은 Preview에서 검증한다.
 - displayState 는 원본의 표시용 상태다. 인스턴스가 그 상태의 prop (`DISPLAY_STATE_PROPS`) 을
   반대로 작성하면 그 자리에서 끝나고 (`resolver.ts`), 증분 record 갱신도 새 해석의 displayState 를

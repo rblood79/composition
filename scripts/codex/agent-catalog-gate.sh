@@ -2,7 +2,7 @@
 # Agent catalog drift gate — `pnpm run codex:agent-catalog`
 #
 # 정본(.claude/) ↔ Codex 미러(.agents/) ↔ 등록 표면(INDEX×2 / CLAUDE.md 라우팅표 /
-# SessionStart roster×3 / prompt router×2 / Claude settings + Codex hooks.json /
+# Claude SessionStart roster / 수동 Codex router / Claude settings + Codex hooks.json /
 # package.json codex:*)
 # 의 집합 일치를 검사한다. Claude Code 와 Codex 양쪽에서 같은 명령으로 실행.
 #
@@ -212,8 +212,8 @@ CLAUDE_AGENT_REFS=$(grep -oE '`[a-z][a-z-]*` agent' CLAUDE.md | grep -oE '[a-z][
 unknown=$(set_minus "$CLAUDE_AGENT_REFS" "$KNOWN_AGENTS")
 if [ -n "$unknown" ]; then fail "CLAUDE.md 가 언급하는 agent 에 실체 없음: $(printf '%s' "$unknown" | tr '\n' ' ')"; else ok "CLAUDE.md agent 참조 — 전부 실존 ($(norm "$CLAUDE_AGENT_REFS" | wc -l | tr -d ' '))"; fi
 
-# ---------- 7. SessionStart roster ×3 ----------
-section "7. SessionStart roster — Claude live · Codex live · Codex manual"
+# ---------- 7. SessionStart roster와 수동 Codex 진입점 ----------
+section "7. SessionStart roster — Claude live · Codex manual"
 SS=".claude/hooks/session-start.sh"
 ROSTER_SKILLS=$(sh_section "$SS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
 ROSTER_PRESENT=1; [ -z "$ROSTER_SKILLS" ] && ROSTER_PRESENT=0
@@ -232,15 +232,6 @@ while IFS= read -r p; do
   [ -z "$p" ] && continue
   if [ -e "$p" ]; then ok "codex roster 경로 $p"; else fail "codex roster 가 없는 경로 참조: $p"; fi
 done <<<"$(grep -oE '^[[:space:]]+"[^"]+"[[:space:]]*\\?$' "$CSS" | tr -d '" \\' || true)"
-
-XSS=".codex/hooks/session-start.sh"
-CODEX_ROSTER_SKILLS=$(sh_section "$XSS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
-CODEX_ROSTER_ACTIVE=$(node -e 'const c=require("./.codex/hooks.json"); console.log((c.hooks.SessionStart||[]).some(g=>(g.hooks||[]).some(h=>h.command?.includes("session-start.sh"))) ? 1 : 0)')
-if [ "$CODEX_ROSTER_ACTIVE" = 1 ]; then
-  report_set_eq "Codex live roster §핵심 Skills" "Codex roster" "$CODEX_ROSTER_SKILLS" ".claude/skills" "$SKILLS"
-else
-  ok "Codex roster 자동 주입 없음 — skill description이 선택 기준"
-fi
 
 # ---------- 8. prompt router — Codex 만 ----------
 # Claude 라우터 (.claude/hooks/route-prompt.sh) 는 2026-09-09 삭제 (PROMPT_AUDIT_2026-09 A7) — 힌트가 CLAUDE.md·시스템 프롬프트 재삽입이었다.
@@ -327,27 +318,24 @@ else
   ok "잔존 없음"
 fi
 
-# ---------- 12. invocation 정책 — frontmatter ↔ INDEX×2 ↔ Claude/Codex live roster ----------
-section "12. invocation 정책 — disable-model-invocation ↔ INDEX×2 ↔ Claude/Codex live roster"
+# ---------- 12. invocation 정책 — frontmatter ↔ INDEX×2 ↔ Claude live roster ----------
+section "12. invocation 정책 — disable-model-invocation ↔ INDEX×2 ↔ Claude live roster"
 while IFS= read -r s; do
   [ -z "$s" ] && continue
   dmi=$(fm_value ".claude/skills/$s/SKILL.md" disable-model-invocation)
   c_row=$(grep -F "[$s]($s/SKILL.md)" .claude/skills/INDEX.md || true)
   x_row=$(grep -F "($s/SKILL.md)" .agents/skills/INDEX.md || true)
   r_line=$(sh_section "$SS" "핵심 Skills" | grep -E "\`$s\\\\?\`" || true)
-  live_line=$(sh_section "$XSS" "핵심 Skills" | tr -d '\\' | grep -F "\`$s\`" || true)
-  c_has=0; x_has=0; r_has=0; live_has=0
+  c_has=0; x_has=0; r_has=0
   grep -q "사용자 전용" <<<"$c_row" && c_has=1
   grep -q "user-only" <<<"$x_row" && x_has=1
   grep -q "사용자 전용" <<<"$r_line" && r_has=1
   # Claude 로스터가 없으면 (PROMPT_AUDIT_2026-09 A1) 그 표면은 대조에서 뺀다 — 기대값과 같게 둔다.
   if [ "$ROSTER_PRESENT" = 0 ]; then r_has=0; [ "$dmi" = "true" ] && r_has=1; fi
-  grep -q "user-only" <<<"$live_line" && live_has=1
-  if [ "$CODEX_ROSTER_ACTIVE" = 0 ]; then live_has=0; [ "$dmi" = "true" ] && live_has=1; fi
   if [ "$dmi" = "true" ]; then
-    [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && [ "$live_has" = 1 ] && ok "$s — 사용자 전용 (4표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"
+    [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && ok "$s — 사용자 전용 (INDEX·등록 roster 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has"
   else
-    [ "$c_has" = 0 ] && [ "$x_has" = 0 ] && [ "$r_has" = 0 ] && [ "$live_has" = 0 ] && ok "$s — 모델·사용자" || fail "$s — frontmatter 는 모델 호출 허용인데 사용자 전용 표기: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"
+    [ "$c_has" = 0 ] && [ "$x_has" = 0 ] && [ "$r_has" = 0 ] && ok "$s — 모델·사용자" || fail "$s — frontmatter 는 모델 호출 허용인데 사용자 전용 표기: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has"
   fi
 done <<<"$SKILLS"
 
@@ -356,6 +344,7 @@ section "13. tracked symlink — 대상 실존"
 DANGLING=0
 while IFS= read -r p; do
   [ -z "$p" ] && continue
+  if [ ! -e "$p" ] && [ -n "$(git diff --name-only --diff-filter=D -- "$p")" ]; then continue; fi
   if [ ! -e "$p" ]; then fail "dangling symlink (tracked): $p -> $(readlink "$p")"; DANGLING=1; fi
 done <<<"$(git ls-files -s | awk '$1 == "120000" { print $4 }')"
 [ "$DANGLING" = 0 ] && ok "tracked symlink $(git ls-files -s | awk '$1 == "120000"' | wc -l | tr -d ' ')개 전부 해석됨"

@@ -26,7 +26,7 @@ tags: [domain, performance, indexing]
 
 **해석된 record — composition root** (`catalogRuntime/compositionRoot.ts`): `canvasInputs` / `domInputs` / `layoutInputs` 는 같은 `Map<identity, CatalogConsumerNode>` (`parentId` · `children` 포함) 입니다. Canvas · overlay 의 부모 · 자식 탐색은 이 Map 으로 합니다.
 
-**패널 · UI 구독** (`catalogRuntime/react.tsx`):
+**패널 · UI 구독** (`catalogRuntime/react.runtime.ts`):
 
 - `useCatalogSession(select)` — 선택 · 페이지 · hover 등 session field 하나
 - `useCatalogRows(parent)` — Layers 행 (`readModel.pageRows` / `childRows`)
@@ -68,4 +68,4 @@ const selection = useCatalogSession((state) => state.selection);
 
 - `packages/shared/src/catalog/document/graph.ts` — `CatalogGraph` 인덱스 · 읽기 API
 - `apps/builder/src/builder/catalogRuntime/compositionRoot.ts` — record Map
-- `apps/builder/src/builder/catalogRuntime/react.tsx` · `readModel.ts` · `session.ts` · `controller.ts`
+- `apps/builder/src/builder/catalogRuntime/react.runtime.ts` · `readModel.ts` · `session.ts` · `controller.ts`

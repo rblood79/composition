@@ -38,6 +38,10 @@ ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면
 형식으로 기록합니다. `report`와 `close`는 기록된 근거를 사용합니다.
 단순 편집에 별도 run을 만들 필요는 없습니다.
 
+현재 인수인계는 `.agent/task-state.json`, 월별 보관은 `.agent/archives/`,
+작업별 검증은 `.agent/runs/`에 둡니다. 종료된 오래된 기록은 정리하되 미해결 항목과
+문서가 직접 참조하는 검증 근거는 보존합니다. 날짜만으로 작업 완료를 판정하지 않습니다.
+
 `cross-check`·`live-exercise`는 최신 결과가 PASS이고 기록 당시 HEAD·파일 목록·내용이
 현재 검증 범위와 일치할 때만 재사용합니다. snapshot 없는 옛 PASS와 이후 FAIL은 재검증합니다.
 `agent:work -- verify --files a,b`로 범위를 정했다면 evidence 기록에도 `--files a,b`를

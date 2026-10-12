@@ -82,20 +82,39 @@ test("자동 hook은 작업과 무관한 프롬프트 주입·전체 검사를 �
   assert.ok(commands.some((command) => command.includes("auto-format.sh")));
 });
 
-test("폐기된 사용량 진입점은 transcript 집계와 INDEX 쓰기를 실행하지 않는다", () => {
-  for (const script of ["weekly-report.sh", "update-index.sh"]) {
-    const result = spawnSync(
-      "bash",
-      [
-        "-c",
-        'find() { echo unexpected-scan; }; mv() { echo unexpected-write; }; export -f find mv; bash "$1"',
-        "hook-test",
-        `.codex/hooks/${script}`,
-      ],
-      { cwd: root, encoding: "utf8" },
+test("hook audit은 미등록 hook과 끊어진 공용 adapter 연결을 거부한다", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "codex-hook-audit-test-"));
+  const hooksDir = join(fixture, ".codex/hooks");
+  try {
+    mkdirSync(hooksDir, { recursive: true });
+    writeFileSync(join(fixture, ".codex/hooks.json"), JSON.stringify(config));
+    for (const name of [
+      "protect-files.sh",
+      "auto-format.sh",
+      "codex-hook-utils.sh",
+    ]) {
+      writeFileSync(
+        join(hooksDir, name),
+        readFileSync(join(root, ".codex/hooks", name)),
+        { mode: 0o755 },
+      );
+    }
+    const audit = () =>
+      spawnSync(
+        process.execPath,
+        [join(root, "scripts/codex/hook-config-audit.mjs"), fixture],
+        { encoding: "utf8" },
+      );
+    assert.doesNotMatch(audit().stdout, /ERROR/);
+    writeFileSync(join(hooksDir, "legacy.sh"), "#!/bin/bash\nexit 0\n");
+    assert.match(audit().stdout, /ERROR.*미등록 Codex hook: legacy\.sh/);
+    rmSync(join(hooksDir, "legacy.sh"));
+    rmSync(join(hooksDir, "codex-hook-utils.sh"));
+    assert.match(
+      audit().stdout,
+      /ERROR.*공용 hook 파일 없음 codex-hook-utils\.sh/,
     );
-    assert.equal(result.status, 0);
-    assert.equal(result.stdout, "");
-    assert.match(result.stderr, /pnpm run agent:dashboard/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
   }
 });

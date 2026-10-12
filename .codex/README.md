@@ -24,6 +24,8 @@
 - `PostToolUse`: 변경한 일반 파일의 로컬 Prettier 포맷. 심링크와 자동 다운로드는 제외.
   명시적 포맷과 같은 `.prettierignore`로 typed 원본 라이브러리·생성 CSS의 전체 재포맷을 피합니다.
 
+hooks 디렉토리에는 등록된 두 handler와 공용 JSON adapter만 둡니다.
+스냅샷·라우팅·검증은 `pnpm run codex:*` 수동 진입점을 사용합니다.
 실행 검증 명령과 범위별 gate는 `.agents/README.md`를 참조합니다.
 플러그인 cache는 직접 편집하지 않습니다. 연결 정보와 설치본은 유지합니다.
 Composition에서 문서 도구와 범용 data·engineering·Claude API·Claude MD 스킬은

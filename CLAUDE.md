@@ -46,7 +46,7 @@ env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로
 - Codex 와 Claude 는 `.agent/task-state.json` 을 같은 작업 상태 파일로 읽습니다.
 - 세션 시작과 프롬프트에 표시되는 상태를 작업 계약으로 사용하고, 작업 시작·단계 전환·검증 완료·차단 발생 때 JSON 을 갱신합니다.
 - `goal`, `guard`, `stop` 은 사용자 승인 없이 바꾸지 않습니다. 상태 파일은 로컬 전용이며 커밋하지 않습니다.
-- `next` 는 **현재 작업의 체크리스트**다 — 끝난 항목은 `[x]` 로 표시하고, 작업 중 새로 찾은 일은 추가한다. 작업이 끝나면 그 작업의 키는 `.agent/task-state-archive-YYYY-MM.json` 으로 옮긴다 (이력을 상태 파일에 쌓지 않는다). hook 렌더러 (`~/.agent-work/task-state.py`) 가 읽는 키는 `goal` · `phase` · `next` · `guard` · `stop` · `tip` · `updatedAt` 뿐이다.
+- `next` 는 **현재 작업의 체크리스트**다 — 끝난 항목은 `[x]` 로 표시하고, 작업 중 새로 찾은 일은 추가한다. 작업이 끝나면 그 작업의 키는 `.agent/archives/task-state-YYYY-MM.json` 으로 옮긴다 (이력을 상태 파일에 쌓지 않는다). hook 렌더러 (`~/.agent-work/task-state.py`) 가 읽는 키는 `goal` · `phase` · `next` · `guard` · `stop` · `tip` · `updatedAt` 뿐이다.
 
 ## 작업 워크플로
 

@@ -213,7 +213,7 @@ Spec TokenRef: {color.primary}, {color.secondary}, {color.tertiary},
 
 ### Named Color (글로벌 시맨틱 없는 색상)
 
-**ADR-193 (2026-08-27)**: status(`--negative/--informative/--positive/--notice` +`-subtle`) 와 named hue(`--hue-{token}` +`-subtle`) 의 light/dark 팔레트 단계는 `packages/specs/src/primitives/semanticPaletteMap.ts` 표 하나가 정본이다 — Skia `colors.ts` 와 `theme/generated/semantic-palette.css` (`:root` / `[data-theme="dark"]`, `pnpm generate:palette`) 가 같은 표에서 파생. 매핑 파일 (`colorTokenToCss.ts` / `tokenResolver.ts`) 은 semantic var 이름만 고른다. `--indigo` 류 접두 없는 이름은 tint preset 이 점유하므로 named hue 는 `--hue-` 접두 필수. 게이트: `semanticAlias.symmetry.test.ts` (light+dark 전 토큰), `tailwindPalette.drift.test.ts` (생성 byte-diff 0 · hex 0 · ≤5KB).
+**ADR-193 (2026-08-27)**: status(`--negative/--informative/--positive/--notice` +`-subtle`) 와 named hue(`--hue-{token}` +`-subtle`) 의 light/dark 팔레트 단계는 `packages/rendering/src/primitives/semanticPaletteMap.ts` 표 하나가 정본이다 — Skia `colors.ts` 와 `theme/generated/semantic-palette.css` (`:root` / `[data-theme="dark"]`, `pnpm generate:palette`) 가 같은 표에서 파생. 매핑 파일 (`colorTokenToCss.ts` / `tokenResolver.ts`) 은 semantic var 이름만 고른다. `--indigo` 류 접두 없는 이름은 tint preset 이 점유하므로 named hue 는 `--hue-` 접두 필수. 게이트: `semanticAlias.symmetry.test.ts` (light+dark 전 토큰), `tailwindPalette.drift.test.ts` (생성 byte-diff 0 · hex 0 · ≤5KB).
 
 | TokenRef                 | CSS 변수 매핑                        | 용도                                                                                                                                              |
 | ------------------------ | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |

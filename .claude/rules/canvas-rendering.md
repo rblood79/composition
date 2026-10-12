@@ -68,7 +68,7 @@ VariantSpec 의 배경 계열 10+ 필드 + IndicatorModeSpec 의 background\* �
 ## 2.6. Container style pipeline (ADR-907 Implemented)
 
 컨테이너의 padding·gap·border·font 값은 catalog rule과 노드의 typed field에서 읽는다.
-DOM은 `packages/shared/src/catalog/runtime/domBinding.tsx`의 `catalogDomStyle`, Canvas의
+DOM은 `packages/shared/src/catalog/runtime/domBinding.runtime.ts`의 `catalogDomStyle`, Canvas의
 shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`, 레이아웃 입력은 shared `runtime/compositionRoot.ts`의
 `styleOf`에서 해당 값을 소비한다. `props.style`은 consumer가 구성한 입력일 수 있지만
 저작·저장 정본이 아니다 ([style-ssot.md](style-ssot.md)).
@@ -87,15 +87,15 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 
 ## 2.5. `_hasChildren` 컨벤션 (ADR-072)
 
-컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem` · `Menu` 는 Plain 에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
+컨테이너 rule 은 `catalogRuntime/rulePaint.ts` 의 **3-branch 로직**에 따라 `_hasChildren` 주입을 받는다 (옛 `buildSpecNodeData.ts` 의 같은 로직이 이름만 바뀌어 옮겨졌다 — `TreeItem`은 Plain에서도 제외). 신규 컨테이너 추가 시 아래 판정 절차를 따른다.
 
 ### 3분류 정의
 
-| 분류                | Set                      | `_hasChildren=true` 주입 | 예시                                                                                                                                                                                    |
-| ------------------- | ------------------------ | :----------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Shell-only**      | `SHELL_ONLY_TYPES`       |  **자식 수 무관 항상**   | Calendar/RangeCalendar, Card, Dialog, Section, DisclosureGroup, Button/Checkbox/Radio/ToggleButtonGroup, Disclosure, Form, Popover, Tooltip, ColorPicker/ColorSwatchPicker, body (17개) |
-| **Synthetic-merge** | `CHILD_PROP_MERGE_TYPES` |         **차단**         | Breadcrumbs, ComboBox, GridList, Select, Table, Tabs, TagGroup, Toolbar, Tree (9개)                                                                                                     |
-| **Plain**           | (양쪽 다 미포함)         |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너                                                                                 |
+| 분류                | Set                      | `_hasChildren=true` 주입 | 예시                                                                                                    |
+| ------------------- | ------------------------ | :----------------------: | ------------------------------------------------------------------------------------------------------- |
+| **Shell-only**      | `SHELL_ONLY_TYPES`       |  **자식 수 무관 항상**   | 현재 멤버는 shared `rulePaint.ts`에서 확인                                                              |
+| **Synthetic-merge** | `CHILD_PROP_MERGE_TYPES` |         **차단**         | 현재 멤버는 같은 파일에서 확인                                                                          |
+| **Plain**           | (양쪽 다 미포함)         |      자식 있을 때만      | TabPanel, TabPanels (shapes=[]), Frame (ADR-130 — canonical layout container) 및 대부분의 일반 컨테이너 |
 
 ### 판정 알고리즘 (신규 컨테이너 추가 시)
 
@@ -130,7 +130,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 - Generated CSS는 `@layer components { ... }` 래핑 필수. **Why**: unlayered 시 수동 CSS override 실패
 - Label은 catalog `COMPONENT_RULES_TABLE.Label` 경로로 렌더링 (TEXT_TAGS 아님). **Why**: 중복 등록 시 이중 렌더링
 - Label 기본 크기: fit-content (CSS + Factory + 레이아웃 엔진 3경로 동기화 필수)
-- Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제 (`packages/specs` `typography.ts` 의 같은 이름 상수는 specs 내부 계산용)
+- Label size delegation: catalog `COMPONENT_RULES_TABLE.Label` 의 size 블록 + `CATALOG_SIZE_PROPAGATION` (부모 size → Label). 옛 레이아웃 경로의 `LABEL_SIZE_STYLE` DFS 주입은 2026-10-05 삭제
 
 ## 5. 토큰/테마 정합성
 
@@ -199,7 +199,7 @@ shape는 Builder `catalogRuntime/ruleShapes.ts`와 shared `runtime/rulePaint.ts`
 ## 9.5 페이지 레이아웃 적용 — 해석은 한 곳, consumer 는 둘 (2026-10-04 개정)
 
 - 페이지는 레이아웃을 **body 를 레이아웃 정의 (`DefinitionEntry.usage: "layout"`) 의 instance 로 만들고 template slot 을 `fillSlot` override 로 채워** 적용한다 (`packages/shared/src/catalog/document/types.ts`, 생성 명령 `createLayout`).
-- 펼침은 shared resolver (`catalog/resolution/resolver.ts` `resolveCatalogNode` · `positions.ts`) 한 곳이 한다. Canvas (`compositionRoot.ts`) 와 DOM (`domBinding.tsx`, Preview 는 `preview/catalog/catalogPreviewSession.ts`) 는 같은 해석 결과 (`CatalogConsumerNode`) 를 소비한다 — 옛 경로처럼 축마다 합성 층 (`resolvePageWithFrame` · `projectPageFrameNode` · `pageFrameProjection.ts`) 을 두지 않는다.
+- 펼침은 shared resolver (`catalog/resolution/resolver.ts` `resolveCatalogNode` · `positions.ts`) 한 곳이 한다. Canvas (`compositionRoot.ts`) 와 DOM (`domBinding.runtime.ts`, Preview 는 `preview/catalog/catalogPreviewSession.ts`) 는 같은 해석 결과 (`CatalogConsumerNode`) 를 소비한다 — 옛 경로처럼 축마다 합성 층 (`resolvePageWithFrame` · `projectPageFrameNode` · `pageFrameProjection.ts`) 을 두지 않는다.
 - `workspace.root.pageFrameRects()` 의 "page frame" 은 Canvas 위 페이지 사각형이며 레이아웃 투영과 무관하다.
 
 ### 금지 패턴

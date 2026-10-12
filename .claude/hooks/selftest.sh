@@ -274,8 +274,8 @@ case_start "verify --dry-run 은 run 없이 계획만 (exit 0)"
 wk verify --dry-run --files apps/builder/src/builder/factories/x.ts; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise  plan'; then pass; else fail "rc=$RC"; fi
 case_start "start → scope 요약 출력"
 wk start --understood-as "selftest work"; assert_contains "scope: 변경 파일"
-case_start "docs-only verify → 전부 skip, exit 0"
-wk verify --files docs/a.md,.claude/rules/x.md; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'docs/scripts 만 변경'; then pass; else fail "rc=$RC"; fi
+case_start "docs-only verify → 문서 범위 검사, exit 0"
+wk verify --files docs/a.md,.claude/rules/x.md; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'docs/scripts 범위'; then pass; else fail "rc=$RC"; fi
 case_start "사용자-가시·render 경로 verify → cross-check/live block, exit 3"
 wk verify --skip-exec --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts
 if [ "$RC" -eq 3 ] && printf '%s' "$OUT" | grep -q 'block 2'; then pass; else fail "rc=$RC"; fi
@@ -284,13 +284,13 @@ if grep -q '"kind":"live-exercise","status":"block"' "$RUNS3/$(cat "$RUNS3/curre
 case_start "close (block 미해결) → 거부 exit 3"
 wk close "x"; if [ "$RC" -eq 3 ] && printf '%s' "$OUT" | grep -q 'close 거부'; then pass; else fail "rc=$RC"; fi
 case_start "evidence cross-check pass + live-exercise pass → verify 통과 exit 0"
-AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence cross-check pass --detail selftest >/dev/null 2>&1
-AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence cross-check pass --detail selftest --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
+AGENT_RUNS_DIR="$RUNS3" bash "$LEDGER" evidence live-exercise pass --detail selftest --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts >/dev/null 2>&1
 wk verify --skip-exec --files apps/builder/src/builder/factories/x.ts,apps/builder/src/builder/workspace/canvas/skia/y.ts; if [ "$RC" -eq 0 ]; then pass; else fail "rc=$RC"; fi
 case_start "--no-live → 사람 단계 skip"
 wk verify --skip-exec --no-live --files apps/builder/src/builder/factories/x.ts; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise  skip   --no-live'; then pass; else fail "rc=$RC"; fi
-case_start "close → report + closed"
-wk close "selftest done"; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise pass: 1건' && [ ! -f "$RUNS3/current" ]; then pass; else fail "rc=$RC"; fi
+case_start "close → 최신 skip을 PASS로 표시하지 않고 종결"
+wk close "selftest done"; if [ "$RC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'live-exercise pass: 0건' && printf '%s' "$OUT" | grep -q '| live-exercise | skip |' && [ ! -f "$RUNS3/current" ]; then pass; else fail "rc=$RC"; fi
 case_start "resume <id> → current 복구 + phase resumed"
 WID=$(ls "$RUNS3" | grep -v '^current$' | head -1); wk resume "$WID"
 if [ "$RC" -eq 0 ] && [ "$(cat "$RUNS3/current")" = "$WID" ] && jq -e '.phase.status == "resumed" and .endedAt == null' "$RUNS3/$WID/run.json" >/dev/null 2>&1; then pass; else fail "rc=$RC"; fi

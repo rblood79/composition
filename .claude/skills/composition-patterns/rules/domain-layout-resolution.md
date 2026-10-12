@@ -32,7 +32,7 @@ Page 와 재사용 레이아웃의 합성 규칙을 정의합니다.
 | hit-test             | `CatalogCanvasPicking` · `pickTopmostRecord` (`catalogRuntime/canvasPick.ts`)                                                                      |
 | 드롭 · 이동          | `canvasGesture.ts` · Layers `catalogLayerDropCommand` (`layerTree.ts`) → `moveNodes` (`NodeParent` descendant 포함)                                |
 
-- 옛 `deriveProjectRenderModelFromDocument` · `::page-frame::` (`packages/shared/src/utils/export.utils.ts`) 는 publish · export 경로에만 남았습니다. Builder 경로가 아닙니다.
+- Publish도 catalog graph를 같은 resolver로 해석합니다. 옛 문서 projection renderer와 `export.utils.ts`는 삭제됐습니다. `domain/syntheticId.ts`는 옛 ID 문자열을 판별하는 호환 경계이며 렌더링 경로가 아닙니다.
 
 ## 규칙
 

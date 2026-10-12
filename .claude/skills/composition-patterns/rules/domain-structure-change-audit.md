@@ -38,7 +38,7 @@ children 판정·RAC slot·필수 부품·상태 주체 주소와 값 바인딩�
 | 3   | **명령**           | `catalog/commands/collections.ts` (`GROUP_ITEM_TYPES` · `insertGroupItem` · `insertTableRow`) · `commands/items.ts`                                                                        | 항목 추가 / 삭제가 새 래퍼 안으로 가는지                                                            |
 | 4   | **Layers**         | `catalogRuntime/layerTree.ts` · `readModel.ts` · `catalog/resolution/positions.ts`                                                                                                         | 행 순서 · 펼침 · 표시명                                                                             |
 | 5   | **Canvas**         | `catalogRuntime/compositionRoot.ts` (의존 재계획) · `rulePaint.ts` (`CHILD_PROP_MERGE_TYPES` · `SHELL_ONLY_TYPES`) · `ruleShapes.ts` (`BOX_SIZE_TYPES`) · `subpart.ts` · `itemRoles.ts`    | 부모가 자식 props 를 합치는지 · 자식 그리기 · 상자 크기                                             |
-| 6   | **DOM / Preview**  | `packages/shared/src/catalog/runtime/domBinding.tsx` (`catalogDomRendersNode`) · `delegatedDom.tsx` (`ownsChild`)                                                                          | 자식 조회 · RAC 구조 (D1)                                                                           |
+| 6   | **DOM / Preview**  | `packages/shared/src/catalog/runtime/domBinding.runtime.ts` (`catalogDomRendersNode`) · `delegatedDom.runtime.ts` (`ownsChild`)                                                            | 자식 조회 · RAC 구조 (D1)                                                                           |
 | 7   | **Properties**     | `catalogRuntime/editContract.ts` · `panels/properties/catalog/*`                                                                                                                           | 자식 카운트 · 항목 추가 / 삭제 UI                                                                   |
 | 8   | **기존 문서 주소** | `catalog/resolution/address.ts` (`validateInstanceAddress`)                                                                                                                                | 기존 instance 의 `descendantOverrides` address 가 새 템플릿에서 끊기지 않는지 (`DANGLING_TEMPLATE`) |
 
@@ -90,5 +90,5 @@ origin template 구조를 바꾸는 병합은 `document/types.ts`의 `LIBRARY_CO
 - `packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts` — origin 템플릿
 - `packages/shared/src/catalog/nesting/nestingRules.ts` — 중첩 규칙
 - `packages/shared/src/catalog/commands/collections.ts` — 항목 명령
-- `apps/builder/src/builder/catalogRuntime/` — `layerTree.ts` · `compositionRoot.ts` · `rulePaint.ts` · `ruleShapes.ts` · `domBinding.tsx` · `editContract.ts`
+- `apps/builder/src/builder/catalogRuntime/` — `layerTree.ts` · `compositionRoot.ts` · `rulePaint.ts` · `ruleShapes.ts` · `domBinding.runtime.ts` · `editContract.ts`
 - `packages/shared/src/catalog/resolution/address.ts` — instance address 검증

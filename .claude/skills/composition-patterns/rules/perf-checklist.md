@@ -56,7 +56,7 @@ import MonacoEditor from "./MonacoEditor";
 > 문서 · 요소 상태는 Zustand store 가 아니라 catalog runtime 이 소유한다 (ADR-248 — `.claude/rules/state-management.md`).
 
 - [ ] **O(1) 검색**: 문서는 `CatalogGraph.getEntry` · `ownerOf` · `referrersOf` (`packages/shared/src/catalog/document/graph.ts`), Canvas 쪽은 composition root 의 record Map. 문서 전체를 훑어 찾지 않는다
-- [ ] **선택적 구독**: field · 행 단위로 구독 — `useCatalogSession(select)` · `useCatalogRows` (`catalogRuntime/react.tsx`), `runtime.subscribeEntryField` · `subscribeResolvedField` (`catalogRuntime/controller.ts`). 남은 UI store 는 개별 selector
+- [ ] **선택적 구독**: field · 행 단위로 구독 — `useCatalogSession(select)` · `useCatalogRows` (`catalogRuntime/react.runtime.ts`), `runtime.subscribeEntryField` · `subscribeResolvedField` (`catalogRuntime/controller.ts`). 남은 UI store 는 개별 selector
 
 ```typescript
 // ✅ 필요한 값만 구독

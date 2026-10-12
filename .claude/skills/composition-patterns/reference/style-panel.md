@@ -30,7 +30,7 @@ Design 패널 (panels/design/DesignPanel.tsx)
 | `panels/styles/utils/specPresetResolver.ts`                                                   | **catalog 기반 preset** — `resolveComponentRule` / `resolveCatalogContainerBase` / `resolveCatalogContainerVariants` 로 sizes + containerStyles 를 preset 객체로 합성 (ADR-912 Phase 4) |
 | `panels/styles/hooks/useStyleActions.ts`                                                      | 즉시 커밋 액션 — host 메서드 호출, 구독 없음                                                                                                                                            |
 | `panels/styles/hooks/useOptimizedStyleActions.ts`                                             | `updateStyleImmediate` / `updateStyleRAF` (드래그·슬라이더) / `updateStyleIdle` (타이핑) / `updateStylePreview` (미리보기) + `useTransition`                                            |
-| `components/property/PropertyUnitInput.tsx`                                                   | 숫자+단위 입력 — commit 보호 패턴 구현체                                                                                                                                                |
+| `components/property/PropertyUnitInput.components.tsx`                                        | 숫자+단위 입력 — commit 보호 패턴 구현체                                                                                                                                                |
 | `panels/styles/hooks/useResetStyles.ts` (`useHasDirtyStyles` · `useDirtyStyleProps`)          | 섹션 reset 버튼 · 탭 dot — host `useDirtyStyleProps` (= `catalogDirtyStyleProps`, `catalogRuntime/styleDirty.ts`)                                                                       |
 | `panels/styles/sections/styleSectionProps.ts`                                                 | 섹션별 dirty 키 목록 (longhand 전체 포함 — style-ssot.md §4)                                                                                                                            |
 
@@ -46,7 +46,7 @@ Design 패널 (panels/design/DesignPanel.tsx)
 
 ## 3. 선택 전환 ↔ commit 경합 보호
 
-계약 정본은 [state-management.md](../../../rules/state-management.md) §7 · style-ssot.md §5. 구현 위치 (`components/property/PropertyUnitInput.tsx`):
+계약 정본은 [state-management.md](../../../rules/state-management.md) §7 · style-ssot.md §5. 구현 위치 (`components/property/PropertyUnitInput.components.tsx`):
 
 - `lastSavedValueRef` — commit 판정은 **이전 commit 결과 기준 단독**. `value` prop diff 로 판정 금지.
 - `focusedElementIdRef` — focus 시점 선택 id 를 잡고, blur 시 `selection.readSelectedId()` (host `readSelectedId`) 와 비교해 다르면 onChange 를 건너뛴다. mousedown→blur 순서라 blur 시점엔 이미 새 요소가 선택돼 있어, 보호가 없으면 이전 요소 입력값이 새 요소에 적용된다.

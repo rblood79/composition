@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [에이전트 운영 기록·낡은 진입점 정리] - 2026-10-13
+
+### Changed
+
+- Codex hooks는 등록된 보호 파일 검사·자동 포맷과 공용 JSON adapter만 유지한다. 미등록 lifecycle·상태줄·사용량 진입점, 빈 통계 파일, 중복 `.agent/skills` 별칭을 제거했다.
+- 공용 규칙·스킬의 DOM·패널·구독 경로를 현재 분리된 모듈로 갱신했다. 삭제된 Preview registry·Error Boundary 안내와 렌더 분기 멤버 스냅샷을 현재 코드의 계약·소유 위치로 대체했다.
+- **Why**: 미등록 hook과 지난 작업의 시작·차단 상태가 현재 실행 경로·작업 상태처럼 읽힐 수 있었다. 오래된 종료·대체 기록은 정리하고, 문서가 참조하는 증거와 미해결 후속 항목은 유지한다.
+
+### Tests
+
+- Hook audit은 등록된 handler의 공용 adapter 의존성과 미등록 hook 재유입을 검사한다. 끊어진 adapter·미등록 파일의 거부 fixture, 기존 hook·workflow·스킬·카탈로그 게이트로 검증한다.
+
 ## [S2 정렬 — 레퍼런스에 없는 variant 삭제] - 2026-10-12
 
 ### Removed

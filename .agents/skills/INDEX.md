@@ -5,7 +5,7 @@ Codex에는 각 skill의 이름과 description이 제공됩니다. 이 파일은
 
 ## 작업별 진입점
 
-- [composition-patterns](composition-patterns/SKILL.md): canonical 상태·레이아웃·렌더링 계약
+- [composition-patterns](composition-patterns/SKILL.md): catalog runtime 상태·레이아웃·렌더링 계약
 - [component-design](component-design/SKILL.md): 새 컴포넌트·S2 전환
 - [cross-check](cross-check/SKILL.md): Canvas·Preview 시각 정합성
 - [react-aria](react-aria/SKILL.md): 설치된 RAC API

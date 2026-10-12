@@ -11,7 +11,7 @@ palette 삽입
   → insertNodes — 노드 1개 (합성이면 reusable origin instance)
   → resolver 가 정의 템플릿 (templateRootId) 을 펼쳐 자식 위치를 만든다
   → CatalogConsumerNode 트리 (composition root)
-     DOM (Preview)  — domBinding.tsx 가 RAC 합성
+     DOM (Preview)  — domBinding.runtime.ts 가 RAC 합성
      Canvas         — canvasBinding.ts binding / ruleShapes.ts rule 실행기
                       + rulePaint.ts 의 _hasChildren 3-branch 로 부모/자식 렌더 분담 결정
 ```
@@ -24,8 +24,8 @@ palette 삽입
 
 ### 멤버십 (파일이 정본 — 본 문서에 복제하지 않음)
 
-- `SHELL_ONLY_TYPES` — 17개 (Calendar/RangeCalendar/Card/Dialog/…/body), 모듈 비공개
-- `CHILD_PROP_MERGE_TYPES` — 9개 (Breadcrumbs/ComboBox/GridList/Select/Table/Tabs/TagGroup/Toolbar/Tree), export (옛 `SYNTHETIC_CHILD_PROP_MERGE_TAGS`)
+- `SHELL_ONLY_TYPES` — 모듈 비공개. 현재 멤버는 `packages/shared/src/catalog/runtime/rulePaint.ts`에서 확인한다.
+- `CHILD_PROP_MERGE_TYPES` — 같은 파일의 export. 현재 멤버 목록을 문서에 복제하지 않는다.
 
 | 소비처                                                       | 효과                                                                                                                       |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
@@ -39,7 +39,6 @@ palette 삽입
 if (SHELL_ONLY_TYPES.has(type)) props._hasChildren = true;
 else if (
   type !== "TreeItem" &&
-  type !== "Menu" &&
   !CHILD_PROP_MERGE_TYPES.has(type) &&
   node.children.length > 0
 )
@@ -49,7 +48,6 @@ else if (
 - **Shell-only**: 자식 수 무관 항상 주입 — 자식을 모두 지워도 standalone 복귀 금지.
 - **Child-prop-merge**: 주입 차단 — 부모 shapes 가 자식 props 를 통합 렌더.
 - **Plain**: 자식 있을 때만 주입.
-- **Menu 예외**: 자식은 Popover 항목이고 trigger는 자기 label을 그리므로 제외.
 - **TreeItem 예외**: 자식 TreeItem 이 있어도 자기 행 (chevron+label) 을 그려야 하므로 제외.
 
 소비 측: `buildCatalogShapes` 는 `_hasChildren` 이면 shell (bg+border) 만 반환하는 early return 을 갖고, CHILD_PROP_MERGE 의 text 차단 (`shellProps`) 과 직교로 동작한다.
@@ -65,7 +63,7 @@ Properties 편집은 `catalogSemanticPatchCommand` / `catalogPropertiesPatchComm
 
 RAC의 `showWhen`·`presentWhen`·상태 주체·render props 값 바인딩은
 [RAC 조립 계약](../rules/domain-rac-composition.md)이 정본이다. `valueBindings.ts`와
-`stateFrames.tsx`의 경로를 위 원본 prop 전달과 구분한다.
+`stateFrames.ts`의 경로를 위 원본 prop 전달과 구분한다.
 
 부모와 자식을 실제로 함께 바꿔야 하는 편집은 `composeCommands` 로 한 entry 에 묶는다 (state-management.md).
 

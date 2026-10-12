@@ -55,6 +55,6 @@ host.updateStyle(property, value);
 ## 참조 파일
 
 - `apps/builder/src/builder/catalogRuntime/editContract.ts`
-- `apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.tsx`
+- `apps/builder/src/builder/panels/properties/catalog/CatalogPropertiesPanel.components.tsx`
 - `apps/builder/src/builder/panels/styles/catalog/catalogStylesHost.ts`
 - `apps/builder/src/builder/panels/navigator/catalog/useCatalogCommandRunner.ts`
