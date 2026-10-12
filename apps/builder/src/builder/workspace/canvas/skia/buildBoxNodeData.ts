@@ -5,41 +5,41 @@
  * element.props + layoutMap에서 구축한다.
  */
 
-import { resolveBorderPaint } from "../styleConversion/borderGeometry";
 import type { BorderStyleValue, TokenRef } from "@composition/rendering";
-import { resolveColor, hexStringToNumber } from "@composition/rendering";
+import { hexStringToNumber, resolveColor } from "@composition/rendering";
 import { resolveComponentRule } from "@composition/shared";
-import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
-import type { SkiaNodeData } from "./nodeRendererTypes";
-import type { ComputedLayout } from "../layout/engines/LayoutEngine";
-import type { EffectStyle, FillStyle } from "./types";
+import { FillType, type FillItem } from "../../../../types/builder/fill.types";
 import {
-  convertStyle,
-  buildSkiaEffects,
-  parseClipPath,
-  applyTransformOrigin,
-  parseTransformOrigin,
-  cssColorToAlpha,
-  colorIntToFloat32,
-} from "../styleConversion/styleConverter";
-import {
-  parseZIndex,
-  createsStackingContext,
-} from "../layout/engines/cssStackingContext";
-import {
-  resolveEffectiveOverflow,
-  resolveEffectiveBoxShadow,
-} from "../layout/engines/implicitStyles";
-import {
+  cssBgImageToSkia,
   fillsToSkiaFillColor,
+  fillsToSkiaFillStyle,
   fillsToSkiaFillUnderlays,
   fillsToSkiaImageTopLayers,
-  fillsToSkiaFillStyle,
   getTopEnabledFill,
-  cssBgImageToSkia,
 } from "../../../panels/styles/utils/fillToSkia";
-import { FillType, type FillItem } from "../../../../types/builder/fill.types";
+import {
+  createsStackingContext,
+  parseZIndex,
+} from "../layout/engines/cssStackingContext";
+import {
+  resolveEffectiveBoxShadow,
+  resolveEffectiveOverflow,
+} from "../layout/engines/implicitStyles";
+import type { ComputedLayout } from "../layout/engines/LayoutEngine";
+import type { CanvasSceneNode } from "../scene/canvasSceneNodeTypes";
+import { resolveBorderPaint } from "../styleConversion/borderGeometry";
+import {
+  applyTransformOrigin,
+  buildSkiaEffects,
+  colorIntToFloat32,
+  convertStyle,
+  cssColorToAlpha,
+  parseClipPath,
+  parseTransformOrigin,
+} from "../styleConversion/styleConverter";
+import type { SkiaNodeData } from "./nodeRendererTypes";
 import { hexToColor4fChannels } from "./themeWatcher";
+import type { EffectStyle } from "./types";
 
 // ---------------------------------------------------------------------------
 // Types

@@ -3,8 +3,6 @@
  * ADR-235 Phase 1 — 자산 저장소 (IndexedDB `assets` · `asset_gc`) + 해석기.
  * node 환경: 실제 Blob · structuredClone · URL.createObjectURL 을 쓴다 (jsdom Blob 은 복제 불가).
  */
-import { IDBFactory } from "fake-indexeddb";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   resolveAssetUrl,
   resolveAssetUrlAsync,
@@ -14,8 +12,11 @@ import {
   refFromHash as assetRefFromHash,
   sha256Hex,
 } from "@composition/shared/assets";
+import { IDBFactory } from "fake-indexeddb";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, openAssetDb, readAllAssetGcRecords } from "../assetDb";
+import { ASSETS_STORE } from "../assetSchema";
 import {
   AssetMissingError,
   prepareAssetReferences,
@@ -23,9 +24,6 @@ import {
   storeAssetBytes,
 } from "../assetStore";
 import { createIndexedDbAssetUrlResolver } from "../assetUrlResolver";
-import { ASSETS_STORE } from "../assetSchema";
-import { collectAssetRefs } from "@composition/shared";
-import { decodeDataUrl } from "@composition/shared/assets";
 
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
 
@@ -134,8 +132,6 @@ describe("assetStore (ADR-235 Phase 1)", () => {
     const url = resolver.register(ref, new Blob([PNG], { type: "image/png" }));
     expect(resolveAssetUrl(ref)).toBe(url);
   });
-
-
 
   it("바이트는 ArrayBuffer 로 저장하고 (WebKit 비공개 저장소 호환) 옛 Blob 레코드도 읽는다", async () => {
     const stored = await storeAssetBytes({ bytes: PNG, mime: "image/png" });

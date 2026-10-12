@@ -6,7 +6,6 @@
  * - 이름 해석: collectionId → 이름, elementId → 요소 type, endpoint id → 신규/변경 판정
  */
 import { describe, expect, it } from "vitest";
-import type { DataOp } from "@composition/shared";
 import {
   DIFF_SAMPLE_ROWS_MAX,
   summarizeDataChange,

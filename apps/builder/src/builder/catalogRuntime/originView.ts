@@ -1,15 +1,14 @@
 import { setLibraryDefault } from "../../../../../packages/shared/src/catalog/commands";
-import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import {
   composeCommands,
   type CatalogCommand,
 } from "../../../../../packages/shared/src/catalog/commands/compose";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   CatalogReader,
   LibraryDefinitionId,
-  NodeEntry,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogOperation } from "../../../../../packages/shared/src/catalog/transactions/transaction";
 
@@ -29,8 +28,8 @@ import {
   isLibraryOrigin,
   isPageCard,
   isThemeSample,
-  originInstanceId,
   originCardId,
+  originInstanceId,
   originOfPageInstance,
   originOfSample,
   originSampleId,
@@ -44,8 +43,8 @@ export {
   isLibraryOrigin,
   isPageCard,
   isThemeSample,
-  originInstanceId,
   originCardId,
+  originInstanceId,
   originOfPageInstance,
   originOfSample,
   originSampleId,

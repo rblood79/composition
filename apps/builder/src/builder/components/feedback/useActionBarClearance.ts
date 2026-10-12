@@ -60,14 +60,18 @@ export function useActionBarClearance(
   /** 현재 DOM 에 반영된 값 — measure 가 기준선을 되돌릴 때 읽는다. */
   const appliedRef = useRef(0);
 
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    setClearance(0);
+  }
   useEffect(() => {
-    appliedRef.current = clearance;
-  }, [clearance]);
+    appliedRef.current = active ? clearance : 0;
+  }, [active, clearance]);
 
   useEffect(() => {
     if (!active) {
       appliedRef.current = 0;
-      setClearance(0);
       return;
     }
 

@@ -1,11 +1,10 @@
 import { useCallback } from "react";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
-import type { NodeId } from "../../../../../../packages/shared/src/catalog/document/types";
-import { catalogPageContentTarget } from "../../catalogRuntime/pageSettings";
 import {
   notifyInsertRelocated,
   notifyOperationRefused,
 } from "../../catalogRuntime/operationNotice";
+import { catalogPageContentTarget } from "../../catalogRuntime/pageSettings";
 import { catalogPaletteInsertPlan } from "../../catalogRuntime/paletteInsert";
 import {
   CatalogWorkspaceGate,

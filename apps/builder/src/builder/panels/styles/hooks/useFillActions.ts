@@ -10,15 +10,10 @@
  * @updated 2026-02-10 Gradient Phase 2
  */
 
-import {
-  presentationRuntime,
-  presentationSelection,
-  subscribePresentationSelection,
-} from "./presentationBridge";
-import { useCallback, useRef, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
-  FillItem,
   ColorFillItem,
+  FillItem,
   GradientStop,
 } from "../../../../types/builder/fill.types";
 import {
@@ -26,13 +21,18 @@ import {
   createDefaultColorFill,
   createDefaultFill,
 } from "../../../../types/builder/fill.types";
-import { useStylesHost } from "../stylesHost";
 import type {
-  EditorPresentationCancelReason,
   EditorMutationDescriptor,
+  EditorPresentationCancelReason,
   EditorPresentationHandle,
   EditorPresentationTargetRef,
 } from "../../../presentation/editorPresentationTypes";
+import { useStylesHost } from "../stylesHost";
+import {
+  presentationRuntime,
+  presentationSelection,
+  subscribePresentationSelection,
+} from "./presentationBridge";
 
 export interface FillActions {
   addFill: (type?: FillType, initialColor?: string) => void;
@@ -159,7 +159,7 @@ export function useFillActions(): FillActions {
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, []);
+  }, [bridge]);
 
   const isFirstFillColorPresentationOwned = useCallback(
     (fillId: string, fallbackFill?: ColorFillItem) => {
@@ -169,7 +169,7 @@ export function useFillActions(): FillActions {
           null) !== null
       );
     },
-    [],
+    [bridge],
   );
 
   const isFirstFillPresentationOwned = isFirstFillColorPresentationOwned;
@@ -237,7 +237,7 @@ export function useFillActions(): FillActions {
       }
       return true;
     },
-    [ownerId],
+    [bridge, ownerId],
   );
 
   const commitFirstFillColorPresentation = useCallback(
@@ -280,7 +280,7 @@ export function useFillActions(): FillActions {
       }
       return true;
     },
-    [previewFirstFillColorPresentation],
+    [bridge, previewFirstFillColorPresentation],
   );
 
   const previewFirstFillPaintPresentation = useCallback(
@@ -361,7 +361,7 @@ export function useFillActions(): FillActions {
       }
       return true;
     },
-    [ownerId],
+    [bridge, ownerId],
   );
 
   const commitFirstFillPaintPresentation = useCallback(
@@ -416,7 +416,7 @@ export function useFillActions(): FillActions {
       }
       return true;
     },
-    [previewFirstFillPaintPresentation],
+    [bridge, previewFirstFillPaintPresentation],
   );
 
   const cancelFirstFillColorPresentation = useCallback(

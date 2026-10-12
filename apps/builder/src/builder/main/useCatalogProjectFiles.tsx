@@ -1,16 +1,22 @@
-import { openCatalogPublish } from "./openCatalogPublish";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { toExportCollection, toRuntimeApiEndpoint } from "@composition/shared";
 import type { ProjectContentV2 } from "@composition/shared/assets";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type { EntryId } from "../../../../../packages/shared/src/catalog/document/types";
 import { useI18n } from "../../i18n";
-import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
-import type { CatalogWorkspace } from "../catalogRuntime/workspace";
 import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
+import type { CatalogWorkspace } from "../catalogRuntime/workspace";
+import { loadFontRegistry, saveRegistryAndNotify } from "../fonts/customFonts";
 import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
 import { useToastStore } from "../stores/toast";
 import { importDataParts } from "../utils/importCollectionEnvelope";
 import DirectoryLinkButton from "./DirectoryLinkButton";
+import { openCatalogPublish } from "./openCatalogPublish";
 // 타입만 — 값 import 는 lazy 연결 모듈 전체를 initial 로 끌어온다 (ADR-235 HC2)
 import type { DirectoryLinkState } from "../../lib/assets/projectDirectoryLink";
 
@@ -75,7 +81,9 @@ export function useCatalogProjectFiles(options: {
 
   /** This project's content, or null unless it is open here with its data store loaded. */
   const workspaceRef = useRef(workspace);
-  workspaceRef.current = workspace;
+  useLayoutEffect(() => {
+    workspaceRef.current = workspace;
+  });
   const collectContent = useCallback((): ProjectContentV2 | null => {
     const open = workspaceRef.current;
     const data = useDataStore.getState();
@@ -255,12 +263,19 @@ export function useCatalogProjectFiles(options: {
   );
 
   // Folder link (Chromium File System Access): the v2 container written after durable saves.
-  const [folderLinked, setFolderLinked] = useState(false);
+  const linkedFor = (id: string | undefined) =>
+    Boolean(id && localStorage.getItem(linkFlagKey(id)) === "1");
+  const [folderLinked, setFolderLinked] = useState(() => linkedFor(routeId));
+  const [linkedProject, setLinkedProject] = useState(routeId);
   // The last link state, kept here (always mounted): connecting sends its first state (a conflict,
   // a failed write) before the header button mounts.
   const [linkState, setLinkState] = useState<DirectoryLinkState | null>(null);
-  useEffect(() => {
+  if (linkedProject !== routeId) {
+    setLinkedProject(routeId);
+    setFolderLinked(linkedFor(routeId));
     setLinkState(null);
+  }
+  useEffect(() => {
     if (!routeId) return;
     const onState = (event: Event) => {
       const detail = (event as CustomEvent<DirectoryLinkState>).detail;
@@ -272,7 +287,6 @@ export function useCatalogProjectFiles(options: {
   useEffect(() => {
     if (!routeId) return;
     const linked = localStorage.getItem(linkFlagKey(routeId)) === "1";
-    setFolderLinked(linked);
     if (!linked) return;
     void linkModule().then((m) =>
       m.resumeProjectDirectoryLink(routeId, { collectContent }),

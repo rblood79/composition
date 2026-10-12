@@ -3,10 +3,10 @@
  * ADR-235 Phase 2 — 인라인 dataURL → 자산 이관 (G2).
  * 가져온 파일 envelope · 폰트 레지스트리의 인라인 자산 이관.
  */
-import { IDBFactory } from "fake-indexeddb";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { encodeDataUrl } from "@composition/shared/assets";
+import { IDBFactory } from "fake-indexeddb";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { LegacyDocumentFixture } from "../../db/__tests__/support/legacyPayload";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
 import { closeAssetDb, readAssetRecords } from "../assetDb";
 import {

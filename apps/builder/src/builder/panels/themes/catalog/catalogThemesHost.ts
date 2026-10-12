@@ -1,14 +1,10 @@
-import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
   BASE_TYPOGRAPHY_TOKEN_KEYS,
   type ThemePreset as StoreThemePreset,
   type ThemesCollection,
   type TokensSnapshotEntry,
 } from "@composition/shared";
-import {
-  composeCommands,
-  type CatalogCommand,
-} from "../../../../../../../packages/shared/src/catalog/commands/compose";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
   createTheme,
   duplicateTheme,
@@ -17,6 +13,10 @@ import {
   setThemeToken,
   updateTheme,
 } from "../../../../../../../packages/shared/src/catalog/commands";
+import {
+  composeCommands,
+  type CatalogCommand,
+} from "../../../../../../../packages/shared/src/catalog/commands/compose";
 import type {
   EntryId,
   ThemeEntry,
@@ -151,7 +151,7 @@ export function createCatalogThemesHost(
         [],
       );
       const revision = useSyncExternalStore(subscribe, () => graph().revision);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       return useMemo(view, [revision]);
     },
     useActivePreset() {

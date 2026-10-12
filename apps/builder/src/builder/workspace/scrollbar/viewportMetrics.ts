@@ -59,7 +59,7 @@ export function getScrollbarViewportMetrics(
   viewportState = getViewportAuthoritativeState(),
   contentRects: readonly ContentRect[],
 ): ScrollbarViewportMetrics | null {
-  const { canvasSize, containerSize } = useViewportSyncStore.getState();
+  const { containerSize } = useViewportSyncStore.getState();
   if (containerSize.width <= 0 || containerSize.height <= 0) {
     return null;
   }

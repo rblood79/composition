@@ -1,65 +1,65 @@
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  RadarChart,
-  Radar,
-  RadialBarChart,
-  RadialBar,
-  XAxis,
-  YAxis,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Cell,
-  Tooltip,
-  Customized,
-  LabelList,
-  Sector,
-  Rectangle,
-  Dot,
-  ScatterChart,
-  type SectorProps,
-  type LabelProps,
-} from "recharts";
-import {
-  categoryColorIndex,
-  buildDotMarks,
-  buildReferenceLineMarks,
-  clampWindowRange,
-  resolveChartData,
-  resolveChartAnimation,
-  resolveCategoryBand,
-  linearScale,
-  buildAxes,
-  buildPolarAxes,
-  buildLegend,
   angleScale,
-  dotRadius,
-  seriesAxialPoints,
-  toScreen,
-  centerTotalLabels,
   approxTextWidth,
-  polarLabelAnchor,
-  seriesLabel,
+  buildAxes,
+  buildDotMarks,
+  buildLegend,
+  buildPolarAxes,
+  buildReferenceLineMarks,
+  categoryColorIndex,
+  centerTotalLabels,
   CHART_INVALID_SETTINGS_TEXT,
+  clampWindowRange,
+  dotRadius,
+  linearScale,
+  polarLabelAnchor,
+  resolveCategoryBand,
+  resolveChartAnimation,
+  resolveChartData,
+  seriesAxialPoints,
+  seriesLabel,
+  toScreen,
+  type AxisScene,
+  type ChartMetrics,
   type ChartProps,
   type ChartRow,
-  type ChartMetrics,
   type ChartSize,
-  type AxisScene,
 } from "@composition/rendering";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  Cell,
+  Customized,
+  Dot,
+  LabelList,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  RadialBar,
+  RadialBarChart,
+  Rectangle,
+  ScatterChart,
+  Sector,
+  Tooltip,
+  XAxis,
+  YAxis,
+  type LabelProps,
+  type SectorProps,
+} from "recharts";
+import {
+  legacyLinear,
   legacyMonotoneHorizontal,
   legacyMonotoneVertical,
   legacyStepHorizontal,
   legacyStepVertical,
-  legacyLinear,
 } from "./legacyMonotone";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
 import type { RenderChartWindowTrack } from "./windowTrack";
@@ -938,13 +938,23 @@ export function RechartsChart({
         (outer * Math.min(90, Math.max(0, props.innerRadius))) / 100;
       const count = stackMode === "none" ? 1 : keys.length;
       const ring = (outer - inner) / count;
-      let total = 0;
+      const total = grid.series
+        .slice(0, count)
+        .reduce(
+          (sum, series) =>
+            sum +
+            grid.categories.reduce(
+              (subtotal, category, ci) =>
+                subtotal + Math.abs(series.values.get(ci) ?? 0),
+              0,
+            ),
+          0,
+        );
       const pies: ReactNode[] = [];
       for (let si = 0; si < count; si++) {
         const slices = grid.categories.flatMap((category, ci) => {
           const raw = grid.series[si].values.get(ci);
           if (!raw) return [];
-          total += Math.abs(raw);
           return [
             {
               category,
@@ -1219,19 +1229,56 @@ export function RechartsChart({
       </RadialBarChart>
     );
   }, [
-    props,
-    data,
+    presentation.ok,
+    presentation.diagnostics,
+    fontSize,
+    model.time,
+    model.linear,
+    model.input.categories.length,
+    model.diagnostics,
     grid,
-    keys,
-    bands,
+    horizontal,
+    plot,
     ticks,
-    stackMode,
-    presentation,
-    layout,
-    metrics,
+    props.chartType,
+    props.showAxis,
+    props.innerRadius,
+    props.gridType,
+    props.showGrid,
+    props.showSpokes,
+    props.gridRings,
+    props.fillGrid,
+    props.orientation,
+    props.legendPosition,
+    props.showTooltip,
+    props.curve,
+    props.startAngle,
+    props.endAngle,
+    props.showTotal,
+    props.showValueLabels,
+    props.colorBy,
+    props.showDots,
+    props.metric,
+    props.fillArea,
+    n,
+    tickText,
+    legendBox,
+    legendEntries,
     size,
     label,
-    reducedMotion,
+    keys,
+    data,
+    radarFlatDomain,
+    bands,
+    reference?.back,
+    formatValue,
+    isRange,
+    metrics.strokeWidth,
+    metrics.seriesCount,
+    labelText,
+    isBar,
+    animation,
+    stackMode,
   ]);
   // ADR-211 창 트랙 — layout 이 예약한 자리 (플롯 아래) 에 뷰 상태 Slider (`windowTrack.tsx`).
   //   ADR-216: thumb 2 — 손잡이 = 한쪽 경계, 본체 드래그 = 길이 보존 이동. clamp 는 모델과 같은 함수.

@@ -47,7 +47,14 @@
     "./i18n": {
       "types": "./src/i18n/index.ts",
       "default": "./src/i18n/index.ts"
-    }
+    },
+    "./components/Chart": "./src/components/Chart.ts",
+    "./components/DialogTrigger": "./src/components/DialogTrigger.ts",
+    "./components/FileUpload": "./src/components/FileUpload.ts",
+    "./components/FileUploadActive": "./src/components/FileUploadActive.ts",
+    "./components/Menu": "./src/components/Menu.ts",
+    "./components/Table": "./src/components/Table.ts",
+    "./components/TagGroup": "./src/components/TagGroup.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

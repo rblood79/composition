@@ -4,18 +4,17 @@ import {
   dissolveComponent,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
-import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
-import {
-  catalogDefinitionTitle,
-  isLibraryOrigin,
-  originOfEditableSample,
-} from "./originView";
 import type {
   CatalogReader,
   EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
+import {
+  catalogDefinitionTitle,
+  isLibraryOrigin,
+  originOfEditableSample,
+} from "./originView";
 
 /** A component the selected node is an instance or the origin of. */
 export interface CatalogComponentRef {

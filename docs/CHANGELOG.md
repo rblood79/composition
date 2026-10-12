@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [전체 lint 정합성 — React consumer lifecycle] - 2026-10-12
+
+### Fixed
+
+- **렌더와 commit 사이의 입력·이벤트 상태 분리**:
+  - **Why**: 렌더 중 ref 갱신과 props를 복사하는 effect가 입력 초안·페이지 헤더·이벤트 콜백의 상태 소유권을 섞었다. 조건부 `useMemo`는 TagGroup 분기가 바뀔 때 Hook 순서도 바꿨다.
+  - 입력과 헤더의 렌더 스냅샷은 state로 관리하고, 네이티브 이벤트 콜백은 commit에서 연결한다. Preview Toast는 연결 해제 시 이전 consumer를 정리한다.
+  - 위치: `apps/builder/src/builder/components/property`, `apps/builder/src/builder/workspace/canvas/overlay/pageHeader`, `packages/shared/src/catalog/runtime/toastBridge.ts`, `packages/shared/src/components/TagGroup.components.tsx`
+- **파일 유입과 lazy 모듈 로드의 소유권 고정**:
+  - 동시에 들어온 파일은 모듈을 한 번만 로드한다. 로드 실패는 unavailable snapshot으로 알리고, 막힌 endpoint의 대기 파일은 비워 다음 endpoint로 유출되지 않게 한다.
+  - 위치: `packages/shared/src/components/fileUploadResources.ts`
+
+### Changed
+
+- Fast Refresh의 컴포넌트 모듈에서 일반 함수·상수·Context를 분리하고 기존 공개 export와 import 경로를 재수출 모듈로 보존했다.
+- 분리된 FileUploadActive 모듈도 lazy 번들 검사에 포함하고, catalog React 함수 호출 지표는 기존 ratchet 상한과 같은 이름으로 비교한다.
+- TanStack Table은 상태별 table instance를 만들고, 가상화 행과 전체 높이는 외부 virtualizer의 불변 snapshot을 구독한다. 미사용 코드·불필요한 초기 할당·누락된 Hook 의존성·옛 문서 타입 의존을 제거했다.
+
+### Tests
+
+- 전체 lint와 TypeScript 검사, 컴포넌트·Builder 회귀 검사 및 실제 Builder 입력·Undo·Preview 동기화·저장 후 재로드를 확인한다. 파일 유입 중복·실패·폐기와 이전 Canvas·Toast consumer 해제에는 인접 회귀 테스트를 추가했다.
+
 ## [Properties 값을 초기값으로 되돌리면 재정의가 사라짐] - 2026-10-12
 
 ### Fixed

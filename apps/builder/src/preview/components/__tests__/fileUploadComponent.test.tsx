@@ -258,7 +258,8 @@ describe("FileUpload — DOM consumer", () => {
     expect(opts?.dryRun).toBe(false);
     expect(opts?.endpoint).toBe("https://files.example.com/tus");
     expect(opts?.getHeaders?.()).toEqual({ "X-CSRF-TOKEN": "abc=123" });
-    document.cookie = "XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    document.cookie =
+      "XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
     expect(csrfHeadersFromCookie()).toEqual({});
   });
 
@@ -318,19 +319,24 @@ describe("FileUpload — DOM consumer", () => {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     // vitest cwd = apps/builder
-    const src = readFileSync(
-      resolve(
-        process.cwd(),
-        "../../packages/shared/src/components/FileUpload.tsx",
-      ),
-      "utf8",
-    );
-    const staticImports = [...src.matchAll(/^import\s[^;]*?from\s+"([^"]+)"/gms)].map(
-      (m) => m[1],
-    );
+    const src = ["FileUpload.runtime.ts", "FileUpload.components.tsx"]
+      .map((path) =>
+        readFileSync(
+          resolve(process.cwd(), "../../packages/shared/src/components", path),
+          "utf8",
+        ),
+      )
+      .join("\n");
+    const staticImports = [
+      ...src.matchAll(/^import\s[^;]*?from\s+"([^"]+)"/gms),
+    ].map((m) => m[1]);
     expect(staticImports).not.toContain("./FileUploadActive");
-    expect(staticImports.some((s) => s.includes("resolveUploadEndpoint"))).toBe(false);
-    expect(staticImports.some((s) => s.includes("@composition/upload"))).toBe(false);
+    expect(staticImports.some((s) => s.includes("resolveUploadEndpoint"))).toBe(
+      false,
+    );
+    expect(staticImports.some((s) => s.includes("@composition/upload"))).toBe(
+      false,
+    );
     expect(src).toMatch(/import\("\.\/FileUploadActive"\)/);
   });
 });

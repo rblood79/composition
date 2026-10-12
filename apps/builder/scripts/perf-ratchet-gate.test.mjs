@@ -213,6 +213,51 @@ test("revision — push 대상 ≠ HEAD · 런타임 tracked 변경은 문제, u
   );
 });
 
+test("분리된 catalog React 모듈도 기존 함수 호출 상한으로 판정한다", () => {
+  const file = "src/builder/catalogRuntime/react.runtime.ts";
+  const key = "v8.fn.src/builder/catalogRuntime/react.tsx#useCatalogWorkspace";
+  const r = ratchet();
+  r.seeds[60].select.A[key] = 10;
+  const flat = flattenCounts({
+    v8: { topApp: [{ file, fn: "useCatalogWorkspace", n: 11 }] },
+  });
+  assert.equal(flat[key], 11);
+  const verdict = judge(r, measure(flat));
+  assert.equal(verdict.overA.length, 1);
+  assert.equal(verdict.lowerable.length, 0);
+  assert.equal(decide(verdict, verdict), "block");
+});
+
+test("분리 모듈의 같은 이름은 합산하고 동일 원본 중복은 최대값을 유지한다", () => {
+  const flat = flattenCounts({
+    v8: {
+      topApp: [
+        {
+          file: "src/builder/catalogRuntime/react.runtime.ts",
+          fn: "(anonymous)",
+          n: 4,
+        },
+        {
+          file: "src/builder/catalogRuntime/react.runtime.ts",
+          fn: "(anonymous)",
+          n: 3,
+        },
+        {
+          file: "src/builder/catalogRuntime/react.components.tsx",
+          fn: "(anonymous)",
+          n: 5,
+        },
+        { file: "src/other.runtime.ts", fn: "f", n: 2 },
+        { file: "src/other.runtime.ts", fn: "f", n: 1 },
+      ],
+    },
+  });
+  assert.deepEqual(flat, {
+    "v8.fn.src/builder/catalogRuntime/react.tsx#(anonymous)": 9,
+    "v8.fn.src/other.runtime.ts#f": 2,
+  });
+});
+
 test("v8.fn 키는 상위 목록에 없으면 판정하지 않는다 — 0 으로 읽어 하향 · 차단하지 않음", () => {
   const r = ratchet();
   r.seeds[60].select.A["v8.fn.src/a.ts#hot"] = 0;

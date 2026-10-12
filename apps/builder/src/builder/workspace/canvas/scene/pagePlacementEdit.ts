@@ -122,7 +122,6 @@ export function buildGridCells(ctx: PlacementEditContext): GridCell[] {
   const stride = layout.trackWidth + layout.gap;
 
   const flowYs = new Set<number>();
-  let lastRowHeight = 0;
   for (const page of ctx.pages) {
     const point = ctx.positions[page.id];
     if (!point) continue;
@@ -143,7 +142,7 @@ export function buildGridCells(ctx: PlacementEditContext): GridCell[] {
     }
     return height || layout.trackWidth;
   });
-  lastRowHeight = rowHeights[rowHeights.length - 1] ?? 0;
+  const lastRowHeight = rowHeights[rowHeights.length - 1] ?? 0;
 
   const cells: GridCell[] = [];
   rows.forEach((y, rowIndex) => {

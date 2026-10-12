@@ -46,10 +46,10 @@ function selectionSource(initial: string) {
 
 const here = dirname(fileURLToPath(import.meta.url));
 const FIELD_FILES = [
-  "PropertyInput.tsx",
+  "PropertyInput.components.tsx",
   "PropertyNumberInput.tsx",
-  "PropertyUnitInput.tsx",
-  "PropertyColor.tsx",
+  "PropertyUnitInput.components.tsx",
+  "PropertyColor.components.tsx",
 ];
 
 describe("property fields follow the provided selection", () => {

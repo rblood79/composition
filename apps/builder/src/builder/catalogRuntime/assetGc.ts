@@ -120,7 +120,7 @@ export async function runCatalogAssetGcNow(
 
 /** Once a day, at idle after the project opens; returns a cancel. */
 export function scheduleCatalogAssetGc(memory: () => unknown[]): () => void {
-  let last = 0;
+  let last: number;
   try {
     last = Number(localStorage.getItem(LAST_RUN_KEY) ?? 0);
   } catch {

@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   detachInstances,
@@ -8,15 +7,13 @@ import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { catalogStateValue } from "../../../../../../packages/shared/src/catalog/runtime/presence";
-import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";

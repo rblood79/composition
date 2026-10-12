@@ -5,34 +5,50 @@
  * Alignment는 Layout 섹션의 3x3 Flex alignment로 통합됨.
  */
 
+import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
+import { Lock, UnfoldVertical, Unlock } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSemanticLabel } from "../../../../i18n";
+import { iconProps } from "../../../../utils/ui/uiConstants";
+import { LayoutFreeform } from "../../../components/icons";
 import { Section as PropertySection } from "../../../components/panel/Section";
-import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import { PropertySelect } from "../../../components/property/PropertySelect";
+import { PropertyUnitInput } from "../../../components/property/PropertyUnitInput";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
 } from "../../../components/ui";
-import { iconProps } from "../../../../utils/ui/uiConstants";
-import { Lock, Unlock, UnfoldVertical } from "lucide-react";
-import { LayoutFreeform } from "../../../components/icons";
-import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
-import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
-import { useTransformValues } from "../hooks/useTransformValues";
-import { useSemanticLabel } from "../../../../i18n";
-import {
-  useWidthSizeMode,
-  useHeightSizeMode,
-  useFillGrow,
-  useParentDisplay,
-  useParentFlexDirection,
-} from "../hooks/useTransformAuxiliary";
-import { useElementStyleContext } from "../hooks/useElementStyleContext";
-import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
-import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
-import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import { hasEnabledAspectRatio } from "../../../utils/aspectRatio";
 import type { RatioEditError } from "../../../utils/ratioEditError";
+import { useViewportSyncStore } from "../../../workspace/canvas/stores";
+import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
+import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
+import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
+import { useHasDirtyStyles, useResetStyles } from "../hooks/useResetStyles";
+import {
+  isSectionCollapsedInState,
+  useSectionCollapse,
+} from "../hooks/useSectionCollapse";
+import {
+  useFillGrow,
+  useHeightSizeMode,
+  useParentDisplay,
+  useParentFlexDirection,
+  useWidthSizeMode,
+} from "../hooks/useTransformAuxiliary";
+import { useTransformValues } from "../hooks/useTransformValues";
+import {
+  useStylesActiveBreakpoint,
+  useStylesHost,
+  useStylesSelectedId,
+} from "../stylesHost";
+import type { StylesHost } from "../stylesHostContext";
+import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
+import {
+  hasSizeConstraintConflict,
+  type SizeConstraintProperty,
+} from "./transformUtils";
 
 /** Ratio 복합 명령 오류 코드 → semantic label (labels.ts 가 키로, translations 가 ko/en 으로). */
 const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
@@ -44,22 +60,6 @@ const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
     "Open each screen size (Desktop, Tablet, Mobile) once, then try again",
   "document-changed": "Document changed. Try again",
 };
-import {
-  hasSizeConstraintConflict,
-  type SizeConstraintProperty,
-} from "./transformUtils";
-import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
-import {
-  isSectionCollapsedInState,
-  useSectionCollapse,
-} from "../hooks/useSectionCollapse";
-import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
-import {
-  useStylesActiveBreakpoint,
-  useStylesHost,
-  useStylesSelectedId,
-} from "../stylesHost";
-import type { StylesHost } from "../stylesHostContext";
 
 const POSITION_SECTION_ID = "position";
 
@@ -137,7 +137,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   part: TransformSectionPart;
 }) {
   const localize = useSemanticLabel();
-  const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
+  const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
   const { previewLayoutPresentation } = useLayoutPresentationActions();
   const selectedId = useStylesSelectedId();

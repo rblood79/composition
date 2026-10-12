@@ -16,10 +16,13 @@ describe("StylesPanel canonical selected data contract", () => {
   });
 
   it("uses selected element data instead of direct element-map reads for panel type/style", async () => {
-    const source = await readFile(
-      resolve(__dirname, "StylesPanel.tsx"),
-      "utf-8",
-    );
+    const source = (
+      await Promise.all(
+        ["StylesPanel.components.tsx", "StylesPanel.runtime.ts"].map((path) =>
+          readFile(resolve(__dirname, path), "utf-8"),
+        ),
+      )
+    ).join("\n");
 
     // The selected element comes from the Styles host (the catalog host's selection record).
     expect(source).toContain(
@@ -35,10 +38,13 @@ describe("StylesPanel canonical selected data contract", () => {
   });
 
   it("wires ADR-154 ResponsiveSection", async () => {
-    const source = await readFile(
-      resolve(__dirname, "StylesPanel.tsx"),
-      "utf-8",
-    );
+    const source = (
+      await Promise.all(
+        ["StylesPanel.components.tsx", "StylesPanel.runtime.ts"].map((path) =>
+          readFile(resolve(__dirname, path), "utf-8"),
+        ),
+      )
+    ).join("\n");
 
     // override 요약/편집 섹션이 AllSections 에 포함
     expect(source).toContain("<ResponsiveSection />");
@@ -46,7 +52,7 @@ describe("StylesPanel canonical selected data contract", () => {
 
   it("ResponsiveSection wires override opt-in menu + lrow list + visibility seg (locked desktop)", async () => {
     const source = await readFile(
-      resolve(__dirname, "sections/ResponsiveSection.tsx"),
+      resolve(__dirname, "sections/ResponsiveSection.components.tsx"),
       "utf-8",
     );
 

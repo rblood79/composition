@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Slider as AriaSlider,
-  SliderTrack,
-  SliderThumb,
   SliderOutput,
+  SliderThumb,
+  SliderTrack,
 } from "react-aria-components/Slider";
-import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   semanticLabelKeys,
   translateKey,
   useOptionalI18n,
 } from "../../../i18n";
+import { iconProps } from "../../../utils/ui/uiConstants";
 
 interface PropertySliderProps {
   label: string;
@@ -93,9 +93,11 @@ export function PropertySlider({
    * `commitDraft` (its draft still set) and must not commit again.
    */
   const settledRef = useRef(false);
-  useEffect(() => {
+  const [draftValue, setDraftValue] = useState(value);
+  if (draftValue !== value) {
+    setDraftValue(value);
     setDraft(null);
-  }, [value]);
+  }
   const commitDraft = (): void => {
     if (draft === null) return;
     const parsed = Number.parseFloat(draft);

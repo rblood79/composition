@@ -176,7 +176,7 @@ export class CatalogPreviewInteractions implements CatalogDomRuntime {
         const record = options.root()?.domInputs.get(id);
         const graph = options.graph();
         if (!record || !graph) return undefined;
-        let type = "";
+        let type: string;
         try {
           type = definitionTypeName(graph, record.definitionId as DefinitionId);
         } catch {

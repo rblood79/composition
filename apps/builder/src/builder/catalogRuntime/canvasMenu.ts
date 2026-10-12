@@ -1,3 +1,4 @@
+import { Maximize, Percent } from "lucide-react";
 import {
   copyNodes,
   duplicateNodes,
@@ -9,23 +10,23 @@ import {
   type CatalogClipboard,
 } from "../../../../../packages/shared/src/catalog/commands";
 import type { CatalogCommand } from "../../../../../packages/shared/src/catalog/commands/compose";
+import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
 import type { NewId } from "../../../../../packages/shared/src/catalog/commands/materialize";
 import type {
   CatalogReader,
   DefinitionId,
-  EntryId,
   NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type {
   ContextMenuIcon,
   ContextMenuItem,
 } from "../components/overlay/contextMenu/types";
-import { Maximize, Percent } from "lucide-react";
 import {
   ACTION_ICONS,
   ALIGNMENT_ICONS,
   DISTRIBUTION_ICONS,
 } from "../config/actionIcons";
+import type { ShortcutId } from "../config/keyboardShortcuts";
 import {
   getAlignmentLabelKey,
   type AlignmentType,
@@ -35,19 +36,16 @@ import {
   type DistributionType,
 } from "../stores/utils/elementDistribution";
 import {
-  confirmCatalogDetach,
-  confirmCatalogDissolve,
-} from "./componentConfirm";
-import {
   catalogComponentCommands,
   catalogComponentState,
 } from "./componentActions";
-import { catalogPageContentTarget } from "./pageSettings";
-import type { CatalogDefinitionViewId } from "./session";
-import { definitionTypeName } from "../../../../../packages/shared/src/catalog/commands/context";
-import type { ShortcutId } from "../config/keyboardShortcuts";
+import {
+  confirmCatalogDetach,
+  confirmCatalogDissolve,
+} from "./componentConfirm";
 import type { CatalogConsumerNode } from "./compositionRoot";
-import type { CatalogSelectionItem } from "./session";
+import { catalogPageContentTarget } from "./pageSettings";
+import type { CatalogDefinitionViewId, CatalogSelectionItem } from "./session";
 
 const PAGE_GRID = "catalog:root";
 const isNodeSource = (id: string) => id.startsWith("project:node:");

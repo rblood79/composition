@@ -9,9 +9,9 @@
  * Canvas `visibleFrameRoots` / catalog `Frame` 은 이 게이트의 대상이 아니다 (ADR-225 HC7).
  */
 
-import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { describe, expect, it } from "vitest";
 
 const BUILDER_SRC = path.resolve(__dirname, "../../../..");
 
@@ -41,10 +41,6 @@ const COPY_ALLOWLIST: readonly string[] = [
   "builder/panels/styles/hooks/useSectionCollapse.test.ts",
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
 ];
-
-/** 사용자 노출 재사용 레이아웃 문구 — PageLayoutSelector 가 다시 Frame 으로 돌아가지 않게 잠근다. */
-const USER_FACING_LEGACY_COPY =
-  /"No Frame"|"Apply Frame"|"Remove Frame"|Remove frame from this page|reusable frame for this page|" frame`/;
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

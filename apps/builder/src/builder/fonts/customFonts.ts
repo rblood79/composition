@@ -1,21 +1,21 @@
+import type { FontFormat } from "@composition/shared";
+import {
+  addFontFace,
+  buildRegistryFontFaceCss,
+  FONT_REGISTRY_STORAGE_KEY,
+  type FontFaceAsset,
+  type FontRegistryV2,
+  loadFontRegistry,
+  registryToLegacyFonts,
+  removeFontFace,
+  saveFontRegistry,
+} from "@composition/shared";
 import {
   type CustomFontAsset,
   inferFontFormatFromName,
   resolveAssetUrl,
   stripExtension,
 } from "@composition/shared/utils";
-import {
-  loadFontRegistry,
-  saveFontRegistry,
-  addFontFace,
-  removeFontFace,
-  buildRegistryFontFaceCss,
-  registryToLegacyFonts,
-  FONT_REGISTRY_STORAGE_KEY,
-  type FontFaceAsset,
-  type FontRegistryV2,
-} from "@composition/shared";
-import type { FontFormat } from "@composition/shared";
 import { isAssetWriterEnabled } from "../../utils/featureFlags";
 
 const STYLE_ID = "composition-custom-fonts";
@@ -303,20 +303,17 @@ function readFileAsDataUrl(
 
 export {
   addFontFace,
-  removeFontFace,
-  loadFontRegistry,
   FONT_REGISTRY_STORAGE_KEY,
+  loadFontRegistry,
+  removeFontFace,
 };
 export type { FontFaceAsset, FontRegistryV2 };
 
-import {
-  DEFAULT_FONT_FAMILY,
-  DEFAULT_BASE_TYPOGRAPHY,
-} from "../../../../../packages/shared/src/catalog/runtime/fontDefaults";
+import { DEFAULT_FONT_FAMILY } from "../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 export {
-  DEFAULT_FONT_FAMILY,
-  DEFAULT_BASE_TYPOGRAPHY,
   CANVAS_FONT_FALLBACK_FAMILIES,
+  DEFAULT_BASE_TYPOGRAPHY,
+  DEFAULT_FONT_FAMILY,
 } from "../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 export type { BaseTypography } from "../../../../../packages/shared/src/catalog/runtime/fontDefaults";
 

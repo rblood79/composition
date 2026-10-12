@@ -11,37 +11,36 @@
  * L3 non-text = Group 노드 상자 − 자식 텍스트 노드 상자 (VisualParityRegion.mask, Canvas leg 기하).
  * 차단 = pixelmatch 0.1 ratio > 0.001 **AND** maxByte > 2 (INITIAL_BUDGETS.nonText). L3e 는 예산 미승인.
  */
+import type { CanvasKit } from "canvaskit-wasm";
 import "fake-indexeddb/auto";
-import { baselineCompatibleHead } from "./support/baselineHead";
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { renderToStaticMarkup } from "react-dom/server";
-import { renderCatalogDom } from "../domBinding";
-import type { CanvasKit } from "canvaskit-wasm";
-import { chromium } from "playwright";
 import pixelmatch from "pixelmatch";
+import { chromium } from "playwright";
+import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { createG1Fixture } from "../../../../../../packages/shared/src/catalog/document/fixture";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { createPencilFixtureLibrary } from "../../../../../../packages/shared/src/catalog/document/pencilFixtureLibrary";
 import type {
   CatalogEntry,
   NodeEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
-import { executeRenderCommands } from "../../workspace/canvas/skia/renderCommands";
-import { initCanvasKit } from "../../workspace/canvas/skia/initCanvasKit";
 import { skiaFontManager } from "../../workspace/canvas/skia/fontManager";
-import { bindCatalogCanvas } from "./support/catalogCanvasBinding";
+import { initCanvasKit } from "../../workspace/canvas/skia/initCanvasKit";
+import { executeRenderCommands } from "../../workspace/canvas/skia/renderCommands";
+import type { LayoutEngineAPI } from "../../workspace/canvas/wasm-bindings/layoutBridge";
 import { CatalogCompositionRoot } from "../compositionRoot";
 import { CatalogRuntime } from "../controller";
+import { renderCatalogDom } from "../domBinding";
 import { CatalogStorage } from "../storage";
-import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
+import { baselineCompatibleHead } from "./support/baselineHead";
+import { bindCatalogCanvas } from "./support/catalogCanvasBinding";
 import { writeEvidence } from "./support/evidence";
+import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
 
 const require = createRequire(import.meta.url);
 const repo = resolve(process.cwd(), "../..");

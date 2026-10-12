@@ -1,4 +1,9 @@
-import { PublishErrorBoundary } from "./PublishErrorBoundary";
+import type { AssetRef } from "@composition/shared";
+import {
+  buildRegistryFontFaceCss,
+  setAssetUrlResolver,
+  type FontRegistryV2,
+} from "@composition/shared";
 import {
   useCallback,
   useEffect,
@@ -6,33 +11,29 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import {
-  buildRegistryFontFaceCss,
-  setAssetUrlResolver,
-  type FontRegistryV2,
-} from "@composition/shared";
 import { buildCodeCatalogLibrary } from "../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import type { EntryId } from "../../../packages/shared/src/catalog/document/types";
 import type { CatalogPreviewSession } from "../../../packages/shared/src/catalog/runtime/catalogPreviewSession";
 import {
   applyCatalogPreviewTheme,
-  CatalogPreviewView,
   CatalogPreviewDataProvider,
-  CatalogPreviewToasts,
-  CatalogToastProvider,
-  catalogPreviewRuntime,
   catalogPreviewLinkClick,
+  catalogPreviewRuntime,
+  CatalogPreviewToasts,
+  CatalogPreviewView,
+  CatalogToastProvider,
 } from "../../../packages/shared/src/catalog/runtime/domView";
-import type { EntryId } from "../../../packages/shared/src/catalog/document/types";
 import { catalogThemeState } from "../../../packages/shared/src/catalog/runtime/theme";
-import type { AssetRef } from "@composition/shared";
-import { createPublishedSession } from "./catalogSession";
+import { CatalogPreviewToastBridge } from "../../../packages/shared/src/catalog/runtime/toastBridge";
 import {
   loadCatalogProjectFile,
   loadCatalogProjectUrl,
   type LoadedCatalogProject,
 } from "./catalogProject";
+import { createPublishedSession } from "./catalogSession";
 import { PageNav } from "./components/PageNav";
 import { usePublishDocumentLanguage, usePublishStrings } from "./i18n";
+import { PublishErrorBoundary } from "./PublishErrorBoundary";
 import "./styles/index.css";
 
 const GOOGLE_FONTS_CSS_ID = "composition-publish-google-fonts";
@@ -60,7 +61,7 @@ function injectGoogleFontsCss() {
 interface PublishedProject {
   session: CatalogPreviewSession;
   runtime: ReturnType<typeof catalogPreviewRuntime>;
-  toast: { show: (message: string) => void };
+  toast: CatalogPreviewToastBridge;
   key: number;
   dispose: () => void;
 }
@@ -190,7 +191,7 @@ export function App() {
           : "";
         applyCatalogPreviewTheme(catalogThemeState(next.graph!));
         const previous = lifecycle.current.accepted;
-        const toast = { show: (_message: string) => {} };
+        const toast = new CatalogPreviewToastBridge();
         const runtime = catalogPreviewRuntime(next, toast);
         const loaded = project;
         const publication: PublishedProject = {

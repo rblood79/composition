@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 
 /**
  * Menu 선택 표시 회귀 테스트 (design-data 감사 §2-E "Menu selectionStyle", 2026-08-22).
@@ -26,7 +26,7 @@ const read = (rel: string) =>
 
 const menuCss = read("../styles/Menu.css").replace(/\s+/g, " ");
 const indexCss = read("../styles/index.css");
-const menuTsx = read("../Menu.tsx");
+const menuTsx = read("../Menu.components.tsx");
 
 describe("Menu 선택 표시 — 데이터 게이팅 + 실제 로드", () => {
   it("selectionMode 별 글리프를 [data-selection-mode] 로 게이팅한다", () => {

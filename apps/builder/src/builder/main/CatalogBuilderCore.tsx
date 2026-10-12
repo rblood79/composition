@@ -1,5 +1,5 @@
-import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import { COLLECTION_ROW_PROJECTION_SAMPLE_LIMIT } from "@composition/shared";
+import { Button } from "@composition/shared/components";
 import {
   useCallback,
   useEffect,
@@ -9,108 +9,108 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useParams } from "react-router";
 import type { Key } from "react-aria-components/Collection";
-import { releaseStaticShell } from "../../staticShell/staticShellRelease";
-import {
-  loadAllCustomFontsToSkia,
-  loadBuiltinFontsToSkia,
-  syncCustomFontsWithSkia,
-} from "../fonts/loadCustomFontsToSkia";
-import { useI18n } from "../../i18n";
+import { useParams } from "react-router";
 import { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   BreakpointName,
   EntryId,
 } from "../../../../../packages/shared/src/catalog/document/types";
-import { loadCatalogProductLibrary } from "../catalogRuntime/library";
-import { catalogProjectIdOf } from "../catalogRuntime/project";
-import {
-  CatalogWorkspaceProvider,
-  useCatalogSaveStatus,
-  useCatalogWorkspace,
-} from "../catalogRuntime/react";
-import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
-import { CatalogSnapshots } from "../catalogRuntime/snapshots";
-import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
-import { catalogBoundRows } from "../catalogRuntime/dataBinding";
-import {
-  catalogDataHistoryRecorder,
-  catalogDocumentBindingCommitter,
-} from "../catalogRuntime/dataHistory";
-import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
-import {
-  catalogBuilderThemeState,
-  subscribeSystemColorScheme,
-} from "../catalogRuntime/builderTheme";
-import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
-import { PropertySelectionContext } from "../components/property/propertySelection";
-import { CatalogWorkspace } from "../catalogRuntime/workspace";
-import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
-import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
-import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalogQuickConnectHost";
-import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
-import { createCatalogDataVariablesHost } from "../panels/datatable/usage/catalogDataVariablesHost";
-import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariablesHost";
-import {
-  CatalogSnapshotHostContext,
-  createCatalogSnapshotHost,
-} from "../panels/history/catalogSnapshotHost";
-import { AgentCommandConfirmDialogHost } from "../components/overlay/AgentCommandConfirmDialog";
-import { CommandPalette } from "../components/overlay/CommandPalette";
-import { EditingSemanticsImpactDialogHost } from "../components/overlay/EditingSemanticsImpactDialog";
-import { ToastContainer } from "../components/feedback/ToastContainer";
+import { useI18n } from "../../i18n";
+import { getDB } from "../../lib/db";
+import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
 import { setAgentCommandHost } from "../../services/agent/agentCommandHost";
+import { setAiReadHost } from "../../services/ai/aiReadHost";
+import { setAiWriteHost } from "../../services/ai/aiWriteHost";
+import { releaseStaticShell } from "../../staticShell/staticShellRelease";
 import { createCatalogAgentCommandHost } from "../catalogRuntime/agentHost";
 import {
   createCatalogAiReadHost,
   createCatalogAiWriteHost,
 } from "../catalogRuntime/aiHost";
-import { setAiWriteHost } from "../../services/ai/aiWriteHost";
-import { setAiReadHost } from "../../services/ai/aiReadHost";
+import {
+  runCatalogAssetGcNow,
+  scheduleCatalogAssetGc,
+} from "../catalogRuntime/assetGc";
+import {
+  catalogBuilderThemeState,
+  subscribeSystemColorScheme,
+} from "../catalogRuntime/builderTheme";
+import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
+import { catalogBoundRows } from "../catalogRuntime/dataBinding";
+import {
+  catalogDataHistoryRecorder,
+  catalogDocumentBindingCommitter,
+} from "../catalogRuntime/dataHistory";
+import { catalogDocumentVariableNames } from "../catalogRuntime/dataVariables";
+import { loadCatalogProductLibrary } from "../catalogRuntime/library";
+import { catalogProjectIdOf } from "../catalogRuntime/project";
+import { catalogPropertySelection } from "../catalogRuntime/propertySelection";
+import {
+  CatalogWorkspaceProvider,
+  useCatalogSaveStatus,
+  useCatalogWorkspace,
+} from "../catalogRuntime/react";
+import { CatalogSnapshots } from "../catalogRuntime/snapshots";
+import { CatalogStorage, CatalogStorageError } from "../catalogRuntime/storage";
+import { watchCatalogStorageQuota } from "../catalogRuntime/storageQuota";
+import { catalogTextMeasure } from "../catalogRuntime/textMeasure";
+import { CatalogWorkspace } from "../catalogRuntime/workspace";
+import { ToastContainer } from "../components/feedback/ToastContainer";
+import { AgentCommandConfirmDialogHost } from "../components/overlay/AgentCommandConfirmDialog";
+import { CommandPalette } from "../components/overlay/CommandPalette";
+import { EditingSemanticsImpactDialogHost } from "../components/overlay/EditingSemanticsImpactDialog";
+import { PropertySelectionContext } from "../components/property/propertySelection";
+import {
+  loadAllCustomFontsToSkia,
+  loadBuiltinFontsToSkia,
+  syncCustomFontsWithSkia,
+} from "../fonts/loadCustomFontsToSkia";
+import { useBuilderChromeTheme } from "../hooks/useBuilderChromeTheme";
 import { PanelWorkspace } from "../layout/PanelWorkspace";
+import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
+import { createCatalogDataUsageSource } from "../panels/datatable/usage/catalogDataUsageSource";
+import { createCatalogDataVariablesHost } from "../panels/datatable/usage/catalogDataVariablesHost";
+import { createCatalogQuickConnectHost } from "../panels/datatable/usage/catalogQuickConnectHost";
+import { DataUsageSourceContext } from "../panels/datatable/usage/dataUsageSource";
+import { DataVariablesHostContext } from "../panels/datatable/usage/dataVariablesHost";
+import { QuickConnectHostContext } from "../panels/datatable/usage/quickConnectHost";
+import {
+  CatalogSnapshotHostContext,
+  createCatalogSnapshotHost,
+} from "../panels/history/catalogSnapshotHost";
+import { dataChangeEventLabel } from "../panels/history/dataChangeEventLabel";
 import { toProjectVariableDefs, useDataStore } from "../stores/data";
+import { useToastStore } from "../stores/toast";
 import {
   setDataHistoryRecorder,
   setDocumentBindingCommitter,
   setDocumentVariableNamesReader,
 } from "../stores/utils/dataChange";
-import { catalogDocumentVariableNames } from "../catalogRuntime/dataVariables";
-import { useToastStore } from "../stores/toast";
-import {
-  CANVAS_BREAKPOINTS,
-  CANVAS_VIEWPORT,
-} from "../workspace/canvasBreakpoints";
+import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
+import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
+import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
 import {
   readRememberedBreakpoint,
   rememberBreakpoint,
 } from "../workspace/canvas/catalog/catalogViewMemory";
-import { CatalogCanvas } from "../workspace/canvas/catalog/CatalogCanvas";
-import { CatalogCompareLayout } from "../workspace/canvas/catalog/CatalogPreviewFrame";
-import { useCompareModeStore } from "../workspace/canvas/stores/compareMode";
-import { initAllWasm } from "../workspace/canvas/wasm-bindings/init";
-import { reloadIfStaleDeploy } from "./staleDeployRecovery";
-import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBridge";
 import { getCanvasKit } from "../workspace/canvas/skia/initCanvasKit";
+import { useCompareModeStore } from "../workspace/canvas/stores/compareMode";
+import { useViewportSyncStore } from "../workspace/canvas/stores/viewportSync";
+import { initAllWasm } from "../workspace/canvas/wasm-bindings/init";
+import { createLayoutEngine } from "../workspace/canvas/wasm-bindings/layoutBridge";
+import {
+  CANVAS_BREAKPOINTS,
+  CANVAS_VIEWPORT,
+} from "../workspace/canvasBreakpoints";
 import { BuilderHeader } from "./BuilderHeader";
 import { BuilderViewport } from "./BuilderViewport";
-import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
-import { registerVariableOwnerPageSource } from "../stores/utils/variableOwnerMigration";
-import { Button } from "@composition/shared/components";
-import { watchCatalogStorageQuota } from "../catalogRuntime/storageQuota";
-import {
-  runCatalogAssetGcNow,
-  scheduleCatalogAssetGc,
-} from "../catalogRuntime/assetGc";
-import { watchCatalogComponentEdits } from "../catalogRuntime/componentConfirm";
-import { getDB } from "../../lib/db";
-import { requestPersistenceOnce } from "../../lib/storage/storageProtection";
+import { reloadIfStaleDeploy } from "./staleDeployRecovery";
 import {
   catalogViewportActions,
   openPageFrame,
   useCatalogGlobalShortcuts,
 } from "./useCatalogGlobalShortcuts";
-import { useViewportSyncStore } from "../workspace/canvas/stores/viewportSync";
 import { useCatalogProjectFiles } from "./useCatalogProjectFiles";
 // 패널 공용 CSS (panel-system · inspector-layout · form-controls · list-group) — 구 BuilderCore 는
 // `../components` barrel 의 side effect 로 실었다 (4e-7-1 barrel 정리로 끊겼던 경로).
@@ -151,6 +151,12 @@ export function CatalogBuilderCore() {
   /** Boot progress (%) over the open path's stages (the old Builder's loading bar). */
   const [bootProgress, setBootProgress] = useState(0);
   const openPageRef = useRef<string | undefined>(undefined);
+  const [requestedPage, setRequestedPage] = useState<string | undefined>(
+    undefined,
+  );
+  useLayoutEffect(() => {
+    openPageRef.current = requestedPage;
+  }, [requestedPage, openCount]);
   const [presented, setPresented] = useState(false);
 
   // The open effect reads the latest `t` here: with `t` in its deps a language switch disposed the
@@ -324,7 +330,7 @@ export function CatalogBuilderCore() {
     [workspace, toastError],
   );
   const reopen = useCallback((pageId: string | undefined) => {
-    openPageRef.current = pageId;
+    setRequestedPage(pageId);
     setState({ kind: "opening" });
     setOpenCount((count) => count + 1);
   }, []);

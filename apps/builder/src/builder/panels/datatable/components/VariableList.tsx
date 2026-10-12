@@ -12,23 +12,22 @@
  * 보이고 "페이지로 이관" 이 canonical page `state` 로 옮긴다 (같은 id 유지 — setState.variableId 축).
  */
 
+import { ArrowUpRight, SquarePen, Variable } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { Variable, SquarePen, ArrowUpRight } from "lucide-react";
-import type { VisibleVariable } from "@composition/shared";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
+import type { Variable as VariableType } from "../../../../types/builder/data.types";
+import { iconEditProps, iconProps } from "../../../../utils/ui/uiConstants";
+import { EmptyState } from "../../../components/feedback/EmptyState";
+import { ConfirmDialog } from "../../../components/overlay";
+import { Section } from "../../../components/panel/Section";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import {
   useDataStore,
   useProjectVariableDefs,
   useVariables,
 } from "../../../stores/data";
-import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
-import { EmptyState } from "../../../components/feedback/EmptyState";
-import { Section } from "../../../components/panel/Section";
-import { ConfirmDialog } from "../../../components/overlay";
-import type { Variable as VariableType } from "../../../../types/builder/data.types";
-import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
-import { ACTION_ICONS } from "../../../config/actionIcons";
-import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import {
   useDataVariablesHost,
   type VariableIndexGroup,
@@ -42,7 +41,6 @@ const DeleteIcon = ACTION_ICONS.delete;
 interface VariableListProps {
   projectId: string;
 }
-
 
 export function VariableList({ projectId }: VariableListProps) {
   const i18n = useOptionalI18n();

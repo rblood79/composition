@@ -9,9 +9,8 @@
  * 키가 무너진다. 따라서 converter 는 `x + width` / `y + height` 를 노드
  * width/height 로 실어 실제 그려지는 영역의 **상위집합** AABB 를 만든다.
  */
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { specShapesToSkia } from "./specShapeConverter";
-import type { Shape } from "@composition/rendering";
 
 const TRIANGLE = "M 0 0 L 10 0 L 5 8 Z";
 

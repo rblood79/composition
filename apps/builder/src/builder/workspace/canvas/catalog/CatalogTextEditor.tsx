@@ -12,8 +12,8 @@ import {
   catalogTextKey,
   catalogTextOf,
 } from "../../../catalogRuntime/canvasText";
-import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
 import type { CatalogSelectionItem } from "../../../catalogRuntime/session";
+import { catalogTextBinding } from "../../../catalogRuntime/textBinding";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import type { BoundingBox } from "../selection/types";
 import { subscribeCanvasFrames } from "../skia/frameScheduler";
@@ -97,7 +97,9 @@ function TextField({
   /** The typed text's own height (scene px) — the field grows past the box as lines are added. */
   const [contentHeight, setContentHeight] = useState(0);
   const placeRef = useRef(place);
-  placeRef.current = place;
+  useLayoutEffect(() => {
+    placeRef.current = place;
+  });
   // The camera moves while editing (wheel pan/zoom): follow it — one subscription, and a frame
   // that moved nothing renders nothing.
   useEffect(
@@ -157,7 +159,9 @@ function TextField({
   // The edit ended elsewhere (another selection, a reconcile): keep what was typed. The session's
   // edit is no longer this one, so it is not ended again here.
   const saveRef = useRef(save);
-  saveRef.current = save;
+  useLayoutEffect(() => {
+    saveRef.current = save;
+  });
   useEffect(
     () => () => {
       try {

@@ -10,18 +10,18 @@
  * @since 2025-01-02
  */
 
-import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
 import { registerFieldIds } from "@composition/rendering";
-import { resolveBoundCollection } from "../collections/resolveBoundCollection";
-import { normalizeDataBinding } from "../collections/normalizeDataBinding";
-import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAsyncList } from "react-stately";
+import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
+import { normalizeDataBinding } from "../collections/normalizeDataBinding";
+import { resolveBoundCollection } from "../collections/resolveBoundCollection";
 import type {
+  AsyncListLoadOptions,
   DataBinding,
+  SchemaField,
   UseCollectionDataOptions,
   UseCollectionDataResult,
-  SchemaField,
-  AsyncListLoadOptions,
 } from "../types";
 import { useCollectionDataServices } from "./collectionDataContext";
 import { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
@@ -512,7 +512,7 @@ export function useCollectionData({
       return;
     }
     list.reload();
-  }, [list, propertyBinding, stableDataBinding, bindingCacheKey]);
+  }, [list, propertyBinding, bindingCacheKey]);
 
   // Auto-refresh 기능
   useEffect(() => {
@@ -561,7 +561,7 @@ export function useCollectionData({
     if (cacheKey) {
       collectionDataCache.invalidate(cacheKey);
     }
-  }, [stableDataBinding, bindingCacheKey]);
+  }, [bindingCacheKey]);
 
   return {
     data: processedData,

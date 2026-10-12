@@ -1,3 +1,4 @@
+import { fireEvent } from "@testing-library/react";
 import { resolveTestEditContract as resolveEditContract } from "../../../catalogRuntime/__tests__/support/editContractFixture";
 /**
  * ADR-159 P4a — Properties view(live 경로) 필드 피커 게이트.
@@ -22,17 +23,17 @@ const STUB_FIELD_VALUE_SOURCE: FieldValueSource = {
   useOwnerFields: () => ownerColumnsMock()?.map((key) => ({ key })) ?? null,
 };
 
-import { GenericFieldRenderer } from "./GenericFieldRenderer";
-import type { ReactElement, ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
-import {
-  FieldValueSourceContext,
-  type FieldValueSource,
-} from "./fieldValueSource";
+import type { ReactElement, ReactNode } from "react";
 import {
   openStylesFixture,
   type StylesFixture,
 } from "../../styles/__tests__/support/catalogStylesFixture";
+import {
+  FieldValueSourceContext,
+  type FieldValueSource,
+} from "./fieldValueSource";
+import { GenericFieldRenderer } from "./GenericFieldRenderer";
 
 let fixture: StylesFixture;
 beforeAll(async () => {
@@ -338,8 +339,6 @@ describe("ADR-209 숨긴 종류와 AND 조건", () => {
  * (hideTimeZone) 은 칩 켜짐 = 보임 = false 저장, On/Off enum (autoCorrect) 은 "on"/"off" 문자열.
  */
 describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
-  const { fireEvent } =
-    require("@testing-library/react") as typeof import("@testing-library/react");
   const chip = (container: HTMLElement, text: string) =>
     [
       ...container.querySelectorAll(".property-chips .react-aria-ToggleButton"),

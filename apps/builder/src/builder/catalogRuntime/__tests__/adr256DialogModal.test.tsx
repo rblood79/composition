@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { act } from "react";
-import { createElement, type ReactElement } from "react";
-import { createRoot } from "react-dom/client";
+import { act, type ReactElement } from "react";
 import {
   Button,
   Dialog,
@@ -11,15 +9,16 @@ import {
   Modal,
   Text,
 } from "react-aria-components";
+import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
+import { getPrimitiveBinding } from "../../../../../../packages/shared/src/catalog/bindings";
 import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { getPrimitiveBinding } from "../../../../../../packages/shared/src/catalog/bindings";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   LibraryDefinitionId,
@@ -138,10 +137,10 @@ function structure(element: Element): string {
     const content = [...node.childNodes]
       .filter((child) => !(child as Element).hasAttribute?.("hidden"))
       .map((child) =>
-      child.nodeType === 1
-        ? walk(child as Element)
-        : (child.textContent ?? "").trim(),
-    );
+        child.nodeType === 1
+          ? walk(child as Element)
+          : (child.textContent ?? "").trim(),
+      );
     return `<${node.tagName.toLowerCase()} ${attributes.join(" ")}>${content.join("")}</>`;
   };
   return walk(element);
@@ -168,15 +167,21 @@ describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
   });
 
   it("dismissing on an outside press is the Modal's prop, not the Dialog's", () => {
-    expect(getPrimitiveBinding("Modal")!.props.accepts.isDismissable).toBeDefined();
-    expect(getPrimitiveBinding("Dialog")!.props.accepts.isDismissable).toBeUndefined();
+    expect(
+      getPrimitiveBinding("Modal")!.props.accepts.isDismissable,
+    ).toBeDefined();
+    expect(
+      getPrimitiveBinding("Dialog")!.props.accepts.isDismissable,
+    ).toBeUndefined();
   });
 
   it("the open overlay has the reference's structure — one ModalOverlay > Modal > Dialog", async () => {
     const { workspace, placed } = await place("dialog");
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     await press(host.querySelector("button")!);
-    expect(document.querySelectorAll(".react-aria-ModalOverlay")).toHaveLength(1);
+    expect(document.querySelectorAll(".react-aria-ModalOverlay")).toHaveLength(
+      1,
+    );
     expect(document.querySelectorAll(".react-aria-Modal")).toHaveLength(1);
     const ours = structure(document.querySelector(".react-aria-ModalOverlay")!);
     await unmount?.();
@@ -210,9 +215,7 @@ describe("ADR-256 Phase 8b — Dialog in its Modal node", () => {
       if (dismissable)
         workspace.execute(
           setFields({
-            targets: [
-              workspace.positionOfRecord(part("Modal")!.id)!.target,
-            ],
+            targets: [workspace.positionOfRecord(part("Modal")!.id)!.target],
             props: { isDismissable: { kind: "set", value: true } },
           }),
         );

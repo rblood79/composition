@@ -150,7 +150,7 @@ export function catalogCardFields(
   if (position.target.kind !== "node") return undefined;
   const owner = reader.getEntry(position.target.id);
   if (owner?.kind !== "node" || !owner.binding) return undefined;
-  let type = "";
+  let type: string;
   try {
     type = definitionTypeName(reader, owner.definitionId);
   } catch {
@@ -166,7 +166,7 @@ export function catalogCardFields(
   const visit = (parent: CatalogPosition, depth: number) => {
     if (depth > 8) return;
     for (const child of childPositions(reader, parent)) {
-      let childType = "";
+      let childType: string;
       try {
         childType = definitionTypeName(reader, child.definitionId);
       } catch {

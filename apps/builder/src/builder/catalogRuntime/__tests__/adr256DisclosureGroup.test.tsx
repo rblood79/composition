@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { act } from "react";
-import { createElement, type ReactElement } from "react";
-import { createRoot } from "react-dom/client";
+import { act, type ReactElement } from "react";
 import {
   Button,
   Disclosure,
@@ -11,22 +9,17 @@ import {
   Heading,
   Text,
 } from "react-aria-components";
-import { catalogChildKind } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
+import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  insertNodes,
-  removeTargets,
-  setFields,
-} from "../../../../../../packages/shared/src/catalog/commands";
-import { getPrimitiveBinding } from "../../../../../../packages/shared/src/catalog/bindings";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
-import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   LibraryDefinitionId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import { catalogChildKind } from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
@@ -41,7 +34,10 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
-async function place(type: "disclosure" | "disclosuregroup", props: Record<string, unknown> = {}) {
+async function place(
+  type: "disclosure" | "disclosuregroup",
+  props: Record<string, unknown> = {},
+) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -56,7 +52,10 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
       viewport: { width: 1920, height: 1080 },
       autosaveSchedule: () => {},
       // (A fixed text measure — the line box is the font's line height, as the old chevron test's.)
-      textMeasure: (text: string, font: { fontSize: number; lineHeight?: number }) => ({
+      textMeasure: (
+        text: string,
+        font: { fontSize: number; lineHeight?: number },
+      ) => ({
         width: text.length * font.fontSize * 0.5,
         exactWidth: text.length * font.fontSize * 0.5,
         minWidth: text.length * font.fontSize * 0.5,
@@ -75,7 +74,10 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
             `lib:definition:origin-component-${type}` as LibraryDefinitionId,
           children: [],
           props: Object.fromEntries(
-            Object.entries(props).map(([key, value]) => [key, { kind: "set", value }]),
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value },
+            ]),
           ) as never,
           visual: {},
           sizing: {},
@@ -100,7 +102,9 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
       (record) => root.typeOf(record) === name,
     );
   const kids = (id: string) =>
-    root.canvasInputs.get(id)!.children.map((child) => root.canvasInputs.get(child)!);
+    root.canvasInputs
+      .get(id)!
+      .children.map((child) => root.canvasInputs.get(child)!);
   return { workspace, root, placed, part, all, kids };
 }
 
@@ -157,10 +161,10 @@ function structure(element: Element): string {
     const content = [...node.childNodes]
       .filter((child) => !(child as Element).hasAttribute?.("hidden"))
       .map((child) =>
-      child.nodeType === 1
-        ? walk(child as Element)
-        : (child.textContent ?? "").trim(),
-    );
+        child.nodeType === 1
+          ? walk(child as Element)
+          : (child.textContent ?? "").trim(),
+      );
     return `<${node.tagName.toLowerCase()} ${attributes.join(" ")}>${content.join("")}</>`;
   };
   return walk(element);
@@ -233,7 +237,9 @@ describe("ADR-256 Phase 8d — DisclosureGroup takes free content", () => {
     );
     const note = all("Text").find((record) => record.props.children === "Note");
     expect(note).toBeDefined();
-    expect(root.getGeometry([note!.id]).get(note!.id)!.height).toBeGreaterThan(0);
+    expect(root.getGeometry([note!.id]).get(note!.id)!.height).toBeGreaterThan(
+      0,
+    );
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     expect(
       [...host.querySelector(".react-aria-DisclosureGroup")!.children].some(
@@ -248,14 +254,14 @@ describe("ADR-256 Phase 8d — DisclosureGroup takes free content", () => {
     });
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     const sections = () => [...host.querySelectorAll(".react-aria-Disclosure")];
-    expect(sections().map((section) => section.hasAttribute("data-expanded"))).toEqual([
-      true,
-      false,
-    ]);
-    await press(sections()[1]!.querySelector<HTMLElement>('button[slot="trigger"]')!);
-    expect(sections().map((section) => section.hasAttribute("data-expanded"))).toEqual([
-      false,
-      true,
-    ]);
+    expect(
+      sections().map((section) => section.hasAttribute("data-expanded")),
+    ).toEqual([true, false]);
+    await press(
+      sections()[1]!.querySelector<HTMLElement>('button[slot="trigger"]')!,
+    );
+    expect(
+      sections().map((section) => section.hasAttribute("data-expanded")),
+    ).toEqual([false, true]);
   });
 });

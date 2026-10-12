@@ -170,7 +170,7 @@ export async function verifyLicenseToken(
   }
   if (header.alg !== "ES256") throw new LicenseVerifyError("algorithm");
 
-  let valid = false;
+  let valid: boolean;
   try {
     const key = await importPublicKey(publicKey);
     valid = await crypto.subtle.verify(

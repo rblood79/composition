@@ -5,23 +5,23 @@
  *
  * 참조 안정 (같은 내용이면 같은 배열) — `PropertyInput` memo 비교가 stateNames 참조를 본다.
  */
-import { useMemo, useRef } from "react";
+import { useMemo, useState } from "react";
 import { useProjectVariableDefs } from "../../../stores/data";
 
 const EMPTY: readonly string[] = Object.freeze([]);
 
 /** Names in order, the same array while the content is the same. */
 export function useStableNames(names: readonly string[]): readonly string[] {
-  const previous = useRef<readonly string[]>(EMPTY);
-  return useMemo(() => {
-    if (
-      names.length === previous.current.length &&
-      names.every((n, i) => n === previous.current[i])
-    )
-      return previous.current;
-    previous.current = names.length === 0 ? EMPTY : names;
-    return previous.current;
-  }, [names]);
+  const [previous, setPrevious] = useState<readonly string[]>(EMPTY);
+  if (
+    names.length !== previous.length ||
+    names.some((name, i) => name !== previous[i])
+  ) {
+    const next = names.length === 0 ? EMPTY : names;
+    setPrevious(next);
+    return next;
+  }
+  return previous;
 }
 
 /** The project variables' names (the data store's definitions). */

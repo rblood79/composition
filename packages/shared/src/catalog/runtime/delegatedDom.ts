@@ -1,0 +1,25 @@
+export {
+  catalogTypeName,
+  catalogOwnerDrawnPart,
+  CATALOG_LABEL_NODE_FIELDS,
+  catalogFieldLabelNode,
+  catalogFieldLabelNecessity,
+  catalogFieldHintNodes,
+  CATALOG_INPUT_NODE_FIELDS,
+  CATALOG_WRAPPED_CONTROL_FIELDS,
+  catalogFieldControlNodes,
+  catalogListPicker,
+  catalogCalendarPicker,
+  catalogDomPartParent,
+  catalogPartField,
+  CATALOG_DATE_INPUT_NODE_FIELDS,
+  catalogFieldInputNode,
+  authoredInvalid,
+  catalogToggleIndicatorElement,
+  CATALOG_PICKER_CALENDAR_PROPS,
+  CATALOG_DELEGATED_DOM,
+} from "./delegatedDom.runtime";
+export type {
+  DelegatedDomInput,
+  DelegatedDomBinding,
+} from "./delegatedDom.runtime";

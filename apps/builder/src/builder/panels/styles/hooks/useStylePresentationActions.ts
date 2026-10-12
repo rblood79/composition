@@ -1,9 +1,3 @@
-import {
-  presentationRuntime,
-  presentationSelection,
-  subscribePresentationSelection,
-} from "./presentationBridge";
-import { useStylesHost } from "../stylesHost";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   haveSameBoxShadowPresentationTopology,
@@ -19,6 +13,12 @@ import type {
   EditorPresentationHandle,
   EditorPresentationTargetRef,
 } from "../../../presentation/editorPresentationTypes";
+import { useStylesHost } from "../stylesHost";
+import {
+  presentationRuntime,
+  presentationSelection,
+  subscribePresentationSelection,
+} from "./presentationBridge";
 
 let nextStyleOwnerId = 1;
 
@@ -185,14 +185,14 @@ export function useStylePresentationActions(): StylePresentationActions {
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, []);
+  }, [bridge]);
 
   const isBorderColorPresentationOwned = useCallback(
     () =>
       (bridge?.resolveBorderColorTarget(
         presentationSelection(bridge).selectedElementId,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewBorderColorPresentation = useCallback(
@@ -246,7 +246,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       return true;
     },
-    [ownerId],
+    [bridge, ownerId],
   );
 
   const commitBorderColorPresentation = useCallback(
@@ -276,7 +276,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       else presentationRef.current = null;
       return true;
     },
-    [previewBorderColorPresentation],
+    [bridge, previewBorderColorPresentation],
   );
 
   const cancelBorderColorPresentation = useCallback(
@@ -295,7 +295,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       (bridge?.resolveBoxShadowTarget(
         presentationSelection(bridge).selectedElementId,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewBoxShadowPresentation = useCallback(
@@ -369,7 +369,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       return true;
     },
-    [shadowOwnerId],
+    [bridge, shadowOwnerId],
   );
 
   const previewBoxShadowModelPresentation = useCallback(
@@ -444,7 +444,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       return true;
     },
-    [shadowOwnerId],
+    [bridge, shadowOwnerId],
   );
 
   const commitBoxShadowPresentation = useCallback(
@@ -481,7 +481,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       else shadowPresentationRef.current = null;
       return true;
     },
-    [previewBoxShadowPresentation],
+    [bridge, previewBoxShadowPresentation],
   );
 
   const commitBoxShadowModelPresentation = useCallback(
@@ -519,7 +519,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       else shadowPresentationRef.current = null;
       return true;
     },
-    [previewBoxShadowModelPresentation],
+    [bridge, previewBoxShadowModelPresentation],
   );
 
   const cancelBoxShadowPresentation = useCallback(
@@ -538,7 +538,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       (bridge?.resolveTextColorTarget(
         presentationSelection(bridge).selectedElementId,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewTextColorPresentation = useCallback(
@@ -596,7 +596,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       return true;
     },
-    [textColorOwnerId],
+    [bridge, textColorOwnerId],
   );
 
   const commitTextColorPresentation = useCallback(
@@ -627,7 +627,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       else textColorPresentationRef.current = null;
       return true;
     },
-    [previewTextColorPresentation],
+    [bridge, previewTextColorPresentation],
   );
 
   const cancelTextColorPresentation = useCallback(
@@ -646,7 +646,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       (bridge?.resolveOpacityTarget(
         presentationSelection(bridge).selectedElementId,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewOpacityPresentation = useCallback(
@@ -702,7 +702,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       }
       return true;
     },
-    [opacityOwnerId],
+    [bridge, opacityOwnerId],
   );
 
   const commitOpacityPresentation = useCallback(
@@ -739,7 +739,7 @@ export function useStylePresentationActions(): StylePresentationActions {
       else opacityPresentationRef.current = null;
       return true;
     },
-    [previewOpacityPresentation],
+    [bridge, previewOpacityPresentation],
   );
 
   const cancelOpacityPresentation = useCallback(

@@ -60,7 +60,7 @@ export const CatalogLayoutBodySection = memo(function CatalogLayoutBodySection({
   );
   const slots = useMemo(
     () => (key === null ? [] : catalogLayoutSlots(graph, nodeId)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- the key changes with the slots
+
     [key, graph, nodeId],
   );
   const existing = useMemo<ExistingSlotInfo[]>(

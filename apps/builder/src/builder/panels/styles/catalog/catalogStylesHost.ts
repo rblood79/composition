@@ -1,10 +1,4 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
-import {
-  catalogColorWheelDiameter,
-  catalogColorWheelSizeOfBox,
-} from "../../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
-import { replayFillEdit } from "./fillEdit";
 import {
   setFields,
   setWholeField,
@@ -16,73 +10,79 @@ import type {
   EntryId,
   NodeId,
 } from "../../../../../../../packages/shared/src/catalog/document/types";
+import { catalogColumnSizeFits } from "../../../../../../../packages/shared/src/catalog/document/valueType";
 import {
-  catalogEditContract,
-  catalogSemanticPatchCommand,
-} from "../../../catalogRuntime/editContract";
+  catalogColorWheelDiameter,
+  catalogColorWheelSizeOfBox,
+} from "../../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
+import type { FillItem } from "../../../../types/builder/fill.types";
 import {
-  useCatalogEditContract,
-  useCatalogSession,
-} from "../../../catalogRuntime/react";
-import { targetKey } from "../../../catalogRuntime/session";
-import {
-  catalogAuthoredValues,
-  cssPx,
-  catalogStylePreviewPatch,
-  CatalogStyleValueError,
-  catalogStyleView,
-  catalogStyleWritesOf,
-} from "../../../catalogRuntime/styleFields";
-import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
-import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
-import { catalogEffectiveStyle } from "../../../catalogRuntime/effectiveStyle";
-import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
-import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
-import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
-import {
-  catalogFieldsAt,
-  catalogOverrideSeed,
-  catalogResponsiveSummary,
-} from "../../../catalogRuntime/responsiveFields";
-import {
-  resolveEligibleSeedDefault,
-  SHORTHAND_TO_LONGHAND,
-} from "../../../stores/utils/responsiveWriteRouting";
-import {
-  catalogDirtyStyleProps,
-  catalogResetStyleWrites,
-} from "../../../catalogRuntime/styleDirty";
+  TINT_PRESETS,
+  type TintPreset,
+} from "../../../../utils/theme/tintToSkiaColors";
 import {
   catalogFillItems,
   catalogFillLayers,
 } from "../../../catalogRuntime/authoredStyle";
-import type { FillItem } from "../../../../types/builder/fill.types";
-import type { SelectedElement } from "../../../inspector/types";
-import { resolveElementFills } from "../utils/fillMigration";
-import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
+import { catalogBoxModel } from "../../../catalogRuntime/boxModel";
+import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
+import type { CatalogRecordPreview } from "../../../catalogRuntime/compositionRoot";
+import { catalogDocumentColorSources } from "../../../catalogRuntime/documentColors";
+import {
+  catalogEditContract,
+  catalogSemanticPatchCommand,
+} from "../../../catalogRuntime/editContract";
+import { catalogEffectiveStyle } from "../../../catalogRuntime/effectiveStyle";
 import {
   catalogAbsoluteCommand,
   catalogPlacementEditCommand,
   catalogPlacementStyle,
 } from "../../../catalogRuntime/position";
 import {
+  useCatalogEditContract,
+  useCatalogSession,
+} from "../../../catalogRuntime/react";
+import {
+  catalogFieldsAt,
+  catalogOverrideSeed,
+  catalogResponsiveSummary,
+} from "../../../catalogRuntime/responsiveFields";
+import { targetKey } from "../../../catalogRuntime/session";
+import {
   catalogFillAt,
   catalogRatioCommand,
   catalogSizingCommand,
 } from "../../../catalogRuntime/sizing";
+import {
+  catalogDirtyStyleProps,
+  catalogResetStyleWrites,
+} from "../../../catalogRuntime/styleDirty";
+import {
+  catalogAuthoredValues,
+  catalogStylePreviewPatch,
+  CatalogStyleValueError,
+  catalogStyleView,
+  catalogStyleWritesOf,
+  cssPx,
+} from "../../../catalogRuntime/styleFields";
+import { catalogSubpartOwnerType } from "../../../catalogRuntime/subpart";
+import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import type { SelectedElement } from "../../../inspector/types";
 import { useToastStore } from "../../../stores/toast";
 import {
-  TINT_PRESETS,
-  type TintPreset,
-} from "../../../../utils/theme/tintToSkiaColors";
+  resolveEligibleSeedDefault,
+  SHORTHAND_TO_LONGHAND,
+} from "../../../stores/utils/responsiveWriteRouting";
 import type { ElementStyleContext } from "../hooks/useElementStyleContext";
-import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
 import {
   useCatalogLayoutValue,
   useCatalogLayoutVersion,
 } from "../hooks/useLayoutValue";
+import type { StylesHost, StylesTargetSnapshot } from "../stylesHostContext";
+import { FILL_DERIVED_STYLE_PROPS } from "../utils/fillDerivedStyleProps";
+import { resolveElementFills } from "../utils/fillMigration";
 import { isOwnerOrientationTag } from "../utils/orientationDrivenTags";
+import { replayFillEdit } from "./fillEdit";
 
 const noSubscription = () => () => {};
 
@@ -92,14 +92,12 @@ function useOwnFieldsOf(workspace: CatalogWorkspace, id: string | null) {
     () => (id ? workspace.itemOfRecord(id)?.target : undefined),
     [workspace, id],
   );
-  const key = target ? targetKey(target) : "";
   const subscribe = useCallback(
     (notify: () => void) =>
       target
         ? workspace.readModel.subscribeOwnFields(target, notify)
         : noSubscription(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
-    [key],
+    [workspace, target],
   );
   const own = useSyncExternalStore(subscribe, () =>
     target ? workspace.readModel.ownFields(target) : undefined,
@@ -139,17 +137,14 @@ function useMasterFieldsOf(
 ) {
   const master = useMemo(
     () => masterTargetOf(workspace, target),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the target's key
-    [workspace, target ? targetKey(target) : ""],
+    [workspace, target],
   );
-  const key = master ? targetKey(master) : "";
   const subscribe = useCallback(
     (notify: () => void) =>
       master
         ? workspace.readModel.subscribeOwnFields(master, notify)
         : noSubscription(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed by the master's key
-    [key],
+    [workspace, master],
   );
   return useSyncExternalStore(subscribe, () =>
     master ? workspace.readModel.ownFields(master) : undefined,
@@ -528,7 +523,7 @@ export function createCatalogStylesHost(
       // ADR-251: an items wrapper shows its group's `orientation` as its Direction.
       const ownerTarget = useMemo(
         () => orientationOwnerTargetOf(workspace, id),
-        [id, contract],
+        [id],
       );
       const ownerContract = useCatalogEditContract(ownerTarget);
       // The drawn record follows every step and root replacement (breakpoint · project).

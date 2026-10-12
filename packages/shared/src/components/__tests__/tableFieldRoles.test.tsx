@@ -57,7 +57,10 @@ describe("buildTableRowIdResolver — 행 id = shared itemKey", () => {
 });
 
 describe("Table.tsx 배선 (정적)", () => {
-  const src = readFileSync(resolve(__dirname, "../Table.tsx"), "utf8");
+  const src = readFileSync(
+    resolve(__dirname, "../Table.components.tsx"),
+    "utf8",
+  );
 
   it("raw useCollectionData 를 쓰지 않고 useResolvedCollectionItems 를 지난다", () => {
     expect(src).not.toMatch(/\buseCollectionData\(/);

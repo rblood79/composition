@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 import { createElement, type ElementType, type ReactElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import {
   Button,
   Calendar,
@@ -24,20 +23,20 @@ import {
   Text,
   TextField,
 } from "react-aria-components";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { catalogDomRendersNode, renderCatalogDom } from "../domBinding";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import {
+  detachInstances,
+  insertNodes,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import {
-  detachInstances,
-  insertNodes,
-  setFields,
-} from "../../../../../../packages/shared/src/catalog/commands";
+import { catalogDomRendersNode, renderCatalogDom } from "../domBinding";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
@@ -328,12 +327,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         renderCatalogDom(workspace.root, field().id),
       );
       const input = (slot?: string) =>
-        createElement(
-          DateInput as ElementType,
-          slot ? { slot } : null,
-          ((segment: Parameters<typeof DateSegment>[0]["segment"]) =>
-            createElement(DateSegment, { segment })) as never,
-        );
+        createElement(DateInput as ElementType, slot ? { slot } : null, ((
+          segment: Parameters<typeof DateSegment>[0]["segment"],
+        ) => createElement(DateSegment, { segment })) as never);
       const button = createElement(
         Button,
         null,
@@ -568,7 +564,8 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
         renderCatalogDom(workspace.root, field().id),
       );
       const drawn = [...host.querySelectorAll("[data-catalog-id]")].find(
-        (element) => element.getAttribute("data-catalog-id")?.endsWith(calendar),
+        (element) =>
+          element.getAttribute("data-catalog-id")?.endsWith(calendar),
       );
       expect(drawn).toBeDefined();
       // RAC's calendar context (the picker's disabled state — the node does not override it to

@@ -4,10 +4,10 @@ export interface LegacyNodeFixture {
   type: string;
   children?: LegacyNodeFixture[];
   props?: Record<string, unknown>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 export interface LegacyDocumentFixture {
   version: string;
   children: LegacyNodeFixture[];
-  [key: string]: any;
+  [key: string]: unknown;
 }

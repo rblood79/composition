@@ -55,15 +55,6 @@ function delegationSizes(
   return out;
 }
 
-/** 트리거 아이콘 스케일 정본 (Select `.select-chevron` = SelectIcon.iconSize 계열) */
-const ICON_SCALE: Record<string, string> = {
-  XS: "14px",
-  S: "16px",
-  M: "18px",
-  L: "22px",
-  XL: "28px",
-};
-
 describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () => {
   // ADR-253: field 안 버튼은 FieldButton 원본의 instance 다 (ComboBox · DatePicker · DateRangePicker). glyph
   //   는 그 안의 Icon 노드이고 크기는 Button rule 의 glyph 단계다 — 부모 rule 에는 버튼 **상자** 크기만
@@ -137,5 +128,4 @@ describe("트리거 아이콘 크기 — 아이콘 스케일 단일 SSOT", () =>
       expect(actual).toEqual(ICON_SCALE_NUM);
     },
   );
-
 });

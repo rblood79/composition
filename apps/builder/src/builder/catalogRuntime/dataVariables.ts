@@ -63,7 +63,7 @@ export function catalogVariableIndex(
     if (owner?.kind !== "node") return [];
     const pageId = pageOf(graph, owner.id);
     if (!pageId) return [];
-    let type = "";
+    let type: string;
     try {
       type = definitionTypeName(graph, owner.definitionId);
     } catch {

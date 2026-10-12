@@ -1,0 +1,95 @@
+import { CollectionDataContext } from "@composition/shared";
+import { CatalogPreviewToastBridge } from "./toastBridge";
+
+import { ToastProvider, useToast } from "@composition/shared/components";
+
+import {
+  Fragment,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
+
+import { CatalogPreviewSession } from "./catalogPreviewSession";
+
+import { renderCatalogDom, type CatalogDomRuntime } from "./domBinding";
+
+import { catalogToastPosition, rootKey } from "./domView.runtime";
+
+export function CatalogPreviewView({
+  session,
+  runtime,
+}: {
+  session: CatalogPreviewSession;
+  runtime?: CatalogDomRuntime;
+}) {
+  useSyncExternalStore(session.subscribe, session.getVersion);
+  const root = session.root;
+  const record = session.pageRecord;
+  if (!root || !record)
+    return <div className="preview-loading">Initializing Preview...</div>;
+  // No page answers to the path the user followed (the old router's default 404 view).
+  if (session.notFound !== undefined)
+    return (
+      <div className="preview-not-found" role="alert">
+        <h1>404</h1>
+        <p>Page not found</p>
+        <p className="preview-not-found__path">{session.notFound}</p>
+      </div>
+    );
+  return (
+    <Fragment key={`${rootKey(root)}:${record}`}>
+      {renderCatalogDom(root, record, { slotMode: "page", runtime })}
+    </Fragment>
+  );
+}
+
+/** The Builder's data services (API endpoints) for the Preview's components (FileUpload …). */
+export function CatalogPreviewDataProvider({
+  session,
+  children,
+}: {
+  session: CatalogPreviewSession;
+  children: ReactNode;
+}) {
+  useSyncExternalStore(session.subscribe, session.getVersion);
+  return (
+    <CollectionDataContext.Provider value={session.dataServices}>
+      {children}
+    </CollectionDataContext.Provider>
+  );
+}
+
+/** The app's toast region, where the project places it (S2 `ToastContainer` `placement`). */
+export function CatalogToastProvider({
+  session,
+  children,
+}: {
+  session: CatalogPreviewSession;
+  children: ReactNode;
+}) {
+  useSyncExternalStore(session.subscribe, session.getVersion);
+  const project = session.graph?.getEntry(session.graph.projectId);
+  return (
+    <ToastProvider
+      position={catalogToastPosition(
+        project?.kind === "project" ? project.toastPlacement : undefined,
+      )}
+    >
+      {children}
+    </ToastProvider>
+  );
+}
+
+/** The session's rules, their toasts shown in this document's toast region. */
+export function CatalogPreviewToasts({
+  toast,
+}: {
+  toast: CatalogPreviewToastBridge;
+}) {
+  const { addToast } = useToast();
+  useEffect(() => {
+    return toast.connect((message) => addToast({ title: message }));
+  }, [addToast, toast]);
+  return null;
+}

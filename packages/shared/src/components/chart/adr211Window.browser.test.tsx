@@ -8,17 +8,17 @@
  * canonical write 0 은 구조로 성립한다 — Slider 는 컴포넌트 state 만 바꾼다 (live 하니스가
  * 실제 빌더에서 element props 불변을 다시 확인한다).
  */
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { userEvent } from "vitest/browser";
-import { Chart } from "../Chart";
 import {
   CHART_DEFAULT_PROPS,
   createChartInitialProps,
   resolveChartData,
   resolveChartMetrics,
 } from "@composition/rendering";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
+import { Chart } from "../Chart";
 
 let root: Root;
 let host: HTMLDivElement;
@@ -38,7 +38,6 @@ const thumbs = () =>
       ".react-aria-Chart .react-aria-SliderThumb input",
     ),
   );
-const thumb = () => thumbs()[0];
 const barCount = () => host.querySelectorAll(".recharts-bar-rectangle").length;
 const tickTexts = () =>
   Array.from(host.querySelectorAll("[data-chart-decoration] text")).map(

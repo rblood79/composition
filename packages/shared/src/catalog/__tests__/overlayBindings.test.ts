@@ -29,15 +29,6 @@ const OVERLAY_TYPES = [
   "DropZone",
 ] as const;
 
-/** Skia generic 발효된 overlay (skiaLegacy 0건 — 5 전부). */
-const SKIA_CUTOVER_OVERLAYS = [
-  "Popover",
-  "Dialog",
-  "Modal",
-  "DropZone",
-  "Tooltip",
-] as const;
-
 describe("family ⑥ overlays — catalog 등록 + cutover 상태", () => {
   it("5 overlay 가 catalog primitive entry (family=overlays, cutover=catalog)", () => {
     for (const type of OVERLAY_TYPES) {

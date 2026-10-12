@@ -1,5 +1,4 @@
 import type { Canvas, CanvasKit } from "canvaskit-wasm";
-import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
 import {
   catalogDeleteGuideCommand,
   catalogGuideDragAt,
@@ -9,6 +8,8 @@ import {
   catalogPageAt,
   catalogPageGuides,
 } from "../../../catalogRuntime/pageGuides";
+import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
+import { registerKeyboardEventHandler } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useBuilderUiStore } from "../../../stores/builderUiStore";
 import { guideCursorForAxis } from "../../components/rulerMetrics";
 import { isRulerEventTarget } from "../../components/rulerOverlayUtils";
@@ -21,8 +22,8 @@ import {
   setSelectedGuide,
 } from "../interaction/guideEmphasis";
 import {
-  GUIDE_HIT_THRESHOLD_SCREEN_PX,
   buildGuideHitTargets,
+  GUIDE_HIT_THRESHOLD_SCREEN_PX,
   resolveGuideHit,
   type GuideHitTarget,
 } from "../interaction/guideHitTest";
@@ -167,7 +168,7 @@ export function bindCatalogGuides(options: {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onCancel);
       window.removeEventListener("blur", stop);
-      window.removeEventListener("keydown", onKey, true);
+      releaseKey();
       release = undefined;
       endGuideDrag();
     };
@@ -175,7 +176,7 @@ export function bindCatalogGuides(options: {
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onCancel);
     window.addEventListener("blur", stop);
-    window.addEventListener("keydown", onKey, true);
+    const releaseKey = registerKeyboardEventHandler("keydown", onKey, true);
     release = stop;
     publishAt(clientX, clientY);
   };
@@ -231,7 +232,11 @@ export function bindCatalogGuides(options: {
       options.onError(error);
     }
   };
-  window.addEventListener("keydown", onKeyDown, true);
+  const releaseKeyDown = registerKeyboardEventHandler(
+    "keydown",
+    onKeyDown,
+    true,
+  );
   // Drag, hover and selection changes redraw the overlay (no document step).
   const unwatchRevision = subscribePageGuideRevision(options.invalidateOverlay);
   // Rulers off: nothing stays hovered or selected (guides cannot be grabbed then).
@@ -340,7 +345,7 @@ export function bindCatalogGuides(options: {
     },
     dispose() {
       release?.();
-      window.removeEventListener("keydown", onKeyDown, true);
+      releaseKeyDown();
       unwatchRevision();
       unwatchRulers();
       setHoveredGuide(null);

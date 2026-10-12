@@ -13,7 +13,7 @@ const SHARED_SRC = join(__dirname, "../../../../packages/shared/src");
 // ADR-248 4e-7: the entry loads the catalog Preview app lazily — trace it as part of the runtime.
 const ENTRIES = [
   join(__dirname, "index.tsx"),
-  join(__dirname, "catalog/catalogPreviewApp.tsx"),
+  join(__dirname, "catalog/catalogPreviewApp.ts"),
 ];
 
 const IMPORT_RE =
@@ -105,7 +105,7 @@ describe("Preview builder 저작 코드 import 경계", () => {
   it("추적이 실제로 돈다 (catalog DOM binding · 렌더러까지 닿는다)", () => {
     const files = [...reachable.keys()].map((f) => relative(BUILDER_SRC, f));
     expect([...reachable.keys()]).toContain(
-      join(SHARED_SRC, "catalog/runtime/domBinding.tsx"),
+      join(SHARED_SRC, "catalog/runtime/domBinding.ts"),
     );
     // The old element-store Preview app (and its canonical resolver) left the entry (4e-7).
     expect(files).not.toContain("preview/App.tsx");

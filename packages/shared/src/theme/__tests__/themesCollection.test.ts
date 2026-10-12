@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ThemesCollection } from "../../types/catalog-style.types";
 import {
-  BASE_TYPOGRAPHY_TOKEN_KEYS,
   DEFAULT_THEME_ID,
   DEFAULT_THEME_PRESET,
   addTheme,
   createThemeDefinition,
   createThemesCollection,
   duplicateTheme,
-  getActiveTheme,
   isThemesCollection,
   normalizeThemesCollection,
   removeTheme,

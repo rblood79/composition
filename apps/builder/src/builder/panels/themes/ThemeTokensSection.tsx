@@ -6,20 +6,20 @@
  * 같으면 델타 삭제 · 무효는 안내). 쓰기는 Themes host `setThemeToken` (history 1 · 런타임 1회).
  */
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Minus } from "lucide-react";
-import { ACTION_ICONS } from "../../config/actionIcons";
 import type {
   ThemesCollection,
   TokensSnapshotEntry,
 } from "@composition/shared";
 import { getActiveTheme } from "@composition/shared";
+import { Minus } from "lucide-react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useI18n } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { ActionIconButton } from "../../components/ui/ActionIconButton";
-import { PropertyInput } from "../../components/property/PropertyInput";
 import { Section as PropertySection } from "../../components/panel/Section";
+import { PropertyInput } from "../../components/property/PropertyInput";
 import { PropertySelect } from "../../components/property/PropertySelect";
+import { ActionIconButton } from "../../components/ui/ActionIconButton";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { useThemesHost } from "./themesHost";
 import {
   THEME_TOKEN_CATEGORIES,
@@ -108,10 +108,6 @@ function AddOverrideRow({ themes }: { themes: ThemesCollection }) {
   const [value, setValue] = useState("");
   const [invalid, setInvalid] = useState(false);
   // 분류가 바뀌면 키 목록도 바뀐다 — 첫 키로
-  useEffect(() => {
-    setKey(keys[0] ?? "");
-    setInvalid(false);
-  }, [keys]);
 
   const categoryOptions = useMemo(
     () =>
@@ -148,7 +144,13 @@ function AddOverrideRow({ themes }: { themes: ThemesCollection }) {
         <PropertySelect
           label={t("themes.category")}
           value={category}
-          onChange={(v) => setCategory(v as ThemeTokenCategory)}
+          onChange={(v) => {
+            const next = v as ThemeTokenCategory;
+            if (next === category) return;
+            setCategory(next);
+            setKey(themeTokenKeys(next)[0] ?? "");
+            setInvalid(false);
+          }}
           options={categoryOptions}
           translateOptions={false}
         />

@@ -4,12 +4,11 @@
  * fixed in the product, and the Canvas reads the same catalog declaration.
  */
 import "fake-indexeddb/auto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   CatalogDocument,
   DefinitionId,
@@ -21,27 +20,12 @@ import {
   type CatalogTextMeasure,
 } from "../compositionRoot";
 import { CatalogRuntime } from "../controller";
-import { renderToStaticMarkup } from "react-dom/server";
-import { getSkiaNode } from "../../workspace/canvas/skia/useSkiaNode";
-import { bindCatalogCanvas } from "../canvasBinding";
 import { renderCatalogDom } from "../domBinding";
 import { catalogPaletteDefinitionId } from "../paletteInsert";
 import { newCatalogProjectDocument } from "../project";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
-import { TAILWIND_PALETTE } from "@composition/rendering";
-
-const TAILWIND_NEUTRAL_600 = TAILWIND_PALETTE.neutral[600];
-
-const GENERATED = resolve(
-  __dirname,
-  "../../../../../../packages/shared/src/components/styles/generated",
-);
-const blockOf = (css: string, selector: string) => {
-  const start = css.indexOf(`${selector} {`);
-  return start < 0 ? "" : css.slice(start, css.indexOf("}", start));
-};
 
 const measure: CatalogTextMeasure = (text, font) => ({
   width: text.length * font.fontSize * 0.5,

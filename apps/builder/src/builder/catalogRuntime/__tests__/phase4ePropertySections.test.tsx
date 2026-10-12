@@ -1,25 +1,20 @@
-import "fake-indexeddb/auto";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   NodeEntry,
   NodeId,
   TemplateId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { I18nProvider } from "../../../i18n";
 import { createCatalogDataUsageSource } from "../../panels/datatable/usage/catalogDataUsageSource";
-import { DataUsageSourceContext } from "../../panels/datatable/usage/dataUsageSource";
 import { createCatalogQuickConnectHost } from "../../panels/datatable/usage/catalogQuickConnectHost";
+import { DataUsageSourceContext } from "../../panels/datatable/usage/dataUsageSource";
 import { QuickConnectHostContext } from "../../panels/datatable/usage/quickConnectHost";
-import { FieldValueSourceContext } from "../../panels/properties/generic/fieldValueSource";
-import { GenericFieldRenderer } from "../../panels/properties/generic/GenericFieldRenderer";
-import { ItemsSourceContext } from "../../panels/properties/generic/itemsSource";
-import { CATALOG_FIELD_VALUE_SOURCE } from "../../panels/properties/catalog/catalogFieldValueSource";
-import { CATALOG_ITEMS_SOURCE } from "../../panels/properties/catalog/catalogItemsSource";
 import { DesignPanel } from "../../panels/design/DesignPanel";
 import { useDesignPanelView } from "../../panels/design/designPanelView";
 import { CatalogPageSection } from "../../panels/properties/catalog/CatalogPageSection";
@@ -28,18 +23,18 @@ import { CatalogStateSection } from "../../panels/properties/catalog/CatalogStat
 import { catalogHtmlIdCommand, catalogUniqueHtmlId } from "../attributes";
 import { catalogButtonChildCommands } from "../buttonChildren";
 import { catalogComponentCommands } from "../componentActions";
+import { catalogEditContract } from "../editContract";
+import { newCatalogProjectDocument } from "../project";
+import { CatalogWorkspaceProvider } from "../react";
 import {
   catalogSlotCommands,
   catalogSlotDeclaration,
   catalogSlotPosition,
 } from "../slots";
-import { catalogEditContract } from "../editContract";
-import { newCatalogProjectDocument } from "../project";
 import {
   catalogOwnVariables,
   catalogVariableCommands,
 } from "../stateVariables";
-import { CatalogWorkspaceProvider } from "../react";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";

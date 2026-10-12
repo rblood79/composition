@@ -5,9 +5,8 @@
 import { IDBFactory } from "fake-indexeddb";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { IndexedDBAdapter } from "../../db/indexedDB/adapter";
-import { closeAssetDb, readAllAssetGcRecords } from "../assetDb";
+import { closeAssetDb, openAssetDb, readAllAssetGcRecords } from "../assetDb";
 import { releaseAssetPins, runAssetGc, type AssetGcRoots } from "../assetGc";
-import { openAssetDb } from "../assetDb";
 import { collectDurableAssetRoots } from "../assetGcRoots";
 import {
   AssetMissingError,
@@ -197,7 +196,7 @@ describe("§3.1 참조 공개 · 삭제 경쟁 (G3 고정 반례)", () => {
     expect(report.deleted).toEqual([]);
   });
 
-  it("(c\') 두 번째 mark 와 삭제 사이에 재참조 → 영속 → pin 해제까지 끝나도 그 sweep 은 취소된다", async () => {
+  it("(c') 두 번째 mark 와 삭제 사이에 재참조 → 영속 → pin 해제까지 끝나도 그 sweep 은 취소된다", async () => {
     const a = await asset(14);
     await gc(roots());
     const report = await gc(roots(), {

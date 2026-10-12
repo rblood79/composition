@@ -12,18 +12,17 @@
  * @since 2026-02-10 Gradient Phase 2
  */
 
-import { memo, useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  AngularGradientFillItem,
   FillItem,
   GradientStop,
   LinearGradientFillItem,
   RadialGradientFillItem,
-  AngularGradientFillItem,
 } from "../../../../types/builder/fill.types";
-import { FillType } from "../../../../types/builder/fill.types";
 import { hex8ToRgba, rgbaToHex8 } from "../utils/colorUtils";
-import { GradientBar } from "./GradientBar";
 import { ColorPickerPanel } from "./ColorPickerPanel";
+import { GradientBar } from "./GradientBar";
 import { GradientControls } from "./GradientControls";
 import { GradientStopList } from "./GradientStopList";
 import {

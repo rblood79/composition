@@ -50,6 +50,17 @@ const EXCLUDED = [
   /^v8\.fn\.src\/builder\/workspace\/canvas\/utils\/gpuProfilerCore\.ts#\(anonymous\)$/,
 ];
 
+const V8_SOURCE_IDENTITIES = new Map([
+  [
+    "src/builder/catalogRuntime/react.runtime.ts",
+    "src/builder/catalogRuntime/react.tsx",
+  ],
+  [
+    "src/builder/catalogRuntime/react.components.tsx",
+    "src/builder/catalogRuntime/react.tsx",
+  ],
+]);
+
 export function recorderSha256(recorderScript) {
   return createHash("sha256").update(recorderScript).digest("hex");
 }
@@ -74,10 +85,17 @@ export function flattenCounts(counts) {
     }
   };
   walk(counts, "");
+  const sourceCounts = new Map();
   for (const f of counts?.v8?.topApp ?? []) {
     const key = `v8.fn.${f.file}#${f.fn}`;
     if (EXCLUDED.some((re) => re.test(key))) continue;
-    out[key] = Math.max(out[key] ?? 0, f.n);
+    const existing = sourceCounts.get(key);
+    sourceCounts.set(key, { ...f, n: Math.max(existing?.n ?? 0, f.n) });
+  }
+  for (const f of sourceCounts.values()) {
+    const file = V8_SOURCE_IDENTITIES.get(f.file) ?? f.file;
+    const key = `v8.fn.${file}#${f.fn}`;
+    out[key] = (out[key] ?? 0) + f.n;
   }
   return out;
 }

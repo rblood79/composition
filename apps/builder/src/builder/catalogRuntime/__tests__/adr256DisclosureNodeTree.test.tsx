@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
-import { act } from "react";
-import { createElement, type ReactElement } from "react";
-import { createRoot } from "react-dom/client";
+import { act, type ReactElement } from "react";
 import {
   Button,
   Disclosure,
@@ -10,16 +8,16 @@ import {
   Heading,
   Text,
 } from "react-aria-components";
+import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   insertNodes,
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import { getPrimitiveBinding } from "../../../../../../packages/shared/src/catalog/bindings";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import { REUSABLE_ORIGIN_TEMPLATES } from "../../../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   LibraryDefinitionId,
@@ -42,7 +40,10 @@ import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 const BODY = "project:node:home-body" as NodeId;
 const PLACED = "project:node:placed" as NodeId;
 
-async function place(type: "disclosure" | "disclosuregroup", props: Record<string, unknown> = {}) {
+async function place(
+  type: "disclosure" | "disclosuregroup",
+  props: Record<string, unknown> = {},
+) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -57,7 +58,10 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
       viewport: { width: 1920, height: 1080 },
       autosaveSchedule: () => {},
       // (A fixed text measure — the line box is the font's line height, as the old chevron test's.)
-      textMeasure: (text: string, font: { fontSize: number; lineHeight?: number }) => ({
+      textMeasure: (
+        text: string,
+        font: { fontSize: number; lineHeight?: number },
+      ) => ({
         width: text.length * font.fontSize * 0.5,
         exactWidth: text.length * font.fontSize * 0.5,
         minWidth: text.length * font.fontSize * 0.5,
@@ -76,7 +80,10 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
             `lib:definition:origin-component-${type}` as LibraryDefinitionId,
           children: [],
           props: Object.fromEntries(
-            Object.entries(props).map(([key, value]) => [key, { kind: "set", value }]),
+            Object.entries(props).map(([key, value]) => [
+              key,
+              { kind: "set", value },
+            ]),
           ) as never,
           visual: {},
           sizing: {},
@@ -101,7 +108,9 @@ async function place(type: "disclosure" | "disclosuregroup", props: Record<strin
       (record) => root.typeOf(record) === name,
     );
   const kids = (id: string) =>
-    root.canvasInputs.get(id)!.children.map((child) => root.canvasInputs.get(child)!);
+    root.canvasInputs
+      .get(id)!
+      .children.map((child) => root.canvasInputs.get(child)!);
   return { workspace, root, placed, part, all, kids };
 }
 
@@ -158,10 +167,10 @@ function structure(element: Element): string {
     const content = [...node.childNodes]
       .filter((child) => !(child as Element).hasAttribute?.("hidden"))
       .map((child) =>
-      child.nodeType === 1
-        ? walk(child as Element)
-        : (child.textContent ?? "").trim(),
-    );
+        child.nodeType === 1
+          ? walk(child as Element)
+          : (child.textContent ?? "").trim(),
+      );
     return `<${node.tagName.toLowerCase()} ${attributes.join(" ")}>${content.join("")}</>`;
   };
   return walk(element);
@@ -183,17 +192,25 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     ]);
     const trigger = node("lib:template:component-disclosure__trigger");
     expect(trigger.props).toMatchObject({ slot: "trigger" });
-    expect(node("lib:template:component-disclosure__chevron").props).toMatchObject({
+    expect(
+      node("lib:template:component-disclosure__chevron").props,
+    ).toMatchObject({
       iconName: "chevron-right",
     });
-    expect(node("lib:template:component-disclosure__title").props.children).toBe("{title}");
+    expect(
+      node("lib:template:component-disclosure__title").props.children,
+    ).toBe("{title}");
   });
 
   it("the expanded DOM has the reference's structure", async () => {
     const { workspace, placed } = await place("disclosure");
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
     const ours = structure(host.querySelector(".react-aria-Disclosure")!);
-    expect(host.querySelector(".react-aria-Disclosure")!.hasAttribute("data-expanded")).toBe(true);
+    expect(
+      host
+        .querySelector(".react-aria-Disclosure")!
+        .hasAttribute("data-expanded"),
+    ).toBe(true);
     await unmount?.();
     document.body.innerHTML = "";
     const reference = await mount(
@@ -214,7 +231,9 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
         </DisclosurePanel>
       </Disclosure>,
     );
-    expect(ours).toBe(structure(reference.querySelector(".react-aria-Disclosure")!));
+    expect(ours).toBe(
+      structure(reference.querySelector(".react-aria-Disclosure")!),
+    );
   });
 
   it("the trigger Button is RAC's plain button in the sheet's box; its glyph and title take its color", async () => {
@@ -227,7 +246,9 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     );
     const glyph = trigger.querySelector<HTMLElement>(".react-aria-Icon")!;
     expect(glyph.style.color).toBe("");
-    expect(trigger.querySelector<HTMLElement>(".react-aria-Text")!.style.color).toBe("");
+    expect(
+      trigger.querySelector<HTMLElement>(".react-aria-Text")!.style.color,
+    ).toBe("");
     expect(part("Heading")!.props.children ?? "").toBe("");
   });
 
@@ -235,31 +256,36 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
     ["S", 12],
     ["M", 14],
     ["L", 16],
-  ])("Canvas %s: the trigger's old geometry — chevron 18 at x 12, title at x 34 in the size font", async (size, fontSize) => {
-    const { root, part } = await place("disclosure", { size });
-    const trigger = part("Button")!;
-    const chevron = part("Icon")!;
-    const title = root.canvasInputs.get(trigger.children[1]!)!;
-    const geometry = root.getGeometry([trigger.id, chevron.id, title.id]);
-    const box = geometry.get(chevron.id)!;
-    expect(box.x).toBe(12);
-    expect([box.width, box.height]).toEqual([18, 18]);
-    expect(box.y).toBeCloseTo((geometry.get(trigger.id)!.height - 18) / 2, 1);
-    expect(geometry.get(title.id)!.x).toBe(34);
-    expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
-    // (S2's regular trigger height — 2026-10-10: the old header's was the chevron 18 or the line,
-    // plus the 8px padding.)
-    expect(geometry.get(trigger.id)!.height).toBeCloseTo(
-      { S: 24, M: 32, L: 40 }[size]!,
-      2,
-    );
-    // The panel content takes the Disclosure's size font (the old DisclosureContent's).
-    const content = root.canvasInputs.get(part("DisclosurePanel")!.children[0]!)!;
-    expect(content.visual).toMatchObject({ fontSize, fontWeight: 400 });
-    // The panel's box is the sheet's content div (`.react-aria-DisclosurePanel > div` padding 8 · 16).
-    const inPanel = root.getGeometry([content.id]).get(content.id)!;
-    expect([inPanel.x, inPanel.y]).toEqual([16, 8]);
-  });
+  ])(
+    "Canvas %s: the trigger's old geometry — chevron 18 at x 12, title at x 34 in the size font",
+    async (size, fontSize) => {
+      const { root, part } = await place("disclosure", { size });
+      const trigger = part("Button")!;
+      const chevron = part("Icon")!;
+      const title = root.canvasInputs.get(trigger.children[1]!)!;
+      const geometry = root.getGeometry([trigger.id, chevron.id, title.id]);
+      const box = geometry.get(chevron.id)!;
+      expect(box.x).toBe(12);
+      expect([box.width, box.height]).toEqual([18, 18]);
+      expect(box.y).toBeCloseTo((geometry.get(trigger.id)!.height - 18) / 2, 1);
+      expect(geometry.get(title.id)!.x).toBe(34);
+      expect(title.visual).toMatchObject({ fontSize, fontWeight: 600 });
+      // (S2's regular trigger height — 2026-10-10: the old header's was the chevron 18 or the line,
+      // plus the 8px padding.)
+      expect(geometry.get(trigger.id)!.height).toBeCloseTo(
+        { S: 24, M: 32, L: 40 }[size]!,
+        2,
+      );
+      // The panel content takes the Disclosure's size font (the old DisclosureContent's).
+      const content = root.canvasInputs.get(
+        part("DisclosurePanel")!.children[0]!,
+      )!;
+      expect(content.visual).toMatchObject({ fontSize, fontWeight: 400 });
+      // The panel's box is the sheet's content div (`.react-aria-DisclosurePanel > div` padding 8 · 16).
+      const inPanel = root.getGeometry([content.id]).get(content.id)!;
+      expect([inPanel.x, inPanel.y]).toEqual([16, 8]);
+    },
+  );
 
   it("the expansion: Canvas panel only while expanded, the chevron turned; the Preview trigger toggles it", async () => {
     const { workspace, placed, part } = await place("disclosure");
@@ -282,11 +308,17 @@ describe("ADR-256 Phase 8c — Disclosure draws its node tree", () => {
   });
 
   it("the title is the Disclosure's `title` (Canvas and DOM)", async () => {
-    const { workspace, placed, part, root } = await place("disclosure", { title: "Specs" });
+    const { workspace, placed, part, root } = await place("disclosure", {
+      title: "Specs",
+    });
     const trigger = part("Button")!;
-    expect(root.canvasInputs.get(trigger.children[1]!)!.props.children).toBe("Specs");
+    expect(root.canvasInputs.get(trigger.children[1]!)!.props.children).toBe(
+      "Specs",
+    );
     const host = await mount(renderCatalogDom(workspace.root, placed().id));
-    expect(host.querySelector('button[slot="trigger"]')!.textContent).toBe("Specs");
+    expect(host.querySelector('button[slot="trigger"]')!.textContent).toBe(
+      "Specs",
+    );
   });
 
   it("a DisclosureGroup's sections keep their own titles and contents", async () => {

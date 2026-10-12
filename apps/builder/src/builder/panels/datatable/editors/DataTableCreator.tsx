@@ -16,74 +16,77 @@
  * @see presets/dataTablePresets.ts (카탈로그) · @composition/sample-data (생성기, ADR-220) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Button } from "react-aria-components/Button";
-import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
-import Papa from "papaparse";
 import {
-  User,
+  ArrowLeftRight,
+  BadgeCheck,
+  BookUser,
+  Building2,
+  ChefHat,
+  Contact,
+  Cpu,
+  CreditCard,
+  Database,
+  Factory,
+  FileText,
+  FileUp,
+  Folder,
+  Globe,
+  Image,
   Key,
+  Layers,
+  LayoutTemplate,
+  ListChecks,
   Lock,
   Mail,
-  Building2,
-  Layers,
-  Folder,
-  Package,
-  Tag,
-  ShoppingCart,
-  Cpu,
-  Wrench,
-  FileText,
-  Users,
-  Database,
-  Settings,
-  Factory,
-  Contact,
-  Newspaper,
-  CreditCard,
-  Image,
-  BookUser,
-  BadgeCheck,
-  ShoppingBasket,
-  Star,
   MessageSquare,
-  ListChecks,
-  ChefHat,
+  Newspaper,
+  Package,
   Quote,
-  ArrowLeftRight,
   Receipt,
-  Table2,
-  LayoutTemplate,
-  FileUp,
-  Globe,
+  Settings,
+  ShoppingBasket,
+  ShoppingCart,
   Sparkles,
+  Star,
+  Table2,
+  Tag,
+  User,
+  Users,
+  Wrench,
   X,
 } from "lucide-react";
-import { ACTION_ICONS } from "../../../config/actionIcons";
-import { useDataStore } from "../../../stores/data";
+import Papa from "papaparse";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "react-aria-components/Button";
+import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { Section } from "../../../components/panel/Section";
 import { PropertyCheckbox } from "../../../components/property/PropertyCheckbox";
 import { PropertyFieldset } from "../../../components/property/PropertyFieldset";
-import { Section } from "../../../components/panel/Section";
-import type { DataTablePreset } from "../presets/types";
-import { PRESET_CATEGORIES } from "../presets/types";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
+import { useDataStore } from "../../../stores/data";
+import { globalToast } from "../../../stores/toast";
+import { setAiComposerDraft } from "../../ai/aiComposerDraft";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
-import { resolvePresetSchema, type PresetTranslate } from "../presets/types";
 import { resolvePresetTranslate } from "../presets/presetStrings";
-import { parsePastedRows } from "../utils/pasteRows";
-import { columnsToSchema, detectColumns } from "../utils/columnDetector";
+import type { DataTablePreset } from "../presets/types";
+import {
+  PRESET_CATEGORIES,
+  resolvePresetSchema,
+  type PresetTranslate,
+} from "../presets/types";
+import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import type { QuickConnectTarget } from "../types/editorTypes";
+import { useQuickConnectHost } from "../usage/quickConnectHost";
+import { columnsToSchema, detectColumns } from "../utils/columnDetector";
+import { parsePastedRows } from "../utils/pasteRows";
 import {
   unmatchedColumnKeys,
   type QuickConnectPrecheck,
 } from "../utils/quickConnectPlan";
-import { useQuickConnectHost } from "../usage/quickConnectHost";
-import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
-import { setAiComposerDraft } from "../../ai/aiComposerDraft";
-import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
-import { globalToast } from "../../../stores/toast";
 import "./DataTableCreator.css";
-import { translateKey, useOptionalI18n } from "../../../../i18n";
 
 // ============================================
 // Icon Mapping
@@ -211,12 +214,16 @@ export function DataTableCreator({
   connect,
 }: DataTableCreatorProps) {
   const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  const t = (
-    key: string,
-    params?: Record<string, string | number | boolean>,
-  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
+  const localize = useCallback(
+    (key: string, fallback: string) =>
+      i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback,
+    [i18n],
+  );
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number | boolean>) =>
+      i18n ? i18n.t(`datatable.${key}`, params) : key,
+    [i18n],
+  );
   /** preset 문구 해소기 — preset 카탈로그 (lazy 표), locale 은 provider 의 것 (밖이면 en) */
   const locale = i18n?.locale;
   const tr = useMemo<PresetTranslate>(
@@ -469,8 +476,9 @@ export function DataTableCreator({
     openTableEditor,
     onClose,
     tr,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    i18n,
+
+    localize,
+    t,
   ]);
 
   // 아이콘 렌더링 헬퍼

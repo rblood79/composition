@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 
 /**
  * TagGroup maxRows 미러 DOM chip size CSS 계약 회귀 테스트 (2026-07-02).
@@ -80,10 +80,11 @@ describe("TagGroup 미러 DOM chip size CSS 계약", () => {
 // jsdom 은 레이아웃 폭(clientWidth)/getBoundingClientRect().y 를 계산 안 하므로 실제 wrap 수렴은
 //   live(빌더 Preview DOM)로 확증(side md maxRows=2 10칩: CSS 3줄→2줄+Show all, Skia 98 대칭).
 //   본 테스트는 폭 동기화 코드 경로(구조 계약)를 소스 문자열로 고정한다.
-const tagGroupTsx = readFileSync(
-  fileURLToPath(new URL("../TagGroup.tsx", import.meta.url)),
-  "utf8",
-);
+const tagGroupTsx = ["../TagGroup.components.tsx", "../TagGroup.runtime.tsx"]
+  .map((path) =>
+    readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8"),
+  )
+  .join("\n");
 
 describe("TagGroup 미러 DOM 측정 폭 동기화 계약(side-label Label 차감)", () => {
   it("실제 chip 배치 컨테이너 ref(tagListWrapperRef)가 선언된다", () => {

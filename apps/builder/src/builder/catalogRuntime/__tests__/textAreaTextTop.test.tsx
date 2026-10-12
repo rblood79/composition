@@ -1,23 +1,22 @@
 import "fake-indexeddb/auto";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
+import {
+  insertNodes,
+  setFields,
+} from "../../../../../../packages/shared/src/catalog/commands";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   LibraryDefinitionId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import {
-  insertNodes,
-  setFields,
-} from "../../../../../../packages/shared/src/catalog/commands";
 import { catalogAuthoredVisual } from "../../../../../../packages/shared/src/catalog/runtime/libraryVisual";
 import type { CatalogTextMeasure } from "../compositionRoot";
 import { renderCatalogDom } from "../domBinding";
-import { catalogRuleShapes } from "../ruleShapes";
-import { editContractFixture } from "./support/editContractFixture";
 import { newCatalogProjectDocument } from "../project";
+import { catalogRuleShapes } from "../ruleShapes";
 import { CatalogStorage } from "../storage";
 import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
@@ -141,6 +140,9 @@ describe("TextArea text on the Canvas", () => {
   it("a TextField's placeholder stays in the middle of its one line", async () => {
     const { canvasText, write } = await place("textfield");
     write({ placeholder: "Write here" });
-    expect(canvasText()).toMatchObject({ text: "Write here", baseline: "middle" });
+    expect(canvasText()).toMatchObject({
+      text: "Write here",
+      baseline: "middle",
+    });
   });
 });

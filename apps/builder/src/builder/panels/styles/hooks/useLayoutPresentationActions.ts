@@ -1,9 +1,3 @@
-import {
-  presentationRuntime,
-  presentationSelection,
-} from "./presentationBridge";
-import { useStylesHost } from "../stylesHost";
-import { usePresentationLifecycle } from "./usePresentationLifecycle";
 import { useCallback, useRef, useState } from "react";
 import { parsePresentationLayoutPx } from "../../../presentation/editorPresentationLayoutValue";
 import type { LayoutPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
@@ -12,6 +6,12 @@ import type {
   EditorPresentationCancelReason,
   EditorPresentationHandle,
 } from "../../../presentation/editorPresentationTypes";
+import { useStylesHost } from "../stylesHost";
+import {
+  presentationRuntime,
+  presentationSelection,
+} from "./presentationBridge";
+import { usePresentationLifecycle } from "./usePresentationLifecycle";
 
 let nextLayoutOwnerId = 1;
 
@@ -53,7 +53,7 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
         presentationSelection(bridge).selectedElementId,
         property,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewLayoutPresentation = useCallback(
@@ -121,7 +121,7 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
       }
       return true;
     },
-    [ownerId],
+    [bridge, ownerId],
   );
 
   const commitLayoutPresentation = useCallback(
@@ -165,7 +165,7 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
       else stateRef.current = null;
       return true;
     },
-    [previewLayoutPresentation],
+    [bridge, previewLayoutPresentation],
   );
 
   const cancelLayoutPresentation = useCallback(

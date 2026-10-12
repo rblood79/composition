@@ -4,18 +4,18 @@ import {
   cssVarToTokenRef,
   getSkiaPrimitive,
   getSkiaPrimitiveMode,
-  resolveLeadingSlot,
-  resolveSpecFontSize,
   resolveToken,
   type Shape,
   type SizeSpec,
   type TokenRef,
 } from "@composition/rendering";
 import { getPrimitiveBinding } from "@composition/shared";
-import { ruleVariantToVisual } from "../workspace/canvas/skia/resolveSkiaVisualRule";
-import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
-import { normalizeMiddleBaselineTextLineHeight } from "../workspace/canvas/skia/specBuildHelpers";
+import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
+import { ruleVariantToVisual } from "../workspace/canvas/skia/resolveSkiaVisualRule";
+import { normalizeMiddleBaselineTextLineHeight } from "../workspace/canvas/skia/specBuildHelpers";
+import { specShapesToSkia } from "../workspace/canvas/skia/specShapeConverter";
+import { resolveBorderGeometry } from "../workspace/canvas/styleConversion/borderGeometry";
 import type {
   CatalogCompositionRoot,
   CatalogConsumerNode,
@@ -26,8 +26,6 @@ import {
   cssVarColor,
   type CatalogRuleShapeInput,
 } from "./rulePaint";
-import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
-import { resolveBorderGeometry } from "../workspace/canvas/styleConversion/borderGeometry";
 
 /**
  * ADR-248 Canvas executor for rule-backed definitions (`LibraryDefinition.ruleId`): the node's

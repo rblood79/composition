@@ -1,3 +1,10 @@
+import {
+  getIconData,
+  lightColors,
+  resolveToken,
+  spacing,
+  typography,
+} from "@composition/rendering";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import type {
   CatalogReader,
@@ -8,16 +15,8 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import {
   childPositions,
-  nodePosition,
   type CatalogPosition,
 } from "../../../../../packages/shared/src/catalog/resolution/positions";
-import {
-  getIconData,
-  lightColors,
-  resolveToken,
-  spacing,
-  typography,
-} from "@composition/rendering";
 import { resolveCatalogRuleCanvasBox } from "../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { catalogBuiltinOrigins } from "./layouts";
 import {
@@ -65,9 +64,27 @@ const COMPOSED_CELL_WIDTH = 240;
 const WIDER_CELL: Readonly<Record<string, number>> = { DateRangePicker: 360 };
 /** Icons the Icons card shows (those the registry holds). */
 const SAMPLE_ICONS = [
-  "house", "search", "bell", "circle-user", "settings", "mail", "calendar",
-  "chart-line", "shield", "pencil", "square-pen", "circle-check", "x", "info",
-  "triangle-alert", "lock", "upload", "download", "star", "heart", "trash-2",
+  "house",
+  "search",
+  "bell",
+  "circle-user",
+  "settings",
+  "mail",
+  "calendar",
+  "chart-line",
+  "shield",
+  "pencil",
+  "square-pen",
+  "circle-check",
+  "x",
+  "info",
+  "triangle-alert",
+  "lock",
+  "upload",
+  "download",
+  "star",
+  "heart",
+  "trash-2",
 ];
 const ICON = "lib:definition:type-Icon";
 const TYPE_BASE = "text-base";
@@ -75,8 +92,15 @@ const TYPE_BASE = "text-base";
 const CONTROL_GROUP = "lib:definition:type-Group";
 const COLOR_FAMILIES = ["accent", "neutral", "negative", "border"];
 const COLOR_SURFACES = [
-  "base", "raised", "layer-1", "layer-2", "elevated", "disabled",
-  "transparent", "white", "black",
+  "base",
+  "raised",
+  "layer-1",
+  "layer-2",
+  "elevated",
+  "disabled",
+  "transparent",
+  "white",
+  "black",
 ];
 
 const node = (
@@ -98,11 +122,13 @@ const part = (...path: string[]) =>
   `${ORIGIN_VIEW_NODE}/${path.join("/")}` as NodeId;
 const FRAME = "lib:definition:type-frame";
 const titleCase = (value: string) =>
-  value.replace(/(^|-)([a-z])/g, (_, dash: string, letter: string) =>
-    `${dash ? " " : ""}${letter.toUpperCase()}`,
+  value.replace(
+    /(^|-)([a-z])/g,
+    (_, dash: string, letter: string) =>
+      `${dash ? " " : ""}${letter.toUpperCase()}`,
   );
 
-const set = <T,>(value: T) => ({ kind: "set" as const, value });
+const set = <T>(value: T) => ({ kind: "set" as const, value });
 /** The marks of an origin and of an instance (the Layers rows' dots, in a caption). */
 const ORIGIN_MARK = "◆";
 const INSTANCE_MARK = "◇";
@@ -195,8 +221,7 @@ function originItems(
       ),
     ),
   ].find((child) => child && stateIds.has(child.definitionId))?.definitionId as
-    | LibraryDefinitionId
-    | undefined;
+    LibraryDefinitionId | undefined;
   const item = templateOf(origin);
   if (!origin || !item) return undefined;
   // (A crumb Link's `{href}` is the item's address, not a content place — ADR-256 Phase 5a.)
@@ -216,9 +241,7 @@ function originItems(
       typeof child.props?.children === "string" &&
       /^\{(label|title|children)\}$/.test(child.props.children);
     labelled ||= label;
-    return [
-      { path: [item.rootId, id as LibraryTemplateId], label },
-    ];
+    return [{ path: [item.rootId, id as LibraryTemplateId], label }];
   });
   return { origin, parts };
 }
@@ -244,9 +267,13 @@ function originSlots(graph: CatalogGraph, originId: LibraryDefinitionId) {
       slots.push({
         name: node.slot.name,
         path,
-        contents: node.children.map((child) => [...path, child as LibraryTemplateId]),
+        contents: node.children.map((child) => [
+          ...path,
+          child as LibraryTemplateId,
+        ]),
       });
-    for (const child of node.children) visit([...path, child as LibraryTemplateId]);
+    for (const child of node.children)
+      visit([...path, child as LibraryTemplateId]);
   };
   if (rootId) visit([rootId]);
   return slots;
@@ -627,7 +654,9 @@ export function catalogComponentsPageEntries(
         row(
           theme("spacing", "row", "sizes"),
           "Sizes",
-          steps.filter((step) => step !== base).map((step) => box(step, INSTANCE_MARK)),
+          steps
+            .filter((step) => step !== base)
+            .map((step) => box(step, INSTANCE_MARK)),
         ),
       ],
       250,
@@ -635,7 +664,11 @@ export function catalogComponentsPageEntries(
   }
 
   catalogBuiltinOrigins(library).forEach((origin) => {
-    const facets = originFacets(graph, origin.id, stateIds.get(origin.id) ?? []);
+    const facets = originFacets(
+      graph,
+      origin.id,
+      stateIds.get(origin.id) ?? [],
+    );
     const base = (...path: string[]) => part("origin", origin.id, ...path);
     // A composed origin without states (a field, a list) fills a fixed cell; a stateful one
     // (IconButton, Checkbox) is as small as a leaf. A base part that fills its container (the
@@ -671,7 +704,8 @@ export function catalogComponentsPageEntries(
     const slots = originSlots(graph, origin.id);
     // (A fit-content origin's slot takes a width of its own: a `%` of fit-content is nothing.)
     const SLOT_BOX = { width: set(wide ? "100%" : 160), minHeight: set(40) };
-    const unfilled = (slot: (typeof slots)[number]) => slot.contents.length === 0;
+    const unfilled = (slot: (typeof slots)[number]) =>
+      slot.contents.length === 0;
     const slotPatches = slots.flatMap((slot) => [
       ...(slot.path.length === 1 || !unfilled(slot)
         ? []
@@ -757,7 +791,9 @@ export function catalogComponentsPageEntries(
           "Item",
           states.map((stateId) => {
             const title = catalogDefinitionTitle(graph, stateId);
-            const caption = title.slice(title.indexOf("/") + 1).replace(/\//g, " / ");
+            const caption = title
+              .slice(title.indexOf("/") + 1)
+              .replace(/\//g, " / ");
             const id = originInstanceId(origin.id, `item/${caption}`);
             const stateRoot = library.definitions.get(stateId);
             // A state variant's template root is the nested instance the patch goes through.
@@ -828,16 +864,20 @@ export function catalogComponentsPageEntries(
               base("cell", "type", kind.key),
               `${INSTANCE_MARK} ${kind.label}`,
               fixed(
-                node(originInstanceId(origin.id, `type/${kind.key}`), origin.id, {
-                  name: `${origin.name} / ${kind.label}`,
-                  props: catalogCreationProps(
-                    library,
-                    origin.id,
-                    origin.name,
-                    kind.initialProps,
-                  ),
-                  ...catalogCreationStyle({ style: { width } }),
-                }),
+                node(
+                  originInstanceId(origin.id, `type/${kind.key}`),
+                  origin.id,
+                  {
+                    name: `${origin.name} / ${kind.label}`,
+                    props: catalogCreationProps(
+                      library,
+                      origin.id,
+                      origin.name,
+                      kind.initialProps,
+                    ),
+                    ...catalogCreationStyle({ style: { width } }),
+                  },
+                ),
               ),
               width,
             ),
@@ -865,12 +905,17 @@ export function catalogComponentsPageEntries(
     node(ORIGIN_VIEW_NODE, "lib:definition:type-body", {
       name: "Components",
       children: columns.map((column, index) =>
-        frame(part("column", String(index + 1)), `Column ${index + 1}`, column.cards, {
-          flexDirection: "column",
-          gap: GAP,
-          width: COLUMN_WIDTH,
-          flexShrink: 0,
-        }),
+        frame(
+          part("column", String(index + 1)),
+          `Column ${index + 1}`,
+          column.cards,
+          {
+            flexDirection: "column",
+            gap: GAP,
+            width: COLUMN_WIDTH,
+            flexShrink: 0,
+          },
+        ),
       ),
       ...catalogCreationStyle({
         style: {
@@ -914,6 +959,10 @@ export function setCatalogComponentsView(
     if (id.startsWith(ORIGIN_VIEW_NODE))
       graph.setViewEntry(id as NodeId, undefined);
   if (!on) return;
-  for (const [id, compute] of catalogComponentsPageEntries(graph, heights, mode))
+  for (const [id, compute] of catalogComponentsPageEntries(
+    graph,
+    heights,
+    mode,
+  ))
     graph.setViewEntry(id, compute);
 }

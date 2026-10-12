@@ -11,7 +11,7 @@
  * @since 2026-02-10 Gradient Phase 2
  */
 
-import { memo, useState, useCallback, useRef } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import type { GradientStop } from "../../../../types/builder/fill.types";
 
 import "./GradientBar.css";
@@ -107,7 +107,7 @@ export const GradientBar = memo(function GradientBar({
       const stop = stops[index];
       if (!stop) return;
       const step = e.shiftKey ? 0.1 : 0.01;
-      let next: number | null = null;
+      let next: number;
       switch (e.key) {
         case "ArrowLeft":
         case "ArrowDown":

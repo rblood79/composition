@@ -24,7 +24,6 @@
  */
 
 import { useEffect } from "react";
-import type { ShortcutDefinition, ShortcutScope } from "../types/keyboard";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
@@ -33,6 +32,7 @@ import {
   registerCommand,
   type CommandHandler,
 } from "../stores/commandRegistry";
+import type { ShortcutDefinition, ShortcutScope } from "../types/keyboard";
 
 /**
  * 지원되는 modifier 조합
@@ -507,4 +507,14 @@ function formatShortcutKey(key: string, isMac: boolean): string {
   if (label) return isMac ? label.mac : label.other;
 
   return key.toUpperCase();
+}
+
+/** Imperative gesture lifetimes need the native event and symmetric release, like hook registrations. */
+export function registerKeyboardEventHandler(
+  eventType: "keydown" | "keyup",
+  handler: (event: KeyboardEvent) => void,
+  capture = false,
+): () => void {
+  window.addEventListener(eventType, handler, capture);
+  return () => window.removeEventListener(eventType, handler, capture);
 }

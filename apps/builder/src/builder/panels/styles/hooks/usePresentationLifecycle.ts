@@ -1,10 +1,10 @@
+import { useEffect, type RefObject } from "react";
+import type { EditorPresentationHandle } from "../../../presentation/editorPresentationTypes";
+import { useStylesHost } from "../stylesHost";
 import {
   presentationSelection,
   subscribePresentationSelection,
 } from "./presentationBridge";
-import { useStylesHost } from "../stylesHost";
-import { useEffect, type RefObject } from "react";
-import type { EditorPresentationHandle } from "../../../presentation/editorPresentationTypes";
 
 interface PresentationLifecycleState {
   readonly handle: EditorPresentationHandle;
@@ -41,5 +41,5 @@ export function usePresentationLifecycle<T extends PresentationLifecycleState>(
       unsubscribeSelection();
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [stateRef]);
+  }, [bridge, stateRef]);
 }

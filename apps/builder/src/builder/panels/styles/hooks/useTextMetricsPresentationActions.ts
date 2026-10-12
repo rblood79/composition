@@ -1,20 +1,20 @@
-import {
-  presentationRuntime,
-  presentationSelection,
-} from "./presentationBridge";
-import { useStylesHost } from "../stylesHost";
-import { usePresentationLifecycle } from "./usePresentationLifecycle";
 import { useCallback, useRef, useState } from "react";
+import type { TextMetricPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
 import {
   parsePresentationFontSize,
   parsePresentationFontWeight,
 } from "../../../presentation/editorPresentationTextMetricValue";
-import type { TextMetricPresentationProperty } from "../../../presentation/editorPresentationPilotTypes";
 import type {
   EditorMutationDescriptor,
   EditorPresentationCancelReason,
   EditorPresentationHandle,
 } from "../../../presentation/editorPresentationTypes";
+import { useStylesHost } from "../stylesHost";
+import {
+  presentationRuntime,
+  presentationSelection,
+} from "./presentationBridge";
+import { usePresentationLifecycle } from "./usePresentationLifecycle";
 
 let nextTextMetricOwnerId = 1;
 
@@ -68,7 +68,7 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
         presentationSelection(bridge).selectedElementId,
         property,
       ) ?? null) !== null,
-    [],
+    [bridge],
   );
 
   const previewTextMetricPresentation = useCallback(
@@ -139,7 +139,7 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
       }
       return true;
     },
-    [ownerId, parsePropertyValue],
+    [bridge, ownerId, parsePropertyValue],
   );
 
   const commitTextMetricPresentation = useCallback(
@@ -186,7 +186,7 @@ export function useTextMetricsPresentationActions(): TextMetricsPresentationActi
       else stateRef.current = null;
       return true;
     },
-    [parsePropertyValue, previewTextMetricPresentation],
+    [bridge, parsePropertyValue, previewTextMetricPresentation],
   );
 
   const cancelTextMetricPresentation = useCallback(

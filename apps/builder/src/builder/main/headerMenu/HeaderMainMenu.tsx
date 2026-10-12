@@ -26,22 +26,21 @@ import {
 import { Popover } from "react-aria-components/Popover";
 import { Separator } from "react-aria-components/Separator";
 import { Text } from "react-aria-components/Text";
-import { useBuilderUiStore } from "../../stores/builderUiStore";
-import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
-import { PanelRegistry } from "../../panels/core/PanelRegistry";
-import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
+import { togglePanelWorkspace } from "../../hooks/usePanelLayout";
+import { PanelRegistry } from "../../panels/core/PanelRegistry";
+import { useSectionCollapse } from "../../panels/styles/hooks/useSectionCollapse";
+import { useBuilderUiStore } from "../../stores/builderUiStore";
 // 읽기 모델은 agent executor 경유 — executor 청크가 이미 싣고 있는 모듈 묶음을 그대로 가리켜야
 // Rolldown 이 initial 공유 청크 (canvasActions) 를 쪼개지 않는다 (G2, headerMenuRuntime.ts).
-import { buildAgentReadModel } from "../../../services/agent/executeAgentCommand";
 import { hostCommandLabelKey } from "../../../services/agent/agentCommandHost";
+import { buildAgentReadModel } from "../../../services/agent/executeAgentCommand";
 import { BUILDER_MENU_ROOT } from "./builderMenuStructure";
 import "./HeaderMainMenu.css";
 import type { HeaderMenuHost } from "./headerMenuActions";
-import { deriveWorkspacePanelGroups } from "./resolveMenuItemState";
 import {
   buildMenuModel,
   searchMenuModel,
@@ -49,6 +48,7 @@ import {
   type MenuLeaf,
   type MenuSubmenu,
 } from "./menuModel";
+import { deriveWorkspacePanelGroups } from "./resolveMenuItemState";
 
 /**
  * 메뉴에서 고른 명령 실행 — 대상 scope 를 인자로 넘긴다 (ADR-249 §4-5). 메뉴가
@@ -158,7 +158,7 @@ export default function HeaderMainMenu({ host }: HeaderMainMenuProps) {
       query.trim()
         ? searchMenuModel(blocks, query, host.runtime.matchesCommandSearch)
         : blocks,
-    [blocks, query],
+    [blocks, host.runtime.matchesCommandSearch, query],
   );
 
   const BuilderSearchField = runtime.SearchField;

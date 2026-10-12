@@ -1,3 +1,4 @@
+import { useParams } from "react-router";
 /**
  * PropertyDataBinding Component
  *
@@ -16,21 +17,37 @@
  * />
  */
 
-import React, { useCallback, memo } from "react";
+import { useI18n } from "@/i18n";
+import type { DataBindingValue } from "@composition/shared";
+import { resolveBoundCollection, resolveField } from "@composition/shared";
+import {
+  ChevronDown,
+  DatabasePlus,
+  Image,
+  KeyRound,
+  Link2,
+  Table2,
+  X,
+} from "lucide-react";
+import React, { memo, useCallback } from "react";
+import { Button } from "react-aria-components/Button";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
 import {
   Select as AriaSelect,
   SelectValue,
 } from "react-aria-components/Select";
-import { Button } from "react-aria-components/Button";
-import { Popover } from "react-aria-components/Popover";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { ChevronDown, Image, KeyRound, Link2, X } from "lucide-react";
-import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
-import { PropertyFieldset } from "./PropertyFieldset";
-import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
-import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import type { DataField } from "../../../types/builder/data.types";
+import { iconEditProps, iconProps } from "../../../utils/ui/uiConstants";
+import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
+import { useDataUsageSource } from "../../panels/datatable/usage/dataUsageSource";
+import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
 import { useCollections } from "../../stores/data";
+import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
 import "./PropertyDataBinding.css";
+import { PropertyFieldset } from "./PropertyFieldset";
+import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 
 // ============================================
 // Types
@@ -42,17 +59,7 @@ import "./PropertyDataBinding.css";
 // ADR-159 P4b/P4c(G4 게이트)의 read-호환 근거 주석도 그쪽에 있다.
 // 종전에는 같은 shape 를 여기에도 선언해 두 벌이었고, 근거 주석은 이쪽에만
 // 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
-export type { RefreshMode, DataBindingValue } from "@composition/shared";
-import type { DataBindingValue } from "@composition/shared";
-import { resolveBoundCollection, resolveField } from "@composition/shared";
-import { useParams } from "react-router";
-import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
-import { useQuickConnectHost } from "../../panels/datatable/usage/quickConnectHost";
-import { useDataUsageSource } from "../../panels/datatable/usage/dataUsageSource";
-import { DatabasePlus, Table2 } from "lucide-react";
-import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
-import type { DataField } from "../../../types/builder/data.types";
-import { useI18n } from "@/i18n";
+export type { DataBindingValue, RefreshMode } from "@composition/shared";
 
 interface PropertyDataBindingProps {
   /** 라벨 */
@@ -109,8 +116,8 @@ function FieldMapSelect({
   disabled?: boolean;
 }) {
   const { t } = useI18n();
-  const focus = useSelectTriggerFocusRestore();
-  const popover = useControlPopoverMetrics();
+  const { triggerRef, restoreFocusOnClose } = useSelectTriggerFocusRestore();
+  const { controlRef, popoverStyle } = useControlPopoverMetrics();
   const RoleIcon = FIELD_MAP_ROLE_ICON[role];
   const label = t(`propertiesPanel.${FIELD_MAP_ROLE_LABEL[role]}`);
   return (
@@ -118,14 +125,14 @@ function FieldMapSelect({
       <AriaSelect
         className="react-aria-Select binding-fieldmap-select"
         data-role={role}
-        ref={popover.controlRef}
+        ref={controlRef}
         selectedKey={selectedFieldId ?? FIELD_MAP_AUTO_KEY}
         onSelectionChange={(key) => onChange(role, key)}
-        onOpenChange={focus.restoreFocusOnClose}
+        onOpenChange={restoreFocusOnClose}
         aria-label={label}
         isDisabled={disabled}
       >
-        <Button className="react-aria-Button" ref={focus.triggerRef}>
+        <Button className="react-aria-Button" ref={triggerRef}>
           <span aria-hidden="true" className="binding-fieldmap-role">
             <RoleIcon size={iconProps.size} />
           </span>
@@ -138,7 +145,7 @@ function FieldMapSelect({
         </Button>
         <Popover
           className="react-aria-Popover property-select-popover"
-          style={popover.popoverStyle}
+          style={popoverStyle}
         >
           <ListBox className="react-aria-ListBox">
             <ListBoxItem
@@ -179,7 +186,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const { t } = useI18n();
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
-  const { projectId } = useParams<{ projectId: string }>();
   const openTableEditor = useDataTableEditorStore((s) => s.openTableEditor);
 
   // 직접 prop 값 사용 (fully controlled)
@@ -278,13 +284,15 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
 
   // popover 닫힘 전환 gap 의 focus ring 깜빡임 방지 (Select 하나당 1개) —
   // 상세 주석은 useSelectTriggerFocusRestore.ts 참조
-  const nameSelectFocus = useSelectTriggerFocusRestore();
+  const { triggerRef: nameTriggerRef, restoreFocusOnClose: restoreNameFocus } =
+    useSelectTriggerFocusRestore();
 
   // 컬렉션 피커는 이 fieldset 의 field-level control 이므로, 팝오버를 패널 규약대로
   // control 외곽 박스(`.react-aria-Group`) 폭·좌측에 맞춘다 (PropertySelect /
   // PropertyUnitInput 과 동일 규약). anchor 는 PropertyFieldset 이 렌더하므로
   // controlRef 의 closest 자동 해석에 맡긴다.
-  const nameSelectPopover = useControlPopoverMetrics();
+  const { controlRef: nameControlRef, popoverStyle: namePopoverStyle } =
+    useControlPopoverMetrics();
 
   return (
     <PropertyFieldset legend={label} icon={Icon ?? Link2} className={className}>
@@ -304,17 +312,14 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
           {nameOptions.length > 0 ? (
             <AriaSelect
               className="react-aria-Select binding-name-select"
-              ref={nameSelectPopover.controlRef}
+              ref={nameControlRef}
               selectedKey={selectedCollectionId}
               onSelectionChange={handleNameChange}
-              onOpenChange={nameSelectFocus.restoreFocusOnClose}
+              onOpenChange={restoreNameFocus}
               aria-label={t("propertiesPanel.collection")}
               isDisabled={disabled}
             >
-              <Button
-                className="react-aria-Button"
-                ref={nameSelectFocus.triggerRef}
-              >
+              <Button className="react-aria-Button" ref={nameTriggerRef}>
                 <SelectValue>
                   {({ isPlaceholder, selectedText }) =>
                     isPlaceholder
@@ -328,7 +333,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               </Button>
               <Popover
                 className="react-aria-Popover property-select-popover"
-                style={nameSelectPopover.popoverStyle}
+                style={namePopoverStyle}
               >
                 <ListBox className="react-aria-ListBox">
                   {nameOptions.map((option) => (

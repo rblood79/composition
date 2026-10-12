@@ -1,24 +1,22 @@
+import { CheckIcon, Minus } from "lucide-react";
 import { Checkbox as AriaCheckbox } from "react-aria-components/Checkbox";
 import {
   CheckboxGroup as AriaCheckboxGroup,
   CheckboxGroupProps as AriaCheckboxGroupProps,
 } from "react-aria-components/CheckboxGroup";
-import { FieldError } from "react-aria-components/FieldError";
 import { Text } from "react-aria-components/Text";
 import { ValidationResult } from "react-aria-components/TextField";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
-import { CheckIcon, Minus } from "lucide-react";
-import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
+import type { ColumnMapping, DataBinding, DataBindingValue } from "../types";
 
+import { useCollectionData } from "../hooks";
 import type { ComponentSizeSubset } from "../types";
 import {
   type NecessityIndicator,
-  renderNecessityIndicator,
-  renderFieldLabel,
   renderFieldDescription,
   renderFieldError,
+  renderFieldLabel,
 } from "./FieldNecessityIndicator";
-import { useCollectionData } from "../hooks";
 
 import { useComponentStrings } from "../i18n";
 

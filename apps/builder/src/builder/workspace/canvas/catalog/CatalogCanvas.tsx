@@ -8,102 +8,122 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  bindHandlersToDefinitions,
-  useKeyboardShortcutsRegistry,
-} from "../../../hooks/useKeyboardShortcutsRegistry";
-import { useActiveScope } from "../../../hooks/useActiveScope";
+  renameDefinition,
+  updatePage,
+} from "../../../../../../../packages/shared/src/catalog/commands";
+import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import {
   CatalogCanvasGestures,
   type CatalogSpacingClick,
 } from "../../../catalogRuntime/canvasGesture";
 import { catalogCanvasMenuItems } from "../../../catalogRuntime/canvasMenu";
-import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
+import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
 import { catalogPageDropCommand } from "../../../catalogRuntime/canvasPage";
-import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
-import {
-  catalogLeafRecords,
-  catalogOccludingPages,
-  catalogSlotMarks,
-} from "./catalogChrome";
-import {
-  notifyNestingRejected,
-  showNestingRelocatedToast,
-} from "../interaction/nestingToast";
 import {
   CatalogCanvasPicking,
   resolveCatalogTextEditRecord,
 } from "../../../catalogRuntime/canvasPick";
 import { CatalogCanvasScene } from "../../../catalogRuntime/canvasScene";
 import { catalogTextKey } from "../../../catalogRuntime/canvasText";
+import { catalogComponentRole } from "../../../catalogRuntime/componentActions";
+import {
+  catalogDefinitionTitle,
+  isComponentsView,
+  isLibraryOrigin,
+  isPageCard,
+} from "../../../catalogRuntime/originView";
+import {
+  catalogGuideSnapLines,
+  catalogGuidesByPage,
+} from "../../../catalogRuntime/pageGuides";
+import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
+import {
+  catalogRowRemainderBox,
+  catalogRowRemainders,
+  catalogRowSampleHiddenWithin,
+} from "../../../catalogRuntime/rowSample";
+import { catalogMenuHost } from "../../../catalogRuntime/shortcuts";
+import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
 import type { CatalogWorkspace } from "../../../catalogRuntime/workspace";
-import { DotBackground } from "../../components/DotBackground";
 import { ContextMenuOverlay } from "../../../components/overlay/contextMenu/ContextMenuOverlay";
 import type {
   ContextMenuItem,
   ContextMenuRequest,
 } from "../../../components/overlay/contextMenu/types";
+import { useActiveScope } from "../../../hooks/useActiveScope";
+import {
+  bindHandlersToDefinitions,
+  registerKeyboardEventHandler,
+  useKeyboardShortcutsRegistry,
+} from "../../../hooks/useKeyboardShortcutsRegistry";
+import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
+import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
+import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
+import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
+import { useBuilderUiStore } from "../../../stores/builderUiStore";
+import { useDataStore } from "../../../stores/data";
+import { DotBackground } from "../../components/DotBackground";
+import { RulerOverlay } from "../../components/RulerOverlay";
+import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
+import { CanvasScrollbar } from "../../scrollbar";
+import { publishCanvasFramePresentation } from "../canvasFramePresentation";
 import { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import {
+  notifyNestingRejected,
+  showNestingRelocatedToast,
+} from "../interaction/nestingToast";
+import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import { resolveSpacingCursor } from "../interaction/spacingGeometry";
+import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
+import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
+import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
 import { watchContextLoss } from "../skia/createSurface";
 import { destroyAllSkiaCaches } from "../skia/disposable";
 import { skiaFontManager } from "../skia/fontManager";
-import { registerImageLoadCallback } from "../skia/imageCache";
-import { setEditingElementId } from "../skia/nodeRendererState";
 import {
   createFrameScheduler,
   subscribeCanvasFrames,
 } from "../skia/frameScheduler";
+import { registerImageLoadCallback } from "../skia/imageCache";
 import { getCanvasKit } from "../skia/initCanvasKit";
+import { setEditingElementId } from "../skia/nodeRendererState";
 import { SkiaRenderer } from "../skia/SkiaRenderer";
 import { setupThemeWatcher } from "../skia/themeWatcher";
+import { getRegistryVersion, getSkiaNode } from "../skia/useSkiaNode";
+import { buildViewportSceneRect } from "../skia/viewportSceneRect";
+import { useViewportSyncStore } from "../stores";
+import { useCompareModeStore } from "../stores/compareMode";
 import {
   colorIntToFloat32,
   cssColorToAlpha,
   cssColorToHex,
 } from "../styleConversion/styleConverter";
-import { getRegistryVersion } from "../skia/useSkiaNode";
 import { ViewportControlBridge } from "../viewport";
+import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
+import { readCanvasRailInset } from "../viewport/canvasChromeInset";
 import { getViewportController } from "../viewport/ViewportController";
 import { viewportState } from "../viewport/viewportState";
-import { animatePanTo, cancelPanAnimation } from "../viewport/animatePan";
-import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
-import { setCatalogSpacingLive } from "../../../catalogRuntime/spacingLive";
-import { useViewportSyncStore } from "../stores";
-import { useCompareModeStore } from "../stores/compareMode";
-import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
-import {
-  isComponentsView,
-  isPageCard,
-} from "../../../catalogRuntime/originView";
-import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
-import { CatalogSpacingInput } from "./CatalogSpacingInput";
+import { hitTestPoint } from "../wasm-bindings/spatialIndex";
 import { CatalogActionBar } from "./CatalogActionBar";
+import { catalogBadgeAt, createCatalogBadges } from "./catalogBadges";
+import { CatalogCanvasViewState } from "./catalogCanvasViewState";
+import {
+  catalogLeafRecords,
+  catalogOccludingPages,
+  catalogSlotMarks,
+} from "./catalogChrome";
+import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
+import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
 import { catalogMenuView } from "./catalogMenuView";
-import type { CatalogOverflowTree } from "../../../catalogRuntime/canvasOverflow";
-import type { DataBadgeBounds } from "../skia/bindingBadgeRenderer";
-import { useDataStore } from "../../../stores/data";
-import { useAIVisualFeedbackStore } from "../../../stores/aiVisualFeedback";
-import { getSkiaNode } from "../skia/useSkiaNode";
-import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
-import { useDataTableEditorStore } from "../../../panels/datatable/stores/dataTableEditorStore";
+import { catalogOverlayNode } from "./catalogOverlay";
+import { catalogScrollbarContent } from "./catalogScrollbarContent";
+import { CatalogSpacingInput } from "./CatalogSpacingInput";
+import { CatalogTextEditor } from "./CatalogTextEditor";
 import {
   bindCatalogCamera,
   openCatalogCameraMemory,
 } from "./catalogViewMemory";
-import { catalogAutoColumns } from "../../../catalogRuntime/pageLayoutSettings";
-import {
-  catalogDefinitionTitle,
-  isLibraryOrigin,
-} from "../../../catalogRuntime/originView";
-import { readCanvasRailInset } from "../viewport/canvasChromeInset";
-import { PageHeaderLayer } from "../overlay/pageHeader/PageHeaderLayer";
-import { publishCanvasFramePresentation } from "../canvasFramePresentation";
-import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
-import type { PageHeaderFrame } from "../overlay/pageHeader/pageHeaderGeometry";
-import {
-  renameDefinition,
-  updatePage,
-} from "../../../../../../../packages/shared/src/catalog/commands";
-import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
+import { catalogUnionRect, fitCatalogPageFrame } from "./catalogViewport";
 
 /**
  * Page header frames (ADR-221): each page's laid-out frame and name — in the definition edit view,
@@ -142,28 +162,6 @@ const sameFrames = (
       frame.height === other.height
     );
   });
-import type { BoundingBox } from "../selection/types";
-import { hitTestPoint } from "../wasm-bindings/spatialIndex";
-import {
-  catalogRowRemainderBox,
-  catalogRowRemainders,
-  catalogRowSampleHiddenWithin,
-} from "../../../catalogRuntime/rowSample";
-import { resolveSpacingCursor } from "../interaction/spacingGeometry";
-import { catalogOverlayNode } from "./catalogOverlay";
-import { useBuilderUiStore } from "../../../stores/builderUiStore";
-import { bindCatalogGuides, type CatalogGuideBinding } from "./catalogGuides";
-import {
-  catalogGuideSnapLines,
-  catalogGuidesByPage,
-} from "../../../catalogRuntime/pageGuides";
-import { RulerOverlay } from "../../components/RulerOverlay";
-import { CatalogDefinitionBar } from "./CatalogDefinitionBar";
-import { buildViewportSceneRect } from "../skia/viewportSceneRect";
-import { CatalogTextEditor } from "./CatalogTextEditor";
-import { WorkspaceStatusIndicator } from "../../components/WorkspaceStatusIndicator";
-import { CanvasScrollbar } from "../../scrollbar";
-import { catalogScrollbarContent } from "./catalogScrollbarContent";
 
 export interface CatalogCanvasProps {
   workspace: CatalogWorkspace;
@@ -212,15 +210,17 @@ export function CatalogCanvas({
     ((deltaX: number, deltaY: number) => boolean) | undefined
   >(undefined);
   /** A drawn record's scene box, the scene brought up to date first. */
-  const boundsRef = useRef<(identity: string) => BoundingBox | undefined>(
-    () => undefined,
-  );
+  const [viewState] = useState(() => new CatalogCanvasViewState());
   const [menu, setMenu] = useState<{
     request: ContextMenuRequest;
     items: ContextMenuItem[];
   } | null>(null);
   // Page headers (ADR-221): the page frames as laid out, the session's page and selection.
-  const [headerFrames, setHeaderFrames] = useState<PageHeaderFrame[]>([]);
+  const headerFrames = useSyncExternalStore(
+    viewState.subscribe,
+    viewState.getFrames,
+    viewState.getFrames,
+  );
   // The Figma-style Canvas scrollbars over the page frames (the old Workspace's).
   const scrollbarContent = useMemo(
     () => catalogScrollbarContent(workspace),
@@ -255,7 +255,7 @@ export function CatalogCanvas({
       const rect = catalogUnionRect(
         workspace.session
           .getSnapshot()
-          .selection.map((item) => boundsRef.current(item.identity)),
+          .selection.map((item) => viewState.boundsOf(item.identity)),
       );
       const { containerSize } = useViewportSyncStore.getState();
       return rect && containerSize.width && containerSize.height
@@ -277,7 +277,7 @@ export function CatalogCanvas({
       },
       { zoomToSelection: () => target() !== undefined },
     );
-  }, [workspace]);
+  }, [workspace, viewState]);
   useKeyboardShortcutsRegistry(zoomShortcuts, [zoomShortcuts], {
     activeScope: canvasActiveScope,
   });
@@ -345,7 +345,7 @@ export function CatalogCanvas({
     }
     sceneRef.current = scene;
     let publishedFrames = catalogHeaderFrames(workspace, compareOnlyPage());
-    setHeaderFrames(publishedFrames);
+    viewState.publishFrames(publishedFrames);
     const fontMgr = () =>
       skiaFontManager.getFamilies().length > 0
         ? skiaFontManager.getFontMgr()
@@ -644,7 +644,7 @@ export function CatalogCanvas({
         publishedFrames.map((frame) => ({ ...frame, title: "" })),
       );
       publishedFrames = frames;
-      setHeaderFrames(frames);
+      viewState.publishFrames(frames);
       return moved;
     };
     let orderStale = false;
@@ -853,10 +853,10 @@ export function CatalogCanvas({
       }
       invalidateOverlay();
     });
-    boundsRef.current = (identity) => {
+    const disconnectBounds = viewState.connectBounds((identity) => {
       syncScene();
       return scene.stream.boundsMap.get(identity);
-    };
+    });
     // Live harness handle: scene boxes and the camera (screen ↔ scene) — dev, or a G5 harness build.
     if (
       import.meta.env.DEV ||
@@ -866,7 +866,7 @@ export function CatalogCanvas({
         window as unknown as Record<string, unknown>
       ).__COMPOSITION_CATALOG__ ??= {}) as Record<string, unknown>;
       handle.canvas = {
-        boundsOf: (id: string) => boundsRef.current(id),
+        boundsOf: (id: string) => viewState.boundsOf(id),
         camera: () => ({ ...viewportState }),
         // Sets the camera exactly (a frozen G3 baseline's zoom · pan).
         setCamera: (next: { scale: number; x: number; y: number }) =>
@@ -908,7 +908,7 @@ export function CatalogCanvas({
       (identity) => {
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
-            const rect = boundsRef.current(identity);
+            const rect = viewState.boundsOf(identity);
             const { width, height } = containerEl.getBoundingClientRect();
             if (rect && width && height)
               fitCatalogPageFrame(rect, { width, height }, 1);
@@ -986,7 +986,7 @@ export function CatalogCanvas({
       let right = -Infinity;
       let bottom = -Infinity;
       for (const item of elements) {
-        const box = boundsRef.current(item.identity);
+        const box = viewState.boundsOf(item.identity);
         if (!box) return undefined;
         left = Math.min(left, box.x);
         top = Math.min(top, box.y);
@@ -1314,9 +1314,9 @@ export function CatalogCanvas({
     window.addEventListener("pointermove", onWindowPointerMove);
     window.addEventListener("pointerup", onPointerEnd);
     window.addEventListener("pointercancel", onPointerEnd);
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keydown", onAltKey);
-    window.addEventListener("keyup", onAltKey);
+    const releaseEscape = registerKeyboardEventHandler("keydown", onKeyDown);
+    const releaseAltDown = registerKeyboardEventHandler("keydown", onAltKey);
+    const releaseAltUp = registerKeyboardEventHandler("keyup", onAltKey);
     window.addEventListener("blur", onWindowBlur);
 
     const updatePaused = () => {
@@ -1384,9 +1384,9 @@ export function CatalogCanvas({
       window.removeEventListener("pointermove", onWindowPointerMove);
       window.removeEventListener("pointerup", onPointerEnd);
       window.removeEventListener("pointercancel", onPointerEnd);
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keydown", onAltKey);
-      window.removeEventListener("keyup", onAltKey);
+      releaseEscape();
+      releaseAltDown();
+      releaseAltUp();
       window.removeEventListener("blur", onWindowBlur);
       unsubscribeRoot();
       unsubscribeData();
@@ -1413,10 +1413,11 @@ export function CatalogCanvas({
       unsubscribeFrames();
       scheduler.dispose();
       overlay.dispose();
+      disconnectBounds();
       scene.dispose();
       renderer.dispose();
     };
-  }, [workspace, containerEl, gestureSession]);
+  }, [workspace, containerEl, gestureSession, closeSpacingInput, viewState]);
 
   // Module caches (pictures, paints, images) are released when the Canvas leaves.
   useEffect(() => () => destroyAllSkiaCaches(), []);

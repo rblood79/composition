@@ -152,9 +152,13 @@ export function usePageHeaderPlacement({
   gestureActive,
 }: PageHeaderPlacementInput): void {
   const framesRef = useRef(frames);
-  framesRef.current = frames;
+  useLayoutEffect(() => {
+    framesRef.current = frames;
+  });
   const layerRef = useRef(layerNode);
-  layerRef.current = layerNode;
+  useLayoutEffect(() => {
+    layerRef.current = layerNode;
+  });
   const gestureActiveRef = useRef(
     useViewportSyncStore.getState().cameraGestureActive,
   );
@@ -162,22 +166,24 @@ export function usePageHeaderPlacement({
   const lastSnapshotVersionRef = useRef<number>(-1);
 
   const placeAllRef = useRef<() => void>(() => {});
-  placeAllRef.current = () => {
-    const layer = layerRef.current;
-    if (!layer) return;
-    const camera = currentCamera();
-    const snapshot =
-      getCanvasFramePresentationSnapshot()?.pagePositionSnapshot ?? null;
-    placePageHeaders(
-      layer,
-      framesRef.current,
-      camera,
-      snapshot,
-      useViewportSyncStore.getState().containerSize,
-    );
-    lastCameraRef.current = camera;
-    lastSnapshotVersionRef.current = snapshot?.version ?? -1;
-  };
+  useLayoutEffect(() => {
+    placeAllRef.current = () => {
+      const layer = layerRef.current;
+      if (!layer) return;
+      const camera = currentCamera();
+      const snapshot =
+        getCanvasFramePresentationSnapshot()?.pagePositionSnapshot ?? null;
+      placePageHeaders(
+        layer,
+        framesRef.current,
+        camera,
+        snapshot,
+        useViewportSyncStore.getState().containerSize,
+      );
+      lastCameraRef.current = camera;
+      lastSnapshotVersionRef.current = snapshot?.version ?? -1;
+    };
+  });
 
   // 프레임 목록 · 노드 집합 · 순서가 바뀌면 paint 전에 1회 배치 (새 노드는 transform 이 없다).
   // 카메라 제스처 중에는 skip — 층 컴포넌트가 frames 를 동결하므로 (ADR-226) 이 이펙트는

@@ -1,11 +1,9 @@
 // @vitest-environment node
-import { execFileSync } from "node:child_process";
-import { baselineCompatibleHead } from "./support/baselineHead";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { createG1Fixture } from "../../../../../../packages/shared/src/catalog/document/fixture";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { createPencilFixtureLibrary } from "../../../../../../packages/shared/src/catalog/document/pencilFixtureLibrary";
 import type {
   CatalogDocument,
@@ -13,8 +11,9 @@ import type {
   PageEntry,
   ProjectEntry,
 } from "../../../../../../packages/shared/src/catalog/document/types";
-import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
+import { baselineCompatibleHead } from "./support/baselineHead";
 import { writeEvidence } from "./support/evidence";
+import { G0_BASELINE_ABSENT } from "./support/g0Baseline";
 
 const repoRoot = resolve(process.cwd(), "../..");
 const counts = [0, 1, 60, 600, 5_000] as const;

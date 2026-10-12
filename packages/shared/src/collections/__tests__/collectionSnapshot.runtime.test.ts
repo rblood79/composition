@@ -6,9 +6,9 @@ import { CatalogGraph } from "../../catalog/document/graph";
  */
 import { describe, expect, it } from "vitest";
 import {
-  toRuntimeCollection,
-  toExportCollection,
   resolveCollectionSnapshot,
+  toExportCollection,
+  toRuntimeCollection,
 } from "../collectionSnapshot";
 
 const table = {
@@ -91,7 +91,9 @@ describe("catalog JSON collection 필드 보존", () => {
       async () => null,
     );
     const result = await readCatalogProjectJson(text);
-    expect((result.content.collections as any[])[0].schema[0]).toMatchObject({
+    expect(
+      (result.content.collections as { schema: unknown[] }[])[0].schema[0],
+    ).toMatchObject({
       id: "f-name",
       key: "name",
     });

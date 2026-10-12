@@ -1,21 +1,20 @@
 import {
+  buildContainerStyle,
+  clampPinnedCell,
+  type DerivePagePositionsInput,
+  type PagePositionMap,
+  placementToEngineStyle,
+  resolveAvailableWidth,
+  type ResolvedPageLayout,
+  resolvePageLayout,
+  resolvePagePlacementStyle,
+  resolveSystemPagePlacementStyle,
+} from "../../../../../../../packages/shared/src/catalog/runtime/pagePlacement";
+import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
+import {
   createLayoutEngine,
   type LayoutEngineAPI,
 } from "../wasm-bindings/layoutBridge";
-import { CANVAS_VIEWPORT } from "../../canvasBreakpoints";
-import type { PagePositionPoint } from "@composition/shared";
-import {
-  type PagePositionMap,
-  type DerivePagePositionsInput,
-  type ResolvedPageLayout,
-  resolvePageLayout,
-  resolveSystemPagePlacementStyle,
-  resolvePagePlacementStyle,
-  placementToEngineStyle,
-  clampPinnedCell,
-  buildContainerStyle,
-  resolveAvailableWidth,
-} from "../../../../../../../packages/shared/src/catalog/runtime/pagePlacement";
 export * from "../../../../../../../packages/shared/src/catalog/runtime/pagePlacement";
 let placementEngine: LayoutEngineAPI | null = null;
 

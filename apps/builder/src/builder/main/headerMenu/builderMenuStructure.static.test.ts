@@ -8,25 +8,20 @@
  * `panelConfigs.ts` 는 패널 컴포넌트를 전부 끌고 들어와 import 할 수 없어
  * (`shortcutDisplay.static.test.ts` 와 같은 사유) 소스에서 읽는다.
  */
-import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   SHORTCUT_DEFINITIONS,
   type ShortcutId,
 } from "../../config/keyboardShortcuts";
 // The guard set the catalog host answers (ADR-248 4e-7: the old table keeps it for reference).
-import { COMMAND_META } from "../../config/commandMeta";
-import { createCatalogAgentCommandHost } from "../../catalogRuntime/agentHost";
-import { openStylesFixture } from "../../panels/styles/__tests__/support/catalogStylesFixture";
 import type { AgentCommandHost } from "../../../services/agent/agentCommandHost";
-
-let catalogHost: AgentCommandHost;
-beforeAll(async () => {
-  catalogHost = createCatalogAgentCommandHost(
-    (await openStylesFixture([])).workspace,
-  );
-});
+import { createCatalogAgentCommandHost } from "../../catalogRuntime/agentHost";
+import { COMMAND_META } from "../../config/commandMeta";
+import { panelIdForScope } from "../../hooks/useActiveScope";
+import type { PanelConfig, PanelId, PanelSide } from "../../panels/core/types";
+import { openStylesFixture } from "../../panels/styles/__tests__/support/catalogStylesFixture";
 import {
   BUILDER_MENU_ROOT,
   MENU_COMMAND_CONDITIONS,
@@ -39,8 +34,13 @@ import {
   deriveWorkspacePanelGroups,
   ownerPanelForCommand,
 } from "./resolveMenuItemState";
-import type { PanelConfig, PanelId, PanelSide } from "../../panels/core/types";
-import { panelIdForScope } from "../../hooks/useActiveScope";
+
+let catalogHost: AgentCommandHost;
+beforeAll(async () => {
+  catalogHost = createCatalogAgentCommandHost(
+    (await openStylesFixture([])).workspace,
+  );
+});
 
 const SRC_ROOT = resolve(__dirname, "../../..");
 const read = (rel: string) => readFileSync(join(SRC_ROOT, rel), "utf8");
@@ -58,7 +58,7 @@ function panelConfigsFromSource(): RailPanelSource[] {
   const source = read("builder/panels/core/panelConfigs.ts");
   const body = source.slice(source.indexOf("export const PANEL_CONFIGS"));
   const blocks = body
-    .split(/\n  \{(?=\n)/)
+    .split(/\n {2}\{(?=\n)/)
     .slice(1)
     .map((block) => block.slice(0, block.indexOf("\n  },")));
   return blocks.map((block) => {

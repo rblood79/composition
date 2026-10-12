@@ -7,14 +7,14 @@ import {
   type FillParentContext,
   type SizeAxis,
 } from "@composition/shared";
-import type { Element } from "../../../types/core/store.types";
 import { parseAspectRatio } from "../../utils/aspectRatio";
-import { buildSizingEdit } from "./sizingEdit";
 import {
   buildResponsiveStyleOverride,
   shouldWriteBreakpointOverride,
 } from "./responsiveWriteRouting";
 import { inferSizeMode, resolveSizeMode } from "./sizeModeResolver";
+import type { SizingEditSource } from "./sizingEdit";
+import { buildSizingEdit } from "./sizingEdit";
 
 /**
  * ADR-224 breakdown §4.3 · §5 — 캔버스 핸들 resize 의 저장 계약.
@@ -101,14 +101,14 @@ export function resolveFillReleasePatch(
  * 축 하나라도 계획을 못 세우면 null (부분 commit 0).
  */
 export function buildCanvasResizeEdit(
-  source: Element,
-  effective: Element,
+  source: SizingEditSource,
+  effective: SizingEditSource,
   request: CanvasResizeRequest,
   context: FillParentContext,
   breakpoint: BreakpointName,
-): Partial<Element> | null {
-  let current: Element = source;
-  let merged: Partial<Element> = {};
+): Partial<SizingEditSource> | null {
+  let current: SizingEditSource = source;
+  let merged: Partial<SizingEditSource> = {};
   for (const axis of ["width", "height"] as const) {
     const px = request[axis];
     if (px === undefined) continue;
@@ -121,7 +121,7 @@ export function buildCanvasResizeEdit(
       breakpoint,
     );
     if (!updates) return null;
-    current = { ...current, ...updates } as Element;
+    current = { ...current, ...updates } as SizingEditSource;
     merged = { ...merged, ...updates };
   }
   for (const key of ["left", "top"] as const) {

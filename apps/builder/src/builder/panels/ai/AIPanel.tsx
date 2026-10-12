@@ -10,12 +10,7 @@
  * - ChatInput: 메시지 입력 필드
  */
 
-import { useEffect, useRef, useState } from "react";
-import { useAiComposerDraftStore } from "./aiComposerDraft";
-import type { KeyboardEvent } from "react";
-import { ActionIconButton } from "../../components/ui/ActionIconButton";
-import { PanelHeader } from "../../components/panel/PanelHeader";
-import { PanelContents } from "../../components/panel/PanelContents";
+import { useI18n } from "@/i18n";
 import { Button } from "@composition/shared/components";
 import {
   ArrowRight,
@@ -23,25 +18,30 @@ import {
   ImagePlus,
   Send,
   Settings2,
-  Square,
   Sparkles,
+  Square,
   UserRound,
 } from "lucide-react";
-import { useI18n } from "@/i18n";
-import { iconProps } from "../../../utils/ui/uiConstants";
-import { useConversationStore } from "../../stores/conversation";
-import { useLocalSuggestions } from "./hooks/useLocalSuggestions";
+import type { KeyboardEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CompilerProposal } from "../../../services/ai/compiler/contracts";
-import type { LocalSuggestion } from "./localSuggestions";
-import { useAgentLoop } from "./hooks/useAgentLoop";
-import { ToolResultMessage } from "./components/ToolResultMessage";
-import { AgentControls } from "./components/AgentControls";
-import { AgentCommandLogList } from "./components/AgentCommandLogList";
-import { AdvancedMode } from "./components/AdvancedMode";
-import { ToolCallMessage } from "./components/ToolCallMessage";
 import type { ChatMessage as ChatMessageType } from "../../../types/integrations/chat.types";
-import "./AIPanel.css";
+import { iconProps } from "../../../utils/ui/uiConstants";
+import { PanelContents } from "../../components/panel/PanelContents";
+import { PanelHeader } from "../../components/panel/PanelHeader";
+import { ActionIconButton } from "../../components/ui/ActionIconButton";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { useConversationStore } from "../../stores/conversation";
+import { useAiComposerDraftStore } from "./aiComposerDraft";
+import "./AIPanel.css";
+import { AdvancedMode } from "./components/AdvancedMode";
+import { AgentCommandLogList } from "./components/AgentCommandLogList";
+import { AgentControls } from "./components/AgentControls";
+import { ToolCallMessage } from "./components/ToolCallMessage";
+import { ToolResultMessage } from "./components/ToolResultMessage";
+import { useAgentLoop } from "./hooks/useAgentLoop";
+import { useLocalSuggestions } from "./hooks/useLocalSuggestions";
+import type { LocalSuggestion } from "./localSuggestions";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
@@ -99,11 +99,16 @@ function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // 다른 표면이 넣은 초안 (ADR-212 "AI 로 설명") — 입력창에 채우고 포커스, 전송은 사용자
   const draft = useAiComposerDraftStore((state) => state.draft);
+  const [appliedDraft, setAppliedDraft] = useState<string | null>(null);
+  if (draft !== null && draft !== appliedDraft) {
+    setAppliedDraft(draft);
+    setValue(draft);
+  }
+  if (draft === null && appliedDraft !== null) setAppliedDraft(null);
   useEffect(() => {
     if (draft === null) return;
     const text = useAiComposerDraftStore.getState().consume();
     if (text === null) return;
-    setValue(text);
     const el = textareaRef.current;
     if (el) {
       el.focus();

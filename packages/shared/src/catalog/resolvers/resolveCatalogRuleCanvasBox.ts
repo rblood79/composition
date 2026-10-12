@@ -12,7 +12,6 @@
  */
 import {
   cssVarToTokenRef,
-  fontWeight,
   isValidTokenRef,
   resolveBorderWidthPx,
   resolveToken,

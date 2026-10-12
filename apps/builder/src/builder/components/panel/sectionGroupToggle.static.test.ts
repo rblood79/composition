@@ -22,7 +22,9 @@ describe("section group toggle wiring", () => {
   });
 
   it("Styles ⌥S toggle judges the style group by id set, not by collapsed count", async () => {
-    const source = await read("builder/panels/styles/StylesPanel.tsx");
+    const source = await read(
+      "builder/panels/styles/StylesPanel.components.tsx",
+    );
 
     expect(source).toContain("useSectionGroupToggle(");
     expect(source).toContain("STYLE_PANEL_SECTION_IDS");

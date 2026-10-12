@@ -8,15 +8,12 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type RefObject,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useMove } from "react-aria";
+import { useI18n } from "../../i18n";
 import { usePanelLayout } from "../hooks/usePanelLayout";
-import {
-  updatePanelWorkspaceRegistry,
-  updatePanelWorkspaceSurface,
-} from "../stores/panelLayout";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
 import type {
   PanelConfig,
@@ -25,17 +22,17 @@ import type {
   PanelResizeEdge,
   PanelSide,
 } from "../panels/core/types";
-import { PanelToggleGroup } from "./PanelToggleGroup";
-import { getPanelLabel } from "./panelLabels";
-import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
-import { PanelSnapInteractionProvider } from "./PanelSnapContext";
 import {
-  usePanelSnapInteractionActions,
-  usePanelSnapInteractionState,
-} from "./usePanelSnapInteraction";
-import { panelDragMovedBeyondSnapThreshold } from "./panelSnap";
-import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
+  updatePanelWorkspaceRegistry,
+  updatePanelWorkspaceSurface,
+} from "../stores/panelLayout";
+import { PanelSnapInteractionProvider } from "./PanelSnapContext";
 import { PanelSplitter } from "./PanelSplitter";
+import { PanelToggleGroup } from "./PanelToggleGroup";
+import "./PanelWorkspace.css";
+import { getPanelLabel } from "./panelLabels";
+import { panelDragMovedBeyondSnapThreshold } from "./panelSnap";
+import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
 import type {
   PanelWorkspaceFrameSnapshot,
   PanelWorkspaceLayoutCoordinator,
@@ -58,6 +55,11 @@ import {
   createPanelWorkspaceRuntime,
   type PanelWorkspaceRuntime,
 } from "./panelWorkspaceRuntime";
+import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
+import {
+  usePanelSnapInteractionActions,
+  usePanelSnapInteractionState,
+} from "./usePanelSnapInteraction";
 import {
   panelWorkspaceSplitterGeometryEquals,
   usePanelWorkspaceFrameSnapshot,
@@ -65,8 +67,6 @@ import {
   usePanelWorkspaceLayoutSnapshot,
   usePanelWorkspaceLayoutValue,
 } from "./usePanelWorkspaceLayoutSnapshot";
-import { useI18n } from "../../i18n";
-import "./PanelWorkspace.css";
 
 type PanelFrameMode = "hidden" | "placed";
 
@@ -500,9 +500,7 @@ const PanelFrameContent = memo(function PanelFrameContent({
   const [hasBeenPlaced, setHasBeenPlaced] = useState(mode === "placed");
   const PanelComponent = config.component;
 
-  useEffect(() => {
-    if (mode === "placed") setHasBeenPlaced(true);
-  }, [mode]);
+  if (mode === "placed" && !hasBeenPlaced) setHasBeenPlaced(true);
 
   const shouldMount = hasBeenPlaced || mode === "placed";
   return (

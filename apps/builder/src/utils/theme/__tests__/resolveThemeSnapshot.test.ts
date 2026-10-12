@@ -6,31 +6,18 @@
  * 축별 비기본값 · reset (델타 제거 = seed) · 명시 hover/pressed 우선 · root user-defined fallback ·
  * cssVars 한 벌 · 설치 1회 = themeVersion +1 · notifyLayoutChange 1 · THEME_VARS replace 1.
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ThemeDefinition } from "@composition/shared";
 import {
   createThemeDefinition,
   DEFAULT_THEME_PRESET,
 } from "@composition/shared";
-import {
-  lightColors,
-  darkColors,
-  radius,
-  typography,
-  lightShadows,
-  borderWidth,
-  resolveToken,
-  resolveBorderWidthPx,
-} from "@composition/rendering";
+import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../builder/workspace/canvas/skia/useSkiaNode", () => ({
   notifyLayoutChange: vi.fn(),
 }));
 
-import { notifyLayoutChange } from "../../../builder/workspace/canvas/skia/useSkiaNode";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../../builder/fonts/customFonts";
-import { useThemeConfigStore } from "../../../stores/themeConfigStore";
-import { MessageService } from "../../messaging";
 import { hexToOklch, oklchToHex } from "../oklchToHex";
 import {
   colorTokenCssVarName,
@@ -38,8 +25,8 @@ import {
 } from "../resolveThemeSnapshot";
 import {
   createAccentColorTokens,
-  TINT_PRESETS,
   mixWithBlackSrgb,
+  TINT_PRESETS,
 } from "../tintToSkiaColors";
 
 const SEED = DEFAULT_BASE_TYPOGRAPHY;

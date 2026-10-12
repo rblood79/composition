@@ -4,8 +4,8 @@ import {
   resolveTextSourceText,
 } from "@composition/rendering";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
-import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 import { normalizeDataBinding } from "./normalizeDataBinding";
+import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 /**
  * collection items 단일 계약 (ADR-912 영역 B 연장) — DOM wrapper / Skia projector 공통 source.
  *
@@ -501,9 +501,6 @@ export function resolveCollectionItems(
   window: number | CollectionWindow = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
 ): ResolvedCollectionItems {
   const props = isProjectionRowsInput(input) ? input.props : input;
-  const dataBindingRows = isProjectionRowsInput(input)
-    ? readDataBindingRows(input.dataBinding, input.collections)
-    : [];
 
   let sourceKind: ResolvedCollectionItems["sourceKind"];
   if (isProjectionRowsInput(input) && input.dataBinding) {

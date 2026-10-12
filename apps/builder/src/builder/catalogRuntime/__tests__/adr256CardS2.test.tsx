@@ -10,17 +10,17 @@ import {
   insertNodes,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
-import {
-  canNest,
-  catalogChildKind,
-} from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
-import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import type {
   EntryId,
   LibraryDefinitionId,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
+import {
+  canNest,
+  catalogChildKind,
+} from "../../../../../../packages/shared/src/catalog/nesting/nestingRules";
 import { predictRacSlot } from "../../../../../../packages/shared/src/catalog/runtime/racSlot";
 import { catalogTextCommand } from "../canvasText";
 import { renderCatalogDom } from "../domBinding";
@@ -247,7 +247,11 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
                 "Your all-in-one shortcut for apps, automations, and devices.",
             }),
           ),
-          h(s2.Footer, null, h(s2.Button, { variant: "primary", children: "Buy now" })),
+          h(
+            s2.Footer,
+            null,
+            h(s2.Button, { variant: "primary", children: "Buy now" }),
+          ),
         ),
       );
       writeFileSync(out, example.innerHTML);
@@ -255,7 +259,10 @@ describe("ADR-256 Phase 10a — the S2 Card", () => {
   });
 
   it("the S2 oracle stays test-only — no source outside tests imports `@react-spectrum/s2` (bundle 0)", () => {
-    const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../..");
+    const repo = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../../../../..",
+    );
     const offenders: string[] = [];
     const walk = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -477,7 +484,7 @@ describe("ADR-256 Phase 10b — CardView · ButtonGroup · AvatarGroup", () => {
   });
 
   it("selects as RAC does: a Card's isSelected starts the view's selection only while it selects (Canvas = DOM)", async () => {
-    const { workspace, root, placed, kids } = await place("cardview");
+    const { workspace, placed, kids } = await place("cardview");
     const first = () => kids(placed().id)[0]!;
     const set = (target: unknown, props: Record<string, unknown>) =>
       workspace.execute(

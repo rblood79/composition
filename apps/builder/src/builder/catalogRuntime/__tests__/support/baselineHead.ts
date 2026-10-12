@@ -410,7 +410,7 @@ function assertNewModelUnreachable(
   git: (...args: string[]) => string,
   head: string,
 ): void {
-  let hits: string[] = [];
+  let hits: string[];
   try {
     hits = git(
       "grep",

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { PanelId } from "../panels/core/types";
 import {
+  MAX_PANEL_WORKSPACE_COLUMNS,
+  type PanelWorkspaceRegistryEntry,
+} from "./panelWorkspaceLayoutV2";
+import {
   createDefaultPanelWorkspaceLayoutV4,
   solvePanelWorkspaceLayoutV4,
   type PanelWorkspaceLayoutV4,
@@ -16,10 +20,6 @@ import {
   commitPanelWorkspaceDragSession,
   updatePanelWorkspaceDragSession,
 } from "./panelWorkspaceZoneDrop";
-import {
-  MAX_PANEL_WORKSPACE_COLUMNS,
-  type PanelWorkspaceRegistryEntry,
-} from "./panelWorkspaceLayoutV2";
 
 const SURFACE_RECT = { width: 1200, height: 204 } as const;
 const ZONES = [
@@ -324,7 +324,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
         snapTo: "datatableEditor",
       },
     ];
-    let layout = requireLayout(
+    const layout = requireLayout(
       createDefaultPanelWorkspaceLayoutV4(registry, surface),
     );
     // column 상한까지 빈 column 을 채워 둔다

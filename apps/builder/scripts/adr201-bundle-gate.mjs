@@ -33,7 +33,8 @@ export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;
 const UPLOAD_ENGINE_KEY = /packages\/upload-engine\/dist\//;
 // ADR-201 후속 — FileUpload active 분기 (endpoint 해석 · CSRF · 런타임 행) 도 initial 밖 (lazy chunk)
-const UPLOAD_ACTIVE_KEY = /packages\/shared\/src\/components\/FileUploadActive\.tsx$/;
+const UPLOAD_ACTIVE_KEY =
+  /packages\/shared\/src\/components\/FileUploadActive(?:\.(?:components|runtime))?\.tsx?$/;
 const AI_ENTRY = "src/builder/panels/ai/AIPanel.tsx";
 const COMMAND_ENTRY = "src/services/ai/tools/runCommand.ts";
 
@@ -146,8 +147,14 @@ export function selfTest() {
     "../../packages/upload-engine/dist/dryRun-x.js": {
       file: "assets/dryRun-x.js",
     },
-    "../../packages/shared/src/components/FileUploadActive.tsx": {
+    "../../packages/shared/src/components/FileUploadActive.ts": {
       file: "assets/FileUploadActive-x.js",
+    },
+    "../../packages/shared/src/components/FileUploadActive.components.tsx": {
+      file: "assets/FileUploadActive-components-x.js",
+    },
+    "../../packages/shared/src/components/FileUploadActive.runtime.ts": {
+      file: "assets/FileUploadActive-runtime-x.js",
     },
     [AI_ENTRY]: { file: "assets/AIPanel-x.js" },
     [COMMAND_ENTRY]: { file: "assets/runCommand-x.js" },
@@ -177,6 +184,24 @@ export function selfTest() {
         afterPreview: closure(601_346, [
           ...initial,
           "assets/FileUploadActive-x.js",
+        ]),
+      }).checks.uploadActiveLazy === false,
+    activeComponentsInInitialFails:
+      judge({
+        ...base,
+        approved: true,
+        afterBuilder: closure(1_328_315, [
+          ...initial,
+          "assets/FileUploadActive-components-x.js",
+        ]),
+      }).checks.uploadActiveLazy === false,
+    activeRuntimeInInitialFails:
+      judge({
+        ...base,
+        approved: true,
+        afterPreview: closure(601_346, [
+          ...initial,
+          "assets/FileUploadActive-runtime-x.js",
         ]),
       }).checks.uploadActiveLazy === false,
     builderDeltaOverFails:

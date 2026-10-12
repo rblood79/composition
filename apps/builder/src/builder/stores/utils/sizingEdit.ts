@@ -1,12 +1,12 @@
+import type { FillSizingSource } from "@composition/shared";
 import {
   getFillBehavior,
   isValidFillFactor,
   resolveEffectiveFill,
-  type SizeAxis,
-  type FillParentContext,
   type BreakpointName,
+  type FillParentContext,
+  type SizeAxis,
 } from "@composition/shared";
-import type { Element } from "../../../types/core/store.types";
 import {
   buildResponsiveStyleOverride,
   shouldWriteBreakpointOverride,
@@ -17,6 +17,9 @@ import {
   resolveSizeMode,
   sizeModeToStyleUpdates,
 } from "./sizeModeResolver";
+export interface SizingEditSource extends FillSizingSource {
+  props: { style?: Record<string, unknown>; [key: string]: unknown };
+}
 
 export interface SizingEdit {
   axis: SizeAxis;
@@ -27,12 +30,12 @@ export interface SizingEdit {
 
 /** 단일 축 계획. 호출자가 모든 대상의 계획을 먼저 검증한 뒤 하나의 history로 적용한다. */
 export function buildSizingEdit(
-  element: Element,
-  effective: Element,
+  element: SizingEditSource,
+  effective: SizingEditSource,
   edit: SizingEdit,
   context: FillParentContext,
   breakpoint: BreakpointName,
-): Partial<Element> | null {
+): Partial<SizingEditSource> | null {
   const { axis, mode } = edit;
   const effectiveStyle = (effective.props.style ?? {}) as Record<
     string,

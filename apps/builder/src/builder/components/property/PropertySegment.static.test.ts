@@ -70,7 +70,10 @@ describe("색 점 정본 — .property-swatch 하나 (PropertySwatch.css)", () =
   });
 
   it("두 소비처가 모두 .property-swatch 를 병기한다", async () => {
-    for (const file of ["PropertySelect.tsx", "PropertySegment.tsx"]) {
+    for (const file of [
+      "PropertySelect.components.tsx",
+      "PropertySegment.tsx",
+    ]) {
       const src = await readFile(resolve(__dirname, file), "utf-8");
       expect(src, file).toMatch(
         /className="property-swatch property-(select|seg)__swatch"/,

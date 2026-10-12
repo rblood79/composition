@@ -15,7 +15,7 @@ export type CssWhiteSpace =
   "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
 
 /** 접기가 결과를 바꿀 수 있는 content — 줄바꿈 · 탭 · 공백 run · 앞뒤 공백 */
-const NEEDS_COLLAPSE = /[\r\n\t]|  |^\s|\s$/;
+const NEEDS_COLLAPSE = /[\r\n\t]| {2}|^\s|\s$/;
 
 /** normal · nowrap 에서 segment break (`\n` · `\r\n` · `\r`) 와 그 주변 공백 → 공백 1개. */
 export function transformSegmentBreaks(content: string): string {
