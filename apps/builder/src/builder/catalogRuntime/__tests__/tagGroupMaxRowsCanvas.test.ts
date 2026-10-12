@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { resolveToken, type TokenRef } from "@composition/rendering";
 import {
   insertNodes,
@@ -38,7 +38,7 @@ const measure: CatalogTextMeasure = (text, font) => ({
   height: font.fontSize * (font.lineHeight || 1.2),
 });
 
-async function open(maxRows: number, width: number) {
+async function open(maxRows: number, width: number, frames = 0) {
   const library = await buildCodeCatalogLibrary();
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
@@ -75,6 +75,31 @@ async function open(maxRows: number, width: number) {
       newId: workspace.newId,
     }),
   );
+  if (frames)
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: Array.from(
+          { length: frames },
+          (_, i) =>
+            ({
+              kind: "node",
+              id: `project:node:frame-${i}` as NodeId,
+              definitionId: "lib:definition:type-frame",
+              children: [],
+              props: {},
+              visual: {},
+              sizing: {},
+              descendantOverrides: [],
+            }) as NodeEntry,
+        ),
+        rootIds: Array.from(
+          { length: frames },
+          (_, i) => `project:node:frame-${i}` as NodeId,
+        ),
+        newId: workspace.newId,
+      }),
+    );
   const root = workspace.root;
   const of = (type: string) =>
     [...root.canvasInputs.values()].filter((r) => root.typeOf(r) === type);
@@ -120,7 +145,7 @@ async function open(maxRows: number, width: number) {
           : {}),
       }),
     );
-  return { root, view, edit, of };
+  return { root, view, edit, of, workspace, target };
 }
 
 describe("TagGroup maxRows — the Canvas collapses as the Preview", () => {
@@ -158,6 +183,36 @@ describe("TagGroup maxRows — the Canvas collapses as the Preview", () => {
       collapsed: 0,
       showAll: undefined,
     });
+  });
+});
+
+describe("TagGroup maxRows — the collapse reads only the TagLists", () => {
+  // 2026-10-12 (ratchet `seeds.60.edit` typeOf 1,053 → 2,620): the collapse ran after every layout
+  // over every record (a `typeOf` each) — a cost of the document's size on every edit, TagGroup or
+  // not. It reads a TagList index now.
+  it("an edit's typeOf calls do not grow with the document", async () => {
+    const calls = async (frames: number) => {
+      const { root, workspace, of, target } = await open(1, 300, frames);
+      const group = target(of("TagGroup")[0]!.id);
+      const spy = vi.spyOn(root, "typeOf");
+      workspace.execute(
+        setFields({ targets: [group], props: { maxRows: set(2) } }),
+      );
+      const n = spy.mock.calls.length;
+      spy.mockRestore();
+      return n;
+    };
+    expect(await calls(40)).toBe(await calls(5));
+  });
+
+  it("a removed and restored TagGroup (undo · redo) leaves and rejoins the collapse", async () => {
+    const { view, workspace, of } = await open(1, 300);
+    expect(view().showAll?.text).toBe("Show all (4)");
+    workspace.undo();
+    expect(of("TagList")).toHaveLength(0);
+    workspace.redo();
+    expect(view()).toMatchObject({ shown: [0, 0, 0], collapsed: 1 });
+    expect(view().showAll?.text).toBe("Show all (4)");
   });
 });
 

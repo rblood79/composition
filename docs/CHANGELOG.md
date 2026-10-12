@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [TagGroup 접기 확인 — 편집마다 문서 전체를 훑지 않음] - 2026-10-12
+
+### Performance
+
+- **TagGroup Max Rows 접기가 TagList 만 읽는다**:
+  - **Why**: Canvas 접기 (`settleTagRows`, 2026-10-09 `c14e41a84`) 가 레이아웃 계산마다 문서의 모든 요소를 훑으며 type 을 확인했다 — TagGroup 이 없는 문서에서도 편집 비용이 문서 크기에 비례했다 (ratchet `seeds.60.edit` 경고 `typeOf` 1,053 → 2,620 의 992 회).
+  - 수정: TagList 요소 index 를 요소를 넣고 · 바꾸고 · 지울 때 같이 갱신하고 (실패한 step 은 다른 상태와 함께 되돌린다) 접기는 그것만 읽는다.
+  - 측정: 60 요소 편집 20회 `typeOf` 2,620 → 1,628 (2회 같은 값). 상한 1,053 대비 남은 증가는 편집한 요소 하나당 새 presence 함수 몫이라 문서 크기와 무관하다.
+  - 위치: `packages/shared/src/catalog/runtime/compositionRoot.ts` (`tagLists` · `trackTagList`)
+
+### Tests
+
+- 요소 5 → 40 개 문서에서 편집 한 번의 `typeOf` 수가 같아야 한다 (수정 전 코드 RED 1,523 → 1,558) · undo · redo 로 TagGroup 이 빠졌다 돌아와도 접힘 복원 — `tagGroupMaxRowsCanvas.test.ts`. live `tag-group-maxrows-live.mjs` 7/7 (Max Rows 0 ~ 3 · Design 패널 · reload, Canvas = Preview) · builder 5,443 · shared 1,580 · type-check.
+
 ## [Vitest 5 · axe-core 업데이트] - 2026-10-12
 
 ### Changed

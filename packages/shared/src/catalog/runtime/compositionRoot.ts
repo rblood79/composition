@@ -1405,6 +1405,8 @@ export class CatalogCompositionRoot {
   >();
   /** Collapsed TagLists (`settleTagRows`). */
   private readonly tagRows = new Map<string, TagRowsCollapse>();
+  /** The TagList records (`settleTagRows` reads these, not every record — `trackTagList`). */
+  private readonly tagLists = new Map<string, true>();
   /** Wrapped text-leaf content heights from the last `rewrap` (absent = one line). */
   private readonly wrapHeights = new Map<string, number>();
   /** Hears every `previewRecord` (the Canvas re-lays its scene out: siblings may move). */
@@ -2459,6 +2461,28 @@ export class CatalogCompositionRoot {
     };
   }
   /**
+   * Keep `tagLists` in step with a record's set · replace · delete (its type changes only with
+   * its rule or definition).
+   */
+  private trackTagList(
+    id: string,
+    old: CatalogConsumerNode | undefined,
+    next: CatalogConsumerNode | undefined,
+  ): void {
+    if (
+      old &&
+      next &&
+      old.ruleId === next.ruleId &&
+      old.definitionId === next.definitionId
+    )
+      return;
+    const isList = !!next && this.typeOf(next) === "TagList";
+    if (isList === this.tagLists.has(id)) return;
+    this.keep(this.tagLists, id);
+    if (isList) this.tagLists.set(id, true);
+    else this.tagLists.delete(id);
+  }
+  /**
    * TagGroup `maxRows` on the Canvas (the DOM's `useTagMaxRows`): with every tag laid out, the
    * tags past the group's `maxRows` rows leave the flow and a "Show all (N)" box follows the rest.
    * Runs after each layout: a collapsed list is opened first (the rows are counted with every tag,
@@ -2468,8 +2492,9 @@ export class CatalogCompositionRoot {
   private settleTagRows(): string[] {
     const get = (key: string) => this.records.get(key);
     const lists: Array<[CatalogConsumerNode, number]> = [];
-    for (const record of this.records.values()) {
-      if (record.hidden || this.typeOf(record) !== "TagList") continue;
+    for (const id of this.tagLists.keys()) {
+      const record = get(id);
+      if (!record || record.hidden) continue;
       const group = get(record.parentId);
       const maxRows =
         group && this.typeOf(group) === "TagGroup"
@@ -2784,6 +2809,7 @@ export class CatalogCompositionRoot {
       this.rootMembers.set(rootId, new Set(flattened.keys()));
       for (const [id, record] of flattened) {
         this.records.set(id, record);
+        this.trackTagList(id, undefined, record);
         this.recordRoots.set(id, rootId);
         for (const sourceId of recordSources(record)) {
           this.addSourceInstance(sourceId, id);
@@ -3120,6 +3146,7 @@ export class CatalogCompositionRoot {
     this.keep(this.composedParts, id);
     this.layoutTouched = true;
     this.records.set(id, record);
+    this.trackTagList(id, old, record);
     this.recordRoots.set(id, rootId);
     // Sources a record reads can change with it (a replaced template root joins its instance).
     const oldSources = old ? recordSources(old) : [];
@@ -3244,6 +3271,7 @@ export class CatalogCompositionRoot {
       }
     }
     this.records.delete(id);
+    this.trackTagList(id, old, undefined);
     const parts = this.composedParts.get(id) ?? [];
     if (parts.length) {
       this.composedParts.delete(id);
