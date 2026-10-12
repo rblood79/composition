@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
 
 /**
  * Meter — 측정값 표시 (ADR-256 Phase 7b: 노드 트리).
@@ -42,6 +43,7 @@ export const meterBinding: PrimitiveBinding = {
         section: "content",
       },
       label: { kind: "string", label: "Label", section: "content" },
+      formatOptions: FORMAT_OPTIONS_PROP,
       variant: {
         kind: "variant",
         label: "Variant",

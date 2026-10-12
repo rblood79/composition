@@ -1,4 +1,5 @@
 import type { PrimitiveBinding } from "../types";
+import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
 
 /**
  * ProgressBar — 진행률 표시 (ADR-256 Phase 7a: 노드 트리).
@@ -46,6 +47,7 @@ export const progressBarBinding: PrimitiveBinding = {
         section: "content",
       },
       label: { kind: "string", label: "Label", section: "content" },
+      formatOptions: FORMAT_OPTIONS_PROP,
       variant: {
         kind: "variant",
         label: "Variant",

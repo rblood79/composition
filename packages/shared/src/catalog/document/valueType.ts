@@ -1,4 +1,5 @@
 import { isRacColorString } from "./colorValue";
+import { catalogNumberFormatFits } from "./numberFormatValue";
 import type { CalendarDuration, ValueType } from "./types";
 
 /**
@@ -13,7 +14,7 @@ export function scalarFitsType(
   if (type === "slot") return typeof value === "string" || value === false;
   if (type === "columnSize") return catalogColumnSizeFits(value, false);
   if (type === "columnStaticSize") return catalogColumnSizeFits(value, true);
-  if (type === "calendarDuration") return false;
+  if (type === "calendarDuration" || type === "numberFormat") return false;
   if (type === "racColor") return isRacColorString(value);
   return type !== undefined && typeof value === type;
 }
@@ -26,6 +27,7 @@ export function scalarFitsType(
  */
 export function catalogPropValueFits(value: unknown, type: string): boolean {
   if (type === "calendarDuration") return catalogCalendarDurationFits(value);
+  if (type === "numberFormat") return catalogNumberFormatFits(value);
   if (type === "slot") return scalarFitsType(value, type);
   if (type === "string[]")
     return (

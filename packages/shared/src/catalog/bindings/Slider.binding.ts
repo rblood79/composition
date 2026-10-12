@@ -10,6 +10,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
 
 export const sliderBinding: PrimitiveBinding = {
   source: {
@@ -89,6 +90,7 @@ export const sliderBinding: PrimitiveBinding = {
         section: "content",
         min: 0,
       },
+      formatOptions: FORMAT_OPTIONS_PROP,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — `delegatedDom.tsx` `slider` 가
       //   uncontrolled defaultValue 로 전달 (드래그 상호작용 보존).
       value: { kind: "number", label: "Value", section: "content" },

@@ -146,6 +146,7 @@ import {
 import type { DefinitionId } from "../document/types";
 
 import { catalogCalendarDurationFits } from "../document/valueType";
+import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 
 import { resolveStaticItemKey } from "../slotRoles";
 
@@ -1595,6 +1596,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     minValue: num(props.minValue),
     maxValue: num(props.maxValue),
     step: num(props.step),
+    formatOptions: catalogNumberFormatOptions(props.formatOptions),
     locale: opt(props.locale),
     isWheelDisabled: bool(props.isWheelDisabled),
   })),
@@ -1735,6 +1737,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           minValue: min,
           maxValue: max,
           step: num(props.step) ?? 1,
+          formatOptions: catalogNumberFormatOptions(props.formatOptions),
           isDisabled: bool(props.isDisabled),
           // (No visible label: RAC needs a name — the type's own.)
           "aria-label": str(props.label).trim() ? undefined : "Slider",
@@ -1771,6 +1774,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           maxValue: num(props.maxValue) ?? 100,
           isIndeterminate: bool(props.isIndeterminate),
           valueLabel: opt(props.valueLabel),
+          formatOptions: catalogNumberFormatOptions(props.formatOptions),
           // (No visible label: RAC needs a name — the type's own.)
           "aria-label": str(props.label).trim() ? undefined : "Progress",
           children: catalogStateChildren(input.node.id, () => renderAll(input)),
@@ -1802,6 +1806,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           minValue: num(props.minValue) ?? 0,
           maxValue: num(props.maxValue) ?? 100,
           valueLabel: opt(props.valueLabel),
+          formatOptions: catalogNumberFormatOptions(props.formatOptions),
           // (No visible label: RAC needs a name — the type's own.)
           "aria-label": str(props.label).trim() ? undefined : "Meter",
           children: catalogStateChildren(input.node.id, () => renderAll(input)),

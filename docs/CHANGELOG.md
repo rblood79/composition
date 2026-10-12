@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 formatOptions — 숫자 서식 객체 값] - 2026-10-12
+
+### Added
+
+- **NumberField · Meter · ProgressBar · Slider 가 S2 · RAC `formatOptions` 를 받는다** (사용자 결정 2026-10-12 「S2 · RAC 가 객체면 객체 값 타입을 새로 만들어」):
+  - **Why**: S2 1.8.0 · RAC 의 `formatOptions` 는 `Intl.NumberFormatOptions` 객체인데 문서 값 타입에 객체가 없어 보류였다 (조사 §6.1).
+  - 새 문서 값 타입 `numberFormat` — 키는 네 consumer 가 같게 다루는 것만: `style` (decimal · percent · currency · unit) · `currency` · `currencyDisplay` · `currencySign` · `unit` · `unitDisplay` · 정수 · 소수 자릿수 · `useGrouping` · `signDisplay`. NumberField 가 자기 글자를 다시 읽으므로 (RAC `NumberParser`) notation · 유효 자릿수 · 반올림은 받지 않는다. currency style 은 ISO 코드가, unit style 은 Intl 이 받는 단위가 있어야 하고 다른 style 의 키는 같이 둘 수 없다. 비우면 RAC 기본 (Meter · ProgressBar 는 범위의 퍼센트, 나머지는 locale 의 십진수).
+  - DOM 은 RAC 에 그대로 넘기고, Canvas 는 RAC 와 같은 `NumberFormatter` 로 같은 글자를 쓴다 (Meter · ProgressBar 의 percent style 은 범위 비율을, 그 밖은 값을 서식). 문서 검증기 · 라이브러리 · AI 수정 검증이 같은 판정 (`catalogNumberFormatFits`) 을 쓴다.
+  - Design 패널 「Format」: Default · Decimal · Percent · Currency · Unit 과 그 style 의 키 · 자릿수 · 부호 · 자릿수 구분을 한 객체로 한 번에 쓴다. 받지 않는 통화 코드 · 단위는 쓰지 않고 알린다.
+  - 위치: `packages/shared/src/catalog/document/numberFormatValue.ts` · `bindings/numberFormatProps.ts` · `runtime/valueBindings.ts` · `runtime/presence.ts` · `runtime/delegatedDom.runtime.ts` · `apps/builder/src/builder/panels/properties/generic/NumberFormatField.tsx`
+
+### Tests
+
+- `s2FormatOptions.test.tsx` 8 — 값 판정 · 네 type 의 accepts · 잘못된 모양 거부 (revision · history · 저장 대기열 무변경) · 서식 7종마다 Meter · ProgressBar · Slider · NumberField 의 Preview 글자 = Canvas 글자 = 설치된 RAC 의 출력. 원복 RED: Canvas 글자 (`valueBindings` · `presence`) · DOM 전달 (`delegatedDom`) 을 각각 되돌리면 FAIL 4 · 1 · 4.
+- live `s2-format-options-live.mjs` 11/11 — Meter Format → Currency 「$75.00」 · 코드 eur → 「€75.00」 · 잘못된 코드 경고 · Max Fraction Digits 0 「€75」 · Default 「75%」 (Preview = Canvas record = Skia 글자), NumberField percent 「25%」, Slider unit 「50 km」, reload 유지 · 오류 0. NumberField 원본은 `step 1 · max 100` 이라 percent 에서 0.25 가 RAC 규칙대로 0 으로 맞춰진다 — percent 는 step 을 같이 바꿔야 한다.
+
 ## [전체 lint 정합성 — React consumer lifecycle] - 2026-10-12
 
 ### Fixed
@@ -1071,7 +1087,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Tag 의 Design 패널: Variant 대신 Behavior 의 Selected** — 켜면 TagGroup 이 그 Tag 의 key 를 RAC 의 `defaultSelectedKeys` 로 넘긴다 (ToggleButtonGroup · ListBox 항목과 같은 선택 축 `isSelected`). Canvas 도 같은 판정으로 rule 의 selected 칠을 그린다. TagGroup 의 `selectionMode` 가 none 이면 RAC 처럼 둘 다 선택을 그리지 않는다. 열린 Preview 는 Selected · selectionMode 변경을 바로 따른다.
-  - 위치: `packages/shared/src/catalog/bindings/Tag.binding.ts` · `runtime/delegatedDom.tsx` (`taggroup` — `tagGroupTags` · 구독) · `runtime/presence.ts` (`catalogCollectionItemSelected`) · `document/types.ts` (contract 31)
+  - 위치: `packages/shared/src/catalog/bindings/Tag.binding.ts` · `runtime/delegatedDom.runtime.ts` (`taggroup` — `tagGroupTags` · 구독) · `runtime/presence.ts` (`catalogCollectionItemSelected`) · `document/types.ts` (contract 31)
   - 같은 날 앞 커밋 (`343034efe` — `TagGroup.css` 가 `data-variant="selected"` 를 칠함) 은 되돌렸다.
 - 회귀: `tagGroupSelection.test.tsx` 4 (원복 RED 3) · live `apps/builder/scripts/tag-group-selection-live.mjs` 5/5 (Design 패널 Selected 클릭 → Canvas · Preview 선택 chip · selectionMode none → 둘 다 해제 · 새로고침 뒤 유지) · G3 63 PASS + 1 UNVERIFIED · parity 811
 

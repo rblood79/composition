@@ -3,6 +3,8 @@ import {
   catalogColorControlParts,
 } from "./colorControlParts";
 import { getIconData } from "@composition/rendering";
+import { NumberFormatter } from "@internationalized/number";
+import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import {
   catalogTableRowTracks,
   catalogTableSelectionPartHidden,
@@ -951,7 +953,7 @@ export function catalogNumberFieldValue(value: unknown): number | undefined {
 /**
  * The text RAC's NumberField starts its input with (`useNumberFieldState`): the value snapped to
  * the range and step (`commitBehavior` 'snap' — only clamped without a step), in the locale's number
- * format (`NumberFormatter` — no `formatOptions`). Empty without a value.
+ * format with the field's `formatOptions` (`NumberFormatter`). Empty without a value.
  */
 export function catalogNumberFieldText(
   field: CatalogConsumerNode,
@@ -973,8 +975,9 @@ export function catalogNumberFieldText(
         Math.max(Number.isNaN(min) ? -Infinity : min, value),
       );
   const own = typeof field.props.locale === "string" ? field.props.locale : "";
-  return new Intl.NumberFormat(
+  return new NumberFormatter(
     own || locale || globalThis.navigator?.language || "en-US",
+    catalogNumberFormatOptions(field.props.formatOptions),
   ).format(snapped);
 }
 

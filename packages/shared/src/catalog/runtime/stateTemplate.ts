@@ -68,8 +68,8 @@ function variableType(type: ValueType): VariableDefType {
           // (ADR-258: nor a RAC color — a state variable of its own is a string.)
           type === "racColor"
         ? "string"
-        : // (ADR-256 Phase 9: nor a calendar duration — an object of its own.)
-          type === "calendarDuration"
+        : // (ADR-256 Phase 9: nor a calendar duration · number format — objects of their own.)
+          type === "calendarDuration" || type === "numberFormat"
           ? "object"
           : type;
 }

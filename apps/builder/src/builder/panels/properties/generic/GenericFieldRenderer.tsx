@@ -34,6 +34,7 @@ import {
   catalogColumnSizeFits,
 } from "../../../../../../../packages/shared/src/catalog/document/valueType";
 import { isRacColorString } from "../../../../../../../packages/shared/src/catalog/document/colorValue";
+import { NumberFormatField } from "./NumberFormatField";
 import { catalogColumnTrack } from "../../../../../../../packages/shared/src/catalog/runtime/tableTracks";
 import { PropertyNumberInput } from "../../../components/property/PropertyNumberInput";
 import { PropertyPlacementPicker } from "../../../components/property/PropertyPlacementPicker";
@@ -881,6 +882,12 @@ const GenericField = memo(function GenericField({
         />
       );
 
+    // S2 · RAC formatOptions — style + its keys, one object write (rows of its own).
+    case "number-format":
+      return (
+        <NumberFormatField field={field} value={value} onChange={update} />
+      );
+
     // ADR-256 Phase 9 — a count + Days · Weeks · Months, one object write.
     case "calendar-duration":
       return (
@@ -1239,7 +1246,9 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   const renderRows = (packed: readonly ResolvedField[][]) =>
     packed.map((row) =>
       // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
-      row.length === 1 && row[0]!.kind === "items-manager" ? (
+      // (A number format lays out its own rows — style, then that style's keys.)
+      row.length === 1 &&
+      (row[0]!.kind === "items-manager" || row[0]!.kind === "number-format") ? (
         <GenericField
           key={`${row[0]!.origin}:${row[0]!.key}`}
           field={row[0]!}

@@ -646,6 +646,8 @@ export interface TranslationKeys {
     columnSizeNotApplied: string;
     racColorInvalid: string;
     durationUnit: string;
+    /** S2 · RAC formatOptions — a currency code · unit the format does not take. */
+    numberFormatInvalid: string;
     calendarPickerNotice: string;
     stateName: string;
     stateType: string;

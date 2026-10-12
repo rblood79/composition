@@ -1,3 +1,5 @@
+import { NumberFormatter } from "@internationalized/number";
+import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 import { colorSliderText } from "./colorControlGradient";
 import { RAC_VALUE_KEYS } from "../generated/racStateKeys";
 import type { CatalogConsumerNode } from "./compositionRoot";
@@ -120,10 +122,15 @@ export function catalogRenderValue(
   if (typeof props.valueLabel === "string" && props.valueLabel)
     return props.valueLabel;
   const own = typeof props.locale === "string" ? props.locale : "";
-  return new Intl.NumberFormat(
+  // RAC `useProgressBar`: `formatOptions` (default percent) — a percent style formats the fraction
+  // of the range, any other the value itself.
+  const options = catalogNumberFormatOptions(props.formatOptions) ?? {
+    style: "percent",
+  };
+  return new NumberFormatter(
     own || locale || globalThis.navigator?.language || "en-US",
-    { style: "percent" },
-  ).format(fraction);
+    options,
+  ).format(options.style === "percent" ? fraction : value);
 }
 
 /** A key's value for a node: `linked` = an owner gives it (its value may still be `undefined`). */
@@ -219,11 +226,13 @@ function racOwnText(
     return { owner, text: partType === "Label" ? text.label : text.output };
   }
   const { min, max, value } = catalogSliderRange(owner);
+  // RAC `Slider`: `useNumberFormatter(formatOptions)` → the thumb's value label.
   return {
     owner,
-    text: new Intl.NumberFormat(lang).format(
-      Math.min(max, Math.max(min, value)),
-    ),
+    text: new NumberFormatter(
+      lang,
+      catalogNumberFormatOptions(owner.props.formatOptions),
+    ).format(Math.min(max, Math.max(min, value))),
   };
 }
 /** Whether a record's text is the one its RAC part writes (no text of its own — `racOwnText`). */

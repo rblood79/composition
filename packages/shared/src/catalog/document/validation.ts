@@ -23,6 +23,7 @@ import {
   type VisualField,
 } from "./types";
 import { catalogCalendarDurationFits } from "./valueType";
+import { catalogNumberFormatFits } from "./numberFormatValue";
 
 export class CatalogValidationError extends Error {
   constructor(
@@ -255,6 +256,7 @@ const valueTypes = new Set<ValueType>([
   "columnStaticSize",
   "calendarDuration",
   "racColor",
+  "numberFormat",
 ]);
 /** State variables hold scalars only. */
 const scalarValueTypes = new Set<ValueType>(["string", "number", "boolean"]);
@@ -361,10 +363,11 @@ function authoredValue(
     return structuredValue(value, at);
   }
   if (typeof value !== "object" || value === null) return scalar(value, at);
-  // ADR-256 Phase 9: a prop's typed calendar duration (the accepts check is the graph's).
+  // ADR-256 Phase 9 · S2 formatOptions: a prop's typed object — a calendar duration or a number
+  // format (the accepts check is the graph's).
   if (allowStructured && !("kind" in value)) {
-    if (!catalogCalendarDurationFits(value))
-      invalid("INVALID_CALENDAR_DURATION", at);
+    if (!catalogCalendarDurationFits(value) && !catalogNumberFormatFits(value))
+      invalid("INVALID_OBJECT_VALUE", at);
     return;
   }
   const ref = object(value, at);

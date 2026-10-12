@@ -160,8 +160,29 @@ export type CalendarDuration =
   | { readonly days: number }
   | { readonly weeks: number }
   | { readonly months: number };
+/**
+ * S2 · RAC `formatOptions` (사용자 결정 2026-10-12) — `numberFormat`, an object of its own (never a
+ * token, a visual field, a state variable or a condition). Shape: `numberFormatValue.ts`.
+ */
+export interface NumberFormatValue {
+  readonly style?: "decimal" | "percent" | "currency" | "unit";
+  readonly currency?: string;
+  readonly currencyDisplay?: "symbol" | "narrowSymbol" | "code" | "name";
+  readonly currencySign?: "standard" | "accounting";
+  readonly unit?: string;
+  readonly unitDisplay?: "short" | "long" | "narrow";
+  readonly minimumIntegerDigits?: number;
+  readonly minimumFractionDigits?: number;
+  readonly maximumFractionDigits?: number;
+  readonly useGrouping?: boolean;
+  readonly signDisplay?: "auto" | "never" | "always" | "exceptZero";
+}
 export type AuthoredValue =
-  Scalar | TokenUse | StructuredValue | CalendarDuration;
+  | Scalar
+  | TokenUse
+  | StructuredValue
+  | CalendarDuration
+  | NumberFormatValue;
 /**
  * `slot` (ADR-256 Decision 4): RAC's named slot of a part — a slot name, or `false` = the explicit
  * `slot={null}` (detach from the parent's context). Absent = unset (RAC's default slot or a plain
@@ -180,9 +201,15 @@ export type ValueType =
   // ADR-256 Phase 9 — a Calendar's `visibleDuration` (`CalendarDuration`).
   | "calendarDuration"
   // ADR-258 — a Color control's color string in RAC's `parseColor` syntax (`isRacColorString`).
-  | "racColor";
-/** Resolved prop value: a scalar, a structured value or a calendar duration. */
-export type PropValue = Scalar | StructuredValue | CalendarDuration;
+  | "racColor"
+  // S2 · RAC `formatOptions` — `catalogNumberFormatFits` (사용자 결정 2026-10-12).
+  | "numberFormat";
+/** Resolved prop value: a scalar, a structured value, a calendar duration or a number format. */
+export type PropValue =
+  | Scalar
+  | StructuredValue
+  | CalendarDuration
+  | NumberFormatValue;
 export type TokenType = "color" | "length" | "number" | "string" | "boolean";
 export type ThemePreset = {
   tint:

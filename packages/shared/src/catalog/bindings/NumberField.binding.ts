@@ -4,12 +4,13 @@
  * inventory(§2-1) RAC-controller-backed primitive. RAC `<NumberField>` 가 Label/Group/Input/
  * stepper Button slot 합성(D1). leaf binding — TextField 와 동형 + number 고유 props.
  *
- * D2: label/description/placeholder + size/labelPosition/isQuiet + min/max/step(formatOptions 는 미노출,
- *     locale-dependent 라 후속) + state.
+ * D2: label/description/placeholder + size/labelPosition/isQuiet + min/max/step + formatOptions
+ *     (S2 · RAC `Intl.NumberFormatOptions` — 문서 값 타입 `numberFormat`, 2026-10-12) + state.
  * D3: 자식 Input 이 배경, 부모는 빈 box shell(`_hasChildren`). skiaPrimitive 불필요.
  */
 
 import type { PrimitiveBinding } from "../types";
+import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
 
 export const numberFieldBinding: PrimitiveBinding = {
   source: {
@@ -93,6 +94,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       minValue: { kind: "number", label: "Min Value", section: "content" },
       maxValue: { kind: "number", label: "Max Value", section: "content" },
       step: { kind: "number", label: "Step", section: "content", min: 0 },
+      formatOptions: FORMAT_OPTIONS_PROP,
       // form binding props — empty = no value (S2: an empty input, the placeholder shows; RAC NaN)
       value: { kind: "string", label: "Value", section: "content" },
       name: { kind: "string", label: "Name", section: "content" },
