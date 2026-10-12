@@ -260,30 +260,22 @@ describe("ADR-256 Phase 7a — ProgressBar draws its node tree", () => {
     expect(keyframes.slice(0, keyframes.indexOf("\n}\n"))).not.toMatch(/transform/);
   });
 
-  it("the fill paints the ProgressBar's variant (Canvas) — the sheet's --fill-color (DOM)", async () => {
-    const { root, part, draw } = await open({
-      label: "Loading",
-      value: 50,
-      variant: "neutral",
-    });
-    expect(draw().getAttribute("data-variant")).toBe("neutral");
+  it("the fill paints the accent over the subtle track (Canvas) — the sheet's --fill-color (DOM); no variant axis", async () => {
+    // (S2 · RAC · v3 ProgressBar have no variant — the axis is gone, 2026-10-12: the document
+    // refuses one and the parts carry none.)
+    await expect(
+      open({ label: "Loading", value: 50, variant: "neutral" }),
+    ).rejects.toThrow();
+    const { root, part, draw } = await open({ label: "Loading", value: 50 });
+    expect(draw().hasAttribute("data-variant")).toBe(true);
+    expect(part("ProgressBarFill")!.derivedProps?.variant).toBeUndefined();
     const canvas = bindCatalogCanvas(root, root.pageRootRecords());
     cleanups.push(() => canvas.dispose());
     const fill = getSkiaNode(part("ProgressBarFill")!.id)?.box?.fillColor;
     const track = getSkiaNode(part("ProgressBarTrack")!.id)?.box?.fillColor;
     expect(fill).toBeDefined();
     expect(track).toBeDefined();
-    // neutral: the fill is the subdued text color, the track the subtle wash — not the accent.
     expect(Array.from(fill!)).not.toEqual(Array.from(track!));
-    const accent = await open({ label: "Loading", value: 50 });
-    const accentCanvas = bindCatalogCanvas(
-      accent.root,
-      accent.root.pageRootRecords(),
-    );
-    cleanups.push(() => accentCanvas.dispose());
-    const accentFill = getSkiaNode(accent.part("ProgressBarFill")!.id)?.box
-      ?.fillColor;
-    expect(Array.from(accentFill!)).not.toEqual(Array.from(fill!));
   });
 
   it("a free child the author puts in is drawn in its place", async () => {

@@ -37,19 +37,19 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     expect([...getCatalogCutoverTypes()]).toContain("ProgressBar");
   });
 
-  it("accepts: value/minValue/maxValue/label/variant/size/isIndeterminate/showValueLabel", () => {
+  it("accepts: value/minValue/maxValue/label/size/isIndeterminate/showValueLabel — no variant (2026-10-12)", () => {
     const a = progressBarBinding.props.accepts;
     expect(a.value?.kind).toBe("number");
     expect(a.minValue?.kind).toBe("number");
     expect(a.maxValue?.kind).toBe("number");
     expect(a.label?.kind).toBe("string");
-    expect(a.variant?.kind).toBe("variant");
+    expect(a.variant).toBeUndefined();
     expect(a.size?.kind).toBe("size");
     expect(a.isIndeterminate?.kind).toBe("boolean");
     expect(a.showValueLabel?.kind).toBe("boolean");
   });
 
-  it("toRacProps: value(number) React prop 통과, variant/size 는 data-attr 라우팅", () => {
+  it("toRacProps: value(number) React prop 통과, size 는 data-attr 라우팅 (variant 축 없음)", () => {
     const node = {
       id: "x",
       type: "ProgressBar",
@@ -59,8 +59,8 @@ describe("ProgressBar binding — value-fill compound (internal wrapper 위임)"
     // value/label 은 React prop (renderProgressBar 가 소비)
     expect(rac.value).toBe(60);
     expect(rac.label).toBe("P");
-    // variant/size 는 data-attr (RAC unstyled + generated CSS)
+    // size 는 data-attr (RAC unstyled + generated CSS) — variant 는 받지 않는다
     expect(rac["data-size"]).toBe("L");
-    expect(rac["data-variant"]).toBe("accent");
+    expect(rac).not.toHaveProperty("data-variant");
   });
 });

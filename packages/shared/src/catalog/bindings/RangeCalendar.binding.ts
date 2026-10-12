@@ -23,12 +23,6 @@ export const rangeCalendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

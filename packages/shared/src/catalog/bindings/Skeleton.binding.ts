@@ -14,7 +14,7 @@
  * 빌더 배치 노드의 prop 이 아니라 별도 사용 경로.
  *
  * D1: composition 내부 `<div role="status">` (RAC primitive 아님 — internal source).
- * D2: variant(default/accent) + size 편집 surface (skeletonVariant 는 빌더 미노출).
+ * D2: size 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12); skeletonVariant 는 빌더 미노출).
  * D3: 시각(배경/borderRadius)은 theme/tokens data-* rules. Skia 는 buildCatalogShapes box.
  */
 
@@ -27,12 +27,6 @@ export const skeletonBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

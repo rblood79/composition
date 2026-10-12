@@ -226,7 +226,6 @@ const scatterSample: readonly ChartRow[] = [
 
 /** Chart 직접 생성은 기존 bar 기본값, palette 생성은 종류별 기본값을 원자적으로 준다. */
 export function createChartInitialProps(chartType?: ChartType): ChartProps & {
-  variant: string;
   size: string;
   data: ChartRow[];
   style: { width: number };
@@ -250,7 +249,6 @@ export function createChartInitialProps(chartType?: ChartType): ChartProps & {
           animationEasing: "ease-out" as const,
         }
       : {}),
-    variant: "default",
     size: "M",
     style: { width: 320 },
     data: (scatter ? scatterSample : legacySample)

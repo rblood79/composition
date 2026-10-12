@@ -44,20 +44,6 @@
   }
 }
 
-.react-aria-RangeCalendar[data-variant="accent"] {
-  background: var(--bg);
-  color: var(--fg);
-  border-color: var(--accent);
-
-  &[data-hovered] {
-    background: var(--bg-inset);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-overlay);
-  }
-}
-
 .react-aria-RangeCalendar[data-size="S"] {
   height: auto;
   padding: 4px 4px;

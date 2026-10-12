@@ -1267,7 +1267,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ...marker(input),
               style: input.style,
               "aria-label": str(props.label || "List"),
-              variant: props.variant || undefined,
+              // (No variant axis — S2 · RAC · v3 have none, 2026-10-12. The shared ListBox's own
+              // default "primary" would turn on its old `[data-variant=primary]` sheet.)
+              variant: "default",
               orientation: props.orientation || "vertical",
               selectionMode: props.selectionMode ?? "none",
               disallowEmptySelection: bool(props.disallowEmptySelection),

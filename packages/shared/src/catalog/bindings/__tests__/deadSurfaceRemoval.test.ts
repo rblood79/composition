@@ -57,11 +57,14 @@ const REMOVED: Record<string, readonly string[]> = {
   CalendarGrid: ["locale", "calendarSystem"],
   SliderTrack: ["variant"],
   ProgressBarValue: ["variant"],
+  // 2026-10-12 — the ProgressBar has no variant (S2 · RAC · v3 have none), so its parts take none.
+  ProgressBarFill: ["variant"],
+  ProgressBarTrack: ["variant"],
 };
 /** Values the owner gives the part (size propagation · derived props): kept, not edited. */
 const HIDDEN: Record<string, readonly string[]> = {
-  ProgressBarFill: ["variant", "size"],
-  ProgressBarTrack: ["variant", "size"],
+  ProgressBarFill: ["size"],
+  ProgressBarTrack: ["size"],
   MeterFill: ["variant", "size"],
   MeterTrack: ["variant", "size"],
   CalendarHeader: ["size"],

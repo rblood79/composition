@@ -8,7 +8,7 @@
  * value-dependent 시각 없음 → skiaPrimitive 불필요).
  *
  * D1: RAC `FileTrigger` → 파일 입력 trigger. RAC 가 파일 선택/접근성 권위.
- * D2: children(label text)/variant/size + acceptedFileTypes/allowsMultiple/acceptDirectory +
+ * D2: children(label text)/size + acceptedFileTypes/allowsMultiple/acceptDirectory +
  *     defaultCamera + isDisabled.
  * D3: 시각(배경/테두리/텍스트)은 theme/tokens data-* rules. Skia 는 buildCatalogShapes box+text.
  */
@@ -33,12 +33,6 @@ export const fileTriggerBinding: PrimitiveBinding = {
   props: {
     accepts: {
       children: { kind: "string", label: "Text", section: "content" },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

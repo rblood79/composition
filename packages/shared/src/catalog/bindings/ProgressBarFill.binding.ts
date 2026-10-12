@@ -7,20 +7,13 @@ import type { PrimitiveBinding } from "../types";
  * `.fill` (`COMPONENT_RULES_TABLE.ProgressBar` composition), its width the template binding.
  *
  * D1: none — a plain element in RAC's `ProgressBar` children.
- * D2: no props of its own (`variant` · `size` come from its ProgressBar — `catalogDerivedProps`).
+ * D2: no props of its own (`size` comes from its ProgressBar — `catalogDerivedProps`; no variant, 2026-10-12).
  * D3: the fill color (`COMPONENT_RULES_TABLE.ProgressBarFill` — the owner's `--fill-color`).
  */
 export const progressBarFillBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "progressbarfill" },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-        editorHidden: true,
-      },
       size: {
         kind: "size",
         label: "Size",

@@ -14,7 +14,7 @@ import { FORMAT_OPTIONS_PROP } from "./numberFormatProps";
  * 부모의 것 — `catalogDerivedProps`).
  *
  * D1: RAC `<ProgressBar role="progressbar">` 그대로.
- * D2: value · minValue · maxValue · label · variant · size · isIndeterminate · showValueLabel ·
+ * D2: value · minValue · maxValue · label · formatOptions · size · isIndeterminate · showValueLabel ·
  *     valueLabel · labelPosition · staticColor.
  * D3: catalog ProgressBar rule (`.bar` · `.value` · `.fill` composition) + ProgressBarTrack ·
  *     ProgressBarFill rule.
@@ -48,12 +48,6 @@ export const progressBarBinding: PrimitiveBinding = {
       },
       label: { kind: "string", label: "Label", section: "content" },
       formatOptions: FORMAT_OPTIONS_PROP,
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

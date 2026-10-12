@@ -20,12 +20,6 @@ export const tableBinding: PrimitiveBinding = {
   props: {
     accepts: {
       dataBinding: { kind: "binding", label: "Data", section: "content" },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

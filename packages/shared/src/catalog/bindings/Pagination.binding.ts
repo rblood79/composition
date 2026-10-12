@@ -5,7 +5,7 @@ import type { PrimitiveBinding } from "../types";
  * Pagination origin template (`reusableOriginLibrary.ts` `component-pagination`) 이 자식 Button×5
  * (←/1/2/3/→) 를 노드로 둔다.
  *
- * **Canvas**: rule `COMPONENT_RULES_TABLE.Pagination`(variant default/accent + sizes sm/md/lg) 의 box
+ * **Canvas**: rule `COMPONENT_RULES_TABLE.Pagination`(variant default 하나 + sizes S/M/L) 의 box
  *   shell — 페이지 버튼은 자식 Button 노드가 그린다. container layout(`flexDirection:row` /
  *   `alignItems:center`)은 template 노드의 layout.
  *
@@ -19,8 +19,8 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition `<nav>` (internal source, delegatedDom `pagination`). aria-label="Pagination" 은
  *     delegatedDom 이 부여.
- * D2: variant/size(appearance) surface.
- * D3: 시각(variant fill + radius)은 theme rule(COMPONENT_RULES_TABLE.Pagination).
+ * D2: size(appearance) surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12)).
+ * D3: 시각(fill + radius)은 theme rule(COMPONENT_RULES_TABLE.Pagination).
  *     Canvas box shell ↔ DOM `react-aria-Pagination[data-size]` 시각 대칭.
  */
 export const paginationBinding: PrimitiveBinding = {
@@ -33,12 +33,6 @@ export const paginationBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

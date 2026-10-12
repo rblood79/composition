@@ -19,14 +19,8 @@ export const gridListBinding: PrimitiveBinding = {
       // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
       //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
       //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       // RSP ListView `isQuiet` (2026-08-22) — 카드에서 배경·테두리를 걷어낸 표현.
-      //   컨테이너 variant(default/accent, hover·선택 tint)와 **직교**한 축이라 그 enum 에
+      //   컨테이너 시각 (2026-10-12 부터 variant 축 없음)과 **직교**한 축이라 그 enum 에
       //   섞지 않는다. 소비 주체가 카드이므로 catalog 정의는 `GridListItem.variants.quiet`
       //   에 있고, 여기 boolean 은 그 variant 를 고르는 owner 표면이다
       //   (DOM=GridList.tsx 가 항목에 data-variant, Skia=projection 이 카드 props.variant).

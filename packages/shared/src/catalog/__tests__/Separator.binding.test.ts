@@ -4,7 +4,8 @@ import { getPrimitiveBinding, separatorBinding } from "../bindings";
 import { toRacProps } from "../outputs/toRacProps";
 
 describe("Separator binding → toRacProps", () => {
-  it("routes variant/size to data-* and passes orientation as RAC prop", () => {
+  // (S2 Divider · RAC · v3 have no variant — the axis is gone, 2026-10-12.)
+  it("routes size to data-* and passes orientation as RAC prop", () => {
     const result = toRacProps(
       {
         id: "sep1",
@@ -16,20 +17,18 @@ describe("Separator binding → toRacProps", () => {
     expect(result).toEqual({
       // orientation 은 RAC props (RAC 가 aria-orientation 자동 매핑, D1)
       orientation: "vertical",
-      "data-variant": "accent",
       "data-size": "L",
       "data-static-color": "auto",
     });
   });
 
-  it("fills orientation/variant/size defaults when props omitted", () => {
+  it("fills orientation/size defaults when props omitted", () => {
     const result = toRacProps(
       { id: "sep2", type: "Separator", props: {} },
       separatorBinding,
     );
     expect(result).toEqual({
       orientation: "horizontal",
-      "data-variant": "default",
       "data-size": "M",
       "data-static-color": "auto",
     });
@@ -46,7 +45,7 @@ describe("Separator binding → toRacProps", () => {
     );
     expect(result).not.toHaveProperty("onClick");
     expect(result).not.toHaveProperty("className");
-    expect(result["data-variant"]).toBe("solid");
+    expect(result).not.toHaveProperty("data-variant");
   });
 });
 

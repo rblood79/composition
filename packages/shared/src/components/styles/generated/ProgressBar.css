@@ -97,21 +97,6 @@
   order: 2;
 }
 
-.react-aria-ProgressBar[data-variant="default"] {
-  --fill-color: var(--accent);
-  --track-color: var(--accent-subtle);
-}
-
-.react-aria-ProgressBar[data-variant="accent"] {
-  --fill-color: var(--accent);
-  --track-color: var(--accent-subtle);
-}
-
-.react-aria-ProgressBar[data-variant="neutral"] {
-  --fill-color: var(--fg-muted);
-  --track-color: var(--bg-muted);
-}
-
 .react-aria-ProgressBar[data-indeterminate="true"] .fill {
   width: 100%;
   border-radius: inherit;

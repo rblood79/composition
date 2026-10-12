@@ -7,7 +7,7 @@
  * 노드를 담는다. 따라서 `source.kind: "internal"`(RAC raw 우회).
  *
  * **Canvas (skiaLegacy 미설정, ADR-912 선행 2026-06-03)**: rule (componentRulesTable ListBox) 의
- * variant fill + border 로 container shell 만 그리고, 항목은 자식 ListBoxItem 노드가 각자 그린다.
+ * 기본 fill + border 로 container shell 만 그리고, 항목은 자식 ListBoxItem 노드가 각자 그린다.
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -24,12 +24,6 @@ export const listBoxBinding: PrimitiveBinding = {
       // 항목은 slot (자식 노드 — RAC 정적 collection) 또는 dataBinding (collection 행 + 항목 노드
       //   template — RAC 동적 collection) 이다. 옛 items-manager (`props.items` 인라인 배열) 는
       //   2026-10-09 삭제 — ADR-256 노드 트리 전환 뒤 어느 renderer 도 읽지 않았다 (contract 32).
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

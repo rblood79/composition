@@ -44,32 +44,6 @@
   }
 }
 
-.react-aria-ProgressBarTrack[data-variant="accent"] {
-  background: var(--accent-subtle);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
-}
-
-.react-aria-ProgressBarTrack[data-variant="neutral"] {
-  background: var(--bg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--bg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--bg-muted);
-  }
-}
-
 .react-aria-ProgressBarTrack[data-size="S"] {
   padding: 0px 0px;
   font-size: var(--text-xs);

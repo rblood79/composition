@@ -5,7 +5,7 @@
  * buildCatalogShapes 의 `_hasChildren` 분기로 shell 만 그리고 자식은 canonical children 트리.
  *
  * D1: RAC `Toolbar` 가 `<div role="toolbar" aria-orientation>`. orientation RAC props.
- * D2: variant(default·accent)/size/orientation 편집 surface.
+ * D2: size/orientation 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12)).
  * D3: 시각(container 배경)은 theme/tokens data-* rules.
  */
 
@@ -28,12 +28,6 @@ export const toolbarBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",

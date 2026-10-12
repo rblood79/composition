@@ -44,32 +44,6 @@
   }
 }
 
-.react-aria-ProgressBarFill[data-variant="accent"] {
-  background: var(--accent);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--accent);
-  }
-
-  &[data-pressed] {
-    background: var(--accent);
-  }
-}
-
-.react-aria-ProgressBarFill[data-variant="neutral"] {
-  background: var(--fg-muted);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--fg-muted);
-  }
-
-  &[data-pressed] {
-    background: var(--fg-muted);
-  }
-}
-
 .react-aria-ProgressBarFill[data-size="S"] {
   padding: 0px 0px;
   font-size: ;

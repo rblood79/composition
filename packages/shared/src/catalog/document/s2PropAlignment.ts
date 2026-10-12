@@ -117,8 +117,35 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
     },
   },
   CardView: { variant: dropOf },
-  Calendar: { maxVisibleMonths: visibleMonthsOf },
-  RangeCalendar: { maxVisibleMonths: visibleMonthsOf },
+  // 조사 §4.2 F (사용자 결정 2026-10-12 「S2 · RAC · v3 어디에도 없으면 지워」): 이 type 들의
+  // `variant` 는 레퍼런스 어디에도 없는 축이라 삭제 — rule 은 기본 변형 하나만 남는다.
+  // (ProgressBar 의 v3 `variant` 는 `overBackground` 하나 — S2 `staticColor` 가 그 자리다.)
+  ...Object.fromEntries(
+    [
+      "ProgressBar",
+      "ProgressBarFill",
+      "ProgressBarTrack",
+      "Table",
+      "Separator",
+      "CalendarGrid",
+      "ListBox",
+      "GridList",
+      "DisclosureGroup",
+      "Toolbar",
+      "FileTrigger",
+      "Skeleton",
+      "Pagination",
+      "Nav",
+      "ColorSwatchPicker",
+      "Section",
+      "ColorPicker",
+      "Chart",
+      // (Tabs: one `default` variant, no axis — S2 · v3 Tabs have none either.)
+      "Tabs",
+    ].map((type) => [type, { variant: dropOf }]),
+  ),
+  Calendar: { maxVisibleMonths: visibleMonthsOf, variant: dropOf },
+  RangeCalendar: { maxVisibleMonths: visibleMonthsOf, variant: dropOf },
   DatePicker: { maxVisibleMonths: dropOf },
   DateRangePicker: { maxVisibleMonths: dropOf },
 };

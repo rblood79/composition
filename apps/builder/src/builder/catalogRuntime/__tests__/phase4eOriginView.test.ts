@@ -425,12 +425,9 @@ describe("ADR-248 4e library origin view", () => {
       .find((candidate) => candidate.name === "Chart")!
       .children.slice(1)
       .map(nodeOf);
-    expect(chartRows.map((row) => row.name)).toEqual([
-      "Origin",
-      "Variants",
-      "Types",
-    ]);
-    const chartTypes = cellsOf(chartRows[2]!);
+    // (No Variants row — the Chart has no variant axis, 2026-10-12.)
+    expect(chartRows.map((row) => row.name)).toEqual(["Origin", "Types"]);
+    const chartTypes = cellsOf(chartRows[1]!);
     expect(chartTypes.map((cell) => cell.name)).toEqual(
       ["Area", "Bar", "Line", "Pie", "Radar", "Radial", "Scatter"].map(
         (name) => `◇ ${name} Chart`,
@@ -772,17 +769,16 @@ describe("ADR-248 4e library origin view", () => {
         ]),
     ).toEqual([["Footer", true, "instance"]]);
     workspace.showDefinition(button.id);
-    // A ProgressBar's track takes its owner's variant: the track rule paints every one of them
-    // (a missing variant painted no track).
-    const neutralTrack = under(
-      recordOf(originInstanceId(lib("progressbar"), "neutral")),
-      "progressbartrack",
+    // A Meter's track takes its owner's variant: the track rule paints every one of them
+    // (a missing variant painted no track). (The ProgressBar has no variant — 2026-10-12.)
+    const negativeTrack = under(
+      recordOf(originInstanceId(lib("meter"), "negative")),
+      "metertrack",
     ).map((record) => inputOf(record).derivedProps?.variant);
-    expect(neutralTrack).toEqual(["neutral"]);
+    expect(negativeTrack).toEqual(["negative"]);
     expect(
-      Object.keys(COMPONENT_RULES_TABLE.ProgressBar.variants).filter(
-        (variant) =>
-          !(variant in COMPONENT_RULES_TABLE.ProgressBarTrack.variants),
+      Object.keys(COMPONENT_RULES_TABLE.Meter.variants).filter(
+        (variant) => !(variant in COMPONENT_RULES_TABLE.MeterTrack.variants),
       ),
     ).toEqual([]);
     const bounds = new Map(

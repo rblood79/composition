@@ -96,7 +96,7 @@ describe("ToggleButtonGroup binding → toRacProps (컨테이너, children-manag
 });
 
 describe("Toolbar binding → toRacProps (컨테이너)", () => {
-  it("routes variant/size to data-* and passes orientation as RAC prop", () => {
+  it("routes size to data-* and passes orientation as RAC prop — no variant axis (2026-10-12)", () => {
     const result = toRacProps(
       {
         id: "tlb1",
@@ -107,9 +107,9 @@ describe("Toolbar binding → toRacProps (컨테이너)", () => {
     );
     expect(result).toMatchObject({
       orientation: "vertical",
-      "data-variant": "accent",
       "data-size": "M",
     });
+    expect(result).not.toHaveProperty("data-variant");
   });
 });
 

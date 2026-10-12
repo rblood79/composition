@@ -21,7 +21,7 @@ import type { PrimitiveBinding } from "../types";
  *   파일 1개(`packages/rendering/src/chart/marks/*`)이므로 평탄화가 확장을 막지 않는다.
  *   scatter/이중 축처럼 조합이 정말 필요해지면 reusable(조합) 경로로 승격 판정.
  *
- * **D3 = catalog rule**: `COMPONENT_RULES_TABLE.Chart` (variants default/quiet · sizes
+ * **D3 = catalog rule**: `COMPONENT_RULES_TABLE.Chart` (variant default 하나 · sizes
  *   sm/md/lg · `chart` 채널의 시리즈 팔레트·축·grid·기하 metric). generate-css 가
  *   `.react-aria-Chart { --chart-series-N; --chart-axis; --chart-grid }` 를 emit 하고
  *   Skia 는 같은 rule 을 읽는다 — scene 에는 색 인덱스만 실린다.
@@ -376,7 +376,7 @@ export const chartBinding: PrimitiveBinding = {
         ],
         visibleWhen: { key: "showValueLabels", truthy: true },
       },
-      // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). `variant` (상자) ·
+      // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). 상자 시각 ·
       //   `colorBy` (데이터→색 매핑) 와 다른 축 — 색 관련 두 필드가 패널에서 이웃하도록 colorBy 바로 앞에 둔다. 값은 rule `chart.series` / `chart.palettes` 가 푼다.
       palette: {
         kind: "enum",
@@ -586,12 +586,6 @@ export const chartBinding: PrimitiveBinding = {
         ),
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       size: {
         kind: "size",
         label: "Size",
@@ -647,7 +641,6 @@ export const chartBinding: PrimitiveBinding = {
       "animationDuration",
       "animationEasing",
       "palette",
-      "variant",
       "size",
     ],
   },

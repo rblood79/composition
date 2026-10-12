@@ -5,16 +5,16 @@ import type { PrimitiveBinding } from "../types";
  *   "A DisclosureGroup is a grouping of related disclosures, sometimes called an accordion").
  *   자식 Disclosure 들을 담는 순수 레이아웃 컨테이너 (RAC DisclosureGroup div).
  *
- * **Canvas**: rule `COMPONENT_RULES_TABLE.DisclosureGroup` (variants default/accent + sizes
+ * **Canvas**: rule `COMPONENT_RULES_TABLE.DisclosureGroup` (variant default 하나 + sizes
  *   borderRadius) 이 컨테이너 shell 을 그리고 자식 Disclosure 는 각자 그린다.
  *
  * **DOM = delegatedDom `disclosuregroup` (delegating 등록 필수)**: RAC `DisclosureGroup` 안에 자식
  *   노드를 그대로 담고, 펼침 키를 그 RAC context 가 닿는 모든 Disclosure 의 `isExpanded` (선언 값 ·
- *   Preview 실행 값) 로 넘긴다. allowsMultipleExpanded / isDisabled 는 RAC prop, variant / size 는
- *   `data-variant` / `data-size`.
+ *   Preview 실행 값) 로 넘긴다. allowsMultipleExpanded / isDisabled 는 RAC prop, size 는
+ *   `data-size`.
  *
  * D1: composition — RAC DisclosureGroup(div, role 없음, expandedKeys 관리) D1/ARIA 권위 보존.
- * D2: allowsMultipleExpanded + variant + size 편집 surface.
+ * D2: allowsMultipleExpanded + size 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12)).
  * D3: 시각(컨테이너 radius/border/배경)은 theme rule (COMPONENT_RULES_TABLE.DisclosureGroup).
  *     Skia generic shell ↔ DOM RAC 컨테이너 시각 대칭.
  */
@@ -30,12 +30,6 @@ export const disclosureGroupBinding: PrimitiveBinding = {
         label: "Allow Multiple Expanded",
         section: "state",
         default: true,
-      },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
       },
       size: {
         kind: "size",

@@ -6,8 +6,8 @@
  *
  * D1: RAC `Separator` 가 `<hr role="separator" aria-orientation>` 를 emit(orientation
  *     prop → aria-orientation 자동, RAC 권위). 본 binding 은 orientation 을 RAC props 로 통과.
- * D2: variant(7종)/size(sm·md·lg)/orientation 이 편집 surface.
- * D3: 시각(선 색/두께)은 theme/tokens data-* rules — variant/size 는 data-* 라우팅(toRacProps).
+ * D2: size/orientation/staticColor 가 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12) — S2 Divider 도 없음).
+ * D3: 시각(선 색/두께)은 theme/tokens data-* rules — size 는 data-* 라우팅(toRacProps).
  *     선은 box+text 가 아닌 비-DOM-trivial primitive → Skia 는 `skiaPrimitive: "divider"`
  *     draw module(renderers/skiaPrimitives.ts)이 선색으로 채운 얇은 rect 로 그린다.
  */
@@ -42,13 +42,7 @@ export const separatorBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
         ],
       },
-      // 시각 차원 → data-variant / data-size (theme 가 값 집합 + 선 색/두께 제공)
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
+      // 시각 차원 → data-size (theme 가 값 집합 + 선 두께 제공)
       size: {
         kind: "size",
         label: "Size",

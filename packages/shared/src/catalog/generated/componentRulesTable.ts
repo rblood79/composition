@@ -1353,19 +1353,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
     },
     // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 는 spec 삭제(ADR-912
     //   cutover) + structure.composition 부재(archetype "calendar") 라, layout 이
@@ -1443,19 +1430,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-        },
-      },
-      accent: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -2659,32 +2633,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.transparent}",
         },
       },
-      compact: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-        },
-      },
-      expanded: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
-        },
-      },
     },
     sizes: {
       S: {
@@ -2917,23 +2865,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
-      // ADR-256 후속 13: the picker paints nothing — its DOM sheet (`ColorSwatchPicker.css`) is a
-      //   flex row with no frame. A variant border put a 1px box on the Canvas only (it moved the
-      //   swatches in by 1px).
       default: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
         fill: {
           default: {
             base: "{color.transparent}",
@@ -4767,19 +4699,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
     },
     // 테두리 없음 (starter DisclosureGroup.css 정합 · Disclosure 2026-09-18 동형). sizes 에 borderWidth 가
     //   없으면 Skia generic shell 이 기본 thin (1px) 로 variant border 색을 그렸고, 생성 CSS 는
@@ -5149,19 +5068,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent-hover}",
-            pressed: "{color.accent-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.accent}",
-        },
-      },
     },
     sizes: {
       // ADR-912 단계5 step4 small-B (2026-06-16): gap 보강 — spec 삭제 후 generated CSS `gap: Npx`
@@ -5383,18 +5289,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             base: "{color.transparent}",
             hover: "{color.transparent}",
             pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
           },
         },
         colors: {
@@ -6760,19 +6654,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.raised}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
     },
     // ADR-912 단계5 step4 (2026-06-17): ListBox.spec.containerStyles 의 layout primitive 8필드 이관
     //   (Menu/TagGroup 선례). spec 삭제 후 builder resolveContainerStylesFallback 의 catalog 합성이
@@ -7727,18 +7608,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
     },
     sizes: {
       S: {
@@ -7995,19 +7864,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent-hover}",
-            pressed: "{color.accent-pressed}",
-          },
-        },
-        colors: {
-          text: "{color.on-accent}",
-          border: "{color.accent}",
         },
       },
     },
@@ -8288,30 +8144,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           text: "{color.neutral}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
     },
     sizes: {
       S: {
@@ -8425,26 +8257,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               ],
             },
           },
-          variant: {
-            default: {
-              styles: {
-                "--fill-color": "var(--accent)",
-                "--track-color": "var(--accent-subtle)",
-              },
-            },
-            accent: {
-              styles: {
-                "--fill-color": "var(--accent)",
-                "--track-color": "var(--accent-subtle)",
-              },
-            },
-            neutral: {
-              styles: {
-                "--fill-color": "var(--fg-muted)",
-                "--track-color": "var(--bg-muted)",
-              },
-            },
-          },
           indeterminate: {
             true: {
               nested: [
@@ -8547,10 +8359,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
-      // The track takes its owner's variant (`catalogDerivedProps`). Colors mirror the owner's DOM
-      //   custom properties (ProgressBar `composition`): `.bar` = `--track-color`, `.fill` =
-      //   `--fill-color` — default · accent: accent-subtle / accent, neutral: neutral-subtle /
-      //   neutral-subdued (the fill is the ProgressBarFill node — ADR-256 Phase 7a).
       default: {
         // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
         fillBar: "{color.accent}",
@@ -8560,36 +8368,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             base: "{color.accent-subtle}",
             hover: "{color.accent-subtle}",
             pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.accent}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      neutral: {
-        // (A value-fill track: a static color paints it at S2 `transparent-overlay-300` — 0.17.)
-        fillBar: "{color.neutral-subdued}",
-        staticAlpha: 0.17,
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
           },
         },
         colors: {
@@ -8653,34 +8431,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             base: "{color.accent}",
             hover: "{color.accent}",
             pressed: "{color.accent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.accent}",
-            hover: "{color.accent}",
-            pressed: "{color.accent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      neutral: {
-        // (A static color fills at S2 `transparent-overlay-900` — 0.94.)
-        staticAlpha: 0.94,
-        fill: {
-          default: {
-            base: "{color.neutral-subdued}",
-            hover: "{color.neutral-subdued}",
-            pressed: "{color.neutral-subdued}",
           },
         },
         colors: {
@@ -9133,19 +8883,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
-        },
-      },
     },
     // 2026-07-07 전수조사 fix: top-level containerStyles 추가 — Calendar 동형(spec 삭제 +
     //   structure.composition 부재). structure.containerStyles(width:fit-content)가 layout
@@ -9484,78 +9221,19 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "M",
     variants: {
+      // (2026-10-12 — the variant axis is gone, so the DOM writes no `data-variant`: transparent is
+      //   the base color itself, not `alpha: 0` over `base` — the generated base block then
+      //   carries it.)
       default: {
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-        },
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.neutral-subtle}",
-            hover: "{color.neutral-subtle}",
-            pressed: "{color.neutral-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      purple: {
-        fill: {
-          default: {
-            base: "{color.purple-subtle}",
-            hover: "{color.purple-subtle}",
-            pressed: "{color.purple-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      surface: {
-        fill: {
-          default: {
-            base: "{color.layer-2}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-2}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-        },
-      },
-      outlined: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
     },
@@ -9977,90 +9655,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      solid: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.border}",
-          border: "{color.border}",
-        },
-      },
-      dashed: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.border}",
-          border: "{color.border}",
-        },
-      },
-      dotted: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.border}",
-          border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.accent}",
-          border: "{color.accent}",
-        },
-      },
-      neutral: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.neutral-subtle}",
-          border: "{color.neutral-subtle}",
-        },
-      },
-      surface: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.base}",
-            pressed: "{color.base}",
-          },
-          alpha: 0,
-        },
-        colors: {
-          text: "{color.border-hover}",
-          border: "{color.border-hover}",
-        },
-      },
     },
     sizes: {
       // paddingY 4/8/16 → 0 (2026-07-14): 간격은 margin(수동 Separator.css + Skia
@@ -10112,18 +9706,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
         colors: {
           text: "{color.neutral-subdued}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
         },
       },
     },
@@ -11642,32 +11224,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           border: "{color.border}",
         },
       },
-      striped: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border}",
-        },
-      },
-      bordered: {
-        fill: {
-          default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.border-hover}",
-        },
-      },
     },
     sizes: {
       S: {
@@ -11709,19 +11265,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
-        },
-      },
-      quiet: {
-        fill: {
-          default: {
-            base: "{color.transparent}",
-            hover: "{color.transparent}",
-            pressed: "{color.transparent}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.transparent}",
         },
       },
     },
@@ -13523,19 +13066,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         colors: {
           text: "{color.neutral}",
           border: "{color.border}",
-        },
-      },
-      accent: {
-        fill: {
-          default: {
-            base: "{color.accent-subtle}",
-            hover: "{color.accent-subtle}",
-            pressed: "{color.accent-subtle}",
-          },
-        },
-        colors: {
-          text: "{color.neutral}",
-          border: "{color.accent}",
         },
       },
     },

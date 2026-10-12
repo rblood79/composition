@@ -59,12 +59,6 @@ export const colorSwatchPickerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

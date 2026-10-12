@@ -42,20 +42,6 @@
   }
 }
 
-.react-aria-Chart[data-variant="quiet"] {
-  background: transparent;
-  color: var(--fg);
-  border-color: transparent;
-
-  &[data-hovered] {
-    background: transparent;
-  }
-
-  &[data-pressed] {
-    background: transparent;
-  }
-}
-
 
 .react-aria-Chart {
   --chart-series-1: var(--chart-categorical-1);

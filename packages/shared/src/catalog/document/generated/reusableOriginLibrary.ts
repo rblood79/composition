@@ -5312,7 +5312,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "children": [],
     "props": {
       "children": "Select files",
-      "variant": "default",
       "size": "M",
       "allowsMultiple": true
     },
@@ -5351,7 +5350,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "selectionMode": "none",
-      "variant": "default",
       "size": "S",
       "height": 400
     },
@@ -5639,7 +5637,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "showLegend": true,
       "legendPosition": "bottom",
       "color": "series",
-      "variant": "default",
       "size": "M",
       "isAnimationActive": true,
       "animationBegin": 0,
@@ -5657,7 +5654,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendar__months"
     ],
     "props": {
-      "variant": "default",
       "size": "M",
       "isDisabled": false,
       "isReadOnly": false,
@@ -5785,7 +5781,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "defaultToday": true,
-      "variant": "default",
       "size": "M"
     },
     "visual": {}
@@ -6310,7 +6305,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-rangecalendar__months"
     ],
     "props": {
-      "variant": "default",
       "size": "M",
       "isDisabled": false,
       "isReadOnly": false,
@@ -6438,7 +6432,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "defaultToday": true,
-      "variant": "default",
       "size": "M"
     },
     "visual": {}

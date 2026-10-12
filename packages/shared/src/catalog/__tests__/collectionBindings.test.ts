@@ -122,7 +122,7 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
     },
   );
 
-  it("Tabs: orientation/variant data-* 라우팅", () => {
+  it("Tabs: orientation 라우팅 — variant 축 없음 (S2 · RAC · v3 Tabs 에 없음, 2026-10-12)", () => {
     const result = toRacProps(
       {
         id: "t1",
@@ -131,7 +131,7 @@ describe("family ④ collections — toRacProps 변환 (dataBinding 통과)", ()
       },
       getPrimitiveBinding("Tabs")!,
     );
-    expect(result["data-variant"]).toBe("default");
+    expect(result).not.toHaveProperty("data-variant");
     expect(result.orientation).toBe("vertical");
   });
 

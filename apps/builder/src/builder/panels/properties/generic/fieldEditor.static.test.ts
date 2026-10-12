@@ -155,7 +155,7 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
   });
 
   it("variant — 이진은 seg, 의미색 ≤4 는 seg+점, 5+ 는 셀렉트+점, 그 밖 5+ 는 셀렉트", () => {
-    expect(editorOf("Toolbar", "variant")).toMatchObject({ type: "seg" }); // Default/Accent
+    expect(editorOf("Link", "variant")).toMatchObject({ type: "seg" }); // Primary/Secondary
     expect(editorOf("Meter", "variant")).toMatchObject({
       type: "seg",
       span: "wide",
@@ -165,7 +165,7 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       type: "select",
       swatch: true,
     }); // 6
-    expect(editorOf("Separator", "variant").type).toBe("select"); // 7 비색
+    // (그 밖 5+ — 예였던 Separator 7 비색은 2026-10-12 variant 축 삭제로 없어졌다.)
   });
 
   // 2026-09-16 「A 팝오버 grid」 — 색 이름이 절반 이상인 variant 만 격자. 의미 variant 는 목록.

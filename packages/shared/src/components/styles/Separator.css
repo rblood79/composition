@@ -1,10 +1,11 @@
 /**
  * Material Design 3 Separator Styles
  *
- * M3 Variants: solid, dashed, dotted, primary, secondary, surface
+ * Variant 없음 (2026-10-12 — S2 Divider · RAC · v3 어디에도 없는 축이라 삭제). 선색은 기본 하나 +
+ * S2 staticColor.
  * Sizes: sm, md, lg
  *
- * DOM 계약 (2026-07-14 정렬): 렌더러는 `data-size` / `data-variant` 속성을 emit 하고,
+ * DOM 계약 (2026-07-14 정렬): 렌더러는 `data-size` 속성을 emit 하고,
  * RAC 는 **수평(기본) 방향에 aria-orientation 을 emit 하지 않는다** (수직일 때만
  * aria-orientation='vertical'). 구 `.horizontal/.vertical/.sm/.md/.lg` 클래스 계약은
  * 레거시 병기 — 클래스만 매치하던 시절 기본 HR 이 어느 규칙에도 안 걸려 2x18 로
@@ -96,70 +97,20 @@
     margin: 0 var(--spacing-lg);
   }
 
-  /* Dashed variant */
-  .react-aria-Separator.dashed,
-  .react-aria-Separator[data-variant="dashed"] {
-    background-color: transparent;
-    border-top: 1px dashed var(--border);
-  }
-
-  .react-aria-Separator.vertical.dashed,
-  .react-aria-Separator[aria-orientation="vertical"].dashed,
-  .react-aria-Separator[aria-orientation="vertical"][data-variant="dashed"] {
-    border-top: none;
-    border-left: 1px dashed var(--border);
-  }
-
-  /* Dotted variant */
-  .react-aria-Separator.dotted,
-  .react-aria-Separator[data-variant="dotted"] {
-    background-color: transparent;
-    border-top: 1px dotted var(--border);
-  }
-
-  .react-aria-Separator.vertical.dotted,
-  .react-aria-Separator[aria-orientation="vertical"].dotted,
-  .react-aria-Separator[aria-orientation="vertical"][data-variant="dotted"] {
-    border-top: none;
-    border-left: 1px dotted var(--border);
-  }
-
-  /* dashed/dotted thickness — 두께 축(S1/M2/L4) 미러 (border 렌더라 height 대신 border-width) */
-  .react-aria-Separator.md.dashed,
-  .react-aria-Separator[data-size="M"][data-variant="dashed"],
-  .react-aria-Separator.md.dotted,
-  .react-aria-Separator[data-size="M"][data-variant="dotted"] {
-    border-width: 2px;
-  }
-
-  .react-aria-Separator.lg.dashed,
-  .react-aria-Separator[data-size="L"][data-variant="dashed"],
-  .react-aria-Separator.lg.dotted,
-  .react-aria-Separator[data-size="L"][data-variant="dotted"] {
-    border-width: 4px;
-  }
-
   /* S2 1.8.0 Divider staticColor (2026-10-09) — over a color background: white · black at the S2
      transparent-*-200 opacity (0.14), size L -800 (0.85). The Canvas divider primitive draws the
-     same values. Dashed · dotted (borders, not in S2) keep their line. */
-  .react-aria-Separator[data-static-color="white"]:not([data-variant="dashed"]):not(
-      [data-variant="dotted"]
-    ) {
+     same values. (The class is repeated to outrank the horizontal base rule's
+     `:not(.vertical):not([aria-orientation="vertical"])` line color.) */
+  .react-aria-Separator.react-aria-Separator[data-static-color="white"] {
     background-color: rgb(255 255 255 / 0.14);
   }
-  .react-aria-Separator[data-static-color="black"]:not([data-variant="dashed"]):not(
-      [data-variant="dotted"]
-    ) {
+  .react-aria-Separator.react-aria-Separator[data-static-color="black"] {
     background-color: rgb(0 0 0 / 0.14);
   }
-  .react-aria-Separator[data-static-color="white"][data-size="L"]:not(
-      [data-variant="dashed"]
-    ):not([data-variant="dotted"]) {
+  .react-aria-Separator.react-aria-Separator[data-static-color="white"][data-size="L"] {
     background-color: rgb(255 255 255 / 0.85);
   }
-  .react-aria-Separator[data-static-color="black"][data-size="L"]:not(
-      [data-variant="dashed"]
-    ):not([data-variant="dotted"]) {
+  .react-aria-Separator.react-aria-Separator[data-static-color="black"][data-size="L"] {
     background-color: rgb(0 0 0 / 0.85);
   }
 }

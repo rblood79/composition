@@ -12,8 +12,8 @@ import type { PrimitiveBinding } from "../types";
  *   영역 외 D1). Properties 의 Attributes 절 (metadata `ariaLabel`) 이 쓰면 그 값이 이긴다.
  *
  * D1: composition `<nav>` (internal source, delegatedDom `nav`).
- * D2: variant(default/accent) + size(sm/md/lg) + aria-label 편집 surface.
- * D3: 시각(variant 별 배경/패딩)은 theme rule(COMPONENT_RULES_TABLE.Nav).
+ * D2: size(S/M/L) + aria-label 편집 surface (variant 없음 — S2 · RAC · v3 어디에도 없는 축 (2026-10-12)).
+ * D3: 시각(배경/패딩)은 theme rule(COMPONENT_RULES_TABLE.Nav).
  */
 export const navBinding: PrimitiveBinding = {
   source: {
@@ -31,13 +31,7 @@ export const navBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
-      // kind:"variant"/"size" 는 options 미보유(types.ts:139-142) — theme rule 동적 제공.
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
+      // kind:"size" 는 options 미보유(types.ts:139-142) — theme rule 동적 제공.
       size: {
         kind: "size",
         label: "Size",

@@ -41,19 +41,6 @@
   }
 }
 
-.react-aria-Skeleton[data-variant="accent"] {
-  background: var(--accent-subtle);
-  color: var(--fg);
-
-  &[data-hovered] {
-    background: var(--accent-subtle);
-  }
-
-  &[data-pressed] {
-    background: var(--accent-subtle);
-  }
-}
-
 .react-aria-Skeleton[data-size="S"] {
   height: 16px;
   padding: 0px 0px;

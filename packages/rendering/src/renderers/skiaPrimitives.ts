@@ -167,11 +167,9 @@ const divider: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const thickness = size.height ?? 1;
   // S2 1.8.0 Divider `staticColor` (2026-10-09): white · black at S2 `transparent-white-200`
   //   (0.14), size L `-800` (0.85) — `Separator.css` `[data-static-color]` 와 같은 값. 작성한 선색이
-  //   이기고, 테두리로 그리는 dashed · dotted 는 S2 에 없어 그대로 둔다.
+  //   이긴다.
   const staticLine =
-    style?.borderColor == null &&
-    props.variant !== "dashed" &&
-    props.variant !== "dotted"
+    style?.borderColor == null
       ? props.staticColor === "white"
         ? "#ffffff"
         : props.staticColor === "black"

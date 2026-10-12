@@ -26,12 +26,6 @@ export const colorPickerBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-      },
     },
     toRacProps: "default",
   },

@@ -57,7 +57,7 @@
 | C. 값 변경       | Meter `warning`/`critical` → `notice`/`negative` + `staticColor` · InlineAlert `info` → `informative` + `fillStyle` · CardView `variant` → primary/secondary/tertiary/quiet · Tooltip → neutral/informative/negative (design-data)                                                  | contract 변경              |
 | D. 추가          | Slider `isEmphasized` · TagGroup `isEmphasized` · Avatar `isOverBackground` · Disclosure `isQuiet` · `density` · Separator `staticColor`                                                                                                                                            | 추가만                     |
 | E. v3 근거 유지  | field `isQuiet` (TextField · TextArea · ComboBox · SearchField · NumberField · DateField · DatePicker · TimeField · ColorField)                                                                                                                                                     | S2 가 뺀 축임을 알고 유지  |
-| F. 어디에도 없음 | ProgressBar `variant` · Table `variant` striped/bordered · Separator `variant` · Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart `variant` | 확장 유지 / 삭제 결정 필요 |
+| F. 어디에도 없음 | ProgressBar `variant` · Table `variant` striped/bordered · Separator `variant` · Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart `variant` | **삭제 (2026-10-12 사용자 결정)** — Tabs 포함 21 type, rule 은 기본 변형만, 옛 문서는 로드 시 1회 삭제 |
 
 ## 5. 전체 prop 대조
 
@@ -458,7 +458,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 
 1. **`size` 표기와 범위** — 39개 type. **결정 (2026-10-09)**: 표기만 S2 로 — `XS` · `S` · `M` · `L` · `XL` (글자 type 은 `XXL` · `XXXL` 까지), 범위는 type 마다 그대로 (library contract 36). 이 문서의 표는 바꾸기 전 값 (`xs` · `sm` …) 으로 적혀 있다.
 2. **S2 에만 있는 시각 · 내용 prop 도입 범위** — 130개. `contextualHelp` (16) · `isEmphasized` (7) · `prefix` (5) · `labelAlign` · `formatOptions` · `firstDayOfWeek` · `overflowMode` (각 4) 순.
-3. **4.2 의 F 묶음** — 어디에도 없는 `variant` 를 확장으로 남길지 지울지 (항목별).
+3. **4.2 의 F 묶음** — 어디에도 없는 `variant` 를 확장으로 남길지 지울지 (항목별). **결정 (2026-10-12)**: 「S2 · RAC · v3 어디에도 없으면 지워」 — F 18 type + 부품 ProgressBarFill · ProgressBarTrack + 같은 기준의 Tabs (값 `default` 하나, v3 Tabs 에도 없음) 의 `variant` 삭제. v3 ProgressBar 의 `variant` 는 `overBackground` 하나라 S2 `staticColor` 가 그 자리다. 각 type 의 rule 은 기본 변형만 남기고 (모든 인스턴스가 이미 칠하던 값), 옛 문서의 값은 로드 시 1회 지운다 (`s2PropAlignment.ts`). 사라진 시각: Separator dashed · dotted · 색 변형, Section 배경 tint · outlined, ProgressBar neutral, Chart quiet, FileTrigger · Calendar · Nav · Toolbar · Pagination · DisclosureGroup · Skeleton · ListBox · GridList accent, Table bordered.
 4. **B · C 의 contract 변경** — 한 번의 contract 변경으로 묶을지.
 
 ### 6.1 S2 에만 있는 prop — 도입 범위 정리 (2026-10-09)
@@ -485,7 +485,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 | `hourCycle` · `placeholderValue` | DatePicker (`hourCycle`) · DatePicker · DateRangePicker | 12/24시간 · 빈 칸의 기준 날짜   | 도입 (`69bf65361`)                                                                                                                |
 | `type`                           | SearchField                                             | 입력 종류 (password 면 점)      | 도입 (`61157eb1f`)                                                                                                                |
 | `isDisabled`                     | Row                                                     | 행 비활성                       | 도입 (`61157eb1f`) — 투명도 0.38                                                                                                  |
-| `formatOptions`                  | NumberField · Meter · ProgressBar · Slider              | 통화 · 퍼센트 · 단위            | 보류 — 값이 객체 (`Intl.NumberFormatOptions`) 인데 문서 값 타입에 객체가 없다. 객체 값 타입 신설 vs 평평한 확장 prop 중 결정 대기 |
+| `formatOptions`                  | NumberField · Meter · ProgressBar · Slider              | 통화 · 퍼센트 · 단위            | 도입 (2026-10-12 사용자 결정 「S2 · RAC 가 객체면 객체 값 타입」) — 문서 값 타입 `numberFormat` (`numberFormatValue.ts`), Design 「Format」 |
 | `selectionAlignment`             | Calendar                                                | 여러 달 표시에서 선택 달의 자리 | ADR-256 Phase 9 (여러 달 표시 재설계) 로 넘김                                                                                     |
 
 **나에서 옮김 — RAC 가 동작을 다 주지 않음 (2026-10-09 확인)**
@@ -519,7 +519,7 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 - 상태 (105): controlled / default 쌍 — 문서는 초기값 하나를 저장하므로 도입하지 않는다. `disabledKeys` 등 키 목록은 항목 노드 `isDisabled` 가 맡는다.
 - 동작 (255): 대부분 함수 · ref · render prop · form 연결이라 노코드로 작성할 수 없다. 작성 가능한 후보만: `excludeFromTabOrder` · `escapeKeyBehavior` · `keyboardActivation` · `shouldCloseOnSelect` · `isNonModal` · `isKeyboardDismissDisabled` · `increment/decrementAriaLabel`.
 
-**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출 — 2026-10-09 완료, `formatOptions` 만 보류) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR.
+**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출 — 2026-10-09 완료, `formatOptions` 는 2026-10-12 객체 값 타입으로 완료) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR.
 
 ## 7. 데이터와 재현
 

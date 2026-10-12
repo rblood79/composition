@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 정렬 — 레퍼런스에 없는 variant 삭제] - 2026-10-12
+
+### Removed
+
+- **S2 · RAC · v3 어디에도 없는 `variant` 축 21 type** (사용자 결정 2026-10-12 「어디에도 없다면 지워」 — 조사 §4.2 F):
+  - 대상: ProgressBar (+ 부품 ProgressBarFill · ProgressBarTrack) · Table · Separator · Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart · Tabs. v3 ProgressBar 의 `variant` 는 `overBackground` 하나라 S2 `staticColor` 가 그 자리다.
+  - Design 패널에 Variant 가 없고, rule 은 기본 변형만 남는다 — 모든 인스턴스가 이미 칠하던 값이라 기본 인스턴스의 Preview · Canvas 는 그대로다 (Preview 계산 스타일 변경 전후 비교 · live 로 확인).
+  - 사라진 시각: Separator dashed · dotted · 색 변형 (수동 `Separator.css` · Skia 분기 포함), Section 배경 tint · outlined, ProgressBar neutral, Chart quiet, Table bordered, 그 밖 accent.
+  - 옛 문서: 이 type 들의 `variant` 는 로드 시 1회 지운다 (`migrateCatalogEntriesS2` — 노드 · 원본 template 위치 · 정의 기본값). 원본 template 7곳의 `variant` 쓰기와 Chart 생성 기본값도 뺐다. contract 는 올리지 않는다 (올리면 옛 문서를 거부한다).
+  - Section 은 DOM 이 `data-variant` 를 더 쓰지 않아 생성 CSS 의 투명이 `[data-variant]` 블록에만 있던 것이 드러났다 — rule 의 기본 변형을 `{color.transparent}` 로 바꿔 base 블록이 투명을 싣는다 (Canvas 도 투명 그대로). ListBox 는 공용 컴포넌트 기본값 "primary" 가 옛 시트를 켜지 않게 `default` 를 넘긴다.
+  - 위치: `packages/shared/src/catalog/bindings/*` · `generated/componentRulesTable.ts` · `document/s2PropAlignment.ts` · `document/generated/reusableOriginLibrary.ts` · `components/styles/Separator.css` · `packages/rendering/src/renderers/skiaPrimitives.ts` · `packages/rendering/src/chart/authoring.ts`
+
+### Tests
+
+- `s2VariantRemoval.test.ts` 5 — 21 type accepts 없음 · rule 기본 변형만 · 원본 template 쓰기 0 · 쓰기 거부 (revision 무변경) · 로드 전환 (노드 · template 위치 patch · 정의 기본값) · 옛 문서가 열림. 원복 RED: 전환 행을 빼면 FAIL 2. 바뀐 계약 테스트 갱신 (toRacProps `data-variant` 없음 · paint shadow 8,136 → 6,912 = 변형 34 × 36 · origin view 의 Chart Variants 행 없음 · Meter track 로 owner variant 검사).
+- live `s2-variant-removal-live.mjs` 11/11 — Separator · Section · Toolbar · ProgressBar 의 Design 에 Variant 없음 (Button 은 있음), Section 투명 · ProgressBar accent fill (Preview = Canvas), 저장된 entry 에 옛 variant 를 써 넣고 reload → 문서가 열리고 variant 가 지워지며 같은 칠, 오류 0. shared 1,564 · builder 5,451 · rendering 1,313 · type-check.
+
 ## [S2 formatOptions — 숫자 서식 객체 값] - 2026-10-12
 
 ### Added

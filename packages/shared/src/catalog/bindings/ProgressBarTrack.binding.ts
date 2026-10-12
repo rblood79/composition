@@ -8,20 +8,13 @@ import type { PrimitiveBinding } from "../types";
  * `catalogDerivedProps`); the fill draws itself (no `value_fill_bar` over the track).
  *
  * D1: none — a plain element in RAC's `ProgressBar` children.
- * D2: no props of its own (`variant` · `size` come from its ProgressBar).
+ * D2: no props of its own (`size` comes from its ProgressBar; no variant, 2026-10-12).
  * D3: the track color (the owner's DOM `--track-color`).
  */
 export const progressBarTrackBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "progressbartrack" },
   props: {
     accepts: {
-      variant: {
-        kind: "variant",
-        label: "Variant",
-        section: "appearance",
-        default: "default",
-        editorHidden: true,
-      },
       size: {
         kind: "size",
         label: "Size",
