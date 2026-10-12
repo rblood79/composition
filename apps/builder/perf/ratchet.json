@@ -700,6 +700,15 @@
       "on": "2026-10-12",
       "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가 (childList 50→80 · attr 276→301), useActiveScope 의 body MutationObserver 콜백이 그만큼 더 불림. 변형 측정: react 만 19.2.8 이면 기준값 그대로 · RAC 계열만 되돌리면 증가 유지 (dev build, 2회 동일)",
       "expires": "2027-04-12"
+    },
+    {
+      "path": "seeds.60.panel-toggle.B.cdp.RecalcStyleCount",
+      "from": 213,
+      "to": 226,
+      "approvedBy": "사용자 (2026-10-12 「상한 226으로 올리고 push 해」)",
+      "on": "2026-10-12",
+      "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가로 스타일 재계산 +약 10. 3회씩 측정: 9ec831c16 213·213·216 / 3f551d195 227·225·226 / 483be93b6 223·223·226 (dev build, 실행마다 ±3)",
+      "expires": "2027-04-12"
     }
   ]
 }
