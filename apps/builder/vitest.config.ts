@@ -6,7 +6,10 @@ export default defineConfig({
   // ADR-916 Phase 2-B (B2): dual-run 테스트가 두 wasm-pack 산출물(--target
   // bundler)을 ES 모듈로 로드하려면 vite-plugin-wasm 이 필요하다. .wasm import 가
   // 없는 기존 테스트에는 no-op(개입 없음).
-  plugins: [wasm()],
+  // vite-plugin-wasm 3.6은 이름이 정확히 `vitest`인 plugin으로 Node 실행을
+  // 감지하지만 Vitest 5는 plugin 이름을 `vitest:*`로 바꿨다. 호환 marker가
+  // 없으면 browser URL을 Node fetch에 넘겨 WASM 테스트가 실패한다.
+  plugins: [{ name: "vitest" }, wasm()],
   resolve: {
     alias: [
       { find: "@", replacement: `${resolve(import.meta.dirname, "src")}` },

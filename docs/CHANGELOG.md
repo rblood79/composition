@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Vitest 5 · axe-core 업데이트] - 2026-10-12
+
+### Changed
+
+- Vitest, browser runner, Playwright provider, V8 coverage provider를 5.0.3으로 맞췄다. Vitest 5가 바꾼 plugin 이름 때문에 `vite-plugin-wasm`의 Node 감지가 빠지는 문제는 테스트 설정의 호환 marker로 보완했다.
+- Builder 접근성 검사기는 axe-core 4.10.3에서 4.14.0으로 갱신했다.
+
+### Verified
+
+- Builder 단위 테스트 5,441개와 browser parity 811개, shared 1,580개, rendering 1,313개 및 publish·sample-data·upload 전체 테스트가 통과했다. 전체 type-check와 Builder production build도 통과했다.
+- rendering coverage의 테스트 1,313개는 통과했다. branch coverage는 Vitest 5에서 79.36%로 기존 80% 기준에 못 미쳤지만, 같은 소스의 Vitest 4 결과도 79.27%였으므로 이번 업데이트로 생긴 하락은 아니다.
+- 실제 Builder 문서에서 axe 4.14.0으로 검사해 critical violation 0, page error 0을 확인했다.
+
 ## [S2 · React Aria patch 업데이트] - 2026-10-12
 
 ### Changed
