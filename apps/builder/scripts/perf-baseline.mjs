@@ -2177,6 +2177,27 @@ async function runFrameLane(page, cdp, seed, options) {
       window.__composition_STORE__.getState().setSelectedElement(null),
     );
     await page.waitForTimeout(500);
+    // react-aria LiveAnnouncer 의 안내 ("Text selected." …) 는 7초 뒤에 지워진다 (`LIVEREGION_TIMEOUT_DELAY`).
+    // 앞 부류가 남긴 안내가 다음 부류 창 안에서 지워지면, 창 시작 시각의 수십 ms 차이로 제거 수가 19 ↔ 20
+    // 으로 갈리고 body MutationObserver 를 쓰는 함수 수 (`useActiveScope`) 가 840 ↔ 861 로 흔들린다
+    // (2026-10-12 page-switch 14회 실측 — 「측정 불가」). 부류마다 빈 안내 영역에서 시작한다 — 남은 timer 의
+    // `node.remove()` 는 이미 떨어진 노드라 DOM 변경이 없다.
+    await page.evaluate(() => {
+      for (const node of document.querySelectorAll(
+        "[data-live-announcer] [aria-live] > *",
+      ))
+        node.remove();
+    });
+    // 같은 이유: 캔버스 스크롤바는 보인 뒤 1초 timer 로 숨는다 (`CanvasScrollbar.tsx` fade). 앞 부류 끝 +
+    // 위 대기가 1초 언저리라 그 class 변경 (가로 · 세로 2건) 이 창 안팎으로 갈렸다 — page-switch
+    // `domMutations.attributes` 188 ↔ 190 (같은 실측). 숨은 뒤에 시작한다.
+    await page
+      .waitForFunction(
+        () => !document.querySelector(".canvas-scrollbar--visible"),
+        null,
+        { timeout: 3_000 },
+      )
+      .catch(() => {});
     const before = await cdp.send("Performance.getMetrics");
     if (options.callCounts) {
       await cdp.send("Profiler.enable");
