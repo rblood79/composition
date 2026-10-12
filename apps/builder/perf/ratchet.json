@@ -664,6 +664,42 @@
       "on": "2026-10-04",
       "reason": "1a67d41b7 의 하향 (861 → 840) 은 3회 연속 840 이 근거였지만 같은 코드의 push 측정에서 861 이 나왔다 — page-switch 의 이 함수 호출 수는 840 ↔ 861 로 흔들린다. 하향 전 값으로 되돌린다",
       "expires": "2027-04-05"
+    },
+    {
+      "path": "seeds.60.panel-toggle.A.domMutations.attributes",
+      "from": 276,
+      "to": 301,
+      "approvedBy": "사용자 (2026-10-12 「상한 올리고 push 해」)",
+      "on": "2026-10-12",
+      "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가 (childList 50→80 · attr 276→301), useActiveScope 의 body MutationObserver 콜백이 그만큼 더 불림. 변형 측정: react 만 19.2.8 이면 기준값 그대로 · RAC 계열만 되돌리면 증가 유지 (dev build, 2회 동일)",
+      "expires": "2027-04-12"
+    },
+    {
+      "path": "seeds.60.panel-toggle.A.v8.fn.src/builder/hooks/useActiveScope.ts#(anonymous)",
+      "from": 546,
+      "to": 651,
+      "approvedBy": "사용자 (2026-10-12 「상한 올리고 push 해」)",
+      "on": "2026-10-12",
+      "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가 (childList 50→80 · attr 276→301), useActiveScope 의 body MutationObserver 콜백이 그만큼 더 불림. 변형 측정: react 만 19.2.8 이면 기준값 그대로 · RAC 계열만 되돌리면 증가 유지 (dev build, 2회 동일)",
+      "expires": "2027-04-12"
+    },
+    {
+      "path": "seeds.60.panel-toggle.B.cdp.LayoutCount",
+      "from": 55,
+      "to": 60,
+      "approvedBy": "사용자 (2026-10-12 「상한 올리고 push 해」)",
+      "on": "2026-10-12",
+      "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가 (childList 50→80 · attr 276→301), useActiveScope 의 body MutationObserver 콜백이 그만큼 더 불림. 변형 측정: react 만 19.2.8 이면 기준값 그대로 · RAC 계열만 되돌리면 증가 유지 (dev build, 2회 동일)",
+      "expires": "2027-04-12"
+    },
+    {
+      "path": "seeds.60.panel-toggle.B.domMutations.childList",
+      "from": 50,
+      "to": 80,
+      "approvedBy": "사용자 (2026-10-12 「상한 올리고 push 해」)",
+      "on": "2026-10-12",
+      "reason": "React 19.2.8 → 19.3.0 (3f551d195) — 패널 여닫기 DOM 변경 증가 (childList 50→80 · attr 276→301), useActiveScope 의 body MutationObserver 콜백이 그만큼 더 불림. 변형 측정: react 만 19.2.8 이면 기준값 그대로 · RAC 계열만 되돌리면 증가 유지 (dev build, 2회 동일)",
+      "expires": "2027-04-12"
     }
   ]
 }
