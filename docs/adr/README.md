@@ -149,7 +149,7 @@
 
 ## 현황
 
-> **2026-10-12 ADR-259 Proposed**: S2 field 도움말 (`contextualHelp`) · 입력 앞 글자 (`prefix`) · 항목 링크 (`href` · `target` · `rel` + `hideLinkOutIcon`) — S2 정렬 조사 §6.1 「라」 와 「링크」 (사용자 `/create-adr`, 범위 「하나로 + href 포함」). 실측: 세 축 모두 0건 · MenuItem 은 DOM 만 `href` 를 넘기고 accepts 가 `id` 뿐 · TextField · TextArea · ColorField 는 상자 Group 이 없다 · side label 은 `> .react-aria-Label` 직계 선택자. 채택: 라벨 행 노드 `FieldLabel` 을 도움말을 넣을 때만 감싸고 (D) 도움말은 `ContextualHelp > Button + Popover` 노드 조립 (F), 앞 글자는 Text · Icon 노드를 Group 맨 앞에 — Group 없는 field 는 넣을 때 감싼다 (P3), 링크는 RAC 그대로 + 지금 Preview 처리기 (WebKit 합성 링크는 G1 실측). 기존 템플릿 무변경 → contract 41 유지. 사용자 결정 2 — 같은 날 답함: 바깥 링크 글리프 「S2 처럼 자동」 · 도움말 원본 「S2 처럼」 (독립 원본, 팔레트 overlay 묶음). 리뷰 round 1 (Codex) HIGH 1 · MEDIUM 2 → 문서 수리: 도움말 Button `slot={null}` 로 field ButtonContext 차단 · Popover 이름 = 제목 id 연결 · 앞 글자 상자의 클릭 · 터치 → input 포커스 (수리 검증 round 2 전). 열림 2 (Proposed 2).
+> **2026-10-12 ADR-259 Proposed**: S2 field 도움말 (`contextualHelp`) · 입력 앞 글자 (`prefix`) · 항목 링크 (`href` · `target` · `rel` + `hideLinkOutIcon`) — S2 정렬 조사 §6.1 「라」 와 「링크」 (사용자 `/create-adr`, 범위 「하나로 + href 포함」). 실측: 세 축 모두 0건 · MenuItem 은 DOM 만 `href` 를 넘기고 accepts 가 `id` 뿐 · TextField · TextArea · ColorField 는 상자 Group 이 없다 · side label 은 `> .react-aria-Label` 직계 선택자. 채택: 라벨 행 노드 `FieldLabel` 을 도움말을 넣을 때만 감싸고 (D) 도움말은 `ContextualHelp > Button + Popover` 노드 조립 (F), 앞 글자는 Text · Icon 노드를 Group 맨 앞에 — Group 없는 field 는 넣을 때 감싼다 (P3), 링크는 RAC 그대로 + 지금 Preview 처리기 (WebKit 합성 링크는 G1 실측). 기존 템플릿 무변경 → contract 41 유지. 사용자 결정 2 — 같은 날 답함: 바깥 링크 글리프 「S2 처럼 자동」 · 도움말 원본 「S2 처럼」 (독립 원본, 팔레트 overlay 묶음). 리뷰 round 1 (Codex) HIGH 1 · MEDIUM 2 → 문서 수리: 도움말 Button `slot={null}` 로 field ButtonContext 차단 · Popover 이름 = 제목 id 연결 · 앞 글자 상자의 클릭 · 터치 → input 포커스 → 수리 검증 round 2 pending 0 (전제 확정). 열림 2 (Proposed 2).
 
 > **2026-10-12 ADR-258 Implemented**: Phase 3 — 사용자 결정 3 (a) 팔레트 Forms 의 ColorField 뒤 ColorArea · ColorSlider · ColorWheel (팔레트 원본 · Components page · `paletteOracle` 재캡처) · ColorSlider `label` accept (Phase 2 누락 수리). G3 live 하니스 17/17 (패널 편집 새로고침 없이 · undo · redo · 새로고침 · Preview 끌기 revision 불변 · 끌기 값 유지 · 기본값 편집 · 무채색 hue 재시작 · 채널/축 한 번 선택 · `red` 거부 · 다크 · page error 0) · key 원복 RED. G5 셰이더 생성 — 10개 문서 정지 0 · 값 편집 2 (상자 하나) · 카메라 이동 0 (ratchet.json 연결은 seed 에 Color 조작기가 없어 별도 작업 후보) · 번들 Builder +5,957 · Preview +1,424 B (상한 안). 본문 `completed/` 이동 · [Live Exercise](completed/258-color-controls-canvas-gradient.md#live-exercise). 열림 −1, 완료 +1 (열림 1 — Proposed 1).
 
@@ -271,7 +271,7 @@
 #### [259](259-s2-contextual-help-prefix-item-links.md) — S2 field 도움말 · 앞 글자 · 항목 링크
 
 - **상태**: Proposed — 2026-10-12
-- **규모**: Phase 0 (템플릿 변경 0 확인 · 설치 S2/RAC 접근성 oracle · WebKit 합성 링크) → 1 항목 링크 7 type + `hideLinkOutIcon` → 2 앞 글자 5 field → 3 도움말 16 field (새 type `ContextualHelp` · `FieldLabel`) → 4 마감. 사용자 결정 2 답함 (2026-10-12). 리뷰 [round 1](reviews/259.md) 문서 수리 — 수리 검증 round 2 전. breakdown: [design/259](design/259-s2-contextual-help-prefix-item-links-breakdown.md)
+- **규모**: Phase 0 (템플릿 변경 0 확인 · 설치 S2/RAC 접근성 oracle · WebKit 합성 링크) → 1 항목 링크 7 type + `hideLinkOutIcon` → 2 앞 글자 5 field → 3 도움말 16 field (새 type `ContextualHelp` · `FieldLabel`) → 4 마감. 사용자 결정 2 답함 (2026-10-12). 리뷰 [round 1 · 2](reviews/259.md) — round 1 HIGH 1 · MEDIUM 2 문서 수리, round 2 pending 0 (전제 확정). breakdown: [design/259](design/259-s2-contextual-help-prefix-item-links-breakdown.md)
 
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
@@ -300,12 +300,12 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                           | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-|  1   | [259](259-s2-contextual-help-prefix-item-links.md)                                             | 리뷰 round 1 문서 수리 → 수리 검증 round 2 (pending 0 이면 전제 확정) | 사용자 결정 2건 답함 · 선행 ADR 255 · 256 · 253 · 257 완료                |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)          | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                               | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                    | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                         | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+|  1   | [259](259-s2-contextual-help-prefix-item-links.md)                                             | 리뷰 pending 0 — 전제 확정, `/execute-adr 259` 로 Phase 0 착수 가능 | 사용자 결정 2건 답함 · 선행 ADR 255 · 256 · 253 · 257 완료                |
+|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)        | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                  | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
