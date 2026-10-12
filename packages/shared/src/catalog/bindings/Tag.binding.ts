@@ -1,4 +1,7 @@
 import type { PrimitiveBinding } from "../types";
+import {
+  ITEM_LINK_PROP_CONTRACTS,
+} from "../document/itemLinks";
 
 /**
  * Tag — TagList 안의 chip (RAC `Tag`).
@@ -39,6 +42,8 @@ export const tagBinding: PrimitiveBinding = {
       //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's
       //   `selected` variant paints it (Canvas `_isSelected` · DOM `[data-selected]`).
       isSelected: { kind: "boolean", label: "Selected", section: "state" },
+      // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
+      ...ITEM_LINK_PROP_CONTRACTS,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

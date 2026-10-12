@@ -1,4 +1,7 @@
 import type { PrimitiveBinding } from "../types";
+import {
+  ITEM_LINK_PROP_CONTRACTS,
+} from "../document/itemLinks";
 
 /**
  * TreeItem — Tree 항목 행 (RAC `TreeItem`).
@@ -37,6 +40,8 @@ export const treeItemBinding: PrimitiveBinding = {
         default: "M",
       },
       // ADR-239 Phase 1 — RAC TreeItem `isDisabled` (disabled 상태 변형의 prop).
+      // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
+      ...ITEM_LINK_PROP_CONTRACTS,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

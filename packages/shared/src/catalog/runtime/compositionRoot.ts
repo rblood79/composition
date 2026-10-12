@@ -17,6 +17,19 @@ import {
   CATALOG_VARIANT_FROM_OWNER,
 } from "../document/s2PropAlignment";
 import { isFieldControlGroup } from "../../domain/componentTraits";
+import {
+  CATALOG_FIELD_BOX_INPUT_STYLE,
+  catalogFieldBox,
+  catalogFieldBoxOfInput,
+  catalogFieldBoxStepper,
+  catalogFieldBoxStepperStyle,
+  catalogFieldBoxStyle,
+} from "./fieldPrefix";
+import {
+  CATALOG_LINK_OUT_OWNERS,
+  catalogItemLinkOut,
+  catalogLinkOutPaddingRight,
+} from "../document/itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { tableBinding } from "../bindings/Table.binding";
@@ -2156,6 +2169,66 @@ export class CatalogCompositionRoot {
     node.ruleId ??
     this.runtime.graph.getDefinition(node.definitionId as DefinitionId)?.name ??
     "";
+  /**
+   * ADR-259 Phase 2 — a prefix field's box Group draws the Input rule's box (its padding · border
+   * at the field's size, a centred row) and the Input in it lays its box down
+   * (`catalogFieldBoxStyle` · `CATALOG_FIELD_BOX_INPUT_STYLE` — the DOM inlines the same).
+   */
+  private fieldBoxLayout(
+    record: CatalogConsumerNode,
+    get: (id: string) => CatalogConsumerNode | undefined,
+  ): Record<string, unknown> {
+    const edge = (value: number) => `${value}px`;
+    const box = catalogFieldBox(record, get, this.typeOf);
+    if (box) {
+      const style = catalogFieldBoxStyle(
+        box.field.props.size,
+        this.typeOf(box.field),
+      );
+      return {
+        display: style.display,
+        flexDirection: style.flexDirection,
+        alignItems: style.alignItems,
+        width: style.width,
+        ...(style.height !== undefined ? { height: edge(style.height) } : {}),
+        paddingTop: edge(style.paddingTop),
+        paddingRight: edge(style.paddingRight),
+        paddingBottom: edge(style.paddingBottom),
+        paddingLeft: edge(style.paddingLeft),
+        borderTop: edge(style.borderWidth),
+        borderRight: edge(style.borderWidth),
+        borderBottom: edge(style.borderWidth),
+        borderLeft: edge(style.borderWidth),
+      };
+    }
+    const stepperOf = catalogFieldBoxStepper(record, get, this.typeOf);
+    if (stepperOf) {
+      const style = catalogFieldBoxStepperStyle(stepperOf.props.size);
+      return {
+        height: edge(style.height),
+        borderTop: "0px",
+        borderRight: "0px",
+        borderBottom: "0px",
+        borderLeft: "0px",
+      };
+    }
+    if (!catalogFieldBoxOfInput(record, get, this.typeOf)) return {};
+    const input = CATALOG_FIELD_BOX_INPUT_STYLE;
+    return {
+      paddingTop: "0px",
+      paddingBottom: "0px",
+      paddingLeft: "0px",
+      borderTop: "0px",
+      borderRight: "0px",
+      borderBottom: "0px",
+      borderLeft: "0px",
+      width: input.width,
+      flexGrow: input.flexGrow,
+      flexShrink: input.flexShrink,
+      flexBasis: `${input.flexBasis}px`,
+      minWidth: `${input.minWidth}px`,
+    };
+  }
   private styleFor(
     record: CatalogConsumerNode,
     get: (id: string) => CatalogConsumerNode | undefined = (id) =>
@@ -2207,6 +2280,16 @@ export class CatalogCompositionRoot {
       ...thumb,
       ...chevron,
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
+      ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
+      ...(!record.hidden && catalogItemLinkOut(this.typeOf(record), record.props)
+        ? {
+            paddingRight: `${catalogLinkOutPaddingRight(
+              this.typeOf(record),
+              record.props.size,
+              Number.parseFloat(String(style.paddingRight ?? "0")) || 0,
+            )}px`,
+          }
+        : {}),
       ...(sortIndicator
         ? {
             marginRight: `${
@@ -3753,6 +3836,28 @@ export class CatalogCompositionRoot {
         };
         visit(record.children);
       }
+      // ADR-259 Phase 1 — a GridList's · Menu's `hideLinkOutIcon` reaches its items
+      // (`CATALOG_LINK_OUT_OWNERS` — the resolver's `applyOwnerHideLinkOut`).
+      if (
+        before.props.hideLinkOutIcon !== record.props.hideLinkOutIcon &&
+        Object.values(CATALOG_LINK_OUT_OWNERS).includes(this.typeOf(record))
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (
+              CATALOG_LINK_OUT_OWNERS[this.typeOf(child)] &&
+              !queued.has(childId)
+            ) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
+      }
       // A Form's context values reach its fields at any depth (S2 `FormContext` — the resolver's
       // `applyFormContext`): they resolve again with them.
       if (
@@ -4272,10 +4377,25 @@ export class CatalogCompositionRoot {
               ...(derivedProps ? { derivedProps } : {}),
             } as CatalogConsumerNode);
           }
+        // (ADR-259 Phase 2: a prefix put in or taken out of a field's control Group makes its
+        // Input · steppers box parts or plain parts again — their layout input changes with it.)
+        const boxPart = (
+          record: CatalogConsumerNode,
+          get: (key: string) => CatalogConsumerNode | undefined,
+        ) =>
+          !!(
+            catalogFieldBoxOfInput(record, get, this.typeOf) ||
+            catalogFieldBoxStepper(record, get, this.typeOf)
+          );
         const updates = [...next]
           .filter(([id, record]) => {
             const old = this.records.get(id);
-            return !old || !sameRecord(old, record);
+            return (
+              !old ||
+              !sameRecord(old, record) ||
+              boxPart(old, (key) => this.records.get(key)) !==
+                boxPart(record, lookup)
+            );
           })
           .map(([id, record]) => this.planRecord(id, record, rootId, lookup));
         visits += updates.length;

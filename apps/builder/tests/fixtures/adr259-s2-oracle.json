@@ -1,0 +1,344 @@
+{
+  "source": "@react-spectrum/s2 1.8.1 + installed react-aria-components (jsdom)",
+  "contextualHelp": {
+    "help": {
+      "inField": {
+        "buttonAriaLabel": "Help",
+        "buttonLabelledBy": [
+          "label",
+          "self"
+        ],
+        "buttonName": "Name Help",
+        "buttonSlot": null,
+        "buttonType": "button",
+        "buttonHasPopup": null,
+        "buttonExpandedClosed": "false",
+        "labelRowTag": "div",
+        "labelRowChildren": [
+          "label",
+          "span"
+        ],
+        "labelRowText": "Name␣"
+      },
+      "opened": {
+        "buttonExpandedOpen": "true",
+        "dialogRole": "dialog",
+        "dialogLabelledBy": [
+          "missing"
+        ],
+        "dialogName": "",
+        "headingLevel": "h3",
+        "popoverTrigger": "DialogTrigger",
+        "popoverPlacement": "bottom",
+        "text": "Help titleHelp bodyHelp footer"
+      },
+      "standalone": {
+        "buttonAriaLabel": "Help",
+        "buttonLabelledBy": null,
+        "buttonName": "Help"
+      }
+    },
+    "info": {
+      "inField": {
+        "buttonAriaLabel": "Information",
+        "buttonLabelledBy": [
+          "label",
+          "self"
+        ],
+        "buttonName": "Name Information",
+        "buttonSlot": null,
+        "buttonType": "button",
+        "buttonHasPopup": null,
+        "buttonExpandedClosed": "false",
+        "labelRowTag": "div",
+        "labelRowChildren": [
+          "label",
+          "span"
+        ],
+        "labelRowText": "Name␣"
+      },
+      "opened": {
+        "buttonExpandedOpen": "true",
+        "dialogRole": "dialog",
+        "dialogLabelledBy": [
+          "missing"
+        ],
+        "dialogName": "",
+        "headingLevel": "h3",
+        "popoverTrigger": "DialogTrigger",
+        "popoverPlacement": "bottom",
+        "text": "Help titleHelp bodyHelp footer"
+      },
+      "standalone": {
+        "buttonAriaLabel": "Information",
+        "buttonLabelledBy": null,
+        "buttonName": "Information"
+      }
+    },
+    "help:title-slot": {
+      "inField": {
+        "buttonAriaLabel": "Help",
+        "buttonLabelledBy": [
+          "label",
+          "self"
+        ],
+        "buttonName": "Name Help",
+        "buttonSlot": null,
+        "buttonType": "button",
+        "buttonHasPopup": null,
+        "buttonExpandedClosed": "false",
+        "labelRowTag": "div",
+        "labelRowChildren": [
+          "label",
+          "span"
+        ],
+        "labelRowText": "Name␣"
+      },
+      "opened": {
+        "buttonExpandedOpen": "true",
+        "dialogRole": "dialog",
+        "dialogLabelledBy": [
+          "heading"
+        ],
+        "dialogName": "Help title",
+        "headingLevel": "h2",
+        "popoverTrigger": "DialogTrigger",
+        "popoverPlacement": "bottom",
+        "text": "Help titleHelp bodyHelp footer"
+      },
+      "standalone": {
+        "buttonAriaLabel": "Help",
+        "buttonLabelledBy": null,
+        "buttonName": "Help"
+      }
+    }
+  },
+  "prefix": {
+    "TextField:text": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price $",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div",
+      "focusFromPrefixMouse": true,
+      "focusFromPrefixTouch": true
+    },
+    "TextField:icon": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price Search",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div"
+    },
+    "TextArea:text": {
+      "controlTag": "textarea",
+      "labelledBy": [
+        "label"
+      ],
+      "name": "Price",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div",
+      "focusFromPrefixMouse": true,
+      "focusFromPrefixTouch": true
+    },
+    "TextArea:icon": {
+      "controlTag": "textarea",
+      "labelledBy": [
+        "label"
+      ],
+      "name": "Price",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div"
+    },
+    "NumberField:text": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price $",
+      "groupRole": "group",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div",
+      "focusFromPrefixMouse": true,
+      "focusFromPrefixTouch": true
+    },
+    "NumberField:icon": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price Search",
+      "groupRole": "group",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div"
+    },
+    "ComboBox:text": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price $",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div",
+      "focusFromPrefixMouse": true,
+      "focusFromPrefixTouch": true
+    },
+    "ComboBox:icon": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price Search",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div"
+    },
+    "ColorField:text": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price $",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div",
+      "focusFromPrefixMouse": true,
+      "focusFromPrefixTouch": true
+    },
+    "ColorField:icon": {
+      "controlTag": "input",
+      "labelledBy": [
+        "label",
+        "prefix"
+      ],
+      "name": "Price Search",
+      "groupRole": "presentation",
+      "prefixFirstInGroup": true,
+      "groupHoldsControl": true,
+      "prefixTag": "div"
+    }
+  },
+  "itemLinks": {
+    "ListBoxItem": {
+      "tag": "a",
+      "role": "option",
+      "href": "/about",
+      "target": "_blank",
+      "rel": "noopener",
+      "dataHref": null,
+      "dataTarget": null,
+      "dataRel": null
+    },
+    "Tab": {
+      "tag": "a",
+      "role": "tab",
+      "href": "/about",
+      "target": "_blank",
+      "rel": "noopener",
+      "dataHref": null,
+      "dataTarget": null,
+      "dataRel": null
+    },
+    "Tag": {
+      "tag": "div",
+      "role": "row",
+      "href": null,
+      "target": null,
+      "rel": null,
+      "dataHref": "/about",
+      "dataTarget": "_blank",
+      "dataRel": "noopener"
+    },
+    "TreeItem": {
+      "tag": "div",
+      "role": "row",
+      "href": null,
+      "target": null,
+      "rel": null,
+      "dataHref": "/about",
+      "dataTarget": "_blank",
+      "dataRel": "noopener"
+    },
+    "GridListItem": {
+      "tag": "div",
+      "role": "row",
+      "href": null,
+      "target": null,
+      "rel": null,
+      "dataHref": "/about",
+      "dataTarget": "_blank",
+      "dataRel": "noopener"
+    },
+    "Row": {
+      "tag": "tr",
+      "role": "row",
+      "href": null,
+      "target": null,
+      "rel": null,
+      "dataHref": "/about",
+      "dataTarget": "_blank",
+      "dataRel": "noopener"
+    },
+    "MenuItem": {
+      "tag": "a",
+      "role": "menuitem",
+      "href": "/about",
+      "target": "_blank",
+      "rel": "noopener",
+      "dataHref": null,
+      "dataTarget": null,
+      "dataRel": null
+    }
+  },
+  "linkOut": {
+    "ListView:href+_blank": {
+      "svgCount": 1
+    },
+    "ListView:href only": {
+      "svgCount": 0
+    },
+    "ListView:href+_blank hidden": {
+      "svgCount": 0
+    },
+    "ListView:no href": {
+      "svgCount": 0
+    },
+    "Menu:href+_blank": {
+      "svgCount": 1
+    },
+    "Menu:href only": {
+      "svgCount": 0
+    },
+    "Menu:href+_blank hidden": {
+      "svgCount": 0
+    },
+    "Menu:no href": {
+      "svgCount": 0
+    }
+  }
+}

@@ -25,6 +25,11 @@ import { catalogNodeState } from "../../../../../packages/shared/src/catalog/res
 import type { CatalogConsumerNode, CatalogTagShowAll } from "./compositionRoot";
 import { catalogDateInputPaintProps, catalogRuleNodeData } from "./ruleShapes";
 import { catalogPartParent, catalogTreeItemContent } from "./presence";
+import {
+  catalogFieldBox,
+  catalogFieldBoxStepperNode,
+  catalogFieldBoxOfInput,
+} from "../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import {
   catalogRuleTextColor,
@@ -709,6 +714,58 @@ function ruleShapeInput(
   };
 }
 
+/**
+ * ADR-259 Phase 2 — a prefix field's box (S2 `FieldGroup`): its control Group draws the Input rule's
+ * box at the field's size and quiet state (the DOM: the Input rule's sheet on `.react-aria-FieldBox`);
+ * the Input in it lays its own box down and starts its text at its edge (the DOM inlines the same,
+ * `CATALOG_FIELD_BOX_INPUT_STYLE`). Any other node: its own rule input.
+ */
+function fieldBoxShapeInput(
+  root: CatalogCompositionRoot,
+  node: CatalogConsumerNode,
+  rect: Rect,
+): CatalogRuleShapeInput {
+  const get = (id: string) => root.canvasInputs.get(id);
+  const box = catalogFieldBox(node, get, root.typeOf);
+  if (box) {
+    const rule = root.runtime.graph.library.rules.get("Input" as never);
+    if (!rule) throw new Error("CATALOG_CANVAS_RULE_REQUIRED:Input");
+    return {
+      node: {
+        ...node,
+        props: {
+          ...node.props,
+          ...node.derivedProps,
+          size: box.field.props.size ?? "M",
+          variant: "default",
+        },
+      },
+      rect,
+      rule,
+      type: "Input",
+      authoredVisual: catalogAuthoredVisual(root, node),
+      state: catalogNodeState(node.displayState, root.state),
+      theme: root.colorMode,
+    };
+  }
+  const input = ruleShapeInput(root, node, rect);
+  if (!catalogFieldBoxOfInput(node, get, root.typeOf)) return input;
+  const laid = {
+    paddingLeft: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
+    fill: "transparent",
+    borderColor: "transparent",
+    radius: 0,
+    borderWidth: 0,
+  };
+  return {
+    ...input,
+    node: { ...input.node, visual: { ...input.node.visual, ...laid } },
+    authoredVisual: { ...input.authoredVisual, ...laid },
+  };
+}
+
 function ruleNodeData(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
@@ -720,7 +777,7 @@ function ruleNodeData(
       !RULE_CARRIED_TEXT_KEYS[root.typeOf(node)]?.has(key)
     )
       throw new Error(`CATALOG_CANVAS_VISUAL_UNSUPPORTED:${node.id}:${key}`);
-  const input = ruleShapeInput(root, node, rect);
+  const input = fieldBoxShapeInput(root, node, rect);
   const data = catalogRuleNodeData(input);
   const content = dropZoneContentData(
     root,
@@ -828,7 +885,14 @@ function paintedNodeData(
   binding: Binding | undefined,
   parent: CatalogConsumerNode | undefined,
 ): SkiaNodeData {
-  const node = catalogVisualWithBackground(input);
+  // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down.)
+  const node = catalogVisualWithBackground(
+    catalogFieldBoxStepperNode(
+      input,
+      (id) => root.canvasInputs.get(id),
+      root.typeOf,
+    ),
+  );
   return withOverflowClip(
     node,
     withOpacity(
@@ -841,7 +905,13 @@ function paintedNodeData(
           node,
           OWNER_DRAWN_PART_OWNERS[root.typeOf(node)]
             ? ownerDrawnPartNodeData(root, node, rect)
-            : binding
+            : binding &&
+                // (ADR-259 Phase 2: a prefix box Group draws the Input rule's box — not a Group's.)
+                !catalogFieldBox(
+                  node,
+                  (id) => root.canvasInputs.get(id),
+                  root.typeOf,
+                )
               ? binding(
                   node,
                   rect,

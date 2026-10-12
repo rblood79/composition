@@ -14,6 +14,35 @@
  */
 import type { ComponentRulesTable } from "../../types/catalog-style.types";
 
+/**
+ * ADR-259 Phase 2 — S2 `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField): the
+ * Text · Icon node in the field's control Group's `prefix` slot. S2 `FieldGroup` (`Field.tsx:291-311`):
+ * `gray-600` (our `neutral-subdued`), no shrink, `text-to-visual` before the input (6/14 of the
+ * text — 4 · 5 · 6 · 7 · 8 px at XS … XL), the input's text size. One block per field rule — the
+ * generated sheet and the Canvas part rules (through the Group) read it.
+ */
+const PREFIX =
+  ':is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"])';
+const PREFIX_TEXT = '.react-aria-Text[slot="prefix"]';
+const FIELD_PREFIX_STATIC = {
+  [PREFIX]: { color: "var(--fg-muted)", "flex-shrink": "0" },
+  [PREFIX_TEXT]: { width: "auto" },
+} as const;
+const prefixSize = (text: string, gap: number) => ({
+  [PREFIX]: { "margin-inline-end": `${gap}px` },
+  [PREFIX_TEXT]: {
+    "font-size": `var(--${text})`,
+    "line-height": `var(--${text}--line-height)`,
+  },
+});
+const FIELD_PREFIX_SIZES = {
+  XS: prefixSize("text-2xs", 4),
+  S: prefixSize("text-xs", 5),
+  M: prefixSize("text-sm", 6),
+  L: prefixSize("text-base", 7),
+  XL: prefixSize("text-lg", 8),
+} as const;
+
 export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   // ADR-256 Phase 6g — Autocomplete: RAC Autocomplete has no element (its children sit in its
   //   parent's flow). The Canvas lays it out as `display: contents` (engine CSS-DISPLAY-3 §2.5 —
@@ -2506,6 +2535,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
+        staticSelectors: { ...FIELD_PREFIX_STATIC },
+        sizeSelectors: { ...FIELD_PREFIX_SIZES },
         // layout:flex-column (2026-10-07, 사용자 지시 「ColorField 레퍼런스에 맞춰」): RSP · RAC 의
         //   ColorField 는 라벨 위 · 입력칸 · 도움말 아래 (TextField 와 같은 field 배치). 2026-06-23 의
         //   flex-row 는 Label · hex 입력 · ColorSwatch 를 한 줄에 두는 옛 factory 모양이었고, 지금
@@ -3078,6 +3110,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
+        staticSelectors: { ...FIELD_PREFIX_STATIC },
+        sizeSelectors: { ...FIELD_PREFIX_SIZES },
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
@@ -6237,7 +6272,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "input-base",
       element: "input",
-      classAliases: ["TextArea"],
+      // ADR-259 Phase 2: a prefix field's box Group (`FieldBox` — S2 `FieldGroup`) draws this box too.
+      classAliases: ["TextArea", "FieldBox"],
       containerStyles: {
         display: "block",
         width: "100%",
@@ -6276,12 +6312,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "caret-color": "var(--fg)",
               },
             },
-          "&[data-hovered]:not([data-focused]):not([data-disabled])": {
+          "&[data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])": {
             styles: {
               "border-color": "var(--border-hover)",
             },
           },
-          "&[data-focused]": {
+          "&:is([data-focused], [data-focus-within])": {
             styles: {
               outline: "2px solid var(--accent)",
               "outline-offset": "-1px",
@@ -6293,7 +6329,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "border-color": "var(--negative)",
             },
           },
-          "&[data-invalid][data-focused]": {
+          "&[data-invalid]:is([data-focused], [data-focus-within])": {
             styles: {
               "outline-color": "var(--negative)",
             },
@@ -6310,14 +6346,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               "border-bottom": "1px solid var(--border)",
             },
           },
-          "&[data-quiet][data-hovered]:not([data-focused]):not([data-disabled])":
+          "&[data-quiet][data-hovered]:not([data-focused], [data-focus-within]):not([data-disabled])":
             {
               styles: {
                 "border-color": "transparent",
                 "border-bottom-color": "var(--border-hover)",
               },
             },
-          "&[data-quiet][data-focused]": {
+          "&[data-quiet]:is([data-focused], [data-focus-within])": {
             styles: {
               outline: "none",
               "border-color": "transparent",
@@ -7002,6 +7038,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           opacity: 0.38,
           pointerEvents: "none",
         },
+      },
+      // ADR-259 Phase 1 (R4): a link MenuItem is RAC's `<a>` — no browser link underline or link
+      //   color (the reference's `&[href]`): it keeps its Menu's text color like any item.
+      composition: {
+        rootSelectors: {
+          "&[href]": {
+            styles: { "text-decoration": "none", color: "inherit" },
+          },
+        },
+        delegation: [],
       },
     },
   },
@@ -7734,6 +7780,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
+        staticSelectors: { ...FIELD_PREFIX_STATIC },
+        sizeSelectors: { ...FIELD_PREFIX_SIZES },
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {
@@ -10710,6 +10759,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
                 "background 0.15s ease, border-color 0.15s ease, transform 0.15s ease",
             },
           },
+          // ADR-259 Phase 1 (R4): a link Tab is RAC's `<a>` — no browser link underline (the
+          //   reference's `&[href]`; its color is the Tab's own).
+          "&[href]": { styles: { "text-decoration": "none" } },
         },
         delegation: [],
       },
@@ -12076,6 +12128,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
+        staticSelectors: { ...FIELD_PREFIX_STATIC },
+        sizeSelectors: { ...FIELD_PREFIX_SIZES },
         layout: "flex-column",
         containerStyles: {
           // 2026-06-24: width fit-content → 100% (field 패밀리 정본, TextField/SearchField 동형 정정).
@@ -12227,6 +12282,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
       composition: {
+        // ADR-259 Phase 2: the S2 prefix in the control Group (`FIELD_PREFIX_*`).
+        staticSelectors: { ...FIELD_PREFIX_STATIC },
+        sizeSelectors: { ...FIELD_PREFIX_SIZES },
         layout: "flex-column",
         gap: "var(--spacing-xs)",
         containerStyles: {

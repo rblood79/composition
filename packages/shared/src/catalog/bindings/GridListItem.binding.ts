@@ -1,4 +1,8 @@
 import type { PrimitiveBinding } from "../types";
+import {
+  ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
+  ITEM_LINK_PROP_CONTRACTS,
+} from "../document/itemLinks";
 
 /**
  * GridListItem — GridList 카드 항목 (box bg+border + label + description).
@@ -39,6 +43,10 @@ export const gridListItemBinding: PrimitiveBinding = {
       },
       // ADR-237 Phase 2 — RAC/RSP 항목 `isDisabled`. Canvas 는 이미 읽는데 (상태 층 disabled) accepts 미선언이라
       //   DOM 에만 닿지 않았다 (두 leg 발산) — Tag 와 같은 선언.
+      // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
+      ...ITEM_LINK_PROP_CONTRACTS,
+      // (its GridList's `hideLinkOutIcon` — the resolver carries it, S2 ListView context.)
+      hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // ADR-257 후속 — the GridList's S2 `overflowMode` (ListView), carried here by the resolver
       //   (`CATALOG_OVERFLOW_MODE_OWNERS`) for the label · description Text inside — not edited on

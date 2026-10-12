@@ -51,6 +51,8 @@ import { CatalogAttributesSection } from "./CatalogAttributesSection";
 import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 
 import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
+import { CatalogFieldPrefixField } from "./CatalogFieldPrefixField";
+import { CATALOG_PREFIX_FIELDS } from "../../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 
 import { CatalogComponentSection } from "./CatalogComponentSection";
 
@@ -341,6 +343,8 @@ const CatalogFields = memo(function CatalogFields({
           ) : null}
           <CatalogCalendarHeaderField elementId={elementId} />
         </>
+      ) : CATALOG_PREFIX_FIELDS.has(contract.type ?? "") ? (
+        <CatalogFieldPrefixField elementId={elementId} />
       ) : undefined,
     onPatch: handlePatch,
     isRefInstance,

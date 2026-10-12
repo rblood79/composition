@@ -76,11 +76,20 @@
   pointer-events: none;
 }
 
+/* ── Tier 2: Composite Delegation ── */
+
+
 @media (forced-colors: active) {
   .react-aria-MenuItem {
     forced-color-adjust: auto;
   }
 }
+
+
+  .react-aria-MenuItem[href] {
+    text-decoration: none;
+    color: inherit;
+  }
 
 
 } /* @layer components */

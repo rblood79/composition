@@ -7,6 +7,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
 
 export const gridListBinding: PrimitiveBinding = {
   source: {
@@ -94,6 +95,9 @@ export const gridListBinding: PrimitiveBinding = {
           { value: "wrap", label: "Wrap" },
         ],
       },
+      // ADR-259 Phase 1: S2 `hideLinkOutIcon` — its link items opening a new tab draw no link-out
+      //   glyph (carried to the items — `CATALOG_LINK_OUT_OWNERS`).
+      hideLinkOutIcon: HIDE_LINK_OUT_ICON_CONTRACT,
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — delegatedDom `gridlist` 가 넘긴다.
       disallowEmptySelection: {
         kind: "boolean",

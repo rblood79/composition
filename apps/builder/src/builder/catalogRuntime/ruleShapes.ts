@@ -10,7 +10,10 @@ import {
   type TokenRef,
 } from "@composition/rendering";
 import { getPrimitiveBinding } from "@composition/shared";
-import { catalogQuietStyles } from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
+import {
+  catalogInvalidBorderColor,
+  catalogQuietStyles,
+} from "../../../../../packages/shared/src/catalog/runtime/quietStyles";
 import type { SkiaNodeData } from "../workspace/canvas/skia/nodeRendererTypes";
 import { ruleVariantToVisual } from "../workspace/canvas/skia/resolveSkiaVisualRule";
 import { normalizeMiddleBaselineTextLineHeight } from "../workspace/canvas/skia/specBuildHelpers";
@@ -21,7 +24,14 @@ import type {
   CatalogConsumerNode,
 } from "./compositionRoot";
 import {
+  CATALOG_LINK_OUT_ICON,
+  catalogItemLinkOut,
+  catalogLinkOutGlyph,
+} from "../../../../../packages/shared/src/catalog/document/itemLinks";
+import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
+import {
   CHILD_PROP_MERGE_TYPES,
+  catalogRuleTextColor,
   catalogRulePaint,
   cssVarColor,
   type CatalogRuleShapeInput,
@@ -111,11 +121,39 @@ function ruleShapeContext(input: CatalogRuleShapeInput) {
   return { ctx, theme };
 }
 
+/**
+ * An invalid field's box border in the rule's `&[data-invalid]` color (`catalogInvalidBorderColor`
+ * — the DOM sheet's same selector over RAC's `data-invalid`). A document's explicit state border
+ * still wins.
+ */
+function invalidBorder(input: CatalogRuleShapeInput, shapes: Shape[]): Shape[] {
+  const color = catalogInvalidBorderColor(input.rule, input.node.props);
+  if (!color) return shapes;
+  const state = input.state ? input.node.stateVisual?.[input.state] : undefined;
+  if (state?.borderColor !== undefined) return shapes;
+  const backgrounds = new Set(
+    shapes
+      .filter(
+        (shape) =>
+          "presentationRole" in shape &&
+          shape.presentationRole === "background-fill" &&
+          "id" in shape,
+      )
+      .map((shape) => (shape as { id: string }).id),
+  );
+  const theme = input.theme ?? "light";
+  return shapes.map((shape) =>
+    shape.type === "border" && shape.target && backgrounds.has(shape.target)
+      ? { ...shape, color: cssVarColor(color, theme) as string }
+      : shape,
+  );
+}
+
 /** Shapes for one rule-backed node (before conversion; exposed for shape-level checks). */
 export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
-  const shapes = ruleShapes(input);
+  const shapes = [...ruleShapes(input), ...linkOutShapes(input)];
   const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
-  if (!quiet) return shapes;
+  if (!quiet) return invalidBorder(input, shapes);
   const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(
     quiet["border-bottom"] ?? "",
   );
@@ -185,6 +223,38 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
     strokeWidth: width,
   });
   return painted;
+}
+
+/**
+ * ADR-259 Phase 1 — S2's link-out glyph of an item that opens a new tab (`catalogItemLinkOut`): in
+ * the end padding the layout added (`catalogLinkOutPaddingRight`), its own right padding (and its
+ * border) outside it, centred on the box; the item's text color (S2 `currentColor`). The DOM draws the same glyph
+ * box (`domBinding` — `catalogLinkOutGlyph`).
+ */
+function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
+  if (!catalogItemLinkOut(input.type, input.node.props)) return [];
+  const glyph = catalogLinkOutGlyph(input.type, input.node.props.size);
+  const box = catalogBoxModel(input.node);
+  const px = (value: unknown) =>
+    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
+  // An icon's x is in the padding box (the shape converter shifts it past the border — the DOM
+  // glyph is placed from the padding box too): the padding box width less the own right padding.
+  const border = px(box.borderWidth);
+  const ownRight = px(box.padding?.right) + border * 2;
+  const color =
+    catalogRuleTextColor(input) ??
+    (resolveToken("{color.neutral}" as TokenRef, input.theme ?? "light") as string);
+  return [
+    {
+      type: "icon_font",
+      iconName: CATALOG_LINK_OUT_ICON,
+      x: input.rect.width - ownRight - glyph.size / 2,
+      y: input.rect.height / 2,
+      fontSize: glyph.size,
+      fill: color,
+      strokeWidth: 2,
+    } as Shape,
+  ];
 }
 
 function ruleShapes(input: CatalogRuleShapeInput): Shape[] {

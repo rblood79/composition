@@ -39,6 +39,7 @@ import type {
 } from "../document/types";
 import { catalogStateKeysOf } from "../document/stateOwnerRefs";
 import { isFieldControlGroup } from "../../domain/componentTraits";
+import { catalogFieldBox, catalogFieldBoxOfInput } from "./fieldPrefix";
 import { catalogChildKind } from "../nesting/nestingRules";
 export { catalogStateKeysOf };
 
@@ -1627,11 +1628,16 @@ export function catalogDerivedProps(
   const control = ownDerivedProps(node, get, typeOf, locale);
   // The box of a quiet field shows its own quiet state (`fieldBoxOfQuietField`); a box the field's
   // own rule styles names that field (`_quietOwner` — `catalogQuietStyles`).
-  const quietField = fieldBoxOfQuietField(node, get, typeOf);
+  const quietField =
+    fieldBoxOfQuietField(node, get, typeOf) ??
+    prefixBoxOfQuietField(node, get, typeOf);
   const quietOwner = quietField
     ? undefined
     : ownerStyledQuietBox(node, get, typeOf);
   const quiet = quietField ?? quietOwner;
+  // (Any field's box shows its field's invalid state — the Input rule's `&[data-invalid]` border,
+  // RAC's `data-invalid` on the DOM side.)
+  const invalidField = quiet ? undefined : fieldOfBox(node, get, typeOf);
   const own = quiet
     ? {
         ...control,
@@ -1640,7 +1646,9 @@ export function catalogDerivedProps(
         _fieldDisabled: quiet.props.isDisabled === true,
         _fieldInvalid: quiet.props.isInvalid === true,
       }
-    : control;
+    : invalidField?.props.isInvalid === true
+      ? { ...control, _fieldInvalid: true }
+      : control;
   const selected = catalogCollectionItemSelected(node, get, typeOf);
   // (S2 TagGroup `isEmphasized`: its selected Tags paint the accent pair — `rulePaint.ts`.)
   const emphasized =
@@ -1781,10 +1789,39 @@ function fieldBoxOfQuietField(
   const type = typeOf(node);
   if (type !== "Input" && type !== "DateInput") return;
   if (!catalogPartParent(node, get, typeOf)) return;
+  // (ADR-259 Phase 2: in a prefix box the Group is the box — it shows the quiet state.)
+  if (catalogFieldBoxOfInput(node, get, typeOf)) return;
   // (A field's control Group only places its box — a DateRangePicker's Group, the one that paints,
   // takes no `isQuiet`.)
   const owner = triggerOwner(node, get, typeOf);
   return owner?.props.isQuiet === true ? owner : undefined;
+}
+
+/** The field whose box this part draws: a field's Input · DateInput, or a prefix box Group. */
+function fieldOfBox(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const type = typeOf(node);
+  if (type === "Group") return catalogFieldBox(node, get, typeOf)?.field;
+  if (type !== "Input" && type !== "DateInput") return;
+  if (!catalogPartParent(node, get, typeOf)) return;
+  if (catalogFieldBoxOfInput(node, get, typeOf)) return;
+  return triggerOwner(node, get, typeOf);
+}
+
+/**
+ * ADR-259 Phase 2 — a prefix field's box Group (`catalogFieldBox`) whose field is quiet: the Group
+ * draws the Input rule's quiet shape (the Input inside lays its box down).
+ */
+function prefixBoxOfQuietField(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  const box = catalogFieldBox(node, get, typeOf);
+  return box?.field.props.isQuiet === true ? box.field : undefined;
 }
 
 /**
@@ -2154,12 +2191,16 @@ function fieldSubparts(
 ): CatalogConsumerNode[] {
   return partChildrenOf(owner, get, typeOf)
     .flatMap((child) =>
-      typeOf(child) === "Group" ? partChildrenOf(child, get, typeOf) : [child],
+      typeOf(child) === "Group"
+        ? [child, ...partChildrenOf(child, get, typeOf)]
+        : [child],
     )
     .filter(
       (child) =>
         fieldSubpartProps(child, get, typeOf) !== undefined ||
-        typeOf(child) === "Input",
+        typeOf(child) === "Input" ||
+        // (ADR-259 Phase 2: a prefix box shows its field's quiet · invalid state.)
+        !!catalogFieldBox(child, get, typeOf),
     );
 }
 

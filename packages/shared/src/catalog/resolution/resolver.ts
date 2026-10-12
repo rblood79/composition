@@ -43,6 +43,7 @@ import {
   CATALOG_VARIANT_FROM_OWNER,
 } from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
+import { CATALOG_LINK_OUT_OWNERS } from "../document/itemLinks";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
   CATALOG_FORM_FIELDS,
@@ -701,10 +702,23 @@ export function resolveCatalogNode(
         : []),
     ];
     for (const { owner: ruleOwner, via } of owners) {
-      const ownerDefinition = via
-        ? ruleDefinitionOf(ruleOwner.definitionId)
-        : lookupDefinition(ruleOwner.definitionId);
+      // (An instance's own children are its root's: a Button instance's own Icon takes the Button
+      // rule's icon size, as the template's Icon does — ADR-259 Phase 2, a NumberField's stepper
+      // glyphs once its Group's children are owned copies.)
+      const own = lookupDefinition(ruleOwner.definitionId);
+      const ownerDefinition =
+        via || !("partRules" in own && own.partRules?.length)
+          ? ruleDefinitionOf(ruleOwner.definitionId)
+          : own;
       if (!("partRules" in ownerDefinition)) continue;
+      // (Such an instance's props are its own writes: its root's defaults fill the rest.)
+      const ownerProps =
+        !via && ownerDefinition !== own && "defaults" in ownerDefinition
+          ? ({
+              ...(ownerDefinition.defaults ?? {}),
+              ...ruleOwner.props,
+            } as typeof ruleOwner.props)
+          : ruleOwner.props;
       // (The wrapper a `via` rule names is its type: an owned instance of the type's origin — a
       // detached Select's trigger, `origin-component-button` — is that type, G5 example 3.)
       const viaType = via && (ruleDefinitionOf(via) as { id?: string }).id;
@@ -715,7 +729,7 @@ export function resolveCatalogNode(
             (viaType !== undefined && rule.child.via === viaType)) &&
           matches(rule.child.props, props) &&
           (!via || matches(rule.child.viaProps, owner.props)) &&
-          matches(rule.when, ruleOwner.props) &&
+          matches(rule.when, ownerProps) &&
           (rule.state === undefined ||
             rule.state === (ruleOwner.state ?? state))
         ) {
@@ -870,6 +884,25 @@ export function resolveCatalogNode(
     if (typeof mode === "string") props.overflowMode = mode;
   };
   /**
+   * ADR-259 Phase 1 — S2 ListView · Menu `hideLinkOutIcon`: the nearest GridList · Menu's value
+   * reaches its items (`CATALOG_LINK_OUT_OWNERS` — S2 gives it through context; an item has no
+   * editor for it). The owner wins: absent there, the item's copy is cleared.
+   */
+  const applyOwnerHideLinkOut = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    const definition = lookupDefinition(definitionId);
+    const ownerType = CATALOG_LINK_OUT_OWNERS[definition.name];
+    if (!ownerType || definition.accepts.hideLinkOutIcon !== "boolean") return;
+    let owner = structuralParent(parent);
+    while (owner && lookupDefinition(owner.definitionId).name !== ownerType)
+      owner = structuralParent(owner.parent);
+    if (owner?.props.hideLinkOutIcon === true) props.hideLinkOutIcon = true;
+    else delete props.hideLinkOutIcon;
+  };
+  /**
    * S2 Form context (`formContext.ts`): a field takes the nearest Form's value for each context
    * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
    * any element between (React context), the nearest Form wins.
@@ -1013,6 +1046,7 @@ export function resolveCatalogNode(
     applyOwnerSize(node.definitionId, props, parent);
     applyOwnerDensity(node.definitionId, props, parent);
     applyOwnerOverflowMode(node.definitionId, props, parent);
+    applyOwnerHideLinkOut(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
     applyOwnerVariant(
       node.definitionId,
@@ -1222,6 +1256,7 @@ export function resolveCatalogNode(
       applyOwnerSize(definitionId, props, parent);
       applyOwnerDensity(definitionId, props, parent);
       applyOwnerOverflowMode(definitionId, props, parent);
+      applyOwnerHideLinkOut(definitionId, props, parent);
       applyOwnerEmphasis(definitionId, props, parent);
       applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
       applyBooleanVariant(definitionId, props);
@@ -1486,6 +1521,7 @@ export function resolveCatalogNode(
     // Table's `density` · `overflowMode` reach them here too.)
     applyOwnerDensity(template.definitionId, props, parent);
     applyOwnerOverflowMode(template.definitionId, props, parent);
+    applyOwnerHideLinkOut(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);
     applyOwnerVariant(template.definitionId, props, parent, instanceAuthored);
     applyBooleanVariant(template.definitionId, props);

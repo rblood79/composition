@@ -30,6 +30,7 @@ import {
 import type { ComponentRule } from "../../types/catalog-style.types";
 import { CATALOG_FORM_FIELDS } from "./formContext";
 import { manualBoxRule } from "./manualBoxRules";
+import { catalogFieldBoxStyle } from "../runtime/fieldPrefix";
 import type { LayoutField, Scalar, VisualField } from "./types";
 
 export interface CompiledPartRule {
@@ -172,9 +173,23 @@ const TOGGLE_BUTTONS: Readonly<Record<string, string>> = Object.fromEntries(
     button,
   ]),
 );
+/**
+ * ADR-259 Phase 2 — fields whose control Group exists only to hold a prefix (the prefix command
+ * wraps their Input): their prefix Text · Icon sits in that Group; their Input keeps its own path.
+ */
+const PREFIX_GROUP_FIELDS: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "ColorField",
+]);
 function wrapperOf(parentType: string, childType: string): string | undefined {
   if (TOGGLE_BUTTONS[parentType] && childType === `${parentType}Indicator`)
     return TOGGLE_BUTTONS[parentType];
+  if (
+    PREFIX_GROUP_FIELDS.has(parentType) &&
+    (childType === "Text" || childType === "Icon")
+  )
+    return "Group";
   if (!WRAPPED_BY_TRIGGER.has(childType)) return undefined;
   const wrapper =
     SUBPART_WRAPPERS[parentType] ??
@@ -930,21 +945,34 @@ function textAreaPartRules(parentType: string): CompiledPartRule[] {
   return sizeNames(rule).flatMap((size) =>
     [undefined, ...TEXT_AREA_ROWS].flatMap((rows): CompiledPartRule[] => {
       const height = catalogTextAreaInputHeight(size, rows);
-      return height === undefined
-        ? []
-        : [
-            {
-              childType: "Input",
-              size,
-              // No `rows` value: the shared default (3 rows).
-              ...(rows === undefined ? {} : { ownerProps: { rows } }),
-              // A `<textarea>` starts its text at its top padding, not its rows box's middle —
-              // the shape builder's `verticalAlign: "top"` (2026-10-10 사용자 「textarea placeholder
-              // 텍스트가 상단이 아니라 가운데」 — the old Skia projection gave it, the catalog path lost it).
-              layout: { verticalAlign: "top" },
-              visual: { height },
-            },
-          ];
+      if (height === undefined) return [];
+      // (ADR-259 Phase 2: in a prefix box the Group draws the box — its padding and border — so the
+      // `<textarea>` inside is the rows box less them.)
+      const box = catalogFieldBoxStyle(size, "TextArea");
+      const inner =
+        height - box.paddingTop - box.paddingBottom - 2 * box.borderWidth;
+      const owner = rows === undefined ? {} : { ownerProps: { rows } };
+      return [
+        {
+          childType: "Input",
+          size,
+          // No `rows` value: the shared default (3 rows).
+          ...owner,
+          // A `<textarea>` starts its text at its top padding, not its rows box's middle —
+          // the shape builder's `verticalAlign: "top"` (2026-10-10 사용자 「textarea placeholder
+          // 텍스트가 상단이 아니라 가운데」 — the old Skia projection gave it, the catalog path lost it).
+          layout: { verticalAlign: "top" },
+          visual: { height },
+        },
+        {
+          childType: "Input",
+          via: "Group",
+          size,
+          ...owner,
+          layout: { verticalAlign: "top" },
+          visual: { height: inner },
+        },
+      ];
     }),
   );
 }
@@ -1087,6 +1115,80 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
           },
         ]
       : [];
+  });
+}
+
+/**
+ * ADR-259 Phase 2 — a field's prefix (S2 `FieldGroup` `CenterBaseline` — `color: gray-600`, its
+ * icon `size: 1lh`): the prefix Text · Icon in the field's control Group take the field rule's
+ * prefix color (`[slot="prefix"]` static block — a color the generic part path does not carry) and
+ * an Icon a square of the prefix text's line height at the field's size (the `sizeSelectors`
+ * prefix font). Width, shrink and gap stay with the generic blocks.
+ */
+const FIELD_PREFIX_RULE_TYPES: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "ComboBox",
+  "ColorField",
+]);
+function fieldPrefixPartRules(parentType: string): CompiledPartRule[] {
+  if (!FIELD_PREFIX_RULE_TYPES.has(parentType)) return [];
+  const rule = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)[
+    parentType
+  ];
+  const composition = rule?.structure?.composition as
+    | {
+        staticSelectors?: Record<string, Record<string, string>>;
+        sizeSelectors?: Record<string, Record<string, Record<string, string>>>;
+      }
+    | undefined;
+  const isPrefix = (selector: string) => selector.includes('[slot="prefix"]');
+  const colorCss = Object.entries(composition?.staticSelectors ?? {}).find(
+    ([selector, block]) => isPrefix(selector) && block.color,
+  )?.[1].color;
+  const color = colorCss ? (cssVarToTokenRef(colorCss) ?? colorCss) : undefined;
+  const tokenNumber = (css: string | undefined) => {
+    const token = css ? cssVarToTokenRef(css) : null;
+    const value = token ? resolveToken(token) : undefined;
+    return typeof value === "number" ? value : undefined;
+  };
+  return sizeNames(rule).flatMap((size): CompiledPartRule[] => {
+    const text = Object.entries(composition?.sizeSelectors?.[size] ?? {}).find(
+      ([selector, block]) =>
+        isPrefix(selector) &&
+        selector.includes("Text") &&
+        block["font-size"],
+    )?.[1];
+    const fontSize = tokenNumber(text?.["font-size"]);
+    const lineRatio = tokenNumber(text?.["line-height"]);
+    // (A line-height token is a ratio of the font size, or a length already.)
+    const line =
+      fontSize && lineRatio
+        ? Math.round(lineRatio > 4 ? lineRatio : fontSize * lineRatio)
+        : undefined;
+    const paint: Record<string, Scalar> = color ? { color } : {};
+    return [
+      {
+        childType: "Text",
+        via: "Group",
+        childProps: { slot: "prefix" },
+        size,
+        layout: {},
+        visual: { ...paint },
+      },
+      {
+        childType: "Icon",
+        via: "Group",
+        childProps: { slot: "prefix" },
+        size,
+        layout: {},
+        visual:
+          line !== undefined
+            ? { ...paint, width: line, height: line, iconSize: line }
+            : paint,
+      },
+    ];
   });
 }
 
@@ -1616,6 +1718,7 @@ export function compileRulePartRules(
     ...tokenRuleBasePartRules(parentType),
     ...sliderThumbPartRules(parentType),
     ...disclosureChevronPartRules(parentType),
+    ...fieldPrefixPartRules(parentType),
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),

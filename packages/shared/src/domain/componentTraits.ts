@@ -84,6 +84,11 @@ const SELECT_TRIGGER_OWNERS = [
  */
 export const FIELD_CONTROL_GROUP_HOSTS: ReadonlySet<string> = new Set([
   "ComboBox",
+  // ADR-259 Phase 2: a TextField · TextArea · ColorField has a control Group only while it holds a
+  //   prefix (the prefix command wraps its Input — S2 `FieldGroup`): a Group child is that one.
+  "TextField",
+  "TextArea",
+  "ColorField",
   // (Not SearchField: the reference's parts are its own children — ADR-256 G5 example 5.)
   "NumberField",
   "DatePicker",

@@ -96,5 +96,9 @@
     transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   }
 
+  .react-aria-Tab[href] {
+    text-decoration: none;
+  }
+
 
 } /* @layer components */

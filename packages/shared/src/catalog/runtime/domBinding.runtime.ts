@@ -34,6 +34,24 @@ import { Icon } from "../../components/Icon";
 import { Slot } from "../../components/Slot";
 
 import { isBodyType } from "../../domain/predicates";
+import { getIconData } from "@composition/rendering";
+import {
+  CATALOG_FIELD_BOX_CLASS,
+  CATALOG_PREFIX_UNNAMED_FIELDS,
+  CATALOG_FIELD_BOX_INPUT_STYLE,
+  catalogFieldBox,
+  catalogFieldBoxOfInput,
+  catalogFieldBoxStepperNode,
+  catalogFieldBoxStyle,
+  catalogIsFieldPrefix,
+} from "./fieldPrefix";
+import {
+  CATALOG_LINK_OUT_ICON,
+  catalogItemLinkOut,
+  catalogItemLinkProps,
+  catalogLinkOutGlyph,
+  catalogLinkOutPaddingRight,
+} from "../document/itemLinks";
 
 import { catalogTokenValue } from "../document/themedToken";
 
@@ -1071,25 +1089,156 @@ const NODE_TREE_CONTROL_CLASSES: Readonly<Record<string, string | undefined>> =
     datepicker: undefined,
     daterangepicker: undefined,
     combobox: "react-aria-Group combobox-container",
+    // ADR-259 Phase 2: the Group a prefix wraps a TextField's · TextArea's · ColorField's Input in.
+    textfield: undefined,
+    textarea: undefined,
+    colorfield: undefined,
   };
+/**
+ * Fields with no RAC `GroupContext` (RAC's TextField gives none): their prefix Group is S2's
+ * `FieldGroup role="presentation"` and takes the field's invalid · disabled itself.
+ */
+const PREFIX_GROUP_BINDINGS: ReadonlySet<string> = new Set([
+  "textfield",
+  "textarea",
+  "colorfield",
+]);
+
+/** The DOM id of a prefix (its author id, else one from the node) — the input names it (S2). */
+export function catalogFieldPrefixDomId(node: CatalogConsumerNode): string {
+  return node.htmlId ?? `prefix-${node.id.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
+/**
+ * ADR-259 Phase 2 — S2 `FieldGroup` (`Field.tsx:258-273`): a press on the box that is not on a
+ * button or the input (the prefix, the padding) focuses the input — mouse `pointerdown`, touch
+ * `touchend`.
+ */
+function forwardFocus(event: {
+  target: EventTarget | null;
+  currentTarget: EventTarget;
+  preventDefault: () => void;
+}): void {
+  const target = event.target as Element | null;
+  if (
+    !target ||
+    (target as HTMLElement).isContentEditable ||
+    target.closest('button,input,textarea,[role="button"]')
+  )
+    return;
+  event.preventDefault();
+  (event.currentTarget as Element)
+    .querySelector<HTMLElement>("input, textarea")
+    ?.focus();
+}
 
 function nodeTreeControlGroup(
+  root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
+  field: CatalogConsumerNode,
   className: string | undefined,
   children: ReactElement[],
 ): ReactElement {
   const role = node.props.role;
+  const box = catalogFieldBox(
+    node,
+    (id) => root.domInputs.get(id),
+    (record) => catalogTypeName(root, record),
+  );
+  const ownGroup = PREFIX_GROUP_BINDINGS.has(field.bindingId ?? "");
+  const disabled = field.props.isDisabled === true;
+  // The input's name: its label, then the prefix (S2 `FieldGroup` extends `InputContext` — not a
+  // TextArea's, S2 G0 oracle).
+  const prefixId =
+    box && !CATALOG_PREFIX_UNNAMED_FIELDS.has(catalogTypeName(root, field))
+      ? catalogFieldPrefixDomId(box.prefix)
+      : undefined;
+  const content = prefixId
+    ? createElement(
+        RAC.InputContext.Consumer as ElementType,
+        {
+          children: (ctx: Record<string, unknown> | null) =>
+          createElement(
+            RAC.InputContext.Provider,
+            {
+              value: {
+                ...(ctx ?? {}),
+                "aria-labelledby": ctx?.["aria-labelledby"]
+                  ? `${String(ctx["aria-labelledby"])} ${prefixId}`
+                  : prefixId,
+              },
+            },
+            ...children,
+          ),
+        },
+      )
+    : undefined;
   return createElement(RAC.Group, {
     key: node.id,
     "data-catalog-id": node.id,
-    ...(className ? { className } : {}),
-    ...(role === "region" || role === "presentation" ? { role } : {}),
+    ...(className || box
+      ? {
+          className: [className ?? "react-aria-Group", box && CATALOG_FIELD_BOX_CLASS]
+            .filter(Boolean)
+            .join(" "),
+        }
+      : {}),
+    ...(role === "region" || role === "presentation"
+      ? { role }
+      : ownGroup
+        ? { role: "presentation" }
+        : {}),
     ...Object.fromEntries(
       (["isDisabled", "isInvalid", "isReadOnly"] as const)
-        .filter((key) => node.props[key] === true)
+        .filter(
+          (key) =>
+            node.props[key] === true ||
+            (ownGroup && field.props[key] === true),
+        )
         .map((key) => [key, true]),
     ),
-    children: catalogStateChildren(node.id, () => children),
+    // ADR-259 Phase 2: the prefix box (S2 `FieldGroup`) — the Input rule's sheet draws it
+    // (`FieldBox`) at the field's size and quiet state; a press on it focuses the input.
+    ...(box
+      ? {
+          "data-size": String(field.props.size ?? "M"),
+          "data-variant": "default",
+          ...(field.props.isQuiet === true ? { "data-quiet": "true" } : {}),
+          style: (() => {
+            const style = catalogFieldBoxStyle(
+              field.props.size,
+              catalogTypeName(root, field),
+            );
+            return {
+              display: style.display,
+              flexDirection: style.flexDirection,
+              alignItems: style.alignItems,
+              width: style.width,
+              ...(style.height !== undefined ? { height: style.height } : {}),
+              paddingTop: style.paddingTop,
+              paddingRight: style.paddingRight,
+              paddingBottom: style.paddingBottom,
+              paddingLeft: style.paddingLeft,
+            };
+          })(),
+          ...(disabled
+            ? {}
+            : {
+                onPointerDown: (event: {
+                  pointerType: string;
+                  target: EventTarget | null;
+                  currentTarget: EventTarget;
+                  preventDefault: () => void;
+                }) => {
+                  if (event.pointerType === "mouse") forwardFocus(event);
+                },
+                onTouchEnd: forwardFocus,
+              }),
+        }
+      : {}),
+    children: catalogStateChildren(node.id, () =>
+      content ? [content] : children,
+    ),
   } as unknown as Parameters<typeof RAC.Group>[0]);
 }
 
@@ -1806,12 +1955,31 @@ function ruleDom(
   }
   // (A Breadcrumb draws its node tree — `delegatedDom` `breadcrumb`, ADR-256 Phase 5a.)
   const ownChildren = children;
-  const content =
-    ownChildren.length > 0
+  // ADR-259 Phase 1: S2 `hideLinkOutIcon` is an owner's context value (its items carry a copy) —
+  // no RAC prop.
+  delete rest.hideLinkOutIcon;
+  // (An emptied link field is no link — RAC makes any `href` one.)
+  for (const key of ["href", "target", "rel"])
+    if (rest[key] === "") delete rest[key];
+  // S2's link-out glyph of an item opening a new tab — the box the Canvas draws (`ruleShapes`).
+  const linkOut = catalogItemLinkOut(type, node.props);
+  if (linkOut) {
+    const glyph = catalogLinkOutGlyph(type, node.props.size);
+    const ownRight = catalogLinkOutOwnRight(node);
+    style = {
+      ...style,
+      position: style.position ?? "relative",
+      paddingRight: catalogLinkOutPaddingRight(type, node.props.size, ownRight),
+    };
+  }
+  const content = [
+    ...(ownChildren.length > 0
       ? ownChildren
       : textChildren === undefined
         ? []
-        : [String(textChildren)];
+        : [String(textChildren)]),
+    ...(linkOut ? [catalogLinkOutGlyphElement(node, type)] : []),
+  ];
   const collection = collectionAncestor(root, node);
   // A collection-only item outside its collection is not a RAC item (Preview catalog path).
   const outsideCollection =
@@ -1945,9 +2113,8 @@ function ruleDom(
             ),
             textValue: itemLabelText(root, node),
             isDisabled: node.props.isDisabled === true,
-            ...(typeof node.props.href === "string" && node.props.href
-              ? { href: node.props.href }
-              : {}),
+            // ADR-259 Phase 1: the MenuItem's link (RAC draws an `<a>`).
+            ...catalogItemLinkProps(node.props),
             // The author's selection mark (a node shown while `isSelected` — the reference's
             // Check / Dot) stands in for the sheet's glyph (`Menu.css`).
             ...(hasSelectionMark(root, node)
@@ -2058,6 +2225,63 @@ function ruleDom(
     lower === "tag"
       ? createElement(RAC.TagList, { style: { display: "contents" } }, element)
       : element,
+  );
+}
+
+/** A link-out item's own right padding (its box model — the Rust input reads the same). */
+function catalogLinkOutOwnRight(node: CatalogConsumerNode): number {
+  const right = catalogBoxModel(node).padding?.right;
+  return typeof right === "number"
+    ? right
+    : Number.parseFloat(String(right ?? 0)) || 0;
+}
+
+/**
+ * ADR-259 Phase 1 — S2's link-out glyph (`ui-icons/LinkOut`, here the Lucide `external-link`): a
+ * decorative svg in the item's end padding, its own right padding outside it, centred on the box
+ * and in the item's text color (`currentColor`).
+ */
+function catalogLinkOutGlyphElement(
+  node: CatalogConsumerNode,
+  type: string,
+): ReactNode {
+  const glyph = catalogLinkOutGlyph(type, node.props.size);
+  const data = getIconData(CATALOG_LINK_OUT_ICON);
+  return createElement(
+    "span",
+    {
+      key: `${node.id}::link-out`,
+      className: "link-out",
+      "aria-hidden": "true",
+      style: {
+        position: "absolute",
+        right: catalogLinkOutOwnRight(node),
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: glyph.size,
+        height: glyph.size,
+        display: "flex",
+        pointerEvents: "none",
+      },
+    },
+    data &&
+      createElement(
+        "svg",
+        {
+          width: glyph.size,
+          height: glyph.size,
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: 2,
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+        },
+        ...data.paths.map((d, i) => createElement("path", { key: i, d })),
+        ...(data.circles ?? []).map((c, i) =>
+          createElement("circle", { key: `c${i}`, cx: c.cx, cy: c.cy, r: c.r }),
+        ),
+      ),
   );
 }
 
@@ -2585,7 +2809,9 @@ export function renderNode(
       root,
       node,
       nodeTreeControlGroup(
+        root,
         node,
+        partParent!,
         NODE_TREE_CONTROL_CLASSES[controlOf],
         children,
       ),
@@ -2599,9 +2825,25 @@ export function renderNode(
   )
     return fieldInputBinding(
       node,
-      styleOverride
-        ? { ...authoredStyle(root, node), ...styleOverride }
-        : authoredStyle(root, node),
+      {
+        ...authoredStyle(root, node),
+        ...styleOverride,
+        // ADR-259 Phase 2: in a prefix box the Group draws the box — the Input lays its own down
+        // (`CATALOG_FIELD_BOX_INPUT_STYLE`, the Rust input reads the same).
+        ...(catalogFieldBoxOfInput(
+          node,
+          (id) => root.domInputs.get(id),
+          (entry) => catalogTypeName(root, entry),
+        )
+          ? {
+              ...CATALOG_FIELD_BOX_INPUT_STYLE,
+              background: "transparent",
+              borderRadius: 0,
+              boxShadow: "none",
+              outline: "none",
+            }
+          : {}),
+      },
       field,
     );
   // A date field's DateInput node is a RAC DateInput inside the field's context (ADR-253).
@@ -2653,13 +2895,26 @@ export function renderNode(
       },
     };
   }
+  // (ADR-259 Phase 2: a NumberField's stepper in its prefix box lays its border down — inline, over
+  // the Button sheet's border.)
+  const stepper =
+    node.bindingId === "button"
+      ? catalogFieldBoxStepperNode(
+          node,
+          (id) => root.domInputs.get(id),
+          (entry) => catalogTypeName(root, entry),
+        )
+      : node;
   const bound = binding
-    ? catalogDomStyle(
-        node,
-        node.bindingId === "button" || watchedParent?.id !== node.parentId
-          ? parentInput
-          : watchedParent,
-      )
+    ? {
+        ...catalogDomStyle(
+          stepper,
+          node.bindingId === "button" || watchedParent?.id !== node.parentId
+            ? parentInput
+            : watchedParent,
+        ),
+        ...(stepper !== node ? { borderWidth: 0 } : {}),
+      }
     : undefined;
   // A Select's value takes its trigger Button's text color and the field sheet's placeholder
   // paint (`[data-placeholder]`): its color goes inline only when the document wrote it.
@@ -2806,13 +3061,26 @@ export function renderNode(
       )
     : ruleDom(root, node, children, context);
   const slot = itemSlotRole(root, node);
-  const element = withHtmlId(
+  const named = withHtmlId(
     root,
     node,
     slot
       ? cloneElement(rendered as ReactElement<{ slot?: string }>, { slot })
       : rendered,
   );
+  // ADR-259 Phase 2: a field's prefix carries the id its input's name points at (S2 `FieldGroup`).
+  const prefixParent =
+    catalogIsFieldPrefix(node, domType) && domGet(node.parentId);
+  // (Its `slot` too — an Icon passes only an item's slot role — so the field sheet's prefix
+  // selectors reach it: its gap, its shrink.)
+  const element =
+    prefixParent &&
+    catalogFieldBox(prefixParent, domGet, domType)?.prefix.id === node.id
+      ? cloneElement(named as ReactElement<{ id?: string; slot?: string }>, {
+          slot: "prefix",
+          ...(node.htmlId ? {} : { id: catalogFieldPrefixDomId(node) }),
+        })
+      : named;
   // A sortable Column's sort indicator follows its name Group (G5 example 11 — the reference's
   // `span.sort-indicator`, `catalogColumnSortNameGroup`).
   return catalogColumnSortNameGroup(node, domGet, domType)

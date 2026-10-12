@@ -28,19 +28,32 @@ export function catalogQuietStyles(
       props._fieldDisabled === true,
     "data-invalid": props.isInvalid === true || props._fieldInvalid === true,
   };
-  // `[x]` / `:not([x])` conditions after `prefix`, all of them true now.
+  // `[x]` / `:not([x], …)` / `:is([x], …)` conditions after `prefix`, all of them true now
+  // (`:not` — none of its list; `:is` — one of it: the box's focus is `data-focused` or, for a
+  // prefix box, `data-focus-within` — ADR-259).
+  const list = (inner: string) =>
+    inner.split(",").map((item) => /^\s*\[([\w-]+)\]\s*$/.exec(item)?.[1]);
   const matches = (selector: string, prefix: string) => {
     let ok = true;
+    let unsupported = false;
     const rest = selector
       .slice(prefix.length)
       .replace(
-        /:not\(\[([\w-]+)\]\)|\[([\w-]+)\]/g,
-        (_, excluded: string, included: string) => {
-          if ((excluded && active[excluded]) || (included && !active[included]))
-            ok = false;
+        /:(not|is)\(([^)]*)\)|\[([\w-]+)\]/g,
+        (_, pseudo: string, inner: string, included: string) => {
+          if (included) {
+            if (!active[included]) ok = false;
+            return "";
+          }
+          const names = list(inner);
+          if (names.some((name) => !name)) unsupported = true;
+          const any = names.some((name) => name && active[name]);
+          if (pseudo === "not" ? any : !any) ok = false;
           return "";
         },
       );
+    if (unsupported)
+      throw new Error(`CATALOG_QUIET_SELECTOR_UNSUPPORTED:${selector}`);
     if (rest) throw new Error(`CATALOG_QUIET_SELECTOR_UNSUPPORTED:${selector}`);
     return ok;
   };
@@ -85,3 +98,20 @@ export function catalogQuietStyles(
 const QUIET_OWNER_BOX_TOKENS: Readonly<Record<string, string>> = {
   Select: ".react-aria-Button",
 };
+
+/**
+ * The border color an invalid field's box takes outside quiet (the box rule's `&[data-invalid]`
+ * root selector — `--negative`): its own `isInvalid`, or its field's (`_fieldInvalid`). Undefined
+ * when the box is valid, quiet (`catalogQuietStyles` has its own invalid underline) or its rule
+ * declares none.
+ */
+export function catalogInvalidBorderColor(
+  rule: Readonly<ComponentRule> | undefined,
+  props: Readonly<Record<string, unknown>>,
+): string | undefined {
+  if (props.isQuiet === true) return undefined;
+  if (props.isInvalid !== true && props._fieldInvalid !== true) return undefined;
+  const selectors = rule?.structure?.composition?.rootSelectors as
+    Record<string, { styles?: Record<string, string> }> | undefined;
+  return selectors?.["&[data-invalid]"]?.styles?.["border-color"];
+}

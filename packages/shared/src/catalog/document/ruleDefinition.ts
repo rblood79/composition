@@ -11,6 +11,7 @@ import { componentCatalog } from "../componentCatalog";
 import { resolveCatalogRuleCanvasBox } from "../resolvers/resolveCatalogRuleCanvasBox";
 import { manualBoxRule } from "./manualBoxRules";
 import { catalogContainerVariantRootRules } from "./rulePartRules";
+import { RULE_TYPE_PROP_CONTRACTS } from "./itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
 import type { InspectorFieldKind } from "../types";
 import type {
@@ -383,6 +384,14 @@ export function ruleTypeDefinition(
       if (key === "necessityIndicator" && type !== "Form") continue;
       if (propDefaultMatches(contract.default, valueType))
         defaults[key] = contract.default as AuthoredValue;
+    }
+  // A rule-only type's own contracts (ADR-259 Phase 1 — a MenuItem's link).
+  if (registration?.kind !== "primitive")
+    for (const [key, contract] of Object.entries(
+      RULE_TYPE_PROP_CONTRACTS[type] ?? {},
+    )) {
+      const valueType = PROP_KIND_VALUE_TYPE[contract.kind];
+      if (valueType) accepts[key] = valueType;
     }
   for (const [key, valueType] of Object.entries({
     ...(ITEM_KEY_TYPES.has(type) ? { id: "string" as const } : {}),

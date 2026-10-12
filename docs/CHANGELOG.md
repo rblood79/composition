@@ -11,6 +11,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 입력 앞 글자 — ADR-259 Phase 2] - 2026-10-13
+
+### Added
+
+- **field 앞 글자 `prefix`** (ADR-259 Phase 2 — S2 1.8.0 TextField · TextArea · NumberField · ComboBox · ColorField): Design 패널 Content 의 **Prefix** (None · Text · Icon) 가 입력 앞에 Text (`$`) 또는 Icon (`search`) 노드를 넣고 뺀다 — 넣기 · 바꾸기 · 빼기 각 한 번이 undo 한 번. Text 면 **Prefix Text**, Icon 이면 **Prefix Icon** 으로 그 노드를 바로 고친다.
+  - 앞 글자가 든 control Group 이 상자가 된다 (S2 `FieldGroup`): Input rule 의 상자 · quiet · invalid · focus 를 Group 이 그리고 (DOM 은 Input sheet 의 `FieldBox` 별칭, Canvas 는 같은 rule 을 Group 상자에서 실행), 안 Input 은 자기 상자를 내려놓는다. 상자 높이 · 시작 여백은 앞 글자 없을 때와 같다. NumberField 증감 버튼은 상자 안에서 테두리를 내리고, ComboBox 버튼은 같은 자리에 남는다.
+  - 앞 글자는 S2 처럼 흐린 색 (`--fg-muted`) · 아이콘은 글자 줄 높이 정사각 · input 이름 끝에 붙는다 (「Price $」 — TextArea 는 S2 처럼 붙지 않는다) · 앞 글자를 누르면 input 에 포커스.
+  - TextField · TextArea · ColorField 는 상자 Group 이 없어 Input 을 Group 으로 감싼다 (빼면 푼다). 배치된 field 는 이때 자식이 소유 사본이 되어 field 의 Label · Description · Placeholder prop 이 사본에 더 닿지 않는다 (사용자 결정 2026-10-13 「5종 모두 진행 (사본 감수)」 — NumberField · ComboBox 는 Input 의 Placeholder 만).
+  - 위치: `apps/builder/src/builder/catalogRuntime/fieldPrefixCommand.ts` · `panels/properties/catalog/CatalogFieldPrefixField.tsx` · `packages/shared/src/catalog/runtime/fieldPrefix.ts` · `compositionRoot.ts` · `domBinding.runtime.ts` · `presence.ts` · `document/rulePartRules.ts` · `generated/componentRulesTable.ts` (Input `classAliases` · field 앞 글자 선택자) · `apps/builder/src/builder/catalogRuntime/canvasBinding.ts`
+
+### Fixed
+
+- **invalid field 상자 테두리가 Canvas 에서 회색** (앞 글자와 무관하게 모든 field): Preview 는 RAC `data-invalid` 로 빨간 테두리인데 Canvas 는 quiet field 만 invalid 를 받았다. 모든 field 상자 (Input · DateInput · 앞 글자 Group) 가 field 의 invalid 를 받고, Canvas 가 rule 의 `&[data-invalid]` 테두리 색을 읽는다 (`quietStyles.ts` `catalogInvalidBorderColor` · `ruleShapes.ts`).
+- **Button 원본 instance 의 소유 자식이 Button 크기를 못 받음**: NumberField Group 에 노드를 넣어 자식이 사본이 되면 증감 Icon 이 18 → 24 px 로 커졌다 — resolver 가 instance 소유자의 part rule 을 그 루트 type (Button) 의 것으로 읽는다.
+  - **Why**: 사본 Button 은 원본 instance 라 정의에 part rule 이 없었고, `when: size` 판정도 instance 가 쓴 값만 보았다.
+
+### Tests
+
+- `adr259FieldPrefix.test.tsx` 39 — 5 field × text/icon DOM = S2 oracle (이름 · 첫 자식 · 포커스 전달) · undo 한 번 · 빼면 원래 모습 · 5 × 4 상태 Canvas 상자 칠 · 크기 · 부품 자리 · 색 · 아이콘 크기 Canvas = DOM · field 상태 편집 반영. 원복 RED 18/18.
+- live `adr259-live.mjs --phase 2` 51/51 · 다크 51/51: Design 패널 Prefix · Prefix Text · undo · 저장 · 다시 열기 · Preview 이름 · 포커스 전달 · 19 상자 × text/icon Canvas = Preview (상자 칠 ≤ 0.001 · 부품 자리 ±1) · None 으로 풀기.
+
+## [S2 항목 링크 — ADR-259 Phase 1] - 2026-10-13
+
+### Added
+
+- **목록 항목 링크 7 type** (ADR-259 Phase 1 — S2 1.8.0 · RAC `LinkDOMProps`):
+  - ListBoxItem · Tab · Tag · TreeItem · GridListItem · Row · MenuItem 이 `href` · `target` · `rel` 을 받는다 (Link 와 같은 편집 계약 — Design 패널 Content 의 URL · Target · Rel). RAC 가 그대로 그린다: ListBoxItem · Tab · MenuItem 은 `<a>`, 나머지는 자기 요소에 `data-href` (설치 RAC 를 마운트한 oracle 과 같은 DOM).
+  - MenuItem 은 binding 없는 rule type 이라 DOM 만 `href` 를 넘기고 쓸 수 없던 틈이 닫혔다 — rule-only type 의 계약 표 `RULE_TYPE_PROP_CONTRACTS` (definition accepts · Design 패널이 같이 읽는다).
+  - 위치: `packages/shared/src/catalog/document/itemLinks.ts` · `bindings/{ListBoxItem,Tab,Tag,TreeItem,GridListItem,Row}.binding.ts` · `document/ruleDefinition.ts` · `runtime/domBinding.runtime.ts` · `runtime/delegatedDom.runtime.ts` (TreeItem) · `apps/builder/src/builder/catalogRuntime/editContract.ts`
+- **S2 바깥 링크 글리프 · `hideLinkOutIcon`** (사용자 결정 1 「S2 처럼 자동으로」): GridListItem · MenuItem 이 `href` + `target="_blank"` 이면 끝에 바깥 링크 글리프 (Lucide `external-link`, S2 크기 — ListView 10 px · Menu S 10 / M 12 / L · XL 14). GridList · Menu 의 `hideLinkOutIcon` 이 끈다 (resolver 가 항목에 전파). 항목의 끝 여백이 글리프 + 간격만큼 늘고 (레이아웃 입력 · DOM 이 같은 함수), 글리프는 그 여백 자리에 Canvas · Preview 가 같은 상자로 그린다.
+
+### Fixed
+
+- **링크 Tab · MenuItem 의 브라우저 링크 칠** (R4): RAC `<a>` 가 된 Tab · MenuItem 에 밑줄 · 링크 색이 새지 않게 rule 의 `&[href]` (생성 CSS) 가 지운다 — MenuItem 은 Menu 글자색을 이어받는다. ListBoxItem 은 기존 `ListBox.css` `&[href]`.
+  - **Why**: MenuItem 루트에 작성자 색이 없어 `<a>` 의 UA 링크 색 (파랑) 이 바깥 링크 글리프에 그대로 칠해졌다 (live 에서 발견).
+
+### Tests
+
+- `adr259S2Oracle.test.tsx` — 설치 S2 1.8.1 · RAC 를 jsdom 에 마운트한 출력 고정 (`apps/builder/tests/fixtures/adr259-s2-oracle.json`): 도움말 버튼 · Popover 이름, 앞 글자 input 이름 · 포커스 전달, 항목 링크 DOM, 바깥 링크 글리프 표시 조건.
+- `adr259ItemLinks.test.tsx` 11 — 7 type DOM = oracle · MenuItem 패널 계약 · 글리프 표시 조건 (S2 oracle 대조) · 글리프 상자 (레이아웃 여백 · Canvas shape · DOM 상자). 원복 RED 4/4.
+- live `apps/builder/scripts/adr259-live.mjs --phase 1` (headed Chrome · Compare Mode) 13/13 · 다크 12/12: Design 패널 URL 쓰기 · undo/redo · 저장 · 다시 열기 · Preview DOM · 글리프 중심 · 크기 Canvas = Preview · 내부 링크 → Preview page (frame 이동 0) · `_blank` → 새 탭 · WebKit Enter (RAC 합성 링크 keydown 경로) → Preview page.
+
 ## [에이전트 운영 기록·낡은 진입점 정리] - 2026-10-13
 
 ### Changed

@@ -138,4 +138,60 @@
 }
 
 
+  .react-aria-ColorField :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    color: var(--fg-muted);
+    flex-shrink: 0;
+  }
+
+  .react-aria-ColorField .react-aria-Text[slot="prefix"] {
+    width: auto;
+  }
+
+
+  .react-aria-ColorField[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 4px;
+  }
+
+  .react-aria-ColorField[data-size="XS"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+  }
+
+  .react-aria-ColorField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 5px;
+  }
+
+  .react-aria-ColorField[data-size="S"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  .react-aria-ColorField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 6px;
+  }
+
+  .react-aria-ColorField[data-size="M"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  .react-aria-ColorField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 7px;
+  }
+
+  .react-aria-ColorField[data-size="L"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  .react-aria-ColorField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 8px;
+  }
+
+  .react-aria-ColorField[data-size="XL"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
+  }
+
+
 } /* @layer components */

@@ -6,6 +6,7 @@
  */
 
 import type { PrimitiveBinding } from "../types";
+import { HIDE_LINK_OUT_ICON_CONTRACT } from "../document/itemLinks";
 
 export const menuBinding: PrimitiveBinding = {
   source: {
@@ -26,6 +27,9 @@ export const menuBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // ADR-259 Phase 1: S2 `hideLinkOutIcon` — its link items opening a new tab draw no link-out
+      //   glyph (carried to the items — `CATALOG_LINK_OUT_OWNERS`).
+      hideLinkOutIcon: HIDE_LINK_OUT_ICON_CONTRACT,
       selectionMode: {
         kind: "enum",
         label: "Selection Mode",

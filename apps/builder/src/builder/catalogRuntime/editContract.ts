@@ -31,6 +31,7 @@ import type {
 } from "../../../../../packages/shared/src/catalog/document/types";
 import type { CatalogGraph } from "../../../../../packages/shared/src/catalog/document/graph";
 import { normalizeColorControlPatch } from "../../../../../packages/shared/src/catalog/document/colorValue";
+import { RULE_TYPE_PROP_CONTRACTS } from "../../../../../packages/shared/src/catalog/document/itemLinks";
 import { REUSABLE_PROPS_SCHEMAS } from "../components/reusablePropsSchemas";
 import {
   catalogBindingRef,
@@ -72,7 +73,9 @@ export function catalogSemanticContracts(
     if (schema) return schema as Readonly<Record<string, PropContract>>;
   }
   const entry = getCatalogEntry(type);
-  return entry?.kind === "primitive" ? (entry.binding.props.accepts ?? {}) : {};
+  return entry?.kind === "primitive"
+    ? (entry.binding.props.accepts ?? {})
+    : (RULE_TYPE_PROP_CONTRACTS[type] ?? {});
 }
 
 /** The semantic prop keys a definition offers (no data binding) — a node about to be created. */

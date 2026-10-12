@@ -154,4 +154,60 @@
 }
 
 
+  .react-aria-NumberField :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    color: var(--fg-muted);
+    flex-shrink: 0;
+  }
+
+  .react-aria-NumberField .react-aria-Text[slot="prefix"] {
+    width: auto;
+  }
+
+
+  .react-aria-NumberField[data-size="XS"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 4px;
+  }
+
+  .react-aria-NumberField[data-size="XS"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+  }
+
+  .react-aria-NumberField[data-size="S"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 5px;
+  }
+
+  .react-aria-NumberField[data-size="S"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  .react-aria-NumberField[data-size="M"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 6px;
+  }
+
+  .react-aria-NumberField[data-size="M"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  .react-aria-NumberField[data-size="L"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 7px;
+  }
+
+  .react-aria-NumberField[data-size="L"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+
+  .react-aria-NumberField[data-size="XL"] :is(.react-aria-Text[slot="prefix"], .react-aria-Icon[slot="prefix"]) {
+    margin-inline-end: 8px;
+  }
+
+  .react-aria-NumberField[data-size="XL"] .react-aria-Text[slot="prefix"] {
+    font-size: var(--text-lg);
+    line-height: var(--text-lg--line-height);
+  }
+
+
 } /* @layer components */

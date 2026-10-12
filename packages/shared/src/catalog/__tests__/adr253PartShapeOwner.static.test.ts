@@ -337,9 +337,10 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         if (text.includes(token)) found.push(`${type} quiet ${token}`);
     }
     expect(found).toEqual([]);
+    // (ADR-259 Phase 2: the Input rule also draws a prefix box — focused within, not itself.)
     for (const [type, focus] of [
-      ["Input", "data-focused"],
-      ["DateInput", "data-focus-within"],
+      ["Input", ":is([data-focused], [data-focus-within])"],
+      ["DateInput", "[data-focus-within]"],
     ] as const) {
       const selectors = (
         (COMPONENT_RULES_TABLE as Record<string, (typeof rules)[number][1]>)[
@@ -353,7 +354,7 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
         "border-radius": "0",
       });
       expect(
-        selectors?.[`&[data-quiet][${focus}]`]?.styles?.["border-bottom-color"],
+        selectors?.[`&[data-quiet]${focus}`]?.styles?.["border-bottom-color"],
       ).toBe("var(--accent)");
       expect(
         selectors?.["&[data-quiet][data-invalid]"]?.styles?.[

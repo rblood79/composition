@@ -2,13 +2,19 @@
 
 ## Status
 
-Proposed — 2026-10-12
+Accepted — 2026-10-13 (`/execute-adr 259` 호출 + [리뷰](reviews/259.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed). Proposed — 2026-10-12
 
 - 사용자 요청: `/create-adr` (2026-10-12) — S2 프로퍼티 정렬 조사 ([S2_PROP_ALIGNMENT_2026-10.md](../explanation/research/S2_PROP_ALIGNMENT_2026-10.md) §6.1) 의 남은 항목 중 「라 — 새 부품이 필요, 별도 ADR 규모」 를 ADR 로 진행.
 - 범위를 정한 사용자 답 (2026-10-12, AskUserQuestion): **「하나로 + href 포함」** — `contextualHelp` · `prefix` · 항목 `href` + `hideLinkOutIcon` 을 ADR 하나에 Phase 로 나눈다. 「하나로, href 제외」 · 「둘로 나눔」 은 기각.
 - 사용자가 이미 답한 확인 항목: D2 정본 = S2 1.8.0 고정 → design-data → v3 → 확장 (2026-10-09) · 빌더 = RAC 수준 조립, 레퍼런스 노드 트리 (2026-10-07) · overlay 는 「레퍼런스 구조로」 — `DialogTrigger > Button + Popover` (ADR-255) · 기본 UI 원본 (Label · Input · Button) 을 바꾸면 전 컴포넌트가 따라간다 (ADR-253) · Skia 전용 시각 효과 금지 (D3 대칭) · 저장 문서의 prop 전환은 로드 시 1회 (2026-10-10) · Preview 조작 결과는 문서에 쓰지 않는다 (ADR-250).
 - **사용자 결정 1 · 2 — 2026-10-12**: (1) 바깥 링크 글리프 = **「S2 처럼 자동으로」** (L1), (2) 도움말 원본 = **「S2 처럼」** — S2 의 `ContextualHelp` 는 field 밖 (제목 옆 등) 에도 두는 공개 컴포넌트라 독립 원본을 팔레트에 둔다. 자리는 S2 / v3 문서가 도움말을 두는 overlay 묶음 (Dialog · Popover · Tooltip 과 같은 곳) — 팔레트 overlay 묶음의 Popover 뒤.
 - 리뷰: round 1 (Codex, 2026-10-12 — [reviews/259.md](reviews/259.md)) HIGH 1 · MEDIUM 2 → **2026-10-12 문서 수리** (Decision 1 · 2 · R9 ~ R11 · G2 · G3 보강): r1-h1 도움말 Button 은 field 의 ButtonContext 를 끊는다 (`slot: false` → RAC `slot={null}`, S2 `ContextualHelp.tsx:197-205` — 끊지 않으면 disabled ComboBox 안 도움말이 같이 비활성 · picker 이름 경로를 상속) · r1-m1 도움말 Popover 의 이름 = 제목 Heading (S2 `ContextualHelp.tsx:54-59, 79-87` 처럼 Popover `aria-labelledby` ↔ title id 를 ContextualHelp 안에서 직접 연결 — 일반 Popover 는 그대로) · r1-m2 앞 글자가 있는 상자 Group 은 비대화형 자리의 mouse `pointerdown` · `touchend` 를 input · textarea 포커스로 넘긴다 (S2 `Field.tsx:258-273`). 수리 검증 round 2 (Codex, 2026-10-12) — 신규 HIGH 0 · MEDIUM 0 · **pending 0** (세 건 fixed) → 설계 전제 확정 (CLAUDE.md §전제 확정 종결 계약). 제품 구현 · gate 는 미검증.
+> **Phase 0 닫힘 (2026-10-13)**: 템플릿 변경 0 (contract 41) · S2 1.8.1/RAC oracle 고정 (`apps/builder/tests/fixtures/adr259-s2-oracle.json`) — 도움말 Popover 의 이름은 제목이 `slot="title"` Heading 일 때만 · TextArea 의 앞 글자는 이름에 들어가지 않음 (S2 그대로) · WebKit 합성 링크는 지금 click 처리기가 받는다 (R3 새지 않음 → H1 단독, H2 안 더함) · 치수 대응표.
+>
+> **Phase 1 닫힘 (2026-10-13)**: 항목 링크 7 type (`href` · `target` · `rel`, MenuItem 포함) · GridList · Menu `hideLinkOutIcon` · 바깥 링크 글리프 (L1). unit 11 · 원복 RED 4/4 · live 13/13 (다크 12/12) — 글리프 중심 · 크기 Canvas = Preview (Menu 픽셀 차 0, GridList 10 px 획 5 px), WebKit Enter 로 Preview iframe 이동 0. R4 는 live 에서 MenuItem `<a>` 의 링크 색 누출로 실재 — rule `&[href]` 로 수리.
+>
+> **Phase 2 닫힘 (2026-10-13)**: 앞 글자 5 field (Text · Icon) — 명령 하나 (넣기 · 바꾸기 · 빼기 각 undo 한 번) · Design 패널 Prefix. 사용자 결정 3 「5종 모두 진행 (사본 감수)」 — TextField · TextArea · ColorField 는 Input 을 Group 으로 감싸며 field 자식이 사본이 된다. 설계 전제 보정: NumberField 의 상자는 Group 이 아니라 Input 이 칠한다 (ADR-253) → 앞 글자가 든 Group 이 Input rule 상자를 그린다 (S2 `FieldGroup`). unit 39 · 원복 RED 18/18 · live 51/51 (다크 51/51). live 가 잡은 기존 비대칭 — invalid field 상자 Canvas 회색 (모든 field) · 사본 Button 의 Icon 크기 — 를 같이 수리. 판독 1회 HIGH 0.
+
 - 범위 밖: S2 `LabeledValue` · `RangeSlider` (우리 type 없음 — S2 의 `contextualHelp` 18 type 중 이 둘을 뺀 16) · 항목 `download` · `ping` · `routerOptions` · `referrerPolicy` (조사 §6.1 「제외 권장」) · Breadcrumb · Card · Link 의 링크 (이미 있음) · 링크 검증 (URL 형식 판정 — 지금 `href` 는 어디서도 형식을 보지 않는다, 별도 작업).
 
 ## Context

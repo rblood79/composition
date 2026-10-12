@@ -1,4 +1,5 @@
 import { resolveTextSourceText } from "@composition/rendering";
+import { catalogItemLinkProps } from "../document/itemLinks";
 
 import {
   OWNER_DRAWN_PART_HOSTS,
@@ -441,6 +442,8 @@ function treeItemElements(
               )
             : "",
           isDisabled: item.props.isDisabled === true,
+          // ADR-259 Phase 1: RAC's item link (`data-href` · `data-target` · `data-rel`).
+          ...catalogItemLinkProps(item.props),
         },
         ...others.map((kid) => input.renderChild(kid.id)),
         ...treeItemElements(input, childItems),
@@ -468,6 +471,7 @@ function treeItemElements(
       hasChildren: childItems.length > 0,
       showInfoButton: false,
       isDisabled: item.props.isDisabled === true,
+      ...catalogItemLinkProps(item.props),
       children: others.map((kid) => input.renderChild(kid.id)),
       childItems: childItems.length
         ? treeItemElements(input, childItems)
@@ -576,6 +580,10 @@ export const CATALOG_INPUT_NODE_FIELDS: ReadonlySet<string> = new Set([
 export const CATALOG_WRAPPED_CONTROL_FIELDS: ReadonlySet<string> = new Set([
   "numberfield",
   "combobox",
+  // ADR-259 Phase 2: while a prefix wraps their Input in a Group (none without one).
+  "textfield",
+  "textarea",
+  "colorfield",
   // (Not searchfield: its parts are its own children — ADR-256 G5 example 5.)
   "datepicker",
   "daterangepicker",
