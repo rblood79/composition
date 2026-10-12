@@ -1,4 +1,5 @@
 import { deriveOptions } from "../../../../../packages/shared/src/catalog/outputs/editFields";
+import { readPropSource } from "../../../../../packages/shared/src/catalog/resolution/fieldSource";
 import {
   getCatalogEntry,
   resolveComponentRule,
@@ -150,20 +151,43 @@ export function catalogEditContract(
 }
 
 /**
+ * What a target's prop shows without its own write — the inherited value, else the contract's
+ * default (the Properties field's `baseValue`).
+ */
+export function catalogPropBaseValue(
+  graph: CatalogReader,
+  target: EditTarget,
+  key: string,
+): unknown {
+  const inherited = readPropSource(graph, target, key).inherited.value;
+  if (inherited !== undefined) return inherited;
+  const definitionId = catalogTargetDefinitionId(graph, target);
+  return catalogSemanticContracts(
+    definitionId,
+    definitionTypeName(graph, definitionId),
+  )[key]?.default;
+}
+
+/**
  * A Properties patch as one command: each changed key is set on the targets (`undefined` removes
  * the own write, back to the inherited value). Unchanged keys are left out; `undefined` = nothing
- * changes.
+ * changes. With `base`, a value equal to every target's base (`catalogPropBaseValue`) removes the
+ * own write too — a value set back leaves no override.
  */
 export function catalogSemanticPatchCommand(
   targets: readonly EditTarget[],
   patch: Readonly<Record<string, unknown>>,
   current: (key: string) => unknown,
+  base?: (target: EditTarget, key: string) => unknown,
 ): CatalogCommand | undefined {
+  const same = (a: unknown, b: unknown) =>
+    JSON.stringify(a) === JSON.stringify(b);
   const props: Record<string, PropWrites[string]> = {};
   for (const [key, value] of Object.entries(patch)) {
-    if (JSON.stringify(current(key)) === JSON.stringify(value)) continue;
+    if (same(current(key), value)) continue;
     props[key] =
-      value === undefined
+      value === undefined ||
+      (base && targets.every((target) => same(base(target, key), value)))
         ? { kind: "remove" }
         : { kind: "set", value: value as AuthoredValue };
   }
@@ -283,6 +307,7 @@ export function catalogColorControlPatchCommand(
       group.targets,
       group.patch,
       (key) => currentOf(first, key),
+      (target, key) => catalogPropBaseValue(graph, target, key),
     );
     return command ? [command] : [];
   });
@@ -330,7 +355,9 @@ export function catalogPropertiesPatchCommand(
   }
   const propCommand =
     catalogColorControlPatchCommand(graph, targets, props, currentOf) ??
-    catalogSemanticPatchCommand(targets, props, current);
+    catalogSemanticPatchCommand(targets, props, current, (target, key) =>
+      catalogPropBaseValue(graph, target, key),
+    );
   if (propCommand) commands.push(propCommand);
   if (commands.length < 2) return commands[0];
   return () => composeCommands(graph, "Edit properties", commands);

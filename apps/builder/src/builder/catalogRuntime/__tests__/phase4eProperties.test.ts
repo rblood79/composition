@@ -11,6 +11,7 @@ import type {
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import {
   catalogEditContract,
+  catalogPropertiesPatchCommand,
   catalogSemanticPatchCommand,
 } from "../editContract";
 import { definitionTypeName } from "../../../../../../packages/shared/src/catalog/commands/context";
@@ -196,5 +197,50 @@ describe("ADR-248 Phase 4e-4 Properties", () => {
       isOverridden: true,
       currentValue: next,
     });
+  });
+
+  // 2026-10-12 (사용자 「값 변경후 다시 초기 값으로 돌아가더라도 overrides 에는 … reset 이 활성화」): a value set
+  // back to what shows without the own write (inherited, else the contract default) removes the own
+  // write — the Component section's Overrides list (the own keys) drops the row.
+  it("a value set back to its base removes the own write (Overrides drops the row)", async () => {
+    const { workspace, field } = await open();
+    const edit = (targets: EditTarget[], values: Record<string, unknown>) =>
+      catalogPropertiesPatchCommand(
+        workspace.runtime.graph,
+        targets,
+        values,
+        (key) => workspace.readModel.propSource(targets[0], key).value,
+        new Set(),
+      );
+    const own = (name: string) =>
+      Object.keys(workspace.readModel.ownFields(on(name)).props);
+    // Inherited from the origin (the template's `variant`) and a contract default (`isDisabled`).
+    const variant = field(on("icon"), "variant");
+    const disabled = field(on("icon"), "isDisabled");
+    const other = variant.options!.find(
+      (option) => option.value !== variant.baseValue,
+    )!.value;
+    workspace.execute(
+      edit([on("icon")], { variant: other, isDisabled: !disabled.baseValue })!,
+    );
+    expect(own("icon")).toEqual(
+      expect.arrayContaining(["variant", "isDisabled"]),
+    );
+    workspace.execute(
+      edit([on("icon")], {
+        variant: variant.baseValue,
+        isDisabled: disabled.baseValue,
+      })!,
+    );
+    expect(own("icon")).toEqual(["label"]);
+    expect(field(on("icon"), "variant")).toMatchObject({
+      isOverridden: false,
+      currentValue: variant.baseValue,
+    });
+    // A text node with no inherited `children`: setting the default back clears the write too.
+    const text = field(on("a"), "children");
+    workspace.execute(edit([on("a")], { children: "Hi" })!);
+    workspace.execute(edit([on("a")], { children: text.baseValue })!);
+    expect(field(on("a"), "children").isOverridden).toBe(false);
   });
 });

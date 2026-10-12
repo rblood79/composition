@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 값을 초기값으로 되돌리면 재정의가 사라짐] - 2026-10-12
+
+### Fixed
+
+- **값을 바꿨다가 처음 값으로 되돌려도 Component 섹션의 Overrides 에 그 항목과 Reset 이 남던 문제**:
+  - **Why**: Properties 커밋 (`catalogSemanticPatchCommand`) 이 새 값을 지금 보이는 값과만 비교해, 처음 값으로 되돌려도 「내 값 = 처음 값」 을 문서에 썼다. Overrides 목록은 문서에 내 값이 있는지로 만들어져 행이 남았다.
+  - 수정: 새 값이 내 값 없이 보일 값 (상속값, 없으면 contract 기본값 — 필드의 `baseValue` 와 같은 식) 과 같으면 내 값을 지운다 (`catalogPropBaseValue`). 여러 요소를 함께 고칠 때는 모든 대상의 기본값이 같을 때만 지운다.
+  - 위치: `apps/builder/src/builder/catalogRuntime/editContract.ts`
+
+### Tests
+
+- 원본 상속값 (`variant`) · contract 기본값 (`isDisabled`) · 상속 없는 Text `children` 을 바꿨다 되돌리면 내 값이 사라진다 — `phase4eProperties.test.ts` (수정 전 코드 RED: `label` 외에 `variant` · `isDisabled` 가 남음). catalogRuntime · properties 2,102 · type-check.
+- live (실제 Builder, Button): Disabled 켬 → Overrides `isDisabled` → 끔 → 없음 · Variant Primary → Accent → Primary · Size M → L → M 도 같고, undo 하면 다시 생긴다 · page error 0.
+
 ## [TagGroup 접기 확인 — 편집마다 문서 전체를 훑지 않음] - 2026-10-12
 
 ### Performance
