@@ -13,6 +13,7 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: fit-content;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
 
@@ -41,33 +42,6 @@
   &[data-pressed] {
     background: transparent;
   }
-}
-
-.react-aria-RangeCalendar[data-size="S"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-md);
-  gap: 4px;
-  --icon-size: 20px;
-}
-
-.react-aria-RangeCalendar[data-size="M"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-lg);
-  gap: 6px;
-  --icon-size: 26px;
-}
-
-.react-aria-RangeCalendar[data-size="L"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-xl);
-  gap: 8px;
-  --icon-size: 32px;
 }
 
 .react-aria-RangeCalendar[data-focus-visible] {

@@ -15,28 +15,24 @@
     width: fit-content;
     max-width: 100%;
     color: var(--fg);
-
-    /* Button variable overrides (display/justify 는 .react-aria-Button 한정 selector 로 이관) */
-    --btn-radius: var(--radius-sm);
-    --btn-padding: 0;
   }
 
   /* ========== Month block · Header Layout ========== */
   /* ADR-256 Phase 9 — the reference starter's `div.month` (one per shown month): its header over its
-     grid, the calendar size's gap (`manualBoxRules` CalendarMonth — the Canvas reads the same). */
+     grid, 6px apart (`manualBoxRules` CalendarMonth — the Canvas reads the same).
+     The calendar has no size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 —
+     RAC · S2 Calendar take none): like S2 `calendarStyles`, a month is at most 7 cells of 30 (+ the
+     tds' 2px padding each side = 238) and shrinks with its parent (`max-width: 100%`); its day cells
+     follow its width (`container-type` — `100cqw` below; the Canvas: `catalogCalendarGridSize`). */
   .react-aria-Calendar .month,
   .react-aria-RangeCalendar .month {
     display: flex;
     flex-direction: column;
     gap: 6px;
-  }
-  .react-aria-Calendar[data-size="S"] .month,
-  .react-aria-RangeCalendar[data-size="S"] .month {
-    gap: 4px;
-  }
-  .react-aria-Calendar[data-size="L"] .month,
-  .react-aria-RangeCalendar[data-size="L"] .month {
-    gap: 8px;
+    width: calc(7 * (var(--text-3xl) + 2 * var(--spacing-2xs)));
+    max-width: 100%;
+    min-width: 0;
+    container-type: inline-size;
   }
 
   /* The header row (the CalendarHeader node — `manualBoxRules` CalendarHeader): the author's nav
@@ -47,6 +43,29 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    /* RAC reference (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex',
+       gap: 4}}`, 2026-10-13; the Canvas: `manualBoxRules` CalendarHeader). */
+    gap: 4px;
+  }
+
+  /* A month · year picker's Select: the two share what the nav Buttons leave equally — the
+     reference's equal-width Selects (starter `Select.css` `width: 200px` shrunk alike; the trigger
+     `width: 100%; min-width: 0`, the value ellipsized — the Select sheet). The reference's month has
+     a set width; ours is the grid's, so the Selects' text does not widen the calendar (`contain:
+     inline-size` — no intrinsic width; the Canvas: a 0% basis). */
+  .react-aria-Calendar header .react-aria-Select,
+  .react-aria-RangeCalendar header .react-aria-Select {
+    flex: 1 1 0%;
+    width: auto;
+    min-width: 0;
+    contain: inline-size;
+  }
+
+  /* Its trigger starts twice the Button's paddingY in (사용자 2026-10-13 — 8; the Canvas:
+     `manualBoxRules` CalendarHeader). */
+  .react-aria-Calendar header .react-aria-Select .react-aria-Button,
+  .react-aria-RangeCalendar header .react-aria-Select .react-aria-Button {
+    padding-left: 8px;
   }
 
   /* A plain Heading (RAC Calendar's visible-range title) or RAC's CalendarHeading (its month). */
@@ -63,8 +82,12 @@
     color: var(--fg);
   }
 
-  .react-aria-Calendar .react-aria-Button,
-  .react-aria-RangeCalendar .react-aria-Button {
+  /* The previous · next Buttons only (the header's own Buttons) — a month · year picker's Select
+     trigger is a Button too and keeps its Select's size and shape (2026-10-13). */
+  .react-aria-Calendar header > .react-aria-Button,
+  .react-aria-RangeCalendar header > .react-aria-Button {
+    --btn-radius: var(--radius-sm);
+    --btn-padding: 0;
     /* Button.css 고정(inline-flex) override — Calendar 네비 버튼 한정 */
     display: flex;
     justify-content: center;
@@ -72,6 +95,8 @@
     height: var(--text-3xl);
     /* The generic Button sheet's default min-width (68) reaches these unsized buttons */
     min-width: unset;
+    /* The reference starter's Buttons do not shrink (`Button.css` `flex-shrink: 0`). */
+    flex-shrink: 0;
     background: transparent;
     color: var(--fg);
     border: none;
@@ -89,8 +114,8 @@
 
   /* ADR-256 Phase 9 — a nav Button's chevron Icon node: the glyph's own box (the Canvas draws it at
      its icon size; the Icon sheet's default 24px height is a standalone icon's). */
-  .react-aria-Calendar .react-aria-Button > .react-aria-Icon,
-  .react-aria-RangeCalendar .react-aria-Button > .react-aria-Icon {
+  .react-aria-Calendar header > .react-aria-Button > .react-aria-Icon,
+  .react-aria-RangeCalendar header > .react-aria-Button > .react-aria-Icon {
     height: auto;
   }
 
@@ -110,16 +135,23 @@
     font-size: var(--text-sm);
     line-height: var(--text-sm--line-height);
     padding: var(--spacing-xs);
+    height: var(--text-3xl);
   }
 
   .react-aria-CalendarGridBody td {
     padding: var(--spacing-2xs);
+    /* A day cell: 30, or a seventh of its month less the td padding when the month is narrower
+       (S2 `--cell-responsive-size`). */
     .react-aria-CalendarCell {
-      width: 100%;
+      --calendar-cell: min(
+        var(--text-3xl),
+        100cqw / 7 - 2 * var(--spacing-2xs)
+      );
+      width: var(--calendar-cell);
+      height: var(--calendar-cell);
       margin: 0px;
       line-height: var(--text-sm--line-height);
       font-size: var(--text-sm);
-      aspect-ratio: 1;
       display: flex;
       align-items: center;
       justify-content: center;

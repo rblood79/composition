@@ -218,6 +218,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        // 2026-10-13: the calendar has no size — it shrinks with its parent.
+        maxWidth: "100%",
         paddingTop: 0,
         paddingRight: 0,
         paddingBottom: 0,
@@ -235,6 +237,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
+        maxWidth: "100%",
         paddingTop: 0,
         paddingRight: 0,
         paddingBottom: 0,
@@ -252,6 +255,8 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        // 2026-10-13: the calendar has no size — it shrinks with its parent.
+        maxWidth: "100%",
         paddingTop: 0,
         paddingRight: 0,
         paddingBottom: 0,

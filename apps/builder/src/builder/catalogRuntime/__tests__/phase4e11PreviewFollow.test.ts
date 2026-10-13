@@ -215,7 +215,7 @@ describe("field trigger buttons — no generic Button min-width", () => {
 
 /**
  * calendar-header: the Calendar nav buttons are `.react-aria-Button` elements without a
- * `data-size`; `Calendar.css` sizes them (height × height + spacing-xs) but the generic Button
+ * `data-size`; `Calendar.css` sizes them (a square — 2026-10-13) but the generic Button
  * `min-width: 68px` won, wrapping the month heading onto two lines. The shared Calendar sheet
  * resets it; the Canvas header row reads the nav width without the floor.
  */
@@ -226,22 +226,23 @@ describe("Calendar nav buttons — no generic Button min-width", () => {
       "utf8",
     );
     const block = css.slice(
-      css.indexOf(".react-aria-RangeCalendar .react-aria-Button {"),
+      // (2026-10-13: the header's own Buttons only — a picker's Select trigger keeps its own box.)
+      css.indexOf(".react-aria-RangeCalendar header > .react-aria-Button {"),
     );
     expect(block.slice(0, block.indexOf("&["))).toContain("min-width: unset;");
   });
 
-  it("the Canvas header row reads the sized nav width (md 30 + 4)", () => {
+  // 사용자 2026-10-13 「높이가 30 이면 넓이도 30 이어야」: a square, like the reference starter's
+  // icon-only Button (`width: var(--spacing-8)` = its height).
+  it("the Canvas header row reads the nav width (a square — 30; the calendar has no size)", () => {
     // (ADR-256 Phase 9: the nav Buttons are nodes — the header's part rules give their box.)
-    const nav = (size: string) =>
-      manualBoxRule("CalendarHeader")?.parts?.find(
-        (part) =>
-          part.childType === "Button" &&
-          part.size === size &&
-          part.childProps?.slot === "previous",
-      )?.visual.width;
-    expect(nav("M")).toBe(34);
-    expect(nav("S")).toBe(28);
+    const navs = (manualBoxRule("CalendarHeader")?.parts ?? []).filter(
+      (part) =>
+        part.childType === "Button" && part.childProps?.slot === "previous",
+    );
+    expect(navs.map((part) => [part.size, part.visual.width])).toEqual([
+      [undefined, 30],
+    ]);
   });
 });
 

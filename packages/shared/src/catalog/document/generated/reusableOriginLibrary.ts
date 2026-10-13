@@ -5678,7 +5678,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendar__months"
     ],
     "props": {
-      "size": "M",
       "isDisabled": false,
       "isReadOnly": false,
       "locale": "{locale}",
@@ -5708,9 +5707,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendar__header",
       "lib:template:component-calendar__grid"
     ],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5721,9 +5718,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendar__heading",
       "lib:template:component-calendar__next"
     ],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {},
     "layout": {
       "display": "flex",
@@ -5764,9 +5759,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-calendar__heading",
     "definitionId": "lib:definition:type-CalendarHeading",
     "children": [],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -5804,8 +5797,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendar__cell"
     ],
     "props": {
-      "defaultToday": true,
-      "size": "M"
+      "defaultToday": true
     },
     "visual": {}
   },
@@ -5840,7 +5832,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendarmonthpicker__popover"
     ],
     "props": {
-      "size": "S",
       "placeholder": ""
     },
     "visual": {}
@@ -5918,7 +5909,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-calendaryearpicker__popover"
     ],
     "props": {
-      "size": "S",
       "placeholder": ""
     },
     "visual": {}
@@ -6329,7 +6319,6 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-rangecalendar__months"
     ],
     "props": {
-      "size": "M",
       "isDisabled": false,
       "isReadOnly": false,
       "locale": "{locale}",
@@ -6359,9 +6348,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-rangecalendar__header",
       "lib:template:component-rangecalendar__grid"
     ],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -6372,9 +6359,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-rangecalendar__heading",
       "lib:template:component-rangecalendar__next"
     ],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {},
     "layout": {
       "display": "flex",
@@ -6415,9 +6400,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "id": "lib:template:component-rangecalendar__heading",
     "definitionId": "lib:definition:type-CalendarHeading",
     "children": [],
-    "props": {
-      "size": "M"
-    },
+    "props": {},
     "visual": {}
   },
   {
@@ -6455,8 +6438,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-rangecalendar__cell"
     ],
     "props": {
-      "defaultToday": true,
-      "size": "M"
+      "defaultToday": true
     },
     "visual": {}
   },

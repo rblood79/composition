@@ -143,7 +143,6 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       "ProgressBarTrack",
       "Table",
       "Separator",
-      "CalendarGrid",
       "ListBox",
       "GridList",
       "DisclosureGroup",
@@ -160,8 +159,23 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       "Tabs",
     ].map((type) => [type, { variant: dropOf }]),
   ),
-  Calendar: { maxVisibleMonths: visibleMonthsOf, variant: dropOf },
-  RangeCalendar: { maxVisibleMonths: visibleMonthsOf, variant: dropOf },
+  // Calendar size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」): RAC · S2
+  // Calendar take no size — a month follows its width. The calendar's and its parts' old `size` is
+  // dropped. (CalendarGrid's `variant`: 조사 §4.2 F, above.)
+  Calendar: {
+    maxVisibleMonths: visibleMonthsOf,
+    variant: dropOf,
+    size: dropOf,
+  },
+  RangeCalendar: {
+    maxVisibleMonths: visibleMonthsOf,
+    variant: dropOf,
+    size: dropOf,
+  },
+  CalendarMonth: { size: dropOf },
+  CalendarHeader: { size: dropOf },
+  CalendarHeading: { size: dropOf },
+  CalendarGrid: { variant: dropOf, size: dropOf },
   DatePicker: { maxVisibleMonths: dropOf },
   DateRangePicker: { maxVisibleMonths: dropOf },
 };

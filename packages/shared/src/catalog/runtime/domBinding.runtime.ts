@@ -1414,7 +1414,7 @@ function buttonElement(
   // Button too: the Disclosure sheet styles it (`.react-aria-Button[slot='trigger']`).
   // A calendar's previous · next Buttons (RAC's `previous` · `next` slots — ADR-256 Phase 9) are the
   // reference starter's plain RAC Buttons too: the calendar sheets style them
-  // (`.react-aria-Calendar .react-aria-Button`).
+  // (`.react-aria-Calendar header > .react-aria-Button`).
   if (
     resolution.kind === "named" &&
     (resolution.slot === "chevron" ||
@@ -3081,7 +3081,7 @@ export function renderNode(
     catalogDisclosureOfTrigger(node, domGet, domType) ??
     catalogDisclosureOfHeading(node, domGet, domType);
   // (A calendar's nav Button: the header row's part rule gives its box on the Canvas —
-  // `.react-aria-Calendar .react-aria-Button` in the DOM, ADR-256 Phase 9.)
+  // `.react-aria-Calendar header > .react-aria-Button` in the DOM, ADR-256 Phase 9.)
   const calendarNavHeader =
     node.bindingId === "button" &&
     catalogCalendarNavButton(node, domGet, domType)

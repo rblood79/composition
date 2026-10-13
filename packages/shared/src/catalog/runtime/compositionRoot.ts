@@ -755,16 +755,6 @@ function lineHeightInheritors(
   return out;
 }
 
-/**
- * The size a calendar's day table follows: its own, propagated from the calendar (ADR-256 Phase 9
- * — `CATALOG_SIZE_PROPAGATION`; the DOM sheets read the calendar's `data-size`).
- */
-function calendarPartSize(node: CatalogConsumerNode): string | undefined {
-  if (node.bindingId !== "calendargrid") return undefined;
-  const size = node.props.size;
-  return typeof size === "string" ? size : undefined;
-}
-
 /** A DateInput's RAC segment row (`segmentText`). */
 interface CatalogDateSegments {
   /** The date field whose RAC DateInput this is (past the field's control Group). */
@@ -912,7 +902,6 @@ function styleOf(
   segmentText?: CatalogDateSegments,
   labelSuffix = "",
   inheritedLineHeight?: number,
-  calendarSize?: string,
 ): Record<string, unknown> {
   if (node.hidden) return { display: "none" };
   const box = catalogBoxModel(node);
@@ -921,18 +910,15 @@ function styleOf(
   const leaf = measure
     ? textLeaf(node, typeName, labelSuffix, inheritedLineHeight)
     : undefined;
-  // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`).
+  // The calendar table's own box (the model's day columns × week rows — `calendarModel.ts`) at its
+  // widest; laid out narrower (its month shrinks with its parent), its height is re-measured at
+  // the laid-out width (`rewrap` → `wrappedHeight`).
   const grid =
     node.bindingId === "calendargrid"
       ? calendarGridShape(node.derivedProps?._calendarGrid)
       : undefined;
   const table = grid
-    ? catalogCalendarGridSize(
-        calendarSize,
-        grid.columns,
-        grid.rows,
-        grid.emptyRows,
-      )
+    ? catalogCalendarGridSize(grid.columns, grid.rows, grid.emptyRows)
     : undefined;
   // Date segments: the RAC segment row at the node's own font — each part is its own inline span
   // (editable parts padded), a range repeats the row around its separator with the trigger gap.
@@ -1137,14 +1123,13 @@ function styleOf(
           contentHeight: wrappedHeight ?? dropZone.height,
         }
       : {}),
-    // A table never lays out narrower than its columns (CSS table width ≥ min-content), and an
-    // auto-width table is not stretched by its flex column (it keeps its columns' width).
+    // The day table fills its month (at most 7 widest cells — the month's `width`), its cells a
+    // seventh of it (`catalogCalendarGridSize`); no wider than its widest cells.
     ...(table
       ? {
-          contentMinWidth: table.width,
+          contentMinWidth: 0,
           contentMaxWidth: table.width,
-          contentHeight: table.height,
-          minWidth: `${table.width}px`,
+          contentHeight: wrappedHeight ?? table.height,
           maxWidth: `${table.width}px`,
         }
       : {}),
@@ -2246,7 +2231,6 @@ export class CatalogCompositionRoot {
       this.segmentText(record, get),
       catalogLabelSuffix(record, get, this.typeOf),
       inheritedLineHeight(record, get),
-      calendarPartSize(record),
     );
     const thumb = record.hidden
       ? undefined
@@ -2663,11 +2647,35 @@ export class CatalogCompositionRoot {
     return changed;
   }
   private rewrap(candidates: Iterable<string>): void {
-    if (!this.textMeasure) return;
     let changed = false;
     for (const id of candidates) {
       const record = this.records.get(id);
       if (!record || record.hidden) continue;
+      // A calendar's day table: its cells follow its laid-out width (its month's), so its height.
+      if (record.bindingId === "calendargrid") {
+        const grid = calendarGridShape(record.derivedProps?._calendarGrid);
+        const rect = grid && this.layout.getLayoutsForIds([id]).get(id);
+        const widest = grid
+          ? catalogCalendarGridSize(grid.columns, grid.rows, grid.emptyRows)
+          : undefined;
+        const next =
+          grid && rect && widest && rect.width + 0.5 < widest.width
+            ? catalogCalendarGridSize(
+                grid.columns,
+                grid.rows,
+                grid.emptyRows,
+                rect.width,
+              )!.height
+            : undefined;
+        if (next === this.wrapHeights.get(id)) continue;
+        this.keep(this.wrapHeights, id);
+        if (next === undefined) this.wrapHeights.delete(id);
+        else this.wrapHeights.set(id, next);
+        this.layout.updateNodeStyle(id, this.styleFor(record));
+        changed = true;
+        continue;
+      }
+      if (!this.textMeasure) continue;
       // A DropZone's composed texts break at its content box (the column's stacked height).
       if (record.bindingId === "dropzone") {
         const content = catalogDropZoneContent(record, this.textMeasure);

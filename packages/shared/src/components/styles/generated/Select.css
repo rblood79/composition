@@ -75,15 +75,15 @@
 }
 
 .react-aria-Select[data-size="S"] {
-  --select-btn-pad-end: 4px;
+  --select-btn-pad-end: 2px;
 }
 
 .react-aria-Select[data-size="M"] {
-  --select-btn-pad-end: 8px;
+  --select-btn-pad-end: 4px;
 }
 
 .react-aria-Select[data-size="L"] {
-  --select-btn-pad-end: 12px;
+  --select-btn-pad-end: 8px;
 }
 
 .react-aria-Select[data-size="XL"] {

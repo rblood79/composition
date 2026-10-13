@@ -691,10 +691,10 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
       expect(model.rows).toHaveLength(6);
       expect(model.rows[5]!.every((cell) => cell === "")).toBe(true);
       expect(root.getGeometry([grid.id]).get(grid.id)?.height).toBe(
-        catalogCalendarGridSize("M", 7, 6, 1)!.height,
+        catalogCalendarGridSize(7, 6, 1)!.height,
       );
-      expect(catalogCalendarGridSize("M", 7, 6, 1)!.height).toBe(
-        catalogCalendarGridSize("M", 7, 5)!.height + 4,
+      expect(catalogCalendarGridSize(7, 6, 1)!.height).toBe(
+        catalogCalendarGridSize(7, 5)!.height + 4,
       );
     } finally {
       vi.useRealTimers();

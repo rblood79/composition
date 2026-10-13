@@ -657,7 +657,6 @@ describe("ADR-248 4e library origin view", () => {
       ].flatMap((origin) => [[origin, "XS"] as const, [origin, "XL"] as const]),
       ["avatargroup", "XL"] as const,
       ["buttongroup", "XS"] as const,
-      ["calendar", "S"] as const,
     ];
     workspace.execute(
       insertNodes({
@@ -714,7 +713,7 @@ describe("ADR-248 4e library origin view", () => {
     // A NumberField's steppers are Button instances (ADR-253): their glyphs are the Button's scale.
     expect(buttonGlyphs("numberfield", "XS")).toEqual([14, 14]);
     expect(buttonGlyphs("numberfield", "XL")).toEqual([28, 28]);
-    // A group's size reaches its members; a calendar's its header and grid.
+    // A group's size reaches its members. (A calendar has no size — 2026-10-13.)
     const sizesUnder = (origin: string, size: string, binding: string) =>
       under(recordOf(sized(origin, size)), binding).map(
         (record) => inputOf(record).props.size,
@@ -725,11 +724,6 @@ describe("ADR-248 4e library origin view", () => {
       "XL",
     ]);
     expect(sizesUnder("buttongroup", "XS", "button")).toEqual(["XS", "XS"]);
-    expect(sizesUnder("calendar", "S", "calendargrid")).toEqual(["S"]);
-    expect(sizesUnder("calendar", "S", "calendarheader")).toEqual(["S"]);
-    // (ADR-256 Phase 9: through its month block to the heading.)
-    expect(sizesUnder("calendar", "S", "calendarmonth")).toEqual(["S"]);
-    expect(sizesUnder("calendar", "S", "calendarheading")).toEqual(["S"]);
     // A Card placed on a page: its regions are slots — the one it leaves empty (the footer) is
     // hatched at its own box, the filled ones are not marked.
     const CARD = "project:node:card-placed" as NodeId;

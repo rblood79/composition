@@ -3,6 +3,10 @@
  *
  * ADR-256 Phase 9: DOM = RAC `RangeCalendar` drawing its node tree — the same month blocks as a
  * Calendar (`delegatedDom` `rangecalendar`); the Canvas shell is the Calendar's (`calendar_grid`).
+ *
+ * No `size` (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 — RAC · S2 take
+ * none): a month is at most 238 wide (7 cells of 30) and shrinks with its parent, its cells with it
+ * (S2 `calendarStyles`); an old document's `size` is dropped on load (`s2PropAlignment`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -23,12 +27,6 @@ export const rangeCalendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // design-data 감사 §1-3 (2026-08-21): Calendar 만 노출 중이던 3종 대칭 회복.

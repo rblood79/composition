@@ -136,7 +136,7 @@ const popover = () =>
   document.body.querySelector<HTMLElement>(".react-aria-Popover");
 
 describe("ADR-256 Phase 6 판독 — picker 노드 트리 편집", () => {
-  it("m1: a Calendar in a frame inside the picker's Popover keeps the picker's calendar context (size) and its own visible duration", async () => {
+  it("m1: a Calendar in a frame inside the picker's Popover keeps the picker's calendar context and its own visible duration (no size — 2026-10-13)", async () => {
     const picker = await open("datepicker");
     picker.frame("Calendar");
     picker.edit(FIELD, { size: "L" });
@@ -150,7 +150,7 @@ describe("ADR-256 Phase 6 판독 — picker 노드 트리 편집", () => {
     );
     const calendar = popover()!.querySelector(".react-aria-Calendar")!;
     expect(calendar.querySelectorAll("table")).toHaveLength(2);
-    expect(calendar.getAttribute("data-size")).toBe("L");
+    expect(calendar.getAttribute("data-size")).toBeNull();
   });
 
   it("m2: a field's control Group passes RAC's state to its `showWhen` nodes and the author's role", async () => {

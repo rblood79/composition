@@ -13,8 +13,9 @@ import type { PrimitiveBinding } from "../types";
  * template has no Canvas box of its own (`catalogHiddenAtRest`).
  *
  * D1: RAC's `CalendarGrid` (`table[role=grid]` — RAC's dates, keyboard navigation).
- * D2: `defaultToday` (the Canvas today dot) + size (carried from the calendar; no variant, 2026-10-12).
- * D3: the CalendarGrid rule (`sizes.iconSize` — the cell box) + the calendar sheets.
+ * D2: `defaultToday` (the Canvas today dot) — no size or variant (2026-10-12 · 10-13).
+ * D3: the CalendarGrid rule (`sizes.iconSize` — the widest cell) + the calendar sheets; the cells
+ *     follow the month's width (`catalogCalendarGridSize`).
  */
 export const calendarGridBinding: PrimitiveBinding = {
   source: {
@@ -23,13 +24,6 @@ export const calendarGridBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-        editorHidden: true,
-      },
       defaultToday: {
         kind: "boolean",
         label: "Show Today",

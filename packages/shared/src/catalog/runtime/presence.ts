@@ -2937,7 +2937,7 @@ function calendarModelParts(
 /**
  * ADR-256 Phase 9 — a calendar's previous · next Button (RAC's `previous` · `next` slots, in a
  * calendar): the reference starter's plain RAC Button, whose box the calendar sheets give
- * (`.react-aria-Calendar .react-aria-Button` — the Canvas reads the same values from the header's
+ * (`.react-aria-Calendar header > .react-aria-Button` — the Canvas reads the same values from the header's
  * part rules).
  */
 export function catalogCalendarNavButton(

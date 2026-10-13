@@ -9,21 +9,14 @@ import type { PrimitiveBinding } from "../types";
  * first · last block.
  *
  * D1: the starter's `div.month` — outside RAC's structure, no role (RAC unchanged).
- * D2: no props of its own (`size` carried from the calendar).
- * D3: the CalendarMonth rule (a column: header over grid, the calendar size's gap).
+ * D2: no props of its own (the calendar has no size — 2026-10-13).
+ * D3: the CalendarMonth rule (a column: header over grid, 6 apart — at most 238 wide, shrinking
+ *     with its parent).
  */
 export const calendarMonthBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "calendarmonth" },
   props: {
-    accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-        editorHidden: true,
-      },
-    },
+    accepts: {},
     toRacProps: "default",
   },
 };

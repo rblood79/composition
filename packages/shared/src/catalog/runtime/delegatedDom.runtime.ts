@@ -2686,9 +2686,9 @@ export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
 /**
  * A Calendar's · RangeCalendar's RAC element. In a DatePicker · DateRangePicker
  * (`catalogCalendarPicker` — ADR-256 Phase 6e) RAC's calendar context gives its value, bounds,
- * state, focus, paging and first day: the node's own values stay unset so they do not override it,
- * and the picker's size is the calendar's. Its `visibleDuration` · `weeksInMonth` stay the node's
- * (ADR-256 Phase 9 — the context carries neither, `useDatePicker` `calendarProps`).
+ * state, focus, paging and first day: the node's own values stay unset so they do not override it
+ * (a calendar has no size — the picker's size is its field's). Its `visibleDuration` ·
+ * `weeksInMonth` stay the node's (ADR-256 Phase 9 — the context carries neither, `useDatePicker` `calendarProps`).
  */
 function calendarElement(
   input: DelegatedDomInput,
@@ -2706,7 +2706,7 @@ function calendarElement(
       ...marker(input),
       style: input.style,
       "data-variant": str(props.variant || "default"),
-      "data-size": str((picker ?? input.node).props.size || "M"),
+      // (No `data-size` — the calendar has no size, 2026-10-13: its month follows its width.)
       "aria-label":
         typeof props["aria-label"] === "string"
           ? props["aria-label"]

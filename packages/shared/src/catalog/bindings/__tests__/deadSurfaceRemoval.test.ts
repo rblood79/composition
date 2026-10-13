@@ -53,8 +53,11 @@ const REMOVED: Record<string, readonly string[]> = {
   IllustratedMessage: ["variant"],
   Icon: ["variant"],
   Modal: ["size"],
-  CalendarHeader: ["children", "locale", "calendarSystem"],
-  CalendarGrid: ["locale", "calendarSystem"],
+  // (2026-10-13 — a calendar has no size, RAC · S2 take none: its parts take none either.)
+  CalendarHeader: ["children", "locale", "calendarSystem", "size"],
+  CalendarGrid: ["locale", "calendarSystem", "size"],
+  CalendarHeading: ["size"],
+  CalendarMonth: ["size"],
   SliderTrack: ["variant"],
   ProgressBarValue: ["variant"],
   // 2026-10-12 — the ProgressBar has no variant (S2 · RAC · v3 have none), so its parts take none.
@@ -67,8 +70,7 @@ const HIDDEN: Record<string, readonly string[]> = {
   ProgressBarTrack: ["size"],
   MeterFill: ["variant", "size"],
   MeterTrack: ["variant", "size"],
-  CalendarHeader: ["size"],
-  CalendarGrid: ["size", "dayOffset", "totalDays", "todayDate", "defaultToday"],
+  CalendarGrid: ["dayOffset", "totalDays", "todayDate", "defaultToday"],
   TagList: ["size"],
   SliderTrack: ["size"],
   DateInput: ["size"],

@@ -62,14 +62,23 @@ const DATE_RANGE_GROUP_VARIABLES = () =>
   )?.find((entry) => entry.prefix === "drp-group")?.variables as
     Record<string, Record<string, unknown> | undefined> | undefined;
 
-/** ADR-256 Phase 9 — `Calendar.css` per size: the nav Button height token · the heading font token. */
-const CALENDAR_HEADER_SIZES: Readonly<
-  Record<string, { nav: string; font: string }>
-> = {
-  S: { nav: "text-2xl", font: "text-xs" },
-  M: { nav: "text-3xl", font: "text-sm" },
-  L: { nav: "text-4xl", font: "text-base" },
+/**
+ * ADR-256 Phase 9 — a calendar header's nav Button side · heading font (`CalendarCommon.css`). The
+ * calendar has no size (사용자 2026-10-13 — RAC · S2 take none): the header is fixed.
+ */
+const CALENDAR_HEADER = { nav: "text-3xl", font: "text-sm" } as const;
+
+/**
+ * A calendar month block's widest width: 7 cells (`CalendarGrid` rule `iconSize + 4`) plus the tds'
+ * 2px padding each side — S2 `calendarStyles` `7 * --cell-max-width` (`CalendarCommon.css` `.month`).
+ */
+const calendarMonthWidth = (): number | undefined => {
+  const icon = px(sizesOf("CalendarGrid").M?.iconSize);
+  return icon === undefined ? undefined : 7 * (icon + 4 + 4);
 };
+
+/** RAC reference header gap (Calendar.md 「Month and year pickers」 `gap: 4`) — `CalendarCommon.css`. */
+const CALENDAR_HEADER_GAP = 4;
 
 /** `Separator.css` size margins (`--spacing-xs/sm/lg`) on the axis across the line. */
 const SEPARATOR_MARGIN: Readonly<Record<string, number>> = {
@@ -403,26 +412,27 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
   }),
   // ADR-256 Phase 9 — a calendar month block's header row (`generated/CalendarHeader.css` is not
   // loaded, `UNLOADED_GENERATED_CSS` D): `CalendarCommon.css` `.react-aria-Calendar header` — a flex
-  // row (space-between, centered; no gap, padding or height) around the author's parts. Its nav
-  // Buttons (`Button[slot=previous|next]` — plain RAC Buttons) are `Calendar.css`
-  // `[data-size] .react-aria-Button` boxes: `--text-2xl/3xl/4xl` tall, `+ --spacing-xs` wide, no
-  // padding, border or fill, `--fg` glyph. Its RAC `CalendarHeading` fills the rest (`flex: 1`) — the
-  // size's font, bold, centered, `--text-base--line-height` (`CalendarCommon.css`).
+  // row (space-between, centered, 4 apart) around the author's parts. Its nav Buttons
+  // (`Button[slot=previous|next]` — plain RAC Buttons) are `header > .react-aria-Button` boxes:
+  // `--text-3xl` squares, no padding, border or fill, `--fg` glyph. Its RAC `CalendarHeading` fills
+  // the rest (`flex: 1`) — `--text-sm`, bold, centered, `--text-base--line-height`.
   // ADR-256 Phase 9 — a calendar's month block (`CalendarCommon.css` `.month`): its header over its
-  // grid, the calendar size's gap (the block takes the calendar's size).
+  // grid, 6 apart.
   // ADR-256 Phase 9 — RAC's month · year pickers render no element: their Select is the header's
   // item (`display: contents` — the engine lays their children out in the parent's flow).
   CalendarMonthPicker: () => ({ replace: true, layout: { display: "contents" } }),
   CalendarYearPicker: () => ({ replace: true, layout: { display: "contents" } }),
-  CalendarMonth: () => ({
-    replace: true,
-    layout: { display: "flex", flexDirection: "column" },
-    visual: { gap: 6 },
-    conditional: [
-      { when: { size: "S" }, visual: { gap: 4 } },
-      { when: { size: "L" }, visual: { gap: 8 } },
-    ],
-  }),
+  // (No size — 2026-10-13: at most 7 cells wide, shrinking with its parent like the DOM's `.month`
+  // `width: 238px; max-width: 100%` with no intrinsic minimum (`container-type` — `min-width: 0`
+  // here); its grid's cells follow its width — `catalogCalendarGridSize`.)
+  CalendarMonth: () => {
+    const width = calendarMonthWidth();
+    return {
+      replace: true,
+      layout: { display: "flex", flexDirection: "column", maxWidth: "100%" },
+      visual: { gap: 6, ...(width ? { width, minWidth: 0 } : {}) },
+    };
+  },
   CalendarHeader: () => ({
     replace: true,
     layout: {
@@ -431,65 +441,89 @@ const RULES: Readonly<Record<string, () => ManualBoxRule>> = {
       justifyContent: "space-between",
       alignItems: "center",
     },
-    visual: {},
-    parts: Object.entries(CALENDAR_HEADER_SIZES).flatMap(
-      ([size, { nav, font }]): CompiledPartRule[] => {
-        const navHeight = textPx(nav);
-        const fontSize = textPx(font);
-        const spacing = px("{spacing.xs}") ?? 4;
-        const ratio =
-          (px("{typography.text-base--line-height}") ?? 0) /
-          (textPx("text-base") ?? 1);
-        if (navHeight === undefined || fontSize === undefined) return [];
-        const button = (slot: string): CompiledPartRule => ({
-          childType: "Button",
-          childProps: { slot },
-          size,
-          layout: {},
+    // RAC reference (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex', gap:
+    // 4}}`): 4px between the header's parts (`CalendarCommon.css`, 2026-10-13).
+    visual: { gap: CALENDAR_HEADER_GAP },
+    parts: ((): CompiledPartRule[] => {
+      const navHeight = textPx(CALENDAR_HEADER.nav);
+      const fontSize = textPx(CALENDAR_HEADER.font);
+      const triggerY = px(sizesOf("Button").M?.paddingY);
+      const ratio =
+        (px("{typography.text-base--line-height}") ?? 0) /
+        (textPx("text-base") ?? 1);
+      if (navHeight === undefined || fontSize === undefined) return [];
+      const button = (slot: string): CompiledPartRule => ({
+        childType: "Button",
+        childProps: { slot },
+        // (The reference starter's Buttons do not shrink — `Button.css` `flex-shrink: 0`.)
+        layout: { flexShrink: "0" },
+        // A square (사용자 2026-10-13 「높이가 30 이면 넓이도 30」 — the reference starter's
+        // icon-only Button: `width: var(--spacing-8)` = its height).
+        visual: {
+          width: navHeight,
+          height: navHeight,
+          minWidth: 0,
+          paddingTop: 0,
+          paddingRight: 0,
+          paddingBottom: 0,
+          paddingLeft: 0,
+          fill: "transparent",
+          borderWidth: 0,
+          color: "{color.neutral}",
+        },
+      });
+      // A month · year picker's Select (through the picker — RAC renders no element for it): the
+      // two share what the nav Buttons leave equally — the reference's equal-width Selects
+      // (starter `Select.css` `width: 200px`, shrunk alike; the trigger `width: 100%; min-width:
+      // 0`, the value ellipsized).
+      const picker = (via: string): CompiledPartRule => ({
+        childType: "Select",
+        via,
+        layout: { flexGrow: "1", flexShrink: "1", flexBasis: "0%" },
+        visual: { width: "auto", minWidth: 0 },
+      });
+      return [
+        button("previous"),
+        button("next"),
+        picker("CalendarMonthPicker"),
+        picker("CalendarYearPicker"),
+        // A picker's Select trigger starts twice the Button's paddingY in (사용자 2026-10-13 — 8;
+        // through the picker — `PART_RULE_PASS_HOSTS`; `CalendarCommon.css`).
+        ...(triggerY !== undefined
+          ? [
+              {
+                childType: "Button",
+                via: "Select",
+                layout: {},
+                visual: { paddingLeft: 2 * triggerY },
+              } satisfies CompiledPartRule,
+            ]
+          : []),
+        // (Their chevron Icon takes the Button's `--fg` — `currentColor`.)
+        {
+          childType: "Icon",
+          via: "Button",
+          layout: { flexShrink: "0" },
+          visual: { color: "{color.neutral}" },
+        },
+        {
+          childType: "CalendarHeading",
+          layout: {
+            display: "block",
+            flexGrow: "1",
+            flexShrink: "1",
+            flexBasis: "0%",
+          },
           visual: {
-            width: navHeight + spacing,
-            height: navHeight,
-            minWidth: 0,
-            paddingTop: 0,
-            paddingRight: 0,
-            paddingBottom: 0,
-            paddingLeft: 0,
-            fill: "transparent",
-            borderWidth: 0,
+            fontSize,
+            fontWeight: 700,
+            ...(ratio > 0 ? { lineHeight: ratio } : {}),
+            textAlign: "center",
             color: "{color.neutral}",
           },
-        });
-        return [
-          button("previous"),
-          button("next"),
-          // (Their chevron Icon takes the Button's `--fg` — `currentColor`.)
-          {
-            childType: "Icon",
-            via: "Button",
-            size,
-            layout: { flexShrink: "0" },
-            visual: { color: "{color.neutral}" },
-          },
-          {
-            childType: "CalendarHeading",
-            size,
-            layout: {
-              display: "block",
-              flexGrow: "1",
-              flexShrink: "1",
-              flexBasis: "0%",
-            },
-            visual: {
-              fontSize,
-              fontWeight: 700,
-              ...(ratio > 0 ? { lineHeight: ratio } : {}),
-              textAlign: "center",
-              color: "{color.neutral}",
-            },
-          },
-        ];
-      },
-    ),
+        },
+      ];
+    })(),
   }),
   // `generated/ProgressBarValue.css` / `MeterValue.css` are not loaded (`UNLOADED_GENERATED_CSS`
   // D): the owner's `.value` span sets only its font size, so its line height is the root's

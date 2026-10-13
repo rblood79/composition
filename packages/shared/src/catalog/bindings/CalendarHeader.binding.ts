@@ -12,7 +12,7 @@ import type { PrimitiveBinding } from "../types";
  * rules.)
  *
  * D1: the starter's `header` (outside RAC's structure, no role — RAC unchanged).
- * D2: `size` (carried from the calendar).
+ * D2: no props of its own (the calendar has no size — 2026-10-13).
  * D3: the CalendarHeader rule (a row: nav Buttons at the ends, heading between).
  */
 export const calendarHeaderBinding: PrimitiveBinding = {
@@ -21,15 +21,7 @@ export const calendarHeaderBinding: PrimitiveBinding = {
     renderer: "calendarheader",
   },
   props: {
-    accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-        editorHidden: true,
-      },
-    },
+    accepts: {},
     toRacProps: "default",
   },
 };

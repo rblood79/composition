@@ -135,7 +135,7 @@ describe("S2 firstDayOfWeek", () => {
         expect(model().weekdays).toEqual(weekdays(html()));
         const grid = part("CalendarGrid");
         expect(root.getGeometry([grid.id]).get(grid.id)?.height).toBe(
-          catalogCalendarGridSize("M", 7, model().rows.length)!.height,
+          catalogCalendarGridSize(7, model().rows.length)!.height,
         );
       };
       // Unset, en-US: Sunday.

@@ -238,7 +238,7 @@ describe("ADR-256 Phase 6e — a DatePicker · DateRangePicker draws its node tr
   });
 
   it.each(TYPES)(
-    "%s: the open calendar is at the picker's size and its own visible duration (ADR-256 Phase 9 — RAC's picker context carries none)",
+    "%s: the open calendar takes no size from the picker (a calendar has none — 2026-10-13) and keeps its own visible duration (ADR-256 Phase 9 — RAC's picker context carries none)",
     async (type) => {
       const picker = await open(
         type,
@@ -249,7 +249,7 @@ describe("ADR-256 Phase 6e — a DatePicker · DateRangePicker draws its node tr
       const calendar = picker
         .dialog()!
         .querySelector(`[data-catalog-id="${picker.calendar.id}"]`)!;
-      expect(calendar.getAttribute("data-size")).toBe("L");
+      expect(calendar.getAttribute("data-size")).toBeNull();
       expect(calendar.querySelectorAll("table")).toHaveLength(2);
       await picker.unmount();
     },

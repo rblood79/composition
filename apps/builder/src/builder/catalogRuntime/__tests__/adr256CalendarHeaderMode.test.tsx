@@ -314,4 +314,184 @@ describe("ADR-256 Phase 9 — calendar header choice", () => {
     expect(canvasOrder()).toBe("month-year");
     expect(domOrder()).toBe("month-year");
   });
+
+  // 사용자 2026-10-13 「M size 라면 30 이 맞지 않나」: the reference's picker is `<Select {...props}>`
+  // — a Select at its default size, on the Canvas and in the DOM alike (the calendar's nav-button
+  // sheet does not reach it). The calendar has no size (2026-10-13 — RAC · S2 take none).
+  it("the pickers' Selects are M Selects — the Select's box on the Canvas, its data-size in the DOM", async () => {
+    const { workspace, root, switchTo, recordOf } = await open(
+      "lib:definition:origin-component-calendar",
+      false,
+    );
+    switchTo("pickers");
+    const selects = () =>
+      [...root.canvasInputs.values()].filter(
+        (record) =>
+          root.typeOf(record) === "Select" &&
+          !record.hidden &&
+          root
+            .typeOf(root.canvasInputs.get(record.parentId)!)
+            .endsWith("Picker"),
+      );
+    const standalone = async (size: string) => {
+      workspace.execute(
+        insertNodes({
+          parent: { kind: "node", id: BODY },
+          entries: [
+            {
+              ...node(
+                `select-${size}`,
+                "lib:definition:origin-component-select",
+              ),
+              props: { size: { kind: "set", value: size } },
+            } as NodeEntry,
+          ],
+          rootIds: [id(`select-${size}`)],
+          newId: workspace.newId,
+        }),
+      );
+      const record = [...root.canvasInputs.values()].find(
+        (r) => r.sourceId === id(`select-${size}`),
+      )!;
+      return triggerHeight(record);
+    };
+    // (The trigger — a standalone Select's box also holds its Label.)
+    const triggerHeight = (select: { children: readonly string[] }) => {
+      const trigger = select.children.find(
+        (child) => root.typeOf(root.canvasInputs.get(child)!) === "Button",
+      )!;
+      return root.getGeometry([trigger]).get(trigger)!.height;
+    };
+    const heights = () => selects().map(triggerHeight);
+    const domSizes = () => {
+      const host = document.body.appendChild(document.createElement("div"));
+      const view = createRoot(host);
+      reactAct(() =>
+        view.render(
+          renderCatalogDom(
+            root,
+            recordOf("Calendar")!.id,
+          ) as React.ReactElement,
+        ),
+      );
+      const sizes = [...host.querySelectorAll(".react-aria-Select")].map((e) =>
+        e.getAttribute("data-size"),
+      );
+      reactAct(() => view.unmount());
+      host.remove();
+      return sizes;
+    };
+    expect(selects()).toHaveLength(2);
+    expect(selects().map((r) => r.props.size)).toEqual(["M", "M"]);
+    expect(heights()).toEqual(Array(2).fill(await standalone("M")));
+    expect(domSizes()).toEqual(["M", "M"]);
+  });
+
+  // 사용자 2026-10-13 「month and year pickers 의 width 를 RAC 레퍼런스 방식에 맞춰」: the reference
+  // (Calendar.md 「Month and year pickers」 — `header style={{display: 'flex', gap: 4}}`, starter
+  // `Button.css` `flex-shrink: 0`, `Select.css` the trigger `width: 100%; min-width: 0` with an
+  // ellipsized value): the nav Buttons keep their width and the two Selects share the rest equally.
+  it("the pickers share the header's width equally; the nav Buttons keep theirs (gap 4)", async () => {
+    const { workspace, root, switchTo, recordOf } = await open(
+      "lib:definition:origin-component-calendar",
+      false,
+    );
+    switchTo("pickers");
+    const header = recordOf("CalendarHeader")!;
+    const box = (rid: string) => root.getGeometry([rid]).get(rid)!;
+    const parts = () => {
+      const out: Array<{ type: string; x: number; width: number }> = [];
+      for (const child of header.children) {
+        const record = root.canvasInputs.get(child)!;
+        if (record.hidden) continue;
+        const type = root.typeOf(record);
+        const item = type.endsWith("Picker") ? record.children[0]! : child;
+        const geometry = box(item);
+        // (A picker draws no box: its Select sits in the header's flow at the picker's place.)
+        const x = type.endsWith("Picker")
+          ? box(child).x + geometry.x
+          : geometry.x;
+        out.push({
+          type: root.typeOf(root.canvasInputs.get(item)!),
+          x,
+          width: geometry.width,
+        });
+      }
+      return out;
+    };
+    const row = parts();
+    const width = box(header.id).width;
+    expect(row.map((p) => p.type)).toEqual([
+      "Button",
+      "Select",
+      "Select",
+      "Button",
+    ]);
+    // (The nav Buttons are squares — their height, 2026-10-13.)
+    const nav = 30;
+    const select = (width - 2 * nav - 3 * 4) / 2;
+    const round = (v: number) => Math.round(v * 10) / 10;
+    expect(row.map((p) => round(p.width))).toEqual(
+      [nav, select, select, nav].map(round),
+    );
+    expect(row.map((p) => round(p.x))).toEqual(
+      [0, nav + 4, nav + 8 + select, nav + 12 + 2 * select].map(round),
+    );
+  });
+
+  // 사용자 2026-10-13 「달력 안 select trigger left padding 을 8 로」: a Select's trigger ends `y` in
+  // (the Button's paddingY — M 4), and the calendar's picker trigger starts `2y` in (8); a Select
+  // elsewhere keeps the Button's start (12).
+  it("a picker's trigger is padded y · y · y · 2y in the calendar; a Select elsewhere keeps the Button's start", async () => {
+    const { workspace, root, switchTo } = await open(
+      "lib:definition:origin-component-calendar",
+      false,
+    );
+    switchTo("pickers");
+    workspace.execute(
+      insertNodes({
+        parent: { kind: "node", id: BODY },
+        entries: [node("select", "lib:definition:origin-component-select")],
+        rootIds: [id("select")],
+        newId: workspace.newId,
+      }),
+    );
+    const sides = (v: Record<string, unknown>) => [
+      v.paddingTop ?? v.paddingY,
+      v.paddingRight ?? v.paddingX,
+      v.paddingBottom ?? v.paddingY,
+      v.paddingLeft ?? v.paddingX,
+    ];
+    const triggers = () =>
+      [...root.canvasInputs.values()].filter((record) => {
+        const select = root.canvasInputs.get(record.parentId);
+        return (
+          root.typeOf(record) === "Button" &&
+          !!select &&
+          root.typeOf(select) === "Select"
+        );
+      });
+    const inPicker = (record: { parentId: string }) =>
+      root
+        .typeOf(
+          root.canvasInputs.get(
+            root.canvasInputs.get(record.parentId)!.parentId,
+          )!,
+        )
+        .endsWith("Picker");
+    const y = 4;
+    expect(
+      triggers()
+        .filter(inPicker)
+        .map((t) => sides(t.visual)),
+    ).toEqual([
+      [y, y, y, 2 * y],
+      [y, y, y, 2 * y],
+    ]);
+    expect(
+      triggers()
+        .filter((t) => !inPicker(t))
+        .map((t) => sides(t.visual)),
+    ).toEqual([[y, y, y, 12]]);
+  });
 });

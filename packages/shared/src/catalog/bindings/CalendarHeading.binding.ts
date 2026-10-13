@@ -7,22 +7,13 @@ import type { PrimitiveBinding } from "../types";
  * block's index (not stored).
  *
  * D1: RAC's `CalendarHeading` (a `Heading` whose text RAC writes).
- * D2: no props of its own (`size` carried from the calendar).
- * D3: the Calendar rule's `header .react-aria-CalendarHeading` (centered bold title at the size's
- *     font).
+ * D2: no props of its own (the calendar has no size — 2026-10-13).
+ * D3: `CalendarCommon.css` `header .react-aria-CalendarHeading` (centered bold title, `--text-sm`).
  */
 export const calendarHeadingBinding: PrimitiveBinding = {
   source: { kind: "internal", renderer: "calendarheading" },
   props: {
-    accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-        editorHidden: true,
-      },
-    },
+    accepts: {},
     toRacProps: "default",
   },
 };

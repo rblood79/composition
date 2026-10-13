@@ -232,10 +232,14 @@ export interface CatalogResolutionSelection {
 type Values = Record<string, Scalar>;
 /**
  * ADR-256 Phase 8c — hosts a part rule's `via` reaches through to their owner: a Disclosure's
- * header Heading (the trigger Button's content is styled from the Disclosure's sheet).
+ * header Heading (the trigger Button's content is styled from the Disclosure's sheet), and a
+ * calendar's month · year picker (RAC renders no element — its Select's trigger is styled from the
+ * calendar header's rules, 2026-10-13).
  */
 const PART_RULE_PASS_HOSTS: Readonly<Record<string, ReadonlySet<string>>> = {
   Heading: new Set(["Disclosure"]),
+  CalendarMonthPicker: new Set(["CalendarHeader"]),
+  CalendarYearPicker: new Set(["CalendarHeader"]),
 };
 /** Resolved props: scalars and structured values (string lists, item lists). */
 type Props = Record<string, PropValue>;

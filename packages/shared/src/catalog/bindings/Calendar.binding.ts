@@ -7,6 +7,10 @@
  * Display options (the reference's): `visibleDuration` (a count of days · weeks · months) ·
  * `pageBehavior` · `firstDayOfWeek` · `weeksInMonth`. Skia: the calendar's own box is a shell
  * (`calendar_grid`, Shell-only); its parts draw themselves.
+ *
+ * No `size` (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」 — RAC · S2 take
+ * none): a month is at most 238 wide (7 cells of 30) and shrinks with its parent, its cells with it
+ * (S2 `calendarStyles`); an old document's `size` is dropped on load (`s2PropAlignment`).
  */
 
 import type { PrimitiveBinding } from "../types";
@@ -28,12 +32,6 @@ export const calendarBinding: PrimitiveBinding = {
   skiaPrimitive: "calendar_grid",
   props: {
     accepts: {
-      size: {
-        kind: "size",
-        label: "Size",
-        section: "appearance",
-        default: "M",
-      },
       // RAC · S2 1.8.0 Calendar `selectionMode` (`useCalendarState` — `'single' | 'multiple'`,
       //   default single): multiple toggles each pressed date in. A picker selects one date
       //   (`CATALOG_PICKER_CALENDAR_PROPS`).

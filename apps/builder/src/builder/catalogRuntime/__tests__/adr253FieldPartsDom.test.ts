@@ -1502,26 +1502,27 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
         "Icon",
       ]);
       // Canvas: the trigger fills the field; the value fills the trigger up to the glyph, 4px
-      // before it; the glyph sits 8px inside the end (the Button's own padding at the start).
+      // before it; the glyph sits 4px inside the end (사용자 2026-10-13 「M 8 → 4」; the Button's own
+      // padding at the start).
       const width = rect(field.id).width;
       expect(rect(trigger().id)).toMatchObject({ x: 0, width });
       expect(trigger().visual).toMatchObject({
         width: "100%",
         minWidth: 0,
         paddingX: 12,
-        paddingRight: 8,
+        paddingRight: 4,
         gap: 4,
         borderWidth: 1,
       });
       const [value, glyph] = parts();
       expect(rect(glyph.id)).toMatchObject({
-        x: width - 1 - 8 - 18,
+        x: width - 1 - 4 - 18,
         width: 18,
         height: 18,
       });
       expect(rect(value.id)).toMatchObject({
         x: 13,
-        width: width - 13 - 4 - 18 - 8 - 1,
+        width: width - 13 - 4 - 18 - 4 - 1,
       });
       expect(value.visual.fontSize).toBe(14);
       // (The value keeps its own weight: it does not take the trigger Button's 500.)
@@ -1562,7 +1563,7 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
       expect(valueElement.getAttribute("style")).toMatch(/font-weight:\s*400/);
       const style = button().getAttribute("style")!;
       expect(style).toMatch(/(^|;)width:\s*100%/);
-      expect(style).toMatch(/padding-right:\s*8px/);
+      expect(style).toMatch(/padding-right:\s*4px/);
       expect(style).toMatch(/column-gap:\s*4px/);
       // (A Button's rest paint is its sheet's: hover, pressed and focus are the Button rule's.)
       expect(style).not.toMatch(/background-color|border-color|opacity/);

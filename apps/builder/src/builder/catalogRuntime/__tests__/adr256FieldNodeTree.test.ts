@@ -569,9 +569,9 @@ describe("ADR-256 Phase 2 — a field draws its node tree", () => {
       );
       expect(drawn).toBeDefined();
       // RAC's calendar context (the picker's disabled state — the node does not override it to
-      // false), the picker's size and the calendar's own visible duration.
+      // false) and the calendar's own visible duration; no size (a calendar has none — 2026-10-13).
       expect(drawn!.hasAttribute("data-disabled")).toBe(true);
-      expect(drawn!.getAttribute("data-size")).toBe("L");
+      expect(drawn!.getAttribute("data-size")).toBeNull();
       expect(drawn!.querySelectorAll("table")).toHaveLength(2);
       const record = [...workspace.root.canvasInputs.values()].find(
         (item) => item.sourceId === calendar,

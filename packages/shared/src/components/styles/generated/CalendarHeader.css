@@ -58,33 +58,6 @@
   }
 }
 
-.react-aria-CalendarHeader[data-size="S"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-none);
-  gap: 4px;
-  --icon-size: 20px;
-}
-
-.react-aria-CalendarHeader[data-size="M"] {
-  height: 30px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 6px;
-  --icon-size: 26px;
-}
-
-.react-aria-CalendarHeader[data-size="L"] {
-  height: 36px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-  gap: 8px;
-  --icon-size: 32px;
-}
-
 .react-aria-CalendarHeader[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

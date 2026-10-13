@@ -81,6 +81,8 @@ const BOX_SIZE_TYPES: ReadonlySet<string> = new Set([
   "Skeleton",
   "TagList",
   "CalendarHeader",
+  // The calendar's day cells follow its grid's laid-out width (2026-10-13).
+  "CalendarGrid",
   "DateInput",
   "Chart",
 ]);

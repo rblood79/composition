@@ -73,7 +73,7 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
     expect(getCatalogEntry("ColorSwatchPicker")).toBeDefined();
   });
 
-  it("toRacProps: Calendar size data-* 라우팅 — variant 축 없음 (S2 · RAC · v3 에 없음, 2026-10-12)", () => {
+  it("toRacProps: Calendar — variant 축 없음 (S2 · RAC · v3 에 없음, 2026-10-12) · size 축 없음 (2026-10-13)", () => {
     const result = toRacProps(
       {
         id: "cal1",
@@ -83,7 +83,7 @@ describe("family ⑦ date — catalog 등록 + Skia generic 발효", () => {
       getPrimitiveBinding("Calendar")!,
     );
     expect(result).not.toHaveProperty("data-variant");
-    expect(result["data-size"]).toBe("L");
+    expect(result).not.toHaveProperty("data-size");
   });
 
   it("toRacProps: DatePicker label 통과 + size default (showCalendarIcon 은 Button 노드 — 2026-10-09 삭제)", () => {

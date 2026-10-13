@@ -1397,6 +1397,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
+      maxWidth: "100%",
     },
     // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
     //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
@@ -1405,15 +1406,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
       //   Calendar.spec.ts 삭제 대비 generated Calendar.css(padding NNpx NNpx / gap NNpx) diff-0 유지.
       //   값은 (구) CalendarSpec.sizes 와 동일 (paddingX==paddingY, gap sm:4/md:6/lg:8).
-      S: {
-        paddingX: 0,
-        paddingY: 0,
-        gap: 4,
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        iconSize: 20,
-      },
       M: {
         paddingX: 0,
         paddingY: 0,
@@ -1423,15 +1415,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 26,
       },
-      L: {
-        paddingX: 0,
-        paddingY: 0,
-        gap: 8,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.xl}",
-        height: 0,
-        iconSize: 32,
-      },
     },
     structure: {
       archetype: "calendar",
@@ -1440,6 +1423,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        maxWidth: "100%",
       },
       states: {
         hover: {},
@@ -1473,26 +1457,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     sizes: {
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 0,
-        iconSize: 20,
-        gap: 4,
-      },
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
         iconSize: 26,
         gap: 6,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 0,
-        iconSize: 32,
-        gap: 8,
       },
     },
   },
@@ -1532,29 +1502,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       // ADR-912 (B+icon): iconSize/gap 은 spec CALENDAR_HEADER_DIMS(sm{20,4}/md{26,6}/lg{32,8}) 동형.
-      //   (Phase 9: the nav Button size reads `CALENDAR_HEADER_SIZES` — manualBoxRules.ts.)
-      S: {
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.none}",
-        height: 24,
-        iconSize: 20,
-        gap: 4,
-        paddingX: 0,
-      },
+      //   (Phase 9: the nav Button size reads `CALENDAR_HEADER` — manualBoxRules.ts. The calendar has no
+      //   size, 2026-10-13: M is its one size.)
       M: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 30,
         iconSize: 26,
         gap: 6,
-        paddingX: 0,
-      },
-      L: {
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.none}",
-        height: 36,
-        iconSize: 32,
-        gap: 8,
         paddingX: 0,
       },
     },
@@ -9061,6 +9016,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
+      maxWidth: "100%",
     },
     // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
     //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
@@ -9070,15 +9026,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   RangeCalendar.spec(=...CalendarSpec spread) 삭제 대비 generated RangeCalendar.css
       //   (padding NNpx NNpx / gap NNpx) diff-0 유지. 값은 (구) CalendarSpec.sizes 와 동일
       //   (RangeCalendar 는 시각 = Calendar — selector 이름만 차이).
-      S: {
-        paddingX: 0,
-        paddingY: 0,
-        gap: 4,
-        fontSize: "{typography.text-xs}",
-        borderRadius: "{radius.md}",
-        height: 0,
-        iconSize: 20,
-      },
       M: {
         paddingX: 0,
         paddingY: 0,
@@ -9088,15 +9035,6 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         height: 0,
         iconSize: 26,
       },
-      L: {
-        paddingX: 0,
-        paddingY: 0,
-        gap: 8,
-        fontSize: "{typography.text-base}",
-        borderRadius: "{radius.xl}",
-        height: 0,
-        iconSize: 32,
-      },
     },
     structure: {
       archetype: "calendar",
@@ -9105,6 +9043,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
+        maxWidth: "100%",
       },
       states: {
         hover: {},
@@ -9690,14 +9629,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               XS: {
                 "--select-btn-pad-end": "2px",
               },
+              // 사용자 2026-10-13 「M 8 → 4」 · 「S · L 도 같은 식으로」: the end padding is the
+              //   Button's size paddingY (S 2 · M 4 · L 8).
               S: {
-                "--select-btn-pad-end": "4px",
+                "--select-btn-pad-end": "2px",
               },
               M: {
-                "--select-btn-pad-end": "8px",
+                "--select-btn-pad-end": "4px",
               },
               L: {
-                "--select-btn-pad-end": "12px",
+                "--select-btn-pad-end": "8px",
               },
               XL: {
                 "--select-btn-pad-end": "16px",

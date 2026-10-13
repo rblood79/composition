@@ -1800,7 +1800,15 @@ function calendarGridModel(value: unknown):
 
 const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const iconSize = (size.iconSize as unknown as number) ?? 26;
-  const cellSize = iconSize + 4;
+  // The widest cell; laid out narrower (the calendar has no size — 2026-10-13: its month shrinks
+  // with its parent), a column's share less the td padding (`catalogCalendarCellSize` — the DOM's
+  // `min(30px, 100cqw / 7 - 4px)`). The weekday row keeps the widest cell's height.
+  const widest = iconSize + 4;
+  const model = calendarGridModel(props._calendarGrid);
+  const columns = model?.weekdays.length || 7;
+  const boxWidth = Number(props._containerWidth);
+  const cellSize =
+    boxWidth > 0 ? Math.max(0, Math.min(widest, boxWidth / columns - 4)) : widest;
   // ADR-151 B1/B2 (2026-07-16): DOM 셀 박스 모델 정렬 — table `td { padding: 2px }`
   //   (CalendarCommon.css --spacing-2xs) → 셀 pitch = cellSize + 4, inter-cell gap 없음.
   //   구 코드의 sizes.gap(컨테이너 세로 gap 값) 오용은 셀 간격 6px 로 DOM(4px)과 발산.
@@ -1814,12 +1822,11 @@ const calendarMonthGrid: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
 
   // 요일 헤더 행 바로 아래에서 날짜 그리드 시작 (nav 없음 — CalendarGrid.spec.ts:147-148 동형).
-  const weekdayY = cellSize / 2;
-  const gridStartY = cellSize;
+  const weekdayY = widest / 2;
+  const gridStartY = widest;
 
   // ADR-256 Phase 9: the grid's weekday row and week rows from the calendar model (shared
   // `calendarModel.ts` — RAC's date arithmetic for the calendar's duration, first day and weeks).
-  const model = calendarGridModel(props._calendarGrid);
   if (model) {
     const shapes: Shape[] = [];
     model.weekdays.forEach((weekday, col) => {

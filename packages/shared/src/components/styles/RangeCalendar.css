@@ -1,161 +1,108 @@
 @layer components {
   /* RangeCalendar-specific styles (공통 구조는 CalendarCommon.css)
    *
-   * 범위 선택 = starter range-band 형태 (ADR-141 감사 H8 후속, 2026-05-18):
-   *   중간 셀은 얇은 --accent-subtle 띠, 양끝은 --accent pill 캡.
-   *   띠는 ::before 레이어로 그려 td 패딩(2px)을 가로로 메워 연속성 확보
-   *   — starter 의 border-collapse + inner-span 모델을 composition 의
-   *   td-padding grid 로 내재화 (DOM 구조 변경 없이 시각 결과 대칭).
+   * 범위 선택 = S2 RangeCalendar 형태 (사용자 2026-10-13 「RSC 와 같은 형태로」 — S2 1.8.0
+   * `Calendar.tsx` `cellInnerStyles` · `selectionBackgroundStyles` · `selectionBorderStyles`):
+   *   - 시작 · 종료일 = 꽉 찬 accent 원 (흰 글자), 중간 날짜 = 원 없이 보통 글자.
+   *   - 기간 뒤 연한 띠 (`--accent-subtle`) + 1px 테두리 (`--focus-ring`). 띠는 날짜 사이 간격
+   *     (td padding) 까지 메워 이어지고, 시작 · 끝 · 주의 첫/끝 날 · 달의 첫/끝 날에서 둥글게 끝난다.
+   *   - 하루만 고른 기간 (시작 = 끝) 은 띠 없이 원 하나.
+   * 띠는 td 의 ::before — 셀 (원) 의 배경 · press scale 과 다른 층이라 원이 띠 위에 그려진다.
+   * Canvas 는 달력 선택을 그리지 않는다 (선택은 Preview 실행 상태).
    */
   .react-aria-RangeCalendar {
-    .react-aria-CalendarCell {
-      /* 선택 셀: 띠는 ::before 가 담당, 셀 자체 배경은 투명 */
-      &[data-selected] {
-        background: transparent;
-        color: var(--fg);
-        border-radius: 0;
-        isolation: isolate; /* ::before z-index 를 셀 stacking context 로 격리 */
-      }
+    .react-aria-CalendarGridBody
+      td:has(> .react-aria-CalendarCell[data-selected]):not(
+        :has(> [data-selection-start][data-selection-end])
+      ) {
+      position: relative;
 
-      /* 범위 띠: 좌우 2px(td 패딩) 확장 → 인접 선택 셀과 맞닿아 연속 */
-      &[data-selected]::before {
+      &::before {
         content: "";
         position: absolute;
-        inset: 0 calc(-1 * var(--spacing-2xs));
-        background: var(--accent-subtle);
         z-index: -1;
+        inset: var(--spacing-2xs) 0;
+        background: var(--accent-subtle);
+        border: 1px solid var(--focus-ring);
+        border-inline-width: 0;
       }
 
-      &[data-selected][data-hovered]::before {
-        background: color-mix(in srgb, var(--accent-subtle) 65%, var(--accent));
+      &:has(> [data-invalid])::before {
+        background: var(--negative-subtle);
+        border-color: var(--negative);
       }
 
-      /* 범위 시작: accent pill 캡 (왼쪽 라운드, 좌측 확장 제거) */
-      &[data-selection-start]::before {
-        left: 0;
-        background: var(--accent);
+      /* 띠의 둥근 시작: 기간 시작 · 주의 첫 날 · 달의 첫 날 */
+      &:has(> [data-selection-start])::before,
+      &:first-child::before,
+      td:has(> [data-outside-month]) + &::before {
+        inset-inline-start: var(--spacing-2xs);
+        border-inline-start-width: 1px;
         border-start-start-radius: var(--radius-full);
         border-end-start-radius: var(--radius-full);
       }
 
-      /* 범위 끝: accent pill 캡 (오른쪽 라운드, 우측 확장 제거) */
-      &[data-selection-end]::before {
-        right: 0;
-        background: var(--accent);
+      /* 띠의 둥근 끝: 기간 끝 · 주의 끝 날 · 달의 끝 날 */
+      &:has(> [data-selection-end])::before,
+      &:last-child::before,
+      &:has(+ td > [data-outside-month])::before {
+        inset-inline-end: var(--spacing-2xs);
+        border-inline-end-width: 1px;
         border-start-end-radius: var(--radius-full);
         border-end-end-radius: var(--radius-full);
       }
+    }
 
-      /* 시작 = 끝(단일 날짜 선택): 전체 pill */
-      &[data-selection-start][data-selection-end]::before {
-        border-radius: var(--radius-full);
+    .react-aria-CalendarCell {
+      /* 중간 날짜: 원 없이 띠 위 보통 글자 */
+      &[data-selected] {
+        background: transparent;
+        color: var(--fg);
       }
 
-      /* 캡 셀의 날짜 텍스트는 accent 위 → on-accent 색 */
+      &[data-selected][data-hovered] {
+        background: color-mix(in srgb, var(--accent-subtle) 50%, var(--accent));
+      }
+
+      &[data-selected][data-invalid] {
+        background: transparent;
+        color: var(--fg);
+      }
+
+      /* 시작 · 종료일: 꽉 찬 accent 원 */
       &[data-selection-start],
       &[data-selection-end] {
+        background: var(--accent);
         color: var(--fg-on-accent);
+
+        &[data-hovered],
+        &[data-pressed] {
+          background: var(--accent-pressed);
+        }
+
+        &[data-invalid] {
+          background: var(--negative);
+          color: var(--fg-on-accent);
+        }
       }
 
-      /* focus ring */
+      /* focus ring — 중간 날짜는 원 안쪽, 시작 · 종료일은 원 바깥 (S2 outlineOffset -2 · 2) */
       &[data-focus-visible] {
-        outline: 2px solid var(--accent);
+        outline: 2px solid var(--focus-ring);
         outline-offset: -2px;
       }
 
       &[data-selection-start][data-focus-visible],
       &[data-selection-end][data-focus-visible] {
-        outline-color: var(--fg-on-accent);
-        outline-offset: -3px;
+        outline-offset: 2px;
       }
     }
 
-    /* today dot: 범위 중간 셀(연한 띠)은 accent 로 가시성 확보
-     * — 시작/끝 캡 셀은 CalendarCommon 의 --fg-on-accent 유지 */
+    /* today dot: 중간 날짜 (원 없음) 는 accent — 시작 · 종료일은 CalendarCommon 의 --fg-on-accent */
     .react-aria-CalendarCell[data-today][data-selected]:not(
         [data-selection-start]
       ):not([data-selection-end])::after {
       background: var(--accent);
-    }
-  }
-
-  /* ========== Size-Responsive Inner Elements ========== */
-
-  /* --- sm --- */
-  .react-aria-RangeCalendar[data-size="S"] {
-    header .react-aria-Heading,
-    header .react-aria-CalendarHeading {
-      font-size: var(--text-xs);
-    }
-
-    .react-aria-Button {
-      width: calc(var(--text-2xl) + var(--spacing-xs));
-      height: var(--text-2xl);
-    }
-
-    .react-aria-CalendarGridHeader th {
-      font-size: var(--text-xs);
-      line-height: var(--text-xs--line-height);
-      height: var(--text-2xl);
-    }
-
-    .react-aria-CalendarGridBody td .react-aria-CalendarCell {
-      width: var(--text-2xl);
-      height: var(--text-2xl);
-      line-height: var(--text-xs--line-height);
-      font-size: var(--text-xs);
-    }
-  }
-
-  /* --- md --- */
-  .react-aria-RangeCalendar[data-size="M"] {
-    header .react-aria-Heading,
-    header .react-aria-CalendarHeading {
-      font-size: var(--text-sm);
-    }
-
-    .react-aria-Button {
-      width: calc(var(--text-3xl) + var(--spacing-xs));
-      height: var(--text-3xl);
-    }
-
-    .react-aria-CalendarGridHeader th {
-      font-size: var(--text-sm);
-      line-height: var(--text-sm--line-height);
-      height: var(--text-3xl);
-    }
-
-    .react-aria-CalendarGridBody td .react-aria-CalendarCell {
-      width: var(--text-3xl);
-      height: var(--text-3xl);
-      line-height: var(--text-sm--line-height);
-      font-size: var(--text-sm);
-    }
-  }
-
-  /* --- lg --- */
-  .react-aria-RangeCalendar[data-size="L"] {
-    header .react-aria-Heading,
-    header .react-aria-CalendarHeading {
-      font-size: var(--text-base);
-    }
-
-    .react-aria-Button {
-      width: calc(var(--text-4xl) + var(--spacing-xs));
-      height: var(--text-4xl);
-    }
-
-    .react-aria-CalendarGridHeader th {
-      font-size: var(--text-base);
-      line-height: var(--text-base--line-height);
-      height: var(--text-4xl);
-    }
-
-    .react-aria-CalendarGridBody td .react-aria-CalendarCell {
-      width: var(--text-4xl);
-      height: var(--text-4xl);
-      line-height: var(--text-base--line-height);
-      font-size: var(--text-base);
     }
   }
 }

@@ -708,12 +708,12 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
       )!;
     expect(record("heading").derivedProps?.children).toBe(title("ja-JP"));
     expect(measured).toContain(title("ja-JP"));
-    // The nav Buttons are the calendar sheets' boxes (height + spacing-xs: md 34 × 30, lg 40 × 36),
-    // the heading fills the row between them (`flex: 1`) — the header row's part rules.
+    // The nav Buttons are the calendar sheet's boxes (squares — 2026-10-13: 30 × 30; the calendar has
+    // no size), the heading fills the row between them (`flex: 1`) — the header row's part rules.
     const nav = () => [record("previous").visual, record("next").visual];
     expect(nav()).toEqual([
-      expect.objectContaining({ width: 34, height: 30, fill: "transparent" }),
-      expect.objectContaining({ width: 34, height: 30, fill: "transparent" }),
+      expect.objectContaining({ width: 30, height: 30, fill: "transparent" }),
+      expect.objectContaining({ width: 30, height: 30, fill: "transparent" }),
     ]);
     expect(record("heading").layout).toEqual(
       expect.objectContaining({ flexGrow: "1" }),
@@ -721,25 +721,6 @@ describe("ADR-248 Phase 3 resting-state presence", () => {
     expect(record("heading").visual).toEqual(
       expect.objectContaining({ fontSize: 14, fontWeight: 700 }),
     );
-    root.dispatch("calendar size", [
-      {
-        kind: "patchNodeProp",
-        id: scene.nodeId,
-        key: "size",
-        write: { kind: "set", value: "L" },
-      },
-    ]);
-    expect(new Map(root.canvasInputs)).toEqual(
-      new Map(build(new StyleLayoutEngine()).canvasInputs),
-    );
-    expect(nav()).toEqual([
-      expect.objectContaining({ width: 40, height: 36 }),
-      expect.objectContaining({ width: 40, height: 36 }),
-    ]);
-    expect(record("heading").visual).toEqual(
-      expect.objectContaining({ fontSize: 16 }),
-    );
-    expect(record("heading").derivedProps?.children).toBe(title("ja-JP"));
   });
 
   it("lays a StatusLight out as its dot, gap and label (the DOM flex row), not the label alone", async () => {

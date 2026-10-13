@@ -2117,7 +2117,6 @@ export function createDefaultProgressCircleProps(): BaseElementProps {
 export function createDefaultRangeCalendarProps(): BaseElementProps {
   return {
     variant: "default",
-    size: "M",
     defaultToday: true,
     isDisabled: false,
     isReadOnly: false,
