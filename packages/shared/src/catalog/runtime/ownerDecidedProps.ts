@@ -46,11 +46,25 @@ const GROUP_ITEM_PROPS: Readonly<Record<string, readonly string[]>> = {
 const PICKER_LIST_PROPS = ["selectionMode", "disallowEmptySelection"];
 const PICKER_ITEM_PROPS = ["isSelected"];
 
+/**
+ * The types an owner can decide props of — the rest have none, so a caller skips the ancestor walk
+ * (the Design panel reads this on every document step).
+ */
+export const CATALOG_OWNER_DECIDED_TYPES: ReadonlySet<string> = new Set([
+  ...Object.keys(CATALOG_TOGGLE_GROUP_OF),
+  ...Object.values(CATALOG_SIZE_PROPAGATION).flat(),
+  "ListBox",
+  "ListBoxItem",
+  "Calendar",
+  "RangeCalendar",
+]);
+
 export function catalogOwnerDecidedProps(
   root: CatalogCompositionRoot,
   node: CatalogConsumerNode,
 ): CatalogOwnerDecidedProps | undefined {
   const type = catalogTypeName(root, node);
+  if (!CATALOG_OWNER_DECIDED_TYPES.has(type)) return undefined;
   const parentOf = (child: CatalogConsumerNode) =>
     child.parentId ? root.domInputs.get(child.parentId) : undefined;
   const ancestor = (of: string) => {

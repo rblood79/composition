@@ -12,7 +12,10 @@ import type { EditTarget } from "../../../../../../../packages/shared/src/catalo
 
 import { catalogCalendarPicker } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
 
-import { catalogOwnerDecidedProps } from "../../../../../../../packages/shared/src/catalog/runtime/ownerDecidedProps";
+import {
+  CATALOG_OWNER_DECIDED_TYPES,
+  catalogOwnerDecidedProps,
+} from "../../../../../../../packages/shared/src/catalog/runtime/ownerDecidedProps";
 
 import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 
@@ -234,6 +237,7 @@ export function CatalogPropertiesBody({
           key={targetKey(first.target)}
           elementId={first.identity}
           targets={targets}
+          root={root}
         />
       </ItemsSourceContext.Provider>
     </FieldValueSourceContext.Provider>
@@ -243,9 +247,12 @@ export function CatalogPropertiesBody({
 const CatalogFields = memo(function CatalogFields({
   elementId,
   targets,
+  root,
 }: {
   elementId: string;
   targets: readonly EditTarget[];
+  /** The panel's root (no getter of its own per step — ADR-246 count, like the RAC slot section). */
+  root: ReturnType<typeof useCatalogWorkspace>["root"] | undefined;
 }) {
   const { t } = useI18n();
   const workspace = useCatalogWorkspace();
@@ -273,8 +280,7 @@ const CatalogFields = memo(function CatalogFields({
   // (Read only for a calendar selection — the root is not touched for the other types.)
   const isCalendar = CALENDAR_TYPES.has(contract.type ?? "");
   const calendarPicker = useSyncExternalStore(subscribeSteps, () => {
-    if (!isCalendar) return "";
-    const root = workspace.root;
+    if (!isCalendar || !root) return "";
     const record = root.domInputs.get(elementId);
     if (!record) return "";
     const picker = catalogCalendarPicker(root, record);
@@ -282,8 +288,10 @@ const CatalogFields = memo(function CatalogFields({
   });
   // 2026-10-14: the props this node's owner decides where it sits (a grouped toggle's size and
   // emphasis, a field's button's size, a picker's list selection …) — not offered here.
+  // (Read only for a type an owner can decide — the root is not touched for the others.)
+  const mayBeOwnerDecided = CATALOG_OWNER_DECIDED_TYPES.has(contract.type ?? "");
   const ownerDecidedKey = useSyncExternalStore(subscribeSteps, () => {
-    const root = workspace.root;
+    if (!mayBeOwnerDecided || !root) return "";
     const record = root.domInputs.get(elementId);
     const decided = record ? catalogOwnerDecidedProps(root, record) : undefined;
     return decided ? `${decided.owner}:${[...decided.keys].join(",")}` : "";
