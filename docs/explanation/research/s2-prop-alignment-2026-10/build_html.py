@@ -111,10 +111,10 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
 
 <div class="wrap">
   <header style="display:grid;gap:10px">
-    <div class="eyebrow">composition · D2 Props/API 조사 · 2026-10-09</div>
+    <div class="eyebrow">composition · D2 Props/API 조사 · 2026-10-09 · 현재 코드로 갱신 2026-10-13</div>
     <h1>S2 프로퍼티 정렬</h1>
-    <p class="lede">composition catalog 의 컴포넌트 prop 137개 type 을 React Spectrum S2 1.8.0 의 실제 prop 집합과 한 줄씩 대조했습니다. 무엇이 이미 같고, 무엇을 바꾸거나 들여야 하는지 정리한 기록입니다.</p>
-    <div class="meta"><span>S2 <code>@react-spectrum/s2</code> 1.8.0</span><span>RAC 1.21.0 (설치본)</span><span>v3 <code>@adobe/react-spectrum</code> 3.47.6</span><span>spectrum-design-data 3.4.0</span></div>
+    <p class="lede">composition catalog 의 type 146개 의 prop 을 React Spectrum S2 1.8.0 의 실제 prop 집합과 한 줄씩 대조했습니다. 2026-10-09 첫 조사 뒤 결정 · ADR (size 표기 · F 묶음 삭제 · 6.1 「나」 · ADR-256 · 257 · 258 · 259) 이 반영된 현재 main (<code>aa3133e6d</code>) 기준입니다.</p>
+    <div class="meta"><span>S2 <code>@react-spectrum/s2</code> 1.8.0</span><span>RAC 1.22.1 (설치본)</span><span>v3 <code>@adobe/react-spectrum</code> 3.47.6</span><span>spectrum-design-data 3.4.0</span></div>
   </header>
 
   <section aria-labelledby="std">
@@ -143,21 +143,21 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     <h2 id="axis">시각 축 6개의 재분류</h2>
     <p class="lede"><code>variant</code> · <code>isEmphasized</code> · <code>fillStyle</code> · <code>staticColor</code> · <code>isQuiet</code> · <code>density</code> 를 새 기준으로 다시 나눈 결과입니다.</p>
     <div class="scroll"><table>
-      <thead><tr><th>묶음</th><th>대상</th><th>조치</th></tr></thead>
+      <thead><tr><th>묶음</th><th>대상</th><th>조치</th><th>현재 (2026-10-13)</th></tr></thead>
       <tbody>
-        <tr><td class="k"><span class="group-label">A</span>그대로</td><td>Button <code>variant</code> · <code>fillStyle</code> · <code>staticColor</code>, Badge, StatusLight, Card, Link, ToggleButton(Group), ProgressCircle · ProgressBar <code>staticColor</code>, Toast, Select · GridList <code>isQuiet</code>, ColorSwatchPicker · TableView · Tabs <code>density</code></td><td>없음</td></tr>
-        <tr><td class="k"><span class="group-label">B</span>이름 변경</td><td>Checkbox · Switch <code>variant</code> → <code>isEmphasized</code><br>CheckboxGroup · RadioGroup <code>variant</code> → <code>isEmphasized</code> (그룹이 자식에게)<br>Radio <code>variant</code> 삭제 · Form <code>variant</code> → <code>isEmphasized</code><br>TableView <code>variant</code> quiet → <code>isQuiet</code> · Tree <code>variant</code> → <code>isEmphasized</code> (design-data)</td><td>contract 변경</td></tr>
-        <tr><td class="k"><span class="group-label">C</span>값 변경</td><td>Meter <code>warning</code>/<code>critical</code> → <code>notice</code>/<code>negative</code> + <code>staticColor</code><br>InlineAlert <code>info</code> → <code>informative</code> + <code>fillStyle</code><br>CardView <code>variant</code> → primary/secondary/tertiary/quiet<br>Tooltip → neutral/informative/negative (design-data)</td><td>contract 변경</td></tr>
-        <tr><td class="k"><span class="group-label">D</span>추가</td><td>Slider · TagGroup <code>isEmphasized</code>, Avatar <code>isOverBackground</code>, Disclosure <code>isQuiet</code> · <code>density</code>, Separator <code>staticColor</code></td><td>추가만</td></tr>
-        <tr><td class="k"><span class="group-label">E</span>v3 근거 유지</td><td>field <code>isQuiet</code>: TextField · TextArea · ComboBox · SearchField · NumberField · DateField · DatePicker · TimeField · ColorField</td><td>S2 가 뺀 축임을 알고 유지</td></tr>
-        <tr><td class="k"><span class="group-label">F</span>어디에도 없음</td><td>ProgressBar <code>variant</code>, Table <code>variant</code> striped/bordered (design-data: "Don't use zebra stripes"), Separator <code>variant</code>, Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart <code>variant</code></td><td>확장 유지 / 삭제 결정</td></tr>
+        <tr><td class="k"><span class="group-label">A</span>그대로</td><td>Button <code>variant</code> · <code>fillStyle</code> · <code>staticColor</code>, Badge, StatusLight, Card, Link, ToggleButton(Group), ProgressCircle · ProgressBar <code>staticColor</code>, Toast, Select · GridList <code>isQuiet</code>, ColorSwatchPicker · TableView · Tabs <code>density</code></td><td>없음</td><td><span class="tag t-same">유지</span></td></tr>
+        <tr><td class="k"><span class="group-label">B</span>이름 변경</td><td>Checkbox · Switch <code>variant</code> → <code>isEmphasized</code><br>CheckboxGroup · RadioGroup <code>variant</code> → <code>isEmphasized</code> (그룹이 자식에게)<br>Radio <code>variant</code> 삭제 · Form <code>variant</code> → <code>isEmphasized</code><br>TableView <code>variant</code> quiet → <code>isQuiet</code> · Tree <code>variant</code> → <code>isEmphasized</code> (design-data)</td><td>contract 변경</td><td><span class="tag t-same">완료</span> 옛 <code>variant</code> 는 로드 시 1회 전환, 남은 <code>variant</code> 는 resolver 파생 운반 값 (편집 불가). Tree <code>isEmphasized</code> 는 design-data 근거 (S2 TreeView 에 없음)</td></tr>
+        <tr><td class="k"><span class="group-label">C</span>값 변경</td><td>Meter <code>warning</code>/<code>critical</code> → <code>notice</code>/<code>negative</code> + <code>staticColor</code><br>InlineAlert <code>info</code> → <code>informative</code> + <code>fillStyle</code><br>CardView <code>variant</code> → primary/secondary/tertiary/quiet<br>Tooltip → neutral/informative/negative (design-data)</td><td>contract 변경</td><td><span class="tag t-same">완료</span> 단 InlineAlert <code>fillStyle</code> 값 이름이 S2 와 다름 (아래 표)</td></tr>
+        <tr><td class="k"><span class="group-label">D</span>추가</td><td>Slider · TagGroup <code>isEmphasized</code>, Avatar <code>isOverBackground</code>, Disclosure <code>isQuiet</code> · <code>density</code>, Separator <code>staticColor</code></td><td>추가만</td><td><span class="tag t-same">완료</span></td></tr>
+        <tr><td class="k"><span class="group-label">E</span>v3 근거 유지</td><td>field <code>isQuiet</code>: TextField · TextArea · ComboBox · SearchField · NumberField · DateField · DatePicker · TimeField · ColorField</td><td>S2 가 뺀 축임을 알고 유지</td><td><span class="tag t-v3">유지</span></td></tr>
+        <tr><td class="k"><span class="group-label">F</span>어디에도 없음</td><td>ProgressBar <code>variant</code>, Table <code>variant</code> striped/bordered (design-data: "Don't use zebra stripes"), Separator <code>variant</code>, Calendar · RangeCalendar · CalendarGrid · ListBox · GridList · DisclosureGroup · Toolbar · FileTrigger · Skeleton · Pagination · Nav · ColorSwatchPicker · Section · ColorPicker · Chart <code>variant</code></td><td>확장 유지 / 삭제 결정</td><td><span class="tag t-same">삭제</span> 2026-10-12 결정 「어디에도 없으면 지워」 — 옛 문서 값은 로드 시 1회 삭제</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section aria-labelledby="diffs">
     <h2 id="diffs">값이 다른 prop</h2>
-    <p class="lede">이름은 같고 값 집합이 다른 경우입니다. 대부분 <code>size</code> 이며, S2 는 <code>S · M · L · XL</code> (일부 <code>XS</code>), 우리는 <code>xs · sm · md · lg · xl</code> 입니다.</p>
+    <p class="lede">이름은 같고 값 집합이 다른 경우입니다. <code>size</code> 는 표기를 S2 로 바꿨고 (<code>XS · S · M · L · XL</code>, 2026-10-09 결정) 범위는 type 마다 그대로라, 남은 것은 단계 수 차이입니다 (우리 <code>XS</code> 추가 · S2 <code>XS</code>/<code>XL</code> 미도입). <code>firstDayOfWeek</code> 의 빈 값은 「locale 기본」 입니다.</p>
     <div class="scroll"><table>
       <thead><tr><th>type</th><th>prop</th><th>우리</th><th>S2</th></tr></thead>
       <tbody id="diff-body"></tbody>
@@ -186,17 +186,18 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
   </section>
 
   <section aria-labelledby="dec">
-    <h2 id="dec">결정이 필요한 것</h2>
+    <h2 id="dec">결정과 진행</h2>
     <ol class="decisions">
-      <li><b><code>size</code> 표기와 범위</b> — 39개 type. S2 <code>S/M/L/XL</code> 로 맞출지, S2 에 없는 <code>xs</code> 단계와 일부 <code>xl</code> 을 어떻게 할지.</li>
-      <li><b>S2 에만 있는 시각 · 내용 prop 의 도입 범위</b> — <code>contextualHelp</code> (16) · <code>isEmphasized</code> (7) · <code>prefix</code> (5) 순으로 많습니다.</li>
-      <li><b>F 묶음</b> — 어디에도 없는 <code>variant</code> 를 확장으로 남길지 지울지 (항목별).</li>
-      <li><b>B · C 의 contract 변경</b> — 한 번으로 묶을지.</li>
+      <li><b><code>size</code> 표기와 범위</b> — <span class="tag t-same">결정 2026-10-09</span> 표기만 S2 로 (<code>XS · S · M · L · XL</code>), 범위는 type 마다 그대로. 값이 다른 <code>size</code> 39 → 16.</li>
+      <li><b>S2 에만 있는 시각 · 내용 prop</b> — 130 → 12. 「나」 (RAC 가 동작을 줌) 2026-10-09 · <code>formatOptions</code> 10-12, 표 열 · 칸 값 ADR-257, Color 축 ADR-258, <code>contextualHelp</code> · <code>prefix</code> · 항목 링크 · <code>hideLinkOutIcon</code> ADR-259 (2026-10-13). <code>contextualHelp</code> · <code>prefix</code> 는 prop 이 아니라 노드로 들였습니다 (아래 「노드 · 다른 자리」).</li>
+      <li><b>F 묶음</b> — <span class="tag t-same">결정 2026-10-12</span> 어디에도 없는 <code>variant</code> 삭제 (21 type).</li>
+      <li><b>B · C 의 contract 변경</b> — <span class="tag t-same">완료</span> 옛 문서 값은 로드 시 1회 전환.</li>
+      <li><b>남은 것</b> — S2 에만: Calendar · RangeCalendar <code>visibleMonths</code> · <code>selectionAlignment</code>, DatePicker · DateRangePicker <code>maxVisibleMonths</code> (Calendar 노드로 옮김), Card <code>density</code>, CardView <code>orientation</code>, Cell <code>isSticky</code>, Column <code>showDivider</code>, MenuSection <code>selectionMode</code>, Toast <code>placement</code>. 값이 다름: InlineAlert <code>fillStyle</code> (우리 outline · subtle · bold / S2 border · subtleFill · boldFill), Form <code>method</code> <code>dialog</code>, TextField <code>type</code> <code>number</code>.</li>
     </ol>
   </section>
 
   <footer>
-    <div>방법: S2 1.8.0 · RAC 1.21.0 의 컴포넌트 props 를 TypeScript 검사기로 상속까지 펼쳐 뽑고, catalog binding accepts · rule 의 variant/size 이름과 대조했습니다. 전역 DOM · aria · 이벤트 · <code>UNSAFE_*</code> · <code>styles</code> 는 비교에서 뺐습니다. origin 의 template 바인딩 prop (Card <code>title</code> 등) 은 비교 대상이 아닙니다.</div>
+    <div>방법: S2 1.8.0 · RAC 1.22.1 의 컴포넌트 props 를 TypeScript 검사기로 상속까지 펼쳐 뽑고, catalog binding accepts · rule 의 variant/size 이름과 대조했습니다. 전역 DOM · aria · 이벤트 · <code>UNSAFE_*</code> · <code>styles</code> 는 비교에서 뺐습니다. 원본이 받는 prop (ContextualHelp 의 Popover 위치 등) · 노드로 들인 S2 prop (<code>contextualHelp</code> · <code>prefix</code>) · 다른 노드가 맡는 S2 prop 은 「노드 · 다른 자리」 로, Design 패널에 없는 resolver 운반 값 (<code>editorHidden</code>) 은 「내부 운반 값」 으로 따로 셉니다 (둘 다 비교 제외). v3 근거는 2026-10-09 조사의 v3 3.47.6 대조를 이어 씁니다.</div>
     <div>원본: <code>docs/explanation/research/S2_PROP_ALIGNMENT_2026-10.md</code> · 데이터 <code>docs/explanation/research/s2-prop-alignment-2026-10/</code></div>
   </footer>
 </div>
@@ -228,7 +229,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
   };
   const tag = (text, cls) => el("span", { class: "tag t-" + cls }, text);
   const sum = (k) => DATA.reduce((a, x) => a + x[k].length, 0);
-  const tot = Object.fromEntries([...CATS, ...S2CATS, { key: "editor" }].map((c) => [c.key, sum(c.key)]));
+  const tot = Object.fromEntries([...CATS, ...S2CATS, { key: "editor" }, { key: "carry" }, { key: "node" }].map((c) => [c.key, sum(c.key)]));
   const compared = CATS.reduce((a, c) => a + tot[c.key], 0);
   document.getElementById("cmp-total").textContent = compared;
   document.getElementById("cmp-same").textContent = tot.same;
@@ -246,6 +247,8 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     [noS2, "S2 대응 컴포넌트 없음 (부품 · 확장)"],
     [tot.s2vis, "S2 에만 있는 시각 · 내용 prop"],
     [tot.s2link + tot.s2state + tot.s2behav, "S2 에만 있는 링크 · 상태 · 동작 prop (노드 · interaction 이 대신함)"],
+    [tot.node, "노드 · 다른 자리가 맡는 S2 prop (contextualHelp · prefix · 원본 prop 등)"],
+    [tot.carry, "내부 운반 값 (resolver 파생 · Design 패널에 없음, 비교 제외)"],
     [tot.editor, "편집기 축 (children · slot · dataBinding · aria-label, 비교 제외)"],
   ].forEach(([n, label]) => stats.append(el("div", { class: "stat" }, el("b", {}, n), el("small", {}, label))));
 
@@ -267,6 +270,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     { key: "v3", label: "v3 근거", test: (x) => x.v3.length },
     { key: "own", label: "우리만", test: (x) => x.own.length },
     { key: "s2vis", label: "S2 에만 (시각·내용)", test: (x) => x.s2vis.length },
+    { key: "node", label: "노드 · 다른 자리", test: (x) => x.node.length },
     { key: "nos2", label: "S2 대응 없음", test: (x) => !x.s2 },
   ];
   let active = "all";
@@ -307,6 +311,8 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     add("RAC 근거", x.rac, "rac");
     add("v3 근거", x.v3, "v3");
     add("우리만", x.own, "own");
+    add("내부 운반 값", x.carry, "editor");
+    if (x.node.length) dl.append(el("dt", {}, `노드 · 다른 자리 (${x.node.length})`), el("dd", {}, x.node.map((p) => el("div", { class: "diffline" }, tag(p, "s2"), " — ", (x.nodeWhy || {})[p] || ""))));
     add("편집기 축", x.editor, "editor");
     add("S2 에만 · 시각/내용", x.s2vis, "s2");
     add("S2 에만 · 링크", x.s2link, "editor");
@@ -321,7 +327,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     const list = DATA.filter((x) => f.test(x)).filter((x) => {
       if (!term) return true;
       if (x.type.toLowerCase().includes(term) || (x.s2 || "").toLowerCase().includes(term)) return true;
-      return ["same", "rac", "v3", "own", "s2vis", "s2link", "s2state", "s2behav", "editor"].some((k) => x[k].some((p) => p.toLowerCase().includes(term))) || x.diff.some((d) => d.prop.toLowerCase().includes(term));
+      return ["same", "rac", "v3", "own", "carry", "node", "s2vis", "s2link", "s2state", "s2behav", "editor"].some((k) => x[k].some((p) => p.toLowerCase().includes(term))) || x.diff.some((d) => d.prop.toLowerCase().includes(term));
     });
     rowsEl.replaceChildren(...list.map(rowFor));
     document.getElementById("row-count").textContent = `${list.length} / ${DATA.length} type`;
@@ -335,6 +341,7 @@ footer { color: var(--muted); font-size: 13px; display: grid; gap: 6px; }
     { key: "own", label: "우리만", cls: "own" },
     { key: "v3", label: "v3 근거", cls: "v3" },
     { key: "rac", label: "RAC 근거", cls: "rac" },
+    { key: "node", label: "노드 · 다른 자리", cls: "s2" },
   ];
   const propTabs = document.getElementById("prop-tabs");
   const propBody = document.getElementById("prop-body");

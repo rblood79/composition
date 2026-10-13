@@ -1272,6 +1272,10 @@
    "type": "\"dialog\" | \"alertdialog\" | undefined",
    "src": "aria"
   },
+  "isEntering": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
   "render": {
    "type": "DOMRenderFunction<\"section\", undefined> | undefined",
    "src": "RAC"
@@ -1741,7 +1745,7 @@
    "src": "aria"
   },
   "render": {
-   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: LinkRenderProps) => ReactElement<unknown, string…",
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: LinkRenderProps) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
    "src": "RAC"
   }
  },
@@ -1869,7 +1873,7 @@
    "src": "RAC"
   },
   "render": {
-   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: ListBoxItemRenderProps) => ReactElement<unknown, s…",
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: ListBoxItemRenderProps) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
    "src": "RAC"
   },
   "href": {
@@ -1995,7 +1999,7 @@
    "src": "RAC"
   },
   "render": {
-   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: MenuItemRenderProps) => ReactElement<unknown, stri…",
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: MenuItemRenderProps) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
    "src": "RAC"
   },
   "href": {
@@ -2142,11 +2146,19 @@
    "type": "Element | undefined",
    "src": "RAC"
   },
+  "UNSTABLE_deferUntilEntered": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
   "isDismissable": {
    "type": "boolean | undefined",
    "src": "aria"
   },
   "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "UNSTABLE_overrideFocus": {
    "type": "boolean | undefined",
    "src": "aria"
   },
@@ -2180,11 +2192,19 @@
    "type": "Element | undefined",
    "src": "RAC"
   },
+  "UNSTABLE_deferUntilEntered": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
   "isDismissable": {
    "type": "boolean | undefined",
    "src": "aria"
   },
   "isKeyboardDismissDisabled": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "UNSTABLE_overrideFocus": {
    "type": "boolean | undefined",
    "src": "aria"
   },
@@ -2723,6 +2743,120 @@
   "render": {
    "type": "DOMRenderFunction<\"div\", SharedElementRenderProps> | undefined",
    "src": "RAC"
+  }
+ },
+ "SheetTrigger": {
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  }
+ },
+ "SheetOverlay": {
+  "position": {
+   "type": "\"start\" | \"center\" | \"end\" | \"bottom\" | \"top\" | \"left\" | \"right\" | undefined",
+   "src": "RAC"
+  },
+  "swipeDirection": {
+   "type": "\"start\" | \"end\" | \"horizontal\" | \"vertical\" | \"bottom\" | \"top\" | \"left\" | \"right\" | undefined",
+   "src": "RAC"
+  },
+  "snapPoints": {
+   "type": "(string | number)[] | undefined",
+   "src": "RAC"
+  },
+  "preventDismissal": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "isOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "defaultOpen": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "shouldCloseOnInteractOutside": {
+   "type": "((element: Element) => boolean) | undefined",
+   "src": "aria"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_deferUntilEntered": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_overrideFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SheetRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "Sheet": {
+  "swipeAnimation": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "swipeAnimationRange": {
+   "type": "{ start?: number | undefined; end?: number | undefined; } | undefined",
+   "src": "RAC"
+  },
+  "stackAnimation": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "overscrollPadding": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_portalContainer": {
+   "type": "Element | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_deferUntilEntered": {
+   "type": "boolean | undefined",
+   "src": "RAC"
+  },
+  "UNSTABLE_overrideFocus": {
+   "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SheetRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SheetBackdrop": {
+  "swipeAnimation": {
+   "type": "string | undefined",
+   "src": "RAC"
+  },
+  "swipeAnimationRange": {
+   "type": "{ start?: number | undefined; end?: number | undefined; } | undefined",
+   "src": "RAC"
+  },
+  "render": {
+   "type": "DOMRenderFunction<\"div\", SheetRenderProps> | undefined",
+   "src": "RAC"
+  }
+ },
+ "SheetContent": {
+  "render": {
+   "type": "DOMRenderFunction<\"section\", undefined> | undefined",
+   "src": "RAC"
+  },
+  "role": {
+   "type": "\"dialog\" | \"alertdialog\" | undefined",
+   "src": "aria"
   }
  },
  "Slider": {
@@ -3271,7 +3405,7 @@
    "src": "RAC"
   },
   "render": {
-   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: TabRenderProps) => ReactElement<unknown, string | …",
+   "type": "((props: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> | DetailedHTMLProps<LinkWithRequiredHref, HTMLAnchorElement>, renderProps: TabRenderProps) => ReactElement<unknown, string | JSXElementConstructor<any>>) | undefined",
    "src": "RAC"
   },
   "href": {
@@ -3814,6 +3948,10 @@
    "type": "boolean | undefined",
    "src": "aria"
   },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
+   "src": "aria"
+  },
   "textValue": {
    "type": "string",
    "src": "RAC"
@@ -3984,12 +4122,12 @@
    "type": "boolean | undefined",
    "src": "aria"
   },
-  "focusMode": {
-   "type": "\"child\" | \"row\" | undefined",
-   "src": "aria"
-  },
   "hasChildItems": {
    "type": "boolean | undefined",
+   "src": "aria"
+  },
+  "focusMode": {
+   "type": "\"child\" | \"row\" | undefined",
    "src": "aria"
   }
  },

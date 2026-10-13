@@ -11,7 +11,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -27,7 +30,8 @@
   "same": [
    "src",
    "alt",
-   "size"
+   "size",
+   "isOverBackground"
   ],
   "diff": [],
   "rac": [],
@@ -37,10 +41,11 @@
   "own": [
    "initials"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isOverBackground"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -57,10 +62,15 @@
   "own": [
    "isDisabled"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "label"
   ],
+  "nodeWhy": {
+   "label": "원본 prop"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -70,17 +80,18 @@
   "s2": "Badge",
   "same": [
    "variant",
-   "fillStyle"
+   "fillStyle",
+   "overflowMode"
   ],
   "diff": [
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -97,12 +108,13 @@
    "isPulsing",
    "isDisabled"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
-  "s2vis": [
-   "overflowMode"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -119,9 +131,12 @@
    "size"
   ],
   "own": [],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [
    "hrefLang",
@@ -158,9 +173,12 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -184,11 +202,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -203,10 +221,13 @@
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "slot",
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -236,11 +257,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -253,7 +274,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -272,21 +296,50 @@
    "maxValue",
    "errorMessage"
   ],
-  "diff": [],
-  "rac": [],
+  "diff": [
+   {
+    "prop": "firstDayOfWeek",
+    "ours": [
+     "",
+     "sun",
+     "mon",
+     "tue",
+     "wed",
+     "thu",
+     "fri",
+     "sat"
+    ],
+    "s2": [
+     "fri",
+     "mon",
+     "sat",
+     "sun",
+     "thu",
+     "tue",
+     "wed"
+    ]
+   }
+  ],
+  "rac": [
+   "visibleDuration",
+   "weeksInMonth"
+  ],
   "v3": [],
   "own": [
-   "variant",
    "size",
-   "maxVisibleMonths",
    "locale",
    "calendarSystem"
   ],
+  "carry": [],
   "editor": [],
+  "node": [
+   "selectionMode"
+  ],
+  "nodeWhy": {
+   "selectionMode": "RangeCalendar"
+  },
   "s2vis": [
    "visibleMonths",
-   "selectionMode",
-   "firstDayOfWeek",
    "selectionAlignment"
   ],
   "s2link": [],
@@ -302,14 +355,31 @@
   ]
  },
  {
+  "type": "CalendarCell",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
   "type": "CalendarGrid",
   "s2": null,
   "same": [],
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant",
+  "own": [],
+  "carry": [
    "size",
    "defaultToday",
    "dayOffset",
@@ -317,6 +387,8 @@
    "todayDate"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -329,10 +401,106 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarHeaderCell",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarHeading",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [
+   "size"
+  ],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarMonth",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [
+   "size"
+  ],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarMonthPicker",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "format"
+  ],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "CalendarYearPicker",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [
+   "visibleYears"
+  ],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -343,38 +511,22 @@
   "s2": "Card",
   "same": [
    "variant",
+   "size",
    "href",
    "target",
    "isDisabled"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL",
-     "XS"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [
-   "title",
-   "description",
    "accentColor",
    "isSelected"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "density"
   ],
@@ -396,54 +548,6 @@
   ]
  },
  {
-  "type": "CardContent",
-  "s2": null,
-  "same": [],
-  "diff": [],
-  "rac": [],
-  "v3": [],
-  "own": [
-   "size"
-  ],
-  "editor": [],
-  "s2vis": [],
-  "s2link": [],
-  "s2state": [],
-  "s2behav": []
- },
- {
-  "type": "CardFooter",
-  "s2": null,
-  "same": [],
-  "diff": [],
-  "rac": [],
-  "v3": [],
-  "own": [
-   "size"
-  ],
-  "editor": [],
-  "s2vis": [],
-  "s2link": [],
-  "s2state": [],
-  "s2behav": []
- },
- {
-  "type": "CardHeader",
-  "s2": null,
-  "same": [],
-  "diff": [],
-  "rac": [],
-  "v3": [],
-  "own": [
-   "size"
-  ],
-  "editor": [],
-  "s2vis": [],
-  "s2link": [],
-  "s2state": [],
-  "s2behav": []
- },
- {
   "type": "CardPreview",
   "s2": null,
   "same": [],
@@ -453,7 +557,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -464,29 +571,18 @@
   "s2": "CardView",
   "same": [
    "layout",
+   "variant",
    "density",
    "selectionMode",
    "selectionStyle"
   ],
   "diff": [
    {
-    "prop": "variant",
-    "ours": [
-     "default"
-    ],
-    "s2": [
-     "primary",
-     "quiet",
-     "secondary",
-     "tertiary"
-    ]
-   },
-   {
     "prop": "size",
     "ours": [
-     "sm",
-     "md",
-     "lg"
+     "S",
+     "M",
+     "L"
     ],
     "s2": [
      "L",
@@ -500,7 +596,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "orientation"
   ],
@@ -529,21 +628,28 @@
  {
   "type": "Cell",
   "s2": "Cell",
-  "same": [],
+  "same": [
+   "align",
+   "showDivider",
+   "colSpan"
+  ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
    "size"
   ],
+  "carry": [
+   "density",
+   "overflowMode"
+  ],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
-   "isSticky",
-   "colSpan",
-   "align",
-   "showDivider"
+   "isSticky"
   ],
   "s2link": [],
   "s2state": [],
@@ -561,26 +667,9 @@
   "rac": [],
   "v3": [],
   "own": [
-   "chartType",
    "dimension",
    "metric",
    "color",
-   "dataMode",
-   "valueFields",
-   "seriesConfig",
-   "valueFormat",
-   "valueLocale",
-   "valueFractionDigits",
-   "valueCurrency",
-   "valuePercentUnit",
-   "budgetOverflow",
-   "budgetAggregate",
-   "budgetAxis",
-   "budgetOthersLabel",
-   "dimensionScale",
-   "dimensionFormat",
-   "dimensionLabelFormat",
-   "referenceLines",
    "data",
    "orientation",
    "stackType",
@@ -608,12 +697,32 @@
    "animationBegin",
    "animationDuration",
    "animationEasing",
-   "variant",
    "size"
+  ],
+  "carry": [
+   "chartType",
+   "dataMode",
+   "valueFields",
+   "seriesConfig",
+   "valueFormat",
+   "valueLocale",
+   "valueFractionDigits",
+   "valueCurrency",
+   "valuePercentUnit",
+   "budgetOverflow",
+   "budgetAggregate",
+   "budgetAxis",
+   "budgetOthersLabel",
+   "dimensionScale",
+   "dimensionFormat",
+   "dimensionLabelFormat",
+   "referenceLines"
   ],
   "editor": [
    "dataBinding"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -624,6 +733,8 @@
   "s2": "Checkbox",
   "same": [
    "description",
+   "isEmphasized",
+   "size",
    "isSelected",
    "isIndeterminate",
    "isDisabled",
@@ -634,36 +745,21 @@
    "name",
    "value"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "variant"
   ],
   "editor": [
    "children"
   ],
-  "s2vis": [
-   "isEmphasized"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultSelected"
@@ -683,10 +779,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -698,8 +797,11 @@
   "same": [
    "label",
    "description",
+   "isEmphasized",
+   "size",
    "orientation",
    "labelPosition",
+   "labelAlign",
    "name",
    "isRequired",
    "isDisabled",
@@ -708,34 +810,19 @@
    "necessityIndicator",
    "errorMessage"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant"
-  ],
+  "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isEmphasized",
-   "labelAlign",
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -755,7 +842,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -768,10 +858,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -787,9 +880,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -799,24 +895,26 @@
   "type": "ColorArea",
   "s2": "ColorArea",
   "same": [
-   "isDisabled"
+   "isDisabled",
+   "defaultValue",
+   "colorSpace",
+   "xChannel",
+   "yChannel",
+   "xName",
+   "yName"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "xName",
-   "yName",
-   "colorSpace",
-   "xChannel",
-   "yChannel"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
-   "value",
-   "defaultValue"
+   "value"
   ],
   "s2behav": [
    "form"
@@ -828,6 +926,7 @@
   "same": [
    "label",
    "description",
+   "placeholder",
    "labelPosition",
    "labelAlign",
    "isRequired",
@@ -846,11 +945,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -867,12 +966,17 @@
    "isQuiet"
   ],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "prefix",
-   "contextualHelp",
-   "placeholder"
+   "contextualHelp"
   ],
+  "nodeWhy": {
+   "prefix": "앞 글자 Text · Icon 노드 (ADR-259)",
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -895,10 +999,11 @@
   "v3": [
    "size"
   ],
-  "own": [
-   "variant"
-  ],
+  "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -909,23 +1014,28 @@
   "s2": "ColorSlider",
   "same": [
    "isDisabled",
+   "label",
+   "defaultValue",
+   "channel",
+   "colorSpace",
    "orientation"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "label",
-   "colorSpace",
-   "channel",
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
-   "value",
-   "defaultValue"
+   "value"
   ],
   "s2behav": [
    "form",
@@ -936,15 +1046,17 @@
   "type": "ColorSwatch",
   "s2": "ColorSwatch",
   "same": [
-   "color"
+   "color",
+   "colorName",
+   "rounding"
   ],
   "diff": [
    {
     "prop": "size",
     "ours": [
-     "sm",
-     "md",
-     "lg"
+     "S",
+     "M",
+     "L"
     ],
     "s2": [
      "L",
@@ -957,11 +1069,11 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "rounding",
-   "colorName"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -978,9 +1090,9 @@
    {
     "prop": "size",
     "ours": [
-     "sm",
-     "md",
-     "lg"
+     "S",
+     "M",
+     "L"
     ],
     "s2": [
      "L",
@@ -995,10 +1107,12 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "isDisabled"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -1017,7 +1131,27 @@
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "ColorThumb",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1027,20 +1161,22 @@
   "type": "ColorWheel",
   "s2": "ColorWheel",
   "same": [
-   "isDisabled"
+   "size",
+   "isDisabled",
+   "defaultValue"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "size"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
-   "value",
-   "defaultValue"
+   "value"
   ],
   "s2behav": [
    "form",
@@ -1048,10 +1184,34 @@
   ]
  },
  {
+  "type": "ColorWheelTrack",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
   "type": "Column",
   "s2": "Column",
   "same": [
-   "isRowHeader"
+   "isRowHeader",
+   "align",
+   "width",
+   "defaultWidth",
+   "minWidth",
+   "maxWidth",
+   "allowsSorting",
+   "allowsResizing"
   ],
   "diff": [],
   "rac": [],
@@ -1059,18 +1219,17 @@
   "own": [
    "size"
   ],
+  "carry": [
+   "density",
+   "overflowMode"
+  ],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
-   "showDivider",
-   "allowsResizing",
-   "align",
-   "width",
-   "allowsSorting",
-   "defaultWidth",
-   "minWidth",
-   "maxWidth"
+   "showDivider"
   ],
   "s2link": [],
   "s2state": [],
@@ -1094,6 +1253,9 @@
    "isRequired",
    "isReadOnly",
    "isInvalid",
+   "direction",
+   "align",
+   "menuWidth",
    "allowsCustomValue",
    "menuTrigger",
    "name",
@@ -1105,11 +1267,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -1128,16 +1290,19 @@
   "own": [
    "iconName"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "direction",
-   "align",
-   "menuWidth",
+  "node": [
    "prefix",
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "prefix": "앞 글자 Text · Icon 노드 (ADR-259)",
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -1159,11 +1324,70 @@
   ]
  },
  {
+  "type": "Content",
+  "s2": "Content",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
+  "type": "ContextualHelp",
+  "s2": "ContextualHelp",
+  "same": [
+   "variant",
+   "size",
+   "isOpen",
+   "defaultOpen"
+  ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [
+   "placement",
+   "shouldFlip",
+   "containerPadding",
+   "offset",
+   "crossOffset"
+  ],
+  "nodeWhy": {
+   "placement": "원본 prop",
+   "shouldFlip": "원본 prop",
+   "containerPadding": "원본 prop",
+   "offset": "원본 prop",
+   "crossOffset": "원본 prop"
+  },
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
   "type": "DateField",
   "s2": "DateField",
   "same": [
    "label",
    "description",
+   "size",
    "labelPosition",
    "labelAlign",
    "hideTimeZone",
@@ -1182,23 +1406,7 @@
    "validationBehavior",
    "placeholderValue"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
@@ -1209,10 +1417,15 @@
    "locale",
    "calendarSystem"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -1233,12 +1446,16 @@
   "rac": [],
   "v3": [],
   "own": [
-   "size",
    "isDisabled"
+  ],
+  "carry": [
+   "size"
   ],
   "editor": [
    "slot"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1255,9 +1472,11 @@
    "isDisabled",
    "isReadOnly",
    "granularity",
+   "hourCycle",
    "errorMessage",
    "minValue",
    "maxValue",
+   "placeholderValue",
    "name",
    "isRequired",
    "isInvalid",
@@ -1266,24 +1485,45 @@
    "pageBehavior",
    "shouldForceLeadingZeros",
    "shouldCloseOnSelect",
-   "maxVisibleMonths",
    "validationBehavior"
   ],
   "diff": [
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
      "M",
      "S",
      "XL"
+    ]
+   },
+   {
+    "prop": "firstDayOfWeek",
+    "ours": [
+     "",
+     "sun",
+     "mon",
+     "tue",
+     "wed",
+     "thu",
+     "fri",
+     "sat"
+    ],
+    "s2": [
+     "fri",
+     "mon",
+     "sat",
+     "sun",
+     "thu",
+     "tue",
+     "wed"
     ]
    }
   ],
@@ -1298,12 +1538,16 @@
    "locale",
    "calendarSystem"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "firstDayOfWeek",
-   "placeholderValue",
-   "hourCycle",
+  "node": [
    "contextualHelp"
+  ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [
+   "maxVisibleMonths"
   ],
   "s2link": [],
   "s2state": [
@@ -1335,6 +1579,7 @@
    "errorMessage",
    "minValue",
    "maxValue",
+   "placeholderValue",
    "startName",
    "endName",
    "isRequired",
@@ -1345,7 +1590,6 @@
    "pageBehavior",
    "shouldForceLeadingZeros",
    "shouldCloseOnSelect",
-   "maxVisibleMonths",
    "allowsNonContiguousRanges",
    "validationBehavior"
   ],
@@ -1353,17 +1597,39 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
      "M",
      "S",
      "XL"
+    ]
+   },
+   {
+    "prop": "firstDayOfWeek",
+    "ours": [
+     "",
+     "sun",
+     "mon",
+     "tue",
+     "wed",
+     "thu",
+     "fri",
+     "sat"
+    ],
+    "s2": [
+     "fri",
+     "mon",
+     "sat",
+     "sun",
+     "thu",
+     "tue",
+     "wed"
     ]
    }
   ],
@@ -1376,11 +1642,16 @@
    "locale",
    "calendarSystem"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "firstDayOfWeek",
-   "placeholderValue",
+  "node": [
    "contextualHelp"
+  ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [
+   "maxVisibleMonths"
   ],
   "s2link": [],
   "s2state": [
@@ -1399,6 +1670,23 @@
   ]
  },
  {
+  "type": "DateSegment",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
   "type": "Description",
   "s2": null,
   "same": [],
@@ -1408,9 +1696,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1426,11 +1717,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -1443,10 +1734,15 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "isDismissible"
   ],
+  "nodeWhy": {
+   "isDismissible": "Modal isDismissable"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "isEntering"
@@ -1465,7 +1761,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1482,7 +1781,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1493,15 +1795,17 @@
   "s2": "Disclosure",
   "same": [
    "isExpanded",
+   "density",
+   "isQuiet",
    "isDisabled"
   ],
   "diff": [
    {
     "prop": "size",
     "ours": [
-     "sm",
-     "md",
-     "lg"
+     "S",
+     "M",
+     "L"
     ],
     "s2": [
      "L",
@@ -1516,12 +1820,15 @@
   "own": [
    "title"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "density",
-   "isQuiet",
+  "node": [
    "defaultExpanded"
   ],
+  "nodeWhy": {
+   "defaultExpanded": "isExpanded"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -1537,10 +1844,12 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1554,10 +1863,15 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "label"
   ],
+  "nodeWhy": {
+   "label": "Heading 노드"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -1568,22 +1882,12 @@
  {
   "type": "DropZone",
   "s2": "DropZone",
-  "same": [],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
+  "same": [
+   "size",
+   "isFilled",
+   "replaceMessage"
   ],
+  "diff": [],
   "rac": [
    "isDisabled"
   ],
@@ -1592,11 +1896,11 @@
    "label",
    "description"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isFilled",
-   "replaceMessage"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -1616,7 +1920,10 @@
    "key",
    "type"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1632,9 +1939,29 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": []
+ },
+ {
+  "type": "FieldLabel",
+  "s2": null,
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1653,13 +1980,15 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size",
    "isDisabled"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1682,40 +2011,56 @@
    "showPreview",
    "isDisabled"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
  },
  {
+  "type": "Footer",
+  "s2": "Footer",
+  "same": [],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
+  "s2link": [],
+  "s2state": [],
+  "s2behav": [
+   "isHidden",
+   "itemProp",
+   "itemScope",
+   "itemType",
+   "itemID",
+   "itemRef"
+  ]
+ },
+ {
   "type": "Form",
   "s2": "Form",
   "same": [
+   "isEmphasized",
+   "size",
    "labelPosition",
    "labelAlign",
    "necessityIndicator",
+   "isRequired",
+   "isDisabled",
    "validationBehavior",
    "action",
    "encType",
    "target"
   ],
   "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   },
    {
     "prop": "method",
     "ours": [
@@ -1731,15 +2076,12 @@
   ],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant"
-  ],
+  "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isDisabled",
-   "isEmphasized",
-   "isRequired"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -1756,6 +2098,8 @@
    "isQuiet",
    "selectionMode",
    "selectionStyle",
+   "overflowMode",
+   "hideLinkOutIcon",
    "disallowEmptySelection"
   ],
   "diff": [],
@@ -1764,16 +2108,15 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "hideLinkOutIcon",
-   "overflowMode"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -1800,6 +2143,9 @@
   "type": "GridListItem",
   "s2": "ListViewItem",
   "same": [
+   "href",
+   "target",
+   "rel",
    "isDisabled"
   ],
   "diff": [],
@@ -1808,14 +2154,17 @@
   "own": [
    "size"
   ],
+  "carry": [
+   "hideLinkOutIcon",
+   "overflowMode"
+  ],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [
-   "href",
-   "target",
-   "rel",
    "hrefLang",
    "download",
    "ping",
@@ -1840,7 +2189,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1859,7 +2211,10 @@
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1873,9 +2228,12 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1891,19 +2249,22 @@
  {
   "type": "Heading",
   "s2": "Heading",
-  "same": [],
+  "same": [
+   "level"
+  ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
-  "s2vis": [
-   "level"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -1928,7 +2289,10 @@
    "iconName",
    "strokeWidth"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1938,27 +2302,17 @@
   "type": "IllustratedMessage",
   "s2": "IllustratedMessage",
   "same": [
+   "size",
    "orientation"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1975,7 +2329,10 @@
    "iconName",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -1984,23 +2341,21 @@
  {
   "type": "InlineAlert",
   "s2": "InlineAlert",
-  "same": [],
+  "same": [
+   "variant"
+  ],
   "diff": [
    {
-    "prop": "variant",
+    "prop": "fillStyle",
     "ours": [
-     "neutral",
-     "info",
-     "positive",
-     "notice",
-     "negative"
+     "outline",
+     "subtle",
+     "bold"
     ],
     "s2": [
-     "informative",
-     "negative",
-     "neutral",
-     "notice",
-     "positive"
+     "boldFill",
+     "border",
+     "subtleFill"
     ]
    }
   ],
@@ -2009,10 +2364,11 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "fillStyle"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -2032,7 +2388,10 @@
    "type",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2048,9 +2407,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2071,9 +2433,12 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2096,9 +2461,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2111,6 +2479,7 @@
    "variant",
    "staticColor",
    "isQuiet",
+   "isStandalone",
    "href",
    "target",
    "rel"
@@ -2124,12 +2493,13 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
-  "s2vis": [
-   "isStandalone"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [
    "hrefLang",
    "download",
@@ -2151,12 +2521,14 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2166,6 +2538,9 @@
   "type": "ListBoxItem",
   "s2": "PickerItem",
   "same": [
+   "href",
+   "target",
+   "rel",
    "isDisabled"
   ],
   "diff": [],
@@ -2174,14 +2549,14 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [
-   "href",
-   "target",
-   "rel",
    "hrefLang",
    "download",
    "ping",
@@ -2203,7 +2578,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2213,34 +2591,21 @@
   "type": "Menu",
   "s2": "Menu",
   "same": [
+   "size",
+   "hideLinkOutIcon",
    "selectionMode"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "hideLinkOutIcon"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -2267,7 +2632,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "selectionMode"
   ],
@@ -2290,17 +2658,19 @@
   "same": [
    "isOpen",
    "defaultOpen",
-   "trigger"
+   "trigger",
+   "direction",
+   "align"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "align",
-   "direction"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -2315,51 +2685,24 @@
    "minValue",
    "maxValue",
    "label",
+   "formatOptions",
+   "variant",
+   "size",
    "labelPosition",
+   "staticColor",
    "valueLabel"
   ],
-  "diff": [
-   {
-    "prop": "variant",
-    "ours": [
-     "informative",
-     "positive",
-     "warning",
-     "critical"
-    ],
-    "s2": [
-     "informative",
-     "negative",
-     "notice",
-     "positive"
-    ]
-   },
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [
    "showValueLabel"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "formatOptions",
-   "staticColor"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -2371,11 +2714,14 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "variant",
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2388,11 +2734,14 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "variant",
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2409,9 +2758,12 @@
    "variant",
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2424,14 +2776,17 @@
   "diff": [],
   "rac": [
    "isOpen",
-   "isDismissable",
-   "autoFocus"
+   "isDismissable"
   ],
   "v3": [],
-  "own": [
-   "trapFocus"
+  "own": [],
+  "carry": [
+   "trapFocus",
+   "autoFocus"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2445,12 +2800,14 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [
    "aria-label"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -2471,11 +2828,14 @@
   "same": [
    "label",
    "description",
+   "placeholder",
    "labelPosition",
    "labelAlign",
+   "hideStepper",
    "minValue",
    "maxValue",
    "step",
+   "formatOptions",
    "value",
    "name",
    "errorMessage",
@@ -2490,11 +2850,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -2513,14 +2873,17 @@
   "own": [
    "locale"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "hideStepper",
+  "node": [
    "prefix",
-   "formatOptions",
-   "contextualHelp",
-   "placeholder"
+   "contextualHelp"
   ],
+  "nodeWhy": {
+   "prefix": "앞 글자 Text · Icon 노드 (ADR-259)",
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultValue"
@@ -2542,7 +2905,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2556,10 +2922,12 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2575,9 +2943,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2587,37 +2958,30 @@
   "type": "Popover",
   "s2": "Popover",
   "same": [
+   "size",
    "placement",
    "offset",
    "crossOffset",
    "shouldFlip",
    "containerPadding"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "containFocus"
   ],
   "editor": [],
-  "s2vis": [
+  "node": [
    "padding",
    "hideArrow"
   ],
+  "nodeWhy": {
+   "padding": "Styles padding",
+   "hideArrow": "OverlayArrow 노드"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "isOpen",
@@ -2638,38 +3002,24 @@
    "minValue",
    "maxValue",
    "label",
+   "formatOptions",
+   "size",
    "staticColor",
    "isIndeterminate",
    "labelPosition",
    "valueLabel"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [
-   "variant",
    "showValueLabel"
   ],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "formatOptions"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -2681,11 +3031,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant",
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2698,11 +3050,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant",
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2718,9 +3072,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2733,28 +3090,18 @@
    "value",
    "minValue",
    "maxValue",
+   "size",
    "isIndeterminate",
    "staticColor"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2774,13 +3121,18 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "size",
    "isSelected"
+  ],
+  "carry": [
+   "isEmphasized",
+   "variant"
   ],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2795,10 +3147,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2810,8 +3165,11 @@
   "same": [
    "label",
    "description",
+   "isEmphasized",
+   "size",
    "orientation",
    "labelPosition",
+   "labelAlign",
    "value",
    "name",
    "isRequired",
@@ -2821,34 +3179,19 @@
    "necessityIndicator",
    "errorMessage"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
-   "variant"
-  ],
+  "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isEmphasized",
-   "labelAlign",
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultValue"
@@ -2867,7 +3210,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2880,10 +3226,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -2903,20 +3252,46 @@
    "errorMessage",
    "allowsNonContiguousRanges"
   ],
-  "diff": [],
-  "rac": [],
+  "diff": [
+   {
+    "prop": "firstDayOfWeek",
+    "ours": [
+     "",
+     "sun",
+     "mon",
+     "tue",
+     "wed",
+     "thu",
+     "fri",
+     "sat"
+    ],
+    "s2": [
+     "fri",
+     "mon",
+     "sat",
+     "sun",
+     "thu",
+     "tue",
+     "wed"
+    ]
+   }
+  ],
+  "rac": [
+   "visibleDuration",
+   "weeksInMonth"
+  ],
   "v3": [],
   "own": [
-   "variant",
    "size",
-   "maxVisibleMonths",
    "locale",
    "calendarSystem"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "visibleMonths",
-   "firstDayOfWeek",
    "selectionAlignment"
   ],
   "s2link": [],
@@ -2935,22 +3310,25 @@
  {
   "type": "Row",
   "s2": "Row",
-  "same": [],
+  "same": [
+   "href",
+   "target",
+   "rel",
+   "isDisabled"
+  ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isDisabled"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [
-   "href",
    "hrefLang",
-   "target",
-   "rel",
    "download",
    "ping",
    "referrerPolicy",
@@ -2970,6 +3348,8 @@
    "label",
    "description",
    "placeholder",
+   "type",
+   "size",
    "labelPosition",
    "labelAlign",
    "value",
@@ -2989,23 +3369,7 @@
    "pattern",
    "necessityIndicator"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
@@ -3013,11 +3377,15 @@
    "isQuiet"
   ],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "type",
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultValue"
@@ -3037,10 +3405,12 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3060,6 +3430,9 @@
    "isRequired",
    "isInvalid",
    "isQuiet",
+   "direction",
+   "align",
+   "menuWidth",
    "name",
    "errorMessage",
    "necessityIndicator"
@@ -3068,11 +3441,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -3087,15 +3460,17 @@
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "direction",
-   "align",
-   "menuWidth",
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -3130,9 +3505,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3146,7 +3524,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3156,32 +3537,19 @@
   "type": "Separator",
   "s2": "Divider",
   "same": [
-   "orientation"
-  ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
-  ],
-  "rac": [],
-  "v3": [],
-  "own": [
-   "variant"
-  ],
-  "editor": [],
-  "s2vis": [
+   "orientation",
+   "size",
    "staticColor"
   ],
+  "diff": [],
+  "rac": [],
+  "v3": [],
+  "own": [],
+  "carry": [],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -3189,18 +3557,20 @@
  {
   "type": "Skeleton",
   "s2": "Skeleton",
-  "same": [],
+  "same": [
+   "isLoading"
+  ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isLoading"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": []
@@ -3210,45 +3580,35 @@
   "s2": "Slider",
   "same": [
    "label",
+   "size",
    "labelPosition",
+   "labelAlign",
    "minValue",
    "maxValue",
    "step",
+   "formatOptions",
    "value",
+   "isEmphasized",
+   "trackStyle",
+   "thumbStyle",
+   "fillOffset",
    "isDisabled"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [
    "showValueLabel"
   ],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "fillOffset",
-   "contextualHelp",
-   "labelAlign",
-   "formatOptions",
-   "isEmphasized",
-   "trackStyle",
-   "thumbStyle"
+  "node": [
+   "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultValue"
@@ -3268,7 +3628,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3284,9 +3647,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3302,7 +3668,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3315,10 +3684,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3328,33 +3700,21 @@
   "type": "StatusLight",
   "s2": "StatusLight",
   "same": [
-   "variant"
+   "variant",
+   "size"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [
    "isDisabled"
   ],
   "own": [],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3370,7 +3730,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3382,44 +3745,31 @@
   "same": [
    "description",
    "errorMessage",
+   "isEmphasized",
+   "size",
    "isSelected",
    "isDisabled",
    "isReadOnly",
+   "isRequired",
+   "isInvalid",
    "name",
    "value"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "variant"
   ],
   "editor": [
    "children"
   ],
-  "s2vis": [
-   "isInvalid",
-   "isRequired",
-   "isEmphasized"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultSelected"
@@ -3440,7 +3790,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3454,7 +3807,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3464,6 +3820,9 @@
   "type": "Tab",
   "s2": "Tab",
   "same": [
+   "href",
+   "target",
+   "rel",
    "isDisabled"
   ],
   "diff": [],
@@ -3472,12 +3831,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [
-   "href",
-   "target",
-   "rel",
    "hrefLang",
    "download",
    "ping",
@@ -3497,7 +3856,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3510,26 +3872,27 @@
   "type": "Table",
   "s2": "TableView",
   "same": [
-   "selectionMode"
+   "isQuiet",
+   "density",
+   "selectionMode",
+   "selectionStyle",
+   "overflowMode"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size",
    "heightMode",
    "height"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "isQuiet",
-   "density",
-   "overflowMode",
-   "selectionStyle"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -3561,7 +3924,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3581,7 +3947,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3594,22 +3963,25 @@
   "type": "TableView",
   "s2": "TableView",
   "same": [
+   "isQuiet",
    "density",
-   "selectionMode"
+   "selectionMode",
+   "selectionStyle",
+   "overflowMode"
   ],
   "diff": [],
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "allowsSorting"
   ],
-  "editor": [],
-  "s2vis": [
-   "isQuiet",
-   "overflowMode",
-   "selectionStyle"
+  "carry": [
+   "variant"
   ],
+  "editor": [],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -3643,12 +4015,14 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -3665,6 +4039,9 @@
   "type": "Tag",
   "s2": "Tag",
   "same": [
+   "href",
+   "target",
+   "rel",
    "isDisabled"
   ],
   "diff": [],
@@ -3674,16 +4051,18 @@
    "size",
    "isSelected"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
-  "s2vis": [
+  "node": [
    "label"
   ],
+  "nodeWhy": {
+   "label": "Text 노드"
+  },
+  "s2vis": [],
   "s2link": [
-   "href",
-   "target",
-   "rel",
    "hrefLang",
    "download",
    "ping",
@@ -3701,41 +4080,33 @@
   "same": [
    "label",
    "description",
+   "size",
    "maxRows",
    "labelPosition",
+   "labelAlign",
    "selectionMode",
-   "disallowEmptySelection"
+   "disallowEmptySelection",
+   "errorMessage",
+   "isInvalid",
+   "isEmphasized"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [
    "allowsRemoving"
   ],
+  "carry": [],
   "editor": [
    "dataBinding"
   ],
-  "s2vis": [
-   "isEmphasized",
-   "isInvalid",
-   "errorMessage",
-   "contextualHelp",
-   "labelAlign"
+  "node": [
+   "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "disabledKeys",
@@ -3758,10 +4129,13 @@
   "diff": [],
   "rac": [],
   "v3": [],
-  "own": [
+  "own": [],
+  "carry": [
    "size"
   ],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3777,9 +4151,12 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -3799,6 +4176,7 @@
    "label",
    "description",
    "placeholder",
+   "size",
    "labelPosition",
    "labelAlign",
    "isRequired",
@@ -3816,23 +4194,7 @@
    "enterKeyHint",
    "spellCheck"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
@@ -3842,11 +4204,17 @@
   "own": [
    "rows"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "prefix",
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "prefix": "앞 글자 Text · Icon 노드 (ADR-259)",
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -3889,11 +4257,11 @@
    {
     "prop": "size",
     "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
+     "XS",
+     "S",
+     "M",
+     "L",
+     "XL"
     ],
     "s2": [
      "L",
@@ -3930,11 +4298,17 @@
    "isQuiet"
   ],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "prefix",
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "prefix": "앞 글자 Text · Icon 노드 (ADR-259)",
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "defaultValue"
@@ -3952,6 +4326,7 @@
   "same": [
    "label",
    "description",
+   "size",
    "labelPosition",
    "labelAlign",
    "hourCycle",
@@ -3970,23 +4345,7 @@
    "validationBehavior",
    "placeholderValue"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
@@ -3996,10 +4355,15 @@
   "own": [
    "locale"
   ],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "contextualHelp"
   ],
+  "nodeWhy": {
+   "contextualHelp": "ContextualHelp 노드 (ADR-259)"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "value",
@@ -4022,7 +4386,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "placement"
   ],
@@ -4034,39 +4401,25 @@
   "type": "ToggleButton",
   "s2": "ToggleButton",
   "same": [
+   "size",
    "isEmphasized",
    "isQuiet",
    "staticColor",
    "isSelected",
    "isDisabled"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL",
-     "XS"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [
    "autoFocus"
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -4081,41 +4434,26 @@
   "type": "ToggleButtonGroup",
   "s2": "ToggleButtonGroup",
   "same": [
+   "size",
    "orientation",
    "isEmphasized",
    "isQuiet",
+   "isJustified",
    "staticColor",
    "density",
    "selectionMode",
    "isDisabled",
    "disallowEmptySelection"
   ],
-  "diff": [
-   {
-    "prop": "size",
-    "ours": [
-     "xs",
-     "sm",
-     "md",
-     "lg",
-     "xl"
-    ],
-    "s2": [
-     "L",
-     "M",
-     "S",
-     "XL",
-     "XS"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
-   "isJustified"
-  ],
+  "node": [],
+  "nodeWhy": {},
+  "s2vis": [],
   "s2link": [],
   "s2state": [
    "selectedKeys",
@@ -4133,10 +4471,12 @@
   ],
   "v3": [],
   "own": [
-   "variant",
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -4160,7 +4500,10 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
@@ -4182,12 +4525,19 @@
   ],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [
+  "node": [
    "placement",
    "containerPadding",
    "crossOffset"
   ],
+  "nodeWhy": {
+   "placement": "Tooltip 노드",
+   "containerPadding": "Tooltip 노드",
+   "crossOffset": "Tooltip 노드"
+  },
+  "s2vis": [],
   "s2link": [],
   "s2state": [],
   "s2behav": [
@@ -4207,12 +4557,17 @@
   "rac": [],
   "v3": [],
   "own": [
-   "variant",
+   "isEmphasized",
    "size"
+  ],
+  "carry": [
+   "variant"
   ],
   "editor": [
    "dataBinding"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [
@@ -4239,6 +4594,9 @@
   "type": "TreeItem",
   "s2": "TreeViewItem",
   "same": [
+   "href",
+   "target",
+   "rel",
    "isDisabled"
   ],
   "diff": [],
@@ -4247,14 +4605,14 @@
   "own": [
    "size"
   ],
+  "carry": [],
   "editor": [
    "children"
   ],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [
-   "href",
-   "target",
-   "rel",
    "hrefLang",
    "download",
    "ping",
@@ -4279,21 +4637,10 @@
   "rac": [],
   "v3": [],
   "own": [],
+  "carry": [],
   "editor": [],
-  "s2vis": [],
-  "s2link": [],
-  "s2state": [],
-  "s2behav": []
- },
- {
-  "type": "body",
-  "s2": null,
-  "same": [],
-  "diff": [],
-  "rac": [],
-  "v3": [],
-  "own": [],
-  "editor": [],
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [],
   "s2link": [],
   "s2state": [],
