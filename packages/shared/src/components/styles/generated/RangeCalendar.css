@@ -17,13 +17,13 @@
   flex-direction: column;
 
   /* Default variant */
-  background: var(--bg);
+  background: transparent;
   color: var(--fg);
-  border: var(--border-width-thin) solid var(--border);
+  border: none;
 
   /* Default size */
   height: auto;
-  padding: 8px 8px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
   gap: 6px;
@@ -31,22 +31,21 @@
 }
 
 .react-aria-RangeCalendar[data-variant="default"] {
-  background: var(--bg);
+  background: transparent;
   color: var(--fg);
-  border-color: var(--border);
 
   &[data-hovered] {
-    background: var(--bg-inset);
+    background: transparent;
   }
 
   &[data-pressed] {
-    background: var(--bg-overlay);
+    background: transparent;
   }
 }
 
 .react-aria-RangeCalendar[data-size="S"] {
   height: auto;
-  padding: 4px 4px;
+  padding: 0px 0px;
   font-size: var(--text-xs);
   border-radius: var(--radius-md);
   gap: 4px;
@@ -55,7 +54,7 @@
 
 .react-aria-RangeCalendar[data-size="M"] {
   height: auto;
-  padding: 8px 8px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-lg);
   gap: 6px;
@@ -64,7 +63,7 @@
 
 .react-aria-RangeCalendar[data-size="L"] {
   height: auto;
-  padding: 12px 12px;
+  padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-xl);
   gap: 8px;

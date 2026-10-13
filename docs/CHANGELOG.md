@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Calendar · RangeCalendar — 레퍼런스대로 border · padding · 배경 없음] - 2026-10-13
+
+### Changed
+
+- **Calendar · RangeCalendar 의 바깥 상자에서 border · padding · 배경을 지웠다**: RAC starter 의 `.react-aria-Calendar` 와 S2 `Calendar.tsx` `calendarStyles` 둘 다 border · padding · 배경 (hover · pressed 배경 포함) 이 없다. 달력은 놓인 바탕 위에 그대로 그려진다. 달력은 이제 내용 (월 묶음) 크기 그대로다 (M: 256 → 238 px 폭).
+  - DatePicker · DateRangePicker 안 달력의 여백은 S2 처럼 Popover 의 padding 이 준다 (S2 `CalendarPopover` 의 padding 16 · 24, 우리 Popover rule M 16px).
+  - rule (`componentRulesTable.ts`) 의 `colors.border` · 레이아웃 `borderWidth` 를 지우고 size 별 padding 을 0 으로 했다. 생성 CSS 는 `border: none` · `padding: 0`.
+  - Canvas 의 `calendar_grid` primitive 가 rule 에 없는 border 를 기본값 (`{color.border}` 1px) 으로 그리던 것도 지웠다 — 이제 rule 이나 문서가 border 색을 줄 때만 그린다.
+  - 배경은 rule 의 fill (base · hover · pressed) 을 transparent 로 — 생성 CSS `background: transparent`, Canvas 도 칠하지 않는다.
+  - 확인: 실제 빌더 Compare Mode 에서 Calendar · RangeCalendar 의 Preview 배경 transparent (rest · hovered · pressed) · border 0 · padding 0, Canvas 상자 폭 = Preview 폭 (238), 부품 9개 Canvas = Preview (±1.5).
+
 ## [S2 TextField — type 값] - 2026-10-13
 
 ### Breaking Changes

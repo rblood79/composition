@@ -37,17 +37,19 @@ import type {
 // rule-mirror visual: componentRulesTable.Calendar default variant fill base.
 //   calendar_grid stroke/fill = visual.fill.default[state] + visual.colors.text/border.
 const CALENDAR_FILL_BASE = "{color.base}" as TokenRef;
+// (No border since 2026-10-13 — the RAC starter's and S2's calendar draw none, 사용자 결정.)
 const calendarVisual = {
   fill: { default: { base: CALENDAR_FILL_BASE } },
-  colors: { text: "{color.neutral}", border: "{color.border}" },
+  colors: { text: "{color.neutral}" },
 } as unknown as ComponentVisualRule;
 
-// rule-mirror sizes (componentRulesTable.Calendar.sizes — paddingX/paddingY/gap/iconSize 보강 후).
+// rule-mirror sizes (componentRulesTable.Calendar.sizes — padding 0 since 2026-10-13, as the
+//   references).
 const ruleSizes: Record<string, SizeSpec> = {
   S: {
     height: 0,
-    paddingX: 4,
-    paddingY: 4,
+    paddingX: 0,
+    paddingY: 0,
     gap: 4,
     fontSize: "{typography.text-xs}",
     borderRadius: "{radius.md}",
@@ -55,8 +57,8 @@ const ruleSizes: Record<string, SizeSpec> = {
   } as unknown as SizeSpec,
   M: {
     height: 0,
-    paddingX: 8,
-    paddingY: 8,
+    paddingX: 0,
+    paddingY: 0,
     gap: 6,
     fontSize: "{typography.text-sm}",
     borderRadius: "{radius.lg}",
@@ -64,8 +66,8 @@ const ruleSizes: Record<string, SizeSpec> = {
   } as unknown as SizeSpec,
   L: {
     height: 0,
-    paddingX: 12,
-    paddingY: 12,
+    paddingX: 0,
+    paddingY: 0,
     gap: 8,
     fontSize: "{typography.text-base}",
     borderRadius: "{radius.xl}",
@@ -91,7 +93,7 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
   });
 
   for (const size of sizes) {
-    it(`standalone/${size} — non-text shape 구조 invariant(bg/border + grid 요소)`, () => {
+    it(`standalone/${size} — non-text shape 구조 invariant(bg + grid 요소, border 없음)`, () => {
       const props = { size } as Record<string, unknown>;
       const shapes = draw!({
         props,
@@ -101,10 +103,10 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
       });
       expect(shapes).not.toBeNull();
       const nt = nonText(shapes!);
-      // shell(bg roundRect + border) + nav icon + today circle 등 grid 요소 존재.
+      // shell(bg roundRect) + nav icon + today circle 등 grid 요소 존재 — border 는 rule 에 없다.
       expect(nt.length).toBeGreaterThan(2);
       expect(only(nt, "roundRect").length).toBeGreaterThanOrEqual(1);
-      expect(only(nt, "border").length).toBeGreaterThanOrEqual(1);
+      expect(only(nt, "border")).toEqual([]);
     });
 
     it(`standalone/${size} — date cell text 39개(month 1 + weekday 7 + day 31)`, () => {
@@ -120,7 +122,7 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
     });
   }
 
-  it("_hasChildren=true — shell(bg+border)만, grid 미렌더", () => {
+  it("_hasChildren=true — shell(bg)만, grid 미렌더", () => {
     const props = { size: "M", _hasChildren: true } as Record<string, unknown>;
     const shapes = draw!({
       props,
@@ -129,7 +131,17 @@ describe("skiaPrimitive 'calendar_grid' — Calendar 날짜 grid (spec-free)", (
       style: undefined,
     });
     expect(shapes).not.toBeNull();
-    // shell = bg(roundRect) + border 만
+    // shell = bg(roundRect) 만 — the rule declares no border (no default stroke)
+    expect(shapes!.map((s) => s.type).sort()).toEqual(["roundRect"]);
+  });
+
+  it("a document's border color still draws the border", () => {
+    const shapes = draw!({
+      props: { size: "M", _hasChildren: true } as Record<string, unknown>,
+      size: ruleSizes.M,
+      visual: calendarVisual,
+      style: { borderColor: "{color.border}" },
+    });
     expect(shapes!.map((s) => s.type).sort()).toEqual(["border", "roundRect"]);
   });
 });

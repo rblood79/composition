@@ -1580,14 +1580,17 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   );
   const cellSize = (size.iconSize ?? 28) + 4;
   const gap = (size.gap as unknown as number) || 6;
-  const paddingX = (size.paddingX as unknown as number) || 8;
-  const paddingY = (size.paddingY as unknown as number) || 8;
+  // (The rule's padding — 0 since 2026-10-13, as the references: `??`, not `||`.)
+  const paddingX = (size.paddingX as unknown as number) ?? 8;
+  const paddingY = (size.paddingY as unknown as number) ?? 8;
   const fontSize = resolveSpecFontSize(size.fontSize as string | number, 14);
   const calendarWidth = cellSize * 7 + gap * 6 + paddingX * 2;
   const ff = (style?.fontFamily as string) || fontFamily.sans;
 
   const textColor = paint.color ?? ("{color.neutral}" as TokenRef);
-  const borderColor = paint.borderColor ?? ("{color.border}" as TokenRef);
+  // The border is the rule's (or the document's) — none by default: the RAC starter's and S2's
+  // calendar draw none (사용자 2026-10-13), and the generated sheet says `border: none`.
+  const borderColor = paint.borderColor;
   const bgColor = paint.backgroundColor ?? ("{color.base}" as TokenRef);
 
   const headerHeight = cellSize;
@@ -1617,13 +1620,17 @@ const calendarGrid: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       radius: borderRadius,
       fill: bgColor,
     },
-    {
-      type: "border" as const,
-      target: "bg",
-      borderWidth: 1,
-      color: borderColor,
-      radius: borderRadius,
-    },
+    ...(borderColor
+      ? [
+          {
+            type: "border" as const,
+            target: "bg",
+            borderWidth: 1,
+            color: borderColor,
+            radius: borderRadius,
+          },
+        ]
+      : []),
   ];
 
   if (hasChildren) return shapes;

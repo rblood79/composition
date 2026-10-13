@@ -1370,16 +1370,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
+        //   「같이 지워」.)
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
     },
@@ -1396,18 +1397,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
-      // ADR-151 B1 (2026-07-16): generated Calendar.css 의 `border: 1px solid` 를 layout 이
-      //   미반영해 border-box 총폭 2px 발산 — layout fallback 채널(top-level)로 공급.
-      //   CSS 는 structure.containerStyles 채널이라 generated CSS diff 0.
-      borderWidth: "{border.width.thin}",
     },
+    // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
+    //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
+    //   picker 안 달력의 여백은 Popover 의 padding (S2 `CalendarPopover` · Popover rule).
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingY/gap 보강 —
       //   Calendar.spec.ts 삭제 대비 generated Calendar.css(padding NNpx NNpx / gap NNpx) diff-0 유지.
       //   값은 (구) CalendarSpec.sizes 와 동일 (paddingX==paddingY, gap sm:4/md:6/lg:8).
       S: {
-        paddingX: 4,
-        paddingY: 4,
+        paddingX: 0,
+        paddingY: 0,
         gap: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
@@ -1415,8 +1415,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 20,
       },
       M: {
-        paddingX: 8,
-        paddingY: 8,
+        paddingX: 0,
+        paddingY: 0,
         gap: 6,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
@@ -1424,8 +1424,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 26,
       },
       L: {
-        paddingX: 12,
-        paddingY: 12,
+        paddingX: 0,
+        paddingY: 0,
         gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",
@@ -9039,16 +9039,17 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultSize: "M",
     variants: {
       default: {
+        // (No background, hovered or pressed either — the references paint none, 사용자 2026-10-13
+        //   「같이 지워」.)
         fill: {
           default: {
-            base: "{color.base}",
-            hover: "{color.layer-2}",
-            pressed: "{color.layer-1}",
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
           },
         },
         colors: {
           text: "{color.neutral}",
-          border: "{color.border}",
         },
       },
     },
@@ -9060,18 +9061,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       display: "flex",
       flexDirection: "column",
       width: "fit-content",
-      // ADR-151 B2 (2026-07-16): Calendar 동형 — generated RangeCalendar.css border 1px 의
-      //   layout 미반영 2px 발산 보정 (top-level = layout 채널, CSS diff 0).
-      borderWidth: "{border.width.thin}",
     },
+    // 사용자 2026-10-13 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」: RAC
+    //   starter `.react-aria-Calendar` · S2 `calendarStyles` 둘 다 border · padding · 배경이 없다 —
+    //   picker 안 달력의 여백은 Popover 의 padding (S2 `CalendarPopover` · Popover rule).
     sizes: {
       // ADR-912 단계5 step4 date-color (2026-06-16): paddingX/paddingY/gap 보강 —
       //   RangeCalendar.spec(=...CalendarSpec spread) 삭제 대비 generated RangeCalendar.css
       //   (padding NNpx NNpx / gap NNpx) diff-0 유지. 값은 (구) CalendarSpec.sizes 와 동일
       //   (RangeCalendar 는 시각 = Calendar — selector 이름만 차이).
       S: {
-        paddingX: 4,
-        paddingY: 4,
+        paddingX: 0,
+        paddingY: 0,
         gap: 4,
         fontSize: "{typography.text-xs}",
         borderRadius: "{radius.md}",
@@ -9079,8 +9080,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 20,
       },
       M: {
-        paddingX: 8,
-        paddingY: 8,
+        paddingX: 0,
+        paddingY: 0,
         gap: 6,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.lg}",
@@ -9088,8 +9089,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         iconSize: 26,
       },
       L: {
-        paddingX: 12,
-        paddingY: 12,
+        paddingX: 0,
+        paddingY: 0,
         gap: 8,
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.xl}",

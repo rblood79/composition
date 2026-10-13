@@ -204,8 +204,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   //   stretch(Skia 350px vs CSS 256px 발산). top-level rule.containerStyles 승격으로 경로 A
   //   도달(TabPanel 선례 동형).
   describe("calendar — top-level containerStyles 승격 (width:fit-content Skia 도달)", () => {
-    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection/width/borderWidth 반환", () => {
+    it("empty parentStyle → top-level rule.containerStyles 의 display/flexDirection/width 반환", () => {
       const fb = resolveContainerStylesFallback("calendar", {});
+      // 2026-10-13 (사용자 「RAC, RSC 레퍼런스 모두 border 가 존재하지 않고 padding 도 없다」):
+      //   borderWidth 삭제 · padding 0 — 아래 이력 (ADR-151 B1 · ADR-171) 의 값은 지나간 것.
       // ADR-151 B1 (2026-07-16): borderWidth "1px" 추가 — generated CSS border 1px 의
       //   layout 미반영 2px 발산 보정 (fallback allowlist 에 borderWidth 편입).
       // ADR-171 Phase 3-b (2026-07-29): sizes padding 8 + gap 6 추가 — 생성 CSS
@@ -216,11 +218,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
-        paddingTop: 8,
-        paddingRight: 8,
-        paddingBottom: 8,
-        paddingLeft: 8,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
         rowGap: 6,
         columnGap: 6,
       });
@@ -234,11 +235,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
-        paddingTop: 8,
-        paddingRight: 8,
-        paddingBottom: 8,
-        paddingLeft: 8,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
         rowGap: 6,
         columnGap: 6,
       });
@@ -246,17 +246,16 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
   });
 
   describe("rangecalendar — top-level containerStyles 승격 (Calendar 동형)", () => {
-    it("empty parentStyle → display/flexDirection/width:fit-content/borderWidth + sizes 반환", () => {
+    it("empty parentStyle → display/flexDirection/width:fit-content + sizes 반환 (border 없음, padding 0)", () => {
       const fb = resolveContainerStylesFallback("rangecalendar", {});
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
         width: "fit-content",
-        borderWidth: 1, // ADR-227 P3: `{border.width.thin}` → 활성 테마 px
-        paddingTop: 8,
-        paddingRight: 8,
-        paddingBottom: 8,
-        paddingLeft: 8,
+        paddingTop: 0,
+        paddingRight: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
         rowGap: 6,
         columnGap: 6,
       });
