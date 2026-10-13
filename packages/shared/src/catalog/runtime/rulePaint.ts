@@ -306,6 +306,7 @@ export function catalogRulePaint(
     props: paintProps,
     style: props.style as Record<string, unknown>,
     interactionState: interaction(state),
+    fillStyleValues: rule.fillStyleValues,
   });
   return { props, style, variant, size, paint, theme };
 }

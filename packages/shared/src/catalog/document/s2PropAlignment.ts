@@ -65,9 +65,12 @@ const quietOf: PropValueMigration = (value) => {
 
 /** 값 개명 — 표에 있는 값은 새 이름으로, 없는 값은 그대로 둔다 (rename 전환). */
 const renameOf =
-  (renames: Readonly<Record<string, string>>): PropValueMigration =>
+  (
+    renames: Readonly<Record<string, string>>,
+    prop = "variant",
+  ): PropValueMigration =>
   (value) => ({
-    variant: typeof value === "string" ? (renames[value] ?? value) : value,
+    [prop]: typeof value === "string" ? (renames[value] ?? value) : value,
   });
 
 const meterOf = renameOf({ warning: "notice", critical: "negative" });
@@ -108,7 +111,15 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
   MeterFill: { variant: meterOf },
   MeterTrack: { variant: meterOf },
   MeterValue: { variant: meterOf },
-  InlineAlert: { variant: renameOf({ info: "informative" }) },
+  // InlineAlert fillStyle (2026-10-13): house outline · subtle · bold → S2 border · subtleFill ·
+  // boldFill (rule `fillStyleValues`).
+  InlineAlert: {
+    variant: renameOf({ info: "informative" }),
+    fillStyle: renameOf(
+      { outline: "border", subtle: "subtleFill", bold: "boldFill" },
+      "fillStyle",
+    ),
+  },
   Tooltip: {
     variant: (value) => {
       if (value === "info") return { variant: "informative" };

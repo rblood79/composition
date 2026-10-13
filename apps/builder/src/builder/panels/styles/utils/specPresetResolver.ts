@@ -552,6 +552,7 @@ export function resolveStylePanelCatalogPaint(
     props: props ?? {},
     style,
     interactionState: "default",
+    fillStyleValues: rule.fillStyleValues,
   });
 }
 

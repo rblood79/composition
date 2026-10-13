@@ -28,6 +28,8 @@ import { Heading, Label, Text } from "react-aria-components";
 import { Button } from "../../components/Button";
 
 import { ContextualHelpButton } from "../../components/ContextualHelp";
+import { InlineAlertIcon } from "../../components/InlineAlertIcon";
+import { catalogInlineAlertIcon } from "../document/inlineAlertIcon";
 
 import { Group } from "../../components/Group";
 
@@ -36,7 +38,11 @@ import { Icon } from "../../components/Icon";
 import { Slot } from "../../components/Slot";
 
 import { isBodyType } from "../../domain/predicates";
-import { getIconData } from "@composition/rendering";
+import {
+  getIconData,
+  tokenToCSSVar,
+  type TokenRef,
+} from "@composition/rendering";
 import {
   CATALOG_FIELD_BOX_CLASS,
   CATALOG_PREFIX_UNNAMED_FIELDS,
@@ -2046,6 +2052,11 @@ function ruleDom(
         ...dataAttrs,
         style,
       });
+    // S2 InlineAlert's variant icon — first, as S2 renders it (`catalogInlineAlertIcon`; the
+    // Canvas draws the same box, `ruleShapes`).
+    const alertIcon =
+      type === "InlineAlert" ? catalogInlineAlertIcon(node.props) : undefined;
+    const alertPadding = alertIcon ? catalogBoxModel(node).padding : undefined;
     return createElement(
       "div",
       {
@@ -2055,8 +2066,25 @@ function ruleDom(
         ...dataAttrs,
         // The type's fixed ARIA (InlineAlert `role="alert"` — a plain box carries the D1 role).
         ...binding?.staticAttrs,
-        style,
+        style: alertIcon
+          ? { ...style, position: style.position ?? "relative" }
+          : style,
       },
+      ...(alertIcon
+        ? [
+            createElement(InlineAlertIcon, {
+              key: "inline-alert-icon",
+              variant: alertIcon.variant,
+              iconName: alertIcon.iconName,
+              size: alertIcon.size,
+              color: alertIcon.color.startsWith("{")
+                ? tokenToCSSVar(alertIcon.color as TokenRef)
+                : alertIcon.color,
+              top: cssLength(alertPadding?.top ?? 0) ?? 0,
+              end: cssLength(alertPadding?.right ?? 0) ?? 0,
+            }),
+          ]
+        : []),
       // In an S2 Card's preview the Image is S2's: a box around its `img` (`@react-spectrum/s2`
       // 1.8.0 mounted — G5 example 13); with no source the `img` paints nothing (`alt=""`), the box
       // keeps the placeholder fill.

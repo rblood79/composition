@@ -295,7 +295,7 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
       "title": "Alert Heading",
       "description": "There was an error processing your request. Please try again.",
       "variant": "informative",
-      "fillStyle": "outline"
+      "fillStyle": "border"
     },
     "visual": {},
     "stateRules": {},
@@ -2537,7 +2537,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     ],
     "props": {
       "variant": "informative",
-      "fillStyle": "outline"
+      "fillStyle": "border"
     },
     "visual": {}
   },

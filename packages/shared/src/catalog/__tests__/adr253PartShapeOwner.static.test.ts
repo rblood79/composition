@@ -242,6 +242,11 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
    * `descFontSize` size keys) nor a selector that reaches them.
    */
   it("a container rule does not declare its title's or description's shape", () => {
+    type Block = {
+      nested?: Array<{ selector: string; styles?: Record<string, string> }>;
+    };
+    const PLACEMENT_KEYS =
+      /^(width|align-self|justify-self|order|flex(-grow|-shrink|-basis)?|margin(-(top|right|bottom|left|inline-start|inline-end))?)$/;
     const PART_SIZE_KEY = /^(heading|desc)[A-Z]/;
     const PART_SELECTOR =
       /react-aria-Heading|alert-heading|react-aria-Description|card-description|slot="description"/;
@@ -268,7 +273,28 @@ describe("ADR-253 — a parent rule does not declare its parts' shape", () => {
       for (const [size, values] of Object.entries(rule.sizes ?? {}))
         for (const key of Object.keys(values))
           if (PART_SIZE_KEY.test(key)) found.push(`${type} ${size}.${key}`);
-      if (PART_SELECTOR.test(JSON.stringify(rule.structure?.composition ?? {})))
+      // A parent rule may place its parts (ADR-253 — width · flex · margin): only a block that
+      // declares more than placement is the part's shape. (InlineAlert keeps its title clear of
+      // its icon — `inlineAlertIcon.ts`.)
+      const composition = JSON.parse(
+        JSON.stringify(rule.structure?.composition ?? {}),
+      ) as { containerVariants?: Record<string, Record<string, Block>> };
+      const placed = Object.values(composition.containerVariants ?? {})
+        .flatMap((axis) => Object.values(axis))
+        .flatMap((block) => block.nested ?? [])
+        .filter(
+          (entry) =>
+            PART_SELECTOR.test(entry.selector) &&
+            Object.keys(entry.styles ?? {}).every((key) =>
+              PLACEMENT_KEYS.test(key),
+            ),
+        );
+      for (const block of Object.values(composition.containerVariants ?? {}))
+        for (const value of Object.values(block))
+          value.nested = (value.nested ?? []).filter(
+            (entry) => !placed.includes(entry),
+          );
+      if (PART_SELECTOR.test(JSON.stringify(composition)))
         found.push(`${type} composition`);
     }
     expect(found).toEqual([]);

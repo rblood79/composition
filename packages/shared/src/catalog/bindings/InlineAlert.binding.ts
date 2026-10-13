@@ -42,19 +42,20 @@ export const inlineAlertBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      // S2 1.8.0 fillStyle (2026-10-10): S2 border · subtleFill · boldFill — house 값은
-      //   outline · subtle · bold (라벨이 S2 이름). 기본 outline = S2 자체 기본 'border'.
-      //   칠은 rule variants 의 fill 3축 (componentRulesTable.ts InlineAlert), bold 의
-      //   제목 · 설명 글자색은 파생 color (`presence.ts` catalogInlineAlertBoldText).
+      // S2 1.8.0 fillStyle: S2 값 이름 그대로 border · subtleFill · boldFill (2026-10-13 — 그전
+      //   house 이름 outline · subtle · bold 는 로드 시 1회 전환, `s2PropAlignment.ts`). 기본
+      //   border = S2 기본. 칠은 rule variants 의 fill 3축 — rule 의 `fillStyleValues` 가 값 →
+      //   fill 을 잇는다 (componentRulesTable.ts InlineAlert). boldFill 의 제목 · 설명 글자색은
+      //   파생 color (`presence.ts` catalogInlineAlertBoldText).
       fillStyle: {
         kind: "fillStyle",
         label: "Fill Style",
         section: "appearance",
-        default: "outline",
+        default: "border",
         options: [
-          { value: "outline", label: "Border" },
-          { value: "subtle", label: "Subtle Fill" },
-          { value: "bold", label: "Bold Fill" },
+          { value: "border", label: "Border" },
+          { value: "subtleFill", label: "Subtle Fill" },
+          { value: "boldFill", label: "Bold Fill" },
         ],
       },
     },

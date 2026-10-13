@@ -472,6 +472,12 @@ export interface ComponentRuleChart {
   }>;
 }
 
+/** A rule's `fillStyle` value names per fill (`ComponentRule.fillStyleValues`). */
+export interface CatalogFillStyleValues {
+  readonly outline?: string;
+  readonly subtle?: string;
+}
+
 export interface ComponentRule {
   defaultVariant?: string;
   defaultSize?: string;
@@ -484,6 +490,14 @@ export interface ComponentRule {
   densities?: Record<string, ComponentRuleDensity>;
   /** density 미지정 시 사용할 기본 키. 미설정 시 consumer 가 "compact" 로 간주. */
   defaultDensity?: string;
+  /**
+   * The `fillStyle` prop values that pick each fill (S2 names differ per component — InlineAlert
+   * `border` · `subtleFill` · `boldFill`, Button `fill` · `outline`, Badge `bold` · `subtle` ·
+   * `outline`). Absent = the fill keys' own names (`outline` · `subtle`; anything else is the
+   * default fill). Both consumers read it: the Canvas paint (`resolveCatalogPaint`) and the
+   * generated sheet's `[data-fill-style]` selectors.
+   */
+  fillStyleValues?: CatalogFillStyleValues;
   /**
    * root text-decoration (예: Link underline). spec.composition.rootSelectors["&"] 의 D3 메타 투영.
    * underline 등 시각상 의미 있는 값만 — "none"(기본값 동일)은 생성기에서 생략.

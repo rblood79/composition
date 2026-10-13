@@ -87,16 +87,43 @@ export function resolveCatalogLayoutValue(
  * containers' `sizes.height` is the track row, not the container. `undefined` = no `structure` =
  * no generated CSS for the type.
  */
+/**
+ * Whether a rule's composition owns its container box — the CSS generator's
+ * `compositionOwnsContainerBox` (`CSSGenerator.ts`), read the same way here: a layout token, the
+ * composition's own container styles, or container variant blocks that style the root
+ * (AvatarGroup's start padding). Blocks that only place children (`nested` — InlineAlert's title
+ * clear of its icon, 2026-10-13) leave the box to the variant · size blocks.
+ */
+export function catalogCompositionOwnsContainerBox(
+  composition:
+    | {
+        layout?: unknown;
+        containerStyles?: unknown;
+        containerVariants?: unknown;
+      }
+    | undefined,
+): boolean {
+  if (!composition) return false;
+  if (composition.layout || composition.containerStyles) return true;
+  const variants = composition.containerVariants;
+  if (!variants || typeof variants !== "object") return false;
+  return Object.values(variants as Record<string, unknown>).some(
+    (axis) =>
+      !!axis &&
+      typeof axis === "object" &&
+      Object.values(axis as Record<string, { styles?: object }>).some(
+        (block) => !!block?.styles && Object.keys(block.styles).length > 0,
+      ),
+  );
+}
+
 export function catalogSizeAxisSkip(
   structure: ComponentRuleStructure | undefined,
 ): { height: boolean; padding: boolean; gap: boolean } | undefined {
   if (!structure) return undefined;
-  const composition = structure.composition;
-  const ownsContainerBox =
-    !!composition &&
-    (!!composition.layout ||
-      !!composition.containerStyles ||
-      !!composition.containerVariants);
+  const ownsContainerBox = catalogCompositionOwnsContainerBox(
+    structure.composition,
+  );
   const containerStyles = structure.containerStyles;
   const trackOwningGrid =
     structure.archetype === "progress" ||

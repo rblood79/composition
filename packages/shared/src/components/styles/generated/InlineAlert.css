@@ -48,12 +48,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="border"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="neutral"][data-fill-style="subtleFill"] {
   background: var(--bg-muted);
   color: var(--fg);
   border-color: transparent;
@@ -73,12 +73,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="informative"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="informative"][data-fill-style="border"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="informative"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="informative"][data-fill-style="subtleFill"] {
   background: var(--informative-subtle);
   color: var(--fg);
   border-color: transparent;
@@ -98,12 +98,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="positive"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="positive"][data-fill-style="border"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="positive"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="positive"][data-fill-style="subtleFill"] {
   background: var(--positive-subtle);
   color: var(--fg);
   border-color: transparent;
@@ -123,12 +123,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="notice"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="notice"][data-fill-style="border"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="notice"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="notice"][data-fill-style="subtleFill"] {
   background: var(--notice-subtle);
   color: var(--fg);
   border-color: transparent;
@@ -148,12 +148,12 @@
   }
 }
 
-.react-aria-InlineAlert[data-variant="negative"][data-fill-style="outline"] {
+.react-aria-InlineAlert[data-variant="negative"][data-fill-style="border"] {
   background: var(--bg);
   color: var(--fg);
 }
 
-.react-aria-InlineAlert[data-variant="negative"][data-fill-style="subtle"] {
+.react-aria-InlineAlert[data-variant="negative"][data-fill-style="subtleFill"] {
   background: var(--negative-subtle);
   color: var(--fg);
   border-color: transparent;
@@ -193,6 +193,33 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ── Tier 2: Composite Delegation ── */
+
+.react-aria-InlineAlert[data-variant="informative"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="positive"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="notice"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
+.react-aria-InlineAlert[data-variant="negative"] > .react-aria-Heading {
+  width: auto;
+  align-self: stretch;
+  margin-right: 20px;
+}
+
 
 @media (forced-colors: active) {
   .react-aria-InlineAlert {

@@ -1,18 +1,24 @@
 // @vitest-environment jsdom
 /**
- * S2 1.8.0 InlineAlert `fillStyle` (2026-10-10 — S2 border · subtleFill · boldFill 를 house 값
- * outline · subtle · bold 로, 라벨은 S2 이름): outline (기본 — S2 자체 기본 'border': 바탕 배경
- * + variant 색 테두리) · subtle (variant-subtle 배경, 테두리 없음) · bold (variant 본색 배경,
- * 흰 글자 — notice 는 검정). bold 의 제목 · 설명 글자색은 파생 color 로 양 consumer 에 닿는다
- * (derivedProps.color — 작성한 색이 이김).
+ * S2 1.8.0 InlineAlert `fillStyle` — S2 값 이름 그대로 (2026-10-13): border (기본 — 바탕 배경 +
+ * variant 색 테두리) · subtleFill (variant-subtle 배경, 테두리 없음) · boldFill (variant 본색
+ * 배경, 흰 글자 — notice 는 검정). rule `fillStyleValues` 가 값 → fill 을 잇고 Canvas paint ·
+ * 생성 CSS 가 같이 읽는다. boldFill 의 제목 · 설명 글자색은 파생 color 로 양 consumer 에 닿는다
+ * (derivedProps.color — 작성한 색이 이김). 옛 house 값 (outline · subtle · bold) 은 로드 시 1회
+ * S2 이름으로 바뀐다.
  */
 import "fake-indexeddb/auto";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/document/graph";
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
+import { migrateCatalogEntriesS2 } from "../../../../../../packages/shared/src/catalog/document/s2PropAlignment";
 import type {
+  CatalogEntry,
   NodeEntry,
   NodeId,
 } from "../../../../../../packages/shared/src/catalog/document/types";
@@ -95,38 +101,46 @@ const rgb = (color: Float32Array | number[] | undefined) =>
   color ? [...color].slice(0, 3).map((value) => Math.round(value * 255)) : [];
 
 describe("S2 InlineAlert fillStyle", () => {
-  it("the Design panel offers Fill Style — Border (outline) by default", async () => {
+  it("the Design panel offers Fill Style — S2 border · subtleFill · boldFill, border by default", async () => {
     const { definitionId } = await open({});
     expect(
       catalogSemanticContracts(definitionId, "InlineAlert").fillStyle,
-    ).toMatchObject({ kind: "fillStyle", default: "outline" });
+    ).toMatchObject({
+      kind: "fillStyle",
+      default: "border",
+      options: [
+        { value: "border" },
+        { value: "subtleFill" },
+        { value: "boldFill" },
+      ],
+    });
   });
 
-  it("default (outline): base background, the variant border, dark text", async () => {
+  it("default (border): base background, the variant border, dark text", async () => {
     const { html, painted } = await open({ variant: "info" });
-    expect(html).toContain('data-fill-style="outline"');
+    expect(html).toContain('data-fill-style="border"');
     // {color.base} — white in light mode.
     expect(rgb(painted.box?.fillColor)).toEqual([255, 255, 255]);
   });
 
-  it("subtle: the variant subtle background", async () => {
+  it("subtleFill: the variant subtle background", async () => {
     const { html, painted } = await open({
       variant: "info",
-      fillStyle: "subtle",
+      fillStyle: "subtleFill",
     });
-    expect(html).toContain('data-fill-style="subtle"');
+    expect(html).toContain('data-fill-style="subtleFill"');
     // informative-subtle differs from both the base white and the bold blue.
     const fill = rgb(painted.box?.fillColor);
     expect(fill).not.toEqual([255, 255, 255]);
     expect(fill[2]).toBeGreaterThan(200);
   });
 
-  it("bold: the variant color fills and the Heading goes white in both consumers", async () => {
+  it("boldFill: the variant color fills and the Heading goes white in both consumers", async () => {
     const { html, painted, heading, headingText } = await open({
       variant: "negative",
-      fillStyle: "bold",
+      fillStyle: "boldFill",
     });
-    expect(html).toContain('data-fill-style="bold"');
+    expect(html).toContain('data-fill-style="boldFill"');
     const fill = rgb(painted.box?.fillColor);
     expect(fill[0]).toBeGreaterThan(150);
     expect(fill[1]).toBeLessThan(120);
@@ -136,8 +150,60 @@ describe("S2 InlineAlert fillStyle", () => {
     expect(html).toMatch(/<h3[^>]*color:#ffffff/);
   });
 
-  it("bold notice: black text (S2)", async () => {
-    const { heading } = await open({ variant: "notice", fillStyle: "bold" });
+  it("boldFill notice: black text (S2)", async () => {
+    const { heading } = await open({
+      variant: "notice",
+      fillStyle: "boldFill",
+    });
     expect(heading?.derivedProps?.color).toBe("#000000");
+  });
+
+  it("the generated sheet styles the values the DOM writes (border · subtleFill)", () => {
+    const css = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../../../../packages/shared/src/components/styles/generated/InlineAlert.css",
+      ),
+      "utf8",
+    );
+    for (const variant of [
+      "neutral",
+      "informative",
+      "positive",
+      "notice",
+      "negative",
+    ])
+      for (const value of ["border", "subtleFill"])
+        expect(css).toContain(
+          `[data-variant="${variant}"][data-fill-style="${value}"]`,
+        );
+    expect(css).not.toMatch(/data-fill-style="(outline|subtle|bold)"/);
+  });
+
+  it("an old document's house values load as the S2 names (once)", async () => {
+    const library = await buildCodeCatalogLibrary();
+    const definitionId = catalogPaletteDefinitionId(library, "InlineAlert");
+    const entries: Record<string, CatalogEntry> = {};
+    for (const [index, value] of ["outline", "subtle", "bold"].entries())
+      entries[`n${index}`] = {
+        kind: "node",
+        id: `project:node:old-${index}` as NodeId,
+        definitionId,
+        children: [],
+        props: { fillStyle: { kind: "set", value } },
+        visual: {},
+        sizing: {},
+        descendantOverrides: [],
+      } as NodeEntry;
+    expect(migrateCatalogEntriesS2(entries, library)).toBe(true);
+    expect(
+      Object.values(entries).map(
+        (entry) => (entry as NodeEntry).props.fillStyle,
+      ),
+    ).toEqual([
+      { kind: "set", value: "border" },
+      { kind: "set", value: "subtleFill" },
+      { kind: "set", value: "boldFill" },
+    ]);
   });
 });

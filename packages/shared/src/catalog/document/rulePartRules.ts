@@ -1322,6 +1322,8 @@ const TYPE_CONTAINER_VARIANT_AXES: Readonly<
   // ADR-257 후속: S2 Badge `overflowMode` (its own text) · ListView's (carried to the items —
   // their label · description Text, `TEXT_BOX_VARIANT_AXIS`).
   Badge: { "overflow-mode": "overflowMode" },
+  // S2 InlineAlert (2026-10-13): its title keeps clear of the variant's icon (`inlineAlertIcon.ts`).
+  InlineAlert: { variant: "variant" },
   GridListItem: { "overflow-mode": "overflowMode" },
 };
 function containerVariantAxes(type: string): Readonly<Record<string, string>> {

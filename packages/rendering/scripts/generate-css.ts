@@ -377,6 +377,8 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       ...(meta.skipStateStyles ? { skipStateStyles: true } : {}),
       // classAliases (ADR-253): 이 rule 의 sheet 가 같이 그리는 RAC class (Input → `<textarea>`).
       ...(meta.classAliases ? { classAliases: meta.classAliases } : {}),
+      // fillStyleValues: the `fillStyle` values that pick the outline · subtle fills (InlineAlert's S2 names).
+      ...(rule.fillStyleValues ? { fillStyleValues: rule.fillStyleValues } : {}),
       // ADR-259 Phase 3: a field's label row stands in its Label's place (S2 FieldLabel).
       ...(CATALOG_CONTEXTUAL_HELP_FIELDS.has(name)
         ? { partAliases: CATALOG_FIELD_LABEL_PART_ALIASES }

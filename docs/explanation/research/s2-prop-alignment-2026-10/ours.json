@@ -618,11 +618,11 @@
   "fillStyle": {
    "kind": "fillStyle",
    "options": [
-    "outline",
-    "subtle",
-    "bold"
+    "border",
+    "subtleFill",
+    "boldFill"
    ],
-   "default": "outline"
+   "default": "border"
   }
  },
  "Disclosure": {

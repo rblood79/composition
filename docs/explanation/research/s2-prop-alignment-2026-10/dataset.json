@@ -2342,23 +2342,10 @@
   "type": "InlineAlert",
   "s2": "InlineAlert",
   "same": [
-   "variant"
+   "variant",
+   "fillStyle"
   ],
-  "diff": [
-   {
-    "prop": "fillStyle",
-    "ours": [
-     "outline",
-     "subtle",
-     "bold"
-    ],
-    "s2": [
-     "boldFill",
-     "border",
-     "subtleFill"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [

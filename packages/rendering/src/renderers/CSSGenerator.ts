@@ -198,7 +198,25 @@ function compositionOwnsContainerBox<Props>(
     !!spec.composition &&
     (!!spec.composition.layout ||
       !!spec.composition.containerStyles ||
-      !!spec.composition.containerVariants)
+      containerVariantsStyleRoot(spec.composition.containerVariants))
+  );
+}
+
+/**
+ * Whether container variant blocks style the root (AvatarGroup's start padding) — blocks that only
+ * place children (`nested` — InlineAlert's title clear of its icon, 2026-10-13) leave the box to
+ * the variant · size blocks. The Canvas reads the same judgement
+ * (`catalogCompositionOwnsContainerBox` — shared `resolveCatalogRuleCanvasBox.ts`).
+ */
+function containerVariantsStyleRoot(variants: unknown): boolean {
+  if (!variants || typeof variants !== "object") return false;
+  return Object.values(variants as Record<string, unknown>).some(
+    (axis) =>
+      !!axis &&
+      typeof axis === "object" &&
+      Object.values(axis as Record<string, { styles?: object }>).some(
+        (block) => !!block?.styles && Object.keys(block.styles).length > 0,
+      ),
   );
 }
 
@@ -431,7 +449,7 @@ export function generateCSS<Props>(
       // ─── Phase 2b: fillStyle outline 변형 ───
       if (fill.outline?.base || visual.outlineBorder) {
         lines.push(
-          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="outline"] {`,
+          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="${spec.fillStyleValues?.outline ?? "outline"}"] {`,
         );
         lines.push(
           emitColorLine(
@@ -516,7 +534,7 @@ export function generateCSS<Props>(
       // ─── Phase 2b: fillStyle subtle 변형 ───
       if (fill.subtle?.base) {
         lines.push(
-          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="subtle"] {`,
+          `.react-aria-${spec.name}[data-variant="${variantName}"][data-fill-style="${spec.fillStyleValues?.subtle ?? "subtle"}"] {`,
         );
         lines.push(
           emitColorLine(

@@ -279,11 +279,18 @@ function expectSinceConversion(
         ],
         6,
       );
-      expect(part.layout).toEqual(
-        Object.fromEntries(
+      // (S2 icon, 2026-10-13: an alert with an icon places its title clear of it — stretched,
+      // the icon's size as its end margin; `inlineAlertIcon.test.tsx`.)
+      const iconPlaced =
+        heading && authored.variant !== "neutral"
+          ? { alignSelf: "stretch", marginRight: "20px" }
+          : {};
+      expect(part.layout).toEqual({
+        ...Object.fromEntries(
           Object.entries(was.layout).filter(([key]) => !MARGINS.includes(key)),
         ),
-      );
+        ...iconPlaced,
+      });
       continue;
     }
     expect(part.size).toBe(was.size);
@@ -321,13 +328,30 @@ function expectSinceConversion(
               /^<div (class=react-aria-InlineAlert [^>]*) id>/,
               "<div aria-live=polite $1 id role=alert>",
             )
-            // S2 fillStyle (2026-10-10): the template root carries the default outline.
+            // S2 fillStyle (2026-10-10 · S2 names 2026-10-13): the template root carries the
+            // default border.
             .replace(
               "class=react-aria-InlineAlert data-size",
-              "class=react-aria-InlineAlert data-fill-style=outline data-size",
+              "class=react-aria-InlineAlert data-fill-style=border data-size",
             )
         : structureOf(before.dom);
-  expect(structureOf(now.dom!)).toBe(expected);
+  // S2 InlineAlert's variant icon (2026-10-13 — `inlineAlertIcon.test.tsx` checks its box and
+  // glyph): before the parts, named by the variant's string; the parts compare without it.
+  const ICON =
+    /<svg aria-label=(\w+) class=inline-alert-icon [^>]*>(?:<(?:path|circle) [^>]*><\/>)*<\/>/;
+  const nowStructure = structureOf(now.dom!);
+  if (type === "inline-alert")
+    expect(ICON.exec(nowStructure)?.[1]).toBe(
+      (
+        {
+          informative: "Information",
+          positive: "Success",
+          notice: "Warning",
+          negative: "Error",
+        } as Record<string, string>
+      )[authored.variant ?? "informative"],
+    );
+  expect(nowStructure.replace(ICON, "")).toBe(expected);
   // Each part element inlines its record's values (the Canvas draws the same record).
   for (const part of Object.values(now.records)) {
     const element = new RegExp(

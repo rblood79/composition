@@ -11,6 +11,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 InlineAlert — fillStyle 값 이름 · variant 아이콘] - 2026-10-13
+
+### Breaking Changes
+
+- **InlineAlert `fillStyle` 값이 S2 이름으로 바뀜** (S2 1.8.0): `outline` → `border` · `subtle` → `subtleFill` · `bold` → `boldFill`. 기본값은 `border` 다.
+  - 옛 문서의 값은 로드할 때 한 번 새 이름으로 바뀐다 (`s2PropAlignment.ts`). 화면은 그대로다.
+  - **Why**: 2026-10-10 에 house 이름 (outline · subtle · bold) 으로 들였는데, D2 정본 (S2 1.8.0) 이름과 달랐다 (S2 정렬 조사 5.1 의 남은 값 차이).
+  - 값 → 칠 (fill) 은 rule 의 `fillStyleValues` 하나가 잇고, Canvas paint (`resolveCatalogPaint`) 와 생성 CSS (`[data-fill-style]` 선택자) 가 같이 읽는다. Button (`fill` · `outline`) · Badge 는 그대로다.
+
+### Added
+
+- **InlineAlert 의 variant 아이콘** (S2 `InlineAlert.tsx`): informative · positive · notice · negative 가 오른쪽 위에 아이콘을 그린다. neutral 은 그리지 않는다.
+  - 아이콘은 S2 의 InfoCircle · CheckmarkCircle · AlertDiamond · AlertTriangle 에 대응하는 Lucide `info` · `circle-check` · `octagon-alert` · `triangle-alert` 이다. Lucide 에 마름모 경고 아이콘이 없어서 notice 는 팔각형으로 대신했다.
+  - 이름은 S2 문자열이다 (정보 · 성공 · 경고 · 오류 / Information · Success · Warning · Error, `role="img"`).
+  - 색은 S2 `--iconPrimary` 를 따른다.
+    - border: variant 색.
+    - subtleFill: variant 색, 단 notice 는 negative 색.
+    - boldFill: 흰색, 단 notice 는 검정.
+  - 아이콘은 S2 처럼 InlineAlert 가 직접 그린다 (자식 노드가 아니다). 위치는 상자 오른쪽 위다 — S2 는 `float: inline-end` 인데 엔진에 float 가 없어 고정 위치로 대신했다.
+  - 제목은 아이콘 크기만큼 끝 여백을 두고 그 앞에서 줄을 바꾼다. 이 값은 rule 의 `variant` 블록이 주고, 부모 rule 은 배치만 한다는 ADR-253 원칙에 맞춘 것이다.
+  - 위치:
+    - `packages/shared/src/catalog/document/inlineAlertIcon.ts`
+    - `components/InlineAlertIcon.tsx`
+    - `runtime/domBinding.runtime.ts`
+    - `apps/builder/src/builder/catalogRuntime/ruleShapes.ts`
+    - `generated/componentRulesTable.ts`
+    - `document/rulePartRules.ts`
+
+### Fixed
+
+- **child 배치만 하는 container variant 가 상자의 variant · size 칠을 지움** (생성 CSS · Canvas 공통): rule 의 `containerVariants` 가 있으면 생성기와 Canvas 가 모두 「composition 이 상자를 소유한다」 로 보고, variant 색 블록 · size padding · 테두리를 건너뛰었다.
+  - 이제는 root 에 `styles` 를 주는 블록이 있을 때만 상자를 소유한다고 본다 (AvatarGroup 은 그대로).
+  - 두 consumer 는 같은 판정 함수를 읽는다 (`catalogCompositionOwnsContainerBox` · `CSSGenerator.ts` `containerVariantsStyleRoot`).
+  - **Why**: Canvas 가 InlineAlert 테두리 1 px 를 레이아웃에서 빼 높이가 2 px 달랐다 (live 에서 발견, 출시 전 수리).
+
+### Tests
+
+- `inlineAlertIcon.test.tsx` 8: 4 variant 의 Canvas · DOM 아이콘 자리 · 이름 · 색, neutral 없음, variant 편집 · undo, 생성 CSS. `inlineAlertFillStyle.test.tsx` 7 (옛 값 로드 전환 포함). 원복 RED 14/14.
+- live (실제 Builder, 라이트 · 다크): Design 패널 Fill Style · undo · 저장 · 다시 열기 · 15 상자 Canvas = Preview 칠 · 12 아이콘 Canvas = Preview (중심 · 크기 ±1 · 색), 각 37/37. 긴 제목도 아이콘 앞에서 줄을 바꾼다 (Canvas = Preview ±1).
+
 ## [S2 도움말 · 앞 글자 · 항목 링크 완료 — ADR-259 Implemented] - 2026-10-13
 
 ### Changed

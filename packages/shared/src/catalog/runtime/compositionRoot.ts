@@ -2109,7 +2109,7 @@ export class CatalogCompositionRoot {
       const color = catalogSelectPlaceholderColor(this.colorMode);
       if (color) return { ...derived, color };
     }
-    // S2 InlineAlert `fillStyle: bold` — its title · content texts go white (black on notice),
+    // S2 InlineAlert `fillStyle: boldFill` — its title · content texts go white (black on notice),
     // unless the text authors its own color (the DOM's inline style wins over the sheet's).
     const alertText = catalogInlineAlertBoldText(record, get, this.typeOf);
     if (alertText && catalogAuthoredVisual(this, record).color === undefined)

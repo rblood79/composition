@@ -1487,7 +1487,7 @@ const INLINE_ALERT_TEXT_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * S2 1.8.0 InlineAlert `fillStyle: bold` (2026-10-10): the title and the content go white (black
+ * S2 1.8.0 InlineAlert `fillStyle: boldFill` (2026-10-10): the title and the content go white (black
  * on notice — S2 InlineAlert.tsx heading · content color). The derived `color` wins over the
  * node's definition color in both consumers (`derivedProps.color`); an authored color wins over
  * it (`derivedOf` checks).
@@ -1500,7 +1500,7 @@ export function catalogInlineAlertBoldText(
   if (!INLINE_ALERT_TEXT_TYPES.has(typeOf(node))) return undefined;
   for (let cursor = get(node.parentId); cursor; cursor = get(cursor.parentId))
     if (typeOf(cursor) === "InlineAlert")
-      return cursor.props.fillStyle === "bold"
+      return cursor.props.fillStyle === "boldFill"
         ? cursor.props.variant === "notice"
           ? "#000000"
           : "#ffffff"

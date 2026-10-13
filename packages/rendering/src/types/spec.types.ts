@@ -164,6 +164,12 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
   partAliases?: Readonly<Record<string, readonly string[]>>;
 
   /**
+   * The `fillStyle` values that pick the outline · subtle fills (the rule's `fillStyleValues` —
+   * InlineAlert `border` · `subtleFill`). Absent = `outline` · `subtle`.
+   */
+  fillStyleValues?: { readonly outline?: string; readonly subtle?: string };
+
+  /**
    * 기본 HTML 태그 (React용)
    *
    * ADR-058 Phase 2: 함수형 element 지원 추가.

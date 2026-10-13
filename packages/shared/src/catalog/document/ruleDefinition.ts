@@ -8,7 +8,10 @@ import {
 } from "@composition/rendering";
 import { componentTypeSet } from "../../domain/componentTraits";
 import { componentCatalog } from "../componentCatalog";
-import { resolveCatalogRuleCanvasBox } from "../resolvers/resolveCatalogRuleCanvasBox";
+import {
+  catalogCompositionOwnsContainerBox,
+  resolveCatalogRuleCanvasBox,
+} from "../resolvers/resolveCatalogRuleCanvasBox";
 import { manualBoxRule } from "./manualBoxRules";
 import { catalogContainerVariantRootRules } from "./rulePartRules";
 import { RULE_TYPE_PROP_CONTRACTS } from "./itemLinks";
@@ -248,11 +251,7 @@ export function ruleRootBox(type: string, rule: ComponentRule): RootBox {
     string,
     unknown
   >;
-  const ownsContainerBox =
-    !!composition &&
-    (!!composition.layout ||
-      !!composition.containerStyles ||
-      !!composition.containerVariants);
+  const ownsContainerBox = catalogCompositionOwnsContainerBox(composition);
   const defaultVariant =
     rule.defaultVariant !== undefined
       ? rule.variants[rule.defaultVariant]

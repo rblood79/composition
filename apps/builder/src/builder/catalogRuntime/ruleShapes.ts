@@ -28,6 +28,7 @@ import {
   catalogItemLinkOut,
   catalogLinkOutGlyph,
 } from "../../../../../packages/shared/src/catalog/document/itemLinks";
+import { catalogInlineAlertIcon } from "../../../../../packages/shared/src/catalog/document/inlineAlertIcon";
 import { catalogBoxModel } from "../../../../../packages/shared/src/catalog/runtime/boxModel";
 import {
   CHILD_PROP_MERGE_TYPES,
@@ -151,7 +152,11 @@ function invalidBorder(input: CatalogRuleShapeInput, shapes: Shape[]): Shape[] {
 
 /** Shapes for one rule-backed node (before conversion; exposed for shape-level checks). */
 export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
-  const shapes = [...ruleShapes(input), ...linkOutShapes(input)];
+  const shapes = [
+    ...ruleShapes(input),
+    ...linkOutShapes(input),
+    ...inlineAlertIconShapes(input),
+  ];
   const quiet = catalogQuietStyles(input.rule, input.node.props, input.state);
   if (!quiet) return invalidBorder(input, shapes);
   const border = /^(\d+(?:\.\d+)?)px solid (.+)$/.exec(
@@ -251,6 +256,37 @@ function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
       x: input.rect.width - ownRight - glyph.size / 2,
       y: input.rect.height / 2,
       fontSize: glyph.size,
+      fill: color,
+      strokeWidth: 2,
+    } as Shape,
+  ];
+}
+
+/**
+ * S2 InlineAlert's variant icon (`catalogInlineAlertIcon`): at the padding box's top end (S2 floats
+ * it inline-end — its top at the content box's, its end at the content box's end), in S2's
+ * `--iconPrimary`. The DOM draws the same glyph box (`domBinding` — `InlineAlertIcon`).
+ */
+function inlineAlertIconShapes(input: CatalogRuleShapeInput): Shape[] {
+  if (input.type !== "InlineAlert") return [];
+  const icon = catalogInlineAlertIcon(input.node.props);
+  if (!icon) return [];
+  const box = catalogBoxModel(input.node);
+  const px = (value: unknown) =>
+    typeof value === "number" ? value : Number.parseFloat(String(value ?? 0)) || 0;
+  // (An icon's x · y are in the padding box — the shape converter shifts them past the border.)
+  const border = px(box.borderWidth);
+  const ownRight = px(box.padding?.right) + border * 2;
+  const color = icon.color.startsWith("{")
+    ? (resolveToken(icon.color as TokenRef, input.theme ?? "light") as string)
+    : icon.color;
+  return [
+    {
+      type: "icon_font",
+      iconName: icon.iconName,
+      x: input.rect.width - ownRight - icon.size / 2,
+      y: px(box.padding?.top) + icon.size / 2,
+      fontSize: icon.size,
       fill: color,
       strokeWidth: 2,
     } as Shape,

@@ -1,4 +1,5 @@
 import type {
+  CatalogFillStyleValues,
   ComponentRuleSize,
   ComponentRuleVariant,
 } from "../../types/catalog-style.types";
@@ -11,6 +12,21 @@ export interface ResolveCatalogPaintInput {
   props: Readonly<Record<string, unknown>>;
   style: Readonly<Record<string, unknown>> | undefined;
   interactionState: CatalogInteractionState;
+  /** The rule's `fillStyle` value names (`ComponentRule.fillStyleValues`). */
+  fillStyleValues?: CatalogFillStyleValues;
+}
+
+/**
+ * The fill a `fillStyle` value picks: `outline` · `subtle`, or the default fill — by the rule's
+ * value names (`ComponentRule.fillStyleValues`), else by the fill keys' own names.
+ */
+export function catalogFillStyleKey(
+  value: unknown,
+  values: CatalogFillStyleValues | undefined,
+): "outline" | "subtle" | "default" {
+  if (value === (values?.outline ?? "outline")) return "outline";
+  if (value === (values?.subtle ?? "subtle")) return "subtle";
+  return "default";
 }
 
 export interface ResolvedCatalogPaint {
@@ -39,13 +55,14 @@ export function resolveCatalogPaint({
   props,
   style,
   interactionState,
+  fillStyleValues,
 }: ResolveCatalogPaintInput): ResolvedCatalogPaint {
   const fill = variant?.fill;
   const colors = variant?.colors;
 
-  const fillStyle = (props.fillStyle as string | undefined) ?? "fill";
-  const isOutline = fillStyle === "outline";
-  const isSubtle = fillStyle === "subtle";
+  const fillKey = catalogFillStyleKey(props.fillStyle, fillStyleValues);
+  const isOutline = fillKey === "outline";
+  const isSubtle = fillKey === "subtle";
   const isQuiet = props.isQuiet === true && fill?.quiet != null;
   const fillStates = isQuiet
     ? fill?.quiet

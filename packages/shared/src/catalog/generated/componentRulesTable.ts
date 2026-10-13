@@ -6051,13 +6051,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   InlineAlert: {
     defaultVariant: "informative",
     defaultSize: "M",
-    // S2 1.8.0 fillStyle (2026-10-10 — S2 border · subtleFill · boldFill 를 house 축
-    //   outline · subtle · bold 로): outline = 바탕 배경 + variant 색 테두리 (S2 기본 'border' —
-    //   종전 기본은 subtle 배경 + 색 테두리였다: 배경만 바탕색으로 이동), subtle = variant-subtle
-    //   배경 (생성 CSS 가 테두리 transparent — S2), bold = variant 본색 배경 + 흰 글자 (notice 는
-    //   검정, neutral 의 본색은 neutral-subdued — S2 InlineAlert.tsx). colors.text 는 bold
-    //   (default 분기) 의 글자색이고 subtleText · outlineText 가 나머지를 준다. 제목 · 설명
-    //   자식의 bold 글자색은 파생 color (`presence.ts` catalogInlineAlertBoldText).
+    // S2 1.8.0 fillStyle — 값 이름은 S2 그대로 `border` · `subtleFill` · `boldFill` (2026-10-13 —
+    //   2026-10-10 에는 house 이름 outline · subtle · bold 였다, 옛 문서는 로드 시 1회 전환).
+    //   `fillStyleValues` 가 값 → fill 을 잇는다 (Canvas paint · 생성 CSS `[data-fill-style]` 이
+    //   같이 읽음): border = fill.outline — 바탕 배경 + variant 색 테두리 (S2 기본), subtleFill =
+    //   fill.subtle — variant-subtle 배경 (생성 CSS 가 테두리 transparent — S2), boldFill = 기본
+    //   fill — variant 본색 배경 + 흰 글자 (notice 는 검정, neutral 의 본색은 neutral-subdued —
+    //   S2 InlineAlert.tsx). colors.text 는 boldFill 의 글자색이고 subtleText · outlineText 가
+    //   나머지를 준다. 제목 · 설명 자식의 boldFill 글자색은 파생 color (`presence.ts`
+    //   catalogInlineAlertBoldText).
+    fillStyleValues: { outline: "border", subtle: "subtleFill" },
     variants: {
       neutral: {
         fill: {
@@ -6222,6 +6225,66 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         width: "100%",
       },
       states: {},
+      // S2 InlineAlert icon (2026-10-13 — `inlineAlertIcon.ts`): the alert draws its variant's icon
+      //   at the padding box's top end (S2 floats it inline-end; the engine has no float). The
+      //   title keeps clear of it: placed (ADR-253 — a parent rule places its parts, their shape is
+      //   their own) stretched to the content width less the icon's size
+      //   (`CATALOG_INLINE_ALERT_ICON_SIZE`) as its end margin. Neutral has no icon.
+      composition: {
+        containerVariants: {
+          variant: {
+            informative: {
+              nested: [
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    width: "auto",
+                    "align-self": "stretch",
+                    "margin-right": "20px",
+                  },
+                },
+              ],
+            },
+            positive: {
+              nested: [
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    width: "auto",
+                    "align-self": "stretch",
+                    "margin-right": "20px",
+                  },
+                },
+              ],
+            },
+            notice: {
+              nested: [
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    width: "auto",
+                    "align-self": "stretch",
+                    "margin-right": "20px",
+                  },
+                },
+              ],
+            },
+            negative: {
+              nested: [
+                {
+                  selector: "> .react-aria-Heading",
+                  styles: {
+                    width: "auto",
+                    "align-self": "stretch",
+                    "margin-right": "20px",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        delegation: [],
+      },
     },
   },
   Input: {
