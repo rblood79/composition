@@ -17,7 +17,7 @@
   color: var(--fg);
   border: var(--border-width-hairline) solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 0px;
+  padding: var(--spacing-xs);
   gap: 0px;
   width: 100%;
   overflow: auto;
@@ -52,17 +52,8 @@
 
 
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem {
-    margin-inline: var(--spacing-xs);
     flex-shrink: 0;
     --listbox-separator: var(--border);
-  }
-
-  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem) {
-    margin-top: var(--spacing-xs);
-  }
-
-  .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem) {
-    margin-bottom: var(--spacing-xs);
   }
 
   .react-aria-ListBox:not(.react-aria-Popover *) .react-aria-ListBoxItem:not(:last-child)::after {
@@ -139,23 +130,14 @@
   .react-aria-ListBox:is(.react-aria-Popover *) {
     display: block;
     border: none;
-    padding: 0;
+    padding: var(--spacing-xs);
     background: transparent;
     border-radius: inherit;
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem {
     padding: calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl);
-    margin-inline: var(--spacing-xs);
     font-weight: 500;
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem) {
-    margin-top: var(--spacing-xs);
-  }
-
-  .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem) {
-    margin-bottom: var(--spacing-xs);
   }
 
   .react-aria-ListBox:is(.react-aria-Popover *) .react-aria-ListBoxItem[data-selected] {

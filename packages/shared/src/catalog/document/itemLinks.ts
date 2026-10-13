@@ -115,6 +115,21 @@ export function catalogLinkOutGlyph(
   return sizes[String(size)] ?? sizes.M ?? Object.values(sizes)[0];
 }
 
+/**
+ * A card item's glyph place (GridListItem — the RAC reference card, 2026-10-13): its photo spans
+ * the card and a Canvas node paints under its children, so the glyph sits in the card's bottom
+ * padding (centred there), its end at the texts' end (their 16 inset — `manualBoxRules`
+ * GridListItem). The card's padding stays — its photo keeps the card's width.
+ */
+const LINK_OUT_CARD_END_INSET: Readonly<Record<string, number>> = {
+  GridListItem: 16,
+};
+
+/** The glyph's end inset when the item is a card (no row end padding grows), else undefined. */
+export function catalogLinkOutCardEndInset(type: string): number | undefined {
+  return LINK_OUT_CARD_END_INSET[type];
+}
+
 /** A link-out item's right padding: its own (the glyph's end inset) + the glyph + its gap. */
 export function catalogLinkOutPaddingRight(
   type: string,

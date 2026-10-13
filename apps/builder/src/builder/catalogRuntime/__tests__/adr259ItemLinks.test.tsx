@@ -14,6 +14,7 @@ import { CatalogGraph } from "../../../../../../packages/shared/src/catalog/docu
 import { buildCodeCatalogLibrary } from "../../../../../../packages/shared/src/catalog/document/codeCatalogLibrary";
 import {
   catalogItemLinkOut,
+  catalogLinkOutCardEndInset,
   catalogLinkOutGlyph,
 } from "../../../../../../packages/shared/src/catalog/document/itemLinks";
 import type {
@@ -233,26 +234,28 @@ describe("ADR-259 Phase 1 — item links", () => {
       }
     });
 
-  it("GridListItem: the glyph box is one box in both consumers (layout padding · Canvas glyph · DOM glyph)", async () => {
+  it("GridListItem: the card's glyph sits in its bottom padding at the texts' end in both consumers (layout · Canvas glyph · DOM glyph)", async () => {
     const { workspace, root, of, edit, render } = await open("GridList", "box");
     const item = of("GridListItem")[0];
     const owner = of("GridList")[0];
+    const image = of("Image").find((node) => node.parentId === item.id)!;
+    const imageBefore = root.getGeometry([image.id]).get(image.id)!;
     const before = root.getGeometry([item.id]).get(item.id)!;
-    // GridListItem rule size M paddingX (0 since the RAC reference card — 2026-10-13; its texts
-    // carry their own 16 inset).
-    const ownRight = 0;
     edit(item.id, { href: "https://x.test", target: "_blank" });
     const record = root.canvasInputs.get(item.id)!;
     const glyph = catalogLinkOutGlyph("GridListItem", record.props.size);
-    // The content box shrinks by the glyph and its gap (the end padding grew).
-    const label = of("Text").find((text) => text.parentId === item.id)!;
-    const labelBox = root.getGeometry([label.id]).get(label.id)!;
+    // The card keeps its padding: its photo still spans it (2026-10-13 — before, the end padding
+    // grew by the glyph and its gap and the photo lost 16).
     const box = root.getGeometry([item.id]).get(item.id)!;
+    const imageBox = root.getGeometry([image.id]).get(image.id)!;
     expect(box.width).toBe(before.width);
-    expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(
-      box.width - ownRight - glyph.size - glyph.gap + 0.5,
-    );
-    // Canvas glyph centre.
+    expect(imageBox.width).toBe(imageBefore.width);
+    expect(imageBox.width).toBe(box.width);
+    // The card's bottom padding (the RAC reference card's 16 — `manualBoxRules` GridListItem).
+    const bottom = 16;
+    const end = catalogLinkOutCardEndInset("GridListItem")!;
+    expect(end).toBe(16);
+    // Canvas glyph centre: in the bottom padding, its end at the texts' end (no border).
     const shapes = catalogRuleShapes({
       node: record,
       rect: { width: box.width, height: box.height },
@@ -265,16 +268,12 @@ describe("ADR-259 Phase 1 — item links", () => {
         shape.type === "icon_font" &&
         (shape as { iconName?: string }).iconName === "external-link",
     ) as { x: number; y: number; fontSize: number } | undefined;
-    // (Padding-box x — the shape converter adds the border; the DOM places the glyph from the
-    // padding box: final centre = width − border − own right − half the glyph. The reference card
-    // has no border — 2026-10-13.)
-    const border = 0;
     expect(icon).toMatchObject({
-      x: box.width - 2 * border - ownRight - glyph.size / 2,
-      y: box.height / 2,
+      x: box.width - end - glyph.size / 2,
+      y: box.height - bottom / 2,
       fontSize: glyph.size,
     });
-    // DOM glyph box.
+    // DOM glyph box: the same place, the card's padding untouched.
     const { host, done } = await render(owner.id);
     const el = host.querySelector<HTMLElement>(
       `[data-catalog-id="${item.id}"]`,
@@ -286,15 +285,17 @@ describe("ADR-259 Phase 1 — item links", () => {
       paddingRight: el.style.paddingRight,
       position: el.style.position,
       right: span.style.right,
-      width: span.style.width,
+      bottom: span.style.bottom,
       top: span.style.top,
+      width: span.style.width,
       ariaHidden: span.getAttribute("aria-hidden"),
     }).toEqual({
-      paddingRight: `${ownRight + glyph.size + glyph.gap}px`,
+      paddingRight: "",
       position: "relative",
-      right: `${ownRight}px`,
+      right: `${end}px`,
+      bottom: `${(bottom - glyph.size) / 2}px`,
+      top: "",
       width: `${glyph.size}px`,
-      top: "50%",
       ariaHidden: "true",
     });
     await done();

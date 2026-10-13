@@ -24,7 +24,6 @@ import { resolveToken, tokenToCSSVar } from "@composition/rendering";
 import { spacing, radius, typography } from "@composition/rendering";
 import type { TokenRef } from "@composition/rendering";
 import { resolveContainerStylesFallback } from "./implicitStyles";
-import { catalogListItemEdgeMargins } from "../../../../../../../../packages/shared/src/catalog/document/rulePartRules";
 
 describe("ADR-081 G2 — token consumer drift cross-reference", () => {
   describe("C1 — tokenToCSSVar 매핑 회귀 (CSS var 문자열)", () => {
@@ -97,14 +96,12 @@ describe("ADR-081 G2 — token consumer drift cross-reference", () => {
       expect(fb).toMatchSnapshot();
     });
 
-    // 2026-10-13 — the RAC reference ListBox has no gap · padding (its items' margins: the rule's
-    //   item selectors, `catalogListItemEdgeMargins` — 4 = spacing.xs).
-    it("listbox gap · padding 0 — the items' margins carry the spacing (spacing.xs)", () => {
+    // 2026-10-13 — no gap; the list's padding (spacing.xs) holds the items off its border (사용자
+    //   「margin은 없애고 react-aria-ListBox 에 padding으로」 — no item margins).
+    it("listbox gap 0 · padding spacing.xs", () => {
       const fb = resolveContainerStylesFallback("listbox", {});
-      expect([fb.gap, fb.padding]).toEqual(["0px", "0px"]);
-      expect(catalogListItemEdgeMargins("ListBox", "ListBoxItem")?.inline).toBe(
-        spacing.xs,
-      );
+      expect(fb.gap).toBe("0px");
+      expect(fb.padding).toBe(spacing.xs);
     });
   });
 });

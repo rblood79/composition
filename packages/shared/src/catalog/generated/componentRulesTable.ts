@@ -6788,15 +6788,16 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   정하고, 잘라야 하면 요소별로 저작한다 — catalog 가 전 인스턴스에 300 을 강제할
     //   근거가 없다. `overflow:auto` 는 남긴다(높이를 저작하면 그때 스크롤이 살아난다).
     // 2026-10-13 (사용자 「listbox 를 RAC 레퍼런스 테마 기준으로」): the reference
-    //   `ListBox.css` — no padding · gap (each item's own margins: 4 inline, 4 above the first ·
-    //   below the last — the staticSelectors below), a 0.5px border and the radius + spacing (12)
-    //   corners. Its fixed sizes (250 wide · 100–300 high) stay out — 2026-07-29 사용자 결정: the
-    //   author sizes the container.
+    //   `ListBox.css` — no gap, a 0.5px border and the radius + spacing (12) corners. The 4 between
+    //   the border and the items is the list's padding, not the items' margins (사용자 2026-10-13
+    //   「margin은 없애고 react-aria-ListBox 에 padding으로」 — the reference puts it on the items).
+    //   Its fixed sizes (250 wide · 100–300 high) stay out — 2026-07-29 사용자 결정: the author
+    //   sizes the container.
     containerStyles: {
       display: "flex",
       flexDirection: "column",
       gap: "0px",
-      padding: "0px",
+      padding: "{spacing.xs}",
       width: "100%",
       overflow: "auto",
       outline: "none",
@@ -6804,7 +6805,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     sizes: {
       M: {
-        paddingX: 0,
+        paddingX: 4,
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.xl}",
         height: 0,
@@ -6819,7 +6820,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         border: "{color.border}",
         borderWidth: "{border.width.hairline}",
         borderRadius: "{radius.xl}",
-        padding: "0px",
+        padding: "{spacing.xs}",
         gap: "0px",
         display: "flex",
         flexDirection: "column",
@@ -6845,8 +6846,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       //   Popover — is the reference's `.dropdown-listbox`, its own sheet). Over the manual
       //   `ListBox.css`, which the Builder's own lists share (`builder-components.css` — not this
       //   generated sheet), hence the more specific selectors:
-      //   - each item's margins: 4 inline, 4 above the first and below the last of a run (the
-      //     list's · a section's) — the Canvas reads them (`catalogListItemEdgeMargins`);
+      //   - no item margins — the list's padding (4) holds the items off its border (사용자
+      //     2026-10-13); the items do not shrink (`catalogListItemFlexShrink`);
       //   - a 0.5px line under each item but the last, inset 12 a side (`::after` — the Canvas
       //     draws it, `listBoxItem` `_lastItem`), hidden on a selected item, light between two;
       //   - adjacent selected items join: the touching corners square (multiple selection —
@@ -6863,17 +6864,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               //   `sizes.M.minHeight` — a column list of a fixed height would squeeze a
               //   two-line item to 32, the 2026-07-22 note; it scrolls instead.)
               ".react-aria-ListBoxItem": {
-                "margin-inline": "var(--spacing-xs)",
                 "flex-shrink": "0",
                 "--listbox-separator": "var(--border)",
               },
-              ".react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem)": {
-                "margin-top": "var(--spacing-xs)",
-              },
-              ".react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem)":
-                {
-                  "margin-bottom": "var(--spacing-xs)",
-                },
               ".react-aria-ListBoxItem:not(:last-child)::after": {
                 content: "''",
                 display: "block",
@@ -6938,7 +6931,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
           },
           // A picker's list (Select · ComboBox — in a Popover): the reference `.dropdown-listbox` ·
           //   `.dropdown-item` (`ListBox.css` — RAC Select · ComboBox examples). The list is the
-          //   popover's surface (no border · padding — the items' margins), an item leaves 24 at its
+          //   popover's surface (no border; its padding 4 — not the items' margins), an item leaves 24 at its
           //   start for the check (a 16 lucide check, 4 in, in the item's color — the
           //   author's `showWhen: isSelected` node takes its place, `data-selection-mark`), weight
           //   500; the focused item is the highlight pair, a pressed one the light wash; no hover
@@ -6955,7 +6948,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             styles: {
               display: "block",
               border: "none",
-              padding: "0",
+              padding: "var(--spacing-xs)",
               background: "transparent",
               "border-radius": "inherit",
             },
@@ -6963,16 +6956,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
               ".react-aria-ListBoxItem": {
                 padding:
                   "calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-md) calc((var(--spacing-2xl) - 1lh) / 2) var(--spacing-xl)",
-                "margin-inline": "var(--spacing-xs)",
                 "font-weight": "500",
               },
-              ".react-aria-ListBoxItem:nth-child(1 of .react-aria-ListBoxItem)": {
-                "margin-top": "var(--spacing-xs)",
-              },
-              ".react-aria-ListBoxItem:nth-last-child(1 of .react-aria-ListBoxItem)":
-                {
-                  "margin-bottom": "var(--spacing-xs)",
-                },
               ".react-aria-ListBoxItem[data-selected]": {
                 background: "transparent",
                 color: "var(--fg)",

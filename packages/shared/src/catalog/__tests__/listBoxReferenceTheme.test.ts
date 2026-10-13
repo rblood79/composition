@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { catalogListItemEdgeMargins } from "../document/rulePartRules";
+import { catalogListItemFlexShrink } from "../document/rulePartRules";
 
 /**
  * ListBox — the RAC reference theme (사용자 2026-10-13 「listbox 를 RAC 레퍼런스 테마 기준으로」 ·
@@ -57,16 +57,11 @@ describe("ListBox — RAC reference theme", () => {
       "border: var(--border-width-hairline) solid var(--border);",
     );
     expect(base).toContain("border-radius: var(--radius-xl);");
-    expect(base).toContain("padding: 0px;");
-    expect(block(".react-aria-ListBoxItem")).toContain(
-      "margin-inline: var(--spacing-xs);",
-    );
-    // The Canvas reads the same selectors: 4 inline · above the first · below the last.
-    expect(catalogListItemEdgeMargins("ListBox", "ListBoxItem")).toEqual({
-      inline: 4,
-      first: 4,
-      last: 4,
-      shrink: 0,
-    });
+    // The list's padding (4) holds the items off its border — no item margins (사용자 2026-10-13
+    // 「margin은 없애고 react-aria-ListBox 에 padding으로」).
+    expect(base).toContain("padding: var(--spacing-xs);");
+    expect(sheet).not.toMatch(/\.react-aria-ListBoxItem[^{]*\{[^}]*margin/);
+    // The Canvas reads the same selector: the items do not shrink.
+    expect(catalogListItemFlexShrink("ListBox", "ListBoxItem")).toBe(0);
   });
 });

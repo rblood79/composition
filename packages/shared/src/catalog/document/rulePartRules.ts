@@ -703,17 +703,14 @@ function sizeNames(rule: ComponentRule): string[] {
 }
 
 /**
- * A standalone list's item margins (2026-10-13 — the reference `ListBox.css`, the list rule's item
- * selectors under `&:not(.react-aria-Popover *)`): `inline` on each item, `first` above the first
- * and `last` below the last item of a run (the list's · a section's), px; `shrink` the items' flex
- * shrink. Undefined when the list's rule declares none.
+ * A standalone list's item flex shrink (the list rule's item selector under
+ * `&:not(.react-aria-Popover *)` — `flex-shrink: 0`, 2026-10-13: a column list of a fixed height
+ * scrolls instead of squeezing its items). Undefined when the list's rule declares none.
  */
-export function catalogListItemEdgeMargins(
+export function catalogListItemFlexShrink(
   listType: string,
   itemType: string,
-):
-  | { inline: number; first: number; last: number; shrink?: number }
-  | undefined {
+): number | undefined {
   const composition = (
     COMPONENT_RULES_TABLE as Record<
       string,
@@ -727,22 +724,11 @@ export function catalogListItemEdgeMargins(
         >;
       }
     | undefined;
-  const nested =
-    composition?.rootSelectors?.["&:not(.react-aria-Popover *)"]?.nested;
-  const item = `.react-aria-${itemType}`;
-  const inline = nested?.[item]?.["margin-inline"];
-  const first = nested?.[`${item}:nth-child(1 of ${item})`]?.["margin-top"];
-  const last =
-    nested?.[`${item}:nth-last-child(1 of ${item})`]?.["margin-bottom"];
-  if (inline === undefined || first === undefined || last === undefined)
-    return undefined;
-  const shrink = nested?.[item]?.["flex-shrink"];
-  return {
-    inline: lengthPx(inline) ?? 0,
-    first: lengthPx(first) ?? 0,
-    last: lengthPx(last) ?? 0,
-    ...(shrink === undefined ? {} : { shrink: Number(shrink) }),
-  };
+  const shrink =
+    composition?.rootSelectors?.["&:not(.react-aria-Popover *)"]?.nested?.[
+      `.react-aria-${itemType}`
+    ]?.["flex-shrink"];
+  return shrink === undefined ? undefined : Number(shrink);
 }
 /**
  * Inline padding of a DateInput's RAC date segments (the DateInput rule's `.react-aria-DateSegment`

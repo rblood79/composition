@@ -26,6 +26,7 @@ import type {
 import {
   CATALOG_LINK_OUT_ICON,
   catalogItemLinkOut,
+  catalogLinkOutCardEndInset,
   catalogLinkOutGlyph,
 } from "../../../../../packages/shared/src/catalog/document/itemLinks";
 import { catalogInlineAlertIcon } from "../../../../../packages/shared/src/catalog/document/inlineAlertIcon";
@@ -235,7 +236,8 @@ export function catalogRuleShapes(input: CatalogRuleShapeInput): Shape[] {
 /**
  * ADR-259 Phase 1 — S2's link-out glyph of an item that opens a new tab (`catalogItemLinkOut`): in
  * the end padding the layout added (`catalogLinkOutPaddingRight`), its own right padding (and its
- * border) outside it, centred on the box; the item's text color (S2 `currentColor`). The DOM draws the same glyph
+ * border) outside it, centred on the box — a card's in its bottom padding instead
+ * (`catalogLinkOutCardEndInset`); the item's text color (S2 `currentColor`). The DOM draws the same glyph
  * box (`domBinding` — `catalogLinkOutGlyph`).
  */
 function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
@@ -251,12 +253,20 @@ function linkOutShapes(input: CatalogRuleShapeInput): Shape[] {
   const color =
     catalogRuleTextColor(input) ??
     (resolveToken("{color.neutral}" as TokenRef, input.theme ?? "light") as string);
+  // A card (`catalogLinkOutCardEndInset`): in its bottom padding, its end at the texts' end.
+  const cardEnd = catalogLinkOutCardEndInset(input.type);
   return [
     {
       type: "icon_font",
       iconName: CATALOG_LINK_OUT_ICON,
-      x: input.rect.width - ownRight - glyph.size / 2,
-      y: input.rect.height / 2,
+      x:
+        input.rect.width -
+        (cardEnd === undefined ? ownRight : border * 2 + cardEnd) -
+        glyph.size / 2,
+      y:
+        cardEnd === undefined
+          ? input.rect.height / 2
+          : input.rect.height - border * 2 - px(box.padding?.bottom) / 2,
       fontSize: glyph.size,
       fill: color,
       strokeWidth: 2,

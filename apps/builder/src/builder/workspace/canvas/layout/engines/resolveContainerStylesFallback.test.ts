@@ -33,9 +33,10 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         display: "flex",
         flexDirection: "column",
-        // 2026-10-13 — the RAC reference ListBox: no gap · padding (its items' margins).
+        // 2026-10-13 — no gap; the list's padding 4 (spacing.xs) holds the items off its border
+        //   (사용자 「margin은 없애고 react-aria-ListBox 에 padding으로」).
         gap: "0px",
-        padding: "0px",
+        padding: 4,
         width: "100%",
         overflow: "auto",
         outline: "none",
@@ -55,7 +56,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
       expect(fb).toEqual({
         flexDirection: "column",
         gap: "0px",
-        padding: "0px",
+        padding: 4,
         width: "100%",
         overflow: "auto",
         outline: "none",
@@ -396,7 +397,7 @@ describe("resolveContainerStylesFallback (ADR-080 G1 + ADR-083 Phase 0)", () => 
         display: "flex",
         flexDirection: "column",
         gap: "0px",
-        padding: "0px",
+        padding: 4,
         width: "100%",
         // maxHeight 는 2026-07-29 제거 — Tree/Menu 는 그대로라 이 케이스가 "listbox 만
         //   바뀌었고 재배선은 무오염" 을 계속 증명한다.

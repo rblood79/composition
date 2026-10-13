@@ -56,6 +56,7 @@ import {
 import {
   CATALOG_LINK_OUT_ICON,
   catalogItemLinkOut,
+  catalogLinkOutCardEndInset,
   catalogItemLinkProps,
   catalogLinkOutGlyph,
   catalogLinkOutPaddingRight,
@@ -2000,7 +2001,15 @@ function ruleDom(
     style = {
       ...style,
       position: style.position ?? "relative",
-      paddingRight: catalogLinkOutPaddingRight(type, node.props.size, ownRight),
+      ...(catalogLinkOutCardEndInset(type) === undefined
+        ? {
+            paddingRight: catalogLinkOutPaddingRight(
+              type,
+              node.props.size,
+              ownRight,
+            ),
+          }
+        : {}),
     };
   }
   const content = [
@@ -2292,7 +2301,8 @@ function catalogLinkOutOwnRight(node: CatalogConsumerNode): number {
 /**
  * ADR-259 Phase 1 — S2's link-out glyph (`ui-icons/LinkOut`, here the Lucide `external-link`): a
  * decorative svg in the item's end padding, its own right padding outside it, centred on the box
- * and in the item's text color (`currentColor`).
+ * (a card's in its bottom padding — `catalogLinkOutCardEndInset`) and in the item's text color
+ * (`currentColor`).
  */
 function catalogLinkOutGlyphElement(
   node: CatalogConsumerNode,
@@ -2300,6 +2310,23 @@ function catalogLinkOutGlyphElement(
 ): ReactNode {
   const glyph = catalogLinkOutGlyph(type, node.props.size);
   const data = getIconData(CATALOG_LINK_OUT_ICON);
+  const cardEnd = catalogLinkOutCardEndInset(type);
+  const bottom = catalogBoxModel(node).padding?.bottom;
+  const place =
+    cardEnd === undefined
+      ? {
+          right: catalogLinkOutOwnRight(node),
+          top: "50%",
+          transform: "translateY(-50%)",
+        }
+      : {
+          // A card: in its bottom padding, its end at the texts' end.
+          right: cardEnd,
+          bottom:
+            typeof bottom === "number"
+              ? (bottom - glyph.size) / 2
+              : `calc((${bottom ?? "0px"} - ${glyph.size}px) / 2)`,
+        };
   return createElement(
     "span",
     {
@@ -2308,9 +2335,7 @@ function catalogLinkOutGlyphElement(
       "aria-hidden": "true",
       style: {
         position: "absolute",
-        right: catalogLinkOutOwnRight(node),
-        top: "50%",
-        transform: "translateY(-50%)",
+        ...place,
         width: glyph.size,
         height: glyph.size,
         display: "flex",

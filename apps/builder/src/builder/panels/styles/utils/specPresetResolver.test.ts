@@ -168,13 +168,14 @@ describe("ADR-082 G2 — 3-tier fallback chain (containerStyles → composition 
     });
 
     it("ListBox.containerStyles → Layout preset (gap/padding 4-way split)", () => {
-      // ListBox rule (2026-10-13 — the RAC reference): no gap · padding — its items' margins.
+      // ListBox rule (2026-10-13): no gap; padding 4 a side — no item margins (사용자
+      //   「margin은 없애고 react-aria-ListBox 에 padding으로」).
       const preset = resolveLayoutSpecPreset("ListBox", undefined);
       expect(preset.gap ?? 0).toBe(0);
-      expect(preset.paddingTop ?? 0).toBe(0);
-      expect(preset.paddingRight ?? 0).toBe(0);
-      expect(preset.paddingBottom ?? 0).toBe(0);
-      expect(preset.paddingLeft ?? 0).toBe(0);
+      expect(preset.paddingTop).toBe(4);
+      expect(preset.paddingRight).toBe(4);
+      expect(preset.paddingBottom).toBe(4);
+      expect(preset.paddingLeft).toBe(4);
     });
 
     // paddingX/paddingY 축 → 4-way normalization (20+ spec 이 sizes 경로에서 이 형식 사용).

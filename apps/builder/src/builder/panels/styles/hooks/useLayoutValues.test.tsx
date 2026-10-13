@@ -138,10 +138,10 @@ describe("useLayoutValues — ADR-082 P1-2 padding/margin shorthand 4-way unifor
     ]);
   });
 
-  it("4-way uniform record padding → shorthand 에 그 값 표시 (ListBox padding 0 — RAC 레퍼런스)", async () => {
+  it("4-way uniform record padding → shorthand 에 그 값 표시 (ListBox padding 4 — 2026-10-13)", async () => {
     const { result } = hookOf(fixture, useLayoutValues, "el-uniform");
-    expect(result.current?.padding).toBe("0px");
-    expect(result.current?.paddingLeft).toBe("0px");
+    expect(result.current?.padding).toBe("4px");
+    expect(result.current?.paddingLeft).toBe("4px");
   });
 
   it("4-way 비균일 (Button 4 / 12) → shorthand 는 '0px' 기본값 유지 (회귀 방지)", async () => {

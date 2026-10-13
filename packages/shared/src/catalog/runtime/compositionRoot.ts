@@ -28,6 +28,7 @@ import {
 import {
   CATALOG_LINK_OUT_OWNERS,
   catalogItemLinkOut,
+  catalogLinkOutCardEndInset,
   catalogLinkOutPaddingRight,
 } from "../document/itemLinks";
 import { COMPONENT_RULES_TABLE } from "../generated/componentRulesTable";
@@ -1089,18 +1090,10 @@ function styleOf(
     ...(node.derivedProps?.trackStyle === "thick"
       ? { height: `${CATALOG_SLIDER_THICK_TRACK.height}px` }
       : {}),
-    // A standalone list's item (its list rule's item selectors — the resolver's `_itemMargin*`,
-    // 2026-10-13: 4 inline, 4 above the first · below the last of a run); an authored margin wins.
-    ...(typeof node.derivedProps?._itemMarginInline === "number"
-      ? {
-          marginTop: `${node.derivedProps._itemMarginTop}px`,
-          marginRight: `${node.derivedProps._itemMarginInline}px`,
-          marginBottom: `${node.derivedProps._itemMarginBottom}px`,
-          marginLeft: `${node.derivedProps._itemMarginInline}px`,
-          ...(typeof node.derivedProps._itemShrink === "number"
-            ? { flexShrink: node.derivedProps._itemShrink }
-            : {}),
-        }
+    // A standalone list's item does not shrink (its list rule's item selector — the resolver's
+    // `_itemShrink`, 2026-10-13); an authored flex shrink wins.
+    ...(typeof node.derivedProps?._itemShrink === "number"
+      ? { flexShrink: node.derivedProps._itemShrink }
       : {}),
     ...itemLayout(node),
     ...(node.fillLayout ?? {}),
@@ -2272,7 +2265,9 @@ export class CatalogCompositionRoot {
       ...chevron,
       ...(slotInset !== undefined ? { paddingLeft: `${slotInset}px` } : {}),
       ...(record.hidden ? {} : this.fieldBoxLayout(record, get)),
-      ...(!record.hidden && catalogItemLinkOut(this.typeOf(record), record.props)
+      ...(!record.hidden &&
+      catalogItemLinkOut(this.typeOf(record), record.props) &&
+      catalogLinkOutCardEndInset(this.typeOf(record)) === undefined
         ? {
             paddingRight: `${catalogLinkOutPaddingRight(
               this.typeOf(record),

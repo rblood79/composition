@@ -221,29 +221,27 @@ describe("ADR-248 4e item insert ('+')", () => {
         expect(box(items[0]).x - listBox.x).toBeCloseTo(border + 4);
         expect(box(items[0]).y - listBox.y).toBeCloseTo(border + 4);
         expect(box(items[0]).width).toBeCloseTo(listBox.width - 2 * (border + 4));
-        // (Items touch — their margins only at a run's ends; each at least 32 high.)
+        // (Items touch — the list's padding holds them off its border; each at least 32 high.)
         expect(box(items[1]).y).toBeCloseTo(box(items[0]).y + box(items[0]).height);
         expect(box(items[0]).height).toBeGreaterThanOrEqual(32);
-        // The list's last item is 4 above the first section.
+        // No item margins (사용자 2026-10-13): the first section starts right under the list's
+        // last item.
         const lastItem = items.at(-1)!;
-        expect(box(sections[0]).y - (box(lastItem).y + box(lastItem).height)).toBeCloseTo(4);
+        expect(box(sections[0]).y - (box(lastItem).y + box(lastItem).height)).toBeCloseTo(0);
         expect(items.map((record) => record.derivedProps?._lastItem)).toEqual(
           items.map(() => false),
         );
-        // In a section: the first item 4 below its header, the last with no line under it.
+        // In a section: the last item with no line under it.
         expect(inSection.map((record) => record.derivedProps?._lastItem)).toEqual(
           inSection.map((_, index) => index === inSection.length - 1),
         );
-        expect(
-          inSection.map((record) => record.derivedProps?._itemMarginTop),
-        ).toEqual(inSection.map((_, index) => (index === 0 ? 4 : 0)));
-        // (Section children stand in the section's box.) Its last item 4 above the section's
-        // end; the next section starts right there (no margin between sections).
+        // (Section children stand in the section's box.) Its last item at the section's end; the
+        // next section starts right there (no margin between sections).
         const sectionLast = inSection.at(-1)!;
         expect(
           box(sections[0]).height -
             (box(sectionLast).y + box(sectionLast).height),
-        ).toBeCloseTo(4);
+        ).toBeCloseTo(0);
         expect(box(sections[1]).y).toBeCloseTo(
           box(sections[0]).y + box(sections[0]).height,
         );
