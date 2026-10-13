@@ -1,0 +1,1 @@
+import{Cr as e}from"./aria-runtime-BLjuJ4l9.js";import{t}from"./jsx-runtime-DREnUpxT.js";var n=t();function r(t){let r=typeof t.className==`string`?t.className:``;return(0,n.jsx)(e,{...t,className:r?`react-aria-ColorSwatch ${r}`:`react-aria-ColorSwatch`})}export{r as t};
