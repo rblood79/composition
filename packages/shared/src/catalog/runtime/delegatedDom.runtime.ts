@@ -1999,7 +1999,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
                 }),
             isInvalid: bool(props.isInvalid),
             isReadOnly: bool(props.isReadOnly),
-            isRequired: bool(props.isRequired),
+            // (In a group RAC reads the item's `isRequired ?? group's` — an unset item's is the
+            // group's, so a `false` here would cut the group's Required off.)
+            isRequired: inGroup
+              ? bool(props.isRequired) || undefined
+              : bool(props.isRequired),
             autoFocus: bool(props.autoFocus),
             // (Its render props are the state frame of the `showWhen` nodes inside — Decision 7.)
             children: catalogStateChildren(input.node.id, () =>
@@ -2205,7 +2209,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           disallowEmptySelection: bool(props.disallowEmptySelection),
           indicator: bool(props.indicator),
           isEmphasized: bool(props.isEmphasized),
-          isQuiet: bool(props.isQuiet),
           // S2 isJustified (2026-10-10): the sheet's `[data-justified]` grows each button.
           isJustified: bool(props.isJustified),
           staticColor: props.staticColor || "auto",
@@ -2388,7 +2391,6 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           layout: "grid",
           "data-size": str(props.size || "M"),
           "data-variant": str(props.variant || "primary"),
-          "data-density": str(props.density || "regular"),
           selectionMode,
           defaultSelectedKeys: selected,
           disabledKeys: cards
@@ -2716,9 +2718,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
   rangecalendar: {
     render: (input) =>
       calendarElement(input, RacRangeCalendar, "Range Calendar", {
-        allowsNonContiguousRanges: bool(
-          input.node.props.allowsNonContiguousRanges,
-        ),
+        // (In a DateRangePicker RAC's context gives the picker's — a `false` here would override
+        // it: RAC merges a defined own value over the context's.)
+        allowsNonContiguousRanges: catalogCalendarPicker(input.root, input.node)
+          ? undefined
+          : bool(input.node.props.allowsNonContiguousRanges),
       }),
   },
 };
@@ -2739,6 +2743,12 @@ export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
   "maxValue",
   "errorMessage",
   "selectionMode",
+]);
+
+/** A DateRangePicker's RangeCalendar: those, and the picker's non-contiguous ranges. */
+export const CATALOG_PICKER_RANGE_CALENDAR_PROPS: ReadonlySet<string> = new Set([
+  ...CATALOG_PICKER_CALENDAR_PROPS,
+  "allowsNonContiguousRanges",
 ]);
 
 /**

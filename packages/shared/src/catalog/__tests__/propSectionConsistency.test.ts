@@ -89,6 +89,7 @@ describe("Design panel sections — one section per prop", () => {
  * (button `label` "Button text" · breadcrumbs item `label` · badge · status light `label` · table
  * column `label` "The header text displayed for the column"). A text element's own text is Text, a
  * part showing its owner's value is Value, a section's header is its Title (menu `sectionHeader`).
+ * (A collection item has no text field — its text is its Text node's, 2026-10-14.)
  */
 const CHILDREN_FIELD_NAME: Readonly<Record<string, string>> = {
   ...Object.fromEntries(
@@ -101,10 +102,6 @@ const CHILDREN_FIELD_NAME: Readonly<Record<string, string>> = {
       "Checkbox",
       "Radio",
       "Switch",
-      "Tag",
-      "ListBoxItem",
-      "GridListItem",
-      "TreeItem",
       "Badge",
       "StatusLight",
       "Column",

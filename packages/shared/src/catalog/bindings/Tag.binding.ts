@@ -19,7 +19,7 @@ import {
  *   TagList (`delegatedDom.tsx` `taglist`) 안에서 그린다.
  *
  * D1: RAC `<TagGroup>`/`<Tag>` — ARIA(role=row/gridcell, aria-selected) 는 RAC 권위.
- * D2: children(label) + size + isSelected (그룹 선택 — RAC TagGroup
+ * D2: size + isSelected (그룹 선택 — RAC TagGroup
  *     `defaultSelectedKeys`, Tag 자체 variant 없음 2026-10-09) 편집 surface.
  * D3: 시각(box+text 색/크기/형태)은 theme rule(COMPONENT_RULES_TABLE.Tag) —
  *     variants{default/selected}.fill + sizes{fontSize/lineHeight/borderRadius/height/paddingX}.
@@ -31,7 +31,6 @@ export const tagBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Label", section: "content" },
       size: {
         kind: "size",
         label: "Size",

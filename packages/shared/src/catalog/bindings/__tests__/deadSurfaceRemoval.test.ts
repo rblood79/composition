@@ -99,7 +99,7 @@ describe("binding.accepts — dead 편집 surface 제거 (2026-09-10)", () => {
     expect(getPrimitiveBinding("Link")!.props.accepts).toHaveProperty("target");
     expect(getPrimitiveBinding("Link")!.props.accepts).toHaveProperty("rel");
     expect(getPrimitiveBinding("CardView")!.props.accepts).toHaveProperty(
-      "layout",
+      "selectionMode",
     );
     expect(getPrimitiveBinding("TableView")!.props.accepts).toHaveProperty(
       "allowsSorting",

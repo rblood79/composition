@@ -86,6 +86,26 @@ const visibleMonthsOf: PropValueMigration = (value) =>
     : DROP;
 
 /**
+ * 2026-10-14 (사용자 「모든컴퍼넌트와 컴퍼넌트 자식들 전수조사후 불필요하게 등록된 프러퍼티 제거」 ·
+ * S2 에 있지만 구현이 없는 것은 「지금은 제거」): props no consumer read — the Canvas and the DOM
+ * looked the same whatever the value. Their old writes are dropped on load.
+ *
+ * - CardView `layout` · `density` · `selectionStyle` (S2 — the DOM fixed a grid, no density sheet,
+ *   no selection style), ColorSwatchPicker `density` · `rounding` (S2 — never passed to the
+ *   swatches), ToggleButtonGroup `isQuiet` (S2 — no context to the buttons, no sheet).
+ * - ColorPicker `defaultValue` (its children hold their own values — the picker is a box).
+ * - GridListItem · Tag `children`: the item's text is its Text node's (`itemTextChildren`).
+ */
+const UNUSED_PROPS = {
+  CardView: { layout: dropOf, density: dropOf, selectionStyle: dropOf },
+  ColorSwatchPicker: { density: dropOf, rounding: dropOf },
+  ColorPicker: { defaultValue: dropOf },
+  ToggleButtonGroup: { isQuiet: dropOf },
+  GridListItem: { children: dropOf },
+  Tag: { children: dropOf },
+} as const satisfies Record<string, Readonly<Record<string, PropValueMigration>>>;
+
+/**
  * 로드 시 1회 전환 (사용자 결정 2026-10-10): 옛 문서의 S2 이전 prop 을 S2 표면으로 바꾼다.
  * type → 옛 prop → 새 값들 ({} = 축 삭제). `createCatalogGraph` 가 적용하므로 storage 로드 ·
  * import · publish · preview snapshot 이 한 길로 지난다 — 저장은 다음 변경의 autosave 가 한다.
@@ -127,7 +147,12 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       return { variant: value };
     },
   },
-  CardView: { variant: dropOf },
+  // (Only the old `default` — the migration runs on every load, so a S2 value the author chose
+  // stays: primary · secondary · tertiary · quiet.)
+  CardView: {
+    variant: (value) => (value === "default" ? DROP : { variant: value }),
+    ...UNUSED_PROPS.CardView,
+  },
   // TextField type (2026-10-13): S2 의 값에 number 가 없다 — 숫자 입력은 NumberField. 옛 number 는
   // 삭제 (기본 text), 나머지 값은 그대로.
   TextField: {
@@ -151,14 +176,18 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
       "Skeleton",
       "Pagination",
       "Nav",
-      "ColorSwatchPicker",
       "Section",
-      "ColorPicker",
       "Chart",
       // (Tabs: one `default` variant, no axis — S2 · v3 Tabs have none either.)
       "Tabs",
     ].map((type) => [type, { variant: dropOf }]),
   ),
+  // (ColorSwatchPicker · ColorPicker: their `variant` too — 조사 §4.2 F, above.)
+  ColorSwatchPicker: { variant: dropOf, ...UNUSED_PROPS.ColorSwatchPicker },
+  ColorPicker: { variant: dropOf, ...UNUSED_PROPS.ColorPicker },
+  ToggleButtonGroup: UNUSED_PROPS.ToggleButtonGroup,
+  GridListItem: UNUSED_PROPS.GridListItem,
+  Tag: UNUSED_PROPS.Tag,
   // Calendar size (사용자 2026-10-13 「size 삭제하고 레퍼런스처럼 폭에 반응하는 크기까지」): RAC · S2
   // Calendar take no size — a month follows its width. The calendar's and its parts' old `size` is
   // dropped. (CalendarGrid's `variant`: 조사 §4.2 F, above.)

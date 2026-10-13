@@ -23,7 +23,7 @@ import {
  *
  * D1: composition — DOM 은 RAC `<GridList>`/`<GridListItem>` + ARIA(role=row/gridcell).
  *     RAC D1/ARIA 권위 보존.
- * D2: children(label) + size + isDisabled 편집 surface.
+ * D2: size + isDisabled 편집 surface.
  * D3: 시각(카드 box + label + description 색/크기)은 theme rule(COMPONENT_RULES_TABLE.GridListItem) —
  *     fill.default.base + colors.border + textWeight + sizes{paddingX/paddingY/gap}. Canvas
  *     escape(gridlist_card) ↔ DOM RAC 항목 시각 대칭.
@@ -35,7 +35,6 @@ export const gridListItemBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Label", section: "content" },
       size: {
         kind: "size",
         label: "Size",

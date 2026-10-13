@@ -638,7 +638,6 @@ export interface TranslationKeys {
     statePageTitle: string;
     stateAdd: string;
     /** Properties 컨트롤 어법 (2026-09-15) — boolean 칩 묶음 legend 3 + size 5단 범위 밖 안내 */
-    chipGroupOptions: string;
     chipGroupShow: string;
     chipGroupFill: string;
     sizeOutOfRange: string;
@@ -649,6 +648,7 @@ export interface TranslationKeys {
     /** S2 · RAC formatOptions — a currency code · unit the format does not take. */
     numberFormatInvalid: string;
     calendarPickerNotice: string;
+    ownerDecidedNotice: string;
     stateName: string;
     stateType: string;
     stateDefault: string;

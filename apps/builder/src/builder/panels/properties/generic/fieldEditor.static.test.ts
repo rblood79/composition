@@ -115,7 +115,9 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       type: "seg",
       span: "half",
     });
-    expect(editorOf("CardView", "density")).toMatchObject({ type: "seg" });
+    expect(editorOf("ToggleButtonGroup", "density")).toMatchObject({
+      type: "seg",
+    });
     expect(editorOf("Button", "fillStyle")).toMatchObject({ type: "seg" });
     expect(editorOf("Button", "type")).toMatchObject({
       type: "seg",

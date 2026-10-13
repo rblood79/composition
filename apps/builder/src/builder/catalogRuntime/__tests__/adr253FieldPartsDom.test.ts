@@ -628,6 +628,14 @@ function inputTextBand(workspace: CatalogWorkspace, id: string) {
   return { x: text.x, paddingRight: text.paddingRight };
 }
 
+/**
+ * 2026-10-14: a required CheckboxGroup's checkboxes are required — RAC reads a grouped item's
+ * `isRequired ?? group's` (the items passed `false` before, so the reference markup had none).
+ */
+const CHECKBOX_INPUT = "data-react-aria-pressable=true tabindex=0 type=checkbox";
+const REQUIRED_CHECKBOX_INPUT =
+  "data-react-aria-pressable=true required= tabindex=0 type=checkbox";
+
 describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its props before", () => {
   const write = process.env.ADR253_WRITE_DOM === "1";
   const fixture: Record<string, string> =
@@ -675,10 +683,17 @@ describe("ADR-253 Phase 3 — a field's DOM is the document it composed from its
             type === "checkboxgroup"
               ? // (The reference's indicator always holds its svg — the unselected one too, hidden
                 // by the sheet: G5 examples 7 · 10 · 11.)
-                toggleFieldMarkup(fixed, "Checkbox").replaceAll(
-                  "<div class=checkbox></>",
-                  `<div class=checkbox>${CHECK_GLYPH}</>`,
-                )
+                toggleFieldMarkup(fixed, "Checkbox")
+                  .replaceAll(
+                    "<div class=checkbox></>",
+                    `<div class=checkbox>${CHECK_GLYPH}</>`,
+                  )
+                  .replaceAll(
+                    CHECKBOX_INPUT,
+                    name.startsWith("required")
+                      ? REQUIRED_CHECKBOX_INPUT
+                      : CHECKBOX_INPUT,
+                  )
               : type === "radiogroup"
                 ? // (S2 강조 축 전환 2026-10-10: 그룹 variant 삭제 — `data-radio-variant` 는
                   // shared 컴포넌트 (Builder UI) 만의 attr 이 됐다.)

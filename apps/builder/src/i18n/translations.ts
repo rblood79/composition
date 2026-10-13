@@ -812,7 +812,6 @@ const koKR: TranslationKeys = {
     stateExplicitTitle: "명시 상태",
     statePageTitle: "페이지 변수",
     stateAdd: "추가",
-    chipGroupOptions: "옵션",
     chipGroupShow: "표시",
     chipGroupFill: "채움",
     sizeOutOfRange: "Styles 패널에서 변경",
@@ -823,6 +822,7 @@ const koKR: TranslationKeys = {
     numberFormatInvalid: "이 서식이 받지 않는 값입니다",
     calendarPickerNotice:
       "상태 · 범위 · 페이지 동작 · 첫 요일은 {picker} 에서 편집합니다",
+    ownerDecidedNotice: "{owner} 에서 편집합니다 — {fields}",
     stateName: "이름",
     stateType: "유형",
     stateDefault: "기본값",
@@ -2962,7 +2962,6 @@ const enUS: TranslationKeys = {
     stateExplicitTitle: "Explicit state",
     statePageTitle: "Page variables",
     stateAdd: "Add",
-    chipGroupOptions: "Options",
     chipGroupShow: "Show",
     chipGroupFill: "Fill",
     sizeOutOfRange: "set in Styles",
@@ -2973,6 +2972,7 @@ const enUS: TranslationKeys = {
     numberFormatInvalid: "Not a value this format takes",
     calendarPickerNotice:
       "State, bounds, page behavior and first day are edited on the {picker}",
+    ownerDecidedNotice: "{fields}: edited on the {owner}",
     stateName: "Name",
     stateType: "Type",
     stateDefault: "Default value",
@@ -5444,6 +5444,8 @@ const formattedMessages: Record<
       `ID "${String(args?.id ?? "")}" 를 지정했습니다`,
     "propertiesPanel.calendarPickerNotice": (args) =>
       `상태 · 범위 · 페이지 동작 · 첫 요일은 ${String(args?.picker ?? "")} 에서 편집합니다`,
+    "propertiesPanel.ownerDecidedNotice": (args) =>
+      `${String(args?.owner ?? "")} 에서 편집합니다 — ${String(args?.fields ?? "")}`,
     "propertiesPanel.resetField": (args) =>
       `${String(args?.labels ?? "")} 기본값으로`,
     "fonts.deleteFace": (args) =>
@@ -5958,6 +5960,8 @@ const formattedMessages: Record<
       `ID set to "${String(args?.id ?? "")}"`,
     "propertiesPanel.calendarPickerNotice": (args) =>
       `State, bounds, page behavior and first day are edited on the ${String(args?.picker ?? "")}`,
+    "propertiesPanel.ownerDecidedNotice": (args) =>
+      `${String(args?.fields ?? "")}: edited on the ${String(args?.owner ?? "")}`,
     "propertiesPanel.resetField": (args) =>
       `Reset ${String(args?.labels ?? "")} to default`,
     "fonts.deleteFace": (args) =>

@@ -31,28 +31,6 @@ export const colorSwatchPickerBinding: PrimitiveBinding = {
           { value: "stack", label: "Stack" },
         ],
       },
-      density: {
-        kind: "enum",
-        label: "Density",
-        section: "appearance",
-        default: "regular",
-        options: [
-          { value: "compact", label: "Compact" },
-          { value: "regular", label: "Regular" },
-          { value: "spacious", label: "Spacious" },
-        ],
-      },
-      rounding: {
-        kind: "enum",
-        label: "Rounding",
-        section: "appearance",
-        default: "default",
-        options: [
-          { value: "default", label: "Default" },
-          { value: "none", label: "None" },
-          { value: "full", label: "Full" },
-        ],
-      },
       size: {
         kind: "size",
         label: "Size",

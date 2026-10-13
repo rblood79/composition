@@ -84,7 +84,7 @@ describe("resolveBindingSelectionStyle — 선택 표시 기본값 (r24m1)", () 
 
 /**
  * ADR-923 r27m1 — helper 의 **source identity**. 반환값만 검사하면 같은 현재값을 가진 다른 binding
- * (GridList ↔ CardView `checkbox`, GridList ↔ ListBox `none`) 을 읽는 오결선이 통과한다 (판독 실험:
+ * (GridList ↔ TableView `checkbox`, GridList ↔ ListBox `none`) 을 읽는 오결선이 통과한다 (판독 실험:
  * `resolveBindingSelectionStyle` 이 GridList 대신 CardView 를 읽어도 10/10). binding default 를
  * 움직여서 그 type 의 것만 따라오는지 본다.
  */
@@ -107,12 +107,12 @@ function withBindingDefault<T>(
 }
 
 describe("selection helper — source identity (r27m1)", () => {
-  it("resolveBindingSelectionStyle(GridList) 는 GridList binding 만 따라간다 (같은 값 CardView 는 무관)", () => {
-    expect(resolveBindingSelectionStyle("CardView")).toBe("checkbox"); // 같은 현재값 sibling
+  it("resolveBindingSelectionStyle(GridList) 는 GridList binding 만 따라간다 (같은 값 TableView 는 무관)", () => {
+    expect(resolveBindingSelectionStyle("TableView")).toBe("checkbox"); // 같은 현재값 sibling
     withBindingDefault("GridList", "selectionStyle", "highlight", () => {
       expect(resolveBindingSelectionStyle("GridList")).toBe("highlight");
     });
-    withBindingDefault("CardView", "selectionStyle", "highlight", () => {
+    withBindingDefault("TableView", "selectionStyle", "highlight", () => {
       expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");
     });
     expect(resolveBindingSelectionStyle("GridList")).toBe("checkbox");

@@ -8,7 +8,7 @@
  *
  * D1: RAC `ToggleButtonGroup` 이 `<div role="group" aria-orientation>`. orientation/selectionMode
  *     /isDisabled RAC props.
- * D2: size/orientation/selectionMode/isEmphasized/isQuiet/density 편집 surface (자식 제외).
+ * D2: size/orientation/selectionMode/isEmphasized/density 편집 surface (자식 제외).
  * D3: 시각(container 배경/테두리)은 theme/tokens data-* rules.
  */
 
@@ -52,7 +52,6 @@ export const toggleButtonGroupBinding: PrimitiveBinding = {
         label: "Emphasized",
         section: "appearance",
       },
-      isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // S2 1.8.0 ToggleButtonGroup `isJustified` (2026-10-10): the buttons divide the group's
       //   width equally (S2 ActionButton `flexGrow: 1 · flexBasis: 0` — context). DOM =
       //   `data-justified` 시트 (shared ToggleButtonGroup + ToggleButtonGroup.css), Canvas =

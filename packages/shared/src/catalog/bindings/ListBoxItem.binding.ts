@@ -23,7 +23,7 @@ import {
  *
  * D1: composition — DOM 은 RAC `<ListBox>`/`<ListBoxItem>` + ARIA(role=option, aria-selected).
  *     RAC D1/ARIA 권위 보존.
- * D2: children(label) + size + isSelected (목록 선택의 초기값 — composition 확장, 2026-10-13) +
+ * D2: size + isSelected (목록 선택의 초기값 — composition 확장, 2026-10-13) +
  *     isDisabled 편집 surface.
  * D3: 시각(selection bg + icon + label + description 색/크기)은 theme rule
  *     (COMPONENT_RULES_TABLE.ListBoxItem). Canvas escape(listbox_item) ↔ DOM RAC 항목 시각 대칭.
@@ -35,7 +35,14 @@ export const listBoxItemBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Label", section: "content" },
+      // 2026-10-14 (사용자 「불필요하게 등록된 프러퍼티 제거」): the item's text is its Text node's
+      //   (`itemLabelText`) — this one is carried for a calendar picker's month · year item (`{formatted}`), not edited.
+      children: {
+        kind: "string",
+        label: "Label",
+        section: "content",
+        editorHidden: true,
+      },
       size: {
         kind: "size",
         label: "Size",

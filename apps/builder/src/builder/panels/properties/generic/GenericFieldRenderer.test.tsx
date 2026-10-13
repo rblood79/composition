@@ -355,8 +355,13 @@ describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
         elementId="text-1"
       />,
     );
-    // 라벨은 legend 「Options」 하나 + 칩 글자
-    expect(labels(container)).toContain("Options");
+    // 기본 묶음은 legend 가 없다 — 섹션 제목이 그룹 이름 (2026-10-14 「options도 여러 section에」)
+    expect(labels(container)).not.toContain("Options");
+    expect(
+      container
+        .querySelector(".property-chips .react-aria-ToggleButtonGroup")
+        ?.getAttribute("aria-label"),
+    ).toBeTruthy();
     fireEvent.click(chip(container, "isDisabled"));
     expect(update).toHaveBeenCalledWith("isDisabled", true);
     expect(update).not.toHaveBeenCalledWith("isRequired", expect.anything());

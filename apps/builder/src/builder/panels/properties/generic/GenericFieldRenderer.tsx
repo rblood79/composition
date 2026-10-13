@@ -1097,8 +1097,8 @@ const GenericField = memo(function GenericField({
 }, areGenericFieldPropsEqual);
 
 const CHIP_GROUP_ORDER: readonly ChipGroup[] = ["Options", "Show", "Fill"];
+/** 묶음 legend — 기본 묶음 (Options) 은 legend 없이 섹션 제목이 이름 (`PropertyChipGroup`). */
 const CHIP_GROUP_LABEL_KEY = {
-  Options: "propertiesPanel.chipGroupOptions",
   Show: "propertiesPanel.chipGroupShow",
   Fill: "propertiesPanel.chipGroupFill",
 } as const;
@@ -1111,11 +1111,16 @@ type ChipEditor = Extract<FieldEditor, { type: "chip" }>;
  */
 const ChipGroupField = memo(function ChipGroupField({
   group,
+  sectionLabel,
   fields,
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
-}: GenericFieldRouting & { group: ChipGroup; fields: ResolvedField[] }) {
+}: GenericFieldRouting & {
+  group: ChipGroup;
+  sectionLabel: string;
+  fields: ResolvedField[];
+}) {
   const { t } = useI18n();
   const editors = useMemo(
     () => fields.map((f) => resolveFieldEditor(f) as ChipEditor),
@@ -1155,7 +1160,8 @@ const ChipGroupField = memo(function ChipGroupField({
   );
   return (
     <PropertyChipGroup
-      label={t(CHIP_GROUP_LABEL_KEY[group])}
+      label={group === "Options" ? undefined : t(CHIP_GROUP_LABEL_KEY[group])}
+      ariaLabel={sectionLabel}
       chips={chips}
       onToggle={handleToggle}
     />
@@ -1416,6 +1422,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               <ChipGroupField
                 key={`chips:${group}`}
                 group={group}
+                sectionLabel={sectionTitle(section)}
                 fields={chipFields}
                 onSemanticUpdate={onSemanticUpdate}
                 onStyleUpdate={onStyleUpdate}

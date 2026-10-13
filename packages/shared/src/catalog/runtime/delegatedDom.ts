@@ -18,6 +18,7 @@ export {
   authoredInvalid,
   catalogToggleIndicatorElement,
   CATALOG_PICKER_CALENDAR_PROPS,
+  CATALOG_PICKER_RANGE_CALENDAR_PROPS,
   CATALOG_DELEGATED_DOM,
 } from "./delegatedDom.runtime";
 export type {

@@ -2068,9 +2068,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-gridlist-item-default__label",
       "lib:template:component-gridlist-item-default__description"
     ],
-    "props": {
-      "children": "{label}"
-    },
+    "props": {},
     "visual": {},
     "displayState": "selected"
   },
@@ -3344,9 +3342,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-cardview__3"
     ],
     "props": {
-      "layout": "grid",
-      "size": "M",
-      "density": "regular"
+      "size": "M"
     },
     "visual": {
       "gap": 16,
@@ -7422,9 +7418,7 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
       "lib:template:component-tag-item-default__label",
       "lib:template:component-tag-item-default__remove"
     ],
-    "props": {
-      "children": "{label}"
-    },
+    "props": {},
     "visual": {
       "gap": 4,
       "width": "fit-content"

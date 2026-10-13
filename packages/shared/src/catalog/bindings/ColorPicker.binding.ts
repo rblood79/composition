@@ -15,11 +15,6 @@ export const colorPickerBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      defaultValue: {
-        kind: "string",
-        label: "Default Value",
-        section: "content",
-      },
       size: {
         kind: "size",
         label: "Size",

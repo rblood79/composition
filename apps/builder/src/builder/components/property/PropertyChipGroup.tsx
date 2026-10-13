@@ -5,7 +5,9 @@
  * 를 한 줄로 답한다 (켜진 칩만 진하다). RAC `ToggleButtonGroup selectionMode="multiple"` 이라
  * 각 칩이 `aria-pressed` 를 갖는다 (D1 그대로). 하나뿐이어도 칩 — 스위치 어법을 남기지 않는다.
  *
- * legend 는 묶음 이름 (Options / Show / Fill). 칩 글자는 접두를 뺀 짧은 이름 (「Axis」 · 「Time Zone」).
+ * legend 는 묶음 이름 (Show / Fill) — 칩 글자가 그 접두를 뺀 짧은 이름이라 (「Axis」 · 「Time Zone」).
+ * 기본 묶음은 legend 가 없다 (2026-10-14 사용자 「options도 여러 section에 들어있는데」 — 섹션마다
+ * 같은 「Options」 가 반복됐다): 섹션 제목이 그 이름이고, 이름은 `ariaLabel` 로 그룹에 붙는다.
  */
 import { memo, useCallback } from "react";
 import type { Key } from "react-aria-components/Collection";
@@ -27,7 +29,9 @@ export interface PropertyChip {
 }
 
 interface PropertyChipGroupProps {
-  label: string;
+  /** 보이는 묶음 이름 (legend) — 없으면 legend 없이 `ariaLabel` 이 그룹 이름. */
+  label?: string;
+  ariaLabel?: string;
   chips: readonly PropertyChip[];
   /** 칩 하나의 켜짐/꺼짐 — 각 칩은 자기 prop 하나를 쓴다. */
   onToggle: (key: string, selected: boolean) => void;
@@ -36,6 +40,7 @@ interface PropertyChipGroupProps {
 
 export const PropertyChipGroup = memo(function PropertyChipGroup({
   label,
+  ariaLabel,
   chips,
   onToggle,
   className,
@@ -43,7 +48,7 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
   const i18n = useOptionalI18n();
   const localize = (text: string) =>
     i18n ? translateKey(i18n.t, semanticLabelKeys[text] ?? text, text) : text;
-  const displayLabel = localize(label);
+  const displayLabel = label ? localize(label) : undefined;
   const selectedKeys = chips.filter((c) => c.selected).map((c) => c.key);
 
   const handleChange = useCallback(
@@ -59,9 +64,11 @@ export const PropertyChipGroup = memo(function PropertyChipGroup({
 
   return (
     <fieldset className={`properties-aria property-chips ${className ?? ""}`}>
-      <legend className="fieldset-legend">{displayLabel}</legend>
+      {displayLabel ? (
+        <legend className="fieldset-legend">{displayLabel}</legend>
+      ) : null}
       <ToggleButtonGroup
-        aria-label={displayLabel}
+        aria-label={displayLabel ?? (ariaLabel ? localize(ariaLabel) : undefined)}
         selectionMode="multiple"
         selectedKeys={selectedKeys}
         onSelectionChange={handleChange}

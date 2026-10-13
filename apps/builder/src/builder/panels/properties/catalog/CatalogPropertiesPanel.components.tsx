@@ -1,13 +1,18 @@
 import { Settings2 } from "lucide-react";
 
-import { memo, useCallback, useMemo, useSyncExternalStore } from "react";
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 
 import type { EditTarget } from "../../../../../../../packages/shared/src/catalog/document/types";
 
-import {
-  CATALOG_PICKER_CALENDAR_PROPS,
-  catalogCalendarPicker,
-} from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
+import { catalogCalendarPicker } from "../../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
+
+import { catalogOwnerDecidedProps } from "../../../../../../../packages/shared/src/catalog/runtime/ownerDecidedProps";
 
 import { catalogRacSlotConsumer } from "../../../../../../../packages/shared/src/catalog/runtime/racSlot";
 
@@ -275,6 +280,19 @@ const CatalogFields = memo(function CatalogFields({
     const picker = catalogCalendarPicker(root, record);
     return picker ? root.typeOf(picker) : "";
   });
+  // 2026-10-14: the props this node's owner decides where it sits (a grouped toggle's size and
+  // emphasis, a field's button's size, a picker's list selection …) — not offered here.
+  const ownerDecidedKey = useSyncExternalStore(subscribeSteps, () => {
+    const root = workspace.root;
+    const record = root.domInputs.get(elementId);
+    const decided = record ? catalogOwnerDecidedProps(root, record) : undefined;
+    return decided ? `${decided.owner}:${[...decided.keys].join(",")}` : "";
+  });
+  const ownerDecided = useMemo(() => {
+    if (!ownerDecidedKey) return undefined;
+    const [owner, keys] = ownerDecidedKey.split(":");
+    return { owner: owner!, keys: new Set(keys!.split(",")) };
+  }, [ownerDecidedKey]);
   // A Button's Icon · label fields — not when its origin edits the icon itself (IconButton's
   // `icon` prop: the two would be one glyph twice).
   const buttonChildFields =
@@ -313,7 +331,7 @@ const CatalogFields = memo(function CatalogFields({
       .filter(
         (field) =>
           field.origin === "semantic" &&
-          !(calendarPicker && CATALOG_PICKER_CALENDAR_PROPS.has(field.key)),
+          !ownerDecided?.keys.has(field.key),
       )
       .map((field) =>
         radioOptions && field.key === "value"
@@ -336,11 +354,32 @@ const CatalogFields = memo(function CatalogFields({
       : fields;
   }, [
     buttonChildFields,
-    calendarPicker,
     contract,
+    ownerDecided,
     radioOptionsKey,
     selectedTabKey,
   ]);
+  // (A picker's calendar keeps its own notice — it names what the picker edits.)
+  const decidedLabels = ownerDecided
+    ? contract.fields
+        .filter(
+          (field) =>
+            field.origin === "semantic" && ownerDecided.keys.has(field.key),
+        )
+        .map((field) => field.label)
+    : [];
+  const ownerNotice =
+    ownerDecided && !calendarPicker && decidedLabels.length ? (
+      <p
+        className="item-origin-notice"
+        data-owner-decided-notice={ownerDecided.owner}
+      >
+        {t("propertiesPanel.ownerDecidedNotice", {
+          owner: ownerDecided.owner,
+          fields: decidedLabels.join(" · "),
+        })}
+      </p>
+    ) : null;
   const bindingKeys = useMemo(
     () =>
       new Set(
@@ -409,7 +448,8 @@ const CatalogFields = memo(function CatalogFields({
     elementType: contract.type,
     contractFields: contract.fields,
     semanticFields,
-    contentExtras:
+    contentExtras: withOwnerNotice(
+      ownerNotice,
       buttonChildFields && buttonNode && buttonChildren ? (
         <CatalogButtonChildFields
           nodeId={buttonNode}
@@ -448,6 +488,7 @@ const CatalogFields = memo(function CatalogFields({
           ) : null}
         </>
       ) : undefined,
+    ),
     onPatch: handlePatch,
     isRefInstance,
   });
@@ -464,3 +505,17 @@ const CatalogFields = memo(function CatalogFields({
     />
   );
 });
+
+/** The owner's notice above a section's own extra fields. */
+function withOwnerNotice(
+  notice: ReactNode,
+  extras: ReactNode,
+): ReactNode | undefined {
+  if (!notice) return extras ?? undefined;
+  return (
+    <>
+      {notice}
+      {extras}
+    </>
+  );
+}

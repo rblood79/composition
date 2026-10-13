@@ -22,7 +22,7 @@ import {
  *   그린다.
  *
  * D1: RAC `<Tree>`/`<TreeItem>` — ARIA(role=treeitem, aria-level/expanded) 는 RAC 권위.
- * D2: children(label) + size + isDisabled 편집 surface.
+ * D2: size + isDisabled 편집 surface.
  * D3: 시각(label 색/크기 + depth 들여쓰기)은 theme rule(COMPONENT_RULES_TABLE.TreeItem) —
  *     sizes{fontSize/iconSize/paddingX/height/indentPerLevel}.
  */
@@ -33,7 +33,14 @@ export const treeItemBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Label", section: "content" },
+      // 2026-10-14 (사용자 「불필요하게 등록된 프러퍼티 제거」): the item's text is its Text node's
+      //   (`TreeItemContent > Text`) — this one is carried for an item without a `TreeItemContent` row, not edited.
+      children: {
+        kind: "string",
+        label: "Label",
+        section: "content",
+        editorHidden: true,
+      },
       size: {
         kind: "size",
         label: "Size",

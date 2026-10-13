@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 — 효과 없는 칸 제거 · 부모가 정하는 칸 숨김 · 칩 제목 "Options" 제거] - 2026-10-14
+
+### Removed
+
+- **값을 바꿔도 Canvas · Preview 어느 쪽도 변하지 않던 칸** (사용자 「모든컴퍼넌트와 컴퍼넌트 자식들 전수조사후 불필요하게 등록된 프러퍼티 제거」 · S2 에 있지만 구현이 없는 것은 「지금은 제거」): 원본 151개와 자식 노드를 Builder 에 놓아 Design 패널 칸을 모으고 소비처를 코드로 확인했다.
+  - CardView Layout · Density · Selection Style, ColorSwatchPicker Density · Rounding, ToggleButtonGroup Quiet (S2 prop — DOM 이 grid 를 고정했고, density · rounding · quiet 를 읽는 시트 · context 가 없었다), ColorPicker Default Value (자식이 각자 값을 가진 상자).
+  - GridListItem · Tag 의 Label — 글자는 안의 Text 노드의 것 (`itemTextChildren`), 칸에는 `{label}` 이 보였다. ListBoxItem · TreeItem 의 같은 칸은 패널에서만 숨긴다 — 달력 월 · 연 목록의 항목 글자 (`{formatted}`) 와 TreeItemContent 없는 옛 행이 아직 읽는다.
+  - 저장된 문서의 그 값은 열 때 지운다 (`s2PropAlignment.ts` `UNUSED_PROPS`). 원본 template 의 값도 지웠다.
+  - Button Pending 도 효과가 없지만 「ADR-248 끝난 뒤 착수」 결정대로 둔다.
+
+### Changed
+
+- **부모가 정하는 칸은 그 부모 안에서 보이지 않는다** — 노드에 적은 값이 무시되는 자리 (`catalogOwnerDecidedProps` — resolver 의 `CATALOG_SIZE_PROPAGATION` · `CATALOG_TOGGLE_GROUP_OF` · `CATALOG_EMPHASIS_FROM_GROUP` 를 그대로 읽는다). 대신 「{부모} 에서 편집합니다 — {칸}」 안내가 나온다. 혼자 있으면 그대로 보인다.
+  - CheckboxGroup 안 Checkbox: Size · Emphasized · Error Message · Name · Value (S2 는 그룹 안 Checkbox 의 invalid 를 끄고 그룹 도움말을 쓴다, RAC 는 그룹의 name 을 쓴다, 그룹 안 값은 노드 id).
+  - 부모 size 를 받는 노드의 Size: Radio · ToggleButton · Tag (TagGroup) · ButtonGroup 안 Button · field 안 Button (Select 열기 · NumberField 증감 · picker 버튼) · InlineAlert 제목 등.
+  - Select · ComboBox 안 ListBox 의 Selection Mode · Disallow Empty Selection, 그 항목의 Selected (RAC picker 가 선택을 소유). DatePicker 안 달력의 기존 숨김도 같은 함수로 옮겼다.
+- **칩 묶음 제목 "Options" 제거** (사용자 「options도 여러 section에 들어있는데 한곳에 통일해야 하지않나?」 → 「섹션 유지, 제목만 정리」): 같은 제목이 Content · Appearance · Behavior 마다 반복됐다 (원본 기준 134곳). 칩은 뜻대로 각 섹션에 두고, 기본 묶음은 제목 없이 섹션 이름이 그룹 이름 (`aria-label`). Show · Fill 제목은 칩 글자가 그 말을 뗀 이름이라 남긴다.
+
+### Fixed
+
+- **CheckboxGroup 의 Required 가 Checkbox 에 닿지 않던 것**: 그룹 안 Checkbox 가 `isRequired=false` 를 넘겨, RAC 의 `isRequired ?? 그룹 값` 에서 그룹 값이 끊겼다. 이제 각 checkbox input 이 required.
+- **DateRangePicker 의 Allows Non-Contiguous Ranges 가 달력에 닿지 않던 것**: 안 RangeCalendar 가 `false` 를 넘겨 RAC context 의 picker 값을 덮었다.
+- **CardView Variant 가 다시 열면 지워지던 것**: 열 때 마이그레이션이 옛 `default` 만이 아니라 모든 값을 지웠다 — 이제 `default` 만.
+- 테스트 `unusedPropRemoval` · `ownerDecidedProps` · `groupRequiredDom` (원복 RED: CardView Variant · 그룹 Required). Live (headed Chrome, 원본 12종): 숨긴 칸이 사라지고 안내가 부모 이름 (TagGroup · Select · CheckboxGroup …) 을 가리키는지, 칩 묶음에 "Options" 제목이 없는지 확인. 조사 결과 중 이번 범위 밖: Canvas · Preview 한쪽에만 반영되는 칸 11개 (Form · Breadcrumb · TabList Size, Link · GridList Quiet 등), D2 출처와 이름이 다른 prop 약 120개 (field 9종 Quiet 등 — 동작하므로 제거하지 않음).
+
 ## [그룹 "+" 항목 — Option N 으로 이어 붙인다] - 2026-10-14
 
 ### Fixed
