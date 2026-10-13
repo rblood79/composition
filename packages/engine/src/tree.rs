@@ -2993,6 +2993,11 @@ impl LayoutTree {
                 return (child_avail_w, child_containing_h);
             }
             // 자식이 cross 를 **명시**했으면 align-items 와 무관하게 확정 → available 유지.
+            // intrinsic 키워드 (`fit-content` 포함) 도 명시다 (2026-10-13 — Chrome oracle): `fit-content`
+            // 는 clamp(min, **available**, max) 이고 자기 `%` min/max 는 containing block 폭 기준이다.
+            // 종전엔 `fit-content` 를 auto 처럼 indefinite 로 내려 `max-width: 100%` 가 풀리지 않았고,
+            // 상자만 부모 커널이 clamp 해 자식은 clamp 이전 폭에 놓였다 (column 175 > fit-content 내용 238
+            // + `max-width: 100%` → 상자 175 / 자식 238, Chrome 175 / 175).
             let cross_raw = if is_row {
                 n.style.height.as_deref()
             } else {
@@ -3001,7 +3006,7 @@ impl LayoutTree {
             let child_cross_explicit = cross_raw
                 .map(|v| {
                     let t = v.trim();
-                    !t.is_empty() && !t.eq_ignore_ascii_case("auto") && t != "fit-content"
+                    !t.is_empty() && !t.eq_ignore_ascii_case("auto")
                 })
                 .unwrap_or(false);
             if child_cross_explicit {
@@ -8046,6 +8051,42 @@ mod tests {
             2, 320.0, -1.0,
         );
         assert_eq!(t.get_layout(h[1]).height, 26.0, "grid > height:fit-content 컨테이너 = 14 + padding 12");
+    }
+
+    /// `width: fit-content` + `max-width: %` 상자 (2026-10-13 Calendar 폭 반응 — Chrome oracle): used
+    /// 폭은 clamp 뒤 값이고 자식은 그 폭에 놓인다. column flex 부모 175 > fit-content (내용 238) +
+    /// `max-width: 100%` → 175, 그 안 row > `width: 238px; min-width: 0; max-width: 100%` 도 175
+    /// (Chrome 175 · 175 · 175). 종전 엔진은 상자만 175 이고 자식은 238.
+    #[test]
+    fn fit_content_box_with_percent_max_width_lays_children_at_the_clamped_width() {
+        for parent in ["column", "row"] {
+            let (t, h) = solve(
+                &format!(
+                    r#"[
+                {{"style":{{"height":"10px"}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"column","width":"238px","minWidth":"0px","maxWidth":"100%"}},"children":[0]}},
+                {{"style":{{"display":"flex","flexDirection":"row"}},"children":[1]}},
+                {{"style":{{"display":"flex","flexDirection":"column","width":"fit-content","maxWidth":"100%"}},"children":[2]}},
+                {{"style":{{"display":"flex","flexDirection":"{parent}","width":"175px"}},"children":[3]}}
+            ]"#
+                ),
+                4, 175.0, -1.0,
+            );
+            let widths: Vec<f32> = (1..4).map(|i| t.get_layout(h[i]).width).collect();
+            assert_eq!(widths, vec![175.0, 175.0, 175.0], "{parent} 부모 — c · b · a");
+        }
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"238px","minWidth":"0px","maxWidth":"100%"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row"},"children":[1]},
+            {"style":{"display":"flex","flexDirection":"column","width":"fit-content","maxWidth":"100%"},"children":[2]},
+            {"style":{"display":"block","width":"175px"},"children":[3]}
+        ]"#,
+            4, 175.0, -1.0,
+        );
+        let widths: Vec<f32> = (1..4).map(|i| t.get_layout(h[i]).width).collect();
+        assert_eq!(widths, vec![175.0, 175.0, 175.0], "block 부모 — c · b · a");
     }
 
     /// ⑨ — shrink-to-fit block 부모 안의 padded 스칼라 leaf (ledger §27 인접). `#[test]` 는 2026-09-07
