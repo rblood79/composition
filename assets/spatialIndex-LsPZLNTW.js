@@ -1,0 +1,1 @@
+export{r as initSpatialIndex}from"./spatialIndex-STcxxWFB.js";
