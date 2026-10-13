@@ -2,7 +2,6 @@ import type {
   BreakpointName,
   EditTarget,
   EntryId,
-  NodeId,
 } from "../../../../../packages/shared/src/catalog/document/types";
 import { targetExists } from "../../../../../packages/shared/src/catalog/resolution/positions";
 import type { CatalogRuntime } from "./controller";
@@ -28,8 +27,11 @@ export interface CatalogSessionState {
   readonly pageId: EntryId<"page"> | undefined;
   readonly selection: readonly CatalogSelectionItem[];
   readonly hover: CatalogSelectionItem | undefined;
-  /** An entered instance or group: clicks select inside it. */
-  readonly editingContext: NodeId | undefined;
+  /**
+   * An entered instance or group: clicks select inside it. A document node id, or the record
+   * identity of a template position inside an instance (`catalogContextOf` — a ListBox's item).
+   */
+  readonly editingContext: string | undefined;
   readonly textEditing: CatalogSelectionItem | undefined;
   readonly breakpoint: BreakpointName;
   /**
@@ -189,10 +191,15 @@ export class CatalogSession {
       return;
     this.set({ hover: item && this.shown(item) ? item : undefined });
   }
-  enterContext(id: NodeId): void {
-    if (this.runtime.graph.getEntry(id)?.kind !== "node")
+  enterContext(id: string): void {
+    if (!this.contextExists(id))
       throw new Error(`CATALOG_SESSION_NODE_NOT_FOUND:${id}`);
     this.set({ editingContext: id });
+  }
+  /** A context is a document node, or a drawn template position's record identity. */
+  private contextExists(id: string): boolean {
+    const entry = this.runtime.graph.getEntry(id);
+    return entry ? entry.kind === "node" : this.identityExists(id);
   }
   exitContext(): void {
     this.set({ editingContext: undefined });
@@ -231,7 +238,7 @@ export class CatalogSession {
           : undefined,
       editingContext:
         this.state.editingContext &&
-        graph.getEntry(this.state.editingContext)?.kind === "node"
+        this.contextExists(this.state.editingContext)
           ? this.state.editingContext
           : undefined,
       textEditing:

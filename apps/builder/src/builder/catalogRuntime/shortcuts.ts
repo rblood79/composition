@@ -238,7 +238,10 @@ function pageBodyRecord(workspace: CatalogWorkspace): string | undefined {
 function levelRecord(workspace: CatalogWorkspace): string | undefined {
   const { editingContext } = workspace.session.getSnapshot();
   return editingContext
-    ? workspace.root.recordsOfSource(editingContext)[0]
+    ? (workspace.root.recordsOfSource(editingContext)[0] ??
+        (workspace.root.canvasInputs.has(editingContext)
+          ? editingContext
+          : undefined))
     : pageBodyRecord(workspace);
 }
 

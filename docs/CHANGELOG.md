@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 더블클릭 — 인스턴스 안 묶음으로 들어간다] - 2026-10-13
+
+### Fixed
+
+- **ListBox 항목을 더블클릭하면 항목 글자 편집이 열리고 안의 자식 (Icon · Text) 으로 들어가지 못했다** (사용자 「listboxitem 은 group 의 개념이고 child 가 존재한다 더블클릭으로 child 에 접근해야하는데 더블클릭시에 text edit 가 나타난다」): 편집 맥락 (`editingContext`) 이 문서 노드 id 만 받아, 인스턴스 안의 원본 template 위치 (ListBox 의 항목 · Card 의 Content — 같은 template id 가 모든 인스턴스의 그 자리를 가리킨다) 는 들어갈 수 없었고, 더블클릭이 글자 편집 (항목 자신의 `{label}`) 으로 넘어갔다. 맥락이 그 위치의 record identity 도 받는다 (`catalogContextOf` — `canvasPick.ts`). 클릭 판정 · Escape · Layers 선택 · 범위 선택 (`canvasGesture`) · 단축키 · 맥락 테두리가 같이 읽는다. Card 도 같아져 Content 를 거쳐 제목을 선택한 뒤 더블클릭이 편집한다 (종전: Card 안 두 번째 더블클릭이 바로 제목 편집).
+  - Live (Chrome, Compare Mode — 실제 마우스): ListBox 항목 위 클릭 → ListBox 선택, 더블클릭 → 항목 선택, 다시 더블클릭 → 항목 안 label Text 선택 (글자 편집 없음), 다시 더블클릭 → label 글자 편집, Escape 두 번 → ListBox 맥락 · 항목 선택. 콘솔 오류 0. 테스트 `canvasTextEditTarget` (ListBox · Card — 원복 RED 확인), builder 5591 통과.
+
 ## [Components 페이지 — 컬렉션 item 원본 칸] - 2026-10-13
 
 ### Added

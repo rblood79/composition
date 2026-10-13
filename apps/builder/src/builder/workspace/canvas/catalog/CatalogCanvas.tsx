@@ -362,7 +362,13 @@ export function CatalogCanvas({
     const badges = createCatalogBadges({
       data: () => useDataStore.getState(),
       bindingsOf: (ref) => workspace.runtime.graph.bindingsOf(ref),
-      recordsOf: (sourceId) => workspace.root.recordsOfSource(sourceId),
+      // (A context is a document node's records, or one template position's record identity.)
+      recordsOf: (id) => {
+        const records = workspace.root.recordsOfSource(id);
+        return records.length > 0 || !workspace.root.canvasInputs.has(id)
+          ? records
+          : [id];
+      },
     });
     const badgeHits = new Map<string, DataBadgeBounds>();
     // Group hover leaves: structural (per hovered record and step), drawn where they show.

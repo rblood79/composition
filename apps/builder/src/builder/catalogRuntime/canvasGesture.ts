@@ -529,7 +529,9 @@ export class CatalogCanvasGestures {
     for (const record of records.values()) {
       const parent = records.get(record.parentId);
       if (
-        context ? parent?.sourceId === context : parent?.parentId === PAGE_GRID
+        context
+          ? parent?.sourceId === context || parent?.id === context
+          : parent?.parentId === PAGE_GRID
       )
         candidates.push(record.id);
     }

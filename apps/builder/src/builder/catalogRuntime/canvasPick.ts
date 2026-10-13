@@ -1,4 +1,3 @@
-import type { NodeId } from "../../../../../packages/shared/src/catalog/document/types";
 import type { RenderCommandStream } from "../workspace/canvas/skia/renderCommands";
 import {
   ORIGIN_VIEW_NODE,
@@ -20,6 +19,20 @@ export type CatalogPickRecords = ReadonlyMap<string, CatalogPickRecord>;
 /** The page grid's synthetic root: a record under it is a page root (the page body). */
 const PAGE_GRID = "catalog:root";
 const isNodeSource = (sourceId: string) => sourceId.startsWith("project:node:");
+
+/**
+ * The editing context a drawn record opens: its document node, or — a template position inside an
+ * instance (a ListBox's item, a Card's Content: one template id names that position in every
+ * instance) — its own record identity (2026-10-13 사용자 「listboxitem 은 group … 더블클릭으로
+ * child 에 접근」). `undefined` = not a container the Canvas can enter.
+ */
+export function catalogContextOf(record: CatalogPickRecord): string | undefined {
+  if (isNodeSource(record.sourceId)) return record.sourceId;
+  return record.sourceId.startsWith("lib:template:") ? record.id : undefined;
+}
+/** Whether a record is the editing context (by its document node or its identity). */
+const isContext = (record: CatalogPickRecord | undefined, context: string) =>
+  !!record && (record.sourceId === context || record.id === context);
 
 /**
  * ADR-248 Phase 4e-3: the drawn record under a scene point. `candidates` are the spatial index hits
@@ -87,7 +100,7 @@ export function resolveCatalogClickRecord(
       if (record.parentId === PAGE_GRID) return record.id;
       if (parent?.parentId === PAGE_GRID)
         return parent.sourceId === ORIGIN_VIEW_NODE ? parent.id : record.id;
-    } else if (parent?.sourceId === editingContext) return record.id;
+    } else if (isContext(parent, editingContext)) return record.id;
   }
   return undefined;
 }
@@ -95,7 +108,7 @@ export function resolveCatalogClickRecord(
 /**
  * Double click: the container the click enters (the current target when the pick is deeper than
  * it) and the target inside it. `undefined` = nothing to enter (the pick is the target itself, or
- * the target is not a document node).
+ * the target is no container — `catalogContextOf`).
  */
 export function resolveCatalogContextEntry(
   records: CatalogPickRecords,
@@ -105,19 +118,16 @@ export function resolveCatalogContextEntry(
   const current = resolveCatalogClickRecord(records, pickedId, editingContext);
   if (!current || current === pickedId) return undefined;
   const record = records.get(current)!;
-  if (record.parentId === PAGE_GRID || !isNodeSource(record.sourceId))
-    return undefined;
-  const target = resolveCatalogClickRecord(records, pickedId, record.sourceId);
-  return target ? { context: record.sourceId, target } : undefined;
+  const context = catalogContextOf(record);
+  if (record.parentId === PAGE_GRID || !context) return undefined;
+  const target = resolveCatalogClickRecord(records, pickedId, context);
+  return target ? { context, target } : undefined;
 }
 
 /**
  * The record a double click edits the text of, when it enters nothing (`resolveCatalogContextEntry`
  * is `undefined`): the click target when it has its own text, else the text drawn under the
- * pointer inside it. The second case is a container the double click cannot enter — a template
- * position of an instance (a Card's Content: a context is a document node, and the template id
- * names that position in every Card), so its text (the Card's title) is edited from there.
- * `undefined` = no text to edit.
+ * pointer inside it (a container the double click cannot enter). `undefined` = no text to edit.
  */
 export function resolveCatalogTextEditRecord(
   records: CatalogPickRecords,
@@ -151,7 +161,7 @@ export function resolveCatalogContextExit(
     record;
     record = records.get(record.parentId)
   )
-    if (record.sourceId === editingContext) {
+    if (isContext(record, editingContext)) {
       contextRecord = record;
       break;
     }
@@ -160,8 +170,8 @@ export function resolveCatalogContextExit(
   return {
     select: contextRecord.id,
     context:
-      parent && parent.parentId !== PAGE_GRID && isNodeSource(parent.sourceId)
-        ? parent.sourceId
+      parent && parent.parentId !== PAGE_GRID
+        ? catalogContextOf(parent)
         : undefined,
   };
 }
@@ -176,10 +186,8 @@ export function resolveCatalogTreeContext(
 ): string | undefined {
   const record = records.get(selectedId);
   const parent = record && records.get(record.parentId);
-  return parent &&
-    parent.parentId !== PAGE_GRID &&
-    isNodeSource(parent.sourceId)
-    ? parent.sourceId
+  return parent && parent.parentId !== PAGE_GRID
+    ? catalogContextOf(parent)
     : undefined;
 }
 
@@ -272,7 +280,7 @@ export class CatalogCanvasPicking {
       session.getSnapshot().editingContext,
     );
     if (!entry) return false;
-    session.enterContext(entry.context as NodeId);
+    session.enterContext(entry.context);
     this.host.selectRecords([entry.target]);
     return true;
   }
@@ -305,7 +313,7 @@ export class CatalogCanvasPicking {
       state.selection[0]?.identity,
       state.editingContext,
     );
-    if (exit.context) session.enterContext(exit.context as NodeId);
+    if (exit.context) session.enterContext(exit.context);
     else session.exitContext();
     if (exit.select) this.host.selectRecords([exit.select]);
   }

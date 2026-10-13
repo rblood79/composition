@@ -11,10 +11,7 @@ import type { Key } from "react-stately";
 import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import { Minimize } from "lucide-react";
 import { removeTargets } from "../../../../../../../packages/shared/src/catalog/commands";
-import type {
-  EntryId,
-  NodeId,
-} from "../../../../../../../packages/shared/src/catalog/document/types";
+import type { EntryId } from "../../../../../../../packages/shared/src/catalog/document/types";
 import { useI18n } from "../../../../i18n";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { resolveCatalogTreeContext } from "../../../catalogRuntime/canvasPick";
@@ -157,7 +154,7 @@ export const CatalogLayersSection = memo(function CatalogLayersSection({
         workspace.root.domInputs,
         ids[0],
       );
-      if (context) workspace.session.enterContext(context as NodeId);
+      if (context) workspace.session.enterContext(context);
       else workspace.session.exitContext();
     },
     [tree, workspace],

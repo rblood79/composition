@@ -9,7 +9,9 @@ import type {
 } from "../../../../../../packages/shared/src/catalog/document/types";
 import { insertNodes } from "../../../../../../packages/shared/src/catalog/commands";
 import {
+  resolveCatalogClickRecord,
   resolveCatalogContextEntry,
+  resolveCatalogContextExit,
   resolveCatalogTextEditRecord,
 } from "../canvasPick";
 import { catalogTextKey } from "../canvasText";
@@ -19,15 +21,15 @@ import { CatalogWorkspace } from "../workspace";
 import { nodeLayoutEngine } from "./support/nodeLayoutEngine";
 
 /**
- * A double click that enters nothing edits text: the click target's own, or — inside a container
- * the double click cannot enter (a template position of an instance: a Card's CardHeader) — the
- * text under the pointer. Before, a Card's title could not be edited on the Canvas: the double
- * click stopped at the CardHeader.
+ * A double click enters a container one level (a document node, or a template position inside an
+ * instance — its record identity: a Card's Content, a ListBox's item, 2026-10-13 사용자
+ * 「listboxitem 은 group … 더블클릭으로 child 에 접근」), and edits text when it enters nothing:
+ * the click target's own, or the text under the pointer inside it.
  */
 const BODY = "project:node:home-body" as NodeId;
 const CARD = "project:node:card" as NodeId;
 
-async function placedCard() {
+async function placed(definitionId: string, id: NodeId) {
   const workspace = new CatalogWorkspace(
     new CatalogGraph(
       newCatalogProjectDocument({
@@ -49,9 +51,8 @@ async function placedCard() {
       entries: [
         {
           kind: "node",
-          id: CARD,
-          definitionId:
-            "lib:definition:origin-component-card" as LibraryDefinitionId,
+          id,
+          definitionId: definitionId as LibraryDefinitionId,
           children: [],
           props: {},
           visual: {},
@@ -59,7 +60,7 @@ async function placedCard() {
           descendantOverrides: [],
         },
       ],
-      rootIds: [CARD],
+      rootIds: [id],
       newId: workspace.newId,
     }),
   );
@@ -67,6 +68,14 @@ async function placedCard() {
   const bySource = (suffix: string) =>
     [...records.values()].find((record) => record.sourceId.endsWith(suffix))!;
   const hasText = (id: string) => !!catalogTextKey(records.get(id));
+  return { workspace, records, hasText, bySource };
+}
+
+async function placedCard() {
+  const { records, hasText, bySource } = await placed(
+    "lib:definition:origin-component-card",
+    CARD,
+  );
   return {
     records,
     hasText,
@@ -78,17 +87,64 @@ async function placedCard() {
   };
 }
 
-describe("a double click edits the text it cannot enter further", () => {
-  it("inside a Card: the Content is not entered, its title is edited", async () => {
+describe("a double click enters one level, then edits the text it cannot enter further", () => {
+  it("inside a Card: the Content (a template position) is entered, its title selected, then edited", async () => {
     const { records, hasText, card, content, title } = await placedCard();
-    // In the Card (context = the Card node), the click target under the title is the Content,
-    // and a double click enters nothing: a template position is no context.
+    // In the Card (context = the Card node), the click target under the title is the Content; a
+    // double click enters it (its record identity — one template id names it in every Card).
+    expect(resolveCatalogContextEntry(records, title.id, card.sourceId)).toEqual({
+      context: content.id,
+      target: title.id,
+    });
+    // Inside the Content the title is the target itself: nothing to enter, its text is edited.
     expect(
-      resolveCatalogContextEntry(records, title.id, card.sourceId),
+      resolveCatalogContextEntry(records, title.id, content.id),
     ).toBeUndefined();
     expect(
-      resolveCatalogTextEditRecord(records, title.id, content.id, hasText),
+      resolveCatalogTextEditRecord(records, title.id, title.id, hasText),
     ).toBe(title.id);
+  });
+
+  it("a ListBox's item is a group: a double click enters it and selects the child under the pointer", async () => {
+    const LIST = "project:node:list" as NodeId;
+    const { workspace, records, hasText, bySource } = await placed(
+      "lib:definition:origin-component-listbox",
+      LIST,
+    );
+    const list = bySource("node:list");
+    const item = bySource("component-listbox__item-1");
+    const label = [...records.values()].find(
+      (record) =>
+        record.parentId === item.id && record.sourceId.endsWith("__label"),
+    )!;
+    // The item is a template position (no document node) with a text of its own (`{label}`):
+    // before, the double click edited that text instead of entering it.
+    expect(item.sourceId.startsWith("lib:template:")).toBe(true);
+    expect(hasText(item.id)).toBe(true);
+    // In the ListBox the click target is the item; a double click enters it, the label selected.
+    expect(resolveCatalogClickRecord(records, label.id, list.sourceId)).toBe(
+      item.id,
+    );
+    expect(resolveCatalogContextEntry(records, label.id, list.sourceId)).toEqual({
+      context: item.id,
+      target: label.id,
+    });
+    // Inside the item a click selects its child; the next double click edits the label's text.
+    expect(resolveCatalogClickRecord(records, label.id, item.id)).toBe(label.id);
+    expect(resolveCatalogContextEntry(records, label.id, item.id)).toBeUndefined();
+    expect(
+      resolveCatalogTextEditRecord(records, label.id, label.id, hasText),
+    ).toBe(label.id);
+    // The session takes the item's identity as its context and keeps it across a step; Escape
+    // climbs back to the ListBox with the item selected.
+    workspace.session.enterContext(item.id);
+    workspace.session.reconcile();
+    expect(workspace.session.getSnapshot().editingContext).toBe(item.id);
+    expect(resolveCatalogContextExit(records, label.id, item.id)).toEqual({
+      select: item.id,
+      context: list.sourceId,
+    });
+    workspace.dispose();
   });
 
   it("an element with its own text is edited itself", async () => {
