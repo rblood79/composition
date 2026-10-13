@@ -1,6 +1,6 @@
 # ADR-259 breakdown — S2 도움말 · 앞 글자 · 항목 링크
 
-> 본문: [ADR-259](../259-s2-contextual-help-prefix-item-links.md). 이 문서는 Phase · 파일 · 확인 항목만 둔다. 결정 · 대안 · 위험은 본문이 정본이다.
+> 본문: [ADR-259](../completed/259-s2-contextual-help-prefix-item-links.md). 이 문서는 Phase · 파일 · 확인 항목만 둔다. 결정 · 대안 · 위험은 본문이 정본이다.
 
 ## 1. 범위 고정
 
@@ -79,15 +79,14 @@
 - **③ WebKit 합성 링크 (R3)** — Playwright WebKit 2336 (macOS, `navigator.platform` MacIntel) 에서 RAC `openLink` 과 같은 이벤트 (임시 `<a>` 에 `keydown` keyIdentifier Enter) 를 보냈다. 처리기 없음: iframe 이 `/about` 으로 이동. **capture `click` 처리기 하나만 있어도 이동 0** — WebKit 의 Enter 활성화가 click 을 다시 보내 지금 `catalogPreviewLinkClick` 이 받는다 (Chromium 은 keydown 경로를 쓰지 않는다). → **R3 새지 않음, H1 단독 채택 (H2 `RouterProvider` 안 더함)**. Phase 1 live 에서 실제 Preview 로 다시 확인한다.
 - **④ 치수 대응표** (S2 소스 → 우리 rule 의 자리, 값은 해당 Phase 에서 토큰으로 옮긴다):
 
-| 부위                 | S2 값 (출처)                                                                                         | 우리 자리                                    |
-| -------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 라벨 행              | `div` `display: inline` · Label 뒤 `&nbsp;` + 도움말 (`Field.tsx:96-184`)                            | FieldLabel rule (한 줄 · baseline)           |
-| 도움말 버튼          | ActionButton quiet, field size L · XL → S, 그 밖 XS (`Field.tsx:182`) · 단독 기본 XS                 | Button 원본 (quiet · 아이콘만) + 크기 파생   |
-| 도움말 Popover       | 폭 268 · padding 24 · `hideArrow` · offset 8 · containerPadding 8 · `bottom start` (`ContextualHelp.tsx:36-42, 205-214`) | ContextualHelp 원본의 Popover 노드           |
-| 제목 · 내용 · 꼬리   | heading-xs · margin-bottom 8 / body-sm / body-sm · margin-top 16 (`ContextualHelp.tsx:44-49, 92-106`) | Heading · Content · Footer rule (Popover 안) |
-| 앞 글자              | 색 gray-600 · `flex-shrink: 0` · 끝 여백 text-to-visual (글자 크기의 6/14) · 아이콘 `1lh` (`Field.tsx:291-311`) | field rule `[slot=prefix]` (neutral-subdued) |
-| 바깥 링크 글리프     | ListView: trailing 칸, LinkOut M, 앞 여백 text-to-visual (`ListView.tsx:807-814, 987-1003`) · Menu: descriptor 칸, size S→M · M→L · L→XL, 앞 여백 8 (`Menu.tsx:440-448, 788-793, 925-937`) | GridListItem · MenuItem rule `.link-out`     |
-
+| 부위               | S2 값 (출처)                                                                                                                                                                               | 우리 자리                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| 라벨 행            | `div` `display: inline` · Label 뒤 `&nbsp;` + 도움말 (`Field.tsx:96-184`)                                                                                                                  | FieldLabel rule (한 줄 · baseline)           |
+| 도움말 버튼        | ActionButton quiet, field size L · XL → S, 그 밖 XS (`Field.tsx:182`) · 단독 기본 XS                                                                                                       | Button 원본 (quiet · 아이콘만) + 크기 파생   |
+| 도움말 Popover     | 폭 268 · padding 24 · `hideArrow` · offset 8 · containerPadding 8 · `bottom start` (`ContextualHelp.tsx:36-42, 205-214`)                                                                   | ContextualHelp 원본의 Popover 노드           |
+| 제목 · 내용 · 꼬리 | heading-xs · margin-bottom 8 / body-sm / body-sm · margin-top 16 (`ContextualHelp.tsx:44-49, 92-106`)                                                                                      | Heading · Content · Footer rule (Popover 안) |
+| 앞 글자            | 색 gray-600 · `flex-shrink: 0` · 끝 여백 text-to-visual (글자 크기의 6/14) · 아이콘 `1lh` (`Field.tsx:291-311`)                                                                            | field rule `[slot=prefix]` (neutral-subdued) |
+| 바깥 링크 글리프   | ListView: trailing 칸, LinkOut M, 앞 여백 text-to-visual (`ListView.tsx:807-814, 987-1003`) · Menu: descriptor 칸, size S→M · M→L · L→XL, 앞 여백 8 (`Menu.tsx:440-448, 788-793, 925-937`) | GridListItem · MenuItem rule `.link-out`     |
 
 ### Phase 1 — 닫힘 (2026-10-13)
 
@@ -109,3 +108,83 @@
 - **기록 (이 ADR 밖)**: G3 `paletteBaseCanvas.browser.test.ts` 는 ADR-248 G0 에 얼린 옛 캡처와 그 뒤 ADR-256 구조 변경 (Card · Dialog · Menu · Popover · SearchField · TableView · Tooltip) 의 차이 7건으로 실패한다 — resolver 변경을 되돌려도 같은 7건 (반증 1). parity 811 · G3 `propAxisCanvasDom` 60 · `switchDomPaint` 16 통과.
 - **AI manifest**: 새 type · prop 0 — 앞 글자는 기존 Text · Icon 의 `slot` 값이라 manifest (catalog accepts 파생) 변경 없음.
 - **판독 (reviewer, 2026-10-13)**: CRITICAL 0 · HIGH 0 · MEDIUM 0 — undo/redo 왕복 · prefix 뒤 size 변경 순서 무관 (geometry · visual 같음) 프로브 확인. LOW deferred: ① `catalogFieldPrefix` 가 template 위치의 prefix 를 못 읽는다 (재현 경로 없음 — 아래 ③ 에 막힘) ② `invalidBorder` 가 작성자 일반 `borderColor` 를 보지 않는다 (quiet 경로와 같음, 미확인) ③ prefix 에 `showWhen` 을 걸면 상자 style 이 남을 수 있다 (S2 prefix 는 정적, 미확인) ④ 패널이 step 구독 (집계 값). **이 ADR 밖 기존 결함**: `createComponent` 가 template 루트의 `fillSlot` override 를 버린다 (NumberField Group 에 노드를 넣고 component 로 만들면 그 노드가 사라짐 — prefix 도 같은 길) — 별도 작업.
+
+### Phase 3 — 닫힘 (2026-10-13)
+
+- **구현**:
+  - 새 type `ContextualHelp` 와 원본 `component-contextualhelp` — `ContextualHelp > Button[slot=false] > Icon + Popover > Heading[slot=title] + Content > Text + Footer > Link`. Popover 의 위치 prop 은 원본 prop 에 바인딩된다 (`placement` · `offset` · `crossOffset` · `shouldFlip` · `containerPadding` — S2 기본 bottom start · 8 · 0 · true · 8).
+  - 새 type `FieldLabel` — 사용자 prop 0, S2 `FieldLabel` 의 `div`. 팔레트에 두지 않는다 (`placeable: false`). owners 는 16 field.
+  - `variant` → Icon 글리프 (`circle-question-mark` · `info`) 는 resolver 파생 값이다 (`applyContextualHelpGlyph`). variant 를 바꾸면 Icon 을 다시 해석 큐에 넣는다.
+  - 버튼 크기는 field size 를 따른다 (`CATALOG_SIZE_STEP` — XS · S · M → XS 20 px, L · XL → S 24 px). quiet 상자 (fill 투명 · 테두리 0 · 여백 0) 와 Icon 크기는 ContextualHelp part rule 이 Canvas 와 DOM inline 에 같은 record 로 준다.
+  - DOM 은 `ContextualHelp.tsx` 가 RAC `DialogTrigger` 를 쓴다. 버튼은 RAC Button `slot={null}` 이고, 이름은 `aria-label` = variant 문자열 (S2 intl en · ko · ja · zh) 이다. 라벨 행 안에서는 `aria-labelledby` = 라벨 id + 자기 id 이다. 제목 Heading 이 있으면 Popover 의 `aria-labelledby` 와 title id 를 연결한다 (`contextualHelpTitled` — 닫힌 Popover 도 찾는다).
+  - 라벨 행은 field 레이아웃에서 Label 의 자리를 이어받는다. 이 별칭 하나 (`CATALOG_FIELD_LABEL_PART_ALIASES`) 를 두 곳이 읽는다.
+    - 생성 CSS 는 `partAliases` 로 `.react-aria-Label` 선택자를 `:is(.react-aria-Label, .react-aria-FieldLabel)` 로 넓힌다.
+    - Canvas 는 field 의 Label part rule 을 FieldLabel 에 복사하되 글자 시각 값은 빼고 복사한다 (`LABEL_TEXT_VISUAL`).
+    - 부품 조회는 FieldLabel 을 건넌다 (`PART_FRAME_TYPES` · `LABEL_PASS_THROUGH_TYPES` · DOM watch · ColorSlider 채널 이름). 그래서 행 안 Label 이 여전히 field 의 라벨이다 (필수 표시 · label context · 글자 소유).
+  - Content · Footer owners 에 Popover 를 넣었다.
+  - Design 패널 field 의 **Contextual Help** 는 None · Help · Info 중에서 고른다 (`contextualHelpCommand.ts`). 각 선택이 한 step 이다.
+    - 넣기는 Label 을 라벨 행으로 감싸고 그 뒤에 원본 instance 를 둔다.
+    - 빼기는 행을 푼다.
+    - 바꾸기는 `variant` 하나만 쓴다.
+  - 팔레트 overlay 묶음에서 Popover 뒤에 둔다 (사용자 결정 2).
+  - AI 별칭은 `도움말` 이다. ContextualHelp 는 catalog accepts 파생이라 manifest 를 따로 바꾸지 않았다.
+- **사본화**: Phase 2 와 같다 (사용자 결정 3). 배치된 field 의 Label 을 감싸면 field 의 template 자식이 소유 사본이 된다.
+- **같이 고친 것 (live 가 잡음)**:
+  - ① side 배치 DOM 이 `CATALOG_DOM_VISUAL_UNSUPPORTED:textAlign` 으로 깨졌다. 원인은 별칭이 Label 의 글자 값까지 FieldLabel 에 복사한 것이다. 글자 시각 값을 빼서 고쳤다.
+  - ② Preview 의 도움말 버튼에 Button sheet 테두리가 보였다. inline `borderWidth: 0` 을 넣어 고쳤다.
+  - ③ Slider · ColorSlider 라벨 행이 DOM grid 에서 늘어났다. 원인은 크기 블록의 `height: auto` 가 fit-content 를 이긴 것이다. FieldLabel rule 에 `alignSelf: flex-start` 를 두고 생성기가 `align-self` 를 내보내게 했다.
+- **판독 (reviewer, 2026-10-13)**:
+  - CRITICAL 0 · HIGH 0 · MEDIUM 1.
+  - MEDIUM-1: Layers 에서 도움말만 지우고 남은 라벨 행에서 Help 를 고르면 행이 중첩됐고, None 은 아무것도 하지 않았다.
+    - 수리: 행이 있으면 그 행의 Label 뒤에 넣고, None 은 남은 행을 푼다.
+    - 회귀 unit 은 수리 전 RED, 수리 후 GREEN 이다.
+  - 수리 검증 (reviewer, 같은 날): HIGH 0 · MEDIUM 0. 검증자의 미확인 가설 (패널 Select 에서 None 을 다시 골라도 명령에 닿는가) 은 설치된 react-stately 3.51 `useSingleSelectListState` 가 같은 key 에도 `onSelectionChange` 를 실행하는 것으로 확인했다. 남은 행에 넣기의 undo · redo 단언을 회귀 unit 에 더했다.
+  - LOW deferred: ① 패널이 step 을 구독한다 (Phase 2 와 같은 패턴) ② template 위치 도움말은 `HELP_NOT_OWNED` 로 막힌다 (Prefix 와 같은 한계).
+- **기록 (이 ADR 밖)**:
+  - side 배치 TextField · DateField 라벨의 y 가 Canvas 와 Preview 에서 다르다. 엔진의 기존 비대칭이다 — flex 줄에 늘어난 grid field 의 auto 행이 DOM 에서는 늘어나고 Canvas 에서는 늘어나지 않는다.
+  - 대조군: 도움말 없는 Label 도 y25 vs y5 로 같은 차이가 난다.
+  - 그래서 live 하니스의 holder 는 `alignItems: flex-start` 로 이 축을 비켜 잰다.
+- **G3**:
+  - unit `adr259ContextualHelp.test.tsx` 48:
+    - 16 field 각각: 넣기 구조 · DOM = oracle · undo 한 번.
+    - 16 field 각각: 빼기.
+    - 도움말이 지워진 행.
+    - variant.
+    - 열린 Popover 이름 「Need help?」 h2.
+    - 독립 배치 (닫힌 Popover 의 Canvas 상자 0).
+    - disabled ComboBox.
+    - 4 size 버튼 20 / 24 정사각 · 테두리 0.
+    - top / side 자리.
+    - 필수 표시.
+    - ColorSlider 채널 이름.
+    - TagGroup labelledby.
+    - 소유 ContextualHelp 의 variant 재해석.
+    - Content · Footer canNest.
+  - 원복 RED 18/18 — 코드 16 + 생성기 2 (`partAliases` · `align-self`).
+  - live `adr259-live.mjs --phase 3` 106/106 · `--dark` 106/106:
+    - Design 패널 Contextual Help.
+    - undo / redo.
+    - 저장 · 다시 열기.
+    - Preview 버튼 이름 「Price 도움말」.
+    - 열기 → 「Need help?」 dialog → Escape, 이때 문서 revision 은 바뀌지 않는다.
+    - 16 field × top / side × S · M · L 에서 라벨 행 자리 · Label · 버튼 ±1, 칠 ≤ 0.001 (pixelmatch 0.1, 글자 · 글리프 가림).
+    - disabled ComboBox.
+    - 콘솔 오류 0.
+  - shared 1588 · rendering 1313 · builder 5558 · parity 811 통과.
+  - G3 `paletteBaseCanvas` 는 Phase 2 와 같은 기존 7건만 실패한다.
+
+### Phase 4 — 닫힘 · Implemented (2026-10-13)
+
+- **perf ratchet** (`pnpm gate:perf-ratchet`): 판정 pass · A 등급 초과 0.
+  - 트리가 dirty 라 게이트는 push 대상 `ff038c0d9` (Phase 0 ~ 2) 를 전용 worktree 에서 쟀다. Phase 3 의 미커밋 변경은 push 때 pre-push 가 잰다.
+  - B 경고 4:
+    - seed 60 edit `RecalcStyleCount` 0 → 14 · `v8.app` 61,262 → 67,165 · `compositionRoot.ts#typeOf` 1,053 → 1,818.
+    - seed 600 edit `RecalcStyleCount` 0 → 5.
+  - B 는 경고 등급이라 상한을 올리지 않았다.
+- **번들** (`adr209-bundle-closure.mjs`, gzip): 비교 기준은 ADR-259 전 `1b0803ba4` 의 별도 worktree (그 lockfile) ↔ 현재 트리.
+  - Builder initial JS 1,299,932 → 1,306,546 (+6,614) · CSS +483.
+  - Preview initial JS 298,259 → 299,701 (+1,442) · CSS +595.
+  - 상한 1,421,000 안이다.
+- **live 재실행** (현재 트리, Phase 3 수리 포함): `adr259-live.mjs --phase 1` 13/13 · `--phase 2` 51/51 · `--phase 3` 106/106.
+- **문서**: 조사 문서 §6.1 「라」 · 「링크」 에 도입 결과를 적었다. `ssot-hierarchy.md` D3 sub-part 절에 「라벨 행 · 앞 글자 · 도움말」 한 줄을 넣었다. `pnpm docs:stale-symbols` 게이트 영역 0.
+- **종결**: ADR 본문 Implemented · `### Live Exercise` · `git mv` → `docs/adr/completed/`.

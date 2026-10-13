@@ -176,11 +176,12 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
   //   contents`, CSS 생성 안 함) −3 · index −3.
   // 2026-10-12 — ADR-258 Phase 2: ColorArea · ColorSlider · ColorWheel · ColorThumb (index 로드 — 옛 수동
   //   sheet 는 builder chrome 전용) +4 · +4.
-  it("인벤토리 집계 — 생성 105 · index 83 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4)", () => {
+  it("인벤토리 집계 — 생성 106 · index 84 · 모듈 0 · 미로드 22 (IllustratedMessage 로드 · Illustration · Body CSS load 포함 · ADR-238 section 3 · ADR-253 Input · DateInput · CatalogStates · ADR-256 Phase 10 Card 부품 3 → Content · Footer · Toast 로드 · ADR-258 Color 4 · ADR-259 FieldLabel 로드)", () => {
     // (ADR-256 Phase 8e: − DisclosureHeader. 2026-10-12: Toast 로드 — 수동 Toast.css 는 런타임
     //  ToastRegion 안만 담당하고 문서의 Toast 노드는 생성 sheet 가 그린다.)
-    expect(generated.length).toBe(105);
-    expect(indexImported.size).toBe(83);
+    // (ADR-259 Phase 3: + FieldLabel — a field's label row, loaded.)
+    expect(generated.length).toBe(106);
+    expect(indexImported.size).toBe(84);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

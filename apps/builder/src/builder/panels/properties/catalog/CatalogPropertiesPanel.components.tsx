@@ -52,6 +52,8 @@ import { CatalogButtonChildFields } from "./CatalogButtonChildFields";
 
 import { CatalogCalendarHeaderField } from "./CatalogCalendarHeaderField";
 import { CatalogFieldPrefixField } from "./CatalogFieldPrefixField";
+import { CatalogContextualHelpField } from "./CatalogContextualHelpField";
+import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../../../../../../packages/shared/src/domain/componentTraits";
 import { CATALOG_PREFIX_FIELDS } from "../../../../../../../packages/shared/src/catalog/runtime/fieldPrefix";
 
 import { CatalogComponentSection } from "./CatalogComponentSection";
@@ -343,8 +345,13 @@ const CatalogFields = memo(function CatalogFields({
           ) : null}
           <CatalogCalendarHeaderField elementId={elementId} />
         </>
-      ) : CATALOG_PREFIX_FIELDS.has(contract.type ?? "") ? (
-        <CatalogFieldPrefixField elementId={elementId} />
+      ) : CATALOG_CONTEXTUAL_HELP_FIELDS.has(contract.type ?? "") ? (
+        <>
+          <CatalogContextualHelpField elementId={elementId} />
+          {CATALOG_PREFIX_FIELDS.has(contract.type ?? "") ? (
+            <CatalogFieldPrefixField elementId={elementId} />
+          ) : null}
+        </>
       ) : undefined,
     onPatch: handlePatch,
     isRefInstance,

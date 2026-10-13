@@ -509,19 +509,19 @@ S2 열의 `—` 는 S2 에 대응 컴포넌트가 없음. 링크 · 상태 · �
 
 **라. 새 부품이 필요 — 별도 ADR 규모**
 
-→ **[ADR-259](../../adr/259-s2-contextual-help-prefix-item-links.md) (2026-10-12 Proposed)** 가 아래 셋과 「참고」 의 항목 링크 (`href` · `target` · `rel`) 를 한 ADR 로 다룬다 (사용자 「하나로 + href 포함」).
+→ **[ADR-259](../../adr/completed/259-s2-contextual-help-prefix-item-links.md) (2026-10-12 Proposed → 2026-10-13 Implemented)** 가 아래 셋과 「참고」 의 항목 링크 (`href` · `target` · `rel`) 를 한 ADR 로 다뤘다 (사용자 「하나로 + href 포함」). 셋 다 도입했다.
 
-- `contextualHelp` (field 16) — S2 ContextualHelp 는 버튼 + Popover (제목 · 내용) 부품이다. 노드 트리로는 Label 줄에 ContextualHelp 원본 instance 를 두는 구조라 새 type · 원본 · rule 이 필요하다.
-- `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField) — 입력 앞 글자 · 아이콘 자리.
-- `hideLinkOutIcon` (GridList · Menu) — 아래의 항목 링크와 같이 정한다.
+- `contextualHelp` (field 16) — S2 ContextualHelp 는 버튼 + Popover (제목 · 내용) 부품이다. 노드 트리로는 Label 줄에 ContextualHelp 원본 instance 를 두는 구조라 새 type · 원본 · rule 이 필요하다. → **도입 (ADR-259 Phase 3)**: 새 type `ContextualHelp` (팔레트 overlay 묶음) · `FieldLabel` (라벨 행), Design 패널 Contextual Help (None · Help · Info).
+- `prefix` (TextField · TextArea · NumberField · ComboBox · ColorField) — 입력 앞 글자 · 아이콘 자리. → **도입 (ADR-259 Phase 2)**: Design 패널 Prefix (None · Text · Icon) — 앞 글자가 든 Group 이 Input rule 상자 (S2 `FieldGroup`).
+- `hideLinkOutIcon` (GridList · Menu) — 아래의 항목 링크와 같이 정한다. → **도입 (ADR-259 Phase 1)** — 바깥 링크 글리프는 S2 처럼 자동.
 
 **참고 — 시각이 아닌 S2 전용 prop (426건)**
 
-- 링크 (66): 항목 (ListBoxItem · Tab · Tag · TreeItem · GridListItem · Row) 의 `href` · `target` · `rel` 은 RAC 가 동작을 주므로 검토할 만하다. `download` · `ping` · `routerOptions` 등은 제외 권장.
+- 링크 (66): 항목 (ListBoxItem · Tab · Tag · TreeItem · GridListItem · Row) 의 `href` · `target` · `rel` 은 RAC 가 동작을 주므로 검토할 만하다. `download` · `ping` · `routerOptions` 등은 제외 권장. → **도입 (ADR-259 Phase 1)**: 항목 7 type (MenuItem 포함) 의 `href` · `target` · `rel`. 제외 권장 항목은 그대로 제외.
 - 상태 (105): controlled / default 쌍 — 문서는 초기값 하나를 저장하므로 도입하지 않는다. `disabledKeys` 등 키 목록은 항목 노드 `isDisabled` 가 맡는다.
 - 동작 (255): 대부분 함수 · ref · render prop · form 연결이라 노코드로 작성할 수 없다. 작성 가능한 후보만: `excludeFromTabOrder` · `escapeKeyBehavior` · `keyboardActivation` · `shouldCloseOnSelect` · `isNonModal` · `isKeyboardDismissDisabled` · `increment/decrementAriaLabel`.
 
-**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출 — 2026-10-09 완료, `formatOptions` 는 2026-10-12 객체 값 타입으로 완료) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR.
+**권장 순서**: ① 나 전체 (RAC 동작 연결 + Properties 노출 — 2026-10-09 완료, `formatOptions` 는 2026-10-12 객체 값 타입으로 완료) → ② 다 중 작은 것 (`labelAlign` · 상태 축 · placeholder · overlay 위치) + 목록 D → ③ 다 나머지 시각 축 (4번과 함께) → ④ 라 (`contextualHelp` · `prefix`) 는 ADR — ADR-259 로 완료 (2026-10-13).
 
 ## 7. 데이터와 재현
 

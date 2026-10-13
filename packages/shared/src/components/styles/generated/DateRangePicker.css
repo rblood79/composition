@@ -223,7 +223,7 @@
   align-items: start;
 }
 
-.react-aria-DateRangePicker[data-label-position="side"] > .react-aria-Label {
+.react-aria-DateRangePicker[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
   grid-column: 1;
   width: var(--form-label-width);
   align-self: center;
@@ -231,7 +231,7 @@
   justify-content: var(--form-label-align, start);
 }
 
-.react-aria-DateRangePicker[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldError, [slot="description"]) {
+.react-aria-DateRangePicker[data-label-position="side"] > :not(.react-aria-Label, .react-aria-FieldLabel, .react-aria-FieldError, [slot="description"]) {
   grid-column: 2;
   min-width: 0;
 }

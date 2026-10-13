@@ -13,6 +13,12 @@
 //   save and reopen · the Preview DOM (prefix first in the FieldBox, the input's name) · focus
 //   forwarding · each box Canvas = Preview (5 fields × 4 states × text/icon, against no-prefix
 //   control fields) · None unwraps.
+// Phase 3 (G3): a field's contextual help through the Design panel (Contextual Help → Help) · undo
+//   (one step) · save and reopen · the Preview's button name (label + help) and opened Popover (a
+//   dialog named by its title, the document unchanged) · a disabled ComboBox's help opens · each
+//   label row Canvas = Preview (16 fields × top / side × S · M · L: the row's place in the field,
+//   the Label's and the help button's places in the row ±1, the row's paint outside the text and
+//   the glyph ≤ 0.001) · None unwraps.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -816,7 +822,392 @@ async function phase2() {
   await browser.close();
 }
 
+// ── Phase 3 ──────────────────────────────────────────────────────────────────────────────────
+const HELP_MODULE = `/@fs${process.cwd()}/apps/builder/src/builder/catalogRuntime/contextualHelpCommand.ts`;
+const HELP_FIELDS = [
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "ComboBox",
+  "Select",
+  "ColorField",
+  "ColorSlider",
+  "DateField",
+  "DatePicker",
+  "DateRangePicker",
+  "TimeField",
+  "SearchField",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Slider",
+  "TagGroup",
+];
+
+async function setHelps(page, fieldIds, kind) {
+  return page.evaluate(
+    async ({ MOD, fieldIds, kind }) => {
+      const { catalogContextualHelpCommand } = await import(MOD);
+      const ws = window.__COMPOSITION_CATALOG__.workspace;
+      for (const id of fieldIds) {
+        ws.execute(
+          catalogContextualHelpCommand({ field: ws.positionOfRecord(id), kind, newId: ws.newId }),
+        );
+        await new Promise((r) => setTimeout(r, 60));
+      }
+      await new Promise((r) => setTimeout(r, 800));
+    },
+    { MOD: HELP_MODULE, fieldIds, kind },
+  );
+}
+
+/** Each field's label row, Label, help button and its glyph (ids). */
+async function helpParts(page, fieldIds) {
+  return page.evaluate((fieldIds) => {
+    const root = window.__COMPOSITION_CATALOG__.workspace.root;
+    const get = (id) => root.canvasInputs.get(id);
+    const child = (id, type) =>
+      (get(id)?.children ?? []).map(get).find((r) => r && root.typeOf(r) === type);
+    return fieldIds.map((id) => {
+      const row = child(id, "FieldLabel");
+      const help = row && child(row.id, "ContextualHelp");
+      const button = help && child(help.id, "Button");
+      const glyph = button && child(button.id, "Icon");
+      return {
+        field: id,
+        type: root.typeOf(get(id)),
+        row: row?.id ?? null,
+        label: row ? child(row.id, "Label")?.id : child(id, "Label")?.id,
+        help: help?.id ?? null,
+        button: button?.id ?? null,
+        glyph: glyph?.id ?? null,
+        variant: help?.props.variant ?? null,
+      };
+    });
+  }, fieldIds);
+}
+
+async function phase3() {
+  const { browser, page, errors } = await launch();
+  await newProject(page, `adr259-p3-${Date.now()}`);
+  if (DARK) await darkTheme(page);
+
+  /** Place the 16 fields at one label position (each prop only where its origin takes it). */
+  const place = async (position) => {
+    const placed = await edit(
+      page,
+      (c, ws, h, { fields, position }) => {
+        const library = ws.runtime.graph.library;
+        const holder = h.newId();
+        // (An instance takes its origin's props and its root type's.)
+        const props = (type) => {
+          const accepts = {
+            ...library.definitions.get(`lib:definition:origin-component-${type.toLowerCase()}`)?.accepts,
+            ...library.definitions.get(`lib:definition:type-${type}`)?.accepts,
+          };
+          return Object.fromEntries(
+            Object.entries({ label: "Price", labelPosition: position, size: "M" }).filter(
+              ([key]) => key in accepts,
+            ),
+          );
+        };
+        return [
+          h.insert("body", [
+            {
+              ...h.node(holder, "lib:definition:type-frame", {}, {
+                width: 1040,
+                paddingLeft: 120,
+                paddingTop: 160,
+                gap: 16,
+              }),
+              // (Fields keep their own height: a grid field stretched by its flex line has its auto
+              // row stretched in the DOM, not on the Canvas — the engine's, without a help too
+              // (control: a side TextField beside a TextArea, Label y 25 vs 5 — outside ADR-259).)
+              layout: {
+                display: h.set("flex"),
+                flexDirection: h.set("row"),
+                flexWrap: h.set("wrap"),
+                alignItems: h.set("flex-start"),
+              },
+            },
+          ]),
+          h.later(() =>
+            h.insert(
+              h.bySource(holder).id,
+              fields.map((type) =>
+                h.node(
+                  h.newId(),
+                  `lib:definition:origin-component-${type.toLowerCase()}`,
+                  props(type),
+                  { width: position === "side" ? 440 : 280 },
+                ),
+              ),
+            ),
+          ),
+        ];
+      },
+      { fields: HELP_FIELDS, position },
+    );
+    await page.waitForTimeout(1500);
+    const ids = await page.evaluate(() => {
+      const root = window.__COMPOSITION_CATALOG__.workspace.root;
+      const body = [...root.canvasInputs.values()].find((r) => r.sourceId.endsWith("home-body"));
+      return root.canvasInputs.get(body.children.at(-1)).children;
+    });
+    return { placed, ids };
+  };
+
+  const top = await place("top");
+  record("L3-0 place 16 help fields (top)", top.placed.ok && top.ids.length === 16, top.placed);
+
+  // L3-1 — the Design panel's Contextual Help select on the first TextField → Help.
+  await page.evaluate((id) => window.__COMPOSITION_CATALOG__.workspace.selectRecords([id]), top.ids[0]);
+  await page.waitForTimeout(800);
+  const design = page.getByRole("button", { name: "Design", exact: true }).first();
+  if (await design.isVisible().catch(() => false)) await design.click();
+  await page.waitForTimeout(1000);
+  const select = page
+    .locator("xpath=//*[normalize-space(text())='Contextual Help']/following::button[1]")
+    .first();
+  const selectVisible = await select.isVisible().catch(() => false);
+  if (selectVisible) {
+    await select.click();
+    await page.getByRole("option", { name: "Help", exact: true }).click();
+    await page.waitForTimeout(1000);
+  }
+  await page.screenshot({ path: `${OUT}/L3-1-panel${DARK ? "-dark" : ""}.png` });
+  let [first] = await helpParts(page, [top.ids[0]]);
+  record(
+    "L3-1 Design panel Contextual Help → Help (a label row with the help)",
+    selectVisible && !!first.row && !!first.help && first.variant === "help",
+    { selectVisible, first },
+  );
+
+  // L3-2 — undo takes the row and the help out in one step; redo puts them back.
+  const undo = await page.evaluate(async (fieldId) => {
+    const ws = window.__COMPOSITION_CATALOG__.workspace;
+    const root = ws.root;
+    const types = () =>
+      root.canvasInputs.get(fieldId).children.map((id) => root.typeOf(root.canvasInputs.get(id)));
+    const wait = () => new Promise((r) => setTimeout(r, 300));
+    const withHelp = types();
+    ws.undo();
+    await wait();
+    const undone = types();
+    ws.redo();
+    await wait();
+    return { withHelp, undone, redone: types() };
+  }, top.ids[0]);
+  record(
+    "L3-2 undo (one step: Label back in place) · redo",
+    undo.withHelp[0] === "FieldLabel" && undo.undone[0] === "Label" && undo.redone[0] === "FieldLabel",
+    undo,
+  );
+
+  await setHelps(page, top.ids.slice(1), "help");
+  const same = await reopen(page);
+  let parts = await helpParts(page, top.ids);
+  record(
+    "L3-3 save · reopen keeps 16 helps",
+    same && parts.every((p) => p.row && p.help && p.button),
+    parts.filter((p) => !p.help),
+  );
+
+  // L3-4 — Preview: each help button named label + help (S2 `FieldLabel`), not in a Button slot.
+  const names = await previewFrame(page).evaluate((parts) => {
+    const at = (id) => document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+    return parts.map((p) => {
+      const button = at(p.button);
+      const ids = button?.getAttribute("aria-labelledby")?.split(/\s+/) ?? [];
+      const name = ids
+        .map((id) => document.getElementById(id))
+        .map((el) => (el === button ? el.getAttribute("aria-label") : el?.textContent?.trim()))
+        .join(" ");
+      return { type: p.type, name, slot: button?.getAttribute("slot") ?? null };
+    });
+  }, parts);
+  record(
+    "L3-4 Preview help button name = label + Help (16 fields)",
+    // (The Preview's locale's S2 string — ko 「도움말」, en 「Help」.)
+    names.every((n) => /^Price (Help|도움말)$/.test(n.name) && n.slot === null),
+    names,
+  );
+
+  // L3-5 — open the help in the Preview: a dialog named by its title; the document unchanged.
+  const revision = await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.runtime.graph.revision);
+  const opened = await previewFrame(page).evaluate(async (id) => {
+    const button = document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+    button.scrollIntoView({ block: "center" });
+    button.click();
+    await new Promise((r) => setTimeout(r, 500));
+    const dialog = document.querySelector("[role=dialog]");
+    const title = dialog && document.getElementById(dialog.getAttribute("aria-labelledby"));
+    const result = {
+      open: !!dialog,
+      expanded: button.getAttribute("aria-expanded"),
+      name: title?.textContent?.trim() ?? null,
+      text: dialog?.textContent?.replace(/\s+/g, " ").trim() ?? null,
+    };
+    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await new Promise((r) => setTimeout(r, 500));
+    result.closed = !document.querySelector("[role=dialog]");
+    return result;
+  }, parts[0].button);
+  await page.waitForTimeout(500);
+  const revisionAfter = await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.runtime.graph.revision);
+  record(
+    "L3-5 Preview opens the help (dialog named by its title) · Escape closes · document unchanged",
+    opened.open && opened.expanded === "true" && opened.name === "Need help?" && opened.closed && revision === revisionAfter,
+    { ...opened, revision, revisionAfter },
+  );
+
+  // Each label row: its place in the field, its parts' places, its paint outside text and glyph.
+  const rowLegs = async (p, name) => {
+    const preview = await domRect(page, p.row);
+    const canvas = await canvasRect(page, p.row);
+    const inner = await previewFrame(page).evaluate(({ field, row, label, button, glyph }) => {
+      const at = (id) => document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+      const b = at(row).getBoundingClientRect();
+      const f = at(field).getBoundingClientRect();
+      const rel = (el, o = b) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x - o.x, y: r.y - o.y, width: r.width, height: r.height };
+      };
+      const fieldEl = at(field);
+      const cs = getComputedStyle(fieldEl);
+      return {
+        grid: {
+          rows: cs.gridTemplateRows,
+          kids: [...fieldEl.children].map((k) => {
+            const r = k.getBoundingClientRect();
+            return `${k.className}|${k.tagName}|y${Math.round(r.y - f.y)} h${Math.round(r.height)} as=${getComputedStyle(k).alignSelf}`;
+          }),
+        },
+        inField: rel(at(row), f),
+        label: rel(at(label)),
+        button: rel(at(button)),
+        glyph: rel(at(glyph).querySelector("svg") ?? at(glyph)),
+      };
+    }, p);
+    const drawn = await page.evaluate(({ field, row, label, button, glyph }) => {
+      const root = window.__COMPOSITION_CATALOG__.workspace.root;
+      const g = (id) => root.getGeometry([id]).get(id);
+      const abs = (id) => {
+        // (Geometry is parent-relative: sum up to the field.)
+        let x = 0;
+        let y = 0;
+        for (let r = root.canvasInputs.get(id); r && r.id !== field; r = root.canvasInputs.get(r.parentId)) {
+          const b = g(r.id);
+          x += b.x;
+          y += b.y;
+        }
+        return { x, y, width: g(id).width, height: g(id).height };
+      };
+      const rowBox = abs(row);
+      const rel = (id) => {
+        const a = abs(id);
+        return { ...a, x: a.x - rowBox.x, y: a.y - rowBox.y };
+      };
+      return { inField: rowBox, label: rel(label), button: rel(button), glyph: rel(glyph) };
+    }, p);
+    const close = (a, b) => ["x", "y", "width", "height"].every((k) => Math.abs(a[k] - b[k]) <= 1);
+    const masks = [inner.label, inner.glyph];
+    const outside = (x, y) =>
+      !masks.some((m) => x >= m.x - 1 && x <= m.x + m.width + 1 && y >= m.y - 1 && y <= m.y + m.height + 1);
+    const a = await shot(page, canvas);
+    const b = await shot(page, preview.rect);
+    return {
+      size: [canvas.width, canvas.height, preview.rect.width, preview.rect.height],
+      sizeMatch:
+        Math.abs(preview.rect.width - canvas.width) <= 1 &&
+        Math.abs(preview.rect.height - canvas.height) <= 1,
+      places:
+        close(drawn.inField, inner.inField) &&
+        close(drawn.label, inner.label) &&
+        close(drawn.button, inner.button),
+      drawn,
+      dom: inner,
+      paint: compare(a, b, outside, `${name}${DARK ? "-dark" : ""}`),
+    };
+  };
+  const judge = async (ids, position) => {
+    for (const size of ["S", "M", "L"]) {
+      await edit(
+        page,
+        (c, ws, h, { ids, size }) => {
+          const library = ws.runtime.graph.library;
+          return ids
+            .filter((id) => {
+              const type = ws.root.typeOf(ws.root.canvasInputs.get(id));
+              return "size" in (library.definitions.get(`lib:definition:type-${type}`)?.accepts ?? {});
+            })
+            .map((id) => h.props(id, { size }));
+        },
+        { ids, size },
+      );
+      await page.waitForTimeout(1200);
+      await page.evaluate(() => window.__COMPOSITION_CATALOG__.workspace.selectRecords([]));
+      await page.mouse.move(5, 995);
+      parts = await helpParts(page, ids);
+      for (const p of parts) {
+        const present = await previewFrame(page).evaluate(
+          (id) => !!id && !!document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`),
+          p.row,
+        );
+        if (!present) {
+          record(`L3-6 ${position} ${size} ${p.type}: label row in the Preview`, false, p);
+          continue;
+        }
+        const leg = await rowLegs(p, `${position}-${size}-${p.type}`);
+        record(
+          `L3-6 ${position} ${size} ${p.type}: label row Canvas = Preview (place in field · Label · button ±1 · paint ≤ 0.001)`,
+          leg.sizeMatch && leg.places && leg.paint.ratio <= 0.001,
+          leg,
+        );
+      }
+    }
+  };
+  await judge(top.ids, "top");
+
+  // L3-7 — None unwraps every field (the Label back in the row's place).
+  await setHelps(page, top.ids, "none");
+  parts = await helpParts(page, top.ids);
+  record("L3-7 None removes every help (Label unwrapped)", parts.every((p) => !p.row && p.label), parts.filter((p) => p.row));
+
+  // The side position, in a project of its own (the Canvas page keeps every field in it).
+  await newProject(page, `adr259-p3-side-${Date.now()}`);
+  if (DARK) await darkTheme(page);
+  const side = await place("side");
+  record("L3-0 place 16 help fields (side)", side.placed.ok && side.ids.length === 16, side.placed);
+  await setHelps(page, side.ids, "help");
+  await page.waitForTimeout(1200);
+  await judge(side.ids, "side");
+
+  // L3-8 — a disabled ComboBox's help opens (detached from the field's Button context).
+  const combo = side.ids[HELP_FIELDS.indexOf("ComboBox")];
+  await edit(page, (c, ws, h, id) => h.props(id, { isDisabled: true }), combo);
+  await page.waitForTimeout(1200);
+  const [comboParts] = await helpParts(page, [combo]);
+  const disabled = await previewFrame(page).evaluate(async (id) => {
+    const button = document.querySelector(`[data-catalog-id="${CSS.escape(id)}"]`);
+    const picker = [...button.closest(".react-aria-ComboBox").querySelectorAll("button")].find((b) => b !== button);
+    button.click();
+    await new Promise((r) => setTimeout(r, 500));
+    const open = !!document.querySelector("[role=dialog]");
+    document.activeElement?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    return { helpDisabled: button.disabled, pickerDisabled: picker?.disabled ?? null, open };
+  }, comboParts.button);
+  record(
+    "L3-8 disabled ComboBox: help opens · picker stays disabled",
+    !disabled.helpDisabled && disabled.pickerDisabled === true && disabled.open,
+    disabled,
+  );
+
+  record("L3-9 page errors 0", errors.length === 0, errors.slice(0, 5));
+  await browser.close();
+}
+
 if (PHASE === "2") await phase2();
+if (PHASE === "3") await phase3();
 if (PHASE === "1") {
   await phase1();
   if (!DARK) await phase1WebKit().catch((e) => record("L1-10 WebKit", false, String(e)));

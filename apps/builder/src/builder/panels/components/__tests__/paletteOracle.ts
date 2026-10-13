@@ -472,6 +472,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "AppWindowMac",
   },
   {
+    type: "ContextualHelp",
+    category: "overlays",
+    label: "contextual help",
+    icon: "CircleHelp",
+  },
+  {
     type: "Tooltip",
     category: "overlays",
     label: "tooltip",

@@ -198,6 +198,7 @@
 @import "./generated/Modal.css";
 @import "./generated/Dialog.css";
 @import "./generated/Popover.css";
+@import "./generated/FieldLabel.css"; /* ADR-259 Phase 3: a field's label row */
 @import "./Popover.css"; /* animations, placement, Dialog position:static override */
 
 /* Advanced Color Components — skipCSSGeneration, 수동 CSS */

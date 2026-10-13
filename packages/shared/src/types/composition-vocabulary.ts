@@ -53,11 +53,14 @@ export type ComponentTag =
   | "ComboBox"
   // ADR-256 Phase 10: S2 `Content` · `Footer` (a Card's sections, an InlineAlert's body).
   | "Content"
+  // ADR-259 Phase 3: S2 ContextualHelp · a field's label row (S2 FieldLabel).
+  | "ContextualHelp"
   | "DateField"
   | "DateInput"
   | "DatePicker"
   | "DateRangePicker"
   | "Description"
+  | "FieldLabel"
   | "Dialog"
   | "DialogTrigger"
   | "Disclosure"

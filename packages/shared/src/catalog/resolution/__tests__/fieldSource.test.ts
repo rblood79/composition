@@ -114,7 +114,11 @@ describe("ADR-248 Phase 4c prop sources", () => {
         if (
           typeName &&
           ((key === "density" && CATALOG_DENSITY_PROPAGATION_OWNER[typeName]) ||
-            (key === "overflowMode" && CATALOG_OVERFLOW_MODE_OWNERS[typeName]))
+            (key === "overflowMode" && CATALOG_OVERFLOW_MODE_OWNERS[typeName]) ||
+            // (ADR-259 Phase 3: a ContextualHelp's glyph is its `variant`'s — S2 has no other.)
+            (key === "iconName" &&
+              typeName === "Icon" &&
+              identity(record).includes("component-contextualhelp__")))
         )
           continue;
         const reading = readPropSource(graph, target, key);

@@ -27,6 +27,8 @@ import { Heading, Label, Text } from "react-aria-components";
 
 import { Button } from "../../components/Button";
 
+import { ContextualHelpButton } from "../../components/ContextualHelp";
+
 import { Group } from "../../components/Group";
 
 import { Icon } from "../../components/Icon";
@@ -133,6 +135,7 @@ import {
   catalogCalendarNavButtonGlyph,
   catalogColumnSortNameGroup,
   catalogColumnSortsAtEnd,
+  catalogContextualHelpOfTrigger,
   catalogDisclosureOfHeading,
   catalogDisclosureOfTrigger,
   catalogDisclosureOfTriggerPart,
@@ -1744,6 +1747,25 @@ function dialogTitleOf(
   return undefined;
 }
 
+/**
+ * ADR-259 Phase 3 — a ContextualHelp's Popover holds a `slot="title"` Heading (S2 names the
+ * Popover by it). The closed Popover is a hidden record (the Canvas draws no closed overlay), so
+ * the search goes in regardless — a Heading the document hides itself (`showWhen`) is not a title.
+ */
+function contextualHelpTitled(
+  root: CatalogCompositionRoot,
+  help: CatalogConsumerNode,
+): boolean {
+  const visit = (id: string): boolean => {
+    const record = root.domInputs.get(id);
+    if (!record || record.bindingId === "contextualhelp") return false;
+    if (record.bindingId === "heading" && record.props.slot === "title")
+      return !record.showWhen && !catalogAbsentByValue(record);
+    return record.children.some(visit);
+  };
+  return help.children.some(visit);
+}
+
 /** Parents whose RAC `PopoverContext` places their Popover (ADR-256 Phase 5g · 6c · 6d · 6e). */
 const CONTEXT_PLACED_POPOVER_PARENTS: ReadonlySet<string> = new Set([
   "MenuTrigger",
@@ -1930,6 +1952,9 @@ function ruleDom(
   // ADR-256 Phase 8a: an overlay's arrow is its `OverlayArrow` child node — the shared overlay
   // draws none of its own.
   if (lower === "popover" || lower === "tooltip") rest.hideArrow = true;
+  // ADR-259 Phase 3: S2 names a ContextualHelp's Popover by its `slot="title"` Heading (without
+  // one RAC names it by the trigger).
+  if (lower === "contextualhelp") rest.titled = contextualHelpTitled(root, node);
   // S2 ColorWheel `size` → RAC's required radii (outer = half the diameter, inner = outer − the
   // track) — the raw number must not reach the DOM element. The box is the diameter square: S2
   // writes width/height from `size` over the style (ColorWheel.tsx), so a box sizing never parts
@@ -2965,7 +2990,17 @@ export function renderNode(
   // A Button the document disables keeps its rest paint inline, as the Canvas draws it (the
   // rule's disabled state is its opacity; the shared `.button-base` sheet would also repaint it).
   // Inside a disabled field the field's root fades once: the Button does not fade again.
-  if (bound && node.bindingId === "button") {
+  // ADR-259 Phase 3: a ContextualHelp's trigger is RAC's plain Button (S2's quiet ActionButton,
+  // detached from any Button context) — its box and quiet paint are the record's, inline.
+  const helpOwner =
+    node.bindingId === "button"
+      ? catalogContextualHelpOfTrigger(
+          node,
+          (id) => root.domInputs.get(id),
+          (entry) => catalogTypeName(root, entry),
+        )
+      : undefined;
+  if (bound && node.bindingId === "button" && !helpOwner) {
     const partField = catalogPartField(root, node);
     const fieldDisabled =
       partField !== undefined &&
@@ -3052,7 +3087,23 @@ export function renderNode(
           derivedProps: { ...node.derivedProps, color: undefined },
         }
       : undefined;
-  const rendered = binding
+  const rendered = helpOwner
+    ? createElement(
+        ContextualHelpButton,
+        {
+          "data-catalog-id": node.id,
+          // (The Button sheet gives every RAC Button a border — the quiet box writes its own out.)
+          style: {
+            ...bound,
+            ...(Number(node.visual.borderWidth) === 0 ? { borderWidth: 0 } : {}),
+            ...styleOverride,
+          },
+          ...(buttonDisabled(node) ? { isDisabled: true } : {}),
+          ...(node.props.autoFocus === true ? { autoFocus: true } : {}),
+        },
+        ...children,
+      )
+    : binding
     ? binding(
         (sheetColored as CatalogConsumerNode | undefined) ?? node,
         sheetBox ?? (styleOverride ? { ...bound, ...styleOverride } : bound!),

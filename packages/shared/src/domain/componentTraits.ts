@@ -102,6 +102,29 @@ export function isFieldControlGroup(
   return type === "Group" && FIELD_CONTROL_GROUP_HOSTS.has(parentType ?? "");
 }
 
+/**
+ * ADR-259 Phase 3 — S2 1.8.0 fields with `contextualHelp` (16): a label row (FieldLabel) holds the
+ * Label and its ContextualHelp.
+ */
+export const CATALOG_CONTEXTUAL_HELP_FIELDS: ReadonlySet<string> = new Set([
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "ComboBox",
+  "Select",
+  "ColorField",
+  "ColorSlider",
+  "DateField",
+  "DatePicker",
+  "DateRangePicker",
+  "TimeField",
+  "SearchField",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Slider",
+  "TagGroup",
+]);
+
 export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   // ── 구조 컨테이너 ──
   body: { container: "structural" },
@@ -120,12 +143,13 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   Content: {
     container: "structural",
     families: ["freeContentHost"],
-    owners: ["Card", "InlineAlert"],
+    // ADR-259 Phase 3: a ContextualHelp's Popover body (S2 `ContextualHelpPopover`).
+    owners: ["Card", "InlineAlert", "Popover"],
   },
   Footer: {
     container: "structural",
     families: ["freeContentHost"],
-    owners: ["Card"],
+    owners: ["Card", "Popover"],
   },
   // ADR-240 Phase 1 — Card preview 영역 · 자유 내용 컨테이너 (RAC Popover · Tooltip — 이름 있는 slot 없음).
   CardPreview: {
@@ -344,6 +368,8 @@ export const COMPONENT_TRAITS: Readonly<Record<string, ComponentTraits>> = {
   RadioGroup: { families: ["disablingGroup"] },
   Radio: { owners: ["RadioGroup"] },
   RadioItems: { owners: ["RadioGroup"] },
+  // ADR-259 Phase 3: a field's label row (S2 FieldLabel) — in the field it labels.
+  FieldLabel: { owners: [...CATALOG_CONTEXTUAL_HELP_FIELDS] },
   CheckboxGroup: { families: ["disablingGroup"] },
   CheckboxItems: { owners: ["CheckboxGroup"] },
   // 2026-10-04: toggle 의 indicator 상자 노드 — 자기 부모 toggle 안에만 (부모 DOM 이 흡수).

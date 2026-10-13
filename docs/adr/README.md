@@ -149,6 +149,10 @@
 
 ## 현황
 
+> **2026-10-13 ADR-259 Implemented**: Phase 4 — G4 perf ratchet A 등급 초과 0 (push 대상 `ff038c0d9` 측정 · B 경고 4 · Phase 3 은 pre-push 가 잰다) · 번들 Builder +6,614 · Preview +1,442 B gzip (상한 안) · live 하니스 재실행 13/13 · 51/51 · 106/106. 조사 문서 §6.1 「라」 · 「링크」 와 `ssot-hierarchy.md` D3 sub-part 절 갱신. 본문 `completed/` 이동 · [Live Exercise](completed/259-s2-contextual-help-prefix-item-links.md#live-exercise). 열림 −1, 완료 +1 (열림 1 — Proposed 1).
+
+> **2026-10-13 ADR-259 Phase 3 닫힘** (Accepted): field 도움말 16 type — 새 type `ContextualHelp` (원본 · 팔레트 overlay 묶음 Popover 뒤) · `FieldLabel` (라벨 행). Design 패널 Contextual Help (None · Help · Info). D1 = S2 oracle (버튼 `slot={null}` · 「라벨 + 도움말」 · Popover 이름 = 제목). unit 48 · RED 18/18 · live 106/106 (다크 106/106) · 판독 HIGH 0 (MEDIUM 1 수리). live 가 잡아 같이 고침: side 배치 DOM 크래시 · Preview 버튼 테두리 · Slider 라벨 행 늘어남. 기존 엔진 비대칭 기록 (side 배치 grid field 라벨 y). 다음 Phase 4 마감.
+
 > **2026-10-13 ADR-259 Phase 2 닫힘** (Accepted): field 앞 글자 5 type (Text · Icon) — Design 패널 Prefix · 명령 하나 · 앞 글자 Group = Input rule 상자 (S2 `FieldGroup`). 사용자 결정 3 「5종 모두 진행 (사본 감수)」. unit 39 · RED 18/18 · live 51/51 (다크 51/51) · 판독 HIGH 0. 같이 수리: invalid field 상자 Canvas 회색 (모든 field) · 사본 Button Icon 크기. 기존 결함 기록: `createComponent` 가 template 루트 `fillSlot` 을 버림. 다음 Phase 3 도움말.
 >
 > **2026-10-13 ADR-259 Phase 0 · 1 닫힘** (Accepted): S2 · RAC oracle 고정 · 항목 링크 7 type + `hideLinkOutIcon` + 바깥 링크 글리프 (unit 11 · live 13/13). 다음 Phase 2 앞 글자.
@@ -272,11 +276,6 @@
 
 ### 진행 중 / 미구현 (Proposed / Accepted / In Progress)
 
-#### [259](259-s2-contextual-help-prefix-item-links.md) — S2 field 도움말 · 앞 글자 · 항목 링크
-
-- **상태**: Accepted — 2026-10-13 (`/execute-adr 259`)
-- **규모**: Phase 0 (템플릿 변경 0 확인 · 설치 S2/RAC 접근성 oracle · WebKit 합성 링크) → 1 항목 링크 7 type + `hideLinkOutIcon` → 2 앞 글자 5 field → 3 도움말 16 field (새 type `ContextualHelp` · `FieldLabel`) → 4 마감. 사용자 결정 2 답함 (2026-10-12). 리뷰 [round 1 · 2](reviews/259.md) — round 1 HIGH 1 · MEDIUM 2 문서 수리, round 2 pending 0 (전제 확정). breakdown: [design/259](design/259-s2-contextual-help-prefix-item-links-breakdown.md)
-
 #### [245](245-ai-panel-on-device-model-path.md) — AI 패널 on-device 모델 경로 (Chrome built-in AI — 선택 경로)
 
 - **상태**: Proposed — 2026-09-27 (선택 경로 — Phase 0 no-go 면 기각 Deprecated · 보류 Proposed 유지가 정상 종결. 개정 2026-10-05 — ADR-248 뒤 코드 인용 갱신, 결정 무변경)
@@ -304,16 +303,15 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 2026-09-19 산정 대비 변경: 921 1위 → 사용자 판정 대기로 내림 (전제 소멸, 위 921 항목) · 910 / 911 행 제거 (Superseded by 248, `completed/` 이동) · 부분 완료 041 · 198 행 제거 (잔여 범위 소멸 — Superseded 표기) · 254 추가 (2026-10-07 Proposed · 리뷰 검토 중) · ADR-194 착수 프롬프트 제거 (Implemented 2026-09-08). 리뷰 파일 (`reviews/{NNN}.md`) 의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                            | 착수 준비도                                                         | 차단 · 선행                                                               |
-| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-|  1   | [259](259-s2-contextual-help-prefix-item-links.md)                                             | Accepted — Phase 0 · 1 · 2 닫힘, Phase 3 (도움말) 다음              | 사용자 결정 3건 답함 · 선행 ADR 255 · 256 · 253 · 257 완료                |
-|  2   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상)        | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
-|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                             | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
-|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                                  | 각 항목의 재개 조건 발생 시                                               |
+| 순위 | ADR                                                                                            | 착수 준비도                                                  | 차단 · 선행                                                               |
+| :--: | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
+|  1   | [245](245-ai-panel-on-device-model-path.md)                                                    | 선택 경로 — Phase 0 go/no-go 계측이 먼저 (no-go 종결도 정상) | 사용자 결정 5건 (G0 절대 목표 · 요청 세트 · 소속 · 채택 근거 · 자격 기기) |
+|  —   | [921](completed/921-render-scene-backend-integration.md)                                       | **Deprecated 2026-10-07** (사용자 결정)                      | 재개 = native · SDK · Rust compile 요구 확정 시 새 ADR                    |
+|  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) | P4                                                           | 각 항목의 재개 조건 발생 시                                               |
 
 ---
 
-## 완료 ADR (279)
+## 완료 ADR (280)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -600,6 +598,7 @@
 | [256](completed/256-rac-composition-level.md) | RAC 수준의 조립 — 노드 트리를 RAC 부품 그대로 그리고 넣는 자리를 레퍼런스 (react-aria.adobe.com · S2) 에서 가져온다. 넣기 판정 하나 (RAC children 종류) · `showWhen` · field · toggle · collection · picker · range · overlay · Calendar · S2 family 가 노드 트리 · 제한 표 삭제 · G5 레퍼런스 예제 15 (13 구조 통과 + Canvas = Preview, 2 는 정해진 글자 span) · contract 40 | Implemented | 2026-10-12 |
 | [257](completed/257-table-column-tracks.md) | Table 열 배치 — Column 의 S2 `width` · `defaultWidth` · `minWidth` · `maxWidth` 가 열 트랙을 정하고 머리글 행 · 모든 Row 가 같은 grid 트랙 (Table · TableView · 바운드, 대안 C2 — flex 파생 기각) · Cell `colSpan` · `align` · `showDivider` · `selectionStyle` · `overflowMode` (Table · GridList · Badge) · Preview 정렬 · 열 크기 조절 (Preview 실행 상태) · TableView = RAC `ResizableTableContainer` > RAC Table · G6 열 폭 편집 화면 반영 +6 ms 수용 | Implemented | 2026-10-12 |
 | [258](completed/258-color-controls-canvas-gradient.md) | Color 조작기 (ColorArea · ColorSlider · ColorWheel) 의 Canvas 그라데이션 · thumb + S2 색 축 prop — 레퍼런스 노드 트리 (`ColorThumb` · `ColorWheelTrack` · 원본 3 · contract 41) · 공용 함수 (설치 react-stately `Color` — RAC oracle 444 행 문자열 일치) 를 Preview (RAC inline) 와 Canvas (`_colorGradient` · `_colorThumb` → `skiaPrimitive` 4, premul 보간) 가 같이 따름 · 값 타입 `racColor` · 색 공간 · 채널 한 번에 정규화 · Decision 7 key · 수동 CSS → rule (값 그대로) · 팔레트 Forms (ColorField 뒤) | Implemented | 2026-10-12 |
+| [259](completed/259-s2-contextual-help-prefix-item-links.md) | S2 field 도움말 (`contextualHelp`) · 입력 앞 글자 (`prefix`) · 항목 링크 (`href` · `target` · `rel` · `hideLinkOutIcon`) — 새 type `ContextualHelp` (원본 · 팔레트 overlay) · `FieldLabel` (라벨 행, Label 자리를 잇는 별칭 하나를 생성 CSS · Canvas 가 같이 읽음) · 앞 글자 Group = Input rule 상자 (S2 `FieldGroup`) · Design 패널 Contextual Help · Prefix · 링크 7 type. 사용자 결정 3 (글리프 자동 · 독립 원본 · 사본 감수). live 13 · 51 · 106 (다크 포함) | Implemented | 2026-10-13 |
 
 **Phase 0 baseline 문서** (ADR 아님 — 게이트 기준선): [035](completed/035-phase-0-baseline.md) · [037](completed/037-phase-0-baseline.md) · [039](completed/039-phase-0-baseline.md) · [040](completed/040-phase-0-baseline.md)
 

@@ -57,7 +57,7 @@
   display: block;
 }
 
-.react-aria-ColorSlider[data-orientation="vertical"] .react-aria-Label {
+.react-aria-ColorSlider[data-orientation="vertical"] :is(.react-aria-Label, .react-aria-FieldLabel) {
   display: none;
 }
 
@@ -79,7 +79,7 @@
 }
 
 
-  .react-aria-ColorSlider .react-aria-Label {
+  .react-aria-ColorSlider :is(.react-aria-Label, .react-aria-FieldLabel) {
     grid-area: label;
   }
 

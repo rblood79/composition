@@ -44,6 +44,8 @@ import { datePickerBinding } from "./DatePicker.binding";
 import { dateRangePickerBinding } from "./DateRangePicker.binding";
 import { descriptionBinding } from "./Description.binding";
 import { dialogTriggerBinding } from "./DialogTrigger.binding";
+import { contextualHelpBinding } from "./ContextualHelp.binding";
+import { fieldLabelBinding } from "./FieldLabel.binding";
 import { tooltipTriggerBinding } from "./TooltipTrigger.binding";
 import { menuTriggerBinding } from "./MenuTrigger.binding";
 import { dialogBinding } from "./Dialog.binding";
@@ -237,6 +239,8 @@ export * from "./ProgressCircle.binding";
 export * from "./Radio.binding";
 export * from "./RadioGroup.binding";
 export * from "./RadioItems.binding";
+export * from "./ContextualHelp.binding";
+export * from "./FieldLabel.binding";
 export * from "./CheckboxItems.binding";
 export * from "./CheckboxIndicator.binding";
 export * from "./CheckboxButton.binding";
@@ -441,6 +445,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Radio: radioBinding,
   RadioGroup: radioGroupBinding,
   RadioItems: radioItemsBinding,
+  // ADR-259 Phase 3: a field's label row (Label + ContextualHelp — S2 FieldLabel).
+  FieldLabel: fieldLabelBinding,
   Switch: switchBinding,
   // 2026-10-04: toggle 의 indicator 상자 노드 (부모 DOM 이 흡수, 자기 rule 없음 — 값은 부모 rule).
   CheckboxIndicator: checkboxIndicatorBinding,
@@ -521,6 +527,8 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   DialogTrigger: dialogTriggerBinding,
   // ADR-255: the Tooltip origin's root (trigger + Tooltip).
   TooltipTrigger: tooltipTriggerBinding,
+  // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger — a quiet Button + its Popover).
+  ContextualHelp: contextualHelpBinding,
   MenuTrigger: menuTriggerBinding,
   // ADR-912 childSpec→catalog cutover (2026-06-15): Dialog 액션 영역 슬롯 컨테이너 sub-part
   //   (palette 미노출, Dialog origin template 의 자식 노드). Canvas=rule box shell, layout=template

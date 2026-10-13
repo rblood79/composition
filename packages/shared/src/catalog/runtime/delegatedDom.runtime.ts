@@ -1067,7 +1067,7 @@ export const tagKey = (tag: CatalogConsumerNode) =>
  * (`catalogAbsentByValue` renders none), reached through layout containers (Group · frame — RAC's
  * Group leaves the `LabelContext` as it is). RAC then names the grid by it (`aria-labelledby`).
  */
-const LABEL_PASS_THROUGH_TYPES = new Set(["Group", "frame"]);
+const LABEL_PASS_THROUGH_TYPES = new Set(["Group", "frame", "FieldLabel"]);
 
 export function tagGroupLabelled(
   root: CatalogCompositionRoot,

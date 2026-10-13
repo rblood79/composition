@@ -44,6 +44,7 @@ import {
 } from "../document/s2PropAlignment";
 import { CatalogValidationError } from "../document/validation";
 import { CATALOG_LINK_OUT_OWNERS } from "../document/itemLinks";
+import { catalogContextualHelpGlyph } from "../document/contextualHelp";
 import {
   CATALOG_FORM_CONTEXT_KEYS,
   CATALOG_FORM_FIELDS,
@@ -903,6 +904,25 @@ export function resolveCatalogNode(
     else delete props.hideLinkOutIcon;
   };
   /**
+   * ADR-259 Phase 3 — S2 `ContextualHelp`: its trigger's glyph is its variant's
+   * (`catalogContextualHelpGlyph` — `help` · `info`, S2 `ContextualHelp.tsx:210`). The help wins:
+   * S2 draws no other icon there.
+   */
+  const applyContextualHelpGlyph = (
+    definitionId: DefinitionId,
+    props: Props,
+    parent: ParentContext | undefined,
+  ): void => {
+    if (lookupDefinition(definitionId).name !== "Icon") return;
+    const button = structuralParent(parent);
+    if (!button || lookupDefinition(button.definitionId).name !== "Button")
+      return;
+    const help = structuralParent(button.parent);
+    if (!help || lookupDefinition(help.definitionId).name !== "ContextualHelp")
+      return;
+    props.iconName = catalogContextualHelpGlyph(help.props.variant);
+  };
+  /**
    * S2 Form context (`formContext.ts`): a field takes the nearest Form's value for each context
    * key it did not author — S2 `useFormProps` fills only `undefined` keys. The Form reaches through
    * any element between (React context), the nearest Form wins.
@@ -1047,6 +1067,7 @@ export function resolveCatalogNode(
     applyOwnerDensity(node.definitionId, props, parent);
     applyOwnerOverflowMode(node.definitionId, props, parent);
     applyOwnerHideLinkOut(node.definitionId, props, parent);
+    applyContextualHelpGlyph(node.definitionId, props, parent);
     applyOwnerEmphasis(node.definitionId, props, parent);
     applyOwnerVariant(
       node.definitionId,
@@ -1257,6 +1278,7 @@ export function resolveCatalogNode(
       applyOwnerDensity(definitionId, props, parent);
       applyOwnerOverflowMode(definitionId, props, parent);
       applyOwnerHideLinkOut(definitionId, props, parent);
+      applyContextualHelpGlyph(definitionId, props, parent);
       applyOwnerEmphasis(definitionId, props, parent);
       applyOwnerVariant(definitionId, props, parent, new Set(Object.keys(own)));
       applyBooleanVariant(definitionId, props);
@@ -1522,6 +1544,7 @@ export function resolveCatalogNode(
     applyOwnerDensity(template.definitionId, props, parent);
     applyOwnerOverflowMode(template.definitionId, props, parent);
     applyOwnerHideLinkOut(template.definitionId, props, parent);
+    applyContextualHelpGlyph(template.definitionId, props, parent);
     applyOwnerEmphasis(template.definitionId, props, parent);
     applyOwnerVariant(template.definitionId, props, parent, instanceAuthored);
     applyBooleanVariant(template.definitionId, props);

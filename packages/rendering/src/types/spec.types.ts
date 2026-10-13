@@ -89,6 +89,8 @@ export interface ContainerStylesSchema {
   //   수동 CSS override 해체용 (예: ListBoxItem archetype="simple" 이 emit 한
   //   `align-items: center` 를 flex column 구조에서 `flex-start` 로 재정의).
   alignItems?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
+  /** ADR-259 Phase 3: the box in its flex · grid line (a field's label row). */
+  alignSelf?: "stretch" | "flex-start" | "flex-end" | "center" | "baseline";
   justifyContent?:
     | "flex-start"
     | "flex-end"
@@ -153,6 +155,13 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    * class, as before).
    */
   classAliases?: readonly string[];
+
+  /**
+   * ADR-259 Phase 3: a part class another RAC class stands in for (a field's label row in its
+   * Label's place) — every `.react-aria-{part}` selector also matches `.react-aria-{alias}`
+   * (`:is(…)`, one class of specificity; appended inside `:not(…)` · `:is(…)` · `:where(…)` lists).
+   */
+  partAliases?: Readonly<Record<string, readonly string[]>>;
 
   /**
    * 기본 HTML 태그 (React용)

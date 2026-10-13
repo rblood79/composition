@@ -622,6 +622,14 @@ const FAMILY_3_ENTRIES: ComponentCatalogEntry[] = [
     icon: "GroupIcon",
     placeable: false,
   }),
+  // ADR-259 Phase 3: a field's label row (S2 FieldLabel — Label + ContextualHelp). The field's
+  //   "Contextual Help" command makes it; palette 비노출 sub-part.
+  primitiveEntry("FieldLabel", "selection", FAMILY_3_CUTOVER, {
+    category: "forms",
+    label: "field label",
+    icon: "GroupIcon",
+    placeable: false,
+  }),
   // CheckboxIndicator · RadioIndicator · SwitchIndicator — toggle 의 indicator 상자 (2026-10-04, RadioItems
   //   동형). Checkbox · Radio · Switch template 의 첫 자식, DOM 은 부모 RAC 가 그린다. palette 비노출.
   // CheckboxButton — ADR-256 Phase 3: Checkbox 의 누르는 자리 (RAC CheckboxButton — indicator 와 글자를
@@ -1101,6 +1109,13 @@ const FAMILY_6_ENTRIES: ComponentCatalogEntry[] = [
     label: "popover",
     icon: "AppWindowMac",
   }),
+  // ADR-259 Phase 3: S2 ContextualHelp — a quiet help Button and its Popover (RAC DialogTrigger).
+  //   Placed on its own (S2 puts it beside a heading too — 사용자 결정 2) or in a field's label row.
+  primitiveEntry("ContextualHelp", "overlays", FAMILY_6_CUTOVER, {
+    category: "overlays",
+    label: "contextual help",
+    icon: "CircleHelp",
+  }),
   // Tooltip — Skia generic 발효 (skiaLegacy 제거, ADR-912 단계 5 (1b) 2026-06-04): bg(roundRect)
   //   + text 는 buildCatalogShapes(variant fill {color.neutral-subtle}, text {color.neutral} —
   //   rule table 과 spec 일치), 화살표는 자식 OverlayArrow 노드 (ADR-256 Phase 8a). Tooltip 은
@@ -1441,6 +1456,8 @@ export const PALETTE_REUSABLE_ORIGIN_TYPES: readonly string[] = [
   "Dialog",
   "Modal",
   "Popover",
+  // ADR-259 Phase 3 (사용자 결정 2): S2 ContextualHelp — the overlay group, after Popover.
+  "ContextualHelp",
   "Tooltip",
 ];
 

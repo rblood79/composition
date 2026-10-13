@@ -60,6 +60,8 @@ export const KO_ALIASES: Readonly<Record<string, string>> = {
   모달: "Modal",
   다이얼로그: "Dialog",
   팝오버: "Popover",
+  // ADR-259 Phase 3: S2 ContextualHelp.
+  도움말: "ContextualHelp",
   툴팁: "Tooltip",
   메뉴: "Menu",
   진행률: "ProgressBar",

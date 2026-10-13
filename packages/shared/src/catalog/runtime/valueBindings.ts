@@ -213,6 +213,9 @@ function racOwnText(
   const ownerTypes = RAC_TEXT_OWNERS[partType];
   if (!ownerTypes) return undefined;
   let owner = get(record.parentId);
+  // (A Label in its field's label row is still the field's — ADR-259 Phase 3 FieldLabel.)
+  if (partType === "Label" && owner && typeOf(owner) === "FieldLabel")
+    owner = get(owner.parentId);
   if (partType === "Label") {
     if (!owner || !ownerTypes.includes(typeOf(owner))) return undefined;
   } else

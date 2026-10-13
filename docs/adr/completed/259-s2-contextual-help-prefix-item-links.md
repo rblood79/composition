@@ -2,18 +2,23 @@
 
 ## Status
 
-Accepted — 2026-10-13 (`/execute-adr 259` 호출 + [리뷰](reviews/259.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed). Proposed — 2026-10-12
+Implemented — 2026-10-13 (Phase 0 ~ 4 · G0 ~ G4 종결, 아래 Live Exercise). Accepted — 2026-10-13 (`/execute-adr 259` 호출 + [리뷰](../reviews/259.md) round 2 pending 0 · CRITICAL/HIGH 전부 fixed). Proposed — 2026-10-12
 
-- 사용자 요청: `/create-adr` (2026-10-12) — S2 프로퍼티 정렬 조사 ([S2_PROP_ALIGNMENT_2026-10.md](../explanation/research/S2_PROP_ALIGNMENT_2026-10.md) §6.1) 의 남은 항목 중 「라 — 새 부품이 필요, 별도 ADR 규모」 를 ADR 로 진행.
+- 사용자 요청: `/create-adr` (2026-10-12) — S2 프로퍼티 정렬 조사 ([S2_PROP_ALIGNMENT_2026-10.md](../../explanation/research/S2_PROP_ALIGNMENT_2026-10.md) §6.1) 의 남은 항목 중 「라 — 새 부품이 필요, 별도 ADR 규모」 를 ADR 로 진행.
 - 범위를 정한 사용자 답 (2026-10-12, AskUserQuestion): **「하나로 + href 포함」** — `contextualHelp` · `prefix` · 항목 `href` + `hideLinkOutIcon` 을 ADR 하나에 Phase 로 나눈다. 「하나로, href 제외」 · 「둘로 나눔」 은 기각.
 - 사용자가 이미 답한 확인 항목: D2 정본 = S2 1.8.0 고정 → design-data → v3 → 확장 (2026-10-09) · 빌더 = RAC 수준 조립, 레퍼런스 노드 트리 (2026-10-07) · overlay 는 「레퍼런스 구조로」 — `DialogTrigger > Button + Popover` (ADR-255) · 기본 UI 원본 (Label · Input · Button) 을 바꾸면 전 컴포넌트가 따라간다 (ADR-253) · Skia 전용 시각 효과 금지 (D3 대칭) · 저장 문서의 prop 전환은 로드 시 1회 (2026-10-10) · Preview 조작 결과는 문서에 쓰지 않는다 (ADR-250).
 - **사용자 결정 1 · 2 — 2026-10-12**: (1) 바깥 링크 글리프 = **「S2 처럼 자동으로」** (L1), (2) 도움말 원본 = **「S2 처럼」** — S2 의 `ContextualHelp` 는 field 밖 (제목 옆 등) 에도 두는 공개 컴포넌트라 독립 원본을 팔레트에 둔다. 자리는 S2 / v3 문서가 도움말을 두는 overlay 묶음 (Dialog · Popover · Tooltip 과 같은 곳) — 팔레트 overlay 묶음의 Popover 뒤.
-- 리뷰: round 1 (Codex, 2026-10-12 — [reviews/259.md](reviews/259.md)) HIGH 1 · MEDIUM 2 → **2026-10-12 문서 수리** (Decision 1 · 2 · R9 ~ R11 · G2 · G3 보강): r1-h1 도움말 Button 은 field 의 ButtonContext 를 끊는다 (`slot: false` → RAC `slot={null}`, S2 `ContextualHelp.tsx:197-205` — 끊지 않으면 disabled ComboBox 안 도움말이 같이 비활성 · picker 이름 경로를 상속) · r1-m1 도움말 Popover 의 이름 = 제목 Heading (S2 `ContextualHelp.tsx:54-59, 79-87` 처럼 Popover `aria-labelledby` ↔ title id 를 ContextualHelp 안에서 직접 연결 — 일반 Popover 는 그대로) · r1-m2 앞 글자가 있는 상자 Group 은 비대화형 자리의 mouse `pointerdown` · `touchend` 를 input · textarea 포커스로 넘긴다 (S2 `Field.tsx:258-273`). 수리 검증 round 2 (Codex, 2026-10-12) — 신규 HIGH 0 · MEDIUM 0 · **pending 0** (세 건 fixed) → 설계 전제 확정 (CLAUDE.md §전제 확정 종결 계약). 제품 구현 · gate 는 미검증.
+- 리뷰: round 1 (Codex, 2026-10-12 — [reviews/259.md](../reviews/259.md)) HIGH 1 · MEDIUM 2 → **2026-10-12 문서 수리** (Decision 1 · 2 · R9 ~ R11 · G2 · G3 보강): r1-h1 도움말 Button 은 field 의 ButtonContext 를 끊는다 (`slot: false` → RAC `slot={null}`, S2 `ContextualHelp.tsx:197-205` — 끊지 않으면 disabled ComboBox 안 도움말이 같이 비활성 · picker 이름 경로를 상속) · r1-m1 도움말 Popover 의 이름 = 제목 Heading (S2 `ContextualHelp.tsx:54-59, 79-87` 처럼 Popover `aria-labelledby` ↔ title id 를 ContextualHelp 안에서 직접 연결 — 일반 Popover 는 그대로) · r1-m2 앞 글자가 있는 상자 Group 은 비대화형 자리의 mouse `pointerdown` · `touchend` 를 input · textarea 포커스로 넘긴다 (S2 `Field.tsx:258-273`). 수리 검증 round 2 (Codex, 2026-10-12) — 신규 HIGH 0 · MEDIUM 0 · **pending 0** (세 건 fixed) → 설계 전제 확정 (CLAUDE.md §전제 확정 종결 계약). 제품 구현 · gate 는 미검증.
+
 > **Phase 0 닫힘 (2026-10-13)**: 템플릿 변경 0 (contract 41) · S2 1.8.1/RAC oracle 고정 (`apps/builder/tests/fixtures/adr259-s2-oracle.json`) — 도움말 Popover 의 이름은 제목이 `slot="title"` Heading 일 때만 · TextArea 의 앞 글자는 이름에 들어가지 않음 (S2 그대로) · WebKit 합성 링크는 지금 click 처리기가 받는다 (R3 새지 않음 → H1 단독, H2 안 더함) · 치수 대응표.
 >
 > **Phase 1 닫힘 (2026-10-13)**: 항목 링크 7 type (`href` · `target` · `rel`, MenuItem 포함) · GridList · Menu `hideLinkOutIcon` · 바깥 링크 글리프 (L1). unit 11 · 원복 RED 4/4 · live 13/13 (다크 12/12) — 글리프 중심 · 크기 Canvas = Preview (Menu 픽셀 차 0, GridList 10 px 획 5 px), WebKit Enter 로 Preview iframe 이동 0. R4 는 live 에서 MenuItem `<a>` 의 링크 색 누출로 실재 — rule `&[href]` 로 수리.
 >
 > **Phase 2 닫힘 (2026-10-13)**: 앞 글자 5 field (Text · Icon) — 명령 하나 (넣기 · 바꾸기 · 빼기 각 undo 한 번) · Design 패널 Prefix. 사용자 결정 3 「5종 모두 진행 (사본 감수)」 — TextField · TextArea · ColorField 는 Input 을 Group 으로 감싸며 field 자식이 사본이 된다. 설계 전제 보정: NumberField 의 상자는 Group 이 아니라 Input 이 칠한다 (ADR-253) → 앞 글자가 든 Group 이 Input rule 상자를 그린다 (S2 `FieldGroup`). unit 39 · 원복 RED 18/18 · live 51/51 (다크 51/51). live 가 잡은 기존 비대칭 — invalid field 상자 Canvas 회색 (모든 field) · 사본 Button 의 Icon 크기 — 를 같이 수리. 판독 1회 HIGH 0.
+
+> **Phase 3 닫힘 (2026-10-13)**: 도움말 16 field — 새 type `ContextualHelp` (원본 `ContextualHelp > Button + Popover > Heading[slot=title] + Content + Footer`) · `FieldLabel` (라벨 행 — Label 자리를 이어받는 별칭 하나를 생성 CSS 와 Canvas part rule 이 같이 읽는다). Design 패널 Contextual Help (None · Help · Info, 각 한 step). D1 = S2 oracle: 버튼 `slot={null}` · 이름 「라벨 + 도움말」 · Popover 이름 = 제목. unit 48 · 원복 RED 18/18 · live 106/106 (다크 106/106). live 가 잡아 같이 고침: side 배치 DOM 크래시 (별칭이 글자 값까지 복사) · Preview 버튼 테두리 · Slider 라벨 행 늘어남. 판독 1회 HIGH 0 · MEDIUM 1 수리 (도움말만 지운 행의 중첩). 기존 엔진 비대칭 기록: side 배치에서 늘어난 grid field 의 라벨 y.
+
+> **Phase 4 닫힘 · Implemented (2026-10-13)**: G4 — perf ratchet A 등급 초과 0 (B 경고 4 · 아래 기록) · initial 번들 상한 안 (Builder JS gzip 1,299,932 → 1,306,546, +6,614 ≤ 1,421,000 · Preview 298,259 → 299,701, +1,442) · live 하니스 Phase 1 · 2 · 3 재실행 13/13 · 51/51 · 106/106. 조사 문서 §6.1 「라」 · 「링크」 와 `ssot-hierarchy.md` D3 sub-part 절 갱신.
 
 - 범위 밖: S2 `LabeledValue` · `RangeSlider` (우리 type 없음 — S2 의 `contextualHelp` 18 type 중 이 둘을 뺀 16) · 항목 `download` · `ping` · `routerOptions` · `referrerPolicy` (조사 §6.1 「제외 권장」) · Breadcrumb · Card · Link 의 링크 (이미 있음) · 링크 검증 (URL 형식 판정 — 지금 `href` 는 어디서도 형식을 보지 않는다, 별도 작업).
 
@@ -157,7 +162,7 @@ Accepted — 2026-10-13 (`/execute-adr 259` 호출 + [리뷰](reviews/259.md) ro
 
 기각 사유: A · P1 은 S2 `ReactNode` 를 글자로 줄인 확장 prop (D2 순서 위반 · 원본 연쇄 끊김). B 는 기본 UI 원본 Label 을 컨테이너로 바꾸고 노드 위치 ≠ DOM 위치. C 는 도움말이 없는 16 field 의 레이아웃까지 다시 쓴다. E 는 Button · Popover 모양을 Canvas 가 복제한다. P2 는 이전 문서 전부 거부 + 앞 글자 없는 field 의 상자 소유 이동. P4 는 가변 폭 앞 글자를 CSS 로 맞출 수 없다. H2 단독은 탐색 규칙을 둘로 나눌 이유가 G1 전에는 없다 (WebKit 결과가 근거가 되면 더한다).
 
-> 구현 상세: [259-s2-contextual-help-prefix-item-links-breakdown.md](design/259-s2-contextual-help-prefix-item-links-breakdown.md)
+> 구현 상세: [259-s2-contextual-help-prefix-item-links-breakdown.md](../design/259-s2-contextual-help-prefix-item-links-breakdown.md)
 
 ### 사용자 결정 2건 — 2026-10-12 답함
 
@@ -196,7 +201,28 @@ Accepted — 2026-10-13 (`/execute-adr 259` 호출 + [리뷰](reviews/259.md) ro
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+실행자 live (2026-10-13). 실행 방식: headed Chrome Playwright 하니스 `apps/builder/scripts/adr259-live.mjs` 로 dev 5173 의 실제 Builder 를 띄우고, 저장된 인증 세션을 썼다. Chrome MCP 와 사용자 확인은 쓰지 않았다. 판정은 Canvas `getGeometry` 와 Preview DOM rect (±1), 그리고 pixelmatch 0.1 ≤ 0.001 이다. 마감 재실행은 Phase 3 판독 수리를 넣은 현재 트리에서 했다.
+
+- **Phase 1 — 항목 링크 (13/13, 다크 12/12)**:
+  - 실행한 조작: 7 type 의 Design 패널 `href` · `target` 입력, Menu · GridList 바깥 링크 글리프의 중심 · 크기 Canvas = Preview, `hideLinkOutIcon`.
+  - 결과: Preview 링크 누름은 iframe 안 이동이다. WebKit Enter 에도 Preview frame 이 유지된다. 콘솔 오류 0.
+- **Phase 2 — 앞 글자 (51/51, 다크 51/51)**:
+  - 실행한 조작: Design 패널 Prefix → Text → Prefix Text 「€」 · undo 2 (각 한 step) · redo · 저장 · 다시 열기 · Preview input 이름 「Price €」 · 앞 글자 mouse 누름 → input focus · None 으로 풀기.
+  - 결과: 5 field 의 19 상자 × text / icon 에서 Canvas = Preview (상자 칠 · 부품 자리).
+- **Phase 3 — 도움말 (106/106, 다크 106/106)**:
+  - 실행한 조작:
+    - Design 패널 Contextual Help (Help · Info · None) · undo / redo · 저장 · 다시 열기.
+    - Preview 버튼 이름 「Price 도움말」.
+    - Preview 버튼 누름 → 「Need help?」 dialog → Escape. 문서 revision 은 바뀌지 않는다.
+    - disabled ComboBox 안 도움말 열림.
+  - 결과: 16 field × 위 / 옆 라벨 × S · M · L 에서 라벨 행 자리 · Label · 버튼이 ±1 안이고, 칠은 ≤ 0.001 (글자 · 글리프 가림) 이다. 콘솔 오류 0.
+- **live 가 잡아 제품에서 고친 것**:
+  - Phase 1: MenuItem `<a>` 의 링크 색 누출.
+  - Phase 2: invalid field 상자 Canvas 회색 · 사본 Button Icon 크기.
+  - Phase 3: side 배치 DOM 크래시 · Preview 도움말 버튼 테두리 · Slider 라벨 행 늘어남.
+- **live 밖 기록**:
+  - side 배치에서 늘어난 grid field 의 라벨 y 가 Canvas 와 Preview 에서 다르다. 엔진의 기존 비대칭이고, 도움말 없는 Label 대조군도 같은 차이를 보인다.
+  - G3 `paletteBaseCanvas` 의 기존 7건 실패 — ADR-248 G0 옛 캡처와 ADR-256 구조의 차이.
 
 ## Consequences
 

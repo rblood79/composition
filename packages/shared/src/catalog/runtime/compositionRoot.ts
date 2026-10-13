@@ -3858,6 +3858,25 @@ export class CatalogCompositionRoot {
         };
         visit(record.children);
       }
+      // ADR-259 Phase 3 — a ContextualHelp's `variant` is its trigger's glyph (the resolver's
+      // `applyContextualHelpGlyph`): the Icon resolves again with it.
+      if (
+        before.props.variant !== record.props.variant &&
+        this.typeOf(record) === "ContextualHelp"
+      ) {
+        const visit = (ids: readonly string[]) => {
+          for (const childId of ids) {
+            const child = this.records.get(childId);
+            if (!child) continue;
+            if (this.typeOf(child) === "Icon" && !queued.has(childId)) {
+              queued.add(childId);
+              queue.push(childId);
+            }
+            visit(child.children);
+          }
+        };
+        visit(record.children);
+      }
       // A Form's context values reach its fields at any depth (S2 `FormContext` — the resolver's
       // `applyFormContext`): they resolve again with them.
       if (
@@ -3880,9 +3899,11 @@ export class CatalogCompositionRoot {
               // `formFieldLabelPartRules` — even when the field's own props stay.)
               for (const partId of child.children) {
                 const part = this.records.get(partId);
+                // (A label row stands in its Label's place — ADR-259 Phase 3.)
                 if (
                   part &&
-                  this.typeOf(part) === "Label" &&
+                  (this.typeOf(part) === "Label" ||
+                    this.typeOf(part) === "FieldLabel") &&
                   !queued.has(partId)
                 ) {
                   queued.add(partId);

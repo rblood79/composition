@@ -15,7 +15,8 @@
 
     /* S2 labelAlign (2026-10-10): the side label's text alignment. Its width is its text (S2 side
        label column `auto`) — the list takes the rest. */
-    &[data-label-position="side"] > .react-aria-Label {
+    /* (ADR-259 Phase 3: a label row in the Label's place — the generated sheets' `partAliases`.) */
+    &[data-label-position="side"] > :is(.react-aria-Label, .react-aria-FieldLabel) {
       text-align: var(--form-label-align, start);
       justify-content: var(--form-label-align, start);
     }

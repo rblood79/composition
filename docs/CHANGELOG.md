@@ -11,6 +11,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 도움말 · 앞 글자 · 항목 링크 완료 — ADR-259 Implemented] - 2026-10-13
+
+### Changed
+
+- **ADR-259 Implemented** (Phase 0 ~ 4): S2 field 도움말 (`contextualHelp`, 16 field) · 입력 앞 글자 (`prefix`, 5 field) · 항목 링크 (`href` · `target` · `rel`, 7 type + `hideLinkOutIcon`). 각 Phase 의 사용자-가시 변경은 아래 Phase 1 · 2 · 3 엔트리에 있다.
+  - 마감 확인 (G4):
+    - perf ratchet A 등급 초과 0.
+    - initial 번들 상한 안 (ADR-259 전 대비 Builder JS gzip +6,614 B · Preview +1,442 B).
+    - live 하니스 재실행 13/13 · 51/51 · 106/106.
+  - 본문: `docs/adr/completed/259-s2-contextual-help-prefix-item-links.md` (Live Exercise 절).
+
+### Documentation
+
+- `docs/explanation/research/S2_PROP_ALIGNMENT_2026-10.md` §6.1 — 「라」 (`contextualHelp` · `prefix` · `hideLinkOutIcon`) 와 「링크」 를 도입 완료로 갱신.
+- `.claude/rules/ssot-hierarchy.md` D3 sub-part — 「라벨 행 · 앞 글자 · 도움말」 한 줄 (FieldLabel 별칭 · ContextualHelp 노드 트리 · 앞 글자 Group 상자).
+
+## [S2 field 도움말 — ADR-259 Phase 3] - 2026-10-13
+
+### Added
+
+- **field 도움말 `contextualHelp`** (ADR-259 Phase 3 — S2 1.8.0 TextField · TextArea · NumberField · ComboBox · Select · ColorField · ColorSlider · DateField · DatePicker · DateRangePicker · TimeField · SearchField · CheckboxGroup · RadioGroup · Slider · TagGroup): Design 패널 Content 의 **Contextual Help** 에서 None · Help · Info 를 고른다.
+  - 고르면 field 라벨 옆에 도움말 버튼 (`?` · `i` 글리프) 이 붙고, 누르면 제목 · 설명 · 링크가 든 Popover 가 열린다.
+  - 넣기 · 바꾸기 · 빼기는 각각 undo 한 번이다.
+  - 버튼 크기는 field 크기를 따른다 (S · M 20 px, L · XL 24 px).
+  - 접근성 (S2 그대로):
+    - 버튼 이름은 「라벨 + 도움말」 이다 (예: 「Price 도움말」, info 는 「정보」).
+    - 열린 Popover 는 제목 Heading 이 이름인 dialog 다.
+    - 비활성 field 안에서도 도움말은 열린다.
+  - 새 type 둘:
+    - **ContextualHelp** — 팔레트 overlay 묶음의 Popover 뒤. field 밖 (제목 옆 등) 에도 둘 수 있다. 원본은 `ContextualHelp > Button > Icon + Popover > Heading + Content + Footer` 이고, Popover 의 위치 prop 은 ContextualHelp 의 prop 이다.
+    - **FieldLabel** — Label 과 도움말을 한 줄로 묶는 라벨 행. 도움말을 넣을 때만 생긴다. field 레이아웃 (위 · 옆 라벨) 에서 Label 의 자리를 그대로 이어받는다.
+  - 배치된 field 에 도움말을 넣으면, Phase 2 와 같이 field 의 자식이 소유 사본이 된다 (사용자 결정 2026-10-13).
+  - 위치:
+    - `apps/builder/src/builder/catalogRuntime/contextualHelpCommand.ts`
+    - `panels/properties/catalog/CatalogContextualHelpField.tsx`
+    - `packages/shared/src/components/{ContextualHelp,FieldLabel}.tsx`
+    - `packages/shared/src/catalog/document/{contextualHelp,rulePartRules,sizePropagation}.ts`
+    - `resolution/resolver.ts`
+    - `runtime/{presence,domBinding.runtime,compositionRoot}.ts`
+    - `generated/componentRulesTable.ts`
+    - `packages/rendering/src/renderers/CSSGenerator.ts` (`partAliases` · `align-self`)
+
+### Fixed
+
+- **도움말만 지운 라벨 행에서 다시 넣으면 행이 겹침** (판독 MEDIUM-1, 출시 전 수리): Layers 에서 도움말 노드만 지운 뒤 Help 를 고르면 라벨 행이 2단이 되고, 그 뒤로는 패널로 뺄 수 없었다. 이제는 남은 행에 다시 넣고, None 을 고르면 남은 행을 푼다.
+  - **Why**: 명령이 「행은 있고 도움말은 없는」 상태를 「도움말 없음」 과 같게 읽었다.
+
+### Tests
+
+- `adr259ContextualHelp.test.tsx` 48 — 16 field 의 넣기 · 빼기, DOM = S2 oracle (이름 · labelledby · slot), undo 한 번, 열린 Popover 이름, 비활성 ComboBox, 4 size 버튼, 위 · 옆 라벨 자리, 필수 표시, ColorSlider · TagGroup 이름. 원복 RED 18/18.
+- live `adr259-live.mjs --phase 3` 106/106 · 다크 106/106 — Design 패널 · undo / redo · 저장 · 다시 열기 · Preview 버튼 이름 · 열기 / Escape (문서 무변경) · 16 field × 위 / 옆 × S · M · L 에서 Canvas = Preview (자리 ±1 · 칠 ≤ 0.001).
+
 ## [S2 입력 앞 글자 — ADR-259 Phase 2] - 2026-10-13
 
 ### Added

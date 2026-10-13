@@ -12,6 +12,10 @@ import { Dialog } from "@composition/shared/components/Dialog";
 
 import { DialogTrigger } from "@composition/shared/components/DialogTrigger";
 
+import { ContextualHelp } from "@composition/shared/components/ContextualHelp";
+
+import { FieldLabel } from "@composition/shared/components/FieldLabel";
+
 import { DropZone } from "@composition/shared/components/DropZone";
 
 import { FileUpload } from "@composition/shared/components/FileUpload";
@@ -135,6 +139,9 @@ export const INTERNAL_RENDERERS: Readonly<
   cell: RacCell,
   dialog: Dialog,
   dialogtrigger: DialogTrigger,
+  // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger) · a field's label row.
+  contextualhelp: ContextualHelp,
+  fieldlabel: FieldLabel,
   modal: Modal,
   popover: Popover,
   tooltip: Tooltip,

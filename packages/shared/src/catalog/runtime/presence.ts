@@ -62,6 +62,8 @@ const TRIGGER_OVERLAY_CHILDREN: Readonly<Record<string, ReadonlySet<string>>> =
     DialogTrigger: new Set(["Dialog", "Modal", "Popover"]),
     // ADR-255: RAC TooltipTrigger — the Tooltip shows on the trigger's hover / focus.
     TooltipTrigger: new Set(["Tooltip"]),
+    // ADR-259 Phase 3: S2 ContextualHelp (RAC DialogTrigger) — the help shows in its Popover.
+    ContextualHelp: new Set(["Popover"]),
     // ADR-256 Phase 6c · 6d · 6e: a picker's list · calendar is in its Popover (a ListBox · Calendar
     // outside it shows — RAC draws it in the picker's context; items sit only in a ListBox).
     DatePicker: new Set(["Popover"]),
@@ -213,7 +215,9 @@ const childrenOf = (node: CatalogConsumerNode, get: CatalogRecordLookup) =>
  * RAC context of its own: the parts inside it stay in the field's context (RAC passes context
  * through any element). The field's part lookups go through it.
  */
-const PART_FRAME_TYPES: ReadonlySet<string> = new Set(["frame"]);
+// ADR-259 Phase 3: a field's label row (FieldLabel — S2's plain `div`) too: the Label in it stays
+//   the field's label (its necessity mark, its text owner, the field context).
+const PART_FRAME_TYPES: ReadonlySet<string> = new Set(["frame", "FieldLabel"]);
 
 /** A node's parent with the layout frames it sits in skipped (`PART_FRAME_TYPES`). */
 export function catalogPartParent(
@@ -225,6 +229,20 @@ export function catalogPartParent(
   while (parent && PART_FRAME_TYPES.has(typeOf(parent)))
     parent = get(parent.parentId);
   return parent;
+}
+
+/**
+ * ADR-259 Phase 3 — the ContextualHelp a Button is the trigger of (its parent, layout frames
+ * skipped): S2's quiet icon-only ActionButton (`slot={null}`), its box the ContextualHelp part rule.
+ */
+export function catalogContextualHelpOfTrigger(
+  node: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): CatalogConsumerNode | undefined {
+  if (typeOf(node) !== "Button") return undefined;
+  const parent = catalogPartParent(node, get, typeOf);
+  return parent && typeOf(parent) === "ContextualHelp" ? parent : undefined;
 }
 
 /**

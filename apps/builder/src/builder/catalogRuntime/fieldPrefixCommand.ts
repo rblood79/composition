@@ -53,7 +53,10 @@ const PREFIX_DEFAULTS = {
   icon: { type: "Icon", props: { iconName: "search" } },
 } as const;
 
-function typeOf(reader: CatalogReader, definitionId: DefinitionId): string {
+export function typeOf(
+  reader: CatalogReader,
+  definitionId: DefinitionId,
+): string {
   try {
     return definitionTypeName(reader, definitionId);
   } catch {
@@ -62,7 +65,10 @@ function typeOf(reader: CatalogReader, definitionId: DefinitionId): string {
 }
 
 /** The list a child position sits in: its owner node, else its template parent position. */
-function parentOfChild(draft: CommandDraft, target: EditTarget): NodeParent {
+export function parentOfChild(
+  draft: CommandDraft,
+  target: EditTarget,
+): NodeParent {
   if (target.kind === "node") return locate(draft, target.id).parent;
   const path = target.address.templatePath;
   if (path.length < 2) return fail("PREFIX_PARENT_UNKNOWN", target.ownerId);
@@ -73,7 +79,7 @@ function parentOfChild(draft: CommandDraft, target: EditTarget): NodeParent {
   };
 }
 
-const parentOfTarget = (target: EditTarget): NodeParent =>
+export const parentOfTarget = (target: EditTarget): NodeParent =>
   target.kind === "node"
     ? { kind: "node", id: target.id }
     : { kind: "descendant", ownerId: target.ownerId, address: target.address };

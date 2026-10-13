@@ -219,7 +219,9 @@ export const CatalogDomNode = memo(function CatalogDomNode({
   const parentInput = node ? root.domInputs.get(node.parentId) : undefined;
   // A field's part keeps its field through a layout frame (ADR-256 G2 — `catalogDomPartParent`).
   const partParent =
-    parentInput?.bindingId === "frame" && node
+    (parentInput?.bindingId === "frame" ||
+      parentInput?.bindingId === "fieldlabel") &&
+    node
       ? catalogDomPartParent(root, node)
       : parentInput;
   // A text leaf in a slot reads the slot's values; a field's Label node shows what its field

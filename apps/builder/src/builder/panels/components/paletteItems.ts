@@ -33,6 +33,7 @@ import {
   ChevronRight,
   ChevronsLeftRight,
   CircleDashed,
+  CircleHelp,
   CircleDot,
   CircleUser,
   Disc3,
@@ -136,6 +137,7 @@ export const ICON_MAP: Record<
   ChevronRight,
   ChevronsLeftRight,
   CircleDashed,
+  CircleHelp,
   CircleDot,
   CircleUser,
   Disc3,
@@ -301,6 +303,8 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "RangeCalendar", source: "catalog" },
   { type: "Dialog", source: "catalog" },
   { type: "Popover", source: "catalog" },
+  // ADR-259 Phase 3 (사용자 결정 2): S2 ContextualHelp — the overlay group, after Popover.
+  { type: "ContextualHelp", source: "catalog" },
   { type: "Tooltip", source: "catalog" },
 ];
 

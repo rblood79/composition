@@ -10,7 +10,13 @@
  * ADR-253: a field's parts are instances of the part origins, each sized by its own rule at the
  * field's size (the fields' rules declare no part font).
  */
-const FIELD_PARTS = ["Label", "Description", "FieldError"] as const;
+const FIELD_PARTS = [
+  "Label",
+  "Description",
+  "FieldError",
+  // ADR-259 Phase 3: the help in the field's label row (S2 `Field.tsx:182` — `CATALOG_SIZE_STEP`).
+  "ContextualHelp",
+] as const;
 /** Fields whose control is an instance of the Input origin: the Input rule sizes it at their size. */
 const INPUT_FIELD_PARTS = [...FIELD_PARTS, "Input"] as const;
 /** Date fields whose control is an instance of the DateInput origin (the DateInput rule sizes it). */
@@ -48,10 +54,10 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-256 Phase 3: the Switch's hint parts (its text takes the Switch sheet's size font —
   //   `manualBoxRules` Switch).
   Switch: ["Description", "FieldError"],
-  Slider: ["SliderTrack", "Label"],
+  Slider: ["SliderTrack", "Label", "ContextualHelp"],
   // TagGroup → TagList (the chip wrapper) → Tag: the chips take the group size. (ADR-256 Phase 5d:
   //   its hint parts — the reference's `Text[description]` · `Text[errorMessage]`.)
-  TagGroup: ["TagList", "Label", "Description", "FieldError"],
+  TagGroup: ["TagList", ...FIELD_PARTS],
   TagList: ["Tag"],
   // S2 groups size their members (`AvatarGroup` · `ButtonGroup` `size` = the size of the avatars /
   // buttons inside).
@@ -81,6 +87,8 @@ export const CATALOG_SIZE_PROPAGATION: Readonly<
   // ADR-254: an InlineAlert's title and description are instances of the Heading · Description
   //   origins, sized by their own rules at the alert's size (`CATALOG_SIZE_STEP` maps the step).
   InlineAlert: ["Heading", "Description"],
+  // ADR-259 Phase 3: S2 ContextualHelp's `size` is its ActionButton's (XS · S).
+  ContextualHelp: ["Button"],
   // 2026-10-09: an S2 IllustratedMessage sizes its picture, heading and content (its contexts).
   IllustratedMessage: ["Illustration", "Heading", "Description"],
 };
@@ -109,7 +117,29 @@ export const CATALOG_SIZE_PASS_THROUGH: ReadonlySet<string> = new Set([
   // ADR-256 Phase 10: S2 `Content` — an InlineAlert's body section (its Description reads the
   //   alert's size one step up, as before the section).
   "Content",
+  // ADR-259 Phase 3: a field's label row — the field's size reaches its Label and ContextualHelp.
+  "FieldLabel",
 ]);
+
+/** ADR-259 Phase 3: the fields whose label row holds a ContextualHelp (`CATALOG_CONTEXTUAL_HELP_FIELDS`). */
+const CONTEXTUAL_HELP_SIZE_OWNERS = [
+  "TextField",
+  "TextArea",
+  "NumberField",
+  "ComboBox",
+  "Select",
+  "ColorField",
+  "ColorSlider",
+  "DateField",
+  "DatePicker",
+  "DateRangePicker",
+  "TimeField",
+  "SearchField",
+  "CheckboxGroup",
+  "RadioGroup",
+  "Slider",
+  "TagGroup",
+] as const;
 
 /**
  * Owner type → child type → the child's size for each owner size, where the child's rule names
@@ -121,6 +151,14 @@ export const CATALOG_SIZE_STEP: Readonly<
   Record<string, Readonly<Record<string, Readonly<Record<string, string>>>>>
 > = {
   InlineAlert: { Description: { S: "M", M: "L", L: "XL" } },
+  // ADR-259 Phase 3 — S2 `FieldLabel` (`Field.tsx:182`): a field's help button is S at the field's
+  //   L · XL, XS below.
+  ...Object.fromEntries(
+    [...CONTEXTUAL_HELP_SIZE_OWNERS].map((field) => [
+      field,
+      { ContextualHelp: { XS: "XS", S: "XS", M: "XS", L: "S", XL: "S" } },
+    ]),
+  ),
   // S2 AvatarGroup (`@react-spectrum/s2/src/AvatarGroup.tsx` `text`): the label font follows the
   //   avatar size — 24 `ui` 14 · 28 `ui-lg` 16 · 32 `ui-xl` 18 · 40 `ui-3xl` 22 (Text XL 20); 48 has
   //   no S2 size (Text XXL 24).

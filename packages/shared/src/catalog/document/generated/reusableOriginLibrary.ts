@@ -1293,6 +1293,30 @@ export const REUSABLE_ORIGIN_DEFINITIONS: readonly LibraryDefinition[] = [
     "templateRootId": "lib:template:component-popover"
   },
   {
+    "id": "lib:definition:origin-component-contextualhelp",
+    "name": "ContextualHelp",
+    "mode": "composite",
+    "accepts": {
+      "variant": "string",
+      "placement": "string",
+      "offset": "number",
+      "crossOffset": "number",
+      "shouldFlip": "boolean",
+      "containerPadding": "number"
+    },
+    "defaults": {
+      "variant": "help",
+      "placement": "bottom start",
+      "offset": 8,
+      "crossOffset": 0,
+      "shouldFlip": true,
+      "containerPadding": 8
+    },
+    "visual": {},
+    "stateRules": {},
+    "templateRootId": "lib:template:component-contextualhelp"
+  },
+  {
     "id": "lib:definition:origin-component-tooltip",
     "name": "Tooltip",
     "mode": "composite",
@@ -6647,6 +6671,116 @@ export const REUSABLE_ORIGIN_TEMPLATES: readonly LibraryTemplateNode[] = [
     "layout": {
       "display": "block"
     }
+  },
+  {
+    "id": "lib:template:component-contextualhelp",
+    "definitionId": "lib:definition:type-ContextualHelp",
+    "children": [
+      "lib:template:component-contextualhelp__trigger",
+      "lib:template:component-contextualhelp__overlay"
+    ],
+    "props": {
+      "variant": "{variant}"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__trigger",
+    "definitionId": "lib:definition:origin-component-button",
+    "children": [
+      "lib:template:component-contextualhelp__trigger_icon"
+    ],
+    "props": {
+      "slot": false,
+      "variant": "secondary",
+      "children": ""
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__trigger_icon",
+    "definitionId": "lib:definition:type-Icon",
+    "children": [],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__overlay",
+    "definitionId": "lib:definition:type-Popover",
+    "children": [
+      "lib:template:component-contextualhelp__title",
+      "lib:template:component-contextualhelp__content",
+      "lib:template:component-contextualhelp__footer"
+    ],
+    "props": {
+      "size": "S",
+      "placement": "{placement}",
+      "offset": "{offset}",
+      "crossOffset": "{crossOffset}",
+      "shouldFlip": "{shouldFlip}",
+      "containerPadding": "{containerPadding}"
+    },
+    "visual": {
+      "width": "268px",
+      "paddingTop": 24,
+      "paddingRight": 24,
+      "paddingBottom": 24,
+      "paddingLeft": 24,
+      "gap": 8
+    }
+  },
+  {
+    "id": "lib:template:component-contextualhelp__title",
+    "definitionId": "lib:definition:origin-component-heading",
+    "children": [],
+    "props": {
+      "slot": "title",
+      "children": "Need help?",
+      "size": "S",
+      "level": 2
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__content",
+    "definitionId": "lib:definition:type-Content",
+    "children": [
+      "lib:template:component-contextualhelp__text"
+    ],
+    "props": {},
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__text",
+    "definitionId": "lib:definition:text",
+    "children": [],
+    "props": {
+      "children": "Help text explains what this field is for and how to fill it in.",
+      "size": "S"
+    },
+    "visual": {}
+  },
+  {
+    "id": "lib:template:component-contextualhelp__footer",
+    "definitionId": "lib:definition:type-Footer",
+    "children": [
+      "lib:template:component-contextualhelp__link"
+    ],
+    "props": {},
+    "visual": {
+      "paddingTop": 8
+    }
+  },
+  {
+    "id": "lib:template:component-contextualhelp__link",
+    "definitionId": "lib:definition:origin-component-link",
+    "children": [],
+    "props": {
+      "children": "Learn more",
+      "href": "#",
+      "size": "S"
+    },
+    "visual": {}
   },
   {
     "id": "lib:template:component-tooltip",

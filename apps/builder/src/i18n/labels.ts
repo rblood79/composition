@@ -490,6 +490,7 @@ export const semanticLabelKeys: Record<string, string> = {
   "Prefix Text": "properties.prefixText",
   "Prefix Icon": "properties.prefixIcon",
   "Hide Link Out Icon": "properties.hideLinkOutIcon",
+  "Contextual Help": "properties.contextualHelp",
   Format: "properties.format",
   "2-Digit": "properties.twoDigit",
   Long: "properties.long",

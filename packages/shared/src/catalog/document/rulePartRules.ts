@@ -10,6 +10,8 @@
  * approximated: descendant combinators other than a declared sub-part wrapper, pseudo-classes,
  * unmapped attributes, `unset`, unresolved `var()`.
  */
+import { CATALOG_FIELD_LABEL_PART_ALIASES } from "./contextualHelp";
+import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../domain/componentTraits";
 import {
   ARCHETYPE_BASE_STYLES,
   cssVarToTokenRef,
@@ -1119,6 +1121,62 @@ function disclosureChevronPartRules(parentType: string): CompiledPartRule[] {
 }
 
 /**
+ * ADR-259 Phase 3 — S2 `ContextualHelp`'s trigger: a quiet icon-only ActionButton (`isQuiet`,
+ * `ContextualHelp.tsx:198-209`) of the help's size — S2 control sizes XS 20 · S 24, square — over
+ * the Button origin's box: no fill, no border, no padding, no minimum width; its glyph the Button
+ * rule's icon size at that size, in the text color. The DOM draws the trigger as RAC's plain Button
+ * with this record box inline (`ContextualHelpButton`).
+ */
+const CONTEXTUAL_HELP_BUTTON_PX: Readonly<Record<string, number>> = {
+  XS: 20,
+  S: 24,
+};
+function contextualHelpPartRules(parentType: string): CompiledPartRule[] {
+  if (parentType !== "ContextualHelp") return [];
+  const button = (COMPONENT_RULES_TABLE as Record<string, ComponentRule>)
+    .Button;
+  return Object.entries(CONTEXTUAL_HELP_BUTTON_PX).flatMap(
+    ([size, box]): CompiledPartRule[] => {
+      const icon = button?.sizes[size]?.iconSize;
+      return [
+        {
+          childType: "Button",
+          size,
+          layout: {},
+          visual: {
+            width: box,
+            height: box,
+            minWidth: 0,
+            paddingTop: 0,
+            paddingRight: 0,
+            paddingBottom: 0,
+            paddingLeft: 0,
+            borderWidth: 0,
+            fill: "transparent",
+          },
+        },
+        ...(typeof icon === "number"
+          ? [
+              {
+                childType: "Icon",
+                via: "Button",
+                size,
+                layout: { flexShrink: "0" },
+                visual: {
+                  width: icon,
+                  height: icon,
+                  iconSize: icon,
+                  color: "{color.neutral}",
+                },
+              },
+            ]
+          : []),
+      ];
+    },
+  );
+}
+
+/**
  * ADR-259 Phase 2 — a field's prefix (S2 `FieldGroup` `CenterBaseline` — `color: gray-600`, its
  * icon `size: 1lh`): the prefix Text · Icon in the field's control Group take the field rule's
  * prefix color (`[slot="prefix"]` static block — a color the generic part path does not carry) and
@@ -1719,6 +1777,7 @@ export function compileRulePartRules(
     ...sliderThumbPartRules(parentType),
     ...disclosureChevronPartRules(parentType),
     ...fieldPrefixPartRules(parentType),
+    ...contextualHelpPartRules(parentType),
     ...toggleIndicatorPartRules(parentType),
     ...fieldValuePartRules(parentType),
     ...textAreaPartRules(parentType),
@@ -1831,14 +1890,58 @@ export function compileRulePartRules(
   // Generated `[data-size]` selectors never match a root without that attribute: only the default
   // size's values apply, for every size (manual parts keep their real size keys).
   if (manual?.rootSizeAttribute !== undefined)
-    return out.flatMap((part): CompiledPartRule[] => {
-      if (manualParts.includes(part) || !part.size) return [part];
-      if (part.size !== rule.defaultSize) return [];
-      const { size: _size, ...unsized } = part;
-      return [unsized];
-    });
-  return out;
+    return withPartAliases(
+      out.flatMap((part): CompiledPartRule[] => {
+        if (manualParts.includes(part) || !part.size) return [part];
+        if (part.size !== rule.defaultSize) return [];
+        const { size: _size, ...unsized } = part;
+        return [unsized];
+      }),
+      parentType,
+    );
+  return withPartAliases(out, parentType);
 }
+
+/**
+ * ADR-259 Phase 3 — a field's label row stands in its Label's place (S2 `FieldLabel`): the field's
+ * Label part rules reach a FieldLabel child too, as the generated sheet's `:is(.react-aria-Label,
+ * .react-aria-FieldLabel)` (`CATALOG_FIELD_LABEL_PART_ALIASES` — a Form's label column through the
+ * field as well). The Label in the row keeps its own rule (its parent is the row, not the field).
+ */
+function withPartAliases(
+  parts: CompiledPartRule[],
+  parentType: string,
+): CompiledPartRule[] {
+  return parts.flatMap((part) => {
+    const owner = part.via ?? parentType;
+    const aliases = CATALOG_CONTEXTUAL_HELP_FIELDS.has(owner)
+      ? CATALOG_FIELD_LABEL_PART_ALIASES[part.childType]
+      : undefined;
+    if (!aliases || (part.via && parentType !== "Form")) return [part];
+    // (The row is a box: the Label's text values — alignment, font, color — stay the Label's; the
+    // sheet's reach the text in the row by inheritance.)
+    const visual = Object.fromEntries(
+      Object.entries(part.visual).filter(([key]) => !LABEL_TEXT_VISUAL.has(key)),
+    );
+    if (!Object.keys(part.layout).length && !Object.keys(visual).length)
+      return [part];
+    return [
+      part,
+      ...aliases.map((childType) => ({ ...part, childType, visual })),
+    ];
+  });
+}
+
+/** Text values a field's Label part rule carries that its label row (a box) does not take. */
+const LABEL_TEXT_VISUAL: ReadonlySet<string> = new Set([
+  "textAlign",
+  "fontSize",
+  "fontWeight",
+  "fontFamily",
+  "lineHeight",
+  "letterSpacing",
+  "color",
+]);
 
 /**
  * ADR-251 — the items wrapper node of a group (`RadioGroup.tsx` `<div className="radio-items">`,

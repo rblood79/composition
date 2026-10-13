@@ -227,7 +227,10 @@ describe("the sheets", () => {
           ? /grid-template-columns: auto 0px minmax\(0, 1fr\) auto;/
           : /grid-template-columns: auto minmax\(0, 1fr\);/,
       );
-      const label = block(`${side} > .react-aria-Label`);
+      // (ADR-259 Phase 3: the label row stands in the Label's place — `partAliases`.)
+      const label = block(
+        `${side} > :is(.react-aria-Label, .react-aria-FieldLabel)`,
+      );
       expect(label).toMatch(/width: var\(--form-label-width\);/);
       expect(label).not.toMatch(/11rem|flex-shrink/);
       expect(block(`${side} > .react-aria-FieldError`)).toMatch(

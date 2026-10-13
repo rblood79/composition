@@ -663,7 +663,9 @@ export function generateCSS<Props>(
     lines.push(...atRules);
   }
 
-  const css = lines.join("\n");
+  let css = lines.join("\n");
+  for (const [part, aliases] of Object.entries(spec.partAliases ?? {}))
+    css = withPartAliases(css, part, aliases);
   // ADR-253: a spec that also styles another RAC class as its root (`classAliases`).
   if (!spec.classAliases?.length) return css;
   const root = `.react-aria-${spec.name}`;
@@ -672,6 +674,38 @@ export function generateCSS<Props>(
     new RegExp(`${root.replace(/[.]/g, "\\.")}(?![\\w-])`, "g"),
     aliased,
   );
+}
+
+/**
+ * ADR-259 Phase 3 — every `.react-aria-{part}` selector of a sheet also matches the aliases
+ * (`partAliases`): `:is(.part, .alias)`, or the aliases appended where the token already sits in a
+ * selector list (`:not(…)` · `:is(…)` · `:where(…)`).
+ */
+function withPartAliases(
+  css: string,
+  part: string,
+  aliases: readonly string[],
+): string {
+  const token = `.react-aria-${part}`;
+  const all = [token, ...aliases.map((alias) => `.react-aria-${alias}`)];
+  const pattern = new RegExp(`${token.replace(/[.]/g, "\\.")}(?![\\w-])`, "g");
+  return css.replace(pattern, (_match, offset: number) => {
+    // The innermost open parenthesis in this selector (back to the last `{` · `}` · `;`).
+    let depth = 0;
+    for (let i = offset - 1; i >= 0; i--) {
+      const char = css[i];
+      if (char === "{" || char === "}" || char === ";") break;
+      if (char === ")") depth++;
+      else if (char === "(") {
+        if (depth > 0) depth--;
+        else
+          return /:(not|is|where)$/.test(css.slice(Math.max(0, i - 6), i))
+            ? all.join(", ")
+            : `:is(${all.join(", ")})`;
+      }
+    }
+    return `:is(${all.join(", ")})`;
+  });
 }
 
 // ─── Base Styles (Archetype 분기) ───────────────────────────────────────────
@@ -858,6 +892,7 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
   if (c.flexWrap) lines.push(`  flex-wrap: ${c.flexWrap};`);
   // ADR-079: align-items / justify-content override — archetype base 의 교차축/주축 정렬 override.
   if (c.alignItems) lines.push(`  align-items: ${c.alignItems};`);
+  if (c.alignSelf) lines.push(`  align-self: ${c.alignSelf};`);
   if (c.justifyContent) lines.push(`  justify-content: ${c.justifyContent};`);
   // ADR-085: grid-template override — `display: grid` 동반 시 트랙/영역 정의.
   //   Meter/ProgressBar 등이 legacy composition.containerStyles 에 수동 emit 하던 값을

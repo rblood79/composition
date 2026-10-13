@@ -564,6 +564,7 @@ describe("ADR-248 Phase 3 G3 type/state census", () => {
     //   (Phase 9d — the weekday · segment repeat templates).
     // (150 — ADR-256 Phase 10: CardHeader · CardContent · CardFooter → Content · Footer.)
     // + ColorThumb · ColorWheelTrack (ADR-258 Phase 2 — the Color controls' thumb · ring nodes).
-    expect(types.length).toBe(152);
+    // + ContextualHelp · FieldLabel (ADR-259 Phase 3 — S2 contextual help, a field's label row).
+    expect(types.length).toBe(154);
   }, 120_000);
 });

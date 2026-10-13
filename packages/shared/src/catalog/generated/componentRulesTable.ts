@@ -4331,6 +4331,33 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-259 Phase 3: S2 ContextualHelp is RAC DialogTrigger — no element (`display: contents`, as
+  //   DialogTrigger). Its Button's quiet icon-only box is the part rule `contextualHelpPartRules`
+  //   (S2 ActionButton XS · S, `isQuiet`) per its size.
+  ContextualHelp: {
+    defaultSize: "XS",
+    variants: {},
+    sizes: {
+      XS: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+      S: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      skipCSSGeneration: true,
+      containerStyles: {
+        display: "contents",
+      },
+    },
+  },
   Dialog: {
     defaultVariant: "default",
     defaultSize: "M",
@@ -4957,6 +4984,35 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.md}",
         height: 32,
+      },
+    },
+  },
+  // ADR-259 Phase 3: a field's label row (S2 `FieldLabel` — `Field.tsx:96-184`): the Label and its
+  //   ContextualHelp on one line, centered (S2 `CenterBaseline`), apart by S2's `&nbsp;` (a quarter
+  //   em of the label font — 4px at its sizes). It stands in the Label's place in the field
+  //   (`catalogFieldLabelSelector`): the field rule's Label placement reaches it.
+  FieldLabel: {
+    defaultSize: "M",
+    variants: {},
+    sizes: {
+      M: {
+        height: 0,
+        fontSize: "{typography.text-base}",
+        borderRadius: "{radius.none}",
+      },
+    },
+    structure: {
+      archetype: "container",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        gap: "4px",
+        width: "fit-content",
+        // (Not stretched to its grid · flex line — as the Label, whose sheet is `height:
+        //   fit-content`: a Slider's label row beside its output. A side field's rule centers it.)
+        alignSelf: "flex-start",
       },
     },
   },

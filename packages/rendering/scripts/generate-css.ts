@@ -27,6 +27,8 @@ import {
   getPrimitiveBinding,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
+import { CATALOG_FIELD_LABEL_PART_ALIASES } from "../../shared/src/catalog/document/contextualHelp";
+import { CATALOG_CONTEXTUAL_HELP_FIELDS } from "../../shared/src/domain/componentTraits";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -375,6 +377,10 @@ export function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       ...(meta.skipStateStyles ? { skipStateStyles: true } : {}),
       // classAliases (ADR-253): 이 rule 의 sheet 가 같이 그리는 RAC class (Input → `<textarea>`).
       ...(meta.classAliases ? { classAliases: meta.classAliases } : {}),
+      // ADR-259 Phase 3: a field's label row stands in its Label's place (S2 FieldLabel).
+      ...(CATALOG_CONTEXTUAL_HELP_FIELDS.has(name)
+        ? { partAliases: CATALOG_FIELD_LABEL_PART_ALIASES }
+        : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
       //   density (2026-08-21): `rule.densities` 를 `containerVariants.density` 로 합성해
       //   기존 emit 경로를 재사용한다 (`[data-density="compact"] { gap: 0px }`). Skia 는 같은
