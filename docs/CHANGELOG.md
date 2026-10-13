@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [컬렉션 항목 Selected — 목록 · 트리 · 표 · 메뉴 · 탭의 선택을 항목에서 고른다] - 2026-10-13
+
+### Added
+
+- **ListBox · GridList · Tree · Table / TableView · Menu · Tabs 의 항목에 Design 패널 `Selected`** (사용자 「static으로 추가된 listboxitem 인경우 상태 선택 selected, default 등을 선택할수있어야하지않나」 → 「권장안 1진행해. listbox만 문제가 아니라 동일한 패턴 이더 있다 모두 수정해」): 정적으로 넣은 항목이 처음부터 선택된 상태인지 고를 자리가 없었다 — ListBox 는 편집 자리가 없는 `selectedKey` 를 읽었고, GridList · Tree · Table · Menu 는 늘 빈 선택으로 시작했고, Tabs 는 첫 활성 탭만 골랐다. 이제 Tag · Card 처럼 항목의 `Selected` (`isSelected` — RAC 항목에는 선택 prop 이 없어 composition 확장, `ITEM_SELECTED_PROP_CONTRACT`) 가 컬렉션의 RAC 선택 초기값이다.
+  - **Why**: RAC 에서 선택은 컬렉션의 것 (`defaultSelectedKeys`) 이라 항목 원본을 상태별로 바꿔 끼우는 방식 (pen.dev) 은 Canvas 그림만 바꾸고 DOM 선택과 갈린다. 데이터 바인딩 목록은 행이 template 하나에서 나와 행마다 원본을 바꿀 수도 없다.
+  - DOM: 컬렉션이 `Selected` 인 항목의 키를 `defaultSelectedKeys` 로 넘긴다 (`catalogCollectionSelectedKeys` — section · TableBody · 부모 TreeItem 을 건너서, `delegatedDom.runtime.ts`). Tabs 는 문서의 `defaultSelectedKey` → 첫 `Selected` · 활성 탭 → 첫 활성 탭 순. 바뀐 선택은 컬렉션을 다시 만든다 (RAC 는 첫 초기값만 쓴다). Table 행에 RAC 키 (`id` — 작성자 HTML id 가 있으면 그것) 를 준다.
+  - Canvas: 같은 판정 (`catalogItemStartsSelected` — `selectionMode` 가 none 이면 선택 없음, RAC 와 같다) 으로 `_isSelected` 를 칠한다 (`presence.ts`). Menu 항목 (MenuSection 안) 과 TableView 의 행도 컬렉션 항목 표에 들어갔다 (`COLLECTION_ITEM_OWNERS`). Table 의 전체 선택 checkbox 는 행이 다 선택되면 체크, 일부면 indeterminate (RAC `useTableSelectAllCheckbox`).
+  - Table 행 · Tree 항목의 선택 칠이 rule 에 없어 Canvas 만 비어 있던 것을 맞췄다 — Row `selected` 강조색 + 흰 글자 (`Table.css` 와 같은 값), TreeItem `selected` `accent-subtle` (`Tree.css`). 그전에는 선택 항목을 만들 수 없어 드러나지 않았다.
+  - Live (headed Chrome, Compare Mode): ListBox · GridList (multiple) · Tree (single) · Tabs 의 둘째 항목 `Selected` → Canvas `_isSelected` = Preview `aria-selected` (`[false,true,false]` · `[false,true]`), Tree 선택 행 배경 Canvas · Preview 같은 연한 강조색, chevron · 글자색 일치. ListBoxItem 을 고르면 Design 패널에 Selected · Disabled. 콘솔 오류 0. 테스트 `collectionItemSelection` (6 컬렉션 · selectionMode none) · `adr256TableNodeTree` (행 checkbox · 전체 선택 indeterminate · 체크 — Canvas = Preview), shared 1597 · builder 5600 · rendering 1315 통과.
+
 ## [Canvas 더블클릭 — 인스턴스 안 묶음으로 들어간다] - 2026-10-13
 
 ### Fixed

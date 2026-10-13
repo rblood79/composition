@@ -149,6 +149,11 @@ import type { DefinitionId } from "../document/types";
 import { catalogCalendarDurationFits } from "../document/valueType";
 import { catalogNumberFormatOptions } from "../document/numberFormatValue";
 
+import {
+  catalogItemStartsSelected,
+  isCollectionItemOf,
+  isCollectionWrapperOf,
+} from "../document/collectionItems";
 import { resolveStaticItemKey } from "../slotRoles";
 
 import type {
@@ -294,6 +299,47 @@ export const childrenOf = (
 
 export const children = (input: DelegatedDomInput): CatalogConsumerNode[] =>
   childrenOf(input.root, input.node);
+
+/**
+ * A collection's RAC `defaultSelectedKeys` (2026-10-13): the keys of its items set Selected
+ * (`isSelected` — through its sections · TableBody · parent TreeItems) while it selects — the
+ * Canvas `catalogCollectionItemSelected` reads the same (`catalogItemStartsSelected`).
+ */
+export function catalogCollectionSelectedKeys(
+  root: CatalogCompositionRoot,
+  collection: CatalogConsumerNode,
+): string[] {
+  const type = catalogTypeName(root, collection);
+  const keys: string[] = [];
+  const visit = (node: CatalogConsumerNode) => {
+    for (const child of node.children) {
+      const record = root.domInputs.get(child);
+      if (!record) continue;
+      const childType = catalogTypeName(root, record);
+      if (
+        isCollectionItemOf(childType, type) &&
+        catalogItemStartsSelected(type, collection.props, record.props)
+      )
+        keys.push(
+          // (A Row is not a static collection item: its HTML id, when it has one, is RAC's `id` —
+          // `withHtmlId` — so its key.)
+          childType === "Row" && record.htmlId
+            ? record.htmlId
+            : resolveStaticItemKey(
+                record.props as Record<string, unknown>,
+                record.id,
+              ),
+        );
+      if (isCollectionWrapperOf(childType, type)) visit(record);
+    }
+  };
+  visit(collection);
+  return keys;
+}
+
+/** RAC keeps its first `defaultSelectedKeys`: a changed authored set builds the collection again. */
+const selectionKey = (base: string, keys: readonly string[]) =>
+  keys.length ? `${base}|selected:${keys.join(",")}` : base;
 
 export const str = (value: unknown) => String(value || "");
 
@@ -1145,14 +1191,16 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     },
     render: (input) => {
       const props = input.node.props;
+      // The Tabs' key, else its first Selected · enabled Tab, else the first enabled one — RAC's
+      // own default (`catalogTabsSelection`, the Canvas reads the same).
+      const { selectedKey } = tabsModel(input.root, input.node);
       return createElement(
         Tabs as ElementType,
         {
           ...marker(input),
-          key: `${input.node.id}:${str(props.defaultSelectedKey)}`,
+          key: `${input.node.id}:${str(selectedKey)}`,
           style: input.style,
-          // Absent key → RAC's own first-enabled-tab default on the first render.
-          defaultSelectedKey: props.defaultSelectedKey || undefined,
+          defaultSelectedKey: selectedKey,
           density: props.density || "regular",
           orientation: props.orientation || "horizontal",
           size: props.size || "M",
@@ -1262,6 +1310,9 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       }
       // (RAC's ListBox itself, as the reference's pickers compose it: the shared ListBox's
       // variant marks are the standalone list's.)
+      const selected = inPicker
+        ? []
+        : catalogCollectionSelectedKeys(input.root, input.node);
       return createElement(
         (inPicker ? AriaListBox : ListBox) as ElementType,
         inPicker
@@ -1273,6 +1324,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             }
           : {
               ...marker(input),
+              key: selectionKey(marker(input).key, selected),
               style: input.style,
               "aria-label": str(props.label || "List"),
               // (No variant axis — S2 · RAC · v3 have none, 2026-10-12. The shared ListBox's own
@@ -1282,10 +1334,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               selectionMode: props.selectionMode ?? "none",
               disallowEmptySelection: bool(props.disallowEmptySelection),
               autoFocus: bool(props.autoFocus),
-              defaultSelectedKeys:
-                typeof props.selectedKey === "string"
-                  ? [props.selectedKey]
-                  : [],
+              // (Its items set Selected — the item's edit surface, 2026-10-13.)
+              defaultSelectedKeys: selected,
             },
         ...renderAll(
           input,
@@ -1305,10 +1355,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       ),
     render: (input) => {
       const props = input.node.props;
+      const selected = catalogCollectionSelectedKeys(input.root, input.node);
       return createElement(
         GridList as ElementType,
         {
           ...marker(input),
+          key: selectionKey(marker(input).key, selected),
           style: input.style,
           "aria-label": str(props.label || "Grid List"),
           variant: props.variant || "default",
@@ -1317,7 +1369,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
           selectionMode: props.selectionMode ?? "none",
           selectionStyle: props.selectionStyle || undefined,
           disallowEmptySelection: bool(props.disallowEmptySelection),
-          defaultSelectedKeys: [],
+          defaultSelectedKeys: selected,
         },
         ...renderAll(
           input,
@@ -1419,10 +1471,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const owner = catalogDomPartParent(input.root, input.node);
       const autocompleted =
         !!owner && catalogTypeName(input.root, owner) === "Autocomplete";
+      const selected = catalogCollectionSelectedKeys(input.root, input.node);
       return createElement(
         AriaMenu as ElementType,
         {
-          key: input.node.id,
+          key: selectionKey(input.node.id, selected),
           "data-catalog-id": input.node.id,
           className: "react-aria-Menu",
           "data-size": props.size || "M",
@@ -1435,7 +1488,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
               ? {}
               : { "aria-label": "Menu" }),
           ...(props.selectionMode && props.selectionMode !== "none"
-            ? { selectionMode: props.selectionMode }
+            ? {
+                selectionMode: props.selectionMode,
+                // (Its MenuItems set Selected — 2026-10-13.)
+                defaultSelectedKeys: selected,
+              }
             : {}),
         },
         ...renderAll(
@@ -1466,10 +1523,12 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
       const props = input.node.props;
       const items = (list: CatalogConsumerNode[]) =>
         treeItemElements(input, list);
+      const treeSelected = catalogCollectionSelectedKeys(input.root, input.node);
       return createElement(
         Tree as ElementType,
         {
           ...marker(input),
+          key: selectionKey(marker(input).key, treeSelected),
           style: input.style,
           "aria-label": str(props["aria-label"] || props.label || "Tree"),
           selectionMode: props.selectionMode ?? "single",
@@ -1493,8 +1552,8 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
             : [],
           // The selection is the Preview's run state (RAC's own, as GridList's): a pressed row ·
           // selection checkbox selects it (ADR-256 Phase 5h-2 — a pinned empty selection left the
-          // checkbox inert).
-          defaultSelectedKeys: [],
+          // checkbox inert); it starts from the items set Selected (2026-10-13).
+          defaultSelectedKeys: treeSelected,
         },
         ...items(
           children(input).filter(

@@ -14,7 +14,13 @@ import {
 import { isDisclosureExpandedInContext } from "../../utils/disclosureGroupExpansion";
 import { resolveStaticItemKey } from "../slotRoles";
 import { getNecessityIndicatorSuffix } from "../../components/FieldNecessityIndicator";
-import { COLLECTION_ITEM_OWNERS } from "../document/collectionItems";
+import {
+  catalogItemStartsSelected,
+  COLLECTION_ITEM_OWNERS,
+  isCollectionItemOf,
+  isCollectionWrapperOf,
+  isItemCollection,
+} from "../document/collectionItems";
 import { CATALOG_TOGGLE_GROUP_OF } from "../document/sizePropagation";
 import { RAC_SLOT_PROVIDERS } from "../generated/racSlotProviders";
 import { MANUAL_ITEM_LABEL_COLORS } from "../document/manualBoxRules";
@@ -348,19 +354,24 @@ export function catalogTabsSelection(
   const pairs = keyed.map((pair) =>
     pair.panel ? pair : { ...pair, panel: unkeyed[next++] },
   );
+  // The Tabs' key (an interaction's `selectTab`), else the first enabled Tab set Selected (the
+  // Tab's edit surface — 2026-10-13), else RAC's default: the first enabled Tab.
   const explicit = tabsNode.props.defaultSelectedKey;
-  const firstEnabled =
-    pairs.find((pair) => pair.tab.props.isDisabled !== true) ?? pairs[0];
-  const selectedKey = explicit ? String(explicit) : firstEnabled?.key;
+  const enabled = pairs.filter((pair) => pair.tab.props.isDisabled !== true);
+  const chosen =
+    enabled.find((pair) => pair.tab.props.isSelected === true) ??
+    enabled[0] ??
+    pairs[0];
+  const selectedKey = explicit ? String(explicit) : chosen?.key;
   return { tabList, panelsNode, tabs, panels, pairs, selectedKey };
 }
 
 /**
  * RAC `data-selected` of an item inside its collection: the collection's selection state decides
- * (the DOM binding's keys — Tabs' selected key, else its first enabled Tab; ListBox's
- * `selectedKey`; a TagGroup's selected Tags while it selects — RAC selects nothing in
- * `selectionMode` none; GridList/Tree none), not the item template's display state. Undefined
- * outside a collection (a state origin shows its own display state).
+ * (the DOM binding's keys — Tabs' selected key, else its first Selected · enabled Tab; any other
+ * collection's items set Selected while it selects — RAC selects nothing in `selectionMode` none),
+ * not the item template's display state. Undefined outside a collection (a state origin shows its
+ * own display state).
  */
 /** Whether `node` is a Tag of an emphasized TagGroup (S2 `isEmphasized`). */
 function catalogTagOfEmphasizedGroup(
@@ -384,6 +395,11 @@ function catalogCollectionItemSelected(
   const checkboxItem = catalogSelectionCheckboxItem(node, get, typeOf);
   if (checkboxItem)
     return catalogStateValue(checkboxItem, "isSelected", get, typeOf);
+  // A Column's select-all checkbox is checked while every row is (RAC `useTableSelectAllCheckbox`).
+  if (typeOf(node) === "Column") {
+    const counts = catalogTableSelectedRows(node, get, typeOf);
+    return counts ? counts.total > 0 && counts.selected === counts.total : undefined;
+  }
   const tabs = catalogTabsOfTab(node, get, typeOf);
   if (tabs) {
     const { pairs, selectedKey } = catalogTabsSelection(tabs, get, typeOf);
@@ -393,21 +409,10 @@ function catalogCollectionItemSelected(
   }
   const owner = catalogCollectionOfItem(node, get, typeOf);
   if (!owner) return undefined;
-  const key = resolveStaticItemKey(
-    node.props as Record<string, unknown>,
-    node.id,
-  );
-  // (A CardView's Card — ADR-256 Phase 10: its `isSelected` starts RAC's selection while the view
-  // selects, as a TagGroup's Tag.)
-  if (typeOf(owner) === "TagGroup" || typeOf(owner) === "CardView")
-    return (
-      node.props.isSelected === true &&
-      String(owner.props.selectionMode ?? "none") !== "none"
-    );
-  return typeOf(owner) === "ListBox" &&
-    typeof owner.props.selectedKey === "string"
-    ? owner.props.selectedKey === key
-    : false;
+  // An item's Selected (`isSelected`) starts RAC's selection while its collection selects — a
+  // TagGroup's Tag, a CardView's Card (ADR-256 Phase 10) and every list's · tree's · table's · menu's
+  // item (2026-10-13 — the DOM's `defaultSelectedKeys`, `catalogItemStartsSelected`).
+  return catalogItemStartsSelected(typeOf(owner), owner.props, node.props);
 }
 
 /**
@@ -495,6 +500,23 @@ function catalogTableOfColumn(
   return table && typeOf(table) === "Table" ? table : undefined;
 }
 
+/** The rows of the Table a Column heads, and how many of them start selected (`isSelected`). */
+function catalogTableSelectedRows(
+  column: CatalogConsumerNode,
+  get: CatalogRecordLookup,
+  typeOf: CatalogTypeOf,
+): { total: number; selected: number } | undefined {
+  const table = catalogTableOfColumn(column, get, typeOf);
+  if (!table) return undefined;
+  const rows = catalogTableRows(table, get, typeOf);
+  return {
+    total: rows.length,
+    selected: rows.filter((row) =>
+      catalogItemStartsSelected(typeOf(table), table.props, row.props),
+    ).length,
+  };
+}
+
 /** A RAC Table's rows (its TableBody's). */
 function catalogTableRows(
   table: CatalogConsumerNode,
@@ -542,7 +564,7 @@ function catalogCollectionOfItem(
   let cursor = get(node.parentId);
   while (cursor && item.through.includes(typeOf(cursor)))
     cursor = get(cursor.parentId);
-  return cursor && typeOf(cursor) === item.owner ? cursor : undefined;
+  return cursor && item.owners.includes(typeOf(cursor)) ? cursor : undefined;
 }
 
 /** Items whose selection a collection record decides (`catalogCollectionItemSelected`). */
@@ -552,21 +574,13 @@ function catalogCollectionItems(
   typeOf: CatalogTypeOf,
 ): CatalogConsumerNode[] {
   const type = typeOf(owner);
-  if (
-    !Object.values(COLLECTION_ITEM_OWNERS).some((item) => item.owner === type)
-  )
-    return [];
+  if (!isItemCollection(type)) return [];
   const items: CatalogConsumerNode[] = [];
   const visit = (node: CatalogConsumerNode) => {
     for (const child of childrenOf(node, get)) {
       const childType = typeOf(child);
-      if (COLLECTION_ITEM_OWNERS[childType]?.owner === type) items.push(child);
-      if (
-        Object.values(COLLECTION_ITEM_OWNERS).some(
-          (item) => item.owner === type && item.through.includes(childType),
-        )
-      )
-        visit(child);
+      if (isCollectionItemOf(childType, type)) items.push(child);
+      if (isCollectionWrapperOf(childType, type)) visit(child);
     }
   };
   visit(owner);
@@ -1687,9 +1701,19 @@ export function catalogDerivedProps(
       catalogSelectionCheckboxDisabled(checkboxItem, get, typeOf)) ||
     (typeOf(node) === "Button" &&
       catalogButtonGroupOf(node, get, typeOf)?.props.isDisabled === true);
-  const result = disabled
-    ? { ...withSelection, isDisabled: true }
+  // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate dash.)
+  const selectAll =
+    checkboxItem && typeOf(checkboxItem) === "Column"
+      ? catalogTableSelectedRows(checkboxItem, get, typeOf)
+      : undefined;
+  const partial =
+    !!selectAll &&
+    selectAll.selected > 0 &&
+    selectAll.selected < selectAll.total;
+  const marked = partial
+    ? { ...withSelection, isIndeterminate: true }
     : withSelection;
+  const result = disabled ? { ...marked, isDisabled: true } : marked;
   // (S2 Disclosure `isInGroup`: inside a DisclosureGroup only the last child keeps its bottom
   // border — `catalogDisclosureBorders`; the DOM's `data-in-group` and `:last-child`.)
   const grouped = catalogDisclosureGroupPosition(node, get, typeOf);
@@ -2861,8 +2885,16 @@ export function catalogStateValue(
         );
       return (props.isSelected ?? props.defaultSelected) === true;
     }
-    case "isIndeterminate":
+    case "isIndeterminate": {
+      // (A select-all checkbox while some rows — not all — are selected: RAC's indeterminate.)
+      const column = catalogSelectionCheckboxItem(owner, get, typeOf);
+      if (column && typeOf(column) === "Column") {
+        const counts = catalogTableSelectedRows(column, get, typeOf);
+        if (counts && counts.selected > 0 && counts.selected < counts.total)
+          return true;
+      }
       return props.isIndeterminate === true || derived.isIndeterminate === true;
+    }
     case "isExpanded":
       if (state === "collapsed") return false;
       if (typeOf(owner) === "Disclosure")

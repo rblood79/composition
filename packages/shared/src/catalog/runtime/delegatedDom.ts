@@ -1,5 +1,6 @@
 export {
   catalogTypeName,
+  catalogCollectionSelectedKeys,
   catalogOwnerDrawnPart,
   CATALOG_LABEL_NODE_FIELDS,
   catalogFieldLabelNode,

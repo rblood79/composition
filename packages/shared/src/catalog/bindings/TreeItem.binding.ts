@@ -1,6 +1,7 @@
 import type { PrimitiveBinding } from "../types";
 import {
   ITEM_LINK_PROP_CONTRACTS,
+  ITEM_SELECTED_PROP_CONTRACT,
 } from "../document/itemLinks";
 
 /**
@@ -42,6 +43,8 @@ export const treeItemBinding: PrimitiveBinding = {
       // ADR-239 Phase 1 — RAC TreeItem `isDisabled` (disabled 상태 변형의 prop).
       // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
       ...ITEM_LINK_PROP_CONTRACTS,
+      // Its collection's selection starts from it (2026-10-13 — `ITEM_SELECTED_PROP_CONTRACT`).
+      isSelected: ITEM_SELECTED_PROP_CONTRACT,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

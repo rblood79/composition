@@ -117,6 +117,7 @@ import {
   CATALOG_DATE_INPUT_NODE_FIELDS,
   CATALOG_DELEGATED_DOM,
   CATALOG_INPUT_NODE_FIELDS,
+  catalogCollectionSelectedKeys,
   catalogDomPartParent,
   catalogFieldLabelNecessity,
   catalogOwnerDrawnPart,
@@ -2149,12 +2150,20 @@ function ruleDom(
   // ADR-258 Decision 7 — RAC's Color state keeps its first `defaultValue`: a document edit of the
   //   value (or its undo) starts the Preview again from the new one (the Slider's `key` rule). The
   //   key part keeps the value's own space and exact channels (`catalogColorKey`) — no other prop.
+  // A Table's rows set Selected start RAC's selection (2026-10-13 — its `defaultSelectedKeys`, which
+  // RAC keeps from the first render: a changed set builds the Table again).
+  const tableSelected =
+    lower === "table" || lower === "tableview"
+      ? catalogCollectionSelectedKeys(root, node)
+      : undefined;
   const ownKey =
     itemKey !== undefined && itemKey !== node.id
       ? `${node.id}#${itemKey}`
       : colorType
         ? `${node.id}:${catalogColorKey(colorType, node.props.defaultValue)}`
-        : node.id;
+        : tableSelected?.length
+          ? `${node.id}|selected:${tableSelected.join(",")}`
+          : node.id;
   const element = createElement(
     Component,
     {
@@ -2208,6 +2217,16 @@ function ruleDom(
                 }
               : {}),
             tableResizable: resizable,
+            defaultSelectedKeys: tableSelected,
+          }
+        : {}),
+      // (A Row's RAC key — its Table's selection names it.)
+      ...(lower === "row"
+        ? {
+            id: resolveStaticItemKey(
+              node.props as Record<string, unknown>,
+              node.id,
+            ),
           }
         : {}),
       ...(STATIC_ITEM_TYPES.has(type)

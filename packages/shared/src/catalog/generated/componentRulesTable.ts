@@ -11251,6 +11251,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
   Row: {
     defaultVariant: "default",
     defaultSize: "M",
+    // A selected row (2026-10-13 — a Row set Selected starts its Table's selection): the DOM's
+    // `Table.css` `.react-aria-Row[data-selected]` accent fill and on-accent text.
     variants: {
       default: {
         fill: {
@@ -11258,11 +11260,12 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
             base: "{color.transparent}",
             hover: "{color.transparent}",
             pressed: "{color.transparent}",
+            selected: "{color.accent}",
           },
-          alpha: 0,
         },
         colors: {
           text: "{color.neutral}",
+          selectedText: "{color.on-accent}",
         },
       },
     },
@@ -13699,9 +13702,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     },
     variants: {
       default: {
+        // A selected item (2026-10-13 — a TreeItem set Selected starts its Tree's selection): the
+        //   DOM's `Tree.css` `.react-aria-TreeItem[data-selected]` accent-subtle fill. Its chevron
+        //   glyph and label Text keep their color there (the Icon · Text own one).
         fill: {
           default: {
             base: "{color.transparent}",
+            selected: "{color.accent-subtle}",
           },
         },
         colors: {

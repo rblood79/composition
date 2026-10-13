@@ -446,6 +446,51 @@ describe("ADR-256 Phase 5i-2 — the Table's selection column is Checkbox[select
     ).toBe(true);
   });
 
+  it("rows set Selected (2026-10-13): their checkboxes are checked, select-all is indeterminate · checked as RAC's — Canvas = Preview", async () => {
+    const { workspace, root, record, draw } = await openSelection();
+    const selectRow = (r: number) =>
+      workspace.execute(
+        setFields({
+          targets: [
+            workspace.positionOfRecord(record(`project:node:r${r}`).id)!
+              .target,
+          ],
+          props: { isSelected: set(true) },
+        }),
+      );
+    const canvasBoxes = () =>
+      ["select", "r0s", "r1s", "r2s"].map((cell) => {
+        const box = record(`project:node:${cell}-box`);
+        const canvas = root.canvasInputs.get(box.id)!;
+        return [
+          canvas.derivedProps?._isSelected === true,
+          canvas.derivedProps?.isIndeterminate === true,
+        ];
+      });
+    selectRow(1);
+    expect(canvasBoxes()).toEqual([
+      [false, true],
+      [false, false],
+      [true, false],
+      [false, false],
+    ]);
+    let grid = draw();
+    const domRows = () =>
+      [...grid.querySelectorAll("tbody [role=row]")].map(
+        (row) => row.getAttribute("aria-selected") === "true",
+      );
+    const selectAllInput = () =>
+      grid.querySelector("thead input[type=checkbox]") as HTMLInputElement;
+    expect(domRows()).toEqual([false, true, false]);
+    expect(selectAllInput().indeterminate).toBe(true);
+    selectRow(0);
+    selectRow(2);
+    expect(canvasBoxes()[0]).toEqual([true, false]);
+    grid = draw();
+    expect(domRows()).toEqual([true, true, true]);
+    expect(selectAllInput().checked).toBe(true);
+  });
+
   it("in the Preview a row's checkbox selects its row and select-all every row (RAC)", async () => {
     const { draw } = await openSelection();
     const grid = draw();

@@ -27,6 +27,18 @@ export const ITEM_LINK_PROP_CONTRACTS: Readonly<Record<string, PropContract>> =
     rel: linkAccepts.rel!,
   };
 
+/**
+ * A collection item's Selected (2026-10-13 — composition extension, as the Tag's `isSelected`): RAC
+ * items take no selection prop of their own — the item's collection hands RAC the keys of its items
+ * set Selected (`defaultSelectedKeys`, `catalogCollectionSelectedKeys`) while it selects, and the
+ * Canvas paints the same (`catalogItemStartsSelected`). A Tabs selects the first one.
+ */
+export const ITEM_SELECTED_PROP_CONTRACT: PropContract = {
+  kind: "boolean",
+  label: "Selected",
+  section: "state",
+};
+
 /** S2 ListView · Menu `hideLinkOutIcon` — the owner's (its items take it — `CATALOG_LINK_OUT_OWNERS`). */
 export const HIDE_LINK_OUT_ICON_CONTRACT: PropContract = {
   kind: "boolean",
@@ -60,6 +72,7 @@ export const RULE_TYPE_PROP_CONTRACTS: Readonly<
   MenuItem: {
     ...ITEM_LINK_PROP_CONTRACTS,
     hideLinkOutIcon: ITEM_HIDE_LINK_OUT_ICON_CONTRACT,
+    isSelected: ITEM_SELECTED_PROP_CONTRACT,
   },
 };
 
