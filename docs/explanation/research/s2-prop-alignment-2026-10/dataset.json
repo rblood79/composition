@@ -2057,23 +2057,11 @@
    "isDisabled",
    "validationBehavior",
    "action",
+   "method",
    "encType",
    "target"
   ],
-  "diff": [
-   {
-    "prop": "method",
-    "ours": [
-     "get",
-     "post"
-    ],
-    "s2": [
-     "dialog",
-     "get",
-     "post"
-    ]
-   }
-  ],
+  "diff": [],
   "rac": [],
   "v3": [],
   "own": [],

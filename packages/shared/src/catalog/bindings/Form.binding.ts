@@ -95,6 +95,8 @@ export const formBinding: PrimitiveBinding = {
       },
       // form HTML attributes — live consumer: delegatedDom `form`
       action: { kind: "string", label: "Action", section: "state" },
+      // S2 1.8.0 (`@react-types/shared` DOMProps `method`): get · post · dialog — dialog 는 안
+      //   `<dialog>` 를 닫는 HTML form method.
       method: {
         kind: "enum",
         label: "Method",
@@ -103,6 +105,7 @@ export const formBinding: PrimitiveBinding = {
         options: [
           { value: "get", label: "GET" },
           { value: "post", label: "POST" },
+          { value: "dialog", label: "Dialog" },
         ],
       },
       encType: {

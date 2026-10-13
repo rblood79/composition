@@ -146,6 +146,18 @@ describe("family ② fields — toRacProps 변환 계약", () => {
     expect(result["data-size"]).toBe("M");
   });
 
+  it("Form: method 값은 S2 1.8.0 그대로 — get · post · dialog (`@react-types/shared` DOMProps)", () => {
+    const method = formBinding.props.accepts.method;
+    expect(
+      method?.kind === "enum" ? method.options?.map((o) => o.value) : [],
+    ).toEqual(["get", "post", "dialog"]);
+    const result = toRacProps(
+      { id: "f4", type: "Form", props: { method: "dialog" } },
+      formBinding,
+    );
+    expect(result.method).toBe("dialog");
+  });
+
   it("Form: labelPosition/labelAlign/necessityIndicator → data-* (raw prop 누출 없음)", () => {
     const result = toRacProps(
       {

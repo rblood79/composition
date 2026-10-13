@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 Form — method 값] - 2026-10-13
+
+### Added
+
+- **Form `method` 에 `dialog` 추가** (S2 1.8.0 — `@react-types/shared` DOMProps `method: 'get' | 'post' | 'dialog'`): Design 패널의 Method 가 GET · POST · Dialog 를 고른다. Preview 는 값을 RAC `Form` 에 그대로 넘긴다 (`dialog` 는 안 `<dialog>` 를 닫는 HTML form method).
+  - S2 정렬 조사 5.1 의 남은 값 차이에서 빠졌다 (같음 533 → 534).
+
 ## [S2 InlineAlert — fillStyle 값 이름 · variant 아이콘] - 2026-10-13
 
 ### Breaking Changes

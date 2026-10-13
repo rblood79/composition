@@ -926,7 +926,7 @@ export interface MeterElementProps extends BaseElementProps {
 export interface FormElementProps extends BaseElementProps {
   children?: React.ReactNode;
   action?: string;
-  method?: "get" | "post";
+  method?: "get" | "post" | "dialog";
   encType?: string;
   target?: string;
   autoFocus?: boolean;
