@@ -289,14 +289,14 @@ describe("ADR-248 Phase 4e-4 Properties sections", () => {
         catalogButtonChildCommands.setIcon(button, "star", workspace.newId),
       );
     });
-    // The Button's own label field is gone; the Text child's field shows the moved label.
+    // The Button's own label field is gone; the Text child's field (Label — design-data `label`) shows the moved label.
     const textLegends = [...container.querySelectorAll("legend, label")].filter(
-      (label) => label.textContent === "Text",
+      (label) => label.textContent === "Label",
     );
     expect(textLegends).toHaveLength(1);
     expect(textInputs()).toHaveLength(1);
     expect(textInputs()[0].closest(".fieldset-row")?.textContent).toContain(
-      "Text",
+      "Label",
     );
   });
 

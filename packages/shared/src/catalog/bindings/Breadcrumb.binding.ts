@@ -25,7 +25,7 @@ export const breadcrumbBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Text", section: "content" },
+      children: { kind: "string", label: "Label", section: "content" },
       href: { kind: "string", label: "Href", section: "content" },
       size: {
         kind: "size",

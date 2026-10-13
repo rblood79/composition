@@ -49,6 +49,16 @@ export interface CatalogItemInsertChoice {
   build(): CatalogCommand;
 }
 
+/**
+ * The group items "+" adds as the next option (2026-10-14, 사용자 「Option x 로 통일」) — whether
+ * it takes its own value: a Radio's value is RAC's group value (each its own); a Checkbox in a group
+ * is keyed by its node (`delegatedDom` `checkbox`), as the template's own options are.
+ */
+const GROUP_OPTION_VALUE: Readonly<Record<string, boolean>> = {
+  Radio: true,
+  Checkbox: false,
+};
+
 const COLUMN_ORIGIN =
   "lib:definition:origin-component-table-column" as NodeEntry["definitionId"];
 
@@ -294,6 +304,25 @@ export function catalogItemInsertChoices(
     return { ...created, descendantOverrides: fill.patches(created.id) };
   };
 
+  /**
+   * A RadioGroup's · CheckboxGroup's next option, like the template's own ("Option 3", a Radio with
+   * `option3`): the first number past the group's items that no item's text or value takes.
+   */
+  const nextOption = (itemType: string): Record<string, unknown> => {
+    const authored = (key: string) =>
+      rows
+        .filter((row) => typeOf(graph, row.definitionId) === itemType)
+        .map((row) => readModel.propSource(row.target, key).value);
+    const texts = authored("children");
+    const values = authored("value");
+    let n = texts.length + 1;
+    while (texts.includes(`Option ${n}`) || values.includes(`option${n}`)) n++;
+    return {
+      children: `Option ${n}`,
+      ...(GROUP_OPTION_VALUE[itemType] ? { value: `option${n}` } : {}),
+    };
+  };
+
   const build = (itemType: string): CatalogCommand => {
     if (itemType === "SubmenuTrigger") {
       // ADR-256 후속 6: RAC reads the trigger's first child (the item) and second (the Popover).
@@ -381,7 +410,13 @@ export function catalogItemInsertChoices(
           ? wrapperGroupHost(graph, position)
           : undefined;
     if (groupHost) {
-      const item = entry(definitionFor(itemType), itemType);
+      const item = entry(
+        definitionFor(itemType),
+        itemType,
+        GROUP_OPTION_VALUE[itemType] !== undefined
+          ? nextOption(itemType)
+          : undefined,
+      );
       return insertGroupItem({
         hostId: groupHost,
         entries: [item],

@@ -61,7 +61,7 @@ export const buttonBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
-      children: { kind: "string", label: "Text", section: "content" },
+      children: { kind: "string", label: "Label", section: "content" },
       // 시각 차원 → data-variant / data-size (theme 가 값 집합 제공)
       variant: {
         kind: "variant",

@@ -81,3 +81,52 @@ describe("Design panel sections — one section per prop", () => {
     expect(misplaced).toEqual([]);
   });
 });
+
+/**
+ * 2026-10-14 (사용자 「children 필드 이름이 …」 → 「RAC,RSC 레퍼런스에 dom 구조를 확인한다면」 →
+ * 「진행해」): the name of a component's own text field (`children`) follows D2 — S2 1.8.0 calls it
+ * "content", so Spectrum design-data answers: the text of a control, item or status is its **label**
+ * (button `label` "Button text" · breadcrumbs item `label` · badge · status light `label` · table
+ * column `label` "The header text displayed for the column"). A text element's own text is Text, a
+ * part showing its owner's value is Value, a section's header is its Title (menu `sectionHeader`).
+ */
+const CHILDREN_FIELD_NAME: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(
+    [
+      "Button",
+      "ToggleButton",
+      "Link",
+      "Breadcrumb",
+      "FileTrigger",
+      "Checkbox",
+      "Radio",
+      "Switch",
+      "Tag",
+      "ListBoxItem",
+      "GridListItem",
+      "TreeItem",
+      "Badge",
+      "StatusLight",
+      "Column",
+    ].map((type) => [type, "Label"]),
+  ),
+  ...Object.fromEntries(
+    ["SelectValue", "SliderOutput", "MeterValue", "ProgressBarValue"].map(
+      (type) => [type, "Value"],
+    ),
+  ),
+  Header: "Title",
+};
+
+describe("Design panel — a component's own text field is named by what the text is", () => {
+  it("Label for a control's · item's · status's text, Value for a value part, else Text", () => {
+    const wrong = contracts()
+      .filter(([, key]) => key === "children")
+      .filter(
+        ([type, , contract]) =>
+          contract.label !== (CHILDREN_FIELD_NAME[type] ?? "Text"),
+      )
+      .map(([type, , contract]) => `${type}: ${contract.label}`);
+    expect(wrong).toEqual([]);
+  });
+});

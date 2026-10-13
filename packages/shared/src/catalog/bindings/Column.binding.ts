@@ -41,7 +41,7 @@ export const columnBinding: PrimitiveBinding = {
           { value: "spacious", label: "Spacious" },
         ],
       },
-      children: { kind: "string", label: "Text", section: "content" },
+      children: { kind: "string", label: "Label", section: "content" },
       isRowHeader: { kind: "boolean", label: "Row header", section: "content" },
       // ADR-257 Phase 3 — S2 `align` (start · center · end, S2 default start): this cell's own
       //   text alignment (rule `containerVariants.align`). S2 does not pass a Column's to its

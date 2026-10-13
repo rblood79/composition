@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [그룹 "+" 항목 — Option N 으로 이어 붙인다] - 2026-10-14
+
+### Fixed
+
+- **RadioGroup · CheckboxGroup 의 "+" 가 "Radio" · "Checkbox" 를 넣던 것** (사용자 「radioGroup, CheckboxGroup 기본 값들이 option 1, option 2 .. slot에서 추가시 Radio, Checkbox로 나타난다. Option x 로 통일」): 이제 template 의 항목처럼 다음 번호로 붙는다 — "Option 3", Radio 는 값 `option3`. 번호는 그룹의 항목 수 다음, 이미 쓰인 글자 · 값은 건너뛴다.
+  - **Why**: 그룹 항목 "+" (`itemInsert.ts`) 가 원본 기본값 그대로 노드를 만들었다. Radio 원본의 값은 `radio` 라 추가한 Radio 마다 같은 값이 되어, RAC RadioGroup 이 둘을 한 값으로 보고 RadioGroup Value 목록에도 하나만 나왔다. Checkbox 는 그룹 안에서 노드 id 가 RAC 값이라 (`delegatedDom` `checkbox`) 글자만 채운다.
+  - 테스트 `groupOptionInsert` (원복 RED 2). Live (headed Chrome): 두 그룹에 "+" 두 번 — Canvas · Preview 모두 Option 1 ~ 4, Radio 값 option1 ~ 4, Preview 에서 Option 3 을 누르면 그것만 선택, 콘솔 오류 0.
+
+## [Design 패널 글자 칸 이름 — D2 정본 (design-data) 의 label] - 2026-10-14
+
+### Changed
+
+- **컴포넌트 자신의 글자 칸 (`children`) 이름을 D2 정본으로 맞췄다** (사용자 「RAC,RSC 레퍼런스에 dom 구조를 확인한다면 더 명확해 지지않나」 → 「진행해」): Button 은 "Text", ToggleButton 은 "Label" 처럼 같은 종류의 글자가 컴포넌트마다 다른 이름이었다. S2 1.8.0 은 `children` 을 "content" 로만 적어 답이 없고, 다음 정본 Spectrum design-data 가 컨트롤 · 항목 · 상태의 글자를 `label` 로 부른다 (button anatomy `label` "Button text" · breadcrumbs 항목 · badge · status light · table column `label`).
+  - Text → Label: Button · Breadcrumb · Badge · Column · FileTrigger (FileTrigger 는 design-data 에 없어 그 글자인 Button 을 따른다). 그대로: 글자 요소 (Text · Paragraph · Heading · Label · Description · FieldError · Cell …) 는 Text, 값 부품 (SelectValue · SliderOutput · MeterValue · ProgressBarValue) 은 Value, Header 는 Title (design-data menu `sectionHeader`).
+  - prop 이름 · 저장 값 · 렌더는 바뀌지 않는다 — 패널 칸 이름만.
+  - 게이트 `propSectionConsistency` 에 칸 이름 표 추가 (원복 RED: Button "Text" 로 되돌리면 실패). Live (headed Chrome): Button · Badge · Breadcrumb · FileTrigger · Column 을 놓고 Design 패널 Content 첫 칸이 "Label" 인지 확인, 콘솔 오류 0.
+
 ## [Design 패널 섹션 — prop 의 뜻으로 한 섹션] - 2026-10-13
 
 ### Changed

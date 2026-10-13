@@ -28,7 +28,7 @@ export const badgeBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
-      children: { kind: "string", label: "Text", section: "content" },
+      children: { kind: "string", label: "Label", section: "content" },
       variant: {
         kind: "variant",
         label: "Variant",
