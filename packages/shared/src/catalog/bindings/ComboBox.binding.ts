@@ -116,7 +116,7 @@ export const comboBoxBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       necessityIndicator: {

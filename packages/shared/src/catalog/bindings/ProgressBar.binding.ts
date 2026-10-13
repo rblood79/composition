@@ -73,7 +73,7 @@ export const progressBarBinding: PrimitiveBinding = {
       isIndeterminate: {
         kind: "boolean",
         label: "Indeterminate",
-        section: "state",
+        section: "content",
       },
       showValueLabel: {
         kind: "boolean",

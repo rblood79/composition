@@ -120,7 +120,7 @@ export const FIRST_DAY_OF_WEEK_PROP: PropContract = {
 export const VISIBLE_DURATION_PROP: PropContract = {
   kind: "calendar-duration",
   label: "Visible Duration",
-  section: "content",
+  section: "appearance",
   default: { months: 1 },
 };
 
@@ -132,7 +132,7 @@ export const VISIBLE_DURATION_PROP: PropContract = {
 export const WEEKS_IN_MONTH_PROP: PropContract = {
   kind: "number",
   label: "Weeks in Month",
-  section: "content",
+  section: "appearance",
   min: 1,
   step: 1,
 };

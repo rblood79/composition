@@ -110,10 +110,10 @@ export const dateFieldBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
-      minValue: { kind: "string", label: "Min Value", section: "state" },
-      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      minValue: { kind: "string", label: "Min Value", section: "content" },
+      maxValue: { kind: "string", label: "Max Value", section: "content" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): CATALOG_DELEGATED_DOM.datefield 가 소비 —
       //   RAC DateField 공식 prop. placeholderValue 는 ISO 문자열로 렌더러가 파싱.
       hourCycle: {

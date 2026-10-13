@@ -105,7 +105,7 @@ export const textFieldBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       // ADR-915 P1.5-b: 텍스트 HTML 입력 힌트 attr (RAC TextField 공식 prop, `<input>` 전달).
       //   controlled-value(value/defaultValue)와 직교 — 순수 입력 힌트라 회귀 위험 0.

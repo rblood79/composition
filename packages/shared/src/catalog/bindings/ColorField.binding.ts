@@ -86,7 +86,7 @@ export const colorFieldBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       name: { kind: "string", label: "Name", section: "content" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

@@ -105,7 +105,7 @@ export const textAreaBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       // RSP 표준 required 표시 방식 (icon "*" / label "(required)").
       //   캔버스 경로도 준비돼 있다 — `NECESSITY_INDICATOR_TAGS` 에 textarea 가 이미 있어

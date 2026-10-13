@@ -73,7 +73,7 @@ export const datePickerBinding: PrimitiveBinding = {
       iconName: {
         kind: "icon",
         label: "Calendar Icon",
-        section: "appearance",
+        section: "content",
         default: "calendar",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
@@ -108,10 +108,10 @@ export const datePickerBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
-      minValue: { kind: "string", label: "Min Value", section: "state" },
-      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      minValue: { kind: "string", label: "Min Value", section: "content" },
+      maxValue: { kind: "string", label: "Max Value", section: "content" },
       // S2 · RAC `placeholderValue`: the date the empty picker's calendar opens on (ISO text, as
       //   DateField's — 2026-10-09).
       placeholderValue: {
@@ -155,7 +155,7 @@ export const datePickerBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: "visible",
         label: "Page Behavior",
-        section: "content",
+        section: "state",
         options: [
           { value: "visible", label: "Visible" },
           { value: "single", label: "Single" },

@@ -34,7 +34,7 @@ export const fieldBinding: PrimitiveBinding = {
       type: {
         kind: "enum",
         label: "Type",
-        section: "appearance",
+        section: "content",
         default: "string",
         options: [
           { value: "string", label: "String" },

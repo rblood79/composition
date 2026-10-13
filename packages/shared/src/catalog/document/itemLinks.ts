@@ -32,11 +32,16 @@ export const ITEM_LINK_PROP_CONTRACTS: Readonly<Record<string, PropContract>> =
  * items take no selection prop of their own — the item's collection hands RAC the keys of its items
  * set Selected (`defaultSelectedKeys`, `catalogCollectionSelectedKeys`) while it selects, and the
  * Canvas paints the same (`catalogItemStartsSelected`). A Tabs selects the first one.
+ *
+ * Content, not Behavior (사용자 2026-10-13 「선택 값이 radio는 content 에있고, tabs는 behavior에 있고
+ * 일관성이 없다」 · 「checkbox 는 또 behavior에 있다」): a selection is a value — every control's
+ * Selected (Checkbox · Switch · ToggleButton · Radio · an item) sits with a RadioGroup's Value and a
+ * Tabs' Selected Tab. Disabled · Read Only · Required stay Behavior.
  */
 export const ITEM_SELECTED_PROP_CONTRACT: PropContract = {
   kind: "boolean",
   label: "Selected",
-  section: "state",
+  section: "content",
 };
 
 /** S2 ListView · Menu `hideLinkOutIcon` — the owner's (its items take it — `CATALOG_LINK_OUT_OWNERS`). */

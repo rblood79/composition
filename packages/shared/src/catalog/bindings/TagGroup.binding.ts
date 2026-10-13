@@ -105,7 +105,7 @@ export const tagGroupBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       isInvalid: { kind: "boolean", label: "Invalid", section: "state" },
       // S2 1.8.0 TagGroup `isEmphasized` (2026-10-10): a selected Tag is neutral, accent when

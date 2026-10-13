@@ -43,7 +43,7 @@ export const switchBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       // S2 1.8.0 `isEmphasized` (2026-10-10 — 조사 §4.2 B): 켜진 track 이 accent 가 된다. rule 의
       //   emphasized 변형이 그 모양이고, 내부 `variant` 는 resolver 가 파생하는 운반 값
@@ -66,7 +66,7 @@ export const switchBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
-      isSelected: { kind: "boolean", label: "Selected", section: "state" },
+      isSelected: { kind: "boolean", label: "Selected", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Switch 공식 prop —
       //   `delegatedDom.tsx` `switch` 가 isReadOnly/name/value/autoFocus 를 RAC SwitchField 로 전달.

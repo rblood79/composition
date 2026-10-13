@@ -143,7 +143,7 @@ export const sliderBinding: PrimitiveBinding = {
       fillOffset: {
         kind: "number",
         label: "Fill Offset",
-        section: "content",
+        section: "appearance",
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },

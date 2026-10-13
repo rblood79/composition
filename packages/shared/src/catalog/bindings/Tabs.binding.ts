@@ -43,6 +43,17 @@ export const tabsBinding: PrimitiveBinding = {
           { value: "regular", label: "Regular" },
         ],
       },
+      // S2 Tabs `defaultSelectedKey` as the Design panel's Selected Tab (사용자 2026-10-13 「tabs컴퍼넌트의
+      //   프러퍼티에 Selected Tab을 선택할수있게」): its choices are the Tabs' Tabs and it shows the
+      //   selected one; choosing writes that Tab's Selected (`catalogSingleSelectionCommand` — a Tab's
+      //   key can be its record identity, which the document does not keep).
+      //   (A chosen value is Content, as a RadioGroup's · a TextField's `value`; the Tab's own
+      //   Selected is a state.)
+      defaultSelectedKey: {
+        kind: "enum",
+        label: "Selected Tab",
+        section: "content",
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

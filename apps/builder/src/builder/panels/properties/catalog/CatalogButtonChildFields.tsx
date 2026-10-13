@@ -19,9 +19,17 @@ import { useCatalogCommandRunner } from "../../navigator/catalog/useCatalogComma
 export const CatalogButtonChildFields = memo(function CatalogButtonChildFields({
   nodeId,
   state,
+  label,
+  ownText,
+  onOwnTextChange,
 }: {
   nodeId: NodeId;
   state: CatalogButtonChildren;
+  /** The `children` field's label (the binding's — Text · Label). */
+  label: string;
+  /** Without a Text child the label is the Button's own `children` (the panel hides that field). */
+  ownText?: string;
+  onOwnTextChange?: (value: string) => void;
 }) {
   const workspace = useCatalogWorkspace();
   const run = useCatalogCommandRunner();
@@ -50,8 +58,18 @@ export const CatalogButtonChildFields = memo(function CatalogButtonChildFields({
     [graph, nodeId, run],
   );
 
+  // The label first, then the glyph — the panel's one key order (`children` before `iconName`).
   return (
     <>
+      {state.textId || onOwnTextChange ? (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label={label}
+            value={state.textId ? (state.text ?? "") : (ownText ?? "")}
+            onChange={state.textId ? changeText : onOwnTextChange!}
+          />
+        </div>
+      ) : null}
       <div className="fieldset-row" data-wide="true">
         <PropertyIconPicker
           label="Icon"
@@ -60,15 +78,6 @@ export const CatalogButtonChildFields = memo(function CatalogButtonChildFields({
           onClear={clearIcon}
         />
       </div>
-      {state.textId ? (
-        <div className="fieldset-row" data-wide="true">
-          <PropertyInput
-            label="Text"
-            value={state.text ?? ""}
-            onChange={changeText}
-          />
-        </div>
-      ) : null}
     </>
   );
 });

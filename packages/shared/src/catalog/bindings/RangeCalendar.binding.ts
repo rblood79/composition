@@ -38,7 +38,7 @@ export const rangeCalendarBinding: PrimitiveBinding = {
         // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
         default: "visible",
         label: "Page Behavior",
-        section: "content",
+        section: "state",
         options: [
           { value: "visible", label: "Visible" },
           { value: "single", label: "Single" },
@@ -46,12 +46,12 @@ export const rangeCalendarBinding: PrimitiveBinding = {
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `rangecalendar` 가 소비 —
       //   RAC RangeCalendar 공식 prop. min/maxValue 는 ISO 문자열로 렌더러가 파싱.
-      minValue: { kind: "string", label: "Min Value", section: "state" },
-      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      minValue: { kind: "string", label: "Min Value", section: "content" },
+      maxValue: { kind: "string", label: "Max Value", section: "content" },
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       visibleDuration: VISIBLE_DURATION_PROP,
       weeksInMonth: WEEKS_IN_MONTH_PROP,

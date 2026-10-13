@@ -11,6 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Design 패널 섹션 — prop 의 뜻으로 한 섹션] - 2026-10-13
+
+### Changed
+
+- **같은 prop 이 컴포넌트마다 다른 섹션에 있던 것을 한 규칙으로 맞췄다** (사용자 「선택 값이 radio는 content 에있고, tabs는 behavior에 있고 일관성이 없다」 · 「checkbox 는 또 behavior에 있다」 · 「이렇게 해서는 안된다. 컴퍼넌트별 프러퍼티 section이 일관성이 없다」 · 「checkbox는 error message가 behavior에 있고 다른컴퍼넌트는 error message가 content에 있다」). 규칙 — **Content**: 보여 주는 것과 담는 값 (글자 · 값 · 선택 · 값의 범위와 형식 · Name · Data · 링크), **Appearance**: 모양과 배치, **Behavior**: 반응과 제약 (Disabled · Read Only · Required · Invalid · Auto Focus · Selection Mode · 열림 · 검증 · 트리거 · 제출), **Locale**: 지역 · 달력 설정.
+  - Behavior → Content: Error Message (19 컴포넌트 — Label · Description 과 같은 글자), Selected (Checkbox · Switch · ToggleButton · Radio · Tag · Card · 컬렉션 항목), Indeterminate (Checkbox · ProgressBar · ProgressCircle), 날짜 계열 Min · Max Value (NumberField · Slider 와 같이), Dialog Role. Appearance → Content: ColorArea · ColorSlider 의 Color Space · Channel, DatePicker · DateRangePicker 의 Calendar Icon, Field 의 Type. Content → Behavior: 달력의 Page Behavior. Content → Appearance: 달력의 Visible Duration · Weeks in Month, Slider Fill Offset. Content → Locale: NumberField Locale. Tabs Selected Tab 은 Content.
+  - 이름만 같고 뜻이 다른 둘은 그대로: Button `type` (submit · reset — Behavior) ↔ 입력 `type` (Content), Form `target` (제출 — Behavior) ↔ 링크 `target` (Content).
+  - 게이트 `propSectionConsistency` — 한 prop key 는 모든 컴포넌트에서 한 섹션, 글자 · 값 · 선택 key 는 Content.
+- **섹션 안 순서도 한 순서** (사용자 「순서도 맞춰」): 필드는 계약 선언 순서와 kind 묶음 (글자 → 선택 → 숫자) 을 따라 컴포넌트마다 달랐다 — Checkbox 는 Error Message 가 Name 앞 · TextField 는 뒤, 날짜의 Min Value (글자 칸) 와 NumberField 의 Min (숫자 칸) 이 Name 앞뒤로 갈림, 칩 Disabled · Required 순서도 제각각. 이제 prop key 순서 표 하나 (`KEY_ORDER` — `GenericFieldRenderer.tsx`) 가 먼저다: Label · Title · Description · Error Message · Placeholder → Icon → Value · Default · Min · Max · Step → Name → 링크 → 입력 종류 → Variant · Size · 배치 → 선택 · 검증 방식 → 칩 (Selected · Indeterminate … Quiet · Emphasized · Disabled · Read Only · Required · Invalid … Auto Focus 맨 끝). 표에 없는 key 만 그 뒤에 kind 묶음 · 계약 순서.
+  - Button 계열의 글자 · Icon 칸 (`CatalogButtonChildFields`) 도 글자 먼저, Icon 다음 (종전 Icon 먼저). IconButton 은 원본의 Icon 필드와 이 칸의 Icon 이 둘 다 나와 Icon 이 두 번 보였다 — 원본에 Icon 필드가 있으면 이 칸을 그리지 않는다.
+  - Live: 원본을 다시 전부 놓아 섹션 186개를 뽑고 두 필드의 앞뒤가 컴포넌트끼리 뒤바뀌는 쌍을 셈 — 10 → 0. 테스트 `GenericFieldRenderer.order` (원복 RED 3), builder 5608 통과.
+  - Live (headed Chrome): 원본 151개를 차례로 놓고 Design 패널의 섹션별 필드를 뽑아 대조 — 같은 필드 이름이 두 섹션에 나오는 것은 위의 뜻이 다른 둘 (+ 서로 다른 "Show …" 필드) 뿐. Checkbox: Content `Label · Description · Error Message · Name · Value · Selected · Indeterminate`, Behavior `Disabled · Invalid · Read Only · Required · Auto Focus`. shared 1599 · builder 5605 통과.
+
+## [단일 선택 — RadioGroup Value · Tabs 는 한 값만] - 2026-10-13
+
+### Added
+
+- **Tabs 의 Design 패널 Content 에 Selected Tab** (사용자 「tabs컴퍼넌트의 프러퍼티에 Selected Tab을 선택할수있게 하는것이 편할듯한데」 · 「선택 값이 radio는 content 에있고, tabs는 behavior에 있고 일관성이 없다」 — 고른 값은 RadioGroup Value · TextField Value 처럼 Content, 항목의 Selected 는 Behavior): 선택지는 그 Tabs 의 Tab (글자로 표시), 지금 선택된 Tab 을 보여 주고 고르면 그 Tab 의 Selected 를 켠다 (다른 Tab 은 꺼진다). S2 `defaultSelectedKey` 자리지만 Tabs 에 키를 저장하지 않는다 — 원본 Tab 은 `id` 가 없어 키가 record identity (렌더 키 — 문서에 두지 않는다) 라서 (`catalogTabsSelectedTab` · `catalogSingleSelectionCommand`).
+  - Live (headed Chrome, Design 패널 클릭): Selected Tab `Tab 1` 눌림 → `Tab 2` 클릭 → Canvas · Preview `[false,true]`, 칩 `Tab 2` 눌림, Tabs 의 키 없음. 콘솔 오류 0. 테스트 `singleSelection` Tabs 칸.
+
+### Fixed
+
+- **RadioGroup 의 Value 를 고를 수 없었다** (사용자 「radioGroup, Tabs 등은 하나의 값만 선택되어야한다. 현재 radioGroup 프러퍼티에 value옵션이 있지만 동작하지않는다」): Value 의 선택지는 자식 Radio 의 value 에서 만드는데, Design 패널이 선택지를 만들 때 노드를 type 만으로 넘겨 (`editContract.ts` `{ type }`) 선택지가 늘 비어 있었다. 이제 패널이 record 트리에서 그룹의 Radio (RadioItems · frame 을 건너 — RAC 그룹 context 와 같이) 의 value 를 읽어 채운다 (`catalogRadioGroupValueOptions` — `catalogRuntime/singleSelection.ts`).
+  - **Why**: 선택지 0개라 Value 를 쓸 길이 없었고, 그룹 값보다 Radio 의 Selected 가 먼저라 둘을 따로 쓰면 엇갈렸다.
+- **한 값만 고르는 컬렉션 · 그룹에서 여러 항목이 Selected 일 수 있었다**: Tabs · RadioGroup (늘), ToggleButtonGroup · ListBox · GridList · Tree · Table · Menu · TagGroup · CardView (`selectionMode` single) 에서 항목을 Selected 로 켜면 다른 항목의 Selected 가 같은 step 에서 꺼진다 (`catalogSingleSelectionCommand` — Properties 패널 쓰기와 한 transaction). multiple 은 그대로 각자다. RadioGroup 의 Value 와 Radio 의 Selected 는 한 선택으로 서로 따라간다 (Value 를 고르면 그 Radio 가 Selected, Radio 를 Selected 로 켜면 Value 가 그 값, 끄면 Value 가 빈다). Tabs 는 Tab 을 Selected 로 켜면 문서에 남은 Tabs 키 (`defaultSelectedKey` — Selected 보다 앞선다) 를 비운다.
+  - Live (headed Chrome, Design 패널 클릭): RadioGroup Value = Option 2 → Canvas Radio `[false,true]` · Preview checked `[false,true]`. Radio 1 의 Selected → Radio `[true,false]` · Value `option1` · Preview `[true,false]`. Tabs 의 Tab 1 → Tab 2 Selected → Canvas · Preview `[false,true]`, Tab 1 의 Selected 꺼짐. 콘솔 오류 0. 테스트 `singleSelection` (선택지 · Value ↔ Radio · Tabs · ListBox single/multiple — 원복 RED 3), builder 5604 통과.
+
 ## [컬렉션 항목 Selected — 목록 · 트리 · 표 · 메뉴 · 탭의 선택을 항목에서 고른다] - 2026-10-13
 
 ### Added

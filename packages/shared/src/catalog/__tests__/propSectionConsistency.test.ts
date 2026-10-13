@@ -1,0 +1,83 @@
+import { describe, expect, it } from "vitest";
+import { componentCatalog } from "../componentCatalog";
+import { RULE_TYPE_PROP_CONTRACTS } from "../document/itemLinks";
+import type { PropContract } from "../types";
+
+/**
+ * 2026-10-13 (사용자 「이렇게 해서는 안된다. 컴퍼넌트별 프러퍼티 section이 일관성이 없다」 · 「checkbox는
+ * error message가 behavior에 있고 다른컴퍼넌트는 error message가 content에 있다」): the Design panel
+ * section of a prop is decided by what the prop means, the same for every component —
+ *
+ * - content: what it shows and the value it holds — its texts (label · description · error message ·
+ *   placeholder …), its value and selection (value · Selected · Indeterminate · Selected Tab), the
+ *   value's range and form (min · max · step · format · color space · channel), name, data, link.
+ * - appearance: how it looks and is laid out.
+ * - state (Behavior): how it reacts and what limits it — disabled · read only · required · invalid ·
+ *   auto focus · selection mode · open / expanded · validation · triggers · submission.
+ * - locale: locale and calendar settings. interaction: a Chart's animation and tooltip.
+ *
+ * So one prop key sits in one section on every component. The keys below name two different props.
+ */
+const SAME_NAME_DIFFERENT_PROP: Readonly<Record<string, string>> = {
+  // A Button's `type` is its form action (submit · reset — Behavior); an input's is the kind of value
+  // it takes (Content).
+  type: "Button submit/reset vs input type",
+  // A Form's `target` is where it submits (with Action · Method — Behavior); an item's is its link's.
+  target: "Form submission vs link",
+};
+
+function contracts(): Array<[string, string, PropContract]> {
+  const rows: Array<[string, string, PropContract]> = [];
+  for (const entry of componentCatalog)
+    if (entry.kind === "primitive")
+      for (const [key, contract] of Object.entries(
+        entry.binding.props.accepts ?? {},
+      ))
+        if (!contract.editorHidden) rows.push([entry.type, key, contract]);
+  for (const [type, accepts] of Object.entries(RULE_TYPE_PROP_CONTRACTS))
+    for (const [key, contract] of Object.entries(accepts))
+      if (!contract.editorHidden) rows.push([type, key, contract]);
+  return rows;
+}
+
+describe("Design panel sections — one section per prop", () => {
+  it("a prop key sits in the same section on every component", () => {
+    const sections = new Map<string, Map<string, string[]>>();
+    for (const [type, key, contract] of contracts()) {
+      if (key in SAME_NAME_DIFFERENT_PROP) continue;
+      const bySection = sections.get(key) ?? new Map<string, string[]>();
+      const section = contract.section ?? "content";
+      bySection.set(section, [...(bySection.get(section) ?? []), type]);
+      sections.set(key, bySection);
+    }
+    const split = [...sections]
+      .filter(([, bySection]) => bySection.size > 1)
+      .map(
+        ([key, bySection]) =>
+          `${key}: ${[...bySection].map(([section, types]) => `${section}(${types.join(",")})`).join(" / ")}`,
+      );
+    expect(split).toEqual([]);
+  });
+
+  it("texts, values and selections are Content", () => {
+    const content = [
+      "label",
+      "description",
+      "errorMessage",
+      "placeholder",
+      "value",
+      "isSelected",
+      "isIndeterminate",
+      "minValue",
+      "maxValue",
+      "defaultSelectedKey",
+    ];
+    const misplaced = contracts()
+      .filter(
+        ([, key, contract]) =>
+          content.includes(key) && (contract.section ?? "content") !== "content",
+      )
+      .map(([type, key, contract]) => `${type}.${key}: ${contract.section}`);
+    expect(misplaced).toEqual([]);
+  });
+});

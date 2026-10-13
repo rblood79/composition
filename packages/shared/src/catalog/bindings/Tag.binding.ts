@@ -41,7 +41,7 @@ export const tagBinding: PrimitiveBinding = {
       // A selected Tag is its TagGroup's selection (RAC · S2 Tag has no `variant` — 2026-10-09):
       //   the TagGroup hands RAC the keys of its selected Tags (`defaultSelectedKeys`), the rule's
       //   `selected` variant paints it (Canvas `_isSelected` · DOM `[data-selected]`).
-      isSelected: { kind: "boolean", label: "Selected", section: "state" },
+      isSelected: { kind: "boolean", label: "Selected", section: "content" },
       // ADR-259 Phase 1: S2 · RAC item link (`href` · `target` · `rel` — RAC draws the link).
       ...ITEM_LINK_PROP_CONTRACTS,
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },

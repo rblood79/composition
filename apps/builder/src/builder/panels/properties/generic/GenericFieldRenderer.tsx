@@ -356,10 +356,95 @@ function parseColumnSizeInput(text: string): number | string | undefined {
   const px = /^(\d+(?:\.\d+)?)(?:px)?$/.exec(trimmed);
   return px ? Number(px[1]) : trimmed;
 }
-function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
-  const ranked = fields
-    .map((field, index) => ({ field, index, rank: fieldRank(field) }))
+/**
+ * 섹션 안 순서 — prop key 하나의 순서 (2026-10-13 사용자 「순서도 맞춰」: 계약 선언 순서와 kind 묶음을
+ * 따라 Checkbox 는 Error Message 가 Name 앞, TextField 는 뒤였고, 날짜의 Min Value (글자) 와
+ * NumberField 의 Min (숫자) 이 Name 앞뒤로 갈렸고, 칩도 Disabled · Required 순서가 달랐다). 표의
+ * key 가 먼저 표 순서로, 표에 없는 key 는 그 뒤에 kind 묶음 · 계약 순서로. `LAST_KEYS` 는 맨 끝.
+ */
+const KEY_ORDER: readonly string[] = [
+  // What it says, then its help texts.
+  "children",
+  "label",
+  "title",
+  "description",
+  "errorMessage",
+  "placeholder",
+  // Its glyph.
+  "iconName",
+  "icon",
+  // The value it holds, its range, its form name.
+  "value",
+  "defaultValue",
+  "defaultInputValue",
+  "placeholderValue",
+  "defaultSelectedKey",
+  "minValue",
+  "maxValue",
+  "step",
+  "name",
+  // Its link.
+  "href",
+  "target",
+  "rel",
+  // What its input takes.
+  "type",
+  "inputMode",
+  "enterKeyHint",
+  "autoComplete",
+  // How it looks and is laid out (the 「Variant | Size」 first row).
+  "variant",
+  "fillStyle",
+  "size",
+  "orientation",
+  "density",
+  "labelPosition",
+  "labelAlign",
+  "align",
+  "direction",
+  "necessityIndicator",
+  "staticColor",
+  // How it selects and validates.
+  "selectionMode",
+  "selectionStyle",
+  "validationBehavior",
+  "menuTrigger",
+  // Chips: the value's, the look's, then availability and validation.
+  "isSelected",
+  "isIndeterminate",
+  "autoCorrect",
+  "spellCheck",
+  "isQuiet",
+  "isEmphasized",
+  "isDisabled",
+  "isReadOnly",
+  "isRequired",
+  "isInvalid",
+];
+const LAST_KEYS: readonly string[] = ["autoFocus"];
+function keyRank(key: string): number {
+  const last = LAST_KEYS.indexOf(key);
+  if (last !== -1) return KEY_ORDER.length + 1 + last;
+  const i = KEY_ORDER.indexOf(key);
+  return i === -1 ? KEY_ORDER.length : i;
+}
+/** Fields in the one key order (stable — keys outside the table keep the contract's order). */
+function byKeyOrder(fields: readonly ResolvedField[]): ResolvedField[] {
+  return fields
+    .map((field, index) => ({ field, index, rank: keyRank(field.key) }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.field);
+}
+function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
+  // The table's keys in its order; the others after them, grouped by kind (contract order inside).
+  const ranked = fields
+    .map((field, index) => ({
+      field,
+      index,
+      key: keyRank(field.key),
+      kind: fieldRank(field),
+    }))
+    .sort((a, b) => a.key - b.key || a.kind - b.kind || a.index - b.index)
     .map((entry) => entry.field);
   // 조건부 필드는 자기 조건 키 바로 뒤에 — 「Show Value Label」 스위치와 「Value Label」 입력,
   //   「Label Position」 과 「Label Align」 처럼 켜는 쪽과 켜지는 쪽이 한 자리에 (2026-09-15 사용자
@@ -1085,7 +1170,7 @@ function splitChipFields(fields: readonly ResolvedField[]): {
 } {
   const chipKeys = new Set<string>();
   const byGroup = new Map<ChipGroup, ResolvedField[]>();
-  for (const field of fields) {
+  for (const field of byKeyOrder(fields)) {
     const editor = resolveFieldEditor(field);
     if (editor.type !== "chip") continue;
     chipKeys.add(field.key);

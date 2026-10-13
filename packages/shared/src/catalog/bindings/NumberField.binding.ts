@@ -101,7 +101,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
@@ -129,7 +129,7 @@ export const numberFieldBinding: PrimitiveBinding = {
       },
       // ADR-915 P1-g (2026-07-16): RAC NumberField 공식 locale — delegatedDom `numberfield` 가
       //   `props.locale` 를 RAC NumberField 로 전달(숫자 포맷 로케일).
-      locale: { kind: "string", label: "Locale", section: "content" },
+      locale: { kind: "string", label: "Locale", section: "locale" },
     },
     toRacProps: "default",
     // size 는 DOM 에서 delegatedDom `numberfield` (`nodeTreeField`) 가 `data-size` 로 싣는다

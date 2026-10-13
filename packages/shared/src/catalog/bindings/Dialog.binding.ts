@@ -23,7 +23,7 @@ export const dialogBinding: PrimitiveBinding = {
       role: {
         kind: "enum",
         label: "Role",
-        section: "state",
+        section: "content",
         default: "dialog",
         options: [
           { value: "dialog", label: "Dialog" },

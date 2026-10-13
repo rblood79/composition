@@ -105,8 +105,8 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       // 형제 대칭 (§1-3 2026-08-21): DateField minValue/maxValue 동형 — "HH:mm(:ss)"
       //   문자열, `delegatedDom.tsx` `timefield` 가 Time 으로 파싱 (`timeValue`).
-      minValue: { kind: "string", label: "Min Value", section: "state" },
-      maxValue: { kind: "string", label: "Max Value", section: "state" },
+      minValue: { kind: "string", label: "Min Value", section: "content" },
+      maxValue: { kind: "string", label: "Max Value", section: "content" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
@@ -114,7 +114,7 @@ export const timeFieldBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): `delegatedDom.tsx` `timefield` 가 전달 —
       //   RAC TimeField 공식 prop. placeholderValue 는 "HH:mm" 문자열로 렌더러가 파싱.

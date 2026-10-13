@@ -28,6 +28,14 @@ import { ORIGIN_VIEW_NODE } from "../../../catalogRuntime/originView";
 import { catalogSettingsPage } from "../../../catalogRuntime/pageSettings";
 
 import {
+  catalogRadioGroupValueOptions,
+  catalogSingleSelectionCommand,
+  catalogTabsSelectedTab,
+} from "../../../catalogRuntime/singleSelection";
+
+import { composeCommands } from "../../../../../../../packages/shared/src/catalog/commands";
+
+import {
   useCatalogEditContract,
   useCatalogWorkspace,
 } from "../../../catalogRuntime/react";
@@ -267,17 +275,72 @@ const CatalogFields = memo(function CatalogFields({
     const picker = catalogCalendarPicker(root, record);
     return picker ? root.typeOf(picker) : "";
   });
-  const semanticFields = useMemo(() => {
-    const fields = contract.fields.filter(
-      (field) =>
-        field.origin === "semantic" &&
-        !(calendarPicker && CATALOG_PICKER_CALENDAR_PROPS.has(field.key)),
+  // A Button's Icon · label fields — not when its origin edits the icon itself (IconButton's
+  // `icon` prop: the two would be one glyph twice).
+  const buttonChildFields =
+    !!buttonNode &&
+    !!buttonChildren &&
+    !contract.fields.some(
+      (field) => field.key === "icon" && field.kind === "icon",
     );
-    // An icon Button's label lives in its Text child (edited by the Text field instead).
-    return buttonChildren?.iconId
+  const childrenField = contract.fields.find(
+    (field) => field.key === "children" && field.origin === "semantic",
+  );
+  // A RadioGroup's Value is one of its Radios' values (any depth — the record tree).
+  const radioOptionsKey = useSyncExternalStore(subscribeSteps, () =>
+    contract.type === "RadioGroup"
+      ? JSON.stringify(catalogRadioGroupValueOptions(workspace.root, elementId))
+      : "",
+  );
+  // A Tabs' Selected Tab: its Tabs, showing the selected one.
+  const selectedTabKey = useSyncExternalStore(subscribeSteps, () =>
+    contract.type === "Tabs"
+      ? JSON.stringify(
+          catalogTabsSelectedTab(workspace.root, elementId) ?? null,
+        )
+      : "",
+  );
+  const semanticFields = useMemo(() => {
+    const radioOptions = radioOptionsKey
+      ? (JSON.parse(radioOptionsKey) as { value: string; label: string }[])
+      : undefined;
+    const selectedTab = selectedTabKey
+      ? (JSON.parse(selectedTabKey) as ReturnType<
+          typeof catalogTabsSelectedTab
+        >)
+      : undefined;
+    const fields = contract.fields
+      .filter(
+        (field) =>
+          field.origin === "semantic" &&
+          !(calendarPicker && CATALOG_PICKER_CALENDAR_PROPS.has(field.key)),
+      )
+      .map((field) =>
+        radioOptions && field.key === "value"
+          ? { ...field, options: radioOptions }
+          : selectedTab && field.key === "defaultSelectedKey"
+            ? {
+                ...field,
+                options: selectedTab.options,
+                // (Shown when the Tabs keep no key — the renderer reads own ?? base.)
+                baseValue: selectedTab.value,
+                currentValue: selectedTab.value,
+                isOverridden: false,
+              }
+            : field,
+      );
+    // A Button's label · icon fields draw together (`CatalogButtonChildFields` — label, then icon),
+    // so its own `children` field is not drawn twice.
+    return buttonChildFields
       ? fields.filter((field) => field.key !== "children")
       : fields;
-  }, [buttonChildren, calendarPicker, contract]);
+  }, [
+    buttonChildFields,
+    calendarPicker,
+    contract,
+    radioOptionsKey,
+    selectedTabKey,
+  ]);
   const bindingKeys = useMemo(
     () =>
       new Set(
@@ -291,19 +354,37 @@ const CatalogFields = memo(function CatalogFields({
     (patch: Record<string, unknown>) => {
       const first = targets[0];
       if (!first) return;
-      const command = catalogPropertiesPatchCommand(
-        workspace.runtime.graph,
-        targets,
-        patch,
-        (changed) => workspace.readModel.propSource(first, changed).value,
-        bindingKeys,
-        workspace.newId,
-        (target, changed) =>
-          workspace.readModel.propSource(target, changed).value,
+      // (A Tabs' Selected Tab writes its Tab's Selected, not a key on the Tabs — below.)
+      const { defaultSelectedKey: _tab, ...own } = patch;
+      const written = contract.type === "Tabs" ? own : patch;
+      const command = Object.keys(written).length
+        ? catalogPropertiesPatchCommand(
+            workspace.runtime.graph,
+            targets,
+            written,
+            (changed) => workspace.readModel.propSource(first, changed).value,
+            bindingKeys,
+            workspace.newId,
+            (target, changed) =>
+              workspace.readModel.propSource(target, changed).value,
+          )
+        : undefined;
+      // One value stays one (a Selected item takes it from the others; a RadioGroup's Value and
+      // its Radios' Selected follow each other) — in the same step.
+      const keep =
+        targets.length === 1
+          ? catalogSingleSelectionCommand(workspace, elementId, patch)
+          : [];
+      const all = [...(command ? [command] : []), ...keep];
+      if (!all.length) return;
+      run(
+        all.length > 1
+          ? () =>
+              composeCommands(workspace.runtime.graph, "Edit properties", all)
+          : all[0]!,
       );
-      if (command) run(command);
     },
-    [bindingKeys, run, targets, workspace],
+    [bindingKeys, contract.type, elementId, run, targets, workspace],
   );
   const handleSemanticUpdate = useCallback(
     (key: string, value: unknown) => handlePatch({ [key]: value }),
@@ -329,8 +410,22 @@ const CatalogFields = memo(function CatalogFields({
     contractFields: contract.fields,
     semanticFields,
     contentExtras:
-      buttonNode && buttonChildren ? (
-        <CatalogButtonChildFields nodeId={buttonNode} state={buttonChildren} />
+      buttonChildFields && buttonNode && buttonChildren ? (
+        <CatalogButtonChildFields
+          nodeId={buttonNode}
+          state={buttonChildren}
+          label={childrenField?.label ?? "Label"}
+          ownText={
+            typeof childrenField?.currentValue === "string"
+              ? childrenField.currentValue
+              : undefined
+          }
+          onOwnTextChange={
+            childrenField
+              ? (value) => handleSemanticUpdate("children", value)
+              : undefined
+          }
+        />
       ) : isCalendar ? (
         <>
           {calendarPicker ? (

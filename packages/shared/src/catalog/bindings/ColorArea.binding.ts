@@ -40,7 +40,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       colorSpace: {
         kind: "enum",
         label: "Color Space",
-        section: "appearance",
+        section: "content",
         options: [
           { value: "rgb", label: "RGB" },
           { value: "hsl", label: "HSL" },
@@ -50,7 +50,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       xChannel: {
         kind: "enum",
         label: "X Channel",
-        section: "appearance",
+        section: "content",
         options: [
           { value: "hue", label: "Hue" },
           { value: "saturation", label: "Saturation" },
@@ -64,7 +64,7 @@ export const colorAreaBinding: PrimitiveBinding = {
       yChannel: {
         kind: "enum",
         label: "Y Channel",
-        section: "appearance",
+        section: "content",
         options: [
           { value: "hue", label: "Hue" },
           { value: "saturation", label: "Saturation" },

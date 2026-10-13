@@ -109,7 +109,7 @@ export const radioGroupBinding: PrimitiveBinding = {
       errorMessage: {
         kind: "string",
         label: "Error Message",
-        section: "state",
+        section: "content",
       },
     },
     toRacProps: "default",
