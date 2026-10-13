@@ -34,6 +34,19 @@ export const calendarBinding: PrimitiveBinding = {
         section: "appearance",
         default: "M",
       },
+      // RAC · S2 1.8.0 Calendar `selectionMode` (`useCalendarState` — `'single' | 'multiple'`,
+      //   default single): multiple toggles each pressed date in. A picker selects one date
+      //   (`CATALOG_PICKER_CALENDAR_PROPS`).
+      selectionMode: {
+        kind: "enum",
+        label: "Selection Mode",
+        section: "state",
+        default: "single",
+        options: [
+          { value: "single", label: "Single" },
+          { value: "multiple", label: "Multiple" },
+        ],
+      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): delegatedDom `calendarProps` 가 소비 —

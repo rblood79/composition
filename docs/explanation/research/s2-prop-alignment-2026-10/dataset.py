@@ -42,7 +42,7 @@ PREFIX_FIELDS = {"TextField", "TextArea", "NumberField", "ComboBox", "ColorField
 ELSEWHERE = {
     ("TooltipTrigger", "placement"): "Tooltip 노드", ("TooltipTrigger", "crossOffset"): "Tooltip 노드", ("TooltipTrigger", "containerPadding"): "Tooltip 노드",
     ("Popover", "hideArrow"): "OverlayArrow 노드", ("Popover", "padding"): "Styles padding", ("Dialog", "isDismissible"): "Modal isDismissable",
-    ("Calendar", "selectionMode"): "RangeCalendar", ("Disclosure", "defaultExpanded"): "isExpanded",
+    ("Disclosure", "defaultExpanded"): "isExpanded",
     ("Tag", "label"): "Text 노드", ("ColorSlider", "label"): "Label 노드", ("DisclosurePanel", "label"): "Heading 노드", ("AvatarGroup", "label"): "원본 accept + Text 노드",
 }
 lib = open(f"{D}/../../../../packages/shared/src/catalog/document/generated/reusableOriginLibrary.ts").read()

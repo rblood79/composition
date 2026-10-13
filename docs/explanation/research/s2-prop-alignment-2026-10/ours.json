@@ -3882,6 +3882,14 @@
    "kind": "size",
    "default": "M"
   },
+  "selectionMode": {
+   "kind": "enum",
+   "options": [
+    "single",
+    "multiple"
+   ],
+   "default": "single"
+  },
   "isDisabled": {
    "kind": "boolean"
   },

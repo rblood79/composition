@@ -31,6 +31,8 @@ import {
   removeTargets,
   setFields,
 } from "../../../../../../packages/shared/src/catalog/commands";
+import { calendarBinding } from "../../../../../../packages/shared/src/catalog/bindings";
+import { CATALOG_PICKER_CALENDAR_PROPS } from "../../../../../../packages/shared/src/catalog/runtime/delegatedDom";
 import { catalogCalendarGridSize } from "../../../../../../packages/shared/src/catalog/resolvers/resolveCatalogRuleCanvasBox";
 import { renderCatalogDom } from "../domBinding";
 import { catalogSlotInsertOptions } from "../slots";
@@ -319,7 +321,9 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
       const days = [
         ...range
           .render()
-          .querySelectorAll(".react-aria-CalendarCell:not([data-outside-month])"),
+          .querySelectorAll(
+            ".react-aria-CalendarCell:not([data-outside-month])",
+          ),
       ].map((cell) => cell.textContent);
       expect(days[0]).toBe("1");
       expect(days.every((day) => /^\d+$/.test(day ?? ""))).toBe(true);
@@ -363,6 +367,51 @@ describe("ADR-256 Phase 9 — Calendar node tree (G2)", () => {
         ),
       ].map((element) => element.textContent),
     ).toEqual(["12", "13", "14", "15", "16"]);
+  });
+
+  // RAC · S2 Calendar `selectionMode` (사용자 2026-10-13 「RAC 레퍼런스에는 selectionMode 가
+  // 존재한다」): `single` (default) keeps one date, `multiple` toggles each pressed date in.
+  it("selectionMode: the reference's single · multiple", async () => {
+    const accepts = calendarBinding.props.accepts.selectionMode;
+    expect(accepts?.kind === "enum" ? accepts.default : undefined).toBe(
+      "single",
+    );
+    expect(
+      accepts?.kind === "enum" ? accepts.options?.map((o) => o.value) : [],
+    ).toEqual(["single", "multiple"]);
+    // A picker selects one date — its calendar's mode is not the node's.
+    expect(CATALOG_PICKER_CALENDAR_PROPS.has("selectionMode")).toBe(true);
+
+    const selected = (host: HTMLElement) =>
+      [
+        ...host.querySelectorAll(
+          ".react-aria-CalendarCell:not([data-outside-month])[data-selected]",
+        ),
+      ].map((element) => element.textContent);
+    const press = (host: HTMLElement, day: string) =>
+      act(() =>
+        [
+          ...host.querySelectorAll<HTMLElement>(
+            ".react-aria-CalendarCell:not([data-outside-month])",
+          ),
+        ]
+          .find((element) => element.textContent === day)!
+          .click(),
+      );
+    const single = await place("calendar");
+    const singleHost = single.render();
+    press(singleHost, "10");
+    press(singleHost, "12");
+    expect(selected(singleHost)).toEqual(["12"]);
+
+    const multiple = await place("calendar");
+    multiple.write({ selectionMode: "multiple" });
+    const multipleHost = multiple.render();
+    press(multipleHost, "10");
+    press(multipleHost, "12");
+    press(multipleHost, "20");
+    press(multipleHost, "12");
+    expect(selected(multipleHost)).toEqual(["10", "20"]);
   });
 
   /** The reference's Month and year pickers (Calendar.md 「Month and year pickers」). */

@@ -449,6 +449,7 @@ export interface TreeItemElementProps extends BaseElementProps {
 }
 
 export interface CalendarElementProps extends BaseElementProps {
+  selectionMode?: "single" | "multiple";
   value?: unknown;
   defaultValue?: unknown;
   isDisabled?: boolean;

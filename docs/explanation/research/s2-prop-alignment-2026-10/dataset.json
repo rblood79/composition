@@ -287,6 +287,7 @@
   "type": "Calendar",
   "s2": "Calendar",
   "same": [
+   "selectionMode",
    "isDisabled",
    "isReadOnly",
    "isInvalid",
@@ -332,12 +333,8 @@
   ],
   "carry": [],
   "editor": [],
-  "node": [
-   "selectionMode"
-  ],
-  "nodeWhy": {
-   "selectionMode": "RangeCalendar"
-  },
+  "node": [],
+  "nodeWhy": {},
   "s2vis": [
    "visibleMonths",
    "selectionAlignment"

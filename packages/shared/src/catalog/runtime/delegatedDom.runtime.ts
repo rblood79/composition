@@ -2644,6 +2644,11 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
     render: (input) => {
       const props = input.node.props;
       return calendarElement(input, RacCalendar, "Calendar", {
+        selectionMode: catalogCalendarPicker(input.root, input.node)
+          ? undefined
+          : props.selectionMode === "multiple"
+            ? "multiple"
+            : "single",
         defaultValue: catalogCalendarPicker(input.root, input.node)
           ? undefined
           : dateValue(props.defaultValue),
@@ -2663,7 +2668,7 @@ const DELEGATED: Record<string, DelegatedDomBinding> = {
 /**
  * A picker calendar's props RAC's calendar context gives (`calendarProps` leaves the node's own
  * unset — `own`): the picker's state, bounds, paging and first day (ADR-256 Phase 9 — Properties
- * edits them on the picker).
+ * edits them on the picker), and `selectionMode` — a picker selects one date.
  */
 export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
   "isDisabled",
@@ -2675,6 +2680,7 @@ export const CATALOG_PICKER_CALENDAR_PROPS: ReadonlySet<string> = new Set([
   "minValue",
   "maxValue",
   "errorMessage",
+  "selectionMode",
 ]);
 
 /**

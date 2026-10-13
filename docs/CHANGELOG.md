@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Calendar — selectionMode] - 2026-10-13
+
+### Added
+
+- **Calendar `selectionMode` 추가** (RAC 1.22.1 · S2 1.8.0 — `useCalendarState` `selectionMode?: 'single' | 'multiple'`, 기본 `single`): Design 패널의 Selection Mode 가 Single · Multiple 을 고른다. Multiple 이면 Preview 에서 누른 날짜가 하나씩 선택에 더해지고, 다시 누르면 빠진다.
+  - DatePicker 안 Calendar 는 picker 가 날짜 하나를 고르므로 노드의 값을 쓰지 않고 패널에서도 감춘다 (`CATALOG_PICKER_CALENDAR_PROPS`). RangeCalendar 는 RAC · S2 모두 이 prop 이 없다.
+  - S2 정렬 조사가 이 prop 을 「RangeCalendar 가 맡음」 으로 잘못 분류했던 것을 고쳤다 — 범위 선택과 여러 날짜 선택은 다른 동작이다 (같음 535 → 536).
+
 ## [Calendar · RangeCalendar — 레퍼런스대로 border · padding · 배경 없음] - 2026-10-13
 
 ### Changed
