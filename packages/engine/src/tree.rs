@@ -2856,14 +2856,12 @@ impl LayoutTree {
         let off_y = pad_border_start(&style, &parent_ctx, false);
 
         // 자식 available = 컨테이너 content box. explicit(border-box) 이면 감산,
-        // auto stretch 이면 상속 available(border-box) 에서 감산.
-        // 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
+        // auto stretch 이면 상속 available 에서 **자기 inline margin** 과 pad/border 를 감산
+        // (`auto_content_avail_w`). 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
         let child_avail_w = if explicit_w > 0.0 {
             spec_to_content(explicit_w, own_pb_h)
-        } else if avail_w >= 0.0 {
-            (avail_w - own_pb_h).max(0.0)
         } else {
-            avail_w
+            auto_content_avail_w(&style, &parent_ctx, avail_w, own_pb_h)
         };
         // `explicit_h` 0 은 "미지정" 센티넬이라, 높이가 **확정 0** 인 컨테이너 (저작 `0px` ·
         //   부모 flex 분배/stretch 가 0 으로 확정한 used 값) 는 따로 판정한다. 그 column main 은
@@ -3889,14 +3887,12 @@ impl LayoutTree {
         let off_y = pad_border_start(&style, &parent_ctx, false);
 
         // 자식 available = 컨테이너 content box. explicit(border-box) 이면 감산,
-        // auto stretch 이면 상속 available(border-box) 에서 감산.
-        // 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
+        // auto stretch 이면 상속 available 에서 **자기 inline margin** 과 pad/border 를 감산
+        // (`auto_content_avail_w`). 음수 available 은 indefinite 센티넬 — 감산 없이 보존.
         let child_avail_w = if explicit_w > 0.0 {
             spec_to_content(explicit_w, own_pb_h)
-        } else if avail_w >= 0.0 {
-            (avail_w - own_pb_h).max(0.0)
         } else {
-            avail_w
+            auto_content_avail_w(&style, &parent_ctx, avail_w, own_pb_h)
         };
         let child_avail_h = if explicit_h > 0.0 {
             spec_to_content(explicit_h, own_pb_v)
@@ -4297,13 +4293,12 @@ impl LayoutTree {
         let off_x = pad_border_start(&style, &parent_ctx, true);
         let off_y = pad_border_start(&style, &parent_ctx, false);
 
-        // 트랙 available = content box (explicit=border-box 감산 / 상속도 감산).
+        // 트랙 available = content box (explicit=border-box 감산 / 상속은 자기 inline margin 과
+        // pad/border 감산 — `auto_content_avail_w`).
         let mut container_w = if explicit_w > 0.0 {
             spec_to_content(explicit_w, own_pb_h)
-        } else if avail_w >= 0.0 {
-            (avail_w - own_pb_h).max(0.0)
         } else {
-            avail_w
+            auto_content_avail_w(&style, &parent_ctx, avail_w, own_pb_h)
         };
         let container_h = if explicit_h > 0.0 {
             spec_to_content(explicit_h, own_pb_v)
@@ -6994,6 +6989,27 @@ fn resolve_signed(value: Option<&str>, ctx: &CssValueContext) -> f32 {
     resolve_inset(value, ctx).unwrap_or(0.0)
 }
 
+/// The content width an auto-width container lays its children in, from the available width its
+/// parent passed (the parent's content box — the containing block): less its own inline margins
+/// and padding/border (CSS 2 §10.3.3 · flex/grid stretch: `margin-left + border-box + margin-right =
+/// containing block`). `auto` margins are 0 here, negative margins widen. Before (2026-10-13) the
+/// margins were left in: a stretched box with `margin: 0 4px` laid its children 8 wider than itself
+/// — `width: 100%` children overflowed it (the RAC reference ListBox item's label: 1873 vs Chrome
+/// 1865). An indefinite (negative) available stays the sentinel.
+fn auto_content_avail_w(
+    style: &NodeStyle,
+    parent_ctx: &CssValueContext,
+    avail_w: f32,
+    own_pb_h: f32,
+) -> f32 {
+    if avail_w < 0.0 {
+        return avail_w;
+    }
+    let margins = resolve_signed(style.margin_left.as_deref(), parent_ctx)
+        + resolve_signed(style.margin_right.as_deref(), parent_ctx);
+    (avail_w - margins - own_pb_h).max(0.0)
+}
+
 /// flex 자식 배치 (`out` = [x,y,w,h]×n, 커널 정방향 좌표) 의 **margin-box** extent (max right, max
 /// bottom). margin 은 `write_flex_item` 이 커널에 넘긴 값 (슬롯 4 = 논리 right, 5 = bottom — reverse
 /// 축은 이미 맞바꿔져 있다) 이라 커널 좌표의 end 쪽과 일치한다. auto margin 은 0 으로 실려 있다.
@@ -8087,6 +8103,40 @@ mod tests {
         );
         let widths: Vec<f32> = (1..4).map(|i| t.get_layout(h[i]).width).collect();
         assert_eq!(widths, vec![175.0, 175.0, 175.0], "block 부모 — c · b · a");
+    }
+
+    /// A stretched box with inline margins lays its children in its own content box: a child's
+    /// `width: 100%` is the box's width less its padding — not the container's (the margins left
+    /// out). Block parent · column flex (`normal` · `stretch`): container 200 · box margin 0 4 ·
+    /// padding 0 12 0 34 → box 192 · child 146 (CSS 2 §10.3.3 — Chrome the same).
+    /// (2026-10-13 — the RAC reference ListBox: its items' 4px inline margins, the label Text 100%.)
+    #[test]
+    fn stretched_column_flex_item_with_margins_lays_children_in_its_content_box() {
+        for (align, boxed) in [
+            ("block", "flex"),
+            ("normal", "flex"),
+            ("stretch", "flex"),
+            ("block", "grid"),
+            ("normal", "grid"),
+        ] {
+            let parent = match align {
+                "block" => r#""display":"block","width":"200px""#.to_string(),
+                "normal" => r#""display":"flex","flexDirection":"column","width":"200px""#.to_string(),
+                _ => format!(r#""display":"flex","flexDirection":"column","alignItems":"{align}","width":"200px""#),
+            };
+            let (t, h) = solve(
+                &format!(
+                    r#"[
+                {{"style":{{"display":"block","width":"100%","height":"20px"}},"children":[]}},
+                {{"style":{{"display":"{boxed}","flexDirection":"column","alignItems":"flex-start","marginLeft":"4px","marginRight":"4px","paddingLeft":"34px","paddingRight":"12px"}},"children":[0]}},
+                {{"style":{{{parent}}},"children":[1]}}
+            ]"#
+                ),
+                2, 200.0, -1.0,
+            );
+            assert_eq!(t.get_layout(h[1]).width, 192.0, "{align} {boxed} — box 200 − 8");
+            assert_eq!(t.get_layout(h[0]).width, 146.0, "{align} {boxed} — child 192 − 46");
+        }
     }
 
     /// ⑨ — shrink-to-fit block 부모 안의 padded 스칼라 leaf (ledger §27 인접). `#[test]` 는 2026-09-07
