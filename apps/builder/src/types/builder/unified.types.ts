@@ -195,7 +195,7 @@ export interface TextFieldElementProps extends BaseElementProps {
   placeholder?: string;
   value?: string;
   defaultValue?: string;
-  type?: "text" | "email" | "password" | "search" | "tel" | "url" | "number";
+  type?: "text" | "email" | "password" | "search" | "tel" | "url";
   isRequired?: boolean;
   isDisabled?: boolean;
   isReadOnly?: boolean;

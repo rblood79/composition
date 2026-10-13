@@ -708,8 +708,7 @@
     "password",
     "search",
     "tel",
-    "url",
-    "number"
+    "url"
    ],
    "default": "text"
   },

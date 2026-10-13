@@ -128,6 +128,11 @@ export const CATALOG_S2_PROP_MIGRATIONS: Readonly<
     },
   },
   CardView: { variant: dropOf },
+  // TextField type (2026-10-13): S2 의 값에 number 가 없다 — 숫자 입력은 NumberField. 옛 number 는
+  // 삭제 (기본 text), 나머지 값은 그대로.
+  TextField: {
+    type: (value) => (value === "number" ? DROP : { type: value }),
+  },
   // 조사 §4.2 F (사용자 결정 2026-10-12 「S2 · RAC · v3 어디에도 없으면 지워」): 이 type 들의
   // `variant` 는 레퍼런스 어디에도 없는 축이라 삭제 — rule 은 기본 변형 하나만 남는다.
   // (ProgressBar 의 v3 `variant` 는 `overBackground` 하나 — S2 `staticColor` 가 그 자리다.)

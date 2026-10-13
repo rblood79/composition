@@ -83,7 +83,8 @@ export const textFieldBinding: PrimitiveBinding = {
         visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
-      // RAC TextField props
+      // S2 1.8.0 `type` (`@react-types/shared` TextInputDOMProps) — 숫자 입력은 NumberField 가
+      //   맡아 `number` 는 없다 (2026-10-13 — 옛 값은 로드 시 1회 삭제, `s2PropAlignment.ts`).
       type: {
         kind: "enum",
         label: "Input Type",
@@ -96,7 +97,6 @@ export const textFieldBinding: PrimitiveBinding = {
           { value: "search", label: "Search" },
           { value: "tel", label: "Tel" },
           { value: "url", label: "URL" },
-          { value: "number", label: "Number" },
         ],
       },
       // form binding props

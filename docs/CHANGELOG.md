@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [S2 TextField — type 값] - 2026-10-13
+
+### Breaking Changes
+
+- **TextField `type` 에서 `number` 삭제** (S2 1.8.0 — `@react-types/shared` `type?: 'text' | 'search' | 'url' | 'tel' | 'email' | 'password'`): Design 패널의 Input Type 이 Text · Email · Password · Search · Tel · URL 을 고른다.
+  - **Why**: S2 는 숫자 입력을 NumberField 에 맡긴다 — 브라우저 `<input type="number">` 는 지역 숫자 표기 · 형식 (통화 · 퍼센트) · 증감 동작이 브라우저마다 다르다. 숫자 입력은 NumberField 를 쓴다.
+  - 옛 문서의 `type: "number"` 는 로드할 때 한 번 지워진다 (기본 `text`, `s2PropAlignment.ts`). 다른 값은 그대로다. 단독 Input 의 `type` (RAC `Input`) 은 그대로 `number` 를 받는다.
+  - S2 정렬 조사 5.1 의 남은 값 차이에서 빠졌다 (같음 534 → 535).
+
 ## [S2 Form — method 값] - 2026-10-13
 
 ### Added

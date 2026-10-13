@@ -4211,6 +4211,7 @@
    "placeholder",
    "labelPosition",
    "labelAlign",
+   "type",
    "value",
    "name",
    "errorMessage",
@@ -4243,26 +4244,6 @@
      "M",
      "S",
      "XL"
-    ]
-   },
-   {
-    "prop": "type",
-    "ours": [
-     "text",
-     "email",
-     "password",
-     "search",
-     "tel",
-     "url",
-     "number"
-    ],
-    "s2": [
-     "email",
-     "password",
-     "search",
-     "tel",
-     "text",
-     "url"
     ]
    }
   ],
